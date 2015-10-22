@@ -3,11 +3,12 @@ package ui_test
 import (
 	"fmt"
 	"io"
+	"runtime"
 	"sync"
 
+	"github.com/concourse/fly/pty"
 	. "github.com/concourse/fly/ui"
 	"github.com/fatih/color"
-	"github.com/kr/pty"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -58,6 +59,10 @@ var _ = Describe("Table", func() {
 
 	Context("when the render method is called in a TTY", func() {
 		It("prints the headers and the data in color", func() {
+			if runtime.GOOS == "windows" {
+				Skip("these escape codes, and the pty stuff, don't apply to Windows")
+			}
+
 			pty, tty, err := pty.Open()
 			Expect(err).NotTo(HaveOccurred())
 

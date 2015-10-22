@@ -1,5 +1,3 @@
-// +build !windows
-
 package integration_test
 
 import (
@@ -9,7 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/concourse/atc"
-	"github.com/kr/pty"
+	"github.com/concourse/fly/pty"
 	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -111,7 +109,7 @@ var _ = Describe("Hijacking", func() {
 
 		Eventually(hijacked).Should(BeClosed())
 
-		_, err = pty.WriteString("some stdin")
+		_, err = fmt.Fprintf(pty, "some stdin")
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(sess.Out).Should(gbytes.Say("some stdout"))
@@ -274,22 +272,22 @@ var _ = Describe("Hijacking", func() {
 			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-1, build id: 3, type: put, name: some-job"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
-			_, err = pty.WriteString("ghfdhf\n")
+			_, err = fmt.Fprintf(pty, "ghfdhf\n")
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(sess.Out).Should(gbytes.Say("invalid selection"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
-			_, err = pty.WriteString("3\n")
+			_, err = fmt.Fprintf(pty, "3\n")
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(sess.Out).Should(gbytes.Say("invalid selection"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
-			_, err = pty.WriteString("2\n")
+			_, err = fmt.Fprintf(pty, "2\n")
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(hijacked).Should(BeClosed())
 
-			_, err = pty.WriteString("some stdin")
+			_, err = fmt.Fprintf(pty, "some stdin")
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess.Out).Should(gbytes.Say("some stdout"))
@@ -515,7 +513,7 @@ var _ = Describe("Hijacking", func() {
 
 					Eventually(hijacked).Should(BeClosed())
 
-					_, err = pty.WriteString("some stdin")
+					_, err = fmt.Fprintf(pty, "some stdin")
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess.Err.Contents).Should(ContainSubstring(ansi.Color("something went wrong", "red+b") + "\n"))

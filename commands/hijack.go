@@ -1,5 +1,3 @@
-// +build !windows
-
 package commands
 
 import (
@@ -16,17 +14,14 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/fly/pty"
 	"github.com/concourse/fly/rc"
-	"github.com/kr/pty"
 	"github.com/mgutz/ansi"
-	"github.com/pkg/term"
 	"github.com/tedsuo/rata"
 )
 
@@ -329,13 +324,8 @@ func performHijack(hijackReq *http.Request, tlsConfig *tls.Config) int {
 func hijack(conn net.Conn, br *bufio.Reader) int {
 	var in io.Reader
 
-	term, err := term.Open(os.Stdin.Name())
+	term, err := pty.OpenRawTerm()
 	if err == nil {
-		err = term.SetRaw()
-		if err != nil {
-			log.Fatalln("failed to set raw:", term)
-		}
-
 		defer term.Restore()
 
 		in = term
@@ -346,8 +336,7 @@ func hijack(conn net.Conn, br *bufio.Reader) int {
 	encoder := json.NewEncoder(conn)
 	decoder := json.NewDecoder(br)
 
-	resized := make(chan os.Signal, 10)
-	signal.Notify(resized, syscall.SIGWINCH)
+	resized := pty.ResizeNotifier()
 
 	go func() {
 		for {

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/concourse/fly/pty"
 	"github.com/concourse/fly/ui"
-	"github.com/kr/pty"
 	"github.com/onsi/gomega/format"
 )
 
@@ -48,6 +48,7 @@ func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
 	}
 
 	expectedTTY.Close()
+	expectedPTY.Close()
 
 	reading.Wait()
 
@@ -81,6 +82,7 @@ func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
 		}
 
 		actualTTY.Close()
+		actualPTY.Close()
 
 		reading.Wait()
 
@@ -93,9 +95,9 @@ func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
 }
 
 func (matcher *PrintTableMatcher) FailureMessage(actual interface{}) string {
-	return format.Message(matcher.actual, "To contain the table", matcher.expected)
+	return fmt.Sprintf("Expected\n%s\n(%q)\nTo contain the table\n%s\n(%q)\n", format.IndentString(matcher.actual, 1), matcher.actual, format.IndentString(matcher.expected, 1), matcher.expected)
 }
 
 func (matcher *PrintTableMatcher) NegatedFailureMessage(actual interface{}) string {
-	return format.Message(matcher.actual, "To not contain the table", matcher.expected)
+	return fmt.Sprintf("Expected\n%s\n(%q)\nTo not contain the table\n%s\n(%q)\n", format.IndentString(matcher.actual, 1), matcher.actual, format.IndentString(matcher.expected, 1), matcher.expected)
 }

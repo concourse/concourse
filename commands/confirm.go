@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/pkg/term"
+	"github.com/concourse/fly/pty"
 )
 
 func askToConfirm(prompt string) bool {
@@ -16,13 +16,8 @@ func askToConfirm(prompt string) bool {
 
 	var in io.Reader
 
-	t, err := term.Open(os.Stdin.Name())
+	t, err := pty.OpenRawTerm()
 	if err == nil {
-		err = t.SetRaw()
-		if err != nil {
-			log.Fatalln("failed to set raw:", err)
-		}
-
 		in = t
 	} else {
 		in = os.Stdin
