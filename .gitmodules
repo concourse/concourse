@@ -70,14 +70,6 @@
 	path = src/github.com/mitchellh/mapstructure
 	url = https://github.com/mitchellh/mapstructure
 	branch = master
-[submodule "src/github.com/codahale/metrics"]
-	path = src/github.com/codahale/metrics
-	url = https://github.com/codahale/metrics
-	branch = master
-[submodule "src/github.com/codahale/hdrhistogram"]
-	path = src/github.com/codahale/hdrhistogram
-	url = https://github.com/codahale/hdrhistogram
-	branch = master
 [submodule "src/golang.org/x/crypto"]
 	path = src/golang.org/x/crypto
 	url = https://go.googlesource.com/crypto
