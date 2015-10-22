@@ -4,6 +4,8 @@ import (
 	"os/exec"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/ui"
+	"github.com/fatih/color"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -18,23 +20,12 @@ var _ = Describe("Fly CLI", func() {
 
 	Describe("volumes", func() {
 		var (
-			args []string
-
-			sess *gexec.Session
+			flyCmd *exec.Cmd
 		)
 
 		BeforeEach(func() {
-			args = []string{}
 			atcServer = ghttp.NewServer()
-		})
-
-		JustBeforeEach(func() {
-			var err error
-
-			flyCmd := exec.Command(flyPath, append([]string{"-t", atcServer.URL(), "volumes"}, args...)...)
-
-			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
+			flyCmd = exec.Command(flyPath, "-t", atcServer.URL(), "volumes")
 		})
 
 		Context("when volumes are returned from the API", func() {
@@ -76,12 +67,23 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("lists them to the user, ordered by worker name and volume name", func() {
-				Eventually(sess).Should(gbytes.Say("handle  ttl       validity  worker  version                     \n"))
-				Eventually(sess).Should(gbytes.Say("aaabbb  01:23:20  01:40:00  cccccc  another: field, version: two\n"))
-				Eventually(sess).Should(gbytes.Say("bbbbbb  00:00:50  00:10:00  cccccc  version: one                \n"))
-				Eventually(sess).Should(gbytes.Say("aaaaaa  23:59:00  24:00:00  dddddd  version: three              \n"))
-				Eventually(sess).Should(gbytes.Say("cccccc  00:03:20  00:05:00  dddddd  n/a                         \n"))
-				Eventually(sess).Should(gexec.Exit(0))
+				Expect(flyCmd).To(PrintTable(ui.Table{
+					Headers: ui.TableRow{
+						{Contents: "handle", Color: color.New(color.Bold)},
+						{Contents: "ttl", Color: color.New(color.Bold)},
+						{Contents: "validity", Color: color.New(color.Bold)},
+						{Contents: "worker", Color: color.New(color.Bold)},
+						{Contents: "version", Color: color.New(color.Bold)},
+					},
+					Data: []ui.TableRow{
+						{{Contents: "aaabbb"}, {Contents: "01:23:20"}, {Contents: "01:40:00"}, {Contents: "cccccc"}, {Contents: "another: field, version: two"}},
+						{{Contents: "bbbbbb"}, {Contents: "00:00:50"}, {Contents: "00:10:00"}, {Contents: "cccccc"}, {Contents: "version: one"}},
+						{{Contents: "aaaaaa"}, {Contents: "23:59:00"}, {Contents: "24:00:00"}, {Contents: "dddddd"}, {Contents: "version: three"}},
+						{{Contents: "cccccc"}, {Contents: "00:03:20"}, {Contents: "00:05:00"}, {Contents: "dddddd"}, {Contents: "n/a", Color: color.New(color.Faint)}},
+					},
+				}))
+
+				Expect(flyCmd).To(HaveExited(0))
 			})
 		})
 
@@ -96,6 +98,8 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("writes an error message to stderr", func() {
+				sess, err := gexec.Start(flyCmd, nil, nil)
+				Expect(err).ToNot(HaveOccurred())
 				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 				Eventually(sess).Should(gexec.Exit(1))
 			})

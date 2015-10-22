@@ -1,11 +1,12 @@
 package commands
 
 import (
-	"fmt"
 	"log"
+	"os"
 
 	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
 )
 
@@ -45,15 +46,15 @@ func (command *PipelinesCommand) Execute([]string) error {
 		log.Fatalln(err)
 	}
 
-	table := Table{
-		{
+	table := ui.Table{
+		Headers: ui.TableRow{
 			{Contents: "name", Color: color.New(color.Bold)},
 			{Contents: "paused", Color: color.New(color.Bold)},
 		},
 	}
 
 	for _, p := range pipelines {
-		var pausedColumn TableCell
+		var pausedColumn ui.TableCell
 		if p.Paused {
 			pausedColumn.Contents = "yes"
 			pausedColumn.Color = color.New(color.FgCyan)
@@ -61,13 +62,11 @@ func (command *PipelinesCommand) Execute([]string) error {
 			pausedColumn.Contents = "no"
 		}
 
-		table = append(table, []TableCell{
+		table.Data = append(table.Data, []ui.TableCell{
 			{Contents: p.Name},
 			pausedColumn,
 		})
 	}
 
-	fmt.Print(table.Render())
-
-	return nil
+	return table.Render(os.Stdout)
 }

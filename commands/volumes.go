@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"log"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
 )
 
@@ -48,20 +50,20 @@ func (command *VolumesCommand) Execute([]string) error {
 		log.Fatalln(err)
 	}
 
-	headers := TableRow{
-		{Contents: "handle", Color: color.New(color.Bold)},
-		{Contents: "ttl", Color: color.New(color.Bold)},
-		{Contents: "validity", Color: color.New(color.Bold)},
-		{Contents: "worker", Color: color.New(color.Bold)},
-		{Contents: "version", Color: color.New(color.Bold)},
+	table := ui.Table{
+		Headers: ui.TableRow{
+			{Contents: "handle", Color: color.New(color.Bold)},
+			{Contents: "ttl", Color: color.New(color.Bold)},
+			{Contents: "validity", Color: color.New(color.Bold)},
+			{Contents: "worker", Color: color.New(color.Bold)},
+			{Contents: "version", Color: color.New(color.Bold)},
+		},
 	}
-
-	table := Table{headers}
 
 	sort.Sort(volumesByWorkerAndHandle(volumes))
 
 	for _, c := range volumes {
-		row := TableRow{
+		row := ui.TableRow{
 			{Contents: c.ID},
 			{Contents: formatTTL(c.TTLInSeconds)},
 			{Contents: formatTTL(c.ValidityInSeconds)},
@@ -69,12 +71,10 @@ func (command *VolumesCommand) Execute([]string) error {
 			versionCell(c.ResourceVersion),
 		}
 
-		table = append(table, row)
+		table.Data = append(table.Data, row)
 	}
 
-	fmt.Print(table.Render())
-
-	return nil
+	return table.Render(os.Stdout)
 }
 
 type volumesByWorkerAndHandle []atc.Volume
@@ -100,9 +100,9 @@ func formatTTL(ttlInSeconds int64) string {
 	)
 }
 
-func versionCell(version atc.Version) TableCell {
+func versionCell(version atc.Version) ui.TableCell {
 	if version == nil {
-		return TableCell{Contents: "n/a", Color: color.New(color.Faint)}
+		return ui.TableCell{Contents: "n/a", Color: color.New(color.Faint)}
 	}
 
 	pairs := []string{}
@@ -112,5 +112,5 @@ func versionCell(version atc.Version) TableCell {
 
 	sort.Sort(sort.StringSlice(pairs))
 
-	return TableCell{Contents: strings.Join(pairs, ", ")}
+	return ui.TableCell{Contents: strings.Join(pairs, ", ")}
 }

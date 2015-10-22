@@ -4,6 +4,8 @@ import (
 	"os/exec"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/ui"
+	"github.com/fatih/color"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -18,20 +20,12 @@ var _ = Describe("Fly CLI", func() {
 
 	Describe("pipelines", func() {
 		var (
-			sess *gexec.Session
+			flyCmd *exec.Cmd
 		)
 
 		BeforeEach(func() {
 			atcServer = ghttp.NewServer()
-		})
-
-		JustBeforeEach(func() {
-			var err error
-
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "pipelines")
-
-			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
+			flyCmd = exec.Command(flyPath, "-t", atcServer.URL(), "pipelines")
 		})
 
 		Context("when pipelines are returned from the API", func() {
@@ -49,11 +43,19 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("lists them to the user", func() {
-				Eventually(sess).Should(gbytes.Say("name               paused"))
-				Eventually(sess).Should(gbytes.Say(`pipeline-1-longer  no`))
-				Eventually(sess).Should(gbytes.Say(`pipeline-2         yes`))
-				Eventually(sess).Should(gbytes.Say(`pipeline-3         no`))
-				Eventually(sess).Should(gexec.Exit(0))
+				Expect(flyCmd).To(PrintTable(ui.Table{
+					Headers: ui.TableRow{
+						{Contents: "name", Color: color.New(color.Bold)},
+						{Contents: "paused", Color: color.New(color.Bold)},
+					},
+					Data: []ui.TableRow{
+						{{Contents: "pipeline-1-longer"}, {Contents: "no"}},
+						{{Contents: "pipeline-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
+						{{Contents: "pipeline-3"}, {Contents: "no"}},
+					},
+				}))
+
+				Expect(flyCmd).To(HaveExited(0))
 			})
 		})
 
@@ -68,6 +70,8 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("writes an error message to stderr", func() {
+				sess, err := gexec.Start(flyCmd, nil, nil)
+				Expect(err).ToNot(HaveOccurred())
 				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 				Eventually(sess).Should(gexec.Exit(1))
 			})

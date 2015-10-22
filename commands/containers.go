@@ -1,14 +1,15 @@
 package commands
 
 import (
-	"fmt"
 	"log"
+	"os"
 	"sort"
 	"strconv"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
 )
 
@@ -47,7 +48,7 @@ func (command *ContainersCommand) Execute([]string) error {
 		log.Fatalln(err)
 	}
 
-	headers := TableRow{
+	headers := ui.TableRow{
 		{Contents: "handle", Color: color.New(color.Bold)},
 		{Contents: "name", Color: color.New(color.Bold)},
 		{Contents: "pipeline", Color: color.New(color.Bold)},
@@ -56,12 +57,12 @@ func (command *ContainersCommand) Execute([]string) error {
 		{Contents: "worker", Color: color.New(color.Bold)},
 	}
 
-	table := Table{headers}
+	table := ui.Table{Data: []ui.TableRow{headers}}
 
 	sort.Sort(containersByHandle(containers))
 
 	for _, c := range containers {
-		row := TableRow{
+		row := ui.TableRow{
 			{Contents: c.ID},
 			{Contents: c.Name},
 			{Contents: c.PipelineName},
@@ -70,12 +71,10 @@ func (command *ContainersCommand) Execute([]string) error {
 			{Contents: c.WorkerName},
 		}
 
-		table = append(table, row)
+		table.Data = append(table.Data, row)
 	}
 
-	fmt.Print(table.Render())
-
-	return nil
+	return table.Render(os.Stdout)
 }
 
 type containersByHandle []atc.Container
@@ -84,8 +83,8 @@ func (cs containersByHandle) Len() int               { return len(cs) }
 func (cs containersByHandle) Swap(i int, j int)      { cs[i], cs[j] = cs[j], cs[i] }
 func (cs containersByHandle) Less(i int, j int) bool { return cs[i].ID < cs[j].ID }
 
-func buildIDOrNone(id int) TableCell {
-	var column TableCell
+func buildIDOrNone(id int) ui.TableCell {
+	var column ui.TableCell
 
 	if id == 0 {
 		column.Contents = "none"

@@ -4,6 +4,8 @@ import (
 	"os/exec"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/ui"
+	"github.com/fatih/color"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -18,23 +20,12 @@ var _ = Describe("Fly CLI", func() {
 
 	Describe("workers", func() {
 		var (
-			args []string
-
-			sess *gexec.Session
+			flyCmd *exec.Cmd
 		)
 
 		BeforeEach(func() {
-			args = []string{}
 			atcServer = ghttp.NewServer()
-		})
-
-		JustBeforeEach(func() {
-			var err error
-
-			flyCmd := exec.Command(flyPath, append([]string{"-t", atcServer.URL(), "workers"}, args...)...)
-
-			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
+			flyCmd = exec.Command(flyPath, "-t", atcServer.URL(), "workers")
 		})
 
 		Context("when workers are returned from the API", func() {
@@ -78,24 +69,47 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("lists them to the user, ordered by name", func() {
-				Eventually(sess).Should(gbytes.Say("name      containers  platform   tags      \n"))
-				Eventually(sess).Should(gbytes.Say("worker-1  1           platform1  tag1      \n"))
-				Eventually(sess).Should(gbytes.Say("worker-2  0           platform2  tag2, tag3\n"))
-				Eventually(sess).Should(gbytes.Say("worker-3  10          platform3  none      \n"))
-				Eventually(sess).Should(gexec.Exit(0))
+				Expect(flyCmd).To(PrintTable(ui.Table{
+					Headers: ui.TableRow{
+						{Contents: "name", Color: color.New(color.Bold)},
+						{Contents: "containers", Color: color.New(color.Bold)},
+						{Contents: "platform", Color: color.New(color.Bold)},
+						{Contents: "tags", Color: color.New(color.Bold)},
+					},
+					Data: []ui.TableRow{
+						{{Contents: "worker-1"}, {Contents: "1"}, {Contents: "platform1"}, {Contents: "tag1"}},
+						{{Contents: "worker-2"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag2, tag3"}},
+						{{Contents: "worker-3"}, {Contents: "10"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}},
+					},
+				}))
+
+				Expect(flyCmd).To(HaveExited(0))
 			})
 
 			Context("when --details is given", func() {
 				BeforeEach(func() {
-					args = append(args, "--details")
+					flyCmd.Args = append(flyCmd.Args, "--details")
 				})
 
 				It("lists them to the user, ordered by name", func() {
-					Eventually(sess).Should(gbytes.Say("name      containers  platform   tags        garden address  baggageclaim url     resource types"))
-					Eventually(sess).Should(gbytes.Say(`worker-1  1           platform1  tag1        2.2.3.4:7777    http://2.2.3.4:7788  resource-1, resource-2`))
-					Eventually(sess).Should(gbytes.Say(`worker-2  0           platform2  tag2, tag3  1.2.3.4:7777    none                 resource-1`))
-					Eventually(sess).Should(gbytes.Say(`worker-3  10          platform3  none        3.2.3.4:7777    none                 none`))
-					Eventually(sess).Should(gexec.Exit(0))
+					Expect(flyCmd).To(PrintTable(ui.Table{
+						Headers: ui.TableRow{
+							{Contents: "name", Color: color.New(color.Bold)},
+							{Contents: "containers", Color: color.New(color.Bold)},
+							{Contents: "platform", Color: color.New(color.Bold)},
+							{Contents: "tags", Color: color.New(color.Bold)},
+							{Contents: "garden address", Color: color.New(color.Bold)},
+							{Contents: "baggageclaim url", Color: color.New(color.Bold)},
+							{Contents: "resource types", Color: color.New(color.Bold)},
+						},
+						Data: []ui.TableRow{
+							{{Contents: "worker-1"}, {Contents: "1"}, {Contents: "platform1"}, {Contents: "tag1"}, {Contents: "2.2.3.4:7777"}, {Contents: "http://2.2.3.4:7788"}, {Contents: "resource-1, resource-2"}},
+							{{Contents: "worker-2"}, {Contents: "0"}, {Contents: "platform2"}, {Contents: "tag2, tag3"}, {Contents: "1.2.3.4:7777"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "resource-1"}},
+							{{Contents: "worker-3"}, {Contents: "10"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "3.2.3.4:7777"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
+						},
+					}))
+
+					Expect(flyCmd).To(HaveExited(0))
 				})
 			})
 		})
@@ -111,6 +125,8 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("writes an error message to stderr", func() {
+				sess, err := gexec.Start(flyCmd, nil, nil)
+				Expect(err).ToNot(HaveOccurred())
 				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 				Eventually(sess).Should(gexec.Exit(1))
 			})

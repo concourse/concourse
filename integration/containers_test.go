@@ -4,6 +4,8 @@ import (
 	"os/exec"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/ui"
+	"github.com/fatih/color"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -18,23 +20,12 @@ var _ = Describe("Fly CLI", func() {
 
 	Describe("containers", func() {
 		var (
-			args []string
-
-			sess *gexec.Session
+			flyCmd *exec.Cmd
 		)
 
 		BeforeEach(func() {
-			args = []string{}
 			atcServer = ghttp.NewServer()
-		})
-
-		JustBeforeEach(func() {
-			var err error
-
-			flyCmd := exec.Command(flyPath, append([]string{"-t", atcServer.URL(), "containers"}, args...)...)
-
-			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
+			flyCmd = exec.Command(flyPath, "-t", atcServer.URL(), "containers")
 		})
 
 		Context("when containers are returned from the API", func() {
@@ -73,11 +64,23 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("lists them to the user, ordered by name", func() {
-				Eventually(sess).Should(gbytes.Say("handle        name        pipeline       type   build id  worker       \n"))
-				Eventually(sess).Should(gbytes.Say("early-handle  git-repo    pipeline-name  get    123       worker-name-1\n"))
-				Eventually(sess).Should(gbytes.Say("handle-1      git-repo    pipeline-name  check  none      worker-name-1\n"))
-				Eventually(sess).Should(gbytes.Say("other-handle  unit-tests  pipeline-name  task   122       worker-name-2\n"))
-				Eventually(sess).Should(gexec.Exit(0))
+				Expect(flyCmd).To(PrintTable(ui.Table{
+					Headers: ui.TableRow{
+						{Contents: "handle", Color: color.New(color.Bold)},
+						{Contents: "name", Color: color.New(color.Bold)},
+						{Contents: "pipeline", Color: color.New(color.Bold)},
+						{Contents: "type", Color: color.New(color.Bold)},
+						{Contents: "build id", Color: color.New(color.Bold)},
+						{Contents: "worker", Color: color.New(color.Bold)},
+					},
+					Data: []ui.TableRow{
+						{{Contents: "early-handle"}, {Contents: "git-repo"}, {Contents: "pipeline-name"}, {Contents: "get"}, {Contents: "123"}, {Contents: "worker-name-1"}},
+						{{Contents: "handle-1"}, {Contents: "git-repo"}, {Contents: "pipeline-name"}, {Contents: "check"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "worker-name-1"}},
+						{{Contents: "other-handle"}, {Contents: "unit-tests"}, {Contents: "pipeline-name"}, {Contents: "task"}, {Contents: "122"}, {Contents: "worker-name-2"}},
+					},
+				}))
+
+				Expect(flyCmd).To(HaveExited(0))
 			})
 		})
 
@@ -92,6 +95,8 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("writes an error message to stderr", func() {
+				sess, err := gexec.Start(flyCmd, nil, nil)
+				Expect(err).ToNot(HaveOccurred())
 				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 				Eventually(sess).Should(gexec.Exit(1))
 			})
