@@ -18,7 +18,7 @@ func TestApi(t *testing.T) {
 var (
 	atcServer *ghttp.Server
 	client    atcclient.Client
-	handler   atcclient.AtcHandler
+	handler   atcclient.Handler
 )
 
 var _ = BeforeEach(func() {

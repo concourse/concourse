@@ -148,8 +148,11 @@ var _ = Describe("Fly CLI", func() {
 				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
 				Expect(err).NotTo(HaveOccurred())
 
-				atcServer.RouteToHandler("GET", path,
-					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", path),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					),
 				)
 			})
 
@@ -170,6 +173,8 @@ var _ = Describe("Fly CLI", func() {
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(receivedConfig).To(Equal(config))
+
+								w.WriteHeader(http.StatusNoContent)
 							},
 						),
 					)
@@ -223,7 +228,7 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.RouteToHandler("GET", path,
-					ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
 				)
 			})
 
@@ -287,7 +292,7 @@ var _ = Describe("Fly CLI", func() {
 								Expect(config).To(Equal(payload))
 								Expect(*state).To(BeTrue(), "paused was not set in the request")
 							},
-							ghttp.RespondWith(200, ""),
+							ghttp.RespondWith(http.StatusNoContent, ""),
 						),
 					)
 				})
@@ -365,7 +370,7 @@ var _ = Describe("Fly CLI", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
-						ghttp.RespondWith(400, "nope"),
+						ghttp.RespondWith(http.StatusUnauthorized, "nope"),
 					)
 				})
 
@@ -381,10 +386,9 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
 					fmt.Fprintln(stdin, "y")
 
-					Eventually(sess.Err).Should(gbytes.Say("failed to update configuration."))
-					Eventually(sess.Err).Should(gbytes.Say("  response code: 400"))
-					Eventually(sess.Err).Should(gbytes.Say("  response body:"))
-					Eventually(sess.Err).Should(gbytes.Say("    nope"))
+					Eventually(sess.Err).Should(gbytes.Say("failed to update configuration:"))
+					Eventually(sess.Err).Should(gbytes.Say("401 Unauthorized"))
+					Eventually(sess.Err).Should(gbytes.Say("nope"))
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
@@ -418,7 +422,7 @@ var _ = Describe("Fly CLI", func() {
 								Expect(config).To(Equal(payload))
 								Expect(state).To(BeNil())
 							},
-							ghttp.RespondWith(201, ""),
+							ghttp.RespondWith(http.StatusCreated, ""),
 						))
 					})
 
@@ -462,7 +466,7 @@ var _ = Describe("Fly CLI", func() {
 								Expect(config).To(Equal(payload))
 								Expect(*state).To(BeTrue())
 							},
-							ghttp.RespondWith(201, ""),
+							ghttp.RespondWith(http.StatusCreated, ""),
 						))
 					})
 
@@ -506,7 +510,7 @@ var _ = Describe("Fly CLI", func() {
 								Expect(config).To(Equal(payload))
 								Expect(*state).To(BeFalse())
 							},
-							ghttp.RespondWith(201, ""),
+							ghttp.RespondWith(http.StatusCreated, ""),
 						))
 					})
 

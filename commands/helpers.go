@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/atcclient"
@@ -81,4 +82,14 @@ func GetBuild(handler atcclient.Handler, jobName string, buildNameOrID string, p
 
 		return atc.Build{}, errors.New("no builds match job")
 	}
+}
+
+func failf(message string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, message+"\n", args...)
+	os.Exit(1)
+}
+
+func failWithErrorf(message string, err error, args ...interface{}) {
+	templatedMessage := fmt.Sprintf(message, args...)
+	failf("%s: %s", templatedMessage, err.Error())
 }

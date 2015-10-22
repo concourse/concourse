@@ -9,11 +9,11 @@ import (
 )
 
 type FakeClient struct {
-	SendStub        func(request atcclient.Request, response atcclient.Response) error
+	SendStub        func(request atcclient.Request, response *atcclient.Response) error
 	sendMutex       sync.RWMutex
 	sendArgsForCall []struct {
 		request  atcclient.Request
-		response atcclient.Response
+		response *atcclient.Response
 	}
 	sendReturns struct {
 		result1 error
@@ -29,11 +29,11 @@ type FakeClient struct {
 	}
 }
 
-func (fake *FakeClient) Send(request atcclient.Request, response atcclient.Response) error {
+func (fake *FakeClient) Send(request atcclient.Request, response *atcclient.Response) error {
 	fake.sendMutex.Lock()
 	fake.sendArgsForCall = append(fake.sendArgsForCall, struct {
 		request  atcclient.Request
-		response atcclient.Response
+		response *atcclient.Response
 	}{request, response})
 	fake.sendMutex.Unlock()
 	if fake.SendStub != nil {
@@ -49,7 +49,7 @@ func (fake *FakeClient) SendCallCount() int {
 	return len(fake.sendArgsForCall)
 }
 
-func (fake *FakeClient) SendArgsForCall(i int) (atcclient.Request, atcclient.Response) {
+func (fake *FakeClient) SendArgsForCall(i int) (atcclient.Request, *atcclient.Response) {
 	fake.sendMutex.RLock()
 	defer fake.sendMutex.RUnlock()
 	return fake.sendArgsForCall[i].request, fake.sendArgsForCall[i].response

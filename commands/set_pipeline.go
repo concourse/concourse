@@ -1,9 +1,7 @@
 package commands
 
 import (
-	"fmt"
 	"log"
-	"os"
 
 	"github.com/concourse/atc/web"
 	"github.com/concourse/fly/atcclient"
@@ -91,13 +89,3 @@ const (
 	UnpausePipeline
 	DoNotChangePipeline
 )
-
-func failf(message string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, message+"\n", args...)
-	os.Exit(1)
-}
-
-func failWithErrorf(message string, err error, args ...interface{}) {
-	templatedMessage := fmt.Sprintf(message, args...)
-	failf(templatedMessage + ": " + err.Error())
-}

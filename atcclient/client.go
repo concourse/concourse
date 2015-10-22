@@ -19,7 +19,7 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
-	Send(request Request, response Response) error
+	Send(request Request, response *Response) error
 	ConnectToEventStream(request Request) (*sse.EventSource, error)
 }
 
@@ -28,12 +28,13 @@ type Request struct {
 	Params      map[string]string
 	Queries     map[string]string
 	Headers     map[string][]string
-	Body        interface{}
+	Body        *bytes.Buffer
 }
 
 type Response struct {
 	Result  interface{}
 	Headers *map[string][]string
+	Created bool
 }
 
 type AtcClient struct {
@@ -57,7 +58,7 @@ func NewClient(target rc.TargetProps) (Client, error) {
 	return &client, nil
 }
 
-func (client *AtcClient) Send(passedRequest Request, passedResponse Response) error {
+func (client *AtcClient) Send(passedRequest Request, passedResponse *Response) error {
 	req, err := client.createHTTPRequest(passedRequest)
 
 	response, err := client.httpClient.Do(req)
@@ -81,18 +82,12 @@ func (client *AtcClient) ConnectToEventStream(passedRequest Request) (*sse.Event
 }
 
 func (client *AtcClient) createHTTPRequest(passedRequest Request) (*http.Request, error) {
-	buffer := &bytes.Buffer{}
-	if passedRequest.Body != nil {
-		err := json.NewEncoder(buffer).Encode(passedRequest.Body)
-		if err != nil {
-			return nil, err
-		}
-	}
+	body := client.getBody(passedRequest)
 
 	req, err := client.requestGenerator.CreateRequest(
 		passedRequest.RequestName,
 		passedRequest.Params,
-		buffer,
+		body,
 	)
 	if err != nil {
 		return nil, err
@@ -103,10 +98,6 @@ func (client *AtcClient) createHTTPRequest(passedRequest Request) (*http.Request
 		values[k] = []string{v}
 	}
 	req.URL.RawQuery = values.Encode()
-
-	if passedRequest.Body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
 
 	if client.target.Username != "" {
 		req.SetBasicAuth(client.target.Username, client.target.Password)
@@ -123,12 +114,26 @@ func (client *AtcClient) createHTTPRequest(passedRequest Request) (*http.Request
 	return req, nil
 }
 
-func (client *AtcClient) populateResponse(response *http.Response, passedResponse Response) error {
-	if response.StatusCode == http.StatusNoContent {
+func (client *AtcClient) getBody(passedRequest Request) *bytes.Buffer {
+	if passedRequest.Headers != nil && passedRequest.Body != nil {
+		if _, ok := passedRequest.Headers["Content-Type"]; !ok {
+			panic("You must pass a 'Content-Type' Header with a body")
+		}
+		return passedRequest.Body
+	}
+
+	return &bytes.Buffer{}
+}
+
+func (client *AtcClient) populateResponse(response *http.Response, passedResponse *Response) error {
+	switch {
+	case response.StatusCode == http.StatusNoContent:
 		return nil
-	} else if response.StatusCode == http.StatusNotFound {
+	case response.StatusCode == http.StatusNotFound:
 		return ResourceNotFoundError{}
-	} else if response.StatusCode < 200 || response.StatusCode >= 300 {
+	case response.StatusCode == http.StatusCreated:
+		passedResponse.Created = true
+	case response.StatusCode < 200, response.StatusCode >= 300:
 		body, _ := ioutil.ReadAll(response.Body)
 
 		return UnexpectedResponseError{
@@ -136,6 +141,10 @@ func (client *AtcClient) populateResponse(response *http.Response, passedRespons
 			Status:     response.Status,
 			Body:       string(body),
 		}
+	}
+
+	if passedResponse.Result == nil {
+		return nil
 	}
 
 	err := json.NewDecoder(response.Body).Decode(passedResponse.Result)

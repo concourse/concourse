@@ -6,7 +6,7 @@ func (handler AtcHandler) ListPipelines() ([]atc.Pipeline, error) {
 	var pipelines []atc.Pipeline
 	err := handler.client.Send(Request{
 		RequestName: atc.ListPipelines,
-	}, Response{
+	}, &Response{
 		Result: &pipelines,
 	})
 
@@ -18,7 +18,7 @@ func (handler AtcHandler) DeletePipeline(pipelineName string) (bool, error) {
 	err := handler.client.Send(Request{
 		RequestName: atc.DeletePipeline,
 		Params:      params,
-	}, Response{})
+	}, nil)
 
 	switch err.(type) {
 	case nil:

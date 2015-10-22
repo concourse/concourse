@@ -11,7 +11,7 @@ func (handler AtcHandler) Job(pipelineName, jobName string) (atc.Job, bool, erro
 	err := handler.client.Send(Request{
 		RequestName: atc.GetJob,
 		Params:      params,
-	}, Response{
+	}, &Response{
 		Result: &job,
 	})
 

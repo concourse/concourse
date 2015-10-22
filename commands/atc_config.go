@@ -3,10 +3,8 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"mime/multipart"
-	"net/http"
 	"net/textproto"
 	"os"
 
@@ -35,8 +33,11 @@ func (atcConfig ATCConfig) Set(paused PipelineAction, configPath PathFlag, templ
 
 	diff(existingConfig, newConfig)
 
-	resp := atcConfig.submitConfig(newRawConfig, paused, existingConfigVersion)
-	atcConfig.showHelpfulMessage(resp, paused)
+	created, updated, err := atcConfig.submitConfig(newRawConfig, paused, existingConfigVersion)
+	if err != nil {
+		failWithErrorf("failed to update configuration", err)
+	}
+	atcConfig.showHelpfulMessage(created, updated, paused)
 }
 
 func (atcConfig ATCConfig) newConfig(configPath PathFlag, templateVariablesFiles []PathFlag, templateVariables template.Variables) (atc.Config, []byte) {
@@ -72,7 +73,7 @@ func (atcConfig ATCConfig) newConfig(configPath PathFlag, templateVariablesFiles
 	return newConfig, configFile
 }
 
-func (atcConfig ATCConfig) submitConfig(configFile []byte, paused PipelineAction, existingConfigVersion string) *http.Response {
+func (atcConfig ATCConfig) submitConfig(configFile []byte, paused PipelineAction, existingConfigVersion string) (bool, bool, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
@@ -102,33 +103,18 @@ func (atcConfig ATCConfig) submitConfig(configFile []byte, paused PipelineAction
 
 	writer.Close()
 
-	setConfig, err := atcConfig.apiRequester.CreateRequest(
-		atc.SaveConfig,
-		rata.Params{"pipeline_name": atcConfig.pipelineName},
+	return atcConfig.handler.CreateOrUpdatePipelineConfig(
+		atcConfig.pipelineName,
+		existingConfigVersion,
 		body,
+		writer.FormDataContentType(),
 	)
-	if err != nil {
-		failWithErrorf("failed to build set config request", err)
-	}
-
-	setConfig.Header.Set("Content-Type", writer.FormDataContentType())
-	setConfig.Header.Set(atc.ConfigVersionHeader, existingConfigVersion)
-
-	resp, err := atcConfig.apiRequester.httpClient.Do(setConfig)
-	if err != nil {
-		failWithErrorf("failed to update configuration", err)
-	}
-
-	return resp
 }
 
-func (atcConfig ATCConfig) showHelpfulMessage(resp *http.Response, paused PipelineAction) {
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
-	case http.StatusOK:
+func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool, paused PipelineAction) {
+	if updated {
 		fmt.Println("configuration updated")
-	case http.StatusCreated:
+	} else if created {
 		pipelineWebReq, _ := atcConfig.webRequestGenerator.CreateRequest(
 			web.Pipeline,
 			rata.Params{"pipeline_name": atcConfig.pipelineName},
@@ -149,16 +135,8 @@ func (atcConfig ATCConfig) showHelpfulMessage(resp *http.Response, paused Pipeli
 			fmt.Println("  - run again with --paused=false")
 			fmt.Println("  - click play next to the pipeline in the web ui")
 		}
-	default:
-		fmt.Fprintln(os.Stderr, "failed to update configuration.")
-
-		indent := gexec.NewPrefixedWriter("  ", os.Stderr)
-		fmt.Fprintf(indent, "response code: %s\n", resp.Status)
-		fmt.Fprintf(indent, "response body:\n")
-
-		indentAgain := gexec.NewPrefixedWriter("  ", indent)
-		io.Copy(indentAgain, resp.Body)
-		os.Exit(1)
+	} else {
+		panic("Something really went wrong!")
 	}
 }
 
