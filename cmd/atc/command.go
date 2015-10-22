@@ -89,7 +89,6 @@ type ATCCommand struct {
 	GitHubAuth struct {
 		ClientID     string   `long:"client-id"     description:"Application client ID for enabling GitHub OAuth."`
 		ClientSecret string   `long:"client-secret" description:"Application client secret for enabling GitHub OAuth."`
-		Organization string   `long:"organization"  description:"GitHub organization whose members will have access."`
 		Teams        []string `long:"team"  description:"GitHub organization/team whose members will have access."`
 	} `group:"GitHub Authentication" namespace:"github-auth"`
 
@@ -269,7 +268,6 @@ func (cmd *ATCCommand) validate() error {
 
 	if !cmd.Developer.DevelopmentMode &&
 		cmd.BasicAuth.Username == "" &&
-		cmd.GitHubAuth.Organization == "" &&
 		cmd.GitHubAuth.Teams == nil {
 		errs = multierror.Append(
 			errs,
@@ -277,7 +275,7 @@ func (cmd *ATCCommand) validate() error {
 		)
 	}
 
-	gitHubAuthTurnedOn := cmd.GitHubAuth.Organization != "" || cmd.GitHubAuth.Teams != nil
+	gitHubAuthTurnedOn := cmd.GitHubAuth.Teams != nil
 
 	if gitHubAuthTurnedOn && cmd.ExternalURL.String() == "//@" {
 		errs = multierror.Append(
@@ -398,7 +396,7 @@ func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 func (cmd *ATCCommand) configureOAuthProviders() (auth.Providers, error) {
 	oauthProviders := auth.Providers{}
 
-	if cmd.GitHubAuth.Organization != "" || cmd.GitHubAuth.Teams != nil {
+	if cmd.GitHubAuth.Teams != nil {
 		path, err := auth.OAuthRoutes.CreatePathForRoute(auth.OAuthCallback, rata.Params{
 			"provider": github.ProviderName,
 		})
@@ -407,7 +405,6 @@ func (cmd *ATCCommand) configureOAuthProviders() (auth.Providers, error) {
 		}
 
 		oauthProviders[github.ProviderName] = github.NewProvider(
-			cmd.GitHubAuth.Organization,
 			cmd.GitHubAuth.Teams,
 			cmd.GitHubAuth.ClientID,
 			cmd.GitHubAuth.ClientSecret,
