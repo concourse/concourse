@@ -16,12 +16,6 @@ type FakeVolume struct {
 	handleReturns     struct {
 		result1 string
 	}
-	TTLInSecondsStub        func() uint
-	tTLInSecondsMutex       sync.RWMutex
-	tTLInSecondsArgsForCall []struct{}
-	tTLInSecondsReturns     struct {
-		result1 uint
-	}
 	PathStub        func() string
 	pathMutex       sync.RWMutex
 	pathArgsForCall []struct{}
@@ -88,30 +82,6 @@ func (fake *FakeVolume) HandleReturns(result1 string) {
 	fake.HandleStub = nil
 	fake.handleReturns = struct {
 		result1 string
-	}{result1}
-}
-
-func (fake *FakeVolume) TTLInSeconds() uint {
-	fake.tTLInSecondsMutex.Lock()
-	fake.tTLInSecondsArgsForCall = append(fake.tTLInSecondsArgsForCall, struct{}{})
-	fake.tTLInSecondsMutex.Unlock()
-	if fake.TTLInSecondsStub != nil {
-		return fake.TTLInSecondsStub()
-	} else {
-		return fake.tTLInSecondsReturns.result1
-	}
-}
-
-func (fake *FakeVolume) TTLInSecondsCallCount() int {
-	fake.tTLInSecondsMutex.RLock()
-	defer fake.tTLInSecondsMutex.RUnlock()
-	return len(fake.tTLInSecondsArgsForCall)
-}
-
-func (fake *FakeVolume) TTLInSecondsReturns(result1 uint) {
-	fake.TTLInSecondsStub = nil
-	fake.tTLInSecondsReturns = struct {
-		result1 uint
 	}{result1}
 }
 
