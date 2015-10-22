@@ -20,6 +20,7 @@ files:
   - github.com/concourse/fly/config/*.go # gosub
   - github.com/concourse/fly/rc/*.go # gosub
   - github.com/concourse/fly/template/*.go # gosub
+  - github.com/concourse/fly/ui/*.go # gosub
   - github.com/fatih/color/*.go # gosub
   - github.com/hashicorp/errwrap/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
