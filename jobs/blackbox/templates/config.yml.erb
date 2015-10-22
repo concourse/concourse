@@ -15,20 +15,3 @@ syslog:
   %>
 <% end %>
 
-<% if_p("blackbox.expvar.datadog.api_key") do %>
-expvar:
-  datadog:
-    api_key: <%= p("blackbox.expvar.datadog.api_key") %>
-
-  interval:  <%= p("blackbox.expvar.interval_in_seconds") %>s
-
-  sources: <%=
-    p("blackbox.expvar.sources").collect do |name, config|
-      {
-        "name" => name,
-        "url" => config["url"],
-        "tags" => config["tags"] + ["job:#{name}", "index:#{index}"]
-      }
-    end.to_json
-  %>
-<% end %>

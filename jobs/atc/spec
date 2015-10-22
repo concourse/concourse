@@ -105,7 +105,3 @@ properties:
       - /var/vcap/sys/log/monit/atc_ctl.out.log
       - /var/vcap/sys/log/monit/atc_ctl.err.log
 
-  blackbox.expvar.sources.atc:
-    default:
-      url: http://127.0.0.1:8079/debug/vars
-      tags: ["program:atc"]

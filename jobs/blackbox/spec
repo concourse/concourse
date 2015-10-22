@@ -23,15 +23,3 @@ properties:
       the format is `{ "tag" => ["/path/to/log"] }`.
     default: {}
 
-  blackbox.expvar.datadog.api_key:
-    description: API key to use when sending metrics to Datadog
-
-  blackbox.expvar.interval_in_seconds:
-    description: interval on which to emit metrics
-    default: 10
-
-  blackbox.expvar.sources:
-    description: >
-      expvar endpoints from which to emit metrics
-      the format is `{ "name" => { "url" => "http://...", "tags" => ["program:atc"] }`.
-    default: {}
