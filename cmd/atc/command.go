@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/concourse/atc"
@@ -282,6 +283,24 @@ func (cmd *ATCCommand) validate() error {
 			errs,
 			errors.New("must specify --external-url to use OAuth"),
 		)
+	}
+
+	if !gitHubAuthTurnedOn && cmd.GitHubAuth.ClientID != "" && cmd.GitHubAuth.ClientSecret != "" {
+		errs = multierror.Append(
+			errs,
+			errors.New("must specify --github-auth-team to use GitHub OAuth"),
+		)
+	}
+
+	if gitHubAuthTurnedOn {
+		for _, orgTeam := range cmd.GitHubAuth.Teams {
+			if len(strings.Split(orgTeam, "/")) != 2 {
+				errs = multierror.Append(
+					errs,
+					errors.New("must specify organization/team for: "+orgTeam),
+				)
+			}
+		}
 	}
 
 	if gitHubAuthTurnedOn && (cmd.GitHubAuth.ClientID == "" || cmd.GitHubAuth.ClientSecret == "") {
