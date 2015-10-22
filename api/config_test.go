@@ -247,8 +247,8 @@ var _ = Describe("Config API", func() {
 							request.Body = gbytes.BufferWithBytes(payload)
 						})
 
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						It("returns 204", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNoContent))
 						})
 
 						It("saves it", func() {
@@ -314,8 +314,8 @@ var _ = Describe("Config API", func() {
 							request.Body = gbytes.BufferWithBytes(payload)
 						})
 
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						It("returns 204", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNoContent))
 						})
 
 						It("saves it", func() {
@@ -361,8 +361,8 @@ jobs:
 								request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
 							})
 
-							It("returns 200", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							It("returns 204", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNoContent))
 							})
 
 							It("saves it", func() {
@@ -484,8 +484,8 @@ jobs:
 								request.Body = gbytes.BufferWithBytes(body.Bytes())
 							})
 
-							It("returns 200", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							It("returns 204", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNoContent))
 							})
 
 							It("saves it", func() {

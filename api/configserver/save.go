@@ -127,7 +127,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	if created {
 		w.WriteHeader(http.StatusCreated)
 	} else {
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
