@@ -1,7 +1,10 @@
 package atcclient
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/concourse/atc"
@@ -9,10 +12,20 @@ import (
 
 func (handler AtcHandler) CreateBuild(plan atc.Plan) (atc.Build, error) {
 	var build atc.Build
-	err := handler.client.Send(Request{
+
+	buffer := &bytes.Buffer{}
+	err := json.NewEncoder(buffer).Encode(plan)
+	if err != nil {
+		return build, fmt.Errorf("Unable to marshal plan: %s", err)
+	}
+
+	err = handler.client.Send(Request{
 		RequestName: atc.CreateBuild,
-		Body:        plan,
-	}, Response{
+		Body:        buffer,
+		Headers: map[string][]string{
+			"Content-Type": {"application/json"},
+		},
+	}, &Response{
 		Result: &build,
 	})
 
@@ -34,7 +47,7 @@ func (handler AtcHandler) JobBuild(pipelineName, jobName, buildName string) (atc
 	err := handler.client.Send(Request{
 		RequestName: atc.GetJobBuild,
 		Params:      params,
-	}, Response{
+	}, &Response{
 		Result: &build,
 	})
 
@@ -54,7 +67,7 @@ func (handler AtcHandler) Build(buildID string) (atc.Build, bool, error) {
 	err := handler.client.Send(Request{
 		RequestName: atc.GetBuild,
 		Params:      params,
-	}, Response{
+	}, &Response{
 		Result: &build,
 	})
 
@@ -72,7 +85,7 @@ func (handler AtcHandler) AllBuilds() ([]atc.Build, error) {
 	var builds []atc.Build
 	err := handler.client.Send(Request{
 		RequestName: atc.ListBuilds,
-	}, Response{
+	}, &Response{
 		Result: &builds,
 	})
 	return builds, err
@@ -83,6 +96,6 @@ func (handler AtcHandler) AbortBuild(buildID string) error {
 	return handler.client.Send(Request{
 		RequestName: atc.AbortBuild,
 		Params:      params,
-	}, Response{})
+	}, nil)
 
 }

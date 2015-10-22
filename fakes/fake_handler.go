@@ -2,6 +2,7 @@
 package fakes
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/concourse/atc"
@@ -12,7 +13,7 @@ type FakeHandler struct {
 	AllBuildsStub        func() ([]atc.Build, error)
 	allBuildsMutex       sync.RWMutex
 	allBuildsArgsForCall []struct{}
-	allBuildsReturns     struct {
+	allBuildsReturns struct {
 		result1 []atc.Build
 		result2 error
 	}
@@ -63,10 +64,23 @@ type FakeHandler struct {
 		result1 atc.Build
 		result2 error
 	}
+	CreateOrUpdatePipelineConfigStub        func(pipelineName string, configVersion string, buffer *bytes.Buffer, contentType string) (bool, bool, error)
+	createOrUpdatePipelineConfigMutex       sync.RWMutex
+	createOrUpdatePipelineConfigArgsForCall []struct {
+		pipelineName  string
+		configVersion string
+		buffer        *bytes.Buffer
+		contentType   string
+	}
+	createOrUpdatePipelineConfigReturns struct {
+		result1 bool
+		result2 bool
+		result3 error
+	}
 	CreatePipeStub        func() (atc.Pipe, error)
 	createPipeMutex       sync.RWMutex
 	createPipeArgsForCall []struct{}
-	createPipeReturns     struct {
+	createPipeReturns struct {
 		result1 atc.Pipe
 		result2 error
 	}
@@ -105,15 +119,29 @@ type FakeHandler struct {
 	ListContainersStub        func() ([]atc.Container, error)
 	listContainersMutex       sync.RWMutex
 	listContainersArgsForCall []struct{}
-	listContainersReturns     struct {
+	listContainersReturns struct {
 		result1 []atc.Container
 		result2 error
 	}
 	ListPipelinesStub        func() ([]atc.Pipeline, error)
 	listPipelinesMutex       sync.RWMutex
 	listPipelinesArgsForCall []struct{}
-	listPipelinesReturns     struct {
+	listPipelinesReturns struct {
 		result1 []atc.Pipeline
+		result2 error
+	}
+	ListVolumesStub        func() ([]atc.Volume, error)
+	listVolumesMutex       sync.RWMutex
+	listVolumesArgsForCall []struct{}
+	listVolumesReturns struct {
+		result1 []atc.Volume
+		result2 error
+	}
+	ListWorkersStub        func() ([]atc.Worker, error)
+	listWorkersMutex       sync.RWMutex
+	listWorkersArgsForCall []struct{}
+	listWorkersReturns struct {
+		result1 []atc.Worker
 		result2 error
 	}
 	PipelineConfigStub        func(pipelineName string) (atc.Config, string, bool, error)
@@ -126,13 +154,6 @@ type FakeHandler struct {
 		result2 string
 		result3 bool
 		result4 error
-	}
-	ListVolumesStub        func() ([]atc.Volume, error)
-	listVolumesMutex       sync.RWMutex
-	listVolumesArgsForCall []struct{}
-	listVolumesReturns     struct {
-		result1 []atc.Volume
-		result2 error
 	}
 }
 
@@ -328,6 +349,43 @@ func (fake *FakeHandler) CreateBuildReturns(result1 atc.Build, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeHandler) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, buffer *bytes.Buffer, contentType string) (bool, bool, error) {
+	fake.createOrUpdatePipelineConfigMutex.Lock()
+	fake.createOrUpdatePipelineConfigArgsForCall = append(fake.createOrUpdatePipelineConfigArgsForCall, struct {
+		pipelineName  string
+		configVersion string
+		buffer        *bytes.Buffer
+		contentType   string
+	}{pipelineName, configVersion, buffer, contentType})
+	fake.createOrUpdatePipelineConfigMutex.Unlock()
+	if fake.CreateOrUpdatePipelineConfigStub != nil {
+		return fake.CreateOrUpdatePipelineConfigStub(pipelineName, configVersion, buffer, contentType)
+	} else {
+		return fake.createOrUpdatePipelineConfigReturns.result1, fake.createOrUpdatePipelineConfigReturns.result2, fake.createOrUpdatePipelineConfigReturns.result3
+	}
+}
+
+func (fake *FakeHandler) CreateOrUpdatePipelineConfigCallCount() int {
+	fake.createOrUpdatePipelineConfigMutex.RLock()
+	defer fake.createOrUpdatePipelineConfigMutex.RUnlock()
+	return len(fake.createOrUpdatePipelineConfigArgsForCall)
+}
+
+func (fake *FakeHandler) CreateOrUpdatePipelineConfigArgsForCall(i int) (string, string, *bytes.Buffer, string) {
+	fake.createOrUpdatePipelineConfigMutex.RLock()
+	defer fake.createOrUpdatePipelineConfigMutex.RUnlock()
+	return fake.createOrUpdatePipelineConfigArgsForCall[i].pipelineName, fake.createOrUpdatePipelineConfigArgsForCall[i].configVersion, fake.createOrUpdatePipelineConfigArgsForCall[i].buffer, fake.createOrUpdatePipelineConfigArgsForCall[i].contentType
+}
+
+func (fake *FakeHandler) CreateOrUpdatePipelineConfigReturns(result1 bool, result2 bool, result3 error) {
+	fake.CreateOrUpdatePipelineConfigStub = nil
+	fake.createOrUpdatePipelineConfigReturns = struct {
+		result1 bool
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeHandler) CreatePipe() (atc.Pipe, error) {
 	fake.createPipeMutex.Lock()
 	fake.createPipeArgsForCall = append(fake.createPipeArgsForCall, struct{}{})
@@ -507,6 +565,56 @@ func (fake *FakeHandler) ListPipelinesReturns(result1 []atc.Pipeline, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeHandler) ListVolumes() ([]atc.Volume, error) {
+	fake.listVolumesMutex.Lock()
+	fake.listVolumesArgsForCall = append(fake.listVolumesArgsForCall, struct{}{})
+	fake.listVolumesMutex.Unlock()
+	if fake.ListVolumesStub != nil {
+		return fake.ListVolumesStub()
+	} else {
+		return fake.listVolumesReturns.result1, fake.listVolumesReturns.result2
+	}
+}
+
+func (fake *FakeHandler) ListVolumesCallCount() int {
+	fake.listVolumesMutex.RLock()
+	defer fake.listVolumesMutex.RUnlock()
+	return len(fake.listVolumesArgsForCall)
+}
+
+func (fake *FakeHandler) ListVolumesReturns(result1 []atc.Volume, result2 error) {
+	fake.ListVolumesStub = nil
+	fake.listVolumesReturns = struct {
+		result1 []atc.Volume
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeHandler) ListWorkers() ([]atc.Worker, error) {
+	fake.listWorkersMutex.Lock()
+	fake.listWorkersArgsForCall = append(fake.listWorkersArgsForCall, struct{}{})
+	fake.listWorkersMutex.Unlock()
+	if fake.ListWorkersStub != nil {
+		return fake.ListWorkersStub()
+	} else {
+		return fake.listWorkersReturns.result1, fake.listWorkersReturns.result2
+	}
+}
+
+func (fake *FakeHandler) ListWorkersCallCount() int {
+	fake.listWorkersMutex.RLock()
+	defer fake.listWorkersMutex.RUnlock()
+	return len(fake.listWorkersArgsForCall)
+}
+
+func (fake *FakeHandler) ListWorkersReturns(result1 []atc.Worker, result2 error) {
+	fake.ListWorkersStub = nil
+	fake.listWorkersReturns = struct {
+		result1 []atc.Worker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeHandler) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
 	fake.pipelineConfigMutex.Lock()
 	fake.pipelineConfigArgsForCall = append(fake.pipelineConfigArgsForCall, struct {
@@ -540,31 +648,6 @@ func (fake *FakeHandler) PipelineConfigReturns(result1 atc.Config, result2 strin
 		result3 bool
 		result4 error
 	}{result1, result2, result3, result4}
-}
-
-func (fake *FakeHandler) ListVolumes() ([]atc.Volume, error) {
-	fake.listVolumesMutex.Lock()
-	fake.listVolumesArgsForCall = append(fake.listVolumesArgsForCall, struct{}{})
-	fake.listVolumesMutex.Unlock()
-	if fake.ListVolumesStub != nil {
-		return fake.ListVolumesStub()
-	} else {
-		return fake.listVolumesReturns.result1, fake.listVolumesReturns.result2
-	}
-}
-
-func (fake *FakeHandler) ListVolumesCallCount() int {
-	fake.listVolumesMutex.RLock()
-	defer fake.listVolumesMutex.RUnlock()
-	return len(fake.listVolumesArgsForCall)
-}
-
-func (fake *FakeHandler) ListVolumesReturns(result1 []atc.Volume, result2 error) {
-	fake.ListVolumesStub = nil
-	fake.listVolumesReturns = struct {
-		result1 []atc.Volume
-		result2 error
-	}{result1, result2}
 }
 
 var _ atcclient.Handler = new(FakeHandler)

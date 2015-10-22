@@ -1,6 +1,7 @@
 package atcclient_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -73,7 +74,7 @@ var _ = Describe("ATC Client", func() {
 			err := client.Send(Request{
 				RequestName: atc.GetBuild,
 				Params:      map[string]string{"build_id": "foo"},
-			}, Response{
+			}, &Response{
 				Result: &build,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -111,7 +112,7 @@ var _ = Describe("ATC Client", func() {
 			err := client.Send(Request{
 				RequestName: atc.ListContainers,
 				Queries:     map[string]string{"type": "check"},
-			}, Response{
+			}, &Response{
 				Result: &containers,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -145,7 +146,7 @@ var _ = Describe("ATC Client", func() {
 					err := client.Send(Request{
 						RequestName: atc.GetBuild,
 						Params:      map[string]string{"build_id": "foo"},
-					}, Response{
+					}, &Response{
 						Result: &atc.Build{},
 					})
 					Expect(err).NotTo(HaveOccurred())
@@ -179,7 +180,7 @@ var _ = Describe("ATC Client", func() {
 							"accept-encoding": {"application/banana"},
 							"foo":             {"bar", "baz"},
 						},
-					}, Response{
+					}, &Response{
 						Result: &atc.Build{},
 					})
 					Expect(err).NotTo(HaveOccurred())
@@ -211,7 +212,7 @@ var _ = Describe("ATC Client", func() {
 				err := client.Send(Request{
 					RequestName: atc.GetBuild,
 					Params:      map[string]string{"build_id": "foo"},
-				}, Response{
+				}, &Response{
 					Result:  &atc.Build{},
 					Headers: &responseHeaders,
 				})
@@ -243,9 +244,8 @@ var _ = Describe("ATC Client", func() {
 					err := client.Send(Request{
 						RequestName: atc.DeletePipeline,
 						Params:      map[string]string{"pipeline_name": "foo"},
-					},
-						Response{},
-					)
+					}, nil)
+
 					Expect(err).NotTo(HaveOccurred())
 				})
 			})
@@ -271,9 +271,8 @@ var _ = Describe("ATC Client", func() {
 					err := client.Send(Request{
 						RequestName: atc.DeletePipeline,
 						Params:      map[string]string{"pipeline_name": "foo"},
-					},
-						Response{},
-					)
+					}, nil)
+
 					Expect(err).To(HaveOccurred())
 					ure, ok := err.(UnexpectedResponseError)
 					Expect(ok).To(BeTrue())
@@ -303,9 +302,8 @@ var _ = Describe("ATC Client", func() {
 					err := client.Send(Request{
 						RequestName: atc.DeletePipeline,
 						Params:      map[string]string{"pipeline_name": "foo"},
-					},
-						Response{},
-					)
+					}, nil)
+
 					Expect(err).To(HaveOccurred())
 					_, ok := err.(ResourceNotFoundError)
 					Expect(ok).To(BeTrue())
@@ -343,19 +341,32 @@ var _ = Describe("ATC Client", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", expectedURL),
 						ghttp.VerifyJSONRepresenting(plan),
-						ghttp.RespondWith(http.StatusNoContent, ""),
+						ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Config{}),
 					),
 				)
 			})
 
-			It("serializes the given body and sends it in the request body", func() {
-				err := client.Send(Request{
+			It("sends it in the request body and sets the response's created flag to true", func() {
+				buffer := &bytes.Buffer{}
+				err := json.NewEncoder(buffer).Encode(plan)
+				if err != nil {
+					Fail(fmt.Sprintf("Unable to marshal plan: %s", err))
+				}
+
+				response := Response{
+					Result: &atc.Config{},
+				}
+				err = client.Send(Request{
 					RequestName: atc.CreateBuild,
-					Body:        plan,
+					Body:        buffer,
+					Headers: map[string][]string{
+						"Content-Type": {"application/json"},
+					},
 				},
-					Response{},
+					&response,
 				)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(response.Created).To(BeTrue())
 				Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
 			})
 		})

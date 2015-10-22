@@ -1,6 +1,10 @@
 package atcclient
 
-import "github.com/concourse/atc"
+import (
+	"bytes"
+
+	"github.com/concourse/atc"
+)
 
 func (handler AtcHandler) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
 	params := map[string]string{"pipeline_name": pipelineName}
@@ -12,7 +16,7 @@ func (handler AtcHandler) PipelineConfig(pipelineName string) (atc.Config, strin
 	err := handler.client.Send(Request{
 		RequestName: atc.GetConfig,
 		Params:      params,
-	}, Response{
+	}, &Response{
 		Result:  &config,
 		Headers: &responseHeaders,
 	})
@@ -29,4 +33,28 @@ func (handler AtcHandler) PipelineConfig(pipelineName string) (atc.Config, strin
 	default:
 		return config, version, false, err
 	}
+}
+
+func (handler AtcHandler) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, buffer *bytes.Buffer, contentType string) (bool, bool, error) {
+	params := map[string]string{"pipeline_name": pipelineName}
+	response := Response{}
+	err := handler.client.Send(Request{
+		RequestName: atc.SaveConfig,
+		Params:      params,
+		Body:        buffer,
+		Headers: map[string][]string{
+			"Content-Type":          {contentType},
+			atc.ConfigVersionHeader: {configVersion},
+		},
+	},
+		&response,
+	)
+	if err != nil {
+		return false, false, err
+	}
+
+	if response.Created {
+		return true, false, nil
+	}
+	return false, true, nil
 }

@@ -1,9 +1,12 @@
 package atcclient_test
 
 import (
+	"bytes"
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/fly/atcclient/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -129,6 +132,95 @@ var _ = Describe("ATC Handler Configs", func() {
 			It("returns an error", func() {
 				_, _, _, err := handler.PipelineConfig("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("CreateOrUpdatePipelineConfig", func() {
+		Context("when creating a new config", func() {
+			var (
+				fakeClient           *fakes.FakeClient
+				expectedPipelineName string
+				expectedBody         *bytes.Buffer
+				expectedVersion      string
+				expectedContentType  string
+			)
+			BeforeEach(func() {
+				fakeClient = new(fakes.FakeClient)
+				handler = atcclient.NewAtcHandler(fakeClient)
+
+				expectedPipelineName = "mypipeline"
+				expectedBody = &bytes.Buffer{}
+				expectedVersion = "42"
+				expectedContentType = "applicatione/fakefakefake"
+
+				expectedRequest := atcclient.Request{
+					RequestName: atc.SaveConfig,
+					Params: map[string]string{
+						"pipeline_name": expectedPipelineName,
+					},
+					Body: expectedBody,
+					Headers: map[string][]string{
+						"Content-Type":          {expectedContentType},
+						atc.ConfigVersionHeader: {expectedVersion},
+					},
+				}
+
+				fakeClient.SendStub = func(request atcclient.Request, response *atcclient.Response) error {
+					Expect(request).To(Equal(expectedRequest))
+					response.Created = true
+					return nil
+				}
+			})
+
+			It("returns true for created and false for updated", func() {
+				created, updated, err := handler.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedBody, expectedContentType)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(created).To(BeTrue())
+				Expect(updated).To(BeFalse())
+			})
+		})
+
+		Context("when updating a config", func() {
+			var (
+				fakeClient           *fakes.FakeClient
+				expectedPipelineName string
+				expectedBody         *bytes.Buffer
+				expectedVersion      string
+				expectedContentType  string
+			)
+			BeforeEach(func() {
+				fakeClient = new(fakes.FakeClient)
+				handler = atcclient.NewAtcHandler(fakeClient)
+
+				expectedPipelineName = "mypipeline"
+				expectedBody = &bytes.Buffer{}
+				expectedVersion = "42"
+				expectedContentType = "applicatione/fakefakefake"
+
+				expectedRequest := atcclient.Request{
+					RequestName: atc.SaveConfig,
+					Params: map[string]string{
+						"pipeline_name": expectedPipelineName,
+					},
+					Body: expectedBody,
+					Headers: map[string][]string{
+						"Content-Type":          {expectedContentType},
+						atc.ConfigVersionHeader: {expectedVersion},
+					},
+				}
+
+				fakeClient.SendStub = func(request atcclient.Request, response *atcclient.Response) error {
+					Expect(request).To(Equal(expectedRequest))
+					return nil
+				}
+			})
+
+			It("returns false for created and true for updated", func() {
+				created, updated, err := handler.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedBody, expectedContentType)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(created).To(BeFalse())
+				Expect(updated).To(BeTrue())
 			})
 		})
 	})
