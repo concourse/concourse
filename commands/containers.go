@@ -48,16 +48,16 @@ func (command *ContainersCommand) Execute([]string) error {
 		log.Fatalln(err)
 	}
 
-	headers := ui.TableRow{
-		{Contents: "handle", Color: color.New(color.Bold)},
-		{Contents: "name", Color: color.New(color.Bold)},
-		{Contents: "pipeline", Color: color.New(color.Bold)},
-		{Contents: "type", Color: color.New(color.Bold)},
-		{Contents: "build id", Color: color.New(color.Bold)},
-		{Contents: "worker", Color: color.New(color.Bold)},
+	table := ui.Table{
+		Headers: ui.TableRow{
+			{Contents: "handle", Color: color.New(color.Bold)},
+			{Contents: "name", Color: color.New(color.Bold)},
+			{Contents: "pipeline", Color: color.New(color.Bold)},
+			{Contents: "type", Color: color.New(color.Bold)},
+			{Contents: "build id", Color: color.New(color.Bold)},
+			{Contents: "worker", Color: color.New(color.Bold)},
+		},
 	}
-
-	table := ui.Table{Data: []ui.TableRow{headers}}
 
 	sort.Sort(containersByHandle(containers))
 
