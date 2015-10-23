@@ -15,7 +15,6 @@ type SetPipelineCommand struct {
 	Config   PathFlag           `short:"c"  long:"config"                        description:"Pipeline configuration file"`
 	Var      []VariablePairFlag `short:"v"  long:"var" value-name:"[SECRET=KEY]" description:"Variable flag that can be used for filling in template values in configuration"`
 	VarsFrom []PathFlag         `short:"l"  long:"load-vars-from"                description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
-	Paused   string             `long:"paused"         value-name:"[true/false]" description:"Should the pipeline start out as paused or unpaused"`
 }
 
 var setPipelineCommand SetPipelineCommand
@@ -44,19 +43,6 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		templateVariables[v.Name] = v.Value
 	}
 
-	var paused PipelineAction
-	if command.Paused != "" {
-		if command.Paused == "true" {
-			paused = PausePipeline
-		} else if command.Paused == "false" {
-			paused = UnpausePipeline
-		} else {
-			failf(`invalid boolean value "%s" for --paused`, command.Paused)
-		}
-	} else {
-		paused = DoNotChangePipeline
-	}
-
 	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
 	if err != nil {
 		log.Fatalln(err)
@@ -76,7 +62,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		handler:             handler,
 	}
 
-	atcConfig.Set(paused, configPath, templateVariables, templateVariablesFiles)
+	atcConfig.Set(PausePipeline, configPath, templateVariables, templateVariablesFiles)
 	return nil
 }
 

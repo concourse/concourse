@@ -166,7 +166,7 @@ var _ = Describe("Fly CLI", func() {
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
 								bodyConfig, state := getConfigAndPausedState(r)
-								Expect(state).To(BeNil())
+								Expect(state).To(BeTrue())
 
 								receivedConfig := atc.Config{}
 								err = yaml.Unmarshal(bodyConfig, &receivedConfig)
@@ -298,7 +298,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("parses the config file and sends it to the ATC", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name(), "--paused", "true")
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
 
 					stdin, err := flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())
@@ -395,149 +395,47 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
-			It("complains if the paused flag is invalid", func() {
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name(), "--paused=this-is-not-a-bool")
-
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess.Err).Should(gbytes.Say(`invalid boolean value "this-is-not-a-bool" for --paused`))
-
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
-
-				Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
-			})
-
 			Context("when the server says this is the first time it's creating the pipeline", func() {
-				Context("when the user doesn't mention paused", func() {
-					BeforeEach(func() {
-						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
-						Expect(err).NotTo(HaveOccurred())
+				BeforeEach(func() {
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+					Expect(err).NotTo(HaveOccurred())
 
-						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
-							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
-							func(w http.ResponseWriter, r *http.Request) {
-								config, state := getConfigAndPausedState(r)
-								Expect(config).To(Equal(payload))
-								Expect(state).To(BeNil())
-							},
-							ghttp.RespondWith(http.StatusCreated, ""),
-						))
-					})
-
-					It("succeeds and prints an error message to help the user", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
-
-						stdin, err := flyCmd.StdinPipe()
-						Expect(err).NotTo(HaveOccurred())
-
-						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Expect(err).NotTo(HaveOccurred())
-
-						Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-						fmt.Fprintln(stdin, "y")
-
-						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "awesome-pipeline")
-
-						Eventually(sess).Should(gbytes.Say("pipeline created!"))
-						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
-
-						Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
-						Eventually(sess).Should(gbytes.Say("  - run again with --paused=false"))
-						Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
-
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
-
-						Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
-					})
+					atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
+						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+						func(w http.ResponseWriter, r *http.Request) {
+							config, state := getConfigAndPausedState(r)
+							Expect(config).To(Equal(payload))
+							Expect(state).To(BeTrue())
+						},
+						ghttp.RespondWith(http.StatusCreated, ""),
+					))
 				})
 
-				Context("when the user explicitly says paused true", func() {
-					BeforeEach(func() {
-						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
-						Expect(err).NotTo(HaveOccurred())
+				It("succeeds and prints an error message to help the user", func() {
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
 
-						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
-							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
-							func(w http.ResponseWriter, r *http.Request) {
-								config, state := getConfigAndPausedState(r)
-								Expect(config).To(Equal(payload))
-								Expect(*state).To(BeTrue())
-							},
-							ghttp.RespondWith(http.StatusCreated, ""),
-						))
-					})
+					stdin, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
 
-					It("succeeds and prints an error message to help the user", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name(), "--paused=true")
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
 
-						stdin, err := flyCmd.StdinPipe()
-						Expect(err).NotTo(HaveOccurred())
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
+					fmt.Fprintln(stdin, "y")
 
-						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Expect(err).NotTo(HaveOccurred())
+					pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "awesome-pipeline")
 
-						Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-						fmt.Fprintln(stdin, "y")
+					Eventually(sess).Should(gbytes.Say("pipeline created!"))
+					Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
 
-						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "awesome-pipeline")
+					Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
+					Eventually(sess).Should(gbytes.Say("  - run 'fly -t [target] unpause-pipeline -p [pipeline]"))
+					Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
 
-						Eventually(sess).Should(gbytes.Say("pipeline created!"))
-						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
 
-						Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
-						Eventually(sess).Should(gbytes.Say("  - run again with --paused=false"))
-						Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
-
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
-
-						Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
-					})
-				})
-
-				Context("when the user explicitly says paused is false", func() {
-					BeforeEach(func() {
-						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
-						Expect(err).NotTo(HaveOccurred())
-
-						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
-							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
-							func(w http.ResponseWriter, r *http.Request) {
-								config, state := getConfigAndPausedState(r)
-								Expect(config).To(Equal(payload))
-								Expect(*state).To(BeFalse())
-							},
-							ghttp.RespondWith(http.StatusCreated, ""),
-						))
-					})
-
-					It("succeeds but doesn't show the help text", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name(), "--paused=false")
-
-						stdin, err := flyCmd.StdinPipe()
-						Expect(err).NotTo(HaveOccurred())
-
-						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Expect(err).NotTo(HaveOccurred())
-
-						Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-						fmt.Fprintln(stdin, "y")
-
-						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "awesome-pipeline")
-
-						Eventually(sess).Should(gbytes.Say("pipeline created!"))
-						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
-
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
-
-						Expect(sess).NotTo(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
-
-						Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
-					})
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
 				})
 			})
 
