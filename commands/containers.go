@@ -43,7 +43,7 @@ func (command *ContainersCommand) Execute([]string) error {
 	}
 	handler := atcclient.NewAtcHandler(client)
 
-	containers, err := handler.ListContainers()
+	containers, err := handler.ListContainers(map[string]string{})
 	if err != nil {
 		log.Fatalln(err)
 	}

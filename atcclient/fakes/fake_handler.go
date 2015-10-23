@@ -117,9 +117,11 @@ type FakeHandler struct {
 		result2 bool
 		result3 error
 	}
-	ListContainersStub        func() ([]atc.Container, error)
+	ListContainersStub        func(queryList map[string]string) ([]atc.Container, error)
 	listContainersMutex       sync.RWMutex
-	listContainersArgsForCall []struct{}
+	listContainersArgsForCall []struct {
+		queryList map[string]string
+	}
 	listContainersReturns struct {
 		result1 []atc.Container
 		result2 error
@@ -526,12 +528,14 @@ func (fake *FakeHandler) JobBuildReturns(result1 atc.Build, result2 bool, result
 	}{result1, result2, result3}
 }
 
-func (fake *FakeHandler) ListContainers() ([]atc.Container, error) {
+func (fake *FakeHandler) ListContainers(queryList map[string]string) ([]atc.Container, error) {
 	fake.listContainersMutex.Lock()
-	fake.listContainersArgsForCall = append(fake.listContainersArgsForCall, struct{}{})
+	fake.listContainersArgsForCall = append(fake.listContainersArgsForCall, struct {
+		queryList map[string]string
+	}{queryList})
 	fake.listContainersMutex.Unlock()
 	if fake.ListContainersStub != nil {
-		return fake.ListContainersStub()
+		return fake.ListContainersStub(queryList)
 	} else {
 		return fake.listContainersReturns.result1, fake.listContainersReturns.result2
 	}
@@ -541,6 +545,12 @@ func (fake *FakeHandler) ListContainersCallCount() int {
 	fake.listContainersMutex.RLock()
 	defer fake.listContainersMutex.RUnlock()
 	return len(fake.listContainersArgsForCall)
+}
+
+func (fake *FakeHandler) ListContainersArgsForCall(i int) map[string]string {
+	fake.listContainersMutex.RLock()
+	defer fake.listContainersMutex.RUnlock()
+	return fake.listContainersArgsForCall[i].queryList
 }
 
 func (fake *FakeHandler) ListContainersReturns(result1 []atc.Container, result2 error) {

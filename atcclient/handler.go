@@ -25,7 +25,7 @@ type Handler interface {
 	DeletePipeline(pipelineName string) (bool, error)
 	Job(pipelineName, jobName string) (atc.Job, bool, error)
 	JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error)
-	ListContainers() ([]atc.Container, error)
+	ListContainers(queryList map[string]string) ([]atc.Container, error)
 	ListPipelines() ([]atc.Pipeline, error)
 	ListVolumes() ([]atc.Volume, error)
 	ListWorkers() ([]atc.Worker, error)

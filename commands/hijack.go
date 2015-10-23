@@ -67,14 +67,16 @@ func remoteCommand(argv []string) (string, []string) {
 }
 
 type containerLocator interface {
-	locate(containerFingerprint) (url.Values, error)
+	locate(containerFingerprint) (map[string]string, error)
 }
 
 type stepContainerLocator struct {
 	handler atcclient.Handler
 }
 
-func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (url.Values, error) {
+func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (map[string]string, error) {
+	reqValues := map[string]string{}
+
 	build, err := GetBuild(
 		locator.handler,
 		fingerprint.jobName,
@@ -82,27 +84,26 @@ func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (ur
 		fingerprint.pipelineName,
 	)
 	if err != nil {
-		return url.Values{}, err
+		return reqValues, err
 	}
 
-	reqValues := url.Values{}
-	reqValues["build-id"] = []string{strconv.Itoa(build.ID)}
-	reqValues["name"] = []string{fingerprint.stepName}
+	reqValues["build-id"] = strconv.Itoa(build.ID)
+	reqValues["name"] = fingerprint.stepName
 
 	return reqValues, nil
 }
 
 type checkContainerLocator struct{}
 
-func (locator checkContainerLocator) locate(fingerprint containerFingerprint) (url.Values, error) {
-	reqValues := url.Values{}
+func (locator checkContainerLocator) locate(fingerprint containerFingerprint) (map[string]string, error) {
+	reqValues := map[string]string{}
 
-	reqValues["type"] = []string{"check"}
+	reqValues["type"] = "check"
 	if fingerprint.checkName != "" {
-		reqValues["name"] = []string{fingerprint.checkName}
+		reqValues["name"] = fingerprint.checkName
 	}
 	if fingerprint.pipelineName != "" {
-		reqValues["pipeline"] = []string{fingerprint.pipelineName}
+		reqValues["pipeline"] = fingerprint.pipelineName
 	}
 
 	return reqValues, nil
@@ -118,7 +119,7 @@ type containerFingerprint struct {
 	checkName string
 }
 
-func locateContainer(handler atcclient.Handler, fingerprint containerFingerprint) (url.Values, error) {
+func locateContainer(handler atcclient.Handler, fingerprint containerFingerprint) (map[string]string, error) {
 	var locator containerLocator
 
 	if fingerprint.checkName == "" {
@@ -188,28 +189,10 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 		log.Fatalln(err)
 	}
 
-	atcRequester := newAtcRequester(target.URL(), target.Insecure)
-	listContainersReq, err := atcRequester.RequestGenerator.CreateRequest(
-		atc.ListContainers,
-		rata.Params{},
-		nil,
-	)
-	if err != nil {
-		log.Fatalln("failed to create containers list request:", err)
-	}
-	listContainersReq.URL.RawQuery = reqValues.Encode()
-
-	resp, err := atcRequester.httpClient.Do(listContainersReq)
+	containers, err := handler.ListContainers(reqValues)
 	if err != nil {
 		log.Fatalln("failed to get containers:", err)
 	}
-
-	var containers []atc.Container
-	err = json.NewDecoder(resp.Body).Decode(&containers)
-	if err != nil {
-		log.Fatalln("failed to decode containers:", err)
-	}
-
 	return containers
 }
 
