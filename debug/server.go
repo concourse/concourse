@@ -20,7 +20,7 @@ type server struct {
 //go:generate counterfeiter . DebugDB
 
 type DebugDB interface {
-	FindContainerInfosByIdentifier(db.ContainerIdentifier) ([]db.ContainerInfo, error)
+	FindContainersByIdentifier(db.ContainerIdentifier) ([]db.Container, error)
 	Workers() ([]db.WorkerInfo, error)
 }
 
@@ -32,7 +32,7 @@ func NewServer(logger lager.Logger, db DebugDB, template *template.Template) htt
 	}
 }
 
-type WorkMap map[string][]db.ContainerInfo
+type WorkMap map[string][]db.Container
 
 type TemplateData struct {
 	WorkMap WorkMap
@@ -43,7 +43,7 @@ func (server *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log := server.logger.Session("builds")
 
-	containers, err := server.db.FindContainerInfosByIdentifier(db.ContainerIdentifier{})
+	containers, err := server.db.FindContainersByIdentifier(db.ContainerIdentifier{})
 	if err != nil {
 		log.Error("fetching-container-info-failed", err)
 		http.Error(w, err.Error(), 500)
@@ -54,7 +54,7 @@ func (server *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for _, container := range containers {
 		if _, found := workMap[container.WorkerName]; !found {
-			workMap[container.WorkerName] = []db.ContainerInfo{}
+			workMap[container.WorkerName] = []db.Container{}
 		}
 
 		workMap[container.WorkerName] = append(

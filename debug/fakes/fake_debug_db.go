@@ -9,13 +9,13 @@ import (
 )
 
 type FakeDebugDB struct {
-	FindContainerInfosByIdentifierStub        func(db.ContainerIdentifier) ([]db.ContainerInfo, error)
-	findContainerInfosByIdentifierMutex       sync.RWMutex
-	findContainerInfosByIdentifierArgsForCall []struct {
+	FindContainersByIdentifierStub        func(db.ContainerIdentifier) ([]db.Container, error)
+	findContainersByIdentifierMutex       sync.RWMutex
+	findContainersByIdentifierArgsForCall []struct {
 		arg1 db.ContainerIdentifier
 	}
-	findContainerInfosByIdentifierReturns struct {
-		result1 []db.ContainerInfo
+	findContainersByIdentifierReturns struct {
+		result1 []db.Container
 		result2 error
 	}
 	WorkersStub        func() ([]db.WorkerInfo, error)
@@ -27,35 +27,35 @@ type FakeDebugDB struct {
 	}
 }
 
-func (fake *FakeDebugDB) FindContainerInfosByIdentifier(arg1 db.ContainerIdentifier) ([]db.ContainerInfo, error) {
-	fake.findContainerInfosByIdentifierMutex.Lock()
-	fake.findContainerInfosByIdentifierArgsForCall = append(fake.findContainerInfosByIdentifierArgsForCall, struct {
+func (fake *FakeDebugDB) FindContainersByIdentifier(arg1 db.ContainerIdentifier) ([]db.Container, error) {
+	fake.findContainersByIdentifierMutex.Lock()
+	fake.findContainersByIdentifierArgsForCall = append(fake.findContainersByIdentifierArgsForCall, struct {
 		arg1 db.ContainerIdentifier
 	}{arg1})
-	fake.findContainerInfosByIdentifierMutex.Unlock()
-	if fake.FindContainerInfosByIdentifierStub != nil {
-		return fake.FindContainerInfosByIdentifierStub(arg1)
+	fake.findContainersByIdentifierMutex.Unlock()
+	if fake.FindContainersByIdentifierStub != nil {
+		return fake.FindContainersByIdentifierStub(arg1)
 	} else {
-		return fake.findContainerInfosByIdentifierReturns.result1, fake.findContainerInfosByIdentifierReturns.result2
+		return fake.findContainersByIdentifierReturns.result1, fake.findContainersByIdentifierReturns.result2
 	}
 }
 
-func (fake *FakeDebugDB) FindContainerInfosByIdentifierCallCount() int {
-	fake.findContainerInfosByIdentifierMutex.RLock()
-	defer fake.findContainerInfosByIdentifierMutex.RUnlock()
-	return len(fake.findContainerInfosByIdentifierArgsForCall)
+func (fake *FakeDebugDB) FindContainersByIdentifierCallCount() int {
+	fake.findContainersByIdentifierMutex.RLock()
+	defer fake.findContainersByIdentifierMutex.RUnlock()
+	return len(fake.findContainersByIdentifierArgsForCall)
 }
 
-func (fake *FakeDebugDB) FindContainerInfosByIdentifierArgsForCall(i int) db.ContainerIdentifier {
-	fake.findContainerInfosByIdentifierMutex.RLock()
-	defer fake.findContainerInfosByIdentifierMutex.RUnlock()
-	return fake.findContainerInfosByIdentifierArgsForCall[i].arg1
+func (fake *FakeDebugDB) FindContainersByIdentifierArgsForCall(i int) db.ContainerIdentifier {
+	fake.findContainersByIdentifierMutex.RLock()
+	defer fake.findContainersByIdentifierMutex.RUnlock()
+	return fake.findContainersByIdentifierArgsForCall[i].arg1
 }
 
-func (fake *FakeDebugDB) FindContainerInfosByIdentifierReturns(result1 []db.ContainerInfo, result2 error) {
-	fake.FindContainerInfosByIdentifierStub = nil
-	fake.findContainerInfosByIdentifierReturns = struct {
-		result1 []db.ContainerInfo
+func (fake *FakeDebugDB) FindContainersByIdentifierReturns(result1 []db.Container, result2 error) {
+	fake.FindContainersByIdentifierStub = nil
+	fake.findContainersByIdentifierReturns = struct {
+		result1 []db.Container
 		result2 error
 	}{result1, result2}
 }
