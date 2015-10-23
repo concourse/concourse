@@ -7,8 +7,6 @@ import (
 	"github.com/concourse/atc/auth"
 )
 
-const allTeams = "all"
-
 type TeamVerifier struct {
 	teams        []string
 	gitHubClient Client
@@ -34,11 +32,6 @@ func (verifier *TeamVerifier) Verify(httpClient *http.Client) (bool, error) {
 		verifierOrgTeam := strings.Split(team, "/")
 
 		if _, ok := usersOrgTeams[verifierOrgTeam[0]]; ok {
-
-			if verifierOrgTeam[1] == allTeams {
-				return true, nil
-			}
-
 			for _, teamUserBelongsTo := range usersOrgTeams[verifierOrgTeam[0]] {
 				if teamUserBelongsTo == verifierOrgTeam[1] {
 					return true, nil

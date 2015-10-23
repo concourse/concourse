@@ -24,7 +24,6 @@ var _ = Describe("TeamVerifier", func() {
 		teams = []string{
 			"some-org/some-team",
 			"some-org/some-team-two",
-			"some-awesome-org/all",
 		}
 		fakeClient = new(fakes.FakeClient)
 
@@ -54,26 +53,6 @@ var _ = Describe("TeamVerifier", func() {
 						OrganizationTeams{
 							"some-other-org": {"some-other-team"},
 							"some-org":       {"some-team"},
-						},
-						nil,
-					)
-				})
-
-				It("succeeds", func() {
-					Expect(verifyErr).ToNot(HaveOccurred())
-				})
-
-				It("returns true", func() {
-					Expect(verified).To(BeTrue())
-				})
-			})
-
-			Context("including the desired org if the team is set to all", func() {
-				BeforeEach(func() {
-					fakeClient.TeamsReturns(
-						OrganizationTeams{
-							"some-other-org":   {"some-other-team"},
-							"some-awesome-org": {"some-team-that-does-not-matter"},
 						},
 						nil,
 					)
