@@ -18,7 +18,7 @@ type ContainerIdentifier struct {
 	StepLocation uint
 }
 
-type ContainerInfo struct {
+type Container struct {
 	ContainerIdentifier
 
 	ExpiresAt time.Time

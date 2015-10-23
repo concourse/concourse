@@ -19,11 +19,11 @@ import (
 type WorkerDB interface {
 	Workers() ([]db.WorkerInfo, error)
 	GetWorker(string) (db.WorkerInfo, bool, error)
-	CreateContainerInfo(db.ContainerInfo, time.Duration) error
-	GetContainerInfo(string) (db.ContainerInfo, bool, error)
-	FindContainerInfoByIdentifier(db.ContainerIdentifier) (db.ContainerInfo, bool, error)
+	CreateContainer(db.Container, time.Duration) error
+	GetContainer(string) (db.Container, bool, error)
+	FindContainerByIdentifier(db.ContainerIdentifier) (db.Container, bool, error)
 
-	UpdateExpiresAtOnContainerInfo(handle string, ttl time.Duration) error
+	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, error)
 }
@@ -85,12 +85,12 @@ func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
 	return worker, found, nil
 }
 
-func (provider *dbProvider) FindContainerInfoForIdentifier(id Identifier) (db.ContainerInfo, bool, error) {
-	return provider.db.FindContainerInfoByIdentifier(db.ContainerIdentifier(id))
+func (provider *dbProvider) FindContainerForIdentifier(id Identifier) (db.Container, bool, error) {
+	return provider.db.FindContainerByIdentifier(db.ContainerIdentifier(id))
 }
 
-func (provider *dbProvider) GetContainerInfo(handle string) (db.ContainerInfo, bool, error) {
-	return provider.db.GetContainerInfo(handle)
+func (provider *dbProvider) GetContainer(handle string) (db.Container, bool, error) {
+	return provider.db.GetContainer(handle)
 }
 
 func (provider *dbProvider) ReapContainer(handle string) error {

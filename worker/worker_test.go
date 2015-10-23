@@ -179,14 +179,14 @@ var _ = Describe("Worker", func() {
 						expectedIdentifier := db.ContainerIdentifier(id)
 						expectedIdentifier.WorkerName = "my-garden-worker"
 
-						containerInfo := db.ContainerInfo{
+						container := db.Container{
 							Handle:              "some-handle",
 							ContainerIdentifier: expectedIdentifier,
 						}
 
-						Expect(fakeGardenWorkerDB.CreateContainerInfoCallCount()).To(Equal(1))
-						actualContainerInfo, ttl := fakeGardenWorkerDB.CreateContainerInfoArgsForCall(0)
-						Expect(actualContainerInfo).To(Equal(containerInfo))
+						Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
+						actualContainer, ttl := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+						Expect(actualContainer).To(Equal(container))
 						Expect(ttl).To(Equal(5 * time.Minute))
 					})
 
@@ -194,7 +194,7 @@ var _ = Describe("Worker", func() {
 						disaster := errors.New("bad")
 
 						BeforeEach(func() {
-							fakeGardenWorkerDB.CreateContainerInfoReturns(disaster)
+							fakeGardenWorkerDB.CreateContainerReturns(disaster)
 						})
 
 						It("returns the error", func() {
@@ -424,7 +424,7 @@ var _ = Describe("Worker", func() {
 
 						It("performs an initial heartbeat synchronously", func() {
 							Expect(fakeContainer.SetGraceTimeCallCount()).To(Equal(1))
-							Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).To(Equal(1))
+							Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(1))
 						})
 
 						Describe("every 30 seconds", func() {
@@ -434,8 +434,8 @@ var _ = Describe("Worker", func() {
 								Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
 								Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(5 * time.Minute))
 
-								Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
-								handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+								Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
+								handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
 								Expect(handle).To(Equal("some-handle"))
 								Expect(interval).To(Equal(5 * time.Minute))
 
@@ -444,8 +444,8 @@ var _ = Describe("Worker", func() {
 								Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
 								Expect(fakeContainer.SetGraceTimeArgsForCall(2)).To(Equal(5 * time.Minute))
 
-								Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(3))
-								handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(2)
+								Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(3))
+								handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(2)
 								Expect(handle).To(Equal("some-handle"))
 								Expect(interval).To(Equal(5 * time.Minute))
 							})
@@ -458,15 +458,15 @@ var _ = Describe("Worker", func() {
 								Expect(fakeContainer.SetGraceTimeCallCount()).Should(Equal(2))
 								Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(30 * time.Minute))
 
-								Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(2))
-								handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+								Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).Should(Equal(2))
+								handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
 								Expect(handle).To(Equal("some-handle"))
 								Expect(interval).To(Equal(30 * time.Minute))
 
 								fakeClock.Increment(30 * time.Second)
 
 								Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
-								Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
+								Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
 							})
 
 							Context("with no final ttl", func() {
@@ -474,7 +474,7 @@ var _ = Describe("Worker", func() {
 									createdContainer.Release(0)
 
 									Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
-									Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(1))
+									Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(1))
 								})
 							})
 						})
@@ -698,7 +698,7 @@ var _ = Describe("Worker", func() {
 
 					It("performs an initial heartbeat synchronously", func() {
 						Expect(fakeContainer.SetGraceTimeCallCount()).To(Equal(1))
-						Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).To(Equal(1))
+						Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(1))
 					})
 
 					Describe("every 30 seconds", func() {
@@ -708,8 +708,8 @@ var _ = Describe("Worker", func() {
 							Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
 							Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(5 * time.Minute))
 
-							Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
-							handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+							Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
+							handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
 							Expect(handle).To(Equal("some-handle"))
 							Expect(interval).To(Equal(5 * time.Minute))
 
@@ -718,8 +718,8 @@ var _ = Describe("Worker", func() {
 							Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
 							Expect(fakeContainer.SetGraceTimeArgsForCall(2)).To(Equal(5 * time.Minute))
 
-							Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(3))
-							handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(2)
+							Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(3))
+							handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(2)
 							Expect(handle).To(Equal("some-handle"))
 							Expect(interval).To(Equal(5 * time.Minute))
 						})
@@ -732,15 +732,15 @@ var _ = Describe("Worker", func() {
 							Expect(fakeContainer.SetGraceTimeCallCount()).Should(Equal(2))
 							Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(30 * time.Minute))
 
-							Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(2))
-							handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+							Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).Should(Equal(2))
+							handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
 							Expect(handle).To(Equal("some-handle"))
 							Expect(interval).To(Equal(30 * time.Minute))
 
 							fakeClock.Increment(30 * time.Second)
 
 							Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
-							Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
+							Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
 						})
 
 						Context("with no final ttl", func() {
@@ -748,7 +748,7 @@ var _ = Describe("Worker", func() {
 								createdContainer.Release(0)
 
 								Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
-								Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(1))
+								Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(1))
 							})
 						})
 					})
@@ -982,7 +982,7 @@ var _ = Describe("Worker", func() {
 				fakeContainer = new(gfakes.FakeContainer)
 				fakeContainer.HandleReturns("provider-handle")
 
-				fakeWorkerProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{
+				fakeWorkerProvider.FindContainerForIdentifierReturns(db.Container{
 					Handle: "provider-handle",
 				}, true, nil)
 
@@ -994,8 +994,8 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("looks for containers with matching properties via the Garden client", func() {
-				Expect(fakeWorkerProvider.FindContainerInfoForIdentifierCallCount()).To(Equal(1))
-				Expect(fakeWorkerProvider.FindContainerInfoForIdentifierArgsForCall(0)).To(Equal(id))
+				Expect(fakeWorkerProvider.FindContainerForIdentifierCallCount()).To(Equal(1))
+				Expect(fakeWorkerProvider.FindContainerForIdentifierArgsForCall(0)).To(Equal(id))
 
 				Expect(fakeGardenClient.LookupCallCount()).To(Equal(1))
 				lookupHandle := fakeGardenClient.LookupArgsForCall(0)
@@ -1019,7 +1019,7 @@ var _ = Describe("Worker", func() {
 
 				It("performs an initial heartbeat synchronously", func() {
 					Expect(fakeContainer.SetGraceTimeCallCount()).To(Equal(1))
-					Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).To(Equal(1))
+					Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(1))
 				})
 
 				Describe("every 30 seconds", func() {
@@ -1029,8 +1029,8 @@ var _ = Describe("Worker", func() {
 						Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
 						Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(5 * time.Minute))
 
-						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
-						handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
+						handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
 						Expect(handle).To(Equal("provider-handle"))
 						Expect(interval).To(Equal(5 * time.Minute))
 
@@ -1039,8 +1039,8 @@ var _ = Describe("Worker", func() {
 						Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
 						Expect(fakeContainer.SetGraceTimeArgsForCall(2)).To(Equal(5 * time.Minute))
 
-						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(3))
-						handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(2)
+						Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(3))
+						handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(2)
 						Expect(handle).To(Equal("provider-handle"))
 						Expect(interval).To(Equal(5 * time.Minute))
 					})
@@ -1053,15 +1053,15 @@ var _ = Describe("Worker", func() {
 						Expect(fakeContainer.SetGraceTimeCallCount()).Should(Equal(2))
 						Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(30 * time.Minute))
 
-						Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount()).Should(Equal(2))
-						handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoArgsForCall(1)
+						Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).Should(Equal(2))
+						handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
 						Expect(handle).To(Equal("provider-handle"))
 						Expect(interval).To(Equal(30 * time.Minute))
 
 						fakeClock.Increment(30 * time.Second)
 
 						Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
-						Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(2))
+						Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
 					})
 
 					Context("with no final ttl", func() {
@@ -1069,7 +1069,7 @@ var _ = Describe("Worker", func() {
 							foundContainer.Release(0)
 
 							Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
-							Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerInfoCallCount).Should(Equal(1))
+							Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(1))
 						})
 					})
 				})
@@ -1086,7 +1086,7 @@ var _ = Describe("Worker", func() {
 
 		Context("when no containers are found", func() {
 			BeforeEach(func() {
-				fakeWorkerProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{}, false, nil)
+				fakeWorkerProvider.FindContainerForIdentifierReturns(db.Container{}, false, nil)
 			})
 
 			It("returns that the container could not be found", func() {
@@ -1098,7 +1098,7 @@ var _ = Describe("Worker", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeWorkerProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{}, false, disaster)
+				fakeWorkerProvider.FindContainerForIdentifierReturns(db.Container{}, false, disaster)
 			})
 
 			It("returns the error", func() {
@@ -1108,7 +1108,7 @@ var _ = Describe("Worker", func() {
 
 		Context("when the container cannot be found", func() {
 			BeforeEach(func() {
-				fakeWorkerProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{Handle: "handle"}, true, nil)
+				fakeWorkerProvider.FindContainerForIdentifierReturns(db.Container{Handle: "handle"}, true, nil)
 				fakeGardenClient.LookupReturns(nil, garden.ContainerNotFoundError{"handle"})
 			})
 
@@ -1126,7 +1126,7 @@ var _ = Describe("Worker", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeWorkerProvider.FindContainerInfoForIdentifierReturns(db.ContainerInfo{Handle: "handle"}, true, nil)
+				fakeWorkerProvider.FindContainerForIdentifierReturns(db.Container{Handle: "handle"}, true, nil)
 				fakeGardenClient.LookupReturns(nil, disaster)
 			})
 

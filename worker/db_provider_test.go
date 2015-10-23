@@ -206,8 +206,8 @@ var _ = Describe("DBProvider", func() {
 					container, err := workers[0].CreateContainer(logger, id, spec)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(fakeDB.CreateContainerInfoCallCount()).To(Equal(1))
-					createdInfo, _ := fakeDB.CreateContainerInfoArgsForCall(0)
+					Expect(fakeDB.CreateContainerCallCount()).To(Equal(1))
+					createdInfo, _ := fakeDB.CreateContainerArgsForCall(0)
 					Expect(createdInfo.WorkerName).To(Equal("some-worker-name"))
 
 					Expect(container.Handle()).To(Equal("created-handle"))
@@ -230,7 +230,7 @@ var _ = Describe("DBProvider", func() {
 					worker.ContainersReturns([]garden.Container{fakeContainer}, nil)
 					worker.LookupReturns(fakeContainer, nil)
 
-					fakeDB.FindContainerInfoByIdentifierReturns(db.ContainerInfo{Handle: "some-handle"}, true, nil)
+					fakeDB.FindContainerByIdentifierReturns(db.Container{Handle: "some-handle"}, true, nil)
 
 					container, found, err := workers[0].FindContainerForIdentifier(logger, Identifier{
 						Name: "some-name",
@@ -291,7 +291,7 @@ var _ = Describe("DBProvider", func() {
 
 	Context("when we call to get a container info by identifier", func() {
 		It("calls through to the db object", func() {
-			provider.FindContainerInfoForIdentifier(Identifier{
+			provider.FindContainerForIdentifier(Identifier{
 				Name:         "some-name",
 				PipelineName: "some-pipeline",
 				BuildID:      1234,
@@ -302,9 +302,9 @@ var _ = Describe("DBProvider", func() {
 				StepLocation: 1,
 			})
 
-			Expect(fakeDB.FindContainerInfoByIdentifierCallCount()).To(Equal(1))
+			Expect(fakeDB.FindContainerByIdentifierCallCount()).To(Equal(1))
 
-			Expect(fakeDB.FindContainerInfoByIdentifierArgsForCall(0)).To(Equal(db.ContainerIdentifier{
+			Expect(fakeDB.FindContainerByIdentifierArgsForCall(0)).To(Equal(db.ContainerIdentifier{
 				Name:         "some-name",
 				PipelineName: "some-pipeline",
 				BuildID:      1234,

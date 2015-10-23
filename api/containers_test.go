@@ -34,12 +34,12 @@ var _ = Describe("Pipelines API", func() {
 	var (
 		req *http.Request
 
-		fakeContainer1              db.ContainerInfo
+		fakeContainer1              db.Container
 		expectedPresentedContainer1 atc.Container
 	)
 
 	BeforeEach(func() {
-		fakeContainer1 = db.ContainerInfo{
+		fakeContainer1 = db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{
 				PipelineName: pipelineName1,
 				Type:         type1,
@@ -81,7 +81,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when authenticated", func() {
 			var (
-				fakeContainer2 db.ContainerInfo
+				fakeContainer2 db.Container
 
 				expectedPresentedContainer2 atc.Container
 			)
@@ -89,7 +89,7 @@ var _ = Describe("Pipelines API", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
 
-				fakeContainer1 = db.ContainerInfo{
+				fakeContainer1 = db.Container{
 					ContainerIdentifier: db.ContainerIdentifier{
 						PipelineName: pipelineName1,
 						Type:         type1,
@@ -99,7 +99,7 @@ var _ = Describe("Pipelines API", func() {
 					Handle: containerID1,
 				}
 
-				fakeContainer2 = db.ContainerInfo{
+				fakeContainer2 = db.Container{
 					ContainerIdentifier: db.ContainerIdentifier{
 						PipelineName: "pipeline-2",
 						Type:         db.ContainerTypePut,
@@ -122,11 +122,11 @@ var _ = Describe("Pipelines API", func() {
 
 				Context("when no errors are returned", func() {
 					var (
-						fakeContainers              []db.ContainerInfo
+						fakeContainers              []db.Container
 						expectedPresentedContainers []atc.Container
 					)
 					BeforeEach(func() {
-						fakeContainers = []db.ContainerInfo{
+						fakeContainers = []db.Container{
 							fakeContainer1,
 							fakeContainer2,
 						}
@@ -134,7 +134,7 @@ var _ = Describe("Pipelines API", func() {
 							expectedPresentedContainer1,
 							expectedPresentedContainer2,
 						}
-						containerDB.FindContainerInfosByIdentifierReturns(fakeContainers, nil)
+						containerDB.FindContainersByIdentifierReturns(fakeContainers, nil)
 					})
 
 					It("returns 200", func() {
@@ -178,7 +178,7 @@ var _ = Describe("Pipelines API", func() {
 
 				Context("when no containers are found", func() {
 					BeforeEach(func() {
-						containerDB.FindContainerInfosByIdentifierReturns([]db.ContainerInfo{}, nil)
+						containerDB.FindContainersByIdentifierReturns([]db.Container{}, nil)
 					})
 
 					It("returns 200", func() {
@@ -210,7 +210,7 @@ var _ = Describe("Pipelines API", func() {
 
 					BeforeEach(func() {
 						expectedErr = errors.New("some error")
-						containerDB.FindContainerInfosByIdentifierReturns([]db.ContainerInfo{}, expectedErr)
+						containerDB.FindContainersByIdentifierReturns([]db.Container{}, expectedErr)
 					})
 
 					It("returns 500", func() {
@@ -236,8 +236,8 @@ var _ = Describe("Pipelines API", func() {
 					expectedArgs := db.ContainerIdentifier{
 						PipelineName: pipelineName1,
 					}
-					Expect(containerDB.FindContainerInfosByIdentifierCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(containerDB.FindContainersByIdentifierCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -255,8 +255,8 @@ var _ = Describe("Pipelines API", func() {
 					expectedArgs := db.ContainerIdentifier{
 						Type: type1,
 					}
-					Expect(containerDB.FindContainerInfosByIdentifierCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(containerDB.FindContainersByIdentifierCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -274,8 +274,8 @@ var _ = Describe("Pipelines API", func() {
 					expectedArgs := db.ContainerIdentifier{
 						Name: name1,
 					}
-					Expect(containerDB.FindContainerInfosByIdentifierCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(containerDB.FindContainersByIdentifierCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -296,8 +296,8 @@ var _ = Describe("Pipelines API", func() {
 						expectedArgs := db.ContainerIdentifier{
 							BuildID: buildID1,
 						}
-						Expect(containerDB.FindContainerInfosByIdentifierCallCount()).To(Equal(1))
-						Expect(containerDB.FindContainerInfosByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
+						Expect(containerDB.FindContainersByIdentifierCallCount()).To(Equal(1))
+						Expect(containerDB.FindContainersByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
 					})
 
 					Context("when the buildID fails to be parsed as an int", func() {
@@ -315,7 +315,7 @@ var _ = Describe("Pipelines API", func() {
 						It("does not lookup containers", func() {
 							client.Do(req)
 
-							Expect(containerDB.FindContainerInfosByIdentifierCallCount()).To(Equal(0))
+							Expect(containerDB.FindContainersByIdentifierCallCount()).To(Equal(0))
 						})
 					})
 				})
@@ -329,7 +329,7 @@ var _ = Describe("Pipelines API", func() {
 		)
 
 		BeforeEach(func() {
-			containerDB.GetContainerInfoReturns(fakeContainer1, true, nil)
+			containerDB.GetContainerReturns(fakeContainer1, true, nil)
 
 			var err error
 			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers/"+containerID, nil)
@@ -357,7 +357,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when the container is not found", func() {
 				BeforeEach(func() {
-					containerDB.GetContainerInfoReturns(db.ContainerInfo{}, false, nil)
+					containerDB.GetContainerReturns(db.Container{}, false, nil)
 				})
 
 				It("returns 404 Not Found", func() {
@@ -370,7 +370,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when the container is found", func() {
 				BeforeEach(func() {
-					containerDB.GetContainerInfoReturns(fakeContainer1, true, nil)
+					containerDB.GetContainerReturns(fakeContainer1, true, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -391,8 +391,8 @@ var _ = Describe("Pipelines API", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(containerDB.GetContainerInfoCallCount()).To(Equal(1))
-					Expect(containerDB.GetContainerInfoArgsForCall(0)).To(Equal(containerID))
+					Expect(containerDB.GetContainerCallCount()).To(Equal(1))
+					Expect(containerDB.GetContainerArgsForCall(0)).To(Equal(containerID))
 				})
 
 				It("returns the container", func() {
@@ -423,7 +423,7 @@ var _ = Describe("Pipelines API", func() {
 
 				BeforeEach(func() {
 					expectedErr = errors.New("some error")
-					containerDB.GetContainerInfoReturns(db.ContainerInfo{}, false, expectedErr)
+					containerDB.GetContainerReturns(db.Container{}, false, expectedErr)
 				})
 
 				It("returns 500", func() {
@@ -488,13 +488,13 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("and the worker client returns a container", func() {
 				var (
-					fakeContainerInfo db.ContainerInfo
-					fakeContainer     *workerfakes.FakeContainer
+					fakeDBContainer db.Container
+					fakeContainer   *workerfakes.FakeContainer
 				)
 
 				BeforeEach(func() {
-					fakeContainerInfo = db.ContainerInfo{}
-					containerDB.GetContainerInfoReturns(fakeContainerInfo, true, nil)
+					fakeDBContainer = db.Container{}
+					containerDB.GetContainerReturns(fakeDBContainer, true, nil)
 
 					fakeContainer = new(workerfakes.FakeContainer)
 					fakeWorkerClient.LookupContainerReturns(fakeContainer, true, nil)
@@ -683,7 +683,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when the container cannot be found", func() {
 				BeforeEach(func() {
-					containerDB.GetContainerInfoReturns(db.ContainerInfo{}, false, nil)
+					containerDB.GetContainerReturns(db.Container{}, false, nil)
 				})
 
 				It("returns 404 Not Found", func() {
@@ -695,7 +695,7 @@ var _ = Describe("Pipelines API", func() {
 			Context("when the db request fails", func() {
 				BeforeEach(func() {
 					fakeErr := errors.New("error")
-					containerDB.GetContainerInfoReturns(db.ContainerInfo{}, false, fakeErr)
+					containerDB.GetContainerReturns(db.Container{}, false, fakeErr)
 				})
 				It("returns 500 internal error", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))

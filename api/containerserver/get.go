@@ -15,7 +15,7 @@ func (s *Server) GetContainer(w http.ResponseWriter, r *http.Request) {
 		"handle": handle,
 	})
 
-	container, found, err := s.db.GetContainerInfo(handle)
+	container, found, err := s.db.GetContainer(handle)
 	if err != nil {
 		hLog.Error("failed-to-lookup-container", err)
 		w.WriteHeader(http.StatusInternalServerError)

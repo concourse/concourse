@@ -163,7 +163,7 @@ func (container *gardenWorkerContainer) heartbeat(logger lager.Logger, ttl time.
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	err := container.db.UpdateExpiresAtOnContainerInfo(container.Handle(), ttl)
+	err := container.db.UpdateExpiresAtOnContainer(container.Handle(), ttl)
 	if err != nil {
 		logger.Error("failed-to-heartbeat-to-db", err)
 	}

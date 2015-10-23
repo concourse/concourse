@@ -44,8 +44,8 @@ type Worker interface {
 //go:generate counterfeiter . GardenWorkerDB
 
 type GardenWorkerDB interface {
-	CreateContainerInfo(db.ContainerInfo, time.Duration) error
-	UpdateExpiresAtOnContainerInfo(handle string, ttl time.Duration) error
+	CreateContainer(db.Container, time.Duration) error
+	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 }
 
 type gardenWorker struct {
@@ -230,8 +230,8 @@ dance:
 	idWithWorker := db.ContainerIdentifier(id)
 	idWithWorker.WorkerName = worker.name
 
-	err = worker.db.CreateContainerInfo(
-		db.ContainerInfo{
+	err = worker.db.CreateContainer(
+		db.Container{
 			ContainerIdentifier: idWithWorker,
 			Handle:              gardenContainer.Handle(),
 		}, containerTTL)
@@ -251,7 +251,7 @@ dance:
 }
 
 func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
-	containerInfo, found, err := worker.provider.FindContainerInfoForIdentifier(id)
+	containerInfo, found, err := worker.provider.FindContainerForIdentifier(id)
 	if err != nil {
 		return nil, false, err
 	}

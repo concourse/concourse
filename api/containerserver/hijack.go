@@ -26,7 +26,7 @@ func (s *Server) HijackContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, found, err := s.db.GetContainerInfo(handle)
+	_, found, err := s.db.GetContainer(handle)
 	if err != nil {
 		hLog.Error("failed-to-lookup-container", err)
 		w.WriteHeader(http.StatusInternalServerError)

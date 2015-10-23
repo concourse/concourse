@@ -32,7 +32,7 @@ type WebDB interface {
 	GetBuild(buildID int) (db.Build, bool, error)
 	GetAllBuilds() ([]db.Build, error)
 
-	FindContainerInfosByIdentifier(db.ContainerIdentifier) ([]db.ContainerInfo, error)
+	FindContainersByIdentifier(db.ContainerIdentifier) ([]db.Container, error)
 	Workers() ([]db.WorkerInfo, error)
 }
 

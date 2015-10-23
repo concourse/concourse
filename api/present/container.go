@@ -5,7 +5,7 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-func Container(container db.ContainerInfo) atc.Container {
+func Container(container db.Container) atc.Container {
 	return atc.Container{
 		ID:           container.Handle,
 		PipelineName: container.PipelineName,

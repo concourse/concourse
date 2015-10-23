@@ -10,88 +10,88 @@ import (
 )
 
 type FakeGardenWorkerDB struct {
-	CreateContainerInfoStub        func(db.ContainerInfo, time.Duration) error
-	createContainerInfoMutex       sync.RWMutex
-	createContainerInfoArgsForCall []struct {
-		arg1 db.ContainerInfo
+	CreateContainerStub        func(db.Container, time.Duration) error
+	createContainerMutex       sync.RWMutex
+	createContainerArgsForCall []struct {
+		arg1 db.Container
 		arg2 time.Duration
 	}
-	createContainerInfoReturns struct {
+	createContainerReturns struct {
 		result1 error
 	}
-	UpdateExpiresAtOnContainerInfoStub        func(handle string, ttl time.Duration) error
-	updateExpiresAtOnContainerInfoMutex       sync.RWMutex
-	updateExpiresAtOnContainerInfoArgsForCall []struct {
+	UpdateExpiresAtOnContainerStub        func(handle string, ttl time.Duration) error
+	updateExpiresAtOnContainerMutex       sync.RWMutex
+	updateExpiresAtOnContainerArgsForCall []struct {
 		handle string
 		ttl    time.Duration
 	}
-	updateExpiresAtOnContainerInfoReturns struct {
+	updateExpiresAtOnContainerReturns struct {
 		result1 error
 	}
 }
 
-func (fake *FakeGardenWorkerDB) CreateContainerInfo(arg1 db.ContainerInfo, arg2 time.Duration) error {
-	fake.createContainerInfoMutex.Lock()
-	fake.createContainerInfoArgsForCall = append(fake.createContainerInfoArgsForCall, struct {
-		arg1 db.ContainerInfo
+func (fake *FakeGardenWorkerDB) CreateContainer(arg1 db.Container, arg2 time.Duration) error {
+	fake.createContainerMutex.Lock()
+	fake.createContainerArgsForCall = append(fake.createContainerArgsForCall, struct {
+		arg1 db.Container
 		arg2 time.Duration
 	}{arg1, arg2})
-	fake.createContainerInfoMutex.Unlock()
-	if fake.CreateContainerInfoStub != nil {
-		return fake.CreateContainerInfoStub(arg1, arg2)
+	fake.createContainerMutex.Unlock()
+	if fake.CreateContainerStub != nil {
+		return fake.CreateContainerStub(arg1, arg2)
 	} else {
-		return fake.createContainerInfoReturns.result1
+		return fake.createContainerReturns.result1
 	}
 }
 
-func (fake *FakeGardenWorkerDB) CreateContainerInfoCallCount() int {
-	fake.createContainerInfoMutex.RLock()
-	defer fake.createContainerInfoMutex.RUnlock()
-	return len(fake.createContainerInfoArgsForCall)
+func (fake *FakeGardenWorkerDB) CreateContainerCallCount() int {
+	fake.createContainerMutex.RLock()
+	defer fake.createContainerMutex.RUnlock()
+	return len(fake.createContainerArgsForCall)
 }
 
-func (fake *FakeGardenWorkerDB) CreateContainerInfoArgsForCall(i int) (db.ContainerInfo, time.Duration) {
-	fake.createContainerInfoMutex.RLock()
-	defer fake.createContainerInfoMutex.RUnlock()
-	return fake.createContainerInfoArgsForCall[i].arg1, fake.createContainerInfoArgsForCall[i].arg2
+func (fake *FakeGardenWorkerDB) CreateContainerArgsForCall(i int) (db.Container, time.Duration) {
+	fake.createContainerMutex.RLock()
+	defer fake.createContainerMutex.RUnlock()
+	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2
 }
 
-func (fake *FakeGardenWorkerDB) CreateContainerInfoReturns(result1 error) {
-	fake.CreateContainerInfoStub = nil
-	fake.createContainerInfoReturns = struct {
+func (fake *FakeGardenWorkerDB) CreateContainerReturns(result1 error) {
+	fake.CreateContainerStub = nil
+	fake.createContainerReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainerInfo(handle string, ttl time.Duration) error {
-	fake.updateExpiresAtOnContainerInfoMutex.Lock()
-	fake.updateExpiresAtOnContainerInfoArgsForCall = append(fake.updateExpiresAtOnContainerInfoArgsForCall, struct {
+func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error {
+	fake.updateExpiresAtOnContainerMutex.Lock()
+	fake.updateExpiresAtOnContainerArgsForCall = append(fake.updateExpiresAtOnContainerArgsForCall, struct {
 		handle string
 		ttl    time.Duration
 	}{handle, ttl})
-	fake.updateExpiresAtOnContainerInfoMutex.Unlock()
-	if fake.UpdateExpiresAtOnContainerInfoStub != nil {
-		return fake.UpdateExpiresAtOnContainerInfoStub(handle, ttl)
+	fake.updateExpiresAtOnContainerMutex.Unlock()
+	if fake.UpdateExpiresAtOnContainerStub != nil {
+		return fake.UpdateExpiresAtOnContainerStub(handle, ttl)
 	} else {
-		return fake.updateExpiresAtOnContainerInfoReturns.result1
+		return fake.updateExpiresAtOnContainerReturns.result1
 	}
 }
 
-func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainerInfoCallCount() int {
-	fake.updateExpiresAtOnContainerInfoMutex.RLock()
-	defer fake.updateExpiresAtOnContainerInfoMutex.RUnlock()
-	return len(fake.updateExpiresAtOnContainerInfoArgsForCall)
+func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainerCallCount() int {
+	fake.updateExpiresAtOnContainerMutex.RLock()
+	defer fake.updateExpiresAtOnContainerMutex.RUnlock()
+	return len(fake.updateExpiresAtOnContainerArgsForCall)
 }
 
-func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainerInfoArgsForCall(i int) (string, time.Duration) {
-	fake.updateExpiresAtOnContainerInfoMutex.RLock()
-	defer fake.updateExpiresAtOnContainerInfoMutex.RUnlock()
-	return fake.updateExpiresAtOnContainerInfoArgsForCall[i].handle, fake.updateExpiresAtOnContainerInfoArgsForCall[i].ttl
+func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainerArgsForCall(i int) (string, time.Duration) {
+	fake.updateExpiresAtOnContainerMutex.RLock()
+	defer fake.updateExpiresAtOnContainerMutex.RUnlock()
+	return fake.updateExpiresAtOnContainerArgsForCall[i].handle, fake.updateExpiresAtOnContainerArgsForCall[i].ttl
 }
 
-func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainerInfoReturns(result1 error) {
-	fake.UpdateExpiresAtOnContainerInfoStub = nil
-	fake.updateExpiresAtOnContainerInfoReturns = struct {
+func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainerReturns(result1 error) {
+	fake.UpdateExpiresAtOnContainerStub = nil
+	fake.updateExpiresAtOnContainerReturns = struct {
 		result1 error
 	}{result1}
 }

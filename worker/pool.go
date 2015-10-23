@@ -15,8 +15,8 @@ import (
 type WorkerProvider interface {
 	Workers() ([]Worker, error)
 	GetWorker(string) (Worker, bool, error)
-	FindContainerInfoForIdentifier(Identifier) (db.ContainerInfo, bool, error)
-	GetContainerInfo(string) (db.ContainerInfo, bool, error)
+	FindContainerForIdentifier(Identifier) (db.Container, bool, error)
+	GetContainer(string) (db.Container, bool, error)
 	ReapContainer(string) error
 }
 
@@ -130,7 +130,7 @@ func (pool *pool) CreateContainer(logger lager.Logger, id Identifier, spec Conta
 }
 
 func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
-	containerInfo, found, err := pool.provider.FindContainerInfoForIdentifier(id)
+	containerInfo, found, err := pool.provider.FindContainerForIdentifier(id)
 	if err != nil {
 		return nil, false, err
 	}
@@ -178,7 +178,7 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container, bool, error) {
 	logger.Info("looking-up-container", lager.Data{"handle": handle})
 
-	containerInfo, found, err := pool.provider.GetContainerInfo(handle)
+	containerInfo, found, err := pool.provider.GetContainer(handle)
 	if err != nil {
 		return nil, false, err
 	}

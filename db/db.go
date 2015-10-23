@@ -57,14 +57,14 @@ type DB interface {
 	GetWorker(workerName string) (WorkerInfo, bool, error)
 	SaveWorker(WorkerInfo, time.Duration) error
 
-	FindContainerInfosByIdentifier(ContainerIdentifier) ([]ContainerInfo, error)
-	GetContainerInfo(string) (ContainerInfo, bool, error)
-	CreateContainerInfo(ContainerInfo, time.Duration) error
-	FindContainerInfoByIdentifier(ContainerIdentifier) (ContainerInfo, bool, error)
-	UpdateExpiresAtOnContainerInfo(handle string, ttl time.Duration) error
+	FindContainersByIdentifier(ContainerIdentifier) ([]Container, error)
+	GetContainer(string) (Container, bool, error)
+	CreateContainer(Container, time.Duration) error
+	FindContainerByIdentifier(ContainerIdentifier) (Container, bool, error)
+	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
 
-	DeleteContainerInfo(string) error
+	DeleteContainer(string) error
 
 	GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, error)
 

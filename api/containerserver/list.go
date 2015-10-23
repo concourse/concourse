@@ -30,7 +30,7 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	hLog.Debug("listing-containers")
 
-	containers, err := s.db.FindContainerInfosByIdentifier(containerIdentifier)
+	containers, err := s.db.FindContainersByIdentifier(containerIdentifier)
 	if err != nil {
 		hLog.Error("failed-to-find-containers", err)
 		w.WriteHeader(http.StatusInternalServerError)

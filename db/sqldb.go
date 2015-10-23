@@ -1058,7 +1058,7 @@ func (db *SQLDB) GetWorker(name string) (WorkerInfo, bool, error) {
 	return info, true, nil
 }
 
-func (db *SQLDB) DeleteContainerInfo(handle string) error {
+func (db *SQLDB) DeleteContainer(handle string) error {
 	_, err := db.conn.Exec(`
 		DELETE FROM containers
 		WHERE handle = $1
@@ -1066,7 +1066,7 @@ func (db *SQLDB) DeleteContainerInfo(handle string) error {
 	return err
 }
 
-func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]ContainerInfo, error) {
+func (db *SQLDB) FindContainersByIdentifier(id ContainerIdentifier) ([]Container, error) {
 	_, err := db.conn.Exec(`
 		DELETE FROM containers
 		WHERE expires_at IS NOT NULL
@@ -1142,9 +1142,9 @@ func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]Conta
 
 	defer rows.Close()
 
-	infos := []ContainerInfo{}
+	infos := []Container{}
 	for rows.Next() {
-		info, err := scanContainerInfo(rows)
+		info, err := scanContainer(rows)
 
 		if err != nil {
 			return nil, err
@@ -1156,26 +1156,26 @@ func (db *SQLDB) FindContainerInfosByIdentifier(id ContainerIdentifier) ([]Conta
 	return infos, nil
 }
 
-func (db *SQLDB) FindContainerInfoByIdentifier(id ContainerIdentifier) (ContainerInfo, bool, error) {
-	containers, err := db.FindContainerInfosByIdentifier(id)
+func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, bool, error) {
+	containers, err := db.FindContainersByIdentifier(id)
 	if err != nil {
-		return ContainerInfo{}, false, err
+		return Container{}, false, err
 	}
 
 	switch len(containers) {
 	case 0:
-		return ContainerInfo{}, false, nil
+		return Container{}, false, nil
 
 	case 1:
 		return containers[0], true, nil
 
 	default:
-		return ContainerInfo{}, false, ErrMultipleContainersFound
+		return Container{}, false, ErrMultipleContainersFound
 	}
 }
 
-func (db *SQLDB) GetContainerInfo(handle string) (ContainerInfo, bool, error) {
-	info, err := scanContainerInfo(db.conn.QueryRow(`
+func (db *SQLDB) GetContainer(handle string) (Container, bool, error) {
+	info, err := scanContainer(db.conn.QueryRow(`
 		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source, step_location
 		FROM containers c
 		WHERE c.handle = $1
@@ -1183,22 +1183,22 @@ func (db *SQLDB) GetContainerInfo(handle string) (ContainerInfo, bool, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return ContainerInfo{}, false, nil
+			return Container{}, false, nil
 		}
-		return ContainerInfo{}, false, err
+		return Container{}, false, err
 	}
 
 	return info, true, nil
 }
 
-func (db *SQLDB) CreateContainerInfo(containerInfo ContainerInfo, ttl time.Duration) error {
+func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) error {
 	tx, err := db.conn.Begin()
 
 	if err != nil {
 		return err
 	}
 
-	checkSource, err := json.Marshal(containerInfo.CheckSource)
+	checkSource, err := json.Marshal(container.CheckSource)
 	if err != nil {
 		return err
 	}
@@ -1211,16 +1211,16 @@ func (db *SQLDB) CreateContainerInfo(containerInfo ContainerInfo, ttl time.Durat
 		INSERT INTO containers (handle, name, pipeline_name, build_id, type, worker_name, expires_at, check_type, check_source, step_location)
 		VALUES ($1, $2, $3, $4, $5, $6,  NOW() + $7::INTERVAL, $8, $9, $10)
 		`,
-		containerInfo.Handle,
-		containerInfo.Name,
-		containerInfo.PipelineName,
-		containerInfo.BuildID,
-		containerInfo.Type.String(),
-		containerInfo.WorkerName,
+		container.Handle,
+		container.Name,
+		container.PipelineName,
+		container.BuildID,
+		container.Type.String(),
+		container.WorkerName,
 		interval,
-		containerInfo.CheckType,
+		container.CheckType,
 		checkSource,
-		containerInfo.StepLocation,
+		container.StepLocation,
 	)
 
 	if err != nil {
@@ -1230,7 +1230,7 @@ func (db *SQLDB) CreateContainerInfo(containerInfo ContainerInfo, ttl time.Durat
 	return tx.Commit()
 }
 
-func (db *SQLDB) UpdateExpiresAtOnContainerInfo(handle string, ttl time.Duration) error {
+func (db *SQLDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error {
 	tx, err := db.conn.Begin()
 
 	if err != nil {
@@ -1328,25 +1328,25 @@ func scanPipeline(rows scannable) (SavedPipeline, error) {
 	}, nil
 }
 
-func scanContainerInfo(row scannable) (ContainerInfo, error) {
+func scanContainer(row scannable) (Container, error) {
 	var infoType string
 	var checkSourceBlob []byte
 
-	info := ContainerInfo{}
+	info := Container{}
 
 	err := row.Scan(&info.Handle, &info.PipelineName, &infoType, &info.Name, &info.BuildID, &info.WorkerName, &info.ExpiresAt, &info.CheckType, &checkSourceBlob, &info.StepLocation)
 	if err != nil {
-		return ContainerInfo{}, err
+		return Container{}, err
 	}
 
 	info.Type, err = containerTypeFromString(infoType)
 	if err != nil {
-		return ContainerInfo{}, err
+		return Container{}, err
 	}
 
 	err = json.Unmarshal(checkSourceBlob, &info.CheckSource)
 	if err != nil {
-		return ContainerInfo{}, err
+		return Container{}, err
 	}
 
 	return info, nil
