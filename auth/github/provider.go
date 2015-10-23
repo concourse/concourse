@@ -10,18 +10,37 @@ const ProviderName = "github"
 
 var Scopes = []string{"read:org"}
 
+type AuthorizationMethod struct {
+	Organization string
+	Team         string
+}
+
 func NewProvider(
-	organization string,
-	teams []string,
+	methods []AuthorizationMethod,
 	clientID string,
 	clientSecret string,
 	redirectURL string,
 ) auth.Provider {
 	client := NewClient()
+
+	var teams []Team
+	var orgs []string
+
+	for _, method := range methods {
+		if method.Organization != "" && method.Team != "" {
+			teams = append(teams, Team{
+				Name:         method.Team,
+				Organization: method.Organization,
+			})
+		} else {
+			orgs = append(orgs, method.Organization)
+		}
+	}
+
 	return provider{
 		Verifier: NewVerifierBasket(
-			NewOrganizationVerifier(organization, client),
 			NewTeamVerifier(teams, client),
+			NewOrganizationVerifier(orgs, client),
 		),
 		Config: &oauth2.Config{
 			ClientID:     clientID,

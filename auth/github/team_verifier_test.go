@@ -14,16 +14,16 @@ import (
 
 var _ = Describe("TeamVerifier", func() {
 	var (
-		teams      []string
+		teams      []Team
 		fakeClient *fakes.FakeClient
 
 		verifier auth.Verifier
 	)
 
 	BeforeEach(func() {
-		teams = []string{
-			"some-org/some-team",
-			"some-org/some-team-two",
+		teams = []Team{
+			{Name: "some-team", Organization: "some-org"},
+			{Name: "some-team-two", Organization: "some-org"},
 		}
 		fakeClient = new(fakes.FakeClient)
 

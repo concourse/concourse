@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/concourse/atc"
@@ -88,10 +87,10 @@ type ATCCommand struct {
 	} `group:"Basic Authentication" namespace:"basic-auth"`
 
 	GitHubAuth struct {
-		ClientID     string   `long:"client-id"     description:"Application client ID for enabling GitHub OAuth."`
-		ClientSecret string   `long:"client-secret" description:"Application client secret for enabling GitHub OAuth."`
-		Organization string   `long:"organization"  description:"GitHub organization whose members will have access."`
-		Teams        []string `long:"team"  description:"GitHub organization/team whose members will have access."`
+		ClientID      string           `long:"client-id"     description:"Application client ID for enabling GitHub OAuth."`
+		ClientSecret  string           `long:"client-secret" description:"Application client secret for enabling GitHub OAuth."`
+		Organizations []string         `long:"organization"  description:"GitHub organization whose members will have access."`
+		Teams         []GitHubTeamFlag `long:"team"          description:"GitHub organization/team whose members will have access." value-name:"ORG/TEAM"`
 	} `group:"GitHub Authentication" namespace:"github-auth"`
 
 	Metrics struct {
@@ -270,15 +269,15 @@ func (cmd *ATCCommand) validate() error {
 
 	if !cmd.Developer.DevelopmentMode &&
 		cmd.BasicAuth.Username == "" &&
-		cmd.GitHubAuth.Organization == "" &&
-		cmd.GitHubAuth.Teams == nil {
+		len(cmd.GitHubAuth.Organizations) == 0 &&
+		len(cmd.GitHubAuth.Teams) == 0 {
 		errs = multierror.Append(
 			errs,
 			errors.New("must configure basic auth, OAuth, or turn on development mode"),
 		)
 	}
 
-	gitHubAuthTurnedOn := cmd.GitHubAuth.Organization != "" || cmd.GitHubAuth.Teams != nil
+	gitHubAuthTurnedOn := len(cmd.GitHubAuth.Organizations) > 0 || len(cmd.GitHubAuth.Teams) > 0
 
 	if gitHubAuthTurnedOn && cmd.ExternalURL.String() == "//@" {
 		errs = multierror.Append(
@@ -292,17 +291,6 @@ func (cmd *ATCCommand) validate() error {
 			errs,
 			errors.New("must specify --github-auth-team to use GitHub OAuth"),
 		)
-	}
-
-	if gitHubAuthTurnedOn {
-		for _, orgTeam := range cmd.GitHubAuth.Teams {
-			if len(strings.Split(orgTeam, "/")) != 2 {
-				errs = multierror.Append(
-					errs,
-					errors.New("must specify organization/team for: "+orgTeam),
-				)
-			}
-		}
 	}
 
 	if gitHubAuthTurnedOn && (cmd.GitHubAuth.ClientID == "" || cmd.GitHubAuth.ClientSecret == "") {
@@ -417,7 +405,21 @@ func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 func (cmd *ATCCommand) configureOAuthProviders() (auth.Providers, error) {
 	oauthProviders := auth.Providers{}
 
-	if cmd.GitHubAuth.Organization != "" || cmd.GitHubAuth.Teams != nil {
+	gitHubAuthMethods := []github.AuthorizationMethod{}
+	for _, org := range cmd.GitHubAuth.Organizations {
+		gitHubAuthMethods = append(gitHubAuthMethods, github.AuthorizationMethod{
+			Organization: org,
+		})
+	}
+
+	for _, team := range cmd.GitHubAuth.Teams {
+		gitHubAuthMethods = append(gitHubAuthMethods, github.AuthorizationMethod{
+			Team:         team.TeamName,
+			Organization: team.OrganizationName,
+		})
+	}
+
+	if len(gitHubAuthMethods) > 0 {
 		path, err := auth.OAuthRoutes.CreatePathForRoute(auth.OAuthCallback, rata.Params{
 			"provider": github.ProviderName,
 		})
@@ -426,8 +428,7 @@ func (cmd *ATCCommand) configureOAuthProviders() (auth.Providers, error) {
 		}
 
 		oauthProviders[github.ProviderName] = github.NewProvider(
-			cmd.GitHubAuth.Organization,
-			cmd.GitHubAuth.Teams,
+			gitHubAuthMethods,
 			cmd.GitHubAuth.ClientID,
 			cmd.GitHubAuth.ClientSecret,
 			cmd.ExternalURL.String()+path,
