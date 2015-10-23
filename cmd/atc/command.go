@@ -286,13 +286,6 @@ func (cmd *ATCCommand) validate() error {
 		)
 	}
 
-	if !gitHubAuthTurnedOn && cmd.GitHubAuth.ClientID != "" && cmd.GitHubAuth.ClientSecret != "" {
-		errs = multierror.Append(
-			errs,
-			errors.New("must specify --github-auth-team to use GitHub OAuth"),
-		)
-	}
-
 	if gitHubAuthTurnedOn && (cmd.GitHubAuth.ClientID == "" || cmd.GitHubAuth.ClientSecret == "") {
 		errs = multierror.Append(
 			errs,
