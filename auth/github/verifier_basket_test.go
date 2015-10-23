@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/auth"
 	afakes "github.com/concourse/atc/auth/fakes"
@@ -35,7 +36,7 @@ var _ = Describe("VerifierBasket", func() {
 		fakeVerifier1.VerifyReturns(false, nil)
 		fakeVerifier2.VerifyReturns(false, nil)
 
-		result, err := verifierBasket.Verify(httpClient)
+		result, err := verifierBasket.Verify(lagertest.NewTestLogger("test"), httpClient)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(result).To(BeFalse())
 	})
@@ -44,14 +45,14 @@ var _ = Describe("VerifierBasket", func() {
 		fakeVerifier1.VerifyReturns(false, nil)
 		fakeVerifier2.VerifyReturns(true, nil)
 
-		result, err := verifierBasket.Verify(httpClient)
+		result, err := verifierBasket.Verify(lagertest.NewTestLogger("test"), httpClient)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(result).To(BeTrue())
 
 		fakeVerifier1.VerifyReturns(true, nil)
 		fakeVerifier2.VerifyReturns(false, nil)
 
-		result, err = verifierBasket.Verify(httpClient)
+		result, err = verifierBasket.Verify(lagertest.NewTestLogger("test"), httpClient)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(result).To(BeTrue())
 	})
@@ -60,7 +61,7 @@ var _ = Describe("VerifierBasket", func() {
 		fakeVerifier1.VerifyReturns(false, errors.New("first error"))
 		fakeVerifier2.VerifyReturns(false, errors.New("second error"))
 
-		_, err := verifierBasket.Verify(httpClient)
+		_, err := verifierBasket.Verify(lagertest.NewTestLogger("test"), httpClient)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("first error"))
 		Expect(err.Error()).To(ContainSubstring("second error"))
@@ -70,7 +71,7 @@ var _ = Describe("VerifierBasket", func() {
 		fakeVerifier1.VerifyReturns(false, errors.New("first error"))
 		fakeVerifier2.VerifyReturns(false, nil)
 
-		_, err := verifierBasket.Verify(httpClient)
+		_, err := verifierBasket.Verify(lagertest.NewTestLogger("test"), httpClient)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("first error"))
 	})
@@ -79,7 +80,7 @@ var _ = Describe("VerifierBasket", func() {
 		fakeVerifier1.VerifyReturns(false, errors.New("first error"))
 		fakeVerifier2.VerifyReturns(true, nil)
 
-		result, err := verifierBasket.Verify(httpClient)
+		result, err := verifierBasket.Verify(lagertest.NewTestLogger("test"), httpClient)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(result).To(BeTrue())
 	})

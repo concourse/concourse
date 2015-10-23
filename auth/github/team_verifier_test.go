@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc/auth"
 	. "github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/github/fakes"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -43,7 +44,7 @@ var _ = Describe("TeamVerifier", func() {
 		})
 
 		JustBeforeEach(func() {
-			verified, verifyErr = verifier.Verify(httpClient)
+			verified, verifyErr = verifier.Verify(lagertest.NewTestLogger("test"), httpClient)
 		})
 
 		Context("when the client yields teams", func() {

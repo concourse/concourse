@@ -141,7 +141,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 
 	authValidator, basicAuthEnabled := cmd.constructValidator(signingKey)
 
-	oauthProviders, err := cmd.configureOAuthProviders()
+	oauthProviders, err := cmd.configureOAuthProviders(logger)
 	if err != nil {
 		return err
 	}
@@ -402,7 +402,7 @@ func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 	return signingKey, nil
 }
 
-func (cmd *ATCCommand) configureOAuthProviders() (auth.Providers, error) {
+func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger) (auth.Providers, error) {
 	oauthProviders := auth.Providers{}
 
 	gitHubAuthMethods := []github.AuthorizationMethod{}

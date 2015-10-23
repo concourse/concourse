@@ -17,7 +17,7 @@ func (flag *GitHubTeamFlag) UnmarshalFlag(value string) error {
 	}
 
 	flag.OrganizationName = s[0]
-	flag.TeamName = s[0]
+	flag.TeamName = s[1]
 
 	return nil
 }

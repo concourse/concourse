@@ -3,6 +3,8 @@ package auth
 import (
 	"net/http"
 
+	"github.com/pivotal-golang/lager"
+
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
@@ -27,5 +29,5 @@ type OAuthClient interface {
 //go:generate counterfeiter . Verifier
 
 type Verifier interface {
-	Verify(*http.Client) (bool, error)
+	Verify(lager.Logger, *http.Client) (bool, error)
 }

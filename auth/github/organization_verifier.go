@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/auth"
+	"github.com/pivotal-golang/lager"
 )
 
 type OrganizationVerifier struct {
@@ -21,9 +22,10 @@ func NewOrganizationVerifier(
 	}
 }
 
-func (verifier *OrganizationVerifier) Verify(httpClient *http.Client) (bool, error) {
+func (verifier *OrganizationVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
 	orgs, err := verifier.gitHubClient.Organizations(httpClient)
 	if err != nil {
+		logger.Error("failed-to-get-organizations", err)
 		return false, err
 	}
 
@@ -34,6 +36,11 @@ func (verifier *OrganizationVerifier) Verify(httpClient *http.Client) (bool, err
 			}
 		}
 	}
+
+	logger.Info("not-in-organizations", lager.Data{
+		"have": orgs,
+		"want": verifier.organizations,
+	})
 
 	return false, nil
 }
