@@ -62,6 +62,37 @@ var _ = Describe("ATC Client", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		It("is robust to trailing slash in the target", func() {
+			var err error
+			client, err = NewClient(
+				rc.TargetProps{
+					API:      atcServer.URL() + "/",
+					Username: "",
+					Password: "",
+					Cert:     "",
+					Insecure: false,
+				},
+			)
+			Expect(err).NotTo(HaveOccurred())
+			expectedURL := "/api/v1/builds/foo"
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{}),
+				),
+			)
+			var build atc.Build
+			err = client.Send(Request{
+				RequestName: atc.GetBuild,
+				Params:      map[string]string{"build_id": "foo"},
+			}, &Response{
+				Result: &build,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
+		})
+
 		It("makes a request to the given route", func() {
 			expectedURL := "/api/v1/builds/foo"
 			atcServer.AppendHandlers(
