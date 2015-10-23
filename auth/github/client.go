@@ -36,7 +36,7 @@ func (c *client) Teams(httpClient *http.Client) (OrganizationTeams, error) {
 			organizationTeams[organizationName] = []string{}
 		}
 
-		organizationTeams[organizationName] = append(organizationTeams[organizationName], *team.Slug)
+		organizationTeams[organizationName] = append(organizationTeams[organizationName], *team.Name)
 	}
 
 	return organizationTeams, nil
