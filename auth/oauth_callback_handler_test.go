@@ -149,7 +149,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 							Expect(clientToken).To(Equal(token))
 
 							Expect(fakeProviderB.VerifyCallCount()).To(Equal(1))
-							client := fakeProviderB.VerifyArgsForCall(0)
+							_, client := fakeProviderB.VerifyArgsForCall(0)
 							Expect(client).To(Equal(httpClient))
 						})
 
