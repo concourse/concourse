@@ -57,8 +57,8 @@ targets:
 	It("should exit 1 when no name is provided", func() {
 		flyCmd := exec.Command(
 			flyPath,
+			"-t", "http://some-target",
 			"save-target",
-			"--api", "http://some-target",
 			"--username", "some-username",
 			"--password", "some-password",
 			"--cert", certififatePath,
@@ -110,8 +110,8 @@ targets:
 
 		It("should use the target when passed to the next command", func() {
 			flyCmd := exec.Command(flyPath,
+				"-t", targetURL,
 				"save-target",
-				"--api", targetURL,
 				"--name", "my-test-target",
 			)
 
@@ -135,8 +135,8 @@ targets:
 
 		It("should error when saving a target who's name begins with 'http'", func() {
 			flyCmd := exec.Command(flyPath,
+				"-t", targetURL,
 				"save-target",
-				"--api", targetURL,
 				"--name", "http://my-test-target",
 			)
 
@@ -155,8 +155,8 @@ targets:
 
 				flyCmd := exec.Command(
 					flyPath,
+					"-t", "http://some-target",
 					"save-target",
-					"--api", "http://some-target",
 					"--username", "some-username",
 					"--password", "some-password",
 					"--cert", certififatePath,
@@ -191,8 +191,8 @@ targets:
 			It("should update the target", func() {
 				flyCmd := exec.Command(
 					flyPath,
+					"-t", "http://some-target",
 					"save-target",
-					"--api", "http://some-target",
 					"--username", "some-username",
 					"--password", "some-password",
 					"--cert", certififatePath,
@@ -205,8 +205,8 @@ targets:
 
 				flyCmd = exec.Command(
 					flyPath,
+					"-t", "http://a-different-target",
 					"save-target",
-					"--api", "http://a-different-target",
 					"--username", "some-username",
 					"--password", "stuff",
 					"--cert", updatedCertPath,
@@ -233,8 +233,8 @@ targets:
 		It("should create the file and write the target", func() {
 			flyCmd := exec.Command(
 				flyPath,
+				"-t", "http://some-target",
 				"save-target",
-				"--api", "http://some-target",
 				"--username", "some-username",
 				"--password", "some-password",
 				"--cert", certififatePath,

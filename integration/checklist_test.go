@@ -35,8 +35,9 @@ var _ = Describe("Fly CLI", func() {
 			os.Setenv("HOME", home)
 
 			flySaveCmd := exec.Command(
-				flyPath, "save-target",
-				"--api", atcServer.URL()+"/",
+				flyPath,
+				"-t", atcServer.URL()+"/",
+				"save-target",
 				"--name", "target-name",
 			)
 

@@ -8,7 +8,6 @@ import (
 )
 
 type SaveTargetCommand struct {
-	API      string   `long:"api" required:"true"            description:"Api url to target"`
 	Username string   `long:"username"                       description:"Username for the api"`
 	Password string   `long:"password"                       description:"Password for the api"`
 	Cert     PathFlag `long:"cert"                           description:"Directory to your cert"`
@@ -31,16 +30,13 @@ func init() {
 }
 
 func (command *SaveTargetCommand) Execute(args []string) error {
+	targetAPI := globalOptions.Target
 	targetName := command.Name
-	if targetName == "" {
-		log.Fatalln("name not provided for target")
-		return nil
-	}
 
 	err := rc.CreateOrUpdateTargets(
 		targetName,
 		rc.NewTarget(
-			command.API,
+			targetAPI,
 			command.Username,
 			command.Password,
 			string(command.Cert),
