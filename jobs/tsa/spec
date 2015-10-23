@@ -26,14 +26,6 @@ properties:
     description: "atc server connection address"
     default: atc.service.dc1.consul:8080
 
-  tsa.atc.username:
-    description: "ATC API basic auth username"
-    default: ""
-
-  tsa.atc.password:
-    description: "ATC API basic auth password"
-    default: ""
-
   tsa.yeller.api_key:
     description: "api key from yeller to output errors from concourse to yeller"
     default: ""

@@ -14,6 +14,8 @@ set -e
 RUN_DIR=/var/vcap/sys/run/tsa
 LOG_DIR=/var/vcap/sys/log/tsa
 PIDFILE=$RUN_DIR/tsa.pid
+SIGNING_KEY=/var/vcap/packages/generated_signing_key/id_rsa
+
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
@@ -54,7 +56,8 @@ case $1 in
     echo $$ > /var/vcap/sys/run/tsa/tsa.pid
 
     for key in /var/vcap/packages/generated_tsa_host_key/id_rsa \
-               /var/vcap/jobs/tsa/config/host_key; do
+               /var/vcap/jobs/tsa/config/host_key \
+               $SIGNING_KEY; do
       chown vcap:vcap $key
       chmod 0400 $key
     done
@@ -78,8 +81,9 @@ EOF
       -authorizedKeys=/var/vcap/jobs/tsa/config/authorized_keys \
       -heartbeatInterval=<%= p("tsa.heartbeat_interval") %> \
       -yellerAPIKey=<%= esc(p("tsa.yeller.api_key")) %> \
+      -sessionSigningKey $SIGNING_KEY \
       -yellerEnvironment=<%= esc(p("tsa.yeller.environment_name")) %> \
-      -atcAPIURL=<%= "http://#{CGI.escape(p("tsa.atc.username"))}:#{CGI.escape(p("tsa.atc.password"))}@#{p("tsa.atc.address")}" %> \
+      -atcAPIURL=<%= "http://#{p("tsa.atc.address")}" %> \
       1>>$LOG_DIR/tsa.stdout.log \
       2>>$LOG_DIR/tsa.stderr.log
 

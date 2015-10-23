@@ -16,6 +16,7 @@ files:
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/tsa/*.go # gosub
   - github.com/concourse/tsa/cmd/tsa/*.go # gosub
+  - github.com/dgrijalva/jwt-go/*.go # gosub
   - github.com/felixge/tcpkeepalive/*.go # gosub
   - github.com/pivotal-golang/lager/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
