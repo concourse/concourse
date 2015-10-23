@@ -18,6 +18,7 @@ files:
   - github.com/concourse/fly/atcclient/eventstream/*.go # gosub
   - github.com/concourse/fly/commands/*.go # gosub
   - github.com/concourse/fly/config/*.go # gosub
+  - github.com/concourse/fly/pty/*.go # gosub
   - github.com/concourse/fly/rc/*.go # gosub
   - github.com/concourse/fly/template/*.go # gosub
   - github.com/concourse/fly/ui/*.go # gosub
