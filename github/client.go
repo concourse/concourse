@@ -9,6 +9,7 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
+	Organizations(*http.Client) ([]string, error)
 	Teams(*http.Client) (OrganizationTeams, error)
 }
 
@@ -39,4 +40,20 @@ func (c *client) Teams(httpClient *http.Client) (OrganizationTeams, error) {
 	}
 
 	return organizationTeams, nil
+}
+
+func (c *client) Organizations(httpClient *http.Client) ([]string, error) {
+	client := gogithub.NewClient(httpClient)
+
+	orgs, _, err := client.Organizations.List("", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	organizations := []string{}
+	for _, org := range orgs {
+		organizations = append(organizations, *org.Login)
+	}
+
+	return organizations, nil
 }
