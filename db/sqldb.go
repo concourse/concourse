@@ -37,7 +37,7 @@ func NewSQL(
 	}
 }
 
-func (db *SQLDB) InsertVolumeData(data VolumeData) error {
+func (db *SQLDB) InsertVolume(data Volume) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -89,7 +89,7 @@ func (db *SQLDB) InsertVolumeData(data VolumeData) error {
 	return tx.Commit()
 }
 
-func (db *SQLDB) GetVolumes() ([]SavedVolumeData, error) {
+func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 	// reap expired volumes
 	_, err := db.conn.Exec(`
 		DELETE FROM volumes
@@ -116,10 +116,10 @@ func (db *SQLDB) GetVolumes() ([]SavedVolumeData, error) {
 
 	defer rows.Close()
 
-	volumes := []SavedVolumeData{}
+	volumes := []SavedVolume{}
 
 	for rows.Next() {
-		var volume SavedVolumeData
+		var volume SavedVolume
 		var ttlSeconds float64
 		var versionJSON []byte
 
@@ -141,7 +141,7 @@ func (db *SQLDB) GetVolumes() ([]SavedVolumeData, error) {
 	return volumes, nil
 }
 
-func (db *SQLDB) SetVolumeTTL(volumeData SavedVolumeData, ttl time.Duration) error {
+func (db *SQLDB) SetVolumeTTL(volumeData SavedVolume, ttl time.Duration) error {
 	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
 	_, err := db.conn.Exec(`

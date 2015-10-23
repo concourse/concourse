@@ -68,9 +68,9 @@ type DB interface {
 
 	GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, error)
 
-	InsertVolumeData(data VolumeData) error
-	GetVolumes() ([]SavedVolumeData, error)
-	SetVolumeTTL(SavedVolumeData, time.Duration) error
+	InsertVolume(data Volume) error
+	GetVolumes() ([]SavedVolume, error)
+	SetVolumeTTL(SavedVolume, time.Duration) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, error)
 }
 
@@ -152,14 +152,14 @@ type WorkerInfo struct {
 	Name             string
 }
 
-type SavedVolumeData struct {
-	VolumeData
+type SavedVolume struct {
+	Volume
 
 	ID        int
 	ExpiresIn time.Duration
 }
 
-type VolumeData struct {
+type Volume struct {
 	WorkerName      string
 	TTL             time.Duration
 	Handle          string

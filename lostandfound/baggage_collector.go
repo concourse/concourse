@@ -15,8 +15,8 @@ const NoRelevantVersionsTTL = 10 * time.Minute
 
 type BaggageCollectorDB interface {
 	GetAllActivePipelines() ([]db.SavedPipeline, error)
-	GetVolumes() ([]db.SavedVolumeData, error)
-	SetVolumeTTL(db.SavedVolumeData, time.Duration) error
+	GetVolumes() ([]db.SavedVolume, error)
+	SetVolumeTTL(db.SavedVolume, time.Duration) error
 }
 
 //go:generate counterfeiter . BaggageCollector

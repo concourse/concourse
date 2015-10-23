@@ -36,34 +36,34 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 
 		It("can keep track of volume data", func() {
 			By("allowing you to insert")
-			expectedVolumeData := db.VolumeData{
+			expectedVolume := db.Volume{
 				WorkerName:      "some-worker",
 				TTL:             time.Hour,
 				Handle:          "some-volume-handle",
 				ResourceVersion: atc.Version{"some": "version"},
 				ResourceHash:    "some-hash",
 			}
-			err := database.InsertVolumeData(expectedVolumeData)
+			err := database.InsertVolume(expectedVolume)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("getting volume information from the db")
 			volumes, err := database.GetVolumes()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(volumes)).To(Equal(1))
-			actualVolumeData := volumes[0]
-			Expect(actualVolumeData.WorkerName).To(Equal(expectedVolumeData.WorkerName))
-			Expect(actualVolumeData.TTL).To(Equal(expectedVolumeData.TTL))
-			Expect(actualVolumeData.ExpiresIn).To(BeNumerically("~", expectedVolumeData.TTL, time.Second))
-			Expect(actualVolumeData.Handle).To(Equal(expectedVolumeData.Handle))
-			Expect(actualVolumeData.ResourceVersion).To(Equal(expectedVolumeData.ResourceVersion))
-			Expect(actualVolumeData.ResourceHash).To(Equal(expectedVolumeData.ResourceHash))
+			actualVolume := volumes[0]
+			Expect(actualVolume.WorkerName).To(Equal(expectedVolume.WorkerName))
+			Expect(actualVolume.TTL).To(Equal(expectedVolume.TTL))
+			Expect(actualVolume.ExpiresIn).To(BeNumerically("~", expectedVolume.TTL, time.Second))
+			Expect(actualVolume.Handle).To(Equal(expectedVolume.Handle))
+			Expect(actualVolume.ResourceVersion).To(Equal(expectedVolume.ResourceVersion))
+			Expect(actualVolume.ResourceHash).To(Equal(expectedVolume.ResourceHash))
 
 			By("allowing you to call insert idempotently")
-			err = database.InsertVolumeData(expectedVolumeData)
+			err = database.InsertVolume(expectedVolume)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("not returning volumes that have expired")
-			err = database.InsertVolumeData(db.VolumeData{
+			err = database.InsertVolume(db.Volume{
 				WorkerName:      "some-worker",
 				TTL:             -time.Hour,
 				Handle:          "some-other-volume-handle",
@@ -77,7 +77,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Expect(len(volumes)).To(Equal(1))
 
 			By("allowing you to insert the same volume handle on a different worker")
-			err = database.InsertVolumeData(db.VolumeData{
+			err = database.InsertVolume(db.Volume{
 				WorkerName:      "some-other-worker",
 				TTL:             time.Hour,
 				Handle:          "some-volume-handle",
@@ -90,12 +90,12 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Expect(len(volumes)).To(Equal(2))
 
 			By("letting you get the ttl of a volume")
-			actualTTL, err := database.GetVolumeTTL(actualVolumeData.Handle)
+			actualTTL, err := database.GetVolumeTTL(actualVolume.Handle)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(actualTTL).To(Equal(actualVolumeData.TTL))
+			Expect(actualTTL).To(Equal(actualVolume.TTL))
 
 			By("letting you update the ttl of the volume data")
-			err = database.SetVolumeTTL(actualVolumeData, -time.Hour)
+			err = database.SetVolumeTTL(actualVolume, -time.Hour)
 			Expect(err).NotTo(HaveOccurred())
 			volumes, err = database.GetVolumes()
 			Expect(err).NotTo(HaveOccurred())

@@ -14,7 +14,7 @@ type Server struct {
 //go:generate counterfeiter . VolumesDB
 
 type VolumesDB interface {
-	GetVolumes() ([]db.SavedVolumeData, error)
+	GetVolumes() ([]db.SavedVolume, error)
 }
 
 func NewServer(

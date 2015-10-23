@@ -239,8 +239,8 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("saves the volume information to the database", func() {
-							Expect(fakeDB.InsertVolumeDataCallCount()).To(Equal(1))
-							Expect(fakeDB.InsertVolumeDataArgsForCall(0)).To(Equal(db.VolumeData{
+							Expect(fakeDB.InsertVolumeCallCount()).To(Equal(1))
+							Expect(fakeDB.InsertVolumeArgsForCall(0)).To(Equal(db.Volume{
 								Handle:          "found-volume-handle",
 								WorkerName:      "myworker",
 								TTL:             time.Hour,

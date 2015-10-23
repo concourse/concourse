@@ -9,16 +9,16 @@ import (
 )
 
 type FakeVolumesDB struct {
-	GetVolumesStub        func() ([]db.SavedVolumeData, error)
+	GetVolumesStub        func() ([]db.SavedVolume, error)
 	getVolumesMutex       sync.RWMutex
 	getVolumesArgsForCall []struct{}
 	getVolumesReturns     struct {
-		result1 []db.SavedVolumeData
+		result1 []db.SavedVolume
 		result2 error
 	}
 }
 
-func (fake *FakeVolumesDB) GetVolumes() ([]db.SavedVolumeData, error) {
+func (fake *FakeVolumesDB) GetVolumes() ([]db.SavedVolume, error) {
 	fake.getVolumesMutex.Lock()
 	fake.getVolumesArgsForCall = append(fake.getVolumesArgsForCall, struct{}{})
 	fake.getVolumesMutex.Unlock()
@@ -35,10 +35,10 @@ func (fake *FakeVolumesDB) GetVolumesCallCount() int {
 	return len(fake.getVolumesArgsForCall)
 }
 
-func (fake *FakeVolumesDB) GetVolumesReturns(result1 []db.SavedVolumeData, result2 error) {
+func (fake *FakeVolumesDB) GetVolumesReturns(result1 []db.SavedVolume, result2 error) {
 	fake.GetVolumesStub = nil
 	fake.getVolumesReturns = struct {
-		result1 []db.SavedVolumeData
+		result1 []db.SavedVolume
 		result2 error
 	}{result1, result2}
 }

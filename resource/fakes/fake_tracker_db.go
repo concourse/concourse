@@ -9,44 +9,44 @@ import (
 )
 
 type FakeTrackerDB struct {
-	InsertVolumeDataStub        func(data db.VolumeData) error
-	insertVolumeDataMutex       sync.RWMutex
-	insertVolumeDataArgsForCall []struct {
-		data db.VolumeData
+	InsertVolumeStub        func(data db.Volume) error
+	insertVolumeMutex       sync.RWMutex
+	insertVolumeArgsForCall []struct {
+		data db.Volume
 	}
-	insertVolumeDataReturns struct {
+	insertVolumeReturns struct {
 		result1 error
 	}
 }
 
-func (fake *FakeTrackerDB) InsertVolumeData(data db.VolumeData) error {
-	fake.insertVolumeDataMutex.Lock()
-	fake.insertVolumeDataArgsForCall = append(fake.insertVolumeDataArgsForCall, struct {
-		data db.VolumeData
+func (fake *FakeTrackerDB) InsertVolume(data db.Volume) error {
+	fake.insertVolumeMutex.Lock()
+	fake.insertVolumeArgsForCall = append(fake.insertVolumeArgsForCall, struct {
+		data db.Volume
 	}{data})
-	fake.insertVolumeDataMutex.Unlock()
-	if fake.InsertVolumeDataStub != nil {
-		return fake.InsertVolumeDataStub(data)
+	fake.insertVolumeMutex.Unlock()
+	if fake.InsertVolumeStub != nil {
+		return fake.InsertVolumeStub(data)
 	} else {
-		return fake.insertVolumeDataReturns.result1
+		return fake.insertVolumeReturns.result1
 	}
 }
 
-func (fake *FakeTrackerDB) InsertVolumeDataCallCount() int {
-	fake.insertVolumeDataMutex.RLock()
-	defer fake.insertVolumeDataMutex.RUnlock()
-	return len(fake.insertVolumeDataArgsForCall)
+func (fake *FakeTrackerDB) InsertVolumeCallCount() int {
+	fake.insertVolumeMutex.RLock()
+	defer fake.insertVolumeMutex.RUnlock()
+	return len(fake.insertVolumeArgsForCall)
 }
 
-func (fake *FakeTrackerDB) InsertVolumeDataArgsForCall(i int) db.VolumeData {
-	fake.insertVolumeDataMutex.RLock()
-	defer fake.insertVolumeDataMutex.RUnlock()
-	return fake.insertVolumeDataArgsForCall[i].data
+func (fake *FakeTrackerDB) InsertVolumeArgsForCall(i int) db.Volume {
+	fake.insertVolumeMutex.RLock()
+	defer fake.insertVolumeMutex.RUnlock()
+	return fake.insertVolumeArgsForCall[i].data
 }
 
-func (fake *FakeTrackerDB) InsertVolumeDataReturns(result1 error) {
-	fake.InsertVolumeDataStub = nil
-	fake.insertVolumeDataReturns = struct {
+func (fake *FakeTrackerDB) InsertVolumeReturns(result1 error) {
+	fake.InsertVolumeStub = nil
+	fake.insertVolumeReturns = struct {
 		result1 error
 	}{result1}
 }

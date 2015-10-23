@@ -79,7 +79,7 @@ var _ = Describe("Baggage Collector", func() {
 
 		type baggageCollectionExample struct {
 			pipelineData map[string][]resourceConfigAndVersions
-			volumeData   []db.VolumeData
+			volumeData   []db.Volume
 			expectedTTLs map[string]time.Duration
 		}
 
@@ -139,7 +139,7 @@ var _ = Describe("Baggage Collector", func() {
 					}
 
 					for _, data := range example.volumeData {
-						err := sqlDB.InsertVolumeData(data)
+						err := sqlDB.InsertVolume(data)
 						Expect(err).NotTo(HaveOccurred())
 						fakeVolumes[data.Handle] = new(bcfakes.FakeVolume)
 					}
@@ -201,7 +201,7 @@ var _ = Describe("Baggage Collector", func() {
 						},
 					},
 				},
-				volumeData: []db.VolumeData{
+				volumeData: []db.Volume{
 					{
 						WorkerName:      "some-worker",
 						TTL:             24 * time.Hour,
@@ -270,7 +270,7 @@ var _ = Describe("Baggage Collector", func() {
 						},
 					},
 				},
-				volumeData: []db.VolumeData{
+				volumeData: []db.Volume{
 					{
 						WorkerName:      "some-worker",
 						TTL:             24 * time.Hour,
@@ -319,7 +319,7 @@ var _ = Describe("Baggage Collector", func() {
 						},
 					},
 				},
-				volumeData: []db.VolumeData{
+				volumeData: []db.Volume{
 					{
 						WorkerName:      "some-worker",
 						TTL:             24 * time.Hour,
@@ -370,7 +370,7 @@ var _ = Describe("Baggage Collector", func() {
 						},
 					},
 				},
-				volumeData: []db.VolumeData{
+				volumeData: []db.Volume{
 					{
 						WorkerName:      "some-worker",
 						TTL:             10 * time.Minute,
@@ -453,7 +453,7 @@ var _ = Describe("Baggage Collector", func() {
 						},
 					},
 				},
-				volumeData: []db.VolumeData{
+				volumeData: []db.Volume{
 					{
 						WorkerName:      "some-worker",
 						TTL:             24 * time.Hour,
@@ -499,7 +499,7 @@ var _ = Describe("Baggage Collector", func() {
 						},
 					},
 				},
-				volumeData: []db.VolumeData{
+				volumeData: []db.Volume{
 					{
 						WorkerName:      "some-worker",
 						TTL:             24 * time.Hour,

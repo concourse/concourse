@@ -5,7 +5,7 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-func Volume(volume db.SavedVolumeData) atc.Volume {
+func Volume(volume db.SavedVolume) atc.Volume {
 	return atc.Volume{
 		ID:                volume.Handle,
 		TTLInSeconds:      int64(volume.ExpiresIn.Seconds()),

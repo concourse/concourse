@@ -19,7 +19,7 @@ type Session struct {
 //go:generate counterfeiter . TrackerDB
 
 type TrackerDB interface {
-	InsertVolumeData(data db.VolumeData) error
+	InsertVolume(data db.Volume) error
 }
 
 //go:generate counterfeiter . Tracker
@@ -291,7 +291,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 		return nil, nil, err
 	}
 
-	err = tracker.db.InsertVolumeData(db.VolumeData{
+	err = tracker.db.InsertVolume(db.Volume{
 		WorkerName:      chosenWorker.Name(),
 		TTL:             ttl,
 		Handle:          cachedVolume.Handle(),

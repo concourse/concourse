@@ -40,11 +40,11 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when getting all volumes succeeds", func() {
 				BeforeEach(func() {
-					volumesDB.GetVolumesReturns([]db.SavedVolumeData{
+					volumesDB.GetVolumesReturns([]db.SavedVolume{
 						{
 							ID:        3,
 							ExpiresIn: 2 * time.Minute,
-							VolumeData: db.VolumeData{
+							Volume: db.Volume{
 								WorkerName:      "some-worker",
 								TTL:             10 * time.Minute,
 								Handle:          "some-handle",
@@ -55,7 +55,7 @@ var _ = Describe("Pipelines API", func() {
 						{
 							ID:        1,
 							ExpiresIn: 23 * time.Hour,
-							VolumeData: db.VolumeData{
+							Volume: db.Volume{
 								WorkerName:      "some-other-worker",
 								TTL:             24 * time.Hour,
 								Handle:          "some-other-handle",
