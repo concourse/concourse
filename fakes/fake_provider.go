@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/auth"
+	"github.com/pivotal-golang/lager"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
@@ -45,10 +46,11 @@ type FakeProvider struct {
 	clientReturns struct {
 		result1 *http.Client
 	}
-	VerifyStub        func(*http.Client) (bool, error)
+	VerifyStub        func(lager.Logger, *http.Client) (bool, error)
 	verifyMutex       sync.RWMutex
 	verifyArgsForCall []struct {
-		arg1 *http.Client
+		arg1 lager.Logger
+		arg2 *http.Client
 	}
 	verifyReturns struct {
 		result1 bool
@@ -180,14 +182,15 @@ func (fake *FakeProvider) ClientReturns(result1 *http.Client) {
 	}{result1}
 }
 
-func (fake *FakeProvider) Verify(arg1 *http.Client) (bool, error) {
+func (fake *FakeProvider) Verify(arg1 lager.Logger, arg2 *http.Client) (bool, error) {
 	fake.verifyMutex.Lock()
 	fake.verifyArgsForCall = append(fake.verifyArgsForCall, struct {
-		arg1 *http.Client
-	}{arg1})
+		arg1 lager.Logger
+		arg2 *http.Client
+	}{arg1, arg2})
 	fake.verifyMutex.Unlock()
 	if fake.VerifyStub != nil {
-		return fake.VerifyStub(arg1)
+		return fake.VerifyStub(arg1, arg2)
 	} else {
 		return fake.verifyReturns.result1, fake.verifyReturns.result2
 	}
@@ -199,10 +202,10 @@ func (fake *FakeProvider) VerifyCallCount() int {
 	return len(fake.verifyArgsForCall)
 }
 
-func (fake *FakeProvider) VerifyArgsForCall(i int) *http.Client {
+func (fake *FakeProvider) VerifyArgsForCall(i int) (lager.Logger, *http.Client) {
 	fake.verifyMutex.RLock()
 	defer fake.verifyMutex.RUnlock()
-	return fake.verifyArgsForCall[i].arg1
+	return fake.verifyArgsForCall[i].arg1, fake.verifyArgsForCall[i].arg2
 }
 
 func (fake *FakeProvider) VerifyReturns(result1 bool, result2 error) {

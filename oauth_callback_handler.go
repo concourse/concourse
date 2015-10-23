@@ -31,6 +31,8 @@ func NewOAuthCallbackHandler(
 }
 
 func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	hLog := handler.logger.Session("callback")
+
 	provider, found := handler.providers[r.FormValue(":provider")]
 	if !found {
 		http.Error(w, "unknown provider", http.StatusNotFound)
@@ -39,7 +41,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	stateToken, err := jwt.Parse(r.FormValue("state"), keyFunc(handler.privateKey))
 	if err != nil {
-		handler.logger.Info("failed-to-verify-state", lager.Data{
+		hLog.Info("failed-to-verify-state", lager.Data{
 			"error": err.Error(),
 		})
 		http.Error(w, "cannot verify state", http.StatusUnauthorized)
@@ -48,22 +50,22 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	token, err := provider.Exchange(oauth2.NoContext, r.FormValue("code"))
 	if err != nil {
-		handler.logger.Error("failed-to-exchange-token", err)
+		hLog.Error("failed-to-exchange-token", err)
 		http.Error(w, "failed to exchange token", http.StatusInternalServerError)
 		return
 	}
 
 	httpClient := provider.Client(oauth2.NoContext, token)
 
-	verified, err := provider.Verify(httpClient)
+	verified, err := provider.Verify(hLog.Session("verify"), httpClient)
 	if err != nil {
-		handler.logger.Error("failed-to-verify-token", err)
+		hLog.Error("failed-to-verify-token", err)
 		http.Error(w, "failed to verify token", http.StatusInternalServerError)
 		return
 	}
 
 	if !verified {
-		handler.logger.Info("verification-failed")
+		hLog.Info("verification-failed")
 		http.Error(w, "verification failed", http.StatusUnauthorized)
 		return
 	}
@@ -75,7 +77,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	signedToken, err := jwtToken.SignedString(handler.privateKey)
 	if err != nil {
-		handler.logger.Error("failed-to-sign-token", err)
+		hLog.Error("failed-to-sign-token", err)
 		http.Error(w, "failed to sign token", http.StatusInternalServerError)
 		return
 	}

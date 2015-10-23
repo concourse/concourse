@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/auth"
+	"github.com/pivotal-golang/lager"
 )
 
 type Team struct {
@@ -26,9 +27,10 @@ func NewTeamVerifier(
 	}
 }
 
-func (verifier *TeamVerifier) Verify(httpClient *http.Client) (bool, error) {
+func (verifier *TeamVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
 	usersOrgTeams, err := verifier.gitHubClient.Teams(httpClient)
 	if err != nil {
+		logger.Error("failed-to-get-teams", err)
 		return false, err
 	}
 
@@ -41,6 +43,11 @@ func (verifier *TeamVerifier) Verify(httpClient *http.Client) (bool, error) {
 			}
 		}
 	}
+
+	logger.Info("not-in-teams", lager.Data{
+		"have": usersOrgTeams,
+		"want": verifier.teams,
+	})
 
 	return false, nil
 }
