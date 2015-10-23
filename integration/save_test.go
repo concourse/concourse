@@ -112,7 +112,7 @@ targets:
 			flyCmd := exec.Command(flyPath,
 				"save-target",
 				"--api", targetURL,
-				"--target", "my-test-target",
+				"--name", "my-test-target",
 			)
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -137,7 +137,7 @@ targets:
 			flyCmd := exec.Command(flyPath,
 				"save-target",
 				"--api", targetURL,
-				"--target", "http://my-test-target",
+				"--name", "http://my-test-target",
 			)
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -160,7 +160,7 @@ targets:
 					"--username", "some-username",
 					"--password", "some-password",
 					"--cert", certififatePath,
-					"--target", "some-update-target",
+					"--name", "some-update-target",
 				)
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -196,7 +196,7 @@ targets:
 					"--username", "some-username",
 					"--password", "some-password",
 					"--cert", certififatePath,
-					"--target", "some-update-target",
+					"--name", "some-update-target",
 				)
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -210,7 +210,7 @@ targets:
 					"--username", "some-username",
 					"--password", "stuff",
 					"--cert", updatedCertPath,
-					"--target", "some-update-target",
+					"--name", "some-update-target",
 					"--skip-ssl",
 				)
 
@@ -238,7 +238,7 @@ targets:
 				"--username", "some-username",
 				"--password", "some-password",
 				"--cert", certififatePath,
-				"--target", "some-target",
+				"--name", "some-target",
 				"--skip-ssl",
 			)
 
