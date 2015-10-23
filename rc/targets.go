@@ -22,7 +22,7 @@ type TargetProps struct {
 	Insecure bool
 }
 
-// TODO: Remove this function and put url logic in ATC Client
+//URL TODO: Remove this function and put url logic in ATC Client
 func (target TargetProps) URL() string {
 	targetURL, _ := url.Parse(target.API)
 	if target.Username != "" {
@@ -65,21 +65,22 @@ func SelectTarget(selectedTarget string, insecure bool) (*TargetProps, error) {
 	if isURL(selectedTarget) {
 		target := NewTarget(selectedTarget, "", "", "", insecure)
 		return &target, nil
-	} else {
-		flyrc := filepath.Join(userHomeDir(), ".flyrc")
-		flyTargets, err := loadTargets(flyrc)
-		if err != nil {
-			return nil, err
-		}
-
-		target, ok := flyTargets.Targets[selectedTarget]
-		if !ok {
-			return nil, fmt.Errorf("Unable to find target %s in %s", selectedTarget, flyrc)
-		}
-
-		target.Insecure = target.Insecure || insecure
-		return &target, nil
 	}
+
+	flyrc := filepath.Join(userHomeDir(), ".flyrc")
+	flyTargets, err := loadTargets(flyrc)
+	if err != nil {
+		return nil, err
+	}
+
+	target, ok := flyTargets.Targets[selectedTarget]
+	if !ok {
+		return nil, fmt.Errorf("Unable to find target %s in %s", selectedTarget, flyrc)
+	}
+
+	target.Insecure = target.Insecure || insecure
+	return &target, nil
+
 }
 
 func userHomeDir() string {

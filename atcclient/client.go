@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/concourse/atc"
@@ -49,6 +50,7 @@ func NewClient(target rc.TargetProps) (Client, error) {
 		return nil, errors.New("API is blank")
 	}
 
+	target.API = strings.TrimRight(target.API, "/")
 	tlsClientConfig := &tls.Config{InsecureSkipVerify: target.Insecure}
 	client := AtcClient{
 		target:           target,
