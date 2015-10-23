@@ -82,19 +82,6 @@ var _ = Describe("ATC Handler Jobs", func() {
 					Expect(found).To(BeTrue())
 				})
 			})
-
-			Context("when not provided a pipeline name", func() {
-				BeforeEach(func() {
-					expectedPipelineName = "main"
-				})
-
-				It("returns the given job for the default pipeline 'main'", func() {
-					job, found, err := handler.Job("", "myjob")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(job).To(Equal(expectedJob))
-					Expect(found).To(BeTrue())
-				})
-			})
 		})
 
 		Context("when job does not exist", func() {
