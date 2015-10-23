@@ -3,6 +3,7 @@ package fakes
 
 import (
 	"bytes"
+	"io"
 	"sync"
 
 	"github.com/concourse/atc"
@@ -154,6 +155,16 @@ type FakeHandler struct {
 		result2 string
 		result3 bool
 		result4 error
+	}
+	GetCLIReaderStub        func(arch, platform string) (io.ReadCloser, error)
+	getCLIReaderMutex       sync.RWMutex
+	getCLIReaderArgsForCall []struct {
+		arch     string
+		platform string
+	}
+	getCLIReaderReturns struct {
+		result1 io.ReadCloser
+		result2 error
 	}
 }
 
@@ -648,6 +659,40 @@ func (fake *FakeHandler) PipelineConfigReturns(result1 atc.Config, result2 strin
 		result3 bool
 		result4 error
 	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeHandler) GetCLIReader(arch string, platform string) (io.ReadCloser, error) {
+	fake.getCLIReaderMutex.Lock()
+	fake.getCLIReaderArgsForCall = append(fake.getCLIReaderArgsForCall, struct {
+		arch     string
+		platform string
+	}{arch, platform})
+	fake.getCLIReaderMutex.Unlock()
+	if fake.GetCLIReaderStub != nil {
+		return fake.GetCLIReaderStub(arch, platform)
+	} else {
+		return fake.getCLIReaderReturns.result1, fake.getCLIReaderReturns.result2
+	}
+}
+
+func (fake *FakeHandler) GetCLIReaderCallCount() int {
+	fake.getCLIReaderMutex.RLock()
+	defer fake.getCLIReaderMutex.RUnlock()
+	return len(fake.getCLIReaderArgsForCall)
+}
+
+func (fake *FakeHandler) GetCLIReaderArgsForCall(i int) (string, string) {
+	fake.getCLIReaderMutex.RLock()
+	defer fake.getCLIReaderMutex.RUnlock()
+	return fake.getCLIReaderArgsForCall[i].arch, fake.getCLIReaderArgsForCall[i].platform
+}
+
+func (fake *FakeHandler) GetCLIReaderReturns(result1 io.ReadCloser, result2 error) {
+	fake.GetCLIReaderStub = nil
+	fake.getCLIReaderReturns = struct {
+		result1 io.ReadCloser
+		result2 error
+	}{result1, result2}
 }
 
 var _ atcclient.Handler = new(FakeHandler)

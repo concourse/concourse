@@ -2,6 +2,7 @@ package atcclient
 
 import (
 	"bytes"
+	"io"
 
 	"github.com/concourse/atc"
 )
@@ -9,11 +10,9 @@ import (
 //go:generate counterfeiter . Handler
 
 type Handler interface {
-	// 	DownloadCLI()
 	// 	HijackContainer()
 	// 	ListJobInputs()
 	// 	ReadPipe()
-	// 	SaveConfig()
 	// 	WritePipe()
 	AllBuilds() ([]atc.Build, error)
 	Build(buildID string) (atc.Build, bool, error)
@@ -31,6 +30,7 @@ type Handler interface {
 	ListVolumes() ([]atc.Volume, error)
 	ListWorkers() ([]atc.Worker, error)
 	PipelineConfig(pipelineName string) (atc.Config, string, bool, error)
+	GetCLIReader(arch, platform string) (io.ReadCloser, error)
 }
 
 type AtcHandler struct {

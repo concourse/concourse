@@ -121,6 +121,40 @@ var _ = Describe("ATC Client", func() {
 			Expect(containers).To(Equal(expectedResponse))
 		})
 
+		Context("when trying to retrieve the body of the request", func() {
+			var expectedBytes []byte
+
+			BeforeEach(func() {
+				expectedURL := "/api/v1/cli"
+				expectedBytes = []byte{0, 1, 0}
+
+				atcServer.RouteToHandler("GET", expectedURL,
+					ghttp.CombineHandlers(
+						func(w http.ResponseWriter, r *http.Request) {
+							w.WriteHeader(http.StatusOK)
+							w.Write(expectedBytes)
+						},
+					),
+				)
+			})
+
+			It("does not close the request body, and returns the body back through the response object", func() {
+				response := Response{}
+				err := client.Send(Request{
+					RequestName:        atc.DownloadCLI,
+					ReturnResponseBody: true,
+				},
+					&response,
+				)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
+
+				respBody, ok := response.Result.(io.ReadCloser)
+				Expect(ok).To(BeTrue())
+				Expect(respBody.Close()).NotTo(HaveOccurred())
+			})
+		})
 		Context("Sending Headers", func() {
 			Context("Basic Auth", func() {
 				BeforeEach(func() {
