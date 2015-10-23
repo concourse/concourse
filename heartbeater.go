@@ -23,8 +23,9 @@ type heartbeater struct {
 
 	interval time.Duration
 
-	gardenClient garden.Client
-	atcEndpoint  *rata.RequestGenerator
+	gardenClient   garden.Client
+	atcEndpoint    *rata.RequestGenerator
+	tokenGenerator TokenGenerator
 
 	registration atc.Worker
 	clientWriter io.Writer
@@ -35,6 +36,7 @@ func NewHeartbeater(
 	interval time.Duration,
 	gardenClient garden.Client,
 	atcEndpoint *rata.RequestGenerator,
+	tokenGenerator TokenGenerator,
 	worker atc.Worker,
 	clientWriter io.Writer,
 ) ifrit.Runner {
@@ -43,8 +45,9 @@ func NewHeartbeater(
 
 		interval: interval,
 
-		gardenClient: gardenClient,
-		atcEndpoint:  atcEndpoint,
+		gardenClient:   gardenClient,
+		atcEndpoint:    atcEndpoint,
+		tokenGenerator: tokenGenerator,
 
 		registration: worker,
 		clientWriter: clientWriter,
@@ -109,6 +112,14 @@ func (heartbeater *heartbeater) register(logger lager.Logger) bool {
 		logger.Error("failed-to-construct-request", err)
 		return false
 	}
+
+	jwtToken, err := heartbeater.tokenGenerator.GenerateToken()
+	if err != nil {
+		logger.Error("failed-to-construct-request", err)
+		return false
+	}
+
+	request.Header.Add("Authorization", "Bearer "+jwtToken)
 
 	request.URL.RawQuery = url.Values{
 		"ttl": []string{heartbeater.ttl().String()},

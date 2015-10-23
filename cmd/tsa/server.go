@@ -55,6 +55,7 @@ func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
 type registrarSSHServer struct {
 	logger            lager.Logger
 	atcEndpoint       *rata.RequestGenerator
+	tokenGenerator    tsa.TokenGenerator
 	heartbeatInterval time.Duration
 	forwardHost       string
 	config            *ssh.ServerConfig
@@ -94,6 +95,7 @@ func (server *registrarSSHServer) handleConn(logger lager.Logger, conn *ssh.Serv
 	go server.handleForwardRequests(logger, conn, reqs, forwardedTCPIPs)
 
 	var processes []ifrit.Process
+	var process ifrit.Process
 
 	// ensure processes get cleaned up
 	defer func() {
@@ -165,7 +167,7 @@ func (server *registrarSSHServer) handleConn(logger lager.Logger, conn *ssh.Serv
 
 				req.Reply(true, nil)
 
-				process, err := server.continuouslyRegisterWorkerDirectly(logger, channel)
+				process, err = server.continuouslyRegisterWorkerDirectly(logger, channel)
 				if err != nil {
 					logger.Error("failed-to-register", err)
 					return
@@ -204,7 +206,7 @@ func (server *registrarSSHServer) handleConn(logger lager.Logger, conn *ssh.Serv
 
 				case 1:
 					for _, gardenForward := range forwards {
-						process, err := server.continuouslyRegisterForwardedWorker(
+						process, err = server.continuouslyRegisterForwardedWorker(
 							logger,
 							channel,
 							gardenForward.boundPort,
@@ -233,7 +235,7 @@ func (server *registrarSSHServer) handleConn(logger lager.Logger, conn *ssh.Serv
 						return
 					}
 
-					process, err := server.continuouslyRegisterForwardedWorker(
+					process, err = server.continuouslyRegisterForwardedWorker(
 						logger,
 						channel,
 						gardenForward.boundPort,
@@ -307,6 +309,7 @@ func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker at
 		server.heartbeatInterval,
 		gclient.New(gconn.NewWithDialerAndLogger(keepaliveDialerFactory("tcp", worker.GardenAddr), logger.Session("garden-connection"))),
 		server.atcEndpoint,
+		server.tokenGenerator,
 		worker,
 		channel,
 	))

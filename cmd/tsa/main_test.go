@@ -22,7 +22,9 @@ import (
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	gserver "github.com/cloudfoundry-incubator/garden/server"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth"
 	bclient "github.com/concourse/baggageclaim/client"
+	"github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -86,6 +88,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 			hostKey    string
 			hostKeyPub string
 
+			jwtValidator       auth.JWTValidator
 			authorizedKeysFile string
 
 			userKnownHostsFile string
@@ -148,11 +151,23 @@ var _ = Describe("TSA SSH Registrar", func() {
 			forwardHost, err = localip.LocalIP()
 			Expect(err).NotTo(HaveOccurred())
 
+			sessionSigningPrivateKeyFile, _ := generateSSHKeypair()
+			rsaKeyBlob, err := ioutil.ReadFile(string(sessionSigningPrivateKeyFile))
+			Expect(err).NotTo(HaveOccurred())
+
+			signingKey, err := jwt.ParseRSAPrivateKeyFromPEM(rsaKeyBlob)
+			Expect(err).NotTo(HaveOccurred())
+
+			jwtValidator = auth.JWTValidator{
+				PublicKey: &signingKey.PublicKey,
+			}
+
 			tsaCommand := exec.Command(
 				tsaPath,
 				"-listenPort", strconv.Itoa(tsaPort),
 				"-hostKey", hostKey,
 				"-authorizedKeys", authorizedKeysFile,
+				"-sessionSigningKey", sessionSigningPrivateKeyFile,
 				"-atcAPIURL", atcServer.URL(),
 				"-heartbeatInterval", heartbeatInterval.String(),
 				"-forwardHost", forwardHost,
@@ -246,6 +261,8 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 							atcServer.RouteToHandler("POST", "/api/v1/workers", func(w http.ResponseWriter, r *http.Request) {
 								var worker atc.Worker
+								Expect(jwtValidator.IsAuthenticated(r)).To(BeTrue())
+
 								err := json.NewDecoder(r.Body).Decode(&worker)
 								Expect(err).NotTo(HaveOccurred())
 

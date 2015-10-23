@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +12,8 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/tsa"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 	"github.com/xoebus/zest"
@@ -33,6 +36,12 @@ var authorizedKeysPath = flag.String(
 	"authorizedKeys",
 	"",
 	"path to authorized keys",
+)
+
+var sessionSigningKeyPath = flag.String(
+	"sessionSigningKey",
+	"",
+	"path to session signing keys",
 )
 
 var atcAPIURL = flag.String(
@@ -87,6 +96,11 @@ func main() {
 		logger.Fatal("failed-to-load-authorized-keys", err)
 	}
 
+	sessionSigningKey, err := loadSessionSigningKey(*sessionSigningKeyPath)
+	if err != nil {
+		logger.Fatal("failed-to-load-session-signing-keys", err)
+	}
+
 	config, err := configureSSHServer(*hostKeyPath, authorizedKeys)
 	if err != nil {
 		logger.Fatal("failed-to-configure-ssh-server", err)
@@ -98,11 +112,13 @@ func main() {
 	}
 
 	logger.Info("listening")
+	tokenGenerator := tsa.NewTokenGenerator(sessionSigningKey)
 
 	server := &registrarSSHServer{
 		logger:            logger,
 		heartbeatInterval: *heartbeatInterval,
 		atcEndpoint:       atcEndpoint,
+		tokenGenerator:    tokenGenerator,
 		forwardHost:       *forwardHost,
 		config:            config,
 		httpClient:        http.DefaultClient,
@@ -131,6 +147,20 @@ func loadAuthorizedKeys(path string) ([]ssh.PublicKey, error) {
 	}
 
 	return authorizedKeys, nil
+}
+
+func loadSessionSigningKey(path string) (*rsa.PrivateKey, error) {
+	rsaKeyBlob, err := ioutil.ReadFile(string(path))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read session signing key file: %s", err)
+	}
+
+	signingKey, err := jwt.ParseRSAPrivateKeyFromPEM(rsaKeyBlob)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse session signing key as RSA: %s", err)
+	}
+
+	return signingKey, nil
 }
 
 func configureSSHServer(hostKeyPath string, authorizedKeys []ssh.PublicKey) (*ssh.ServerConfig, error) {

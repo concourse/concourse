@@ -9,6 +9,7 @@ import (
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc"
 	. "github.com/concourse/tsa"
+	"github.com/concourse/tsa/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -33,10 +34,10 @@ var _ = Describe("Heartbeater", func() {
 		interval       time.Duration
 		resourceTypes  []atc.WorkerResourceType
 
-		expectedWorker atc.Worker
-
-		fakeGardenClient *gfakes.FakeClient
-		fakeATC          *ghttp.Server
+		expectedWorker     atc.Worker
+		fakeTokenGenerator *fakes.FakeTokenGenerator
+		fakeGardenClient   *gfakes.FakeClient
+		fakeATC            *ghttp.Server
 
 		heartbeater ifrit.Process
 
@@ -74,6 +75,8 @@ var _ = Describe("Heartbeater", func() {
 
 		fakeATC.RouteToHandler(registerRoute.Method, registerRoute.Path, func(w http.ResponseWriter, r *http.Request) {
 			var worker atc.Worker
+			Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
+
 			err := json.NewDecoder(r.Body).Decode(&worker)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -84,6 +87,9 @@ var _ = Describe("Heartbeater", func() {
 		})
 
 		fakeGardenClient = new(gfakes.FakeClient)
+		fakeTokenGenerator = new(fakes.FakeTokenGenerator)
+
+		fakeTokenGenerator.GenerateTokenReturns("yo", nil)
 		clientWriter = gbytes.NewBuffer()
 	})
 
@@ -95,6 +101,7 @@ var _ = Describe("Heartbeater", func() {
 				interval,
 				fakeGardenClient,
 				atcEndpoint,
+				fakeTokenGenerator,
 				atc.Worker{
 					GardenAddr:    addrToRegister,
 					ResourceTypes: resourceTypes,
