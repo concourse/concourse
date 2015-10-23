@@ -30,6 +30,43 @@ var _ = Describe("Client", func() {
 		}
 	})
 
+	Context("when listing organization succeeds", func() {
+		BeforeEach(func() {
+			githubServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/user/orgs"),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, []gogithub.Organization{
+						{Login: gogithub.String("org-1")},
+						{Login: gogithub.String("org-2")},
+						{Login: gogithub.String("org-3")},
+					}),
+				),
+			)
+		})
+
+		It("returns the list of organization names", func() {
+			orgs, err := client.Organizations(proxiedClient)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(orgs).To(Equal([]string{"org-1", "org-2", "org-3"}))
+		})
+	})
+
+	Context("when listing organization fails", func() {
+		BeforeEach(func() {
+			githubServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/user/orgs"),
+					ghttp.RespondWith(http.StatusUnauthorized, ""),
+				),
+			)
+		})
+
+		It("returns an error", func() {
+			_, err := client.Organizations(proxiedClient)
+			Expect(err).To(BeAssignableToTypeOf(&gogithub.ErrorResponse{}))
+		})
+	})
+
 	Context("when listing teams succeeds", func() {
 		BeforeEach(func() {
 			githubServer.AppendHandlers(

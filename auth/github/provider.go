@@ -11,13 +11,18 @@ const ProviderName = "github"
 var Scopes = []string{"read:org"}
 
 func NewProvider(
+	organization string,
 	teams []string,
 	clientID string,
 	clientSecret string,
 	redirectURL string,
 ) auth.Provider {
+	client := NewClient()
 	return provider{
-		Verifier: NewTeamVerifier(teams, NewClient()),
+		Verifier: NewVerifierBasket(
+			NewOrganizationVerifier(organization, client),
+			NewTeamVerifier(teams, client),
+		),
 		Config: &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
