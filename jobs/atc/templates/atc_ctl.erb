@@ -41,18 +41,6 @@ source /var/vcap/packages/pid_utils/pid_utils.sh
   my_ip ||= discover_external_ip
 %>
 
-<%
-  def validate_github_orgs
-    p("atc.github_auth.organizations").each do |org|
-      if org['teams'].nil?
-        raise "Must specify teams for organization: " + org['name'] + ". Use 'all' to enable all teams in an org"
-      end
-    end
-  end
-
-  validate_github_orgs
-%>
-
 case $1 in
 
   start)
@@ -85,9 +73,21 @@ case $1 in
       <% end %> \
       --basic-auth-username <%= esc(p("atc.basic_auth_username")) %> \
       --basic-auth-password <%= esc(p("atc.basic_auth_password")) %> \
-      <% p("atc.github_auth.organizations").each do |org| %> \
-        <% org['teams'].each do |team| %> \
-      --github-auth-team <%=  org['name'] + "/" + team %> \
+      <% p("atc.github_auth.authorize").each do |a| %> \
+        <% if org = a["organization"] %> \
+          <% if a["teams"] == "all" %> \
+      --github-auth-organization <%= org %> \
+          <% elsif a["teams"].respond_to?(:each) %> \
+            <% a["teams"].each do |team| %> \
+      --github-auth-team <%= org + "/" + team %> \
+            <% end %> \
+          <% elsif a["teams"].nil? %> \
+            <% raise "teams for organization '#{org}' must be specified; use 'all' for all teams" %> \
+          <% else %> \
+            <% raise "invalid teams for organization '#{org}': '#{a["teams"].inspect}" %> \
+          <% end %> \
+        <% else %> \
+          <% raise "organization not specified" %> \
         <% end %> \
       <% end %> \
       --github-auth-client-id <%= esc(p("atc.github_auth.client_id")) %> \

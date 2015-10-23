@@ -31,8 +31,13 @@ properties:
     description: "plaintext password for http basic auth"
     default: ""
 
-  atc.github_auth.organizations:
-    description: "github organization whose members should be authorized"
+  atc.github_auth.authorize:
+    description: |
+      organization/team pairs to authorize
+
+      each entry is of the form `{organization: ORGNAME, teams: [TEAM1, TEAM2]}`.
+
+      to permit all teams in an organization, specify `all` instead of the array.
     default: []
 
   atc.github_auth.client_id:
