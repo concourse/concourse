@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os/exec"
 	"strings"
 	"sync"
@@ -25,12 +26,11 @@ func PrintTable(table ui.Table) *PrintTableMatcher {
 }
 
 func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
-	expectedPTY, expectedTTY, err := pty.Open()
+	expectedPTY, err := pty.Open()
 	if err != nil {
 		return false, err
 	}
 
-	defer expectedTTY.Close()
 	defer expectedPTY.Close()
 
 	buf := new(bytes.Buffer)
@@ -39,16 +39,15 @@ func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
 	reading.Add(1)
 	go func() {
 		defer reading.Done()
-		io.Copy(buf, expectedPTY)
+		io.Copy(buf, expectedPTY.PTYR)
 	}()
 
-	err = matcher.table.Render(expectedTTY)
+	err = matcher.table.Render(expectedPTY.TTYW)
 	if err != nil {
 		return false, err
 	}
 
-	expectedTTY.Close()
-	expectedPTY.Close()
+	expectedPTY.TTYW.Close()
 
 	reading.Wait()
 
@@ -56,37 +55,35 @@ func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
 
 	switch v := actual.(type) {
 	case *exec.Cmd:
-		actualPTY, actualTTY, err := pty.Open()
+		actualPTY, err := pty.Open()
 		if err != nil {
 			return false, err
 		}
 
-		defer actualTTY.Close()
 		defer actualPTY.Close()
 
-		v.Stdout = actualTTY
-		v.Stderr = actualTTY
+		v.Stdin = actualPTY.TTYR
+		v.Stdout = actualPTY.TTYW
+		v.Stderr = actualPTY.TTYW
 
-		actualBuf := new(bytes.Buffer)
-
-		reading := new(sync.WaitGroup)
-		reading.Add(1)
-		go func() {
-			defer reading.Done()
-			io.Copy(actualBuf, actualPTY)
-		}()
-
-		err = v.Run()
+		err = v.Start()
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("start command failed: %s", err)
 		}
 
-		actualTTY.Close()
-		actualPTY.Close()
+		actualPTY.TTYW.Close()
 
-		reading.Wait()
+		actual, err := ioutil.ReadAll(actualPTY.PTYR)
+		if err != nil {
+			return false, fmt.Errorf("failed to read output: %s", err)
+		}
 
-		matcher.actual = actualBuf.String()
+		err = v.Wait()
+		if err != nil {
+			return false, fmt.Errorf("command failed: %s", err)
+		}
+
+		matcher.actual = string(actual)
 	default:
 		return false, fmt.Errorf("unknown type: %T", actual)
 	}

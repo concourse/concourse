@@ -63,11 +63,10 @@ var _ = Describe("Table", func() {
 				Skip("these escape codes, and the pty stuff, don't apply to Windows")
 			}
 
-			pty, tty, err := pty.Open()
+			pty, err := pty.Open()
 			Expect(err).NotTo(HaveOccurred())
 
 			defer pty.Close()
-			defer tty.Close()
 
 			buf := gbytes.NewBuffer()
 
@@ -75,13 +74,13 @@ var _ = Describe("Table", func() {
 			reading.Add(1)
 			go func() {
 				defer reading.Done()
-				io.Copy(buf, pty)
+				io.Copy(buf, pty.PTYR)
 			}()
 
-			err = table.Render(tty)
+			err = table.Render(pty.TTYW)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = tty.Close()
+			err = pty.TTYW.Close()
 			Expect(err).ToNot(HaveOccurred())
 
 			reading.Wait()
