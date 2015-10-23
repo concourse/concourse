@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os/exec"
 	"strings"
 	"sync"
@@ -66,24 +65,25 @@ func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
 		v.Stdout = actualPTY.TTYW
 		v.Stderr = actualPTY.TTYW
 
-		err = v.Start()
+		actualBuf := new(bytes.Buffer)
+
+		reading := new(sync.WaitGroup)
+		reading.Add(1)
+		go func() {
+			defer reading.Done()
+			io.Copy(actualBuf, actualPTY.PTYR)
+		}()
+
+		err = v.Run()
 		if err != nil {
-			return false, fmt.Errorf("start command failed: %s", err)
+			return false, err
 		}
 
 		actualPTY.TTYW.Close()
 
-		actual, err := ioutil.ReadAll(actualPTY.PTYR)
-		if err != nil {
-			return false, fmt.Errorf("failed to read output: %s", err)
-		}
+		reading.Wait()
 
-		err = v.Wait()
-		if err != nil {
-			return false, fmt.Errorf("command failed: %s", err)
-		}
-
-		matcher.actual = string(actual)
+		matcher.actual = actualBuf.String()
 	default:
 		return false, fmt.Errorf("unknown type: %T", actual)
 	}
