@@ -38,10 +38,6 @@ func (command *ChecklistCommand) Execute([]string) error {
 
 	pipelineName := command.Pipeline
 
-	if pipelineName == "" {
-		pipelineName = atc.DefaultPipelineName
-	}
-
 	client, err := atcclient.NewClient(*target)
 	if err != nil {
 		log.Fatalln(err)

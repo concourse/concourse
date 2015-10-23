@@ -188,7 +188,7 @@ var _ = Describe("Watching", func() {
 			})
 
 			It("watches the job's finished build", func() {
-				watch("--job", "some-job")
+				watch("--job", "main/some-job")
 			})
 		})
 
@@ -209,7 +209,7 @@ var _ = Describe("Watching", func() {
 			})
 
 			It("watches the given build", func() {
-				watch("--job", "some-job", "--build", "3")
+				watch("--job", "main/some-job", "--build", "3")
 			})
 		})
 	})

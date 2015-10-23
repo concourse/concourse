@@ -358,17 +358,6 @@ var _ = Describe("Hijacking", func() {
 				buildID = 6
 			})
 
-			Context("and no other arguments", func() {
-				BeforeEach(func() {
-					pipelineName = "main"
-					containerArguments = "type=check&name=some-resource-name&pipeline=main"
-				})
-
-				It("can accept the check resources name", func() {
-					hijack("--check", "some-resource-name")
-				})
-			})
-
 			Context("and with pipeline specified", func() {
 				BeforeEach(func() {
 					containerArguments = "type=check&name=some-resource-name&pipeline=a-pipeline"
@@ -445,7 +434,7 @@ var _ = Describe("Hijacking", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/pipelines/main/jobs/some-job"),
+							ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job"),
 							ghttp.RespondWithJSONEncoded(200, atc.Job{
 								NextBuild: nil,
 								FinishedBuild: &atc.Build{
@@ -460,7 +449,7 @@ var _ = Describe("Hijacking", func() {
 				})
 
 				It("hijacks the job's finished build", func() {
-					hijack("--job", "some-job", "--step", "some-step")
+					hijack("--job", "some-pipeline/some-job", "--step", "some-step")
 				})
 			})
 
@@ -468,7 +457,7 @@ var _ = Describe("Hijacking", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/pipelines/main/jobs/some-job/builds/3"),
+							ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job/builds/3"),
 							ghttp.RespondWithJSONEncoded(200, atc.Build{
 								ID:      3,
 								Name:    "3",
@@ -480,7 +469,7 @@ var _ = Describe("Hijacking", func() {
 				})
 
 				It("hijacks the given build", func() {
-					hijack("--job", "some-job", "--build", "3", "--step", "some-step")
+					hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step")
 				})
 			})
 

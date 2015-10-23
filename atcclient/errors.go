@@ -1,6 +1,9 @@
 package atcclient
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type UnexpectedResponseError struct {
 	error
@@ -19,4 +22,8 @@ type ResourceNotFoundError struct {
 
 func (e ResourceNotFoundError) Error() string {
 	return fmt.Sprintf("Resource Not Found")
+}
+
+func NameRequiredError(thing string) error {
+	return errors.New(thing + "name required")
 }

@@ -25,9 +25,8 @@ func GetBuild(handler atcclient.Handler, jobName string, buildNameOrID string, p
 	if pipelineName != "" && jobName == "" {
 		log.Fatalln("job must be specified if pipeline is specified")
 	}
-
-	if pipelineName == "" {
-		pipelineName = atc.DefaultPipelineName
+	if pipelineName == "" && jobName != "" {
+		log.Fatalln("pipeline must be specified if job is specified")
 	}
 
 	if buildNameOrID != "" {

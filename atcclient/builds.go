@@ -40,8 +40,9 @@ func (handler AtcHandler) CreateBuild(plan atc.Plan) (atc.Build, error) {
 
 func (handler AtcHandler) JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error) {
 	if pipelineName == "" {
-		pipelineName = atc.DefaultPipelineName
+		return atc.Build{}, false, NameRequiredError("pipeline")
 	}
+
 	params := map[string]string{"job_name": jobName, "build_name": buildName, "pipeline_name": pipelineName}
 	var build atc.Build
 	err := handler.client.Send(Request{

@@ -109,11 +109,9 @@ var _ = Describe("ATC Handler Builds", func() {
 					expectedPipelineName = "main"
 				})
 
-				It("returns the given build for the default pipeline 'main'", func() {
-					build, found, err := handler.JobBuild("", "myjob", "mybuild")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(build).To(Equal(expectedBuild))
+				It("errors", func() {
+					_, _, err := handler.JobBuild("", "myjob", "mybuild")
+					Expect(err).To(HaveOccurred())
 				})
 			})
 		})
