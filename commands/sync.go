@@ -1,18 +1,13 @@
 package commands
 
 import (
-	"crypto/tls"
 	"fmt"
 	"log"
-	"net/http"
-	"net/url"
-	"os"
 	"runtime"
 
 	"github.com/inconshreveable/go-update"
-	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/rc"
 )
 
@@ -41,39 +36,20 @@ func (command *SyncCommand) Execute(args []string) error {
 		return nil
 	}
 
-	reqGenerator := rata.NewRequestGenerator(target.URL(), atc.Routes)
-
-	request, err := reqGenerator.CreateRequest(
-		atc.DownloadCLI, rata.Params{}, nil,
-	)
-	if err != nil {
-		fmt.Printf("building request failed: %v\n", err)
-		os.Exit(1)
-	}
-
-	request.URL.RawQuery = url.Values{
-		"arch":     []string{runtime.GOARCH},
-		"platform": []string{runtime.GOOS},
-	}.Encode()
-
-	tlsConfig := &tls.Config{InsecureSkipVerify: target.Insecure}
-
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-
-	client := &http.Client{Transport: transport}
-
-	response, err := client.Do(request)
+	client, err := atcclient.NewClient(*target)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	if response.StatusCode != http.StatusOK {
-		failf("bad response: %s", response.Status)
+	handler := atcclient.NewAtcHandler(client)
+	body, err := handler.GetCLIReader(runtime.GOARCH, runtime.GOOS)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
-	fmt.Printf("downloading fly from %s... ", request.URL.Host)
+	fmt.Printf("downloading fly from %s... ", target.URL())
 
-	err = update.Apply(response.Body, update.Options{})
+	err = update.Apply(body, update.Options{})
 	if err != nil {
 		failf("update failed: %s", err)
 	}

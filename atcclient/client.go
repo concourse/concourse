@@ -24,11 +24,12 @@ type Client interface {
 }
 
 type Request struct {
-	RequestName string
-	Params      map[string]string
-	Queries     map[string]string
-	Headers     map[string][]string
-	Body        *bytes.Buffer
+	RequestName        string
+	Params             map[string]string
+	Queries            map[string]string
+	Headers            map[string][]string
+	Body               *bytes.Buffer
+	ReturnResponseBody bool
 }
 
 type Response struct {
@@ -65,9 +66,11 @@ func (client *AtcClient) Send(passedRequest Request, passedResponse *Response) e
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	if !passedRequest.ReturnResponseBody {
+		defer response.Body.Close()
+	}
 
-	return client.populateResponse(response, passedResponse)
+	return client.populateResponse(response, passedRequest.ReturnResponseBody, passedResponse)
 }
 
 func (client *AtcClient) ConnectToEventStream(passedRequest Request) (*sse.EventSource, error) {
@@ -125,7 +128,7 @@ func (client *AtcClient) getBody(passedRequest Request) *bytes.Buffer {
 	return &bytes.Buffer{}
 }
 
-func (client *AtcClient) populateResponse(response *http.Response, passedResponse *Response) error {
+func (client *AtcClient) populateResponse(response *http.Response, returnResponseBody bool, passedResponse *Response) error {
 	switch {
 	case response.StatusCode == http.StatusNoContent:
 		return nil
@@ -141,6 +144,11 @@ func (client *AtcClient) populateResponse(response *http.Response, passedRespons
 			Status:     response.Status,
 			Body:       string(body),
 		}
+	}
+
+	if returnResponseBody {
+		passedResponse.Result = response.Body
+		return nil
 	}
 
 	if passedResponse.Result == nil {
