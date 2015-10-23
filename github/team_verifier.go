@@ -2,18 +2,22 @@ package github
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/concourse/atc/auth"
 )
 
+type Team struct {
+	Name         string
+	Organization string
+}
+
 type TeamVerifier struct {
-	teams        []string
+	teams        []Team
 	gitHubClient Client
 }
 
 func NewTeamVerifier(
-	teams []string,
+	teams []Team,
 	gitHubClient Client,
 ) auth.Verifier {
 	return &TeamVerifier{
@@ -29,11 +33,9 @@ func (verifier *TeamVerifier) Verify(httpClient *http.Client) (bool, error) {
 	}
 
 	for _, team := range verifier.teams {
-		verifierOrgTeam := strings.Split(team, "/")
-
-		if _, ok := usersOrgTeams[verifierOrgTeam[0]]; ok {
-			for _, teamUserBelongsTo := range usersOrgTeams[verifierOrgTeam[0]] {
-				if teamUserBelongsTo == verifierOrgTeam[1] {
+		if teams, ok := usersOrgTeams[team.Organization]; ok {
+			for _, teamUserBelongsTo := range teams {
+				if teamUserBelongsTo == team.Name {
 					return true, nil
 				}
 			}

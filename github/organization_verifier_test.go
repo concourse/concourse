@@ -14,17 +14,17 @@ import (
 
 var _ = Describe("OrganizationVerifier", func() {
 	var (
-		organization string
-		fakeClient   *fakes.FakeClient
+		organizations []string
+		fakeClient    *fakes.FakeClient
 
 		verifier auth.Verifier
 	)
 
 	BeforeEach(func() {
-		organization = "some-organization"
+		organizations = []string{"some-organization", "another-organization"}
 		fakeClient = new(fakes.FakeClient)
 
-		verifier = NewOrganizationVerifier(organization, fakeClient)
+		verifier = NewOrganizationVerifier(organizations, fakeClient)
 	})
 
 	Describe("Verify", func() {
@@ -44,9 +44,9 @@ var _ = Describe("OrganizationVerifier", func() {
 		})
 
 		Context("when the client yields organizations", func() {
-			Context("including the desired organization", func() {
+			Context("including one of the desired organizations", func() {
 				BeforeEach(func() {
-					fakeClient.OrganizationsReturns([]string{organization, "other-" + organization}, nil)
+					fakeClient.OrganizationsReturns([]string{organizations[0], "bogus-organization"}, nil)
 				})
 
 				It("succeeds", func() {
@@ -58,9 +58,9 @@ var _ = Describe("OrganizationVerifier", func() {
 				})
 			})
 
-			Context("not including the desired organization", func() {
+			Context("not including the desired organizations", func() {
 				BeforeEach(func() {
-					fakeClient.OrganizationsReturns([]string{"other-" + organization}, nil)
+					fakeClient.OrganizationsReturns([]string{"bogus-organization"}, nil)
 				})
 
 				It("succeeds", func() {

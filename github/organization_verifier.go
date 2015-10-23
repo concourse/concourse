@@ -7,17 +7,17 @@ import (
 )
 
 type OrganizationVerifier struct {
-	organization string
-	gitHubClient Client
+	organizations []string
+	gitHubClient  Client
 }
 
 func NewOrganizationVerifier(
-	organization string,
+	organizations []string,
 	gitHubClient Client,
 ) auth.Verifier {
 	return &OrganizationVerifier{
-		organization: organization,
-		gitHubClient: gitHubClient,
+		organizations: organizations,
+		gitHubClient:  gitHubClient,
 	}
 }
 
@@ -28,8 +28,10 @@ func (verifier *OrganizationVerifier) Verify(httpClient *http.Client) (bool, err
 	}
 
 	for _, name := range orgs {
-		if name == verifier.organization {
-			return true, nil
+		for _, authorizedOrg := range verifier.organizations {
+			if name == authorizedOrg {
+				return true, nil
+			}
 		}
 	}
 
