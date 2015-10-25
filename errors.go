@@ -25,5 +25,5 @@ func (e ResourceNotFoundError) Error() string {
 }
 
 func NameRequiredError(thing string) error {
-	return errors.New(thing + "name required")
+	return errors.New(thing + " name required")
 }
