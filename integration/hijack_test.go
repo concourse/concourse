@@ -289,26 +289,6 @@ var _ = Describe("Hijacking", func() {
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(123))
 		})
-
-		It("exits when the user ends the input stream (Ctrl+D)", func() {
-			pty, err := pty.Open()
-			Expect(err).NotTo(HaveOccurred())
-
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-j", "pipeline-name-1/some-job")
-			flyCmd.Stdin = pty.TTYR
-
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(sess.Out).Should(gbytes.Say("1. pipeline: pipeline-name-1, build id: 3, type: get, name: some-job"))
-			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-1, build id: 3, type: put, name: some-job"))
-			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
-
-			pty.PTYW.Close()
-
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
-		})
 	})
 
 	Context("when hijack returns a single container", func() {
