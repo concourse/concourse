@@ -87,7 +87,7 @@ func destroyPipeline() {
 
 	Eventually(destroy).Should(gbytes.Say("are you sure?"))
 
-	fmt.Fprintln(stdin, "y")
+	fmt.Fprintf(stdin, "y\r")
 
 	<-destroy.Exited
 
@@ -122,7 +122,7 @@ func configurePipeline(argv ...string) {
 
 	Eventually(configure).Should(gbytes.Say("apply configuration?"))
 
-	fmt.Fprintln(stdin, "y")
+	fmt.Fprintf(stdin, "y\r")
 
 	Eventually(configure).Should(gexec.Exit(0))
 }
