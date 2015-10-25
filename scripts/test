@@ -6,7 +6,7 @@ not_installed() {
   ! command -v $1 > /dev/null 2>&1
 }
 
-testflight_dir=$(realpath $(dirname $(dirname $0)))
+testflight_dir=$(cd $(dirname $0)/.. && pwd)
 
 if not_installed ginkgo; then
   echo "# ginkgo is not installed! run the following command:"
@@ -28,5 +28,5 @@ echo "make sure you have created and uploaded your latest release"
 echo "make sure you have run ./testflight/scripts/local_deploy"
 
 cd $testflight_dir
-ginkgo -r -p
+ginkgo -r -p "$@"
 
