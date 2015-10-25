@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/atcclient"
@@ -68,6 +69,8 @@ func (command *LoginCommand) Execute(args []string) error {
 }
 
 func (command *LoginCommand) loginWith(method atc.AuthMethod, client atcclient.Client) error {
+	var token atc.AuthToken
+
 	switch method.Type {
 	case atc.AuthTypeOAuth:
 		fmt.Println("navigate to the following URL in your browser:")
@@ -75,13 +78,25 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client atcclient.C
 		fmt.Printf("    %s\n", method.AuthURL)
 		fmt.Println("")
 
-		var token string
-		err := interact.NewInteraction("enter token").Resolve(interact.Required(&token))
-		if err != nil {
-			return err
-		}
+		for {
+			var tokenStr string
 
-		fmt.Println("token saved")
+			err := interact.NewInteraction("enter token").Resolve(interact.Required(&tokenStr))
+			if err != nil {
+				return err
+			}
+
+			segments := strings.SplitN(tokenStr, " ", 2)
+			if len(segments) != 2 {
+				fmt.Println("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'")
+				continue
+			}
+
+			token.Type = segments[0]
+			token.Value = segments[1]
+
+			break
+		}
 
 	case atc.AuthTypeBasic:
 		var username string
@@ -117,26 +132,26 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client atcclient.C
 
 		handler := atcclient.NewAtcHandler(basicAuthClient)
 
-		token, err := handler.AuthToken()
+		token, err = handler.AuthToken()
 		if err != nil {
 			return err
 		}
-
-		err = rc.SaveTarget(
-			globalOptions.Target,
-			basicAuthClient.URL(),
-			command.Insecure,
-			&rc.TargetToken{
-				Type:  token.Type,
-				Value: token.Value,
-			},
-		)
-		if err != nil {
-			return err
-		}
-
-		fmt.Println("token saved")
 	}
+
+	err := rc.SaveTarget(
+		globalOptions.Target,
+		client.URL(),
+		command.Insecure,
+		&rc.TargetToken{
+			Type:  token.Type,
+			Value: token.Value,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("token saved")
 
 	return nil
 }

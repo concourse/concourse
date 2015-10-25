@@ -100,7 +100,12 @@ var _ = Describe("login Command", func() {
 					Eventually(sess.Out).Should(gbytes.Say("    https://example.com/auth/oauth-2"))
 					Eventually(sess.Out).Should(gbytes.Say("enter token: "))
 
-					_, err = fmt.Fprintf(flyPTY.PTYW, "some token that i totally got via legitimate means\r")
+					_, err = fmt.Fprintf(flyPTY.PTYW, "bogustoken\r")
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'"))
+
+					_, err = fmt.Fprintf(flyPTY.PTYW, "Bearer grylls\r")
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("token saved"))
@@ -110,6 +115,61 @@ var _ = Describe("login Command", func() {
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
+				})
+
+				Context("after logging in succeeds", func() {
+					BeforeEach(func() {
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess.Out).Should(gbytes.Say("1. Basic"))
+						Eventually(sess.Out).Should(gbytes.Say("2. OAuth Type 1"))
+						Eventually(sess.Out).Should(gbytes.Say("3. OAuth Type 2"))
+						Eventually(sess.Out).Should(gbytes.Say("choose an auth method: "))
+
+						_, err = fmt.Fprintf(flyPTY.PTYW, "3\r")
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess.Out).Should(gbytes.Say("enter token: "))
+
+						_, err = fmt.Fprintf(flyPTY.PTYW, "Bearer some-entered-token\r")
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess.Out).Should(gbytes.Say("token saved"))
+
+						err = flyPTY.PTYW.Close()
+						Expect(err).NotTo(HaveOccurred())
+
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+					})
+
+					Describe("running other commands", func() {
+						BeforeEach(func() {
+							atcServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
+									ghttp.VerifyHeaderKV("Authorization", "Bearer some-entered-token"),
+									ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+										{Name: "pipeline-1"},
+									}),
+								),
+							)
+						})
+
+						It("uses the saved token", func() {
+							otherCmd := exec.Command(flyPath, "-t", "some-target", "pipelines")
+
+							sess, err := gexec.Start(otherCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
+
+							<-sess.Exited
+
+							Expect(sess).To(gbytes.Say("pipeline-1"))
+
+							Expect(sess.ExitCode()).To(Equal(0))
+						})
+					})
 				})
 			})
 
