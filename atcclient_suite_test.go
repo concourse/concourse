@@ -1,8 +1,9 @@
 package atcclient_test
 
 import (
+	"net/http"
+
 	"github.com/concourse/fly/atcclient"
-	"github.com/concourse/fly/rc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -26,7 +27,8 @@ var _ = BeforeEach(func() {
 	atcServer = ghttp.NewServer()
 
 	client, err = atcclient.NewClient(
-		rc.NewTarget(atcServer.URL(), "", "", "", false),
+		atcServer.URL(),
+		&http.Client{},
 	)
 	Expect(err).NotTo(HaveOccurred())
 

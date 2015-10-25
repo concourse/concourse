@@ -2,7 +2,6 @@ package atcclient
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/rc"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
 )
@@ -20,6 +18,9 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
+	URL() string
+	HTTPClient() *http.Client
+
 	Send(request Request, response *Response) error
 	ConnectToEventStream(request Request) (*sse.EventSource, error)
 }
@@ -40,25 +41,37 @@ type Response struct {
 }
 
 type AtcClient struct {
-	target           rc.TargetProps
+	url        string
+	httpClient *http.Client
+
 	requestGenerator *rata.RequestGenerator
-	httpClient       *http.Client
 }
 
-func NewClient(target rc.TargetProps) (Client, error) {
-	if target.API == "" {
+func NewClient(apiURL string, httpClient *http.Client) (Client, error) {
+	if apiURL == "" {
 		return nil, errors.New("API is blank")
 	}
 
-	target.API = strings.TrimRight(target.API, "/")
-	tlsClientConfig := &tls.Config{InsecureSkipVerify: target.Insecure}
-	client := AtcClient{
-		target:           target,
-		requestGenerator: rata.NewRequestGenerator(target.API, atc.Routes),
-		httpClient:       &http.Client{Transport: &http.Transport{TLSClientConfig: tlsClientConfig}},
+	if httpClient == nil {
+		httpClient = http.DefaultClient
 	}
 
-	return &client, nil
+	apiURL = strings.TrimRight(apiURL, "/")
+
+	return &AtcClient{
+		url:        apiURL,
+		httpClient: httpClient,
+
+		requestGenerator: rata.NewRequestGenerator(apiURL, atc.Routes),
+	}, nil
+}
+
+func (client *AtcClient) URL() string {
+	return client.url
+}
+
+func (client *AtcClient) HTTPClient() *http.Client {
+	return client.httpClient
 }
 
 func (client *AtcClient) Send(passedRequest Request, passedResponse *Response) error {
@@ -103,10 +116,6 @@ func (client *AtcClient) createHTTPRequest(passedRequest Request) (*http.Request
 		values[k] = []string{v}
 	}
 	req.URL.RawQuery = values.Encode()
-
-	if client.target.Username != "" {
-		req.SetBasicAuth(client.target.Username, client.target.Password)
-	}
 
 	if passedRequest.Headers != nil {
 		for headerID, headerValues := range passedRequest.Headers {

@@ -31,6 +31,8 @@ type Handler interface {
 	ListWorkers() ([]atc.Worker, error)
 	PipelineConfig(pipelineName string) (atc.Config, string, bool, error)
 	GetCLIReader(arch, platform string) (io.ReadCloser, error)
+	ListAuthMethods() ([]atc.AuthMethod, error)
+	AuthToken() (atc.AuthToken, error)
 }
 
 type AtcHandler struct {
