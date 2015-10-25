@@ -36,7 +36,7 @@ func (wrappa *WebAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 	for name, handler := range handlers {
 		newHandler := handler
 
-		if name != web.LogIn && !wrappa.PubliclyViewable {
+		if name != web.LogIn && name != web.Public && !wrappa.PubliclyViewable {
 			newHandler = auth.CheckAuthHandler(
 				handler,
 				loginRedirectRejector,

@@ -119,7 +119,7 @@ var _ = Describe("WebAuthWrappa", func() {
 					web.GetBuild:        authed(inputHandlers[web.GetBuild]),
 					web.GetBuilds:       authed(inputHandlers[web.GetBuilds]),
 					web.GetJoblessBuild: authed(inputHandlers[web.GetJoblessBuild]),
-					web.Public:          authed(inputHandlers[web.Public]),
+					web.Public:          unauthed(inputHandlers[web.Public]),
 					web.GetResource:     authed(inputHandlers[web.GetResource]),
 					web.GetJob:          authed(inputHandlers[web.GetJob]),
 					web.LogIn:           unauthed(inputHandlers[web.LogIn]),
