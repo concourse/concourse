@@ -29,11 +29,6 @@ type TargetToken struct {
 	Value string `yaml:"value"`
 }
 
-//URL TODO: Remove this function and put url logic in ATC Client
-func (target TargetProps) URL() string {
-	return target.API
-}
-
 type targetDetailsYAML struct {
 	Targets map[string]TargetProps
 }

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/tls"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -134,7 +133,7 @@ func locateContainer(handler atcclient.Handler, fingerprint containerFingerprint
 	return locator.locate(fingerprint)
 }
 
-func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProcessSpec, id string) *http.Request {
+func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProcessSpec, id string, token *rc.TargetToken) *http.Request {
 	payload, err := json.Marshal(spec)
 	if err != nil {
 		log.Fatalln("failed to marshal process spec:", err)
@@ -149,9 +148,8 @@ func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProces
 		log.Fatalln("failed to create hijack request:", err)
 	}
 
-	if hijackReq.URL.User != nil {
-		hijackReq.Header.Add("Authorization", basicAuth(hijackReq.URL.User))
-		hijackReq.URL.User = nil
+	if token != nil {
+		hijackReq.Header.Add("Authorization", token.Type+" "+token.Value)
 	}
 
 	return hijackReq
@@ -245,7 +243,7 @@ func (command *HijackCommand) Execute(args []string) error {
 	path, args := remoteCommand(args)
 	privileged := true
 
-	reqGenerator := rata.NewRequestGenerator(target.URL(), atc.Routes)
+	reqGenerator := rata.NewRequestGenerator(target.API, atc.Routes)
 	tlsConfig := &tls.Config{InsecureSkipVerify: target.Insecure}
 
 	var ttySpec *atc.HijackTTYSpec
@@ -269,7 +267,7 @@ func (command *HijackCommand) Execute(args []string) error {
 		TTY:        ttySpec,
 	}
 
-	hijackReq := constructRequest(reqGenerator, spec, id)
+	hijackReq := constructRequest(reqGenerator, spec, id, target.Token)
 	hijackResult := performHijack(hijackReq, tlsConfig)
 	os.Exit(hijackResult)
 
@@ -373,12 +371,6 @@ func (w *stdinWriter) Write(d []byte) (int, error) {
 	}
 
 	return len(d), nil
-}
-
-func basicAuth(user *url.Userinfo) string {
-	username := user.Username()
-	password, _ := user.Password()
-	return "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password))
 }
 
 var canonicalPortMap = map[string]string{
