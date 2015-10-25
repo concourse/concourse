@@ -8,6 +8,7 @@ import (
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/authserver"
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/api/cliserver"
 	"github.com/concourse/atc/api/configserver"
@@ -19,6 +20,7 @@ import (
 	"github.com/concourse/atc/api/resourceserver"
 	"github.com/concourse/atc/api/volumeserver"
 	"github.com/concourse/atc/api/workerserver"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/pipelines"
@@ -28,9 +30,16 @@ import (
 
 func NewHandler(
 	logger lager.Logger,
-	wrapper wrappa.Wrappa,
-	pipelineDBFactory db.PipelineDBFactory,
 
+	externalURL string,
+
+	wrapper wrappa.Wrappa,
+
+	tokenGenerator auth.TokenGenerator,
+	providers auth.Providers,
+	basicAuthEnabled bool,
+
+	pipelineDBFactory db.PipelineDBFactory,
 	configDB db.ConfigDB,
 
 	buildsDB buildserver.BuildsDB,
@@ -58,6 +67,14 @@ func NewHandler(
 	}
 
 	pipelineHandlerFactory := pipelines.NewHandlerFactory(pipelineDBFactory)
+
+	authServer := authserver.NewServer(
+		logger,
+		externalURL,
+		tokenGenerator,
+		providers,
+		basicAuthEnabled,
+	)
 
 	buildServer := buildserver.NewServer(
 		logger,
@@ -88,6 +105,9 @@ func NewHandler(
 	volumesServer := volumeserver.NewServer(logger, volumesDB)
 
 	handlers := map[string]http.Handler{
+		atc.ListAuthMethods: http.HandlerFunc(authServer.ListAuthMethods),
+		atc.GetAuthToken:    http.HandlerFunc(authServer.GetAuthToken),
+
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
 		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
 

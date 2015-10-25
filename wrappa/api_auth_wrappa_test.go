@@ -92,6 +92,8 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.GetContainer:           authed(inputHandlers[atc.GetContainer]),
 				atc.HijackContainer:        authed(inputHandlers[atc.HijackContainer]),
 				atc.ListVolumes:            authed(inputHandlers[atc.ListVolumes]),
+				atc.ListAuthMethods:        unauthed(inputHandlers[atc.ListAuthMethods]),
+				atc.GetAuthToken:           authed(inputHandlers[atc.GetAuthToken]),
 			}
 		})
 

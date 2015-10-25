@@ -13,9 +13,10 @@ import (
 )
 
 type OAuthCallbackHandler struct {
-	logger     lager.Logger
-	providers  Providers
-	privateKey *rsa.PrivateKey
+	logger         lager.Logger
+	providers      Providers
+	privateKey     *rsa.PrivateKey
+	tokenGenerator TokenGenerator
 }
 
 func NewOAuthCallbackHandler(
@@ -24,9 +25,10 @@ func NewOAuthCallbackHandler(
 	privateKey *rsa.PrivateKey,
 ) http.Handler {
 	return &OAuthCallbackHandler{
-		logger:     logger,
-		providers:  providers,
-		privateKey: privateKey,
+		logger:         logger,
+		providers:      providers,
+		privateKey:     privateKey,
+		tokenGenerator: NewTokenGenerator(privateKey),
 	}
 }
 
@@ -70,21 +72,20 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	jwtToken := jwt.New(SigningMethod)
-
 	exp := time.Now().Add(CookieAge)
-	jwtToken.Claims["exp"] = exp.Unix()
 
-	signedToken, err := jwtToken.SignedString(handler.privateKey)
+	tokenType, signedToken, err := handler.tokenGenerator.GenerateToken(exp)
 	if err != nil {
 		hLog.Error("failed-to-sign-token", err)
 		http.Error(w, "failed to sign token", http.StatusInternalServerError)
 		return
 	}
 
+	tokenStr := string(tokenType) + " " + string(signedToken)
+
 	http.SetCookie(w, &http.Cookie{
 		Name:    CookieName,
-		Value:   "Bearer " + signedToken,
+		Value:   tokenStr,
 		Path:    "/",
 		Expires: exp,
 	})
@@ -95,5 +96,5 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	fmt.Fprintln(w, "ok")
+	fmt.Fprintln(w, tokenStr)
 }

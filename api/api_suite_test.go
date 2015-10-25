@@ -20,6 +20,7 @@ import (
 	pipeserverfakes "github.com/concourse/atc/api/pipes/fakes"
 	volumeserverfakes "github.com/concourse/atc/api/volumeserver/fakes"
 	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
+	"github.com/concourse/atc/auth"
 	authfakes "github.com/concourse/atc/auth/fakes"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	enginefakes "github.com/concourse/atc/engine/fakes"
@@ -30,7 +31,12 @@ import (
 var (
 	sink *lager.ReconfigurableSink
 
+	externalURL = "https://example.com"
+
 	authValidator       *authfakes.FakeValidator
+	fakeTokenGenerator  *authfakes.FakeTokenGenerator
+	authProviders       auth.Providers
+	basicAuthEnabled    = true
 	fakeEngine          *enginefakes.FakeEngine
 	fakeWorkerClient    *workerfakes.FakeClient
 	buildsDB            *buildfakes.FakeBuildsDB
@@ -86,6 +92,19 @@ var _ = BeforeEach(func() {
 
 	authValidator = new(authfakes.FakeValidator)
 
+	fakeTokenGenerator = new(authfakes.FakeTokenGenerator)
+
+	authProvider1 := new(authfakes.FakeProvider)
+	authProvider1.DisplayNameReturns("OAuth Provider 1")
+
+	authProvider2 := new(authfakes.FakeProvider)
+	authProvider2.DisplayNameReturns("OAuth Provider 2")
+
+	authProviders = auth.Providers{
+		"oauth-provider-1": authProvider1,
+		"oauth-provider-2": authProvider2,
+	}
+
 	configValidationErr = nil
 	peerAddr = "127.0.0.1:1234"
 	drain = make(chan struct{})
@@ -108,10 +127,15 @@ var _ = BeforeEach(func() {
 	handler, err := api.NewHandler(
 		logger,
 
+		externalURL,
+
 		wrappa.NewAPIAuthWrappa(authValidator),
 
-		pipelineDBFactory,
+		fakeTokenGenerator,
+		authProviders,
+		basicAuthEnabled,
 
+		pipelineDBFactory,
 		configDB,
 
 		buildsDB,

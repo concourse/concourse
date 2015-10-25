@@ -16,7 +16,6 @@ import (
 )
 
 var _ = Describe("Pipelines API", func() {
-
 	Describe("GET /api/v1/pipelines", func() {
 		var response *http.Response
 
@@ -81,7 +80,6 @@ var _ = Describe("Pipelines API", func() {
         "url": "/pipelines/another-pipeline",
 				"paused": true
       }]`))
-
 		})
 	})
 

@@ -153,6 +153,9 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		reconfigurableSink,
 		sqlDB,
 		authValidator,
+		oauthProviders,
+		basicAuthEnabled,
+		signingKey,
 		pipelineDBFactory,
 		engine,
 		workerClient,
@@ -507,6 +510,9 @@ func (cmd *ATCCommand) constructAPIHandler(
 	reconfigurableSink *lager.ReconfigurableSink,
 	sqlDB *db.SQLDB,
 	authValidator auth.Validator,
+	oauthProviders auth.Providers,
+	basicAuthEnabled bool,
+	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
 	engine engine.Engine,
 	workerClient worker.Client,
@@ -519,7 +525,13 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 	return api.NewHandler(
 		logger,
+		cmd.ExternalURL.String(),
 		apiWrapper,
+
+		auth.NewTokenGenerator(signingKey),
+		oauthProviders,
+		basicAuthEnabled,
+
 		pipelineDBFactory,
 
 		sqlDB, // db.ConfigDB
