@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"runtime"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,15 +30,15 @@ var _ = Describe("login Command", func() {
 		homeDir, err = ioutil.TempDir("", "fly-test")
 		Expect(err).NotTo(HaveOccurred())
 
-		os.Setenv("HOME", homeDir)
-		os.Setenv("HOMEPATH", homeDir)
+		if runtime.GOOS == "windows" {
+			os.Setenv("USERPROFILE", homeDir)
+		} else {
+			os.Setenv("HOME", homeDir)
+		}
 	})
 
 	AfterEach(func() {
 		os.RemoveAll(homeDir)
-
-		os.Unsetenv("HOME")
-		os.Unsetenv("HOMEPATH")
 	})
 
 	Describe("login", func() {

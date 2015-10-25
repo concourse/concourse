@@ -145,12 +145,18 @@ func TargetClient(selectedTarget string) (atcclient.Client, error) {
 
 func userHomeDir() string {
 	if runtime.GOOS == "windows" {
-		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		home := os.Getenv("USERPROFILE")
 		if home == "" {
-			home = os.Getenv("USERPROFILE")
+			home = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
 		}
+
+		if home == "" {
+			panic("could not detect home directory for .flyrc")
+		}
+
 		return home
 	}
+
 	return os.Getenv("HOME")
 }
 
