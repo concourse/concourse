@@ -74,6 +74,14 @@ var _ = Describe("Fly CLI", func() {
 			config atc.Config
 		)
 
+		yes := func(stdin io.Writer) {
+			fmt.Fprintf(stdin, "y\r")
+		}
+
+		no := func(stdin io.Writer) {
+			fmt.Fprintf(stdin, "n\r")
+		}
+
 		BeforeEach(func() {
 			atcServer = ghttp.NewServer()
 
@@ -196,8 +204,8 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-					fmt.Fprintln(stdin, "y")
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					yes(stdin)
 					Eventually(sess).Should(gbytes.Say("configuration updated"))
 
 					<-sess.Exited
@@ -334,8 +342,8 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess).Should(gbytes.Say("job some-new-job has been added"))
 					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-job", "green")))
 
-					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-					fmt.Fprintln(stdin, "y")
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					yes(stdin)
 
 					Eventually(sess).Should(gbytes.Say("configuration updated"))
 
@@ -354,8 +362,8 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-					fmt.Fprintln(stdin, "n")
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					no(stdin)
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
@@ -383,8 +391,8 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-					fmt.Fprintln(stdin, "y")
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					yes(stdin)
 
 					Eventually(sess.Err).Should(gbytes.Say("failed to update configuration:"))
 					Eventually(sess.Err).Should(gbytes.Say("401 Unauthorized"))
@@ -420,8 +428,8 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-					fmt.Fprintln(stdin, "y")
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					yes(stdin)
 
 					pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "awesome-pipeline")
 
@@ -458,8 +466,8 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess).Should(gbytes.Say(`apply configuration\? \(y/n\): `))
-					fmt.Fprintln(stdin, "y")
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					yes(stdin)
 
 					Eventually(sess.Err).Should(gbytes.Say("failed to update configuration: Put"))
 

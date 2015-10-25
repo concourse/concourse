@@ -2,10 +2,10 @@ package commands
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/rc"
+	"github.com/vito/go-interact/interact"
 )
 
 type DestroyPipelineCommand struct {
@@ -33,30 +33,35 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 
 	fmt.Printf("!!! this will remove all data for pipeline `%s`\n\n", pipelineName)
 
-	if !askToConfirm("are you sure?") {
-		log.Fatalln("bailing out")
+	confirm := false
+	err := interact.NewInteraction("are you sure?").Resolve(&confirm)
+	if err != nil || !confirm {
+		fmt.Println("bailing out")
+		return err
 	}
 
 	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
 	if err != nil {
-		log.Fatalln(err)
-		return nil
+		return err
 	}
 
 	client, err := atcclient.NewClient(*target)
 	if err != nil {
-		log.Fatalln("failed to create client:", err)
+		return err
 	}
 
 	handler := atcclient.NewAtcHandler(client)
+
 	found, err := handler.DeletePipeline(pipelineName)
 	if err != nil {
-		log.Fatalln(err)
-	}
-	if !found {
-		log.Fatalln(fmt.Sprintf("`%s` does not exist", pipelineName))
+		return err
 	}
 
-	fmt.Printf("`%s` deleted\n", pipelineName)
+	if !found {
+		fmt.Printf("`%s` does not exist\n", pipelineName)
+	} else {
+		fmt.Printf("`%s` deleted\n", pipelineName)
+	}
+
 	return nil
 }

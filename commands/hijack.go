@@ -23,6 +23,7 @@ import (
 	"github.com/concourse/fly/rc"
 	"github.com/mgutz/ansi"
 	"github.com/tedsuo/rata"
+	"github.com/vito/go-interact/interact"
 )
 
 type HijackCommand struct {
@@ -206,46 +207,38 @@ func (command *HijackCommand) Execute(args []string) error {
 	containers := getContainerIDs(command)
 
 	var id string
-	var selection int
 	if len(containers) == 0 {
 		fmt.Fprintln(os.Stderr, "no containers matched your search parameters! they may have expired if your build hasn't recently finished")
 		os.Exit(1)
 	} else if len(containers) > 1 {
-		for i, container := range containers {
-			fmt.Printf("%d. ", i+1)
-
+		var choices []interact.Choice
+		for _, container := range containers {
+			var infos []string
 			if container.PipelineName != "" {
-				fmt.Printf("pipeline: %s, ", container.PipelineName)
+				infos = append(infos, fmt.Sprintf("pipeline: %s", container.PipelineName))
 			}
 
 			if container.BuildID != 0 {
-				fmt.Printf("build id: %d, ", container.BuildID)
+				infos = append(infos, fmt.Sprintf("build id: %d", container.BuildID))
 			}
 
-			fmt.Printf("type: %s, ", container.Type)
-			fmt.Printf("name: %s", container.Name)
+			infos = append(infos, fmt.Sprintf("type: %s", container.Type))
+			infos = append(infos, fmt.Sprintf("name: %s", container.Name))
 
-			fmt.Printf("\n")
+			choices = append(choices, interact.Choice{
+				Display: strings.Join(infos, ", "),
+				Value:   container.ID,
+			})
 		}
 
-		for {
-			fmt.Printf("choose a container: ")
-
-			_, scanErr := fmt.Scanf("%d", &selection)
-
-			if scanErr == io.EOF {
-				os.Exit(0)
-			}
-
-			if scanErr != nil || selection > len(containers) || selection < 1 {
-				fmt.Println("invalid selection", scanErr)
-				continue
-			}
-
-			break
+		err = interact.NewInteraction("choose a container", choices...).Resolve(&id)
+		if err == io.EOF {
+			os.Exit(0)
 		}
 
-		id = containers[selection-1].ID
+		if err != nil {
+			return err
+		}
 	} else {
 		id = containers[0].ID
 	}

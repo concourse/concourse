@@ -41,6 +41,14 @@ var _ = Describe("Fly CLI", func() {
 				sess  *gexec.Session
 			)
 
+			yes := func() {
+				fmt.Fprintf(stdin, "y\r")
+			}
+
+			no := func() {
+				fmt.Fprintf(stdin, "n\r")
+			}
+
 			JustBeforeEach(func() {
 				var err error
 
@@ -51,7 +59,7 @@ var _ = Describe("Fly CLI", func() {
 				sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 				Eventually(sess).Should(gbytes.Say("!!! this will remove all data for pipeline `some-pipeline`"))
-				Eventually(sess).Should(gbytes.Say(`are you sure\? \(y\/n\): `))
+				Eventually(sess).Should(gbytes.Say(`are you sure\? \[yN\]: `))
 			})
 
 			It("exits successfully if the user confirms", func() {
@@ -62,15 +70,15 @@ var _ = Describe("Fly CLI", func() {
 					),
 				)
 
-				fmt.Fprintln(stdin, "y")
+				yes()
 				Eventually(sess).Should(gexec.Exit(0))
 			})
 
 			It("bails out if the user presses no", func() {
-				fmt.Fprintln(stdin, "n")
+				no()
 
-				Eventually(sess.Err).Should(gbytes.Say(`bailing out`))
-				Eventually(sess).Should(gexec.Exit(1))
+				Eventually(sess).Should(gbytes.Say(`bailing out`))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 
 			Context("and the pipeline exists", func() {
@@ -84,7 +92,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("writes a success message to stdout", func() {
-					fmt.Fprintln(stdin, "y")
+					yes()
 					Eventually(sess).Should(gbytes.Say("`some-pipeline` deleted"))
 					Eventually(sess).Should(gexec.Exit(0))
 				})
@@ -100,10 +108,10 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 
-				It("writes an error message to stderr", func() {
-					fmt.Fprintln(stdin, "y")
-					Eventually(sess.Err).Should(gbytes.Say("`some-pipeline` does not exist"))
-					Eventually(sess).Should(gexec.Exit(1))
+				It("writes that it did not exist and exits successfully", func() {
+					yes()
+					Eventually(sess).Should(gbytes.Say("`some-pipeline` does not exist"))
+					Eventually(sess).Should(gexec.Exit(0))
 				})
 			})
 
@@ -118,7 +126,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("writes an error message to stderr", func() {
-					fmt.Fprintln(stdin, "y")
+					yes()
 					Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 					Eventually(sess).Should(gexec.Exit(1))
 				})

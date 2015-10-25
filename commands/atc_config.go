@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/fly/template"
 	"github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/rata"
+	"github.com/vito/go-interact/interact"
 	"gopkg.in/yaml.v2"
 )
 
@@ -169,8 +170,10 @@ func diff(existingConfig atc.Config, newConfig atc.Config) {
 		}
 	}
 
-	if !askToConfirm("apply configuration?") {
-		println("bailing out")
+	confirm := false
+	err := interact.NewInteraction("apply configuration?").Resolve(&confirm)
+	if err != nil || !confirm {
+		fmt.Println("bailing out")
 		os.Exit(1)
 	}
 }

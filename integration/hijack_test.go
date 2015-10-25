@@ -272,17 +272,7 @@ var _ = Describe("Hijacking", func() {
 			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-1, build id: 3, type: put, name: some-job"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
-			_, err = fmt.Fprintf(pty.PTYW, "ghfdhf\n")
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(sess.Out).Should(gbytes.Say("invalid selection"))
-			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
-
-			_, err = fmt.Fprintf(pty.PTYW, "3\n")
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(sess.Out).Should(gbytes.Say("invalid selection"))
-			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
-
-			_, err = fmt.Fprintf(pty.PTYW, "2\n")
+			_, err = fmt.Fprintf(pty.PTYW, "2\r")
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(hijacked).Should(BeClosed())
