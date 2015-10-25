@@ -140,7 +140,6 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 						It("responds OK", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
-							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("ok\n")))
 						})
 
 						It("verifies using the provider's HTTP client", func() {
@@ -208,7 +207,15 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 							It("does not redirect", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusOK))
-								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("ok\n")))
+							})
+
+							It("responds with the token", func() {
+								cookies := response.Cookies()
+								Expect(cookies).To(HaveLen(1))
+
+								cookie := cookies[0]
+								Expect(cookie.Value).To(MatchRegexp(`^Bearer .*`))
+								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte(cookie.Value + "\n")))
 							})
 						})
 					})
