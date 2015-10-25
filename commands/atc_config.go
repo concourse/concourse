@@ -132,7 +132,7 @@ func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool, paused
 		if paused == DoNotChangePipeline || paused == PausePipeline {
 			fmt.Println("")
 			fmt.Println("the pipeline is currently paused. to unpause, either:")
-			fmt.Println("  - use the unpause-pipeline command")
+			fmt.Println("  - run again with --paused=false")
 			fmt.Println("  - click play next to the pipeline in the web ui")
 		}
 	} else {

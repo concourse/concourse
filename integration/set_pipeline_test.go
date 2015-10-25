@@ -174,7 +174,7 @@ var _ = Describe("Fly CLI", func() {
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
 								bodyConfig, state := getConfigAndPausedState(r)
-								Expect(*state).To(BeTrue())
+								Expect(state).To(BeTrue())
 
 								receivedConfig := atc.Config{}
 								err = yaml.Unmarshal(bodyConfig, &receivedConfig)
@@ -413,7 +413,7 @@ var _ = Describe("Fly CLI", func() {
 						func(w http.ResponseWriter, r *http.Request) {
 							config, state := getConfigAndPausedState(r)
 							Expect(config).To(Equal(payload))
-							Expect(*state).To(BeTrue())
+							Expect(state).To(BeTrue())
 						},
 						ghttp.RespondWith(http.StatusCreated, ""),
 					))
@@ -437,7 +437,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
 
 					Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
-					Eventually(sess).Should(gbytes.Say("  - use the unpause-pipeline command"))
+					Eventually(sess).Should(gbytes.Say("  - run 'fly -t [target] unpause-pipeline -p [pipeline]"))
 					Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
 
 					<-sess.Exited
