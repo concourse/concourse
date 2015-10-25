@@ -51,6 +51,11 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
+	if len(authMethods) == 0 {
+		fmt.Println("no auth methods configured; nothing to do")
+		return nil
+	}
+
 	choices := make([]interact.Choice, len(authMethods))
 	for i, method := range authMethods {
 		choices[i] = interact.Choice{

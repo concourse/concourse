@@ -365,6 +365,27 @@ var _ = Describe("login Command", func() {
 			})
 		})
 
+		Context("when no auth methods are returned from the API", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
+					),
+				)
+			})
+
+			It("prints a message and exits", func() {
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say("no auth methods configured; nothing to do"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+			})
+		})
+
 		Context("and the api returns an internal server error", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
