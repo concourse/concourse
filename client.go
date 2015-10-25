@@ -140,14 +140,11 @@ func (client *AtcClient) getBody(passedRequest Request) *bytes.Buffer {
 }
 
 func (client *AtcClient) populateResponse(response *http.Response, returnResponseBody bool, passedResponse *Response) error {
-	switch {
-	case response.StatusCode == http.StatusNoContent:
-		return nil
-	case response.StatusCode == http.StatusNotFound:
+	if response.StatusCode == http.StatusNotFound {
 		return ResourceNotFoundError{}
-	case response.StatusCode == http.StatusCreated:
-		passedResponse.Created = true
-	case response.StatusCode < 200, response.StatusCode >= 300:
+	}
+
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		body, _ := ioutil.ReadAll(response.Body)
 
 		return UnexpectedResponseError{
@@ -155,6 +152,17 @@ func (client *AtcClient) populateResponse(response *http.Response, returnRespons
 			Status:     response.Status,
 			Body:       string(body),
 		}
+	}
+
+	if passedResponse == nil {
+		return nil
+	}
+
+	switch response.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	case http.StatusCreated:
+		passedResponse.Created = true
 	}
 
 	if returnResponseBody {

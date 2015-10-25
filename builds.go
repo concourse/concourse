@@ -98,5 +98,4 @@ func (handler AtcHandler) AbortBuild(buildID string) error {
 		RequestName: atc.AbortBuild,
 		Params:      params,
 	}, nil)
-
 }

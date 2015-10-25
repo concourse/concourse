@@ -79,6 +79,27 @@ var _ = Describe("ATC Client", func() {
 			Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
 		})
 
+		It("can ignore responses", func() {
+			var err error
+			client, err = NewClient(atcServer.URL()+"/", nil)
+			Expect(err).NotTo(HaveOccurred())
+			expectedURL := "/api/v1/builds/foo"
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Build{}),
+				),
+			)
+
+			err = client.Send(Request{
+				RequestName: atc.GetBuild,
+				Params:      map[string]string{"build_id": "foo"},
+			}, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
+		})
+
 		It("uses the given http client", func() {
 			basicAuthClient, err := NewClient(
 				atcServer.URL(),
