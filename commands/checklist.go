@@ -31,24 +31,20 @@ func init() {
 }
 
 func (command *ChecklistCommand) Execute([]string) error {
-	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
+	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	pipelineName := command.Pipeline
 
-	client, err := atcclient.NewClient(*target)
-	if err != nil {
-		log.Fatalln(err)
-	}
 	handler := atcclient.NewAtcHandler(client)
 	config, _, _, err := handler.PipelineConfig(pipelineName)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	printCheckfile(pipelineName, config, newTarget(target.URL()))
+	printCheckfile(pipelineName, config, newTarget(client.URL()))
 
 	return nil
 }

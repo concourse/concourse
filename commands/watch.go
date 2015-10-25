@@ -31,16 +31,12 @@ func init() {
 	watch.Aliases = []string{"w"}
 }
 func (command *WatchCommand) Execute(args []string) error {
-	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
+	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 
-	client, err := atcclient.NewClient(*target)
-	if err != nil {
-		log.Fatalln("failed to create client:", err)
-	}
 	handler := atcclient.NewAtcHandler(client)
 
 	build, err := GetBuild(handler, command.Job.JobName, command.Build, command.Job.PipelineName)

@@ -47,22 +47,18 @@ func init() {
 }
 
 func (command *ExecuteCommand) Execute(args []string) error {
-	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
+	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 
-	client, err := atcclient.NewClient(*target)
-	if err != nil {
-		log.Fatalln(err)
-	}
 	handler := atcclient.NewAtcHandler(client)
 
 	taskConfigFile := command.TaskConfig
 	excludeIgnored := command.ExcludeIgnored
 
-	atcRequester := newAtcRequester(target.URL(), target.Insecure)
+	atcRequester := newAtcRequester(client.URL(), client.HTTPClient())
 
 	taskConfig := config.LoadTaskConfig(string(taskConfigFile), args)
 

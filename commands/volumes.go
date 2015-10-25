@@ -34,15 +34,11 @@ func init() {
 }
 
 func (command *VolumesCommand) Execute([]string) error {
-	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
+	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	client, err := atcclient.NewClient(*target)
-	if err != nil {
-		log.Fatalln(err)
-	}
 	handler := atcclient.NewAtcHandler(client)
 
 	volumes, err := handler.ListVolumes()

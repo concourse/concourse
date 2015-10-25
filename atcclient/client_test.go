@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/atc/event"
 	. "github.com/concourse/fly/atcclient"
 	"github.com/concourse/fly/atcclient/eventstream"
-	"github.com/concourse/fly/rc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -38,16 +37,13 @@ var _ = Describe("ATC Client", func() {
 
 	Describe("#NewClient", func() {
 		It("returns back an ATC Client", func() {
-			var err error
-			target := rc.NewTarget(api, username, password, cert, insecure)
-			client, err = NewClient(target)
+			atcClient, err := NewClient(api, nil)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(client).NotTo(BeNil())
+			Expect(atcClient).NotTo(BeNil())
 		})
 
 		It("errors when passed target props with an invalid url", func() {
-			target := rc.NewTarget("", username, password, cert, insecure)
-			_, err := NewClient(target)
+			_, err := NewClient("", nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("API is blank"))
 		})
@@ -56,23 +52,13 @@ var _ = Describe("ATC Client", func() {
 	Describe("#Send", func() {
 		BeforeEach(func() {
 			var err error
-			client, err = NewClient(
-				rc.NewTarget(atcServer.URL(), "", "", "", false),
-			)
+			client, err = NewClient(atcServer.URL(), nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("is robust to trailing slash in the target", func() {
 			var err error
-			client, err = NewClient(
-				rc.TargetProps{
-					API:      atcServer.URL() + "/",
-					Username: "",
-					Password: "",
-					Cert:     "",
-					Insecure: false,
-				},
-			)
+			client, err = NewClient(atcServer.URL()+"/", nil)
 			Expect(err).NotTo(HaveOccurred())
 			expectedURL := "/api/v1/builds/foo"
 			atcServer.AppendHandlers(
@@ -83,6 +69,37 @@ var _ = Describe("ATC Client", func() {
 			)
 			var build atc.Build
 			err = client.Send(Request{
+				RequestName: atc.GetBuild,
+				Params:      map[string]string{"build_id": "foo"},
+			}, &Response{
+				Result: &build,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
+		})
+
+		It("uses the given http client", func() {
+			basicAuthClient, err := NewClient(
+				atcServer.URL(),
+				&http.Client{
+					Transport: BasicAuthTransport{
+						Username: "some username",
+						Password: "some password",
+					},
+				},
+			)
+
+			expectedURL := "/api/v1/builds/foo"
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.VerifyBasicAuth("some username", "some password"),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{}),
+				),
+			)
+			var build atc.Build
+			err = basicAuthClient.Send(Request{
 				RequestName: atc.GetBuild,
 				Params:      map[string]string{"build_id": "foo"},
 			}, &Response{
@@ -186,70 +203,37 @@ var _ = Describe("ATC Client", func() {
 				Expect(respBody.Close()).NotTo(HaveOccurred())
 			})
 		})
-		Context("Sending Headers", func() {
-			Context("Basic Auth", func() {
-				BeforeEach(func() {
-					var err error
-					atcServer = ghttp.NewServer()
 
-					username = "foo"
-					password = "bar"
-					target := rc.NewTarget(atcServer.URL(), username, password, cert, insecure)
-					client, err = NewClient(target)
-					Expect(err).NotTo(HaveOccurred())
+		Context("Request Headers", func() {
+			BeforeEach(func() {
+				var err error
+				atcServer = ghttp.NewServer()
 
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/builds/foo"),
-							ghttp.VerifyBasicAuth(username, password),
-							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{}),
-						),
-					)
-				})
+				client, err = NewClient(atcServer.URL(), nil)
+				Expect(err).NotTo(HaveOccurred())
 
-				It("sets the username and password if given", func() {
-					err := client.Send(Request{
-						RequestName: atc.GetBuild,
-						Params:      map[string]string{"build_id": "foo"},
-					}, &Response{
-						Result: &atc.Build{},
-					})
-					Expect(err).NotTo(HaveOccurred())
-				})
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/builds/foo"),
+						ghttp.VerifyHeaderKV("Accept-Encoding", "application/banana"),
+						ghttp.VerifyHeaderKV("foo", "bar", "baz"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{}),
+					),
+				)
 			})
 
-			Context("Any Header", func() {
-				BeforeEach(func() {
-					var err error
-					atcServer = ghttp.NewServer()
-
-					target := rc.NewTarget(atcServer.URL(), username, password, cert, insecure)
-					client, err = NewClient(target)
-					Expect(err).NotTo(HaveOccurred())
-
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/builds/foo"),
-							ghttp.VerifyHeaderKV("Accept-Encoding", "application/banana"),
-							ghttp.VerifyHeaderKV("foo", "bar", "baz"),
-							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{}),
-						),
-					)
+			It("sets the header and it's values on the request", func() {
+				err := client.Send(Request{
+					RequestName: atc.GetBuild,
+					Params:      map[string]string{"build_id": "foo"},
+					Headers: map[string][]string{
+						"accept-encoding": {"application/banana"},
+						"foo":             {"bar", "baz"},
+					},
+				}, &Response{
+					Result: &atc.Build{},
 				})
-
-				It("sets the header and it's values on the request", func() {
-					err := client.Send(Request{
-						RequestName: atc.GetBuild,
-						Params:      map[string]string{"build_id": "foo"},
-						Headers: map[string][]string{
-							"accept-encoding": {"application/banana"},
-							"foo":             {"bar", "baz"},
-						},
-					}, &Response{
-						Result: &atc.Build{},
-					})
-					Expect(err).NotTo(HaveOccurred())
-				})
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
@@ -258,8 +242,7 @@ var _ = Describe("ATC Client", func() {
 				var err error
 				atcServer = ghttp.NewServer()
 
-				target := rc.NewTarget(atcServer.URL(), username, password, cert, insecure)
-				client, err = NewClient(target)
+				client, err = NewClient(atcServer.URL(), nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.AppendHandlers(
@@ -268,7 +251,6 @@ var _ = Describe("ATC Client", func() {
 						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 					),
 				)
-
 			})
 
 			It("returns the response headers in Headers", func() {
@@ -292,8 +274,7 @@ var _ = Describe("ATC Client", func() {
 					var err error
 					atcServer = ghttp.NewServer()
 
-					target := rc.NewTarget(atcServer.URL(), username, password, cert, insecure)
-					client, err = NewClient(target)
+					client, err = NewClient(atcServer.URL(), nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.AppendHandlers(
@@ -302,7 +283,6 @@ var _ = Describe("ATC Client", func() {
 							ghttp.RespondWith(http.StatusNoContent, ""),
 						),
 					)
-
 				})
 
 				It("sets the username and password if given", func() {
@@ -320,8 +300,7 @@ var _ = Describe("ATC Client", func() {
 					var err error
 					atcServer = ghttp.NewServer()
 
-					target := rc.NewTarget(atcServer.URL(), username, password, cert, insecure)
-					client, err = NewClient(target)
+					client, err = NewClient(atcServer.URL(), nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.AppendHandlers(
@@ -351,8 +330,7 @@ var _ = Describe("ATC Client", func() {
 					var err error
 					atcServer = ghttp.NewServer()
 
-					target := rc.NewTarget(atcServer.URL(), username, password, cert, insecure)
-					client, err = NewClient(target)
+					client, err = NewClient(atcServer.URL(), nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.AppendHandlers(
@@ -520,3 +498,13 @@ var _ = Describe("ATC Client", func() {
 		})
 	})
 })
+
+type BasicAuthTransport struct {
+	Username string
+	Password string
+}
+
+func (bat BasicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.SetBasicAuth(bat.Username, bat.Password)
+	return http.DefaultTransport.RoundTrip(req)
+}

@@ -43,18 +43,14 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		templateVariables[v.Name] = v.Value
 	}
 
-	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
+	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
-	client, err := atcclient.NewClient(*target)
-	if err != nil {
-		log.Fatalln(err)
-	}
 	handler := atcclient.NewAtcHandler(client)
 
-	webRequestGenerator := rata.NewRequestGenerator(target.URL(), web.Routes)
+	webRequestGenerator := rata.NewRequestGenerator(client.URL(), web.Routes)
 
 	atcConfig := ATCConfig{
 		pipelineName:        pipelineName,

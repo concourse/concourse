@@ -40,12 +40,7 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
-	if err != nil {
-		return err
-	}
-
-	client, err := atcclient.NewClient(*target)
+	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {
 		return err
 	}

@@ -32,15 +32,11 @@ func init() {
 }
 
 func (command *ContainersCommand) Execute([]string) error {
-	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
+	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	client, err := atcclient.NewClient(*target)
-	if err != nil {
-		log.Fatalln(err)
-	}
 	handler := atcclient.NewAtcHandler(client)
 
 	containers, err := handler.ListContainers(map[string]string{})

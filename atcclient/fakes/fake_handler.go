@@ -14,7 +14,7 @@ type FakeHandler struct {
 	AllBuildsStub        func() ([]atc.Build, error)
 	allBuildsMutex       sync.RWMutex
 	allBuildsArgsForCall []struct{}
-	allBuildsReturns struct {
+	allBuildsReturns     struct {
 		result1 []atc.Build
 		result2 error
 	}
@@ -81,7 +81,7 @@ type FakeHandler struct {
 	CreatePipeStub        func() (atc.Pipe, error)
 	createPipeMutex       sync.RWMutex
 	createPipeArgsForCall []struct{}
-	createPipeReturns struct {
+	createPipeReturns     struct {
 		result1 atc.Pipe
 		result2 error
 	}
@@ -129,21 +129,21 @@ type FakeHandler struct {
 	ListPipelinesStub        func() ([]atc.Pipeline, error)
 	listPipelinesMutex       sync.RWMutex
 	listPipelinesArgsForCall []struct{}
-	listPipelinesReturns struct {
+	listPipelinesReturns     struct {
 		result1 []atc.Pipeline
 		result2 error
 	}
 	ListVolumesStub        func() ([]atc.Volume, error)
 	listVolumesMutex       sync.RWMutex
 	listVolumesArgsForCall []struct{}
-	listVolumesReturns struct {
+	listVolumesReturns     struct {
 		result1 []atc.Volume
 		result2 error
 	}
 	ListWorkersStub        func() ([]atc.Worker, error)
 	listWorkersMutex       sync.RWMutex
 	listWorkersArgsForCall []struct{}
-	listWorkersReturns struct {
+	listWorkersReturns     struct {
 		result1 []atc.Worker
 		result2 error
 	}
@@ -166,6 +166,20 @@ type FakeHandler struct {
 	}
 	getCLIReaderReturns struct {
 		result1 io.ReadCloser
+		result2 error
+	}
+	ListAuthMethodsStub        func() ([]atc.AuthMethod, error)
+	listAuthMethodsMutex       sync.RWMutex
+	listAuthMethodsArgsForCall []struct{}
+	listAuthMethodsReturns     struct {
+		result1 []atc.AuthMethod
+		result2 error
+	}
+	AuthTokenStub        func() (atc.AuthToken, error)
+	authTokenMutex       sync.RWMutex
+	authTokenArgsForCall []struct{}
+	authTokenReturns     struct {
+		result1 atc.AuthToken
 		result2 error
 	}
 }
@@ -701,6 +715,56 @@ func (fake *FakeHandler) GetCLIReaderReturns(result1 io.ReadCloser, result2 erro
 	fake.GetCLIReaderStub = nil
 	fake.getCLIReaderReturns = struct {
 		result1 io.ReadCloser
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeHandler) ListAuthMethods() ([]atc.AuthMethod, error) {
+	fake.listAuthMethodsMutex.Lock()
+	fake.listAuthMethodsArgsForCall = append(fake.listAuthMethodsArgsForCall, struct{}{})
+	fake.listAuthMethodsMutex.Unlock()
+	if fake.ListAuthMethodsStub != nil {
+		return fake.ListAuthMethodsStub()
+	} else {
+		return fake.listAuthMethodsReturns.result1, fake.listAuthMethodsReturns.result2
+	}
+}
+
+func (fake *FakeHandler) ListAuthMethodsCallCount() int {
+	fake.listAuthMethodsMutex.RLock()
+	defer fake.listAuthMethodsMutex.RUnlock()
+	return len(fake.listAuthMethodsArgsForCall)
+}
+
+func (fake *FakeHandler) ListAuthMethodsReturns(result1 []atc.AuthMethod, result2 error) {
+	fake.ListAuthMethodsStub = nil
+	fake.listAuthMethodsReturns = struct {
+		result1 []atc.AuthMethod
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeHandler) AuthToken() (atc.AuthToken, error) {
+	fake.authTokenMutex.Lock()
+	fake.authTokenArgsForCall = append(fake.authTokenArgsForCall, struct{}{})
+	fake.authTokenMutex.Unlock()
+	if fake.AuthTokenStub != nil {
+		return fake.AuthTokenStub()
+	} else {
+		return fake.authTokenReturns.result1, fake.authTokenReturns.result2
+	}
+}
+
+func (fake *FakeHandler) AuthTokenCallCount() int {
+	fake.authTokenMutex.RLock()
+	defer fake.authTokenMutex.RUnlock()
+	return len(fake.authTokenArgsForCall)
+}
+
+func (fake *FakeHandler) AuthTokenReturns(result1 atc.AuthToken, result2 error) {
+	fake.AuthTokenStub = nil
+	fake.authTokenReturns = struct {
+		result1 atc.AuthToken
 		result2 error
 	}{result1, result2}
 }

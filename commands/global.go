@@ -3,8 +3,7 @@ package commands
 import "github.com/jessevdk/go-flags"
 
 type GlobalOptions struct {
-	Target   string `short:"t" long:"target" description:"concourse API endpoint" default:"http://192.168.100.4:8080"`
-	Insecure bool   `short:"k" long:"insecure" description:"skip SSL verification"`
+	Target string `short:"t" long:"target" description:"Concourse target name or URL" default:"http://192.168.50.4:8080"`
 }
 
 var globalOptions GlobalOptions

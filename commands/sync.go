@@ -30,15 +30,10 @@ func init() {
 }
 
 func (command *SyncCommand) Execute(args []string) error {
-	target, err := rc.SelectTarget(globalOptions.Target, globalOptions.Insecure)
+	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
-	}
-
-	client, err := atcclient.NewClient(*target)
-	if err != nil {
-		log.Fatalln(err)
 	}
 
 	handler := atcclient.NewAtcHandler(client)
@@ -47,7 +42,7 @@ func (command *SyncCommand) Execute(args []string) error {
 		log.Fatalln(err)
 	}
 
-	fmt.Printf("downloading fly from %s... ", target.URL())
+	fmt.Printf("downloading fly from %s... ", client.URL())
 
 	err = update.Apply(body, update.Options{})
 	if err != nil {

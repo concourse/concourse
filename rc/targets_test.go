@@ -34,35 +34,41 @@ var _ = Describe("Targets", func() {
 	})
 
 	Describe("Insecure Flag", func() {
-		Describe("When 'insecure' is set to false in the flyrc", func() {
+		Describe("when 'insecure' is set to false in the flyrc", func() {
 			var targetName string
 			BeforeEach(func() {
 				targetName = "foo"
-				rc.CreateOrUpdateTargets(
+				err := rc.SaveTarget(
 					targetName,
-					rc.NewTarget("Don't matter", "Don't matter", "Don't matter", "Don't matter", false),
+					"some api url",
+					false,
+					nil,
 				)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("the global insecure flag overrides the return value", func() {
-				returnedTarget, err := rc.SelectTarget(targetName, true)
+			It("returns the rc insecure flag as false", func() {
+				returnedTarget, err := rc.SelectTarget(targetName)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(returnedTarget.Insecure).To(BeTrue())
+				Expect(returnedTarget.Insecure).To(BeFalse())
 			})
 		})
 
-		Describe("When 'insecure' is set to true in the flyrc", func() {
+		Describe("when 'insecure' is set to true in the flyrc", func() {
 			var targetName string
 			BeforeEach(func() {
 				targetName = "foo"
-				rc.CreateOrUpdateTargets(
+				err := rc.SaveTarget(
 					targetName,
-					rc.NewTarget("Don't matter", "Don't matter", "Don't matter", "Don't matter", true),
+					"some api url",
+					true,
+					nil,
 				)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("the rc insecure flag value is returned", func() {
-				returnedTarget, err := rc.SelectTarget(targetName, false)
+			It("returns the rc insecure flag as true", func() {
+				returnedTarget, err := rc.SelectTarget(targetName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(returnedTarget.Insecure).To(BeTrue())
 			})
@@ -74,16 +80,10 @@ var _ = Describe("Targets", func() {
 				targetName = "https://foo.com"
 			})
 
-			It("and the insecure flag is not passed, insecure is set to false", func() {
-				returnedTarget, err := rc.SelectTarget(targetName, false)
+			It("returns the target with insecure is set to false", func() {
+				returnedTarget, err := rc.SelectTarget(targetName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(returnedTarget.Insecure).To(BeFalse())
-			})
-
-			It("and the insecure flag is passed, insecure is set to true", func() {
-				returnedTarget, err := rc.SelectTarget(targetName, true)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(returnedTarget.Insecure).To(BeTrue())
 			})
 		})
 	})

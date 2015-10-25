@@ -1,70 +1,107 @@
 package rc
 
 import (
-	"errors"
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
-	"net/url"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
 
+	"golang.org/x/oauth2"
+
+	"github.com/concourse/fly/atcclient"
+
 	"gopkg.in/yaml.v2"
 )
 
 type TargetProps struct {
-	API      string `yaml:"api"`
-	Username string
-	Password string
-	Cert     string
-	Insecure bool
+	API      string       `yaml:"api"`
+	Insecure bool         `yaml:"insecure,omitempty"`
+	Token    *TargetToken `yaml:"token,omitempty"`
+}
+
+type TargetToken struct {
+	Type  string `yaml:"type"`
+	Value string `yaml:"value"`
 }
 
 //URL TODO: Remove this function and put url logic in ATC Client
 func (target TargetProps) URL() string {
-	targetURL, _ := url.Parse(target.API)
-	if target.Username != "" {
-		targetURL.User = url.UserPassword(target.Username, target.Password)
-	}
-	return targetURL.String()
+	return target.API
 }
 
 type targetDetailsYAML struct {
 	Targets map[string]TargetProps
 }
 
-func NewTarget(api, username, password, cert string, insecure bool) TargetProps {
+func NewTarget(api string, insecure bool, token *TargetToken) TargetProps {
 	return TargetProps{
 		API:      strings.TrimRight(api, "/"),
-		Username: username,
-		Password: password,
-		Cert:     cert,
 		Insecure: insecure,
+		Token:    token,
 	}
 }
 
-func CreateOrUpdateTargets(targetName string, targetInfo TargetProps) error {
+func SaveTarget(targetName string, api string, insecure bool, token *TargetToken) error {
 	flyrc := filepath.Join(userHomeDir(), ".flyrc")
 	flyTargets, err := loadTargets(flyrc)
 	if err != nil {
 		return err
 	}
 
-	if isURL(targetName) {
-		return errors.New("The target name cannot begin with http:// or https://.")
-	}
+	newInfo := flyTargets.Targets[targetName]
+	newInfo.API = api
+	newInfo.Insecure = insecure
+	newInfo.Token = token
 
-	flyTargets.Targets[targetName] = targetInfo
+	flyTargets.Targets[targetName] = newInfo
 
 	return writeTargets(flyrc, flyTargets)
 }
 
-func SelectTarget(selectedTarget string, insecure bool) (*TargetProps, error) {
+func SelectTarget(selectedTarget string) (TargetProps, error) {
 	if isURL(selectedTarget) {
-		target := NewTarget(selectedTarget, "", "", "", insecure)
-		return &target, nil
+		return NewTarget(selectedTarget, false, nil), nil
+	}
+
+	flyrc := filepath.Join(userHomeDir(), ".flyrc")
+	flyTargets, err := loadTargets(flyrc)
+	if err != nil {
+		return TargetProps{}, err
+	}
+
+	target, ok := flyTargets.Targets[selectedTarget]
+	if !ok {
+		return TargetProps{}, fmt.Errorf("Unable to find target %s in %s", selectedTarget, flyrc)
+	}
+
+	return target, nil
+}
+
+func NewClient(atcURL string, insecure bool) (atcclient.Client, error) {
+	var tlsConfig *tls.Config
+	if insecure {
+		tlsConfig = &tls.Config{InsecureSkipVerify: insecure}
+	}
+
+	var transport http.RoundTripper
+
+	transport = &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+
+	return atcclient.NewClient(atcURL, &http.Client{
+		Transport: transport,
+	})
+}
+
+func TargetClient(selectedTarget string) (atcclient.Client, error) {
+	if isURL(selectedTarget) {
+		return NewClient(selectedTarget, false)
 	}
 
 	flyrc := filepath.Join(userHomeDir(), ".flyrc")
@@ -78,9 +115,37 @@ func SelectTarget(selectedTarget string, insecure bool) (*TargetProps, error) {
 		return nil, fmt.Errorf("Unable to find target %s in %s", selectedTarget, flyrc)
 	}
 
-	target.Insecure = target.Insecure || insecure
-	return &target, nil
+	var token *oauth2.Token
+	if target.Token != nil {
+		token = &oauth2.Token{
+			TokenType:   target.Token.Type,
+			AccessToken: target.Token.Value,
+		}
+	}
 
+	var tlsConfig *tls.Config
+	if target.Insecure {
+		tlsConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
+	var transport http.RoundTripper
+
+	transport = &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+
+	if token != nil {
+		transport = &oauth2.Transport{
+			Source: oauth2.StaticTokenSource(token),
+			Base:   transport,
+		}
+	}
+
+	httpClient := &http.Client{
+		Transport: transport,
+	}
+
+	return atcclient.NewClient(target.API, httpClient)
 }
 
 func userHomeDir() string {

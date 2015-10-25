@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"crypto/tls"
 	"net/http"
 
 	"github.com/concourse/atc"
@@ -13,11 +12,9 @@ type atcRequester struct {
 	httpClient *http.Client
 }
 
-func newAtcRequester(target string, insecure bool) *atcRequester {
-	tlsClientConfig := &tls.Config{InsecureSkipVerify: insecure}
-
+func newAtcRequester(target string, httpClient *http.Client) *atcRequester {
 	return &atcRequester{
 		rata.NewRequestGenerator(target, atc.Routes),
-		&http.Client{Transport: &http.Transport{TLSClientConfig: tlsClientConfig}},
+		httpClient,
 	}
 }
