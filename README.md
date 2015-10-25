@@ -34,7 +34,8 @@ tsa -forwardHost=$FORWARD_HOST \
       -hostKey=host_key \
       -authorizedKeys=authorized_keys \
       -heartbeatInterval=30s \
-      -atcAPIURL=http://$USERNAME:$PASSWORD@$ATC_HOST:$ATC_PORT
+      -sessionSigningKey $SIGNING_KEY \
+      -atcAPIURL=http://$ATC_HOST:$ATC_PORT
 ```
 
 The variables here should be set to:
@@ -42,8 +43,7 @@ The variables here should be set to:
 | Variable             | Description                                                                                               |
 |----------------------|-----------------------------------------------------------------------------------------------------------|
 | `$FORWARD_HOST`      | The host or IP where this machine can be reached for the purpose of forwarding traffic to remote workers. |
-| `$USERNAME`          | Username for the ATC                                                                                      |
-| `$PASSWORD`          | Password for the ATC                                                                                      |
+| `$SIGNING_KEY`       | RSA key used to sign the tokens used when communicating to the ATC.                                       |
 | `$ATC_HOST`          | Host for the ATC                                                                                          |
 | `$ATC_PORT`          | Port for the ATC                                                                                          |
 
