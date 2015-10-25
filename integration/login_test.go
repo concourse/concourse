@@ -124,13 +124,6 @@ var _ = Describe("login Command", func() {
 								Value: "some-token",
 							}),
 						),
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
-							ghttp.VerifyHeaderKV("Authorization", "Bearer some-token"),
-							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-								{Name: "pipeline-1"},
-							}),
-						),
 					)
 				})
 
@@ -165,17 +158,149 @@ var _ = Describe("login Command", func() {
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
+				})
 
-					otherCmd := exec.Command(flyPath, "-t", "some-target", "pipelines")
+				Context("after logging in succeeds", func() {
+					BeforeEach(func() {
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
 
-					sess, err = gexec.Start(otherCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
+						Eventually(sess.Out).Should(gbytes.Say("1. Basic"))
+						Eventually(sess.Out).Should(gbytes.Say("2. OAuth Type 1"))
+						Eventually(sess.Out).Should(gbytes.Say("3. OAuth Type 2"))
+						Eventually(sess.Out).Should(gbytes.Say("choose an auth method: "))
 
-					<-sess.Exited
+						_, err = fmt.Fprintf(flyPTY.PTYW, "1\r")
+						Expect(err).NotTo(HaveOccurred())
 
-					Expect(sess).To(gbytes.Say("pipeline-1"))
+						Eventually(sess.Out).Should(gbytes.Say("username: "))
 
-					Expect(sess.ExitCode()).To(Equal(0))
+						_, err = fmt.Fprintf(flyPTY.PTYW, "some username\r")
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess.Out).Should(gbytes.Say("password: "))
+
+						_, err = fmt.Fprintf(flyPTY.PTYW, "some password\r")
+						Expect(err).NotTo(HaveOccurred())
+
+						Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
+
+						Eventually(sess.Out).Should(gbytes.Say("token saved"))
+
+						err = flyPTY.PTYW.Close()
+						Expect(err).NotTo(HaveOccurred())
+
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+					})
+
+					Describe("running other commands", func() {
+						BeforeEach(func() {
+							atcServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
+									ghttp.VerifyHeaderKV("Authorization", "Bearer some-token"),
+									ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+										{Name: "pipeline-1"},
+									}),
+								),
+							)
+						})
+
+						It("uses the saved token", func() {
+							otherCmd := exec.Command(flyPath, "-t", "some-target", "pipelines")
+
+							sess, err := gexec.Start(otherCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
+
+							<-sess.Exited
+
+							Expect(sess).To(gbytes.Say("pipeline-1"))
+
+							Expect(sess.ExitCode()).To(Equal(0))
+						})
+					})
+
+					Describe("logging in again with the same target", func() {
+						BeforeEach(func() {
+							atcServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+									ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
+										{
+											Type:        atc.AuthTypeBasic,
+											DisplayName: "Basic",
+											AuthURL:     "https://example.com/login/basic",
+										},
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
+									ghttp.VerifyBasicAuth("some username", "some password"),
+									ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
+										Type:  "Bearer",
+										Value: "some-new-token",
+									}),
+								),
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
+									ghttp.VerifyHeaderKV("Authorization", "Bearer some-new-token"),
+									ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+										{Name: "pipeline-1"},
+									}),
+								),
+							)
+						})
+
+						It("updates the token", func() {
+							loginAgainCmd := exec.Command(flyPath, "-t", "some-target", "login")
+
+							flyPTY, err := pty.Open()
+							Expect(err).NotTo(HaveOccurred())
+
+							loginAgainCmd.Stdin = flyPTY.TTYR
+
+							sess, err := gexec.Start(loginAgainCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
+
+							Eventually(sess.Out).Should(gbytes.Say("1. Basic"))
+							Eventually(sess.Out).Should(gbytes.Say("choose an auth method: "))
+
+							_, err = fmt.Fprintf(flyPTY.PTYW, "1\r")
+							Expect(err).NotTo(HaveOccurred())
+
+							Eventually(sess.Out).Should(gbytes.Say("username: "))
+
+							_, err = fmt.Fprintf(flyPTY.PTYW, "some username\r")
+							Expect(err).NotTo(HaveOccurred())
+
+							Eventually(sess.Out).Should(gbytes.Say("password: "))
+
+							_, err = fmt.Fprintf(flyPTY.PTYW, "some password\r")
+							Expect(err).NotTo(HaveOccurred())
+
+							Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
+
+							Eventually(sess.Out).Should(gbytes.Say("token saved"))
+
+							err = flyPTY.PTYW.Close()
+							Expect(err).NotTo(HaveOccurred())
+
+							<-sess.Exited
+							Expect(sess.ExitCode()).To(Equal(0))
+
+							otherCmd := exec.Command(flyPath, "-t", "some-target", "pipelines")
+
+							sess, err = gexec.Start(otherCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
+
+							<-sess.Exited
+
+							Expect(sess).To(gbytes.Say("pipeline-1"))
+
+							Expect(sess.ExitCode()).To(Equal(0))
+						})
+					})
 				})
 			})
 		})

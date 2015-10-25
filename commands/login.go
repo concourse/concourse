@@ -30,7 +30,15 @@ func init() {
 }
 
 func (command *LoginCommand) Execute(args []string) error {
-	client, err := rc.NewClient(command.ATCURL, command.Insecure)
+	var client atcclient.Client
+	var err error
+
+	if command.ATCURL != "" {
+		client, err = rc.NewClient(command.ATCURL, command.Insecure)
+	} else {
+		client, err = rc.TargetClient(globalOptions.Target)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -88,13 +96,18 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client atcclient.C
 			return err
 		}
 
+		newUnauthedClient, err := rc.NewClient(client.URL(), command.Insecure)
+		if err != nil {
+			return err
+		}
+
 		basicAuthClient, err := atcclient.NewClient(
-			client.URL(),
+			newUnauthedClient.URL(),
 			&http.Client{
 				Transport: basicAuthTransport{
 					username: username,
 					password: string(password),
-					base:     client.HTTPClient().Transport,
+					base:     newUnauthedClient.HTTPClient().Transport,
 				},
 			},
 		)
@@ -111,7 +124,7 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client atcclient.C
 
 		err = rc.SaveTarget(
 			globalOptions.Target,
-			command.ATCURL,
+			basicAuthClient.URL(),
 			command.Insecure,
 			&rc.TargetToken{
 				Type:  token.Type,
