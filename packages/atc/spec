@@ -19,6 +19,7 @@ files:
   - github.com/cloudfoundry-incubator/garden/transport/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/atc/api/*.go # gosub
+  - github.com/concourse/atc/api/authserver/*.go # gosub
   - github.com/concourse/atc/api/buildserver/*.go # gosub
   - github.com/concourse/atc/api/cliserver/*.go # gosub
   - github.com/concourse/atc/api/configserver/*.go # gosub

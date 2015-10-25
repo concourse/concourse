@@ -219,3 +219,7 @@
 	path = src/gopkg.in/fsnotify.v0
 	url = https://gopkg.in/fsnotify.v0
 	branch = master
+[submodule "src/github.com/vito/go-interact"]
+	path = src/github.com/vito/go-interact
+	url = https://github.com/vito/go-interact
+	branch = master
