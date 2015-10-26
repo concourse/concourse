@@ -89,8 +89,9 @@ type ATCCommand struct {
 	GitHubAuth struct {
 		ClientID      string           `long:"client-id"     description:"Application client ID for enabling GitHub OAuth."`
 		ClientSecret  string           `long:"client-secret" description:"Application client secret for enabling GitHub OAuth."`
-		Organizations []string         `long:"organization"  description:"GitHub organization whose members will have access."`
-		Teams         []GitHubTeamFlag `long:"team"          description:"GitHub organization/team whose members will have access." value-name:"ORG/TEAM"`
+		Organizations []string         `long:"organization"  description:"GitHub organization whose members will have access." value-name:"ORG"`
+		Teams         []GitHubTeamFlag `long:"team"          description:"GitHub team whose members will have access." value-name:"ORG/TEAM"`
+		Users         []string         `long:"user"          description:"GitHub user to permit access." value-name:"LOGIN"`
 	} `group:"GitHub Authentication" namespace:"github-auth"`
 
 	Metrics struct {
@@ -270,17 +271,19 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 func (cmd *ATCCommand) validate() error {
 	var errs *multierror.Error
 
+	gitHubAuthTurnedOn :=
+		len(cmd.GitHubAuth.Organizations) > 0 ||
+			len(cmd.GitHubAuth.Teams) > 0 ||
+			len(cmd.GitHubAuth.Users) > 0
+
 	if !cmd.Developer.DevelopmentMode &&
 		cmd.BasicAuth.Username == "" &&
-		len(cmd.GitHubAuth.Organizations) == 0 &&
-		len(cmd.GitHubAuth.Teams) == 0 {
+		!gitHubAuthTurnedOn {
 		errs = multierror.Append(
 			errs,
 			errors.New("must configure basic auth, OAuth, or turn on development mode"),
 		)
 	}
-
-	gitHubAuthTurnedOn := len(cmd.GitHubAuth.Organizations) > 0 || len(cmd.GitHubAuth.Teams) > 0
 
 	if gitHubAuthTurnedOn && cmd.ExternalURL.String() == "//@" {
 		errs = multierror.Append(
@@ -412,6 +415,12 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger) (auth.Provid
 		gitHubAuthMethods = append(gitHubAuthMethods, github.AuthorizationMethod{
 			Team:         team.TeamName,
 			Organization: team.OrganizationName,
+		})
+	}
+
+	for _, user := range cmd.GitHubAuth.Users {
+		gitHubAuthMethods = append(gitHubAuthMethods, github.AuthorizationMethod{
+			User: user,
 		})
 	}
 
