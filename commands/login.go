@@ -51,23 +51,26 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
-	if len(authMethods) == 0 {
+	var chosenMethod atc.AuthMethod
+	switch len(authMethods) {
+	case 0:
 		fmt.Println("no auth methods configured; nothing to do")
 		return nil
-	}
-
-	choices := make([]interact.Choice, len(authMethods))
-	for i, method := range authMethods {
-		choices[i] = interact.Choice{
-			Display: method.DisplayName,
-			Value:   method,
+	case 1:
+		chosenMethod = authMethods[0]
+	default:
+		choices := make([]interact.Choice, len(authMethods))
+		for i, method := range authMethods {
+			choices[i] = interact.Choice{
+				Display: method.DisplayName,
+				Value:   method,
+			}
 		}
-	}
 
-	var chosenMethod atc.AuthMethod
-	err = interact.NewInteraction("choose an auth method", choices...).Resolve(&chosenMethod)
-	if err != nil {
-		return err
+		err = interact.NewInteraction("choose an auth method", choices...).Resolve(&chosenMethod)
+		if err != nil {
+			return err
+		}
 	}
 
 	return command.loginWith(chosenMethod, client)

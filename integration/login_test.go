@@ -316,35 +316,29 @@ var _ = Describe("login Command", func() {
 						It("updates the token", func() {
 							loginAgainCmd := exec.Command(flyPath, "-t", "some-target", "login")
 
-							flyPTY, err := pty.Open()
+							secondFlyPTY, err := pty.Open()
 							Expect(err).NotTo(HaveOccurred())
 
-							loginAgainCmd.Stdin = flyPTY.TTYR
+							loginAgainCmd.Stdin = secondFlyPTY.TTYR
 
 							sess, err := gexec.Start(loginAgainCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
 
-							Eventually(sess.Out).Should(gbytes.Say("1. Basic"))
-							Eventually(sess.Out).Should(gbytes.Say("choose an auth method: "))
-
-							_, err = fmt.Fprintf(flyPTY.PTYW, "1\r")
-							Expect(err).NotTo(HaveOccurred())
-
 							Eventually(sess.Out).Should(gbytes.Say("username: "))
 
-							_, err = fmt.Fprintf(flyPTY.PTYW, "some username\r")
+							_, err = fmt.Fprintf(secondFlyPTY.PTYW, "some username\r")
 							Expect(err).NotTo(HaveOccurred())
 
 							Eventually(sess.Out).Should(gbytes.Say("password: "))
 
-							_, err = fmt.Fprintf(flyPTY.PTYW, "some password\r")
+							_, err = fmt.Fprintf(secondFlyPTY.PTYW, "some password\r")
 							Expect(err).NotTo(HaveOccurred())
 
 							Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
 
 							Eventually(sess.Out).Should(gbytes.Say("token saved"))
 
-							err = flyPTY.PTYW.Close()
+							err = secondFlyPTY.PTYW.Close()
 							Expect(err).NotTo(HaveOccurred())
 
 							<-sess.Exited
@@ -363,6 +357,56 @@ var _ = Describe("login Command", func() {
 						})
 					})
 				})
+			})
+		})
+
+		Context("when only one auth method is returned from the API", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
+							{
+								Type:        atc.AuthTypeBasic,
+								DisplayName: "Basic",
+								AuthURL:     "https://example.com/login/basic",
+							},
+						}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
+						ghttp.VerifyBasicAuth("some username", "some password"),
+						ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
+							Type:  "Bearer",
+							Value: "some-token",
+						}),
+					),
+				)
+			})
+
+			It("uses its auth method without asking", func() {
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say("username: "))
+
+				_, err = fmt.Fprintf(flyPTY.PTYW, "some username\r")
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say("password: "))
+
+				_, err = fmt.Fprintf(flyPTY.PTYW, "some password\r")
+				Expect(err).NotTo(HaveOccurred())
+
+				Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
+
+				Eventually(sess.Out).Should(gbytes.Say("token saved"))
+
+				err = flyPTY.PTYW.Close()
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
 			})
 		})
 
