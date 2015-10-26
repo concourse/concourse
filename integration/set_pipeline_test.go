@@ -298,7 +298,7 @@ var _ = Describe("Fly CLI", func() {
 							func(w http.ResponseWriter, r *http.Request) {
 								config, state := getConfigAndPausedState(r)
 								Expect(config).To(Equal(payload))
-								Expect(*state).To(BeTrue(), "paused was not set in the request")
+								Expect(*state).To(BeTrue(), "paused was set in the request")
 							},
 							ghttp.RespondWith(http.StatusNoContent, ""),
 						),

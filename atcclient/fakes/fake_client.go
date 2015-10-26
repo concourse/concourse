@@ -13,13 +13,13 @@ type FakeClient struct {
 	URLStub        func() string
 	uRLMutex       sync.RWMutex
 	uRLArgsForCall []struct{}
-	uRLReturns     struct {
+	uRLReturns struct {
 		result1 string
 	}
 	HTTPClientStub        func() *http.Client
 	hTTPClientMutex       sync.RWMutex
 	hTTPClientArgsForCall []struct{}
-	hTTPClientReturns     struct {
+	hTTPClientReturns struct {
 		result1 *http.Client
 	}
 	SendStub        func(request atcclient.Request, response *atcclient.Response) error
