@@ -9,6 +9,15 @@ import (
 )
 
 type FakeClient struct {
+	CurrentUserStub        func(*http.Client) (string, error)
+	currentUserMutex       sync.RWMutex
+	currentUserArgsForCall []struct {
+		arg1 *http.Client
+	}
+	currentUserReturns struct {
+		result1 string
+		result2 error
+	}
 	OrganizationsStub        func(*http.Client) ([]string, error)
 	organizationsMutex       sync.RWMutex
 	organizationsArgsForCall []struct {
@@ -27,6 +36,39 @@ type FakeClient struct {
 		result1 github.OrganizationTeams
 		result2 error
 	}
+}
+
+func (fake *FakeClient) CurrentUser(arg1 *http.Client) (string, error) {
+	fake.currentUserMutex.Lock()
+	fake.currentUserArgsForCall = append(fake.currentUserArgsForCall, struct {
+		arg1 *http.Client
+	}{arg1})
+	fake.currentUserMutex.Unlock()
+	if fake.CurrentUserStub != nil {
+		return fake.CurrentUserStub(arg1)
+	} else {
+		return fake.currentUserReturns.result1, fake.currentUserReturns.result2
+	}
+}
+
+func (fake *FakeClient) CurrentUserCallCount() int {
+	fake.currentUserMutex.RLock()
+	defer fake.currentUserMutex.RUnlock()
+	return len(fake.currentUserArgsForCall)
+}
+
+func (fake *FakeClient) CurrentUserArgsForCall(i int) *http.Client {
+	fake.currentUserMutex.RLock()
+	defer fake.currentUserMutex.RUnlock()
+	return fake.currentUserArgsForCall[i].arg1
+}
+
+func (fake *FakeClient) CurrentUserReturns(result1 string, result2 error) {
+	fake.CurrentUserStub = nil
+	fake.currentUserReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeClient) Organizations(arg1 *http.Client) ([]string, error) {
