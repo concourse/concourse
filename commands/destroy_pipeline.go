@@ -25,7 +25,7 @@ func init() {
 		panic(err)
 	}
 
-	destroyPipeline.Aliases = []string{"d"}
+	destroyPipeline.Aliases = []string{"dp"}
 }
 
 func (command *DestroyPipelineCommand) Execute(args []string) error {

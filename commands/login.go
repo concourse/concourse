@@ -19,7 +19,7 @@ type LoginCommand struct {
 var loginCommand LoginCommand
 
 func init() {
-	_, err := Parser.AddCommand(
+	command, err := Parser.AddCommand(
 		"login",
 		"Authenticate with the target",
 		"",
@@ -28,6 +28,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
+	command.Aliases = []string{"l"}
 }
 
 func (command *LoginCommand) Execute(args []string) error {

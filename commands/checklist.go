@@ -27,7 +27,7 @@ func init() {
 		panic(err)
 	}
 
-	command.Aliases = []string{"l"}
+	command.Aliases = []string{"cl"}
 }
 
 func (command *ChecklistCommand) Execute([]string) error {
