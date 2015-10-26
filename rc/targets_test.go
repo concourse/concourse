@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/concourse/fly/rc"
 	. "github.com/onsi/ginkgo"
@@ -19,18 +20,17 @@ var _ = Describe("Targets", func() {
 		tmpDir, err = ioutil.TempDir("", "fly-test")
 		Expect(err).NotTo(HaveOccurred())
 
-		os.Setenv("HOME", tmpDir)
-		os.Setenv("HOMEPATH", tmpDir)
-		os.Unsetenv("HOMEDRIVE")
+		if runtime.GOOS == "windows" {
+			os.Setenv("USERPROFILE", tmpDir)
+		} else {
+			os.Setenv("HOME", tmpDir)
+		}
 
 		flyrc = filepath.Join(userHomeDir(), ".flyrc")
 	})
 
 	AfterEach(func() {
 		os.RemoveAll(tmpDir)
-
-		os.Unsetenv("HOME")
-		os.Unsetenv("HOMEPATH")
 	})
 
 	Describe("Insecure Flag", func() {
