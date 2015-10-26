@@ -1,17 +1,60 @@
 package atcclient_test
 
 import (
-	"bytes"
+	"io"
+	"io/ioutil"
+	"mime"
+	"mime/multipart"
 	"net/http"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
-	"github.com/concourse/fly/atcclient/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 )
+
+func getConfigAndPausedState(r *http.Request) ([]byte, *bool) {
+	defer r.Body.Close()
+
+	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	Expect(err).NotTo(HaveOccurred())
+
+	reader := multipart.NewReader(r.Body, params["boundary"])
+
+	var payload []byte
+	var state *bool
+
+	yes := true
+	no := false
+
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+		Expect(err).NotTo(HaveOccurred())
+
+		if part.FormName() == "paused" {
+			pausedValue, readErr := ioutil.ReadAll(part)
+			Expect(readErr).NotTo(HaveOccurred())
+
+			if string(pausedValue) == "true" {
+				state = &yes
+			} else {
+				state = &no
+			}
+		} else {
+			payload, err = ioutil.ReadAll(part)
+		}
+
+		part.Close()
+	}
+
+	return payload, state
+}
 
 var _ = Describe("ATC Handler Configs", func() {
 	Describe("PipelineConfig", func() {
@@ -137,44 +180,52 @@ var _ = Describe("ATC Handler Configs", func() {
 	})
 
 	Describe("CreateOrUpdatePipelineConfig", func() {
-		Context("when creating a new config", func() {
-			var (
-				fakeClient           *fakes.FakeClient
-				expectedPipelineName string
-				expectedBody         *bytes.Buffer
-				expectedVersion      string
-				expectedContentType  string
+		var (
+			expectedPipelineName string
+			expectedVersion      string
+			expectedConfig       atc.Config
+
+			returnHeader int
+		)
+
+		BeforeEach(func() {
+			expectedPipelineName = "mypipeline"
+			expectedVersion = "42"
+			expectedConfig = atc.Config{
+				Groups:    atc.GroupConfigs{},
+				Jobs:      atc.JobConfigs{},
+				Resources: atc.ResourceConfigs{},
+			}
+
+			expectedPath := "/api/v1/pipelines/mypipeline/config"
+
+			atcServer.RouteToHandler("PUT", expectedPath,
+				ghttp.CombineHandlers(
+					ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+					func(w http.ResponseWriter, r *http.Request) {
+						bodyConfig, state := getConfigAndPausedState(r)
+						Expect(state).To(BeNil())
+
+						receivedConfig := atc.Config{}
+
+						err := yaml.Unmarshal(bodyConfig, &receivedConfig)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(receivedConfig).To(Equal(expectedConfig))
+
+						w.WriteHeader(returnHeader)
+					},
+				),
 			)
+		})
+
+		Context("when creating a new config", func() {
 			BeforeEach(func() {
-				fakeClient = new(fakes.FakeClient)
-				handler = atcclient.NewAtcHandler(fakeClient)
-
-				expectedPipelineName = "mypipeline"
-				expectedBody = &bytes.Buffer{}
-				expectedVersion = "42"
-				expectedContentType = "applicatione/fakefakefake"
-
-				expectedRequest := atcclient.Request{
-					RequestName: atc.SaveConfig,
-					Params: map[string]string{
-						"pipeline_name": expectedPipelineName,
-					},
-					Body: expectedBody,
-					Headers: map[string][]string{
-						"Content-Type":          {expectedContentType},
-						atc.ConfigVersionHeader: {expectedVersion},
-					},
-				}
-
-				fakeClient.SendStub = func(request atcclient.Request, response *atcclient.Response) error {
-					Expect(request).To(Equal(expectedRequest))
-					response.Created = true
-					return nil
-				}
+				returnHeader = http.StatusCreated
 			})
 
 			It("returns true for created and false for updated", func() {
-				created, updated, err := handler.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedBody, expectedContentType)
+				created, updated, err := handler.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, nil)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 				Expect(updated).To(BeFalse())
@@ -182,46 +233,42 @@ var _ = Describe("ATC Handler Configs", func() {
 		})
 
 		Context("when updating a config", func() {
-			var (
-				fakeClient           *fakes.FakeClient
-				expectedPipelineName string
-				expectedBody         *bytes.Buffer
-				expectedVersion      string
-				expectedContentType  string
-			)
 			BeforeEach(func() {
-				fakeClient = new(fakes.FakeClient)
-				handler = atcclient.NewAtcHandler(fakeClient)
-
-				expectedPipelineName = "mypipeline"
-				expectedBody = &bytes.Buffer{}
-				expectedVersion = "42"
-				expectedContentType = "applicatione/fakefakefake"
-
-				expectedRequest := atcclient.Request{
-					RequestName: atc.SaveConfig,
-					Params: map[string]string{
-						"pipeline_name": expectedPipelineName,
-					},
-					Body: expectedBody,
-					Headers: map[string][]string{
-						"Content-Type":          {expectedContentType},
-						atc.ConfigVersionHeader: {expectedVersion},
-					},
-				}
-
-				fakeClient.SendStub = func(request atcclient.Request, response *atcclient.Response) error {
-					Expect(request).To(Equal(expectedRequest))
-					return nil
-				}
+				returnHeader = http.StatusNoContent
 			})
 
 			It("returns false for created and true for updated", func() {
-				created, updated, err := handler.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedBody, expectedContentType)
+				created, updated, err := handler.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, nil)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeFalse())
 				Expect(updated).To(BeTrue())
 			})
+		})
+
+		Context("pausing and unpausing", func() {
+			BeforeEach(func() {
+				expectedPath := "/api/v1/pipelines/mypipeline/config"
+
+				atcServer.RouteToHandler("PUT", expectedPath,
+					ghttp.CombineHandlers(
+						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+						func(w http.ResponseWriter, r *http.Request) {
+							_, state := getConfigAndPausedState(r)
+							Expect(*state).To(BeTrue())
+							w.WriteHeader(http.StatusNoContent)
+						},
+					),
+				)
+			})
+
+			It("can be paused", func() {
+				yes := true
+				created, updated, err := handler.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, &yes)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(created).To(BeFalse())
+				Expect(updated).To(BeTrue())
+			})
+
 		})
 	})
 })

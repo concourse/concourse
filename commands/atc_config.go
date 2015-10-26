@@ -1,11 +1,8 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
-	"mime/multipart"
-	"net/textproto"
 	"os"
 
 	"github.com/concourse/atc"
@@ -25,7 +22,7 @@ type ATCConfig struct {
 }
 
 func (atcConfig ATCConfig) Set(paused PipelineAction, configPath PathFlag, templateVariables template.Variables, templateVariablesFiles []PathFlag) {
-	newConfig, newRawConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
+	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
 	existingConfig, existingConfigVersion, _, err := atcConfig.handler.PipelineConfig(atcConfig.pipelineName)
 	if err != nil {
 		failWithErrorf("failed to retrieve config", err)
@@ -33,14 +30,28 @@ func (atcConfig ATCConfig) Set(paused PipelineAction, configPath PathFlag, templ
 
 	diff(existingConfig, newConfig)
 
-	created, updated, err := atcConfig.submitConfig(newRawConfig, paused, existingConfigVersion)
+	always := true
+	ohgodno := false
+	var pausePipeline *bool
+	switch paused {
+	case PausePipeline:
+		pausePipeline = &always
+	case UnpausePipeline:
+		pausePipeline = &ohgodno
+	}
+	created, updated, err := atcConfig.handler.CreateOrUpdatePipelineConfig(
+		atcConfig.pipelineName,
+		existingConfigVersion,
+		newConfig,
+		pausePipeline,
+	)
 	if err != nil {
 		failWithErrorf("failed to update configuration", err)
 	}
 	atcConfig.showHelpfulMessage(created, updated, paused)
 }
 
-func (atcConfig ATCConfig) newConfig(configPath PathFlag, templateVariablesFiles []PathFlag, templateVariables template.Variables) (atc.Config, []byte) {
+func (atcConfig ATCConfig) newConfig(configPath PathFlag, templateVariablesFiles []PathFlag, templateVariables template.Variables) atc.Config {
 	configFile, err := ioutil.ReadFile(string(configPath))
 	if err != nil {
 		failWithErrorf("could not read config file", err)
@@ -70,45 +81,7 @@ func (atcConfig ATCConfig) newConfig(configPath PathFlag, templateVariablesFiles
 		failWithErrorf("failed to parse configuration file", err)
 	}
 
-	return newConfig, configFile
-}
-
-func (atcConfig ATCConfig) submitConfig(configFile []byte, paused PipelineAction, existingConfigVersion string) (bool, bool, error) {
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-
-	yamlWriter, err := writer.CreatePart(
-		textproto.MIMEHeader{
-			"Content-type": {"application/x-yaml"},
-		},
-	)
-	if err != nil {
-		failWithErrorf("error building request", err)
-	}
-
-	_, err = yamlWriter.Write(configFile)
-	if err != nil {
-		failWithErrorf("error building request", err)
-	}
-
-	switch paused {
-	case PausePipeline:
-		err = writer.WriteField("paused", "true")
-	case UnpausePipeline:
-		err = writer.WriteField("paused", "false")
-	}
-	if err != nil {
-		failWithErrorf("error building request", err)
-	}
-
-	writer.Close()
-
-	return atcConfig.handler.CreateOrUpdatePipelineConfig(
-		atcConfig.pipelineName,
-		existingConfigVersion,
-		body,
-		writer.FormDataContentType(),
-	)
+	return newConfig
 }
 
 func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool, paused PipelineAction) {
