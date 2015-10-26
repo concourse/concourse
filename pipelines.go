@@ -30,3 +30,20 @@ func (handler AtcHandler) DeletePipeline(pipelineName string) (bool, error) {
 	}
 
 }
+
+func (handler AtcHandler) PausePipeline(pipelineName string) (bool, error) {
+	params := map[string]string{"pipeline_name": pipelineName}
+	err := handler.client.Send(Request{
+		RequestName: atc.PausePipeline,
+		Params:      params,
+	}, nil)
+
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
+	}
+}
