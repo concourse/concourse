@@ -76,18 +76,20 @@ case $1 in
       <% p("atc.github_auth.authorize").each do |a| %> \
         <% if org = a["organization"] %> \
           <% if a["teams"] == "all" %> \
-      --github-auth-organization <%= org %> \
+      --github-auth-organization <%= esc(org) %> \
           <% elsif a["teams"].respond_to?(:each) %> \
             <% a["teams"].each do |team| %> \
-      --github-auth-team <%= org + "/" + team %> \
+      --github-auth-team <%= esc("#{org}/#{team}") %> \
             <% end %> \
           <% elsif a["teams"].nil? %> \
             <% raise "teams for organization '#{org}' must be specified; use 'all' for all teams" %> \
           <% else %> \
             <% raise "invalid teams for organization '#{org}': '#{a["teams"].inspect}" %> \
           <% end %> \
+        <% elsif user = a["user"] %> \
+      --github-auth-user <%= esc(user) %> \
         <% else %> \
-          <% raise "organization not specified" %> \
+          <% raise "organization or user not specified" %> \
         <% end %> \
       <% end %> \
       --github-auth-client-id <%= esc(p("atc.github_auth.client_id")) %> \

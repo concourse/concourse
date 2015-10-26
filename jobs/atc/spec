@@ -32,13 +32,15 @@ properties:
     default: ""
 
   atc.github_auth.authorize:
-    description: |
-      organization/team pairs to authorize
-
-      each entry is of the form `{organization: ORGNAME, teams: [TEAM1, TEAM2]}`.
-
-      to permit all teams in an organization, specify `all` instead of the array.
+    description: "users, organizations, and teams to authorize"
     default: []
+    example:
+    - organization: org1
+      teams: all
+    - organization: org2
+      teams: [Team 1, Team 2]
+    - user: user1
+    - user: user2
 
   atc.github_auth.client_id:
     description: "github client ID to use for OAuth"
