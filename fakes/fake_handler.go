@@ -2,7 +2,6 @@
 package fakes
 
 import (
-	"bytes"
 	"io"
 	"sync"
 
@@ -65,13 +64,13 @@ type FakeHandler struct {
 		result1 atc.Build
 		result2 error
 	}
-	CreateOrUpdatePipelineConfigStub        func(pipelineName string, configVersion string, buffer *bytes.Buffer, contentType string) (bool, bool, error)
+	CreateOrUpdatePipelineConfigStub        func(pipelineName string, configVersion string, passedConfig atc.Config, paused *bool) (bool, bool, error)
 	createOrUpdatePipelineConfigMutex       sync.RWMutex
 	createOrUpdatePipelineConfigArgsForCall []struct {
 		pipelineName  string
 		configVersion string
-		buffer        *bytes.Buffer
-		contentType   string
+		passedConfig  atc.Config
+		paused        *bool
 	}
 	createOrUpdatePipelineConfigReturns struct {
 		result1 bool
@@ -385,17 +384,17 @@ func (fake *FakeHandler) CreateBuildReturns(result1 atc.Build, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeHandler) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, buffer *bytes.Buffer, contentType string) (bool, bool, error) {
+func (fake *FakeHandler) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config, paused *bool) (bool, bool, error) {
 	fake.createOrUpdatePipelineConfigMutex.Lock()
 	fake.createOrUpdatePipelineConfigArgsForCall = append(fake.createOrUpdatePipelineConfigArgsForCall, struct {
 		pipelineName  string
 		configVersion string
-		buffer        *bytes.Buffer
-		contentType   string
-	}{pipelineName, configVersion, buffer, contentType})
+		passedConfig  atc.Config
+		paused        *bool
+	}{pipelineName, configVersion, passedConfig, paused})
 	fake.createOrUpdatePipelineConfigMutex.Unlock()
 	if fake.CreateOrUpdatePipelineConfigStub != nil {
-		return fake.CreateOrUpdatePipelineConfigStub(pipelineName, configVersion, buffer, contentType)
+		return fake.CreateOrUpdatePipelineConfigStub(pipelineName, configVersion, passedConfig, paused)
 	} else {
 		return fake.createOrUpdatePipelineConfigReturns.result1, fake.createOrUpdatePipelineConfigReturns.result2, fake.createOrUpdatePipelineConfigReturns.result3
 	}
@@ -407,10 +406,10 @@ func (fake *FakeHandler) CreateOrUpdatePipelineConfigCallCount() int {
 	return len(fake.createOrUpdatePipelineConfigArgsForCall)
 }
 
-func (fake *FakeHandler) CreateOrUpdatePipelineConfigArgsForCall(i int) (string, string, *bytes.Buffer, string) {
+func (fake *FakeHandler) CreateOrUpdatePipelineConfigArgsForCall(i int) (string, string, atc.Config, *bool) {
 	fake.createOrUpdatePipelineConfigMutex.RLock()
 	defer fake.createOrUpdatePipelineConfigMutex.RUnlock()
-	return fake.createOrUpdatePipelineConfigArgsForCall[i].pipelineName, fake.createOrUpdatePipelineConfigArgsForCall[i].configVersion, fake.createOrUpdatePipelineConfigArgsForCall[i].buffer, fake.createOrUpdatePipelineConfigArgsForCall[i].contentType
+	return fake.createOrUpdatePipelineConfigArgsForCall[i].pipelineName, fake.createOrUpdatePipelineConfigArgsForCall[i].configVersion, fake.createOrUpdatePipelineConfigArgsForCall[i].passedConfig, fake.createOrUpdatePipelineConfigArgsForCall[i].paused
 }
 
 func (fake *FakeHandler) CreateOrUpdatePipelineConfigReturns(result1 bool, result2 bool, result3 error) {

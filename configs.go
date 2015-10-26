@@ -2,8 +2,11 @@ package atcclient
 
 import (
 	"bytes"
+	"mime/multipart"
+	"net/textproto"
 
 	"github.com/concourse/atc"
+	"gopkg.in/yaml.v2"
 )
 
 func (handler AtcHandler) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
@@ -35,15 +38,47 @@ func (handler AtcHandler) PipelineConfig(pipelineName string) (atc.Config, strin
 	}
 }
 
-func (handler AtcHandler) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, buffer *bytes.Buffer, contentType string) (bool, bool, error) {
+func (handler AtcHandler) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config, paused *bool) (bool, bool, error) {
 	params := map[string]string{"pipeline_name": pipelineName}
 	response := Response{}
-	err := handler.client.Send(Request{
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	yamlWriter, err := writer.CreatePart(
+		textproto.MIMEHeader{
+			"Content-type": {"application/x-yaml"},
+		},
+	)
+	if err != nil {
+		return false, false, err
+	}
+
+	rawConfig, err := yaml.Marshal(passedConfig)
+	if err != nil {
+		return false, false, err
+	}
+
+	_, err = yamlWriter.Write(rawConfig)
+
+	if paused != nil {
+		if *paused {
+			err = writer.WriteField("paused", "true")
+		} else {
+			err = writer.WriteField("paused", "false")
+		}
+		if err != nil {
+			return false, false, err
+		}
+	}
+
+	writer.Close()
+
+	err = handler.client.Send(Request{
 		RequestName: atc.SaveConfig,
 		Params:      params,
-		Body:        buffer,
+		Body:        body,
 		Headers: map[string][]string{
-			"Content-Type":          {contentType},
+			"Content-Type":          {writer.FormDataContentType()},
 			atc.ConfigVersionHeader: {configVersion},
 		},
 	},
@@ -56,5 +91,6 @@ func (handler AtcHandler) CreateOrUpdatePipelineConfig(pipelineName string, conf
 	if response.Created {
 		return true, false, nil
 	}
+
 	return false, true, nil
 }
