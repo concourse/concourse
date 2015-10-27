@@ -225,7 +225,7 @@ flag. Once you've learned what the commands do, you may want to consult
   }
 }
 
-\section{\code{pipelines}\aux{: Listing configured pipelines}}{
+\section{\code{pipelines}\aux{: Listing configured pipelines}}{fly-pipelines}{
   To list the currently-configured pipelines and their paused state, run:
 
   \codeblock{bash}{
@@ -233,7 +233,7 @@ flag. Once you've learned what the commands do, you may want to consult
   }
 }
 
-\section{\code{pause-pipeline}\aux{: Preventing new pipeline activity}}{
+\section{\code{pause-pipeline}\aux{: Preventing new pipeline activity}}{fly-pause-pipeline}{
   To pause a pipeline, run:
 
   \codeblock{bash}{
@@ -244,7 +244,7 @@ flag. Once you've learned what the commands do, you may want to consult
   for new versions of resources. Builds that are in-flight will still finish.
 }
 
-\section{\code{unpause-pipeline}\aux{: Resuming pipeline activity}}{
+\section{\code{unpause-pipeline}\aux{: Resuming pipeline activity}}{fly-unpause-pipeline}{
   To unpause a pipeline, run:
 
   \codeblock{bash}{
@@ -359,7 +359,7 @@ flag. Once you've learned what the commands do, you may want to consult
   }
 }
 
-\section{\code{containers}\aux{: Listing active containers}}{
+\section{\code{containers}\aux{: Listing active containers}}{fly-containers}{
   To list the active containers across all your workers, run:
 
   \codeblock{bash}{
@@ -463,7 +463,7 @@ flag. Once you've learned what the commands do, you may want to consult
   recent build of the specified job will be selected.
 }
 
-\section{\code{workers}\aux{: Listing registered workers}}{
+\section{\code{workers}\aux{: Listing registered workers}}{fly-workers}{
   To list the currently registered workers, including additional metadata, run:
 
   \codeblock{bash}{
@@ -475,7 +475,7 @@ flag. Once you've learned what the commands do, you may want to consult
   containers, etc.
 }
 
-\section{\code{volumes}\aux{: Listing active volumes}}{
+\section{\code{volumes}\aux{: Listing active volumes}}{fly-volumes}{
   To list the active volumes across all your workers, run:
 
   \codeblock{bash}{
