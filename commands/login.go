@@ -16,22 +16,6 @@ type LoginCommand struct {
 	Insecure bool   `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
 }
 
-var loginCommand LoginCommand
-
-func init() {
-	command, err := Parser.AddCommand(
-		"login",
-		"Authenticate with the target",
-		"",
-		&loginCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	command.Aliases = []string{"l"}
-}
-
 func (command *LoginCommand) Execute(args []string) error {
 	var client atcclient.Client
 	var err error

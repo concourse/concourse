@@ -30,22 +30,6 @@ type ExecuteCommand struct {
 	InputsFrom     JobFlag         `short:"j" long:"inputs-from" value-name:"[PIPELINE/]JOB" description:"A job to base the inputs on"`
 }
 
-var executeCommand ExecuteCommand
-
-func init() {
-	execute, err := Parser.AddCommand(
-		"execute",
-		"Execute a one-off build using local bits",
-		"",
-		&executeCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	execute.Aliases = []string{"e"}
-}
-
 func (command *ExecuteCommand) Execute(args []string) error {
 	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {

@@ -12,22 +12,6 @@ type DestroyPipelineCommand struct {
 	Pipeline string `short:"p"  long:"pipeline" required:"true" description:"Pipeline to destroy"`
 }
 
-var destroyPipelineCommand DestroyPipelineCommand
-
-func init() {
-	destroyPipeline, err := Parser.AddCommand(
-		"destroy-pipeline",
-		"Destroy a pipeline",
-		"",
-		&destroyPipelineCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	destroyPipeline.Aliases = []string{"dp"}
-}
-
 func (command *DestroyPipelineCommand) Execute(args []string) error {
 	pipelineName := command.Pipeline
 

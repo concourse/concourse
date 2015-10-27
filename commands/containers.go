@@ -15,22 +15,6 @@ import (
 
 type ContainersCommand struct{}
 
-var containersCommand ContainersCommand
-
-func init() {
-	containers, err := Parser.AddCommand(
-		"containers",
-		"Print the running containers",
-		"",
-		&containersCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	containers.Aliases = []string{"cs"}
-}
-
 func (command *ContainersCommand) Execute([]string) error {
 	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {

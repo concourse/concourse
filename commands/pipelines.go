@@ -12,22 +12,6 @@ import (
 
 type PipelinesCommand struct{}
 
-var pipelinesCommand PipelinesCommand
-
-func init() {
-	command, err := Parser.AddCommand(
-		"pipelines",
-		"Print the configured pipelines",
-		"",
-		&pipelinesCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	command.Aliases = []string{"ps"}
-}
-
 func (command *PipelinesCommand) Execute([]string) error {
 	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {

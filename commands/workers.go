@@ -18,22 +18,6 @@ type WorkersCommand struct {
 	Details bool `short:"d" long:"details" description:"Print additional information for each worker"`
 }
 
-var workersCommand WorkersCommand
-
-func init() {
-	workers, err := Parser.AddCommand(
-		"workers",
-		"Print the registered workers",
-		"",
-		&workersCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	workers.Aliases = []string{"ws"}
-}
-
 func (command *WorkersCommand) Execute([]string) error {
 	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {

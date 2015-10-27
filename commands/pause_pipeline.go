@@ -12,22 +12,6 @@ type PausePipelineCommand struct {
 	Pipeline string `short:"p"  long:"pipeline" required:"true" description:"Pipeline to pause"`
 }
 
-var pausePipelineCommand PausePipelineCommand
-
-func init() {
-	configure, err := Parser.AddCommand(
-		"pause-pipeline",
-		"Pauses pipeline",
-		"",
-		&pausePipelineCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	configure.Aliases = []string{"pp"}
-}
-
 func (command *PausePipelineCommand) Execute(args []string) error {
 	pipelineName := command.Pipeline
 

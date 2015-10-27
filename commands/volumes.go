@@ -17,22 +17,6 @@ import (
 
 type VolumesCommand struct{}
 
-var volumesCommand VolumesCommand
-
-func init() {
-	volumes, err := Parser.AddCommand(
-		"volumes",
-		"Print the volumes present across your workers",
-		"",
-		&volumesCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	volumes.Aliases = []string{"vs"}
-}
-
 func (command *VolumesCommand) Execute([]string) error {
 	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {

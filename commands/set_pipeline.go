@@ -18,22 +18,6 @@ type SetPipelineCommand struct {
 	Paused   string             `long:"paused"         value-name:"[true/false]" description:"Should the pipeline start out as paused or unpaused"`
 }
 
-var setPipelineCommand SetPipelineCommand
-
-func init() {
-	configure, err := Parser.AddCommand(
-		"set-pipeline",
-		"Update pipeline configuration",
-		"",
-		&setPipelineCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	configure.Aliases = []string{"sp"}
-}
-
 func (command *SetPipelineCommand) Execute(args []string) error {
 	configPath := command.Config
 	templateVariablesFiles := command.VarsFrom

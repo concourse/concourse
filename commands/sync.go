@@ -13,22 +13,6 @@ import (
 
 type SyncCommand struct{}
 
-var syncCommand SyncCommand
-
-func init() {
-	sync, err := Parser.AddCommand(
-		"sync",
-		"Download and replace the current fly from the target",
-		"",
-		&syncCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	sync.Aliases = []string{"s"}
-}
-
 func (command *SyncCommand) Execute(args []string) error {
 	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {

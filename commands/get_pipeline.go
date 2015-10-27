@@ -18,22 +18,6 @@ type GetPipelineCommand struct {
 	JSON     bool   `short:"j" long:"json"                     description:"Print config as json instead of yaml"`
 }
 
-var getPipelineCommand GetPipelineCommand
-
-func init() {
-	configure, err := Parser.AddCommand(
-		"get-pipeline",
-		"Dowload pipeline configuration",
-		"",
-		&getPipelineCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	configure.Aliases = []string{"gp"}
-}
-
 func (command *GetPipelineCommand) Execute(args []string) error {
 	asJSON := command.JSON
 	pipelineName := command.Pipeline

@@ -9,23 +9,7 @@ import (
 )
 
 type UnpausePipelineCommand struct {
-	Pipeline string `short:"p"  long:"pipeline" required:"true" description:"Pipeline to unpause"`
-}
-
-var unpausePipelineCommand UnpausePipelineCommand
-
-func init() {
-	configure, err := Parser.AddCommand(
-		"unpause-pipeline",
-		"Unpauses pipeline",
-		"",
-		&unpausePipelineCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	configure.Aliases = []string{"up"}
+	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Pipeline to unpause"`
 }
 
 func (command *UnpausePipelineCommand) Execute(args []string) error {

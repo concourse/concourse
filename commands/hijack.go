@@ -32,23 +32,6 @@ type HijackCommand struct {
 	StepName string       `short:"s" long:"step"                                description:"Name of step to hijack (e.g. build, unit, resource name)"`
 }
 
-var hijackCommand HijackCommand
-
-func init() {
-
-	hijack, err := Parser.AddCommand(
-		"hijack",
-		"Execute an interactive command in a build's container",
-		"",
-		&hijackCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	hijack.Aliases = []string{"intercept", "i"}
-}
-
 func remoteCommand(argv []string) (string, []string) {
 	var path string
 	var args []string

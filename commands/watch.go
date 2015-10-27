@@ -15,21 +15,6 @@ type WatchCommand struct {
 	Build string  `short:"b" long:"build"                               description:"Watches a specific build"`
 }
 
-var watchCommand WatchCommand
-
-func init() {
-	watch, err := Parser.AddCommand(
-		"watch",
-		"Stream a build's log",
-		"",
-		&watchCommand,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	watch.Aliases = []string{"w"}
-}
 func (command *WatchCommand) Execute(args []string) error {
 	client, err := rc.TargetClient(globalOptions.Target)
 	if err != nil {
