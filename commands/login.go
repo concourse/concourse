@@ -23,7 +23,7 @@ func (command *LoginCommand) Execute(args []string) error {
 	if command.ATCURL != "" {
 		client, err = rc.NewClient(command.ATCURL, command.Insecure)
 	} else {
-		client, err = rc.TargetClient(globalOptions.Target)
+		client, err = rc.TargetClient(Fly.Target)
 	}
 
 	if err != nil {
@@ -133,7 +133,7 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client atcclient.C
 	}
 
 	err := rc.SaveTarget(
-		globalOptions.Target,
+		Fly.Target,
 		client.URL(),
 		command.Insecure,
 		&rc.TargetToken{

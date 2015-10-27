@@ -15,7 +15,7 @@ type UnpausePipelineCommand struct {
 func (command *UnpausePipelineCommand) Execute(args []string) error {
 	pipelineName := command.Pipeline
 
-	client, err := rc.TargetClient(globalOptions.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil

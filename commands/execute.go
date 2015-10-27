@@ -31,7 +31,7 @@ type ExecuteCommand struct {
 }
 
 func (command *ExecuteCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(globalOptions.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil

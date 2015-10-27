@@ -41,7 +41,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		paused = DoNotChangePipeline
 	}
 
-	client, err := rc.TargetClient(globalOptions.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil

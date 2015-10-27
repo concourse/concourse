@@ -159,7 +159,7 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 		checkName:    check,
 	}
 
-	client, err := rc.TargetClient(globalOptions.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln("failed to create client:", err)
 	}
@@ -178,7 +178,7 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 }
 
 func (command *HijackCommand) Execute(args []string) error {
-	target, err := rc.SelectTarget(globalOptions.Target)
+	target, err := rc.SelectTarget(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil

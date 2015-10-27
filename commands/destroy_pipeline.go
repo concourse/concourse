@@ -24,7 +24,7 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	client, err := rc.TargetClient(globalOptions.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		return err
 	}

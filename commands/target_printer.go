@@ -11,6 +11,6 @@ type targetPrinter struct {
 }
 
 func (command *targetPrinter) Execute(args []string) error {
-	fmt.Println("currently targeting", globalOptions.Target)
+	fmt.Println("currently targeting", Fly.Target)
 	return command.Commander.Execute(args)
 }

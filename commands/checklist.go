@@ -15,7 +15,7 @@ type ChecklistCommand struct {
 }
 
 func (command *ChecklistCommand) Execute([]string) error {
-	client, err := rc.TargetClient(globalOptions.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}

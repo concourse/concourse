@@ -5,10 +5,13 @@ import (
 	"os"
 
 	"github.com/concourse/fly/commands"
+	"github.com/jessevdk/go-flags"
 )
 
 func main() {
-	_, err := commands.Parser.Parse()
+	parser := flags.NewParser(&commands.Fly, flags.HelpFlag|flags.PassDoubleDash)
+
+	_, err := parser.Parse()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		os.Exit(1)

@@ -22,7 +22,7 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 	asJSON := command.JSON
 	pipelineName := command.Pipeline
 
-	client, err := rc.TargetClient(globalOptions.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}

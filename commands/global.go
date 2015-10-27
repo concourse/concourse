@@ -1,8 +1,6 @@
 package commands
 
-import "github.com/jessevdk/go-flags"
-
-type GlobalOptions struct {
+type FlyCommand struct {
 	Target string `short:"t" long:"target" description:"Concourse target name or URL" default:"http://192.168.50.4:8080"`
 
 	Login LoginCommand `command:"login" alias:"l" description:"Authenticate with the target"`
@@ -27,6 +25,4 @@ type GlobalOptions struct {
 	Workers WorkersCommand `command:"workers" alias:"ws" description:"List the registered workers"`
 }
 
-var globalOptions GlobalOptions
-
-var Parser = flags.NewParser(&globalOptions, flags.HelpFlag|flags.PassDoubleDash)
+var Fly FlyCommand
