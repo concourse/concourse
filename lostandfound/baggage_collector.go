@@ -13,6 +13,8 @@ import (
 
 const NoRelevantVersionsTTL = 10 * time.Minute
 
+//go:generate counterfeiter . BaggageCollectorDB
+
 type BaggageCollectorDB interface {
 	GetAllActivePipelines() ([]db.SavedPipeline, error)
 	GetVolumes() ([]db.SavedVolume, error)
@@ -172,7 +174,6 @@ func (bc *baggageCollector) expireVolumes(resourceHashVersions resourceHashVersi
 		}
 
 		volume.Release(ttlForVol)
-
 		err = bc.db.SetVolumeTTL(volumeToExpire, ttlForVol)
 		if err != nil {
 			bc.logger.Error("failed-to-update-tll-in-db", err)
