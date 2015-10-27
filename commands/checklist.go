@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"log"
-	"net/url"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/atcclient"
@@ -28,26 +27,26 @@ func (command *ChecklistCommand) Execute([]string) error {
 		log.Fatalln(err)
 	}
 
-	printCheckfile(pipelineName, config, newTarget(connection.URL()))
+	printCheckfile(pipelineName, config, connection.URL())
 
 	return nil
 }
 
-func printCheckfile(pipelineName string, config atc.Config, au target) {
+func printCheckfile(pipelineName string, config atc.Config, url string) {
 	for _, group := range config.Groups {
-		printGroup(pipelineName, group, au)
+		printGroup(pipelineName, group, url)
 	}
 
 	miscJobs := orphanedJobs(config)
 	if len(miscJobs) > 0 {
-		printGroup(pipelineName, atc.GroupConfig{Name: "misc", Jobs: miscJobs}, au)
+		printGroup(pipelineName, atc.GroupConfig{Name: "misc", Jobs: miscJobs}, url)
 	}
 }
 
-func printGroup(pipelineName string, group atc.GroupConfig, au target) {
+func printGroup(pipelineName string, group atc.GroupConfig, url string) {
 	fmt.Printf("#- %s\n", group.Name)
 	for _, job := range group.Jobs {
-		fmt.Printf("%s: concourse.check %s %s %s %s %s\n", job, au.url, au.username, au.password, pipelineName, job)
+		fmt.Printf("%s: concourse.check %s %s %s\n", job, url, pipelineName, job)
 	}
 	fmt.Println("")
 }
@@ -70,31 +69,4 @@ func orphanedJobs(config atc.Config) []string {
 	}
 
 	return result
-}
-
-type target struct {
-	url      string
-	username string
-	password string
-}
-
-func newTarget(rawTarget string) target {
-	u, err := url.Parse(rawTarget)
-	if err != nil {
-		log.Fatalln("invalid target '%s': %s\n", rawTarget, err.Error())
-	}
-
-	var username, password string
-	if user := u.User; user != nil {
-		username = u.User.Username()
-		password, _ = u.User.Password()
-	}
-	u.User = nil
-	url := u.String()
-
-	return target{
-		url:      url,
-		username: username,
-		password: password,
-	}
 }
