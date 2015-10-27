@@ -1,6 +1,6 @@
 #language anatomy
 
-\title{v0.65.0}
+\title{v0.66.0}
 
 \list{
   GitHub OAuth support! Basic auth has gotten us pretty far, and is still
@@ -40,9 +40,9 @@
   }{
     \reference{fly-pause-pipeline} and \reference{fly-unpause-pipeline} have
     been added, and the \code{--paused} flag previously present on \code{fly
-    configure} (now \reference{fly-set-pipeline) has been removed
+    configure} (now \reference{fly-set-pipeline}) has been removed
   }{
-    \reference{fly-unpause-pipeline} lists the volumes present across your workers
+    \reference{fly-volumes} lists the volumes present across your workers
   }
 
   ...and the rest of the commands have had slight tweaks to how they handle
