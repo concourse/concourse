@@ -23,10 +23,10 @@ flag. Once you've learned what the commands do, you may want to consult
   Once you've deployed Concourse you can tell \code{fly} to target it via the
   \code{--target} flag. For example, if we wanted to run \code{fly sync} (don't
   worry what this means just yet) while pointing at Concourse that you normally
-  reach by going to \code{http://ci.example.com} then you could run:
+  reach by going to \code{https://ci.example.com} then you could run:
 
   \codeblock{bash}{
-  $ fly --target 'http://ci.example.com' sync
+  $ fly --target 'https://ci.example.com' sync
   }
 
   \margin-note{
@@ -35,42 +35,57 @@ flag. Once you've learned what the commands do, you may want to consult
     boxes to deploy Concourse.
   }
 
-  The single quotes aren't always required, but if you need to put HTTP basic
-  authentication credentials inline, then they can help by avoiding the need to
-  escape special characters in passwords. For example:
+  The next step you'll want to do is authenticate with your target. This is
+  done with the \reference{fly-login} command. This is also useful to save
+  targets under a more convenient alias, so you don't have to type out the URL
+  all the time:
 
   \codeblock{bash}{
-  $ fly --target 'http://username:p@$$w0rd@ci.example.com' sync
+  $ fly --target new-name login --concourse 'https://ci.example.com'
   }
 
-  If your Concourse uses SSL but does not have a CA signed certificate, you
-  can use the \code{-k} or \code{--insecure} flag in order to make \code{fly}
-  not check the remote certificates.
+  After you've done this you can use \code{--target new-name} to run a command
+  against the saved target \code{new-name}. See \reference{fly-login} for more
+  information.
 
   For the rest of this document it is assumed you are setting the target in
   each of the commands and so it will not be included for brevity.
 }
 
-\section{\code{save-target}\aux{: Saving Concourse Targets}}{fly-save-target}{
-  Using \code{save-target} allows you to save a named target to a \code{.flyrc}
-  file stored in your home directory, so that you don't have to repeat the full
-  URL for every command. Passing the name of a saved target via \code{--target}
-  (or \code{-t} for short) will look up its details from your \code{.flyrc} and
-  use them in the call specified.
+\section{\code{login}\aux{: Authenticating with and saving Concourse targets}}{fly-login}{
+  The \code{login} command serves double duty: it authenticates with a given
+  endpoint, and saves it under a more convenient name. The name and token are
+  stored in \code{~/.flyrc} (though you shouldn't really edit the file
+  manually).
 
-  The \code{--api} flag and a target name are the only two properties required
-  to save a target:
-
-  \codeblock{bash}{
-  $ fly save-target --name my-target --api https://example.com
-  }
-
-  The full set of properties can be specified as such:
+  So, to log in to an endpoint served at \code{https://ci.example.com} and save
+  it as the more convenient name \code{example}, you would run:
 
   \codeblock{bash}{
-  $ fly save-target --name my-target --api https://example.com --username my-user
-  --password my-password
+  $ fly --target example login --concourse https://ci.example.com
   }
+
+  The \code{login} command will see which authentication methods are available
+  at the endpoint and prompt you to choose one. For basic auth, it will ask
+  your username and password and use them to acquire a token. For OAuth, it
+  will give you a link to click, and after you've gone through the OAuth flow
+  it will print an OAuth token on the page that you can then then copy and
+  paste into the prompt.
+
+  In either case, a token is saved in your \code{~/.flyrc}, which will expire
+  after one day.
+
+  If your Concourse uses SSL but does not have a certificate signed by a
+  trusted CA, you can use the \code{-k} or \code{--insecure} flag in order to
+  make \code{fly} not check the remote certificates, like so.
+
+  \codeblock{bash}{
+  $ fly -t example login -c https://ci.example.com -k
+  }
+
+  Note that if no authentication methods are configured (e.g. when targeting a
+  \code{concourse/lite} Vagrant box), it will just save the target with no
+  token. You can then use the alias like normal.
 }
 
 \section{\code{sync}\aux{: Update your local copy of \code{fly}}}{fly-sync}{
@@ -218,6 +233,27 @@ flag. Once you've learned what the commands do, you may want to consult
   }
 }
 
+\section{\code{pause-pipeline}\aux{: Preventing new pipeline activity}}{
+  To pause a pipeline, run:
+
+  \codeblock{bash}{
+  $ fly pause-pipeline --pipeline my-pipeline
+  }
+
+  This will prevent jobs from being scheduled and stop the periodic checking
+  for new versions of resources. Builds that are in-flight will still finish.
+}
+
+\section{\code{unpause-pipeline}\aux{: Resuming pipeline activity}}{
+  To unpause a pipeline, run:
+
+  \codeblock{bash}{
+  $ fly unpause-pipeline --pipeline my-pipeline
+  }
+
+  This will resume job scheduling and resource checking.
+}
+
 \section{\code{get-pipeline}\aux{: Fetching a pipeline's configuration}}{fly-get-pipeline}{
   Fly can be used to fetch and update the configuration for your pipelines. This
   is achieved by using the \reference{fly-get-pipeline} and
@@ -251,8 +287,8 @@ flag. Once you've learned what the commands do, you may want to consult
   Tip: you can use
   \hyperlink{https://en.wikipedia.org/wiki/Process_substitution}{process
   substitution} to quickly replicate a pipeline, potentially between Concourse
-  instances, by composing \reference{get-pipeline} and \reference{set-pipeline}
-  together like so:
+  instances, by composing \reference{fly-get-pipeline} and
+  \reference{fly-set-pipeline} together like so:
 
   \codeblock{bash}{
   $ fly -t new set-pipeline -c <(fly -t old get-pipeline -p foo) -p foo
@@ -331,7 +367,7 @@ flag. Once you've learned what the commands do, you may want to consult
   }
 
   This can be useful when discovering the containers available for
-  \reference{intercept}ing.
+  \reference{fly-intercept}ing.
 }
 
 \section{\code{intercept}\aux{: Accessing a running or recent build's steps}}{fly-intercept}{
