@@ -2,8 +2,8 @@
 name: atc
 
 description: |
-  ATC (Air Traffic Controller) provides UI and API access.
-  It is responsible for scheduling builds.
+  The ATC (Air Traffic Controller) provides UI and API access. It is
+  responsible for scheduling builds and detecting versions of your resources.
 
 templates:
   atc_ctl.erb: bin/atc_ctl
@@ -16,24 +16,83 @@ packages:
 
 properties:
   atc.web_bind_ip:
-    description: "address for the web server to listen on"
+    description: |
+      IP address for the web server to listen on.
     default: 0.0.0.0
 
   atc.web_bind_port:
-    description: "port for the web server to listen on"
+    description: |
+      Port for the web server to listen on.
     default: 8080
 
+  atc.external_url:
+    description: |
+      Externally reachable URL of the ATCs. Required for OAuth.
+
+      Typically this is the URL that you as a user would use to reach your CI.
+      For multiple ATCs it would go to some sort of load balancer.
+    default: ""
+
+  atc.peer_url:
+    description: |
+      Address used internally to reach the ATC. This will be auto-generated
+      using the IP of each ATC VM if not specified.
+
+      Note that this refers to an *individual ATC*, not the whole cluster. This
+      property is only useful if you're deploying in a way that cannot
+      autodetect its own IP, e.g. a `bosh-init` deployment.
+
+      You should otherwise leave this value blank.
+
+  atc.publicly_viewable:
+    description: |
+      Allow viewing of pipelines as an anonymous user. Destructive operations
+      still require auth, and the output of builds will only be visible if
+      their job is configured with `public: true`.
+
+      This is useful for open-source projects, or as a convenience to make
+      monitoring your pipeline status easier.
+    default: false
+
+  atc.development_mode:
+    description: |
+      Loosen up security for development purposes. This allows the ATC to be
+      configured with no authentication methods.
+    default: false
+
   atc.basic_auth_username:
-    description: "username for http basic auth"
+    description: |
+      Username for HTTP basic auth.
     default: ""
 
   atc.basic_auth_password:
-    description: "plaintext password for http basic auth"
+    description: |
+      Password for HTTP basic auth, in plaintext.
+    default: ""
+
+  atc.github_auth.client_id:
+    description: |
+      GitHub client ID to use for OAuth.
+
+      The application must be configured with its callback URL as
+      `{atc.external_url}/auth/github/callback` (replacing `{atc.external_url}`
+      with the actual value).
+    default: ""
+
+  atc.github_auth.client_secret:
+    description: |
+      GitHub client secret to use for OAuth.
+
+      The application must be configured with its callback URL as
+      `{atc.external_url}/auth/github/callback` (replacing `{atc.external_url}`
+      with the actual value).
     default: ""
 
   atc.github_auth.authorize:
-    description: "users, organizations, and teams to authorize"
     default: []
+    description: |
+      An array of different criteria to check for when authorizing a GitHub
+      user. If empty, GitHub authorization is effectively disabled.
     example:
     - organization: org1
       teams: all
@@ -42,70 +101,66 @@ properties:
     - user: user1
     - user: user2
 
-  atc.github_auth.client_id:
-    description: "github client ID to use for OAuth"
-    default: ""
-
-  atc.github_auth.client_secret:
-    description: "github client secret to use for OAuth"
-    default: ""
-
-  atc.external_url:
-    description: "externally reachable URL of the ATC. required for OAuth."
-    default: ""
-
-  atc.development_mode:
-    description: "loosen up security for development purposes"
-    default: false
-
-  atc.publicly_viewable:
-    description: "allow public viewing; destructive operations still require auth"
-    default: false
-
-  atc.peer_url:
-    description: "address reachable by workers to reach the ATC. auto-detected if omitted."
-
   atc.default_check_interval:
-    description: "how often to check for new versions of resources. keep rate limiting in mind."
+    description: |
+      The interval, in Go duration format (1m = 1 minute), on which to check
+      for new versions of resources.
+
+      This can also be specified on a per-resource basis by specifying
+      `check_every` on the resource config.
     default: 1m
 
   atc.yeller.api_key:
-    description: "api key from yeller to output errors from concourse to yeller"
+    description: |
+      If configured, errors emitted to the logs will also be emitted to Yeller.
+      This is only really useful for Concourse developers.
     default: ""
 
   atc.yeller.environment_name:
-    description: "environment name you wish to group errors under in yeller"
+    description: |
+      Environment name to specify for errors emitted to Yeller.
     default: ""
 
   atc.riemann.host:
-    description: "IP address or DNS name of a Riemann server to emit events to"
+    description: |
+      If configured, detailed metrics will be emitted to the specified Riemann
+      server.
     default: ""
 
   atc.riemann.port:
-    description: "Port of the Riemann server to emit events to"
+    description: |
+      Port of the Riemann server to emit events to.
     default: 5555
 
   atc.postgresql.address:
-    description: "address of the PostgreSQL server"
+    description: |
+      Address of the PostgreSQL server, in `HOST:PORT` format.
     default: postgresql.service.dc1.consul:5432
 
   atc.postgresql.database:
-    description: "name of the database to use"
+    description: |
+      Name of the database to use.
     default: atc
 
   atc.postgresql.role.name:
-    description: "name of role to connect with"
+    description: |
+      Name of role to connect with.
     default: atc
 
   atc.postgresql.role.password:
-    description: "password to use when connecting"
+    description: |
+      password to use when connecting.
 
   consul.agent.services.atc:
-    description: "this property auto-registers ATC as a service"
+    description: |
+      This property auto-configured `consul-agent` to register the ATC as a
+      service. You shouldn't need to touch it.
     default: {}
 
   blackbox.syslog.sources.atc:
-    description: "files whose contents blackbox will emit to its syslog drain"
+    description: |
+      This property auto-configures `blackbox` to emit ATC's logs to its syslog
+      drain. You shouldn't need to touch it.
     default:
       - /var/vcap/sys/log/atc/atc.stdout.log
       - /var/vcap/sys/log/atc/atc.stderr.log
