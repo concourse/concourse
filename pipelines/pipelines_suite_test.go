@@ -107,7 +107,6 @@ func configurePipeline(argv ...string) {
 		"-t", atcURL,
 		"set-pipeline",
 		"-p", pipelineName,
-		"--paused", "false",
 	}, argv...)
 
 	configureCmd := exec.Command(flyBin, args...)
@@ -124,6 +123,22 @@ func configurePipeline(argv ...string) {
 
 	fmt.Fprintf(stdin, "y\r")
 
+	Eventually(configure).Should(gexec.Exit(0))
+	unpausePipeline()
+}
+
+func unpausePipeline() {
+	unpauseCmd := exec.Command(flyBin, "-t", atcURL, "unpause-pipeline", "-p", pipelineName)
+
+	stdin, err := unpauseCmd.StdinPipe()
+	Expect(err).NotTo(HaveOccurred())
+
+	defer stdin.Close()
+
+	configure, err := gexec.Start(unpauseCmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred())
+
+	Eventually(configure).Should(gbytes.Say("unpaused '%s'", pipelineName))
 	Eventually(configure).Should(gexec.Exit(0))
 }
 
