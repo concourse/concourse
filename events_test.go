@@ -13,22 +13,22 @@ import (
 
 var _ = Describe("ATC Handler Events", func() {
 	Describe("Events", func() {
-		var fakeClient *fakes.FakeClient
+		var fakeConnection *fakes.FakeConnection
 
 		BeforeEach(func() {
-			fakeClient = new(fakes.FakeClient)
-			handler = atcclient.NewAtcHandler(fakeClient)
+			fakeConnection = new(fakes.FakeConnection)
+			client = atcclient.NewClient(fakeConnection)
 		})
 
 		It("returns events that can stream events", func() {
 			expectedEventStream := sse.EventSource{}
 			expectedBuildID := "1"
-			fakeClient.ConnectToEventStreamReturns(&expectedEventStream, nil)
+			fakeConnection.ConnectToEventStreamReturns(&expectedEventStream, nil)
 
-			_, err := handler.BuildEvents(expectedBuildID)
+			_, err := client.BuildEvents(expectedBuildID)
 			Expect(err).NotTo(HaveOccurred())
 
-			request := fakeClient.ConnectToEventStreamArgsForCall(0)
+			request := fakeConnection.ConnectToEventStreamArgsForCall(0)
 			Expect(request).To(Equal(atcclient.Request{
 				RequestName: atc.BuildEvents,
 				Params:      rata.Params{"build_id": expectedBuildID},

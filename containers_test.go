@@ -38,7 +38,7 @@ var _ = Describe("ATC Handler Containers", func() {
 			})
 
 			It("returns all the containers", func() {
-				containers, err := handler.ListContainers(map[string]string{})
+				containers, err := client.ListContainers(map[string]string{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(containers).To(Equal(expectedContainers))
 			})
@@ -72,7 +72,7 @@ var _ = Describe("ATC Handler Containers", func() {
 			})
 
 			It("returns the specified containers", func() {
-				containers, err := handler.ListContainers(expectedQueryList)
+				containers, err := client.ListContainers(expectedQueryList)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(containers).To(Equal(expectedContainers))
 			})

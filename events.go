@@ -11,8 +11,8 @@ type Events interface {
 	Close() error
 }
 
-func (handler AtcHandler) BuildEvents(buildID string) (Events, error) {
-	sseEvents, err := handler.client.ConnectToEventStream(Request{
+func (client *client) BuildEvents(buildID string) (Events, error) {
+	sseEvents, err := client.connection.ConnectToEventStream(Request{
 		RequestName: atc.BuildEvents,
 		Params:      rata.Params{"build_id": buildID},
 	})

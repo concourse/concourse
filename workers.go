@@ -2,9 +2,9 @@ package atcclient
 
 import "github.com/concourse/atc"
 
-func (handler AtcHandler) ListWorkers() ([]atc.Worker, error) {
+func (client *client) ListWorkers() ([]atc.Worker, error) {
 	var workers []atc.Worker
-	err := handler.client.Send(Request{
+	err := client.connection.Send(Request{
 		RequestName: atc.ListWorkers,
 	}, &Response{
 		Result: &workers,

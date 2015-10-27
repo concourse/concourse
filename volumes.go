@@ -2,9 +2,9 @@ package atcclient
 
 import "github.com/concourse/atc"
 
-func (handler AtcHandler) ListVolumes() ([]atc.Volume, error) {
+func (client *client) ListVolumes() ([]atc.Volume, error) {
 	var volumes []atc.Volume
-	err := handler.client.Send(Request{
+	err := client.connection.Send(Request{
 		RequestName: atc.ListVolumes,
 	}, &Response{
 		Result: &volumes,
