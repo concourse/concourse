@@ -126,6 +126,7 @@ func NewHandler(
 		atc.UnpauseJob:    pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob),
 
 		atc.ListPipelines:   http.HandlerFunc(pipelineServer.ListPipelines),
+		atc.GetPipeline:     http.HandlerFunc(pipelineServer.GetPipeline),
 		atc.DeletePipeline:  pipelineHandlerFactory.HandlerFor(pipelineServer.DeletePipeline),
 		atc.OrderPipelines:  http.HandlerFunc(pipelineServer.OrderPipelines),
 		atc.PausePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline),

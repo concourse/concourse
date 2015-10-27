@@ -76,6 +76,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.PauseResource:          authed(inputHandlers[atc.PauseResource]),
 				atc.UnpauseResource:        authed(inputHandlers[atc.UnpauseResource]),
 				atc.ListPipelines:          unauthed(inputHandlers[atc.ListPipelines]),
+				atc.GetPipeline:            unauthed(inputHandlers[atc.GetPipeline]),
 				atc.DeletePipeline:         authed(inputHandlers[atc.DeletePipeline]),
 				atc.OrderPipelines:         authed(inputHandlers[atc.OrderPipelines]),
 				atc.PausePipeline:          authed(inputHandlers[atc.PausePipeline]),

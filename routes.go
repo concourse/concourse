@@ -27,6 +27,7 @@ const (
 	UnpauseResource        = "UnpauseResource"
 
 	ListPipelines   = "ListPipelines"
+	GetPipeline     = "GetPipeline"
 	DeletePipeline  = "DeletePipeline"
 	OrderPipelines  = "OrderPipelines"
 	PausePipeline   = "PausePipeline"
@@ -73,6 +74,7 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name/unpause", Method: "PUT", Name: UnpauseJob},
 
 	{Path: "/api/v1/pipelines", Method: "GET", Name: ListPipelines},
+	{Path: "/api/v1/pipelines/:pipeline_name", Method: "GET", Name: GetPipeline},
 	{Path: "/api/v1/pipelines/:pipeline_name", Method: "DELETE", Name: DeletePipeline},
 	{Path: "/api/v1/pipelines/ordering", Method: "PUT", Name: OrderPipelines},
 	{Path: "/api/v1/pipelines/:pipeline_name/pause", Method: "PUT", Name: PausePipeline},

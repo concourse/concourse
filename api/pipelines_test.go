@@ -83,6 +83,67 @@ var _ = Describe("Pipelines API", func() {
 		})
 	})
 
+	Describe("GET /api/v1/pipelines/:pipeline_name", func() {
+		var response *http.Response
+
+		BeforeEach(func() {
+			pipelinesDB.GetPipelineByNameReturns(db.SavedPipeline{
+				ID:     1,
+				Paused: false,
+				Pipeline: db.Pipeline{
+					Name: "some-specific-pipeline",
+				},
+			}, nil)
+		})
+
+		JustBeforeEach(func() {
+			req, err := http.NewRequest("GET", server.URL+"/api/v1/pipelines/some-specific-pipeline", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			req.Header.Set("Content-Type", "application/json")
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 200 ok", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+
+		It("returns application/json", func() {
+			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+		})
+
+		It("returns a pipepine JSON", func() {
+			body, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(body).To(MatchJSON(`
+      {
+        "name": "some-specific-pipeline",
+        "url": "/pipelines/some-specific-pipeline",
+				"paused": false
+      }`))
+		})
+
+		Context("when the call to get pipeline fails", func() {
+			BeforeEach(func() {
+				pipelinesDB.GetPipelineByNameReturns(db.SavedPipeline{}, errors.New("disaster"))
+			})
+
+			It("returns 500 error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+
+		It("looks up the pipeline in the db via the url param", func() {
+			Expect(pipelinesDB.GetPipelineByNameCallCount()).To(Equal(1))
+
+			actualPipelineName := pipelinesDB.GetPipelineByNameArgsForCall(0)
+			Expect(actualPipelineName).To(Equal("some-specific-pipeline"))
+		})
+	})
+
 	Describe("DELETE /api/v1/pipelines/:pipeline_name", func() {
 		var response *http.Response
 		var pipelineDB *dbfakes.FakePipelineDB
