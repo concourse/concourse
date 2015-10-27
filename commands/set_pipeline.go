@@ -15,7 +15,6 @@ type SetPipelineCommand struct {
 	Config   PathFlag           `short:"c"  long:"config"                        description:"Pipeline configuration file"`
 	Var      []VariablePairFlag `short:"v"  long:"var" value-name:"[SECRET=KEY]" description:"Variable flag that can be used for filling in template values in configuration"`
 	VarsFrom []PathFlag         `short:"l"  long:"load-vars-from"                description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
-	Paused   string             `long:"paused"         value-name:"[true/false]" description:"Should the pipeline start out as paused or unpaused"`
 }
 
 func (command *SetPipelineCommand) Execute(args []string) error {
@@ -26,19 +25,6 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	templateVariables := template.Variables{}
 	for _, v := range command.Var {
 		templateVariables[v.Name] = v.Value
-	}
-
-	var paused PipelineAction
-	if command.Paused != "" {
-		if command.Paused == "true" {
-			paused = PausePipeline
-		} else if command.Paused == "false" {
-			paused = UnpausePipeline
-		} else {
-			failf(`invalid boolean value "%s" for --paused`, command.Paused)
-		}
-	} else {
-		paused = DoNotChangePipeline
 	}
 
 	connection, err := rc.TargetConnection(Fly.Target)
@@ -56,14 +42,6 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		client:              client,
 	}
 
-	atcConfig.Set(paused, configPath, templateVariables, templateVariablesFiles)
+	atcConfig.Set(configPath, templateVariables, templateVariablesFiles)
 	return nil
 }
-
-type PipelineAction int
-
-const (
-	PausePipeline PipelineAction = iota
-	UnpausePipeline
-	DoNotChangePipeline
-)

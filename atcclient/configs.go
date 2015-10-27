@@ -38,7 +38,7 @@ func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, b
 	}
 }
 
-func (client *client) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config, paused *bool) (bool, bool, error) {
+func (client *client) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config) (bool, bool, error) {
 	params := map[string]string{"pipeline_name": pipelineName}
 	response := Response{}
 	body := &bytes.Buffer{}
@@ -59,17 +59,6 @@ func (client *client) CreateOrUpdatePipelineConfig(pipelineName string, configVe
 	}
 
 	_, err = yamlWriter.Write(rawConfig)
-
-	if paused != nil {
-		if *paused {
-			err = writer.WriteField("paused", "true")
-		} else {
-			err = writer.WriteField("paused", "false")
-		}
-		if err != nil {
-			return false, false, err
-		}
-	}
 
 	writer.Close()
 

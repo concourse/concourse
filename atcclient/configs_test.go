@@ -225,7 +225,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns true for created and false for updated", func() {
-				created, updated, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, nil)
+				created, updated, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 				Expect(updated).To(BeFalse())
@@ -238,37 +238,11 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns false for created and true for updated", func() {
-				created, updated, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, nil)
+				created, updated, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeFalse())
 				Expect(updated).To(BeTrue())
 			})
-		})
-
-		Context("pausing and unpausing", func() {
-			BeforeEach(func() {
-				expectedPath := "/api/v1/pipelines/mypipeline/config"
-
-				atcServer.RouteToHandler("PUT", expectedPath,
-					ghttp.CombineHandlers(
-						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
-						func(w http.ResponseWriter, r *http.Request) {
-							_, state := getConfigAndPausedState(r)
-							Expect(*state).To(BeTrue())
-							w.WriteHeader(http.StatusNoContent)
-						},
-					),
-				)
-			})
-
-			It("can be paused", func() {
-				yes := true
-				created, updated, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, &yes)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(created).To(BeFalse())
-				Expect(updated).To(BeTrue())
-			})
-
 		})
 	})
 })

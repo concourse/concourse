@@ -21,7 +21,7 @@ type ATCConfig struct {
 	webRequestGenerator *rata.RequestGenerator
 }
 
-func (atcConfig ATCConfig) Set(paused PipelineAction, configPath PathFlag, templateVariables template.Variables, templateVariablesFiles []PathFlag) {
+func (atcConfig ATCConfig) Set(configPath PathFlag, templateVariables template.Variables, templateVariablesFiles []PathFlag) {
 	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
 	existingConfig, existingConfigVersion, _, err := atcConfig.client.PipelineConfig(atcConfig.pipelineName)
 	if err != nil {
@@ -30,25 +30,15 @@ func (atcConfig ATCConfig) Set(paused PipelineAction, configPath PathFlag, templ
 
 	diff(existingConfig, newConfig)
 
-	always := true
-	ohgodno := false
-	var pausePipeline *bool
-	switch paused {
-	case PausePipeline:
-		pausePipeline = &always
-	case UnpausePipeline:
-		pausePipeline = &ohgodno
-	}
 	created, updated, err := atcConfig.client.CreateOrUpdatePipelineConfig(
 		atcConfig.pipelineName,
 		existingConfigVersion,
 		newConfig,
-		pausePipeline,
 	)
 	if err != nil {
 		failWithErrorf("failed to update configuration", err)
 	}
-	atcConfig.showHelpfulMessage(created, updated, paused)
+	atcConfig.showHelpfulMessage(created, updated)
 }
 
 func (atcConfig ATCConfig) newConfig(configPath PathFlag, templateVariablesFiles []PathFlag, templateVariables template.Variables) atc.Config {
@@ -84,7 +74,7 @@ func (atcConfig ATCConfig) newConfig(configPath PathFlag, templateVariablesFiles
 	return newConfig
 }
 
-func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool, paused PipelineAction) {
+func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool) {
 	if updated {
 		fmt.Println("configuration updated")
 	} else if created {
@@ -102,12 +92,10 @@ func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool, paused
 
 		fmt.Printf("you can view your pipeline here: %s\n", pipelineURL.String())
 
-		if paused == DoNotChangePipeline || paused == PausePipeline {
-			fmt.Println("")
-			fmt.Println("the pipeline is currently paused. to unpause, either:")
-			fmt.Println("  - run again with --paused=false")
-			fmt.Println("  - click play next to the pipeline in the web ui")
-		}
+		fmt.Println("")
+		fmt.Println("the pipeline is currently paused. to unpause, either:")
+		fmt.Println("  - run the unpause-pipeline command")
+		fmt.Println("  - click play next to the pipeline in the web ui")
 	} else {
 		panic("Something really went wrong!")
 	}

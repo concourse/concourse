@@ -15,7 +15,7 @@ type Client interface {
 	AbortBuild(buildID string) error
 	BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error)
 	CreateBuild(plan atc.Plan) (atc.Build, error)
-	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config, paused *bool) (bool, bool, error)
+	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config) (bool, bool, error)
 	CreatePipe() (atc.Pipe, error)
 	DeletePipeline(pipelineName string) (bool, error)
 	PausePipeline(pipelineName string) (bool, error)
