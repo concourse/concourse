@@ -8,7 +8,7 @@
   it running.
 }{
   We have removed support for \code{$ATC_URL} in \code{fly}; use
-  \reference{fly-save-target} instead.
+  \code{save-target} instead.
 }{
   We now place artifacts in a random directory, instead of always
   \code{/tmp/build/src}. That was always intended to be a hidden detail, and
