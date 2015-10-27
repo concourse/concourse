@@ -48,9 +48,9 @@ func (client *client) PausePipeline(pipelineName string) (bool, error) {
 	}
 }
 
-func (handler AtcHandler) UnpausePipeline(pipelineName string) (bool, error) {
+func (client *client) UnpausePipeline(pipelineName string) (bool, error) {
 	params := map[string]string{"pipeline_name": pipelineName}
-	err := handler.client.Send(Request{
+	err := client.connection.Send(Request{
 		RequestName: atc.UnpausePipeline,
 		Params:      params,
 	}, nil)

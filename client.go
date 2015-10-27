@@ -19,6 +19,7 @@ type Client interface {
 	CreatePipe() (atc.Pipe, error)
 	DeletePipeline(pipelineName string) (bool, error)
 	PausePipeline(pipelineName string) (bool, error)
+	UnpausePipeline(pipelineName string) (bool, error)
 	Job(pipelineName, jobName string) (atc.Job, bool, error)
 	JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error)
 	ListContainers(queryList map[string]string) ([]atc.Container, error)
