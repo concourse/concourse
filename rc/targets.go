@@ -77,7 +77,7 @@ func SelectTarget(selectedTarget string) (TargetProps, error) {
 	return target, nil
 }
 
-func NewClient(atcURL string, insecure bool) (atcclient.Client, error) {
+func NewConnection(atcURL string, insecure bool) (atcclient.Connection, error) {
 	var tlsConfig *tls.Config
 	if insecure {
 		tlsConfig = &tls.Config{InsecureSkipVerify: insecure}
@@ -89,14 +89,14 @@ func NewClient(atcURL string, insecure bool) (atcclient.Client, error) {
 		TLSClientConfig: tlsConfig,
 	}
 
-	return atcclient.NewClient(atcURL, &http.Client{
+	return atcclient.NewConnection(atcURL, &http.Client{
 		Transport: transport,
 	})
 }
 
-func TargetClient(selectedTarget string) (atcclient.Client, error) {
+func TargetConnection(selectedTarget string) (atcclient.Connection, error) {
 	if isURL(selectedTarget) {
-		return NewClient(selectedTarget, false)
+		return NewConnection(selectedTarget, false)
 	}
 
 	flyrc := filepath.Join(userHomeDir(), ".flyrc")
@@ -140,7 +140,7 @@ func TargetClient(selectedTarget string) (atcclient.Client, error) {
 		Transport: transport,
 	}
 
-	return atcclient.NewClient(target.API, httpClient)
+	return atcclient.NewConnection(target.API, httpClient)
 }
 
 func userHomeDir() string {

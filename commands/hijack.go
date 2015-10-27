@@ -54,14 +54,14 @@ type containerLocator interface {
 }
 
 type stepContainerLocator struct {
-	handler atcclient.Handler
+	client atcclient.Client
 }
 
 func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (map[string]string, error) {
 	reqValues := map[string]string{}
 
 	build, err := GetBuild(
-		locator.handler,
+		locator.client,
 		fingerprint.jobName,
 		fingerprint.buildName,
 		fingerprint.pipelineName,
@@ -102,12 +102,12 @@ type containerFingerprint struct {
 	checkName string
 }
 
-func locateContainer(handler atcclient.Handler, fingerprint containerFingerprint) (map[string]string, error) {
+func locateContainer(client atcclient.Client, fingerprint containerFingerprint) (map[string]string, error) {
 	var locator containerLocator
 
 	if fingerprint.checkName == "" {
 		locator = stepContainerLocator{
-			handler: handler,
+			client: client,
 		}
 	} else {
 		locator = checkContainerLocator{}
@@ -159,18 +159,18 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 		checkName:    check,
 	}
 
-	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln("failed to create client:", err)
 	}
-	handler := atcclient.NewAtcHandler(client)
+	client := atcclient.NewClient(connection)
 
-	reqValues, err := locateContainer(handler, fingerprint)
+	reqValues, err := locateContainer(client, fingerprint)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	containers, err := handler.ListContainers(reqValues)
+	containers, err := client.ListContainers(reqValues)
 	if err != nil {
 		log.Fatalln("failed to get containers:", err)
 	}

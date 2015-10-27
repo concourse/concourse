@@ -15,13 +15,13 @@ type PausePipelineCommand struct {
 func (command *PausePipelineCommand) Execute(args []string) error {
 	pipelineName := command.Pipeline
 
-	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
-	handler := atcclient.NewAtcHandler(client)
-	found, err := handler.PausePipeline(pipelineName)
+	client := atcclient.NewClient(connection)
+	found, err := client.PausePipeline(pipelineName)
 	if err != nil {
 		return err
 	}

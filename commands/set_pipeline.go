@@ -41,19 +41,19 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		paused = DoNotChangePipeline
 	}
 
-	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
-	handler := atcclient.NewAtcHandler(client)
+	client := atcclient.NewClient(connection)
 
-	webRequestGenerator := rata.NewRequestGenerator(client.URL(), web.Routes)
+	webRequestGenerator := rata.NewRequestGenerator(connection.URL(), web.Routes)
 
 	atcConfig := ATCConfig{
 		pipelineName:        pipelineName,
 		webRequestGenerator: webRequestGenerator,
-		handler:             handler,
+		client:              client,
 	}
 
 	atcConfig.Set(paused, configPath, templateVariables, templateVariablesFiles)

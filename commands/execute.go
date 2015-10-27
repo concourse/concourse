@@ -31,23 +31,23 @@ type ExecuteCommand struct {
 }
 
 func (command *ExecuteCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 
-	handler := atcclient.NewAtcHandler(client)
+	client := atcclient.NewClient(connection)
 
 	taskConfigFile := command.TaskConfig
 	excludeIgnored := command.ExcludeIgnored
 
-	atcRequester := newAtcRequester(client.URL(), client.HTTPClient())
+	atcRequester := newAtcRequester(connection.URL(), connection.HTTPClient())
 
 	taskConfig := config.LoadTaskConfig(string(taskConfigFile), args)
 
 	inputs, err := determineInputs(
-		handler,
+		client,
 		taskConfig.Inputs,
 		command.Inputs,
 		command.InputsFrom,
@@ -58,7 +58,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	build, err := createBuild(
 		atcRequester,
-		handler,
+		client,
 		command.Privileged,
 		inputs,
 		taskConfig,
@@ -71,7 +71,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	terminate := make(chan os.Signal, 1)
 
-	go abortOnSignal(handler, terminate, build)
+	go abortOnSignal(client, terminate, build)
 
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
@@ -83,7 +83,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		}
 	}()
 
-	eventSource, err := handler.BuildEvents(fmt.Sprintf("%d", build.ID))
+	eventSource, err := client.BuildEvents(fmt.Sprintf("%d", build.ID))
 
 	if err != nil {
 		log.Println("failed to attach to stream:", err)
@@ -108,7 +108,7 @@ type Input struct {
 }
 
 func determineInputs(
-	handler atcclient.Handler,
+	client atcclient.Client,
 	taskInputs []atc.TaskInputConfig,
 	inputMappings []InputPairFlag,
 	inputsFrom JobFlag,
@@ -125,12 +125,12 @@ func determineInputs(
 		})
 	}
 
-	inputsFromLocal, err := generateLocalInputs(handler, inputMappings)
+	inputsFromLocal, err := generateLocalInputs(client, inputMappings)
 	if err != nil {
 		return nil, err
 	}
 
-	inputsFromJob, err := fetchInputsFromJob(handler, inputsFrom)
+	inputsFromJob, err := fetchInputsFromJob(client, inputsFrom)
 	if err != nil {
 		return nil, err
 	}
@@ -151,14 +151,14 @@ func determineInputs(
 	return inputs, nil
 }
 
-func generateLocalInputs(handler atcclient.Handler, inputMappings []InputPairFlag) (map[string]Input, error) {
+func generateLocalInputs(client atcclient.Client, inputMappings []InputPairFlag) (map[string]Input, error) {
 	kvMap := map[string]Input{}
 
 	for _, i := range inputMappings {
 		inputName := i.Name
 		absPath := i.Path
 
-		pipe, err := handler.CreatePipe()
+		pipe, err := client.CreatePipe()
 		if err != nil {
 			return nil, err
 		}
@@ -173,13 +173,13 @@ func generateLocalInputs(handler atcclient.Handler, inputMappings []InputPairFla
 	return kvMap, nil
 }
 
-func fetchInputsFromJob(handler atcclient.Handler, inputsFrom JobFlag) (map[string]Input, error) {
+func fetchInputsFromJob(client atcclient.Client, inputsFrom JobFlag) (map[string]Input, error) {
 	kvMap := map[string]Input{}
 	if inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		return kvMap, nil
 	}
 
-	buildInputs, found, err := handler.BuildInputsForJob(inputsFrom.PipelineName, inputsFrom.JobName)
+	buildInputs, found, err := client.BuildInputsForJob(inputsFrom.PipelineName, inputsFrom.JobName)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +200,7 @@ func fetchInputsFromJob(handler atcclient.Handler, inputsFrom JobFlag) (map[stri
 
 func createBuild(
 	atcRequester *atcRequester,
-	handler atcclient.Handler,
+	client atcclient.Client,
 	privileged bool,
 	inputs []Input,
 	config atc.TaskConfig,
@@ -271,11 +271,11 @@ func createBuild(
 		},
 	}
 
-	return handler.CreateBuild(plan)
+	return client.CreateBuild(plan)
 }
 
 func abortOnSignal(
-	handler atcclient.Handler,
+	client atcclient.Client,
 	terminate <-chan os.Signal,
 	build atc.Build,
 ) {
@@ -283,7 +283,7 @@ func abortOnSignal(
 
 	fmt.Fprintf(os.Stderr, "\naborting...\n")
 
-	err := handler.AbortBuild(strconv.Itoa(build.ID))
+	err := client.AbortBuild(strconv.Itoa(build.ID))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "failed to abort:", err)
 		return

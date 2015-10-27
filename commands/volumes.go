@@ -18,14 +18,14 @@ import (
 type VolumesCommand struct{}
 
 func (command *VolumesCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	handler := atcclient.NewAtcHandler(client)
+	client := atcclient.NewClient(connection)
 
-	volumes, err := handler.ListVolumes()
+	volumes, err := client.ListVolumes()
 	if err != nil {
 		log.Fatalln(err)
 	}

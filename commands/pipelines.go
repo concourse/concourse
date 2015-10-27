@@ -13,15 +13,15 @@ import (
 type PipelinesCommand struct{}
 
 func (command *PipelinesCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 
-	handler := atcclient.NewAtcHandler(client)
+	client := atcclient.NewClient(connection)
 
-	pipelines, err := handler.ListPipelines()
+	pipelines, err := client.ListPipelines()
 	if err != nil {
 		log.Fatalln(err)
 	}

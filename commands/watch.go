@@ -16,20 +16,20 @@ type WatchCommand struct {
 }
 
 func (command *WatchCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 
-	handler := atcclient.NewAtcHandler(client)
+	client := atcclient.NewClient(connection)
 
-	build, err := GetBuild(handler, command.Job.JobName, command.Build, command.Job.PipelineName)
+	build, err := GetBuild(client, command.Job.JobName, command.Build, command.Job.PipelineName)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	eventSource, err := handler.BuildEvents(fmt.Sprintf("%d", build.ID))
+	eventSource, err := client.BuildEvents(fmt.Sprintf("%d", build.ID))
 
 	if err != nil {
 		log.Println("failed to attach to stream:", err)

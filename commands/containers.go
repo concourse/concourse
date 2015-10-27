@@ -16,14 +16,14 @@ import (
 type ContainersCommand struct{}
 
 func (command *ContainersCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	handler := atcclient.NewAtcHandler(client)
+	client := atcclient.NewClient(connection)
 
-	containers, err := handler.ListContainers(map[string]string{})
+	containers, err := client.ListContainers(map[string]string{})
 	if err != nil {
 		log.Fatalln(err)
 	}

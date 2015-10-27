@@ -7,10 +7,10 @@ import (
 	"github.com/concourse/atc"
 )
 
-func (handler AtcHandler) GetCLIReader(arch, platform string) (io.ReadCloser, error) {
+func (client *client) GetCLIReader(arch, platform string) (io.ReadCloser, error) {
 	response := Response{}
 
-	err := handler.client.Send(Request{
+	err := client.connection.Send(Request{
 		RequestName: atc.DownloadCLI,
 		Queries: map[string]string{
 			"arch":     arch,

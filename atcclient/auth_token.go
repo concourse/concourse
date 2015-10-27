@@ -2,9 +2,9 @@ package atcclient
 
 import "github.com/concourse/atc"
 
-func (handler AtcHandler) AuthToken() (atc.AuthToken, error) {
+func (client *client) AuthToken() (atc.AuthToken, error) {
 	var authToken atc.AuthToken
-	err := handler.client.Send(Request{
+	err := client.connection.Send(Request{
 		RequestName: atc.GetAuthToken,
 	}, &Response{
 		Result: &authToken,

@@ -18,7 +18,7 @@ import (
 	"github.com/vito/go-sse/sse"
 )
 
-var _ = Describe("ATC Client", func() {
+var _ = Describe("ATC Connection", func() {
 	var (
 		api      string
 		username string
@@ -35,15 +35,15 @@ var _ = Describe("ATC Client", func() {
 		insecure = false
 	})
 
-	Describe("#NewClient", func() {
-		It("returns back an ATC Client", func() {
-			atcClient, err := NewClient(api, nil)
+	Describe("#NewConnection", func() {
+		It("returns back an ATC Connection", func() {
+			atcConnection, err := NewConnection(api, nil)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(atcClient).NotTo(BeNil())
+			Expect(atcConnection).NotTo(BeNil())
 		})
 
 		It("errors when passed target props with an invalid url", func() {
-			_, err := NewClient("", nil)
+			_, err := NewConnection("", nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("API is blank"))
 		})
@@ -52,13 +52,13 @@ var _ = Describe("ATC Client", func() {
 	Describe("#Send", func() {
 		BeforeEach(func() {
 			var err error
-			client, err = NewClient(atcServer.URL(), nil)
+			connection, err = NewConnection(atcServer.URL(), nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("is robust to trailing slash in the target", func() {
 			var err error
-			client, err = NewClient(atcServer.URL()+"/", nil)
+			connection, err = NewConnection(atcServer.URL()+"/", nil)
 			Expect(err).NotTo(HaveOccurred())
 			expectedURL := "/api/v1/builds/foo"
 			atcServer.AppendHandlers(
@@ -68,7 +68,7 @@ var _ = Describe("ATC Client", func() {
 				),
 			)
 			var build atc.Build
-			err = client.Send(Request{
+			err = connection.Send(Request{
 				RequestName: atc.GetBuild,
 				Params:      map[string]string{"build_id": "foo"},
 			}, &Response{
@@ -81,7 +81,7 @@ var _ = Describe("ATC Client", func() {
 
 		It("can ignore responses", func() {
 			var err error
-			client, err = NewClient(atcServer.URL()+"/", nil)
+			connection, err = NewConnection(atcServer.URL()+"/", nil)
 			Expect(err).NotTo(HaveOccurred())
 			expectedURL := "/api/v1/builds/foo"
 			atcServer.AppendHandlers(
@@ -91,7 +91,7 @@ var _ = Describe("ATC Client", func() {
 				),
 			)
 
-			err = client.Send(Request{
+			err = connection.Send(Request{
 				RequestName: atc.GetBuild,
 				Params:      map[string]string{"build_id": "foo"},
 			}, nil)
@@ -100,8 +100,8 @@ var _ = Describe("ATC Client", func() {
 			Expect(len(atcServer.ReceivedRequests())).To(Equal(1))
 		})
 
-		It("uses the given http client", func() {
-			basicAuthClient, err := NewClient(
+		It("uses the given http connection", func() {
+			basicAuthConnection, err := NewConnection(
 				atcServer.URL(),
 				&http.Client{
 					Transport: BasicAuthTransport{
@@ -120,7 +120,7 @@ var _ = Describe("ATC Client", func() {
 				),
 			)
 			var build atc.Build
-			err = basicAuthClient.Send(Request{
+			err = basicAuthConnection.Send(Request{
 				RequestName: atc.GetBuild,
 				Params:      map[string]string{"build_id": "foo"},
 			}, &Response{
@@ -140,7 +140,7 @@ var _ = Describe("ATC Client", func() {
 				),
 			)
 			var build atc.Build
-			err := client.Send(Request{
+			err := connection.Send(Request{
 				RequestName: atc.GetBuild,
 				Params:      map[string]string{"build_id": "foo"},
 			}, &Response{
@@ -178,7 +178,7 @@ var _ = Describe("ATC Client", func() {
 				),
 			)
 			var containers []atc.Container
-			err := client.Send(Request{
+			err := connection.Send(Request{
 				RequestName: atc.ListContainers,
 				Queries:     map[string]string{"type": "check"},
 			}, &Response{
@@ -209,7 +209,7 @@ var _ = Describe("ATC Client", func() {
 
 			It("does not close the request body, and returns the body back through the response object", func() {
 				response := Response{}
-				err := client.Send(Request{
+				err := connection.Send(Request{
 					RequestName:        atc.DownloadCLI,
 					ReturnResponseBody: true,
 				},
@@ -230,7 +230,7 @@ var _ = Describe("ATC Client", func() {
 				var err error
 				atcServer = ghttp.NewServer()
 
-				client, err = NewClient(atcServer.URL(), nil)
+				connection, err = NewConnection(atcServer.URL(), nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.AppendHandlers(
@@ -244,7 +244,7 @@ var _ = Describe("ATC Client", func() {
 			})
 
 			It("sets the header and it's values on the request", func() {
-				err := client.Send(Request{
+				err := connection.Send(Request{
 					RequestName: atc.GetBuild,
 					Params:      map[string]string{"build_id": "foo"},
 					Headers: map[string][]string{
@@ -263,7 +263,7 @@ var _ = Describe("ATC Client", func() {
 				var err error
 				atcServer = ghttp.NewServer()
 
-				client, err = NewClient(atcServer.URL(), nil)
+				connection, err = NewConnection(atcServer.URL(), nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.AppendHandlers(
@@ -277,7 +277,7 @@ var _ = Describe("ATC Client", func() {
 			It("returns the response headers in Headers", func() {
 				responseHeaders := map[string][]string{}
 
-				err := client.Send(Request{
+				err := connection.Send(Request{
 					RequestName: atc.GetBuild,
 					Params:      map[string]string{"build_id": "foo"},
 				}, &Response{
@@ -295,7 +295,7 @@ var _ = Describe("ATC Client", func() {
 					var err error
 					atcServer = ghttp.NewServer()
 
-					client, err = NewClient(atcServer.URL(), nil)
+					connection, err = NewConnection(atcServer.URL(), nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.AppendHandlers(
@@ -307,7 +307,7 @@ var _ = Describe("ATC Client", func() {
 				})
 
 				It("sets the username and password if given", func() {
-					err := client.Send(Request{
+					err := connection.Send(Request{
 						RequestName: atc.DeletePipeline,
 						Params:      map[string]string{"pipeline_name": "foo"},
 					}, nil)
@@ -321,7 +321,7 @@ var _ = Describe("ATC Client", func() {
 					var err error
 					atcServer = ghttp.NewServer()
 
-					client, err = NewClient(atcServer.URL(), nil)
+					connection, err = NewConnection(atcServer.URL(), nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.AppendHandlers(
@@ -333,7 +333,7 @@ var _ = Describe("ATC Client", func() {
 				})
 
 				It("returns back UnexpectedResponseError", func() {
-					err := client.Send(Request{
+					err := connection.Send(Request{
 						RequestName: atc.DeletePipeline,
 						Params:      map[string]string{"pipeline_name": "foo"},
 					}, nil)
@@ -351,7 +351,7 @@ var _ = Describe("ATC Client", func() {
 					var err error
 					atcServer = ghttp.NewServer()
 
-					client, err = NewClient(atcServer.URL(), nil)
+					connection, err = NewConnection(atcServer.URL(), nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.AppendHandlers(
@@ -363,7 +363,7 @@ var _ = Describe("ATC Client", func() {
 				})
 
 				It("returns back ResourceNotFoundError", func() {
-					err := client.Send(Request{
+					err := connection.Send(Request{
 						RequestName: atc.DeletePipeline,
 						Params:      map[string]string{"pipeline_name": "foo"},
 					}, nil)
@@ -420,7 +420,7 @@ var _ = Describe("ATC Client", func() {
 				response := Response{
 					Result: &atc.Config{},
 				}
-				err = client.Send(Request{
+				err = connection.Send(Request{
 					RequestName: atc.CreateBuild,
 					Body:        buffer,
 					Headers: map[string][]string{
@@ -495,7 +495,7 @@ var _ = Describe("ATC Client", func() {
 		})
 
 		It("returns an EventSource that can stream events", func() {
-			eventSource, err := client.ConnectToEventStream(
+			eventSource, err := connection.ConnectToEventStream(
 				Request{
 					RequestName: atc.BuildEvents,
 					Params:      rata.Params{"build_id": buildID},

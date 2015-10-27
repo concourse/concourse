@@ -32,7 +32,7 @@ var _ = Describe("ATC Handler Pipes", func() {
 		})
 
 		It("Creates the Pipe when called", func() {
-			pipe, err := handler.CreatePipe()
+			pipe, err := client.CreatePipe()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipe).To(Equal(expectedPipe))
 		})

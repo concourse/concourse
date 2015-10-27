@@ -15,20 +15,20 @@ type ChecklistCommand struct {
 }
 
 func (command *ChecklistCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	pipelineName := command.Pipeline
 
-	handler := atcclient.NewAtcHandler(client)
-	config, _, _, err := handler.PipelineConfig(pipelineName)
+	client := atcclient.NewClient(connection)
+	config, _, _, err := client.PipelineConfig(pipelineName)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	printCheckfile(pipelineName, config, newTarget(client.URL()))
+	printCheckfile(pipelineName, config, newTarget(connection.URL()))
 
 	return nil
 }

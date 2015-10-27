@@ -121,7 +121,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns the given config and version for that pipeline", func() {
-				pipelineConfig, version, found, err := handler.PipelineConfig("mypipeline")
+				pipelineConfig, version, found, err := client.PipelineConfig("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pipelineConfig).To(Equal(expectedConfig))
 				Expect(version).To(Equal(expectedVersion))
@@ -140,7 +140,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns false and no error", func() {
-				_, _, found, err := handler.PipelineConfig("mypipeline")
+				_, _, found, err := client.PipelineConfig("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -157,7 +157,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns the error", func() {
-				_, _, _, err := handler.PipelineConfig("mypipeline")
+				_, _, _, err := client.PipelineConfig("mypipeline")
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -173,7 +173,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns an error", func() {
-				_, _, _, err := handler.PipelineConfig("mypipeline")
+				_, _, _, err := client.PipelineConfig("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -225,7 +225,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns true for created and false for updated", func() {
-				created, updated, err := handler.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, nil)
+				created, updated, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, nil)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 				Expect(updated).To(BeFalse())
@@ -238,7 +238,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns false for created and true for updated", func() {
-				created, updated, err := handler.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, nil)
+				created, updated, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, nil)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeFalse())
 				Expect(updated).To(BeTrue())
@@ -263,7 +263,7 @@ var _ = Describe("ATC Handler Configs", func() {
 
 			It("can be paused", func() {
 				yes := true
-				created, updated, err := handler.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, &yes)
+				created, updated, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig, &yes)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeFalse())
 				Expect(updated).To(BeTrue())

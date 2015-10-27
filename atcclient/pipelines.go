@@ -2,9 +2,9 @@ package atcclient
 
 import "github.com/concourse/atc"
 
-func (handler AtcHandler) ListPipelines() ([]atc.Pipeline, error) {
+func (client *client) ListPipelines() ([]atc.Pipeline, error) {
 	var pipelines []atc.Pipeline
-	err := handler.client.Send(Request{
+	err := client.connection.Send(Request{
 		RequestName: atc.ListPipelines,
 	}, &Response{
 		Result: &pipelines,
@@ -13,9 +13,9 @@ func (handler AtcHandler) ListPipelines() ([]atc.Pipeline, error) {
 	return pipelines, err
 }
 
-func (handler AtcHandler) DeletePipeline(pipelineName string) (bool, error) {
+func (client *client) DeletePipeline(pipelineName string) (bool, error) {
 	params := map[string]string{"pipeline_name": pipelineName}
-	err := handler.client.Send(Request{
+	err := client.connection.Send(Request{
 		RequestName: atc.DeletePipeline,
 		Params:      params,
 	}, nil)
@@ -31,9 +31,9 @@ func (handler AtcHandler) DeletePipeline(pipelineName string) (bool, error) {
 
 }
 
-func (handler AtcHandler) PausePipeline(pipelineName string) (bool, error) {
+func (client *client) PausePipeline(pipelineName string) (bool, error) {
 	params := map[string]string{"pipeline_name": pipelineName}
-	err := handler.client.Send(Request{
+	err := client.connection.Send(Request{
 		RequestName: atc.PausePipeline,
 		Params:      params,
 	}, nil)

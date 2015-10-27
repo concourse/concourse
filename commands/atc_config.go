@@ -17,13 +17,13 @@ import (
 
 type ATCConfig struct {
 	pipelineName        string
-	handler             atcclient.Handler
+	client              atcclient.Client
 	webRequestGenerator *rata.RequestGenerator
 }
 
 func (atcConfig ATCConfig) Set(paused PipelineAction, configPath PathFlag, templateVariables template.Variables, templateVariablesFiles []PathFlag) {
 	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
-	existingConfig, existingConfigVersion, _, err := atcConfig.handler.PipelineConfig(atcConfig.pipelineName)
+	existingConfig, existingConfigVersion, _, err := atcConfig.client.PipelineConfig(atcConfig.pipelineName)
 	if err != nil {
 		failWithErrorf("failed to retrieve config", err)
 	}
@@ -39,7 +39,7 @@ func (atcConfig ATCConfig) Set(paused PipelineAction, configPath PathFlag, templ
 	case UnpausePipeline:
 		pausePipeline = &ohgodno
 	}
-	created, updated, err := atcConfig.handler.CreateOrUpdatePipelineConfig(
+	created, updated, err := atcConfig.client.CreateOrUpdatePipelineConfig(
 		atcConfig.pipelineName,
 		existingConfigVersion,
 		newConfig,

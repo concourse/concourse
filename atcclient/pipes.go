@@ -2,9 +2,9 @@ package atcclient
 
 import "github.com/concourse/atc"
 
-func (handler AtcHandler) CreatePipe() (atc.Pipe, error) {
+func (client *client) CreatePipe() (atc.Pipe, error) {
 	var pipe atc.Pipe
-	err := handler.client.Send(Request{
+	err := client.connection.Send(Request{
 		RequestName: atc.CreatePipe,
 	}, &Response{
 		Result: &pipe,

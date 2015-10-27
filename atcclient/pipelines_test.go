@@ -22,7 +22,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				)
 			})
 			It("return true and no error", func() {
-				found, err := handler.PausePipeline("mypipeline")
+				found, err := client.PausePipeline("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 			})
@@ -39,7 +39,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				)
 			})
 			It("returns false and no error", func() {
-				found, err := handler.PausePipeline("mypipeline")
+				found, err := client.PausePipeline("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -73,7 +73,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 		})
 
 		It("returns all the pipelines", func() {
-			pipelines, err := handler.ListPipelines()
+			pipelines, err := client.ListPipelines()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipelines).To(Equal(expectedPipelines))
 		})
@@ -93,7 +93,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("deletes the pipeline when called", func() {
-				found, err := handler.DeletePipeline("mypipeline")
+				found, err := client.DeletePipeline("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
@@ -111,7 +111,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("returns false and no error", func() {
-				found, err := handler.DeletePipeline("mypipeline")
+				found, err := client.DeletePipeline("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})

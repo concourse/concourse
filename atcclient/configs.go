@@ -9,14 +9,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func (handler AtcHandler) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
+func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
 	params := map[string]string{"pipeline_name": pipelineName}
 
 	var config atc.Config
 	var version string
 	responseHeaders := map[string][]string{}
 
-	err := handler.client.Send(Request{
+	err := client.connection.Send(Request{
 		RequestName: atc.GetConfig,
 		Params:      params,
 	}, &Response{
@@ -38,7 +38,7 @@ func (handler AtcHandler) PipelineConfig(pipelineName string) (atc.Config, strin
 	}
 }
 
-func (handler AtcHandler) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config, paused *bool) (bool, bool, error) {
+func (client *client) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config, paused *bool) (bool, bool, error) {
 	params := map[string]string{"pipeline_name": pipelineName}
 	response := Response{}
 	body := &bytes.Buffer{}
@@ -73,7 +73,7 @@ func (handler AtcHandler) CreateOrUpdatePipelineConfig(pipelineName string, conf
 
 	writer.Close()
 
-	err = handler.client.Send(Request{
+	err = client.connection.Send(Request{
 		RequestName: atc.SaveConfig,
 		Params:      params,
 		Body:        body,

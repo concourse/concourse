@@ -22,13 +22,13 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 	asJSON := command.JSON
 	pipelineName := command.Pipeline
 
-	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	handler := atcclient.NewAtcHandler(client)
-	config, _, _, err := handler.PipelineConfig(pipelineName)
+	client := atcclient.NewClient(connection)
+	config, _, _, err := client.PipelineConfig(pipelineName)
 	if err != nil {
 		log.Fatalln(err)
 	}

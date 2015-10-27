@@ -57,7 +57,7 @@ var _ = Describe("ATC Handler Builds", func() {
 		})
 
 		It("takes a plan and creates the build", func() {
-			build, err := handler.CreateBuild(plan)
+			build, err := client.CreateBuild(plan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(build).To(Equal(expectedBuild))
 		})
@@ -97,7 +97,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				})
 
 				It("returns the given build", func() {
-					build, found, err := handler.JobBuild("mypipeline", "myjob", "mybuild")
+					build, found, err := client.JobBuild("mypipeline", "myjob", "mybuild")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(build).To(Equal(expectedBuild))
@@ -110,7 +110,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				})
 
 				It("errors", func() {
-					_, _, err := handler.JobBuild("", "myjob", "mybuild")
+					_, _, err := client.JobBuild("", "myjob", "mybuild")
 					Expect(err).To(HaveOccurred())
 				})
 			})
@@ -129,7 +129,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			})
 
 			It("return false and no error", func() {
-				_, found, err := handler.JobBuild("mypipeline", "myjob", "mybuild")
+				_, found, err := client.JobBuild("mypipeline", "myjob", "mybuild")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -158,7 +158,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			})
 
 			It("returns the given build", func() {
-				build, found, err := handler.Build("123")
+				build, found, err := client.Build("123")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(build).To(Equal(expectedBuild))
@@ -178,7 +178,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			})
 
 			It("returns false and no error", func() {
-				_, found, err := handler.Build("123")
+				_, found, err := client.Build("123")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -216,7 +216,7 @@ var _ = Describe("ATC Handler Builds", func() {
 		})
 
 		It("returns the all the builds", func() {
-			build, err := handler.AllBuilds()
+			build, err := client.AllBuilds()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(build).To(Equal(expectedBuilds))
 		})
@@ -235,7 +235,7 @@ var _ = Describe("ATC Handler Builds", func() {
 		})
 
 		It("sends an abort request to ATC", func() {
-			err := handler.AbortBuild("123")
+			err := client.AbortBuild("123")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
 		})

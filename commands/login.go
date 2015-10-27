@@ -17,22 +17,22 @@ type LoginCommand struct {
 }
 
 func (command *LoginCommand) Execute(args []string) error {
-	var client atcclient.Client
+	var connection atcclient.Connection
 	var err error
 
 	if command.ATCURL != "" {
-		client, err = rc.NewClient(command.ATCURL, command.Insecure)
+		connection, err = rc.NewConnection(command.ATCURL, command.Insecure)
 	} else {
-		client, err = rc.TargetClient(Fly.Target)
+		connection, err = rc.TargetConnection(Fly.Target)
 	}
 
 	if err != nil {
 		return err
 	}
 
-	handler := atcclient.NewAtcHandler(client)
+	client := atcclient.NewClient(connection)
 
-	authMethods, err := handler.ListAuthMethods()
+	authMethods, err := client.ListAuthMethods()
 	if err != nil {
 		return err
 	}
@@ -59,10 +59,10 @@ func (command *LoginCommand) Execute(args []string) error {
 		}
 	}
 
-	return command.loginWith(chosenMethod, client)
+	return command.loginWith(chosenMethod, connection)
 }
 
-func (command *LoginCommand) loginWith(method atc.AuthMethod, client atcclient.Client) error {
+func (command *LoginCommand) loginWith(method atc.AuthMethod, connection atcclient.Connection) error {
 	var token atc.AuthToken
 
 	switch method.Type {
@@ -105,12 +105,12 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client atcclient.C
 			return err
 		}
 
-		newUnauthedClient, err := rc.NewClient(client.URL(), command.Insecure)
+		newUnauthedClient, err := rc.NewConnection(connection.URL(), command.Insecure)
 		if err != nil {
 			return err
 		}
 
-		basicAuthClient, err := atcclient.NewClient(
+		basicAuthClient, err := atcclient.NewConnection(
 			newUnauthedClient.URL(),
 			&http.Client{
 				Transport: basicAuthTransport{
@@ -124,9 +124,9 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client atcclient.C
 			return err
 		}
 
-		handler := atcclient.NewAtcHandler(basicAuthClient)
+		client := atcclient.NewClient(basicAuthClient)
 
-		token, err = handler.AuthToken()
+		token, err = client.AuthToken()
 		if err != nil {
 			return err
 		}
@@ -134,7 +134,7 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client atcclient.C
 
 	err := rc.SaveTarget(
 		Fly.Target,
-		client.URL(),
+		connection.URL(),
 		command.Insecure,
 		&rc.TargetToken{
 			Type:  token.Type,

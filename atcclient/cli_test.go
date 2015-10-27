@@ -14,15 +14,15 @@ import (
 var _ = Describe("ATC Handler CLI", func() {
 	Describe("GetCLIReader", func() {
 		var (
-			fakeClient       *fakes.FakeClient
+			fakeConnection   *fakes.FakeConnection
 			expectedArch     string
 			expectedPlatform string
 			expectedReturn   io.ReadCloser
 		)
 
 		BeforeEach(func() {
-			fakeClient = new(fakes.FakeClient)
-			handler = atcclient.NewAtcHandler(fakeClient)
+			fakeConnection = new(fakes.FakeConnection)
+			client = atcclient.NewClient(fakeConnection)
 
 			expectedArch = "fake_arch"
 			expectedPlatform = "fake_platform"
@@ -37,7 +37,7 @@ var _ = Describe("ATC Handler CLI", func() {
 				ReturnResponseBody: true,
 			}
 
-			fakeClient.SendStub = func(request atcclient.Request, response *atcclient.Response) error {
+			fakeConnection.SendStub = func(request atcclient.Request, response *atcclient.Response) error {
 				Expect(request).To(Equal(expectedRequest))
 				response.Result = expectedReturn
 				return nil
@@ -45,7 +45,7 @@ var _ = Describe("ATC Handler CLI", func() {
 		})
 
 		It("returns an unclosed io.ReaderCloser", func() {
-			readerCloser, err := handler.GetCLIReader(expectedArch, expectedPlatform)
+			readerCloser, err := client.GetCLIReader(expectedArch, expectedPlatform)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(readerCloser).To(Equal(expectedReturn))
 		})

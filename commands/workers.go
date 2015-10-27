@@ -20,13 +20,14 @@ type WorkersCommand struct {
 
 func (command *WorkersCommand) Execute([]string) error {
 	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	handler := atcclient.NewAtcHandler(client)
+	client := atcclient.NewClient(connection)
 
-	workers, err := handler.ListWorkers()
+	workers, err := client.ListWorkers()
 	if err != nil {
 		log.Fatalln(err)
 	}

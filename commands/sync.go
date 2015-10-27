@@ -14,19 +14,19 @@ import (
 type SyncCommand struct{}
 
 func (command *SyncCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 
-	handler := atcclient.NewAtcHandler(client)
-	body, err := handler.GetCLIReader(runtime.GOARCH, runtime.GOOS)
+	client := atcclient.NewClient(connection)
+	body, err := client.GetCLIReader(runtime.GOARCH, runtime.GOOS)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	fmt.Printf("downloading fly from %s... ", client.URL())
+	fmt.Printf("downloading fly from %s... ", connection.URL())
 
 	err = update.Apply(body, update.Options{})
 	if err != nil {

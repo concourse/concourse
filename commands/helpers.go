@@ -21,7 +21,7 @@ func handleBadResponse(process string, resp *http.Response) {
 	log.Fatalf("bad response when %s:\n%s\n%s", process, resp.Status, b)
 }
 
-func GetBuild(handler atcclient.Handler, jobName string, buildNameOrID string, pipelineName string) (atc.Build, error) {
+func GetBuild(client atcclient.Client, jobName string, buildNameOrID string, pipelineName string) (atc.Build, error) {
 	if pipelineName != "" && jobName == "" {
 		log.Fatalln("job must be specified if pipeline is specified")
 	}
@@ -35,9 +35,9 @@ func GetBuild(handler atcclient.Handler, jobName string, buildNameOrID string, p
 		var found bool
 
 		if jobName != "" {
-			build, found, err = handler.JobBuild(pipelineName, jobName, buildNameOrID)
+			build, found, err = client.JobBuild(pipelineName, jobName, buildNameOrID)
 		} else {
-			build, found, err = handler.Build(buildNameOrID)
+			build, found, err = client.Build(buildNameOrID)
 		}
 
 		if err != nil {
@@ -50,7 +50,7 @@ func GetBuild(handler atcclient.Handler, jobName string, buildNameOrID string, p
 
 		return build, nil
 	} else if jobName != "" {
-		job, found, err := handler.Job(pipelineName, jobName)
+		job, found, err := client.Job(pipelineName, jobName)
 
 		if err != nil {
 			return atc.Build{}, fmt.Errorf("failed to get job %s", err)
@@ -68,7 +68,7 @@ func GetBuild(handler atcclient.Handler, jobName string, buildNameOrID string, p
 			return atc.Build{}, errors.New("job has no builds")
 		}
 	} else {
-		allBuilds, err := handler.AllBuilds()
+		allBuilds, err := client.AllBuilds()
 		if err != nil {
 			return atc.Build{}, fmt.Errorf("failed to get builds %s", err)
 		}

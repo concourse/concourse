@@ -43,7 +43,7 @@ var _ = Describe("ATC Handler Volumes", func() {
 		})
 
 		It("returns all the volumes", func() {
-			volumes, err := handler.ListVolumes()
+			volumes, err := client.ListVolumes()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(volumes).To(Equal(expectedVolumes))
 		})

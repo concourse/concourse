@@ -39,7 +39,7 @@ var _ = Describe("ATC Handler Workers", func() {
 		})
 
 		It("returns all the workers", func() {
-			workers, err := handler.ListWorkers()
+			workers, err := client.ListWorkers()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(workers).To(Equal(expectedWorkers))
 		})

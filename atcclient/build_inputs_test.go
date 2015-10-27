@@ -38,7 +38,7 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 			})
 
 			It("returns the input configuration for the given job", func() {
-				buildInputs, found, err := handler.BuildInputsForJob("mypipeline", "myjob")
+				buildInputs, found, err := client.BuildInputsForJob("mypipeline", "myjob")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(buildInputs).To(Equal(expectedBuildInputs))
 				Expect(found).To(BeTrue())
@@ -56,7 +56,7 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 			})
 
 			It("returns false in the found value and no error", func() {
-				_, found, err := handler.BuildInputsForJob("mypipeline", "myjob")
+				_, found, err := client.BuildInputsForJob("mypipeline", "myjob")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})

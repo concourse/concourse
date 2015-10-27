@@ -24,14 +24,14 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	client, err := rc.TargetClient(Fly.Target)
+	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	handler := atcclient.NewAtcHandler(client)
+	client := atcclient.NewClient(connection)
 
-	found, err := handler.DeletePipeline(pipelineName)
+	found, err := client.DeletePipeline(pipelineName)
 	if err != nil {
 		return err
 	}

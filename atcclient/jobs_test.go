@@ -76,7 +76,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 				})
 
 				It("returns the given job for that pipeline", func() {
-					job, found, err := handler.Job("mypipeline", "myjob")
+					job, found, err := client.Job("mypipeline", "myjob")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(job).To(Equal(expectedJob))
 					Expect(found).To(BeTrue())
@@ -97,7 +97,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("returns false and no error", func() {
-				_, found, err := handler.Job("mypipeline", "myjob")
+				_, found, err := client.Job("mypipeline", "myjob")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
