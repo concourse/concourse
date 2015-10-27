@@ -102,6 +102,15 @@ type FakeClient struct {
 		result1 bool
 		result2 error
 	}
+	UnpausePipelineStub        func(pipelineName string) (bool, error)
+	unpausePipelineMutex       sync.RWMutex
+	unpausePipelineArgsForCall []struct {
+		pipelineName string
+	}
+	unpausePipelineReturns struct {
+		result1 bool
+		result2 error
+	}
 	JobStub        func(pipelineName, jobName string) (atc.Job, bool, error)
 	jobMutex       sync.RWMutex
 	jobArgsForCall []struct {
@@ -507,6 +516,39 @@ func (fake *FakeClient) PausePipelineArgsForCall(i int) string {
 func (fake *FakeClient) PausePipelineReturns(result1 bool, result2 error) {
 	fake.PausePipelineStub = nil
 	fake.pausePipelineReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) UnpausePipeline(pipelineName string) (bool, error) {
+	fake.unpausePipelineMutex.Lock()
+	fake.unpausePipelineArgsForCall = append(fake.unpausePipelineArgsForCall, struct {
+		pipelineName string
+	}{pipelineName})
+	fake.unpausePipelineMutex.Unlock()
+	if fake.UnpausePipelineStub != nil {
+		return fake.UnpausePipelineStub(pipelineName)
+	} else {
+		return fake.unpausePipelineReturns.result1, fake.unpausePipelineReturns.result2
+	}
+}
+
+func (fake *FakeClient) UnpausePipelineCallCount() int {
+	fake.unpausePipelineMutex.RLock()
+	defer fake.unpausePipelineMutex.RUnlock()
+	return len(fake.unpausePipelineArgsForCall)
+}
+
+func (fake *FakeClient) UnpausePipelineArgsForCall(i int) string {
+	fake.unpausePipelineMutex.RLock()
+	defer fake.unpausePipelineMutex.RUnlock()
+	return fake.unpausePipelineArgsForCall[i].pipelineName
+}
+
+func (fake *FakeClient) UnpausePipelineReturns(result1 bool, result2 error) {
+	fake.UnpausePipelineStub = nil
+	fake.unpausePipelineReturns = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}

@@ -19,7 +19,6 @@ type WorkersCommand struct {
 }
 
 func (command *WorkersCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
 	connection, err := rc.TargetConnection(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
