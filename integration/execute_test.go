@@ -23,6 +23,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
+	"github.com/concourse/fly/rc"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -425,6 +426,65 @@ run: {}
 				})
 			})
 		}
+	})
+
+	Context("when the target has an auth token", func() {
+		var tmpDir string
+		var flyrc string
+		var targetName string
+
+		BeforeEach(func() {
+			var err error
+			tmpDir, err = ioutil.TempDir("", "fly-test")
+			Expect(err).NotTo(HaveOccurred())
+
+			if runtime.GOOS == "windows" {
+				os.Setenv("USERPROFILE", tmpDir)
+			} else {
+				os.Setenv("HOME", tmpDir)
+			}
+
+			flyrc = filepath.Join(userHomeDir(), ".flyrc")
+
+			targetName = "foo"
+			token := rc.TargetToken{
+				Type:  "Bearer",
+				Value: "some-token",
+			}
+
+			err = rc.SaveTarget(
+				targetName,
+				atcServer.URL(),
+				true,
+				&token,
+			)
+			Expect(err).ToNot(HaveOccurred())
+
+			(*expectedPlan.OnSuccess.Step.Aggregate)[0].Get.Source = atc.Source{
+				"uri":           atcServer.URL() + "/api/v1/pipes/some-pipe-id",
+				"authorization": "Bearer some-token",
+			}
+		})
+
+		AfterEach(func() {
+			os.RemoveAll(tmpDir)
+		})
+
+		It("connects with the auth token", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath)
+			flyCmd.Dir = buildDir
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).ToNot(HaveOccurred())
+
+			Eventually(streaming, 5).Should(BeClosed())
+
+			events <- event.Status{Status: atc.StatusSucceeded}
+			close(events)
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+		})
 	})
 
 	Context("when the build succeeds", func() {

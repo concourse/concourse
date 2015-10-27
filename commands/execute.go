@@ -32,6 +32,7 @@ type ExecuteCommand struct {
 
 func (command *ExecuteCommand) Execute(args []string) error {
 	connection, err := rc.TargetConnection(Fly.Target)
+
 	if err != nil {
 		log.Fatalln(err)
 		return nil
@@ -209,6 +210,11 @@ func createBuild(
 		return atc.Build{}, err
 	}
 
+	targetProps, err := rc.SelectTarget(Fly.Target)
+	if err != nil {
+		return atc.Build{}, err
+	}
+
 	buildInputs := atc.AggregatePlan{}
 	for i, input := range inputs {
 		var getPlan atc.GetPlan
@@ -222,12 +228,17 @@ func createBuild(
 				return atc.Build{}, err
 			}
 
+			source := atc.Source{
+				"uri": readPipe.URL.String(),
+			}
+
+			if targetProps.Token != nil {
+				source["authorization"] = targetProps.Token.Type + " " + targetProps.Token.Value
+			}
 			getPlan = atc.GetPlan{
-				Name: input.Name,
-				Type: "archive",
-				Source: atc.Source{
-					"uri": readPipe.URL.String(),
-				},
+				Name:   input.Name,
+				Type:   "archive",
+				Source: source,
 			}
 		} else {
 			getPlan = atc.GetPlan{
