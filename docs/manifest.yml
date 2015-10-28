@@ -4,5 +4,5 @@ instances: 2
 memory: 64M
 domains: [concourse.ci, concourse-ci.org]
 host: ''
-buildpack: https://github.com/pearkes/heroku-buildpack-static.git
+buildpack: staticfile_buildpack
 path: ./out
