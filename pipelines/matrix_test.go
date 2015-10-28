@@ -1,4 +1,4 @@
-package git_pipeline_test
+package pipelines_test
 
 import (
 	"github.com/concourse/testflight/gitserver"

@@ -1,1 +1,1 @@
-package git_pipeline
+package pipelines
