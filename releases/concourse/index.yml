@@ -140,4 +140,6 @@ builds:
     version: 0.65.0
   6ae239a8-46af-437c-819c-2f95527609fb:
     version: 0.65.1
+  5d5322d9-0f4a-4e3e-af45-51e56441da35:
+    version: 0.66.0
 format-version: '2'
