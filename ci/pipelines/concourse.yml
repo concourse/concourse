@@ -5,6 +5,7 @@ groups:
   - blackbox
   - deploy
   - fly
+  - go-concourse
   - baggageclaim
   - jettison
   - tsa
@@ -50,6 +51,14 @@ jobs:
       file: concourse/ci/fly-darwin.yml
     - task: windows
       file: concourse/ci/fly-windows.yml
+
+- name: go-concourse
+  public: true
+  plan:
+  - get: concourse
+    trigger: true
+  - task: go-unit
+    file: concourse/ci/go-concourse.yml
 
 - name: atc
   public: true
