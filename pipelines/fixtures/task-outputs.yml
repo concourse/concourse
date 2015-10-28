@@ -26,9 +26,7 @@ jobs:
         args:
         - -c
         - |
-          mkdir output-1-src
           touch output-1-src/file-1
-          mkdir output-2-src
           touch output-2-src/file-2
   - task: find-files
     config:
