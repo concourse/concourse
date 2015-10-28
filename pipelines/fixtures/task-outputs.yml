@@ -1,0 +1,42 @@
+---
+resources:
+  - name: git-repo
+    type: git
+    source:
+      uri: {{git-server}}
+      branch: master
+
+jobs:
+- name: some-job
+  plan:
+  - get: git-repo
+    trigger: true
+  - task: output-producer
+    config:
+      platform: linux
+      inputs:
+      - name: git-repo
+      outputs:
+      - name: output-1
+        path: output-1-src/
+      - name: output-2
+        path: output-2-src/
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          mkdir output-1-src
+          touch output-1-src/file-1
+          mkdir output-2-src
+          touch output-2-src/file-2
+  - task: find-files
+    config:
+      platform: linux
+      inputs:
+      - name: git-repo
+      - name: output-1
+      - name: output-2
+      run:
+        path: find
+        args: [.]
