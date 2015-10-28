@@ -13,7 +13,7 @@ type FakeClient struct {
 	AllBuildsStub        func() ([]atc.Build, error)
 	allBuildsMutex       sync.RWMutex
 	allBuildsArgsForCall []struct{}
-	allBuildsReturns struct {
+	allBuildsReturns     struct {
 		result1 []atc.Build
 		result2 error
 	}
@@ -79,7 +79,7 @@ type FakeClient struct {
 	CreatePipeStub        func() (atc.Pipe, error)
 	createPipeMutex       sync.RWMutex
 	createPipeArgsForCall []struct{}
-	createPipeReturns struct {
+	createPipeReturns     struct {
 		result1 atc.Pipe
 		result2 error
 	}
@@ -145,21 +145,21 @@ type FakeClient struct {
 	ListPipelinesStub        func() ([]atc.Pipeline, error)
 	listPipelinesMutex       sync.RWMutex
 	listPipelinesArgsForCall []struct{}
-	listPipelinesReturns struct {
+	listPipelinesReturns     struct {
 		result1 []atc.Pipeline
 		result2 error
 	}
 	ListVolumesStub        func() ([]atc.Volume, error)
 	listVolumesMutex       sync.RWMutex
 	listVolumesArgsForCall []struct{}
-	listVolumesReturns struct {
+	listVolumesReturns     struct {
 		result1 []atc.Volume
 		result2 error
 	}
 	ListWorkersStub        func() ([]atc.Worker, error)
 	listWorkersMutex       sync.RWMutex
 	listWorkersArgsForCall []struct{}
-	listWorkersReturns struct {
+	listWorkersReturns     struct {
 		result1 []atc.Worker
 		result2 error
 	}
@@ -187,14 +187,14 @@ type FakeClient struct {
 	ListAuthMethodsStub        func() ([]atc.AuthMethod, error)
 	listAuthMethodsMutex       sync.RWMutex
 	listAuthMethodsArgsForCall []struct{}
-	listAuthMethodsReturns struct {
+	listAuthMethodsReturns     struct {
 		result1 []atc.AuthMethod
 		result2 error
 	}
 	AuthTokenStub        func() (atc.AuthToken, error)
 	authTokenMutex       sync.RWMutex
 	authTokenArgsForCall []struct{}
-	authTokenReturns struct {
+	authTokenReturns     struct {
 		result1 atc.AuthToken
 		result2 error
 	}
