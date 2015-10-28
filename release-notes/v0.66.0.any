@@ -2,6 +2,11 @@
 
 \title{v0.66.0}
 
+\margin-note{
+  Run \reference{fly-sync}{\code{fly sync}} to upgrade Fly after deploying
+  v0.66.0!
+}
+
 \list{
   GitHub OAuth support! Basic auth has gotten us pretty far, and is still
   supported (probably forever). In addition, the TSA no longer needs to know
