@@ -1,7 +1,7 @@
 package commands
 
 type FlyCommand struct {
-	Target string `short:"t" long:"target" description:"Concourse target name or URL" default:"http://192.168.50.4:8080"`
+	Target string `short:"t" long:"target" description:"Concourse target name or URL" default:"http://192.168.100.4:8080"`
 
 	Login LoginCommand `command:"login" alias:"l" description:"Authenticate with the target"`
 	Sync  SyncCommand  `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
