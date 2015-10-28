@@ -136,13 +136,15 @@ run:
 		uploading := make(chan struct{})
 		uploadingBits = uploading
 
-		atcServer.AppendHandlers(
+		atcServer.RouteToHandler("POST", "/api/v1/pipes",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
 				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
 					ID: "some-pipe-id",
 				}),
 			),
+		)
+		atcServer.RouteToHandler("POST", "/api/v1/builds",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/builds"),
 				ghttp.VerifyJSONRepresenting(expectedPlan),
@@ -156,6 +158,8 @@ run:
 				},
 				ghttp.RespondWith(201, `{"id":128}`),
 			),
+		)
+		atcServer.RouteToHandler("GET", "/api/v1/builds/128/events",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/api/v1/builds/128/events"),
 				func(w http.ResponseWriter, r *http.Request) {
@@ -197,6 +201,8 @@ run:
 					Expect(err).NotTo(HaveOccurred())
 				},
 			),
+		)
+		atcServer.RouteToHandler("PUT", "/api/v1/pipes/some-pipe-id",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("PUT", "/api/v1/pipes/some-pipe-id"),
 				func(w http.ResponseWriter, req *http.Request) {
