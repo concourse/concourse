@@ -43,6 +43,9 @@ type TaskConfig struct {
 
 	// The set of (logical, name-only) inputs required by the task.
 	Inputs []TaskInputConfig `json:"inputs,omitempty"  yaml:"inputs,omitempty"`
+
+	// The set of (logical, name-only) outputs provided by the task.
+	Outputs []TaskOutputConfig `json:"outputs,omitempty"  yaml:"outputs,omitempty"`
 }
 
 func (a TaskConfig) Merge(b TaskConfig) TaskConfig {
@@ -129,6 +132,11 @@ type TaskRunConfig struct {
 }
 
 type TaskInputConfig struct {
+	Name string `json:"name" yaml:"name"`
+	Path string `json:"path,omitempty" yaml:"path"`
+}
+
+type TaskOutputConfig struct {
 	Name string `json:"name" yaml:"name"`
 	Path string `json:"path,omitempty" yaml:"path"`
 }

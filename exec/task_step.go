@@ -89,6 +89,11 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		Stderr: step.delegate.Stderr(),
 	}
 
+	config, err := step.configSource.FetchConfig(step.repo)
+	if err != nil {
+		return err
+	}
+
 	step.container, found, err = step.workerPool.FindContainerForIdentifier(
 		step.logger.Session("found-container"),
 		step.containerID,
@@ -119,11 +124,6 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		}
 	} else {
 		// container does not exist; new session
-
-		config, err := step.configSource.FetchConfig(step.repo)
-		if err != nil {
-			return err
-		}
 
 		tags := step.mergeTags(step.tags, config.Tags)
 
@@ -233,7 +233,14 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		return ErrInterrupted
 
 	case status := <-waitExitStatus:
-		step.repo.RegisterSource(step.sourceName, step)
+		if len(config.Outputs) == 0 {
+			step.repo.RegisterSource(step.sourceName, step)
+		} else {
+			for _, output := range config.Outputs {
+				source := newContainerSource(step.artifactsRoot, step.container, output)
+				step.repo.RegisterSource(SourceName(output.Name), source)
+			}
+		}
 
 		step.exitStatus = status
 
@@ -419,7 +426,7 @@ func (taskStep) mergeTags(tagsOne []string, tagsTwo []string) []string {
 		uniq[tag] = struct{}{}
 	}
 
-	for tag, _ := range uniq {
+	for tag := range uniq {
 		ret = append(ret, tag)
 	}
 
@@ -460,4 +467,64 @@ func (dest *containerDestination) StreamIn(dst string, src io.Reader) error {
 		Path:      dest.artifactsRoot + "/" + inputDst + "/" + dst,
 		TarStream: src,
 	})
+}
+
+type containerSource struct {
+	container     garden.Container
+	outputConfig  atc.TaskOutputConfig
+	artifactsRoot string
+}
+
+func newContainerSource(artifactsRoot string, container garden.Container, outputConfig atc.TaskOutputConfig) *containerSource {
+	return &containerSource{
+		container:     container,
+		outputConfig:  outputConfig,
+		artifactsRoot: artifactsRoot,
+	}
+}
+
+func (src *containerSource) StreamTo(destination ArtifactDestination) error {
+	out, err := src.container.StreamOut(garden.StreamOutSpec{
+		Path: src.artifactsPath() + "/",
+	})
+	if err != nil {
+		return err
+	}
+
+	return destination.StreamIn(".", out)
+}
+
+func (src *containerSource) StreamFile(filename string) (io.ReadCloser, error) {
+	out, err := src.container.StreamOut(garden.StreamOutSpec{
+		Path: path.Join(src.artifactsPath(), filename),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	tarReader := tar.NewReader(out)
+
+	_, err = tarReader.Next()
+	if err != nil {
+		return nil, FileNotFoundError{Path: filename}
+	}
+
+	return fileReadCloser{
+		Reader: tarReader,
+		Closer: out,
+	}, nil
+}
+
+func (src *containerSource) VolumeOn(worker.Worker) (baggageclaim.Volume, bool, error) {
+	return nil, false, nil
+}
+
+func (src *containerSource) artifactsPath() string {
+	outputSrc := src.outputConfig.Path
+	if len(outputSrc) == 0 {
+		outputSrc = src.outputConfig.Name
+	}
+
+	return path.Join(src.artifactsRoot, outputSrc)
 }

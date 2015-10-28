@@ -438,6 +438,272 @@ var _ = Describe("GardenFactory", func() {
 							})
 						})
 
+						Context("when the configuration specifies paths for outputs", func() {
+							var inputSource *fakes.FakeArtifactSource
+							var otherInputSource *fakes.FakeArtifactSource
+
+							BeforeEach(func() {
+								inputSource = new(fakes.FakeArtifactSource)
+								otherInputSource = new(fakes.FakeArtifactSource)
+
+								configSource.FetchConfigReturns(atc.TaskConfig{
+									Platform: "some-platform",
+									Image:    "some-image",
+									Params:   map[string]string{"SOME": "params"},
+									Run: atc.TaskRunConfig{
+										Path: "ls",
+										Args: []string{"some", "args"},
+									},
+									Outputs: []atc.TaskOutputConfig{
+										{Name: "some-output", Path: "some-output-configured-path"},
+										{Name: "some-other-output"},
+										{Name: "some-trailing-slash-output", Path: "some-output-configured-path-with-trailing-slash/"},
+									},
+								}, nil)
+							})
+
+							Context("when the process exits 0", func() {
+								BeforeEach(func() {
+									fakeProcess.WaitReturns(0, nil)
+								})
+
+								Describe("the registered sources", func() {
+									var artifactSource1 ArtifactSource
+									var artifactSource2 ArtifactSource
+									var artifactSource3 ArtifactSource
+
+									JustBeforeEach(func() {
+										Eventually(process.Wait()).Should(Receive(BeNil()))
+
+										var found bool
+										artifactSource1, found = repo.SourceFor("some-output")
+										Expect(found).To(BeTrue())
+
+										artifactSource2, found = repo.SourceFor("some-other-output")
+										Expect(found).To(BeTrue())
+
+										artifactSource3, found = repo.SourceFor("some-trailing-slash-output")
+										Expect(found).To(BeTrue())
+									})
+
+									It("does not register the task as a source", func() {
+										_, found := repo.SourceFor(sourceName)
+										Expect(found).To(BeFalse())
+									})
+
+									Describe("streaming to a destination", func() {
+										var fakeDestination *fakes.FakeArtifactDestination
+
+										BeforeEach(func() {
+											fakeDestination = new(fakes.FakeArtifactDestination)
+										})
+
+										Context("when the resource can stream out", func() {
+											var streamedOut io.ReadCloser
+
+											BeforeEach(func() {
+												streamedOut = gbytes.NewBuffer()
+												fakeContainer.StreamOutReturns(streamedOut, nil)
+											})
+
+											It("streams the configured path to the destination with a trailing slash", func() {
+												err := artifactSource1.StreamTo(fakeDestination)
+												Expect(err).NotTo(HaveOccurred())
+
+												Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
+												spec := fakeContainer.StreamOutArgsForCall(0)
+												Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path/"))
+												Expect(spec.User).To(Equal("")) // use default
+
+												Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
+												dest, src := fakeDestination.StreamInArgsForCall(0)
+												Expect(dest).To(Equal("."))
+												Expect(src).To(Equal(streamedOut))
+											})
+
+											It("does not add a redundant trailing slash", func() {
+												err := artifactSource3.StreamTo(fakeDestination)
+												Expect(err).NotTo(HaveOccurred())
+
+												Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
+												spec := fakeContainer.StreamOutArgsForCall(0)
+												Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path-with-trailing-slash/"))
+												Expect(spec.User).To(Equal("")) // use default
+
+												Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
+												dest, src := fakeDestination.StreamInArgsForCall(0)
+												Expect(dest).To(Equal("."))
+												Expect(src).To(Equal(streamedOut))
+											})
+
+											It("defaults the path to the output's name", func() {
+												err := artifactSource2.StreamTo(fakeDestination)
+												Expect(err).NotTo(HaveOccurred())
+
+												Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
+												spec := fakeContainer.StreamOutArgsForCall(0)
+												Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-other-output/"))
+												Expect(spec.User).To(Equal("")) // use default
+
+												Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
+												dest, src := fakeDestination.StreamInArgsForCall(0)
+												Expect(dest).To(Equal("."))
+												Expect(src).To(Equal(streamedOut))
+											})
+
+											Context("when streaming out of the versioned source fails", func() {
+												disaster := errors.New("nope")
+
+												BeforeEach(func() {
+													fakeContainer.StreamOutReturns(nil, disaster)
+												})
+
+												It("returns the error", func() {
+													Expect(artifactSource1.StreamTo(fakeDestination)).To(Equal(disaster))
+												})
+											})
+
+											Context("when streaming in to the destination fails", func() {
+												disaster := errors.New("nope")
+
+												BeforeEach(func() {
+													fakeDestination.StreamInReturns(disaster)
+												})
+
+												It("returns the error", func() {
+													Expect(artifactSource1.StreamTo(fakeDestination)).To(Equal(disaster))
+												})
+											})
+										})
+									})
+
+									Describe("streaming a file out", func() {
+										Context("when the container can stream out", func() {
+											var (
+												fileContent = "file-content"
+
+												tarBuffer *gbytes.Buffer
+											)
+
+											BeforeEach(func() {
+												tarBuffer = gbytes.NewBuffer()
+												fakeContainer.StreamOutReturns(tarBuffer, nil)
+											})
+
+											Context("when the file exists", func() {
+												BeforeEach(func() {
+													tarWriter := tar.NewWriter(tarBuffer)
+
+													err := tarWriter.WriteHeader(&tar.Header{
+														Name: "some-file",
+														Mode: 0644,
+														Size: int64(len(fileContent)),
+													})
+													Expect(err).NotTo(HaveOccurred())
+
+													_, err = tarWriter.Write([]byte(fileContent))
+													Expect(err).NotTo(HaveOccurred())
+												})
+
+												It("streams out the given path", func() {
+													reader, err := artifactSource1.StreamFile("some-path")
+													Expect(err).NotTo(HaveOccurred())
+
+													Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
+
+													spec := fakeContainer.StreamOutArgsForCall(0)
+													Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path/some-path"))
+													Expect(spec.User).To(Equal("")) // use default
+												})
+
+												Describe("closing the stream", func() {
+													It("closes the stream from the versioned source", func() {
+														reader, err := artifactSource1.StreamFile("some-path")
+														Expect(err).NotTo(HaveOccurred())
+
+														Expect(tarBuffer.Closed()).To(BeFalse())
+
+														err = reader.Close()
+														Expect(err).NotTo(HaveOccurred())
+
+														Expect(tarBuffer.Closed()).To(BeTrue())
+													})
+												})
+											})
+
+											Context("but the stream is empty", func() {
+												It("returns ErrFileNotFound", func() {
+													_, err := artifactSource1.StreamFile("some-path")
+													Expect(err).To(MatchError(FileNotFoundError{Path: "some-path"}))
+												})
+											})
+										})
+
+										Context("when the container cannot stream out", func() {
+											disaster := errors.New("nope")
+
+											BeforeEach(func() {
+												fakeContainer.StreamOutReturns(nil, disaster)
+											})
+
+											It("returns the error", func() {
+												_, err := artifactSource1.StreamFile("some-path")
+												Expect(err).To(Equal(disaster))
+											})
+										})
+									})
+								})
+
+								Describe("before saving the exit status property", func() {
+									BeforeEach(func() {
+										taskDelegate.FinishedStub = func(ExitStatus) {
+											defer GinkgoRecover()
+
+											callCount := fakeContainer.SetPropertyCallCount()
+
+											for i := 0; i < callCount; i++ {
+												name, _ := fakeContainer.SetPropertyArgsForCall(i)
+												Expect(name).NotTo(Equal("concourse:exit-status"))
+											}
+										}
+									})
+
+									It("invokes the delegate's Finished callback", func() {
+										Eventually(process.Wait()).Should(Receive(BeNil()))
+
+										Expect(taskDelegate.FinishedCallCount()).To(Equal(1))
+										Expect(taskDelegate.FinishedArgsForCall(0)).To(Equal(ExitStatus(0)))
+									})
+								})
+
+								Context("when saving the exit status fails", func() {
+									disaster := errors.New("nope")
+
+									BeforeEach(func() {
+										fakeContainer.SetPropertyStub = func(name string, value string) error {
+											defer GinkgoRecover()
+
+											if name == "concourse:exit-status" {
+												return disaster
+											}
+
+											return nil
+										}
+									})
+
+									It("exits with the error", func() {
+										Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+									})
+
+									It("invokes the delegate's Failed callback", func() {
+										Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+										Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+										Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
+									})
+								})
+							})
+						})
+
 						Context("when the process exits 0", func() {
 							BeforeEach(func() {
 								fakeProcess.WaitReturns(0, nil)
