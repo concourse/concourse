@@ -9,13 +9,17 @@
 
 \list{
   GitHub OAuth support! Basic auth has gotten us pretty far, and is still
-  supported (probably forever). In addition, the TSA no longer needs to know
-  the ATC's basic auth (so you can kill \code{tsa.atc.username} and
-  \code{tsa.atc.password} from your manifests).
+  supported (probably forever), but we'll be adding more and more OAuth
+  providers as it's generally better than having another set of credentials to
+  remember (and risk leaking).
+
+  In addition, the TSA no longer needs to know the ATC's basic auth (so you can
+  kill \code{tsa.atc.username} and \code{tsa.atc.password} from your
+  manifests).
 
   To configure GitHub OAuth, you'll need to set up a few things. See
-  \hyperlink{https://github.com/concourse/concourse/blob/234bf85bf4e97b252b9bed8a8c277eabfed08a37/jobs/atc/spec#L34-L55}{the
-  \code{atc} job spec} for more information. If you're not using BOSH, consult
+  \hyperlink{http://bosh.io/jobs/atc?source=github.com/concourse/concourse&version=0.66.0}{the
+  \code{atc} job docs} for more information. If you're not using BOSH, consult
   \code{atc --help}.
 }{
   The \reference{fly-cli}{\code{fly} CLI} has been practically redone, very
