@@ -52,10 +52,10 @@
 
   ...and the rest of the commands have had slight tweaks to how they handle
   options. A few places that previously took a pipeline and job as separate
-  flags (\reference{fly-execute}, \reference{fly-hijack}) have now been unified
-  into one flag that includes both values, e.g. \code{--pipeline a --job b} is
-  now \code{--job a/b}. This makes it clearer what the focus of the flag is,
-  and makes it explicit that they both must be specified.
+  flags (\reference{fly-execute}, \reference{fly-intercept}) have now been
+  unified into one flag that includes both values, e.g. \code{--pipeline a
+  --job b} is now \code{--job a/b}. This makes it clearer what the focus of the
+  flag is, and makes it explicit that they both must be specified.
 
   We've also switched our option parsing library, which has more conventional
   parsing of boolean flags, allowing them to be squashed together as with most
