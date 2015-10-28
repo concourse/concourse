@@ -112,7 +112,7 @@ jobs:
   - task: create-candidate-release
     file: concourse/ci/create-candidate-release.yml
   - put: candidate-release
-    params: {from: create-candidate-release/concourse-(.*).tgz}
+    params: {from: candidate-release/concourse-(.*).tgz}
   - put: version
     params: {file: version/number}
 

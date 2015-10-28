@@ -3,10 +3,10 @@
 
 set -e
 
-ROOT="$PWD"
+OUTPUT="$PWD/candidate-release"
 VERSION="$(cat version/number)"
 
 pushd concourse/
   bosh -n create release --with-tarball --name concourse --version "$VERSION"
-  mv dev_releases/concourse/concourse-*.tgz "$ROOT"
+  mv dev_releases/concourse/concourse-*.tgz "$OUTPUT"
 popd

@@ -4,8 +4,11 @@ platform: linux
 image: docker:///concourse/concourse-ci
 
 inputs:
-  - name: concourse
-  - name: version
+- name: concourse
+- name: version
+
+outputs:
+- name: candidate-release
 
 run:
   path: concourse/ci/scripts/create-candidate-release
