@@ -223,3 +223,7 @@
 	path = src/github.com/vito/go-interact
 	url = https://github.com/vito/go-interact
 	branch = master
+[submodule "src/github.com/concourse/go-concourse"]
+	path = src/github.com/concourse/go-concourse
+	url = https://github.com/concourse/go-concourse
+	branch = master
