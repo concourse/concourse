@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 )
 
 func handleBadResponse(process string, resp *http.Response) {
@@ -21,7 +21,7 @@ func handleBadResponse(process string, resp *http.Response) {
 	log.Fatalf("bad response when %s:\n%s\n%s", process, resp.Status, b)
 }
 
-func GetBuild(client atcclient.Client, jobName string, buildNameOrID string, pipelineName string) (atc.Build, error) {
+func GetBuild(client concourse.Client, jobName string, buildNameOrID string, pipelineName string) (atc.Build, error) {
 	if pipelineName != "" && jobName == "" {
 		log.Fatalln("job must be specified if pipeline is specified")
 	}

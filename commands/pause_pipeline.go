@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
 )
 
@@ -20,7 +20,7 @@ func (command *PausePipelineCommand) Execute(args []string) error {
 		log.Fatalln(err)
 		return nil
 	}
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 	found, err := client.PausePipeline(pipelineName)
 	if err != nil {
 		return err

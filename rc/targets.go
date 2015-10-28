@@ -13,7 +13,7 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 
 	"gopkg.in/yaml.v2"
 )
@@ -77,7 +77,7 @@ func SelectTarget(selectedTarget string) (TargetProps, error) {
 	return target, nil
 }
 
-func NewConnection(atcURL string, insecure bool) (atcclient.Connection, error) {
+func NewConnection(atcURL string, insecure bool) (concourse.Connection, error) {
 	var tlsConfig *tls.Config
 	if insecure {
 		tlsConfig = &tls.Config{InsecureSkipVerify: insecure}
@@ -89,12 +89,12 @@ func NewConnection(atcURL string, insecure bool) (atcclient.Connection, error) {
 		TLSClientConfig: tlsConfig,
 	}
 
-	return atcclient.NewConnection(atcURL, &http.Client{
+	return concourse.NewConnection(atcURL, &http.Client{
 		Transport: transport,
 	})
 }
 
-func TargetConnection(selectedTarget string) (atcclient.Connection, error) {
+func TargetConnection(selectedTarget string) (concourse.Connection, error) {
 	if isURL(selectedTarget) {
 		return NewConnection(selectedTarget, false)
 	}
@@ -140,7 +140,7 @@ func TargetConnection(selectedTarget string) (atcclient.Connection, error) {
 		Transport: transport,
 	}
 
-	return atcclient.NewConnection(target.API, httpClient)
+	return concourse.NewConnection(target.API, httpClient)
 }
 
 func userHomeDir() string {

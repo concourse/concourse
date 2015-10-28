@@ -7,7 +7,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/template"
 	"github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/rata"
@@ -17,7 +17,7 @@ import (
 
 type ATCConfig struct {
 	pipelineName        string
-	client              atcclient.Client
+	client              concourse.Client
 	webRequestGenerator *rata.RequestGenerator
 }
 

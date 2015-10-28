@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/concourse/fly/atcclient"
-	"github.com/concourse/fly/atcclient/eventstream"
+	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/go-concourse/concourse/eventstream"
 	"github.com/concourse/fly/rc"
 )
 
@@ -22,7 +22,7 @@ func (command *WatchCommand) Execute(args []string) error {
 		return nil
 	}
 
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 
 	build, err := GetBuild(client, command.Job.JobName, command.Build, command.Job.PipelineName)
 	if err != nil {

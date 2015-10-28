@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
 	"github.com/vito/go-interact/interact"
 )
@@ -17,7 +17,7 @@ type LoginCommand struct {
 }
 
 func (command *LoginCommand) Execute(args []string) error {
-	var connection atcclient.Connection
+	var connection concourse.Connection
 	var err error
 
 	if command.ATCURL != "" {
@@ -30,7 +30,7 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 
 	authMethods, err := client.ListAuthMethods()
 	if err != nil {
@@ -62,7 +62,7 @@ func (command *LoginCommand) Execute(args []string) error {
 	return command.loginWith(chosenMethod, connection)
 }
 
-func (command *LoginCommand) loginWith(method atc.AuthMethod, connection atcclient.Connection) error {
+func (command *LoginCommand) loginWith(method atc.AuthMethod, connection concourse.Connection) error {
 	var token atc.AuthToken
 
 	switch method.Type {
@@ -110,7 +110,7 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, connection atcclie
 			return err
 		}
 
-		basicAuthClient, err := atcclient.NewConnection(
+		basicAuthClient, err := concourse.NewConnection(
 			newUnauthedClient.URL(),
 			&http.Client{
 				Transport: basicAuthTransport{
@@ -124,7 +124,7 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, connection atcclie
 			return err
 		}
 
-		client := atcclient.NewClient(basicAuthClient)
+		client := concourse.NewClient(basicAuthClient)
 
 		token, err = client.AuthToken()
 		if err != nil {

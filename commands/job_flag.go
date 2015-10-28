@@ -3,7 +3,7 @@ package commands
 import (
 	"strings"
 
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 )
 
 type JobFlag struct {
@@ -14,10 +14,10 @@ type JobFlag struct {
 func (job *JobFlag) UnmarshalFlag(value string) error {
 	vs := strings.SplitN(value, "/", 2)
 	if vs[0] == "" {
-		return atcclient.NameRequiredError("pipeline")
+		return concourse.NameRequiredError("pipeline")
 	}
 	if vs[1] == "" {
-		return atcclient.NameRequiredError("job")
+		return concourse.NameRequiredError("job")
 	}
 
 	job.PipelineName = vs[0]

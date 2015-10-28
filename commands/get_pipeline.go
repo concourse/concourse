@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
 )
 
@@ -27,7 +27,7 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		log.Fatalln(err)
 	}
 
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 	config, _, _, err := client.PipelineConfig(pipelineName)
 	if err != nil {
 		log.Fatalln(err)

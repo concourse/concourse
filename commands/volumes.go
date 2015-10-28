@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
@@ -23,7 +23,7 @@ func (command *VolumesCommand) Execute([]string) error {
 		log.Fatalln(err)
 	}
 
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 
 	volumes, err := client.ListVolumes()
 	if err != nil {

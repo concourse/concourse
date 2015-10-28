@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
@@ -21,7 +21,7 @@ func (command *ContainersCommand) Execute([]string) error {
 		log.Fatalln(err)
 	}
 
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 
 	containers, err := client.ListContainers(map[string]string{})
 	if err != nil {

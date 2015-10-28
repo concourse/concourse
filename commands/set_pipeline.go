@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/concourse/atc/web"
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/template"
 	"github.com/tedsuo/rata"
@@ -32,7 +32,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		log.Fatalln(err)
 		return nil
 	}
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 
 	webRequestGenerator := rata.NewRequestGenerator(connection.URL(), web.Routes)
 

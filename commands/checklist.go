@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
 )
 
@@ -21,7 +21,7 @@ func (command *ChecklistCommand) Execute([]string) error {
 
 	pipelineName := command.Pipeline
 
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 	config, _, _, err := client.PipelineConfig(pipelineName)
 	if err != nil {
 		log.Fatalln(err)

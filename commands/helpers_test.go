@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/concourse/atc"
-	fakes "github.com/concourse/fly/atcclient/fakes"
+	fakes "github.com/concourse/go-concourse/concourse/fakes"
 	. "github.com/concourse/fly/commands"
 
 	. "github.com/onsi/ginkgo"

@@ -15,8 +15,8 @@ import (
 	"syscall"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
-	"github.com/concourse/fly/atcclient/eventstream"
+	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/go-concourse/concourse/eventstream"
 	"github.com/concourse/fly/config"
 	"github.com/concourse/fly/rc"
 	"github.com/tedsuo/rata"
@@ -38,7 +38,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return nil
 	}
 
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 
 	taskConfigFile := command.TaskConfig
 	excludeIgnored := command.ExcludeIgnored
@@ -109,7 +109,7 @@ type Input struct {
 }
 
 func determineInputs(
-	client atcclient.Client,
+	client concourse.Client,
 	taskInputs []atc.TaskInputConfig,
 	inputMappings []InputPairFlag,
 	inputsFrom JobFlag,
@@ -152,7 +152,7 @@ func determineInputs(
 	return inputs, nil
 }
 
-func generateLocalInputs(client atcclient.Client, inputMappings []InputPairFlag) (map[string]Input, error) {
+func generateLocalInputs(client concourse.Client, inputMappings []InputPairFlag) (map[string]Input, error) {
 	kvMap := map[string]Input{}
 
 	for _, i := range inputMappings {
@@ -174,7 +174,7 @@ func generateLocalInputs(client atcclient.Client, inputMappings []InputPairFlag)
 	return kvMap, nil
 }
 
-func fetchInputsFromJob(client atcclient.Client, inputsFrom JobFlag) (map[string]Input, error) {
+func fetchInputsFromJob(client concourse.Client, inputsFrom JobFlag) (map[string]Input, error) {
 	kvMap := map[string]Input{}
 	if inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		return kvMap, nil
@@ -201,7 +201,7 @@ func fetchInputsFromJob(client atcclient.Client, inputsFrom JobFlag) (map[string
 
 func createBuild(
 	atcRequester *atcRequester,
-	client atcclient.Client,
+	client concourse.Client,
 	privileged bool,
 	inputs []Input,
 	config atc.TaskConfig,
@@ -286,7 +286,7 @@ func createBuild(
 }
 
 func abortOnSignal(
-	client atcclient.Client,
+	client concourse.Client,
 	terminate <-chan os.Signal,
 	build atc.Build,
 ) {

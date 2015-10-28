@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
@@ -19,7 +19,7 @@ func (command *PipelinesCommand) Execute([]string) error {
 		return nil
 	}
 
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 
 	pipelines, err := client.ListPipelines()
 	if err != nil {

@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
 	"github.com/vito/go-interact/interact"
 )
@@ -29,7 +29,7 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 
 	found, err := client.DeletePipeline(pipelineName)
 	if err != nil {

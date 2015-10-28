@@ -17,7 +17,7 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/pty"
 	"github.com/concourse/fly/rc"
 	"github.com/mgutz/ansi"
@@ -54,7 +54,7 @@ type containerLocator interface {
 }
 
 type stepContainerLocator struct {
-	client atcclient.Client
+	client concourse.Client
 }
 
 func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (map[string]string, error) {
@@ -102,7 +102,7 @@ type containerFingerprint struct {
 	checkName string
 }
 
-func locateContainer(client atcclient.Client, fingerprint containerFingerprint) (map[string]string, error) {
+func locateContainer(client concourse.Client, fingerprint containerFingerprint) (map[string]string, error) {
 	var locator containerLocator
 
 	if fingerprint.checkName == "" {
@@ -163,7 +163,7 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 	if err != nil {
 		log.Fatalln("failed to create client:", err)
 	}
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 
 	reqValues, err := locateContainer(client, fingerprint)
 	if err != nil {

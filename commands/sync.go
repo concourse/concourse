@@ -7,7 +7,7 @@ import (
 
 	"github.com/inconshreveable/go-update"
 
-	"github.com/concourse/fly/atcclient"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
 )
 
@@ -20,7 +20,7 @@ func (command *SyncCommand) Execute(args []string) error {
 		return nil
 	}
 
-	client := atcclient.NewClient(connection)
+	client := concourse.NewClient(connection)
 	body, err := client.GetCLIReader(runtime.GOARCH, runtime.GOOS)
 	if err != nil {
 		log.Fatalln(err)
