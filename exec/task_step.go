@@ -193,6 +193,11 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
+		err = step.setupOutputs(config.Outputs)
+		if err != nil {
+			return err
+		}
+
 		step.delegate.Started()
 
 		step.process, err = step.container.Run(garden.ProcessSpec{
@@ -378,22 +383,7 @@ func (step *taskStep) inputDestination(config atc.TaskInputConfig) string {
 }
 
 func (step *taskStep) ensureBuildDirExists(container garden.Container) error {
-	emptyTar := new(bytes.Buffer)
-
-	err := tar.NewWriter(emptyTar).Close()
-	if err != nil {
-		return err
-	}
-
-	err = container.StreamIn(garden.StreamInSpec{
-		Path:      step.artifactsRoot,
-		TarStream: emptyTar,
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return createContainerDir(container, step.artifactsRoot)
 }
 
 func (step *taskStep) streamInputs(inputPairs []inputPair) error {
@@ -405,6 +395,19 @@ func (step *taskStep) streamInputs(inputPairs []inputPair) error {
 		)
 
 		err := pair.source.StreamTo(destination)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (step *taskStep) setupOutputs(outputs []atc.TaskOutputConfig) error {
+	for _, output := range outputs {
+		source := newContainerSource(step.artifactsRoot, step.container, output)
+
+		err := source.initialize()
 		if err != nil {
 			return err
 		}
@@ -527,4 +530,27 @@ func (src *containerSource) artifactsPath() string {
 	}
 
 	return path.Join(src.artifactsRoot, outputSrc)
+}
+
+func (src *containerSource) initialize() error {
+	return createContainerDir(src.container, src.artifactsPath())
+}
+
+func createContainerDir(container garden.Container, dir string) error {
+	emptyTar := new(bytes.Buffer)
+
+	err := tar.NewWriter(emptyTar).Close()
+	if err != nil {
+		return err
+	}
+
+	err = container.StreamIn(garden.StreamInSpec{
+		Path:      dir,
+		TarStream: emptyTar,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

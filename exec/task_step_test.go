@@ -462,6 +462,37 @@ var _ = Describe("GardenFactory", func() {
 								}, nil)
 							})
 
+							It("ensures the output directories exist by streaming in an empty payload", func() {
+								Expect(fakeContainer.StreamInCallCount()).To(Equal(4))
+
+								spec := fakeContainer.StreamInArgsForCall(1)
+								Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path"))
+								Expect(spec.User).To(Equal("")) // use default
+
+								tarReader := tar.NewReader(spec.TarStream)
+
+								_, err := tarReader.Next()
+								Expect(err).To(Equal(io.EOF))
+
+								spec = fakeContainer.StreamInArgsForCall(2)
+								Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-other-output"))
+								Expect(spec.User).To(Equal("")) // use default
+
+								tarReader = tar.NewReader(spec.TarStream)
+
+								_, err = tarReader.Next()
+								Expect(err).To(Equal(io.EOF))
+
+								spec = fakeContainer.StreamInArgsForCall(3)
+								Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path-with-trailing-slash"))
+								Expect(spec.User).To(Equal("")) // use default
+
+								tarReader = tar.NewReader(spec.TarStream)
+
+								_, err = tarReader.Next()
+								Expect(err).To(Equal(io.EOF))
+							})
+
 							Context("when the process exits 0", func() {
 								BeforeEach(func() {
 									fakeProcess.WaitReturns(0, nil)
