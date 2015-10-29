@@ -107,4 +107,11 @@
   The \hyperlink{https://github.com/concourse/s3-resource}{S3 resource} is now
   configured with the full endpoint URI, including \code{https://} or
   \code{http://}. Previously it was hardcoded to \code{https://}.
+}{
+  We've fixed a bug in the job scheduler that led to high CPU and memory usage
+  when resolving the inputs for fan-in jobs.
+}{
+  The \hyperlink{https://github.com/concourse/semver-resource}{Semver resource}
+  can now \italic{actually} be used with Git repositories. Previously it would
+  fail on host key checking.
 }
