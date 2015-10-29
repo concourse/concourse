@@ -18,7 +18,8 @@ type gardenWorkerContainer struct {
 	gardenClient garden.Client
 	db           GardenWorkerDB
 
-	volumes []Volume
+	volumes      []Volume
+	volumeMounts []VolumeMount
 
 	clock clock.Clock
 
@@ -95,6 +96,10 @@ func (container *gardenWorkerContainer) Volumes() []Volume {
 	return container.volumes
 }
 
+func (container *gardenWorkerContainer) VolumeMounts() []VolumeMount {
+	return container.volumeMounts
+}
+
 func (container *gardenWorkerContainer) initializeVolumes(
 	logger lager.Logger,
 	properties garden.Properties,
@@ -105,34 +110,54 @@ func (container *gardenWorkerContainer) initializeVolumes(
 		return nil
 	}
 
+	volumesByHandle := map[string]Volume{}
+
 	handlesJSON, found := properties[volumePropertyName]
-	if !found {
-		container.volumes = []Volume{}
-		return nil
-	}
-
-	var handles []string
-	err := json.Unmarshal([]byte(handlesJSON), &handles)
-	if err != nil {
-		return err
-	}
-
-	volumes := []Volume{}
-	for _, h := range handles {
-		baggageClaimVolume, err := baggageclaimClient.LookupVolume(logger, h)
+	if found {
+		var handles []string
+		err := json.Unmarshal([]byte(handlesJSON), &handles)
 		if err != nil {
 			return err
 		}
 
-		volume, err := volumeFactory.Build(baggageClaimVolume)
+		volumes := []Volume{}
+		for _, h := range handles {
+			baggageClaimVolume, err := baggageclaimClient.LookupVolume(logger, h)
+			if err != nil {
+				return err
+			}
+
+			volume, err := volumeFactory.Build(baggageClaimVolume)
+			if err != nil {
+				return err
+			}
+
+			volumes = append(volumes, volume)
+
+			volumesByHandle[h] = volume
+		}
+
+		container.volumes = volumes
+	}
+
+	mountsJSON, found := properties[volumeMountsPropertyName]
+	if found {
+		var handleToMountPath map[string]string
+		err := json.Unmarshal([]byte(mountsJSON), &handleToMountPath)
 		if err != nil {
 			return err
 		}
 
-		volumes = append(volumes, volume)
-	}
+		volumeMounts := []VolumeMount{}
+		for h, m := range handleToMountPath {
+			volumeMounts = append(volumeMounts, VolumeMount{
+				Volume:    volumesByHandle[h],
+				MountPath: m,
+			})
+		}
 
-	container.volumes = volumes
+		container.volumeMounts = volumeMounts
+	}
 
 	return nil
 }

@@ -277,8 +277,6 @@ var _ = Describe("Worker", func() {
 										return cowVolume1, nil
 									} else if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume2}) {
 										return cowVolume2, nil
-										// } else if reflect.DeepEqual(spec.Strategy, baggageclaim.EmptyStrategy{}) {
-										// return <-fakeBaseVolumes, nil
 									} else {
 										Fail(fmt.Sprintf("unknown strategy: %#v", spec.Strategy))
 										return nil, nil
@@ -288,25 +286,31 @@ var _ = Describe("Worker", func() {
 
 							It("creates the container with read-write copy-on-write bind-mounts for each cache", func() {
 								Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-								Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
-									RootFSPath: "some-resource-image",
-									Privileged: true,
-									Properties: garden.Properties{
-										"concourse:volumes": `["cow-volume1","cow-volume2"]`,
+
+								spec := fakeGardenClient.CreateArgsForCall(0)
+								Expect(spec.RootFSPath).To(Equal("some-resource-image"))
+								Expect(spec.Privileged).To(BeTrue())
+								Expect(spec.BindMounts).To(Equal([]garden.BindMount{
+									{
+										SrcPath: "/some/cow/src/path",
+										DstPath: "/some/dst/path1",
+										Mode:    garden.BindMountModeRW,
 									},
-									BindMounts: []garden.BindMount{
-										{
-											SrcPath: "/some/cow/src/path",
-											DstPath: "/some/dst/path1",
-											Mode:    garden.BindMountModeRW,
-										},
-										{
-											SrcPath: "/some/other/cow/src/path",
-											DstPath: "/some/dst/path2",
-											Mode:    garden.BindMountModeRW,
-										},
+									{
+										SrcPath: "/some/other/cow/src/path",
+										DstPath: "/some/dst/path2",
+										Mode:    garden.BindMountModeRW,
 									},
 								}))
+
+								Expect(spec.Properties).To(HaveLen(2))
+								Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
+									`["cow-volume1","cow-volume2"]`,
+								))
+
+								Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(
+									`{"cow-volume1":"/some/dst/path1","cow-volume2":"/some/dst/path2"}`,
+								))
 							})
 
 							It("releases the volumes that it instantiated but not the ones that were passed in", func() {
@@ -343,20 +347,26 @@ var _ = Describe("Worker", func() {
 
 							It("creates the container with a read-write bind-mount", func() {
 								Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-								Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
-									RootFSPath: "some-resource-image",
-									Privileged: true,
-									Properties: garden.Properties{
-										"concourse:volumes": `["some-volume1"]`,
-									},
-									BindMounts: []garden.BindMount{
-										{
-											SrcPath: "/some/src/path1",
-											DstPath: "/some/dst/path1",
-											Mode:    garden.BindMountModeRW,
-										},
+
+								spec := fakeGardenClient.CreateArgsForCall(0)
+								Expect(spec.RootFSPath).To(Equal("some-resource-image"))
+								Expect(spec.Privileged).To(BeTrue())
+								Expect(spec.BindMounts).To(Equal([]garden.BindMount{
+									{
+										SrcPath: "/some/src/path1",
+										DstPath: "/some/dst/path1",
+										Mode:    garden.BindMountModeRW,
 									},
 								}))
+
+								Expect(spec.Properties).To(HaveLen(2))
+								Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
+									`["some-volume1"]`,
+								))
+
+								Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(
+									`{"some-volume1":"/some/dst/path1"}`,
+								))
 							})
 						})
 
@@ -617,35 +627,41 @@ var _ = Describe("Worker", func() {
 
 					It("creates the container with read-write copy-on-write bind-mounts for each input", func() {
 						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-						Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
-							RootFSPath: "some-image",
-							Privileged: true,
-							Properties: garden.Properties{
-								"concourse:volumes": `["some-dst-base-volume","some-dst-other-base-volume","cow-input-volume","cow-other-input-volume"]`,
+
+						spec := fakeGardenClient.CreateArgsForCall(0)
+						Expect(spec.RootFSPath).To(Equal("some-image"))
+						Expect(spec.Privileged).To(BeTrue())
+						Expect(spec.BindMounts).To(Equal([]garden.BindMount{
+							{
+								SrcPath: "/some/volume/some/dst",
+								DstPath: "/tmp/dst",
+								Mode:    garden.BindMountModeRW,
 							},
-							BindMounts: []garden.BindMount{
-								{
-									SrcPath: "/some/volume/some/dst",
-									DstPath: "/tmp/dst",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/some/volume/some/dst/other",
-									DstPath: "/tmp/dst/other",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/some/cow/src/path",
-									DstPath: "/tmp/dst/path",
-									Mode:    garden.BindMountModeRW,
-								},
-								{
-									SrcPath: "/some/other/cow/src/path",
-									DstPath: "/tmp/dst/other/path",
-									Mode:    garden.BindMountModeRW,
-								},
+							{
+								SrcPath: "/some/volume/some/dst/other",
+								DstPath: "/tmp/dst/other",
+								Mode:    garden.BindMountModeRW,
+							},
+							{
+								SrcPath: "/some/cow/src/path",
+								DstPath: "/tmp/dst/path",
+								Mode:    garden.BindMountModeRW,
+							},
+							{
+								SrcPath: "/some/other/cow/src/path",
+								DstPath: "/tmp/dst/other/path",
+								Mode:    garden.BindMountModeRW,
 							},
 						}))
+
+						Expect(spec.Properties).To(HaveLen(2))
+						Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
+							`["some-dst-base-volume","some-dst-other-base-volume","cow-input-volume","cow-other-input-volume"]`,
+						))
+
+						Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(
+							`{"some-dst-base-volume":"/tmp/dst","some-dst-other-base-volume":"/tmp/dst/other","cow-input-volume":"/tmp/dst/path","cow-other-input-volume":"/tmp/dst/other/path"}`,
+						))
 					})
 
 					Context("after the container is created", func() {
@@ -819,7 +835,8 @@ var _ = Describe("Worker", func() {
 						expectedHandle2Volume = new(wfakes.FakeVolume)
 
 						fakeContainer.PropertiesReturns(garden.Properties{
-							"concourse:volumes": `["handle-1","handle-2"]`,
+							"concourse:volumes":       `["handle-1","handle-2"]`,
+							"concourse:volume-mounts": `{"handle-1":"/handle-1/path","handle-2":"/handle-2/path"}`,
 						}, nil)
 
 						fakeBaggageclaimClient.LookupVolumeStub = func(logger lager.Logger, handle string) (baggageclaim.Volume, error) {
@@ -845,7 +862,65 @@ var _ = Describe("Worker", func() {
 
 					Describe("Volumes", func() {
 						It("returns all bound volumes based on properties on the container", func() {
-							Expect(foundContainer.Volumes()).To(Equal([]Volume{expectedHandle1Volume, expectedHandle2Volume}))
+							Expect(foundContainer.Volumes()).To(Equal([]Volume{
+								expectedHandle1Volume,
+								expectedHandle2Volume,
+							}))
+						})
+
+						Context("when LookupVolume returns an error", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeBaggageclaimClient.LookupVolumeReturns(nil, disaster)
+							})
+
+							It("returns the error on lookup", func() {
+								Expect(findErr).To(Equal(disaster))
+							})
+						})
+
+						Context("when Build returns an error", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeVolumeFactory.BuildReturns(nil, disaster)
+							})
+
+							It("returns the error on lookup", func() {
+								Expect(findErr).To(Equal(disaster))
+							})
+						})
+
+						Context("when there is no baggageclaim", func() {
+							BeforeEach(func() {
+								worker = NewGardenWorker(
+									fakeGardenClient,
+									nil,
+									nil,
+									fakeGardenWorkerDB,
+									fakeWorkerProvider,
+									fakeClock,
+									activeContainers,
+									resourceTypes,
+									platform,
+									tags,
+									name,
+								)
+							})
+
+							It("returns an empty slice", func() {
+								Expect(foundContainer.Volumes()).To(BeEmpty())
+							})
+						})
+					})
+
+					Describe("VolumeMounts", func() {
+						It("returns all bound volumes based on properties on the container", func() {
+							Expect(foundContainer.VolumeMounts()).To(ConsistOf([]VolumeMount{
+								{Volume: expectedHandle1Volume, MountPath: "/handle-1/path"},
+								{Volume: expectedHandle2Volume, MountPath: "/handle-2/path"},
+							}))
 						})
 
 						Context("when LookupVolume returns an error", func() {

@@ -213,6 +213,12 @@ type FakeContainer struct {
 	volumesReturns     struct {
 		result1 []worker.Volume
 	}
+	VolumeMountsStub        func() []worker.VolumeMount
+	volumeMountsMutex       sync.RWMutex
+	volumeMountsArgsForCall []struct{}
+	volumeMountsReturns     struct {
+		result1 []worker.VolumeMount
+	}
 }
 
 func (fake *FakeContainer) Handle() string {
@@ -972,6 +978,30 @@ func (fake *FakeContainer) VolumesReturns(result1 []worker.Volume) {
 	fake.VolumesStub = nil
 	fake.volumesReturns = struct {
 		result1 []worker.Volume
+	}{result1}
+}
+
+func (fake *FakeContainer) VolumeMounts() []worker.VolumeMount {
+	fake.volumeMountsMutex.Lock()
+	fake.volumeMountsArgsForCall = append(fake.volumeMountsArgsForCall, struct{}{})
+	fake.volumeMountsMutex.Unlock()
+	if fake.VolumeMountsStub != nil {
+		return fake.VolumeMountsStub()
+	} else {
+		return fake.volumeMountsReturns.result1
+	}
+}
+
+func (fake *FakeContainer) VolumeMountsCallCount() int {
+	fake.volumeMountsMutex.RLock()
+	defer fake.volumeMountsMutex.RUnlock()
+	return len(fake.volumeMountsArgsForCall)
+}
+
+func (fake *FakeContainer) VolumeMountsReturns(result1 []worker.VolumeMount) {
+	fake.VolumeMountsStub = nil
+	fake.volumeMountsReturns = struct {
+		result1 []worker.VolumeMount
 	}{result1}
 }
 

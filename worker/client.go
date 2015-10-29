@@ -32,6 +32,7 @@ type Container interface {
 	Release(time.Duration)
 
 	Volumes() []Volume
+	VolumeMounts() []VolumeMount
 }
 
 type Identifier db.ContainerIdentifier

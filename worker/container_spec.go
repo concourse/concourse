@@ -66,6 +66,7 @@ type TaskContainerSpec struct {
 	Privileged bool
 	Tags       []string
 	Inputs     []VolumeMount
+	Outputs    []VolumeMount
 }
 
 func (spec TaskContainerSpec) WorkerSpec() WorkerSpec {
