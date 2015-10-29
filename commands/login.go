@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/vito/go-interact/interact"
 )
 
@@ -40,7 +40,17 @@ func (command *LoginCommand) Execute(args []string) error {
 	var chosenMethod atc.AuthMethod
 	switch len(authMethods) {
 	case 0:
-		fmt.Println("no auth methods configured; nothing to do")
+		fmt.Println("no auth methods configured; updating target data")
+		err := rc.SaveTarget(
+			Fly.Target,
+			connection.URL(),
+			command.Insecure,
+			&rc.TargetToken{},
+		)
+
+		if err != nil {
+			return err
+		}
 		return nil
 	case 1:
 		chosenMethod = authMethods[0]
