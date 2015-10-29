@@ -319,7 +319,7 @@ flag. Once you've learned what the commands do, you may want to consult
     ...you could then configure this pipeline like so:
 
     \codeblock{bash}{
-    $ fly configure --config pipeline.yml --var "private-repo-key=$(cat id_rsa)" my-pipeline
+    $ fly set-pipeline --pipeline my-pipeline --config pipeline.yml --var "private-repo-key=$(cat id_rsa)"
     }
 
     Or, if you had a \code{credentials.yml} as follows:
@@ -334,7 +334,7 @@ flag. Once you've learned what the commands do, you may want to consult
     ...you could configure it like so:
 
     \codeblock{bash}{
-    $ fly configure --config pipeline.yml --load-vars-from credentials.yml my-pipeline
+    $ fly set-pipeline --pipeline my-pipeline --config pipeline.yml --load-vars-from credentials.yml
     }
 
     If both \code{--var} and \code{--load-vars-from} are specified, the \code{--var}
