@@ -23,8 +23,9 @@ import (
 
 var _ = Describe("Heartbeater", func() {
 	type registration struct {
-		worker atc.Worker
-		ttl    time.Duration
+		worker       atc.Worker
+		ttl          time.Duration
+		lastInterval time.Duration
 	}
 
 	var (
@@ -32,6 +33,7 @@ var _ = Describe("Heartbeater", func() {
 
 		addrToRegister string
 		interval       time.Duration
+		cprInterval    time.Duration
 		resourceTypes  []atc.WorkerResourceType
 
 		expectedWorker     atc.Worker
@@ -40,6 +42,8 @@ var _ = Describe("Heartbeater", func() {
 		fakeATC            *ghttp.Server
 
 		heartbeater ifrit.Process
+
+		verifyHeartbeat http.HandlerFunc
 
 		registrations <-chan registration
 		clientWriter  *gbytes.Buffer
@@ -50,6 +54,7 @@ var _ = Describe("Heartbeater", func() {
 
 		addrToRegister = "1.2.3.4:7777"
 		interval = time.Second
+		cprInterval = 100 * time.Millisecond
 		resourceTypes = []atc.WorkerResourceType{
 			{
 				Type:  "git",
@@ -73,18 +78,26 @@ var _ = Describe("Heartbeater", func() {
 		registered := make(chan registration, 100)
 		registrations = registered
 
-		fakeATC.RouteToHandler(registerRoute.Method, registerRoute.Path, func(w http.ResponseWriter, r *http.Request) {
-			var worker atc.Worker
-			Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
+		lastRequestTime := time.Now()
+		verifyHeartbeat = ghttp.CombineHandlers(
+			ghttp.VerifyRequest(registerRoute.Method, registerRoute.Path),
+			func(w http.ResponseWriter, r *http.Request) {
+				var worker atc.Worker
+				Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
 
-			err := json.NewDecoder(r.Body).Decode(&worker)
-			Expect(err).NotTo(HaveOccurred())
+				err := json.NewDecoder(r.Body).Decode(&worker)
+				Expect(err).NotTo(HaveOccurred())
 
-			ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
-			Expect(err).NotTo(HaveOccurred())
+				ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
+				Expect(err).NotTo(HaveOccurred())
 
-			registered <- registration{worker, ttl}
-		})
+				requestTime := time.Now()
+				lastInterval := requestTime.Sub(lastRequestTime)
+				lastRequestTime = requestTime
+
+				registered <- registration{worker, ttl, lastInterval}
+			},
+		)
 
 		fakeGardenClient = new(gfakes.FakeClient)
 		fakeTokenGenerator = new(fakes.FakeTokenGenerator)
@@ -99,6 +112,7 @@ var _ = Describe("Heartbeater", func() {
 			NewHeartbeater(
 				logger,
 				interval,
+				cprInterval,
 				fakeGardenClient,
 				atcEndpoint,
 				fakeTokenGenerator,
@@ -119,7 +133,7 @@ var _ = Describe("Heartbeater", func() {
 
 	Context("when Garden returns containers", func() {
 		BeforeEach(func() {
-			containers := make(chan []garden.Container, 2)
+			containers := make(chan []garden.Container, 4)
 
 			containers <- []garden.Container{
 				new(gfakes.FakeContainer),
@@ -129,6 +143,19 @@ var _ = Describe("Heartbeater", func() {
 			containers <- []garden.Container{
 				new(gfakes.FakeContainer),
 				new(gfakes.FakeContainer),
+				new(gfakes.FakeContainer),
+				new(gfakes.FakeContainer),
+				new(gfakes.FakeContainer),
+			}
+
+			containers <- []garden.Container{
+				new(gfakes.FakeContainer),
+				new(gfakes.FakeContainer),
+				new(gfakes.FakeContainer),
+				new(gfakes.FakeContainer),
+			}
+
+			containers <- []garden.Container{
 				new(gfakes.FakeContainer),
 				new(gfakes.FakeContainer),
 				new(gfakes.FakeContainer),
@@ -141,31 +168,60 @@ var _ = Describe("Heartbeater", func() {
 			}
 		})
 
-		It("immediately registers", func() {
-			Expect(registrations).To(Receive(Equal(registration{
-				worker: expectedWorker,
-				ttl:    2 * interval,
-			})))
+		Context("when the ATC responds to heartbeat requests", func() {
+			BeforeEach(func() {
+				fakeATC.AppendHandlers(verifyHeartbeat, verifyHeartbeat)
+			})
 
-		})
-
-		Context("when the interval passes after the initial registration", func() {
-			JustBeforeEach(func() {
-				Expect(registrations).To(Receive(Equal(registration{
-					worker: expectedWorker,
-					ttl:    2 * interval,
-				})))
-
-				time.Sleep(interval)
+			It("immediately registers", func() {
+				actualRegistration := <-registrations
+				Expect(actualRegistration.worker).To(Equal(expectedWorker))
+				Expect(actualRegistration.ttl).To(Equal(2 * interval))
+				Expect(actualRegistration.lastInterval).To(BeNumerically("~", 0, 20*time.Millisecond))
 			})
 
 			It("heartbeats", func() {
+				<-registrations
+				actualRegistration := <-registrations
 				expectedWorker.ActiveContainers = 5
+				Expect(actualRegistration.worker).To(Equal(expectedWorker))
+				Expect(actualRegistration.ttl).To(Equal(2 * interval))
+				Expect(actualRegistration.lastInterval).To(BeNumerically("~", interval, 20*time.Millisecond))
+			})
+		})
 
-				Eventually(registrations).Should(Receive(Equal(registration{
-					worker: expectedWorker,
-					ttl:    2 * interval,
-				})))
+		Context("when the ATC doesn't respond to the first heartbeat", func() {
+			BeforeEach(func() {
+				fakeATC.AppendHandlers(
+					verifyHeartbeat,
+					ghttp.CombineHandlers(
+						verifyHeartbeat,
+						func(w http.ResponseWriter, r *http.Request) { fakeATC.CloseClientConnections() },
+					),
+					verifyHeartbeat,
+					verifyHeartbeat,
+				)
+			})
+
+			It("heartbeats faster according to cprInterval", func() {
+				<-registrations
+				<-registrations
+				actualRegistration := <-registrations
+				expectedWorker.ActiveContainers = 4
+				Expect(actualRegistration.worker).To(Equal(expectedWorker))
+				Expect(actualRegistration.ttl).To(Equal(2 * interval))
+				Expect(actualRegistration.lastInterval).To(BeNumerically("~", cprInterval, 20*time.Millisecond))
+			})
+
+			It("goes back to normal after the heartbeat succeeds", func() {
+				<-registrations
+				<-registrations
+				<-registrations
+				actualRegistration := <-registrations
+				expectedWorker.ActiveContainers = 3
+				Expect(actualRegistration.worker).To(Equal(expectedWorker))
+				Expect(actualRegistration.ttl).To(Equal(2 * interval))
+				Expect(actualRegistration.lastInterval).To(BeNumerically("~", interval, 20*time.Millisecond))
 			})
 		})
 	})

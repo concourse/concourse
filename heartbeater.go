@@ -21,7 +21,8 @@ import (
 type heartbeater struct {
 	logger lager.Logger
 
-	interval time.Duration
+	interval    time.Duration
+	cprInterval time.Duration
 
 	gardenClient   garden.Client
 	atcEndpoint    *rata.RequestGenerator
@@ -34,6 +35,7 @@ type heartbeater struct {
 func NewHeartbeater(
 	logger lager.Logger,
 	interval time.Duration,
+	cprInterval time.Duration,
 	gardenClient garden.Client,
 	atcEndpoint *rata.RequestGenerator,
 	tokenGenerator TokenGenerator,
@@ -43,7 +45,8 @@ func NewHeartbeater(
 	return &heartbeater{
 		logger: logger,
 
-		interval: interval,
+		interval:    interval,
+		cprInterval: cprInterval,
 
 		gardenClient:   gardenClient,
 		atcEndpoint:    atcEndpoint,
@@ -65,13 +68,20 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 
 	close(ready)
 
+	currentInterval := heartbeater.interval
+
 	for {
 		select {
 		case <-signals:
 			return nil
 
-		case <-time.After(heartbeater.interval):
-			heartbeater.register(heartbeater.logger.Session("heartbeat"))
+		case <-time.After(currentInterval):
+			healthy := heartbeater.register(heartbeater.logger.Session("heartbeat"))
+			if healthy {
+				currentInterval = heartbeater.interval
+			} else {
+				currentInterval = heartbeater.cprInterval
+			}
 		}
 	}
 }

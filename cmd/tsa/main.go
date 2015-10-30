@@ -117,6 +117,7 @@ func main() {
 	server := &registrarSSHServer{
 		logger:            logger,
 		heartbeatInterval: *heartbeatInterval,
+		cprInterval:       1 * time.Second,
 		atcEndpoint:       atcEndpoint,
 		tokenGenerator:    tokenGenerator,
 		forwardHost:       *forwardHost,

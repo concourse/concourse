@@ -57,6 +57,7 @@ type registrarSSHServer struct {
 	atcEndpoint       *rata.RequestGenerator
 	tokenGenerator    tsa.TokenGenerator
 	heartbeatInterval time.Duration
+	cprInterval       time.Duration
 	forwardHost       string
 	config            *ssh.ServerConfig
 	httpClient        *http.Client
@@ -307,6 +308,7 @@ func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker at
 	return ifrit.Background(tsa.NewHeartbeater(
 		logger,
 		server.heartbeatInterval,
+		server.cprInterval,
 		gclient.New(gconn.NewWithDialerAndLogger(keepaliveDialerFactory("tcp", worker.GardenAddr), logger.Session("garden-connection"))),
 		server.atcEndpoint,
 		server.tokenGenerator,
