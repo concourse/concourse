@@ -63,11 +63,6 @@ jobs:
           database: *atc-db-name
           role: *atc-db-role
 
-      tsa:
-        atc:
-          username: REPLACE_WITH_ATC_USERNAME
-          password: REPLACE_WITH_ATC_PASSWORD
-
       consul:
         agent:
           servers: {lan: [*discovery_static_ip]}
