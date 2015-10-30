@@ -58,7 +58,7 @@ jobs:
       atc:
         publicly_viewable: true
         basic_auth_username: REPLACE_WITH_ATC_USERNAME
-        basic_auth_encrypted_password: REPLACE_WITH_ATC_PASSWORD
+        basic_auth_password: REPLACE_WITH_ATC_PASSWORD
         postgresql:
           database: *atc-db-name
           role: *atc-db-role
