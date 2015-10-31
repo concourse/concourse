@@ -21,6 +21,10 @@ type SourceName string
 //
 // There is only one SourceRepository for the duration of a build plan's
 // execution.
+//
+// SourceRepository is, itself, an ArtifactSource. As an ArtifactSource it acts
+// as the set of all ArtifactSources it contains, as if they were each in
+// subdirectories corresponding to their SourceName.
 type SourceRepository struct {
 	repo  map[SourceName]ArtifactSource
 	repoL sync.RWMutex
