@@ -37,7 +37,7 @@ var _ = Describe("SourceRepository", func() {
 		})
 
 		It("can be converted to a map", func() {
-			Expect(repo.AsMap()).To(Equal(map[string]ArtifactSource{
+			Expect(repo.AsMap()).To(Equal(map[SourceName]ArtifactSource{
 				"first-source": firstSource,
 			}))
 		})
@@ -65,7 +65,7 @@ var _ = Describe("SourceRepository", func() {
 			})
 
 			It("can be converted to a map", func() {
-				Expect(repo.AsMap()).To(Equal(map[string]ArtifactSource{
+				Expect(repo.AsMap()).To(Equal(map[SourceName]ArtifactSource{
 					"first-source":  firstSource,
 					"second-source": secondSource,
 				}))
@@ -206,7 +206,7 @@ var _ = Describe("SourceRepository", func() {
 					scoped, err := repo.ScopedTo("first-source", "third-source")
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(scoped.AsMap()).To(Equal(map[string]ArtifactSource{
+					Expect(scoped.AsMap()).To(Equal(map[SourceName]ArtifactSource{
 						"first-source": firstSource,
 						"third-source": thirdSource,
 					}))

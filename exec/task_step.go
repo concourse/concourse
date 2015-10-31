@@ -139,27 +139,9 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
-		// find the worker with the most volumes
-		inputMounts := []worker.VolumeMount{}
-		inputsToStream := []inputPair{}
-		var chosenWorker worker.Worker
-		for _, w := range compatibleWorkers {
-			mounts, toStream, err := step.inputsOn(config.Inputs, w)
-			if err != nil {
-				return err
-			}
-			if len(mounts) >= len(inputMounts) {
-				for _, mount := range inputMounts {
-					mount.Volume.Release(0)
-				}
-				inputMounts = mounts
-				inputsToStream = toStream
-				chosenWorker = w
-			} else {
-				for _, mount := range mounts {
-					mount.Volume.Release(0)
-				}
-			}
+		chosenWorker, inputMounts, inputsToStream, err := step.chooseWorkerWithMostVolumes(compatibleWorkers, config.Inputs)
+		if err != nil {
+			return err
 		}
 
 		step.container, err = chosenWorker.CreateContainer(
@@ -286,9 +268,9 @@ func (step *taskStep) Release() {
 	}
 
 	if step.exitStatus == 0 {
-		step.container.Release(successfulStepTTL)
+		step.container.Release(SuccessfulStepTTL)
 	} else {
-		step.container.Release(failedStepTTL)
+		step.container.Release(FailedStepTTL)
 	}
 }
 
@@ -327,6 +309,35 @@ func (step *taskStep) StreamTo(destination ArtifactDestination) error {
 
 func (step *taskStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, error) {
 	return nil, false, nil
+}
+
+func (step *taskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Worker, inputs []atc.TaskInputConfig) (worker.Worker, []worker.VolumeMount, []inputPair, error) {
+	inputMounts := []worker.VolumeMount{}
+	inputsToStream := []inputPair{}
+
+	var chosenWorker worker.Worker
+	for _, w := range compatibleWorkers {
+		mounts, toStream, err := step.inputsOn(inputs, w)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		if len(mounts) >= len(inputMounts) {
+			for _, mount := range inputMounts {
+				mount.Volume.Release(0)
+			}
+
+			inputMounts = mounts
+			inputsToStream = toStream
+			chosenWorker = w
+		} else {
+			for _, mount := range mounts {
+				mount.Volume.Release(0)
+			}
+		}
+	}
+
+	return chosenWorker, inputMounts, inputsToStream, nil
 }
 
 type inputPair struct {

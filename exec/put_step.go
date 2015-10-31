@@ -61,10 +61,9 @@ func (step putStep) Using(prev Step, repo *SourceRepository) Step {
 func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	sources := step.repository.AsMap()
 
-	// curse you golang
 	resourceSources := make(map[string]resource.ArtifactSource)
 	for name, source := range sources {
-		resourceSources[name] = resourceSource{source}
+		resourceSources[string(name)] = resourceSource{source}
 	}
 
 	trackedResource, missingNames, err := step.tracker.InitWithSources(
@@ -80,9 +79,14 @@ func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		return err
 	}
 
+	missingSourceNames := make([]SourceName, len(missingNames))
+	for i, n := range missingNames {
+		missingSourceNames[i] = SourceName(n)
+	}
+
 	step.resource = trackedResource
 
-	scopedRepo, err := step.repository.ScopedTo(missingNames...)
+	scopedRepo, err := step.repository.ScopedTo(missingSourceNames...)
 	if err != nil {
 		return err
 	}
@@ -127,9 +131,9 @@ func (step *putStep) Release() {
 	}
 
 	if step.succeeded {
-		step.resource.Release(successfulStepTTL)
+		step.resource.Release(SuccessfulStepTTL)
 	} else {
-		step.resource.Release(failedStepTTL)
+		step.resource.Release(FailedStepTTL)
 	}
 }
 
