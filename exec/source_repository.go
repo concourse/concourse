@@ -125,13 +125,17 @@ func (repo *SourceRepository) ScopedTo(names ...SourceName) (*SourceRepository, 
 	return newRepo, nil
 }
 
-// AsMap extracts the contents of the SourceRepository into a map.
+// AsMap extracts the current contents of the SourceRepository into a new map
+// and returns it. Changes to the returned map or the SourceRepository will not
+// affect each other.
 func (repo *SourceRepository) AsMap() map[SourceName]ArtifactSource {
 	result := make(map[SourceName]ArtifactSource)
 
+	repo.repoL.RLock()
 	for name, source := range repo.repo {
 		result[name] = source
 	}
+	repo.repoL.RUnlock()
 
 	return result
 }
