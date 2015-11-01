@@ -7,7 +7,7 @@ import (
 )
 
 // EnsureStep will run one step, and then a second step regardless of whether
-// the first step fails ot errors.
+// the first step fails or errors.
 type EnsureStep struct {
 	stepFactory   StepFactory
 	ensureFactory StepFactory
