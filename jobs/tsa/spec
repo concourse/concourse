@@ -24,7 +24,6 @@ properties:
 
   tsa.atc.address:
     description: "atc server connection address"
-    default: atc.service.dc1.consul:8080
 
   tsa.yeller.api_key:
     description: "api key from yeller to output errors from concourse to yeller"
@@ -47,10 +46,6 @@ properties:
   tsa.authorize_generated_worker_key:
     description: "permit access via generated worker key, local to deployment"
     default: true
-
-  consul.agent.services.tsa:
-    description: "this property auto-registers TSA as a service"
-    default: {}
 
   blackbox.syslog.sources.tsa:
     description: "files whose contents blackbox will emit to its syslog drain"

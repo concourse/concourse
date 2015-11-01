@@ -135,7 +135,6 @@ properties:
   atc.postgresql.address:
     description: |
       Address of the PostgreSQL server, in `HOST:PORT` format.
-    default: postgresql.service.dc1.consul:5432
 
   atc.postgresql.database:
     description: |
@@ -150,12 +149,6 @@ properties:
   atc.postgresql.role.password:
     description: |
       password to use when connecting.
-
-  consul.agent.services.atc:
-    description: |
-      This property auto-configured `consul-agent` to register the ATC as a
-      service. You shouldn't need to touch it.
-    default: {}
 
   blackbox.syslog.sources.atc:
     description: |

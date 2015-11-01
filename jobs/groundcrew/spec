@@ -39,7 +39,6 @@ packages:
 properties:
   groundcrew.tsa.host:
     description: "host of the TSA server to register with"
-    default: tsa.service.dc1.consul
 
   groundcrew.tsa.port:
     description: "port of the TSA server to register with"
@@ -116,10 +115,6 @@ properties:
   groundcrew.tags:
     description: "an array of tags to advertise for the worker"
     default: []
-
-  consul.agent.services.garden:
-    description: "this property auto-registers Garden as a service"
-    default: {}
 
   blackbox.syslog.sources.groundcrew:
     description: "files whose contents blackbox will emit to its syslog drain"
