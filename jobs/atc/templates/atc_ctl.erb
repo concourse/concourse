@@ -37,8 +37,7 @@ source /var/vcap/packages/pid_utils/pid_utils.sh
     network.ip
   end
 
-  my_ip = p("atc.callbacks_address", nil)
-  my_ip ||= discover_external_ip
+  my_ip = discover_external_ip
 %>
 
 case $1 in
@@ -60,7 +59,7 @@ case $1 in
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
       --bind-ip <%= p("atc.web_bind_ip") %> \
       --bind-port <%= p("atc.web_bind_port") %> \
-      --peer-url <%= "http://#{my_ip}:#{p("atc.web_bind_port")}" %> \
+      --peer-url <%= p("atc.peer_url", "http://#{my_ip}:#{p("atc.web_bind_port")}") %> \
       --external-url <%= esc(p("atc.external_url")) %> \
       --templates /var/vcap/packages/atc/templates \
       --public /var/vcap/packages/atc/public \
