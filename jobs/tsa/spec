@@ -14,6 +14,14 @@ packages:
   - generated_tsa_host_key
   - generated_worker_key
 
+requires:
+- name: atc
+  type: atc
+
+provides:
+- name: tsa
+  type: tsa
+
 properties:
   tsa.heartbeat_interval:
     description: "interval on which to register with the ATC"
@@ -21,9 +29,6 @@ properties:
 
   tsa.forward_host:
     description: "address to advertise forwarded worker connections to. if not specified, determined dynamically."
-
-  tsa.atc.address:
-    description: "atc server connection address"
 
   tsa.yeller.api_key:
     description: "api key from yeller to output errors from concourse to yeller"

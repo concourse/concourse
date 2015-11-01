@@ -10,6 +10,10 @@ packages:
   - pid_utils
   - postgresql_9.3
 
+provides:
+- name: db
+  type: postgresql
+
 properties:
   postgresql.listen_host:
     description: "listening host of the PostgreSQL service"

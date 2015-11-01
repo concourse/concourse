@@ -36,10 +36,11 @@ packages:
   - bosh_io_stemcell_resource
   - bosh_deployment_resource
 
-properties:
-  groundcrew.tsa.host:
-    description: "host of the TSA server to register with"
+requires:
+- name: tsa
+  type: tsa
 
+properties:
   groundcrew.tsa.port:
     description: "port of the TSA server to register with"
     default: 2222

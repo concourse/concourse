@@ -9,6 +9,13 @@ packages:
   - btrfs_tools
   - baggageclaim
 
+# BOGUS
+requires: [tsa]
+
+provides:
+- name: baggageclaim
+  type: baggageclaim
+
 properties:
   baggageclaim.listen_addr.address:
     description: "the host or ip which baggageclaim hosts its api on"

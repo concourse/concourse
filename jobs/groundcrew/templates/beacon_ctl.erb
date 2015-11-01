@@ -28,6 +28,26 @@ kill_session_siblings_of() {
   fi
 }
 
+<%
+  def network_name
+    networks = spec.networks.marshal_dump
+
+    name, _ = networks.find do |_name, network_spec|
+      network_spec.default
+    end
+
+    if !name
+      name, _ = networks.first
+    end
+
+    if !name
+      raise "Could not determine network name via network spec: #{networks}"
+    end
+
+    name.to_s
+  end
+%>
+
 case $1 in
 
   start)
@@ -48,8 +68,10 @@ case $1 in
     done
 
     {
-      echo -n '[<%= p("groundcrew.tsa.host") %>]:<%= p("groundcrew.tsa.port") %> '
-      cat /var/vcap/packages/generated_tsa_host_key/id_rsa.pub
+      for tsa in <%= link("tsa")["nodes"].collect { |n| n["networks"][network_name]["address"] }.shuffle.join(" ") %>; do
+        echo -n "[$tsa]:<%= p("groundcrew.tsa.port") %> "
+        cat /var/vcap/packages/generated_tsa_host_key/id_rsa.pub
+      done
     } > /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts
 
     KNOWN_HOSTS_FILE=${RUN_DIR}/known_hosts
@@ -66,33 +88,35 @@ case $1 in
       $RUN_DIR/worker.json
 
     while true; do
-      chpst -u vcap:vcap ssh \
-        -p <%= p("groundcrew.tsa.port") %> <%= p("groundcrew.tsa.host") %> \
-        <% if p("groundcrew.tsa.private_key") != "" %> \
-        -i /var/vcap/jobs/groundcrew/config/private_key \
-        <% else %> \
-        -i /var/vcap/packages/generated_worker_key/id_rsa \
-        <% end %> \
-        -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
-        <% if p("groundcrew.garden.forward_address", nil) %> \
-          -R0.0.0.0:7777:<%= p("groundcrew.garden.forward_address") %> \
-          <% if p("groundcrew.baggageclaim.forward_address", nil) %> \
-          -R0.0.0.0:7788:<%= p("groundcrew.baggageclaim.forward_address") %> \
+      for tsa in <%= link("tsa")["nodes"].collect { |n| n["networks"][network_name]["address"] }.shuffle.join(" ") %>; do
+        chpst -u vcap:vcap ssh \
+          -p <%= p("groundcrew.tsa.port") %> $tsa \
+          <% if p("groundcrew.tsa.private_key") != "" %> \
+          -i /var/vcap/jobs/groundcrew/config/private_key \
+          <% else %> \
+          -i /var/vcap/packages/generated_worker_key/id_rsa \
           <% end %> \
-          forward-worker \
-          --garden 0.0.0.0:7777 \
-          <% if p("groundcrew.baggageclaim.forward_address", nil) %> \
-          --baggageclaim 0.0.0.0:7788 \
+          -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
+          <% if p("groundcrew.garden.forward_address", nil) %> \
+            -R0.0.0.0:7777:<%= p("groundcrew.garden.forward_address") %> \
+            <% if p("groundcrew.baggageclaim.forward_address", nil) %> \
+            -R0.0.0.0:7788:<%= p("groundcrew.baggageclaim.forward_address") %> \
+            <% end %> \
+            forward-worker \
+            --garden 0.0.0.0:7777 \
+            <% if p("groundcrew.baggageclaim.forward_address", nil) %> \
+            --baggageclaim 0.0.0.0:7788 \
+            <% end %> \
+          <% else %> \
+            register-worker \
           <% end %> \
-        <% else %> \
-          register-worker \
-        <% end %> \
-        < $RUN_DIR/worker.json \
-        1>>$LOG_DIR/beacon.stdout.log \
-        2>>$LOG_DIR/beacon.stderr.log || \
-        true
+          < $RUN_DIR/worker.json \
+          1>>$LOG_DIR/beacon.stdout.log \
+          2>>$LOG_DIR/beacon.stderr.log || \
+          true
 
-      sleep 1
+        sleep 1
+      done
     done
 
     ;;

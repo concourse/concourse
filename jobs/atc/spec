@@ -14,6 +14,14 @@ packages:
   - fly
   - generated_signing_key
 
+requires:
+- name: atcdb
+  type: postgresql
+
+provides:
+- name: atc
+  type: atc
+
 properties:
   atc.web_bind_ip:
     description: |
@@ -131,10 +139,6 @@ properties:
     description: |
       Port of the Riemann server to emit events to.
     default: 5555
-
-  atc.postgresql.address:
-    description: |
-      Address of the PostgreSQL server, in `HOST:PORT` format.
 
   atc.postgresql.database:
     description: |
