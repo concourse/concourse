@@ -20,15 +20,20 @@ import (
 const taskProcessPropertyName = "concourse:task-process"
 const taskExitStatusPropertyName = "concourse:exit-status"
 
+// MissingInputsError is returned when any of the task's required inputs are
+// missing.
 type MissingInputsError struct {
 	Inputs []string
 }
 
+// Error prints a human-friendly message listing the inputs that were missing.
 func (err MissingInputsError) Error() string {
 	return fmt.Sprintf("missing inputs: %s", strings.Join(err.Inputs, ", "))
 }
 
-type taskStep struct {
+// TaskStep executes a TaskConfig, whose inputs will be fetched from the
+// SourceRepository and outputs will be added to the SourceRepository.
+type TaskStep struct {
 	logger        lager.Logger
 	sourceName    SourceName
 	containerID   worker.Identifier
@@ -57,8 +62,8 @@ func newTaskStep(
 	configSource TaskConfigSource,
 	workerPool worker.Client,
 	artifactsRoot string,
-) taskStep {
-	return taskStep{
+) TaskStep {
+	return TaskStep{
 		logger:        logger,
 		sourceName:    sourceName,
 		containerID:   containerID,
@@ -71,16 +76,34 @@ func newTaskStep(
 	}
 }
 
-func (step taskStep) Using(prev Step, repo *SourceRepository) Step {
+// Using finishes construction of the TaskStep and returns a *TaskStep. If the
+// *TaskStep errors, its error is reported to the delegate.
+func (step TaskStep) Using(prev Step, repo *SourceRepository) Step {
 	step.repo = repo
 
-	return failureReporter{
+	return errorReporter{
 		Step:          &step,
 		ReportFailure: step.delegate.Failed,
 	}
 }
 
-func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+// Run will first load the TaskConfig. A worker will be selected based on the
+// TaskConfig's platform, the TaskStep's tags, and prioritized by availability
+// of volumes for the TaskConfig's inputs. Inputs that did not have volumes
+// available on the worker will be streamed in to the container.
+//
+// If any inputs are not available in the SourceRepository, MissingInputsError
+// is returned.
+//
+// Once all the inputs are satisfies, the task's script will be executed, and
+// the RunStep indicates that it's ready, and any signals will be forwarded to
+// the script.
+//
+// If the script exits successfully, the outputs specified in the TaskConfig
+// are registered with the SourceRepository. If no outputs are specified, the
+// task's entire working directory is registered as an ArtifactSource under the
+// name of the task.
+func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var err error
 	var found bool
 
@@ -247,7 +270,12 @@ func (step *taskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	}
 }
 
-func (step *taskStep) Result(x interface{}) bool {
+// Result indicates Success as true if the script's exit status was 0.
+//
+// It also indicates ExitStatus as the exit status of the script.
+//
+// All other types are ignored.
+func (step *TaskStep) Result(x interface{}) bool {
 	switch v := x.(type) {
 	case *Success:
 		*v = step.exitStatus == 0
@@ -262,7 +290,9 @@ func (step *taskStep) Result(x interface{}) bool {
 	}
 }
 
-func (step *taskStep) Release() {
+// Release releases the created container for either SuccessfulStepTTL or
+// FailedStepTTL.
+func (step *TaskStep) Release() {
 	if step.container == nil {
 		return
 	}
@@ -274,7 +304,8 @@ func (step *taskStep) Release() {
 	}
 }
 
-func (step *taskStep) StreamFile(source string) (io.ReadCloser, error) {
+// StreamFile streams the given file out of the task's container.
+func (step *TaskStep) StreamFile(source string) (io.ReadCloser, error) {
 	out, err := step.container.StreamOut(garden.StreamOutSpec{
 		Path: path.Join(step.artifactsRoot, source),
 	})
@@ -296,7 +327,8 @@ func (step *taskStep) StreamFile(source string) (io.ReadCloser, error) {
 	}, nil
 }
 
-func (step *taskStep) StreamTo(destination ArtifactDestination) error {
+// StreamTo streams the task's entire working directory to the destination.
+func (step *TaskStep) StreamTo(destination ArtifactDestination) error {
 	out, err := step.container.StreamOut(garden.StreamOutSpec{
 		Path: step.artifactsRoot + "/",
 	})
@@ -307,11 +339,12 @@ func (step *taskStep) StreamTo(destination ArtifactDestination) error {
 	return destination.StreamIn(".", out)
 }
 
-func (step *taskStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, error) {
+// VolumeOn returns nothing.
+func (step *TaskStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, error) {
 	return nil, false, nil
 }
 
-func (step *taskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Worker, inputs []atc.TaskInputConfig) (worker.Worker, []worker.VolumeMount, []inputPair, error) {
+func (step *TaskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Worker, inputs []atc.TaskInputConfig) (worker.Worker, []worker.VolumeMount, []inputPair, error) {
 	inputMounts := []worker.VolumeMount{}
 	inputsToStream := []inputPair{}
 
@@ -345,7 +378,7 @@ type inputPair struct {
 	source ArtifactSource
 }
 
-func (step *taskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker.Worker) ([]worker.VolumeMount, []inputPair, error) {
+func (step *TaskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker.Worker) ([]worker.VolumeMount, []inputPair, error) {
 	var mounts []worker.VolumeMount
 
 	var inputPairs []inputPair
@@ -384,7 +417,7 @@ func (step *taskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker
 	return mounts, inputPairs, nil
 }
 
-func (step *taskStep) inputDestination(config atc.TaskInputConfig) string {
+func (step *TaskStep) inputDestination(config atc.TaskInputConfig) string {
 	subdir := config.Path
 	if config.Path == "" {
 		subdir = config.Name
@@ -393,11 +426,11 @@ func (step *taskStep) inputDestination(config atc.TaskInputConfig) string {
 	return filepath.Join(step.artifactsRoot, subdir)
 }
 
-func (step *taskStep) ensureBuildDirExists(container garden.Container) error {
+func (step *TaskStep) ensureBuildDirExists(container garden.Container) error {
 	return createContainerDir(container, step.artifactsRoot)
 }
 
-func (step *taskStep) streamInputs(inputPairs []inputPair) error {
+func (step *TaskStep) streamInputs(inputPairs []inputPair) error {
 	for _, pair := range inputPairs {
 		destination := newContainerDestination(
 			step.artifactsRoot,
@@ -414,7 +447,7 @@ func (step *taskStep) streamInputs(inputPairs []inputPair) error {
 	return nil
 }
 
-func (step *taskStep) setupOutputs(outputs []atc.TaskOutputConfig) error {
+func (step *TaskStep) setupOutputs(outputs []atc.TaskOutputConfig) error {
 	for _, output := range outputs {
 		source := newContainerSource(step.artifactsRoot, step.container, output)
 
@@ -427,7 +460,7 @@ func (step *taskStep) setupOutputs(outputs []atc.TaskOutputConfig) error {
 	return nil
 }
 
-func (taskStep) mergeTags(tagsOne []string, tagsTwo []string) []string {
+func (TaskStep) mergeTags(tagsOne []string, tagsTwo []string) []string {
 	var ret []string
 
 	uniq := map[string]struct{}{}
@@ -447,7 +480,7 @@ func (taskStep) mergeTags(tagsOne []string, tagsTwo []string) []string {
 	return ret
 }
 
-func (taskStep) envForParams(params map[string]string) []string {
+func (TaskStep) envForParams(params map[string]string) []string {
 	env := make([]string, 0, len(params))
 
 	for k, v := range params {

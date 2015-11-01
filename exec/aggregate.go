@@ -8,10 +8,12 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
+// Aggregate constructs a Step that will run each step in parallel.
 type Aggregate []StepFactory
 
+// Using delegates to each StepFactory and returns an AggregateStep.
 func (a Aggregate) Using(prev Step, repo *SourceRepository) Step {
-	sources := aggregateStep{}
+	sources := AggregateStep{}
 
 	for _, step := range a {
 		sources = append(sources, step.Using(prev, repo))
@@ -20,9 +22,17 @@ func (a Aggregate) Using(prev Step, repo *SourceRepository) Step {
 	return sources
 }
 
-type aggregateStep []Step
+// AggregateStep is a step of steps to run in parallel.
+type AggregateStep []Step
 
-func (step aggregateStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+// Run executes all steps in parallel. It will indicate that it's ready when
+// all of its steps are ready, and propagate any signal received to all running
+// steps.
+//
+// It will wait for all steps to exit, even if one step fails or errors. After
+// all steps finish, their errors (if any) will be aggregated and returned as a
+// single error.
+func (step AggregateStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	members := []ifrit.Process{}
 
 	for _, ms := range step {
@@ -71,23 +81,28 @@ dance:
 	return nil
 }
 
-func (source aggregateStep) Release() {
-
-	for _, src := range source {
+// Release iterates over the steps and Releases them individually.
+func (step AggregateStep) Release() {
+	for _, src := range step {
 		src.Release()
 	}
 }
 
-func (source aggregateStep) Result(x interface{}) bool {
+// Result indicates Success as true if all of the steps indicate Success as
+// true, or if there were no steps at all. If none of the steps can indicate
+// Success, it will return false and not indicate success itself.
+//
+// All other result types are ignored, and Result will return false.
+func (step AggregateStep) Result(x interface{}) bool {
 	if success, ok := x.(*Success); ok {
-		if len(source) == 0 {
+		if len(step) == 0 {
 			*success = Success(true)
 			return true
 		}
 
 		succeeded := true
 		anyIndicated := false
-		for _, src := range source {
+		for _, src := range step {
 			var s Success
 			if !src.Result(&s) {
 				continue

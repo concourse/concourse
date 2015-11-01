@@ -2,35 +2,40 @@ package exec
 
 import "os"
 
-type try struct {
+// TryStep wraps another step, ignores its errors, and always succeeds.
+type TryStep struct {
 	step    StepFactory
 	runStep Step
 }
 
-func Try(
-	step StepFactory,
-) StepFactory {
-	return try{
+// Try constructs a TryStep factory.
+func Try(step StepFactory) TryStep {
+	return TryStep{
 		step: step,
 	}
 }
 
-func (ts try) Using(prev Step, repo *SourceRepository) Step {
+// Using constructs a *TryStep.
+func (ts TryStep) Using(prev Step, repo *SourceRepository) Step {
 	ts.runStep = ts.step.Using(prev, repo)
-
 	return &ts
 }
 
-func (ts *try) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+// Run runs the nested step, and always returns nil, ignoring the nested step's
+// error.
+func (ts *TryStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	ts.runStep.Run(signals, ready)
 	return nil
 }
 
-func (ts *try) Release() {
+// Release releases the nested step.
+func (ts *TryStep) Release() {
 	ts.runStep.Release()
 }
 
-func (ts *try) Result(x interface{}) bool {
+// Result indicates Success as true, and delegates everything else to the
+// nested step.
+func (ts *TryStep) Result(x interface{}) bool {
 	switch v := x.(type) {
 	case *Success:
 		*v = Success(true)

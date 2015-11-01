@@ -8,7 +8,9 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type putStep struct {
+// PutStep produces a resource version using preconfigured params and any data
+// available in the SourceRepository.
+type PutStep struct {
 	logger         lager.Logger
 	resourceConfig atc.ResourceConfig
 	params         atc.Params
@@ -36,8 +38,8 @@ func newPutStep(
 	tags atc.Tags,
 	delegate ResourceDelegate,
 	tracker resource.Tracker,
-) putStep {
-	return putStep{
+) PutStep {
+	return PutStep{
 		logger:         logger,
 		resourceConfig: resourceConfig,
 		params:         params,
@@ -49,16 +51,26 @@ func newPutStep(
 	}
 }
 
-func (step putStep) Using(prev Step, repo *SourceRepository) Step {
+// Using finishes construction of the PutStep and returns a *PutStep. If the
+// *PutStep errors, its error is reported to the delegate.
+func (step PutStep) Using(prev Step, repo *SourceRepository) Step {
 	step.repository = repo
 
-	return failureReporter{
+	return errorReporter{
 		Step:          &step,
 		ReportFailure: step.delegate.Failed,
 	}
 }
 
-func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+// Run chooses a worker that supports the step's resource type and creates a
+// container.
+//
+// All ArtifactSources present in the SourceRepository are then brought into
+// the container, using volumes if possible, and streaming content over if not.
+//
+// The resource's put script is then invoked. The PutStep is ready as soon as
+// the resource's script starts, and signals will be forwarded to the script.
+func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	sources := step.repository.AsMap()
 
 	resourceSources := make(map[string]resource.ArtifactSource)
@@ -125,7 +137,9 @@ func (step *putStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return nil
 }
 
-func (step *putStep) Release() {
+// Release releases the created container for either SuccessfulStepTTL or
+// FailedStepTTL.
+func (step *PutStep) Release() {
 	if step.resource == nil {
 		return
 	}
@@ -137,7 +151,12 @@ func (step *putStep) Release() {
 	}
 }
 
-func (step *putStep) Result(x interface{}) bool {
+// Result indicates Success as true if the script completed with exit status 0.
+//
+// It also indicates VersionInfo returned by the script.
+//
+// Any other type is ignored.
+func (step *PutStep) Result(x interface{}) bool {
 	switch v := x.(type) {
 	case *Success:
 		*v = Success(step.succeeded)

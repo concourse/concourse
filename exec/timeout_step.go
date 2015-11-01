@@ -8,7 +8,8 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-type timeout struct {
+// TimeoutStep applies a fixed timeout to a step's Run.
+type TimeoutStep struct {
 	step     StepFactory
 	runStep  Step
 	duration string
@@ -16,25 +17,34 @@ type timeout struct {
 	timedOut bool
 }
 
+// Timeout constructs a TimeoutStep factory.
 func Timeout(
 	step StepFactory,
 	duration string,
 	clock clock.Clock,
-) StepFactory {
-	return timeout{
+) TimeoutStep {
+	return TimeoutStep{
 		step:     step,
 		duration: duration,
 		clock:    clock,
 	}
 }
 
-func (ts timeout) Using(prev Step, repo *SourceRepository) Step {
+// Using constructs a *TimeoutStep.
+func (ts TimeoutStep) Using(prev Step, repo *SourceRepository) Step {
 	ts.runStep = ts.step.Using(prev, repo)
 
 	return &ts
 }
 
-func (ts *timeout) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+// Run parses the timeout duration and invokes the nested step.
+//
+// If the nested step takes longer than the duration, it is sent the Interrupt
+// signal, and the TimeoutStep returns nil once the nested step exits (ignoring
+// the nested step's error).
+//
+// The result of the nested step's Run is returned.
+func (ts *TimeoutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	parsedDuration, err := time.ParseDuration(ts.duration)
 	if err != nil {
 		return err
@@ -74,11 +84,16 @@ dance:
 	return nil
 }
 
-func (ts *timeout) Release() {
+// Release releases the nested step.
+func (ts *TimeoutStep) Release() {
 	ts.runStep.Release()
 }
 
-func (ts *timeout) Result(x interface{}) bool {
+// Result indicates Success as true if the nested step completed successfully
+// and did not time out.
+//
+// Any other type is ignored.
+func (ts *TimeoutStep) Result(x interface{}) bool {
 	switch v := x.(type) {
 	case *Success:
 		var success Success

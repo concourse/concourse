@@ -6,7 +6,10 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type dependentGetStep struct {
+// DependentGetStep represents a Get step whose version is determined by the
+// previous step. It is used to fetch the resource version produced by a
+// PutStep.
+type DependentGetStep struct {
 	logger         lager.Logger
 	sourceName     SourceName
 	resourceConfig atc.ResourceConfig
@@ -28,8 +31,8 @@ func newDependentGetStep(
 	tags atc.Tags,
 	delegate ResourceDelegate,
 	tracker resource.Tracker,
-) dependentGetStep {
-	return dependentGetStep{
+) DependentGetStep {
+	return DependentGetStep{
 		logger:         logger,
 		sourceName:     sourceName,
 		resourceConfig: resourceConfig,
@@ -42,7 +45,9 @@ func newDependentGetStep(
 	}
 }
 
-func (step dependentGetStep) Using(prev Step, repo *SourceRepository) Step {
+// Using constructs a GetStep that will fetch the version of the resource
+// determined by the VersionInfo result of the previous step.
+func (step DependentGetStep) Using(prev Step, repo *SourceRepository) Step {
 	var info VersionInfo
 	prev.Result(&info)
 

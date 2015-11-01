@@ -2,7 +2,9 @@ package exec
 
 import "os"
 
-type onFailure struct {
+// OnFailureStep will run one step, and then a second step if the first step
+// fails (but not errors).
+type OnFailureStep struct {
 	stepFactory    StepFactory
 	failureFactory StepFactory
 
@@ -13,17 +15,16 @@ type onFailure struct {
 	failure Step
 }
 
-func OnFailure(
-	stepFactory StepFactory,
-	failureFactory StepFactory,
-) StepFactory {
-	return onFailure{
-		stepFactory:    stepFactory,
-		failureFactory: failureFactory,
+// OnFailure constructs an OnFailureStep factory.
+func OnFailure(firstStep StepFactory, secondStep StepFactory) OnFailureStep {
+	return OnFailureStep{
+		stepFactory:    firstStep,
+		failureFactory: secondStep,
 	}
 }
 
-func (o onFailure) Using(prev Step, repo *SourceRepository) Step {
+// Using constructs an *OnFailureStep.
+func (o OnFailureStep) Using(prev Step, repo *SourceRepository) Step {
 	o.repo = repo
 	o.prev = prev
 
@@ -31,7 +32,13 @@ func (o onFailure) Using(prev Step, repo *SourceRepository) Step {
 	return &o
 }
 
-func (o *onFailure) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+// Run will call Run on the first step and wait for it to complete. If the
+// first step errors, Run returns the error. OnFailureStep is ready as soon as
+// the first step is ready.
+//
+// If the first step fails (that is, its Success result is false), the second
+// step is executed. If the second step errors, its error is returned.
+func (o *OnFailureStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	stepRunErr := o.step.Run(signals, ready)
 
 	if stepRunErr != nil {
@@ -54,7 +61,10 @@ func (o *onFailure) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	return nil
 }
 
-func (o *onFailure) Result(x interface{}) bool {
+// Result indicates Success as true if the first step completed successfully.
+//
+// Any other type is ignored.
+func (o *OnFailureStep) Result(x interface{}) bool {
 	switch v := x.(type) {
 	case *Success:
 		if o.failure == nil {
@@ -69,10 +79,12 @@ func (o *onFailure) Result(x interface{}) bool {
 	}
 }
 
-func (o *onFailure) Release() {
+// Release releases both steps.
+func (o *OnFailureStep) Release() {
 	if o.step != nil {
 		o.step.Release()
 	}
+
 	if o.failure != nil {
 		o.failure.Release()
 	}

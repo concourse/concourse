@@ -10,20 +10,67 @@ import (
 
 //go:generate counterfeiter . Factory
 
+// Factory is used when building up the steps for a build.
 type Factory interface {
-	Get(lager.Logger, StepMetadata, SourceName, worker.Identifier, GetDelegate, atc.ResourceConfig, atc.Params, atc.Tags, atc.Version) StepFactory
-	Put(lager.Logger, StepMetadata, worker.Identifier, PutDelegate, atc.ResourceConfig, atc.Tags, atc.Params) StepFactory
-	DependentGet(lager.Logger, StepMetadata, SourceName, worker.Identifier, GetDelegate, atc.ResourceConfig, atc.Tags, atc.Params) StepFactory
+	// Get constructs a GetStep factory.
+	Get(
+		lager.Logger,
+		StepMetadata,
+		SourceName,
+		worker.Identifier,
+		GetDelegate,
+		atc.ResourceConfig,
+		atc.Params,
+		atc.Tags,
+		atc.Version,
+	) StepFactory
 
-	Task(lager.Logger, SourceName, worker.Identifier, TaskDelegate, Privileged, atc.Tags, TaskConfigSource) StepFactory
+	// Put constructs a PutStep factory.
+	Put(
+		lager.Logger,
+		StepMetadata,
+		worker.Identifier,
+		PutDelegate,
+		atc.ResourceConfig,
+		atc.Tags,
+		atc.Params,
+	) StepFactory
+
+	// DependentGet constructs a GetStep factory whose version is determined by
+	// the previous step.
+	DependentGet(
+		lager.Logger,
+		StepMetadata,
+		SourceName,
+		worker.Identifier,
+		GetDelegate,
+		atc.ResourceConfig,
+		atc.Tags,
+		atc.Params,
+	) StepFactory
+
+	// Task constructs a TaskStep factory.
+	Task(
+		lager.Logger,
+		SourceName,
+		worker.Identifier,
+		TaskDelegate,
+		Privileged,
+		atc.Tags,
+		TaskConfigSource,
+	) StepFactory
 }
 
+// StepMetadata is used to inject metadata to make available to the step when
+// it's running.
 type StepMetadata interface {
 	Env() []string
 }
 
 //go:generate counterfeiter . TaskDelegate
 
+// TaskDelegate is used to record events related to a TaskStep's runtime
+// behavior.
 type TaskDelegate interface {
 	Initializing(atc.TaskConfig)
 	Started()
@@ -35,6 +82,8 @@ type TaskDelegate interface {
 	Stderr() io.Writer
 }
 
+// ResourceDelegate is used to record events related to a resource's runtime
+// behavior.
 type ResourceDelegate interface {
 	Completed(ExitStatus, *VersionInfo)
 	Failed(error)
@@ -45,19 +94,20 @@ type ResourceDelegate interface {
 
 //go:generate counterfeiter . GetDelegate
 
+// GetDelegate is used to record events related to a GetStep's runtime
+// behavior.
 type GetDelegate interface {
 	ResourceDelegate
 }
 
 //go:generate counterfeiter . PutDelegate
 
+// PutDelegate is used to record events related to a PutStep's runtime
+// behavior.
 type PutDelegate interface {
 	ResourceDelegate
 }
 
-type HijackedProcess interface {
-	Wait() (int, error)
-	SetTTY(atc.HijackTTYSpec) error
-}
-
+// Privileged is used to indicate whether the given step should run with
+// special privileges (i.e. as an administrator user).
 type Privileged bool

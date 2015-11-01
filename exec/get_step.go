@@ -13,7 +13,9 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type getStep struct {
+// GetStep will fetch a version of a resource on a worker that supports the
+// resource type.
+type GetStep struct {
 	logger          lager.Logger
 	sourceName      SourceName
 	resourceConfig  atc.ResourceConfig
@@ -47,8 +49,8 @@ func newGetStep(
 	tags atc.Tags,
 	delegate ResourceDelegate,
 	tracker resource.Tracker,
-) getStep {
-	return getStep{
+) GetStep {
+	return GetStep{
 		logger:          logger,
 		sourceName:      sourceName,
 		resourceConfig:  resourceConfig,
@@ -63,16 +65,41 @@ func newGetStep(
 	}
 }
 
-func (step getStep) Using(prev Step, repo *SourceRepository) Step {
+// Using finishes construction of the GetStep and returns a *GetStep. If the
+// *GetStep errors, its error is reported to the delegate.
+func (step GetStep) Using(prev Step, repo *SourceRepository) Step {
 	step.repository = repo
 
-	return failureReporter{
+	return errorReporter{
 		Step:          &step,
 		ReportFailure: step.delegate.Failed,
 	}
 }
 
-func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+// Run ultimately registers the configured resource version's ArtifactSource
+// under the configured SourceName. How it actually does this is determined by
+// a few factors.
+//
+// First, a worker that supports the given resource type is chosen, and a
+// container is created on the worker.
+//
+// If the worker has a VolumeManager, and its cache is already warmed, the
+// cache will be mounted into the container, and no fetching will be performed.
+// The container will be used to stream the contents of the cache to later
+// steps that require the artifact but are running on a worker that does not
+// have the cache.
+//
+// If the worker does not have a VolumeManager, or if the worker does have a
+// VolumeManager but a cache for the version of the resource is not present,
+// the specified version of the resource will be fetched. As long as running
+// the fetch script works, Run will return nil regardless of its exit status.
+//
+// If the worker has a VolumeManager but did not have the cache initially, the
+// fetched ArtifactSource is initialized, thus warming the worker's cache.
+//
+// At the end, the resulting ArtifactSource (either from using the cache or
+// fetching the resource) is registered under the step's SourceName.
+func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	trackedResource, cache, err := step.tracker.InitWithCache(
 		step.logger,
 		step.stepMetadata,
@@ -145,7 +172,11 @@ func (step *getStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return nil
 }
 
-func (step *getStep) Release() {
+// Release releases the resource's container (and thus volumes). If the step
+// failed, they are released with FailedStepTTL. Otherwise, they are released
+// without setting a final TTL, so that the cache's own TTL is respected. This
+// differs from other steps which typically release with SuccessfulStepTTL.
+func (step *GetStep) Release() {
 	if step.resource == nil {
 		return
 	}
@@ -157,11 +188,19 @@ func (step *getStep) Release() {
 	}
 }
 
-func (step *getStep) Result(x interface{}) bool {
+// Result indicates Success as true if the script completed successfully (or
+// didn't have to run) and everything else worked fine.
+//
+// It also indicates VersionInfo with the fetched or cached resource's version
+// and metadata.
+//
+// All other types are ignored.
+func (step *GetStep) Result(x interface{}) bool {
 	switch v := x.(type) {
 	case *Success:
 		*v = Success(step.succeeded)
 		return true
+
 	case *VersionInfo:
 		*v = VersionInfo{
 			Version:  step.versionedSource.Version(),
@@ -174,7 +213,9 @@ func (step *getStep) Result(x interface{}) bool {
 	}
 }
 
-func (step *getStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, error) {
+// VolumeOn locates the cache for the GetStep's resource and version on the
+// given worker.
+func (step *GetStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, error) {
 	vm, hasVM := worker.VolumeManager()
 	if !hasVM {
 		return nil, false, nil
@@ -183,7 +224,8 @@ func (step *getStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, 
 	return step.cacheIdentifier.FindOn(step.logger.Session("volume-on"), vm)
 }
 
-func (step *getStep) StreamTo(destination ArtifactDestination) error {
+// StreamTo streams the resource's data to the destination.
+func (step *GetStep) StreamTo(destination ArtifactDestination) error {
 	out, err := step.versionedSource.StreamOut(".")
 	if err != nil {
 		return err
@@ -192,7 +234,8 @@ func (step *getStep) StreamTo(destination ArtifactDestination) error {
 	return destination.StreamIn(".", out)
 }
 
-func (step *getStep) StreamFile(path string) (io.ReadCloser, error) {
+// StreamFile streams a single file out of the resource.
+func (step *GetStep) StreamFile(path string) (io.ReadCloser, error) {
 	out, err := step.versionedSource.StreamOut(path)
 	if err != nil {
 		return nil, err

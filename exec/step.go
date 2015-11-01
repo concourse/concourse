@@ -48,6 +48,13 @@ type Step interface {
 	//
 	// Steps should return ErrInterrupted if they received a signal that caused
 	// them to stop.
+	//
+	// Steps must be idempotent. Each step is responsible for handling its own
+	// idempotency; usually this is done by saving off "checkpoints" in some way
+	// that can be checked again if the step starts running again from the start.
+	// For example, by having the ID for a container be deterministic and unique
+	// for each step, and checking for properties on the container to determine
+	// how far the step got.
 	ifrit.Runner
 
 	// Release is called when the build has completed and no more steps will be

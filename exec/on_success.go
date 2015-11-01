@@ -2,7 +2,9 @@ package exec
 
 import "os"
 
-type onSuccess struct {
+// OnSuccessStep will run one step, and then a second step if the first step
+// succeeds.
+type OnSuccessStep struct {
 	stepFactory    StepFactory
 	successFactory StepFactory
 
@@ -13,17 +15,16 @@ type onSuccess struct {
 	success Step
 }
 
-func OnSuccess(
-	stepFactory StepFactory,
-	successFactory StepFactory,
-) StepFactory {
-	return onSuccess{
-		stepFactory:    stepFactory,
-		successFactory: successFactory,
+// OnSuccess constructs an OnSuccessStep factory.
+func OnSuccess(firstStep StepFactory, secondStep StepFactory) OnSuccessStep {
+	return OnSuccessStep{
+		stepFactory:    firstStep,
+		successFactory: secondStep,
 	}
 }
 
-func (o onSuccess) Using(prev Step, repo *SourceRepository) Step {
+// Using constructs an *OnSuccessStep.
+func (o OnSuccessStep) Using(prev Step, repo *SourceRepository) Step {
 	o.repo = repo
 	o.prev = prev
 
@@ -31,7 +32,13 @@ func (o onSuccess) Using(prev Step, repo *SourceRepository) Step {
 	return &o
 }
 
-func (o *onSuccess) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+// Run will call Run on the first step and wait for it to complete. If the
+// first step errors, Run returns the error. OnSuccessStep is ready as soon as
+// the first step is ready.
+//
+// If the first step succeeds (that is, its Success result is true), the second
+// step is executed. If the second step errors, its error is returned.
+func (o *OnSuccessStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	stepRunErr := o.step.Run(signals, ready)
 
 	if stepRunErr != nil {
@@ -51,7 +58,11 @@ func (o *onSuccess) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	return err
 }
 
-func (o *onSuccess) Result(x interface{}) bool {
+// Result indicates Success as true if the first step completed and the second
+// step completed successfully.
+//
+// Any other type is ignored.
+func (o *OnSuccessStep) Result(x interface{}) bool {
 	switch v := x.(type) {
 	case *Success:
 		if o.success == nil {
@@ -75,10 +86,12 @@ func (o *onSuccess) Result(x interface{}) bool {
 	}
 }
 
-func (o *onSuccess) Release() {
+// Release releases both steps.
+func (o *OnSuccessStep) Release() {
 	if o.step != nil {
 		o.step.Release()
 	}
+
 	if o.success != nil {
 		o.success.Release()
 	}

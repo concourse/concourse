@@ -6,7 +6,9 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-type ensure struct {
+// EnsureStep will run one step, and then a second step regardless of whether
+// the first step fails ot errors.
+type EnsureStep struct {
 	stepFactory   StepFactory
 	ensureFactory StepFactory
 
@@ -17,17 +19,16 @@ type ensure struct {
 	ensure Step
 }
 
-func Ensure(
-	stepFactory StepFactory,
-	ensureFactory StepFactory,
-) StepFactory {
-	return ensure{
-		stepFactory:   stepFactory,
-		ensureFactory: ensureFactory,
+// Ensure constructs an EnsureStep factory.
+func Ensure(firstStep StepFactory, secondStep StepFactory) EnsureStep {
+	return EnsureStep{
+		stepFactory:   firstStep,
+		ensureFactory: secondStep,
 	}
 }
 
-func (o ensure) Using(prev Step, repo *SourceRepository) Step {
+// Using constructs an *EnsureStep.
+func (o EnsureStep) Using(prev Step, repo *SourceRepository) Step {
 	o.repo = repo
 	o.prev = prev
 
@@ -35,7 +36,13 @@ func (o ensure) Using(prev Step, repo *SourceRepository) Step {
 	return &o
 }
 
-func (o *ensure) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+// Run will call Run on the first step, wait for it to complete, and then call
+// Run on the second step, regardless of whether the first step failed or
+// errored.
+//
+// If the first step or the second step errors, an aggregate of their errors is
+// returned.
+func (o *EnsureStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	var errors error
 
 	originalErr := o.step.Run(signals, ready)
@@ -53,7 +60,11 @@ func (o *ensure) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	return errors
 }
 
-func (o *ensure) Result(x interface{}) bool {
+// Result indicates Success by and-ing together both step's Success results. If
+// either of them cannot indicate Success, it returns false.
+//
+// All other result types are ignored.
+func (o *EnsureStep) Result(x interface{}) bool {
 	switch v := x.(type) {
 	case *Success:
 		var aSuccess Success
@@ -67,6 +78,7 @@ func (o *ensure) Result(x interface{}) bool {
 		if !ensureResult {
 			return false
 		}
+
 		*v = aSuccess && bSuccess
 
 		return true
@@ -75,10 +87,13 @@ func (o *ensure) Result(x interface{}) bool {
 		return false
 	}
 }
-func (o *ensure) Release() {
+
+// Release releases both steps.
+func (o *EnsureStep) Release() {
 	if o.step != nil {
 		o.step.Release()
 	}
+
 	if o.ensure != nil {
 		o.ensure.Release()
 	}
