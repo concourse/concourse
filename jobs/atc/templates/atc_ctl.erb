@@ -19,26 +19,20 @@ PIDFILE=$RUN_DIR/atc.pid
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
 <%
-  def network_name
-    networks = spec.networks.marshal_dump
+  # address by default picks first address on shared network
+  #
+  # anything more fancy is imo something that should be part of the link
+  # interface, i.e. as part of path definition, since the release cannot
+  # possibly know
 
-    name, _ = networks.find do |_name, network_spec|
-      network_spec.default
-    end
+  my_addr = link_nodes("atc").find { |n| n.id == spec.id }.address
 
-    if !name
-      name, _ = networks.first
-    end
-
-    if !name
-      raise "Could not determine network name via network spec: #{networks}"
-    end
-
-    name.to_s
-  end
-
-  my_ip = link("atc")["nodes"].find { |n| n["id"] == spec.id }["networks"][network_name]["address"]
-  postgres_ip = link("atcdb")["nodes"].first["networks"][network_name]["address"]
+  postgres_node = link_node("atcdb")
+  postgres_addr = postgres_node.address
+  postgres_port = postgres_node.p("port")
+  postgres_role_name = postgres_node.p("role.name")
+  postgres_role_password = postgres_node.p("role.password")
+  postgres_database = postgres_node.p("database")
 %>
 
 case $1 in
@@ -60,11 +54,11 @@ case $1 in
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
       --bind-ip <%= p("atc.web_bind_ip") %> \
       --bind-port <%= p("atc.web_bind_port") %> \
-      --peer-url <%= p("atc.peer_url", "http://#{my_ip}:#{p("atc.web_bind_port")}") %> \
+      --peer-url <%= p("atc.peer_url", "http://#{my_addr}:#{p("atc.web_bind_port")}") %> \
       --external-url <%= esc(p("atc.external_url")) %> \
       --templates /var/vcap/packages/atc/templates \
       --public /var/vcap/packages/atc/public \
-      --postgres-data-source <%= esc("postgres://#{p("atc.postgresql.role.name")}:#{p("atc.postgresql.role.password")}@#{postgres_ip}:5432/#{p("atc.postgresql.database")}?sslmode=disable") %> \
+      --postgres-data-source <%= esc("postgres://#{postgres_role_name}:#{postgres_role_password}@#{postgres_addr}:#{postgres_port}/#{postgres_database}?sslmode=disable") %> \
       <% if p("atc.publicly_viewable") %> \
       --publicly-viewable \
       <% end %> \

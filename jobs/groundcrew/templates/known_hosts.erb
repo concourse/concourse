@@ -1,23 +1,5 @@
 <%=
-  def network_name
-    networks = spec.networks.marshal_dump
-
-    name, _ = networks.find do |_name, network_spec|
-      network_spec.default
-    end
-
-    if !name
-      name, _ = networks.first
-    end
-
-    if !name
-      raise "Could not determine network name via network spec: #{networks}"
-    end
-
-    name.to_s
-  end
-
-  link("tsa")["nodes"].collect { |n|
-    "[#{n["networks"][network_name]["address"]}]:#{p("groundcrew.tsa.port")} #{p("groundcrew.tsa.host_public_key")}"
+  link("tsa")["nodes"].collect { |node|
+    "[#{n.address}]:#{node.p("port")} #{p("groundcrew.tsa.host_public_key")}"
   }.join("\n")
 %>

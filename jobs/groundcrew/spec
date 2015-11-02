@@ -39,6 +39,8 @@ packages:
 requires:
 - name: tsa
   type: tsa
+- name: garden
+  type: garden
 
 properties:
   groundcrew.tsa.port:
@@ -64,9 +66,6 @@ properties:
   groundcrew.yeller.environment_name:
     description: "environment name you wish to group errors under in yeller"
     default: ""
-
-  groundcrew.garden.address:
-    description: "garden server connection address to advertise to the TSA"
 
   groundcrew.garden.forward_address:
     description: "garden server connection address to forward through SSH to the TSA"
