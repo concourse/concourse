@@ -41,7 +41,7 @@ flag. Once you've learned what the commands do, you may want to consult
   all the time:
 
   \codeblock{bash}{
-  $ fly --target new-name login --concourse 'https://ci.example.com'
+  $ fly --target new-name login --concourse-url 'https://ci.example.com'
   }
 
   After you've done this you can use \code{--target new-name} to run a command
