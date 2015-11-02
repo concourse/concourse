@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/fatih/color"
 )
 

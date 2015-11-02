@@ -7,8 +7,8 @@ import (
 
 	"github.com/inconshreveable/go-update"
 
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/go-concourse/concourse"
 )
 
 type SyncCommand struct{}

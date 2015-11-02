@@ -17,9 +17,9 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/pty"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/mgutz/ansi"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-interact/interact"

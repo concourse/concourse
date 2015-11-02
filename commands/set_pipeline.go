@@ -4,9 +4,9 @@ import (
 	"log"
 
 	"github.com/concourse/atc/web"
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/template"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/tedsuo/rata"
 )
 

@@ -9,8 +9,8 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/go-concourse/concourse"
 )
 
 type GetPipelineCommand struct {

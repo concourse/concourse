@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/go-concourse/concourse"
 )
 
 type ChecklistCommand struct {

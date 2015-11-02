@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/vito/go-interact/interact"
 )
 

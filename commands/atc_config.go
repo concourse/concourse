@@ -7,8 +7,8 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/template"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-interact/interact"

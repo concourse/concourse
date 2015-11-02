@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/go-concourse/concourse"
 )
 
 type UnpausePipelineCommand struct {
