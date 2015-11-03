@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -14,7 +15,6 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/pty"
 )
 
 var _ = Describe("login Command", func() {
@@ -44,18 +44,16 @@ var _ = Describe("login Command", func() {
 	Describe("login", func() {
 		var (
 			flyCmd *exec.Cmd
-			flyPTY pty.PTY
+			stdin  io.WriteCloser
 		)
 
 		BeforeEach(func() {
 			atcServer = ghttp.NewServer()
 			flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
 
-			p, err := pty.Open()
+			var err error
+			stdin, err = flyCmd.StdinPipe()
 			Expect(err).NotTo(HaveOccurred())
-
-			flyCmd.Stdin = p.TTYR
-			flyPTY = p
 		})
 
 		Context("when auth methods are returned from the API", func() {
@@ -94,24 +92,24 @@ var _ = Describe("login Command", func() {
 					Eventually(sess.Out).Should(gbytes.Say("3. OAuth Type 2"))
 					Eventually(sess.Out).Should(gbytes.Say("choose an auth method: "))
 
-					_, err = fmt.Fprintf(flyPTY.PTYW, "3\r")
+					_, err = fmt.Fprintf(stdin, "3\n")
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("navigate to the following URL in your browser:"))
 					Eventually(sess.Out).Should(gbytes.Say("    https://example.com/auth/oauth-2"))
 					Eventually(sess.Out).Should(gbytes.Say("enter token: "))
 
-					_, err = fmt.Fprintf(flyPTY.PTYW, "bogustoken\r")
+					_, err = fmt.Fprintf(stdin, "bogustoken\n")
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'"))
 
-					_, err = fmt.Fprintf(flyPTY.PTYW, "Bearer grylls\r")
+					_, err = fmt.Fprintf(stdin, "Bearer grylls\n")
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("token saved"))
 
-					err = flyPTY.PTYW.Close()
+					err = stdin.Close()
 					Expect(err).NotTo(HaveOccurred())
 
 					<-sess.Exited
@@ -128,17 +126,17 @@ var _ = Describe("login Command", func() {
 						Eventually(sess.Out).Should(gbytes.Say("3. OAuth Type 2"))
 						Eventually(sess.Out).Should(gbytes.Say("choose an auth method: "))
 
-						_, err = fmt.Fprintf(flyPTY.PTYW, "3\r")
+						_, err = fmt.Fprintf(stdin, "3\n")
 						Expect(err).NotTo(HaveOccurred())
 
 						Eventually(sess.Out).Should(gbytes.Say("enter token: "))
 
-						_, err = fmt.Fprintf(flyPTY.PTYW, "Bearer some-entered-token\r")
+						_, err = fmt.Fprintf(stdin, "Bearer some-entered-token\n")
 						Expect(err).NotTo(HaveOccurred())
 
 						Eventually(sess.Out).Should(gbytes.Say("token saved"))
 
-						err = flyPTY.PTYW.Close()
+						err = stdin.Close()
 						Expect(err).NotTo(HaveOccurred())
 
 						<-sess.Exited
@@ -197,24 +195,24 @@ var _ = Describe("login Command", func() {
 					Eventually(sess.Out).Should(gbytes.Say("3. OAuth Type 2"))
 					Eventually(sess.Out).Should(gbytes.Say("choose an auth method: "))
 
-					_, err = fmt.Fprintf(flyPTY.PTYW, "1\r")
+					_, err = fmt.Fprintf(stdin, "1\n")
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("username: "))
 
-					_, err = fmt.Fprintf(flyPTY.PTYW, "some username\r")
+					_, err = fmt.Fprintf(stdin, "some username\n")
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("password: "))
 
-					_, err = fmt.Fprintf(flyPTY.PTYW, "some password\r")
+					_, err = fmt.Fprintf(stdin, "some password\n")
 					Expect(err).NotTo(HaveOccurred())
 
 					Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
 
 					Eventually(sess.Out).Should(gbytes.Say("token saved"))
 
-					err = flyPTY.PTYW.Close()
+					err = stdin.Close()
 					Expect(err).NotTo(HaveOccurred())
 
 					<-sess.Exited
@@ -231,24 +229,24 @@ var _ = Describe("login Command", func() {
 						Eventually(sess.Out).Should(gbytes.Say("3. OAuth Type 2"))
 						Eventually(sess.Out).Should(gbytes.Say("choose an auth method: "))
 
-						_, err = fmt.Fprintf(flyPTY.PTYW, "1\r")
+						_, err = fmt.Fprintf(stdin, "1\n")
 						Expect(err).NotTo(HaveOccurred())
 
 						Eventually(sess.Out).Should(gbytes.Say("username: "))
 
-						_, err = fmt.Fprintf(flyPTY.PTYW, "some username\r")
+						_, err = fmt.Fprintf(stdin, "some username\n")
 						Expect(err).NotTo(HaveOccurred())
 
 						Eventually(sess.Out).Should(gbytes.Say("password: "))
 
-						_, err = fmt.Fprintf(flyPTY.PTYW, "some password\r")
+						_, err = fmt.Fprintf(stdin, "some password\n")
 						Expect(err).NotTo(HaveOccurred())
 
 						Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
 
 						Eventually(sess.Out).Should(gbytes.Say("token saved"))
 
-						err = flyPTY.PTYW.Close()
+						err = stdin.Close()
 						Expect(err).NotTo(HaveOccurred())
 
 						<-sess.Exited
@@ -316,29 +314,27 @@ var _ = Describe("login Command", func() {
 						It("updates the token", func() {
 							loginAgainCmd := exec.Command(flyPath, "-t", "some-target", "login")
 
-							secondFlyPTY, err := pty.Open()
+							secondFlyStdin, err := loginAgainCmd.StdinPipe()
 							Expect(err).NotTo(HaveOccurred())
-
-							loginAgainCmd.Stdin = secondFlyPTY.TTYR
 
 							sess, err := gexec.Start(loginAgainCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
 
 							Eventually(sess.Out).Should(gbytes.Say("username: "))
 
-							_, err = fmt.Fprintf(secondFlyPTY.PTYW, "some username\r")
+							_, err = fmt.Fprintf(secondFlyStdin, "some username\n")
 							Expect(err).NotTo(HaveOccurred())
 
 							Eventually(sess.Out).Should(gbytes.Say("password: "))
 
-							_, err = fmt.Fprintf(secondFlyPTY.PTYW, "some password\r")
+							_, err = fmt.Fprintf(secondFlyStdin, "some password\n")
 							Expect(err).NotTo(HaveOccurred())
 
 							Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
 
 							Eventually(sess.Out).Should(gbytes.Say("token saved"))
 
-							err = secondFlyPTY.PTYW.Close()
+							err = secondFlyStdin.Close()
 							Expect(err).NotTo(HaveOccurred())
 
 							<-sess.Exited
@@ -390,19 +386,19 @@ var _ = Describe("login Command", func() {
 
 				Eventually(sess.Out).Should(gbytes.Say("username: "))
 
-				_, err = fmt.Fprintf(flyPTY.PTYW, "some username\r")
+				_, err = fmt.Fprintf(stdin, "some username\n")
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess.Out).Should(gbytes.Say("password: "))
 
-				_, err = fmt.Fprintf(flyPTY.PTYW, "some password\r")
+				_, err = fmt.Fprintf(stdin, "some password\n")
 				Expect(err).NotTo(HaveOccurred())
 
 				Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
 
 				Eventually(sess.Out).Should(gbytes.Say("token saved"))
 
-				err = flyPTY.PTYW.Close()
+				err = stdin.Close()
 				Expect(err).NotTo(HaveOccurred())
 
 				<-sess.Exited
