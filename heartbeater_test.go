@@ -177,7 +177,7 @@ var _ = Describe("Heartbeater", func() {
 				actualRegistration := <-registrations
 				Expect(actualRegistration.worker).To(Equal(expectedWorker))
 				Expect(actualRegistration.ttl).To(Equal(2 * interval))
-				Expect(actualRegistration.lastInterval).To(BeNumerically("~", 0, 20*time.Millisecond))
+				Expect(actualRegistration.lastInterval).To(BeNumerically("~", 0, 100*time.Millisecond))
 			})
 
 			It("heartbeats", func() {
