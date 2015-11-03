@@ -48,6 +48,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	atcBin = string(b)
 
 	SetDefaultEventuallyTimeout(10 * time.Second)
+	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
 
 	postgresRunner = postgresrunner.Runner{
 		Port: 5432 + GinkgoParallelNode(),
