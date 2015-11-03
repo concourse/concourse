@@ -9,13 +9,15 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/kr/tarutil"
 )
 
 func tarStreamFrom(workDir string, paths []string) (io.ReadCloser, error) {
 	var archive io.ReadCloser
 
 	if tarPath, err := exec.LookPath("tar"); err == nil {
-		tarCmd := exec.Command(tarPath, []string{"-czf", "-", "--null", "-T", "-"}...)
+		tarCmd := exec.Command(tarPath, "-czf", "-", "--null", "-T", "-")
 		tarCmd.Dir = workDir
 		tarCmd.Stderr = os.Stderr
 
@@ -35,4 +37,26 @@ func tarStreamFrom(workDir string, paths []string) (io.ReadCloser, error) {
 	}
 
 	return archive, nil
+}
+
+func tarStreamTo(workDir string, stream io.Reader) error {
+	if tarPath, err := exec.LookPath("tar"); err == nil {
+		tarCmd := exec.Command(tarPath, "-xzf", "-")
+		tarCmd.Dir = workDir
+		tarCmd.Stderr = os.Stderr
+
+		tarCmd.Stdin = stream
+
+		err = tarCmd.Run()
+		if err != nil {
+			return err
+		}
+	} else {
+		err := tarutil.ExtractAll(stream, workDir, tarutil.Chmod|tarutil.Chtimes|tarutil.Symlink)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

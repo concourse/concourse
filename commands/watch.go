@@ -5,13 +5,13 @@ import (
 	"log"
 	"os"
 
+	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/go-concourse/concourse/eventstream"
-	"github.com/concourse/fly/rc"
 )
 
 type WatchCommand struct {
-	Job   JobFlag `short:"j" long:"job"   value-name:"[PIPELINE/]JOB"   description:"Watches builds of the given job"`
+	Job   JobFlag `short:"j" long:"job"   value-name:"PIPELINE/JOB"   description:"Watches builds of the given job"`
 	Build string  `short:"b" long:"build"                               description:"Watches a specific build"`
 }
 

@@ -15,19 +15,20 @@ import (
 	"syscall"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/go-concourse/concourse"
-	"github.com/concourse/go-concourse/concourse/eventstream"
 	"github.com/concourse/fly/config"
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/go-concourse/concourse/eventstream"
 	"github.com/tedsuo/rata"
 )
 
 type ExecuteCommand struct {
-	TaskConfig     PathFlag        `short:"c" long:"config" required:"true"                  description:"The task config to execute"`
-	Privileged     bool            `short:"p" long:"privileged"                              description:"Run the task with full privileges"`
-	ExcludeIgnored bool            `short:"x" long:"exclude-ignored"                         description:"Skip uploading .gitignored paths"`
-	Inputs         []InputPairFlag `short:"i" long:"input"                                   description:"An input to provide to the task (can be specified multiple times)"`
-	InputsFrom     JobFlag         `short:"j" long:"inputs-from" value-name:"[PIPELINE/]JOB" description:"A job to base the inputs on"`
+	TaskConfig     PathFlag         `short:"c" long:"config" required:"true"                description:"The task config to execute"`
+	Privileged     bool             `short:"p" long:"privileged"                            description:"Run the task with full privileges"`
+	ExcludeIgnored bool             `short:"x" long:"exclude-ignored"                       description:"Skip uploading .gitignored paths"`
+	Inputs         []InputPairFlag  `short:"i" long:"input"       value-name:"NAME=PATH"    description:"An input to provide to the task (can be specified multiple times)"`
+	InputsFrom     JobFlag          `short:"j" long:"inputs-from" value-name:"PIPELINE/JOB" description:"A job to base the inputs on"`
+	Outputs        []OutputPairFlag `short:"o" long:"output"      value-name:"NAME=PATH"    description:"An output to fetch from the task (can be specified multiple times)"`
 }
 
 func (command *ExecuteCommand) Execute(args []string) error {
@@ -57,11 +58,21 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
+	outputs, err := determineOutputs(
+		client,
+		taskConfig.Outputs,
+		command.Outputs,
+	)
+	if err != nil {
+		return err
+	}
+
 	build, err := createBuild(
 		atcRequester,
 		client,
 		command.Privileged,
 		inputs,
+		outputs,
 		taskConfig,
 	)
 	if err != nil {
@@ -84,6 +95,20 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		}
 	}()
 
+	var outputChans []chan (interface{})
+	if len(outputs) > 0 {
+		for i, output := range outputs {
+			outputChans = append(outputChans, make(chan interface{}, 1))
+			go func(o Output, outputChan chan<- interface{}) {
+				if o.Path != "" {
+					download(o, atcRequester)
+				}
+
+				close(outputChan)
+			}(output, outputChans[i])
+		}
+	}
+
 	eventSource, err := client.BuildEvents(fmt.Sprintf("%d", build.ID))
 
 	if err != nil {
@@ -93,6 +118,12 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	exitCode := eventstream.Render(os.Stdout, eventSource)
 	eventSource.Close()
+
+	if len(outputs) > 0 {
+		for _, outputChan := range outputChans {
+			<-outputChan
+		}
+	}
 
 	os.Exit(exitCode)
 
@@ -106,6 +137,41 @@ type Input struct {
 	Pipe atc.Pipe
 
 	BuildInput atc.BuildInput
+}
+type Output struct {
+	Name string
+	Path string
+	Pipe atc.Pipe
+}
+
+func determineOutputs(
+	client concourse.Client,
+	taskOutputs []atc.TaskOutputConfig,
+	outputMappings []OutputPairFlag,
+) ([]Output, error) {
+
+	outputs := []Output{}
+
+	for _, i := range outputMappings {
+		outputName := i.Name
+		absPath, err := filepath.Abs(i.Path)
+		if err != nil {
+			return nil, err
+		}
+
+		pipe, err := client.CreatePipe()
+		if err != nil {
+			return nil, err
+		}
+
+		outputs = append(outputs, Output{
+			Name: outputName,
+			Path: absPath,
+			Pipe: pipe,
+		})
+	}
+
+	return outputs, nil
 }
 
 func determineInputs(
@@ -204,6 +270,7 @@ func createBuild(
 	client concourse.Client,
 	privileged bool,
 	inputs []Input,
+	outputs []Output,
 	config atc.TaskConfig,
 ) (atc.Build, error) {
 	if err := config.Validate(); err != nil {
@@ -262,24 +329,82 @@ func createBuild(
 		})
 	}
 
-	plan := atc.Plan{
-		OnSuccess: &atc.OnSuccessPlan{
-			Step: atc.Plan{
-				Aggregate: &buildInputs,
-			},
-			Next: atc.Plan{
-				Location: &atc.Location{
-					// offset by 1 because aggregate gets parallelgroup ID 1
-					ID:       uint(len(inputs)) + 2,
-					ParentID: 0,
-				},
-				Task: &atc.TaskPlan{
-					Name:       "one-off",
-					Privileged: privileged,
-					Config:     &config,
-				},
-			},
+	taskPlan := atc.Plan{
+		Location: &atc.Location{
+			// offset by 1 because aggregate gets parallelgroup ID 1
+			ID:       uint(len(inputs)) + 2,
+			ParentID: 0,
 		},
+		Task: &atc.TaskPlan{
+			Name:       "one-off",
+			Privileged: privileged,
+			Config:     &config,
+		},
+	}
+
+	buildOutputs := atc.AggregatePlan{}
+	for i, output := range outputs {
+		writePipe, err := atcRequester.CreateRequest(
+			atc.WritePipe,
+			rata.Params{"pipe_id": output.Pipe.ID},
+			nil,
+		)
+		if err != nil {
+			return atc.Build{}, err
+		}
+		source := atc.Source{
+			"uri": writePipe.URL.String(),
+		}
+
+		params := atc.Params{
+			"directory": output.Name,
+		}
+
+		if targetProps.Token != nil {
+			source["authorization"] = targetProps.Token.Type + " " + targetProps.Token.Value
+		}
+
+		buildOutputs = append(buildOutputs, atc.Plan{
+			Location: &atc.Location{
+				ID:            taskPlan.Location.ID + 2 + uint(i),
+				ParentID:      0,
+				ParallelGroup: taskPlan.Location.ID + 1,
+			},
+			Put: &atc.PutPlan{
+				Name:   output.Name,
+				Type:   "archive",
+				Source: source,
+				Params: params,
+			},
+		})
+	}
+
+	var plan atc.Plan
+	if len(buildOutputs) == 0 {
+		plan = atc.Plan{
+			OnSuccess: &atc.OnSuccessPlan{
+				Step: atc.Plan{
+					Aggregate: &buildInputs,
+				},
+				Next: taskPlan,
+			},
+		}
+	} else {
+		plan = atc.Plan{
+			OnSuccess: &atc.OnSuccessPlan{
+				Step: atc.Plan{
+					Aggregate: &buildInputs,
+				},
+				Next: atc.Plan{
+					Ensure: &atc.EnsurePlan{
+						Step: taskPlan,
+						Next: atc.Plan{
+							Aggregate: &buildOutputs,
+						},
+					},
+				},
+			},
+		}
 	}
 
 	return client.CreateBuild(plan)
@@ -349,6 +474,42 @@ func upload(input Input, excludeIgnored bool, atcRequester *atcRequester) {
 
 	if response.StatusCode != http.StatusOK {
 		fmt.Fprintln(os.Stderr, badResponseError("uploading bits", response))
+	}
+}
+
+func download(output Output, atcRequester *atcRequester) {
+	path := output.Path
+	pipe := output.Pipe
+
+	downloadBits, err := atcRequester.CreateRequest(
+		atc.ReadPipe,
+		rata.Params{"pipe_id": pipe.ID},
+		nil,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	response, err := atcRequester.httpClient.Do(downloadBits)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "download request failed:", err)
+	}
+
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		fmt.Fprintln(os.Stderr, badResponseError("downloading bits", response))
+		panic("unexpected-response-code")
+	}
+
+	err = os.MkdirAll(path, 0755)
+	if err != nil {
+		panic(err)
+	}
+
+	err = tarStreamTo(path, response.Body)
+	if err != nil {
+		panic(err)
 	}
 }
 
