@@ -67,7 +67,7 @@ describe("Resource", function () {
   describe("after the events have been bound", function () {
     beforeEach(function () {
       pauseUnpause.bindEvents();
-      spyOn(pauseUnpause, 'redirect');
+      spyOn(concourse, 'redirect');
     });
 
     describe('clicking the button', function () {
@@ -119,7 +119,7 @@ describe("Resource", function () {
         expect($pauseUnpause.pauseBtn()).not.toHaveClass('loading');
         expect($pauseUnpause.pauseBtn()).toHaveClass('errored');
 
-        expect(pauseUnpause.redirect).toHaveBeenCalledWith("/login");
+        expect(concourse.redirect).toHaveBeenCalledWith("/login");
       });
 
       it('sets the button as errored when the request fails', function () {
@@ -138,7 +138,7 @@ describe("Resource", function () {
         expect($pauseUnpause.pauseBtn()).not.toHaveClass('loading');
         expect($pauseUnpause.pauseBtn()).toHaveClass('errored');
 
-        expect(pauseUnpause.redirect).not.toHaveBeenCalled();
+        expect(concourse.redirect).not.toHaveBeenCalled();
       });
 
       it('sets the button as errored when the unpause fails', function () {
@@ -151,7 +151,7 @@ describe("Resource", function () {
         expect($pauseUnpause.pauseBtn()).not.toHaveClass('loading');
         expect($pauseUnpause.pauseBtn()).toHaveClass('errored');
 
-        expect(pauseUnpause.redirect).not.toHaveBeenCalled();
+        expect(concourse.redirect).not.toHaveBeenCalled();
       });
 
       it('sets the button as errored when the unpause is unauthorized', function () {
@@ -164,7 +164,7 @@ describe("Resource", function () {
         expect($pauseUnpause.pauseBtn()).not.toHaveClass('loading');
         expect($pauseUnpause.pauseBtn()).toHaveClass('errored');
 
-        expect(pauseUnpause.redirect).toHaveBeenCalledWith("/login");
+        expect(concourse.redirect).toHaveBeenCalledWith("/login");
       });
 
       it("makes a request", function () {
