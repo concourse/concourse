@@ -1,10 +1,8 @@
 package ui_test
 
 import (
-	"fmt"
 	"io"
 	"runtime"
-	"sync"
 
 	"github.com/concourse/fly/pty"
 	. "github.com/concourse/fly/ui"
@@ -70,20 +68,17 @@ var _ = Describe("Table", func() {
 
 			buf := gbytes.NewBuffer()
 
-			reading := new(sync.WaitGroup)
-			reading.Add(1)
 			go func() {
-				defer reading.Done()
-				io.Copy(buf, pty.PTYR)
+				defer GinkgoRecover()
+
+				_, err := io.Copy(buf, pty.PTYR)
+				Expect(err).ToNot(HaveOccurred())
 			}()
 
 			err = table.Render(pty.TTYW)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = pty.TTYW.Close()
-			Expect(err).ToNot(HaveOccurred())
 
-			reading.Wait()
 
 			expectedOutput := "" +
 				"\x1b[1mcolumn1\x1b[0m  \x1b[1mcolumn2\x1b[0m\r\n" +
@@ -91,7 +86,7 @@ var _ = Describe("Table", func() {
 				"r2c1     r2c2   \r\n" +
 				"r3c1     r3c2   \r\n"
 
-			Expect(fmt.Sprintf("%q", buf.Contents())).To(Equal(fmt.Sprintf("%q", expectedOutput)))
+			Eventually(buf.Contents).Should(Equal([]byte(expectedOutput)))
 		})
 	})
 })

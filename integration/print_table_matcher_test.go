@@ -3,12 +3,9 @@ package integration_test
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"os/exec"
 	"strings"
-	"sync"
 
-	"github.com/concourse/fly/pty"
 	"github.com/concourse/fly/ui"
 	"github.com/onsi/gomega/format"
 )
@@ -25,63 +22,26 @@ func PrintTable(table ui.Table) *PrintTableMatcher {
 }
 
 func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
-	expectedPTY, err := pty.Open()
-	if err != nil {
-		return false, err
-	}
-
-	defer expectedPTY.Close()
-
 	buf := new(bytes.Buffer)
 
-	reading := new(sync.WaitGroup)
-	reading.Add(1)
-	go func() {
-		defer reading.Done()
-		io.Copy(buf, expectedPTY.PTYR)
-	}()
-
-	err = matcher.table.Render(expectedPTY.TTYW)
+	err := matcher.table.Render(buf)
 	if err != nil {
 		return false, err
 	}
-
-	expectedPTY.TTYW.Close()
-
-	reading.Wait()
 
 	matcher.expected = buf.String()
 
 	switch v := actual.(type) {
 	case *exec.Cmd:
-		actualPTY, err := pty.Open()
-		if err != nil {
-			return false, err
-		}
-
-		defer actualPTY.Close()
-
-		v.Stdin = actualPTY.TTYR
-		v.Stdout = actualPTY.TTYW
-		v.Stderr = actualPTY.TTYW
-
 		actualBuf := new(bytes.Buffer)
 
-		reading := new(sync.WaitGroup)
-		reading.Add(1)
-		go func() {
-			defer reading.Done()
-			io.Copy(actualBuf, actualPTY.PTYR)
-		}()
+		v.Stdout = actualBuf
+		v.Stderr = actualBuf
 
 		err = v.Run()
 		if err != nil {
 			return false, err
 		}
-
-		actualPTY.TTYW.Close()
-
-		reading.Wait()
 
 		matcher.actual = actualBuf.String()
 	default:

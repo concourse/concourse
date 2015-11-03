@@ -45,7 +45,7 @@ var _ = Describe("login -k Command", func() {
 	Describe("login", func() {
 		var (
 			flyCmd *exec.Cmd
-			stdin io.WriteCloser
+			stdin  io.WriteCloser
 		)
 		BeforeEach(func() {
 			l := log.New(GinkgoWriter, "TLSServer", 0)
