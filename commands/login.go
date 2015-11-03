@@ -23,7 +23,7 @@ func (command *LoginCommand) Execute(args []string) error {
 	if command.ATCURL != "" {
 		connection, err = rc.NewConnection(command.ATCURL, command.Insecure)
 	} else {
-		connection, err = rc.TargetConnection(Fly.Target)
+		connection, err = rc.CommandTargetConnection(Fly.Target, &command.Insecure)
 	}
 
 	if err != nil {

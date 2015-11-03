@@ -95,6 +95,10 @@ func NewConnection(atcURL string, insecure bool) (concourse.Connection, error) {
 }
 
 func TargetConnection(selectedTarget string) (concourse.Connection, error) {
+	return CommandTargetConnection(selectedTarget, nil)
+}
+
+func CommandTargetConnection(selectedTarget string, commandInsecure *bool) (concourse.Connection, error) {
 	if isURL(selectedTarget) {
 		return NewConnection(selectedTarget, false)
 	}
@@ -119,7 +123,9 @@ func TargetConnection(selectedTarget string) (concourse.Connection, error) {
 	}
 
 	var tlsConfig *tls.Config
-	if target.Insecure {
+	if commandInsecure != nil {
+		tlsConfig = &tls.Config{InsecureSkipVerify: *commandInsecure}
+	} else if target.Insecure {
 		tlsConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
