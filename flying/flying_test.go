@@ -53,7 +53,11 @@ platform: linux
 image: /var/vcap/packages/busybox
 
 inputs:
-  - name: fixture
+- name: fixture
+
+outputs:
+- name: output-1
+- name: output-2
 
 params:
   FOO: 1
@@ -118,6 +122,34 @@ cat < /tmp/fifo
 			Eventually(hijackS).Should(gexec.Exit())
 
 			Eventually(flyS).Should(gexec.Exit(0))
+		})
+	})
+
+	Describe("pulling down outputs", func() {
+		It("works", func() {
+			err := ioutil.WriteFile(
+				filepath.Join(fixture, "run"),
+				[]byte(`#!/bin/sh
+echo hello > output-1/file-1
+echo world > output-2/file-2
+`),
+				0755,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "task.yml", "-o", "output-1=./output-1", "-o", "output-2=./output-2")
+			fly.Dir = fixture
+
+			session := helpers.StartFly(fly)
+			<-session.Exited
+
+			Expect(session.ExitCode()).To(Equal(0))
+
+			file1 := filepath.Join(fixture, "output-1", "file-1")
+			file2 := filepath.Join(fixture, "output-2", "file-2")
+
+			Expect(ioutil.ReadFile(file1)).To(Equal([]byte("hello\n")))
+			Expect(ioutil.ReadFile(file2)).To(Equal([]byte("world\n")))
 		})
 	})
 
