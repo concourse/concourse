@@ -49,8 +49,13 @@ var _ = Describe("login -k Command", func() {
 		)
 		BeforeEach(func() {
 			l := log.New(GinkgoWriter, "TLSServer", 0)
-			atcServer = ghttp.NewTLSServer()
+			atcServer = ghttp.NewUnstartedServer()
 			atcServer.HTTPTestServer.Config.ErrorLog = l
+			atcServer.HTTPTestServer.StartTLS()
+		})
+
+		AfterEach(func() {
+			atcServer.Close()
 		})
 
 		Context("to new target with invalid SSL with -k", func() {
@@ -213,7 +218,6 @@ var _ = Describe("login -k Command", func() {
 			})
 
 			It("errors", func() {
-				//TODO suppress stderr (from http library)
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
