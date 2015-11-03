@@ -60,11 +60,11 @@ var _ = Describe("Fly CLI", func() {
 		)
 
 		yes := func(stdin io.Writer) {
-			fmt.Fprintf(stdin, "y\r")
+			fmt.Fprintf(stdin, "y\n")
 		}
 
 		no := func(stdin io.Writer) {
-			fmt.Fprintf(stdin, "n\r")
+			fmt.Fprintf(stdin, "n\n")
 		}
 
 		BeforeEach(func() {
