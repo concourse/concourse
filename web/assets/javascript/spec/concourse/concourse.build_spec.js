@@ -45,6 +45,14 @@ describe("Build", function () {
       });
     };
 
+    var respondWithUnauthorized = function(request) {
+      var errorRequest = request || jasmine.Ajax.requests.mostRecent();
+      errorRequest.respondWith({
+        "status": 401,
+        "contentType": 'application/json'
+      });
+    };
+
     it('calls the api endpoint to abort the build', function() {
       build.abort();
 
@@ -75,6 +83,19 @@ describe("Build", function () {
         respondWithError();
 
         expect($('.js-abortBuild')).toHaveClass('errored');
+      });
+    });
+
+    describe('when the request is unauthorized', function(){
+      it('redirects to /login', function () {
+        spyOn(concourse, 'redirect');
+
+        expect($('.js-abortBuild').length).toEqual(1);
+
+        build.abort();
+        respondWithUnauthorized();
+
+        expect(concourse.redirect).toHaveBeenCalledWith("/login");
       });
     });
   });

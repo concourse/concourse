@@ -48,7 +48,7 @@ gulp.task('compile-concourse', function () {
 		stream = stream.pipe(buffer()).pipe(uglify());
 	}
 
-	return stream.pipe(gulp.dest(publicDir));
+	return stream.pipe(buffer()).pipe(gulp.dest(publicDir));
 });
 
 // jasmine stuff

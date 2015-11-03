@@ -29,14 +29,9 @@ concourse.PauseUnpause.prototype.pause = function (pause) {
   }).done(function (resp, jqxhr) {
     _this.pauseBtn.enable();
     _this.pauseCallback();
-  }).error(function (resp) {
-    _this.pauseBtn.error();
-
-    if (resp.status == 401) {
-      _this.redirect("/login");
-    }
-  });
+  }).error(_this.requestError.bind(_this));
 };
+
 
 concourse.PauseUnpause.prototype.unpause = function (event) {
   var _this = this;
@@ -44,19 +39,17 @@ concourse.PauseUnpause.prototype.unpause = function (event) {
 
   $.ajax({
     method: 'PUT',
-    url: this.unPauseEndpoint
+    url: _this.unPauseEndpoint
   }).done(function (resp) {
     _this.pauseBtn.disable();
     _this.unpauseCallback();
-  }).error(function (resp) {
-    _this.pauseBtn.error();
-
-    if (resp.status == 401) {
-      _this.redirect("/login");
-    }
-  });
+  }).error(_this.requestError.bind(_this));
 };
 
-concourse.PauseUnpause.prototype.redirect = function(href) {
-  window.location = href;
+concourse.PauseUnpause.prototype.requestError = function (resp) {
+  this.pauseBtn.error();
+
+  if (resp.status == 401) {
+    concourse.redirect("/login");
+  }
 };

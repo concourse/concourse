@@ -22,6 +22,10 @@ concourse.Build.prototype.abort = function() {
     _this.$abortBtn.remove();
   }).error(function (resp) {
     _this.$abortBtn.addClass('errored');
+
+    if (resp.status == 401) {
+      concourse.redirect("/login");
+    }
   });
 };
 

@@ -105,7 +105,6 @@ var _ = Describe("Resource Pausing", func() {
 			It("can abort the build", func() {
 				// homepage -> job detail w/build info
 				Expect(page.Navigate(homepage())).To(Succeed())
-				Authenticate(page, "admin", "password")
 
 				title, err := page.Title()
 				Expect(err).NotTo(HaveOccurred())
@@ -115,9 +114,20 @@ var _ = Describe("Resource Pausing", func() {
 				Expect(page.FindByLink("job-name").Click()).To(Succeed())
 
 				// job detail w/build info -> abort build
-				Expect(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
+				Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
 				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("job-name #%d", build.ID)))
 
+				Expect(page.Find(".js-abortBuild").Click()).To(Succeed())
+				Eventually(page).Should(HaveURL(fmt.Sprintf("http://127.0.0.1:%d/login", atcPort)))
+
+				Authenticate(page, "admin", "password")
+
+				Expect(page.Navigate(homepage())).To(Succeed())
+
+				Eventually(page.FindByLink("job-name")).Should(BeFound())
+				Expect(page.FindByLink("job-name").Click()).To(Succeed())
+
+				Eventually(page.Find(".js-abortBuild")).Should(BeFound())
 				Expect(page.Find(".js-abortBuild").Click()).To(Succeed())
 				Expect(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
 
