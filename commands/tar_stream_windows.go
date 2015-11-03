@@ -3,6 +3,7 @@
 package commands
 
 import (
+	"compress/gzip"
 	"io"
 
 	"github.com/kr/tarutil"
@@ -13,5 +14,10 @@ func tarStreamFrom(workDir string, paths []string) (io.ReadCloser, error) {
 }
 
 func tarStreamTo(workDir string, stream io.Reader) error {
-	return tarutil.ExtractAll(stream, workDir, tarutil.Chmod|tarutil.Chtimes|tarutil.Symlink)
+	gr, err := gzip.NewReader(stream)
+	if err != nil {
+		return err
+	}
+
+	return tarutil.ExtractAll(gr, workDir, tarutil.Chmod|tarutil.Chtimes|tarutil.Symlink)
 }

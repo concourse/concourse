@@ -4,6 +4,7 @@ package commands
 
 import (
 	"bytes"
+	"compress/gzip"
 	"io"
 	"log"
 	"os"
@@ -47,16 +48,13 @@ func tarStreamTo(workDir string, stream io.Reader) error {
 
 		tarCmd.Stdin = stream
 
-		err = tarCmd.Run()
-		if err != nil {
-			return err
-		}
-	} else {
-		err := tarutil.ExtractAll(stream, workDir, tarutil.Chmod|tarutil.Chtimes|tarutil.Symlink)
-		if err != nil {
-			return err
-		}
+		return tarCmd.Run()
 	}
 
-	return nil
+	gr, err := gzip.NewReader(stream)
+	if err != nil {
+		return err
+	}
+
+	return tarutil.ExtractAll(gr, workDir, tarutil.Chmod|tarutil.Chtimes|tarutil.Symlink)
 }
