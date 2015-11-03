@@ -7,7 +7,6 @@ import (
 	"os/exec"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/pty"
 	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -96,26 +95,25 @@ var _ = Describe("Hijacking", func() {
 	}
 
 	fly := func(command string, args ...string) {
-		pty, err := pty.Open()
-		Expect(err).NotTo(HaveOccurred())
-
 		commandWithArgs := append([]string{command}, args...)
 
 		flyCmd := exec.Command(flyPath, append([]string{"-t", atcServer.URL()}, commandWithArgs...)...)
-		flyCmd.Stdin = pty.TTYR
+
+		stdin, err := flyCmd.StdinPipe()
+		Expect(err).NotTo(HaveOccurred())
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(hijacked).Should(BeClosed())
 
-		_, err = fmt.Fprintf(pty.PTYW, "some stdin")
+		_, err = fmt.Fprintf(stdin, "some stdin")
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(sess.Out).Should(gbytes.Say("some stdout"))
 		Eventually(sess.Err).Should(gbytes.Say("some stderr"))
 
-		err = pty.PTYW.Close()
+		err = stdin.Close()
 		Expect(err).NotTo(HaveOccurred())
 
 		<-sess.Exited
@@ -205,18 +203,17 @@ var _ = Describe("Hijacking", func() {
 		})
 
 		It("logs an error message and response status/body", func() {
-			pty, err := pty.Open()
-			Expect(err).NotTo(HaveOccurred())
-
 			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-b", "0")
-			flyCmd.Stdin = pty.TTYR
+
+			stdin, err := flyCmd.StdinPipe()
+			Expect(err).NotTo(HaveOccurred())
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess.Err.Contents).Should(ContainSubstring("build not found"))
 
-			err = pty.PTYW.Close()
+			err = stdin.Close()
 			Expect(err).NotTo(HaveOccurred())
 
 			<-sess.Exited
@@ -259,11 +256,10 @@ var _ = Describe("Hijacking", func() {
 		})
 
 		It("asks the user to select the container from a menu", func() {
-			pty, err := pty.Open()
-			Expect(err).NotTo(HaveOccurred())
-
 			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-j", "pipeline-name-1/some-job")
-			flyCmd.Stdin = pty.TTYR
+
+			stdin, err := flyCmd.StdinPipe()
+			Expect(err).NotTo(HaveOccurred())
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -272,18 +268,18 @@ var _ = Describe("Hijacking", func() {
 			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-1, build id: 3, type: put, name: some-job"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
-			_, err = fmt.Fprintf(pty.PTYW, "2\r")
+			_, err = fmt.Fprintf(stdin, "2\n")
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(hijacked).Should(BeClosed())
 
-			_, err = fmt.Fprintf(pty.PTYW, "some stdin")
+			_, err = fmt.Fprintf(stdin, "some stdin")
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess.Out).Should(gbytes.Say("some stdout"))
 			Eventually(sess.Err).Should(gbytes.Say("some stderr"))
 
-			err = pty.PTYW.Close()
+			err = stdin.Close()
 			Expect(err).NotTo(HaveOccurred())
 
 			<-sess.Exited
@@ -461,23 +457,22 @@ var _ = Describe("Hijacking", func() {
 				})
 
 				It("prints it to stderr and exits 255", func() {
-					pty, err := pty.Open()
-					Expect(err).NotTo(HaveOccurred())
-
 					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "--step", "some-step")
-					flyCmd.Stdin = pty.TTYR
+
+					stdin, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(hijacked).Should(BeClosed())
 
-					_, err = fmt.Fprintf(pty.PTYW, "some stdin")
+					_, err = fmt.Fprintf(stdin, "some stdin")
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess.Err.Contents).Should(ContainSubstring(ansi.Color("something went wrong", "red+b") + "\n"))
 
-					err = pty.PTYW.Close()
+					err = stdin.Close()
 					Expect(err).NotTo(HaveOccurred())
 
 					<-sess.Exited
