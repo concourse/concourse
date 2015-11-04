@@ -13,6 +13,7 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/algorithm"
 )
 
 var _ = Describe("Pipelines API", func() {
@@ -407,6 +408,108 @@ var _ = Describe("Pipelines API", func() {
 				It("returns 500", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
+	Describe("GET /api/v1/pipelines/:pipeline_name/versions-db", func() {
+		var response *http.Response
+		var pipelineDB *dbfakes.FakePipelineDB
+
+		BeforeEach(func() {
+			pipelineDB = new(dbfakes.FakePipelineDB)
+
+			pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("GET", server.URL+"/api/v1/pipelines/a-pipeline/versions-db", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+				//construct Version db
+
+				pipelineDB.LoadVersionsDBReturns(
+					&algorithm.VersionsDB{
+						ResourceVersions: []algorithm.ResourceVersion{
+							{
+								VersionID:  73,
+								ResourceID: 127,
+							},
+						},
+						BuildOutputs: []algorithm.BuildOutput{
+							{
+								ResourceVersion: algorithm.ResourceVersion{
+									VersionID:  73,
+									ResourceID: 127,
+								},
+								BuildID: 66,
+								JobID:   13,
+							},
+						},
+						JobIDs: map[string]int{
+							"bad-luck-job": 13,
+						},
+						ResourceIDs: map[string]int{
+							"resource-127": 127,
+						},
+					},
+					nil,
+				)
+			})
+
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns application/json", func() {
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			})
+
+			It("returns a json representation of all the versions in the pipeline", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`{
+				"ResourceVersions": [
+					{
+						"VersionID": 73,
+						"ResourceID": 127
+			    }
+				],
+				"BuildOutputs": [
+					{
+						"VersionID": 73,
+						"ResourceID": 127,
+						"BuildID": 66,
+						"JobID": 13
+					}
+				],
+				"JobIDs": {
+						"bad-luck-job": 13
+				},
+				"ResourceIDs": {
+					"resource-127": 127
+				}
+				}`))
 			})
 		})
 

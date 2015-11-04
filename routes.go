@@ -19,6 +19,7 @@ const (
 	GetJobBuild   = "GetJobBuild"
 	PauseJob      = "PauseJob"
 	UnpauseJob    = "UnpauseJob"
+	GetVersionsDB = "GetVersionsDB"
 
 	ListResources          = "ListResources"
 	EnableResourceVersion  = "EnableResourceVersion"
@@ -79,6 +80,7 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/pipelines/ordering", Method: "PUT", Name: OrderPipelines},
 	{Path: "/api/v1/pipelines/:pipeline_name/pause", Method: "PUT", Name: PausePipeline},
 	{Path: "/api/v1/pipelines/:pipeline_name/unpause", Method: "PUT", Name: UnpausePipeline},
+	{Path: "/api/v1/pipelines/:pipeline_name/versions-db", Method: "GET", Name: GetVersionsDB},
 
 	{Path: "/api/v1/pipelines/:pipeline_name/resources", Method: "GET", Name: ListResources},
 	{Path: "/api/v1/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/enable", Method: "PUT", Name: EnableResourceVersion},
