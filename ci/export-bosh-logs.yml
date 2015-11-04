@@ -3,8 +3,11 @@ platform: linux
 image: docker:///concourse/concourse-ci
 
 inputs:
-  - name: concourse
-  - name: bosh-lites
+- name: concourse
+- name: bosh-lites
+
+outputs:
+- name: exported-logs
 
 params:
   BOSH_USER:

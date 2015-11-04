@@ -2,10 +2,12 @@
 
 set -e
 
+NOTES=$PWD/release-notes
+
 version=$(cat final-release/version)
 
-echo v${version} > release-name
+echo v${version} > $NOTES/release-name
 
-cat > notes.md <<EOF
+cat > $NOTES/notes.md <<EOF
 See [v${version} release notes](http://concourse.ci/release-notes.html#v${version})
 EOF

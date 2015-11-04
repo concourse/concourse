@@ -4,10 +4,14 @@ platform: linux
 image: docker:///concourse/concourse-ci
 
 inputs:
-  - name: concourse
-  - name: version
-  - name: deployments
-  - name: candidate-release
+- name: concourse
+- name: version
+- name: deployments
+- name: candidate-release
+
+outputs:
+- name: final-release-repo
+- name: final-release-tarball
 
 run:
   path: concourse/ci/scripts/finalize-release

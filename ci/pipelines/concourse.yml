@@ -163,7 +163,7 @@ jobs:
     file: deployments/lite/ci/provision-bosh-lite.yml
   - put: bosh-lites
     params:
-      add: provision/lock
+      add: bosh-lite-lock
 
 - name: teardown
   serial: true
@@ -226,7 +226,7 @@ jobs:
               BOSH_PASSWORD: admin
         - put: testflight-logs
           params:
-            from: concourse\.(.*).tgz
+            from: exported-logs/concourse\.(.*).tgz
 
 - name: deploy
   serial: true
@@ -296,11 +296,11 @@ jobs:
       params: {file: version/number}
     - put: concourse-master
       params:
-        repository: finalize-release/concourse
+        repository: final-release-repo
         tag: version/number
         tag_prefix: v
     - put: final-release
-      params: {from: finalize-release/concourse-(.*).tgz}
+      params: {from: final-release-tarball/concourse-(.*).tgz}
 
 - name: virtualbox-box
   public: true
@@ -324,7 +324,7 @@ jobs:
     privileged: true
     file: deployments/buildbox/ci/build-boxes.yml
   - put: virtualbox-box
-    params: {from: build-box/concourse-lite/concourse-virtualbox-ubuntu-trusty-(.*).box}
+    params: {from: built-box/(.*).box}
 
 - name: release-virtualbox-box
   public: true
@@ -341,7 +341,7 @@ jobs:
     file: concourse/ci/build-release-notes.yml
   - put: virtualbox-box-cloud
     params:
-      description: build-release-notes/notes.md
+      description: release-notes/notes.md
       release: true
       url: virtualbox-box/url
       version: virtualbox-box/version
@@ -370,7 +370,7 @@ jobs:
         AWS_ACCESS_KEY_ID: {{aws-box-access-key}}
         AWS_SECRET_ACCESS_KEY: {{aws-box-secret-key}}
   - put: aws-box
-    params: {from: build-box/concourse-lite/concourse-aws-ubuntu-trusty-(.*).box}
+    params: {from: built-box/(.*).box}
 
 - name: release-aws-box
   serial: true
@@ -386,7 +386,7 @@ jobs:
     file: concourse/ci/build-release-notes.yml
   - put: aws-box-cloud
     params:
-      description: build-release-notes/notes.md
+      description: release-notes/notes.md
       release: true
       url: aws-box/url
       version: aws-box/version
@@ -401,7 +401,7 @@ jobs:
     - get: concourse
       params: {submodules: none}
       resource: concourse-develop
-  - task: build
+  - task: build-docs
     file: concourse/ci/build-docs.yml
     config:
       params:
@@ -410,7 +410,7 @@ jobs:
   - put: concourse-docs
     params:
       current_app_name: docs
-      manifest: build/concourse/docs/manifest.yml
+      manifest: built-docs/manifest.yml
 
 - name: push-departures
   serial: true
@@ -461,9 +461,9 @@ jobs:
             git -C concourse-master rev-parse HEAD > commitish
   - put: github-release
     params:
-      name: build-release-notes/release-name
-      tag: build-release-notes/release-name
-      body: build-release-notes/notes.md
+      name: release-notes/release-name
+      tag: release-notes/release-name
+      body: release-notes/notes.md
       commitish: generate-commitish/commitish
       globs:
       - final-release/*.tgz
@@ -488,7 +488,7 @@ jobs:
   - task: build
     file: p-concourse/ci/build.yml
   - put: product
-    params: {from: build/p-concourse/p-concourse-(.*).pivotal}
+    params: {from: product/p-concourse-(.*).pivotal}
 
 - name: hangar
   public: true
@@ -506,23 +506,22 @@ jobs:
     file: houdini/ci/build-artifacts.yml
   - put: houdini-artifacts
     params:
-      name: build-artifacts/dist/release-name
-      tag: build-artifacts/dist/release-name
-      globs: [build-artifacts/dist/artifacts/*]
+      name: release/release-name
+      tag: release/release-name
+      globs: [release/artifacts/*]
 
 - name: master-merge
   plan:
-    - aggregate:
-      - get: concourse-master
-        params: {submodules: none}
-        trigger: true
-      - get: concourse-develop
-        params: {submodules: none}
-    - task: merge-to-develop
-      file: concourse-develop/ci/master-merge.yml
-    - put: concourse
-      params:
-        repository: merge-to-develop/concourse-master
+  - aggregate:
+    - get: concourse-master
+      params: {submodules: none}
+      trigger: true
+    - get: concourse-develop
+      params: {submodules: none}
+  - task: merge-to-develop
+    file: concourse-develop/ci/master-merge.yml
+  - put: concourse
+    params: {repository: concourse-merged}
 
 - name: tracksuit
   serial: true
