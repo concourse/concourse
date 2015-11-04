@@ -68,17 +68,10 @@ var _ = Describe("Table", func() {
 
 			buf := gbytes.NewBuffer()
 
-			go func() {
-				defer GinkgoRecover()
-
-				_, err := io.Copy(buf, pty.PTYR)
-				Expect(err).ToNot(HaveOccurred())
-			}()
+			go io.Copy(buf, pty.PTYR)
 
 			err = table.Render(pty.TTYW)
 			Expect(err).ToNot(HaveOccurred())
-
-
 
 			expectedOutput := "" +
 				"\x1b[1mcolumn1\x1b[0m  \x1b[1mcolumn2\x1b[0m\r\n" +
