@@ -286,7 +286,7 @@ func (cmd *ATCCommand) validate() error {
 		)
 	}
 
-	if gitHubAuthTurnedOn && cmd.ExternalURL.String() == "//@" {
+	if gitHubAuthTurnedOn && cmd.ExternalURL.String() == "" {
 		errs = multierror.Append(
 			errs,
 			errors.New("must specify --external-url to use OAuth"),
