@@ -3,6 +3,8 @@ package auth_test
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -103,15 +105,21 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 			Context("when the request's state is valid", func() {
 				BeforeEach(func() {
-					token := jwt.New(auth.SigningMethod)
-					token.Claims["exp"] = time.Now().Add(time.Hour).Unix()
-
-					signedState, err := token.SignedString(signingKey)
+					state, err := json.Marshal(auth.OAuthState{})
 					Expect(err).ToNot(HaveOccurred())
+
+					encodedState := base64.RawURLEncoding.EncodeToString(state)
+
+					request.AddCookie(&http.Cookie{
+						Name:    auth.OAuthStateCookie,
+						Value:   encodedState,
+						Path:    "/",
+						Expires: time.Now().Add(time.Hour),
+					})
 
 					request.URL.RawQuery = url.Values{
 						"code":  {"some-code"},
-						"state": {signedState},
+						"state": {encodedState},
 					}.Encode()
 				})
 
@@ -169,84 +177,148 @@ var _ = Describe("OAuthCallbackHandler", func() {
 							Expect(token.Valid).To(BeTrue())
 						})
 
-						Context("when a redirect URI is in the state", func() {
-							BeforeEach(func() {
-								token := jwt.New(auth.SigningMethod)
-								token.Claims["exp"] = time.Now().Add(time.Hour).Unix()
-								token.Claims["redirect"] = "/"
-
-								signedState, err := token.SignedString(signingKey)
-								Expect(err).ToNot(HaveOccurred())
-
-								request.URL.RawQuery = url.Values{
-									"code":  {"some-code"},
-									"state": {signedState},
-								}.Encode()
-							})
-
-							It("redirects to it", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
-								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("main page\n")))
-							})
+						It("does not redirect", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
-						Context("when a blank redirect URI is in the state", func() {
-							BeforeEach(func() {
-								token := jwt.New(auth.SigningMethod)
-								token.Claims["exp"] = time.Now().Add(time.Hour).Unix()
-								token.Claims["redirect"] = ""
+						It("responds with the token", func() {
+							cookies := response.Cookies()
+							Expect(cookies).To(HaveLen(1))
 
-								signedState, err := token.SignedString(signingKey)
-								Expect(err).ToNot(HaveOccurred())
+							cookie := cookies[0]
+							Expect(cookie.Value).To(MatchRegexp(`^Bearer .*`))
+							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte(cookie.Value + "\n")))
+						})
+					})
 
-								request.URL.RawQuery = url.Values{
-									"code":  {"some-code"},
-									"state": {signedState},
-								}.Encode()
-							})
+					Context("when the token is not verified", func() {
+						BeforeEach(func() {
+							fakeProviderB.VerifyReturns(false, nil)
+						})
 
-							It("does not redirect", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
-							})
+						It("returns Unauthorized", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+						})
 
-							It("responds with the token", func() {
-								cookies := response.Cookies()
-								Expect(cookies).To(HaveLen(1))
+						It("does not set a cookie", func() {
+							Expect(response.Cookies()).To(BeEmpty())
+						})
+					})
 
-								cookie := cookies[0]
-								Expect(cookie.Value).To(MatchRegexp(`^Bearer .*`))
-								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte(cookie.Value + "\n")))
-							})
+					Context("when the token cannot be verified", func() {
+						BeforeEach(func() {
+							fakeProviderB.VerifyReturns(false, errors.New("nope"))
+						})
+
+						It("returns Internal Server Error", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+
+						It("does not set a cookie", func() {
+							Expect(response.Cookies()).To(BeEmpty())
 						})
 					})
 				})
+			})
 
-				Context("when the token is not verified", func() {
-					BeforeEach(func() {
-						fakeProviderB.VerifyReturns(false, nil)
+			Context("when a redirect URI is in the state", func() {
+				BeforeEach(func() {
+					state, err := json.Marshal(auth.OAuthState{
+						Redirect: "/",
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					encodedState := base64.RawURLEncoding.EncodeToString(state)
+
+					request.AddCookie(&http.Cookie{
+						Name:    auth.OAuthStateCookie,
+						Value:   encodedState,
+						Path:    "/",
+						Expires: time.Now().Add(time.Hour),
 					})
 
-					It("returns Unauthorized", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-					})
-
-					It("does not set a cookie", func() {
-						Expect(response.Cookies()).To(BeEmpty())
-					})
+					request.URL.RawQuery = url.Values{
+						"code":  {"some-code"},
+						"state": {encodedState},
+					}.Encode()
 				})
 
-				Context("when the token cannot be verified", func() {
+				Context("when exchanging the token succeeds", func() {
+					var token *oauth2.Token
+					var httpClient *http.Client
+
 					BeforeEach(func() {
-						fakeProviderB.VerifyReturns(false, errors.New("nope"))
+						token = &oauth2.Token{AccessToken: "some-access-token"}
+						httpClient = &http.Client{}
+
+						fakeProviderB.ExchangeReturns(token, nil)
+						fakeProviderB.ClientReturns(httpClient)
 					})
 
-					It("returns Internal Server Error", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					It("generated the OAuth token using the request's code", func() {
+						Expect(fakeProviderB.ExchangeCallCount()).To(Equal(1))
+						_, code := fakeProviderB.ExchangeArgsForCall(0)
+						Expect(code).To(Equal("some-code"))
 					})
 
-					It("does not set a cookie", func() {
-						Expect(response.Cookies()).To(BeEmpty())
+					Context("when the token is verified", func() {
+						BeforeEach(func() {
+							fakeProviderB.VerifyReturns(true, nil)
+						})
+
+						It("redirects to the redirect uri", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("main page\n")))
+						})
 					})
+
+					Context("when the token is not verified", func() {
+						BeforeEach(func() {
+							fakeProviderB.VerifyReturns(false, nil)
+						})
+
+						It("returns Unauthorized", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+						})
+
+						It("does not set a cookie", func() {
+							Expect(response.Cookies()).To(BeEmpty())
+						})
+					})
+
+					Context("when the token cannot be verified", func() {
+						BeforeEach(func() {
+							fakeProviderB.VerifyReturns(false, errors.New("nope"))
+						})
+
+						It("returns Internal Server Error", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+
+						It("does not set a cookie", func() {
+							Expect(response.Cookies()).To(BeEmpty())
+						})
+					})
+				})
+			})
+
+			Context("when the request has no state", func() {
+				BeforeEach(func() {
+					request.URL.RawQuery = url.Values{
+						"code": {"some-code"},
+					}.Encode()
+				})
+
+				It("returns Unauthorized", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+
+				It("does not set a cookie", func() {
+					Expect(response.Cookies()).To(BeEmpty())
+				})
+
+				It("does not set exchange the token", func() {
+					Expect(fakeProviderB.ExchangeCallCount()).To(Equal(0))
 				})
 			})
 
@@ -271,17 +343,16 @@ var _ = Describe("OAuthCallbackHandler", func() {
 				})
 			})
 
-			Context("when the request's state has expired", func() {
+			Context("when the request's state is not set as a cookie", func() {
 				BeforeEach(func() {
-					token := jwt.New(auth.SigningMethod)
-					token.Claims["exp"] = time.Now().Add(-time.Hour).Unix()
-
-					signedState, err := token.SignedString(signingKey)
+					state, err := json.Marshal(auth.OAuthState{})
 					Expect(err).ToNot(HaveOccurred())
+
+					encodedState := base64.RawURLEncoding.EncodeToString(state)
 
 					request.URL.RawQuery = url.Values{
 						"code":  {"some-code"},
-						"state": {signedState},
+						"state": {encodedState},
 					}.Encode()
 				})
 

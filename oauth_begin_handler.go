@@ -2,12 +2,19 @@ package auth
 
 import (
 	"crypto/rsa"
+	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/pivotal-golang/lager"
 )
+
+const OAuthStateCookie = "_concourse_oauth_state"
+
+type OAuthState struct {
+	Redirect string `json:"redirect"`
+}
 
 type OAuthBeginHandler struct {
 	logger     lager.Logger
@@ -40,18 +47,25 @@ func (handler *OAuthBeginHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	token := jwt.New(SigningMethod)
-	token.Claims["exp"] = time.Now().Add(time.Hour).Unix()
-	token.Claims["redirect"] = r.FormValue("redirect")
-
-	signedState, err := token.SignedString(handler.privateKey)
+	oauthState, err := json.Marshal(OAuthState{
+		Redirect: r.FormValue("redirect"),
+	})
 	if err != nil {
-		handler.logger.Error("failed-to-sign-state-string", err)
+		handler.logger.Error("failed-to-marshal-state", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	authCodeURL := provider.AuthCodeURL(signedState)
+	encodedState := base64.RawURLEncoding.EncodeToString(oauthState)
+
+	authCodeURL := provider.AuthCodeURL(encodedState)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:    OAuthStateCookie,
+		Value:   encodedState,
+		Path:    "/",
+		Expires: time.Now().Add(CookieAge),
+	})
 
 	http.Redirect(w, r, authCodeURL, http.StatusTemporaryRedirect)
 }

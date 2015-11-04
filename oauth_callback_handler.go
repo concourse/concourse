@@ -2,11 +2,12 @@ package auth
 
 import (
 	"crypto/rsa"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/pivotal-golang/lager"
 
 	"golang.org/x/oauth2"
@@ -41,12 +42,43 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	stateToken, err := jwt.Parse(r.FormValue("state"), keyFunc(handler.privateKey))
+	paramState := r.FormValue("state")
+
+	cookieState, err := r.Cookie(OAuthStateCookie)
 	if err != nil {
-		hLog.Info("failed-to-verify-state", lager.Data{
+		hLog.Info("no-state-cookie", lager.Data{
 			"error": err.Error(),
 		})
-		http.Error(w, "cannot verify state", http.StatusUnauthorized)
+		http.Error(w, "state cookie not set", http.StatusUnauthorized)
+		return
+	}
+
+	if cookieState.Value != paramState {
+		hLog.Info("state-cookie-mismatch", lager.Data{
+			"param-state":  paramState,
+			"cookie-state": cookieState.Value,
+		})
+
+		http.Error(w, "state cookie does not match param", http.StatusUnauthorized)
+		return
+	}
+
+	stateJSON, err := base64.RawURLEncoding.DecodeString(r.FormValue("state"))
+	if err != nil {
+		hLog.Info("failed-to-decode-state", lager.Data{
+			"error": err.Error(),
+		})
+		http.Error(w, "state value invalid base64", http.StatusUnauthorized)
+		return
+	}
+
+	var oauthState OAuthState
+	err = json.Unmarshal(stateJSON, &oauthState)
+	if err != nil {
+		hLog.Info("failed-to-unmarshal-state", lager.Data{
+			"error": err.Error(),
+		})
+		http.Error(w, "state value invalid JSON", http.StatusUnauthorized)
 		return
 	}
 
@@ -90,9 +122,8 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		Expires: exp,
 	})
 
-	redirectPath, ok := stateToken.Claims["redirect"].(string)
-	if ok && redirectPath != "" {
-		http.Redirect(w, r, redirectPath, http.StatusTemporaryRedirect)
+	if oauthState.Redirect != "" {
+		http.Redirect(w, r, oauthState.Redirect, http.StatusTemporaryRedirect)
 		return
 	}
 

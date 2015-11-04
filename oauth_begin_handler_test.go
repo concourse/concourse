@@ -3,14 +3,14 @@ package auth_test
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"fmt"
+	"encoding/base64"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
-	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -26,6 +26,8 @@ var _ = Describe("OAuthBeginHandler", func() {
 		fakeProviderB *fakes.FakeProvider
 
 		signingKey *rsa.PrivateKey
+
+		cookieJar *cookiejar.Jar
 
 		server *httptest.Server
 		client *http.Client
@@ -51,8 +53,12 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		server = httptest.NewServer(handler)
 
+		cookieJar, err = cookiejar.New(nil)
+		Expect(err).ToNot(HaveOccurred())
+
 		client = &http.Client{
 			Transport: &http.Transport{},
+			Jar:       cookieJar,
 		}
 	})
 
@@ -93,23 +99,33 @@ var _ = Describe("OAuthBeginHandler", func() {
 				Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("sup")))
 			})
 
-			It("generates the auth code with a JWT as the state", func() {
+			It("generates the auth code with a base64-encoded redirect URI as the state", func() {
 				Expect(fakeProviderB.AuthCodeURLCallCount()).To(Equal(1))
 
 				state, _ := fakeProviderB.AuthCodeURLArgsForCall(0)
 
-				token, err := jwt.Parse(state, func(token *jwt.Token) (interface{}, error) {
-					if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-						return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-					}
-
-					return signingKey.Public(), nil
-				})
+				decoded, err := base64.RawURLEncoding.DecodeString(state)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(token.Claims["exp"]).To(BeNumerically("~", time.Now().Add(time.Hour).Unix(), 5))
-				Expect(token.Claims["redirect"]).To(Equal("/some-path"))
-				Expect(token.Valid).To(BeTrue())
+				var oauthState auth.OAuthState
+				err = json.Unmarshal(decoded, &oauthState)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(oauthState.Redirect).To(Equal("/some-path"))
+			})
+
+			It("sets the base64-encoded redirect URI as the OAuth state cookie", func() {
+				Expect(fakeProviderB.AuthCodeURLCallCount()).To(Equal(1))
+
+				state, _ := fakeProviderB.AuthCodeURLArgsForCall(0)
+
+				serverURL, err := url.Parse(server.URL)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(cookieJar.Cookies(serverURL)).To(ContainElement(&http.Cookie{
+					Name:  auth.OAuthStateCookie,
+					Value: state,
+				}))
 			})
 		})
 
