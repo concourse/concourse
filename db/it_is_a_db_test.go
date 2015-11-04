@@ -294,6 +294,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Eventually(database.Workers, 2*ttl).Should(BeEmpty())
 
 			By("updating attributes by name with ttls")
+			ttl = 1 * time.Hour
 			err = database.SaveWorker(infoA, ttl)
 			Expect(err).NotTo(HaveOccurred())
 
