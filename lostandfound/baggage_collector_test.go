@@ -134,10 +134,10 @@ var _ = Describe("Baggage Collector", func() {
 
 					fakeBaggageCollectorDB.GetVolumesReturns(savedVolumes, nil)
 
-					fakeBaggageClaimClient.LookupVolumeStub = func(_ lager.Logger, handle string) (baggageclaim.Volume, error) {
+					fakeBaggageClaimClient.LookupVolumeStub = func(_ lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
 						vol, ok := fakeVolumes[handle]
 						Expect(ok).To(BeTrue())
-						return vol, nil
+						return vol, true, nil
 					}
 
 					err = baggageCollector.Collect()

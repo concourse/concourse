@@ -634,7 +634,7 @@ var _ = Describe("GardenFactory", func() {
 
 												Context("when the output volume can be found on the worker", func() {
 													BeforeEach(func() {
-														fakeBaggageclaimClient.LookupVolumeReturns(fakeVolume1, nil)
+														fakeBaggageclaimClient.LookupVolumeReturns(fakeVolume1, true, nil)
 													})
 
 													It("stores an artifact source in the repo that can be used to mount the volume", func() {
@@ -651,7 +651,7 @@ var _ = Describe("GardenFactory", func() {
 
 												Context("when the output volume cannot be found on the worker", func() {
 													BeforeEach(func() {
-														fakeBaggageclaimClient.LookupVolumeReturns(nil, errors.New("Does not compute"))
+														fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
 													})
 
 													It("stores an artifact source in the repo that can be used to mount the volume", func() {

@@ -111,33 +111,13 @@ func (container *gardenWorkerContainer) initializeVolumes(
 	}
 
 	volumesByHandle := map[string]Volume{}
-
 	handlesJSON, found := properties[volumePropertyName]
+	var err error
 	if found {
-		var handles []string
-		err := json.Unmarshal([]byte(handlesJSON), &handles)
+		volumesByHandle, err = container.setVolumes(logger, handlesJSON, baggageclaimClient, volumeFactory)
 		if err != nil {
 			return err
 		}
-
-		volumes := []Volume{}
-		for _, h := range handles {
-			baggageClaimVolume, err := baggageclaimClient.LookupVolume(logger, h)
-			if err != nil {
-				return err
-			}
-
-			volume, err := volumeFactory.Build(baggageClaimVolume)
-			if err != nil {
-				return err
-			}
-
-			volumes = append(volumes, volume)
-
-			volumesByHandle[h] = volume
-		}
-
-		container.volumes = volumes
 	}
 
 	mountsJSON, found := properties[volumeMountsPropertyName]
@@ -160,6 +140,44 @@ func (container *gardenWorkerContainer) initializeVolumes(
 	}
 
 	return nil
+}
+
+func (container *gardenWorkerContainer) setVolumes(
+	logger lager.Logger,
+	handlesJSON string,
+	baggageclaimClient baggageclaim.Client,
+	volumeFactory VolumeFactory,
+) (map[string]Volume, error) {
+	volumesByHandle := map[string]Volume{}
+
+	var handles []string
+	err := json.Unmarshal([]byte(handlesJSON), &handles)
+	if err != nil {
+		return volumesByHandle, err
+	}
+
+	volumes := []Volume{}
+	for _, h := range handles {
+		baggageClaimVolume, volumeFound, err := baggageclaimClient.LookupVolume(logger, h)
+		if err != nil {
+			return volumesByHandle, err
+		}
+		if !volumeFound {
+			continue
+		}
+
+		volume, err := volumeFactory.Build(baggageClaimVolume)
+		if err != nil {
+			return volumesByHandle, err
+		}
+
+		volumes = append(volumes, volume)
+
+		volumesByHandle[h] = volume
+	}
+
+	container.volumes = volumes
+	return volumesByHandle, nil
 }
 
 func (container *gardenWorkerContainer) heartbeatContinuously(logger lager.Logger, pacemaker clock.Ticker) {

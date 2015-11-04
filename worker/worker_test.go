@@ -939,11 +939,11 @@ var _ = Describe("Worker", func() {
 							"concourse:volume-mounts": `{"handle-1":"/handle-1/path","handle-2":"/handle-2/path"}`,
 						}, nil)
 
-						fakeBaggageclaimClient.LookupVolumeStub = func(logger lager.Logger, handle string) (baggageclaim.Volume, error) {
+						fakeBaggageclaimClient.LookupVolumeStub = func(logger lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
 							if handle == "handle-1" {
-								return handle1Volume, nil
+								return handle1Volume, true, nil
 							} else if handle == "handle-2" {
-								return handle2Volume, nil
+								return handle2Volume, true, nil
 							} else {
 								panic("unknown handle: " + handle)
 							}
@@ -972,7 +972,7 @@ var _ = Describe("Worker", func() {
 							disaster := errors.New("nope")
 
 							BeforeEach(func() {
-								fakeBaggageclaimClient.LookupVolumeReturns(nil, disaster)
+								fakeBaggageclaimClient.LookupVolumeReturns(nil, false, disaster)
 							})
 
 							It("returns the error on lookup", func() {
@@ -1027,7 +1027,7 @@ var _ = Describe("Worker", func() {
 							disaster := errors.New("nope")
 
 							BeforeEach(func() {
-								fakeBaggageclaimClient.LookupVolumeReturns(nil, disaster)
+								fakeBaggageclaimClient.LookupVolumeReturns(nil, false, disaster)
 							})
 
 							It("returns the error on lookup", func() {

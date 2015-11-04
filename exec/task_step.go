@@ -619,11 +619,11 @@ func (src *containerSource) StreamFile(filename string) (io.ReadCloser, error) {
 
 func (src *containerSource) VolumeOn(w worker.Worker) (baggageclaim.Volume, bool, error) {
 	if baggageclaimClient, found := w.VolumeManager(); len(src.volumeHandle) > 0 && found {
-		volume, err := baggageclaimClient.LookupVolume(src.logger, src.volumeHandle)
+		volume, found, err := baggageclaimClient.LookupVolume(src.logger, src.volumeHandle)
 		if err != nil {
-			return nil, false, nil
+			return nil, false, err
 		}
-		return volume, true, nil
+		return volume, found, nil
 	}
 	return nil, false, nil
 }
