@@ -3,8 +3,6 @@ package worker
 import (
 	"fmt"
 	"strings"
-
-	"github.com/concourse/baggageclaim"
 )
 
 type ContainerSpec interface {
@@ -36,7 +34,7 @@ func (spec WorkerSpec) Description() string {
 }
 
 type VolumeMount struct {
-	Volume    baggageclaim.Volume
+	Volume    Volume
 	MountPath string
 }
 

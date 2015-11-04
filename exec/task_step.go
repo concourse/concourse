@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
@@ -121,6 +122,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		step.logger.Session("found-container"),
 		step.containerID,
 	)
+
 	if err == nil && found {
 		exitStatusProp, err := step.container.Property(taskExitStatusPropertyName)
 		if err == nil {
@@ -167,6 +169,30 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
+		outputMounts := []worker.VolumeMount{}
+		for _, output := range config.Outputs {
+			path := artifactsPath(output, step.artifactsRoot)
+
+			baggageclaimClient, found := chosenWorker.VolumeManager()
+			if !found {
+				break
+			}
+
+			volume, volErr := baggageclaimClient.CreateVolume(step.logger, baggageclaim.VolumeSpec{
+				Properties: baggageclaim.VolumeProperties{},
+				TTL:        1500000 * time.Hour,
+				Privileged: bool(step.privileged),
+			})
+			if volErr != nil {
+				return volErr
+			}
+
+			outputMounts = append(outputMounts, worker.VolumeMount{
+				Volume:    volume,
+				MountPath: path,
+			})
+		}
+
 		step.container, err = chosenWorker.CreateContainer(
 			step.logger.Session("created-container"),
 			step.containerID,
@@ -176,6 +202,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 				Image:      config.Image,
 				Privileged: bool(step.privileged),
 				Inputs:     inputMounts,
+				Outputs:    outputMounts,
 			},
 		)
 		if err != nil {
@@ -183,6 +210,12 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		}
 
 		for _, mount := range inputMounts {
+			// stop heartbeating ourselves now that container has picked up the
+			// volumes
+			mount.Volume.Release(0)
+		}
+
+		for _, mount := range outputMounts {
 			// stop heartbeating ourselves now that container has picked up the
 			// volumes
 			mount.Volume.Release(0)
@@ -246,9 +279,24 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		if len(config.Outputs) == 0 {
 			step.repo.RegisterSource(step.sourceName, step)
 		} else {
+			volumeMounts := step.container.VolumeMounts()
+
 			for _, output := range config.Outputs {
-				source := newContainerSource(step.artifactsRoot, step.container, output)
-				step.repo.RegisterSource(SourceName(output.Name), source)
+				if len(volumeMounts) > 0 {
+					for _, mount := range volumeMounts {
+						if mount.MountPath == artifactsPath(output, step.artifactsRoot) {
+							source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, mount.Volume.Handle())
+							step.repo.RegisterSource(SourceName(output.Name), source)
+						}
+					}
+				} else {
+					source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
+					step.repo.RegisterSource(SourceName(output.Name), source)
+				}
+			}
+
+			for _, mount := range volumeMounts {
+				mount.Volume.Release(0)
 			}
 		}
 
@@ -449,7 +497,7 @@ func (step *TaskStep) streamInputs(inputPairs []inputPair) error {
 
 func (step *TaskStep) setupOutputs(outputs []atc.TaskOutputConfig) error {
 	for _, output := range outputs {
-		source := newContainerSource(step.artifactsRoot, step.container, output)
+		source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
 
 		err := source.initialize()
 		if err != nil {
@@ -520,19 +568,29 @@ type containerSource struct {
 	container     garden.Container
 	outputConfig  atc.TaskOutputConfig
 	artifactsRoot string
+	volumeHandle  string
+	logger        lager.Logger
 }
 
-func newContainerSource(artifactsRoot string, container garden.Container, outputConfig atc.TaskOutputConfig) *containerSource {
+func newContainerSource(
+	artifactsRoot string,
+	container garden.Container,
+	outputConfig atc.TaskOutputConfig,
+	logger lager.Logger,
+	volumeHandle string,
+) *containerSource {
 	return &containerSource{
 		container:     container,
 		outputConfig:  outputConfig,
 		artifactsRoot: artifactsRoot,
+		volumeHandle:  volumeHandle,
+		logger:        logger,
 	}
 }
 
 func (src *containerSource) StreamTo(destination ArtifactDestination) error {
 	out, err := src.container.StreamOut(garden.StreamOutSpec{
-		Path: src.artifactsPath() + "/",
+		Path: artifactsPath(src.outputConfig, src.artifactsRoot),
 	})
 	if err != nil {
 		return err
@@ -543,7 +601,7 @@ func (src *containerSource) StreamTo(destination ArtifactDestination) error {
 
 func (src *containerSource) StreamFile(filename string) (io.ReadCloser, error) {
 	out, err := src.container.StreamOut(garden.StreamOutSpec{
-		Path: path.Join(src.artifactsPath(), filename),
+		Path: path.Join(artifactsPath(src.outputConfig, src.artifactsRoot), filename),
 	})
 
 	if err != nil {
@@ -563,21 +621,28 @@ func (src *containerSource) StreamFile(filename string) (io.ReadCloser, error) {
 	}, nil
 }
 
-func (src *containerSource) VolumeOn(worker.Worker) (baggageclaim.Volume, bool, error) {
+func (src *containerSource) VolumeOn(w worker.Worker) (baggageclaim.Volume, bool, error) {
+	if baggageclaimClient, found := w.VolumeManager(); len(src.volumeHandle) > 0 && found {
+		volume, err := baggageclaimClient.LookupVolume(src.logger, src.volumeHandle)
+		if err != nil {
+			return nil, false, nil
+		}
+		return volume, true, nil
+	}
 	return nil, false, nil
 }
 
-func (src *containerSource) artifactsPath() string {
-	outputSrc := src.outputConfig.Path
+func artifactsPath(outputConfig atc.TaskOutputConfig, artifactsRoot string) string {
+	outputSrc := outputConfig.Path
 	if len(outputSrc) == 0 {
-		outputSrc = src.outputConfig.Name
+		outputSrc = outputConfig.Name
 	}
 
-	return path.Join(src.artifactsRoot, outputSrc)
+	return path.Join(artifactsRoot, outputSrc) + "/"
 }
 
 func (src *containerSource) initialize() error {
-	return createContainerDir(src.container, src.artifactsPath())
+	return createContainerDir(src.container, artifactsPath(src.outputConfig, src.artifactsRoot))
 }
 
 func createContainerDir(container garden.Container, dir string) error {

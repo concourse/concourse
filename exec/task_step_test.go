@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 )
@@ -460,37 +461,41 @@ var _ = Describe("GardenFactory", func() {
 										{Name: "some-trailing-slash-output", Path: "some-output-configured-path-with-trailing-slash/"},
 									},
 								}, nil)
+
+								fakeBaggageclaimClient.CreateVolumeReturns(new(bfakes.FakeVolume), nil)
 							})
 
-							It("ensures the output directories exist by streaming in an empty payload", func() {
-								Expect(fakeContainer.StreamInCallCount()).To(Equal(4))
+							Context("when volume manager does not exist", func() {
+								It("ensures the output directories exist by streaming in an empty payload", func() {
+									Expect(fakeContainer.StreamInCallCount()).To(Equal(4))
 
-								spec := fakeContainer.StreamInArgsForCall(1)
-								Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path"))
-								Expect(spec.User).To(Equal("")) // use default
+									spec := fakeContainer.StreamInArgsForCall(1)
+									Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path/"))
+									Expect(spec.User).To(Equal("")) // use default
 
-								tarReader := tar.NewReader(spec.TarStream)
+									tarReader := tar.NewReader(spec.TarStream)
 
-								_, err := tarReader.Next()
-								Expect(err).To(Equal(io.EOF))
+									_, err := tarReader.Next()
+									Expect(err).To(Equal(io.EOF))
 
-								spec = fakeContainer.StreamInArgsForCall(2)
-								Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-other-output"))
-								Expect(spec.User).To(Equal("")) // use default
+									spec = fakeContainer.StreamInArgsForCall(2)
+									Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-other-output/"))
+									Expect(spec.User).To(Equal("")) // use default
 
-								tarReader = tar.NewReader(spec.TarStream)
+									tarReader = tar.NewReader(spec.TarStream)
 
-								_, err = tarReader.Next()
-								Expect(err).To(Equal(io.EOF))
+									_, err = tarReader.Next()
+									Expect(err).To(Equal(io.EOF))
 
-								spec = fakeContainer.StreamInArgsForCall(3)
-								Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path-with-trailing-slash"))
-								Expect(spec.User).To(Equal("")) // use default
+									spec = fakeContainer.StreamInArgsForCall(3)
+									Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path-with-trailing-slash/"))
+									Expect(spec.User).To(Equal("")) // use default
 
-								tarReader = tar.NewReader(spec.TarStream)
+									tarReader = tar.NewReader(spec.TarStream)
 
-								_, err = tarReader.Next()
-								Expect(err).To(Equal(io.EOF))
+									_, err = tarReader.Next()
+									Expect(err).To(Equal(io.EOF))
+								})
 							})
 
 							Context("when the process exits 0", func() {
@@ -499,9 +504,15 @@ var _ = Describe("GardenFactory", func() {
 								})
 
 								Describe("the registered sources", func() {
-									var artifactSource1 ArtifactSource
-									var artifactSource2 ArtifactSource
-									var artifactSource3 ArtifactSource
+									var (
+										artifactSource1 ArtifactSource
+										artifactSource2 ArtifactSource
+										artifactSource3 ArtifactSource
+
+										fakeMountPath1 string = "/tmp/build/a-random-guid/some-output-configured-path/"
+										fakeMountPath2 string = "/tmp/build/a-random-guid/some-other-output/"
+										fakeMountPath3 string = "/tmp/build/a-random-guid/some-output-configured-path-with-trailing-slash/"
+									)
 
 									JustBeforeEach(func() {
 										Eventually(process.Wait()).Should(Receive(BeNil()))
@@ -537,72 +548,204 @@ var _ = Describe("GardenFactory", func() {
 												fakeContainer.StreamOutReturns(streamedOut, nil)
 											})
 
-											It("streams the configured path to the destination with a trailing slash", func() {
-												err := artifactSource1.StreamTo(fakeDestination)
-												Expect(err).NotTo(HaveOccurred())
+											Context("when volumes are configured", func() {
+												var (
+													fakeNewlyCreatedVolume1 *bfakes.FakeVolume
+													fakeNewlyCreatedVolume2 *bfakes.FakeVolume
+													fakeNewlyCreatedVolume3 *bfakes.FakeVolume
 
-												Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
-												spec := fakeContainer.StreamOutArgsForCall(0)
-												Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path/"))
-												Expect(spec.User).To(Equal("")) // use default
-
-												Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
-												dest, src := fakeDestination.StreamInArgsForCall(0)
-												Expect(dest).To(Equal("."))
-												Expect(src).To(Equal(streamedOut))
-											})
-
-											It("does not add a redundant trailing slash", func() {
-												err := artifactSource3.StreamTo(fakeDestination)
-												Expect(err).NotTo(HaveOccurred())
-
-												Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
-												spec := fakeContainer.StreamOutArgsForCall(0)
-												Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path-with-trailing-slash/"))
-												Expect(spec.User).To(Equal("")) // use default
-
-												Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
-												dest, src := fakeDestination.StreamInArgsForCall(0)
-												Expect(dest).To(Equal("."))
-												Expect(src).To(Equal(streamedOut))
-											})
-
-											It("defaults the path to the output's name", func() {
-												err := artifactSource2.StreamTo(fakeDestination)
-												Expect(err).NotTo(HaveOccurred())
-
-												Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
-												spec := fakeContainer.StreamOutArgsForCall(0)
-												Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-other-output/"))
-												Expect(spec.User).To(Equal("")) // use default
-
-												Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
-												dest, src := fakeDestination.StreamInArgsForCall(0)
-												Expect(dest).To(Equal("."))
-												Expect(src).To(Equal(streamedOut))
-											})
-
-											Context("when streaming out of the versioned source fails", func() {
-												disaster := errors.New("nope")
+													fakeVolume1 *bfakes.FakeVolume
+													fakeVolume2 *bfakes.FakeVolume
+													fakeVolume3 *bfakes.FakeVolume
+												)
 
 												BeforeEach(func() {
-													fakeContainer.StreamOutReturns(nil, disaster)
+													fakeNewlyCreatedVolume1 = new(bfakes.FakeVolume)
+													fakeNewlyCreatedVolume1.HandleReturns("some-handle-1")
+													fakeNewlyCreatedVolume2 = new(bfakes.FakeVolume)
+													fakeNewlyCreatedVolume2.HandleReturns("some-handle-2")
+													fakeNewlyCreatedVolume3 = new(bfakes.FakeVolume)
+													fakeNewlyCreatedVolume3.HandleReturns("some-handle-3")
+													volumeChannel := make(chan worker.Volume, 3)
+													volumeChannel <- fakeNewlyCreatedVolume1
+													volumeChannel <- fakeNewlyCreatedVolume2
+													volumeChannel <- fakeNewlyCreatedVolume3
+													close(volumeChannel)
+
+													fakeBaggageclaimClient.CreateVolumeStub = func(lager.Logger, baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+														return <-volumeChannel, nil
+													}
+
+													fakeVolume1 = new(bfakes.FakeVolume)
+													fakeVolume1.HandleReturns("some-handle-1")
+													fakeVolume2 = new(bfakes.FakeVolume)
+													fakeVolume2.HandleReturns("some-handle-2")
+													fakeVolume3 = new(bfakes.FakeVolume)
+													fakeVolume3.HandleReturns("some-handle-3")
+
+													fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
+														worker.VolumeMount{
+															Volume:    fakeVolume1,
+															MountPath: fakeMountPath1,
+														},
+														worker.VolumeMount{
+															Volume:    fakeVolume2,
+															MountPath: fakeMountPath2,
+														},
+														worker.VolumeMount{
+															Volume:    fakeVolume3,
+															MountPath: fakeMountPath3,
+														},
+													})
 												})
 
-												It("returns the error", func() {
-													Expect(artifactSource1.StreamTo(fakeDestination)).To(Equal(disaster))
+												It("creates volumes for each output", func() {
+													Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(3))
+													for i := 0; i < 3; i++ {
+														_, volSpec := fakeBaggageclaimClient.CreateVolumeArgsForCall(i)
+														Expect(volSpec.Properties).To(Equal(baggageclaim.VolumeProperties{}))
+														Expect(volSpec.TTL).ToNot(BeZero())
+														Expect(volSpec.Privileged).To(Equal(bool(privileged)))
+													}
 												})
+
+												It("passes the created output volumes to the worker", func() {
+													_, _, spec := fakeWorker.CreateContainerArgsForCall(0)
+													taskSpec, ok := spec.(worker.TaskContainerSpec)
+													Expect(ok).To(BeTrue())
+													var actualVolumes []baggageclaim.Volume
+													var actualPaths []string
+													for _, v := range taskSpec.Outputs {
+														actualVolume, ok := v.Volume.(baggageclaim.Volume)
+														Expect(ok).To(BeTrue())
+														actualVolumes = append(actualVolumes, actualVolume)
+														actualPaths = append(actualPaths, v.MountPath)
+													}
+
+													Expect(actualVolumes).To(ConsistOf(fakeNewlyCreatedVolume1, fakeNewlyCreatedVolume2, fakeNewlyCreatedVolume3))
+													Expect(actualPaths).To(ConsistOf(fakeMountPath1, fakeMountPath2, fakeMountPath3))
+												})
+
+												It("releases the volumes given to the worker", func() {
+													Expect(fakeNewlyCreatedVolume1.ReleaseCallCount()).To(Equal(1))
+													Expect(fakeNewlyCreatedVolume2.ReleaseCallCount()).To(Equal(1))
+													Expect(fakeNewlyCreatedVolume3.ReleaseCallCount()).To(Equal(1))
+												})
+
+												Context("when the output volume can be found on the worker", func() {
+													BeforeEach(func() {
+														fakeBaggageclaimClient.LookupVolumeReturns(fakeVolume1, nil)
+													})
+
+													It("stores an artifact source in the repo that can be used to mount the volume", func() {
+														actualVolume1, found, err := artifactSource1.VolumeOn(fakeWorker)
+														Expect(err).ToNot(HaveOccurred())
+														Expect(found).To(BeTrue())
+														Expect(actualVolume1).To(Equal(fakeVolume1))
+
+														Expect(fakeBaggageclaimClient.LookupVolumeCallCount()).To(Equal(1))
+														_, handle := fakeBaggageclaimClient.LookupVolumeArgsForCall(0)
+														Expect(handle).To(Equal("some-handle-1"))
+													})
+												})
+
+												Context("when the output volume cannot be found on the worker", func() {
+													BeforeEach(func() {
+														fakeBaggageclaimClient.LookupVolumeReturns(nil, errors.New("Does not compute"))
+													})
+
+													It("stores an artifact source in the repo that can be used to mount the volume", func() {
+														_, found, err := artifactSource1.VolumeOn(fakeWorker)
+														Expect(err).ToNot(HaveOccurred())
+														Expect(found).To(BeFalse())
+													})
+												})
+
+												It("streams the data from the volumes to the destination", func() {
+													err := artifactSource1.StreamTo(fakeDestination)
+													Expect(err).NotTo(HaveOccurred())
+
+													Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
+													spec := fakeContainer.StreamOutArgsForCall(0)
+													Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path/"))
+													Expect(spec.User).To(Equal("")) // use default
+
+													Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
+													dest, src := fakeDestination.StreamInArgsForCall(0)
+													Expect(dest).To(Equal("."))
+													Expect(src).To(Equal(streamedOut))
+												})
+
 											})
 
-											Context("when streaming in to the destination fails", func() {
-												disaster := errors.New("nope")
+											Context("when volumes are not configured", func() {
+												It("streams the configured path to the destination with a trailing slash", func() {
+													err := artifactSource1.StreamTo(fakeDestination)
+													Expect(err).NotTo(HaveOccurred())
 
-												BeforeEach(func() {
-													fakeDestination.StreamInReturns(disaster)
+													Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
+													spec := fakeContainer.StreamOutArgsForCall(0)
+													Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path/"))
+													Expect(spec.User).To(Equal("")) // use default
+
+													Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
+													dest, src := fakeDestination.StreamInArgsForCall(0)
+													Expect(dest).To(Equal("."))
+													Expect(src).To(Equal(streamedOut))
 												})
 
-												It("returns the error", func() {
-													Expect(artifactSource1.StreamTo(fakeDestination)).To(Equal(disaster))
+												It("does not add a redundant trailing slash", func() {
+													err := artifactSource3.StreamTo(fakeDestination)
+													Expect(err).NotTo(HaveOccurred())
+
+													Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
+													spec := fakeContainer.StreamOutArgsForCall(0)
+													Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path-with-trailing-slash/"))
+													Expect(spec.User).To(Equal("")) // use default
+
+													Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
+													dest, src := fakeDestination.StreamInArgsForCall(0)
+													Expect(dest).To(Equal("."))
+													Expect(src).To(Equal(streamedOut))
+												})
+
+												It("defaults the path to the output's name", func() {
+													err := artifactSource2.StreamTo(fakeDestination)
+													Expect(err).NotTo(HaveOccurred())
+
+													Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
+													spec := fakeContainer.StreamOutArgsForCall(0)
+													Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-other-output/"))
+													Expect(spec.User).To(Equal("")) // use default
+
+													Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
+													dest, src := fakeDestination.StreamInArgsForCall(0)
+													Expect(dest).To(Equal("."))
+													Expect(src).To(Equal(streamedOut))
+												})
+
+												Context("when streaming out of the versioned source fails", func() {
+													disaster := errors.New("nope")
+
+													BeforeEach(func() {
+														fakeContainer.StreamOutReturns(nil, disaster)
+													})
+
+													It("returns the error", func() {
+														Expect(artifactSource1.StreamTo(fakeDestination)).To(Equal(disaster))
+													})
+												})
+
+												Context("when streaming in to the destination fails", func() {
+													disaster := errors.New("nope")
+
+													BeforeEach(func() {
+														fakeDestination.StreamInReturns(disaster)
+													})
+
+													It("returns the error", func() {
+														Expect(artifactSource1.StreamTo(fakeDestination)).To(Equal(disaster))
+													})
 												})
 											})
 										})

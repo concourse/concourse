@@ -23,7 +23,7 @@ var ErrMismatchedTags = errors.New("mismatched tags")
 
 const containerKeepalive = 30 * time.Second
 const containerTTL = 5 * time.Minute
-const inputVolumeTTL = containerTTL
+const volumeTTL = containerTTL
 
 const ephemeralPropertyName = "concourse:ephemeral"
 const volumePropertyName = "concourse:volumes"
@@ -98,9 +98,9 @@ func NewGardenWorker(
 func (worker *gardenWorker) VolumeManager() (baggageclaim.Client, bool) {
 	if worker.baggageclaimClient != nil {
 		return worker.baggageclaimClient, true
-	} else {
-		return nil, false
 	}
+
+	return nil, false
 }
 
 func (worker *gardenWorker) CreateContainer(logger lager.Logger, id Identifier, spec ContainerSpec) (Container, error) {
@@ -144,7 +144,7 @@ dance:
 					Parent: mount.Volume,
 				},
 				Privileged: gardenSpec.Privileged,
-				TTL:        inputVolumeTTL,
+				TTL:        volumeTTL,
 			})
 			if err != nil {
 				return nil, err
@@ -195,13 +195,13 @@ dance:
 			})
 		}
 
-		for _, input := range s.Inputs {
+		for _, mount := range s.Inputs {
 			cow, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
 				Strategy: baggageclaim.COWStrategy{
-					Parent: input.Volume,
+					Parent: mount.Volume,
 				},
 				Privileged: s.Privileged,
-				TTL:        inputVolumeTTL,
+				TTL:        volumeTTL,
 			})
 			if err != nil {
 				return nil, err
@@ -212,12 +212,24 @@ dance:
 
 			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
 				SrcPath: cow.Path(),
-				DstPath: input.MountPath,
+				DstPath: mount.MountPath,
 				Mode:    garden.BindMountModeRW,
 			})
 
 			volumeHandles = append(volumeHandles, cow.Handle())
-			volumeMounts[cow.Handle()] = input.MountPath
+			volumeMounts[cow.Handle()] = mount.MountPath
+		}
+
+		for _, mount := range s.Outputs {
+			volume := mount.Volume
+			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
+				SrcPath: volume.Path(),
+				DstPath: mount.MountPath,
+				Mode:    garden.BindMountModeRW,
+			})
+
+			volumeHandles = append(volumeHandles, volume.Handle())
+			volumeMounts[volume.Handle()] = mount.MountPath
 		}
 
 	default:
@@ -404,15 +416,14 @@ insert_coin:
 	return true
 }
 
-func (worker *gardenWorker) createGardenWorkaroundVolumes(
-	logger lager.Logger,
-	spec TaskContainerSpec,
-) ([]VolumeMount, error) {
+func (worker *gardenWorker) createGardenWorkaroundVolumes(logger lager.Logger, spec TaskContainerSpec) ([]VolumeMount, error) {
 	existingMounts := map[string]bool{}
 
 	volumeMounts := []VolumeMount{}
 
-	for _, m := range spec.Inputs {
+	mountList := append([]VolumeMount{}, spec.Inputs...)
+	mountList = append(mountList, spec.Outputs...)
+	for _, m := range mountList {
 		for _, dir := range pathSegmentsToWorkaround(m.MountPath) {
 			if existingMounts[dir] {
 				continue
@@ -425,7 +436,7 @@ func (worker *gardenWorker) createGardenWorkaroundVolumes(
 				baggageclaim.VolumeSpec{
 					Privileged: spec.Privileged,
 					Strategy:   baggageclaim.EmptyStrategy{},
-					TTL:        inputVolumeTTL,
+					TTL:        volumeTTL,
 				},
 			)
 			if err != nil {
