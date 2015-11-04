@@ -180,7 +180,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 			volume, volErr := baggageclaimClient.CreateVolume(step.logger, baggageclaim.VolumeSpec{
 				Properties: baggageclaim.VolumeProperties{},
-				TTL:        1500000 * time.Hour,
+				TTL:        5 * time.Minute,
 				Privileged: bool(step.privileged),
 			})
 			if volErr != nil {
@@ -293,10 +293,6 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 					source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
 					step.repo.RegisterSource(SourceName(output.Name), source)
 				}
-			}
-
-			for _, mount := range volumeMounts {
-				mount.Volume.Release(0)
 			}
 		}
 
