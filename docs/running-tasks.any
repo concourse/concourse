@@ -73,6 +73,27 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     }
   }
 
+  \define-attribute{outputs: [object]}{
+    \italic{Optional.} The outputs for the task.
+
+    This determines which artifacts can be extracted from the task, as the
+    \reference{build-plans}{build plan} executes. Outputs can be used in later
+    steps in a plan instead of propogating the entire build directory.
+
+    Each output has the following attributes:
+
+    \inset{
+      \define-attribute{name: string}{
+        \italic{Required.} The logical name of the output.
+      }
+
+      \define-attribute{path: string}{
+        \italic{Optional.} The path in the where the output will be taken from.
+        If not specified, the output's \code{name} is used.
+      }
+    }
+  }
+
   \define-attribute{run: object}{
     \italic{Required.} The command to execute in the container.
 
