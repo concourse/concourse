@@ -86,7 +86,7 @@ func (locator checkContainerLocator) locate(fingerprint containerFingerprint) (m
 		reqValues["name"] = fingerprint.checkName
 	}
 	if fingerprint.pipelineName != "" {
-		reqValues["pipeline"] = fingerprint.pipelineName
+		reqValues["pipeline_name"] = fingerprint.pipelineName
 	}
 
 	return reqValues, nil

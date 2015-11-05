@@ -326,7 +326,7 @@ var _ = Describe("Hijacking", func() {
 
 			Context("and with pipeline specified", func() {
 				BeforeEach(func() {
-					containerArguments = "type=check&name=some-resource-name&pipeline=a-pipeline"
+					containerArguments = "type=check&name=some-resource-name&pipeline_name=a-pipeline"
 				})
 
 				It("can accept the check resources name and a pipeline", func() {
