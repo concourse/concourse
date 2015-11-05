@@ -165,8 +165,12 @@ func (bc *baggageCollector) expireVolumes(resourceHashVersions resourceHashVersi
 
 		volume, found, err := baggageClaimClient.LookupVolume(bc.logger, volumeToExpire.Handle)
 		if !found || err != nil {
+			var e string
+			if err != nil {
+				e = err.Error()
+			}
 			bc.logger.Info("could-not-locate-volume", lager.Data{
-				"error":  err.Error(),
+				"error":  e,
 				"worker": volumeToExpire.WorkerName,
 				"handle": volumeToExpire.Handle,
 			})
