@@ -62,7 +62,7 @@ flag. Once you've learned what the commands do, you may want to consult
   it as the more convenient name \code{example}, you would run:
 
   \codeblock{bash}{
-  $ fly --target example login --concourse https://ci.example.com
+  $ fly --target example login --concourse-url https://ci.example.com
   }
 
   The \code{login} command will see which authentication methods are available
