@@ -23,8 +23,6 @@ cd $FINAL_RELEASE_REPO
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
 
-git merge --no-edit master
-
 RELEASE_YML=$PWD/releases/concourse/concourse-${VERSION}.yml
 RELEASE_TGZ=$PWD/releases/concourse/concourse-${VERSION}.tgz
 

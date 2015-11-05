@@ -279,7 +279,7 @@ jobs:
   - aggregate:
     - get: concourse
       passed: [deploy]
-      params: {submodules: none, fetch: [master]}
+      params: {submodules: none}
     - get: candidate-release
       passed: [deploy]
     - get: version
