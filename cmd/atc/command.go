@@ -28,6 +28,7 @@ import (
 	"github.com/concourse/atc/radar"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/scheduler"
+	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/webhandler"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/wrappa"
@@ -581,6 +582,10 @@ func (cmd *ATCCommand) constructWebHandler(
 		wrappa.NewWebMetricsWrappa(logger),
 	}
 
+	clientFactory := web.NewClientFactory(
+		fmt.Sprintf("http://127.0.0.1:%d", cmd.BindPort),
+	)
+
 	return webhandler.NewHandler(
 		logger,
 		webWrapper,
@@ -593,6 +598,7 @@ func (cmd *ATCCommand) constructWebHandler(
 		cmd.TemplatesDir.Path(),
 		cmd.PublicDir.Path(),
 		engine,
+		clientFactory,
 	)
 }
 

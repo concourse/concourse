@@ -3,7 +3,7 @@ package getbuilds_test
 import (
 	"time"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc"
 	. "github.com/concourse/atc/web/getbuilds"
 
 	. "github.com/onsi/ginkgo"
@@ -14,21 +14,21 @@ var _ = Describe("Present", func() {
 	It("presents a list of builds", func() {
 		date := time.Date(2004, 4, 3, 13, 45, 33, 0, time.UTC)
 
-		builds := []db.Build{
+		builds := []atc.Build{
 			{
 				ID:           1,
 				JobName:      "hello",
 				PipelineName: "a-pipeline",
-				StartTime:    date,
-				EndTime:      date.Add(1 * time.Minute),
+				StartTime:    date.Unix(),
+				EndTime:      date.Add(1 * time.Minute).Unix(),
 				Status:       "pending",
 				Name:         "23",
 			},
 			{
 				ID:        2,
 				JobName:   "",
-				StartTime: time.Time{},
-				EndTime:   time.Time{},
+				StartTime: 0,
+				EndTime:   0,
 				Status:    "pending",
 				Name:      "12",
 			},

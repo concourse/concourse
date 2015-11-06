@@ -48,6 +48,7 @@ func NewHandler(
 	templatesDir,
 	publicDir string,
 	engine engine.Engine,
+	clientFactory web.ClientFactory,
 ) (http.Handler, error) {
 	tfuncs := &templateFuncs{
 		assetsDir: publicDir,
@@ -124,7 +125,7 @@ func NewHandler(
 		web.GetJob:          pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
 		web.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
 		web.GetBuild:        pipelineHandlerFactory.HandlerFor(buildServer.GetBuild),
-		web.GetBuilds:       getbuilds.NewHandler(logger, db, configDB, buildsTemplate),
+		web.GetBuilds:       getbuilds.NewHandler(logger, clientFactory, buildsTemplate),
 		web.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
 		web.LogIn:           login.NewHandler(logger, basicAuthEnabled, providers, logInTemplate),
 		web.BasicAuth:       login.NewBasicAuthHandler(logger),
