@@ -43,7 +43,8 @@ func LockDBAndMigrate(logger lager.Logger, sqlDriver string, sqlDataSource strin
 
 		logger.Info("migration-lock-acquired")
 
-		dbConn, err = migration.Open(sqlDriver, sqlDataSource, Migrations)
+		migrations := Translogrifier(logger, Migrations)
+		dbConn, err = migration.Open(sqlDriver, sqlDataSource, migrations)
 		if err != nil {
 			logger.Fatal("failed-to-run-migrations", err)
 		}
