@@ -20,7 +20,7 @@ const (
 var Routes = rata.Routes{
 	// public
 	{Path: "/", Method: "GET", Name: Index},
-	{Path: "/pipelines/:pipeline_name", Method: "GET", Name: Pipeline},
+	{Path: "/pipelines/:pipeline", Method: "GET", Name: Pipeline},
 	{Path: "/pipelines/:pipeline_name/jobs/:job", Method: "GET", Name: GetJob},
 	{Path: "/pipelines/:pipeline_name/resources/:resource", Method: "GET", Name: GetResource},
 	{Path: "/public/:filename", Method: "GET", Name: Public},

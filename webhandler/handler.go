@@ -114,13 +114,13 @@ func NewHandler(
 
 	jobServer := getjob.NewServer(logger, jobTemplate)
 	resourceServer := getresource.NewServer(logger, resourceTemplate)
-	pipelineServer := pipeline.NewServer(logger, pipelineTemplate)
+	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
 	buildServer := getbuild.NewServer(logger, buildTemplate)
 	triggerBuildServer := triggerbuild.NewServer(logger, radarSchedulerFactory)
 
 	handlers := map[string]http.Handler{
-		web.Index:           index.NewHandler(logger, pipelineDBFactory, pipelineServer.GetPipeline, indexTemplate),
-		web.Pipeline:        pipelineHandlerFactory.HandlerFor(pipelineServer.GetPipeline),
+		web.Index:           index.NewHandler(logger, pipelineDBFactory, pipelineHandler, indexTemplate),
+		web.Pipeline:        pipelineHandler,
 		web.Public:          http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 		web.GetJob:          pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
 		web.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),

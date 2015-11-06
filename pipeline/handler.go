@@ -7,21 +7,21 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/group"
 )
 
-type server struct {
-	logger lager.Logger
-
-	template *template.Template
+type handler struct {
+	logger        lager.Logger
+	clientFactory web.ClientFactory
+	template      *template.Template
 }
 
-func NewServer(logger lager.Logger, template *template.Template) *server {
-	return &server{
-		logger: logger,
-
-		template: template,
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) http.Handler {
+	return &handler{
+		logger:        logger,
+		clientFactory: clientFactory,
+		template:      template,
 	}
 }
 
@@ -31,49 +31,51 @@ type TemplateData struct {
 	PipelineName string
 }
 
-func (server *server) GetPipeline(pipelineDB db.PipelineDB) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		config, _, found, err := pipelineDB.GetConfig()
-		if err != nil {
-			server.logger.Error("failed-to-load-config", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	client := handler.clientFactory.Build(r)
 
-		if !found {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
+	pipelineName := r.FormValue(":pipeline")
 
-		groups := map[string]bool{}
-		for _, group := range config.Groups {
-			groups[group.Name] = false
-		}
+	pipeline, found, err := client.Pipeline(pipelineName)
+	if err != nil {
+		handler.logger.Error("failed-to-load-config", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-		enabledGroups, found := r.URL.Query()["groups"]
-		if !found && len(config.Groups) > 0 {
-			enabledGroups = []string{config.Groups[0].Name}
-		}
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
-		for _, name := range enabledGroups {
-			groups[name] = true
-		}
+	groups := map[string]bool{}
+	for _, group := range pipeline.Groups {
+		groups[group.Name] = false
+	}
 
-		data := TemplateData{
-			Groups: groups,
-			GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
-				return groups[g.Name]
-			}),
-			PipelineName: pipelineDB.GetPipelineName(),
-		}
+	enabledGroups, found := r.URL.Query()["groups"]
+	if !found && len(pipeline.Groups) > 0 {
+		enabledGroups = []string{pipeline.Groups[0].Name}
+	}
 
-		log := server.logger.Session("index")
+	for _, name := range enabledGroups {
+		groups[name] = true
+	}
 
-		err = server.template.Execute(w, data)
-		if err != nil {
-			log.Fatal("failed-to-build-template", err, lager.Data{
-				"template-data": data,
-			})
-		}
-	})
+	data := TemplateData{
+		Groups: groups,
+		GroupStates: group.States(pipeline.Groups, func(g atc.GroupConfig) bool {
+			return groups[g.Name]
+		}),
+		PipelineName: pipelineName,
+	}
+
+	log := handler.logger.Session("index")
+
+	err = handler.template.Execute(w, data)
+	if err != nil {
+		log.Fatal("failed-to-build-template", err, lager.Data{
+			"template-data": data,
+		})
+	}
 }
