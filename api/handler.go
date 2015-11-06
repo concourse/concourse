@@ -90,7 +90,7 @@ func NewHandler(
 	resourceServer := resourceserver.NewServer(logger)
 	pipeServer := pipes.NewServer(logger, peerURL, pipeDB)
 
-	pipelineServer := pipelineserver.NewServer(logger, pipelinesDB)
+	pipelineServer := pipelineserver.NewServer(logger, pipelinesDB, configDB)
 
 	configServer := configserver.NewServer(logger, configDB, configValidator)
 
