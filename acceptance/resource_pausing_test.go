@@ -61,7 +61,7 @@ var _ = Describe("Resource Pausing", func() {
 		})
 
 		homepage := func() string {
-			return fmt.Sprintf("http://127.0.0.1:%d/pipelines/%s", atcPort, atc.DefaultPipelineName)
+			return fmt.Sprintf("http://127.0.0.1:%d", atcPort)
 		}
 
 		withPath := func(path string) string {
@@ -73,7 +73,7 @@ var _ = Describe("Resource Pausing", func() {
 
 			BeforeEach(func() {
 				// job build data
-				_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
+				_, err := sqlDB.SaveConfig("some-pipeline", atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "job-name",
@@ -103,7 +103,7 @@ var _ = Describe("Resource Pausing", func() {
 				Expect(page.FindByLink("resource-name").Click()).To(Succeed())
 
 				// resource detail -> paused resource detail
-				Eventually(page).Should(HaveURL(withPath("/resources/resource-name")))
+				Eventually(page).Should(HaveURL(withPath("/pipelines/some-pipeline/resources/resource-name")))
 				Expect(page.Find("h1")).To(HaveText("resource-name"))
 
 				Authenticate(page, "admin", "password")

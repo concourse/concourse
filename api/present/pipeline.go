@@ -9,7 +9,7 @@ import (
 
 func Pipeline(savedPipeline db.SavedPipeline, config atc.Config) atc.Pipeline {
 	pathForRoute, err := web.Routes.CreatePathForRoute(web.Pipeline, rata.Params{
-		"pipeline_name": savedPipeline.Name,
+		"pipeline": savedPipeline.Name,
 	})
 
 	if err != nil {
