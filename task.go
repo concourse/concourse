@@ -5,25 +5,6 @@ import (
 	"strings"
 )
 
-type Build struct {
-	ID      int    `json:"id"`
-	Name    string `json:"name"`
-	Status  string `json:"status"`
-	JobName string `json:"job_name,omitempty"`
-	URL     string `json:"url"`
-	ApiUrl  string `json:"api_url"`
-}
-
-type BuildStatus string
-
-const (
-	StatusStarted   BuildStatus = "started"
-	StatusSucceeded BuildStatus = "succeeded"
-	StatusFailed    BuildStatus = "failed"
-	StatusErrored   BuildStatus = "errored"
-	StatusAborted   BuildStatus = "aborted"
-)
-
 type TaskConfig struct {
 	// The platform the task must run on (e.g. linux, windows).
 	Platform string `json:"platform,omitempty" yaml:"platform,omitempty"`

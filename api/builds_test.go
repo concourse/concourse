@@ -217,7 +217,7 @@ var _ = Describe("Builds API", func() {
 						ID:           1,
 						Name:         "1",
 						JobName:      "job1",
-						PipelineName: "some-pipeline",
+						PipelineName: "pipeline1",
 						Status:       db.StatusSucceeded,
 					}, true, nil)
 				})
@@ -239,10 +239,10 @@ var _ = Describe("Builds API", func() {
 						"name": "1",
 						"status": "succeeded",
 						"job_name": "job1",
-						"url": "/pipelines/some-pipeline/jobs/job1/builds/1",
+						"pipeline_name": "pipeline1",
+						"url": "/pipelines/pipeline1/jobs/job1/builds/1",
 						"api_url": "/api/v1/builds/1"
 					}`))
-
 				})
 			})
 		})
@@ -265,14 +265,14 @@ var _ = Describe("Builds API", func() {
 						ID:           3,
 						Name:         "2",
 						JobName:      "job2",
-						PipelineName: "some-pipeline",
+						PipelineName: "pipeline2",
 						Status:       db.StatusStarted,
 					},
 					{
 						ID:           1,
 						Name:         "1",
 						JobName:      "job1",
-						PipelineName: "some-pipeline",
+						PipelineName: "pipeline1",
 						Status:       db.StatusSucceeded,
 					},
 				}, nil)
@@ -291,20 +291,21 @@ var _ = Describe("Builds API", func() {
 						"id": 3,
 						"name": "2",
 						"job_name": "job2",
+						"pipeline_name": "pipeline2",
 						"status": "started",
-						"url": "/pipelines/some-pipeline/jobs/job2/builds/2",
+						"url": "/pipelines/pipeline2/jobs/job2/builds/2",
 						"api_url": "/api/v1/builds/3"
 					},
 					{
 						"id": 1,
 						"name": "1",
 						"job_name": "job1",
+						"pipeline_name": "pipeline1",
 						"status": "succeeded",
-						"url": "/pipelines/some-pipeline/jobs/job1/builds/1",
+						"url": "/pipelines/pipeline1/jobs/job1/builds/1",
 						"api_url": "/api/v1/builds/1"
 					}
 				]`))
-
 			})
 		})
 
