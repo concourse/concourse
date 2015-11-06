@@ -47,6 +47,61 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 	})
 
+	Describe("Pipeline", func() {
+		var expectedPipeline atc.Pipeline
+		pipelineName := "mypipeline"
+		expectedURL := "/api/v1/pipelines/mypipeline"
+
+		BeforeEach(func() {
+			expectedPipeline = atc.Pipeline{
+				Name:   "mypipeline",
+				Paused: true,
+				Groups: []atc.GroupConfig{
+					{
+						Name:      "group1",
+						Jobs:      []string{"job1", "job2"},
+						Resources: []string{"resource1", "resource2"},
+					},
+				},
+			}
+		})
+
+		Context("when the pipeline is found", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedPipeline),
+					),
+				)
+			})
+
+			It("returns the requested pipeline", func() {
+				pipeline, found, err := client.Pipeline(pipelineName)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(pipeline).To(Equal(expectedPipeline))
+			})
+		})
+
+		Context("when the pipeline is not found", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWith(http.StatusNotFound, ""),
+					),
+				)
+			})
+
+			It("returns false", func() {
+				_, found, err := client.Pipeline(pipelineName)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+
 	Describe("ListPipelines", func() {
 		var expectedPipelines []atc.Pipeline
 
@@ -57,10 +112,24 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				{
 					Name:   "mypipeline-1",
 					Paused: true,
+					Groups: []atc.GroupConfig{
+						{
+							Name:      "group1",
+							Jobs:      []string{"job1", "job2"},
+							Resources: []string{"resource1", "resource2"},
+						},
+					},
 				},
 				{
 					Name:   "mypipeline-2",
 					Paused: false,
+					Groups: []atc.GroupConfig{
+						{
+							Name:      "group2",
+							Jobs:      []string{"job3", "job4"},
+							Resources: []string{"resource3", "resource4"},
+						},
+					},
 				},
 			}
 

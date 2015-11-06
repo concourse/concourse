@@ -43,7 +43,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				Status:  "succeeded",
 				JobName: "myjob",
 				URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild",
-				ApiUrl:  "api/v1/builds/123",
+				APIURL:  "api/v1/builds/123",
 			}
 			expectedURL := "/api/v1/builds"
 
@@ -78,7 +78,7 @@ var _ = Describe("ATC Handler Builds", func() {
 					Status:  "succeeded",
 					JobName: "myjob",
 					URL:     fmt.Sprint("/pipelines/", expectedPipelineName, "/jobs/myjob/builds/mybuild"),
-					ApiUrl:  "api/v1/builds/123",
+					APIURL:  "api/v1/builds/123",
 				}
 
 				expectedURL = fmt.Sprint("/api/v1/pipelines/", expectedPipelineName, "/jobs/myjob/builds/mybuild")
@@ -144,7 +144,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				Status:  "succeeded",
 				JobName: "myjob",
 				URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild",
-				ApiUrl:  "api/v1/builds/123",
+				APIURL:  "api/v1/builds/123",
 			}
 			expectedURL := "/api/v1/builds/123"
 
@@ -193,7 +193,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				Status:  "succeeded",
 				JobName: "myjob",
 				URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild1",
-				ApiUrl:  "api/v1/builds/123",
+				APIURL:  "api/v1/builds/123",
 			},
 			{
 				ID:      124,
@@ -201,7 +201,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				Status:  "succeeded",
 				JobName: "myjob",
 				URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild2",
-				ApiUrl:  "api/v1/builds/124",
+				APIURL:  "api/v1/builds/124",
 			},
 		}
 		expectedURL := "/api/v1/builds"

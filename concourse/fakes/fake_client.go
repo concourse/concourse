@@ -13,7 +13,7 @@ type FakeClient struct {
 	AllBuildsStub        func() ([]atc.Build, error)
 	allBuildsMutex       sync.RWMutex
 	allBuildsArgsForCall []struct{}
-	allBuildsReturns struct {
+	allBuildsReturns     struct {
 		result1 []atc.Build
 		result2 error
 	}
@@ -79,7 +79,7 @@ type FakeClient struct {
 	CreatePipeStub        func() (atc.Pipe, error)
 	createPipeMutex       sync.RWMutex
 	createPipeArgsForCall []struct{}
-	createPipeReturns struct {
+	createPipeReturns     struct {
 		result1 atc.Pipe
 		result2 error
 	}
@@ -145,21 +145,21 @@ type FakeClient struct {
 	ListPipelinesStub        func() ([]atc.Pipeline, error)
 	listPipelinesMutex       sync.RWMutex
 	listPipelinesArgsForCall []struct{}
-	listPipelinesReturns struct {
+	listPipelinesReturns     struct {
 		result1 []atc.Pipeline
 		result2 error
 	}
 	ListVolumesStub        func() ([]atc.Volume, error)
 	listVolumesMutex       sync.RWMutex
 	listVolumesArgsForCall []struct{}
-	listVolumesReturns struct {
+	listVolumesReturns     struct {
 		result1 []atc.Volume
 		result2 error
 	}
 	ListWorkersStub        func() ([]atc.Worker, error)
 	listWorkersMutex       sync.RWMutex
 	listWorkersArgsForCall []struct{}
-	listWorkersReturns struct {
+	listWorkersReturns     struct {
 		result1 []atc.Worker
 		result2 error
 	}
@@ -187,16 +187,26 @@ type FakeClient struct {
 	ListAuthMethodsStub        func() ([]atc.AuthMethod, error)
 	listAuthMethodsMutex       sync.RWMutex
 	listAuthMethodsArgsForCall []struct{}
-	listAuthMethodsReturns struct {
+	listAuthMethodsReturns     struct {
 		result1 []atc.AuthMethod
 		result2 error
 	}
 	AuthTokenStub        func() (atc.AuthToken, error)
 	authTokenMutex       sync.RWMutex
 	authTokenArgsForCall []struct{}
-	authTokenReturns struct {
+	authTokenReturns     struct {
 		result1 atc.AuthToken
 		result2 error
+	}
+	PipelineStub        func(name string) (atc.Pipeline, bool, error)
+	pipelineMutex       sync.RWMutex
+	pipelineArgsForCall []struct {
+		name string
+	}
+	pipelineReturns struct {
+		result1 atc.Pipeline
+		result2 bool
+		result3 error
 	}
 }
 
@@ -848,6 +858,40 @@ func (fake *FakeClient) AuthTokenReturns(result1 atc.AuthToken, result2 error) {
 		result1 atc.AuthToken
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeClient) Pipeline(name string) (atc.Pipeline, bool, error) {
+	fake.pipelineMutex.Lock()
+	fake.pipelineArgsForCall = append(fake.pipelineArgsForCall, struct {
+		name string
+	}{name})
+	fake.pipelineMutex.Unlock()
+	if fake.PipelineStub != nil {
+		return fake.PipelineStub(name)
+	} else {
+		return fake.pipelineReturns.result1, fake.pipelineReturns.result2, fake.pipelineReturns.result3
+	}
+}
+
+func (fake *FakeClient) PipelineCallCount() int {
+	fake.pipelineMutex.RLock()
+	defer fake.pipelineMutex.RUnlock()
+	return len(fake.pipelineArgsForCall)
+}
+
+func (fake *FakeClient) PipelineArgsForCall(i int) string {
+	fake.pipelineMutex.RLock()
+	defer fake.pipelineMutex.RUnlock()
+	return fake.pipelineArgsForCall[i].name
+}
+
+func (fake *FakeClient) PipelineReturns(result1 atc.Pipeline, result2 bool, result3 error) {
+	fake.PipelineStub = nil
+	fake.pipelineReturns = struct {
+		result1 atc.Pipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ concourse.Client = new(FakeClient)

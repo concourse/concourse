@@ -33,7 +33,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 						Status:  "succeeded",
 						JobName: "myjob",
 						URL:     fmt.Sprint("/pipelines/", expectedPipelineName, "/jobs/myjob/builds/mybuild"),
-						ApiUrl:  "api/v1/builds/123",
+						APIURL:  "api/v1/builds/123",
 					},
 					Inputs: []atc.JobInput{
 						{

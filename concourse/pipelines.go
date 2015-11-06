@@ -2,6 +2,27 @@ package concourse
 
 import "github.com/concourse/atc"
 
+func (client *client) Pipeline(pipelineName string) (atc.Pipeline, bool, error) {
+	params := map[string]string{"pipeline_name": pipelineName}
+
+	var pipeline atc.Pipeline
+	err := client.connection.Send(Request{
+		RequestName: atc.GetPipeline,
+		Params:      params,
+	}, &Response{
+		Result: &pipeline,
+	})
+
+	switch err.(type) {
+	case nil:
+		return pipeline, true, nil
+	case ResourceNotFoundError:
+		return atc.Pipeline{}, false, nil
+	default:
+		return atc.Pipeline{}, false, err
+	}
+}
+
 func (client *client) ListPipelines() ([]atc.Pipeline, error) {
 	var pipelines []atc.Pipeline
 	err := client.connection.Send(Request{
@@ -28,7 +49,6 @@ func (client *client) DeletePipeline(pipelineName string) (bool, error) {
 	default:
 		return false, err
 	}
-
 }
 
 func (client *client) PausePipeline(pipelineName string) (bool, error) {

@@ -30,6 +30,7 @@ type Client interface {
 	GetCLIReader(arch, platform string) (io.ReadCloser, error)
 	ListAuthMethods() ([]atc.AuthMethod, error)
 	AuthToken() (atc.AuthToken, error)
+	Pipeline(name string) (atc.Pipeline, bool, error)
 }
 
 type client struct {
