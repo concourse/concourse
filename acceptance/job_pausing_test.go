@@ -111,10 +111,10 @@ var _ = Describe("Job Pausing", func() {
 				Expect(page.FindByLink("job-name").Click()).To(Succeed())
 
 				// job detail w/build info -> job detail
-				Expect(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
+				Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
 				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("job-name #%d", build.ID)))
 				Expect(page.Find("h1 a").Click()).To(Succeed())
-				Expect(page).Should(HaveURL(withPath("jobs/job-name")))
+				Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
 
 				// job-detail pausing
 				Expect(page.Find(".js-job .js-pauseUnpause").Click()).To(Succeed())

@@ -135,13 +135,13 @@ var _ = Describe("One-off Builds", func() {
 				Expect(page.Find(allBuildsListIconLink).Click()).To(Succeed())
 
 				// build list -> one off build detail
-				Expect(page).Should(HaveURL(withPath("/builds")))
+				Eventually(page).Should(HaveURL(withPath("/builds")))
 				Expect(page.Find("h1")).To(HaveText("builds"))
 				Expect(page.Find(firstBuildNumber).Text()).To(ContainSubstring(fmt.Sprintf("%d", oneOffBuild.ID)))
 				Expect(page.Find(firstBuildLink).Click()).To(Succeed())
 
 				// one off build detail
-				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("build #%d", oneOffBuild.ID)))
+				Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("build #%d", oneOffBuild.ID)))
 				Eventually(page.Find("#build-logs").Text).Should(ContainSubstring("hello this is a payload"))
 
 				Expect(sqlDB.FinishBuild(oneOffBuild.ID, db.StatusSucceeded)).To(Succeed())
@@ -154,8 +154,9 @@ var _ = Describe("One-off Builds", func() {
 				Expect(page.Find(allBuildsListIconLink).Click()).To(Succeed())
 
 				// job build detail
+				Eventually(page.Find(secondBuildLink)).Should(BeFound())
 				Expect(page.Find(secondBuildLink).Click()).To(Succeed())
-				Expect(page).Should(HaveURL(withPath(fmt.Sprintf("/pipelines/main/jobs/job-name/builds/%d", build.ID))))
+				Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("/pipelines/main/jobs/job-name/builds/%d", build.ID))))
 				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("job-name #%s", build.Name)))
 				Expect(page.Find("#builds").Text()).Should(ContainSubstring("%s", build.Name))
 
@@ -172,10 +173,11 @@ var _ = Describe("One-off Builds", func() {
 				Expect(page.Find(allBuildsListIconLink).Click()).To(Succeed())
 
 				// build list -> one off build detail
-				Expect(page).Should(HaveURL(withPath("/builds")))
+				Eventually(page).Should(HaveURL(withPath("/builds")))
 				Expect(page.Find(firstBuildLink).Click()).To(Succeed())
 
 				// one off build detail
+				Eventually(page.Find(".js-abortBuild")).Should(BeFound())
 				Expect(page.Find(".js-abortBuild").Click()).To(Succeed())
 				Expect(page).Should(HaveURL(withPath(fmt.Sprintf("/builds/%d", oneOffBuild.ID))))
 

@@ -116,7 +116,7 @@ var _ = Describe("Resource Pagination", func() {
 				Expect(page.FindByLink("resource-name").Click()).To(Succeed())
 
 				// resource detail -> paused resource detail
-				Expect(page).Should(HaveURL(withPath("/resources/resource-name")))
+				Eventually(page).Should(HaveURL(withPath("/resources/resource-name")))
 				Expect(page.Find("h1")).To(HaveText("resource-name"))
 				Expect(page.All(".pagination").Count()).Should(Equal(2))
 				Expect(page.Find(".resource-versions")).Should(BeFound())
@@ -124,12 +124,11 @@ var _ = Describe("Resource Pagination", func() {
 
 				Expect(page.Find(".pagination .fa-arrow-left")).ShouldNot(BeFound())
 				Expect(page.First(".pagination .fa-arrow-right").Click()).To(Succeed())
-				Expect(page.All(".resource-versions li").Count()).Should(Equal(4))
+				Eventually(page.All(".resource-versions li").Count).Should(Equal(4))
 
 				Expect(page.Find(".pagination .fa-arrow-right")).ShouldNot(BeFound())
 				Expect(page.First(".pagination .fa-arrow-left").Click()).To(Succeed())
-				Expect(page.All(".resource-versions li").Count()).Should(Equal(100))
-
+				Eventually(page.All(".resource-versions li").Count).Should(Equal(100))
 			})
 		})
 
@@ -181,7 +180,7 @@ var _ = Describe("Resource Pagination", func() {
 				Expect(page.FindByLink("resource-name").Click()).To(Succeed())
 
 				// resource detail -> paused resource detail
-				Expect(page).Should(HaveURL(withPath("/resources/resource-name")))
+				Eventually(page).Should(HaveURL(withPath("/resources/resource-name")))
 				Expect(page.Find("h1")).To(HaveText("resource-name"))
 				Expect(page.Find(".pagination")).ShouldNot(BeFound())
 				Expect(page.Find(".resource-versions")).Should(BeFound())

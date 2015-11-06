@@ -146,17 +146,18 @@ var _ = Describe("Job Pausing", func() {
 					Expect(page.FindByLink("job-name").Click()).To(Succeed())
 
 					// job detail w/build info -> job detail
+					Eventually(page.Find("h1 a")).Should(BeFound())
 					Expect(page.Find("h1 a").Click()).To(Succeed())
-					Expect(page).Should(HaveURL(withPath("jobs/job-name")))
+					Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
 					Expect(page.All(".js-build").Count()).Should(Equal(100))
 
 					Expect(page.Find(".pagination .fa-arrow-left")).ShouldNot(BeFound())
 					Expect(page.First(".pagination .fa-arrow-right").Click()).To(Succeed())
-					Expect(page.All(".js-build").Count()).Should(Equal(4))
+					Eventually(page.All(".js-build").Count).Should(Equal(4))
 
 					Expect(page.Find(".pagination .fa-arrow-right")).ShouldNot(BeFound())
 					Expect(page.First(".pagination .fa-arrow-left").Click()).To(Succeed())
-					Expect(page.All(".js-build").Count()).Should(Equal(100))
+					Eventually(page.All(".js-build").Count).Should(Equal(100))
 				})
 			})
 
@@ -169,10 +170,10 @@ var _ = Describe("Job Pausing", func() {
 				Expect(page.FindByLink("job-name").Click()).To(Succeed())
 
 				// job detail w/build info -> job detail
-				Expect(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
+				Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
 				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("job-name #%d", build.ID)))
 				Expect(page.Find("h1 a").Click()).To(Succeed())
-				Expect(page).Should(HaveURL(withPath("jobs/job-name")))
+				Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
 
 				Expect(page.Find(".builds-list li").Count()).Should(Equal(1))
 				Expect(page.Find(".builds-list li:first-child a")).To(HaveText(fmt.Sprintf("#%d", build.ID)))
