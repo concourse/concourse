@@ -301,7 +301,7 @@ run: {}
 
 	Context("when invalid inputs are passed", func() {
 		It("prints an error", func() {
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "-i", "evan=.")
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "-i", "fixture=.", "-i", "evan=.")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -312,6 +312,83 @@ run: {}
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
 		})
+
+		Context("when invalid inputs are passed and the single valid input is correctly ommited", func() {
+			It("prints an error about invalid inputs instead of missing inputs", func() {
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "-i", "evan=.")
+				flyCmd.Dir = buildDir
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("unknown input `evan`"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+			})
+		})
+	})
+
+	Context("when the task specifies more than one input", func() {
+
+		BeforeEach(func() {
+			// missing platform and run path
+			err := ioutil.WriteFile(
+				filepath.Join(buildDir, "task.yml"),
+				[]byte(`---
+platform: some-platform
+
+image: ubuntu
+
+inputs:
+- name: fixture
+- name: something
+
+params:
+  FOO: bar
+  BAZ: buzz
+  X: 1
+
+run:
+  path: find
+  args: [.]
+`),
+				0644,
+			)
+			Expect(err).NotTo(HaveOccurred())
+		})
+		Context("When some required inputs are not passed", func() {
+			It("Prints an error", func() {
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "-i", "something=.")
+				flyCmd.Dir = buildDir
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("missing required input `fixture`"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+			})
+
+		})
+
+		Context("When no inputs are passed", func() {
+			It("Prints an error", func() {
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath)
+				flyCmd.Dir = buildDir
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("missing required input"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+			})
+
+		})
+
 	})
 
 	Context("when running with --privileged", func() {

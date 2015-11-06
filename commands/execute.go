@@ -191,6 +191,11 @@ func determineInputs(
 	inputMappings []InputPairFlag,
 	inputsFrom JobFlag,
 ) ([]Input, error) {
+	err := checkForUnknownInputMappings(inputMappings, taskInputs)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(inputMappings) == 0 && inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -201,11 +206,6 @@ func determineInputs(
 			Name: filepath.Base(wd),
 			Path: wd,
 		})
-	} else {
-		err := inputValidation(inputMappings, taskInputs)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	inputsFromLocal, err := generateLocalInputs(client, inputMappings)
@@ -224,7 +224,7 @@ func determineInputs(
 		if !found {
 			input, found = inputsFromJob[taskInput.Name]
 			if !found {
-				continue
+				return nil, fmt.Errorf("missing required input `%s`", taskInput.Name)
 			}
 		}
 
@@ -234,18 +234,16 @@ func determineInputs(
 	return inputs, nil
 }
 
-func inputValidation(inputs []InputPairFlag, validInputs []atc.TaskInputConfig) error {
-
-	for _, input := range inputs {
-		name := input.Name
-		if !containsInput(validInputs, name) {
-			return fmt.Errorf("unknown input `%s`", name)
+func checkForUnknownInputMappings(inputMappings []InputPairFlag, validInputs []atc.TaskInputConfig) error {
+	for _, inputMapping := range inputMappings {
+		if !taskInputsContainsName(validInputs, inputMapping.Name) {
+			return fmt.Errorf("unknown input `%s`", inputMapping.Name)
 		}
 	}
 	return nil
 }
 
-func containsInput(inputs []atc.TaskInputConfig, name string) bool {
+func taskInputsContainsName(inputs []atc.TaskInputConfig, name string) bool {
 	for _, input := range inputs {
 		if input.Name == name {
 			return true
