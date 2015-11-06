@@ -299,6 +299,21 @@ run: {}
 		})
 	})
 
+	Context("when invalid inputs are passed", func() {
+		It("prints an error", func() {
+			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "-i", "evan=.")
+			flyCmd.Dir = buildDir
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess.Err).Should(gbytes.Say("unknown input `evan`"))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+		})
+	})
+
 	Context("when running with --privileged", func() {
 		BeforeEach(func() {
 			expectedPlan.OnSuccess.Next.Task.Privileged = true
