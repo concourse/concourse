@@ -4,32 +4,24 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/pivotal-golang/lager"
 )
 
 type handler struct {
 	logger lager.Logger
 
-	db       BuildsDB
-	configDB db.ConfigDB
+	clientFactory web.ClientFactory
 
 	template *template.Template
 }
 
-//go:generate counterfeiter . BuildsDB
-
-type BuildsDB interface {
-	GetAllBuilds() ([]db.Build, error)
-}
-
-func NewHandler(logger lager.Logger, db BuildsDB, configDB db.ConfigDB, template *template.Template) http.Handler {
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) http.Handler {
 	return &handler{
 		logger: logger,
 
-		db: db,
-
-		configDB: configDB,
+		clientFactory: clientFactory,
 
 		template: template,
 	}
@@ -39,8 +31,8 @@ type TemplateData struct {
 	Builds []PresentedBuild
 }
 
-func FetchTemplateData(buildDB BuildsDB, configDB db.ConfigDB) (TemplateData, error) {
-	builds, err := buildDB.GetAllBuilds()
+func FetchTemplateData(client concourse.Client) (TemplateData, error) {
+	builds, err := client.AllBuilds()
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -51,9 +43,11 @@ func FetchTemplateData(buildDB BuildsDB, configDB db.ConfigDB) (TemplateData, er
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	client := handler.clientFactory.Build(r)
+
 	log := handler.logger.Session("builds")
 
-	templateData, err := FetchTemplateData(handler.db, handler.configDB)
+	templateData, err := FetchTemplateData(client)
 	if err != nil {
 		log.Error("failed-to-build-template-data", err)
 		http.Error(w, "failed to fetch builds", http.StatusInternalServerError)

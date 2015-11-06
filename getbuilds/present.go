@@ -3,9 +3,11 @@ package getbuilds
 import (
 	"time"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 )
+
+const layout = "2006-01-02 15:04:05 (MST)"
 
 type PresentedBuild struct {
 	ID           int
@@ -21,16 +23,16 @@ type PresentedBuild struct {
 	Path     string
 }
 
-func formatTime(date time.Time) string {
-	if date.IsZero() {
+func formatTime(uts int64) string {
+	if uts == 0 {
 		return "n/a"
 	}
 
-	const layout = "2006-01-02 15:04:05 (MST)"
-	return date.Format(layout)
+	convertedTime := time.Unix(uts, 0).UTC()
+	return convertedTime.Format(layout)
 }
 
-func PresentBuilds(builds []db.Build) []PresentedBuild {
+func PresentBuilds(builds []atc.Build) []PresentedBuild {
 	presentedBuilds := []PresentedBuild{}
 
 	for _, build := range builds {
@@ -38,7 +40,7 @@ func PresentBuilds(builds []db.Build) []PresentedBuild {
 		var jobName string
 		var pipelineName string
 
-		if build.OneOff() {
+		if build.JobName == "" {
 			jobName = "[one off]"
 			pipelineName = "[one off]"
 			cssClass = "build-one-off"
@@ -55,7 +57,7 @@ func PresentBuilds(builds []db.Build) []PresentedBuild {
 			EndTime:      formatTime(build.EndTime),
 			CSSClass:     cssClass,
 			Status:       string(build.Status),
-			Path:         web.PathForBuild(build),
+			Path:         web.PathForATCBuild(build),
 		})
 	}
 

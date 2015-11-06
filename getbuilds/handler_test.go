@@ -6,32 +6,29 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
-	"github.com/concourse/atc/web/getbuilds/fakes"
+	"github.com/concourse/atc"
+	cfakes "github.com/concourse/go-concourse/concourse/fakes"
 
 	. "github.com/concourse/atc/web/getbuilds"
 )
 
 var _ = Describe("FetchTemplateData", func() {
-	var fakeDB *fakes.FakeBuildsDB
-	var fakeConfigDB *dbfakes.FakeConfigDB
+	var fakeClient *cfakes.FakeClient
 
 	BeforeEach(func() {
-		fakeDB = new(fakes.FakeBuildsDB)
-		fakeConfigDB = new(dbfakes.FakeConfigDB)
+		fakeClient = new(cfakes.FakeClient)
 	})
 
 	It("queries the database for a list of all builds", func() {
-		builds := []db.Build{
-			db.Build{
+		builds := []atc.Build{
+			atc.Build{
 				ID: 6,
 			},
 		}
 
-		fakeDB.GetAllBuildsReturns(builds, nil)
+		fakeClient.AllBuildsReturns(builds, nil)
 
-		templateData, err := FetchTemplateData(fakeDB, fakeConfigDB)
+		templateData, err := FetchTemplateData(fakeClient)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(templateData.Builds[0].ID).To(Equal(6))
@@ -39,9 +36,9 @@ var _ = Describe("FetchTemplateData", func() {
 	})
 
 	It("returns an error if fetching from the database fails", func() {
-		fakeDB.GetAllBuildsReturns(nil, errors.New("disaster"))
+		fakeClient.AllBuildsReturns(nil, errors.New("disaster"))
 
-		_, err := FetchTemplateData(fakeDB, fakeConfigDB)
+		_, err := FetchTemplateData(fakeClient)
 		Expect(err).To(HaveOccurred())
 	})
 })
