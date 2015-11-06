@@ -14,6 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/vito/go-sse/sse"
@@ -302,32 +303,49 @@ run:
 	})
 
 	Context("when running with --output", func() {
-		It("downloads the tasks output to the directory provided", func() {
-			atcServer.AllowUnhandledRequests = true
+		Context("when the task specifies those outputs", func() {
+			It("downloads the tasks output to the directory provided", func() {
+				atcServer.AllowUnhandledRequests = true
 
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "--output", "some-dir="+outputDir)
-			flyCmd.Dir = buildDir
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "--output", "some-dir="+outputDir)
+				flyCmd.Dir = buildDir
 
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
 
-			// sync with after create
-			Eventually(streaming, 5.0).Should(BeClosed())
+				// sync with after create
+				Eventually(streaming, 5.0).Should(BeClosed())
 
-			close(events)
+				close(events)
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
 
-			outputFiles, err := ioutil.ReadDir(outputDir)
-			Expect(err).NotTo(HaveOccurred())
+				outputFiles, err := ioutil.ReadDir(outputDir)
+				Expect(err).NotTo(HaveOccurred())
 
-			Expect(outputFiles).To(HaveLen(1))
-			Expect(outputFiles[0].Name()).To(Equal("some-file"))
+				Expect(outputFiles).To(HaveLen(1))
+				Expect(outputFiles[0].Name()).To(Equal("some-file"))
 
-			data, err := ioutil.ReadFile(filepath.Join(outputDir, outputFiles[0].Name()))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(data).To(Equal([]byte("tar-contents")))
+				data, err := ioutil.ReadFile(filepath.Join(outputDir, outputFiles[0].Name()))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(data).To(Equal([]byte("tar-contents")))
+			})
+		})
+
+		Context("when the task does not specify those outputs", func() {
+			It("exits 1", func() {
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "-o", "wrong-output=wrong-path")
+				flyCmd.Dir = buildDir
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("error: unknown output 'wrong-output'"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+			})
 		})
 	})
 })

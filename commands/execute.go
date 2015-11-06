@@ -154,6 +154,17 @@ func determineOutputs(
 
 	for _, i := range outputMappings {
 		outputName := i.Name
+
+		notInConfig := true
+		for _, configOutput := range taskOutputs {
+			if configOutput.Name == outputName {
+				notInConfig = false
+			}
+		}
+		if notInConfig {
+			return nil, fmt.Errorf("unknown output '%s'", outputName)
+		}
+
 		absPath, err := filepath.Abs(i.Path)
 		if err != nil {
 			return nil, err
