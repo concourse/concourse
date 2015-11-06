@@ -25,7 +25,7 @@ var _ = Describe("Helper Functions", func() {
 			Status:  "Great Success",
 			JobName: expectedJobName,
 			URL:     fmt.Sprintf("/pipelines/%s/jobs/%s/builds/%s", expectedPipelineName, expectedJobName, expectedBuildName),
-			ApiUrl:  fmt.Sprintf("api/v1/builds/%s", expectedBuildID),
+			APIURL:  fmt.Sprintf("api/v1/builds/%s", expectedBuildID),
 		}
 
 		BeforeEach(func() {
@@ -165,7 +165,7 @@ var _ = Describe("Helper Functions", func() {
 				Status:  "Great Success",
 				JobName: "",
 				URL:     fmt.Sprintf("/builds/%s", expectedBuildID),
-				ApiUrl:  fmt.Sprintf("api/v1/builds/%s", expectedBuildID),
+				APIURL:  fmt.Sprintf("api/v1/builds/%s", expectedBuildID),
 			}
 
 			BeforeEach(func() {
