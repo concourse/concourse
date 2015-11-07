@@ -146,4 +146,6 @@ builds:
     version: 0.66.1
   d6a3c735-ec5e-47fa-8866-09af10f0c124:
     version: 0.67.0
+  f23bf328-3c0f-4516-b2ac-1d1e606075e9:
+    version: 0.67.1
 format-version: '2'
