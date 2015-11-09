@@ -246,6 +246,8 @@ run:
 
 		<-sess.Exited
 		Expect(sess.ExitCode()).To(Equal(0))
+
+		Expect(uploadingBits).To(BeClosed())
 	})
 
 	Context("when the build config is invalid", func() {
@@ -296,6 +298,8 @@ run: {}
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
+
+			Expect(uploadingBits).To(BeClosed())
 		})
 	})
 
@@ -412,6 +416,8 @@ run:
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
+
+			Expect(uploadingBits).To(BeClosed())
 		})
 	})
 
@@ -456,6 +462,8 @@ run:
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
+
+			Expect(uploadingBits).To(BeClosed())
 		})
 	})
 
@@ -582,6 +590,8 @@ run:
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
+
+			Expect(uploadingBits).To(BeClosed())
 		})
 	})
 
@@ -600,6 +610,8 @@ run:
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
+
+			Expect(uploadingBits).To(BeClosed())
 		})
 	})
 
@@ -618,6 +630,8 @@ run:
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
+
+			Expect(uploadingBits).To(BeClosed())
 		})
 	})
 
@@ -636,6 +650,8 @@ run:
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(2))
+
+			Expect(uploadingBits).To(BeClosed())
 		})
 	})
 })

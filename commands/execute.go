@@ -87,12 +87,14 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
+	inputChan := make(chan interface{})
 	go func() {
 		for _, i := range inputs {
 			if i.Path != "" {
 				upload(i, excludeIgnored, atcRequester)
 			}
 		}
+		close(inputChan)
 	}()
 
 	var outputChans []chan (interface{})
@@ -118,6 +120,8 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	exitCode := eventstream.Render(os.Stdout, eventSource)
 	eventSource.Close()
+
+	<-inputChan
 
 	if len(outputs) > 0 {
 		for _, outputChan := range outputChans {
