@@ -7,6 +7,7 @@ dependencies:
 files:
   - github.com/concourse/atc/web/templates/**/*
   - github.com/concourse/atc/web/public/**/*
+  - github.com/concourse/atc/cmd/atc/*.go # gosub
   - github.com/BurntSushi/migration/*.go # gosub
   - github.com/Sirupsen/logrus/*.go # gosub
   - github.com/bigdatadev/goryman/*.go # gosub
@@ -35,7 +36,6 @@ files:
   - github.com/concourse/atc/auth/*.go # gosub
   - github.com/concourse/atc/auth/github/*.go # gosub
   - github.com/concourse/atc/builds/*.go # gosub
-  - github.com/concourse/atc/cmd/atc/*.go # gosub
   - github.com/concourse/atc/config/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/algorithm/*.go # gosub
@@ -70,6 +70,8 @@ files:
   - github.com/concourse/baggageclaim/client/*.go # gosub
   - github.com/concourse/baggageclaim/uidjunk/*.go # gosub
   - github.com/concourse/baggageclaim/volume/*.go # gosub
+  - github.com/concourse/go-concourse/concourse/*.go # gosub
+  - github.com/concourse/go-concourse/concourse/eventstream/*.go # gosub
   - github.com/dgrijalva/jwt-go/*.go # gosub
   - github.com/docker/distribution/*.go # gosub
   - github.com/docker/distribution/context/*.go # gosub
@@ -97,6 +99,7 @@ files:
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
+  - github.com/mgutz/ansi/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
   - github.com/pivotal-golang/clock/*.go # gosub
