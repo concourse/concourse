@@ -97,7 +97,7 @@ type ConfigDB interface {
 	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (bool, error)
 }
 
-// sequence identifier used for compare-and-swap
+//ConfigVersion is a sequence identifier used for compare-and-swap
 type ConfigVersion int
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")

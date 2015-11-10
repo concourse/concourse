@@ -32,7 +32,7 @@ func Build(build db.Build) atc.Build {
 		panic("failed to generate url: " + err.Error())
 	}
 
-	return atc.Build{
+	atcBuild := atc.Build{
 		ID:           build.ID,
 		Name:         build.Name,
 		Status:       string(build.Status),
@@ -41,4 +41,14 @@ func Build(build db.Build) atc.Build {
 		URL:          reqURL,
 		APIURL:       apiURL,
 	}
+
+	if !build.StartTime.IsZero() {
+		atcBuild.StartTime = build.StartTime.Unix()
+	}
+
+	if !build.EndTime.IsZero() {
+		atcBuild.EndTime = build.EndTime.Unix()
+	}
+
+	return atcBuild
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -88,6 +89,8 @@ var _ = Describe("Jobs API", func() {
 							JobName:      "some-job",
 							PipelineName: "some-pipeline",
 							Status:       db.StatusSucceeded,
+							StartTime:    time.Unix(1, 0),
+							EndTime:      time.Unix(100, 0),
 						},
 						&db.Build{
 							ID:           3,
@@ -157,8 +160,9 @@ var _ = Describe("Jobs API", func() {
 								"status": "succeeded",
 								"url": "/pipelines/some-pipeline/jobs/some-job/builds/1",
 								"api_url": "/api/v1/builds/1",
-								"pipeline_name":"some-pipeline"
-
+								"pipeline_name":"some-pipeline",
+								"start_time": 1,
+								"end_time": 100
 							},
 							"inputs": [
 								{
@@ -313,6 +317,8 @@ var _ = Describe("Jobs API", func() {
 								JobName:      jobName,
 								PipelineName: "another-pipeline",
 								Status:       db.StatusSucceeded,
+								StartTime:    time.Unix(1, 0),
+								EndTime:      time.Unix(100, 0),
 							}
 
 							nextBuild = &db.Build{
@@ -332,6 +338,8 @@ var _ = Describe("Jobs API", func() {
 								JobName:      "job-2",
 								PipelineName: "another-pipeline",
 								Status:       db.StatusSucceeded,
+								StartTime:    time.Unix(101, 0),
+								EndTime:      time.Unix(200, 0),
 							}
 
 						case 3:
@@ -396,7 +404,9 @@ var _ = Describe("Jobs API", func() {
 									"status": "succeeded",
 									"url": "/pipelines/another-pipeline/jobs/job-1/builds/1",
 									"api_url": "/api/v1/builds/1",
-									"pipeline_name":"another-pipeline"
+									"pipeline_name":"another-pipeline",
+									"start_time": 1,
+									"end_time": 100
 								},
 								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": false}],
 								"outputs": [{"name": "output-1", "resource": "output-1"}],
@@ -414,7 +424,9 @@ var _ = Describe("Jobs API", func() {
 									"status": "succeeded",
 									"url": "/pipelines/another-pipeline/jobs/job-2/builds/1",
 									"api_url": "/api/v1/builds/4",
-									"pipeline_name":"another-pipeline"
+									"pipeline_name":"another-pipeline",
+									"start_time": 101,
+									"end_time": 200
 								},
 								"inputs": [{"name": "input-2", "resource": "input-2", "trigger": false}],
 								"outputs": [{"name": "output-2", "resource": "output-2"}],
@@ -493,6 +505,8 @@ var _ = Describe("Jobs API", func() {
 						JobName:      "some-job",
 						PipelineName: "some-pipeline",
 						Status:       db.StatusStarted,
+						StartTime:    time.Unix(1, 0),
+						EndTime:      time.Unix(100, 0),
 					},
 					{
 						ID:           1,
@@ -500,6 +514,8 @@ var _ = Describe("Jobs API", func() {
 						JobName:      "some-job",
 						PipelineName: "some-pipeline",
 						Status:       db.StatusSucceeded,
+						StartTime:    time.Unix(101, 0),
+						EndTime:      time.Unix(200, 0),
 					},
 				}, nil)
 			})
@@ -527,7 +543,9 @@ var _ = Describe("Jobs API", func() {
 						"status": "started",
 						"url": "/pipelines/some-pipeline/jobs/some-job/builds/2",
 						"api_url": "/api/v1/builds/3",
-						"pipeline_name":"some-pipeline"
+						"pipeline_name":"some-pipeline",
+						"start_time": 1,
+						"end_time": 100
 					},
 					{
 						"id": 1,
@@ -536,7 +554,9 @@ var _ = Describe("Jobs API", func() {
 						"status": "succeeded",
 						"url": "/pipelines/some-pipeline/jobs/some-job/builds/1",
 						"api_url": "/api/v1/builds/1",
-						"pipeline_name":"some-pipeline"
+						"pipeline_name":"some-pipeline",
+						"start_time": 101,
+						"end_time": 200
 					}
 				]`))
 
@@ -790,6 +810,8 @@ var _ = Describe("Jobs API", func() {
 					JobName:      "some-job",
 					PipelineName: "a-pipeline",
 					Status:       db.StatusSucceeded,
+					StartTime:    time.Unix(1, 0),
+					EndTime:      time.Unix(100, 0),
 				}, true, nil)
 			})
 
@@ -816,7 +838,9 @@ var _ = Describe("Jobs API", func() {
 					"status": "succeeded",
 					"url": "/pipelines/a-pipeline/jobs/some-job/builds/1",
 					"api_url": "/api/v1/builds/1",
-					"pipeline_name": "a-pipeline"
+					"pipeline_name": "a-pipeline",
+					"start_time": 1,
+					"end_time": 100
 				}`))
 
 			})

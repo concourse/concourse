@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -62,6 +63,8 @@ var _ = Describe("Builds API", func() {
 						JobName:      "",
 						PipelineName: "",
 						Status:       db.StatusStarted,
+						StartTime:    time.Unix(1, 0),
+						EndTime:      time.Unix(100, 0),
 					}, nil)
 				})
 
@@ -105,7 +108,9 @@ var _ = Describe("Builds API", func() {
 							"name": "1",
 							"status": "started",
 							"url": "/builds/42",
-							"api_url": "/api/v1/builds/42"
+							"api_url": "/api/v1/builds/42",
+							"start_time": 1,
+							"end_time": 100
 						}`))
 
 					})
@@ -121,6 +126,8 @@ var _ = Describe("Builds API", func() {
 							JobName:      "",
 							PipelineName: "",
 							Status:       db.StatusStarted,
+							StartTime:    time.Unix(1, 0),
+							EndTime:      time.Unix(100, 0),
 						}))
 
 						Expect(builtPlan).To(Equal(plan))
@@ -219,6 +226,8 @@ var _ = Describe("Builds API", func() {
 						JobName:      "job1",
 						PipelineName: "pipeline1",
 						Status:       db.StatusSucceeded,
+						StartTime:    time.Unix(1, 0),
+						EndTime:      time.Unix(100, 0),
 					}, true, nil)
 				})
 
@@ -241,7 +250,9 @@ var _ = Describe("Builds API", func() {
 						"job_name": "job1",
 						"pipeline_name": "pipeline1",
 						"url": "/pipelines/pipeline1/jobs/job1/builds/1",
-						"api_url": "/api/v1/builds/1"
+						"api_url": "/api/v1/builds/1",
+						"start_time": 1,
+						"end_time": 100
 					}`))
 				})
 			})
@@ -267,6 +278,8 @@ var _ = Describe("Builds API", func() {
 						JobName:      "job2",
 						PipelineName: "pipeline2",
 						Status:       db.StatusStarted,
+						StartTime:    time.Unix(1, 0),
+						EndTime:      time.Unix(100, 0),
 					},
 					{
 						ID:           1,
@@ -274,6 +287,8 @@ var _ = Describe("Builds API", func() {
 						JobName:      "job1",
 						PipelineName: "pipeline1",
 						Status:       db.StatusSucceeded,
+						StartTime:    time.Unix(101, 0),
+						EndTime:      time.Unix(200, 0),
 					},
 				}, nil)
 			})
@@ -294,7 +309,9 @@ var _ = Describe("Builds API", func() {
 						"pipeline_name": "pipeline2",
 						"status": "started",
 						"url": "/pipelines/pipeline2/jobs/job2/builds/2",
-						"api_url": "/api/v1/builds/3"
+						"api_url": "/api/v1/builds/3",
+						"start_time": 1,
+						"end_time": 100
 					},
 					{
 						"id": 1,
@@ -303,7 +320,9 @@ var _ = Describe("Builds API", func() {
 						"pipeline_name": "pipeline1",
 						"status": "succeeded",
 						"url": "/pipelines/pipeline1/jobs/job1/builds/1",
-						"api_url": "/api/v1/builds/1"
+						"api_url": "/api/v1/builds/1",
+						"start_time": 101,
+						"end_time": 200
 					}
 				]`))
 			})
