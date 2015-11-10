@@ -36,6 +36,16 @@ type FakeClient struct {
 		result1 concourse.Events
 		result2 error
 	}
+	BuildResourcesStub        func(buildID int) (atc.BuildInputsOutputs, bool, error)
+	buildResourcesMutex       sync.RWMutex
+	buildResourcesArgsForCall []struct {
+		buildID int
+	}
+	buildResourcesReturns struct {
+		result1 atc.BuildInputsOutputs
+		result2 bool
+		result3 error
+	}
 	AbortBuildStub        func(buildID string) error
 	abortBuildMutex       sync.RWMutex
 	abortBuildArgsForCall []struct {
@@ -300,6 +310,40 @@ func (fake *FakeClient) BuildEventsReturns(result1 concourse.Events, result2 err
 		result1 concourse.Events
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeClient) BuildResources(buildID int) (atc.BuildInputsOutputs, bool, error) {
+	fake.buildResourcesMutex.Lock()
+	fake.buildResourcesArgsForCall = append(fake.buildResourcesArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.buildResourcesMutex.Unlock()
+	if fake.BuildResourcesStub != nil {
+		return fake.BuildResourcesStub(buildID)
+	} else {
+		return fake.buildResourcesReturns.result1, fake.buildResourcesReturns.result2, fake.buildResourcesReturns.result3
+	}
+}
+
+func (fake *FakeClient) BuildResourcesCallCount() int {
+	fake.buildResourcesMutex.RLock()
+	defer fake.buildResourcesMutex.RUnlock()
+	return len(fake.buildResourcesArgsForCall)
+}
+
+func (fake *FakeClient) BuildResourcesArgsForCall(i int) int {
+	fake.buildResourcesMutex.RLock()
+	defer fake.buildResourcesMutex.RUnlock()
+	return fake.buildResourcesArgsForCall[i].buildID
+}
+
+func (fake *FakeClient) BuildResourcesReturns(result1 atc.BuildInputsOutputs, result2 bool, result3 error) {
+	fake.BuildResourcesStub = nil
+	fake.buildResourcesReturns = struct {
+		result1 atc.BuildInputsOutputs
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeClient) AbortBuild(buildID string) error {

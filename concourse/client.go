@@ -12,6 +12,7 @@ type Client interface {
 	AllBuilds() ([]atc.Build, error)
 	Build(buildID string) (atc.Build, bool, error)
 	BuildEvents(buildID string) (Events, error)
+	BuildResources(buildID int) (atc.BuildInputsOutputs, bool, error)
 	AbortBuild(buildID string) error
 	BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error)
 	CreateBuild(plan atc.Plan) (atc.Build, error)
