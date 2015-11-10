@@ -39,8 +39,9 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 
 		// unauthenticated
 		case atc.ListAuthMethods, atc.BuildEvents, atc.DownloadCLI, atc.GetBuild,
-			atc.GetJobBuild, atc.GetJob, atc.GetLogLevel, atc.ListBuilds,
-			atc.ListJobBuilds, atc.ListJobs, atc.ListPipelines, atc.GetPipeline, atc.ListResources:
+			atc.GetJobBuild, atc.BuildResources, atc.GetJob, atc.GetLogLevel, atc.ListBuilds,
+			atc.ListJobBuilds, atc.ListJobs, atc.ListPipelines, atc.GetPipeline,
+			atc.ListResources:
 
 		// think about it!
 		default:

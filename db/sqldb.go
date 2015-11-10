@@ -633,6 +633,76 @@ func (db *SQLDB) GetBuild(buildID int) (Build, bool, error) {
 	`, buildID))
 }
 
+func (db *SQLDB) getBuildVersionedResouces(buildID int, inputsOnly bool) (SavedVersionedResources, error) {
+
+	var resourcesJoin string
+
+	if inputsOnly {
+		resourcesJoin = `
+		INNER JOIN build_inputs bi ON bi.build_id = b.id
+		INNER JOIN versioned_resources vr ON bi.versioned_resource_id = vr.id
+	`
+	} else {
+		resourcesJoin = `
+		INNER JOIN build_outputs bo ON bo.build_id = b.id
+		INNER JOIN versioned_resources vr ON bo.versioned_resource_id = vr.id
+	`
+	}
+
+	rows, err := db.conn.Query(fmt.Sprintf(`
+		SELECT vr.id,
+			vr.enabled,
+			vr.version,
+			vr.metadata,
+			vr.type,
+			r.name,
+			p.name
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		%s
+		INNER JOIN resources r ON vr.resource_id = r.id
+		WHERE b.id = $1
+	`, resourcesJoin), buildID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	savedVersionedResources := SavedVersionedResources{}
+
+	for rows.Next() {
+		var versionedResource SavedVersionedResource
+		var versionJSON []byte
+		var metadataJSON []byte
+		err = rows.Scan(&versionedResource.ID, &versionedResource.Enabled, &versionJSON, &metadataJSON, &versionedResource.Type, &versionedResource.Resource, &versionedResource.PipelineName)
+
+		err = json.Unmarshal(versionJSON, &versionedResource.Version)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal(metadataJSON, &versionedResource.Metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		savedVersionedResources = append(savedVersionedResources, versionedResource)
+	}
+
+	return savedVersionedResources, nil
+
+}
+
+func (db *SQLDB) GetBuildInputVersionedResouces(buildID int) (SavedVersionedResources, error) {
+	return db.getBuildVersionedResouces(buildID, true)
+}
+
+func (db *SQLDB) GetBuildOutputVersionedResouces(buildID int) (SavedVersionedResources, error) {
+	return db.getBuildVersionedResouces(buildID, false)
+}
+
 func (db *SQLDB) CreateOneOffBuild() (Build, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {

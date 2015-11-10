@@ -259,6 +259,144 @@ var _ = Describe("Builds API", func() {
 		})
 	})
 
+	Describe("GET /api/v1/builds/:build_id/resources", func() {
+		var response *http.Response
+
+		Context("when the build is found", func() {
+			BeforeEach(func() {
+				buildsDB.GetBuildReturns(db.Build{}, true, nil)
+			})
+
+			JustBeforeEach(func() {
+				var err error
+
+				response, err = client.Get(server.URL + "/api/v1/builds/3/resources")
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			Context("when the build inputs/ouputs are not empty", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildInputVersionedResoucesReturns(db.SavedVersionedResources{
+						{
+							VersionedResource: db.VersionedResource{
+								Resource: "myresource1",
+								Version:  db.Version{"version1": "value1"},
+							},
+						},
+						{
+							VersionedResource: db.VersionedResource{
+								Resource: "myresource2",
+								Version:  db.Version{"version2": "value2"},
+							},
+						},
+					}, nil)
+					buildsDB.GetBuildOutputVersionedResoucesReturns(db.SavedVersionedResources{
+						{
+							VersionedResource: db.VersionedResource{
+								Resource: "myresource3",
+								Version:  db.Version{"version3": "value3"},
+							},
+						},
+						{
+							VersionedResource: db.VersionedResource{
+								Resource: "myresource4",
+								Version:  db.Version{"version4": "value4"},
+							},
+						},
+					}, nil)
+				})
+
+				It("returns the build with it's input and output versioned resources", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`{
+							"inputs": [
+								{
+									"resource": "myresource1",
+									"version": {"version1": "value1"}
+								},
+								{
+									"resource": "myresource2",
+									"version": {"version2": "value2"}
+								}
+							],
+							"outputs": [
+								{
+									"resource": "myresource3",
+									"version": {"version3": "value3"}
+								},
+								{
+									"resource": "myresource4",
+									"version": {"version4": "value4"}
+								}
+							]
+						}`))
+				})
+			})
+
+			Context("when the build inputs error", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildInputVersionedResoucesReturns(db.SavedVersionedResources{}, errors.New("where are my feedback?"))
+				})
+
+				It("returns internal server error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the build inputs error", func() {
+				BeforeEach(func() {
+					buildsDB.GetBuildInputVersionedResoucesReturns(db.SavedVersionedResources{}, nil)
+					buildsDB.GetBuildOutputVersionedResoucesReturns(db.SavedVersionedResources{}, errors.New("where are my feedback?"))
+				})
+
+				It("returns internal server error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("with an invalid build", func() {
+				Context("when the lookup errors", func() {
+					BeforeEach(func() {
+						buildsDB.GetBuildReturns(db.Build{}, false, errors.New("Freakin' out man, I'm freakin' out!"))
+					})
+
+					It("returns internal server error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the build does not exist", func() {
+					BeforeEach(func() {
+						buildsDB.GetBuildReturns(db.Build{}, false, nil)
+					})
+
+					It("returns internal server error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+			})
+		})
+
+		Context("with an invalid build_id", func() {
+			JustBeforeEach(func() {
+				var err error
+
+				response, err = client.Get(server.URL + "/api/v1/builds/nope/resources")
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns internal server error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+	})
+
 	Describe("GET /api/v1/builds", func() {
 		var response *http.Response
 

@@ -34,6 +34,69 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			})
 		})
 
+		It("can get a build's inputs", func() {
+			build, err := database.PipelineDB.CreateJobBuild("some-job")
+			Expect(err).ToNot(HaveOccurred())
+
+			expectedBuildInput, err := database.PipelineDB.SaveBuildInput(build.ID, db.BuildInput{
+				Name: "some-input",
+				VersionedResource: db.VersionedResource{
+					Resource: "some-resource",
+					Type:     "some-type",
+					Version: db.Version{
+						"some": "version",
+					},
+					Metadata: []db.MetadataField{
+						{
+							Name:  "meta1",
+							Value: "data1",
+						},
+						{
+							Name:  "meta2",
+							Value: "data2",
+						},
+					},
+					PipelineName: "some-pipeline",
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			actualBuildInput, err := database.DB.GetBuildInputVersionedResouces(build.ID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(actualBuildInput)).To(Equal(1))
+			Expect(actualBuildInput[0]).To(Equal(expectedBuildInput))
+		})
+
+		It("can get a build's output", func() {
+			build, err := database.PipelineDB.CreateJobBuild("some-job")
+			Expect(err).ToNot(HaveOccurred())
+
+			expectedBuildOutput, err := database.PipelineDB.SaveBuildOutput(build.ID, db.VersionedResource{
+				Resource: "some-resource",
+				Type:     "some-type",
+				Version: db.Version{
+					"some": "version",
+				},
+				Metadata: []db.MetadataField{
+					{
+						Name:  "meta1",
+						Value: "data1",
+					},
+					{
+						Name:  "meta2",
+						Value: "data2",
+					},
+				},
+				PipelineName: "some-pipeline",
+			}, false)
+			Expect(err).ToNot(HaveOccurred())
+
+			actualBuildOutput, err := database.DB.GetBuildOutputVersionedResouces(build.ID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(actualBuildOutput)).To(Equal(1))
+			Expect(actualBuildOutput[0]).To(Equal(expectedBuildOutput))
+		})
+
 		It("can keep track of volume data", func() {
 			By("allowing you to insert")
 			expectedVolume := db.Volume{

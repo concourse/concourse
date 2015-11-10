@@ -111,11 +111,12 @@ func NewHandler(
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
 		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
 
-		atc.GetBuild:    http.HandlerFunc(buildServer.GetBuild),
-		atc.ListBuilds:  http.HandlerFunc(buildServer.ListBuilds),
-		atc.CreateBuild: http.HandlerFunc(buildServer.CreateBuild),
-		atc.BuildEvents: http.HandlerFunc(buildServer.BuildEvents),
-		atc.AbortBuild:  http.HandlerFunc(buildServer.AbortBuild),
+		atc.GetBuild:       http.HandlerFunc(buildServer.GetBuild),
+		atc.ListBuilds:     http.HandlerFunc(buildServer.ListBuilds),
+		atc.CreateBuild:    http.HandlerFunc(buildServer.CreateBuild),
+		atc.BuildEvents:    http.HandlerFunc(buildServer.BuildEvents),
+		atc.BuildResources: http.HandlerFunc(buildServer.BuildResources),
+		atc.AbortBuild:     http.HandlerFunc(buildServer.AbortBuild),
 
 		atc.ListJobs:      pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
 		atc.GetJob:        pipelineHandlerFactory.HandlerFor(jobServer.GetJob),

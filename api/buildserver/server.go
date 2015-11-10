@@ -29,9 +29,12 @@ type Server struct {
 }
 
 //go:generate counterfeiter . BuildsDB
+
 type BuildsDB interface {
 	GetBuild(buildID int) (db.Build, bool, error)
 	GetBuildEvents(buildID int, from uint) (db.EventSource, error)
+	GetBuildInputVersionedResouces(buildID int) (db.SavedVersionedResources, error)
+	GetBuildOutputVersionedResouces(buildID int) (db.SavedVersionedResources, error)
 
 	GetAllBuilds() ([]db.Build, error)
 
