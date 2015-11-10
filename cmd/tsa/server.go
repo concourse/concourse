@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/tsa"
 	"github.com/felixge/tcpkeepalive"
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
@@ -307,6 +308,7 @@ func (server *registrarSSHServer) continuouslyRegisterForwardedWorker(
 func (server *registrarSSHServer) heartbeatWorker(logger lager.Logger, worker atc.Worker, channel ssh.Channel) ifrit.Process {
 	return ifrit.Background(tsa.NewHeartbeater(
 		logger,
+		clock.NewClock(),
 		server.heartbeatInterval,
 		server.cprInterval,
 		gclient.New(gconn.NewWithDialerAndLogger(keepaliveDialerFactory("tcp", worker.GardenAddr), logger.Session("garden-connection"))),

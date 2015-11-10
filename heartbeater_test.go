@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
+	"github.com/pivotal-golang/clock/fakeclock"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
@@ -23,15 +24,15 @@ import (
 
 var _ = Describe("Heartbeater", func() {
 	type registration struct {
-		worker       atc.Worker
-		ttl          time.Duration
-		lastInterval time.Duration
+		worker atc.Worker
+		ttl    time.Duration
 	}
 
 	var (
 		logger lager.Logger
 
 		addrToRegister string
+		fakeClock      *fakeclock.FakeClock
 		interval       time.Duration
 		cprInterval    time.Duration
 		resourceTypes  []atc.WorkerResourceType
@@ -53,6 +54,7 @@ var _ = Describe("Heartbeater", func() {
 		logger = lagertest.NewTestLogger("test")
 
 		addrToRegister = "1.2.3.4:7777"
+		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		interval = time.Second
 		cprInterval = 100 * time.Millisecond
 		resourceTypes = []atc.WorkerResourceType{
@@ -78,7 +80,6 @@ var _ = Describe("Heartbeater", func() {
 		registered := make(chan registration, 100)
 		registrations = registered
 
-		lastRequestTime := time.Now()
 		verifyHeartbeat = ghttp.CombineHandlers(
 			ghttp.VerifyRequest(registerRoute.Method, registerRoute.Path),
 			func(w http.ResponseWriter, r *http.Request) {
@@ -91,11 +92,7 @@ var _ = Describe("Heartbeater", func() {
 				ttl, err := time.ParseDuration(r.URL.Query().Get("ttl"))
 				Expect(err).NotTo(HaveOccurred())
 
-				requestTime := time.Now()
-				lastInterval := requestTime.Sub(lastRequestTime)
-				lastRequestTime = requestTime
-
-				registered <- registration{worker, ttl, lastInterval}
+				registered <- registration{worker, ttl}
 			},
 		)
 
@@ -111,6 +108,7 @@ var _ = Describe("Heartbeater", func() {
 		heartbeater = ifrit.Invoke(
 			NewHeartbeater(
 				logger,
+				fakeClock,
 				interval,
 				cprInterval,
 				fakeGardenClient,
@@ -174,19 +172,15 @@ var _ = Describe("Heartbeater", func() {
 			})
 
 			It("immediately registers", func() {
-				actualRegistration := <-registrations
-				Expect(actualRegistration.worker).To(Equal(expectedWorker))
-				Expect(actualRegistration.ttl).To(Equal(2 * interval))
-				Expect(actualRegistration.lastInterval).To(BeNumerically("~", 0, 100*time.Millisecond))
+				Expect(registrations).To(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
 
 			It("heartbeats", func() {
-				<-registrations
-				actualRegistration := <-registrations
+				Expect(registrations).To(Receive())
+
+				fakeClock.Increment(interval)
 				expectedWorker.ActiveContainers = 5
-				Expect(actualRegistration.worker).To(Equal(expectedWorker))
-				Expect(actualRegistration.ttl).To(Equal(2 * interval))
-				Expect(actualRegistration.lastInterval).To(BeNumerically("~", interval, 20*time.Millisecond))
+				Eventually(registrations).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
 		})
 
@@ -204,24 +198,31 @@ var _ = Describe("Heartbeater", func() {
 			})
 
 			It("heartbeats faster according to cprInterval", func() {
-				<-registrations
-				<-registrations
-				actualRegistration := <-registrations
+				Expect(registrations).To(Receive())
+
+				fakeClock.Increment(interval)
+				Eventually(registrations).Should(Receive())
+
+				fakeClock.Increment(cprInterval)
 				expectedWorker.ActiveContainers = 4
-				Expect(actualRegistration.worker).To(Equal(expectedWorker))
-				Expect(actualRegistration.ttl).To(Equal(2 * interval))
-				Expect(actualRegistration.lastInterval).To(BeNumerically("~", cprInterval, 20*time.Millisecond))
+				Eventually(registrations).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
 
 			It("goes back to normal after the heartbeat succeeds", func() {
-				<-registrations
-				<-registrations
-				<-registrations
-				actualRegistration := <-registrations
+				Expect(registrations).To(Receive())
+
+				fakeClock.Increment(interval)
+				Eventually(registrations).Should(Receive())
+
+				fakeClock.Increment(cprInterval)
+				Eventually(registrations).Should(Receive())
+
+				fakeClock.Increment(cprInterval)
+				Consistently(registrations).ShouldNot(Receive())
+
+				fakeClock.Increment(interval - cprInterval)
 				expectedWorker.ActiveContainers = 3
-				Expect(actualRegistration.worker).To(Equal(expectedWorker))
-				Expect(actualRegistration.ttl).To(Equal(2 * interval))
-				Expect(actualRegistration.lastInterval).To(BeNumerically("~", interval, 20*time.Millisecond))
+				Eventually(registrations).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
 		})
 	})

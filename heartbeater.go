@@ -13,6 +13,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
@@ -21,6 +22,7 @@ import (
 type heartbeater struct {
 	logger lager.Logger
 
+	clock       clock.Clock
 	interval    time.Duration
 	cprInterval time.Duration
 
@@ -34,6 +36,7 @@ type heartbeater struct {
 
 func NewHeartbeater(
 	logger lager.Logger,
+	clock clock.Clock,
 	interval time.Duration,
 	cprInterval time.Duration,
 	gardenClient garden.Client,
@@ -45,6 +48,7 @@ func NewHeartbeater(
 	return &heartbeater{
 		logger: logger,
 
+		clock:       clock,
 		interval:    interval,
 		cprInterval: cprInterval,
 
@@ -60,7 +64,7 @@ func NewHeartbeater(
 func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	for !heartbeater.register(heartbeater.logger.Session("register")) {
 		select {
-		case <-time.After(time.Second):
+		case <-heartbeater.clock.NewTimer(time.Second).C():
 		case <-signals:
 			return nil
 		}
@@ -75,7 +79,7 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 		case <-signals:
 			return nil
 
-		case <-time.After(currentInterval):
+		case <-heartbeater.clock.NewTimer(currentInterval).C():
 			healthy := heartbeater.register(heartbeater.logger.Session("heartbeat"))
 			if healthy {
 				currentInterval = heartbeater.interval
