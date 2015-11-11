@@ -633,37 +633,9 @@ func (db *SQLDB) GetBuild(buildID int) (Build, bool, error) {
 	`, buildID))
 }
 
-func (db *SQLDB) getBuildVersionedResouces(buildID int, inputsOnly bool) (SavedVersionedResources, error) {
+func (db *SQLDB) getBuildVersionedResouces(buildID int, resourceRequest string) (SavedVersionedResources, error) {
 
-	var resourcesJoin string
-
-	if inputsOnly {
-		resourcesJoin = `
-		INNER JOIN build_inputs bi ON bi.build_id = b.id
-		INNER JOIN versioned_resources vr ON bi.versioned_resource_id = vr.id
-	`
-	} else {
-		resourcesJoin = `
-		INNER JOIN build_outputs bo ON bo.build_id = b.id
-		INNER JOIN versioned_resources vr ON bo.versioned_resource_id = vr.id
-	`
-	}
-
-	rows, err := db.conn.Query(fmt.Sprintf(`
-		SELECT vr.id,
-			vr.enabled,
-			vr.version,
-			vr.metadata,
-			vr.type,
-			r.name,
-			p.name
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
-		%s
-		INNER JOIN resources r ON vr.resource_id = r.id
-		WHERE b.id = $1
-	`, resourcesJoin), buildID)
+	rows, err := db.conn.Query(resourceRequest, buildID)
 	if err != nil {
 		return nil, err
 	}
@@ -696,11 +668,39 @@ func (db *SQLDB) getBuildVersionedResouces(buildID int, inputsOnly bool) (SavedV
 }
 
 func (db *SQLDB) GetBuildInputVersionedResouces(buildID int) (SavedVersionedResources, error) {
-	return db.getBuildVersionedResouces(buildID, true)
+	return db.getBuildVersionedResouces(buildID, `
+		SELECT vr.id,
+			vr.enabled,
+			vr.version,
+			vr.metadata,
+			vr.type,
+			r.name,
+			p.name
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN build_inputs bi ON bi.build_id = b.id
+		INNER JOIN versioned_resources vr ON bi.versioned_resource_id = vr.id
+		INNER JOIN resources r ON vr.resource_id = r.id
+		WHERE b.id = $1`)
 }
 
 func (db *SQLDB) GetBuildOutputVersionedResouces(buildID int) (SavedVersionedResources, error) {
-	return db.getBuildVersionedResouces(buildID, false)
+	return db.getBuildVersionedResouces(buildID, `
+		SELECT vr.id,
+			vr.enabled,
+			vr.version,
+			vr.metadata,
+			vr.type,
+			r.name,
+			p.name
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN build_outputs bo ON bo.build_id = b.id
+		INNER JOIN versioned_resources vr ON bo.versioned_resource_id = vr.id
+		INNER JOIN resources r ON vr.resource_id = r.id
+		WHERE b.id = $1 AND bo.explicit`)
 }
 
 func (db *SQLDB) CreateOneOffBuild() (Build, error) {

@@ -72,7 +72,26 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedBuildOutput, err := database.PipelineDB.SaveBuildOutput(build.ID, db.VersionedResource{
-				Resource: "some-resource",
+				Resource: "some-explicit-resource",
+				Type:     "some-type",
+				Version: db.Version{
+					"some": "version",
+				},
+				Metadata: []db.MetadataField{
+					{
+						Name:  "meta1",
+						Value: "data1",
+					},
+					{
+						Name:  "meta2",
+						Value: "data2",
+					},
+				},
+				PipelineName: "some-pipeline",
+			}, true)
+
+			_, err = database.PipelineDB.SaveBuildOutput(build.ID, db.VersionedResource{
+				Resource: "some-implicit-resource",
 				Type:     "some-type",
 				Version: db.Version{
 					"some": "version",
