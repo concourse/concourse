@@ -11,11 +11,6 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type BuildInputsOutputs struct {
-	Inputs  []atc.VersionedResource `json:"inputs"`
-	Outputs []atc.VersionedResource `json:"outputs"`
-}
-
 type BuildNotFoundError struct{}
 
 func (b BuildNotFoundError) Error() string {
@@ -53,7 +48,7 @@ func (s *Server) BuildResources(w http.ResponseWriter, r *http.Request) {
 		atcOutputs = append(atcOutputs, present.VersionedResource(output))
 	}
 
-	output := BuildInputsOutputs{
+	output := atc.BuildInputsOutputs{
 		Inputs:  atcInputs,
 		Outputs: atcOutputs,
 	}
