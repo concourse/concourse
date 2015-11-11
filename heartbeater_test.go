@@ -178,7 +178,7 @@ var _ = Describe("Heartbeater", func() {
 			It("heartbeats", func() {
 				Expect(registrations).To(Receive())
 
-				fakeClock.Increment(interval)
+				fakeClock.WaitForWatcherAndIncrement(interval)
 				expectedWorker.ActiveContainers = 5
 				Eventually(registrations).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
@@ -200,10 +200,10 @@ var _ = Describe("Heartbeater", func() {
 			It("heartbeats faster according to cprInterval", func() {
 				Expect(registrations).To(Receive())
 
-				fakeClock.Increment(interval)
+				fakeClock.WaitForWatcherAndIncrement(interval)
 				Eventually(registrations).Should(Receive())
 
-				fakeClock.Increment(cprInterval)
+				fakeClock.WaitForWatcherAndIncrement(cprInterval)
 				expectedWorker.ActiveContainers = 4
 				Eventually(registrations).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
@@ -211,16 +211,16 @@ var _ = Describe("Heartbeater", func() {
 			It("goes back to normal after the heartbeat succeeds", func() {
 				Expect(registrations).To(Receive())
 
-				fakeClock.Increment(interval)
+				fakeClock.WaitForWatcherAndIncrement(interval)
 				Eventually(registrations).Should(Receive())
 
-				fakeClock.Increment(cprInterval)
+				fakeClock.WaitForWatcherAndIncrement(cprInterval)
 				Eventually(registrations).Should(Receive())
 
-				fakeClock.Increment(cprInterval)
+				fakeClock.WaitForWatcherAndIncrement(cprInterval)
 				Consistently(registrations).ShouldNot(Receive())
 
-				fakeClock.Increment(interval - cprInterval)
+				fakeClock.WaitForWatcherAndIncrement(interval - cprInterval)
 				expectedWorker.ActiveContainers = 3
 				Eventually(registrations).Should(Receive(Equal(registration{expectedWorker, 2 * interval})))
 			})
