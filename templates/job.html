@@ -42,45 +42,45 @@
         <li class="js-build" data-status="{{.Build.Status}}">
           <a class="{{.Build.Status}}" href="{{url "GetBuild" $job .Build}}">&#35;{{.Build.Name}}</a>
 
-					<div class="pam clearfix">
-						<div class="js-build-times build-times mbm" data-start-time="{{.Build.StartTime.Unix}}" data-end-time={{.Build.EndTime.Unix}}></div>
+          <div class="pam clearfix">
+            <div class="js-build-times build-times mbm" data-start-time="{{.Build.StartTime.Unix}}" data-end-time={{.Build.EndTime.Unix}}></div>
 
-						<div class="inputs mrl" >
-							<div class="resource-title pbs"><i class="fa fa-fw fa-arrow-down prs"></i>inputs </div>
-							<div class="build-resources">
-								{{range .Inputs}}
-									<div class="mbs pas resource fl clearfix">
-										<div class="resource-name mrm">
-											{{.VersionedResource.Resource}}
-										</div>
-										<div class="resource-version">
-											{{range $name, $val := .VersionedResource.Version}}
-											{{$name}}: {{$val}}
-											{{end}}
-										</div>
-									</div>
-								{{end}}
-							</div>
-						</div>
+            <div class="inputs mrl" >
+              <div class="resource-title pbs"><i class="fa fa-fw fa-arrow-down prs"></i>inputs </div>
+              <div class="build-resources">
+                {{range .Resources.Inputs}}
+                  <div class="mbs pas resource fl clearfix">
+                    <div class="resource-name mrm">
+                      {{.Resource}}
+                    </div>
+                    <div class="resource-version">
+                      {{range $name, $val := .Version}}
+                      {{$name}}: {{$val}}
+                      {{end}}
+                    </div>
+                  </div>
+                {{end}}
+              </div>
+            </div>
 
-						<div class="outputs mrl">
-							<div class="resource-title pbs"><i class="fa fa-fw fa-arrow-up prs"></i>outputs</div>
-							<div class="build-resources">
-								{{range .Outputs}}
-									<div class="mbs pas resource fl clearfix">
-										<div class="resource-name mrm">
-											{{.VersionedResource.Resource}}
-										</div>
-										<div class="resource-version">
-											{{range $name, $val := .VersionedResource.Version}}
-											{{$name}}: {{$val}}
-											{{end}}
-										</div>
-									</div>
-								{{end}}
-							</div>
-						</div>
-					</div>
+            <div class="outputs mrl">
+              <div class="resource-title pbs"><i class="fa fa-fw fa-arrow-up prs"></i>outputs</div>
+              <div class="build-resources">
+                {{range .Resources.Outputs}}
+                  <div class="mbs pas resource fl clearfix">
+                    <div class="resource-name mrm">
+                      {{.Resource}}
+                    </div>
+                    <div class="resource-version">
+                      {{range $name, $val := .Version}}
+                      {{$name}}: {{$val}}
+                      {{end}}
+                    </div>
+                  </div>
+                {{end}}
+              </div>
+            </div>
+          </div>
         </li>
         {{end}}
       </ul>

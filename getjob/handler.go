@@ -8,19 +8,22 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/group"
 	"github.com/concourse/atc/web/pagination"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/pivotal-golang/lager"
 )
 
 type BuildWithInputsOutputs struct {
-	Build   db.Build
-	Inputs  []db.BuildInput
-	Outputs []db.BuildOutput
+	Build     db.Build
+	Resources atc.BuildInputsOutputs
 }
 
 type server struct {
 	logger lager.Logger
+
+	clientFactory web.ClientFactory
 
 	db       db.DB
 	configDB db.ConfigDB
@@ -28,11 +31,11 @@ type server struct {
 	template *template.Template
 }
 
-func NewServer(logger lager.Logger, template *template.Template) *server {
+func NewServer(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) *server {
 	return &server{
-		logger: logger,
-
-		template: template,
+		logger:        logger,
+		clientFactory: clientFactory,
+		template:      template,
 	}
 }
 
@@ -56,7 +59,6 @@ type JobDB interface {
 	GetJob(string) (db.SavedJob, error)
 	GetCurrentBuild(job string) (db.Build, bool, error)
 	GetPipelineName() string
-	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
 }
 
 //go:generate counterfeiter . JobBuildsPaginator
@@ -68,7 +70,7 @@ type JobBuildsPaginator interface {
 var ErrJobConfigNotFound = errors.New("could not find job")
 var Err = errors.New("could not find job")
 
-func FetchTemplateData(jobDB JobDB, paginator JobBuildsPaginator, jobName string, startingJobBuildID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
+func FetchTemplateData(client concourse.Client, jobDB JobDB, paginator JobBuildsPaginator, jobName string, startingJobBuildID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
 	config, _, found, err := jobDB.GetConfig()
 	if err != nil {
 		return TemplateData{}, err
@@ -91,15 +93,14 @@ func FetchTemplateData(jobDB JobDB, paginator JobBuildsPaginator, jobName string
 	var bsr []BuildWithInputsOutputs
 
 	for _, build := range bs {
-		inputs, outputs, err := jobDB.GetBuildResources(build.ID)
+		buildInputsOutputs, _, err := client.BuildResources(build.ID)
 		if err != nil {
 			return TemplateData{}, err
 		}
 
 		bsr = append(bsr, BuildWithInputsOutputs{
-			Build:   build,
-			Inputs:  inputs,
-			Outputs: outputs,
+			Build:     build,
+			Resources: buildInputsOutputs,
 		})
 	}
 
@@ -143,6 +144,7 @@ func FetchTemplateData(jobDB JobDB, paginator JobBuildsPaginator, jobName string
 func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log := server.logger.Session("job")
+
 		jobName := r.FormValue(":job")
 		if len(jobName) == 0 {
 			w.WriteHeader(http.StatusBadRequest)
@@ -161,6 +163,7 @@ func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 		}
 
 		templateData, err := FetchTemplateData(
+			server.clientFactory.Build(r),
 			pipelineDB,
 			Paginator{
 				PaginatorDB: pipelineDB,

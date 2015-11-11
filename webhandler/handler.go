@@ -112,7 +112,7 @@ func NewHandler(
 		return nil, err
 	}
 
-	jobServer := getjob.NewServer(logger, jobTemplate)
+	jobServer := getjob.NewServer(logger, clientFactory, jobTemplate)
 	resourceServer := getresource.NewServer(logger, resourceTemplate)
 	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
 	buildServer := getbuild.NewServer(logger, buildTemplate)
