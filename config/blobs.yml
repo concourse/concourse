@@ -81,10 +81,10 @@ btrfs_tools_3.12/mkfs.btrfs:
   sha: 80108e80d404d8fdd435703f8526ff8a44e4bbe2
   size: 171728
 resources/pool-resource.tar.gz:
-  object_id: 6997d7c4-58d1-4de1-9c4a-de3fadad2f7d
+  object_id: deac2c92-4cc1-4261-96da-0a2062a4f0fd
   sha: !binary |-
-    ZDg4ZmE4MzRmZjIyYzM3MWM3MmM0YjE1NDQ2NGEwZjY2MGFhY2ZjZQ==
-  size: 9611114
+    MzY5YWVjNjc0MTkzZjQyYjg0ZDVhOGIzMmQ0ZDMxMjEyMDdmNDQwOA==
+  size: 9617179
 golang_1.5/go1.5.1.linux-amd64.tar.gz:
   object_id: 6fe7cb89-c844-4191-a791-01a1625526ab
   sha: 46eecd290d8803887dec718c691cc243f2175fe0
