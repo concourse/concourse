@@ -67,17 +67,18 @@ type JobBuildsPaginator interface {
 	PaginateJobBuilds(job string, startingJobBuildID int, newerJobBuilds bool) ([]db.Build, pagination.PaginationData, error)
 }
 
+var ErrConfigNotFound = errors.New("could not find config")
 var ErrJobConfigNotFound = errors.New("could not find job")
 var Err = errors.New("could not find job")
 
-func FetchTemplateData(client concourse.Client, jobDB JobDB, paginator JobBuildsPaginator, jobName string, startingJobBuildID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
-	config, _, found, err := jobDB.GetConfig()
+func FetchTemplateData(pipelineName string, client concourse.Client, jobDB JobDB, paginator JobBuildsPaginator, jobName string, startingJobBuildID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
+	config, _, found, err := client.PipelineConfig(pipelineName)
 	if err != nil {
 		return TemplateData{}, err
 	}
 
 	if !found {
-		return TemplateData{}, ErrJobConfigNotFound
+		return TemplateData{}, ErrConfigNotFound
 	}
 
 	job, found := config.Jobs.Lookup(jobName)
@@ -163,6 +164,7 @@ func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 		}
 
 		templateData, err := FetchTemplateData(
+			r.FormValue(":pipeline_name"),
 			server.clientFactory.Build(r),
 			pipelineDB,
 			Paginator{
