@@ -4,7 +4,7 @@
 <div class="js-job" data-endpoint="pipelines/{{.PipelineName}}/jobs/{{.Job.Name}}">
   <div id="page-header" class="{{if .CurrentBuild}}{{.CurrentBuild.Status}}{{else}}no-builds{{end}}">
     <div class="build-header">
-      {{if .DBJob.Paused}}
+      {{if .Job.Paused}}
         <span class="btn-pause btn-large fl enabled js-pauseUnpause"><i class="fa fa-fw fa-play"></i></span>
       {{else}}
         <span class="btn-pause btn-large fl disabled js-pauseUnpause"><i class="fa fa-fw fa-pause"></i></span>

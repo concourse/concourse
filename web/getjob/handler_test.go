@@ -19,18 +19,16 @@ import (
 )
 
 var _ = Describe("FetchTemplateData", func() {
-	var fakeDB *fakes.FakeJobDB
 	var fakeClient *cfakes.FakeClient
 	var fakePaginator *fakes.FakeJobBuildsPaginator
 
 	BeforeEach(func() {
-		fakeDB = new(fakes.FakeJobDB)
 		fakeClient = new(cfakes.FakeClient)
 		fakePaginator = new(fakes.FakeJobBuildsPaginator)
 	})
 
 	It("calls to get the pipeline config", func() {
-		FetchTemplateData("some-pipeline", fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
+		FetchTemplateData("some-pipeline", fakeClient, fakePaginator, "job-name", 0, false)
 		Expect(fakeClient.PipelineConfigCallCount()).To(Equal(1))
 		Expect(fakeClient.PipelineConfigArgsForCall(0)).To(Equal("some-pipeline"))
 	})
@@ -43,7 +41,7 @@ var _ = Describe("FetchTemplateData", func() {
 		})
 
 		It("returns an error if the config could not be loaded", func() {
-			_, err := FetchTemplateData("some-pipeline", fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
+			_, err := FetchTemplateData("some-pipeline", fakeClient, fakePaginator, "job-name", 0, false)
 			Expect(err).To(Equal(expectedErr))
 		})
 	})
@@ -54,18 +52,13 @@ var _ = Describe("FetchTemplateData", func() {
 		})
 
 		It("returns an error if the config could not be loaded", func() {
-			_, err := FetchTemplateData("some-pipeline", fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
+			_, err := FetchTemplateData("some-pipeline", fakeClient, fakePaginator, "job-name", 0, false)
 			Expect(err).To(Equal(ErrConfigNotFound))
 		})
 	})
 
 	Context("when the config database returns a config", func() {
-		var job atc.JobConfig
-
 		BeforeEach(func() {
-			job = atc.JobConfig{
-				Name: "job-name",
-			}
 			config := atc.Config{
 				Groups: atc.GroupConfigs{
 					{
@@ -76,29 +69,60 @@ var _ = Describe("FetchTemplateData", func() {
 						Name: "group-without-job",
 					},
 				},
-				Jobs: []atc.JobConfig{
-					job,
-				},
 			}
 
 			fakeClient.PipelineConfigReturns(config, "", true, nil)
 		})
 
-		It("returns not found if the job cannot be found in the config", func() {
-			_, err := FetchTemplateData("some-pipeline", fakeClient, fakeDB, fakePaginator, "not-a-job-name", 0, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err).To(MatchError(ErrJobConfigNotFound))
+		It("calls to get the job from the client", func() {
+			FetchTemplateData("some-pipeline", fakeClient, fakePaginator, "not-a-job-name", 0, false)
+			Expect(fakeClient.JobCallCount()).To(Equal(1))
+			actualPipelineName, actualJobName := fakeClient.JobArgsForCall(0)
+			Expect(actualPipelineName).To(Equal("some-pipeline"))
+			Expect(actualJobName).To(Equal("not-a-job-name"))
 		})
 
-		Context("when the job can be found in the config", func() {
+		Context("when the client returns an error", func() {
+			var expectedErr error
+			BeforeEach(func() {
+				expectedErr = errors.New("nope")
+				fakeClient.JobReturns(atc.Job{}, false, expectedErr)
+			})
+
+			It("returns an error", func() {
+				_, actualErr := FetchTemplateData("some-pipeline", fakeClient, fakePaginator, "not-a-job-name", 0, false)
+				Expect(actualErr).To(HaveOccurred())
+				Expect(actualErr).To(MatchError(expectedErr))
+			})
+		})
+
+		Context("when the job could not be found", func() {
+			BeforeEach(func() {
+				fakeClient.JobReturns(atc.Job{}, false, nil)
+			})
+
+			It("returns an error", func() {
+				_, actualErr := FetchTemplateData("some-pipeline", fakeClient, fakePaginator, "not-a-job-name", 0, false)
+				Expect(actualErr).To(HaveOccurred())
+				Expect(actualErr).To(MatchError(ErrJobConfigNotFound))
+			})
+		})
+
+		Context("when the job is found", func() {
+			BeforeEach(func() {
+				fakeClient.JobReturns(atc.Job{
+					Name: "some-job",
+				}, true, nil)
+			})
+
 			It("looks up the jobs builds", func() {
-				_, err := FetchTemplateData("some-pipeline", fakeClient, fakeDB, fakePaginator, "job-name", 398, true)
+				_, err := FetchTemplateData("some-pipeline", fakeClient, fakePaginator, "job-name", 398, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakePaginator.PaginateJobBuildsCallCount()).To(Equal(1))
 
 				jobName, startingJobBuildID, resultsGreaterThanStartingID := fakePaginator.PaginateJobBuildsArgsForCall(0)
-				Expect(jobName).To(Equal("job-name"))
+				Expect(jobName).To(Equal("some-job"))
 				Expect(startingJobBuildID).To(Equal(398))
 				Expect(resultsGreaterThanStartingID).To(BeTrue())
 			})
@@ -106,7 +130,7 @@ var _ = Describe("FetchTemplateData", func() {
 			Context("when the job builds lookup returns an error", func() {
 				It("returns an error if the jobs's builds could not be retreived", func() {
 					fakePaginator.PaginateJobBuildsReturns([]db.Build{}, pagination.PaginationData{}, errors.New("disaster"))
-					_, err := FetchTemplateData("some-pipeline", fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
+					_, err := FetchTemplateData("some-pipeline", fakeClient, fakePaginator, "job-name", 0, false)
 					Expect(err).To(HaveOccurred())
 				})
 			})
@@ -140,79 +164,53 @@ var _ = Describe("FetchTemplateData", func() {
 					fakePaginator.PaginateJobBuildsReturns(builds, paginationData, nil)
 				})
 
-				Context("when the get job lookup returns an error", func() {
-					It("returns an error", func() {
-						fakeDB.GetJobReturns(db.SavedJob{}, errors.New("disaster"))
-						_, err := FetchTemplateData("some-pipeline", fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
-						Expect(err).To(HaveOccurred())
-					})
+				Context("when getting inputs and outputs for a build", func() {
+					var buildResources atc.BuildInputsOutputs
 
-					Context("when getting inputs and outputs for a build", func() {
-						var buildResources atc.BuildInputsOutputs
-
-						BeforeEach(func() {
-							buildResources = atc.BuildInputsOutputs{
-								Inputs: []atc.PublicBuildInput{
-									{
-										Resource: "some-input-resource",
-										Version: atc.Version{
-											"some": "version",
-										},
-									},
-								},
-								Outputs: []atc.VersionedResource{
-									{
-										Resource: "some-output-resource",
-										Version: atc.Version{
-											"some": "version",
-										},
-									},
-								},
-							}
-
-							buildsWithResources = []BuildWithInputsOutputs{
+					BeforeEach(func() {
+						buildResources = atc.BuildInputsOutputs{
+							Inputs: []atc.PublicBuildInput{
 								{
-									Build:     builds[0],
-									Resources: buildResources,
+									Resource: "some-input-resource",
+									Version: atc.Version{
+										"some": "version",
+									},
 								},
-							}
+							},
+							Outputs: []atc.VersionedResource{
+								{
+									Resource: "some-output-resource",
+									Version: atc.Version{
+										"some": "version",
+									},
+								},
+							},
+						}
 
+						buildsWithResources = []BuildWithInputsOutputs{
+							{
+								Build:     builds[0],
+								Resources: buildResources,
+							},
+						}
+
+					})
+
+					Context("when get build resources returns an error", func() {
+						BeforeEach(func() {
+							fakeClient.BuildResourcesReturns(atc.BuildInputsOutputs{}, false, errors.New("Nooooooooooooooooo"))
 						})
 
-						Context("when get build resources returns an error", func() {
-							BeforeEach(func() {
-								fakeClient.BuildResourcesReturns(atc.BuildInputsOutputs{}, false, errors.New("Nooooooooooooooooo"))
-							})
-
-							It("returns an error", func() {
-								templateData, err := FetchTemplateData("some-pipeline", fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
-								Expect(err).To(HaveOccurred())
-								Expect(templateData).To(Equal(TemplateData{}))
-							})
-						})
-
-						Context("when we get inputs and outputs", func() {
-							BeforeEach(func() {
-								fakeClient.BuildResourcesReturns(buildResources, true, nil)
-							})
-
-							It("populates the inputs and outputs for the builds returned", func() {
-								templateData, err := FetchTemplateData("some-pipeline", fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
-								Expect(err).NotTo(HaveOccurred())
-								Expect(fakeClient.BuildResourcesCallCount()).To(Equal(1))
-
-								calledBuildID := fakeClient.BuildResourcesArgsForCall(0)
-								Expect(calledBuildID).To(Equal(1))
-
-								Expect(templateData.Builds).To(Equal(buildsWithResources))
-							})
+						It("returns an error", func() {
+							templateData, err := FetchTemplateData("some-pipeline", fakeClient, fakePaginator, "job-name", 0, false)
+							Expect(err).To(HaveOccurred())
+							Expect(templateData).To(Equal(TemplateData{}))
 						})
 					})
 
-					Context("when the get job lookup returns a job", func() {
+					Context("when we get inputs and outputs", func() {
 						var groupStates []group.State
-						var dbJob db.SavedJob
-
+						var job atc.Job
 						BeforeEach(func() {
 							groupStates = []group.State{
 								{
@@ -225,30 +223,35 @@ var _ = Describe("FetchTemplateData", func() {
 								},
 							}
 
-							dbJob = db.SavedJob{
-								Paused: false,
-								Job: db.Job{
-									Name: "some-job",
-								},
+							job = atc.Job{
+								Name: "job-name",
 							}
 
-							fakeDB.GetJobReturns(dbJob, nil)
-							fakeDB.GetPipelineNameReturns("some-pipeline")
-							fakeClient.BuildResourcesReturns(atc.BuildInputsOutputs{}, true, nil)
+							fakeClient.BuildResourcesReturns(buildResources, true, nil)
 						})
 
-						Context("when there is no current build", func() {
+						It("populates the inputs and outputs for the builds returned", func() {
+							templateData, err := FetchTemplateData("some-pipeline", fakeClient, fakePaginator, "job-name", 0, false)
+							Expect(err).NotTo(HaveOccurred())
+							Expect(fakeClient.BuildResourcesCallCount()).To(Equal(1))
+
+							calledBuildID := fakeClient.BuildResourcesArgsForCall(0)
+							Expect(calledBuildID).To(Equal(1))
+
+							Expect(templateData.Builds).To(Equal(buildsWithResources))
+						})
+
+						Context("when there is no finished build", func() {
 							BeforeEach(func() {
-								fakeDB.GetCurrentBuildReturns(db.Build{}, false, nil)
+								fakeClient.JobReturns(job, true, nil)
 							})
 
-							It("has the correct template data with no current build", func() {
-								templateData, err := FetchTemplateData("some-pipeline", fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
+							It("has the correct template data", func() {
+								templateData, err := FetchTemplateData("some-pipeline", fakeClient, fakePaginator, "job-name", 0, false)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(templateData.GroupStates).To(ConsistOf(groupStates))
 								Expect(templateData.Job).To(Equal(job))
-								Expect(templateData.DBJob).To(Equal(dbJob))
 								Expect(templateData.Builds).To(Equal(buildsWithResources))
 								Expect(templateData.CurrentBuild).To(BeNil())
 								Expect(templateData.PipelineName).To(Equal("some-pipeline"))
@@ -256,52 +259,25 @@ var _ = Describe("FetchTemplateData", func() {
 							})
 						})
 
-						Context("when the current build is found", func() {
-							var currentBuild db.Build
+						Context("when we have a finished build", func() {
 
 							BeforeEach(func() {
-								currentBuild = db.Build{
-									ID:      1,
-									Name:    "1",
-									JobName: "job-name",
-									Status:  db.StatusSucceeded,
+								job.FinishedBuild = &atc.Build{
+									ID: 2,
 								}
-
-								fakeDB.GetCurrentBuildReturns(currentBuild, true, nil)
+								fakeClient.JobReturns(job, true, nil)
 							})
 
 							It("has the correct template data", func() {
-								templateData, err := FetchTemplateData("some-pipeline", fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
+								templateData, err := FetchTemplateData("some-pipeline", fakeClient, fakePaginator, "job-name", 0, false)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(templateData.GroupStates).To(ConsistOf(groupStates))
 								Expect(templateData.Job).To(Equal(job))
-								Expect(templateData.DBJob).To(Equal(dbJob))
 								Expect(templateData.Builds).To(Equal(buildsWithResources))
-								Expect(templateData.CurrentBuild).To(Equal(&currentBuild))
-							})
-
-							Context("when the job is paused", func() {
-								BeforeEach(func() {
-									dbJob = db.SavedJob{
-										Paused: true,
-										Job: db.Job{
-											Name: "some-job",
-										},
-									}
-									fakeDB.GetJobReturns(dbJob, nil)
-								})
-
-								It("has the correct template data and sets the current build status to paused", func() {
-									templateData, err := FetchTemplateData("some-pipeline", fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
-									Expect(err).NotTo(HaveOccurred())
-
-									Expect(templateData.GroupStates).To(ConsistOf(groupStates))
-									Expect(templateData.Job).To(Equal(job))
-									Expect(templateData.DBJob).To(Equal(dbJob))
-									Expect(templateData.Builds).To(Equal(buildsWithResources))
-									Expect(templateData.CurrentBuild).To(Equal(&currentBuild))
-								})
+								Expect(templateData.CurrentBuild).To(Equal(&atc.Build{
+									ID: 2,
+								}))
 							})
 						})
 					})

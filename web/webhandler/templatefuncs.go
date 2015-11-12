@@ -69,8 +69,12 @@ func jobName(x interface{}) string {
 	switch v := x.(type) {
 	case string:
 		return v
+	case atc.Job:
+		return v.Name
+	case atc.JobConfig:
+		return v.Name
 	default:
-		return x.(atc.JobConfig).Name
+		panic(fmt.Sprintf("unexpected arg type"))
 	}
 }
 
@@ -140,21 +144,10 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		})
 
 	case web.GetJob:
-		var err error
-		var baseJobURL string
-		switch args[1].(type) {
-		case atc.Job:
-			baseJobURL, err = web.Routes.CreatePathForRoute(route, rata.Params{
-				"pipeline_name": args[0].(string),
-				"job":           args[1].(atc.Job).Name,
-			})
-		default:
-			baseJobURL, err = web.Routes.CreatePathForRoute(route, rata.Params{
-				"pipeline_name": args[0].(string),
-				"job":           args[1].(atc.JobConfig).Name,
-			})
-		}
-
+		baseJobURL, err := web.Routes.CreatePathForRoute(route, rata.Params{
+			"pipeline_name": args[0].(string),
+			"job":           jobName(args[1]),
+		})
 		if err != nil {
 			return "", err
 		}
