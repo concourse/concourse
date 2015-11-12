@@ -258,6 +258,8 @@ jobs:
   plan:
   - get: bosh-io-stemcell-resource
     trigger: true
+  - task: unit
+    file: bosh-io-stemcell-resource/build.yml
   - put: resource-image
     resource: bosh-io-stemcell-resource-image
     params: {build: bosh-io-stemcell-resource}
