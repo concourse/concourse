@@ -40,25 +40,15 @@ func NewServer(logger lager.Logger, clientFactory web.ClientFactory, template *t
 }
 
 type TemplateData struct {
-	Job    atc.JobConfig
-	DBJob  db.SavedJob
+	Job    atc.Job
 	Builds []BuildWithInputsOutputs
 
 	GroupStates []group.State
 
-	CurrentBuild *db.Build
+	CurrentBuild *atc.Build
 	PipelineName string
 
 	PaginationData pagination.PaginationData
-}
-
-//go:generate counterfeiter . JobDB
-
-type JobDB interface {
-	GetConfig() (atc.Config, db.ConfigVersion, bool, error)
-	GetJob(string) (db.SavedJob, error)
-	GetCurrentBuild(job string) (db.Build, bool, error)
-	GetPipelineName() string
 }
 
 //go:generate counterfeiter . JobBuildsPaginator
@@ -71,18 +61,21 @@ var ErrConfigNotFound = errors.New("could not find config")
 var ErrJobConfigNotFound = errors.New("could not find job")
 var Err = errors.New("could not find job")
 
-func FetchTemplateData(pipelineName string, client concourse.Client, jobDB JobDB, paginator JobBuildsPaginator, jobName string, startingJobBuildID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
-	config, _, found, err := client.PipelineConfig(pipelineName)
+func FetchTemplateData(pipelineName string, client concourse.Client, paginator JobBuildsPaginator, jobName string, startingJobBuildID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
+	config, _, pipelineFound, err := client.PipelineConfig(pipelineName)
 	if err != nil {
 		return TemplateData{}, err
 	}
 
-	if !found {
+	if !pipelineFound {
 		return TemplateData{}, ErrConfigNotFound
 	}
 
-	job, found := config.Jobs.Lookup(jobName)
-	if !found {
+	job, jobFound, err := client.Job(pipelineName, jobName)
+	if err != nil {
+		return TemplateData{}, err
+	}
+	if !jobFound {
 		return TemplateData{}, ErrJobConfigNotFound
 	}
 
@@ -105,26 +98,9 @@ func FetchTemplateData(pipelineName string, client concourse.Client, jobDB JobDB
 		})
 	}
 
-	var currentBuild *db.Build
-
-	current, found, err := jobDB.GetCurrentBuild(job.Name)
-	if err != nil {
-		return TemplateData{}, err
-	}
-
-	if found {
-		currentBuild = &current
-	}
-
-	dbJob, err := jobDB.GetJob(job.Name)
-	if err != nil {
-		return TemplateData{}, err
-	}
-
 	return TemplateData{
-		PipelineName:   jobDB.GetPipelineName(),
+		PipelineName:   pipelineName,
 		Job:            job,
-		DBJob:          dbJob,
 		Builds:         bsr,
 		PaginationData: paginationData,
 
@@ -138,7 +114,7 @@ func FetchTemplateData(pipelineName string, client concourse.Client, jobDB JobDB
 			return false
 		}),
 
-		CurrentBuild: currentBuild,
+		CurrentBuild: job.FinishedBuild,
 	}, nil
 }
 
@@ -166,7 +142,6 @@ func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 		templateData, err := FetchTemplateData(
 			r.FormValue(":pipeline_name"),
 			server.clientFactory.Build(r),
-			pipelineDB,
 			Paginator{
 				PaginatorDB: pipelineDB,
 			},
