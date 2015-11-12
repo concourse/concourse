@@ -1,4 +1,4 @@
-package commands
+package deprecated
 
 import (
 	"net/http"
@@ -7,13 +7,13 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-type atcRequester struct {
+type AtcRequester struct {
 	*rata.RequestGenerator
-	httpClient *http.Client
+	HttpClient *http.Client
 }
 
-func newAtcRequester(target string, httpClient *http.Client) *atcRequester {
-	return &atcRequester{
+func NewAtcRequester(target string, httpClient *http.Client) *AtcRequester {
+	return &AtcRequester{
 		rata.NewRequestGenerator(target, atc.Routes),
 		httpClient,
 	}
