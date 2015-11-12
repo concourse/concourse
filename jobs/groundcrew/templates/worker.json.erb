@@ -17,6 +17,25 @@
     network.ip
   end
 
+  def merge_resource_types(base_resource_types, additional_resource_types)
+    merged_resource_types = {}
+
+    base_resource_types.each do |resource_type|
+      merged_resource_types[resource_type.fetch("type")] = resource_type.fetch("image")
+    end
+
+    additional_resource_types.each do |resource_type|
+      merged_resource_types[resource_type.fetch("type")] = resource_type.fetch("image")
+    end
+
+    merged_resource_types.map do |type, image|
+      {
+        "type" => type,
+        "image" => image,
+      }
+    end
+  end
+
   garden_addr = p("groundcrew.garden.address", nil)
   garden_addr ||= "#{discover_external_ip}:7777"
 
@@ -34,6 +53,6 @@
     "addr" => garden_addr,
     "baggageclaim_url" => baggageclaim_url,
 
-    "resource_types" => p("groundcrew.resource_types"),
+    "resource_types" => merge_resource_types(p("groundcrew.resource_types"), p("groundcrew.additional_resource_types")),
   }.to_json
 %>

@@ -109,6 +109,10 @@ properties:
       - type: bosh-deployment
         image: /var/vcap/packages/bosh_deployment_resource
 
+  groundcrew.additional_resource_types:
+    description: "additional resource types that will be merged into groundcrew.resource_types (the same format is used)"
+    default: []
+
   groundcrew.platform:
     description: "platform of the worker to advertise"
     default: linux
