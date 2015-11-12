@@ -27,10 +27,10 @@ import (
 )
 
 type HijackCommand struct {
-	Job      flaghelpers.JobFlag `short:"j" long:"job"   value-name:"PIPELINE/JOB"   description:"Name of a job to hijack"`
-	Check    ResourceFlag        `short:"c" long:"check" value-name:"PIPELINE/CHECK" description:"Name of a resource's checking container to hijack"`
-	Build    string              `short:"b" long:"build"                               description:"Name of a specific build of a job"`
-	StepName string              `short:"s" long:"step"                                description:"Name of step to hijack (e.g. build, unit, resource name)"`
+	Job      flaghelpers.JobFlag      `short:"j" long:"job"   value-name:"PIPELINE/JOB"   description:"Name of a job to hijack"`
+	Check    flaghelpers.ResourceFlag `short:"c" long:"check" value-name:"PIPELINE/CHECK" description:"Name of a resource's checking container to hijack"`
+	Build    string                   `short:"b" long:"build"                               description:"Name of a specific build of a job"`
+	StepName string                   `short:"s" long:"step"                                description:"Name of step to hijack (e.g. build, unit, resource name)"`
 }
 
 func remoteCommand(argv []string) (string, []string) {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
+	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/template"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/onsi/gomega/gexec"
@@ -21,7 +22,7 @@ type ATCConfig struct {
 	webRequestGenerator *rata.RequestGenerator
 }
 
-func (atcConfig ATCConfig) Set(configPath PathFlag, templateVariables template.Variables, templateVariablesFiles []PathFlag) {
+func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariables template.Variables, templateVariablesFiles []flaghelpers.PathFlag) {
 	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
 	existingConfig, existingConfigVersion, _, err := atcConfig.client.PipelineConfig(atcConfig.pipelineName)
 	if err != nil {
@@ -41,7 +42,7 @@ func (atcConfig ATCConfig) Set(configPath PathFlag, templateVariables template.V
 	atcConfig.showHelpfulMessage(created, updated)
 }
 
-func (atcConfig ATCConfig) newConfig(configPath PathFlag, templateVariablesFiles []PathFlag, templateVariables template.Variables) atc.Config {
+func (atcConfig ATCConfig) newConfig(configPath flaghelpers.PathFlag, templateVariablesFiles []flaghelpers.PathFlag, templateVariables template.Variables) atc.Config {
 	configFile, err := ioutil.ReadFile(string(configPath))
 	if err != nil {
 		failWithErrorf("could not read config file", err)

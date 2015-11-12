@@ -19,7 +19,7 @@ import (
 )
 
 type ExecuteCommand struct {
-	TaskConfig     PathFlag                     `short:"c" long:"config" required:"true"                description:"The task config to execute"`
+	TaskConfig     flaghelpers.PathFlag         `short:"c" long:"config" required:"true"                description:"The task config to execute"`
 	Privileged     bool                         `short:"p" long:"privileged"                            description:"Run the task with full privileges"`
 	ExcludeIgnored bool                         `short:"x" long:"exclude-ignored"                       description:"Skip uploading .gitignored paths"`
 	Inputs         []flaghelpers.InputPairFlag  `short:"i" long:"input"       value-name:"NAME=PATH"    description:"An input to provide to the task (can be specified multiple times)"`

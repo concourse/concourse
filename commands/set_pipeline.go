@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/concourse/atc/web"
+	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/template"
 	"github.com/concourse/go-concourse/concourse"
@@ -11,10 +12,10 @@ import (
 )
 
 type SetPipelineCommand struct {
-	Pipeline string             `short:"p"  long:"pipeline" required:"true"      description:"Pipeline to configure"`
-	Config   PathFlag           `short:"c"  long:"config"                        description:"Pipeline configuration file"`
-	Var      []VariablePairFlag `short:"v"  long:"var" value-name:"[SECRET=KEY]" description:"Variable flag that can be used for filling in template values in configuration"`
-	VarsFrom []PathFlag         `short:"l"  long:"load-vars-from"                description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
+	Pipeline string                         `short:"p"  long:"pipeline" required:"true"      description:"Pipeline to configure"`
+	Config   flaghelpers.PathFlag           `short:"c"  long:"config"                        description:"Pipeline configuration file"`
+	Var      []flaghelpers.VariablePairFlag `short:"v"  long:"var" value-name:"[SECRET=KEY]" description:"Variable flag that can be used for filling in template values in configuration"`
+	VarsFrom []flaghelpers.PathFlag         `short:"l"  long:"load-vars-from"                description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
 }
 
 func (command *SetPipelineCommand) Execute(args []string) error {
