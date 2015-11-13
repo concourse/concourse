@@ -2,11 +2,6 @@
 
 \title{Getting Started}{getting-started}
 
-The \hyperlink{https://github.com/concourse/concourse}{Concourse repo} is a
-\hyperlink{https://github.com/cloudfoundry/bosh}{BOSH} release containing
-everything necessary to deploy to arbitrary infrastructures (or your laptop)
-with largely the same configuration.
-
 The easiest way to get a Concourse instance going so that you can learn the
 concepts first-hand is by using the pre-built Vagrant boxes.
 
