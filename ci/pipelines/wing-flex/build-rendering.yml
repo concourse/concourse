@@ -18,35 +18,35 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
       - task: agg-do-2
         config:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
     - task: agg-1
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     - task: agg-2
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1; exit 0;
     - task: agg-3
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1; exit 0;
     ensure:
       task: agg-ensure
@@ -54,7 +54,7 @@ jobs:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
 
 - name: putgets
@@ -69,7 +69,7 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - cd  repo; touch `date +%s`; git config --global user.email
               "derp@herp.com"; git config --global user.name "ci derpin herps"; git
               add .; git commit -m 'makein a commit yo';
@@ -82,28 +82,28 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
     - task: agg-1
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     - task: agg-2
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1; exit 0;
     - task: agg-3
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1; exit 0;
   - put: repo
     params:
@@ -117,7 +117,7 @@ jobs:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     - aggregate:
       - task: do-agg-1
@@ -125,28 +125,28 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
       - task: do-agg-2
         config:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1; exit 0;
       - task: do-agg-3
         config:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1; exit 0;
     - task: do-3
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     - do:
       - task: do-do-1
@@ -154,14 +154,14 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
       - task: do-do-2
         config:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
     ensure:
       task: do-ensure
@@ -169,7 +169,7 @@ jobs:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
 
 - name: all-the-things
@@ -180,14 +180,14 @@ jobs:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     - task: vanilla-agg-2
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     ensure:
       task: agg-ensure
@@ -195,7 +195,7 @@ jobs:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
   - do:
     - task: vanilla-do-1
@@ -203,14 +203,14 @@ jobs:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     - task: vanilla-do-2
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
   - do:
     - task: do-1
@@ -218,7 +218,7 @@ jobs:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     - aggregate:
       - task: do-agg-1
@@ -226,14 +226,14 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
       - task: do-agg-2
         config:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1; exit 0;
       ensure:
         task: agg-ensure
@@ -241,14 +241,14 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
     - task: do-2
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     ensure:
       task: do-ensure
@@ -256,7 +256,7 @@ jobs:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
   - do:
     - aggregate:
@@ -265,14 +265,14 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
       - task: agg-first-do-agg-2
         config:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1; exit 0;
       ensure:
         task: agg-ensure
@@ -280,21 +280,21 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
     - task: agg-first-do-1
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     - task: agg-first-do-2
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     ensure:
       task: do-ensure
@@ -302,7 +302,7 @@ jobs:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
   - aggregate:
     - task: agg-1
@@ -310,7 +310,7 @@ jobs:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     - do:
       - task: agg-do-1
@@ -318,21 +318,21 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
       - task: agg-do-2
         config:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1; exit 0;
     - task: agg-2
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
   - aggregate:
     - do:
@@ -341,28 +341,28 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
       - task: do-first-agg-do-2
         config:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1; exit 0;
     - task: do-first-agg-1
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
     - task: do-first-agg-2
       config:
         run:
           path: sh
           args:
-          - -c
+          - -xc
           - sleep 1;exit 0;
   - aggregate:
     - do:
@@ -371,14 +371,14 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
       - task: agg-with-do-only-1-do-2
         config:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1; exit 0;
     - do:
       - task: agg-with-do-only-2-do-1
@@ -386,12 +386,12 @@ jobs:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1;exit 0;
       - task: agg-with-do-only-2-do-2
         config:
           run:
             path: sh
             args:
-            - -c
+            - -xc
             - sleep 1; exit 0;
