@@ -253,7 +253,8 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			events3, err := database.GetBuildEvents(build.ID, 0)
 			Expect(err).NotTo(HaveOccurred())
 
-			events3.Close()
+			err = events3.Close()
+			Expect(err).NotTo(HaveOccurred())
 
 			_, err = events3.Next()
 			Expect(err).To(Equal(db.ErrBuildEventStreamClosed))
