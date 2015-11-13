@@ -271,7 +271,8 @@ run:
 	It("flies with multiple passengers", func() {
 		flyCmd := exec.Command(
 			flyPath, "-t", atcServer.URL(), "e",
-			"--input", fmt.Sprintf("some-input=%s", buildDir), "--input", fmt.Sprintf("some-other-input=%s", otherInputDir),
+			"--input", fmt.Sprintf("some-input=%s", buildDir),
+			"--input", fmt.Sprintf("some-other-input=%s", otherInputDir),
 			"--config", filepath.Join(buildDir, "task.yml"),
 		)
 
@@ -286,5 +287,8 @@ run:
 		close(events)
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
+
+		<-sess.Exited
+		Expect(sess).To(gexec.Exit(0))
 	})
 })

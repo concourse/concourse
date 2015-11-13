@@ -296,7 +296,6 @@ run:
 
 					err = gw.Close()
 					Expect(err).NotTo(HaveOccurred())
-
 				},
 			),
 		)

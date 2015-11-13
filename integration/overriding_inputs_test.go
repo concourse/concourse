@@ -280,5 +280,8 @@ run:
 		close(events)
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
+
+		<-sess.Exited
+		Expect(sess).To(gexec.Exit(0))
 	})
 })
