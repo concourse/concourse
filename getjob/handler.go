@@ -55,6 +55,7 @@ type TemplateData struct {
 //go:generate counterfeiter . JobDB
 
 type JobDB interface {
+	GetConfig() (atc.Config, db.ConfigVersion, bool, error)
 	GetJob(string) (db.SavedJob, error)
 	GetCurrentBuild(job string) (db.Build, bool, error)
 	GetPipelineName() string
@@ -69,9 +70,8 @@ type JobBuildsPaginator interface {
 var ErrJobConfigNotFound = errors.New("could not find job")
 var Err = errors.New("could not find job")
 
-func FetchTemplateData(client concourse.Client, pipelineName string, jobDB JobDB, paginator JobBuildsPaginator, jobName string, startingJobBuildID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
-
-	config, _, found, err := client.PipelineConfig(pipelineName)
+func FetchTemplateData(client concourse.Client, jobDB JobDB, paginator JobBuildsPaginator, jobName string, startingJobBuildID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
+	config, _, found, err := jobDB.GetConfig()
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -164,7 +164,6 @@ func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 
 		templateData, err := FetchTemplateData(
 			server.clientFactory.Build(r),
-			r.FormValue(":pipeline_name"),
 			pipelineDB,
 			Paginator{
 				PaginatorDB: pipelineDB,
