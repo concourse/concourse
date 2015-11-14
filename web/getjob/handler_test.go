@@ -30,31 +30,24 @@ var _ = Describe("FetchTemplateData", func() {
 	})
 
 	Context("when the config database returns an error", func() {
-		var expectedError error
 		BeforeEach(func() {
-			expectedError = errors.New("disaster")
-			fakeClient.PipelineConfigReturns(atc.Config{}, "", false, expectedError)
+			fakeDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("disaster"))
 		})
 
 		It("returns an error if the config could not be loaded", func() {
-			_, err := FetchTemplateData(fakeClient, "some-pipeline", fakeDB, fakePaginator, "job-name", 0, false)
+			_, err := FetchTemplateData(fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(Equal(expectedError))
 		})
 	})
 
 	Context("when the config database returns no config", func() {
 		BeforeEach(func() {
-			fakeClient.PipelineConfigReturns(atc.Config{}, "", false, nil)
+			fakeDB.GetConfigReturns(atc.Config{}, 0, false, nil)
 		})
 
 		It("returns an error if the config could not be loaded", func() {
-			_, err := FetchTemplateData(fakeClient, "some-pipeline", fakeDB, fakePaginator, "job-name", 0, false)
+			_, err := FetchTemplateData(fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
 			Expect(err).To(HaveOccurred())
-
-			Expect(fakeClient.PipelineConfigCallCount()).To(Equal(1))
-			pipelineName := fakeClient.PipelineConfigArgsForCall(0)
-			Expect(pipelineName).To(Equal("some-pipeline"))
 		})
 	})
 
@@ -80,18 +73,18 @@ var _ = Describe("FetchTemplateData", func() {
 				},
 			}
 
-			fakeClient.PipelineConfigReturns(config, "", true, nil)
+			fakeDB.GetConfigReturns(config, db.ConfigVersion(1), true, nil)
 		})
 
 		It("returns not found if the job cannot be found in the config", func() {
-			_, err := FetchTemplateData(fakeClient, "some-pipeline", fakeDB, fakePaginator, "not-a-job-name", 0, false)
+			_, err := FetchTemplateData(fakeClient, fakeDB, fakePaginator, "not-a-job-name", 0, false)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError(ErrJobConfigNotFound))
 		})
 
 		Context("when the job can be found in the config", func() {
 			It("looks up the jobs builds", func() {
-				_, err := FetchTemplateData(fakeClient, "some-pipeline", fakeDB, fakePaginator, "job-name", 398, true)
+				_, err := FetchTemplateData(fakeClient, fakeDB, fakePaginator, "job-name", 398, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakePaginator.PaginateJobBuildsCallCount()).To(Equal(1))
@@ -105,7 +98,7 @@ var _ = Describe("FetchTemplateData", func() {
 			Context("when the job builds lookup returns an error", func() {
 				It("returns an error if the jobs's builds could not be retreived", func() {
 					fakePaginator.PaginateJobBuildsReturns([]db.Build{}, pagination.PaginationData{}, errors.New("disaster"))
-					_, err := FetchTemplateData(fakeClient, "some-pipeline", fakeDB, fakePaginator, "job-name", 0, false)
+					_, err := FetchTemplateData(fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
 					Expect(err).To(HaveOccurred())
 				})
 			})
@@ -142,7 +135,7 @@ var _ = Describe("FetchTemplateData", func() {
 				Context("when the get job lookup returns an error", func() {
 					It("returns an error", func() {
 						fakeDB.GetJobReturns(db.SavedJob{}, errors.New("disaster"))
-						_, err := FetchTemplateData(fakeClient, "some-pipeline", fakeDB, fakePaginator, "job-name", 0, false)
+						_, err := FetchTemplateData(fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
 						Expect(err).To(HaveOccurred())
 					})
 
@@ -184,7 +177,7 @@ var _ = Describe("FetchTemplateData", func() {
 							})
 
 							It("returns an error", func() {
-								templateData, err := FetchTemplateData(fakeClient, "some-pipeline", fakeDB, fakePaginator, "job-name", 0, false)
+								templateData, err := FetchTemplateData(fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
 								Expect(err).To(HaveOccurred())
 								Expect(templateData).To(Equal(TemplateData{}))
 							})
@@ -196,7 +189,7 @@ var _ = Describe("FetchTemplateData", func() {
 							})
 
 							It("populates the inputs and outputs for the builds returned", func() {
-								templateData, err := FetchTemplateData(fakeClient, "some-pipeline", fakeDB, fakePaginator, "job-name", 0, false)
+								templateData, err := FetchTemplateData(fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
 								Expect(err).NotTo(HaveOccurred())
 								Expect(fakeClient.BuildResourcesCallCount()).To(Equal(1))
 
@@ -242,7 +235,7 @@ var _ = Describe("FetchTemplateData", func() {
 							})
 
 							It("has the correct template data with no current build", func() {
-								templateData, err := FetchTemplateData(fakeClient, "some-pipeline", fakeDB, fakePaginator, "job-name", 0, false)
+								templateData, err := FetchTemplateData(fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(templateData.GroupStates).To(ConsistOf(groupStates))
@@ -270,7 +263,7 @@ var _ = Describe("FetchTemplateData", func() {
 							})
 
 							It("has the correct template data", func() {
-								templateData, err := FetchTemplateData(fakeClient, "some-pipeline", fakeDB, fakePaginator, "job-name", 0, false)
+								templateData, err := FetchTemplateData(fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(templateData.GroupStates).To(ConsistOf(groupStates))
@@ -292,7 +285,7 @@ var _ = Describe("FetchTemplateData", func() {
 								})
 
 								It("has the correct template data and sets the current build status to paused", func() {
-									templateData, err := FetchTemplateData(fakeClient, "some-pipeline", fakeDB, fakePaginator, "job-name", 0, false)
+									templateData, err := FetchTemplateData(fakeClient, fakeDB, fakePaginator, "job-name", 0, false)
 									Expect(err).NotTo(HaveOccurred())
 
 									Expect(templateData.GroupStates).To(ConsistOf(groupStates))
