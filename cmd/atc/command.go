@@ -185,7 +185,6 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		oauthProviders,
 		basicAuthEnabled,
 		pipelineDBFactory,
-		radarSchedulerFactory,
 		engine,
 	)
 	if err != nil {
@@ -577,7 +576,6 @@ func (cmd *ATCCommand) constructWebHandler(
 	oauthProviders auth.Providers,
 	basicAuthEnabled bool,
 	pipelineDBFactory db.PipelineDBFactory,
-	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	engine engine.Engine,
 ) (http.Handler, error) {
 	webWrapper := wrappa.MultiWrappa{
@@ -594,7 +592,6 @@ func (cmd *ATCCommand) constructWebHandler(
 		webWrapper,
 		oauthProviders,
 		basicAuthEnabled,
-		radarSchedulerFactory,
 		sqlDB,
 		pipelineDBFactory,
 		sqlDB,
