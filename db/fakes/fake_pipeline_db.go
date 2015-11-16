@@ -239,6 +239,15 @@ type FakePipelineDB struct {
 		result1 int
 		result2 error
 	}
+	GetJobBuildsMinIDStub        func(jobName string) (int, error)
+	getJobBuildsMinIDMutex       sync.RWMutex
+	getJobBuildsMinIDArgsForCall []struct {
+		jobName string
+	}
+	getJobBuildsMinIDReturns struct {
+		result1 int
+		result2 error
+	}
 	GetAllJobBuildsStub        func(job string) ([]db.Build, error)
 	getAllJobBuildsMutex       sync.RWMutex
 	getAllJobBuildsArgsForCall []struct {
@@ -1201,6 +1210,39 @@ func (fake *FakePipelineDB) GetJobBuildsMaxIDArgsForCall(i int) string {
 func (fake *FakePipelineDB) GetJobBuildsMaxIDReturns(result1 int, result2 error) {
 	fake.GetJobBuildsMaxIDStub = nil
 	fake.getJobBuildsMaxIDReturns = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) GetJobBuildsMinID(jobName string) (int, error) {
+	fake.getJobBuildsMinIDMutex.Lock()
+	fake.getJobBuildsMinIDArgsForCall = append(fake.getJobBuildsMinIDArgsForCall, struct {
+		jobName string
+	}{jobName})
+	fake.getJobBuildsMinIDMutex.Unlock()
+	if fake.GetJobBuildsMinIDStub != nil {
+		return fake.GetJobBuildsMinIDStub(jobName)
+	} else {
+		return fake.getJobBuildsMinIDReturns.result1, fake.getJobBuildsMinIDReturns.result2
+	}
+}
+
+func (fake *FakePipelineDB) GetJobBuildsMinIDCallCount() int {
+	fake.getJobBuildsMinIDMutex.RLock()
+	defer fake.getJobBuildsMinIDMutex.RUnlock()
+	return len(fake.getJobBuildsMinIDArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetJobBuildsMinIDArgsForCall(i int) string {
+	fake.getJobBuildsMinIDMutex.RLock()
+	defer fake.getJobBuildsMinIDMutex.RUnlock()
+	return fake.getJobBuildsMinIDArgsForCall[i].jobName
+}
+
+func (fake *FakePipelineDB) GetJobBuildsMinIDReturns(result1 int, result2 error) {
+	fake.GetJobBuildsMinIDStub = nil
+	fake.getJobBuildsMinIDReturns = struct {
 		result1 int
 		result2 error
 	}{result1, result2}

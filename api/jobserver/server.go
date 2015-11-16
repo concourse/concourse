@@ -16,14 +16,17 @@ type Server struct {
 	logger lager.Logger
 
 	schedulerFactory SchedulerFactory
+	externalURL      string
 }
 
 func NewServer(
 	logger lager.Logger,
 	schedulerFactory SchedulerFactory,
+	externalURL string,
 ) *Server {
 	return &Server{
 		logger:           logger,
 		schedulerFactory: schedulerFactory,
+		externalURL:      externalURL,
 	}
 }

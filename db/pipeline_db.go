@@ -53,6 +53,8 @@ type PipelineDB interface {
 
 	GetJobBuildsCursor(jobName string, startingID int, resultsGreaterThanStartingID bool, limit int) ([]Build, bool, error)
 	GetJobBuildsMaxID(jobName string) (int, error)
+	GetJobBuildsMinID(jobName string) (int, error)
+
 	GetAllJobBuilds(job string) ([]Build, error)
 	GetJobBuild(job string, build string) (Build, bool, error)
 	CreateJobBuild(job string) (Build, error)
@@ -1734,6 +1736,20 @@ func (pdb *pipelineDB) GetJobBuildsMaxID(jobName string) (int, error) {
 
 	err := pdb.conn.QueryRow(`
 		SELECT COALESCE(MAX(b.id), 0) as id
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		WHERE j.name = $1
+			AND j.pipeline_id = $2
+		`, jobName, pdb.ID).Scan(&id)
+
+	return id, err
+}
+
+func (pdb *pipelineDB) GetJobBuildsMinID(jobName string) (int, error) {
+	var id int
+
+	err := pdb.conn.QueryRow(`
+		SELECT COALESCE(MIN(b.id), 0) as id
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		WHERE j.name = $1
