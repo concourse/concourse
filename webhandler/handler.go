@@ -41,7 +41,6 @@ func NewHandler(
 	wrapper wrappa.Wrappa,
 	providers auth.Providers,
 	basicAuthEnabled bool,
-	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	db WebDB,
 	pipelineDBFactory db.PipelineDBFactory,
 	configDB db.ConfigDB,
@@ -116,7 +115,6 @@ func NewHandler(
 	resourceServer := getresource.NewServer(logger, resourceTemplate)
 	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
 	buildServer := getbuild.NewServer(logger, buildTemplate)
-	triggerBuildServer := triggerbuild.NewServer(logger, radarSchedulerFactory)
 
 	handlers := map[string]http.Handler{
 		web.Index:           index.NewHandler(logger, pipelineDBFactory, pipelineHandler, indexTemplate),
@@ -129,7 +127,7 @@ func NewHandler(
 		web.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
 		web.LogIn:           login.NewHandler(logger, basicAuthEnabled, providers, logInTemplate),
 		web.BasicAuth:       login.NewBasicAuthHandler(logger),
-		web.TriggerBuild:    pipelineHandlerFactory.HandlerFor(triggerBuildServer.TriggerBuild),
+		web.TriggerBuild:    triggerbuild.NewHandler(logger, clientFactory),
 		web.Debug:           debug.NewServer(logger, db, debugTemplate),
 	}
 
