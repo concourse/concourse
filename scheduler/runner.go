@@ -17,6 +17,7 @@ import (
 type BuildScheduler interface {
 	TryNextPendingBuild(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) Waiter
 	BuildLatestInputs(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) error
+	TriggerImmediately(lager.Logger, atc.JobConfig, atc.ResourceConfigs) (db.Build, Waiter, error)
 }
 
 var errPipelineRemoved = errors.New("pipeline removed")

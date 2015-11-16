@@ -13,14 +13,15 @@ const (
 	BuildResources = "BuildResources"
 	AbortBuild     = "AbortBuild"
 
-	GetJob        = "GetJob"
-	ListJobs      = "ListJobs"
-	ListJobBuilds = "ListJobBuilds"
-	ListJobInputs = "ListJobInputs"
-	GetJobBuild   = "GetJobBuild"
-	PauseJob      = "PauseJob"
-	UnpauseJob    = "UnpauseJob"
-	GetVersionsDB = "GetVersionsDB"
+	GetJob         = "GetJob"
+	CreateJobBuild = "CreateJobBuild"
+	ListJobs       = "ListJobs"
+	ListJobBuilds  = "ListJobBuilds"
+	ListJobInputs  = "ListJobInputs"
+	GetJobBuild    = "GetJobBuild"
+	PauseJob       = "PauseJob"
+	UnpauseJob     = "UnpauseJob"
+	GetVersionsDB  = "GetVersionsDB"
 
 	ListResources          = "ListResources"
 	EnableResourceVersion  = "EnableResourceVersion"
@@ -71,6 +72,7 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs", Method: "GET", Name: ListJobs},
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name", Method: "GET", Name: GetJob},
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name/builds", Method: "GET", Name: ListJobBuilds},
+	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name/builds", Method: "POST", Name: CreateJobBuild},
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name/inputs", Method: "GET", Name: ListJobInputs},
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name/builds/:build_name", Method: "GET", Name: GetJobBuild},
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name/pause", Method: "PUT", Name: PauseJob},

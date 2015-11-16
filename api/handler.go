@@ -57,6 +57,8 @@ func NewHandler(
 	engine engine.Engine,
 	workerClient worker.Client,
 
+	schedulerFactory jobserver.SchedulerFactory,
+
 	sink *lager.ReconfigurableSink,
 
 	cliDownloadsDir string,
@@ -86,7 +88,7 @@ func NewHandler(
 		drain,
 	)
 
-	jobServer := jobserver.NewServer(logger)
+	jobServer := jobserver.NewServer(logger, schedulerFactory)
 	resourceServer := resourceserver.NewServer(logger)
 	pipeServer := pipes.NewServer(logger, peerURL, pipeDB)
 
@@ -118,13 +120,14 @@ func NewHandler(
 		atc.BuildResources: http.HandlerFunc(buildServer.BuildResources),
 		atc.AbortBuild:     http.HandlerFunc(buildServer.AbortBuild),
 
-		atc.ListJobs:      pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
-		atc.GetJob:        pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
-		atc.ListJobBuilds: pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds),
-		atc.ListJobInputs: pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs),
-		atc.GetJobBuild:   pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild),
-		atc.PauseJob:      pipelineHandlerFactory.HandlerFor(jobServer.PauseJob),
-		atc.UnpauseJob:    pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob),
+		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
+		atc.GetJob:         pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
+		atc.ListJobBuilds:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds),
+		atc.ListJobInputs:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs),
+		atc.GetJobBuild:    pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild),
+		atc.CreateJobBuild: pipelineHandlerFactory.HandlerFor(jobServer.CreateJobBuild),
+		atc.PauseJob:       pipelineHandlerFactory.HandlerFor(jobServer.PauseJob),
+		atc.UnpauseJob:     pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob),
 
 		atc.ListPipelines:   http.HandlerFunc(pipelineServer.ListPipelines),
 		atc.GetPipeline:     http.HandlerFunc(pipelineServer.GetPipeline),

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/scheduler"
 	"github.com/pivotal-golang/lager"
@@ -32,6 +33,18 @@ type FakeBuildScheduler struct {
 	}
 	buildLatestInputsReturns struct {
 		result1 error
+	}
+	TriggerImmediatelyStub        func(lager.Logger, atc.JobConfig, atc.ResourceConfigs) (db.Build, scheduler.Waiter, error)
+	triggerImmediatelyMutex       sync.RWMutex
+	triggerImmediatelyArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 atc.JobConfig
+		arg3 atc.ResourceConfigs
+	}
+	triggerImmediatelyReturns struct {
+		result1 db.Build
+		result2 scheduler.Waiter
+		result3 error
 	}
 }
 
@@ -103,6 +116,42 @@ func (fake *FakeBuildScheduler) BuildLatestInputsReturns(result1 error) {
 	fake.buildLatestInputsReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeBuildScheduler) TriggerImmediately(arg1 lager.Logger, arg2 atc.JobConfig, arg3 atc.ResourceConfigs) (db.Build, scheduler.Waiter, error) {
+	fake.triggerImmediatelyMutex.Lock()
+	fake.triggerImmediatelyArgsForCall = append(fake.triggerImmediatelyArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 atc.JobConfig
+		arg3 atc.ResourceConfigs
+	}{arg1, arg2, arg3})
+	fake.triggerImmediatelyMutex.Unlock()
+	if fake.TriggerImmediatelyStub != nil {
+		return fake.TriggerImmediatelyStub(arg1, arg2, arg3)
+	} else {
+		return fake.triggerImmediatelyReturns.result1, fake.triggerImmediatelyReturns.result2, fake.triggerImmediatelyReturns.result3
+	}
+}
+
+func (fake *FakeBuildScheduler) TriggerImmediatelyCallCount() int {
+	fake.triggerImmediatelyMutex.RLock()
+	defer fake.triggerImmediatelyMutex.RUnlock()
+	return len(fake.triggerImmediatelyArgsForCall)
+}
+
+func (fake *FakeBuildScheduler) TriggerImmediatelyArgsForCall(i int) (lager.Logger, atc.JobConfig, atc.ResourceConfigs) {
+	fake.triggerImmediatelyMutex.RLock()
+	defer fake.triggerImmediatelyMutex.RUnlock()
+	return fake.triggerImmediatelyArgsForCall[i].arg1, fake.triggerImmediatelyArgsForCall[i].arg2, fake.triggerImmediatelyArgsForCall[i].arg3
+}
+
+func (fake *FakeBuildScheduler) TriggerImmediatelyReturns(result1 db.Build, result2 scheduler.Waiter, result3 error) {
+	fake.TriggerImmediatelyStub = nil
+	fake.triggerImmediatelyReturns = struct {
+		result1 db.Build
+		result2 scheduler.Waiter
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ scheduler.BuildScheduler = new(FakeBuildScheduler)

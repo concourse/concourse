@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	dbfakes "github.com/concourse/atc/db/fakes"
+	schedulerfakes "github.com/concourse/atc/scheduler/fakes"
 )
 
 var _ = Describe("Jobs API", func() {
@@ -570,6 +571,161 @@ var _ = Describe("Jobs API", func() {
 
 			It("returns 404 Not Found", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+		})
+	})
+
+	Describe("POST /api/v1/pipelines/:pipeline_name/jobs/:job_name/builds", func() {
+		var request *http.Request
+		var response *http.Response
+
+		var fakeScheduler *schedulerfakes.FakeBuildScheduler
+
+		BeforeEach(func() {
+			var err error
+
+			request, err = http.NewRequest("POST", server.URL+"/api/v1/pipelines/some-pipeline/jobs/some-job/builds", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			fakeScheduler = new(schedulerfakes.FakeBuildScheduler)
+			fakeSchedulerFactory.BuildSchedulerReturns(fakeScheduler)
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
+			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+			Expect(pipelineName).To(Equal("some-pipeline"))
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			Context("when getting the job config succeeds", func() {
+				BeforeEach(func() {
+					pipelineDB.GetConfigReturns(atc.Config{
+						Jobs: []atc.JobConfig{
+							{
+								Name: "some-job",
+								Plan: atc.PlanSequence{
+									{
+										Get: "some-input",
+									},
+								},
+							},
+						},
+
+						Resources: atc.ResourceConfigs{
+							{Name: "resource-1", Type: "some-type"},
+							{Name: "resource-2", Type: "some-other-type"},
+						},
+					}, 1, true, nil)
+				})
+
+				Context("when triggering the build succeeds", func() {
+					BeforeEach(func() {
+						fakeScheduler.TriggerImmediatelyReturns(db.Build{
+							ID:           42,
+							Name:         "1",
+							JobName:      "some-job",
+							PipelineName: "a-pipeline",
+							Status:       db.StatusStarted,
+							StartTime:    time.Unix(1, 0),
+							EndTime:      time.Unix(100, 0),
+						}, nil, nil)
+					})
+
+					It("triggers using the current config", func() {
+						Expect(fakeScheduler.TriggerImmediatelyCallCount()).To(Equal(1))
+
+						_, job, resources := fakeScheduler.TriggerImmediatelyArgsForCall(0)
+						Expect(job).To(Equal(atc.JobConfig{
+							Name: "some-job",
+							Plan: atc.PlanSequence{
+								{
+									Get: "some-input",
+								},
+							},
+						}))
+						Expect(resources).To(Equal(atc.ResourceConfigs{
+							{Name: "resource-1", Type: "some-type"},
+							{Name: "resource-2", Type: "some-other-type"},
+						}))
+					})
+
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns the build", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`{
+							"id": 42,
+							"name": "1",
+							"job_name": "some-job",
+							"status": "started",
+							"url": "/pipelines/a-pipeline/jobs/some-job/builds/1",
+							"api_url": "/api/v1/builds/42",
+							"pipeline_name": "a-pipeline",
+							"start_time": 1,
+							"end_time": 100
+						}`))
+					})
+				})
+
+				Context("when triggering the build fails", func() {
+					BeforeEach(func() {
+						fakeScheduler.TriggerImmediatelyReturns(db.Build{}, nil, errors.New("oh no!"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the job is not present in the config", func() {
+					BeforeEach(func() {
+						pipelineDB.GetConfigReturns(atc.Config{
+							Jobs: []atc.JobConfig{
+								{Name: "other-job"},
+							},
+						}, 1, true, nil)
+					})
+
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+			})
+
+			Context("when getting the job config fails", func() {
+				Context("when the pipeline is no longer configured", func() {
+					BeforeEach(func() {
+						pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
+					})
+
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("with an unknown error", func() {
+					BeforeEach(func() {
+						pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
 			})
 		})
 	})

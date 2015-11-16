@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
 	containerserverfakes "github.com/concourse/atc/api/containerserver/fakes"
+	jobserverfakes "github.com/concourse/atc/api/jobserver/fakes"
 	pipeserverfakes "github.com/concourse/atc/api/pipes/fakes"
 	volumeserverfakes "github.com/concourse/atc/api/volumeserver/fakes"
 	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
@@ -33,24 +34,25 @@ var (
 
 	externalURL = "https://example.com"
 
-	authValidator       *authfakes.FakeValidator
-	fakeTokenGenerator  *authfakes.FakeTokenGenerator
-	authProviders       auth.Providers
-	basicAuthEnabled    = true
-	fakeEngine          *enginefakes.FakeEngine
-	fakeWorkerClient    *workerfakes.FakeClient
-	buildsDB            *buildfakes.FakeBuildsDB
-	volumesDB           *volumeserverfakes.FakeVolumesDB
-	configDB            *dbfakes.FakeConfigDB
-	workerDB            *workerserverfakes.FakeWorkerDB
-	containerDB         *containerserverfakes.FakeContainerDB
-	pipeDB              *pipeserverfakes.FakePipeDB
-	pipelineDBFactory   *dbfakes.FakePipelineDBFactory
-	pipelinesDB         *dbfakes.FakePipelinesDB
-	configValidationErr error
-	peerAddr            string
-	drain               chan struct{}
-	cliDownloadsDir     string
+	authValidator        *authfakes.FakeValidator
+	fakeTokenGenerator   *authfakes.FakeTokenGenerator
+	authProviders        auth.Providers
+	basicAuthEnabled     = true
+	fakeEngine           *enginefakes.FakeEngine
+	fakeWorkerClient     *workerfakes.FakeClient
+	buildsDB             *buildfakes.FakeBuildsDB
+	volumesDB            *volumeserverfakes.FakeVolumesDB
+	configDB             *dbfakes.FakeConfigDB
+	workerDB             *workerserverfakes.FakeWorkerDB
+	containerDB          *containerserverfakes.FakeContainerDB
+	pipeDB               *pipeserverfakes.FakePipeDB
+	pipelineDBFactory    *dbfakes.FakePipelineDBFactory
+	pipelinesDB          *dbfakes.FakePipelinesDB
+	fakeSchedulerFactory *jobserverfakes.FakeSchedulerFactory
+	configValidationErr  error
+	peerAddr             string
+	drain                chan struct{}
+	cliDownloadsDir      string
 
 	constructedEventHandler *fakeEventHandlerFactory
 
@@ -112,6 +114,8 @@ var _ = BeforeEach(func() {
 	fakeEngine = new(enginefakes.FakeEngine)
 	fakeWorkerClient = new(workerfakes.FakeClient)
 
+	fakeSchedulerFactory = new(jobserverfakes.FakeSchedulerFactory)
+
 	var err error
 
 	cliDownloadsDir, err = ioutil.TempDir("", "cli-downloads")
@@ -152,6 +156,8 @@ var _ = BeforeEach(func() {
 
 		fakeEngine,
 		fakeWorkerClient,
+
+		fakeSchedulerFactory,
 
 		sink,
 

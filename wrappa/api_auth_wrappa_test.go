@@ -58,6 +58,7 @@ var _ = Describe("APIAuthWrappa", func() {
 			expectedHandlers = rata.Handlers{
 				atc.AbortBuild:             authed(inputHandlers[atc.AbortBuild]),
 				atc.CreateBuild:            authed(inputHandlers[atc.CreateBuild]),
+				atc.CreateJobBuild:         authed(inputHandlers[atc.CreateJobBuild]),
 				atc.CreatePipe:             authed(inputHandlers[atc.CreatePipe]),
 				atc.DeletePipeline:         authed(inputHandlers[atc.DeletePipeline]),
 				atc.DisableResourceVersion: authed(inputHandlers[atc.DisableResourceVersion]),

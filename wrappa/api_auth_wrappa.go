@@ -34,7 +34,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListJobInputs, atc.ListWorkers, atc.OrderPipelines, atc.PauseJob,
 			atc.PausePipeline, atc.PauseResource, atc.ReadPipe, atc.RegisterWorker,
 			atc.SaveConfig, atc.SetLogLevel, atc.UnpauseJob, atc.UnpausePipeline,
-			atc.UnpauseResource, atc.WritePipe, atc.ListVolumes, atc.GetVersionsDB:
+			atc.UnpauseResource, atc.WritePipe, atc.ListVolumes, atc.GetVersionsDB,
+			atc.CreateJobBuild:
 			newHandler = auth.CheckAuthHandler(handler, rejector)
 
 		// unauthenticated
