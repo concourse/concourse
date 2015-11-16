@@ -153,6 +153,17 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
+	JobBuildsStub        func(pipelineName, jobName string) ([]atc.Build, bool, error)
+	jobBuildsMutex       sync.RWMutex
+	jobBuildsArgsForCall []struct {
+		pipelineName string
+		jobName      string
+	}
+	jobBuildsReturns struct {
+		result1 []atc.Build
+		result2 bool
+		result3 error
+	}
 	ListContainersStub        func(queryList map[string]string) ([]atc.Container, error)
 	listContainersMutex       sync.RWMutex
 	listContainersArgsForCall []struct {
@@ -716,6 +727,41 @@ func (fake *FakeClient) JobBuildReturns(result1 atc.Build, result2 bool, result3
 	fake.JobBuildStub = nil
 	fake.jobBuildReturns = struct {
 		result1 atc.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeClient) JobBuilds(pipelineName string, jobName string) ([]atc.Build, bool, error) {
+	fake.jobBuildsMutex.Lock()
+	fake.jobBuildsArgsForCall = append(fake.jobBuildsArgsForCall, struct {
+		pipelineName string
+		jobName      string
+	}{pipelineName, jobName})
+	fake.jobBuildsMutex.Unlock()
+	if fake.JobBuildsStub != nil {
+		return fake.JobBuildsStub(pipelineName, jobName)
+	} else {
+		return fake.jobBuildsReturns.result1, fake.jobBuildsReturns.result2, fake.jobBuildsReturns.result3
+	}
+}
+
+func (fake *FakeClient) JobBuildsCallCount() int {
+	fake.jobBuildsMutex.RLock()
+	defer fake.jobBuildsMutex.RUnlock()
+	return len(fake.jobBuildsArgsForCall)
+}
+
+func (fake *FakeClient) JobBuildsArgsForCall(i int) (string, string) {
+	fake.jobBuildsMutex.RLock()
+	defer fake.jobBuildsMutex.RUnlock()
+	return fake.jobBuildsArgsForCall[i].pipelineName, fake.jobBuildsArgsForCall[i].jobName
+}
+
+func (fake *FakeClient) JobBuildsReturns(result1 []atc.Build, result2 bool, result3 error) {
+	fake.JobBuildsStub = nil
+	fake.jobBuildsReturns = struct {
+		result1 []atc.Build
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

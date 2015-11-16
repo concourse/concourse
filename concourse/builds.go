@@ -76,6 +76,26 @@ func (client *client) JobBuild(pipelineName, jobName, buildName string) (atc.Bui
 	}
 }
 
+func (client *client) JobBuilds(pipelineName, jobName string) ([]atc.Build, bool, error) {
+	params := map[string]string{"job_name": jobName, "pipeline_name": pipelineName}
+	var builds []atc.Build
+	err := client.connection.Send(Request{
+		RequestName: atc.ListJobBuilds,
+		Params:      params,
+	}, &Response{
+		Result: &builds,
+	})
+
+	switch err.(type) {
+	case nil:
+		return builds, true, nil
+	case ResourceNotFoundError:
+		return builds, false, nil
+	default:
+		return builds, false, err
+	}
+}
+
 func (client *client) Build(buildID string) (atc.Build, bool, error) {
 	params := map[string]string{"build_id": buildID}
 	var build atc.Build
