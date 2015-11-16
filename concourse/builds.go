@@ -38,6 +38,20 @@ func (client *client) CreateBuild(plan atc.Plan) (atc.Build, error) {
 	return build, err
 }
 
+func (client *client) CreateJobBuild(pipelineName string, jobName string) (atc.Build, error) {
+	params := map[string]string{"job_name": jobName, "pipeline_name": pipelineName}
+
+	var build atc.Build
+	err := client.connection.Send(Request{
+		RequestName: atc.CreateJobBuild,
+		Params:      params,
+	}, &Response{
+		Result: &build,
+	})
+
+	return build, err
+}
+
 func (client *client) JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error) {
 	if pipelineName == "" {
 		return atc.Build{}, false, NameRequiredError("pipeline")

@@ -42,8 +42,8 @@ var _ = Describe("ATC Handler Builds", func() {
 				Name:    "mybuild",
 				Status:  "succeeded",
 				JobName: "myjob",
-				URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild",
-				APIURL:  "api/v1/builds/123",
+				URL:     "/builds/123",
+				APIURL:  "/api/v1/builds/123",
 			}
 			expectedURL := "/api/v1/builds"
 
@@ -58,6 +58,41 @@ var _ = Describe("ATC Handler Builds", func() {
 
 		It("takes a plan and creates the build", func() {
 			build, err := client.CreateBuild(plan)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(build).To(Equal(expectedBuild))
+		})
+	})
+
+	Describe("CreateJobBuild", func() {
+		var (
+			pipelineName  string
+			jobName       string
+			expectedBuild atc.Build
+		)
+		BeforeEach(func() {
+			pipelineName = "mypipeline"
+			jobName = "myjob"
+
+			expectedBuild = atc.Build{
+				ID:      123,
+				Name:    "mybuild",
+				Status:  "succeeded",
+				JobName: "myjob",
+				URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild",
+				APIURL:  "api/v1/builds/123",
+			}
+			expectedURL := "/api/v1/pipelines/mypipeline/jobs/myjob/builds"
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.RespondWithJSONEncoded(http.StatusCreated, expectedBuild),
+				),
+			)
+		})
+
+		It("takes a pipeline and a job and creates the build", func() {
+			build, err := client.CreateJobBuild(pipelineName, jobName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(build).To(Equal(expectedBuild))
 		})

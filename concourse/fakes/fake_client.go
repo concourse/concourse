@@ -74,6 +74,16 @@ type FakeClient struct {
 		result1 atc.Build
 		result2 error
 	}
+	CreateJobBuildStub        func(pipelineName string, jobName string) (atc.Build, error)
+	createJobBuildMutex       sync.RWMutex
+	createJobBuildArgsForCall []struct {
+		pipelineName string
+		jobName      string
+	}
+	createJobBuildReturns struct {
+		result1 atc.Build
+		result2 error
+	}
 	CreateOrUpdatePipelineConfigStub        func(pipelineName string, configVersion string, passedConfig atc.Config) (bool, bool, error)
 	createOrUpdatePipelineConfigMutex       sync.RWMutex
 	createOrUpdatePipelineConfigArgsForCall []struct {
@@ -441,6 +451,40 @@ func (fake *FakeClient) CreateBuildArgsForCall(i int) atc.Plan {
 func (fake *FakeClient) CreateBuildReturns(result1 atc.Build, result2 error) {
 	fake.CreateBuildStub = nil
 	fake.createBuildReturns = struct {
+		result1 atc.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) CreateJobBuild(pipelineName string, jobName string) (atc.Build, error) {
+	fake.createJobBuildMutex.Lock()
+	fake.createJobBuildArgsForCall = append(fake.createJobBuildArgsForCall, struct {
+		pipelineName string
+		jobName      string
+	}{pipelineName, jobName})
+	fake.createJobBuildMutex.Unlock()
+	if fake.CreateJobBuildStub != nil {
+		return fake.CreateJobBuildStub(pipelineName, jobName)
+	} else {
+		return fake.createJobBuildReturns.result1, fake.createJobBuildReturns.result2
+	}
+}
+
+func (fake *FakeClient) CreateJobBuildCallCount() int {
+	fake.createJobBuildMutex.RLock()
+	defer fake.createJobBuildMutex.RUnlock()
+	return len(fake.createJobBuildArgsForCall)
+}
+
+func (fake *FakeClient) CreateJobBuildArgsForCall(i int) (string, string) {
+	fake.createJobBuildMutex.RLock()
+	defer fake.createJobBuildMutex.RUnlock()
+	return fake.createJobBuildArgsForCall[i].pipelineName, fake.createJobBuildArgsForCall[i].jobName
+}
+
+func (fake *FakeClient) CreateJobBuildReturns(result1 atc.Build, result2 error) {
+	fake.CreateJobBuildStub = nil
+	fake.createJobBuildReturns = struct {
 		result1 atc.Build
 		result2 error
 	}{result1, result2}
