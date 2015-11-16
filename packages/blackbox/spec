@@ -5,10 +5,10 @@ dependencies:
   - golang
 
 files:
-  - github.com/concourse/blackbox/cmd/blackbox/*.go # gosub
   - github.com/ActiveState/tail/*.go # gosub
   - github.com/ActiveState/tail/watch/*.go # gosub
   - github.com/concourse/blackbox/*.go # gosub
+  - github.com/concourse/blackbox/cmd/blackbox/*.go # gosub
   - github.com/concourse/blackbox/syslog/*.go # gosub
   - github.com/hpcloud/tail/ratelimiter/*.go # gosub
   - github.com/hpcloud/tail/util/*.go # gosub

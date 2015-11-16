@@ -7,7 +7,6 @@ dependencies:
 files:
   # crypto/ssh depends on curve25519 which is implemented in assembly
   - golang.org/x/crypto/curve25519/*.s
-  - github.com/concourse/tsa/cmd/tsa/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/*.go # gosub
   - github.com/cloudfoundry-incubator/garden/client/*.go # gosub
@@ -16,6 +15,7 @@ files:
   - github.com/cloudfoundry-incubator/garden/transport/*.go # gosub
   - github.com/concourse/atc/*.go # gosub
   - github.com/concourse/tsa/*.go # gosub
+  - github.com/concourse/tsa/cmd/tsa/*.go # gosub
   - github.com/dgrijalva/jwt-go/*.go # gosub
   - github.com/felixge/tcpkeepalive/*.go # gosub
   - github.com/pivotal-golang/clock/*.go # gosub
