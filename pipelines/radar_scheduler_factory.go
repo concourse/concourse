@@ -16,7 +16,7 @@ import (
 
 type RadarSchedulerFactory interface {
 	BuildRadar(pipelineDB db.PipelineDB) *radar.Radar
-	BuildScheduler(pipelineDB db.PipelineDB) *scheduler.Scheduler
+	BuildScheduler(pipelineDB db.PipelineDB) scheduler.BuildScheduler
 }
 
 type radarSchedulerFactory struct {
@@ -44,7 +44,7 @@ func (rsf *radarSchedulerFactory) BuildRadar(pipelineDB db.PipelineDB) *radar.Ra
 	return radar.NewRadar(rsf.tracker, rsf.interval, pipelineDB, clock.NewClock())
 }
 
-func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB) *scheduler.Scheduler {
+func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB) scheduler.BuildScheduler {
 	radar := rsf.BuildRadar(pipelineDB)
 	return &scheduler.Scheduler{
 		PipelineDB: pipelineDB,

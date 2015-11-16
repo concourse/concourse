@@ -163,6 +163,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		engine,
 		workerClient,
 		drain,
+		radarSchedulerFactory,
 	)
 	if err != nil {
 		return err
@@ -528,6 +529,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	engine engine.Engine,
 	workerClient worker.Client,
 	drain <-chan struct{},
+	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 ) (http.Handler, error) {
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIAuthWrappa(authValidator),
@@ -560,6 +562,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		engine,
 		workerClient,
+		radarSchedulerFactory,
 
 		reconfigurableSink,
 

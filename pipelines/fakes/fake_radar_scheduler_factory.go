@@ -19,13 +19,13 @@ type FakeRadarSchedulerFactory struct {
 	buildRadarReturns struct {
 		result1 *radar.Radar
 	}
-	BuildSchedulerStub        func(pipelineDB db.PipelineDB) *scheduler.Scheduler
+	BuildSchedulerStub        func(pipelineDB db.PipelineDB) scheduler.BuildScheduler
 	buildSchedulerMutex       sync.RWMutex
 	buildSchedulerArgsForCall []struct {
 		pipelineDB db.PipelineDB
 	}
 	buildSchedulerReturns struct {
-		result1 *scheduler.Scheduler
+		result1 scheduler.BuildScheduler
 	}
 }
 
@@ -61,7 +61,7 @@ func (fake *FakeRadarSchedulerFactory) BuildRadarReturns(result1 *radar.Radar) {
 	}{result1}
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB) *scheduler.Scheduler {
+func (fake *FakeRadarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB) scheduler.BuildScheduler {
 	fake.buildSchedulerMutex.Lock()
 	fake.buildSchedulerArgsForCall = append(fake.buildSchedulerArgsForCall, struct {
 		pipelineDB db.PipelineDB
@@ -86,10 +86,10 @@ func (fake *FakeRadarSchedulerFactory) BuildSchedulerArgsForCall(i int) db.Pipel
 	return fake.buildSchedulerArgsForCall[i].pipelineDB
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildSchedulerReturns(result1 *scheduler.Scheduler) {
+func (fake *FakeRadarSchedulerFactory) BuildSchedulerReturns(result1 scheduler.BuildScheduler) {
 	fake.BuildSchedulerStub = nil
 	fake.buildSchedulerReturns = struct {
-		result1 *scheduler.Scheduler
+		result1 scheduler.BuildScheduler
 	}{result1}
 }
 
