@@ -231,3 +231,7 @@
 	path = src/github.com/kr/tarutil
 	url = https://github.com/kr/tarutil
 	branch = master
+[submodule "src/github.com/contraband/holler"]
+	path = src/github.com/contraband/holler
+	url = https://github.com/contraband/holler
+        branch = master
