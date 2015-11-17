@@ -52,6 +52,19 @@ func (funcs *templateFuncs) url(route string, args ...interface{}) (string, erro
 	return PathFor(route, args...)
 }
 
+func (funcs *templateFuncs) withRedirect(authURLStr string, redirect string) string {
+	authURL, err := url.Parse(authURLStr)
+	if err != nil {
+		return "<malformed>"
+	}
+
+	withRedirect := authURL.Query()
+	withRedirect["redirect"] = []string{redirect}
+	authURL.RawQuery = withRedirect.Encode()
+
+	return authURL.String()
+}
+
 func jobName(x interface{}) string {
 	switch v := x.(type) {
 	case string:

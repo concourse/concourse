@@ -52,8 +52,9 @@ func NewHandler(
 	}
 
 	funcs := template.FuncMap{
-		"url":   tfuncs.url,
-		"asset": tfuncs.asset,
+		"url":          tfuncs.url,
+		"asset":        tfuncs.asset,
+		"withRedirect": tfuncs.withRedirect,
 	}
 
 	pipelineHandlerFactory := pipelines.NewHandlerFactory(pipelineDBFactory)
