@@ -8,7 +8,6 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/pipelines"
@@ -39,8 +38,6 @@ type WebDB interface {
 func NewHandler(
 	logger lager.Logger,
 	wrapper wrappa.Wrappa,
-	providers auth.Providers,
-	basicAuthEnabled bool,
 	db WebDB,
 	pipelineDBFactory db.PipelineDBFactory,
 	configDB db.ConfigDB,
@@ -125,7 +122,7 @@ func NewHandler(
 		web.GetBuild:        pipelineHandlerFactory.HandlerFor(buildServer.GetBuild),
 		web.GetBuilds:       getbuilds.NewHandler(logger, clientFactory, buildsTemplate),
 		web.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
-		web.LogIn:           login.NewHandler(logger, basicAuthEnabled, providers, logInTemplate),
+		web.LogIn:           login.NewHandler(logger, clientFactory, logInTemplate),
 		web.BasicAuth:       login.NewBasicAuthHandler(logger),
 		web.TriggerBuild:    triggerbuild.NewHandler(logger, clientFactory),
 		web.Debug:           debug.NewServer(logger, db, debugTemplate),
