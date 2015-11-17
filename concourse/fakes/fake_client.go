@@ -153,11 +153,14 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
-	JobBuildsStub        func(pipelineName, jobName string) ([]atc.Build, bool, error)
+	JobBuildsStub        func(pipelineName string, jobName string, since int, until int, limit int) ([]atc.Build, bool, error)
 	jobBuildsMutex       sync.RWMutex
 	jobBuildsArgsForCall []struct {
 		pipelineName string
 		jobName      string
+		since        int
+		until        int
+		limit        int
 	}
 	jobBuildsReturns struct {
 		result1 []atc.Build
@@ -732,15 +735,18 @@ func (fake *FakeClient) JobBuildReturns(result1 atc.Build, result2 bool, result3
 	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) JobBuilds(pipelineName string, jobName string) ([]atc.Build, bool, error) {
+func (fake *FakeClient) JobBuilds(pipelineName string, jobName string, since int, until int, limit int) ([]atc.Build, bool, error) {
 	fake.jobBuildsMutex.Lock()
 	fake.jobBuildsArgsForCall = append(fake.jobBuildsArgsForCall, struct {
 		pipelineName string
 		jobName      string
-	}{pipelineName, jobName})
+		since        int
+		until        int
+		limit        int
+	}{pipelineName, jobName, since, until, limit})
 	fake.jobBuildsMutex.Unlock()
 	if fake.JobBuildsStub != nil {
-		return fake.JobBuildsStub(pipelineName, jobName)
+		return fake.JobBuildsStub(pipelineName, jobName, since, until, limit)
 	} else {
 		return fake.jobBuildsReturns.result1, fake.jobBuildsReturns.result2, fake.jobBuildsReturns.result3
 	}
@@ -752,10 +758,10 @@ func (fake *FakeClient) JobBuildsCallCount() int {
 	return len(fake.jobBuildsArgsForCall)
 }
 
-func (fake *FakeClient) JobBuildsArgsForCall(i int) (string, string) {
+func (fake *FakeClient) JobBuildsArgsForCall(i int) (string, string, int, int, int) {
 	fake.jobBuildsMutex.RLock()
 	defer fake.jobBuildsMutex.RUnlock()
-	return fake.jobBuildsArgsForCall[i].pipelineName, fake.jobBuildsArgsForCall[i].jobName
+	return fake.jobBuildsArgsForCall[i].pipelineName, fake.jobBuildsArgsForCall[i].jobName, fake.jobBuildsArgsForCall[i].since, fake.jobBuildsArgsForCall[i].until, fake.jobBuildsArgsForCall[i].limit
 }
 
 func (fake *FakeClient) JobBuildsReturns(result1 []atc.Build, result2 bool, result3 error) {

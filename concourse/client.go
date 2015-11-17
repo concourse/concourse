@@ -24,7 +24,7 @@ type Client interface {
 	UnpausePipeline(pipelineName string) (bool, error)
 	Job(pipelineName, jobName string) (atc.Job, bool, error)
 	JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error)
-	JobBuilds(pipelineName, jobName string) ([]atc.Build, bool, error)
+	JobBuilds(pipelineName string, jobName string, since int, until int, limit int) ([]atc.Build, bool, error)
 	ListContainers(queryList map[string]string) ([]atc.Container, error)
 	ListPipelines() ([]atc.Pipeline, error)
 	ListVolumes() ([]atc.Volume, error)
