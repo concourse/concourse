@@ -21,16 +21,16 @@
     <div class="section">
       <h2>builds</h2>
 
-      {{if .PaginationData.HasPagination}}
+      {{if or .Pagination.Previous .Pagination.Next}}
       <div class="pagination mbs clearfix">
-        {{if .PaginationData.HasNewer}}
+        {{if .Pagination.Previous}}
         <div class="fl">
-          <a href="{{url "GetJob" .PipelineName .Job .PaginationData true}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-left"></i></a>
+          <a href="{{url "GetJob" .PipelineName .Job .Pagination.Previous}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-left"></i></a>
         </div>
         {{end}}
-        {{if .PaginationData.HasOlder}}
+        {{if .Pagination.Next}}
         <div class="fr">
-          <a href="{{url "GetJob" .PipelineName .Job .PaginationData false}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-right"></i></a>
+          <a href="{{url "GetJob" .PipelineName .Job .Pagination.Next}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-right"></i></a>
         </div>
         {{end}}
       </div>
@@ -43,7 +43,7 @@
           <a class="{{.Build.Status}}" href="{{url "GetBuild" $job .Build}}">&#35;{{.Build.Name}}</a>
 
           <div class="pam clearfix">
-            <div class="js-build-times build-times mbm" data-start-time="{{.Build.StartTime.Unix}}" data-end-time={{.Build.EndTime.Unix}}></div>
+            <div class="js-build-times build-times mbm" data-start-time="{{.Build.StartTime}}" data-end-time={{.Build.EndTime}}></div>
 
             <div class="inputs mrl" >
               <div class="resource-title pbs"><i class="fa fa-fw fa-arrow-down prs"></i>inputs </div>
@@ -85,16 +85,16 @@
         {{end}}
       </ul>
 
-      {{if .PaginationData.HasPagination}}
-      <div class="pagination mts mbm clearfix">
-        {{if .PaginationData.HasNewer}}
+      {{if or .Pagination.Previous .Pagination.Next}}
+      <div class="pagination mbs clearfix">
+        {{if .Pagination.Previous}}
         <div class="fl">
-          <a href="{{url "GetJob" .PipelineName .Job .PaginationData true}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-left"></i></a>
+          <a href="{{url "GetJob" .PipelineName .Job .Pagination.Previous}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-left"></i></a>
         </div>
         {{end}}
-        {{if .PaginationData.HasOlder}}
+        {{if .Pagination.Next}}
         <div class="fr">
-          <a href="{{url "GetJob" .PipelineName .Job .PaginationData false}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-right"></i></a>
+          <a href="{{url "GetJob" .PipelineName .Job .Pagination.Next}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-right"></i></a>
         </div>
         {{end}}
       </div>

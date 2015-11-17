@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/pagination"
 	"github.com/concourse/atc/web/webhandler"
+	"github.com/concourse/go-concourse/concourse"
 )
 
 var _ = Describe("URLs", func() {
@@ -61,20 +62,19 @@ var _ = Describe("URLs", func() {
 
 		Context("with pagination data", func() {
 			It("returns the correct URL", func() {
-				paginationData := pagination.NewPaginationData(false, false, 0, 29, 21)
 				job := atc.JobConfig{
 					Name: "some-job",
 				}
 
-				path, err := webhandler.PathFor(web.GetJob, "another-pipeline", job, paginationData, false)
+				path, err := webhandler.PathFor(web.GetJob, "another-pipeline", job, &concourse.Page{Since: 123, Limit: 456})
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job?startingID=20&resultsGreaterThanStartingID=false"))
+				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job?since=123"))
 
-				path, err = webhandler.PathFor(web.GetJob, "another-pipeline", job, paginationData, true)
+				path, err = webhandler.PathFor(web.GetJob, "another-pipeline", job, &concourse.Page{Until: 123, Limit: 456})
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job?startingID=30&resultsGreaterThanStartingID=true"))
+				Expect(path).To(Equal("/pipelines/another-pipeline/jobs/some-job?until=123"))
 			})
 
 		})

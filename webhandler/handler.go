@@ -109,7 +109,6 @@ func NewHandler(
 		return nil, err
 	}
 
-	jobServer := getjob.NewServer(logger, clientFactory, jobTemplate)
 	resourceServer := getresource.NewServer(logger, resourceTemplate)
 	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
 
@@ -117,7 +116,7 @@ func NewHandler(
 		web.Index:           index.NewHandler(logger, pipelineDBFactory, pipelineHandler, indexTemplate),
 		web.Pipeline:        pipelineHandler,
 		web.Public:          http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
-		web.GetJob:          pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
+		web.GetJob:          getjob.NewHandler(logger, clientFactory, jobTemplate),
 		web.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
 		web.GetBuild:        getbuild.NewHandler(logger, clientFactory, buildTemplate),
 		web.GetBuilds:       getbuilds.NewHandler(logger, clientFactory, buildsTemplate),

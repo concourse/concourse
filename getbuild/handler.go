@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/group"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -79,7 +80,7 @@ func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *
 			return
 		}
 
-		bs, _, err := client.JobBuilds(pipelineName, jobName)
+		bs, _, _, err := client.JobBuilds(pipelineName, jobName, concourse.Page{})
 		if err != nil {
 			log.Error("get-all-builds-failed", err)
 			w.WriteHeader(http.StatusInternalServerError)
