@@ -74,13 +74,30 @@ func jobName(x interface{}) string {
 	}
 }
 
+func jobNameNew(x interface{}) string {
+	switch v := x.(type) {
+	case string:
+		return v
+	default:
+		return x.(atc.Job).Name
+	}
+}
+
 func PathFor(route string, args ...interface{}) (string, error) {
 	switch route {
 	case web.TriggerBuild:
-		return web.Routes.CreatePathForRoute(route, rata.Params{
-			"pipeline_name": args[0].(string),
-			"job":           jobName(args[1]),
-		})
+		switch args[1].(type) {
+		case atc.Job:
+			return web.Routes.CreatePathForRoute(route, rata.Params{
+				"pipeline_name": args[0].(string),
+				"job":           jobNameNew(args[1]),
+			})
+		default:
+			return web.Routes.CreatePathForRoute(route, rata.Params{
+				"pipeline_name": args[0].(string),
+				"job":           jobName(args[1]),
+			})
+		}
 
 	case web.GetResource:
 		baseResourceURL, err := web.Routes.CreatePathForRoute(route, rata.Params{
@@ -104,10 +121,16 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		return baseResourceURL, nil
 
 	case web.GetBuild:
-		build := args[1].(db.Build)
-		build.JobName = jobName(args[0])
-		return web.PathForBuild(build), nil
-
+		switch args[1].(type) {
+		case atc.Build:
+			build := args[1].(atc.Build)
+			build.JobName = jobNameNew(args[0])
+			return web.PathForBuildNew(build), nil
+		default:
+			build := args[1].(db.Build)
+			build.JobName = jobName(args[0])
+			return web.PathForBuild(build), nil
+		}
 	case web.GetJoblessBuild:
 		return web.PathForBuild(args[0].(db.Build)), nil
 
@@ -117,10 +140,21 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		})
 
 	case web.GetJob:
-		baseJobURL, err := web.Routes.CreatePathForRoute(route, rata.Params{
-			"pipeline_name": args[0].(string),
-			"job":           args[1].(atc.JobConfig).Name,
-		})
+		var err error
+		var baseJobURL string
+		switch args[1].(type) {
+		case atc.Job:
+			baseJobURL, err = web.Routes.CreatePathForRoute(route, rata.Params{
+				"pipeline_name": args[0].(string),
+				"job":           args[1].(atc.Job).Name,
+			})
+		default:
+			baseJobURL, err = web.Routes.CreatePathForRoute(route, rata.Params{
+				"pipeline_name": args[0].(string),
+				"job":           args[1].(atc.JobConfig).Name,
+			})
+		}
+
 		if err != nil {
 			return "", err
 		}
@@ -139,9 +173,16 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		return baseJobURL, nil
 
 	case atc.BuildEvents:
-		return atc.Routes.CreatePathForRoute(route, rata.Params{
-			"build_id": fmt.Sprintf("%d", args[0].(db.Build).ID),
-		})
+		switch args[0].(type) {
+		case atc.Build:
+			return atc.Routes.CreatePathForRoute(route, rata.Params{
+				"build_id": fmt.Sprintf("%d", args[0].(atc.Build).ID),
+			})
+		default:
+			return atc.Routes.CreatePathForRoute(route, rata.Params{
+				"build_id": fmt.Sprintf("%d", args[0].(db.Build).ID),
+			})
+		}
 
 	case atc.EnableResourceVersion, atc.DisableResourceVersion:
 		versionedResource := args[1].(db.SavedVersionedResource)

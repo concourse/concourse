@@ -112,7 +112,7 @@ func NewHandler(
 	jobServer := getjob.NewServer(logger, clientFactory, jobTemplate)
 	resourceServer := getresource.NewServer(logger, resourceTemplate)
 	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
-	buildServer := getbuild.NewServer(logger, buildTemplate)
+	buildServer := getbuild.NewServer(logger, clientFactory, buildTemplate)
 
 	handlers := map[string]http.Handler{
 		web.Index:           index.NewHandler(logger, pipelineDBFactory, pipelineHandler, indexTemplate),

@@ -151,7 +151,7 @@ var _ = Describe("FetchTemplateData", func() {
 
 						BeforeEach(func() {
 							buildResources = atc.BuildInputsOutputs{
-								Inputs: []atc.VersionedResource{
+								Inputs: []atc.PublicBuildInput{
 									{
 										Resource: "some-input-resource",
 										Version: atc.Version{
