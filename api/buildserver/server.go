@@ -35,6 +35,7 @@ type BuildsDB interface {
 	GetBuildEvents(buildID int, from uint) (db.EventSource, error)
 	GetBuildInputVersionedResouces(buildID int) (db.SavedVersionedResources, error)
 	GetBuildOutputVersionedResouces(buildID int) (db.SavedVersionedResources, error)
+	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
 
 	GetAllBuilds() ([]db.Build, error)
 

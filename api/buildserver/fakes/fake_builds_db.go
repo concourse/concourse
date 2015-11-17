@@ -48,6 +48,16 @@ type FakeBuildsDB struct {
 		result1 db.SavedVersionedResources
 		result2 error
 	}
+	GetBuildResourcesStub        func(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
+	getBuildResourcesMutex       sync.RWMutex
+	getBuildResourcesArgsForCall []struct {
+		buildID int
+	}
+	getBuildResourcesReturns struct {
+		result1 []db.BuildInput
+		result2 []db.BuildOutput
+		result3 error
+	}
 	GetAllBuildsStub        func() ([]db.Build, error)
 	getAllBuildsMutex       sync.RWMutex
 	getAllBuildsArgsForCall []struct{}
@@ -206,6 +216,40 @@ func (fake *FakeBuildsDB) GetBuildOutputVersionedResoucesReturns(result1 db.Save
 		result1 db.SavedVersionedResources
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuildsDB) GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error) {
+	fake.getBuildResourcesMutex.Lock()
+	fake.getBuildResourcesArgsForCall = append(fake.getBuildResourcesArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.getBuildResourcesMutex.Unlock()
+	if fake.GetBuildResourcesStub != nil {
+		return fake.GetBuildResourcesStub(buildID)
+	} else {
+		return fake.getBuildResourcesReturns.result1, fake.getBuildResourcesReturns.result2, fake.getBuildResourcesReturns.result3
+	}
+}
+
+func (fake *FakeBuildsDB) GetBuildResourcesCallCount() int {
+	fake.getBuildResourcesMutex.RLock()
+	defer fake.getBuildResourcesMutex.RUnlock()
+	return len(fake.getBuildResourcesArgsForCall)
+}
+
+func (fake *FakeBuildsDB) GetBuildResourcesArgsForCall(i int) int {
+	fake.getBuildResourcesMutex.RLock()
+	defer fake.getBuildResourcesMutex.RUnlock()
+	return fake.getBuildResourcesArgsForCall[i].buildID
+}
+
+func (fake *FakeBuildsDB) GetBuildResourcesReturns(result1 []db.BuildInput, result2 []db.BuildOutput, result3 error) {
+	fake.GetBuildResourcesStub = nil
+	fake.getBuildResourcesReturns = struct {
+		result1 []db.BuildInput
+		result2 []db.BuildOutput
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeBuildsDB) GetAllBuilds() ([]db.Build, error) {

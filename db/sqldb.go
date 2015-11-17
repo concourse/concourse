@@ -633,6 +633,136 @@ func (db *SQLDB) GetBuild(buildID int) (Build, bool, error) {
 	`, buildID))
 }
 
+func (db *SQLDB) getPipelineName(buildID int) (string, error) {
+	var pipelineName string
+	err := db.conn.QueryRow(`
+		SELECT p.name
+		FROM builds b, jobs j, pipelines p
+		WHERE b.id = $1
+		AND b.job_id = j.id
+		AND j.pipeline_id = p.id
+		LIMIT 1
+	`, buildID).Scan(&pipelineName)
+
+	if err != nil {
+		return "", err
+	}
+
+	return pipelineName, nil
+}
+
+func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error) {
+	inputs := []BuildInput{}
+	outputs := []BuildOutput{}
+
+	rows, err := db.conn.Query(`
+		SELECT i.name, r.name, v.type, v.version, v.metadata,
+		NOT EXISTS (
+			SELECT 1
+			FROM build_inputs ci, builds cb
+			WHERE versioned_resource_id = v.id
+			AND cb.job_id = b.job_id
+			AND ci.build_id = cb.id
+			AND ci.build_id < b.id
+		)
+		FROM versioned_resources v, build_inputs i, builds b, resources r
+		WHERE b.id = $1
+		AND i.build_id = b.id
+		AND i.versioned_resource_id = v.id
+    AND r.id = v.resource_id
+		AND NOT EXISTS (
+			SELECT 1
+			FROM build_outputs o
+			WHERE o.versioned_resource_id = v.id
+			AND o.build_id = i.build_id
+			AND o.explicit
+		)
+	`, buildID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer rows.Close()
+
+	pipelineName, err := db.getPipelineName(buildID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for rows.Next() {
+		var inputName string
+		var vr VersionedResource
+		var firstOccurrence bool
+
+		var version, metadata string
+		err := rows.Scan(&inputName, &vr.Resource, &vr.Type, &version, &metadata, &firstOccurrence)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(version), &vr.Version)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(metadata), &vr.Metadata)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		vr.PipelineName = pipelineName
+
+		inputs = append(inputs, BuildInput{
+			Name:              inputName,
+			VersionedResource: vr,
+			FirstOccurrence:   firstOccurrence,
+		})
+	}
+
+	rows, err = db.conn.Query(`
+		SELECT r.name, v.type, v.version, v.metadata
+		FROM versioned_resources v, build_outputs o, builds b, resources r
+		WHERE b.id = $1
+		AND o.build_id = b.id
+		AND o.versioned_resource_id = v.id
+    AND r.id = v.resource_id
+		AND o.explicit
+	`, buildID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var vr VersionedResource
+
+		var version, metadata string
+		err := rows.Scan(&vr.Resource, &vr.Type, &version, &metadata)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(version), &vr.Version)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(metadata), &vr.Metadata)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		vr.PipelineName = pipelineName
+
+		outputs = append(outputs, BuildOutput{
+			VersionedResource: vr,
+		})
+	}
+
+	return inputs, outputs, nil
+}
+
 func (db *SQLDB) getBuildVersionedResouces(buildID int, resourceRequest string) (SavedVersionedResources, error) {
 
 	rows, err := db.conn.Query(resourceRequest, buildID)

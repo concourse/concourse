@@ -389,16 +389,6 @@ type FakePipelineDB struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}
-	GetBuildResourcesStub        func(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
-	getBuildResourcesMutex       sync.RWMutex
-	getBuildResourcesArgsForCall []struct {
-		buildID int
-	}
-	getBuildResourcesReturns struct {
-		result1 []db.BuildInput
-		result2 []db.BuildOutput
-		result3 error
-	}
 }
 
 func (fake *FakePipelineDB) GetPipelineName() string {
@@ -1718,40 +1708,6 @@ func (fake *FakePipelineDB) SaveBuildOutputReturns(result1 db.SavedVersionedReso
 		result1 db.SavedVersionedResource
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakePipelineDB) GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error) {
-	fake.getBuildResourcesMutex.Lock()
-	fake.getBuildResourcesArgsForCall = append(fake.getBuildResourcesArgsForCall, struct {
-		buildID int
-	}{buildID})
-	fake.getBuildResourcesMutex.Unlock()
-	if fake.GetBuildResourcesStub != nil {
-		return fake.GetBuildResourcesStub(buildID)
-	} else {
-		return fake.getBuildResourcesReturns.result1, fake.getBuildResourcesReturns.result2, fake.getBuildResourcesReturns.result3
-	}
-}
-
-func (fake *FakePipelineDB) GetBuildResourcesCallCount() int {
-	fake.getBuildResourcesMutex.RLock()
-	defer fake.getBuildResourcesMutex.RUnlock()
-	return len(fake.getBuildResourcesArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetBuildResourcesArgsForCall(i int) int {
-	fake.getBuildResourcesMutex.RLock()
-	defer fake.getBuildResourcesMutex.RUnlock()
-	return fake.getBuildResourcesArgsForCall[i].buildID
-}
-
-func (fake *FakePipelineDB) GetBuildResourcesReturns(result1 []db.BuildInput, result2 []db.BuildOutput, result3 error) {
-	fake.GetBuildResourcesStub = nil
-	fake.getBuildResourcesReturns = struct {
-		result1 []db.BuildInput
-		result2 []db.BuildOutput
-		result3 error
-	}{result1, result2, result3}
 }
 
 var _ db.PipelineDB = new(FakePipelineDB)
