@@ -6,25 +6,10 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/group"
 	"github.com/pivotal-golang/lager"
 )
-
-type server struct {
-	logger        lager.Logger
-	clientFactory web.ClientFactory
-	template      *template.Template
-}
-
-func NewServer(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) *server {
-	return &server{
-		logger:        logger,
-		clientFactory: clientFactory,
-		template:      template,
-	}
-}
 
 type TemplateData struct {
 	GroupStates []group.State
@@ -36,7 +21,7 @@ type TemplateData struct {
 	PipelineName string
 }
 
-func (server *server) getNames(r *http.Request) (string, string, string, error) {
+func getNames(r *http.Request) (string, string, string, error) {
 	pipelineName := r.FormValue(":pipeline_name")
 	jobName := r.FormValue(":job")
 	buildName := r.FormValue(":build")
@@ -48,20 +33,20 @@ func (server *server) getNames(r *http.Request) (string, string, string, error) 
 	return pipelineName, jobName, buildName, nil
 }
 
-func (server *server) GetBuild(pipelineDB db.PipelineDB) http.Handler {
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		client := server.clientFactory.Build(r)
+		client := clientFactory.Build(r)
 
-		pipelineName, jobName, buildName, err := server.getNames(r)
+		pipelineName, jobName, buildName, err := getNames(r)
 		if err != nil {
-			server.logger.Error("failed-to-get-names", err)
+			logger.Error("failed-to-get-names", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		job, found, err := client.Job(pipelineName, jobName)
 		if err != nil {
-			server.logger.Error("failed-to-load-job", err)
+			logger.Error("failed-to-load-job", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -70,7 +55,7 @@ func (server *server) GetBuild(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
-		log := server.logger.Session("get-build", lager.Data{
+		log := logger.Session("get-build", lager.Data{
 			"job":   job.Name,
 			"build": buildName,
 		})
@@ -124,10 +109,10 @@ func (server *server) GetBuild(pipelineDB db.PipelineDB) http.Handler {
 
 			Build:        requestedBuild,
 			Inputs:       buildInputsOutputs.Inputs,
-			PipelineName: pipelineDB.GetPipelineName(),
+			PipelineName: pipelineName,
 		}
 
-		err = server.template.Execute(w, templateData)
+		err = template.Execute(w, templateData)
 		if err != nil {
 			log.Fatal("failed-to-build-template", err, lager.Data{
 				"template-data": templateData,
