@@ -11,12 +11,6 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type BuildNotFoundError struct{}
-
-func (b BuildNotFoundError) Error() string {
-	return "Build Not Found"
-}
-
 func (s *Server) BuildResources(w http.ResponseWriter, r *http.Request) {
 	log := s.logger.Session("build-resources")
 	buildID, err := strconv.Atoi(r.FormValue(":build_id"))
@@ -26,26 +20,26 @@ func (s *Server) BuildResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inputs, outputs, err := s.getMeAllTheThings(buildID)
+	inputs, outputs, found, err := s.getMeAllTheThings(buildID)
 	if err != nil {
-		if _, ok := err.(BuildNotFoundError); ok {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
 		log.Error("cannot-find-build", err, lager.Data{"buildID": r.FormValue(":build_id")})
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	atcInputs := []atc.VersionedResource{}
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	atcInputs := make([]atc.PublicBuildInput, 0, len(inputs))
 	for _, input := range inputs {
-		atcInputs = append(atcInputs, present.VersionedResource(input))
+		atcInputs = append(atcInputs, present.PublicBuildInput(input))
 	}
 
 	atcOutputs := []atc.VersionedResource{}
 	for _, output := range outputs {
-		atcOutputs = append(atcOutputs, present.VersionedResource(output))
+		atcOutputs = append(atcOutputs, present.VersionedResource(output.VersionedResource))
 	}
 
 	output := atc.BuildInputsOutputs{
@@ -57,25 +51,16 @@ func (s *Server) BuildResources(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(output)
 }
 
-func (s *Server) getMeAllTheThings(buildID int) (db.SavedVersionedResources, db.SavedVersionedResources, error) {
+func (s *Server) getMeAllTheThings(buildID int) ([]db.BuildInput, []db.BuildOutput, bool, error) {
 	_, found, err := s.db.GetBuild(buildID)
 	if err != nil {
-		return db.SavedVersionedResources{}, db.SavedVersionedResources{}, err
+		return []db.BuildInput{}, []db.BuildOutput{}, false, err
 	}
 
 	if !found {
-		return db.SavedVersionedResources{}, db.SavedVersionedResources{}, BuildNotFoundError{}
+		return []db.BuildInput{}, []db.BuildOutput{}, false, nil
 	}
 
-	inputs, err := s.db.GetBuildInputVersionedResouces(buildID)
-	if err != nil {
-		return db.SavedVersionedResources{}, db.SavedVersionedResources{}, err
-	}
-
-	outputs, err := s.db.GetBuildOutputVersionedResouces(buildID)
-	if err != nil {
-		return db.SavedVersionedResources{}, db.SavedVersionedResources{}, err
-	}
-
-	return inputs, outputs, nil
+	input, output, err := s.db.GetBuildResources(buildID)
+	return input, output, found, err
 }

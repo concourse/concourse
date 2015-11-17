@@ -280,34 +280,53 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build inputs/ouputs are not empty", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildInputVersionedResoucesReturns(db.SavedVersionedResources{
+					buildsDB.GetBuildResourcesReturns([]db.BuildInput{
 						{
+							Name: "input1",
 							VersionedResource: db.VersionedResource{
 								Resource: "myresource1",
-								Version:  db.Version{"version1": "value1"},
+								Type:     "git",
+								Version:  db.Version{"version": "value1"},
+								Metadata: []db.MetadataField{
+									{
+										Name:  "meta1",
+										Value: "value1",
+									},
+									{
+										Name:  "meta2",
+										Value: "value2",
+									},
+								},
+								PipelineName: "mypipeline",
 							},
+							FirstOccurrence: true,
 						},
 						{
+							Name: "input2",
 							VersionedResource: db.VersionedResource{
-								Resource: "myresource2",
-								Version:  db.Version{"version2": "value2"},
+								Resource:     "myresource2",
+								Type:         "git",
+								Version:      db.Version{"version": "value2"},
+								Metadata:     []db.MetadataField{},
+								PipelineName: "mypipeline",
 							},
+							FirstOccurrence: false,
 						},
-					}, nil)
-					buildsDB.GetBuildOutputVersionedResoucesReturns(db.SavedVersionedResources{
-						{
-							VersionedResource: db.VersionedResource{
-								Resource: "myresource3",
-								Version:  db.Version{"version3": "value3"},
+					},
+						[]db.BuildOutput{
+							{
+								VersionedResource: db.VersionedResource{
+									Resource: "myresource3",
+									Version:  db.Version{"version": "value3"},
+								},
 							},
-						},
-						{
-							VersionedResource: db.VersionedResource{
-								Resource: "myresource4",
-								Version:  db.Version{"version4": "value4"},
+							{
+								VersionedResource: db.VersionedResource{
+									Resource: "myresource4",
+									Version:  db.Version{"version": "value4"},
+								},
 							},
-						},
-					}, nil)
+						}, nil)
 				})
 
 				It("returns the build with it's input and output versioned resources", func() {
@@ -317,42 +336,50 @@ var _ = Describe("Builds API", func() {
 					Expect(body).To(MatchJSON(`{
 							"inputs": [
 								{
+									"name": "input1",
 									"resource": "myresource1",
-									"version": {"version1": "value1"}
+									"type": "git",
+									"version": {"version": "value1"},
+									"metadata":[
+										{
+											"name": "meta1",
+											"value": "value1"
+										},
+										{
+											"name": "meta2",
+											"value": "value2"
+										}
+									],
+									"pipeline_name": "mypipeline",
+									"first_occurrence": true
 								},
 								{
+									"name": "input2",
 									"resource": "myresource2",
-									"version": {"version2": "value2"}
+									"type": "git",
+									"version": {"version": "value2"},
+									"metadata": [],
+									"pipeline_name": "mypipeline",
+									"first_occurrence": false
 								}
 							],
 							"outputs": [
 								{
 									"resource": "myresource3",
-									"version": {"version3": "value3"}
+									"version": {"version": "value3"}
 								},
 								{
 									"resource": "myresource4",
-									"version": {"version4": "value4"}
+									"version": {"version": "value4"}
 								}
 							]
 						}`))
 				})
 			})
 
-			Context("when the build inputs error", func() {
+			Context("when the build resources error", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildInputVersionedResoucesReturns(db.SavedVersionedResources{}, errors.New("where are my feedback?"))
-				})
-
-				It("returns internal server error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-
-			Context("when the build inputs error", func() {
-				BeforeEach(func() {
-					buildsDB.GetBuildInputVersionedResoucesReturns(db.SavedVersionedResources{}, nil)
-					buildsDB.GetBuildOutputVersionedResoucesReturns(db.SavedVersionedResources{}, errors.New("where are my feedback?"))
+					buildsDB.GetBuildResourcesReturns([]db.BuildInput{}, []db.BuildOutput{}, errors.New("where are my feedback?"))
 				})
 
 				It("returns internal server error", func() {
