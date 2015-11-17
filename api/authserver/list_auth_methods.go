@@ -11,7 +11,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-const BasicAuthDisplayName = "Basic"
+const BasicAuthDisplayName = "Basic Auth"
 
 func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	methods := []atc.AuthMethod{}

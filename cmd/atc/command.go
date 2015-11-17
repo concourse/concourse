@@ -182,8 +182,6 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		logger,
 		sqlDB,
 		authValidator,
-		oauthProviders,
-		basicAuthEnabled,
 		pipelineDBFactory,
 		engine,
 	)
@@ -573,8 +571,6 @@ func (cmd *ATCCommand) constructWebHandler(
 	logger lager.Logger,
 	sqlDB *db.SQLDB,
 	authValidator auth.Validator,
-	oauthProviders auth.Providers,
-	basicAuthEnabled bool,
 	pipelineDBFactory db.PipelineDBFactory,
 	engine engine.Engine,
 ) (http.Handler, error) {
@@ -590,8 +586,6 @@ func (cmd *ATCCommand) constructWebHandler(
 	return webhandler.NewHandler(
 		logger,
 		webWrapper,
-		oauthProviders,
-		basicAuthEnabled,
 		sqlDB,
 		pipelineDBFactory,
 		sqlDB,

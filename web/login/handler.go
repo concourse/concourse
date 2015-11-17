@@ -4,37 +4,33 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 )
 
 type handler struct {
-	logger           lager.Logger
-	basicAuthEnabled bool
-	providers        auth.Providers
-	template         *template.Template
+	logger        lager.Logger
+	clientFactory web.ClientFactory
+	template      *template.Template
 }
 
 func NewHandler(
 	logger lager.Logger,
-	basicAuthEnabled bool,
-	providers auth.Providers,
+	clientFactory web.ClientFactory,
 	template *template.Template,
 ) http.Handler {
 	return &handler{
-		logger:           logger,
-		basicAuthEnabled: basicAuthEnabled,
-		providers:        providers,
-		template:         template,
+		logger:        logger,
+		clientFactory: clientFactory,
+		template:      template,
 	}
 }
 
 type TemplateData struct {
-	BasicAuthEnabled bool
-	Providers        auth.Providers
-	Redirect         string
+	AuthMethods []atc.AuthMethod
+	Redirect    string
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -43,15 +39,25 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		indexPath, err := web.Routes.CreatePathForRoute(web.Index, rata.Params{})
 		if err != nil {
 			handler.logger.Error("failed-to-generate-index-path", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		} else {
 			redirect = indexPath
 		}
 	}
 
-	err := handler.template.Execute(w, TemplateData{
-		BasicAuthEnabled: handler.basicAuthEnabled,
-		Providers:        handler.providers,
-		Redirect:         redirect,
+	client := handler.clientFactory.Build(r)
+
+	authMethods, err := client.ListAuthMethods()
+	if err != nil {
+		handler.logger.Error("failed-to-list-auth-methods", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = handler.template.Execute(w, TemplateData{
+		AuthMethods: authMethods,
+		Redirect:    redirect,
 	})
 	if err != nil {
 		handler.logger.Info("failed-to-generate-index-template", lager.Data{

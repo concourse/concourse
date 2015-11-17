@@ -4,12 +4,8 @@
 {{$redirect := .Redirect}}
 <div class="login-box">
   <ul class="options">
-    {{if .BasicAuthEnabled}}
-    <li><a href="{{url "BasicAuth" $redirect}}">Log in with Basic Auth</a></li>
-    {{end}}
-
-    {{range $name, $provider := .Providers}}
-    <li><a href="{{url "OAuthBegin" $name $redirect}}">Log in with {{$provider.DisplayName}}</a></li>
+    {{range .AuthMethods}}
+    <li><a href="{{.AuthURL}}">Log in with {{.DisplayName}}</a></li>
     {{end}}
   </ul>
 </div>
