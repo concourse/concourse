@@ -5,7 +5,7 @@
 <div class="login-box">
   <ul class="options">
     {{range .AuthMethods}}
-    <li><a href="{{.AuthURL}}">Log in with {{.DisplayName}}</a></li>
+    <li><a href="{{.AuthURL}}?redirect={{urlquery $redirect}}">Log in with {{.DisplayName}}</a></li>
     {{end}}
   </ul>
 </div>
