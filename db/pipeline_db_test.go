@@ -1098,60 +1098,7 @@ var _ = Describe("PipelineDB", func() {
 		})
 	})
 
-	Context("Jobs", func() {
-		Describe("Min and Max id", func() {
-			var (
-				buildOne   db.Build
-				buildTwo   db.Build
-				buildThree db.Build
-
-				otherBuildOne db.Build
-				otherBuildTwo db.Build
-			)
-
-			BeforeEach(func() {
-				var err error
-				buildOne, err = pipelineDB.CreateJobBuild("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				buildTwo, err = pipelineDB.CreateJobBuild("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				otherBuildOne, err = pipelineDB.CreateJobBuild("some-other-job")
-				Expect(err).NotTo(HaveOccurred())
-				buildThree, err = pipelineDB.CreateJobBuild("some-job")
-				Expect(err).NotTo(HaveOccurred())
-				otherBuildTwo, err = pipelineDB.CreateJobBuild("some-other-job")
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			Context("when querying for max id", func() {
-				It("returns the greatest id by job-name", func() {
-					id, err := pipelineDB.GetJobBuildsMaxID("some-job")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(id).To(Equal(buildThree.ID))
-				})
-
-				It("returns 0 when querying for a job that doesn't exist", func() {
-					id, err := pipelineDB.GetJobBuildsMaxID("nope")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(id).To(Equal(0))
-				})
-			})
-
-			Context("when querying for min id", func() {
-				It("returns the greatest id by job-name", func() {
-					id, err := pipelineDB.GetJobBuildsMinID("some-other-job")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(id).To(Equal(otherBuildOne.ID))
-				})
-
-				It("returns 0 when querying for a job that doesn't exist", func() {
-					id, err := pipelineDB.GetJobBuildsMinID("nope")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(id).To(Equal(0))
-				})
-			})
-		})
-
+	Describe("Jobs", func() {
 		Describe("CreateJobBuild", func() {
 			var build db.Build
 

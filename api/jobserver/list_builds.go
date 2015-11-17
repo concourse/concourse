@@ -14,17 +14,16 @@ import (
 func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			builds  []db.Build
-			err     error
-			until   int
-			since   int
-			limit   int
-			hasMore bool
+			builds []db.Build
+			err    error
+			until  int
+			since  int
+			limit  int
 		)
 
 		jobName := r.FormValue(":job_name")
 
-		urlUntil := r.FormValue("until")
+		urlUntil := r.FormValue(atc.PaginationQueryUntil)
 		if urlUntil != "" {
 			until, err = strconv.Atoi(urlUntil)
 			if err != nil {
@@ -33,7 +32,7 @@ func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
 			}
 		}
 
-		urlSince := r.FormValue("since")
+		urlSince := r.FormValue(atc.PaginationQuerySince)
 		if urlSince != "" {
 			since, err = strconv.Atoi(urlSince)
 			if err != nil {
@@ -42,7 +41,7 @@ func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
 			}
 		}
 
-		urlLimit := r.FormValue("limit")
+		urlLimit := r.FormValue(atc.PaginationQueryLimit)
 		if urlLimit != "" {
 			limit, err = strconv.Atoi(urlLimit)
 			if err != nil {
@@ -50,56 +49,27 @@ func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
 				return
 			}
 		} else {
-			limit = 100
+			limit = atc.PaginationAPIDefaultLimit
 		}
 
-		if until == 0 && since == 0 {
-			builds, err = pipelineDB.GetAllJobBuilds(jobName)
-		} else if until != 0 {
-			builds, hasMore, err = pipelineDB.GetJobBuildsCursor(jobName, until, false, limit)
-			if err != nil {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-
-			if len(builds) > 0 && hasMore {
-				s.addNextLink(w, builds[len(builds)-1].ID-1, pipelineDB.GetPipelineName(), jobName)
-			}
-
-			maxID, err := pipelineDB.GetJobBuildsMaxID(jobName)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			if maxID > until {
-				s.addPreviousLink(w, until+1, pipelineDB.GetPipelineName(), jobName)
-			}
-		} else {
-			builds, hasMore, err = pipelineDB.GetJobBuildsCursor(jobName, since, true, limit)
-			if err != nil {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-
-			if len(builds) > 0 && hasMore {
-				s.addPreviousLink(w, builds[0].ID+1, pipelineDB.GetPipelineName(), jobName)
-			}
-
-			minID, err := pipelineDB.GetJobBuildsMinID(jobName)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			if minID < since {
-				s.addNextLink(w, since-1, pipelineDB.GetPipelineName(), jobName)
-			}
+		page := db.Page{
+			Since: since,
+			Until: until,
+			Limit: limit,
 		}
 
+		builds, pagination, err := pipelineDB.GetJobBuilds(jobName, page)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
+		}
+
+		if pagination.Next != nil {
+			s.addNextLink(w, pipelineDB.GetPipelineName(), jobName, *pagination.Next)
+		}
+
+		if pagination.Previous != nil {
+			s.addPreviousLink(w, pipelineDB.GetPipelineName(), jobName, *pagination.Previous)
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -112,22 +82,30 @@ func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
 	})
 }
 
-func (s *Server) addNextLink(w http.ResponseWriter, targetID int, pipelineName string, jobName string) {
-	w.Header().Add("LINK", fmt.Sprintf(
-		`<%s/api/v1/pipelines/%s/jobs/%s/builds?until=%d>; rel="next"`,
+func (s *Server) addNextLink(w http.ResponseWriter, pipelineName string, jobName string, page db.Page) {
+	w.Header().Add("Link", fmt.Sprintf(
+		`<%s/api/v1/pipelines/%s/jobs/%s/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
 		pipelineName,
 		jobName,
-		targetID,
+		atc.PaginationQuerySince,
+		page.Since,
+		atc.PaginationQueryLimit,
+		page.Limit,
+		atc.LinkRelNext,
 	))
 }
 
-func (s *Server) addPreviousLink(w http.ResponseWriter, targetID int, pipelineName string, jobName string) {
-	w.Header().Add("LINK", fmt.Sprintf(
-		`<%s/api/v1/pipelines/%s/jobs/%s/builds?since=%d>; rel="previous"`,
+func (s *Server) addPreviousLink(w http.ResponseWriter, pipelineName string, jobName string, page db.Page) {
+	w.Header().Add("Link", fmt.Sprintf(
+		`<%s/api/v1/pipelines/%s/jobs/%s/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
 		pipelineName,
 		jobName,
-		targetID,
+		atc.PaginationQueryUntil,
+		page.Until,
+		atc.PaginationQueryLimit,
+		page.Limit,
+		atc.LinkRelPrevious,
 	))
 }

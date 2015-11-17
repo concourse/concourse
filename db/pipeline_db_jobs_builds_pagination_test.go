@@ -56,123 +56,78 @@ var _ = Describe("Jobs Builds", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Context("GetJobBuildsMaxID", func() {
-		var (
-			build2 db.Build
-			err    error
-		)
+	Context("GetJobBuilds", func() {
+		var builds [10]db.Build
 
 		BeforeEach(func() {
-			_, err = pipelineDB.CreateJobBuild("job-name")
-			Expect(err).NotTo(HaveOccurred())
-
-			build2, err = pipelineDB.CreateJobBuild("job-name")
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = pipelineDB.CreateJobBuild("other-job-name")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("returns the max id from the builds table by job name, scoped to the pipeline", func() {
-			maxID, err := pipelineDB.GetJobBuildsMaxID("job-name")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(maxID).To(Equal(build2.ID))
-
-			maxID, err = otherPipelineDB.GetJobBuildsMaxID("job-name")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(maxID).To(BeZero())
-		})
-	})
-
-	Context("GetJobBuildsCursor", func() {
-		var (
-			build2 db.Build
-			build3 db.Build
-			err    error
-		)
-
-		BeforeEach(func() {
-			_, err = pipelineDB.CreateJobBuild("job-name")
-			Expect(err).NotTo(HaveOccurred())
-
-			build2, err = pipelineDB.CreateJobBuild("job-name")
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = pipelineDB.CreateJobBuild("other-name") // add in another test verifying this record doesn't fuck shit up
-			Expect(err).NotTo(HaveOccurred())
-
-			build3, err = pipelineDB.CreateJobBuild("job-name")
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = pipelineDB.CreateJobBuild("job-name")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("returns a slice of builds limitied by the passed in limit, ordered by id desc", func() {
-			builds, _, err := pipelineDB.GetJobBuildsCursor("job-name", 0, true, 2)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(builds)).To(Equal(2))
-
-			Expect(builds[0].ID).To(BeNumerically(">", builds[1].ID))
-		})
-
-		Context("when resultsGreaterThanStartingID is true", func() {
-			It("returns a slice of builds with ID's equal to and less than the starting ID", func() {
-				builds, _, err := pipelineDB.GetJobBuildsCursor("job-name", build2.ID, true, 2)
+			for i := 0; i < 10; i++ {
+				build, err := pipelineDB.CreateJobBuild("job-name")
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(builds).To(ConsistOf([]db.Build{
-					build3,
-					build2,
-				}))
-
-			})
-
-			Context("when there are more results that are greater than the given starting id", func() {
-				It("returns true for moreResultsInGivenDirection", func() {
-					_, moreResultsInGivenDirection, err := pipelineDB.GetJobBuildsCursor("job-name", build2.ID, true, 2)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(moreResultsInGivenDirection).To(BeTrue())
-				})
-			})
-
-			Context("when there are not more results that are greater than the given starting id", func() {
-				It("returns false for moreResultsInGivenDirection", func() {
-					_, moreResultsInGivenDirection, err := pipelineDB.GetJobBuildsCursor("job-name", build2.ID, true, 1000)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(moreResultsInGivenDirection).To(BeFalse())
-				})
-			})
-		})
-
-		Context("when resultsGreaterThanStartingID is false", func() {
-			It("returns a slice of builds with ID's equal to and less than the starting ID", func() {
-				builds, _, err := pipelineDB.GetJobBuildsCursor("job-name", build3.ID, false, 2)
+				_, err = pipelineDB.CreateJobBuild("other-name")
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(builds).To(ConsistOf([]db.Build{
-					build3,
-					build2,
-				}))
+				builds[i] = build
+			}
+		})
 
-			})
-
-			Context("when there are more results that are less than the given starting id", func() {
-				It("returns true for moreResultsInGivenDirection", func() {
-					_, moreResultsInGivenDirection, err := pipelineDB.GetJobBuildsCursor("job-name", build3.ID, false, 2)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(moreResultsInGivenDirection).To(BeTrue())
-				})
-			})
-
-			Context("when there are not more results that are less than the given starting id", func() {
-				It("returns false for moreResultsInGivenDirection", func() {
-					_, moreResultsInGivenDirection, err := pipelineDB.GetJobBuildsCursor("job-name", build3.ID, false, 1000)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(moreResultsInGivenDirection).To(BeFalse())
-				})
+		Context("when there are no builds to be found", func() {
+			It("returns the builds, with previous/next pages", func() {
+				buildsPage, pagination, err := pipelineDB.GetJobBuilds("nope", db.Page{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(buildsPage).To(Equal([]db.Build{}))
+				Expect(pagination).To(Equal(db.Pagination{}))
 			})
 		})
 
+		Context("with no since/until", func() {
+			It("returns the first page, with the given limit, and a next page", func() {
+				buildsPage, pagination, err := pipelineDB.GetJobBuilds("job-name", db.Page{Limit: 2})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(buildsPage).To(Equal([]db.Build{builds[9], builds[8]}))
+				Expect(pagination.Previous).To(BeNil())
+				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID, Limit: 2}))
+			})
+		})
+
+		Context("with a since that places it in the middle of the builds", func() {
+			It("returns the builds, with previous/next pages", func() {
+				buildsPage, pagination, err := pipelineDB.GetJobBuilds("job-name", db.Page{Since: builds[6].ID, Limit: 2})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(buildsPage).To(Equal([]db.Build{builds[5], builds[4]}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[5].ID, Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[4].ID, Limit: 2}))
+			})
+		})
+
+		Context("with a since that places it at the end of the builds", func() {
+			It("returns the builds, with previous/next pages", func() {
+				buildsPage, pagination, err := pipelineDB.GetJobBuilds("job-name", db.Page{Since: builds[2].ID, Limit: 2})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(buildsPage).To(Equal([]db.Build{builds[1], builds[0]}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[1].ID, Limit: 2}))
+				Expect(pagination.Next).To(BeNil())
+			})
+		})
+
+		Context("with an until that places it in the middle of the builds", func() {
+			It("returns the builds, with previous/next pages", func() {
+				buildsPage, pagination, err := pipelineDB.GetJobBuilds("job-name", db.Page{Until: builds[6].ID, Limit: 2})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(buildsPage).To(Equal([]db.Build{builds[8], builds[7]}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[8].ID, Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[7].ID, Limit: 2}))
+			})
+		})
+
+		Context("with a until that places it at the beginning of the builds", func() {
+			It("returns the builds, with previous/next pages", func() {
+				buildsPage, pagination, err := pipelineDB.GetJobBuilds("job-name", db.Page{Until: builds[7].ID, Limit: 2})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(buildsPage).To(Equal([]db.Build{builds[9], builds[8]}))
+				Expect(pagination.Previous).To(BeNil())
+				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID, Limit: 2}))
+			})
+		})
 	})
 })

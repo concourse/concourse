@@ -51,11 +51,9 @@ type PipelineDB interface {
 
 	GetJobFinishedAndNextBuild(job string) (*Build, *Build, error)
 
-	GetJobBuildsCursor(jobName string, startingID int, resultsGreaterThanStartingID bool, limit int) ([]Build, bool, error)
-	GetJobBuildsMaxID(jobName string) (int, error)
-	GetJobBuildsMinID(jobName string) (int, error)
-
+	GetJobBuilds(job string, page Page) ([]Build, Pagination, error)
 	GetAllJobBuilds(job string) ([]Build, error)
+
 	GetJobBuild(job string, build string) (Build, bool, error)
 	CreateJobBuild(job string) (Build, error)
 	CreateJobBuildForCandidateInputs(job string) (Build, bool, error)
@@ -1729,6 +1727,117 @@ func (pdb *pipelineDB) updatePausedJob(job string, pause bool) error {
 	}
 
 	return tx.Commit()
+}
+
+func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]Build, Pagination, error) {
+	var (
+		err        error
+		maxID      int
+		minID      int
+		firstBuild Build
+		lastBuild  Build
+		pagination Pagination
+
+		rows *sql.Rows
+	)
+
+	if page.Since == 0 && page.Until == 0 {
+		rows, err = pdb.conn.Query(`
+			SELECT `+qualifiedBuildColumns+`
+			FROM builds b
+			INNER JOIN jobs j ON b.job_id = j.id
+			INNER JOIN pipelines p ON j.pipeline_id = p.id
+			WHERE j.name = $1
+				AND j.pipeline_id = $2
+			ORDER BY b.id DESC
+			LIMIT $3
+		`, jobName, pdb.ID, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+	} else if page.Until != 0 {
+		rows, err = pdb.conn.Query(`
+			SELECT sub.*
+			FROM (
+				SELECT `+qualifiedBuildColumns+`
+				FROM builds b
+				INNER JOIN jobs j ON b.job_id = j.id
+				INNER JOIN pipelines p ON j.pipeline_id = p.id
+				WHERE j.name = $1
+					AND j.pipeline_id = $2
+					AND b.id > $3
+				ORDER BY b.id ASC
+				LIMIT $4
+			) sub
+			ORDER BY sub.id DESC
+		`, jobName, pdb.ID, page.Until, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+	} else {
+		rows, err = pdb.conn.Query(`
+			SELECT `+qualifiedBuildColumns+`
+			FROM builds b
+			INNER JOIN jobs j ON b.job_id = j.id
+			INNER JOIN pipelines p ON j.pipeline_id = p.id
+			WHERE j.name = $1
+				AND j.pipeline_id = $2
+				AND b.id < $3
+			ORDER BY b.id DESC
+			LIMIT $4
+		`, jobName, pdb.ID, page.Since, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+	}
+
+	defer rows.Close()
+
+	builds := []Build{}
+
+	for rows.Next() {
+		build, _, err := pdb.scanBuild(rows)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+
+		builds = append(builds, build)
+	}
+
+	if len(builds) == 0 {
+		return []Build{}, Pagination{}, nil
+	}
+
+	err = pdb.conn.QueryRow(`
+		SELECT COALESCE(MAX(b.id), 0) as maxID,
+			COALESCE(MIN(b.id), 0) as minID
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		WHERE j.name = $1
+			AND j.pipeline_id = $2
+	`, jobName, pdb.ID).Scan(&maxID, &minID)
+	if err != nil {
+		return nil, Pagination{}, err
+	}
+
+	firstBuild = builds[0]
+	lastBuild = builds[len(builds)-1]
+
+	if firstBuild.ID < maxID {
+		pagination.Previous = &Page{
+			Until: firstBuild.ID,
+			Limit: page.Limit,
+		}
+	}
+
+	if lastBuild.ID > minID {
+		pagination.Next = &Page{
+			Since: lastBuild.ID,
+			Limit: page.Limit,
+		}
+	}
+
+	return builds, pagination, nil
 }
 
 func (pdb *pipelineDB) GetJobBuildsMaxID(jobName string) (int, error) {

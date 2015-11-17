@@ -16,11 +16,11 @@ import (
 )
 
 type BuildWithInputsOutputs struct {
-	Build     db.Build
+	Build     atc.Build
 	Resources atc.BuildInputsOutputs
 }
 
-type server struct {
+type handler struct {
 	logger lager.Logger
 
 	clientFactory web.ClientFactory
@@ -31,8 +31,8 @@ type server struct {
 	template *template.Template
 }
 
-func NewServer(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) *server {
-	return &server{
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) http.Handler {
+	return &handler{
 		logger:        logger,
 		clientFactory: clientFactory,
 		template:      template,
@@ -40,15 +40,15 @@ func NewServer(logger lager.Logger, clientFactory web.ClientFactory, template *t
 }
 
 type TemplateData struct {
-	Job    atc.Job
-	Builds []BuildWithInputsOutputs
+	Job atc.Job
+
+	Builds     []BuildWithInputsOutputs
+	Pagination concourse.Pagination
 
 	GroupStates []group.State
 
 	CurrentBuild *atc.Build
 	PipelineName string
-
-	PaginationData pagination.PaginationData
 }
 
 //go:generate counterfeiter . JobBuildsPaginator
@@ -61,8 +61,13 @@ var ErrConfigNotFound = errors.New("could not find config")
 var ErrJobConfigNotFound = errors.New("could not find job")
 var Err = errors.New("could not find job")
 
-func FetchTemplateData(pipelineName string, client concourse.Client, paginator JobBuildsPaginator, jobName string, startingJobBuildID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
-	config, _, pipelineFound, err := client.PipelineConfig(pipelineName)
+func FetchTemplateData(
+	pipelineName string,
+	client concourse.Client,
+	jobName string,
+	page concourse.Page,
+) (TemplateData, error) {
+	pipeline, pipelineFound, err := client.Pipeline(pipelineName)
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -75,11 +80,12 @@ func FetchTemplateData(pipelineName string, client concourse.Client, paginator J
 	if err != nil {
 		return TemplateData{}, err
 	}
+
 	if !jobFound {
 		return TemplateData{}, ErrJobConfigNotFound
 	}
 
-	bs, paginationData, err := paginator.PaginateJobBuilds(job.Name, startingJobBuildID, resultsGreaterThanStartingID)
+	bs, pagination, _, err := client.JobBuilds(pipelineName, jobName, page)
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -99,12 +105,13 @@ func FetchTemplateData(pipelineName string, client concourse.Client, paginator J
 	}
 
 	return TemplateData{
-		PipelineName:   pipelineName,
-		Job:            job,
-		Builds:         bsr,
-		PaginationData: paginationData,
+		PipelineName: pipelineName,
+		Job:          job,
 
-		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
+		Builds:     bsr,
+		Pagination: pagination,
+
+		GroupStates: group.States(pipeline.Groups, func(g atc.GroupConfig) bool {
 			for _, groupJob := range g.Jobs {
 				if groupJob == job.Name {
 					return true
@@ -118,59 +125,56 @@ func FetchTemplateData(pipelineName string, client concourse.Client, paginator J
 	}, nil
 }
 
-func (server *server) GetJob(pipelineDB db.PipelineDB) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log := server.logger.Session("job")
+func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log := handler.logger.Session("job")
 
-		jobName := r.FormValue(":job")
-		if len(jobName) == 0 {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		startingID, parseErr := strconv.Atoi(r.FormValue("startingID"))
-		if parseErr != nil {
-			log.Info("cannot-parse-startingID-to-int", lager.Data{"startingID": r.FormValue("startingID")})
-			startingID = 0
-		}
+	jobName := r.FormValue(":job")
+	if len(jobName) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-		resultsGreaterThanStartingID, parseErr := strconv.ParseBool(r.FormValue("resultsGreaterThanStartingID"))
-		if parseErr != nil {
-			resultsGreaterThanStartingID = false
-			log.Info("cannot-parse-resultsGreaterThanStartingID-to-bool", lager.Data{"resultsGreaterThanStartingID": r.FormValue("resultsGreaterThanStartingID")})
-		}
+	since, parseErr := strconv.Atoi(r.FormValue("since"))
+	if parseErr != nil {
+		since = 0
+	}
 
-		templateData, err := FetchTemplateData(
-			r.FormValue(":pipeline_name"),
-			server.clientFactory.Build(r),
-			Paginator{
-				PaginatorDB: pipelineDB,
-			},
-			jobName,
-			startingID,
-			resultsGreaterThanStartingID,
-		)
-		switch err {
-		case ErrJobConfigNotFound:
-			log.Info("could-not-find-job-in-config", lager.Data{
-				"job": jobName,
-			})
-			w.WriteHeader(http.StatusNotFound)
-			return
-		case nil:
-			break
-		default:
-			log.Error("failed-to-build-template-data", err, lager.Data{
-				"job": jobName,
-			})
-			http.Error(w, "failed to fetch job", http.StatusInternalServerError)
-			return
-		}
+	until, parseErr := strconv.Atoi(r.FormValue("until"))
+	if parseErr != nil {
+		until = 0
+	}
 
-		err = server.template.Execute(w, templateData)
-		if err != nil {
-			log.Fatal("failed-to-build-template", err, lager.Data{
-				"template-data": templateData,
-			})
-		}
-	})
+	templateData, err := FetchTemplateData(
+		r.FormValue(":pipeline_name"),
+		handler.clientFactory.Build(r),
+		jobName,
+		concourse.Page{
+			Since: since,
+			Until: until,
+			Limit: atc.PaginationWebLimit,
+		},
+	)
+	switch err {
+	case ErrJobConfigNotFound:
+		log.Info("could-not-find-job-in-config", lager.Data{
+			"job": jobName,
+		})
+		w.WriteHeader(http.StatusNotFound)
+		return
+	case nil:
+		break
+	default:
+		log.Error("failed-to-build-template-data", err, lager.Data{
+			"job": jobName,
+		})
+		http.Error(w, "failed to fetch job", http.StatusInternalServerError)
+		return
+	}
+
+	err = handler.template.Execute(w, templateData)
+	if err != nil {
+		log.Fatal("failed-to-build-template", err, lager.Data{
+			"template-data": templateData,
+		})
+	}
 }

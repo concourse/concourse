@@ -3,6 +3,7 @@ package api_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -493,382 +494,49 @@ var _ = Describe("Jobs API", func() {
 			pipelineDB.GetPipelineNameReturns("some-pipeline")
 			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/builds" + queryParams)
 			Expect(err).NotTo(HaveOccurred())
-
-			Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
-			Expect(pipelineName).To(Equal("some-pipeline"))
 		})
 
-		Context("when the until param is passed", func() {
-			BeforeEach(func() {
-				queryParams = "?until=451"
-			})
+		Context("when no params are passed", func() {
+			It("does not set defaults for since and until", func() {
+				Expect(pipelineDB.GetJobBuildsCallCount()).To(Equal(1))
 
-			It("calls to get the max id", func() {
-				Expect(pipelineDB.GetJobBuildsMaxIDCallCount()).To(Equal(1))
-				Expect(pipelineDB.GetJobBuildsMaxIDArgsForCall(0)).To(Equal("some-job"))
-			})
-
-			Context("when the call to get the max id returns an error", func() {
-				var err error = errors.New("nope")
-				BeforeEach(func() {
-					pipelineDB.GetJobBuildsMaxIDReturns(0, err)
-				})
-
-				It("returns an internal server error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-
-			Context("when the call to get the max id is less then the until", func() {
-				BeforeEach(func() {
-					pipelineDB.GetJobBuildsMaxIDReturns(1000, nil)
-				})
-
-				It("returns a previous link header", func() {
-					linkHeaders := response.Header[http.CanonicalHeaderKey("LINK")]
-					Expect(linkHeaders).To(HaveLen(1))
-					Expect(linkHeaders).To(ConsistOf([]string{
-						"<" + externalURL + `/api/v1/pipelines/some-pipeline/jobs/some-job/builds?since=452>; rel="previous"`,
-					}))
-				})
-			})
-
-			It("does not call to get all job builds", func() {
-				Expect(pipelineDB.GetAllJobBuildsCallCount()).To(Equal(0))
-			})
-
-			It("calls job builds cursor correctly", func() {
-				Expect(pipelineDB.GetJobBuildsCursorCallCount()).To(Equal(1))
-				jobName, startingJobBuildID, resultsGreaterThanStartingID, numberOfRows := pipelineDB.GetJobBuildsCursorArgsForCall(0)
+				jobName, page := pipelineDB.GetJobBuildsArgsForCall(0)
 				Expect(jobName).To(Equal("some-job"))
-				Expect(startingJobBuildID).To(Equal(451))
-				Expect(resultsGreaterThanStartingID).To(BeFalse())
-				Expect(numberOfRows).To(Equal(100))
+				Expect(page).To(Equal(db.Page{
+					Since: 0,
+					Until: 0,
+					Limit: 100,
+				}))
 			})
-
-			Context("when a limit is specified", func() {
-				BeforeEach(func() {
-					queryParams = "?until=451&limit=3"
-				})
-
-				It("uses that limit to get the builds", func() {
-					Expect(pipelineDB.GetJobBuildsCursorCallCount()).To(Equal(1))
-					_, _, _, numberOfRows := pipelineDB.GetJobBuildsCursorArgsForCall(0)
-					Expect(numberOfRows).To(Equal(3))
-				})
-			})
-
-			Context("when getting the build fails", func() {
-				var expectedErr error
-				BeforeEach(func() {
-					expectedErr = errors.New("nope")
-					pipelineDB.GetJobBuildsCursorReturns(nil, false, expectedErr)
-				})
-
-				It("does not try to lookup the max id", func() {
-					Expect(pipelineDB.GetJobBuildsMaxIDCallCount()).To(Equal(0))
-				})
-
-				It("returns 404 Not Found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("when there are more results", func() {
-				BeforeEach(func() {
-					pipelineDB.GetJobBuildsCursorReturns([]db.Build{
-						{ID: 451},
-						{ID: 450},
-						{ID: 435},
-						{ID: 422},
-					}, true, nil)
-				})
-
-				It("returns a next link header", func() {
-					linkHeaders := response.Header[http.CanonicalHeaderKey("LINK")]
-					Expect(linkHeaders).To(HaveLen(1))
-					Expect(linkHeaders).To(ConsistOf([]string{
-						"<" + externalURL + `/api/v1/pipelines/some-pipeline/jobs/some-job/builds?until=421>; rel="next"`,
-					}))
-				})
-
-				Context("When there are more results in both directions", func() {
-					BeforeEach(func() {
-						pipelineDB.GetJobBuildsMaxIDReturns(1000, nil)
-					})
-
-					It("returns a previous and next link header", func() {
-						linkHeaders := response.Header[http.CanonicalHeaderKey("LINK")]
-						Expect(linkHeaders).To(HaveLen(2))
-						Expect(linkHeaders).To(ConsistOf([]string{
-							"<" + externalURL + `/api/v1/pipelines/some-pipeline/jobs/some-job/builds?until=421>; rel="next"`,
-							"<" + externalURL + `/api/v1/pipelines/some-pipeline/jobs/some-job/builds?since=452>; rel="previous"`,
-						}))
-					})
-				})
-			})
-
-			Context("when there are no more results", func() {
-				BeforeEach(func() {
-					pipelineDB.GetJobBuildsCursorReturns([]db.Build{
-						{ID: 451},
-						{ID: 450},
-						{ID: 435},
-						{ID: 422},
-					}, false, nil)
-				})
-
-				It("does not return a next link header", func() {
-					linkHeader := response.Header.Get("LINK")
-					Expect(linkHeader).To(Equal(""))
-				})
-			})
-
-			Context("when getting the build succeeds", func() {
-
-				BeforeEach(func() {
-					pipelineDB.GetJobBuildsCursorReturns([]db.Build{
-						{
-							ID:           3,
-							Name:         "2",
-							JobName:      "some-job",
-							PipelineName: "some-pipeline",
-							Status:       db.StatusStarted,
-							StartTime:    time.Unix(1, 0),
-							EndTime:      time.Unix(100, 0),
-						},
-						{
-							ID:           1,
-							Name:         "1",
-							JobName:      "some-job",
-							PipelineName: "some-pipeline",
-							Status:       db.StatusSucceeded,
-							StartTime:    time.Unix(101, 0),
-							EndTime:      time.Unix(200, 0),
-						},
-					}, false, nil)
-
-				})
-
-				It("returns the builds as JSON", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(body).To(MatchJSON(`[
-						{
-							"id": 3,
-							"name": "2",
-							"job_name": "some-job",
-							"status": "started",
-							"url": "/pipelines/some-pipeline/jobs/some-job/builds/2",
-							"api_url": "/api/v1/builds/3",
-							"pipeline_name":"some-pipeline",
-							"start_time": 1,
-							"end_time": 100
-						},
-						{
-							"id": 1,
-							"name": "1",
-							"job_name": "some-job",
-							"status": "succeeded",
-							"url": "/pipelines/some-pipeline/jobs/some-job/builds/1",
-							"api_url": "/api/v1/builds/1",
-							"pipeline_name":"some-pipeline",
-							"start_time": 101,
-							"end_time": 200
-						}
-					]`))
-
-				})
-
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-			})
-
 		})
 
-		Context("when the since param is passed", func() {
+		Context("when all the params are passed", func() {
 			BeforeEach(func() {
-				queryParams = "?since=10"
+				queryParams = "?since=2&until=3&limit=8"
 			})
 
-			It("does not call to get all job builds", func() {
-				Expect(pipelineDB.GetAllJobBuildsCallCount()).To(Equal(0))
-			})
+			It("passes them through", func() {
+				Expect(pipelineDB.GetJobBuildsCallCount()).To(Equal(1))
 
-			It("calls job builds cursor correctly", func() {
-				Expect(pipelineDB.GetJobBuildsCursorCallCount()).To(Equal(1))
-				jobName, startingJobBuildID, resultsGreaterThanStartingID, numberOfRows := pipelineDB.GetJobBuildsCursorArgsForCall(0)
+				jobName, page := pipelineDB.GetJobBuildsArgsForCall(0)
 				Expect(jobName).To(Equal("some-job"))
-				Expect(startingJobBuildID).To(Equal(10))
-				Expect(resultsGreaterThanStartingID).To(BeTrue())
-				Expect(numberOfRows).To(Equal(100))
-			})
-
-			Context("when a limit is specified", func() {
-				BeforeEach(func() {
-					queryParams = "?since=10&limit=3"
-				})
-
-				It("uses that limit to get the builds", func() {
-					Expect(pipelineDB.GetJobBuildsCursorCallCount()).To(Equal(1))
-					_, _, _, numberOfRows := pipelineDB.GetJobBuildsCursorArgsForCall(0)
-					Expect(numberOfRows).To(Equal(3))
-				})
-			})
-			Context("when getting the build fails", func() {
-				var expectedErr error
-				BeforeEach(func() {
-					expectedErr = errors.New("nope")
-					pipelineDB.GetJobBuildsCursorReturns(nil, false, expectedErr)
-				})
-
-				It("does not try to lookup the min id", func() {
-					Expect(pipelineDB.GetJobBuildsMinIDCallCount()).To(Equal(0))
-				})
-
-				It("returns 404 Not Found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("when there are more results", func() {
-				BeforeEach(func() {
-					pipelineDB.GetJobBuildsCursorReturns([]db.Build{
-						{ID: 15},
-						{ID: 13},
-						{ID: 12},
-						{ID: 11},
-					}, true, nil)
-					pipelineDB.GetJobBuildsMinIDReturns(11, nil)
-
-				})
-
-				It("returns a previous link header", func() {
-					linkHeaders := response.Header[http.CanonicalHeaderKey("LINK")]
-					Expect(linkHeaders).To(HaveLen(1))
-					Expect(linkHeaders).To(ConsistOf([]string{
-						"<" + externalURL + `/api/v1/pipelines/some-pipeline/jobs/some-job/builds?since=16>; rel="previous"`,
-					}))
-				})
-			})
-
-			Context("when there are no more results", func() {
-				BeforeEach(func() {
-					pipelineDB.GetJobBuildsCursorReturns([]db.Build{
-						{ID: 451},
-						{ID: 450},
-						{ID: 435},
-						{ID: 422},
-					}, false, nil)
-					pipelineDB.GetJobBuildsMinIDReturns(11, nil)
-				})
-
-				It("does not return a next link header", func() {
-					linkHeader := response.Header.Get("LINK")
-					Expect(linkHeader).To(Equal(""))
-				})
-			})
-
-			It("calls to get the min id", func() {
-				Expect(pipelineDB.GetJobBuildsMinIDCallCount()).To(Equal(1))
-				Expect(pipelineDB.GetJobBuildsMinIDArgsForCall(0)).To(Equal("some-job"))
-			})
-
-			Context("when the call to get the min id returns an error", func() {
-				var err error = errors.New("nope")
-				BeforeEach(func() {
-					pipelineDB.GetJobBuildsMinIDReturns(0, err)
-				})
-
-				It("returns an internal server error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-
-			Context("when the min id returned is less than the since paramter", func() {
-				BeforeEach(func() {
-					pipelineDB.GetJobBuildsMinIDReturns(9, nil)
-				})
-
-				It("returns a next link", func() {
-					linkHeaders := response.Header[http.CanonicalHeaderKey("LINK")]
-					Expect(linkHeaders).To(HaveLen(1))
-					Expect(linkHeaders).To(ConsistOf([]string{
-						"<" + externalURL + `/api/v1/pipelines/some-pipeline/jobs/some-job/builds?until=9>; rel="next"`,
-					}))
-				})
-			})
-
-			Context("when getting the build succeeds", func() {
-				BeforeEach(func() {
-					pipelineDB.GetJobBuildsCursorReturns([]db.Build{
-						{
-							ID:           3,
-							Name:         "2",
-							JobName:      "some-job",
-							PipelineName: "some-pipeline",
-							Status:       db.StatusStarted,
-							StartTime:    time.Unix(1, 0),
-							EndTime:      time.Unix(100, 0),
-						},
-						{
-							ID:           1,
-							Name:         "1",
-							JobName:      "some-job",
-							PipelineName: "some-pipeline",
-							Status:       db.StatusSucceeded,
-							StartTime:    time.Unix(101, 0),
-							EndTime:      time.Unix(200, 0),
-						},
-					}, false, nil)
-				})
-
-				It("returns the builds as JSON", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(body).To(MatchJSON(`[
-						{
-							"id": 3,
-							"name": "2",
-							"job_name": "some-job",
-							"status": "started",
-							"url": "/pipelines/some-pipeline/jobs/some-job/builds/2",
-							"api_url": "/api/v1/builds/3",
-							"pipeline_name":"some-pipeline",
-							"start_time": 1,
-							"end_time": 100
-						},
-						{
-							"id": 1,
-							"name": "1",
-							"job_name": "some-job",
-							"status": "succeeded",
-							"url": "/pipelines/some-pipeline/jobs/some-job/builds/1",
-							"api_url": "/api/v1/builds/1",
-							"pipeline_name":"some-pipeline",
-							"start_time": 101,
-							"end_time": 200
-						}
-					]`))
-
-				})
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
+				Expect(page).To(Equal(db.Page{
+					Since: 2,
+					Until: 3,
+					Limit: 8,
+				}))
 			})
 		})
 
-		Context("when getting the build succeeds", func() {
+		Context("when getting the builds succeeds", func() {
+			var returnedBuilds []db.Build
+
 			BeforeEach(func() {
-				queryParams = ""
-				pipelineDB.GetAllJobBuildsReturns([]db.Build{
+				queryParams = "?since=5&limit=2"
+
+				returnedBuilds = []db.Build{
 					{
-						ID:           3,
+						ID:           4,
 						Name:         "2",
 						JobName:      "some-job",
 						PipelineName: "some-pipeline",
@@ -877,7 +545,7 @@ var _ = Describe("Jobs API", func() {
 						EndTime:      time.Unix(100, 0),
 					},
 					{
-						ID:           1,
+						ID:           2,
 						Name:         "1",
 						JobName:      "some-job",
 						PipelineName: "some-pipeline",
@@ -885,14 +553,9 @@ var _ = Describe("Jobs API", func() {
 						StartTime:    time.Unix(101, 0),
 						EndTime:      time.Unix(200, 0),
 					},
-				}, nil)
-			})
+				}
 
-			It("fetches by job and build name", func() {
-				Expect(pipelineDB.GetAllJobBuildsCallCount()).To(Equal(1))
-
-				jobName := pipelineDB.GetAllJobBuildsArgsForCall(0)
-				Expect(jobName).To(Equal("some-job"))
+				pipelineDB.GetJobBuildsReturns(returnedBuilds, db.Pagination{}, nil)
 			})
 
 			It("returns 200 OK", func() {
@@ -905,35 +568,50 @@ var _ = Describe("Jobs API", func() {
 
 				Expect(body).To(MatchJSON(`[
 					{
-						"id": 3,
+						"id": 4,
 						"name": "2",
 						"job_name": "some-job",
 						"status": "started",
 						"url": "/pipelines/some-pipeline/jobs/some-job/builds/2",
-						"api_url": "/api/v1/builds/3",
+						"api_url": "/api/v1/builds/4",
 						"pipeline_name":"some-pipeline",
 						"start_time": 1,
 						"end_time": 100
 					},
 					{
-						"id": 1,
+						"id": 2,
 						"name": "1",
 						"job_name": "some-job",
 						"status": "succeeded",
 						"url": "/pipelines/some-pipeline/jobs/some-job/builds/1",
-						"api_url": "/api/v1/builds/1",
+						"api_url": "/api/v1/builds/2",
 						"pipeline_name":"some-pipeline",
 						"start_time": 101,
 						"end_time": 200
 					}
 				]`))
+			})
 
+			Context("when next/previous pages are available", func() {
+				BeforeEach(func() {
+					pipelineDB.GetJobBuildsReturns(returnedBuilds, db.Pagination{
+						Previous: &db.Page{Until: 4, Limit: 2},
+						Next:     &db.Page{Since: 2, Limit: 2},
+					}, nil)
+				})
+
+				It("returns Link headers per rfc5988", func() {
+					Expect(response.Header["Link"]).To(ConsistOf([]string{
+						fmt.Sprintf(`<%s/api/v1/pipelines/some-pipeline/jobs/some-job/builds?until=4&limit=2>; rel="previous"`, externalURL),
+						fmt.Sprintf(`<%s/api/v1/pipelines/some-pipeline/jobs/some-job/builds?since=2&limit=2>; rel="next"`, externalURL),
+					}))
+				})
 			})
 		})
 
 		Context("when getting the build fails", func() {
 			BeforeEach(func() {
-				pipelineDB.GetAllJobBuildsReturns(nil, errors.New("oh no!"))
+				pipelineDB.GetJobBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
 			})
 
 			It("returns 404 Not Found", func() {

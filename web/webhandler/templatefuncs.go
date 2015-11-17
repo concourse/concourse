@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/pagination"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/tedsuo/rata"
 )
 
@@ -78,15 +79,6 @@ func jobName(x interface{}) string {
 	}
 }
 
-func jobNameNew(x interface{}) string {
-	switch v := x.(type) {
-	case string:
-		return v
-	default:
-		return x.(atc.Job).Name
-	}
-}
-
 func PathFor(route string, args ...interface{}) (string, error) {
 	switch route {
 	case web.TriggerBuild:
@@ -94,7 +86,7 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		case atc.Job:
 			return web.Routes.CreatePathForRoute(route, rata.Params{
 				"pipeline_name": args[0].(string),
-				"job":           jobNameNew(args[1]),
+				"job":           jobName(args[1]),
 			})
 		default:
 			return web.Routes.CreatePathForRoute(route, rata.Params{
@@ -128,7 +120,7 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		switch args[1].(type) {
 		case atc.Build:
 			build := args[1].(atc.Build)
-			build.JobName = jobNameNew(args[0])
+			build.JobName = jobName(args[0])
 			return web.PathForBuildNew(build), nil
 		default:
 			build := args[1].(db.Build)
@@ -153,13 +145,12 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		}
 
 		if len(args) > 2 {
-			paginationData := args[2].(pagination.PaginationData)
-			resultsGreaterThanStartingID := args[3].(bool)
+			page := args[2].(*concourse.Page)
 
-			if resultsGreaterThanStartingID {
-				baseJobURL += "?startingID=" + strconv.Itoa(paginationData.NewerStartID()) + "&resultsGreaterThanStartingID=true"
+			if page.Since != 0 {
+				baseJobURL += fmt.Sprintf("?since=%d", page.Since)
 			} else {
-				baseJobURL += "?startingID=" + strconv.Itoa(paginationData.OlderStartID()) + "&resultsGreaterThanStartingID=false"
+				baseJobURL += fmt.Sprintf("?until=%d", page.Until)
 			}
 		}
 
