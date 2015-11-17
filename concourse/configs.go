@@ -3,6 +3,7 @@ package concourse
 import (
 	"bytes"
 	"mime/multipart"
+	"net/http"
 	"net/textproto"
 
 	"github.com/concourse/atc"
@@ -14,7 +15,7 @@ func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, b
 
 	var config atc.Config
 	var version string
-	responseHeaders := map[string][]string{}
+	responseHeaders := http.Header{}
 
 	err := client.connection.Send(Request{
 		RequestName: atc.GetConfig,
@@ -24,9 +25,7 @@ func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, b
 		Headers: &responseHeaders,
 	})
 
-	if header, ok := responseHeaders[atc.ConfigVersionHeader]; ok {
-		version = header[0]
-	}
+	version = responseHeaders.Get(atc.ConfigVersionHeader)
 
 	switch err.(type) {
 	case nil:

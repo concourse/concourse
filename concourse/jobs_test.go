@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -135,7 +136,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("calls to get all builds", func() {
-				builds, found, err := client.JobBuilds("mypipeline", "myjob", 0, 0, 0)
+				builds, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -149,7 +150,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("calls to get all builds since that id", func() {
-				builds, found, err := client.JobBuilds("mypipeline", "myjob", 24, 0, 0)
+				builds, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -161,7 +162,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 				})
 
 				It("appends limit to the url", func() {
-					builds, found, err := client.JobBuilds("mypipeline", "myjob", 24, 0, 5)
+					builds, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24, Limit: 5})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(builds).To(Equal(expectedBuilds))
@@ -176,7 +177,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("calls to get all builds until that id", func() {
-				builds, found, err := client.JobBuilds("mypipeline", "myjob", 0, 26, 0)
+				builds, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{Until: 26})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -188,7 +189,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 				})
 
 				It("appends limit to the url", func() {
-					builds, found, err := client.JobBuilds("mypipeline", "myjob", 0, 26, 15)
+					builds, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{Until: 26, Limit: 15})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(builds).To(Equal(expectedBuilds))
@@ -203,7 +204,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("only sends the until", func() {
-				builds, found, err := client.JobBuilds("mypipeline", "myjob", 24, 26, 0)
+				builds, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24, Until: 26})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -223,7 +224,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("returns false and an error", func() {
-				_, found, err := client.JobBuilds("mypipeline", "myjob", 0, 0, 0)
+				_, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{})
 				Expect(err).To(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -242,9 +243,35 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("returns false and no error", func() {
-				_, found, err := client.JobBuilds("mypipeline", "myjob", 0, 0, 0)
+				_, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("pagination data", func() {
+			BeforeEach(func() {
+				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob/builds")
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{
+							"Link": []string{
+								`<http://some-url.com/api/v1/pipelines/some-pipeline/jobs/some-job/builds?since=452&limit=123>; rel="previous"`,
+								`<http://some-url.com/api/v1/pipelines/some-pipeline/jobs/some-job/builds?until=254&limit=456>; rel="next"`,
+							},
+						}),
+					),
+				)
+			})
+
+			It("returns the pagination data from the header", func() {
+				_, pagination, _, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{})
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(pagination.Previous).To(Equal(concourse.Page{Since: 452, Limit: 123}))
+				Expect(pagination.Next).To(Equal(concourse.Page{Until: 254, Limit: 456}))
 			})
 		})
 	})

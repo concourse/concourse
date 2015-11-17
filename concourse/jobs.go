@@ -1,7 +1,7 @@
 package concourse
 
 import (
-	"strconv"
+	"net/http"
 
 	"github.com/concourse/atc"
 )
@@ -19,7 +19,6 @@ func (client *client) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 	}, &Response{
 		Result: &job,
 	})
-
 	switch err.(type) {
 	case nil:
 		return job, true, nil
@@ -30,35 +29,30 @@ func (client *client) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 	}
 }
 
-func (client *client) JobBuilds(pipelineName string, jobName string, since int, until int, limit int) ([]atc.Build, bool, error) {
+func (client *client) JobBuilds(pipelineName string, jobName string, page Page) ([]atc.Build, Pagination, bool, error) {
 	params := map[string]string{"pipeline_name": pipelineName, "job_name": jobName}
-	queryParams := map[string]string{}
-
-	if until > 0 {
-		queryParams["until"] = strconv.Itoa(until)
-	} else if since > 0 {
-		queryParams["since"] = strconv.Itoa(since)
-	}
-
-	if limit > 0 {
-		queryParams["limit"] = strconv.Itoa(limit)
-	}
-
 	var builds []atc.Build
+
+	headers := http.Header{}
 	err := client.connection.Send(Request{
 		RequestName: atc.ListJobBuilds,
 		Params:      params,
-		Queries:     queryParams,
+		Queries:     page.QueryParams(),
 	}, &Response{
-		Result: &builds,
+		Result:  &builds,
+		Headers: &headers,
 	})
-
 	switch err.(type) {
 	case nil:
-		return builds, true, nil
+		pagination, err := PaginationFromHeaders(headers)
+		if err != nil {
+			return builds, Pagination{}, false, err
+		}
+
+		return builds, pagination, true, nil
 	case ResourceNotFoundError:
-		return builds, false, nil
+		return builds, Pagination{}, false, nil
 	default:
-		return builds, false, err
+		return builds, Pagination{}, false, err
 	}
 }

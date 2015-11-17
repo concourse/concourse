@@ -275,7 +275,7 @@ var _ = Describe("ATC Connection", func() {
 			})
 
 			It("returns the response headers in Headers", func() {
-				responseHeaders := map[string][]string{}
+				responseHeaders := http.Header{}
 
 				err := connection.Send(Request{
 					RequestName: atc.GetBuild,
@@ -285,7 +285,7 @@ var _ = Describe("ATC Connection", func() {
 					Headers: &responseHeaders,
 				})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(responseHeaders[atc.ConfigVersionHeader]).To(Equal([]string{"42"}))
+				Expect(responseHeaders.Get(atc.ConfigVersionHeader)).To(Equal("42"))
 			})
 		})
 

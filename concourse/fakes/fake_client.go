@@ -153,19 +153,18 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
-	JobBuildsStub        func(pipelineName string, jobName string, since int, until int, limit int) ([]atc.Build, bool, error)
+	JobBuildsStub        func(pipelineName string, jobName string, page concourse.Page) ([]atc.Build, concourse.Pagination, bool, error)
 	jobBuildsMutex       sync.RWMutex
 	jobBuildsArgsForCall []struct {
 		pipelineName string
 		jobName      string
-		since        int
-		until        int
-		limit        int
+		page         concourse.Page
 	}
 	jobBuildsReturns struct {
 		result1 []atc.Build
-		result2 bool
-		result3 error
+		result2 concourse.Pagination
+		result3 bool
+		result4 error
 	}
 	ListContainersStub        func(queryList map[string]string) ([]atc.Container, error)
 	listContainersMutex       sync.RWMutex
@@ -735,20 +734,18 @@ func (fake *FakeClient) JobBuildReturns(result1 atc.Build, result2 bool, result3
 	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) JobBuilds(pipelineName string, jobName string, since int, until int, limit int) ([]atc.Build, bool, error) {
+func (fake *FakeClient) JobBuilds(pipelineName string, jobName string, page concourse.Page) ([]atc.Build, concourse.Pagination, bool, error) {
 	fake.jobBuildsMutex.Lock()
 	fake.jobBuildsArgsForCall = append(fake.jobBuildsArgsForCall, struct {
 		pipelineName string
 		jobName      string
-		since        int
-		until        int
-		limit        int
-	}{pipelineName, jobName, since, until, limit})
+		page         concourse.Page
+	}{pipelineName, jobName, page})
 	fake.jobBuildsMutex.Unlock()
 	if fake.JobBuildsStub != nil {
-		return fake.JobBuildsStub(pipelineName, jobName, since, until, limit)
+		return fake.JobBuildsStub(pipelineName, jobName, page)
 	} else {
-		return fake.jobBuildsReturns.result1, fake.jobBuildsReturns.result2, fake.jobBuildsReturns.result3
+		return fake.jobBuildsReturns.result1, fake.jobBuildsReturns.result2, fake.jobBuildsReturns.result3, fake.jobBuildsReturns.result4
 	}
 }
 
@@ -758,19 +755,20 @@ func (fake *FakeClient) JobBuildsCallCount() int {
 	return len(fake.jobBuildsArgsForCall)
 }
 
-func (fake *FakeClient) JobBuildsArgsForCall(i int) (string, string, int, int, int) {
+func (fake *FakeClient) JobBuildsArgsForCall(i int) (string, string, concourse.Page) {
 	fake.jobBuildsMutex.RLock()
 	defer fake.jobBuildsMutex.RUnlock()
-	return fake.jobBuildsArgsForCall[i].pipelineName, fake.jobBuildsArgsForCall[i].jobName, fake.jobBuildsArgsForCall[i].since, fake.jobBuildsArgsForCall[i].until, fake.jobBuildsArgsForCall[i].limit
+	return fake.jobBuildsArgsForCall[i].pipelineName, fake.jobBuildsArgsForCall[i].jobName, fake.jobBuildsArgsForCall[i].page
 }
 
-func (fake *FakeClient) JobBuildsReturns(result1 []atc.Build, result2 bool, result3 error) {
+func (fake *FakeClient) JobBuildsReturns(result1 []atc.Build, result2 concourse.Pagination, result3 bool, result4 error) {
 	fake.JobBuildsStub = nil
 	fake.jobBuildsReturns = struct {
 		result1 []atc.Build
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result2 concourse.Pagination
+		result3 bool
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
 func (fake *FakeClient) ListContainers(queryList map[string]string) ([]atc.Container, error) {

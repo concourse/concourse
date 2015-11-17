@@ -36,7 +36,7 @@ type Request struct {
 
 type Response struct {
 	Result  interface{}
-	Headers *map[string][]string
+	Headers *http.Header
 	Created bool
 }
 
