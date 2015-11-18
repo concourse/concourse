@@ -13,7 +13,7 @@ type Pagination struct {
 	Previous Page
 }
 
-func PaginationFromHeaders(header http.Header) (Pagination, error) {
+func paginationFromHeaders(header http.Header) (Pagination, error) {
 	var nextPage Page
 	var previousPage Page
 	var err error

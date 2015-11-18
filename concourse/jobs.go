@@ -44,7 +44,7 @@ func (client *client) JobBuilds(pipelineName string, jobName string, page Page) 
 	})
 	switch err.(type) {
 	case nil:
-		pagination, err := PaginationFromHeaders(headers)
+		pagination, err := paginationFromHeaders(headers)
 		if err != nil {
 			return builds, Pagination{}, false, err
 		}
