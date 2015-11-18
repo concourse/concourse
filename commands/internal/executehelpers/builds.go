@@ -15,6 +15,7 @@ func CreateBuild(
 	inputs []Input,
 	outputs []Output,
 	config atc.TaskConfig,
+	tags []string,
 	target string,
 ) (atc.Build, error) {
 	if err := config.Validate(); err != nil {
@@ -84,6 +85,10 @@ func CreateBuild(
 			Privileged: privileged,
 			Config:     &config,
 		},
+	}
+
+	if len(tags) != 0 {
+		taskPlan.Task.Tags = tags
 	}
 
 	buildOutputs := atc.AggregatePlan{}

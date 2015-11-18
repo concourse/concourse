@@ -25,6 +25,7 @@ type ExecuteCommand struct {
 	Inputs         []flaghelpers.InputPairFlag  `short:"i" long:"input"       value-name:"NAME=PATH"    description:"An input to provide to the task (can be specified multiple times)"`
 	InputsFrom     flaghelpers.JobFlag          `short:"j" long:"inputs-from" value-name:"PIPELINE/JOB" description:"A job to base the inputs on"`
 	Outputs        []flaghelpers.OutputPairFlag `short:"o" long:"output"      value-name:"NAME=PATH"    description:"An output to fetch from the task (can be specified multiple times)"`
+	Tag            string                       `long:"tag"        description:"targets only workers with this tag."`
 }
 
 func (command *ExecuteCommand) Execute(args []string) error {
@@ -63,6 +64,11 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
+	tags := []string{}
+	if len(command.Tag) != 0 {
+		tags = append(tags, command.Tag)
+	}
+
 	build, err := executehelpers.CreateBuild(
 		atcRequester,
 		client,
@@ -70,6 +76,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		inputs,
 		outputs,
 		taskConfig,
+		tags,
 		Fly.Target,
 	)
 	if err != nil {
