@@ -230,7 +230,7 @@
 [submodule "src/github.com/contraband/holler"]
 	path = src/github.com/contraband/holler
 	url = https://github.com/contraband/holler
-        branch = master
+	branch = master
 [submodule "src/github.com/peterhellberg/link"]
 	path = src/github.com/peterhellberg/link
 	url = https://github.com/peterhellberg/link
