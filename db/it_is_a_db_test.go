@@ -256,8 +256,10 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			err = events3.Close()
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = events3.Next()
-			Expect(err).To(Equal(db.ErrBuildEventStreamClosed))
+			Eventually(func() error {
+				_, err := events3.Next()
+				return err
+			}).Should(Equal(db.ErrBuildEventStreamClosed))
 		})
 
 		It("saves and emits status events", func() {
