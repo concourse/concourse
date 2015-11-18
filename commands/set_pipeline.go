@@ -17,7 +17,7 @@ type SetPipelineCommand struct {
 	Config          flaghelpers.PathFlag           `short:"c"  long:"config"                        description:"Pipeline configuration file"`
 	Var             []flaghelpers.VariablePairFlag `short:"v"  long:"var" value-name:"[SECRET=KEY]" description:"Variable flag that can be used for filling in template values in configuration"`
 	VarsFrom        []flaghelpers.PathFlag         `short:"l"  long:"load-vars-from"                description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
-	SkipInteractive bool                           `short:"n" long:"non-interactive" description:"Skips interactions, uses default values."`
+	SkipInteractive bool                           `short:"n"  long:"non-interactive"               description:"Skips interactions, uses default values"`
 }
 
 func (command *SetPipelineCommand) Execute(args []string) error {
