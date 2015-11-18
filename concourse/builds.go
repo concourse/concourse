@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/tedsuo/rata"
 )
 
 func (client *client) CreateBuild(plan atc.Plan) (atc.Build, error) {
@@ -22,7 +23,7 @@ func (client *client) CreateBuild(plan atc.Plan) (atc.Build, error) {
 	err = client.connection.Send(Request{
 		RequestName: atc.CreateBuild,
 		Body:        buffer,
-		Headers: map[string][]string{
+		Header: http.Header{
 			"Content-Type": {"application/json"},
 		},
 	}, &Response{
@@ -39,7 +40,7 @@ func (client *client) CreateBuild(plan atc.Plan) (atc.Build, error) {
 }
 
 func (client *client) CreateJobBuild(pipelineName string, jobName string) (atc.Build, error) {
-	params := map[string]string{"job_name": jobName, "pipeline_name": pipelineName}
+	params := rata.Params{"job_name": jobName, "pipeline_name": pipelineName}
 
 	var build atc.Build
 	err := client.connection.Send(Request{
@@ -57,7 +58,7 @@ func (client *client) JobBuild(pipelineName, jobName, buildName string) (atc.Bui
 		return atc.Build{}, false, NameRequiredError("pipeline")
 	}
 
-	params := map[string]string{"job_name": jobName, "build_name": buildName, "pipeline_name": pipelineName}
+	params := rata.Params{"job_name": jobName, "build_name": buildName, "pipeline_name": pipelineName}
 	var build atc.Build
 	err := client.connection.Send(Request{
 		RequestName: atc.GetJobBuild,
@@ -77,7 +78,7 @@ func (client *client) JobBuild(pipelineName, jobName, buildName string) (atc.Bui
 }
 
 func (client *client) Build(buildID string) (atc.Build, bool, error) {
-	params := map[string]string{"build_id": buildID}
+	params := rata.Params{"build_id": buildID}
 	var build atc.Build
 	err := client.connection.Send(Request{
 		RequestName: atc.GetBuild,
@@ -107,7 +108,7 @@ func (client *client) AllBuilds() ([]atc.Build, error) {
 }
 
 func (client *client) AbortBuild(buildID string) error {
-	params := map[string]string{"build_id": buildID}
+	params := rata.Params{"build_id": buildID}
 	return client.connection.Send(Request{
 		RequestName: atc.AbortBuild,
 		Params:      params,

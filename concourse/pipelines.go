@@ -1,9 +1,12 @@
 package concourse
 
-import "github.com/concourse/atc"
+import (
+	"github.com/concourse/atc"
+	"github.com/tedsuo/rata"
+)
 
 func (client *client) Pipeline(pipelineName string) (atc.Pipeline, bool, error) {
-	params := map[string]string{"pipeline_name": pipelineName}
+	params := rata.Params{"pipeline_name": pipelineName}
 
 	var pipeline atc.Pipeline
 	err := client.connection.Send(Request{
@@ -35,7 +38,7 @@ func (client *client) ListPipelines() ([]atc.Pipeline, error) {
 }
 
 func (client *client) DeletePipeline(pipelineName string) (bool, error) {
-	params := map[string]string{"pipeline_name": pipelineName}
+	params := rata.Params{"pipeline_name": pipelineName}
 	err := client.connection.Send(Request{
 		RequestName: atc.DeletePipeline,
 		Params:      params,
@@ -52,7 +55,7 @@ func (client *client) DeletePipeline(pipelineName string) (bool, error) {
 }
 
 func (client *client) PausePipeline(pipelineName string) (bool, error) {
-	params := map[string]string{"pipeline_name": pipelineName}
+	params := rata.Params{"pipeline_name": pipelineName}
 	err := client.connection.Send(Request{
 		RequestName: atc.PausePipeline,
 		Params:      params,
@@ -69,7 +72,7 @@ func (client *client) PausePipeline(pipelineName string) (bool, error) {
 }
 
 func (client *client) UnpausePipeline(pipelineName string) (bool, error) {
-	params := map[string]string{"pipeline_name": pipelineName}
+	params := rata.Params{"pipeline_name": pipelineName}
 	err := client.connection.Send(Request{
 		RequestName: atc.UnpausePipeline,
 		Params:      params,

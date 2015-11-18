@@ -27,9 +27,9 @@ type Connection interface {
 
 type Request struct {
 	RequestName        string
-	Params             map[string]string
-	Queries            map[string]string
-	Headers            map[string][]string
+	Params             rata.Params
+	Query              url.Values
+	Header             http.Header
 	Body               *bytes.Buffer
 	ReturnResponseBody bool
 }
@@ -111,17 +111,11 @@ func (connection *connection) createHTTPRequest(passedRequest Request) (*http.Re
 		return nil, err
 	}
 
-	values := url.Values{}
-	for k, v := range passedRequest.Queries {
-		values[k] = []string{v}
-	}
-	req.URL.RawQuery = values.Encode()
+	req.URL.RawQuery = passedRequest.Query.Encode()
 
-	if passedRequest.Headers != nil {
-		for headerID, headerValues := range passedRequest.Headers {
-			for _, val := range headerValues {
-				req.Header.Add(headerID, val)
-			}
+	for h, vs := range passedRequest.Header {
+		for _, v := range vs {
+			req.Header.Add(h, v)
 		}
 	}
 
@@ -129,8 +123,8 @@ func (connection *connection) createHTTPRequest(passedRequest Request) (*http.Re
 }
 
 func (connection *connection) getBody(passedRequest Request) *bytes.Buffer {
-	if passedRequest.Headers != nil && passedRequest.Body != nil {
-		if _, ok := passedRequest.Headers["Content-Type"]; !ok {
+	if passedRequest.Header != nil && passedRequest.Body != nil {
+		if _, ok := passedRequest.Header["Content-Type"]; !ok {
 			panic("You must pass a 'Content-Type' Header with a body")
 		}
 		return passedRequest.Body

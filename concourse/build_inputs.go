@@ -1,9 +1,12 @@
 package concourse
 
-import "github.com/concourse/atc"
+import (
+	"github.com/concourse/atc"
+	"github.com/tedsuo/rata"
+)
 
 func (client *client) BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error) {
-	params := map[string]string{"pipeline_name": pipelineName, "job_name": jobName}
+	params := rata.Params{"pipeline_name": pipelineName, "job_name": jobName}
 
 	var buildInputs []atc.BuildInput
 	err := client.connection.Send(Request{

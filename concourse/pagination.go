@@ -63,16 +63,16 @@ func pageFromURI(uri string) (Page, error) {
 	return page, nil
 }
 
-func (p Page) QueryParams() map[string]string {
-	queryParams := map[string]string{}
+func (p Page) QueryParams() url.Values {
+	queryParams := url.Values{}
 	if p.Until > 0 {
-		queryParams["until"] = strconv.Itoa(p.Until)
+		queryParams.Add("until", strconv.Itoa(p.Until))
 	} else if p.Since > 0 {
-		queryParams["since"] = strconv.Itoa(p.Since)
+		queryParams.Add("since", strconv.Itoa(p.Since))
 	}
 
 	if p.Limit > 0 {
-		queryParams["limit"] = strconv.Itoa(p.Limit)
+		queryParams.Add("limit", strconv.Itoa(p.Limit))
 	}
 
 	return queryParams

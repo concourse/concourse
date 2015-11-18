@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/tedsuo/rata"
 )
 
 func (client *client) Job(pipelineName, jobName string) (atc.Job, bool, error) {
@@ -11,7 +12,7 @@ func (client *client) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 		return atc.Job{}, false, NameRequiredError("pipeline")
 	}
 
-	params := map[string]string{"pipeline_name": pipelineName, "job_name": jobName}
+	params := rata.Params{"pipeline_name": pipelineName, "job_name": jobName}
 	var job atc.Job
 	err := client.connection.Send(Request{
 		RequestName: atc.GetJob,
@@ -30,14 +31,14 @@ func (client *client) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 }
 
 func (client *client) JobBuilds(pipelineName string, jobName string, page Page) ([]atc.Build, Pagination, bool, error) {
-	params := map[string]string{"pipeline_name": pipelineName, "job_name": jobName}
+	params := rata.Params{"pipeline_name": pipelineName, "job_name": jobName}
 	var builds []atc.Build
 
 	headers := http.Header{}
 	err := client.connection.Send(Request{
 		RequestName: atc.ListJobBuilds,
 		Params:      params,
-		Queries:     page.QueryParams(),
+		Query:       page.QueryParams(),
 	}, &Response{
 		Result:  &builds,
 		Headers: &headers,

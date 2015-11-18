@@ -3,6 +3,7 @@ package concourse
 import (
 	"errors"
 	"io"
+	"net/url"
 
 	"github.com/concourse/atc"
 )
@@ -12,9 +13,9 @@ func (client *client) GetCLIReader(arch, platform string) (io.ReadCloser, error)
 
 	err := client.connection.Send(Request{
 		RequestName: atc.DownloadCLI,
-		Queries: map[string]string{
-			"arch":     arch,
-			"platform": platform,
+		Query: url.Values{
+			"arch":     {arch},
+			"platform": {platform},
 		},
 		ReturnResponseBody: true,
 	},

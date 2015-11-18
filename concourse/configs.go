@@ -7,11 +7,12 @@ import (
 	"net/textproto"
 
 	"github.com/concourse/atc"
+	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
 )
 
 func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
-	params := map[string]string{"pipeline_name": pipelineName}
+	params := rata.Params{"pipeline_name": pipelineName}
 
 	var config atc.Config
 	var version string
@@ -38,7 +39,7 @@ func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, b
 }
 
 func (client *client) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config) (bool, bool, error) {
-	params := map[string]string{"pipeline_name": pipelineName}
+	params := rata.Params{"pipeline_name": pipelineName}
 	response := Response{}
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -65,7 +66,7 @@ func (client *client) CreateOrUpdatePipelineConfig(pipelineName string, configVe
 		RequestName: atc.SaveConfig,
 		Params:      params,
 		Body:        body,
-		Headers: map[string][]string{
+		Header: http.Header{
 			"Content-Type":          {writer.FormDataContentType()},
 			atc.ConfigVersionHeader: {configVersion},
 		},

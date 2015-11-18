@@ -2,6 +2,7 @@ package concourse_test
 
 import (
 	"io"
+	"net/url"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse"
@@ -30,9 +31,9 @@ var _ = Describe("ATC Handler CLI", func() {
 
 			expectedRequest := concourse.Request{
 				RequestName: atc.DownloadCLI,
-				Queries: map[string]string{
-					"arch":     expectedArch,
-					"platform": expectedPlatform,
+				Query: url.Values{
+					"arch":     {expectedArch},
+					"platform": {expectedPlatform},
 				},
 				ReturnResponseBody: true,
 			}

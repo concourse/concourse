@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
@@ -70,7 +71,7 @@ var _ = Describe("ATC Connection", func() {
 			var build atc.Build
 			err = connection.Send(Request{
 				RequestName: atc.GetBuild,
-				Params:      map[string]string{"build_id": "foo"},
+				Params:      rata.Params{"build_id": "foo"},
 			}, &Response{
 				Result: &build,
 			})
@@ -93,7 +94,7 @@ var _ = Describe("ATC Connection", func() {
 
 			err = connection.Send(Request{
 				RequestName: atc.GetBuild,
-				Params:      map[string]string{"build_id": "foo"},
+				Params:      rata.Params{"build_id": "foo"},
 			}, nil)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -122,7 +123,7 @@ var _ = Describe("ATC Connection", func() {
 			var build atc.Build
 			err = basicAuthConnection.Send(Request{
 				RequestName: atc.GetBuild,
-				Params:      map[string]string{"build_id": "foo"},
+				Params:      rata.Params{"build_id": "foo"},
 			}, &Response{
 				Result: &build,
 			})
@@ -142,7 +143,7 @@ var _ = Describe("ATC Connection", func() {
 			var build atc.Build
 			err := connection.Send(Request{
 				RequestName: atc.GetBuild,
-				Params:      map[string]string{"build_id": "foo"},
+				Params:      rata.Params{"build_id": "foo"},
 			}, &Response{
 				Result: &build,
 			})
@@ -180,7 +181,7 @@ var _ = Describe("ATC Connection", func() {
 			var containers []atc.Container
 			err := connection.Send(Request{
 				RequestName: atc.ListContainers,
-				Queries:     map[string]string{"type": "check"},
+				Query:       url.Values{"type": {"check"}},
 			}, &Response{
 				Result: &containers,
 			})
@@ -246,10 +247,10 @@ var _ = Describe("ATC Connection", func() {
 			It("sets the header and it's values on the request", func() {
 				err := connection.Send(Request{
 					RequestName: atc.GetBuild,
-					Params:      map[string]string{"build_id": "foo"},
-					Headers: map[string][]string{
-						"accept-encoding": {"application/banana"},
-						"foo":             {"bar", "baz"},
+					Params:      rata.Params{"build_id": "foo"},
+					Header: http.Header{
+						"Accept-Encoding": {"application/banana"},
+						"Foo":             {"bar", "baz"},
 					},
 				}, &Response{
 					Result: &atc.Build{},
@@ -279,7 +280,7 @@ var _ = Describe("ATC Connection", func() {
 
 				err := connection.Send(Request{
 					RequestName: atc.GetBuild,
-					Params:      map[string]string{"build_id": "foo"},
+					Params:      rata.Params{"build_id": "foo"},
 				}, &Response{
 					Result:  &atc.Build{},
 					Headers: &responseHeaders,
@@ -309,7 +310,7 @@ var _ = Describe("ATC Connection", func() {
 				It("sets the username and password if given", func() {
 					err := connection.Send(Request{
 						RequestName: atc.DeletePipeline,
-						Params:      map[string]string{"pipeline_name": "foo"},
+						Params:      rata.Params{"pipeline_name": "foo"},
 					}, nil)
 
 					Expect(err).NotTo(HaveOccurred())
@@ -335,7 +336,7 @@ var _ = Describe("ATC Connection", func() {
 				It("returns back UnexpectedResponseError", func() {
 					err := connection.Send(Request{
 						RequestName: atc.DeletePipeline,
-						Params:      map[string]string{"pipeline_name": "foo"},
+						Params:      rata.Params{"pipeline_name": "foo"},
 					}, nil)
 
 					Expect(err).To(HaveOccurred())
@@ -365,7 +366,7 @@ var _ = Describe("ATC Connection", func() {
 				It("returns back ResourceNotFoundError", func() {
 					err := connection.Send(Request{
 						RequestName: atc.DeletePipeline,
-						Params:      map[string]string{"pipeline_name": "foo"},
+						Params:      rata.Params{"pipeline_name": "foo"},
 					}, nil)
 
 					Expect(err).To(HaveOccurred())
@@ -423,7 +424,7 @@ var _ = Describe("ATC Connection", func() {
 				err = connection.Send(Request{
 					RequestName: atc.CreateBuild,
 					Body:        buffer,
-					Headers: map[string][]string{
+					Header: http.Header{
 						"Content-Type": {"application/json"},
 					},
 				},
