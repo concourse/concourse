@@ -9,11 +9,12 @@ import (
 )
 
 type Pagination struct {
-	Next     Page
-	Previous Page
+	Next     *Page
+	Previous *Page
 }
 
 func paginationFromHeaders(header http.Header) (Pagination, error) {
+	var pagination Pagination
 	var nextPage Page
 	var previousPage Page
 	var err error
@@ -26,6 +27,7 @@ func paginationFromHeaders(header http.Header) (Pagination, error) {
 		if err != nil {
 			return Pagination{}, err
 		}
+		pagination.Next = &nextPage
 	}
 
 	previousPageLink := linkGroup["previous"]
@@ -34,12 +36,10 @@ func paginationFromHeaders(header http.Header) (Pagination, error) {
 		if err != nil {
 			return Pagination{}, err
 		}
+		pagination.Previous = &previousPage
 	}
 
-	return Pagination{
-		Next:     nextPage,
-		Previous: previousPage,
-	}, nil
+	return pagination, nil
 }
 
 type Page struct {

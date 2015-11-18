@@ -250,28 +250,51 @@ var _ = Describe("ATC Handler Jobs", func() {
 		})
 
 		Context("pagination data", func() {
+			Context("with a link header", func() {
+				BeforeEach(func() {
+					expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob/builds")
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", expectedURL),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{
+								"Link": []string{
+									`<http://some-url.com/api/v1/pipelines/some-pipeline/jobs/some-job/builds?since=452&limit=123>; rel="previous"`,
+									`<http://some-url.com/api/v1/pipelines/some-pipeline/jobs/some-job/builds?until=254&limit=456>; rel="next"`,
+								},
+							}),
+						),
+					)
+				})
+
+				It("returns the pagination data from the header", func() {
+					_, pagination, _, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{})
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(pagination.Previous).To(Equal(&concourse.Page{Since: 452, Limit: 123}))
+					Expect(pagination.Next).To(Equal(&concourse.Page{Until: 254, Limit: 456}))
+				})
+			})
+		})
+
+		Context("without a link header", func() {
 			BeforeEach(func() {
 				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob/builds")
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{
-							"Link": []string{
-								`<http://some-url.com/api/v1/pipelines/some-pipeline/jobs/some-job/builds?since=452&limit=123>; rel="previous"`,
-								`<http://some-url.com/api/v1/pipelines/some-pipeline/jobs/some-job/builds?until=254&limit=456>; rel="next"`,
-							},
-						}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{}),
 					),
 				)
 			})
 
-			It("returns the pagination data from the header", func() {
+			It("returns pagination data with nil pages", func() {
 				_, pagination, _, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{})
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(pagination.Previous).To(Equal(concourse.Page{Since: 452, Limit: 123}))
-				Expect(pagination.Next).To(Equal(concourse.Page{Until: 254, Limit: 456}))
+				Expect(pagination.Previous).To(BeNil())
+				Expect(pagination.Next).To(BeNil())
 			})
 		})
 	})
