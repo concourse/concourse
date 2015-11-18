@@ -222,8 +222,9 @@ func (event HTTPReponseTime) Emit(logger lager.Logger) {
 
 	emit(
 		logger.Session("http-response-time", lager.Data{
-			"route": event.Route,
-			"path":  event.Path,
+			"route":    event.Route,
+			"path":     event.Path,
+			"duration": event.Duration.String(),
 		}),
 		goryman.Event{
 			Service: "http response time",
