@@ -21,6 +21,21 @@ type ATCConfig struct {
 	PipelineName        string
 	Client              concourse.Client
 	WebRequestGenerator *rata.RequestGenerator
+	SkipInteraction     bool
+}
+
+func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
+	if atcConfig.SkipInteraction {
+		return true
+	}
+
+	confirm := false
+	err := interact.NewInteraction("apply configuration?").Resolve(&confirm)
+	if err != nil {
+		return false
+	}
+
+	return confirm
 }
 
 func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariables template.Variables, templateVariablesFiles []flaghelpers.PathFlag) {
@@ -31,6 +46,11 @@ func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariable
 	}
 
 	diff(existingConfig, newConfig)
+
+	if !atcConfig.ApplyConfigInteraction() {
+		fmt.Println("bailing out")
+		os.Exit(1)
+	}
 
 	created, updated, err := atcConfig.Client.CreateOrUpdatePipelineConfig(
 		atcConfig.PipelineName,
@@ -131,12 +151,5 @@ func diff(existingConfig atc.Config, newConfig atc.Config) {
 		for _, diff := range jobDiffs {
 			diff.Render(indent, "job")
 		}
-	}
-
-	confirm := false
-	err := interact.NewInteraction("apply configuration?").Resolve(&confirm)
-	if err != nil || !confirm {
-		fmt.Println("bailing out")
-		os.Exit(1)
 	}
 }

@@ -197,6 +197,30 @@ var _ = Describe("Fly CLI", func() {
 
 					Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
 				})
+
+				Context("when the --non-interactive is passed", func() {
+					It("parses the config file and sends it to the ATC without interaction", func() {
+						flyCmd := exec.Command(
+							flyPath, "-t", atcServer.URL()+"/",
+							"set-pipeline",
+							"--pipeline", "awesome-pipeline",
+							"-c", "fixtures/testConfig.yml",
+							"--var", "resource-key=verysecret",
+							"--load-vars-from", "fixtures/vars.yml",
+							"--non-interactive",
+						)
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess).Should(gbytes.Say("configuration updated"))
+
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+
+						Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
+					})
+				})
 			})
 		})
 
