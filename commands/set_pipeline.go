@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/atc/web"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/fly/commands/internal/setpipelinehelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/template"
 	"github.com/concourse/go-concourse/concourse"
@@ -37,10 +38,10 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 
 	webRequestGenerator := rata.NewRequestGenerator(connection.URL(), web.Routes)
 
-	atcConfig := ATCConfig{
-		pipelineName:        pipelineName,
-		webRequestGenerator: webRequestGenerator,
-		client:              client,
+	atcConfig := setpipelinehelpers.ATCConfig{
+		PipelineName:        pipelineName,
+		WebRequestGenerator: webRequestGenerator,
+		Client:              client,
 	}
 
 	atcConfig.Set(configPath, templateVariables, templateVariablesFiles)

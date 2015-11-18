@@ -1,4 +1,4 @@
-package commands
+package setpipelinehelpers
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/template"
 	"github.com/concourse/go-concourse/concourse"
@@ -17,27 +18,27 @@ import (
 )
 
 type ATCConfig struct {
-	pipelineName        string
-	client              concourse.Client
-	webRequestGenerator *rata.RequestGenerator
+	PipelineName        string
+	Client              concourse.Client
+	WebRequestGenerator *rata.RequestGenerator
 }
 
 func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariables template.Variables, templateVariablesFiles []flaghelpers.PathFlag) {
 	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
-	existingConfig, existingConfigVersion, _, err := atcConfig.client.PipelineConfig(atcConfig.pipelineName)
+	existingConfig, existingConfigVersion, _, err := atcConfig.Client.PipelineConfig(atcConfig.PipelineName)
 	if err != nil {
-		failWithErrorf("failed to retrieve config", err)
+		displayhelpers.FailWithErrorf("failed to retrieve config", err)
 	}
 
 	diff(existingConfig, newConfig)
 
-	created, updated, err := atcConfig.client.CreateOrUpdatePipelineConfig(
-		atcConfig.pipelineName,
+	created, updated, err := atcConfig.Client.CreateOrUpdatePipelineConfig(
+		atcConfig.PipelineName,
 		existingConfigVersion,
 		newConfig,
 	)
 	if err != nil {
-		failWithErrorf("failed to update configuration", err)
+		displayhelpers.FailWithErrorf("failed to update configuration", err)
 	}
 	atcConfig.showHelpfulMessage(created, updated)
 }
@@ -45,7 +46,7 @@ func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariable
 func (atcConfig ATCConfig) newConfig(configPath flaghelpers.PathFlag, templateVariablesFiles []flaghelpers.PathFlag, templateVariables template.Variables) atc.Config {
 	configFile, err := ioutil.ReadFile(string(configPath))
 	if err != nil {
-		failWithErrorf("could not read config file", err)
+		displayhelpers.FailWithErrorf("could not read config file", err)
 	}
 
 	var resultVars template.Variables
@@ -53,7 +54,7 @@ func (atcConfig ATCConfig) newConfig(configPath flaghelpers.PathFlag, templateVa
 	for _, path := range templateVariablesFiles {
 		fileVars, templateErr := template.LoadVariablesFromFile(string(path))
 		if templateErr != nil {
-			failWithErrorf("failed to load variables from file (%s)", templateErr, string(path))
+			displayhelpers.FailWithErrorf("failed to load variables from file (%s)", templateErr, string(path))
 		}
 
 		resultVars = resultVars.Merge(fileVars)
@@ -63,13 +64,13 @@ func (atcConfig ATCConfig) newConfig(configPath flaghelpers.PathFlag, templateVa
 
 	configFile, err = template.Evaluate(configFile, resultVars)
 	if err != nil {
-		failWithErrorf("failed to evaluate variables into template", err)
+		displayhelpers.FailWithErrorf("failed to evaluate variables into template", err)
 	}
 
 	var newConfig atc.Config
 	err = yaml.Unmarshal(configFile, &newConfig)
 	if err != nil {
-		failWithErrorf("failed to parse configuration file", err)
+		displayhelpers.FailWithErrorf("failed to parse configuration file", err)
 	}
 
 	return newConfig
@@ -79,9 +80,9 @@ func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool) {
 	if updated {
 		fmt.Println("configuration updated")
 	} else if created {
-		pipelineWebReq, _ := atcConfig.webRequestGenerator.CreateRequest(
+		pipelineWebReq, _ := atcConfig.WebRequestGenerator.CreateRequest(
 			web.Pipeline,
-			rata.Params{"pipeline": atcConfig.pipelineName},
+			rata.Params{"pipeline": atcConfig.PipelineName},
 			nil,
 		)
 

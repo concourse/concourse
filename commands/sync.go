@@ -7,6 +7,7 @@ import (
 
 	"github.com/inconshreveable/go-update"
 
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
 )
@@ -30,7 +31,7 @@ func (command *SyncCommand) Execute(args []string) error {
 
 	err = update.Apply(body, update.Options{})
 	if err != nil {
-		failf("update failed: %s", err)
+		displayhelpers.Failf("update failed: %s", err)
 	}
 
 	fmt.Println("update successful!")

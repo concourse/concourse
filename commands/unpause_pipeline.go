@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
 )
@@ -29,7 +30,7 @@ func (command *UnpausePipelineCommand) Execute(args []string) error {
 	if found {
 		fmt.Printf("unpaused '%s'\n", pipelineName)
 	} else {
-		failf("pipeline '%s' not found\n", pipelineName)
+		displayhelpers.Failf("pipeline '%s' not found\n", pipelineName)
 	}
 	return nil
 }
