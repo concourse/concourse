@@ -16,8 +16,10 @@ files:
   - github.com/concourse/fly/*.go # gosub
   - github.com/concourse/fly/commands/*.go # gosub
   - github.com/concourse/fly/commands/internal/deprecated/*.go # gosub
+  - github.com/concourse/fly/commands/internal/displayhelpers/*.go # gosub
   - github.com/concourse/fly/commands/internal/executehelpers/*.go # gosub
   - github.com/concourse/fly/commands/internal/flaghelpers/*.go # gosub
+  - github.com/concourse/fly/commands/internal/setpipelinehelpers/*.go # gosub
   - github.com/concourse/fly/config/*.go # gosub
   - github.com/concourse/fly/pty/*.go # gosub
   - github.com/concourse/fly/rc/*.go # gosub
