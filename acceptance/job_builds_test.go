@@ -129,8 +129,7 @@ var _ = Describe("Job Pausing", func() {
 				var testBuilds []db.Build
 
 				BeforeEach(func() {
-
-					for i := 0; i < 103; i++ {
+					for i := 1; i < 103; i++ {
 						build, err := pipelineDB.CreateJobBuild("job-name")
 						Expect(err).NotTo(HaveOccurred())
 						testBuilds = append(testBuilds, build)
@@ -145,6 +144,8 @@ var _ = Describe("Job Pausing", func() {
 					Eventually(page.FindByLink("job-name")).Should(BeFound())
 					Expect(page.FindByLink("job-name").Click()).To(Succeed())
 
+					Expect(page.All("#builds li").Count()).Should(Equal(103))
+
 					// job detail w/build info -> job detail
 					Eventually(page.Find("h1 a")).Should(BeFound())
 					Expect(page.Find("h1 a").Click()).To(Succeed())
@@ -153,7 +154,7 @@ var _ = Describe("Job Pausing", func() {
 
 					Expect(page.Find(".pagination .fa-arrow-left")).ShouldNot(BeFound())
 					Expect(page.First(".pagination .fa-arrow-right").Click()).To(Succeed())
-					Eventually(page.All(".js-build").Count).Should(Equal(4))
+					Eventually(page.All(".js-build").Count).Should(Equal(3))
 
 					Expect(page.Find(".pagination .fa-arrow-right")).ShouldNot(BeFound())
 					Expect(page.First(".pagination .fa-arrow-left").Click()).To(Succeed())

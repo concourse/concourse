@@ -80,7 +80,7 @@ func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *
 			return
 		}
 
-		bs, _, _, err := client.JobBuilds(pipelineName, jobName, concourse.Page{})
+		builds, err := getAllJobBuilds(client, pipelineName, jobName)
 		if err != nil {
 			log.Error("get-all-builds-failed", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -106,7 +106,7 @@ func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *
 			}),
 
 			Job:    job,
-			Builds: bs,
+			Builds: builds,
 
 			Build:        requestedBuild,
 			Inputs:       buildInputsOutputs.Inputs,
@@ -120,4 +120,21 @@ func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *
 			})
 		}
 	})
+}
+
+func getAllJobBuilds(client concourse.Client, pipelineName string, jobName string) ([]atc.Build, error) {
+	builds := []atc.Build{}
+	page := &concourse.Page{}
+
+	for page != nil {
+		bs, pagination, _, err := client.JobBuilds(pipelineName, jobName, *page)
+		if err != nil {
+			return nil, err
+		}
+
+		builds = append(builds, bs...)
+		page = pagination.Next
+	}
+
+	return builds, nil
 }
