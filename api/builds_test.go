@@ -774,4 +774,98 @@ var _ = Describe("Builds API", func() {
 			})
 		})
 	})
+
+	Describe("GET /api/v1/builds/:build_id/plan", func() {
+		var publicPlan atc.PublicBuildPlan
+
+		var response *http.Response
+
+		BeforeEach(func() {
+			var plan json.RawMessage = []byte(`"some-plan"`)
+
+			publicPlan = atc.PublicBuildPlan{
+				Schema: "some-schema",
+				Plan:   &plan,
+			}
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			response, err = http.Get(server.URL + "/api/v1/builds/42/plan")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when the build is found", func() {
+			var engineBuild *enginefakes.FakeBuild
+
+			BeforeEach(func() {
+				buildsDB.GetBuildReturns(db.Build{
+					ID: 42,
+				}, true, nil)
+
+				engineBuild = new(enginefakes.FakeBuild)
+				fakeEngine.LookupBuildReturns(engineBuild, nil)
+			})
+
+			Context("when the build returns a plan", func() {
+				BeforeEach(func() {
+					engineBuild.PublicPlanReturns(publicPlan, true, nil)
+				})
+
+				It("returns OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns the plan", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`{
+						"schema": "some-schema",
+						"plan": "some-plan"
+					}`))
+				})
+			})
+
+			Context("when the build has no plan", func() {
+				BeforeEach(func() {
+					engineBuild.PublicPlanReturns(atc.PublicBuildPlan{}, false, nil)
+				})
+
+				It("returns Not Found", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when the build fails to return a plan", func() {
+				BeforeEach(func() {
+					engineBuild.PublicPlanReturns(atc.PublicBuildPlan{}, false, errors.New("nope"))
+				})
+
+				It("returns 500 Internal Server Error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when the build is not found", func() {
+			BeforeEach(func() {
+				buildsDB.GetBuildReturns(db.Build{}, false, nil)
+			})
+
+			It("returns Not Found", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+		})
+
+		Context("when looking up the build fails", func() {
+			BeforeEach(func() {
+				buildsDB.GetBuildReturns(db.Build{}, false, errors.New("oh no!"))
+			})
+
+			It("returns 500 Internal Server Error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+	})
 })

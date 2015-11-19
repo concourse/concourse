@@ -99,6 +99,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListJobs:        unauthed(inputHandlers[atc.ListJobs]),
 				atc.ListPipelines:   unauthed(inputHandlers[atc.ListPipelines]),
 				atc.ListResources:   unauthed(inputHandlers[atc.ListResources]),
+				atc.GetBuildPlan:    unauthed(inputHandlers[atc.GetBuildPlan]),
 			}
 		})
 

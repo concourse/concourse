@@ -119,6 +119,7 @@ func NewHandler(
 		atc.BuildEvents:    http.HandlerFunc(buildServer.BuildEvents),
 		atc.BuildResources: http.HandlerFunc(buildServer.BuildResources),
 		atc.AbortBuild:     http.HandlerFunc(buildServer.AbortBuild),
+		atc.GetBuildPlan:   http.HandlerFunc(buildServer.GetBuildPlan),
 
 		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
 		atc.GetJob:         pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
