@@ -70,8 +70,6 @@ var _ = Describe("Job Pausing", func() {
 			var build db.Build
 
 			BeforeEach(func() {
-				location := event.OriginLocation{ID: 1}
-
 				// job build data
 				_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
 					Jobs: []atc.JobConfig{
@@ -91,10 +89,10 @@ var _ = Describe("Job Pausing", func() {
 
 				sqlDB.SaveBuildEvent(build.ID, event.Log{
 					Origin: event.Origin{
-						Name:     "origin-name",
-						Type:     event.OriginTypeTask,
-						Source:   event.OriginSourceStdout,
-						Location: location,
+						Name:   "origin-name",
+						Type:   event.OriginTypeTask,
+						Source: event.OriginSourceStdout,
+						ID:     "some-id",
 					},
 					Payload: "hello this is a payload",
 				})

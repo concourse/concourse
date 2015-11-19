@@ -299,7 +299,7 @@ var _ = Describe("DBProvider", func() {
 				CheckType:    "some-check-type",
 				CheckSource:  atc.Source{"some": "source"},
 				WorkerName:   "some-worker-name",
-				StepLocation: 1,
+				PlanID:       "one",
 			})
 
 			Expect(fakeDB.FindContainerByIdentifierCallCount()).To(Equal(1))
@@ -312,7 +312,7 @@ var _ = Describe("DBProvider", func() {
 				CheckType:    "some-check-type",
 				CheckSource:  atc.Source{"some": "source"},
 				WorkerName:   "some-worker-name",
-				StepLocation: 1,
+				PlanID:       "one",
 			}))
 		})
 	})

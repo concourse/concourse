@@ -8,7 +8,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
@@ -191,32 +190,32 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 	return exec.Identity{}
 }
 
-func (build *execBuild) taskIdentifier(name string, location event.OriginLocation, pipelineName string) worker.Identifier {
+func (build *execBuild) taskIdentifier(name string, id atc.PlanID, pipelineName string) worker.Identifier {
 	return worker.Identifier{
 		BuildID:      build.buildID,
 		Type:         "task",
 		Name:         name,
 		PipelineName: pipelineName,
-		StepLocation: location.ID,
+		PlanID:       id,
 	}
 }
 
-func (build *execBuild) getIdentifier(name string, location event.OriginLocation, pipelineName string) worker.Identifier {
+func (build *execBuild) getIdentifier(name string, id atc.PlanID, pipelineName string) worker.Identifier {
 	return worker.Identifier{
 		BuildID:      build.buildID,
 		Type:         "get",
 		Name:         name,
 		PipelineName: pipelineName,
-		StepLocation: location.ID,
+		PlanID:       id,
 	}
 }
 
-func (build *execBuild) putIdentifier(name string, location event.OriginLocation, pipelineName string) worker.Identifier {
+func (build *execBuild) putIdentifier(name string, id atc.PlanID, pipelineName string) worker.Identifier {
 	return worker.Identifier{
 		BuildID:      build.buildID,
 		Type:         "put",
 		Name:         name,
 		PipelineName: pipelineName,
-		StepLocation: location.ID,
+		PlanID:       id,
 	}
 }

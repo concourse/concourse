@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
+	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	execfakes "github.com/concourse/atc/exec/fakes"
 	"github.com/concourse/atc/worker"
@@ -42,7 +43,6 @@ var _ = Describe("ExecEngine", func() {
 			buildModel       db.Build
 			expectedMetadata engine.StepMetadata
 
-			inputPlan  *atc.GetPlan
 			outputPlan atc.Plan
 			privileged bool
 			taskConfig *atc.TaskConfig
@@ -63,10 +63,13 @@ var _ = Describe("ExecEngine", func() {
 
 			dependentStepFactory *execfakes.FakeStepFactory
 			dependentStep        *execfakes.FakeStep
+
+			planFactory atc.PlanFactory
 		)
 
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("test")
+			planFactory = atc.NewPlanFactory(123)
 
 			buildModel = db.Build{
 				ID:           42,
@@ -97,45 +100,25 @@ var _ = Describe("ExecEngine", func() {
 
 			taskConfigPath = "some-input/build.yml"
 
-			inputPlan = &atc.GetPlan{
-				Name:     "some-input",
-				Resource: "some-input-resource",
-				Type:     "some-type",
-				Tags:     []string{"some", "get", "tags"},
-				Version:  atc.Version{"some": "version"},
-				Source:   atc.Source{"some": "source"},
-				Params:   atc.Params{"some": "params"},
-				Pipeline: "some-pipeline",
-			}
-
-			outputPlan = atc.Plan{
-				Location: &atc.Location{},
-				OnSuccess: &atc.OnSuccessPlan{
-					Step: atc.Plan{
-						Location: &atc.Location{},
-						Put: &atc.PutPlan{
-							Name:     "some-put",
-							Resource: "some-output-resource",
-							Tags:     []string{"some", "putget", "tags"},
-							Type:     "some-type",
-							Source:   atc.Source{"some": "source"},
-							Params:   atc.Params{"some": "params"},
-							Pipeline: "some-pipeline",
-						},
-					},
-					Next: atc.Plan{
-						Location: &atc.Location{},
-						DependentGet: &atc.DependentGetPlan{
-							Name:     "some-put",
-							Resource: "some-output-resource",
-							Tags:     []string{"some", "putget", "tags"},
-							Type:     "some-type",
-							Source:   atc.Source{"some": "source"},
-							Params:   atc.Params{"another": "params"},
-						},
-					},
-				},
-			}
+			outputPlan = planFactory.NewPlan(atc.OnSuccessPlan{
+				Step: planFactory.NewPlan(atc.PutPlan{
+					Name:     "some-put",
+					Resource: "some-output-resource",
+					Tags:     []string{"some", "putget", "tags"},
+					Type:     "some-type",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"some": "params"},
+					Pipeline: "some-pipeline",
+				}),
+				Next: planFactory.NewPlan(atc.DependentGetPlan{
+					Name:     "some-put",
+					Resource: "some-output-resource",
+					Tags:     []string{"some", "putget", "tags"},
+					Type:     "some-type",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"another": "params"},
+				}),
+			})
 
 			privileged = false
 
@@ -178,66 +161,58 @@ var _ = Describe("ExecEngine", func() {
 		})
 
 		Describe("with a putget in an aggregate", func() {
+			var (
+				putPlan               atc.Plan
+				dependentGetPlan      atc.Plan
+				otherPutPlan          atc.Plan
+				otherDependentGetPlan atc.Plan
+			)
+
 			BeforeEach(func() {
-				outputPlan =
-					atc.Plan{
-						Aggregate: &atc.AggregatePlan{
-							atc.Plan{
-								Location: &atc.Location{},
-								OnSuccess: &atc.OnSuccessPlan{
-									Step: atc.Plan{
-										Location: &atc.Location{},
-										Put: &atc.PutPlan{
-											Name:     "some-put",
-											Resource: "some-output-resource",
-											Type:     "some-type",
-											Source:   atc.Source{"some": "source"},
-											Params:   atc.Params{"some": "params"},
-											Pipeline: "some-pipeline",
-										},
-									},
-									Next: atc.Plan{
-										Location: &atc.Location{},
-										DependentGet: &atc.DependentGetPlan{
-											Name:     "some-put",
-											Resource: "some-output-resource",
-											Type:     "some-type",
-											Source:   atc.Source{"some": "source"},
-											Params:   atc.Params{"another": "params"},
-											Pipeline: "some-pipeline",
-										},
-									},
-								},
-							},
-							atc.Plan{
-								Location: &atc.Location{},
-								OnSuccess: &atc.OnSuccessPlan{
-									Step: atc.Plan{
-										Location: &atc.Location{},
-										Put: &atc.PutPlan{
-											Name:     "some-put-2",
-											Resource: "some-output-resource-2",
-											Type:     "some-type-2",
-											Source:   atc.Source{"some": "source-2"},
-											Params:   atc.Params{"some": "params-2"},
-											Pipeline: "some-pipeline",
-										},
-									},
-									Next: atc.Plan{
-										Location: &atc.Location{},
-										DependentGet: &atc.DependentGetPlan{
-											Name:     "some-put-2",
-											Resource: "some-output-resource-2",
-											Type:     "some-type-2",
-											Source:   atc.Source{"some": "source-2"},
-											Params:   atc.Params{"another": "params-2"},
-											Pipeline: "some-pipeline",
-										},
-									},
-								},
-							},
-						},
-					}
+				putPlan = planFactory.NewPlan(atc.PutPlan{
+					Name:     "some-put",
+					Resource: "some-output-resource",
+					Type:     "some-type",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"some": "params"},
+					Pipeline: "some-pipeline",
+				})
+				dependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
+					Name:     "some-put",
+					Resource: "some-output-resource",
+					Type:     "some-type",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"another": "params"},
+					Pipeline: "some-pipeline",
+				})
+
+				otherPutPlan = planFactory.NewPlan(atc.PutPlan{
+					Name:     "some-put-2",
+					Resource: "some-output-resource-2",
+					Type:     "some-type-2",
+					Source:   atc.Source{"some": "source-2"},
+					Params:   atc.Params{"some": "params-2"},
+					Pipeline: "some-pipeline",
+				})
+				otherDependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
+					Name:     "some-put-2",
+					Resource: "some-output-resource-2",
+					Type:     "some-type-2",
+					Source:   atc.Source{"some": "source-2"},
+					Params:   atc.Params{"another": "params-2"},
+					Pipeline: "some-pipeline",
+				})
+
+				outputPlan = planFactory.NewPlan(atc.AggregatePlan{
+					planFactory.NewPlan(atc.OnSuccessPlan{
+						Step: putPlan,
+						Next: dependentGetPlan,
+					}),
+					planFactory.NewPlan(atc.OnSuccessPlan{
+						Step: otherPutPlan,
+						Next: otherDependentGetPlan,
+					}),
+				})
 			})
 
 			Context("constructing outputs", func() {
@@ -257,6 +232,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypePut,
 						Name:         "some-put",
 						PipelineName: "some-pipeline",
+						PlanID:       putPlan.ID,
 					}))
 
 					Expect(tags).To(BeEmpty())
@@ -274,6 +250,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypePut,
 						Name:         "some-put-2",
 						PipelineName: "some-pipeline",
+						PlanID:       otherPutPlan.ID,
 					}))
 
 					Expect(tags).To(BeEmpty())
@@ -300,13 +277,14 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeGet,
 						Name:         "some-put",
 						PipelineName: "some-pipeline",
+						PlanID:       dependentGetPlan.ID,
 					}))
 
 					Expect(tags).To(BeEmpty())
 					Expect(delegate).To(Equal(fakeInputDelegate))
-					_, plan, location := fakeDelegate.InputDelegateArgsForCall(0)
+					_, plan, planID := fakeDelegate.InputDelegateArgsForCall(0)
 					Expect(plan).To(Equal((*outputPlan.Aggregate)[0].OnSuccess.Next.DependentGet.GetPlan()))
-					Expect(location).NotTo(BeNil())
+					Expect(planID).NotTo(BeNil())
 
 					Expect(sourceName).To(Equal(exec.SourceName("some-put")))
 					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
@@ -322,13 +300,14 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeGet,
 						Name:         "some-put-2",
 						PipelineName: "some-pipeline",
+						PlanID:       otherDependentGetPlan.ID,
 					}))
 
 					Expect(tags).To(BeEmpty())
 					Expect(delegate).To(Equal(fakeInputDelegate))
-					_, plan, location = fakeDelegate.InputDelegateArgsForCall(1)
+					_, plan, planID = fakeDelegate.InputDelegateArgsForCall(1)
 					Expect(plan).To(Equal((*outputPlan.Aggregate)[1].OnSuccess.Next.DependentGet.GetPlan()))
-					Expect(location).NotTo(BeNil())
+					Expect(planID).NotTo(BeNil())
 
 					Expect(sourceName).To(Equal(exec.SourceName("some-put-2")))
 					Expect(resourceConfig.Name).To(Equal("some-output-resource-2"))
@@ -341,30 +320,21 @@ var _ = Describe("ExecEngine", func() {
 
 		Context("with a basic plan", func() {
 			Context("that contains inputs", func() {
+				var plan atc.Plan
+				BeforeEach(func() {
+					getPlan := atc.GetPlan{
+						Name:     "some-input",
+						Resource: "some-input-resource",
+						Type:     "some-type",
+						Tags:     []string{"some", "get", "tags"},
+						Version:  atc.Version{"some": "version"},
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"some": "params"},
+						Pipeline: "some-pipeline",
+					}
 
-				getPlan := &atc.GetPlan{
-					Name:     "some-input",
-					Resource: "some-input-resource",
-					Type:     "some-type",
-					Tags:     []string{"some", "get", "tags"},
-					Version:  atc.Version{"some": "version"},
-					Source:   atc.Source{"some": "source"},
-					Params:   atc.Params{"some": "params"},
-					Pipeline: "some-pipeline",
-				}
-
-				plan := atc.Plan{
-					Location: &atc.Location{
-						ID:       145,
-						ParentID: 1,
-
-						ParallelGroup: 1234,
-						SerialGroup:   5678,
-
-						Hook: "boring input hook",
-					},
-					Get: getPlan,
-				}
+					plan = planFactory.NewPlan(getPlan)
+				})
 
 				It("constructs inputs correctly", func() {
 					var err error
@@ -383,7 +353,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeGet,
 						Name:         "some-input",
 						PipelineName: "some-pipeline",
-						StepLocation: 145,
+						PlanID:       plan.ID,
 					}))
 
 					Expect(tags).To(ConsistOf("some", "get", "tags"))
@@ -394,14 +364,9 @@ var _ = Describe("ExecEngine", func() {
 					Expect(version).To(Equal(atc.Version{"some": "version"}))
 
 					Expect(delegate).To(Equal(fakeInputDelegate))
-					_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
-					Expect(location).NotTo(BeNil())
-					Expect(location.ID).To(Equal(uint(145)))
-					Expect(location.ParentID).To(Equal(uint(1)))
-					Expect(location.ParallelGroup).To(Equal(uint(1234)))
-					Expect(location.SerialGroup).To(Equal(uint(5678)))
-					Expect(location.Hook).To(Equal("boring input hook"))
 
+					_, _, planID := fakeDelegate.InputDelegateArgsForCall(0)
+					Expect(planID).To(Equal(event.OriginID(plan.ID)))
 				})
 
 				It("releases inputs correctly", func() {
@@ -420,42 +385,37 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			Context("that contains tasks", func() {
-				privileged = false
+				var plan atc.Plan
 
-				taskConfig = &atc.TaskConfig{
-					Image:  "some-image",
-					Tags:   []string{"some", "task", "tags"},
-					Params: map[string]string{"PARAM": "value"},
-					Run: atc.TaskRunConfig{
-						Path: "some-path",
-						Args: []string{"some", "args"},
-					},
-					Inputs: []atc.TaskInputConfig{
-						{Name: "some-input"},
-					},
-				}
+				BeforeEach(func() {
+					privileged = false
 
-				taskConfigPath = "some-input/build.yml"
+					taskConfig = &atc.TaskConfig{
+						Image:  "some-image",
+						Tags:   []string{"some", "task", "tags"},
+						Params: map[string]string{"PARAM": "value"},
+						Run: atc.TaskRunConfig{
+							Path: "some-path",
+							Args: []string{"some", "args"},
+						},
+						Inputs: []atc.TaskInputConfig{
+							{Name: "some-input"},
+						},
+					}
 
-				taskPlan := &atc.TaskPlan{
-					Name:       "some-task",
-					Config:     taskConfig,
-					ConfigPath: taskConfigPath,
-					Privileged: privileged,
-					Pipeline:   "some-pipeline",
-				}
-				plan := atc.Plan{
-					Location: &atc.Location{
-						ID:       123,
-						ParentID: 41,
+					taskConfigPath = "some-input/build.yml"
 
-						ParallelGroup: 123498,
-						SerialGroup:   69,
+					taskPlan := atc.TaskPlan{
+						Name:       "some-task",
+						Config:     taskConfig,
+						ConfigPath: taskConfigPath,
+						Privileged: privileged,
+						Pipeline:   "some-pipeline",
+					}
 
-						Hook: "look at me I'm a hook",
-					},
-					Task: taskPlan,
-				}
+					plan = planFactory.NewPlan(taskPlan)
+				})
+
 				It("constructs tasks correctly", func() {
 					var err error
 					build, err = execEngine.CreateBuild(logger, buildModel, plan)
@@ -472,7 +432,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeTask,
 						Name:         "some-task",
 						PipelineName: "some-pipeline",
-						StepLocation: 123,
+						PlanID:       plan.ID,
 					}))
 
 					Expect(privileged).To(Equal(exec.Privileged(false)))
@@ -480,14 +440,9 @@ var _ = Describe("ExecEngine", func() {
 					Expect(configSource).NotTo(BeNil())
 
 					Expect(delegate).To(Equal(fakeExecutionDelegate))
-					_, _, location := fakeDelegate.ExecutionDelegateArgsForCall(0)
 
-					Expect(location).NotTo(BeNil())
-					Expect(location.ID).To(Equal(uint(123)))
-					Expect(location.ParentID).To(Equal(uint(41)))
-					Expect(location.ParallelGroup).To(Equal(uint(123498)))
-					Expect(location.SerialGroup).To(Equal(uint(69)))
-					Expect(location.Hook).To(Equal("look at me I'm a hook"))
+					_, _, planID := fakeDelegate.ExecutionDelegateArgsForCall(0)
+					Expect(planID).To(Equal(event.OriginID(plan.ID)))
 				})
 
 				It("releases the tasks correctly", func() {
@@ -503,85 +458,40 @@ var _ = Describe("ExecEngine", func() {
 
 					Expect(taskStep.ReleaseCallCount()).To(Equal(1))
 				})
-
-				Context("when the task is privileged", func() {
-					BeforeEach(func() {
-						taskPlan.Privileged = true
-					})
-
-					It("constructs the task step privileged", func() {
-						var err error
-						build, err = execEngine.CreateBuild(logger, buildModel, plan)
-						Expect(err).NotTo(HaveOccurred())
-
-						build.Resume(logger)
-						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
-
-						_, _, _, _, privileged, _, _ := fakeFactory.TaskArgsForCall(0)
-						Expect(privileged).To(Equal(exec.Privileged(true)))
-					})
-				})
-
 			})
 
 			Context("that contains outputs", func() {
-				plan := atc.Plan{
-					Location: &atc.Location{
+				var (
+					plan             atc.Plan
+					putPlan          atc.Plan
+					dependentGetPlan atc.Plan
+				)
 
-						ID:       50,
-						ParentID: 25,
+				BeforeEach(func() {
+					putPlan = planFactory.NewPlan(atc.PutPlan{
+						Name:     "some-put",
+						Resource: "some-output-resource",
+						Tags:     []string{"some", "putget", "tags"},
+						Type:     "some-type",
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"some": "params"},
+						Pipeline: "some-pipeline",
+					})
+					dependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
+						Name:     "some-put",
+						Resource: "some-output-resource",
+						Tags:     []string{"some", "putget", "tags"},
+						Type:     "some-type",
+						Source:   atc.Source{"some": "source"},
+						Params:   atc.Params{"another": "params"},
+						Pipeline: "some-pipeline",
+					})
 
-						ParallelGroup: 1020,
-						SerialGroup:   150,
-
-						Hook: "hook",
-					},
-
-					OnSuccess: &atc.OnSuccessPlan{
-						Step: atc.Plan{
-							Location: &atc.Location{
-
-								ID:       51,
-								ParentID: 26,
-
-								ParallelGroup: 1021,
-								SerialGroup:   151,
-
-								Hook: "special hook",
-							},
-							Put: &atc.PutPlan{
-								Name:     "some-put",
-								Resource: "some-output-resource",
-								Tags:     []string{"some", "putget", "tags"},
-								Type:     "some-type",
-								Source:   atc.Source{"some": "source"},
-								Params:   atc.Params{"some": "params"},
-								Pipeline: "some-pipeline",
-							},
-						},
-						Next: atc.Plan{
-							Location: &atc.Location{
-
-								ID:       512,
-								ParentID: 2134,
-
-								ParallelGroup: 12,
-								SerialGroup:   121243,
-
-								Hook: "more special hook",
-							},
-							DependentGet: &atc.DependentGetPlan{
-								Name:     "some-put",
-								Resource: "some-output-resource",
-								Tags:     []string{"some", "putget", "tags"},
-								Type:     "some-type",
-								Source:   atc.Source{"some": "source"},
-								Params:   atc.Params{"another": "params"},
-								Pipeline: "some-pipeline",
-							},
-						},
-					},
-				}
+					plan = planFactory.NewPlan(atc.OnSuccessPlan{
+						Step: putPlan,
+						Next: dependentGetPlan,
+					})
+				})
 
 				It("constructs the put correctly", func() {
 					var err error
@@ -599,7 +509,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypePut,
 						Name:         "some-put",
 						PipelineName: "some-pipeline",
-						StepLocation: 51,
+						PlanID:       putPlan.ID,
 					}))
 
 					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
@@ -609,14 +519,9 @@ var _ = Describe("ExecEngine", func() {
 					Expect(params).To(Equal(atc.Params{"some": "params"}))
 
 					Expect(delegate).To(Equal(fakeOutputDelegate))
-					_, _, location := fakeDelegate.OutputDelegateArgsForCall(0)
 
-					Expect(location).NotTo(BeNil())
-					Expect(location.ID).To(Equal(uint(51)))
-					Expect(location.ParentID).To(Equal(uint(26)))
-					Expect(location.ParallelGroup).To(Equal(uint(1021)))
-					Expect(location.SerialGroup).To(Equal(uint(151)))
-					Expect(location.Hook).To(Equal("special hook"))
+					_, _, planID := fakeDelegate.OutputDelegateArgsForCall(0)
+					Expect(planID).To(Equal(event.OriginID(putPlan.ID)))
 				})
 
 				It("constructs the dependent get correctly", func() {
@@ -635,7 +540,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeGet,
 						Name:         "some-put",
 						PipelineName: "some-pipeline",
-						StepLocation: 512,
+						PlanID:       dependentGetPlan.ID,
 					}))
 
 					Expect(tags).To(ConsistOf("some", "putget", "tags"))
@@ -646,14 +551,11 @@ var _ = Describe("ExecEngine", func() {
 					Expect(params).To(Equal(atc.Params{"another": "params"}))
 
 					Expect(delegate).To(Equal(fakeInputDelegate))
-					_, _, location := fakeDelegate.InputDelegateArgsForCall(0)
-					Expect(location).NotTo(BeNil())
-					Expect(location.ID).To(Equal(uint(512)))
-					Expect(location.ParentID).To(Equal(uint(2134)))
-					Expect(location.ParallelGroup).To(Equal(uint(12)))
-					Expect(location.SerialGroup).To(Equal(uint(121243)))
-					Expect(location.Hook).To(Equal("more special hook"))
+
+					_, _, planID := fakeDelegate.InputDelegateArgsForCall(0)
+					Expect(planID).To(Equal(event.OriginID(dependentGetPlan.ID)))
 				})
+
 				It("releases all sources", func() {
 					var err error
 					build, err = execEngine.CreateBuild(logger, buildModel, plan)

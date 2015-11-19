@@ -3,7 +3,6 @@ package factory_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler/factory"
-	"github.com/concourse/atc/scheduler/factory/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -17,17 +16,16 @@ var _ = Describe("Factory Put", func() {
 		var (
 			buildFactory factory.BuildFactory
 
-			resources atc.ResourceConfigs
-			input     atc.JobConfig
+			resources           atc.ResourceConfigs
+			input               atc.JobConfig
+			actualPlanFactory   atc.PlanFactory
+			expectedPlanFactory atc.PlanFactory
 		)
 
 		BeforeEach(func() {
-			locationPopulator := factory.NewLocationPopulator()
-
-			buildFactory = factory.NewBuildFactory(
-				"some-pipeline",
-				locationPopulator,
-			)
+			actualPlanFactory = atc.NewPlanFactory(123)
+			expectedPlanFactory = atc.NewPlanFactory(123)
+			buildFactory = factory.NewBuildFactory("some-pipeline", actualPlanFactory)
 
 			resources = atc.ResourceConfigs{
 				{
@@ -53,42 +51,26 @@ var _ = Describe("Factory Put", func() {
 			It("returns the correct plan", func() {
 				actual := buildFactory.Create(input, resources, nil)
 
-				expected := atc.Plan{
-					OnSuccess: &atc.OnSuccessPlan{
-						Step: atc.Plan{
-							Location: &atc.Location{
-								ParentID:      0,
-								ID:            1,
-								ParallelGroup: 0,
-							},
-							Put: &atc.PutPlan{
-								Type:     "git",
-								Name:     "some-put",
-								Resource: "some-resource",
-								Pipeline: "some-pipeline",
-								Source: atc.Source{
-									"uri": "git://some-resource",
-								},
-							},
+				expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+					Step: expectedPlanFactory.NewPlan(atc.PutPlan{
+						Type:     "git",
+						Name:     "some-put",
+						Resource: "some-resource",
+						Pipeline: "some-pipeline",
+						Source: atc.Source{
+							"uri": "git://some-resource",
 						},
-						Next: atc.Plan{
-							Location: &atc.Location{
-								ParentID:      1,
-								ID:            2,
-								ParallelGroup: 0,
-							},
-							DependentGet: &atc.DependentGetPlan{
-								Type:     "git",
-								Name:     "some-put",
-								Resource: "some-resource",
-								Pipeline: "some-pipeline",
-								Source: atc.Source{
-									"uri": "git://some-resource",
-								},
-							},
+					}),
+					Next: expectedPlanFactory.NewPlan(atc.DependentGetPlan{
+						Type:     "git",
+						Name:     "some-put",
+						Resource: "some-resource",
+						Pipeline: "some-pipeline",
+						Source: atc.Source{
+							"uri": "git://some-resource",
 						},
-					},
-				}
+					}),
+				})
 				Expect(actual).To(Equal(expected))
 			})
 		})
@@ -96,20 +78,18 @@ var _ = Describe("Factory Put", func() {
 
 	Describe("Put/DependentGet build plan", func() {
 		var (
-			fakeLocationPopulator *fakes.FakeLocationPopulator
-			buildFactory          factory.BuildFactory
+			buildFactory factory.BuildFactory
 
-			resources atc.ResourceConfigs
-			input     atc.JobConfig
+			resources           atc.ResourceConfigs
+			input               atc.JobConfig
+			actualPlanFactory   atc.PlanFactory
+			expectedPlanFactory atc.PlanFactory
 		)
 
 		BeforeEach(func() {
-			fakeLocationPopulator = &fakes.FakeLocationPopulator{}
-
-			buildFactory = factory.NewBuildFactory(
-				"some-pipeline",
-				fakeLocationPopulator,
-			)
+			actualPlanFactory = atc.NewPlanFactory(123)
+			expectedPlanFactory = atc.NewPlanFactory(123)
+			buildFactory = factory.NewBuildFactory("some-pipeline", actualPlanFactory)
 
 			resources = atc.ResourceConfigs{
 				{
@@ -135,34 +115,26 @@ var _ = Describe("Factory Put", func() {
 			It("returns the correct plan", func() {
 				actual := buildFactory.Create(input, resources, nil)
 
-				expected := atc.Plan{
-					OnSuccess: &atc.OnSuccessPlan{
-						Step: atc.Plan{
-							Location: &atc.Location{},
-							Put: &atc.PutPlan{
-								Type:     "git",
-								Name:     "some-put",
-								Resource: "some-resource",
-								Pipeline: "some-pipeline",
-								Source: atc.Source{
-									"uri": "git://some-resource",
-								},
-							},
+				expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+					Step: expectedPlanFactory.NewPlan(atc.PutPlan{
+						Type:     "git",
+						Name:     "some-put",
+						Resource: "some-resource",
+						Pipeline: "some-pipeline",
+						Source: atc.Source{
+							"uri": "git://some-resource",
 						},
-						Next: atc.Plan{
-							Location: &atc.Location{},
-							DependentGet: &atc.DependentGetPlan{
-								Type:     "git",
-								Name:     "some-put",
-								Resource: "some-resource",
-								Pipeline: "some-pipeline",
-								Source: atc.Source{
-									"uri": "git://some-resource",
-								},
-							},
+					}),
+					Next: expectedPlanFactory.NewPlan(atc.DependentGetPlan{
+						Type:     "git",
+						Name:     "some-put",
+						Resource: "some-resource",
+						Pipeline: "some-pipeline",
+						Source: atc.Source{
+							"uri": "git://some-resource",
 						},
-					},
-				}
+					}),
+				})
 				Expect(actual).To(Equal(expected))
 			})
 		})
@@ -184,37 +156,25 @@ var _ = Describe("Factory Put", func() {
 			It("returns the correct plan", func() {
 				actual := buildFactory.Create(input, resources, nil)
 
-				expected := atc.Plan{
-					OnSuccess: &atc.OnSuccessPlan{
-						Step: atc.Plan{
-							Task: &atc.TaskPlan{
-								Name:     "some-task",
-								Pipeline: "some-pipeline",
-							},
-						},
+				expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "some-task",
+						Pipeline: "some-pipeline",
+					}),
 
-						Next: atc.Plan{
-							OnSuccess: &atc.OnSuccessPlan{
-								Step: atc.Plan{
-									Location: &atc.Location{},
-									Put: &atc.PutPlan{
-										Name:     "some-put",
-										Resource: "some-put",
-										Pipeline: "some-pipeline",
-									},
-								},
-								Next: atc.Plan{
-									Location: &atc.Location{},
-									DependentGet: &atc.DependentGetPlan{
-										Name:     "some-put",
-										Resource: "some-put",
-										Pipeline: "some-pipeline",
-									},
-								},
-							},
-						},
-					},
-				}
+					Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+						Step: expectedPlanFactory.NewPlan(atc.PutPlan{
+							Name:     "some-put",
+							Resource: "some-put",
+							Pipeline: "some-pipeline",
+						}),
+						Next: expectedPlanFactory.NewPlan(atc.DependentGetPlan{
+							Name:     "some-put",
+							Resource: "some-put",
+							Pipeline: "some-pipeline",
+						}),
+					}),
+				})
 				Expect(actual).To(Equal(expected))
 			})
 		})
@@ -240,36 +200,24 @@ var _ = Describe("Factory Put", func() {
 			It("returns the correct plan", func() {
 				actual := buildFactory.Create(input, resources, nil)
 
-				expected := atc.Plan{
-					Aggregate: &atc.AggregatePlan{
-						{
-							Task: &atc.TaskPlan{
-								Name:     "some thing",
-								Pipeline: "some-pipeline",
-							},
-						},
-						{
-							OnSuccess: &atc.OnSuccessPlan{
-								Step: atc.Plan{
-									Location: &atc.Location{},
-									Put: &atc.PutPlan{
-										Name:     "some-put",
-										Resource: "some-put",
-										Pipeline: "some-pipeline",
-									},
-								},
-								Next: atc.Plan{
-									Location: &atc.Location{},
-									DependentGet: &atc.DependentGetPlan{
-										Name:     "some-put",
-										Resource: "some-put",
-										Pipeline: "some-pipeline",
-									},
-								},
-							},
-						},
-					},
-				}
+				expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "some thing",
+						Pipeline: "some-pipeline",
+					}),
+					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+						Step: expectedPlanFactory.NewPlan(atc.PutPlan{
+							Name:     "some-put",
+							Resource: "some-put",
+							Pipeline: "some-pipeline",
+						}),
+						Next: expectedPlanFactory.NewPlan(atc.DependentGetPlan{
+							Name:     "some-put",
+							Resource: "some-put",
+							Pipeline: "some-pipeline",
+						}),
+					}),
+				})
 				Expect(actual).To(Equal(expected))
 			})
 		})
@@ -292,36 +240,24 @@ var _ = Describe("Factory Put", func() {
 			It("returns the correct plan", func() {
 				actual := buildFactory.Create(input, resources, nil)
 
-				expected := atc.Plan{
-					OnSuccess: &atc.OnSuccessPlan{
-						Step: atc.Plan{
-							Task: &atc.TaskPlan{
-								Name:     "some-task",
-								Pipeline: "some-pipeline",
-							},
-						},
-						Next: atc.Plan{
-							OnSuccess: &atc.OnSuccessPlan{
-								Step: atc.Plan{
-									Location: &atc.Location{},
-									Put: &atc.PutPlan{
-										Name:     "money",
-										Resource: "power",
-										Pipeline: "some-pipeline",
-									},
-								},
-								Next: atc.Plan{
-									Location: &atc.Location{},
-									DependentGet: &atc.DependentGetPlan{
-										Name:     "money",
-										Resource: "power",
-										Pipeline: "some-pipeline",
-									},
-								},
-							},
-						},
-					},
-				}
+				expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "some-task",
+						Pipeline: "some-pipeline",
+					}),
+					Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+						Step: expectedPlanFactory.NewPlan(atc.PutPlan{
+							Name:     "money",
+							Resource: "power",
+							Pipeline: "some-pipeline",
+						}),
+						Next: expectedPlanFactory.NewPlan(atc.DependentGetPlan{
+							Name:     "money",
+							Resource: "power",
+							Pipeline: "some-pipeline",
+						}),
+					}),
+				})
 
 				Expect(actual).To(Equal(expected))
 			})
@@ -345,47 +281,31 @@ var _ = Describe("Factory Put", func() {
 			})
 
 			It("returns the correct plan", func() {
-				expectedPlan := atc.Plan{
-					OnSuccess: &atc.OnSuccessPlan{
-						Step: atc.Plan{
-							Task: &atc.TaskPlan{
-								Name:     "those who resist our will",
+				expectedPlan := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "those who resist our will",
+						Pipeline: "some-pipeline",
+					}),
+					Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+						Step: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+							Step: expectedPlanFactory.NewPlan(atc.PutPlan{
+								Name:     "some-other-other-resource",
+								Resource: "some-other-other-resource",
 								Pipeline: "some-pipeline",
-							},
-						},
-						Next: atc.Plan{
-							OnSuccess: &atc.OnSuccessPlan{
-								Step: atc.Plan{
-									OnSuccess: &atc.OnSuccessPlan{
-										Step: atc.Plan{
-											Location: &atc.Location{},
-											Put: &atc.PutPlan{
-												Name:     "some-other-other-resource",
-												Resource: "some-other-other-resource",
-												Pipeline: "some-pipeline",
-												Params:   nil,
-											},
-										},
-										Next: atc.Plan{
-											Location: &atc.Location{},
-											DependentGet: &atc.DependentGetPlan{
-												Name:     "some-other-other-resource",
-												Resource: "some-other-other-resource",
-												Pipeline: "some-pipeline",
-											},
-										},
-									},
-								},
-								Next: atc.Plan{
-									Task: &atc.TaskPlan{
-										Name:     "some-other-task",
-										Pipeline: "some-pipeline",
-									},
-								},
-							},
-						},
-					},
-				}
+								Params:   nil,
+							}),
+							Next: expectedPlanFactory.NewPlan(atc.DependentGetPlan{
+								Name:     "some-other-other-resource",
+								Resource: "some-other-other-resource",
+								Pipeline: "some-pipeline",
+							}),
+						}),
+						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+							Name:     "some-other-task",
+							Pipeline: "some-pipeline",
+						}),
+					}),
+				})
 
 				actual := buildFactory.Create(input, resources, nil)
 

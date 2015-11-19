@@ -136,7 +136,7 @@ var _ = Describe("Worker", func() {
 				Type:         db.ContainerTypeGet,
 				CheckType:    "some-check-type",
 				CheckSource:  atc.Source{"some": "source"},
-				StepLocation: 3,
+				PlanID:       "three",
 			}
 		})
 

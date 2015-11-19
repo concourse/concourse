@@ -1319,14 +1319,14 @@ func (db *SQLDB) FindContainersByIdentifier(id ContainerIdentifier) ([]Container
 		params = append(params, checkSourceBlob)
 	}
 
-	if id.StepLocation != 0 {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("step_location = $%d", len(params)+1))
-		params = append(params, id.StepLocation)
+	if id.PlanID != "" {
+		whereCriteria = append(whereCriteria, fmt.Sprintf("plan_id = $%d", len(params)+1))
+		params = append(params, string(id.PlanID))
 	}
 
 	var rows *sql.Rows
 	selectQuery := `
-		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source, step_location
+		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source, plan_id
 		FROM containers
 	`
 
@@ -1376,7 +1376,7 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 
 func (db *SQLDB) GetContainer(handle string) (Container, bool, error) {
 	info, err := scanContainer(db.conn.QueryRow(`
-		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source, step_location
+		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source, plan_id
 		FROM containers c
 		WHERE c.handle = $1
 	`, handle))
@@ -1408,7 +1408,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) error {
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		INSERT INTO containers (handle, name, pipeline_name, build_id, type, worker_name, expires_at, check_type, check_source, step_location)
+		INSERT INTO containers (handle, name, pipeline_name, build_id, type, worker_name, expires_at, check_type, check_source, plan_id)
 		VALUES ($1, $2, $3, $4, $5, $6,  NOW() + $7::INTERVAL, $8, $9, $10)
 		`,
 		container.Handle,
@@ -1420,7 +1420,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) error {
 		interval,
 		container.CheckType,
 		checkSource,
-		container.StepLocation,
+		string(container.PlanID),
 	)
 
 	if err != nil {
@@ -1534,7 +1534,8 @@ func scanContainer(row scannable) (Container, error) {
 
 	info := Container{}
 
-	err := row.Scan(&info.Handle, &info.PipelineName, &infoType, &info.Name, &info.BuildID, &info.WorkerName, &info.ExpiresAt, &info.CheckType, &checkSourceBlob, &info.StepLocation)
+	var planID sql.NullString
+	err := row.Scan(&info.Handle, &info.PipelineName, &infoType, &info.Name, &info.BuildID, &info.WorkerName, &info.ExpiresAt, &info.CheckType, &checkSourceBlob, &planID)
 	if err != nil {
 		return Container{}, err
 	}
@@ -1548,6 +1549,8 @@ func scanContainer(row scannable) (Container, error) {
 	if err != nil {
 		return Container{}, err
 	}
+
+	info.PlanID = atc.PlanID(planID.String)
 
 	return info, nil
 }

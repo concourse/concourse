@@ -94,11 +94,20 @@ func (Log) EventType() atc.EventType  { return EventTypeLog }
 func (Log) Version() atc.EventVersion { return "4.0" }
 
 type Origin struct {
-	Name     string         `json:"name"`
-	Type     OriginType     `json:"type"`
-	Source   OriginSource   `json:"source"`
-	Location OriginLocation `json:"location,omitempty"`
+	Name   string       `json:"name"`
+	Type   OriginType   `json:"type"`
+	Source OriginSource `json:"source"`
+	ID     OriginID     `json:"id,omitempty"`
 }
+
+type OriginID string
+
+// type Origin struct {
+// 	Name     string         `json:"name"`
+// 	Type     OriginType     `json:"type"`
+// 	Source   OriginSource   `json:"source"`
+// 	Location OriginLocation `json:"location,omitempty"`
+// }
 
 type OriginType string
 
@@ -115,16 +124,6 @@ const (
 	OriginSourceStdout OriginSource = "stdout"
 	OriginSourceStderr OriginSource = "stderr"
 )
-
-func OriginLocationFrom(location atc.Location) OriginLocation {
-	return OriginLocation{
-		ParentID:      location.ParentID,
-		ParallelGroup: location.ParallelGroup,
-		ID:            location.ID,
-		Hook:          location.Hook,
-		SerialGroup:   location.SerialGroup,
-	}
-}
 
 type OriginLocation struct {
 	ParentID      uint   `json:"parent_id"`

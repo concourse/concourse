@@ -12,32 +12,32 @@ import (
 )
 
 type FakeBuildDelegate struct {
-	InputDelegateStub        func(lager.Logger, atc.GetPlan, event.OriginLocation) exec.GetDelegate
+	InputDelegateStub        func(lager.Logger, atc.GetPlan, event.OriginID) exec.GetDelegate
 	inputDelegateMutex       sync.RWMutex
 	inputDelegateArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 atc.GetPlan
-		arg3 event.OriginLocation
+		arg3 event.OriginID
 	}
 	inputDelegateReturns struct {
 		result1 exec.GetDelegate
 	}
-	ExecutionDelegateStub        func(lager.Logger, atc.TaskPlan, event.OriginLocation) exec.TaskDelegate
+	ExecutionDelegateStub        func(lager.Logger, atc.TaskPlan, event.OriginID) exec.TaskDelegate
 	executionDelegateMutex       sync.RWMutex
 	executionDelegateArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 atc.TaskPlan
-		arg3 event.OriginLocation
+		arg3 event.OriginID
 	}
 	executionDelegateReturns struct {
 		result1 exec.TaskDelegate
 	}
-	OutputDelegateStub        func(lager.Logger, atc.PutPlan, event.OriginLocation) exec.PutDelegate
+	OutputDelegateStub        func(lager.Logger, atc.PutPlan, event.OriginID) exec.PutDelegate
 	outputDelegateMutex       sync.RWMutex
 	outputDelegateArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 atc.PutPlan
-		arg3 event.OriginLocation
+		arg3 event.OriginID
 	}
 	outputDelegateReturns struct {
 		result1 exec.PutDelegate
@@ -52,12 +52,12 @@ type FakeBuildDelegate struct {
 	}
 }
 
-func (fake *FakeBuildDelegate) InputDelegate(arg1 lager.Logger, arg2 atc.GetPlan, arg3 event.OriginLocation) exec.GetDelegate {
+func (fake *FakeBuildDelegate) InputDelegate(arg1 lager.Logger, arg2 atc.GetPlan, arg3 event.OriginID) exec.GetDelegate {
 	fake.inputDelegateMutex.Lock()
 	fake.inputDelegateArgsForCall = append(fake.inputDelegateArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.GetPlan
-		arg3 event.OriginLocation
+		arg3 event.OriginID
 	}{arg1, arg2, arg3})
 	fake.inputDelegateMutex.Unlock()
 	if fake.InputDelegateStub != nil {
@@ -73,7 +73,7 @@ func (fake *FakeBuildDelegate) InputDelegateCallCount() int {
 	return len(fake.inputDelegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) InputDelegateArgsForCall(i int) (lager.Logger, atc.GetPlan, event.OriginLocation) {
+func (fake *FakeBuildDelegate) InputDelegateArgsForCall(i int) (lager.Logger, atc.GetPlan, event.OriginID) {
 	fake.inputDelegateMutex.RLock()
 	defer fake.inputDelegateMutex.RUnlock()
 	return fake.inputDelegateArgsForCall[i].arg1, fake.inputDelegateArgsForCall[i].arg2, fake.inputDelegateArgsForCall[i].arg3
@@ -86,12 +86,12 @@ func (fake *FakeBuildDelegate) InputDelegateReturns(result1 exec.GetDelegate) {
 	}{result1}
 }
 
-func (fake *FakeBuildDelegate) ExecutionDelegate(arg1 lager.Logger, arg2 atc.TaskPlan, arg3 event.OriginLocation) exec.TaskDelegate {
+func (fake *FakeBuildDelegate) ExecutionDelegate(arg1 lager.Logger, arg2 atc.TaskPlan, arg3 event.OriginID) exec.TaskDelegate {
 	fake.executionDelegateMutex.Lock()
 	fake.executionDelegateArgsForCall = append(fake.executionDelegateArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.TaskPlan
-		arg3 event.OriginLocation
+		arg3 event.OriginID
 	}{arg1, arg2, arg3})
 	fake.executionDelegateMutex.Unlock()
 	if fake.ExecutionDelegateStub != nil {
@@ -107,7 +107,7 @@ func (fake *FakeBuildDelegate) ExecutionDelegateCallCount() int {
 	return len(fake.executionDelegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) ExecutionDelegateArgsForCall(i int) (lager.Logger, atc.TaskPlan, event.OriginLocation) {
+func (fake *FakeBuildDelegate) ExecutionDelegateArgsForCall(i int) (lager.Logger, atc.TaskPlan, event.OriginID) {
 	fake.executionDelegateMutex.RLock()
 	defer fake.executionDelegateMutex.RUnlock()
 	return fake.executionDelegateArgsForCall[i].arg1, fake.executionDelegateArgsForCall[i].arg2, fake.executionDelegateArgsForCall[i].arg3
@@ -120,12 +120,12 @@ func (fake *FakeBuildDelegate) ExecutionDelegateReturns(result1 exec.TaskDelegat
 	}{result1}
 }
 
-func (fake *FakeBuildDelegate) OutputDelegate(arg1 lager.Logger, arg2 atc.PutPlan, arg3 event.OriginLocation) exec.PutDelegate {
+func (fake *FakeBuildDelegate) OutputDelegate(arg1 lager.Logger, arg2 atc.PutPlan, arg3 event.OriginID) exec.PutDelegate {
 	fake.outputDelegateMutex.Lock()
 	fake.outputDelegateArgsForCall = append(fake.outputDelegateArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.PutPlan
-		arg3 event.OriginLocation
+		arg3 event.OriginID
 	}{arg1, arg2, arg3})
 	fake.outputDelegateMutex.Unlock()
 	if fake.OutputDelegateStub != nil {
@@ -141,7 +141,7 @@ func (fake *FakeBuildDelegate) OutputDelegateCallCount() int {
 	return len(fake.outputDelegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegate) OutputDelegateArgsForCall(i int) (lager.Logger, atc.PutPlan, event.OriginLocation) {
+func (fake *FakeBuildDelegate) OutputDelegateArgsForCall(i int) (lager.Logger, atc.PutPlan, event.OriginID) {
 	fake.outputDelegateMutex.RLock()
 	defer fake.outputDelegateMutex.RUnlock()
 	return fake.outputDelegateArgsForCall[i].arg1, fake.outputDelegateArgsForCall[i].arg2, fake.outputDelegateArgsForCall[i].arg3

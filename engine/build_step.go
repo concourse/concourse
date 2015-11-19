@@ -66,18 +66,11 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		return exec.Identity{}
 	}
 
-	var location event.OriginLocation
-	if plan.Location != nil {
-		location = event.OriginLocationFrom(*plan.Location)
-	}
-
-	pipelineName := plan.Task.Pipeline
-
 	return build.factory.Task(
 		logger,
 		exec.SourceName(plan.Task.Name),
-		build.taskIdentifier(plan.Task.Name, location, pipelineName),
-		build.delegate.ExecutionDelegate(logger, *plan.Task, location),
+		build.taskIdentifier(plan.Task.Name, plan.ID, plan.Task.Pipeline),
+		build.delegate.ExecutionDelegate(logger, *plan.Task, event.OriginID(plan.ID)),
 		exec.Privileged(plan.Task.Privileged),
 		plan.Task.Tags,
 		configSource,
@@ -89,19 +82,12 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		"name": plan.Get.Name,
 	})
 
-	var location event.OriginLocation
-	if plan.Location != nil {
-		location = event.OriginLocationFrom(*plan.Location)
-	}
-
-	pipelineName := plan.Get.Pipeline
-
 	return build.factory.Get(
 		logger,
 		build.stepMetadata,
 		exec.SourceName(plan.Get.Name),
-		build.getIdentifier(plan.Get.Name, location, pipelineName),
-		build.delegate.InputDelegate(logger, *plan.Get, location),
+		build.getIdentifier(plan.Get.Name, plan.ID, plan.Get.Pipeline),
+		build.delegate.InputDelegate(logger, *plan.Get, event.OriginID(plan.ID)),
 		atc.ResourceConfig{
 			Name:   plan.Get.Resource,
 			Type:   plan.Get.Type,
@@ -118,18 +104,11 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		"name": plan.Put.Name,
 	})
 
-	var location event.OriginLocation
-	if plan.Location != nil {
-		location = event.OriginLocationFrom(*plan.Location)
-	}
-
-	pipelineName := plan.Put.Pipeline
-
 	return build.factory.Put(
 		logger,
 		build.stepMetadata,
-		build.putIdentifier(plan.Put.Name, location, pipelineName),
-		build.delegate.OutputDelegate(logger, *plan.Put, location),
+		build.putIdentifier(plan.Put.Name, plan.ID, plan.Put.Pipeline),
+		build.delegate.OutputDelegate(logger, *plan.Put, event.OriginID(plan.ID)),
 		atc.ResourceConfig{
 			Name:   plan.Put.Resource,
 			Type:   plan.Put.Type,
@@ -145,20 +124,13 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 		"name": plan.DependentGet.Name,
 	})
 
-	var location event.OriginLocation
-	if plan.Location != nil {
-		location = event.OriginLocationFrom(*plan.Location)
-	}
-
-	pipelineName := plan.DependentGet.Pipeline
-
 	getPlan := plan.DependentGet.GetPlan()
 	return build.factory.DependentGet(
 		logger,
 		build.stepMetadata,
 		exec.SourceName(getPlan.Name),
-		build.getIdentifier(getPlan.Name, location, pipelineName),
-		build.delegate.InputDelegate(logger, getPlan, location),
+		build.getIdentifier(getPlan.Name, plan.ID, plan.DependentGet.Pipeline),
+		build.delegate.InputDelegate(logger, getPlan, event.OriginID(plan.ID)),
 		atc.ResourceConfig{
 			Name:   getPlan.Resource,
 			Type:   getPlan.Type,

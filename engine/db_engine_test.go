@@ -48,31 +48,33 @@ var _ = Describe("DBEngine", func() {
 
 			createdBuild Build
 			buildErr     error
+
+			planFactory atc.PlanFactory
 		)
 
 		BeforeEach(func() {
+			planFactory = atc.NewPlanFactory(123)
+
 			build = db.Build{
 				ID:   128,
 				Name: "some-build",
 			}
 
-			plan = atc.Plan{
-				Task: &atc.TaskPlan{
-					Config: &atc.TaskConfig{
-						Image: "some-image",
+			plan = planFactory.NewPlan(atc.TaskPlan{
+				Config: &atc.TaskConfig{
+					Image: "some-image",
 
-						Params: map[string]string{
-							"FOO": "1",
-							"BAR": "2",
-						},
+					Params: map[string]string{
+						"FOO": "1",
+						"BAR": "2",
+					},
 
-						Run: atc.TaskRunConfig{
-							Path: "some-script",
-							Args: []string{"arg1", "arg2"},
-						},
+					Run: atc.TaskRunConfig{
+						Path: "some-script",
+						Args: []string{"arg1", "arg2"},
 					},
 				},
-			}
+			})
 
 			fakeBuildDB.StartBuildReturns(true, nil)
 		})

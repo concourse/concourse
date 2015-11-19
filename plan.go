@@ -1,6 +1,8 @@
 package atc
 
 type Plan struct {
+	ID PlanID `json:"id"`
+
 	Aggregate    *AggregatePlan    `json:"aggregate,omitempty"`
 	Get          *GetPlan          `json:"get,omitempty"`
 	Put          *PutPlan          `json:"put,omitempty"`
@@ -9,10 +11,11 @@ type Plan struct {
 	OnSuccess    *OnSuccessPlan    `json:"on_success,omitempty"`
 	OnFailure    *OnFailurePlan    `json:"on_failure,omitempty"`
 	Try          *TryPlan          `json:"try,omitempty"`
-	Location     *Location         `json:"location,omitempty"`
 	DependentGet *DependentGetPlan `json:"dependent_get,omitempty"`
 	Timeout      *TimeoutPlan      `json:"timeout,omitempty"`
 }
+
+type PlanID string
 
 type DependentGetPlan struct {
 	Type     string `json:"type"`
@@ -23,14 +26,6 @@ type DependentGetPlan struct {
 	Tags     Tags   `json:"tags,omitempty"`
 	Source   Source `json:"source"`
 	Timeout  string `json:"timeout,omitempty"`
-}
-
-type Location struct {
-	ParentID      uint   `json:"parent_id,omitempty"`
-	ParallelGroup uint   `json:"parallel_group,omitempty"`
-	SerialGroup   uint   `json:"serial_group,omitempty"`
-	ID            uint   `json:"id,omitempty"`
-	Hook          string `json:"hook,omitempty"`
 }
 
 type OnFailurePlan struct {
