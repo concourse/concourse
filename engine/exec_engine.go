@@ -18,6 +18,8 @@ type execMetadata struct {
 	Plan atc.Plan
 }
 
+const execEngineName = "exec.v2"
+
 type execEngine struct {
 	factory         exec.Factory
 	delegateFactory BuildDelegateFactory
@@ -33,7 +35,7 @@ func NewExecEngine(factory exec.Factory, delegateFactory BuildDelegateFactory, d
 }
 
 func (engine *execEngine) Name() string {
-	return "exec.v1"
+	return execEngineName
 }
 
 func (engine *execEngine) CreateBuild(logger lager.Logger, model db.Build, plan atc.Plan) (Build, error) {
@@ -103,6 +105,13 @@ func (build *execBuild) Metadata() string {
 	}
 
 	return string(payload)
+}
+
+func (build *execBuild) PublicPlan(lager.Logger) (atc.PublicBuildPlan, bool, error) {
+	return atc.PublicBuildPlan{
+		Schema: execEngineName,
+		Plan:   build.metadata.Plan.Public(),
+	}, true, nil
 }
 
 func (build *execBuild) Abort(lager.Logger) error {

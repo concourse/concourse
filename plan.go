@@ -25,7 +25,18 @@ type DependentGetPlan struct {
 	Params   Params `json:"params,omitempty"`
 	Tags     Tags   `json:"tags,omitempty"`
 	Source   Source `json:"source"`
-	Timeout  string `json:"timeout,omitempty"`
+}
+
+func (plan DependentGetPlan) GetPlan() GetPlan {
+	return GetPlan{
+		Type:     plan.Type,
+		Name:     plan.Name,
+		Resource: plan.Resource,
+		Pipeline: plan.Pipeline,
+		Source:   plan.Source,
+		Tags:     plan.Tags,
+		Params:   plan.Params,
+	}
 }
 
 type OnFailurePlan struct {
@@ -73,18 +84,6 @@ type PutPlan struct {
 	Source   Source `json:"source"`
 	Params   Params `json:"params,omitempty"`
 	Tags     Tags   `json:"tags,omitempty"`
-}
-
-func (plan DependentGetPlan) GetPlan() GetPlan {
-	return GetPlan{
-		Type:     plan.Type,
-		Name:     plan.Name,
-		Resource: plan.Resource,
-		Pipeline: plan.Pipeline,
-		Source:   plan.Source,
-		Tags:     plan.Tags,
-		Params:   plan.Params,
-	}
 }
 
 type TaskPlan struct {

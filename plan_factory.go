@@ -1,6 +1,7 @@
 package atc
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync/atomic"
 )
@@ -15,11 +16,15 @@ func NewPlanFactory(startingNum int64) PlanFactory {
 	}
 }
 
-func (factory PlanFactory) NewPlan(thing interface{}) Plan {
+type Step interface {
+	Public() *json.RawMessage
+}
+
+func (factory PlanFactory) NewPlan(step Step) Plan {
 	num := atomic.AddInt64(factory.currentNum, 1)
 
 	var plan Plan
-	switch t := thing.(type) {
+	switch t := step.(type) {
 	case AggregatePlan:
 		plan.Aggregate = &t
 	case GetPlan:

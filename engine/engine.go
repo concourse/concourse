@@ -37,6 +37,8 @@ type EngineDB interface {
 type Build interface {
 	Metadata() string
 
+	PublicPlan(lager.Logger) (atc.PublicBuildPlan, bool, error)
+
 	Abort(lager.Logger) error
 	Resume(lager.Logger)
 }

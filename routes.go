@@ -7,6 +7,7 @@ const (
 	GetConfig  = "GetConfig"
 
 	GetBuild       = "GetBuild"
+	GetBuildPlan   = "GetBuildPlan"
 	CreateBuild    = "CreateBuild"
 	ListBuilds     = "ListBuilds"
 	BuildEvents    = "BuildEvents"

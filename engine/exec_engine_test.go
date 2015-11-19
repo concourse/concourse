@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/atc/worker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 )
 
@@ -157,7 +158,6 @@ var _ = Describe("ExecEngine", func() {
 			dependentStep.ResultStub = successResult(true)
 			dependentStepFactory.UsingReturns(dependentStep)
 			fakeFactory.DependentGetReturns(dependentStepFactory)
-
 		})
 
 		Describe("with a putget in an aggregate", func() {
@@ -564,12 +564,67 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(outputStep.ReleaseCallCount()).To(Equal(1))
 					Expect(dependentStep.ReleaseCallCount()).To(Equal(1))
-
 				})
-
 			})
 		})
+	})
 
+	Describe("PublicPlan", func() {
+		var build engine.Build
+		var logger lager.Logger
+
+		var plan atc.Plan
+
+		var publicPlan atc.PublicBuildPlan
+		var planFound bool
+		var publicPlanErr error
+
+		BeforeEach(func() {
+			logger = lagertest.NewTestLogger("test")
+
+			planFactory := atc.NewPlanFactory(123)
+
+			plan = planFactory.NewPlan(atc.OnSuccessPlan{
+				Step: planFactory.NewPlan(atc.PutPlan{
+					Name:     "some-put",
+					Resource: "some-output-resource",
+					Tags:     []string{"some", "putget", "tags"},
+					Type:     "some-type",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"some": "params"},
+					Pipeline: "some-pipeline",
+				}),
+				Next: planFactory.NewPlan(atc.DependentGetPlan{
+					Name:     "some-put",
+					Resource: "some-output-resource",
+					Tags:     []string{"some", "putget", "tags"},
+					Type:     "some-type",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"another": "params"},
+				}),
+			})
+
+			var err error
+			build, err = execEngine.CreateBuild(logger, db.Build{ID: 123}, plan)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			publicPlan, planFound, publicPlanErr = build.PublicPlan(logger)
+		})
+
+		It("returns the plan successfully", func() {
+			Expect(publicPlanErr).ToNot(HaveOccurred())
+			Expect(planFound).To(BeTrue())
+		})
+
+		It("has the engine name as the schema", func() {
+			Expect(publicPlan.Schema).To(Equal("exec.v2"))
+		})
+
+		It("cleans out sensitive/irrelevant information from the original plan", func() {
+			Expect(publicPlan.Plan).To(Equal(plan.Public()))
+		})
 	})
 })
 
