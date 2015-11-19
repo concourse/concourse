@@ -32,9 +32,10 @@ type PipelineDB interface {
 	LeaseScheduling(time.Duration) (Lease, bool, error)
 
 	GetResource(resourceName string) (SavedResource, error)
-	GetResourceHistory(resource string) ([]*VersionHistory, error)
+	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, error)
 	GetResourceHistoryCursor(resource string, startingID int, searchUpwards bool, numResults int) ([]*VersionHistory, bool, error)
 	GetResourceHistoryMaxID(resourceID int) (int, error)
+
 	PauseResource(resourceName string) error
 	UnpauseResource(resourceName string) error
 
@@ -353,9 +354,129 @@ func (pdb *pipelineDB) LeaseScheduling(interval time.Duration) (Lease, bool, err
 	return lease, true, nil
 }
 
-func (pdb *pipelineDB) GetResourceHistory(resourceName string) ([]*VersionHistory, error) {
-	versionHistories, _, err := pdb.GetResourceHistoryCursor(resourceName, 0, true, 0)
-	return versionHistories, err
+func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, error) {
+	dbResource, err := pdb.GetResource(resourceName)
+	if err != nil {
+		return []SavedVersionedResource{}, Pagination{}, err
+	}
+
+	var rows *sql.Rows
+	if page.Since == 0 && page.Until == 0 {
+		rows, err = pdb.conn.Query(`
+			SELECT v.id, v.enabled, v.type, v.version, v.metadata, r.name
+			FROM versioned_resources v
+			INNER JOIN resources r ON v.resource_id = r.id
+			WHERE v.resource_id = $1
+			ORDER BY v.id DESC
+			LIMIT $2
+		`, dbResource.ID, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+	} else if page.Until != 0 {
+		rows, err = pdb.conn.Query(`
+			SELECT sub.*
+				FROM (
+				SELECT v.id, v.enabled, v.type, v.version, v.metadata, r.name
+				FROM versioned_resources v
+				INNER JOIN resources r ON v.resource_id = r.id
+				WHERE v.resource_id = $1
+					AND v.ID > $2
+				ORDER BY v.id ASC
+				LIMIT $3
+			) sub
+			ORDER BY sub.id DESC
+		`, dbResource.ID, page.Until, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+	} else {
+		rows, err = pdb.conn.Query(`
+			SELECT v.id, v.enabled, v.type, v.version, v.metadata, r.name
+			FROM versioned_resources v
+			INNER JOIN resources r ON v.resource_id = r.id
+			WHERE v.resource_id = $1
+				AND v.ID < $2
+			ORDER BY v.id DESC
+			LIMIT $3
+		`, dbResource.ID, page.Since, page.Limit)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+	}
+
+	defer rows.Close()
+
+	savedVersionedResources := make([]SavedVersionedResource, 0)
+	for rows.Next() {
+		var savedVersionedResource SavedVersionedResource
+
+		var versionString, metadataString string
+
+		err := rows.Scan(
+			&savedVersionedResource.ID,
+			&savedVersionedResource.Enabled,
+			&savedVersionedResource.Type,
+			&versionString,
+			&metadataString,
+			&savedVersionedResource.Resource,
+		)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+
+		err = json.Unmarshal([]byte(versionString), &savedVersionedResource.Version)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+
+		err = json.Unmarshal([]byte(metadataString), &savedVersionedResource.Metadata)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+
+		savedVersionedResource.PipelineName = pdb.GetPipelineName()
+
+		savedVersionedResources = append(savedVersionedResources, savedVersionedResource)
+	}
+
+	if len(savedVersionedResources) == 0 {
+		return []SavedVersionedResource{}, Pagination{}, nil
+	}
+
+	var minID int
+	var maxID int
+
+	err = pdb.conn.QueryRow(`
+		SELECT COALESCE(MAX(v.id), 0) as maxID,
+			COALESCE(MIN(v.id), 0) as minID
+		FROM versioned_resources v
+		WHERE v.resource_id = $1
+	`, dbResource.ID).Scan(&maxID, &minID)
+	if err != nil {
+		return nil, Pagination{}, err
+	}
+
+	firstSavedVersionedResource := savedVersionedResources[0]
+	lastSavedVersionedResource := savedVersionedResources[len(savedVersionedResources)-1]
+
+	var pagination Pagination
+
+	if firstSavedVersionedResource.ID < maxID {
+		pagination.Previous = &Page{
+			Until: firstSavedVersionedResource.ID,
+			Limit: page.Limit,
+		}
+	}
+
+	if lastSavedVersionedResource.ID > minID {
+		pagination.Next = &Page{
+			Since: lastSavedVersionedResource.ID,
+			Limit: page.Limit,
+		}
+	}
+
+	return savedVersionedResources, pagination, nil
 }
 
 func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID int, greaterThanStartingID bool, numResults int) ([]*VersionHistory, bool, error) {

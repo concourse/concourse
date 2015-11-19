@@ -81,9 +81,7 @@ var _ = Describe("Baggage Collector", func() {
 
 						fakePipelineDB := new(dbfakes.FakePipelineDB)
 
-						fakePipelineDB.GetResourceHistoryMaxIDReturns(42, nil)
-
-						resourceVersions := make(map[string][]*db.VersionHistory)
+						resourceVersionsMap := make(map[string][]db.SavedVersionedResource)
 						for _, resourceInfo := range data {
 							enabled := make([]bool, len(resourceInfo.versions))
 							for i, _ := range enabled {
@@ -93,24 +91,21 @@ var _ = Describe("Baggage Collector", func() {
 								enabled[i] = false
 							}
 
-							var history []*db.VersionHistory
+							var resourceVersions []db.SavedVersionedResource
 							for i := len(resourceInfo.versions) - 1; i >= len(resourceInfo.versions)-5 && i >= 0; i-- {
-								history = append(history, &db.VersionHistory{
-									VersionedResource: db.SavedVersionedResource{
-										Enabled: enabled[i],
-										VersionedResource: db.VersionedResource{
-											Version: db.Version(resourceInfo.versions[i]),
-										},
+								resourceVersions = append(resourceVersions, db.SavedVersionedResource{
+									Enabled: enabled[i],
+									VersionedResource: db.VersionedResource{
+										Version: db.Version(resourceInfo.versions[i]),
 									},
 								})
 							}
-							resourceVersions[resourceInfo.config.Name] = history
+							resourceVersionsMap[resourceInfo.config.Name] = resourceVersions
 						}
-						fakePipelineDB.GetResourceHistoryCursorStub = func(resource string, startingID int, searchUpwards bool, numResults int) ([]*db.VersionHistory, bool, error) {
-							Expect(startingID).To(Equal(42))
-							Expect(searchUpwards).To(BeFalse())
-							Expect(numResults).To(Equal(5))
-							return resourceVersions[resource], false, nil
+
+						fakePipelineDB.GetResourceVersionsStub = func(resource string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, error) {
+							Expect(page).To(Equal(db.Page{Limit: 5}))
+							return resourceVersionsMap[resource], db.Pagination{}, nil
 						}
 
 						fakePipelineDBs[name] = fakePipelineDB

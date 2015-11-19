@@ -55,7 +55,7 @@ var _ = Describe("Runner", func() {
 
 	Context("when the interval elapses", func() {
 		JustBeforeEach(func() {
-			fakeClock.Increment(interval)
+			fakeClock.WaitForWatcherAndIncrement(interval)
 		})
 
 		It("calls to get a lease for cache invalidation", func() {

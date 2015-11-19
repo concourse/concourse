@@ -79,14 +79,16 @@ type FakePipelineDB struct {
 		result1 db.SavedResource
 		result2 error
 	}
-	GetResourceHistoryStub        func(resource string) ([]*db.VersionHistory, error)
-	getResourceHistoryMutex       sync.RWMutex
-	getResourceHistoryArgsForCall []struct {
-		resource string
+	GetResourceVersionsStub        func(resourceName string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, error)
+	getResourceVersionsMutex       sync.RWMutex
+	getResourceVersionsArgsForCall []struct {
+		resourceName string
+		page         db.Page
 	}
-	getResourceHistoryReturns struct {
-		result1 []*db.VersionHistory
-		result2 error
+	getResourceVersionsReturns struct {
+		result1 []db.SavedVersionedResource
+		result2 db.Pagination
+		result3 error
 	}
 	GetResourceHistoryCursorStub        func(resource string, startingID int, searchUpwards bool, numResults int) ([]*db.VersionHistory, bool, error)
 	getResourceHistoryCursorMutex       sync.RWMutex
@@ -216,37 +218,6 @@ type FakePipelineDB struct {
 		result1 *db.Build
 		result2 *db.Build
 		result3 error
-	}
-	GetJobBuildsCursorStub        func(jobName string, startingID int, resultsGreaterThanStartingID bool, limit int) ([]db.Build, bool, error)
-	getJobBuildsCursorMutex       sync.RWMutex
-	getJobBuildsCursorArgsForCall []struct {
-		jobName                      string
-		startingID                   int
-		resultsGreaterThanStartingID bool
-		limit                        int
-	}
-	getJobBuildsCursorReturns struct {
-		result1 []db.Build
-		result2 bool
-		result3 error
-	}
-	GetJobBuildsMaxIDStub        func(jobName string) (int, error)
-	getJobBuildsMaxIDMutex       sync.RWMutex
-	getJobBuildsMaxIDArgsForCall []struct {
-		jobName string
-	}
-	getJobBuildsMaxIDReturns struct {
-		result1 int
-		result2 error
-	}
-	GetJobBuildsMinIDStub        func(jobName string) (int, error)
-	getJobBuildsMinIDMutex       sync.RWMutex
-	getJobBuildsMinIDArgsForCall []struct {
-		jobName string
-	}
-	getJobBuildsMinIDReturns struct {
-		result1 int
-		result2 error
 	}
 	GetJobBuildsStub        func(job string, page db.Page) ([]db.Build, db.Pagination, error)
 	getJobBuildsMutex       sync.RWMutex
@@ -658,37 +629,39 @@ func (fake *FakePipelineDB) GetResourceReturns(result1 db.SavedResource, result2
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetResourceHistory(resource string) ([]*db.VersionHistory, error) {
-	fake.getResourceHistoryMutex.Lock()
-	fake.getResourceHistoryArgsForCall = append(fake.getResourceHistoryArgsForCall, struct {
-		resource string
-	}{resource})
-	fake.getResourceHistoryMutex.Unlock()
-	if fake.GetResourceHistoryStub != nil {
-		return fake.GetResourceHistoryStub(resource)
+func (fake *FakePipelineDB) GetResourceVersions(resourceName string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, error) {
+	fake.getResourceVersionsMutex.Lock()
+	fake.getResourceVersionsArgsForCall = append(fake.getResourceVersionsArgsForCall, struct {
+		resourceName string
+		page         db.Page
+	}{resourceName, page})
+	fake.getResourceVersionsMutex.Unlock()
+	if fake.GetResourceVersionsStub != nil {
+		return fake.GetResourceVersionsStub(resourceName, page)
 	} else {
-		return fake.getResourceHistoryReturns.result1, fake.getResourceHistoryReturns.result2
+		return fake.getResourceVersionsReturns.result1, fake.getResourceVersionsReturns.result2, fake.getResourceVersionsReturns.result3
 	}
 }
 
-func (fake *FakePipelineDB) GetResourceHistoryCallCount() int {
-	fake.getResourceHistoryMutex.RLock()
-	defer fake.getResourceHistoryMutex.RUnlock()
-	return len(fake.getResourceHistoryArgsForCall)
+func (fake *FakePipelineDB) GetResourceVersionsCallCount() int {
+	fake.getResourceVersionsMutex.RLock()
+	defer fake.getResourceVersionsMutex.RUnlock()
+	return len(fake.getResourceVersionsArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetResourceHistoryArgsForCall(i int) string {
-	fake.getResourceHistoryMutex.RLock()
-	defer fake.getResourceHistoryMutex.RUnlock()
-	return fake.getResourceHistoryArgsForCall[i].resource
+func (fake *FakePipelineDB) GetResourceVersionsArgsForCall(i int) (string, db.Page) {
+	fake.getResourceVersionsMutex.RLock()
+	defer fake.getResourceVersionsMutex.RUnlock()
+	return fake.getResourceVersionsArgsForCall[i].resourceName, fake.getResourceVersionsArgsForCall[i].page
 }
 
-func (fake *FakePipelineDB) GetResourceHistoryReturns(result1 []*db.VersionHistory, result2 error) {
-	fake.GetResourceHistoryStub = nil
-	fake.getResourceHistoryReturns = struct {
-		result1 []*db.VersionHistory
-		result2 error
-	}{result1, result2}
+func (fake *FakePipelineDB) GetResourceVersionsReturns(result1 []db.SavedVersionedResource, result2 db.Pagination, result3 error) {
+	fake.GetResourceVersionsStub = nil
+	fake.getResourceVersionsReturns = struct {
+		result1 []db.SavedVersionedResource
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakePipelineDB) GetResourceHistoryCursor(resource string, startingID int, searchUpwards bool, numResults int) ([]*db.VersionHistory, bool, error) {
@@ -1154,109 +1127,6 @@ func (fake *FakePipelineDB) GetJobFinishedAndNextBuildReturns(result1 *db.Build,
 		result2 *db.Build
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakePipelineDB) GetJobBuildsCursor(jobName string, startingID int, resultsGreaterThanStartingID bool, limit int) ([]db.Build, bool, error) {
-	fake.getJobBuildsCursorMutex.Lock()
-	fake.getJobBuildsCursorArgsForCall = append(fake.getJobBuildsCursorArgsForCall, struct {
-		jobName                      string
-		startingID                   int
-		resultsGreaterThanStartingID bool
-		limit                        int
-	}{jobName, startingID, resultsGreaterThanStartingID, limit})
-	fake.getJobBuildsCursorMutex.Unlock()
-	if fake.GetJobBuildsCursorStub != nil {
-		return fake.GetJobBuildsCursorStub(jobName, startingID, resultsGreaterThanStartingID, limit)
-	} else {
-		return fake.getJobBuildsCursorReturns.result1, fake.getJobBuildsCursorReturns.result2, fake.getJobBuildsCursorReturns.result3
-	}
-}
-
-func (fake *FakePipelineDB) GetJobBuildsCursorCallCount() int {
-	fake.getJobBuildsCursorMutex.RLock()
-	defer fake.getJobBuildsCursorMutex.RUnlock()
-	return len(fake.getJobBuildsCursorArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetJobBuildsCursorArgsForCall(i int) (string, int, bool, int) {
-	fake.getJobBuildsCursorMutex.RLock()
-	defer fake.getJobBuildsCursorMutex.RUnlock()
-	return fake.getJobBuildsCursorArgsForCall[i].jobName, fake.getJobBuildsCursorArgsForCall[i].startingID, fake.getJobBuildsCursorArgsForCall[i].resultsGreaterThanStartingID, fake.getJobBuildsCursorArgsForCall[i].limit
-}
-
-func (fake *FakePipelineDB) GetJobBuildsCursorReturns(result1 []db.Build, result2 bool, result3 error) {
-	fake.GetJobBuildsCursorStub = nil
-	fake.getJobBuildsCursorReturns = struct {
-		result1 []db.Build
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipelineDB) GetJobBuildsMaxID(jobName string) (int, error) {
-	fake.getJobBuildsMaxIDMutex.Lock()
-	fake.getJobBuildsMaxIDArgsForCall = append(fake.getJobBuildsMaxIDArgsForCall, struct {
-		jobName string
-	}{jobName})
-	fake.getJobBuildsMaxIDMutex.Unlock()
-	if fake.GetJobBuildsMaxIDStub != nil {
-		return fake.GetJobBuildsMaxIDStub(jobName)
-	} else {
-		return fake.getJobBuildsMaxIDReturns.result1, fake.getJobBuildsMaxIDReturns.result2
-	}
-}
-
-func (fake *FakePipelineDB) GetJobBuildsMaxIDCallCount() int {
-	fake.getJobBuildsMaxIDMutex.RLock()
-	defer fake.getJobBuildsMaxIDMutex.RUnlock()
-	return len(fake.getJobBuildsMaxIDArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetJobBuildsMaxIDArgsForCall(i int) string {
-	fake.getJobBuildsMaxIDMutex.RLock()
-	defer fake.getJobBuildsMaxIDMutex.RUnlock()
-	return fake.getJobBuildsMaxIDArgsForCall[i].jobName
-}
-
-func (fake *FakePipelineDB) GetJobBuildsMaxIDReturns(result1 int, result2 error) {
-	fake.GetJobBuildsMaxIDStub = nil
-	fake.getJobBuildsMaxIDReturns = struct {
-		result1 int
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakePipelineDB) GetJobBuildsMinID(jobName string) (int, error) {
-	fake.getJobBuildsMinIDMutex.Lock()
-	fake.getJobBuildsMinIDArgsForCall = append(fake.getJobBuildsMinIDArgsForCall, struct {
-		jobName string
-	}{jobName})
-	fake.getJobBuildsMinIDMutex.Unlock()
-	if fake.GetJobBuildsMinIDStub != nil {
-		return fake.GetJobBuildsMinIDStub(jobName)
-	} else {
-		return fake.getJobBuildsMinIDReturns.result1, fake.getJobBuildsMinIDReturns.result2
-	}
-}
-
-func (fake *FakePipelineDB) GetJobBuildsMinIDCallCount() int {
-	fake.getJobBuildsMinIDMutex.RLock()
-	defer fake.getJobBuildsMinIDMutex.RUnlock()
-	return len(fake.getJobBuildsMinIDArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetJobBuildsMinIDArgsForCall(i int) string {
-	fake.getJobBuildsMinIDMutex.RLock()
-	defer fake.getJobBuildsMinIDMutex.RUnlock()
-	return fake.getJobBuildsMinIDArgsForCall[i].jobName
-}
-
-func (fake *FakePipelineDB) GetJobBuildsMinIDReturns(result1 int, result2 error) {
-	fake.GetJobBuildsMinIDStub = nil
-	fake.getJobBuildsMinIDReturns = struct {
-		result1 int
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakePipelineDB) GetJobBuilds(job string, page db.Page) ([]db.Build, db.Pagination, error) {
