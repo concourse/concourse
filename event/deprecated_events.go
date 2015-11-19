@@ -326,3 +326,100 @@ type ErrorV20 struct {
 
 func (ErrorV20) EventType() atc.EventType  { return "error" }
 func (ErrorV20) Version() atc.EventVersion { return "2.0" }
+
+// [Tracker: #97774988] Location -> PlanID changed Origin, which changes a bunch of stuff
+
+type ErrorV30 struct {
+	Message string    `json:"message"`
+	Origin  OriginV40 `json:"origin,omitempty"`
+}
+
+func (ErrorV30) EventType() atc.EventType  { return "error" }
+func (ErrorV30) Version() atc.EventVersion { return "3.0" }
+
+type FinishTaskV30 struct {
+	Time       int64     `json:"time"`
+	ExitStatus int       `json:"exit_status"`
+	Origin     OriginV40 `json:"origin"`
+}
+
+func (FinishTaskV30) EventType() atc.EventType  { return "finish-task" }
+func (FinishTaskV30) Version() atc.EventVersion { return "3.0" }
+
+type InitializeTaskV30 struct {
+	TaskConfig TaskConfig `json:"config"`
+	Origin     OriginV40  `json:"origin"`
+}
+
+func (InitializeTaskV30) EventType() atc.EventType  { return "initialize-task" }
+func (InitializeTaskV30) Version() atc.EventVersion { return "3.0" }
+
+type StartTaskV30 struct {
+	Time   int64     `json:"time"`
+	Origin OriginV40 `json:"origin"`
+}
+
+func (StartTaskV30) EventType() atc.EventType  { return "start-task" }
+func (StartTaskV30) Version() atc.EventVersion { return "3.0" }
+
+type LogV40 struct {
+	Origin  OriginV40 `json:"origin"`
+	Payload string    `json:"payload"`
+}
+
+func (LogV40) EventType() atc.EventType  { return "log" }
+func (LogV40) Version() atc.EventVersion { return "4.0" }
+
+type OriginV40 struct {
+	Name     string            `json:"name"`
+	Type     OriginType        `json:"type"`
+	Source   OriginSource      `json:"source"`
+	Location OriginV40Location `json:"location,omitempty"`
+}
+
+type OriginV40Location struct {
+	ParentID      uint   `json:"parent_id"`
+	ID            uint   `json:"id"`
+	ParallelGroup uint   `json:"parallel_group"`
+	SerialGroup   uint   `json:"serial_group"`
+	Hook          string `json:"hook"`
+}
+
+func (ol OriginV40Location) Incr(by OriginV40LocationIncrement) OriginV40Location {
+	ol.ID += uint(by)
+	return ol
+}
+
+func (ol OriginV40Location) SetParentID(id uint) OriginV40Location {
+	ol.ParentID = id
+	return ol
+}
+
+type OriginV40LocationIncrement uint
+
+const (
+	NoIncrementV30     OriginV40LocationIncrement = 0
+	SingleIncrementV30 OriginV40LocationIncrement = 1
+)
+
+type FinishGetV30 struct {
+	Origin          OriginV40           `json:"origin"`
+	Plan            GetPlan             `json:"plan"`
+	ExitStatus      int                 `json:"exit_status"`
+	FetchedVersion  atc.Version         `json:"version"`
+	FetchedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+}
+
+func (FinishGetV30) EventType() atc.EventType  { return "finish-get" }
+func (FinishGetV30) Version() atc.EventVersion { return "3.0" }
+
+type FinishPutV30 struct {
+	Origin          OriginV40           `json:"origin"`
+	Plan            PutPlan             `json:"plan"`
+	CreatedVersion  atc.Version         `json:"version"`
+	CreatedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+	ExitStatus      int                 `json:"exit_status"`
+}
+
+func (FinishPutV30) EventType() atc.EventType  { return "finish-put" }
+func (FinishPutV30) Version() atc.EventVersion { return "3.0" }

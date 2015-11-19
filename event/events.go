@@ -8,7 +8,7 @@ type Error struct {
 }
 
 func (Error) EventType() atc.EventType  { return EventTypeError }
-func (Error) Version() atc.EventVersion { return "3.0" }
+func (Error) Version() atc.EventVersion { return "4.0" }
 
 type FinishTask struct {
 	Time       int64  `json:"time"`
@@ -17,7 +17,7 @@ type FinishTask struct {
 }
 
 func (FinishTask) EventType() atc.EventType  { return EventTypeFinishTask }
-func (FinishTask) Version() atc.EventVersion { return "3.0" }
+func (FinishTask) Version() atc.EventVersion { return "4.0" }
 
 type InitializeTask struct {
 	TaskConfig TaskConfig `json:"config"`
@@ -25,7 +25,7 @@ type InitializeTask struct {
 }
 
 func (InitializeTask) EventType() atc.EventType  { return EventTypeInitializeTask }
-func (InitializeTask) Version() atc.EventVersion { return "3.0" }
+func (InitializeTask) Version() atc.EventVersion { return "4.0" }
 
 // shadow the real atc.TaskConfig
 type TaskConfig struct {
@@ -75,7 +75,7 @@ type StartTask struct {
 }
 
 func (StartTask) EventType() atc.EventType  { return EventTypeStartTask }
-func (StartTask) Version() atc.EventVersion { return "3.0" }
+func (StartTask) Version() atc.EventVersion { return "4.0" }
 
 type Status struct {
 	Status atc.BuildStatus `json:"status"`
@@ -91,7 +91,7 @@ type Log struct {
 }
 
 func (Log) EventType() atc.EventType  { return EventTypeLog }
-func (Log) Version() atc.EventVersion { return "4.0" }
+func (Log) Version() atc.EventVersion { return "5.0" }
 
 type Origin struct {
 	Name   string       `json:"name"`
@@ -101,13 +101,6 @@ type Origin struct {
 }
 
 type OriginID string
-
-// type Origin struct {
-// 	Name     string         `json:"name"`
-// 	Type     OriginType     `json:"type"`
-// 	Source   OriginSource   `json:"source"`
-// 	Location OriginLocation `json:"location,omitempty"`
-// }
 
 type OriginType string
 
@@ -125,31 +118,6 @@ const (
 	OriginSourceStderr OriginSource = "stderr"
 )
 
-type OriginLocation struct {
-	ParentID      uint   `json:"parent_id"`
-	ID            uint   `json:"id"`
-	ParallelGroup uint   `json:"parallel_group"`
-	SerialGroup   uint   `json:"serial_group"`
-	Hook          string `json:"hook"`
-}
-
-func (ol OriginLocation) Incr(by OriginLocationIncrement) OriginLocation {
-	ol.ID += uint(by)
-	return ol
-}
-
-func (ol OriginLocation) SetParentID(id uint) OriginLocation {
-	ol.ParentID = id
-	return ol
-}
-
-type OriginLocationIncrement uint
-
-const (
-	NoIncrement     OriginLocationIncrement = 0
-	SingleIncrement OriginLocationIncrement = 1
-)
-
 type FinishGet struct {
 	Origin          Origin              `json:"origin"`
 	Plan            GetPlan             `json:"plan"`
@@ -159,7 +127,7 @@ type FinishGet struct {
 }
 
 func (FinishGet) EventType() atc.EventType  { return EventTypeFinishGet }
-func (FinishGet) Version() atc.EventVersion { return "3.0" }
+func (FinishGet) Version() atc.EventVersion { return "4.0" }
 
 type GetPlan struct {
 	Name     string      `json:"name"`
@@ -177,7 +145,7 @@ type FinishPut struct {
 }
 
 func (FinishPut) EventType() atc.EventType  { return EventTypeFinishPut }
-func (FinishPut) Version() atc.EventVersion { return "3.0" }
+func (FinishPut) Version() atc.EventVersion { return "4.0" }
 
 type PutPlan struct {
 	Name     string `json:"name"`
