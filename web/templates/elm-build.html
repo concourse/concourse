@@ -1,0 +1,39 @@
+{{define "title"}}{{.Job.Name}} #{{.Build.Name}} - Concourse{{end}}
+
+{{define "body"}}
+<div id="page-header" class="{{.Build.Status}}">
+  <div class="build-header js-build" data-build-id="{{.Build.ID}}">
+    <div class="build-actions fr">
+      <form class="trigger-build" method="post" action="{{url "TriggerBuild" .PipelineName .Job}}">
+        <button class="build-action fr"><i class="fa fa-plus-circle"></i></button>
+      </form>
+
+
+      {{if .Build.Abortable}}
+      <span class="build-action build-action-abort js-abortBuild fr"><i class="fa fa-times-circle"></i></span>
+      {{end}}
+    </div>
+
+    <h1><a href="{{url "GetJob" .PipelineName .Job}}">{{.Job.Name}} #{{.Build.Name}}</a></h1>
+
+    <dl class="build-times"></dl>
+  </div>
+
+  <ul id="builds">
+    {{$job := .Job}}
+    {{$currentName := .Build.Name}}
+    {{/* omitting whitespace for display-block style */}}
+    {{range .Builds}}<li class="{{.Status}}{{if eq .Name $currentName}} current{{end}}"><a href="{{url "GetBuild" $job .}}">{{.Name}}</a></li>{{end}}
+  </ul>
+</div>
+
+<div id="build-body">
+  <div id="elm-app"></div>
+</div>
+
+<script src="{{asset "elm.js"}}"></script>
+
+<script type="text/javascript">
+Elm.embed(Elm.Main, document.getElementById("elm-app"), {buildId: {{.Build.ID}}});
+</script>
+{{end}}

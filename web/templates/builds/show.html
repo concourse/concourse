@@ -15,19 +15,12 @@
 </div>
 
 <div id="build-body" class="build-body-noSubHeader">
-  <div id="build-requires-auth">
-    <form method="get" action="{{url "LogIn"}}">
-      <input type="submit" value="log in to view" />
-      <input type="hidden" name="redirect" value="{{url "GetJoblessBuild" .Build}}" />
-    </form>
-  </div>
-  <div id="build-logs"></div>
+  <div id="elm-app"></div>
 </div>
 
-<script src="{{asset "jquery-2.1.1.min.js"}}"></script>
-<script src="{{asset "concourse.js"}}"></script>
-<script src="{{asset "build.js"}}"></script>
+<script src="{{asset "elm.js"}}"></script>
+
 <script type="text/javascript">
-  streamLog({{url "BuildEvents" .Build | js}}, {{.Build.Status | js}})
+Elm.embed(Elm.Main, document.getElementById("elm-app"), {buildId: {{.Build.ID}}});
 </script>
 {{end}}

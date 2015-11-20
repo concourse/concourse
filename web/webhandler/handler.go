@@ -69,7 +69,7 @@ func NewHandler(
 		return nil, err
 	}
 
-	buildTemplate, err := loadTemplateWithPipeline(templatesDir, "build.html", funcs)
+	buildTemplate, err := loadTemplateWithPipeline(templatesDir, "elm-build.html", funcs)
 	if err != nil {
 		return nil, err
 	}
