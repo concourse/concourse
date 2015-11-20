@@ -30,6 +30,7 @@ files:
   - github.com/concourse/atc/api/pipes/*.go # gosub
   - github.com/concourse/atc/api/present/*.go # gosub
   - github.com/concourse/atc/api/resourceserver/*.go # gosub
+  - github.com/concourse/atc/api/resourceserver/versionserver/*.go # gosub
   - github.com/concourse/atc/api/volumeserver/*.go # gosub
   - github.com/concourse/atc/api/workerserver/*.go # gosub
   - github.com/concourse/atc/auth/*.go # gosub
