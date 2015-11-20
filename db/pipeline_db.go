@@ -32,7 +32,7 @@ type PipelineDB interface {
 	LeaseScheduling(time.Duration) (Lease, bool, error)
 
 	GetResource(resourceName string) (SavedResource, error)
-	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, error)
+	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
 	GetResourceHistoryCursor(resource string, startingID int, searchUpwards bool, numResults int) ([]*VersionHistory, bool, error)
 	GetResourceHistoryMaxID(resourceID int) (int, error)
 
@@ -73,6 +73,8 @@ type PipelineDB interface {
 	ScheduleBuild(buildID int, job atc.JobConfig) (bool, error)
 	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
 	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
+	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
+	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
 }
 
 type pipelineDB struct {
@@ -354,10 +356,20 @@ func (pdb *pipelineDB) LeaseScheduling(interval time.Duration) (Lease, bool, err
 	return lease, true, nil
 }
 
-func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, error) {
-	dbResource, err := pdb.GetResource(resourceName)
+func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error) {
+	tx, err := pdb.conn.Begin()
 	if err != nil {
-		return []SavedVersionedResource{}, Pagination{}, err
+		return []SavedVersionedResource{}, Pagination{}, false, err
+	}
+
+	defer tx.Rollback()
+
+	dbResource, err := pdb.getResource(tx, resourceName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return []SavedVersionedResource{}, Pagination{}, false, nil
+		}
+		return []SavedVersionedResource{}, Pagination{}, false, err
 	}
 
 	var rows *sql.Rows
@@ -371,7 +383,7 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 			LIMIT $2
 		`, dbResource.ID, page.Limit)
 		if err != nil {
-			return nil, Pagination{}, err
+			return nil, Pagination{}, false, err
 		}
 	} else if page.Until != 0 {
 		rows, err = pdb.conn.Query(`
@@ -388,7 +400,7 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 			ORDER BY sub.id DESC
 		`, dbResource.ID, page.Until, page.Limit)
 		if err != nil {
-			return nil, Pagination{}, err
+			return nil, Pagination{}, false, err
 		}
 	} else {
 		rows, err = pdb.conn.Query(`
@@ -401,7 +413,7 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 			LIMIT $3
 		`, dbResource.ID, page.Since, page.Limit)
 		if err != nil {
-			return nil, Pagination{}, err
+			return nil, Pagination{}, false, err
 		}
 	}
 
@@ -422,17 +434,17 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 			&savedVersionedResource.Resource,
 		)
 		if err != nil {
-			return nil, Pagination{}, err
+			return nil, Pagination{}, false, err
 		}
 
 		err = json.Unmarshal([]byte(versionString), &savedVersionedResource.Version)
 		if err != nil {
-			return nil, Pagination{}, err
+			return nil, Pagination{}, false, err
 		}
 
 		err = json.Unmarshal([]byte(metadataString), &savedVersionedResource.Metadata)
 		if err != nil {
-			return nil, Pagination{}, err
+			return nil, Pagination{}, false, err
 		}
 
 		savedVersionedResource.PipelineName = pdb.GetPipelineName()
@@ -441,7 +453,7 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 	}
 
 	if len(savedVersionedResources) == 0 {
-		return []SavedVersionedResource{}, Pagination{}, nil
+		return []SavedVersionedResource{}, Pagination{}, true, nil
 	}
 
 	var minID int
@@ -454,7 +466,7 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 		WHERE v.resource_id = $1
 	`, dbResource.ID).Scan(&maxID, &minID)
 	if err != nil {
-		return nil, Pagination{}, err
+		return nil, Pagination{}, false, err
 	}
 
 	firstSavedVersionedResource := savedVersionedResources[0]
@@ -476,7 +488,7 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 		}
 	}
 
-	return savedVersionedResources, pagination, nil
+	return savedVersionedResources, pagination, true, nil
 }
 
 func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID int, greaterThanStartingID bool, numResults int) ([]*VersionHistory, bool, error) {
@@ -1191,6 +1203,60 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx *sql.Tx) (Build, error)
 	}
 
 	return build, nil
+}
+
+func (pdb *pipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error) {
+	rows, err := pdb.conn.Query(`
+		SELECT `+qualifiedBuildColumns+`
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN build_inputs bi ON bi.build_id = b.id
+		WHERE bi.versioned_resource_id = $1
+	`, versionedResourceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	builds := []Build{}
+	for rows.Next() {
+		build, _, err := pdb.scanBuild(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		builds = append(builds, build)
+	}
+
+	return builds, err
+}
+
+func (pdb *pipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error) {
+	rows, err := pdb.conn.Query(`
+		SELECT `+qualifiedBuildColumns+`
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN build_outputs bo ON bo.build_id = b.id
+		WHERE bo.versioned_resource_id = $1
+	`, versionedResourceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	builds := []Build{}
+	for rows.Next() {
+		build, _, err := pdb.scanBuild(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		builds = append(builds, build)
+	}
+
+	return builds, err
 }
 
 func (pdb *pipelineDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error) {

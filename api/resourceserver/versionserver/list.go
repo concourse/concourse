@@ -36,10 +36,15 @@ func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB) http.Handler {
 			limit = atc.PaginationAPIDefaultLimit
 		}
 
-		versions, pagination, err := pipelineDB.GetResourceVersions(resourceName, db.Page{Until: until, Since: since, Limit: limit})
+		versions, pagination, found, err := pipelineDB.GetResourceVersions(resourceName, db.Page{Until: until, Since: since, Limit: limit})
 		if err != nil {
 			logger.Error("failed-to-get-resource-versions", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 

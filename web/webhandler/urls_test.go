@@ -6,9 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
-	"github.com/concourse/atc/web/pagination"
 	"github.com/concourse/atc/web/webhandler"
 	"github.com/concourse/go-concourse/concourse"
 )
@@ -16,11 +14,9 @@ import (
 var _ = Describe("URLs", func() {
 	Describe("EnableVersionResource", func() {
 		It("returns the correct URL", func() {
-			versionedResource := db.SavedVersionedResource{
-				ID: 123,
-				VersionedResource: db.VersionedResource{
-					Resource: "resource-name",
-				},
+			versionedResource := atc.VersionedResource{
+				ID:       123,
+				Resource: "resource-name",
 			}
 
 			path, err := webhandler.PathFor(atc.EnableResourceVersion, "some-pipeline", versionedResource)
@@ -32,11 +28,9 @@ var _ = Describe("URLs", func() {
 
 	Describe("DisableVersionResource", func() {
 		It("returns the correct URL", func() {
-			versionedResource := db.SavedVersionedResource{
-				ID: 123,
-				VersionedResource: db.VersionedResource{
-					Resource: "resource-name",
-				},
+			versionedResource := atc.VersionedResource{
+				ID:       123,
+				Resource: "resource-name",
 			}
 
 			path, err := webhandler.PathFor(atc.DisableResourceVersion, "some-pipeline", versionedResource)
@@ -81,25 +75,15 @@ var _ = Describe("URLs", func() {
 	})
 
 	Describe("Resources Path", func() {
-		Context("older links", func() {
-			It("can generate them", func() {
-				paginationData := pagination.NewPaginationData(false, false, 0, 29, 21)
-
-				path, err := webhandler.PathFor(web.GetResource, "another-pipeline", "some-resource", paginationData, false)
+		Context("with pagination data", func() {
+			It("returns the correct URL", func() {
+				path, err := webhandler.PathFor(web.GetResource, "another-pipeline", "some-resource", &concourse.Page{Since: 123, Limit: 456})
 				Expect(err).NotTo(HaveOccurred())
+				Expect(path).To(Equal("/pipelines/another-pipeline/resources/some-resource?since=123"))
 
-				Expect(path).To(Equal("/pipelines/another-pipeline/resources/some-resource?id=20&newer=false"))
-			})
-		})
-
-		Context("newer links", func() {
-			It("can generate them", func() {
-				paginationData := pagination.NewPaginationData(false, false, 0, 29, 21)
-
-				path, err := webhandler.PathFor(web.GetResource, "another-pipeline", "some-resource", paginationData, true)
+				path, err = webhandler.PathFor(web.GetResource, "another-pipeline", "some-resource", &concourse.Page{Until: 123, Limit: 456})
 				Expect(err).NotTo(HaveOccurred())
-
-				Expect(path).To(Equal("/pipelines/another-pipeline/resources/some-resource?id=30&newer=true"))
+				Expect(path).To(Equal("/pipelines/another-pipeline/resources/some-resource?until=123"))
 			})
 		})
 	})

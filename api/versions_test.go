@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,14 +35,6 @@ var _ = Describe("Versions API", func() {
 			response, err = client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 
-		})
-
-		It("returns 200 ok", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-		})
-
-		It("returns content type application/json", func() {
-			Expect(response.Header.Get("Content-type")).To(Equal("application/json"))
 		})
 
 		Context("when no params are passed", func() {
@@ -83,7 +76,8 @@ var _ = Describe("Versions API", func() {
 				queryParams = "?since=5&limit=2"
 				returnedVersions = []db.SavedVersionedResource{
 					{
-						ID: 4,
+						ID:      4,
+						Enabled: true,
 						VersionedResource: db.VersionedResource{
 							Resource: "some-resource",
 							Type:     "some-type",
@@ -100,7 +94,8 @@ var _ = Describe("Versions API", func() {
 						},
 					},
 					{
-						ID: 2,
+						ID:      2,
+						Enabled: false,
 						VersionedResource: db.VersionedResource{
 							Resource: "some-resource",
 							Type:     "some-type",
@@ -118,11 +113,15 @@ var _ = Describe("Versions API", func() {
 					},
 				}
 
-				pipelineDB.GetResourceVersionsReturns(returnedVersions, db.Pagination{}, nil)
+				pipelineDB.GetResourceVersionsReturns(returnedVersions, db.Pagination{}, true, nil)
 			})
 
 			It("returns 200 OK", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns content type application/json", func() {
+				Expect(response.Header.Get("Content-type")).To(Equal("application/json"))
 			})
 
 			It("returns the json", func() {
@@ -132,6 +131,7 @@ var _ = Describe("Versions API", func() {
 				Expect(body).To(MatchJSON(`[
 					{
 						"id": 4,
+						"enabled": true,
 						"pipeline_name": "some-pipeline",
 						"resource": "some-resource",
 						"type": "some-type",
@@ -145,6 +145,7 @@ var _ = Describe("Versions API", func() {
 					},
 					{
 						"id":2,
+						"enabled": false,
 						"pipeline_name": "some-pipeline",
 						"resource": "some-resource",
 						"type": "some-type",
@@ -165,7 +166,7 @@ var _ = Describe("Versions API", func() {
 					pipelineDB.GetResourceVersionsReturns(returnedVersions, db.Pagination{
 						Previous: &db.Page{Until: 4, Limit: 2},
 						Next:     &db.Page{Since: 2, Limit: 2},
-					}, nil)
+					}, true, nil)
 				})
 
 				It("returns Link headers per rfc5988", func() {
@@ -177,9 +178,19 @@ var _ = Describe("Versions API", func() {
 			})
 		})
 
+		Context("when the versions can't be found", func() {
+			BeforeEach(func() {
+				pipelineDB.GetResourceVersionsReturns(nil, db.Pagination{}, false, nil)
+			})
+
+			It("returns 404 not found", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+		})
+
 		Context("when getting the versions fails", func() {
 			BeforeEach(func() {
-				pipelineDB.GetResourceVersionsReturns(nil, db.Pagination{}, errors.New("oh no!"))
+				pipelineDB.GetResourceVersionsReturns(nil, db.Pagination{}, false, errors.New("oh no!"))
 			})
 
 			It("returns 500 Internal Server Error", func() {
@@ -305,6 +316,234 @@ var _ = Describe("Versions API", func() {
 
 			It("returns Unauthorized", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
+	Describe("GET /api/v1/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/input_to", func() {
+		var response *http.Response
+		var stringVersionID string
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("GET", server.URL+"/api/v1/pipelines/a-pipeline/resources/some-resource/versions/"+stringVersionID+"/input_to", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		BeforeEach(func() {
+			stringVersionID = "123"
+		})
+
+		It("looks up the given version ID", func() {
+			Expect(pipelineDB.GetBuildsWithVersionAsInputCallCount()).To(Equal(1))
+			Expect(pipelineDB.GetBuildsWithVersionAsInputArgsForCall(0)).To(Equal(123))
+		})
+
+		Context("when getting the builds succeeds", func() {
+			BeforeEach(func() {
+				pipelineDB.GetBuildsWithVersionAsInputReturns([]db.Build{
+					{
+						ID:     1024,
+						Name:   "5",
+						Status: db.StatusSucceeded,
+
+						JobName:      "some-job",
+						PipelineName: "a-pipeline",
+
+						StartTime: time.Unix(1, 0),
+						EndTime:   time.Unix(100, 0),
+					},
+					{
+						ID:     1025,
+						Name:   "6",
+						Status: db.StatusSucceeded,
+
+						JobName:      "some-job",
+						PipelineName: "a-pipeline",
+
+						StartTime: time.Unix(200, 0),
+						EndTime:   time.Unix(300, 0),
+					},
+				}, nil)
+			})
+
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns content type application/json", func() {
+				Expect(response.Header.Get("Content-type")).To(Equal("application/json"))
+			})
+
+			It("returns the json", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+					{
+						"id": 1024,
+						"name": "5",
+						"status": "succeeded",
+						"job_name": "some-job",
+						"url": "/pipelines/a-pipeline/jobs/some-job/builds/5",
+						"api_url": "/api/v1/builds/1024",
+						"pipeline_name": "a-pipeline",
+						"start_time": 1,
+						"end_time": 100
+					},
+					{
+						"id": 1025,
+						"name": "6",
+						"status": "succeeded",
+						"job_name": "some-job",
+						"url": "/pipelines/a-pipeline/jobs/some-job/builds/6",
+						"api_url": "/api/v1/builds/1025",
+						"pipeline_name": "a-pipeline",
+						"start_time": 200,
+						"end_time": 300
+					}
+				]`))
+			})
+		})
+
+		Context("when the version ID is invalid", func() {
+			BeforeEach(func() {
+				stringVersionID = "hello"
+			})
+
+			It("returns an empty list", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[]`))
+			})
+		})
+
+		Context("when the call to get builds returns an error", func() {
+			BeforeEach(func() {
+				pipelineDB.GetBuildsWithVersionAsInputReturns(nil, errors.New("NOPE"))
+			})
+
+			It("returns a 500 internal server error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+	})
+
+	Describe("GET /api/v1/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/output_of", func() {
+		var response *http.Response
+		var stringVersionID string
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("GET", server.URL+"/api/v1/pipelines/a-pipeline/resources/some-resource/versions/"+stringVersionID+"/output_of", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		BeforeEach(func() {
+			stringVersionID = "123"
+		})
+
+		It("looks up the given version ID", func() {
+			Expect(pipelineDB.GetBuildsWithVersionAsOutputCallCount()).To(Equal(1))
+			Expect(pipelineDB.GetBuildsWithVersionAsOutputArgsForCall(0)).To(Equal(123))
+		})
+
+		Context("when getting the builds succeeds", func() {
+			BeforeEach(func() {
+				pipelineDB.GetBuildsWithVersionAsOutputReturns([]db.Build{
+					{
+						ID:     1024,
+						Name:   "5",
+						Status: db.StatusSucceeded,
+
+						JobName:      "some-job",
+						PipelineName: "a-pipeline",
+
+						StartTime: time.Unix(1, 0),
+						EndTime:   time.Unix(100, 0),
+					},
+					{
+						ID:     1025,
+						Name:   "6",
+						Status: db.StatusSucceeded,
+
+						JobName:      "some-job",
+						PipelineName: "a-pipeline",
+
+						StartTime: time.Unix(200, 0),
+						EndTime:   time.Unix(300, 0),
+					},
+				}, nil)
+			})
+
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns content type application/json", func() {
+				Expect(response.Header.Get("Content-type")).To(Equal("application/json"))
+			})
+
+			It("returns the json", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+					{
+						"id": 1024,
+						"name": "5",
+						"status": "succeeded",
+						"job_name": "some-job",
+						"url": "/pipelines/a-pipeline/jobs/some-job/builds/5",
+						"api_url": "/api/v1/builds/1024",
+						"pipeline_name": "a-pipeline",
+						"start_time": 1,
+						"end_time": 100
+					},
+					{
+						"id": 1025,
+						"name": "6",
+						"status": "succeeded",
+						"job_name": "some-job",
+						"url": "/pipelines/a-pipeline/jobs/some-job/builds/6",
+						"api_url": "/api/v1/builds/1025",
+						"pipeline_name": "a-pipeline",
+						"start_time": 200,
+						"end_time": 300
+					}
+				]`))
+			})
+		})
+
+		Context("when the version ID is invalid", func() {
+			BeforeEach(func() {
+				stringVersionID = "hello"
+			})
+
+			It("returns an empty list", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[]`))
+			})
+		})
+
+		Context("when the call to get builds returns an error", func() {
+			BeforeEach(func() {
+				pipelineDB.GetBuildsWithVersionAsOutputReturns(nil, errors.New("NOPE"))
+			})
+
+			It("returns a 500 internal server error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
 	})

@@ -7,14 +7,12 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"sync"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
-	"github.com/concourse/atc/web/pagination"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/tedsuo/rata"
 )
@@ -79,6 +77,17 @@ func jobName(x interface{}) string {
 	}
 }
 
+func resourceName(x interface{}) string {
+	switch v := x.(type) {
+	case string:
+		return v
+	case atc.Resource:
+		return v.Name
+	default:
+		panic(fmt.Sprintf("unexpected arg type"))
+	}
+}
+
 func PathFor(route string, args ...interface{}) (string, error) {
 	switch route {
 	case web.TriggerBuild:
@@ -98,20 +107,21 @@ func PathFor(route string, args ...interface{}) (string, error) {
 	case web.GetResource:
 		baseResourceURL, err := web.Routes.CreatePathForRoute(route, rata.Params{
 			"pipeline_name": args[0].(string),
-			"resource":      args[1].(string),
+			"resource":      resourceName(args[1]),
 		})
 
 		if err != nil {
 			return "", err
 		}
 
-		newer := args[3].(bool)
-		paginationData := args[2].(pagination.PaginationData)
+		if len(args) > 2 {
+			page := args[2].(*concourse.Page)
 
-		if newer {
-			baseResourceURL += "?id=" + strconv.Itoa(paginationData.NewerStartID()) + "&newer=true"
-		} else {
-			baseResourceURL += "?id=" + strconv.Itoa(paginationData.OlderStartID()) + "&newer=false"
+			if page.Since != 0 {
+				baseResourceURL += fmt.Sprintf("?since=%d", page.Since)
+			} else {
+				baseResourceURL += fmt.Sprintf("?until=%d", page.Until)
+			}
 		}
 
 		return baseResourceURL, nil
@@ -169,7 +179,7 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		}
 
 	case atc.EnableResourceVersion, atc.DisableResourceVersion:
-		versionedResource := args[1].(db.SavedVersionedResource)
+		versionedResource := args[1].(atc.VersionedResource)
 
 		return atc.Routes.CreatePathForRoute(route, rata.Params{
 			"pipeline_name":       args[0].(string),

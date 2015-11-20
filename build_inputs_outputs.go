@@ -22,4 +22,5 @@ type VersionedResource struct {
 	Metadata     []MetadataField `json:"metadata"`
 	Resource     string          `json:"resource"`
 	Version      Version         `json:"version"`
+	Enabled      bool            `json:"enabled"`
 }

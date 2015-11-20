@@ -370,7 +370,8 @@ var _ = Describe("Builds API", func() {
 									"type":"",
 									"metadata":null,
 									"resource": "myresource3",
-									"version": {"version": "value3"}
+									"version": {"version": "value3"},
+									"enabled": false
 								},
 								{
 									"id": 0,
@@ -378,7 +379,8 @@ var _ = Describe("Builds API", func() {
 									"type":"",
 									"metadata":null,
 									"resource": "myresource4",
-									"version": {"version": "value4"}
+									"version": {"version": "value4"},
+									"enabled": false
 								}
 							]
 						}`))
