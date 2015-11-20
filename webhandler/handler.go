@@ -109,7 +109,7 @@ func NewHandler(
 		return nil, err
 	}
 
-	resourceServer := getresource.NewServer(logger, resourceTemplate)
+	resourceServer := getresource.NewServer(logger, clientFactory, resourceTemplate)
 	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
 
 	handlers := map[string]http.Handler{
