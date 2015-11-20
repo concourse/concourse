@@ -365,10 +365,18 @@ var _ = Describe("Builds API", func() {
 							],
 							"outputs": [
 								{
+									"id": 0,
+									"pipeline_name":"",
+									"type":"",
+									"metadata":null,
 									"resource": "myresource3",
 									"version": {"version": "value3"}
 								},
 								{
+									"id": 0,
+									"pipeline_name":"",
+									"type":"",
+									"metadata":null,
 									"resource": "myresource4",
 									"version": {"version": "value4"}
 								}

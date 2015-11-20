@@ -16,6 +16,10 @@ type PublicBuildInput struct {
 }
 
 type VersionedResource struct {
-	Resource string  `json:"resource"`
-	Version  Version `json:"version"`
+	ID           int             `json:"id"`
+	PipelineName string          `json:"pipeline_name"`
+	Type         string          `json:"type"`
+	Metadata     []MetadataField `json:"metadata"`
+	Resource     string          `json:"resource"`
+	Version      Version         `json:"version"`
 }

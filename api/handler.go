@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/atc/api/pipelineserver"
 	"github.com/concourse/atc/api/pipes"
 	"github.com/concourse/atc/api/resourceserver"
+	"github.com/concourse/atc/api/resourceserver/versionserver"
 	"github.com/concourse/atc/api/volumeserver"
 	"github.com/concourse/atc/api/workerserver"
 	"github.com/concourse/atc/auth"
@@ -90,6 +91,7 @@ func NewHandler(
 
 	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL)
 	resourceServer := resourceserver.NewServer(logger)
+	versionServer := versionserver.NewServer(logger, externalURL)
 	pipeServer := pipes.NewServer(logger, peerURL, pipeDB)
 
 	pipelineServer := pipelineserver.NewServer(logger, pipelinesDB, configDB)
@@ -137,11 +139,13 @@ func NewHandler(
 		atc.UnpausePipeline: pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline),
 		atc.GetVersionsDB:   pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB),
 
-		atc.ListResources:          pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
-		atc.EnableResourceVersion:  pipelineHandlerFactory.HandlerFor(resourceServer.EnableResourceVersion),
-		atc.DisableResourceVersion: pipelineHandlerFactory.HandlerFor(resourceServer.DisableResourceVersion),
-		atc.PauseResource:          pipelineHandlerFactory.HandlerFor(resourceServer.PauseResource),
-		atc.UnpauseResource:        pipelineHandlerFactory.HandlerFor(resourceServer.UnpauseResource),
+		atc.ListResources:   pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
+		atc.PauseResource:   pipelineHandlerFactory.HandlerFor(resourceServer.PauseResource),
+		atc.UnpauseResource: pipelineHandlerFactory.HandlerFor(resourceServer.UnpauseResource),
+
+		atc.ListResourceVersions:   pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions),
+		atc.EnableResourceVersion:  pipelineHandlerFactory.HandlerFor(versionServer.EnableResourceVersion),
+		atc.DisableResourceVersion: pipelineHandlerFactory.HandlerFor(versionServer.DisableResourceVersion),
 
 		atc.CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
 		atc.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),

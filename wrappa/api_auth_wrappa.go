@@ -28,21 +28,52 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 
 		switch name {
 		// authenticated
-		case atc.GetAuthToken, atc.AbortBuild, atc.CreateBuild, atc.CreatePipe,
-			atc.DeletePipeline, atc.DisableResourceVersion, atc.EnableResourceVersion,
-			atc.GetConfig, atc.GetContainer, atc.HijackContainer, atc.ListContainers,
-			atc.ListJobInputs, atc.ListWorkers, atc.OrderPipelines, atc.PauseJob,
-			atc.PausePipeline, atc.PauseResource, atc.ReadPipe, atc.RegisterWorker,
-			atc.SaveConfig, atc.SetLogLevel, atc.UnpauseJob, atc.UnpausePipeline,
-			atc.UnpauseResource, atc.WritePipe, atc.ListVolumes, atc.GetVersionsDB,
+		case atc.GetAuthToken,
+			atc.AbortBuild,
+			atc.CreateBuild,
+			atc.CreatePipe,
+			atc.DeletePipeline,
+			atc.DisableResourceVersion,
+			atc.EnableResourceVersion,
+			atc.GetConfig,
+			atc.GetContainer,
+			atc.HijackContainer,
+			atc.ListContainers,
+			atc.ListJobInputs,
+			atc.ListWorkers,
+			atc.OrderPipelines,
+			atc.PauseJob,
+			atc.PausePipeline,
+			atc.PauseResource,
+			atc.ReadPipe,
+			atc.RegisterWorker,
+			atc.SaveConfig,
+			atc.SetLogLevel,
+			atc.UnpauseJob,
+			atc.UnpausePipeline,
+			atc.UnpauseResource,
+			atc.WritePipe,
+			atc.ListVolumes,
+			atc.GetVersionsDB,
 			atc.CreateJobBuild:
 			newHandler = auth.CheckAuthHandler(handler, rejector)
 
 		// unauthenticated
-		case atc.ListAuthMethods, atc.BuildEvents, atc.DownloadCLI, atc.GetBuild,
-			atc.GetJobBuild, atc.BuildResources, atc.GetJob, atc.GetLogLevel, atc.ListBuilds,
-			atc.ListJobBuilds, atc.ListJobs, atc.ListPipelines, atc.GetPipeline,
-			atc.ListResources:
+		case atc.ListAuthMethods,
+			atc.BuildEvents,
+			atc.DownloadCLI,
+			atc.GetBuild,
+			atc.GetJobBuild,
+			atc.BuildResources,
+			atc.GetJob,
+			atc.GetLogLevel,
+			atc.ListBuilds,
+			atc.ListJobBuilds,
+			atc.ListJobs,
+			atc.ListPipelines,
+			atc.GetPipeline,
+			atc.ListResources,
+			atc.ListResourceVersions:
 
 		// think about it!
 		default:

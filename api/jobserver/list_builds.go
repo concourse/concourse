@@ -74,11 +74,11 @@ func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		resources := make([]atc.Build, len(builds))
+		jobBuilds := make([]atc.Build, len(builds))
 		for i := 0; i < len(builds); i++ {
-			resources[i] = present.Build(builds[i])
+			jobBuilds[i] = present.Build(builds[i])
 		}
-		json.NewEncoder(w).Encode(resources)
+		json.NewEncoder(w).Encode(jobBuilds)
 	})
 }
 

@@ -1,4 +1,4 @@
-package resourceserver
+package versionserver
 
 import (
 	"net/http"
