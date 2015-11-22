@@ -9,7 +9,7 @@ RUN curl https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz | tar 
 ENV PATH $PATH:/usr/local/go/bin
 
 # PostgreSQL
-RUN apt-get -y install postgresql-9.3
+RUN apt-get -y install postgresql-9.4
 RUN chmod 0777 /var/run/postgresql
 
 # PhantomJS
