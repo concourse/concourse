@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM ubuntu:15.10
 
 # The Basics
 RUN apt-get update && apt-get -y install build-essential curl
