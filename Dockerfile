@@ -13,15 +13,15 @@ RUN apt-get -y install postgresql-9.4
 RUN chmod 0777 /var/run/postgresql
 
 # PhantomJS
-RUN apt-get -y install build-essential chrpath libssl-dev libxft-dev \
-  libfreetype6 libfreetype6-dev libfontconfig1 libfontconfig1-dev unzip \
-  libjpeg-dev libicu-dev
+RUN apt-get -y install unzip build-essential g++ flex bison gperf ruby perl \
+    libsqlite3-dev libfontconfig1-dev libicu-dev libfreetype6 libssl-dev \
+    libpng-dev libjpeg-dev python libx11-dev libxext-dev
 
-ADD https://s3-us-west-1.amazonaws.com/concourse-public/phantomjs-2.0.0-20141016-u1404-x86_64.zip /tmp/phantomjs-2.0.0-20141016-u1404-x86_64.zip
-RUN cd /tmp && unzip phantomjs-2.0.0-20141016-u1404-x86_64.zip && rm /tmp/phantomjs-2.0.0-20141016-u1404-x86_64.zip
+ADD https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.0.0-source.zip /tmp/phantomjs.zip
 
-RUN mv /tmp/phantomjs-2.0.0-20141016 /usr/local/share
-RUN ln -sf /usr/local/share/phantomjs-2.0.0-20141016/bin/phantomjs /usr/local/bin
+RUN cd /tmp && unzip phantomjs.zip && rm phantomjs.zip && \
+    cd /tmp/phantomjs* && ./build.sh --confirm && cp bin/phantomjs /usr/local/bin && \
+    cd /tmp && rm -rf phantomjs*
 
 # NPM
 RUN apt-get -y install nodejs npm
