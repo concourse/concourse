@@ -15,6 +15,21 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
+- name: concourse-buildbox-ci
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse-lite.git
+    branch: master
+    paths: [Dockerfile, box-setup]
+
+- name: concourse-buildbox-ci-image
+  type: docker-image
+  source:
+    repository: concourse/buildbox-ci
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
 - name: concourse-docs-ci
   type: git
   source:
@@ -115,30 +130,53 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
-- name: ubuntu-image
+- name: ubuntu-15.10
   type: docker-image
   source:
     repository: ubuntu
-    tag: "15.04"
+    tag: "15.10"
+
+- name: golang-1.5
+  type: docker-image
+  source:
+    repository: golang
+    tag: "1.5"
 
 jobs:
 - name: build-rubinius
   plan:
-  - get: concourse-rubinius
-    trigger: true
-    params: {submodules: none}
-  - get: ubuntu-image
+  - aggregate:
+    - get: concourse-rubinius
+      trigger: true
+      params: {submodules: none}
+    - get: ubuntu-15.10
+      trigger: true
   - put: concourse-rubinius-image
     params:
-      load_base: ubuntu-image
+      load_base: ubuntu-15.10
       build: concourse-rubinius/ci/dockerfiles/rubinius
+
+- name: build-buildbox-ci
+  plan:
+  - aggregate:
+    - get: concourse-buildbox-ci
+      trigger: true
+    - get: ubuntu-15.10
+      trigger: true
+  - put: concourse-buildbox-ci-image
+    params:
+      load_base: ubuntu-15.10
+      build: concourse-buildbox-ci/
 
 - name: build-docs-ci
   plan:
-  - get: concourse-docs-ci
-    trigger: true
-    params: {submodules: none}
-  - get: concourse-rubinius-image
+  - aggregate:
+    - get: concourse-docs-ci
+      trigger: true
+      params: {submodules: none}
+    - get: concourse-rubinius-image
+      passed: [build-rubinius]
+      trigger: true
   - put: concourse-docs-ci-image
     params:
       load_base: concourse-rubinius-image
@@ -146,44 +184,73 @@ jobs:
 
 - name: build-concourse-ci
   plan:
-  - get: concourse-concourse-ci
-    trigger: true
-    params: {submodules: none}
+  - aggregate:
+    - get: concourse-concourse-ci
+      trigger: true
+      params: {submodules: none}
+    - get: ubuntu-15.10
+      trigger: true
   - put: concourse-concourse-ci-image
-    params: {build: concourse-concourse-ci/ci/dockerfiles/concourse-ci}
+    params:
+      load_base: ubuntu-15.10
+      build: concourse-concourse-ci/ci/dockerfiles/concourse-ci
 
 - name: build-atc-ci
   plan:
-  - get: concourse-atc-ci
-    trigger: true
+  - aggregate:
+    - get: concourse-atc-ci
+      trigger: true
+    - get: ubuntu-15.10
+      trigger: true
   - put: concourse-atc-ci-image
-    params: {build: concourse-atc-ci}
+    params:
+      load_base: ubuntu-15.10
+      build: concourse-atc-ci
 
 - name: build-tsa-ci
   plan:
-  - get: concourse-tsa-ci
-    trigger: true
+  - aggregate:
+    - get: concourse-tsa-ci
+      trigger: true
+    - get: ubuntu-15.10
+      trigger: true
   - put: concourse-tsa-ci-image
-    params: {build: concourse-tsa-ci}
+    params:
+      load_base: ubuntu-15.10
+      build: concourse-tsa-ci
 
 - name: build-baggageclaim-ci
   plan:
-  - get: concourse-baggageclaim-ci
-    trigger: true
+  - aggregate:
+    - get: concourse-baggageclaim-ci
+      trigger: true
+    - get: golang-1.5
+      trigger: true
   - put: concourse-baggageclaim-ci-image
-    params: {build: concourse-baggageclaim-ci}
+    params:
+      load_base: golang-1.5
+      build: concourse-baggageclaim-ci
 
 - name: build-testflight
   plan:
-  - get: concourse-testflight
-    trigger: true
+  - aggregate:
+    - get: concourse-testflight
+      trigger: true
+    - get: golang-1.5
+      trigger: true
   - put: concourse-testflight-image
-    params: {build: concourse-testflight}
-
+    params:
+      load_base: golang-1.5
+      build: concourse-testflight
 
 - name: build-static-golang
   plan:
-  - get: concourse-static-golang
-    trigger: true
+  - aggregate:
+    - get: concourse-static-golang
+      trigger: true
+    - get: golang-1.5
+      trigger: true
   - put: concourse-static-golang-image
-    params: {build: concourse-static-golang}
+    params:
+      load_base: golang-1.5
+      build: concourse-static-golang
