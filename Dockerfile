@@ -1,7 +1,7 @@
 FROM ubuntu:15.10
 
 # The Basics
-RUN apt-get update && apt-get -y install build-essential curl
+RUN apt-get update && apt-get -y install curl
 
 # Go
 RUN echo "deb http://mirror.anl.gov/pub/ubuntu trusty main universe" >> /etc/apt/sources.list
