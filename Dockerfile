@@ -13,9 +13,13 @@ RUN apt-get -y install postgresql-9.4
 RUN chmod 0777 /var/run/postgresql
 
 # PhantomJS
-RUN apt-get -y install unzip gcc-4.9 g++-4.9 make libc-dev flex bison gperf \
+RUN apt-get -y install unzip build-essential gcc-4.9 g++-4.9 flex bison gperf \
     ruby perl libsqlite3-dev libfontconfig1-dev libicu-dev libfreetype6 \
     libssl-dev libpng-dev libjpeg-dev python libx11-dev libxext-dev
+
+# must build with GCC <5
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 10
+RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 10
 
 ADD https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.0.0-source.zip /tmp/phantomjs.zip
 
