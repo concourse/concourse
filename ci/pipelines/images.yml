@@ -130,7 +130,7 @@ jobs:
   - get: ubuntu-image
   - put: concourse-rubinius-image
     params:
-      load_base: ubuntu-image/image
+      load_base: ubuntu-image
       build: concourse-rubinius/ci/dockerfiles/rubinius
 
 - name: build-docs-ci
@@ -141,7 +141,7 @@ jobs:
   - get: concourse-rubinius-image
   - put: concourse-docs-ci-image
     params:
-      load_base: concourse-rubinius-image/image
+      load_base: concourse-rubinius-image
       build: concourse-docs-ci/ci/dockerfiles/docs-ci
 
 - name: build-concourse-ci
