@@ -15,7 +15,7 @@ RUN chmod 0777 /var/run/postgresql
 # PhantomJS
 RUN apt-get -y install build-essential chrpath libssl-dev libxft-dev \
   libfreetype6 libfreetype6-dev libfontconfig1 libfontconfig1-dev unzip \
-  libjpeg8 libicu52
+  libjpeg-dev libicu-dev
 
 ADD https://s3-us-west-1.amazonaws.com/concourse-public/phantomjs-2.0.0-20141016-u1404-x86_64.zip /tmp/phantomjs-2.0.0-20141016-u1404-x86_64.zip
 RUN cd /tmp && unzip phantomjs-2.0.0-20141016-u1404-x86_64.zip && rm /tmp/phantomjs-2.0.0-20141016-u1404-x86_64.zip
