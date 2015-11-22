@@ -45,9 +45,11 @@ jobs:
   plan:
   - get: docker-image-resource
     trigger: true
+  - task: build-resource
+    file: docker-image-resource/ci/build.yml
   - put: resource-image
     resource: docker-image-resource-image
-    params: {build: docker-image-resource}
+    params: {build: built-resource}
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments

@@ -115,22 +115,34 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
+- name: ubuntu-image
+  type: docker-image
+  source:
+    repository: ubuntu
+    tag: 15.04
+
 jobs:
 - name: build-rubinius
   plan:
   - get: concourse-rubinius
     trigger: true
     params: {submodules: none}
+  - get: ubuntu-image
   - put: concourse-rubinius-image
-    params: {build: concourse-rubinius/ci/dockerfiles/rubinius}
+    params:
+      load_base: ubuntu-image/image
+      build: concourse-rubinius/ci/dockerfiles/rubinius
 
 - name: build-docs-ci
   plan:
   - get: concourse-docs-ci
     trigger: true
     params: {submodules: none}
+  - get: concourse-rubinius-image
   - put: concourse-docs-ci-image
-    params: {build: concourse-docs-ci/ci/dockerfiles/docs-ci}
+    params:
+      load_base: concourse-rubinius-image/image
+      build: concourse-docs-ci/ci/dockerfiles/docs-ci
 
 - name: build-concourse-ci
   plan:
