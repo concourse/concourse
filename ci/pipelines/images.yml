@@ -119,7 +119,7 @@ resources:
   type: docker-image
   source:
     repository: ubuntu
-    tag: 15.04
+    tag: "15.04"
 
 jobs:
 - name: build-rubinius
