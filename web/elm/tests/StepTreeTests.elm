@@ -29,7 +29,7 @@ all =
 initTask : Test
 initTask =
   let
-    (actualTree, foci) =
+    {tree, foci} =
       StepTree.init
         { id = "some-id"
         , step = BuildPlan.Task "some-name"
@@ -41,16 +41,16 @@ initTask =
             (StepTree.Task
               { name = "some-name"
               , state = StepTree.StepStatePending
-              , log = Ansi.Log.init
+              , log = cookedLog
               })
-            actualTree
+            tree
       , test "using the focus" <|
-          assertFocus "some-id" foci actualTree
+          assertFocus "some-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.Task
               { name = "some-name"
               , state = StepTree.StepStateSucceeded
-              , log = Ansi.Log.init
+              , log = cookedLog
               })
       ]
 
@@ -58,10 +58,10 @@ initGet : Test
 initGet =
   let
     version = Dict.fromList [("some", "version")]
-    (actualTree, foci) =
+    {tree, foci} =
       StepTree.init
         { id = "some-id"
-        , step = BuildPlan.Get "some-name" version
+        , step = BuildPlan.Get "some-name" (Just version)
         }
   in
     suite "init with Get"
@@ -70,25 +70,25 @@ initGet =
             (StepTree.Get
               { name = "some-name"
               , state = StepTree.StepStatePending
-              , log = Ansi.Log.init
+              , log = cookedLog
               }
-              version)
-            actualTree
+              (Just version))
+            tree
       , test "using the focus" <|
-          assertFocus "some-id" foci actualTree
+          assertFocus "some-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.Get
               { name = "some-name"
               , state = StepTree.StepStateSucceeded
-              , log = Ansi.Log.init
+              , log = cookedLog
               }
-              version)
+              (Just version))
       ]
 
 initPut : Test
 initPut =
   let
-    (actualTree, foci) =
+    {tree, foci} =
       StepTree.init
         { id = "some-id"
         , step = BuildPlan.Put "some-name"
@@ -100,23 +100,23 @@ initPut =
             (StepTree.Put
               { name = "some-name"
               , state = StepTree.StepStatePending
-              , log = Ansi.Log.init
+              , log = cookedLog
               })
-            actualTree
+            tree
       , test "using the focus" <|
-          assertFocus "some-id" foci actualTree
+          assertFocus "some-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.Put
               { name = "some-name"
               , state = StepTree.StepStateSucceeded
-              , log = Ansi.Log.init
+              , log = cookedLog
               })
       ]
 
 initDependentGet : Test
 initDependentGet =
   let
-    (actualTree, foci) =
+    {tree, foci} =
       StepTree.init
         { id = "some-id"
         , step = BuildPlan.DependentGet "some-name"
@@ -128,23 +128,23 @@ initDependentGet =
             (StepTree.DependentGet
               { name = "some-name"
               , state = StepTree.StepStatePending
-              , log = Ansi.Log.init
+              , log = cookedLog
               })
-            actualTree
+            tree
       , test "using the focus" <|
-          assertFocus "some-id" foci actualTree
+          assertFocus "some-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.DependentGet
               { name = "some-name"
               , state = StepTree.StepStateSucceeded
-              , log = Ansi.Log.init
+              , log = cookedLog
               })
       ]
 
 initAggregate : Test
 initAggregate =
   let
-    (actualTree, foci) =
+    {tree, foci} =
       StepTree.init
         { id = "aggregate-id"
         , step =
@@ -161,28 +161,28 @@ initAggregate =
               [ StepTree.Task
                   { name = "task-a"
                   , state = StepTree.StepStatePending
-                  , log = Ansi.Log.init
+                  , log = cookedLog
                   }
               , StepTree.Task
                   { name = "task-b"
                   , state = StepTree.StepStatePending
-                  , log = Ansi.Log.init
+                  , log = cookedLog
                   }
               ])
-            actualTree
+            tree
       , test "using the focus" <|
-          assertFocus "task-a-id" foci actualTree
+          assertFocus "task-a-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.Aggregate << Array.fromList <|
               [ StepTree.Task
                   { name = "task-a"
                   , state = StepTree.StepStateSucceeded
-                  , log = Ansi.Log.init
+                  , log = cookedLog
                   }
               , StepTree.Task
                   { name = "task-b"
                   , state = StepTree.StepStatePending
-                  , log = Ansi.Log.init
+                  , log = cookedLog
                   }
               ])
       ]
@@ -190,7 +190,7 @@ initAggregate =
 initOnSuccess : Test
 initOnSuccess =
   let
-    (actualTree, foci) =
+    {tree, foci} =
       StepTree.init
         { id = "on-success-id"
         , step =
@@ -206,48 +206,48 @@ initOnSuccess =
               (StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
               (StepTree.Task
                 { name = "task-b"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 }))
-            actualTree
+            tree
       , test "updating a step via the focus" <|
-          assertFocus "task-a-id" foci actualTree
+          assertFocus "task-a-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.OnSuccess <| StepTree.HookedStep
               (StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStateSucceeded
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
               (StepTree.Task
                 { name = "task-b"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 }))
       , test "updating a hook via the focus" <|
-          assertFocus "task-b-id" foci actualTree
+          assertFocus "task-b-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.OnSuccess <| StepTree.HookedStep
               (StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
               (StepTree.Task
                 { name = "task-b"
                 , state = StepTree.StepStateSucceeded
-                , log = Ansi.Log.init
+                , log = cookedLog
                 }))
       ]
 
 initOnFailure : Test
 initOnFailure =
   let
-    (actualTree, foci) =
+    {tree, foci} =
       StepTree.init
         { id = "on-success-id"
         , step =
@@ -263,48 +263,48 @@ initOnFailure =
               (StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
               (StepTree.Task
                 { name = "task-b"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 }))
-            actualTree
+            tree
       , test "updating a step via the focus" <|
-          assertFocus "task-a-id" foci actualTree
+          assertFocus "task-a-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.OnFailure <| StepTree.HookedStep
               (StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStateSucceeded
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
               (StepTree.Task
                 { name = "task-b"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 }))
       , test "updating a hook via the focus" <|
-          assertFocus "task-b-id" foci actualTree
+          assertFocus "task-b-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.OnFailure <| StepTree.HookedStep
               (StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
               (StepTree.Task
                 { name = "task-b"
                 , state = StepTree.StepStateSucceeded
-                , log = Ansi.Log.init
+                , log = cookedLog
                 }))
       ]
 
 initEnsure : Test
 initEnsure =
   let
-    (actualTree, foci) =
+    {tree, foci} =
       StepTree.init
         { id = "on-success-id"
         , step =
@@ -320,48 +320,48 @@ initEnsure =
               (StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
               (StepTree.Task
                 { name = "task-b"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 }))
-            actualTree
+            tree
       , test "updating a step via the focus" <|
-          assertFocus "task-a-id" foci actualTree
+          assertFocus "task-a-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.Ensure <| StepTree.HookedStep
               (StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStateSucceeded
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
               (StepTree.Task
                 { name = "task-b"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 }))
       , test "updating a hook via the focus" <|
-          assertFocus "task-b-id" foci actualTree
+          assertFocus "task-b-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.Ensure <| StepTree.HookedStep
               (StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
               (StepTree.Task
                 { name = "task-b"
                 , state = StepTree.StepStateSucceeded
-                , log = Ansi.Log.init
+                , log = cookedLog
                 }))
       ]
 
 initTry : Test
 initTry =
   let
-    (actualTree, foci) =
+    {tree, foci} =
       StepTree.init
         { id = "on-success-id"
         , step =
@@ -375,24 +375,24 @@ initTry =
               StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
-            actualTree
+            tree
       , test "updating a step via the focus" <|
-          assertFocus "task-a-id" foci actualTree
+          assertFocus "task-a-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.Try <|
               StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStateSucceeded
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
       ]
 
 initTimeout : Test
 initTimeout =
   let
-    (actualTree, foci) =
+    {tree, foci} =
       StepTree.init
         { id = "on-success-id"
         , step =
@@ -406,17 +406,17 @@ initTimeout =
               StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStatePending
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
-            actualTree
+            tree
       , test "updating a step via the focus" <|
-          assertFocus "task-a-id" foci actualTree
+          assertFocus "task-a-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
             (StepTree.Timeout <|
               StepTree.Task
                 { name = "task-a"
                 , state = StepTree.StepStateSucceeded
-                , log = Ansi.Log.init
+                , log = cookedLog
                 })
       ]
 
@@ -439,7 +439,7 @@ updateStep f tree =
     _ ->
       tree
 
-assertFocus id foci actualTree update expected =
+assertFocus id foci tree update expected =
   case Dict.get id foci of
     Nothing ->
       assert False
@@ -447,4 +447,7 @@ assertFocus id foci actualTree update expected =
     Just focus ->
       assertEqual
         expected
-        (Focus.update focus (updateStep update) actualTree)
+        (Focus.update focus (updateStep update) tree)
+
+cookedLog =
+  Ansi.Log.init Ansi.Log.Cooked
