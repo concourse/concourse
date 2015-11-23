@@ -79,14 +79,16 @@ type FakePipelineDB struct {
 		result1 db.SavedResource
 		result2 error
 	}
-	GetResourceHistoryStub        func(resource string) ([]*db.VersionHistory, error)
-	getResourceHistoryMutex       sync.RWMutex
-	getResourceHistoryArgsForCall []struct {
-		resource string
+	GetResourceVersionsStub        func(resourceName string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, error)
+	getResourceVersionsMutex       sync.RWMutex
+	getResourceVersionsArgsForCall []struct {
+		resourceName string
+		page         db.Page
 	}
-	getResourceHistoryReturns struct {
-		result1 []*db.VersionHistory
-		result2 error
+	getResourceVersionsReturns struct {
+		result1 []db.SavedVersionedResource
+		result2 db.Pagination
+		result3 error
 	}
 	GetResourceHistoryCursorStub        func(resource string, startingID int, searchUpwards bool, numResults int) ([]*db.VersionHistory, bool, error)
 	getResourceHistoryCursorMutex       sync.RWMutex
@@ -627,37 +629,39 @@ func (fake *FakePipelineDB) GetResourceReturns(result1 db.SavedResource, result2
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetResourceHistory(resource string) ([]*db.VersionHistory, error) {
-	fake.getResourceHistoryMutex.Lock()
-	fake.getResourceHistoryArgsForCall = append(fake.getResourceHistoryArgsForCall, struct {
-		resource string
-	}{resource})
-	fake.getResourceHistoryMutex.Unlock()
-	if fake.GetResourceHistoryStub != nil {
-		return fake.GetResourceHistoryStub(resource)
+func (fake *FakePipelineDB) GetResourceVersions(resourceName string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, error) {
+	fake.getResourceVersionsMutex.Lock()
+	fake.getResourceVersionsArgsForCall = append(fake.getResourceVersionsArgsForCall, struct {
+		resourceName string
+		page         db.Page
+	}{resourceName, page})
+	fake.getResourceVersionsMutex.Unlock()
+	if fake.GetResourceVersionsStub != nil {
+		return fake.GetResourceVersionsStub(resourceName, page)
 	} else {
-		return fake.getResourceHistoryReturns.result1, fake.getResourceHistoryReturns.result2
+		return fake.getResourceVersionsReturns.result1, fake.getResourceVersionsReturns.result2, fake.getResourceVersionsReturns.result3
 	}
 }
 
-func (fake *FakePipelineDB) GetResourceHistoryCallCount() int {
-	fake.getResourceHistoryMutex.RLock()
-	defer fake.getResourceHistoryMutex.RUnlock()
-	return len(fake.getResourceHistoryArgsForCall)
+func (fake *FakePipelineDB) GetResourceVersionsCallCount() int {
+	fake.getResourceVersionsMutex.RLock()
+	defer fake.getResourceVersionsMutex.RUnlock()
+	return len(fake.getResourceVersionsArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetResourceHistoryArgsForCall(i int) string {
-	fake.getResourceHistoryMutex.RLock()
-	defer fake.getResourceHistoryMutex.RUnlock()
-	return fake.getResourceHistoryArgsForCall[i].resource
+func (fake *FakePipelineDB) GetResourceVersionsArgsForCall(i int) (string, db.Page) {
+	fake.getResourceVersionsMutex.RLock()
+	defer fake.getResourceVersionsMutex.RUnlock()
+	return fake.getResourceVersionsArgsForCall[i].resourceName, fake.getResourceVersionsArgsForCall[i].page
 }
 
-func (fake *FakePipelineDB) GetResourceHistoryReturns(result1 []*db.VersionHistory, result2 error) {
-	fake.GetResourceHistoryStub = nil
-	fake.getResourceHistoryReturns = struct {
-		result1 []*db.VersionHistory
-		result2 error
-	}{result1, result2}
+func (fake *FakePipelineDB) GetResourceVersionsReturns(result1 []db.SavedVersionedResource, result2 db.Pagination, result3 error) {
+	fake.GetResourceVersionsStub = nil
+	fake.getResourceVersionsReturns = struct {
+		result1 []db.SavedVersionedResource
+		result2 db.Pagination
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakePipelineDB) GetResourceHistoryCursor(resource string, startingID int, searchUpwards bool, numResults int) ([]*db.VersionHistory, bool, error) {

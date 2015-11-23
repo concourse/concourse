@@ -1,27 +1,30 @@
-FROM ubuntu:14.04
+FROM ubuntu:15.10
 
 # The Basics
-RUN apt-get update && apt-get -y install build-essential curl
+RUN apt-get update && apt-get -y install curl
 
 # Go
-RUN echo "deb http://mirror.anl.gov/pub/ubuntu trusty main universe" >> /etc/apt/sources.list
 RUN curl https://storage.googleapis.com/golang/go1.5.1.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 ENV PATH $PATH:/usr/local/go/bin
 
 # PostgreSQL
-RUN apt-get -y install postgresql-9.3
+RUN apt-get -y install postgresql-9.4
 RUN chmod 0777 /var/run/postgresql
 
 # PhantomJS
-RUN apt-get -y install build-essential chrpath libssl-dev libxft-dev \
-  libfreetype6 libfreetype6-dev libfontconfig1 libfontconfig1-dev unzip \
-  libjpeg8 libicu52
+RUN apt-get -y install unzip build-essential gcc-4.9 g++-4.9 flex bison gperf \
+    ruby perl libsqlite3-dev libfontconfig1-dev libicu-dev libfreetype6 \
+    libssl-dev libpng-dev libjpeg-dev python libx11-dev libxext-dev
 
-ADD https://s3-us-west-1.amazonaws.com/concourse-public/phantomjs-2.0.0-20141016-u1404-x86_64.zip /tmp/phantomjs-2.0.0-20141016-u1404-x86_64.zip
-RUN cd /tmp && unzip phantomjs-2.0.0-20141016-u1404-x86_64.zip && rm /tmp/phantomjs-2.0.0-20141016-u1404-x86_64.zip
+# must build with GCC <5
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 10
+RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 10
 
-RUN mv /tmp/phantomjs-2.0.0-20141016 /usr/local/share
-RUN ln -sf /usr/local/share/phantomjs-2.0.0-20141016/bin/phantomjs /usr/local/bin
+ADD https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.0.0-source.zip /tmp/phantomjs.zip
+
+RUN cd /tmp && unzip phantomjs.zip && rm phantomjs.zip && \
+    cd /tmp/phantomjs* && ./build.sh --confirm && cp bin/phantomjs /usr/local/bin && \
+    cd /tmp && rm -rf phantomjs*
 
 # NPM
 RUN apt-get -y install nodejs npm

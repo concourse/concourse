@@ -66,18 +66,7 @@ func (bc *baggageCollector) getResourceHashVersions() (resourceHashVersion, erro
 		pipelineResources := pipeline.Config.Resources
 
 		for _, pipelineResource := range pipelineResources {
-			dbResource, err := pipelineDB.GetResource(pipelineResource.Name)
-			if err != nil {
-				bc.logger.Error("could-not-lookup-resource", err)
-				return nil, err
-			}
-			maxID, err := pipelineDB.GetResourceHistoryMaxID(dbResource.ID)
-			if err != nil {
-				bc.logger.Error("could-not-get-max-id-for-resource", err)
-				return nil, err
-			}
-
-			pipelineResourceVersions, _, err := pipelineDB.GetResourceHistoryCursor(pipelineResource.Name, maxID, false, 5)
+			pipelineResourceVersions, _, err := pipelineDB.GetResourceVersions(pipelineResource.Name, db.Page{Limit: 5})
 			if err != nil {
 				bc.logger.Error("could-not-get-resource-history", err)
 				return nil, err
@@ -85,7 +74,7 @@ func (bc *baggageCollector) getResourceHashVersions() (resourceHashVersion, erro
 
 			versionRank := 0
 			for _, pipelineResourceVersion := range pipelineResourceVersions {
-				if pipelineResourceVersion.VersionedResource.Enabled {
+				if pipelineResourceVersion.Enabled {
 
 					version, _ := json.Marshal(pipelineResourceVersion.VersionedResource.Version)
 					hashKey := string(version) + resource.GenerateResourceHash(pipelineResource.Source, pipelineResource.Type)

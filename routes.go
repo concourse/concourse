@@ -24,11 +24,13 @@ const (
 	UnpauseJob     = "UnpauseJob"
 	GetVersionsDB  = "GetVersionsDB"
 
-	ListResources          = "ListResources"
+	ListResources   = "ListResources"
+	PauseResource   = "PauseResource"
+	UnpauseResource = "UnpauseResource"
+
+	ListResourceVersions   = "ListResourceVersions"
 	EnableResourceVersion  = "EnableResourceVersion"
 	DisableResourceVersion = "DisableResourceVersion"
-	PauseResource          = "PauseResource"
-	UnpauseResource        = "UnpauseResource"
 
 	ListPipelines   = "ListPipelines"
 	GetPipeline     = "GetPipeline"
@@ -89,10 +91,12 @@ var Routes = rata.Routes{
 	{Path: "/api/v1/pipelines/:pipeline_name/versions-db", Method: "GET", Name: GetVersionsDB},
 
 	{Path: "/api/v1/pipelines/:pipeline_name/resources", Method: "GET", Name: ListResources},
-	{Path: "/api/v1/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/enable", Method: "PUT", Name: EnableResourceVersion},
-	{Path: "/api/v1/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/disable", Method: "PUT", Name: DisableResourceVersion},
 	{Path: "/api/v1/pipelines/:pipeline_name/resources/:resource_name/pause", Method: "PUT", Name: PauseResource},
 	{Path: "/api/v1/pipelines/:pipeline_name/resources/:resource_name/unpause", Method: "PUT", Name: UnpauseResource},
+
+	{Path: "/api/v1/pipelines/:pipeline_name/resources/:resource_name/versions", Method: "GET", Name: ListResourceVersions},
+	{Path: "/api/v1/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/enable", Method: "PUT", Name: EnableResourceVersion},
+	{Path: "/api/v1/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/disable", Method: "PUT", Name: DisableResourceVersion},
 
 	{Path: "/api/v1/pipes", Method: "POST", Name: CreatePipe},
 	{Path: "/api/v1/pipes/:pipe_id", Method: "PUT", Name: WritePipe},
