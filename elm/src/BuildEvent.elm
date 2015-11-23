@@ -7,6 +7,7 @@ type BuildEvent
   | FinishGet Origin Int
   | FinishTask Origin Int
   | Log Origin String
+  | Error Origin String
 
 type alias BuildEventEnvelope =
   { event : String
@@ -50,6 +51,9 @@ decodeEvent e =
 
     "log" ->
       Json.decodeValue (Json.object2 Log ("origin" := decodeOrigin) ("payload" := Json.string)) e.value
+
+    "error" ->
+      Json.decodeValue (Json.object2 Error ("origin" := decodeOrigin) ("message" := Json.string)) e.value
 
     "finish-task" ->
       Json.decodeValue (Json.object2 FinishTask ("origin" := decodeOrigin) ("exit_status" := Json.int)) e.value

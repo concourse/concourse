@@ -29,6 +29,7 @@ type alias Step =
   { name : StepName
   , state : StepState
   , log : Ansi.Log.Window
+  , error : Maybe String
   }
 
 type alias StepName = String
@@ -99,6 +100,7 @@ initBottom create id name =
       { name = name
       , state = StepStatePending
       , log = Ansi.Log.init Ansi.Log.Cooked
+      , error = Nothing
       }
   in
     { tree = create step
