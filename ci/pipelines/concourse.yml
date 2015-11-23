@@ -319,10 +319,10 @@ jobs:
       passed: [shipit]
       trigger: true
     - get: concourse-lite
-    - get: deployments
   - task: build-box
     privileged: true
-    file: deployments/buildbox/ci/build-boxes.yml
+    file: concourse-lite/ci/build-boxes.yml
+    tags: [hetzner]
   - put: virtualbox-box
     params: {from: built-box/(.*).box}
 
