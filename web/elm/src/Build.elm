@@ -83,6 +83,11 @@ update action model =
       , Effects.none
       )
 
+    Event (Ok (BuildEvent.Error origin message)) ->
+      ( { model | stepRoot = Maybe.map (setError origin.id message) model.stepRoot }
+      , Effects.none
+      )
+
     Event (Ok (BuildEvent.FinishTask origin exitStatus)) ->
       ( { model | stepRoot = Maybe.map (finishStep origin.id exitStatus) model.stepRoot }
       , Effects.none
@@ -129,6 +134,28 @@ appendStepLog output tree =
 
     StepTree.Get step version ->
       StepTree.Get { step | log = Ansi.Log.update output step.log } version
+
+    _ ->
+      tree
+
+setError : String -> String -> StepTree.Root -> StepTree.Root
+setError id message {tree, foci} =
+  case Dict.get id foci of
+    Nothing ->
+      -- unknown step
+      {tree = tree, foci = foci}
+
+    Just focus ->
+      {tree = Focus.update focus (setStepError message) tree, foci = foci}
+
+setStepError : String -> StepTree -> StepTree
+setStepError message tree =
+  case tree of
+    StepTree.Task step ->
+      StepTree.Task { step | error = Just message }
+
+    StepTree.Get step version ->
+      StepTree.Get { step | error = Just message } version
 
     _ ->
       tree
@@ -195,7 +222,7 @@ viewStepTree tree =
       Html.text "not implemented"
 
 viewStep : StepTree.Step -> String -> Html
-viewStep {name, log, state} icon =
+viewStep {name, log, state, error} icon =
   Html.div [class "build-step"]
     [ Html.div [class "header"]
         [ viewStepState state
@@ -205,6 +232,12 @@ viewStep {name, log, state} icon =
     , Html.div [class "step-body"]
         [ viewStepLog log
         ]
+    , case error of
+        Nothing ->
+          Html.div [] []
+        Just msg ->
+          Html.div [class "step-error"]
+            [Html.span [class "error"] [Html.text msg]]
     ]
 
 
