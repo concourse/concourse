@@ -98,7 +98,7 @@ initBottom create id name =
     step =
       { name = name
       , state = StepStatePending
-      , log = Ansi.Log.init
+      , log = Ansi.Log.init Ansi.Log.Cooked
       }
   in
     { tree = create step

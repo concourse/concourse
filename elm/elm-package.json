@@ -17,7 +17,7 @@
         "evancz/elm-http": "3.0.0 <= v < 4.0.0",
         "evancz/start-app": "2.0.2 <= v < 3.0.0",
         "laszlopandy/elm-console": "1.0.2 <= v < 2.0.0",
-        "vito/elm-ansi": "2.1.2 <= v < 3.0.0"
+        "vito/elm-ansi": "4.0.0 <= v < 5.0.0"
     },
     "elm-version": "0.16.0 <= v < 0.17.0"
 }
