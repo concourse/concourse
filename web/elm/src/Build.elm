@@ -208,6 +208,18 @@ viewStepTree tree =
     StepTree.Get step _ ->
       viewStep step "fa-arrow-down"
 
+    StepTree.DependentGet step ->
+      viewStep step "fa-arrow-down"
+
+    StepTree.Put step ->
+      viewStep step "fa-arrow-up"
+
+    StepTree.Try step ->
+      viewStepTree step
+
+    StepTree.Timeout step ->
+      viewStepTree step
+
     StepTree.Aggregate steps ->
       Html.div [class "aggregate"]
         (Array.toList <| Array.map viewStepTree steps)
@@ -218,8 +230,17 @@ viewStepTree tree =
         , Html.div [class "children hook-success"] [viewStepTree hook]
         ]
 
-    _ ->
-      Html.text "not implemented"
+    StepTree.OnFailure {step, hook} ->
+      Html.div [class "on-failure"]
+        [ Html.div [class "step"] [viewStepTree step]
+        , Html.div [class "children hook-failure"] [viewStepTree hook]
+        ]
+
+    StepTree.Ensure {step, hook} ->
+      Html.div [class "ensure"]
+        [ Html.div [class "step"] [viewStepTree step]
+        , Html.div [class "children hook-ensure"] [viewStepTree hook]
+        ]
 
 viewStep : StepTree.Step -> String -> Html
 viewStep {name, log, state, error} icon =
