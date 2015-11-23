@@ -114,13 +114,10 @@ flag. Once you've learned what the commands do, you may want to consult
   OS X or to avoid all of those debugging commits when something is configured
   differently between your local and remote setup.
 
-  If you have a task configuration called \code{task.yml} that describes a
-  task that only requires a single input, whose contents are in the current
-  directory (e.g. most unit tests and simple integration tests) then you can
-  just run:
+  You can execute a task like this:
 
   \codeblock{bash}{
-  $ fly execute
+  $ fly execute --config tests.yml
   }
 
   Your files will be uploaded and the task will be executed with them. The
@@ -132,14 +129,7 @@ flag. Once you've learned what the commands do, you may want to consult
   build when received. This allows it to be transparently composed with other
   toolchains.
 
-  If your task configuration is in a non-standard location then you can
-  specify it using the \code{-c} or \code{--config} argument like so:
-
-  \codeblock{bash}{
-  $ fly execute --config tests.yml
-  }
-
-  If you have many extra files or large files in your currect directory that
+  If you have many extra files or large files in your current directory that
   would normally be ignored by your version control system, then you can use
   the \code{-x} or \code{--exclude-ignored} flags in order to limit the files
   that you send to Concourse to just those that are not ignored.
