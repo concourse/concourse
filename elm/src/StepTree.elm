@@ -3,10 +3,12 @@ module StepTree
   , Root
   , HookedStep
   , Step
+  , StepID
   , StepState(..)
   , init
   , map
   , view
+  , update
   ) where
 
 import Debug
@@ -105,6 +107,15 @@ init plan =
 
     BuildPlan.Timeout plan ->
       initWrappedStep Timeout plan
+
+update : StepID -> (StepTree -> StepTree) -> Root -> Root
+update id update root =
+  case Dict.get id root.foci of
+    Nothing ->
+      root
+
+    Just focus ->
+      { root | tree = Focus.update focus update root.tree }
 
 map : (Step -> Step) -> StepTree -> StepTree
 map f tree =
@@ -333,7 +344,6 @@ viewStep {name, log, state, error} icon =
           Html.div [class "step-error"]
             [Html.span [class "error"] [Html.text msg]]
     ]
-
 
 typeIcon : String -> Html
 typeIcon fa =
