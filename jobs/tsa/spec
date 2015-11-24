@@ -22,6 +22,10 @@ properties:
   tsa.forward_host:
     description: "address to advertise forwarded worker connections to. if not specified, determined dynamically."
 
+  tsa.listen_port:
+    description: "port to listen on for tsa ssh server"
+    default: 2222
+
   tsa.atc.address:
     description: "atc server connection address"
     default: atc.service.dc1.consul:8080

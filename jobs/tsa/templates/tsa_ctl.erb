@@ -73,6 +73,7 @@ EOF
 
     exec chpst -u vcap:vcap /var/vcap/packages/tsa/bin/tsa \
       -forwardHost=<%= my_ip %> \
+      -listenPort=<%= p("tsa.listen_port") %> \
       <% if p("tsa.host_key") != "" %> \
       -hostKey=/var/vcap/jobs/tsa/config/host_key \
       <% else %> \
