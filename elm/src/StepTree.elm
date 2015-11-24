@@ -5,10 +5,12 @@ module StepTree
   , Step
   , StepID
   , StepState(..)
+  , Action
   , init
   , map
   , view
   , update
+  , updateAt
   ) where
 
 import Debug
@@ -18,8 +20,9 @@ import Array exposing (Array)
 import Dict exposing (Dict)
 import Focus exposing (Focus, (=>))
 import Html exposing (Html)
+import Html.Events exposing (onClick)
 import Html.Lazy
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, classList)
 
 import BuildPlan exposing (BuildPlan)
 
@@ -35,16 +38,20 @@ type StepTree
   | Try StepTree
   | Timeout StepTree
 
+type Action = ToggleStep StepID
+
 type alias HookedStep =
   { step : StepTree
   , hook : StepTree
   }
 
 type alias Step =
-  { name : StepName
+  { id : StepID
+  , name : StepName
   , state : StepState
   , log : Ansi.Log.Window
   , error : Maybe String
+  , expanded : Bool
   }
 
 type alias StepName = String
@@ -108,8 +115,14 @@ init plan =
     BuildPlan.Timeout plan ->
       initWrappedStep Timeout plan
 
-update : StepID -> (StepTree -> StepTree) -> Root -> Root
-update id update root =
+update : Action -> Root -> Root
+update action root =
+  case action of
+    ToggleStep id ->
+      updateAt id (map (\step -> { step | expanded = not step.expanded })) root
+
+updateAt : StepID -> (StepTree -> StepTree) -> Root -> Root
+updateAt id update root =
   case Dict.get id root.foci of
     Nothing ->
       root
@@ -140,10 +153,12 @@ initBottom : (Step -> StepTree) -> StepID -> StepName -> Root
 initBottom create id name =
   let
     step =
-      { name = name
+      { id = id
+      , name = name
       , state = StepStatePending
       , log = Ansi.Log.init Ansi.Log.Cooked
       , error = Nothing
+      , expanded = True
       }
   in
     { tree = create step
@@ -283,58 +298,63 @@ setAggIndex idx update tree =
     _ ->
       Debug.crash "impossible"
 
-view : StepTree -> Html
-view tree =
+view : Signal.Address Action -> StepTree -> Html
+view actions tree =
   case tree of
     Task step ->
-      viewStep step "fa-terminal"
+      viewStep actions step "fa-terminal"
 
     Get step _ ->
-      viewStep step "fa-arrow-down"
+      viewStep actions step "fa-arrow-down"
 
     DependentGet step ->
-      viewStep step "fa-arrow-down"
+      viewStep actions step "fa-arrow-down"
 
     Put step ->
-      viewStep step "fa-arrow-up"
+      viewStep actions step "fa-arrow-up"
 
     Try step ->
-      view step
+      view actions step
 
     Timeout step ->
-      view step
+      view actions step
 
     Aggregate steps ->
       Html.div [class "aggregate"]
-        (Array.toList <| Array.map view steps)
+        (Array.toList <| Array.map (view actions) steps)
 
     OnSuccess {step, hook} ->
       Html.div [class "on-success"]
-        [ Html.div [class "step"] [view step]
-        , Html.div [class "children hook-success"] [view hook]
+        [ Html.div [class "step"] [view actions step]
+        , Html.div [class "children hook-success"] [view actions hook]
         ]
 
     OnFailure {step, hook} ->
       Html.div [class "on-failure"]
-        [ Html.div [class "step"] [view step]
-        , Html.div [class "children hook-failure"] [view hook]
+        [ Html.div [class "step"] [view actions step]
+        , Html.div [class "children hook-failure"] [view actions hook]
         ]
 
     Ensure {step, hook} ->
       Html.div [class "ensure"]
-        [ Html.div [class "step"] [view step]
-        , Html.div [class "children hook-ensure"] [view hook]
+        [ Html.div [class "step"] [view actions step]
+        , Html.div [class "children hook-ensure"] [view actions hook]
         ]
 
-viewStep : Step -> String -> Html
-viewStep {name, log, state, error} icon =
+viewStep : Signal.Address Action -> Step -> String -> Html
+viewStep actions {id, name, log, state, error, expanded} icon =
   Html.div [class "build-step"]
-    [ Html.div [class "header"]
+    [ Html.div [class "header", onClick actions (ToggleStep id)]
         [ viewStepState state
         , typeIcon icon
         , Html.h3 [] [Html.text name]
         ]
-    , Html.div [class "step-body"]
+    , Html.div
+        [ classList
+            [ ("step-body", True)
+            , ("step-collapsed", not expanded)
+            ]
+        ]
         [ viewStepLog log
         ]
     , case error of
