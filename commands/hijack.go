@@ -241,10 +241,12 @@ func (command *HijackCommand) Execute(args []string) error {
 		}
 	}
 
+	envVariables := append(chosenContainer.EnvironmentVariables, "TERM="+os.Getenv("TERM"))
+
 	spec := atc.HijackProcessSpec{
 		Path: path,
 		Args: args,
-		Env:  []string{"TERM=" + os.Getenv("TERM")},
+		Env:  envVariables,
 		User: "root",
 		Dir:  chosenContainer.WorkingDirectory,
 
