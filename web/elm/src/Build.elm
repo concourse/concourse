@@ -76,37 +76,37 @@ update action model =
       (model, Effects.none)
 
     Event (Ok (BuildEvent.Log origin output)) ->
-      ( { model | stepRoot = updateStep origin.id (setRunning << appendStepLog output) model.stepRoot }
+      ( updateStep origin.id (setRunning << appendStepLog output) model
       , Effects.none
       )
 
     Event (Ok (BuildEvent.Error origin message)) ->
-      ( { model | stepRoot = updateStep origin.id (setRunning << setStepError message) model.stepRoot }
+      ( updateStep origin.id (setRunning << setStepError message) model
       , Effects.none
       )
 
     Event (Ok (BuildEvent.InitializeTask origin)) ->
-      ( { model | stepRoot = updateStep origin.id setRunning model.stepRoot }
+      ( updateStep origin.id setRunning model
       , Effects.none
       )
 
     Event (Ok (BuildEvent.StartTask origin)) ->
-      ( { model | stepRoot = updateStep origin.id setRunning model.stepRoot }
+      ( updateStep origin.id setRunning model
       , Effects.none
       )
 
     Event (Ok (BuildEvent.FinishTask origin exitStatus)) ->
-      ( { model | stepRoot = updateStep origin.id (finishStep exitStatus) model.stepRoot }
+      ( updateStep origin.id (finishStep exitStatus) model
       , Effects.none
       )
 
     Event (Ok (BuildEvent.FinishGet origin exitStatus)) ->
-      ( { model | stepRoot = updateStep origin.id (finishStep exitStatus) model.stepRoot }
+      ( updateStep origin.id (finishStep exitStatus) model
       , Effects.none
       )
 
     Event (Ok (BuildEvent.FinishPut origin exitStatus)) ->
-      ( { model | stepRoot = updateStep origin.id (finishStep exitStatus) model.stepRoot }
+      ( updateStep origin.id (finishStep exitStatus) model
       , Effects.none
       )
 
@@ -133,9 +133,9 @@ update action model =
       ({ model | eventSource = Nothing }, Effects.none)
 
 
-updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Maybe StepTree.Root -> Maybe StepTree.Root
-updateStep id update root =
-  Maybe.map (StepTree.updateAt id update) root
+updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Model -> Model
+updateStep id update model =
+  { model | stepRoot = Maybe.map (StepTree.updateAt id update) model.stepRoot }
 
 setRunning : StepTree -> StepTree
 setRunning = setStepState StepTree.StepStateRunning
