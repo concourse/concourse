@@ -32,6 +32,7 @@ type Action
   | Event (Result String BuildEvent)
   | EndOfEvents
   | Closed
+  | StepTreeAction StepTree.Action
 
 init : Signal.Address Action -> Int -> (Model, Effects Action)
 init actions buildId =
@@ -111,6 +112,11 @@ update action model =
     Event (Err e) ->
       (model, Debug.log e Effects.none)
 
+    StepTreeAction action ->
+      ( { model | stepRoot = Maybe.map (StepTree.update action) model.stepRoot }
+      , Effects.none
+      )
+
     EndOfEvents ->
       case model.eventSource of
         Just es ->
@@ -125,7 +131,7 @@ update action model =
 
 updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Maybe StepTree.Root -> Maybe StepTree.Root
 updateStep id update root =
-  Maybe.map (StepTree.update id update) root
+  Maybe.map (StepTree.updateAt id update) root
 
 setRunning : StepTree -> StepTree
 setRunning = setStepState StepTree.StepStateRunning
@@ -151,17 +157,20 @@ finishStep exitStatus tree =
 
 setStepState : StepTree.StepState -> StepTree -> StepTree
 setStepState state tree =
-  StepTree.map (\step -> { step | state = state }) tree
+  let
+    expanded = state /= StepTree.StepStateSucceeded
+  in
+    StepTree.map (\step -> { step | state = state, expanded = expanded }) tree
 
 view : Signal.Address Action -> Model -> Html
-view action model =
+view actions model =
   case model.stepRoot of
     Nothing ->
       Html.text "loading..."
 
     Just root ->
       Html.div [class "steps"]
-        [ StepTree.view root.tree ]
+        [ StepTree.view (Signal.forwardTo actions StepTreeAction) root.tree ]
 
 fetchBuildPlan : Int -> Effects.Effects Action
 fetchBuildPlan buildId =
