@@ -51,7 +51,7 @@ init actions buildId =
       , autoScroll = True
       }
   in
-    (model, Effects.batch [Effects.tick (always ScrollTick), fetchBuildPlan 0 buildId])
+    (model, Effects.batch [keepScrolling, fetchBuildPlan 0 buildId])
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
@@ -60,8 +60,8 @@ update action model =
       (model, Effects.none)
 
     ScrollTick ->
-      if model.autoScroll then
-        (model, Effects.batch [Effects.tick (always ScrollTick), scrollToBottom])
+      if not model.eventsLoaded && model.autoScroll then
+        (model, Effects.batch [keepScrolling, scrollToBottom])
       else
         (model, Effects.none)
 
@@ -149,6 +149,8 @@ update action model =
     Closed ->
       ({ model | eventSource = Nothing }, Effects.none)
 
+keepScrolling : Effects Action
+keepScrolling = Effects.tick (always ScrollTick)
 
 updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Model -> Model
 updateStep id update model =
