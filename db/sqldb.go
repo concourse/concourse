@@ -1326,7 +1326,7 @@ func (db *SQLDB) FindContainersByIdentifier(id ContainerIdentifier) ([]Container
 
 	var rows *sql.Rows
 	selectQuery := `
-		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source, step_location, working_directory
+		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source, step_location, working_directory, env_variables
 		FROM containers
 	`
 
@@ -1376,7 +1376,7 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 
 func (db *SQLDB) GetContainer(handle string) (Container, bool, error) {
 	info, err := scanContainer(db.conn.QueryRow(`
-		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source, step_location, working_directory
+		SELECT handle, pipeline_name, type, name, build_id, worker_name, expires_at, check_type, check_source, step_location, working_directory, env_variables
 		FROM containers c
 		WHERE c.handle = $1
 	`, handle))
@@ -1403,13 +1403,18 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) error {
 		return err
 	}
 
+	envVariables, err := json.Marshal(container.EnvironmentVariables)
+	if err != nil {
+		return err
+	}
+
 	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		INSERT INTO containers (handle, name, pipeline_name, build_id, type, worker_name, expires_at, check_type, check_source, step_location, working_directory)
-		VALUES ($1, $2, $3, $4, $5, $6,  NOW() + $7::INTERVAL, $8, $9, $10, $11)
+		INSERT INTO containers (handle, name, pipeline_name, build_id, type, worker_name, expires_at, check_type, check_source, step_location, working_directory, env_variables)
+		VALUES ($1, $2, $3, $4, $5, $6,  NOW() + $7::INTERVAL, $8, $9, $10, $11, $12)
 		`,
 		container.Handle,
 		container.Name,
@@ -1422,6 +1427,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) error {
 		checkSource,
 		container.StepLocation,
 		container.WorkingDirectory,
+		envVariables,
 	)
 
 	if err != nil {
@@ -1532,10 +1538,11 @@ func scanPipeline(rows scannable) (SavedPipeline, error) {
 func scanContainer(row scannable) (Container, error) {
 	var infoType string
 	var checkSourceBlob []byte
+	var envVariablesBlob []byte
 
 	info := Container{}
 
-	err := row.Scan(&info.Handle, &info.PipelineName, &infoType, &info.Name, &info.BuildID, &info.WorkerName, &info.ExpiresAt, &info.CheckType, &checkSourceBlob, &info.StepLocation, &info.WorkingDirectory)
+	err := row.Scan(&info.Handle, &info.PipelineName, &infoType, &info.Name, &info.BuildID, &info.WorkerName, &info.ExpiresAt, &info.CheckType, &checkSourceBlob, &info.StepLocation, &info.WorkingDirectory, &envVariablesBlob)
 	if err != nil {
 		return Container{}, err
 	}
@@ -1546,6 +1553,11 @@ func scanContainer(row scannable) (Container, error) {
 	}
 
 	err = json.Unmarshal(checkSourceBlob, &info.CheckSource)
+	if err != nil {
+		return Container{}, err
+	}
+
+	err = json.Unmarshal(envVariablesBlob, &info.EnvironmentVariables)
 	if err != nil {
 		return Container{}, err
 	}

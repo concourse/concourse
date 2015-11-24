@@ -475,15 +475,16 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 		It("can create and get a container info object", func() {
 			expectedContainer := db.Container{
 				ContainerIdentifier: db.ContainerIdentifier{
-					Name:             "some-container",
-					PipelineName:     "some-pipeline",
-					BuildID:          123,
-					Type:             db.ContainerTypeTask,
-					WorkerName:       "some-worker",
-					WorkingDirectory: "tmp/build/some-guid",
-					CheckType:        "some-type",
-					CheckSource:      atc.Source{"uri": "http://example.com"},
-					StepLocation:     456,
+					Name:                 "some-container",
+					PipelineName:         "some-pipeline",
+					BuildID:              123,
+					Type:                 db.ContainerTypeTask,
+					WorkerName:           "some-worker",
+					WorkingDirectory:     "tmp/build/some-guid",
+					CheckType:            "some-type",
+					CheckSource:          atc.Source{"uri": "http://example.com"},
+					StepLocation:         456,
+					EnvironmentVariables: []string{"VAR1=val1", "VAR2=val2"},
 				},
 				Handle: "some-handle",
 			}
@@ -511,6 +512,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Expect(actualContainer.CheckType).To(Equal("some-type"))
 			Expect(actualContainer.CheckSource).To(Equal(atc.Source{"uri": "http://example.com"}))
 			Expect(actualContainer.StepLocation).To(Equal(uint(456)))
+			Expect(actualContainer.EnvironmentVariables).To(Equal([]string{"VAR1=val1", "VAR2=val2"}))
 
 			By("returning found = false when getting by a handle that does not exist")
 			_, found, err = database.GetContainer("nope")

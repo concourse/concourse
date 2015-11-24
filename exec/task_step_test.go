@@ -44,8 +44,9 @@ var _ = Describe("GardenFactory", func() {
 			Name: "some-session-id",
 		}
 		expectedIdentifier = worker.Identifier{
-			Name:             "some-session-id",
-			WorkingDirectory: "/tmp/build/a-random-guid",
+			Name:                 "some-session-id",
+			WorkingDirectory:     "/tmp/build/a-random-guid",
+			EnvironmentVariables: []string{"SOME=params"},
 		}
 	)
 

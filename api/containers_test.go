@@ -31,6 +31,7 @@ var _ = Describe("Pipelines API", func() {
 		containerID1      = "dh93mvi"
 		workerName1       = "some-worker-guid"
 		workingDirectory1 = "/tmp/build/my-favorite-guid"
+		envVariables      = []string{"VAR1=VAL1"}
 	)
 
 	var (
@@ -42,12 +43,13 @@ var _ = Describe("Pipelines API", func() {
 	BeforeEach(func() {
 		fakeContainer1 = db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{
-				PipelineName:     pipelineName1,
-				Type:             type1,
-				Name:             name1,
-				BuildID:          buildID1,
-				WorkerName:       workerName1,
-				WorkingDirectory: workingDirectory1,
+				PipelineName:         pipelineName1,
+				Type:                 type1,
+				Name:                 name1,
+				BuildID:              buildID1,
+				WorkerName:           workerName1,
+				WorkingDirectory:     workingDirectory1,
+				EnvironmentVariables: envVariables,
 			},
 			Handle: containerID1,
 		}
@@ -84,12 +86,13 @@ var _ = Describe("Pipelines API", func() {
 
 				fakeContainer2 = db.Container{
 					ContainerIdentifier: db.ContainerIdentifier{
-						PipelineName:     "pipeline-2",
-						Type:             db.ContainerTypePut,
-						Name:             "name-2",
-						BuildID:          4321,
-						WorkerName:       "some-other-worker-guid",
-						WorkingDirectory: "/tmp/build/my-second-favorite-guid",
+						PipelineName:         "pipeline-2",
+						Type:                 db.ContainerTypePut,
+						Name:                 "name-2",
+						BuildID:              4321,
+						WorkerName:           "some-other-worker-guid",
+						WorkingDirectory:     "/tmp/build/my-second-favorite-guid",
+						EnvironmentVariables: []string{"VAR2=VAL2"},
 					},
 					Handle: "cfvwser",
 				}
@@ -139,7 +142,8 @@ var _ = Describe("Pipelines API", func() {
 									"build_id": 1234,
 									"id": "dh93mvi",
 									"worker_name": "some-worker-guid",
-									"working_directory": "/tmp/build/my-favorite-guid"
+									"working_directory": "/tmp/build/my-favorite-guid",
+									"env_variables": ["VAR1=VAL1"]
 								},
 								{
 									"pipeline_name": "pipeline-2",
@@ -148,7 +152,8 @@ var _ = Describe("Pipelines API", func() {
 									"build_id": 4321,
 									"id": "cfvwser",
 									"worker_name": "some-other-worker-guid",
-									"working_directory": "/tmp/build/my-second-favorite-guid"
+									"working_directory": "/tmp/build/my-second-favorite-guid",
+									"env_variables": ["VAR2=VAL2"]
 								}
 							]
 						`))
@@ -387,7 +392,8 @@ var _ = Describe("Pipelines API", func() {
 							"build_id": 1234,
 							"id": "dh93mvi",
 							"worker_name": "some-worker-guid",
-							"working_directory": "/tmp/build/my-favorite-guid"
+							"working_directory": "/tmp/build/my-favorite-guid",
+							"env_variables": ["VAR1=VAL1"]
 						}
 					`))
 				})

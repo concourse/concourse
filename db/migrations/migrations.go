@@ -61,4 +61,5 @@ var Migrations = []migration.Migrator{
 	AddCompositeUniqueConstraintToVolumes,
 	AddWorkingDirectoryToContainers,
 	MakeContainerWorkingDirectoryNotNull,
+	AddEnvVariablesToContainers,
 }

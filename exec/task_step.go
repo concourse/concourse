@@ -118,6 +118,8 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		return err
 	}
 
+	step.containerID.EnvironmentVariables = step.envForParams(config.Params)
+
 	step.container, found, err = step.workerPool.FindContainerForIdentifier(
 		step.logger.Session("found-container"),
 		step.containerID,
