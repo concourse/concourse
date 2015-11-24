@@ -187,7 +187,7 @@ func (command *HijackCommand) Execute(args []string) error {
 
 	containers := getContainerIDs(command)
 
-	var id string
+	var chosenContainer atc.Container
 	if len(containers) == 0 {
 		fmt.Fprintln(os.Stderr, "no containers matched your search parameters! they may have expired if your build hasn't recently finished")
 		os.Exit(1)
@@ -208,11 +208,11 @@ func (command *HijackCommand) Execute(args []string) error {
 
 			choices = append(choices, interact.Choice{
 				Display: strings.Join(infos, ", "),
-				Value:   container.ID,
+				Value:   container,
 			})
 		}
 
-		err = interact.NewInteraction("choose a container", choices...).Resolve(&id)
+		err = interact.NewInteraction("choose a container", choices...).Resolve(&chosenContainer)
 		if err == io.EOF {
 			os.Exit(0)
 		}
@@ -221,7 +221,7 @@ func (command *HijackCommand) Execute(args []string) error {
 			return err
 		}
 	} else {
-		id = containers[0].ID
+		chosenContainer = containers[0]
 	}
 
 	path, args := remoteCommand(args)
@@ -246,12 +246,13 @@ func (command *HijackCommand) Execute(args []string) error {
 		Args: args,
 		Env:  []string{"TERM=" + os.Getenv("TERM")},
 		User: "root",
+		Dir:  chosenContainer.WorkingDirectory,
 
 		Privileged: privileged,
 		TTY:        ttySpec,
 	}
 
-	hijackReq := constructRequest(reqGenerator, spec, id, target.Token)
+	hijackReq := constructRequest(reqGenerator, spec, chosenContainer.ID, target.Token)
 	hijackResult := performHijack(hijackReq, tlsConfig)
 	os.Exit(hijackResult)
 

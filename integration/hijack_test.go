@@ -18,10 +18,12 @@ import (
 var _ = Describe("Hijacking", func() {
 	var atcServer *ghttp.Server
 	var hijacked <-chan struct{}
+	var workingDirectory string
 
 	BeforeEach(func() {
 		atcServer = ghttp.NewServer()
 		hijacked = nil
+		workingDirectory = ""
 	})
 
 	AfterEach(func() {
@@ -44,6 +46,7 @@ var _ = Describe("Hijacking", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(processSpec.User).To(Equal("root"))
+				Expect(processSpec.Dir).To(Equal(workingDirectory))
 
 				sconn, sbr, err := w.(http.Hijacker).Hijack()
 				Expect(err).NotTo(HaveOccurred())
@@ -155,6 +158,34 @@ var _ = Describe("Hijacking", func() {
 
 		It("hijacks the most recent one-off build with a more politically correct command", func() {
 			fly("intercept", "-s", "some-step")
+		})
+	})
+
+	Context("when the container specifies a working directory", func() {
+		BeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+			workingDirectory = "/tmp/build/my-favorite-guid"
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/builds"),
+					ghttp.RespondWithJSONEncoded(200, []atc.Build{
+						{ID: 3, Name: "3", Status: "started"},
+					}),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name=some-step"),
+					ghttp.RespondWithJSONEncoded(200, []atc.Container{
+						{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "task", Name: "some-step", BuildID: 3, WorkingDirectory: workingDirectory},
+					}),
+				),
+				hijackHandler("container-id-1", didHijack, nil),
+			)
+		})
+
+		It("hijacks the most recent one-off build in the specified working directory", func() {
+			hijack("-s", "some-step")
 		})
 	})
 
