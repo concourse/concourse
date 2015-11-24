@@ -8,14 +8,15 @@ import (
 )
 
 type ContainerIdentifier struct {
-	Name         string
-	PipelineName string
-	BuildID      int
-	Type         ContainerType
-	WorkerName   string
-	CheckType    string
-	CheckSource  atc.Source
-	StepLocation uint
+	Name             string
+	PipelineName     string
+	BuildID          int
+	Type             ContainerType
+	WorkerName       string
+	WorkingDirectory string
+	CheckType        string
+	CheckSource      atc.Source
+	StepLocation     uint
 }
 
 type Container struct {

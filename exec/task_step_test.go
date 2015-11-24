@@ -43,6 +43,10 @@ var _ = Describe("GardenFactory", func() {
 		identifier = worker.Identifier{
 			Name: "some-session-id",
 		}
+		expectedIdentifier = worker.Identifier{
+			Name:             "some-session-id",
+			WorkingDirectory: "/tmp/build/a-random-guid",
+		}
 	)
 
 	BeforeEach(func() {
@@ -185,7 +189,7 @@ var _ = Describe("GardenFactory", func() {
 
 						It("looked up the container via the session ID across the entire pool", func() {
 							_, findID := fakeWorkerClient.FindContainerForIdentifierArgsForCall(0)
-							Expect(findID).To(Equal(identifier))
+							Expect(findID).To(Equal(expectedIdentifier))
 						})
 
 						It("gets the config from the input artifact source", func() {
@@ -196,7 +200,7 @@ var _ = Describe("GardenFactory", func() {
 						It("creates a container with the config's image and the session ID as the handle", func() {
 							Expect(fakeWorker.CreateContainerCallCount()).To(Equal(1))
 							_, createdIdentifier, spec := fakeWorker.CreateContainerArgsForCall(0)
-							Expect(createdIdentifier).To(Equal(identifier))
+							Expect(createdIdentifier).To(Equal(expectedIdentifier))
 
 							taskSpec := spec.(worker.TaskContainerSpec)
 							Expect(taskSpec.Platform).To(Equal("some-platform"))
@@ -258,7 +262,7 @@ var _ = Describe("GardenFactory", func() {
 							It("creates the container privileged", func() {
 								Expect(fakeWorker.CreateContainerCallCount()).To(Equal(1))
 								_, createdIdentifier, spec := fakeWorker.CreateContainerArgsForCall(0)
-								Expect(createdIdentifier).To(Equal(identifier))
+								Expect(createdIdentifier).To(Equal(expectedIdentifier))
 
 								taskSpec := spec.(worker.TaskContainerSpec)
 								Expect(taskSpec.Platform).To(Equal("some-platform"))

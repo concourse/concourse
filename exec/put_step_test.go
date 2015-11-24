@@ -35,6 +35,10 @@ var _ = Describe("GardenFactory", func() {
 		identifier = worker.Identifier{
 			Name: "some-session-id",
 		}
+		expectedIdentifier = worker.Identifier{
+			Name:             "some-session-id",
+			WorkingDirectory: "/tmp/build/put",
+		}
 	)
 
 	BeforeEach(func() {
@@ -128,7 +132,7 @@ var _ = Describe("GardenFactory", func() {
 				_, sm, sid, typ, tags, sources := fakeTracker.InitWithSourcesArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
-					ID: identifier,
+					ID: expectedIdentifier,
 				}))
 				Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))
 				Expect(tags).To(ConsistOf("some", "tags"))

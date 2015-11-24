@@ -475,14 +475,15 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 		It("can create and get a container info object", func() {
 			expectedContainer := db.Container{
 				ContainerIdentifier: db.ContainerIdentifier{
-					Name:         "some-container",
-					PipelineName: "some-pipeline",
-					BuildID:      123,
-					Type:         db.ContainerTypeTask,
-					WorkerName:   "some-worker",
-					CheckType:    "some-type",
-					CheckSource:  atc.Source{"uri": "http://example.com"},
-					StepLocation: 456,
+					Name:             "some-container",
+					PipelineName:     "some-pipeline",
+					BuildID:          123,
+					Type:             db.ContainerTypeTask,
+					WorkerName:       "some-worker",
+					WorkingDirectory: "tmp/build/some-guid",
+					CheckType:        "some-type",
+					CheckSource:      atc.Source{"uri": "http://example.com"},
+					StepLocation:     456,
 				},
 				Handle: "some-handle",
 			}
@@ -506,6 +507,7 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Expect(actualContainer.BuildID).To(Equal(123))
 			Expect(actualContainer.Type).To(Equal(db.ContainerTypeTask))
 			Expect(actualContainer.WorkerName).To(Equal("some-worker"))
+			Expect(actualContainer.WorkingDirectory).To(Equal("tmp/build/some-guid"))
 			Expect(actualContainer.CheckType).To(Equal("some-type"))
 			Expect(actualContainer.CheckSource).To(Equal(atc.Source{"uri": "http://example.com"}))
 			Expect(actualContainer.StepLocation).To(Equal(uint(456)))

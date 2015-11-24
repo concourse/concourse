@@ -24,37 +24,32 @@ import (
 
 var _ = Describe("Pipelines API", func() {
 	var (
-		pipelineName1 = "pipeline-1"
-		type1         = db.ContainerTypeCheck
-		name1         = "name-1"
-		buildID1      = 1234
-		containerID1  = "dh93mvi"
+		pipelineName1     = "pipeline-1"
+		type1             = db.ContainerTypeCheck
+		name1             = "name-1"
+		buildID1          = 1234
+		containerID1      = "dh93mvi"
+		workerName1       = "some-worker-guid"
+		workingDirectory1 = "/tmp/build/my-favorite-guid"
 	)
 
 	var (
 		req *http.Request
 
-		fakeContainer1              db.Container
-		expectedPresentedContainer1 atc.Container
+		fakeContainer1 db.Container
 	)
 
 	BeforeEach(func() {
 		fakeContainer1 = db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{
-				PipelineName: pipelineName1,
-				Type:         type1,
-				Name:         name1,
-				BuildID:      buildID1,
+				PipelineName:     pipelineName1,
+				Type:             type1,
+				Name:             name1,
+				BuildID:          buildID1,
+				WorkerName:       workerName1,
+				WorkingDirectory: workingDirectory1,
 			},
 			Handle: containerID1,
-		}
-
-		expectedPresentedContainer1 = atc.Container{
-			ID:           containerID1,
-			PipelineName: pipelineName1,
-			Type:         type1.String(),
-			Name:         name1,
-			BuildID:      buildID1,
 		}
 	})
 
@@ -82,39 +77,21 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated", func() {
 			var (
 				fakeContainer2 db.Container
-
-				expectedPresentedContainer2 atc.Container
 			)
 
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
 
-				fakeContainer1 = db.Container{
-					ContainerIdentifier: db.ContainerIdentifier{
-						PipelineName: pipelineName1,
-						Type:         type1,
-						Name:         name1,
-						BuildID:      buildID1,
-					},
-					Handle: containerID1,
-				}
-
 				fakeContainer2 = db.Container{
 					ContainerIdentifier: db.ContainerIdentifier{
-						PipelineName: "pipeline-2",
-						Type:         db.ContainerTypePut,
-						Name:         "name-2",
-						BuildID:      4321,
+						PipelineName:     "pipeline-2",
+						Type:             db.ContainerTypePut,
+						Name:             "name-2",
+						BuildID:          4321,
+						WorkerName:       "some-other-worker-guid",
+						WorkingDirectory: "/tmp/build/my-second-favorite-guid",
 					},
 					Handle: "cfvwser",
-				}
-
-				expectedPresentedContainer2 = atc.Container{
-					ID:           "cfvwser",
-					PipelineName: "pipeline-2",
-					Type:         db.ContainerTypePut.String(),
-					Name:         "name-2",
-					BuildID:      4321,
 				}
 			})
 
@@ -122,17 +99,12 @@ var _ = Describe("Pipelines API", func() {
 
 				Context("when no errors are returned", func() {
 					var (
-						fakeContainers              []db.Container
-						expectedPresentedContainers []atc.Container
+						fakeContainers []db.Container
 					)
 					BeforeEach(func() {
 						fakeContainers = []db.Container{
 							fakeContainer1,
 							fakeContainer2,
-						}
-						expectedPresentedContainers = []atc.Container{
-							expectedPresentedContainer1,
-							expectedPresentedContainer2,
 						}
 						containerDB.FindContainersByIdentifierReturns(fakeContainers, nil)
 					})
@@ -155,24 +127,31 @@ var _ = Describe("Pipelines API", func() {
 						response, err := client.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 
-						b, err := ioutil.ReadAll(response.Body)
+						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
-						var returned []atc.Container
-						err = json.Unmarshal(b, &returned)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(len(returned)).To(Equal(len(expectedPresentedContainers)))
-						for i, _ := range returned {
-							expected := expectedPresentedContainers[i]
-							actual := returned[i]
-
-							Expect(actual.PipelineName).To(Equal(expected.PipelineName))
-							Expect(actual.Type).To(Equal(expected.Type))
-							Expect(actual.Name).To(Equal(expected.Name))
-							Expect(actual.BuildID).To(Equal(expected.BuildID))
-							Expect(actual.ID).To(Equal(expected.ID))
-						}
+						Expect(body).To(MatchJSON(`
+							[
+								{
+									"pipeline_name": "pipeline-1",
+									"type": "check",
+									"name": "name-1",
+									"build_id": 1234,
+									"id": "dh93mvi",
+									"worker_name": "some-worker-guid",
+									"working_directory": "/tmp/build/my-favorite-guid"
+								},
+								{
+									"pipeline_name": "pipeline-2",
+									"type": "put",
+									"name": "name-2",
+									"build_id": 4321,
+									"id": "cfvwser",
+									"worker_name": "some-other-worker-guid",
+									"working_directory": "/tmp/build/my-second-favorite-guid"
+								}
+							]
+						`))
 					})
 				})
 
@@ -192,14 +171,12 @@ var _ = Describe("Pipelines API", func() {
 						response, err := client.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 
-						b, err := ioutil.ReadAll(response.Body)
+						body, err := ioutil.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
-						var returned []atc.Container
-						err = json.Unmarshal(b, &returned)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(returned).To(BeEmpty())
+						Expect(body).To(MatchJSON(`
+						  []
+						`))
 					})
 				})
 
@@ -399,20 +376,20 @@ var _ = Describe("Pipelines API", func() {
 					response, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					b, err := ioutil.ReadAll(response.Body)
+					body, err := ioutil.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
-					var actual atc.Container
-					err = json.Unmarshal(b, &actual)
-					Expect(err).NotTo(HaveOccurred())
-
-					expected := expectedPresentedContainer1
-
-					Expect(actual.PipelineName).To(Equal(expected.PipelineName))
-					Expect(actual.Type).To(Equal(expected.Type))
-					Expect(actual.Name).To(Equal(expected.Name))
-					Expect(actual.BuildID).To(Equal(expected.BuildID))
-					Expect(actual.ID).To(Equal(expected.ID))
+					Expect(body).To(MatchJSON(`
+						{
+							"pipeline_name": "pipeline-1",
+							"type": "check",
+							"name": "name-1",
+							"build_id": 1234,
+							"id": "dh93mvi",
+							"worker_name": "some-worker-guid",
+							"working_directory": "/tmp/build/my-favorite-guid"
+						}
+					`))
 				})
 
 			})
