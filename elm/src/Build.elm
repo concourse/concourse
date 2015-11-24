@@ -80,6 +80,16 @@ update action model =
       , Effects.none
       )
 
+    Event (Ok (BuildEvent.InitializeTask origin)) ->
+      ( { model | stepRoot = updateStep origin.id setRunning model.stepRoot }
+      , Effects.none
+      )
+
+    Event (Ok (BuildEvent.StartTask origin)) ->
+      ( { model | stepRoot = updateStep origin.id setRunning model.stepRoot }
+      , Effects.none
+      )
+
     Event (Ok (BuildEvent.FinishTask origin exitStatus)) ->
       ( { model | stepRoot = updateStep origin.id (finishStep exitStatus) model.stepRoot }
       , Effects.none

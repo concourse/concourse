@@ -5,6 +5,8 @@ import Json.Decode as Json exposing ((:=))
 type BuildEvent
   = BuildStatus BuildStatus
   | FinishGet Origin Int
+  | InitializeTask Origin
+  | StartTask Origin
   | FinishTask Origin Int
   | Log Origin String
   | Error Origin String
@@ -54,6 +56,12 @@ decodeEvent e =
 
     "error" ->
       Json.decodeValue (Json.object2 Error ("origin" := decodeOrigin) ("message" := Json.string)) e.value
+
+    "initialize-task" ->
+      Json.decodeValue (Json.object1 InitializeTask ("origin" := decodeOrigin)) e.value
+
+    "start-task" ->
+      Json.decodeValue (Json.object1 StartTask ("origin" := decodeOrigin)) e.value
 
     "finish-task" ->
       Json.decodeValue (Json.object2 FinishTask ("origin" := decodeOrigin) ("exit_status" := Json.int)) e.value
