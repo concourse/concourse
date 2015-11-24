@@ -1,10 +1,23 @@
-module StepTree where
+module StepTree
+  ( StepTree(..)
+  , Root
+  , HookedStep
+  , Step
+  , StepState(..)
+  , init
+  , map
+  , view
+  ) where
 
 import Debug
+import Ansi
 import Ansi.Log
 import Array exposing (Array)
 import Dict exposing (Dict)
 import Focus exposing (Focus, (=>))
+import Html exposing (Html)
+import Html.Lazy
+import Html.Attributes exposing (class)
 
 import BuildPlan exposing (BuildPlan)
 
@@ -92,6 +105,25 @@ init plan =
 
     BuildPlan.Timeout plan ->
       initWrappedStep Timeout plan
+
+map : (Step -> Step) -> StepTree -> StepTree
+map f tree =
+  case tree of
+    Task step ->
+      Task (f step)
+
+    Get step version ->
+      Get (f step) version
+
+    Put step ->
+      Put (f step)
+
+    DependentGet step ->
+      DependentGet (f step)
+
+    _ ->
+      tree
+
 
 initBottom : (Step -> StepTree) -> StepID -> StepName -> Root
 initBottom create id name =
@@ -239,3 +271,167 @@ setAggIndex idx update tree =
 
     _ ->
       Debug.crash "impossible"
+
+view : StepTree -> Html
+view tree =
+  case tree of
+    Task step ->
+      viewStep step "fa-terminal"
+
+    Get step _ ->
+      viewStep step "fa-arrow-down"
+
+    DependentGet step ->
+      viewStep step "fa-arrow-down"
+
+    Put step ->
+      viewStep step "fa-arrow-up"
+
+    Try step ->
+      view step
+
+    Timeout step ->
+      view step
+
+    Aggregate steps ->
+      Html.div [class "aggregate"]
+        (Array.toList <| Array.map view steps)
+
+    OnSuccess {step, hook} ->
+      Html.div [class "on-success"]
+        [ Html.div [class "step"] [view step]
+        , Html.div [class "children hook-success"] [view hook]
+        ]
+
+    OnFailure {step, hook} ->
+      Html.div [class "on-failure"]
+        [ Html.div [class "step"] [view step]
+        , Html.div [class "children hook-failure"] [view hook]
+        ]
+
+    Ensure {step, hook} ->
+      Html.div [class "ensure"]
+        [ Html.div [class "step"] [view step]
+        , Html.div [class "children hook-ensure"] [view hook]
+        ]
+
+viewStep : Step -> String -> Html
+viewStep {name, log, state, error} icon =
+  Html.div [class "build-step"]
+    [ Html.div [class "header"]
+        [ viewStepState state
+        , typeIcon icon
+        , Html.h3 [] [Html.text name]
+        ]
+    , Html.div [class "step-body"]
+        [ viewStepLog log
+        ]
+    , case error of
+        Nothing ->
+          Html.div [] []
+        Just msg ->
+          Html.div [class "step-error"]
+            [Html.span [class "error"] [Html.text msg]]
+    ]
+
+
+typeIcon : String -> Html
+typeIcon fa =
+  Html.i [class ("left fa fa-fw " ++ fa)] []
+
+viewStepState : StepState -> Html
+viewStepState state =
+  case state of
+    StepStatePending ->
+      Html.i
+        [ class "right fa fa-fw fa-beer"
+        ] []
+
+    StepStateRunning ->
+      Html.i
+        [ class "right fa fa-fw fa-spin fa-circle-o-notch"
+        ] []
+
+    StepStateSucceeded ->
+      Html.i
+        [ class "right succeeded fa fa-fw fa-check"
+        ] []
+
+    StepStateFailed ->
+      Html.i
+        [ class "right failed fa fa-fw fa-times"
+        ] []
+
+    StepStateErrored ->
+      Html.i
+        [ class "right errored fa fa-fw fa-exclamation-triangle"
+        ] []
+
+viewStepLog : Ansi.Log.Window -> Html.Html
+viewStepLog window =
+  Html.pre []
+    (Array.toList (Array.map lazyLine window.lines))
+
+lazyLine : Ansi.Log.Line -> Html.Html
+lazyLine = Html.Lazy.lazy viewLine
+
+viewLine : Ansi.Log.Line -> Html.Html
+viewLine line =
+  case line of
+    [] -> Html.div [] [Html.text "\n"]
+    _  -> Html.div [] (List.map viewChunk line)
+
+viewChunk : Ansi.Log.Chunk -> Html.Html
+viewChunk chunk =
+  Html.span (styleAttributes chunk.style)
+    [Html.text chunk.text]
+
+styleAttributes : Ansi.Log.Style -> List Html.Attribute
+styleAttributes style =
+  [ Html.Attributes.style [("font-weight", if style.bold then "bold" else "normal")]
+  , let
+      fgClasses =
+        colorClasses "-fg"
+          style.bold
+          (if not style.inverted then style.foreground else style.background)
+      bgClasses =
+        colorClasses "-bg"
+          style.bold
+          (if not style.inverted then style.background else style.foreground)
+    in
+      Html.Attributes.classList (List.map (flip (,) True) (fgClasses ++ bgClasses))
+  ]
+
+colorClasses : String -> Bool -> Maybe Ansi.Color -> List String
+colorClasses suffix bold mc =
+  let
+    brightPrefix = "ansi-bright-"
+
+    prefix =
+      if bold then
+        brightPrefix
+      else
+        "ansi-"
+  in
+    case mc of
+      Nothing ->
+        if bold then
+          ["ansi-bold"]
+        else
+          []
+      Just (Ansi.Black) ->   [prefix ++ "black" ++ suffix]
+      Just (Ansi.Red) ->     [prefix ++ "red" ++ suffix]
+      Just (Ansi.Green) ->   [prefix ++ "green" ++ suffix]
+      Just (Ansi.Yellow) ->  [prefix ++ "yellow" ++ suffix]
+      Just (Ansi.Blue) ->    [prefix ++ "blue" ++ suffix]
+      Just (Ansi.Magenta) -> [prefix ++ "magenta" ++ suffix]
+      Just (Ansi.Cyan) ->    [prefix ++ "cyan" ++ suffix]
+      Just (Ansi.White) ->   [prefix ++ "white" ++ suffix]
+      Just (Ansi.BrightBlack) ->   [brightPrefix ++ "black" ++ suffix]
+      Just (Ansi.BrightRed) ->     [brightPrefix ++ "red" ++ suffix]
+      Just (Ansi.BrightGreen) ->   [brightPrefix ++ "green" ++ suffix]
+      Just (Ansi.BrightYellow) ->  [brightPrefix ++ "yellow" ++ suffix]
+      Just (Ansi.BrightBlue) ->    [brightPrefix ++ "blue" ++ suffix]
+      Just (Ansi.BrightMagenta) -> [brightPrefix ++ "magenta" ++ suffix]
+      Just (Ansi.BrightCyan) ->    [brightPrefix ++ "cyan" ++ suffix]
+      Just (Ansi.BrightWhite) ->   [brightPrefix ++ "white" ++ suffix]

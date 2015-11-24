@@ -1,15 +1,12 @@
 module Build where
 
-import Ansi
 import Ansi.Log
-import Array
 import Debug
 import Dict
 import Effects exposing (Effects)
 import EventSource exposing (EventSource)
 import Focus
 import Html exposing (Html)
-import Html.Lazy
 import Html.Attributes exposing (class)
 import Http
 import Json.Decode
@@ -74,9 +71,6 @@ update action model =
 
     Errored ->
       (model, Effects.none)
-
-    --Event (Ok (BuildEvent.BuildStatus s)) ->
-      --({ model | buildStatus = Just s }, Effects.none)
 
     Event (Ok (BuildEvent.Log origin output)) ->
       ( { model | stepRoot = Maybe.map (appendLog origin.id output) model.stepRoot }
@@ -150,15 +144,7 @@ setError id message {tree, foci} =
 
 setStepError : String -> StepTree -> StepTree
 setStepError message tree =
-  case tree of
-    StepTree.Task step ->
-      StepTree.Task { step | error = Just message }
-
-    StepTree.Get step version ->
-      StepTree.Get { step | error = Just message } version
-
-    _ ->
-      tree
+  StepTree.map (\step -> { step | error = Just message }) tree
 
 finishStep : String -> Int -> StepTree.Root -> StepTree.Root
 finishStep id exitStatus {tree, foci} =
@@ -179,15 +165,7 @@ finishStep id exitStatus {tree, foci} =
 
 setStepState : StepTree.StepState -> StepTree -> StepTree
 setStepState state tree =
-  case tree of
-    StepTree.Task step ->
-      StepTree.Task { step | state = state }
-
-    StepTree.Get step version ->
-      StepTree.Get { step | state = state } version
-
-    _ ->
-      tree
+  StepTree.map (\step -> { step | state = state }) tree
 
 view : Signal.Address Action -> Model -> Html
 view action model =
@@ -197,171 +175,7 @@ view action model =
 
     Just root ->
       Html.div [class "steps"]
-        [ viewStepTree root.tree ]
-
-viewStepTree : StepTree -> Html
-viewStepTree tree =
-  case tree of
-    StepTree.Task step ->
-      viewStep step "fa-terminal"
-
-    StepTree.Get step _ ->
-      viewStep step "fa-arrow-down"
-
-    StepTree.DependentGet step ->
-      viewStep step "fa-arrow-down"
-
-    StepTree.Put step ->
-      viewStep step "fa-arrow-up"
-
-    StepTree.Try step ->
-      viewStepTree step
-
-    StepTree.Timeout step ->
-      viewStepTree step
-
-    StepTree.Aggregate steps ->
-      Html.div [class "aggregate"]
-        (Array.toList <| Array.map viewStepTree steps)
-
-    StepTree.OnSuccess {step, hook} ->
-      Html.div [class "on-success"]
-        [ Html.div [class "step"] [viewStepTree step]
-        , Html.div [class "children hook-success"] [viewStepTree hook]
-        ]
-
-    StepTree.OnFailure {step, hook} ->
-      Html.div [class "on-failure"]
-        [ Html.div [class "step"] [viewStepTree step]
-        , Html.div [class "children hook-failure"] [viewStepTree hook]
-        ]
-
-    StepTree.Ensure {step, hook} ->
-      Html.div [class "ensure"]
-        [ Html.div [class "step"] [viewStepTree step]
-        , Html.div [class "children hook-ensure"] [viewStepTree hook]
-        ]
-
-viewStep : StepTree.Step -> String -> Html
-viewStep {name, log, state, error} icon =
-  Html.div [class "build-step"]
-    [ Html.div [class "header"]
-        [ viewStepState state
-        , typeIcon icon
-        , Html.h3 [] [Html.text name]
-        ]
-    , Html.div [class "step-body"]
-        [ viewStepLog log
-        ]
-    , case error of
-        Nothing ->
-          Html.div [] []
-        Just msg ->
-          Html.div [class "step-error"]
-            [Html.span [class "error"] [Html.text msg]]
-    ]
-
-
-typeIcon : String -> Html
-typeIcon fa =
-  Html.i [class ("left fa fa-fw " ++ fa)] []
-
-viewStepState : StepTree.StepState -> Html
-viewStepState state =
-  case state of
-    StepTree.StepStatePending ->
-      Html.i
-        [ class "right fa fa-fw fa-beer"
-        ] []
-
-    StepTree.StepStateRunning ->
-      Html.i
-        [ class "right fa fa-fw fa-spin fa-circle-o-notch"
-        ] []
-
-    StepTree.StepStateSucceeded ->
-      Html.i
-        [ class "right succeeded fa fa-fw fa-check"
-        ] []
-
-    StepTree.StepStateFailed ->
-      Html.i
-        [ class "right failed fa fa-fw fa-times"
-        ] []
-
-    StepTree.StepStateErrored ->
-      Html.i
-        [ class "right errored fa fa-fw fa-exclamation-triangle"
-        ] []
-
-viewStepLog : Ansi.Log.Window -> Html.Html
-viewStepLog window =
-  Html.pre []
-    (Array.toList (Array.map lazyLine window.lines))
-
-lazyLine : Ansi.Log.Line -> Html.Html
-lazyLine = Html.Lazy.lazy viewLine
-
-viewLine : Ansi.Log.Line -> Html.Html
-viewLine line =
-  case line of
-    [] -> Html.div [] [Html.text "\n"]
-    _  -> Html.div [] (List.map viewChunk line)
-
-viewChunk : Ansi.Log.Chunk -> Html.Html
-viewChunk chunk =
-  Html.span (styleAttributes chunk.style)
-    [Html.text chunk.text]
-
-styleAttributes : Ansi.Log.Style -> List Html.Attribute
-styleAttributes style =
-  [ Html.Attributes.style [("font-weight", if style.bold then "bold" else "normal")]
-  , let
-      fgClasses =
-        colorClasses "-fg"
-          style.bold
-          (if not style.inverted then style.foreground else style.background)
-      bgClasses =
-        colorClasses "-bg"
-          style.bold
-          (if not style.inverted then style.background else style.foreground)
-    in
-      Html.Attributes.classList (List.map (flip (,) True) (fgClasses ++ bgClasses))
-  ]
-
-colorClasses : String -> Bool -> Maybe Ansi.Color -> List String
-colorClasses suffix bold mc =
-  let
-    brightPrefix = "ansi-bright-"
-
-    prefix =
-      if bold then
-        brightPrefix
-      else
-        "ansi-"
-  in
-    case mc of
-      Nothing ->
-        if bold then
-          ["ansi-bold"]
-        else
-          []
-      Just (Ansi.Black) ->   [prefix ++ "black" ++ suffix]
-      Just (Ansi.Red) ->     [prefix ++ "red" ++ suffix]
-      Just (Ansi.Green) ->   [prefix ++ "green" ++ suffix]
-      Just (Ansi.Yellow) ->  [prefix ++ "yellow" ++ suffix]
-      Just (Ansi.Blue) ->    [prefix ++ "blue" ++ suffix]
-      Just (Ansi.Magenta) -> [prefix ++ "magenta" ++ suffix]
-      Just (Ansi.Cyan) ->    [prefix ++ "cyan" ++ suffix]
-      Just (Ansi.White) ->   [prefix ++ "white" ++ suffix]
-      Just (Ansi.BrightBlack) ->   [brightPrefix ++ "black" ++ suffix]
-      Just (Ansi.BrightRed) ->     [brightPrefix ++ "red" ++ suffix]
-      Just (Ansi.BrightGreen) ->   [brightPrefix ++ "green" ++ suffix]
-      Just (Ansi.BrightYellow) ->  [brightPrefix ++ "yellow" ++ suffix]
-      Just (Ansi.BrightBlue) ->    [brightPrefix ++ "blue" ++ suffix]
-      Just (Ansi.BrightMagenta) -> [brightPrefix ++ "magenta" ++ suffix]
-      Just (Ansi.BrightCyan) ->    [brightPrefix ++ "cyan" ++ suffix]
-      Just (Ansi.BrightWhite) ->   [brightPrefix ++ "white" ++ suffix]
+        [ StepTree.view root.tree ]
 
 fetchBuildPlan : Int -> Effects.Effects Action
 fetchBuildPlan buildId =
