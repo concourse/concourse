@@ -71,12 +71,12 @@ update action model =
       (model, Effects.none)
 
     Event (Ok (BuildEvent.Log origin output)) ->
-      ( { model | stepRoot = updateStep origin.id (appendStepLog output) model.stepRoot }
+      ( { model | stepRoot = updateStep origin.id (setRunning << appendStepLog output) model.stepRoot }
       , Effects.none
       )
 
     Event (Ok (BuildEvent.Error origin message)) ->
-      ( { model | stepRoot = updateStep origin.id (setStepError message) model.stepRoot }
+      ( { model | stepRoot = updateStep origin.id (setRunning << setStepError message) model.stepRoot }
       , Effects.none
       )
 
@@ -111,6 +111,9 @@ update action model =
 updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Maybe StepTree.Root -> Maybe StepTree.Root
 updateStep id update root =
   Maybe.map (StepTree.update id update) root
+
+setRunning : StepTree -> StepTree
+setRunning = setStepState StepTree.StepStateRunning
 
 appendStepLog : String -> StepTree -> StepTree
 appendStepLog output tree =
