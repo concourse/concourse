@@ -20,12 +20,14 @@ var _ = Describe("ATC Handler Containers", func() {
 
 				expectedContainers = []atc.Container{
 					{
-						ID:           "myid-1",
-						PipelineName: "mypipeline-1",
+						ID:               "myid-1",
+						PipelineName:     "mypipeline-1",
+						WorkingDirectory: "/tmp/build/some-guid",
 					},
 					{
-						ID:           "myid-2",
-						PipelineName: "mypipeline-2",
+						ID:               "myid-2",
+						PipelineName:     "mypipeline-2",
+						WorkingDirectory: "/tmp/build/some-other-guid",
 					},
 				}
 
@@ -58,8 +60,9 @@ var _ = Describe("ATC Handler Containers", func() {
 
 				expectedContainers = []atc.Container{
 					{
-						ID:           "myid-1",
-						PipelineName: "mypipeline-1",
+						ID:               "myid-1",
+						PipelineName:     "mypipeline-1",
+						WorkingDirectory: "/tmp/build/some-guid",
 					},
 				}
 
