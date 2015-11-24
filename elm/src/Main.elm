@@ -6,6 +6,7 @@ import StartApp
 import Task exposing (Task)
 
 import Build
+import Scroll
 
 port buildId : Int
 
@@ -19,7 +20,7 @@ app =
       { init = Build.init pageDrivenActions.address buildId
       , update = Build.update
       , view = Build.view
-      , inputs = [pageDrivenActions.signal]
+      , inputs = [pageDrivenActions.signal, Signal.map Build.ScrollFromBottom Scroll.fromBottom]
       }
 
 main : Signal Html

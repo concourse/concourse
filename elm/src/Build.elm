@@ -13,6 +13,7 @@ import Time exposing (Time)
 
 import BuildEvent exposing (BuildEvent)
 import BuildPlan exposing (BuildPlan)
+import Scroll
 import StepTree exposing (StepTree)
 
 
@@ -22,6 +23,7 @@ type alias Model =
   , stepRoot : Maybe StepTree.Root
   , eventSource : Maybe EventSource
   , eventsLoaded : Bool
+  , autoScroll : Bool
   }
 
 type Action
@@ -33,6 +35,8 @@ type Action
   | Event (Result String BuildEvent)
   | EndOfEvents
   | Closed
+  | ScrollTick
+  | ScrollFromBottom Int
   | StepTreeAction StepTree.Action
 
 init : Signal.Address Action -> Int -> (Model, Effects Action)
@@ -44,15 +48,28 @@ init actions buildId =
       , stepRoot = Nothing
       , eventSource = Nothing
       , eventsLoaded = False
+      , autoScroll = True
       }
   in
-    (model, fetchBuildPlan 0 buildId)
+    (model, Effects.batch [Effects.tick (always ScrollTick), fetchBuildPlan 0 buildId])
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
     Noop ->
       (model, Effects.none)
+
+    ScrollTick ->
+      if model.autoScroll then
+        (model, Effects.batch [Effects.tick (always ScrollTick), scrollToBottom])
+      else
+        (model, Effects.none)
+
+    ScrollFromBottom fb ->
+      if fb == 0 then
+        ({ model | autoScroll = True }, Effects.tick (always ScrollTick))
+      else
+        ({ model | autoScroll = False }, Effects.none)
 
     PlanFetched (Err (Http.BadResponse 404 _)) ->
       (model, fetchBuildPlan Time.second model.buildId)
@@ -70,7 +87,7 @@ update action model =
       ({ model | eventSource = Just es }, Effects.none)
 
     Opened ->
-      (model, Effects.none)
+      (model, scrollToBottom)
 
     Errored ->
       (model, Effects.none)
@@ -217,3 +234,9 @@ closeEvents eventSource =
 
 parseEvent : EventSource.Event -> Result String BuildEvent
 parseEvent e = Json.Decode.decodeString BuildEvent.decode e.data
+
+scrollToBottom : Effects.Effects Action
+scrollToBottom =
+  Scroll.toBottom
+    |> Task.map (always Noop)
+    |> Effects.task
