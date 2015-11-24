@@ -354,7 +354,7 @@ viewStepState state =
   case state of
     StepStatePending ->
       Html.i
-        [ class "right fa fa-fw fa-beer"
+        [ class "right fa fa-fw fa-circle-o-notch"
         ] []
 
     StepStateRunning ->
