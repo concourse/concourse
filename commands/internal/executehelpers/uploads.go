@@ -50,6 +50,7 @@ func Upload(input Input, excludeIgnored bool, atcRequester *deprecated.AtcReques
 	response, err := atcRequester.HttpClient.Do(uploadBits)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "upload request failed:", err)
+		return
 	}
 
 	defer response.Body.Close()
