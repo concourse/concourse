@@ -2,10 +2,8 @@ module Build where
 
 import Ansi.Log
 import Debug
-import Dict
 import Effects exposing (Effects)
 import EventSource exposing (EventSource)
-import Focus
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Http
@@ -73,22 +71,22 @@ update action model =
       (model, Effects.none)
 
     Event (Ok (BuildEvent.Log origin output)) ->
-      ( { model | stepRoot = Maybe.map (appendLog origin.id output) model.stepRoot }
+      ( { model | stepRoot = updateStep origin.id (appendStepLog output) model.stepRoot }
       , Effects.none
       )
 
     Event (Ok (BuildEvent.Error origin message)) ->
-      ( { model | stepRoot = Maybe.map (setError origin.id message) model.stepRoot }
+      ( { model | stepRoot = updateStep origin.id (setStepError message) model.stepRoot }
       , Effects.none
       )
 
     Event (Ok (BuildEvent.FinishTask origin exitStatus)) ->
-      ( { model | stepRoot = Maybe.map (finishStep origin.id exitStatus) model.stepRoot }
+      ( { model | stepRoot = updateStep origin.id (finishStep exitStatus) model.stepRoot }
       , Effects.none
       )
 
     Event (Ok (BuildEvent.FinishGet origin exitStatus)) ->
-      ( { model | stepRoot = Maybe.map (finishStep origin.id exitStatus) model.stepRoot }
+      ( { model | stepRoot = updateStep origin.id (finishStep exitStatus) model.stepRoot }
       , Effects.none
       )
 
@@ -110,58 +108,28 @@ update action model =
       ({ model | eventSource = Nothing }, Effects.none)
 
 
-appendLog : String -> String -> StepTree.Root -> StepTree.Root
-appendLog id output {tree, foci} =
-  case Dict.get id foci of
-    Nothing ->
-      -- unknown step
-      {tree = tree, foci = foci}
-
-    Just focus ->
-      {tree = Focus.update focus (appendStepLog output) tree, foci = foci}
+updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Maybe StepTree.Root -> Maybe StepTree.Root
+updateStep id update root =
+  Maybe.map (StepTree.update id update) root
 
 appendStepLog : String -> StepTree -> StepTree
 appendStepLog output tree =
-  case tree of
-    StepTree.Task step ->
-      StepTree.Task { step | log = Ansi.Log.update output step.log }
-
-    StepTree.Get step version ->
-      StepTree.Get { step | log = Ansi.Log.update output step.log } version
-
-    _ ->
-      tree
-
-setError : String -> String -> StepTree.Root -> StepTree.Root
-setError id message {tree, foci} =
-  case Dict.get id foci of
-    Nothing ->
-      -- unknown step
-      {tree = tree, foci = foci}
-
-    Just focus ->
-      {tree = Focus.update focus (setStepError message) tree, foci = foci}
+  StepTree.map (\step -> { step | log = Ansi.Log.update output step.log }) tree
 
 setStepError : String -> StepTree -> StepTree
 setStepError message tree =
   StepTree.map (\step -> { step | error = Just message }) tree
 
-finishStep : String -> Int -> StepTree.Root -> StepTree.Root
-finishStep id exitStatus {tree, foci} =
-  case Dict.get id foci of
-    Nothing ->
-      -- unknown step
-      {tree = tree, foci = foci}
-
-    Just focus ->
-      let
-        stepState =
-          if exitStatus == 0 then
-            StepTree.StepStateSucceeded
-          else
-            StepTree.StepStateFailed
-      in
-        {tree = Focus.update focus (setStepState stepState) tree, foci = foci}
+finishStep : Int -> StepTree -> StepTree
+finishStep exitStatus tree =
+  let
+    stepState =
+      if exitStatus == 0 then
+        StepTree.StepStateSucceeded
+      else
+        StepTree.StepStateFailed
+  in
+    setStepState stepState tree
 
 setStepState : StepTree.StepState -> StepTree -> StepTree
 setStepState state tree =
