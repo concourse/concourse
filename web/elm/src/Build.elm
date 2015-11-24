@@ -9,6 +9,7 @@ import Html.Attributes exposing (class)
 import Http
 import Json.Decode
 import Task
+import Time exposing (Time)
 
 import BuildEvent exposing (BuildEvent)
 import BuildPlan exposing (BuildPlan)
@@ -45,13 +46,16 @@ init actions buildId =
       , eventsLoaded = False
       }
   in
-    (model, fetchBuildPlan buildId)
+    (model, fetchBuildPlan 0 buildId)
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
   case action of
     Noop ->
       (model, Effects.none)
+
+    PlanFetched (Err (Http.BadResponse 404 _)) ->
+      (model, fetchBuildPlan Time.second model.buildId)
 
     PlanFetched (Err err) ->
       Debug.log ("failed to fetch plan: " ++ toString err) <|
@@ -172,12 +176,15 @@ view actions model =
       Html.div [class "steps"]
         [ StepTree.view (Signal.forwardTo actions StepTreeAction) root.tree ]
 
-fetchBuildPlan : Int -> Effects.Effects Action
-fetchBuildPlan buildId =
-  Http.get BuildPlan.decode ("/api/v1/builds/" ++ toString buildId ++ "/plan")
-    |> Task.toResult
-    |> Task.map PlanFetched
-    |> Effects.task
+fetchBuildPlan : Time -> Int -> Effects.Effects Action
+fetchBuildPlan delay buildId =
+  let
+    fetchPlan =
+      Http.get BuildPlan.decode ("/api/v1/builds/" ++ toString buildId ++ "/plan")
+        |> Task.toResult
+        |> Task.map PlanFetched
+  in
+    Effects.task (Task.sleep delay `Task.andThen` \_ -> fetchPlan)
 
 subscribeToEvents : Int -> Signal.Address Action -> Effects.Effects Action
 subscribeToEvents build actions =
