@@ -100,6 +100,11 @@ update action model =
       , Effects.none
       )
 
+    Event (Ok (BuildEvent.FinishPut origin exitStatus)) ->
+      ( { model | stepRoot = updateStep origin.id (finishStep exitStatus) model.stepRoot }
+      , Effects.none
+      )
+
     Event (Ok (BuildEvent.BuildStatus _)) ->
       (model, Effects.none)
 
