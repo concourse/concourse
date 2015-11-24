@@ -5,6 +5,7 @@ import Json.Decode as Json exposing ((:=))
 type BuildEvent
   = BuildStatus BuildStatus
   | FinishGet Origin Int
+  | FinishPut Origin Int
   | InitializeTask Origin
   | StartTask Origin
   | FinishTask Origin Int
@@ -68,6 +69,9 @@ decodeEvent e =
 
     "finish-get" ->
       Json.decodeValue (Json.object2 FinishGet ("origin" := decodeOrigin) ("exit_status" := Json.int)) e.value
+
+    "finish-put" ->
+      Json.decodeValue (Json.object2 FinishPut ("origin" := decodeOrigin) ("exit_status" := Json.int)) e.value
 
     unknown ->
       Err ("unknown event type: " ++ unknown)
