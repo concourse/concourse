@@ -320,7 +320,7 @@ viewBuildHeader actions build status =
                 Html.span [] []
             ]
         , Html.h1 []
-            [ Html.a [href ""] [ Html.text (build.jobName ++ " #" ++ build.name) ] ] -- TODO: url
+            [ Html.a [href ("/pipelines/" ++ build.pipelineName ++ "/jobs/" ++ build.jobName)] [ Html.text (build.jobName ++ " #" ++ build.name) ] ]
         , Html.dl [class "build-times"] []
         ]
     , Html.ul [id "builds"] -- TODO: populate
