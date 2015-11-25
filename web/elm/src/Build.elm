@@ -6,7 +6,7 @@ import Effects exposing (Effects)
 import EventSource exposing (EventSource)
 import Html exposing (Html)
 import Html.Events exposing (onClick)
-import Html.Attributes exposing (action, class, href, id, method)
+import Html.Attributes exposing (action, class, classList, href, id, method)
 import Http
 import Json.Decode exposing ((:=))
 import Task
@@ -23,6 +23,7 @@ type alias Model =
   , buildId : Int
   , stepRoot : Maybe StepTree.Root
   , build : Maybe Build
+  , history : Maybe (List Build)
   , eventSource : Maybe EventSource
   , status : BuildEvent.BuildStatus
   , autoScroll : Bool
@@ -36,12 +37,14 @@ type alias Build =
   , status : String
   , jobName : String
   , pipelineName : String
+  , url : String
   }
 
 type Action
   = Noop
   | PlanFetched (Result Http.Error BuildPlan)
   | BuildFetched (Result Http.Error Build)
+  | BuildHistoryFetched (Result Http.Error (List Build))
   | Listening EventSource
   | Opened
   | Errored
@@ -61,6 +64,7 @@ init actions buildId =
       , buildId = buildId
       , stepRoot = Nothing
       , build = Nothing
+      , history = Nothing
       , eventSource = Nothing
       , eventsLoaded = False
       , autoScroll = True
@@ -128,8 +132,15 @@ update action model =
           , status = status
           , buildRunning = running
           }
-        , Effects.none
+        , fetchBuildHistory build.pipelineName build.jobName
         )
+
+    BuildHistoryFetched (Err err) ->
+      Debug.log ("failed to fetch build history: " ++ toString err) <|
+        (model, Effects.none)
+
+    BuildHistoryFetched (Ok history) ->
+      ( { model | history = Just history }, Effects.none)
 
     Listening es ->
       ({ model | eventSource = Just es }, Effects.none)
@@ -255,7 +266,7 @@ view actions model =
   case (model.build, model.stepRoot) of
     (Just build, Just root) ->
       Html.div []
-        [ viewBuildHeader actions build model.status
+        [ viewBuildHeader actions build model.status (Maybe.withDefault [] model.history)
         , Html.div [id "build-body"]
             [ if model.buildRunning || model.eventsLoaded then
                 Html.div [class "steps"]
@@ -267,7 +278,7 @@ view actions model =
 
     (Just build, Nothing) ->
       Html.div []
-        [ viewBuildHeader actions build model.status
+        [ viewBuildHeader actions build model.status (Maybe.withDefault [] model.history)
         , Html.div [id "build-body"] []
         ]
 
@@ -307,8 +318,8 @@ isRunning status =
     _ ->
       False
 
-viewBuildHeader : Signal.Address Action -> Build -> BuildEvent.BuildStatus -> Html
-viewBuildHeader actions build status =
+viewBuildHeader : Signal.Address Action -> Build -> BuildEvent.BuildStatus -> List Build -> Html
+viewBuildHeader actions build status history =
   Html.div [id "page-header", class (statusClass status)]
     [ Html.div [class "build-header"]
         [ Html.div [class "build-actions fr"]
@@ -323,15 +334,20 @@ viewBuildHeader actions build status =
             [ Html.a [href ("/pipelines/" ++ build.pipelineName ++ "/jobs/" ++ build.jobName)] [ Html.text (build.jobName ++ " #" ++ build.name) ] ]
         , Html.dl [class "build-times"] []
         ]
-    , Html.ul [id "builds"] -- TODO: populate
-        [ Html.li [class "succeeded current"]
-            [ Html.a [href ""] [ Html.text "#3" ] ]
-        , Html.li [class "failed"]
-            [ Html.a [href ""] [ Html.text "#2" ] ]
-        , Html.li [class "succeeded"]
-            [ Html.a [href ""] [ Html.text "#1" ] ]
-        ]
+    , Html.ul [id "builds"] (List.map (renderHistory build) history)
     ]
+
+
+renderHistory : Build -> Build -> Html
+renderHistory currentBuild build =
+  Html.li
+    [
+      classList [
+        (build.status, True),
+        ("current", build.name == currentBuild.name)
+      ]
+    ]
+    [ Html.a [href build.url] [ Html.text ("#" ++ build.name) ] ]
 
 fetchBuildPlan : Time -> Int -> Effects.Effects Action
 fetchBuildPlan delay buildId =
@@ -350,14 +366,26 @@ fetchBuild buildId =
     |> Task.map BuildFetched
     |> Effects.task
 
+fetchBuildHistory : String -> String -> Effects.Effects Action
+fetchBuildHistory pipelineName jobName =
+  Http.get decodeBuilds ("/api/v1/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName ++ "/builds")
+    |> Task.toResult
+    |> Task.map BuildHistoryFetched
+    |> Effects.task
+
 decode : Json.Decode.Decoder Build
 decode =
-  Json.Decode.object5 Build
+  Json.Decode.object6 Build
     ("id" := Json.Decode.int)
     ("name" := Json.Decode.string)
     ("status" := Json.Decode.string)
     ("job_name" := Json.Decode.string)
     ("pipeline_name" := Json.Decode.string)
+    ("url" := Json.Decode.string)
+
+decodeBuilds : Json.Decode.Decoder (List Build)
+decodeBuilds =
+  Json.Decode.list decode
 
 subscribeToEvents : Int -> Signal.Address Action -> Effects.Effects Action
 subscribeToEvents build actions =
