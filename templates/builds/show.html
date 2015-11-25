@@ -1,25 +1,9 @@
 {{define "title"}}One Off Build - Concourse{{end}}
 
 {{define "body"}}
-<div id="page-header" class="{{.Build.Status}}">
-  <div class="build-header js-build" data-build-id="{{.Build.ID}}">
+<div id="elm-app"></div>
 
-    {{if .Build.Abortable}}
-    <span class="build-action build-action-abort fr js-abortBuild"><i class="fa fa-times-circle"></i></span>
-    {{end}}
-
-    <h1>build #{{.Build.ID}}</h1>
-
-    <dl class="build-times"></dl>
-  </div>
-</div>
-
-<div id="build-body" class="build-body-noSubHeader">
-  <div id="elm-app"></div>
-</div>
-
-<script src="{{asset "elm.js"}}"></script>
-
+<script src="{{asset "elm.min.js"}}"></script>
 <script type="text/javascript">
 Elm.embed(Elm.Main, document.getElementById("elm-app"), {buildId: {{.Build.ID}}});
 </script>
