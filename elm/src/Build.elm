@@ -24,9 +24,10 @@ type alias Model =
   , stepRoot : Maybe StepTree.Root
   , build : Maybe Build
   , eventSource : Maybe EventSource
-  , eventsLoaded : Bool
-  , autoScroll : Bool
   , status : Maybe BuildEvent.BuildStatus
+  , autoScroll : Bool
+  , buildRunning : Bool
+  , eventsLoaded : Bool
   }
 
 type alias Build =
@@ -64,6 +65,7 @@ init actions buildId =
       , eventsLoaded = False
       , autoScroll = True
       , status = Nothing
+      , buildRunning = False
       }
   in
     (model, Effects.batch [ keepScrolling
@@ -110,9 +112,24 @@ update action model =
         (model, Effects.none)
 
     BuildFetched (Ok build) ->
-      ( { model | build = Just build }
-      , Effects.none
-      )
+      let
+        status = toStatus build.status
+        running =
+          case status of
+            BuildEvent.BuildStatusPending ->
+              True
+            BuildEvent.BuildStatusStarted ->
+              True
+            _ ->
+              False
+      in
+        ( { model
+          | build = Just build
+          , status = Just status
+          , buildRunning = running
+          }
+        , Effects.none
+        )
 
     Listening es ->
       ({ model | eventSource = Just es }, Effects.none)
@@ -159,7 +176,12 @@ update action model =
       )
 
     Event (Ok (BuildEvent.BuildStatus status)) ->
-      ( { model | status = Just status} , Effects.none)
+      ( if model.buildRunning then
+          { model | status = Just status }
+        else
+          model
+      , Effects.none
+      )
 
     Event (Err e) ->
       (model, Debug.log e Effects.none)
@@ -235,8 +257,11 @@ view actions model =
       Html.div []
         [ viewBuildHeader actions build model.status
         , Html.div [id "build-body"]
-            [ Html.div [class "steps"]
-                [ StepTree.view (Signal.forwardTo actions StepTreeAction) root.tree ]
+            [ if model.buildRunning || model.eventsLoaded then
+                Html.div [class "steps"]
+                  [ StepTree.view (Signal.forwardTo actions StepTreeAction) root.tree ]
+              else
+                Html.text "loading..."
             ]
         ]
 
@@ -356,3 +381,13 @@ scrollToBottom =
   Scroll.toBottom
     |> Task.map (always Noop)
     |> Effects.task
+
+toStatus : String -> BuildEvent.BuildStatus
+toStatus str =
+  case str of
+    "started" -> BuildEvent.BuildStatusStarted
+    "succeeded" -> BuildEvent.BuildStatusSucceeded
+    "failed" -> BuildEvent.BuildStatusFailed
+    "errored" -> BuildEvent.BuildStatusErrored
+    "aborted" -> BuildEvent.BuildStatusAborted
+    _ -> Debug.crash ("unknown state: " ++ str)
