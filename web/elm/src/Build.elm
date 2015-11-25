@@ -35,8 +35,8 @@ type alias Build =
   { id : Int
   , name : String
   , status : String
-  , jobName : String
-  , pipelineName : String
+  , jobName : Maybe String
+  , pipelineName : Maybe String
   , url : String
   }
 
@@ -132,7 +132,12 @@ update action model =
           , status = status
           , buildRunning = running
           }
-        , fetchBuildHistory build.pipelineName build.jobName
+        , case (build.pipelineName, build.jobName) of
+          (Just pipelineName, Just jobName) ->
+            fetchBuildHistory pipelineName jobName
+
+          _ ->
+            Effects.none
         )
 
     BuildHistoryFetched (Err err) ->
@@ -267,7 +272,7 @@ view actions model =
     (Just build, Just root) ->
       Html.div []
         [ viewBuildHeader actions build model.status (Maybe.withDefault [] model.history)
-        , Html.div [id "build-body"]
+        , Html.div (id "build-body" :: paddingClass build)
             [ if model.buildRunning || model.eventsLoaded then
                 Html.div [class "steps"]
                   [ StepTree.view (Signal.forwardTo actions StepTreeAction) root.tree ]
@@ -279,11 +284,21 @@ view actions model =
     (Just build, Nothing) ->
       Html.div []
         [ viewBuildHeader actions build model.status (Maybe.withDefault [] model.history)
-        , Html.div [id "build-body"] []
+        , Html.div (id "build-body" :: paddingClass build) []
         ]
 
     _ ->
       Html.text "loading..."
+
+paddingClass : Build -> List Html.Attribute
+paddingClass build =
+  case (build.pipelineName, build.jobName) of
+    (Just pipelineName, Just jobName) ->
+      []
+
+    _ ->
+      [class "build-body-noSubHeader"]
+
 
 statusClass : BuildEvent.BuildStatus -> String
 statusClass status =
@@ -320,23 +335,46 @@ isRunning status =
 
 viewBuildHeader : Signal.Address Action -> Build -> BuildEvent.BuildStatus -> List Build -> Html
 viewBuildHeader actions build status history =
-  Html.div [id "page-header", class (statusClass status)]
-    [ Html.div [class "build-header"]
-        [ Html.div [class "build-actions fr"]
-            [ Html.form [class "trigger-build", method "post", action ("/pipelines/" ++ build.pipelineName ++ "/jobs/" ++ build.jobName ++ "/builds") ]
-                [ Html.button [ class "build-action fr" ] [ Html.i [class "fa fa-plus-circle" ] [] ] ]
-            , if isRunning status then
-                Html.span [class "build-action build-action-abort fr", onClick actions AbortBuild] [ Html.i [class "fa fa-times-circle"] [] ]
-              else
-                Html.span [] []
-            ]
-        , Html.h1 []
-            [ Html.a [href ("/pipelines/" ++ build.pipelineName ++ "/jobs/" ++ build.jobName)] [ Html.text (build.jobName ++ " #" ++ build.name) ] ]
-        , Html.dl [class "build-times"] []
-        ]
-    , Html.ul [id "builds"] (List.map (renderHistory build) history)
-    ]
+  let
+      triggerButton = case (build.pipelineName, build.jobName) of
+        (Just pipelineName, Just jobName) ->
+          let
+              actionUrl = "/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName ++ "/builds"
+          in
+            Html.form
+              [class "trigger-build", method "post", action (actionUrl) ]
+              [ Html.button [ class "build-action fr" ] [ Html.i [class "fa fa-plus-circle" ] [] ] ]
 
+        _ ->
+          Html.div [] []
+
+      abortButton = if isRunning status then
+                      Html.span
+                        [class "build-action build-action-abort fr", onClick actions AbortBuild]
+                        [ Html.i [class "fa fa-times-circle"] [] ]
+                    else
+                      Html.span [] []
+
+      buildTitle = case (build.pipelineName, build.jobName) of
+        (Just pipelineName, Just jobName) ->
+          Html.a [href ("/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName)]
+            [ Html.text (jobName ++ " #" ++ build.name) ]
+
+        _ ->
+          Html.text ("build #" ++ toString build.id)
+
+  in
+    Html.div [id "page-header", class (statusClass status)]
+      [ Html.div [class "build-header"]
+          [ Html.div [class "build-actions fr"]
+              [ triggerButton
+              , abortButton
+              ]
+          , Html.h1 [] [buildTitle]
+          , Html.dl [class "build-times"] []
+          ]
+      , Html.ul [id "builds"] (List.map (renderHistory build) history)
+      ]
 
 renderHistory : Build -> Build -> Html
 renderHistory currentBuild build =
@@ -379,8 +417,8 @@ decode =
     ("id" := Json.Decode.int)
     ("name" := Json.Decode.string)
     ("status" := Json.Decode.string)
-    ("job_name" := Json.Decode.string)
-    ("pipeline_name" := Json.Decode.string)
+    (Json.Decode.maybe ("job_name" := Json.Decode.string))
+    (Json.Decode.maybe ("pipeline_name" := Json.Decode.string))
     ("url" := Json.Decode.string)
 
 decodeBuilds : Json.Decode.Decoder (List Build)
