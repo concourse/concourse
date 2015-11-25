@@ -24,7 +24,7 @@ type alias Model =
   , stepRoot : Maybe StepTree.Root
   , build : Maybe Build
   , eventSource : Maybe EventSource
-  , status : Maybe BuildEvent.BuildStatus
+  , status : BuildEvent.BuildStatus
   , autoScroll : Bool
   , buildRunning : Bool
   , eventsLoaded : Bool
@@ -64,7 +64,7 @@ init actions buildId =
       , eventSource = Nothing
       , eventsLoaded = False
       , autoScroll = True
-      , status = Nothing
+      , status = BuildEvent.BuildStatusPending
       , buildRunning = False
       }
   in
@@ -125,7 +125,7 @@ update action model =
       in
         ( { model
           | build = Just build
-          , status = Just status
+          , status = status
           , buildRunning = running
           }
         , Effects.none
@@ -177,7 +177,7 @@ update action model =
 
     Event (Ok (BuildEvent.BuildStatus status)) ->
       ( if model.buildRunning then
-          { model | status = Just status }
+          { model | status = status }
         else
           model
       , Effects.none
@@ -295,14 +295,29 @@ statusClass status =
     BuildEvent.BuildStatusAborted ->
       "aborted"
 
-viewBuildHeader : Signal.Address Action -> Build -> Maybe BuildEvent.BuildStatus -> Html
+isRunning : BuildEvent.BuildStatus -> Bool
+isRunning status =
+  case status of
+    BuildEvent.BuildStatusPending ->
+      True
+
+    BuildEvent.BuildStatusStarted ->
+      True
+
+    _ ->
+      False
+
+viewBuildHeader : Signal.Address Action -> Build -> BuildEvent.BuildStatus -> Html
 viewBuildHeader actions build status =
-  Html.div [id "page-header", class (statusClass (Maybe.withDefault BuildEvent.BuildStatusPending status))]
+  Html.div [id "page-header", class (statusClass status)]
     [ Html.div [class "build-header"]
         [ Html.div [class "build-actions fr"]
             [ Html.form [class "trigger-build", method "post", action ("/pipelines/" ++ build.pipelineName ++ "/jobs/" ++ build.jobName ++ "/builds") ]
                 [ Html.button [ class "build-action fr" ] [ Html.i [class "fa fa-plus-circle" ] [] ] ]
-            , Html.span [class "build-action build-action-abort fr", onClick actions AbortBuild] [ Html.i [class "fa fa-times-circle"] [] ] -- TODO: only show if started and pending
+            , if isRunning status then
+                Html.span [class "build-action build-action-abort fr", onClick actions AbortBuild] [ Html.i [class "fa fa-times-circle"] [] ]
+              else
+                Html.span [] []
             ]
         , Html.h1 []
             [ Html.a [href ""] [ Html.text (build.jobName ++ " #" ++ build.name) ] ] -- TODO: url
