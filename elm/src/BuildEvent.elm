@@ -31,10 +31,12 @@ type StepType
   | StepTypePut
 
 type BuildStatus
-  = BuildStatusStarted
+  = BuildStatusPending
+  | BuildStatusStarted
   | BuildStatusSucceeded
   | BuildStatusFailed
   | BuildStatusErrored
+  | BuildStatusAborted
 
 decode : Json.Decoder BuildEvent
 decode = Json.customDecoder decodeEnvelope decodeEvent
@@ -84,6 +86,7 @@ decodeStatus =
       "succeeded" -> Ok BuildStatusSucceeded
       "failed" -> Ok BuildStatusFailed
       "errored" -> Ok BuildStatusErrored
+      "aborted" -> Ok BuildStatusAborted
       unknown -> Err ("unknown build status: " ++ unknown)
 
 decodeOrigin : Json.Decoder Origin
