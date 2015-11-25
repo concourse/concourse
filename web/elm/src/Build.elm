@@ -35,9 +35,13 @@ type alias Build =
   { id : Int
   , name : String
   , status : String
-  , jobName : Maybe String
-  , pipelineName : Maybe String
+  , job: Maybe Job
   , url : String
+  }
+
+type alias Job =
+  { name : String
+  , pipelineName : String
   }
 
 type Action
@@ -132,12 +136,12 @@ update action model =
           , status = status
           , buildRunning = running
           }
-        , case (build.pipelineName, build.jobName) of
-          (Just pipelineName, Just jobName) ->
-            fetchBuildHistory pipelineName jobName
+        , case build.job of
+            Just job ->
+              fetchBuildHistory job
 
-          _ ->
-            Effects.none
+            _ ->
+              Effects.none
         )
 
     BuildHistoryFetched (Err err) ->
@@ -292,8 +296,8 @@ view actions model =
 
 paddingClass : Build -> List Html.Attribute
 paddingClass build =
-  case (build.pipelineName, build.jobName) of
-    (Just pipelineName, Just jobName) ->
+  case build.job of
+    Just _ ->
       []
 
     _ ->
@@ -336,10 +340,10 @@ isRunning status =
 viewBuildHeader : Signal.Address Action -> Build -> BuildEvent.BuildStatus -> List Build -> Html
 viewBuildHeader actions build status history =
   let
-      triggerButton = case (build.pipelineName, build.jobName) of
-        (Just pipelineName, Just jobName) ->
+      triggerButton = case build.job of
+        Just {name, pipelineName} ->
           let
-              actionUrl = "/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName ++ "/builds"
+              actionUrl = "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name ++ "/builds"
           in
             Html.form
               [class "trigger-build", method "post", action (actionUrl) ]
@@ -355,10 +359,10 @@ viewBuildHeader actions build status history =
                     else
                       Html.span [] []
 
-      buildTitle = case (build.pipelineName, build.jobName) of
-        (Just pipelineName, Just jobName) ->
-          Html.a [href ("/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName)]
-            [ Html.text (jobName ++ " #" ++ build.name) ]
+      buildTitle = case build.job of
+        Just {name, pipelineName} ->
+          Html.a [href ("/pipelines/" ++ pipelineName ++ "/jobs/" ++ name)]
+            [ Html.text (name ++ " #" ++ build.name) ]
 
         _ ->
           Html.text ("build #" ++ toString build.id)
@@ -404,21 +408,22 @@ fetchBuild buildId =
     |> Task.map BuildFetched
     |> Effects.task
 
-fetchBuildHistory : String -> String -> Effects.Effects Action
-fetchBuildHistory pipelineName jobName =
-  Http.get decodeBuilds ("/api/v1/pipelines/" ++ pipelineName ++ "/jobs/" ++ jobName ++ "/builds")
+fetchBuildHistory : Job -> Effects.Effects Action
+fetchBuildHistory job =
+  Http.get decodeBuilds ("/api/v1/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.name ++ "/builds")
     |> Task.toResult
     |> Task.map BuildHistoryFetched
     |> Effects.task
 
 decode : Json.Decode.Decoder Build
 decode =
-  Json.Decode.object6 Build
+  Json.Decode.object5 Build
     ("id" := Json.Decode.int)
     ("name" := Json.Decode.string)
     ("status" := Json.Decode.string)
-    (Json.Decode.maybe ("job_name" := Json.Decode.string))
-    (Json.Decode.maybe ("pipeline_name" := Json.Decode.string))
+    (Json.Decode.maybe (Json.Decode.object2 Job
+      ("job_name" := Json.Decode.string)
+      ("pipeline_name" := Json.Decode.string)))
     ("url" := Json.Decode.string)
 
 decodeBuilds : Json.Decode.Decoder (List Build)
