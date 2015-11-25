@@ -110,6 +110,12 @@ properties:
       `check_every` on the resource config.
     default: 1m
 
+  atc.old_resource_grace_period:
+    description: |
+      How long to cache the result of a get step after a newer version of the
+      resource is found. Use Go duration format (1m = 1 minute).
+    default: 5m
+
   atc.yeller.api_key:
     description: |
       If configured, errors emitted to the logs will also be emitted to Yeller.
