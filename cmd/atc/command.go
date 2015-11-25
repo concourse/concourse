@@ -69,6 +69,7 @@ type ATCCommand struct {
 	SessionSigningKey FileFlag `long:"session-signing-key" description:"File containing an RSA private key, used to sign session tokens."`
 
 	ResourceCheckingInterval time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	OldResourceGracePeriod   time.Duration `long:"old-resource-grace-period" default:"5m" description:"How long to cache the result of a get step after a newer version of the resource is found."`
 
 	CLIArtifactsDir DirFlag `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
 
@@ -234,6 +235,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 				workerClient,
 				sqlDB,
 				pipelineDBFactory,
+				cmd.OldResourceGracePeriod,
 			),
 			sqlDB,
 			clock.NewClock(),
