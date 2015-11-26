@@ -11,6 +11,8 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
+const LatestVersionTTL = 87600 * time.Hour
+
 //go:generate counterfeiter . BaggageCollectorDB
 
 type BaggageCollectorDB interface {
@@ -99,7 +101,7 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 
 		ttlForVol := bc.oldResourceGracePeriod
 		if latestVersions[hashKey] {
-			ttlForVol = 0 // live forever
+			ttlForVol = LatestVersionTTL // live for a century
 		}
 
 		if volumeToExpire.TTL == ttlForVol {

@@ -11,7 +11,7 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-const resourceCacheTTL = 0
+const resourceCacheTTL = 87600 * time.Hour
 const reapExtraVolumeTTL = time.Minute
 
 //go:generate counterfeiter . CacheIdentifier

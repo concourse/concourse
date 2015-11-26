@@ -30,6 +30,7 @@ var _ = Describe("Baggage Collector", func() {
 		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
 
 		expectedOldResourceGracePeriod = 4 * time.Minute
+		expectedLatestVersionTTL       = 87600 * time.Hour
 
 		baggageCollector lostandfound.BaggageCollector
 	)
@@ -210,28 +211,28 @@ var _ = Describe("Baggage Collector", func() {
 				volumeData: []db.Volume{
 					{
 						WorkerName:      "some-worker",
-						TTL:             0,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-1",
 						ResourceVersion: atc.Version{"version": "older"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             0,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-2",
 						ResourceVersion: atc.Version{"version": "latest"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             0,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-3",
 						ResourceVersion: atc.Version{"version": "older"},
 						ResourceHash:    `some-b-type{"some":"b-source"}`,
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             0,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-4",
 						ResourceVersion: atc.Version{"version": "latest"},
 						ResourceHash:    `some-b-type{"some":"b-source"}`,
@@ -279,21 +280,21 @@ var _ = Describe("Baggage Collector", func() {
 				volumeData: []db.Volume{
 					{
 						WorkerName:      "some-worker",
-						TTL:             0,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-1",
 						ResourceVersion: atc.Version{"version": "older"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             0,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-2",
 						ResourceVersion: atc.Version{"version": "latest"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             0,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-3",
 						ResourceVersion: atc.Version{"version": "latest-in-b-but-not-yet-in-a"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
@@ -326,7 +327,7 @@ var _ = Describe("Baggage Collector", func() {
 				volumeData: []db.Volume{
 					{
 						WorkerName:      "some-worker",
-						TTL:             0,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-1",
 						ResourceVersion: atc.Version{"version": "older"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
@@ -340,7 +341,7 @@ var _ = Describe("Baggage Collector", func() {
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             0,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-3",
 						ResourceVersion: atc.Version{"version": "latest-but-disabled"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
@@ -348,7 +349,7 @@ var _ = Describe("Baggage Collector", func() {
 				},
 				expectedTTLs: map[string]time.Duration{
 					"some-volume-handle-1": expectedOldResourceGracePeriod,
-					"some-volume-handle-2": 0,
+					"some-volume-handle-2": expectedLatestVersionTTL,
 					"some-volume-handle-3": expectedOldResourceGracePeriod,
 				},
 			}),
@@ -397,7 +398,7 @@ var _ = Describe("Baggage Collector", func() {
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             0,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-4",
 						ResourceVersion: atc.Version{"version": "latest"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
