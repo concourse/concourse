@@ -10,7 +10,6 @@ endpoints and subscribing to events.
 @docs close
 -}
 
-import Time
 import Task
 import Native.EventSource
 
