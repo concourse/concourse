@@ -1413,7 +1413,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) error {
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		INSERT INTO containers (handle, name, pipeline_name, build_id, type, worker_name, expires_at, check_type, check_source, step_location, working_directory, env_variables)
+		INSERT INTO containers (handle, name, pipeline_name, build_id, type, worker_name, expires_at, check_type, check_source, plan_id, working_directory, env_variables)
 		VALUES ($1, $2, $3, $4, $5, $6,  NOW() + $7::INTERVAL, $8, $9, $10, $11, $12)
 		`,
 		container.Handle,
