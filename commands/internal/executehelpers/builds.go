@@ -18,6 +18,8 @@ func CreateBuild(
 	tags []string,
 	target string,
 ) (atc.Build, error) {
+	fact := atc.NewPlanFactory(0)
+
 	if err := config.Validate(); err != nil {
 		return atc.Build{}, err
 	}
@@ -28,7 +30,7 @@ func CreateBuild(
 	}
 
 	buildInputs := atc.AggregatePlan{}
-	for i, input := range inputs {
+	for _, input := range inputs {
 		var getPlan atc.GetPlan
 		if input.Path != "" {
 			readPipe, err := atcRequester.CreateRequest(
@@ -63,36 +65,21 @@ func CreateBuild(
 			}
 		}
 
-		buildInputs = append(buildInputs, atc.Plan{
-			Location: &atc.Location{
-				// offset by 2 because aggregate gets parallelgroup ID 1
-				ID:            uint(i) + 2,
-				ParentID:      0,
-				ParallelGroup: 1,
-			},
-			Get: &getPlan,
-		})
+		buildInputs = append(buildInputs, fact.NewPlan(getPlan))
 	}
 
-	taskPlan := atc.Plan{
-		Location: &atc.Location{
-			// offset by 1 because aggregate gets parallelgroup ID 1
-			ID:       uint(len(inputs)) + 2,
-			ParentID: 0,
-		},
-		Task: &atc.TaskPlan{
-			Name:       "one-off",
-			Privileged: privileged,
-			Config:     &config,
-		},
-	}
+	taskPlan := fact.NewPlan(atc.TaskPlan{
+		Name:       "one-off",
+		Privileged: privileged,
+		Config:     &config,
+	})
 
 	if len(tags) != 0 {
 		taskPlan.Task.Tags = tags
 	}
 
 	buildOutputs := atc.AggregatePlan{}
-	for i, output := range outputs {
+	for _, output := range outputs {
 		writePipe, err := atcRequester.CreateRequest(
 			atc.WritePipe,
 			rata.Params{"pipe_id": output.Pipe.ID},
@@ -113,47 +100,28 @@ func CreateBuild(
 			source["authorization"] = targetProps.Token.Type + " " + targetProps.Token.Value
 		}
 
-		buildOutputs = append(buildOutputs, atc.Plan{
-			Location: &atc.Location{
-				ID:            taskPlan.Location.ID + 2 + uint(i),
-				ParentID:      0,
-				ParallelGroup: taskPlan.Location.ID + 1,
-			},
-			Put: &atc.PutPlan{
-				Name:   output.Name,
-				Type:   "archive",
-				Source: source,
-				Params: params,
-			},
-		})
+		buildOutputs = append(buildOutputs, fact.NewPlan(atc.PutPlan{
+			Name:   output.Name,
+			Type:   "archive",
+			Source: source,
+			Params: params,
+		}))
 	}
 
 	var plan atc.Plan
 	if len(buildOutputs) == 0 {
-		plan = atc.Plan{
-			OnSuccess: &atc.OnSuccessPlan{
-				Step: atc.Plan{
-					Aggregate: &buildInputs,
-				},
-				Next: taskPlan,
-			},
-		}
+		plan = fact.NewPlan(atc.OnSuccessPlan{
+			Step: fact.NewPlan(buildInputs),
+			Next: taskPlan,
+		})
 	} else {
-		plan = atc.Plan{
-			OnSuccess: &atc.OnSuccessPlan{
-				Step: atc.Plan{
-					Aggregate: &buildInputs,
-				},
-				Next: atc.Plan{
-					Ensure: &atc.EnsurePlan{
-						Step: taskPlan,
-						Next: atc.Plan{
-							Aggregate: &buildOutputs,
-						},
-					},
-				},
-			},
-		}
+		plan = fact.NewPlan(atc.OnSuccessPlan{
+			Step: fact.NewPlan(buildInputs),
+			Next: fact.NewPlan(atc.EnsurePlan{
+				Step: taskPlan,
+				Next: fact.NewPlan(buildOutputs),
+			}),
+		})
 	}
 
 	return client.CreateBuild(plan)
