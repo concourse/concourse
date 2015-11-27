@@ -4,6 +4,7 @@ module StepTree
   , HookedStep
   , Step
   , StepID
+  , StepName
   , StepState(..)
   , Action
   , init
