@@ -20,7 +20,7 @@ func CreateBuild(
 	tags []string,
 	target string,
 ) (atc.Build, error) {
-	pf := atc.NewPlanFactory(time.Now().Unix())
+	fact := atc.NewPlanFactory(time.Now().Unix())
 
 	if err := config.Validate(); err != nil {
 		return atc.Build{}, err
@@ -68,10 +68,10 @@ func CreateBuild(
 			}
 		}
 
-		buildInputs = append(buildInputs, pf.NewPlan(getPlan))
+		buildInputs = append(buildInputs, fact.NewPlan(getPlan))
 	}
 
-	taskPlan := pf.NewPlan(atc.TaskPlan{
+	taskPlan := fact.NewPlan(atc.TaskPlan{
 		Name:       "one-off",
 		Privileged: privileged,
 		Config:     &config,
@@ -103,7 +103,7 @@ func CreateBuild(
 			source["authorization"] = targetProps.Token.Type + " " + targetProps.Token.Value
 		}
 
-		buildOutputs = append(buildOutputs, pf.NewPlan(atc.PutPlan{
+		buildOutputs = append(buildOutputs, fact.NewPlan(atc.PutPlan{
 			Name:   output.Name,
 			Type:   "archive",
 			Source: source,
@@ -113,16 +113,16 @@ func CreateBuild(
 
 	var plan atc.Plan
 	if len(buildOutputs) == 0 {
-		plan = pf.NewPlan(atc.OnSuccessPlan{
-			Step: pf.NewPlan(buildInputs),
+		plan = fact.NewPlan(atc.OnSuccessPlan{
+			Step: fact.NewPlan(buildInputs),
 			Next: taskPlan,
 		})
 	} else {
-		plan = pf.NewPlan(atc.OnSuccessPlan{
-			Step: pf.NewPlan(buildInputs),
-			Next: pf.NewPlan(atc.EnsurePlan{
+		plan = fact.NewPlan(atc.OnSuccessPlan{
+			Step: fact.NewPlan(buildInputs),
+			Next: fact.NewPlan(atc.EnsurePlan{
 				Step: taskPlan,
-				Next: pf.NewPlan(buildOutputs),
+				Next: fact.NewPlan(buildOutputs),
 			}),
 		})
 	}
