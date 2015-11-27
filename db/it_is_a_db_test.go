@@ -475,14 +475,16 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 		It("can create and get a container info object", func() {
 			expectedContainer := db.Container{
 				ContainerIdentifier: db.ContainerIdentifier{
-					Name:         "some-container",
-					PipelineName: "some-pipeline",
-					BuildID:      123,
-					Type:         db.ContainerTypeTask,
-					WorkerName:   "some-worker",
-					CheckType:    "some-type",
-					CheckSource:  atc.Source{"uri": "http://example.com"},
-					PlanID:       "some-plan-id",
+					Name:                 "some-container",
+					PipelineName:         "some-pipeline",
+					BuildID:              123,
+					Type:                 db.ContainerTypeTask,
+					WorkerName:           "some-worker",
+					WorkingDirectory:     "tmp/build/some-guid",
+					CheckType:            "some-type",
+					CheckSource:          atc.Source{"uri": "http://example.com"},
+					PlanID:               "some-plan-id",
+					EnvironmentVariables: []string{"VAR1=val1", "VAR2=val2"},
 				},
 				Handle: "some-handle",
 			}
@@ -506,9 +508,11 @@ func dbSharedBehavior(database *dbSharedBehaviorInput) func() {
 			Expect(actualContainer.BuildID).To(Equal(123))
 			Expect(actualContainer.Type).To(Equal(db.ContainerTypeTask))
 			Expect(actualContainer.WorkerName).To(Equal("some-worker"))
+			Expect(actualContainer.WorkingDirectory).To(Equal("tmp/build/some-guid"))
 			Expect(actualContainer.CheckType).To(Equal("some-type"))
 			Expect(actualContainer.CheckSource).To(Equal(atc.Source{"uri": "http://example.com"}))
 			Expect(actualContainer.PlanID).To(Equal(atc.PlanID("some-plan-id")))
+			Expect(actualContainer.EnvironmentVariables).To(Equal([]string{"VAR1=val1", "VAR2=val2"}))
 
 			By("returning found = false when getting by a handle that does not exist")
 			_, found, err = database.GetContainer("nope")

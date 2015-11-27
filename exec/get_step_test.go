@@ -35,6 +35,10 @@ var _ = Describe("GardenFactory", func() {
 		identifier = worker.Identifier{
 			Name: "some-session-id",
 		}
+		expectedIdentifier = worker.Identifier{
+			Name:             "some-session-id",
+			WorkingDirectory: "/tmp/build/get",
+		}
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
@@ -131,7 +135,7 @@ var _ = Describe("GardenFactory", func() {
 				_, sm, sid, typ, tags, cacheID := fakeTracker.InitWithCacheArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
-					ID:        identifier,
+					ID:        expectedIdentifier,
 					Ephemeral: false,
 				}))
 				Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))

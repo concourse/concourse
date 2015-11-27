@@ -130,13 +130,15 @@ var _ = Describe("Worker", func() {
 			logger = lagertest.NewTestLogger("test")
 
 			id = Identifier{
-				Name:         "some-name",
-				PipelineName: "some-pipeline",
-				BuildID:      42,
-				Type:         db.ContainerTypeGet,
-				CheckType:    "some-check-type",
-				CheckSource:  atc.Source{"some": "source"},
-				PlanID:       "three",
+				Name:                 "some-name",
+				PipelineName:         "some-pipeline",
+				BuildID:              42,
+				Type:                 db.ContainerTypeGet,
+				WorkingDirectory:     "/tmp/build/some-guid",
+				CheckType:            "some-check-type",
+				CheckSource:          atc.Source{"some": "source"},
+				PlanID:               "three",
+				EnvironmentVariables: []string{"VAR1=val1"},
 			}
 		})
 

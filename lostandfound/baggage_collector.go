@@ -11,7 +11,7 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-const NoRelevantVersionsTTL = 10 * time.Minute
+const LatestVersionTTL = 87600 * time.Hour
 
 //go:generate counterfeiter . BaggageCollectorDB
 
@@ -28,32 +28,33 @@ type BaggageCollector interface {
 }
 
 type baggageCollector struct {
-	logger            lager.Logger
-	workerClient      worker.Client
-	db                BaggageCollectorDB
-	pipelineDBFactory db.PipelineDBFactory
+	logger                 lager.Logger
+	workerClient           worker.Client
+	db                     BaggageCollectorDB
+	pipelineDBFactory      db.PipelineDBFactory
+	oldResourceGracePeriod time.Duration
 }
 
 func (bc *baggageCollector) Collect() error {
 	bc.logger.Info("collect")
 
-	resourceHashVersions, err := bc.getResourceHashVersions()
+	latestVersions, err := bc.getLatestVersionSet()
 	if err != nil {
 		return err
 	}
 
-	err = bc.expireVolumes(resourceHashVersions)
+	err = bc.expireVolumes(latestVersions)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-type resourceHashVersion map[string]int
+type hashedVersionSet map[string]bool
 
-func (bc *baggageCollector) getResourceHashVersions() (resourceHashVersion, error) {
+func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 	bc.logger.Session("ranking-resource-versions")
-	resourceHash := resourceHashVersion{}
+	latestVersions := hashedVersionSet{}
 
 	pipelines, err := bc.db.GetAllActivePipelines()
 	if err != nil {
@@ -66,50 +67,28 @@ func (bc *baggageCollector) getResourceHashVersions() (resourceHashVersion, erro
 		pipelineResources := pipeline.Config.Resources
 
 		for _, pipelineResource := range pipelineResources {
-			pipelineResourceVersions, _, err := pipelineDB.GetResourceVersions(pipelineResource.Name, db.Page{Limit: 5})
+			pipelineResourceVersions, _, err := pipelineDB.GetResourceVersions(pipelineResource.Name, db.Page{Limit: 2})
 			if err != nil {
 				bc.logger.Error("could-not-get-resource-history", err)
 				return nil, err
 			}
 
-			versionRank := 0
 			for _, pipelineResourceVersion := range pipelineResourceVersions {
 				if pipelineResourceVersion.Enabled {
-
 					version, _ := json.Marshal(pipelineResourceVersion.VersionedResource.Version)
 					hashKey := string(version) + resource.GenerateResourceHash(pipelineResource.Source, pipelineResource.Type)
-
-					if rank, ok := resourceHash[hashKey]; ok {
-						resourceHash[hashKey] = min(rank, versionRank)
-					} else {
-						resourceHash[hashKey] = versionRank
-					}
-
-					versionRank++
+					latestVersions[hashKey] = true
+					break
 				}
 			}
 		}
 	}
 
-	return resourceHash, nil
+	return latestVersions, nil
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func (bc *baggageCollector) expireVolumes(resourceHashVersions resourceHashVersion) error {
+func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error {
 	volumesToExpire, err := bc.db.GetVolumes()
-	rankToTTL := map[int]time.Duration{
-		0: 24 * time.Hour,
-		1: 8 * time.Hour,
-		2: 4 * time.Hour,
-		3: 2 * time.Hour,
-		4: 1 * time.Hour,
-	}
 
 	if err != nil {
 		bc.logger.Error("could-not-get-volume-data", err)
@@ -119,18 +98,14 @@ func (bc *baggageCollector) expireVolumes(resourceHashVersions resourceHashVersi
 	for _, volumeToExpire := range volumesToExpire {
 		version, _ := json.Marshal(volumeToExpire.ResourceVersion)
 		hashKey := string(version) + volumeToExpire.ResourceHash
-		if volumeToExpire.TTL == NoRelevantVersionsTTL {
-			continue
+
+		ttlForVol := bc.oldResourceGracePeriod
+		if latestVersions[hashKey] {
+			ttlForVol = LatestVersionTTL // live for a century
 		}
 
-		ttlForVol := NoRelevantVersionsTTL
-
-		if rank, ok := resourceHashVersions[hashKey]; ok {
-			if rankToTTL[rank] == volumeToExpire.TTL {
-				continue
-			} else {
-				ttlForVol = rankToTTL[rank]
-			}
+		if volumeToExpire.TTL == ttlForVol {
+			continue
 		}
 
 		volumeWorker, err := bc.workerClient.GetWorker(volumeToExpire.WorkerName)
@@ -182,11 +157,13 @@ func NewBaggageCollector(
 	workerClient worker.Client,
 	db BaggageCollectorDB,
 	pipelineDBFactory db.PipelineDBFactory,
+	oldResourceGracePeriod time.Duration,
 ) BaggageCollector {
 	return &baggageCollector{
-		logger:            logger,
-		workerClient:      workerClient,
-		db:                db,
-		pipelineDBFactory: pipelineDBFactory,
+		logger:                 logger,
+		workerClient:           workerClient,
+		db:                     db,
+		pipelineDBFactory:      pipelineDBFactory,
+		oldResourceGracePeriod: oldResourceGracePeriod,
 	}
 }

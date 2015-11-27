@@ -29,6 +29,9 @@ var _ = Describe("Baggage Collector", func() {
 		fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
 		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
 
+		expectedOldResourceGracePeriod = 4 * time.Minute
+		expectedLatestVersionTTL       = 87600 * time.Hour
+
 		baggageCollector lostandfound.BaggageCollector
 	)
 
@@ -60,7 +63,13 @@ var _ = Describe("Baggage Collector", func() {
 					fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
 					fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 
-					baggageCollector = lostandfound.NewBaggageCollector(baggageCollectorLogger, fakeWorkerClient, fakeBaggageCollectorDB, fakePipelineDBFactory)
+					baggageCollector = lostandfound.NewBaggageCollector(
+						baggageCollectorLogger,
+						fakeWorkerClient,
+						fakeBaggageCollectorDB,
+						fakePipelineDBFactory,
+						expectedOldResourceGracePeriod,
+					)
 
 					var savedPipelines []db.SavedPipeline
 					fakePipelineDBs := make(map[string]*dbfakes.FakePipelineDB)
@@ -81,31 +90,31 @@ var _ = Describe("Baggage Collector", func() {
 
 						fakePipelineDB := new(dbfakes.FakePipelineDB)
 
-						resourceVersionsMap := make(map[string][]db.SavedVersionedResource)
-						for _, resourceInfo := range data {
-							enabled := make([]bool, len(resourceInfo.versions))
-							for i, _ := range enabled {
-								enabled[i] = true
-							}
-							for _, i := range resourceInfo.versionsToDisable {
-								enabled[i] = false
-							}
+						savedVersionsForEachResource := make(map[string][]db.SavedVersionedResource)
 
-							var resourceVersions []db.SavedVersionedResource
-							for i := len(resourceInfo.versions) - 1; i >= len(resourceInfo.versions)-5 && i >= 0; i-- {
-								resourceVersions = append(resourceVersions, db.SavedVersionedResource{
-									Enabled: enabled[i],
+						for _, resourceInfo := range data {
+							var savedVersions []db.SavedVersionedResource
+							for _, version := range resourceInfo.versions {
+								savedVersions = append(savedVersions, db.SavedVersionedResource{
+									Enabled: true,
 									VersionedResource: db.VersionedResource{
-										Version: db.Version(resourceInfo.versions[i]),
+										Version: db.Version(version),
 									},
 								})
 							}
-							resourceVersionsMap[resourceInfo.config.Name] = resourceVersions
+							for _, i := range resourceInfo.versionsToDisable {
+								savedVersions[i].Enabled = false
+							}
+							savedVersionsForEachResource[resourceInfo.config.Name] = savedVersions
 						}
 
 						fakePipelineDB.GetResourceVersionsStub = func(resource string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, error) {
-							Expect(page).To(Equal(db.Page{Limit: 5}))
-							return resourceVersionsMap[resource], db.Pagination{}, nil
+							Expect(page).To(Equal(db.Page{Limit: 2}))
+							savedVersions := savedVersionsForEachResource[resource]
+							return []db.SavedVersionedResource{
+								savedVersions[len(savedVersions)-1],
+								savedVersions[len(savedVersions)-2],
+							}, db.Pagination{}, nil
 						}
 
 						fakePipelineDBs[name] = fakePipelineDB
@@ -202,36 +211,36 @@ var _ = Describe("Baggage Collector", func() {
 				volumeData: []db.Volume{
 					{
 						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-1",
 						ResourceVersion: atc.Version{"version": "older"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-2",
 						ResourceVersion: atc.Version{"version": "latest"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-3",
 						ResourceVersion: atc.Version{"version": "older"},
 						ResourceHash:    `some-b-type{"some":"b-source"}`,
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-4",
 						ResourceVersion: atc.Version{"version": "latest"},
 						ResourceHash:    `some-b-type{"some":"b-source"}`,
 					},
 				},
 				expectedTTLs: map[string]time.Duration{
-					"some-volume-handle-1": 8 * time.Hour,
-					"some-volume-handle-3": 8 * time.Hour,
+					"some-volume-handle-1": expectedOldResourceGracePeriod,
+					"some-volume-handle-3": expectedOldResourceGracePeriod,
 				},
 			}),
 			Entry("it does not update ttls for the latest versions of a resource on each pipeline", baggageCollectionExample{
@@ -271,31 +280,31 @@ var _ = Describe("Baggage Collector", func() {
 				volumeData: []db.Volume{
 					{
 						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-1",
 						ResourceVersion: atc.Version{"version": "older"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-2",
 						ResourceVersion: atc.Version{"version": "latest"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-3",
 						ResourceVersion: atc.Version{"version": "latest-in-b-but-not-yet-in-a"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
 					},
 				},
 				expectedTTLs: map[string]time.Duration{
-					"some-volume-handle-1": 8 * time.Hour,
+					"some-volume-handle-1": expectedOldResourceGracePeriod,
 				},
 			}),
-			Entry("it sets the ttls of disabled versions to soon", baggageCollectionExample{
+			Entry("it sets the ttls of disabled versions to soon, and makes the most recent enabled version immortal", baggageCollectionExample{
 				pipelineData: map[string][]resourceConfigAndVersions{
 					"pipeline-a": []resourceConfigAndVersions{
 						{
@@ -308,7 +317,57 @@ var _ = Describe("Baggage Collector", func() {
 							},
 							versions: []atc.Version{
 								{"version": "older"},
-								{"version": "older-disabled-version"},
+								{"version": "latest-enabled-version"},
+								{"version": "latest-but-disabled"},
+							},
+							versionsToDisable: []int{2},
+						},
+					},
+				},
+				volumeData: []db.Volume{
+					{
+						WorkerName:      "some-worker",
+						TTL:             expectedLatestVersionTTL,
+						Handle:          "some-volume-handle-1",
+						ResourceVersion: atc.Version{"version": "older"},
+						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					},
+					{
+						WorkerName:      "some-worker",
+						TTL:             expectedOldResourceGracePeriod,
+						Handle:          "some-volume-handle-2",
+						ResourceVersion: atc.Version{"version": "latest-enabled-version"},
+						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					},
+					{
+						WorkerName:      "some-worker",
+						TTL:             expectedLatestVersionTTL,
+						Handle:          "some-volume-handle-3",
+						ResourceVersion: atc.Version{"version": "latest-but-disabled"},
+						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					},
+				},
+				expectedTTLs: map[string]time.Duration{
+					"some-volume-handle-1": expectedOldResourceGracePeriod,
+					"some-volume-handle-2": expectedLatestVersionTTL,
+					"some-volume-handle-3": expectedOldResourceGracePeriod,
+				},
+			}),
+			Entry("it doesn't update the TTL if it's already correct", baggageCollectionExample{
+				pipelineData: map[string][]resourceConfigAndVersions{
+					"pipeline-a": []resourceConfigAndVersions{
+						{
+							config: atc.ResourceConfig{
+								Name: "resource-a",
+								Type: "some-a-type",
+								Source: atc.Source{
+									"some": "a-source",
+								},
+							},
+							versions: []atc.Version{
+								{"version": "oldest"},
+								{"version": "even-older-and-disabled"},
+								{"version": "older"},
 								{"version": "latest"},
 							},
 							versionsToDisable: []int{1},
@@ -318,153 +377,35 @@ var _ = Describe("Baggage Collector", func() {
 				volumeData: []db.Volume{
 					{
 						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
-						Handle:          "some-volume-handle-2",
-						ResourceVersion: atc.Version{"version": "latest"},
+						TTL:             expectedOldResourceGracePeriod,
+						Handle:          "some-volume-handle-1",
+						ResourceVersion: atc.Version{"version": "oldest"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
-						Handle:          "some-volume-handle-1",
+						TTL:             expectedOldResourceGracePeriod,
+						Handle:          "some-volume-handle-2",
+						ResourceVersion: atc.Version{"version": "even-older-and-disabled"},
+						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					},
+					{
+						WorkerName:      "some-worker",
+						TTL:             expectedOldResourceGracePeriod,
+						Handle:          "some-volume-handle-3",
 						ResourceVersion: atc.Version{"version": "older"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
 					},
 					{
 						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
-						Handle:          "some-volume-handle-3",
-						ResourceVersion: atc.Version{"version": "older-disabled-version"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
-					},
-				},
-				expectedTTLs: map[string]time.Duration{
-					"some-volume-handle-1": 8 * time.Hour,
-					"some-volume-handle-3": lostandfound.NoRelevantVersionsTTL,
-				},
-			}),
-			Entry("it only updates ttls if they have a new value based on the rank", baggageCollectionExample{
-				pipelineData: map[string][]resourceConfigAndVersions{
-					"pipeline-a": []resourceConfigAndVersions{
-						{
-							config: atc.ResourceConfig{
-								Name: "resource-a",
-								Type: "some-a-type",
-								Source: atc.Source{
-									"some": "a-source",
-								},
-							},
-							versions: []atc.Version{
-								{"version": "1"},
-								{"version": "2"},
-								{"version": "3"},
-								{"version": "4"},
-								{"version": "5"},
-								{"version": "6"},
-								{"version": "7"},
-							},
-						},
-					},
-				},
-				volumeData: []db.Volume{
-					{
-						WorkerName:      "some-worker",
-						TTL:             10 * time.Minute,
-						Handle:          "some-volume-handle-1",
-						ResourceVersion: atc.Version{"version": "1"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
-					},
-					{
-						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
-						Handle:          "some-volume-handle-2",
-						ResourceVersion: atc.Version{"version": "2"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
-					},
-					{
-						WorkerName:      "some-worker",
-						TTL:             2 * time.Hour,
-						Handle:          "some-volume-handle-3",
-						ResourceVersion: atc.Version{"version": "3"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
-					},
-					{
-						WorkerName:      "some-worker",
-						TTL:             4 * time.Hour,
+						TTL:             expectedLatestVersionTTL,
 						Handle:          "some-volume-handle-4",
-						ResourceVersion: atc.Version{"version": "4"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
-					},
-					{
-						WorkerName:      "some-worker",
-						TTL:             8 * time.Hour,
-						Handle:          "some-volume-handle-5",
-						ResourceVersion: atc.Version{"version": "5"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
-					},
-					{
-						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
-						Handle:          "some-volume-handle-6",
-						ResourceVersion: atc.Version{"version": "6"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
-					},
-					{
-						WorkerName:      "some-worker",
-						TTL:             8 * time.Hour,
-						Handle:          "some-volume-handle-7",
-						ResourceVersion: atc.Version{"version": "7"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
-					},
-				},
-				expectedTTLs: map[string]time.Duration{
-					"some-volume-handle-2": 10 * time.Minute,
-					"some-volume-handle-3": 1 * time.Hour,
-					"some-volume-handle-4": 2 * time.Hour,
-					"some-volume-handle-5": 4 * time.Hour,
-					"some-volume-handle-6": 8 * time.Hour,
-					"some-volume-handle-7": 24 * time.Hour,
-				},
-			}),
-
-			Entry("updates the db with the new ttl so that the next collection has the new ttl values", baggageCollectionExample{
-				pipelineData: map[string][]resourceConfigAndVersions{
-					"pipeline-a": []resourceConfigAndVersions{
-						{
-							config: atc.ResourceConfig{
-								Name: "resource-a",
-								Type: "some-a-type",
-								Source: atc.Source{
-									"some": "a-source",
-								},
-							},
-							versions: []atc.Version{
-								{"version": "older"},
-								{"version": "latest"},
-							},
-						},
-					},
-				},
-				volumeData: []db.Volume{
-					{
-						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
-						Handle:          "some-volume-handle-2",
 						ResourceVersion: atc.Version{"version": "latest"},
 						ResourceHash:    `some-a-type{"some":"a-source"}`,
 					},
-					{
-						WorkerName:      "some-worker",
-						TTL:             24 * time.Hour,
-						Handle:          "some-volume-handle-1",
-						ResourceVersion: atc.Version{"version": "older"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
-					},
 				},
-				expectedTTLs: map[string]time.Duration{
-					"some-volume-handle-1": 8 * time.Hour,
-				},
-			}, baggageCollectionExample{}),
+				expectedTTLs: map[string]time.Duration{},
+			}),
 		)
 
 	})

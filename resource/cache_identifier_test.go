@@ -154,7 +154,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 						"resource-source":  "968e27f71617a029e58a09fb53895f1e1875b51bdaa11293ddc2cb335960875cb42c19ae8bc696caec88d55221f33c2bcc3278a7d15e8d13f23782d1a05564f1",
 						"resource-params":  "fe7d9dbc2ac75030c3e8c88e54a33676c38d8d9d2876700bc01d4961caf898e7cbe8e738232e86afcf6a5f64a9527c458a130277b08d72fb339962968d0d0967",
 					},
-					TTL:        24 * time.Hour,
+					TTL:        87600 * time.Hour,
 					Privileged: true,
 				}))
 			})

@@ -67,6 +67,7 @@ func (factory *gardenFactory) Get(
 	tags atc.Tags,
 	version atc.Version,
 ) StepFactory {
+	id.WorkingDirectory = resource.ResourcesDir("get")
 	return newGetStep(
 		logger,
 		sourceName,
@@ -99,6 +100,7 @@ func (factory *gardenFactory) Put(
 	tags atc.Tags,
 	params atc.Params,
 ) StepFactory {
+	id.WorkingDirectory = resource.ResourcesDir("put")
 	return newPutStep(
 		logger,
 		resourceConfig,
@@ -123,6 +125,8 @@ func (factory *gardenFactory) Task(
 	tags atc.Tags,
 	configSource TaskConfigSource,
 ) StepFactory {
+	workingDirectory := filepath.Join("/tmp", "build", factory.uuidGenerator())
+	id.WorkingDirectory = workingDirectory
 	return newTaskStep(
 		logger,
 		sourceName,
@@ -132,6 +136,6 @@ func (factory *gardenFactory) Task(
 		privileged,
 		configSource,
 		factory.workerClient,
-		filepath.Join("/tmp", "build", factory.uuidGenerator()),
+		workingDirectory,
 	)
 }
