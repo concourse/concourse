@@ -471,6 +471,7 @@ scrollToBottom =
 toStatus : String -> BuildEvent.BuildStatus
 toStatus str =
   case str of
+    "pending" -> BuildEvent.BuildStatusPending
     "started" -> BuildEvent.BuildStatusStarted
     "succeeded" -> BuildEvent.BuildStatusSucceeded
     "failed" -> BuildEvent.BuildStatusFailed
