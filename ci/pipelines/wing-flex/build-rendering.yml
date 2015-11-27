@@ -1,12 +1,8 @@
 groups: []
 
 resources:
-- name: repo
-  type: git
-  source:
-    branch: master
-    uri: {{repo-uri}}
-    private_key: {{repo-key}}
+- name: timestamp
+  type: time
 
 jobs:
 - name: do-in-agg
@@ -15,383 +11,277 @@ jobs:
     - do:
       - task: agg-do-1
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       - task: agg-do-2
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
     - task: agg-1
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     - task: agg-2
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1; exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     - task: agg-3
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1; exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     ensure:
       task: agg-ensure
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
 
 - name: putgets
   plan:
   - aggregate:
     - do:
-      - get: repo
-      - task: make-a-commit
+      - task: agg-task
         config:
           platform: linux
-          image: docker:///concourse/pool-resource-test
-          run:
-            path: sh
-            args:
-            - -xc
-            - cd  repo; touch `date +%s`; git config --global user.email
-              "derp@herp.com"; git config --global user.name "ci derpin herps"; git
-              add .; git commit -m 'makein a commit yo';
-          inputs:
-          - name: repo
-            path: ""
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       ensure:
         task: do-ensure
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
     - task: agg-1
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     - task: agg-2
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1; exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     - task: agg-3
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1; exit 0;
-  - put: repo
-    params:
-      repository: make-a-commit/repo
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
+  - put: timestamp
 
 - name: agg-in-do
   plan:
   - do:
     - task: do-2
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     - aggregate:
       - task: do-agg-1
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       - task: do-agg-2
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1; exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       - task: do-agg-3
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1; exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
     - task: do-3
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     - do:
       - task: do-do-1
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       - task: do-do-2
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
     ensure:
       task: do-ensure
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
 
 - name: all-the-things
   plan:
   - aggregate:
     - task: vanilla-agg-1
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     - task: vanilla-agg-2
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     ensure:
       task: agg-ensure
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
   - do:
     - task: vanilla-do-1
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     - task: vanilla-do-2
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
   - do:
     - task: do-1
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     - aggregate:
       - task: do-agg-1
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       - task: do-agg-2
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1; exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       ensure:
         task: agg-ensure
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
     - task: do-2
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     ensure:
       task: do-ensure
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
   - do:
     - aggregate:
       - task: agg-first-do-agg-1
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       - task: agg-first-do-agg-2
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1; exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       ensure:
         task: agg-ensure
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
     - task: agg-first-do-1
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     - task: agg-first-do-2
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     ensure:
       task: do-ensure
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
   - aggregate:
     - task: agg-1
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     - do:
       - task: agg-do-1
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       - task: agg-do-2
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1; exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
     - task: agg-2
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
   - aggregate:
     - do:
       - task: do-first-agg-do-1
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       - task: do-first-agg-do-2
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1; exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
     - task: do-first-agg-1
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
     - task: do-first-agg-2
       config:
-        run:
-          path: sh
-          args:
-          - -xc
-          - sleep 1;exit 0;
+        platform: linux
+        image: docker:///busybox
+        run: {path: sleep, args: [1]}
   - aggregate:
     - do:
       - task: agg-with-do-only-1-do-1
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       - task: agg-with-do-only-1-do-2
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1; exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
     - do:
       - task: agg-with-do-only-2-do-1
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1;exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
       - task: agg-with-do-only-2-do-2
         config:
-          run:
-            path: sh
-            args:
-            - -xc
-            - sleep 1; exit 0;
+          platform: linux
+          image: docker:///busybox
+          run: {path: sleep, args: [1]}
