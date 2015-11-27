@@ -19,6 +19,7 @@ all =
     , initPut
     , initDependentGet
     , initAggregate
+    , initAggregateNested
     , initOnSuccess
     , initOnFailure
     , initEnsure
@@ -144,6 +145,51 @@ initAggregate =
             (StepTree.Aggregate << Array.fromList <|
               [ StepTree.Task (someStep "task-a-id" "task-a" StepTree.StepStateSucceeded)
               , StepTree.Task (someStep "task-b-id" "task-b" StepTree.StepStatePending)
+              ])
+      ]
+
+initAggregateNested : Test
+initAggregateNested =
+  let
+    {tree, foci} =
+      StepTree.init
+        { id = "aggregate-id"
+        , step =
+            BuildPlan.Aggregate << Array.fromList <|
+              [ { id = "task-a-id", step = BuildPlan.Task "task-a" }
+              , { id = "task-b-id", step = BuildPlan.Task "task-b" }
+              , { id = "nested-aggregate-id"
+                , step =
+                    BuildPlan.Aggregate << Array.fromList <|
+                      [ { id = "task-c-id", step = BuildPlan.Task "task-c" }
+                      , { id = "task-d-id", step = BuildPlan.Task "task-d" }
+                      ]
+                }
+              ]
+        }
+  in
+    suite "init with Aggregate"
+      [ test "the tree" <|
+          assertEqual
+            (StepTree.Aggregate << Array.fromList <|
+              [ StepTree.Task (someStep "task-a-id" "task-a" StepTree.StepStatePending)
+              , StepTree.Task (someStep "task-b-id" "task-b" StepTree.StepStatePending)
+              , StepTree.Aggregate << Array.fromList <|
+                  [ StepTree.Task (someStep "task-c-id" "task-c" StepTree.StepStatePending)
+                  , StepTree.Task (someStep "task-d-id" "task-d" StepTree.StepStatePending)
+                  ]
+              ])
+            tree
+      , test "using the focuses for nested elements" <|
+          assertFocus "task-c-id" foci tree
+            (\s -> { s | state = StepTree.StepStateSucceeded })
+            (StepTree.Aggregate << Array.fromList <|
+              [ StepTree.Task (someStep "task-a-id" "task-a" StepTree.StepStatePending)
+              , StepTree.Task (someStep "task-b-id" "task-b" StepTree.StepStatePending)
+              , StepTree.Aggregate << Array.fromList <|
+                  [ StepTree.Task (someStep "task-c-id" "task-c" StepTree.StepStateSucceeded)
+                  , StepTree.Task (someStep "task-d-id" "task-d" StepTree.StepStatePending)
+                  ]
               ])
       ]
 

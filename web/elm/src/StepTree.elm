@@ -95,9 +95,9 @@ init plan =
       let
         inited = Array.map init plans
         trees = Array.map .tree inited
-        subFoci = Array.foldr Dict.union Dict.empty (Array.map .foci inited)
-        wrappedFoci = Array.indexedMap (wrapAgg subFoci) plans
-        foci = Dict.fromList (Array.toList wrappedFoci)
+        subFoci = Array.map .foci inited
+        wrappedSubFoci = Array.indexedMap wrapAgg subFoci
+        foci = Array.foldr Dict.union Dict.empty wrappedSubFoci
       in
         Root (Aggregate trees) foci
 
@@ -187,14 +187,8 @@ initHookedStep create hookedPlan =
         (Dict.map wrapHook hookRoot.foci)
     }
 
-wrapAgg : Dict StepID StepFocus -> Int -> BuildPlan -> (StepID, StepFocus)
-wrapAgg subFoci i plan =
-  case Dict.get plan.id subFoci of
-    Nothing ->
-      Debug.crash "welp"
-
-    Just subFocus ->
-      (plan.id, Focus.create (getAggIndex i) (setAggIndex i) => subFocus)
+wrapAgg : Int -> Dict StepID StepFocus -> Dict StepID StepFocus
+wrapAgg i = Dict.map (\_ focus -> Focus.create (getAggIndex i) (setAggIndex i) => focus)
 
 wrapStep : StepID -> StepFocus -> StepFocus
 wrapStep id subFocus =
