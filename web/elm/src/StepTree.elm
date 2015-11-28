@@ -316,25 +316,29 @@ view actions tree =
 
     Aggregate steps ->
       Html.div [class "aggregate"]
-        (Array.toList <| Array.map (view actions) steps)
+        (Array.toList <| Array.map (viewSeq actions) steps)
 
     OnSuccess {step, hook} ->
-      Html.div [class "on-success"]
-        [ Html.div [class "step"] [view actions step]
-        , Html.div [class "children hook-success"] [view actions hook]
-        ]
+      viewHooked "success" actions step hook
 
     OnFailure {step, hook} ->
-      Html.div [class "on-failure"]
-        [ Html.div [class "step"] [view actions step]
-        , Html.div [class "children hook-failure"] [view actions hook]
-        ]
+      viewHooked "failure" actions step hook
 
     Ensure {step, hook} ->
-      Html.div [class "ensure"]
-        [ Html.div [class "step"] [view actions step]
-        , Html.div [class "children hook-ensure"] [view actions hook]
+      viewHooked "ensure" actions step hook
+
+viewSeq : Signal.Address Action -> StepTree -> Html
+viewSeq actions tree =
+  Html.div [class "seq"] [view actions tree]
+
+viewHooked : String -> Signal.Address Action -> StepTree -> StepTree -> Html
+viewHooked name actions step hook =
+  Html.div [class "hooked"]
+    [ Html.div [class "step"] [view actions step]
+    , Html.div [class "children"]
+        [ Html.div [class ("hook hook-" ++ name)] [view actions hook]
         ]
+    ]
 
 viewStep : Signal.Address Action -> Step -> String -> Html
 viewStep actions {id, name, log, state, error, expanded} icon =
