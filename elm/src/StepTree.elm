@@ -406,9 +406,7 @@ lazyLine = Html.Lazy.lazy viewLine
 
 viewLine : Ansi.Log.Line -> Html.Html
 viewLine line =
-  case line of
-    [] -> Html.div [] [Html.text "\n"]
-    _  -> Html.div [] (List.map viewChunk line)
+  Html.div [] (List.map viewChunk line)
 
 viewChunk : Ansi.Log.Chunk -> Html.Html
 viewChunk chunk =
