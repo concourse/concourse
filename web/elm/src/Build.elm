@@ -48,7 +48,7 @@ type Action
   = Noop
   | PlanFetched (Result Http.Error BuildPlan)
   | BuildFetched (Result Http.Error Build)
-  | BuildHistoryFetched (Result Http.Error (List Build))
+  | BuildHistoryFetched (Result Http.Error BuildHistory)
   | Listening EventSource
   | Opened
   | Errored
@@ -59,6 +59,11 @@ type Action
   | ScrollFromBottom Int
   | StepTreeAction StepTree.Action
   | AbortBuild
+
+type alias BuildHistory =
+  { builds : List Build
+  , nextPage : Maybe String
+  }
 
 init : Signal.Address Action -> Int -> (Model, Effects Action)
 init actions buildId =
@@ -149,7 +154,7 @@ update action model =
         (model, Effects.none)
 
     BuildHistoryFetched (Ok history) ->
-      ( { model | history = Just history }, Effects.none)
+      ( { model | history = Just history.builds }, Effects.none)
 
     Listening es ->
       ({ model | eventSource = Just es }, Effects.none)
@@ -410,10 +415,49 @@ fetchBuild buildId =
 
 fetchBuildHistory : Job -> Effects.Effects Action
 fetchBuildHistory job =
-  Http.get decodeBuilds ("/api/v1/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.name ++ "/builds")
-    |> Task.toResult
-    |> Task.map BuildHistoryFetched
-    |> Effects.task
+  Http.send
+    Http.defaultSettings
+    { verb = "GET"
+    , headers = []
+    , url = "/api/v1/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.name ++ "/builds"
+    , body = Http.empty
+    }
+  |> Task.toResult
+  |> Task.map parseBuildHistory
+  |> Effects.task
+
+parseBuildHistory : Result Http.RawError Http.Response -> Action
+parseBuildHistory result =
+  case result of
+    Ok response ->
+      let
+        decode = Json.Decode.decodeString decodeBuilds
+        history = handleResponse response `Result.andThen`
+          (Result.formatError Http.UnexpectedPayload << decode)
+      in
+        BuildHistoryFetched <|
+          Result.map (\builds -> { builds = builds, nextPage = Nothing }) history
+
+    Err error ->
+      BuildHistoryFetched (Err (promoteError error))
+
+handleResponse : Http.Response -> Result Http.Error String
+handleResponse response =
+  if 200 <= response.status && response.status < 300 then
+      case response.value of
+        Http.Text str ->
+          Ok str
+
+        _ ->
+            Err (Http.UnexpectedPayload "Response body is a blob, expecting a string.")
+  else
+      Err (Http.BadResponse response.status response.statusText)
+
+promoteError : Http.RawError -> Http.Error
+promoteError rawError =
+  case rawError of
+    Http.RawTimeout -> Http.Timeout
+    Http.RawNetworkError -> Http.NetworkError
 
 decode : Json.Decode.Decoder Build
 decode =
