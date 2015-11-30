@@ -22,7 +22,6 @@ var _ = Describe("Resource History", func() {
 	var pipelineDBFactory db.PipelineDBFactory
 	var sqlDB *db.SQLDB
 	var pipelineDB db.PipelineDB
-	var otherPipelineDB db.PipelineDB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -40,12 +39,6 @@ var _ = Describe("Resource History", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB, err = pipelineDBFactory.BuildWithName("a-pipeline-name")
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = sqlDB.SaveConfig("another-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
-		Expect(err).NotTo(HaveOccurred())
-
-		otherPipelineDB, err = pipelineDBFactory.BuildWithName("another-pipeline")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
