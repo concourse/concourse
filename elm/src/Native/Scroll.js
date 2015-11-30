@@ -29,9 +29,17 @@ Elm.Native.Scroll.make = function(localRuntime) {
     });
   }
 
+  function scrollElement(id, delta) {
+    return Task.asyncFunction(function(callback) {
+      document.getElementById(id).scrollLeft -= delta;
+      callback(Task.succeed(Utils.Tuple0));
+    });
+  }
+
   localRuntime.Native.Scroll.values = {
     toBottom: toBottom,
     fromBottom: fromBottom,
+    scroll: F2(scrollElement),
   };
 
   return localRuntime.Native.Scroll.values;
