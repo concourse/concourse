@@ -16,6 +16,7 @@ import BuildEvent exposing (BuildEvent)
 import BuildPlan exposing (BuildPlan)
 import Scroll
 import StepTree exposing (StepTree)
+import Pagination exposing (Pagination)
 
 
 type alias Model =
@@ -35,7 +36,7 @@ type alias Build =
   { id : Int
   , name : String
   , status : String
-  , job: Maybe Job
+  , job : Maybe Job
   , url : String
   }
 
@@ -62,7 +63,7 @@ type Action
 
 type alias BuildHistory =
   { builds : List Build
-  , nextPage : Maybe String
+  , pagination : Pagination
   }
 
 init : Signal.Address Action -> Int -> (Model, Effects Action)
@@ -81,10 +82,12 @@ init actions buildId =
       , buildRunning = False
       }
   in
-    (model, Effects.batch [ keepScrolling
-                          , fetchBuildPlan 0 buildId
-                          , fetchBuild buildId
-                          ]
+    ( model
+    , Effects.batch
+        [ keepScrolling
+        , fetchBuildPlan 0 buildId
+        , fetchBuild buildId
+        ]
     )
 
 update : Action -> Model -> (Model, Effects Action)
@@ -143,7 +146,7 @@ update action model =
           }
         , case build.job of
             Just job ->
-              fetchBuildHistory job
+              fetchBuildHistory job Nothing
 
             _ ->
               Effects.none
@@ -154,7 +157,19 @@ update action model =
         (model, Effects.none)
 
     BuildHistoryFetched (Ok history) ->
-      ( { model | history = Just history.builds }, Effects.none)
+      let
+        builds = List.append (Maybe.withDefault [] model.history) history.builds
+        withBuilds = { model | history = Just builds }
+      in
+        case (history.pagination.nextPage, model.build `Maybe.andThen` .job) of
+          (Nothing, _) ->
+            (withBuilds, Effects.none)
+
+          (Just url, Just job) ->
+            (withBuilds, fetchBuildHistory job (Just url))
+
+          (Just url, Nothing) ->
+            Debug.crash "impossible"
 
     Listening es ->
       ({ model | eventSource = Just es }, Effects.none)
@@ -413,30 +428,35 @@ fetchBuild buildId =
     |> Task.map BuildFetched
     |> Effects.task
 
-fetchBuildHistory : Job -> Effects.Effects Action
-fetchBuildHistory job =
-  Http.send
-    Http.defaultSettings
-    { verb = "GET"
-    , headers = []
-    , url = "/api/v1/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.name ++ "/builds"
-    , body = Http.empty
-    }
-  |> Task.toResult
-  |> Task.map parseBuildHistory
-  |> Effects.task
+fetchBuildHistory : Job -> Maybe String -> Effects.Effects Action
+fetchBuildHistory job specificPage =
+  let
+    firstPage = "/api/v1/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.name ++ "/builds"
+    url = Maybe.withDefault firstPage specificPage
+  in
+    Http.send
+      Http.defaultSettings
+      { verb = "GET"
+      , headers = []
+      , url = url
+      , body = Http.empty
+      }
+    |> Task.toResult
+    |> Task.map parseBuildHistory
+    |> Effects.task
 
 parseBuildHistory : Result Http.RawError Http.Response -> Action
 parseBuildHistory result =
   case result of
     Ok response ->
       let
+        pagination = Pagination.parse response
         decode = Json.Decode.decodeString decodeBuilds
         history = handleResponse response `Result.andThen`
           (Result.formatError Http.UnexpectedPayload << decode)
       in
         BuildHistoryFetched <|
-          Result.map (\builds -> { builds = builds, nextPage = Nothing }) history
+          Result.map (\builds -> { builds = builds, pagination = pagination }) history
 
     Err error ->
       BuildHistoryFetched (Err (promoteError error))
