@@ -778,7 +778,7 @@ func (db *SQLDB) getBuildVersionedResouces(buildID int, resourceRequest string) 
 		var versionedResource SavedVersionedResource
 		var versionJSON []byte
 		var metadataJSON []byte
-		err = rows.Scan(&versionedResource.ID, &versionedResource.Enabled, &versionJSON, &metadataJSON, &versionedResource.Type, &versionedResource.Resource, &versionedResource.PipelineName)
+		err = rows.Scan(&versionedResource.ID, &versionedResource.Enabled, &versionJSON, &metadataJSON, &versionedResource.Type, &versionedResource.Resource, &versionedResource.PipelineName, &versionedResource.ModifiedTime)
 
 		err = json.Unmarshal(versionJSON, &versionedResource.Version)
 		if err != nil {
@@ -805,7 +805,8 @@ func (db *SQLDB) GetBuildInputVersionedResouces(buildID int) (SavedVersionedReso
 			vr.metadata,
 			vr.type,
 			r.name,
-			p.name
+			p.name,
+			vr.modified_time
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
@@ -823,7 +824,8 @@ func (db *SQLDB) GetBuildOutputVersionedResouces(buildID int) (SavedVersionedRes
 			vr.metadata,
 			vr.type,
 			r.name,
-			p.name
+			p.name,
+			vr.modified_time
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id

@@ -82,6 +82,8 @@ type pipelineDB struct {
 	bus  *notificationsBus
 
 	SavedPipeline
+
+	versionsDB *algorithm.VersionsDB
 }
 
 func (pdb *pipelineDB) GetPipelineName() string {
@@ -583,33 +585,19 @@ func (pdb *pipelineDB) SaveResourceVersions(config atc.ResourceConfig, versions 
 }
 
 func (pdb *pipelineDB) DisableVersionedResource(versionedResourceID int) error {
-	rows, err := pdb.conn.Exec(`
-		UPDATE versioned_resources
-		SET enabled = false
-		WHERE id = $1
-	`, versionedResourceID)
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := rows.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected != 1 {
-		return nonOneRowAffectedError{rowsAffected}
-	}
-
-	return nil
+	return pdb.toggleVersionedResource(versionedResourceID, false)
 }
 
 func (pdb *pipelineDB) EnableVersionedResource(versionedResourceID int) error {
+	return pdb.toggleVersionedResource(versionedResourceID, true)
+}
+
+func (pdb *pipelineDB) toggleVersionedResource(versionedResourceID int, enable bool) error {
 	rows, err := pdb.conn.Exec(`
 		UPDATE versioned_resources
-		SET enabled = true
-		WHERE id = $1
-	`, versionedResourceID)
+		SET enabled = $1, modified_time = now()
+		WHERE id = $2
+	`, enable, versionedResourceID)
 	if err != nil {
 		return err
 	}
@@ -636,12 +624,12 @@ func (pdb *pipelineDB) GetLatestVersionedResource(resource SavedResource) (Saved
 	}
 
 	err := pdb.conn.QueryRow(`
-		SELECT id, enabled, type, version, metadata
+		SELECT id, enabled, type, version, metadata, modified_time
 		FROM versioned_resources
 		WHERE resource_id = $1
 		ORDER BY id DESC
 		LIMIT 1
-	`, resource.ID).Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes)
+	`, resource.ID).Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes, &svr.ModifiedTime)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return SavedVersionedResource{}, false, nil
@@ -732,10 +720,11 @@ func (pdb *pipelineDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (
 
 	var id int
 	var enabled bool
+	var modified_time time.Time
 
 	_, err = tx.Exec(`
-		INSERT INTO versioned_resources (resource_id, type, version, metadata)
-		SELECT $1, $2, $3, $4
+		INSERT INTO versioned_resources (resource_id, type, version, metadata, modified_time)
+		SELECT $1, $2, $3, $4, now()
 		WHERE NOT EXISTS (
 			SELECT 1
 			FROM versioned_resources
@@ -756,20 +745,20 @@ func (pdb *pipelineDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (
 	if len(vr.Metadata) > 0 {
 		err = tx.QueryRow(`
 			UPDATE versioned_resources
-			SET metadata = $4
+			SET metadata = $4, modified_time = now()
 			WHERE resource_id = $1
 			AND type = $2
 			AND version = $3
-			RETURNING id, enabled, metadata
-		`, savedResource.ID, vr.Type, string(versionJSON), string(metadataJSON)).Scan(&id, &enabled, &savedMetadata)
+			RETURNING id, enabled, metadata, modified_time
+		`, savedResource.ID, vr.Type, string(versionJSON), string(metadataJSON)).Scan(&id, &enabled, &savedMetadata, &modified_time)
 	} else {
 		err = tx.QueryRow(`
-			SELECT id, enabled, metadata
+			SELECT id, enabled, metadata, modified_time
 			FROM versioned_resources
 			WHERE resource_id = $1
 			AND type = $2
 			AND version = $3
-		`, savedResource.ID, vr.Type, string(versionJSON)).Scan(&id, &enabled, &savedMetadata)
+		`, savedResource.ID, vr.Type, string(versionJSON)).Scan(&id, &enabled, &savedMetadata, &modified_time)
 	}
 	if err != nil {
 		return SavedVersionedResource{}, err
@@ -781,8 +770,9 @@ func (pdb *pipelineDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (
 	}
 
 	return SavedVersionedResource{
-		ID:      id,
-		Enabled: enabled,
+		ID:           id,
+		Enabled:      enabled,
+		ModifiedTime: modified_time,
 
 		VersionedResource: vr,
 	}, nil
@@ -1512,12 +1502,39 @@ func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, bool, error) {
 	return Build{}, false, nil
 }
 
+func (pdb *pipelineDB) getLastestModifiedTime() (time.Time, error) {
+	var max_modified_time time.Time
+
+	err := pdb.conn.QueryRow(`
+	SELECT
+		CASE
+			WHEN bo_max > vr_max THEN bo_max
+			ELSE vr_max
+		END
+	FROM
+		(SELECT COALESCE(MAX(modified_time), 'epoch') as bo_max FROM build_outputs) bo,
+		(SELECT COALESCE(MAX(modified_time), 'epoch') as vr_max FROM versioned_resources) vr
+	`).Scan(&max_modified_time)
+
+	return max_modified_time, err
+}
+
 func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
+	latestModifiedTime, err := pdb.getLastestModifiedTime()
+	if err != nil {
+		return nil, err
+	}
+
+	if pdb.versionsDB != nil && pdb.versionsDB.CachedAt.Equal(latestModifiedTime) {
+		return pdb.versionsDB, nil
+	}
+
 	db := &algorithm.VersionsDB{
 		BuildOutputs:     []algorithm.BuildOutput{},
 		ResourceVersions: []algorithm.ResourceVersion{},
 		JobIDs:           map[string]int{},
 		ResourceIDs:      map[string]int{},
+		CachedAt:         latestModifiedTime,
 	}
 
 	rows, err := pdb.conn.Query(`
@@ -1605,6 +1622,8 @@ func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 
 		db.ResourceIDs[name] = id
 	}
+
+	pdb.versionsDB = db
 
 	return db, nil
 }
