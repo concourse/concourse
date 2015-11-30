@@ -34,6 +34,11 @@ type Client interface {
 	ListAuthMethods() ([]atc.AuthMethod, error)
 	AuthToken() (atc.AuthToken, error)
 	Pipeline(name string) (atc.Pipeline, bool, error)
+	Resource(pipelineName string, resourceName string) (atc.Resource, bool, error)
+	ResourceVersions(pipelineName string, resourceName string, page Page) ([]atc.VersionedResource, Pagination, bool, error)
+
+	BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
+	BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
 }
 
 type client struct {

@@ -241,6 +241,54 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
+	ResourceStub        func(pipelineName string, resourceName string) (atc.Resource, bool, error)
+	resourceMutex       sync.RWMutex
+	resourceArgsForCall []struct {
+		pipelineName string
+		resourceName string
+	}
+	resourceReturns struct {
+		result1 atc.Resource
+		result2 bool
+		result3 error
+	}
+	ResourceVersionsStub        func(pipelineName string, resourceName string, page concourse.Page) ([]atc.VersionedResource, concourse.Pagination, bool, error)
+	resourceVersionsMutex       sync.RWMutex
+	resourceVersionsArgsForCall []struct {
+		pipelineName string
+		resourceName string
+		page         concourse.Page
+	}
+	resourceVersionsReturns struct {
+		result1 []atc.VersionedResource
+		result2 concourse.Pagination
+		result3 bool
+		result4 error
+	}
+	BuildsWithVersionAsInputStub        func(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
+	buildsWithVersionAsInputMutex       sync.RWMutex
+	buildsWithVersionAsInputArgsForCall []struct {
+		pipelineName      string
+		resourceName      string
+		resourceVersionID int
+	}
+	buildsWithVersionAsInputReturns struct {
+		result1 []atc.Build
+		result2 bool
+		result3 error
+	}
+	BuildsWithVersionAsOutputStub        func(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
+	buildsWithVersionAsOutputMutex       sync.RWMutex
+	buildsWithVersionAsOutputArgsForCall []struct {
+		pipelineName      string
+		resourceName      string
+		resourceVersionID int
+	}
+	buildsWithVersionAsOutputReturns struct {
+		result1 []atc.Build
+		result2 bool
+		result3 error
+	}
 }
 
 func (fake *FakeClient) AllBuilds() ([]atc.Build, error) {
@@ -1027,6 +1075,150 @@ func (fake *FakeClient) PipelineReturns(result1 atc.Pipeline, result2 bool, resu
 	fake.PipelineStub = nil
 	fake.pipelineReturns = struct {
 		result1 atc.Pipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeClient) Resource(pipelineName string, resourceName string) (atc.Resource, bool, error) {
+	fake.resourceMutex.Lock()
+	fake.resourceArgsForCall = append(fake.resourceArgsForCall, struct {
+		pipelineName string
+		resourceName string
+	}{pipelineName, resourceName})
+	fake.resourceMutex.Unlock()
+	if fake.ResourceStub != nil {
+		return fake.ResourceStub(pipelineName, resourceName)
+	} else {
+		return fake.resourceReturns.result1, fake.resourceReturns.result2, fake.resourceReturns.result3
+	}
+}
+
+func (fake *FakeClient) ResourceCallCount() int {
+	fake.resourceMutex.RLock()
+	defer fake.resourceMutex.RUnlock()
+	return len(fake.resourceArgsForCall)
+}
+
+func (fake *FakeClient) ResourceArgsForCall(i int) (string, string) {
+	fake.resourceMutex.RLock()
+	defer fake.resourceMutex.RUnlock()
+	return fake.resourceArgsForCall[i].pipelineName, fake.resourceArgsForCall[i].resourceName
+}
+
+func (fake *FakeClient) ResourceReturns(result1 atc.Resource, result2 bool, result3 error) {
+	fake.ResourceStub = nil
+	fake.resourceReturns = struct {
+		result1 atc.Resource
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeClient) ResourceVersions(pipelineName string, resourceName string, page concourse.Page) ([]atc.VersionedResource, concourse.Pagination, bool, error) {
+	fake.resourceVersionsMutex.Lock()
+	fake.resourceVersionsArgsForCall = append(fake.resourceVersionsArgsForCall, struct {
+		pipelineName string
+		resourceName string
+		page         concourse.Page
+	}{pipelineName, resourceName, page})
+	fake.resourceVersionsMutex.Unlock()
+	if fake.ResourceVersionsStub != nil {
+		return fake.ResourceVersionsStub(pipelineName, resourceName, page)
+	} else {
+		return fake.resourceVersionsReturns.result1, fake.resourceVersionsReturns.result2, fake.resourceVersionsReturns.result3, fake.resourceVersionsReturns.result4
+	}
+}
+
+func (fake *FakeClient) ResourceVersionsCallCount() int {
+	fake.resourceVersionsMutex.RLock()
+	defer fake.resourceVersionsMutex.RUnlock()
+	return len(fake.resourceVersionsArgsForCall)
+}
+
+func (fake *FakeClient) ResourceVersionsArgsForCall(i int) (string, string, concourse.Page) {
+	fake.resourceVersionsMutex.RLock()
+	defer fake.resourceVersionsMutex.RUnlock()
+	return fake.resourceVersionsArgsForCall[i].pipelineName, fake.resourceVersionsArgsForCall[i].resourceName, fake.resourceVersionsArgsForCall[i].page
+}
+
+func (fake *FakeClient) ResourceVersionsReturns(result1 []atc.VersionedResource, result2 concourse.Pagination, result3 bool, result4 error) {
+	fake.ResourceVersionsStub = nil
+	fake.resourceVersionsReturns = struct {
+		result1 []atc.VersionedResource
+		result2 concourse.Pagination
+		result3 bool
+		result4 error
+	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeClient) BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
+	fake.buildsWithVersionAsInputMutex.Lock()
+	fake.buildsWithVersionAsInputArgsForCall = append(fake.buildsWithVersionAsInputArgsForCall, struct {
+		pipelineName      string
+		resourceName      string
+		resourceVersionID int
+	}{pipelineName, resourceName, resourceVersionID})
+	fake.buildsWithVersionAsInputMutex.Unlock()
+	if fake.BuildsWithVersionAsInputStub != nil {
+		return fake.BuildsWithVersionAsInputStub(pipelineName, resourceName, resourceVersionID)
+	} else {
+		return fake.buildsWithVersionAsInputReturns.result1, fake.buildsWithVersionAsInputReturns.result2, fake.buildsWithVersionAsInputReturns.result3
+	}
+}
+
+func (fake *FakeClient) BuildsWithVersionAsInputCallCount() int {
+	fake.buildsWithVersionAsInputMutex.RLock()
+	defer fake.buildsWithVersionAsInputMutex.RUnlock()
+	return len(fake.buildsWithVersionAsInputArgsForCall)
+}
+
+func (fake *FakeClient) BuildsWithVersionAsInputArgsForCall(i int) (string, string, int) {
+	fake.buildsWithVersionAsInputMutex.RLock()
+	defer fake.buildsWithVersionAsInputMutex.RUnlock()
+	return fake.buildsWithVersionAsInputArgsForCall[i].pipelineName, fake.buildsWithVersionAsInputArgsForCall[i].resourceName, fake.buildsWithVersionAsInputArgsForCall[i].resourceVersionID
+}
+
+func (fake *FakeClient) BuildsWithVersionAsInputReturns(result1 []atc.Build, result2 bool, result3 error) {
+	fake.BuildsWithVersionAsInputStub = nil
+	fake.buildsWithVersionAsInputReturns = struct {
+		result1 []atc.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeClient) BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
+	fake.buildsWithVersionAsOutputMutex.Lock()
+	fake.buildsWithVersionAsOutputArgsForCall = append(fake.buildsWithVersionAsOutputArgsForCall, struct {
+		pipelineName      string
+		resourceName      string
+		resourceVersionID int
+	}{pipelineName, resourceName, resourceVersionID})
+	fake.buildsWithVersionAsOutputMutex.Unlock()
+	if fake.BuildsWithVersionAsOutputStub != nil {
+		return fake.BuildsWithVersionAsOutputStub(pipelineName, resourceName, resourceVersionID)
+	} else {
+		return fake.buildsWithVersionAsOutputReturns.result1, fake.buildsWithVersionAsOutputReturns.result2, fake.buildsWithVersionAsOutputReturns.result3
+	}
+}
+
+func (fake *FakeClient) BuildsWithVersionAsOutputCallCount() int {
+	fake.buildsWithVersionAsOutputMutex.RLock()
+	defer fake.buildsWithVersionAsOutputMutex.RUnlock()
+	return len(fake.buildsWithVersionAsOutputArgsForCall)
+}
+
+func (fake *FakeClient) BuildsWithVersionAsOutputArgsForCall(i int) (string, string, int) {
+	fake.buildsWithVersionAsOutputMutex.RLock()
+	defer fake.buildsWithVersionAsOutputMutex.RUnlock()
+	return fake.buildsWithVersionAsOutputArgsForCall[i].pipelineName, fake.buildsWithVersionAsOutputArgsForCall[i].resourceName, fake.buildsWithVersionAsOutputArgsForCall[i].resourceVersionID
+}
+
+func (fake *FakeClient) BuildsWithVersionAsOutputReturns(result1 []atc.Build, result2 bool, result3 error) {
+	fake.BuildsWithVersionAsOutputStub = nil
+	fake.buildsWithVersionAsOutputReturns = struct {
+		result1 []atc.Build
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
