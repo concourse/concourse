@@ -5,7 +5,7 @@ import Debug
 import Effects exposing (Effects)
 import EventSource exposing (EventSource)
 import Html exposing (Html)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, on)
 import Html.Attributes exposing (action, class, classList, href, id, method)
 import Http
 import Json.Decode exposing ((:=))
@@ -58,6 +58,7 @@ type Action
   | Closed
   | ScrollTick
   | ScrollFromBottom Int
+  | ScrollBuilds (Float, Float)
   | StepTreeAction StepTree.Action
   | AbortBuild
 
@@ -231,6 +232,12 @@ update action model =
       , Effects.none
       )
 
+    ScrollBuilds (0, deltaY) ->
+      (model, scrollBuilds deltaY)
+
+    ScrollBuilds (deltaX, _) ->
+      (model, scrollBuilds -deltaX)
+
     EndOfEvents ->
       case model.eventSource of
         Just es ->
@@ -360,33 +367,33 @@ isRunning status =
 viewBuildHeader : Signal.Address Action -> Build -> BuildEvent.BuildStatus -> List Build -> Html
 viewBuildHeader actions build status history =
   let
-      triggerButton = case build.job of
-        Just {name, pipelineName} ->
-          let
-              actionUrl = "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name ++ "/builds"
-          in
-            Html.form
-              [class "trigger-build", method "post", action (actionUrl) ]
-              [ Html.button [ class "build-action fr" ] [ Html.i [class "fa fa-plus-circle" ] [] ] ]
+    triggerButton = case build.job of
+      Just {name, pipelineName} ->
+        let
+          actionUrl = "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name ++ "/builds"
+        in
+          Html.form
+            [class "trigger-build", method "post", action (actionUrl) ]
+            [ Html.button [ class "build-action fr" ] [ Html.i [class "fa fa-plus-circle" ] [] ] ]
 
-        _ ->
-          Html.div [] []
+      _ ->
+        Html.div [] []
 
-      abortButton = if isRunning status then
-                      Html.span
-                        [class "build-action build-action-abort fr", onClick actions AbortBuild]
-                        [ Html.i [class "fa fa-times-circle"] [] ]
-                    else
-                      Html.span [] []
+    abortButton =
+      if isRunning status then
+        Html.span
+          [class "build-action build-action-abort fr", onClick actions AbortBuild]
+          [ Html.i [class "fa fa-times-circle"] [] ]
+      else
+        Html.span [] []
 
-      buildTitle = case build.job of
-        Just {name, pipelineName} ->
-          Html.a [href ("/pipelines/" ++ pipelineName ++ "/jobs/" ++ name)]
-            [ Html.text (name ++ " #" ++ build.name) ]
+    buildTitle = case build.job of
+      Just {name, pipelineName} ->
+        Html.a [href ("/pipelines/" ++ pipelineName ++ "/jobs/" ++ name)]
+          [ Html.text (name ++ " #" ++ build.name) ]
 
-        _ ->
-          Html.text ("build #" ++ toString build.id)
-
+      _ ->
+        Html.text ("build #" ++ toString build.id)
   in
     Html.div [id "page-header", class (statusClass status)]
       [ Html.div [class "build-header"]
@@ -397,8 +404,22 @@ viewBuildHeader actions build status history =
           , Html.h1 [] [buildTitle]
           , Html.dl [class "build-times"] []
           ]
-      , Html.ul [id "builds"] (List.map (renderHistory build) history)
+      , Html.ul
+          [ on "mousewheel" decodeScrollEvent (scrollEvent actions)
+          , id "builds"
+          ]
+          (List.map (renderHistory build) history)
       ]
+
+scrollEvent : Signal.Address Action -> (Float, Float) -> Signal.Message
+scrollEvent actions delta =
+  Signal.message actions (ScrollBuilds delta)
+
+decodeScrollEvent : Json.Decode.Decoder (Float, Float)
+decodeScrollEvent =
+  Json.Decode.object2 (,)
+    (Json.Decode.map (Maybe.withDefault 0) <| Json.Decode.maybe <| "deltaX" := Json.Decode.float)
+    (Json.Decode.map (Maybe.withDefault 0) <| Json.Decode.maybe <| "deltaY" := Json.Decode.float)
 
 renderHistory : Build -> Build -> Html
 renderHistory currentBuild build =
@@ -529,6 +550,12 @@ parseEvent e = Json.Decode.decodeString BuildEvent.decode e.data
 scrollToBottom : Effects.Effects Action
 scrollToBottom =
   Scroll.toBottom
+    |> Task.map (always Noop)
+    |> Effects.task
+
+scrollBuilds : Float -> Effects.Effects Action
+scrollBuilds delta =
+  Scroll.scroll "builds" delta
     |> Task.map (always Noop)
     |> Effects.task
 

@@ -1,4 +1,4 @@
-module Scroll (toBottom, fromBottom) where
+module Scroll (toBottom, fromBottom, scroll) where
 
 import Task exposing (Task)
 
@@ -11,3 +11,7 @@ toBottom =
 fromBottom : Signal Int
 fromBottom =
   Native.Scroll.fromBottom
+
+scroll : String -> Float -> Task x ()
+scroll =
+  Native.Scroll.scroll
