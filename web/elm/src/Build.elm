@@ -20,10 +20,10 @@ import StepTree exposing (StepTree)
 import Pagination exposing (Pagination)
 import Duration exposing (Duration)
 
-
 type alias Model =
   { actions : Signal.Address Action
   , buildId : Int
+  , errors : Maybe Ansi.Log.Model
   , stepRoot : Maybe StepTree.Root
   , build : Maybe Build
   , history : Maybe (List Build)
@@ -83,6 +83,7 @@ init actions buildId =
     model =
       { actions = actions
       , buildId = buildId
+      , errors = Nothing
       , stepRoot = Nothing
       , build = Nothing
       , history = Nothing
@@ -98,8 +99,7 @@ init actions buildId =
     ( model
     , Effects.batch
         [ keepScrolling
-        , fetchBuildPlan 0 buildId
-        , fetchBuild buildId
+        , fetchBuild 0 buildId
         ]
     )
 
@@ -124,18 +124,6 @@ update action model =
     AbortBuild ->
       (model, abortBuild model.buildId)
 
-    PlanFetched (Err (Http.BadResponse 404 _)) ->
-      (model, fetchBuildPlan Time.second model.buildId)
-
-    PlanFetched (Err err) ->
-      Debug.log ("failed to fetch plan: " ++ toString err) <|
-        (model, Effects.none)
-
-    PlanFetched (Ok plan) ->
-      ( { model | stepRoot = Just (StepTree.init plan) }
-      , subscribeToEvents model.buildId model.actions
-      )
-
     BuildFetched (Err err) ->
       Debug.log ("failed to fetch build: " ++ toString err) <|
         (model, Effects.none)
@@ -143,6 +131,7 @@ update action model =
     BuildFetched (Ok build) ->
       let
         status = toStatus build.status
+        pending = status == BuildEvent.BuildStatusPending
         running =
           case status of
             BuildEvent.BuildStatusPending ->
@@ -157,13 +146,34 @@ update action model =
           , status = status
           , buildRunning = running
           }
-        , case build.job of
-            Just job ->
-              fetchBuildHistory job Nothing
+        , let
+            fetch =
+              if pending then
+                fetchBuild Time.second model.buildId
+              else
+                fetchBuildPlan model.buildId
+          in
+            case build.job of
+              Just job ->
+                Effects.batch [fetchBuildHistory job Nothing, fetch]
 
-            _ ->
-              Effects.none
+              _ ->
+                fetch
         )
+
+    PlanFetched (Err (Http.BadResponse 404 _)) ->
+      ( model
+      , subscribeToEvents model.buildId model.actions
+      )
+
+    PlanFetched (Err err) ->
+      Debug.log ("failed to fetch plan: " ++ toString err) <|
+        (model, Effects.none)
+
+    PlanFetched (Ok plan) ->
+      ( { model | stepRoot = Just (StepTree.init plan) }
+      , subscribeToEvents model.buildId model.actions
+      )
 
     BuildHistoryFetched (Err err) ->
       Debug.log ("failed to fetch build history: " ++ toString err) <|
@@ -199,7 +209,7 @@ update action model =
       )
 
     Event (Ok (BuildEvent.Error origin message)) ->
-      ( updateStep origin.id (setRunning << setStepError message) model
+      ( updateStep origin.id (setStepError message) model
       , Effects.none
       )
 
@@ -234,6 +244,16 @@ update action model =
             { model | status = status }
           else
             model
+      , Effects.none
+      )
+
+    Event (Ok (BuildEvent.BuildError message)) ->
+      ( { model |
+          errors =
+            Just <|
+              Ansi.Log.update message <|
+                Maybe.withDefault (Ansi.Log.init Ansi.Log.Cooked) model.errors
+        }
       , Effects.none
       )
 
@@ -305,7 +325,13 @@ appendStepLog output tree =
 
 setStepError : String -> StepTree -> StepTree
 setStepError message tree =
-  StepTree.map (\step -> { step | error = Just message }) tree
+  StepTree.map
+    (\step ->
+      { step
+      | state = StepTree.StepStateErrored
+      , error = Just message
+      })
+    tree
 
 finishStep : Int -> StepTree -> StepTree
 finishStep exitStatus tree =
@@ -334,7 +360,9 @@ view actions model =
         , Html.div (id "build-body" :: paddingClass build)
             [ if model.buildRunning || model.eventsLoaded then
                 Html.div [class "steps"]
-                  [ StepTree.view (Signal.forwardTo actions StepTreeAction) root.tree ]
+                  [ viewErrors model.errors
+                  , StepTree.view (Signal.forwardTo actions StepTreeAction) root.tree
+                  ]
               else
                 Html.text "loading..."
             ]
@@ -343,11 +371,27 @@ view actions model =
     (Just build, Nothing) ->
       Html.div []
         [ viewBuildHeader actions build model.status model.now model.duration (Maybe.withDefault [] model.history)
-        , Html.div (id "build-body" :: paddingClass build) []
+        , Html.div (id "build-body" :: paddingClass build)
+            [Html.div [class "steps"] [viewErrors model.errors]]
         ]
 
     _ ->
       Html.text "loading..."
+
+viewErrors : Maybe Ansi.Log.Model -> Html
+viewErrors errors =
+  case errors of
+    Nothing ->
+      Html.div [] []
+
+    Just log ->
+      Html.div [class "build-step"]
+        [ Html.div [class "header"]
+            [ Html.i [class "left fa fa-fw fa-exclamation-triangle"] []
+            , Html.h3 [] [Html.text "error"]
+            ]
+        , Html.div [class "step-body build-errors-body"] [Ansi.Log.view log]
+        ]
 
 paddingClass : Build -> List Html.Attribute
 paddingClass build =
@@ -487,22 +531,22 @@ renderHistory currentBuild currentStatus build =
     ]
     [ Html.a [href build.url] [ Html.text ("#" ++ build.name) ] ]
 
-fetchBuildPlan : Time -> Int -> Effects.Effects Action
-fetchBuildPlan delay buildId =
-  let
-    fetchPlan =
-      Http.get BuildPlan.decode ("/api/v1/builds/" ++ toString buildId ++ "/plan")
-        |> Task.toResult
-        |> Task.map PlanFetched
-  in
-    Effects.task (Task.sleep delay `Task.andThen` \_ -> fetchPlan)
-
-fetchBuild : Int -> Effects.Effects Action
-fetchBuild buildId =
-  Http.get decode ("/api/v1/builds/" ++ toString buildId)
+fetchBuildPlan : Int -> Effects.Effects Action
+fetchBuildPlan buildId =
+  Http.get BuildPlan.decode ("/api/v1/builds/" ++ toString buildId ++ "/plan")
     |> Task.toResult
-    |> Task.map BuildFetched
+    |> Task.map PlanFetched
     |> Effects.task
+
+fetchBuild : Time -> Int -> Effects.Effects Action
+fetchBuild delay buildId =
+  let
+    fetch =
+      Http.get decode ("/api/v1/builds/" ++ toString buildId)
+        |> Task.toResult
+        |> Task.map BuildFetched
+  in
+    Effects.task (Task.sleep delay `Task.andThen` \_ -> fetch)
 
 fetchBuildHistory : Job -> Maybe String -> Effects.Effects Action
 fetchBuildHistory job specificPage =

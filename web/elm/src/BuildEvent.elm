@@ -12,6 +12,7 @@ type BuildEvent
   | FinishTask Origin Int
   | Log Origin String
   | Error Origin String
+  | BuildError String
 
 type alias BuildEventEnvelope =
   { event : String
@@ -20,9 +21,7 @@ type alias BuildEventEnvelope =
   }
 
 type alias Origin =
-  { stepName : String
-  , stepType : StepType
-  , source : String
+  { source : String
   , id : String
   }
 
@@ -62,7 +61,7 @@ decodeEvent e =
       Json.decodeValue (Json.object2 Log ("origin" := decodeOrigin) ("payload" := Json.string)) e.value
 
     "error" ->
-      Json.decodeValue (Json.object2 Error ("origin" := decodeOrigin) ("message" := Json.string)) e.value
+      Json.decodeValue decodeErrorEvent e.value
 
     "initialize-task" ->
       Json.decodeValue (Json.object1 InitializeTask ("origin" := decodeOrigin)) e.value
@@ -82,6 +81,13 @@ decodeEvent e =
     unknown ->
       Err ("unknown event type: " ++ unknown)
 
+decodeErrorEvent : Json.Decoder BuildEvent
+decodeErrorEvent =
+  Json.oneOf
+    [ Json.object2 Error ("origin" := decodeOrigin) ("message" := Json.string)
+    , Json.object1 BuildError ("message" := Json.string)
+    ]
+
 decodeStatus : Json.Decoder BuildStatus
 decodeStatus =
   Json.customDecoder ("status" := Json.string) <| \status ->
@@ -95,9 +101,7 @@ decodeStatus =
 
 decodeOrigin : Json.Decoder Origin
 decodeOrigin =
-  Json.object4 Origin
-    ("name" := Json.string)
-    decodeStepType
+  Json.object2 Origin
     ("source" := Json.string)
     ("id" := Json.string)
 
