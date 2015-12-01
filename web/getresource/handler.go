@@ -7,148 +7,167 @@ import (
 	"strconv"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/group"
-	"github.com/concourse/atc/web/pagination"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/pivotal-golang/lager"
 )
 
 type server struct {
-	logger lager.Logger
-
-	template *template.Template
+	logger        lager.Logger
+	clientFactory web.ClientFactory
+	template      *template.Template
 }
 
-func NewServer(logger lager.Logger, template *template.Template) *server {
+func NewServer(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) *server {
 	return &server{
-		logger: logger,
-
-		template: template,
+		logger:        logger,
+		clientFactory: clientFactory,
+		template:      template,
 	}
+}
+
+type VersionedResourceWithInputsAndOutputs struct {
+	VersionedResource atc.VersionedResource
+	InputsTo          map[string][]atc.Build
+	OutputsOf         map[string][]atc.Build
 }
 
 type TemplateData struct {
 	Resource atc.Resource
-	History  []*db.VersionHistory
-
-	FailingToCheck bool
-	CheckError     error
+	Versions []VersionedResourceWithInputsAndOutputs
 
 	GroupStates  []group.State
 	PipelineName string
 
-	PaginationData pagination.PaginationData
+	Pagination concourse.Pagination
 }
 
-//go:generate counterfeiter . ResourcesDB
+var ErrConfigNotFound = errors.New("could not find config")
+var ErrResourceNotFound = errors.New("could not find resource")
 
-type ResourcesDB interface {
-	GetPipelineName() string
-	GetConfig() (atc.Config, db.ConfigVersion, bool, error)
-	GetResource(string) (db.SavedResource, error)
-	GetResourceHistoryCursor(string, int, bool, int) ([]*db.VersionHistory, bool, error)
-	GetResourceHistoryMaxID(int) (int, error)
-}
-
-var ErrResourceConfigNotFound = errors.New("could not find resource")
-
-func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName string, startingID int, resultsGreaterThanStartingID bool) (TemplateData, error) {
-	config, _, found, err := resourceDB.GetConfig()
+func FetchTemplateData(pipelineName string, resourceName string, client concourse.Client, page concourse.Page) (TemplateData, error) {
+	pipeline, pipelineFound, err := client.Pipeline(pipelineName)
 	if err != nil {
 		return TemplateData{}, err
 	}
 
-	if !found {
-		return TemplateData{}, ErrResourceConfigNotFound
+	if !pipelineFound {
+		return TemplateData{}, ErrConfigNotFound
 	}
 
-	configResource, found := config.Resources.Lookup(resourceName)
-	if !found {
-		return TemplateData{}, ErrResourceConfigNotFound
-	}
-
-	dbResource, err := resourceDB.GetResource(configResource.Name)
+	resource, resourceFound, err := client.Resource(pipelineName, resourceName)
 	if err != nil {
 		return TemplateData{}, err
 	}
 
-	maxID, err := resourceDB.GetResourceHistoryMaxID(dbResource.ID)
+	if !resourceFound {
+		return TemplateData{}, ErrResourceNotFound
+	}
+
+	versionedResources, pagination, resourceVersionsFound, err := client.ResourceVersions(pipelineName, resourceName, page)
 	if err != nil {
 		return TemplateData{}, err
 	}
 
-	if startingID == 0 && !resultsGreaterThanStartingID {
-		startingID = maxID
+	if !resourceVersionsFound {
+		return TemplateData{}, ErrResourceNotFound
 	}
 
-	history, moreResultsInGivenDirection, err := resourceDB.GetResourceHistoryCursor(configResource.Name, startingID, resultsGreaterThanStartingID, 100)
-	if err != nil {
-		return TemplateData{}, err
+	versions := []VersionedResourceWithInputsAndOutputs{}
+	for _, versionedResource := range versionedResources {
+		inputs, _, err := client.BuildsWithVersionAsInput(pipelineName, resourceName, versionedResource.ID)
+		if err != nil {
+			return TemplateData{}, err
+		}
+
+		outputs, _, err := client.BuildsWithVersionAsOutput(pipelineName, resourceName, versionedResource.ID)
+		if err != nil {
+			return TemplateData{}, err
+		}
+
+		inputsTo := map[string][]atc.Build{}
+		outputsOf := map[string][]atc.Build{}
+
+		for _, input := range inputs {
+			if _, ok := inputsTo[input.JobName]; !ok {
+				inputsTo[input.JobName] = []atc.Build{}
+			}
+
+			inputsTo[input.JobName] = append(inputsTo[input.JobName], input)
+		}
+
+		for _, output := range outputs {
+			if _, ok := outputsOf[output.JobName]; !ok {
+				outputsOf[output.JobName] = []atc.Build{}
+			}
+
+			outputsOf[output.JobName] = append(outputsOf[output.JobName], output)
+		}
+
+		versions = append(versions, VersionedResourceWithInputsAndOutputs{
+			VersionedResource: versionedResource,
+			InputsTo:          inputsTo,
+			OutputsOf:         outputsOf,
+		})
 	}
 
-	var paginationData pagination.PaginationData
-
-	if len(history) > 0 {
-		paginationData = pagination.NewPaginationData(
-			resultsGreaterThanStartingID,
-			moreResultsInGivenDirection,
-			maxID,
-			history[0].VersionedResource.ID,
-			history[len(history)-1].VersionedResource.ID,
-		)
-	} else {
-		paginationData = pagination.PaginationData{}
-	}
-
-	resource := present.Resource(configResource, config.Groups, dbResource, authenticated)
-
-	templateData := TemplateData{
-		Resource:       resource,
-		History:        history,
-		PaginationData: paginationData,
-		PipelineName:   resourceDB.GetPipelineName(),
-		GroupStates: group.States(config.Groups, func(g atc.GroupConfig) bool {
+	return TemplateData{
+		Resource:     resource,
+		Versions:     versions,
+		PipelineName: pipelineName,
+		Pagination:   pagination,
+		GroupStates: group.States(pipeline.Groups, func(g atc.GroupConfig) bool {
 			for _, groupResource := range g.Resources {
-				if groupResource == configResource.Name {
+				if groupResource == resource.Name {
 					return true
 				}
 			}
 
 			return false
 		}),
-	}
-
-	return templateData, nil
+	}, nil
 }
 
 func (server *server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session := server.logger.Session("get-resource")
 
+		pipelineName := r.FormValue(":pipeline_name")
 		resourceName := r.FormValue(":resource")
 
-		startingID, parseErr := strconv.Atoi(r.FormValue("id"))
+		since, parseErr := strconv.Atoi(r.FormValue("since"))
 		if parseErr != nil {
-			session.Info("cannot-parse-id-to-int", lager.Data{"id": r.FormValue("id")})
-			startingID = 0
+			since = 0
 		}
 
-		resultsGreaterThanStartingID, parseErr := strconv.ParseBool(r.FormValue("newer"))
+		until, parseErr := strconv.Atoi(r.FormValue("until"))
 		if parseErr != nil {
-			resultsGreaterThanStartingID = false
-			session.Info("cannot-parse-newer-to-bool", lager.Data{"newer": r.FormValue("newer")})
+			until = 0
 		}
 
-		authenticated := auth.IsAuthenticated(r)
-
-		templateData, err := FetchTemplateData(pipelineDB, authenticated, resourceName, startingID, resultsGreaterThanStartingID)
+		templateData, err := FetchTemplateData(
+			pipelineName,
+			resourceName,
+			server.clientFactory.Build(r),
+			concourse.Page{
+				Since: since,
+				Until: until,
+				Limit: atc.PaginationWebLimit,
+			},
+		)
 
 		switch err {
-		case ErrResourceConfigNotFound:
-			session.Error("could-not-find-resource-in-config", ErrResourceConfigNotFound, lager.Data{
+		case ErrResourceNotFound:
+			session.Error("could-not-find-resource", ErrResourceNotFound, lager.Data{
 				"resource": resourceName,
+			})
+			w.WriteHeader(http.StatusNotFound)
+			return
+		case ErrConfigNotFound:
+			session.Error("could-not-find-config", ErrConfigNotFound, lager.Data{
+				"pipeline": pipelineName,
 			})
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -157,8 +176,9 @@ func (server *server) GetResource(pipelineDB db.PipelineDB) http.Handler {
 		default:
 			session.Error("failed-to-build-template-data", err, lager.Data{
 				"resource": resourceName,
+				"pipeline": pipelineName,
 			})
-			http.Error(w, "failed to fetch resources", http.StatusInternalServerError)
+			http.Error(w, "failed to fetch resource", http.StatusInternalServerError)
 			return
 		}
 

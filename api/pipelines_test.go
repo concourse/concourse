@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -559,6 +560,7 @@ var _ = Describe("Pipelines API", func() {
 						ResourceIDs: map[string]int{
 							"resource-127": 127,
 						},
+						CachedAt: time.Unix(42, 0).UTC(),
 					},
 					nil,
 				)
@@ -596,7 +598,8 @@ var _ = Describe("Pipelines API", func() {
 				},
 				"ResourceIDs": {
 					"resource-127": 127
-				}
+				},
+				"CachedAt": "1970-01-01T00:00:42Z"
 				}`))
 			})
 		})

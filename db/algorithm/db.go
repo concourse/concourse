@@ -1,10 +1,13 @@
 package algorithm
 
+import "time"
+
 type VersionsDB struct {
 	ResourceVersions []ResourceVersion
 	BuildOutputs     []BuildOutput
 	JobIDs           map[string]int
 	ResourceIDs      map[string]int
+	CachedAt         time.Time
 }
 
 type ResourceVersion struct {

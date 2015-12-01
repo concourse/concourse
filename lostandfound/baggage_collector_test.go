@@ -108,13 +108,13 @@ var _ = Describe("Baggage Collector", func() {
 							savedVersionsForEachResource[resourceInfo.config.Name] = savedVersions
 						}
 
-						fakePipelineDB.GetResourceVersionsStub = func(resource string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, error) {
+						fakePipelineDB.GetResourceVersionsStub = func(resource string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, bool, error) {
 							Expect(page).To(Equal(db.Page{Limit: 2}))
 							savedVersions := savedVersionsForEachResource[resource]
 							return []db.SavedVersionedResource{
 								savedVersions[len(savedVersions)-1],
 								savedVersions[len(savedVersions)-2],
-							}, db.Pagination{}, nil
+							}, db.Pagination{}, true, nil
 						}
 
 						fakePipelineDBs[name] = fakePipelineDB

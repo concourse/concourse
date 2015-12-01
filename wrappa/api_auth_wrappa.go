@@ -68,13 +68,16 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.GetJob,
 			atc.GetLogLevel,
 			atc.ListBuilds,
+			atc.ListBuildsWithVersionAsInput,
+			atc.ListBuildsWithVersionAsOutput,
 			atc.ListJobBuilds,
 			atc.ListJobs,
 			atc.ListPipelines,
 			atc.GetPipeline,
 			atc.ListResources,
-			atc.ListResourceVersions,
-			atc.GetBuildPlan:
+			atc.GetBuildPlan,
+			atc.GetResource,
+			atc.ListResourceVersions:
 
 		// think about it!
 		default:

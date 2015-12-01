@@ -79,7 +79,7 @@ type FakePipelineDB struct {
 		result1 db.SavedResource
 		result2 error
 	}
-	GetResourceVersionsStub        func(resourceName string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, error)
+	GetResourceVersionsStub        func(resourceName string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, bool, error)
 	getResourceVersionsMutex       sync.RWMutex
 	getResourceVersionsArgsForCall []struct {
 		resourceName string
@@ -88,29 +88,8 @@ type FakePipelineDB struct {
 	getResourceVersionsReturns struct {
 		result1 []db.SavedVersionedResource
 		result2 db.Pagination
-		result3 error
-	}
-	GetResourceHistoryCursorStub        func(resource string, startingID int, searchUpwards bool, numResults int) ([]*db.VersionHistory, bool, error)
-	getResourceHistoryCursorMutex       sync.RWMutex
-	getResourceHistoryCursorArgsForCall []struct {
-		resource      string
-		startingID    int
-		searchUpwards bool
-		numResults    int
-	}
-	getResourceHistoryCursorReturns struct {
-		result1 []*db.VersionHistory
-		result2 bool
-		result3 error
-	}
-	GetResourceHistoryMaxIDStub        func(resourceID int) (int, error)
-	getResourceHistoryMaxIDMutex       sync.RWMutex
-	getResourceHistoryMaxIDArgsForCall []struct {
-		resourceID int
-	}
-	getResourceHistoryMaxIDReturns struct {
-		result1 int
-		result2 error
+		result3 bool
+		result4 error
 	}
 	PauseResourceStub        func(resourceName string) error
 	pauseResourceMutex       sync.RWMutex
@@ -380,6 +359,24 @@ type FakePipelineDB struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}
+	GetBuildsWithVersionAsInputStub        func(versionedResourceID int) ([]db.Build, error)
+	getBuildsWithVersionAsInputMutex       sync.RWMutex
+	getBuildsWithVersionAsInputArgsForCall []struct {
+		versionedResourceID int
+	}
+	getBuildsWithVersionAsInputReturns struct {
+		result1 []db.Build
+		result2 error
+	}
+	GetBuildsWithVersionAsOutputStub        func(versionedResourceID int) ([]db.Build, error)
+	getBuildsWithVersionAsOutputMutex       sync.RWMutex
+	getBuildsWithVersionAsOutputArgsForCall []struct {
+		versionedResourceID int
+	}
+	getBuildsWithVersionAsOutputReturns struct {
+		result1 []db.Build
+		result2 error
+	}
 }
 
 func (fake *FakePipelineDB) GetPipelineName() string {
@@ -629,7 +626,7 @@ func (fake *FakePipelineDB) GetResourceReturns(result1 db.SavedResource, result2
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetResourceVersions(resourceName string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, error) {
+func (fake *FakePipelineDB) GetResourceVersions(resourceName string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, bool, error) {
 	fake.getResourceVersionsMutex.Lock()
 	fake.getResourceVersionsArgsForCall = append(fake.getResourceVersionsArgsForCall, struct {
 		resourceName string
@@ -639,7 +636,7 @@ func (fake *FakePipelineDB) GetResourceVersions(resourceName string, page db.Pag
 	if fake.GetResourceVersionsStub != nil {
 		return fake.GetResourceVersionsStub(resourceName, page)
 	} else {
-		return fake.getResourceVersionsReturns.result1, fake.getResourceVersionsReturns.result2, fake.getResourceVersionsReturns.result3
+		return fake.getResourceVersionsReturns.result1, fake.getResourceVersionsReturns.result2, fake.getResourceVersionsReturns.result3, fake.getResourceVersionsReturns.result4
 	}
 }
 
@@ -655,83 +652,14 @@ func (fake *FakePipelineDB) GetResourceVersionsArgsForCall(i int) (string, db.Pa
 	return fake.getResourceVersionsArgsForCall[i].resourceName, fake.getResourceVersionsArgsForCall[i].page
 }
 
-func (fake *FakePipelineDB) GetResourceVersionsReturns(result1 []db.SavedVersionedResource, result2 db.Pagination, result3 error) {
+func (fake *FakePipelineDB) GetResourceVersionsReturns(result1 []db.SavedVersionedResource, result2 db.Pagination, result3 bool, result4 error) {
 	fake.GetResourceVersionsStub = nil
 	fake.getResourceVersionsReturns = struct {
 		result1 []db.SavedVersionedResource
 		result2 db.Pagination
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipelineDB) GetResourceHistoryCursor(resource string, startingID int, searchUpwards bool, numResults int) ([]*db.VersionHistory, bool, error) {
-	fake.getResourceHistoryCursorMutex.Lock()
-	fake.getResourceHistoryCursorArgsForCall = append(fake.getResourceHistoryCursorArgsForCall, struct {
-		resource      string
-		startingID    int
-		searchUpwards bool
-		numResults    int
-	}{resource, startingID, searchUpwards, numResults})
-	fake.getResourceHistoryCursorMutex.Unlock()
-	if fake.GetResourceHistoryCursorStub != nil {
-		return fake.GetResourceHistoryCursorStub(resource, startingID, searchUpwards, numResults)
-	} else {
-		return fake.getResourceHistoryCursorReturns.result1, fake.getResourceHistoryCursorReturns.result2, fake.getResourceHistoryCursorReturns.result3
-	}
-}
-
-func (fake *FakePipelineDB) GetResourceHistoryCursorCallCount() int {
-	fake.getResourceHistoryCursorMutex.RLock()
-	defer fake.getResourceHistoryCursorMutex.RUnlock()
-	return len(fake.getResourceHistoryCursorArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetResourceHistoryCursorArgsForCall(i int) (string, int, bool, int) {
-	fake.getResourceHistoryCursorMutex.RLock()
-	defer fake.getResourceHistoryCursorMutex.RUnlock()
-	return fake.getResourceHistoryCursorArgsForCall[i].resource, fake.getResourceHistoryCursorArgsForCall[i].startingID, fake.getResourceHistoryCursorArgsForCall[i].searchUpwards, fake.getResourceHistoryCursorArgsForCall[i].numResults
-}
-
-func (fake *FakePipelineDB) GetResourceHistoryCursorReturns(result1 []*db.VersionHistory, result2 bool, result3 error) {
-	fake.GetResourceHistoryCursorStub = nil
-	fake.getResourceHistoryCursorReturns = struct {
-		result1 []*db.VersionHistory
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipelineDB) GetResourceHistoryMaxID(resourceID int) (int, error) {
-	fake.getResourceHistoryMaxIDMutex.Lock()
-	fake.getResourceHistoryMaxIDArgsForCall = append(fake.getResourceHistoryMaxIDArgsForCall, struct {
-		resourceID int
-	}{resourceID})
-	fake.getResourceHistoryMaxIDMutex.Unlock()
-	if fake.GetResourceHistoryMaxIDStub != nil {
-		return fake.GetResourceHistoryMaxIDStub(resourceID)
-	} else {
-		return fake.getResourceHistoryMaxIDReturns.result1, fake.getResourceHistoryMaxIDReturns.result2
-	}
-}
-
-func (fake *FakePipelineDB) GetResourceHistoryMaxIDCallCount() int {
-	fake.getResourceHistoryMaxIDMutex.RLock()
-	defer fake.getResourceHistoryMaxIDMutex.RUnlock()
-	return len(fake.getResourceHistoryMaxIDArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetResourceHistoryMaxIDArgsForCall(i int) int {
-	fake.getResourceHistoryMaxIDMutex.RLock()
-	defer fake.getResourceHistoryMaxIDMutex.RUnlock()
-	return fake.getResourceHistoryMaxIDArgsForCall[i].resourceID
-}
-
-func (fake *FakePipelineDB) GetResourceHistoryMaxIDReturns(result1 int, result2 error) {
-	fake.GetResourceHistoryMaxIDStub = nil
-	fake.getResourceHistoryMaxIDReturns = struct {
-		result1 int
-		result2 error
-	}{result1, result2}
+		result3 bool
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
 func (fake *FakePipelineDB) PauseResource(resourceName string) error {
@@ -1664,6 +1592,72 @@ func (fake *FakePipelineDB) SaveBuildOutputReturns(result1 db.SavedVersionedReso
 	fake.SaveBuildOutputStub = nil
 	fake.saveBuildOutputReturns = struct {
 		result1 db.SavedVersionedResource
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]db.Build, error) {
+	fake.getBuildsWithVersionAsInputMutex.Lock()
+	fake.getBuildsWithVersionAsInputArgsForCall = append(fake.getBuildsWithVersionAsInputArgsForCall, struct {
+		versionedResourceID int
+	}{versionedResourceID})
+	fake.getBuildsWithVersionAsInputMutex.Unlock()
+	if fake.GetBuildsWithVersionAsInputStub != nil {
+		return fake.GetBuildsWithVersionAsInputStub(versionedResourceID)
+	} else {
+		return fake.getBuildsWithVersionAsInputReturns.result1, fake.getBuildsWithVersionAsInputReturns.result2
+	}
+}
+
+func (fake *FakePipelineDB) GetBuildsWithVersionAsInputCallCount() int {
+	fake.getBuildsWithVersionAsInputMutex.RLock()
+	defer fake.getBuildsWithVersionAsInputMutex.RUnlock()
+	return len(fake.getBuildsWithVersionAsInputArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetBuildsWithVersionAsInputArgsForCall(i int) int {
+	fake.getBuildsWithVersionAsInputMutex.RLock()
+	defer fake.getBuildsWithVersionAsInputMutex.RUnlock()
+	return fake.getBuildsWithVersionAsInputArgsForCall[i].versionedResourceID
+}
+
+func (fake *FakePipelineDB) GetBuildsWithVersionAsInputReturns(result1 []db.Build, result2 error) {
+	fake.GetBuildsWithVersionAsInputStub = nil
+	fake.getBuildsWithVersionAsInputReturns = struct {
+		result1 []db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]db.Build, error) {
+	fake.getBuildsWithVersionAsOutputMutex.Lock()
+	fake.getBuildsWithVersionAsOutputArgsForCall = append(fake.getBuildsWithVersionAsOutputArgsForCall, struct {
+		versionedResourceID int
+	}{versionedResourceID})
+	fake.getBuildsWithVersionAsOutputMutex.Unlock()
+	if fake.GetBuildsWithVersionAsOutputStub != nil {
+		return fake.GetBuildsWithVersionAsOutputStub(versionedResourceID)
+	} else {
+		return fake.getBuildsWithVersionAsOutputReturns.result1, fake.getBuildsWithVersionAsOutputReturns.result2
+	}
+}
+
+func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputCallCount() int {
+	fake.getBuildsWithVersionAsOutputMutex.RLock()
+	defer fake.getBuildsWithVersionAsOutputMutex.RUnlock()
+	return len(fake.getBuildsWithVersionAsOutputArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputArgsForCall(i int) int {
+	fake.getBuildsWithVersionAsOutputMutex.RLock()
+	defer fake.getBuildsWithVersionAsOutputMutex.RUnlock()
+	return fake.getBuildsWithVersionAsOutputArgsForCall[i].versionedResourceID
+}
+
+func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputReturns(result1 []db.Build, result2 error) {
+	fake.GetBuildsWithVersionAsOutputStub = nil
+	fake.getBuildsWithVersionAsOutputReturns = struct {
+		result1 []db.Build
 		result2 error
 	}{result1, result2}
 }

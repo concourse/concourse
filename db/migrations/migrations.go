@@ -63,4 +63,5 @@ var Migrations = []migration.Migrator{
 	AddWorkingDirectoryToContainers,
 	MakeContainerWorkingDirectoryNotNull,
 	AddEnvVariablesToContainers,
+	AddModifiedTimeToVersionedResourcesAndBuildOutputs,
 }

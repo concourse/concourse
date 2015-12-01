@@ -35,25 +35,24 @@
   </div>
 </div>
 
-
-{{if .PaginationData.HasPagination}}
-	<div class="pagination mam clearfix">
-		{{if .PaginationData.HasNewer}}
-		<div class="fl ">
-			<a href="{{url "GetResource" .PipelineName .Resource.Name .PaginationData true}}" class="pagination-handle"><i class="fa fa-arrow-left"></i></a>
-		</div>
-		{{end}}
-		{{if .PaginationData.HasOlder}}
-		<div class="fr">
-			<a href="{{url "GetResource" .PipelineName .Resource.Name .PaginationData false}}" class="pagination-handle"><i class="fa fa-arrow-right"></i></a>
-		</div>
-		{{end}}
-	</div>
+{{if or .Pagination.Previous .Pagination.Next}}
+  <div class="pagination mbs clearfix">
+    {{if .Pagination.Previous}}
+    <div class="fl">
+      <a href="{{url "GetResource" .PipelineName .Resource .Pagination.Previous}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-left"></i></a>
+    </div>
+    {{end}}
+    {{if .Pagination.Next}}
+    <div class="fr">
+      <a href="{{url "GetResource" .PipelineName .Resource .Pagination.Next}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-right"></i></a>
+    </div>
+    {{end}}
+  </div>
 {{end}}
 
 <ul class="list list-collapsable list-enableDisable mhm resource-versions">
   {{$pipelineName := .PipelineName}}
-  {{range .History}}
+  {{range .Versions}}
     <li class="list-collapsable-item clearfix {{if .VersionedResource.Enabled}}enabled{{else}}disabled{{end}}">
 
       <a class="fl btn-power-toggle js-toggleResource fa fa-power-off mrm" href="javascript:;" data-action="{{if .VersionedResource.Enabled}}disable{{else}}enable{{end}}" data-enable-url="{{url "EnableResourceVersion" $pipelineName .VersionedResource}}" data-disable-url="{{url "DisableResourceVersion" $pipelineName .VersionedResource}}"></a>
@@ -68,28 +67,25 @@
         <div class="fl prm" style="width:34%">
           <div class="list-collapsable-title">inputs to</div>
 
-          {{range .InputsTo}}
-            {{$job := .JobName}}
-              <h3 class="man pas ansi-bright-black-bg">{{.JobName}}</h3>
-              <ul class="builds-list">
-                  {{range .Builds}}
-                  <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.Name}}</a></li>
-                  {{end}}
-                </ul>
-
+          {{range $jobName, $builds := .InputsTo}}
+            <h3 class="man pas ansi-bright-black-bg">{{$jobName}}</h3>
+            <ul class="builds-list">
+              {{range $builds}}
+                <li class="{{.Status}}"><a href="{{url "GetBuild" $jobName .}}">#{{.Name}}</a></li>
+              {{end}}
+            </ul>
           {{end}}
         </div>
 
         <div class="fl prm" style="width:33%">
           <div class="list-collapsable-title">outputs of</div>
-          {{range .OutputsOf}}
-            {{$job := .JobName}}
-              <h3 class="man pas ansi-bright-black-bg">{{.JobName}}</h3>
-              <ul class="builds-list">
-                  {{range .Builds}}
-                  <li class="{{.Status}}"><a href="{{url "GetBuild" $job .}}">#{{.Name}}</a></li>
-                  {{end}}
-               </ul>
+          {{range $jobName, $builds := .OutputsOf}}
+            <h3 class="man pas ansi-bright-black-bg">{{$jobName}}</h3>
+            <ul class="builds-list">
+              {{range $builds}}
+                <li class="{{.Status}}"><a href="{{url "GetBuild" $jobName .}}">#{{.Name}}</a></li>
+              {{end}}
+            </ul>
           {{end}}
         </div>
 
@@ -107,19 +103,19 @@
   {{end}}
 </ul>
 
-{{if .PaginationData.HasPagination}}
-	<div class="pagination mam clearfix">
-		{{if .PaginationData.HasNewer}}
-		<div class="fl pagination-handle">
-			<a href="{{url "GetResource" .PipelineName .Resource.Name .PaginationData true}}"><i class="fa fa-arrow-left"></i></a>
-		</div>
-		{{end}}
-		{{if .PaginationData.HasOlder}}
-		<div class="fr pagination-handle">
-			<a href="{{url "GetResource" .PipelineName .Resource.Name .PaginationData false}}"><i class="fa fa-arrow-right"></i></a>
-		</div>
-		{{end}}
-	</div>
+{{if or .Pagination.Previous .Pagination.Next}}
+  <div class="pagination mbs clearfix">
+    {{if .Pagination.Previous}}
+    <div class="fl">
+      <a href="{{url "GetResource" .PipelineName .Resource .Pagination.Previous}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-left"></i></a>
+    </div>
+    {{end}}
+    {{if .Pagination.Next}}
+    <div class="fr">
+      <a href="{{url "GetResource" .PipelineName .Resource .Pagination.Next}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-right"></i></a>
+    </div>
+    {{end}}
+  </div>
 {{end}}
 
 

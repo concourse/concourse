@@ -88,6 +88,8 @@ type SavedVersionedResource struct {
 
 	Enabled bool
 
+	ModifiedTime time.Time
+
 	VersionedResource
 }
 

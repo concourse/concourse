@@ -378,6 +378,8 @@ var _ = Describe("PipelineDB", func() {
 			savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
+			Expect(savedVR1.ModifiedTime).NotTo(BeNil())
+			Expect(savedVR1.ModifiedTime).To(BeTemporally(">", time.Time{}))
 
 			err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
 				Name:   resource.Name,
@@ -605,11 +607,10 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(savedVR.VersionedResource).To(Equal(db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "some-type",
-					Version:  db.Version{"version": "1"},
-				}))
+				Expect(savedVR.Resource).To(Equal("some-resource"))
+				Expect(savedVR.Type).To(Equal("some-type"))
+				Expect(savedVR.Version).To(Equal(db.Version{"version": "1"}))
+				initialTime := savedVR.ModifiedTime
 
 				err = pipelineDB.DisableVersionedResource(savedVR.ID)
 				Expect(err).NotTo(HaveOccurred())
@@ -619,7 +620,13 @@ var _ = Describe("PipelineDB", func() {
 
 				latestVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
 				Expect(found).To(BeTrue())
-				Expect(latestVR).To(Equal(disabledVR))
+				Expect(latestVR.Resource).To(Equal(disabledVR.Resource))
+				Expect(latestVR.Type).To(Equal(disabledVR.Type))
+				Expect(latestVR.Version).To(Equal(disabledVR.Version))
+				Expect(latestVR.Enabled).To(BeFalse())
+				Expect(latestVR.ModifiedTime).To(BeTemporally(">", initialTime))
+
+				tmp_modified_time := latestVR.ModifiedTime
 
 				err = pipelineDB.EnableVersionedResource(savedVR.ID)
 				Expect(err).NotTo(HaveOccurred())
@@ -629,7 +636,11 @@ var _ = Describe("PipelineDB", func() {
 
 				latestVR, found, err = pipelineDB.GetLatestVersionedResource(resource)
 				Expect(found).To(BeTrue())
-				Expect(latestVR).To(Equal(enabledVR))
+				Expect(latestVR.Resource).To(Equal(enabledVR.Resource))
+				Expect(latestVR.Type).To(Equal(enabledVR.Type))
+				Expect(latestVR.Version).To(Equal(enabledVR.Version))
+				Expect(latestVR.Enabled).To(BeTrue())
+				Expect(latestVR.ModifiedTime).To(BeTemporally(">", tmp_modified_time))
 			})
 
 			It("prevents the resource version from being eligible as a previous set of inputs", func() {
@@ -727,17 +738,30 @@ var _ = Describe("PipelineDB", func() {
 				versions, found, err := loadAndGetLatestInputVersions("a-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(versions).To(ConsistOf([]db.BuildInput{
-					{
-						Name:              "some-input-name",
-						VersionedResource: savedVR1.VersionedResource,
-					},
-					{
-						Name:              "some-other-input-name",
-						VersionedResource: otherSavedVR2.VersionedResource,
-					},
-				}))
+				Expect(len(versions)).To(Equal(2))
 
+				var someInput, someOtherInput db.BuildInput
+				if versions[0].Name == "some-input-name" {
+					someInput = versions[0]
+					someOtherInput = versions[1]
+				} else {
+					someInput = versions[1]
+					someOtherInput = versions[0]
+				}
+
+				Expect(someInput.Name).To(Equal("some-input-name"))
+				Expect(someInput.VersionedResource.Resource).To(Equal(savedVR1.VersionedResource.Resource))
+				Expect(someInput.VersionedResource.Type).To(Equal(savedVR1.VersionedResource.Type))
+				Expect(someInput.VersionedResource.Version).To(Equal(savedVR1.VersionedResource.Version))
+				Expect(someInput.VersionedResource.Metadata).To(Equal(savedVR1.VersionedResource.Metadata))
+				Expect(someInput.VersionedResource.PipelineName).To(Equal(savedVR1.VersionedResource.PipelineName))
+
+				Expect(someOtherInput.Name).To(Equal("some-other-input-name"))
+				Expect(someOtherInput.VersionedResource.Resource).To(Equal(otherSavedVR2.VersionedResource.Resource))
+				Expect(someOtherInput.VersionedResource.Type).To(Equal(savedVR2.VersionedResource.Type))
+				Expect(someOtherInput.VersionedResource.Version).To(Equal(savedVR2.VersionedResource.Version))
+				Expect(someOtherInput.VersionedResource.Metadata).To(Equal(savedVR2.VersionedResource.Metadata))
+				Expect(someOtherInput.VersionedResource.PipelineName).To(Equal(savedVR2.VersionedResource.PipelineName))
 			})
 
 			It("prevents the resource version from being a candidate for build inputs", func() {
@@ -773,12 +797,14 @@ var _ = Describe("PipelineDB", func() {
 				versions, found, err := loadAndGetLatestInputVersions("a-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(versions).To(ConsistOf([]db.BuildInput{
-					{
-						Name:              "some-input-name",
-						VersionedResource: savedVR2.VersionedResource,
-					},
-				}))
+
+				someInput := versions[0]
+				Expect(someInput.Name).To(Equal("some-input-name"))
+				Expect(someInput.VersionedResource.Resource).To(Equal(savedVR2.VersionedResource.Resource))
+				Expect(someInput.VersionedResource.Type).To(Equal(savedVR2.VersionedResource.Type))
+				Expect(someInput.VersionedResource.Version).To(Equal(savedVR2.VersionedResource.Version))
+				Expect(someInput.VersionedResource.Metadata).To(Equal(savedVR2.VersionedResource.Metadata))
+				Expect(someInput.VersionedResource.PipelineName).To(Equal(savedVR2.VersionedResource.PipelineName))
 
 				err = pipelineDB.DisableVersionedResource(savedVR2.ID)
 				Expect(err).NotTo(HaveOccurred())
@@ -786,12 +812,14 @@ var _ = Describe("PipelineDB", func() {
 				versions, found, err = loadAndGetLatestInputVersions("a-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(versions).To(ConsistOf([]db.BuildInput{
-					{
-						Name:              "some-input-name",
-						VersionedResource: savedVR1.VersionedResource,
-					},
-				}))
+
+				someInput = versions[0]
+				Expect(someInput.Name).To(Equal("some-input-name"))
+				Expect(someInput.VersionedResource.Resource).To(Equal(savedVR1.VersionedResource.Resource))
+				Expect(someInput.VersionedResource.Type).To(Equal(savedVR1.VersionedResource.Type))
+				Expect(someInput.VersionedResource.Version).To(Equal(savedVR1.VersionedResource.Version))
+				Expect(someInput.VersionedResource.Metadata).To(Equal(savedVR1.VersionedResource.Metadata))
+				Expect(someInput.VersionedResource.PipelineName).To(Equal(savedVR1.VersionedResource.PipelineName))
 
 				err = pipelineDB.DisableVersionedResource(savedVR1.ID)
 				Expect(err).NotTo(HaveOccurred())
@@ -806,12 +834,14 @@ var _ = Describe("PipelineDB", func() {
 				versions, found, err = loadAndGetLatestInputVersions("a-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(versions).To(ConsistOf([]db.BuildInput{
-					{
-						Name:              "some-input-name",
-						VersionedResource: savedVR1.VersionedResource,
-					},
-				}))
+
+				someInput = versions[0]
+				Expect(someInput.Name).To(Equal("some-input-name"))
+				Expect(someInput.VersionedResource.Resource).To(Equal(savedVR1.VersionedResource.Resource))
+				Expect(someInput.VersionedResource.Type).To(Equal(savedVR1.VersionedResource.Type))
+				Expect(someInput.VersionedResource.Version).To(Equal(savedVR1.VersionedResource.Version))
+				Expect(someInput.VersionedResource.Metadata).To(Equal(savedVR1.VersionedResource.Metadata))
+				Expect(someInput.VersionedResource.PipelineName).To(Equal(savedVR1.VersionedResource.PipelineName))
 
 				err = pipelineDB.EnableVersionedResource(savedVR2.ID)
 				Expect(err).NotTo(HaveOccurred())
@@ -819,13 +849,162 @@ var _ = Describe("PipelineDB", func() {
 				versions, found, err = loadAndGetLatestInputVersions("a-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(versions).To(ConsistOf([]db.BuildInput{
-					{
-						Name:              "some-input-name",
-						VersionedResource: savedVR2.VersionedResource,
-					},
-				}))
 
+				someInput = versions[0]
+				Expect(someInput.Name).To(Equal("some-input-name"))
+				Expect(someInput.VersionedResource.Resource).To(Equal(savedVR2.VersionedResource.Resource))
+				Expect(someInput.VersionedResource.Type).To(Equal(savedVR2.VersionedResource.Type))
+				Expect(someInput.VersionedResource.Version).To(Equal(savedVR2.VersionedResource.Version))
+				Expect(someInput.VersionedResource.Metadata).To(Equal(savedVR2.VersionedResource.Metadata))
+				Expect(someInput.VersionedResource.PipelineName).To(Equal(savedVR2.VersionedResource.PipelineName))
+			})
+		})
+
+		Describe("VersionsDB caching", func() {
+			Context("when build outputs are added", func() {
+				var build db.Build
+				var savedVR db.SavedVersionedResource
+
+				BeforeEach(func() {
+					var err error
+					build, err = pipelineDB.CreateJobBuild("some-job")
+					Expect(err).NotTo(HaveOccurred())
+
+					err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+						Name:   "some-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}, []atc.Version{{"version": "1"}})
+					Expect(err).NotTo(HaveOccurred())
+
+					savedResource, err := pipelineDB.GetResource("some-resource")
+					Expect(err).NotTo(HaveOccurred())
+
+					var found bool
+					savedVR, found, err = pipelineDB.GetLatestVersionedResource(savedResource)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+				})
+
+				It("will cache VersionsDB if no change has occured", func() {
+					_, err := pipelineDB.SaveBuildOutput(build.ID, savedVR.VersionedResource, true)
+
+					versionsDB, err := pipelineDB.LoadVersionsDB()
+					Expect(err).NotTo(HaveOccurred())
+
+					cachedVersionsDB, err := pipelineDB.LoadVersionsDB()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(versionsDB == cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be the same object")
+				})
+
+				It("will not cache VersionsDB if a change occured", func() {
+					versionsDB, err := pipelineDB.LoadVersionsDB()
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = pipelineDB.SaveBuildOutput(build.ID, savedVR.VersionedResource, true)
+					Expect(err).NotTo(HaveOccurred())
+
+					cachedVersionsDB, err := pipelineDB.LoadVersionsDB()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(versionsDB != cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be different objects")
+				})
+
+				Context("when the build outputs are added for a different pipeline", func() {
+					It("does not invalidate the cache for the original pipeline", func() {
+						otherBuild, err := otherPipelineDB.CreateJobBuild("some-job")
+						Expect(err).NotTo(HaveOccurred())
+
+						err = otherPipelineDB.SaveResourceVersions(atc.ResourceConfig{
+							Name:   "some-resource2",
+							Type:   "some-type",
+							Source: atc.Source{"some": "source"},
+						}, []atc.Version{{"version": "1"}})
+						Expect(err).NotTo(HaveOccurred())
+
+						otherSavedResource, err := otherPipelineDB.GetResource("some-resource2")
+						Expect(err).NotTo(HaveOccurred())
+
+						otherSavedVR, found, err := otherPipelineDB.GetLatestVersionedResource(otherSavedResource)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+
+						versionsDB, err := pipelineDB.LoadVersionsDB()
+						Expect(err).NotTo(HaveOccurred())
+
+						_, err = otherPipelineDB.SaveBuildOutput(otherBuild.ID, otherSavedVR.VersionedResource, true)
+						Expect(err).NotTo(HaveOccurred())
+
+						cachedVersionsDB, err := pipelineDB.LoadVersionsDB()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(versionsDB == cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be the same object")
+					})
+				})
+			})
+
+			Context("when versioned resources are added", func() {
+				It("will cache VersionsDB if no change has occured", func() {
+					err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+						Name:   "some-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}, []atc.Version{{"version": "1"}})
+					Expect(err).NotTo(HaveOccurred())
+
+					versionsDB, err := pipelineDB.LoadVersionsDB()
+					Expect(err).NotTo(HaveOccurred())
+
+					cachedVersionsDB, err := pipelineDB.LoadVersionsDB()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(versionsDB == cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be the same object")
+				})
+
+				It("will not cache VersionsDB if a change occured", func() {
+					err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+						Name:   "some-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}, []atc.Version{{"version": "1"}})
+					Expect(err).NotTo(HaveOccurred())
+
+					versionsDB, err := pipelineDB.LoadVersionsDB()
+					Expect(err).NotTo(HaveOccurred())
+
+					err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+						Name:   "some-resource2",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}, []atc.Version{{"version": "1"}})
+					Expect(err).NotTo(HaveOccurred())
+
+					cachedVersionsDB, err := pipelineDB.LoadVersionsDB()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(versionsDB != cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be different objects")
+				})
+
+				Context("when the versioned resources are added for a different pipeline", func() {
+					It("does not invalidate the cache for the original pipeline", func() {
+						err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+							Name:   "some-resource",
+							Type:   "some-type",
+							Source: atc.Source{"some": "source"},
+						}, []atc.Version{{"version": "1"}})
+						Expect(err).NotTo(HaveOccurred())
+
+						versionsDB, err := pipelineDB.LoadVersionsDB()
+						Expect(err).NotTo(HaveOccurred())
+
+						err = otherPipelineDB.SaveResourceVersions(atc.ResourceConfig{
+							Name:   "some-resource2",
+							Type:   "some-type",
+							Source: atc.Source{"some": "source"},
+						}, []atc.Version{{"version": "1"}})
+						Expect(err).NotTo(HaveOccurred())
+
+						cachedVersionsDB, err := pipelineDB.LoadVersionsDB()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(versionsDB == cachedVersionsDB).To(BeTrue(), "Expected VersionsDB to be the same object")
+					})
+				})
 			})
 		})
 
@@ -848,11 +1027,9 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(savedVR.VersionedResource).To(Equal(db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "some-type",
-					Version:  db.Version{"version": "1"},
-				}))
+				Expect(savedVR.Resource).To(Equal("some-resource"))
+				Expect(savedVR.Type).To(Equal("some-type"))
+				Expect(savedVR.Version).To(Equal(db.Version{"version": "1"}))
 
 				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
 					Name:   "some-resource",
@@ -865,12 +1042,9 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(savedVR.VersionedResource).To(Equal(db.VersionedResource{
-					Resource: "some-resource",
-					Type:     "some-type",
-					Version:  db.Version{"version": "3"},
-				}))
-
+				Expect(savedVR.Resource).To(Equal("some-resource"))
+				Expect(savedVR.Type).To(Equal("some-type"))
+				Expect(savedVR.Version).To(Equal(db.Version{"version": "3"}))
 			})
 		})
 
@@ -2291,17 +2465,30 @@ var _ = Describe("PipelineDB", func() {
 				versions, found, err := loadAndGetLatestInputVersions("third-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(versions).To(ConsistOf([]db.BuildInput{
-					{
-						Name:              "some-input-name",
-						VersionedResource: savedVR1.VersionedResource,
-					},
-					{
-						Name:              "some-other-input-name",
-						VersionedResource: otherSavedVR3.VersionedResource,
-					},
-				}))
+				Expect(len(versions)).To(Equal(2))
 
+				var someInput, someOtherInput db.BuildInput
+				if versions[0].Name == "some-input-name" {
+					someInput = versions[0]
+					someOtherInput = versions[1]
+				} else {
+					someInput = versions[1]
+					someOtherInput = versions[0]
+				}
+
+				Expect(someInput.Name).To(Equal("some-input-name"))
+				Expect(someInput.VersionedResource.Resource).To(Equal(savedVR1.VersionedResource.Resource))
+				Expect(someInput.VersionedResource.Type).To(Equal(savedVR1.VersionedResource.Type))
+				Expect(someInput.VersionedResource.Version).To(Equal(savedVR1.VersionedResource.Version))
+				Expect(someInput.VersionedResource.Metadata).To(Equal(savedVR1.VersionedResource.Metadata))
+				Expect(someInput.VersionedResource.PipelineName).To(Equal(savedVR1.VersionedResource.PipelineName))
+
+				Expect(someOtherInput.Name).To(Equal("some-other-input-name"))
+				Expect(someOtherInput.VersionedResource.Resource).To(Equal(otherSavedVR3.VersionedResource.Resource))
+				Expect(someOtherInput.VersionedResource.Type).To(Equal(savedVR3.VersionedResource.Type))
+				Expect(someOtherInput.VersionedResource.Version).To(Equal(savedVR3.VersionedResource.Version))
+				Expect(someOtherInput.VersionedResource.Metadata).To(Equal(savedVR3.VersionedResource.Metadata))
+				Expect(someOtherInput.VersionedResource.PipelineName).To(Equal(savedVR3.VersionedResource.PipelineName))
 			})
 
 			It("ensures that versions from jobs mentioned in two input's 'passed' sections came from the same successful builds", func() {

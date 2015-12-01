@@ -141,12 +141,15 @@ func NewHandler(
 		atc.GetVersionsDB:   pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB),
 
 		atc.ListResources:   pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
+		atc.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
 		atc.PauseResource:   pipelineHandlerFactory.HandlerFor(resourceServer.PauseResource),
 		atc.UnpauseResource: pipelineHandlerFactory.HandlerFor(resourceServer.UnpauseResource),
 
-		atc.ListResourceVersions:   pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions),
-		atc.EnableResourceVersion:  pipelineHandlerFactory.HandlerFor(versionServer.EnableResourceVersion),
-		atc.DisableResourceVersion: pipelineHandlerFactory.HandlerFor(versionServer.DisableResourceVersion),
+		atc.ListResourceVersions:          pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions),
+		atc.EnableResourceVersion:         pipelineHandlerFactory.HandlerFor(versionServer.EnableResourceVersion),
+		atc.DisableResourceVersion:        pipelineHandlerFactory.HandlerFor(versionServer.DisableResourceVersion),
+		atc.ListBuildsWithVersionAsInput:  pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsInput),
+		atc.ListBuildsWithVersionAsOutput: pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsOutput),
 
 		atc.CreatePipe: http.HandlerFunc(pipeServer.CreatePipe),
 		atc.WritePipe:  http.HandlerFunc(pipeServer.WritePipe),

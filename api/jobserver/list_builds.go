@@ -24,41 +24,22 @@ func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
 		jobName := r.FormValue(":job_name")
 
 		urlUntil := r.FormValue(atc.PaginationQueryUntil)
-		if urlUntil != "" {
-			until, err = strconv.Atoi(urlUntil)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		}
+		until, _ = strconv.Atoi(urlUntil)
 
 		urlSince := r.FormValue(atc.PaginationQuerySince)
-		if urlSince != "" {
-			since, err = strconv.Atoi(urlSince)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		}
+		since, _ = strconv.Atoi(urlSince)
 
 		urlLimit := r.FormValue(atc.PaginationQueryLimit)
-		if urlLimit != "" {
-			limit, err = strconv.Atoi(urlLimit)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-		} else {
+		limit, _ = strconv.Atoi(urlLimit)
+		if limit == 0 {
 			limit = atc.PaginationAPIDefaultLimit
 		}
 
-		page := db.Page{
+		builds, pagination, err := pipelineDB.GetJobBuilds(jobName, db.Page{
 			Since: since,
 			Until: until,
 			Limit: limit,
-		}
-
-		builds, pagination, err := pipelineDB.GetJobBuilds(jobName, page)
+		})
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
