@@ -28,10 +28,9 @@ type alias Model =
   , build : Maybe Build
   , history : Maybe (List Build)
   , eventSource : Maybe EventSource
+  , stepState : StepRenderingState
   , status : BuildEvent.BuildStatus
   , autoScroll : Bool
-  , buildRunning : Bool
-  , eventsLoaded : Bool
   , now : Time.Time
   , duration : BuildDuration
   }
@@ -54,17 +53,23 @@ type alias Job =
   , pipelineName : String
   }
 
+type StepRenderingState
+  = StepsLoading
+  | StepsLiveUpdating
+  | StepsComplete
+  | LoginRequired
+
 type Action
   = Noop
   | PlanFetched (Result Http.Error BuildPlan)
   | BuildFetched (Result Http.Error Build)
   | BuildHistoryFetched (Result Http.Error BuildHistory)
   | Listening EventSource
-  | Opened
-  | Errored
+  | EventSourceOpened
+  | EventSourceErrored
   | Event (Result String BuildEvent)
   | EndOfEvents
-  | Closed
+  | EventSourceClosed
   | ScrollTick
   | ScrollFromBottom Int
   | ScrollBuilds (Float, Float)
@@ -88,10 +93,9 @@ init actions buildId =
       , build = Nothing
       , history = Nothing
       , eventSource = Nothing
-      , eventsLoaded = False
+      , stepState = StepsLoading
       , autoScroll = True
       , status = BuildEvent.BuildStatusPending
-      , buildRunning = False
       , now = 0
       , duration = BuildDuration Nothing Nothing
       }
@@ -110,7 +114,7 @@ update action model =
       (model, Effects.none)
 
     ScrollTick ->
-      if not model.eventsLoaded && model.autoScroll then
+      if model.stepState == StepsLiveUpdating && model.autoScroll then
         (model, Effects.batch [keepScrolling, scrollToBottom])
       else
         (model, Effects.none)
@@ -132,19 +136,19 @@ update action model =
       let
         status = toStatus build.status
         pending = status == BuildEvent.BuildStatusPending
-        running =
+        stepState =
           case status of
             BuildEvent.BuildStatusPending ->
-              True
+              StepsLiveUpdating
             BuildEvent.BuildStatusStarted ->
-              True
+              StepsLiveUpdating
             _ ->
-              False
+              StepsLoading
       in
         ( { model
           | build = Just build
           , status = status
-          , buildRunning = running
+          , stepState = stepState
           }
         , let
             fetch =
@@ -197,11 +201,26 @@ update action model =
     Listening es ->
       ({ model | eventSource = Just es }, Effects.none)
 
-    Opened ->
+    EventSourceOpened ->
+      -- TODO figure this one out
       (model, scrollToBottom)
 
-    Errored ->
-      (model, Effects.none)
+    EventSourceErrored ->
+      let
+        newState =
+          case model.stepState of
+            -- closing the event source causes an error to come in, so ignore
+            -- it since that means everything actually worked
+            StepsComplete ->
+              StepsComplete
+
+            -- getting an error immediately could either be a) server blew up
+            -- or b) server says we're unauthorized. there's no way to tell the
+            -- difference, so just assume they're not authorized.
+            other ->
+              LoginRequired
+      in
+        ({ model | stepState = newState }, Effects.none)
 
     Event (Ok (BuildEvent.Log origin output)) ->
       ( updateStep origin.id (setRunning << appendStepLog output) model
@@ -240,10 +259,12 @@ update action model =
 
     Event (Ok (BuildEvent.BuildStatus status date)) ->
       ( updateStartFinishAt status date <|
-          if model.buildRunning then
-            { model | status = status }
-          else
-            model
+          case model.stepState of
+            StepsLiveUpdating ->
+              { model | status = status }
+
+            _ ->
+              model
       , Effects.none
       )
 
@@ -277,12 +298,12 @@ update action model =
     EndOfEvents ->
       case model.eventSource of
         Just es ->
-          ({ model | eventsLoaded = True }, closeEvents es)
+          ({ model | stepState = StepsComplete }, closeEvents es)
 
         Nothing ->
           (model, Effects.none)
 
-    Closed ->
+    EventSourceClosed ->
       ({ model | eventSource = Nothing }, Effects.none)
 
 updateStartFinishAt : BuildEvent.BuildStatus -> Date -> Model -> Model
@@ -358,13 +379,18 @@ view actions model =
       Html.div []
         [ viewBuildHeader actions build model.status model.now model.duration (Maybe.withDefault [] model.history)
         , Html.div (id "build-body" :: paddingClass build)
-            [ if model.buildRunning || model.eventsLoaded then
-                Html.div [class "steps"]
-                  [ viewErrors model.errors
-                  , StepTree.view (Signal.forwardTo actions StepTreeAction) root.tree
-                  ]
-              else
-                Html.text "loading..."
+            [ case model.stepState of
+                StepsLoading ->
+                  Html.text "loading..."
+
+                StepsLiveUpdating ->
+                  viewSteps actions model.errors build root
+
+                StepsComplete ->
+                  viewSteps actions model.errors build root
+
+                LoginRequired ->
+                  viewLoginButton build
             ]
         ]
 
@@ -377,6 +403,13 @@ view actions model =
 
     _ ->
       Html.text "loading..."
+
+viewSteps : Signal.Address Action -> Maybe Ansi.Log.Model -> Build -> StepTree.Root -> Html
+viewSteps actions errors build root =
+  Html.div [class "steps"]
+    [ viewErrors errors
+    , StepTree.view (Signal.forwardTo actions StepTreeAction) root.tree
+    ]
 
 viewErrors : Maybe Ansi.Log.Model -> Html
 viewErrors errors =
@@ -392,6 +425,24 @@ viewErrors errors =
             ]
         , Html.div [class "step-body build-errors-body"] [Ansi.Log.view log]
         ]
+
+viewLoginButton : Build -> Html
+viewLoginButton build =
+  Html.form
+    [ class "build-login"
+    , Html.Attributes.method "get"
+    , Html.Attributes.action "/login"
+    ]
+    [ Html.input
+        [ Html.Attributes.type' "submit"
+        , Html.Attributes.value "log in to view"
+        ] []
+    , Html.input
+        [ Html.Attributes.type' "hidden"
+        , Html.Attributes.name "redirect"
+        , Html.Attributes.value (buildUrl build)
+        ] []
+    ]
 
 paddingClass : Build -> List Html.Attribute
 paddingClass build =
@@ -619,8 +670,8 @@ subscribeToEvents build actions =
   let
     settings =
       EventSource.Settings
-        (Just <| Signal.forwardTo actions (always Opened))
-        (Just <| Signal.forwardTo actions (always Errored))
+        (Just <| Signal.forwardTo actions (always EventSourceOpened))
+        (Just <| Signal.forwardTo actions (always EventSourceErrored))
 
     connect =
       EventSource.connect ("/api/v1/builds/" ++ toString build ++ "/events") settings
@@ -640,7 +691,7 @@ subscribeToEvents build actions =
 closeEvents : EventSource.EventSource -> Effects.Effects Action
 closeEvents eventSource =
   EventSource.close eventSource
-    |> Task.map (always Closed)
+    |> Task.map (always EventSourceClosed)
     |> Effects.task
 
 parseEvent : EventSource.Event -> Result String BuildEvent
@@ -668,3 +719,12 @@ toStatus str =
     "errored" -> BuildEvent.BuildStatusErrored
     "aborted" -> BuildEvent.BuildStatusAborted
     _ -> Debug.crash ("unknown state: " ++ str)
+
+buildUrl : Build -> String
+buildUrl build =
+  case build.job of
+    Nothing ->
+      "/builds/" ++ toString build.id
+
+    Just {name, pipelineName} ->
+      "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name ++ "/builds/" ++ build.name
