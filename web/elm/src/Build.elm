@@ -436,7 +436,7 @@ viewBuildHeader actions build status now duration history =
           [ on "mousewheel" decodeScrollEvent (scrollEvent actions)
           , id "builds"
           ]
-          (List.map (renderHistory build) history)
+          (List.map (renderHistory build status) history)
       ]
 
 viewBuildDuration : Time.Time -> BuildDuration -> Html
@@ -469,17 +469,21 @@ scrollEvent actions delta =
 decodeScrollEvent : Json.Decode.Decoder (Float, Float)
 decodeScrollEvent =
   Json.Decode.object2 (,)
-    (Json.Decode.map (Maybe.withDefault 0) <| Json.Decode.maybe <| "deltaX" := Json.Decode.float)
-    (Json.Decode.map (Maybe.withDefault 0) <| Json.Decode.maybe <| "deltaY" := Json.Decode.float)
+    ("deltaX" := Json.Decode.float)
+    ("deltaY" := Json.Decode.float)
 
-renderHistory : Build -> Build -> Html
-renderHistory currentBuild build =
+renderHistory : Build -> BuildEvent.BuildStatus -> Build -> Html
+renderHistory currentBuild currentStatus build =
   Html.li
-    [
-      classList [
-        (build.status, True),
-        ("current", build.name == currentBuild.name)
-      ]
+    [ classList
+        [ ( if build.name == currentBuild.name then
+              statusClass currentStatus
+            else
+              build.status
+          , True
+          )
+        , ("current", build.name == currentBuild.name)
+        ]
     ]
     [ Html.a [href build.url] [ Html.text ("#" ++ build.name) ] ]
 
