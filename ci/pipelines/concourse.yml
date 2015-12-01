@@ -115,7 +115,7 @@ jobs:
   plan:
   - get: concourse
     trigger: true
-    passed: [atc, fly, blackbox, tsa, jettison, baggageclaim]
+    passed: [atc, fly, go-concourse, blackbox, tsa, jettison, baggageclaim]
   - get: version
     params: {pre: rc}
   - task: create-candidate-release
