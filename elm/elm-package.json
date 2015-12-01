@@ -10,12 +10,12 @@
     "exposed-modules": [],
     "native-modules": true,
     "dependencies": {
+        "Apanatshka/elm-signal-extra": "5.7.0 <= v < 6.0.0",
         "deadfoxygrandpa/elm-test": "3.0.0 <= v < 4.0.0",
         "elm-lang/core": "3.0.0 <= v < 4.0.0",
         "evancz/elm-effects": "2.0.1 <= v < 3.0.0",
         "evancz/elm-html": "4.0.2 <= v < 5.0.0",
         "evancz/elm-http": "3.0.0 <= v < 4.0.0",
-        "evancz/start-app": "2.0.2 <= v < 3.0.0",
         "laszlopandy/elm-console": "1.0.2 <= v < 2.0.0",
         "vito/elm-ansi": "4.0.0 <= v < 5.0.0"
     },

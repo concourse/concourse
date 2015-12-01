@@ -1,9 +1,10 @@
 module BuildEvent where
 
+import Date exposing (Date)
 import Json.Decode as Json exposing ((:=))
 
 type BuildEvent
-  = BuildStatus BuildStatus
+  = BuildStatus BuildStatus Date
   | FinishGet Origin Int
   | FinishPut Origin Int
   | InitializeTask Origin
@@ -48,11 +49,14 @@ decodeEnvelope =
     ("version" := Json.string)
     ("data" := Json.value)
 
+dateFromSeconds : Float -> Date
+dateFromSeconds = Date.fromTime << ((*) 1000)
+
 decodeEvent : BuildEventEnvelope -> Result String BuildEvent
 decodeEvent e =
   case e.event of
     "status" ->
-      Json.decodeValue (Json.object1 BuildStatus decodeStatus) e.value
+      Json.decodeValue (Json.object2 BuildStatus decodeStatus ("time" := Json.map dateFromSeconds Json.float)) e.value
 
     "log" ->
       Json.decodeValue (Json.object2 Log ("origin" := decodeOrigin) ("payload" := Json.string)) e.value

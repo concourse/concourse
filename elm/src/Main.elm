@@ -4,6 +4,7 @@ import Html exposing (Html)
 import Effects
 import StartApp
 import Task exposing (Task)
+import Time
 
 import Build
 import Scroll
@@ -20,7 +21,13 @@ app =
       { init = Build.init pageDrivenActions.address buildId
       , update = Build.update
       , view = Build.view
-      , inputs = [pageDrivenActions.signal, Signal.map Build.ScrollFromBottom Scroll.fromBottom]
+      , inputs =
+          [ pageDrivenActions.signal
+          , Signal.map Build.ScrollFromBottom Scroll.fromBottom
+          ]
+      , inits =
+          [ Signal.map Build.ClockTick (Time.every Time.second)
+          ]
       }
 
 main : Signal Html
