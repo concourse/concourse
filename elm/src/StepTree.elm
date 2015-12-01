@@ -340,9 +340,17 @@ viewHooked name actions step hook =
         ]
     ]
 
+isInactive : StepState -> Bool
+isInactive = (==) StepStatePending
+
 viewStep : Signal.Address Action -> Step -> String -> Html
 viewStep actions {id, name, log, state, error, expanded} icon =
-  Html.div [class "build-step"]
+  Html.div
+    [ classList
+      [ ("build-step", True)
+      , ("inactive", isInactive state)
+      ]
+    ]
     [ Html.div [class "header", onClick actions (ToggleStep id)]
         [ viewStepState state
         , typeIcon icon
@@ -351,7 +359,7 @@ viewStep actions {id, name, log, state, error, expanded} icon =
     , Html.div
         [ classList
             [ ("step-body", True)
-            , ("step-collapsed", not expanded)
+            , ("step-collapsed", isInactive state || not expanded)
             ]
         ]
         [ viewStepLog log
