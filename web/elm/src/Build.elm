@@ -1,6 +1,7 @@
 module Build where
 
 import Ansi.Log
+import Date exposing (Date)
 import Debug
 import Effects exposing (Effects)
 import EventSource exposing (EventSource)
@@ -17,6 +18,7 @@ import BuildPlan exposing (BuildPlan)
 import Scroll
 import StepTree exposing (StepTree)
 import Pagination exposing (Pagination)
+import Duration exposing (Duration)
 
 
 type alias Model =
@@ -30,6 +32,13 @@ type alias Model =
   , autoScroll : Bool
   , buildRunning : Bool
   , eventsLoaded : Bool
+  , now : Time.Time
+  , duration : BuildDuration
+  }
+
+type alias BuildDuration =
+  { startedAt : Maybe Date
+  , finishedAt : Maybe Date
   }
 
 type alias Build =
@@ -60,6 +69,7 @@ type Action
   | ScrollFromBottom Int
   | ScrollBuilds (Float, Float)
   | StepTreeAction StepTree.Action
+  | ClockTick Time.Time
   | AbortBuild
 
 type alias BuildHistory =
@@ -81,6 +91,8 @@ init actions buildId =
       , autoScroll = True
       , status = BuildEvent.BuildStatusPending
       , buildRunning = False
+      , now = 0
+      , duration = BuildDuration Nothing Nothing
       }
   in
     ( model
@@ -216,11 +228,12 @@ update action model =
       , Effects.none
       )
 
-    Event (Ok (BuildEvent.BuildStatus status)) ->
-      ( if model.buildRunning then
-          { model | status = status }
-        else
-          model
+    Event (Ok (BuildEvent.BuildStatus status date)) ->
+      ( updateStartFinishAt status date <|
+          if model.buildRunning then
+            { model | status = status }
+          else
+            model
       , Effects.none
       )
 
@@ -238,6 +251,9 @@ update action model =
     ScrollBuilds (deltaX, _) ->
       (model, scrollBuilds -deltaX)
 
+    ClockTick now ->
+      ({ model | now = now }, Effects.none)
+
     EndOfEvents ->
       case model.eventSource of
         Just es ->
@@ -248,6 +264,18 @@ update action model =
 
     Closed ->
       ({ model | eventSource = Nothing }, Effects.none)
+
+updateStartFinishAt : BuildEvent.BuildStatus -> Date -> Model -> Model
+updateStartFinishAt status date model =
+  let
+    duration = model.duration
+  in
+    case status of
+      BuildEvent.BuildStatusStarted ->
+        { model | duration = { duration | startedAt = Just date } }
+
+      _ ->
+        { model | duration = { duration | finishedAt = Just date } }
 
 abortBuild : Int -> Effects.Effects Action
 abortBuild buildId =
@@ -302,7 +330,7 @@ view actions model =
   case (model.build, model.stepRoot) of
     (Just build, Just root) ->
       Html.div []
-        [ viewBuildHeader actions build model.status (Maybe.withDefault [] model.history)
+        [ viewBuildHeader actions build model.status model.now model.duration (Maybe.withDefault [] model.history)
         , Html.div (id "build-body" :: paddingClass build)
             [ if model.buildRunning || model.eventsLoaded then
                 Html.div [class "steps"]
@@ -314,7 +342,7 @@ view actions model =
 
     (Just build, Nothing) ->
       Html.div []
-        [ viewBuildHeader actions build model.status (Maybe.withDefault [] model.history)
+        [ viewBuildHeader actions build model.status model.now model.duration (Maybe.withDefault [] model.history)
         , Html.div (id "build-body" :: paddingClass build) []
         ]
 
@@ -364,8 +392,8 @@ isRunning status =
     _ ->
       False
 
-viewBuildHeader : Signal.Address Action -> Build -> BuildEvent.BuildStatus -> List Build -> Html
-viewBuildHeader actions build status history =
+viewBuildHeader : Signal.Address Action -> Build -> BuildEvent.BuildStatus -> Time.Time -> BuildDuration -> List Build -> Html
+viewBuildHeader actions build status now duration history =
   let
     triggerButton = case build.job of
       Just {name, pipelineName} ->
@@ -402,7 +430,7 @@ viewBuildHeader actions build status history =
               , abortButton
               ]
           , Html.h1 [] [buildTitle]
-          , Html.dl [class "build-times"] []
+          , viewBuildDuration now duration
           ]
       , Html.ul
           [ on "mousewheel" decodeScrollEvent (scrollEvent actions)
@@ -410,6 +438,29 @@ viewBuildHeader actions build status history =
           ]
           (List.map (renderHistory build) history)
       ]
+
+viewBuildDuration : Time.Time -> BuildDuration -> Html
+viewBuildDuration now duration =
+  Html.dl [class "build-times"] <|
+    case (Maybe.map Date.toTime duration.startedAt, Maybe.map Date.toTime duration.finishedAt) of
+      (Nothing, _) ->
+        []
+
+      (Just startedAt, Nothing) ->
+        labeledDuration "started" (Duration.between startedAt now) " ago"
+
+      (Just startedAt, Just finishedAt) ->
+        labeledDuration "started" (Duration.between startedAt now) " ago" ++
+          labeledDuration "finished" (Duration.between finishedAt now) " ago" ++
+          labeledDuration "duration" (Duration.between startedAt finishedAt) ""
+
+labeledDuration : String -> Duration -> String -> List Html
+labeledDuration label duration suffix =
+  [ Html.dt [] [Html.text label]
+  , Html.dd []
+    [ Html.span [] [Html.text (Duration.format duration ++ suffix)]
+    ]
+  ]
 
 scrollEvent : Signal.Address Action -> (Float, Float) -> Signal.Message
 scrollEvent actions delta =
