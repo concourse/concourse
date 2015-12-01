@@ -363,13 +363,12 @@ viewStep actions {id, name, log, state, error, expanded} icon =
             ]
         ]
         [ viewStepLog log
+        , case error of
+            Nothing ->
+              Html.span [] []
+            Just msg ->
+              Html.span [class "error"] [Html.text msg]
         ]
-    , case error of
-        Nothing ->
-          Html.div [] []
-        Just msg ->
-          Html.div [class "step-error"]
-            [Html.span [class "error"] [Html.text msg]]
     ]
 
 typeIcon : String -> Html
