@@ -10,7 +10,6 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/pipelines"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/debug"
 	"github.com/concourse/atc/web/getbuild"
@@ -56,8 +55,6 @@ func NewHandler(
 		"asset":        tfuncs.asset,
 		"withRedirect": tfuncs.withRedirect,
 	}
-
-	pipelineHandlerFactory := pipelines.NewHandlerFactory(pipelineDBFactory)
 
 	indexTemplate, err := template.New("index.html").Funcs(funcs).ParseFiles(filepath.Join(templatesDir, "index.html"))
 	if err != nil {
@@ -109,7 +106,6 @@ func NewHandler(
 		return nil, err
 	}
 
-	resourceServer := getresource.NewServer(logger, clientFactory, resourceTemplate)
 	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
 
 	handlers := map[string]http.Handler{
@@ -117,7 +113,7 @@ func NewHandler(
 		web.Pipeline:        pipelineHandler,
 		web.Public:          http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 		web.GetJob:          getjob.NewHandler(logger, clientFactory, jobTemplate),
-		web.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
+		web.GetResource:     getresource.NewHandler(logger, clientFactory, resourceTemplate),
 		web.GetBuild:        getbuild.NewHandler(logger, clientFactory, buildTemplate),
 		web.GetBuilds:       getbuilds.NewHandler(logger, clientFactory, buildsTemplate),
 		web.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
