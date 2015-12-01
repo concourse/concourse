@@ -7,21 +7,20 @@ import (
 	"strconv"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/group"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/pivotal-golang/lager"
 )
 
-type server struct {
+type handler struct {
 	logger        lager.Logger
 	clientFactory web.ClientFactory
 	template      *template.Template
 }
 
-func NewServer(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) *server {
-	return &server{
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) http.Handler {
+	return &handler{
 		logger:        logger,
 		clientFactory: clientFactory,
 		template:      template,
@@ -130,63 +129,61 @@ func FetchTemplateData(pipelineName string, resourceName string, client concours
 	}, nil
 }
 
-func (server *server) GetResource(pipelineDB db.PipelineDB) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session := server.logger.Session("get-resource")
+func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	session := handler.logger.Session("get-resource")
 
-		pipelineName := r.FormValue(":pipeline_name")
-		resourceName := r.FormValue(":resource")
+	pipelineName := r.FormValue(":pipeline_name")
+	resourceName := r.FormValue(":resource")
 
-		since, parseErr := strconv.Atoi(r.FormValue("since"))
-		if parseErr != nil {
-			since = 0
-		}
+	since, parseErr := strconv.Atoi(r.FormValue("since"))
+	if parseErr != nil {
+		since = 0
+	}
 
-		until, parseErr := strconv.Atoi(r.FormValue("until"))
-		if parseErr != nil {
-			until = 0
-		}
+	until, parseErr := strconv.Atoi(r.FormValue("until"))
+	if parseErr != nil {
+		until = 0
+	}
 
-		templateData, err := FetchTemplateData(
-			pipelineName,
-			resourceName,
-			server.clientFactory.Build(r),
-			concourse.Page{
-				Since: since,
-				Until: until,
-				Limit: atc.PaginationWebLimit,
-			},
-		)
+	templateData, err := FetchTemplateData(
+		pipelineName,
+		resourceName,
+		handler.clientFactory.Build(r),
+		concourse.Page{
+			Since: since,
+			Until: until,
+			Limit: atc.PaginationWebLimit,
+		},
+	)
 
-		switch err {
-		case ErrResourceNotFound:
-			session.Error("could-not-find-resource", ErrResourceNotFound, lager.Data{
-				"resource": resourceName,
-			})
-			w.WriteHeader(http.StatusNotFound)
-			return
-		case ErrConfigNotFound:
-			session.Error("could-not-find-config", ErrConfigNotFound, lager.Data{
-				"pipeline": pipelineName,
-			})
-			w.WriteHeader(http.StatusNotFound)
-			return
-		case nil:
-			break
-		default:
-			session.Error("failed-to-build-template-data", err, lager.Data{
-				"resource": resourceName,
-				"pipeline": pipelineName,
-			})
-			http.Error(w, "failed to fetch resource", http.StatusInternalServerError)
-			return
-		}
+	switch err {
+	case ErrResourceNotFound:
+		session.Error("could-not-find-resource", ErrResourceNotFound, lager.Data{
+			"resource": resourceName,
+		})
+		w.WriteHeader(http.StatusNotFound)
+		return
+	case ErrConfigNotFound:
+		session.Error("could-not-find-config", ErrConfigNotFound, lager.Data{
+			"pipeline": pipelineName,
+		})
+		w.WriteHeader(http.StatusNotFound)
+		return
+	case nil:
+		break
+	default:
+		session.Error("failed-to-build-template-data", err, lager.Data{
+			"resource": resourceName,
+			"pipeline": pipelineName,
+		})
+		http.Error(w, "failed to fetch resource", http.StatusInternalServerError)
+		return
+	}
 
-		err = server.template.Execute(w, templateData)
-		if err != nil {
-			session.Fatal("failed-to-build-template", err, lager.Data{
-				"template-data": templateData,
-			})
-		}
-	})
+	err = handler.template.Execute(w, templateData)
+	if err != nil {
+		session.Fatal("failed-to-build-template", err, lager.Data{
+			"template-data": templateData,
+		})
+	}
 }
