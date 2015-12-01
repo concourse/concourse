@@ -50,7 +50,7 @@ type alias Step =
   { id : StepID
   , name : StepName
   , state : StepState
-  , log : Ansi.Log.Window
+  , log : Ansi.Log.Model
   , error : Maybe String
   , expanded : Bool
   }
@@ -362,7 +362,7 @@ viewStep actions {id, name, log, state, error, expanded} icon =
             , ("step-collapsed", isInactive state || not expanded)
             ]
         ]
-        [ viewStepLog log
+        [ Ansi.Log.view log
         , case error of
             Nothing ->
               Html.span [] []
@@ -402,70 +402,3 @@ viewStepState state =
       Html.i
         [ class "right errored fa fa-fw fa-exclamation-triangle"
         ] []
-
-viewStepLog : Ansi.Log.Window -> Html.Html
-viewStepLog window =
-  Html.pre []
-    (Array.toList (Array.map lazyLine window.lines))
-
-lazyLine : Ansi.Log.Line -> Html.Html
-lazyLine = Html.Lazy.lazy viewLine
-
-viewLine : Ansi.Log.Line -> Html.Html
-viewLine line =
-  Html.div [] (List.map viewChunk line)
-
-viewChunk : Ansi.Log.Chunk -> Html.Html
-viewChunk chunk =
-  Html.span (styleAttributes chunk.style)
-    [Html.text chunk.text]
-
-styleAttributes : Ansi.Log.Style -> List Html.Attribute
-styleAttributes style =
-  [ Html.Attributes.style [("font-weight", if style.bold then "bold" else "normal")]
-  , let
-      fgClasses =
-        colorClasses "-fg"
-          style.bold
-          (if not style.inverted then style.foreground else style.background)
-      bgClasses =
-        colorClasses "-bg"
-          style.bold
-          (if not style.inverted then style.background else style.foreground)
-    in
-      Html.Attributes.classList (List.map (flip (,) True) (fgClasses ++ bgClasses))
-  ]
-
-colorClasses : String -> Bool -> Maybe Ansi.Color -> List String
-colorClasses suffix bold mc =
-  let
-    brightPrefix = "ansi-bright-"
-
-    prefix =
-      if bold then
-        brightPrefix
-      else
-        "ansi-"
-  in
-    case mc of
-      Nothing ->
-        if bold then
-          ["ansi-bold"]
-        else
-          []
-      Just (Ansi.Black) ->   [prefix ++ "black" ++ suffix]
-      Just (Ansi.Red) ->     [prefix ++ "red" ++ suffix]
-      Just (Ansi.Green) ->   [prefix ++ "green" ++ suffix]
-      Just (Ansi.Yellow) ->  [prefix ++ "yellow" ++ suffix]
-      Just (Ansi.Blue) ->    [prefix ++ "blue" ++ suffix]
-      Just (Ansi.Magenta) -> [prefix ++ "magenta" ++ suffix]
-      Just (Ansi.Cyan) ->    [prefix ++ "cyan" ++ suffix]
-      Just (Ansi.White) ->   [prefix ++ "white" ++ suffix]
-      Just (Ansi.BrightBlack) ->   [brightPrefix ++ "black" ++ suffix]
-      Just (Ansi.BrightRed) ->     [brightPrefix ++ "red" ++ suffix]
-      Just (Ansi.BrightGreen) ->   [brightPrefix ++ "green" ++ suffix]
-      Just (Ansi.BrightYellow) ->  [brightPrefix ++ "yellow" ++ suffix]
-      Just (Ansi.BrightBlue) ->    [brightPrefix ++ "blue" ++ suffix]
-      Just (Ansi.BrightMagenta) -> [brightPrefix ++ "magenta" ++ suffix]
-      Just (Ansi.BrightCyan) ->    [brightPrefix ++ "cyan" ++ suffix]
-      Just (Ansi.BrightWhite) ->   [brightPrefix ++ "white" ++ suffix]
