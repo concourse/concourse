@@ -1512,9 +1512,20 @@ func (pdb *pipelineDB) getLastestModifiedTime() (time.Time, error) {
 			ELSE vr_max
 		END
 	FROM
-		(SELECT COALESCE(MAX(modified_time), 'epoch') as bo_max FROM build_outputs) bo,
-		(SELECT COALESCE(MAX(modified_time), 'epoch') as vr_max FROM versioned_resources) vr
-	`).Scan(&max_modified_time)
+		(
+			SELECT COALESCE(MAX(bo.modified_time), 'epoch') as bo_max
+			FROM build_outputs bo
+			LEFT OUTER JOIN versioned_resources v ON v.id = bo.versioned_resource_id
+			LEFT OUTER JOIN resources r ON r.id = v.resource_id
+			WHERE r.pipeline_id = $1
+		) bo,
+		(
+			SELECT COALESCE(MAX(vr.modified_time), 'epoch') as vr_max
+			FROM versioned_resources vr
+			LEFT OUTER JOIN resources r ON r.id = vr.resource_id
+			WHERE r.pipeline_id = $1
+		) vr
+	`, pdb.ID).Scan(&max_modified_time)
 
 	return max_modified_time, err
 }
