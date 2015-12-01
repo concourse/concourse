@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/group"
-	"github.com/concourse/atc/web/pagination"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/pivotal-golang/lager"
 )
@@ -49,12 +48,6 @@ type TemplateData struct {
 
 	CurrentBuild *atc.Build
 	PipelineName string
-}
-
-//go:generate counterfeiter . JobBuildsPaginator
-
-type JobBuildsPaginator interface {
-	PaginateJobBuilds(job string, startingJobBuildID int, newerJobBuilds bool) ([]db.Build, pagination.PaginationData, error)
 }
 
 var ErrConfigNotFound = errors.New("could not find config")
