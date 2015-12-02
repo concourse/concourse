@@ -24,9 +24,9 @@ resources/tracker-resource.tar.gz:
   sha: c21b9ed5c2c9e07b2239d9f99a8cd05110d93212
   size: 12653722
 resources/git-resource.tar.gz:
-  object_id: 82b569b4-e0e7-4c27-a8ef-14315fc43a61
-  sha: 69e6b7d74d610670108e667ae6ee6a1c0278b8d2
-  size: 8779885
+  object_id: 4f35e914-0bb5-4b1f-a651-85d80a0cc713
+  sha: 159959cb1763bde2af5c56c001150131f07a102b
+  size: 8779871
 resources/docker-image-resource.tar.gz:
   object_id: 93597a1d-88bd-4430-bd1b-a394bf10da27
   sha: 8714a7c25981f233c957d61f0fb3838e33c03fbf
