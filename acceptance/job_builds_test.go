@@ -142,7 +142,7 @@ var _ = Describe("Job Pausing", func() {
 					Eventually(page.FindByLink("job-name")).Should(BeFound())
 					Expect(page.FindByLink("job-name").Click()).To(Succeed())
 
-					Expect(page.All("#builds li").Count()).Should(Equal(103))
+					Eventually(page.All("#builds li").Count).Should(Equal(103))
 
 					// job detail w/build info -> job detail
 					Eventually(page.Find("h1 a")).Should(BeFound())
