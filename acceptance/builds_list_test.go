@@ -176,12 +176,12 @@ var _ = Describe("One-off Builds", func() {
 				Expect(page.Find(firstBuildLink).Click()).To(Succeed())
 
 				// one off build detail
-				Eventually(page.Find(".js-abortBuild")).Should(BeFound())
-				Expect(page.Find(".js-abortBuild").Click()).To(Succeed())
+				Eventually(page.Find(".build-action-abort")).Should(BeFound())
+				Expect(page.Find(".build-action-abort").Click()).To(Succeed())
 				Expect(page).Should(HaveURL(withPath(fmt.Sprintf("/builds/%d", oneOffBuild.ID))))
 
 				Eventually(page.Find("#page-header.aborted")).Should(BeFound())
-				Eventually(page.Find(".js-abortBuild")).ShouldNot(BeFound())
+				Eventually(page.Find(".build-action-abort")).ShouldNot(BeFound())
 			})
 		})
 	})
