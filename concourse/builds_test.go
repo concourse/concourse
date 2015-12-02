@@ -24,10 +24,7 @@ var _ = Describe("ATC Handler Builds", func() {
 						Aggregate: &atc.AggregatePlan{},
 					},
 					Next: atc.Plan{
-						Location: &atc.Location{
-							ID:       4,
-							ParentID: 0,
-						},
+						ID: "some-guid",
 						Task: &atc.TaskPlan{
 							Name:       "one-off",
 							Privileged: true,
