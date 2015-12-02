@@ -137,7 +137,7 @@ var _ = Describe("Worker", func() {
 				WorkingDirectory:     "/tmp/build/some-guid",
 				CheckType:            "some-check-type",
 				CheckSource:          atc.Source{"some": "source"},
-				StepLocation:         3,
+				PlanID:               "three",
 				EnvironmentVariables: []string{"VAR1=val1"},
 			}
 		})

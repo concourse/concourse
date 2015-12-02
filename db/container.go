@@ -16,7 +16,7 @@ type ContainerIdentifier struct {
 	WorkingDirectory     string
 	CheckType            string
 	CheckSource          atc.Source
-	StepLocation         uint
+	PlanID               atc.PlanID
 	EnvironmentVariables []string
 }
 

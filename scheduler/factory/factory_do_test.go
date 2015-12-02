@@ -3,7 +3,6 @@ package factory_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler/factory"
-	"github.com/concourse/atc/scheduler/factory/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -11,19 +10,18 @@ import (
 
 var _ = Describe("Factory Do", func() {
 	var (
-		fakeLocationPopulator *fakes.FakeLocationPopulator
-		buildFactory          factory.BuildFactory
+		buildFactory factory.BuildFactory
 
-		resources atc.ResourceConfigs
+		resources           atc.ResourceConfigs
+		actualPlanFactory   atc.PlanFactory
+		expectedPlanFactory atc.PlanFactory
 	)
 
 	BeforeEach(func() {
-		fakeLocationPopulator = &fakes.FakeLocationPopulator{}
+		actualPlanFactory = atc.NewPlanFactory(123)
+		expectedPlanFactory = atc.NewPlanFactory(123)
 
-		buildFactory = factory.NewBuildFactory(
-			"some-pipeline",
-			fakeLocationPopulator,
-		)
+		buildFactory = factory.NewBuildFactory("some-pipeline", actualPlanFactory)
 
 		resources = atc.ResourceConfigs{
 			{
@@ -58,32 +56,22 @@ var _ = Describe("Factory Do", func() {
 				},
 			}, resources, nil)
 
-			expected := atc.Plan{
-				OnSuccess: &atc.OnSuccessPlan{
-					Step: atc.Plan{
-						Task: &atc.TaskPlan{
-							Name:     "some thing",
-							Pipeline: "some-pipeline",
-						},
-					},
-					Next: atc.Plan{
-						OnSuccess: &atc.OnSuccessPlan{
-							Step: atc.Plan{
-								Task: &atc.TaskPlan{
-									Name:     "some thing-2",
-									Pipeline: "some-pipeline",
-								},
-							},
-							Next: atc.Plan{
-								Task: &atc.TaskPlan{
-									Name:     "some other thing",
-									Pipeline: "some-pipeline",
-								},
-							},
-						},
-					},
-				},
-			}
+			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:     "some thing",
+					Pipeline: "some-pipeline",
+				}),
+				Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "some thing-2",
+						Pipeline: "some-pipeline",
+					}),
+					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "some other thing",
+						Pipeline: "some-pipeline",
+					}),
+				}),
+			})
 			Expect(actual).To(Equal(expected))
 		})
 	})
@@ -112,37 +100,24 @@ var _ = Describe("Factory Do", func() {
 				},
 			}, resources, nil)
 
-			expected := atc.Plan{
-				OnSuccess: &atc.OnSuccessPlan{
-					Step: atc.Plan{
-						Task: &atc.TaskPlan{
-							Name:     "some thing",
+			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:     "some thing",
+					Pipeline: "some-pipeline",
+				}),
+				Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+					Step: expectedPlanFactory.NewPlan(atc.AggregatePlan{
+						expectedPlanFactory.NewPlan(atc.TaskPlan{
+							Name:     "some other thing",
 							Pipeline: "some-pipeline",
-						},
-					},
-					Next: atc.Plan{
-						OnSuccess: &atc.OnSuccessPlan{
-							Step: atc.Plan{
-
-								Aggregate: &atc.AggregatePlan{
-									{
-										Task: &atc.TaskPlan{
-											Name:     "some other thing",
-											Pipeline: "some-pipeline",
-										},
-									},
-								},
-							},
-							Next: atc.Plan{
-								Task: &atc.TaskPlan{
-									Name:     "some thing-2",
-									Pipeline: "some-pipeline",
-								},
-							},
-						},
-					},
-				},
-			}
+						}),
+					}),
+					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "some thing-2",
+						Pipeline: "some-pipeline",
+					}),
+				}),
+			})
 			Expect(actual).To(Equal(expected))
 		})
 	})
@@ -171,32 +146,22 @@ var _ = Describe("Factory Do", func() {
 				},
 			}, resources, nil)
 
-			expected := atc.Plan{
-				OnSuccess: &atc.OnSuccessPlan{
-					Step: atc.Plan{
-						Task: &atc.TaskPlan{
-							Name:     "starting-task",
-							Pipeline: "some-pipeline",
-						},
-					},
-					Next: atc.Plan{
-						Aggregate: &atc.AggregatePlan{
-							{
-								Task: &atc.TaskPlan{
-									Name:     "some thing",
-									Pipeline: "some-pipeline",
-								},
-							},
-							{
-								Task: &atc.TaskPlan{
-									Name:     "some other thing",
-									Pipeline: "some-pipeline",
-								},
-							},
-						},
-					},
-				},
-			}
+			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:     "starting-task",
+					Pipeline: "some-pipeline",
+				}),
+				Next: expectedPlanFactory.NewPlan(atc.AggregatePlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "some thing",
+						Pipeline: "some-pipeline",
+					}),
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "some other thing",
+						Pipeline: "some-pipeline",
+					}),
+				}),
+			})
 
 			Expect(actual).To(Equal(expected))
 		})
@@ -229,38 +194,26 @@ var _ = Describe("Factory Do", func() {
 				},
 			}, resources, nil)
 
-			expected := atc.Plan{
-				Aggregate: &atc.AggregatePlan{
-					{
-						Task: &atc.TaskPlan{
-							Name:     "some thing",
-							Pipeline: "some-pipeline",
-						},
-					},
-					{
-						OnSuccess: &atc.OnSuccessPlan{
-							Step: atc.Plan{
-								Task: &atc.TaskPlan{
-									Name:     "some other thing",
-									Pipeline: "some-pipeline",
-								},
-							},
-							Next: atc.Plan{
-								Task: &atc.TaskPlan{
-									Name:     "some other thing-2",
-									Pipeline: "some-pipeline",
-								},
-							},
-						},
-					},
-					{
-						Task: &atc.TaskPlan{
-							Name:     "some thing-2",
-							Pipeline: "some-pipeline",
-						},
-					},
-				},
-			}
+			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
+				expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:     "some thing",
+					Pipeline: "some-pipeline",
+				}),
+				expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "some other thing",
+						Pipeline: "some-pipeline",
+					}),
+					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "some other thing-2",
+						Pipeline: "some-pipeline",
+					}),
+				}),
+				expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:     "some thing-2",
+					Pipeline: "some-pipeline",
+				}),
+			})
 
 			Expect(actual).To(Equal(expected))
 		})

@@ -104,6 +104,31 @@ func (build *dbBuild) Metadata() string {
 	return strconv.Itoa(build.id)
 }
 
+func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, bool, error) {
+	model, found, err := build.db.GetBuild(build.id)
+	if err != nil {
+		logger.Error("failed-to-get-build-from-database", err)
+		return atc.PublicBuildPlan{}, false, err
+	}
+
+	if !found || model.Engine == "" {
+		return atc.PublicBuildPlan{}, false, nil
+	}
+
+	buildEngine, found := build.engines.Lookup(model.Engine)
+	if !found {
+		logger.Error("unknown-engine", nil, lager.Data{"engine": model.Engine})
+		return atc.PublicBuildPlan{}, false, UnknownEngineError{model.Engine}
+	}
+
+	engineBuild, err := buildEngine.LookupBuild(logger, model)
+	if err != nil {
+		return atc.PublicBuildPlan{}, false, err
+	}
+
+	return engineBuild.PublicPlan(logger)
+}
+
 func (build *dbBuild) Abort(logger lager.Logger) error {
 	// the order below is very important to avoid races with build creation.
 

@@ -14,14 +14,14 @@ type BuildFactory interface {
 }
 
 type buildFactory struct {
-	PipelineName      string
-	LocationPopulator LocationPopulator
+	PipelineName string
+	planFactory  atc.PlanFactory
 }
 
-func NewBuildFactory(pipelineName string, lp LocationPopulator) BuildFactory {
+func NewBuildFactory(pipelineName string, planFactory atc.PlanFactory) BuildFactory {
 	return &buildFactory{
-		PipelineName:      pipelineName,
-		LocationPopulator: lp,
+		PipelineName: pipelineName,
+		planFactory:  planFactory,
 	}
 }
 
@@ -30,8 +30,6 @@ func (factory *buildFactory) Create(
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
 ) atc.Plan {
-	factory.LocationPopulator.PopulateLocations(&job.Plan)
-
 	return factory.constructPlanFromSequence(
 		job.Plan,
 		resources,
@@ -66,16 +64,14 @@ func (factory *buildFactory) constructPlanFromSequence(
 		)
 		return plan
 	} else {
-		return atc.Plan{
-			OnSuccess: &atc.OnSuccessPlan{
-				Step: plan,
-				Next: factory.constructPlanFromSequence(
-					planSequence[1:],
-					resources,
-					inputs,
-				),
-			},
-		}
+		return factory.planFactory.NewPlan(atc.OnSuccessPlan{
+			Step: plan,
+			Next: factory.constructPlanFromSequence(
+				planSequence[1:],
+				resources,
+				inputs,
+			),
+		})
 	}
 }
 
@@ -94,10 +90,6 @@ func (factory *buildFactory) constructPlanFromConfig(
 			inputs,
 		)
 
-		if plan.Location == nil {
-			plan.Location = planConfig.Location
-		}
-
 	case planConfig.Put != "":
 		logicalName := planConfig.Put
 
@@ -108,7 +100,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 
 		resource, _ := resources.Lookup(resourceName)
 
-		putPlan := &atc.PutPlan{
+		putPlan := atc.PutPlan{
 			Type:     resource.Type,
 			Name:     logicalName,
 			Pipeline: factory.PipelineName,
@@ -118,7 +110,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 			Tags:     planConfig.Tags,
 		}
 
-		dependentGetPlan := &atc.DependentGetPlan{
+		dependentGetPlan := atc.DependentGetPlan{
 			Type:     resource.Type,
 			Name:     logicalName,
 			Pipeline: factory.PipelineName,
@@ -128,37 +120,10 @@ func (factory *buildFactory) constructPlanFromConfig(
 			Source:   resource.Source,
 		}
 
-		stepLocation := &atc.Location{}
-		nextLocation := &atc.Location{}
-
-		if planConfig.Location != nil {
-			stepLocation.ID = planConfig.Location.ID
-			stepLocation.Hook = planConfig.Location.Hook
-			stepLocation.SerialGroup = planConfig.Location.SerialGroup
-
-			if planConfig.Location.ParallelGroup != 0 {
-				stepLocation.ParallelGroup = planConfig.Location.ParallelGroup
-			} else {
-				stepLocation.ParentID = planConfig.Location.ParentID
-			}
-
-			nextLocation.ID = stepLocation.ID + 1
-			nextLocation.ParentID = stepLocation.ID
-		}
-
-		plan = atc.Plan{
-			// Location: planConfig.Location,
-			OnSuccess: &atc.OnSuccessPlan{
-				Step: atc.Plan{
-					Location: stepLocation,
-					Put:      putPlan,
-				},
-				Next: atc.Plan{
-					Location:     nextLocation,
-					DependentGet: dependentGetPlan,
-				},
-			},
-		}
+		plan = factory.planFactory.NewPlan(atc.OnSuccessPlan{
+			Step: factory.planFactory.NewPlan(putPlan),
+			Next: factory.planFactory.NewPlan(dependentGetPlan),
+		})
 
 	case planConfig.Get != "":
 		resourceName := planConfig.Resource
@@ -177,32 +142,26 @@ func (factory *buildFactory) constructPlanFromConfig(
 			}
 		}
 
-		plan = atc.Plan{
-			Location: planConfig.Location,
-			Get: &atc.GetPlan{
-				Type:     resource.Type,
-				Name:     name,
-				Pipeline: factory.PipelineName,
-				Resource: resourceName,
-				Source:   resource.Source,
-				Params:   planConfig.Params,
-				Version:  atc.Version(version),
-				Tags:     planConfig.Tags,
-			},
-		}
+		plan = factory.planFactory.NewPlan(atc.GetPlan{
+			Type:     resource.Type,
+			Name:     name,
+			Pipeline: factory.PipelineName,
+			Resource: resourceName,
+			Source:   resource.Source,
+			Params:   planConfig.Params,
+			Version:  atc.Version(version),
+			Tags:     planConfig.Tags,
+		})
 
 	case planConfig.Task != "":
-		plan = atc.Plan{
-			Location: planConfig.Location,
-			Task: &atc.TaskPlan{
-				Name:       planConfig.Task,
-				Pipeline:   factory.PipelineName,
-				Privileged: planConfig.Privileged,
-				Config:     planConfig.TaskConfig,
-				ConfigPath: planConfig.TaskConfigPath,
-				Tags:       planConfig.Tags,
-			},
-		}
+		plan = factory.planFactory.NewPlan(atc.TaskPlan{
+			Name:       planConfig.Task,
+			Pipeline:   factory.PipelineName,
+			Privileged: planConfig.Privileged,
+			Config:     planConfig.TaskConfig,
+			ConfigPath: planConfig.TaskConfigPath,
+			Tags:       planConfig.Tags,
+		})
 
 	case planConfig.Try != nil:
 		nextStep := factory.constructPlanFromConfig(
@@ -211,12 +170,9 @@ func (factory *buildFactory) constructPlanFromConfig(
 			inputs,
 		)
 
-		plan = atc.Plan{
-			Location: planConfig.Location,
-			Try: &atc.TryPlan{
-				Step: nextStep,
-			},
-		}
+		plan = factory.planFactory.NewPlan(atc.TryPlan{
+			Step: nextStep,
+		})
 
 	case planConfig.Aggregate != nil:
 		aggregate := atc.AggregatePlan{}
@@ -231,19 +187,14 @@ func (factory *buildFactory) constructPlanFromConfig(
 			aggregate = append(aggregate, nextStep)
 		}
 
-		plan = atc.Plan{
-			Location:  planConfig.Location,
-			Aggregate: &aggregate,
-		}
+		plan = factory.planFactory.NewPlan(aggregate)
 	}
 
 	if planConfig.Timeout != "" {
-		plan = atc.Plan{
-			Timeout: &atc.TimeoutPlan{
-				Duration: planConfig.Timeout,
-				Step:     plan,
-			},
-		}
+		plan = factory.planFactory.NewPlan(atc.TimeoutPlan{
+			Duration: planConfig.Timeout,
+			Step:     plan,
+		})
 	}
 
 	constructionParams := factory.ensureIfPresent(factory.successIfPresent(factory.failureIfPresent(
@@ -274,12 +225,10 @@ func (factory *buildFactory) successIfPresent(constructionParams constructionPar
 			constructionParams.inputs,
 		)
 
-		constructionParams.plan = atc.Plan{
-			OnSuccess: &atc.OnSuccessPlan{
-				Step: constructionParams.plan,
-				Next: nextPlan,
-			},
-		}
+		constructionParams.plan = factory.planFactory.NewPlan(atc.OnSuccessPlan{
+			Step: constructionParams.plan,
+			Next: nextPlan,
+		})
 	}
 	return constructionParams
 }
@@ -292,12 +241,10 @@ func (factory *buildFactory) failureIfPresent(constructionParams constructionPar
 			constructionParams.inputs,
 		)
 
-		constructionParams.plan = atc.Plan{
-			OnFailure: &atc.OnFailurePlan{
-				Step: constructionParams.plan,
-				Next: nextPlan,
-			},
-		}
+		constructionParams.plan = factory.planFactory.NewPlan(atc.OnFailurePlan{
+			Step: constructionParams.plan,
+			Next: nextPlan,
+		})
 	}
 
 	return constructionParams
@@ -311,12 +258,10 @@ func (factory *buildFactory) ensureIfPresent(constructionParams constructionPara
 			constructionParams.inputs,
 		)
 
-		constructionParams.plan = atc.Plan{
-			Ensure: &atc.EnsurePlan{
-				Step: constructionParams.plan,
-				Next: nextPlan,
-			},
-		}
+		constructionParams.plan = factory.planFactory.NewPlan(atc.EnsurePlan{
+			Step: constructionParams.plan,
+			Next: nextPlan,
+		})
 	}
 	return constructionParams
 }

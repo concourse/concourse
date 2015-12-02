@@ -3,6 +3,7 @@ package pipelines
 import (
 	"time"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/radar"
@@ -49,8 +50,11 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB) sched
 	return &scheduler.Scheduler{
 		PipelineDB: pipelineDB,
 		BuildsDB:   rsf.db,
-		Factory:    factory.NewBuildFactory(pipelineDB.GetPipelineName(), factory.NewLocationPopulator()),
-		Engine:     rsf.engine,
-		Scanner:    radar,
+		Factory: factory.NewBuildFactory(
+			pipelineDB.GetPipelineName(),
+			atc.NewPlanFactory(time.Now().Unix()),
+		),
+		Engine:  rsf.engine,
+		Scanner: radar,
 	}
 }

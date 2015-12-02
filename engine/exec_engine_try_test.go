@@ -85,9 +85,12 @@ var _ = Describe("Exec Engine with Try", func() {
 				fakeDelegate          *fakes.FakeBuildDelegate
 				fakeInputDelegate     *execfakes.FakeGetDelegate
 				fakeExecutionDelegate *execfakes.FakeTaskDelegate
+				inputPlan             atc.Plan
+				planFactory           atc.PlanFactory
 			)
 
 			BeforeEach(func() {
+				planFactory = atc.NewPlanFactory(123)
 				fakeDelegate = new(fakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
@@ -97,20 +100,13 @@ var _ = Describe("Exec Engine with Try", func() {
 				fakeExecutionDelegate = new(execfakes.FakeTaskDelegate)
 				fakeDelegate.ExecutionDelegateReturns(fakeExecutionDelegate)
 
-				plan := atc.Plan{
-					Location: &atc.Location{},
-					Try: &atc.TryPlan{
-						Step: atc.Plan{
-							Location: &atc.Location{},
-							Get: &atc.GetPlan{
-								Name: "some-input",
-							},
-						},
-					},
-					Task: &atc.TaskPlan{
-						Name: "some task",
-					},
-				}
+				inputPlan = planFactory.NewPlan(atc.GetPlan{
+					Name: "some-input",
+				})
+
+				plan := planFactory.NewPlan(atc.TryPlan{
+					Step: inputPlan,
+				})
 
 				build, err := execEngine.CreateBuild(logger, buildModel, plan)
 				Expect(err).NotTo(HaveOccurred())
@@ -127,6 +123,7 @@ var _ = Describe("Exec Engine with Try", func() {
 					BuildID: 84,
 					Type:    db.ContainerTypeGet,
 					Name:    "some-input",
+					PlanID:  inputPlan.ID,
 				}))
 
 				Expect(delegate).To(Equal(fakeInputDelegate))
@@ -136,34 +133,25 @@ var _ = Describe("Exec Engine with Try", func() {
 		})
 
 		Context("when the inner step fails", func() {
+			var planFactory atc.PlanFactory
+
 			BeforeEach(func() {
+				planFactory = atc.NewPlanFactory(123)
 				inputStep.ResultStub = successResult(false)
 			})
 
 			It("runs the next step", func() {
-				plan := atc.Plan{
-					Location: &atc.Location{},
-					OnSuccess: &atc.OnSuccessPlan{
-						Step: atc.Plan{
-							Location: &atc.Location{},
-							Try: &atc.TryPlan{
-								Step: atc.Plan{
-									Location: &atc.Location{},
-									Get: &atc.GetPlan{
-										Name: "some-input",
-									},
-								},
-							},
-						},
-						Next: atc.Plan{
-							Location: &atc.Location{},
-							Task: &atc.TaskPlan{
-								Name:   "some-resource",
-								Config: &atc.TaskConfig{},
-							},
-						},
-					},
-				}
+				plan := planFactory.NewPlan(atc.OnSuccessPlan{
+					Step: planFactory.NewPlan(atc.TryPlan{
+						Step: planFactory.NewPlan(atc.GetPlan{
+							Name: "some-input",
+						}),
+					}),
+					Next: planFactory.NewPlan(atc.TaskPlan{
+						Name:   "some-resource",
+						Config: &atc.TaskConfig{},
+					}),
+				})
 
 				build, err := execEngine.CreateBuild(logger, buildModel, plan)
 

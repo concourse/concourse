@@ -103,6 +103,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListPipelines:                 unauthed(inputHandlers[atc.ListPipelines]),
 				atc.ListResourceVersions:          unauthed(inputHandlers[atc.ListResourceVersions]),
 				atc.ListResources:                 unauthed(inputHandlers[atc.ListResources]),
+				atc.GetBuildPlan:                  unauthed(inputHandlers[atc.GetBuildPlan]),
 			}
 		})
 

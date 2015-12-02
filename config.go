@@ -146,9 +146,6 @@ type PlanConfig struct {
 	Timeout string `yaml:"timeout,omitempty" json:"timeout,omitempty" mapstructure:"timeout"`
 
 	// not present in yaml
-	Location *Location `yaml:"-" json:"-"`
-
-	// not present in yaml
 	DependentGet string `yaml:"-" json:"-"`
 }
 

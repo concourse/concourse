@@ -3,7 +3,6 @@ package factory_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler/factory"
-	"github.com/concourse/atc/scheduler/factory/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -11,17 +10,15 @@ import (
 
 var _ = Describe("Factory Timeout Step", func() {
 	var (
-		fakeLocationPopulator *fakes.FakeLocationPopulator
-		buildFactory          factory.BuildFactory
+		buildFactory        factory.BuildFactory
+		actualPlanFactory   atc.PlanFactory
+		expectedPlanFactory atc.PlanFactory
 	)
 
 	BeforeEach(func() {
-		fakeLocationPopulator = &fakes.FakeLocationPopulator{}
-
-		buildFactory = factory.NewBuildFactory(
-			"some-pipeline",
-			fakeLocationPopulator,
-		)
+		actualPlanFactory = atc.NewPlanFactory(321)
+		expectedPlanFactory = atc.NewPlanFactory(321)
+		buildFactory = factory.NewBuildFactory("some-pipeline", actualPlanFactory)
 	})
 
 	Context("When there is a task with a timeout", func() {
@@ -35,17 +32,13 @@ var _ = Describe("Factory Timeout Step", func() {
 				},
 			}, nil, nil)
 
-			expected := atc.Plan{
-				Timeout: &atc.TimeoutPlan{
-					Duration: "10s",
-					Step: atc.Plan{
-						Task: &atc.TaskPlan{
-							Name:     "first task",
-							Pipeline: "some-pipeline",
-						},
-					},
-				},
-			}
+			expected := expectedPlanFactory.NewPlan(atc.TimeoutPlan{
+				Duration: "10s",
+				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:     "first task",
+					Pipeline: "some-pipeline",
+				}),
+			})
 
 			Expect(actual).To(Equal(expected))
 		})

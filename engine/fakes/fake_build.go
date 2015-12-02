@@ -4,6 +4,7 @@ package fakes
 import (
 	"sync"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/engine"
 	"github.com/pivotal-golang/lager"
 )
@@ -14,6 +15,16 @@ type FakeBuild struct {
 	metadataArgsForCall []struct{}
 	metadataReturns     struct {
 		result1 string
+	}
+	PublicPlanStub        func(lager.Logger) (atc.PublicBuildPlan, bool, error)
+	publicPlanMutex       sync.RWMutex
+	publicPlanArgsForCall []struct {
+		arg1 lager.Logger
+	}
+	publicPlanReturns struct {
+		result1 atc.PublicBuildPlan
+		result2 bool
+		result3 error
 	}
 	AbortStub        func(lager.Logger) error
 	abortMutex       sync.RWMutex
@@ -52,6 +63,40 @@ func (fake *FakeBuild) MetadataReturns(result1 string) {
 	fake.metadataReturns = struct {
 		result1 string
 	}{result1}
+}
+
+func (fake *FakeBuild) PublicPlan(arg1 lager.Logger) (atc.PublicBuildPlan, bool, error) {
+	fake.publicPlanMutex.Lock()
+	fake.publicPlanArgsForCall = append(fake.publicPlanArgsForCall, struct {
+		arg1 lager.Logger
+	}{arg1})
+	fake.publicPlanMutex.Unlock()
+	if fake.PublicPlanStub != nil {
+		return fake.PublicPlanStub(arg1)
+	} else {
+		return fake.publicPlanReturns.result1, fake.publicPlanReturns.result2, fake.publicPlanReturns.result3
+	}
+}
+
+func (fake *FakeBuild) PublicPlanCallCount() int {
+	fake.publicPlanMutex.RLock()
+	defer fake.publicPlanMutex.RUnlock()
+	return len(fake.publicPlanArgsForCall)
+}
+
+func (fake *FakeBuild) PublicPlanArgsForCall(i int) lager.Logger {
+	fake.publicPlanMutex.RLock()
+	defer fake.publicPlanMutex.RUnlock()
+	return fake.publicPlanArgsForCall[i].arg1
+}
+
+func (fake *FakeBuild) PublicPlanReturns(result1 atc.PublicBuildPlan, result2 bool, result3 error) {
+	fake.PublicPlanStub = nil
+	fake.publicPlanReturns = struct {
+		result1 atc.PublicBuildPlan
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeBuild) Abort(arg1 lager.Logger) error {

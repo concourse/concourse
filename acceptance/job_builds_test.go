@@ -70,8 +70,6 @@ var _ = Describe("Job Pausing", func() {
 			var build db.Build
 
 			BeforeEach(func() {
-				location := event.OriginLocation{ID: 1}
-
 				// job build data
 				_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
 					Jobs: []atc.JobConfig{
@@ -91,10 +89,8 @@ var _ = Describe("Job Pausing", func() {
 
 				sqlDB.SaveBuildEvent(build.ID, event.Log{
 					Origin: event.Origin{
-						Name:     "origin-name",
-						Type:     event.OriginTypeTask,
-						Source:   event.OriginSourceStdout,
-						Location: location,
+						Source: event.OriginSourceStdout,
+						ID:     "some-id",
 					},
 					Payload: "hello this is a payload",
 				})
@@ -144,7 +140,7 @@ var _ = Describe("Job Pausing", func() {
 					Eventually(page.FindByLink("job-name")).Should(BeFound())
 					Expect(page.FindByLink("job-name").Click()).To(Succeed())
 
-					Expect(page.All("#builds li").Count()).Should(Equal(103))
+					Eventually(page.All("#builds li").Count).Should(Equal(103))
 
 					// job detail w/build info -> job detail
 					Eventually(page.Find("h1 a")).Should(BeFound())
@@ -172,7 +168,7 @@ var _ = Describe("Job Pausing", func() {
 
 				// job detail w/build info -> job detail
 				Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
-				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("job-name #%d", build.ID)))
+				Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("job-name #%d", build.ID)))
 				Expect(page.Find("h1 a").Click()).To(Succeed())
 				Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
 
