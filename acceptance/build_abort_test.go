@@ -92,8 +92,6 @@ var _ = Describe("Resource Pausing", func() {
 
 				sqlDB.SaveBuildEvent(build.ID, event.Log{
 					Origin: event.Origin{
-						Name:   "origin-name",
-						Type:   event.OriginTypeTask,
 						Source: event.OriginSourceStdout,
 						ID:     "some-id",
 					},

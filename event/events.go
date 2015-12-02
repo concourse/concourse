@@ -94,22 +94,11 @@ func (Log) EventType() atc.EventType  { return EventTypeLog }
 func (Log) Version() atc.EventVersion { return "5.0" }
 
 type Origin struct {
-	Name   string       `json:"name"`
-	Type   OriginType   `json:"type"`
-	Source OriginSource `json:"source"`
-	ID     OriginID     `json:"id,omitempty"`
+	ID     OriginID     `json:"id"`
+	Source OriginSource `json:"source,omitempty"`
 }
 
 type OriginID string
-
-type OriginType string
-
-const (
-	OriginTypeInvalid OriginType = ""
-	OriginTypeGet     OriginType = "get"
-	OriginTypePut     OriginType = "put"
-	OriginTypeTask    OriginType = "task"
-)
 
 type OriginSource string
 

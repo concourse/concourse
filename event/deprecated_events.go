@@ -372,10 +372,19 @@ func (LogV40) Version() atc.EventVersion { return "4.0" }
 
 type OriginV40 struct {
 	Name     string            `json:"name"`
-	Type     OriginType        `json:"type"`
+	Type     OriginV40Type     `json:"type"`
 	Source   OriginSource      `json:"source"`
 	Location OriginV40Location `json:"location,omitempty"`
 }
+
+type OriginV40Type string
+
+const (
+	OriginV40TypeInvalid OriginV40Type = ""
+	OriginV40TypeGet     OriginV40Type = "get"
+	OriginV40TypePut     OriginV40Type = "put"
+	OriginV40TypeTask    OriginV40Type = "task"
+)
 
 type OriginV40Location struct {
 	ParentID      uint   `json:"parent_id"`

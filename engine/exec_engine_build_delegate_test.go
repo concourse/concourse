@@ -90,9 +90,7 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(buildID).To(Equal(42))
 					Expect(savedEvent).To(Equal(event.FinishGet{
 						Origin: event.Origin{
-							Type: event.OriginTypeGet,
-							Name: "some-input",
-							ID:   originID,
+							ID: originID,
 						},
 						Plan: event.GetPlan{
 							Name:     "some-input",
@@ -122,9 +120,7 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(buildID).To(Equal(42))
 					Expect(savedEvent).To(Equal(event.FinishGet{
 						Origin: event.Origin{
-							Type: event.OriginTypeGet,
-							Name: "some-input",
-							ID:   originID,
+							ID: originID,
 						},
 						Plan: event.GetPlan{
 							Name:     "some-input",
@@ -161,9 +157,7 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(buildID).To(Equal(42))
 					Expect(savedEvent).To(Equal(event.FinishGet{
 						Origin: event.Origin{
-							Type: event.OriginTypeGet,
-							Name: "some-input",
-							ID:   originID,
+							ID: originID,
 						},
 						Plan: event.GetPlan{
 							Name:     "some-input",
@@ -266,9 +260,7 @@ var _ = Describe("BuildDelegate", func() {
 						Expect(buildID).To(Equal(42))
 						Expect(savedEvent).To(Equal(event.FinishGet{
 							Origin: event.Origin{
-								Type: event.OriginTypeGet,
-								Name: "some-input",
-								ID:   originID,
+								ID: originID,
 							},
 							Plan: event.GetPlan{
 								Name:     "some-input",
@@ -422,9 +414,7 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(buildID).To(Equal(42))
 				Expect(savedEvent).To(Equal(event.Error{
 					Origin: event.Origin{
-						Type: event.OriginTypeGet,
-						Name: "some-input",
-						ID:   originID,
+						ID: originID,
 					},
 					Message: "nope",
 				}))
@@ -449,8 +439,6 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(savedBuildID).To(Equal(buildID))
 				Expect(savedEvent).To(Equal(event.Log{
 					Origin: event.Origin{
-						Type:   event.OriginTypeGet,
-						Name:   "some-input",
 						Source: event.OriginSourceStdout,
 						ID:     originID,
 					},
@@ -477,8 +465,6 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(savedBuildID).To(Equal(buildID))
 				Expect(savedEvent).To(Equal(event.Log{
 					Origin: event.Origin{
-						Type:   event.OriginTypeGet,
-						Name:   "some-input",
 						Source: event.OriginSourceStderr,
 						ID:     originID,
 					},
@@ -532,9 +518,7 @@ var _ = Describe("BuildDelegate", func() {
 						},
 					},
 					Origin: event.Origin{
-						Type: event.OriginTypeTask,
-						Name: "some-task",
-						ID:   originID,
+						ID: originID,
 					},
 				}))
 
@@ -554,9 +538,7 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(savedEvent).To(BeAssignableToTypeOf(event.StartTask{}))
 				Expect(savedEvent.(event.StartTask).Time).To(BeNumerically("~", time.Now().Unix(), 1))
 				Expect(savedEvent.(event.StartTask).Origin).To(Equal(event.Origin{
-					Type: event.OriginTypeTask,
-					Name: "some-task",
-					ID:   originID,
+					ID: originID,
 				}))
 
 			})
@@ -583,9 +565,7 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(savedEvent.(event.FinishTask).ExitStatus).To(Equal(0))
 					Expect(savedEvent.(event.FinishTask).Time).To(BeNumerically("<=", time.Now().Unix(), 1))
 					Expect(savedEvent.(event.FinishTask).Origin).To(Equal(event.Origin{
-						Type: event.OriginTypeTask,
-						Name: "some-task",
-						ID:   originID,
+						ID: originID,
 					}))
 
 				})
@@ -650,9 +630,7 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(savedEvent.(event.FinishTask).ExitStatus).To(Equal(1))
 					Expect(savedEvent.(event.FinishTask).Time).To(BeNumerically("<=", time.Now().Unix(), 1))
 					Expect(savedEvent.(event.FinishTask).Origin).To(Equal(event.Origin{
-						Type: event.OriginTypeTask,
-						Name: "some-task",
-						ID:   originID,
+						ID: originID,
 					}))
 
 				})
@@ -676,9 +654,7 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(savedEvent).To(Equal(event.Error{
 					Message: "nope",
 					Origin: event.Origin{
-						Type: event.OriginTypeTask,
-						Name: "some-task",
-						ID:   originID,
+						ID: originID,
 					},
 				}))
 
@@ -702,8 +678,6 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(savedBuildID).To(Equal(buildID))
 				Expect(savedEvent).To(Equal(event.Log{
 					Origin: event.Origin{
-						Type:   event.OriginTypeTask,
-						Name:   "some-task",
 						Source: event.OriginSourceStdout,
 						ID:     originID,
 					},
@@ -730,8 +704,6 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(savedBuildID).To(Equal(buildID))
 				Expect(savedEvent).To(Equal(event.Log{
 					Origin: event.Origin{
-						Type:   event.OriginTypeTask,
-						Name:   "some-task",
 						Source: event.OriginSourceStderr,
 						ID:     originID,
 					},
@@ -788,9 +760,7 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(buildID).To(Equal(42))
 					Expect(savedEvent).To(Equal(event.FinishPut{
 						Origin: event.Origin{
-							Type: event.OriginTypePut,
-							Name: "some-output-name",
-							ID:   originID,
+							ID: originID,
 						},
 						Plan: event.PutPlan{
 							Name:     "some-output-name",
@@ -833,9 +803,7 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(buildID).To(Equal(42))
 					Expect(savedEvent).To(Equal(event.FinishPut{
 						Origin: event.Origin{
-							Type: event.OriginTypePut,
-							Name: "some-output-name",
-							ID:   originID,
+							ID: originID,
 						},
 						Plan: event.PutPlan{
 							Name:     "some-output-name",
@@ -878,9 +846,7 @@ var _ = Describe("BuildDelegate", func() {
 					Expect(buildID).To(Equal(42))
 					Expect(savedEvent).To(Equal(event.FinishPut{
 						Origin: event.Origin{
-							Type: event.OriginTypePut,
-							Name: "some-output-name",
-							ID:   originID,
+							ID: originID,
 						},
 						Plan: event.PutPlan{
 							Name:     "some-output-name",
@@ -960,9 +926,7 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(buildID).To(Equal(42))
 				Expect(savedEvent).To(Equal(event.Error{
 					Origin: event.Origin{
-						Type: event.OriginTypePut,
-						Name: "some-output-name",
-						ID:   originID,
+						ID: originID,
 					},
 					Message: "nope",
 				}))
@@ -987,8 +951,6 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(savedBuildID).To(Equal(buildID))
 				Expect(savedEvent).To(Equal(event.Log{
 					Origin: event.Origin{
-						Type:   event.OriginTypePut,
-						Name:   "some-output-name",
 						Source: event.OriginSourceStdout,
 						ID:     originID,
 					},
@@ -1015,8 +977,6 @@ var _ = Describe("BuildDelegate", func() {
 				Expect(savedBuildID).To(Equal(buildID))
 				Expect(savedEvent).To(Equal(event.Log{
 					Origin: event.Origin{
-						Type:   event.OriginTypePut,
-						Name:   "some-output-name",
 						Source: event.OriginSourceStderr,
 						ID:     originID,
 					},

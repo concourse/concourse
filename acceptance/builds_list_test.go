@@ -99,8 +99,6 @@ var _ = Describe("One-off Builds", func() {
 
 				err = sqlDB.SaveBuildEvent(build.ID, event.Log{
 					Origin: event.Origin{
-						Name:   "origin-name",
-						Type:   event.OriginTypeTask,
 						Source: event.OriginSourceStdout,
 						ID:     "some-id",
 					},
@@ -117,8 +115,6 @@ var _ = Describe("One-off Builds", func() {
 
 				err = sqlDB.SaveBuildEvent(oneOffBuild.ID, event.Log{
 					Origin: event.Origin{
-						Name:   "origin-name",
-						Type:   event.OriginTypeTask,
 						Source: event.OriginSourceStdout,
 						ID:     "some-other-id",
 					},

@@ -298,9 +298,7 @@ type inputDelegate struct {
 
 func (input *inputDelegate) Completed(status exec.ExitStatus, info *exec.VersionInfo) {
 	input.delegate.saveInput(input.logger, status, input.plan, info, event.Origin{
-		Type: event.OriginTypeGet,
-		Name: input.plan.Name,
-		ID:   input.id,
+		ID: input.id,
 	})
 
 	if info != nil {
@@ -312,9 +310,7 @@ func (input *inputDelegate) Completed(status exec.ExitStatus, info *exec.Version
 
 func (input *inputDelegate) Failed(err error) {
 	input.delegate.saveErr(input.logger, err, event.Origin{
-		Type: event.OriginTypeGet,
-		Name: input.plan.Name,
-		ID:   input.id,
+		ID: input.id,
 	})
 
 	input.logger.Info("errored", lager.Data{"error": err.Error()})
@@ -322,8 +318,6 @@ func (input *inputDelegate) Failed(err error) {
 
 func (input *inputDelegate) Stdout() io.Writer {
 	return input.delegate.eventWriter(event.Origin{
-		Type:   event.OriginTypeGet,
-		Name:   input.plan.Name,
 		Source: event.OriginSourceStdout,
 		ID:     input.id,
 	})
@@ -331,8 +325,6 @@ func (input *inputDelegate) Stdout() io.Writer {
 
 func (input *inputDelegate) Stderr() io.Writer {
 	return input.delegate.eventWriter(event.Origin{
-		Type:   event.OriginTypeGet,
-		Name:   input.plan.Name,
 		Source: event.OriginSourceStderr,
 		ID:     input.id,
 	})
@@ -351,9 +343,7 @@ type outputDelegate struct {
 func (output *outputDelegate) Completed(status exec.ExitStatus, info *exec.VersionInfo) {
 	output.delegate.unregisterImplicitOutput(output.plan.Resource)
 	output.delegate.saveOutput(output.logger, status, output.plan, info, event.Origin{
-		Type: event.OriginTypePut,
-		Name: output.plan.Name,
-		ID:   output.id,
+		ID: output.id,
 	})
 
 	output.logger.Info("finished", lager.Data{"version-info": info})
@@ -361,9 +351,7 @@ func (output *outputDelegate) Completed(status exec.ExitStatus, info *exec.Versi
 
 func (output *outputDelegate) Failed(err error) {
 	output.delegate.saveErr(output.logger, err, event.Origin{
-		Type: event.OriginTypePut,
-		Name: output.plan.Name,
-		ID:   output.id,
+		ID: output.id,
 	})
 
 	output.logger.Info("errored", lager.Data{"error": err.Error()})
@@ -371,8 +359,6 @@ func (output *outputDelegate) Failed(err error) {
 
 func (output *outputDelegate) Stdout() io.Writer {
 	return output.delegate.eventWriter(event.Origin{
-		Type:   event.OriginTypePut,
-		Name:   output.plan.Name,
 		Source: event.OriginSourceStdout,
 		ID:     output.id,
 	})
@@ -380,8 +366,6 @@ func (output *outputDelegate) Stdout() io.Writer {
 
 func (output *outputDelegate) Stderr() io.Writer {
 	return output.delegate.eventWriter(event.Origin{
-		Type:   event.OriginTypePut,
-		Name:   output.plan.Name,
 		Source: event.OriginSourceStderr,
 		ID:     output.id,
 	})
@@ -400,17 +384,13 @@ type executionDelegate struct {
 
 func (execution *executionDelegate) Initializing(config atc.TaskConfig) {
 	execution.delegate.saveInitialize(execution.logger, config, event.Origin{
-		Type: event.OriginTypeTask,
-		Name: execution.plan.Name,
-		ID:   execution.id,
+		ID: execution.id,
 	})
 }
 
 func (execution *executionDelegate) Started() {
 	execution.delegate.saveStart(execution.logger, event.Origin{
-		Type: event.OriginTypeTask,
-		Name: execution.plan.Name,
-		ID:   execution.id,
+		ID: execution.id,
 	})
 
 	execution.logger.Info("started")
@@ -418,25 +398,19 @@ func (execution *executionDelegate) Started() {
 
 func (execution *executionDelegate) Finished(status exec.ExitStatus) {
 	execution.delegate.saveFinish(execution.logger, status, event.Origin{
-		Type: event.OriginTypeTask,
-		Name: execution.plan.Name,
-		ID:   execution.id,
+		ID: execution.id,
 	})
 }
 
 func (execution *executionDelegate) Failed(err error) {
 	execution.delegate.saveErr(execution.logger, err, event.Origin{
-		Type: event.OriginTypeTask,
-		Name: execution.plan.Name,
-		ID:   execution.id,
+		ID: execution.id,
 	})
 	execution.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
 func (execution *executionDelegate) Stdout() io.Writer {
 	return execution.delegate.eventWriter(event.Origin{
-		Type:   event.OriginTypeTask,
-		Name:   execution.plan.Name,
 		Source: event.OriginSourceStdout,
 		ID:     execution.id,
 	})
@@ -444,8 +418,6 @@ func (execution *executionDelegate) Stdout() io.Writer {
 
 func (execution *executionDelegate) Stderr() io.Writer {
 	return execution.delegate.eventWriter(event.Origin{
-		Type:   event.OriginTypeTask,
-		Name:   execution.plan.Name,
 		Source: event.OriginSourceStderr,
 		ID:     execution.id,
 	})
