@@ -39,7 +39,7 @@ func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
 
 	err = engineBuild.Abort(aLog)
 	if err != nil {
-		aLog.Error("failed-to-unmarshal-metadata", err)
+		aLog.Error("failed-to-abort-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
