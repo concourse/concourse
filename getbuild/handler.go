@@ -108,20 +108,22 @@ func NewHandler(
 		}
 
 		buildPlan, found, err := client.BuildPlan(requestedBuild.ID)
-		schema := "exec.v2"
-		if found {
-			schema = buildPlan.Schema
+		if err != nil {
+			log.Error("get-build-plan-failed", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
-		switch schema {
-		case "exec.v2":
+
+		if buildPlan.Schema == "exec.v2" || !found {
+			// either it's definitely a new build, or it hasn't started yet (and thus
+			// must be new), so render with the new UI
 			err = template.Execute(w, templateData)
 			if err != nil {
 				log.Fatal("failed-to-build-template", err, lager.Data{
 					"template-data": templateData,
 				})
 			}
-
-		case "":
+		} else {
 			buildInputsOutputs, _, err := client.BuildResources(requestedBuild.ID)
 			if err != nil {
 				log.Error("failed-to-get-build-resources", err)
@@ -148,9 +150,7 @@ func NewHandler(
 					"template-data": oldBuildTemplateData,
 				})
 			}
-		default:
 		}
-
 	})
 }
 
