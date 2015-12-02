@@ -4,68 +4,60 @@ import (
 	"errors"
 	"html/template"
 	"net/http"
-	"strconv"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/web"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/pivotal-golang/lager"
 )
 
 type handler struct {
-	logger lager.Logger
-
-	db       BuildDB
-	configDB db.ConfigDB
-
-	template *template.Template
+	logger        lager.Logger
+	clientFactory web.ClientFactory
+	template      *template.Template
 }
 
-//go:generate counterfeiter . BuildDB
-
-type BuildDB interface {
-	GetBuild(int) (db.Build, bool, error)
-}
-
-func NewHandler(logger lager.Logger, db BuildDB, configDB db.ConfigDB, template *template.Template) http.Handler {
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) http.Handler {
 	return &handler{
-		logger: logger,
-
-		db: db,
-
-		configDB: configDB,
-
-		template: template,
+		logger:        logger,
+		clientFactory: clientFactory,
+		template:      template,
 	}
 }
 
 type TemplateData struct {
-	Build db.Build
+	Build atc.Build
 }
 
-var ErrInvalidBuildID = errors.New("invalid build id")
+var ErrBuildNotFound = errors.New("build not found")
 
-func FetchTemplateData(buildID string, buildDB BuildDB, configDB db.ConfigDB) (TemplateData, error) {
-	id, err := strconv.Atoi(buildID)
-	if err != nil {
-		return TemplateData{}, ErrInvalidBuildID
-	}
-
-	build, found, err := buildDB.GetBuild(id)
+func FetchTemplateData(buildID string, client concourse.Client) (TemplateData, error) {
+	build, found, err := client.Build(buildID)
 	if err != nil {
 		return TemplateData{}, err
 	}
 
 	if !found {
-		return TemplateData{}, nil
+		return TemplateData{}, ErrBuildNotFound
 	}
 
-	return TemplateData{
-		Build: build,
-	}, nil
+	return TemplateData{Build: build}, nil
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log := handler.logger.Session("jobless-build")
-	templateData, err := FetchTemplateData(r.FormValue(":build_id"), handler.db, handler.configDB)
+
+	templateData, err := FetchTemplateData(
+		r.FormValue(":build_id"),
+		handler.clientFactory.Build(r),
+	)
+
+	if err == ErrBuildNotFound {
+		log.Info("build-not-found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	if err != nil {
 		log.Error("failed-to-build-template-data", err)
 		http.Error(w, "failed to fetch builds", http.StatusInternalServerError)
@@ -74,6 +66,6 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	err = handler.template.Execute(w, templateData)
 	if err != nil {
-		log.Fatal("failed-to-build-template", err)
+		log.Fatal("failed-to-execute-template", err)
 	}
 }

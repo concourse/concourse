@@ -138,7 +138,12 @@ func PathFor(route string, args ...interface{}) (string, error) {
 			return web.PathForBuild(build), nil
 		}
 	case web.GetJoblessBuild:
-		return web.PathForBuild(args[0].(db.Build)), nil
+		switch build := args[0].(type) {
+		case atc.Build:
+			return web.PathForBuildNew(build), nil
+		default:
+			return web.PathForBuild(build.(db.Build)), nil
+		}
 
 	case web.Public:
 		return web.Routes.CreatePathForRoute(route, rata.Params{

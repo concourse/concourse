@@ -116,7 +116,7 @@ func NewHandler(
 		web.GetResource:     getresource.NewHandler(logger, clientFactory, resourceTemplate),
 		web.GetBuild:        getbuild.NewHandler(logger, clientFactory, buildTemplate),
 		web.GetBuilds:       getbuilds.NewHandler(logger, clientFactory, buildsTemplate),
-		web.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
+		web.GetJoblessBuild: getjoblessbuild.NewHandler(logger, clientFactory, joblessBuildTemplate),
 		web.LogIn:           login.NewHandler(logger, clientFactory, logInTemplate),
 		web.BasicAuth:       login.NewBasicAuthHandler(logger),
 		web.TriggerBuild:    triggerbuild.NewHandler(logger, clientFactory),
