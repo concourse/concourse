@@ -15,13 +15,15 @@ type handler struct {
 	logger        lager.Logger
 	clientFactory web.ClientFactory
 	template      *template.Template
+	oldTemplate   *template.Template
 }
 
-func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) http.Handler {
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template, oldTemplate *template.Template) http.Handler {
 	return &handler{
 		logger:        logger,
 		clientFactory: clientFactory,
 		template:      template,
+		oldTemplate:   oldTemplate,
 	}
 }
 
