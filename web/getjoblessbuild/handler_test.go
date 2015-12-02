@@ -6,47 +6,70 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	dbfakes "github.com/concourse/atc/db/fakes"
-
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc"
 	. "github.com/concourse/atc/web/getjoblessbuild"
-	"github.com/concourse/atc/web/getjoblessbuild/fakes"
+	cfakes "github.com/concourse/go-concourse/concourse/fakes"
 )
 
 var _ = Describe("Handler", func() {
-	Describe("creating the Template Data", func() {
-		var fakeDB *fakes.FakeBuildDB
-		var fakeConfigDB *dbfakes.FakeConfigDB
+	FDescribe("creating the Template Data", func() {
+		var (
+			fakeClient   *cfakes.FakeClient
+			fetchErr     error
+			templateData TemplateData
+		)
 
 		BeforeEach(func() {
-			fakeDB = new(fakes.FakeBuildDB)
-			fakeConfigDB = new(dbfakes.FakeConfigDB)
+			fakeClient = new(cfakes.FakeClient)
 		})
 
-		It("queries the database by id to get a build", func() {
-			build := db.Build{
-				ID: 3,
-			}
-
-			fakeDB.GetBuildReturns(build, true, nil)
-
-			templateData, err := FetchTemplateData("3", fakeDB, fakeConfigDB)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(templateData.Build.ID).To(Equal(3))
-			Expect(templateData.Build).To(BeAssignableToTypeOf(db.Build{}))
+		JustBeforeEach(func() {
+			templateData, fetchErr = FetchTemplateData("3", fakeClient)
 		})
 
-		It("errors if the db returns an error", func() {
-			fakeDB.GetBuildReturns(db.Build{}, false, errors.New("disaster"))
-
-			_, err := FetchTemplateData("1", fakeDB, fakeConfigDB)
-			Expect(err).To(HaveOccurred())
+		It("uses the client to get the build", func() {
+			Expect(fakeClient.BuildCallCount()).To(Equal(1))
+			Expect(fakeClient.BuildArgsForCall(0)).To(Equal("3"))
 		})
 
-		It("errors if the build ID is not an integer", func() {
-			_, err := FetchTemplateData("not-a-number", fakeDB, fakeConfigDB)
-			Expect(err).To(MatchError(ErrInvalidBuildID))
+		Context("when the client returns an error", func() {
+			var expectedError error
+
+			BeforeEach(func() {
+				expectedError = errors.New("NOOOOOOO")
+				fakeClient.BuildReturns(atc.Build{}, false, expectedError)
+			})
+
+			It("returns the error", func() {
+				Expect(fetchErr).To(HaveOccurred())
+				Expect(fetchErr).To(Equal(expectedError))
+			})
+		})
+
+		Context("when the client returns not found", func() {
+			BeforeEach(func() {
+				fakeClient.BuildReturns(atc.Build{}, false, nil)
+			})
+
+			It("returns the error", func() {
+				Expect(fetchErr).To(HaveOccurred())
+				Expect(fetchErr).To(Equal(ErrBuildNotFound))
+			})
+		})
+
+		Context("when the client returns a build", func() {
+			var expectedBuild atc.Build
+
+			BeforeEach(func() {
+				expectedBuild = atc.Build{
+					ID: 2,
+				}
+				fakeClient.BuildReturns(expectedBuild, true, nil)
+			})
+
+			It("returns the build in the template data", func() {
+				Expect(templateData.Build).To(Equal(expectedBuild))
+			})
 		})
 	})
 })
