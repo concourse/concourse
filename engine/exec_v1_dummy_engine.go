@@ -10,12 +10,14 @@ import (
 
 type execV1DummyEngine struct{}
 
+const execV1DummyEngineName = "exec.v1"
+
 func NewExecV1DummyEngine() Engine {
 	return execV1DummyEngine{}
 }
 
 func (execV1DummyEngine) Name() string {
-	return "exec.v1"
+	return execV1DummyEngineName
 }
 
 func (execV1DummyEngine) CreateBuild(logger lager.Logger, model db.Build, plan atc.Plan) (Build, error) {
@@ -35,7 +37,7 @@ func (execV1DummyBuild) Metadata() string {
 
 func (execV1DummyBuild) PublicPlan(lager.Logger) (atc.PublicBuildPlan, bool, error) {
 	return atc.PublicBuildPlan{
-		Schema: execEngineName,
+		Schema: execV1DummyEngineName,
 		Plan:   nil,
 	}, true, nil
 }
