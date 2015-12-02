@@ -111,7 +111,7 @@ var _ = Describe("Job Pausing", func() {
 
 				// job detail w/build info -> job detail
 				Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
-				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("job-name #%d", build.ID)))
+				Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("job-name #%d", build.ID)))
 				Expect(page.Find("h1 a").Click()).To(Succeed())
 				Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
 

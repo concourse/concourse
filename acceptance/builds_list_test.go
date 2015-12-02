@@ -141,7 +141,7 @@ var _ = Describe("One-off Builds", func() {
 
 				// one off build detail
 				Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("build #%d", oneOffBuild.ID)))
-				Eventually(page.Find("#build-logs").Text).Should(ContainSubstring("hello this is a payload"))
+				Eventually(page.Find("#build-body").Text).Should(ContainSubstring("hello this is a payload"))
 
 				Expect(sqlDB.FinishBuild(oneOffBuild.ID, db.StatusSucceeded)).To(Succeed())
 				Eventually(page.Find(".build-times").Text).Should(ContainSubstring("duration"))
@@ -156,10 +156,10 @@ var _ = Describe("One-off Builds", func() {
 				Eventually(page.Find(secondBuildLink)).Should(BeFound())
 				Expect(page.Find(secondBuildLink).Click()).To(Succeed())
 				Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("/pipelines/main/jobs/job-name/builds/%d", build.ID))))
-				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("job-name #%s", build.Name)))
+				Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("job-name #%s", build.Name)))
 				Expect(page.Find("#builds").Text()).Should(ContainSubstring("%s", build.Name))
 
-				Eventually(page.Find("#build-logs").Text).Should(ContainSubstring("hello this is a payload"))
+				Eventually(page.Find("#build-body").Text).Should(ContainSubstring("hello this is a payload"))
 
 				Expect(sqlDB.FinishBuild(build.ID, db.StatusSucceeded)).To(Succeed())
 				Eventually(page.Find(".build-times").Text).Should(ContainSubstring("duration"))

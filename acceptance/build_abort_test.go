@@ -114,7 +114,7 @@ var _ = Describe("Resource Pausing", func() {
 
 				// job detail w/build info -> abort build
 				Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
-				Expect(page.Find("h1")).To(HaveText(fmt.Sprintf("job-name #%d", build.ID)))
+				Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("job-name #%d", build.ID)))
 
 				Expect(page.Find(".build-action-abort").Click()).To(Succeed())
 				Eventually(page).Should(HaveURL(fmt.Sprintf("http://127.0.0.1:%d/login", atcPort)))
