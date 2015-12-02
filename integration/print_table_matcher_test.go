@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/fly/ui"
 	"github.com/onsi/gomega/format"
+	"github.com/onsi/gomega/gbytes"
 )
 
 type PrintTableMatcher struct {
@@ -44,6 +45,8 @@ func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
 		}
 
 		matcher.actual = actualBuf.String()
+	case *gbytes.Buffer:
+		matcher.actual = string(v.Contents())
 	default:
 		return false, fmt.Errorf("unknown type: %T", actual)
 	}
