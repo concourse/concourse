@@ -13,4 +13,4 @@ if not_installed ginkgo; then
 fi
 
 cd $(dirname $0)/..
-ginkgo -r -p --race
+ginkgo -r -p -race
