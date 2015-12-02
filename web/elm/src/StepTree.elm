@@ -15,14 +15,12 @@ module StepTree
   ) where
 
 import Debug
-import Ansi
 import Ansi.Log
 import Array exposing (Array)
 import Dict exposing (Dict)
 import Focus exposing (Focus, (=>))
 import Html exposing (Html)
 import Html.Events exposing (onClick)
-import Html.Lazy
 import Html.Attributes exposing (class, classList)
 
 import BuildPlan exposing (BuildPlan)
