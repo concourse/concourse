@@ -69,17 +69,6 @@ var _ = Describe("TaskConfig", func() {
 
 		})
 
-		It("merges tags", func() {
-			Expect(TaskConfig{
-				Tags: []string{"a", "b"},
-			}.Merge(TaskConfig{
-				Tags: []string{"b", "c", "d"},
-			}).Tags).To(
-
-				ConsistOf("a", "b", "c", "d"))
-
-		})
-
 		It("overrides the platform", func() {
 			Expect(TaskConfig{
 				Platform: "platform-a",

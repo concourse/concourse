@@ -9,9 +9,6 @@ type TaskConfig struct {
 	// The platform the task must run on (e.g. linux, windows).
 	Platform string `json:"platform,omitempty" yaml:"platform,omitempty"`
 
-	// Additional tags to influence which workers the task can run on.
-	Tags []string `json:"tags,omitempty"  yaml:"tags,omitempty"`
-
 	// Optional string specifying an image to use for the build. Depending on the
 	// platform, this may or may not be required (e.g. Windows/OS X vs. Linux).
 	Image string `json:"image,omitempty"   yaml:"image,omitempty"`
@@ -52,27 +49,6 @@ func (a TaskConfig) Merge(b TaskConfig) TaskConfig {
 		a.Params = newParams
 	} else {
 		a.Params = b.Params
-	}
-
-	if len(a.Tags) > 0 || len(b.Tags) > 0 {
-		uniqTags := map[string]struct{}{}
-
-		for _, tag := range a.Tags {
-			uniqTags[tag] = struct{}{}
-		}
-
-		for _, tag := range b.Tags {
-			uniqTags[tag] = struct{}{}
-		}
-
-		tags := make([]string, len(uniqTags))
-		i := 0
-		for tag, _ := range uniqTags {
-			tags[i] = tag
-			i++
-		}
-
-		a.Tags = tags
 	}
 
 	if len(b.Inputs) != 0 {

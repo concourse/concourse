@@ -29,9 +29,8 @@ func (InitializeTask) Version() atc.EventVersion { return "3.0" }
 
 // shadow the real atc.TaskConfig
 type TaskConfig struct {
-	Platform string   `json:"platform"`
-	Tags     []string `json:"tags"`
-	Image    string   `json:"image"`
+	Platform string `json:"platform"`
+	Image    string `json:"image"`
 
 	Run    TaskRunConfig     `json:"run"`
 	Inputs []TaskInputConfig `json:"inputs"`
@@ -59,7 +58,6 @@ func ShadowTaskConfig(config atc.TaskConfig) TaskConfig {
 
 	return TaskConfig{
 		Platform: config.Platform,
-		Tags:     config.Tags,
 		Image:    config.Image,
 		Run: TaskRunConfig{
 			Path: config.Run.Path,

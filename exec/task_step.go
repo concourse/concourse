@@ -152,13 +152,11 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	} else {
 		// container does not exist; new session
 
-		tags := step.mergeTags(step.tags, config.Tags)
-
 		step.delegate.Initializing(config)
 
 		workerSpec := worker.WorkerSpec{
 			Platform: config.Platform,
-			Tags:     tags,
+			Tags:     step.tags,
 		}
 
 		compatibleWorkers, err := step.workerPool.AllSatisfying(workerSpec)
@@ -200,7 +198,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			step.containerID,
 			worker.TaskContainerSpec{
 				Platform:   config.Platform,
-				Tags:       tags,
+				Tags:       step.tags,
 				Image:      config.Image,
 				Privileged: bool(step.privileged),
 				Inputs:     inputMounts,

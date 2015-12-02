@@ -84,7 +84,6 @@ var _ = Describe("ExecEngine", func() {
 
 			taskConfig = &atc.TaskConfig{
 				Image:  "some-image",
-				Tags:   []string{"some", "task", "tags"},
 				Params: map[string]string{"PARAM": "value"},
 				Run: atc.TaskRunConfig{
 					Path: "some-path",
@@ -424,7 +423,6 @@ var _ = Describe("ExecEngine", func() {
 
 				taskConfig = &atc.TaskConfig{
 					Image:  "some-image",
-					Tags:   []string{"some", "task", "tags"},
 					Params: map[string]string{"PARAM": "value"},
 					Run: atc.TaskRunConfig{
 						Path: "some-path",

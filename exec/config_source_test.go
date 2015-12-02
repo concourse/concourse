@@ -17,7 +17,6 @@ var _ = Describe("ConfigSource", func() {
 	var (
 		someConfig = atc.TaskConfig{
 			Platform: "some-platform",
-			Tags:     []string{"some", "tags"},
 			Image:    "some-image",
 			Params:   map[string]string{"PARAM": "value"},
 			Run: atc.TaskRunConfig{

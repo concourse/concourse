@@ -112,7 +112,6 @@ var _ = Describe("GardenFactory", func() {
 				BeforeEach(func() {
 					fetchedConfig = atc.TaskConfig{
 						Platform: "some-platform",
-						Tags:     []string{"config", "tags"},
 						Image:    "some-image",
 						Params:   map[string]string{"SOME": "params"},
 						Run: atc.TaskRunConfig{
@@ -185,7 +184,6 @@ var _ = Describe("GardenFactory", func() {
 							Expect(fakeWorkerClient.AllSatisfyingCallCount()).To(Equal(1))
 							spec := fakeWorkerClient.AllSatisfyingArgsForCall(0)
 							Expect(spec.Platform).To(Equal("some-platform"))
-							Expect(spec.Tags).To(ConsistOf("step", "tags", "config"))
 						})
 
 						It("looked up the container via the session ID across the entire pool", func() {
@@ -205,7 +203,6 @@ var _ = Describe("GardenFactory", func() {
 
 							taskSpec := spec.(worker.TaskContainerSpec)
 							Expect(taskSpec.Platform).To(Equal("some-platform"))
-							Expect(taskSpec.Tags).To(ConsistOf("config", "step", "tags"))
 							Expect(taskSpec.Image).To(Equal("some-image"))
 							Expect(taskSpec.Privileged).To(BeFalse())
 						})
@@ -267,7 +264,6 @@ var _ = Describe("GardenFactory", func() {
 
 								taskSpec := spec.(worker.TaskContainerSpec)
 								Expect(taskSpec.Platform).To(Equal("some-platform"))
-								Expect(taskSpec.Tags).To(ConsistOf("config", "step", "tags"))
 								Expect(taskSpec.Image).To(Equal("some-image"))
 								Expect(taskSpec.Privileged).To(BeTrue())
 							})
