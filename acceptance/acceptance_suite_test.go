@@ -58,7 +58,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	postgresRunner.CreateTestDB()
 
-	agoutiDriver = agouti.PhantomJS()
+	agoutiDriver = agouti.ChromeDriver()
 	Expect(agoutiDriver.Start()).To(Succeed())
 })
 

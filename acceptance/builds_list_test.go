@@ -94,10 +94,10 @@ var _ = Describe("One-off Builds", func() {
 				build, err = pipelineDB.CreateJobBuild("job-name")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = sqlDB.StartBuild(build.ID, "", "")
+				_, err = sqlDB.StartBuild(build.ID, "exec.v2", `{"Plan":{"id":"some-id","task":{"name":"origin-name"}}}`)
 				Expect(err).NotTo(HaveOccurred())
 
-				sqlDB.SaveBuildEvent(build.ID, event.Log{
+				err = sqlDB.SaveBuildEvent(build.ID, event.Log{
 					Origin: event.Origin{
 						Name:   "origin-name",
 						Type:   event.OriginTypeTask,
@@ -106,14 +106,16 @@ var _ = Describe("One-off Builds", func() {
 					},
 					Payload: "hello this is a payload",
 				})
+				Expect(err).NotTo(HaveOccurred())
 
 				// One off build data
 				oneOffBuild, err = sqlDB.CreateOneOffBuild()
 				Expect(err).NotTo(HaveOccurred())
-				_, err = sqlDB.StartBuild(oneOffBuild.ID, "", "")
+
+				_, err = sqlDB.StartBuild(oneOffBuild.ID, "exec.v2", `{"Plan":{"id":"some-other-id","task":{"name":"origin-name"}}}`)
 				Expect(err).NotTo(HaveOccurred())
 
-				sqlDB.SaveBuildEvent(oneOffBuild.ID, event.Log{
+				err = sqlDB.SaveBuildEvent(oneOffBuild.ID, event.Log{
 					Origin: event.Origin{
 						Name:   "origin-name",
 						Type:   event.OriginTypeTask,
@@ -122,6 +124,7 @@ var _ = Describe("One-off Builds", func() {
 					},
 					Payload: "hello this is a payload",
 				})
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("can view builds", func() {
@@ -165,7 +168,7 @@ var _ = Describe("One-off Builds", func() {
 				Eventually(page.Find(".build-times").Text).Should(ContainSubstring("duration"))
 			})
 
-			It("can abort builds from the one-off build page", func() {
+			FIt("can abort builds from the one-off build page", func() {
 				// homepage -> build list
 				Expect(page.Navigate(homepage() + "/pipelines/main")).To(Succeed())
 				Authenticate(page, "admin", "password")
