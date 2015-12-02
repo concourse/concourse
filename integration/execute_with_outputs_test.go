@@ -85,82 +85,55 @@ run:
 		streaming = make(chan struct{})
 		events = make(chan atc.Event)
 
-		expectedPlan = atc.Plan{
-			OnSuccess: &atc.OnSuccessPlan{
-				Step: atc.Plan{
-					Aggregate: &atc.AggregatePlan{
-						atc.Plan{
-							Location: &atc.Location{
-								ParallelGroup: 1,
-								ParentID:      0,
-								ID:            2,
-							},
-							Get: &atc.GetPlan{
-								Name: filepath.Base(buildDir),
-								Type: "archive",
-								Source: atc.Source{
-									"uri": atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-								},
-							},
+		planFactory := atc.NewPlanFactory(0)
+
+		expectedPlan = planFactory.NewPlan(atc.OnSuccessPlan{
+			Step: planFactory.NewPlan(atc.AggregatePlan{
+				planFactory.NewPlan(atc.GetPlan{
+					Name: filepath.Base(buildDir),
+					Type: "archive",
+					Source: atc.Source{
+						"uri": atcServer.URL() + "/api/v1/pipes/some-pipe-id",
+					},
+				}),
+			}),
+			Next: planFactory.NewPlan(atc.EnsurePlan{
+				Step: planFactory.NewPlan(atc.TaskPlan{
+					Name: "one-off",
+					Config: &atc.TaskConfig{
+						Platform: "some-platform",
+						Image:    "ubuntu",
+						Inputs: []atc.TaskInputConfig{
+							{Name: "fixture"},
+						},
+						Outputs: []atc.TaskOutputConfig{
+							{Name: "some-dir"},
+						},
+						Params: map[string]string{
+							"FOO": "bar",
+							"BAZ": "buzz",
+							"X":   "1",
+						},
+						Run: atc.TaskRunConfig{
+							Path: "/bin/sh",
+							Args: []string{"-c", "echo some-content > some-dir/a-file"},
 						},
 					},
-				},
-				Next: atc.Plan{
-					Ensure: &atc.EnsurePlan{
-						Step: atc.Plan{
-							Location: &atc.Location{
-								ParallelGroup: 0,
-								ParentID:      0,
-								ID:            3,
-							},
-							Task: &atc.TaskPlan{
-								Name: "one-off",
-								Config: &atc.TaskConfig{
-									Platform: "some-platform",
-									Image:    "ubuntu",
-									Inputs: []atc.TaskInputConfig{
-										{Name: "fixture"},
-									},
-									Outputs: []atc.TaskOutputConfig{
-										{Name: "some-dir"},
-									},
-									Params: map[string]string{
-										"FOO": "bar",
-										"BAZ": "buzz",
-										"X":   "1",
-									},
-									Run: atc.TaskRunConfig{
-										Path: "/bin/sh",
-										Args: []string{"-c", "echo some-content > some-dir/a-file"},
-									},
-								},
-							},
+				}),
+				Next: planFactory.NewPlan(atc.AggregatePlan{
+					planFactory.NewPlan(atc.PutPlan{
+						Name: "some-dir",
+						Type: "archive",
+						Source: atc.Source{
+							"uri": atcServer.URL() + "/api/v1/pipes/some-other-pipe-id",
 						},
-						Next: atc.Plan{
-							Aggregate: &atc.AggregatePlan{
-								atc.Plan{
-									Location: &atc.Location{
-										ParallelGroup: 4,
-										ParentID:      0,
-										ID:            5,
-									},
-									Put: &atc.PutPlan{
-										Name: "some-dir",
-										Type: "archive",
-										Source: atc.Source{
-											"uri": atcServer.URL() + "/api/v1/pipes/some-other-pipe-id",
-										},
-										Params: atc.Params{
-											"directory": "some-dir",
-										},
-									},
-								},
-							},
+						Params: atc.Params{
+							"directory": "some-dir",
 						},
-					},
-				},
-			},
-		}
+					}),
+				}),
+			}),
+		})
 	})
 
 	AfterEach(func() {
@@ -192,7 +165,7 @@ run:
 		atcServer.RouteToHandler("POST", "/api/v1/builds",
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/builds"),
-				ghttp.VerifyJSONRepresenting(expectedPlan),
+				VerifyPlan(expectedPlan),
 				func(w http.ResponseWriter, r *http.Request) {
 					http.SetCookie(w, &http.Cookie{
 						Name:    "Some-Cookie",
