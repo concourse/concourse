@@ -102,7 +102,7 @@ decodeStatus =
 decodeOrigin : Json.Decoder Origin
 decodeOrigin =
   Json.object2 Origin
-    ("source" := Json.string)
+    (Json.map (Maybe.withDefault "") << Json.maybe <| "source" := Json.string)
     ("id" := Json.string)
 
 decodeStepType : Json.Decoder StepType
