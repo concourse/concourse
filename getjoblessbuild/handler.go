@@ -16,7 +16,8 @@ type handler struct {
 	db       BuildDB
 	configDB db.ConfigDB
 
-	template *template.Template
+	template    *template.Template
+	oldTemplate *template.Template
 }
 
 //go:generate counterfeiter . BuildDB
@@ -25,7 +26,7 @@ type BuildDB interface {
 	GetBuild(int) (db.Build, bool, error)
 }
 
-func NewHandler(logger lager.Logger, db BuildDB, configDB db.ConfigDB, template *template.Template) http.Handler {
+func NewHandler(logger lager.Logger, db BuildDB, configDB db.ConfigDB, template *template.Template, oldTemplate *template.Template) http.Handler {
 	return &handler{
 		logger: logger,
 
@@ -33,7 +34,8 @@ func NewHandler(logger lager.Logger, db BuildDB, configDB db.ConfigDB, template 
 
 		configDB: configDB,
 
-		template: template,
+		template:    template,
+		oldTemplate: oldTemplate,
 	}
 }
 

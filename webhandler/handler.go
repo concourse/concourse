@@ -69,7 +69,12 @@ func NewHandler(
 		return nil, err
 	}
 
-	buildTemplate, err := loadTemplateWithPipeline(templatesDir, "elm-build.html", funcs)
+	buildTemplate, err := loadTemplateWithPipeline(templatesDir, "build.html", funcs)
+	if err != nil {
+		return nil, err
+	}
+
+	oldBuildTemplate, err := loadTemplateWithPipeline(templatesDir, "old-build.html", funcs)
 	if err != nil {
 		return nil, err
 	}
@@ -80,6 +85,11 @@ func NewHandler(
 	}
 
 	joblessBuildTemplate, err := loadTemplateWithoutPipeline(templatesDir, filepath.Join("builds", "show.html"), funcs)
+	if err != nil {
+		return nil, err
+	}
+
+	oldJoblessBuildTemplate, err := loadTemplateWithoutPipeline(templatesDir, filepath.Join("builds", "old-show.html"), funcs)
 	if err != nil {
 		return nil, err
 	}
@@ -118,9 +128,9 @@ func NewHandler(
 		web.Public:          http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 		web.GetJob:          getjob.NewHandler(logger, clientFactory, jobTemplate),
 		web.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
-		web.GetBuild:        getbuild.NewHandler(logger, clientFactory, buildTemplate),
+		web.GetBuild:        getbuild.NewHandler(logger, clientFactory, buildTemplate, oldBuildTemplate),
 		web.GetBuilds:       getbuilds.NewHandler(logger, clientFactory, buildsTemplate),
-		web.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate),
+		web.GetJoblessBuild: getjoblessbuild.NewHandler(logger, db, configDB, joblessBuildTemplate, oldJoblessBuildTemplate),
 		web.LogIn:           login.NewHandler(logger, clientFactory, logInTemplate),
 		web.BasicAuth:       login.NewBasicAuthHandler(logger),
 		web.TriggerBuild:    triggerbuild.NewHandler(logger, clientFactory),
