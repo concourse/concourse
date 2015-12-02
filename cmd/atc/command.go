@@ -481,13 +481,15 @@ func (cmd *ATCCommand) constructEngine(
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(workerClient, tracker, uuidGen)
 
-	execEngine := engine.NewExecEngine(
+	execV2Engine := engine.NewExecEngine(
 		gardenFactory,
 		engine.NewBuildDelegateFactory(sqlDB),
 		sqlDB,
 	)
 
-	return engine.NewDBEngine(engine.Engines{execEngine}, sqlDB)
+	execV1Engine := engine.NewExecV1DummyEngine()
+
+	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, sqlDB)
 }
 
 func (cmd *ATCCommand) constructHTTPHandler(
