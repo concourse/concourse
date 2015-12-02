@@ -84,6 +84,16 @@ type FakeClient struct {
 		result1 atc.Build
 		result2 error
 	}
+	BuildPlanStub        func(buildID int) (atc.PublicBuildPlan, bool, error)
+	buildPlanMutex       sync.RWMutex
+	buildPlanArgsForCall []struct {
+		buildID int
+	}
+	buildPlanReturns struct {
+		result1 atc.PublicBuildPlan
+		result2 bool
+		result3 error
+	}
 	CreateOrUpdatePipelineConfigStub        func(pipelineName string, configVersion string, passedConfig atc.Config) (bool, bool, error)
 	createOrUpdatePipelineConfigMutex       sync.RWMutex
 	createOrUpdatePipelineConfigArgsForCall []struct {
@@ -549,6 +559,40 @@ func (fake *FakeClient) CreateJobBuildReturns(result1 atc.Build, result2 error) 
 		result1 atc.Build
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeClient) BuildPlan(buildID int) (atc.PublicBuildPlan, bool, error) {
+	fake.buildPlanMutex.Lock()
+	fake.buildPlanArgsForCall = append(fake.buildPlanArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.buildPlanMutex.Unlock()
+	if fake.BuildPlanStub != nil {
+		return fake.BuildPlanStub(buildID)
+	} else {
+		return fake.buildPlanReturns.result1, fake.buildPlanReturns.result2, fake.buildPlanReturns.result3
+	}
+}
+
+func (fake *FakeClient) BuildPlanCallCount() int {
+	fake.buildPlanMutex.RLock()
+	defer fake.buildPlanMutex.RUnlock()
+	return len(fake.buildPlanArgsForCall)
+}
+
+func (fake *FakeClient) BuildPlanArgsForCall(i int) int {
+	fake.buildPlanMutex.RLock()
+	defer fake.buildPlanMutex.RUnlock()
+	return fake.buildPlanArgsForCall[i].buildID
+}
+
+func (fake *FakeClient) BuildPlanReturns(result1 atc.PublicBuildPlan, result2 bool, result3 error) {
+	fake.BuildPlanStub = nil
+	fake.buildPlanReturns = struct {
+		result1 atc.PublicBuildPlan
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeClient) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config) (bool, bool, error) {
