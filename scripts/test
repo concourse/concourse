@@ -29,7 +29,7 @@ if not_installed gulp; then
 fi
 
 cd $atc_dir
-ginkgo -r -p --race
+ginkgo -r -p -race
 
 cd $atc_dir/web/assets
 export NODE_ENV=production
