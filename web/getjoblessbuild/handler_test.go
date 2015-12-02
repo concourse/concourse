@@ -12,7 +12,7 @@ import (
 )
 
 var _ = Describe("Handler", func() {
-	FDescribe("creating the Template Data", func() {
+	Describe("creating the Template Data", func() {
 		var (
 			fakeClient   *cfakes.FakeClient
 			fetchErr     error
