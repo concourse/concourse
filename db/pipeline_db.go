@@ -372,46 +372,44 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 		return []SavedVersionedResource{}, Pagination{}, false, err
 	}
 
+	query := fmt.Sprintf(`
+		SELECT v.id, v.enabled, v.type, v.version, v.metadata, r.name
+		FROM versioned_resources v
+		INNER JOIN resources r ON v.resource_id = r.id
+		WHERE v.resource_id = $1
+	`)
+
 	var rows *sql.Rows
 	if page.Since == 0 && page.Until == 0 {
-		rows, err = pdb.conn.Query(`
-			SELECT v.id, v.enabled, v.type, v.version, v.metadata, r.name
-			FROM versioned_resources v
-			INNER JOIN resources r ON v.resource_id = r.id
-			WHERE v.resource_id = $1
+		rows, err = pdb.conn.Query(fmt.Sprintf(`
+			%s
 			ORDER BY v.id DESC
 			LIMIT $2
-		`, dbResource.ID, page.Limit)
+		`, query), dbResource.ID, page.Limit)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 	} else if page.Until != 0 {
-		rows, err = pdb.conn.Query(`
+		rows, err = pdb.conn.Query(fmt.Sprintf(`
 			SELECT sub.*
 				FROM (
-				SELECT v.id, v.enabled, v.type, v.version, v.metadata, r.name
-				FROM versioned_resources v
-				INNER JOIN resources r ON v.resource_id = r.id
-				WHERE v.resource_id = $1
+						%s
 					AND v.ID > $2
 				ORDER BY v.id ASC
 				LIMIT $3
 			) sub
 			ORDER BY sub.id DESC
-		`, dbResource.ID, page.Until, page.Limit)
+		`, query), dbResource.ID, page.Until, page.Limit)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 	} else {
-		rows, err = pdb.conn.Query(`
-			SELECT v.id, v.enabled, v.type, v.version, v.metadata, r.name
-			FROM versioned_resources v
-			INNER JOIN resources r ON v.resource_id = r.id
-			WHERE v.resource_id = $1
+		rows, err = pdb.conn.Query(fmt.Sprintf(`
+			%s
 				AND v.ID < $2
 			ORDER BY v.id DESC
 			LIMIT $3
-		`, dbResource.ID, page.Since, page.Limit)
+		`, query), dbResource.ID, page.Since, page.Limit)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
