@@ -47,11 +47,13 @@ func FetchTemplateData(buildID string, client concourse.Client) (TemplateData, e
 }
 
 func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	client := handler.clientFactory.Build(r)
+
 	log := handler.logger.Session("jobless-build")
 
 	templateData, err := FetchTemplateData(
 		r.FormValue(":build_id"),
-		handler.clientFactory.Build(r),
+		client,
 	)
 
 	if err == ErrBuildNotFound {
@@ -66,7 +68,19 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = handler.template.Execute(w, templateData)
+	buildPlan, found, err := client.BuildPlan(templateData.Build.ID)
+	if err != nil {
+		log.Error("get-build-plan-failed", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if buildPlan.Schema == "exec.v2" || !found {
+		err = handler.template.Execute(w, templateData)
+	} else {
+		err = handler.oldTemplate.Execute(w, templateData)
+	}
+
 	if err != nil {
 		log.Fatal("failed-to-execute-template", err)
 	}
