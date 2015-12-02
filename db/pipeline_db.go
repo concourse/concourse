@@ -1762,51 +1762,44 @@ func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]Build, Paginat
 		rows *sql.Rows
 	)
 
+	query := fmt.Sprintf(`
+		SELECT ` + qualifiedBuildColumns + `
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		WHERE j.name = $1
+			AND j.pipeline_id = $2
+	`)
+
 	if page.Since == 0 && page.Until == 0 {
-		rows, err = pdb.conn.Query(`
-			SELECT `+qualifiedBuildColumns+`
-			FROM builds b
-			INNER JOIN jobs j ON b.job_id = j.id
-			INNER JOIN pipelines p ON j.pipeline_id = p.id
-			WHERE j.name = $1
-				AND j.pipeline_id = $2
+		rows, err = pdb.conn.Query(fmt.Sprintf(`
+			%s
 			ORDER BY b.id DESC
 			LIMIT $3
-		`, jobName, pdb.ID, page.Limit)
+		`, query), jobName, pdb.ID, page.Limit)
 		if err != nil {
 			return nil, Pagination{}, err
 		}
 	} else if page.Until != 0 {
-		rows, err = pdb.conn.Query(`
+		rows, err = pdb.conn.Query(fmt.Sprintf(`
 			SELECT sub.*
-			FROM (
-				SELECT `+qualifiedBuildColumns+`
-				FROM builds b
-				INNER JOIN jobs j ON b.job_id = j.id
-				INNER JOIN pipelines p ON j.pipeline_id = p.id
-				WHERE j.name = $1
-					AND j.pipeline_id = $2
+			FROM (%s
 					AND b.id > $3
 				ORDER BY b.id ASC
 				LIMIT $4
 			) sub
 			ORDER BY sub.id DESC
-		`, jobName, pdb.ID, page.Until, page.Limit)
+		`, query), jobName, pdb.ID, page.Until, page.Limit)
 		if err != nil {
 			return nil, Pagination{}, err
 		}
 	} else {
-		rows, err = pdb.conn.Query(`
-			SELECT `+qualifiedBuildColumns+`
-			FROM builds b
-			INNER JOIN jobs j ON b.job_id = j.id
-			INNER JOIN pipelines p ON j.pipeline_id = p.id
-			WHERE j.name = $1
-				AND j.pipeline_id = $2
+		rows, err = pdb.conn.Query(fmt.Sprintf(`
+				%s
 				AND b.id < $3
 			ORDER BY b.id DESC
 			LIMIT $4
-		`, jobName, pdb.ID, page.Since, page.Limit)
+		`, query), jobName, pdb.ID, page.Since, page.Limit)
 		if err != nil {
 			return nil, Pagination{}, err
 		}
