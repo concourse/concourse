@@ -67,7 +67,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
       }
 
       \define-attribute{path: string}{
-        \italic{Optional.} The path in the where the input will be placed. If not
+        \italic{Optional.} The path where the input will be placed. If not
         specified, the input's \code{name} is used.
       }
     }
@@ -88,7 +88,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
       }
 
       \define-attribute{path: string}{
-        \italic{Optional.} The path in the where the output will be taken from.
+        \italic{Optional.} The path where the output will be taken from.
         If not specified, the output's \code{name} is used.
       }
     }
