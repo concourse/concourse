@@ -24,10 +24,10 @@ format duration =
         toString s ++ "s"
 
       (0, 0, m, s) ->
-        toString m ++ "m" ++ toString s ++ "s"
+        toString m ++ "m " ++ toString s ++ "s"
 
       (0, h, m, s) ->
-        toString h ++ "h" ++ toString m ++ "m"
+        toString h ++ "h " ++ toString m ++ "m"
 
       (d, h, m, s) ->
-        toString d ++ "d" ++ toString h ++ "h"
+        toString d ++ "d " ++ toString h ++ "h"
