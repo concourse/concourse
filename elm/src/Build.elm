@@ -171,8 +171,10 @@ update action model =
             fetch =
               if pending then
                 fetchBuild Time.second model.buildId
-              else
+              else if build.job /= Nothing then
                 fetchBuildPlanAndResources model.buildId
+              else
+                fetchBuildPlan model.buildId
 
             fetchHistory =
               case (model.build, build.job) of
@@ -665,6 +667,17 @@ fetchBuildPlanAndResources buildId =
       Http.get BuildResources.decode ("/api/v1/builds/" ++ toString buildId ++ "/resources")
   in
     Task.map2 (,) getPlan getResources
+      |> Task.toResult
+      |> Task.map PlanAndResourcesFetched
+      |> Effects.task
+
+fetchBuildPlan : Int -> Effects.Effects Action
+fetchBuildPlan buildId =
+  let
+    getPlan =
+      Http.get BuildPlan.decode ("/api/v1/builds/" ++ toString buildId ++ "/plan")
+  in
+    Task.map (flip (,) { inputs = [], outputs = [] }) getPlan
       |> Task.toResult
       |> Task.map PlanAndResourcesFetched
       |> Effects.task
