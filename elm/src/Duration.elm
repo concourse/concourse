@@ -1,6 +1,5 @@
 module Duration where
 
-import Debug
 import Time exposing (Time)
 
 type alias Duration = Float
@@ -26,8 +25,8 @@ format duration =
       (0, 0, m, s) ->
         toString m ++ "m " ++ toString s ++ "s"
 
-      (0, h, m, s) ->
+      (0, h, m, _) ->
         toString h ++ "h " ++ toString m ++ "m"
 
-      (d, h, m, s) ->
+      (d, h, _, _) ->
         toString d ++ "d " ++ toString h ++ "h"
