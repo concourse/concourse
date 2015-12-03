@@ -98,7 +98,7 @@ decodeFinishResource cons =
     ("origin" := decodeOrigin)
     ("exit_status" := Json.int)
     ("version" := decodeVersion)
-    ("metadata" := decodeMetadata)
+    (Json.map (Maybe.withDefault []) << Json.maybe <| "metadata" := decodeMetadata)
 
 decodeVersion =
   Json.dict Json.string
