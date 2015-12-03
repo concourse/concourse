@@ -247,13 +247,13 @@ update action model =
       , Effects.none
       )
 
-    Event (Ok (BuildEvent.FinishGet origin exitStatus)) ->
-      ( updateStep origin.id (finishStep exitStatus) model
+    Event (Ok (BuildEvent.FinishGet origin exitStatus version metadata)) ->
+      ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
       , Effects.none
       )
 
-    Event (Ok (BuildEvent.FinishPut origin exitStatus)) ->
-      ( updateStep origin.id (finishStep exitStatus) model
+    Event (Ok (BuildEvent.FinishPut origin exitStatus version metadata)) ->
+      ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
       , Effects.none
       )
 
@@ -364,6 +364,10 @@ finishStep exitStatus tree =
         StepTree.StepStateFailed
   in
     setStepState stepState tree
+
+setResourceInfo : BuildEvent.Version -> BuildEvent.Metadata -> StepTree -> StepTree
+setResourceInfo version metadata tree =
+  StepTree.map (\step -> { step | version = Just version, metadata = metadata }) tree
 
 setStepState : StepTree.StepState -> StepTree -> StepTree
 setStepState state tree =

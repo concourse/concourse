@@ -27,7 +27,7 @@ import BuildPlan exposing (BuildPlan)
 
 type StepTree
   = Task Step
-  | Get Step (Maybe Version)
+  | Get Step
   | Put Step
   | DependentGet Step
   | Aggregate (Array StepTree)
@@ -51,13 +51,13 @@ type alias Step =
   , log : Ansi.Log.Model
   , error : Maybe String
   , expanded : Bool
+  , version : Maybe Version
+  , metadata : List MetadataField
   }
 
 type alias StepName = String
 
 type alias StepID = String
-
-type alias Version = Dict String String
 
 type StepState
   = StepStatePending
@@ -74,6 +74,14 @@ type alias Root =
   , foci : Dict StepID StepFocus
   }
 
+type alias Version =
+  Dict String String
+
+type alias MetadataField =
+  { name : String
+  , value : String
+  }
+
 init : BuildPlan -> Root
 init plan =
   case plan.step of
@@ -81,7 +89,7 @@ init plan =
       initBottom Task plan.id name
 
     BuildPlan.Get name version ->
-      initBottom (flip Get version) plan.id name
+      initBottom (\step -> Get { step | version = version }) plan.id name
 
     BuildPlan.Put name ->
       initBottom Put plan.id name
@@ -135,8 +143,8 @@ map f tree =
     Task step ->
       Task (f step)
 
-    Get step version ->
-      Get (f step) version
+    Get step ->
+      Get (f step)
 
     Put step ->
       Put (f step)
@@ -158,6 +166,8 @@ initBottom create id name =
       , log = Ansi.Log.init Ansi.Log.Cooked
       , error = Nothing
       , expanded = True
+      , version = Nothing
+      , metadata = []
       }
   in
     { tree = create step
@@ -297,7 +307,7 @@ view actions tree =
     Task step ->
       viewStep actions step "fa-terminal"
 
-    Get step _ ->
+    Get step ->
       viewStep actions step "fa-arrow-down"
 
     DependentGet step ->
@@ -342,7 +352,7 @@ isInactive : StepState -> Bool
 isInactive = (==) StepStatePending
 
 viewStep : Signal.Address Action -> Step -> String -> Html
-viewStep actions {id, name, log, state, error, expanded} icon =
+viewStep actions {id, name, log, state, error, expanded, version, metadata} icon =
   Html.div
     [ classList
       [ ("build-step", True)
@@ -352,6 +362,9 @@ viewStep actions {id, name, log, state, error, expanded} icon =
     [ Html.div [class "header", onClick actions (ToggleStep id)]
         [ viewStepState state
         , typeIcon icon
+        , Html.dl [class "version"] <|
+            List.concatMap (uncurry viewPair) << Dict.toList <|
+              Maybe.withDefault Dict.empty version
         , Html.h3 [] [Html.text name]
         ]
     , Html.div
@@ -360,7 +373,9 @@ viewStep actions {id, name, log, state, error, expanded} icon =
             , ("step-collapsed", isInactive state || not expanded)
             ]
         ]
-        [ Ansi.Log.view log
+        [ Html.dl [class "build-metadata fr"]
+            (List.concatMap (\{name, value} -> viewPair name value) metadata)
+        , Ansi.Log.view log
         , case error of
             Nothing ->
               Html.span [] []
@@ -368,6 +383,12 @@ viewStep actions {id, name, log, state, error, expanded} icon =
               Html.span [class "error"] [Html.text msg]
         ]
     ]
+
+viewPair : String -> String -> List Html
+viewPair name value =
+  [ Html.dt [] [Html.text name]
+  , Html.dd [] [Html.text value]
+  ]
 
 typeIcon : String -> Html
 typeIcon fa =
