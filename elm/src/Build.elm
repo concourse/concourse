@@ -16,6 +16,7 @@ import Time exposing (Time)
 
 import BuildEvent exposing (BuildEvent)
 import BuildPlan exposing (BuildPlan)
+import BuildResources exposing (BuildResources)
 import Scroll
 import StepTree exposing (StepTree)
 import Pagination exposing (Pagination)
@@ -62,7 +63,7 @@ type StepRenderingState
 
 type Action
   = Noop
-  | PlanFetched (Result Http.Error BuildPlan)
+  | PlanAndResourcesFetched (Result Http.Error (BuildPlan, BuildResources))
   | BuildFetched (Result Http.Error Build)
   | BuildHistoryFetched (Result Http.Error BuildHistory)
   | Listening EventSource
@@ -156,7 +157,7 @@ update action model =
               if pending then
                 fetchBuild Time.second model.buildId
               else
-                fetchBuildPlan model.buildId
+                fetchBuildPlanAndResources model.buildId
 
             fetchHistory =
               case (model.build, build.job) of
@@ -174,17 +175,17 @@ update action model =
                 fetch
         )
 
-    PlanFetched (Err (Http.BadResponse 404 _)) ->
+    PlanAndResourcesFetched (Err (Http.BadResponse 404 _)) ->
       ( model
       , subscribeToEvents model.buildId model.actions
       )
 
-    PlanFetched (Err err) ->
+    PlanAndResourcesFetched (Err err) ->
       Debug.log ("failed to fetch plan: " ++ toString err) <|
         (model, Effects.none)
 
-    PlanFetched (Ok plan) ->
-      ( { model | stepRoot = Just (StepTree.init plan) }
+    PlanAndResourcesFetched (Ok (plan, resources)) ->
+      ( { model | stepRoot = Just (StepTree.init resources plan) }
       , subscribeToEvents model.buildId model.actions
       )
 
@@ -621,12 +622,18 @@ renderHistory currentBuild currentStatus build =
     ]
     [ Html.a [href build.url] [ Html.text ("#" ++ build.name) ] ]
 
-fetchBuildPlan : Int -> Effects.Effects Action
-fetchBuildPlan buildId =
-  Http.get BuildPlan.decode ("/api/v1/builds/" ++ toString buildId ++ "/plan")
-    |> Task.toResult
-    |> Task.map PlanFetched
-    |> Effects.task
+fetchBuildPlanAndResources : Int -> Effects.Effects Action
+fetchBuildPlanAndResources buildId =
+  let
+    getPlan =
+      Http.get BuildPlan.decode ("/api/v1/builds/" ++ toString buildId ++ "/plan")
+    getResources =
+      Http.get BuildResources.decode ("/api/v1/builds/" ++ toString buildId ++ "/resources")
+  in
+    Task.map2 (,) getPlan getResources
+      |> Task.toResult
+      |> Task.map PlanAndResourcesFetched
+      |> Effects.task
 
 fetchBuild : Time -> Int -> Effects.Effects Action
 fetchBuild delay buildId =
