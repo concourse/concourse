@@ -24,6 +24,7 @@ import Html.Events exposing (onClick)
 import Html.Attributes exposing (class, classList)
 
 import BuildPlan exposing (BuildPlan)
+import BuildResources exposing (BuildResources)
 
 type StepTree
   = Task Step
@@ -53,6 +54,7 @@ type alias Step =
   , expanded : Bool
   , version : Maybe Version
   , metadata : List MetadataField
+  , firstOccurrence : Bool
   }
 
 type alias StepName = String
@@ -82,14 +84,14 @@ type alias MetadataField =
   , value : String
   }
 
-init : BuildPlan -> Root
-init plan =
+init : BuildResources -> BuildPlan -> Root
+init resources plan =
   case plan.step of
     BuildPlan.Task name ->
       initBottom Task plan.id name
 
     BuildPlan.Get name version ->
-      initBottom (\step -> Get { step | version = version }) plan.id name
+      initBottom (Get << setupGetStep resources name version) plan.id name
 
     BuildPlan.Put name ->
       initBottom Put plan.id name
@@ -99,7 +101,7 @@ init plan =
 
     BuildPlan.Aggregate plans ->
       let
-        inited = Array.map init plans
+        inited = Array.map (init resources) plans
         trees = Array.map .tree inited
         subFoci = Array.map .foci inited
         wrappedSubFoci = Array.indexedMap wrapAgg subFoci
@@ -108,19 +110,39 @@ init plan =
         Root (Aggregate trees) foci
 
     BuildPlan.OnSuccess hookedPlan ->
-      initHookedStep OnSuccess hookedPlan
+      initHookedStep resources OnSuccess hookedPlan
 
     BuildPlan.OnFailure hookedPlan ->
-      initHookedStep OnFailure hookedPlan
+      initHookedStep resources OnFailure hookedPlan
 
     BuildPlan.Ensure hookedPlan ->
-      initHookedStep Ensure hookedPlan
+      initHookedStep resources Ensure hookedPlan
 
     BuildPlan.Try plan ->
-      initWrappedStep Try plan
+      initWrappedStep resources Try plan
 
     BuildPlan.Timeout plan ->
-      initWrappedStep Timeout plan
+      initWrappedStep resources Timeout plan
+
+setupGetStep : BuildResources -> StepName -> Maybe Version -> Step -> Step
+setupGetStep resources name version step =
+  { step
+  | version = version
+  , firstOccurrence = isFirstOccurrence resources.inputs name
+  }
+
+isFirstOccurrence : List BuildResources.BuildInput -> StepName -> Bool
+isFirstOccurrence resources step =
+  case resources of
+    [] ->
+      False
+
+    {name, firstOccurrence} :: rest ->
+      if name == step then
+        firstOccurrence
+      else
+        isFirstOccurrence rest step
+
 
 update : Action -> Root -> Root
 update action root =
@@ -168,26 +190,27 @@ initBottom create id name =
       , expanded = True
       , version = Nothing
       , metadata = []
+      , firstOccurrence = False
       }
   in
     { tree = create step
     , foci = Dict.singleton id (Focus.create identity identity)
     }
 
-initWrappedStep : (StepTree -> StepTree) -> BuildPlan -> Root
-initWrappedStep create plan =
+initWrappedStep : BuildResources -> (StepTree -> StepTree) -> BuildPlan -> Root
+initWrappedStep resources create plan =
   let
-    {tree, foci} = init plan
+    {tree, foci} = init resources plan
   in
     { tree = create tree
     , foci = Dict.map wrapStep foci
     }
 
-initHookedStep : (HookedStep -> StepTree) -> BuildPlan.HookedPlan -> Root
-initHookedStep create hookedPlan =
+initHookedStep : BuildResources -> (HookedStep -> StepTree) -> BuildPlan.HookedPlan -> Root
+initHookedStep resources create hookedPlan =
   let
-    stepRoot = init hookedPlan.step
-    hookRoot = init hookedPlan.hook
+    stepRoot = init resources hookedPlan.step
+    hookRoot = init resources hookedPlan.hook
   in
     { tree = create { step = stepRoot.tree, hook = hookRoot.tree }
     , foci = Dict.union
@@ -352,11 +375,12 @@ isInactive : StepState -> Bool
 isInactive = (==) StepStatePending
 
 viewStep : Signal.Address Action -> Step -> String -> Html
-viewStep actions {id, name, log, state, error, expanded, version, metadata} icon =
+viewStep actions {id, name, log, state, error, expanded, version, metadata, firstOccurrence} icon =
   Html.div
     [ classList
       [ ("build-step", True)
       , ("inactive", isInactive state)
+      , ("first-occurrence", firstOccurrence)
       ]
     ]
     [ Html.div [class "header", onClick actions (ToggleStep id)]
