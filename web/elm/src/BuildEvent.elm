@@ -1,12 +1,13 @@
 module BuildEvent where
 
 import Date exposing (Date)
+import Dict exposing (Dict)
 import Json.Decode as Json exposing ((:=))
 
 type BuildEvent
   = BuildStatus BuildStatus Date
-  | FinishGet Origin Int
-  | FinishPut Origin Int
+  | FinishGet Origin Int Version (List MetadataField)
+  | FinishPut Origin Int Version (List MetadataField)
   | InitializeTask Origin
   | StartTask Origin
   | FinishTask Origin Int
@@ -37,6 +38,17 @@ type BuildStatus
   | BuildStatusFailed
   | BuildStatusErrored
   | BuildStatusAborted
+
+type alias Version =
+  Dict String String
+
+type alias Metadata =
+  List MetadataField
+
+type alias MetadataField =
+  { name : String
+  , value : String
+  }
 
 decode : Json.Decoder BuildEvent
 decode = Json.customDecoder decodeEnvelope decodeEvent
@@ -73,13 +85,31 @@ decodeEvent e =
       Json.decodeValue (Json.object2 FinishTask ("origin" := decodeOrigin) ("exit_status" := Json.int)) e.value
 
     "finish-get" ->
-      Json.decodeValue (Json.object2 FinishGet ("origin" := decodeOrigin) ("exit_status" := Json.int)) e.value
+      Json.decodeValue (decodeFinishResource FinishGet) e.value
 
     "finish-put" ->
-      Json.decodeValue (Json.object2 FinishPut ("origin" := decodeOrigin) ("exit_status" := Json.int)) e.value
+      Json.decodeValue (decodeFinishResource FinishPut) e.value
 
     unknown ->
       Err ("unknown event type: " ++ unknown)
+
+decodeFinishResource cons =
+  Json.object4 cons
+    ("origin" := decodeOrigin)
+    ("exit_status" := Json.int)
+    ("version" := decodeVersion)
+    ("metadata" := decodeMetadata)
+
+decodeVersion =
+  Json.dict Json.string
+
+decodeMetadata =
+  Json.list decodeMetadataField
+
+decodeMetadataField =
+  Json.object2 MetadataField
+    ("name" := Json.string)
+    ("value" := Json.string)
 
 decodeErrorEvent : Json.Decoder BuildEvent
 decodeErrorEvent =

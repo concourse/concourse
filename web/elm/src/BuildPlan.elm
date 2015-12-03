@@ -12,7 +12,8 @@ type alias BuildPlan =
 
 type alias StepName = String
 
-type alias Version = Dict String String
+type alias Version =
+  Dict String String
 
 type BuildStep
   = Task StepName
