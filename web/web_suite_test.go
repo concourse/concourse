@@ -33,8 +33,11 @@ var _ = BeforeSuite(func() {
 
 	client = concourse.NewClient(conn)
 
-	SetDefaultEventuallyTimeout(10 * time.Second)
-	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
+	// observed jobs taking ~1m30s, so set the timeout pretty high
+	SetDefaultEventuallyTimeout(5 * time.Minute)
+
+	// poll less frequently
+	SetDefaultEventuallyPollingInterval(time.Second)
 
 	agoutiDriver = agouti.PhantomJS()
 	Expect(agoutiDriver.Start()).To(Succeed())
