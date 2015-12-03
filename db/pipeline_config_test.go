@@ -13,14 +13,13 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-var _ = Describe("SQL DB", func() {
+var _ = Describe("Interacting with pipeline configs in the database", func() {
 	var dbConn *sql.DB
 	var listener *pq.Listener
 
 	var sqlDB *db.SQLDB
 	var pipelineDB db.PipelineDB
 	var pipelineDBFactory db.PipelineDBFactory
-	var dbSharedBehaviorInput = dbSharedBehaviorInput{}
 
 	BeforeEach(func() {
 		var err error
@@ -40,9 +39,6 @@ var _ = Describe("SQL DB", func() {
 
 		pipelineDB, err = pipelineDBFactory.BuildWithName("some-pipeline")
 		Expect(err).NotTo(HaveOccurred())
-
-		dbSharedBehaviorInput.DB = sqlDB
-		dbSharedBehaviorInput.PipelineDB = pipelineDB
 	})
 
 	AfterEach(func() {
@@ -52,10 +48,6 @@ var _ = Describe("SQL DB", func() {
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
 	})
-
-	Describe("is a DB", dbSharedBehavior(&dbSharedBehaviorInput))
-	Describe("has a job service", jobService(&dbSharedBehaviorInput))
-	Describe("Can schedule builds with serial groups", serialGroupsBehavior(&dbSharedBehaviorInput))
 
 	Describe("config", func() {
 		config := atc.Config{
