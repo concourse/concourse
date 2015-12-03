@@ -51,7 +51,7 @@ type alias Step =
   , state : StepState
   , log : Ansi.Log.Model
   , error : Maybe String
-  , expanded : Bool
+  , expanded : Maybe Bool
   , version : Maybe Version
   , metadata : List MetadataField
   , firstOccurrence : Bool
@@ -148,7 +148,7 @@ update : Action -> Root -> Root
 update action root =
   case action of
     ToggleStep id ->
-      updateAt id (map (\step -> { step | expanded = not step.expanded })) root
+      updateAt id (map (\step -> { step | expanded = Just <| not <| Maybe.withDefault True step.expanded })) root
 
 updateAt : StepID -> (StepTree -> StepTree) -> Root -> Root
 updateAt id update root =
@@ -187,7 +187,7 @@ initBottom create id name =
       , state = StepStatePending
       , log = Ansi.Log.init Ansi.Log.Cooked
       , error = Nothing
-      , expanded = True
+      , expanded = Nothing
       , version = Nothing
       , metadata = []
       , firstOccurrence = False
@@ -371,15 +371,15 @@ viewHooked name actions step hook =
         ]
     ]
 
-isInactive : StepState -> Bool
-isInactive = (==) StepStatePending
+isActive : StepState -> Bool
+isActive = (/=) StepStatePending
 
 viewStep : Signal.Address Action -> Step -> String -> Html
 viewStep actions {id, name, log, state, error, expanded, version, metadata, firstOccurrence} icon =
   Html.div
     [ classList
       [ ("build-step", True)
-      , ("inactive", isInactive state)
+      , ("inactive", not <| isActive state)
       , ("first-occurrence", firstOccurrence)
       ]
     ]
@@ -394,7 +394,7 @@ viewStep actions {id, name, log, state, error, expanded, version, metadata, firs
     , Html.div
         [ classList
             [ ("step-body", True)
-            , ("step-collapsed", isInactive state || not expanded)
+            , ("step-collapsed", not <| Maybe.withDefault (isActive state) expanded)
             ]
         ]
         [ Html.dl [class "build-metadata fr"]
