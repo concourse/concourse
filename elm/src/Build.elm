@@ -2,12 +2,13 @@ module Build where
 
 import Ansi.Log
 import Date exposing (Date)
+import Date.Format
 import Debug
 import Effects exposing (Effects)
 import EventSource exposing (EventSource)
 import Html exposing (Html)
 import Html.Events exposing (onClick, on)
-import Html.Attributes exposing (action, class, classList, href, id, method)
+import Html.Attributes exposing (action, class, classList, href, id, method, title)
 import Http
 import Json.Decode exposing ((:=))
 import Task
@@ -549,23 +550,38 @@ viewBuildHeader actions build status now duration history =
 viewBuildDuration : Time.Time -> BuildDuration -> Html
 viewBuildDuration now duration =
   Html.dl [class "build-times"] <|
-    case (Maybe.map Date.toTime duration.startedAt, Maybe.map Date.toTime duration.finishedAt) of
+    case (duration.startedAt, duration.finishedAt) of
       (Nothing, _) ->
         []
 
       (Just startedAt, Nothing) ->
-        labeledDuration "started" (Duration.between startedAt now) " ago"
+        labeledRelativeDate "started" now startedAt
 
       (Just startedAt, Just finishedAt) ->
-        labeledDuration "started" (Duration.between startedAt now) " ago" ++
-          labeledDuration "finished" (Duration.between finishedAt now) " ago" ++
-          labeledDuration "duration" (Duration.between startedAt finishedAt) ""
+        labeledRelativeDate "started" now startedAt ++
+          labeledRelativeDate "finished" now finishedAt ++
+          labeledDuration "duration" (Duration.between (Date.toTime startedAt) (Date.toTime finishedAt))
 
-labeledDuration : String -> Duration -> String -> List Html
-labeledDuration label duration suffix =
+durationTitle : Date -> List Html -> Html
+durationTitle date content =
+  Html.div [title (Date.Format.format "%b" date)] content
+
+labeledRelativeDate : String -> Time -> Date -> List Html
+labeledRelativeDate label now date =
+  let
+    ago = Duration.between (Date.toTime date) now
+  in
+    [ Html.dt [] [Html.text label]
+    , Html.dd [title (Date.Format.format "%b %d %Y %I:%M:%S %p" date)]
+      [ Html.span [] [Html.text (Duration.format ago ++ " ago")]
+      ]
+    ]
+
+labeledDuration : String -> Duration ->  List Html
+labeledDuration label duration =
   [ Html.dt [] [Html.text label]
   , Html.dd []
-    [ Html.span [] [Html.text (Duration.format duration ++ suffix)]
+    [ Html.span [] [Html.text (Duration.format duration)]
     ]
   ]
 
