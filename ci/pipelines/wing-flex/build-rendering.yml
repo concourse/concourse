@@ -31,6 +31,15 @@ jobs:
   plan:
   - get: timestamp
 
+- name: delayed-get
+  plan:
+  - task: sleep
+    config:
+      platform: linux
+      image: docker:///busybox
+      run: {path: sh, args: ['-xc', 'sleep 1; sleep 1; sleep 1']}
+  - get: timestamp
+
 - name: putgets
   plan:
   - aggregate:
