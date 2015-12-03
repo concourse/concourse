@@ -394,7 +394,7 @@ view actions model =
         , Html.div (id "build-body" :: paddingClass build)
             [ case model.stepState of
                 StepsLoading ->
-                  Html.text "loading..."
+                  loadingIndicator
 
                 StepsLiveUpdating ->
                   viewSteps actions model.errors build root
@@ -415,7 +415,16 @@ view actions model =
         ]
 
     _ ->
-      Html.text "loading..."
+      loadingIndicator
+
+loadingIndicator : Html
+loadingIndicator =
+  Html.div [class "build-step"]
+    [ Html.div [class "header"]
+        [ Html.i [class "left fa fa-fw fa-spin fa-circle-o-notch"] []
+        , Html.h3 [] [Html.text "loading"]
+        ]
+    ]
 
 viewSteps : Signal.Address Action -> Maybe Ansi.Log.Model -> Build -> StepTree.Root -> Html
 viewSteps actions errors build root =
