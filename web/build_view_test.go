@@ -76,17 +76,17 @@ var _ = Describe("Viewing builds", func() {
 		BeforeEach(func() {
 			var err error
 
-			build, err = client.CreateBuild(atc.Plan{
-				Task: &atc.TaskPlan{
-					Name: "some-task",
-					Config: &atc.TaskConfig{
-						Run: atc.TaskRunConfig{
-							Path: "sh",
-							Args: []string{"-c", "echo hello from one-off"},
-						},
+			pf := atc.NewPlanFactory(0)
+
+			build, err = client.CreateBuild(pf.NewPlan(atc.TaskPlan{
+				Name: "some-task",
+				Config: &atc.TaskConfig{
+					Run: atc.TaskRunConfig{
+						Path: "sh",
+						Args: []string{"-c", "echo hello from one-off"},
 					},
 				},
-			})
+			}))
 			Expect(err).NotTo(HaveOccurred())
 		})
 
