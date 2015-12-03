@@ -227,23 +227,31 @@ update action model =
       ({ model | eventSource = Just es }, Effects.none)
 
     EventSourceOpened ->
-      -- TODO figure this one out
       (model, scrollToBottom)
 
     EventSourceErrored ->
       let
         newState =
           case model.stepState of
+            -- if we're loading and the event source errors, assume we're not
+            -- logged in (there's no way to actually tell)
+            StepsLoading ->
+              LoginRequired
+
             -- closing the event source causes an error to come in, so ignore
             -- it since that means everything actually worked
             StepsComplete ->
-              StepsComplete
+              model.stepState
 
-            -- getting an error immediately could either be a) server blew up
-            -- or b) server says we're unauthorized. there's no way to tell the
-            -- difference, so just assume they're not authorized.
-            other ->
-              LoginRequired
+            -- getting an error in the middle could just be the ATC going away
+            -- (i.e. during a deploy). ignore it and let the browser
+            -- auto-reconnect
+            StepsLiveUpdating ->
+              model.stepState
+
+            -- shouldn't ever happen, but...
+            LoginRequired ->
+              model.stepState
       in
         ({ model | stepState = newState }, Effects.none)
 
