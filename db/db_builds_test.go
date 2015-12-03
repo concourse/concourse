@@ -128,6 +128,17 @@ var _ = Describe("Keeping track of builds", func() {
 		Expect(actualBuildOutput[0]).To(Equal(expectedBuildOutput))
 	})
 
+	It("can get (no) resources from a one-off build", func() {
+		oneOff, err := database.CreateOneOffBuild()
+		Expect(err).NotTo(HaveOccurred())
+
+		inputs, outputs, err := database.GetBuildResources(oneOff.ID)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(inputs).To(BeEmpty())
+		Expect(outputs).To(BeEmpty())
+	})
+
 	It("can create one-off builds with increasing names", func() {
 		oneOff, err := database.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())

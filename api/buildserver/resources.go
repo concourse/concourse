@@ -61,6 +61,6 @@ func (s *Server) getMeAllTheThings(buildID int) ([]db.BuildInput, []db.BuildOutp
 		return []db.BuildInput{}, []db.BuildOutput{}, false, nil
 	}
 
-	input, output, err := s.db.GetBuildResources(buildID)
-	return input, output, found, err
+	inputs, outputs, err := s.db.GetBuildResources(buildID)
+	return inputs, outputs, found, err
 }

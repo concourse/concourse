@@ -685,7 +685,7 @@ func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 	defer rows.Close()
 
 	pipelineName, err := db.getPipelineName(buildID)
-	if err != nil {
+	if err != sql.ErrNoRows && err != nil {
 		return nil, nil, err
 	}
 
