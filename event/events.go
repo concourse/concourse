@@ -92,7 +92,7 @@ func (Log) EventType() atc.EventType  { return EventTypeLog }
 func (Log) Version() atc.EventVersion { return "5.0" }
 
 type Origin struct {
-	ID     OriginID     `json:"id"`
+	ID     OriginID     `json:"id,omitempty"`
 	Source OriginSource `json:"source,omitempty"`
 }
 
