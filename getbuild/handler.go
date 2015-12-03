@@ -144,7 +144,7 @@ func NewHandler(
 				Inputs:       buildInputsOutputs.Inputs,
 			}
 
-			err = oldBuildTemplate.Execute(w, templateData)
+			err = oldBuildTemplate.Execute(w, oldBuildTemplateData)
 			if err != nil {
 				log.Fatal("failed-to-build-template", err, lager.Data{
 					"template-data": oldBuildTemplateData,
