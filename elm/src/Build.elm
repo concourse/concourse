@@ -156,10 +156,18 @@ update action model =
                 fetchBuild Time.second model.buildId
               else
                 fetchBuildPlan model.buildId
+
+            fetchHistory =
+              case (model.build, build.job) of
+                (Nothing, Just job) ->
+                  fetchBuildHistory job Nothing
+
+                _ ->
+                  Effects.none
           in
             case build.job of
               Just job ->
-                Effects.batch [fetchBuildHistory job Nothing, fetch]
+                Effects.batch [fetchHistory, fetch]
 
               _ ->
                 fetch
