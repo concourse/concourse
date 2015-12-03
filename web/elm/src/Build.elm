@@ -23,7 +23,8 @@ import Pagination exposing (Pagination)
 import Duration exposing (Duration)
 
 type alias Model =
-  { actions : Signal.Address Action
+  { redirect : Signal.Address String
+  , actions : Signal.Address Action
   , buildId : Int
   , errors : Maybe Ansi.Log.Model
   , stepRoot : Maybe StepTree.Root
@@ -78,17 +79,19 @@ type Action
   | StepTreeAction StepTree.Action
   | ClockTick Time.Time
   | AbortBuild
+  | BuildAborted (Result Http.RawError Http.Response)
 
 type alias BuildHistory =
   { builds : List Build
   , pagination : Pagination
   }
 
-init : Signal.Address Action -> Int -> (Model, Effects Action)
-init actions buildId =
+init : Signal.Address String -> Signal.Address Action -> Int -> (Model, Effects Action)
+init redirect actions buildId =
   let
     model =
-      { actions = actions
+      { redirect = redirect
+      , actions = actions
       , buildId = buildId
       , errors = Nothing
       , stepRoot = Nothing
@@ -129,6 +132,18 @@ update action model =
 
     AbortBuild ->
       (model, abortBuild model.buildId)
+
+    BuildAborted (Err err) ->
+      Debug.log ("failed to abort build: " ++ toString err) <|
+        (model, Effects.none)
+
+    BuildAborted (Ok {status}) ->
+      case status of
+        401 ->
+          (model, redirectToLogin model)
+
+        _ ->
+          (model, Effects.none)
 
     BuildFetched (Err err) ->
       Debug.log ("failed to fetch build: " ++ toString err) <|
@@ -336,8 +351,8 @@ abortBuild buildId =
     , url = "/api/v1/builds/" ++ toString buildId ++ "/abort"
     , body = Http.empty
     }
-    |> Task.toMaybe
-    |> Task.map (always Noop)
+    |> Task.toResult
+    |> Task.map BuildAborted
     |> Effects.task
 
 keepScrolling : Effects Action
@@ -774,3 +789,9 @@ buildUrl build =
 
     Just {name, pipelineName} ->
       "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name ++ "/builds/" ++ build.name
+
+redirectToLogin : Model -> Effects Action
+redirectToLogin model =
+  Signal.send model.redirect "/login"
+    |> Task.map (always Noop)
+    |> Effects.task

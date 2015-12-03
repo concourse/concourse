@@ -18,7 +18,7 @@ app =
       Signal.mailbox Build.Noop
   in
     StartApp.start
-      { init = Build.init pageDrivenActions.address buildId
+      { init = Build.init redirects.address pageDrivenActions.address buildId
       , update = Build.update
       , view = Build.view
       , inputs =
@@ -33,6 +33,13 @@ app =
 main : Signal Html
 main =
   app.html
+
+redirects : Signal.Mailbox String
+redirects = Signal.mailbox ""
+
+port redirect : Signal String
+port redirect =
+  redirects.signal
 
 port tasks : Signal (Task Effects.Never ())
 port tasks =
