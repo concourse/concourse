@@ -3,6 +3,7 @@ groups: []
 resources:
 - name: timestamp
   type: time
+  source: {interval: 24h}
 
 jobs:
 - name: do-in-agg
@@ -25,6 +26,10 @@ jobs:
     ensure:
       task: agg-ensure
       config: *sleep-1
+
+- name: basic-get
+  plan:
+  - get: timestamp
 
 - name: putgets
   plan:
