@@ -1,4 +1,4 @@
-module Scroll (toBottom, fromBottom, scroll) where
+module Scroll (toBottom, fromBottom, scroll, scrollIntoView) where
 
 import Task exposing (Task)
 
@@ -15,3 +15,7 @@ fromBottom =
 scroll : String -> Float -> Task x ()
 scroll =
   Native.Scroll.scroll
+
+scrollIntoView : String -> Task x ()
+scrollIntoView =
+  Native.Scroll.scrollIntoView

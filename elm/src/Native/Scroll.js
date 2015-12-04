@@ -36,10 +36,18 @@ Elm.Native.Scroll.make = function(localRuntime) {
     });
   }
 
+  function scrollIntoView(selector) {
+    return Task.asyncFunction(function(callback) {
+      document.querySelector(selector).scrollIntoView();
+      callback(Task.succeed(Utils.Tuple0));
+    });
+  }
+
   localRuntime.Native.Scroll.values = {
     toBottom: toBottom,
     fromBottom: fromBottom,
     scroll: F2(scrollElement),
+    scrollIntoView: scrollIntoView,
   };
 
   return localRuntime.Native.Scroll.values;
