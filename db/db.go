@@ -31,6 +31,7 @@ type DB interface {
 	GetBuild(buildID int) (Build, bool, error)
 	GetBuildInputVersionedResouces(buildID int) (SavedVersionedResources, error)
 	GetBuildOutputVersionedResouces(buildID int) (SavedVersionedResources, error)
+	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 	GetAllBuilds() ([]Build, error)
 	GetAllStartedBuilds() ([]Build, error)
 
