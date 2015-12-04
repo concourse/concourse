@@ -11,6 +11,7 @@ type Pipeline struct {
 type SavedPipeline struct {
 	ID     int
 	Paused bool
+	TeamID int
 
 	Pipeline
 }

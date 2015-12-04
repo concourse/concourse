@@ -144,6 +144,15 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 			Expect(created).To(BeTrue())
 		})
 
+		It("caches the team id", func() {
+			_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipeline, err := database.GetPipelineByTeamNameAndName(team.Name, pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pipeline.TeamID).To(Equal(team.ID))
+		})
+
 		It("can be saved as paused", func() {
 			_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelinePaused)
 			Expect(err).NotTo(HaveOccurred())
@@ -332,7 +341,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 
 		Expect(pipelines).To(Equal([]db.SavedPipeline{
 			{
-				ID: 5,
+				ID:     5,
+				TeamID: team.ID,
 				Pipeline: db.Pipeline{
 					Name:    "pipeline-4",
 					Config:  config,
@@ -340,7 +350,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 				},
 			},
 			{
-				ID: 4,
+				ID:     4,
+				TeamID: team.ID,
 				Pipeline: db.Pipeline{
 					Name:    "pipeline-3",
 					Config:  config,
@@ -348,7 +359,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 				},
 			},
 			{
-				ID: 6,
+				ID:     6,
+				TeamID: team.ID,
 				Pipeline: db.Pipeline{
 					Name:    "pipeline-5",
 					Config:  config,
@@ -356,7 +368,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 				},
 			},
 			{
-				ID: 2,
+				ID:     2,
+				TeamID: team.ID,
 				Pipeline: db.Pipeline{
 					Name:    "pipeline-1",
 					Config:  config,
@@ -364,7 +377,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 				},
 			},
 			{
-				ID: 3,
+				ID:     3,
+				TeamID: team.ID,
 				Pipeline: db.Pipeline{
 					Name:    "pipeline-2",
 					Config:  config,
@@ -373,7 +387,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 			},
 
 			{
-				ID: 1,
+				ID:     1,
+				TeamID: team.ID,
 				Pipeline: db.Pipeline{
 					Name:    "some-pipeline",
 					Version: db.ConfigVersion(1),
@@ -381,7 +396,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 			},
 
 			{
-				ID: 7,
+				ID:     7,
+				TeamID: team.ID,
 				Pipeline: db.Pipeline{
 					Name:    "pipeline-6",
 					Config:  config,
@@ -416,14 +432,16 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 
 		Expect(pipelines).To(Equal([]db.SavedPipeline{
 			{
-				ID: 1,
+				ID:     1,
+				TeamID: team.ID,
 				Pipeline: db.Pipeline{
 					Name:    "some-pipeline",
 					Version: db.ConfigVersion(1),
 				},
 			},
 			{
-				ID: 2,
+				ID:     2,
+				TeamID: team.ID,
 				Pipeline: db.Pipeline{
 					Name:    pipelineName,
 					Config:  config,
@@ -431,7 +449,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 				},
 			},
 			{
-				ID: 3,
+				ID:     3,
+				TeamID: team.ID,
 				Pipeline: db.Pipeline{
 					Name:    otherPipelineName,
 					Config:  otherConfig,
