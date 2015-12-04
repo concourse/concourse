@@ -112,98 +112,27 @@ func (pdb *pipelineDB) Pause() error {
 	return err
 }
 
-func (pdb *pipelineDB) Destroy() error {
-	tx, err := pdb.conn.Begin()
-	if err != nil {
-		return err
-	}
+func scanIDs(rows *sql.Rows) ([]string, error) {
+	defer rows.Close()
 
-	defer tx.Rollback()
-
-	queries := []string{
-		`
-			DELETE FROM build_events
-			WHERE build_id IN (
-				SELECT id
-				FROM builds
-				WHERE job_id IN (
-					SELECT id
-					FROM jobs
-					WHERE pipeline_id = $1
-				)
-			)
-		`,
-		`
-			DELETE FROM build_outputs
-			WHERE build_id IN (
-				SELECT id
-				FROM builds
-				WHERE job_id IN (
-					SELECT id
-					FROM jobs
-					WHERE pipeline_id = $1
-				)
-			)
-		`,
-		`
-			DELETE FROM build_inputs
-			WHERE build_id IN (
-				SELECT id
-				FROM builds
-				WHERE job_id IN (
-					SELECT id
-					FROM jobs
-					WHERE pipeline_id = $1
-				)
-			)
-		`,
-		`
-			DELETE FROM jobs_serial_groups
-			WHERE job_id IN (
-				SELECT id
-				FROM jobs
-				WHERE pipeline_id = $1
-			)
-		`,
-		`
-			DELETE FROM builds
-			WHERE job_id IN (
-				SELECT id
-				FROM jobs
-				WHERE pipeline_id = $1
-			)
-		`,
-		`
-			DELETE FROM jobs
-			WHERE pipeline_id = $1
-		`,
-		`
-			DELETE FROM versioned_resources
-			WHERE resource_id IN (
-				SELECT id
-				FROM resources
-				WHERE pipeline_id = $1
-			)
-		`,
-		`
-			DELETE FROM resources
-			WHERE pipeline_id = $1
-		`,
-		`
-			DELETE FROM pipelines
-			WHERE id = $1;
-		`,
-	}
-
-	for _, query := range queries {
-		_, err = tx.Exec(query, pdb.ID)
-
+	ids := []string{}
+	for rows.Next() {
+		var id string
+		err := rows.Scan(&id)
 		if err != nil {
-			return err
+			return nil, err
 		}
+		ids = append(ids, id)
 	}
 
-	return tx.Commit()
+	return ids, nil
+}
+
+func (pdb *pipelineDB) Destroy() error {
+	_, err := pdb.conn.Query(`
+		delete from pipelines where id = $1
+	`, pdb.ID)
+	return err
 }
 
 func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, bool, error) {

@@ -65,4 +65,5 @@ var Migrations = []migration.Migrator{
 	AddModifiedTimeToVersionedResourcesAndBuildOutputs,
 	ReplaceStepLocationWithPlanID, //even though this is 56, it's meant to be here
 	AddTeamsColumnToPipelinesAndTeamsTable,
+	CascadePipelineDeletes,
 }

@@ -166,6 +166,7 @@ var _ = Describe("PipelineDB", func() {
 
 	Describe("destroying a pipeline", func() {
 		It("can be deleted", func() {
+			// populate pipelines table
 			_, err := sqlDB.SaveConfig(team.Name, "a-pipeline-that-will-be-deleted", pipelineConfig, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -174,8 +175,9 @@ var _ = Describe("PipelineDB", func() {
 
 			fetchedPipelineDB := pipelineDBFactory.Build(fetchedPipeline)
 
-			// resource tree
-			_, err = fetchedPipelineDB.GetResource("some-resource")
+			// populate resources table and versioned_resources table
+
+			savedResource, err := fetchedPipelineDB.GetResource("some-resource")
 			Expect(err).NotTo(HaveOccurred())
 
 			resourceConfig, found := pipelineConfig.Resources.Lookup("some-resource")
@@ -187,20 +189,38 @@ var _ = Describe("PipelineDB", func() {
 				},
 			})
 
-			// job tree
-			_, err = fetchedPipelineDB.GetJob("some-job")
-			Expect(err).NotTo(HaveOccurred())
+			// populate builds table
 
 			build, err := fetchedPipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
+			oneOffBuild, err := sqlDB.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			// populate jobs_serial_groups table
 			_, err = fetchedPipelineDB.GetRunningBuildsBySerialGroup("some-job", []string{"serial-group"})
 			Expect(err).NotTo(HaveOccurred())
+
+			// populate build_inputs table
 
 			_, err = fetchedPipelineDB.SaveBuildInput(build.ID, db.BuildInput{
 				Name: "build-input",
 			})
 			Expect(err).NotTo(HaveOccurred())
+
+			// In very old concourse deployments, build inputs and outputs seem to
+			// have been created for one-off builds. This test makes sure they get
+			// deleted. See story #109558152
+			_, err = fetchedPipelineDB.SaveBuildInput(oneOffBuild.ID, db.BuildInput{
+				Name: "one-off-build-input",
+				VersionedResource: db.VersionedResource{
+					Resource:     "some-resource",
+					PipelineName: "a-pipeline-that-will-be-deleted",
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			// populate build_outputs table
 
 			_, err = fetchedPipelineDB.SaveBuildOutput(build.ID, db.VersionedResource{
 				Resource:     "some-resource",
@@ -208,6 +228,13 @@ var _ = Describe("PipelineDB", func() {
 			}, false)
 			Expect(err).NotTo(HaveOccurred())
 
+			_, err = fetchedPipelineDB.SaveBuildOutput(oneOffBuild.ID, db.VersionedResource{
+				Resource:     "some-resource",
+				PipelineName: "a-pipeline-that-will-be-deleted",
+			}, false)
+			Expect(err).NotTo(HaveOccurred())
+
+			// populate build_events table
 			err = sqlDB.SaveBuildEvent(build.ID, event.StartTask{})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -216,12 +243,47 @@ var _ = Describe("PipelineDB", func() {
 
 			pipelines, err := sqlDB.GetAllActivePipelines()
 			Expect(err).NotTo(HaveOccurred())
-
 			Expect(pipelines).NotTo(ContainElement(fetchedPipeline))
 
 			_, _, found, err = fetchedPipelineDB.GetConfig()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
+
+			resourceRows, err := dbConn.Query(`select id from resources where pipeline_id = $1`, fetchedPipeline.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resourceRows.Next()).To(BeFalse())
+
+			versionRows, err := dbConn.Query(`select id from versioned_resources where resource_id = $1`, savedResource.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(versionRows.Next()).To(BeFalse())
+
+			buildRows, err := dbConn.Query(`select id from builds where id = $1`, build.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(buildRows.Next()).To(BeFalse())
+
+			jobRows, err := dbConn.Query(`select id from jobs where pipeline_id = $1`, fetchedPipeline.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(jobRows.Next()).To(BeFalse())
+
+			eventRows, err := dbConn.Query(`select build_id from build_events where build_id = $1`, build.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(eventRows.Next()).To(BeFalse())
+
+			inputRows, err := dbConn.Query(`select build_id from build_inputs where build_id = $1`, build.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(inputRows.Next()).To(BeFalse())
+
+			oneOffInputRows, err := dbConn.Query(`select build_id from build_inputs where build_id = $1`, oneOffBuild.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(oneOffInputRows.Next()).To(BeFalse())
+
+			outputRows, err := dbConn.Query(`select build_id from build_outputs where build_id = $1`, build.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(outputRows.Next()).To(BeFalse())
+
+			oneOffOutputRows, err := dbConn.Query(`select build_id from build_outputs where build_id = $1`, oneOffBuild.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(oneOffOutputRows.Next()).To(BeFalse())
 		})
 	})
 
