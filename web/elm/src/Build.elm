@@ -80,6 +80,7 @@ type Action
   | ClockTick Time.Time
   | AbortBuild
   | BuildAborted (Result Http.RawError Http.Response)
+  | Deferred (Effects Action)
 
 type alias BuildHistory =
   { builds : List Build
@@ -214,16 +215,25 @@ update action model =
       let
         builds = List.append (Maybe.withDefault [] model.history) history.builds
         withBuilds = { model | history = Just builds }
+        loadedCurrentBuild = List.any ((==) model.buildId << .id) history.builds
+        scrollToCurrent =
+          if loadedCurrentBuild then
+            Effects.tick (always (Deferred scrollToCurrentBuildInHistory))
+          else
+            Effects.none
       in
         case (history.pagination.nextPage, model.build `Maybe.andThen` .job) of
           (Nothing, _) ->
-            (withBuilds, Effects.none)
+            (withBuilds, scrollToCurrent)
 
           (Just url, Just job) ->
-            (withBuilds, fetchBuildHistory job (Just url))
+            (withBuilds, Effects.batch [fetchBuildHistory job (Just url), scrollToCurrent])
 
           (Just url, Nothing) ->
             Debug.crash "impossible"
+
+    Deferred effects ->
+      (model, effects)
 
     Listening es ->
       ({ model | eventSource = Just es }, Effects.none)
@@ -825,5 +835,11 @@ buildUrl build =
 redirectToLogin : Model -> Effects Action
 redirectToLogin model =
   Signal.send model.redirect "/login"
+    |> Task.map (always Noop)
+    |> Effects.task
+
+scrollToCurrentBuildInHistory : Effects Action
+scrollToCurrentBuildInHistory =
+  Scroll.scrollIntoView "#builds .current"
     |> Task.map (always Noop)
     |> Effects.task
