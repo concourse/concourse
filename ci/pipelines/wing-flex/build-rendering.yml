@@ -31,6 +31,23 @@ jobs:
   plan:
   - get: timestamp
 
+- name: vertical-output
+  plan:
+  - task: numbers
+    timeout: 10m
+    config:
+      platform: linux
+      run: {path: sh, args: [-c, 'i=0; while sleep 1; do i=$(expr $i + 1); echo $i; done']}
+
+- name: horizontal-output
+  plan:
+  - task: moar-dots
+    timeout: 10m
+    config:
+      platform: linux
+      image: docker:///busybox
+      run: {path: sh, args: [-c, 'while sleep 0.05; do echo -n .; done']}
+
 - name: delayed-get
   plan:
   - task: sleep
