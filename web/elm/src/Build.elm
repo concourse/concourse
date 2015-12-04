@@ -106,12 +106,7 @@ init redirect actions buildId =
       , duration = BuildDuration Nothing Nothing
       }
   in
-    ( model
-    , Effects.batch
-        [ keepScrolling
-        , fetchBuild 0 buildId
-        ]
-    )
+    (model, fetchBuild 0 buildId)
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
@@ -121,13 +116,13 @@ update action model =
 
     ScrollTick ->
       if model.stepState == StepsLiveUpdating && model.autoScroll then
-        (model, Effects.batch [keepScrolling, scrollToBottom])
+        (model, scrollToBottom)
       else
         (model, Effects.none)
 
     ScrollFromBottom fb ->
       if fb == 0 then
-        ({ model | autoScroll = True }, Effects.tick (always ScrollTick))
+        ({ model | autoScroll = True }, Effects.none)
       else
         ({ model | autoScroll = False }, Effects.none)
 
@@ -269,7 +264,7 @@ update action model =
 
     Event (Ok (BuildEvent.Log origin output)) ->
       ( updateStep origin.id (setRunning << appendStepLog output) model
-      , Effects.none
+      , Effects.tick (always ScrollTick)
       )
 
     Event (Ok (BuildEvent.Error origin message)) ->
@@ -374,9 +369,6 @@ abortBuild buildId =
     |> Task.toResult
     |> Task.map BuildAborted
     |> Effects.task
-
-keepScrolling : Effects Action
-keepScrolling = Effects.tick (always ScrollTick)
 
 updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Model -> Model
 updateStep id update model =

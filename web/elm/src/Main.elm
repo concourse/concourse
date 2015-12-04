@@ -11,6 +11,10 @@ import Scroll
 
 port buildId : Int
 
+main : Signal Html
+main =
+  app.html
+
 app : StartApp.App Build.Model
 app =
   let
@@ -29,10 +33,6 @@ app =
           [ Signal.map Build.ClockTick (Time.every Time.second)
           ]
       }
-
-main : Signal Html
-main =
-  app.html
 
 redirects : Signal.Mailbox String
 redirects = Signal.mailbox ""
