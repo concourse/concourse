@@ -363,7 +363,7 @@ updateStartFinishAt status date model =
       _ ->
         { model | duration = { duration | finishedAt = Just date } }
 
-abortBuild : Int -> Effects.Effects Action
+abortBuild : Int -> Effects Action
 abortBuild buildId =
   Http.send Http.defaultSettings
     { verb = "POST"
@@ -668,7 +668,7 @@ renderHistory currentBuild currentStatus build =
     ]
     [ Html.a [href build.url] [ Html.text ("#" ++ build.name) ] ]
 
-fetchBuildPlanAndResources : Int -> Effects.Effects Action
+fetchBuildPlanAndResources : Int -> Effects Action
 fetchBuildPlanAndResources buildId =
   let
     getPlan =
@@ -681,7 +681,7 @@ fetchBuildPlanAndResources buildId =
       |> Task.map PlanAndResourcesFetched
       |> Effects.task
 
-fetchBuildPlan : Int -> Effects.Effects Action
+fetchBuildPlan : Int -> Effects Action
 fetchBuildPlan buildId =
   let
     getPlan =
@@ -692,7 +692,7 @@ fetchBuildPlan buildId =
       |> Task.map PlanAndResourcesFetched
       |> Effects.task
 
-fetchBuild : Time -> Int -> Effects.Effects Action
+fetchBuild : Time -> Int -> Effects Action
 fetchBuild delay buildId =
   let
     fetch =
@@ -702,7 +702,7 @@ fetchBuild delay buildId =
   in
     Effects.task (Task.sleep delay `Task.andThen` \_ -> fetch)
 
-fetchBuildHistory : Job -> Maybe String -> Effects.Effects Action
+fetchBuildHistory : Job -> Maybe String -> Effects Action
 fetchBuildHistory job specificPage =
   let
     firstPage = "/api/v1/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.name ++ "/builds"
@@ -768,7 +768,7 @@ decodeBuilds : Json.Decode.Decoder (List Build)
 decodeBuilds =
   Json.Decode.list decode
 
-subscribeToEvents : Int -> Signal.Address Action -> Effects.Effects Action
+subscribeToEvents : Int -> Signal.Address Action -> Effects Action
 subscribeToEvents build actions =
   let
     settings =
@@ -791,7 +791,7 @@ subscribeToEvents build actions =
       |> Task.map Listening
       |> Effects.task
 
-closeEvents : EventSource.EventSource -> Effects.Effects Action
+closeEvents : EventSource.EventSource -> Effects Action
 closeEvents eventSource =
   EventSource.close eventSource
     |> Task.map (always EventSourceClosed)
@@ -800,13 +800,13 @@ closeEvents eventSource =
 parseEvent : EventSource.Event -> Result String BuildEvent
 parseEvent e = Json.Decode.decodeString BuildEvent.decode e.data
 
-scrollToBottom : Effects.Effects Action
+scrollToBottom : Effects Action
 scrollToBottom =
   Scroll.toBottom
     |> Task.map (always Noop)
     |> Effects.task
 
-scrollBuilds : Float -> Effects.Effects Action
+scrollBuilds : Float -> Effects Action
 scrollBuilds delta =
   Scroll.scroll "builds" delta
     |> Task.map (always Noop)
