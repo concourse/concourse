@@ -147,7 +147,8 @@ var _ = Describe("Config API", func() {
 				})
 
 				It("calls get config with the correct arguments", func() {
-					name := configDB.GetConfigArgsForCall(0)
+					teamName, name := configDB.GetConfigArgsForCall(0)
+					Expect(teamName).To(Equal(atc.DefaultTeamName))
 					Expect(name).To(Equal("something-else"))
 				})
 			})

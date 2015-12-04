@@ -2,7 +2,6 @@ package migrations
 
 import "github.com/BurntSushi/migration"
 
-//TODO: think about whether this is idempotent
 func AddTeamsColumnToPipelinesAndTeamsTable(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`
     CREATE TABLE teams (

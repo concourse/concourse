@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 )
 
@@ -17,7 +18,7 @@ func (s *Server) GetPipeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config, _, err := s.configDB.GetConfig(pipelineName)
+	config, _, err := s.configDB.GetConfig(atc.DefaultTeamName, pipelineName)
 	if err != nil {
 		s.logger.Error("call-to-get-pipeline-config-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)

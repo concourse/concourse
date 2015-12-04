@@ -220,6 +220,19 @@ func (db *SQLDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
 	return scanPipeline(row)
 }
 
+func (db *SQLDB) GetPipelineByTeamNameAndName(teamName string, pipelineName string) (SavedPipeline, error) {
+	row := db.conn.QueryRow(`
+		SELECT id, name, config, version, paused
+		FROM pipelines
+		WHERE name = $1
+		AND team_id = (
+				SELECT id FROM teams WHERE name = $2
+			)
+	`, pipelineName, teamName)
+
+	return scanPipeline(row)
+}
+
 func (db *SQLDB) GetAllActivePipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
 		SELECT id, name, config, version, paused
@@ -318,14 +331,18 @@ func (db *SQLDB) GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, err
 	return config, ConfigVersion(version), nil
 }
 
-func (db *SQLDB) GetConfig(pipelineName string) (atc.Config, ConfigVersion, error) {
+func (db *SQLDB) GetConfig(teamName, pipelineName string) (atc.Config, ConfigVersion, error) {
 	var configBlob []byte
 	var version int
 	err := db.conn.QueryRow(`
 		SELECT config, version
 		FROM pipelines
-		WHERE name = $1
-	`, pipelineName).Scan(&configBlob, &version)
+		WHERE name = $1 AND team_id = (
+			SELECT id
+			FROM teams
+			WHERE name = $2
+		)
+	`, pipelineName, teamName).Scan(&configBlob, &version)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return atc.Config{}, 0, nil
@@ -385,7 +402,10 @@ func (db *SQLDB) SaveConfig(teamName string, pipelineName string, config atc.Con
 		SELECT COUNT(1)
 		FROM pipelines
 		WHERE name = $1
-	`, pipelineName).Scan(&existingConfig)
+		  AND team_id = (
+				SELECT id FROM teams WHERE name = $2
+		  )
+	`, pipelineName, teamName).Scan(&existingConfig)
 	if err != nil {
 		return false, err
 	}
@@ -398,14 +418,20 @@ func (db *SQLDB) SaveConfig(teamName string, pipelineName string, config atc.Con
 				SET config = $1, version = nextval('config_version_seq')
 				WHERE name = $2
 					AND version = $3
-			`, payload, pipelineName, from)
+					AND team_id = (
+						SELECT id FROM teams WHERE name = $4
+					)
+			`, payload, pipelineName, from, teamName)
 	} else {
 		result, err = tx.Exec(`
 				UPDATE pipelines
 				SET config = $1, version = nextval('config_version_seq'), paused = $2
 				WHERE name = $3
 					AND version = $4
-			`, payload, pausedState.Bool(), pipelineName, from)
+					AND team_id = (
+						SELECT id FROM teams WHERE name = $5
+					)
+			`, payload, pausedState.Bool(), pipelineName, from, teamName)
 	}
 
 	if err != nil {

@@ -9,9 +9,10 @@ import (
 )
 
 type FakeConfigDB struct {
-	GetConfigStub        func(pipelineName string) (atc.Config, db.ConfigVersion, error)
+	GetConfigStub        func(teamName, pipelineName string) (atc.Config, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct {
+		teamName     string
 		pipelineName string
 	}
 	getConfigReturns struct {
@@ -34,14 +35,15 @@ type FakeConfigDB struct {
 	}
 }
 
-func (fake *FakeConfigDB) GetConfig(pipelineName string) (atc.Config, db.ConfigVersion, error) {
+func (fake *FakeConfigDB) GetConfig(teamName string, pipelineName string) (atc.Config, db.ConfigVersion, error) {
 	fake.getConfigMutex.Lock()
 	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct {
+		teamName     string
 		pipelineName string
-	}{pipelineName})
+	}{teamName, pipelineName})
 	fake.getConfigMutex.Unlock()
 	if fake.GetConfigStub != nil {
-		return fake.GetConfigStub(pipelineName)
+		return fake.GetConfigStub(teamName, pipelineName)
 	} else {
 		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3
 	}
@@ -53,10 +55,10 @@ func (fake *FakeConfigDB) GetConfigCallCount() int {
 	return len(fake.getConfigArgsForCall)
 }
 
-func (fake *FakeConfigDB) GetConfigArgsForCall(i int) string {
+func (fake *FakeConfigDB) GetConfigArgsForCall(i int) (string, string) {
 	fake.getConfigMutex.RLock()
 	defer fake.getConfigMutex.RUnlock()
-	return fake.getConfigArgsForCall[i].pipelineName
+	return fake.getConfigArgsForCall[i].teamName, fake.getConfigArgsForCall[i].pipelineName
 }
 
 func (fake *FakeConfigDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 error) {

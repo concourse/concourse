@@ -40,7 +40,9 @@ var _ = Describe("Pipelines API", func() {
 				},
 			}, nil)
 
-			configDB.GetConfigStub = func(pipelineName string) (atc.Config, db.ConfigVersion, error) {
+			configDB.GetConfigStub = func(teamName, pipelineName string) (atc.Config, db.ConfigVersion, error) {
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
+
 				if pipelineName == "a-pipeline" {
 					return atc.Config{
 						Groups: atc.GroupConfigs{

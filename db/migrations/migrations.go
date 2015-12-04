@@ -66,4 +66,5 @@ var Migrations = []migration.Migrator{
 	ReplaceStepLocationWithPlanID, //even though this is 56, it's meant to be here
 	AddTeamsColumnToPipelinesAndTeamsTable,
 	CascadePipelineDeletes,
+	AddTeamIDToPipelineNameUniqueness,
 }
