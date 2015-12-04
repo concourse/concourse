@@ -37,6 +37,50 @@ func NewSQL(
 	}
 }
 
+func (db *SQLDB) SaveTeam(data Team) (SavedTeam, error) {
+	var savedTeam SavedTeam
+
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return SavedTeam{}, err
+	}
+
+	defer tx.Rollback()
+
+	err = tx.QueryRow(`
+	INSERT INTO teams (
+    name
+	) VALUES (
+		$1
+	)
+	RETURNING id, name
+	`, data.Name,
+	).Scan(&savedTeam.ID, &savedTeam.Name)
+
+	if err != nil {
+		return SavedTeam{}, err
+	}
+
+	return savedTeam, tx.Commit()
+}
+
+func (db *SQLDB) GetTeamByName(teamName string) (SavedTeam, error) {
+	row := db.conn.QueryRow(`
+		SELECT id, name
+		FROM teams
+		WHERE name = $1
+	`, teamName)
+
+	var savedTeam SavedTeam
+
+	err := row.Scan(&savedTeam.ID, &savedTeam.Name)
+	if err != nil {
+		return SavedTeam{}, err
+	}
+
+	return savedTeam, nil
+}
+
 func (db *SQLDB) InsertVolume(data Volume) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
@@ -323,7 +367,7 @@ func (state PipelinePausedState) Bool() *bool {
 	}
 }
 
-func (db *SQLDB) SaveConfig(pipelineName string, config atc.Config, from ConfigVersion, pausedState PipelinePausedState) (bool, error) {
+func (db *SQLDB) SaveConfig(teamName string, pipelineName string, config atc.Config, from ConfigVersion, pausedState PipelinePausedState) (bool, error) {
 	payload, err := json.Marshal(config)
 	if err != nil {
 		return false, err
@@ -386,9 +430,16 @@ func (db *SQLDB) SaveConfig(pipelineName string, config atc.Config, from ConfigV
 			created = true
 
 			_, err := tx.Exec(`
-			INSERT INTO pipelines (name, config, version, ordering, paused)
-			VALUES ($1, $2, nextval('config_version_seq'), (SELECT COUNT(1) + 1 FROM pipelines), $3)
-		`, pipelineName, payload, pausedState.Bool())
+			INSERT INTO pipelines (name, config, version, ordering, paused, team_id)
+			VALUES (
+				$1,
+				$2,
+				nextval('config_version_seq'),
+				(SELECT COUNT(1) + 1 FROM pipelines),
+				$3,
+				(SELECT id FROM teams WHERE name = $4)
+			)
+		`, pipelineName, payload, pausedState.Bool(), teamName)
 			if err != nil {
 				return false, err
 			}

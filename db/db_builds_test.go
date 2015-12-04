@@ -17,7 +17,7 @@ var _ = Describe("Keeping track of builds", func() {
 	var dbConn *sql.DB
 	var listener *pq.Listener
 
-	var database *db.SQLDB
+	var database db.DB
 	var pipelineDB db.PipelineDB
 
 	BeforeEach(func() {
@@ -29,13 +29,17 @@ var _ = Describe("Keeping track of builds", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		database = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
+		sqlDB := db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
 
 		var err error
-		pipelineDBFactory := db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, database)
-		database.SaveConfig("some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		pipelineDBFactory := db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)
+		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
+		sqlDB.SaveConfig(team.Name, "some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
 		pipelineDB, err = pipelineDBFactory.BuildWithName("some-pipeline")
 		Expect(err).NotTo(HaveOccurred())
+
+		database = sqlDB
 	})
 
 	AfterEach(func() {

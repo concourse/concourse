@@ -4,6 +4,7 @@ import "fmt"
 
 const ConfigVersionHeader = "X-Concourse-Config-Version"
 const DefaultPipelineName = "main"
+const DefaultTeamName = "main"
 
 type Source map[string]interface{}
 type Params map[string]interface{}

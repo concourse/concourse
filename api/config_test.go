@@ -254,7 +254,7 @@ var _ = Describe("Config API", func() {
 						It("saves it", func() {
 							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
-							name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+							_, name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
 							Expect(savedConfig).To(Equal(config))
 							Expect(id).To(Equal(db.ConfigVersion(42)))
@@ -321,7 +321,7 @@ var _ = Describe("Config API", func() {
 						It("saves it", func() {
 							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
-							name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+							_, name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
 							Expect(savedConfig).To(Equal(config))
 							Expect(id).To(Equal(db.ConfigVersion(42)))
@@ -331,7 +331,7 @@ var _ = Describe("Config API", func() {
 						It("does not give the DB a map of empty interfaces to empty interfaces", func() {
 							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
-							_, savedConfig, _, _ := configDB.SaveConfigArgsForCall(0)
+							_, _, savedConfig, _, _ := configDB.SaveConfigArgsForCall(0)
 							Expect(savedConfig).To(Equal(config))
 
 							_, err := json.Marshal(config)
@@ -368,7 +368,7 @@ jobs:
 							It("saves it", func() {
 								Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
-								name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+								_, name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 								Expect(name).To(Equal("a-pipeline"))
 								Expect(savedConfig).To(Equal(atc.Config{
 									Resources: []atc.ResourceConfig{
@@ -491,7 +491,7 @@ jobs:
 							It("saves it", func() {
 								Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
-								name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+								_, name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 								Expect(name).To(Equal("a-pipeline"))
 								Expect(savedConfig).To(Equal(config))
 								Expect(id).To(Equal(db.ConfigVersion(42)))

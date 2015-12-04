@@ -19,7 +19,7 @@ var _ = Describe("SQL DB", func() {
 	var dbConn *sql.DB
 	var listener *pq.Listener
 
-	var database *db.SQLDB
+	var database db.DB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -39,6 +39,21 @@ var _ = Describe("SQL DB", func() {
 
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Describe("CreateTeam", func() {
+		It("saves a team to the db", func() {
+			expectedTeam := db.Team{
+				Name: "avengers",
+			}
+			expectedSavedTeam, err := database.SaveTeam(expectedTeam)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
+
+			savedTeam, err := database.GetTeamByName("avengers")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(savedTeam).To(Equal(expectedSavedTeam))
+		})
 	})
 
 	Describe("CreatePipe", func() {

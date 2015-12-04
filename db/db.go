@@ -25,6 +25,9 @@ type Conn interface {
 }
 
 type DB interface {
+	SaveTeam(team Team) (SavedTeam, error)
+	GetTeamByName(teamName string) (SavedTeam, error)
+
 	GetBuild(buildID int) (Build, bool, error)
 	GetBuildInputVersionedResouces(buildID int) (SavedVersionedResources, error)
 	GetBuildOutputVersionedResouces(buildID int) (SavedVersionedResources, error)
@@ -96,7 +99,7 @@ type PipelinesDB interface {
 
 type ConfigDB interface {
 	GetConfig(pipelineName string) (atc.Config, ConfigVersion, error)
-	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (bool, error)
+	SaveConfig(string, string, atc.Config, ConfigVersion, PipelinePausedState) (bool, error)
 }
 
 //ConfigVersion is a sequence identifier used for compare-and-swap

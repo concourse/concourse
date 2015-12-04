@@ -32,7 +32,10 @@ var _ = Describe("Auth", func() {
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 		sqlDB = db.NewSQL(logger, dbConn, bus)
 
-		_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		atcPort = 5697 + uint16(GinkgoParallelNode())

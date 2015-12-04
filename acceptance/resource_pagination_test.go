@@ -23,7 +23,7 @@ import (
 var _ = Describe("Resource Pagination", func() {
 	var atcProcess ifrit.Process
 	var dbListener *pq.Listener
-	var pipelineDBFactory db.PipelineDBFactory
+	var pipelineDB db.PipelineDB
 	var atcPort uint16
 
 	BeforeEach(func() {
@@ -35,9 +35,35 @@ var _ = Describe("Resource Pagination", func() {
 
 		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
 
-		pipelineDBFactory = db.NewPipelineDBFactory(dbLogger, dbConn, bus, sqlDB)
+		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
 
 		atcProcess, atcPort = startATC(atcBin, 1)
+
+		// job build data
+		_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
+			Jobs: atc.JobConfigs{
+				{
+					Name: "job-name",
+					Plan: atc.PlanSequence{
+						{
+							Get: "resource-name",
+						},
+					},
+				},
+			},
+			Resources: atc.ResourceConfigs{
+				{Name: "resource-name"},
+			},
+		}, db.ConfigVersion(1), db.PipelineUnpaused)
+		Expect(err).NotTo(HaveOccurred())
+
+		pipelineDBFactory := db.NewPipelineDBFactory(dbLogger, dbConn, bus, sqlDB)
+
+		var found bool
+		pipelineDB, found, err = pipelineDBFactory.BuildDefault()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
 	})
 
 	AfterEach(func() {
@@ -69,32 +95,7 @@ var _ = Describe("Resource Pagination", func() {
 		}
 
 		Context("with more than 100 resource versions", func() {
-			var pipelineDB db.PipelineDB
-
 			BeforeEach(func() {
-				// job build data
-				_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "job-name",
-							Plan: atc.PlanSequence{
-								{
-									Get: "resource-name",
-								},
-							},
-						},
-					},
-					Resources: atc.ResourceConfigs{
-						{Name: "resource-name"},
-					},
-				}, db.ConfigVersion(1), db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				var found bool
-				pipelineDB, found, err = pipelineDBFactory.BuildDefault()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
 				resourceConfig := atc.ResourceConfig{
 					Name:   "resource-name",
 					Type:   "some-type",
@@ -106,7 +107,8 @@ var _ = Describe("Resource Pagination", func() {
 					resourceVersions = append(resourceVersions, atc.Version{"version": strconv.Itoa(i)})
 				}
 
-				pipelineDB.SaveResourceVersions(resourceConfig, resourceVersions)
+				err := pipelineDB.SaveResourceVersions(resourceConfig, resourceVersions)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("there is pagination", func() {
@@ -133,32 +135,7 @@ var _ = Describe("Resource Pagination", func() {
 		})
 
 		Context("with less than 100 resource versions", func() {
-			var pipelineDB db.PipelineDB
-
 			BeforeEach(func() {
-				// job build data
-				_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "job-name",
-							Plan: atc.PlanSequence{
-								{
-									Get: "resource-name",
-								},
-							},
-						},
-					},
-					Resources: atc.ResourceConfigs{
-						{Name: "resource-name"},
-					},
-				}, db.ConfigVersion(1), db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-
-				var found bool
-				pipelineDB, found, err = pipelineDBFactory.BuildDefault()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
 				resourceConfig := atc.ResourceConfig{
 					Name:   "resource-name",
 					Type:   "some-type",
@@ -170,7 +147,8 @@ var _ = Describe("Resource Pagination", func() {
 					resourceVersions = append(resourceVersions, atc.Version{"version": strconv.Itoa(i)})
 				}
 
-				pipelineDB.SaveResourceVersions(resourceConfig, resourceVersions)
+				err := pipelineDB.SaveResourceVersions(resourceConfig, resourceVersions)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("there is no pagination", func() {

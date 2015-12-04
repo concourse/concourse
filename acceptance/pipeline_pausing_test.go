@@ -67,14 +67,17 @@ var _ = Describe("Pipeline Pausing", func() {
 		Context("with a job in the configuration", func() {
 
 			BeforeEach(func() {
-				_, err := sqlDB.SaveConfig("some-pipeline", atc.Config{
+				team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = sqlDB.SaveConfig(team.Name, "some-pipeline", atc.Config{
 					Jobs: []atc.JobConfig{
 						{Name: "some-job-name"},
 					},
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = sqlDB.SaveConfig("another-pipeline", atc.Config{
+				_, err = sqlDB.SaveConfig(team.Name, "another-pipeline", atc.Config{
 					Jobs: []atc.JobConfig{
 						{Name: "another-job-name"},
 					},

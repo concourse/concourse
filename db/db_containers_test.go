@@ -18,7 +18,7 @@ var _ = Describe("Keeping track of containers", func() {
 	var dbConn *sql.DB
 	var listener *pq.Listener
 
-	var database *db.SQLDB
+	var database db.DB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()

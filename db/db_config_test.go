@@ -20,6 +20,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 	var database *db.SQLDB
 	var pipelineDBFactory db.PipelineDBFactory
 
+	var team db.SavedTeam
+
 	var config atc.Config
 	var otherConfig atc.Config
 
@@ -34,6 +36,10 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 
 		database = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, database)
+
+		var err error
+		team, err = database.SaveTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
 
 		config = atc.Config{
 			Groups: atc.GroupConfigs{
@@ -133,13 +139,13 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		})
 
 		It("returns true for created", func() {
-			created, err := database.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			created, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(created).To(BeTrue())
 		})
 
 		It("can be saved as paused", func() {
-			_, err := database.SaveConfig(pipelineName, config, 0, db.PipelinePaused)
+			_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelinePaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, err := database.GetPipelineByName(pipelineName)
@@ -149,7 +155,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		})
 
 		It("can be saved as unpaused", func() {
-			_, err := database.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
+			_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, err := database.GetPipelineByName(pipelineName)
@@ -159,7 +165,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		})
 
 		It("defaults to paused", func() {
-			_, err := database.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, err := database.GetPipelineByName(pipelineName)
@@ -177,19 +183,19 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		})
 
 		It("it returns created as false", func() {
-			_, err := database.SaveConfig(pipelineName, config, 0, db.PipelineNoChange)
+			_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, configVersion, err := database.GetConfig(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			created, err := database.SaveConfig(pipelineName, config, configVersion, db.PipelineNoChange)
+			created, err := database.SaveConfig(team.Name, pipelineName, config, configVersion, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(created).To(BeFalse())
 		})
 
 		It("updating from paused to unpaused", func() {
-			_, err := database.SaveConfig(pipelineName, config, 0, db.PipelinePaused)
+			_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelinePaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, err := database.GetPipelineByName(pipelineName)
@@ -199,7 +205,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 			_, configVersion, err := database.GetConfig(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = database.SaveConfig(pipelineName, config, configVersion, db.PipelineUnpaused)
+			_, err = database.SaveConfig(team.Name, pipelineName, config, configVersion, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, err = database.GetPipelineByName(pipelineName)
@@ -208,7 +214,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		})
 
 		It("updating from unpaused to paused", func() {
-			_, err := database.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
+			_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, err := database.GetPipelineByName(pipelineName)
@@ -218,7 +224,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 			_, configVersion, err := database.GetConfig(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = database.SaveConfig(pipelineName, config, configVersion, db.PipelinePaused)
+			_, err = database.SaveConfig(team.Name, pipelineName, config, configVersion, db.PipelinePaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline, err = database.GetPipelineByName(pipelineName)
@@ -228,7 +234,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 
 		Context("updating with no change", func() {
 			It("maintains paused if the pipeline is paused", func() {
-				_, err := database.SaveConfig(pipelineName, config, 0, db.PipelinePaused)
+				_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelinePaused)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, err := database.GetPipelineByName(pipelineName)
@@ -238,7 +244,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 				_, configVersion, err := database.GetConfig(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = database.SaveConfig(pipelineName, config, configVersion, db.PipelineNoChange)
+				_, err = database.SaveConfig(team.Name, pipelineName, config, configVersion, db.PipelineNoChange)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, err = database.GetPipelineByName(pipelineName)
@@ -247,7 +253,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 			})
 
 			It("maintains unpaused if the pipeline is unpaused", func() {
-				_, err := database.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
+				_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, err := database.GetPipelineByName(pipelineName)
@@ -257,7 +263,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 				_, configVersion, err := database.GetConfig(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = database.SaveConfig(pipelineName, config, configVersion, db.PipelineNoChange)
+				_, err = database.SaveConfig(team.Name, pipelineName, config, configVersion, db.PipelineNoChange)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipeline, err = database.GetPipelineByName(pipelineName)
@@ -271,9 +277,9 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		pipelineName := "a-pipeline-name"
 		otherPipelineName := "an-other-pipeline-name"
 
-		_, err := database.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
+		_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = database.SaveConfig(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipeline, err := database.GetPipelineByName(pipelineName)
@@ -290,22 +296,22 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 	})
 
 	It("can order pipelines", func() {
-		_, err := database.SaveConfig("some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		_, err := database.SaveConfig(team.Name, "some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = database.SaveConfig("pipeline-1", config, 0, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, "pipeline-1", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = database.SaveConfig("pipeline-2", config, 0, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, "pipeline-2", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = database.SaveConfig("pipeline-3", config, 0, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, "pipeline-3", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = database.SaveConfig("pipeline-4", config, 0, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, "pipeline-4", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = database.SaveConfig("pipeline-5", config, 0, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, "pipeline-5", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = database.OrderPipelines([]string{
@@ -318,7 +324,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = database.SaveConfig("pipeline-6", config, 0, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, "pipeline-6", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelines, err := database.GetAllActivePipelines()
@@ -389,13 +395,13 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		pipelineName := "a-pipeline-name"
 		otherPipelineName := "an-other-pipeline-name"
 
-		_, err := database.SaveConfig("some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		_, err := database.SaveConfig(team.Name, "some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = database.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = database.SaveConfig(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = database.OrderPipelines([]string{
@@ -436,7 +442,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 	})
 
 	It("can lookup configs by build id", func() {
-		_, err := database.SaveConfig("my-pipeline", config, 0, db.PipelineUnpaused)
+		_, err := database.SaveConfig(team.Name, "my-pipeline", config, 0, db.PipelineUnpaused)
 
 		myPipelineDB, err := pipelineDBFactory.BuildWithName("my-pipeline")
 		Expect(err).NotTo(HaveOccurred())
@@ -457,10 +463,10 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		Expect(database.GetConfig(otherPipelineName)).To(BeZero())
 
 		By("being able to save the config")
-		_, err := database.SaveConfig(pipelineName, config, 0, db.PipelineUnpaused)
+		_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = database.SaveConfig(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("returning the saved config to later gets")
@@ -507,22 +513,22 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		})
 
 		By("not allowing non-sequential updates")
-		_, err = database.SaveConfig(pipelineName, updatedConfig, configVersion-1, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, pipelineName, updatedConfig, configVersion-1, db.PipelineUnpaused)
 		Expect(err).To(Equal(db.ErrConfigComparisonFailed))
 
-		_, err = database.SaveConfig(pipelineName, updatedConfig, configVersion+10, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, pipelineName, updatedConfig, configVersion+10, db.PipelineUnpaused)
 		Expect(err).To(Equal(db.ErrConfigComparisonFailed))
 
-		_, err = database.SaveConfig(otherPipelineName, updatedConfig, otherConfigVersion-1, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, otherPipelineName, updatedConfig, otherConfigVersion-1, db.PipelineUnpaused)
 		Expect(err).To(Equal(db.ErrConfigComparisonFailed))
 
-		_, err = database.SaveConfig(otherPipelineName, updatedConfig, otherConfigVersion+10, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, otherPipelineName, updatedConfig, otherConfigVersion+10, db.PipelineUnpaused)
 		Expect(err).To(Equal(db.ErrConfigComparisonFailed))
 
 		By("being able to update the config with a valid con")
-		_, err = database.SaveConfig(pipelineName, updatedConfig, configVersion, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, pipelineName, updatedConfig, configVersion, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = database.SaveConfig(otherPipelineName, updatedConfig, otherConfigVersion, db.PipelineUnpaused)
+		_, err = database.SaveConfig(team.Name, otherPipelineName, updatedConfig, otherConfigVersion, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("returning the updated config")

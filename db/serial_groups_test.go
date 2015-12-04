@@ -35,8 +35,10 @@ var _ = Describe("Scheduling multiple builds within the same serial groups", fun
 		sqlDB = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)
 
-		var err error
-		sqlDB.SaveConfig("some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
+
+		sqlDB.SaveConfig(team.Name, "some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
 		pipelineDB, err = pipelineDBFactory.BuildWithName("some-pipeline")
 		Expect(err).NotTo(HaveOccurred())
 	})

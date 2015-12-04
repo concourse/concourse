@@ -70,8 +70,11 @@ var _ = Describe("Job Pausing", func() {
 			var build db.Build
 
 			BeforeEach(func() {
+				team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+				Expect(err).NotTo(HaveOccurred())
+
 				// job build data
-				_, err := sqlDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
+				_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
 					Jobs: []atc.JobConfig{
 						{Name: "job-name"},
 					},

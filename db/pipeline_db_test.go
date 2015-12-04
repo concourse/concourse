@@ -131,17 +131,22 @@ var _ = Describe("PipelineDB", func() {
 	}
 
 	var (
+		team            db.SavedTeam
 		pipelineDB      db.PipelineDB
 		otherPipelineDB db.PipelineDB
 	)
 
 	BeforeEach(func() {
-		_, err := sqlDB.SaveConfig("a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
+		var err error
+		team, err = sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 		savedPipeline, err := sqlDB.GetPipelineByName("a-pipeline-name")
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = sqlDB.SaveConfig("other-pipeline-name", otherPipelineConfig, 0, db.PipelineUnpaused)
+		_, err = sqlDB.SaveConfig(team.Name, "other-pipeline-name", otherPipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 		otherSavedPipeline, err := sqlDB.GetPipelineByName("other-pipeline-name")
 		Expect(err).NotTo(HaveOccurred())
@@ -161,7 +166,7 @@ var _ = Describe("PipelineDB", func() {
 
 	Describe("destroying a pipeline", func() {
 		It("can be deleted", func() {
-			_, err := sqlDB.SaveConfig("a-pipeline-that-will-be-deleted", pipelineConfig, 0, db.PipelineUnpaused)
+			_, err := sqlDB.SaveConfig(team.Name, "a-pipeline-that-will-be-deleted", pipelineConfig, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			fetchedPipeline, err := sqlDB.GetPipelineByName("a-pipeline-that-will-be-deleted")
@@ -320,9 +325,9 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			By("being able to update the config with a valid config")
-			_, err = sqlDB.SaveConfig("a-pipeline-name", updatedConfig, configVersion, db.PipelineUnpaused)
+			_, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", updatedConfig, configVersion, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = sqlDB.SaveConfig("other-pipeline-name", updatedConfig, otherConfigVersion, db.PipelineUnpaused)
+			_, err = sqlDB.SaveConfig(team.Name, "other-pipeline-name", updatedConfig, otherConfigVersion, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("returning the updated config")

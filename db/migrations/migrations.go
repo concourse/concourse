@@ -63,5 +63,6 @@ var Migrations = []migration.Migrator{
 	MakeContainerWorkingDirectoryNotNull,
 	AddEnvVariablesToContainers,
 	AddModifiedTimeToVersionedResourcesAndBuildOutputs,
-	ReplaceStepLocationWithPlanID,
+	ReplaceStepLocationWithPlanID, //even though this is 56, it's meant to be here
+	AddTeamsColumnToPipelinesAndTeamsTable,
 }

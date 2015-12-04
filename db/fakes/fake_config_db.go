@@ -19,13 +19,14 @@ type FakeConfigDB struct {
 		result2 db.ConfigVersion
 		result3 error
 	}
-	SaveConfigStub        func(string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (bool, error)
+	SaveConfigStub        func(string, string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (bool, error)
 	saveConfigMutex       sync.RWMutex
 	saveConfigArgsForCall []struct {
 		arg1 string
-		arg2 atc.Config
-		arg3 db.ConfigVersion
-		arg4 db.PipelinePausedState
+		arg2 string
+		arg3 atc.Config
+		arg4 db.ConfigVersion
+		arg5 db.PipelinePausedState
 	}
 	saveConfigReturns struct {
 		result1 bool
@@ -67,17 +68,18 @@ func (fake *FakeConfigDB) GetConfigReturns(result1 atc.Config, result2 db.Config
 	}{result1, result2, result3}
 }
 
-func (fake *FakeConfigDB) SaveConfig(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 db.PipelinePausedState) (bool, error) {
+func (fake *FakeConfigDB) SaveConfig(arg1 string, arg2 string, arg3 atc.Config, arg4 db.ConfigVersion, arg5 db.PipelinePausedState) (bool, error) {
 	fake.saveConfigMutex.Lock()
 	fake.saveConfigArgsForCall = append(fake.saveConfigArgsForCall, struct {
 		arg1 string
-		arg2 atc.Config
-		arg3 db.ConfigVersion
-		arg4 db.PipelinePausedState
-	}{arg1, arg2, arg3, arg4})
+		arg2 string
+		arg3 atc.Config
+		arg4 db.ConfigVersion
+		arg5 db.PipelinePausedState
+	}{arg1, arg2, arg3, arg4, arg5})
 	fake.saveConfigMutex.Unlock()
 	if fake.SaveConfigStub != nil {
-		return fake.SaveConfigStub(arg1, arg2, arg3, arg4)
+		return fake.SaveConfigStub(arg1, arg2, arg3, arg4, arg5)
 	} else {
 		return fake.saveConfigReturns.result1, fake.saveConfigReturns.result2
 	}
@@ -89,10 +91,10 @@ func (fake *FakeConfigDB) SaveConfigCallCount() int {
 	return len(fake.saveConfigArgsForCall)
 }
 
-func (fake *FakeConfigDB) SaveConfigArgsForCall(i int) (string, atc.Config, db.ConfigVersion, db.PipelinePausedState) {
+func (fake *FakeConfigDB) SaveConfigArgsForCall(i int) (string, string, atc.Config, db.ConfigVersion, db.PipelinePausedState) {
 	fake.saveConfigMutex.RLock()
 	defer fake.saveConfigMutex.RUnlock()
-	return fake.saveConfigArgsForCall[i].arg1, fake.saveConfigArgsForCall[i].arg2, fake.saveConfigArgsForCall[i].arg3, fake.saveConfigArgsForCall[i].arg4
+	return fake.saveConfigArgsForCall[i].arg1, fake.saveConfigArgsForCall[i].arg2, fake.saveConfigArgsForCall[i].arg3, fake.saveConfigArgsForCall[i].arg4, fake.saveConfigArgsForCall[i].arg5
 }
 
 func (fake *FakeConfigDB) SaveConfigReturns(result1 bool, result2 error) {
