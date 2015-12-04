@@ -31,12 +31,13 @@ var _ = Describe("Keeping track of builds", func() {
 
 		sqlDB := db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
 
-		var err error
 		pipelineDBFactory := db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)
+
 		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
+
 		sqlDB.SaveConfig(team.Name, "some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
-		pipelineDB, err = pipelineDBFactory.BuildWithName("some-pipeline")
+		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "some-pipeline")
 		Expect(err).NotTo(HaveOccurred())
 
 		database = sqlDB

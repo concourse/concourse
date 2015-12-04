@@ -81,7 +81,7 @@ var _ = Describe("Job Pausing", func() {
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
-				pipelineDB, err = pipelineDBFactory.BuildWithName(atc.DefaultPipelineName)
+				pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, atc.DefaultPipelineName)
 				Expect(err).NotTo(HaveOccurred())
 
 				build, err = pipelineDB.CreateJobBuild("job-name")

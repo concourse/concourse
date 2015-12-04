@@ -142,7 +142,7 @@ var _ = Describe("Pipelines API", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
-			pipelinesDB.GetPipelineByNameReturns(db.SavedPipeline{
+			pipelinesDB.GetPipelineByTeamNameAndNameReturns(db.SavedPipeline{
 				ID:     1,
 				Paused: false,
 				Pipeline: db.Pipeline{
@@ -210,7 +210,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when the call to get pipeline fails", func() {
 			BeforeEach(func() {
-				pipelinesDB.GetPipelineByNameReturns(db.SavedPipeline{}, errors.New("disaster"))
+				pipelinesDB.GetPipelineByTeamNameAndNameReturns(db.SavedPipeline{}, errors.New("disaster"))
 			})
 
 			It("returns 500 error", func() {
@@ -229,10 +229,11 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		It("looks up the pipeline in the db via the url param", func() {
-			Expect(pipelinesDB.GetPipelineByNameCallCount()).To(Equal(1))
+			Expect(pipelinesDB.GetPipelineByTeamNameAndNameCallCount()).To(Equal(1))
 
-			actualPipelineName := pipelinesDB.GetPipelineByNameArgsForCall(0)
+			teamName, actualPipelineName := pipelinesDB.GetPipelineByTeamNameAndNameArgsForCall(0)
 			Expect(actualPipelineName).To(Equal("some-specific-pipeline"))
+			Expect(teamName).To(Equal(atc.DefaultTeamName))
 		})
 	})
 
@@ -243,7 +244,7 @@ var _ = Describe("Pipelines API", func() {
 		BeforeEach(func() {
 			pipelineDB = new(dbfakes.FakePipelineDB)
 
-			pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
+			pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -267,9 +268,10 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline-name"))
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
 			})
 
 			It("deletes the named pipeline from the database", func() {
@@ -306,7 +308,7 @@ var _ = Describe("Pipelines API", func() {
 		BeforeEach(func() {
 			pipelineDB = new(dbfakes.FakePipelineDB)
 
-			pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
+			pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -325,9 +327,10 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
 			})
 
 			Context("when pausing the pipeline succeeds", func() {
@@ -369,7 +372,7 @@ var _ = Describe("Pipelines API", func() {
 		BeforeEach(func() {
 			pipelineDB = new(dbfakes.FakePipelineDB)
 
-			pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
+			pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -388,9 +391,10 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
 			})
 
 			Context("when unpausing the pipeline succeeds", func() {
@@ -520,7 +524,7 @@ var _ = Describe("Pipelines API", func() {
 		BeforeEach(func() {
 			pipelineDB = new(dbfakes.FakePipelineDB)
 
-			pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
+			pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
 		})
 
 		JustBeforeEach(func() {

@@ -39,7 +39,7 @@ var _ = Describe("Scheduling multiple builds within the same serial groups", fun
 		Expect(err).NotTo(HaveOccurred())
 
 		sqlDB.SaveConfig(team.Name, "some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
-		pipelineDB, err = pipelineDBFactory.BuildWithName("some-pipeline")
+		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "some-pipeline")
 		Expect(err).NotTo(HaveOccurred())
 	})
 

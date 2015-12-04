@@ -239,7 +239,8 @@ var _ = Describe("BuildDelegate", func() {
 					It("saves the build's input", func() {
 						Expect(fakeDB.SaveBuildInputCallCount()).To(Equal(1))
 
-						buildID, savedInput := fakeDB.SaveBuildInputArgsForCall(0)
+						teamName, buildID, savedInput := fakeDB.SaveBuildInputArgsForCall(0)
+						Expect(teamName).To(Equal(atc.DefaultTeamName))
 						Expect(buildID).To(Equal(42))
 						Expect(savedInput).To(Equal(db.BuildInput{
 							Name: "some-input",
@@ -293,7 +294,8 @@ var _ = Describe("BuildDelegate", func() {
 
 									Expect(fakeDB.SaveBuildOutputCallCount()).To(Equal(1))
 
-									buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
+									teamName, buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
+									Expect(teamName).To(Equal(atc.DefaultTeamName))
 									Expect(buildID).To(Equal(42))
 									Expect(savedOutput).To(Equal(db.VersionedResource{
 										PipelineName: "some-pipeline",
@@ -366,7 +368,8 @@ var _ = Describe("BuildDelegate", func() {
 
 								Expect(fakeDB.SaveBuildOutputCallCount()).To(Equal(1))
 
-								buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
+								teamName, buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
+								Expect(teamName).To(Equal(atc.DefaultTeamName))
 								Expect(buildID).To(Equal(42))
 								Expect(savedOutput).To(Equal(db.VersionedResource{
 									PipelineName: "some-pipeline",
@@ -783,7 +786,8 @@ var _ = Describe("BuildDelegate", func() {
 				It("saves the build's output", func() {
 					Expect(fakeDB.SaveBuildOutputCallCount()).To(Equal(1))
 
-					buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
+					teamName, buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
+					Expect(teamName).To(Equal(atc.DefaultTeamName))
 					Expect(buildID).To(Equal(42))
 					Expect(savedOutput).To(Equal(db.VersionedResource{
 						PipelineName: "some-other-pipeline",
@@ -826,7 +830,8 @@ var _ = Describe("BuildDelegate", func() {
 				It("saves the build's output", func() {
 					Expect(fakeDB.SaveBuildOutputCallCount()).To(Equal(1))
 
-					buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
+					teamName, buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
+					Expect(teamName).To(Equal(atc.DefaultTeamName))
 					Expect(buildID).To(Equal(42))
 					Expect(savedOutput).To(Equal(db.VersionedResource{
 						PipelineName: "some-other-pipeline",

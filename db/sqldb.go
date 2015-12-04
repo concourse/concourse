@@ -210,16 +210,6 @@ func (db *SQLDB) GetVolumeTTL(handle string) (time.Duration, error) {
 	return ttl, err
 }
 
-func (db *SQLDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
-	row := db.conn.QueryRow(`
-		SELECT id, name, config, version, paused
-		FROM pipelines
-		WHERE name = $1
-	`, pipelineName)
-
-	return scanPipeline(row)
-}
-
 func (db *SQLDB) GetPipelineByTeamNameAndName(teamName string, pipelineName string) (SavedPipeline, error) {
 	row := db.conn.QueryRow(`
 		SELECT id, name, config, version, paused
@@ -1049,9 +1039,9 @@ func (db *SQLDB) ErrorBuild(buildID int, cause error) error {
 	return db.FinishBuild(buildID, StatusErrored)
 }
 
-func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error) {
+func (db *SQLDB) SaveBuildInput(teamName string, buildID int, input BuildInput) (SavedVersionedResource, error) {
 	pipelineDBFactory := NewPipelineDBFactory(db.logger, db.conn, db.bus, db)
-	pipelineDB, err := pipelineDBFactory.BuildWithName(input.VersionedResource.PipelineName)
+	pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(teamName, input.VersionedResource.PipelineName)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -1059,9 +1049,9 @@ func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedRe
 	return pipelineDB.SaveBuildInput(buildID, input)
 }
 
-func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
+func (db *SQLDB) SaveBuildOutput(teamName string, buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
 	pipelineDBFactory := NewPipelineDBFactory(db.logger, db.conn, db.bus, db)
-	pipelineDB, err := pipelineDBFactory.BuildWithName(vr.PipelineName)
+	pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(teamName, vr.PipelineName)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}

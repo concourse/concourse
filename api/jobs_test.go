@@ -24,7 +24,7 @@ var _ = Describe("Jobs API", func() {
 
 	BeforeEach(func() {
 		pipelineDB = new(dbfakes.FakePipelineDB)
-		pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
+		pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
 	})
 
 	Describe("GET /api/v1/pipelines/:pipeline_name/jobs/:job_name", func() {
@@ -36,9 +36,10 @@ var _ = Describe("Jobs API", func() {
 			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+			Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+			teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 			Expect(pipelineName).To(Equal("some-pipeline"))
+			Expect(teamName).To(Equal(atc.DefaultTeamName))
 		})
 
 		Context("when getting the job config succeeds", func() {
@@ -642,9 +643,10 @@ var _ = Describe("Jobs API", func() {
 			response, err = client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+			Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+			teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 			Expect(pipelineName).To(Equal("some-pipeline"))
+			Expect(teamName).To(Equal(atc.DefaultTeamName))
 		})
 
 		Context("when authenticated", func() {
@@ -791,9 +793,10 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("looked up the proper pipeline", func() {
-				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("some-pipeline"))
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
 			})
 
 			Context("when getting the config succeeds", func() {
@@ -998,9 +1001,10 @@ var _ = Describe("Jobs API", func() {
 			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/builds/some-build")
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+			Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+			teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 			Expect(pipelineName).To(Equal("some-pipeline"))
+			Expect(teamName).To(Equal(atc.DefaultTeamName))
 		})
 
 		Context("when getting the build succeeds", func() {
@@ -1087,9 +1091,10 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("injects the PipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("some-pipeline"))
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
 			})
 
 			Context("when pausing the resource succeeds", func() {
@@ -1147,9 +1152,10 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("injects the PipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("some-pipeline"))
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
 			})
 
 			Context("when pausing the resource succeeds", func() {

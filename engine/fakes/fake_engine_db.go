@@ -37,19 +37,21 @@ type FakeEngineDB struct {
 	saveBuildEngineMetadataReturns struct {
 		result1 error
 	}
-	SaveBuildInputStub        func(buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
+	SaveBuildInputStub        func(teamName string, buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
 	saveBuildInputMutex       sync.RWMutex
 	saveBuildInputArgsForCall []struct {
-		buildID int
-		input   db.BuildInput
+		teamName string
+		buildID  int
+		input    db.BuildInput
 	}
 	saveBuildInputReturns struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}
-	SaveBuildOutputStub        func(buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error)
+	SaveBuildOutputStub        func(teamName string, buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error)
 	saveBuildOutputMutex       sync.RWMutex
 	saveBuildOutputArgsForCall []struct {
+		teamName string
 		buildID  int
 		vr       db.VersionedResource
 		explicit bool
@@ -159,15 +161,16 @@ func (fake *FakeEngineDB) SaveBuildEngineMetadataReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeEngineDB) SaveBuildInput(buildID int, input db.BuildInput) (db.SavedVersionedResource, error) {
+func (fake *FakeEngineDB) SaveBuildInput(teamName string, buildID int, input db.BuildInput) (db.SavedVersionedResource, error) {
 	fake.saveBuildInputMutex.Lock()
 	fake.saveBuildInputArgsForCall = append(fake.saveBuildInputArgsForCall, struct {
-		buildID int
-		input   db.BuildInput
-	}{buildID, input})
+		teamName string
+		buildID  int
+		input    db.BuildInput
+	}{teamName, buildID, input})
 	fake.saveBuildInputMutex.Unlock()
 	if fake.SaveBuildInputStub != nil {
-		return fake.SaveBuildInputStub(buildID, input)
+		return fake.SaveBuildInputStub(teamName, buildID, input)
 	} else {
 		return fake.saveBuildInputReturns.result1, fake.saveBuildInputReturns.result2
 	}
@@ -179,10 +182,10 @@ func (fake *FakeEngineDB) SaveBuildInputCallCount() int {
 	return len(fake.saveBuildInputArgsForCall)
 }
 
-func (fake *FakeEngineDB) SaveBuildInputArgsForCall(i int) (int, db.BuildInput) {
+func (fake *FakeEngineDB) SaveBuildInputArgsForCall(i int) (string, int, db.BuildInput) {
 	fake.saveBuildInputMutex.RLock()
 	defer fake.saveBuildInputMutex.RUnlock()
-	return fake.saveBuildInputArgsForCall[i].buildID, fake.saveBuildInputArgsForCall[i].input
+	return fake.saveBuildInputArgsForCall[i].teamName, fake.saveBuildInputArgsForCall[i].buildID, fake.saveBuildInputArgsForCall[i].input
 }
 
 func (fake *FakeEngineDB) SaveBuildInputReturns(result1 db.SavedVersionedResource, result2 error) {
@@ -193,16 +196,17 @@ func (fake *FakeEngineDB) SaveBuildInputReturns(result1 db.SavedVersionedResourc
 	}{result1, result2}
 }
 
-func (fake *FakeEngineDB) SaveBuildOutput(buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error) {
+func (fake *FakeEngineDB) SaveBuildOutput(teamName string, buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error) {
 	fake.saveBuildOutputMutex.Lock()
 	fake.saveBuildOutputArgsForCall = append(fake.saveBuildOutputArgsForCall, struct {
+		teamName string
 		buildID  int
 		vr       db.VersionedResource
 		explicit bool
-	}{buildID, vr, explicit})
+	}{teamName, buildID, vr, explicit})
 	fake.saveBuildOutputMutex.Unlock()
 	if fake.SaveBuildOutputStub != nil {
-		return fake.SaveBuildOutputStub(buildID, vr, explicit)
+		return fake.SaveBuildOutputStub(teamName, buildID, vr, explicit)
 	} else {
 		return fake.saveBuildOutputReturns.result1, fake.saveBuildOutputReturns.result2
 	}
@@ -214,10 +218,10 @@ func (fake *FakeEngineDB) SaveBuildOutputCallCount() int {
 	return len(fake.saveBuildOutputArgsForCall)
 }
 
-func (fake *FakeEngineDB) SaveBuildOutputArgsForCall(i int) (int, db.VersionedResource, bool) {
+func (fake *FakeEngineDB) SaveBuildOutputArgsForCall(i int) (string, int, db.VersionedResource, bool) {
 	fake.saveBuildOutputMutex.RLock()
 	defer fake.saveBuildOutputMutex.RUnlock()
-	return fake.saveBuildOutputArgsForCall[i].buildID, fake.saveBuildOutputArgsForCall[i].vr, fake.saveBuildOutputArgsForCall[i].explicit
+	return fake.saveBuildOutputArgsForCall[i].teamName, fake.saveBuildOutputArgsForCall[i].buildID, fake.saveBuildOutputArgsForCall[i].vr, fake.saveBuildOutputArgsForCall[i].explicit
 }
 
 func (fake *FakeEngineDB) SaveBuildOutputReturns(result1 db.SavedVersionedResource, result2 error) {

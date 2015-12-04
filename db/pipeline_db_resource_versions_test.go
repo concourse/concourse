@@ -41,7 +41,7 @@ var _ = Describe("Resource History", func() {
 		_, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDB, err = pipelineDBFactory.BuildWithName("a-pipeline-name")
+		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "a-pipeline-name")
 		Expect(err).NotTo(HaveOccurred())
 	})
 

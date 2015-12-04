@@ -63,7 +63,7 @@ var _ = Describe("Leases", func() {
 		_, err = sqlDB.SaveConfig(team.Name, "pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		savedPipeline, err := sqlDB.GetPipelineByName("pipeline-name")
+		savedPipeline, err := sqlDB.GetPipelineByTeamNameAndName(team.Name, "pipeline-name")
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)

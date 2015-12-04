@@ -187,7 +187,7 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 	var metadata []atc.MetadataField
 
 	if info != nil && plan.Pipeline != "" {
-		savedVR, err := delegate.db.SaveBuildInput(delegate.buildID, db.BuildInput{
+		savedVR, err := delegate.db.SaveBuildInput(atc.DefaultTeamName, delegate.buildID, db.BuildInput{
 			Name:              plan.Name,
 			VersionedResource: vrFromInput(plan, *info),
 		})
@@ -245,7 +245,7 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 	}
 
 	if info != nil && plan.Pipeline != "" {
-		_, err = delegate.db.SaveBuildOutput(delegate.buildID, vrFromOutput(plan.Pipeline, ev), true)
+		_, err = delegate.db.SaveBuildOutput(atc.DefaultTeamName, delegate.buildID, vrFromOutput(plan.Pipeline, ev), true)
 		if err != nil {
 			logger.Error("failed-to-save-output", err)
 		}
@@ -265,7 +265,7 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPl
 		}
 	}
 
-	_, err := delegate.db.SaveBuildOutput(delegate.buildID, db.VersionedResource{
+	_, err := delegate.db.SaveBuildOutput(atc.DefaultTeamName, delegate.buildID, db.VersionedResource{
 		PipelineName: plan.Pipeline,
 		Resource:     plan.Resource,
 		Type:         plan.Type,

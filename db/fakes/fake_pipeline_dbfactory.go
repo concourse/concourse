@@ -16,12 +16,13 @@ type FakePipelineDBFactory struct {
 	buildReturns struct {
 		result1 db.PipelineDB
 	}
-	BuildWithNameStub        func(pipelineName string) (db.PipelineDB, error)
-	buildWithNameMutex       sync.RWMutex
-	buildWithNameArgsForCall []struct {
+	BuildWithTeamNameAndNameStub        func(teamName, pipelineName string) (db.PipelineDB, error)
+	buildWithTeamNameAndNameMutex       sync.RWMutex
+	buildWithTeamNameAndNameArgsForCall []struct {
+		teamName     string
 		pipelineName string
 	}
-	buildWithNameReturns struct {
+	buildWithTeamNameAndNameReturns struct {
 		result1 db.PipelineDB
 		result2 error
 	}
@@ -67,34 +68,35 @@ func (fake *FakePipelineDBFactory) BuildReturns(result1 db.PipelineDB) {
 	}{result1}
 }
 
-func (fake *FakePipelineDBFactory) BuildWithName(pipelineName string) (db.PipelineDB, error) {
-	fake.buildWithNameMutex.Lock()
-	fake.buildWithNameArgsForCall = append(fake.buildWithNameArgsForCall, struct {
+func (fake *FakePipelineDBFactory) BuildWithTeamNameAndName(teamName string, pipelineName string) (db.PipelineDB, error) {
+	fake.buildWithTeamNameAndNameMutex.Lock()
+	fake.buildWithTeamNameAndNameArgsForCall = append(fake.buildWithTeamNameAndNameArgsForCall, struct {
+		teamName     string
 		pipelineName string
-	}{pipelineName})
-	fake.buildWithNameMutex.Unlock()
-	if fake.BuildWithNameStub != nil {
-		return fake.BuildWithNameStub(pipelineName)
+	}{teamName, pipelineName})
+	fake.buildWithTeamNameAndNameMutex.Unlock()
+	if fake.BuildWithTeamNameAndNameStub != nil {
+		return fake.BuildWithTeamNameAndNameStub(teamName, pipelineName)
 	} else {
-		return fake.buildWithNameReturns.result1, fake.buildWithNameReturns.result2
+		return fake.buildWithTeamNameAndNameReturns.result1, fake.buildWithTeamNameAndNameReturns.result2
 	}
 }
 
-func (fake *FakePipelineDBFactory) BuildWithNameCallCount() int {
-	fake.buildWithNameMutex.RLock()
-	defer fake.buildWithNameMutex.RUnlock()
-	return len(fake.buildWithNameArgsForCall)
+func (fake *FakePipelineDBFactory) BuildWithTeamNameAndNameCallCount() int {
+	fake.buildWithTeamNameAndNameMutex.RLock()
+	defer fake.buildWithTeamNameAndNameMutex.RUnlock()
+	return len(fake.buildWithTeamNameAndNameArgsForCall)
 }
 
-func (fake *FakePipelineDBFactory) BuildWithNameArgsForCall(i int) string {
-	fake.buildWithNameMutex.RLock()
-	defer fake.buildWithNameMutex.RUnlock()
-	return fake.buildWithNameArgsForCall[i].pipelineName
+func (fake *FakePipelineDBFactory) BuildWithTeamNameAndNameArgsForCall(i int) (string, string) {
+	fake.buildWithTeamNameAndNameMutex.RLock()
+	defer fake.buildWithTeamNameAndNameMutex.RUnlock()
+	return fake.buildWithTeamNameAndNameArgsForCall[i].teamName, fake.buildWithTeamNameAndNameArgsForCall[i].pipelineName
 }
 
-func (fake *FakePipelineDBFactory) BuildWithNameReturns(result1 db.PipelineDB, result2 error) {
-	fake.BuildWithNameStub = nil
-	fake.buildWithNameReturns = struct {
+func (fake *FakePipelineDBFactory) BuildWithTeamNameAndNameReturns(result1 db.PipelineDB, result2 error) {
+	fake.BuildWithTeamNameAndNameStub = nil
+	fake.buildWithTeamNameAndNameReturns = struct {
 		result1 db.PipelineDB
 		result2 error
 	}{result1, result2}

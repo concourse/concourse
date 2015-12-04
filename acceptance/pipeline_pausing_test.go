@@ -84,10 +84,10 @@ var _ = Describe("Pipeline Pausing", func() {
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = pipelineDBFactory.BuildWithName("some-pipeline")
+				_, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "some-pipeline")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = pipelineDBFactory.BuildWithName("another-pipeline")
+				_, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "another-pipeline")
 				Expect(err).NotTo(HaveOccurred())
 
 			})

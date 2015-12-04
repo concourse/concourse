@@ -6,7 +6,7 @@ import "github.com/pivotal-golang/lager"
 
 type PipelineDBFactory interface {
 	Build(pipeline SavedPipeline) PipelineDB
-	BuildWithName(pipelineName string) (PipelineDB, error)
+	BuildWithTeamNameAndName(teamName, pipelineName string) (PipelineDB, error)
 	BuildDefault() (PipelineDB, bool, error)
 }
 
@@ -33,8 +33,8 @@ func NewPipelineDBFactory(
 	}
 }
 
-func (pdbf *pipelineDBFactory) BuildWithName(pipelineName string) (PipelineDB, error) {
-	savedPipeline, err := pdbf.pipelinesDB.GetPipelineByName(pipelineName)
+func (pdbf *pipelineDBFactory) BuildWithTeamNameAndName(teamName, pipelineName string) (PipelineDB, error) {
+	savedPipeline, err := pdbf.pipelinesDB.GetPipelineByTeamNameAndName(teamName, pipelineName)
 	if err != nil {
 		return nil, err
 	}

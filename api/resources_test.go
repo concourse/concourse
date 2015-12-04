@@ -19,7 +19,7 @@ var _ = Describe("Resources API", func() {
 
 	BeforeEach(func() {
 		fakePipelineDB = new(dbfakes.FakePipelineDB)
-		pipelineDBFactory.BuildWithNameReturns(fakePipelineDB, nil)
+		pipelineDBFactory.BuildWithTeamNameAndNameReturns(fakePipelineDB, nil)
 	})
 
 	Describe("GET /api/v1/pipelines/:pipeline_name/resources", func() {
@@ -31,9 +31,10 @@ var _ = Describe("Resources API", func() {
 			response, err = client.Get(server.URL + "/api/v1/pipelines/a-pipeline/resources")
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-			pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+			Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+			teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 			Expect(pipelineName).To(Equal("a-pipeline"))
+			Expect(teamName).To(Equal(atc.DefaultTeamName))
 		})
 
 		Context("when getting the resource config succeeds", func() {
@@ -365,9 +366,10 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
 			})
 
 			Context("when pausing the resource succeeds", func() {
@@ -425,9 +427,10 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
 			})
 
 			Context("when unpausing the resource succeeds", func() {

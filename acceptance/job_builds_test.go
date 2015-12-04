@@ -81,7 +81,7 @@ var _ = Describe("Job Pausing", func() {
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
-				pipelineDB, err = pipelineDBFactory.BuildWithName(atc.DefaultPipelineName)
+				pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, atc.DefaultPipelineName)
 				Expect(err).NotTo(HaveOccurred())
 
 				build, err = pipelineDB.CreateJobBuild("job-name")
@@ -111,10 +111,10 @@ var _ = Describe("Job Pausing", func() {
 					},
 				}
 
-				_, err = sqlDB.SaveBuildInput(build.ID, myBuildInput)
+				_, err = sqlDB.SaveBuildInput(team.Name, build.ID, myBuildInput)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = sqlDB.SaveBuildOutput(build.ID, db.VersionedResource{
+				_, err = sqlDB.SaveBuildOutput(team.Name, build.ID, db.VersionedResource{
 					Resource:     "some-output",
 					PipelineName: atc.DefaultPipelineName,
 					Version: db.Version{

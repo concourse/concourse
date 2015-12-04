@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
 )
@@ -19,7 +20,7 @@ var _ = Describe("Versions API", func() {
 
 	BeforeEach(func() {
 		pipelineDB = new(dbfakes.FakePipelineDB)
-		pipelineDBFactory.BuildWithNameReturns(pipelineDB, nil)
+		pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
 	})
 
 	Describe("GET /api/v1/pipelines/:pipeline_name/resources/:resource_name/versions", func() {
@@ -219,9 +220,10 @@ var _ = Describe("Versions API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
 			})
 
 			Context("when enabling the resource succeeds", func() {
@@ -279,9 +281,10 @@ var _ = Describe("Versions API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithNameCallCount()).To(Equal(1))
-				pipelineName := pipelineDBFactory.BuildWithNameArgsForCall(0)
+				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
 			})
 
 			Context("when enabling the resource succeeds", func() {
