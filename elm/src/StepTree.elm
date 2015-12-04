@@ -394,6 +394,7 @@ viewStep actions {id, name, log, state, error, expanded, version, metadata, firs
     , Html.div
         [ classList
             [ ("step-body", True)
+            , ("clearfix", True)
             , ("step-collapsed", not <| Maybe.withDefault (isActive state) expanded)
             ]
         ]
