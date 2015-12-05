@@ -37,7 +37,7 @@ var _ = Describe("Builds", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			plan := fakeClient.CreateBuildArgsForCall(0)
-			for index, tag := range plan.OnSuccess.Next.Task.Tags {
+			for index, tag := range (*plan.Do)[1].Task.Tags {
 				Expect(tag).To(Equal(tags[index]))
 			}
 		})
@@ -50,7 +50,7 @@ var _ = Describe("Builds", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			plan := fakeClient.CreateBuildArgsForCall(0)
-			Expect(plan.OnSuccess.Next.Task.Tags).To(BeNil())
+			Expect((*plan.Do)[1].Task.Tags).To(BeNil())
 		})
 	})
 })
