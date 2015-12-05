@@ -113,14 +113,14 @@ func CreateBuild(
 
 	var plan atc.Plan
 	if len(buildOutputs) == 0 {
-		plan = fact.NewPlan(atc.OnSuccessPlan{
-			Step: fact.NewPlan(buildInputs),
-			Next: taskPlan,
+		plan = fact.NewPlan(atc.DoPlan{
+			fact.NewPlan(buildInputs),
+			taskPlan,
 		})
 	} else {
-		plan = fact.NewPlan(atc.OnSuccessPlan{
-			Step: fact.NewPlan(buildInputs),
-			Next: fact.NewPlan(atc.EnsurePlan{
+		plan = fact.NewPlan(atc.DoPlan{
+			fact.NewPlan(buildInputs),
+			fact.NewPlan(atc.EnsurePlan{
 				Step: taskPlan,
 				Next: fact.NewPlan(buildOutputs),
 			}),

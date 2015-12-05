@@ -81,8 +81,8 @@ run:
 
 		planFactory := atc.NewPlanFactory(0)
 
-		expectedPlan = planFactory.NewPlan(atc.OnSuccessPlan{
-			Step: planFactory.NewPlan(atc.AggregatePlan{
+		expectedPlan = planFactory.NewPlan(atc.DoPlan{
+			planFactory.NewPlan(atc.AggregatePlan{
 				planFactory.NewPlan(atc.GetPlan{
 					Name: "some-input",
 					Type: "archive",
@@ -98,7 +98,7 @@ run:
 					},
 				}),
 			}),
-			Next: planFactory.NewPlan(atc.TaskPlan{
+			planFactory.NewPlan(atc.TaskPlan{
 				Name: "one-off",
 				Config: &atc.TaskConfig{
 					Platform: "some-platform",

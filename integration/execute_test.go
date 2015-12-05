@@ -80,8 +80,8 @@ run:
 
 		planFactory := atc.NewPlanFactory(0)
 
-		expectedPlan = planFactory.NewPlan(atc.OnSuccessPlan{
-			Step: planFactory.NewPlan(atc.AggregatePlan{
+		expectedPlan = planFactory.NewPlan(atc.DoPlan{
+			planFactory.NewPlan(atc.AggregatePlan{
 				planFactory.NewPlan(atc.GetPlan{
 					Name: filepath.Base(buildDir),
 					Type: "archive",
@@ -90,7 +90,7 @@ run:
 					},
 				}),
 			}),
-			Next: planFactory.NewPlan(atc.TaskPlan{
+			planFactory.NewPlan(atc.TaskPlan{
 				Name: "one-off",
 				Config: &atc.TaskConfig{
 					Platform: "some-platform",
@@ -263,7 +263,7 @@ run: {}
 
 	Context("when arguments are passed through", func() {
 		BeforeEach(func() {
-			expectedPlan.OnSuccess.Next.Task.Config.Run.Args = []string{".", "-name", `foo "bar" baz`}
+			(*expectedPlan.Do)[1].Task.Config.Run.Args = []string{".", "-name", `foo "bar" baz`}
 		})
 
 		It("inserts them into the config template", func() {
@@ -374,14 +374,12 @@ run:
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 			})
-
 		})
-
 	})
 
 	Context("when running with --privileged", func() {
 		BeforeEach(func() {
-			expectedPlan.OnSuccess.Next.Task.Privileged = true
+			(*expectedPlan.Do)[1].Task.Privileged = true
 		})
 
 		It("inserts them into the config template", func() {
@@ -422,7 +420,7 @@ run:
 
 	Context("when parameters are specified in the environment", func() {
 		BeforeEach(func() {
-			expectedPlan.OnSuccess.Next.Task.Config.Params = map[string]string{
+			(*expectedPlan.Do)[1].Task.Config.Params = map[string]string{
 				"FOO": "newbar",
 				"BAZ": "buzz",
 				"X":   "",
@@ -550,7 +548,7 @@ run:
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			(*expectedPlan.OnSuccess.Step.Aggregate)[0].Get.Source = atc.Source{
+			(*(*expectedPlan.Do)[0].Aggregate)[0].Get.Source = atc.Source{
 				"uri":           atcServer.URL() + "/api/v1/pipes/some-pipe-id",
 				"authorization": "Bearer some-token",
 			}
