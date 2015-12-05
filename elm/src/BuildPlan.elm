@@ -21,6 +21,7 @@ type BuildStep
   | Put StepName
   | DependentGet StepName
   | Aggregate (Array BuildPlan)
+  | Do (Array BuildPlan)
   | OnSuccess HookedPlan
   | OnFailure HookedPlan
   | Ensure HookedPlan
@@ -46,6 +47,7 @@ decodePlan =
       , "put" := lazy (\_ -> decodePut)
       , "dependent_get" := lazy (\_ -> decodeDependentGet)
       , "aggregate" := lazy (\_ -> decodeAggregate)
+      , "do" := lazy (\_ -> decodeDo)
       , "on_success" := lazy (\_ -> decodeOnSuccess)
       , "on_failure" := lazy (\_ -> decodeOnFailure)
       , "ensure" := lazy (\_ -> decodeEnsure)
@@ -69,6 +71,9 @@ decodeDependentGet =
 
 decodeAggregate =
   Json.Decode.object1 Aggregate (Json.Decode.array (lazy (\_ -> decodePlan)))
+
+decodeDo =
+  Json.Decode.object1 Do (Json.Decode.array (lazy (\_ -> decodePlan)))
 
 decodeOnSuccess =
   Json.Decode.map OnSuccess <|
