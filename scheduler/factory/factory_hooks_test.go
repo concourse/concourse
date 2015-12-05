@@ -3,6 +3,7 @@ package factory_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/atc/testhelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -61,20 +62,18 @@ var _ = Describe("Factory Hooks", func() {
 			actual := buildFactory.Create(input, resources, nil)
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
-				Step: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+				Step: expectedPlanFactory.NewPlan(atc.DoPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:     "those who resist our will",
 						Pipeline: "some-pipeline",
 					}),
-					Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-						Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "those who also resist our will",
-							Pipeline: "some-pipeline",
-						}),
-						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "third task",
-							Pipeline: "some-pipeline",
-						}),
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "those who also resist our will",
+						Pipeline: "some-pipeline",
+					}),
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "third task",
+						Pipeline: "some-pipeline",
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -83,7 +82,7 @@ var _ = Describe("Factory Hooks", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 
@@ -114,12 +113,12 @@ var _ = Describe("Factory Hooks", func() {
 			actual := buildFactory.Create(input, resources, nil)
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
-				Step: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+				Step: expectedPlanFactory.NewPlan(atc.DoPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:     "those who resist our will",
 						Pipeline: "some-pipeline",
 					}),
-					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:     "those who also resist our will",
 						Pipeline: "some-pipeline",
 					}),
@@ -130,16 +129,16 @@ var _ = Describe("Factory Hooks", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 
 	Context("when I have an empty plan", func() {
-		It("returns an empty plan", func() {
+		It("returns an empty 'do' plan", func() {
 			actual := buildFactory.Create(atc.JobConfig{}, resources, nil)
 
-			expected := atc.Plan{}
-			Expect(actual).To(Equal(expected))
+			expected := atc.Plan{Do: &atc.DoPlan{}}
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 
@@ -192,7 +191,7 @@ var _ = Describe("Factory Hooks", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 
@@ -224,13 +223,15 @@ var _ = Describe("Factory Hooks", func() {
 					Name:     "some-task",
 					Pipeline: "some-pipeline",
 				}),
-				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "do-task-1",
-					Pipeline: "some-pipeline",
+				Next: expectedPlanFactory.NewPlan(atc.DoPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "do-task-1",
+						Pipeline: "some-pipeline",
+					}),
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 
@@ -275,17 +276,17 @@ var _ = Describe("Factory Hooks", func() {
 					Name:     "some-task",
 					Pipeline: "some-pipeline",
 				}),
-				Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+				Next: expectedPlanFactory.NewPlan(atc.DoPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:     "do-task-1",
 						Pipeline: "some-pipeline",
 					}),
-					Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-						Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					expectedPlanFactory.NewPlan(atc.DoPlan{
+						expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:     "do-task-2",
 							Pipeline: "some-pipeline",
 						}),
-						Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+						expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 							Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 								Name:     "do-task-3",
 								Pipeline: "some-pipeline",
@@ -299,7 +300,7 @@ var _ = Describe("Factory Hooks", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 
@@ -355,7 +356,7 @@ var _ = Describe("Factory Hooks", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 
@@ -388,7 +389,7 @@ var _ = Describe("Factory Hooks", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 
 		It("can build a job with one failure hook that has a timeout", func() {
@@ -423,7 +424,7 @@ var _ = Describe("Factory Hooks", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 
 		It("can build a job with multiple failure hooks", func() {
@@ -463,7 +464,7 @@ var _ = Describe("Factory Hooks", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 
 		It("can build a job with multiple ensure and failure hooks", func() {
@@ -503,7 +504,7 @@ var _ = Describe("Factory Hooks", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 
 		It("can build a job with failure, success and ensure hooks at the same level", func() {
@@ -547,7 +548,7 @@ var _ = Describe("Factory Hooks", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 
 		It("can build a job with multiple ensure, failure and success hooks", func() {
@@ -601,7 +602,7 @@ var _ = Describe("Factory Hooks", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 
 		Context("and multiple steps in my plan", func() {
@@ -626,8 +627,8 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				}, resources, nil)
 
-				expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-					Step: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
+					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 						Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 							Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 								Name:     "those who resist our will",
@@ -643,18 +644,16 @@ var _ = Describe("Factory Hooks", func() {
 							Pipeline: "some-pipeline",
 						}),
 					}),
-					Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-						Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "those who still resist our will",
-							Pipeline: "some-pipeline",
-						}),
-						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "shall be defeated",
-							Pipeline: "some-pipeline",
-						}),
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "those who still resist our will",
+						Pipeline: "some-pipeline",
+					}),
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "shall be defeated",
+						Pipeline: "some-pipeline",
 					}),
 				})
-				Expect(actual).To(Equal(expected))
+				Expect(actual).To(testhelpers.MatchPlan(expected))
 			})
 
 			It("can build a job with a task then a do", func() {
@@ -682,13 +681,13 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				}, resources, nil)
 
-				expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:     "those who start resisting our will",
 						Pipeline: "some-pipeline",
 					}),
-					Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-						Step: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+					expectedPlanFactory.NewPlan(atc.DoPlan{
+						expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 							Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 								Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 									Name:     "those who resist our will",
@@ -704,13 +703,13 @@ var _ = Describe("Factory Hooks", func() {
 								Pipeline: "some-pipeline",
 							}),
 						}),
-						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:     "those who used to resist our will",
 							Pipeline: "some-pipeline",
 						}),
 					}),
 				})
-				Expect(actual).To(Equal(expected))
+				Expect(actual).To(testhelpers.MatchPlan(expected))
 			})
 
 			It("can build a job with a do then a task", func() {
@@ -732,25 +731,25 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				}, resources, nil)
 
-				expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-					Step: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-						Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
+					expectedPlanFactory.NewPlan(atc.DoPlan{
+						expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:     "those who resist our will",
 							Pipeline: "some-pipeline",
 						}),
-						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+						expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:     "those who used to resist our will",
 							Pipeline: "some-pipeline",
 						}),
 					}),
 
-					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:     "those who start resisting our will",
 						Pipeline: "some-pipeline",
 					}),
 				})
 
-				Expect(actual).To(Equal(expected))
+				Expect(actual).To(testhelpers.MatchPlan(expected))
 			})
 		})
 	})

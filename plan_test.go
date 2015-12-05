@@ -192,6 +192,22 @@ var _ = Describe("Plan", func() {
 						Duration: "lol",
 					},
 				},
+
+				atc.Plan{
+					ID: "20",
+					Do: &atc.DoPlan{
+						atc.Plan{
+							ID: "21",
+							Task: &atc.TaskPlan{
+								Name:       "name",
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									Params: map[string]string{"some": "secret"},
+								},
+							},
+						},
+					},
+				},
 			},
 		}
 
@@ -327,6 +343,18 @@ var _ = Describe("Plan", func() {
         },
         "duration": "lol"
       }
+    },
+    {
+      "id": "20",
+      "do": [
+        {
+          "id": "21",
+          "task": {
+            "name": "name",
+            "privileged": false
+          }
+        }
+      ]
     }
   ]
 }

@@ -32,6 +32,7 @@ type StepTree
   | Put Step
   | DependentGet Step
   | Aggregate (Array StepTree)
+  | Do (Array StepTree)
   | OnSuccess HookedStep
   | OnFailure HookedStep
   | Ensure HookedStep
@@ -104,10 +105,20 @@ init resources plan =
         inited = Array.map (init resources) plans
         trees = Array.map .tree inited
         subFoci = Array.map .foci inited
-        wrappedSubFoci = Array.indexedMap wrapAgg subFoci
+        wrappedSubFoci = Array.indexedMap wrapMultiStep subFoci
         foci = Array.foldr Dict.union Dict.empty wrappedSubFoci
       in
         Root (Aggregate trees) foci
+
+    BuildPlan.Do plans ->
+      let
+        inited = Array.map (init resources) plans
+        trees = Array.map .tree inited
+        subFoci = Array.map .foci inited
+        wrappedSubFoci = Array.indexedMap wrapMultiStep subFoci
+        foci = Array.foldr Dict.union Dict.empty wrappedSubFoci
+      in
+        Root (Do trees) foci
 
     BuildPlan.OnSuccess hookedPlan ->
       initHookedStep resources OnSuccess hookedPlan
@@ -218,8 +229,8 @@ initHookedStep resources create hookedPlan =
         (Dict.map wrapHook hookRoot.foci)
     }
 
-wrapAgg : Int -> Dict StepID StepFocus -> Dict StepID StepFocus
-wrapAgg i = Dict.map (\_ focus -> Focus.create (getAggIndex i) (setAggIndex i) => focus)
+wrapMultiStep : Int -> Dict StepID StepFocus -> Dict StepID StepFocus
+wrapMultiStep i = Dict.map (\_ focus -> Focus.create (getMultiStepIndex i) (setMultiStepIndex i) => focus)
 
 wrapStep : StepID -> StepFocus -> StepFocus
 wrapStep id subFocus =
@@ -301,25 +312,35 @@ updateHook update tree =
     _ ->
       Debug.crash "impossible"
 
-getAggIndex : Int -> StepTree -> StepTree
-getAggIndex idx tree =
-  case tree of
-    Aggregate trees ->
-      case Array.get idx trees of
-        Just sub ->
-          sub
+getMultiStepIndex : Int -> StepTree -> StepTree
+getMultiStepIndex idx tree =
+  let
+    steps =
+      case tree of
+        Aggregate trees ->
+          trees
 
-        Nothing ->
+        Do trees ->
+          trees
+
+        _ ->
           Debug.crash "impossible"
+  in
+    case Array.get idx steps of
+      Just sub ->
+        sub
 
-    _ ->
-      Debug.crash "impossible"
+      Nothing ->
+        Debug.crash "impossible"
 
-setAggIndex : Int -> (StepTree -> StepTree) -> StepTree -> StepTree
-setAggIndex idx update tree =
+setMultiStepIndex : Int -> (StepTree -> StepTree) -> StepTree -> StepTree
+setMultiStepIndex idx update tree =
   case tree of
     Aggregate trees ->
-      Aggregate (Array.set idx (update (getAggIndex idx tree)) trees)
+      Aggregate (Array.set idx (update (getMultiStepIndex idx tree)) trees)
+
+    Do trees ->
+      Do (Array.set idx (update (getMultiStepIndex idx tree)) trees)
 
     _ ->
       Debug.crash "impossible"
@@ -347,6 +368,10 @@ view actions tree =
 
     Aggregate steps ->
       Html.div [class "aggregate"]
+        (Array.toList <| Array.map (viewSeq actions) steps)
+
+    Do steps ->
+      Html.div [class "do"]
         (Array.toList <| Array.map (viewSeq actions) steps)
 
     OnSuccess {step, hook} ->

@@ -21,6 +21,21 @@ func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) e
 	return step
 }
 
+func (build *execBuild) buildDoStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
+	logger = logger.Session("do")
+
+	var step exec.StepFactory
+
+	step = exec.Identity{}
+
+	for i := len(*plan.Do) - 1; i >= 0; i-- {
+		previous := build.buildStepFactory(logger, (*plan.Do)[i])
+		step = exec.OnSuccess(previous, step)
+	}
+
+	return step
+}
+
 func (build *execBuild) buildTimeoutStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
 	step := build.buildStepFactory(logger, plan.Timeout.Step)
 	return exec.Timeout(step, plan.Timeout.Duration, clock.NewClock())

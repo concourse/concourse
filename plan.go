@@ -4,6 +4,7 @@ type Plan struct {
 	ID PlanID `json:"id"`
 
 	Aggregate    *AggregatePlan    `json:"aggregate,omitempty"`
+	Do           *DoPlan           `json:"do,omitempty"`
 	Get          *GetPlan          `json:"get,omitempty"`
 	Put          *PutPlan          `json:"put,omitempty"`
 	Task         *TaskPlan         `json:"task,omitempty"`
@@ -64,6 +65,8 @@ type TryPlan struct {
 }
 
 type AggregatePlan []Plan
+
+type DoPlan []Plan
 
 type GetPlan struct {
 	Type     string  `json:"type"`

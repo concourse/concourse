@@ -3,15 +3,12 @@ package factory_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Factory Put", func() {
-
-	// Due to the fact that DependentGet steps do not exist when we normally
-	// bind locations, we bind them at the point we convert to a build plan -
-	// so they have to be tested here, not in the LocationPopulator test
 	Describe("Put/DependentGet locations", func() {
 		var (
 			buildFactory factory.BuildFactory
@@ -71,7 +68,7 @@ var _ = Describe("Factory Put", func() {
 						},
 					}),
 				})
-				Expect(actual).To(Equal(expected))
+				Expect(actual).To(testhelpers.MatchPlan(expected))
 			})
 		})
 	})
@@ -135,7 +132,7 @@ var _ = Describe("Factory Put", func() {
 						},
 					}),
 				})
-				Expect(actual).To(Equal(expected))
+				Expect(actual).To(testhelpers.MatchPlan(expected))
 			})
 		})
 
@@ -175,7 +172,7 @@ var _ = Describe("Factory Put", func() {
 						}),
 					}),
 				})
-				Expect(actual).To(Equal(expected))
+				Expect(actual).To(testhelpers.MatchPlan(expected))
 			})
 		})
 
@@ -218,7 +215,7 @@ var _ = Describe("Factory Put", func() {
 						}),
 					}),
 				})
-				Expect(actual).To(Equal(expected))
+				Expect(actual).To(testhelpers.MatchPlan(expected))
 			})
 		})
 
@@ -240,12 +237,12 @@ var _ = Describe("Factory Put", func() {
 			It("returns the correct plan", func() {
 				actual := buildFactory.Create(input, resources, nil)
 
-				expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:     "some-task",
 						Pipeline: "some-pipeline",
 					}),
-					Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 						Step: expectedPlanFactory.NewPlan(atc.PutPlan{
 							Name:     "money",
 							Resource: "power",
@@ -259,7 +256,7 @@ var _ = Describe("Factory Put", func() {
 					}),
 				})
 
-				Expect(actual).To(Equal(expected))
+				Expect(actual).To(testhelpers.MatchPlan(expected))
 			})
 		})
 
@@ -281,35 +278,33 @@ var _ = Describe("Factory Put", func() {
 			})
 
 			It("returns the correct plan", func() {
-				expectedPlan := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+				expectedPlan := expectedPlanFactory.NewPlan(atc.DoPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:     "those who resist our will",
 						Pipeline: "some-pipeline",
 					}),
-					Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-						Step: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-							Step: expectedPlanFactory.NewPlan(atc.PutPlan{
-								Name:     "some-other-other-resource",
-								Resource: "some-other-other-resource",
-								Pipeline: "some-pipeline",
-								Params:   nil,
-							}),
-							Next: expectedPlanFactory.NewPlan(atc.DependentGetPlan{
-								Name:     "some-other-other-resource",
-								Resource: "some-other-other-resource",
-								Pipeline: "some-pipeline",
-							}),
+					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
+						Step: expectedPlanFactory.NewPlan(atc.PutPlan{
+							Name:     "some-other-other-resource",
+							Resource: "some-other-other-resource",
+							Pipeline: "some-pipeline",
+							Params:   nil,
 						}),
-						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "some-other-task",
+						Next: expectedPlanFactory.NewPlan(atc.DependentGetPlan{
+							Name:     "some-other-other-resource",
+							Resource: "some-other-other-resource",
 							Pipeline: "some-pipeline",
 						}),
+					}),
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "some-other-task",
+						Pipeline: "some-pipeline",
 					}),
 				})
 
 				actual := buildFactory.Create(input, resources, nil)
 
-				Expect(actual).To(Equal(expectedPlan))
+				Expect(actual).To(testhelpers.MatchPlan(expectedPlan))
 			})
 		})
 	})

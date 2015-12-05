@@ -7,6 +7,7 @@ func (plan Plan) Public() *json.RawMessage {
 		ID PlanID `json:"id"`
 
 		Aggregate    *json.RawMessage `json:"aggregate,omitempty"`
+		Do           *json.RawMessage `json:"do,omitempty"`
 		Get          *json.RawMessage `json:"get,omitempty"`
 		Put          *json.RawMessage `json:"put,omitempty"`
 		Task         *json.RawMessage `json:"task,omitempty"`
@@ -22,6 +23,10 @@ func (plan Plan) Public() *json.RawMessage {
 
 	if plan.Aggregate != nil {
 		public.Aggregate = plan.Aggregate.Public()
+	}
+
+	if plan.Do != nil {
+		public.Do = plan.Do.Public()
 	}
 
 	if plan.Get != nil {
@@ -64,6 +69,16 @@ func (plan Plan) Public() *json.RawMessage {
 }
 
 func (plan AggregatePlan) Public() *json.RawMessage {
+	public := make([]*json.RawMessage, len(plan))
+
+	for i := 0; i < len(plan); i++ {
+		public[i] = plan[i].Public()
+	}
+
+	return enc(public)
+}
+
+func (plan DoPlan) Public() *json.RawMessage {
 	public := make([]*json.RawMessage, len(plan))
 
 	for i := 0; i < len(plan); i++ {

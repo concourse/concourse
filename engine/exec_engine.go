@@ -160,6 +160,10 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 		return build.buildAggregateStep(logger, plan)
 	}
 
+	if plan.Do != nil {
+		return build.buildDoStep(logger, plan)
+	}
+
 	if plan.Timeout != nil {
 		return build.buildTimeoutStep(logger, plan)
 	}

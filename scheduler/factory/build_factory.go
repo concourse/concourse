@@ -42,37 +42,35 @@ func (factory *buildFactory) constructPlanFromSequence(
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
 ) atc.Plan {
-	if len(planSequence) == 0 {
-		return atc.Plan{}
-	}
-
-	plan := factory.constructPlanFromConfig(
-		planSequence[0],
-		resources,
-		inputs,
-	)
-
 	if len(planSequence) == 1 {
-		return plan
-	}
-
-	if plan.OnSuccess != nil && (plan.OnSuccess.Next == atc.Plan{}) {
-		plan.OnSuccess.Next = factory.constructPlanFromSequence(
-			planSequence[1:],
+		return factory.constructPlanFromConfig(
+			planSequence[0],
 			resources,
 			inputs,
 		)
-		return plan
-	} else {
-		return factory.planFactory.NewPlan(atc.OnSuccessPlan{
-			Step: plan,
-			Next: factory.constructPlanFromSequence(
-				planSequence[1:],
-				resources,
-				inputs,
-			),
-		})
 	}
+
+	return factory.do(planSequence, resources, inputs)
+}
+
+func (factory *buildFactory) do(
+	planSequence atc.PlanSequence,
+	resources atc.ResourceConfigs,
+	inputs []db.BuildInput,
+) atc.Plan {
+	do := atc.DoPlan{}
+
+	for _, planConfig := range planSequence {
+		nextStep := factory.constructPlanFromConfig(
+			planConfig,
+			resources,
+			inputs,
+		)
+
+		do = append(do, nextStep)
+	}
+
+	return factory.planFactory.NewPlan(do)
 }
 
 func (factory *buildFactory) constructPlanFromConfig(
@@ -84,7 +82,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 
 	switch {
 	case planConfig.Do != nil:
-		plan = factory.constructPlanFromSequence(
+		plan = factory.do(
 			*planConfig.Do,
 			resources,
 			inputs,

@@ -27,6 +27,8 @@ func (factory PlanFactory) NewPlan(step Step) Plan {
 	switch t := step.(type) {
 	case AggregatePlan:
 		plan.Aggregate = &t
+	case DoPlan:
+		plan.Do = &t
 	case GetPlan:
 		plan.Get = &t
 	case PutPlan:
@@ -46,7 +48,7 @@ func (factory PlanFactory) NewPlan(step Step) Plan {
 	case TimeoutPlan:
 		plan.Timeout = &t
 	default:
-		panic("huh.")
+		panic(fmt.Sprintf("don't know how to construct plan from %T", step))
 	}
 
 	plan.ID = PlanID(fmt.Sprintf("%x", num))

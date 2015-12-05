@@ -3,6 +3,7 @@ package factory_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/atc/testhelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,20 +37,20 @@ var _ = Describe("Factory Try Step", func() {
 				},
 			}, nil, nil)
 
-			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-				Step: expectedPlanFactory.NewPlan(atc.TryPlan{
+			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
+				expectedPlanFactory.NewPlan(atc.TryPlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:     "first task",
 						Pipeline: "some-pipeline",
 					}),
 				}),
-				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+				expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:     "second task",
 					Pipeline: "some-pipeline",
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 
@@ -81,7 +82,7 @@ var _ = Describe("Factory Try Step", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 })

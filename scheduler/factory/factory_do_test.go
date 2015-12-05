@@ -3,6 +3,7 @@ package factory_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/scheduler/factory"
+	"github.com/concourse/atc/testhelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -56,23 +57,23 @@ var _ = Describe("Factory Do", func() {
 				},
 			}, resources, nil)
 
-			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
+				expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:     "some thing",
 					Pipeline: "some-pipeline",
 				}),
-				Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "some thing-2",
-						Pipeline: "some-pipeline",
-					}),
-					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+				expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:     "some thing-2",
+					Pipeline: "some-pipeline",
+				}),
+				expectedPlanFactory.NewPlan(atc.DoPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:     "some other thing",
 						Pipeline: "some-pipeline",
 					}),
 				}),
 			})
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 
@@ -100,25 +101,23 @@ var _ = Describe("Factory Do", func() {
 				},
 			}, resources, nil)
 
-			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
+				expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:     "some thing",
 					Pipeline: "some-pipeline",
 				}),
-				Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-					Step: expectedPlanFactory.NewPlan(atc.AggregatePlan{
-						expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "some other thing",
-							Pipeline: "some-pipeline",
-						}),
-					}),
-					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "some thing-2",
+				expectedPlanFactory.NewPlan(atc.AggregatePlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "some other thing",
 						Pipeline: "some-pipeline",
 					}),
 				}),
+				expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:     "some thing-2",
+					Pipeline: "some-pipeline",
+				}),
 			})
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 
@@ -156,14 +155,16 @@ var _ = Describe("Factory Do", func() {
 						Name:     "some thing",
 						Pipeline: "some-pipeline",
 					}),
-					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "some other thing",
-						Pipeline: "some-pipeline",
+					expectedPlanFactory.NewPlan(atc.DoPlan{
+						expectedPlanFactory.NewPlan(atc.TaskPlan{
+							Name:     "some other thing",
+							Pipeline: "some-pipeline",
+						}),
 					}),
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 
@@ -199,12 +200,12 @@ var _ = Describe("Factory Do", func() {
 					Name:     "some thing",
 					Pipeline: "some-pipeline",
 				}),
-				expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
+				expectedPlanFactory.NewPlan(atc.DoPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:     "some other thing",
 						Pipeline: "some-pipeline",
 					}),
-					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:     "some other thing-2",
 						Pipeline: "some-pipeline",
 					}),
@@ -215,7 +216,7 @@ var _ = Describe("Factory Do", func() {
 				}),
 			})
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
 	})
 })
