@@ -30,6 +30,12 @@ type alias BuildOutput =
 type alias BuildId =
   Int
 
+empty : BuildResources
+empty =
+  { inputs = []
+  , outputs = []
+  }
+
 fetch : BuildId -> Task Http.Error BuildResources
 fetch buildId =
   Http.get decode ("/api/v1/builds/" ++ toString buildId ++ "/resources")
