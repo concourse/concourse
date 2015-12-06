@@ -28,20 +28,28 @@ all =
     ]
 
 someStep : StepTree.StepID -> StepTree.StepName -> StepTree.StepState -> StepTree.Step
-someStep id name state =
+someStep = someVersionedStep Nothing
+
+someVersionedStep : Maybe BuildPlan.Version -> StepTree.StepID -> StepTree.StepName -> StepTree.StepState -> StepTree.Step
+someVersionedStep version id name state =
   { id = id
   , name = name
   , state = state
   , log = cookedLog
   , error = Nothing
-  , expanded = True
+  , expanded = Nothing
+  , version = version
+  , metadata = []
+  , firstOccurrence = False
   }
+
+emptyResources = { inputs = [], outputs = [] }
 
 initTask : Test
 initTask =
   let
     {tree, foci} =
-      StepTree.init
+      StepTree.init emptyResources
         { id = "some-id"
         , step = BuildPlan.Task "some-name"
         }
@@ -62,7 +70,7 @@ initGet =
   let
     version = Dict.fromList [("some", "version")]
     {tree, foci} =
-      StepTree.init
+      StepTree.init emptyResources
         { id = "some-id"
         , step = BuildPlan.Get "some-name" (Just version)
         }
@@ -70,19 +78,19 @@ initGet =
     suite "init with Get"
       [ test "the tree" <|
           assertEqual
-            (StepTree.Get (someStep "some-id" "some-name" StepTree.StepStatePending) (Just version))
+            (StepTree.Get (someVersionedStep (Just version) "some-id" "some-name" StepTree.StepStatePending))
             tree
       , test "using the focus" <|
           assertFocus "some-id" foci tree
             (\s -> { s | state = StepTree.StepStateSucceeded })
-            (StepTree.Get (someStep "some-id" "some-name" StepTree.StepStateSucceeded) (Just version))
+            (StepTree.Get (someVersionedStep (Just version) "some-id" "some-name" StepTree.StepStateSucceeded))
       ]
 
 initPut : Test
 initPut =
   let
     {tree, foci} =
-      StepTree.init
+      StepTree.init emptyResources
         { id = "some-id"
         , step = BuildPlan.Put "some-name"
         }
@@ -102,7 +110,7 @@ initDependentGet : Test
 initDependentGet =
   let
     {tree, foci} =
-      StepTree.init
+      StepTree.init emptyResources
         { id = "some-id"
         , step = BuildPlan.DependentGet "some-name"
         }
@@ -122,7 +130,7 @@ initAggregate : Test
 initAggregate =
   let
     {tree, foci} =
-      StepTree.init
+      StepTree.init emptyResources
         { id = "aggregate-id"
         , step =
             BuildPlan.Aggregate << Array.fromList <|
@@ -152,7 +160,7 @@ initAggregateNested : Test
 initAggregateNested =
   let
     {tree, foci} =
-      StepTree.init
+      StepTree.init emptyResources
         { id = "aggregate-id"
         , step =
             BuildPlan.Aggregate << Array.fromList <|
@@ -197,7 +205,7 @@ initOnSuccess : Test
 initOnSuccess =
   let
     {tree, foci} =
-      StepTree.init
+      StepTree.init emptyResources
         { id = "on-success-id"
         , step =
             BuildPlan.OnSuccess <| BuildPlan.HookedPlan
@@ -230,7 +238,7 @@ initOnFailure : Test
 initOnFailure =
   let
     {tree, foci} =
-      StepTree.init
+      StepTree.init emptyResources
         { id = "on-success-id"
         , step =
             BuildPlan.OnFailure <| BuildPlan.HookedPlan
@@ -263,7 +271,7 @@ initEnsure : Test
 initEnsure =
   let
     {tree, foci} =
-      StepTree.init
+      StepTree.init emptyResources
         { id = "on-success-id"
         , step =
             BuildPlan.Ensure <| BuildPlan.HookedPlan
@@ -296,7 +304,7 @@ initTry : Test
 initTry =
   let
     {tree, foci} =
-      StepTree.init
+      StepTree.init emptyResources
         { id = "on-success-id"
         , step =
             BuildPlan.Try { id = "task-a-id", step = BuildPlan.Task "task-a" }
@@ -319,7 +327,7 @@ initTimeout : Test
 initTimeout =
   let
     {tree, foci} =
-      StepTree.init
+      StepTree.init emptyResources
         { id = "on-success-id"
         , step =
             BuildPlan.Timeout { id = "task-a-id", step = BuildPlan.Task "task-a" }
@@ -345,8 +353,8 @@ updateStep f tree =
     StepTree.Task step ->
       StepTree.Task (f step)
 
-    StepTree.Get step version ->
-      StepTree.Get (f step) version
+    StepTree.Get step ->
+      StepTree.Get (f step)
 
     StepTree.Put step ->
       StepTree.Put (f step)
