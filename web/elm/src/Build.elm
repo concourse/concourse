@@ -14,12 +14,14 @@ import Json.Decode exposing ((:=))
 import Task exposing (Task)
 import Time exposing (Time)
 
-import BuildEvent exposing (BuildEvent)
-import BuildPlan exposing (BuildPlan)
-import BuildResources exposing (BuildResources)
+import Concourse.Build exposing (Build)
+import Concourse.BuildPlan exposing (BuildPlan)
+import Concourse.BuildResources exposing (BuildResources)
+import Concourse.BuildStatus exposing (BuildStatus)
+import Concourse.Pagination exposing (Paginated)
+import Concourse.BuildEvents exposing (BuildEvent)
 import Scroll
 import StepTree exposing (StepTree)
-import Pagination exposing (Pagination)
 import Duration exposing (Duration)
 
 type alias Model =
@@ -32,7 +34,7 @@ type alias Model =
   , history : Maybe (List Build)
   , eventSource : Maybe EventSource
   , stepState : StepRenderingState
-  , status : BuildEvent.BuildStatus
+  , status : BuildStatus
   , autoScroll : Bool
   , now : Time.Time
   , duration : BuildDuration
@@ -41,19 +43,6 @@ type alias Model =
 type alias BuildDuration =
   { startedAt : Maybe Date
   , finishedAt : Maybe Date
-  }
-
-type alias Build =
-  { id : Int
-  , name : String
-  , status : String
-  , job : Maybe Job
-  , url : String
-  }
-
-type alias Job =
-  { name : String
-  , pipelineName : String
   }
 
 type StepRenderingState
@@ -66,24 +55,21 @@ type Action
   = Noop
   | PlanAndResourcesFetched (Result Http.Error (BuildPlan, BuildResources))
   | BuildFetched (Result Http.Error Build)
-  | BuildHistoryFetched (Result Http.Error BuildHistory)
-  | Listening EventSource
-  | EventSourceOpened
-  | EventSourceErrored
-  | Event (Result String BuildEvent)
-  | EndOfEvents
-  | EventSourceClosed
+  | BuildHistoryFetched (Result Http.Error (Paginated Build))
+  | BuildEventsListening EventSource
+  | BuildEventsAction Concourse.BuildEvents.Action
+  -- | EventSourceOpened
+  -- | EventSourceErrored
+  -- | Event (Result String BuildEvent)
+  | BuildEventsClosed
   | ScrollTick
   | ScrollFromBottom Int
   | ScrollBuilds (Float, Float)
   | StepTreeAction StepTree.Action
   | ClockTick Time.Time
   | AbortBuild
-  | BuildAborted (Result Http.RawError Http.Response)
+  | BuildAborted (Result Http.Error ())
   | Deferred (Effects Action)
-
-type alias BuildHistory =
-  Pagination.Paginated Build
 
 init : Signal.Address String -> Signal.Address Action -> Int -> (Model, Effects Action)
 init redirect actions buildId =
@@ -99,7 +85,7 @@ init redirect actions buildId =
       , eventSource = Nothing
       , stepState = StepsLoading
       , autoScroll = True
-      , status = BuildEvent.BuildStatusPending
+      , status = Concourse.BuildStatus.Pending
       , now = 0
       , duration = BuildDuration Nothing Nothing
       }
@@ -127,17 +113,15 @@ update action model =
     AbortBuild ->
       (model, abortBuild model.buildId)
 
+    BuildAborted (Ok ()) ->
+      (model, Effects.none)
+
+    BuildAborted (Err (Http.BadResponse 401 _)) ->
+      (model, redirectToLogin model)
+
     BuildAborted (Err err) ->
       Debug.log ("failed to abort build: " ++ toString err) <|
         (model, Effects.none)
-
-    BuildAborted (Ok {status}) ->
-      case status of
-        401 ->
-          (model, redirectToLogin model)
-
-        _ ->
-          (model, Effects.none)
 
     BuildFetched (Err err) ->
       Debug.log ("failed to fetch build: " ++ toString err) <|
@@ -145,20 +129,18 @@ update action model =
 
     BuildFetched (Ok build) ->
       let
-        status = toStatus build.status
-        pending = status == BuildEvent.BuildStatusPending
+        pending =
+          build.status == Concourse.BuildStatus.Pending
+
         stepState =
-          case status of
-            BuildEvent.BuildStatusPending ->
-              StepsLiveUpdating
-            BuildEvent.BuildStatusStarted ->
-              StepsLiveUpdating
-            _ ->
-              StepsLoading
+          if isRunning build.status then
+            StepsLiveUpdating
+          else
+            StepsLoading
       in
         ( { model
           | build = Just build
-          , status = status
+          , status = build.status
           , stepState = stepState
           }
         , let
@@ -228,13 +210,36 @@ update action model =
     Deferred effects ->
       (model, effects)
 
-    Listening es ->
+    BuildEventsListening es ->
       ({ model | eventSource = Just es }, Effects.none)
 
-    EventSourceOpened ->
+    BuildEventsAction action ->
+      handleEventsAction action model
+
+    BuildEventsClosed ->
+      ({ model | eventSource = Nothing }, Effects.none)
+
+    StepTreeAction action ->
+      ( { model | stepRoot = Maybe.map (StepTree.update action) model.stepRoot }
+      , Effects.none
+      )
+
+    ScrollBuilds (0, deltaY) ->
+      (model, scrollBuilds deltaY)
+
+    ScrollBuilds (deltaX, _) ->
+      (model, scrollBuilds -deltaX)
+
+    ClockTick now ->
+      ({ model | now = now }, Effects.none)
+
+handleEventsAction : Concourse.BuildEvents.Action -> Model -> (Model, Effects Action)
+handleEventsAction action model =
+  case action of
+    Concourse.BuildEvents.Opened ->
       (model, scrollToBottom)
 
-    EventSourceErrored ->
+    Concourse.BuildEvents.Errored ->
       let
         newState =
           case model.stepState of
@@ -260,42 +265,59 @@ update action model =
       in
         ({ model | stepState = newState }, Effects.none)
 
-    Event (Ok (BuildEvent.Log origin output)) ->
+    Concourse.BuildEvents.Event (Ok event) ->
+      handleEvent event model
+
+    Concourse.BuildEvents.Event (Err err) ->
+      (model, Debug.log err Effects.none)
+
+    Concourse.BuildEvents.End ->
+      case model.eventSource of
+        Just es ->
+          ({ model | stepState = StepsComplete }, closeEvents es)
+
+        Nothing ->
+          (model, Effects.none)
+
+handleEvent : Concourse.BuildEvents.BuildEvent -> Model -> (Model, Effects Action)
+handleEvent event model =
+  case event of
+    Concourse.BuildEvents.Log origin output ->
       ( updateStep origin.id (setRunning << appendStepLog output) model
       , Effects.tick (always ScrollTick)
       )
 
-    Event (Ok (BuildEvent.Error origin message)) ->
+    Concourse.BuildEvents.Error origin message ->
       ( updateStep origin.id (setStepError message) model
       , Effects.none
       )
 
-    Event (Ok (BuildEvent.InitializeTask origin)) ->
+    Concourse.BuildEvents.InitializeTask origin ->
       ( updateStep origin.id setRunning model
       , Effects.none
       )
 
-    Event (Ok (BuildEvent.StartTask origin)) ->
+    Concourse.BuildEvents.StartTask origin ->
       ( updateStep origin.id setRunning model
       , Effects.none
       )
 
-    Event (Ok (BuildEvent.FinishTask origin exitStatus)) ->
+    Concourse.BuildEvents.FinishTask origin exitStatus ->
       ( updateStep origin.id (finishStep exitStatus) model
       , Effects.none
       )
 
-    Event (Ok (BuildEvent.FinishGet origin exitStatus version metadata)) ->
+    Concourse.BuildEvents.FinishGet origin exitStatus version metadata ->
       ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
       , Effects.none
       )
 
-    Event (Ok (BuildEvent.FinishPut origin exitStatus version metadata)) ->
+    Concourse.BuildEvents.FinishPut origin exitStatus version metadata ->
       ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
       , Effects.none
       )
 
-    Event (Ok (BuildEvent.BuildStatus status date)) ->
+    Concourse.BuildEvents.BuildStatus status date ->
       ( updateStartFinishAt status date <|
           case model.stepState of
             StepsLiveUpdating ->
@@ -306,7 +328,7 @@ update action model =
       , Effects.none
       )
 
-    Event (Ok (BuildEvent.BuildError message)) ->
+    Concourse.BuildEvents.BuildError message ->
       ( { model |
           errors =
             Just <|
@@ -316,41 +338,13 @@ update action model =
       , Effects.none
       )
 
-    Event (Err e) ->
-      (model, Debug.log e Effects.none)
-
-    StepTreeAction action ->
-      ( { model | stepRoot = Maybe.map (StepTree.update action) model.stepRoot }
-      , Effects.none
-      )
-
-    ScrollBuilds (0, deltaY) ->
-      (model, scrollBuilds deltaY)
-
-    ScrollBuilds (deltaX, _) ->
-      (model, scrollBuilds -deltaX)
-
-    ClockTick now ->
-      ({ model | now = now }, Effects.none)
-
-    EndOfEvents ->
-      case model.eventSource of
-        Just es ->
-          ({ model | stepState = StepsComplete }, closeEvents es)
-
-        Nothing ->
-          (model, Effects.none)
-
-    EventSourceClosed ->
-      ({ model | eventSource = Nothing }, Effects.none)
-
-updateStartFinishAt : BuildEvent.BuildStatus -> Date -> Model -> Model
+updateStartFinishAt : BuildStatus -> Date -> Model -> Model
 updateStartFinishAt status date model =
   let
     duration = model.duration
   in
     case status of
-      BuildEvent.BuildStatusStarted ->
+      Concourse.BuildStatus.Started ->
         { model | duration = { duration | startedAt = Just date } }
 
       _ ->
@@ -358,12 +352,7 @@ updateStartFinishAt status date model =
 
 abortBuild : Int -> Effects Action
 abortBuild buildId =
-  Http.send Http.defaultSettings
-    { verb = "POST"
-    , headers = []
-    , url = "/api/v1/builds/" ++ toString buildId ++ "/abort"
-    , body = Http.empty
-    }
+  Concourse.Build.abort buildId
     |> Task.toResult
     |> Task.map BuildAborted
     |> Effects.task
@@ -400,7 +389,7 @@ finishStep exitStatus tree =
   in
     setStepState stepState tree
 
-setResourceInfo : BuildEvent.Version -> BuildEvent.Metadata -> StepTree -> StepTree
+setResourceInfo : Concourse.BuildEvents.Version -> Concourse.BuildEvents.Metadata -> StepTree -> StepTree
 setResourceInfo version metadata tree =
   StepTree.map (\step -> { step | version = Just version, metadata = metadata }) tree
 
@@ -501,7 +490,7 @@ viewLoginButton build =
     , Html.input
         [ Html.Attributes.type' "hidden"
         , Html.Attributes.name "redirect"
-        , Html.Attributes.value (buildUrl build)
+        , Html.Attributes.value (Concourse.Build.url build)
         ] []
     ]
 
@@ -515,40 +504,40 @@ paddingClass build =
       [class "build-body-noSubHeader"]
 
 
-statusClass : BuildEvent.BuildStatus -> String
+statusClass : BuildStatus -> String
 statusClass status =
   case status of
-    BuildEvent.BuildStatusPending ->
+    Concourse.BuildStatus.Pending ->
       "pending"
 
-    BuildEvent.BuildStatusStarted ->
+    Concourse.BuildStatus.Started ->
       "started"
 
-    BuildEvent.BuildStatusSucceeded ->
+    Concourse.BuildStatus.Succeeded ->
       "succeeded"
 
-    BuildEvent.BuildStatusFailed ->
+    Concourse.BuildStatus.Failed ->
       "failed"
 
-    BuildEvent.BuildStatusErrored ->
+    Concourse.BuildStatus.Errored ->
       "errored"
 
-    BuildEvent.BuildStatusAborted ->
+    Concourse.BuildStatus.Aborted ->
       "aborted"
 
-isRunning : BuildEvent.BuildStatus -> Bool
+isRunning : BuildStatus -> Bool
 isRunning status =
   case status of
-    BuildEvent.BuildStatusPending ->
+    Concourse.BuildStatus.Pending ->
       True
 
-    BuildEvent.BuildStatusStarted ->
+    Concourse.BuildStatus.Started ->
       True
 
     _ ->
       False
 
-viewBuildHeader : Signal.Address Action -> Build -> BuildEvent.BuildStatus -> Time.Time -> BuildDuration -> List Build -> Html
+viewBuildHeader : Signal.Address Action -> Build -> BuildStatus -> Time.Time -> BuildDuration -> List Build -> Html
 viewBuildHeader actions build status now duration history =
   let
     triggerButton = case build.job of
@@ -643,28 +632,29 @@ decodeScrollEvent =
     ("deltaX" := Json.Decode.float)
     ("deltaY" := Json.Decode.float)
 
-renderHistory : Build -> BuildEvent.BuildStatus -> Build -> Html
+renderHistory : Build -> BuildStatus -> Build -> Html
 renderHistory currentBuild currentStatus build =
   Html.li
     [ classList
         [ ( if build.name == currentBuild.name then
               statusClass currentStatus
             else
-              build.status
+              statusClass build.status
           , True
           )
         , ("current", build.name == currentBuild.name)
         ]
     ]
-    [ Html.a [href build.url] [ Html.text ("#" ++ build.name) ] ]
+    [ Html.a [href (Concourse.Build.url build)] [ Html.text ("#" ++ build.name) ] ]
 
 fetchBuildPlanAndResources : Int -> Effects Action
 fetchBuildPlanAndResources buildId =
   let
     getPlan =
-      Http.get BuildPlan.decode ("/api/v1/builds/" ++ toString buildId ++ "/plan")
+      Concourse.BuildPlan.fetch buildId
+
     getResources =
-      Http.get BuildResources.decode ("/api/v1/builds/" ++ toString buildId ++ "/resources")
+      Concourse.BuildResources.fetch buildId
   in
     Task.map2 (,) getPlan getResources
       |> Task.toResult
@@ -675,7 +665,7 @@ fetchBuildPlan : Int -> Effects Action
 fetchBuildPlan buildId =
   let
     getPlan =
-      Http.get BuildPlan.decode ("/api/v1/builds/" ++ toString buildId ++ "/plan")
+      Concourse.BuildPlan.fetch buildId
   in
     Task.map (flip (,) { inputs = [], outputs = [] }) getPlan
       |> Task.toResult
@@ -684,71 +674,29 @@ fetchBuildPlan buildId =
 
 fetchBuild : Time -> Int -> Effects Action
 fetchBuild delay buildId =
-  let
-    fetch =
-      Http.get decode ("/api/v1/builds/" ++ toString buildId)
-        |> Task.toResult
-        |> Task.map BuildFetched
-  in
-    Effects.task (Task.sleep delay `Task.andThen` \_ -> fetch)
+  Task.sleep delay `Task.andThen` (always <| Concourse.Build.fetch buildId)
+    |> Task.toResult
+    |> Task.map BuildFetched
+    |> Effects.task
 
-fetchBuildHistory : Job -> Maybe Pagination.Page -> Effects Action
+fetchBuildHistory : Concourse.Build.Job -> Maybe Concourse.Pagination.Page -> Effects Action
 fetchBuildHistory job page =
-  let
-    url =
-      "/api/v1/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.name ++ "/builds"
-  in
-    Pagination.fetch decode url page
-      |> Task.toResult
-      |> Task.map BuildHistoryFetched
-      |> Effects.task
-
-decode : Json.Decode.Decoder Build
-decode =
-  Json.Decode.object5 Build
-    ("id" := Json.Decode.int)
-    ("name" := Json.Decode.string)
-    ("status" := Json.Decode.string)
-    (Json.Decode.maybe (Json.Decode.object2 Job
-      ("job_name" := Json.Decode.string)
-      ("pipeline_name" := Json.Decode.string)))
-    ("url" := Json.Decode.string)
-
-decodeBuilds : Json.Decode.Decoder (List Build)
-decodeBuilds =
-  Json.Decode.list decode
+  Concourse.Build.fetchJobBuilds job page
+    |> Task.toResult
+    |> Task.map BuildHistoryFetched
+    |> Effects.task
 
 subscribeToEvents : Int -> Signal.Address Action -> Effects Action
 subscribeToEvents build actions =
-  let
-    settings =
-      EventSource.Settings
-        (Just <| Signal.forwardTo actions (always EventSourceOpened))
-        (Just <| Signal.forwardTo actions (always EventSourceErrored))
-
-    connect =
-      EventSource.connect ("/api/v1/builds/" ++ toString build ++ "/events") settings
-
-    eventsSub =
-      EventSource.on "event" <|
-        Signal.forwardTo actions (Event << parseEvent)
-
-    endSub =
-      EventSource.on "end" <|
-        Signal.forwardTo actions (always EndOfEvents)
-  in
-    connect `Task.andThen` eventsSub `Task.andThen` endSub
-      |> Task.map Listening
-      |> Effects.task
+  Concourse.BuildEvents.subscribe build (Signal.forwardTo actions BuildEventsAction)
+    |> Task.map BuildEventsListening
+    |> Effects.task
 
 closeEvents : EventSource.EventSource -> Effects Action
 closeEvents eventSource =
   EventSource.close eventSource
-    |> Task.map (always EventSourceClosed)
+    |> Task.map (always BuildEventsClosed)
     |> Effects.task
-
-parseEvent : EventSource.Event -> Result String BuildEvent
-parseEvent e = Json.Decode.decodeString BuildEvent.decode e.data
 
 scrollToBottom : Effects Action
 scrollToBottom =
@@ -761,26 +709,6 @@ scrollBuilds delta =
   Scroll.scroll "builds" delta
     |> Task.map (always Noop)
     |> Effects.task
-
-toStatus : String -> BuildEvent.BuildStatus
-toStatus str =
-  case str of
-    "pending" -> BuildEvent.BuildStatusPending
-    "started" -> BuildEvent.BuildStatusStarted
-    "succeeded" -> BuildEvent.BuildStatusSucceeded
-    "failed" -> BuildEvent.BuildStatusFailed
-    "errored" -> BuildEvent.BuildStatusErrored
-    "aborted" -> BuildEvent.BuildStatusAborted
-    _ -> Debug.crash ("unknown state: " ++ str)
-
-buildUrl : Build -> String
-buildUrl build =
-  case build.job of
-    Nothing ->
-      "/builds/" ++ toString build.id
-
-    Just {name, pipelineName} ->
-      "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name ++ "/builds/" ++ build.name
 
 redirectToLogin : Model -> Effects Action
 redirectToLogin model =

@@ -8,7 +8,7 @@ import Regex
 import String
 import Ansi.Log
 
-import BuildPlan
+import Concourse.BuildPlan exposing (BuildPlan)
 import StepTree
 
 all : Test
@@ -30,7 +30,7 @@ all =
 someStep : StepTree.StepID -> StepTree.StepName -> StepTree.StepState -> StepTree.Step
 someStep = someVersionedStep Nothing
 
-someVersionedStep : Maybe BuildPlan.Version -> StepTree.StepID -> StepTree.StepName -> StepTree.StepState -> StepTree.Step
+someVersionedStep : Maybe Concourse.BuildPlan.Version -> StepTree.StepID -> StepTree.StepName -> StepTree.StepState -> StepTree.Step
 someVersionedStep version id name state =
   { id = id
   , name = name
@@ -51,7 +51,7 @@ initTask =
     {tree, foci} =
       StepTree.init emptyResources
         { id = "some-id"
-        , step = BuildPlan.Task "some-name"
+        , step = Concourse.BuildPlan.Task "some-name"
         }
   in
     suite "init with Task"
@@ -72,7 +72,7 @@ initGet =
     {tree, foci} =
       StepTree.init emptyResources
         { id = "some-id"
-        , step = BuildPlan.Get "some-name" (Just version)
+        , step = Concourse.BuildPlan.Get "some-name" (Just version)
         }
   in
     suite "init with Get"
@@ -92,7 +92,7 @@ initPut =
     {tree, foci} =
       StepTree.init emptyResources
         { id = "some-id"
-        , step = BuildPlan.Put "some-name"
+        , step = Concourse.BuildPlan.Put "some-name"
         }
   in
     suite "init with Put"
@@ -112,7 +112,7 @@ initDependentGet =
     {tree, foci} =
       StepTree.init emptyResources
         { id = "some-id"
-        , step = BuildPlan.DependentGet "some-name"
+        , step = Concourse.BuildPlan.DependentGet "some-name"
         }
   in
     suite "init with DependentGet"
@@ -133,9 +133,9 @@ initAggregate =
       StepTree.init emptyResources
         { id = "aggregate-id"
         , step =
-            BuildPlan.Aggregate << Array.fromList <|
-              [ { id = "task-a-id", step = BuildPlan.Task "task-a" }
-              , { id = "task-b-id", step = BuildPlan.Task "task-b" }
+            Concourse.BuildPlan.Aggregate << Array.fromList <|
+              [ { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
+              , { id = "task-b-id", step = Concourse.BuildPlan.Task "task-b" }
               ]
         }
   in
@@ -163,14 +163,14 @@ initAggregateNested =
       StepTree.init emptyResources
         { id = "aggregate-id"
         , step =
-            BuildPlan.Aggregate << Array.fromList <|
-              [ { id = "task-a-id", step = BuildPlan.Task "task-a" }
-              , { id = "task-b-id", step = BuildPlan.Task "task-b" }
+            Concourse.BuildPlan.Aggregate << Array.fromList <|
+              [ { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
+              , { id = "task-b-id", step = Concourse.BuildPlan.Task "task-b" }
               , { id = "nested-aggregate-id"
                 , step =
-                    BuildPlan.Aggregate << Array.fromList <|
-                      [ { id = "task-c-id", step = BuildPlan.Task "task-c" }
-                      , { id = "task-d-id", step = BuildPlan.Task "task-d" }
+                    Concourse.BuildPlan.Aggregate << Array.fromList <|
+                      [ { id = "task-c-id", step = Concourse.BuildPlan.Task "task-c" }
+                      , { id = "task-d-id", step = Concourse.BuildPlan.Task "task-d" }
                       ]
                 }
               ]
@@ -208,9 +208,9 @@ initOnSuccess =
       StepTree.init emptyResources
         { id = "on-success-id"
         , step =
-            BuildPlan.OnSuccess <| BuildPlan.HookedPlan
-              { id = "task-a-id", step = BuildPlan.Task "task-a" }
-              { id = "task-b-id", step = BuildPlan.Task "task-b" }
+            Concourse.BuildPlan.OnSuccess <| Concourse.BuildPlan.HookedPlan
+              { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
+              { id = "task-b-id", step = Concourse.BuildPlan.Task "task-b" }
         }
   in
     suite "init with OnSuccess"
@@ -241,9 +241,9 @@ initOnFailure =
       StepTree.init emptyResources
         { id = "on-success-id"
         , step =
-            BuildPlan.OnFailure <| BuildPlan.HookedPlan
-              { id = "task-a-id", step = BuildPlan.Task "task-a" }
-              { id = "task-b-id", step = BuildPlan.Task "task-b" }
+            Concourse.BuildPlan.OnFailure <| Concourse.BuildPlan.HookedPlan
+              { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
+              { id = "task-b-id", step = Concourse.BuildPlan.Task "task-b" }
         }
   in
     suite "init with OnFailure"
@@ -274,9 +274,9 @@ initEnsure =
       StepTree.init emptyResources
         { id = "on-success-id"
         , step =
-            BuildPlan.Ensure <| BuildPlan.HookedPlan
-              { id = "task-a-id", step = BuildPlan.Task "task-a" }
-              { id = "task-b-id", step = BuildPlan.Task "task-b" }
+            Concourse.BuildPlan.Ensure <| Concourse.BuildPlan.HookedPlan
+              { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
+              { id = "task-b-id", step = Concourse.BuildPlan.Task "task-b" }
         }
   in
     suite "init with Ensure"
@@ -307,7 +307,7 @@ initTry =
       StepTree.init emptyResources
         { id = "on-success-id"
         , step =
-            BuildPlan.Try { id = "task-a-id", step = BuildPlan.Task "task-a" }
+            Concourse.BuildPlan.Try { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
         }
   in
     suite "init with Try"
@@ -330,7 +330,7 @@ initTimeout =
       StepTree.init emptyResources
         { id = "on-success-id"
         , step =
-            BuildPlan.Timeout { id = "task-a-id", step = BuildPlan.Task "task-a" }
+            Concourse.BuildPlan.Timeout { id = "task-a-id", step = Concourse.BuildPlan.Task "task-a" }
         }
   in
     suite "init with Timeout"

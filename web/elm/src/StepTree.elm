@@ -23,8 +23,8 @@ import Html exposing (Html)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (class, classList)
 
-import BuildPlan exposing (BuildPlan)
-import BuildResources exposing (BuildResources)
+import Concourse.BuildPlan exposing (BuildPlan)
+import Concourse.BuildResources exposing (BuildResources)
 
 type StepTree
   = Task Step
@@ -88,19 +88,19 @@ type alias MetadataField =
 init : BuildResources -> BuildPlan -> Root
 init resources plan =
   case plan.step of
-    BuildPlan.Task name ->
+    Concourse.BuildPlan.Task name ->
       initBottom Task plan.id name
 
-    BuildPlan.Get name version ->
+    Concourse.BuildPlan.Get name version ->
       initBottom (Get << setupGetStep resources name version) plan.id name
 
-    BuildPlan.Put name ->
+    Concourse.BuildPlan.Put name ->
       initBottom Put plan.id name
 
-    BuildPlan.DependentGet name ->
+    Concourse.BuildPlan.DependentGet name ->
       initBottom DependentGet plan.id name
 
-    BuildPlan.Aggregate plans ->
+    Concourse.BuildPlan.Aggregate plans ->
       let
         inited = Array.map (init resources) plans
         trees = Array.map .tree inited
@@ -110,7 +110,7 @@ init resources plan =
       in
         Root (Aggregate trees) foci
 
-    BuildPlan.Do plans ->
+    Concourse.BuildPlan.Do plans ->
       let
         inited = Array.map (init resources) plans
         trees = Array.map .tree inited
@@ -120,19 +120,19 @@ init resources plan =
       in
         Root (Do trees) foci
 
-    BuildPlan.OnSuccess hookedPlan ->
+    Concourse.BuildPlan.OnSuccess hookedPlan ->
       initHookedStep resources OnSuccess hookedPlan
 
-    BuildPlan.OnFailure hookedPlan ->
+    Concourse.BuildPlan.OnFailure hookedPlan ->
       initHookedStep resources OnFailure hookedPlan
 
-    BuildPlan.Ensure hookedPlan ->
+    Concourse.BuildPlan.Ensure hookedPlan ->
       initHookedStep resources Ensure hookedPlan
 
-    BuildPlan.Try plan ->
+    Concourse.BuildPlan.Try plan ->
       initWrappedStep resources Try plan
 
-    BuildPlan.Timeout plan ->
+    Concourse.BuildPlan.Timeout plan ->
       initWrappedStep resources Timeout plan
 
 setupGetStep : BuildResources -> StepName -> Maybe Version -> Step -> Step
@@ -142,7 +142,7 @@ setupGetStep resources name version step =
   , firstOccurrence = isFirstOccurrence resources.inputs name
   }
 
-isFirstOccurrence : List BuildResources.BuildInput -> StepName -> Bool
+isFirstOccurrence : List Concourse.BuildResources.BuildInput -> StepName -> Bool
 isFirstOccurrence resources step =
   case resources of
     [] ->
@@ -217,7 +217,7 @@ initWrappedStep resources create plan =
     , foci = Dict.map wrapStep foci
     }
 
-initHookedStep : BuildResources -> (HookedStep -> StepTree) -> BuildPlan.HookedPlan -> Root
+initHookedStep : BuildResources -> (HookedStep -> StepTree) -> Concourse.BuildPlan.HookedPlan -> Root
 initHookedStep resources create hookedPlan =
   let
     stepRoot = init resources hookedPlan.step

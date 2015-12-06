@@ -1,7 +1,9 @@
-module BuildResources where
+module Concourse.BuildResources where
 
 import Dict exposing (Dict)
+import Http
 import Json.Decode exposing ((:=))
+import Task exposing (Task)
 
 type alias BuildResources =
   { inputs : List BuildInput
@@ -33,6 +35,13 @@ type alias MetadataField =
   { name : String
   , value : String
   }
+
+type alias BuildId =
+  Int
+
+fetch : BuildId -> Task Http.Error BuildResources
+fetch buildId =
+  Http.get decode ("/api/v1/builds/" ++ toString buildId ++ "/resources")
 
 decode : Json.Decode.Decoder BuildResources
 decode =
