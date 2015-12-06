@@ -58,9 +58,6 @@ type Action
   | BuildHistoryFetched (Result Http.Error (Paginated Build))
   | BuildEventsListening EventSource
   | BuildEventsAction Concourse.BuildEvents.Action
-  -- | EventSourceOpened
-  -- | EventSourceErrored
-  -- | Event (Result String BuildEvent)
   | BuildEventsClosed
   | ScrollTick
   | ScrollFromBottom Int
