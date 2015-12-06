@@ -11,7 +11,7 @@ import Html.Events exposing (onClick, on)
 import Html.Attributes exposing (action, class, classList, href, id, method, title)
 import Http
 import Json.Decode exposing ((:=))
-import Task
+import Task exposing (Task)
 import Time exposing (Time)
 
 import BuildEvent exposing (BuildEvent)
@@ -83,9 +83,7 @@ type Action
   | Deferred (Effects Action)
 
 type alias BuildHistory =
-  { builds : List Build
-  , pagination : Pagination
-  }
+  Pagination.Paginated Build
 
 init : Signal.Address String -> Signal.Address Action -> Int -> (Model, Effects Action)
 init redirect actions buildId =
@@ -208,9 +206,9 @@ update action model =
 
     BuildHistoryFetched (Ok history) ->
       let
-        builds = List.append (Maybe.withDefault [] model.history) history.builds
+        builds = List.append (Maybe.withDefault [] model.history) history.content
         withBuilds = { model | history = Just builds }
-        loadedCurrentBuild = List.any ((==) model.buildId << .id) history.builds
+        loadedCurrentBuild = List.any ((==) model.buildId << .id) history.content
         scrollToCurrent =
           if loadedCurrentBuild then
             Effects.tick (always (Deferred scrollToCurrentBuildInHistory))
@@ -221,8 +219,8 @@ update action model =
           (Nothing, _) ->
             (withBuilds, scrollToCurrent)
 
-          (Just url, Just job) ->
-            (withBuilds, Effects.batch [fetchBuildHistory job (Just url), scrollToCurrent])
+          (Just page, Just job) ->
+            (withBuilds, Effects.batch [fetchBuildHistory job (Just page), scrollToCurrent])
 
           (Just url, Nothing) ->
             Debug.crash "impossible"
@@ -694,56 +692,16 @@ fetchBuild delay buildId =
   in
     Effects.task (Task.sleep delay `Task.andThen` \_ -> fetch)
 
-fetchBuildHistory : Job -> Maybe String -> Effects Action
-fetchBuildHistory job specificPage =
+fetchBuildHistory : Job -> Maybe Pagination.Page -> Effects Action
+fetchBuildHistory job page =
   let
-    firstPage = "/api/v1/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.name ++ "/builds"
-    url = Maybe.withDefault firstPage specificPage
+    url =
+      "/api/v1/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.name ++ "/builds"
   in
-    Http.send
-      Http.defaultSettings
-      { verb = "GET"
-      , headers = []
-      , url = url
-      , body = Http.empty
-      }
-    |> Task.toResult
-    |> Task.map parseBuildHistory
-    |> Effects.task
-
-parseBuildHistory : Result Http.RawError Http.Response -> Action
-parseBuildHistory result =
-  case result of
-    Ok response ->
-      let
-        pagination = Pagination.parse response
-        decode = Json.Decode.decodeString decodeBuilds
-        history = handleResponse response `Result.andThen`
-          (Result.formatError Http.UnexpectedPayload << decode)
-      in
-        BuildHistoryFetched <|
-          Result.map (\builds -> { builds = builds, pagination = pagination }) history
-
-    Err error ->
-      BuildHistoryFetched (Err (promoteError error))
-
-handleResponse : Http.Response -> Result Http.Error String
-handleResponse response =
-  if 200 <= response.status && response.status < 300 then
-      case response.value of
-        Http.Text str ->
-          Ok str
-
-        _ ->
-            Err (Http.UnexpectedPayload "Response body is a blob, expecting a string.")
-  else
-      Err (Http.BadResponse response.status response.statusText)
-
-promoteError : Http.RawError -> Http.Error
-promoteError rawError =
-  case rawError of
-    Http.RawTimeout -> Http.Timeout
-    Http.RawNetworkError -> Http.NetworkError
+    Pagination.fetch decode url page
+      |> Task.toResult
+      |> Task.map BuildHistoryFetched
+      |> Effects.task
 
 decode : Json.Decode.Decoder Build
 decode =
