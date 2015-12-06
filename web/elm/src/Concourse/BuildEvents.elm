@@ -6,12 +6,14 @@ import Json.Decode exposing ((:=))
 import Task exposing (Task)
 
 import Concourse.BuildStatus exposing (BuildStatus)
+import Concourse.Metadata exposing (Metadata)
+import Concourse.Version exposing (Version)
 import EventSource exposing (EventSource)
 
 type BuildEvent
   = BuildStatus BuildStatus Date
-  | FinishGet Origin Int Version (List MetadataField)
-  | FinishPut Origin Int Version (List MetadataField)
+  | FinishGet Origin Int Version Metadata
+  | FinishPut Origin Int Version Metadata
   | InitializeTask Origin
   | StartTask Origin
   | FinishTask Origin Int
@@ -34,22 +36,6 @@ type alias BuildEventEnvelope =
 type alias Origin =
   { source : String
   , id : String
-  }
-
-type StepType
-  = StepTypeTask
-  | StepTypeGet
-  | StepTypePut
-
-type alias Version =
-  Dict String String
-
-type alias Metadata =
-  List MetadataField
-
-type alias MetadataField =
-  { name : String
-  , value : String
   }
 
 subscribe : Int -> Signal.Address Action -> Task x EventSource
@@ -121,27 +107,13 @@ decodeEvent e =
     unknown ->
       Err ("unknown event type: " ++ unknown)
 
-decodeFinishResource : (Origin -> Int -> Dict String String -> List MetadataField -> a) -> Json.Decode.Decoder a
+decodeFinishResource : (Origin -> Int -> Dict String String -> Metadata -> a) -> Json.Decode.Decoder a
 decodeFinishResource cons =
   Json.Decode.object4 cons
     ("origin" := decodeOrigin)
     ("exit_status" := Json.Decode.int)
-    ("version" := decodeVersion)
-    (Json.Decode.map (Maybe.withDefault []) << Json.Decode.maybe <| "metadata" := decodeMetadata)
-
-decodeVersion : Json.Decode.Decoder (Dict String String)
-decodeVersion =
-  Json.Decode.dict Json.Decode.string
-
-decodeMetadata : Json.Decode.Decoder (List MetadataField)
-decodeMetadata =
-  Json.Decode.list decodeMetadataField
-
-decodeMetadataField : Json.Decode.Decoder MetadataField
-decodeMetadataField =
-  Json.Decode.object2 MetadataField
-    ("name" := Json.Decode.string)
-    ("value" := Json.Decode.string)
+    ("version" := Concourse.Version.decode)
+    (Json.Decode.map (Maybe.withDefault []) << Json.Decode.maybe <| "metadata" := Concourse.Metadata.decode)
 
 decodeErrorEvent : Json.Decode.Decoder BuildEvent
 decodeErrorEvent =
@@ -155,12 +127,3 @@ decodeOrigin =
   Json.Decode.object2 Origin
     (Json.Decode.map (Maybe.withDefault "") << Json.Decode.maybe <| "source" := Json.Decode.string)
     ("id" := Json.Decode.string)
-
-decodeStepType : Json.Decode.Decoder StepType
-decodeStepType =
-  Json.Decode.customDecoder ("type" := Json.Decode.string) <| \t ->
-    case t of
-      "task" -> Ok StepTypeTask
-      "get" -> Ok StepTypeGet
-      "put" -> Ok StepTypePut
-      unknown -> Err ("unknown step type: " ++ unknown)
