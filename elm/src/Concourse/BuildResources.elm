@@ -1,9 +1,11 @@
 module Concourse.BuildResources where
 
-import Dict exposing (Dict)
 import Http
 import Json.Decode exposing ((:=))
 import Task exposing (Task)
+
+import Concourse.Metadata exposing (Metadata)
+import Concourse.Version exposing (Version)
 
 type alias BuildResources =
   { inputs : List BuildInput
@@ -25,17 +27,6 @@ type alias BuildOutput =
   , version : Version
   }
 
-type alias Version =
-  Dict String String
-
-type alias Metadata =
-  List MetadataField
-
-type alias MetadataField =
-  { name : String
-  , value : String
-  }
-
 type alias BuildId =
   Int
 
@@ -55,16 +46,10 @@ decodeInput =
     ("name" := Json.Decode.string)
     ("resource" := Json.Decode.string)
     ("type" := Json.Decode.string)
-    ("version" := Json.Decode.dict Json.Decode.string)
-    ("metadata" := Json.Decode.list decodeMetadataField)
+    ("version" := Concourse.Version.decode)
+    ("metadata" := Concourse.Metadata.decode)
     ("pipeline_name" := Json.Decode.string)
     ("first_occurrence" := Json.Decode.bool)
-
-decodeMetadataField : Json.Decode.Decoder MetadataField
-decodeMetadataField =
-  Json.Decode.object2 MetadataField
-    ("name" := Json.Decode.string)
-    ("value" := Json.Decode.string)
 
 decodeOutput : Json.Decode.Decoder BuildOutput
 decodeOutput =

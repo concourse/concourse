@@ -1,20 +1,19 @@
 module Concourse.BuildPlan where
 
 import Array exposing (Array)
-import Dict exposing (Dict)
 import Http
 import Task exposing (Task)
 import Json.Decode exposing ((:=))
+
+import Concourse.Version exposing (Version)
 
 type alias BuildPlan =
   { id : String
   , step : BuildStep
   }
 
-type alias StepName = String
-
-type alias Version =
-  Dict String String
+type alias StepName =
+  String
 
 type BuildStep
   = Task StepName
@@ -71,7 +70,8 @@ decodeGet : Json.Decode.Decoder BuildStep
 decodeGet =
   Json.Decode.object2 Get
     ("name" := Json.Decode.string)
-    (Json.Decode.maybe <| "version" := (Json.Decode.dict Json.Decode.string))
+    (Json.Decode.maybe <|
+      "version" := Concourse.Version.decode)
 
 decodePut : Json.Decode.Decoder BuildStep
 decodePut =

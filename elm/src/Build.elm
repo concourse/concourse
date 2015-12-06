@@ -15,14 +15,16 @@ import Task exposing (Task)
 import Time exposing (Time)
 
 import Concourse.Build exposing (Build)
+import Concourse.BuildEvents exposing (BuildEvent)
 import Concourse.BuildPlan exposing (BuildPlan)
 import Concourse.BuildResources exposing (BuildResources)
 import Concourse.BuildStatus exposing (BuildStatus)
+import Concourse.Metadata exposing (Metadata)
 import Concourse.Pagination exposing (Paginated)
-import Concourse.BuildEvents exposing (BuildEvent)
+import Concourse.Version exposing (Version)
+import Duration exposing (Duration)
 import Scroll
 import StepTree exposing (StepTree)
-import Duration exposing (Duration)
 
 type alias Model =
   { redirect : Signal.Address String
@@ -386,7 +388,7 @@ finishStep exitStatus tree =
   in
     setStepState stepState tree
 
-setResourceInfo : Concourse.BuildEvents.Version -> Concourse.BuildEvents.Metadata -> StepTree -> StepTree
+setResourceInfo : Version -> Metadata -> StepTree -> StepTree
 setResourceInfo version metadata tree =
   StepTree.map (\step -> { step | version = Just version, metadata = metadata }) tree
 

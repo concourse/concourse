@@ -9,6 +9,7 @@ import String
 import Ansi.Log
 
 import Concourse.BuildPlan exposing (BuildPlan)
+import Concourse.Version exposing (Version)
 import StepTree
 
 all : Test
@@ -30,7 +31,7 @@ all =
 someStep : StepTree.StepID -> StepTree.StepName -> StepTree.StepState -> StepTree.Step
 someStep = someVersionedStep Nothing
 
-someVersionedStep : Maybe Concourse.BuildPlan.Version -> StepTree.StepID -> StepTree.StepName -> StepTree.StepState -> StepTree.Step
+someVersionedStep : Maybe Version -> StepTree.StepID -> StepTree.StepName -> StepTree.StepState -> StepTree.Step
 someVersionedStep version id name state =
   { id = id
   , name = name
