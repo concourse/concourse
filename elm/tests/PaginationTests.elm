@@ -9,7 +9,7 @@ import String
 import Ansi.Log
 import Http
 
-import Pagination exposing (Pagination, Direction(..))
+import Concourse.Pagination exposing (Pagination, Direction(..))
 
 responseWithHeaders : Dict String String -> Http.Response
 responseWithHeaders headers =
@@ -27,7 +27,7 @@ all =
         [ test "with no headers present" <|
             assertEqual
               (Pagination Nothing Nothing)
-              (Pagination.parseLinks (responseWithHeaders Dict.empty))
+              (Concourse.Pagination.parseLinks (responseWithHeaders Dict.empty))
         , let
             headers =
               Dict.fromList
@@ -37,7 +37,7 @@ all =
             test "with a Link rel=\"previous\" present" <|
               assertEqual
                 (Pagination (Just { direction = Until 1, limit = 2 }) Nothing)
-                (Pagination.parseLinks (responseWithHeaders headers))
+                (Concourse.Pagination.parseLinks (responseWithHeaders headers))
         , let
             headers =
               Dict.fromList
@@ -47,7 +47,7 @@ all =
             test "with a Link rel=\"next\" present" <|
               assertEqual
                 (Pagination Nothing (Just { direction = Since 1, limit = 2 }))
-                (Pagination.parseLinks (responseWithHeaders headers))
+                (Concourse.Pagination.parseLinks (responseWithHeaders headers))
         , let
             headers =
               Dict.fromList
@@ -57,6 +57,6 @@ all =
             test "with a Link rel=\"previous\" and a Link rel=\"next\" present" <|
               assertEqual
                 (Pagination (Just { direction = Until 1, limit = 2 }) (Just { direction = Since 3, limit = 4 }))
-                (Pagination.parseLinks (responseWithHeaders headers))
+                (Concourse.Pagination.parseLinks (responseWithHeaders headers))
         ]
     ]
