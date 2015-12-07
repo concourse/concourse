@@ -28,6 +28,7 @@ requests.
 \include-section{./concourse-vs.any}
 \include-section{./getting-started.any}
 \include-section{./concepts.any}
+\include-section{./pipeline-mechanics.any}
 \include-section{./examples.any}
 \include-section{./fly-cli.any}
 \include-section{./running-tasks.any}

@@ -23,7 +23,7 @@ attempt.
 
   \list{
     Jenkins servers become snowflakes. More and more important shell script gets
-    pasted into those little textboxes, plugins get installed, packages are
+    pasted into those little textboxes, plugins get installed, and packages are
     installed on the box. It's possible to try and store this state but Jenkins
     servers are extremely resistant to being declaratively configured.
 
