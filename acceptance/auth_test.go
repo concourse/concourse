@@ -32,7 +32,9 @@ var _ = Describe("Auth", func() {
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 		sqlDB = db.NewSQL(logger, dbConn, bus)
 
-		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		_, err := dbConn.Query(`DELETE FROM teams WHERE name = 'main'`)
+		Expect(err).NotTo(HaveOccurred())
+		team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
 		Expect(err).NotTo(HaveOccurred())
 
 		_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)

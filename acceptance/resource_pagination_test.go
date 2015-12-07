@@ -35,10 +35,12 @@ var _ = Describe("Resource Pagination", func() {
 
 		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
 
-		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
-		Expect(err).NotTo(HaveOccurred())
-
 		atcProcess, atcPort = startATC(atcBin, 1)
+
+		_, err := dbConn.Query(`DELETE FROM teams WHERE name = 'main'`)
+		Expect(err).NotTo(HaveOccurred())
+		team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
+		Expect(err).NotTo(HaveOccurred())
 
 		// job build data
 		_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{

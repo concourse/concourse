@@ -35,7 +35,10 @@ var _ = Describe("Resource Pausing", func() {
 
 		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
 
-		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		atcProcess, atcPort = startATC(atcBin, 1)
+		_, err := dbConn.Query(`DELETE FROM teams WHERE name = 'main'`)
+		Expect(err).NotTo(HaveOccurred())
+		team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
 		Expect(err).NotTo(HaveOccurred())
 
 		// job build data
@@ -62,8 +65,6 @@ var _ = Describe("Resource Pausing", func() {
 		pipelineDB, found, err = pipelineDBFactory.BuildDefault()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
-
-		atcProcess, atcPort = startATC(atcBin, 1)
 	})
 
 	AfterEach(func() {
