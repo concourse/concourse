@@ -1,0 +1,103 @@
+#language anatomy
+
+\title{Mechanics of a Pipeline}{pipeline-mechanics}
+
+Up until now the documentation has been styled as reference material in that
+there hasn't been much detail about how the primitives that Concourse provides
+can be built up into a full delivery pipeline. This section of the
+documentation aims to complement those prior to it by showing how Concourse
+concepts can be applied to the real world.
+
+\section{Scheduling with Resources}{
+  Resources are at the core of Concourse and should be used to model all
+  external dependencies that enter or exit your pipeline. This lets Concourse
+  ensure that builds are repeatable and recorded.
+
+  \section{Versions}{
+    New resource versions can enter a pipeline in two ways:
+
+    \list{
+      A new version can be found in an external resource by the \italic{check}
+      component of a resource finding a new set of versions when it runs. A
+      \italic{check} is run periodically for every resource in your pipeline.
+    }{
+      A build can produce a new version of a resource by running a \italic{put}
+      step. This version becomes available in later build steps and later
+      pipeline jobs.
+    }
+
+    Both of these combined produce a stream of versions for a particular
+    resource. You can filter this stream to restrict the inputs to your build
+    in two ways.
+
+    A \code{passed:} constraint will make sure that only versions that have
+    passed a set of jobs will be considered for inputs. This means that they
+    were either an input to a successful build of that job or they were a
+    versions that was created by a successful build of that job.
+
+    The other way to 
+
+    \image{images/resource-versions.png}{Resource Versions}
+
+    Just because a set of versions is valid it doesn't mean that it will
+    definitely be scheduled as an input to a build. Only the most recent set of
+    valid versions at scheduling time will be considered.
+  }
+
+  \section{Triggering}{
+    By default a new version appearing will not cause a build to start
+    automatically. The versions will accumulate until the next time the job is
+    manually started at which point the most recent valid set of versions will
+    be run as a build. This behaviour can be changed by adding `trigger: true`
+    to any of the `get:` steps in your plan then when a new valid version of
+    that resource is detected then the build will start automatically.
+  }
+}
+
+\section{Applying the Brakes}{
+  \section{Pausing Resources}{
+    A resource check can be paused on its resource page. This has the effect
+    that new versions of the resource will not be found by the \italic{check}
+    component of the resource. However, resource versions that were created in
+    the pipeline will still propagate.
+
+    These two features are useful to stop broken versions of upstream resources
+    entering your pipeline or to remove them if they have already been
+    ingested. Broken versions can be disabled and the resource can be paused
+    until the upstream product is fixed or until your project adapts to the new
+    upstream dependency.
+  }
+
+  \section{Disabling a Resource Version}{
+    Versions can be explicitly invalidated by disabling them on their resource
+    page. Disabling a resource will cause it to \bold{never} be used as an
+    input to a build. If the only otherwise valid input versions now include a
+    disabled version then a build will not run.
+
+    This feature is useful to remove broken versions from being valid inputs to
+    your pipeline. For example, if an upstream team unintentionally broke an
+    external interface to their service and then fixed it in the next version
+    then you could just disable the broken version.
+  }
+
+  \section{Pausing Jobs}{
+    Jobs can be paused to stop them running even if there are new resource
+    versions that would otherwise cause them to start. A build will be queued
+    up if there are new versions available which will cause the job to pulse
+    grey but it will never start.
+
+    This can be useful to observe the results of a previously failed build that
+    affected an external environment before the next run of the job starts and
+    wipes out any evidence of the problem.
+  }
+
+  \section{Pausing Pipelines}{
+    An entire pipeline can be paused which has the same effect as pausing every
+    resource and job in that pipeline: no resources will be checked and no new
+    builds will start.
+
+    This should be used when you need to stop everything quickly. Normally this
+    is when something bad is about to happen or when you don't care about that
+    pipeline right now.
+  }
+}
