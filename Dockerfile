@@ -28,5 +28,5 @@ RUN cd /tmp && unzip phantomjs.zip && rm phantomjs.zip && \
 
 # NPM
 RUN curl -sL https://deb.nodesource.com/setup_4.x | bash -
-RUN apt-get -y install nodejs npm
+RUN apt-get -y install nodejs
 RUN update-alternatives --install /usr/bin/node node /usr/bin/nodejs 10
