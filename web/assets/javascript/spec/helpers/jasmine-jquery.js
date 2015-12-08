@@ -1,1 +1,1 @@
-../../../node_modules/jasmine-jquery/lib/jasmine-jquery.js
+../../../../node_modules/jasmine-jquery/lib/jasmine-jquery.js

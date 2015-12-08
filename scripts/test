@@ -31,8 +31,14 @@ fi
 cd $atc_dir
 ginkgo -r -p -race
 
-cd $atc_dir/web/assets
+cd $atc_dir/web
 export NODE_ENV=production
+
 # This will re-compile the javascript and css
-gulp
-gulp jasmine-cli
+$(npm bin)/gulp
+$(npm bin)/gulp jasmine-cli
+
+make
+
+cd $atc_dir/web/elm
+$(npm bin)/elm-test TestRunner.elm
