@@ -1,12 +1,12 @@
 module StepTree
   ( StepTree(..)
-  , Root
+  , Model
   , HookedStep
   , Step
   , StepID
   , StepName
   , StepState(..)
-  , Action
+  , Action(..)
   , init
   , map
   , view
@@ -39,7 +39,9 @@ type StepTree
   | Try StepTree
   | Timeout StepTree
 
-type Action = ToggleStep StepID
+type Action
+  = ToggleStep StepID
+  | Finished
 
 type alias HookedStep =
   { step : StepTree
@@ -72,9 +74,10 @@ type StepState
 type alias StepFocus =
   Focus StepTree StepTree
 
-type alias Root =
+type alias Model =
   { tree : StepTree
   , foci : Dict StepID StepFocus
+  , finished : Bool
   }
 
 type alias Version =
@@ -85,7 +88,7 @@ type alias MetadataField =
   , value : String
   }
 
-init : BuildResources -> BuildPlan -> Root
+init : BuildResources -> BuildPlan -> Model
 init resources plan =
   case plan.step of
     Concourse.BuildPlan.Task name ->
@@ -108,7 +111,7 @@ init resources plan =
         wrappedSubFoci = Array.indexedMap wrapMultiStep subFoci
         foci = Array.foldr Dict.union Dict.empty wrappedSubFoci
       in
-        Root (Aggregate trees) foci
+        Model (Aggregate trees) foci False
 
     Concourse.BuildPlan.Do plans ->
       let
@@ -118,7 +121,7 @@ init resources plan =
         wrappedSubFoci = Array.indexedMap wrapMultiStep subFoci
         foci = Array.foldr Dict.union Dict.empty wrappedSubFoci
       in
-        Root (Do trees) foci
+        Model (Do trees) foci False
 
     Concourse.BuildPlan.OnSuccess hookedPlan ->
       initHookedStep resources OnSuccess hookedPlan
@@ -155,13 +158,16 @@ isFirstOccurrence resources step =
         isFirstOccurrence rest step
 
 
-update : Action -> Root -> Root
+update : Action -> Model -> Model
 update action root =
   case action of
     ToggleStep id ->
       updateAt id (map (\step -> { step | expanded = Just <| not <| Maybe.withDefault True step.expanded })) root
 
-updateAt : StepID -> (StepTree -> StepTree) -> Root -> Root
+    Finished ->
+      { root | finished = True }
+
+updateAt : StepID -> (StepTree -> StepTree) -> Model -> Model
 updateAt id update root =
   case Dict.get id root.foci of
     Nothing ->
@@ -189,7 +195,7 @@ map f tree =
       tree
 
 
-initBottom : (Step -> StepTree) -> StepID -> StepName -> Root
+initBottom : (Step -> StepTree) -> StepID -> StepName -> Model
 initBottom create id name =
   let
     step =
@@ -206,27 +212,30 @@ initBottom create id name =
   in
     { tree = create step
     , foci = Dict.singleton id (Focus.create identity identity)
+    , finished = False
     }
 
-initWrappedStep : BuildResources -> (StepTree -> StepTree) -> BuildPlan -> Root
+initWrappedStep : BuildResources -> (StepTree -> StepTree) -> BuildPlan -> Model
 initWrappedStep resources create plan =
   let
     {tree, foci} = init resources plan
   in
     { tree = create tree
     , foci = Dict.map wrapStep foci
+    , finished = False
     }
 
-initHookedStep : BuildResources -> (HookedStep -> StepTree) -> Concourse.BuildPlan.HookedPlan -> Root
+initHookedStep : BuildResources -> (HookedStep -> StepTree) -> Concourse.BuildPlan.HookedPlan -> Model
 initHookedStep resources create hookedPlan =
   let
-    stepRoot = init resources hookedPlan.step
-    hookRoot = init resources hookedPlan.hook
+    stepModel = init resources hookedPlan.step
+    hookModel = init resources hookedPlan.hook
   in
-    { tree = create { step = stepRoot.tree, hook = hookRoot.tree }
+    { tree = create { step = stepModel.tree, hook = hookModel.tree }
     , foci = Dict.union
-        (Dict.map wrapStep stepRoot.foci)
-        (Dict.map wrapHook hookRoot.foci)
+        (Dict.map wrapStep stepModel.foci)
+        (Dict.map wrapHook hookModel.foci)
+    , finished = stepModel.finished
     }
 
 wrapMultiStep : Int -> Dict StepID StepFocus -> Dict StepID StepFocus
@@ -345,67 +354,71 @@ setMultiStepIndex idx update tree =
     _ ->
       Debug.crash "impossible"
 
-view : Signal.Address Action -> StepTree -> Html
-view actions tree =
+view : Signal.Address Action -> Model -> Html
+view actions model = viewTree actions model model.tree
+
+viewTree : Signal.Address Action -> Model -> StepTree -> Html
+viewTree actions model tree =
   case tree of
     Task step ->
-      viewStep actions step "fa-terminal"
+      viewStep actions model step "fa-terminal"
 
     Get step ->
-      viewStep actions step "fa-arrow-down"
+      viewStep actions model step "fa-arrow-down"
 
     DependentGet step ->
-      viewStep actions step "fa-arrow-down"
+      viewStep actions model step "fa-arrow-down"
 
     Put step ->
-      viewStep actions step "fa-arrow-up"
+      viewStep actions model step "fa-arrow-up"
 
     Try step ->
-      view actions step
+      viewTree actions model step
 
     Timeout step ->
-      view actions step
+      viewTree actions model step
 
     Aggregate steps ->
       Html.div [class "aggregate"]
-        (Array.toList <| Array.map (viewSeq actions) steps)
+        (Array.toList <| Array.map (viewSeq actions model) steps)
 
     Do steps ->
       Html.div [class "do"]
-        (Array.toList <| Array.map (viewSeq actions) steps)
+        (Array.toList <| Array.map (viewSeq actions model) steps)
 
     OnSuccess {step, hook} ->
-      viewHooked "success" actions step hook
+      viewHooked "success" actions model step hook
 
     OnFailure {step, hook} ->
-      viewHooked "failure" actions step hook
+      viewHooked "failure" actions model step hook
 
     Ensure {step, hook} ->
-      viewHooked "ensure" actions step hook
+      viewHooked "ensure" actions model step hook
 
-viewSeq : Signal.Address Action -> StepTree -> Html
-viewSeq actions tree =
-  Html.div [class "seq"] [view actions tree]
+viewSeq : Signal.Address Action -> Model -> StepTree -> Html
+viewSeq actions model tree =
+  Html.div [class "seq"] [viewTree actions model tree]
 
-viewHooked : String -> Signal.Address Action -> StepTree -> StepTree -> Html
-viewHooked name actions step hook =
+viewHooked : String -> Signal.Address Action -> Model -> StepTree -> StepTree -> Html
+viewHooked name actions model step hook =
   Html.div [class "hooked"]
-    [ Html.div [class "step"] [view actions step]
+    [ Html.div [class "step"] [viewTree actions model step]
     , Html.div [class "children"]
-        [ Html.div [class ("hook hook-" ++ name)] [view actions hook]
+        [ Html.div [class ("hook hook-" ++ name)] [viewTree actions model hook]
         ]
     ]
 
 isActive : StepState -> Bool
 isActive = (/=) StepStatePending
 
-viewStep : Signal.Address Action -> Step -> String -> Html
-viewStep actions {id, name, log, state, error, expanded, version, metadata, firstOccurrence} icon =
+viewStep : Signal.Address Action -> Model -> Step -> String -> Html
+viewStep actions model {id, name, log, state, error, expanded, version, metadata, firstOccurrence} icon =
   Html.div
     [ classList
       [ ("build-step", True)
       , ("inactive", not <| isActive state)
       , ("first-occurrence", firstOccurrence)
+      , ("hidden", (not <| isActive state) && model.finished)
       ]
     ]
     [ Html.div [class "header", onClick actions (ToggleStep id)]
