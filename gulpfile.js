@@ -15,7 +15,7 @@ var path = require('path');
 var minifyCSS = require('gulp-minify-css');
 
 var production = (process.env.NODE_ENV === 'production');
-var publicDir = "../public"
+var publicDir = "public"
 
 function rebundle(bundler) {
   var stream = bundler.bundle().
@@ -30,18 +30,18 @@ function rebundle(bundler) {
 }
 
 gulp.task('compile-build', function () {
-  var bundler = browserify('./javascript/event_handler.jsx', { debug: !production });
+  var bundler = browserify('./assets/javascript/event_handler.jsx', { debug: !production });
   bundler.transform(reactify);
 
   return rebundle(bundler);
 });
 
 gulp.task('compile-concourse', function () {
-	var stream = gulp.src(["javascript/concourse/concourse.js","javascript/concourse/jquery.*.js"])
-		.pipe(addsrc("javascript/concourse/concourse.*.js"))
+	var stream = gulp.src(["assets/javascript/concourse/concourse.js","assets/javascript/concourse/jquery.*.js"])
+		.pipe(addsrc("assets/javascript/concourse/concourse.*.js"))
 		.pipe(jshint())
 		.pipe(jshint.reporter('jshint-stylish'))
-		.pipe(addsrc("javascript/lib/**/*.js"))
+		.pipe(addsrc("assets/javascript/lib/**/*.js"))
 		.pipe(concat('concourse.js'))
 
 	if (production) {
@@ -52,10 +52,10 @@ gulp.task('compile-concourse', function () {
 });
 
 // jasmine stuff
-var externalFiles = [publicDir + "/jquery-2.1.1.min.js", "javascript/lib/**/*.js", "javascript/spec/helpers/**/*.js"]
-var jsSourceFiles = ["javascript/concourse/concourse.js", "javascript/concourse/concourse.*.js", "javascript/concourse/jquery.*.js", "javascript/spec/**/*_spec.js"]
+var externalFiles = [publicDir + "/jquery-2.1.1.min.js", "assets/javascript/lib/**/*.js", "assets/javascript/spec/helpers/**/*.js"]
+var jsSourceFiles = ["assets/javascript/concourse/concourse.js", "assets/javascript/concourse/concourse.*.js", "assets/javascript/concourse/jquery.*.js", "assets/javascript/spec/**/*_spec.js"]
 var hintSpecFiles = function() {
-  gulp.src('javascript/spec/**/*_spec.js')
+  gulp.src('assets/javascript/spec/**/*_spec.js')
 }
 
 gulp.task('jasmine-cli', function(cb) {
@@ -76,17 +76,8 @@ gulp.task('jasmine', function() {
     .pipe(jasmineBrowser.server());
 });
 
-gulp.task('compile-css', function() {
-
-  return gulp.src('css/main.less')
-    .pipe(less())
-    .pipe(minifyCSS())
-    .pipe(gulp.dest(publicDir));
-
-})
-
 gulp.task('watch', function () {
-  var bundler = watchify(browserify('./javascript/event_handler.jsx'), { debug: !production });
+  var bundler = watchify(browserify('./assets/javascript/event_handler.jsx'), { debug: !production });
   bundler.transform(reactify);
 
   bundler.on('update', function() { rebundle(bundler); });
@@ -95,4 +86,4 @@ gulp.task('watch', function () {
 });
 
 
-gulp.task('default', ['compile-build', 'compile-concourse', 'compile-css']);
+gulp.task('default', ['compile-build', 'compile-concourse']);
