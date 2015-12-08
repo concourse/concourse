@@ -267,7 +267,10 @@ handleEventsAction action model =
         ({ model | stepState = newState }, Effects.none)
 
     Concourse.BuildEvents.Event (Ok event) ->
-      handleEvent event model
+      let
+        (returnedModel, returnedEvent) = handleEvent event model
+      in
+        (returnedModel, Effects.batch [returnedEvent, scrollToBottom])
 
     Concourse.BuildEvents.Event (Err err) ->
       (model, Debug.log err Effects.none)
