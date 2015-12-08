@@ -31,7 +31,7 @@ type alias Model =
   , actions : Signal.Address Action
   , buildId : Int
   , errors : Maybe Ansi.Log.Model
-  , stepRoot : Maybe StepTree.Root
+  , steps : Maybe StepTree.Model
   , build : Maybe Build
   , history : Maybe (List Build)
   , eventSource : Maybe EventSource
@@ -78,7 +78,7 @@ init redirect actions buildId =
       , actions = actions
       , buildId = buildId
       , errors = Nothing
-      , stepRoot = Nothing
+      , steps = Nothing
       , build = Nothing
       , history = Nothing
       , eventSource = Nothing
@@ -134,7 +134,7 @@ update action model =
         (model, Effects.none)
 
     PlanAndResourcesFetched (Ok (plan, resources)) ->
-      ( { model | stepRoot = Just (StepTree.init resources plan) }
+      ( { model | steps = Just (StepTree.init resources plan) }
       , subscribeToEvents model.buildId model.actions
       )
 
@@ -158,7 +158,7 @@ update action model =
       ({ model | eventSource = Nothing }, Effects.none)
 
     StepTreeAction action ->
-      ( { model | stepRoot = Maybe.map (StepTree.update action) model.stepRoot }
+      ( { model | steps = Maybe.map (StepTree.update action) model.steps }
       , Effects.none
       )
 
@@ -319,15 +319,22 @@ handleEvent event model =
       )
 
     Concourse.BuildEvents.BuildStatus status date ->
-      ( updateStartFinishAt status date <|
-          case model.stepState of
-            StepsLiveUpdating ->
-              { model | status = status }
+      let
+        updated =
+          if not <| Concourse.BuildStatus.isRunning status then
+            { model | steps = Maybe.map (StepTree.update StepTree.Finished) model.steps }
+          else
+            model
+      in
+        ( updateStartFinishAt status date <|
+            case updated.stepState of
+              StepsLiveUpdating ->
+                { updated | status = status }
 
-            _ ->
-              model
-      , Effects.none
-      )
+              _ ->
+                updated
+        , Effects.none
+        )
 
     Concourse.BuildEvents.BuildError message ->
       ( { model |
@@ -360,7 +367,7 @@ abortBuild buildId =
 
 updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Model -> Model
 updateStep id update model =
-  { model | stepRoot = Maybe.map (StepTree.updateAt id update) model.stepRoot }
+  { model | steps = Maybe.map (StepTree.updateAt id update) model.steps }
 
 setRunning : StepTree -> StepTree
 setRunning = setStepState StepTree.StepStateRunning
@@ -414,7 +421,7 @@ setStepState state tree =
 
 view : Signal.Address Action -> Model -> Html
 view actions model =
-  case (model.build, model.stepRoot) of
+  case (model.build, model.steps) of
     (Just build, Just root) ->
       Html.div []
         [ viewBuildHeader actions build model.status model.now model.duration (Maybe.withDefault [] model.history)
@@ -455,11 +462,11 @@ loadingIndicator =
         ]
     ]
 
-viewSteps : Signal.Address Action -> Maybe Ansi.Log.Model -> Build -> StepTree.Root -> Html
+viewSteps : Signal.Address Action -> Maybe Ansi.Log.Model -> Build -> StepTree.Model -> Html
 viewSteps actions errors build root =
   Html.div [class "steps"]
     [ viewErrors errors
-    , StepTree.view (Signal.forwardTo actions StepTreeAction) root.tree
+    , StepTree.view (Signal.forwardTo actions StepTreeAction) root
     ]
 
 viewErrors : Maybe Ansi.Log.Model -> Html
@@ -562,7 +569,7 @@ viewHistory currentBuild currentStatus build =
         , ("current", build.name == currentBuild.name)
         ]
     ]
-    [Html.a [href (Concourse.Build.url build)] [Html.text ("#" ++ build.name)]]
+    [Html.a [href (Concourse.Build.url build)] [Html.text (build.name)]]
 
 viewBuildDuration : Time.Time -> BuildDuration -> Html
 viewBuildDuration now duration =
