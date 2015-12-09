@@ -100,7 +100,6 @@ files:
   - github.com/jessevdk/go-flags/*.go # gosub
   - github.com/lib/pq/*.go # gosub
   - github.com/lib/pq/oid/*.go # gosub
-  - github.com/mgutz/ansi/*.go # gosub
   - github.com/mitchellh/mapstructure/*.go # gosub
   - github.com/nu7hatch/gouuid/*.go # gosub
   - github.com/peterhellberg/link/*.go # gosub
