@@ -152,6 +152,20 @@ var _ = Describe("SQL DB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(volumes)).To(Equal(0))
 			})
+
+			Context("when the ttl is set to 0", func() {
+				BeforeEach(func() {
+					insertedVolume.TTL = 0
+				})
+
+				It("sets the expiration to null", func() {
+					volumes, err := database.GetVolumes()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(len(volumes)).To(Equal(1))
+					Expect(volumes[0].TTL).To(Equal(time.Duration(0)))
+					Expect(volumes[0].ExpiresIn).To(Equal(time.Duration(0)))
+				})
+			})
 		})
 	})
 

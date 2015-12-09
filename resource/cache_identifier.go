@@ -12,7 +12,6 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-const resourceCacheTTL = 87600 * time.Hour
 const reapExtraVolumeTTL = time.Minute
 
 //go:generate counterfeiter . CacheIdentifier
@@ -49,7 +48,7 @@ func (identifier ResourceCacheIdentifier) FindOn(logger lager.Logger, vm baggage
 }
 
 func (identifier ResourceCacheIdentifier) CreateOn(logger lager.Logger, vm baggageclaim.Client) (baggageclaim.Volume, error) {
-	ttl := resourceCacheTTL
+	ttl := time.Duration(0)
 
 	if identifier.Version == nil {
 		ttl = worker.VolumeTTL

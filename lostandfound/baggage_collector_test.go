@@ -30,7 +30,7 @@ var _ = Describe("Baggage Collector", func() {
 		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
 
 		expectedOldResourceGracePeriod = 4 * time.Minute
-		expectedLatestVersionTTL       = 87600 * time.Hour
+		expectedLatestVersionTTL       = time.Duration(0)
 
 		baggageCollector lostandfound.BaggageCollector
 	)

@@ -67,4 +67,5 @@ var Migrations = []migration.Migrator{
 	AddTeamsColumnToPipelinesAndTeamsTable,
 	CascadePipelineDeletes,
 	AddTeamIDToPipelineNameUniqueness,
+	MakeVolumesExpiresAtNullable,
 }

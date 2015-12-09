@@ -97,31 +97,54 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 	interval := fmt.Sprintf("%d second", int(data.TTL.Seconds()))
 
 	defer tx.Rollback()
-
-	_, err = tx.Exec(`
-	INSERT INTO volumes(
-    worker_name,
-		expires_at,
-		ttl,
-		handle,
-		resource_version,
-		resource_hash
-	) VALUES (
-		$1,
-		NOW() + $2::INTERVAL,
-		$3,
-		$4,
-		$5,
-		$6
-	)
+	if data.TTL == 0 {
+		_, err = tx.Exec(`
+		INSERT INTO volumes(
+			worker_name,
+			expires_at,
+			ttl,
+			handle,
+			resource_version,
+			resource_hash
+		) VALUES (
+			$1,
+		  NULL,
+			$2,
+			$3,
+			$4,
+			$5
+		)
 	`, data.WorkerName,
-		interval,
-		data.TTL,
-		data.Handle,
-		resourceVersion,
-		data.ResourceHash,
-	)
-
+			data.TTL,
+			data.Handle,
+			resourceVersion,
+			data.ResourceHash,
+		)
+	} else {
+		_, err = tx.Exec(`
+		INSERT INTO volumes(
+			worker_name,
+			expires_at,
+			ttl,
+			handle,
+			resource_version,
+			resource_hash
+		) VALUES (
+			$1,
+			NOW() + $2::INTERVAL,
+			$3,
+			$4,
+			$5,
+			$6
+		)
+	`, data.WorkerName,
+			interval,
+			data.TTL,
+			data.Handle,
+			resourceVersion,
+			data.ResourceHash,
+		)
+	}
 	if err != nil {
 		if strings.Contains(err.Error(), `duplicate key value violates unique constraint "volumes_worker_name_handle_key"`) {
 			return nil
@@ -164,7 +187,7 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 
 	for rows.Next() {
 		var volume SavedVolume
-		var ttlSeconds float64
+		var ttlSeconds *float64
 		var versionJSON []byte
 
 		err := rows.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &volume.ResourceHash, &volume.ID)
@@ -172,7 +195,9 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 			return nil, err
 		}
 
-		volume.ExpiresIn = time.Duration(ttlSeconds) * time.Second
+		if ttlSeconds != nil {
+			volume.ExpiresIn = time.Duration(*ttlSeconds) * time.Second
+		}
 
 		err = json.Unmarshal(versionJSON, &volume.ResourceVersion)
 		if err != nil {

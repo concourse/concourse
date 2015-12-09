@@ -63,6 +63,17 @@ var _ = Describe("Pipelines API", func() {
 								ResourceHash:    "some-other-hash",
 							},
 						},
+						{
+							ID:        1,
+							ExpiresIn: time.Duration(0),
+							Volume: db.Volume{
+								WorkerName:      "some-worker",
+								TTL:             time.Duration(0),
+								Handle:          "some-immortal-handle",
+								ResourceVersion: atc.Version{"some": "other-version"},
+								ResourceHash:    "some-hash",
+							},
+						},
 					}, nil)
 				})
 
@@ -88,6 +99,13 @@ var _ = Describe("Pipelines API", func() {
 							"validity_in_seconds": 86400,
 							"resource_version": {"some": "other-version"},
 							"worker_name": "some-other-worker"
+						},
+						{
+							"id": "some-immortal-handle",
+							"ttl_in_seconds": 0,
+							"validity_in_seconds": 0,
+							"resource_version": {"some": "other-version"},
+							"worker_name": "some-worker"
 						}
 					]`))
 				})
