@@ -56,10 +56,11 @@ func (command *BuildsCommand) Execute([]string) error {
 	table := ui.Table{
 		Headers: ui.TableRow{
 			{Contents: "id", Color: color.New(color.Bold)},
-			{Contents: "pipeline/job#build", Color: color.New(color.Bold)},
+			{Contents: "pipeline/job", Color: color.New(color.Bold)},
+			{Contents: "build", Color: color.New(color.Bold)},
 			{Contents: "status", Color: color.New(color.Bold)},
-			{Contents: "start-UTC", Color: color.New(color.Bold)},
-			{Contents: "end-UTC", Color: color.New(color.Bold)},
+			{Contents: "start", Color: color.New(color.Bold)},
+			{Contents: "end", Color: color.New(color.Bold)},
 			{Contents: "duration", Color: color.New(color.Bold)},
 		},
 	}
@@ -97,11 +98,14 @@ func (command *BuildsCommand) Execute([]string) error {
 			durationCell.Contents = "n/a"
 		}
 
-		var pipelineJobBuildCell ui.TableCell
+		var pipelineJobCell, buildCell ui.TableCell
+
 		if b.PipelineName == "" {
-			pipelineJobBuildCell.Contents = "n/a"
+			pipelineJobCell.Contents = "one-off"
+			buildCell.Contents = "n/a"
 		} else {
-			pipelineJobBuildCell.Contents = fmt.Sprintf("%s/%s#%s", b.PipelineName, b.JobName, b.Name)
+			pipelineJobCell.Contents = fmt.Sprintf("%s/%s", b.PipelineName, b.JobName)
+			buildCell.Contents = b.Name
 		}
 
 		var statusCell ui.TableCell
@@ -109,24 +113,25 @@ func (command *BuildsCommand) Execute([]string) error {
 
 		switch b.Status {
 		case "pending":
-			statusCell.Color = color.New(color.FgWhite)
+			statusCell.Color = ui.PendingColor
 		case "started":
-			statusCell.Color = color.New(color.FgYellow)
+			statusCell.Color = ui.StartedColor
 		case "succeeded":
-			statusCell.Color = color.New(color.FgGreen)
+			statusCell.Color = ui.SucceededColor
 		case "failed":
-			statusCell.Color = color.New(color.FgRed)
+			statusCell.Color = ui.FailedColor
 		case "errored":
-			statusCell.Color = color.New(color.FgMagenta)
+			statusCell.Color = ui.ErroredColor
 		case "aborted":
-			statusCell.Color = color.New(color.Underline)
+			statusCell.Color = ui.AbortedColor
 		case "paused":
-			statusCell.Color = color.New(color.FgCyan)
+			statusCell.Color = ui.PausedColor
 		}
 
 		table.Data = append(table.Data, []ui.TableCell{
 			{Contents: strconv.Itoa(b.ID)},
-			pipelineJobBuildCell,
+			pipelineJobCell,
+			buildCell,
 			statusCell,
 			startTimeCell,
 			endTimeCell,

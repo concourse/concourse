@@ -21,7 +21,7 @@ type FlyCommand struct {
 	PausePipeline   PausePipelineCommand   `command:"pause-pipeline"   alias:"pp" description:"Pause a pipeline"`
 	UnpausePipeline UnpausePipelineCommand `command:"unpause-pipeline" alias:"up" description:"Un-pause a pipeline"`
 
-	Builds BuildsCommand `command:"builds" alias:"b" description:"List builds data"`
+	Builds BuildsCommand `command:"builds" alias:"bs" description:"List builds data"`
 
 	Volumes VolumesCommand `command:"volumes" alias:"vs" description:"List the active volumes"`
 	Workers WorkersCommand `command:"workers" alias:"ws" description:"List the registered workers"`

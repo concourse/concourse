@@ -38,10 +38,11 @@ var _ = Describe("Fly CLI", func() {
 
 			expectedHeaders = ui.TableRow{
 				{Contents: "id", Color: color.New(color.Bold)},
-				{Contents: "pipeline/job#build", Color: color.New(color.Bold)},
+				{Contents: "pipeline/job", Color: color.New(color.Bold)},
+				{Contents: "build", Color: color.New(color.Bold)},
 				{Contents: "status", Color: color.New(color.Bold)},
-				{Contents: "start-UTC", Color: color.New(color.Bold)},
-				{Contents: "end-UTC", Color: color.New(color.Bold)},
+				{Contents: "start", Color: color.New(color.Bold)},
+				{Contents: "end", Color: color.New(color.Bold)},
 				{Contents: "duration", Color: color.New(color.Bold)},
 			}
 		})
@@ -114,14 +115,16 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "2"},
-							{Contents: "some-pipeline/some-job#62"},
+							{Contents: "some-pipeline/some-job"},
+							{Contents: "62"},
 							{Contents: "started"},
 							{Contents: "2015-11-21@10:30:15"},
 							{Contents: "n/a"},
 							{Contents: buildStillRunningDuration.String() + "+"}},
 						{
 							{Contents: "3"},
-							{Contents: "some-other-pipeline/some-other-job#63"},
+							{Contents: "some-other-pipeline/some-other-job"},
+							{Contents: "63"},
 							{Contents: "pending"},
 							{Contents: "2015-12-1@01:20:15"},
 							{Contents: "2015-12-1@02:35:15"},
@@ -129,6 +132,7 @@ var _ = Describe("Fly CLI", func() {
 						},
 						{
 							{Contents: "1000001"},
+							{Contents: "one-off"},
 							{Contents: "n/a"},
 							{Contents: "errored"},
 							{Contents: "2015-7-4@12:00:15"},
@@ -137,6 +141,7 @@ var _ = Describe("Fly CLI", func() {
 						},
 						{
 							{Contents: "39"},
+							{Contents: "one-off"},
 							{Contents: "n/a"},
 							{Contents: "pending"},
 							{Contents: "n/a"},
@@ -196,6 +201,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "39"},
+							{Contents: "one-off"},
 							{Contents: "n/a"},
 							{Contents: "pending"},
 							{Contents: "n/a"},
@@ -209,6 +215,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "80"},
+							{Contents: "one-off"},
 							{Contents: "n/a"},
 							{Contents: "pending"},
 							{Contents: "n/a"},
@@ -249,7 +256,8 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "3"},
-							{Contents: "some-pipeline/some-job#63"},
+							{Contents: "some-pipeline/some-job"},
+							{Contents: "63"},
 							{Contents: "succeeded"},
 							{Contents: "2015-12-1@01:20:15"},
 							{Contents: "2015-12-1@02:35:15"},
@@ -311,7 +319,8 @@ var _ = Describe("Fly CLI", func() {
 						Data: []ui.TableRow{
 							{
 								{Contents: "3"},
-								{Contents: "some-pipeline/some-job#63"},
+								{Contents: "some-pipeline/some-job"},
+								{Contents: "63"},
 								{Contents: "succeeded"},
 								{Contents: "2015-12-1@01:20:15"},
 								{Contents: "2015-12-1@02:35:15"},
@@ -322,7 +331,6 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(session).Should(gexec.Exit(0))
 				})
 			})
-
 		})
 	})
 })
