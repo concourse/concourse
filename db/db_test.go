@@ -71,72 +71,88 @@ var _ = Describe("SQL DB", func() {
 		})
 	})
 
-	It("can keep track of volume data", func() {
-		By("allowing you to insert")
-		expectedVolume := db.Volume{
-			WorkerName:      "some-worker",
-			TTL:             time.Hour,
-			Handle:          "some-volume-handle",
-			ResourceVersion: atc.Version{"some": "version"},
-			ResourceHash:    "some-hash",
-		}
-		err := database.InsertVolume(expectedVolume)
-		Expect(err).NotTo(HaveOccurred())
+	Context("volume data", func() {
+		var insertedVolume db.Volume
 
-		By("getting volume information from the db")
-		volumes, err := database.GetVolumes()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(volumes)).To(Equal(1))
-		actualVolume := volumes[0]
-		Expect(actualVolume.WorkerName).To(Equal(expectedVolume.WorkerName))
-		Expect(actualVolume.TTL).To(Equal(expectedVolume.TTL))
-		Expect(actualVolume.ExpiresIn).To(BeNumerically("~", expectedVolume.TTL, time.Second))
-		Expect(actualVolume.Handle).To(Equal(expectedVolume.Handle))
-		Expect(actualVolume.ResourceVersion).To(Equal(expectedVolume.ResourceVersion))
-		Expect(actualVolume.ResourceHash).To(Equal(expectedVolume.ResourceHash))
-
-		By("allowing you to call insert idempotently")
-		err = database.InsertVolume(expectedVolume)
-		Expect(err).NotTo(HaveOccurred())
-
-		By("not returning volumes that have expired")
-		err = database.InsertVolume(db.Volume{
-			WorkerName:      "some-worker",
-			TTL:             -time.Hour,
-			Handle:          "some-other-volume-handle",
-			ResourceVersion: atc.Version{"some": "version"},
-			ResourceHash:    "some-hash",
+		BeforeEach(func() {
+			insertedVolume = db.Volume{
+				WorkerName:      "some-worker",
+				TTL:             time.Hour,
+				Handle:          "some-volume-handle",
+				ResourceVersion: atc.Version{"some": "version"},
+				ResourceHash:    "some-hash",
+			}
 		})
-		Expect(err).NotTo(HaveOccurred())
 
-		volumes, err = database.GetVolumes()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(volumes)).To(Equal(1))
-
-		By("allowing you to insert the same volume handle on a different worker")
-		err = database.InsertVolume(db.Volume{
-			WorkerName:      "some-other-worker",
-			TTL:             time.Hour,
-			Handle:          "some-volume-handle",
-			ResourceVersion: atc.Version{"some": "version"},
-			ResourceHash:    "some-hash",
+		JustBeforeEach(func() {
+			err := database.InsertVolume(insertedVolume)
+			Expect(err).NotTo(HaveOccurred())
 		})
-		Expect(err).NotTo(HaveOccurred())
-		volumes, err = database.GetVolumes()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(volumes)).To(Equal(2))
 
-		By("letting you get the ttl of a volume")
-		actualTTL, err := database.GetVolumeTTL(actualVolume.Handle)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(actualTTL).To(Equal(actualVolume.TTL))
+		It("can be retrieved", func() {
+			volumes, err := database.GetVolumes()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(volumes)).To(Equal(1))
+			actualVolume := volumes[0]
+			Expect(actualVolume.WorkerName).To(Equal(insertedVolume.WorkerName))
+			Expect(actualVolume.TTL).To(Equal(insertedVolume.TTL))
+			Expect(actualVolume.ExpiresIn).To(BeNumerically("~", insertedVolume.TTL, time.Second))
+			Expect(actualVolume.Handle).To(Equal(insertedVolume.Handle))
+			Expect(actualVolume.ResourceVersion).To(Equal(insertedVolume.ResourceVersion))
+			Expect(actualVolume.ResourceHash).To(Equal(insertedVolume.ResourceHash))
+		})
 
-		By("letting you update the ttl of the volume data")
-		err = database.SetVolumeTTL(actualVolume, -time.Hour)
-		Expect(err).NotTo(HaveOccurred())
-		volumes, err = database.GetVolumes()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(volumes)).To(Equal(1))
+		It("can insert the same data twice, without erroring or data duplication", func() {
+			err := database.InsertVolume(insertedVolume)
+			Expect(err).NotTo(HaveOccurred())
+
+			volumes, err := database.GetVolumes()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(volumes)).To(Equal(1))
+		})
+
+		It("can create the same volume on a different worker", func() {
+			insertedVolume.WorkerName = "some-other-worker"
+			err := database.InsertVolume(insertedVolume)
+			Expect(err).NotTo(HaveOccurred())
+
+			volumes, err := database.GetVolumes()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(volumes)).To(Equal(2))
+		})
+
+		Context("expired volumes", func() {
+			BeforeEach(func() {
+				insertedVolume.TTL = -time.Hour
+			})
+
+			It("does not return them", func() {
+				volumes, err := database.GetVolumes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(volumes)).To(Equal(0))
+			})
+		})
+
+		Context("TTL's", func() {
+			It("can be retrieved by volume handler", func() {
+				actualTTL, err := database.GetVolumeTTL(insertedVolume.Handle)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(actualTTL).To(Equal(insertedVolume.TTL))
+			})
+
+			It("can be updated", func() {
+				volumes, err := database.GetVolumes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(volumes)).To(Equal(1))
+
+				err = database.SetVolumeTTL(volumes[0], -time.Hour)
+				Expect(err).NotTo(HaveOccurred())
+
+				volumes, err = database.GetVolumes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(volumes)).To(Equal(0))
+			})
+		})
 	})
 
 	It("saves and propagates events correctly", func() {
