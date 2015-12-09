@@ -70,6 +70,10 @@ func (cs volumesByWorkerAndHandle) Less(i int, j int) bool {
 }
 
 func formatTTL(ttlInSeconds int64) string {
+	if ttlInSeconds == 0 {
+		return "indefinite"
+	}
+
 	duration := time.Duration(ttlInSeconds) * time.Second
 
 	return fmt.Sprintf(

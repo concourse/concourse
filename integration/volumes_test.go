@@ -61,6 +61,12 @@ var _ = Describe("Fly CLI", func() {
 								ValidityInSeconds: 300,
 								WorkerName:        "dddddd",
 							},
+							{
+								ID:                "eeeeee",
+								TTLInSeconds:      0,
+								ValidityInSeconds: 0,
+								WorkerName:        "ffffff",
+							},
 						}),
 					),
 				)
@@ -80,6 +86,7 @@ var _ = Describe("Fly CLI", func() {
 						{{Contents: "bbbbbb"}, {Contents: "00:00:50"}, {Contents: "00:10:00"}, {Contents: "cccccc"}, {Contents: "version: one"}},
 						{{Contents: "aaaaaa"}, {Contents: "23:59:00"}, {Contents: "24:00:00"}, {Contents: "dddddd"}, {Contents: "version: three"}},
 						{{Contents: "cccccc"}, {Contents: "00:03:20"}, {Contents: "00:05:00"}, {Contents: "dddddd"}, {Contents: "n/a", Color: color.New(color.Faint)}},
+						{{Contents: "eeeeee"}, {Contents: "indefinite"}, {Contents: "indefinite"}, {Contents: "ffffff"}, {Contents: "n/a", Color: color.New(color.Faint)}},
 					},
 				}))
 
