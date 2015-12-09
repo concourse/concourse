@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
@@ -48,9 +49,14 @@ func (identifier ResourceCacheIdentifier) FindOn(logger lager.Logger, vm baggage
 }
 
 func (identifier ResourceCacheIdentifier) CreateOn(logger lager.Logger, vm baggageclaim.Client) (baggageclaim.Volume, error) {
+	ttl := resourceCacheTTL
+
+	if identifier.Version == nil {
+		ttl = worker.VolumeTTL
+	}
 	return vm.CreateVolume(logger, baggageclaim.VolumeSpec{
 		Properties: identifier.volumeProperties(),
-		TTL:        resourceCacheTTL,
+		TTL:        ttl,
 		Privileged: true,
 	})
 }

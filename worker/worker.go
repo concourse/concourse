@@ -23,7 +23,7 @@ var ErrMismatchedTags = errors.New("mismatched tags")
 
 const containerKeepalive = 30 * time.Second
 const containerTTL = 5 * time.Minute
-const volumeTTL = containerTTL
+const VolumeTTL = containerTTL
 
 const ephemeralPropertyName = "concourse:ephemeral"
 const volumePropertyName = "concourse:volumes"
@@ -144,7 +144,7 @@ dance:
 					Parent: mount.Volume,
 				},
 				Privileged: gardenSpec.Privileged,
-				TTL:        volumeTTL,
+				TTL:        VolumeTTL,
 			})
 			if err != nil {
 				return nil, err
@@ -201,7 +201,7 @@ dance:
 					Parent: mount.Volume,
 				},
 				Privileged: s.Privileged,
-				TTL:        volumeTTL,
+				TTL:        VolumeTTL,
 			})
 			if err != nil {
 				return nil, err
@@ -436,7 +436,7 @@ func (worker *gardenWorker) createGardenWorkaroundVolumes(logger lager.Logger, s
 				baggageclaim.VolumeSpec{
 					Privileged: spec.Privileged,
 					Strategy:   baggageclaim.EmptyStrategy{},
-					TTL:        volumeTTL,
+					TTL:        VolumeTTL,
 				},
 			)
 			if err != nil {

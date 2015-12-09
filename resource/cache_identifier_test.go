@@ -129,6 +129,26 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 			createdVolume, createErr = cacheIdentifier.CreateOn(logger, fakeBaggageclaimClient)
 		})
 
+		Context("when creating a volume with no version", func() {
+			var volume *bfakes.FakeVolume
+
+			BeforeEach(func() {
+				cacheIdentifier = ResourceCacheIdentifier{
+					Type:    "some-resource-type",
+					Version: nil,
+					Source:  atc.Source{"some": "source"},
+					Params:  atc.Params{"some": "params"},
+				}
+				volume = new(bfakes.FakeVolume)
+				fakeBaggageclaimClient.CreateVolumeReturns(volume, nil)
+			})
+
+			It("sets the TTL to 5 minutes", func() {
+				_, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
+				Expect(spec.TTL).To(Equal(5 * time.Minute))
+			})
+		})
+
 		Context("when creating the volume succeeds", func() {
 			var volume *bfakes.FakeVolume
 
