@@ -13,9 +13,9 @@ import (
 	"github.com/concourse/fly/commands/internal/executehelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/config"
+	"github.com/concourse/fly/eventstream"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
-	"github.com/concourse/go-concourse/concourse/eventstream"
 )
 
 type ExecuteCommand struct {
