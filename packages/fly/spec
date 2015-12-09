@@ -21,6 +21,7 @@ files:
   - github.com/concourse/fly/commands/internal/flaghelpers/*.go # gosub
   - github.com/concourse/fly/commands/internal/setpipelinehelpers/*.go # gosub
   - github.com/concourse/fly/config/*.go # gosub
+  - github.com/concourse/fly/eventstream/*.go # gosub
   - github.com/concourse/fly/pty/*.go # gosub
   - github.com/concourse/fly/rc/*.go # gosub
   - github.com/concourse/fly/template/*.go # gosub
