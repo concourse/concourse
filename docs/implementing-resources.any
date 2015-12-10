@@ -18,7 +18,7 @@ dependencies. For example, the Git resource comes with \code{git} installed.
 All resources must implement all three actions, though the actions can just be
 no-ops (which still must be correctly implemented as detailed below).
 
-\section{\code{check}\aux{: Check for new versions.}}{
+\section{\code{check}\aux{: Check for new versions.}}{resource-check}{
   A resource type's \code{check} script is invoked to detect new versions of
   the resource. It is given the configured source and current version on stdin,
   and must print the array of new versions, in chronological order, to stdout.

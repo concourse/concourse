@@ -2,59 +2,122 @@
 
 \title{Mechanics of a Pipeline}{pipeline-mechanics}
 
+Composing the three core \reference{concepts} together results in a
+\italic{pipeline}.
+
+A pipeline is the result of configuring \reference{configuring-jobs} and
+\reference{configuring-resources}. When you configure a pipeline, it takes on a
+life of its own, to continously detect resource versions and schedule jobs over
+time. The mechanics of this are described below.
+
+{-
 Up until now the documentation has been styled as reference material in that
 there hasn't been much detail about how the primitives that Concourse provides
 can be built up into a full delivery pipeline. This section of the
 documentation aims to complement those prior to it by showing how Concourse
 concepts can be applied to the real world.
+-}
 
 \section{Scheduling with Resources}{
-  Resources are at the core of Concourse and should be used to model all
-  external dependencies that enter or exit your pipeline. This lets Concourse
-  ensure that builds are repeatable and recorded.
+  Resources are at the core of Concourse and are used to model all external
+  dependencies that enter or exit your pipeline.  This lets Concourse ensure
+  that builds are repeatable and recorded.
 
-  \section{Versions}{
-    New resource versions can enter a pipeline in two ways:
+  Resources are also the only way to convey progression of artifacts through a
+  pipeline. The order that jobs execute is determined by their dependencies on
+  resources that made it through upstream jobs. This means you never actually
+  configure "run job A and then job B" - instead you express the dependency
+  between them via the data that's progressing through as a resource.
+
+  There are three core mechanics of a pipeline: detecting versions of its
+  resources, determining the valid sets of versions for its jobs, and
+  optionally auto-triggering jobs when new candidates appear.
+
+  \section{Collecting Versions}{
+    Each pipeline automatically collects versions of each resource in
+    chronological order. An example of versions of resources would be commits
+    to a \hyperlink{https://git-scm.com}{Git} repository, via the
+    \hyperlink{https://github.com/concourse/git-resource}{Git resource}.
+
+    New resource versions are discovered by a pipeline in two ways:
 
     \list{
-      A new version can be found in an external resource by the \italic{check}
-      component of a resource finding a new set of versions when it runs. A
-      \italic{check} is run periodically for every resource in your pipeline.
+      A new version can be found in an external resource by the
+      \reference{resource-check} component of a resource finding a new set of
+      versions when it runs. A \reference{resource-check} is run periodically
+      for every resource in your pipeline.
     }{
-      A build can produce a new version of a resource by running a \italic{put}
-      step. This version becomes available in later build steps and later
-      pipeline jobs.
+      A build can produce a new version of a resource by running a
+      \reference{put-step} step. This version is automatically detected and
+      becomes available in later build steps and later pipeline jobs.
     }
 
     Both of these combined produce a stream of versions for a particular
-    resource. You can filter this stream to restrict the inputs to your build
-    in two ways.
+    resource.
+  }
 
-    A \code{passed:} constraint will make sure that only versions that have
-    passed a set of jobs will be considered for inputs. This means that they
-    were either an input to a successful build of that job or they were a
-    versions that was created by a successful build of that job.
+  \section{Filtering Versions}{
+    When writing a \reference{configuring-jobs}{Job}, its dependencies are
+    declared via \reference{get-step} steps. The set of versions available to a
+    \reference{get-step} step is filtered down by two things:
 
-    The other way to 
+    \list{
+      A \reference{passed} constraint on the step itself will make sure that
+      only versions that have passed a set of jobs will be considered for
+      inputs. This means that they were either an input to a successful build
+      of that job or they were a version that was created (via
+      \reference{put-step}) by a successful build of that job.
+    }{
+      Versions of resources can be
+      \reference{disabling-resource-versions}{manually disabled} if you know
+      that a version is "bad" (i.e. backwards-incompatible) in a way that your
+      pipeline itself did not discover.
+    }
+
+    Putting these constraints together, the following illustration shows how
+    the versions for a job's \reference{get-step} step are determined:
 
     \image{images/resource-versions.png}{Resource Versions}
 
     Just because a set of versions is valid it doesn't mean that it will
     definitely be scheduled as an input to a build. Only the most recent set of
     valid versions at scheduling time will be considered.
+
+    Note that with multiple \reference{get-step} steps in a job's
+    \reference{build-plans}{build plan}, their \reference{passed} constraints
+    will be correlated, and only sets of versions that satisfy all constraints
+    at once will be considered. The semantics here are nuanced but should
+    quickly become pretty intuitive; see the docs on \reference{passed} for
+    more information.
   }
 
-  \section{Triggering}{
-    By default a new version appearing will not cause a build to start
-    automatically. The versions will accumulate until the next time the job is
-    manually started at which point the most recent valid set of versions will
-    be run as a build. This behaviour can be changed by adding `trigger: true`
-    to any of the `get:` steps in your plan then when a new valid version of
-    that resource is detected then the build will start automatically.
+  \section{Triggering Jobs}{
+    Jobs can either be manually triggered, by clicking the "+" sign on the
+    build or job page, or automatically triggered when its dependencies change.
+
+    By default, jobs won't automatically run when a new set of candidate
+    versions becomes available. This behaviour can be changed by adding
+    \reference{trigger}{\code{trigger: true}} to any of the
+    \reference{get-step} steps in your plan. This will make it so that the when
+    a new set of candidates is discovered, and the version for the \code{get}
+    step is new, then a build will be scheduled automatically. This is
+    typically used throughout the jobs in a pipeline.
+
+    Note that only one build will be automatically scheduled at a time, and the
+    input set is not determined until as late as possible (just before the build
+    starts). This keeps builds from piling up as jobs with varying duration run
+    throughout your pipeline. This also means that if you manually trigger a
+    job you can trust that a redundant build won't be enqueued later (barring
+    the fundamental race of a human competing with the automatic trigger).
   }
 }
 
 \section{Applying the Brakes}{
+  Sometimes your house just starts to burn down. It's no one's fault, but you
+  want it to stop. In Concourse, there are various levels of "panic buttons"
+  that let you deal with emergent behavior such as backwards incompatibility or
+  your pipeline becoming sentient.
+
   \section{Pausing Resources}{
     A resource check can be paused on its resource page. This has the effect
     that new versions of the resource will not be found by the \italic{check}
@@ -68,7 +131,7 @@ concepts can be applied to the real world.
     upstream dependency.
   }
 
-  \section{Disabling a Resource Version}{
+  \section{Disabling a Resource Version}{disabling-resource-versions}{
     Versions can be explicitly invalidated by disabling them on their resource
     page. Disabling a resource will cause it to \bold{never} be used as an
     input to a build. If the only otherwise valid input versions now include a
