@@ -112,7 +112,7 @@ decodeFinishResource cons =
   Json.Decode.object4 cons
     ("origin" := decodeOrigin)
     ("exit_status" := Json.Decode.int)
-    ("version" := Concourse.Version.decode)
+    (Json.Decode.map (Maybe.withDefault Dict.empty) << Json.Decode.maybe <| "version" := Concourse.Version.decode)
     (Json.Decode.map (Maybe.withDefault []) << Json.Decode.maybe <| "metadata" := Concourse.Metadata.decode)
 
 decodeErrorEvent : Json.Decode.Decoder BuildEvent
