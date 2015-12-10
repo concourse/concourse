@@ -149,12 +149,11 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 		volume.Release(ttlForVol)
 		err = bc.db.SetVolumeTTL(volumeToExpire, ttlForVol)
 		if err != nil {
-			bc.logger.Error("failed-to-update-tll-in-db", err)
+			bc.logger.Error("failed-to-update-ttl-in-db", err)
 		}
 	}
 
 	return nil
-
 }
 
 func NewBaggageCollector(
