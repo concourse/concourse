@@ -76,6 +76,7 @@ type DB interface {
 
 	InsertVolume(data Volume) error
 	GetVolumes() ([]SavedVolume, error)
+	ReapVolume(string) error
 	SetVolumeTTL(SavedVolume, time.Duration) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, error)
 }

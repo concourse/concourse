@@ -15,6 +15,7 @@ import (
 //go:generate counterfeiter . BaggageCollectorDB
 
 type BaggageCollectorDB interface {
+	ReapVolume(string) error
 	GetAllActivePipelines() ([]db.SavedPipeline, error)
 	GetVolumes() ([]db.SavedVolume, error)
 	SetVolumeTTL(db.SavedVolume, time.Duration) error
@@ -119,16 +120,16 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 				"error":  err.Error(),
 				"worker": volumeToExpire.WorkerName,
 			})
+			bc.db.ReapVolume(volumeToExpire.Handle)
 			continue
 		}
 
 		baggageClaimClient, found := volumeWorker.VolumeManager()
-
 		if !found {
 			bc.logger.Info("no-volume-manager-on-worker", lager.Data{
-				"error":  err.Error(),
 				"worker": volumeToExpire.WorkerName,
 			})
+			bc.db.ReapVolume(volumeToExpire.Handle)
 			continue
 		}
 

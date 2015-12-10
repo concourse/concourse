@@ -10,6 +10,14 @@ import (
 )
 
 type FakeBaggageCollectorDB struct {
+	ReapVolumeStub        func(string) error
+	reapVolumeMutex       sync.RWMutex
+	reapVolumeArgsForCall []struct {
+		arg1 string
+	}
+	reapVolumeReturns struct {
+		result1 error
+	}
 	GetAllActivePipelinesStub        func() ([]db.SavedPipeline, error)
 	getAllActivePipelinesMutex       sync.RWMutex
 	getAllActivePipelinesArgsForCall []struct{}
@@ -33,6 +41,38 @@ type FakeBaggageCollectorDB struct {
 	setVolumeTTLReturns struct {
 		result1 error
 	}
+}
+
+func (fake *FakeBaggageCollectorDB) ReapVolume(arg1 string) error {
+	fake.reapVolumeMutex.Lock()
+	fake.reapVolumeArgsForCall = append(fake.reapVolumeArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.reapVolumeMutex.Unlock()
+	if fake.ReapVolumeStub != nil {
+		return fake.ReapVolumeStub(arg1)
+	} else {
+		return fake.reapVolumeReturns.result1
+	}
+}
+
+func (fake *FakeBaggageCollectorDB) ReapVolumeCallCount() int {
+	fake.reapVolumeMutex.RLock()
+	defer fake.reapVolumeMutex.RUnlock()
+	return len(fake.reapVolumeArgsForCall)
+}
+
+func (fake *FakeBaggageCollectorDB) ReapVolumeArgsForCall(i int) string {
+	fake.reapVolumeMutex.RLock()
+	defer fake.reapVolumeMutex.RUnlock()
+	return fake.reapVolumeArgsForCall[i].arg1
+}
+
+func (fake *FakeBaggageCollectorDB) ReapVolumeReturns(result1 error) {
+	fake.ReapVolumeStub = nil
+	fake.reapVolumeReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeBaggageCollectorDB) GetAllActivePipelines() ([]db.SavedPipeline, error) {

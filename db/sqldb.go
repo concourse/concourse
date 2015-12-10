@@ -156,6 +156,14 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 	return tx.Commit()
 }
 
+func (db *SQLDB) ReapVolume(handle string) error {
+	_, err := db.conn.Exec(`
+		DELETE FROM volumes
+		WHERE handle = $1
+	`, handle)
+	return err
+}
+
 func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 	// reap expired volumes
 	_, err := db.conn.Exec(`

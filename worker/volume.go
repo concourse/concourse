@@ -14,6 +14,7 @@ const volumeKeepalive = 30 * time.Second
 //go:generate counterfeiter . VolumeFactoryDB
 type VolumeFactoryDB interface {
 	GetVolumeTTL(volumeHandle string) (time.Duration, error)
+	ReapVolume(handle string) error
 }
 
 //go:generate counterfeiter . VolumeFactory
@@ -134,6 +135,9 @@ func (v *volume) heartbeat(logger lager.Logger, ttl time.Duration) {
 
 	err := v.SetTTL(ttl)
 	if err != nil {
+		if err == baggageclaim.ErrVolumeNotFound {
+			v.db.ReapVolume(v.Handle())
+		}
 		logger.Error("failed-to-heartbeat-to-volume", err)
 	}
 }

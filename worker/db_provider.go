@@ -26,6 +26,7 @@ type WorkerDB interface {
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, error)
+	ReapVolume(handle string) error
 }
 
 var ErrMultipleWorkersWithName = errors.New("More than one worker has given worker name")

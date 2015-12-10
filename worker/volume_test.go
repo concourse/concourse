@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/baggageclaim"
 	bfakes "github.com/concourse/baggageclaim/fakes"
 	"github.com/pivotal-golang/clock/fakeclock"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -112,6 +113,18 @@ var _ = Describe("Volumes", func() {
 			Eventually(fakeVolume.SetTTLCallCount).Should(Equal(2))
 			actualTTL = fakeVolume.SetTTLArgsForCall(1)
 			Expect(actualTTL).To(Equal(expectedTTL))
+		})
+
+		It("reaps the volume during heartbeat if the volume is not found", func() {
+			fakeVolume.SetTTLReturns(baggageclaim.ErrVolumeNotFound)
+			fakeVolume.HandleReturns("some-handle")
+
+			_, err := volumeFactory.Build(fakeVolume)
+			Expect(err).ToNot(HaveOccurred())
+
+			fakeClock.Increment(30 * time.Second)
+			Expect(fakeDB.ReapVolumeCallCount()).To(Equal(1))
+			Expect(fakeDB.ReapVolumeArgsForCall(0)).To(Equal("some-handle"))
 		})
 	})
 })
