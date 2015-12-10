@@ -70,6 +70,7 @@ func (s *Server) hijack(w http.ResponseWriter, request hijackRequest, hLog lager
 	if !found {
 		hLog.Info("failed-to-get-container")
 		http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusNotFound)
+		return
 	}
 
 	defer container.Release(0)

@@ -483,6 +483,26 @@ var _ = Describe("Pipelines API", func() {
 					fakeWorkerClient.LookupContainerReturns(fakeContainer, true, nil)
 				})
 
+				Context("when the call to lookup the container returns an error", func() {
+					BeforeEach(func() {
+						fakeWorkerClient.LookupContainerReturns(nil, false, errors.New("nope"))
+					})
+
+					It("returns a 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the container could not be found on the worker client", func() {
+					BeforeEach(func() {
+						fakeWorkerClient.LookupContainerReturns(nil, false, nil)
+					})
+
+					It("returns a 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
 				Context("when running the process succeeds", func() {
 					var (
 						fakeProcess *gfakes.FakeProcess
