@@ -129,8 +129,8 @@ func scanIDs(rows *sql.Rows) ([]string, error) {
 }
 
 func (pdb *pipelineDB) Destroy() error {
-	_, err := pdb.conn.Query(`
-		delete from pipelines where id = $1
+	_, err := pdb.conn.Exec(`
+		DELETE FROM pipelines WHERE id = $1
 	`, pdb.ID)
 	return err
 }
