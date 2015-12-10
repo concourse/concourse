@@ -222,7 +222,13 @@ span.error {
 }
 
 .build-step.inactive h3, .build-step.inactive i, .build-step.inactive .version {
-  color: @base04;
+  color: @base03;
+}
+
+.build-step.inactive.first-occurrence {
+  h3, i, .version {
+    color: @base04;
+  }
 }
 
 .build-step .header {
