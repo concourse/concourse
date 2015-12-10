@@ -16,10 +16,30 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+const timeDateLayout = "2006-01-02@15:04:05-0700"
+
 var _ = Describe("Fly CLI", func() {
 	var (
 		atcServer *ghttp.Server
+
+		runningBuildStartTime   time.Time
+		pendingBuildStartTime   time.Time
+		pendingBuildEndTime     time.Time
+		erroredBuildStartTime   time.Time
+		erroredBuildEndTime     time.Time
+		succeededBuildStartTime time.Time
+		succeededBuildEndTime   time.Time
 	)
+
+	BeforeEach(func() {
+		runningBuildStartTime = time.Date(2015, time.November, 21, 10, 30, 15, 0, time.UTC)
+		pendingBuildStartTime = time.Date(2015, time.December, 1, 1, 20, 15, 0, time.UTC)
+		pendingBuildEndTime = time.Date(2015, time.December, 1, 2, 35, 15, 0, time.UTC)
+		erroredBuildStartTime = time.Date(2015, time.July, 4, 12, 00, 15, 0, time.UTC)
+		erroredBuildEndTime = time.Date(2015, time.July, 4, 14, 45, 15, 0, time.UTC)
+		succeededBuildStartTime = time.Date(2015, time.December, 1, 1, 20, 15, 0, time.UTC)
+		succeededBuildEndTime = time.Date(2015, time.December, 1, 2, 35, 15, 0, time.UTC)
+	})
 
 	Describe("builds", func() {
 		var (
@@ -61,10 +81,8 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("with no arguments", func() {
-			var buildStillRunningTime int64
 
 			BeforeEach(func() {
-				buildStillRunningTime = time.Date(2015, time.November, 21, 10, 30, 15, 0, time.UTC).Unix()
 				expectedURL = "/api/v1/builds"
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
@@ -74,7 +92,7 @@ var _ = Describe("Fly CLI", func() {
 						JobName:      "some-job",
 						Name:         "62",
 						Status:       "started",
-						StartTime:    buildStillRunningTime,
+						StartTime:    runningBuildStartTime.Unix(),
 						EndTime:      0,
 					},
 					{
@@ -83,8 +101,8 @@ var _ = Describe("Fly CLI", func() {
 						JobName:      "some-other-job",
 						Name:         "63",
 						Status:       "pending",
-						StartTime:    time.Date(2015, time.December, 1, 1, 20, 15, 0, time.UTC).Unix(),
-						EndTime:      time.Date(2015, time.December, 1, 2, 35, 15, 0, time.UTC).Unix(),
+						StartTime:    pendingBuildStartTime.Unix(),
+						EndTime:      pendingBuildEndTime.Unix(),
 					},
 					{
 						ID:           1000001,
@@ -92,8 +110,8 @@ var _ = Describe("Fly CLI", func() {
 						JobName:      "",
 						Name:         "",
 						Status:       "errored",
-						StartTime:    time.Date(2015, time.July, 4, 12, 00, 15, 0, time.UTC).Unix(),
-						EndTime:      time.Date(2015, time.July, 4, 14, 45, 15, 0, time.UTC).Unix(),
+						StartTime:    erroredBuildStartTime.Unix(),
+						EndTime:      erroredBuildEndTime.Unix(),
 					},
 					{
 						ID:           39,
@@ -108,7 +126,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("returns all the builds", func() {
-				buildStillRunningDuration := time.Duration(time.Now().Unix()-buildStillRunningTime) * time.Second
+				runningBuildDuration := time.Duration(time.Now().Unix()-runningBuildStartTime.Unix()) * time.Second
 
 				Eventually(session.Out).Should(PrintTable(ui.Table{
 					Headers: expectedHeaders,
@@ -118,16 +136,16 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "some-pipeline/some-job"},
 							{Contents: "62"},
 							{Contents: "started"},
-							{Contents: "2015-11-21@10:30:15"},
+							{Contents: runningBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: "n/a"},
-							{Contents: buildStillRunningDuration.String() + "+"}},
+							{Contents: runningBuildDuration.String() + "+"}},
 						{
 							{Contents: "3"},
 							{Contents: "some-other-pipeline/some-other-job"},
 							{Contents: "63"},
 							{Contents: "pending"},
-							{Contents: "2015-12-1@01:20:15"},
-							{Contents: "2015-12-1@02:35:15"},
+							{Contents: pendingBuildStartTime.Local().Format(timeDateLayout)},
+							{Contents: pendingBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "1h15m0s"},
 						},
 						{
@@ -135,8 +153,8 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "one-off"},
 							{Contents: "n/a"},
 							{Contents: "errored"},
-							{Contents: "2015-7-4@12:00:15"},
-							{Contents: "2015-7-4@14:45:15"},
+							{Contents: erroredBuildStartTime.Local().Format(timeDateLayout)},
+							{Contents: erroredBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "2h45m0s"},
 						},
 						{
@@ -244,8 +262,8 @@ var _ = Describe("Fly CLI", func() {
 						JobName:      "some-job",
 						Name:         "63",
 						Status:       "succeeded",
-						StartTime:    time.Date(2015, time.December, 1, 1, 20, 15, 0, time.UTC).Unix(),
-						EndTime:      time.Date(2015, time.December, 1, 2, 35, 15, 0, time.UTC).Unix(),
+						StartTime:    succeededBuildStartTime.Unix(),
+						EndTime:      succeededBuildEndTime.Unix(),
 					},
 				}
 			})
@@ -259,8 +277,8 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "some-pipeline/some-job"},
 							{Contents: "63"},
 							{Contents: "succeeded"},
-							{Contents: "2015-12-1@01:20:15"},
-							{Contents: "2015-12-1@02:35:15"},
+							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
+							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 							{Contents: "1h15m0s"},
 						},
 					},
@@ -307,8 +325,8 @@ var _ = Describe("Fly CLI", func() {
 							JobName:      "some-job",
 							Name:         "63",
 							Status:       "succeeded",
-							StartTime:    time.Date(2015, time.December, 1, 1, 20, 15, 0, time.UTC).Unix(),
-							EndTime:      time.Date(2015, time.December, 1, 2, 35, 15, 0, time.UTC).Unix(),
+							StartTime:    succeededBuildStartTime.Unix(),
+							EndTime:      succeededBuildEndTime.Unix(),
 						},
 					}
 				})
@@ -322,8 +340,8 @@ var _ = Describe("Fly CLI", func() {
 								{Contents: "some-pipeline/some-job"},
 								{Contents: "63"},
 								{Contents: "succeeded"},
-								{Contents: "2015-12-1@01:20:15"},
-								{Contents: "2015-12-1@02:35:15"},
+								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
+								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
 								{Contents: "1h15m0s"},
 							},
 						},

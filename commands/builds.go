@@ -15,7 +15,7 @@ import (
 	"github.com/fatih/color"
 )
 
-const timeDateLayout = "2006-1-2@15:04:05"
+const timeDateLayout = "2006-01-02@15:04:05-0700"
 
 type BuildsCommand struct {
 	Count int                 `short:"c" long:"count" default:"50"															description:"number of builds you want to limit the return to"`
@@ -73,33 +73,10 @@ func (command *BuildsCommand) Execute([]string) error {
 	}
 
 	for _, b := range builds[:rangeUntil] {
-		var durationCell ui.TableCell
-		var startTimeCell ui.TableCell
-		var endTimeCell ui.TableCell
 
-		startTime := time.Unix(b.StartTime, 0).UTC()
-		endTime := time.Unix(b.EndTime, 0).UTC()
-
-		if b.StartTime == 0 {
-			startTimeCell.Contents = "n/a"
-		} else {
-			startTimeCell.Contents = startTime.Format(timeDateLayout)
-		}
-
-		if b.EndTime == 0 {
-			endTimeCell.Contents = "n/a"
-			durationCell.Contents = fmt.Sprintf("%v+", roundSecondsOffDuration(time.Since(startTime)))
-		} else {
-			endTimeCell.Contents = endTime.Format(timeDateLayout)
-			durationCell.Contents = endTime.Sub(startTime).String()
-		}
-
-		if b.EndTime == 0 && b.StartTime == 0 {
-			durationCell.Contents = "n/a"
-		}
+		startTimeCell, endTimeCell, durationCell := populateTimeCells(time.Unix(b.StartTime, 0), time.Unix(b.EndTime, 0))
 
 		var pipelineJobCell, buildCell ui.TableCell
-
 		if b.PipelineName == "" {
 			pipelineJobCell.Contents = "one-off"
 			buildCell.Contents = "n/a"
@@ -140,6 +117,36 @@ func (command *BuildsCommand) Execute([]string) error {
 	}
 
 	return table.Render(os.Stdout)
+}
+
+func populateTimeCells(startTime time.Time, endTime time.Time) (ui.TableCell, ui.TableCell, ui.TableCell) {
+	var startTimeCell ui.TableCell
+	var endTimeCell ui.TableCell
+	var durationCell ui.TableCell
+
+	startTime = startTime.Local()
+	endTime = endTime.Local()
+	zeroTime := time.Unix(0, 0)
+
+	if startTime == zeroTime {
+		startTimeCell.Contents = "n/a"
+	} else {
+		startTimeCell.Contents = startTime.Format(timeDateLayout)
+	}
+
+	if endTime == zeroTime {
+		endTimeCell.Contents = "n/a"
+		durationCell.Contents = fmt.Sprintf("%v+", roundSecondsOffDuration(time.Since(startTime)))
+	} else {
+		endTimeCell.Contents = endTime.Format(timeDateLayout)
+		durationCell.Contents = endTime.Sub(startTime).String()
+	}
+
+	if startTime == zeroTime && endTime == zeroTime {
+		durationCell.Contents = "n/a"
+	}
+
+	return startTimeCell, endTimeCell, durationCell
 }
 
 func roundSecondsOffDuration(d time.Duration) time.Duration {
