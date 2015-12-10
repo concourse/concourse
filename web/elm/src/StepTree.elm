@@ -418,11 +418,10 @@ viewStep actions model {id, name, log, state, error, expanded, version, metadata
       [ ("build-step", True)
       , ("inactive", not <| isActive state)
       , ("first-occurrence", firstOccurrence)
-      , ("hidden", (not <| isActive state) && model.finished)
       ]
     ]
     [ Html.div [class "header", onClick actions (ToggleStep id)]
-        [ viewStepState state
+        [ viewStepState state model.finished
         , typeIcon icon
         , Html.dl [class "version"] <|
             List.concatMap (uncurry viewPair) << Dict.toList <|
@@ -457,13 +456,16 @@ typeIcon : String -> Html
 typeIcon fa =
   Html.i [class ("left fa fa-fw " ++ fa)] []
 
-viewStepState : StepState -> Html
-viewStepState state =
+viewStepState : StepState -> Bool -> Html
+viewStepState state finished =
   case state of
     StepStatePending ->
-      Html.i
-        [ class "right fa fa-fw fa-circle-o-notch"
-        ] []
+      let
+        icon = if finished then "fa-circle" else "fa-circle-o-notch"
+      in
+        Html.i
+          [ class ("right fa fa-fw " ++ icon)
+          ] []
 
     StepStateRunning ->
       Html.i
