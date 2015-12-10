@@ -28,9 +28,9 @@ resources/git-resource.tar.gz:
   sha: 593a41dda7df459bea13fc983ff6ca988d4a112a
   size: 8779881
 resources/docker-image-resource.tar.gz:
-  object_id: d49c0c2c-98f9-4de3-8d32-98a580cb54af
-  sha: 6addf68836cdb312e50cbe8d1a0109ca092ab418
-  size: 15717497
+  object_id: f4806feb-e974-438b-af7f-48f137173ff1
+  sha: b44c92101d8a81771dd7c787288de64709beb56c
+  size: 15717910
 resources/vagrant-cloud-resource.tar.gz:
   object_id: 3c17d93c-fdb3-4716-9102-3a19a923e14c
   sha: 0d50e8cd4cfaf9b937543402a4bf7cd9ed65a3d5
