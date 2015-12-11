@@ -110,6 +110,12 @@ properties:
       `check_every` on the resource config.
     default: 1m
 
+  atc.resource_cache_cleanup_interval:
+    description: |
+      The interval, in Go duration format (1m = 1 minute), on which to check
+      for and release old caches of resource versions.
+    default: 30s
+
   atc.old_resource_grace_period:
     description: |
       How long to cache the result of a get step after a newer version of the
