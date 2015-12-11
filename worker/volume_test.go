@@ -76,11 +76,22 @@ var _ = Describe("Volumes", func() {
 			actualTTL := fakeVolume.SetTTLArgsForCall(0)
 			Expect(actualTTL).To(Equal(expectedTTL))
 
+			Expect(fakeDB.SetVolumeTTLCallCount()).To(Equal(1))
+			actualHandle, actualTTL = fakeDB.SetVolumeTTLArgsForCall(0)
+			Expect(actualHandle).To(Equal(vol.Handle()))
+			Expect(actualTTL).To(Equal(expectedTTL))
+
 			By("using the ttl from the database each tick")
 			fakeDB.GetVolumeTTLReturns(expectedTTL2, nil)
 			fakeClock.Increment(30 * time.Second)
+
 			Eventually(fakeVolume.SetTTLCallCount).Should(Equal(2))
 			actualTTL = fakeVolume.SetTTLArgsForCall(1)
+			Expect(actualTTL).To(Equal(expectedTTL2))
+
+			Eventually(fakeDB.SetVolumeTTLCallCount).Should(Equal(2))
+			actualHandle, actualTTL = fakeDB.SetVolumeTTLArgsForCall(1)
+			Expect(actualHandle).To(Equal(vol.Handle()))
 			Expect(actualTTL).To(Equal(expectedTTL2))
 
 			By("being resiliant to db errors")
@@ -94,6 +105,11 @@ var _ = Describe("Volumes", func() {
 			vol.Release(2 * time.Second)
 			Eventually(fakeVolume.SetTTLCallCount).Should(Equal(4))
 			actualTTL = fakeVolume.SetTTLArgsForCall(3)
+			Expect(actualTTL).To(Equal(2 * time.Second))
+
+			Eventually(fakeDB.SetVolumeTTLCallCount).Should(Equal(4))
+			actualHandle, actualTTL = fakeDB.SetVolumeTTLArgsForCall(3)
+			Expect(actualHandle).To(Equal(vol.Handle()))
 			Expect(actualTTL).To(Equal(2 * time.Second))
 		})
 

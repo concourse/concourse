@@ -90,6 +90,15 @@ type FakeWorkerDB struct {
 	reapVolumeReturns struct {
 		result1 error
 	}
+	SetVolumeTTLStub        func(string, time.Duration) error
+	setVolumeTTLMutex       sync.RWMutex
+	setVolumeTTLArgsForCall []struct {
+		arg1 string
+		arg2 time.Duration
+	}
+	setVolumeTTLReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeWorkerDB) Workers() ([]db.WorkerInfo, error) {
@@ -378,6 +387,39 @@ func (fake *FakeWorkerDB) ReapVolumeArgsForCall(i int) string {
 func (fake *FakeWorkerDB) ReapVolumeReturns(result1 error) {
 	fake.ReapVolumeStub = nil
 	fake.reapVolumeReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeWorkerDB) SetVolumeTTL(arg1 string, arg2 time.Duration) error {
+	fake.setVolumeTTLMutex.Lock()
+	fake.setVolumeTTLArgsForCall = append(fake.setVolumeTTLArgsForCall, struct {
+		arg1 string
+		arg2 time.Duration
+	}{arg1, arg2})
+	fake.setVolumeTTLMutex.Unlock()
+	if fake.SetVolumeTTLStub != nil {
+		return fake.SetVolumeTTLStub(arg1, arg2)
+	} else {
+		return fake.setVolumeTTLReturns.result1
+	}
+}
+
+func (fake *FakeWorkerDB) SetVolumeTTLCallCount() int {
+	fake.setVolumeTTLMutex.RLock()
+	defer fake.setVolumeTTLMutex.RUnlock()
+	return len(fake.setVolumeTTLArgsForCall)
+}
+
+func (fake *FakeWorkerDB) SetVolumeTTLArgsForCall(i int) (string, time.Duration) {
+	fake.setVolumeTTLMutex.RLock()
+	defer fake.setVolumeTTLMutex.RUnlock()
+	return fake.setVolumeTTLArgsForCall[i].arg1, fake.setVolumeTTLArgsForCall[i].arg2
+}
+
+func (fake *FakeWorkerDB) SetVolumeTTLReturns(result1 error) {
+	fake.SetVolumeTTLStub = nil
+	fake.setVolumeTTLReturns = struct {
 		result1 error
 	}{result1}
 }
