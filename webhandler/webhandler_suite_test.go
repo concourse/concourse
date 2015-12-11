@@ -9,5 +9,5 @@ import (
 
 func TestWebhandler(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Webhandler Suite")
+	RunSpecs(t, "Web Handler Suite")
 }
