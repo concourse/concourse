@@ -93,27 +93,30 @@ var _ = Describe("Baggage Collector", func() {
 
 					for _, resourceInfo := range data {
 						var savedVersions []db.SavedVersionedResource
-						for _, version := range resourceInfo.versions {
-							savedVersions = append(savedVersions, db.SavedVersionedResource{
-								Enabled: true,
-								VersionedResource: db.VersionedResource{
-									Version: db.Version(version),
-								},
-							})
-						}
-						for _, i := range resourceInfo.versionsToDisable {
-							savedVersions[i].Enabled = false
+
+						for i, version := range resourceInfo.versions {
+							disabled := false
+							for _, j := range resourceInfo.versionsToDisable {
+								if i == j {
+									disabled = true
+								}
+							}
+
+							if !disabled {
+								savedVersions = append(savedVersions, db.SavedVersionedResource{
+									Enabled: true,
+									VersionedResource: db.VersionedResource{
+										Version: db.Version(version),
+									},
+								})
+							}
 						}
 						savedVersionsForEachResource[resourceInfo.config.Name] = savedVersions
 					}
 
-					fakePipelineDB.GetResourceVersionsStub = func(resource string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, bool, error) {
-						Expect(page).To(Equal(db.Page{Limit: 2}))
-						savedVersions := savedVersionsForEachResource[resource]
-						return []db.SavedVersionedResource{
-							savedVersions[len(savedVersions)-1],
-							savedVersions[len(savedVersions)-2],
-						}, db.Pagination{}, true, nil
+					fakePipelineDB.GetLatestEnabledVersionedResourceStub = func(resourceName string) (db.SavedVersionedResource, bool, error) {
+						savedVersions := savedVersionsForEachResource[resourceName]
+						return savedVersions[len(savedVersions)-1], true, nil
 					}
 
 					fakePipelineDBs[name] = fakePipelineDB
@@ -317,8 +320,9 @@ var _ = Describe("Baggage Collector", func() {
 							{"version": "older"},
 							{"version": "latest-enabled-version"},
 							{"version": "latest-but-disabled"},
+							{"version": "latest-but-also-disabled"},
 						},
-						versionsToDisable: []int{2},
+						versionsToDisable: []int{2, 3},
 					},
 				},
 			},
@@ -344,11 +348,19 @@ var _ = Describe("Baggage Collector", func() {
 					ResourceVersion: atc.Version{"version": "latest-but-disabled"},
 					ResourceHash:    `some-a-type{"some":"a-source"}`,
 				},
+				{
+					WorkerName:      "some-worker",
+					TTL:             expectedLatestVersionTTL,
+					Handle:          "some-volume-handle-4",
+					ResourceVersion: atc.Version{"version": "latest-but-also-disabled"},
+					ResourceHash:    `some-a-type{"some":"a-source"}`,
+				},
 			},
 			expectedTTLs: map[string]time.Duration{
 				"some-volume-handle-1": expectedOldResourceGracePeriod,
 				"some-volume-handle-2": expectedLatestVersionTTL,
 				"some-volume-handle-3": expectedOldResourceGracePeriod,
+				"some-volume-handle-4": expectedOldResourceGracePeriod,
 			},
 		}),
 		Entry("it doesn't update the TTL if it's already correct", baggageCollectionExample{
@@ -404,6 +416,58 @@ var _ = Describe("Baggage Collector", func() {
 			},
 			expectedTTLs: map[string]time.Duration{},
 		}),
+		Entry("it expires resource versions that are no longer mentioned in the pipeline", baggageCollectionExample{
+			pipelineData: map[string][]resourceConfigAndVersions{
+				"pipeline-a": []resourceConfigAndVersions{
+					{
+						config: atc.ResourceConfig{
+							Name: "resource-a",
+							Type: "some-a-type",
+							Source: atc.Source{
+								"some": "a-source",
+							},
+						},
+						versions: []atc.Version{
+							{"version": "oldest"},
+							{"version": "older"},
+							{"version": "latest"},
+						},
+					},
+				},
+			},
+			volumeData: []db.Volume{
+				{
+					WorkerName:      "some-worker",
+					TTL:             expectedOldResourceGracePeriod,
+					Handle:          "some-volume-handle-1",
+					ResourceVersion: atc.Version{"version": "oldest"},
+					ResourceHash:    `some-a-type{"some":"a-source"}`,
+				},
+				{
+					WorkerName:      "some-worker",
+					TTL:             expectedOldResourceGracePeriod,
+					Handle:          "some-volume-handle-3",
+					ResourceVersion: atc.Version{"version": "older"},
+					ResourceHash:    `some-a-type{"some":"a-source"}`,
+				},
+				{
+					WorkerName:      "some-worker",
+					TTL:             expectedLatestVersionTTL,
+					Handle:          "some-volume-handle-4",
+					ResourceVersion: atc.Version{"version": "latest"},
+					ResourceHash:    `some-a-type{"some":"a-source"}`,
+				},
+				{
+					WorkerName:      "some-worker",
+					TTL:             expectedLatestVersionTTL,
+					Handle:          "some-volume-handle-5",
+					ResourceVersion: atc.Version{"version": "not-in-pipeline-anymore"},
+					ResourceHash:    `some-b-type{"some":"b-source"}`,
+				},
+			},
+			expectedTTLs: map[string]time.Duration{
+				"some-volume-handle-5": expectedOldResourceGracePeriod,
+			},
+		}),
 	)
-
 })
