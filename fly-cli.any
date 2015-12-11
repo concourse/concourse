@@ -369,6 +369,23 @@ flag. Once you've learned what the commands do, you may want to consult
   }
 }
 
+\section{\code{builds}\aux{: Showing build history}}{fly-builds}{
+  To list the most recent builds, run:
+
+  \codeblock{bash}{
+  $ fly builds
+  }
+
+  To list the builds of a job, run:
+
+  \codeblock{bash}{
+  $ fly builds -j pipeline-name/job-name
+  }
+
+  This can be useful for periodically monitoring the state of a job. The output
+  also works well with tools like \code{awk} and \code{grep}.
+}
+
 \section{\code{containers}\aux{: Listing active containers}}{fly-containers}{
   To list the active containers across all your workers, run:
 
@@ -440,6 +457,10 @@ flag. Once you've learned what the commands do, you may want to consult
   \code{fly intercept htop}. This allows for patterns such as \code{watch fly
   intercept ps auxf}, which will continuously show the process tree of the
   current build's task, even as the "current build" changes.
+
+  The working directory and any relevant environment variables (e.g. those
+  having come from \reference{params}) used by the original process will also
+  be used for the process run by intercept.
 }
 
 \section{\code{watch}\aux{: View logs of in-progress builds}}{fly-watch}{
