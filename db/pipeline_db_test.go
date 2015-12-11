@@ -609,7 +609,65 @@ var _ = Describe("PipelineDB", func() {
 			Expect(versions.JobIDs).To(Equal(map[string]int{
 				"a-job": build1.JobID,
 			}))
+		})
 
+		It("can load up the latest enabled versioned resource", func() {
+			By("initially having no latest versioned resource")
+			_, found, err := pipelineDB.GetLatestEnabledVersionedResource(resource.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+
+			By("including saved versioned resources of the current pipeline")
+			err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+				Name:   resource.Name,
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
+			}, []atc.Version{{"version": "1"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			savedVR1, found, err := pipelineDB.GetLatestEnabledVersionedResource(resource.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+				Name:   resource.Name,
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
+			}, []atc.Version{{"version": "2"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			savedVR2, found, err := pipelineDB.GetLatestEnabledVersionedResource(resource.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(savedVR1.Version).To(Equal(db.Version{"version": "1"}))
+			Expect(savedVR2.Version).To(Equal(db.Version{"version": "2"}))
+
+			By("not including saved versioned resources of other pipelines")
+			_, err = otherPipelineDB.GetResource("some-other-pipeline-resource")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherPipelineDB.SaveResourceVersions(atc.ResourceConfig{
+				Name:   resource.Name,
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
+			}, []atc.Version{{"version": "3"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			otherPipelineSavedVR, found, err := pipelineDB.GetLatestEnabledVersionedResource(resource.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(otherPipelineSavedVR.Version).To(Equal(db.Version{"version": "2"}))
+
+			err = pipelineDB.DisableVersionedResource(savedVR2.ID)
+			Expect(err).NotTo(HaveOccurred())
+
+			savedVR3, found, err := pipelineDB.GetLatestEnabledVersionedResource(resource.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(savedVR3.Version).To(Equal(db.Version{"version": "1"}))
 		})
 
 		Describe("pausing and unpausing resources", func() {
