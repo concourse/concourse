@@ -147,7 +147,7 @@ var _ = Describe("Keeping track of volumes", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(volumes)).To(Equal(1))
 
-				err = database.SetVolumeTTL(volumes[0], -time.Hour)
+				err = database.SetVolumeTTL(volumes[0].Handle, -time.Hour)
 				Expect(err).NotTo(HaveOccurred())
 
 				volumes, err = database.GetVolumes()

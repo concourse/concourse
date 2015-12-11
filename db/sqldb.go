@@ -218,15 +218,15 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 	return volumes, nil
 }
 
-func (db *SQLDB) SetVolumeTTL(volumeData SavedVolume, ttl time.Duration) error {
+func (db *SQLDB) SetVolumeTTL(handle string, ttl time.Duration) error {
 	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
 	_, err := db.conn.Exec(`
 		UPDATE volumes
 		SET expires_at = NOW() + $1::INTERVAL,
 		ttl = $2
-		WHERE id = $3
-	`, interval, ttl, volumeData.ID)
+		WHERE handle = $3
+	`, interval, ttl, handle)
 
 	return err
 }

@@ -162,12 +162,11 @@ var _ = Describe("Baggage Collector", func() {
 				}
 
 				Expect(actualHandles).To(ConsistOf(expectedHandles))
-
 				Expect(fakeBaggageCollectorDB.SetVolumeTTLCallCount()).To(Equal(len(example.expectedTTLs)))
 				actualHandles = nil
+
 				for i := 0; i < fakeBaggageCollectorDB.SetVolumeTTLCallCount(); i++ {
-					actualSavedVolume, actualTTL := fakeBaggageCollectorDB.SetVolumeTTLArgsForCall(i)
-					actualHandle := actualSavedVolume.Handle
+					actualHandle, actualTTL := fakeBaggageCollectorDB.SetVolumeTTLArgsForCall(i)
 					actualHandles = append(actualHandles, actualHandle)
 
 					Expect(actualTTL).To(Equal(example.expectedTTLs[actualHandle]))

@@ -32,10 +32,10 @@ type FakeBaggageCollectorDB struct {
 		result1 []db.SavedVolume
 		result2 error
 	}
-	SetVolumeTTLStub        func(db.SavedVolume, time.Duration) error
+	SetVolumeTTLStub        func(string, time.Duration) error
 	setVolumeTTLMutex       sync.RWMutex
 	setVolumeTTLArgsForCall []struct {
-		arg1 db.SavedVolume
+		arg1 string
 		arg2 time.Duration
 	}
 	setVolumeTTLReturns struct {
@@ -125,10 +125,10 @@ func (fake *FakeBaggageCollectorDB) GetVolumesReturns(result1 []db.SavedVolume, 
 	}{result1, result2}
 }
 
-func (fake *FakeBaggageCollectorDB) SetVolumeTTL(arg1 db.SavedVolume, arg2 time.Duration) error {
+func (fake *FakeBaggageCollectorDB) SetVolumeTTL(arg1 string, arg2 time.Duration) error {
 	fake.setVolumeTTLMutex.Lock()
 	fake.setVolumeTTLArgsForCall = append(fake.setVolumeTTLArgsForCall, struct {
-		arg1 db.SavedVolume
+		arg1 string
 		arg2 time.Duration
 	}{arg1, arg2})
 	fake.setVolumeTTLMutex.Unlock()
@@ -145,7 +145,7 @@ func (fake *FakeBaggageCollectorDB) SetVolumeTTLCallCount() int {
 	return len(fake.setVolumeTTLArgsForCall)
 }
 
-func (fake *FakeBaggageCollectorDB) SetVolumeTTLArgsForCall(i int) (db.SavedVolume, time.Duration) {
+func (fake *FakeBaggageCollectorDB) SetVolumeTTLArgsForCall(i int) (string, time.Duration) {
 	fake.setVolumeTTLMutex.RLock()
 	defer fake.setVolumeTTLMutex.RUnlock()
 	return fake.setVolumeTTLArgsForCall[i].arg1, fake.setVolumeTTLArgsForCall[i].arg2

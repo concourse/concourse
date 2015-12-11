@@ -18,7 +18,7 @@ type BaggageCollectorDB interface {
 	ReapVolume(string) error
 	GetAllActivePipelines() ([]db.SavedPipeline, error)
 	GetVolumes() ([]db.SavedVolume, error)
-	SetVolumeTTL(db.SavedVolume, time.Duration) error
+	SetVolumeTTL(string, time.Duration) error
 }
 
 //go:generate counterfeiter . BaggageCollector
@@ -148,7 +148,7 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 		}
 
 		volume.Release(ttlForVol)
-		err = bc.db.SetVolumeTTL(volumeToExpire, ttlForVol)
+		err = bc.db.SetVolumeTTL(volumeToExpire.Handle, ttlForVol)
 		if err != nil {
 			bc.logger.Error("failed-to-update-ttl-in-db", err)
 		}
