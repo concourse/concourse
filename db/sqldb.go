@@ -219,6 +219,16 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 }
 
 func (db *SQLDB) SetVolumeTTL(handle string, ttl time.Duration) error {
+	if ttl == 0 {
+		_, err := db.conn.Exec(`
+			UPDATE volumes
+			SET expires_at = null, ttl = 0
+			WHERE handle = $1
+		`, handle)
+
+		return err
+	}
+
 	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
 	_, err := db.conn.Exec(`

@@ -155,6 +155,22 @@ var _ = Describe("Keeping track of volumes", func() {
 				Expect(len(volumes)).To(Equal(0))
 			})
 
+			It("can be updated to zero to mean 'keep around forever'", func() {
+				volumes, err := database.GetVolumes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(volumes)).To(Equal(1))
+
+				err = database.SetVolumeTTL(volumes[0].Handle, 0)
+				Expect(err).NotTo(HaveOccurred())
+
+				volumes, err = database.GetVolumes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(volumes)).To(Equal(1))
+
+				Expect(volumes[0].TTL).To(BeZero())
+				Expect(volumes[0].ExpiresIn).To(BeZero())
+			})
+
 			Context("when the ttl is set to 0", func() {
 				BeforeEach(func() {
 					insertedVolume.TTL = 0
