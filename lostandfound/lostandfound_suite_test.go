@@ -9,5 +9,5 @@ import (
 
 func TestLostandfound(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Lostandfound Suite")
+	RunSpecs(t, "Lost and Found Suite")
 }
