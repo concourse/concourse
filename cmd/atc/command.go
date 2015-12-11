@@ -68,8 +68,9 @@ type ATCCommand struct {
 
 	SessionSigningKey FileFlag `long:"session-signing-key" description:"File containing an RSA private key, used to sign session tokens."`
 
-	ResourceCheckingInterval time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
-	OldResourceGracePeriod   time.Duration `long:"old-resource-grace-period" default:"5m" description:"How long to cache the result of a get step after a newer version of the resource is found."`
+	ResourceCheckingInterval     time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	OldResourceGracePeriod       time.Duration `long:"old-resource-grace-period" default:"5m" description:"How long to cache the result of a get step after a newer version of the resource is found."`
+	ResourceCacheCleanupInterval time.Duration `long:"resource-cache-cleanup-interval" default:"30s" description:"Interval on which to cleanup old caches of resources."`
 
 	CLIArtifactsDir DirFlag `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
 
@@ -239,7 +240,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 			),
 			sqlDB,
 			clock.NewClock(),
-			5*time.Minute,
+			cmd.ResourceCacheCleanupInterval,
 		)},
 	}
 
