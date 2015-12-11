@@ -1,16 +1,20 @@
 package factory
 
 import (
+	"errors"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )
 
 const defaultTaskName = "build"
 
+var ErrResourceNotFound = errors.New("resource not found")
+
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) atc.Plan
+	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) (atc.Plan, error)
 }
 
 type buildFactory struct {
@@ -29,7 +33,7 @@ func (factory *buildFactory) Create(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
-) atc.Plan {
+) (atc.Plan, error) {
 	return factory.constructPlanFromSequence(
 		job.Plan,
 		resources,
@@ -41,7 +45,7 @@ func (factory *buildFactory) constructPlanFromSequence(
 	planSequence atc.PlanSequence,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
-) atc.Plan {
+) (atc.Plan, error) {
 	if len(planSequence) == 1 {
 		return factory.constructPlanFromConfig(
 			planSequence[0],
@@ -57,36 +61,44 @@ func (factory *buildFactory) do(
 	planSequence atc.PlanSequence,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
-) atc.Plan {
+) (atc.Plan, error) {
 	do := atc.DoPlan{}
 
+	var err error
 	for _, planConfig := range planSequence {
-		nextStep := factory.constructPlanFromConfig(
+		nextStep, err := factory.constructPlanFromConfig(
 			planConfig,
 			resources,
 			inputs,
 		)
+		if err != nil {
+			return atc.Plan{}, err
+		}
 
 		do = append(do, nextStep)
 	}
 
-	return factory.planFactory.NewPlan(do)
+	return factory.planFactory.NewPlan(do), err
 }
 
 func (factory *buildFactory) constructPlanFromConfig(
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
-) atc.Plan {
+) (atc.Plan, error) {
 	var plan atc.Plan
+	var err error
 
 	switch {
 	case planConfig.Do != nil:
-		plan = factory.do(
+		plan, err = factory.do(
 			*planConfig.Do,
 			resources,
 			inputs,
 		)
+		if err != nil {
+			return atc.Plan{}, err
+		}
 
 	case planConfig.Put != "":
 		logicalName := planConfig.Put
@@ -96,7 +108,10 @@ func (factory *buildFactory) constructPlanFromConfig(
 			resourceName = logicalName
 		}
 
-		resource, _ := resources.Lookup(resourceName)
+		resource, found := resources.Lookup(resourceName)
+		if !found {
+			return atc.Plan{}, ErrResourceNotFound
+		}
 
 		putPlan := atc.PutPlan{
 			Type:     resource.Type,
@@ -129,7 +144,10 @@ func (factory *buildFactory) constructPlanFromConfig(
 			resourceName = planConfig.Get
 		}
 
-		resource, _ := resources.Lookup(resourceName)
+		resource, found := resources.Lookup(resourceName)
+		if !found {
+			return atc.Plan{}, ErrResourceNotFound
+		}
 
 		name := planConfig.Get
 		var version db.Version
@@ -162,11 +180,14 @@ func (factory *buildFactory) constructPlanFromConfig(
 		})
 
 	case planConfig.Try != nil:
-		nextStep := factory.constructPlanFromConfig(
+		nextStep, err := factory.constructPlanFromConfig(
 			*planConfig.Try,
 			resources,
 			inputs,
 		)
+		if err != nil {
+			return atc.Plan{}, err
+		}
 
 		plan = factory.planFactory.NewPlan(atc.TryPlan{
 			Step: nextStep,
@@ -176,11 +197,14 @@ func (factory *buildFactory) constructPlanFromConfig(
 		aggregate := atc.AggregatePlan{}
 
 		for _, planConfig := range *planConfig.Aggregate {
-			nextStep := factory.constructPlanFromConfig(
+			nextStep, err := factory.constructPlanFromConfig(
 				planConfig,
 				resources,
 				inputs,
 			)
+			if err != nil {
+				return atc.Plan{}, err
+			}
 
 			aggregate = append(aggregate, nextStep)
 		}
@@ -195,16 +219,28 @@ func (factory *buildFactory) constructPlanFromConfig(
 		})
 	}
 
-	constructionParams := factory.ensureIfPresent(factory.successIfPresent(factory.failureIfPresent(
+	constructionParams, err := factory.failureIfPresent(
 		constructionParams{
 			plan:       plan,
 			planConfig: planConfig,
 			resources:  resources,
 			inputs:     inputs,
-		})),
-	)
+		})
+	if err != nil {
+		return atc.Plan{}, err
+	}
 
-	return constructionParams.plan
+	constructionParams, err = factory.successIfPresent(constructionParams)
+	if err != nil {
+		return atc.Plan{}, err
+	}
+
+	constructionParams, err = factory.ensureIfPresent(constructionParams)
+	if err != nil {
+		return atc.Plan{}, err
+	}
+
+	return constructionParams.plan, nil
 }
 
 type constructionParams struct {
@@ -214,52 +250,61 @@ type constructionParams struct {
 	inputs     []db.BuildInput
 }
 
-func (factory *buildFactory) successIfPresent(constructionParams constructionParams) constructionParams {
-	if constructionParams.planConfig.Success != nil {
+func (factory *buildFactory) successIfPresent(cp constructionParams) (constructionParams, error) {
+	if cp.planConfig.Success != nil {
 
-		nextPlan := factory.constructPlanFromConfig(
-			*constructionParams.planConfig.Success,
-			constructionParams.resources,
-			constructionParams.inputs,
+		nextPlan, err := factory.constructPlanFromConfig(
+			*cp.planConfig.Success,
+			cp.resources,
+			cp.inputs,
 		)
+		if err != nil {
+			return constructionParams{}, err
+		}
 
-		constructionParams.plan = factory.planFactory.NewPlan(atc.OnSuccessPlan{
-			Step: constructionParams.plan,
+		cp.plan = factory.planFactory.NewPlan(atc.OnSuccessPlan{
+			Step: cp.plan,
 			Next: nextPlan,
 		})
 	}
-	return constructionParams
+	return cp, nil
 }
 
-func (factory *buildFactory) failureIfPresent(constructionParams constructionParams) constructionParams {
-	if constructionParams.planConfig.Failure != nil {
-		nextPlan := factory.constructPlanFromConfig(
-			*constructionParams.planConfig.Failure,
-			constructionParams.resources,
-			constructionParams.inputs,
+func (factory *buildFactory) failureIfPresent(cp constructionParams) (constructionParams, error) {
+	if cp.planConfig.Failure != nil {
+		nextPlan, err := factory.constructPlanFromConfig(
+			*cp.planConfig.Failure,
+			cp.resources,
+			cp.inputs,
 		)
+		if err != nil {
+			return constructionParams{}, err
+		}
 
-		constructionParams.plan = factory.planFactory.NewPlan(atc.OnFailurePlan{
-			Step: constructionParams.plan,
+		cp.plan = factory.planFactory.NewPlan(atc.OnFailurePlan{
+			Step: cp.plan,
 			Next: nextPlan,
 		})
 	}
 
-	return constructionParams
+	return cp, nil
 }
 
-func (factory *buildFactory) ensureIfPresent(constructionParams constructionParams) constructionParams {
-	if constructionParams.planConfig.Ensure != nil {
-		nextPlan := factory.constructPlanFromConfig(
-			*constructionParams.planConfig.Ensure,
-			constructionParams.resources,
-			constructionParams.inputs,
+func (factory *buildFactory) ensureIfPresent(cp constructionParams) (constructionParams, error) {
+	if cp.planConfig.Ensure != nil {
+		nextPlan, err := factory.constructPlanFromConfig(
+			*cp.planConfig.Ensure,
+			cp.resources,
+			cp.inputs,
 		)
+		if err != nil {
+			return constructionParams{}, err
+		}
 
-		constructionParams.plan = factory.planFactory.NewPlan(atc.EnsurePlan{
-			Step: constructionParams.plan,
+		cp.plan = factory.planFactory.NewPlan(atc.EnsurePlan{
+			Step: cp.plan,
 			Next: nextPlan,
 		})
 	}
-	return constructionParams
+	return cp, nil
 }

@@ -23,7 +23,7 @@ var _ = Describe("Factory Timeout Step", func() {
 
 	Context("When there is a task with a timeout", func() {
 		It("builds correctly", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Task:    "first task",
@@ -31,6 +31,7 @@ var _ = Describe("Factory Timeout Step", func() {
 					},
 				},
 			}, nil, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.TimeoutPlan{
 				Duration: "10s",

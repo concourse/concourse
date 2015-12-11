@@ -59,7 +59,8 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("builds the plan correctly", func() {
-			actual := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.DoPlan{
@@ -110,7 +111,8 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("builds the plan correctly", func() {
-			actual := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.DoPlan{
@@ -135,7 +137,8 @@ var _ = Describe("Factory Hooks", func() {
 
 	Context("when I have an empty plan", func() {
 		It("returns an empty 'do' plan", func() {
-			actual := buildFactory.Create(atc.JobConfig{}, resources, nil)
+			actual, err := buildFactory.Create(atc.JobConfig{}, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{Do: &atc.DoPlan{}}
 			Expect(actual).To(testhelpers.MatchPlan(expected))
@@ -170,7 +173,8 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("builds correctly", func() {
-			actual := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -216,7 +220,8 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("builds correctly", func() {
-			actual := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -269,7 +274,8 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("builds correctly", func() {
-			actual := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -331,7 +337,8 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("builds correctly", func() {
-			actual := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -362,7 +369,7 @@ var _ = Describe("Factory Hooks", func() {
 
 	Context("when I have hooks in my plan", func() {
 		It("can build a job with one failure hook", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
@@ -372,6 +379,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				},
 			}, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -393,7 +401,7 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("can build a job with one failure hook that has a timeout", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
@@ -404,6 +412,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				},
 			}, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -428,7 +437,7 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("can build a job with multiple failure hooks", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
@@ -441,6 +450,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				},
 			}, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -468,7 +478,7 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("can build a job with multiple ensure and failure hooks", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
@@ -481,6 +491,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				},
 			}, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -508,7 +519,7 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("can build a job with failure, success and ensure hooks at the same level", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
@@ -524,6 +535,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				},
 			}, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.EnsurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
@@ -552,7 +564,7 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("can build a job with multiple ensure, failure and success hooks", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Task: "those who resist our will",
@@ -568,6 +580,7 @@ var _ = Describe("Factory Hooks", func() {
 					},
 				},
 			}, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
@@ -607,7 +620,7 @@ var _ = Describe("Factory Hooks", func() {
 
 		Context("and multiple steps in my plan", func() {
 			It("can build a job with a task with hooks then 2 more tasks", func() {
-				actual := buildFactory.Create(atc.JobConfig{
+				actual, err := buildFactory.Create(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Task: "those who resist our will",
@@ -626,6 +639,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				}, resources, nil)
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
@@ -657,7 +671,7 @@ var _ = Describe("Factory Hooks", func() {
 			})
 
 			It("can build a job with a task then a do", func() {
-				actual := buildFactory.Create(atc.JobConfig{
+				actual, err := buildFactory.Create(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Task: "those who start resisting our will",
@@ -680,6 +694,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				}, resources, nil)
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -713,7 +728,7 @@ var _ = Describe("Factory Hooks", func() {
 			})
 
 			It("can build a job with a do then a task", func() {
-				actual := buildFactory.Create(atc.JobConfig{
+				actual, err := buildFactory.Create(atc.JobConfig{
 					Plan: atc.PlanSequence{
 						{
 							Do: &atc.PlanSequence{
@@ -730,6 +745,7 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				}, resources, nil)
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.DoPlan{

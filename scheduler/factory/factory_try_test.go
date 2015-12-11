@@ -24,7 +24,7 @@ var _ = Describe("Factory Try Step", func() {
 
 	Context("When there is a task wrapped in a try", func() {
 		It("builds correctly", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Try: &atc.PlanConfig{
@@ -36,6 +36,7 @@ var _ = Describe("Factory Try Step", func() {
 					},
 				},
 			}, nil, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 				expectedPlanFactory.NewPlan(atc.TryPlan{
@@ -56,7 +57,7 @@ var _ = Describe("Factory Try Step", func() {
 
 	Context("When the try is in a hook", func() {
 		It("builds correctly", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Task: "first task",
@@ -68,6 +69,7 @@ var _ = Describe("Factory Try Step", func() {
 					},
 				},
 			}, nil, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{

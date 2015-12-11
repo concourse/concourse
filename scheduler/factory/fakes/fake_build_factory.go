@@ -10,7 +10,7 @@ import (
 )
 
 type FakeBuildFactory struct {
-	CreateStub        func(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) atc.Plan
+	CreateStub        func(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) (atc.Plan, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 atc.JobConfig
@@ -19,10 +19,11 @@ type FakeBuildFactory struct {
 	}
 	createReturns struct {
 		result1 atc.Plan
+		result2 error
 	}
 }
 
-func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfigs, arg3 []db.BuildInput) atc.Plan {
+func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfigs, arg3 []db.BuildInput) (atc.Plan, error) {
 	fake.createMutex.Lock()
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		arg1 atc.JobConfig
@@ -33,7 +34,7 @@ func (fake *FakeBuildFactory) Create(arg1 atc.JobConfig, arg2 atc.ResourceConfig
 	if fake.CreateStub != nil {
 		return fake.CreateStub(arg1, arg2, arg3)
 	} else {
-		return fake.createReturns.result1
+		return fake.createReturns.result1, fake.createReturns.result2
 	}
 }
 
@@ -49,11 +50,12 @@ func (fake *FakeBuildFactory) CreateArgsForCall(i int) (atc.JobConfig, atc.Resou
 	return fake.createArgsForCall[i].arg1, fake.createArgsForCall[i].arg2, fake.createArgsForCall[i].arg3
 }
 
-func (fake *FakeBuildFactory) CreateReturns(result1 atc.Plan) {
+func (fake *FakeBuildFactory) CreateReturns(result1 atc.Plan, result2 error) {
 	fake.CreateStub = nil
 	fake.createReturns = struct {
 		result1 atc.Plan
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
 var _ factory.BuildFactory = new(FakeBuildFactory)

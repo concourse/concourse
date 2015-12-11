@@ -35,7 +35,7 @@ var _ = Describe("Factory Do", func() {
 
 	Context("when I have a nested do ", func() {
 		It("returns the correct plan", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Do: &atc.PlanSequence{
@@ -56,6 +56,7 @@ var _ = Describe("Factory Do", func() {
 					},
 				},
 			}, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -79,7 +80,7 @@ var _ = Describe("Factory Do", func() {
 
 	Context("when I have an aggregate inside a do", func() {
 		It("returns the correct plan", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Do: &atc.PlanSequence{
@@ -100,6 +101,7 @@ var _ = Describe("Factory Do", func() {
 					},
 				},
 			}, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -123,7 +125,7 @@ var _ = Describe("Factory Do", func() {
 
 	Context("when i have a do inside an aggregate inside a hook", func() {
 		It("returns the correct plan", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Task: "starting-task",
@@ -144,6 +146,7 @@ var _ = Describe("Factory Do", func() {
 					},
 				},
 			}, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -170,7 +173,7 @@ var _ = Describe("Factory Do", func() {
 
 	Context("when I have a do inside an aggregate", func() {
 		It("returns the correct plan", func() {
-			actual := buildFactory.Create(atc.JobConfig{
+			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
 						Aggregate: &atc.PlanSequence{
@@ -194,6 +197,7 @@ var _ = Describe("Factory Do", func() {
 					},
 				},
 			}, resources, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{

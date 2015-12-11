@@ -76,7 +76,7 @@ var _ = Describe("Scheduler", func() {
 			},
 		}
 
-		factory.CreateReturns(createdPlan)
+		factory.CreateReturns(createdPlan, nil)
 
 		scheduler = &Scheduler{
 			PipelineDB: fakePipelineDB,
@@ -412,6 +412,27 @@ var _ = Describe("Scheduler", func() {
 								Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
 							})
 						})
+
+						Context("when creating the engine build fails", func() {
+							disaster := errors.New("sorry")
+
+							BeforeEach(func() {
+								factory.CreateReturns(atc.Plan{}, disaster)
+							})
+
+							It("returns no error", func() {
+								err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+								Expect(err).NotTo(HaveOccurred())
+							})
+
+							It("marks the build as errored", func() {
+								scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+								Expect(fakeBuildsDB.FinishBuildCallCount()).To(Equal(1))
+								buildID, status := fakeBuildsDB.FinishBuildArgsForCall(0)
+								Expect(buildID).To(Equal(128))
+								Expect(status).To(Equal(db.StatusErrored))
+							})
+						})
 					})
 
 					Context("when the build cannot be scheduled", func() {
@@ -605,6 +626,21 @@ var _ = Describe("Scheduler", func() {
 						_, builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
 						Expect(builtBuild).To(Equal(pendingBuild))
 						Expect(plan).To(Equal(createdPlan))
+					})
+				})
+
+				Context("when creating the engine build fails", func() {
+					disaster := errors.New("sorry")
+
+					BeforeEach(func() {
+						factory.CreateReturns(atc.Plan{}, disaster)
+					})
+
+					It("marks the build as errored", func() {
+						Expect(fakeBuildsDB.FinishBuildCallCount()).To(Equal(1))
+						buildID, status := fakeBuildsDB.FinishBuildArgsForCall(0)
+						Expect(buildID).To(Equal(128))
+						Expect(status).To(Equal(db.StatusErrored))
 					})
 				})
 			})
@@ -837,6 +873,28 @@ var _ = Describe("Scheduler", func() {
 						w.Wait()
 
 						Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
+					})
+				})
+
+				Context("when creating the engine build fails", func() {
+					disaster := errors.New("sorry")
+
+					BeforeEach(func() {
+						factory.CreateReturns(atc.Plan{}, disaster)
+					})
+
+					It("returns no error", func() {
+						_, _, err := scheduler.TriggerImmediately(logger, job, resources)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("marks the build as errored", func() {
+						_, w, _ := scheduler.TriggerImmediately(logger, job, resources)
+						w.Wait()
+						Expect(fakeBuildsDB.FinishBuildCallCount()).To(Equal(1))
+						buildID, status := fakeBuildsDB.FinishBuildArgsForCall(0)
+						Expect(buildID).To(Equal(128))
+						Expect(status).To(Equal(db.StatusErrored))
 					})
 				})
 			})

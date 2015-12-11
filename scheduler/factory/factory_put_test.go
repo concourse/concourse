@@ -46,7 +46,8 @@ var _ = Describe("Factory Put", func() {
 			})
 
 			It("returns the correct plan", func() {
-				actual := buildFactory.Create(input, resources, nil)
+				actual, err := buildFactory.Create(input, resources, nil)
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 					Step: expectedPlanFactory.NewPlan(atc.PutPlan{
@@ -69,6 +70,24 @@ var _ = Describe("Factory Put", func() {
 					}),
 				})
 				Expect(actual).To(testhelpers.MatchPlan(expected))
+			})
+		})
+
+		Context("with a put for a non-existent resource", func() {
+			BeforeEach(func() {
+				input = atc.JobConfig{
+					Plan: atc.PlanSequence{
+						{
+							Put:      "some-put",
+							Resource: "what-resource",
+						},
+					},
+				}
+			})
+
+			It("returns the correct error", func() {
+				_, err := buildFactory.Create(input, resources, nil)
+				Expect(err).To(Equal(factory.ErrResourceNotFound))
 			})
 		})
 	})
@@ -110,7 +129,8 @@ var _ = Describe("Factory Put", func() {
 			})
 
 			It("returns the correct plan", func() {
-				actual := buildFactory.Create(input, resources, nil)
+				actual, err := buildFactory.Create(input, resources, nil)
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 					Step: expectedPlanFactory.NewPlan(atc.PutPlan{
@@ -143,7 +163,7 @@ var _ = Describe("Factory Put", func() {
 						{
 							Task: "some-task",
 							Success: &atc.PlanConfig{
-								Put: "some-put",
+								Put: "some-resource",
 							},
 						},
 					},
@@ -151,7 +171,8 @@ var _ = Describe("Factory Put", func() {
 			})
 
 			It("returns the correct plan", func() {
-				actual := buildFactory.Create(input, resources, nil)
+				actual, err := buildFactory.Create(input, resources, nil)
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -161,14 +182,22 @@ var _ = Describe("Factory Put", func() {
 
 					Next: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 						Step: expectedPlanFactory.NewPlan(atc.PutPlan{
-							Name:     "some-put",
-							Resource: "some-put",
+							Type:     "git",
+							Name:     "some-resource",
+							Resource: "some-resource",
 							Pipeline: "some-pipeline",
+							Source: atc.Source{
+								"uri": "git://some-resource",
+							},
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.DependentGetPlan{
-							Name:     "some-put",
-							Resource: "some-put",
+							Type:     "git",
+							Name:     "some-resource",
+							Resource: "some-resource",
 							Pipeline: "some-pipeline",
+							Source: atc.Source{
+								"uri": "git://some-resource",
+							},
 						}),
 					}),
 				})
@@ -186,7 +215,7 @@ var _ = Describe("Factory Put", func() {
 									Task: "some thing",
 								},
 								{
-									Put: "some-put",
+									Put: "some-resource",
 								},
 							},
 						},
@@ -195,7 +224,8 @@ var _ = Describe("Factory Put", func() {
 			})
 
 			It("returns the correct plan", func() {
-				actual := buildFactory.Create(input, resources, nil)
+				actual, err := buildFactory.Create(input, resources, nil)
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -204,14 +234,22 @@ var _ = Describe("Factory Put", func() {
 					}),
 					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 						Step: expectedPlanFactory.NewPlan(atc.PutPlan{
-							Name:     "some-put",
-							Resource: "some-put",
+							Type:     "git",
+							Name:     "some-resource",
+							Resource: "some-resource",
 							Pipeline: "some-pipeline",
+							Source: atc.Source{
+								"uri": "git://some-resource",
+							},
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.DependentGetPlan{
-							Name:     "some-put",
-							Resource: "some-put",
+							Type:     "git",
+							Name:     "some-resource",
+							Resource: "some-resource",
 							Pipeline: "some-pipeline",
+							Source: atc.Source{
+								"uri": "git://some-resource",
+							},
 						}),
 					}),
 				})
@@ -228,14 +266,15 @@ var _ = Describe("Factory Put", func() {
 						},
 						{
 							Put:      "money",
-							Resource: "power",
+							Resource: "some-resource",
 						},
 					},
 				}
 			})
 
 			It("returns the correct plan", func() {
-				actual := buildFactory.Create(input, resources, nil)
+				actual, err := buildFactory.Create(input, resources, nil)
+				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -244,14 +283,22 @@ var _ = Describe("Factory Put", func() {
 					}),
 					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 						Step: expectedPlanFactory.NewPlan(atc.PutPlan{
+							Type:     "git",
 							Name:     "money",
-							Resource: "power",
+							Resource: "some-resource",
 							Pipeline: "some-pipeline",
+							Source: atc.Source{
+								"uri": "git://some-resource",
+							},
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.DependentGetPlan{
+							Type:     "git",
 							Name:     "money",
-							Resource: "power",
+							Resource: "some-resource",
 							Pipeline: "some-pipeline",
+							Source: atc.Source{
+								"uri": "git://some-resource",
+							},
 						}),
 					}),
 				})
@@ -268,7 +315,7 @@ var _ = Describe("Factory Put", func() {
 							Task: "those who resist our will",
 						},
 						{
-							Put: "some-other-other-resource",
+							Put: "some-resource",
 						},
 						{
 							Task: "some-other-task",
@@ -285,15 +332,23 @@ var _ = Describe("Factory Put", func() {
 					}),
 					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 						Step: expectedPlanFactory.NewPlan(atc.PutPlan{
-							Name:     "some-other-other-resource",
-							Resource: "some-other-other-resource",
+							Type:     "git",
+							Name:     "some-resource",
+							Resource: "some-resource",
 							Pipeline: "some-pipeline",
-							Params:   nil,
+							Source: atc.Source{
+								"uri": "git://some-resource",
+							},
+							Params: nil,
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.DependentGetPlan{
-							Name:     "some-other-other-resource",
-							Resource: "some-other-other-resource",
+							Type:     "git",
+							Name:     "some-resource",
+							Resource: "some-resource",
 							Pipeline: "some-pipeline",
+							Source: atc.Source{
+								"uri": "git://some-resource",
+							},
 						}),
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
@@ -302,7 +357,8 @@ var _ = Describe("Factory Put", func() {
 					}),
 				})
 
-				actual := buildFactory.Create(input, resources, nil)
+				actual, err := buildFactory.Create(input, resources, nil)
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(actual).To(testhelpers.MatchPlan(expectedPlan))
 			})

@@ -37,6 +37,15 @@ type FakeBuildsDB struct {
 	errorBuildReturns struct {
 		result1 error
 	}
+	FinishBuildStub        func(int, db.Status) error
+	finishBuildMutex       sync.RWMutex
+	finishBuildArgsForCall []struct {
+		arg1 int
+		arg2 db.Status
+	}
+	finishBuildReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeBuildsDB) LeaseBuildScheduling(buildID int, interval time.Duration) (db.Lease, bool, error) {
@@ -128,6 +137,39 @@ func (fake *FakeBuildsDB) ErrorBuildArgsForCall(i int) (int, error) {
 func (fake *FakeBuildsDB) ErrorBuildReturns(result1 error) {
 	fake.ErrorBuildStub = nil
 	fake.errorBuildReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildsDB) FinishBuild(arg1 int, arg2 db.Status) error {
+	fake.finishBuildMutex.Lock()
+	fake.finishBuildArgsForCall = append(fake.finishBuildArgsForCall, struct {
+		arg1 int
+		arg2 db.Status
+	}{arg1, arg2})
+	fake.finishBuildMutex.Unlock()
+	if fake.FinishBuildStub != nil {
+		return fake.FinishBuildStub(arg1, arg2)
+	} else {
+		return fake.finishBuildReturns.result1
+	}
+}
+
+func (fake *FakeBuildsDB) FinishBuildCallCount() int {
+	fake.finishBuildMutex.RLock()
+	defer fake.finishBuildMutex.RUnlock()
+	return len(fake.finishBuildArgsForCall)
+}
+
+func (fake *FakeBuildsDB) FinishBuildArgsForCall(i int) (int, db.Status) {
+	fake.finishBuildMutex.RLock()
+	defer fake.finishBuildMutex.RUnlock()
+	return fake.finishBuildArgsForCall[i].arg1, fake.finishBuildArgsForCall[i].arg2
+}
+
+func (fake *FakeBuildsDB) FinishBuildReturns(result1 error) {
+	fake.FinishBuildStub = nil
+	fake.finishBuildReturns = struct {
 		result1 error
 	}{result1}
 }

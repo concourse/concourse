@@ -35,12 +35,13 @@ type BuildsDB interface {
 	LeaseBuildScheduling(buildID int, interval time.Duration) (db.Lease, bool, error)
 	GetAllStartedBuilds() ([]db.Build, error)
 	ErrorBuild(buildID int, err error) error
+	FinishBuild(int, db.Status) error
 }
 
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) atc.Plan
+	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) (atc.Plan, error)
 }
 
 type Waiter interface {
@@ -264,7 +265,15 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 		return nil
 	}
 
-	plan := s.Factory.Create(job, resources, inputs)
+	plan, err := s.Factory.Create(job, resources, inputs)
+	if err != nil {
+		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
+		err := s.BuildsDB.FinishBuild(build.ID, db.StatusErrored)
+		if err != nil {
+			logger.Error("failed-to-mark-build-as-errored", err)
+		}
+		return nil
+	}
 
 	createdBuild, err := s.Engine.CreateBuild(logger, build, plan)
 	if err != nil {
