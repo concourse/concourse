@@ -65,4 +65,10 @@
   more durable to its regexp changing. Previously if the regexp didn't match
   the previous versions, it would just throw an error. Now it'll pretend it
   never saw it, and detect the latest thing that matches the new regexp.
+}{
+  \hyperlink{https://github.com/concourse/baggageclaim}{Baggageclaim} will now
+  always put its volumes on the ephemeral disk. This should fix the painful
+  manual cleanup that had to be done when upgrading a
+  \hyperlink{https://bosh.io/docs/using-bosh-init.html}{\code{bosh-init}}'d
+  worker. Except for the last one you'll experience for this upgrade, anyway.
 }
