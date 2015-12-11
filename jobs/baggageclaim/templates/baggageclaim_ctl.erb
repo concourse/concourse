@@ -64,11 +64,6 @@ case $1 in
     mkdir -p $LOG_DIR
     chown -R vcap:vcap $LOG_DIR
 
-    # NB: when the mount path lives on the persistent disk, it seems to
-    # disappear as soon as a privileged container is created. seems to be a
-    # kernel bug or something. so, put the backing file on the persistent disk,
-    # but always mount on the ephemeral disk.
-
     IMAGE_PATH=/var/vcap/data/baggageclaim/volumes.img
     IMAGE_SIZE=$(df -m /var/vcap/data | tail -n1 | awk '{print $2}')
     mkdir -p $(dirname ${IMAGE_PATH})
