@@ -69,13 +69,8 @@ case $1 in
     # kernel bug or something. so, put the backing file on the persistent disk,
     # but always mount on the ephemeral disk.
 
-    if mountpoint -q /var/vcap/store; then
-      IMAGE_PATH=/var/vcap/store/baggageclaim/volumes.img
-      IMAGE_SIZE=$(df -m /var/vcap/store | tail -n1 | awk '{print $2}')
-    else
-      IMAGE_PATH=/var/vcap/data/baggageclaim/volumes.img
-      IMAGE_SIZE=$(df -m /var/vcap/data | tail -n1 | awk '{print $2}')
-    fi
+    IMAGE_PATH=/var/vcap/data/baggageclaim/volumes.img
+    IMAGE_SIZE=$(df -m /var/vcap/data | tail -n1 | awk '{print $2}')
     mkdir -p $(dirname ${IMAGE_PATH})
 
     VOLUMES_DIR=/var/vcap/data/baggageclaim/volumes
