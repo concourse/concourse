@@ -24,8 +24,9 @@
   Specify them in the pipeline instead, via \reference{step-tags}.
 }{
   When running \reference{fly-intercept}, the working directory will now be set
-  to the \reference{task-step} or \reference{put-step}'s working directory, and
-  any relevant \reference{params} will also be set as env vars.
+  to the \reference{task-step}, \reference{get-step}, or \reference{put-step}'s
+  working directory, and any relevant \reference{params} will also be set as
+  env vars.
 
   This makes \reference{fly-intercept} more closely match the runtime
   environment of the original process.
