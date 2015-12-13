@@ -39,7 +39,7 @@ var _ = BeforeSuite(func() {
 	// poll less frequently
 	SetDefaultEventuallyPollingInterval(time.Second)
 
-	agoutiDriver = agouti.PhantomJS()
+	agoutiDriver = agouti.PhantomJS(agouti.Debug)
 	Expect(agoutiDriver.Start()).To(Succeed())
 
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
