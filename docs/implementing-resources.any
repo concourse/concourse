@@ -23,9 +23,24 @@ no-ops (which still must be correctly implemented as detailed below).
   the resource. It is given the configured source and current version on stdin,
   and must print the array of new versions, in chronological order, to stdout.
 
-  Note that the current version will be missing if this is the first time the
-  resource has been used. In this case, the script should emit only the most
-  recent version, \italic{not} every version since the resource's inception.
+  The request body will have the following fields:
+
+  \list{
+    \code{source} is an arbitrary JSON object which specifies the location of
+    the resource, including any credentials. This is passed verbatim from the
+    \reference{configuring-resources}{pipeline configuration}.
+
+    For \code{git} this would be the repo UI, which branch, and a private key
+    if necessary.
+  }{
+    \code{version} is a JSON object with \code{string} fields, used to uniquely
+    identify an instance of the resource. For \code{git} this would be a commit
+    SHA.
+
+    This will be omitted from the first request, in which case the resource
+    should return the current version (\italic{not} every version since the
+    resource's inception).
+  }
 
   For example, here's what the input for a \code{git} resource may look like:
 
@@ -84,7 +99,19 @@ no-ops (which still must be correctly implemented as detailed below).
   key-value pairs. This data is intended for public consumption and will make it
   upstream, intended to be shown on the build's page.
 
-  Example input, in this case for the \code{git} resource:
+  The request will contain the following fields:
+
+  \list{
+    \code{source} is the same value as passed to \reference{resource-check}.
+  }{
+    \code{version} is the same type of value passed to
+    \reference{resource-check}, and specifies the version to fetch.
+  }{
+    \code{params} is an arbitrary JSON object passed along verbatim from
+    \reference{params} on a \reference{get-step}.
+  }
+
+  Example request, in this case for the \code{git} resource:
 
   \codeblock{json}{
   \{
@@ -131,7 +158,19 @@ no-ops (which still must be correctly implemented as detailed below).
   data is intended for public consumption and will make it upstream, intended to
   be shown on the build's page.
 
-  Example input, in this case for the \code{git} resource:
+  The request will contain the following fields:
+
+  \list{
+    \code{source} is the same value as passed to \reference{resource-check}.
+  }{
+    \code{version} is the same type of value passed to
+    \reference{resource-check}, and specifies the version to fetch.
+  }{
+    \code{params} is an arbitrary JSON object passed along verbatim from
+    \reference{params} on a \reference{get-step}.
+  }
+
+  Example request, in this case for the \code{git} resource:
 
   \codeblock{json}{
   \{
