@@ -105,7 +105,7 @@ func (vrs SavedVersionedResources) Lookup(name string) (SavedVersionedResource, 
 	return SavedVersionedResource{}, false
 }
 
-type Version map[string]interface{}
+type Version map[string]string
 
 type MetadataField struct {
 	Name  string

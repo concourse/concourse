@@ -6,9 +6,6 @@ const ConfigVersionHeader = "X-Concourse-Config-Version"
 const DefaultPipelineName = "main"
 const DefaultTeamName = "main"
 
-type Source map[string]interface{}
-type Params map[string]interface{}
-type Version map[string]interface{}
 type Tags []string
 
 type Config struct {

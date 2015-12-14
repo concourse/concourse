@@ -279,7 +279,7 @@ var _ = Describe("Scheduler", func() {
 							Name: "some-non-triggering-resource",
 							VersionedResource: db.VersionedResource{
 								Resource: "some-non-triggering-resource",
-								Version:  db.Version{"version": 3},
+								Version:  db.Version{"version": "3"},
 							},
 						},
 					)
