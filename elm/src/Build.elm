@@ -311,8 +311,18 @@ handleEvent event model =
       , Effects.none
       )
 
+    Concourse.BuildEvents.InitializeGet origin ->
+      ( updateStep origin.id setRunning model
+      , Effects.none
+      )
+
     Concourse.BuildEvents.FinishGet origin exitStatus version metadata ->
       ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
+      , Effects.none
+      )
+
+    Concourse.BuildEvents.InitializePut origin ->
+      ( updateStep origin.id setRunning model
       , Effects.none
       )
 
