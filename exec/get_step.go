@@ -25,7 +25,7 @@ type GetStep struct {
 	stepMetadata    StepMetadata
 	session         resource.Session
 	tags            atc.Tags
-	delegate        ResourceDelegate
+	delegate        GetDelegate
 	tracker         resource.Tracker
 
 	repository *SourceRepository
@@ -47,7 +47,7 @@ func newGetStep(
 	stepMetadata StepMetadata,
 	session resource.Session,
 	tags atc.Tags,
-	delegate ResourceDelegate,
+	delegate GetDelegate,
 	tracker resource.Tracker,
 ) GetStep {
 	return GetStep{
@@ -100,6 +100,8 @@ func (step GetStep) Using(prev Step, repo *SourceRepository) Step {
 // At the end, the resulting ArtifactSource (either from using the cache or
 // fetching the resource) is registered under the step's SourceName.
 func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	step.delegate.Initializing()
+
 	trackedResource, cache, err := step.tracker.InitWithCache(
 		step.logger,
 		step.stepMetadata,

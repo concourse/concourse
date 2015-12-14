@@ -139,3 +139,17 @@ type PutPlan struct {
 	Resource string `json:"resource"`
 	Type     string `json:"type"`
 }
+
+type InitializeGet struct {
+	Origin Origin `json:"origin"`
+}
+
+func (InitializeGet) EventType() atc.EventType  { return EventTypeInitializeGet }
+func (InitializeGet) Version() atc.EventVersion { return "1.0" }
+
+type InitializePut struct {
+	Origin Origin `json:"origin"`
+}
+
+func (InitializePut) EventType() atc.EventType  { return EventTypeInitializePut }
+func (InitializePut) Version() atc.EventVersion { return "1.0" }

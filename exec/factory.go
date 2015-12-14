@@ -85,6 +85,8 @@ type TaskDelegate interface {
 // ResourceDelegate is used to record events related to a resource's runtime
 // behavior.
 type ResourceDelegate interface {
+	Initializing()
+
 	Completed(ExitStatus, *VersionInfo)
 	Failed(error)
 

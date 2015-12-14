@@ -134,10 +134,28 @@ func (delegate *delegate) unregisterImplicitOutput(resource string) {
 	delegate.lock.Unlock()
 }
 
-func (delegate *delegate) saveInitialize(logger lager.Logger, taskConfig atc.TaskConfig, origin event.Origin) {
+func (delegate *delegate) saveInitializeTask(logger lager.Logger, taskConfig atc.TaskConfig, origin event.Origin) {
 	err := delegate.db.SaveBuildEvent(delegate.buildID, event.InitializeTask{
 		TaskConfig: event.ShadowTaskConfig(taskConfig),
 		Origin:     origin,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-initialize-event", err)
+	}
+}
+
+func (delegate *delegate) saveInitializeGet(logger lager.Logger, origin event.Origin) {
+	err := delegate.db.SaveBuildEvent(delegate.buildID, event.InitializeGet{
+		Origin: origin,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-initialize-event", err)
+	}
+}
+
+func (delegate *delegate) saveInitializePut(logger lager.Logger, origin event.Origin) {
+	err := delegate.db.SaveBuildEvent(delegate.buildID, event.InitializePut{
+		Origin: origin,
 	})
 	if err != nil {
 		logger.Error("failed-to-save-initialize-event", err)
@@ -296,6 +314,10 @@ type inputDelegate struct {
 	delegate *delegate
 }
 
+func (input *inputDelegate) Initializing() {
+	input.delegate.saveInitializeGet(input.logger, event.Origin{ID: input.id})
+}
+
 func (input *inputDelegate) Completed(status exec.ExitStatus, info *exec.VersionInfo) {
 	input.delegate.saveInput(input.logger, status, input.plan, info, event.Origin{
 		ID: input.id,
@@ -338,6 +360,10 @@ type outputDelegate struct {
 
 	delegate *delegate
 	hook     string
+}
+
+func (output *outputDelegate) Initializing() {
+	output.delegate.saveInitializePut(output.logger, event.Origin{ID: output.id})
 }
 
 func (output *outputDelegate) Completed(status exec.ExitStatus, info *exec.VersionInfo) {
@@ -383,7 +409,7 @@ type executionDelegate struct {
 }
 
 func (execution *executionDelegate) Initializing(config atc.TaskConfig) {
-	execution.delegate.saveInitialize(execution.logger, config, event.Origin{
+	execution.delegate.saveInitializeTask(execution.logger, config, event.Origin{
 		ID: execution.id,
 	})
 }

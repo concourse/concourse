@@ -64,6 +64,24 @@ var _ = Describe("BuildDelegate", func() {
 			inputDelegate = delegate.InputDelegate(logger, getPlan, originID)
 		})
 
+		Describe("Initializing", func() {
+			JustBeforeEach(func() {
+				inputDelegate.Initializing()
+			})
+
+			It("saves an initializing event", func() {
+				Expect(fakeDB.SaveBuildEventCallCount()).To(Equal(1))
+
+				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+				Expect(buildID).To(Equal(42))
+				Expect(savedEvent).To(Equal(event.InitializeGet{
+					Origin: event.Origin{
+						ID: originID,
+					},
+				}))
+			})
+		})
+
 		Describe("Completed", func() {
 			var versionInfo *exec.VersionInfo
 
@@ -100,7 +118,6 @@ var _ = Describe("BuildDelegate", func() {
 						},
 						ExitStatus: 12,
 					}))
-
 				})
 			})
 
@@ -421,7 +438,6 @@ var _ = Describe("BuildDelegate", func() {
 					},
 					Message: "nope",
 				}))
-
 			})
 		})
 
@@ -735,6 +751,24 @@ var _ = Describe("BuildDelegate", func() {
 			}
 
 			outputDelegate = delegate.OutputDelegate(logger, putPlan, originID)
+		})
+
+		Describe("Initializing", func() {
+			JustBeforeEach(func() {
+				outputDelegate.Initializing()
+			})
+
+			It("saves an initializing event", func() {
+				Expect(fakeDB.SaveBuildEventCallCount()).To(Equal(1))
+
+				buildID, savedEvent := fakeDB.SaveBuildEventArgsForCall(0)
+				Expect(buildID).To(Equal(42))
+				Expect(savedEvent).To(Equal(event.InitializePut{
+					Origin: event.Origin{
+						ID: originID,
+					},
+				}))
+			})
 		})
 
 		Describe("Completed", func() {

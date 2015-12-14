@@ -12,11 +12,13 @@ import EventSource exposing (EventSource)
 
 type BuildEvent
   = BuildStatus BuildStatus Date
-  | FinishGet Origin Int Version Metadata
-  | FinishPut Origin Int Version Metadata
   | InitializeTask Origin
   | StartTask Origin
   | FinishTask Origin Int
+  | InitializeGet Origin
+  | FinishGet Origin Int Version Metadata
+  | InitializePut Origin
+  | FinishPut Origin Int Version Metadata
   | Log Origin String
   | Error Origin String
   | BuildError String
@@ -98,8 +100,14 @@ decodeEvent e =
     "finish-task" ->
       Json.Decode.decodeValue (Json.Decode.object2 FinishTask ("origin" := decodeOrigin) ("exit_status" := Json.Decode.int)) e.value
 
+    "initialize-get" ->
+      Json.Decode.decodeValue (Json.Decode.object1 InitializeGet ("origin" := decodeOrigin)) e.value
+
     "finish-get" ->
       Json.Decode.decodeValue (decodeFinishResource FinishGet) e.value
+
+    "initialize-put" ->
+      Json.Decode.decodeValue (Json.Decode.object1 InitializePut ("origin" := decodeOrigin)) e.value
 
     "finish-put" ->
       Json.Decode.decodeValue (decodeFinishResource FinishPut) e.value

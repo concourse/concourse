@@ -9,9 +9,12 @@ import (
 )
 
 type FakePutDelegate struct {
-	CompletedStub        func(exec.ExitStatus, *exec.VersionInfo)
-	completedMutex       sync.RWMutex
-	completedArgsForCall []struct {
+	InitializingStub        func()
+	initializingMutex       sync.RWMutex
+	initializingArgsForCall []struct{}
+	CompletedStub           func(exec.ExitStatus, *exec.VersionInfo)
+	completedMutex          sync.RWMutex
+	completedArgsForCall    []struct {
 		arg1 exec.ExitStatus
 		arg2 *exec.VersionInfo
 	}
@@ -32,6 +35,21 @@ type FakePutDelegate struct {
 	stderrReturns     struct {
 		result1 io.Writer
 	}
+}
+
+func (fake *FakePutDelegate) Initializing() {
+	fake.initializingMutex.Lock()
+	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct{}{})
+	fake.initializingMutex.Unlock()
+	if fake.InitializingStub != nil {
+		fake.InitializingStub()
+	}
+}
+
+func (fake *FakePutDelegate) InitializingCallCount() int {
+	fake.initializingMutex.RLock()
+	defer fake.initializingMutex.RUnlock()
+	return len(fake.initializingArgsForCall)
 }
 
 func (fake *FakePutDelegate) Completed(arg1 exec.ExitStatus, arg2 *exec.VersionInfo) {

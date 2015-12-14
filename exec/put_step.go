@@ -17,7 +17,7 @@ type PutStep struct {
 	stepMetadata   StepMetadata
 	session        resource.Session
 	tags           atc.Tags
-	delegate       ResourceDelegate
+	delegate       PutDelegate
 	tracker        resource.Tracker
 
 	repository *SourceRepository
@@ -36,7 +36,7 @@ func newPutStep(
 	stepMetadata StepMetadata,
 	session resource.Session,
 	tags atc.Tags,
-	delegate ResourceDelegate,
+	delegate PutDelegate,
 	tracker resource.Tracker,
 ) PutStep {
 	return PutStep{
@@ -71,6 +71,8 @@ func (step PutStep) Using(prev Step, repo *SourceRepository) Step {
 // The resource's put script is then invoked. The PutStep is ready as soon as
 // the resource's script starts, and signals will be forwarded to the script.
 func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	step.delegate.Initializing()
+
 	sources := step.repository.AsMap()
 
 	resourceSources := make(map[string]resource.ArtifactSource)

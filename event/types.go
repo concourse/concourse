@@ -20,8 +20,14 @@ const (
 	// task execution finished
 	EventTypeFinishTask atc.EventType = "finish-task"
 
+	// get step initializing
+	EventTypeInitializeGet atc.EventType = "initialize-get"
+
 	// finished getting something
 	EventTypeFinishGet atc.EventType = "finish-get"
+
+	// put step initializing
+	EventTypeInitializePut atc.EventType = "initialize-put"
 
 	// finished putting something
 	EventTypeFinishPut atc.EventType = "finish-put"

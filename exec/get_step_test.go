@@ -18,6 +18,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 )
@@ -146,6 +147,23 @@ var _ = Describe("GardenFactory", func() {
 					Params:  params,
 					Version: version,
 				}))
+			})
+
+			Context("before initializing the resource", func() {
+				var callCountDuringInit chan int
+
+				BeforeEach(func() {
+					callCountDuringInit = make(chan int, 1)
+
+					fakeTracker.InitWithCacheStub = func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier) (resource.Resource, resource.Cache, error) {
+						callCountDuringInit <- getDelegate.InitializingCallCount()
+						return fakeResource, fakeCache, nil
+					}
+				})
+
+				It("calls the Initializing method on the delegate", func() {
+					Expect(<-callCountDuringInit).To(Equal(1))
+				})
 			})
 
 			It("gets the resource with the correct source, params, and version", func() {
