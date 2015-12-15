@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse"
 	cfakes "github.com/concourse/go-concourse/concourse/fakes"
 
 	. "github.com/concourse/atc/web/getbuilds"
@@ -26,19 +27,26 @@ var _ = Describe("FetchTemplateData", func() {
 			},
 		}
 
-		fakeClient.AllBuildsReturns(builds, nil)
+		pagination := concourse.Pagination{
+			Previous: &concourse.Page{Until: 2, Limit: 1},
+			Next:     &concourse.Page{Since: 2, Limit: 1},
+		}
 
-		templateData, err := FetchTemplateData(fakeClient)
+		fakeClient.BuildsReturns(builds, pagination, nil)
+
+		templateData, err := FetchTemplateData(fakeClient, concourse.Page{})
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(templateData.Builds[0].ID).To(Equal(6))
 		Expect(templateData.Builds).To(BeAssignableToTypeOf([]PresentedBuild{}))
+
+		Expect(templateData.Pagination).To(Equal(pagination))
 	})
 
 	It("returns an error if fetching from the database fails", func() {
-		fakeClient.AllBuildsReturns(nil, errors.New("disaster"))
+		fakeClient.BuildsReturns(nil, concourse.Pagination{}, errors.New("disaster"))
 
-		_, err := FetchTemplateData(fakeClient)
+		_, err := FetchTemplateData(fakeClient, concourse.Page{})
 		Expect(err).To(HaveOccurred())
 	})
 })

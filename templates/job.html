@@ -17,88 +17,102 @@
     </div>
   </div>
 
-  <div id="build-body">
-    <div class="section">
-      <h2>builds</h2>
-
-      {{if or .Pagination.Previous .Pagination.Next}}
-      <div class="pagination mbs clearfix">
+  <div id="job-body">
+    <div class="pagination-header">
+      <div class="pagination fr">
         {{if .Pagination.Previous}}
-        <div class="fl">
-          <a href="{{url "GetJob" .PipelineName .Job .Pagination.Previous}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-left"></i></a>
+        <div class="btn-page-link">
+          <a class="arrow" href="{{url "GetJob" .PipelineName .Job .Pagination.Previous}}"><i class="fa fa-arrow-left"></i></a>
+        </div>
+        {{else}}
+        <div class="btn-page-link disabled">
+          <span class="arrow"><i class="fa fa-arrow-left"></i></span>
         </div>
         {{end}}
         {{if .Pagination.Next}}
-        <div class="fr">
-          <a href="{{url "GetJob" .PipelineName .Job .Pagination.Next}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-right"></i></a>
+        <div class="btn-page-link">
+          <a class="arrow" href="{{url "GetJob" .PipelineName .Job .Pagination.Next}}"><i class="fa fa-arrow-right"></i></a>
+        </div>
+        {{else}}
+        <div class="btn-page-link disabled">
+          <span class="arrow"><i class="fa fa-arrow-right"></i></span>
         </div>
         {{end}}
       </div>
-      {{end}}
 
-      <ul class="jobs-builds-list builds-list">
-        {{$job := .Job}}
-        {{range .Builds}}
-        <li class="js-build" data-status="{{.Build.Status}}">
-          <a class="{{.Build.Status}}" href="{{url "GetBuild" $job .Build}}">&#35;{{.Build.Name}}</a>
+      <h1>builds</h1>
+    </div>
 
-          <div class="pam clearfix">
-            <div class="js-build-times build-times mbm" data-start-time="{{.Build.StartTime}}" data-end-time={{.Build.EndTime}}></div>
+    <ul class="jobs-builds-list builds-list">
+      {{$job := .Job}}
+      {{range .Builds}}
+      <li class="js-build" data-status="{{.Build.Status}}">
+        <a class="{{.Build.Status}}" href="{{url "GetBuild" $job .Build}}">&#35;{{.Build.Name}}</a>
 
-            <div class="inputs mrl" >
-              <div class="resource-title pbs"><i class="fa fa-fw fa-arrow-down prs"></i>inputs </div>
-              <div class="build-resources">
-                {{range .Resources.Inputs}}
-                  <div class="mbs pas resource fl clearfix">
-                    <div class="resource-name mrm">
-                      {{.Resource}}
-                    </div>
-                    <div class="resource-version">
-                      {{range $name, $val := .Version}}
-                      {{$name}}: {{$val}}
-                      {{end}}
-                    </div>
+        <div class="pam clearfix">
+          <div class="js-build-times build-times mbm" data-start-time="{{.Build.StartTime}}" data-end-time={{.Build.EndTime}}></div>
+
+          <div class="inputs mrl" >
+            <div class="resource-title pbs"><i class="fa fa-fw fa-arrow-down prs"></i>inputs </div>
+            <div class="build-resources">
+              {{range .Resources.Inputs}}
+                <div class="mbs pas resource fl clearfix">
+                  <div class="resource-name mrm">
+                    {{.Resource}}
                   </div>
-                {{end}}
-              </div>
-            </div>
-
-            <div class="outputs mrl">
-              <div class="resource-title pbs"><i class="fa fa-fw fa-arrow-up prs"></i>outputs</div>
-              <div class="build-resources">
-                {{range .Resources.Outputs}}
-                  <div class="mbs pas resource fl clearfix">
-                    <div class="resource-name mrm">
-                      {{.Resource}}
-                    </div>
-                    <div class="resource-version">
-                      {{range $name, $val := .Version}}
-                      {{$name}}: {{$val}}
-                      {{end}}
-                    </div>
+                  <div class="resource-version">
+                    {{range $name, $val := .Version}}
+                    {{$name}}: {{$val}}
+                    {{end}}
                   </div>
-                {{end}}
-              </div>
+                </div>
+              {{end}}
             </div>
           </div>
-        </li>
-        {{end}}
-      </ul>
 
-      {{if or .Pagination.Previous .Pagination.Next}}
-      <div class="pagination mbs clearfix">
+          <div class="outputs mrl">
+            <div class="resource-title pbs"><i class="fa fa-fw fa-arrow-up prs"></i>outputs</div>
+            <div class="build-resources">
+              {{range .Resources.Outputs}}
+                <div class="mbs pas resource fl clearfix">
+                  <div class="resource-name mrm">
+                    {{.Resource}}
+                  </div>
+                  <div class="resource-version">
+                    {{range $name, $val := .Version}}
+                    {{$name}}: {{$val}}
+                    {{end}}
+                  </div>
+                </div>
+              {{end}}
+            </div>
+          </div>
+        </div>
+      </li>
+      {{end}}
+    </ul>
+
+    <div class="pagination-footer">
+      <div class="pagination fr">
         {{if .Pagination.Previous}}
-        <div class="fl">
-          <a href="{{url "GetJob" .PipelineName .Job .Pagination.Previous}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-left"></i></a>
+        <div class="btn-page-link">
+          <a class="arrow" href="{{url "GetJob" .PipelineName .Job .Pagination.Previous}}"><i class="fa fa-arrow-left"></i></a>
+        </div>
+        {{else}}
+        <div class="btn-page-link disabled">
+          <span class="arrow"><i class="fa fa-arrow-left"></i></span>
         </div>
         {{end}}
         {{if .Pagination.Next}}
-        <div class="fr">
-          <a href="{{url "GetJob" .PipelineName .Job .Pagination.Next}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-right"></i></a>
+        <div class="btn-page-link">
+          <a class="arrow" href="{{url "GetJob" .PipelineName .Job .Pagination.Next}}"><i class="fa fa-arrow-right"></i></a>
+        </div>
+        {{else}}
+        <div class="btn-page-link disabled">
+          <span class="arrow"><i class="fa fa-arrow-right"></i></span>
         </div>
         {{end}}
       </div>
-      {{end}}
     </div>
   </div>
 </div>
@@ -108,6 +122,6 @@
 <script src="{{asset "moment-duration-format.js"}}"></script>
 <script src="{{asset "concourse.js"}}"></script>
 <script>
-  concourse.pipelineName = {{.PipelineName}};
+concourse.pipelineName = {{.PipelineName}};
 </script>
 {{end}}

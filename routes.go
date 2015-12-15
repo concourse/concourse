@@ -14,7 +14,6 @@ const (
 	GetJob          = "GetJob"
 	LogIn           = "LogIn"
 	BasicAuth       = "BasicAuth"
-	Debug           = "Debug"
 )
 
 var Routes = rata.Routes{
@@ -34,7 +33,6 @@ var Routes = rata.Routes{
 	{Path: "/pipelines/:pipeline_name/jobs/:job/builds", Method: "POST", Name: TriggerBuild},
 	{Path: "/builds", Method: "GET", Name: GetBuilds},
 	{Path: "/builds/:build_id", Method: "GET", Name: GetJoblessBuild},
-	{Path: "/debug", Method: "GET", Name: Debug},
 
 	// auth
 	{Path: "/login", Method: "GET", Name: LogIn},

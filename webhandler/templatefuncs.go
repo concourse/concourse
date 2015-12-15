@@ -126,6 +126,24 @@ func PathFor(route string, args ...interface{}) (string, error) {
 
 		return baseResourceURL, nil
 
+	case web.GetBuilds:
+		path, err := web.Routes.CreatePathForRoute(route, rata.Params{})
+		if err != nil {
+			return "", err
+		}
+
+		if len(args) > 0 {
+			page := args[0].(*concourse.Page)
+
+			if page.Since != 0 {
+				path += fmt.Sprintf("?since=%d", page.Since)
+			} else {
+				path += fmt.Sprintf("?until=%d", page.Until)
+			}
+		}
+
+		return path, nil
+
 	case web.GetBuild:
 		switch args[1].(type) {
 		case atc.Build:
@@ -137,6 +155,7 @@ func PathFor(route string, args ...interface{}) (string, error) {
 			build.JobName = jobName(args[0])
 			return web.PathForBuild(build), nil
 		}
+
 	case web.GetJoblessBuild:
 		switch build := args[0].(type) {
 		case atc.Build:
