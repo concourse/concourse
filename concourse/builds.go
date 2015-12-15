@@ -97,14 +97,29 @@ func (client *client) Build(buildID string) (atc.Build, bool, error) {
 	}
 }
 
-func (client *client) AllBuilds() ([]atc.Build, error) {
+func (client *client) Builds(page Page) ([]atc.Build, Pagination, error) {
 	var builds []atc.Build
+
+	headers := http.Header{}
 	err := client.connection.Send(Request{
 		RequestName: atc.ListBuilds,
+		Query:       page.QueryParams(),
 	}, &Response{
-		Result: &builds,
+		Result:  &builds,
+		Headers: &headers,
 	})
-	return builds, err
+
+	switch err.(type) {
+	case nil:
+		pagination, err := paginationFromHeaders(headers)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+
+		return builds, pagination, nil
+	default:
+		return nil, Pagination{}, err
+	}
 }
 
 func (client *client) AbortBuild(buildID string) error {

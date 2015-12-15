@@ -10,12 +10,15 @@ import (
 )
 
 type FakeClient struct {
-	AllBuildsStub        func() ([]atc.Build, error)
-	allBuildsMutex       sync.RWMutex
-	allBuildsArgsForCall []struct{}
-	allBuildsReturns     struct {
+	BuildsStub        func(concourse.Page) ([]atc.Build, concourse.Pagination, error)
+	buildsMutex       sync.RWMutex
+	buildsArgsForCall []struct {
+		arg1 concourse.Page
+	}
+	buildsReturns struct {
 		result1 []atc.Build
-		result2 error
+		result2 concourse.Pagination
+		result3 error
 	}
 	BuildStub        func(buildID string) (atc.Build, bool, error)
 	buildMutex       sync.RWMutex
@@ -301,29 +304,38 @@ type FakeClient struct {
 	}
 }
 
-func (fake *FakeClient) AllBuilds() ([]atc.Build, error) {
-	fake.allBuildsMutex.Lock()
-	fake.allBuildsArgsForCall = append(fake.allBuildsArgsForCall, struct{}{})
-	fake.allBuildsMutex.Unlock()
-	if fake.AllBuildsStub != nil {
-		return fake.AllBuildsStub()
+func (fake *FakeClient) Builds(arg1 concourse.Page) ([]atc.Build, concourse.Pagination, error) {
+	fake.buildsMutex.Lock()
+	fake.buildsArgsForCall = append(fake.buildsArgsForCall, struct {
+		arg1 concourse.Page
+	}{arg1})
+	fake.buildsMutex.Unlock()
+	if fake.BuildsStub != nil {
+		return fake.BuildsStub(arg1)
 	} else {
-		return fake.allBuildsReturns.result1, fake.allBuildsReturns.result2
+		return fake.buildsReturns.result1, fake.buildsReturns.result2, fake.buildsReturns.result3
 	}
 }
 
-func (fake *FakeClient) AllBuildsCallCount() int {
-	fake.allBuildsMutex.RLock()
-	defer fake.allBuildsMutex.RUnlock()
-	return len(fake.allBuildsArgsForCall)
+func (fake *FakeClient) BuildsCallCount() int {
+	fake.buildsMutex.RLock()
+	defer fake.buildsMutex.RUnlock()
+	return len(fake.buildsArgsForCall)
 }
 
-func (fake *FakeClient) AllBuildsReturns(result1 []atc.Build, result2 error) {
-	fake.AllBuildsStub = nil
-	fake.allBuildsReturns = struct {
+func (fake *FakeClient) BuildsArgsForCall(i int) concourse.Page {
+	fake.buildsMutex.RLock()
+	defer fake.buildsMutex.RUnlock()
+	return fake.buildsArgsForCall[i].arg1
+}
+
+func (fake *FakeClient) BuildsReturns(result1 []atc.Build, result2 concourse.Pagination, result3 error) {
+	fake.BuildsStub = nil
+	fake.buildsReturns = struct {
 		result1 []atc.Build
-		result2 error
-	}{result1, result2}
+		result2 concourse.Pagination
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeClient) Build(buildID string) (atc.Build, bool, error) {

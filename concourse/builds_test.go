@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -217,40 +218,185 @@ var _ = Describe("ATC Handler Builds", func() {
 		})
 	})
 
-	Describe("AllBuilds", func() {
-		expectedBuilds := []atc.Build{
-			{
-				ID:      123,
-				Name:    "mybuild1",
-				Status:  "succeeded",
-				JobName: "myjob",
-				URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild1",
-				APIURL:  "api/v1/builds/123",
-			},
-			{
-				ID:      124,
-				Name:    "mybuild2",
-				Status:  "succeeded",
-				JobName: "myjob",
-				URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild2",
-				APIURL:  "api/v1/builds/124",
-			},
-		}
-		expectedURL := "/api/v1/builds"
+	Describe("Builds", func() {
+		var (
+			expectedBuilds []atc.Build
+			expectedURL    string
+			expectedQuery  string
+		)
 
 		BeforeEach(func() {
+			expectedURL = ""
+			expectedQuery = ""
+
+			expectedBuilds = []atc.Build{
+				{
+					ID:      123,
+					Name:    "mybuild1",
+					Status:  "succeeded",
+					JobName: "myjob",
+					URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild1",
+					APIURL:  "api/v1/builds/123",
+				},
+				{
+					ID:      124,
+					Name:    "mybuild2",
+					Status:  "succeeded",
+					JobName: "myjob",
+					URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild2",
+					APIURL:  "api/v1/builds/124",
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.VerifyRequest("GET", expectedURL, expectedQuery),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
 				),
 			)
 		})
 
-		It("returns the all the builds", func() {
-			build, err := client.AllBuilds()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(build).To(Equal(expectedBuilds))
+		Context("when since, until, and limit are 0", func() {
+			BeforeEach(func() {
+				expectedURL = fmt.Sprint("/api/v1/builds")
+			})
+
+			It("calls to get all builds", func() {
+				builds, _, err := client.Builds(concourse.Page{})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(builds).To(Equal(expectedBuilds))
+			})
+		})
+
+		Context("when since is specified", func() {
+			BeforeEach(func() {
+				expectedURL = fmt.Sprint("/api/v1/builds")
+				expectedQuery = fmt.Sprint("since=24")
+			})
+
+			It("calls to get all builds since that id", func() {
+				builds, _, err := client.Builds(concourse.Page{Since: 24})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(builds).To(Equal(expectedBuilds))
+			})
+
+			Context("and limit is specified", func() {
+				BeforeEach(func() {
+					expectedQuery = fmt.Sprint("since=24&limit=5")
+				})
+
+				It("appends limit to the url", func() {
+					builds, _, err := client.Builds(concourse.Page{Since: 24, Limit: 5})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(builds).To(Equal(expectedBuilds))
+				})
+			})
+		})
+
+		Context("when until is specified", func() {
+			BeforeEach(func() {
+				expectedURL = fmt.Sprint("/api/v1/builds")
+				expectedQuery = fmt.Sprint("until=26")
+			})
+
+			It("calls to get all builds until that id", func() {
+				builds, _, err := client.Builds(concourse.Page{Until: 26})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(builds).To(Equal(expectedBuilds))
+			})
+
+			Context("and limit is specified", func() {
+				BeforeEach(func() {
+					expectedQuery = fmt.Sprint("until=26&limit=15")
+				})
+
+				It("appends limit to the url", func() {
+					builds, _, err := client.Builds(concourse.Page{Until: 26, Limit: 15})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(builds).To(Equal(expectedBuilds))
+				})
+			})
+		})
+
+		Context("when since and until are both specified", func() {
+			BeforeEach(func() {
+				expectedURL = fmt.Sprint("/api/v1/builds")
+				expectedQuery = fmt.Sprint("until=26")
+			})
+
+			It("only sends the until", func() {
+				builds, _, err := client.Builds(concourse.Page{Since: 24, Until: 26})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(builds).To(Equal(expectedBuilds))
+			})
+		})
+
+		Context("when the server returns an error", func() {
+			BeforeEach(func() {
+				expectedURL = fmt.Sprint("/api/v1/builds")
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWith(http.StatusInternalServerError, ""),
+					),
+				)
+			})
+
+			It("returns false and an error", func() {
+				_, _, err := client.Builds(concourse.Page{})
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("pagination data", func() {
+			Context("with a link header", func() {
+				BeforeEach(func() {
+					expectedURL = fmt.Sprint("/api/v1/builds")
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", expectedURL),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{
+								"Link": []string{
+									`<http://some-url.com/api/v1/builds?since=452&limit=123>; rel="previous"`,
+									`<http://some-url.com/api/v1/builds?until=254&limit=456>; rel="next"`,
+								},
+							}),
+						),
+					)
+				})
+
+				It("returns the pagination data from the header", func() {
+					_, pagination, err := client.Builds(concourse.Page{})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(pagination.Previous).To(Equal(&concourse.Page{Since: 452, Limit: 123}))
+					Expect(pagination.Next).To(Equal(&concourse.Page{Until: 254, Limit: 456}))
+				})
+			})
+		})
+
+		Context("without a link header", func() {
+			BeforeEach(func() {
+				expectedURL = fmt.Sprint("/api/v1/builds")
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{}),
+					),
+				)
+			})
+
+			It("returns pagination data with nil pages", func() {
+				_, pagination, err := client.Builds(concourse.Page{})
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(pagination.Previous).To(BeNil())
+				Expect(pagination.Next).To(BeNil())
+			})
 		})
 	})
 

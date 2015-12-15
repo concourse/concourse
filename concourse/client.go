@@ -9,7 +9,7 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
-	AllBuilds() ([]atc.Build, error)
+	Builds(Page) ([]atc.Build, Pagination, error)
 	Build(buildID string) (atc.Build, bool, error)
 	BuildEvents(buildID string) (Events, error)
 	BuildResources(buildID int) (atc.BuildInputsOutputs, bool, error)
