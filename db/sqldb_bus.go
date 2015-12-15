@@ -84,10 +84,31 @@ func (bus *notificationsBus) dispatchNotifications() {
 
 		bus.notificationsL.Lock()
 
-		for sink, _ := range bus.notifications[notification.Channel] {
-			select {
-			case sink <- gotNotification:
-			default:
+		if gotNotification {
+			// alert any relevant listeners of notification being received
+			// (nonblocking)
+			for sink, _ := range bus.notifications[notification.Channel] {
+				select {
+				case sink <- true:
+					// notified of message being received (or queued up)
+				default:
+					// already had notification queued up; no need to handle it twice
+				}
+			}
+		} else {
+			// alert all listeners of connection break so they can check for things
+			// they may have missed
+			for _, sinks := range bus.notifications {
+				for sink, _ := range sinks {
+					select {
+					case sink <- false:
+						// notify that connection was lost, so listener can check for
+						// things that may have changed while connection was lost
+					default:
+						// already had notification queued up; no need to check for
+						// anything missed since something will be notified anyway
+					}
+				}
 			}
 		}
 
