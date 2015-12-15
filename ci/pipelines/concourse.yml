@@ -252,6 +252,7 @@ jobs:
       trigger: true
   - put: aws-deployment
     params:
+      cleanup: true
       manifest: deployments/ci/deployments/concourse.yml
       stemcells: [bosh-stemcell/*.tgz]
       releases:
