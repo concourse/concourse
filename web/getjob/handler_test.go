@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web/group"
 
 	. "github.com/concourse/atc/web/getjob"
@@ -150,7 +149,7 @@ var _ = Describe("FetchTemplateData", func() {
 							ID:        1,
 							Name:      "1",
 							JobName:   "some-job",
-							Status:    string(db.StatusSucceeded),
+							Status:    string(atc.StatusSucceeded),
 							StartTime: endTime.Add(-24 * time.Second).Unix(),
 							EndTime:   endTime.Unix(),
 						},

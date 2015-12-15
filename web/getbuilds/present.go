@@ -57,7 +57,7 @@ func PresentBuilds(builds []atc.Build) []PresentedBuild {
 			EndTime:      formatTime(build.EndTime),
 			CSSClass:     cssClass,
 			Status:       string(build.Status),
-			Path:         web.PathForATCBuild(build),
+			Path:         web.PathForBuild(build),
 		})
 	}
 

@@ -11,7 +11,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/tedsuo/rata"
@@ -145,24 +144,12 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		return path, nil
 
 	case web.GetBuild:
-		switch args[1].(type) {
-		case atc.Build:
-			build := args[1].(atc.Build)
-			build.JobName = jobName(args[0])
-			return web.PathForBuildNew(build), nil
-		default:
-			build := args[1].(db.Build)
-			build.JobName = jobName(args[0])
-			return web.PathForBuild(build), nil
-		}
+		build := args[1].(atc.Build)
+		build.JobName = jobName(args[0])
+		return web.PathForBuild(build), nil
 
 	case web.GetJoblessBuild:
-		switch build := args[0].(type) {
-		case atc.Build:
-			return web.PathForBuildNew(build), nil
-		default:
-			return web.PathForBuild(build.(db.Build)), nil
-		}
+		return web.PathForBuild(args[0].(atc.Build)), nil
 
 	case web.Public:
 		return web.Routes.CreatePathForRoute(route, rata.Params{
@@ -191,16 +178,9 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		return baseJobURL, nil
 
 	case atc.BuildEvents:
-		switch args[0].(type) {
-		case atc.Build:
-			return atc.Routes.CreatePathForRoute(route, rata.Params{
-				"build_id": fmt.Sprintf("%d", args[0].(atc.Build).ID),
-			})
-		default:
-			return atc.Routes.CreatePathForRoute(route, rata.Params{
-				"build_id": fmt.Sprintf("%d", args[0].(db.Build).ID),
-			})
-		}
+		return atc.Routes.CreatePathForRoute(route, rata.Params{
+			"build_id": fmt.Sprintf("%d", args[0].(atc.Build).ID),
+		})
 
 	case atc.EnableResourceVersion, atc.DisableResourceVersion:
 		versionedResource := args[1].(atc.VersionedResource)
@@ -246,8 +226,7 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		return authPath + "?" + url.Values{
 			"redirect": {args[0].(string)},
 		}.Encode(), nil
-
-	default:
-		return "", fmt.Errorf("unknown route: %s", route)
 	}
+
+	return "", fmt.Errorf("unknown route: %s", route)
 }

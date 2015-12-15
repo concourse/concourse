@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/web"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -13,22 +13,24 @@ type TemplateData struct{}
 
 func NewHandler(
 	logger lager.Logger,
-	pipelineDBFactory db.PipelineDBFactory,
+	clientFactory web.ClientFactory,
 	pipelineHandler http.Handler,
-	template *template.Template,
+	noBuildsTemplate *template.Template,
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log := logger.Session("index")
 
-		pipelineDB, found, err := pipelineDBFactory.BuildDefault()
+		client := clientFactory.Build(r)
+
+		pipelines, err := client.ListPipelines()
 		if err != nil {
 			log.Error("failed-to-load-pipelinedb", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		if !found {
-			err = template.Execute(w, TemplateData{})
+		if len(pipelines) == 0 {
+			err = noBuildsTemplate.Execute(w, TemplateData{})
 			if err != nil {
 				log.Fatal("failed-to-build-template", err, lager.Data{})
 			}
@@ -40,7 +42,7 @@ func NewHandler(
 			r.Form = url.Values{}
 		}
 
-		r.Form[":pipeline"] = []string{pipelineDB.GetPipelineName()}
+		r.Form[":pipeline"] = []string{pipelines[0].Name}
 
 		pipelineHandler.ServeHTTP(w, r)
 	})

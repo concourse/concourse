@@ -589,7 +589,6 @@ func (cmd *ATCCommand) constructWebHandler(
 	return webhandler.NewHandler(
 		logger,
 		webWrapper,
-		pipelineDBFactory,
 		cmd.TemplatesDir.Path(),
 		cmd.PublicDir.Path(),
 		engine,
