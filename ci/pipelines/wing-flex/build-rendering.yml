@@ -3,6 +3,10 @@ groups: []
 resources:
 - name: timestamp
   type: time
+  source: {interval: 1m}
+
+- name: infrequent-timestamp
+  type: time
   source: {interval: 24h}
 
 jobs:
@@ -30,6 +34,12 @@ jobs:
 - name: basic-get
   plan:
   - get: timestamp
+
+- name: agg-get
+  plan:
+  - aggregate:
+    - get: timestamp
+    - get: infrequent-timestamp
 
 - name: vertical-output
   plan:
