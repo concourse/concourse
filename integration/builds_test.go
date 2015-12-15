@@ -81,9 +81,10 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("with no arguments", func() {
-
 			BeforeEach(func() {
 				expectedURL = "/api/v1/builds"
+				queryParams = "limit=50"
+
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
 					{
@@ -190,19 +191,12 @@ var _ = Describe("Fly CLI", func() {
 				cmdArgs = append(cmdArgs, "1")
 
 				expectedURL = "/api/v1/builds"
+				queryParams = "limit=1"
+
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
 					{
 						ID:           39,
-						PipelineName: "",
-						JobName:      "",
-						Name:         "",
-						Status:       "pending",
-						StartTime:    0,
-						EndTime:      0,
-					},
-					{
-						ID:           80,
 						PipelineName: "",
 						JobName:      "",
 						Name:         "",

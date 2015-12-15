@@ -67,15 +67,21 @@ func GetBuild(client concourse.Client, jobName string, buildNameOrID string, pip
 			return atc.Build{}, errors.New("job has no builds")
 		}
 	} else {
-		allBuilds, err := client.AllBuilds()
-		if err != nil {
-			return atc.Build{}, fmt.Errorf("failed to get builds %s", err)
-		}
+		page := &concourse.Page{Limit: 100}
 
-		for _, build := range allBuilds {
-			if build.JobName == "" {
-				return build, nil
+		for page != nil {
+			allBuilds, pagination, err := client.Builds(*page)
+			if err != nil {
+				return atc.Build{}, fmt.Errorf("failed to get builds %s", err)
 			}
+
+			for _, build := range allBuilds {
+				if build.JobName == "" {
+					return build, nil
+				}
+			}
+
+			page = pagination.Next
 		}
 
 		return atc.Build{}, errors.New("no builds match job")

@@ -31,13 +31,15 @@ func (command *BuildsCommand) Execute([]string) error {
 
 	client := concourse.NewClient(connection)
 
+	page := concourse.Page{Limit: command.Count}
+
 	var builds []atc.Build
 	if command.Job.PipelineName != "" && command.Job.JobName != "" {
 		var found bool
 		builds, _, found, err = client.JobBuilds(
 			command.Job.PipelineName,
 			command.Job.JobName,
-			concourse.Page{Limit: command.Count},
+			page,
 		)
 		if err != nil {
 			log.Fatalln(err)
@@ -47,7 +49,7 @@ func (command *BuildsCommand) Execute([]string) error {
 			log.Fatalln("pipleline/job not found")
 		}
 	} else {
-		builds, err = client.AllBuilds()
+		builds, _, err = client.Builds(page)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -73,7 +75,6 @@ func (command *BuildsCommand) Execute([]string) error {
 	}
 
 	for _, b := range builds[:rangeUntil] {
-
 		startTimeCell, endTimeCell, durationCell := populateTimeCells(time.Unix(b.StartTime, 0), time.Unix(b.EndTime, 0))
 
 		var pipelineJobCell, buildCell ui.TableCell

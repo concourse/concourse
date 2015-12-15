@@ -2,9 +2,11 @@ package commands_test
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/fly/commands"
+	"github.com/concourse/go-concourse/concourse"
 	fakes "github.com/concourse/go-concourse/concourse/fakes"
 
 	. "github.com/onsi/ginkgo"
@@ -159,24 +161,58 @@ var _ = Describe("Helper Functions", func() {
 		})
 
 		Context("when nothing is passed", func() {
+			var allBuilds [300]atc.Build
+
 			expectedOneOffBuild := atc.Build{
-				ID:      123,
+				ID:      150,
 				Name:    expectedBuildName,
-				Status:  "Great Success",
+				Status:  "success",
 				JobName: "",
 				URL:     fmt.Sprintf("/builds/%s", expectedBuildID),
 				APIURL:  fmt.Sprintf("api/v1/builds/%s", expectedBuildID),
 			}
 
 			BeforeEach(func() {
-				client.AllBuildsReturns([]atc.Build{expectedBuild, expectedOneOffBuild}, nil)
+				for i := 300 - 1; i >= 0; i-- {
+					allBuilds[i] = atc.Build{
+						ID:      i,
+						Name:    strconv.Itoa(i),
+						JobName: "some-job",
+						URL:     fmt.Sprintf("/jobs/some-job/builds/%s", i),
+						APIURL:  fmt.Sprintf("api/v1/builds/%s", i),
+					}
+				}
+
+				allBuilds[150] = expectedOneOffBuild
+
+				client.BuildsStub = func(page concourse.Page) ([]atc.Build, concourse.Pagination, error) {
+					var builds []atc.Build
+					if page.Since != 0 {
+						builds = allBuilds[page.Since : page.Since+page.Limit]
+					} else {
+						builds = allBuilds[0:page.Limit]
+					}
+
+					pagination := concourse.Pagination{
+						Previous: &concourse.Page{
+							Limit: page.Limit,
+							Until: builds[0].ID,
+						},
+						Next: &concourse.Page{
+							Limit: page.Limit,
+							Since: builds[len(builds)-1].ID,
+						},
+					}
+
+					return builds, pagination, nil
+				}
 			})
 
 			It("returns latest one off build", func() {
 				build, err := GetBuild(client, "", "", "")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(build).To(Equal(expectedOneOffBuild))
-				Expect(client.AllBuildsCallCount()).To(Equal(1))
+				Expect(client.BuildsCallCount()).To(Equal(2))
 			})
 		})
 	})
