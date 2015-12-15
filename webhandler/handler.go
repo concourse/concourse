@@ -8,7 +8,6 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/getbuild"
@@ -26,7 +25,6 @@ import (
 func NewHandler(
 	logger lager.Logger,
 	wrapper wrappa.Wrappa,
-	pipelineDBFactory db.PipelineDBFactory,
 	templatesDir,
 	publicDir string,
 	engine engine.Engine,
@@ -101,7 +99,7 @@ func NewHandler(
 	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
 
 	handlers := map[string]http.Handler{
-		web.Index:           index.NewHandler(logger, pipelineDBFactory, pipelineHandler, indexTemplate),
+		web.Index:           index.NewHandler(logger, clientFactory, pipelineHandler, indexTemplate),
 		web.Pipeline:        pipelineHandler,
 		web.Public:          http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
 		web.GetJob:          getjob.NewHandler(logger, clientFactory, jobTemplate),

@@ -1,7 +1,7 @@
 package web_test
 
 import (
-	"github.com/concourse/atc/db"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 
 	. "github.com/onsi/ginkgo"
@@ -11,7 +11,7 @@ import (
 var _ = Describe("Routes", func() {
 	Describe("PathForBuild", func() {
 		It("returns the canonical path for a jobless build", func() {
-			joblessBuild := db.Build{
+			joblessBuild := atc.Build{
 				ID:           1,
 				Name:         "23",
 				PipelineName: "a-pipeline",
@@ -22,7 +22,7 @@ var _ = Describe("Routes", func() {
 		})
 
 		It("returns the canonical path for a job-filled build", func() {
-			build := db.Build{
+			build := atc.Build{
 				ID:           1,
 				JobName:      "hello",
 				Name:         "23",
