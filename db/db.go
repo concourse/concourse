@@ -27,6 +27,8 @@ type Conn interface {
 type DB interface {
 	SaveTeam(team Team) (SavedTeam, error)
 	GetTeamByName(teamName string) (SavedTeam, error)
+	UpdateTeamBasicAuth(team Team) (SavedTeam, error)
+	UpdateTeamGithubAuth(team Team) (SavedTeam, error)
 
 	GetBuild(buildID int) (Build, bool, error)
 	GetBuildInputVersionedResouces(buildID int) (SavedVersionedResources, error)

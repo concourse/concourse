@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 
@@ -79,6 +81,84 @@ func (db *SQLDB) GetTeamByName(teamName string) (SavedTeam, error) {
 	}
 
 	return savedTeam, nil
+}
+
+func (db *SQLDB) updateTeamAuth(query string) (SavedTeam, error) {
+	var basic_auth, github_auth sql.NullString
+	var savedTeam SavedTeam
+
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return SavedTeam{}, err
+	}
+	defer tx.Rollback()
+
+	err = tx.QueryRow(query).Scan(
+		&savedTeam.ID,
+		&savedTeam.Name,
+		&basic_auth,
+		&github_auth,
+	)
+	if err != nil {
+		return savedTeam, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return savedTeam, err
+	}
+
+	if basic_auth.Valid {
+		err = json.Unmarshal([]byte(basic_auth.String), &savedTeam.BasicAuth)
+		if err != nil {
+			return savedTeam, err
+		}
+	}
+
+	if github_auth.Valid {
+		err = json.Unmarshal([]byte(github_auth.String), &savedTeam.GithubAuth)
+		if err != nil {
+			return savedTeam, err
+		}
+	}
+
+	return savedTeam, nil
+}
+
+func (db *SQLDB) UpdateTeamGithubAuth(team Team) (SavedTeam, error) {
+	github_auth, err := json.Marshal(team.GithubAuth)
+	if err != nil {
+		return SavedTeam{}, err
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE teams
+		SET github_auth = '%s'
+		WHERE name = '%s'
+		RETURNING id, name, basic_auth, github_auth
+	`, github_auth, team.Name,
+	)
+	return db.updateTeamAuth(query)
+}
+
+func (db *SQLDB) UpdateTeamBasicAuth(team Team) (SavedTeam, error) {
+	encryptedPw, err := bcrypt.GenerateFromPassword([]byte(team.BasicAuthPassword), 11)
+	if err != nil {
+		return SavedTeam{}, err
+	}
+	team.BasicAuthPassword = string(encryptedPw)
+
+	basic_auth, err := json.Marshal(team.BasicAuth)
+	if err != nil {
+		return SavedTeam{}, err
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE teams
+		SET basic_auth = '%s'
+		WHERE name = '%s'
+		RETURNING id, name, basic_auth, github_auth
+	`, basic_auth, team.Name)
+	return db.updateTeamAuth(query)
 }
 
 func (db *SQLDB) InsertVolume(data Volume) error {
