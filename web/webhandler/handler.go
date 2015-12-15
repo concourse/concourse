@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/web"
-	"github.com/concourse/atc/web/debug"
 	"github.com/concourse/atc/web/getbuild"
 	"github.com/concourse/atc/web/getbuilds"
 	"github.com/concourse/atc/web/getjob"
@@ -24,22 +23,10 @@ import (
 	"github.com/concourse/atc/wrappa"
 )
 
-//go:generate counterfeiter . WebDB
-
-type WebDB interface {
-	GetBuild(buildID int) (db.Build, bool, error)
-	GetAllBuilds() ([]db.Build, error)
-
-	FindContainersByIdentifier(db.ContainerIdentifier) ([]db.Container, error)
-	Workers() ([]db.WorkerInfo, error)
-}
-
 func NewHandler(
 	logger lager.Logger,
 	wrapper wrappa.Wrappa,
-	db WebDB,
 	pipelineDBFactory db.PipelineDBFactory,
-	configDB db.ConfigDB,
 	templatesDir,
 	publicDir string,
 	engine engine.Engine,
@@ -101,11 +88,6 @@ func NewHandler(
 		return nil, err
 	}
 
-	debugTemplate, err := loadTemplateWithoutPipeline(templatesDir, "debug.html", funcs)
-	if err != nil {
-		return nil, err
-	}
-
 	logInTemplate, err := loadTemplateWithoutPipeline(templatesDir, "login.html", funcs)
 	if err != nil {
 		return nil, err
@@ -130,7 +112,6 @@ func NewHandler(
 		web.LogIn:           login.NewHandler(logger, clientFactory, logInTemplate),
 		web.BasicAuth:       login.NewBasicAuthHandler(logger),
 		web.TriggerBuild:    triggerbuild.NewHandler(logger, clientFactory),
-		web.Debug:           debug.NewServer(logger, db, debugTemplate),
 	}
 
 	return rata.NewRouter(web.Routes, wrapper.Wrap(handlers))

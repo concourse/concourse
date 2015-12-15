@@ -126,11 +126,11 @@ var _ = Describe("Resource Pagination", func() {
 				Expect(page.Find(".resource-versions")).Should(BeFound())
 				Expect(page.All(".resource-versions li").Count()).Should(Equal(100))
 
-				Expect(page.Find(".pagination .fa-arrow-left")).ShouldNot(BeFound())
+				Expect(page.First(".pagination .disabled .fa-arrow-left")).Should(BeFound())
 				Expect(page.First(".pagination .fa-arrow-right").Click()).To(Succeed())
 				Eventually(page.All(".resource-versions li").Count).Should(Equal(4))
 
-				Expect(page.Find(".pagination .fa-arrow-right")).ShouldNot(BeFound())
+				Expect(page.First(".pagination .disabled .fa-arrow-right")).Should(BeFound())
 				Expect(page.First(".pagination .fa-arrow-left").Click()).To(Succeed())
 				Eventually(page.All(".resource-versions li").Count).Should(Equal(100))
 			})
@@ -153,7 +153,7 @@ var _ = Describe("Resource Pagination", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("there is no pagination", func() {
+			It("shows disabled pagination buttons", func() {
 				// homepage -> resource detail
 				Expect(page.Navigate(homepage())).To(Succeed())
 				Eventually(page.FindByLink("resource-name")).Should(BeFound())
@@ -162,7 +162,8 @@ var _ = Describe("Resource Pagination", func() {
 				// resource detail -> paused resource detail
 				Eventually(page).Should(HaveURL(withPath("/resources/resource-name")))
 				Expect(page.Find("h1")).To(HaveText("resource-name"))
-				Expect(page.Find(".pagination")).ShouldNot(BeFound())
+				Expect(page.First(".pagination .disabled .fa-arrow-left")).Should(BeFound())
+				Expect(page.First(".pagination .disabled .fa-arrow-right")).Should(BeFound())
 				Expect(page.Find(".resource-versions")).Should(BeFound())
 				Expect(page.All(".resource-versions li").Count()).Should(Equal(99))
 			})

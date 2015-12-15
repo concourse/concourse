@@ -63,11 +63,6 @@ func (wrappa *WebAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 				handler,
 				auth.BasicAuthRejector{},
 			)
-		case web.Debug:
-			newHandler = auth.CheckAuthHandler(
-				handler,
-				loginRedirectRejector,
-			)
 		default:
 			panic("you missed a spot")
 		}

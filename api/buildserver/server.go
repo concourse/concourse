@@ -17,6 +17,8 @@ type EventHandlerFactory func(BuildsDB, int) http.Handler
 type Server struct {
 	logger lager.Logger
 
+	externalURL string
+
 	engine              engine.Engine
 	workerClient        worker.Client
 	db                  BuildsDB
@@ -37,7 +39,7 @@ type BuildsDB interface {
 	GetBuildOutputVersionedResouces(buildID int) (db.SavedVersionedResources, error)
 	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
 
-	GetAllBuilds() ([]db.Build, error)
+	GetBuilds(db.Page) ([]db.Build, db.Pagination, error)
 
 	CreateOneOffBuild() (db.Build, error)
 	GetConfigByBuildID(buildID int) (atc.Config, db.ConfigVersion, error)
@@ -45,6 +47,7 @@ type BuildsDB interface {
 
 func NewServer(
 	logger lager.Logger,
+	externalURL string,
 	engine engine.Engine,
 	workerClient worker.Client,
 	db BuildsDB,
@@ -53,7 +56,10 @@ func NewServer(
 	drain <-chan struct{},
 ) *Server {
 	return &Server{
-		logger:              logger,
+		logger: logger,
+
+		externalURL: externalURL,
+
 		engine:              engine,
 		workerClient:        workerClient,
 		db:                  db,

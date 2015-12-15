@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -436,36 +437,77 @@ var _ = Describe("Builds API", func() {
 
 	Describe("GET /api/v1/builds", func() {
 		var response *http.Response
+		var queryParams string
+
+		returnedBuilds := []db.Build{
+			{
+				ID:           4,
+				Name:         "2",
+				JobName:      "job2",
+				PipelineName: "pipeline2",
+				Status:       db.StatusStarted,
+				StartTime:    time.Unix(1, 0),
+				EndTime:      time.Unix(100, 0),
+			},
+			{
+				ID:           3,
+				Name:         "1",
+				JobName:      "job1",
+				PipelineName: "pipeline1",
+				Status:       db.StatusSucceeded,
+				StartTime:    time.Unix(101, 0),
+				EndTime:      time.Unix(200, 0),
+			},
+		}
+
+		BeforeEach(func() {
+			queryParams = ""
+		})
 
 		JustBeforeEach(func() {
 			var err error
 
-			response, err = client.Get(server.URL + "/api/v1/builds")
+			response, err = client.Get(server.URL + "/api/v1/builds" + queryParams)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when getting all builds succeeds", func() {
+		Context("when no params are passed", func() {
 			BeforeEach(func() {
-				buildsDB.GetAllBuildsReturns([]db.Build{
-					{
-						ID:           3,
-						Name:         "2",
-						JobName:      "job2",
-						PipelineName: "pipeline2",
-						Status:       db.StatusStarted,
-						StartTime:    time.Unix(1, 0),
-						EndTime:      time.Unix(100, 0),
-					},
-					{
-						ID:           1,
-						Name:         "1",
-						JobName:      "job1",
-						PipelineName: "pipeline1",
-						Status:       db.StatusSucceeded,
-						StartTime:    time.Unix(101, 0),
-						EndTime:      time.Unix(200, 0),
-					},
-				}, nil)
+				queryParams = ""
+			})
+
+			It("does not set defaults for since and until", func() {
+				Expect(buildsDB.GetBuildsCallCount()).To(Equal(1))
+
+				page := buildsDB.GetBuildsArgsForCall(0)
+				Expect(page).To(Equal(db.Page{
+					Since: 0,
+					Until: 0,
+					Limit: 100,
+				}))
+			})
+		})
+
+		Context("when all the params are passed", func() {
+			BeforeEach(func() {
+				queryParams = "?since=2&until=3&limit=8"
+			})
+
+			It("passes them through", func() {
+				Expect(buildsDB.GetBuildsCallCount()).To(Equal(1))
+
+				page := buildsDB.GetBuildsArgsForCall(0)
+				Expect(page).To(Equal(db.Page{
+					Since: 2,
+					Until: 3,
+					Limit: 8,
+				}))
+			})
+		})
+
+		Context("when getting the builds succeeds", func() {
+			BeforeEach(func() {
+				buildsDB.GetBuildsReturns(returnedBuilds, db.Pagination{}, nil)
 			})
 
 			It("returns 200 OK", func() {
@@ -478,24 +520,24 @@ var _ = Describe("Builds API", func() {
 
 				Expect(body).To(MatchJSON(`[
 					{
-						"id": 3,
+						"id": 4,
 						"name": "2",
 						"job_name": "job2",
 						"pipeline_name": "pipeline2",
 						"status": "started",
 						"url": "/pipelines/pipeline2/jobs/job2/builds/2",
-						"api_url": "/api/v1/builds/3",
+						"api_url": "/api/v1/builds/4",
 						"start_time": 1,
 						"end_time": 100
 					},
 					{
-						"id": 1,
+						"id": 3,
 						"name": "1",
 						"job_name": "job1",
 						"pipeline_name": "pipeline1",
 						"status": "succeeded",
 						"url": "/pipelines/pipeline1/jobs/job1/builds/1",
-						"api_url": "/api/v1/builds/1",
+						"api_url": "/api/v1/builds/3",
 						"start_time": 101,
 						"end_time": 200
 					}
@@ -503,9 +545,25 @@ var _ = Describe("Builds API", func() {
 			})
 		})
 
+		Context("when next/previous pages are available", func() {
+			BeforeEach(func() {
+				buildsDB.GetBuildsReturns(returnedBuilds, db.Pagination{
+					Previous: &db.Page{Until: 4, Limit: 2},
+					Next:     &db.Page{Since: 3, Limit: 2},
+				}, nil)
+			})
+
+			It("returns Link headers per rfc5988", func() {
+				Expect(response.Header["Link"]).To(ConsistOf([]string{
+					fmt.Sprintf(`<%s/api/v1/builds?until=4&limit=2>; rel="previous"`, externalURL),
+					fmt.Sprintf(`<%s/api/v1/builds?since=3&limit=2>; rel="next"`, externalURL),
+				}))
+			})
+		})
+
 		Context("when getting all builds fails", func() {
 			BeforeEach(func() {
-				buildsDB.GetAllBuildsReturns(nil, errors.New("oh no!"))
+				buildsDB.GetBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
 			})
 
 			It("returns 500 Internal Server Error", func() {

@@ -1,56 +1,61 @@
 {{define "title"}}History - Concourse{{end}}
 
 {{define "body"}}
-<div class="mhm">
-  <h1>{{.Resource.Name}}</h1>
-</div>
+<div class="pal">
+  <div class="pagination-header">
+    <div class="pagination fr">
+      {{if .Pagination.Previous}}
+      <div class="btn-page-link">
+        <a class="arrow" href="{{url "GetResource" .PipelineName .Resource .Pagination.Previous}}"><i class="fa fa-arrow-left"></i></a>
+      </div>
+      {{else}}
+      <div class="btn-page-link disabled">
+        <span class="arrow"><i class="fa fa-arrow-left"></i></span>
+      </div>
+      {{end}}
+      {{if .Pagination.Next}}
+      <div class="btn-page-link">
+        <a class="arrow" href="{{url "GetResource" .PipelineName .Resource .Pagination.Next}}"><i class="fa fa-arrow-right"></i></a>
+      </div>
+      {{else}}
+      <div class="btn-page-link disabled">
+        <span class="arrow"><i class="fa fa-arrow-right"></i></span>
+      </div>
+      {{end}}
+    </div>
+
+    <h1 class="h1">{{.Resource.Name}}</h1>
+  </div>
 
 <div class="js-resource" data-endpoint="pipelines/{{.PipelineName}}/resources/{{.Resource.Name}}">
-  <div class="resource-check-status mbm">
-    <div class="steps">
-      <div class="build-step">
-        <div class="header">
-          {{if .Resource.Paused}}
-            <span class="btn-pause fl enabled js-pauseUnpause"><i class="fa fa-fw fa-play"></i></span>
-          {{else}}
-            <span class="btn-pause fl disabled js-pauseUnpause"><i class="fa fa-fw fa-pause"></i></span>
-          {{end}}
-
-          {{if .Resource.FailingToCheck}}
-            <h3 class="js-resourceStatusText" data-initial="checking failed">checking failed</h3>
-            <i class="fr errored fa fa-fw fa-exclamation-triangle"></i>
-          {{else}}
-            <h3 class="js-resourceStatusText" data-initial="checking successfully">checking successfully</h3>
-            <i class="fr succeeded fa fa-fw fa-check"></i>
-          {{end}}
-        </div>
+  <div class="resource-check-status">
+    <div class="build-step">
+      <div class="header">
+        {{if .Resource.Paused}}
+          <span class="btn-pause fl enabled js-pauseUnpause"><i class="fa fa-fw fa-play"></i></span>
+        {{else}}
+          <span class="btn-pause fl disabled js-pauseUnpause"><i class="fa fa-fw fa-pause"></i></span>
+        {{end}}
 
         {{if .Resource.FailingToCheck}}
-          <div class="step-body">
-            <pre>{{.Resource.CheckError}}</pre>
-          </div>
+          <h3 class="js-resourceStatusText" data-initial="checking failed">checking failed</h3>
+          <i class="fr errored fa fa-fw fa-exclamation-triangle"></i>
+        {{else}}
+          <h3 class="js-resourceStatusText" data-initial="checking successfully">checking successfully</h3>
+          <i class="fr succeeded fa fa-fw fa-check"></i>
         {{end}}
       </div>
+
+      {{if .Resource.FailingToCheck}}
+        <div class="step-body">
+          <pre>{{.Resource.CheckError}}</pre>
+        </div>
+      {{end}}
     </div>
   </div>
 </div>
 
-{{if or .Pagination.Previous .Pagination.Next}}
-  <div class="pagination mbs clearfix">
-    {{if .Pagination.Previous}}
-    <div class="fl">
-      <a href="{{url "GetResource" .PipelineName .Resource .Pagination.Previous}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-left"></i></a>
-    </div>
-    {{end}}
-    {{if .Pagination.Next}}
-    <div class="fr">
-      <a href="{{url "GetResource" .PipelineName .Resource .Pagination.Next}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-right"></i></a>
-    </div>
-    {{end}}
-  </div>
-{{end}}
-
-<ul class="list list-collapsable list-enableDisable mhm resource-versions">
+<ul class="list list-collapsable list-enableDisable resource-versions">
   {{$pipelineName := .PipelineName}}
   {{range .Versions}}
     <li class="list-collapsable-item clearfix {{if .VersionedResource.Enabled}}enabled{{else}}disabled{{end}}">
@@ -103,24 +108,29 @@
   {{end}}
 </ul>
 
-{{if or .Pagination.Previous .Pagination.Next}}
-  <div class="pagination mbs clearfix">
+<div class="pagination-footer">
+  <div class="pagination fr">
     {{if .Pagination.Previous}}
-    <div class="fl">
-      <a href="{{url "GetResource" .PipelineName .Resource .Pagination.Previous}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-left"></i></a>
+    <div class="btn-page-link">
+      <a class="arrow" href="{{url "GetResource" .PipelineName .Resource .Pagination.Previous}}"><i class="fa fa-arrow-left"></i></a>
+    </div>
+    {{else}}
+    <div class="btn-page-link disabled">
+      <span class="arrow"><i class="fa fa-arrow-left"></i></span>
     </div>
     {{end}}
     {{if .Pagination.Next}}
-    <div class="fr">
-      <a href="{{url "GetResource" .PipelineName .Resource .Pagination.Next}}" class="pagination-handle pagination-handle-flush"><i class="fa fa-arrow-right"></i></a>
+    <div class="btn-page-link">
+      <a class="arrow" href="{{url "GetResource" .PipelineName .Resource .Pagination.Next}}"><i class="fa fa-arrow-right"></i></a>
+    </div>
+    {{else}}
+    <div class="btn-page-link disabled">
+      <span class="arrow"><i class="fa fa-arrow-right"></i></span>
     </div>
     {{end}}
   </div>
-{{end}}
-
-
-
-
+</div>
+</div>
 
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
 <script src="{{asset "resources.js"}}"></script>

@@ -89,7 +89,6 @@ var _ = Describe("WebAuthWrappa", func() {
 						),
 						fakeValidator,
 					),
-					web.Debug: authed(inputHandlers[web.Debug]),
 				}
 			})
 
@@ -130,7 +129,6 @@ var _ = Describe("WebAuthWrappa", func() {
 						),
 						fakeValidator,
 					),
-					web.Debug: authed(inputHandlers[web.Debug]),
 				}
 			})
 

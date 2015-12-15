@@ -302,12 +302,12 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 		return []SavedVersionedResource{}, Pagination{}, false, err
 	}
 
-	query := fmt.Sprintf(`
+	query := `
 		SELECT v.id, v.enabled, v.type, v.version, v.metadata, r.name
 		FROM versioned_resources v
 		INNER JOIN resources r ON v.resource_id = r.id
 		WHERE v.resource_id = $1
-	`)
+	`
 
 	var rows *sql.Rows
 	if page.Since == 0 && page.Until == 0 {
@@ -324,7 +324,7 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 			SELECT sub.*
 				FROM (
 						%s
-					AND v.ID > $2
+					AND v.id > $2
 				ORDER BY v.id ASC
 				LIMIT $3
 			) sub
@@ -336,7 +336,7 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 	} else {
 		rows, err = pdb.conn.Query(fmt.Sprintf(`
 			%s
-				AND v.ID < $2
+				AND v.id < $2
 			ORDER BY v.id DESC
 			LIMIT $3
 		`, query), dbResource.ID, page.Since, page.Limit)

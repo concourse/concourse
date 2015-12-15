@@ -81,6 +81,7 @@ func NewHandler(
 
 	buildServer := buildserver.NewServer(
 		logger,
+		externalURL,
 		engine,
 		workerClient,
 		buildsDB,

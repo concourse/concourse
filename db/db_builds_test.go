@@ -169,7 +169,7 @@ var _ = Describe("Keeping track of builds", func() {
 		Expect(nextOneOff.Name).To(Equal("2"))
 		Expect(nextOneOff.Status).To(Equal(db.StatusPending))
 
-		allBuilds, err := database.GetAllBuilds()
+		allBuilds, _, err := database.GetBuilds(db.Page{Limit: 100})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(allBuilds).To(Equal([]db.Build{nextOneOff, jobBuild, oneOff}))
 	})
@@ -212,6 +212,65 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(found).To(BeTrue())
 
 			Expect(builds).To(ConsistOf(build1, build2))
+		})
+	})
+
+	Describe("GetBuilds", func() {
+		var allBuilds [5]db.Build
+
+		BeforeEach(func() {
+			for i := 0; i < 3; i++ {
+				var err error
+				allBuilds[i], err = database.CreateOneOffBuild()
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			for i := 3; i < 5; i++ {
+				var err error
+				allBuilds[i], err = pipelineDB.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+			}
+		})
+
+		It("returns all builds that have been started, regardless of pipeline", func() {
+			builds, pagination, err := database.GetBuilds(db.Page{Limit: 2})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(len(builds)).To(Equal(2))
+			Expect(builds[0]).To(Equal(allBuilds[4]))
+			Expect(builds[1]).To(Equal(allBuilds[3]))
+
+			Expect(pagination.Previous).To(BeNil())
+			Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[3].ID, Limit: 2}))
+
+			builds, pagination, err = database.GetBuilds(*pagination.Next)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(len(builds)).To(Equal(2))
+			Expect(builds[0]).To(Equal(allBuilds[2]))
+			Expect(builds[1]).To(Equal(allBuilds[1]))
+
+			Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID, Limit: 2}))
+			Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID, Limit: 2}))
+
+			builds, pagination, err = database.GetBuilds(*pagination.Next)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(len(builds)).To(Equal(1))
+			Expect(builds[0]).To(Equal(allBuilds[0]))
+
+			Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[0].ID, Limit: 2}))
+			Expect(pagination.Next).To(BeNil())
+
+			builds, pagination, err = database.GetBuilds(*pagination.Previous)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(len(builds)).To(Equal(2))
+			Expect(builds[0]).To(Equal(allBuilds[2]))
+			Expect(builds[1]).To(Equal(allBuilds[1]))
+
+			Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID, Limit: 2}))
+			Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID, Limit: 2}))
 		})
 	})
 })

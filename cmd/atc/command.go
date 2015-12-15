@@ -182,7 +182,6 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 
 	webHandler, err := cmd.constructWebHandler(
 		logger,
-		sqlDB,
 		authValidator,
 		pipelineDBFactory,
 		engine,
@@ -574,7 +573,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 func (cmd *ATCCommand) constructWebHandler(
 	logger lager.Logger,
-	sqlDB *db.SQLDB,
 	authValidator auth.Validator,
 	pipelineDBFactory db.PipelineDBFactory,
 	engine engine.Engine,
@@ -591,9 +589,7 @@ func (cmd *ATCCommand) constructWebHandler(
 	return webhandler.NewHandler(
 		logger,
 		webWrapper,
-		sqlDB,
 		pipelineDBFactory,
-		sqlDB,
 		cmd.TemplatesDir.Path(),
 		cmd.PublicDir.Path(),
 		engine,

@@ -153,11 +153,11 @@ var _ = Describe("Job Pausing", func() {
 					Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
 					Expect(page.All(".js-build").Count()).Should(Equal(100))
 
-					Expect(page.Find(".pagination .fa-arrow-left")).ShouldNot(BeFound())
+					Expect(page.First(".pagination .disabled .fa-arrow-left")).Should(BeFound())
 					Expect(page.First(".pagination .fa-arrow-right").Click()).To(Succeed())
 					Eventually(page.All(".js-build").Count).Should(Equal(3))
 
-					Expect(page.Find(".pagination .fa-arrow-right")).ShouldNot(BeFound())
+					Expect(page.First(".pagination .disabled .fa-arrow-right")).Should(BeFound())
 					Expect(page.First(".pagination .fa-arrow-left").Click()).To(Succeed())
 					Eventually(page.All(".js-build").Count).Should(Equal(100))
 				})

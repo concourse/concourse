@@ -27,6 +27,10 @@ var _ = Describe("Versions API", func() {
 		var response *http.Response
 		var queryParams string
 
+		BeforeEach(func() {
+			queryParams = ""
+		})
+
 		JustBeforeEach(func() {
 			var err error
 
@@ -35,7 +39,6 @@ var _ = Describe("Versions API", func() {
 
 			response, err = client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
-
 		})
 
 		Context("when no params are passed", func() {

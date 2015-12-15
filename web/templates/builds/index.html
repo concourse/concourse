@@ -1,29 +1,73 @@
 {{define "title"}}Builds - Concourse{{end}}
 
 {{define "body"}}
-<div class="phl">
-  <h1 class="h1">builds</h1>
-
-  <div>
-    <table class="table">
-      <thead>
-        <th>ID</th>
-        <th>Pipeline Name</th>
-        <th>Job Name</th>
-        <th>Start Time</th>
-        <th>End Time</th>
-      </thead>
-
-      {{range .Builds}}
-        <tr class="table-row {{.CSSClass}}">
-          <td><a class="build-number {{.Status}}" href="{{.Path}}">#{{.ID}}</a></td>
-          <td>{{.PipelineName}}</td>
-          <td>{{.JobName}}</td>
-          <td>{{.StartTime}}</td>
-          <td>{{.EndTime}}</td>
-        </tr>
+<div class="pal">
+  <div class="pagination-header">
+    <div class="pagination fr">
+      {{if .Pagination.Previous}}
+      <div class="btn-page-link">
+        <a class="arrow" href="{{url "GetBuilds" .Pagination.Previous}}"><i class="fa fa-arrow-left"></i></a>
+      </div>
+      {{else}}
+      <div class="btn-page-link disabled">
+        <span class="arrow"><i class="fa fa-arrow-left"></i></span>
+      </div>
       {{end}}
-    </table>
+      {{if .Pagination.Next}}
+      <div class="btn-page-link">
+        <a class="arrow" href="{{url "GetBuilds" .Pagination.Next}}"><i class="fa fa-arrow-right"></i></a>
+      </div>
+      {{else}}
+      <div class="btn-page-link disabled">
+        <span class="arrow"><i class="fa fa-arrow-right"></i></span>
+      </div>
+      {{end}}
+    </div>
+
+    <h1 class="h1">builds</h1>
+  </div>
+
+  <table class="table">
+    <thead>
+      <th>ID</th>
+      <th>Pipeline Name</th>
+      <th>Job Name</th>
+      <th>Start Time</th>
+      <th>End Time</th>
+    </thead>
+
+    {{range .Builds}}
+      <tr class="table-row {{.CSSClass}}">
+        <td><a class="build-number {{.Status}}" href="{{.Path}}">#{{.ID}}</a></td>
+        <td>{{.PipelineName}}</td>
+        <td>{{.JobName}}</td>
+        <td>{{.StartTime}}</td>
+        <td>{{.EndTime}}</td>
+      </tr>
+    {{end}}
+  </table>
+
+  <div class="pagination-footer">
+    <div class="pagination fr">
+      {{if .Pagination.Previous}}
+      <div class="btn-page-link">
+        <a class="arrow" href="{{url "GetBuilds" .Pagination.Previous}}"><i class="fa fa-arrow-left"></i></a>
+      </div>
+      {{else}}
+      <div class="btn-page-link disabled">
+        <span class="arrow"><i class="fa fa-arrow-left"></i></span>
+      </div>
+      {{end}}
+      {{if .Pagination.Next}}
+      <div class="btn-page-link">
+        <a class="arrow" href="{{url "GetBuilds" .Pagination.Next}}"><i class="fa fa-arrow-right"></i></a>
+      </div>
+      {{else}}
+      <div class="btn-page-link disabled">
+        <span class="arrow"><i class="fa fa-arrow-right"></i></span>
+      </div>
+      {{end}}
+    </div>
   </div>
 </div>
 

@@ -677,32 +677,92 @@ func (db *SQLDB) LeaseCacheInvalidation(interval time.Duration) (Lease, bool, er
 	return lease, true, nil
 }
 
-func (db *SQLDB) GetAllBuilds() ([]Build, error) {
-	rows, err := db.conn.Query(`
+func (db *SQLDB) GetBuilds(page Page) ([]Build, Pagination, error) {
+	query := `
 		SELECT ` + qualifiedBuildColumns + `
 		FROM builds b
 		LEFT OUTER JOIN jobs j ON b.job_id = j.id
 		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
-		ORDER BY b.id DESC
-	`)
+	`
+
+	var rows *sql.Rows
+	var err error
+
+	if page.Since == 0 && page.Until == 0 {
+		rows, err = db.conn.Query(fmt.Sprintf(`
+			%s
+			ORDER BY b.id DESC
+			LIMIT $1
+		`, query), page.Limit)
+	} else if page.Until != 0 {
+		rows, err = db.conn.Query(fmt.Sprintf(`
+			SELECT sub.*
+				FROM (
+						%s
+				WHERE b.id > $1
+				ORDER BY b.id ASC
+				LIMIT $2
+			) sub
+			ORDER BY sub.id DESC
+		`, query), page.Until, page.Limit)
+	} else {
+		rows, err = db.conn.Query(fmt.Sprintf(`
+			%s
+			WHERE b.id < $1
+			ORDER BY b.id DESC
+			LIMIT $2
+		`, query), page.Since, page.Limit)
+	}
+
 	if err != nil {
-		return nil, err
+		return nil, Pagination{}, err
 	}
 
 	defer rows.Close()
 
-	bs := []Build{}
+	builds := []Build{}
 
 	for rows.Next() {
 		build, _, err := scanBuild(rows)
 		if err != nil {
-			return nil, err
+			return nil, Pagination{}, err
 		}
 
-		bs = append(bs, build)
+		builds = append(builds, build)
 	}
 
-	return bs, nil
+	var minID int
+	var maxID int
+
+	err = db.conn.QueryRow(`
+		SELECT COALESCE(MAX(b.id), 0) as maxID,
+			COALESCE(MIN(b.id), 0) as minID
+		FROM builds b
+	`).Scan(&maxID, &minID)
+	if err != nil {
+		return nil, Pagination{}, err
+	}
+
+	first := builds[0]
+	last := builds[len(builds)-1]
+
+	var pagination Pagination
+
+	if first.ID < maxID {
+		pagination.Previous = &Page{
+			Until: first.ID,
+			Limit: page.Limit,
+		}
+	}
+
+	if last.ID > minID {
+		pagination.Next = &Page{
+			Since: last.ID,
+			Limit: page.Limit,
+		}
+	}
+
+	return builds, pagination, nil
 }
 
 func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {

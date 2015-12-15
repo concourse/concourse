@@ -32,7 +32,7 @@ type DB interface {
 	GetBuildInputVersionedResouces(buildID int) (SavedVersionedResources, error)
 	GetBuildOutputVersionedResouces(buildID int) (SavedVersionedResources, error)
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
-	GetAllBuilds() ([]Build, error)
+	GetBuilds(Page) ([]Build, Pagination, error)
 	GetAllStartedBuilds() ([]Build, error)
 
 	CreatePipe(pipeGUID string, url string) error
