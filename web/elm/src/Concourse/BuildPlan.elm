@@ -26,6 +26,7 @@ type BuildStep
   | OnFailure HookedPlan
   | Ensure HookedPlan
   | Try BuildPlan
+  | Retry (Array BuildPlan)
   | Timeout BuildPlan
 
 type alias HookedPlan =
@@ -59,6 +60,7 @@ decodePlan =
       , "on_failure" := lazy (\_ -> decodeOnFailure)
       , "ensure" := lazy (\_ -> decodeEnsure)
       , "try" := lazy (\_ -> decodeTry)
+      , "retry" := lazy (\_ -> decodeRetry)
       , "timeout" := lazy (\_ -> decodeTimeout)
       ]
 
@@ -107,6 +109,10 @@ decodeEnsure =
 decodeTry : Json.Decode.Decoder BuildStep
 decodeTry =
   Json.Decode.object1 Try ("step" := lazy (\_ -> decodePlan))
+
+decodeRetry : Json.Decode.Decoder BuildStep
+decodeRetry =
+  Json.Decode.object1 Retry (Json.Decode.array (lazy (\_ -> decodePlan)))
 
 decodeTimeout : Json.Decode.Decoder BuildStep
 decodeTimeout =
