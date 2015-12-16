@@ -31,6 +31,23 @@ jobs:
       task: agg-ensure
       config: *sleep-1
 
+- name: retry-around-agg
+  plan:
+  - aggregate:
+    - task: agg-retry-1
+      attempts: 5
+      config: *sleep-1
+    - task: agg-1
+      config: *sleep-1
+    - task: agg-2
+      config: *sleep-1
+    - task: agg-3
+      config: *sleep-1
+    attempts: 50
+    ensure:
+      task: agg-ensure
+      config: *sleep-1
+
 - name: basic-get
   plan:
   - get: timestamp
