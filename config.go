@@ -145,6 +145,9 @@ type PlanConfig struct {
 
 	// not present in yaml
 	DependentGet string `yaml:"-" json:"-"`
+
+	// repeat the step up to N times, until it works
+	Attempts int `yaml:"attempts,omitempty" json:"attempts,omitempty" mapstructure:"attempts"`
 }
 
 func (config PlanConfig) Name() string {

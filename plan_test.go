@@ -208,6 +208,42 @@ var _ = Describe("Plan", func() {
 						},
 					},
 				},
+
+				atc.Plan{
+					ID: "22",
+					Retry: &atc.RetryPlan{
+						atc.Plan{
+							ID: "23",
+							Task: &atc.TaskPlan{
+								Name:       "name",
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									Params: map[string]string{"some": "secret"},
+								},
+							},
+						},
+						atc.Plan{
+							ID: "24",
+							Task: &atc.TaskPlan{
+								Name:       "name",
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									Params: map[string]string{"some": "secret"},
+								},
+							},
+						},
+						atc.Plan{
+							ID: "25",
+							Task: &atc.TaskPlan{
+								Name:       "name",
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									Params: map[string]string{"some": "secret"},
+								},
+							},
+						},
+					},
+				},
 			},
 		}
 
@@ -349,6 +385,32 @@ var _ = Describe("Plan", func() {
       "do": [
         {
           "id": "21",
+          "task": {
+            "name": "name",
+            "privileged": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "22",
+      "retry": [
+        {
+          "id": "23",
+          "task": {
+            "name": "name",
+            "privileged": false
+          }
+        },
+        {
+          "id": "24",
+          "task": {
+            "name": "name",
+            "privileged": false
+          }
+        },
+        {
+          "id": "25",
           "task": {
             "name": "name",
             "privileged": false

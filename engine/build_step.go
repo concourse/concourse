@@ -155,3 +155,16 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 		getPlan.Params,
 	)
 }
+
+func (build *execBuild) buildRetryStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
+	logger = logger.Session("retry")
+
+	step := exec.Retry{}
+
+	for _, innerPlan := range *plan.Retry {
+		stepFactory := build.buildStepFactory(logger, innerPlan)
+		step = append(step, stepFactory)
+	}
+
+	return step
+}

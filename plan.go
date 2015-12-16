@@ -14,6 +14,7 @@ type Plan struct {
 	Try          *TryPlan          `json:"try,omitempty"`
 	DependentGet *DependentGetPlan `json:"dependent_get,omitempty"`
 	Timeout      *TimeoutPlan      `json:"timeout,omitempty"`
+	Retry        *RetryPlan        `json:"retry,omitempty"`
 }
 
 type PlanID string
@@ -100,3 +101,5 @@ type TaskPlan struct {
 
 	Pipeline string `json:"pipeline"`
 }
+
+type RetryPlan []Plan

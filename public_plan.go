@@ -17,6 +17,7 @@ func (plan Plan) Public() *json.RawMessage {
 		Try          *json.RawMessage `json:"try,omitempty"`
 		DependentGet *json.RawMessage `json:"dependent_get,omitempty"`
 		Timeout      *json.RawMessage `json:"timeout,omitempty"`
+		Retry        *json.RawMessage `json:"retry,omitempty"`
 	}
 
 	public.ID = plan.ID
@@ -63,6 +64,10 @@ func (plan Plan) Public() *json.RawMessage {
 
 	if plan.Timeout != nil {
 		public.Timeout = plan.Timeout.Public()
+	}
+
+	if plan.Retry != nil {
+		public.Retry = plan.Retry.Public()
 	}
 
 	return enc(public)
@@ -182,6 +187,16 @@ func (plan TryPlan) Public() *json.RawMessage {
 	}{
 		Step: plan.Step.Public(),
 	})
+}
+
+func (plan RetryPlan) Public() *json.RawMessage {
+	public := make([]*json.RawMessage, len(plan))
+
+	for i := 0; i < len(plan); i++ {
+		public[i] = plan[i].Public()
+	}
+
+	return enc(public)
 }
 
 func enc(public interface{}) *json.RawMessage {

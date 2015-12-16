@@ -47,6 +47,8 @@ func (factory PlanFactory) NewPlan(step Step) Plan {
 		plan.DependentGet = &t
 	case TimeoutPlan:
 		plan.Timeout = &t
+	case RetryPlan:
+		plan.Retry = &t
 	default:
 		panic(fmt.Sprintf("don't know how to construct plan from %T", step))
 	}

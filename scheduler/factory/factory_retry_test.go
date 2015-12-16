@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Factory Try Step", func() {
+var _ = Describe("Factory Retry Step", func() {
 	var (
 		buildFactory        factory.BuildFactory
 		actualPlanFactory   atc.PlanFactory
@@ -22,28 +22,26 @@ var _ = Describe("Factory Try Step", func() {
 		buildFactory = factory.NewBuildFactory("some-pipeline", actualPlanFactory)
 	})
 
-	Context("when there is a task wrapped in a try", func() {
+	Context("when there is a task annotated with 'attempts'", func() {
 		It("builds correctly", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
-						Try: &atc.PlanConfig{
-							Task: "first task",
-						},
-					},
-					{
-						Task: "second task",
+						Task:     "second task",
+						Attempts: 3,
 					},
 				},
 			}, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 
-			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
-				expectedPlanFactory.NewPlan(atc.TryPlan{
-					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "first task",
-						Pipeline: "some-pipeline",
-					}),
+			expected := expectedPlanFactory.NewPlan(atc.RetryPlan{
+				expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:     "second task",
+					Pipeline: "some-pipeline",
+				}),
+				expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:     "second task",
+					Pipeline: "some-pipeline",
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:     "second task",
@@ -55,14 +53,13 @@ var _ = Describe("Factory Try Step", func() {
 		})
 	})
 
-	Context("when the try also has a hook", func() {
+	Context("when there is a task annotated with 'attempts' and 'on_success'", func() {
 		It("builds correctly", func() {
 			actual, err := buildFactory.Create(atc.JobConfig{
 				Plan: atc.PlanSequence{
 					{
-						Try: &atc.PlanConfig{
-							Task: "first task",
-						},
+						Task:     "second task",
+						Attempts: 3,
 						Success: &atc.PlanConfig{
 							Task: "second task",
 						},
@@ -72,9 +69,17 @@ var _ = Describe("Factory Try Step", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
-				Step: expectedPlanFactory.NewPlan(atc.TryPlan{
-					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "first task",
+				Step: expectedPlanFactory.NewPlan(atc.RetryPlan{
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "second task",
+						Pipeline: "some-pipeline",
+					}),
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "second task",
+						Pipeline: "some-pipeline",
+					}),
+					expectedPlanFactory.NewPlan(atc.TaskPlan{
+						Name:     "second task",
 						Pipeline: "some-pipeline",
 					}),
 				}),

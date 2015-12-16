@@ -34,18 +34,8 @@ func (factory *buildFactory) Create(
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
-	return factory.constructPlanFromSequence(
-		job.Plan,
-		resources,
-		inputs,
-	)
-}
+	planSequence := job.Plan
 
-func (factory *buildFactory) constructPlanFromSequence(
-	planSequence atc.PlanSequence,
-	resources atc.ResourceConfigs,
-	inputs []db.BuildInput,
-) (atc.Plan, error) {
 	if len(planSequence) == 1 {
 		return factory.constructPlanFromConfig(
 			planSequence[0],
@@ -82,6 +72,58 @@ func (factory *buildFactory) do(
 }
 
 func (factory *buildFactory) constructPlanFromConfig(
+	planConfig atc.PlanConfig,
+	resources atc.ResourceConfigs,
+	inputs []db.BuildInput,
+) (atc.Plan, error) {
+	var plan atc.Plan
+	var err error
+
+	if planConfig.Attempts == 0 {
+		plan, err = factory.constructUnhookedPlan(planConfig, resources, inputs)
+		if err != nil {
+			return atc.Plan{}, err
+		}
+	} else {
+		retryStep := make(atc.RetryPlan, planConfig.Attempts)
+
+		for i := 0; i < planConfig.Attempts; i++ {
+			attempt, err := factory.constructUnhookedPlan(planConfig, resources, inputs)
+			if err != nil {
+				return atc.Plan{}, err
+			}
+
+			retryStep[i] = attempt
+		}
+
+		plan = factory.planFactory.NewPlan(retryStep)
+	}
+
+	constructionParams, err := factory.failureIfPresent(
+		constructionParams{
+			plan:       plan,
+			planConfig: planConfig,
+			resources:  resources,
+			inputs:     inputs,
+		})
+	if err != nil {
+		return atc.Plan{}, err
+	}
+
+	constructionParams, err = factory.successIfPresent(constructionParams)
+	if err != nil {
+		return atc.Plan{}, err
+	}
+
+	constructionParams, err = factory.ensureIfPresent(constructionParams)
+	if err != nil {
+		return atc.Plan{}, err
+	}
+
+	return constructionParams.plan, nil
+}
+
+func (factory *buildFactory) constructUnhookedPlan(
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
 	inputs []db.BuildInput,
@@ -219,28 +261,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 		})
 	}
 
-	constructionParams, err := factory.failureIfPresent(
-		constructionParams{
-			plan:       plan,
-			planConfig: planConfig,
-			resources:  resources,
-			inputs:     inputs,
-		})
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	constructionParams, err = factory.successIfPresent(constructionParams)
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	constructionParams, err = factory.ensureIfPresent(constructionParams)
-	if err != nil {
-		return atc.Plan{}, err
-	}
-
-	return constructionParams.plan, nil
+	return plan, nil
 }
 
 type constructionParams struct {
