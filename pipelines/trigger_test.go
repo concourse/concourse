@@ -18,7 +18,7 @@ var _ = Describe("A job with a git input with trigger: true", func() {
 		configurePipeline(
 			"-c", "fixtures/simple-trigger.yml",
 			"-v", "testflight-helper-image="+guidServerRootfs,
-			"-v", "guid-server-curl-command="+guidServer.CurlCommand(),
+			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
 	})

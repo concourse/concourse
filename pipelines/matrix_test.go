@@ -18,7 +18,7 @@ var _ = Describe("A job with a complicated build plan", func() {
 		configurePipeline(
 			"-c", "fixtures/matrix.yml",
 			"-v", "testflight-helper-image="+guidServerRootfs,
-			"-v", "guid-server-curl-command="+guidServer.CurlCommand(),
+			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
 	})

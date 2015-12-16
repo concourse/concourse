@@ -34,7 +34,7 @@ var _ = Describe("A pipeline containing jobs with hooks", func() {
 		configurePipeline(
 			"-c", "fixtures/hooks.yml",
 			"-v", "testflight-helper-image="+guidServerRootfs,
-			"-v", "guid-server-curl-command="+guidServer.CurlCommand(),
+			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 			"-v", "success-git-server="+successGitServer.URI(),
 			"-v", "failure-git-server="+failureGitServer.URI(),

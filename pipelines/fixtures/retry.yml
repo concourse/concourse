@@ -1,0 +1,44 @@
+---
+resources:
+- name: some-git-resource
+  type: git
+  source:
+    uri: {{origin-git-server}}
+    branch: master
+
+jobs:
+- name: retry-job
+  plan:
+  - get: some-git-resource
+    trigger: true
+  - task: curl-server-until-3-curls
+    attempts: 5
+    config:
+      platform: linux
+      image: {{testflight-helper-image}}
+      params:
+        REGISTER_COMMAND: {{guid-server-register-command}}
+        REGISTRATIONS_COMMAND: {{guid-server-registrations-command}}
+      run:
+        path: ruby
+        args:
+        - -e
+        - |
+          require "json"
+          require "securerandom"
+
+          register = ENV["REGISTER_COMMAND"]
+          registrations = ENV["REGISTRATIONS_COMMAND"]
+
+          system "echo #{SecureRandom.uuid} | #{register}"
+
+          registrations = JSON.parse(`#{registrations}`)
+
+          print "registrations: #{registrations.length}; "
+
+          if registrations.length == 3
+            puts "success!"
+          else
+            puts "failing"
+            exit 1
+          end

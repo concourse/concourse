@@ -107,8 +107,12 @@ func (server *Server) Stop() {
 	server.gardenClient.Destroy(server.container.Handle())
 }
 
-func (server *Server) CurlCommand() string {
+func (server *Server) RegisterCommand() string {
 	return fmt.Sprintf("curl -XPOST http://%s/register -d @-", server.addr)
+}
+
+func (server *Server) RegistrationsCommand() string {
+	return fmt.Sprintf("curl -XPOST http://%s/registrations", server.addr)
 }
 
 func (server *Server) ReportingGuids() []string {

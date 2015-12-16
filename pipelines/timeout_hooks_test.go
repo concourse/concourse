@@ -28,7 +28,7 @@ var _ = Describe("A pipeline containing a job with a timeout and hooks", func() 
 		configurePipeline(
 			"-c", "fixtures/timeout_hooks.yml",
 			"-v", "testflight-helper-image="+guidServerRootfs,
-			"-v", "guid-server-curl-command="+guidServer.CurlCommand(),
+			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 			"-v", "success-git-server="+successGitServer.URI(),
 			"-v", "failure-git-server="+failureGitServer.URI(),
@@ -63,6 +63,5 @@ var _ = Describe("A pipeline containing a job with a timeout and hooks", func() 
 		Eventually(func() string {
 			return failureGitServer.RevParse("failure")
 		}).Should(Equal(masterSHA))
-
 	})
 })

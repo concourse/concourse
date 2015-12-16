@@ -24,7 +24,7 @@ var _ = Describe("A pipeline containing a do", func() {
 		configurePipeline(
 			"-c", "fixtures/do.yml",
 			"-v", "testflight-helper-image="+guidServerRootfs,
-			"-v", "guid-server-curl-command="+guidServer.CurlCommand(),
+			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 			"-v", "do-git-server="+doGitServer.URI(),
 		)
