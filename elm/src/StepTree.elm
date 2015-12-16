@@ -20,7 +20,7 @@ import Array exposing (Array)
 import Dict exposing (Dict)
 import Focus exposing (Focus, (=>))
 import Html exposing (Html)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onMouseDown)
 import Html.Attributes exposing (class, classList)
 
 import Concourse.BuildPlan exposing (BuildPlan)
@@ -37,11 +37,17 @@ type StepTree
   | OnFailure HookedStep
   | Ensure HookedStep
   | Try StepTree
+  | Retry StepID (Array StepTree) Int TabFocus
   | Timeout StepTree
+
+type TabFocus
+  = Auto
+  | User
 
 type Action
   = ToggleStep StepID
   | Finished
+  | SwitchTab StepID Int
 
 type alias HookedStep =
   { step : StepTree
@@ -135,8 +141,61 @@ init resources plan =
     Concourse.BuildPlan.Try plan ->
       initWrappedStep resources Try plan
 
+    Concourse.BuildPlan.Retry plans ->
+      let
+        inited = Array.map (init resources) plans
+        trees = Array.map .tree inited
+        subFoci = Array.map .foci inited
+        wrappedSubFoci = Array.indexedMap wrapMultiStep subFoci
+        selfFoci = Dict.singleton plan.id (Focus.create identity identity)
+        foci = Array.foldr Dict.union selfFoci wrappedSubFoci
+      in
+        Model (Retry plan.id trees 1 Auto) foci False
+
     Concourse.BuildPlan.Timeout plan ->
       initWrappedStep resources Timeout plan
+
+treeIsActive : StepTree -> Bool
+treeIsActive tree =
+  case tree of
+    Aggregate trees ->
+      List.any treeIsActive (Array.toList trees)
+
+    Do trees ->
+      List.any treeIsActive (Array.toList trees)
+
+    OnSuccess {step} ->
+      treeIsActive step
+
+    OnFailure {step} ->
+      treeIsActive step
+
+    Ensure {step} ->
+      treeIsActive step
+
+    Try tree ->
+      treeIsActive tree
+
+    Timeout tree ->
+      treeIsActive tree
+
+    Retry _ trees _ _ ->
+      List.any treeIsActive (Array.toList trees)
+
+    Task step ->
+      stepIsActive step
+
+    Get step ->
+      stepIsActive step
+
+    Put step ->
+      stepIsActive step
+
+    DependentGet step ->
+      stepIsActive step
+
+stepIsActive : Step -> Bool
+stepIsActive = ((/=) StepStatePending) << .state
 
 setupGetStep : BuildResources -> StepName -> Maybe Version -> Step -> Step
 setupGetStep resources name version step =
@@ -167,11 +226,23 @@ update action root =
     Finished ->
       { root | finished = True }
 
+    SwitchTab id tab ->
+      updateAt id (focusRetry tab) root
+
+focusRetry : Int -> StepTree -> StepTree
+focusRetry tab tree =
+  case tree of
+    Retry id steps _ focus ->
+      Retry id steps tab User
+
+    _ ->
+      Debug.crash "impossible (non-retry tab focus)"
+
 updateAt : StepID -> (StepTree -> StepTree) -> Model -> Model
 updateAt id update root =
   case Dict.get id root.foci of
     Nothing ->
-      root
+      Debug.crash ("updateAt: id " ++ id ++ " not found")
 
     Just focus ->
       { root | tree = Focus.update focus update root.tree }
@@ -332,6 +403,9 @@ getMultiStepIndex idx tree =
         Do trees ->
           trees
 
+        Retry _ trees _ _ ->
+          trees
+
         _ ->
           Debug.crash "impossible"
   in
@@ -350,6 +424,16 @@ setMultiStepIndex idx update tree =
 
     Do trees ->
       Do (Array.set idx (update (getMultiStepIndex idx tree)) trees)
+
+    Retry id trees tab focus ->
+      let
+        updatedSteps = Array.set idx (update (getMultiStepIndex idx tree)) trees
+      in
+        case focus of
+          Auto ->
+            Retry id updatedSteps (idx + 1) Auto
+          User ->
+            Retry id updatedSteps tab User
 
     _ ->
       Debug.crash "impossible"
@@ -375,6 +459,17 @@ viewTree actions model tree =
     Try step ->
       viewTree actions model step
 
+    Retry id steps tab _ ->
+      Html.div [class "retry"]
+        [ Html.ul [class "retry-tabs"]
+            (Array.toList <| Array.indexedMap (viewTab actions id tab) steps)
+        , case Array.get (tab - 1) steps of
+            Just step ->
+              viewTree actions model step
+            Nothing ->
+              Debug.crash "impossible (bogus tab selected)"
+        ]
+
     Timeout step ->
       viewTree actions model step
 
@@ -394,6 +489,15 @@ viewTree actions model tree =
 
     Ensure {step, hook} ->
       viewHooked "ensure" actions model step hook
+
+viewTab : Signal.Address Action -> StepID -> Int -> Int -> StepTree -> Html
+viewTab actions id currentTab idx step =
+  let
+    tab = idx + 1
+  in
+    Html.li
+      [classList [("current", currentTab == tab), ("inactive", not <| treeIsActive step)]]
+      [Html.span [onClick actions (SwitchTab id tab)] [Html.text (toString tab)]]
 
 viewSeq : Signal.Address Action -> Model -> StepTree -> Html
 viewSeq actions model tree =
