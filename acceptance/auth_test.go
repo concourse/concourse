@@ -3,8 +3,6 @@ package acceptance_test
 import (
 	"fmt"
 	"net/http"
-	"os/exec"
-	"path/filepath"
 	"time"
 
 	"github.com/lib/pq"
@@ -24,63 +22,90 @@ var _ = Describe("Auth", func() {
 	var dbListener *pq.Listener
 	var atcPort uint16
 
-	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("test")
-		postgresRunner.Truncate()
-		dbConn = postgresRunner.Open()
-		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		bus := db.NewNotificationsBus(dbListener, dbConn)
-		sqlDB = db.NewSQL(logger, dbConn, bus)
+	Describe("Github Auth", func() {
+		BeforeEach(func() {
+			logger := lagertest.NewTestLogger("test")
+			postgresRunner.Truncate()
+			dbConn = postgresRunner.Open()
+			dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
+			bus := db.NewNotificationsBus(dbListener, dbConn)
+			sqlDB = db.NewSQL(logger, dbConn, bus)
 
-		_, err := dbConn.Query(`DELETE FROM teams WHERE name = 'main'`)
-		Expect(err).NotTo(HaveOccurred())
-		team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
-		Expect(err).NotTo(HaveOccurred())
+			err := sqlDB.DeleteTeamByName(atc.DefaultPipelineName)
+			Expect(err).NotTo(HaveOccurred())
+			team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
+			Expect(err).NotTo(HaveOccurred())
 
-		_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
-		Expect(err).NotTo(HaveOccurred())
+			_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
 
-		atcPort = 5697 + uint16(GinkgoParallelNode())
-		debugPort := 6697 + uint16(GinkgoParallelNode())
-
-		atcCommand := exec.Command(
-			atcBin,
-			"--bind-port", fmt.Sprintf("%d", atcPort),
-			"--debug-bind-port", fmt.Sprintf("%d", debugPort),
-			"--basic-auth-username", "admin",
-			"--basic-auth-password", "password",
-			"--templates", filepath.Join("..", "web", "templates"),
-			"--public", filepath.Join("..", "web", "public"),
-			"--postgres-data-source", postgresRunner.DataSourceName(),
-		)
-		atcRunner := ginkgomon.New(ginkgomon.Config{
-			Command:       atcCommand,
-			Name:          "atc",
-			StartCheck:    "atc.listening",
-			AnsiColorCode: "32m",
+			atcProcess, atcPort = startATC(atcBin, 1, false, GITHUB_AUTH)
 		})
-		atcProcess = ginkgomon.Invoke(atcRunner)
+
+		AfterEach(func() {
+			ginkgomon.Interrupt(atcProcess)
+
+			Expect(dbConn.Close()).To(Succeed())
+			Expect(dbListener.Close()).To(Succeed())
+		})
+
+		It("forces a redirect to /login", func() {
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
+			resp, err := http.DefaultClient.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.Request.URL.Path).To(Equal("/login"))
+
+			team, err := sqlDB.GetTeamByName(atc.DefaultTeamName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(team.ClientID).To(Equal("admin"))
+			Expect(team.ClientSecret).To(Equal("password"))
+			Expect(team.Organizations).To(Equal([]string{"myorg"}))
+		})
 	})
 
-	AfterEach(func() {
-		ginkgomon.Interrupt(atcProcess)
+	Describe("Basic Auth", func() {
+		BeforeEach(func() {
+			logger := lagertest.NewTestLogger("test")
+			postgresRunner.Truncate()
+			dbConn = postgresRunner.Open()
+			dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
+			bus := db.NewNotificationsBus(dbListener, dbConn)
+			sqlDB = db.NewSQL(logger, dbConn, bus)
 
-		Expect(dbConn.Close()).To(Succeed())
-		Expect(dbListener.Close()).To(Succeed())
-	})
+			err := sqlDB.DeleteTeamByName(atc.DefaultPipelineName)
+			Expect(err).NotTo(HaveOccurred())
+			team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
+			Expect(err).NotTo(HaveOccurred())
 
-	It("forces a redirect to /login", func() {
-		request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
-		resp, err := http.DefaultClient.Do(request)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		Expect(resp.Request.URL.Path).To(Equal("/login"))
+			_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
 
-		request, err = http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
-		request.SetBasicAuth("admin", "password")
-		resp, err = http.DefaultClient.Do(request)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		Expect(resp.Request.URL.Path).To(Equal("/"))
+			atcProcess, atcPort = startATC(atcBin, 1, false, BASIC_AUTH)
+		})
+
+		AfterEach(func() {
+			ginkgomon.Interrupt(atcProcess)
+
+			Expect(dbConn.Close()).To(Succeed())
+			Expect(dbListener.Close()).To(Succeed())
+		})
+
+		It("forces a redirect to /login", func() {
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
+			resp, err := http.DefaultClient.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.Request.URL.Path).To(Equal("/login"))
+		})
+
+		It("logs in with Basic Auth and allows access", func() {
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
+			request.SetBasicAuth("admin", "password")
+			resp, err := http.DefaultClient.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.Request.URL.Path).To(Equal("/"))
+		})
 	})
 })

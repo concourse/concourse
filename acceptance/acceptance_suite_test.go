@@ -86,22 +86,47 @@ func Authenticate(page *agouti.Page, username, password string) {
 	page.Refresh()
 }
 
-func startATC(atcBin string, atcServerNumber uint16) (ifrit.Process, uint16) {
+const BASIC_AUTH = "basic"
+const GITHUB_AUTH = "github"
+
+func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, authTypes ...string) (ifrit.Process, uint16) {
 	atcPort := 5697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 	debugPort := 6697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 
-	atcCommand := exec.Command(
-		atcBin,
+	params := []string{
 		"--bind-port", fmt.Sprintf("%d", atcPort),
+		"--debug-bind-port", fmt.Sprintf("%d", debugPort),
 		"--peer-url", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
 		"--postgres-data-source", postgresRunner.DataSourceName(),
-		"--debug-bind-port", fmt.Sprintf("%d", debugPort),
-		"--basic-auth-username", "admin",
-		"--basic-auth-password", "password",
-		"--publicly-viewable",
 		"--templates", filepath.Join("..", "web", "templates"),
 		"--public", filepath.Join("..", "web", "public"),
-	)
+	}
+
+	if publiclyViewable {
+		params = append(params,
+			"--publicly-viewable",
+		)
+	}
+
+	for _, authType := range authTypes {
+		if authType == BASIC_AUTH {
+			params = append(params,
+				"--basic-auth-username", "admin",
+				"--basic-auth-password", "password",
+			)
+		} else if authType == GITHUB_AUTH {
+			params = append(params,
+				"--github-auth-client-id", "admin",
+				"--github-auth-client-secret", "password",
+				"--github-auth-organization", "myorg",
+				"--github-auth-team", "myorg/all",
+				"--github-auth-user", "myuser",
+				"--external-url", "http://example.com",
+			)
+		}
+	}
+
+	atcCommand := exec.Command(atcBin, params...)
 	atcRunner := ginkgomon.New(ginkgomon.Config{
 		Command:       atcCommand,
 		Name:          "atc",

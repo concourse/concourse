@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/lib/pq"
 	"github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
@@ -41,107 +39,6 @@ var _ = Describe("SQL DB", func() {
 
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
-	})
-
-	Describe("UpdateTeam", func() {
-		var basicAuthTeam, githubAuthTeam db.Team
-
-		BeforeEach(func() {
-			expectedTeam := db.Team{
-				Name: "avengers",
-			}
-			_, err := database.SaveTeam(expectedTeam)
-			Expect(err).NotTo(HaveOccurred())
-
-			basicAuthTeam = db.Team{
-				Name: "avengers",
-				BasicAuth: db.BasicAuth{
-					BasicAuthUsername: "fake user",
-					BasicAuthPassword: "no, bad",
-				},
-			}
-
-			githubAuthTeam = db.Team{Name: "avengers",
-				GithubAuth: db.GithubAuth{
-					ClientID:      "fake id",
-					ClientSecret:  "some secret",
-					Organizations: []string{"a", "b", "c"},
-					Teams: []db.GitHubTeam{
-						{
-							OrganizationName: "org1",
-							TeamName:         "teama",
-						},
-						{
-							OrganizationName: "org2",
-							TeamName:         "teamb",
-						},
-					},
-					Users: []string{"user1", "user2", "user3"},
-				},
-			}
-
-		})
-
-		It("saves basic auth team info to the existing team", func() {
-			savedTeam, err := database.UpdateTeamBasicAuth(basicAuthTeam)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(savedTeam.BasicAuthUsername).To(Equal(basicAuthTeam.BasicAuthUsername))
-			Expect(bcrypt.CompareHashAndPassword([]byte(savedTeam.BasicAuthPassword),
-				[]byte(basicAuthTeam.BasicAuthPassword))).To(BeNil())
-		})
-
-		It("saves oauth team info to the existing team", func() {
-			savedTeam, err := database.UpdateTeamGithubAuth(githubAuthTeam)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(savedTeam.ClientID).To(Equal(githubAuthTeam.ClientID))
-			Expect(savedTeam.ClientSecret).To(Equal(githubAuthTeam.ClientSecret))
-			Expect(savedTeam.Organizations).To(Equal(githubAuthTeam.Organizations))
-			Expect(savedTeam.Teams).To(Equal(githubAuthTeam.Teams))
-			Expect(savedTeam.Users).To(Equal(githubAuthTeam.Users))
-		})
-
-		It("saves github auth team info without over writing the basic auth", func() {
-			_, err := database.UpdateTeamGithubAuth(githubAuthTeam)
-			Expect(err).NotTo(HaveOccurred())
-
-			savedTeam, err := database.UpdateTeamBasicAuth(basicAuthTeam)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(savedTeam.ClientID).To(Equal(githubAuthTeam.ClientID))
-			Expect(savedTeam.ClientSecret).To(Equal(githubAuthTeam.ClientSecret))
-			Expect(savedTeam.Organizations).To(Equal(githubAuthTeam.Organizations))
-			Expect(savedTeam.Teams).To(Equal(githubAuthTeam.Teams))
-			Expect(savedTeam.Users).To(Equal(githubAuthTeam.Users))
-		})
-
-		It("saves basic auth team info without over writing the github auth", func() {
-			_, err := database.UpdateTeamBasicAuth(basicAuthTeam)
-			Expect(err).NotTo(HaveOccurred())
-
-			savedTeam, err := database.UpdateTeamGithubAuth(githubAuthTeam)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(savedTeam.BasicAuthUsername).To(Equal(basicAuthTeam.BasicAuthUsername))
-			Expect(bcrypt.CompareHashAndPassword([]byte(savedTeam.BasicAuthPassword),
-				[]byte(basicAuthTeam.BasicAuthPassword))).To(BeNil())
-		})
-	})
-
-	Describe("CreateTeam", func() {
-		It("saves a team to the db", func() {
-			expectedTeam := db.Team{
-				Name: "avengers",
-			}
-			expectedSavedTeam, err := database.SaveTeam(expectedTeam)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
-
-			savedTeam, err := database.GetTeamByName("avengers")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(savedTeam).To(Equal(expectedSavedTeam))
-		})
 	})
 
 	Describe("CreatePipe", func() {

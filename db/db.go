@@ -29,6 +29,8 @@ type DB interface {
 	GetTeamByName(teamName string) (SavedTeam, error)
 	UpdateTeamBasicAuth(team Team) (SavedTeam, error)
 	UpdateTeamGithubAuth(team Team) (SavedTeam, error)
+	CreateDefaultTeamIfNotExists() error
+	DeleteTeamByName(teamName string) error
 
 	GetBuild(buildID int) (Build, bool, error)
 	GetBuildInputVersionedResouces(buildID int) (SavedVersionedResources, error)

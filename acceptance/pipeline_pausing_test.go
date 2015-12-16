@@ -33,7 +33,7 @@ var _ = Describe("Pipeline Pausing", func() {
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbLogger, dbConn, bus, sqlDB)
-		atcProcess, atcPort = startATC(atcBin, 1)
+		atcProcess, atcPort = startATC(atcBin, 1, true, BASIC_AUTH)
 		_, err := dbConn.Query(`DELETE FROM teams WHERE name = 'main'`)
 		Expect(err).NotTo(HaveOccurred())
 	})

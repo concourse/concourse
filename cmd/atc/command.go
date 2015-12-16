@@ -144,9 +144,17 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		return err
 	}
 
-	authValidator, basicAuthEnabled := cmd.constructValidator(signingKey)
+	err = sqlDB.CreateDefaultTeamIfNotExists()
+	if err != nil {
+		return err
+	}
 
-	oauthProviders, err := cmd.configureOAuthProviders(logger)
+	authValidator, basicAuthEnabled, err := cmd.constructValidator(signingKey, sqlDB)
+	if err != nil {
+		return err
+	}
+
+	oauthProviders, err := cmd.configureOAuthProviders(logger, sqlDB)
 	if err != nil {
 		return err
 	}
@@ -403,8 +411,16 @@ func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 	return signingKey, nil
 }
 
-func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger) (auth.Providers, error) {
+func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB) (auth.Providers, error) {
 	oauthProviders := auth.Providers{}
+
+	team := db.Team{
+		Name: atc.DefaultTeamName,
+		GithubAuth: db.GithubAuth{
+			ClientID:     cmd.GitHubAuth.ClientID,
+			ClientSecret: cmd.GitHubAuth.ClientSecret,
+		},
+	}
 
 	gitHubAuthMethods := []github.AuthorizationMethod{}
 	for _, org := range cmd.GitHubAuth.Organizations {
@@ -412,11 +428,16 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger) (auth.Provid
 			Organization: org,
 		})
 	}
+	team.GithubAuth.Organizations = cmd.GitHubAuth.Organizations
 
-	for _, team := range cmd.GitHubAuth.Teams {
+	for _, githubTeam := range cmd.GitHubAuth.Teams {
 		gitHubAuthMethods = append(gitHubAuthMethods, github.AuthorizationMethod{
-			Team:         team.TeamName,
-			Organization: team.OrganizationName,
+			Team:         githubTeam.TeamName,
+			Organization: githubTeam.OrganizationName,
+		})
+		team.GithubAuth.Teams = append(team.GithubAuth.Teams, db.GitHubTeam{
+			TeamName:         githubTeam.TeamName,
+			OrganizationName: githubTeam.OrganizationName,
 		})
 	}
 
@@ -425,6 +446,7 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger) (auth.Provid
 			User: user,
 		})
 	}
+	team.GithubAuth.Users = cmd.GitHubAuth.Users
 
 	if len(gitHubAuthMethods) > 0 {
 		path, err := auth.OAuthRoutes.CreatePathForRoute(auth.OAuthCallback, rata.Params{
@@ -440,14 +462,21 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger) (auth.Provid
 			cmd.GitHubAuth.ClientSecret,
 			cmd.ExternalURL.String()+path,
 		)
+	} else {
+		team.GithubAuth = db.GithubAuth{}
+	}
+
+	_, err := sqlDB.UpdateTeamGithubAuth(team)
+	if err != nil {
+		return oauthProviders, err
 	}
 
 	return oauthProviders, nil
 }
 
-func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey) (auth.Validator, bool) {
+func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.DB) (auth.Validator, bool, error) {
 	if cmd.Developer.DevelopmentMode {
-		return auth.NoopValidator{}, false
+		return auth.NoopValidator{}, false, nil
 	}
 
 	jwtValidator := auth.JWTValidator{
@@ -461,6 +490,23 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey) (auth.Vali
 			Username: cmd.BasicAuth.Username,
 			Password: cmd.BasicAuth.Password,
 		}
+		team := db.Team{
+			Name: atc.DefaultTeamName,
+			BasicAuth: db.BasicAuth{
+				BasicAuthUsername: cmd.BasicAuth.Username,
+				BasicAuthPassword: cmd.BasicAuth.Password,
+			},
+		}
+		_, err := sqlDB.UpdateTeamBasicAuth(team)
+		if err != nil {
+			return basicAuthValidator, false, err
+		}
+	} else {
+		team := db.Team{Name: atc.DefaultTeamName}
+		_, err := sqlDB.UpdateTeamBasicAuth(team)
+		if err != nil {
+			return basicAuthValidator, false, err
+		}
 	}
 
 	var validator auth.Validator
@@ -471,7 +517,7 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey) (auth.Vali
 		validator = jwtValidator
 	}
 
-	return validator, basicAuthValidator != nil
+	return validator, basicAuthValidator != nil, nil
 }
 
 func (cmd *ATCCommand) constructEngine(

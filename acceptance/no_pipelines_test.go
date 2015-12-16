@@ -29,7 +29,7 @@ var _ = Describe("No Pipelines configured", func() {
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
-		atcProcess, atcPort = startATC(atcBin, 1)
+		atcProcess, atcPort = startATC(atcBin, 1, true, BASIC_AUTH)
 
 		page, err = agoutiDriver.NewPage()
 		Expect(err).NotTo(HaveOccurred())
