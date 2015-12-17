@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/auth/provider"
 	"github.com/pivotal-golang/lager"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -216,4 +216,4 @@ func (fake *FakeProvider) VerifyReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-var _ auth.Provider = new(FakeProvider)
+var _ provider.Provider = new(FakeProvider)

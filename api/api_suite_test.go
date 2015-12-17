@@ -21,8 +21,9 @@ import (
 	pipeserverfakes "github.com/concourse/atc/api/pipes/fakes"
 	volumeserverfakes "github.com/concourse/atc/api/volumeserver/fakes"
 	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
-	"github.com/concourse/atc/auth"
 	authfakes "github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/provider"
+	providerfakes "github.com/concourse/atc/auth/provider/fakes"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 	workerfakes "github.com/concourse/atc/worker/fakes"
@@ -36,7 +37,7 @@ var (
 
 	authValidator        *authfakes.FakeValidator
 	fakeTokenGenerator   *authfakes.FakeTokenGenerator
-	authProviders        auth.Providers
+	authProviders        provider.Providers
 	basicAuthEnabled     = true
 	fakeEngine           *enginefakes.FakeEngine
 	fakeWorkerClient     *workerfakes.FakeClient
@@ -96,13 +97,13 @@ var _ = BeforeEach(func() {
 
 	fakeTokenGenerator = new(authfakes.FakeTokenGenerator)
 
-	authProvider1 := new(authfakes.FakeProvider)
+	authProvider1 := new(providerfakes.FakeProvider)
 	authProvider1.DisplayNameReturns("OAuth Provider 1")
 
-	authProvider2 := new(authfakes.FakeProvider)
+	authProvider2 := new(providerfakes.FakeProvider)
 	authProvider2.DisplayNameReturns("OAuth Provider 2")
 
-	authProviders = auth.Providers{
+	authProviders = provider.Providers{
 		"oauth-provider-1": authProvider1,
 		"oauth-provider-2": authProvider2,
 	}

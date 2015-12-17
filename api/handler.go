@@ -22,6 +22,7 @@ import (
 	"github.com/concourse/atc/api/volumeserver"
 	"github.com/concourse/atc/api/workerserver"
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/pipelines"
@@ -37,7 +38,7 @@ func NewHandler(
 	wrapper wrappa.Wrappa,
 
 	tokenGenerator auth.TokenGenerator,
-	providers auth.Providers,
+	providers provider.Providers,
 	basicAuthEnabled bool,
 
 	pipelineDBFactory db.PipelineDBFactory,

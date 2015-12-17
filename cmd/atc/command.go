@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/github"
+	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
@@ -411,8 +412,8 @@ func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 	return signingKey, nil
 }
 
-func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB) (auth.Providers, error) {
-	oauthProviders := auth.Providers{}
+func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB) (provider.Providers, error) {
+	oauthProviders := provider.Providers{}
 
 	team := db.Team{
 		Name: atc.DefaultTeamName,
@@ -569,7 +570,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	reconfigurableSink *lager.ReconfigurableSink,
 	sqlDB *db.SQLDB,
 	authValidator auth.Validator,
-	oauthProviders auth.Providers,
+	oauthProviders provider.Providers,
 	basicAuthEnabled bool,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
