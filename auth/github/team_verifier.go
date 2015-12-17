@@ -3,7 +3,6 @@ package github
 import (
 	"net/http"
 
-	"github.com/concourse/atc/auth"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -20,14 +19,14 @@ type TeamVerifier struct {
 func NewTeamVerifier(
 	teams []Team,
 	gitHubClient Client,
-) auth.Verifier {
-	return &TeamVerifier{
+) Verifier {
+	return TeamVerifier{
 		teams:        teams,
 		gitHubClient: gitHubClient,
 	}
 }
 
-func (verifier *TeamVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
+func (verifier TeamVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
 	usersOrgTeams, err := verifier.gitHubClient.Teams(httpClient)
 	if err != nil {
 		logger.Error("failed-to-get-teams", err)

@@ -1,7 +1,6 @@
 package github
 
 import (
-	"github.com/concourse/atc/auth"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 )
@@ -22,7 +21,7 @@ func NewProvider(
 	clientID string,
 	clientSecret string,
 	redirectURL string,
-) auth.Provider {
+) Provider {
 	client := NewClient()
 
 	var teams []Team
@@ -42,7 +41,7 @@ func NewProvider(
 		}
 	}
 
-	return provider{
+	return Provider{
 		Verifier: NewVerifierBasket(
 			NewTeamVerifier(teams, client),
 			NewOrganizationVerifier(orgs, client),
@@ -58,11 +57,11 @@ func NewProvider(
 	}
 }
 
-type provider struct {
+type Provider struct {
 	*oauth2.Config
-	auth.Verifier
+	Verifier
 }
 
-func (provider) DisplayName() string {
+func (Provider) DisplayName() string {
 	return "GitHub"
 }

@@ -3,20 +3,23 @@ package github
 import (
 	"net/http"
 
-	"github.com/concourse/atc/auth"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pivotal-golang/lager"
 )
 
-type verifierBasket struct {
-	verifiers []auth.Verifier
+type Verifier interface {
+	Verify(lager.Logger, *http.Client) (bool, error)
 }
 
-func NewVerifierBasket(verifiers ...auth.Verifier) auth.Verifier {
-	return &verifierBasket{verifiers: verifiers}
+type VerifierBasket struct {
+	verifiers []Verifier
 }
 
-func (vb *verifierBasket) Verify(logger lager.Logger, client *http.Client) (bool, error) {
+func NewVerifierBasket(verifiers ...Verifier) VerifierBasket {
+	return VerifierBasket{verifiers: verifiers}
+}
+
+func (vb VerifierBasket) Verify(logger lager.Logger, client *http.Client) (bool, error) {
 	var errors error
 
 	for _, verifier := range vb.verifiers {
