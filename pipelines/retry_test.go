@@ -33,7 +33,7 @@ var _ = Describe("A job with a step that retries", func() {
 		guidServer.Stop()
 	})
 
-	FIt("retries until the step succeeds", func() {
+	It("retries until the step succeeds", func() {
 		watch := flyWatch("retry-job")
 		Expect(watch).To(gexec.Exit(0))
 
