@@ -1,0 +1,26 @@
+#language anatomy
+
+\use{\require{concourse/docs}}
+
+\title{\code{attempts}\aux{: retry a step}}{retry-step}
+
+Any step can have the number of times it should be attempted by attaching
+an \code{attempts} parameter and the number of times it should be retried.
+
+\define-attribute{attempts: integer}{
+  The number of attempts that a failing step should be retried, e.g. \code{5}
+  will retry the step 5 times before giving up.
+
+  When the number of attempts is reached and the step has still not succeeded
+  then the step will fail.
+}
+
+The following will run the task, and retry it 10 times if it fails:
+
+\codeblock{yaml}{
+plan:
+- get: foo
+- task: unit
+  file: foo/unit.yml
+  attempts: 10
+}

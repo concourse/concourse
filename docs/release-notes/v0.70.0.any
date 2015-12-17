@@ -1,0 +1,16 @@
+#language anatomy
+
+\title{v0.70.0}
+
+We were going to ship v0.69.2 with more performance improvements to the build
+rendering but we accidentally shipped a big feature so now you're stuck with
+v0.70.0.
+
+\list{
+  You can now retry arbitrary parts of your build plan if they fail! Simply
+  attach the \reference{retry-step} attribute to any step in the plan. If that
+  step or any of its sub-steps fail then it will be retried again up to the
+  number of attempts you asked for.
+}{
+  Build rendering performance improved dramatically (30x faster in some cases).
+}
