@@ -3,7 +3,6 @@ package github
 import (
 	"net/http"
 
-	"github.com/concourse/atc/auth"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -15,14 +14,14 @@ type UserVerifier struct {
 func NewUserVerifier(
 	users []string,
 	gitHubClient Client,
-) auth.Verifier {
-	return &UserVerifier{
+) Verifier {
+	return UserVerifier{
 		users:        users,
 		gitHubClient: gitHubClient,
 	}
 }
 
-func (verifier *UserVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
+func (verifier UserVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
 	currentUser, err := verifier.gitHubClient.CurrentUser(httpClient)
 	if err != nil {
 		logger.Error("failed-to-get-current-user", err)

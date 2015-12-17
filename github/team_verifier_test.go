@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/concourse/atc/auth"
 	. "github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/github/fakes"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -18,7 +17,7 @@ var _ = Describe("TeamVerifier", func() {
 		teams      []Team
 		fakeClient *fakes.FakeClient
 
-		verifier auth.Verifier
+		verifier Verifier
 	)
 
 	BeforeEach(func() {
