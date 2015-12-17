@@ -87,7 +87,7 @@ var _ = Describe("SQL DB Teams", func() {
 
 			githubAuthTeam = db.Team{
 				Name: "avengers",
-				GithubAuth: db.GithubAuth{
+				GitHubAuth: db.GitHubAuth{
 					ClientID:      "fake id",
 					ClientSecret:  "some secret",
 					Organizations: []string{"a", "b", "c"},

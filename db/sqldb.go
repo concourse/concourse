@@ -112,7 +112,7 @@ func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
 	}
 
 	if github_auth.Valid {
-		err = json.Unmarshal([]byte(github_auth.String), &savedTeam.GithubAuth)
+		err = json.Unmarshal([]byte(github_auth.String), &savedTeam.GitHubAuth)
 		if err != nil {
 			return savedTeam, err
 		}
@@ -133,9 +133,9 @@ func (db *SQLDB) GetTeamByName(teamName string) (SavedTeam, error) {
 
 func (db *SQLDB) UpdateTeamGithubAuth(team Team) (SavedTeam, error) {
 	if team.ClientID == "" || team.ClientSecret == "" {
-		team.GithubAuth = GithubAuth{}
+		team.GitHubAuth = GitHubAuth{}
 	}
-	github_auth, err := json.Marshal(team.GithubAuth)
+	github_auth, err := json.Marshal(team.GitHubAuth)
 	if err != nil {
 		return SavedTeam{}, err
 	}

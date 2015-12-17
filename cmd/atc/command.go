@@ -45,7 +45,6 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
-	"github.com/tedsuo/rata"
 	"github.com/xoebus/zest"
 )
 
@@ -413,61 +412,40 @@ func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 }
 
 func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB) (provider.Providers, error) {
+	var err error
 	oauthProviders := provider.Providers{}
-
 	team := db.Team{
 		Name: atc.DefaultTeamName,
-		GithubAuth: db.GithubAuth{
-			ClientID:     cmd.GitHubAuth.ClientID,
-			ClientSecret: cmd.GitHubAuth.ClientSecret,
-		},
 	}
 
-	gitHubAuthMethods := []github.AuthorizationMethod{}
-	for _, org := range cmd.GitHubAuth.Organizations {
-		gitHubAuthMethods = append(gitHubAuthMethods, github.AuthorizationMethod{
-			Organization: org,
-		})
-	}
-	team.GithubAuth.Organizations = cmd.GitHubAuth.Organizations
-
-	for _, githubTeam := range cmd.GitHubAuth.Teams {
-		gitHubAuthMethods = append(gitHubAuthMethods, github.AuthorizationMethod{
-			Team:         githubTeam.TeamName,
-			Organization: githubTeam.OrganizationName,
-		})
-		team.GithubAuth.Teams = append(team.GithubAuth.Teams, db.GitHubTeam{
-			TeamName:         githubTeam.TeamName,
-			OrganizationName: githubTeam.OrganizationName,
+	gitHubTeams := []db.GitHubTeam{}
+	for _, gitHubTeam := range cmd.GitHubAuth.Teams {
+		gitHubTeams = append(gitHubTeams, db.GitHubTeam{
+			TeamName:         gitHubTeam.TeamName,
+			OrganizationName: gitHubTeam.OrganizationName,
 		})
 	}
 
-	for _, user := range cmd.GitHubAuth.Users {
-		gitHubAuthMethods = append(gitHubAuthMethods, github.AuthorizationMethod{
-			User: user,
-		})
-	}
-	team.GithubAuth.Users = cmd.GitHubAuth.Users
-
-	if len(gitHubAuthMethods) > 0 {
-		path, err := auth.OAuthRoutes.CreatePathForRoute(auth.OAuthCallback, rata.Params{
-			"provider": github.ProviderName,
-		})
+	if len(cmd.GitHubAuth.Organizations) > 0 ||
+		len(gitHubTeams) > 0 ||
+		len(cmd.GitHubAuth.Users) > 0 {
+		gitHubAuth := db.GitHubAuth{
+			ClientID:      cmd.GitHubAuth.ClientID,
+			ClientSecret:  cmd.GitHubAuth.ClientSecret,
+			Organizations: cmd.GitHubAuth.Organizations,
+			Teams:         gitHubTeams,
+			Users:         cmd.GitHubAuth.Users,
+		}
+		team.GitHubAuth = gitHubAuth
+		oauthProviders[github.ProviderName], err = github.NewGitHubProvider(gitHubAuth)
 		if err != nil {
 			return nil, err
 		}
-
-		oauthProviders[github.ProviderName] = github.NewProvider(
-			gitHubAuthMethods,
-			cmd.GitHubAuth.ClientID,
-			cmd.GitHubAuth.ClientSecret,
-			cmd.ExternalURL.String()+path,
-		)
 	} else {
-		team.GithubAuth = db.GithubAuth{}
+		team.GitHubAuth = db.GitHubAuth{}
 	}
 
-	_, err := sqlDB.UpdateTeamGithubAuth(team)
+	_, err = sqlDB.UpdateTeamGithubAuth(team)
 	if err != nil {
 		return oauthProviders, err
 	}

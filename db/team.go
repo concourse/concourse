@@ -3,7 +3,7 @@ package db
 type Team struct {
 	Name string
 	BasicAuth
-	GithubAuth
+	GitHubAuth
 }
 
 type BasicAuth struct {
@@ -11,7 +11,7 @@ type BasicAuth struct {
 	BasicAuthPassword string `json:"basic_auth_password"`
 }
 
-type GithubAuth struct {
+type GitHubAuth struct {
 	ClientID      string       `json:"client_id"`
 	ClientSecret  string       `json:"client_secret"`
 	Organizations []string     `json:"organizations"`
