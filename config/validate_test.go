@@ -602,9 +602,8 @@ var _ = Describe("ValidateConfig", func() {
 				It("throws a validation error", func() {
 					Expect(validateErr).To(HaveOccurred())
 					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].ensure.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
+						"jobs.some-other-job.plan[0].get.some-resource.ensure.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
 					))
-
 				})
 			})
 
@@ -624,9 +623,8 @@ var _ = Describe("ValidateConfig", func() {
 				It("throws a validation error", func() {
 					Expect(validateErr).To(HaveOccurred())
 					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].success.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
+						"jobs.some-other-job.plan[0].get.some-resource.success.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
 					))
-
 				})
 			})
 
@@ -646,7 +644,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("throws a validation error", func() {
 					Expect(validateErr).To(HaveOccurred())
 					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].failure.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
+						"jobs.some-other-job.plan[0].get.some-resource.failure.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
 					))
 
 				})
@@ -665,7 +663,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("throws a validation error", func() {
 					Expect(validateErr).To(HaveOccurred())
 					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].timeout refers to a duration that could not be parsed ('nope')",
+						"jobs.some-other-job.plan[0].get.some-resource.timeout refers to a duration that could not be parsed ('nope')",
 					))
 
 				})
@@ -687,6 +685,25 @@ var _ = Describe("ValidateConfig", func() {
 					Expect(validateErr).To(HaveOccurred())
 					Expect(validateErr.Error()).To(ContainSubstring(
 						"jobs.some-other-job.plan[0].try.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
+					))
+
+				})
+			})
+
+			Context("when a retry plan has a negative attempts number", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Put:      "some-resource",
+						Attempts: -1,
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does return an error", func() {
+					Expect(validateErr).To(HaveOccurred())
+					Expect(validateErr.Error()).To(ContainSubstring(
+						"jobs.some-other-job.plan[0].put.some-resource.attempts has an invalid number of attempts (-1)",
 					))
 
 				})

@@ -252,11 +252,11 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 		}
 
 	case plan.Get != "":
-		subIdentifier := fmt.Sprintf("%s.get.%s", identifier, plan.Get)
+		identifier = fmt.Sprintf("%s.get.%s", identifier, plan.Get)
 
 		errorMessages = append(errorMessages, validateInapplicableFields(
 			[]string{"privileged", "config", "file"},
-			plan, subIdentifier)...,
+			plan, identifier)...,
 		)
 
 		if plan.Resource != "" {
@@ -266,7 +266,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 					errorMessages,
 					fmt.Sprintf(
 						"%s refers to a resource that does not exist ('%s')",
-						subIdentifier,
+						identifier,
 						plan.Resource,
 					),
 				)
@@ -278,7 +278,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 					errorMessages,
 					fmt.Sprintf(
 						"%s refers to a resource that does not exist",
-						subIdentifier,
+						identifier,
 					),
 				)
 			}
@@ -291,7 +291,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 					errorMessages,
 					fmt.Sprintf(
 						"%s.passed references an unknown job ('%s')",
-						subIdentifier,
+						identifier,
 						job,
 					),
 				)
@@ -317,7 +317,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 						errorMessages,
 						fmt.Sprintf(
 							"%s.passed references a job ('%s') which doesn't interact with the resource ('%s')",
-							subIdentifier,
+							identifier,
 							job,
 							plan.Get,
 						),
@@ -327,11 +327,11 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 		}
 
 	case plan.Put != "":
-		subIdentifier := fmt.Sprintf("%s.put.%s", identifier, plan.Put)
+		identifier = fmt.Sprintf("%s.put.%s", identifier, plan.Put)
 
 		errorMessages = append(errorMessages, validateInapplicableFields(
 			[]string{"passed", "trigger", "privileged", "config", "file"},
-			plan, subIdentifier)...,
+			plan, identifier)...,
 		)
 
 		if plan.Resource != "" {
@@ -341,7 +341,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 					errorMessages,
 					fmt.Sprintf(
 						"%s refers to a resource that does not exist ('%s')",
-						subIdentifier,
+						identifier,
 						plan.Resource,
 					),
 				)
@@ -353,26 +353,26 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 					errorMessages,
 					fmt.Sprintf(
 						"%s refers to a resource that does not exist",
-						subIdentifier,
+						identifier,
 					),
 				)
 			}
 		}
 
 	case plan.Task != "":
-		subIdentifier := fmt.Sprintf("%s.task.%s", identifier, plan.Task)
+		identifier = fmt.Sprintf("%s.task.%s", identifier, plan.Task)
 
 		if plan.TaskConfig == nil && plan.TaskConfigPath == "" {
-			errorMessages = append(errorMessages, subIdentifier+" does not specify any task configuration")
+			errorMessages = append(errorMessages, identifier+" does not specify any task configuration")
 		}
 
 		errorMessages = append(errorMessages, validateInapplicableFields(
 			[]string{"resource", "passed", "trigger"},
-			plan, subIdentifier)...,
+			plan, identifier)...,
 		)
 
 		if plan.Params != nil {
-			errorMessages = append(errorMessages, subIdentifier+" specifies params, which should be config.params")
+			errorMessages = append(errorMessages, identifier+" specifies params, which should be config.params")
 		}
 
 	case plan.Try != nil:
@@ -401,6 +401,11 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 			subIdentifier := fmt.Sprintf("%s.timeout", identifier)
 			errorMessages = append(errorMessages, subIdentifier+fmt.Sprintf(" refers to a duration that could not be parsed ('%s')", plan.Timeout))
 		}
+	}
+
+	if plan.Attempts < 0 {
+		subIdentifier := fmt.Sprintf("%s.attempts", identifier)
+		errorMessages = append(errorMessages, subIdentifier+fmt.Sprintf(" has an invalid number of attempts (%d)", plan.Attempts))
 	}
 
 	return errorMessages
