@@ -416,21 +416,7 @@ setResourceInfo version metadata tree =
 
 setStepState : StepTree.StepState -> StepTree -> StepTree
 setStepState state tree =
-  let
-    autoCollapse = state == StepTree.StepStateSucceeded
-  in
-    StepTree.map (\step ->
-      let
-        expanded =
-          if autoCollapse then
-            Just <| Maybe.withDefault False step.expanded
-          else
-            step.expanded
-      in
-        { step
-        | state = state
-        , expanded = expanded
-        }) tree
+  StepTree.map (\step -> { step | state = state }) tree
 
 view : Signal.Address Action -> Model -> Html
 view actions model =
