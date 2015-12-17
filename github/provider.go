@@ -1,7 +1,10 @@
 package github
 
 import (
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/db"
+	"github.com/tedsuo/rata"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 )
@@ -17,40 +20,34 @@ type AuthorizationMethod struct {
 	User string
 }
 
+func NewGitHubProvider(
+	gitHubAuth db.GitHubAuth,
+) (provider.Provider, error) {
+	redirectURL, err := auth.OAuthRoutes.CreatePathForRoute(auth.OAuthCallback, rata.Params{
+		"provider": ProviderName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return NewProvider(gitHubAuth, redirectURL), nil
+}
+
 func NewProvider(
-	methods []AuthorizationMethod,
-	clientID string,
-	clientSecret string,
+	gitHubAuth db.GitHubAuth,
 	redirectURL string,
 ) provider.Provider {
 	client := NewClient()
 
-	var teams []Team
-	var orgs []string
-	var users []string
-
-	for _, method := range methods {
-		if method.Organization != "" && method.Team != "" {
-			teams = append(teams, Team{
-				Name:         method.Team,
-				Organization: method.Organization,
-			})
-		} else if method.Organization != "" {
-			orgs = append(orgs, method.Organization)
-		} else if method.User != "" {
-			users = append(users, method.User)
-		}
-	}
-
 	return Provider{
 		Verifier: NewVerifierBasket(
-			NewTeamVerifier(teams, client),
-			NewOrganizationVerifier(orgs, client),
-			NewUserVerifier(users, client),
+			NewTeamVerifier(dbTeamsToGitHubTeams(gitHubAuth.Teams), client),
+			NewOrganizationVerifier(gitHubAuth.Organizations, client),
+			NewUserVerifier(gitHubAuth.Users, client),
 		),
 		Config: &oauth2.Config{
-			ClientID:     clientID,
-			ClientSecret: clientSecret,
+			ClientID:     gitHubAuth.ClientID,
+			ClientSecret: gitHubAuth.ClientSecret,
 			Endpoint:     github.Endpoint,
 			Scopes:       Scopes,
 			RedirectURL:  redirectURL,
@@ -61,6 +58,17 @@ func NewProvider(
 type Provider struct {
 	*oauth2.Config
 	provider.Verifier
+}
+
+func dbTeamsToGitHubTeams(dbteams []db.GitHubTeam) []Team {
+	teams := []Team{}
+	for _, team := range dbteams {
+		teams = append(teams, Team{
+			Name:         team.TeamName,
+			Organization: team.OrganizationName,
+		})
+	}
+	return teams
 }
 
 func (Provider) DisplayName() string {
