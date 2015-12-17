@@ -177,7 +177,7 @@ var _ = Describe("login Command", func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
-							ghttp.VerifyBasicAuth("some username", "some password"),
+							ghttp.VerifyBasicAuth("some_username", "some_password"),
 							ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
 								Type:  "Bearer",
 								Value: "some-token",
@@ -200,15 +200,42 @@ var _ = Describe("login Command", func() {
 
 					Eventually(sess.Out).Should(gbytes.Say("username: "))
 
-					_, err = fmt.Fprintf(stdin, "some username\n")
+					_, err = fmt.Fprintf(stdin, "some_username\n")
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("password: "))
 
-					_, err = fmt.Fprintf(stdin, "some password\n")
+					_, err = fmt.Fprintf(stdin, "some_password\n")
 					Expect(err).NotTo(HaveOccurred())
 
-					Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
+					Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some_password"))
+
+					Eventually(sess.Out).Should(gbytes.Say("token saved"))
+
+					err = stdin.Close()
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+				})
+
+				It("takes username and password as cli arguments", func() {
+					flyCmd = exec.Command(flyPath,
+						"-t", "some-target",
+						"login", "-c", atcServer.URL(),
+						"-u", "some_username",
+						"-p", "some_password",
+					)
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).ShouldNot(gbytes.Say("1. Basic"))
+					Eventually(sess.Out).ShouldNot(gbytes.Say("2. OAuth Type 1"))
+					Eventually(sess.Out).ShouldNot(gbytes.Say("3. OAuth Type 2"))
+					Eventually(sess.Out).ShouldNot(gbytes.Say("choose an auth method: "))
+
+					Eventually(sess.Out).ShouldNot(gbytes.Say("username: "))
+					Eventually(sess.Out).ShouldNot(gbytes.Say("password: "))
 
 					Eventually(sess.Out).Should(gbytes.Say("token saved"))
 
@@ -234,15 +261,15 @@ var _ = Describe("login Command", func() {
 
 						Eventually(sess.Out).Should(gbytes.Say("username: "))
 
-						_, err = fmt.Fprintf(stdin, "some username\n")
+						_, err = fmt.Fprintf(stdin, "some_username\n")
 						Expect(err).NotTo(HaveOccurred())
 
 						Eventually(sess.Out).Should(gbytes.Say("password: "))
 
-						_, err = fmt.Fprintf(stdin, "some password\n")
+						_, err = fmt.Fprintf(stdin, "some_password\n")
 						Expect(err).NotTo(HaveOccurred())
 
-						Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
+						Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some_password"))
 
 						Eventually(sess.Out).Should(gbytes.Say("token saved"))
 
@@ -295,7 +322,7 @@ var _ = Describe("login Command", func() {
 								),
 								ghttp.CombineHandlers(
 									ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
-									ghttp.VerifyBasicAuth("some username", "some password"),
+									ghttp.VerifyBasicAuth("some_username", "some_password"),
 									ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
 										Type:  "Bearer",
 										Value: "some-new-token",
@@ -322,15 +349,15 @@ var _ = Describe("login Command", func() {
 
 							Eventually(sess.Out).Should(gbytes.Say("username: "))
 
-							_, err = fmt.Fprintf(secondFlyStdin, "some username\n")
+							_, err = fmt.Fprintf(secondFlyStdin, "some_username\n")
 							Expect(err).NotTo(HaveOccurred())
 
 							Eventually(sess.Out).Should(gbytes.Say("password: "))
 
-							_, err = fmt.Fprintf(secondFlyStdin, "some password\n")
+							_, err = fmt.Fprintf(secondFlyStdin, "some_password\n")
 							Expect(err).NotTo(HaveOccurred())
 
-							Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
+							Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some_password"))
 
 							Eventually(sess.Out).Should(gbytes.Say("token saved"))
 
@@ -355,6 +382,47 @@ var _ = Describe("login Command", func() {
 				})
 			})
 		})
+
+		Context("when only non-basic auth methods are returned from the API", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
+							{
+								Type:        atc.AuthTypeOAuth,
+								DisplayName: "OAuth Type 1",
+								AuthURL:     "https://example.com/auth/oauth-1",
+							},
+							{
+								Type:        atc.AuthTypeOAuth,
+								DisplayName: "OAuth Type 2",
+								AuthURL:     "https://example.com/auth/oauth-2",
+							},
+						}),
+					),
+				)
+			})
+			It("errors when username and password are given", func() {
+				flyCmd = exec.Command(flyPath,
+					"-t", "some-target",
+					"login", "-c", atcServer.URL(),
+					"-u", "some_username",
+					"-p", "some_password",
+				)
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("Basic auth is not available"))
+
+				err = stdin.Close()
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).NotTo(Equal(0))
+			})
+		})
+
 
 		Context("when only one auth method is returned from the API", func() {
 			BeforeEach(func() {
