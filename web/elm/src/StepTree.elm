@@ -195,7 +195,7 @@ treeIsActive tree =
       stepIsActive step
 
 stepIsActive : Step -> Bool
-stepIsActive = ((/=) StepStatePending) << .state
+stepIsActive = isActive << .state
 
 setupGetStep : BuildResources -> StepName -> Maybe Version -> Step -> Step
 setupGetStep resources name version step =
@@ -221,13 +221,17 @@ update : Action -> Model -> Model
 update action root =
   case action of
     ToggleStep id ->
-      updateAt id (map (\step -> { step | expanded = Just <| not <| Maybe.withDefault True step.expanded })) root
+      updateAt id (map (\step -> { step | expanded = toggleExpanded step })) root
 
     Finished ->
       { root | finished = True }
 
     SwitchTab id tab ->
       updateAt id (focusRetry tab) root
+
+toggleExpanded : Step -> Maybe Bool
+toggleExpanded {expanded, state} =
+  Just <| not <| Maybe.withDefault (autoExpanded state) expanded
 
 focusRetry : Int -> StepTree -> StepTree
 focusRetry tab tree =
@@ -515,6 +519,9 @@ viewHooked name actions model step hook =
 isActive : StepState -> Bool
 isActive = (/=) StepStatePending
 
+autoExpanded : StepState -> Bool
+autoExpanded state = isActive state && state /= StepStateSucceeded
+
 viewStep : Signal.Address Action -> Model -> Step -> String -> Html
 viewStep actions model {id, name, log, state, error, expanded, version, metadata, firstOccurrence} icon =
   Html.div
@@ -536,18 +543,21 @@ viewStep actions model {id, name, log, state, error, expanded, version, metadata
         [ classList
             [ ("step-body", True)
             , ("clearfix", True)
-            , ("step-collapsed", not <| Maybe.withDefault (isActive state) expanded)
+            , ("step-collapsed", not <| Maybe.withDefault (autoExpanded state) expanded)
             ]
-        ]
-        [ Html.dl [class "build-metadata fr"]
-            (List.concatMap (\{name, value} -> viewPair name value) metadata)
-        , Ansi.Log.view log
-        , case error of
-            Nothing ->
-              Html.span [] []
-            Just msg ->
-              Html.span [class "error"] [Html.text msg]
-        ]
+        ] <|
+        if Maybe.withDefault (autoExpanded state) (Maybe.map (always True) expanded) then
+          [ Html.dl [class "build-metadata fr"]
+              (List.concatMap (\{name, value} -> viewPair name value) metadata)
+          , Ansi.Log.view log
+          , case error of
+              Nothing ->
+                Html.span [] []
+              Just msg ->
+                Html.span [class "error"] [Html.text msg]
+          ]
+        else
+          []
     ]
 
 viewPair : String -> String -> List Html
