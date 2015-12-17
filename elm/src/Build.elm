@@ -61,8 +61,6 @@ type Action
   | BuildEventsListening EventSource
   | BuildEventsAction Concourse.BuildEvents.Action
   | BuildEventsClosed
-  | ScrollTick
-  | ScrollFromBottom Int
   | ScrollBuilds (Float, Float)
   | StepTreeAction StepTree.Action
   | ClockTick Time.Time
@@ -96,15 +94,6 @@ update action model =
   case action of
     Noop ->
       (model, Effects.none)
-
-    ScrollTick ->
-      if model.stepState == StepsLiveUpdating && model.autoScroll then
-        (model, scrollToBottom)
-      else
-        (model, Effects.none)
-
-    ScrollFromBottom fromBottom ->
-      ({ model | autoScroll = fromBottom == 0 }, Effects.none)
 
     AbortBuild ->
       (model, abortBuild model.buildId)
@@ -238,7 +227,7 @@ handleEventsAction : Concourse.BuildEvents.Action -> Model -> (Model, Effects Ac
 handleEventsAction action model =
   case action of
     Concourse.BuildEvents.Opened ->
-      (model, scrollToBottom)
+      (model, Effects.none)
 
     Concourse.BuildEvents.Errored ->
       let
@@ -267,10 +256,7 @@ handleEventsAction action model =
         ({ model | stepState = newState }, Effects.none)
 
     Concourse.BuildEvents.Event (Ok event) ->
-      let
-        (returnedModel, returnedEvent) = handleEvent event model
-      in
-        (returnedModel, Effects.batch [returnedEvent, scrollToBottom])
+      handleEvent event model
 
     Concourse.BuildEvents.Event (Err err) ->
       (model, Debug.log err Effects.none)
@@ -288,7 +274,7 @@ handleEvent event model =
   case event of
     Concourse.BuildEvents.Log origin output ->
       ( updateStep origin.id (setRunning << appendStepLog output) model
-      , Effects.tick (always ScrollTick)
+      , Effects.none
       )
 
     Concourse.BuildEvents.Error origin message ->
@@ -658,12 +644,6 @@ closeEvents : EventSource.EventSource -> Effects Action
 closeEvents eventSource =
   EventSource.close eventSource
     |> Task.map (always BuildEventsClosed)
-    |> Effects.task
-
-scrollToBottom : Effects Action
-scrollToBottom =
-  Scroll.toBottom
-    |> Task.map (always Noop)
     |> Effects.task
 
 scrollBuilds : Float -> Effects Action
