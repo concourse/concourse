@@ -4,10 +4,9 @@ import (
 	"encoding/base64"
 	"net/http"
 
+	"github.com/concourse/atc/auth"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/concourse/atc/auth"
 )
 
 func basicAuthFlow(validatorFunc func(username string, password string) auth.Validator) {

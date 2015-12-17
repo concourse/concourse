@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/concourse/atc/auth/provider"
 	"github.com/pivotal-golang/lager"
 
 	"golang.org/x/oauth2"
@@ -15,14 +16,14 @@ import (
 
 type OAuthCallbackHandler struct {
 	logger         lager.Logger
-	providers      Providers
+	providers      provider.Providers
 	privateKey     *rsa.PrivateKey
 	tokenGenerator TokenGenerator
 }
 
 func NewOAuthCallbackHandler(
 	logger lager.Logger,
-	providers Providers,
+	providers provider.Providers,
 	privateKey *rsa.PrivateKey,
 ) http.Handler {
 	return &OAuthCallbackHandler{

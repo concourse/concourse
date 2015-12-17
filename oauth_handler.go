@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/concourse/atc/auth/provider"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
@@ -14,7 +15,7 @@ var SigningMethod = jwt.SigningMethodRS256
 
 func NewOAuthHandler(
 	logger lager.Logger,
-	providers Providers,
+	providers provider.Providers,
 	signingKey *rsa.PrivateKey,
 ) (http.Handler, error) {
 	return rata.NewRouter(OAuthRoutes, map[string]http.Handler{

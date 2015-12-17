@@ -17,7 +17,8 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/auth/provider/fakes"
 )
 
 var _ = Describe("OAuthBeginHandler", func() {
@@ -43,7 +44,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		handler, err := auth.NewOAuthHandler(
 			lagertest.NewTestLogger("test"),
-			auth.Providers{
+			provider.Providers{
 				"a": fakeProviderA,
 				"b": fakeProviderB,
 			},

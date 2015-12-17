@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/concourse/atc/auth/provider"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -18,13 +19,13 @@ type OAuthState struct {
 
 type OAuthBeginHandler struct {
 	logger     lager.Logger
-	providers  Providers
+	providers  provider.Providers
 	privateKey *rsa.PrivateKey
 }
 
 func NewOAuthBeginHandler(
 	logger lager.Logger,
-	providers Providers,
+	providers provider.Providers,
 	privateKey *rsa.PrivateKey,
 ) http.Handler {
 	return &OAuthBeginHandler{
