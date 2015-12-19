@@ -1,10 +1,7 @@
 package github
 
 import (
-	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/db"
-	"github.com/tedsuo/rata"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 )
@@ -20,23 +17,10 @@ type AuthorizationMethod struct {
 	User string
 }
 
-func NewGitHubProvider(
-	gitHubAuth db.GitHubAuth,
-) (provider.Provider, error) {
-	redirectURL, err := auth.OAuthRoutes.CreatePathForRoute(auth.OAuthCallback, rata.Params{
-		"provider": ProviderName,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return NewProvider(gitHubAuth, redirectURL), nil
-}
-
 func NewProvider(
 	gitHubAuth db.GitHubAuth,
 	redirectURL string,
-) provider.Provider {
+) Provider {
 	client := NewClient()
 
 	return Provider{
@@ -57,7 +41,7 @@ func NewProvider(
 
 type Provider struct {
 	*oauth2.Config
-	provider.Verifier
+	Verifier
 }
 
 func dbTeamsToGitHubTeams(dbteams []db.GitHubTeam) []Team {

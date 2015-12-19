@@ -13,21 +13,27 @@ import (
 
 var SigningMethod = jwt.SigningMethodRS256
 
+//go:generate counterfeiter . ProviderFactory
+
+type ProviderFactory interface {
+	GetProviders(teamName string) (provider.Providers, error)
+}
+
 func NewOAuthHandler(
 	logger lager.Logger,
-	providers provider.Providers,
+	providerFactory ProviderFactory,
 	signingKey *rsa.PrivateKey,
 ) (http.Handler, error) {
 	return rata.NewRouter(OAuthRoutes, map[string]http.Handler{
 		OAuthBegin: NewOAuthBeginHandler(
 			logger.Session("oauth-begin"),
-			providers,
+			providerFactory,
 			signingKey,
 		),
 
 		OAuthCallback: NewOAuthCallbackHandler(
 			logger.Session("oauth-callback"),
-			providers,
+			providerFactory,
 			signingKey,
 		),
 	})

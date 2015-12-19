@@ -3,7 +3,6 @@ package github
 import (
 	"net/http"
 
-	"github.com/concourse/atc/auth/provider"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -15,8 +14,8 @@ type OrganizationVerifier struct {
 func NewOrganizationVerifier(
 	organizations []string,
 	gitHubClient Client,
-) provider.Verifier {
-	return &OrganizationVerifier{
+) OrganizationVerifier {
+	return OrganizationVerifier{
 		organizations: organizations,
 		gitHubClient:  gitHubClient,
 	}
