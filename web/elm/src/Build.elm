@@ -99,9 +99,9 @@ update action model =
       case model.output of
         Just output ->
           let
-              (newOutput, effects) = BuildOutput.update action output
+            (newOutput, effects) = BuildOutput.update action output
           in
-              ({ model | output = Just newOutput }, Effects.map BuildOutputAction effects)
+            ({ model | output = Just newOutput }, Effects.map BuildOutputAction effects)
 
         Nothing ->
           Debug.crash "impossible (received action for missing BuildOutput)"
@@ -150,13 +150,13 @@ handleBuildFetched build model =
         _ ->
           Effects.none
 
-    (model, effects) =
+    (newModel, effects) =
       if build.status == Concourse.BuildStatus.Pending then
         pollUntilStarted withBuild
       else
         initBuildOutput build withBuild
   in
-    (model, Effects.batch [effects, fetchHistory])
+    (newModel, Effects.batch [effects, fetchHistory])
 
 pollUntilStarted : Model -> (Model, Effects Action)
 pollUntilStarted model =
@@ -180,7 +180,7 @@ handleHistoryFetched : Paginated Build -> Model -> (Model, Effects Action)
 handleHistoryFetched history model =
   let
     withBuilds =
-      { model | history = List.append model.history history.content }
+      { model | history = List.append model.history (Debug.log "history" history.content) }
 
     loadedCurrentBuild =
       List.any ((==) model.buildId << .id) history.content
@@ -223,14 +223,23 @@ abortBuild buildId =
 
 view : Signal.Address Action -> Model -> Html
 view actions model =
-  case (model.build, model.output) of
-    (Just build, Just output) ->
+  case model.build of
+    Just build ->
       Html.div []
         [ viewBuildHeader actions build model
-        , Html.Lazy.lazy (BuildOutput.view (Signal.forwardTo actions BuildOutputAction)) output
+        , Html.Lazy.lazy (viewBuildOutput actions) model.output
         ]
 
     _ ->
+      LoadingIndicator.view
+
+viewBuildOutput : Signal.Address Action -> Maybe BuildOutput.Model -> Html
+viewBuildOutput actions output =
+  case output of
+    Just o ->
+      BuildOutput.view (Signal.forwardTo actions BuildOutputAction) o
+
+    Nothing ->
       LoadingIndicator.view
 
 viewBuildHeader : Signal.Address Action -> Build -> Model -> Html

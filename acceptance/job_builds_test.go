@@ -20,7 +20,7 @@ import (
 	"github.com/concourse/atc/event"
 )
 
-var _ = Describe("Job Pausing", func() {
+var _ = Describe("Job Builds", func() {
 	var atcProcess ifrit.Process
 	var dbListener *pq.Listener
 	var atcPort uint16
