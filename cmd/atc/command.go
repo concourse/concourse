@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
@@ -154,7 +153,17 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		return err
 	}
 
-	oauthProviders, err := cmd.configureOAuthProviders(logger, sqlDB)
+	err = cmd.configureOAuthProviders(logger, sqlDB)
+	if err != nil {
+		return err
+	}
+
+	providerFactory := provider.NewOauthFactory(
+		sqlDB,
+		cmd.ExternalURL.String(),
+		auth.OAuthRoutes,
+		auth.OAuthCallback,
+	)
 	if err != nil {
 		return err
 	}
@@ -166,7 +175,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		reconfigurableSink,
 		sqlDB,
 		authValidator,
-		oauthProviders,
+		providerFactory,
 		basicAuthEnabled,
 		signingKey,
 		pipelineDBFactory,
@@ -181,7 +190,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 
 	oauthHandler, err := auth.NewOAuthHandler(
 		logger,
-		oauthProviders,
+		providerFactory,
 		signingKey,
 	)
 	if err != nil {
@@ -411,9 +420,8 @@ func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 	return signingKey, nil
 }
 
-func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB) (provider.Providers, error) {
+func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB) error {
 	var err error
-	oauthProviders := provider.Providers{}
 	team := db.Team{
 		Name: atc.DefaultTeamName,
 	}
@@ -437,20 +445,16 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB)
 			Users:         cmd.GitHubAuth.Users,
 		}
 		team.GitHubAuth = gitHubAuth
-		oauthProviders[github.ProviderName], err = github.NewGitHubProvider(gitHubAuth)
-		if err != nil {
-			return nil, err
-		}
 	} else {
 		team.GitHubAuth = db.GitHubAuth{}
 	}
 
 	_, err = sqlDB.UpdateTeamGithubAuth(team)
 	if err != nil {
-		return oauthProviders, err
+		return err
 	}
 
-	return oauthProviders, nil
+	return nil
 }
 
 func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.DB) (auth.Validator, bool, error) {
@@ -547,7 +551,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	reconfigurableSink *lager.ReconfigurableSink,
 	sqlDB *db.SQLDB,
 	authValidator auth.Validator,
-	oauthProviders provider.Providers,
+	providerFactory provider.OauthFactory,
 	basicAuthEnabled bool,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
@@ -567,7 +571,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		apiWrapper,
 
 		auth.NewTokenGenerator(signingKey),
-		oauthProviders,
+		providerFactory,
 		basicAuthEnabled,
 
 		pipelineDBFactory,

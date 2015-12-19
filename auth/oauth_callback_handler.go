@@ -8,36 +8,49 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc"
 	"github.com/pivotal-golang/lager"
 
 	"golang.org/x/oauth2"
 )
 
 type OAuthCallbackHandler struct {
-	logger         lager.Logger
-	providers      provider.Providers
-	privateKey     *rsa.PrivateKey
-	tokenGenerator TokenGenerator
+	logger          lager.Logger
+	providerFactory ProviderFactory
+	privateKey      *rsa.PrivateKey
+	tokenGenerator  TokenGenerator
 }
 
 func NewOAuthCallbackHandler(
 	logger lager.Logger,
-	providers provider.Providers,
+	providerFactory ProviderFactory,
 	privateKey *rsa.PrivateKey,
 ) http.Handler {
 	return &OAuthCallbackHandler{
-		logger:         logger,
-		providers:      providers,
-		privateKey:     privateKey,
-		tokenGenerator: NewTokenGenerator(privateKey),
+		logger:          logger,
+		providerFactory: providerFactory,
+		privateKey:      privateKey,
+		tokenGenerator:  NewTokenGenerator(privateKey),
 	}
 }
 
 func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hLog := handler.logger.Session("callback")
+	providerName := r.FormValue(":provider")
+	teamName := atc.DefaultTeamName
 
-	provider, found := handler.providers[r.FormValue(":provider")]
+	providers, err := handler.providerFactory.GetProviders(teamName)
+	if err != nil {
+		handler.logger.Error("unknown-provider", err, lager.Data{
+			"provider": providerName,
+			"teamName": teamName,
+		})
+
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	provider, found := providers[providerName]
 	if !found {
 		http.Error(w, "unknown provider", http.StatusNotFound)
 		return

@@ -17,14 +17,17 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/auth/fakes"
 	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/provider/fakes"
+	providerFakes "github.com/concourse/atc/auth/provider/fakes"
 )
 
 var _ = Describe("OAuthBeginHandler", func() {
 	var (
-		fakeProviderA *fakes.FakeProvider
-		fakeProviderB *fakes.FakeProvider
+		fakeProviderA *providerFakes.FakeProvider
+		fakeProviderB *providerFakes.FakeProvider
+
+		fakeProviderFactory *fakes.FakeProviderFactory
 
 		signingKey *rsa.PrivateKey
 
@@ -35,19 +38,26 @@ var _ = Describe("OAuthBeginHandler", func() {
 	)
 
 	BeforeEach(func() {
-		fakeProviderA = new(fakes.FakeProvider)
-		fakeProviderB = new(fakes.FakeProvider)
+		fakeProviderA = new(providerFakes.FakeProvider)
+		fakeProviderB = new(providerFakes.FakeProvider)
+
+		fakeProviderFactory = new(fakes.FakeProviderFactory)
 
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
 		Expect(err).ToNot(HaveOccurred())
 
-		handler, err := auth.NewOAuthHandler(
-			lagertest.NewTestLogger("test"),
+		fakeProviderFactory.GetProvidersReturns(
 			provider.Providers{
 				"a": fakeProviderA,
 				"b": fakeProviderB,
 			},
+			nil,
+		)
+
+		handler, err := auth.NewOAuthHandler(
+			lagertest.NewTestLogger("test"),
+			fakeProviderFactory,
 			signingKey,
 		)
 		Expect(err).ToNot(HaveOccurred())

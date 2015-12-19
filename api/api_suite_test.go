@@ -37,7 +37,7 @@ var (
 
 	authValidator        *authfakes.FakeValidator
 	fakeTokenGenerator   *authfakes.FakeTokenGenerator
-	authProviders        provider.Providers
+	providerFactory      authfakes.FakeProviderFactory
 	basicAuthEnabled     = true
 	fakeEngine           *enginefakes.FakeEngine
 	fakeWorkerClient     *workerfakes.FakeClient
@@ -103,10 +103,14 @@ var _ = BeforeEach(func() {
 	authProvider2 := new(providerfakes.FakeProvider)
 	authProvider2.DisplayNameReturns("OAuth Provider 2")
 
-	authProviders = provider.Providers{
-		"oauth-provider-1": authProvider1,
-		"oauth-provider-2": authProvider2,
-	}
+	providerFactory := new(authfakes.FakeProviderFactory)
+	providerFactory.GetProvidersReturns(
+		provider.Providers{
+			"oauth-provider-1": authProvider1,
+			"oauth-provider-2": authProvider2,
+		},
+		nil,
+	)
 
 	configValidationErr = nil
 	peerAddr = "127.0.0.1:1234"
@@ -137,7 +141,7 @@ var _ = BeforeEach(func() {
 		wrappa.NewAPIAuthWrappa(authValidator),
 
 		fakeTokenGenerator,
-		authProviders,
+		providerFactory,
 		basicAuthEnabled,
 
 		pipelineDBFactory,

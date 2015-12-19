@@ -15,8 +15,12 @@ const BasicAuthDisplayName = "Basic Auth"
 
 func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	methods := []atc.AuthMethod{}
-
-	for name, provider := range s.providers {
+	providers, err := s.providerFactory.GetProviders(atc.DefaultTeamName)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	for name, provider := range providers {
 		path, err := auth.OAuthRoutes.CreatePathForRoute(
 			auth.OAuthBegin,
 			rata.Params{"provider": name},
