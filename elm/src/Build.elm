@@ -1,45 +1,37 @@
 module Build where
 
-import Ansi.Log
 import Date exposing (Date)
 import Date.Format
 import Debug
 import Effects exposing (Effects)
-import EventSource exposing (EventSource)
 import Html exposing (Html)
-import Html.Events exposing (onClick, on)
 import Html.Attributes exposing (action, class, classList, href, id, method, title)
+import Html.Events exposing (onClick, on)
+import Html.Lazy
 import Http
 import Json.Decode exposing ((:=))
 import Task exposing (Task)
 import Time exposing (Time)
 
+import BuildOutput
 import Concourse.Build exposing (Build)
-import Concourse.BuildEvents exposing (BuildEvent)
-import Concourse.BuildPlan exposing (BuildPlan)
-import Concourse.BuildResources exposing (BuildResources)
 import Concourse.BuildStatus exposing (BuildStatus)
-import Concourse.Metadata exposing (Metadata)
 import Concourse.Pagination exposing (Paginated)
-import Concourse.Version exposing (Version)
 import Duration exposing (Duration)
+import LoadingIndicator
 import Scroll
-import StepTree exposing (StepTree)
 
 type alias Model =
   { redirect : Signal.Address String
   , actions : Signal.Address Action
   , buildId : Int
-  , errors : Maybe Ansi.Log.Model
-  , steps : Maybe StepTree.Model
   , build : Maybe Build
-  , history : Maybe (List Build)
-  , eventSource : Maybe EventSource
-  , stepState : StepRenderingState
+  , history : List Build
   , status : BuildStatus
   , autoScroll : Bool
   , now : Time.Time
   , duration : BuildDuration
+  , output : Maybe BuildOutput.Model
   }
 
 type alias BuildDuration =
@@ -47,22 +39,13 @@ type alias BuildDuration =
   , finishedAt : Maybe Date
   }
 
-type StepRenderingState
-  = StepsLoading
-  | StepsLiveUpdating
-  | StepsComplete
-  | LoginRequired
-
 type Action
   = Noop
-  | PlanAndResourcesFetched (Result Http.Error (BuildPlan, BuildResources))
   | BuildFetched (Result Http.Error Build)
   | BuildHistoryFetched (Result Http.Error (Paginated Build))
-  | BuildEventsListening EventSource
-  | BuildEventsAction Concourse.BuildEvents.Action
-  | BuildEventsClosed
+  | BuildOutputAction BuildOutput.Action
+  | BuildStatus BuildStatus Date
   | ScrollBuilds (Float, Float)
-  | StepTreeAction StepTree.Action
   | ClockTick Time.Time
   | AbortBuild
   | BuildAborted (Result Http.Error ())
@@ -75,12 +58,9 @@ init redirect actions buildId =
       { redirect = redirect
       , actions = actions
       , buildId = buildId
-      , errors = Nothing
-      , steps = Nothing
+      , output = Nothing
       , build = Nothing
-      , history = Nothing
-      , eventSource = Nothing
-      , stepState = StepsLoading
+      , history = []
       , autoScroll = True
       , status = Concourse.BuildStatus.Pending
       , now = 0
@@ -109,22 +89,31 @@ update action model =
         (model, Effects.none)
 
     BuildFetched (Ok build) ->
+      -- TODO update duration in header?
       handleBuildFetched build model
 
     BuildFetched (Err err) ->
       Debug.log ("failed to fetch build: " ++ toString err) <|
         (model, Effects.none)
 
-    PlanAndResourcesFetched (Err (Http.BadResponse 404 _)) ->
-      (model , subscribeToEvents model.buildId model.actions)
+    BuildOutputAction action ->
+      case model.output of
+        Just output ->
+          let
+              (newOutput, effects) = BuildOutput.update action output
+          in
+              ({ model | output = Just newOutput }, Effects.map BuildOutputAction effects)
 
-    PlanAndResourcesFetched (Err err) ->
-      Debug.log ("failed to fetch plan: " ++ toString err) <|
-        (model, Effects.none)
+        Nothing ->
+          Debug.crash "impossible (received action for missing BuildOutput)"
 
-    PlanAndResourcesFetched (Ok (plan, resources)) ->
-      ( { model | steps = Just (StepTree.init resources plan) }
-      , subscribeToEvents model.buildId model.actions
+    BuildStatus status date ->
+      ( updateStartFinishAt status date <|
+          if Concourse.BuildStatus.isRunning model.status then
+            { model | status = status }
+          else
+            model
+      , Effects.none
       )
 
     BuildHistoryFetched (Err err) ->
@@ -136,20 +125,6 @@ update action model =
 
     RevealCurrentBuildInHistory ->
       (model, scrollToCurrentBuildInHistory)
-
-    BuildEventsListening es ->
-      ({ model | eventSource = Just es }, Effects.none)
-
-    BuildEventsAction action ->
-      handleEventsAction action model
-
-    BuildEventsClosed ->
-      ({ model | eventSource = Nothing }, Effects.none)
-
-    StepTreeAction action ->
-      ( { model | steps = Maybe.map (StepTree.update action) model.steps }
-      , Effects.none
-      )
 
     ScrollBuilds (0, deltaY) ->
       (model, scrollBuilds deltaY)
@@ -163,22 +138,7 @@ update action model =
 handleBuildFetched : Build -> Model -> (Model, Effects Action)
 handleBuildFetched build model =
   let
-    pending =
-      build.status == Concourse.BuildStatus.Pending
-
-    stepState =
-      if Concourse.BuildStatus.isRunning build.status then
-        StepsLiveUpdating
-      else
-        StepsLoading
-
-    fetch =
-      if pending then
-        fetchBuild Time.second model.buildId
-      else if build.job /= Nothing then
-        fetchBuildPlanAndResources model.buildId
-      else
-        fetchBuildPlan model.buildId
+    withBuild = { model | build = Just build, status = build.status }
 
     fetchHistory =
       case (model.build, build.job) of
@@ -187,21 +147,38 @@ handleBuildFetched build model =
 
         _ ->
           Effects.none
+
+    (model, effects) =
+      if build.status == Concourse.BuildStatus.Pending then
+        pollUntilStarted withBuild
+      else
+        initBuildOutput build withBuild
   in
-    ( { model | build = Just build
-              , status = build.status
-              , stepState = stepState }
-    , Effects.batch [fetch, fetchHistory]
+    (model, Effects.batch [effects, fetchHistory])
+
+pollUntilStarted : Model -> (Model, Effects Action)
+pollUntilStarted model =
+  (model, fetchBuild Time.second model.buildId)
+
+initBuildOutput : Build -> Model -> (Model, Effects Action)
+initBuildOutput build model =
+  let
+    (output, outputEffects) =
+      BuildOutput.init
+        build
+        { events = Signal.forwardTo model.actions BuildOutputAction
+        , buildStatus = Signal.forwardTo model.actions (uncurry BuildStatus)
+        }
+  in
+    ( { model | output = Just output }
+    , Effects.map BuildOutputAction outputEffects
     )
 
 handleHistoryFetched : Paginated Build -> Model -> (Model, Effects Action)
 handleHistoryFetched history model =
   let
-    builds =
-      List.append (Maybe.withDefault [] model.history) history.content
-
     withBuilds =
-      { model | history = Just builds }
+      { model | history = List.append model.history history.content }
 
     loadedCurrentBuild =
       List.any ((==) model.buildId << .id) history.content
@@ -223,128 +200,6 @@ handleHistoryFetched history model =
       (Just url, Nothing) ->
         Debug.crash "impossible"
 
-handleEventsAction : Concourse.BuildEvents.Action -> Model -> (Model, Effects Action)
-handleEventsAction action model =
-  case action of
-    Concourse.BuildEvents.Opened ->
-      (model, Effects.none)
-
-    Concourse.BuildEvents.Errored ->
-      let
-        newState =
-          case model.stepState of
-            -- if we're loading and the event source errors, assume we're not
-            -- logged in (there's no way to actually tell)
-            StepsLoading ->
-              LoginRequired
-
-            -- closing the event source causes an error to come in, so ignore
-            -- it since that means everything actually worked
-            StepsComplete ->
-              model.stepState
-
-            -- getting an error in the middle could just be the ATC going away
-            -- (i.e. during a deploy). ignore it and let the browser
-            -- auto-reconnect
-            StepsLiveUpdating ->
-              model.stepState
-
-            -- shouldn't ever happen, but...
-            LoginRequired ->
-              model.stepState
-      in
-        ({ model | stepState = newState }, Effects.none)
-
-    Concourse.BuildEvents.Event (Ok event) ->
-      handleEvent event model
-
-    Concourse.BuildEvents.Event (Err err) ->
-      (model, Debug.log err Effects.none)
-
-    Concourse.BuildEvents.End ->
-      case model.eventSource of
-        Just es ->
-          ({ model | stepState = StepsComplete }, closeEvents es)
-
-        Nothing ->
-          (model, Effects.none)
-
-handleEvent : Concourse.BuildEvents.BuildEvent -> Model -> (Model, Effects Action)
-handleEvent event model =
-  case event of
-    Concourse.BuildEvents.Log origin output ->
-      ( updateStep origin.id (setRunning << appendStepLog output) model
-      , Effects.none
-      )
-
-    Concourse.BuildEvents.Error origin message ->
-      ( updateStep origin.id (setStepError message) model
-      , Effects.none
-      )
-
-    Concourse.BuildEvents.InitializeTask origin ->
-      ( updateStep origin.id setRunning model
-      , Effects.none
-      )
-
-    Concourse.BuildEvents.StartTask origin ->
-      ( updateStep origin.id setRunning model
-      , Effects.none
-      )
-
-    Concourse.BuildEvents.FinishTask origin exitStatus ->
-      ( updateStep origin.id (finishStep exitStatus) model
-      , Effects.none
-      )
-
-    Concourse.BuildEvents.InitializeGet origin ->
-      ( updateStep origin.id setRunning model
-      , Effects.none
-      )
-
-    Concourse.BuildEvents.FinishGet origin exitStatus version metadata ->
-      ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
-      , Effects.none
-      )
-
-    Concourse.BuildEvents.InitializePut origin ->
-      ( updateStep origin.id setRunning model
-      , Effects.none
-      )
-
-    Concourse.BuildEvents.FinishPut origin exitStatus version metadata ->
-      ( updateStep origin.id (finishStep exitStatus << setResourceInfo version metadata) model
-      , Effects.none
-      )
-
-    Concourse.BuildEvents.BuildStatus status date ->
-      let
-        updated =
-          if not <| Concourse.BuildStatus.isRunning status then
-            { model | steps = Maybe.map (StepTree.update StepTree.Finished) model.steps }
-          else
-            model
-      in
-        ( updateStartFinishAt status date <|
-            case updated.stepState of
-              StepsLiveUpdating ->
-                { updated | status = status }
-
-              _ ->
-                updated
-        , Effects.none
-        )
-
-    Concourse.BuildEvents.BuildError message ->
-      ( { model |
-          errors =
-            Just <|
-              Ansi.Log.update message <|
-                Maybe.withDefault (Ansi.Log.init Ansi.Log.Cooked) model.errors
-        }
-      , Effects.none
-      )
-
 updateStartFinishAt : BuildStatus -> Date -> Model -> Model
 updateStartFinishAt status date model =
   let
@@ -364,140 +219,20 @@ abortBuild buildId =
     |> Task.map BuildAborted
     |> Effects.task
 
-updateStep : StepTree.StepID -> (StepTree -> StepTree) -> Model -> Model
-updateStep id update model =
-  { model | steps = Maybe.map (StepTree.updateAt id update) model.steps }
-
-setRunning : StepTree -> StepTree
-setRunning = setStepState StepTree.StepStateRunning
-
-appendStepLog : String -> StepTree -> StepTree
-appendStepLog output tree =
-  StepTree.map (\step -> { step | log = Ansi.Log.update output step.log }) tree
-
-setStepError : String -> StepTree -> StepTree
-setStepError message tree =
-  StepTree.map
-    (\step ->
-      { step
-      | state = StepTree.StepStateErrored
-      , error = Just message
-      })
-    tree
-
-finishStep : Int -> StepTree -> StepTree
-finishStep exitStatus tree =
-  let
-    stepState =
-      if exitStatus == 0 then
-        StepTree.StepStateSucceeded
-      else
-        StepTree.StepStateFailed
-  in
-    setStepState stepState tree
-
-setResourceInfo : Version -> Metadata -> StepTree -> StepTree
-setResourceInfo version metadata tree =
-  StepTree.map (\step -> { step | version = Just version, metadata = metadata }) tree
-
-setStepState : StepTree.StepState -> StepTree -> StepTree
-setStepState state tree =
-  StepTree.map (\step -> { step | state = state }) tree
-
 view : Signal.Address Action -> Model -> Html
 view actions model =
-  case (model.build, model.steps) of
-    (Just build, Just root) ->
+  case (model.build, model.output) of
+    (Just build, Just output) ->
       Html.div []
-        [ viewBuildHeader actions build model.status model.now model.duration (Maybe.withDefault [] model.history)
-        , Html.div (id "build-body" :: paddingClass build)
-            [ case model.stepState of
-                StepsLoading ->
-                  loadingIndicator
-
-                StepsLiveUpdating ->
-                  viewSteps actions model.errors build root
-
-                StepsComplete ->
-                  viewSteps actions model.errors build root
-
-                LoginRequired ->
-                  viewLoginButton build
-            ]
-        ]
-
-    (Just build, Nothing) ->
-      Html.div []
-        [ viewBuildHeader actions build model.status model.now model.duration (Maybe.withDefault [] model.history)
-        , Html.div (id "build-body" :: paddingClass build)
-            [Html.div [class "steps"] [viewErrors model.errors]]
+        [ viewBuildHeader actions build model
+        , Html.Lazy.lazy (BuildOutput.view (Signal.forwardTo actions BuildOutputAction)) output
         ]
 
     _ ->
-      loadingIndicator
+      LoadingIndicator.view
 
-loadingIndicator : Html
-loadingIndicator =
-  Html.div [class "steps"]
-    [ Html.div [class "build-step"]
-        [ Html.div [class "header"]
-            [ Html.i [class "left fa fa-fw fa-spin fa-circle-o-notch"] []
-            , Html.h3 [] [Html.text "loading"]
-            ]
-        ]
-    ]
-
-viewSteps : Signal.Address Action -> Maybe Ansi.Log.Model -> Build -> StepTree.Model -> Html
-viewSteps actions errors build root =
-  Html.div [class "steps"]
-    [ viewErrors errors
-    , StepTree.view (Signal.forwardTo actions StepTreeAction) root
-    ]
-
-viewErrors : Maybe Ansi.Log.Model -> Html
-viewErrors errors =
-  case errors of
-    Nothing ->
-      Html.div [] []
-
-    Just log ->
-      Html.div [class "build-step"]
-        [ Html.div [class "header"]
-            [ Html.i [class "left fa fa-fw fa-exclamation-triangle"] []
-            , Html.h3 [] [Html.text "error"]
-            ]
-        , Html.div [class "step-body build-errors-body"] [Ansi.Log.view log]
-        ]
-
-viewLoginButton : Build -> Html
-viewLoginButton build =
-  Html.form
-    [ class "build-login"
-    , Html.Attributes.method "get"
-    , Html.Attributes.action "/login"
-    ]
-    [ Html.input
-        [ Html.Attributes.type' "submit"
-        , Html.Attributes.value "log in to view"
-        ] []
-    , Html.input
-        [ Html.Attributes.type' "hidden"
-        , Html.Attributes.name "redirect"
-        , Html.Attributes.value (Concourse.Build.url build)
-        ] []
-    ]
-
-paddingClass : Build -> List Html.Attribute
-paddingClass build =
-  case build.job of
-    Just _ ->
-      []
-
-    _ ->
-      [class "build-body-noSubHeader"]
-
-viewBuildHeader : Signal.Address Action -> Build -> BuildStatus -> Time.Time -> BuildDuration -> List Build -> Html
-viewBuildHeader actions build status now duration history =
+viewBuildHeader : Signal.Address Action -> Build -> Model -> Html
+viewBuildHeader actions build {status, now, duration, history} =
   let
     triggerButton =
       case build.job of
@@ -613,37 +348,11 @@ fetchBuild delay buildId =
     |> Task.map BuildFetched
     |> Effects.task
 
-fetchBuildPlanAndResources : Int -> Effects Action
-fetchBuildPlanAndResources buildId =
-  Task.map2 (,) (Concourse.BuildPlan.fetch buildId) (Concourse.BuildResources.fetch buildId)
-    |> Task.toResult
-    |> Task.map PlanAndResourcesFetched
-    |> Effects.task
-
-fetchBuildPlan : Int -> Effects Action
-fetchBuildPlan buildId =
-  Task.map (flip (,) Concourse.BuildResources.empty) (Concourse.BuildPlan.fetch buildId)
-    |> Task.toResult
-    |> Task.map PlanAndResourcesFetched
-    |> Effects.task
-
 fetchBuildHistory : Concourse.Build.Job -> Maybe Concourse.Pagination.Page -> Effects Action
 fetchBuildHistory job page =
   Concourse.Build.fetchJobBuilds job page
     |> Task.toResult
     |> Task.map BuildHistoryFetched
-    |> Effects.task
-
-subscribeToEvents : Int -> Signal.Address Action -> Effects Action
-subscribeToEvents build actions =
-  Concourse.BuildEvents.subscribe build (Signal.forwardTo actions BuildEventsAction)
-    |> Task.map BuildEventsListening
-    |> Effects.task
-
-closeEvents : EventSource.EventSource -> Effects Action
-closeEvents eventSource =
-  EventSource.close eventSource
-    |> Task.map (always BuildEventsClosed)
     |> Effects.task
 
 scrollBuilds : Float -> Effects Action
