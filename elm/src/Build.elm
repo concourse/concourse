@@ -89,7 +89,6 @@ update action model =
         (model, Effects.none)
 
     BuildFetched (Ok build) ->
-      -- TODO update duration in header?
       handleBuildFetched build model
 
     BuildFetched (Err err) ->
@@ -138,7 +137,10 @@ update action model =
 handleBuildFetched : Build -> Model -> (Model, Effects Action)
 handleBuildFetched build model =
   let
-    withBuild = { model | build = Just build, status = build.status }
+    withBuild =
+      { model | build = Just build
+              , status = build.status
+              , duration = BuildDuration build.startedAt build.finishedAt }
 
     fetchHistory =
       case (model.build, build.job) of

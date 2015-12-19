@@ -1,5 +1,6 @@
 module Concourse.Build where
 
+import Date exposing (Date)
 import Http
 import Json.Decode exposing ((:=))
 import Task exposing (Task)
@@ -12,6 +13,8 @@ type alias Build =
   , name : String
   , job : Maybe Job
   , status : BuildStatus
+  , startedAt : Maybe Date
+  , finishedAt : Maybe Date
   }
 
 type alias BuildId =
@@ -57,13 +60,15 @@ url build =
 
 decode : Json.Decode.Decoder Build
 decode =
-  Json.Decode.object4 Build
+  Json.Decode.object6 Build
     ("id" := Json.Decode.int)
     ("name" := Json.Decode.string)
     (Json.Decode.maybe (Json.Decode.object2 Job
       ("job_name" := Json.Decode.string)
       ("pipeline_name" := Json.Decode.string)))
     ("status" := Concourse.BuildStatus.decode)
+    (Json.Decode.maybe ("start_time" := Json.Decode.map dateFromSeconds Json.Decode.float))
+    (Json.Decode.maybe ("end_time" := Json.Decode.map dateFromSeconds Json.Decode.float))
 
 handleResponse : Http.Response -> Task Http.Error ()
 handleResponse response =
@@ -78,3 +83,5 @@ promoteHttpError rawError =
     Http.RawTimeout -> Http.Timeout
     Http.RawNetworkError -> Http.NetworkError
 
+dateFromSeconds : Float -> Date
+dateFromSeconds = Date.fromTime << ((*) 1000)
