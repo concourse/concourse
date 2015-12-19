@@ -180,7 +180,7 @@ handleHistoryFetched : Paginated Build -> Model -> (Model, Effects Action)
 handleHistoryFetched history model =
   let
     withBuilds =
-      { model | history = List.append model.history (Debug.log "history" history.content) }
+      { model | history = List.append model.history history.content }
 
     loadedCurrentBuild =
       List.any ((==) model.buildId << .id) history.content

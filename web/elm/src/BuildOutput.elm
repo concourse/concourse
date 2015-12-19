@@ -314,7 +314,7 @@ viewStepTree actions build steps state =
       StepTree.view (Signal.forwardTo actions StepTreeAction) root
 
     (_, Nothing) ->
-      LoadingIndicator.view
+      Html.div [] []
 
 viewErrors : Maybe Ansi.Log.Model -> Html
 viewErrors errors =
