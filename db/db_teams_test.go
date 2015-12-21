@@ -212,7 +212,7 @@ var _ = Describe("SQL DB Teams", func() {
 		})
 	})
 
-	Describe("CreateTeam", func() {
+	Describe("SaveTeam", func() {
 		It("saves a team to the db", func() {
 			expectedTeam := db.Team{
 				Name: "avengers",
@@ -224,6 +224,62 @@ var _ = Describe("SQL DB Teams", func() {
 			savedTeam, err := database.GetTeamByName("avengers")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(savedTeam).To(Equal(expectedSavedTeam))
+		})
+
+		It("saves a team to the db with basic auth", func() {
+			expectedTeam := db.Team{
+				Name: "avengers",
+				BasicAuth: db.BasicAuth{
+					BasicAuthUsername: "fake user",
+					BasicAuthPassword: "no, bad",
+				},
+			}
+			expectedSavedTeam, err := database.SaveTeam(expectedTeam)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(expectedSavedTeam.Team.Name).To(Equal(expectedTeam.Name))
+
+			savedTeam, err := database.GetTeamByName("avengers")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(savedTeam).To(Equal(expectedSavedTeam))
+
+			Expect(savedTeam.BasicAuthUsername).To(Equal(expectedTeam.BasicAuthUsername))
+			Expect(bcrypt.CompareHashAndPassword([]byte(savedTeam.BasicAuthPassword),
+				[]byte(expectedTeam.BasicAuthPassword))).To(BeNil())
+		})
+
+		It("saves a team to the db with github auth", func() {
+			expectedTeam := db.Team{
+				Name: "avengers",
+				GitHubAuth: db.GitHubAuth{
+					ClientID:      "fake id",
+					ClientSecret:  "some secret",
+					Organizations: []string{"a", "b", "c"},
+					Teams: []db.GitHubTeam{
+						{
+							OrganizationName: "org1",
+							TeamName:         "teama",
+						},
+						{
+							OrganizationName: "org2",
+							TeamName:         "teamb",
+						},
+					},
+					Users: []string{"user1", "user2", "user3"},
+				},
+			}
+			expectedSavedTeam, err := database.SaveTeam(expectedTeam)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
+
+			savedTeam, err := database.GetTeamByName("avengers")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(savedTeam).To(Equal(expectedSavedTeam))
+
+			Expect(savedTeam.ClientID).To(Equal(expectedTeam.ClientID))
+			Expect(savedTeam.ClientSecret).To(Equal(expectedTeam.ClientSecret))
+			Expect(savedTeam.Organizations).To(Equal(expectedTeam.Organizations))
+			Expect(savedTeam.Teams).To(Equal(expectedTeam.Teams))
+			Expect(savedTeam.Users).To(Equal(expectedTeam.Users))
 		})
 	})
 })

@@ -466,8 +466,7 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.D
 
 	if cmd.BasicAuth.Username != "" && cmd.BasicAuth.Password != "" {
 		basicAuthValidator = auth.BasicAuthValidator{
-			Username: cmd.BasicAuth.Username,
-			Password: cmd.BasicAuth.Password,
+			DB: sqlDB,
 		}
 		team := db.Team{
 			Name: atc.DefaultTeamName,

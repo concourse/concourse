@@ -54,30 +54,24 @@ func (db *SQLDB) CreateDefaultTeamIfNotExists() error {
 }
 
 func (db *SQLDB) SaveTeam(data Team) (SavedTeam, error) {
-	var savedTeam SavedTeam
-
-	tx, err := db.conn.Begin()
+	jsonEncodedBasicAuth, err := db.jsonEncodeTeamBasicAuth(data)
+	if err != nil {
+		return SavedTeam{}, err
+	}
+	jsonEncodedGithubAuth, err := db.jsonEncodeTeamGithubAuth(data)
 	if err != nil {
 		return SavedTeam{}, err
 	}
 
-	defer tx.Rollback()
-
-	err = tx.QueryRow(`
+	return db.queryTeam(fmt.Sprintf(`
 	INSERT INTO teams (
-    name
+    name, basic_auth, github_auth
 	) VALUES (
-		$1
+		'%s', '%s', '%s'
 	)
-	RETURNING id, name
-	`, data.Name,
-	).Scan(&savedTeam.ID, &savedTeam.Name)
-
-	if err != nil {
-		return SavedTeam{}, err
-	}
-
-	return savedTeam, tx.Commit()
+	RETURNING id, name, basic_auth, github_auth
+	`, data.Name, jsonEncodedBasicAuth, jsonEncodedGithubAuth,
+	))
 }
 
 func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
@@ -131,11 +125,17 @@ func (db *SQLDB) GetTeamByName(teamName string) (SavedTeam, error) {
 	return db.queryTeam(query)
 }
 
-func (db *SQLDB) UpdateTeamGithubAuth(team Team) (SavedTeam, error) {
+func (db *SQLDB) jsonEncodeTeamGithubAuth(team Team) (string, error) {
 	if team.ClientID == "" || team.ClientSecret == "" {
 		team.GitHubAuth = GitHubAuth{}
 	}
-	github_auth, err := json.Marshal(team.GitHubAuth)
+
+	json, err := json.Marshal(team.GitHubAuth)
+	return string(json), err
+}
+
+func (db *SQLDB) UpdateTeamGithubAuth(team Team) (SavedTeam, error) {
+	github_auth, err := db.jsonEncodeTeamGithubAuth(team)
 	if err != nil {
 		return SavedTeam{}, err
 	}
@@ -150,18 +150,23 @@ func (db *SQLDB) UpdateTeamGithubAuth(team Team) (SavedTeam, error) {
 	return db.queryTeam(query)
 }
 
-func (db *SQLDB) UpdateTeamBasicAuth(team Team) (SavedTeam, error) {
+func (db *SQLDB) jsonEncodeTeamBasicAuth(team Team) (string, error) {
 	if team.BasicAuthUsername == "" || team.BasicAuthPassword == "" {
 		team.BasicAuth = BasicAuth{}
 	} else {
 		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(team.BasicAuthPassword), 11)
 		if err != nil {
-			return SavedTeam{}, err
+			return "", err
 		}
 		team.BasicAuthPassword = string(encryptedPw)
 	}
 
-	basic_auth, err := json.Marshal(team.BasicAuth)
+	json, err := json.Marshal(team.BasicAuth)
+	return string(json), err
+}
+
+func (db *SQLDB) UpdateTeamBasicAuth(team Team) (SavedTeam, error) {
+	basic_auth, err := db.jsonEncodeTeamBasicAuth(team)
 	if err != nil {
 		return SavedTeam{}, err
 	}

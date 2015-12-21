@@ -72,7 +72,14 @@ var _ = Describe("Job Pausing", func() {
 			var build db.Build
 
 			BeforeEach(func() {
-				team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
+				team, err := sqlDB.SaveTeam(
+					db.Team{
+						Name: atc.DefaultTeamName,
+						BasicAuth: db.BasicAuth{
+							BasicAuthUsername: "admin",
+							BasicAuthPassword: "password",
+						},
+					})
 				Expect(err).NotTo(HaveOccurred())
 
 				// job build data

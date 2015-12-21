@@ -34,7 +34,7 @@ var _ = Describe("Pipeline Pausing", func() {
 		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbLogger, dbConn, bus, sqlDB)
 		atcProcess, atcPort = startATC(atcBin, 1, true, BASIC_AUTH)
-		_, err := dbConn.Query(`DELETE FROM teams WHERE name = 'main'`)
+		err := sqlDB.DeleteTeamByName(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -69,7 +69,13 @@ var _ = Describe("Pipeline Pausing", func() {
 		Context("with a job in the configuration", func() {
 
 			BeforeEach(func() {
-				team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
+				team, err := sqlDB.SaveTeam(db.Team{
+					Name: atc.DefaultTeamName,
+					BasicAuth: db.BasicAuth{
+						BasicAuthUsername: "admin",
+						BasicAuthPassword: "password",
+					},
+				})
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = sqlDB.SaveConfig(team.Name, "some-pipeline", atc.Config{
