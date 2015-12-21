@@ -33,3 +33,6 @@ RUN update-alternatives --install /usr/bin/node node /usr/bin/nodejs 10
 
 # Git (for elm-package)
 RUN apt-get -y install git
+
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
