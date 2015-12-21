@@ -28,7 +28,7 @@ type DB interface {
 	SaveTeam(team Team) (SavedTeam, error)
 	GetTeamByName(teamName string) (SavedTeam, error)
 	UpdateTeamBasicAuth(team Team) (SavedTeam, error)
-	UpdateTeamGithubAuth(team Team) (SavedTeam, error)
+	UpdateTeamGitHubAuth(team Team) (SavedTeam, error)
 	CreateDefaultTeamIfNotExists() error
 	DeleteTeamByName(teamName string) error
 

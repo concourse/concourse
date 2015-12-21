@@ -22,7 +22,7 @@ var _ = Describe("Auth", func() {
 	var dbListener *pq.Listener
 	var atcPort uint16
 
-	Describe("Github Auth", func() {
+	Describe("GitHub Auth", func() {
 		BeforeEach(func() {
 			logger := lagertest.NewTestLogger("test")
 			postgresRunner.Truncate()

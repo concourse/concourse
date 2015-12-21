@@ -13,15 +13,15 @@ type FactoryDB interface {
 	GetTeamByName(teamName string) (db.SavedTeam, error)
 }
 
-type OauthFactory struct {
+type OAuthFactory struct {
 	db             FactoryDB
 	atcExternalURL string
 	routes         rata.Routes
 	callback       string
 }
 
-func NewOauthFactory(db FactoryDB, atcExternalURL string, routes rata.Routes, callback string) OauthFactory {
-	return OauthFactory{
+func NewOAuthFactory(db FactoryDB, atcExternalURL string, routes rata.Routes, callback string) OAuthFactory {
+	return OAuthFactory{
 		db:             db,
 		atcExternalURL: atcExternalURL,
 		routes:         routes,
@@ -29,7 +29,7 @@ func NewOauthFactory(db FactoryDB, atcExternalURL string, routes rata.Routes, ca
 	}
 }
 
-func (of OauthFactory) GetProviders(teamName string) (Providers, error) {
+func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
 	team, err := of.db.GetTeamByName(teamName)
 	if err != nil {
 		return Providers{}, err
@@ -42,8 +42,8 @@ func (of OauthFactory) GetProviders(teamName string) (Providers, error) {
 	if err != nil {
 		return Providers{}, err
 	}
-	githubAuthProvider := github.NewProvider(team.GitHubAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
+	gitHubAuthProvider := github.NewProvider(team.GitHubAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
 
-	providers[github.ProviderName] = githubAuthProvider
+	providers[github.ProviderName] = gitHubAuthProvider
 	return providers, err
 }

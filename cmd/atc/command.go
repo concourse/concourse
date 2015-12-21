@@ -158,7 +158,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		return err
 	}
 
-	providerFactory := provider.NewOauthFactory(
+	providerFactory := provider.NewOAuthFactory(
 		sqlDB,
 		cmd.ExternalURL.String(),
 		auth.OAuthRoutes,
@@ -449,7 +449,7 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB)
 		team.GitHubAuth = db.GitHubAuth{}
 	}
 
-	_, err = sqlDB.UpdateTeamGithubAuth(team)
+	_, err = sqlDB.UpdateTeamGitHubAuth(team)
 	if err != nil {
 		return err
 	}
@@ -551,7 +551,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	reconfigurableSink *lager.ReconfigurableSink,
 	sqlDB *db.SQLDB,
 	authValidator auth.Validator,
-	providerFactory provider.OauthFactory,
+	providerFactory provider.OAuthFactory,
 	basicAuthEnabled bool,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,

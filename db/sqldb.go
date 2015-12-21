@@ -58,7 +58,7 @@ func (db *SQLDB) SaveTeam(data Team) (SavedTeam, error) {
 	if err != nil {
 		return SavedTeam{}, err
 	}
-	jsonEncodedGithubAuth, err := db.jsonEncodeTeamGithubAuth(data)
+	jsonEncodedGitHubAuth, err := db.jsonEncodeTeamGitHubAuth(data)
 	if err != nil {
 		return SavedTeam{}, err
 	}
@@ -70,12 +70,12 @@ func (db *SQLDB) SaveTeam(data Team) (SavedTeam, error) {
 		'%s', '%s', '%s'
 	)
 	RETURNING id, name, basic_auth, github_auth
-	`, data.Name, jsonEncodedBasicAuth, jsonEncodedGithubAuth,
+	`, data.Name, jsonEncodedBasicAuth, jsonEncodedGitHubAuth,
 	))
 }
 
 func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
-	var basic_auth, github_auth sql.NullString
+	var basicAuth, gitHubAuth sql.NullString
 	var savedTeam SavedTeam
 
 	tx, err := db.conn.Begin()
@@ -87,8 +87,8 @@ func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
 	err = tx.QueryRow(query).Scan(
 		&savedTeam.ID,
 		&savedTeam.Name,
-		&basic_auth,
-		&github_auth,
+		&basicAuth,
+		&gitHubAuth,
 	)
 	if err != nil {
 		return savedTeam, err
@@ -98,15 +98,15 @@ func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
 		return savedTeam, err
 	}
 
-	if basic_auth.Valid {
-		err = json.Unmarshal([]byte(basic_auth.String), &savedTeam.BasicAuth)
+	if basicAuth.Valid {
+		err = json.Unmarshal([]byte(basicAuth.String), &savedTeam.BasicAuth)
 		if err != nil {
 			return savedTeam, err
 		}
 	}
 
-	if github_auth.Valid {
-		err = json.Unmarshal([]byte(github_auth.String), &savedTeam.GitHubAuth)
+	if gitHubAuth.Valid {
+		err = json.Unmarshal([]byte(gitHubAuth.String), &savedTeam.GitHubAuth)
 		if err != nil {
 			return savedTeam, err
 		}
@@ -125,7 +125,7 @@ func (db *SQLDB) GetTeamByName(teamName string) (SavedTeam, error) {
 	return db.queryTeam(query)
 }
 
-func (db *SQLDB) jsonEncodeTeamGithubAuth(team Team) (string, error) {
+func (db *SQLDB) jsonEncodeTeamGitHubAuth(team Team) (string, error) {
 	if team.ClientID == "" || team.ClientSecret == "" {
 		team.GitHubAuth = GitHubAuth{}
 	}
@@ -134,8 +134,8 @@ func (db *SQLDB) jsonEncodeTeamGithubAuth(team Team) (string, error) {
 	return string(json), err
 }
 
-func (db *SQLDB) UpdateTeamGithubAuth(team Team) (SavedTeam, error) {
-	github_auth, err := db.jsonEncodeTeamGithubAuth(team)
+func (db *SQLDB) UpdateTeamGitHubAuth(team Team) (SavedTeam, error) {
+	gitHubAuth, err := db.jsonEncodeTeamGitHubAuth(team)
 	if err != nil {
 		return SavedTeam{}, err
 	}
@@ -145,7 +145,7 @@ func (db *SQLDB) UpdateTeamGithubAuth(team Team) (SavedTeam, error) {
 		SET github_auth = '%s'
 		WHERE name = '%s'
 		RETURNING id, name, basic_auth, github_auth
-	`, github_auth, team.Name,
+	`, gitHubAuth, team.Name,
 	)
 	return db.queryTeam(query)
 }
@@ -166,7 +166,7 @@ func (db *SQLDB) jsonEncodeTeamBasicAuth(team Team) (string, error) {
 }
 
 func (db *SQLDB) UpdateTeamBasicAuth(team Team) (SavedTeam, error) {
-	basic_auth, err := db.jsonEncodeTeamBasicAuth(team)
+	basicAuth, err := db.jsonEncodeTeamBasicAuth(team)
 	if err != nil {
 		return SavedTeam{}, err
 	}
@@ -176,7 +176,7 @@ func (db *SQLDB) UpdateTeamBasicAuth(team Team) (SavedTeam, error) {
 		SET basic_auth = '%s'
 		WHERE name = '%s'
 		RETURNING id, name, basic_auth, github_auth
-	`, basic_auth, team.Name)
+	`, basicAuth, team.Name)
 	return db.queryTeam(query)
 }
 
