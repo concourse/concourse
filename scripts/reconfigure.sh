@@ -19,7 +19,7 @@ configure_pipeline() {
   fly -t ci set-pipeline \
     -p $name \
     -c $pipeline \
-    -l <(lpass show "Shared-Concourse/Concourse Pipeline Credentials" --notes)
+    -l <(lpass show "Concourse Pipeline Credentials" --notes)
 }
 
 check_installed lpass
