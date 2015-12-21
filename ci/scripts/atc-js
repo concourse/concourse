@@ -11,6 +11,7 @@ pushd concourse/src/github.com/concourse/atc/web
   gulp jasmine-cli
 
   pushd elm
-    elm --yes test TestRunner.elm
+    elm-package install --yes
+    elm-test TestRunner.elm
   popd
 popd
