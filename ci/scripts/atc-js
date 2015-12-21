@@ -12,9 +12,6 @@ pushd concourse/src/github.com/concourse/atc/web
 
   pushd elm
     elm-package install --yes
-
-    # LANG is needs to be set explicitly because of this Elm bug:
-    #   https://github.com/elm-lang/elm-make/issues/33
-    LANG=en_US.UTF-8 elm-test TestRunner.elm
+    elm-test TestRunner.elm
   popd
 popd
