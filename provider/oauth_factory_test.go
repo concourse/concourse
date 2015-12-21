@@ -12,13 +12,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("OauthFactory", func() {
+var _ = Describe("OAuthFactory", func() {
 	var fakeFactoryDB *fakes.FakeFactoryDB
-	var oauthFactory OauthFactory
+	var oauthFactory OAuthFactory
 
 	BeforeEach(func() {
 		fakeFactoryDB = new(fakes.FakeFactoryDB)
-		oauthFactory = NewOauthFactory(
+		oauthFactory = NewOAuthFactory(
 			fakeFactoryDB,
 			"http://foo.bar",
 			auth.OAuthRoutes,
@@ -27,7 +27,7 @@ var _ = Describe("OauthFactory", func() {
 	})
 
 	Describe("Get Providers", func() {
-		Describe("Github Provider", func() {
+		Describe("GitHub Provider", func() {
 			BeforeEach(func() {
 				savedTeam := db.SavedTeam{
 					Team: db.Team{
@@ -41,7 +41,7 @@ var _ = Describe("OauthFactory", func() {
 				fakeFactoryDB.GetTeamByNameReturns(savedTeam, nil)
 			})
 
-			It("returns back Github's auth provider", func() {
+			It("returns back GitHub's auth provider", func() {
 				providers, err := oauthFactory.GetProviders(atc.DefaultTeamName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(providers).To(HaveLen(1))
