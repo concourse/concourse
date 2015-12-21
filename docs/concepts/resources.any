@@ -33,7 +33,7 @@ your \reference{build-plans} via the \reference{get-step} and
   Be sure to read the \code{README} file for a resource to know what it does
   before using it!
 
-  \section{Resources Provided With Concourse} {
+  \section{Resources Provided With Concourse}{
     Concourse ships with a number of prebuilt resources:
 
     \list{
@@ -82,8 +82,9 @@ your \reference{build-plans} via the \reference{get-step} and
     }
   }
 
-  \section{Unsupported Community Resources} {
+  \section{Unsupported Community Resources}{
     WARNING: These are third-party resources. Use at your own risk!
+
     \list{
       \hyperlink{https://github.com/Nopik/slack-notification-resource}{Slack notifications}
     }{
@@ -107,7 +108,7 @@ your \reference{build-plans} via the \reference{get-step} and
     }
   }
 
-  \section{Adding to this list} {
+  \section{Adding to this list}{
     Fork the \hyperlink{https://github.com/concourse/concourse}{\code{concourse/concourse}}
     repository, edit \code{concourse/docs/concepts/resources.any}, then make a pull request.
   }
