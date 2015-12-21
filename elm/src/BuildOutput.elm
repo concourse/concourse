@@ -26,6 +26,7 @@ type alias Model =
   , state : OutputState
   , context : Context
   , eventSource : Maybe EventSource
+  , eventSourceOpened : Bool
   }
 
 type alias Context =
@@ -63,6 +64,7 @@ init build ctx =
       , state = outputState
       , context = ctx
       , eventSource = Nothing
+      , eventSourceOpened = False
       }
 
     fetch =
@@ -109,33 +111,17 @@ handleEventsAction : Concourse.BuildEvents.Action -> Model -> (Model, Effects Ac
 handleEventsAction action model =
   case action of
     Concourse.BuildEvents.Opened ->
-      (model, Effects.none)
+      ({ model | eventSourceOpened = True }, Effects.none)
 
     Concourse.BuildEvents.Errored ->
-      let
-        newState =
-          case model.state of
-            -- if we're loading and the event source errors, assume we're not
-            -- logged in (there's no way to actually tell)
-            StepsLoading ->
-              LoginRequired
-
-            -- closing the event source causes an error to come in, so ignore
-            -- it since that means everything actually worked
-            StepsComplete ->
-              model.state
-
-            -- getting an error in the middle could just be the ATC going away
-            -- (i.e. during a deploy). ignore it and let the browser
-            -- auto-reconnect
-            StepsLiveUpdating ->
-              model.state
-
-            -- shouldn't ever happen, but...
-            LoginRequired ->
-              model.state
-      in
-        ({ model | state = newState }, Effects.none)
+      if model.eventSourceOpened then
+        -- connection could have dropped out of the blue; just let the browser
+        -- handle reconnecting
+        (model, Effects.none)
+      else
+        -- assume request was rejected because auth is required; no way to
+        -- really tell
+        ({ model | state = LoginRequired }, Effects.none)
 
     Concourse.BuildEvents.Event (Ok event) ->
       handleEvent event model
