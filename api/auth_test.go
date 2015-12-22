@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -119,7 +121,21 @@ var _ = Describe("Auth API", func() {
 		var request *http.Request
 		var response *http.Response
 
+		var savedTeam db.SavedTeam
+
 		BeforeEach(func() {
+			savedTeam = db.SavedTeam{
+				ID: 0,
+				Team: db.Team{
+					Name: atc.DefaultTeamName,
+					BasicAuth: db.BasicAuth{
+						BasicAuthUsername: "user",
+						BasicAuthPassword: "password",
+					},
+				},
+			}
+
+			authDB.GetTeamByNameReturns(savedTeam, nil)
 			var err error
 			request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
 			Expect(err).NotTo(HaveOccurred())

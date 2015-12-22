@@ -38,9 +38,9 @@ var (
 	authValidator        *authfakes.FakeValidator
 	fakeTokenGenerator   *authfakes.FakeTokenGenerator
 	providerFactory      authfakes.FakeProviderFactory
-	basicAuthEnabled     = true
 	fakeEngine           *enginefakes.FakeEngine
 	fakeWorkerClient     *workerfakes.FakeClient
+	authDB               *authfakes.FakeAuthDB
 	buildsDB             *buildfakes.FakeBuildsDB
 	volumesDB            *volumeserverfakes.FakeVolumesDB
 	configDB             *dbfakes.FakeConfigDB
@@ -84,6 +84,7 @@ func (f *fakeEventHandlerFactory) Construct(
 }
 
 var _ = BeforeEach(func() {
+	authDB = new(authfakes.FakeAuthDB)
 	buildsDB = new(buildfakes.FakeBuildsDB)
 	configDB = new(dbfakes.FakeConfigDB)
 	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
@@ -142,11 +143,11 @@ var _ = BeforeEach(func() {
 
 		fakeTokenGenerator,
 		providerFactory,
-		basicAuthEnabled,
 
 		pipelineDBFactory,
 		configDB,
 
+		authDB,
 		buildsDB,
 		workerDB,
 		containerDB,

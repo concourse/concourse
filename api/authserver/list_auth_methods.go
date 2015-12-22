@@ -37,7 +37,13 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	if s.basicAuthEnabled {
+	team, err := s.db.GetTeamByName(atc.DefaultTeamName)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if team.BasicAuth.BasicAuthPassword != "" {
 		path, err := web.Routes.CreatePathForRoute(
 			web.BasicAuth,
 			rata.Params{},

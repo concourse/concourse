@@ -148,7 +148,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		return err
 	}
 
-	authValidator, basicAuthEnabled, err := cmd.constructValidator(signingKey, sqlDB)
+	authValidator, err := cmd.constructValidator(signingKey, sqlDB)
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,6 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		sqlDB,
 		authValidator,
 		providerFactory,
-		basicAuthEnabled,
 		signingKey,
 		pipelineDBFactory,
 		engine,
@@ -457,9 +456,9 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB)
 	return nil
 }
 
-func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.DB) (auth.Validator, bool, error) {
+func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.DB) (auth.Validator, error) {
 	if cmd.Developer.DevelopmentMode {
-		return auth.NoopValidator{}, false, nil
+		return auth.NoopValidator{}, nil
 	}
 
 	jwtValidator := auth.JWTValidator{
@@ -481,13 +480,13 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.D
 		}
 		_, err := sqlDB.UpdateTeamBasicAuth(team)
 		if err != nil {
-			return basicAuthValidator, false, err
+			return basicAuthValidator, err
 		}
 	} else {
 		team := db.Team{Name: atc.DefaultTeamName}
 		_, err := sqlDB.UpdateTeamBasicAuth(team)
 		if err != nil {
-			return basicAuthValidator, false, err
+			return basicAuthValidator, err
 		}
 	}
 
@@ -499,7 +498,7 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.D
 		validator = jwtValidator
 	}
 
-	return validator, basicAuthValidator != nil, nil
+	return validator, nil
 }
 
 func (cmd *ATCCommand) constructEngine(
@@ -552,7 +551,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 	sqlDB *db.SQLDB,
 	authValidator auth.Validator,
 	providerFactory provider.OAuthFactory,
-	basicAuthEnabled bool,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
 	engine engine.Engine,
@@ -572,10 +570,10 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		auth.NewTokenGenerator(signingKey),
 		providerFactory,
-		basicAuthEnabled,
 
 		pipelineDBFactory,
 
+		sqlDB, // authserver.AuthDB
 		sqlDB, // db.ConfigDB
 		sqlDB, // buildserver.BuildsDB
 		sqlDB, // workerserver.WorkerDB

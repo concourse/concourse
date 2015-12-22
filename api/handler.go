@@ -38,11 +38,11 @@ func NewHandler(
 
 	tokenGenerator auth.TokenGenerator,
 	providerFactory auth.ProviderFactory,
-	basicAuthEnabled bool,
 
 	pipelineDBFactory db.PipelineDBFactory,
 	configDB db.ConfigDB,
 
+	authDB authserver.AuthDB,
 	buildsDB buildserver.BuildsDB,
 	workerDB workerserver.WorkerDB,
 	containerDB containerserver.ContainerDB,
@@ -76,7 +76,7 @@ func NewHandler(
 		externalURL,
 		tokenGenerator,
 		providerFactory,
-		basicAuthEnabled,
+		authDB,
 	)
 
 	buildServer := buildserver.NewServer(
