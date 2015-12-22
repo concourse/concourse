@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/auth/provider/fakes"
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -131,48 +133,63 @@ var _ = Describe("Auth API", func() {
 	})
 
 	Describe("GET /api/v1/auth/methods", func() {
-		var request *http.Request
-		var response *http.Response
+		Context("when providers are present", func() {
+			var request *http.Request
+			var response *http.Response
 
-		var savedTeam db.SavedTeam
+			var savedTeam db.SavedTeam
 
-		BeforeEach(func() {
-			savedTeam = db.SavedTeam{
-				ID: 0,
-				Team: db.Team{
-					Name: atc.DefaultTeamName,
-					BasicAuth: db.BasicAuth{
-						BasicAuthUsername: "user",
-						BasicAuthPassword: "password",
+			BeforeEach(func() {
+				authProvider1 := new(fakes.FakeProvider)
+				authProvider1.DisplayNameReturns("OAuth Provider 1")
+
+				authProvider2 := new(fakes.FakeProvider)
+				authProvider2.DisplayNameReturns("OAuth Provider 2")
+				providerFactory.GetProvidersReturns(
+					provider.Providers{
+						"oauth-provider-1": authProvider1,
+						"oauth-provider-2": authProvider2,
 					},
-				},
-			}
+					nil,
+				)
 
-			authDB.GetTeamByNameReturns(savedTeam, nil)
-			var err error
-			request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
-			Expect(err).NotTo(HaveOccurred())
-		})
+				savedTeam = db.SavedTeam{
+					ID: 0,
+					Team: db.Team{
+						Name: atc.DefaultTeamName,
+						BasicAuth: db.BasicAuth{
+							BasicAuthUsername: "user",
+							BasicAuthPassword: "password",
+						},
+					},
+				}
 
-		JustBeforeEach(func() {
-			var err error
-			response, err = client.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-		})
+				authDB.GetTeamByNameReturns(savedTeam, nil)
 
-		It("returns 200 OK", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-		})
+				var err error
+				request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
+				Expect(err).NotTo(HaveOccurred())
+			})
 
-		It("returns application/json", func() {
-			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-		})
+			JustBeforeEach(func() {
+				var err error
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
 
-		It("returns the configured providers", func() {
-			body, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
 
-			Expect(body).To(MatchJSON(`[
+			It("returns application/json", func() {
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			})
+
+			It("returns the configured providers", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
 				{
 					"type": "oauth",
 					"display_name": "OAuth Provider 1",
@@ -189,6 +206,50 @@ var _ = Describe("Auth API", func() {
 					"auth_url": "https://example.com/login/basic"
 				}
 			]`))
+			})
+		})
+
+		Context("when no providers are present", func() {
+			var request *http.Request
+			var response *http.Response
+
+			var savedTeam db.SavedTeam
+
+			BeforeEach(func() {
+				savedTeam = db.SavedTeam{
+					ID: 0,
+					Team: db.Team{
+						Name: atc.DefaultTeamName,
+					},
+				}
+
+				authDB.GetTeamByNameReturns(savedTeam, nil)
+
+				var err error
+				request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			JustBeforeEach(func() {
+				var err error
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns application/json", func() {
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			})
+
+			It("returns an empty set of providers", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[]`))
+			})
 		})
 	})
 })

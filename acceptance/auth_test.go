@@ -22,31 +22,33 @@ var _ = Describe("Auth", func() {
 	var dbListener *pq.Listener
 	var atcPort uint16
 
+	BeforeEach(func() {
+		logger := lagertest.NewTestLogger("test")
+		postgresRunner.Truncate()
+		dbConn = postgresRunner.Open()
+		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
+		bus := db.NewNotificationsBus(dbListener, dbConn)
+		sqlDB = db.NewSQL(logger, dbConn, bus)
+
+		err := sqlDB.DeleteTeamByName(atc.DefaultPipelineName)
+		Expect(err).NotTo(HaveOccurred())
+		team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		ginkgomon.Interrupt(atcProcess)
+
+		Expect(dbConn.Close()).To(Succeed())
+		Expect(dbListener.Close()).To(Succeed())
+	})
+
 	Describe("GitHub Auth", func() {
 		BeforeEach(func() {
-			logger := lagertest.NewTestLogger("test")
-			postgresRunner.Truncate()
-			dbConn = postgresRunner.Open()
-			dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-			bus := db.NewNotificationsBus(dbListener, dbConn)
-			sqlDB = db.NewSQL(logger, dbConn, bus)
-
-			err := sqlDB.DeleteTeamByName(atc.DefaultPipelineName)
-			Expect(err).NotTo(HaveOccurred())
-			team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
-			Expect(err).NotTo(HaveOccurred())
-
 			atcProcess, atcPort = startATC(atcBin, 1, false, GITHUB_AUTH)
-		})
-
-		AfterEach(func() {
-			ginkgomon.Interrupt(atcProcess)
-
-			Expect(dbConn.Close()).To(Succeed())
-			Expect(dbListener.Close()).To(Succeed())
 		})
 
 		It("forces a redirect to /login", func() {
@@ -66,29 +68,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("Basic Auth", func() {
 		BeforeEach(func() {
-			logger := lagertest.NewTestLogger("test")
-			postgresRunner.Truncate()
-			dbConn = postgresRunner.Open()
-			dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-			bus := db.NewNotificationsBus(dbListener, dbConn)
-			sqlDB = db.NewSQL(logger, dbConn, bus)
-
-			err := sqlDB.DeleteTeamByName(atc.DefaultPipelineName)
-			Expect(err).NotTo(HaveOccurred())
-			team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
-			Expect(err).NotTo(HaveOccurred())
-
 			atcProcess, atcPort = startATC(atcBin, 1, false, BASIC_AUTH)
-		})
-
-		AfterEach(func() {
-			ginkgomon.Interrupt(atcProcess)
-
-			Expect(dbConn.Close()).To(Succeed())
-			Expect(dbListener.Close()).To(Succeed())
 		})
 
 		It("forces a redirect to /login", func() {
@@ -102,6 +82,20 @@ var _ = Describe("Auth", func() {
 		It("logs in with Basic Auth and allows access", func() {
 			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
 			request.SetBasicAuth("admin", "password")
+			resp, err := http.DefaultClient.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.Request.URL.Path).To(Equal("/"))
+		})
+	})
+
+	Describe("No authentication via development mode", func() {
+		BeforeEach(func() {
+			atcProcess, atcPort = startATC(atcBin, 1, false, DEVELOPMENT_MODE)
+		})
+
+		It("logs in without authentication", func() {
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
 			resp, err := http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))

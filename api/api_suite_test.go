@@ -22,8 +22,6 @@ import (
 	volumeserverfakes "github.com/concourse/atc/api/volumeserver/fakes"
 	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
 	authfakes "github.com/concourse/atc/auth/fakes"
-	"github.com/concourse/atc/auth/provider"
-	providerfakes "github.com/concourse/atc/auth/provider/fakes"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 	workerfakes "github.com/concourse/atc/worker/fakes"
@@ -37,7 +35,7 @@ var (
 
 	authValidator        *authfakes.FakeValidator
 	fakeTokenGenerator   *authfakes.FakeTokenGenerator
-	providerFactory      authfakes.FakeProviderFactory
+	providerFactory      *authfakes.FakeProviderFactory
 	fakeEngine           *enginefakes.FakeEngine
 	fakeWorkerClient     *workerfakes.FakeClient
 	authDB               *authfakes.FakeAuthDB
@@ -95,23 +93,8 @@ var _ = BeforeEach(func() {
 	pipelinesDB = new(dbfakes.FakePipelinesDB)
 
 	authValidator = new(authfakes.FakeValidator)
-
 	fakeTokenGenerator = new(authfakes.FakeTokenGenerator)
-
-	authProvider1 := new(providerfakes.FakeProvider)
-	authProvider1.DisplayNameReturns("OAuth Provider 1")
-
-	authProvider2 := new(providerfakes.FakeProvider)
-	authProvider2.DisplayNameReturns("OAuth Provider 2")
-
-	providerFactory := new(authfakes.FakeProviderFactory)
-	providerFactory.GetProvidersReturns(
-		provider.Providers{
-			"oauth-provider-1": authProvider1,
-			"oauth-provider-2": authProvider2,
-		},
-		nil,
-	)
+	providerFactory = new(authfakes.FakeProviderFactory)
 
 	configValidationErr = nil
 	peerAddr = "127.0.0.1:1234"

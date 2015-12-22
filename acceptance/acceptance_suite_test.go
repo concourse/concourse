@@ -88,6 +88,8 @@ func Authenticate(page *agouti.Page, username, password string) {
 
 const BASIC_AUTH = "basic"
 const GITHUB_AUTH = "github"
+const DEVELOPMENT_MODE = "dev"
+const NO_AUTH = DEVELOPMENT_MODE
 
 func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, authTypes ...string) (ifrit.Process, uint16) {
 	atcPort := 5697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
@@ -123,6 +125,8 @@ func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, auth
 				"--github-auth-user", "myuser",
 				"--external-url", "http://example.com",
 			)
+		} else if authType == DEVELOPMENT_MODE {
+			params = append(params, "--development-mode")
 		}
 	}
 
