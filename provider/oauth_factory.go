@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"errors"
+
 	"github.com/cloudfoundry/gunk/urljoiner"
 	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/db"
@@ -10,7 +12,7 @@ import (
 //go:generate counterfeiter . FactoryDB
 
 type FactoryDB interface {
-	GetTeamByName(teamName string) (db.SavedTeam, error)
+	GetTeamByName(teamName string) (db.SavedTeam, bool, error)
 }
 
 type OAuthFactory struct {
@@ -30,9 +32,12 @@ func NewOAuthFactory(db FactoryDB, atcExternalURL string, routes rata.Routes, ca
 }
 
 func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
-	team, err := of.db.GetTeamByName(teamName)
+	team, found, err := of.db.GetTeamByName(teamName)
 	if err != nil {
 		return Providers{}, err
+	}
+	if !found {
+		return Providers{}, errors.New("team not found")
 	}
 
 	providers := Providers{}

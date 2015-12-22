@@ -42,6 +42,20 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	providerName := r.FormValue(":provider")
 	teamName := atc.DefaultTeamName
 
+	team, found, err := handler.db.GetTeamByName(atc.DefaultTeamName)
+	if err != nil {
+		hLog.Error("failed-to-get-team", err)
+		http.Error(w, "failed to get team", http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		hLog.Info("failed-to-find-team", lager.Data{
+			"teamName": teamName,
+		})
+		http.Error(w, "failed to find team", http.StatusNotFound)
+		return
+	}
+
 	providers, err := handler.providerFactory.GetProviders(teamName)
 	if err != nil {
 		handler.logger.Error("unknown-provider", err, lager.Data{
@@ -122,13 +136,6 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	}
 
 	exp := time.Now().Add(CookieAge)
-
-	team, err := handler.db.GetTeamByName(atc.DefaultTeamName)
-	if err != nil {
-		hLog.Error("failed-to-get-team", err)
-		http.Error(w, "failed to get team", http.StatusInternalServerError)
-		return
-	}
 
 	tokenType, signedToken, err := handler.tokenGenerator.GenerateToken(exp, team.Name, team.ID)
 	if err != nil {
