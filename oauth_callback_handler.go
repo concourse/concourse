@@ -19,18 +19,21 @@ type OAuthCallbackHandler struct {
 	providerFactory ProviderFactory
 	privateKey      *rsa.PrivateKey
 	tokenGenerator  TokenGenerator
+	db              AuthDB
 }
 
 func NewOAuthCallbackHandler(
 	logger lager.Logger,
 	providerFactory ProviderFactory,
 	privateKey *rsa.PrivateKey,
+	db AuthDB,
 ) http.Handler {
 	return &OAuthCallbackHandler{
 		logger:          logger,
 		providerFactory: providerFactory,
 		privateKey:      privateKey,
 		tokenGenerator:  NewTokenGenerator(privateKey),
+		db:              db,
 	}
 }
 
@@ -120,7 +123,14 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	exp := time.Now().Add(CookieAge)
 
-	tokenType, signedToken, err := handler.tokenGenerator.GenerateToken(exp)
+	team, err := handler.db.GetTeamByName(atc.DefaultTeamName)
+	if err != nil {
+		hLog.Error("failed-to-get-team", err)
+		http.Error(w, "failed to get team", http.StatusInternalServerError)
+		return
+	}
+
+	tokenType, signedToken, err := handler.tokenGenerator.GenerateToken(exp, team.Name, team.ID)
 	if err != nil {
 		hLog.Error("failed-to-sign-token", err)
 		http.Error(w, "failed to sign token", http.StatusInternalServerError)
