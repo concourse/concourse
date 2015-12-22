@@ -1,6 +1,6 @@
 # Authoring Docs
 
-The docs are written in [https://github.com/vito/anatomy](Anatomy), which
+The docs are written in [Anatomy](https://github.com/vito/anatomy), which
 admittedly has no docs of its own. Your best bet if you don't know it yet is to
 just wing it and look to the rest of the docs for pointers.
 
@@ -12,7 +12,7 @@ get Rubinius installed.
 
 ## Locally
 
-1. Install [https://rubini.us](Rubinius).
+1. Install [Rubinius](https://rubini.us).
 1. `bundle install`
 1. `bundle exec anatomy -i concourse.any -o /tmp/docs`
 1. Open `/tmp/docs/index.html` in your browser.
