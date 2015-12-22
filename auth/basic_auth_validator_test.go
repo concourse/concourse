@@ -39,7 +39,7 @@ var _ = Describe("BasicAuthValidator", func() {
 			},
 		}
 
-		fakeAuthDB.GetTeamByNameReturns(team, nil)
+		fakeAuthDB.GetTeamByNameReturns(team, true, nil)
 
 		validator = auth.BasicAuthValidator{
 			DB: fakeAuthDB,
@@ -96,6 +96,18 @@ var _ = Describe("BasicAuthValidator", func() {
 		Context("when the request's Authorization header isn't basic auth", func() {
 			BeforeEach(func() {
 				request.Header.Set("Authorization", "Bearer "+b64(username+":"+password))
+			})
+
+			It("returns false", func() {
+				Expect(isAuthenticated).To(BeFalse())
+			})
+		})
+
+		Context("when the team cannot be found", func() {
+			BeforeEach(func() {
+				request.Header.Set("Authorization", "Basic "+b64(username+":"+password))
+
+				fakeAuthDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
 			})
 
 			It("returns false", func() {

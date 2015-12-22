@@ -17,7 +17,7 @@ type Server struct {
 //go:generate counterfeiter . AuthDB
 
 type AuthDB interface {
-	GetTeamByName(teamName string) (db.SavedTeam, error)
+	GetTeamByName(teamName string) (db.SavedTeam, bool, error)
 }
 
 func NewServer(

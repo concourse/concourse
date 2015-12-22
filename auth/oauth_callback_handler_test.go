@@ -93,7 +93,8 @@ var _ = Describe("OAuthCallbackHandler", func() {
 				Name: atc.DefaultTeamName,
 			},
 		}
-		fakeAuthDB.GetTeamByNameReturns(team, nil)
+
+		fakeAuthDB.GetTeamByNameReturns(team, true, nil)
 	})
 
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
@@ -342,6 +343,24 @@ var _ = Describe("OAuthCallbackHandler", func() {
 							Expect(response.Cookies()).To(BeEmpty())
 						})
 					})
+				})
+			})
+
+			Context("when the team cannot be found", func() {
+				BeforeEach(func() {
+					fakeAuthDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
+				})
+
+				It("returns Not Found", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+
+				It("does not set a cookie", func() {
+					Expect(response.Cookies()).To(BeEmpty())
+				})
+
+				It("does not set exchange the token", func() {
+					Expect(fakeProviderB.ExchangeCallCount()).To(Equal(0))
 				})
 			})
 

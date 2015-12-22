@@ -40,7 +40,7 @@ var _ = Describe("OAuthFactory", func() {
 							},
 						},
 					}
-					fakeFactoryDB.GetTeamByNameReturns(savedTeam, nil)
+					fakeFactoryDB.GetTeamByNameReturns(savedTeam, true, nil)
 				})
 
 				It("returns back GitHub's auth provider", func() {
@@ -58,7 +58,7 @@ var _ = Describe("OAuthFactory", func() {
 							Name: atc.DefaultTeamName,
 						},
 					}
-					fakeFactoryDB.GetTeamByNameReturns(savedTeam, nil)
+					fakeFactoryDB.GetTeamByNameReturns(savedTeam, true, nil)
 				})
 
 				It("returns an empty map", func() {
@@ -66,6 +66,18 @@ var _ = Describe("OAuthFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(providers).To(BeEmpty())
 				})
+			})
+		})
+
+		Context("when team does not exist", func() {
+			BeforeEach(func() {
+				fakeFactoryDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
+			})
+
+			It("returns an error", func() {
+				_, err := oauthFactory.GetProviders(atc.DefaultTeamName)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("team not found"))
 			})
 		})
 	})

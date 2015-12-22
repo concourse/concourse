@@ -58,7 +58,7 @@ var _ = Describe("Auth", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 			Expect(resp.Request.URL.Path).To(Equal("/login"))
 
-			team, err := sqlDB.GetTeamByName(atc.DefaultTeamName)
+			team, _, err := sqlDB.GetTeamByName(atc.DefaultTeamName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(team.ClientID).To(Equal("admin"))
 			Expect(team.ClientSecret).To(Equal("password"))

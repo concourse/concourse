@@ -29,7 +29,7 @@ var _ = Describe("Auth API", func() {
 				},
 			}
 
-			authDB.GetTeamByNameReturns(savedTeam, nil)
+			authDB.GetTeamByNameReturns(savedTeam, true, nil)
 
 			var err error
 			request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/token", nil)
@@ -114,6 +114,17 @@ var _ = Describe("Auth API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
+
+				Context("when the team can't be found", func() {
+					BeforeEach(func() {
+						fakeTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
+						authDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
+					})
+
+					It("returns unauthorized", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+				})
 			})
 		})
 
@@ -164,7 +175,7 @@ var _ = Describe("Auth API", func() {
 					},
 				}
 
-				authDB.GetTeamByNameReturns(savedTeam, nil)
+				authDB.GetTeamByNameReturns(savedTeam, true, nil)
 
 				var err error
 				request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
@@ -223,7 +234,7 @@ var _ = Describe("Auth API", func() {
 					},
 				}
 
-				authDB.GetTeamByNameReturns(savedTeam, nil)
+				authDB.GetTeamByNameReturns(savedTeam, true, nil)
 
 				var err error
 				request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
@@ -249,6 +260,29 @@ var _ = Describe("Auth API", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`[]`))
+			})
+		})
+
+		Context("when team cannot be found", func() {
+			var request *http.Request
+			var response *http.Response
+
+			BeforeEach(func() {
+				authDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
+
+				var err error
+				request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			JustBeforeEach(func() {
+				var err error
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns Not Found", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 			})
 		})
 	})

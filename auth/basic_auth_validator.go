@@ -22,8 +22,8 @@ func (validator BasicAuthValidator) IsAuthenticated(r *http.Request) bool {
 		return false
 	}
 
-	team, err := validator.DB.GetTeamByName(atc.DefaultTeamName)
-	if err != nil {
+	team, found, err := validator.DB.GetTeamByName(atc.DefaultTeamName)
+	if err != nil || !found {
 		return false
 	}
 

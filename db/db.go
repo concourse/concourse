@@ -26,7 +26,7 @@ type Conn interface {
 
 type DB interface {
 	SaveTeam(team Team) (SavedTeam, error)
-	GetTeamByName(teamName string) (SavedTeam, error)
+	GetTeamByName(teamName string) (SavedTeam, bool, error)
 	UpdateTeamBasicAuth(team Team) (SavedTeam, error)
 	UpdateTeamGitHubAuth(team Team) (SavedTeam, error)
 	CreateDefaultTeamIfNotExists() error

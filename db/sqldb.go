@@ -115,14 +115,23 @@ func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
 	return savedTeam, nil
 }
 
-func (db *SQLDB) GetTeamByName(teamName string) (SavedTeam, error) {
+func (db *SQLDB) GetTeamByName(teamName string) (SavedTeam, bool, error) {
 	query := fmt.Sprintf(`
 		SELECT id, name, basic_auth, github_auth
 		FROM teams
 		WHERE name = '%s'
 	`, teamName,
 	)
-	return db.queryTeam(query)
+	savedTeam, err := db.queryTeam(query)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return savedTeam, false, nil
+		}
+
+		return savedTeam, false, err
+	}
+
+	return savedTeam, true, err
 }
 
 func (db *SQLDB) jsonEncodeTeamGitHubAuth(team Team) (string, error) {

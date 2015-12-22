@@ -50,8 +50,9 @@ var _ = Describe("SQL DB Teams", func() {
 				Expect(err).NotTo(HaveOccurred())
 				err = database.CreateDefaultTeamIfNotExists()
 				Expect(err).NotTo(HaveOccurred())
-				team, err := database.GetTeamByName(atc.DefaultTeamName)
+				team, found, err := database.GetTeamByName(atc.DefaultTeamName)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(team.Name).To(Equal(atc.DefaultTeamName))
 			})
 		})
@@ -60,9 +61,20 @@ var _ = Describe("SQL DB Teams", func() {
 			It("it gets created", func() {
 				err := database.CreateDefaultTeamIfNotExists()
 				Expect(err).NotTo(HaveOccurred())
-				team, err := database.GetTeamByName(atc.DefaultTeamName)
+				team, found, err := database.GetTeamByName(atc.DefaultTeamName)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 				Expect(team.Name).To(Equal(atc.DefaultTeamName))
+			})
+		})
+	})
+
+	Describe("Get Team by name", func() {
+		Context("when team does not exist", func() {
+			It("returns false with no error", func() {
+				_, found, err := database.GetTeamByName("Venture")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
 			})
 		})
 	})
@@ -221,8 +233,9 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
 
-			savedTeam, err := database.GetTeamByName("avengers")
+			savedTeam, found, err := database.GetTeamByName("avengers")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(savedTeam).To(Equal(expectedSavedTeam))
 		})
 
@@ -238,8 +251,9 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(expectedSavedTeam.Team.Name).To(Equal(expectedTeam.Name))
 
-			savedTeam, err := database.GetTeamByName("avengers")
+			savedTeam, found, err := database.GetTeamByName("avengers")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(savedTeam).To(Equal(expectedSavedTeam))
 
 			Expect(savedTeam.BasicAuthUsername).To(Equal(expectedTeam.BasicAuthUsername))
@@ -271,8 +285,9 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
 
-			savedTeam, err := database.GetTeamByName("avengers")
+			savedTeam, found, err := database.GetTeamByName("avengers")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 			Expect(savedTeam).To(Equal(expectedSavedTeam))
 
 			Expect(savedTeam.ClientID).To(Equal(expectedTeam.ClientID))

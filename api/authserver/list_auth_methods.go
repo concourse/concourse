@@ -14,6 +14,16 @@ import (
 const BasicAuthDisplayName = "Basic Auth"
 
 func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
+	team, found, err := s.db.GetTeamByName(atc.DefaultTeamName)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	methods := []atc.AuthMethod{}
 	providers, err := s.providerFactory.GetProviders(atc.DefaultTeamName)
 	if err != nil {
@@ -35,12 +45,6 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 			DisplayName: provider.DisplayName(),
 			AuthURL:     s.externalURL + path,
 		})
-	}
-
-	team, err := s.db.GetTeamByName(atc.DefaultTeamName)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
 	}
 
 	if team.BasicAuth.BasicAuthPassword != "" {

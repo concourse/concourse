@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
+	"github.com/pivotal-golang/lager"
 )
 
 const tokenDuration = 24 * time.Hour
@@ -28,10 +29,19 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 		token.Type = authSegs[0]
 		token.Value = authSegs[1]
 	} else {
-		team, err := s.db.GetTeamByName(atc.DefaultTeamName)
+		teamName := atc.DefaultTeamName
+
+		team, found, err := s.db.GetTeamByName(teamName)
 		if err != nil {
 			logger.Error("get-team-by-name", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !found {
+			logger.Info("cannot-find-team-by-name", lager.Data{
+				"teamName": teamName,
+			})
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 

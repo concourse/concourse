@@ -9,18 +9,19 @@ import (
 )
 
 type FakeAuthDB struct {
-	GetTeamByNameStub        func(teamName string) (db.SavedTeam, error)
+	GetTeamByNameStub        func(teamName string) (db.SavedTeam, bool, error)
 	getTeamByNameMutex       sync.RWMutex
 	getTeamByNameArgsForCall []struct {
 		teamName string
 	}
 	getTeamByNameReturns struct {
 		result1 db.SavedTeam
-		result2 error
+		result2 bool
+		result3 error
 	}
 }
 
-func (fake *FakeAuthDB) GetTeamByName(teamName string) (db.SavedTeam, error) {
+func (fake *FakeAuthDB) GetTeamByName(teamName string) (db.SavedTeam, bool, error) {
 	fake.getTeamByNameMutex.Lock()
 	fake.getTeamByNameArgsForCall = append(fake.getTeamByNameArgsForCall, struct {
 		teamName string
@@ -29,7 +30,7 @@ func (fake *FakeAuthDB) GetTeamByName(teamName string) (db.SavedTeam, error) {
 	if fake.GetTeamByNameStub != nil {
 		return fake.GetTeamByNameStub(teamName)
 	} else {
-		return fake.getTeamByNameReturns.result1, fake.getTeamByNameReturns.result2
+		return fake.getTeamByNameReturns.result1, fake.getTeamByNameReturns.result2, fake.getTeamByNameReturns.result3
 	}
 }
 
@@ -45,12 +46,13 @@ func (fake *FakeAuthDB) GetTeamByNameArgsForCall(i int) string {
 	return fake.getTeamByNameArgsForCall[i].teamName
 }
 
-func (fake *FakeAuthDB) GetTeamByNameReturns(result1 db.SavedTeam, result2 error) {
+func (fake *FakeAuthDB) GetTeamByNameReturns(result1 db.SavedTeam, result2 bool, result3 error) {
 	fake.GetTeamByNameStub = nil
 	fake.getTeamByNameReturns = struct {
 		result1 db.SavedTeam
-		result2 error
-	}{result1, result2}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ authserver.AuthDB = new(FakeAuthDB)
