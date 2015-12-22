@@ -23,6 +23,7 @@ func NewOAuthHandler(
 	logger lager.Logger,
 	providerFactory ProviderFactory,
 	signingKey *rsa.PrivateKey,
+	db AuthDB,
 ) (http.Handler, error) {
 	return rata.NewRouter(OAuthRoutes, map[string]http.Handler{
 		OAuthBegin: NewOAuthBeginHandler(
@@ -35,6 +36,7 @@ func NewOAuthHandler(
 			logger.Session("oauth-callback"),
 			providerFactory,
 			signingKey,
+			db,
 		),
 	})
 }

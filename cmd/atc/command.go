@@ -191,6 +191,7 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		logger,
 		providerFactory,
 		signingKey,
+		sqlDB,
 	)
 	if err != nil {
 		return err

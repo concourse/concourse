@@ -29,6 +29,8 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		fakeProviderFactory *fakes.FakeProviderFactory
 
+		fakeAuthDB *fakes.FakeAuthDB
+
 		signingKey *rsa.PrivateKey
 
 		cookieJar *cookiejar.Jar
@@ -42,6 +44,8 @@ var _ = Describe("OAuthBeginHandler", func() {
 		fakeProviderB = new(providerFakes.FakeProvider)
 
 		fakeProviderFactory = new(fakes.FakeProviderFactory)
+
+		fakeAuthDB = new(fakes.FakeAuthDB)
 
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
@@ -59,6 +63,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 			lagertest.NewTestLogger("test"),
 			fakeProviderFactory,
 			signingKey,
+			fakeAuthDB,
 		)
 		Expect(err).ToNot(HaveOccurred())
 

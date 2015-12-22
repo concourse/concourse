@@ -22,10 +22,12 @@ import (
 	"github.com/onsi/gomega/ghttp"
 	"github.com/pivotal-golang/lager/lagertest"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/fakes"
 	"github.com/concourse/atc/auth/provider"
 	providerFakes "github.com/concourse/atc/auth/provider/fakes"
+	"github.com/concourse/atc/db"
 )
 
 var _ = Describe("OAuthCallbackHandler", func() {
@@ -35,10 +37,14 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 		fakeProviderFactory *fakes.FakeProviderFactory
 
+		fakeAuthDB *fakes.FakeAuthDB
+
 		signingKey *rsa.PrivateKey
 
 		server *httptest.Server
 		client *http.Client
+
+		team db.SavedTeam
 	)
 
 	BeforeEach(func() {
@@ -46,6 +52,8 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		fakeProviderB = new(providerFakes.FakeProvider)
 
 		fakeProviderFactory = new(fakes.FakeProviderFactory)
+
+		fakeAuthDB = new(fakes.FakeAuthDB)
 
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
@@ -63,6 +71,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 			lagertest.NewTestLogger("test"),
 			fakeProviderFactory,
 			signingKey,
+			fakeAuthDB,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -77,6 +86,14 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		client = &http.Client{
 			Transport: &http.Transport{},
 		}
+
+		team = db.SavedTeam{
+			ID: 0,
+			Team: db.Team{
+				Name: atc.DefaultTeamName,
+			},
+		}
+		fakeAuthDB.GetTeamByNameReturns(team, nil)
 	})
 
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
@@ -171,21 +188,36 @@ var _ = Describe("OAuthCallbackHandler", func() {
 							Expect(client).To(Equal(httpClient))
 						})
 
-						It("sets the ATC-Authorization cookie to a signed token that expires in 1 day", func() {
-							cookies := response.Cookies()
-							Expect(cookies).To(HaveLen(1))
+						Describe("the ATC-Authorization cookie", func() {
+							var cookie *http.Cookie
 
-							cookie := cookies[0]
-							Expect(cookie.Name).To(Equal(auth.CookieName))
-							Expect(cookie.Expires).To(BeTemporally("~", time.Now().Add(auth.CookieAge), 5*time.Second))
+							JustBeforeEach(func() {
+								cookies := response.Cookies()
+								Expect(cookies).To(HaveLen(1))
+								cookie = cookies[0]
+							})
 
-							Expect(cookie.Value).To(MatchRegexp(`^Bearer .*`))
+							It("set to a signed token that expires in 1 day", func() {
+								Expect(cookie.Name).To(Equal(auth.CookieName))
+								Expect(cookie.Expires).To(BeTemporally("~", time.Now().Add(auth.CookieAge), 5*time.Second))
 
-							token, err := jwt.Parse(strings.Replace(cookie.Value, "Bearer ", "", -1), keyFunc)
-							Expect(err).ToNot(HaveOccurred())
+								Expect(cookie.Value).To(MatchRegexp(`^Bearer .*`))
 
-							Expect(token.Claims["exp"]).To(BeNumerically("==", cookie.Expires.Unix()))
-							Expect(token.Valid).To(BeTrue())
+								token, err := jwt.Parse(strings.Replace(cookie.Value, "Bearer ", "", -1), keyFunc)
+								Expect(err).ToNot(HaveOccurred())
+
+								Expect(token.Claims["exp"]).To(BeNumerically("==", cookie.Expires.Unix()))
+								Expect(token.Valid).To(BeTrue())
+							})
+
+							It("contains the team name and ID", func() {
+								token, err := jwt.Parse(strings.Replace(cookie.Value, "Bearer ", "", -1), keyFunc)
+								Expect(err).ToNot(HaveOccurred())
+
+								Expect(token.Claims["teamName"]).To(Equal(team.Name))
+								Expect(token.Claims["teamID"]).To(BeNumerically("==", team.ID))
+								Expect(token.Valid).To(BeTrue())
+							})
 						})
 
 						It("does not redirect", func() {

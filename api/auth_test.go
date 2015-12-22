@@ -17,7 +17,18 @@ var _ = Describe("Auth API", func() {
 		var request *http.Request
 		var response *http.Response
 
+		var savedTeam db.SavedTeam
+
 		BeforeEach(func() {
+			savedTeam = db.SavedTeam{
+				ID: 0,
+				Team: db.Team{
+					Name: atc.DefaultTeamName,
+				},
+			}
+
+			authDB.GetTeamByNameReturns(savedTeam, nil)
+
 			var err error
 			request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/token", nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -85,8 +96,10 @@ var _ = Describe("Auth API", func() {
 
 						Expect(body).To(MatchJSON(`{"type":"some type","value":"some value"}`))
 
-						expiration := fakeTokenGenerator.GenerateTokenArgsForCall(0)
+						expiration, teamName, teamID := fakeTokenGenerator.GenerateTokenArgsForCall(0)
 						Expect(expiration).To(BeTemporally("~", time.Now().Add(24*time.Hour), time.Minute))
+						Expect(teamName).To(Equal(savedTeam.Name))
+						Expect(teamID).To(Equal(savedTeam.ID))
 					})
 				})
 
