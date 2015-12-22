@@ -28,24 +28,44 @@ var _ = Describe("OAuthFactory", func() {
 
 	Describe("Get Providers", func() {
 		Describe("GitHub Provider", func() {
-			BeforeEach(func() {
-				savedTeam := db.SavedTeam{
-					Team: db.Team{
-						Name: atc.DefaultTeamName,
-						GitHubAuth: db.GitHubAuth{
-							ClientID:     "user1",
-							ClientSecret: "password1",
+			Context("when the provider is setup", func() {
+				BeforeEach(func() {
+					savedTeam := db.SavedTeam{
+						Team: db.Team{
+							Name: atc.DefaultTeamName,
+							GitHubAuth: db.GitHubAuth{
+								ClientID:     "user1",
+								ClientSecret: "password1",
+								Users:        []string{"thecandyman"},
+							},
 						},
-					},
-				}
-				fakeFactoryDB.GetTeamByNameReturns(savedTeam, nil)
+					}
+					fakeFactoryDB.GetTeamByNameReturns(savedTeam, nil)
+				})
+
+				It("returns back GitHub's auth provider", func() {
+					providers, err := oauthFactory.GetProviders(atc.DefaultTeamName)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(providers).To(HaveLen(1))
+					Expect(providers[github.ProviderName]).NotTo(BeNil())
+				})
 			})
 
-			It("returns back GitHub's auth provider", func() {
-				providers, err := oauthFactory.GetProviders(atc.DefaultTeamName)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(providers).To(HaveLen(1))
-				Expect(providers[github.ProviderName]).NotTo(BeNil())
+			Context("when no provider is setup", func() {
+				BeforeEach(func() {
+					savedTeam := db.SavedTeam{
+						Team: db.Team{
+							Name: atc.DefaultTeamName,
+						},
+					}
+					fakeFactoryDB.GetTeamByNameReturns(savedTeam, nil)
+				})
+
+				It("returns an empty map", func() {
+					providers, err := oauthFactory.GetProviders(atc.DefaultTeamName)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(providers).To(BeEmpty())
+				})
 			})
 		})
 	})
