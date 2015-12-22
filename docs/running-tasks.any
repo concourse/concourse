@@ -4,7 +4,9 @@
 
 \title{Tasks}{running-tasks}
 
-The smallest configurable unit in a Concourse pipeline is a single task.
+The smallest configurable unit in a Concourse pipeline is a single task. A task
+can be thought of as a function from \reference{inputs} to \reference{outputs},
+that can either succeed or fail.
 
 Once you have a running Concourse deployment, you can start configuring your
 tasks and executing them interactively from your terminal with the
@@ -78,18 +80,25 @@ Once you've figured out your tasks's configuration, you can reuse it for a
 
     This determines which artifacts can be extracted from the task, as the
     \reference{build-plans}{build plan} executes. Outputs can be used in later
-    steps in a plan instead of propogating the entire build directory.
+    steps in a plan instead of propogating the task's entire working directory.
 
     Each output has the following attributes:
 
     \inset{
       \define-attribute{name: string}{
-        \italic{Required.} The logical name of the output.
+        \italic{Required.} The logical name of the output. The contents under
+        \code{path} will be made available to the rest of the plan under this
+        name.
       }
 
       \define-attribute{path: string}{
-        \italic{Optional.} The path where the output will be taken from.
-        If not specified, the output's \code{name} is used.
+        \italic{Optional.} The path to a directory where the output will be
+        taken from. If not specified, the output's \code{name} is used.
+
+        Note that this value \italic{must not overlap} with any other inputs or
+        outputs. Each output results in a new empty directory that your task
+        should place artifacts in; if the path overlaps it'll clobber whatever
+        files used to be there.
       }
     }
   }
