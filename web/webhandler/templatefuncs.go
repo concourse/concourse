@@ -3,10 +3,7 @@ package webhandler
 import (
 	"crypto/md5"
 	"fmt"
-	"io"
 	"net/url"
-	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/concourse/atc"
@@ -17,9 +14,8 @@ import (
 )
 
 type templateFuncs struct {
-	assetsDir string
-	assetIDs  map[string]string
-	assetsL   sync.Mutex
+	assetIDs map[string]string
+	assetsL  sync.Mutex
 }
 
 func (funcs *templateFuncs) asset(asset string) (string, error) {
@@ -30,12 +26,12 @@ func (funcs *templateFuncs) asset(asset string) (string, error) {
 	if !found {
 		hash := md5.New()
 
-		file, err := os.Open(filepath.Join(funcs.assetsDir, asset))
+		contents, err := web.Asset("public/" + asset)
 		if err != nil {
 			return "", err
 		}
 
-		_, err = io.Copy(hash, file)
+		_, err = hash.Write(contents)
 		if err != nil {
 			return "", err
 		}

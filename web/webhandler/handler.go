@@ -3,8 +3,8 @@ package webhandler
 import (
 	"html/template"
 	"net/http"
-	"path/filepath"
 
+	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
@@ -25,14 +25,11 @@ import (
 func NewHandler(
 	logger lager.Logger,
 	wrapper wrappa.Wrappa,
-	templatesDir,
-	publicDir string,
 	engine engine.Engine,
 	clientFactory web.ClientFactory,
 ) (http.Handler, error) {
 	tfuncs := &templateFuncs{
-		assetsDir: publicDir,
-		assetIDs:  map[string]string{},
+		assetIDs: map[string]string{},
 	}
 
 	funcs := template.FuncMap{
@@ -41,59 +38,60 @@ func NewHandler(
 		"withRedirect": tfuncs.withRedirect,
 	}
 
-	indexTemplate, err := template.New("index.html").Funcs(funcs).ParseFiles(filepath.Join(templatesDir, "index.html"))
+	indexTemplate, err := loadTemplate("index.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	pipelineTemplate, err := loadTemplateWithPipeline(templatesDir, "pipeline.html", funcs)
+	pipelineTemplate, err := loadTemplateWithPipeline("pipeline.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	buildTemplate, err := loadTemplateWithPipeline(templatesDir, "build.html", funcs)
+	buildTemplate, err := loadTemplateWithPipeline("build.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	oldBuildTemplate, err := loadTemplateWithPipeline(templatesDir, "old-build.html", funcs)
+	oldBuildTemplate, err := loadTemplateWithPipeline("old-build.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	buildsTemplate, err := loadTemplateWithoutPipeline(templatesDir, filepath.Join("builds", "index.html"), funcs)
+	buildsTemplate, err := loadTemplateWithoutPipeline("builds/index.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	joblessBuildTemplate, err := loadTemplateWithoutPipeline(templatesDir, filepath.Join("builds", "show.html"), funcs)
+	joblessBuildTemplate, err := loadTemplateWithoutPipeline("builds/show.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	oldJoblessBuildTemplate, err := loadTemplateWithoutPipeline(templatesDir, filepath.Join("builds", "old-show.html"), funcs)
+	oldJoblessBuildTemplate, err := loadTemplateWithoutPipeline("builds/old-show.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	resourceTemplate, err := loadTemplateWithPipeline(templatesDir, "resource.html", funcs)
+	resourceTemplate, err := loadTemplateWithPipeline("resource.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	jobTemplate, err := loadTemplateWithPipeline(templatesDir, "job.html", funcs)
+	jobTemplate, err := loadTemplateWithPipeline("job.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	logInTemplate, err := loadTemplateWithoutPipeline(templatesDir, "login.html", funcs)
+	logInTemplate, err := loadTemplateWithoutPipeline("login.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
-	absPublicDir, err := filepath.Abs(publicDir)
-	if err != nil {
-		return nil, err
+	publicFS := &assetfs.AssetFS{
+		Asset:     web.Asset,
+		AssetDir:  web.AssetDir,
+		AssetInfo: web.AssetInfo,
 	}
 
 	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
@@ -101,7 +99,7 @@ func NewHandler(
 	handlers := map[string]http.Handler{
 		web.Index:           index.NewHandler(logger, clientFactory, pipelineHandler, indexTemplate),
 		web.Pipeline:        pipelineHandler,
-		web.Public:          http.FileServer(http.Dir(filepath.Dir(absPublicDir))),
+		web.Public:          http.FileServer(publicFS),
 		web.GetJob:          getjob.NewHandler(logger, clientFactory, jobTemplate),
 		web.GetResource:     getresource.NewHandler(logger, clientFactory, resourceTemplate),
 		web.GetBuild:        getbuild.NewHandler(logger, clientFactory, buildTemplate, oldBuildTemplate),
@@ -115,16 +113,49 @@ func NewHandler(
 	return rata.NewRouter(web.Routes, wrapper.Wrap(handlers))
 }
 
-func loadTemplateWithPipeline(templatesDir, name string, funcs template.FuncMap) (*template.Template, error) {
-	return template.New("with_pipeline.html").Funcs(funcs).ParseFiles(
-		filepath.Join(templatesDir, "layouts", "with_pipeline.html"),
-		filepath.Join(templatesDir, name),
-	)
+func loadTemplate(name string, funcs template.FuncMap) (*template.Template, error) {
+	src, err := web.Asset("templates/" + name)
+	if err != nil {
+		return nil, err
+	}
+
+	return template.New(name).Funcs(funcs).Parse(string(src))
 }
 
-func loadTemplateWithoutPipeline(templatesDir, name string, funcs template.FuncMap) (*template.Template, error) {
-	return template.New("without_pipeline.html").Funcs(funcs).ParseFiles(
-		filepath.Join(templatesDir, "layouts", "without_pipeline.html"),
-		filepath.Join(templatesDir, name),
-	)
+func loadTemplateWithPipeline(name string, funcs template.FuncMap) (*template.Template, error) {
+	layout, err := loadTemplate("layouts/with_pipeline.html", funcs)
+	if err != nil {
+		return nil, err
+	}
+
+	templateSrc, err := web.Asset("templates/" + name)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = layout.New(name).Parse(string(templateSrc))
+	if err != nil {
+		return nil, err
+	}
+
+	return layout, nil
+}
+
+func loadTemplateWithoutPipeline(name string, funcs template.FuncMap) (*template.Template, error) {
+	layout, err := loadTemplate("layouts/without_pipeline.html", funcs)
+	if err != nil {
+		return nil, err
+	}
+
+	templateSrc, err := web.Asset("templates/" + name)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = layout.New(name).Parse(string(templateSrc))
+	if err != nil {
+		return nil, err
+	}
+
+	return layout, nil
 }

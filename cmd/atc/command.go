@@ -57,9 +57,6 @@ type ATCCommand struct {
 
 	PostgresDataSource string `long:"postgres-data-source" default:"postgres://127.0.0.1:5432/atc?sslmode=disable" description:"PostgreSQL connection string."`
 
-	TemplatesDir DirFlag `long:"templates" default:"./web/templates" description:"Directory containing the web templates."`
-	PublicDir    DirFlag `long:"public"    default:"./web/public"    description:"Directory containing the web assets (js, css, etc.)."`
-
 	DebugBindIP   IPFlag `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
 	DebugBindPort uint16 `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
 
@@ -616,8 +613,6 @@ func (cmd *ATCCommand) constructWebHandler(
 	return webhandler.NewHandler(
 		logger,
 		webWrapper,
-		cmd.TemplatesDir.Path(),
-		cmd.PublicDir.Path(),
 		engine,
 		clientFactory,
 	)

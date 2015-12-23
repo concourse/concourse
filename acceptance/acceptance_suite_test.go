@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -100,8 +99,6 @@ func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, auth
 		"--debug-bind-port", fmt.Sprintf("%d", debugPort),
 		"--peer-url", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
 		"--postgres-data-source", postgresRunner.DataSourceName(),
-		"--templates", filepath.Join("..", "web", "templates"),
-		"--public", filepath.Join("..", "web", "public"),
 	}
 
 	if publiclyViewable {
