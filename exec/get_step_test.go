@@ -34,10 +34,14 @@ var _ = Describe("GardenFactory", func() {
 		stderrBuf *gbytes.Buffer
 
 		identifier = worker.Identifier{
-			Name: "some-session-id",
+			ResourceID: 1234,
+			PipelineID: 5678,
 		}
 		expectedIdentifier = worker.Identifier{
-			Name:             "some-session-id",
+			ResourceID: 1234,
+			PipelineID: 5678,
+		}
+		expectedMetadata = worker.Metadata{
 			WorkingDirectory: "/tmp/build/get",
 		}
 
@@ -137,6 +141,7 @@ var _ = Describe("GardenFactory", func() {
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
 					ID:        expectedIdentifier,
+					Metadata:  expectedMetadata,
 					Ephemeral: false,
 				}))
 				Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))

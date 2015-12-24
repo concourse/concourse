@@ -207,32 +207,23 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 	return exec.Identity{}
 }
 
-func (build *execBuild) taskIdentifier(name string, id atc.PlanID, pipelineName string) worker.Identifier {
+func (build *execBuild) taskIdentifier(id atc.PlanID) worker.Identifier {
 	return worker.Identifier{
-		BuildID:      build.buildID,
-		Type:         "task",
-		Name:         name,
-		PipelineName: pipelineName,
-		PlanID:       id,
+		BuildID: build.buildID,
+		PlanID:  id,
 	}
 }
 
-func (build *execBuild) getIdentifier(name string, id atc.PlanID, pipelineName string) worker.Identifier {
+func (build *execBuild) getIdentifier(id atc.PlanID) worker.Identifier {
 	return worker.Identifier{
-		BuildID:      build.buildID,
-		Type:         "get",
-		Name:         name,
-		PipelineName: pipelineName,
-		PlanID:       id,
+		BuildID: build.buildID,
+		PlanID:  id,
 	}
 }
 
-func (build *execBuild) putIdentifier(name string, id atc.PlanID, pipelineName string) worker.Identifier {
+func (build *execBuild) putIdentifier(id atc.PlanID) worker.Identifier {
 	return worker.Identifier{
-		BuildID:      build.buildID,
-		Type:         "put",
-		Name:         name,
-		PipelineName: pipelineName,
-		PlanID:       id,
+		BuildID: build.buildID,
+		PlanID:  id,
 	}
 }

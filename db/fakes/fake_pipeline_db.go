@@ -387,6 +387,12 @@ type FakePipelineDB struct {
 		result1 []db.Build
 		result2 error
 	}
+	GetPipelineIDStub        func() int
+	getPipelineIDMutex       sync.RWMutex
+	getPipelineIDArgsForCall []struct{}
+	getPipelineIDReturns     struct {
+		result1 int
+	}
 }
 
 func (fake *FakePipelineDB) GetPipelineName() string {
@@ -1704,6 +1710,30 @@ func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputReturns(result1 []db.Bui
 		result1 []db.Build
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) GetPipelineID() int {
+	fake.getPipelineIDMutex.Lock()
+	fake.getPipelineIDArgsForCall = append(fake.getPipelineIDArgsForCall, struct{}{})
+	fake.getPipelineIDMutex.Unlock()
+	if fake.GetPipelineIDStub != nil {
+		return fake.GetPipelineIDStub()
+	} else {
+		return fake.getPipelineIDReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) GetPipelineIDCallCount() int {
+	fake.getPipelineIDMutex.RLock()
+	defer fake.getPipelineIDMutex.RUnlock()
+	return len(fake.getPipelineIDArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetPipelineIDReturns(result1 int) {
+	fake.GetPipelineIDStub = nil
+	fake.getPipelineIDReturns = struct {
+		result1 int
+	}{result1}
 }
 
 var _ db.PipelineDB = new(FakePipelineDB)

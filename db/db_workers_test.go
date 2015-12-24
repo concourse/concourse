@@ -63,76 +63,84 @@ var _ = Describe("Keeping track of workers", func() {
 			Platform: "plan9",
 			Tags:     []string{"russ", "cox", "was", "here"},
 		}
+		expectedSavedWorkerA := db.SavedWorker{
+			WorkerInfo: infoA,
+			ExpiresIn:  0,
+		}
 
 		By("persisting workers with no TTLs")
-		err := database.SaveWorker(infoA, 0)
+		savedWorkerA, err := database.SaveWorker(infoA, 0)
 		Expect(err).NotTo(HaveOccurred())
+		expectedSavedWorkerA.ID = savedWorkerA.ID
 
-		Expect(database.Workers()).To(ConsistOf(infoA))
+		Expect(database.Workers()).To(ConsistOf(expectedSavedWorkerA))
 
 		By("being idempotent")
-		err = database.SaveWorker(infoA, 0)
+		_, err = database.SaveWorker(infoA, 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(database.Workers()).To(ConsistOf(infoA))
+		Expect(database.Workers()).To(ConsistOf(expectedSavedWorkerA))
 
 		By("updating attributes by name")
 		infoA.GardenAddr = "1.2.3.4:9876"
+		expectedSavedWorkerA.WorkerInfo = infoA
 
-		err = database.SaveWorker(infoA, 0)
+		_, err = database.SaveWorker(infoA, 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(database.Workers()).To(ConsistOf(infoA))
+		Expect(database.Workers()).To(ConsistOf(expectedSavedWorkerA))
 
 		By("updating attributes by address")
 		infoA.Name = "someNewName"
+		expectedSavedWorkerA.WorkerInfo = infoA
 
-		err = database.SaveWorker(infoA, 0)
+		_, err = database.SaveWorker(infoA, 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(database.Workers()).To(ConsistOf(infoA))
+		Expect(database.Workers()).To(ConsistOf(expectedSavedWorkerA))
 
 		By("expiring TTLs")
 		ttl := 1 * time.Second
 
-		err = database.SaveWorker(infoB, ttl)
+		_, err = database.SaveWorker(infoB, ttl)
 		Expect(err).NotTo(HaveOccurred())
 
 		// name is defaulted to addr
 		infoBFromDB := infoB
 		infoBFromDB.Name = "1.2.3.4:8888"
 
-		Consistently(database.Workers, ttl/2).Should(ConsistOf(infoA, infoBFromDB))
-		Eventually(database.Workers, 2*ttl).Should(ConsistOf(infoA))
+		workerInfos := func() []db.WorkerInfo {
+			return getWorkerInfos(database.Workers())
+		}
 
+		Consistently(workerInfos, ttl/2).Should(ConsistOf(infoA, infoBFromDB))
+		Eventually(workerInfos, 2*ttl).Should(ConsistOf(infoA))
 		By("overwriting TTLs")
-		err = database.SaveWorker(infoA, ttl)
+		_, err = database.SaveWorker(infoA, ttl)
 		Expect(err).NotTo(HaveOccurred())
 
-		Consistently(database.Workers, ttl/2).Should(ConsistOf(infoA))
-		Eventually(database.Workers, 2*ttl).Should(BeEmpty())
+		Consistently(workerInfos, ttl/2).Should(ConsistOf(infoA))
+		Eventually(workerInfos, 2*ttl).Should(BeEmpty())
 
 		By("updating attributes by name with ttls")
 		ttl = 1 * time.Hour
-		err = database.SaveWorker(infoA, ttl)
+		_, err = database.SaveWorker(infoA, ttl)
 		Expect(err).NotTo(HaveOccurred())
-
-		Expect(database.Workers()).To(ConsistOf(infoA))
+		Expect(getWorkerInfos(database.Workers())).To(ConsistOf(infoA))
 
 		infoA.GardenAddr = "1.2.3.4:1234"
 
-		err = database.SaveWorker(infoA, ttl)
+		_, err = database.SaveWorker(infoA, ttl)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(database.Workers()).To(ConsistOf(infoA))
+		Expect(getWorkerInfos(database.Workers())).To(ConsistOf(infoA))
 	})
 
 	It("it can keep track of a worker", func() {
-		By("calling it with worker names that do not exist")
-
-		workerInfo, found, err := database.GetWorker("nope")
+		By("returning empty worker when worker doesn't exist")
+		savedWorker, found, err := database.GetWorker(404)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(workerInfo).To(Equal(db.WorkerInfo{}))
+		Expect(savedWorker).To(Equal(db.SavedWorker{}))
 		Expect(found).To(BeFalse())
 
 		infoA := db.WorkerInfo{
@@ -170,35 +178,35 @@ var _ = Describe("Keeping track of workers", func() {
 			Tags:     []string{"russ", "cox", "was", "here"},
 		}
 
-		err = database.SaveWorker(infoA, 0)
+		_, err = database.SaveWorker(infoA, 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = database.SaveWorker(infoB, 0)
+		savedWorkerB, err := database.SaveWorker(infoB, 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = database.SaveWorker(infoC, 0)
+		_, err = database.SaveWorker(infoC, 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("returning one workerinfo by worker name")
-		workerInfo, found, err = database.GetWorker("workerName2")
+		By("returning one workerinfo by worker id")
+		savedWorker, found, err = database.GetWorker(savedWorkerB.ID)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
-		Expect(workerInfo).To(Equal(infoB))
-
-		By("returning one workerinfo by addr if name is null")
-		workerInfo, found, err = database.GetWorker("1.2.3.5:8888")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
-		Expect(workerInfo.Name).To(Equal("1.2.3.5:8888"))
+		Expect(savedWorker.GardenAddr).To(Equal(infoB.GardenAddr))
+		Expect(savedWorker.BaggageclaimURL).To(Equal(infoB.BaggageclaimURL))
+		Expect(savedWorker.ActiveContainers).To(Equal(infoB.ActiveContainers))
+		Expect(savedWorker.ResourceTypes).To(Equal(infoB.ResourceTypes))
+		Expect(savedWorker.Platform).To(Equal(infoB.Platform))
+		Expect(savedWorker.Tags).To(Equal(infoB.Tags))
+		Expect(savedWorker.Name).To(Equal(infoB.Name))
 
 		By("expiring TTLs")
 		ttl := 1 * time.Second
 
-		err = database.SaveWorker(infoA, ttl)
+		savedWorkerA, err := database.SaveWorker(infoA, ttl)
 		Expect(err).NotTo(HaveOccurred())
 
 		workerFound := func() bool {
-			_, found, _ = database.GetWorker("workerName1")
+			_, found, _ = database.GetWorker(savedWorkerA.ID)
 			return found
 		}
 
@@ -206,3 +214,12 @@ var _ = Describe("Keeping track of workers", func() {
 		Eventually(workerFound, 2*ttl).Should(BeFalse())
 	})
 })
+
+func getWorkerInfos(savedWorkers []db.SavedWorker, err error) []db.WorkerInfo {
+	Expect(err).NotTo(HaveOccurred())
+	var workerInfos []db.WorkerInfo
+	for _, savedWorker := range savedWorkers {
+		workerInfos = append(workerInfos, savedWorker.WorkerInfo)
+	}
+	return workerInfos
+}

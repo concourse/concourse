@@ -33,8 +33,7 @@ type DB interface {
 	DeleteTeamByName(teamName string) error
 
 	GetBuild(buildID int) (Build, bool, error)
-	GetBuildInputVersionedResouces(buildID int) (SavedVersionedResources, error)
-	GetBuildOutputVersionedResouces(buildID int) (SavedVersionedResources, error)
+	GetBuildVersionedResources(buildID int) (SavedVersionedResources, error)
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 	GetBuilds(Page) ([]Build, Pagination, error)
 	GetAllStartedBuilds() ([]Build, error)
@@ -63,13 +62,13 @@ type DB interface {
 	AbortBuild(buildID int) error
 	AbortNotifier(buildID int) (Notifier, error)
 
-	Workers() ([]WorkerInfo, error) // auto-expires workers based on ttl
-	GetWorker(workerName string) (WorkerInfo, bool, error)
-	SaveWorker(WorkerInfo, time.Duration) error
+	Workers() ([]SavedWorker, error) // auto-expires workers based on ttl
+	GetWorker(workerID int) (SavedWorker, bool, error)
+	SaveWorker(WorkerInfo, time.Duration) (SavedWorker, error)
 
-	FindContainersByIdentifier(ContainerIdentifier) ([]Container, error)
+	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
 	GetContainer(string) (Container, bool, error)
-	CreateContainer(Container, time.Duration) error
+	CreateContainer(Container, time.Duration) (Container, error)
 	FindContainerByIdentifier(ContainerIdentifier) (Container, bool, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
@@ -152,6 +151,13 @@ type JobHistory struct {
 	Builds  []Build
 }
 
+type SavedWorker struct {
+	WorkerInfo
+
+	ID        int
+	ExpiresIn time.Duration
+}
+
 type WorkerInfo struct {
 	GardenAddr      string
 	BaggageclaimURL string
@@ -171,6 +177,7 @@ type SavedVolume struct {
 }
 
 type Volume struct {
+	WorkerID        int
 	WorkerName      string
 	TTL             time.Duration
 	Handle          string

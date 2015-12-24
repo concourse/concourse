@@ -24,34 +24,36 @@ import (
 
 var _ = Describe("Pipelines API", func() {
 	var (
-		pipelineName1     = "pipeline-1"
-		type1             = db.ContainerTypeCheck
-		name1             = "name-1"
-		buildID1          = 1234
-		containerID1      = "dh93mvi"
-		workerName1       = "some-worker-guid"
-		workingDirectory1 = "/tmp/build/my-favorite-guid"
-		envVariables      = []string{"VAR1=VAL1"}
-	)
+		pipelineName     = "some-pipeline"
+		jobName          = "some-job"
+		stepType         = db.ContainerTypeTask
+		stepName         = "some-step"
+		resourceName     = "some-resource"
+		buildID          = 1234
+		buildName        = "2"
+		handle           = "some-handle"
+		workerName       = "some-worker-guid"
+		workingDirectory = "/tmp/build/my-favorite-guid"
+		envVariables     = []string{"VAR1=VAL1"}
 
-	var (
-		req *http.Request
-
+		req            *http.Request
 		fakeContainer1 db.Container
 	)
 
 	BeforeEach(func() {
 		fakeContainer1 = db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				PipelineName:         pipelineName1,
-				Type:                 type1,
-				Name:                 name1,
-				BuildID:              buildID1,
-				WorkerName:           workerName1,
-				WorkingDirectory:     workingDirectory1,
+			ContainerMetadata: db.ContainerMetadata{
+				StepName:             stepName,
+				PipelineName:         pipelineName,
+				JobName:              jobName,
+				BuildID:              buildID,
+				BuildName:            buildName,
+				Type:                 stepType,
+				WorkerName:           workerName,
+				WorkingDirectory:     workingDirectory,
 				EnvironmentVariables: envVariables,
 			},
-			Handle: containerID1,
+			Handle: handle,
 		}
 	})
 
@@ -77,39 +79,32 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		Context("when authenticated", func() {
-			var (
-				fakeContainer2 db.Container
-			)
-
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
-
-				fakeContainer2 = db.Container{
-					ContainerIdentifier: db.ContainerIdentifier{
-						PipelineName:         "pipeline-2",
-						Type:                 db.ContainerTypePut,
-						Name:                 "name-2",
-						BuildID:              4321,
-						WorkerName:           "some-other-worker-guid",
-						WorkingDirectory:     "/tmp/build/my-second-favorite-guid",
-						EnvironmentVariables: []string{"VAR2=VAL2"},
-					},
-					Handle: "cfvwser",
-				}
 			})
 
 			Context("with no params", func() {
-
 				Context("when no errors are returned", func() {
 					var (
+						fakeContainer2 db.Container
 						fakeContainers []db.Container
 					)
+
 					BeforeEach(func() {
+						fakeContainer2 = db.Container{
+							ContainerMetadata: db.ContainerMetadata{
+								PipelineName: "some-other-pipeline",
+								Type:         db.ContainerTypeCheck,
+								ResourceName: "some-resource",
+								WorkerName:   "some-other-worker-guid",
+							},
+							Handle: "some-other-handle",
+						}
 						fakeContainers = []db.Container{
 							fakeContainer1,
 							fakeContainer2,
 						}
-						containerDB.FindContainersByIdentifierReturns(fakeContainers, nil)
+						containerDB.FindContainersByMetadataReturns(fakeContainers, nil)
 					})
 
 					It("returns 200", func() {
@@ -136,24 +131,22 @@ var _ = Describe("Pipelines API", func() {
 						Expect(body).To(MatchJSON(`
 							[
 								{
-									"pipeline_name": "pipeline-1",
-									"type": "check",
-									"name": "name-1",
-									"build_id": 1234,
-									"id": "dh93mvi",
+									"id": "some-handle",
 									"worker_name": "some-worker-guid",
+									"pipeline_name": "some-pipeline",
+									"job_name": "some-job",
+									"build_name": "2",
+									"build_id": 1234,
+									"step_type": "task",
+									"step_name": "some-step",
 									"working_directory": "/tmp/build/my-favorite-guid",
 									"env_variables": ["VAR1=VAL1"]
 								},
 								{
-									"pipeline_name": "pipeline-2",
-									"type": "put",
-									"name": "name-2",
-									"build_id": 4321,
-									"id": "cfvwser",
+									"id": "some-other-handle",
 									"worker_name": "some-other-worker-guid",
-									"working_directory": "/tmp/build/my-second-favorite-guid",
-									"env_variables": ["VAR2=VAL2"]
+									"pipeline_name": "some-other-pipeline",
+									"resource_name": "some-resource"
 								}
 							]
 						`))
@@ -162,7 +155,7 @@ var _ = Describe("Pipelines API", func() {
 
 				Context("when no containers are found", func() {
 					BeforeEach(func() {
-						containerDB.FindContainersByIdentifierReturns([]db.Container{}, nil)
+						containerDB.FindContainersByMetadataReturns([]db.Container{}, nil)
 					})
 
 					It("returns 200", func() {
@@ -192,7 +185,7 @@ var _ = Describe("Pipelines API", func() {
 
 					BeforeEach(func() {
 						expectedErr = errors.New("some error")
-						containerDB.FindContainersByIdentifierReturns([]db.Container{}, expectedErr)
+						containerDB.FindContainersByMetadataReturns([]db.Container{}, expectedErr)
 					})
 
 					It("returns 500", func() {
@@ -207,7 +200,7 @@ var _ = Describe("Pipelines API", func() {
 			Describe("querying with pipeline name", func() {
 				BeforeEach(func() {
 					req.URL.RawQuery = url.Values{
-						"pipeline_name": []string{pipelineName1},
+						"pipeline_name": []string{pipelineName},
 					}.Encode()
 				})
 
@@ -215,18 +208,37 @@ var _ = Describe("Pipelines API", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					expectedArgs := db.ContainerIdentifier{
-						PipelineName: pipelineName1,
+					expectedArgs := db.ContainerMetadata{
+						PipelineName: pipelineName,
 					}
-					Expect(containerDB.FindContainersByIdentifierCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
+				})
+			})
+
+			Describe("querying with job name", func() {
+				BeforeEach(func() {
+					req.URL.RawQuery = url.Values{
+						"job_name": []string{jobName},
+					}.Encode()
+				})
+
+				It("calls db.Containers with the queried job name", func() {
+					_, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					expectedArgs := db.ContainerMetadata{
+						JobName: jobName,
+					}
+					Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
 			Describe("querying with type", func() {
 				BeforeEach(func() {
 					req.URL.RawQuery = url.Values{
-						"type": []string{string(type1)},
+						"type": []string{string(stepType)},
 					}.Encode()
 				})
 
@@ -234,40 +246,78 @@ var _ = Describe("Pipelines API", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					expectedArgs := db.ContainerIdentifier{
-						Type: type1,
+					expectedArgs := db.ContainerMetadata{
+						Type: stepType,
 					}
-					Expect(containerDB.FindContainersByIdentifierCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
-			Describe("querying with name", func() {
+			Describe("querying with resource name", func() {
 				BeforeEach(func() {
 					req.URL.RawQuery = url.Values{
-						"name": []string{string(name1)},
+						"resource_name": []string{string(resourceName)},
 					}.Encode()
 				})
 
-				It("calls db.Containers with the queried name", func() {
+				It("calls db.Containers with the queried resource name", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					expectedArgs := db.ContainerIdentifier{
-						Name: name1,
+					expectedArgs := db.ContainerMetadata{
+						ResourceName: resourceName,
 					}
-					Expect(containerDB.FindContainersByIdentifierCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
+				})
+			})
+
+			Describe("querying with step name", func() {
+				BeforeEach(func() {
+					req.URL.RawQuery = url.Values{
+						"step_name": []string{string(stepName)},
+					}.Encode()
+				})
+
+				It("calls db.Containers with the queried step name", func() {
+					_, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					expectedArgs := db.ContainerMetadata{
+						StepName: stepName,
+					}
+					Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
+				})
+			})
+
+			Describe("querying with build name", func() {
+				BeforeEach(func() {
+					req.URL.RawQuery = url.Values{
+						"build_name": []string{buildName},
+					}.Encode()
+				})
+
+				It("calls db.Containers with the queried build name", func() {
+					_, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					expectedArgs := db.ContainerMetadata{
+						BuildName: buildName,
+					}
+					Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
 			Describe("querying with build-id", func() {
 				Context("when the buildID can be parsed as an int", func() {
 					BeforeEach(func() {
-						buildID1String := strconv.Itoa(buildID1)
+						buildIDString := strconv.Itoa(buildID)
 
 						req.URL.RawQuery = url.Values{
-							"build-id": []string{buildID1String},
+							"build-id": []string{buildIDString},
 						}.Encode()
 					})
 
@@ -275,11 +325,11 @@ var _ = Describe("Pipelines API", func() {
 						_, err := client.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 
-						expectedArgs := db.ContainerIdentifier{
-							BuildID: buildID1,
+						expectedArgs := db.ContainerMetadata{
+							BuildID: buildID,
 						}
-						Expect(containerDB.FindContainersByIdentifierCallCount()).To(Equal(1))
-						Expect(containerDB.FindContainersByIdentifierArgsForCall(0)).To(Equal(expectedArgs))
+						Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
+						Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
 					})
 
 					Context("when the buildID fails to be parsed as an int", func() {
@@ -297,7 +347,7 @@ var _ = Describe("Pipelines API", func() {
 						It("does not lookup containers", func() {
 							client.Do(req)
 
-							Expect(containerDB.FindContainersByIdentifierCallCount()).To(Equal(0))
+							Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(0))
 						})
 					})
 				})
@@ -306,15 +356,11 @@ var _ = Describe("Pipelines API", func() {
 	})
 
 	Describe("GET /api/v1/containers/:id", func() {
-		const (
-			containerID = "23sxrfu"
-		)
-
 		BeforeEach(func() {
 			containerDB.GetContainerReturns(fakeContainer1, true, nil)
 
 			var err error
-			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers/"+containerID, nil)
+			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers/"+handle, nil)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
 		})
@@ -374,7 +420,7 @@ var _ = Describe("Pipelines API", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(containerDB.GetContainerCallCount()).To(Equal(1))
-					Expect(containerDB.GetContainerArgsForCall(0)).To(Equal(containerID))
+					Expect(containerDB.GetContainerArgsForCall(0)).To(Equal(handle))
 				})
 
 				It("returns the container", func() {
@@ -386,11 +432,13 @@ var _ = Describe("Pipelines API", func() {
 
 					Expect(body).To(MatchJSON(`
 						{
-							"pipeline_name": "pipeline-1",
-							"type": "check",
-							"name": "name-1",
+							"pipeline_name": "some-pipeline",
+							"step_type": "task",
+							"step_name": "some-step",
+							"job_name": "some-job",
 							"build_id": 1234,
-							"id": "dh93mvi",
+							"build_name": "2",
+							"id": "some-handle",
 							"worker_name": "some-worker-guid",
 							"working_directory": "/tmp/build/my-favorite-guid",
 							"env_variables": ["VAR1=VAL1"]
@@ -441,7 +489,7 @@ var _ = Describe("Pipelines API", func() {
 
 			hijackReq, err := http.NewRequest(
 				"POST",
-				server.URL+"/api/v1/containers/"+containerID1+"/hijack",
+				server.URL+"/api/v1/containers/"+handle+"/hijack",
 				bytes.NewBufferString(requestPayload),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -528,7 +576,7 @@ var _ = Describe("Pipelines API", func() {
 						Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
 						_, lookedUpID := fakeWorkerClient.LookupContainerArgsForCall(0)
-						Expect(lookedUpID).To(Equal(containerID1))
+						Expect(lookedUpID).To(Equal(handle))
 
 						spec, io := fakeContainer.RunArgsForCall(0)
 						Expect(spec).To(Equal(garden.ProcessSpec{

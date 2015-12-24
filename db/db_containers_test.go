@@ -2,6 +2,9 @@ package db_test
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -18,7 +21,7 @@ var _ = Describe("Keeping track of containers", func() {
 	var dbConn *sql.DB
 	var listener *pq.Listener
 
-	var database db.DB
+	var database *db.SQLDB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -30,6 +33,11 @@ var _ = Describe("Keeping track of containers", func() {
 		bus := db.NewNotificationsBus(listener, dbConn)
 
 		database = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
+
+		_, err := dbConn.Query(`DELETE FROM teams WHERE name = 'main'`)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = database.SaveTeam(db.Team{Name: atc.DefaultTeamName})
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -40,46 +48,91 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("can create and get a container info object", func() {
+	It("can create and get a resource container info object", func() {
 		expectedContainer := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				Name:                 "some-container",
+			ContainerMetadata: db.ContainerMetadata{
+				ResourceName:         "some-resource-container",
 				PipelineName:         "some-pipeline",
-				BuildID:              123,
-				Type:                 db.ContainerTypeTask,
 				WorkerName:           "some-worker",
+				Type:                 db.ContainerTypeTask,
 				WorkingDirectory:     "tmp/build/some-guid",
-				CheckType:            "some-type",
 				CheckSource:          atc.Source{"uri": "http://example.com"},
-				PlanID:               "some-plan-id",
+				CheckType:            "some-type",
 				EnvironmentVariables: []string{"VAR1=val1", "VAR2=val2"},
 			},
 			Handle: "some-handle",
 		}
 
 		By("creating a container")
-		err := database.CreateContainer(expectedContainer, time.Minute)
+		_, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("trying to create a container with the same handle")
-		err = database.CreateContainer(db.Container{Handle: "some-handle"}, time.Second)
+		_, err = database.CreateContainer(db.Container{Handle: "some-handle"}, time.Second)
 		Expect(err).To(HaveOccurred())
 
-		By("getting the saved info object by h andle")
+		By("getting the saved info object by handle")
 		actualContainer, found, err := database.GetContainer("some-handle")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
 		Expect(actualContainer.Handle).To(Equal("some-handle"))
-		Expect(actualContainer.Name).To(Equal("some-container"))
+		Expect(actualContainer.StepName).To(Equal(""))
+		Expect(actualContainer.ResourceName).To(Equal("some-resource-container"))
 		Expect(actualContainer.PipelineName).To(Equal("some-pipeline"))
-		Expect(actualContainer.BuildID).To(Equal(123))
+		Expect(actualContainer.ContainerMetadata.BuildID).To(BeNumerically(">", 0))
 		Expect(actualContainer.Type).To(Equal(db.ContainerTypeTask))
 		Expect(actualContainer.WorkerName).To(Equal("some-worker"))
 		Expect(actualContainer.WorkingDirectory).To(Equal("tmp/build/some-guid"))
 		Expect(actualContainer.CheckType).To(Equal("some-type"))
 		Expect(actualContainer.CheckSource).To(Equal(atc.Source{"uri": "http://example.com"}))
-		Expect(actualContainer.PlanID).To(Equal(atc.PlanID("some-plan-id")))
+		Expect(actualContainer.EnvironmentVariables).To(Equal([]string{"VAR1=val1", "VAR2=val2"}))
+
+		By("returning found = false when getting by a handle that does not exist")
+		_, found, err = database.GetContainer("nope")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeFalse())
+	})
+
+	It("can create and get a step container info object", func() {
+		expectedContainer := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				PlanID: "some-plan-id",
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				StepName:             "some-step-container",
+				PipelineName:         "some-pipeline",
+				Type:                 db.ContainerTypeTask,
+				WorkerName:           "some-worker",
+				WorkingDirectory:     "tmp/build/some-guid",
+				EnvironmentVariables: []string{"VAR1=val1", "VAR2=val2"},
+			},
+			Handle: "some-handle",
+		}
+
+		By("creating a container")
+		_, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("trying to create a container with the same handle")
+		_, err = database.CreateContainer(db.Container{Handle: "some-handle"}, time.Second)
+		Expect(err).To(HaveOccurred())
+
+		By("getting the saved info object by handle")
+		actualContainer, found, err := database.GetContainer("some-handle")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+
+		Expect(actualContainer.Handle).To(Equal("some-handle"))
+		Expect(actualContainer.StepName).To(Equal("some-step-container"))
+		Expect(actualContainer.ResourceName).To(Equal(""))
+		Expect(actualContainer.PipelineName).To(Equal("some-pipeline"))
+		Expect(actualContainer.ContainerMetadata.BuildID).To(BeNumerically(">", 0))
+		Expect(actualContainer.Type).To(Equal(db.ContainerTypeTask))
+		Expect(actualContainer.WorkerName).To(Equal("some-worker"))
+		Expect(actualContainer.WorkingDirectory).To(Equal("tmp/build/some-guid"))
+		Expect(actualContainer.CheckType).To(BeEmpty())
+		Expect(actualContainer.CheckSource).To(BeEmpty())
 		Expect(actualContainer.EnvironmentVariables).To(Equal([]string{"VAR1=val1", "VAR2=val2"}))
 
 		By("returning found = false when getting by a handle that does not exist")
@@ -91,24 +144,30 @@ var _ = Describe("Keeping track of containers", func() {
 	It("can update the time to live for a container info object", func() {
 		updatedTTL := 5 * time.Minute
 
-		originalContainer := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				Type: db.ContainerTypeTask,
+		expectedContainer := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{},
+			ContainerMetadata: db.ContainerMetadata{
+				Type:         db.ContainerTypeTask,
+				WorkerName:   "some-worker",
+				PipelineName: "some-pipeline",
 			},
 			Handle: "some-handle",
 		}
-		err := database.CreateContainer(originalContainer, time.Minute)
+		_, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		// comparisonContainer is used to get the expected expiration time in the
 		// database timezone to avoid timezone errors
 		comparisonContainer := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				Type: db.ContainerTypeTask,
+			ContainerIdentifier: db.ContainerIdentifier{},
+			ContainerMetadata: db.ContainerMetadata{
+				Type:         db.ContainerTypeTask,
+				WorkerName:   "some-other-worker",
+				PipelineName: "some-other-pipeline",
 			},
 			Handle: "comparison-handle",
 		}
-		err = database.CreateContainer(comparisonContainer, updatedTTL)
+		_, err = CreateContainerHelper(comparisonContainer, updatedTTL, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		comparisonContainer, found, err := database.GetContainer("comparison-handle")
@@ -126,14 +185,17 @@ var _ = Describe("Keeping track of containers", func() {
 	})
 
 	It("can reap a container", func() {
-		info := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				Type: db.ContainerTypeTask,
+		expectedContainer := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{},
+			ContainerMetadata: db.ContainerMetadata{
+				Type:         db.ContainerTypeTask,
+				WorkerName:   "some-worker",
+				PipelineName: "some-pipeline",
 			},
 			Handle: "some-handle",
 		}
 
-		err := database.CreateContainer(info, time.Minute)
+		_, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		_, found, err := database.GetContainer("some-handle")
@@ -154,9 +216,9 @@ var _ = Describe("Keeping track of containers", func() {
 	})
 
 	type findContainersByIdentifierExample struct {
-		containersToCreate   []db.Container
-		identifierToFilerFor db.ContainerIdentifier
-		expectedHandles      []string
+		containersToCreate  []db.Container
+		metadataToFilterFor db.ContainerMetadata
+		expectedHandles     []string
 	}
 
 	DescribeTable("filtering containers by identifier",
@@ -170,11 +232,11 @@ var _ = Describe("Keeping track of containers", func() {
 					containerToCreate.Type = db.ContainerTypeTask
 				}
 
-				err = database.CreateContainer(containerToCreate, 1*time.Minute)
+				_, err := CreateContainerHelper(containerToCreate, time.Minute, dbConn, database)
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			results, err = database.FindContainersByIdentifier(example.identifierToFilerFor)
+			results, err = database.FindContainersByMetadata(example.metadataToFilterFor)
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, result := range results {
@@ -191,146 +253,312 @@ var _ = Describe("Keeping track of containers", func() {
 
 		Entry("returns everything when no filters are passed", findContainersByIdentifierExample{
 			containersToCreate: []db.Container{
-				{Handle: "a"},
-				{Handle: "b"},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-worker",
+						PipelineName: "some-pipeline",
+					},
+					Handle: "a",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-other-pipeline",
+					},
+					Handle: "b",
+				},
 			},
-			identifierToFilerFor: db.ContainerIdentifier{},
-			expectedHandles:      []string{"a", "b"},
+			metadataToFilterFor: db.ContainerMetadata{},
+			expectedHandles:     []string{"a", "b"},
 		}),
 
 		Entry("does not return things that the filter doesn't match", findContainersByIdentifierExample{
 			containersToCreate: []db.Container{
-				{Handle: "a"},
-				{Handle: "b"},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-worker",
+						PipelineName: "some-pipeline",
+					},
+					Handle: "a",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-other-pipeline",
+					},
+					Handle: "b",
+				},
 			},
-			identifierToFilerFor: db.ContainerIdentifier{Name: "some-name"},
-			expectedHandles:      nil,
+			metadataToFilterFor: db.ContainerMetadata{ResourceName: "some-resource-name"},
+			expectedHandles:     nil,
 		}),
 
 		Entry("returns containers where the name matches", findContainersByIdentifierExample{
 			containersToCreate: []db.Container{
-				{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{Name: "some-container"}},
-				{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{Name: "some-container"}},
-				{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{Name: "some-other"}},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-worker",
+						PipelineName: "some-pipeline",
+						ResourceName: "some-resource",
+					},
+					Handle: "a",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-other-pipeline",
+						ResourceName: "some-resource",
+					},
+					Handle: "b",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-Oother-worker",
+						PipelineName: "some-Oother-pipeline",
+						ResourceName: "some-other-resource",
+					},
+					Handle: "c",
+				},
 			},
-			identifierToFilerFor: db.ContainerIdentifier{Name: "some-container"},
-			expectedHandles:      []string{"a", "b"},
+			metadataToFilterFor: db.ContainerMetadata{ResourceName: "some-resource"},
+			expectedHandles:     []string{"a", "b"},
 		}),
 
 		Entry("returns containers where the pipeline matches", findContainersByIdentifierExample{
 			containersToCreate: []db.Container{
-				{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{PipelineName: "some-pipeline"}},
-				{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{PipelineName: "some-other"}},
-				{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{PipelineName: "some-pipeline"}},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-worker",
+						PipelineName: "some-pipeline",
+					},
+					Handle: "a",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-other-pipeline",
+					},
+					Handle: "b",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-Oother-worker",
+						PipelineName: "some-pipeline",
+					},
+					Handle: "c",
+				},
 			},
-			identifierToFilerFor: db.ContainerIdentifier{PipelineName: "some-pipeline"},
-			expectedHandles:      []string{"a", "c"},
-		}),
-
-		Entry("returns containers where the build id matches", findContainersByIdentifierExample{
-			containersToCreate: []db.Container{
-				{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{BuildID: 1}},
-				{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{BuildID: 2}},
-				{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{BuildID: 2}},
-			},
-			identifierToFilerFor: db.ContainerIdentifier{BuildID: 2},
-			expectedHandles:      []string{"b", "c"},
+			metadataToFilterFor: db.ContainerMetadata{PipelineName: "some-pipeline"},
+			expectedHandles:     []string{"a", "c"},
 		}),
 
 		Entry("returns containers where the type matches", findContainersByIdentifierExample{
 			containersToCreate: []db.Container{
-				{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{Type: db.ContainerTypePut}},
-				{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{Type: db.ContainerTypePut}},
-				{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{Type: db.ContainerTypeGet}},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypePut,
+						WorkerName:   "some-worker",
+						PipelineName: "some-pipeline",
+					},
+					Handle: "a",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypePut,
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-other-pipeline",
+					},
+					Handle: "b",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeGet,
+						WorkerName:   "some-Oother-worker",
+						PipelineName: "some-pipeline",
+					},
+					Handle: "c",
+				},
 			},
-			identifierToFilerFor: db.ContainerIdentifier{Type: db.ContainerTypePut},
-			expectedHandles:      []string{"a", "b"},
+			metadataToFilterFor: db.ContainerMetadata{Type: db.ContainerTypePut},
+			expectedHandles:     []string{"a", "b"},
 		}),
 
 		Entry("returns containers where the worker name matches", findContainersByIdentifierExample{
 			containersToCreate: []db.Container{
-				{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{WorkerName: "some-worker"}},
-				{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{WorkerName: "some-worker"}},
-				{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{WorkerName: "other"}},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypePut,
+						WorkerName:   "some-worker",
+						PipelineName: "some-pipeline",
+					},
+					Handle: "a",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypePut,
+						WorkerName:   "some-worker",
+						PipelineName: "some-other-pipeline",
+					},
+					Handle: "b",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeGet,
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-pipeline",
+					},
+					Handle: "c",
+				},
 			},
-			identifierToFilerFor: db.ContainerIdentifier{WorkerName: "some-worker"},
-			expectedHandles:      []string{"a", "b"},
+			metadataToFilterFor: db.ContainerMetadata{WorkerName: "some-worker"},
+			expectedHandles:     []string{"a", "b"},
 		}),
 
 		Entry("returns containers where the check type matches", findContainersByIdentifierExample{
 			containersToCreate: []db.Container{
-				{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{CheckType: "some-type"}},
-				{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{CheckType: "nope"}},
-				{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{CheckType: "some-type"}},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeCheck,
+						CheckType:    "some-type",
+						WorkerName:   "some-worker",
+						PipelineName: "some-pipeline",
+					},
+					Handle: "a",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeCheck,
+						CheckType:    "nope",
+						WorkerName:   "some-worker",
+						PipelineName: "some-other-pipeline",
+					},
+					Handle: "b",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeCheck,
+						CheckType:    "some-type",
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-pipeline",
+					},
+					Handle: "c",
+				},
 			},
-			identifierToFilerFor: db.ContainerIdentifier{CheckType: "some-type"},
-			expectedHandles:      []string{"a", "c"},
+			metadataToFilterFor: db.ContainerMetadata{CheckType: "some-type"},
+			expectedHandles:     []string{"a", "c"},
 		}),
 
 		Entry("returns containers where the check source matches", findContainersByIdentifierExample{
 			containersToCreate: []db.Container{
-				{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{CheckSource: atc.Source{"some": "other-source"}}},
-				{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{CheckSource: atc.Source{"some": "source"}}},
-				{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{CheckSource: atc.Source{"some": "source"}}},
+				{
+					ContainerMetadata: db.ContainerMetadata{
+						Type: db.ContainerTypeCheck,
+						CheckSource: atc.Source{
+							"some": "other-source",
+						},
+						WorkerName:   "some-worker",
+						PipelineName: "some-pipeline",
+					},
+					Handle: "a",
+				},
+				{
+					ContainerMetadata: db.ContainerMetadata{
+						Type: db.ContainerTypeCheck,
+						CheckSource: atc.Source{
+							"some": "source",
+						},
+						WorkerName:   "some-worker",
+						PipelineName: "some-other-pipeline",
+					},
+					Handle: "b",
+				},
+				{
+					ContainerMetadata: db.ContainerMetadata{
+						Type: db.ContainerTypeCheck,
+						CheckSource: atc.Source{
+							"some": "source",
+						},
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-pipeline",
+					},
+					Handle: "c",
+				},
 			},
-			identifierToFilerFor: db.ContainerIdentifier{CheckSource: atc.Source{"some": "source"}},
-			expectedHandles:      []string{"b", "c"},
-		}),
-
-		Entry("returns containers where the step location matches", findContainersByIdentifierExample{
-			containersToCreate: []db.Container{
-				{Handle: "a", ContainerIdentifier: db.ContainerIdentifier{PlanID: "some-id"}},
-				{Handle: "b", ContainerIdentifier: db.ContainerIdentifier{PlanID: "some-id"}},
-				{Handle: "c", ContainerIdentifier: db.ContainerIdentifier{PlanID: "some-other-id"}},
-			},
-			identifierToFilerFor: db.ContainerIdentifier{PlanID: "some-id"},
-			expectedHandles:      []string{"a", "b"},
+			metadataToFilterFor: db.ContainerMetadata{CheckSource: atc.Source{"some": "source"}},
+			expectedHandles:     []string{"b", "c"},
 		}),
 
 		Entry("returns containers where all fields match", findContainersByIdentifierExample{
 			containersToCreate: []db.Container{
 				{
-					ContainerIdentifier: db.ContainerIdentifier{
-						Name:         "some-name",
+					ContainerMetadata: db.ContainerMetadata{
+						StepName:     "some-name",
 						PipelineName: "some-pipeline",
-						BuildID:      123,
-						Type:         db.ContainerTypeCheck,
+						Type:         db.ContainerTypeTask,
 						WorkerName:   "some-worker",
 					},
 					Handle: "a",
 				},
 				{
-					ContainerIdentifier: db.ContainerIdentifier{
-						Name:         "WROONG",
+					ContainerMetadata: db.ContainerMetadata{
+						StepName:     "WROONG",
 						PipelineName: "some-pipeline",
-						BuildID:      123,
-						Type:         db.ContainerTypeCheck,
+						Type:         db.ContainerTypeTask,
 						WorkerName:   "some-worker",
 					},
 					Handle: "b",
 				},
 				{
-					ContainerIdentifier: db.ContainerIdentifier{
-						Name:         "some-name",
+					ContainerMetadata: db.ContainerMetadata{
+						StepName:     "some-name",
 						PipelineName: "some-pipeline",
-						BuildID:      123,
-						Type:         db.ContainerTypeCheck,
+						Type:         db.ContainerTypeTask,
 						WorkerName:   "some-worker",
 					},
 					Handle: "c",
 				},
 				{
-					ContainerIdentifier: db.ContainerIdentifier{
-						WorkerName: "Wat",
+					ContainerMetadata: db.ContainerMetadata{
+						WorkerName:   "some-worker",
+						PipelineName: "some-pipeline",
+						Type:         db.ContainerTypeTask,
 					},
 					Handle: "d",
 				},
 			},
-			identifierToFilerFor: db.ContainerIdentifier{
-				Name:         "some-name",
+			metadataToFilterFor: db.ContainerMetadata{
+				StepName:     "some-name",
 				PipelineName: "some-pipeline",
-				BuildID:      123,
-				Type:         db.ContainerTypeCheck,
+				Type:         db.ContainerTypeTask,
 				WorkerName:   "some-worker",
 			},
 			expectedHandles: []string{"a", "c"},
@@ -338,73 +566,236 @@ var _ = Describe("Keeping track of containers", func() {
 	)
 
 	It("can find a single container info by identifier", func() {
+		handle := "some-handle"
+		otherHandle := "other-handle"
+
 		expectedContainer := db.Container{
-			Handle: "some-handle",
-			ContainerIdentifier: db.ContainerIdentifier{
+			Handle: handle,
+			ContainerMetadata: db.ContainerMetadata{
 				PipelineName: "some-pipeline",
-				BuildID:      123,
-				Name:         "some-container",
+				ResourceName: "some-container",
 				WorkerName:   "some-worker",
-				Type:         db.ContainerTypeTask,
+				Type:         db.ContainerTypeCheck,
 				CheckType:    "some-type",
 				CheckSource:  atc.Source{"some": "other-source"},
 			},
 		}
-		otherContainer := db.Container{
-			Handle: "other-handle",
+		stepContainer := db.Container{
+			Handle: otherHandle,
 			ContainerIdentifier: db.ContainerIdentifier{
-				Name: "other-container",
-				Type: db.ContainerTypeTask,
+				PlanID: atc.PlanID("plan-id"),
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				PipelineName: "some-pipeline",
+				WorkerName:   "some-worker",
+				StepName:     "other-container",
+				Type:         db.ContainerTypeTask,
+			},
+		}
+		otherStepContainer := db.Container{
+			Handle: "very-other-handle",
+			ContainerIdentifier: db.ContainerIdentifier{
+				PlanID: atc.PlanID("other-plan-id"),
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				PipelineName: "some-pipeline",
+				WorkerName:   "some-worker",
+				StepName:     "other-container",
+				Type:         db.ContainerTypeTask,
 			},
 		}
 
-		err := database.CreateContainer(expectedContainer, time.Minute)
+		newContainer, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
-		err = database.CreateContainer(otherContainer, time.Minute)
+		newStepContainer, err := CreateContainerHelper(stepContainer, time.Minute, dbConn, database)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = CreateContainerHelper(otherStepContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("returning a single matching container info")
-		actualContainer, found, err := database.FindContainerByIdentifier(db.ContainerIdentifier{Name: "some-container"})
+		all_containers := getAllContainers(dbConn)
+		Expect(all_containers).To(HaveLen(3))
+
+		By("returning a single matching resource container info")
+		actualContainer, found, err := database.FindContainerByIdentifier(
+			newContainer.ContainerIdentifier,
+		)
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 		Expect(actualContainer.Handle).To(Equal("some-handle"))
-		Expect(actualContainer.Name).To(Equal("some-container"))
-		Expect(actualContainer.PipelineName).To(Equal("some-pipeline"))
-		Expect(actualContainer.BuildID).To(Equal(123))
-		Expect(actualContainer.Type).To(Equal(db.ContainerTypeTask))
-		Expect(actualContainer.WorkerName).To(Equal("some-worker"))
-		Expect(actualContainer.CheckType).To(Equal("some-type"))
-		Expect(actualContainer.CheckSource).To(Equal(atc.Source{"some": "other-source"}))
+		Expect(actualContainer.WorkerID).To(Equal(newContainer.WorkerID))
+		Expect(actualContainer.PipelineID).To(Equal(newContainer.PipelineID))
+		Expect(actualContainer.ResourceID).To(Equal(newContainer.ResourceID))
 		Expect(actualContainer.ExpiresAt.String()).NotTo(BeEmpty())
 
+		By("returning a single matching step container info")
+		actualStepContainer, found, err := database.FindContainerByIdentifier(
+			newStepContainer.ContainerIdentifier,
+		)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(actualStepContainer.Handle).To(Equal("other-handle"))
+		Expect(actualStepContainer.WorkerID).To(Equal(newStepContainer.WorkerID))
+		Expect(actualStepContainer.PipelineID).To(Equal(newStepContainer.PipelineID))
+		Expect(actualStepContainer.ResourceID).To(Equal(newStepContainer.ResourceID))
+		Expect(actualStepContainer.ExpiresAt.String()).NotTo(BeEmpty())
+
 		By("erroring if more than one container matches the filter")
-		actualContainer, found, err = database.FindContainerByIdentifier(db.ContainerIdentifier{Type: db.ContainerTypeTask})
+		matchingContainer := db.Container{
+			Handle: "matching-handle",
+			ContainerMetadata: db.ContainerMetadata{
+				PipelineName: "some-pipeline",
+				ResourceName: "some-container",
+				WorkerName:   "some-worker",
+				Type:         db.ContainerTypeCheck,
+				CheckType:    "some-type",
+				CheckSource:  atc.Source{"some": "other-source"},
+			},
+		}
+
+		actualMatchingContainer, err := CreateContainerHelper(matchingContainer, time.Minute, dbConn, database)
+		Expect(err).NotTo(HaveOccurred())
+
+		foundContainer, found, err := database.FindContainerByIdentifier(
+			db.ContainerIdentifier{
+				PipelineID: actualMatchingContainer.PipelineID,
+				ResourceID: actualMatchingContainer.ResourceID,
+				WorkerID:   actualMatchingContainer.WorkerID,
+			})
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(Equal(db.ErrMultipleContainersFound))
 		Expect(found).To(BeFalse())
-		Expect(actualContainer.Handle).To(BeEmpty())
+		Expect(foundContainer.Handle).To(BeEmpty())
+
+		By("erroring if not enough identifiers are passed in")
+		foundContainer, found, err = database.FindContainerByIdentifier(
+			db.ContainerIdentifier{
+				PipelineID: actualMatchingContainer.PipelineID,
+			})
+		Expect(err).To(HaveOccurred())
+		Expect(found).To(BeFalse())
+		Expect(foundContainer.Handle).To(BeEmpty())
 
 		By("returning found of false if no containers match the filter")
-		actualContainer, found, err = database.FindContainerByIdentifier(db.ContainerIdentifier{Name: "nope"})
+		actualContainer, found, err = database.FindContainerByIdentifier(
+			db.ContainerIdentifier{
+				BuildID:  -1,
+				WorkerID: 1,
+				PlanID:   atc.PlanID("plan-id"),
+			})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeFalse())
 		Expect(actualContainer.Handle).To(BeEmpty())
 
 		By("removing it if the TTL has expired")
 		ttl := 1 * time.Second
-		ttlContainer := db.Container{
-			Handle: "some-ttl-handle",
-			ContainerIdentifier: db.ContainerIdentifier{
-				Name: "some-ttl-name",
-				Type: db.ContainerTypeTask,
-			},
-		}
 
-		err = database.CreateContainer(ttlContainer, -ttl)
+		err = database.UpdateExpiresAtOnContainer(otherHandle, -ttl)
 		Expect(err).NotTo(HaveOccurred())
-		_, found, err = database.FindContainerByIdentifier(db.ContainerIdentifier{Name: "some-ttl-name"})
+		_, found, err = database.FindContainerByIdentifier(
+			newStepContainer.ContainerIdentifier,
+		)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeFalse())
 	})
 })
+
+func CreateIfNotExistPipeline(name string, teamName string, sqlDB *sql.DB) (db.SavedPipeline, error) {
+	var pipeline db.SavedPipeline
+
+	err := sqlDB.QueryRow(`
+			INSERT INTO pipelines (name, config, version, ordering, paused, team_id)
+			SELECT
+				$1,
+				'{}',
+				nextval('config_version_seq'),
+				(SELECT COUNT(1) + 1 FROM pipelines),
+				true,
+				(SELECT id FROM teams WHERE name = $2)
+			WHERE NOT EXISTS
+				(SELECT id FROM pipelines WHERE name=$1)
+			RETURNING id
+		`, name, teamName).Scan(&pipeline.ID)
+	if err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") {
+			err = sqlDB.QueryRow(`
+			SELECT p.id
+			FROM pipelines p
+			JOIN teams t ON
+        t.id = p.team_id
+			WHERE p.name=$1
+      AND t.name = $2
+		`, name, teamName).Scan(&pipeline.ID)
+		}
+		if err != nil {
+			return db.SavedPipeline{}, err
+		}
+	}
+
+	return pipeline, nil
+}
+
+func getAllContainers(sqldb *sql.DB) []db.Container {
+	var container_slice []db.Container
+	query := `SELECT worker_id, pipeline_id, resource_id, build_id, plan_id
+	          FROM containers
+						`
+	rows, err := sqldb.Query(query)
+	Expect(err).NotTo(HaveOccurred())
+	defer rows.Close()
+
+	for rows.Next() {
+		var container db.Container
+		rows.Scan(&container.WorkerID, &container.PipelineID, &container.ResourceID, &container.ContainerIdentifier.BuildID, &container.PlanID)
+		container_slice = append(container_slice, container)
+	}
+	return container_slice
+}
+
+func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB *sql.DB, dbSQL *db.SQLDB) (db.Container, error) {
+	pipeline, err := CreateIfNotExistPipeline(container.PipelineName, atc.DefaultTeamName, sqlDB)
+	if err != nil {
+		return db.Container{}, errors.New(fmt.Sprintf("Failed to create pipeline:", err.Error()))
+	}
+
+	var worker db.WorkerInfo
+	worker.Name = container.WorkerName
+	// hacky way to generate unique addresses in the case of multiple workers to
+	// avoid matching on empty string
+	worker.GardenAddr = time.Now().String()
+	insertedWorker, err := dbSQL.SaveWorker(worker, 0)
+	if err != nil {
+		return db.Container{}, errors.New(fmt.Sprintf("Failed to create worker:", err.Error()))
+	}
+
+	pipelineDBFactory := db.NewPipelineDBFactory(nil, sqlDB, nil, dbSQL)
+	pipelineDB := pipelineDBFactory.Build(pipeline)
+	build, err := pipelineDB.CreateJobBuild("some-job")
+	if err != nil {
+		return db.Container{}, errors.New(fmt.Sprintf("Failed to create job:", err.Error()))
+	}
+	container.ContainerIdentifier.BuildID = build.ID
+	container.WorkerID = insertedWorker.ID
+
+	if container.ResourceName != "" {
+		input := db.BuildInput{
+			Name: container.ResourceName,
+			VersionedResource: db.VersionedResource{
+				Resource:     container.ResourceName,
+				Type:         "some-resource-type",
+				Metadata:     []db.MetadataField{},
+				PipelineName: container.PipelineName,
+			},
+			FirstOccurrence: false,
+		}
+		dbSQL.SaveBuildInput(atc.DefaultTeamName, build.ID, input)
+	}
+
+	createdContainer, err := dbSQL.CreateContainer(container, ttl)
+	if err != nil {
+		return db.Container{}, errors.New(fmt.Sprintf("Failed to create container:", err.Error()))
+	}
+
+	return createdContainer, nil
+}

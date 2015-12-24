@@ -13,13 +13,13 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
-	CreateContainer(lager.Logger, Identifier, ContainerSpec) (Container, error)
+	CreateContainer(lager.Logger, Identifier, Metadata, ContainerSpec) (Container, error)
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 
 	Satisfying(WorkerSpec) (Worker, error)
 	AllSatisfying(WorkerSpec) ([]Worker, error)
-	GetWorker(workerName string) (Worker, error)
+	GetWorker(workerID int) (Worker, error)
 }
 
 //go:generate counterfeiter . Container
@@ -36,6 +36,7 @@ type Container interface {
 }
 
 type Identifier db.ContainerIdentifier
+type Metadata db.ContainerMetadata
 
 type MultipleWorkersFoundContainerError struct {
 	Names []string

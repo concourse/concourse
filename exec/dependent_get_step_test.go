@@ -32,7 +32,8 @@ var _ = Describe("GardenFactory", func() {
 		stderrBuf *gbytes.Buffer
 
 		identifier = worker.Identifier{
-			Name: "some-session-id",
+			BuildID: 1234,
+			PlanID:  atc.PlanID("some-plan-id"),
 		}
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}

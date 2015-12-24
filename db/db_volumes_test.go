@@ -40,20 +40,51 @@ var _ = Describe("Keeping track of volumes", func() {
 	})
 
 	Context("volume data", func() {
-		var insertedVolume db.Volume
+		var (
+			volumeToInsert  db.Volume
+			workerToInsert  db.WorkerInfo
+			workerToInsert2 db.WorkerInfo
+			insertedWorker  db.SavedWorker
+			insertedWorker2 db.SavedWorker
+			err             error
+		)
 
 		BeforeEach(func() {
-			insertedVolume = db.Volume{
-				WorkerName:      "some-worker",
+			volumeToInsert = db.Volume{
 				TTL:             time.Hour,
 				Handle:          "some-volume-handle",
 				ResourceVersion: atc.Version{"some": "version"},
 				ResourceHash:    "some-hash",
 			}
+			workerToInsert = db.WorkerInfo{
+				GardenAddr:       "some-garden-address",
+				BaggageclaimURL:  "some-baggageclaim-url",
+				ActiveContainers: 0,
+				ResourceTypes:    []atc.WorkerResourceType{},
+				Platform:         "linux",
+				Tags:             []string{"vsphere"},
+				Name:             "some-worker",
+			}
+			workerToInsert2 = db.WorkerInfo{
+				GardenAddr:       "second-garden-address",
+				BaggageclaimURL:  "some-baggageclaim-url",
+				ActiveContainers: 0,
+				ResourceTypes:    []atc.WorkerResourceType{},
+				Platform:         "linux",
+				Tags:             []string{"vsphere"},
+				Name:             "second-worker",
+			}
 		})
 
 		JustBeforeEach(func() {
-			err := database.InsertVolume(insertedVolume)
+			insertedWorker, err = database.SaveWorker(workerToInsert, 2*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+
+			insertedWorker2, err = database.SaveWorker(workerToInsert2, 2*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+
+			volumeToInsert.WorkerID = insertedWorker.ID
+			err = database.InsertVolume(volumeToInsert)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -62,32 +93,45 @@ var _ = Describe("Keeping track of volumes", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(volumes)).To(Equal(1))
 			actualVolume := volumes[0]
-			Expect(actualVolume.WorkerName).To(Equal(insertedVolume.WorkerName))
-			Expect(actualVolume.TTL).To(Equal(insertedVolume.TTL))
-			Expect(actualVolume.ExpiresIn).To(BeNumerically("~", insertedVolume.TTL, time.Second))
-			Expect(actualVolume.Handle).To(Equal(insertedVolume.Handle))
-			Expect(actualVolume.ResourceVersion).To(Equal(insertedVolume.ResourceVersion))
-			Expect(actualVolume.ResourceHash).To(Equal(insertedVolume.ResourceHash))
+			Expect(actualVolume.WorkerID).To(Equal(volumeToInsert.WorkerID))
+			Expect(actualVolume.TTL).To(Equal(volumeToInsert.TTL))
+			Expect(actualVolume.ExpiresIn).To(BeNumerically("~", volumeToInsert.TTL, time.Second))
+			Expect(actualVolume.Handle).To(Equal(volumeToInsert.Handle))
+			Expect(actualVolume.ResourceVersion).To(Equal(volumeToInsert.ResourceVersion))
+			Expect(actualVolume.ResourceHash).To(Equal(volumeToInsert.ResourceHash))
+			Expect(actualVolume.WorkerName).To(Equal(insertedWorker.Name))
 		})
 
 		It("can be reaped", func() {
-			insertedVolume2 := db.Volume{
-				WorkerName:      "some-worker2",
+			volumeToInsert2 := db.Volume{
+				WorkerID:        insertedWorker2.ID,
 				TTL:             time.Hour,
 				Handle:          "some-volume-handle2",
 				ResourceVersion: atc.Version{"some": "version"},
 				ResourceHash:    "some-hash2",
 			}
-			insertedVolume3 := db.Volume{
-				WorkerName:      "some-worker3",
+			err = database.InsertVolume(volumeToInsert2)
+			Expect(err).NotTo(HaveOccurred())
+
+			workerToInsert3 := db.WorkerInfo{
+				GardenAddr:       "third-garden-address",
+				BaggageclaimURL:  "some-baggageclaim-url",
+				ActiveContainers: 0,
+				ResourceTypes:    []atc.WorkerResourceType{},
+				Platform:         "linux",
+				Tags:             []string{"vsphere"},
+				Name:             "third-worker",
+			}
+			insertedWorker3, err := database.SaveWorker(workerToInsert3, 2*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+			volumeToInsert3 := db.Volume{
+				WorkerID:        insertedWorker3.ID,
 				TTL:             time.Hour,
 				Handle:          "some-volume-handle3",
 				ResourceVersion: atc.Version{"some": "version"},
 				ResourceHash:    "some-hash3",
 			}
-			err := database.InsertVolume(insertedVolume2)
-			Expect(err).NotTo(HaveOccurred())
-			err = database.InsertVolume(insertedVolume3)
+			err = database.InsertVolume(volumeToInsert3)
 			Expect(err).NotTo(HaveOccurred())
 
 			volumes, err := database.GetVolumes()
@@ -105,7 +149,7 @@ var _ = Describe("Keeping track of volumes", func() {
 		})
 
 		It("can insert the same data twice, without erroring or data duplication", func() {
-			err := database.InsertVolume(insertedVolume)
+			err := database.InsertVolume(volumeToInsert)
 			Expect(err).NotTo(HaveOccurred())
 
 			volumes, err := database.GetVolumes()
@@ -114,8 +158,8 @@ var _ = Describe("Keeping track of volumes", func() {
 		})
 
 		It("can create the same volume on a different worker", func() {
-			insertedVolume.WorkerName = "some-other-worker"
-			err := database.InsertVolume(insertedVolume)
+			volumeToInsert.WorkerID = insertedWorker2.ID
+			err := database.InsertVolume(volumeToInsert)
 			Expect(err).NotTo(HaveOccurred())
 
 			volumes, err := database.GetVolumes()
@@ -125,7 +169,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 		Context("expired volumes", func() {
 			BeforeEach(func() {
-				insertedVolume.TTL = -time.Hour
+				volumeToInsert.TTL = -time.Hour
 			})
 
 			It("does not return them", func() {
@@ -137,9 +181,9 @@ var _ = Describe("Keeping track of volumes", func() {
 
 		Context("TTL's", func() {
 			It("can be retrieved by volume handler", func() {
-				actualTTL, err := database.GetVolumeTTL(insertedVolume.Handle)
+				actualTTL, err := database.GetVolumeTTL(volumeToInsert.Handle)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(actualTTL).To(Equal(insertedVolume.TTL))
+				Expect(actualTTL).To(Equal(volumeToInsert.TTL))
 			})
 
 			It("can be updated", func() {
@@ -173,7 +217,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 			Context("when the ttl is set to 0", func() {
 				BeforeEach(func() {
-					insertedVolume.TTL = 0
+					volumeToInsert.TTL = 0
 				})
 
 				It("sets the expiration to null", func() {

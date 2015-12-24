@@ -76,21 +76,26 @@ var _ = Describe("DBProvider", func() {
 
 		Context("when the database yields workers", func() {
 			BeforeEach(func() {
-				fakeDB.WorkersReturns([]db.WorkerInfo{
+				fakeDB.WorkersReturns([]db.SavedWorker{
 					{
-						Name:             "some-worker-name",
-						GardenAddr:       workerAddr,
-						BaggageclaimURL:  workerBaggageclaimURL,
-						ActiveContainers: 2,
-						ResourceTypes: []atc.WorkerResourceType{
-							{Type: "some-resource-a", Image: "some-image-a"},
+						WorkerInfo: db.WorkerInfo{
+							Name:             "some-worker-name",
+							GardenAddr:       workerAddr,
+							BaggageclaimURL:  workerBaggageclaimURL,
+							ActiveContainers: 2,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource-a", Image: "some-image-a"},
+							},
 						},
+						ID: 9876,
 					},
 					{
-						GardenAddr:       workerAddr,
-						ActiveContainers: 2,
-						ResourceTypes: []atc.WorkerResourceType{
-							{Type: "some-resource-b", Image: "some-image-b"},
+						WorkerInfo: db.WorkerInfo{
+							GardenAddr:       workerAddr,
+							ActiveContainers: 2,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource-b", Image: "some-image-b"},
+							},
 						},
 					},
 				}, nil)
@@ -120,7 +125,7 @@ var _ = Describe("DBProvider", func() {
 
 				JustBeforeEach(func() {
 					id = Identifier{
-						Name: "some-name",
+						ResourceID: 1234,
 					}
 
 					spec = ResourceTypeContainerSpec{
@@ -134,7 +139,7 @@ var _ = Describe("DBProvider", func() {
 					worker.LookupReturns(fakeContainer, nil)
 
 					By("connecting to the worker")
-					container, err := workers[0].CreateContainer(logger, id, spec)
+					container, err := workers[0].CreateContainer(logger, id, Metadata{}, spec)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -160,9 +165,9 @@ var _ = Describe("DBProvider", func() {
 				})
 
 				It("can continue to connect after the worker address changes", func() {
-					fakeDB.GetWorkerReturns(db.WorkerInfo{GardenAddr: workerAddr}, true, nil)
+					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: workerAddr}}, true, nil)
 
-					container, err := workers[0].CreateContainer(logger, id, spec)
+					container, err := workers[0].CreateContainer(logger, id, Metadata{}, spec)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -170,18 +175,18 @@ var _ = Describe("DBProvider", func() {
 				})
 
 				It("throws an error if the worker cannot be found", func() {
-					fakeDB.GetWorkerReturns(db.WorkerInfo{}, false, nil)
+					fakeDB.GetWorkerReturns(db.SavedWorker{}, false, nil)
 
-					_, err := workers[0].CreateContainer(logger, id, spec)
+					_, err := workers[0].CreateContainer(logger, id, Metadata{}, spec)
 					Expect(err).To(HaveOccurred())
 					Expect(err).To(Equal(ErrMissingWorker))
 				})
 
 				It("throws an error if the lookup of the worker in the db errors", func() {
 					expectedErr := errors.New("some-db-error")
-					fakeDB.GetWorkerReturns(db.WorkerInfo{}, true, expectedErr)
+					fakeDB.GetWorkerReturns(db.SavedWorker{}, true, expectedErr)
 
-					_, actualErr := workers[0].CreateContainer(logger, id, spec)
+					_, actualErr := workers[0].CreateContainer(logger, id, Metadata{}, spec)
 					Expect(actualErr).To(HaveOccurred())
 					Expect(actualErr).To(Equal(expectedErr))
 				})
@@ -190,7 +195,7 @@ var _ = Describe("DBProvider", func() {
 			Describe("a created container", func() {
 				It("calls through to garden", func() {
 					id := Identifier{
-						Name: "some-name",
+						ResourceID: 1234,
 					}
 
 					spec := ResourceTypeContainerSpec{
@@ -203,12 +208,12 @@ var _ = Describe("DBProvider", func() {
 					worker.CreateReturns(fakeContainer, nil)
 					worker.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].CreateContainer(logger, id, spec)
+					container, err := workers[0].CreateContainer(logger, id, Metadata{}, spec)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeDB.CreateContainerCallCount()).To(Equal(1))
 					createdInfo, _ := fakeDB.CreateContainerArgsForCall(0)
-					Expect(createdInfo.WorkerName).To(Equal("some-worker-name"))
+					Expect(createdInfo.WorkerID).To(Equal(9876))
 
 					Expect(container.Handle()).To(Equal("created-handle"))
 
@@ -233,7 +238,7 @@ var _ = Describe("DBProvider", func() {
 					fakeDB.FindContainerByIdentifierReturns(db.Container{Handle: "some-handle"}, true, nil)
 
 					container, found, err := workers[0].FindContainerForIdentifier(logger, Identifier{
-						Name: "some-name",
+						ResourceID: 1234,
 					})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
@@ -268,9 +273,9 @@ var _ = Describe("DBProvider", func() {
 
 		Context("when looking up workers returns an error", func() {
 			It("returns an error", func() {
-				fakeDB.GetWorkerReturns(db.WorkerInfo{}, true, errors.New("disaster"))
+				fakeDB.GetWorkerReturns(db.SavedWorker{}, true, errors.New("disaster"))
 
-				worker, found, workersErr = provider.GetWorker("some-name")
+				worker, found, workersErr = provider.GetWorker(1234)
 				Expect(workersErr).To(HaveOccurred())
 				Expect(worker).To(BeNil())
 				Expect(found).To(BeFalse())
@@ -279,9 +284,9 @@ var _ = Describe("DBProvider", func() {
 
 		Context("when we find no workers", func() {
 			It("returns found as false", func() {
-				fakeDB.GetWorkerReturns(db.WorkerInfo{}, false, nil)
+				fakeDB.GetWorkerReturns(db.SavedWorker{}, false, nil)
 
-				worker, found, workersErr = provider.GetWorker("some-name")
+				worker, found, workersErr = provider.GetWorker(1234)
 				Expect(workersErr).NotTo(HaveOccurred())
 				Expect(worker).To(BeNil())
 				Expect(found).To(BeFalse())
@@ -289,30 +294,20 @@ var _ = Describe("DBProvider", func() {
 		})
 	})
 
-	Context("when we call to get a container info by identifier", func() {
+	Context("when we call to get a container info by metadata", func() {
 		It("calls through to the db object", func() {
 			provider.FindContainerForIdentifier(Identifier{
-				Name:         "some-name",
-				PipelineName: "some-pipeline",
-				BuildID:      1234,
-				Type:         db.ContainerTypePut,
-				CheckType:    "some-check-type",
-				CheckSource:  atc.Source{"some": "source"},
-				WorkerName:   "some-worker-name",
-				PlanID:       "one",
+				BuildID:  1234,
+				PlanID:   atc.PlanID("planid"),
+				WorkerID: 911,
 			})
 
 			Expect(fakeDB.FindContainerByIdentifierCallCount()).To(Equal(1))
 
 			Expect(fakeDB.FindContainerByIdentifierArgsForCall(0)).To(Equal(db.ContainerIdentifier{
-				Name:         "some-name",
-				PipelineName: "some-pipeline",
-				BuildID:      1234,
-				Type:         db.ContainerTypePut,
-				CheckType:    "some-check-type",
-				CheckSource:  atc.Source{"some": "source"},
-				WorkerName:   "some-worker-name",
-				PlanID:       "one",
+				BuildID:  1234,
+				PlanID:   atc.PlanID("planid"),
+				WorkerID: 911,
 			}))
 		})
 	})

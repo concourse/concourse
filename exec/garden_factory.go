@@ -66,7 +66,6 @@ func (factory *gardenFactory) Get(
 	tags atc.Tags,
 	version atc.Version,
 ) StepFactory {
-	id.WorkingDirectory = resource.ResourcesDir("get")
 	return newGetStep(
 		logger,
 		sourceName,
@@ -82,6 +81,7 @@ func (factory *gardenFactory) Get(
 		stepMetadata,
 		resource.Session{
 			ID:        id,
+			Metadata:  worker.Metadata{WorkingDirectory: resource.ResourcesDir("get")},
 			Ephemeral: false,
 		},
 		tags,
@@ -99,7 +99,6 @@ func (factory *gardenFactory) Put(
 	tags atc.Tags,
 	params atc.Params,
 ) StepFactory {
-	id.WorkingDirectory = resource.ResourcesDir("put")
 	return newPutStep(
 		logger,
 		resourceConfig,
@@ -108,6 +107,7 @@ func (factory *gardenFactory) Put(
 		resource.Session{
 			ID:        id,
 			Ephemeral: false,
+			Metadata:  worker.Metadata{WorkingDirectory: resource.ResourcesDir("put")},
 		},
 		tags,
 		delegate,
@@ -124,17 +124,19 @@ func (factory *gardenFactory) Task(
 	tags atc.Tags,
 	configSource TaskConfigSource,
 ) StepFactory {
-	id.WorkingDirectory = factory.taskWorkingDirectory(sourceName)
+	workingDirectory := factory.taskWorkingDirectory(sourceName)
+	metadata := worker.Metadata{WorkingDirectory: workingDirectory}
 	return newTaskStep(
 		logger,
 		sourceName,
 		id,
+		metadata,
 		tags,
 		delegate,
 		privileged,
 		configSource,
 		factory.workerClient,
-		id.WorkingDirectory,
+		workingDirectory,
 	)
 }
 

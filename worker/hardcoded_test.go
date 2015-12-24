@@ -109,7 +109,7 @@ var _ = Describe("Hardcoded", func() {
 		disaster := errors.New("bad bad bad")
 
 		BeforeEach(func() {
-			workerDB.SaveWorkerReturns(disaster)
+			workerDB.SaveWorkerReturns(db.SavedWorker{}, disaster)
 		})
 
 		It("exits early", func() {

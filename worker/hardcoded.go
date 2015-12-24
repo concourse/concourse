@@ -15,7 +15,7 @@ import (
 //go:generate counterfeiter . SaveWorkerDB
 
 type SaveWorkerDB interface {
-	SaveWorker(db.WorkerInfo, time.Duration) error
+	SaveWorker(db.WorkerInfo, time.Duration) (db.SavedWorker, error)
 }
 
 func NewHardcoded(
@@ -33,7 +33,7 @@ func NewHardcoded(
 			Name:             gardenAddr,
 		}
 
-		err := workerDB.SaveWorker(workerInfo, 30*time.Second)
+		_, err := workerDB.SaveWorker(workerInfo, 30*time.Second)
 		if err != nil {
 			logger.Error("could-not-save-garden-worker-provided", err)
 			return err
@@ -47,7 +47,7 @@ func NewHardcoded(
 		for {
 			select {
 			case <-ticker.C():
-				err = workerDB.SaveWorker(workerInfo, 30*time.Second)
+				_, err = workerDB.SaveWorker(workerInfo, 30*time.Second)
 				if err != nil {
 					logger.Error("could-not-save-garden-worker-provided", err)
 				}

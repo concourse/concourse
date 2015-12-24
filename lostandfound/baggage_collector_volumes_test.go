@@ -50,7 +50,7 @@ var _ = Describe("Volumes are reaped", func() {
 
 		returnedSavedVolume = db.SavedVolume{
 			Volume: db.Volume{
-				WorkerName:      "test-worker",
+				WorkerID:        1001,
 				TTL:             time.Minute,
 				Handle:          "some-handle",
 				ResourceVersion: atc.Version{"some": "version"},

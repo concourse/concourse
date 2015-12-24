@@ -34,7 +34,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("returns an error", func() {
-				foundWorker, err := pool.GetWorker("nope")
+				foundWorker, err := pool.GetWorker(1)
 				Expect(err).To(HaveOccurred())
 				Expect(foundWorker).To(BeNil())
 			})
@@ -46,7 +46,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("returns an error indicating no workers were found", func() {
-				foundWorker, err := pool.GetWorker("nope")
+				foundWorker, err := pool.GetWorker(-1)
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(Equal(ErrNoWorkers))
 				Expect(foundWorker).To(BeNil())
@@ -62,11 +62,11 @@ var _ = Describe("Pool", func() {
 			})
 
 			It("returns an error indicating no workers were found", func() {
-				foundWorker, err := pool.GetWorker("find-dis-worker")
+				foundWorker, err := pool.GetWorker(1)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakeProvider.GetWorkerCallCount()).To(Equal(1))
-				workerName := fakeProvider.GetWorkerArgsForCall(0)
-				Expect(workerName).To(Equal("find-dis-worker"))
+				workerID := fakeProvider.GetWorkerArgsForCall(0)
+				Expect(workerID).To(Equal(1))
 				Expect(foundWorker).To(Equal(fakeWorker))
 			})
 		})
@@ -289,13 +289,13 @@ var _ = Describe("Pool", func() {
 
 		BeforeEach(func() {
 			id = Identifier{
-				Name: "some-name",
+				ResourceID: 1234,
 			}
 			spec = ResourceTypeContainerSpec{Type: "some-type"}
 		})
 
 		JustBeforeEach(func() {
-			createdContainer, createErr = pool.CreateContainer(logger, id, spec)
+			createdContainer, createErr = pool.CreateContainer(logger, id, Metadata{}, spec)
 		})
 
 		Context("with multiple workers", func() {
@@ -348,7 +348,7 @@ var _ = Describe("Pool", func() {
 
 			It("creates using a random worker", func() {
 				for i := 1; i < 100; i++ { // account for initial create in JustBefore
-					createdContainer, createErr := pool.CreateContainer(logger, id, spec)
+					createdContainer, createErr := pool.CreateContainer(logger, id, Metadata{}, spec)
 					Expect(createErr).NotTo(HaveOccurred())
 					Expect(createdContainer).To(Equal(fakeContainer))
 				}
@@ -442,7 +442,7 @@ var _ = Describe("Pool", func() {
 			BeforeEach(func() {
 				container = db.Container{
 					ContainerIdentifier: db.ContainerIdentifier{
-						WorkerName: "some-worker",
+						WorkerID: 1234,
 					},
 					Handle: "some-container-handle",
 				}
@@ -450,13 +450,13 @@ var _ = Describe("Pool", func() {
 				fakeProvider.GetContainerReturns(container, true, nil)
 			})
 
-			It("calls to lookup the worker by name", func() {
-				pool.LookupContainer(logger, "some-handle")
+			It("calls to lookup the worker by ID", func() {
+				pool.LookupContainer(logger, "some-container-handle")
 
 				Expect(fakeProvider.GetWorkerCallCount()).To(Equal(1))
 
-				workerName := fakeProvider.GetWorkerArgsForCall(0)
-				Expect(workerName).To(Equal("some-worker"))
+				workerID := fakeProvider.GetWorkerArgsForCall(0)
+				Expect(workerID).To(Equal(1234))
 			})
 
 			Context("when looking up the worker returns an error", func() {
@@ -565,8 +565,8 @@ var _ = Describe("Pool", func() {
 
 		BeforeEach(func() {
 			identifier = Identifier{
-				Name:       "some-name",
-				WorkerName: "some-worker",
+				ResourceID: 1234,
+				WorkerID:   5678,
 			}
 		})
 
@@ -601,7 +601,7 @@ var _ = Describe("Pool", func() {
 			BeforeEach(func() {
 				container = db.Container{
 					ContainerIdentifier: db.ContainerIdentifier{
-						WorkerName: "some-worker",
+						WorkerID: 5678,
 					},
 					Handle: "some-container-handle",
 				}
@@ -614,8 +614,8 @@ var _ = Describe("Pool", func() {
 
 				Expect(fakeProvider.GetWorkerCallCount()).To(Equal(1))
 
-				workerName := fakeProvider.GetWorkerArgsForCall(0)
-				Expect(workerName).To(Equal("some-worker"))
+				workerID := fakeProvider.GetWorkerArgsForCall(0)
+				Expect(workerID).To(Equal(5678))
 			})
 
 			Context("when looking up the worker returns an error", func() {

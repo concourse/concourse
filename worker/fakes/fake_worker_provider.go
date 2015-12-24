@@ -16,10 +16,10 @@ type FakeWorkerProvider struct {
 		result1 []worker.Worker
 		result2 error
 	}
-	GetWorkerStub        func(string) (worker.Worker, bool, error)
+	GetWorkerStub        func(int) (worker.Worker, bool, error)
 	getWorkerMutex       sync.RWMutex
 	getWorkerArgsForCall []struct {
-		arg1 string
+		arg1 int
 	}
 	getWorkerReturns struct {
 		result1 worker.Worker
@@ -81,10 +81,10 @@ func (fake *FakeWorkerProvider) WorkersReturns(result1 []worker.Worker, result2 
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerProvider) GetWorker(arg1 string) (worker.Worker, bool, error) {
+func (fake *FakeWorkerProvider) GetWorker(arg1 int) (worker.Worker, bool, error) {
 	fake.getWorkerMutex.Lock()
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
-		arg1 string
+		arg1 int
 	}{arg1})
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
@@ -100,7 +100,7 @@ func (fake *FakeWorkerProvider) GetWorkerCallCount() int {
 	return len(fake.getWorkerArgsForCall)
 }
 
-func (fake *FakeWorkerProvider) GetWorkerArgsForCall(i int) string {
+func (fake *FakeWorkerProvider) GetWorkerArgsForCall(i int) int {
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
 	return fake.getWorkerArgsForCall[i].arg1

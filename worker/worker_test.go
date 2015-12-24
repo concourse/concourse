@@ -34,7 +34,7 @@ var _ = Describe("Worker", func() {
 		resourceTypes          []atc.WorkerResourceType
 		platform               string
 		tags                   []string
-		name                   string
+		workerID               int
 
 		worker Worker
 	)
@@ -53,7 +53,7 @@ var _ = Describe("Worker", func() {
 		}
 		platform = "some-platform"
 		tags = []string{"some", "tags"}
-		name = "my-garden-worker"
+		workerID = 5678
 	})
 
 	BeforeEach(func() {
@@ -68,7 +68,7 @@ var _ = Describe("Worker", func() {
 			resourceTypes,
 			platform,
 			tags,
-			name,
+			workerID,
 		)
 	})
 
@@ -89,7 +89,7 @@ var _ = Describe("Worker", func() {
 				resourceTypes,
 				platform,
 				tags,
-				name,
+				workerID,
 			).VolumeManager()
 		})
 
@@ -118,9 +118,9 @@ var _ = Describe("Worker", func() {
 
 	Describe("CreateContainer", func() {
 		var (
-			logger lager.Logger
-			id     Identifier
-			spec   ContainerSpec
+			logger      lager.Logger
+			containerID Identifier
+			spec        ContainerSpec
 
 			createdContainer Container
 			createErr        error
@@ -129,21 +129,14 @@ var _ = Describe("Worker", func() {
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("test")
 
-			id = Identifier{
-				Name:                 "some-name",
-				PipelineName:         "some-pipeline",
-				BuildID:              42,
-				Type:                 db.ContainerTypeGet,
-				WorkingDirectory:     "/tmp/build/some-guid",
-				CheckType:            "some-check-type",
-				CheckSource:          atc.Source{"some": "source"},
-				PlanID:               "three",
-				EnvironmentVariables: []string{"VAR1=val1"},
+			containerID = Identifier{
+				PipelineID: 1234,
+				BuildID:    42,
 			}
 		})
 
 		JustBeforeEach(func() {
-			createdContainer, createErr = worker.CreateContainer(logger, id, spec)
+			createdContainer, createErr = worker.CreateContainer(logger, containerID, Metadata{}, spec)
 		})
 
 		Context("with a resource type container spec", func() {
@@ -178,8 +171,8 @@ var _ = Describe("Worker", func() {
 					})
 
 					It("creates the container info in the database", func() {
-						expectedIdentifier := db.ContainerIdentifier(id)
-						expectedIdentifier.WorkerName = "my-garden-worker"
+						expectedIdentifier := db.ContainerIdentifier(containerID)
+						expectedIdentifier.WorkerID = workerID
 
 						container := db.Container{
 							Handle:              "some-handle",
@@ -196,7 +189,7 @@ var _ = Describe("Worker", func() {
 						disaster := errors.New("bad")
 
 						BeforeEach(func() {
-							fakeGardenWorkerDB.CreateContainerReturns(disaster)
+							fakeGardenWorkerDB.CreateContainerReturns(db.Container{}, disaster)
 						})
 
 						It("returns the error", func() {
@@ -1017,7 +1010,7 @@ var _ = Describe("Worker", func() {
 									resourceTypes,
 									platform,
 									tags,
-									name,
+									workerID,
 								)
 							})
 
@@ -1072,7 +1065,7 @@ var _ = Describe("Worker", func() {
 									resourceTypes,
 									platform,
 									tags,
-									name,
+									workerID,
 								)
 							})
 
@@ -1152,7 +1145,7 @@ var _ = Describe("Worker", func() {
 
 		BeforeEach(func() {
 			id = Identifier{
-				Name: "some-name",
+				ResourceID: 1234,
 			}
 		})
 
@@ -1347,7 +1340,7 @@ var _ = Describe("Worker", func() {
 				resourceTypes,
 				platform,
 				tags,
-				name,
+				workerID,
 			)
 
 			satisfyingWorker, satisfyingErr = worker.Satisfying(spec)

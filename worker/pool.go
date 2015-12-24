@@ -14,7 +14,7 @@ import (
 
 type WorkerProvider interface {
 	Workers() ([]Worker, error)
-	GetWorker(string) (Worker, bool, error)
+	GetWorker(int) (Worker, bool, error)
 	FindContainerForIdentifier(Identifier) (db.Container, bool, error)
 	GetContainer(string) (db.Container, bool, error)
 	ReapContainer(string) error
@@ -63,8 +63,8 @@ func shuffleWorkers(slice []Worker) {
 	}
 }
 
-func (pool *pool) GetWorker(workerName string) (Worker, error) {
-	worker, found, err := pool.provider.GetWorker(workerName)
+func (pool *pool) GetWorker(workerID int) (Worker, error) {
+	worker, found, err := pool.provider.GetWorker(workerID)
 	if err != nil {
 		return nil, err
 	}
@@ -115,13 +115,13 @@ func (pool *pool) Satisfying(spec WorkerSpec) (Worker, error) {
 	return randomWorker, nil
 }
 
-func (pool *pool) CreateContainer(logger lager.Logger, id Identifier, spec ContainerSpec) (Container, error) {
+func (pool *pool) CreateContainer(logger lager.Logger, id Identifier, metadata Metadata, spec ContainerSpec) (Container, error) {
 	worker, err := pool.Satisfying(spec.WorkerSpec())
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := worker.CreateContainer(logger, id, spec)
+	container, err := worker.CreateContainer(logger, id, metadata, spec)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 		return nil, found, nil
 	}
 
-	worker, found, err := pool.provider.GetWorker(containerInfo.WorkerName)
+	worker, found, err := pool.provider.GetWorker(containerInfo.WorkerID)
 	if err != nil {
 		return nil, found, err
 	}
@@ -186,7 +186,7 @@ func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container
 		return nil, false, nil
 	}
 
-	worker, found, err := pool.provider.GetWorker(containerInfo.WorkerName)
+	worker, found, err := pool.provider.GetWorker(containerInfo.WorkerID)
 	if err != nil {
 		return nil, false, err
 	}

@@ -32,7 +32,10 @@ var _ = Describe("Tracker", func() {
 
 	var session = Session{
 		ID: worker.Identifier{
-			Name: "some-name",
+			WorkerID: 1234,
+		},
+		Metadata: worker.Metadata{
+			EnvironmentVariables: []string{"some=value"},
 		},
 		Ephemeral: true,
 	}
@@ -75,9 +78,10 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("creates a container with the resource's type, env, ephemeral information, and the session as the handle", func() {
-				_, id, spec := workerClient.CreateContainerArgsForCall(0)
+				_, id, containerMetadata, spec := workerClient.CreateContainerArgsForCall(0)
 
 				Expect(id).To(Equal(session.ID))
+				Expect(containerMetadata).To(Equal(session.Metadata))
 				resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
 				Expect(resourceSpec.Type).To(Equal(string(initType)))
@@ -200,7 +204,7 @@ var _ = Describe("Tracker", func() {
 
 							cacheIdentifier.ResourceVersionReturns(atc.Version{"some": "theversion"})
 							cacheIdentifier.ResourceHashReturns("hash")
-							satisfyingWorker.NameReturns("myworker")
+							satisfyingWorker.IDReturns(1234)
 							foundVolume.ExpirationReturns(time.Hour, time.Now(), nil)
 						})
 
@@ -223,9 +227,10 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("creates the container with the cache volume", func() {
-							_, id, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+							_, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 							Expect(id).To(Equal(session.ID))
+							Expect(containerMetadata).To(Equal(session.Metadata))
 							resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
 							Expect(resourceSpec.Type).To(Equal(string(initType)))
@@ -242,7 +247,7 @@ var _ = Describe("Tracker", func() {
 							Expect(fakeDB.InsertVolumeCallCount()).To(Equal(1))
 							Expect(fakeDB.InsertVolumeArgsForCall(0)).To(Equal(db.Volume{
 								Handle:          "found-volume-handle",
-								WorkerName:      "myworker",
+								WorkerID:        1234,
 								TTL:             time.Hour,
 								ResourceVersion: atc.Version{"some": "theversion"},
 								ResourceHash:    "hash",
@@ -350,9 +355,10 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("creates the container with the created cache volume", func() {
-							_, id, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+							_, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 							Expect(id).To(Equal(session.ID))
+							Expect(containerMetadata).To(Equal(session.Metadata))
 							resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
 							Expect(resourceSpec.Type).To(Equal(string(initType)))
@@ -442,9 +448,10 @@ var _ = Describe("Tracker", func() {
 					})
 
 					It("creates a container", func() {
-						_, id, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+						_, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
+						Expect(containerMetadata).To(Equal(session.Metadata))
 						resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
 						Expect(resourceSpec.Type).To(Equal(string(initType)))
@@ -715,9 +722,10 @@ var _ = Describe("Tracker", func() {
 
 					It("creates the container with the cache volume", func() {
 						Expect(satisfyingWorker.CreateContainerCallCount()).To(Equal(1))
-						_, id, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+						_, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
+						Expect(containerMetadata).To(Equal(session.Metadata))
 						resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
 						Expect(resourceSpec.Type).To(Equal(string(initType)))
@@ -769,9 +777,10 @@ var _ = Describe("Tracker", func() {
 
 					It("creates a container with no volumes", func() {
 						Expect(satisfyingWorker.CreateContainerCallCount()).To(Equal(1))
-						_, id, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+						_, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
+						Expect(containerMetadata).To(Equal(session.Metadata))
 						resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
 						Expect(resourceSpec.Type).To(Equal(string(initType)))

@@ -10,7 +10,7 @@ import (
 
 //go:generate counterfeiter . GardenConnectionFactoryDB
 type GardenConnectionFactoryDB interface {
-	GetWorker(string) (db.WorkerInfo, bool, error)
+	GetWorker(int) (db.SavedWorker, bool, error)
 }
 
 //go:generate counterfeiter . GardenConnectionFactory
@@ -20,26 +20,26 @@ type GardenConnectionFactory interface {
 }
 
 type gardenConnectionFactory struct {
-	db         GardenConnectionFactoryDB
-	dialer     gconn.DialerFunc
-	logger     lager.Logger
-	workerName string
-	address    string
+	db       GardenConnectionFactoryDB
+	dialer   gconn.DialerFunc
+	logger   lager.Logger
+	workerID int
+	address  string
 }
 
 func NewGardenConnectionFactory(
 	db GardenConnectionFactoryDB,
 	dialer gconn.DialerFunc,
 	logger lager.Logger,
-	workerName string,
+	workerID int,
 	address string,
 ) GardenConnectionFactory {
 	return &gardenConnectionFactory{
-		db:         db,
-		dialer:     dialer,
-		logger:     logger,
-		workerName: workerName,
-		address:    address,
+		db:       db,
+		dialer:   dialer,
+		logger:   logger,
+		workerID: workerID,
+		address:  address,
 	}
 }
 
@@ -48,7 +48,7 @@ func (gcf *gardenConnectionFactory) BuildConnection() gconn.Connection {
 }
 
 func (gcf *gardenConnectionFactory) BuildConnectionFromDB() (gconn.Connection, error) {
-	workerInfo, found, err := gcf.db.GetWorker(gcf.workerName)
+	savedWorker, found, err := gcf.db.GetWorker(gcf.workerID)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (gcf *gardenConnectionFactory) BuildConnectionFromDB() (gconn.Connection, e
 		return nil, ErrMissingWorker
 	}
 
-	return gcf.buildConnection(workerInfo.GardenAddr), nil
+	return gcf.buildConnection(savedWorker.GardenAddr), nil
 }
 
 func (gcf *gardenConnectionFactory) buildConnection(address string) gconn.Connection {

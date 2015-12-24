@@ -10,18 +10,19 @@ import (
 )
 
 type FakeSaveWorkerDB struct {
-	SaveWorkerStub        func(db.WorkerInfo, time.Duration) error
+	SaveWorkerStub        func(db.WorkerInfo, time.Duration) (db.SavedWorker, error)
 	saveWorkerMutex       sync.RWMutex
 	saveWorkerArgsForCall []struct {
 		arg1 db.WorkerInfo
 		arg2 time.Duration
 	}
 	saveWorkerReturns struct {
-		result1 error
+		result1 db.SavedWorker
+		result2 error
 	}
 }
 
-func (fake *FakeSaveWorkerDB) SaveWorker(arg1 db.WorkerInfo, arg2 time.Duration) error {
+func (fake *FakeSaveWorkerDB) SaveWorker(arg1 db.WorkerInfo, arg2 time.Duration) (db.SavedWorker, error) {
 	fake.saveWorkerMutex.Lock()
 	fake.saveWorkerArgsForCall = append(fake.saveWorkerArgsForCall, struct {
 		arg1 db.WorkerInfo
@@ -31,7 +32,7 @@ func (fake *FakeSaveWorkerDB) SaveWorker(arg1 db.WorkerInfo, arg2 time.Duration)
 	if fake.SaveWorkerStub != nil {
 		return fake.SaveWorkerStub(arg1, arg2)
 	} else {
-		return fake.saveWorkerReturns.result1
+		return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 	}
 }
 
@@ -47,11 +48,12 @@ func (fake *FakeSaveWorkerDB) SaveWorkerArgsForCall(i int) (db.WorkerInfo, time.
 	return fake.saveWorkerArgsForCall[i].arg1, fake.saveWorkerArgsForCall[i].arg2
 }
 
-func (fake *FakeSaveWorkerDB) SaveWorkerReturns(result1 error) {
+func (fake *FakeSaveWorkerDB) SaveWorkerReturns(result1 db.SavedWorker, result2 error) {
 	fake.SaveWorkerStub = nil
 	fake.saveWorkerReturns = struct {
-		result1 error
-	}{result1}
+		result1 db.SavedWorker
+		result2 error
+	}{result1, result2}
 }
 
 var _ worker.SaveWorkerDB = new(FakeSaveWorkerDB)

@@ -9,22 +9,22 @@ import (
 )
 
 type FakeGardenConnectionFactoryDB struct {
-	GetWorkerStub        func(string) (db.WorkerInfo, bool, error)
+	GetWorkerStub        func(int) (db.SavedWorker, bool, error)
 	getWorkerMutex       sync.RWMutex
 	getWorkerArgsForCall []struct {
-		arg1 string
+		arg1 int
 	}
 	getWorkerReturns struct {
-		result1 db.WorkerInfo
+		result1 db.SavedWorker
 		result2 bool
 		result3 error
 	}
 }
 
-func (fake *FakeGardenConnectionFactoryDB) GetWorker(arg1 string) (db.WorkerInfo, bool, error) {
+func (fake *FakeGardenConnectionFactoryDB) GetWorker(arg1 int) (db.SavedWorker, bool, error) {
 	fake.getWorkerMutex.Lock()
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
-		arg1 string
+		arg1 int
 	}{arg1})
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
@@ -40,16 +40,16 @@ func (fake *FakeGardenConnectionFactoryDB) GetWorkerCallCount() int {
 	return len(fake.getWorkerArgsForCall)
 }
 
-func (fake *FakeGardenConnectionFactoryDB) GetWorkerArgsForCall(i int) string {
+func (fake *FakeGardenConnectionFactoryDB) GetWorkerArgsForCall(i int) int {
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
 	return fake.getWorkerArgsForCall[i].arg1
 }
 
-func (fake *FakeGardenConnectionFactoryDB) GetWorkerReturns(result1 db.WorkerInfo, result2 bool, result3 error) {
+func (fake *FakeGardenConnectionFactoryDB) GetWorkerReturns(result1 db.SavedWorker, result2 bool, result3 error) {
 	fake.GetWorkerStub = nil
 	fake.getWorkerReturns = struct {
-		result1 db.WorkerInfo
+		result1 db.SavedWorker
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

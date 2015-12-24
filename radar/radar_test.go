@@ -67,6 +67,7 @@ var _ = Describe("Radar", func() {
 		}, 1, true, nil)
 
 		savedResource = db.SavedResource{
+			ID: 39,
 			Resource: db.Resource{
 				Name: "some-resource",
 			},
@@ -76,6 +77,7 @@ var _ = Describe("Radar", func() {
 		fakeLease = &dbfakes.FakeLease{}
 
 		fakeRadarDB.GetResourceReturns(savedResource, nil)
+		fakeRadarDB.GetPipelineIDReturns(72)
 	})
 
 	Describe("Scanner", func() {
@@ -135,13 +137,8 @@ var _ = Describe("Radar", func() {
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 				Expect(sessionID).To(Equal(resource.Session{
 					ID: worker.Identifier{
-						PipelineName: "some-pipeline-name",
-
-						Name: "some-resource",
-						Type: "check",
-
-						CheckType:   "git",
-						CheckSource: resourceConfig.Source,
+						PipelineID: 72,
+						ResourceID: 39,
 					},
 					Ephemeral: true,
 				}))
@@ -574,12 +571,8 @@ var _ = Describe("Radar", func() {
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 				Expect(sessionID).To(Equal(resource.Session{
 					ID: worker.Identifier{
-						PipelineName: "some-pipeline-name",
-						Name:         "some-resource",
-						Type:         "check",
-
-						CheckType:   "git",
-						CheckSource: resourceConfig.Source,
+						PipelineID: 72,
+						ResourceID: 39,
 					},
 					Ephemeral: true,
 				}))

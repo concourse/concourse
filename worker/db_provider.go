@@ -17,9 +17,9 @@ import (
 //go:generate counterfeiter . WorkerDB
 
 type WorkerDB interface {
-	Workers() ([]db.WorkerInfo, error)
-	GetWorker(string) (db.WorkerInfo, bool, error)
-	CreateContainer(db.Container, time.Duration) error
+	Workers() ([]db.SavedWorker, error)
+	GetWorker(int) (db.SavedWorker, bool, error)
+	CreateContainer(db.Container, time.Duration) (db.Container, error)
 	GetContainer(string) (db.Container, bool, error)
 	FindContainerByIdentifier(db.ContainerIdentifier) (db.Container, bool, error)
 
@@ -55,24 +55,24 @@ func NewDBWorkerProvider(
 }
 
 func (provider *dbProvider) Workers() ([]Worker, error) {
-	workerInfos, err := provider.db.Workers()
+	savedWorkers, err := provider.db.Workers()
 	if err != nil {
 		return nil, err
 	}
 
 	tikTok := clock.NewClock()
 
-	workers := make([]Worker, len(workerInfos))
+	workers := make([]Worker, len(savedWorkers))
 
-	for i, info := range workerInfos {
-		workers[i] = provider.newGardenWorker(tikTok, info)
+	for i, savedWorker := range savedWorkers {
+		workers[i] = provider.newGardenWorker(tikTok, savedWorker)
 	}
 
 	return workers, nil
 }
 
-func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
-	workerInfo, found, err := provider.db.GetWorker(name)
+func (provider *dbProvider) GetWorker(id int) (Worker, bool, error) {
+	savedWorker, found, err := provider.db.GetWorker(id)
 	if err != nil {
 		return nil, false, err
 	}
@@ -83,7 +83,7 @@ func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
 
 	tikTok := clock.NewClock()
 
-	worker := provider.newGardenWorker(tikTok, workerInfo)
+	worker := provider.newGardenWorker(tikTok, savedWorker)
 
 	return worker, found, nil
 }
@@ -100,9 +100,9 @@ func (provider *dbProvider) ReapContainer(handle string) error {
 	return provider.db.ReapContainer(handle)
 }
 
-func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, info db.WorkerInfo) Worker {
+func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.SavedWorker) Worker {
 	workerLog := provider.logger.Session("worker-connection", lager.Data{
-		"addr": info.GardenAddr,
+		"addr": savedWorker.GardenAddr,
 	})
 
 	gardenConn := NewRetryableConnection(
@@ -113,14 +113,14 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, info db.WorkerIn
 			provider.db,
 			provider.dialer,
 			provider.logger.Session("garden-connection"),
-			info.Name,
-			info.GardenAddr,
+			savedWorker.ID,
+			savedWorker.GardenAddr,
 		),
 	)
 
 	var bClient baggageclaim.Client
-	if info.BaggageclaimURL != "" {
-		bClient = bclient.New(info.BaggageclaimURL)
+	if savedWorker.BaggageclaimURL != "" {
+		bClient = bclient.New(savedWorker.BaggageclaimURL)
 	}
 
 	volumeFactory := NewVolumeFactory(
@@ -135,10 +135,10 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, info db.WorkerIn
 		provider.db,
 		provider,
 		tikTok,
-		info.ActiveContainers,
-		info.ResourceTypes,
-		info.Platform,
-		info.Tags,
-		info.Name,
+		savedWorker.ActiveContainers,
+		savedWorker.ResourceTypes,
+		savedWorker.Platform,
+		savedWorker.Tags,
+		savedWorker.ID,
 	)
 }

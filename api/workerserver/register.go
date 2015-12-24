@@ -54,7 +54,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		registration.Name = registration.GardenAddr
 	}
 
-	err = s.db.SaveWorker(db.WorkerInfo{
+	_, err = s.db.SaveWorker(db.WorkerInfo{
 		GardenAddr:       registration.GardenAddr,
 		BaggageclaimURL:  registration.BaggageclaimURL,
 		ActiveContainers: registration.ActiveContainers,

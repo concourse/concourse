@@ -78,7 +78,7 @@ var _ = Describe("Keeping track of builds", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		actualBuildInput, err := database.GetBuildInputVersionedResouces(build.ID)
+		actualBuildInput, err := database.GetBuildVersionedResources(build.ID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(actualBuildInput)).To(Equal(1))
 		Expect(actualBuildInput[0]).To(Equal(expectedBuildInput))
@@ -127,7 +127,7 @@ var _ = Describe("Keeping track of builds", func() {
 		}, false)
 		Expect(err).ToNot(HaveOccurred())
 
-		actualBuildOutput, err := database.GetBuildOutputVersionedResouces(build.ID)
+		actualBuildOutput, err := database.GetBuildVersionedResources(build.ID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(actualBuildOutput)).To(Equal(1))
 		Expect(actualBuildOutput[0]).To(Equal(expectedBuildOutput))

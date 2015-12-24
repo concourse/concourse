@@ -10,25 +10,26 @@ import (
 )
 
 type FakeWorkerDB struct {
-	SaveWorkerStub        func(db.WorkerInfo, time.Duration) error
+	SaveWorkerStub        func(db.WorkerInfo, time.Duration) (db.SavedWorker, error)
 	saveWorkerMutex       sync.RWMutex
 	saveWorkerArgsForCall []struct {
 		arg1 db.WorkerInfo
 		arg2 time.Duration
 	}
 	saveWorkerReturns struct {
-		result1 error
+		result1 db.SavedWorker
+		result2 error
 	}
-	WorkersStub        func() ([]db.WorkerInfo, error)
+	WorkersStub        func() ([]db.SavedWorker, error)
 	workersMutex       sync.RWMutex
 	workersArgsForCall []struct{}
 	workersReturns     struct {
-		result1 []db.WorkerInfo
+		result1 []db.SavedWorker
 		result2 error
 	}
 }
 
-func (fake *FakeWorkerDB) SaveWorker(arg1 db.WorkerInfo, arg2 time.Duration) error {
+func (fake *FakeWorkerDB) SaveWorker(arg1 db.WorkerInfo, arg2 time.Duration) (db.SavedWorker, error) {
 	fake.saveWorkerMutex.Lock()
 	fake.saveWorkerArgsForCall = append(fake.saveWorkerArgsForCall, struct {
 		arg1 db.WorkerInfo
@@ -38,7 +39,7 @@ func (fake *FakeWorkerDB) SaveWorker(arg1 db.WorkerInfo, arg2 time.Duration) err
 	if fake.SaveWorkerStub != nil {
 		return fake.SaveWorkerStub(arg1, arg2)
 	} else {
-		return fake.saveWorkerReturns.result1
+		return fake.saveWorkerReturns.result1, fake.saveWorkerReturns.result2
 	}
 }
 
@@ -54,14 +55,15 @@ func (fake *FakeWorkerDB) SaveWorkerArgsForCall(i int) (db.WorkerInfo, time.Dura
 	return fake.saveWorkerArgsForCall[i].arg1, fake.saveWorkerArgsForCall[i].arg2
 }
 
-func (fake *FakeWorkerDB) SaveWorkerReturns(result1 error) {
+func (fake *FakeWorkerDB) SaveWorkerReturns(result1 db.SavedWorker, result2 error) {
 	fake.SaveWorkerStub = nil
 	fake.saveWorkerReturns = struct {
-		result1 error
-	}{result1}
+		result1 db.SavedWorker
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeWorkerDB) Workers() ([]db.WorkerInfo, error) {
+func (fake *FakeWorkerDB) Workers() ([]db.SavedWorker, error) {
 	fake.workersMutex.Lock()
 	fake.workersArgsForCall = append(fake.workersArgsForCall, struct{}{})
 	fake.workersMutex.Unlock()
@@ -78,10 +80,10 @@ func (fake *FakeWorkerDB) WorkersCallCount() int {
 	return len(fake.workersArgsForCall)
 }
 
-func (fake *FakeWorkerDB) WorkersReturns(result1 []db.WorkerInfo, result2 error) {
+func (fake *FakeWorkerDB) WorkersReturns(result1 []db.SavedWorker, result2 error) {
 	fake.WorkersStub = nil
 	fake.workersReturns = struct {
-		result1 []db.WorkerInfo
+		result1 []db.SavedWorker
 		result2 error
 	}{result1, result2}
 }

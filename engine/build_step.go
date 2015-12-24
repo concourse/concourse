@@ -84,7 +84,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 	return build.factory.Task(
 		logger,
 		exec.SourceName(plan.Task.Name),
-		build.taskIdentifier(plan.Task.Name, plan.ID, plan.Task.Pipeline),
+		build.taskIdentifier(plan.ID),
 		build.delegate.ExecutionDelegate(logger, *plan.Task, event.OriginID(plan.ID)),
 		exec.Privileged(plan.Task.Privileged),
 		plan.Task.Tags,
@@ -101,7 +101,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		logger,
 		build.stepMetadata,
 		exec.SourceName(plan.Get.Name),
-		build.getIdentifier(plan.Get.Name, plan.ID, plan.Get.Pipeline),
+		build.getIdentifier(plan.ID),
 		build.delegate.InputDelegate(logger, *plan.Get, event.OriginID(plan.ID)),
 		atc.ResourceConfig{
 			Name:   plan.Get.Resource,
@@ -122,7 +122,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 	return build.factory.Put(
 		logger,
 		build.stepMetadata,
-		build.putIdentifier(plan.Put.Name, plan.ID, plan.Put.Pipeline),
+		build.putIdentifier(plan.ID),
 		build.delegate.OutputDelegate(logger, *plan.Put, event.OriginID(plan.ID)),
 		atc.ResourceConfig{
 			Name:   plan.Put.Resource,
@@ -144,7 +144,7 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 		logger,
 		build.stepMetadata,
 		exec.SourceName(getPlan.Name),
-		build.getIdentifier(getPlan.Name, plan.ID, plan.DependentGet.Pipeline),
+		build.getIdentifier(plan.ID),
 		build.delegate.InputDelegate(logger, getPlan, event.OriginID(plan.ID)),
 		atc.ResourceConfig{
 			Name:   getPlan.Resource,

@@ -18,7 +18,7 @@ type Server struct {
 
 type ContainerDB interface {
 	GetContainer(handle string) (db.Container, bool, error)
-	FindContainersByIdentifier(db.ContainerIdentifier) ([]db.Container, error)
+	FindContainersByMetadata(db.ContainerMetadata) ([]db.Container, error)
 }
 
 func NewServer(

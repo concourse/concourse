@@ -70,4 +70,6 @@ var Migrations = []migration.Migrator{
 	MakeVolumesExpiresAtNullable,
 	AddAuthFieldsToTeams,
 	AddAdminToTeams,
+	MakeContainersLinkToIds,
+	AddWorkerIDToVolumes,
 }

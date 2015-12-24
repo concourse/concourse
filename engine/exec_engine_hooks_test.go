@@ -179,8 +179,6 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 84,
-						Type:    db.ContainerTypeGet,
-						Name:    "some-input",
 						PlanID:  inputPlan.ID,
 					}))
 
@@ -196,8 +194,6 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(sourceName).To(Equal(exec.SourceName("some-completion-task")))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 84,
-						Type:    db.ContainerTypeTask,
-						Name:    "some-completion-task",
 						PlanID:  completionTaskPlan.ID,
 					}))
 
@@ -214,8 +210,6 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(sourceName).To(Equal(exec.SourceName("some-failure-task")))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 84,
-						Type:    db.ContainerTypeTask,
-						Name:    "some-failure-task",
 						PlanID:  failureTaskPlan.ID,
 					}))
 
@@ -232,8 +226,6 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(sourceName).To(Equal(exec.SourceName("some-success-task")))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 84,
-						Type:    db.ContainerTypeTask,
-						Name:    "some-success-task",
 						PlanID:  successTaskPlan.ID,
 					}))
 
@@ -250,8 +242,6 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(sourceName).To(Equal(exec.SourceName("some-next-task")))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 84,
-						Type:    db.ContainerTypeTask,
-						Name:    "some-next-task",
 						PlanID:  nextTaskPlan.ID,
 					}))
 

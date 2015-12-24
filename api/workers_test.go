@@ -34,25 +34,29 @@ var _ = Describe("Workers API", func() {
 
 			Context("when the workers can be listed", func() {
 				BeforeEach(func() {
-					workerDB.WorkersReturns([]db.WorkerInfo{
+					workerDB.WorkersReturns([]db.SavedWorker{
 						{
-							GardenAddr:       "1.2.3.4:7777",
-							BaggageclaimURL:  "5.6.7.8:7788",
-							ActiveContainers: 1,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource", Image: "some-resource-image"},
+							WorkerInfo: db.WorkerInfo{
+								GardenAddr:       "1.2.3.4:7777",
+								BaggageclaimURL:  "5.6.7.8:7788",
+								ActiveContainers: 1,
+								ResourceTypes: []atc.WorkerResourceType{
+									{Type: "some-resource", Image: "some-resource-image"},
+								},
+								Platform: "freebsd",
+								Tags:     []string{"demon"},
 							},
-							Platform: "freebsd",
-							Tags:     []string{"demon"},
 						},
 						{
-							GardenAddr:       "1.2.3.4:8888",
-							ActiveContainers: 2,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource", Image: "some-resource-image"},
+							WorkerInfo: db.WorkerInfo{
+								GardenAddr:       "1.2.3.4:8888",
+								ActiveContainers: 2,
+								ResourceTypes: []atc.WorkerResourceType{
+									{Type: "some-resource", Image: "some-resource-image"},
+								},
+								Platform: "beos",
+								Tags:     []string{"best", "os", "ever", "rip"},
 							},
-							Platform: "beos",
-							Tags:     []string{"best", "os", "ever", "rip"},
 						},
 					}, nil)
 				})
@@ -215,7 +219,7 @@ var _ = Describe("Workers API", func() {
 
 				Context("and saving it fails", func() {
 					BeforeEach(func() {
-						workerDB.SaveWorkerReturns(errors.New("oh no!"))
+						workerDB.SaveWorkerReturns(db.SavedWorker{}, errors.New("oh no!"))
 					})
 
 					It("returns 500", func() {

@@ -16,8 +16,8 @@ type Server struct {
 //go:generate counterfeiter . WorkerDB
 
 type WorkerDB interface {
-	SaveWorker(db.WorkerInfo, time.Duration) error
-	Workers() ([]db.WorkerInfo, error)
+	SaveWorker(db.WorkerInfo, time.Duration) (db.SavedWorker, error)
+	Workers() ([]db.SavedWorker, error)
 }
 
 func NewServer(

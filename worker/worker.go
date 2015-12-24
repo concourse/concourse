@@ -37,7 +37,7 @@ type Worker interface {
 	ActiveContainers() int
 
 	Description() string
-	Name() string
+	ID() int
 
 	VolumeManager() (baggageclaim.Client, bool)
 }
@@ -45,7 +45,7 @@ type Worker interface {
 //go:generate counterfeiter . GardenWorkerDB
 
 type GardenWorkerDB interface {
-	CreateContainer(db.Container, time.Duration) error
+	CreateContainer(db.Container, time.Duration) (db.Container, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 }
 
@@ -63,7 +63,7 @@ type gardenWorker struct {
 	resourceTypes    []atc.WorkerResourceType
 	platform         string
 	tags             []string
-	name             string
+	id               int
 }
 
 func NewGardenWorker(
@@ -77,7 +77,7 @@ func NewGardenWorker(
 	resourceTypes []atc.WorkerResourceType,
 	platform string,
 	tags []string,
-	name string,
+	id int,
 ) Worker {
 	return &gardenWorker{
 		gardenClient:       gardenClient,
@@ -91,7 +91,7 @@ func NewGardenWorker(
 		resourceTypes:    resourceTypes,
 		platform:         platform,
 		tags:             tags,
-		name:             name,
+		id:               id,
 	}
 }
 
@@ -103,7 +103,7 @@ func (worker *gardenWorker) VolumeManager() (baggageclaim.Client, bool) {
 	return nil, false
 }
 
-func (worker *gardenWorker) CreateContainer(logger lager.Logger, id Identifier, spec ContainerSpec) (Container, error) {
+func (worker *gardenWorker) CreateContainer(logger lager.Logger, id Identifier, metadata Metadata, spec ContainerSpec) (Container, error) {
 	gardenSpec := garden.ContainerSpec{
 		Properties: garden.Properties{},
 	}
@@ -257,12 +257,11 @@ dance:
 		return nil, err
 	}
 
-	idWithWorker := db.ContainerIdentifier(id)
-	idWithWorker.WorkerName = worker.name
-
-	err = worker.db.CreateContainer(
+	id.WorkerID = worker.id
+	_, err = worker.db.CreateContainer(
 		db.Container{
-			ContainerIdentifier: idWithWorker,
+			ContainerIdentifier: db.ContainerIdentifier(id),
+			ContainerMetadata:   db.ContainerMetadata(metadata),
 			Handle:              gardenContainer.Handle(),
 		}, containerTTL)
 	if err != nil {
@@ -377,7 +376,7 @@ func (worker *gardenWorker) AllSatisfying(spec WorkerSpec) ([]Worker, error) {
 	return nil, errors.New("Not implemented")
 }
 
-func (worker *gardenWorker) GetWorker(workerName string) (Worker, error) {
+func (worker *gardenWorker) GetWorker(workerID int) (Worker, error) {
 	return nil, errors.New("Not implemented")
 }
 
@@ -393,8 +392,8 @@ func (worker *gardenWorker) Description() string {
 	return strings.Join(messages, ", ")
 }
 
-func (worker *gardenWorker) Name() string {
-	return worker.name
+func (worker *gardenWorker) ID() int {
+	return worker.id
 }
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {

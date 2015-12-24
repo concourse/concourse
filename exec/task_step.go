@@ -38,6 +38,7 @@ type TaskStep struct {
 	logger        lager.Logger
 	sourceName    SourceName
 	containerID   worker.Identifier
+	metadata      worker.Metadata
 	tags          atc.Tags
 	delegate      TaskDelegate
 	privileged    Privileged
@@ -57,6 +58,7 @@ func newTaskStep(
 	logger lager.Logger,
 	sourceName SourceName,
 	containerID worker.Identifier,
+	metadata worker.Metadata,
 	tags atc.Tags,
 	delegate TaskDelegate,
 	privileged Privileged,
@@ -68,6 +70,7 @@ func newTaskStep(
 		logger:        logger,
 		sourceName:    sourceName,
 		containerID:   containerID,
+		metadata:      metadata,
 		tags:          tags,
 		delegate:      delegate,
 		privileged:    privileged,
@@ -118,7 +121,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		return err
 	}
 
-	step.containerID.EnvironmentVariables = step.envForParams(config.Params)
+	step.metadata.EnvironmentVariables = step.envForParams(config.Params)
 
 	step.container, found, err = step.workerPool.FindContainerForIdentifier(
 		step.logger.Session("found-container"),
@@ -202,6 +205,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		step.container, err = chosenWorker.CreateContainer(
 			step.logger.Session("created-container"),
 			step.containerID,
+			step.metadata,
 			worker.TaskContainerSpec{
 				Platform:   config.Platform,
 				Tags:       step.tags,

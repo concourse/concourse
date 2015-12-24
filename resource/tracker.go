@@ -13,6 +13,7 @@ type ContainerImage string
 
 type Session struct {
 	ID        worker.Identifier
+	Metadata  worker.Metadata
 	Ephemeral bool
 }
 
@@ -153,7 +154,7 @@ func (tracker *tracker) InitWithSources(
 
 	resourceSpec.Mounts = mounts
 
-	container, err = chosenWorker.CreateContainer(logger, session.ID, resourceSpec)
+	container, err = chosenWorker.CreateContainer(logger, session.ID, session.Metadata, resourceSpec)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
 		return nil, nil, err
@@ -187,7 +188,7 @@ func (tracker *tracker) Init(logger lager.Logger, metadata Metadata, session Ses
 
 	logger.Debug("creating-container")
 
-	container, err = tracker.workerClient.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
+	container, err = tracker.workerClient.CreateContainer(logger, session.ID, session.Metadata, worker.ResourceTypeContainerSpec{
 		Type:      string(typ),
 		Ephemeral: session.Ephemeral,
 		Tags:      tags,
@@ -251,7 +252,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 	if !hasVM {
 		logger.Debug("creating-container-without-cache")
 
-		container, err := chosenWorker.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
+		container, err := chosenWorker.CreateContainer(logger, session.ID, session.Metadata, worker.ResourceTypeContainerSpec{
 			Type:      string(typ),
 			Ephemeral: session.Ephemeral,
 			Tags:      tags,
@@ -292,7 +293,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 	}
 
 	err = tracker.db.InsertVolume(db.Volume{
-		WorkerName:      chosenWorker.Name(),
+		WorkerID:        chosenWorker.ID(),
 		TTL:             ttl,
 		Handle:          cachedVolume.Handle(),
 		ResourceVersion: cacheIdentifier.ResourceVersion(),
@@ -306,7 +307,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 
 	logger.Debug("creating-container-with-cache")
 
-	container, err = chosenWorker.CreateContainer(logger, session.ID, worker.ResourceTypeContainerSpec{
+	container, err = chosenWorker.CreateContainer(logger, session.ID, session.Metadata, worker.ResourceTypeContainerSpec{
 		Type:      string(typ),
 		Ephemeral: session.Ephemeral,
 		Tags:      tags,

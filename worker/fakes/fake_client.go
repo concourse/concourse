@@ -9,12 +9,13 @@ import (
 )
 
 type FakeClient struct {
-	CreateContainerStub        func(lager.Logger, worker.Identifier, worker.ContainerSpec) (worker.Container, error)
+	CreateContainerStub        func(lager.Logger, worker.Identifier, worker.Metadata, worker.ContainerSpec) (worker.Container, error)
 	createContainerMutex       sync.RWMutex
 	createContainerArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 worker.Identifier
-		arg3 worker.ContainerSpec
+		arg3 worker.Metadata
+		arg4 worker.ContainerSpec
 	}
 	createContainerReturns struct {
 		result1 worker.Container
@@ -60,10 +61,10 @@ type FakeClient struct {
 		result1 []worker.Worker
 		result2 error
 	}
-	GetWorkerStub        func(workerName string) (worker.Worker, error)
+	GetWorkerStub        func(workerID int) (worker.Worker, error)
 	getWorkerMutex       sync.RWMutex
 	getWorkerArgsForCall []struct {
-		workerName string
+		workerID int
 	}
 	getWorkerReturns struct {
 		result1 worker.Worker
@@ -71,16 +72,17 @@ type FakeClient struct {
 	}
 }
 
-func (fake *FakeClient) CreateContainer(arg1 lager.Logger, arg2 worker.Identifier, arg3 worker.ContainerSpec) (worker.Container, error) {
+func (fake *FakeClient) CreateContainer(arg1 lager.Logger, arg2 worker.Identifier, arg3 worker.Metadata, arg4 worker.ContainerSpec) (worker.Container, error) {
 	fake.createContainerMutex.Lock()
 	fake.createContainerArgsForCall = append(fake.createContainerArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 worker.Identifier
-		arg3 worker.ContainerSpec
-	}{arg1, arg2, arg3})
+		arg3 worker.Metadata
+		arg4 worker.ContainerSpec
+	}{arg1, arg2, arg3, arg4})
 	fake.createContainerMutex.Unlock()
 	if fake.CreateContainerStub != nil {
-		return fake.CreateContainerStub(arg1, arg2, arg3)
+		return fake.CreateContainerStub(arg1, arg2, arg3, arg4)
 	} else {
 		return fake.createContainerReturns.result1, fake.createContainerReturns.result2
 	}
@@ -92,10 +94,10 @@ func (fake *FakeClient) CreateContainerCallCount() int {
 	return len(fake.createContainerArgsForCall)
 }
 
-func (fake *FakeClient) CreateContainerArgsForCall(i int) (lager.Logger, worker.Identifier, worker.ContainerSpec) {
+func (fake *FakeClient) CreateContainerArgsForCall(i int) (lager.Logger, worker.Identifier, worker.Metadata, worker.ContainerSpec) {
 	fake.createContainerMutex.RLock()
 	defer fake.createContainerMutex.RUnlock()
-	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2, fake.createContainerArgsForCall[i].arg3
+	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2, fake.createContainerArgsForCall[i].arg3, fake.createContainerArgsForCall[i].arg4
 }
 
 func (fake *FakeClient) CreateContainerReturns(result1 worker.Container, result2 error) {
@@ -242,14 +244,14 @@ func (fake *FakeClient) AllSatisfyingReturns(result1 []worker.Worker, result2 er
 	}{result1, result2}
 }
 
-func (fake *FakeClient) GetWorker(workerName string) (worker.Worker, error) {
+func (fake *FakeClient) GetWorker(workerID int) (worker.Worker, error) {
 	fake.getWorkerMutex.Lock()
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
-		workerName string
-	}{workerName})
+		workerID int
+	}{workerID})
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
-		return fake.GetWorkerStub(workerName)
+		return fake.GetWorkerStub(workerID)
 	} else {
 		return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2
 	}
@@ -261,10 +263,10 @@ func (fake *FakeClient) GetWorkerCallCount() int {
 	return len(fake.getWorkerArgsForCall)
 }
 
-func (fake *FakeClient) GetWorkerArgsForCall(i int) string {
+func (fake *FakeClient) GetWorkerArgsForCall(i int) int {
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
-	return fake.getWorkerArgsForCall[i].workerName
+	return fake.getWorkerArgsForCall[i].workerID
 }
 
 func (fake *FakeClient) GetWorkerReturns(result1 worker.Worker, result2 error) {

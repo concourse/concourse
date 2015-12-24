@@ -19,7 +19,7 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 		"params": params,
 	})
 
-	containerIdentifier, err := s.parseRequest(r)
+	containerMetadata, err := s.parseRequest(r)
 	if err != nil {
 		hLog.Error("failed-to-parse-request", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -30,7 +30,7 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	hLog.Debug("listing-containers")
 
-	containers, err := s.db.FindContainersByIdentifier(containerIdentifier)
+	containers, err := s.db.FindContainersByMetadata(containerMetadata)
 	if err != nil {
 		hLog.Error("failed-to-find-containers", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -48,21 +48,33 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(presentedContainers)
 }
 
-func (s *Server) parseRequest(r *http.Request) (db.ContainerIdentifier, error) {
-	containerIdentifier := db.ContainerIdentifier{
+func (s *Server) parseRequest(r *http.Request) (db.ContainerMetadata, error) {
+	var containerType db.ContainerType
+	var err error
+	if r.URL.Query().Get("type") != "" {
+		containerType, err = db.ContainerTypeFromString(r.URL.Query().Get("type"))
+		if err != nil {
+			return db.ContainerMetadata{}, err
+		}
+	}
+
+	containerMetadata := db.ContainerMetadata{
 		PipelineName: r.URL.Query().Get("pipeline_name"),
-		Type:         db.ContainerType(r.URL.Query().Get("type")),
-		Name:         r.URL.Query().Get("name"),
+		JobName:      r.URL.Query().Get("job_name"),
+		Type:         containerType,
+		ResourceName: r.URL.Query().Get("resource_name"),
+		StepName:     r.URL.Query().Get("step_name"),
+		BuildName:    r.URL.Query().Get("build_name"),
 	}
 
 	buildIDParam := r.URL.Query().Get("build-id")
 
 	if len(buildIDParam) != 0 {
 		var err error
-		containerIdentifier.BuildID, err = strconv.Atoi(buildIDParam)
+		containerMetadata.BuildID, err = strconv.Atoi(buildIDParam)
 		if err != nil {
-			return db.ContainerIdentifier{}, fmt.Errorf("malformed build ID: %s", err)
+			return db.ContainerMetadata{}, fmt.Errorf("malformed build ID: %s", err)
 		}
 	}
-	return containerIdentifier, nil
+	return containerMetadata, nil
 }

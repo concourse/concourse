@@ -112,11 +112,11 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 			continue
 		}
 
-		volumeWorker, err := bc.workerClient.GetWorker(volumeToExpire.WorkerName)
+		volumeWorker, err := bc.workerClient.GetWorker(volumeToExpire.WorkerID)
 		if err != nil {
 			bc.logger.Info("could-not-locate-worker", lager.Data{
-				"error":  err.Error(),
-				"worker": volumeToExpire.WorkerName,
+				"error":     err.Error(),
+				"worker-id": volumeToExpire.WorkerID,
 			})
 			bc.db.ReapVolume(volumeToExpire.Handle)
 			continue
@@ -125,7 +125,7 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 		baggageClaimClient, found := volumeWorker.VolumeManager()
 		if !found {
 			bc.logger.Info("no-volume-manager-on-worker", lager.Data{
-				"worker": volumeToExpire.WorkerName,
+				"worker-id": volumeToExpire.WorkerID,
 			})
 			bc.db.ReapVolume(volumeToExpire.Handle)
 			continue
@@ -138,9 +138,9 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 				e = err.Error()
 			}
 			bc.logger.Info("could-not-locate-volume", lager.Data{
-				"error":  e,
-				"worker": volumeToExpire.WorkerName,
-				"handle": volumeToExpire.Handle,
+				"error":     e,
+				"worker-id": volumeToExpire.WorkerID,
+				"handle":    volumeToExpire.Handle,
 			})
 			continue
 		}

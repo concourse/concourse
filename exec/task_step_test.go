@@ -41,11 +41,15 @@ var _ = Describe("GardenFactory", func() {
 		sourceName SourceName = "some-source-name"
 
 		identifier = worker.Identifier{
-			Name: "some-session-id",
+			BuildID: 1234,
+			PlanID:  atc.PlanID("some-plan-id"),
 		}
 		expectedIdentifier = worker.Identifier{
-			Name:                 "some-session-id",
-			WorkingDirectory:     "/tmp/build/a1f5c0c1",
+			BuildID: 1234,
+			PlanID:  atc.PlanID("some-plan-id"),
+		}
+		expectedMetadata = worker.Metadata{
+			WorkingDirectory:     "/tmp/build/a-random-guid",
 			EnvironmentVariables: []string{"SOME=params"},
 		}
 	)
@@ -198,8 +202,9 @@ var _ = Describe("GardenFactory", func() {
 
 						It("creates a container with the config's image and the session ID as the handle", func() {
 							Expect(fakeWorker.CreateContainerCallCount()).To(Equal(1))
-							_, createdIdentifier, spec := fakeWorker.CreateContainerArgsForCall(0)
+							_, createdIdentifier, createdMetadata, spec := fakeWorker.CreateContainerArgsForCall(0)
 							Expect(createdIdentifier).To(Equal(expectedIdentifier))
+							Expect(createdMetadata).To(Equal(expectedMetadata))
 
 							taskSpec := spec.(worker.TaskContainerSpec)
 							Expect(taskSpec.Platform).To(Equal("some-platform"))
@@ -259,8 +264,9 @@ var _ = Describe("GardenFactory", func() {
 
 							It("creates the container privileged", func() {
 								Expect(fakeWorker.CreateContainerCallCount()).To(Equal(1))
-								_, createdIdentifier, spec := fakeWorker.CreateContainerArgsForCall(0)
+								_, createdIdentifier, createdMetadata, spec := fakeWorker.CreateContainerArgsForCall(0)
 								Expect(createdIdentifier).To(Equal(expectedIdentifier))
+								Expect(createdMetadata).To(Equal(expectedMetadata))
 
 								taskSpec := spec.(worker.TaskContainerSpec)
 								Expect(taskSpec.Platform).To(Equal("some-platform"))
@@ -366,7 +372,7 @@ var _ = Describe("GardenFactory", func() {
 									})
 
 									It("bind-mounts copy-on-write volumes to their destinations in the container", func() {
-										_, _, spec := fakeWorker.CreateContainerArgsForCall(0)
+										_, _, _, spec := fakeWorker.CreateContainerArgsForCall(0)
 										taskSpec := spec.(worker.TaskContainerSpec)
 										Expect(taskSpec.Inputs).To(Equal([]worker.VolumeMount{
 											{
@@ -611,7 +617,7 @@ var _ = Describe("GardenFactory", func() {
 												})
 
 												It("passes the created output volumes to the worker", func() {
-													_, _, spec := fakeWorker.CreateContainerArgsForCall(0)
+													_, _, _, spec := fakeWorker.CreateContainerArgsForCall(0)
 													taskSpec, ok := spec.(worker.TaskContainerSpec)
 													Expect(ok).To(BeTrue())
 													var actualVolumes []baggageclaim.Volume

@@ -8,20 +8,33 @@ import (
 )
 
 type ContainerIdentifier struct {
-	Name                 string
-	PipelineName         string
+	WorkerID int
+	// if it's a resource check container
+	PipelineID int
+	ResourceID int
+	// if it's a step container
+	BuildID int
+	PlanID  atc.PlanID
+}
+
+type ContainerMetadata struct {
 	BuildID              int
-	Type                 ContainerType
+	BuildName            string
+	ResourceName         string
 	WorkerName           string
+	PipelineName         string
+	JobName              string
+	StepName             string
+	Type                 ContainerType
 	WorkingDirectory     string
 	CheckType            string
 	CheckSource          atc.Source
-	PlanID               atc.PlanID
 	EnvironmentVariables []string
 }
 
 type Container struct {
 	ContainerIdentifier
+	ContainerMetadata
 
 	ExpiresAt time.Time
 	Handle    string
@@ -33,7 +46,7 @@ func (containerType ContainerType) String() string {
 	return string(containerType)
 }
 
-func containerTypeFromString(containerType string) (ContainerType, error) {
+func ContainerTypeFromString(containerType string) (ContainerType, error) {
 	switch containerType {
 	case "check":
 		return ContainerTypeCheck, nil

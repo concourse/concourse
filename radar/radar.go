@@ -28,6 +28,7 @@ func (err ResourceNotConfiguredError) Error() string {
 
 type RadarDB interface {
 	GetPipelineName() string
+	GetPipelineID() int
 	ScopedName(string) string
 
 	IsPaused() (bool, error)
@@ -204,10 +205,18 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 
 	typ := resource.ResourceType(resourceConfig.Type)
 
+	session := resource.Session{
+		ID: worker.Identifier{
+			PipelineID: radar.db.GetPipelineID(),
+			ResourceID: savedResource.ID,
+		},
+		Ephemeral: true,
+	}
+
 	res, err := radar.tracker.Init(
 		logger,
 		resource.EmptyMetadata{},
-		checkIdentifier(radar.db.GetPipelineName(), resourceConfig),
+		session,
 		typ,
 		[]string{},
 	)
@@ -305,19 +314,4 @@ func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) 
 	}
 
 	return resourceConfig, nil
-}
-
-func checkIdentifier(pipelineName string, res atc.ResourceConfig) resource.Session {
-	return resource.Session{
-		ID: worker.Identifier{
-			PipelineName: pipelineName,
-
-			Name: res.Name,
-			Type: "check",
-
-			CheckType:   res.Type,
-			CheckSource: res.Source,
-		},
-		Ephemeral: true,
-	}
 }
