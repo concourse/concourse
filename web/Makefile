@@ -20,3 +20,4 @@ public/elm.min.js: public/elm.js
 
 bindata.go: $(PUBLIC_FILES)
 	go-bindata -pkg web templates/... public/...
+	go fmt bindata.go
