@@ -49,6 +49,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.RegisterWorker,
 			atc.SaveConfig,
 			atc.SetLogLevel,
+			atc.SetTeam,
 			atc.UnpauseJob,
 			atc.UnpausePipeline,
 			atc.UnpauseResource,

@@ -80,6 +80,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.RegisterWorker:         authed(inputHandlers[atc.RegisterWorker]),
 				atc.SaveConfig:             authed(inputHandlers[atc.SaveConfig]),
 				atc.SetLogLevel:            authed(inputHandlers[atc.SetLogLevel]),
+				atc.SetTeam:                authed(inputHandlers[atc.SetTeam]),
 				atc.UnpauseJob:             authed(inputHandlers[atc.UnpauseJob]),
 				atc.UnpausePipeline:        authed(inputHandlers[atc.UnpausePipeline]),
 				atc.UnpauseResource:        authed(inputHandlers[atc.UnpauseResource]),

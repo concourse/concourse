@@ -19,6 +19,7 @@ import (
 	"github.com/concourse/atc/api/pipes"
 	"github.com/concourse/atc/api/resourceserver"
 	"github.com/concourse/atc/api/resourceserver/versionserver"
+	"github.com/concourse/atc/api/teamserver"
 	"github.com/concourse/atc/api/volumeserver"
 	"github.com/concourse/atc/api/workerserver"
 	"github.com/concourse/atc/auth"
@@ -49,6 +50,7 @@ func NewHandler(
 	volumesDB volumeserver.VolumesDB,
 	pipeDB pipes.PipeDB,
 	pipelinesDB db.PipelinesDB,
+	teamDB teamserver.TeamDB,
 
 	configValidator configserver.ConfigValidator,
 	peerURL string,
@@ -108,6 +110,8 @@ func NewHandler(
 	containerServer := containerserver.NewServer(logger, workerClient, containerDB)
 
 	volumesServer := volumeserver.NewServer(logger, volumesDB)
+
+	teamServer := teamserver.NewServer(logger, teamDB)
 
 	handlers := map[string]http.Handler{
 		atc.ListAuthMethods: http.HandlerFunc(authServer.ListAuthMethods),
@@ -169,6 +173,8 @@ func NewHandler(
 		atc.HijackContainer: http.HandlerFunc(containerServer.HijackContainer),
 
 		atc.ListVolumes: http.HandlerFunc(volumesServer.ListVolumes),
+
+		atc.SetTeam: http.HandlerFunc(teamServer.SetTeam),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))

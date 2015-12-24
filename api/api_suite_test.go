@@ -19,6 +19,7 @@ import (
 	containerserverfakes "github.com/concourse/atc/api/containerserver/fakes"
 	jobserverfakes "github.com/concourse/atc/api/jobserver/fakes"
 	pipeserverfakes "github.com/concourse/atc/api/pipes/fakes"
+	teamserverfakes "github.com/concourse/atc/api/teamserver/fakes"
 	volumeserverfakes "github.com/concourse/atc/api/volumeserver/fakes"
 	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
 	authfakes "github.com/concourse/atc/auth/fakes"
@@ -47,6 +48,7 @@ var (
 	pipeDB               *pipeserverfakes.FakePipeDB
 	pipelineDBFactory    *dbfakes.FakePipelineDBFactory
 	pipelinesDB          *dbfakes.FakePipelinesDB
+	teamDB               *teamserverfakes.FakeTeamDB
 	fakeSchedulerFactory *jobserverfakes.FakeSchedulerFactory
 	configValidationErr  error
 	peerAddr             string
@@ -91,6 +93,7 @@ var _ = BeforeEach(func() {
 	volumesDB = new(volumeserverfakes.FakeVolumesDB)
 	pipeDB = new(pipeserverfakes.FakePipeDB)
 	pipelinesDB = new(dbfakes.FakePipelinesDB)
+	teamDB = new(teamserverfakes.FakeTeamDB)
 
 	authValidator = new(authfakes.FakeValidator)
 	fakeTokenGenerator = new(authfakes.FakeTokenGenerator)
@@ -137,6 +140,7 @@ var _ = BeforeEach(func() {
 		volumesDB,
 		pipeDB,
 		pipelinesDB,
+		teamDB,
 
 		func(atc.Config) error { return configValidationErr },
 		peerAddr,
