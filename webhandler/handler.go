@@ -8,7 +8,6 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/getbuild"
 	"github.com/concourse/atc/web/getbuilds"
@@ -25,7 +24,6 @@ import (
 func NewHandler(
 	logger lager.Logger,
 	wrapper wrappa.Wrappa,
-	engine engine.Engine,
 	clientFactory web.ClientFactory,
 ) (http.Handler, error) {
 	tfuncs := &templateFuncs{
