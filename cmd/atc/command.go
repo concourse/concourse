@@ -198,7 +198,6 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		logger,
 		authValidator,
 		pipelineDBFactory,
-		engine,
 	)
 	if err != nil {
 		return err
@@ -599,7 +598,6 @@ func (cmd *ATCCommand) constructWebHandler(
 	logger lager.Logger,
 	authValidator auth.Validator,
 	pipelineDBFactory db.PipelineDBFactory,
-	engine engine.Engine,
 ) (http.Handler, error) {
 	webWrapper := wrappa.MultiWrappa{
 		wrappa.NewWebAuthWrappa(cmd.PubliclyViewable, authValidator),
@@ -613,7 +611,6 @@ func (cmd *ATCCommand) constructWebHandler(
 	return webhandler.NewHandler(
 		logger,
 		webWrapper,
-		engine,
 		clientFactory,
 	)
 }
