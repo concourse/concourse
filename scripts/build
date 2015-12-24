@@ -1,0 +1,5 @@
+#!/bin/bash
+
+$(dirname $0)/build_linux
+$(dirname $0)/build_atc
+$(dirname $0)/build_bindata

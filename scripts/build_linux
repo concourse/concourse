@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e -x
+
+ROOT=$(cd $(dirname $0)/.. && pwd)
+
+if [ ! -e garden-linux-release ]; then
+  git clone https://github.com/cloudfoundry-incubator/garden-linux-release --recursive
+fi
+
+cd garden-linux-release/
+
+export GOPATH=$PWD
+
+cd ./src/github.com/cloudfoundry-incubator/garden-linux
+
+make
+
+mkdir -p $ROOT/linux
+cp -a out/garden-linux $ROOT/linux/garden-linux
+cp -a linux_backend/bin $ROOT/linux/bin
+cp -a linux_backend/skeleton $ROOT/linux/skeleton
