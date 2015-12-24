@@ -235,3 +235,11 @@
 	path = src/github.com/peterhellberg/link
 	url = https://github.com/peterhellberg/link
 	branch = master
+[submodule "src/github.com/elazarl/go-bindata-assetfs"]
+	path = src/github.com/elazarl/go-bindata-assetfs
+	url = https://github.com/elazarl/go-bindata-assetfs
+	branch = master
+[submodule "src/github.com/jteeuwen/go-bindata"]
+	path = src/github.com/jteeuwen/go-bindata
+	url = https://github.com/jteeuwen/go-bindata
+	branch = master

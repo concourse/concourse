@@ -90,6 +90,7 @@ files:
   - github.com/docker/distribution/uuid/*.go # gosub
   - github.com/docker/docker/pkg/tarsum/*.go # gosub
   - github.com/docker/libtrust/*.go # gosub
+  - github.com/elazarl/go-bindata-assetfs/*.go # gosub
   - github.com/felixge/tcpkeepalive/*.go # gosub
   - github.com/golang/protobuf/proto/*.go # gosub
   - github.com/google/go-github/github/*.go # gosub

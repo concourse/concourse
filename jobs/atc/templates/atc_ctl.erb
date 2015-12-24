@@ -61,8 +61,6 @@ case $1 in
       --bind-port <%= p("atc.web_bind_port") %> \
       --peer-url <%= p("atc.peer_url", "http://#{my_ip}:#{p("atc.web_bind_port")}") %> \
       --external-url <%= esc(p("atc.external_url")) %> \
-      --templates /var/vcap/packages/atc/templates \
-      --public /var/vcap/packages/atc/public \
       --postgres-data-source <%= esc("postgres://#{p("atc.postgresql.role.name")}:#{p("atc.postgresql.role.password")}@#{p("atc.postgresql.address")}/#{p("atc.postgresql.database")}?sslmode=disable") %> \
       <% if p("atc.publicly_viewable") %> \
       --publicly-viewable \
