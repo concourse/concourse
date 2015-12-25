@@ -302,6 +302,18 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
+	SetTeamStub        func(teamName string, team atc.Team) (atc.Team, bool, bool, error)
+	setTeamMutex       sync.RWMutex
+	setTeamArgsForCall []struct {
+		teamName string
+		team     atc.Team
+	}
+	setTeamReturns struct {
+		result1 atc.Team
+		result2 bool
+		result3 bool
+		result4 error
+	}
 }
 
 func (fake *FakeClient) Builds(arg1 concourse.Page) ([]atc.Build, concourse.Pagination, error) {
@@ -1278,6 +1290,42 @@ func (fake *FakeClient) BuildsWithVersionAsOutputReturns(result1 []atc.Build, re
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeClient) SetTeam(teamName string, team atc.Team) (atc.Team, bool, bool, error) {
+	fake.setTeamMutex.Lock()
+	fake.setTeamArgsForCall = append(fake.setTeamArgsForCall, struct {
+		teamName string
+		team     atc.Team
+	}{teamName, team})
+	fake.setTeamMutex.Unlock()
+	if fake.SetTeamStub != nil {
+		return fake.SetTeamStub(teamName, team)
+	} else {
+		return fake.setTeamReturns.result1, fake.setTeamReturns.result2, fake.setTeamReturns.result3, fake.setTeamReturns.result4
+	}
+}
+
+func (fake *FakeClient) SetTeamCallCount() int {
+	fake.setTeamMutex.RLock()
+	defer fake.setTeamMutex.RUnlock()
+	return len(fake.setTeamArgsForCall)
+}
+
+func (fake *FakeClient) SetTeamArgsForCall(i int) (string, atc.Team) {
+	fake.setTeamMutex.RLock()
+	defer fake.setTeamMutex.RUnlock()
+	return fake.setTeamArgsForCall[i].teamName, fake.setTeamArgsForCall[i].team
+}
+
+func (fake *FakeClient) SetTeamReturns(result1 atc.Team, result2 bool, result3 bool, result4 error) {
+	fake.SetTeamStub = nil
+	fake.setTeamReturns = struct {
+		result1 atc.Team
+		result2 bool
+		result3 bool
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
 var _ concourse.Client = new(FakeClient)

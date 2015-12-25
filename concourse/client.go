@@ -40,6 +40,8 @@ type Client interface {
 
 	BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
 	BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
+
+	SetTeam(teamName string, team atc.Team) (atc.Team, bool, bool, error)
 }
 
 type client struct {
