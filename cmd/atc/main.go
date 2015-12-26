@@ -5,24 +5,22 @@ import (
 	_ "net/http/pprof"
 	"os"
 
+	"github.com/concourse/atc/atccmd"
 	"github.com/jessevdk/go-flags"
-	"github.com/tedsuo/ifrit"
 )
 
 func main() {
-	cmd := &ATCCommand{}
+	cmd := &atccmd.ATCCommand{}
 
 	parser := flags.NewParser(cmd, flags.Default)
 	parser.NamespaceDelimiter = "-"
 
-	_, err := parser.Parse()
+	args, err := parser.Parse()
 	if err != nil {
 		os.Exit(1)
 	}
 
-	running := ifrit.Invoke(cmd)
-
-	err = <-running.Wait()
+	err = cmd.Execute(args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

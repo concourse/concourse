@@ -1,4 +1,4 @@
-package main
+package atccmd
 
 import (
 	"crypto/rand"
@@ -107,7 +107,7 @@ type ATCCommand struct {
 	} `group:"Metrics & Diagnostics"`
 }
 
-func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+func (cmd *ATCCommand) Execute(args []string) error {
 	err := cmd.validate()
 	if err != nil {
 		return err
@@ -267,20 +267,12 @@ func (cmd *ATCCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		"debug": cmd.debugBindAddr(),
 	})
 
-	close(ready)
-
-	for {
-		select {
-		case s := <-signals:
-			running.Signal(s)
-		case err := <-running.Wait():
-			if err != nil {
-				logger.Error("exited-with-failure", err)
-			}
-
-			return err
-		}
+	err = <-running.Wait()
+	if err != nil {
+		logger.Error("exited-with-failure", err)
 	}
+
+	return err
 }
 
 func (cmd *ATCCommand) validate() error {
