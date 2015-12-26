@@ -1,15 +1,28 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 
 	"github.com/vito/concourse-bin/bindata"
 )
 
+var ErrNotRoot = errors.New("worker must be run as root")
+
 func (cmd *WorkerCommand) Execute(args []string) error {
-	err := bindata.RestoreAssets(cmd.WorkDir, "linux")
+	currentUser, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	if currentUser.Uid != "0" {
+		return ErrNotRoot
+	}
+
+	err = bindata.RestoreAssets(cmd.WorkDir, "linux")
 	if err != nil {
 		return err
 	}
