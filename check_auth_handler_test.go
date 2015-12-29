@@ -16,8 +16,9 @@ import (
 
 var _ = Describe("CheckAuthHandler", func() {
 	var (
-		fakeValidator *fakes.FakeValidator
-		fakeRejector  *fakes.FakeRejector
+		fakeValidator         *fakes.FakeValidator
+		fakeUserContextReader *fakes.FakeUserContextReader
+		fakeRejector          *fakes.FakeRejector
 
 		server *httptest.Server
 		client *http.Client
@@ -32,6 +33,7 @@ var _ = Describe("CheckAuthHandler", func() {
 
 	BeforeEach(func() {
 		fakeValidator = new(fakes.FakeValidator)
+		fakeUserContextReader = new(fakes.FakeUserContextReader)
 		fakeRejector = new(fakes.FakeRejector)
 
 		fakeRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +46,7 @@ var _ = Describe("CheckAuthHandler", func() {
 				fakeRejector,
 			),
 			fakeValidator,
+			fakeUserContextReader,
 		))
 
 		client = &http.Client{

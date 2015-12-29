@@ -14,32 +14,46 @@ import (
 
 var _ = Describe("WrapHandler", func() {
 	var (
-		fakeValidator *fakes.FakeValidator
-		fakeRejector  *fakes.FakeRejector
+		fakeValidator         *fakes.FakeValidator
+		fakeUserContextReader *fakes.FakeUserContextReader
 
 		server *httptest.Server
 		client *http.Client
 
 		authenticated <-chan bool
+		teamNameChan  <-chan string
+		teamIDChan    <-chan int
+		isAdminChan   <-chan bool
+		foundChan     <-chan bool
 	)
 
 	BeforeEach(func() {
 		fakeValidator = new(fakes.FakeValidator)
-		fakeRejector = new(fakes.FakeRejector)
-
-		fakeRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
-			http.Error(w, "nope", http.StatusUnauthorized)
-		}
+		fakeUserContextReader = new(fakes.FakeUserContextReader)
 
 		a := make(chan bool, 1)
+		tn := make(chan string, 1)
+		ti := make(chan int, 1)
+		ia := make(chan bool, 1)
+		f := make(chan bool, 1)
 		authenticated = a
+		teamNameChan = tn
+		teamIDChan = ti
+		isAdminChan = ia
+		foundChan = f
 		simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			a <- auth.IsAuthenticated(r)
+			teamName, teamID, isAdmin, found := auth.GetTeam(r)
+			f <- found
+			tn <- teamName
+			ti <- teamID
+			ia <- isAdmin
 		})
 
 		server = httptest.NewServer(auth.WrapHandler(
 			simpleHandler,
 			fakeValidator,
+			fakeUserContextReader,
 		))
 
 		client = &http.Client{
@@ -82,6 +96,29 @@ var _ = Describe("WrapHandler", func() {
 
 			It("handles the request with the request authenticated", func() {
 				Expect(<-authenticated).To(BeFalse())
+			})
+		})
+
+		Context("when the userContextReader finds team information", func() {
+			BeforeEach(func() {
+				fakeUserContextReader.GetTeamReturns("some-team", 9, true, true)
+			})
+
+			It("passes the team information along in the request object", func() {
+				Expect(<-foundChan).To(BeTrue())
+				Expect(<-teamNameChan).To(Equal("some-team"))
+				Expect(<-teamIDChan).To(Equal(9))
+				Expect(<-isAdminChan).To(BeTrue())
+			})
+		})
+
+		Context("when the userContextReader does not find team information", func() {
+			BeforeEach(func() {
+				fakeUserContextReader.GetTeamReturns("", 0, false, false)
+			})
+
+			It("does not pass team information along in the request object", func() {
+				Expect(<-foundChan).To(BeFalse())
 			})
 		})
 	})

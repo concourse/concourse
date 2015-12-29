@@ -13,9 +13,13 @@ type TokenType string
 type TokenValue string
 
 const TokenTypeBearer = "Bearer"
+const expClaimKey = "exp"
+const teamNameClaimKey = "teamName"
+const teamIDClaimKey = "teamID"
+const isAdminClaimKey = "isAdmin"
 
 type TokenGenerator interface {
-	GenerateToken(expiration time.Time, teamName string, teamID int) (TokenType, TokenValue, error)
+	GenerateToken(expiration time.Time, teamName string, teamID int, isAdmin bool) (TokenType, TokenValue, error)
 }
 
 type tokenGenerator struct {
@@ -28,11 +32,12 @@ func NewTokenGenerator(privateKey *rsa.PrivateKey) TokenGenerator {
 	}
 }
 
-func (generator *tokenGenerator) GenerateToken(expiration time.Time, teamName string, teamID int) (TokenType, TokenValue, error) {
+func (generator *tokenGenerator) GenerateToken(expiration time.Time, teamName string, teamID int, isAdmin bool) (TokenType, TokenValue, error) {
 	jwtToken := jwt.New(SigningMethod)
 	jwtToken.Claims["exp"] = expiration.Unix()
 	jwtToken.Claims["teamName"] = teamName
 	jwtToken.Claims["teamID"] = teamID
+	jwtToken.Claims["isAdmin"] = isAdmin
 
 	signed, err := jwtToken.SignedString(generator.privateKey)
 	if err != nil {
