@@ -144,6 +144,13 @@ concepts, and how to bootstrap on various infrastructures.
     for more information about the properties to set. For everything else, e.g.
     \code{resource_pools} and other non-Concourse-specific configuration,
     consult the rest of BOSH's \hyperlink{http://bosh.io/docs}{documentation}.
+    
+    The one thing that you'll \bold{definitely} need to add to your manifest
+    is basic authentication credentials. The server will fail to start without
+    an authentication mechanism set. We don't provide any defaults here to stop
+    someone accidentally deploying with those defaults and then never changing
+    them. The properties are called \code{atc.basic_auth_username} and
+    \code{atc.basic_auth_password}.
 
     Once you have a deployment manifest, deploying Concourse should simply be:
 
