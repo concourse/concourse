@@ -34,6 +34,7 @@ files:
   - github.com/concourse/atc/api/resourceserver/versionserver/*.go # gosub
   - github.com/concourse/atc/api/volumeserver/*.go # gosub
   - github.com/concourse/atc/api/workerserver/*.go # gosub
+  - github.com/concourse/atc/atccmd/*.go # gosub
   - github.com/concourse/atc/auth/*.go # gosub
   - github.com/concourse/atc/auth/github/*.go # gosub
   - github.com/concourse/atc/auth/provider/*.go # gosub
