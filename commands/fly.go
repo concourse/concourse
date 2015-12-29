@@ -6,6 +6,8 @@ type FlyCommand struct {
 	Login LoginCommand `command:"login" alias:"l" description:"Authenticate with the target"`
 	Sync  SyncCommand  `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
 
+	SetTeam SetTeamCommand `command:"set-team"  alias:"st" description:"Create or modify a team to have the given credentials"`
+
 	Checklist ChecklistCommand `command:"checklist" alias:"cl" description:"Print a Checkfile of the given pipeline"`
 
 	Execute ExecuteCommand `command:"execute" alias:"e" description:"Execute a one-off build using local bits"`

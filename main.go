@@ -10,6 +10,7 @@ import (
 
 func main() {
 	parser := flags.NewParser(&commands.Fly, flags.HelpFlag|flags.PassDoubleDash)
+	parser.NamespaceDelimiter = "-"
 
 	_, err := parser.Parse()
 	if err != nil {
