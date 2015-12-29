@@ -3,7 +3,7 @@ package atccmd
 import "net/url"
 
 type URLFlag struct {
-	*url.URL
+	url *url.URL
 }
 
 func (u *URLFlag) UnmarshalFlag(value string) error {
@@ -12,15 +12,19 @@ func (u *URLFlag) UnmarshalFlag(value string) error {
 		return err
 	}
 
-	u.URL = parsedURL
+	u.url = parsedURL
 
 	return nil
 }
 
 func (u URLFlag) String() string {
-	if u.URL == nil {
+	if u.url == nil {
 		return ""
 	}
 
-	return u.URL.String()
+	return u.url.String()
+}
+
+func (u URLFlag) URL() *url.URL {
+	return u.url
 }

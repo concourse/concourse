@@ -51,7 +51,6 @@ type ATCCommand struct {
 	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
 	BindPort uint16 `long:"bind-port" default:"8080"    description:"Port on which to listen for web traffic."`
 
-	// If URLFlag objects are not initialized, they will print as @// as explained in story #106241390
 	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
 	ExternalURL URLFlag `long:"external-url" default:""                      description:"URL used to reach any ATC from the outside world. Used for OAuth callbacks."`
 
@@ -653,7 +652,7 @@ func (cmd *ATCCommand) appendStaticWorker(
 	sqlDB *db.SQLDB,
 	members []grouper.Member,
 ) []grouper.Member {
-	if cmd.Worker.GardenURL.Host == "" {
+	if cmd.Worker.GardenURL.URL() == nil {
 		return members
 	}
 
@@ -672,7 +671,7 @@ func (cmd *ATCCommand) appendStaticWorker(
 				logger,
 				sqlDB,
 				clock.NewClock(),
-				cmd.Worker.GardenURL.Host,
+				cmd.Worker.GardenURL.URL().Host,
 				cmd.Worker.BaggageclaimURL.String(),
 				resourceTypes,
 			),
