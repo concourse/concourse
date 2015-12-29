@@ -97,7 +97,7 @@ func NewHandler(
 	handlers := map[string]http.Handler{
 		web.Index:           index.NewHandler(logger, clientFactory, pipelineHandler, indexTemplate),
 		web.Pipeline:        pipelineHandler,
-		web.Public:          http.FileServer(publicFS),
+		web.Public:          CacheNearlyForever(http.FileServer(publicFS)),
 		web.GetJob:          getjob.NewHandler(logger, clientFactory, jobTemplate),
 		web.GetResource:     getresource.NewHandler(logger, clientFactory, resourceTemplate),
 		web.GetBuild:        getbuild.NewHandler(logger, clientFactory, buildTemplate, oldBuildTemplate),
