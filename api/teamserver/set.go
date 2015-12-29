@@ -6,11 +6,24 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 )
 
 func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	hLog := s.logger.Session("create-team")
+
+	_, _, isAdmin, found := auth.GetTeam(r)
+
+	if !found {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !isAdmin {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 
 	teamName := r.FormValue(":team_name")
 

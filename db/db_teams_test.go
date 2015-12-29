@@ -45,15 +45,34 @@ var _ = Describe("SQL DB Teams", func() {
 
 	Describe("the default team", func() {
 		Describe("it exists", func() {
+			BeforeEach(func() {
+				defaultTeam := db.Team{
+					Name: atc.DefaultTeamName,
+				}
+				_, err := database.SaveTeam(defaultTeam)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
 			It("it does not get duplicated", func() {
 				err := database.CreateDefaultTeamIfNotExists()
 				Expect(err).NotTo(HaveOccurred())
-				err = database.CreateDefaultTeamIfNotExists()
-				Expect(err).NotTo(HaveOccurred())
+
 				team, found, err := database.GetTeamByName(atc.DefaultTeamName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(team.Name).To(Equal(atc.DefaultTeamName))
+				Expect(team.Admin).To(BeTrue())
+			})
+
+			Context("and it does not have admin permissions", func() {
+				It("it sets admin permissions on that team", func() {
+					err := database.CreateDefaultTeamIfNotExists()
+					Expect(err).NotTo(HaveOccurred())
+
+					team, _, err := database.GetTeamByName(atc.DefaultTeamName)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(team.Admin).To(BeTrue())
+				})
 			})
 		})
 
@@ -65,6 +84,7 @@ var _ = Describe("SQL DB Teams", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(team.Name).To(Equal(atc.DefaultTeamName))
+				Expect(team.Admin).To(BeTrue())
 			})
 		})
 	})
@@ -129,7 +149,6 @@ var _ = Describe("SQL DB Teams", func() {
 		})
 
 		Context("required basic auth elements are not present", func() {
-
 			BeforeEach(func() {
 				_, err := database.UpdateTeamBasicAuth(basicAuthTeam)
 				Expect(err).NotTo(HaveOccurred())
@@ -180,7 +199,6 @@ var _ = Describe("SQL DB Teams", func() {
 		})
 
 		Context("required GitHub auth elements are not present", func() {
-
 			BeforeEach(func() {
 				_, err := database.UpdateTeamGitHubAuth(gitHubAuthTeam)
 				Expect(err).NotTo(HaveOccurred())

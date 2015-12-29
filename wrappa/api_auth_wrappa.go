@@ -7,14 +7,17 @@ import (
 )
 
 type APIAuthWrappa struct {
-	Validator auth.Validator
+	Validator         auth.Validator
+	UserContextReader auth.UserContextReader
 }
 
 func NewAPIAuthWrappa(
 	validator auth.Validator,
+	userContextReader auth.UserContextReader,
 ) *APIAuthWrappa {
 	return &APIAuthWrappa{
-		Validator: validator,
+		Validator:         validator,
+		UserContextReader: userContextReader,
 	}
 }
 
@@ -85,7 +88,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			panic("you missed a spot")
 		}
 
-		newHandler = auth.WrapHandler(newHandler, wrappa.Validator)
+		newHandler = auth.WrapHandler(newHandler, wrappa.Validator, wrappa.UserContextReader)
 
 		wrapped[name] = newHandler
 	}

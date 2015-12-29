@@ -137,7 +137,7 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	exp := time.Now().Add(CookieAge)
 
-	tokenType, signedToken, err := handler.tokenGenerator.GenerateToken(exp, team.Name, team.ID)
+	tokenType, signedToken, err := handler.tokenGenerator.GenerateToken(exp, team.Name, team.ID, team.Admin)
 	if err != nil {
 		hLog.Error("failed-to-sign-token", err)
 		http.Error(w, "failed to sign token", http.StatusInternalServerError)

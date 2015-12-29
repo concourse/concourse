@@ -69,4 +69,5 @@ var Migrations = []migration.Migrator{
 	AddTeamIDToPipelineNameUniqueness,
 	MakeVolumesExpiresAtNullable,
 	AddAuthFieldsToTeams,
+	AddAdminToTeams,
 }

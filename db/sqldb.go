@@ -39,17 +39,24 @@ func NewSQL(
 	}
 }
 func (db *SQLDB) CreateDefaultTeamIfNotExists() error {
-	query := fmt.Sprintf(`
+	_, err := db.conn.Exec(`
 	INSERT INTO teams (
-    name
+    name, admin
 	)
-	SELECT '%s'
+	SELECT $1, true
 	WHERE NOT EXISTS (
-		SELECT id FROM teams WHERE name = '%s'
+		SELECT id FROM teams WHERE name = $1
 	)
-	`, atc.DefaultTeamName, atc.DefaultTeamName,
-	)
-	_, err := db.conn.Exec(query)
+	`, atc.DefaultTeamName)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.conn.Exec(`
+		UPDATE teams
+		SET admin = true
+		WHERE name = $1
+	`, atc.DefaultTeamName)
 	return err
 }
 
@@ -69,7 +76,7 @@ func (db *SQLDB) SaveTeam(data Team) (SavedTeam, error) {
 	) VALUES (
 		'%s', '%s', '%s'
 	)
-	RETURNING id, name, basic_auth, github_auth
+	RETURNING id, name, admin, basic_auth, github_auth
 	`, data.Name, jsonEncodedBasicAuth, jsonEncodedGitHubAuth,
 	))
 }
@@ -87,6 +94,7 @@ func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
 	err = tx.QueryRow(query).Scan(
 		&savedTeam.ID,
 		&savedTeam.Name,
+		&savedTeam.Admin,
 		&basicAuth,
 		&gitHubAuth,
 	)
@@ -117,7 +125,7 @@ func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
 
 func (db *SQLDB) GetTeamByName(teamName string) (SavedTeam, bool, error) {
 	query := fmt.Sprintf(`
-		SELECT id, name, basic_auth, github_auth
+		SELECT id, name, admin, basic_auth, github_auth
 		FROM teams
 		WHERE name = '%s'
 	`, teamName,
@@ -153,7 +161,7 @@ func (db *SQLDB) UpdateTeamGitHubAuth(team Team) (SavedTeam, error) {
 		UPDATE teams
 		SET github_auth = '%s'
 		WHERE name = '%s'
-		RETURNING id, name, basic_auth, github_auth
+		RETURNING id, name, admin, basic_auth, github_auth
 	`, gitHubAuth, team.Name,
 	)
 	return db.queryTeam(query)
@@ -184,7 +192,7 @@ func (db *SQLDB) UpdateTeamBasicAuth(team Team) (SavedTeam, error) {
 		UPDATE teams
 		SET basic_auth = '%s'
 		WHERE name = '%s'
-		RETURNING id, name, basic_auth, github_auth
+		RETURNING id, name, admin, basic_auth, github_auth
 	`, basicAuth, team.Name)
 	return db.queryTeam(query)
 }

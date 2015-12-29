@@ -35,6 +35,7 @@ var (
 	externalURL = "https://example.com"
 
 	authValidator        *authfakes.FakeValidator
+	userContextReader    *authfakes.FakeUserContextReader
 	fakeTokenGenerator   *authfakes.FakeTokenGenerator
 	providerFactory      *authfakes.FakeProviderFactory
 	fakeEngine           *enginefakes.FakeEngine
@@ -96,6 +97,7 @@ var _ = BeforeEach(func() {
 	teamDB = new(teamserverfakes.FakeTeamDB)
 
 	authValidator = new(authfakes.FakeValidator)
+	userContextReader = new(authfakes.FakeUserContextReader)
 	fakeTokenGenerator = new(authfakes.FakeTokenGenerator)
 	providerFactory = new(authfakes.FakeProviderFactory)
 
@@ -125,7 +127,7 @@ var _ = BeforeEach(func() {
 
 		externalURL,
 
-		wrappa.NewAPIAuthWrappa(authValidator),
+		wrappa.NewAPIAuthWrappa(authValidator, userContextReader),
 
 		fakeTokenGenerator,
 		providerFactory,

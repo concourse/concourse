@@ -15,8 +15,9 @@ import (
 
 var _ = Describe("WebAuthWrappa", func() {
 	var (
-		publiclyViewable bool
-		fakeValidator    *fakes.FakeValidator
+		publiclyViewable      bool
+		fakeValidator         *fakes.FakeValidator
+		fakeUserContextReader *fakes.FakeUserContextReader
 	)
 
 	BeforeEach(func() {
@@ -28,6 +29,7 @@ var _ = Describe("WebAuthWrappa", func() {
 		return auth.WrapHandler(
 			handler,
 			fakeValidator,
+			fakeUserContextReader,
 		)
 	}
 
@@ -40,6 +42,7 @@ var _ = Describe("WebAuthWrappa", func() {
 				},
 			),
 			fakeValidator,
+			fakeUserContextReader,
 		)
 	}
 
@@ -62,6 +65,7 @@ var _ = Describe("WebAuthWrappa", func() {
 			wrappedHandlers = wrappa.NewWebAuthWrappa(
 				publiclyViewable,
 				fakeValidator,
+				fakeUserContextReader,
 			).Wrap(inputHandlers)
 		})
 
@@ -88,6 +92,7 @@ var _ = Describe("WebAuthWrappa", func() {
 							auth.BasicAuthRejector{},
 						),
 						fakeValidator,
+						fakeUserContextReader,
 					),
 				}
 			})
@@ -128,6 +133,7 @@ var _ = Describe("WebAuthWrappa", func() {
 							auth.BasicAuthRejector{},
 						),
 						fakeValidator,
+						fakeUserContextReader,
 					),
 				}
 			})

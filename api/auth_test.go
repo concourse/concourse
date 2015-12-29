@@ -25,7 +25,8 @@ var _ = Describe("Auth API", func() {
 			savedTeam = db.SavedTeam{
 				ID: 0,
 				Team: db.Team{
-					Name: atc.DefaultTeamName,
+					Name:  atc.DefaultTeamName,
+					Admin: true,
 				},
 			}
 
@@ -98,10 +99,11 @@ var _ = Describe("Auth API", func() {
 
 						Expect(body).To(MatchJSON(`{"type":"some type","value":"some value"}`))
 
-						expiration, teamName, teamID := fakeTokenGenerator.GenerateTokenArgsForCall(0)
+						expiration, teamName, teamID, isAdmin := fakeTokenGenerator.GenerateTokenArgsForCall(0)
 						Expect(expiration).To(BeTemporally("~", time.Now().Add(24*time.Hour), time.Minute))
 						Expect(teamName).To(Equal(savedTeam.Name))
 						Expect(teamID).To(Equal(savedTeam.ID))
+						Expect(isAdmin).To(Equal(savedTeam.Admin))
 					})
 				})
 

@@ -1,7 +1,8 @@
 package db
 
 type Team struct {
-	Name string
+	Name  string
+	Admin bool
 	BasicAuth
 	GitHubAuth
 }

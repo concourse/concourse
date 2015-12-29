@@ -15,17 +15,20 @@ import (
 
 var _ = Describe("APIAuthWrappa", func() {
 	var (
-		fakeValidator *fakes.FakeValidator
+		fakeValidator         *fakes.FakeValidator
+		fakeUserContextReader *fakes.FakeUserContextReader
 	)
 
 	BeforeEach(func() {
 		fakeValidator = new(fakes.FakeValidator)
+		fakeUserContextReader = new(fakes.FakeUserContextReader)
 	})
 
 	unauthed := func(handler http.Handler) http.Handler {
 		return auth.WrapHandler(
 			handler,
 			fakeValidator,
+			fakeUserContextReader,
 		)
 	}
 
@@ -36,6 +39,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				auth.UnauthorizedRejector{},
 			),
 			fakeValidator,
+			fakeUserContextReader,
 		)
 	}
 
@@ -111,6 +115,7 @@ var _ = Describe("APIAuthWrappa", func() {
 		JustBeforeEach(func() {
 			wrappedHandlers = wrappa.NewAPIAuthWrappa(
 				fakeValidator,
+				fakeUserContextReader,
 			).Wrap(inputHandlers)
 		})
 

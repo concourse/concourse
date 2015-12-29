@@ -47,13 +47,11 @@ var _ = Describe("Auth API", func() {
 		var teamName string
 
 		BeforeEach(func() {
-			authValidator.IsAuthenticatedReturns(true)
-
 			teamName = "team venture"
 
 			team = atc.Team{}
 			savedTeam = db.SavedTeam{
-				ID: 1,
+				ID: 2,
 				Team: db.Team{
 					Name: teamName,
 				},
@@ -71,72 +69,48 @@ var _ = Describe("Auth API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Describe("request body validation", func() {
-			Describe("basic authenticaiton", func() {
-				Context("BasicAuthUsername not filled in", func() {
-					BeforeEach(func() {
-						team = atc.Team{
-							BasicAuth: atc.BasicAuth{
-								BasicAuthPassword: "Batman",
-							},
-						}
-					})
-
-					It("returns a 400 Bad Request", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					})
-				})
-
-				Context("BasicAuthPassword not filled in", func() {
-					BeforeEach(func() {
-						team = atc.Team{
-							BasicAuth: atc.BasicAuth{
-								BasicAuthUsername: "Hank Venture",
-							},
-						}
-					})
-
-					It("returns a 400 Bad Request", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					})
-				})
+		Context("when the requester is authenticated for the right team", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns(atc.DefaultTeamName, 1, true, true)
 			})
 
-			Describe("GitHub authenticaiton", func() {
-				Context("ClientID not filled in", func() {
-					BeforeEach(func() {
-						team = atc.Team{
-							GitHubAuth: atc.GitHubAuth{
-								ClientSecret: "09262-8765-001",
-							},
-						}
+			Describe("request body validation", func() {
+				Describe("basic authenticaiton", func() {
+					Context("BasicAuthUsername not filled in", func() {
+						BeforeEach(func() {
+							team = atc.Team{
+								BasicAuth: atc.BasicAuth{
+									BasicAuthPassword: "Batman",
+								},
+							}
+						})
+
+						It("returns a 400 Bad Request", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
 					})
 
-					It("returns a 400 Bad Request", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					Context("BasicAuthPassword not filled in", func() {
+						BeforeEach(func() {
+							team = atc.Team{
+								BasicAuth: atc.BasicAuth{
+									BasicAuthUsername: "Hank Venture",
+								},
+							}
+						})
+
+						It("returns a 400 Bad Request", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
 					})
 				})
 
-				Context("ClientSecret not filled in", func() {
-					BeforeEach(func() {
-						team = atc.Team{
-							GitHubAuth: atc.GitHubAuth{
-								ClientID: "Brock Samson",
-							},
-						}
-					})
-
-					It("returns a 400 Bad Request", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-					})
-				})
-
-				Context("require at least one org, org/team, or username", func() {
-					Context("when all are missing", func() {
+				Describe("GitHub authenticaiton", func() {
+					Context("ClientID not filled in", func() {
 						BeforeEach(func() {
 							team = atc.Team{
 								GitHubAuth: atc.GitHubAuth{
-									ClientID:     "Brock Samson",
 									ClientSecret: "09262-8765-001",
 								},
 							}
@@ -147,190 +121,101 @@ var _ = Describe("Auth API", func() {
 						})
 					})
 
-					Context("when passed organizations", func() {
+					Context("ClientSecret not filled in", func() {
 						BeforeEach(func() {
 							team = atc.Team{
 								GitHubAuth: atc.GitHubAuth{
-									ClientID:      "Brock Samson",
-									ClientSecret:  "09262-8765-001",
-									Organizations: []string{"United States Armed Forces", "Office of Secret Intelligence", "Team Venture", "S.P.H.I.N.X."},
+									ClientID: "Brock Samson",
 								},
 							}
 						})
 
-						It("does not error", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusCreated))
+						It("returns a 400 Bad Request", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 						})
 					})
 
-					Context("when passed a team", func() {
-						BeforeEach(func() {
-							team = atc.Team{
-								GitHubAuth: atc.GitHubAuth{
-									ClientID:     "Brock Samson",
-									ClientSecret: "09262-8765-001",
-									Teams: []atc.GitHubTeam{
-										{
-											OrganizationName: "Office of Secret Intelligence",
-											TeamName:         "Secret Agent",
+					Context("require at least one org, org/team, or username", func() {
+						Context("when all are missing", func() {
+							BeforeEach(func() {
+								team = atc.Team{
+									GitHubAuth: atc.GitHubAuth{
+										ClientID:     "Brock Samson",
+										ClientSecret: "09262-8765-001",
+									},
+								}
+							})
+
+							It("returns a 400 Bad Request", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+							})
+						})
+
+						Context("when passed organizations", func() {
+							BeforeEach(func() {
+								team = atc.Team{
+									GitHubAuth: atc.GitHubAuth{
+										ClientID:      "Brock Samson",
+										ClientSecret:  "09262-8765-001",
+										Organizations: []string{"United States Armed Forces", "Office of Secret Intelligence", "Team Venture", "S.P.H.I.N.X."},
+									},
+								}
+							})
+
+							It("does not error", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusCreated))
+							})
+						})
+
+						Context("when passed a team", func() {
+							BeforeEach(func() {
+								team = atc.Team{
+									GitHubAuth: atc.GitHubAuth{
+										ClientID:     "Brock Samson",
+										ClientSecret: "09262-8765-001",
+										Teams: []atc.GitHubTeam{
+											{
+												OrganizationName: "Office of Secret Intelligence",
+												TeamName:         "Secret Agent",
+											},
 										},
 									},
-								},
-							}
+								}
+							})
+
+							It("does not error", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusCreated))
+							})
 						})
 
-						It("does not error", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusCreated))
-						})
-					})
-
-					Context("when passed users", func() {
-						BeforeEach(func() {
-							team = atc.Team{
-								GitHubAuth: atc.GitHubAuth{
-									ClientID:     "S.P.H.I.N.X.",
-									ClientSecret: "SPHINX Rising",
-									Users: []string{
-										"Col. Hunter Gathers",
-										"Holy Diver/Shore Leave",
-										"Mile High/Sky Pilot",
-										"Brock Samson",
-										"Unnamed German plastic surgeon",
+						Context("when passed users", func() {
+							BeforeEach(func() {
+								team = atc.Team{
+									GitHubAuth: atc.GitHubAuth{
+										ClientID:     "S.P.H.I.N.X.",
+										ClientSecret: "SPHINX Rising",
+										Users: []string{
+											"Col. Hunter Gathers",
+											"Holy Diver/Shore Leave",
+											"Mile High/Sky Pilot",
+											"Brock Samson",
+											"Unnamed German plastic surgeon",
+										},
 									},
-								},
-							}
+								}
+							})
+
+							It("does not error", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusCreated))
+							})
 						})
-
-						It("does not error", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusCreated))
-						})
 					})
 				})
 			})
-		})
 
-		Context("when there's a problem finding teams", func() {
-			BeforeEach(func() {
-				teamDB.GetTeamByNameReturns(db.SavedTeam{}, false, errors.New("a dingo ate my baby!"))
-			})
-
-			It("returns 500 Internal Server Error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-		})
-
-		Context("when team exists", func() {
-			BeforeEach(func() {
-				teamDB.GetTeamByNameStub = func(submittedName string) (db.SavedTeam, bool, error) {
-					Expect(submittedName).To(Equal(teamName))
-					return savedTeam, true, nil
-				}
-			})
-
-			It("returns 200 OK", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("returns the updated team", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(body).To(MatchJSON(`{
-					"id": 1,
-					"name": "team venture"
-				}`))
-
-				Expect(teamDB.SaveTeamCallCount()).To(Equal(0))
-			})
-
-			Context("updating authentication", func() {
-				var basicAuth atc.BasicAuth
-				var gitHubAuth atc.GitHubAuth
-
+			Context("when there's a problem finding teams", func() {
 				BeforeEach(func() {
-					basicAuth = atc.BasicAuth{
-						BasicAuthUsername: "Dean Venture",
-						BasicAuthPassword: "Giant Boy Detective",
-					}
-
-					gitHubAuth = atc.GitHubAuth{
-						ClientID:     "Dean Venture",
-						ClientSecret: "Giant Boy Detective",
-						Users:        []string{"Dean Venture"},
-					}
-				})
-
-				Context("when passed basic auth credentials", func() {
-					BeforeEach(func() {
-						teamDB.UpdateTeamBasicAuthStub = func(submittedTeam db.Team) (db.SavedTeam, error) {
-							team.Name = teamName
-							atcDBTeamEquality(team, submittedTeam)
-							savedTeam.Team = submittedTeam
-							return savedTeam, nil
-						}
-
-						team.BasicAuth = basicAuth
-					})
-
-					It("updates the basic auth for that team", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-						Expect(teamDB.UpdateTeamBasicAuthCallCount()).To(Equal(1))
-					})
-				})
-
-				Context("when passed GitHub auth credentials", func() {
-					BeforeEach(func() {
-						teamDB.UpdateTeamGitHubAuthStub = func(submittedTeam db.Team) (db.SavedTeam, error) {
-							team.Name = teamName
-							atcDBTeamEquality(team, submittedTeam)
-							savedTeam.Team = submittedTeam
-							return savedTeam, nil
-						}
-
-						team.GitHubAuth = gitHubAuth
-					})
-
-					It("updates the GitHub auth for that team", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-						Expect(teamDB.UpdateTeamGitHubAuthCallCount()).To(Equal(1))
-					})
-				})
-			})
-		})
-
-		Context("when team does not exist", func() {
-			BeforeEach(func() {
-				teamDB.GetTeamByNameStub = func(submittedName string) (db.SavedTeam, bool, error) {
-					Expect(submittedName).To(Equal(teamName))
-					return db.SavedTeam{}, false, nil
-				}
-
-				teamDB.SaveTeamStub = func(submittedTeam db.Team) (db.SavedTeam, error) {
-					team.Name = teamName
-					atcDBTeamEquality(team, submittedTeam)
-					return savedTeam, nil
-				}
-			})
-
-			It("returns 201 Created", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusCreated))
-			})
-
-			It("returns the new team", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(body).To(MatchJSON(`{
-					"id": 1,
-					"name": "team venture"
-				}`))
-
-				Expect(teamDB.SaveTeamCallCount()).To(Equal(1))
-			})
-
-			Context("when there's a problem saving teams", func() {
-				BeforeEach(func() {
-					teamDB.SaveTeamReturns(db.SavedTeam{}, errors.New("Do not be too hasty in entering that room. I had Taco Bell for lunch!"))
+					teamDB.GetTeamByNameReturns(db.SavedTeam{}, false, errors.New("a dingo ate my baby!"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
@@ -338,44 +223,186 @@ var _ = Describe("Auth API", func() {
 				})
 			})
 
-			Context("with authentication", func() {
-				var basicAuth atc.BasicAuth
-				var gitHubAuth atc.GitHubAuth
-
+			Context("when team exists", func() {
 				BeforeEach(func() {
-					basicAuth = atc.BasicAuth{
-						BasicAuthUsername: "Dean Venture",
-						BasicAuthPassword: "Giant Boy Detective",
-					}
-
-					gitHubAuth = atc.GitHubAuth{
-						ClientID:     "Dean Venture",
-						ClientSecret: "Giant Boy Detective",
-						Users:        []string{"Dean Venture"},
+					teamDB.GetTeamByNameStub = func(submittedName string) (db.SavedTeam, bool, error) {
+						Expect(submittedName).To(Equal(teamName))
+						return savedTeam, true, nil
 					}
 				})
 
-				Context("when passed basic auth credentials", func() {
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns the updated team", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`{
+					"id": 2,
+					"name": "team venture"
+				}`))
+
+					Expect(teamDB.SaveTeamCallCount()).To(Equal(0))
+				})
+
+				Context("updating authentication", func() {
+					var basicAuth atc.BasicAuth
+					var gitHubAuth atc.GitHubAuth
+
 					BeforeEach(func() {
-						team.BasicAuth = basicAuth
+						basicAuth = atc.BasicAuth{
+							BasicAuthUsername: "Dean Venture",
+							BasicAuthPassword: "Giant Boy Detective",
+						}
+
+						gitHubAuth = atc.GitHubAuth{
+							ClientID:     "Dean Venture",
+							ClientSecret: "Giant Boy Detective",
+							Users:        []string{"Dean Venture"},
+						}
 					})
 
-					It("updates the basic auth for that team", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusCreated))
-						Expect(teamDB.SaveTeamCallCount()).To(Equal(1))
+					Context("when passed basic auth credentials", func() {
+						BeforeEach(func() {
+							teamDB.UpdateTeamBasicAuthStub = func(submittedTeam db.Team) (db.SavedTeam, error) {
+								team.Name = teamName
+								atcDBTeamEquality(team, submittedTeam)
+								savedTeam.Team = submittedTeam
+								return savedTeam, nil
+							}
+
+							team.BasicAuth = basicAuth
+						})
+
+						It("updates the basic auth for that team", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+							Expect(teamDB.UpdateTeamBasicAuthCallCount()).To(Equal(1))
+						})
+					})
+
+					Context("when passed GitHub auth credentials", func() {
+						BeforeEach(func() {
+							teamDB.UpdateTeamGitHubAuthStub = func(submittedTeam db.Team) (db.SavedTeam, error) {
+								team.Name = teamName
+								atcDBTeamEquality(team, submittedTeam)
+								savedTeam.Team = submittedTeam
+								return savedTeam, nil
+							}
+
+							team.GitHubAuth = gitHubAuth
+						})
+
+						It("updates the GitHub auth for that team", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+							Expect(teamDB.UpdateTeamGitHubAuthCallCount()).To(Equal(1))
+						})
+					})
+				})
+			})
+
+			Context("when team does not exist", func() {
+				BeforeEach(func() {
+					teamDB.GetTeamByNameStub = func(submittedName string) (db.SavedTeam, bool, error) {
+						Expect(submittedName).To(Equal(teamName))
+						return db.SavedTeam{}, false, nil
+					}
+
+					teamDB.SaveTeamStub = func(submittedTeam db.Team) (db.SavedTeam, error) {
+						team.Name = teamName
+						atcDBTeamEquality(team, submittedTeam)
+						return savedTeam, nil
+					}
+				})
+
+				It("returns 201 Created", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusCreated))
+				})
+
+				It("returns the new team", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`{
+					"id": 2,
+					"name": "team venture"
+				}`))
+
+					Expect(teamDB.SaveTeamCallCount()).To(Equal(1))
+				})
+
+				Context("when there's a problem saving teams", func() {
+					BeforeEach(func() {
+						teamDB.SaveTeamReturns(db.SavedTeam{}, errors.New("Do not be too hasty in entering that room. I had Taco Bell for lunch!"))
+					})
+
+					It("returns 500 Internal Server Error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 
-				Context("when passed GitHub auth credentials", func() {
+				Context("with authentication", func() {
+					var basicAuth atc.BasicAuth
+					var gitHubAuth atc.GitHubAuth
+
 					BeforeEach(func() {
-						team.GitHubAuth = gitHubAuth
+						basicAuth = atc.BasicAuth{
+							BasicAuthUsername: "Dean Venture",
+							BasicAuthPassword: "Giant Boy Detective",
+						}
+
+						gitHubAuth = atc.GitHubAuth{
+							ClientID:     "Dean Venture",
+							ClientSecret: "Giant Boy Detective",
+							Users:        []string{"Dean Venture"},
+						}
 					})
 
-					It("updates the GitHub auth for that team", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusCreated))
-						Expect(teamDB.SaveTeamCallCount()).To(Equal(1))
+					Context("when passed basic auth credentials", func() {
+						BeforeEach(func() {
+							team.BasicAuth = basicAuth
+						})
+
+						It("updates the basic auth for that team", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusCreated))
+							Expect(teamDB.SaveTeamCallCount()).To(Equal(1))
+						})
+					})
+
+					Context("when passed GitHub auth credentials", func() {
+						BeforeEach(func() {
+							team.GitHubAuth = gitHubAuth
+						})
+
+						It("updates the GitHub auth for that team", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusCreated))
+							Expect(teamDB.SaveTeamCallCount()).To(Equal(1))
+						})
 					})
 				})
+			})
+		})
+
+		Context("when the requester belongs to a non-admin team", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("non-admin-team", 5, false, true)
+			})
+
+			It("returns 403 forbidden", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			})
+		})
+
+		Context("when the requester's team cannot be determined", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("", 0, false, false)
+			})
+
+			It("returns 500 internal server error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
 	})

@@ -7,17 +7,20 @@ import (
 )
 
 type WebAuthWrappa struct {
-	PubliclyViewable bool
-	Validator        auth.Validator
+	PubliclyViewable  bool
+	Validator         auth.Validator
+	UserContextReader auth.UserContextReader
 }
 
 func NewWebAuthWrappa(
 	publiclyViewable bool,
 	validator auth.Validator,
+	userContextReader auth.UserContextReader,
 ) *WebAuthWrappa {
 	return &WebAuthWrappa{
-		PubliclyViewable: publiclyViewable,
-		Validator:        validator,
+		PubliclyViewable:  publiclyViewable,
+		Validator:         validator,
+		UserContextReader: userContextReader,
 	}
 }
 
@@ -70,6 +73,7 @@ func (wrappa *WebAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		newHandler = auth.WrapHandler(
 			newHandler,
 			wrappa.Validator,
+			wrappa.UserContextReader,
 		)
 
 		wrapped[name] = newHandler

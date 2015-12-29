@@ -45,7 +45,7 @@ func (s *Server) GetAuthToken(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tokenType, tokenValue, err := s.tokenGenerator.GenerateToken(time.Now().Add(tokenDuration), team.Name, team.ID)
+		tokenType, tokenValue, err := s.tokenGenerator.GenerateToken(time.Now().Add(tokenDuration), team.Name, team.ID, team.Admin)
 		if err != nil {
 			logger.Error("generate-token", err)
 			w.WriteHeader(http.StatusInternalServerError)
