@@ -1,4 +1,4 @@
-package main
+package tsacmd
 
 type execRequest struct {
 	Command string

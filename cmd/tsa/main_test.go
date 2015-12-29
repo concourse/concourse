@@ -62,10 +62,17 @@ func generateSSHKeypair() (string, string) {
 
 	privateKey := filepath.Join(path, "id_rsa")
 
-	keygen, err := gexec.Start(exec.Command("ssh-keygen", "-t", "rsa", "-N", "", "-f", privateKey), GinkgoWriter, GinkgoWriter)
+	keygen := exec.Command(
+		"ssh-keygen",
+		"-t", "rsa",
+		"-N", "",
+		"-f", privateKey,
+	)
+
+	keygenS, err := gexec.Start(keygen, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
-	keygen.Wait(5 * time.Second)
+	keygenS.Wait(5 * time.Second)
 
 	return privateKey, privateKey + ".pub"
 }
@@ -164,13 +171,13 @@ var _ = Describe("TSA SSH Registrar", func() {
 
 			tsaCommand := exec.Command(
 				tsaPath,
-				"-listenPort", strconv.Itoa(tsaPort),
-				"-hostKey", hostKey,
-				"-authorizedKeys", authorizedKeysFile,
-				"-sessionSigningKey", sessionSigningPrivateKeyFile,
-				"-atcAPIURL", atcServer.URL(),
-				"-heartbeatInterval", heartbeatInterval.String(),
-				"-forwardHost", forwardHost,
+				"--bind-port", strconv.Itoa(tsaPort),
+				"--peer-ip", forwardHost,
+				"--host-key", hostKey,
+				"--authorized-keys", authorizedKeysFile,
+				"--session-signing-key", sessionSigningPrivateKeyFile,
+				"--atc-url", atcServer.URL(),
+				"--heartbeat-interval", heartbeatInterval.String(),
 			)
 
 			tsaRunner := ginkgomon.New(ginkgomon.Config{
