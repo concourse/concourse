@@ -61,6 +61,7 @@ jobs:
     networks: [{name: concourse}]
     properties:
       atc:
+        # REPLACE WITH YOUR AUTHENTICATION CREDENTIALS
         basic_auth_username: ~
         basic_auth_password: ~
         postgresql:
