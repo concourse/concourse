@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"os"
 	"time"
@@ -16,6 +15,8 @@ import (
 	"github.com/concourse/tsa"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pivotal-golang/lager"
+	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/tedsuo/rata"
 	"github.com/xoebus/zest"
 )
@@ -41,6 +42,15 @@ type TSACommand struct {
 }
 
 func (cmd *TSACommand) Execute(args []string) error {
+	runner, err := cmd.Runner(args)
+	if err != nil {
+		return err
+	}
+
+	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
+}
+
+func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 	logger := lager.NewLogger("tsa")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 
@@ -53,27 +63,21 @@ func (cmd *TSACommand) Execute(args []string) error {
 
 	authorizedKeys, err := cmd.loadAuthorizedKeys()
 	if err != nil {
-		return fmt.Errorf("failed to load authorized keys: %s", err)
+		return nil, fmt.Errorf("failed to load authorized keys: %s", err)
 	}
 
 	sessionSigningKey, err := cmd.loadSessionSigningKey()
 	if err != nil {
-		return fmt.Errorf("failed to load session signing key: %s", err)
+		return nil, fmt.Errorf("failed to load session signing key: %s", err)
 	}
 
 	config, err := cmd.configureSSHServer(authorizedKeys)
 	if err != nil {
-		return fmt.Errorf("failed to configure SSH server: %s", err)
+		return nil, fmt.Errorf("failed to configure SSH server: %s", err)
 	}
 
 	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 
-	listener, err := net.Listen("tcp", listenAddr)
-	if err != nil {
-		return fmt.Errorf("failed to listen on %s: %s", listenAddr, err)
-	}
-
-	logger.Info("listening")
 	tokenGenerator := tsa.NewTokenGenerator(sessionSigningKey)
 
 	server := &registrarSSHServer{
@@ -87,9 +91,7 @@ func (cmd *TSACommand) Execute(args []string) error {
 		httpClient:        http.DefaultClient,
 	}
 
-	server.Serve(listener)
-
-	return nil
+	return serverRunner{logger, server, listenAddr}, nil
 }
 
 func (cmd *TSACommand) loadAuthorizedKeys() ([]ssh.PublicKey, error) {
