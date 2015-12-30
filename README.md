@@ -53,7 +53,7 @@ live in their own private network.
 ### Single node, local Postgres
 
 The following command will spin up the ATC, listening on port `8080`, with some
-basic auth configured.
+basic auth configured, and a TSA listening on port `2222`.
 
 ```sh
 concourse web \
@@ -74,7 +74,14 @@ is also demonstrated below.
 The ATC can be scaled up for high availability, and they'll also roughly share
 their scheduling workloads, using the database to synchronize.
 
-To run multiple ATCs, you'll need to pass them the following flags:
+The TSA can also be scaled up, and requires no database as there's no state to
+synchronize (it just talks to the ATC).
+
+A typical configuration with multiple ATC+TSA nodes would have them sitting
+behind a load balancer, forwarding port `80` to `8080` and `2222` to `2222`.
+You may also want to configure SSL if your load balancer supports it.
+
+To run multiple `web` nodes, you'll need to pass the following flags:
 
 * `--postgres-data-source` should all refer to the same database
 * `--peer-url` should be a URL used to reach the individual ATC, from other
