@@ -53,7 +53,6 @@ func (bc *baggageCollector) Collect() error {
 type hashedVersionSet map[string]bool
 
 func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
-	bc.logger.Session("ranking-resource-versions")
 	latestVersions := hashedVersionSet{}
 
 	pipelines, err := bc.db.GetAllActivePipelines()
