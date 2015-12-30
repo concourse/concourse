@@ -12,8 +12,7 @@ import (
 //
 // --session-signing-key so all ATCs trust each other's tokens
 //
-// TODON'T: tsa server
-// TODO: tsa client
+// TODO: worker registration
 // TODO: baggageclaim
 // TODO: fly cli downloads
 func main() {

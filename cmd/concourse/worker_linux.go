@@ -46,8 +46,7 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 		return err
 	}
 
-	return run(exec.Command(
-		gardenBin,
+	gardenArgs := []string{
 		"-listenNetwork", "tcp",
 		"-listenAddr", "0.0.0.0:7777",
 		"-allowHostAccess",
@@ -56,5 +55,9 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 		"-graph", graphDir,
 		"-snapshots", snapshotsDir,
 		"-stateDir", stateDir,
-	))
+	}
+
+	gardenArgs = append(gardenArgs, args...)
+
+	return run(exec.Command(gardenBin, gardenArgs...))
 }
