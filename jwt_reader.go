@@ -17,7 +17,7 @@ func (jr JWTReader) GetTeam(r *http.Request) (string, int, bool, bool) {
 	var teamID int
 	var isAdmin bool
 
-	token, err := jwt.ParseFromRequest(r, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseFromRequest(CopyRequest(r), func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
