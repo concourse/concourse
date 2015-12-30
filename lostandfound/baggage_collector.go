@@ -2,7 +2,6 @@ package lostandfound
 
 import (
 	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/concourse/atc/db"
@@ -78,9 +77,7 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 			}
 
 			if !found {
-				err := errors.New("resource not found")
-				logger.Error("could-not-find-latest-enabled-resource", err)
-				return nil, err
+				continue
 			}
 
 			version, _ := json.Marshal(latestEnabledVersion.VersionedResource.Version)

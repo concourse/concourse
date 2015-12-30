@@ -116,6 +116,11 @@ var _ = Describe("Baggage Collector", func() {
 
 					fakePipelineDB.GetLatestEnabledVersionedResourceStub = func(resourceName string) (db.SavedVersionedResource, bool, error) {
 						savedVersions := savedVersionsForEachResource[resourceName]
+
+						if len(savedVersions) == 0 {
+							return db.SavedVersionedResource{}, false, nil
+						}
+
 						return savedVersions[len(savedVersions)-1], true, nil
 					}
 
@@ -468,6 +473,60 @@ var _ = Describe("Baggage Collector", func() {
 			expectedTTLs: map[string]time.Duration{
 				"some-volume-handle-5": expectedOldResourceGracePeriod,
 			},
+		}),
+		Entry("it expires volumes even if a resource has no versions", baggageCollectionExample{
+			pipelineData: map[string][]resourceConfigAndVersions{
+				"pipeline-a": []resourceConfigAndVersions{
+					{
+						config: atc.ResourceConfig{
+							Name: "resource-a",
+							Type: "some-a-type",
+							Source: atc.Source{
+								"some": "a-source",
+							},
+						},
+						versions: []atc.Version{
+							{"version": "oldest"},
+							{"version": "older"},
+							{"version": "latest"},
+						},
+					},
+					{
+						config: atc.ResourceConfig{
+							Name: "resource-no-versions",
+							Type: "some-type",
+							Source: atc.Source{
+								"some": "some-source",
+							},
+						},
+						versions: []atc.Version{},
+					},
+				},
+			},
+			volumeData: []db.Volume{
+				{
+					WorkerName:      "some-worker",
+					TTL:             expectedOldResourceGracePeriod,
+					Handle:          "some-volume-handle-1",
+					ResourceVersion: atc.Version{"version": "oldest"},
+					ResourceHash:    `some-a-type{"some":"a-source"}`,
+				},
+				{
+					WorkerName:      "some-worker",
+					TTL:             expectedOldResourceGracePeriod,
+					Handle:          "some-volume-handle-3",
+					ResourceVersion: atc.Version{"version": "older"},
+					ResourceHash:    `some-a-type{"some":"a-source"}`,
+				},
+				{
+					WorkerName:      "some-worker",
+					TTL:             expectedLatestVersionTTL,
+					Handle:          "some-volume-handle-4",
+					ResourceVersion: atc.Version{"version": "latest"},
+					ResourceHash:    `some-a-type{"some":"a-source"}`,
+				},
+			},
+			expectedTTLs: map[string]time.Duration{},
 		}),
 	)
 })
