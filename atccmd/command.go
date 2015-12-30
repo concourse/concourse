@@ -52,7 +52,7 @@ type ATCCommand struct {
 	BindPort uint16 `long:"bind-port" default:"8080"    description:"Port on which to listen for web traffic."`
 
 	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
-	ExternalURL URLFlag `long:"external-url" default:""                      description:"URL used to reach any ATC from the outside world. Used for OAuth callbacks."`
+	ExternalURL URLFlag `long:"external-url"                                 description:"URL used to reach any ATC from the outside world. Used for OAuth callbacks."`
 
 	PostgresDataSource string `long:"postgres-data-source" default:"postgres://127.0.0.1:5432/atc?sslmode=disable" description:"PostgreSQL connection string."`
 
@@ -75,8 +75,8 @@ type ATCCommand struct {
 	} `group:"Developer Options"`
 
 	Worker struct {
-		GardenURL       URLFlag            `long:"garden-url"       default:"" description:"A Garden API endpoint to register as a worker."`
-		BaggageclaimURL URLFlag            `long:"baggageclaim-url" default:"" description:"A Baggageclaim API endpoint to register with the worker."`
+		GardenURL       URLFlag            `long:"garden-url"       description:"A Garden API endpoint to register as a worker."`
+		BaggageclaimURL URLFlag            `long:"baggageclaim-url" description:"A Baggageclaim API endpoint to register with the worker."`
 		ResourceTypes   map[string]URLFlag `long:"resource"         description:"A resource type to advertise for the worker. Can be specified multiple times." value-name:"TYPE:IMAGE"`
 	} `group:"Static Worker (optional)" namespace:"worker"`
 
@@ -291,7 +291,7 @@ func (cmd *ATCCommand) validate() error {
 		)
 	}
 
-	if gitHubAuthTurnedOn && cmd.ExternalURL.String() == "" {
+	if gitHubAuthTurnedOn && cmd.ExternalURL.URL() == nil {
 		errs = multierror.Append(
 			errs,
 			errors.New("must specify --external-url to use OAuth"),
