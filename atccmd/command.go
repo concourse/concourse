@@ -144,7 +144,9 @@ func (cmd *ATCCommand) Execute(args []string) error {
 		return err
 	}
 
-	authValidator, err := cmd.constructValidator(signingKey, sqlDB)
+	authValidator := cmd.constructValidator(signingKey, sqlDB)
+
+	err = cmd.updateBasicAuthCredentials(sqlDB)
 	if err != nil {
 		return err
 	}
@@ -444,49 +446,46 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB)
 	return nil
 }
 
-func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.DB) (auth.Validator, error) {
+func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.DB) auth.Validator {
 	if cmd.Developer.DevelopmentMode {
-		return auth.NoopValidator{}, nil
+		return auth.NoopValidator{}
 	}
 
 	jwtValidator := auth.JWTValidator{
 		PublicKey: &signingKey.PublicKey,
 	}
 
-	var basicAuthValidator auth.Validator
-
+	var validator auth.Validator
 	if cmd.BasicAuth.Username != "" && cmd.BasicAuth.Password != "" {
-		basicAuthValidator = auth.BasicAuthValidator{
-			DB: sqlDB,
+		validator = auth.ValidatorBasket{
+			auth.BasicAuthValidator{
+				DB: sqlDB,
+			},
+			jwtValidator,
 		}
-		team := db.Team{
+	} else {
+		validator = jwtValidator
+	}
+
+	return validator
+}
+
+func (cmd *ATCCommand) updateBasicAuthCredentials(sqlDB db.DB) error {
+	var team db.Team
+	if cmd.BasicAuth.Username != "" && cmd.BasicAuth.Password != "" {
+		team = db.Team{
 			Name: atc.DefaultTeamName,
 			BasicAuth: db.BasicAuth{
 				BasicAuthUsername: cmd.BasicAuth.Username,
 				BasicAuthPassword: cmd.BasicAuth.Password,
 			},
 		}
-		_, err := sqlDB.UpdateTeamBasicAuth(team)
-		if err != nil {
-			return basicAuthValidator, err
-		}
 	} else {
-		team := db.Team{Name: atc.DefaultTeamName}
-		_, err := sqlDB.UpdateTeamBasicAuth(team)
-		if err != nil {
-			return basicAuthValidator, err
-		}
+		team = db.Team{Name: atc.DefaultTeamName}
 	}
 
-	var validator auth.Validator
-
-	if basicAuthValidator != nil {
-		validator = auth.ValidatorBasket{basicAuthValidator, jwtValidator}
-	} else {
-		validator = jwtValidator
-	}
-
-	return validator, nil
+	_, err := sqlDB.UpdateTeamBasicAuth(team)
+	return err
 }
 
 func (cmd *ATCCommand) constructEngine(
