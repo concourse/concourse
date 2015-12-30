@@ -2,11 +2,16 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
 
+	"github.com/concourse/atc"
+	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/grouper"
+	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/vito/concourse-bin/bindata"
 )
 
@@ -46,18 +51,49 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 		return err
 	}
 
+	gardenAddr := fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
+
 	gardenArgs := []string{
 		"-listenNetwork", "tcp",
-		"-listenAddr", "0.0.0.0:7777",
-		"-allowHostAccess",
+		"-listenAddr", gardenAddr,
 		"-bin", binDir,
 		"-depot", depotDir,
 		"-graph", graphDir,
 		"-snapshots", snapshotsDir,
 		"-stateDir", stateDir,
+		"-allowHostAccess",
 	}
 
 	gardenArgs = append(gardenArgs, args...)
 
-	return run(exec.Command(gardenBin, gardenArgs...))
+	gardenCmd := exec.Command(gardenBin, gardenArgs...)
+	gardenCmd.Stdout = os.Stdout
+	gardenCmd.Stderr = os.Stderr
+
+	var gardenPeerAddr string
+	if cmd.PeerIP != "" {
+		gardenPeerAddr = fmt.Sprintf("%s:%d", cmd.PeerIP, cmd.BindPort)
+	}
+
+	beacon := Beacon{
+		Worker: atc.Worker{
+			Name:     "foo",
+			Platform: "linux",
+			Tags:     []string{},
+
+			GardenAddr: gardenPeerAddr,
+
+			BaggageclaimURL: "",
+
+			ResourceTypes: []atc.WorkerResourceType{},
+		},
+		Config: cmd.TSA,
+	}
+
+	runner := sigmon.New(grouper.NewParallel(os.Interrupt, grouper.Members{
+		{"garden", cmdRunner{gardenCmd}},
+		{"beacon", ifrit.RunFunc(beacon.Register)},
+	}))
+
+	return <-ifrit.Invoke(runner).Wait()
 }
