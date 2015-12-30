@@ -66,15 +66,20 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 		pipelineResources := pipeline.Config.Resources
 
 		for _, pipelineResource := range pipelineResources {
+			logger := bc.logger.WithData(lager.Data{
+				"pipeline": pipeline.Name,
+				"resource": pipelineResource.Name,
+			})
+
 			latestEnabledVersion, found, err := pipelineDB.GetLatestEnabledVersionedResource(pipelineResource.Name)
 			if err != nil {
-				bc.logger.Error("could-not-get-latest-enabled-resource", err)
+				logger.Error("could-not-get-latest-enabled-resource", err)
 				return nil, err
 			}
 
 			if !found {
 				err := errors.New("resource not found")
-				bc.logger.Error("could-not-find-latest-enabled-resource", err)
+				logger.Error("could-not-find-latest-enabled-resource", err)
 				return nil, err
 			}
 
