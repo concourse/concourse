@@ -107,9 +107,18 @@ type ATCCommand struct {
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
-	err := cmd.validate()
+	runner, err := cmd.Runner(args)
 	if err != nil {
 		return err
+	}
+
+	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
+}
+
+func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
+	err := cmd.validate()
+	if err != nil {
+		return nil, err
 	}
 
 	logger, reconfigurableSink := cmd.constructLogger()
@@ -118,7 +127,7 @@ func (cmd *ATCCommand) Execute(args []string) error {
 
 	sqlDB, pipelineDBFactory, err := cmd.constructDB(logger)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	workerClient := cmd.constructWorkerPool(logger, sqlDB)
@@ -136,24 +145,24 @@ func (cmd *ATCCommand) Execute(args []string) error {
 
 	signingKey, err := cmd.loadOrGenerateSigningKey()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = sqlDB.CreateDefaultTeamIfNotExists()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	authValidator := cmd.constructValidator(signingKey, sqlDB)
 
 	err = cmd.updateBasicAuthCredentials(sqlDB)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = cmd.configureOAuthProviders(logger, sqlDB)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	providerFactory := provider.NewOAuthFactory(
@@ -163,7 +172,7 @@ func (cmd *ATCCommand) Execute(args []string) error {
 		auth.OAuthCallback,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	drain := make(chan struct{})
@@ -182,7 +191,7 @@ func (cmd *ATCCommand) Execute(args []string) error {
 		radarSchedulerFactory,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	oauthHandler, err := auth.NewOAuthHandler(
@@ -192,7 +201,7 @@ func (cmd *ATCCommand) Execute(args []string) error {
 		sqlDB,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	webHandler, err := cmd.constructWebHandler(
@@ -201,7 +210,7 @@ func (cmd *ATCCommand) Execute(args []string) error {
 		pipelineDBFactory,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	members := []grouper.Member{
@@ -259,21 +268,33 @@ func (cmd *ATCCommand) Execute(args []string) error {
 
 	members = cmd.appendStaticWorker(logger, sqlDB, members)
 
-	group := grouper.NewParallel(os.Interrupt, members)
+	return onReady(grouper.NewParallel(os.Interrupt, members), func() {
+		logger.Info("listening", lager.Data{
+			"web":   cmd.bindAddr(),
+			"debug": cmd.debugBindAddr(),
+		})
+	}), nil
+}
 
-	running := ifrit.Invoke(sigmon.New(group))
+func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
+	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		process := ifrit.Background(runner)
 
-	logger.Info("listening", lager.Data{
-		"web":   cmd.bindAddr(),
-		"debug": cmd.debugBindAddr(),
+		subExited := process.Wait()
+		subReady := process.Ready()
+
+		for {
+			select {
+			case <-subReady:
+				cb()
+				subReady = nil
+			case err := <-subExited:
+				return err
+			case sig := <-signals:
+				process.Signal(sig)
+			}
+		}
 	})
-
-	err = <-running.Wait()
-	if err != nil {
-		logger.Error("exited-with-failure", err)
-	}
-
-	return err
 }
 
 func (cmd *ATCCommand) validate() error {
