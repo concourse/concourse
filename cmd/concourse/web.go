@@ -2,12 +2,14 @@ package main
 
 import (
 	"net"
-	"sync"
+	"os"
 	"time"
 
 	"github.com/concourse/atc/atccmd"
 	"github.com/concourse/tsa/tsacmd"
-	"github.com/hashicorp/go-multierror"
+	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/grouper"
+	"github.com/tedsuo/ifrit/sigmon"
 )
 
 type WebCommand struct {
@@ -37,34 +39,22 @@ func (cmd *WebCommand) Execute(args []string) error {
 
 	cmd.populateTSAFlagsFromATCFlags(tsa)
 
-	errs := make(chan error, 2)
-
-	wg := new(sync.WaitGroup)
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		errs <- cmd.ATCCommand.Execute(args)
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		errs <- tsa.Execute(nil)
-	}()
-
-	wg.Wait()
-
-	var allErrors error
-
-	for i := 0; i < 2; i++ {
-		err := <-errs
-		if err != nil {
-			allErrors = multierror.Append(allErrors, err)
-		}
+	atcRunner, err := cmd.ATCCommand.Runner(args)
+	if err != nil {
+		return err
 	}
 
-	return allErrors
+	tsaRunner, err := tsa.Runner(args)
+	if err != nil {
+		return err
+	}
+
+	runner := sigmon.New(grouper.NewParallel(os.Interrupt, grouper.Members{
+		{"atc", atcRunner},
+		{"tsa", tsaRunner},
+	}))
+
+	return <-ifrit.Invoke(runner).Wait()
 }
 
 func (cmd *WebCommand) populateTSAFlagsFromATCFlags(tsa *tsacmd.TSACommand) error {
