@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -68,7 +69,10 @@ func (server *registrarSSHServer) Serve(listener net.Listener) {
 	for {
 		c, err := listener.Accept()
 		if err != nil {
-			server.logger.Error("failed-to-accept", err)
+			if !strings.Contains(err.Error(), "use of closed network connection") {
+				server.logger.Error("failed-to-accept", err)
+			}
+
 			return
 		}
 
