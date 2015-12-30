@@ -72,19 +72,19 @@ EOF
     } > /var/vcap/jobs/tsa/config/authorized_keys
 
     exec chpst -u vcap:vcap /var/vcap/packages/tsa/bin/tsa \
-      -forwardHost=<%= my_ip %> \
-      -listenPort=<%= p("tsa.listen_port") %> \
+      --peer-ip <%= my_ip %> \
+      --bind-port <%= p("tsa.listen_port") %> \
       <% if p("tsa.host_key") != "" %> \
-      -hostKey=/var/vcap/jobs/tsa/config/host_key \
+      --host-key /var/vcap/jobs/tsa/config/host_key \
       <% else %> \
-      -hostKey=/var/vcap/packages/generated_tsa_host_key/id_rsa \
+      --host-key /var/vcap/packages/generated_tsa_host_key/id_rsa \
       <% end %> \
-      -authorizedKeys=/var/vcap/jobs/tsa/config/authorized_keys \
-      -heartbeatInterval=<%= p("tsa.heartbeat_interval") %> \
-      -yellerAPIKey=<%= esc(p("tsa.yeller.api_key")) %> \
-      -sessionSigningKey $SIGNING_KEY \
-      -yellerEnvironment=<%= esc(p("tsa.yeller.environment_name")) %> \
-      -atcAPIURL=<%= "http://#{p("tsa.atc.address")}" %> \
+      --authorized-keys /var/vcap/jobs/tsa/config/authorized_keys \
+      --atc-url <%= "http://#{p("tsa.atc.address")}" %> \
+      --session-signing-key $SIGNING_KEY \
+      --heartbeat-interval <%= p("tsa.heartbeat_interval") %> \
+      --yeller-api-key <%= esc(p("tsa.yeller.api_key")) %> \
+      --yeller-environment <%= esc(p("tsa.yeller.environment_name")) %> \
       1>>$LOG_DIR/tsa.stdout.log \
       2>>$LOG_DIR/tsa.stderr.log
 
