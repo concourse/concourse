@@ -19,10 +19,11 @@ resources:
     branch: master
 
 - name: concourse-bin-releases
-  type: git
+  type: github-release
   source:
-    uri: https://github.com/vito/concourse-bin
-    branch: master
+    user: vito
+    repository: concourse-bin
+    access_token: {{release-token}}
 
 jobs:
 - name: build
