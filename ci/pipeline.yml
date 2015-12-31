@@ -1,0 +1,41 @@
+---
+resources:
+- name: concourse
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse
+    branch: develop
+
+- name: garden-linux-release
+  type: git
+  source:
+    uri: https://github.com/cloudfoundry-incubator/garden-linux-release
+    branch: master
+
+- name: concourse-bin
+  type: git
+  source:
+    uri: https://github.com/vito/concourse-bin
+    branch: master
+
+- name: concourse-bin-releases
+  type: git
+  source:
+    uri: https://github.com/vito/concourse-bin
+    branch: master
+
+jobs:
+- name: build
+  plan:
+  - aggregate:
+    - get: concourse
+    - get: garden-linux-release
+    - get: concourse-bin
+  - task: build-release
+    file: concourse-bin/ci/build-release.yml
+  - put: concourse-bin-releases
+    params:
+      name: release/name
+      tag: release/tag
+      body: release/body
+      globs: [release/artifacts/*]

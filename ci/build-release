@@ -1,0 +1,17 @@
+#!/bin/bash
+
+./gopath/src/github.com/vito/concourse-bin/build
+
+echo 'dev' > release/name
+echo 'dev' > release/tag
+
+cat > release/body <<EOF
+A periodically built release while things are still being worked out.
+EOF
+
+export GOPATH=$PWD/gopath:$PWD/concourse
+
+mkdir release/artifacts
+go build \
+  -o release/artifacts/concourse_linux_amd64 \
+  github.com/vito/concourse-bin/cmd/concourse
