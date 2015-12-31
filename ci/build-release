@@ -1,6 +1,8 @@
 #!/bin/bash
 
-./gopath/src/github.com/vito/concourse-bin/build
+set -e -x
+
+./gopath/src/github.com/vito/concourse-bin/scripts/build
 
 echo 'dev' > release/name
 echo 'dev' > release/tag
