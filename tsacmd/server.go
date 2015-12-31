@@ -187,6 +187,8 @@ func (server *registrarSSHServer) handleConn(logger lager.Logger, conn *ssh.Serv
 			case forwardWorkerRequest:
 				logger := logger.Session("forward-worker")
 
+				req.Reply(true, nil)
+
 				forwards := map[string]forwardedTCPIP{}
 
 				for i := 0; i < r.expectedForwards(); i++ {
