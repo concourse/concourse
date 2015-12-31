@@ -8,15 +8,27 @@ if [ ! -e garden-linux-release ]; then
   git clone https://github.com/cloudfoundry-incubator/garden-linux-release --recursive
 fi
 
-cd garden-linux-release/
+if [ ! -e tar ]; then
+  curl https://ftp.gnu.org/gnu/tar/tar-1.28.tar.gz | tar zxf -
+  mv tar-1.28 tar
+fi
 
-export GOPATH=$PWD
+pushd garden-linux-release/
+  export GOPATH=$PWD
 
-cd ./src/github.com/cloudfoundry-incubator/garden-linux
+  pushd ./src/github.com/cloudfoundry-incubator/garden-linux
+    make
+    mkdir -p $ROOT/linux
+    rm -r $ROOT/linux/*
+    cp -a out/garden-linux $ROOT/linux/garden-linux
+    cp -a linux_backend/bin $ROOT/linux/bin
+    cp -a linux_backend/skeleton $ROOT/linux/skeleton
+  popd
+popd
 
-make
+pushd tar/
+  ./configure
+  make LDFLAGS=-static
+  cp src/tar $ROOT/linux/bin/tar
+popd
 
-mkdir -p $ROOT/linux
-cp -a out/garden-linux $ROOT/linux/garden-linux
-cp -a linux_backend/bin $ROOT/linux/bin
-cp -a linux_backend/skeleton $ROOT/linux/skeleton

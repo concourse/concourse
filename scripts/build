@@ -1,4 +1,6 @@
 #!/bin/bash
 
+set -e -x
+
 $(dirname $0)/build_linux
 $(dirname $0)/build_bindata
