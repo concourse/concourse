@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -72,12 +73,53 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 	gardenCmd.Stdout = os.Stdout
 	gardenCmd.Stderr = os.Stderr
 
+	var resourceTypes []atc.WorkerResourceType
+
+	resourcesDir := filepath.Join(linux, "resources")
+	resourceImagesDir := filepath.Join(linux, "resource-images")
+
+	tarBin := filepath.Join(binDir, "tar")
+
+	infos, err := ioutil.ReadDir(resourcesDir)
+	if err == nil {
+		for _, info := range infos {
+			archive := filepath.Join(resourcesDir, info.Name())
+			resourceType := info.Name()
+
+			imageDir := filepath.Join(resourceImagesDir, resourceType)
+
+			err := os.RemoveAll(imageDir)
+			if err != nil {
+				return err
+			}
+
+			err = os.MkdirAll(imageDir, 0755)
+			if err != nil {
+				return err
+			}
+
+			tar := exec.Command(tarBin, "-zxf", archive, "-C", imageDir)
+			tar.Stdout = os.Stdout
+			tar.Stderr = os.Stderr
+
+			err = tar.Run()
+			if err != nil {
+				return err
+			}
+
+			resourceTypes = append(resourceTypes, atc.WorkerResourceType{
+				Type:  resourceType,
+				Image: imageDir,
+			})
+		}
+	}
+
 	worker := atc.Worker{
 		Name:     "foo",
 		Platform: "linux",
 		Tags:     []string{},
 
-		ResourceTypes: []atc.WorkerResourceType{},
+		ResourceTypes: resourceTypes,
 	}
 
 	beacon := Beacon{

@@ -8,6 +8,10 @@ if [ ! -e garden-linux-release ]; then
   git clone https://github.com/cloudfoundry-incubator/garden-linux-release --recursive
 fi
 
+if [ ! -e concourse ]; then
+  git clone https://github.com/concourse/concourse
+fi
+
 if [ ! -e tar ]; then
   curl https://ftp.gnu.org/gnu/tar/tar-1.28.tar.gz | tar zxf -
   mv tar-1.28 tar
@@ -32,3 +36,13 @@ pushd tar/
   cp src/tar $ROOT/linux/bin/tar
 popd
 
+pushd concourse/
+  mkdir -p $ROOT/linux/resources
+
+  bosh sync blobs
+
+  for resource in blobs/resources/*-resource.tar.gz; do
+    resource_name="$(basename $resource | sed -e 's/-resource.tar.gz//')"
+    cp -L "$resource" $ROOT/linux/resources/$resource_name
+  done
+popd
