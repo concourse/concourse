@@ -66,6 +66,15 @@ jobs:
       platform: linux
       run: {path: sh, args: [-c, 'i=0; while sleep 1; do i=$(expr $i + 1); echo $i; done']}
 
+- name: hello
+  plan:
+  - task: hello
+    privileged: true
+    config:
+      platform: linux
+      image: docker:///busybox
+      run: {path: echo, args: ['Hello world']}
+
 - name: horizontal-output
   plan:
   - task: moar-dots
