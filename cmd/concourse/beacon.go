@@ -112,17 +112,22 @@ func (beacon *Beacon) handleForwardedConn(rConn net.Conn, addr string) {
 
 	wg := new(sync.WaitGroup)
 
-	wg.Add(1)
-	go func() {
+	pipe := func(to io.WriteCloser, from io.ReadCloser) {
+		// if either end breaks, close both ends to ensure they're both unblocked,
+		// otherwise io.Copy can block forever if e.g. reading after write end has
+		// gone away
+		defer to.Close()
+		defer from.Close()
 		defer wg.Done()
-		io.Copy(lConn, rConn)
-	}()
+
+		io.Copy(to, from)
+	}
 
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		io.Copy(rConn, lConn)
-	}()
+	go pipe(lConn, rConn)
+
+	wg.Add(1)
+	go pipe(rConn, lConn)
 
 	wg.Wait()
 }
