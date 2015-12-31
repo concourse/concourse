@@ -64,7 +64,7 @@ func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (ma
 	build, err := GetBuild(
 		locator.client,
 		fingerprint.jobName,
-		fingerprint.buildName,
+		fingerprint.buildNameOrID,
 		fingerprint.pipelineName,
 	)
 	if err != nil {
@@ -94,9 +94,9 @@ func (locator checkContainerLocator) locate(fingerprint containerFingerprint) (m
 }
 
 type containerFingerprint struct {
-	pipelineName string
-	jobName      string
-	buildName    string
+	pipelineName  string
+	jobName       string
+	buildNameOrID string
 
 	stepName string
 
@@ -147,17 +147,17 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 		pipelineName = c.Check.PipelineName
 	}
 
-	buildName := c.Build
+	buildNameOrID := c.Build
 	stepName := c.StepName
 	jobName := c.Job.JobName
 	check := c.Check.ResourceName
 
 	fingerprint := containerFingerprint{
-		pipelineName: pipelineName,
-		jobName:      jobName,
-		buildName:    buildName,
-		stepName:     stepName,
-		checkName:    check,
+		pipelineName:  pipelineName,
+		jobName:       jobName,
+		buildNameOrID: buildNameOrID,
+		stepName:      stepName,
+		checkName:     check,
 	}
 
 	connection, err := rc.TargetConnection(Fly.Target)
