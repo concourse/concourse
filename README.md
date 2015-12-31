@@ -151,8 +151,8 @@ just an IP, perhaps `127.0.0.1` if you're tinkering.
 
 The `--tsa-public-key` flag is used to ensure we're connecting to the TSA we
 should be connecting to, and is used like `known_hosts` with the `ssh` command.
-Refer to [Prerequisites](#Prerequisites) if you're not sure what this means.
+Refer to [Prerequisites](#prerequisites) if you're not sure what this means.
 
 The `--tsa-worker-private-key` flag specifies the key to use when
-authenticating to the TSA. Refer to [Prerequisites](#Prerequisites) if you're
+authenticating to the TSA. Refer to [Prerequisites](#prerequisites) if you're
 not sure what this means.
