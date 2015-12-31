@@ -70,29 +70,32 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 	gardenCmd.Stdout = os.Stdout
 	gardenCmd.Stderr = os.Stderr
 
-	var gardenPeerAddr string
-	if cmd.PeerIP != "" {
-		gardenPeerAddr = fmt.Sprintf("%s:%d", cmd.PeerIP, cmd.BindPort)
+	worker := atc.Worker{
+		Name:     "foo",
+		Platform: "linux",
+		Tags:     []string{},
+
+		ResourceTypes: []atc.WorkerResourceType{},
 	}
 
 	beacon := Beacon{
-		Worker: atc.Worker{
-			Name:     "foo",
-			Platform: "linux",
-			Tags:     []string{},
-
-			GardenAddr: gardenPeerAddr,
-
-			BaggageclaimURL: "",
-
-			ResourceTypes: []atc.WorkerResourceType{},
-		},
 		Config: cmd.TSA,
 	}
 
+	var beaconRunner ifrit.RunFunc
+	if cmd.PeerIP != "" {
+		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP, cmd.BindPort)
+		beaconRunner = beacon.Register
+	} else {
+		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
+		beaconRunner = beacon.Forward
+	}
+
+	beacon.Worker = worker
+
 	runner := sigmon.New(grouper.NewParallel(os.Interrupt, grouper.Members{
 		{"garden", cmdRunner{gardenCmd}},
-		{"beacon", ifrit.RunFunc(beacon.Register)},
+		{"beacon", beaconRunner},
 	}))
 
 	return <-ifrit.Invoke(runner).Wait()
