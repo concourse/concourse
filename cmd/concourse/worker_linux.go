@@ -41,7 +41,9 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 	snapshotsDir := filepath.Join(linux, "snapshots")
 	stateDir := filepath.Join(linux, "state")
 
-	err = os.MkdirAll(depotDir, 0700)
+	// must be readable by other users so unprivileged containers can run their
+	// own `initc' process
+	err = os.MkdirAll(depotDir, 0755)
 	if err != nil {
 		return err
 	}
