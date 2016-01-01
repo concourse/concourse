@@ -17,6 +17,11 @@ if [ ! -e tar ]; then
   mv tar-1.28 tar
 fi
 
+if ! which bosh 2>/dev/null 2>&1; then
+  apt-get -y install ruby
+  gem install bosh_cli --no-rdoc --no-ri
+fi
+
 pushd garden-linux-release/
   export GOPATH=$PWD
 
@@ -38,11 +43,6 @@ popd
 
 pushd concourse/
   mkdir -p $ROOT/linux/resources
-
-  if ! which bosh 2>/dev/null 2>&1; then
-    apt-get -y install ruby
-    gem install bosh_cli --no-rdoc --no-ri
-  fi
 
   bosh sync blobs
 
