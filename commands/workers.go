@@ -55,7 +55,7 @@ func (command *WorkersCommand) Execute([]string) error {
 			{Contents: w.Name},
 			{Contents: strconv.Itoa(w.ActiveContainers)},
 			{Contents: w.Platform},
-			stringOrNone(strings.Join(w.Tags, ", ")),
+			stringOrDefault(strings.Join(w.Tags, ", ")),
 		}
 
 		if command.Details {
@@ -65,8 +65,8 @@ func (command *WorkersCommand) Execute([]string) error {
 			}
 
 			row = append(row, ui.TableCell{Contents: w.GardenAddr})
-			row = append(row, stringOrNone(w.BaggageclaimURL))
-			row = append(row, stringOrNone(strings.Join(resourceTypes, ", ")))
+			row = append(row, stringOrDefault(w.BaggageclaimURL))
+			row = append(row, stringOrDefault(strings.Join(resourceTypes, ", ")))
 		}
 
 		table.Data = append(table.Data, row)
@@ -80,15 +80,3 @@ type byWorkerName []atc.Worker
 func (ws byWorkerName) Len() int               { return len(ws) }
 func (ws byWorkerName) Swap(i int, j int)      { ws[i], ws[j] = ws[j], ws[i] }
 func (ws byWorkerName) Less(i int, j int) bool { return ws[i].Name < ws[j].Name }
-
-func stringOrNone(str string) ui.TableCell {
-	var column ui.TableCell
-	if len(str) == 0 {
-		column.Contents = "none"
-		column.Color = color.New(color.Faint)
-	} else {
-		column.Contents = str
-	}
-
-	return column
-}

@@ -29,8 +29,8 @@ import (
 type HijackCommand struct {
 	Job      flaghelpers.JobFlag      `short:"j" long:"job"   value-name:"PIPELINE/JOB"   description:"Name of a job to hijack"`
 	Check    flaghelpers.ResourceFlag `short:"c" long:"check" value-name:"PIPELINE/CHECK" description:"Name of a resource's checking container to hijack"`
-	Build    string                   `short:"b" long:"build"                               description:"Build number within the job, or global build ID"`
-	StepName string                   `short:"s" long:"step"                                description:"Name of step to hijack (e.g. build, unit, resource name)"`
+	Build    string                   `short:"b" long:"build"                             description:"Build number within the job, or global build ID"`
+	StepName string                   `short:"s" long:"step"                              description:"Name of step to hijack (e.g. build, unit, resource name)"`
 }
 
 func remoteCommand(argv []string) (string, []string) {
@@ -61,18 +61,24 @@ type stepContainerLocator struct {
 func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (map[string]string, error) {
 	reqValues := map[string]string{}
 
-	build, err := GetBuild(
-		locator.client,
-		fingerprint.jobName,
-		fingerprint.buildNameOrID,
-		fingerprint.pipelineName,
-	)
-	if err != nil {
-		return reqValues, err
+	if fingerprint.jobName != "" {
+		reqValues["pipeline_name"] = fingerprint.pipelineName
+		reqValues["job_name"] = fingerprint.jobName
+		if fingerprint.buildNameOrID != "" {
+			reqValues["build_name"] = fingerprint.buildNameOrID
+		}
+	} else if fingerprint.buildNameOrID != "" {
+		reqValues["build-id"] = fingerprint.buildNameOrID
+	} else {
+		build, err := GetBuild(locator.client, "", "", "")
+		if err != nil {
+			return reqValues, err
+		}
+		reqValues["build-id"] = strconv.Itoa(build.ID)
 	}
-
-	reqValues["build-id"] = strconv.Itoa(build.ID)
-	reqValues["name"] = fingerprint.stepName
+	if fingerprint.stepName != "" {
+		reqValues["step_name"] = fingerprint.stepName
+	}
 
 	return reqValues, nil
 }
@@ -84,7 +90,7 @@ func (locator checkContainerLocator) locate(fingerprint containerFingerprint) (m
 
 	reqValues["type"] = "check"
 	if fingerprint.checkName != "" {
-		reqValues["name"] = fingerprint.checkName
+		reqValues["resource_name"] = fingerprint.checkName
 	}
 	if fingerprint.pipelineName != "" {
 		reqValues["pipeline_name"] = fingerprint.pipelineName
@@ -195,16 +201,28 @@ func (command *HijackCommand) Execute(args []string) error {
 		var choices []interact.Choice
 		for _, container := range containers {
 			var infos []string
+
+			infos = append(infos, fmt.Sprintf("worker: %s", container.WorkerName))
 			if container.PipelineName != "" {
 				infos = append(infos, fmt.Sprintf("pipeline: %s", container.PipelineName))
 			}
-
+			if container.JobName != "" {
+				infos = append(infos, fmt.Sprintf("job: %s", container.JobName))
+			}
+			if container.BuildName != "" {
+				infos = append(infos, fmt.Sprintf("build #: %s", container.BuildName))
+			}
 			if container.BuildID != 0 {
 				infos = append(infos, fmt.Sprintf("build id: %d", container.BuildID))
 			}
 
-			infos = append(infos, fmt.Sprintf("type: %s", container.Type))
-			infos = append(infos, fmt.Sprintf("name: %s", container.Name))
+			if container.StepType != "" {
+				infos = append(infos, fmt.Sprintf("type: %s", container.StepType))
+				infos = append(infos, fmt.Sprintf("name: %s", container.StepName))
+			} else {
+				infos = append(infos, "type: check")
+				infos = append(infos, fmt.Sprintf("name: %s", container.ResourceName))
+			}
 
 			choices = append(choices, interact.Choice{
 				Display: strings.Join(infos, ", "),

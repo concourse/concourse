@@ -31,11 +31,13 @@ func (command *ContainersCommand) Execute([]string) error {
 	table := ui.Table{
 		Headers: ui.TableRow{
 			{Contents: "handle", Color: color.New(color.Bold)},
-			{Contents: "name", Color: color.New(color.Bold)},
-			{Contents: "pipeline", Color: color.New(color.Bold)},
-			{Contents: "type", Color: color.New(color.Bold)},
-			{Contents: "build id", Color: color.New(color.Bold)},
 			{Contents: "worker", Color: color.New(color.Bold)},
+			{Contents: "pipeline", Color: color.New(color.Bold)},
+			{Contents: "job", Color: color.New(color.Bold)},
+			{Contents: "build #", Color: color.New(color.Bold)},
+			{Contents: "build id", Color: color.New(color.Bold)},
+			{Contents: "type", Color: color.New(color.Bold)},
+			{Contents: "name", Color: color.New(color.Bold)},
 		},
 	}
 
@@ -44,11 +46,13 @@ func (command *ContainersCommand) Execute([]string) error {
 	for _, c := range containers {
 		row := ui.TableRow{
 			{Contents: c.ID},
-			{Contents: c.Name},
-			{Contents: c.PipelineName},
-			{Contents: c.Type},
-			buildIDOrNone(c.BuildID),
 			{Contents: c.WorkerName},
+			stringOrDefault(c.PipelineName),
+			stringOrDefault(c.JobName),
+			stringOrDefault(c.BuildName),
+			buildIDOrNone(c.BuildID),
+			stringOrDefault(c.StepType, "check"),
+			{Contents: (c.StepName + c.ResourceName)},
 		}
 
 		table.Data = append(table.Data, row)
@@ -71,6 +75,22 @@ func buildIDOrNone(id int) ui.TableCell {
 		column.Color = color.New(color.Faint)
 	} else {
 		column.Contents = strconv.Itoa(id)
+	}
+
+	return column
+}
+
+func stringOrDefault(containerType string, def ...string) ui.TableCell {
+	var column ui.TableCell
+
+	column.Contents = containerType
+	if column.Contents == "" {
+		if len(def) == 0 {
+			column.Contents = "none"
+			column.Color = color.New(color.Faint)
+		} else {
+			column.Contents = def[0]
+		}
 	}
 
 	return column

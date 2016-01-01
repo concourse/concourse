@@ -132,7 +132,7 @@ var _ = Describe("Hijacking", func() {
 		fly("hijack", args...)
 	}
 
-	Context("with no arguments", func() {
+	Context("with only a step name specified", func() {
 		BeforeEach(func() {
 			didHijack := make(chan struct{})
 			hijacked = didHijack
@@ -148,9 +148,9 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name=some-step"),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "task", Name: "some-step", BuildID: 3},
+						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step"},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -180,9 +180,9 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name=some-step"),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "task", Name: "some-step", BuildID: 3, WorkingDirectory: workingDirectory},
+						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step", WorkingDirectory: workingDirectory},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -208,9 +208,9 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name=some-step"),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "task", Name: "some-step", BuildID: 3, EnvironmentVariables: envVariables},
+						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step", EnvironmentVariables: envVariables},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -235,7 +235,7 @@ var _ = Describe("Hijacking", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=1&name=some-step"),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=1&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -253,15 +253,14 @@ var _ = Describe("Hijacking", func() {
 		})
 	})
 
-	Context("when no builds are found", func() {
+	Context("when no containers are found", func() {
 		BeforeEach(func() {
 			didHijack := make(chan struct{})
 			hijacked = didHijack
-
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/builds/0"),
-					ghttp.RespondWithJSONEncoded(404, ""),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=0"),
+					ghttp.RespondWithJSONEncoded(200, []atc.Container{}),
 				),
 			)
 		})
@@ -275,7 +274,7 @@ var _ = Describe("Hijacking", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Err.Contents).Should(ContainSubstring("build not found"))
+			Eventually(sess.Err.Contents).Should(ContainSubstring("no containers matched your search parameters! they may have expired if your build hasn't recently finished"))
 
 			err = stdin.Close()
 			Expect(err).NotTo(HaveOccurred())
@@ -285,34 +284,35 @@ var _ = Describe("Hijacking", func() {
 		})
 	})
 
-	Context("when multiple containers are found", func() {
+	Context("when multiple step containers are found", func() {
 		BeforeEach(func() {
 			didHijack := make(chan struct{})
 			hijacked = didHijack
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/pipelines/pipeline-name-1/jobs/some-job"),
-					ghttp.RespondWithJSONEncoded(200, atc.Job{
-						NextBuild: &atc.Build{
-							ID:      3,
-							Name:    "3",
-							Status:  "started",
-							JobName: "some-job",
-						},
-						FinishedBuild: &atc.Build{
-							ID:      2,
-							Name:    "2",
-							Status:  "failed",
-							JobName: "some-job",
-						},
-					}),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&name="),
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "pipeline_name=pipeline-name-1&job_name=some-job"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", PipelineName: "pipeline-name-1", Type: "get", Name: "some-job", BuildID: 3},
-						{ID: "container-id-2", PipelineName: "pipeline-name-1", Type: "put", Name: "some-job", BuildID: 3},
+						{
+							ID:           "container-id-1",
+							WorkerName:   "worker-name-1",
+							PipelineName: "pipeline-name-1",
+							JobName:      "some-job",
+							BuildName:    "2",
+							BuildID:      12,
+							StepType:     "get",
+							StepName:     "some-input",
+						},
+						{
+							ID:           "container-id-2",
+							WorkerName:   "worker-name-2",
+							PipelineName: "pipeline-name-1",
+							JobName:      "some-job",
+							BuildName:    "3",
+							BuildID:      13,
+							StepType:     "put",
+							StepName:     "some-output",
+						},
 					}),
 				),
 				hijackHandler("container-id-2", didHijack, nil),
@@ -328,8 +328,8 @@ var _ = Describe("Hijacking", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Out).Should(gbytes.Say("1. pipeline: pipeline-name-1, build id: 3, type: get, name: some-job"))
-			Eventually(sess.Out).Should(gbytes.Say("2. pipeline: pipeline-name-1, build id: 3, type: put, name: some-job"))
+			Eventually(sess.Out).Should(gbytes.Say("1. worker: worker-name-1, pipeline: pipeline-name-1, job: some-job, build #: 2, build id: 12, type: get, name: some-input"))
+			Eventually(sess.Out).Should(gbytes.Say("2. worker: worker-name-2, pipeline: pipeline-name-1, job: some-job, build #: 3, build id: 13, type: put, name: some-output"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
 			_, err = fmt.Fprintf(stdin, "2\n")
@@ -359,11 +359,22 @@ var _ = Describe("Hijacking", func() {
 			buildID            int
 			hijackHandlerError []string
 			pipelineName       string
+			resourceName       string
+			jobName            string
+			buildName          string
 		)
 
 		BeforeEach(func() {
 			hijackHandlerError = nil
 			pipelineName = "a-pipeline"
+			jobName = ""
+			buildName = ""
+			buildID = 0
+			stepType = ""
+			stepName = ""
+			resourceName = ""
+			containerArguments = ""
+			hijackHandlerError = nil
 		})
 
 		JustBeforeEach(func() {
@@ -374,7 +385,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/containers", containerArguments),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", PipelineName: pipelineName, Type: stepType, Name: stepName, BuildID: buildID},
+						{ID: "container-id-1", WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, StepType: stepType, StepName: stepName, ResourceName: resourceName},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, hijackHandlerError),
@@ -383,14 +394,12 @@ var _ = Describe("Hijacking", func() {
 
 		Context("when called with check container", func() {
 			BeforeEach(func() {
-				stepType = "check"
-				stepName = "some-resource-name"
-				buildID = 6
+				resourceName = "some-resource-name"
 			})
 
 			Context("and with pipeline specified", func() {
 				BeforeEach(func() {
-					containerArguments = "type=check&name=some-resource-name&pipeline_name=a-pipeline"
+					containerArguments = "type=check&resource_name=some-resource-name&pipeline_name=a-pipeline"
 				})
 
 				It("can accept the check resources name and a pipeline", func() {
@@ -402,21 +411,10 @@ var _ = Describe("Hijacking", func() {
 		Context("when called with a specific build id", func() {
 
 			BeforeEach(func() {
-				containerArguments = "build-id=2&name=some-step"
+				containerArguments = "build-id=2&step_name=some-step"
 				stepType = "task"
 				stepName = "some-step"
 				buildID = 2
-
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/builds/2"),
-						ghttp.RespondWithJSONEncoded(200, atc.Build{
-							ID:     2,
-							Name:   "1",
-							Status: "started",
-						}),
-					),
-				)
 			})
 
 			It("hijacks the most recent one-off build", func() {
@@ -426,146 +424,57 @@ var _ = Describe("Hijacking", func() {
 
 		Context("when called with a specific job", func() {
 			BeforeEach(func() {
-				containerArguments = "build-id=3&name=some-step"
+				containerArguments = "pipeline_name=some-pipeline&job_name=some-job&step_name=some-step"
+				jobName = "some-job"
+				buildName = "3"
+				buildID = 13
 				stepType = "task"
 				stepName = "some-step"
-				buildID = 3
 			})
 
-			Context("when the job has a next build and pipeline", func() {
-				BeforeEach(func() {
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job"),
-							ghttp.RespondWithJSONEncoded(200, atc.Job{
-								NextBuild: &atc.Build{
-									ID:      3,
-									Name:    "3",
-									Status:  "started",
-									JobName: "some-job",
-								},
-								FinishedBuild: &atc.Build{
-									ID:      2,
-									Name:    "2",
-									Status:  "failed",
-									JobName: "some-job",
-								},
-							}),
-						),
-					)
-				})
-
-				It("hijacks the job's next build", func() {
-					hijack("--job", "some-pipeline/some-job", "--step", "some-step")
-				})
-			})
-
-			Context("when the job only has a finished build", func() {
-				BeforeEach(func() {
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job"),
-							ghttp.RespondWithJSONEncoded(200, atc.Job{
-								NextBuild: nil,
-								FinishedBuild: &atc.Build{
-									ID:      3,
-									Name:    "3",
-									Status:  "failed",
-									JobName: "some-job",
-								},
-							}),
-						),
-					)
-				})
-
-				It("hijacks the job's finished build", func() {
-					hijack("--job", "some-pipeline/some-job", "--step", "some-step")
-				})
+			It("hijacks the job's next build", func() {
+				hijack("--job", "some-pipeline/some-job", "--step", "some-step")
 			})
 
 			Context("with a specific build of the job", func() {
 				BeforeEach(func() {
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job/builds/3"),
-							ghttp.RespondWithJSONEncoded(200, atc.Build{
-								ID:      3,
-								Name:    "3",
-								Status:  "failed",
-								JobName: "some-job",
-							}),
-						),
-					)
+					containerArguments = "pipeline_name=some-pipeline&job_name=some-job&build_name=3&step_name=some-step"
 				})
 
 				It("hijacks the given build", func() {
 					hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step")
 				})
 			})
-
-			Context("when hijacking yields an error", func() {
-				BeforeEach(func() {
-					hijackHandlerError = []string{"something went wrong"}
-
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/builds"),
-							ghttp.RespondWithJSONEncoded(200, []atc.Build{
-								{ID: 4, Name: "1", Status: "started", JobName: "some-job"},
-								{ID: 3, Name: "3", Status: "started"},
-								{ID: 2, Name: "2", Status: "started"},
-								{ID: 1, Name: "1", Status: "finished"},
-							}),
-						),
-					)
-				})
-
-				It("prints it to stderr and exits 255", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "--step", "some-step")
-
-					stdin, err := flyCmd.StdinPipe()
-					Expect(err).NotTo(HaveOccurred())
-
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
-
-					Eventually(hijacked).Should(BeClosed())
-
-					_, err = fmt.Fprintf(stdin, "some stdin")
-					Expect(err).NotTo(HaveOccurred())
-
-					Eventually(sess.Err.Contents).Should(ContainSubstring(ansi.Color("something went wrong", "red+b") + "\n"))
-
-					err = stdin.Close()
-					Expect(err).NotTo(HaveOccurred())
-
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(255))
-				})
-			})
 		})
 
-		Context("when called with a step name specified", func() {
+		Context("when hijacking yields an error", func() {
 			BeforeEach(func() {
-				containerArguments = "build-id=3&name=money"
-				stepName = "money"
-				buildID = 3
-
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/builds"),
-						ghttp.RespondWithJSONEncoded(200, []atc.Build{
-							{ID: 4, Name: "1", Status: "started", JobName: "some-job"},
-							{ID: 3, Name: "3", Status: "started"},
-							{ID: 2, Name: "2", Status: "started"},
-							{ID: 1, Name: "1", Status: "finished"},
-						}),
-					),
-				)
+				resourceName = "some-resource-name"
+				containerArguments = "type=check&resource_name=some-resource-name&pipeline_name=a-pipeline"
+				hijackHandlerError = []string{"something went wrong"}
 			})
 
-			It("hijacks the given type and name", func() {
-				hijack("-s", "money")
+			It("prints it to stderr and exits 255", func() {
+				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "--check", "a-pipeline/some-resource-name")
+
+				stdin, err := flyCmd.StdinPipe()
+				Expect(err).NotTo(HaveOccurred())
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(hijacked).Should(BeClosed())
+
+				_, err = fmt.Fprintf(stdin, "some stdin")
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err.Contents).Should(ContainSubstring(ansi.Color("something went wrong", "red+b") + "\n"))
+
+				err = stdin.Close()
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(255))
 			})
 		})
 	})
