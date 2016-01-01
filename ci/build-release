@@ -2,6 +2,11 @@
 
 set -e -x
 
+export GOPATH=$PWD/gopath
+export PATH=$GOPATH/bin:$PATH
+
+go get github.com/jteeuwen/go-bindata/go-bindata
+
 ./gopath/src/github.com/vito/concourse-bin/scripts/build
 
 echo 'dev' > release/name
@@ -11,7 +16,7 @@ cat > release/body <<EOF
 A periodically built release while things are still being worked out.
 EOF
 
-export GOPATH=$PWD/gopath:$PWD/concourse
+export GOPATH=$GOPATH:$PWD/concourse
 
 mkdir release/artifacts
 go build \
