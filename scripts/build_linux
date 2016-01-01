@@ -39,6 +39,11 @@ popd
 pushd concourse/
   mkdir -p $ROOT/linux/resources
 
+  if ! which bosh 2>/dev/null 2>&1; then
+    apt-get -y install ruby
+    gem install bosh_cli --no-rdoc --no-ri
+  fi
+
   bosh sync blobs
 
   for resource in blobs/resources/*-resource.tar.gz; do
