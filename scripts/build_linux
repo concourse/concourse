@@ -18,6 +18,7 @@ if [ ! -e tar ]; then
 fi
 
 if ! which bosh 2>/dev/null 2>&1; then
+  apt-get update
   apt-get -y install ruby
   gem install bosh_cli --no-rdoc --no-ri
 fi
