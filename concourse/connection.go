@@ -76,6 +76,9 @@ func (connection *connection) HTTPClient() *http.Client {
 
 func (connection *connection) Send(passedRequest Request, passedResponse *Response) error {
 	req, err := connection.createHTTPRequest(passedRequest)
+	if err != nil {
+		return err
+	}
 
 	response, err := connection.httpClient.Do(req)
 	if err != nil {
