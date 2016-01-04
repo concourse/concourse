@@ -8,6 +8,8 @@ inputs:
   path: gopath/src/github.com/vito/concourse-bin
 - name: concourse
 - name: garden-linux-release
+- name: houdini
+  path: gopath/src/github.com/vito/houdini
 
 outputs:
 - name: release

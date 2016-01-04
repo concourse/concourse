@@ -18,6 +18,12 @@ resources:
     uri: https://github.com/vito/concourse-bin
     branch: master
 
+- name: houdini
+  type: git
+  source:
+    uri: https://github.com/vito/houdini
+    branch: master
+
 - name: concourse-bin-releases
   type: github-release
   source:
@@ -32,6 +38,7 @@ jobs:
     - get: concourse
     - get: garden-linux-release
     - get: concourse-bin
+    - get: houdini
   - task: build-release
     file: concourse-bin/ci/build-release.yml
   - put: concourse-bin-releases
