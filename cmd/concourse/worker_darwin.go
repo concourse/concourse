@@ -15,10 +15,7 @@ import (
 
 var ErrNotRoot = errors.New("worker must be run as root")
 
-func (cmd *WorkerCommand) gardenRunner(args []string) (atc.Worker, ifrit.Runner, error) {
-	logger := lager.NewLogger("garden")
-	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.INFO))
-
+func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.Worker, ifrit.Runner, error) {
 	err := cmd.checkRoot()
 	if err != nil {
 		return atc.Worker{}, nil, err

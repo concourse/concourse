@@ -3,9 +3,15 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
+	"golang.org/x/crypto/ssh"
+
+	"github.com/concourse/atc"
+	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
+	"github.com/tedsuo/ifrit/restart"
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
@@ -24,30 +30,26 @@ type WorkerCommand struct {
 }
 
 func (cmd *WorkerCommand) Execute(args []string) error {
-	worker, gardenRunner, err := cmd.gardenRunner(args)
+	logger := lager.NewLogger("worker")
+	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.INFO))
+
+	worker, gardenRunner, err := cmd.gardenRunner(logger.Session("garden"), args)
 	if err != nil {
 		return err
 	}
 
-	members := grouper.Members{{"garden", gardenRunner}}
+	members := grouper.Members{
+		{
+			Name:   "garden",
+			Runner: gardenRunner,
+		},
+	}
 
 	if cmd.TSA.WorkerPrivateKey != "" {
-		beacon := Beacon{
-			Config: cmd.TSA,
-		}
-
-		var beaconRunner ifrit.RunFunc
-		if cmd.PeerIP != "" {
-			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP, cmd.BindPort)
-			beaconRunner = beacon.Register
-		} else {
-			worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
-			beaconRunner = beacon.Forward
-		}
-
-		beacon.Worker = worker
-
-		members = append(members, grouper.Member{"beacon", beaconRunner})
+		members = append(members, grouper.Member{
+			Name:   "beacon",
+			Runner: cmd.beaconRunner(logger.Session("beacon"), worker),
+		})
 	}
 
 	runner := sigmon.New(grouper.NewParallel(os.Interrupt, members))
@@ -65,4 +67,34 @@ func (cmd *WorkerCommand) workerName() (string, error) {
 	}
 
 	return os.Hostname()
+}
+
+func (cmd *WorkerCommand) beaconRunner(logger lager.Logger, worker atc.Worker) ifrit.Runner {
+	beacon := Beacon{
+		Config: cmd.TSA,
+	}
+
+	var beaconRunner ifrit.RunFunc
+	if cmd.PeerIP != "" {
+		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP, cmd.BindPort)
+		beaconRunner = beacon.Register
+	} else {
+		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
+		beaconRunner = beacon.Forward
+	}
+
+	beacon.Worker = worker
+
+	return restart.Restarter{
+		Runner: beaconRunner,
+		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
+			if _, ok := prevErr.(*ssh.ExitError); !ok {
+				logger.Error("restarting", prevErr)
+				time.Sleep(5 * time.Second)
+				return beaconRunner
+			}
+
+			return nil
+		},
+	}
 }

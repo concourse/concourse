@@ -8,13 +8,14 @@ import (
 	"path/filepath"
 
 	"github.com/concourse/atc"
+	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/vito/concourse-bin/bindata"
 )
 
 var ErrNotRoot = errors.New("worker must be run as root")
 
-func (cmd *WorkerCommand) gardenRunner(args []string) (atc.Worker, ifrit.Runner, error) {
+func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.Worker, ifrit.Runner, error) {
 	err := cmd.checkRoot()
 	if err != nil {
 		return atc.Worker{}, nil, err
