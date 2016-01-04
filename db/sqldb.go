@@ -774,7 +774,7 @@ func (db *SQLDB) LeaseCacheInvalidation(interval time.Duration) (Lease, bool, er
 				return nil, err
 			}
 			return tx.Exec(`
-		  	UPDATE cache_invalidator
+				UPDATE cache_invalidator
 				SET last_invalidated = now()
 				WHERE now() - last_invalidated > ($1 || ' SECONDS')::INTERVAL
 			`, interval.Seconds())
@@ -853,6 +853,10 @@ func (db *SQLDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 		}
 
 		builds = append(builds, build)
+	}
+
+	if len(builds) == 0 {
+		return builds, Pagination{}, nil
 	}
 
 	var minID int
