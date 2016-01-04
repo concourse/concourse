@@ -59,6 +59,9 @@ func (client *client) CreateOrUpdatePipelineConfig(pipelineName string, configVe
 	}
 
 	_, err = yamlWriter.Write(rawConfig)
+	if err != nil {
+		return false, false, err
+	}
 
 	writer.Close()
 
