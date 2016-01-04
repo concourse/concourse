@@ -19,6 +19,9 @@ EOF
 export GOPATH=$GOPATH:$PWD/concourse
 
 mkdir release/artifacts
-go build \
-  -o release/artifacts/concourse_linux_amd64 \
-  github.com/vito/concourse-bin/cmd/concourse
+
+for os in linux darwin; do
+  GOOS=$os GOARCH=amd64 go build \
+    -o release/artifacts/concourse_${os}_amd64 \
+    github.com/vito/concourse-bin/cmd/concourse
+done

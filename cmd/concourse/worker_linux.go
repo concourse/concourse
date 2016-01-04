@@ -2,35 +2,27 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 
 	"github.com/concourse/atc"
 	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/grouper"
-	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/vito/concourse-bin/bindata"
 )
 
 var ErrNotRoot = errors.New("worker must be run as root")
 
-func (cmd *WorkerCommand) Execute(args []string) error {
-	currentUser, err := user.Current()
+func (cmd *WorkerCommand) gardenRunner(args []string) (atc.Worker, ifrit.Runner, error) {
+	err := cmd.checkRoot()
 	if err != nil {
-		return err
-	}
-
-	if currentUser.Uid != "0" {
-		return ErrNotRoot
+		return atc.Worker{}, nil, err
 	}
 
 	err = bindata.RestoreAssets(cmd.WorkDir, "linux")
 	if err != nil {
-		return err
+		return atc.Worker{}, nil, err
 	}
 
 	linux := filepath.Join(cmd.WorkDir, "linux")
@@ -46,19 +38,17 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 	// own `initc' process
 	err = os.MkdirAll(depotDir, 0755)
 	if err != nil {
-		return err
+		return atc.Worker{}, nil, err
 	}
 
 	err = os.MkdirAll(graphDir, 0700)
 	if err != nil {
-		return err
+		return atc.Worker{}, nil, err
 	}
-
-	gardenAddr := fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 
 	gardenArgs := []string{
 		"-listenNetwork", "tcp",
-		"-listenAddr", gardenAddr,
+		"-listenAddr", cmd.bindAddr(),
 		"-bin", binDir,
 		"-depot", depotDir,
 		"-graph", graphDir,
@@ -73,8 +63,25 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 	gardenCmd.Stdout = os.Stdout
 	gardenCmd.Stderr = os.Stderr
 
+	worker := atc.Worker{
+		Platform: "linux",
+		Tags:     cmd.Tags,
+	}
+
+	worker.ResourceTypes, err = cmd.extractResources(linux)
+
+	worker.Name, err = cmd.workerName()
+	if err != nil {
+		return atc.Worker{}, nil, err
+	}
+
+	return worker, cmdRunner{gardenCmd}, nil
+}
+
+func (cmd *WorkerCommand) extractResources(linux string) ([]atc.WorkerResourceType, error) {
 	var resourceTypes []atc.WorkerResourceType
 
+	binDir := filepath.Join(linux, "bin")
 	resourcesDir := filepath.Join(linux, "resources")
 	resourceImagesDir := filepath.Join(linux, "resource-images")
 
@@ -90,12 +97,12 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 
 			err := os.RemoveAll(imageDir)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			err = os.MkdirAll(imageDir, 0755)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			tar := exec.Command(tarBin, "-zxf", archive, "-C", imageDir)
@@ -104,7 +111,7 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 
 			err = tar.Run()
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			resourceTypes = append(resourceTypes, atc.WorkerResourceType{
@@ -114,33 +121,5 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 		}
 	}
 
-	worker := atc.Worker{
-		Name:     "foo",
-		Platform: "linux",
-		Tags:     []string{},
-
-		ResourceTypes: resourceTypes,
-	}
-
-	beacon := Beacon{
-		Config: cmd.TSA,
-	}
-
-	var beaconRunner ifrit.RunFunc
-	if cmd.PeerIP != "" {
-		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP, cmd.BindPort)
-		beaconRunner = beacon.Register
-	} else {
-		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
-		beaconRunner = beacon.Forward
-	}
-
-	beacon.Worker = worker
-
-	runner := sigmon.New(grouper.NewParallel(os.Interrupt, grouper.Members{
-		{"garden", cmdRunner{gardenCmd}},
-		{"beacon", beaconRunner},
-	}))
-
-	return <-ifrit.Invoke(runner).Wait()
+	return resourceTypes, nil
 }
