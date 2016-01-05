@@ -366,8 +366,15 @@ func (server *registrarSSHServer) handleForwardRequests(
 			r.Reply(true, ssh.Marshal(res))
 
 		default:
-			logger.Info("ignoring-request", lager.Data{"type": r.Type})
-			r.Reply(false, nil)
+			// OpenSSH sends keepalive@openssh.com, but there may be other clients;
+			// just check for 'keepalive'
+			if strings.Contains(r.Type, "keepalive") {
+				logger.Info("keepalive", lager.Data{"type": r.Type})
+				r.Reply(true, nil)
+			} else {
+				logger.Info("ignoring-request", lager.Data{"type": r.Type})
+				r.Reply(false, nil)
+			}
 		}
 	}
 }
