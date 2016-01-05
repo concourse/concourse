@@ -71,6 +71,7 @@ func (cmd *WorkerCommand) workerName() (string, error) {
 
 func (cmd *WorkerCommand) beaconRunner(logger lager.Logger, worker atc.Worker) ifrit.Runner {
 	beacon := Beacon{
+		Logger: logger,
 		Config: cmd.TSA,
 	}
 

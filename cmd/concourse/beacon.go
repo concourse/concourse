@@ -9,13 +9,16 @@ import (
 	"net"
 	"os"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 
 	"github.com/concourse/atc"
+	"github.com/pivotal-golang/lager"
 )
 
 type Beacon struct {
+	Logger lager.Logger
 	Worker atc.Worker
 	Config BeaconConfig
 }
@@ -43,6 +46,13 @@ func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) 
 }
 
 func (beacon *Beacon) run(command string, client *ssh.Client, signals <-chan os.Signal, ready chan<- struct{}) error {
+	kaSess, err := client.NewSession()
+	if err != nil {
+		return fmt.Errorf("failed to create keepalive session: %s", err)
+	}
+
+	keepaliveFailed := beacon.keepAlive(client)
+
 	sess, err := client.NewSession()
 	if err != nil {
 		return fmt.Errorf("failed to create session: %s", err)
@@ -82,12 +92,46 @@ func (beacon *Beacon) run(command string, client *ssh.Client, signals <-chan os.
 	select {
 	case <-signals:
 		sess.Close()
+		kaSess.Close()
+
+		<-exited
+
+		// don't bother waiting for keepalive
+
 		return nil
 	case err := <-exited:
+		return err
+	case err := <-keepaliveFailed:
 		return err
 	}
 
 	return nil
+}
+
+func (beacon *Beacon) keepAlive(conn ssh.Conn) <-chan error {
+	logger := beacon.Logger.Session("keepalive")
+
+	errs := make(chan error, 1)
+
+	go func() {
+		for {
+			// ignore reply; server may just not have handled it, since there's no
+			// standard keepalive request name
+
+			_, _, err := conn.SendRequest("keepalive", true, []byte("sup"))
+			if err != nil {
+				logger.Error("failed", err)
+				errs <- err
+				return
+			}
+
+			logger.Debug("ok")
+
+			time.Sleep(5 * time.Second)
+		}
+	}()
+
+	return errs
 }
 
 func (beacon *Beacon) proxyListenerTo(listener net.Listener, addr string) {
