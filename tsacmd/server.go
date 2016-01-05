@@ -15,44 +15,12 @@ import (
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	"github.com/concourse/atc"
 	"github.com/concourse/tsa"
-	"github.com/felixge/tcpkeepalive"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 	"golang.org/x/crypto/ssh"
 )
-
-func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
-	return func(string, string) (net.Conn, error) {
-		conn, err := net.DialTimeout(network, address, 5*time.Second)
-		if err != nil {
-			return nil, err
-		}
-
-		kac, err := tcpkeepalive.EnableKeepAlive(conn)
-		if err != nil {
-			println("failed to enable connection keepalive: " + err.Error())
-		}
-
-		err = kac.SetKeepAliveIdle(10 * time.Second)
-		if err != nil {
-			println("failed to set keepalive idle threshold: " + err.Error())
-		}
-
-		err = kac.SetKeepAliveCount(3)
-		if err != nil {
-			println("failed to set keepalive count: " + err.Error())
-		}
-
-		err = kac.SetKeepAliveInterval(5 * time.Second)
-		if err != nil {
-			println("failed to set keepalive interval: " + err.Error())
-		}
-
-		return conn, nil
-	}
-}
 
 type registrarSSHServer struct {
 	logger            lager.Logger
@@ -492,4 +460,10 @@ func forwardLocalConn(logger lager.Logger, localConn net.Conn, conn *ssh.ServerC
 	go pipe(channel, localConn)
 
 	wg.Wait()
+}
+
+func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
+	return func(string, string) (net.Conn, error) {
+		return keepaliveDialer(network, address)
+	}
 }
