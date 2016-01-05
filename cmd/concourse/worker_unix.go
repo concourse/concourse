@@ -1,6 +1,13 @@
+// +build linux darwin
+
 package main
 
-import "os/user"
+import (
+	"errors"
+	"os/user"
+)
+
+var ErrNotRoot = errors.New("worker must be run as root")
 
 func (cmd *WorkerCommand) checkRoot() error {
 	currentUser, err := user.Current()

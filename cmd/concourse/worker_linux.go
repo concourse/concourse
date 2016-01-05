@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -12,8 +11,6 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/vito/concourse-bin/bindata"
 )
-
-var ErrNotRoot = errors.New("worker must be run as root")
 
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.Worker, ifrit.Runner, error) {
 	err := cmd.checkRoot()
