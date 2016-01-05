@@ -2,6 +2,7 @@ package worker
 
 import (
 	"encoding/json"
+	"errors"
 	"sync"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
+
+var ErrMissingVolume = errors.New("volume mounted to container is missing")
 
 type gardenWorkerContainer struct {
 	garden.Container
@@ -153,22 +156,30 @@ func (container *gardenWorkerContainer) setVolumes(
 	var handles []string
 	err := json.Unmarshal([]byte(handlesJSON), &handles)
 	if err != nil {
-		return volumesByHandle, err
+		return nil, err
 	}
 
 	volumes := []Volume{}
 	for _, h := range handles {
+		volumeLogger := logger.Session("volume", lager.Data{
+			"handle": h,
+		})
+
 		baggageClaimVolume, volumeFound, err := baggageclaimClient.LookupVolume(logger, h)
 		if err != nil {
-			return volumesByHandle, err
-		}
-		if !volumeFound {
-			continue
+			volumeLogger.Error("failed-to-lookup-volume", err)
+			return nil, err
 		}
 
-		volume, err := volumeFactory.Build(baggageClaimVolume)
+		if !volumeFound {
+			volumeLogger.Error("volume-is-missing", ErrMissingVolume)
+			return nil, ErrMissingVolume
+		}
+
+		volume, err := volumeFactory.Build(volumeLogger, baggageClaimVolume)
 		if err != nil {
-			return volumesByHandle, err
+			volumeLogger.Error("failed-to-build-volume", nil)
+			return nil, err
 		}
 
 		volumes = append(volumes, volume)

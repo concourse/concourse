@@ -951,7 +951,7 @@ var _ = Describe("Worker", func() {
 							}
 						}
 
-						fakeVolumeFactory.BuildStub = func(vol baggageclaim.Volume) (Volume, error) {
+						fakeVolumeFactory.BuildStub = func(logger lager.Logger, vol baggageclaim.Volume) (Volume, error) {
 							if vol == handle1Volume {
 								return expectedHandle1Volume, nil
 							} else if vol == handle2Volume {
@@ -979,6 +979,16 @@ var _ = Describe("Worker", func() {
 
 							It("returns the error on lookup", func() {
 								Expect(findErr).To(Equal(disaster))
+							})
+						})
+
+						Context("when LookupVolume cannot find the volume", func() {
+							BeforeEach(func() {
+								fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
+							})
+
+							It("returns ErrMissingVolume", func() {
+								Expect(findErr).To(Equal(ErrMissingVolume))
 							})
 						})
 

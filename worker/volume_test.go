@@ -22,20 +22,22 @@ var _ = Describe("Volumes", func() {
 		fakeVolume    *bfakes.FakeVolume
 		fakeDB        *fakes.FakeVolumeFactoryDB
 		fakeClock     *fakeclock.FakeClock
+		logger        *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
 		fakeVolume = new(bfakes.FakeVolume)
 		fakeDB = new(fakes.FakeVolumeFactoryDB)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
+		logger = lagertest.NewTestLogger("test")
 
-		volumeFactory = worker.NewVolumeFactory(lagertest.NewTestLogger("test"), fakeDB, fakeClock)
+		volumeFactory = worker.NewVolumeFactory(fakeDB, fakeClock)
 	})
 
 	Context("VolumeFactory", func() {
 		Describe("Build", func() {
 			It("releases the volume it was given", func() {
-				_, err := volumeFactory.Build(fakeVolume)
+				_, err := volumeFactory.Build(logger, fakeVolume)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
 				actualTTL := fakeVolume.ReleaseArgsForCall(0)
@@ -44,7 +46,7 @@ var _ = Describe("Volumes", func() {
 
 			It("embeds the original volume in the wrapped volume", func() {
 				fakeVolume.HandleReturns("some-handle")
-				vol, err := volumeFactory.Build(fakeVolume)
+				vol, err := volumeFactory.Build(logger, fakeVolume)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(vol.Handle()).To(Equal("some-handle"))
 			})
@@ -63,7 +65,7 @@ var _ = Describe("Volumes", func() {
 		})
 
 		It("heartbeats", func() {
-			vol, err := volumeFactory.Build(fakeVolume)
+			vol, err := volumeFactory.Build(logger, fakeVolume)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("looking up the initial ttl in the database")
@@ -117,7 +119,7 @@ var _ = Describe("Volumes", func() {
 			By("using the baggage claim volumes ttl if the initial db lookup fails")
 			fakeVolume.ExpirationReturns(expectedTTL, time.Now(), nil)
 			fakeDB.GetVolumeTTLReturns(0, errors.New("disaster"))
-			_, err := volumeFactory.Build(fakeVolume)
+			_, err := volumeFactory.Build(logger, fakeVolume)
 			Expect(err).ToNot(HaveOccurred())
 			By("using that ttl to heartbeat the volume initially")
 			Expect(fakeVolume.SetTTLCallCount()).To(Equal(1))
@@ -135,7 +137,7 @@ var _ = Describe("Volumes", func() {
 			fakeVolume.SetTTLReturns(baggageclaim.ErrVolumeNotFound)
 			fakeVolume.HandleReturns("some-handle")
 
-			_, err := volumeFactory.Build(fakeVolume)
+			_, err := volumeFactory.Build(logger, fakeVolume)
 			Expect(err).ToNot(HaveOccurred())
 
 			fakeClock.Increment(30 * time.Second)

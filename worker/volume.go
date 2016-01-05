@@ -22,29 +22,24 @@ type VolumeFactoryDB interface {
 //go:generate counterfeiter . VolumeFactory
 
 type VolumeFactory interface {
-	Build(baggageclaim.Volume) (Volume, error)
+	Build(lager.Logger, baggageclaim.Volume) (Volume, error)
 }
 
 type volumeFactory struct {
-	db     VolumeFactoryDB
-	clock  clock.Clock
-	logger lager.Logger
+	db    VolumeFactoryDB
+	clock clock.Clock
 }
 
-func NewVolumeFactory(logger lager.Logger, db VolumeFactoryDB, clock clock.Clock) VolumeFactory {
+func NewVolumeFactory(db VolumeFactoryDB, clock clock.Clock) VolumeFactory {
 	return &volumeFactory{
-		logger: logger,
-		db:     db,
-		clock:  clock,
+		db:    db,
+		clock: clock,
 	}
 }
 
-func (vf *volumeFactory) Build(bcVol baggageclaim.Volume) (Volume, error) {
+func (vf *volumeFactory) Build(logger lager.Logger, bcVol baggageclaim.Volume) (Volume, error) {
 	bcVol.Release(0)
-
-	vol := newVolume(vf.logger, bcVol, vf.clock, vf.db)
-
-	return vol, nil
+	return newVolume(logger, bcVol, vf.clock, vf.db)
 }
 
 //go:generate counterfeiter . Volume
@@ -62,7 +57,7 @@ type volume struct {
 	releaseOnce  sync.Once
 }
 
-func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock, db VolumeFactoryDB) Volume {
+func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock, db VolumeFactoryDB) (Volume, error) {
 	vol := &volume{
 		Volume: bcVol,
 		db:     db,
@@ -74,11 +69,11 @@ func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock
 	ttl, err := vol.db.GetVolumeTTL(vol.Handle())
 	if err != nil {
 		logger.Info("failed-to-lookup-ttl", lager.Data{"error": err.Error()})
-		ttl, _, err = bcVol.Expiration()
 
+		ttl, _, err = bcVol.Expiration()
 		if err != nil {
 			logger.Error("failed-to-lookup-expiration-of-volume", err)
-			return nil
+			return nil, err
 		}
 	}
 
@@ -91,7 +86,7 @@ func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock
 		ttl,
 	)
 
-	return vol
+	return vol, nil
 }
 
 func (v *volume) Release(finalTTL time.Duration) {

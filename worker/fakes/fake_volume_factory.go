@@ -6,13 +6,15 @@ import (
 
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
+	"github.com/pivotal-golang/lager"
 )
 
 type FakeVolumeFactory struct {
-	BuildStub        func(baggageclaim.Volume) (worker.Volume, error)
+	BuildStub        func(lager.Logger, baggageclaim.Volume) (worker.Volume, error)
 	buildMutex       sync.RWMutex
 	buildArgsForCall []struct {
-		arg1 baggageclaim.Volume
+		arg1 lager.Logger
+		arg2 baggageclaim.Volume
 	}
 	buildReturns struct {
 		result1 worker.Volume
@@ -20,14 +22,15 @@ type FakeVolumeFactory struct {
 	}
 }
 
-func (fake *FakeVolumeFactory) Build(arg1 baggageclaim.Volume) (worker.Volume, error) {
+func (fake *FakeVolumeFactory) Build(arg1 lager.Logger, arg2 baggageclaim.Volume) (worker.Volume, error) {
 	fake.buildMutex.Lock()
 	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
-		arg1 baggageclaim.Volume
-	}{arg1})
+		arg1 lager.Logger
+		arg2 baggageclaim.Volume
+	}{arg1, arg2})
 	fake.buildMutex.Unlock()
 	if fake.BuildStub != nil {
-		return fake.BuildStub(arg1)
+		return fake.BuildStub(arg1, arg2)
 	} else {
 		return fake.buildReturns.result1, fake.buildReturns.result2
 	}
@@ -39,10 +42,10 @@ func (fake *FakeVolumeFactory) BuildCallCount() int {
 	return len(fake.buildArgsForCall)
 }
 
-func (fake *FakeVolumeFactory) BuildArgsForCall(i int) baggageclaim.Volume {
+func (fake *FakeVolumeFactory) BuildArgsForCall(i int) (lager.Logger, baggageclaim.Volume) {
 	fake.buildMutex.RLock()
 	defer fake.buildMutex.RUnlock()
-	return fake.buildArgsForCall[i].arg1
+	return fake.buildArgsForCall[i].arg1, fake.buildArgsForCall[i].arg2
 }
 
 func (fake *FakeVolumeFactory) BuildReturns(result1 worker.Volume, result2 error) {

@@ -124,7 +124,6 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, info db.WorkerIn
 	}
 
 	volumeFactory := NewVolumeFactory(
-		provider.logger.Session("volume-factory"),
 		provider.db,
 		tikTok,
 	)
