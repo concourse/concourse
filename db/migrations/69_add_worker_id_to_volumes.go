@@ -43,6 +43,5 @@ func AddWorkerIDToVolumes(tx migration.LimitedTx) error {
 	_, err = tx.Exec(`
 		ALTER TABLE volumes DROP COLUMN worker_name;
 	`)
-
 	return err
 }
