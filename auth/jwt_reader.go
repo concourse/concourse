@@ -2,10 +2,7 @@ package auth
 
 import (
 	"crypto/rsa"
-	"fmt"
 	"net/http"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 type JWTReader struct {
@@ -17,14 +14,7 @@ func (jr JWTReader) GetTeam(r *http.Request) (string, int, bool, bool) {
 	var teamID int
 	var isAdmin bool
 
-	token, err := jwt.ParseFromRequest(CopyRequest(r), func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
-
-		return jr.PublicKey, nil
-	})
-
+	token, err := getJWT(r, jr.PublicKey)
 	if err != nil {
 		return teamName, teamID, isAdmin, false
 	}
