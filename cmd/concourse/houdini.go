@@ -33,7 +33,7 @@ func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger, platform string) (a
 	)
 
 	worker := atc.Worker{
-		Platform: "windows",
+		Platform: platform,
 		Tags:     cmd.Tags,
 	}
 
