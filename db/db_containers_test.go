@@ -54,7 +54,7 @@ var _ = Describe("Keeping track of containers", func() {
 				ResourceName:         "some-resource-container",
 				PipelineName:         "some-pipeline",
 				WorkerName:           "some-worker",
-				Type:                 db.ContainerTypeTask,
+				Type:                 db.ContainerTypeCheck,
 				WorkingDirectory:     "tmp/build/some-guid",
 				CheckSource:          atc.Source{"uri": "http://example.com"},
 				CheckType:            "some-type",
@@ -64,7 +64,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		By("creating a container")
-		_, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
+		createdContainer, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("trying to create a container with the same handle")
@@ -76,12 +76,16 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
+		Expect(actualContainer.WorkerID).To(Equal(createdContainer.WorkerID))
+		Expect(actualContainer.PipelineID).To(Equal(createdContainer.PipelineID))
+		Expect(actualContainer.ResourceID).To(Equal(createdContainer.ResourceID))
+
 		Expect(actualContainer.Handle).To(Equal("some-handle"))
 		Expect(actualContainer.StepName).To(Equal(""))
 		Expect(actualContainer.ResourceName).To(Equal("some-resource-container"))
 		Expect(actualContainer.PipelineName).To(Equal("some-pipeline"))
 		Expect(actualContainer.ContainerMetadata.BuildID).To(BeNumerically(">", 0))
-		Expect(actualContainer.Type).To(Equal(db.ContainerTypeTask))
+		Expect(actualContainer.Type).To(Equal(db.ContainerTypeCheck))
 		Expect(actualContainer.WorkerName).To(Equal("some-worker"))
 		Expect(actualContainer.WorkingDirectory).To(Equal("tmp/build/some-guid"))
 		Expect(actualContainer.CheckType).To(Equal("some-type"))
@@ -111,7 +115,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		By("creating a container")
-		_, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
+		createdContainer, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("trying to create a container with the same handle")
@@ -122,6 +126,10 @@ var _ = Describe("Keeping track of containers", func() {
 		actualContainer, found, err := database.GetContainer("some-handle")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
+
+		Expect(actualContainer.WorkerID).To(Equal(createdContainer.WorkerID))
+		Expect(actualContainer.ContainerIdentifier.BuildID).To(Equal(createdContainer.ContainerIdentifier.BuildID))
+		Expect(actualContainer.PlanID).To(Equal(createdContainer.PlanID))
 
 		Expect(actualContainer.Handle).To(Equal("some-handle"))
 		Expect(actualContainer.StepName).To(Equal("some-step-container"))
@@ -215,14 +223,14 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	type findContainersByIdentifierExample struct {
+	type findContainersByMetadataExample struct {
 		containersToCreate  []db.Container
 		metadataToFilterFor db.ContainerMetadata
 		expectedHandles     []string
 	}
 
-	DescribeTable("filtering containers by identifier",
-		func(example findContainersByIdentifierExample) {
+	DescribeTable("filtering containers by metadata",
+		func(example findContainersByMetadataExample) {
 			var results []db.Container
 			var handles []string
 			var err error
@@ -251,14 +259,14 @@ var _ = Describe("Keeping track of containers", func() {
 			}
 		},
 
-		Entry("returns everything when no filters are passed", findContainersByIdentifierExample{
+		Entry("returns everything when no filters are passed", findContainersByMetadataExample{
 			containersToCreate: []db.Container{
 				{
 					ContainerIdentifier: db.ContainerIdentifier{},
 					ContainerMetadata: db.ContainerMetadata{
 						Type:         db.ContainerTypeTask,
 						WorkerName:   "some-worker",
-						PipelineName: "some-pipeline",
+						PipelineName: "",
 					},
 					Handle: "a",
 				},
@@ -276,7 +284,7 @@ var _ = Describe("Keeping track of containers", func() {
 			expectedHandles:     []string{"a", "b"},
 		}),
 
-		Entry("does not return things that the filter doesn't match", findContainersByIdentifierExample{
+		Entry("does not return things that the filter doesn't match", findContainersByMetadataExample{
 			containersToCreate: []db.Container{
 				{
 					ContainerIdentifier: db.ContainerIdentifier{},
@@ -301,7 +309,7 @@ var _ = Describe("Keeping track of containers", func() {
 			expectedHandles:     nil,
 		}),
 
-		Entry("returns containers where the name matches", findContainersByIdentifierExample{
+		Entry("returns containers where the name matches", findContainersByMetadataExample{
 			containersToCreate: []db.Container{
 				{
 					ContainerIdentifier: db.ContainerIdentifier{},
@@ -327,8 +335,8 @@ var _ = Describe("Keeping track of containers", func() {
 					ContainerIdentifier: db.ContainerIdentifier{},
 					ContainerMetadata: db.ContainerMetadata{
 						Type:         db.ContainerTypeTask,
-						WorkerName:   "some-Oother-worker",
-						PipelineName: "some-Oother-pipeline",
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-other-pipeline",
 						ResourceName: "some-other-resource",
 					},
 					Handle: "c",
@@ -338,7 +346,7 @@ var _ = Describe("Keeping track of containers", func() {
 			expectedHandles:     []string{"a", "b"},
 		}),
 
-		Entry("returns containers where the pipeline matches", findContainersByIdentifierExample{
+		Entry("returns containers where the pipeline matches", findContainersByMetadataExample{
 			containersToCreate: []db.Container{
 				{
 					ContainerIdentifier: db.ContainerIdentifier{},
@@ -372,7 +380,7 @@ var _ = Describe("Keeping track of containers", func() {
 			expectedHandles:     []string{"a", "c"},
 		}),
 
-		Entry("returns containers where the type matches", findContainersByIdentifierExample{
+		Entry("returns containers where the type matches", findContainersByMetadataExample{
 			containersToCreate: []db.Container{
 				{
 					ContainerIdentifier: db.ContainerIdentifier{},
@@ -406,7 +414,7 @@ var _ = Describe("Keeping track of containers", func() {
 			expectedHandles:     []string{"a", "b"},
 		}),
 
-		Entry("returns containers where the worker name matches", findContainersByIdentifierExample{
+		Entry("returns containers where the worker name matches", findContainersByMetadataExample{
 			containersToCreate: []db.Container{
 				{
 					ContainerIdentifier: db.ContainerIdentifier{},
@@ -440,13 +448,13 @@ var _ = Describe("Keeping track of containers", func() {
 			expectedHandles:     []string{"a", "b"},
 		}),
 
-		Entry("returns containers where the check type matches", findContainersByIdentifierExample{
+		Entry("returns containers where the check type matches", findContainersByMetadataExample{
 			containersToCreate: []db.Container{
 				{
 					ContainerIdentifier: db.ContainerIdentifier{},
 					ContainerMetadata: db.ContainerMetadata{
 						Type:         db.ContainerTypeCheck,
-						CheckType:    "some-type",
+						CheckType:    "",
 						WorkerName:   "some-worker",
 						PipelineName: "some-pipeline",
 					},
@@ -474,10 +482,10 @@ var _ = Describe("Keeping track of containers", func() {
 				},
 			},
 			metadataToFilterFor: db.ContainerMetadata{CheckType: "some-type"},
-			expectedHandles:     []string{"a", "c"},
+			expectedHandles:     []string{"c"},
 		}),
 
-		Entry("returns containers where the check source matches", findContainersByIdentifierExample{
+		Entry("returns containers where the check source matches", findContainersByMetadataExample{
 			containersToCreate: []db.Container{
 				{
 					ContainerMetadata: db.ContainerMetadata{
@@ -492,10 +500,7 @@ var _ = Describe("Keeping track of containers", func() {
 				},
 				{
 					ContainerMetadata: db.ContainerMetadata{
-						Type: db.ContainerTypeCheck,
-						CheckSource: atc.Source{
-							"some": "source",
-						},
+						Type:         db.ContainerTypeCheck,
 						WorkerName:   "some-worker",
 						PipelineName: "some-other-pipeline",
 					},
@@ -514,10 +519,43 @@ var _ = Describe("Keeping track of containers", func() {
 				},
 			},
 			metadataToFilterFor: db.ContainerMetadata{CheckSource: atc.Source{"some": "source"}},
-			expectedHandles:     []string{"b", "c"},
+			expectedHandles:     []string{"c"},
 		}),
 
-		Entry("returns containers where all fields match", findContainersByIdentifierExample{
+		Entry("returns containers where the job name matches", findContainersByMetadataExample{
+			containersToCreate: []db.Container{{
+				ContainerMetadata: db.ContainerMetadata{
+					Type:         db.ContainerTypeCheck,
+					WorkerName:   "some-worker",
+					PipelineName: "some-pipeline",
+					JobName:      "some-other-job",
+				},
+				Handle: "a",
+			},
+				{
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeCheck,
+						WorkerName:   "some-worker",
+						PipelineName: "some-pipeline",
+						JobName:      "some-job",
+					},
+					Handle: "b",
+				},
+				{
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeCheck,
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-pipeline",
+						JobName:      "",
+					},
+					Handle: "c",
+				},
+			},
+			metadataToFilterFor: db.ContainerMetadata{JobName: "some-job"},
+			expectedHandles:     []string{"b"},
+		}),
+
+		Entry("returns containers where all fields match", findContainersByMetadataExample{
 			containersToCreate: []db.Container{
 				{
 					ContainerMetadata: db.ContainerMetadata{
@@ -771,7 +809,12 @@ func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB *sql
 
 	pipelineDBFactory := db.NewPipelineDBFactory(nil, sqlDB, nil, dbSQL)
 	pipelineDB := pipelineDBFactory.Build(pipeline)
-	build, err := pipelineDB.CreateJobBuild("some-job")
+
+	jobName := container.JobName
+	if jobName == "" {
+		jobName = "random-job"
+	}
+	build, err := pipelineDB.CreateJobBuild(jobName)
 	if err != nil {
 		return db.Container{}, errors.New(fmt.Sprintf("Failed to create job:", err.Error()))
 	}

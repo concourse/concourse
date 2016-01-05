@@ -207,23 +207,38 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 	return exec.Identity{}
 }
 
-func (build *execBuild) taskIdentifier(id atc.PlanID) worker.Identifier {
+func (build *execBuild) taskIdentifier(name string, id atc.PlanID, pipelineName string) (worker.Identifier, worker.Metadata) {
 	return worker.Identifier{
-		BuildID: build.buildID,
-		PlanID:  id,
-	}
+			BuildID: build.buildID,
+			PlanID:  id,
+		},
+		worker.Metadata{
+			StepName:     name,
+			Type:         db.ContainerTypeTask,
+			PipelineName: pipelineName,
+		}
 }
 
-func (build *execBuild) getIdentifier(id atc.PlanID) worker.Identifier {
+func (build *execBuild) getIdentifier(name string, id atc.PlanID, pipelineName string) (worker.Identifier, worker.Metadata) {
 	return worker.Identifier{
-		BuildID: build.buildID,
-		PlanID:  id,
-	}
+			BuildID: build.buildID,
+			PlanID:  id,
+		},
+		worker.Metadata{
+			StepName:     name,
+			Type:         db.ContainerTypeGet,
+			PipelineName: pipelineName,
+		}
 }
 
-func (build *execBuild) putIdentifier(id atc.PlanID) worker.Identifier {
+func (build *execBuild) putIdentifier(name string, id atc.PlanID, pipelineName string) (worker.Identifier, worker.Metadata) {
 	return worker.Identifier{
-		BuildID: build.buildID,
-		PlanID:  id,
-	}
+			BuildID: build.buildID,
+			PlanID:  id,
+		},
+		worker.Metadata{
+			StepName:     name,
+			Type:         db.ContainerTypePut,
+			PipelineName: pipelineName,
+		}
 }

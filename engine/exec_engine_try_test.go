@@ -101,7 +101,8 @@ var _ = Describe("Exec Engine with Try", func() {
 				fakeDelegate.ExecutionDelegateReturns(fakeExecutionDelegate)
 
 				inputPlan = planFactory.NewPlan(atc.GetPlan{
-					Name: "some-input",
+					Name:     "some-input",
+					Pipeline: "some-pipeline",
 				})
 
 				plan := planFactory.NewPlan(atc.TryPlan{
@@ -115,10 +116,15 @@ var _ = Describe("Exec Engine with Try", func() {
 
 			It("constructs the step correctly", func() {
 				Expect(fakeFactory.GetCallCount()).To(Equal(1))
-				logger, metadata, sourceName, workerID, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, metadata, sourceName, workerID, workerMetadata, delegate, _, _, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(sourceName).To(Equal(exec.SourceName("some-input")))
+				Expect(workerMetadata).To(Equal(worker.Metadata{
+					Type:         db.ContainerTypeGet,
+					StepName:     "some-input",
+					PipelineName: "some-pipeline",
+				}))
 				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 84,
 					PlanID:  inputPlan.ID,

@@ -105,16 +105,16 @@ var _ = Describe("ExecEngine", func() {
 					Name:     "some-put",
 					Resource: "some-output-resource",
 					Tags:     []string{"some", "putget", "tags"},
-					Type:     "some-type",
+					Type:     "put",
 					Source:   atc.Source{"some": "source"},
 					Params:   atc.Params{"some": "params"},
 					Pipeline: "some-pipeline",
 				}),
 				Next: planFactory.NewPlan(atc.DependentGetPlan{
-					Name:     "some-put",
-					Resource: "some-output-resource",
+					Name:     "some-get",
+					Resource: "some-input-resource",
 					Tags:     []string{"some", "putget", "tags"},
-					Type:     "some-type",
+					Type:     "get",
 					Source:   atc.Source{"some": "source"},
 					Params:   atc.Params{"another": "params"},
 				}),
@@ -171,15 +171,15 @@ var _ = Describe("ExecEngine", func() {
 				putPlan = planFactory.NewPlan(atc.PutPlan{
 					Name:     "some-put",
 					Resource: "some-output-resource",
-					Type:     "some-type",
+					Type:     "put",
 					Source:   atc.Source{"some": "source"},
 					Params:   atc.Params{"some": "params"},
 					Pipeline: "some-pipeline",
 				})
 				dependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
-					Name:     "some-put",
-					Resource: "some-output-resource",
-					Type:     "some-type",
+					Name:     "some-get",
+					Resource: "some-input-resource",
+					Type:     "get",
 					Source:   atc.Source{"some": "source"},
 					Params:   atc.Params{"another": "params"},
 					Pipeline: "some-pipeline",
@@ -188,15 +188,15 @@ var _ = Describe("ExecEngine", func() {
 				otherPutPlan = planFactory.NewPlan(atc.PutPlan{
 					Name:     "some-put-2",
 					Resource: "some-output-resource-2",
-					Type:     "some-type-2",
+					Type:     "put",
 					Source:   atc.Source{"some": "source-2"},
 					Params:   atc.Params{"some": "params-2"},
 					Pipeline: "some-pipeline",
 				})
 				otherDependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
-					Name:     "some-put-2",
-					Resource: "some-output-resource-2",
-					Type:     "some-type-2",
+					Name:     "some-get-2",
+					Resource: "some-input-resource-2",
+					Type:     "get",
 					Source:   atc.Source{"some": "source-2"},
 					Params:   atc.Params{"another": "params-2"},
 					Pipeline: "some-pipeline",
@@ -223,9 +223,15 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(2))
 
-					logger, metadata, workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
+					logger, metadata, workerID, workerMetadata, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerMetadata).To(Equal(worker.Metadata{
+						ResourceName: "",
+						Type:         db.ContainerTypePut,
+						StepName:     "some-put",
+						PipelineName: "some-pipeline",
+					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
 						PlanID:  putPlan.ID,
@@ -234,13 +240,19 @@ var _ = Describe("ExecEngine", func() {
 					Expect(tags).To(BeEmpty())
 					Expect(delegate).To(Equal(fakeOutputDelegate))
 					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
-					Expect(resourceConfig.Type).To(Equal("some-type"))
+					Expect(resourceConfig.Type).To(Equal("put"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(params).To(Equal(atc.Params{"some": "params"}))
 
-					logger, metadata, workerID, delegate, resourceConfig, tags, params = fakeFactory.PutArgsForCall(1)
+					logger, metadata, workerID, workerMetadata, delegate, resourceConfig, tags, params = fakeFactory.PutArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerMetadata).To(Equal(worker.Metadata{
+						ResourceName: "",
+						Type:         db.ContainerTypePut,
+						StepName:     "some-put-2",
+						PipelineName: "some-pipeline",
+					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
 						PlanID:  otherPutPlan.ID,
@@ -249,7 +261,7 @@ var _ = Describe("ExecEngine", func() {
 					Expect(tags).To(BeEmpty())
 					Expect(delegate).To(Equal(fakeOutputDelegate))
 					Expect(resourceConfig.Name).To(Equal("some-output-resource-2"))
-					Expect(resourceConfig.Type).To(Equal("some-type-2"))
+					Expect(resourceConfig.Type).To(Equal("put"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source-2"}))
 					Expect(params).To(Equal(atc.Params{"some": "params-2"}))
 				})
@@ -262,9 +274,15 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.DependentGetCallCount()).To(Equal(2))
 
-					logger, metadata, sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
+					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerMetadata).To(Equal(worker.Metadata{
+						ResourceName: "",
+						Type:         db.ContainerTypeGet,
+						StepName:     "some-get",
+						PipelineName: "some-pipeline",
+					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
 						PlanID:  dependentGetPlan.ID,
@@ -276,15 +294,21 @@ var _ = Describe("ExecEngine", func() {
 					Expect(plan).To(Equal((*outputPlan.Aggregate)[0].OnSuccess.Next.DependentGet.GetPlan()))
 					Expect(planID).NotTo(BeNil())
 
-					Expect(sourceName).To(Equal(exec.SourceName("some-put")))
-					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
-					Expect(resourceConfig.Type).To(Equal("some-type"))
+					Expect(sourceName).To(Equal(exec.SourceName("some-get")))
+					Expect(resourceConfig.Name).To(Equal("some-input-resource"))
+					Expect(resourceConfig.Type).To(Equal("get"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(params).To(Equal(atc.Params{"another": "params"}))
 
-					logger, metadata, sourceName, workerID, delegate, resourceConfig, tags, params = fakeFactory.DependentGetArgsForCall(1)
+					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, params = fakeFactory.DependentGetArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerMetadata).To(Equal(worker.Metadata{
+						ResourceName: "",
+						Type:         db.ContainerTypeGet,
+						StepName:     "some-get-2",
+						PipelineName: "some-pipeline",
+					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
 						PlanID:  otherDependentGetPlan.ID,
@@ -296,9 +320,9 @@ var _ = Describe("ExecEngine", func() {
 					Expect(plan).To(Equal((*outputPlan.Aggregate)[1].OnSuccess.Next.DependentGet.GetPlan()))
 					Expect(planID).NotTo(BeNil())
 
-					Expect(sourceName).To(Equal(exec.SourceName("some-put-2")))
-					Expect(resourceConfig.Name).To(Equal("some-output-resource-2"))
-					Expect(resourceConfig.Type).To(Equal("some-type-2"))
+					Expect(sourceName).To(Equal(exec.SourceName("some-get-2")))
+					Expect(resourceConfig.Name).To(Equal("some-input-resource-2"))
+					Expect(resourceConfig.Type).To(Equal("get"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source-2"}))
 					Expect(params).To(Equal(atc.Params{"another": "params-2"}))
 				})
@@ -312,7 +336,7 @@ var _ = Describe("ExecEngine", func() {
 					getPlan := atc.GetPlan{
 						Name:     "some-input",
 						Resource: "some-input-resource",
-						Type:     "some-type",
+						Type:     "get",
 						Tags:     []string{"some", "get", "tags"},
 						Version:  atc.Version{"some": "version"},
 						Source:   atc.Source{"some": "source"},
@@ -331,9 +355,15 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
-					logger, metadata, sourceName, workerID, delegate, resourceConfig, params, tags, version := fakeFactory.GetArgsForCall(0)
+					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, params, tags, version := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerMetadata).To(Equal(worker.Metadata{
+						ResourceName: "",
+						Type:         db.ContainerTypeGet,
+						StepName:     "some-input",
+						PipelineName: "some-pipeline",
+					}))
 					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -342,7 +372,7 @@ var _ = Describe("ExecEngine", func() {
 
 					Expect(tags).To(ConsistOf("some", "get", "tags"))
 					Expect(resourceConfig.Name).To(Equal("some-input-resource"))
-					Expect(resourceConfig.Type).To(Equal("some-type"))
+					Expect(resourceConfig.Type).To(Equal("get"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(params).To(Equal(atc.Params{"some": "params"}))
 					Expect(version).To(Equal(atc.Version{"some": "version"}))
@@ -409,9 +439,15 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-					logger, sourceName, workerID, delegate, privileged, tags, configSource := fakeFactory.TaskArgsForCall(0)
+					logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-task")))
+					Expect(workerMetadata).To(Equal(worker.Metadata{
+						ResourceName: "",
+						Type:         db.ContainerTypeTask,
+						StepName:     "some-task",
+						PipelineName: "some-pipeline",
+					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
 						PlanID:  plan.ID,
@@ -454,16 +490,16 @@ var _ = Describe("ExecEngine", func() {
 						Name:     "some-put",
 						Resource: "some-output-resource",
 						Tags:     []string{"some", "putget", "tags"},
-						Type:     "some-type",
+						Type:     "put",
 						Source:   atc.Source{"some": "source"},
 						Params:   atc.Params{"some": "params"},
 						Pipeline: "some-pipeline",
 					})
 					dependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
-						Name:     "some-put",
-						Resource: "some-output-resource",
+						Name:     "some-get",
+						Resource: "some-input-resource",
 						Tags:     []string{"some", "putget", "tags"},
-						Type:     "some-type",
+						Type:     "get",
 						Source:   atc.Source{"some": "source"},
 						Params:   atc.Params{"another": "params"},
 						Pipeline: "some-pipeline",
@@ -483,16 +519,22 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(1))
 
-					logger, metadata, workerID, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
+					logger, metadata, workerID, workerMetadata, delegate, resourceConfig, tags, params := fakeFactory.PutArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerMetadata).To(Equal(worker.Metadata{
+						ResourceName: "",
+						Type:         db.ContainerTypePut,
+						StepName:     "some-put",
+						PipelineName: "some-pipeline",
+					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
 						PlanID:  putPlan.ID,
 					}))
 
 					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
-					Expect(resourceConfig.Type).To(Equal("some-type"))
+					Expect(resourceConfig.Type).To(Equal("put"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(tags).To(ConsistOf("some", "putget", "tags"))
 					Expect(params).To(Equal(atc.Params{"some": "params"}))
@@ -511,18 +553,24 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.DependentGetCallCount()).To(Equal(1))
 
-					logger, metadata, sourceName, workerID, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
+					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, params := fakeFactory.DependentGetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
+					Expect(workerMetadata).To(Equal(worker.Metadata{
+						ResourceName: "",
+						Type:         db.ContainerTypeGet,
+						StepName:     "some-get",
+						PipelineName: "some-pipeline",
+					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
 						PlanID:  dependentGetPlan.ID,
 					}))
 
 					Expect(tags).To(ConsistOf("some", "putget", "tags"))
-					Expect(sourceName).To(Equal(exec.SourceName("some-put")))
-					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
-					Expect(resourceConfig.Type).To(Equal("some-type"))
+					Expect(sourceName).To(Equal(exec.SourceName("some-get")))
+					Expect(resourceConfig.Name).To(Equal("some-input-resource"))
+					Expect(resourceConfig.Type).To(Equal("get"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(params).To(Equal(atc.Params{"another": "params"}))
 

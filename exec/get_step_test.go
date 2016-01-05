@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/fakes"
 	"github.com/concourse/atc/resource"
@@ -37,11 +38,20 @@ var _ = Describe("GardenFactory", func() {
 			ResourceID: 1234,
 			PipelineID: 5678,
 		}
+		workerMetadata = worker.Metadata{
+			PipelineName: "some-pipeline",
+			Type:         db.ContainerTypeGet,
+			StepName:     "some-step",
+		}
+
 		expectedIdentifier = worker.Identifier{
 			ResourceID: 1234,
 			PipelineID: 5678,
 		}
 		expectedMetadata = worker.Metadata{
+			PipelineName:     "some-pipeline",
+			Type:             db.ContainerTypeGet,
+			StepName:         "some-step",
 			WorkingDirectory: "/tmp/build/get",
 		}
 
@@ -106,6 +116,7 @@ var _ = Describe("GardenFactory", func() {
 				stepMetadata,
 				sourceName,
 				identifier,
+				workerMetadata,
 				getDelegate,
 				resourceConfig,
 				params,

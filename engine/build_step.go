@@ -81,10 +81,13 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		return exec.Identity{}
 	}
 
+	workerID, workerMetadata := build.taskIdentifier(plan.Task.Name, plan.ID, plan.Task.Pipeline)
+
 	return build.factory.Task(
 		logger,
 		exec.SourceName(plan.Task.Name),
-		build.taskIdentifier(plan.ID),
+		workerID,
+		workerMetadata,
 		build.delegate.ExecutionDelegate(logger, *plan.Task, event.OriginID(plan.ID)),
 		exec.Privileged(plan.Task.Privileged),
 		plan.Task.Tags,
@@ -97,11 +100,14 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		"name": plan.Get.Name,
 	})
 
+	workerID, workerMetadata := build.getIdentifier(plan.Get.Name, plan.ID, plan.Get.Pipeline)
+
 	return build.factory.Get(
 		logger,
 		build.stepMetadata,
 		exec.SourceName(plan.Get.Name),
-		build.getIdentifier(plan.ID),
+		workerID,
+		workerMetadata,
 		build.delegate.InputDelegate(logger, *plan.Get, event.OriginID(plan.ID)),
 		atc.ResourceConfig{
 			Name:   plan.Get.Resource,
@@ -119,10 +125,13 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		"name": plan.Put.Name,
 	})
 
+	workerID, workerMetadata := build.putIdentifier(plan.Put.Name, plan.ID, plan.Put.Pipeline)
+
 	return build.factory.Put(
 		logger,
 		build.stepMetadata,
-		build.putIdentifier(plan.ID),
+		workerID,
+		workerMetadata,
 		build.delegate.OutputDelegate(logger, *plan.Put, event.OriginID(plan.ID)),
 		atc.ResourceConfig{
 			Name:   plan.Put.Resource,
@@ -140,11 +149,14 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 	})
 
 	getPlan := plan.DependentGet.GetPlan()
+	workerID, workerMetadata := build.getIdentifier(getPlan.Name, plan.ID, plan.DependentGet.Pipeline)
+
 	return build.factory.DependentGet(
 		logger,
 		build.stepMetadata,
 		exec.SourceName(getPlan.Name),
-		build.getIdentifier(plan.ID),
+		workerID,
+		workerMetadata,
 		build.delegate.InputDelegate(logger, getPlan, event.OriginID(plan.ID)),
 		atc.ResourceConfig{
 			Name:   getPlan.Resource,

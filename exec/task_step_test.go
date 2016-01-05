@@ -13,6 +13,7 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/fakes"
 	rfakes "github.com/concourse/atc/resource/fakes"
@@ -44,11 +45,19 @@ var _ = Describe("GardenFactory", func() {
 			BuildID: 1234,
 			PlanID:  atc.PlanID("some-plan-id"),
 		}
+		workerMetadata = worker.Metadata{
+			PipelineName: "some-pipeline",
+			Type:         db.ContainerTypeTask,
+			StepName:     "some-step",
+		}
 		expectedIdentifier = worker.Identifier{
 			BuildID: 1234,
 			PlanID:  atc.PlanID("some-plan-id"),
 		}
 		expectedMetadata = worker.Metadata{
+			PipelineName:         "some-pipeline",
+			Type:                 db.ContainerTypeTask,
+			StepName:             "some-step",
 			WorkingDirectory:     "/tmp/build/a-random-guid",
 			EnvironmentVariables: []string{"SOME=params"},
 		}
@@ -96,6 +105,7 @@ var _ = Describe("GardenFactory", func() {
 				lagertest.NewTestLogger("test"),
 				sourceName,
 				identifier,
+				workerMetadata,
 				taskDelegate,
 				privileged,
 				tags,

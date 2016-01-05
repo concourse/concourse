@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/exec"
 	"github.com/concourse/atc/exec/fakes"
 	"github.com/concourse/atc/resource"
@@ -34,6 +35,11 @@ var _ = Describe("GardenFactory", func() {
 		identifier = worker.Identifier{
 			BuildID: 1234,
 			PlanID:  atc.PlanID("some-plan-id"),
+		}
+		workerMetadata = worker.Metadata{
+			PipelineName: "some-pipeline",
+			Type:         db.ContainerTypeGet,
+			StepName:     "some-step",
 		}
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
@@ -112,6 +118,7 @@ var _ = Describe("GardenFactory", func() {
 				stepMetadata,
 				sourceName,
 				identifier,
+				workerMetadata,
 				getDelegate,
 				resourceConfig,
 				tags,
@@ -147,6 +154,7 @@ var _ = Describe("GardenFactory", func() {
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
 					ID:        identifier,
+					Metadata:  workerMetadata,
 					Ephemeral: false,
 				}))
 				Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))

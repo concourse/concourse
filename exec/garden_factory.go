@@ -34,6 +34,7 @@ func (factory *gardenFactory) DependentGet(
 	stepMetadata StepMetadata,
 	sourceName SourceName,
 	id worker.Identifier,
+	workerMetadata worker.Metadata,
 	delegate GetDelegate,
 	resourceConfig atc.ResourceConfig,
 	tags atc.Tags,
@@ -48,6 +49,7 @@ func (factory *gardenFactory) DependentGet(
 		resource.Session{
 			ID:        id,
 			Ephemeral: false,
+			Metadata:  workerMetadata,
 		},
 		tags,
 		delegate,
@@ -60,12 +62,14 @@ func (factory *gardenFactory) Get(
 	stepMetadata StepMetadata,
 	sourceName SourceName,
 	id worker.Identifier,
+	workerMetadata worker.Metadata,
 	delegate GetDelegate,
 	resourceConfig atc.ResourceConfig,
 	params atc.Params,
 	tags atc.Tags,
 	version atc.Version,
 ) StepFactory {
+	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 	return newGetStep(
 		logger,
 		sourceName,
@@ -81,7 +85,7 @@ func (factory *gardenFactory) Get(
 		stepMetadata,
 		resource.Session{
 			ID:        id,
-			Metadata:  worker.Metadata{WorkingDirectory: resource.ResourcesDir("get")},
+			Metadata:  workerMetadata,
 			Ephemeral: false,
 		},
 		tags,
@@ -94,11 +98,13 @@ func (factory *gardenFactory) Put(
 	logger lager.Logger,
 	stepMetadata StepMetadata,
 	id worker.Identifier,
+	workerMetadata worker.Metadata,
 	delegate PutDelegate,
 	resourceConfig atc.ResourceConfig,
 	tags atc.Tags,
 	params atc.Params,
 ) StepFactory {
+	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 	return newPutStep(
 		logger,
 		resourceConfig,
@@ -107,7 +113,7 @@ func (factory *gardenFactory) Put(
 		resource.Session{
 			ID:        id,
 			Ephemeral: false,
-			Metadata:  worker.Metadata{WorkingDirectory: resource.ResourcesDir("put")},
+			Metadata:  workerMetadata,
 		},
 		tags,
 		delegate,
@@ -119,18 +125,19 @@ func (factory *gardenFactory) Task(
 	logger lager.Logger,
 	sourceName SourceName,
 	id worker.Identifier,
+	workerMetadata worker.Metadata,
 	delegate TaskDelegate,
 	privileged Privileged,
 	tags atc.Tags,
 	configSource TaskConfigSource,
 ) StepFactory {
 	workingDirectory := factory.taskWorkingDirectory(sourceName)
-	metadata := worker.Metadata{WorkingDirectory: workingDirectory}
+	workerMetadata.WorkingDirectory = workingDirectory
 	return newTaskStep(
 		logger,
 		sourceName,
 		id,
-		metadata,
+		workerMetadata,
 		tags,
 		delegate,
 		privileged,
