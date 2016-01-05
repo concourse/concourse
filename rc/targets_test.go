@@ -18,7 +18,7 @@ var _ = Describe("Targets", func() {
 	BeforeEach(func() {
 		var err error
 		tmpDir, err = ioutil.TempDir("", "fly-test")
-		Expect(err).NotTo(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 
 		if runtime.GOOS == "windows" {
 			os.Setenv("USERPROFILE", tmpDir)
@@ -31,6 +31,19 @@ var _ = Describe("Targets", func() {
 
 	AfterEach(func() {
 		os.RemoveAll(tmpDir)
+	})
+
+	Describe("Saving targets", func() {
+		It("Errors when a URL is provided as the target name", func() {
+			err := rc.SaveTarget(
+				"http://1337.101:9999",
+				"some api url",
+				false,
+				nil,
+			)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("URL"))
+		})
 	})
 
 	Describe("Insecure Flag", func() {
@@ -49,7 +62,7 @@ var _ = Describe("Targets", func() {
 
 			It("returns the rc insecure flag as false", func() {
 				returnedTarget, err := rc.SelectTarget(targetName)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(returnedTarget.Insecure).To(BeFalse())
 			})
 		})
