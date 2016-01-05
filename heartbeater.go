@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -91,6 +90,8 @@ func (heartbeater *heartbeater) Run(signals <-chan os.Signal, ready chan<- struc
 }
 
 func (heartbeater *heartbeater) register(logger lager.Logger) bool {
+	logger.RegisterSink(lager.NewWriterSink(heartbeater.clientWriter, lager.DEBUG))
+
 	heartbeatData := lager.Data{
 		"worker-platform": heartbeater.registration.Platform,
 		"worker-address":  heartbeater.registration.GardenAddr,
@@ -110,8 +111,7 @@ func (heartbeater *heartbeater) register(logger lager.Logger) bool {
 
 	after := time.Now()
 
-	logToClient := log.New(heartbeater.clientWriter, "", log.Ldate|log.Ltime)
-	logToClient.Printf("heartbeat took %s\n", after.Sub(before).String())
+	logger.Debug("reached-worker", lager.Data{"took": after.Sub(before).String()})
 
 	heartbeater.registration.ActiveContainers = len(containers)
 
