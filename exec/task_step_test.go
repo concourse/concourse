@@ -829,18 +829,13 @@ var _ = Describe("GardenFactory", func() {
 									})
 								})
 
-								Describe("before saving the exit status property", func() {
+								Context("when saving the exit status succeeds", func() {
 									BeforeEach(func() {
-										taskDelegate.FinishedStub = func(ExitStatus) {
-											defer GinkgoRecover()
+										fakeContainer.SetPropertyReturns(nil)
+									})
 
-											callCount := fakeContainer.SetPropertyCallCount()
-
-											for i := 0; i < callCount; i++ {
-												name, _ := fakeContainer.SetPropertyArgsForCall(i)
-												Expect(name).NotTo(Equal("concourse:exit-status"))
-											}
-										}
+									It("exits successfully", func() {
+										Eventually(process.Wait()).Should(Receive(BeNil()))
 									})
 
 									It("invokes the delegate's Finished callback", func() {
@@ -874,6 +869,11 @@ var _ = Describe("GardenFactory", func() {
 										Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 										Expect(taskDelegate.FailedCallCount()).To(Equal(1))
 										Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
+									})
+
+									It("does not invoke the delegate's Finished callback", func() {
+										Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+										Expect(taskDelegate.FinishedCallCount()).To(Equal(0))
 									})
 								})
 							})
@@ -1076,18 +1076,13 @@ var _ = Describe("GardenFactory", func() {
 								})
 							})
 
-							Describe("before saving the exit status property", func() {
+							Context("when saving the exit status succeeds", func() {
 								BeforeEach(func() {
-									taskDelegate.FinishedStub = func(ExitStatus) {
-										defer GinkgoRecover()
+									fakeContainer.SetPropertyReturns(nil)
+								})
 
-										callCount := fakeContainer.SetPropertyCallCount()
-
-										for i := 0; i < callCount; i++ {
-											name, _ := fakeContainer.SetPropertyArgsForCall(i)
-											Expect(name).NotTo(Equal("concourse:exit-status"))
-										}
-									}
+								It("exits successfully", func() {
+									Eventually(process.Wait()).Should(Receive(BeNil()))
 								})
 
 								It("invokes the delegate's Finished callback", func() {
@@ -1121,6 +1116,11 @@ var _ = Describe("GardenFactory", func() {
 									Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 									Expect(taskDelegate.FailedCallCount()).To(Equal(1))
 									Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
+								})
+
+								It("does not invokes the delegate's Finished callback", func() {
+									Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+									Expect(taskDelegate.FinishedCallCount()).To(Equal(0))
 								})
 							})
 						})
@@ -1166,18 +1166,13 @@ var _ = Describe("GardenFactory", func() {
 								})
 							})
 
-							Describe("before saving the exit status property", func() {
+							Context("when saving the exit status succeeds", func() {
 								BeforeEach(func() {
-									taskDelegate.FinishedStub = func(ExitStatus) {
-										defer GinkgoRecover()
+									fakeContainer.SetPropertyReturns(nil)
+								})
 
-										callCount := fakeContainer.SetPropertyCallCount()
-
-										for i := 0; i < callCount; i++ {
-											name, _ := fakeContainer.SetPropertyArgsForCall(i)
-											Expect(name).NotTo(Equal("concourse:exit-status"))
-										}
-									}
+								It("exits successfully", func() {
+									Eventually(process.Wait()).Should(Receive(BeNil()))
 								})
 
 								It("invokes the delegate's Finished callback", func() {
@@ -1211,6 +1206,12 @@ var _ = Describe("GardenFactory", func() {
 									Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 									Expect(taskDelegate.FailedCallCount()).To(Equal(1))
 									Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
+								})
+
+								It("does not invoke the delegate's Finished callback", func() {
+									Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+
+									Expect(taskDelegate.FinishedCallCount()).To(Equal(0))
 								})
 							})
 						})
