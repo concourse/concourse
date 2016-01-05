@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -28,6 +29,13 @@ func (config BeaconConfig) Dial() (*ssh.Client, error) {
 		return nil, fmt.Errorf("failed to parse worker private key: %s", err)
 	}
 
+	tsaAddr := fmt.Sprintf("%s:%d", config.Host, config.Port)
+
+	conn, err := net.DialTimeout("tcp", tsaAddr, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to TSA:", err)
+	}
+
 	clientConfig := &ssh.ClientConfig{
 		User: "beacon", // doesn't matter
 
@@ -36,9 +44,12 @@ func (config BeaconConfig) Dial() (*ssh.Client, error) {
 		Auth: []ssh.AuthMethod{ssh.PublicKeys(workerPrivateKey)},
 	}
 
-	tsaAddr := fmt.Sprintf("%s:%d", config.Host, config.Port)
+	clientConn, chans, reqs, err := ssh.NewClientConn(conn, tsaAddr, clientConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct client connection:", err)
+	}
 
-	return ssh.Dial("tcp", tsaAddr, clientConfig)
+	return ssh.NewClient(clientConn, chans, reqs), nil
 }
 
 func (config BeaconConfig) checkHostKey(hostname string, remote net.Addr, key ssh.PublicKey) error {
