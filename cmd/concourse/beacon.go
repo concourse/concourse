@@ -46,11 +46,6 @@ func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) 
 }
 
 func (beacon *Beacon) run(command string, client *ssh.Client, signals <-chan os.Signal, ready chan<- struct{}) error {
-	kaSess, err := client.NewSession()
-	if err != nil {
-		return fmt.Errorf("failed to create keepalive session: %s", err)
-	}
-
 	keepaliveFailed := beacon.keepAlive(client)
 
 	sess, err := client.NewSession()
@@ -92,7 +87,6 @@ func (beacon *Beacon) run(command string, client *ssh.Client, signals <-chan os.
 	select {
 	case <-signals:
 		sess.Close()
-		kaSess.Close()
 
 		<-exited
 
