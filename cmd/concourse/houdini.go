@@ -17,7 +17,7 @@ import (
 func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger, platform string) (atc.Worker, ifrit.Runner, error) {
 	depotDir := filepath.Join(cmd.WorkDir, "containers")
 
-	err = os.MkdirAll(depotDir, 0755)
+	err := os.MkdirAll(depotDir, 0755)
 	if err != nil {
 		return atc.Worker{}, nil, fmt.Errorf("failed to create depot dir: %s", err)
 	}
