@@ -45,7 +45,7 @@ popd
 pushd concourse/
   mkdir -p $ROOT/linux/resources
 
-  bosh sync blobs
+  bosh --parallel 3 sync blobs
 
   for resource in blobs/resources/*-resource.tar.gz; do
     resource_name="$(basename $resource | sed -e 's/-resource.tar.gz//')"
