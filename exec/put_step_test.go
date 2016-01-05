@@ -36,7 +36,6 @@ var _ = Describe("GardenFactory", func() {
 
 		identifier = worker.Identifier{
 			ResourceID: 1234,
-			PipelineID: 5678,
 		}
 		workerMetadata = worker.Metadata{
 			PipelineName: "some-pipeline",
@@ -45,7 +44,6 @@ var _ = Describe("GardenFactory", func() {
 		}
 		expectedIdentifier = worker.Identifier{
 			ResourceID: 1234,
-			PipelineID: 5678,
 		}
 		expectedMetadata = worker.Metadata{
 			PipelineName:     "some-pipeline",

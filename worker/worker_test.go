@@ -130,8 +130,7 @@ var _ = Describe("Worker", func() {
 			logger = lagertest.NewTestLogger("test")
 
 			containerID = Identifier{
-				PipelineID: 1234,
-				BuildID:    42,
+				BuildID: 42,
 			}
 		})
 

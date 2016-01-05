@@ -77,7 +77,6 @@ var _ = Describe("Radar", func() {
 		fakeLease = &dbfakes.FakeLease{}
 
 		fakeRadarDB.GetResourceReturns(savedResource, nil)
-		fakeRadarDB.GetPipelineIDReturns(72)
 	})
 
 	Describe("Scanner", func() {
@@ -137,7 +136,6 @@ var _ = Describe("Radar", func() {
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 				Expect(session).To(Equal(resource.Session{
 					ID: worker.Identifier{
-						PipelineID: 72,
 						ResourceID: 39,
 					},
 					Metadata: worker.Metadata{
@@ -576,7 +574,6 @@ var _ = Describe("Radar", func() {
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 				Expect(session).To(Equal(resource.Session{
 					ID: worker.Identifier{
-						PipelineID: 72,
 						ResourceID: 39,
 					},
 					Metadata: worker.Metadata{

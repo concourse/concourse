@@ -11,8 +11,8 @@ import (
 	"github.com/concourse/atc"
 )
 
-const containerMetadataColumns = "handle, expires_at, b.id as build_id, b.name as build_name, r.name as resource_name, w.name as worker_name, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, check_type, check_source, env_variables"
-const containerIdentifierColumns = "handle, expires_at, worker_id, pipeline_id, resource_id, build_id, plan_id"
+const containerMetadataColumns = "handle, expires_at, b.id as build_id, b.name as build_name, r.name as resource_name, w.name as worker_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, check_type, check_source, env_variables"
+const containerIdentifierColumns = "handle, expires_at, worker_id, resource_id, build_id, plan_id"
 
 func (db *SQLDB) FindContainersByMetadata(id ContainerMetadata) ([]Container, error) {
 	err := deleteExpired(db)
@@ -123,13 +123,13 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 	var containers []Container
 	var selectQuery string
 	var rows *sql.Rows
-	if id.PipelineID != 0 && id.ResourceID != 0 {
+	if id.ResourceID != 0 {
 		selectQuery = `
 			SELECT ` + containerIdentifierColumns + `
 	  	FROM containers
-		  WHERE pipeline_id = $1 AND resource_id = $2
+		  WHERE resource_id = $1
 	  	`
-		rows, err = db.conn.Query(selectQuery, id.PipelineID, id.ResourceID)
+		rows, err = db.conn.Query(selectQuery, id.ResourceID)
 	} else if id.BuildID != 0 && id.PlanID != "" {
 		selectQuery = `
 			SELECT ` + containerIdentifierColumns + `
@@ -225,10 +225,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
 	var pipelineID sql.NullInt64
-	if container.PipelineID != 0 {
-		pipelineID.Int64 = int64(container.PipelineID)
-		pipelineID.Valid = true
-	} else if container.PipelineName != "" {
+	if container.PipelineName != "" {
 		pipeline, err := db.GetPipelineByTeamNameAndName(atc.DefaultTeamName, container.PipelineName)
 		if err != nil {
 			return Container{}, errors.New(fmt.Sprintf("Failed to find pipeline:", err.Error()))
@@ -339,14 +336,17 @@ func (db *SQLDB) DeleteContainer(handle string) error {
 }
 
 func scanContainerMetadata(row scannable) (Container, error) {
-	var infoType string
-	var checkSourceBlob []byte
-	var envVariablesBlob []byte
-	var resourceName sql.NullString
-	var pipelineName sql.NullString
-	var jobName sql.NullString
-	var buildID sql.NullInt64
-	var buildName sql.NullString
+	var (
+		infoType         string
+		checkSourceBlob  []byte
+		envVariablesBlob []byte
+		resourceName     sql.NullString
+		pipelineID       sql.NullInt64
+		pipelineName     sql.NullString
+		jobName          sql.NullString
+		buildID          sql.NullInt64
+		buildName        sql.NullString
+	)
 	container := Container{}
 
 	err := row.Scan(
@@ -356,6 +356,7 @@ func scanContainerMetadata(row scannable) (Container, error) {
 		&buildName,
 		&resourceName,
 		&container.WorkerName,
+		&pipelineID,
 		&pipelineName,
 		&jobName,
 		&container.StepName,
@@ -379,6 +380,10 @@ func scanContainerMetadata(row scannable) (Container, error) {
 
 	if resourceName.Valid {
 		container.ResourceName = resourceName.String
+	}
+
+	if pipelineID.Valid {
+		container.PipelineID = int(pipelineID.Int64)
 	}
 
 	if pipelineName.Valid {
@@ -410,7 +415,6 @@ func scanContainerMetadata(row scannable) (Container, error) {
 func scanContainerIdentifier(row scannable) (Container, error) {
 	var planID sql.NullString
 	var resourceID sql.NullInt64
-	var pipelineID sql.NullInt64
 	var buildID sql.NullInt64
 	container := Container{}
 
@@ -418,17 +422,12 @@ func scanContainerIdentifier(row scannable) (Container, error) {
 		&container.Handle,
 		&container.ExpiresAt,
 		&container.WorkerID,
-		&pipelineID,
 		&resourceID,
 		&buildID,
 		&planID,
 	)
 	if err != nil {
 		return Container{}, err
-	}
-
-	if pipelineID.Valid {
-		container.PipelineID = int(pipelineID.Int64)
 	}
 
 	if resourceID.Valid {

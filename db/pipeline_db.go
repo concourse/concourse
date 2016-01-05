@@ -74,8 +74,6 @@ type PipelineDB interface {
 	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
-
-	GetPipelineID() int
 }
 
 type pipelineDB struct {
@@ -91,10 +89,6 @@ type pipelineDB struct {
 
 func (pdb *pipelineDB) GetPipelineName() string {
 	return pdb.Name
-}
-
-func (pdb *pipelineDB) GetPipelineID() int {
-	return pdb.ID
 }
 
 func (pdb *pipelineDB) ScopedName(name string) string {

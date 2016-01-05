@@ -64,7 +64,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		By("creating a container")
-		createdContainer, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
+		createdContainer, pipelineID, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("trying to create a container with the same handle")
@@ -77,12 +77,12 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(found).To(BeTrue())
 
 		Expect(actualContainer.WorkerID).To(Equal(createdContainer.WorkerID))
-		Expect(actualContainer.PipelineID).To(Equal(createdContainer.PipelineID))
 		Expect(actualContainer.ResourceID).To(Equal(createdContainer.ResourceID))
 
 		Expect(actualContainer.Handle).To(Equal("some-handle"))
 		Expect(actualContainer.StepName).To(Equal(""))
 		Expect(actualContainer.ResourceName).To(Equal("some-resource-container"))
+		Expect(actualContainer.PipelineID).To(Equal(pipelineID))
 		Expect(actualContainer.PipelineName).To(Equal("some-pipeline"))
 		Expect(actualContainer.ContainerMetadata.BuildID).To(Equal(0))
 		Expect(actualContainer.Type).To(Equal(db.ContainerTypeCheck))
@@ -115,7 +115,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		By("creating a container")
-		createdContainer, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
+		createdContainer, pipelineID, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("trying to create a container with the same handle")
@@ -134,6 +134,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.Handle).To(Equal("some-handle"))
 		Expect(actualContainer.StepName).To(Equal("some-step-container"))
 		Expect(actualContainer.ResourceName).To(Equal(""))
+		Expect(actualContainer.PipelineID).To(Equal(pipelineID))
 		Expect(actualContainer.PipelineName).To(Equal("some-pipeline"))
 		Expect(actualContainer.ContainerMetadata.BuildID).To(BeNumerically(">", 0))
 		Expect(actualContainer.Type).To(Equal(db.ContainerTypeTask))
@@ -161,7 +162,7 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 			Handle: "some-handle",
 		}
-		_, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
+		_, _, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		// comparisonContainer is used to get the expected expiration time in the
@@ -175,7 +176,7 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 			Handle: "comparison-handle",
 		}
-		_, err = CreateContainerHelper(comparisonContainer, updatedTTL, dbConn, database)
+		_, _, err = CreateContainerHelper(comparisonContainer, updatedTTL, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		comparisonContainer, found, err := database.GetContainer("comparison-handle")
@@ -203,7 +204,7 @@ var _ = Describe("Keeping track of containers", func() {
 			Handle: "some-handle",
 		}
 
-		_, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
+		_, _, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		_, found, err := database.GetContainer("some-handle")
@@ -240,7 +241,7 @@ var _ = Describe("Keeping track of containers", func() {
 					containerToCreate.Type = db.ContainerTypeTask
 				}
 
-				_, err := CreateContainerHelper(containerToCreate, time.Minute, dbConn, database)
+				_, _, err := CreateContainerHelper(containerToCreate, time.Minute, dbConn, database)
 				Expect(err).NotTo(HaveOccurred())
 			}
 
@@ -680,11 +681,11 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 		}
 
-		newContainer, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
+		newContainer, _, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
-		newStepContainer, err := CreateContainerHelper(stepContainer, time.Minute, dbConn, database)
+		newStepContainer, _, err := CreateContainerHelper(stepContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = CreateContainerHelper(otherStepContainer, time.Minute, dbConn, database)
+		_, _, err = CreateContainerHelper(otherStepContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		all_containers := getAllContainers(dbConn)
@@ -699,7 +700,6 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(found).To(BeTrue())
 		Expect(actualContainer.Handle).To(Equal("some-handle"))
 		Expect(actualContainer.WorkerID).To(Equal(newContainer.WorkerID))
-		Expect(actualContainer.PipelineID).To(Equal(newContainer.PipelineID))
 		Expect(actualContainer.ResourceID).To(Equal(newContainer.ResourceID))
 		Expect(actualContainer.ExpiresAt.String()).NotTo(BeEmpty())
 
@@ -712,7 +712,6 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(found).To(BeTrue())
 		Expect(actualStepContainer.Handle).To(Equal("other-handle"))
 		Expect(actualStepContainer.WorkerID).To(Equal(newStepContainer.WorkerID))
-		Expect(actualStepContainer.PipelineID).To(Equal(newStepContainer.PipelineID))
 		Expect(actualStepContainer.ResourceID).To(Equal(newStepContainer.ResourceID))
 		Expect(actualStepContainer.ExpiresAt.String()).NotTo(BeEmpty())
 
@@ -726,15 +725,15 @@ var _ = Describe("Keeping track of containers", func() {
 				Type:         db.ContainerTypeCheck,
 				CheckType:    "some-type",
 				CheckSource:  atc.Source{"some": "other-source"},
+				BuildID:      1234,
 			},
 		}
 
-		actualMatchingContainer, err := CreateContainerHelper(matchingContainer, time.Minute, dbConn, database)
+		actualMatchingContainer, _, err := CreateContainerHelper(matchingContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
 		foundContainer, found, err := database.FindContainerByIdentifier(
 			db.ContainerIdentifier{
-				PipelineID: actualMatchingContainer.PipelineID,
 				ResourceID: actualMatchingContainer.ResourceID,
 				WorkerID:   actualMatchingContainer.WorkerID,
 			})
@@ -746,7 +745,7 @@ var _ = Describe("Keeping track of containers", func() {
 		By("erroring if not enough identifiers are passed in")
 		foundContainer, found, err = database.FindContainerByIdentifier(
 			db.ContainerIdentifier{
-				PipelineID: actualMatchingContainer.PipelineID,
+				BuildID: actualMatchingContainer.ContainerIdentifier.BuildID,
 			})
 		Expect(err).To(HaveOccurred())
 		Expect(found).To(BeFalse())
@@ -822,16 +821,16 @@ func getAllContainers(sqldb *sql.DB) []db.Container {
 
 	for rows.Next() {
 		var container db.Container
-		rows.Scan(&container.WorkerID, &container.PipelineID, &container.ResourceID, &container.ContainerIdentifier.BuildID, &container.PlanID)
+		rows.Scan(&container.WorkerID, &container.ResourceID, &container.ContainerIdentifier.BuildID, &container.PlanID)
 		container_slice = append(container_slice, container)
 	}
 	return container_slice
 }
 
-func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB *sql.DB, dbSQL *db.SQLDB) (db.Container, error) {
+func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB *sql.DB, dbSQL *db.SQLDB) (db.Container, int, error) {
 	pipeline, err := CreateIfNotExistPipeline(container.PipelineName, atc.DefaultTeamName, sqlDB)
 	if err != nil {
-		return db.Container{}, errors.New(fmt.Sprintf("Failed to create pipeline:", err.Error()))
+		return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to create pipeline:", err.Error()))
 	}
 
 	var worker db.WorkerInfo
@@ -841,7 +840,7 @@ func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB *sql
 	worker.GardenAddr = time.Now().String()
 	insertedWorker, err := dbSQL.SaveWorker(worker, 0)
 	if err != nil {
-		return db.Container{}, errors.New(fmt.Sprintf("Failed to create worker:", err.Error()))
+		return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to create worker:", err.Error()))
 	}
 
 	pipelineDBFactory := db.NewPipelineDBFactory(nil, sqlDB, nil, dbSQL)
@@ -854,7 +853,7 @@ func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB *sql
 		}
 		build, err := pipelineDB.CreateJobBuild(jobName)
 		if err != nil {
-			return db.Container{}, errors.New(fmt.Sprintf("Failed to create job:", err.Error()))
+			return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to create job:", err.Error()))
 		}
 		container.ContainerIdentifier.BuildID = build.ID
 
@@ -882,11 +881,11 @@ func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB *sql
 			[]atc.Version{atc.Version{"some": "version"}},
 		)
 		if err != nil {
-			return db.Container{}, errors.New(fmt.Sprintf("Failed to save resource:", err.Error()))
+			return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to save resource:", err.Error()))
 		}
 		resource, err := pipelineDB.GetResource(container.ResourceName)
 		if err != nil {
-			return db.Container{}, errors.New(fmt.Sprintf("Failed to get resource:", err.Error()))
+			return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to get resource:", err.Error()))
 		}
 		container.ResourceID = resource.ID
 	}
@@ -894,8 +893,8 @@ func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB *sql
 	container.WorkerID = insertedWorker.ID
 	createdContainer, err := dbSQL.CreateContainer(container, ttl)
 	if err != nil {
-		return db.Container{}, errors.New(fmt.Sprintf("Failed to create container:", err.Error()))
+		return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to create container:", err.Error()))
 	}
 
-	return createdContainer, nil
+	return createdContainer, pipeline.ID, nil
 }

@@ -10,7 +10,6 @@ import (
 type ContainerIdentifier struct {
 	WorkerID int
 	// if it's a resource check container
-	PipelineID int
 	ResourceID int
 	// if it's a step container
 	BuildID int
@@ -22,6 +21,7 @@ type ContainerMetadata struct {
 	BuildName            string
 	ResourceName         string
 	WorkerName           string
+	PipelineID           int
 	PipelineName         string
 	JobName              string
 	StepName             string
