@@ -128,6 +128,8 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	if err == nil && found {
 		exitStatusProp, err := step.container.Property(taskExitStatusPropertyName)
 		if err == nil {
+			step.logger.Info("already-exited", lager.Data{"status": exitStatusProp})
+
 			// process already completed; recover result
 
 			_, err = fmt.Sscanf(exitStatusProp, "%d", &step.exitStatus)
@@ -144,11 +146,15 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
+		step.logger.Info("already-running", lager.Data{"process-id": processID})
+
 		// process still running; re-attach
 		step.process, err = step.container.Attach(processID, processIO)
 		if err != nil {
 			return err
 		}
+
+		step.logger.Info("attached")
 	} else {
 		// container does not exist; new session
 
@@ -298,14 +304,14 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 		step.exitStatus = status
 
-		step.delegate.Finished(ExitStatus(status))
-
 		statusValue := fmt.Sprintf("%d", status)
 
 		err := step.container.SetProperty(taskExitStatusPropertyName, statusValue)
 		if err != nil {
 			return err
 		}
+
+		step.delegate.Finished(ExitStatus(status))
 
 		return nil
 

@@ -412,6 +412,8 @@ func (execution *executionDelegate) Initializing(config atc.TaskConfig) {
 	execution.delegate.saveInitializeTask(execution.logger, config, event.Origin{
 		ID: execution.id,
 	})
+
+	execution.logger.Info("initializing")
 }
 
 func (execution *executionDelegate) Started() {
@@ -426,6 +428,8 @@ func (execution *executionDelegate) Finished(status exec.ExitStatus) {
 	execution.delegate.saveFinish(execution.logger, status, event.Origin{
 		ID: execution.id,
 	})
+
+	execution.logger.Info("finished", lager.Data{"exit-status": status})
 }
 
 func (execution *executionDelegate) Failed(err error) {
