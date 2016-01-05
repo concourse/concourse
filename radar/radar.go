@@ -203,12 +203,15 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 		return nil
 	}
 
-	typ := resource.ResourceType(resourceConfig.Type)
-
 	session := resource.Session{
 		ID: worker.Identifier{
 			PipelineID: radar.db.GetPipelineID(),
 			ResourceID: savedResource.ID,
+		},
+		Metadata: worker.Metadata{
+			Type:        db.ContainerTypeCheck,
+			CheckType:   resourceConfig.Type,
+			CheckSource: resourceConfig.Source,
 		},
 		Ephemeral: true,
 	}
@@ -217,7 +220,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 		logger,
 		resource.EmptyMetadata{},
 		session,
-		typ,
+		resource.ResourceType(resourceConfig.Type),
 		[]string{},
 	)
 	if err != nil {

@@ -1,14 +1,10 @@
 package engine
 
 import (
-	"errors"
-
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
-
-var ErrBuildNotFound = errors.New("build not found")
 
 //go:generate counterfeiter . Engine
 

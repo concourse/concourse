@@ -84,7 +84,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.StepName).To(Equal(""))
 		Expect(actualContainer.ResourceName).To(Equal("some-resource-container"))
 		Expect(actualContainer.PipelineName).To(Equal("some-pipeline"))
-		Expect(actualContainer.ContainerMetadata.BuildID).To(BeNumerically(">", 0))
+		Expect(actualContainer.ContainerMetadata.BuildID).To(Equal(0))
 		Expect(actualContainer.Type).To(Equal(db.ContainerTypeCheck))
 		Expect(actualContainer.WorkerName).To(Equal("some-worker"))
 		Expect(actualContainer.WorkingDirectory).To(Equal("tmp/build/some-guid"))
@@ -309,7 +309,7 @@ var _ = Describe("Keeping track of containers", func() {
 			expectedHandles:     nil,
 		}),
 
-		Entry("returns containers where the name matches", findContainersByMetadataExample{
+		Entry("returns containers where the step name matches", findContainersByMetadataExample{
 			containersToCreate: []db.Container{
 				{
 					ContainerIdentifier: db.ContainerIdentifier{},
@@ -317,7 +317,7 @@ var _ = Describe("Keeping track of containers", func() {
 						Type:         db.ContainerTypeTask,
 						WorkerName:   "some-worker",
 						PipelineName: "some-pipeline",
-						ResourceName: "some-resource",
+						StepName:     "some-step",
 					},
 					Handle: "a",
 				},
@@ -327,7 +327,7 @@ var _ = Describe("Keeping track of containers", func() {
 						Type:         db.ContainerTypeTask,
 						WorkerName:   "some-other-worker",
 						PipelineName: "some-other-pipeline",
-						ResourceName: "some-resource",
+						StepName:     "some-other-step",
 					},
 					Handle: "b",
 				},
@@ -335,6 +335,43 @@ var _ = Describe("Keeping track of containers", func() {
 					ContainerIdentifier: db.ContainerIdentifier{},
 					ContainerMetadata: db.ContainerMetadata{
 						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-other-pipeline",
+						StepName:     "some-step",
+					},
+					Handle: "c",
+				},
+			},
+			metadataToFilterFor: db.ContainerMetadata{StepName: "some-step"},
+			expectedHandles:     []string{"a", "c"},
+		}),
+
+		Entry("returns containers where the resource name matches", findContainersByMetadataExample{
+			containersToCreate: []db.Container{
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeCheck,
+						WorkerName:   "some-worker",
+						PipelineName: "some-pipeline",
+						ResourceName: "some-resource",
+					},
+					Handle: "a",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeCheck,
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-other-pipeline",
+						ResourceName: "some-resource",
+					},
+					Handle: "b",
+				},
+				{
+					ContainerIdentifier: db.ContainerIdentifier{},
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeCheck,
 						WorkerName:   "some-other-worker",
 						PipelineName: "some-other-pipeline",
 						ResourceName: "some-other-resource",
@@ -525,7 +562,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Entry("returns containers where the job name matches", findContainersByMetadataExample{
 			containersToCreate: []db.Container{{
 				ContainerMetadata: db.ContainerMetadata{
-					Type:         db.ContainerTypeCheck,
+					Type:         db.ContainerTypeTask,
 					WorkerName:   "some-worker",
 					PipelineName: "some-pipeline",
 					JobName:      "some-other-job",
@@ -534,7 +571,7 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 				{
 					ContainerMetadata: db.ContainerMetadata{
-						Type:         db.ContainerTypeCheck,
+						Type:         db.ContainerTypeTask,
 						WorkerName:   "some-worker",
 						PipelineName: "some-pipeline",
 						JobName:      "some-job",
@@ -543,7 +580,7 @@ var _ = Describe("Keeping track of containers", func() {
 				},
 				{
 					ContainerMetadata: db.ContainerMetadata{
-						Type:         db.ContainerTypeCheck,
+						Type:         db.ContainerTypeTask,
 						WorkerName:   "some-other-worker",
 						PipelineName: "some-pipeline",
 						JobName:      "",
@@ -810,31 +847,51 @@ func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB *sql
 	pipelineDBFactory := db.NewPipelineDBFactory(nil, sqlDB, nil, dbSQL)
 	pipelineDB := pipelineDBFactory.Build(pipeline)
 
-	jobName := container.JobName
-	if jobName == "" {
-		jobName = "random-job"
-	}
-	build, err := pipelineDB.CreateJobBuild(jobName)
-	if err != nil {
-		return db.Container{}, errors.New(fmt.Sprintf("Failed to create job:", err.Error()))
-	}
-	container.ContainerIdentifier.BuildID = build.ID
-	container.WorkerID = insertedWorker.ID
-
-	if container.ResourceName != "" {
-		input := db.BuildInput{
-			Name: container.ResourceName,
-			VersionedResource: db.VersionedResource{
-				Resource:     container.ResourceName,
-				Type:         "some-resource-type",
-				Metadata:     []db.MetadataField{},
-				PipelineName: container.PipelineName,
-			},
-			FirstOccurrence: false,
+	if container.Type != db.ContainerTypeCheck {
+		jobName := container.JobName
+		if jobName == "" {
+			jobName = "random-job"
 		}
-		dbSQL.SaveBuildInput(atc.DefaultTeamName, build.ID, input)
+		build, err := pipelineDB.CreateJobBuild(jobName)
+		if err != nil {
+			return db.Container{}, errors.New(fmt.Sprintf("Failed to create job:", err.Error()))
+		}
+		container.ContainerIdentifier.BuildID = build.ID
+
+		if container.ResourceName != "" {
+			input := db.BuildInput{
+				Name: container.ResourceName,
+				VersionedResource: db.VersionedResource{
+					Resource:     container.ResourceName,
+					Type:         container.CheckType,
+					Metadata:     []db.MetadataField{},
+					PipelineName: container.PipelineName,
+				},
+				FirstOccurrence: false,
+			}
+			dbSQL.SaveBuildInput(atc.DefaultTeamName, build.ID, input)
+		}
+	} else {
+		err = pipelineDB.SaveResourceVersions(
+			atc.ResourceConfig{
+				Name:       container.ResourceName,
+				Type:       container.CheckType,
+				Source:     container.CheckSource,
+				CheckEvery: "minute",
+			},
+			[]atc.Version{atc.Version{"some": "version"}},
+		)
+		if err != nil {
+			return db.Container{}, errors.New(fmt.Sprintf("Failed to save resource:", err.Error()))
+		}
+		resource, err := pipelineDB.GetResource(container.ResourceName)
+		if err != nil {
+			return db.Container{}, errors.New(fmt.Sprintf("Failed to get resource:", err.Error()))
+		}
+		container.ResourceID = resource.ID
 	}
 
+	container.WorkerID = insertedWorker.ID
 	createdContainer, err := dbSQL.CreateContainer(container, ttl)
 	if err != nil {
 		return db.Container{}, errors.New(fmt.Sprintf("Failed to create container:", err.Error()))

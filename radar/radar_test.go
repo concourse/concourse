@@ -133,12 +133,17 @@ var _ = Describe("Radar", func() {
 			It("constructs the resource of the correct type", func() {
 				<-times
 
-				_, metadata, sessionID, typ, tags := fakeTracker.InitArgsForCall(0)
+				_, metadata, session, typ, tags := fakeTracker.InitArgsForCall(0)
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
-				Expect(sessionID).To(Equal(resource.Session{
+				Expect(session).To(Equal(resource.Session{
 					ID: worker.Identifier{
 						PipelineID: 72,
 						ResourceID: 39,
+					},
+					Metadata: worker.Metadata{
+						Type:        db.ContainerTypeCheck,
+						CheckType:   "git",
+						CheckSource: atc.Source{"uri": "http://example.com"},
 					},
 					Ephemeral: true,
 				}))
@@ -567,12 +572,17 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, metadata, sessionID, typ, tags := fakeTracker.InitArgsForCall(0)
+				_, metadata, session, typ, tags := fakeTracker.InitArgsForCall(0)
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
-				Expect(sessionID).To(Equal(resource.Session{
+				Expect(session).To(Equal(resource.Session{
 					ID: worker.Identifier{
 						PipelineID: 72,
 						ResourceID: 39,
+					},
+					Metadata: worker.Metadata{
+						Type:        db.ContainerTypeCheck,
+						CheckType:   "git",
+						CheckSource: atc.Source{"uri": "http://example.com"},
 					},
 					Ephemeral: true,
 				}))

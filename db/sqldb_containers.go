@@ -225,7 +225,10 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
 	var pipelineID sql.NullInt64
-	if container.PipelineName != "" {
+	if container.PipelineID != 0 {
+		pipelineID.Int64 = int64(container.PipelineID)
+		pipelineID.Valid = true
+	} else if container.PipelineName != "" {
 		pipeline, err := db.GetPipelineByTeamNameAndName(atc.DefaultTeamName, container.PipelineName)
 		if err != nil {
 			return Container{}, errors.New(fmt.Sprintf("Failed to find pipeline:", err.Error()))
@@ -235,17 +238,15 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 	}
 
 	var resourceID sql.NullInt64
-	if container.ResourceName != "" {
-		savedVersionedResources, err := db.GetBuildVersionedResources(container.ContainerIdentifier.BuildID)
-		if err != nil {
-			return Container{}, errors.New(fmt.Sprintf("Failed to find versioned resources:", err.Error()))
-		}
-		savedVersionedResource, found := savedVersionedResources.Lookup(container.ResourceName)
-		if !found {
-			return Container{}, errors.New("Failed to find versioned resource.")
-		}
-		resourceID.Int64 = int64(savedVersionedResource.ID)
+	if container.ResourceID != 0 {
+		resourceID.Int64 = int64(container.ResourceID)
 		resourceID.Valid = true
+	}
+
+	var buildID sql.NullInt64
+	if container.ContainerIdentifier.BuildID != 0 {
+		buildID.Int64 = int64(container.ContainerIdentifier.BuildID)
+		buildID.Valid = true
 	}
 
 	defer tx.Rollback()
@@ -258,7 +259,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		resourceID,
 		container.StepName,
 		pipelineID,
-		container.ContainerIdentifier.BuildID,
+		buildID,
 		container.Type.String(),
 		container.WorkerID,
 		interval,
@@ -344,13 +345,15 @@ func scanContainerMetadata(row scannable) (Container, error) {
 	var resourceName sql.NullString
 	var pipelineName sql.NullString
 	var jobName sql.NullString
+	var buildID sql.NullInt64
+	var buildName sql.NullString
 	container := Container{}
 
 	err := row.Scan(
 		&container.Handle,
 		&container.ExpiresAt,
-		&container.ContainerMetadata.BuildID,
-		&container.BuildName,
+		&buildID,
+		&buildName,
 		&resourceName,
 		&container.WorkerName,
 		&pipelineName,
@@ -364,6 +367,26 @@ func scanContainerMetadata(row scannable) (Container, error) {
 	)
 	if err != nil {
 		return Container{}, err
+	}
+
+	if buildID.Valid {
+		container.ContainerMetadata.BuildID = int(buildID.Int64)
+	}
+
+	if buildName.Valid {
+		container.BuildName = buildName.String
+	}
+
+	if resourceName.Valid {
+		container.ResourceName = resourceName.String
+	}
+
+	if pipelineName.Valid {
+		container.PipelineName = pipelineName.String
+	}
+
+	if jobName.Valid {
+		container.JobName = jobName.String
 	}
 
 	container.Type, err = ContainerTypeFromString(infoType)
@@ -381,18 +404,6 @@ func scanContainerMetadata(row scannable) (Container, error) {
 		return Container{}, err
 	}
 
-	if resourceName.Valid {
-		container.ResourceName = resourceName.String
-	}
-
-	if pipelineName.Valid {
-		container.PipelineName = pipelineName.String
-	}
-
-	if jobName.Valid {
-		container.JobName = jobName.String
-	}
-
 	return container, nil
 }
 
@@ -400,6 +411,7 @@ func scanContainerIdentifier(row scannable) (Container, error) {
 	var planID sql.NullString
 	var resourceID sql.NullInt64
 	var pipelineID sql.NullInt64
+	var buildID sql.NullInt64
 	container := Container{}
 
 	err := row.Scan(
@@ -408,14 +420,12 @@ func scanContainerIdentifier(row scannable) (Container, error) {
 		&container.WorkerID,
 		&pipelineID,
 		&resourceID,
-		&container.ContainerIdentifier.BuildID,
+		&buildID,
 		&planID,
 	)
 	if err != nil {
 		return Container{}, err
 	}
-
-	container.PlanID = atc.PlanID(planID.String)
 
 	if pipelineID.Valid {
 		container.PipelineID = int(pipelineID.Int64)
@@ -424,6 +434,12 @@ func scanContainerIdentifier(row scannable) (Container, error) {
 	if resourceID.Valid {
 		container.ResourceID = int(resourceID.Int64)
 	}
+
+	if buildID.Valid {
+		container.ContainerIdentifier.BuildID = int(buildID.Int64)
+	}
+
+	container.PlanID = atc.PlanID(planID.String)
 
 	return container, nil
 }
