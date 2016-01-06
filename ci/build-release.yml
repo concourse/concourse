@@ -1,7 +1,7 @@
 ---
 platform: linux
 
-image: docker:///golang
+image: docker:///golang#1.6
 
 inputs:
 - name: concourse-bin

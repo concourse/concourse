@@ -10,7 +10,7 @@ resources:
   type: git
   source:
     uri: https://github.com/cloudfoundry-incubator/garden-linux-release
-    branch: master
+    branch: bump-and-force-aufs
 
 - name: concourse-bin
   type: git
