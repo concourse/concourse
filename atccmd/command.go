@@ -35,7 +35,6 @@ import (
 	"github.com/gorilla/context"
 	"github.com/hashicorp/go-multierror"
 	"github.com/lib/pq"
-	"github.com/nu7hatch/gouuid"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
@@ -528,7 +527,7 @@ func (cmd *ATCCommand) constructEngine(
 	workerClient worker.Client,
 	tracker resource.Tracker,
 ) engine.Engine {
-	gardenFactory := exec.NewGardenFactory(workerClient, tracker, uuidGen)
+	gardenFactory := exec.NewGardenFactory(workerClient, tracker)
 
 	execV2Engine := engine.NewExecEngine(
 		gardenFactory,
@@ -714,13 +713,4 @@ func (cmd *ATCCommand) appendStaticWorker(
 			),
 		},
 	)
-}
-
-func uuidGen() string {
-	guid, err := uuid.NewV4()
-	if err != nil {
-		panic("not enough entropy to generate guid: " + err.Error())
-	}
-
-	return guid.String()
 }
