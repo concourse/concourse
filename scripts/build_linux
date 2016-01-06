@@ -26,6 +26,10 @@ fi
 pushd garden-linux-release/
   export GOPATH=$PWD
 
+  bosh --parallel 3 sync blobs
+
+  cp -L blobs/busybox/busybox.tar.gz $ROOT/linux/busybox.tar.gz
+
   pushd ./src/github.com/cloudfoundry-incubator/garden-linux
     make
     rm -rf $ROOT/linux

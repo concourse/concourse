@@ -44,6 +44,8 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
+	busyboxDir, err := cmd.extractBusybox(linux)
+
 	gardenArgs := []string{
 		"-listenNetwork", "tcp",
 		"-listenAddr", cmd.bindAddr(),
@@ -52,6 +54,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		"-graph", graphDir,
 		"-snapshots", snapshotsDir,
 		"-stateDir", stateDir,
+		"-rootfs", busyboxDir,
 		"-allowHostAccess",
 	}
 
@@ -74,6 +77,28 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 	}
 
 	return worker, cmdRunner{gardenCmd}, nil
+}
+
+func (cmd *WorkerCommand) extractBusybox(linux string) (string, error) {
+	archive := filepath.Join(linux, "busybox.tar.gz")
+
+	busyboxDir := filepath.Join(linux, "busybox")
+	err := os.MkdirAll(busyboxDir, 0755)
+	if err != nil {
+		return "", err
+	}
+
+	tarBin := filepath.Join(linux, "bin", "tar")
+	tar := exec.Command(tarBin, "-zxf", archive, "-C", busyboxDir)
+	tar.Stdout = os.Stdout
+	tar.Stderr = os.Stderr
+
+	err = tar.Run()
+	if err != nil {
+		return "", err
+	}
+
+	return busyboxDir, nil
 }
 
 func (cmd *WorkerCommand) extractResources(linux string) ([]atc.WorkerResourceType, error) {
