@@ -289,8 +289,10 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 			for _, output := range config.Outputs {
 				if len(volumeMounts) > 0 {
+					outputPath := artifactsPath(output, step.artifactsRoot)
+
 					for _, mount := range volumeMounts {
-						if mount.MountPath == artifactsPath(output, step.artifactsRoot) {
+						if mount.MountPath == outputPath {
 							source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, mount.Volume.Handle())
 							step.repo.RegisterSource(SourceName(output.Name), source)
 						}
