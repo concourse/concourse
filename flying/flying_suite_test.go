@@ -2,6 +2,7 @@ package flying_test
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
@@ -23,12 +24,15 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	flyBinPath, err := gexec.Build("github.com/concourse/fly", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	err = helpers.FlyLogin(atcURL, targetedConcourse, flyBinPath)
-	Expect(err).NotTo(HaveOccurred())
-
 	return []byte(flyBinPath)
 }, func(flyBinPath []byte) {
 	flyBin = string(flyBinPath)
+
+	err := helpers.CreateTempHomeDir()
+	Expect(err).NotTo(HaveOccurred())
+
+	err = helpers.FlyLogin(atcURL, targetedConcourse, flyBin)
+	Expect(err).NotTo(HaveOccurred())
 
 	// observed jobs taking ~1m30s, so set the timeout pretty high
 	SetDefaultEventuallyTimeout(5 * time.Minute)
@@ -37,6 +41,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	SetDefaultEventuallyPollingInterval(time.Second)
 
 	Eventually(errorPolling(atcURL)).ShouldNot(HaveOccurred())
+})
+
+var _ = SynchronizedAfterSuite(func() {
+}, func() {
+	os.RemoveAll(helpers.HomeDir())
 })
 
 func TestFlying(t *testing.T) {
