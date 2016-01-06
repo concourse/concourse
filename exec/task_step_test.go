@@ -45,7 +45,7 @@ var _ = Describe("GardenFactory", func() {
 		}
 		expectedIdentifier = worker.Identifier{
 			Name:                 "some-session-id",
-			WorkingDirectory:     "/tmp/build/a-random-guid",
+			WorkingDirectory:     "/tmp/build/a1f5c0c1",
 			EnvironmentVariables: []string{"SOME=params"},
 		}
 	)
@@ -54,7 +54,7 @@ var _ = Describe("GardenFactory", func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeTracker = new(rfakes.FakeTracker)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, func() string { return "a-random-guid" })
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -211,7 +211,7 @@ var _ = Describe("GardenFactory", func() {
 							Expect(fakeContainer.StreamInCallCount()).To(Equal(1))
 
 							spec := fakeContainer.StreamInArgsForCall(0)
-							Expect(spec.Path).To(Equal("/tmp/build/a-random-guid"))
+							Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1"))
 							Expect(spec.User).To(Equal("")) // use default
 
 							tarReader := tar.NewReader(spec.TarStream)
@@ -227,7 +227,7 @@ var _ = Describe("GardenFactory", func() {
 							Expect(spec.Path).To(Equal("ls"))
 							Expect(spec.Args).To(Equal([]string{"some", "args"}))
 							Expect(spec.Env).To(Equal([]string{"SOME=params"}))
-							Expect(spec.Dir).To(Equal("/tmp/build/a-random-guid"))
+							Expect(spec.Dir).To(Equal("/tmp/build/a1f5c0c1"))
 							Expect(spec.User).To(Equal("root"))
 							Expect(spec.TTY).To(Equal(&garden.TTYSpec{}))
 						})
@@ -276,7 +276,7 @@ var _ = Describe("GardenFactory", func() {
 									Path: "ls",
 									Args: []string{"some", "args"},
 									Env:  []string{"SOME=params"},
-									Dir:  "/tmp/build/a-random-guid",
+									Dir:  "/tmp/build/a1f5c0c1",
 									User: "root",
 									TTY:  &garden.TTYSpec{},
 								}))
@@ -328,7 +328,7 @@ var _ = Describe("GardenFactory", func() {
 									Expect(fakeContainer.StreamInCallCount()).To(Equal(initial + 1))
 
 									spec := fakeContainer.StreamInArgsForCall(initial)
-									Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-input-configured-path/foo"))
+									Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-input-configured-path/foo"))
 									Expect(spec.User).To(Equal("")) // use default
 									Expect(spec.TarStream).To(Equal(streamIn))
 
@@ -343,7 +343,7 @@ var _ = Describe("GardenFactory", func() {
 
 									Expect(fakeContainer.StreamInCallCount()).To(Equal(initial + 1))
 									spec = fakeContainer.StreamInArgsForCall(initial)
-									Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-other-input/foo"))
+									Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-other-input/foo"))
 									Expect(spec.User).To(Equal("")) // use default
 									Expect(spec.TarStream).To(Equal(streamIn))
 
@@ -371,11 +371,11 @@ var _ = Describe("GardenFactory", func() {
 										Expect(taskSpec.Inputs).To(Equal([]worker.VolumeMount{
 											{
 												Volume:    inputVolume,
-												MountPath: "/tmp/build/a-random-guid/some-input-configured-path",
+												MountPath: "/tmp/build/a1f5c0c1/some-input-configured-path",
 											},
 											{
 												Volume:    otherInputVolume,
-												MountPath: "/tmp/build/a-random-guid/some-other-input",
+												MountPath: "/tmp/build/a1f5c0c1/some-other-input",
 											},
 										}))
 									})
@@ -471,7 +471,7 @@ var _ = Describe("GardenFactory", func() {
 									Expect(fakeContainer.StreamInCallCount()).To(Equal(4))
 
 									spec := fakeContainer.StreamInArgsForCall(1)
-									Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path/"))
+									Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-output-configured-path/"))
 									Expect(spec.User).To(Equal("")) // use default
 
 									tarReader := tar.NewReader(spec.TarStream)
@@ -480,7 +480,7 @@ var _ = Describe("GardenFactory", func() {
 									Expect(err).To(Equal(io.EOF))
 
 									spec = fakeContainer.StreamInArgsForCall(2)
-									Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-other-output/"))
+									Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-other-output/"))
 									Expect(spec.User).To(Equal("")) // use default
 
 									tarReader = tar.NewReader(spec.TarStream)
@@ -489,7 +489,7 @@ var _ = Describe("GardenFactory", func() {
 									Expect(err).To(Equal(io.EOF))
 
 									spec = fakeContainer.StreamInArgsForCall(3)
-									Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path-with-trailing-slash/"))
+									Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-output-configured-path-with-trailing-slash/"))
 									Expect(spec.User).To(Equal("")) // use default
 
 									tarReader = tar.NewReader(spec.TarStream)
@@ -510,9 +510,9 @@ var _ = Describe("GardenFactory", func() {
 										artifactSource2 ArtifactSource
 										artifactSource3 ArtifactSource
 
-										fakeMountPath1 string = "/tmp/build/a-random-guid/some-output-configured-path/"
-										fakeMountPath2 string = "/tmp/build/a-random-guid/some-other-output/"
-										fakeMountPath3 string = "/tmp/build/a-random-guid/some-output-configured-path-with-trailing-slash/"
+										fakeMountPath1 string = "/tmp/build/a1f5c0c1/some-output-configured-path/"
+										fakeMountPath2 string = "/tmp/build/a1f5c0c1/some-other-output/"
+										fakeMountPath3 string = "/tmp/build/a1f5c0c1/some-output-configured-path-with-trailing-slash/"
 									)
 
 									JustBeforeEach(func() {
@@ -668,7 +668,7 @@ var _ = Describe("GardenFactory", func() {
 
 													Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
 													spec := fakeContainer.StreamOutArgsForCall(0)
-													Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path/"))
+													Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-output-configured-path/"))
 													Expect(spec.User).To(Equal("")) // use default
 
 													Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
@@ -686,7 +686,7 @@ var _ = Describe("GardenFactory", func() {
 
 													Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
 													spec := fakeContainer.StreamOutArgsForCall(0)
-													Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path/"))
+													Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-output-configured-path/"))
 													Expect(spec.User).To(Equal("")) // use default
 
 													Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
@@ -701,7 +701,7 @@ var _ = Describe("GardenFactory", func() {
 
 													Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
 													spec := fakeContainer.StreamOutArgsForCall(0)
-													Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path-with-trailing-slash/"))
+													Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-output-configured-path-with-trailing-slash/"))
 													Expect(spec.User).To(Equal("")) // use default
 
 													Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
@@ -716,7 +716,7 @@ var _ = Describe("GardenFactory", func() {
 
 													Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
 													spec := fakeContainer.StreamOutArgsForCall(0)
-													Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-other-output/"))
+													Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-other-output/"))
 													Expect(spec.User).To(Equal("")) // use default
 
 													Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
@@ -787,7 +787,7 @@ var _ = Describe("GardenFactory", func() {
 													Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
 
 													spec := fakeContainer.StreamOutArgsForCall(0)
-													Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-output-configured-path/some-path"))
+													Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-output-configured-path/some-path"))
 													Expect(spec.User).To(Equal("")) // use default
 												})
 
@@ -952,7 +952,7 @@ var _ = Describe("GardenFactory", func() {
 
 											Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
 											spec := fakeContainer.StreamOutArgsForCall(0)
-											Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/"))
+											Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/"))
 											Expect(spec.User).To(Equal("")) // use default
 
 											Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
@@ -1034,7 +1034,7 @@ var _ = Describe("GardenFactory", func() {
 												Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
 
 												spec := fakeContainer.StreamOutArgsForCall(0)
-												Expect(spec.Path).To(Equal("/tmp/build/a-random-guid/some-path"))
+												Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-path"))
 												Expect(spec.User).To(Equal("")) // use default
 											})
 

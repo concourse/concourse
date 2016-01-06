@@ -1,6 +1,8 @@
 package exec
 
 import (
+	"crypto/sha1"
+	"fmt"
 	"path/filepath"
 
 	"github.com/pivotal-golang/lager"
@@ -11,9 +13,8 @@ import (
 )
 
 type gardenFactory struct {
-	workerClient  worker.Client
-	tracker       resource.Tracker
-	uuidGenerator UUIDGenFunc
+	workerClient worker.Client
+	tracker      resource.Tracker
 }
 
 type UUIDGenFunc func() string
@@ -21,12 +22,10 @@ type UUIDGenFunc func() string
 func NewGardenFactory(
 	workerClient worker.Client,
 	tracker resource.Tracker,
-	uuidGenerator UUIDGenFunc,
 ) Factory {
 	return &gardenFactory{
-		workerClient:  workerClient,
-		tracker:       tracker,
-		uuidGenerator: uuidGenerator,
+		workerClient: workerClient,
+		tracker:      tracker,
 	}
 }
 
@@ -125,8 +124,7 @@ func (factory *gardenFactory) Task(
 	tags atc.Tags,
 	configSource TaskConfigSource,
 ) StepFactory {
-	workingDirectory := filepath.Join("/tmp", "build", factory.uuidGenerator())
-	id.WorkingDirectory = workingDirectory
+	id.WorkingDirectory = factory.taskWorkingDirectory(sourceName)
 	return newTaskStep(
 		logger,
 		sourceName,
@@ -136,6 +134,11 @@ func (factory *gardenFactory) Task(
 		privileged,
 		configSource,
 		factory.workerClient,
-		workingDirectory,
+		id.WorkingDirectory,
 	)
+}
+
+func (factory *gardenFactory) taskWorkingDirectory(sourceName SourceName) string {
+	sum := sha1.Sum([]byte(sourceName))
+	return filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
 }
