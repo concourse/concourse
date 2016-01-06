@@ -158,30 +158,30 @@ var _ = Describe("ATC Connection", func() {
 				{
 					ID:           "first-container",
 					PipelineName: "my-special-pipeline",
-					Type:         "check",
-					Name:         "bob",
+					ResourceName: "bob",
 					BuildID:      1,
 					WorkerName:   "abc",
 				},
 				{
 					ID:           "second-container",
 					PipelineName: "my-special-pipeline",
-					Type:         "check",
-					Name:         "alice",
+					JobName:      "my-special-job",
+					StepType:     "task",
+					StepName:     "alice",
 					BuildID:      1,
 					WorkerName:   "def",
 				},
 			}
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL, "type=check"),
+					ghttp.VerifyRequest("GET", expectedURL, "pipeline_name=my-special-pipeline"),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResponse),
 				),
 			)
 			var containers []atc.Container
 			err := connection.Send(Request{
 				RequestName: atc.ListContainers,
-				Query:       url.Values{"type": {"check"}},
+				Query:       url.Values{"pipeline_name": {"my-special-pipeline"}},
 			}, &Response{
 				Result: &containers,
 			})
