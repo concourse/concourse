@@ -58,7 +58,7 @@ var _ = Describe("GardenFactory", func() {
 			PipelineName:         "some-pipeline",
 			Type:                 db.ContainerTypeTask,
 			StepName:             "some-step",
-			WorkingDirectory:     "/tmp/build/a-random-guid",
+			WorkingDirectory:     "/tmp/build/a1f5c0c1",
 			EnvironmentVariables: []string{"SOME=params"},
 		}
 	)
