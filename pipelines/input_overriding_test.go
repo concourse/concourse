@@ -96,7 +96,7 @@ run:
 		By("running a one-off with the same inputs and no local inputs")
 		fly := exec.Command(
 			flyBin,
-			"-t", atcURL,
+			"-t", targetedConcourse,
 			"execute",
 			"-c", taskConfig,
 			"--inputs-from", pipelineName+"/some-job",
@@ -114,7 +114,7 @@ run:
 		By("running a one-off with one of the inputs overridden")
 		fly = exec.Command(
 			flyBin,
-			"-t", atcURL,
+			"-t", targetedConcourse,
 			"execute",
 			"-c", taskConfig,
 			"--inputs-from", pipelineName+"/some-job",

@@ -3,6 +3,7 @@ package flying_test
 import (
 	"net/http"
 
+	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -11,10 +12,18 @@ import (
 	"time"
 )
 
-var flyBin string
+var (
+	flyBin string
+)
+
+var atcURL = "http://10.244.15.2:8080"
+var targetedConcourse = "testflight"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	flyBinPath, err := gexec.Build("github.com/concourse/fly", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	err = helpers.FlyLogin(atcURL, targetedConcourse, flyBinPath)
 	Expect(err).NotTo(HaveOccurred())
 
 	return []byte(flyBinPath)
@@ -27,7 +36,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// poll less frequently
 	SetDefaultEventuallyPollingInterval(time.Second)
 
-	Eventually(errorPolling("http://10.244.15.2:8080")).ShouldNot(HaveOccurred())
+	Eventually(errorPolling(atcURL)).ShouldNot(HaveOccurred())
 })
 
 func TestFlying(t *testing.T) {

@@ -18,12 +18,9 @@ import (
 var _ = Describe("Flying", func() {
 	var tmpdir string
 	var fixture string
-	var atcURL string
 
 	BeforeEach(func() {
 		var err error
-
-		atcURL = "http://10.244.15.2:8080"
 
 		tmpdir, err = ioutil.TempDir("", "fly-test")
 		Expect(err).NotTo(HaveOccurred())
@@ -75,7 +72,7 @@ run:
 	})
 
 	It("works", func() {
-		fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "task.yml", "--", "SOME", "ARGS")
+		fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "--", "SOME", "ARGS")
 		fly.Dir = fixture
 
 		session := helpers.StartFly(fly)
@@ -100,7 +97,7 @@ cat < /tmp/fifo
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "task.yml")
+			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml")
 			fly.Dir = fixture
 
 			flyS := helpers.StartFly(fly)
@@ -113,7 +110,7 @@ cat < /tmp/fifo
 
 			Eventually(flyS).Should(gbytes.Say("waiting"))
 
-			hijack := exec.Command(flyBin, "-t", atcURL, "hijack", "-b", buildID, "-s", "one-off", "--", "sh", "-c", "echo marco > /tmp/fifo")
+			hijack := exec.Command(flyBin, "-t", targetedConcourse, "hijack", "-b", buildID, "-s", "one-off", "--", "sh", "-c", "echo marco > /tmp/fifo")
 
 			hijackS := helpers.StartFly(hijack)
 
@@ -137,7 +134,7 @@ echo world > output-2/file-2
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "task.yml", "-o", "output-1=./output-1", "-o", "output-2=./output-2")
+			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml", "-o", "output-1=./output-1", "-o", "output-2=./output-2")
 			fly.Dir = fixture
 
 			session := helpers.StartFly(fly)
@@ -167,7 +164,7 @@ wait
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			fly := exec.Command(flyBin, "-t", atcURL, "execute", "-c", "task.yml")
+			fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml")
 			fly.Dir = fixture
 
 			flyS := helpers.StartFly(fly)

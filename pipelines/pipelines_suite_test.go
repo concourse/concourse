@@ -9,6 +9,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/cloudfoundry-incubator/garden/client"
+	"github.com/concourse/testflight/helpers"
 	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,18 +29,22 @@ const guidServerRootfs = "/var/vcap/packages/bosh_deployment_resource"
 // has git, curl
 const gitServerRootfs = "/var/vcap/packages/git_resource"
 
-var flyBin string
-
 var (
 	gardenClient garden.Client
 
-	atcURL string
+	flyBin string
 
 	pipelineName string
 )
 
+var atcURL = "http://10.244.15.2:8080"
+var targetedConcourse = "testflight"
+
 var _ = SynchronizedBeforeSuite(func() []byte {
 	flyBinPath, err := gexec.Build("github.com/concourse/fly", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	err = helpers.FlyLogin(atcURL, targetedConcourse, flyBinPath)
 	Expect(err).NotTo(HaveOccurred())
 
 	return []byte(flyBinPath)
@@ -57,8 +62,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	gardenClient = client.New(gconn.NewWithLogger("tcp", "10.244.15.2:7777", logger.Session("garden-connection")))
 	Eventually(gardenClient.Ping).ShouldNot(HaveOccurred())
 
-	atcURL = "http://10.244.15.2:8080"
-
 	Eventually(errorPolling(atcURL)).ShouldNot(HaveOccurred())
 
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
@@ -72,7 +75,7 @@ func TestGitPipeline(t *testing.T) {
 func destroyPipeline() {
 	destroyCmd := exec.Command(
 		flyBin,
-		"-t", atcURL,
+		"-t", targetedConcourse,
 		"destroy-pipeline",
 		"-p", pipelineName,
 	)
@@ -104,7 +107,7 @@ func configurePipeline(argv ...string) {
 	destroyPipeline()
 
 	args := append([]string{
-		"-t", atcURL,
+		"-t", targetedConcourse,
 		"set-pipeline",
 		"-p", pipelineName,
 	}, argv...)
@@ -128,7 +131,7 @@ func configurePipeline(argv ...string) {
 }
 
 func unpausePipeline() {
-	unpauseCmd := exec.Command(flyBin, "-t", atcURL, "unpause-pipeline", "-p", pipelineName)
+	unpauseCmd := exec.Command(flyBin, "-t", targetedConcourse, "unpause-pipeline", "-p", pipelineName)
 
 	stdin, err := unpauseCmd.StdinPipe()
 	Expect(err).NotTo(HaveOccurred())
@@ -155,7 +158,7 @@ func errorPolling(url string) func() error {
 
 func flyWatch(jobName string, buildName ...string) *gexec.Session {
 	args := []string{
-		"-t", atcURL,
+		"-t", targetedConcourse,
 		"watch",
 		"-j", pipelineName + "/" + jobName,
 	}

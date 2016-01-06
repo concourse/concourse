@@ -1,9 +1,7 @@
-package acceptance_test
+package web_test
 
 import (
 	"fmt"
-
-	"github.com/sclevine/agouti"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,18 +11,6 @@ import (
 )
 
 var _ = Describe("Aborting a build", func() {
-	var page *agouti.Page
-
-	BeforeEach(func() {
-		var err error
-		page, err = agoutiDriver.NewPage()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		Expect(page.Destroy()).To(Succeed())
-	})
-
 	Context("with a build in the configuration", func() {
 		var build atc.Build
 

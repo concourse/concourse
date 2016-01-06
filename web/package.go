@@ -1,1 +1,1 @@
-package acceptance
+package web

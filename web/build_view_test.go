@@ -1,9 +1,7 @@
-package acceptance_test
+package web_test
 
 import (
 	"fmt"
-
-	"github.com/sclevine/agouti"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,18 +11,6 @@ import (
 )
 
 var _ = Describe("Viewing builds", func() {
-	var page *agouti.Page
-
-	BeforeEach(func() {
-		var err error
-		page, err = agoutiDriver.NewPage()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		Expect(page.Destroy()).To(Succeed())
-	})
-
 	Context("with a job build", func() {
 		var build atc.Build
 
@@ -60,7 +46,7 @@ var _ = Describe("Viewing builds", func() {
 			Expect(page.Navigate(atcRoute(build.URL))).To(Succeed())
 			Eventually(page).Should(HaveURL(atcRoute(fmt.Sprintf("pipelines/%s/jobs/some-job/builds/%s", pipelineName, build.Name))))
 			Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("some-job #%s", build.Name)))
-			Expect(page.Find("#builds").Text()).Should(ContainSubstring(build.Name))
+			Eventually(page.Find("#builds")).Should(HaveText(build.Name))
 
 			Eventually(page.Find("#page-header.succeeded")).Should(BeFound())
 			Eventually(page.Find(".build-times").Text).Should(ContainSubstring("duration"))
@@ -99,6 +85,7 @@ var _ = Describe("Viewing builds", func() {
 			Eventually(page.Find("#page-header.succeeded")).Should(BeFound())
 			Eventually(page.Find(".build-times").Text).Should(ContainSubstring("duration"))
 
+			Eventually(page.Find(".build-step .header").Text).Should(ContainSubstring("some-task"))
 			Expect(page.Find(".build-step .header").Click()).To(Succeed())
 			Eventually(page.Find("#build-body").Text).Should(ContainSubstring("hello from one-off"))
 		})

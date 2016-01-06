@@ -1,4 +1,4 @@
-package acceptance_test
+package web_test
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"github.com/sclevine/agouti"
 
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/testflight/helpers"
 
 	"testing"
 	"time"
@@ -26,9 +27,13 @@ func TestWeb(t *testing.T) {
 }
 
 var agoutiDriver *agouti.WebDriver
+var page *agouti.Page
 
 var _ = BeforeSuite(func() {
-	conn, err := concourse.NewConnection(atcURL, nil)
+	httpClient, err := helpers.GetAuthenticatedHttpClient(atcURL)
+	Expect(err).ToNot(HaveOccurred())
+
+	conn, err := concourse.NewConnection(atcURL, httpClient)
 	Expect(err).ToNot(HaveOccurred())
 
 	client = concourse.NewClient(conn)
@@ -52,6 +57,14 @@ var _ = AfterSuite(func() {
 var _ = BeforeEach(func() {
 	_, err := client.DeletePipeline(pipelineName)
 	Expect(err).ToNot(HaveOccurred())
+
+	page, err = agoutiDriver.NewPage()
+	Expect(err).NotTo(HaveOccurred())
+	helpers.WebLogin(page, atcURL)
+})
+
+var _ = AfterEach(func() {
+	Expect(page.Destroy()).To(Succeed())
 })
 
 func Screenshot(page *agouti.Page) {
