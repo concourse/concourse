@@ -33,6 +33,7 @@ resources:
 
 jobs:
 - name: build
+  serial: true
   plan:
   - aggregate:
     - get: concourse
