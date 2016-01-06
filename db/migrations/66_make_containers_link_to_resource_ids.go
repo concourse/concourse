@@ -13,7 +13,9 @@ func MakeContainersLinkToResourceIds(tx migration.LimitedTx) error {
 
 	_, err = tx.Exec(`
 		UPDATE containers c SET resource_id =
-		(SELECT id from resources r where r.name = c.name AND r.pipeline_id = c.pipeline_id);
+		(SELECT id from resources r where r.name = c.name 
+													AND r.pipeline_id = c.pipeline_id
+													AND c.type = 'check');
 	`)
 	if err != nil {
 		return err
