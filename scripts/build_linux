@@ -23,6 +23,9 @@ if ! which bosh 2>/dev/null 2>&1; then
   gem install bosh_cli --no-rdoc --no-ri
 fi
 
+rm -rf $ROOT/linux
+mkdir -p $ROOT/linux
+
 pushd garden-linux-release/
   export GOPATH=$PWD
 
@@ -32,8 +35,6 @@ pushd garden-linux-release/
 
   pushd ./src/github.com/cloudfoundry-incubator/garden-linux
     make
-    rm -rf $ROOT/linux
-    mkdir -p $ROOT/linux
     cp -a out/garden-linux $ROOT/linux/garden-linux
     cp -a linux_backend/bin $ROOT/linux/bin
     cp -a linux_backend/skeleton $ROOT/linux/skeleton
