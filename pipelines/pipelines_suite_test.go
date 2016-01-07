@@ -3,6 +3,7 @@ package pipelines_test
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -35,6 +36,8 @@ var (
 	flyBin string
 
 	pipelineName string
+
+	tmpHome string
 )
 
 var atcURL = "http://10.244.15.2:8080"
@@ -44,12 +47,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	flyBinPath, err := gexec.Build("github.com/concourse/fly", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	err = helpers.FlyLogin(atcURL, targetedConcourse, flyBinPath)
-	Expect(err).NotTo(HaveOccurred())
-
 	return []byte(flyBinPath)
 }, func(flyBinPath []byte) {
 	flyBin = string(flyBinPath)
+
+	var err error
+	tmpHome, err = helpers.CreateTempHomeDir()
+	Expect(err).NotTo(HaveOccurred())
+
+	err = helpers.FlyLogin(atcURL, targetedConcourse, flyBin)
+	Expect(err).NotTo(HaveOccurred())
 
 	// observed jobs taking ~1m30s, so set the timeout pretty high
 	SetDefaultEventuallyTimeout(5 * time.Minute)
@@ -65,6 +72,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Eventually(errorPolling(atcURL)).ShouldNot(HaveOccurred())
 
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
+})
+
+var _ = SynchronizedAfterSuite(func() {
+}, func() {
+	os.RemoveAll(tmpHome)
 })
 
 func TestGitPipeline(t *testing.T) {
