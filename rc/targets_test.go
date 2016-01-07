@@ -33,19 +33,6 @@ var _ = Describe("Targets", func() {
 		os.RemoveAll(tmpDir)
 	})
 
-	Describe("Saving targets", func() {
-		It("Errors when a URL is provided as the target name", func() {
-			err := rc.SaveTarget(
-				"http://1337.101:9999",
-				"some api url",
-				false,
-				nil,
-			)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("URL"))
-		})
-	})
-
 	Describe("Insecure Flag", func() {
 		Describe("when 'insecure' is set to false in the flyrc", func() {
 			var targetName string
