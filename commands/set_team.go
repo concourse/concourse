@@ -13,7 +13,8 @@ import (
 )
 
 type SetTeamCommand struct {
-	TeamName  string `long:"team-name" required:"true"                description:"The team to create or modify"`
+	TeamName string `long:"team-name" required:"true" description:"The team to create or modify"`
+
 	BasicAuth struct {
 		Username string `long:"username" description:"Username to use for basic auth."`
 		Password string `long:"password" description:"Password to use for basic auth."`

@@ -2,7 +2,6 @@ package rc
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -43,10 +42,6 @@ func NewTarget(api string, insecure bool, token *TargetToken) TargetProps {
 }
 
 func SaveTarget(targetName string, api string, insecure bool, token *TargetToken) error {
-	if isURL(targetName) {
-		return errors.New("Saving a target requires an alias; it cannot be a URL.")
-	}
-
 	flyrc := filepath.Join(userHomeDir(), ".flyrc")
 	flyTargets, err := loadTargets(flyrc)
 	if err != nil {

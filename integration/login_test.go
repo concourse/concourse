@@ -41,6 +41,27 @@ var _ = Describe("login Command", func() {
 		os.RemoveAll(homeDir)
 	})
 
+	Describe("login with no target name", func() {
+		var (
+			flyCmd *exec.Cmd
+		)
+
+		BeforeEach(func() {
+			atcServer = ghttp.NewServer()
+			flyCmd = exec.Command(flyPath, "login", "-c", atcServer.URL())
+		})
+
+		It("instructs the user to specify --target", func() {
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+
+			Expect(sess.Err).To(gbytes.Say(`name for the target must be specified \(--target/-t\)`))
+		})
+	})
+
 	Describe("login", func() {
 		var (
 			flyCmd *exec.Cmd
@@ -107,7 +128,7 @@ var _ = Describe("login Command", func() {
 					_, err = fmt.Fprintf(stdin, "Bearer grylls\n")
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Out).Should(gbytes.Say("token saved"))
+					Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 					err = stdin.Close()
 					Expect(err).NotTo(HaveOccurred())
@@ -134,7 +155,7 @@ var _ = Describe("login Command", func() {
 						_, err = fmt.Fprintf(stdin, "Bearer some-entered-token\n")
 						Expect(err).NotTo(HaveOccurred())
 
-						Eventually(sess.Out).Should(gbytes.Say("token saved"))
+						Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 						err = stdin.Close()
 						Expect(err).NotTo(HaveOccurred())
@@ -210,7 +231,7 @@ var _ = Describe("login Command", func() {
 
 					Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some_password"))
 
-					Eventually(sess.Out).Should(gbytes.Say("token saved"))
+					Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 					err = stdin.Close()
 					Expect(err).NotTo(HaveOccurred())
@@ -237,7 +258,7 @@ var _ = Describe("login Command", func() {
 					Eventually(sess.Out).ShouldNot(gbytes.Say("username: "))
 					Eventually(sess.Out).ShouldNot(gbytes.Say("password: "))
 
-					Eventually(sess.Out).Should(gbytes.Say("token saved"))
+					Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 					err = stdin.Close()
 					Expect(err).NotTo(HaveOccurred())
@@ -271,7 +292,7 @@ var _ = Describe("login Command", func() {
 
 						Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some_password"))
 
-						Eventually(sess.Out).Should(gbytes.Say("token saved"))
+						Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 						err = stdin.Close()
 						Expect(err).NotTo(HaveOccurred())
@@ -359,7 +380,7 @@ var _ = Describe("login Command", func() {
 
 							Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some_password"))
 
-							Eventually(sess.Out).Should(gbytes.Say("token saved"))
+							Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 							err = secondFlyStdin.Close()
 							Expect(err).NotTo(HaveOccurred())
@@ -413,7 +434,7 @@ var _ = Describe("login Command", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Err).Should(gbytes.Say("Basic auth is not available"))
+				Eventually(sess.Err).Should(gbytes.Say("basic auth is not available"))
 
 				err = stdin.Close()
 				Expect(err).NotTo(HaveOccurred())
@@ -422,7 +443,6 @@ var _ = Describe("login Command", func() {
 				Expect(sess.ExitCode()).NotTo(Equal(0))
 			})
 		})
-
 
 		Context("when only one auth method is returned from the API", func() {
 			BeforeEach(func() {
@@ -464,7 +484,7 @@ var _ = Describe("login Command", func() {
 
 				Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
 
-				Eventually(sess.Out).Should(gbytes.Say("token saved"))
+				Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 				err = stdin.Close()
 				Expect(err).NotTo(HaveOccurred())
@@ -488,7 +508,7 @@ var _ = Describe("login Command", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Out).Should(gbytes.Say("no auth methods configured; updating target data"))
+				Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
@@ -507,7 +527,7 @@ var _ = Describe("login Command", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Out).Should(gbytes.Say("no auth methods configured; updating target data"))
+					Eventually(sess.Out).Should(gbytes.Say("target saved"))
 				})
 
 				It("uses the saved target", func() {

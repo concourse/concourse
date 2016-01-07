@@ -104,7 +104,7 @@ var _ = Describe("login -k Command", func() {
 
 				Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
 
-				Eventually(sess.Out).Should(gbytes.Say("token saved"))
+				Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 				err = stdin.Close()
 				Expect(err).NotTo(HaveOccurred())
@@ -145,7 +145,7 @@ var _ = Describe("login -k Command", func() {
 					Eventually(sess.Out).Should(gbytes.Say("password: "))
 					_, err = fmt.Fprintf(stdin, "some password\n")
 					Expect(err).NotTo(HaveOccurred())
-					Eventually(sess.Out).Should(gbytes.Say("token saved"))
+					Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 					err = stdin.Close()
 					Expect(err).NotTo(HaveOccurred())
@@ -177,7 +177,7 @@ var _ = Describe("login -k Command", func() {
 						_, err = fmt.Fprintf(stdin, "some password\n")
 						Expect(err).NotTo(HaveOccurred())
 
-						Eventually(sess.Out).Should(gbytes.Say("token saved"))
+						Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 						err = stdin.Close()
 						Expect(err).NotTo(HaveOccurred())
@@ -288,7 +288,7 @@ var _ = Describe("login -k Command", func() {
 
 						Consistently(sess.Out.Contents).ShouldNot(ContainSubstring("some password"))
 
-						Eventually(sess.Out).Should(gbytes.Say("token saved"))
+						Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
 						err = stdin.Close()
 						Expect(err).NotTo(HaveOccurred())

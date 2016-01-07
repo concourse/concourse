@@ -1,10 +1,11 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
-	"errors"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
@@ -20,6 +21,10 @@ type LoginCommand struct {
 }
 
 func (command *LoginCommand) Execute(args []string) error {
+	if isURL(Fly.Target) {
+		return errors.New("name for the target must be specified (--target/-t)")
+	}
+
 	var connection concourse.Connection
 	var err error
 
@@ -28,7 +33,6 @@ func (command *LoginCommand) Execute(args []string) error {
 	} else {
 		connection, err = rc.CommandTargetConnection(Fly.Target, &command.Insecure)
 	}
-
 	if err != nil {
 		return err
 	}
@@ -48,24 +52,17 @@ func (command *LoginCommand) Execute(args []string) error {
 				break
 			}
 		}
+
 		if chosenMethod.Type == "" {
-			return errors.New("Basic auth is not available")
+			return errors.New("basic auth is not available")
 		}
 	} else {
 		switch len(authMethods) {
 		case 0:
-			fmt.Println("no auth methods configured; updating target data")
-			err := rc.SaveTarget(
-				Fly.Target,
+			return command.saveTarget(
 				connection.URL(),
-				command.Insecure,
 				&rc.TargetToken{},
 			)
-
-			if err != nil {
-				return err
-			}
-			return nil
 		case 1:
 			chosenMethod = authMethods[0]
 		default:
@@ -92,10 +89,6 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, connection concour
 
 	switch method.Type {
 	case atc.AuthTypeOAuth:
-		if command.Username != "" || command.Password != "" {
-			return errors.New("Illegal flags provided for OAuth (username or password)")
-		}
-
 		fmt.Println("navigate to the following URL in your browser:")
 		fmt.Println("")
 		fmt.Printf("    %s\n", method.AuthURL)
@@ -171,9 +164,19 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, connection concour
 		}
 	}
 
+	return command.saveTarget(
+		connection.URL(),
+		&rc.TargetToken{
+			Type:  token.Type,
+			Value: token.Value,
+		},
+	)
+}
+
+func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken) error {
 	err := rc.SaveTarget(
 		Fly.Target,
-		connection.URL(),
+		url,
 		command.Insecure,
 		&rc.TargetToken{
 			Type:  token.Type,
@@ -184,7 +187,7 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, connection concour
 		return err
 	}
 
-	fmt.Println("token saved")
+	fmt.Println("target saved")
 
 	return nil
 }
@@ -199,4 +202,9 @@ type basicAuthTransport struct {
 func (t basicAuthTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	r.SetBasicAuth(t.username, t.password)
 	return t.base.RoundTrip(r)
+}
+
+func isURL(passedURL string) bool {
+	matched, _ := regexp.MatchString("^http[s]?://", passedURL)
+	return matched
 }
