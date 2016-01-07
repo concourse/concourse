@@ -39,6 +39,8 @@ type TemplateData struct {
 
 	Builds     []BuildWithInputsOutputs
 	Pagination concourse.Pagination
+	Since      int
+	Until      int
 
 	GroupStates []group.State
 
@@ -99,6 +101,8 @@ func FetchTemplateData(
 
 		Builds:     bsr,
 		Pagination: pagination,
+		Since:      page.Since,
+		Until:      page.Until,
 
 		GroupStates: group.States(pipeline.Groups, func(g atc.GroupConfig) bool {
 			for _, groupJob := range g.Jobs {

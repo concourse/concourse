@@ -25,6 +25,7 @@ import Html.Attributes exposing (class, classList)
 
 import Concourse.BuildPlan exposing (BuildPlan)
 import Concourse.BuildResources exposing (BuildResources)
+import DictView
 
 type StepTree
   = Task Step
@@ -534,9 +535,7 @@ viewStep actions model {id, name, log, state, error, expanded, version, metadata
     [ Html.div [class "header", onClick actions (ToggleStep id)]
         [ viewStepState state model.finished
         , typeIcon icon
-        , Html.dl [class "version"] <|
-            List.concatMap (uncurry viewPair) << Dict.toList <|
-              Maybe.withDefault Dict.empty version
+        , DictView.view <| Maybe.withDefault Dict.empty version
         , Html.h3 [] [Html.text name]
         ]
     , Html.div
@@ -547,8 +546,7 @@ viewStep actions model {id, name, log, state, error, expanded, version, metadata
             ]
         ] <|
         if Maybe.withDefault (autoExpanded state) (Maybe.map (always True) expanded) then
-          [ Html.dl [class "build-metadata fr"]
-              (List.concatMap (\{name, value} -> viewPair name value) metadata)
+          [ DictView.view <| Dict.fromList <| List.map (\{name, value} -> (name, value)) metadata
           , Ansi.Log.view log
           , case error of
               Nothing ->

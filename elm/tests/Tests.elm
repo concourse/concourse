@@ -8,6 +8,7 @@ import String
 import StepTreeTests
 import PaginationTests
 import DurationTests
+import JobTests
 
 all : Test
 all =
@@ -15,4 +16,5 @@ all =
     [ StepTreeTests.all
     , PaginationTests.all
     , DurationTests.all
+    , JobTests.all
     ]
