@@ -163,38 +163,56 @@ var _ = Describe("Job Builds", func() {
 				})
 			})
 
-			It("can view the resource information of a job build", func() {
-				// homepage -> job detail w/build info
-				Expect(page.Navigate(homepage())).To(Succeed())
-				// we will need to authenticate later to prove it is working for our page
-				Authenticate(page, "admin", "password")
-				Eventually(page.FindByLink("job-name")).Should(BeFound())
-				Expect(page.FindByLink("job-name").Click()).To(Succeed())
+			Context("when there is a finished build and a pending build", func() {
+				var build2 db.Build
 
-				// job detail w/build info -> job detail
-				Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
-				Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("job-name #%d", build.ID)))
-				Expect(page.Find("h1 a").Click()).To(Succeed())
-				Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
+				BeforeEach(func() {
+					var err error
+					build2, err = pipelineDB.CreateJobBuild("job-name")
+					Expect(err).NotTo(HaveOccurred())
+				})
+				It("can view the duration and resource information for those builds", func() {
+					// homepage -> job detail w/build info
+					Expect(page.Navigate(homepage())).To(Succeed())
+					// we will need to authenticate later to prove it is working for our page
+					Authenticate(page, "admin", "password")
+					Eventually(page.FindByLink("job-name")).Should(BeFound())
+					Expect(page.FindByLink("job-name").Click()).To(Succeed())
 
-				Expect(page.Find(".builds-list li").Count()).Should(Equal(1))
-				Expect(page.Find(".builds-list li:first-child a")).To(HaveText(fmt.Sprintf("#%d", build.ID)))
+					// job detail w/build info -> job detail
+					Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build2.ID))))
+					Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("job-name #%d", build2.ID)))
+					Expect(page.Find("h1 a").Click()).To(Succeed())
+					Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
 
-				buildTimes, err := page.Find(".builds-list li:first-child .build-times").Text()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(buildTimes).To(ContainSubstring("started"))
-				Expect(buildTimes).To(ContainSubstring("a few seconds ago"))
-				Expect(buildTimes).To(ContainSubstring("succeeded"))
-				Expect(buildTimes).To(ContainSubstring("a few seconds ago"))
-				Expect(buildTimes).To(ContainSubstring("duration"))
+					Eventually(page.Find("#page-header.succeeded")).Should(BeFound())
 
-				Expect(page.Find(".builds-list li:first-child .inputs")).Should(BeFound())
-				Expect(page.Find(".builds-list li:first-child .inputs .resource-name")).To(HaveText("my-resource"))
-				Expect(page.Find(".builds-list li:first-child .inputs .resource-version")).To(HaveText("ref: thing"))
+					Eventually(page.All(".builds-list li")).Should(HaveCount(2))
 
-				Expect(page.Find(".builds-list li:first-child .outputs")).Should(BeFound())
-				Expect(page.Find(".builds-list li:first-child .outputs .resource-name")).To(HaveText("some-output"))
-				Expect(page.Find(".builds-list li:first-child .outputs .resource-version")).To(HaveText("thing: output-version"))
+					Expect(page.Find(".builds-list li:first-child a")).To(HaveText(fmt.Sprintf("#%d", build2.ID)))
+
+					pendingBuildTimes, err := page.Find(".builds-list li:first-child .build-duration").Text()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(pendingBuildTimes).To(Equal("pending"))
+
+					Expect(page.Find(".builds-list li:last-child a")).To(HaveText(fmt.Sprintf("#%d", build.ID)))
+
+					buildTimes, err := page.Find(".builds-list li:last-child .build-duration").Text()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(buildTimes).To(ContainSubstring("started"))
+					Expect(buildTimes).To(MatchRegexp("started \\ds ago"))
+					Expect(buildTimes).To(MatchRegexp("finished \\ds ago"))
+					Expect(buildTimes).To(MatchRegexp("duration \\ds"))
+
+					Eventually(page.Find(".builds-list li:last-child .inputs .resource-name")).Should(BeFound())
+					Expect(page.Find(".builds-list li:last-child .inputs .resource-name")).To(HaveText("my-resource"))
+					Expect(page.Find(".builds-list li:last-child .inputs .resource-version .dict-key")).To(BeFound())   // Should be "ref"
+					Expect(page.Find(".builds-list li:last-child .inputs .resource-version .dict-value")).To(BeFound()) // Should be "thing"
+
+					Expect(page.Find(".builds-list li:last-child .outputs .resource-name")).To(HaveText("some-output"))
+					Expect(page.Find(".builds-list li:last-child .outputs .resource-version .dict-key")).To(BeFound())   // Should be "thing"
+					Expect(page.Find(".builds-list li:last-child .outputs .resource-version .dict-value")).To(BeFound()) // Should be "output-version"
+				})
 			})
 		})
 	})

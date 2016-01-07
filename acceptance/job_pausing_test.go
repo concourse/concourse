@@ -125,23 +125,25 @@ var _ = Describe("Job Pausing", func() {
 				Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
 
 				// job-detail pausing
-				Expect(page.Find(".js-job .js-pauseUnpause").Click()).To(Succeed())
-				Eventually(page.Find(".js-job .js-pauseUnpause.enabled")).Should(BeFound())
-				Eventually(page.Find(".js-job .js-pauseUnpause.disabled")).ShouldNot(BeFound())
+				Eventually(page.Find("#job-state.btn-pause")).Should(BeFound())
+				Expect(page.Find("#job-state.btn-pause").Click()).To(Succeed())
+				Eventually(page.Find("#job-state.btn-pause.enabled")).Should(BeFound())
+				Eventually(page.Find("#job-state.btn-pause.disabled")).ShouldNot(BeFound())
 
 				page.Refresh()
 
-				Eventually(page.Find(".js-job .js-pauseUnpause.enabled")).Should(BeFound())
-				Eventually(page.Find(".js-job .js-pauseUnpause.disabled")).ShouldNot(BeFound())
+				Eventually(page.Find("#job-state.btn-pause.enabled")).Should(BeFound())
+				Eventually(page.Find("#job-state.btn-pause.disabled")).ShouldNot(BeFound())
 
 				Expect(page.Navigate(homepage())).To(Succeed())
 				Eventually(page.Find(".job.paused")).Should(BeFound())
 
 				// job-detail unpausing
 				Expect(page.Navigate(withPath("/jobs/job-name"))).To(Succeed())
-				Expect(page.Find(".js-job .js-pauseUnpause").Click()).To(Succeed())
-				Eventually(page.Find(".js-job .js-pauseUnpause.disabled")).Should(BeFound())
-				Eventually(page.Find(".js-job .js-pauseUnpause.enabled")).ShouldNot(BeFound())
+				Eventually(page.Find("#job-state.btn-pause")).Should(BeFound())
+				Expect(page.Find("#job-state.btn-pause").Click()).To(Succeed())
+				Eventually(page.Find("#job-state.btn-pause.disabled")).Should(BeFound())
+				Eventually(page.Find("#job-state.btn-pause.enabled")).ShouldNot(BeFound())
 			})
 		})
 	})

@@ -11,18 +11,22 @@ import Concourse.BuildStatus exposing (BuildStatus)
 type alias Build =
   { id : BuildId
   , name : String
-  , job : Maybe Job
+  , job : Maybe BuildJob
   , status : BuildStatus
-  , startedAt : Maybe Date
-  , finishedAt : Maybe Date
+  , duration : BuildDuration
   }
 
 type alias BuildId =
   Int
 
-type alias Job =
+type alias BuildJob =
   { name : String
   , pipelineName : String
+  }
+
+type alias BuildDuration =
+  { startedAt : Maybe Date
+  , finishedAt : Maybe Date
   }
 
 fetch : BuildId -> Task Http.Error Build
@@ -42,7 +46,7 @@ abort buildId =
   in
     Task.mapError promoteHttpError post `Task.andThen` handleResponse
 
-fetchJobBuilds : Job -> Maybe Page -> Task Http.Error (Paginated Build)
+fetchJobBuilds : BuildJob -> Maybe Page -> Task Http.Error (Paginated Build)
 fetchJobBuilds job page =
   let
     url = "/api/v1/pipelines/" ++ job.pipelineName ++ "/jobs/" ++ job.name ++ "/builds"
@@ -60,15 +64,16 @@ url build =
 
 decode : Json.Decode.Decoder Build
 decode =
-  Json.Decode.object6 Build
+  Json.Decode.object5 Build
     ("id" := Json.Decode.int)
     ("name" := Json.Decode.string)
-    (Json.Decode.maybe (Json.Decode.object2 Job
+    (Json.Decode.maybe (Json.Decode.object2 BuildJob
       ("job_name" := Json.Decode.string)
       ("pipeline_name" := Json.Decode.string)))
     ("status" := Concourse.BuildStatus.decode)
-    (Json.Decode.maybe ("start_time" := Json.Decode.map dateFromSeconds Json.Decode.float))
-    (Json.Decode.maybe ("end_time" := Json.Decode.map dateFromSeconds Json.Decode.float))
+    (Json.Decode.object2 BuildDuration
+      (Json.Decode.maybe ("start_time" := (Json.Decode.map dateFromSeconds Json.Decode.float)))
+      (Json.Decode.maybe ("end_time" := (Json.Decode.map dateFromSeconds Json.Decode.float))))
 
 handleResponse : Http.Response -> Task Http.Error ()
 handleResponse response =

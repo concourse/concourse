@@ -14,11 +14,11 @@ import Task exposing (Task)
 import Time exposing (Time)
 
 import BuildOutput
-import Concourse.Build exposing (Build)
+import Concourse.Build exposing (Build, BuildDuration)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Paginated)
-import Duration exposing (Duration)
 import LoadingIndicator
+import BuildDuration
 import Scroll
 
 type alias Model =
@@ -34,10 +34,11 @@ type alias Model =
   , output : Maybe BuildOutput.Model
   }
 
-type alias BuildDuration =
-  { startedAt : Maybe Date
-  , finishedAt : Maybe Date
-  }
+type StepRenderingState
+  = StepsLoading
+  | StepsLiveUpdating
+  | StepsComplete
+  | LoginRequired
 
 type Action
   = Noop
@@ -140,7 +141,7 @@ handleBuildFetched build model =
     withBuild =
       { model | build = Just build
               , status = build.status
-              , duration = BuildDuration build.startedAt build.finishedAt }
+              , duration = build.duration }
 
     fetchHistory =
       case (model.build, build.job) of
@@ -278,7 +279,7 @@ viewBuildHeader actions build {status, now, duration, history} =
       [ Html.div [class "build-header"]
           [ Html.div [class "build-actions fr"] [triggerButton, abortButton]
           , Html.h1 [] [buildTitle]
-          , viewBuildDuration now duration
+          , BuildDuration.view duration now
           ]
       , Html.ul
           [ on "mousewheel" decodeScrollEvent (scrollEvent actions)
@@ -302,45 +303,9 @@ viewHistory currentBuild currentStatus build =
     ]
     [Html.a [href (Concourse.Build.url build)] [Html.text (build.name)]]
 
-viewBuildDuration : Time.Time -> BuildDuration -> Html
-viewBuildDuration now duration =
-  Html.dl [class "build-times"] <|
-    case (duration.startedAt, duration.finishedAt) of
-      (Nothing, _) ->
-        []
-
-      (Just startedAt, Nothing) ->
-        labeledRelativeDate "started" now startedAt
-
-      (Just startedAt, Just finishedAt) ->
-        let
-          durationElmIssue = -- https://github.com/elm-lang/elm-compiler/issues/1223
-            Duration.between (Date.toTime startedAt) (Date.toTime finishedAt)
-        in
-          labeledRelativeDate "started" now startedAt ++
-            labeledRelativeDate "finished" now finishedAt ++
-            labeledDuration "duration" durationElmIssue
-
 durationTitle : Date -> List Html -> Html
 durationTitle date content =
   Html.div [title (Date.Format.format "%b" date)] content
-
-labeledRelativeDate : String -> Time -> Date -> List Html
-labeledRelativeDate label now date =
-  let
-    ago = Duration.between (Date.toTime date) now
-  in
-    [ Html.dt [] [Html.text label]
-    , Html.dd
-        [title (Date.Format.format "%b %d %Y %I:%M:%S %p" date)]
-        [Html.span [] [Html.text (Duration.format ago ++ " ago")]]
-    ]
-
-labeledDuration : String -> Duration ->  List Html
-labeledDuration label duration =
-  [ Html.dt [] [Html.text label]
-  , Html.dd [] [Html.span [] [Html.text (Duration.format duration)]]
-  ]
 
 scrollEvent : Signal.Address Action -> (Float, Float) -> Signal.Message
 scrollEvent actions delta =
@@ -359,7 +324,7 @@ fetchBuild delay buildId =
     |> Task.map BuildFetched
     |> Effects.task
 
-fetchBuildHistory : Concourse.Build.Job -> Maybe Concourse.Pagination.Page -> Effects Action
+fetchBuildHistory : Concourse.Build.BuildJob -> Maybe Concourse.Pagination.Page -> Effects Action
 fetchBuildHistory job page =
   Concourse.Build.fetchJobBuilds job page
     |> Task.toResult

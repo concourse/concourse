@@ -1,5 +1,9 @@
 @import (reference) "_vars.less";
 
+.dictionary {
+  border-collapse: collapse;
+}
+
 .list {
   list-style: none;
   margin: 0;
@@ -147,8 +151,7 @@
     box-sizing: border-box;
   }
 
-
-  .build-times {
+  .build-duration {
     float: left;
     width: 15%;
   }
@@ -159,28 +162,34 @@
   }
 
   .build-resources {
-    display: table;
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  .build-resources .dictionary {
+    float: right;
+  }
+
+  .build-duration .dict-value {
     width: 100%;
   }
 
   .resource {
-    display: table-row
   }
 
   .resource-name {
-    display: table-cell;
+    margin: 0px;
+    padding: 0 15px 0 0;
   }
   .resource-version {
-    display: table-cell;
     width: 100%;
-    text-align: right;
-    padding-left: 5px;
-    word-wrap: break-word;
+    padding: 0px;
+    margin: 0px;
   }
 
 
   @media (max-width: 1200px) {
-    .inputs, .outputs, .build-times{
+    .inputs, .outputs, .build-duration {
       width: 100%;
     }
 
