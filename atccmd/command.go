@@ -445,8 +445,7 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB)
 		})
 	}
 
-	if !cmd.Developer.DevelopmentMode &&
-		len(cmd.GitHubAuth.Organizations) > 0 ||
+	if len(cmd.GitHubAuth.Organizations) > 0 ||
 		len(gitHubTeams) > 0 ||
 		len(cmd.GitHubAuth.Users) > 0 {
 		gitHubAuth := db.GitHubAuth{
@@ -495,8 +494,7 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.D
 
 func (cmd *ATCCommand) updateBasicAuthCredentials(sqlDB db.DB) error {
 	var team db.Team
-	if !cmd.Developer.DevelopmentMode &&
-		cmd.BasicAuth.Username != "" && cmd.BasicAuth.Password != "" {
+	if cmd.BasicAuth.Username != "" && cmd.BasicAuth.Password != "" {
 		team = db.Team{
 			Name: atc.DefaultTeamName,
 			BasicAuth: db.BasicAuth{
