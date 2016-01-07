@@ -4,7 +4,7 @@ import "github.com/BurntSushi/migration"
 
 func AddWorkerIDToVolumes(tx migration.LimitedTx) error {
 	_, err := tx.Exec(`
-		ALTER TABLE volumes ADD COLUMN worker_id integer REFERENCES workers (id);
+		ALTER TABLE volumes ADD COLUMN worker_id integer;
 	`)
 	if err != nil {
 		return err

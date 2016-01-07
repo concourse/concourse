@@ -108,10 +108,6 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 			ttlForVol = 0 // live forever
 		}
 
-		if volumeToExpire.TTL == ttlForVol {
-			continue
-		}
-
 		volumeWorker, err := bc.workerClient.GetWorker(volumeToExpire.WorkerID)
 		if err != nil {
 			bc.logger.Info("could-not-locate-worker", lager.Data{
@@ -119,6 +115,10 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 				"worker-id": volumeToExpire.WorkerID,
 			})
 			bc.db.ReapVolume(volumeToExpire.Handle)
+			continue
+		}
+
+		if volumeToExpire.TTL == ttlForVol {
 			continue
 		}
 
