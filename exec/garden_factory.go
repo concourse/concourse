@@ -65,8 +65,8 @@ func (factory *gardenFactory) Get(
 	workerMetadata worker.Metadata,
 	delegate GetDelegate,
 	resourceConfig atc.ResourceConfig,
-	params atc.Params,
 	tags atc.Tags,
+	params atc.Params,
 	version atc.Version,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")

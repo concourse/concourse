@@ -11,7 +11,7 @@ import (
 )
 
 type FakeFactory struct {
-	GetStub        func(lager.Logger, exec.StepMetadata, exec.SourceName, worker.Identifier, worker.Metadata, exec.GetDelegate, atc.ResourceConfig, atc.Params, atc.Tags, atc.Version) exec.StepFactory
+	GetStub        func(lager.Logger, exec.StepMetadata, exec.SourceName, worker.Identifier, worker.Metadata, exec.GetDelegate, atc.ResourceConfig, atc.Tags, atc.Params, atc.Version) exec.StepFactory
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1  lager.Logger
@@ -21,8 +21,8 @@ type FakeFactory struct {
 		arg5  worker.Metadata
 		arg6  exec.GetDelegate
 		arg7  atc.ResourceConfig
-		arg8  atc.Params
-		arg9  atc.Tags
+		arg8  atc.Tags
+		arg9  atc.Params
 		arg10 atc.Version
 	}
 	getReturns struct {
@@ -76,7 +76,7 @@ type FakeFactory struct {
 	}
 }
 
-func (fake *FakeFactory) Get(arg1 lager.Logger, arg2 exec.StepMetadata, arg3 exec.SourceName, arg4 worker.Identifier, arg5 worker.Metadata, arg6 exec.GetDelegate, arg7 atc.ResourceConfig, arg8 atc.Params, arg9 atc.Tags, arg10 atc.Version) exec.StepFactory {
+func (fake *FakeFactory) Get(arg1 lager.Logger, arg2 exec.StepMetadata, arg3 exec.SourceName, arg4 worker.Identifier, arg5 worker.Metadata, arg6 exec.GetDelegate, arg7 atc.ResourceConfig, arg8 atc.Tags, arg9 atc.Params, arg10 atc.Version) exec.StepFactory {
 	fake.getMutex.Lock()
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1  lager.Logger
@@ -86,8 +86,8 @@ func (fake *FakeFactory) Get(arg1 lager.Logger, arg2 exec.StepMetadata, arg3 exe
 		arg5  worker.Metadata
 		arg6  exec.GetDelegate
 		arg7  atc.ResourceConfig
-		arg8  atc.Params
-		arg9  atc.Tags
+		arg8  atc.Tags
+		arg9  atc.Params
 		arg10 atc.Version
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10})
 	fake.getMutex.Unlock()
@@ -104,7 +104,7 @@ func (fake *FakeFactory) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeFactory) GetArgsForCall(i int) (lager.Logger, exec.StepMetadata, exec.SourceName, worker.Identifier, worker.Metadata, exec.GetDelegate, atc.ResourceConfig, atc.Params, atc.Tags, atc.Version) {
+func (fake *FakeFactory) GetArgsForCall(i int) (lager.Logger, exec.StepMetadata, exec.SourceName, worker.Identifier, worker.Metadata, exec.GetDelegate, atc.ResourceConfig, atc.Tags, atc.Params, atc.Version) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5, fake.getArgsForCall[i].arg6, fake.getArgsForCall[i].arg7, fake.getArgsForCall[i].arg8, fake.getArgsForCall[i].arg9, fake.getArgsForCall[i].arg10

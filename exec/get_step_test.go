@@ -117,8 +117,8 @@ var _ = Describe("GardenFactory", func() {
 				workerMetadata,
 				getDelegate,
 				resourceConfig,
-				params,
 				tags,
+				params,
 				version,
 			).Using(inStep, repo)
 

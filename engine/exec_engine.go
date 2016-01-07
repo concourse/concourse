@@ -3,6 +3,7 @@ package engine
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"os"
 
@@ -207,38 +208,27 @@ func (build *execBuild) buildStepFactory(logger lager.Logger, plan atc.Plan) exe
 	return exec.Identity{}
 }
 
-func (build *execBuild) taskIdentifier(name string, id atc.PlanID, pipelineName string) (worker.Identifier, worker.Metadata) {
-	return worker.Identifier{
-			BuildID: build.buildID,
-			PlanID:  id,
-		},
-		worker.Metadata{
-			StepName:     name,
-			Type:         db.ContainerTypeTask,
-			PipelineName: pipelineName,
-		}
-}
+func (build *execBuild) stepIdentifier(
+	logger lager.Logger,
+	stepName string,
+	planID atc.PlanID,
+	pipelineName string,
+	attempts []int,
+	typ string,
+) (worker.Identifier, worker.Metadata) {
+	stepType, err := db.ContainerTypeFromString(typ)
+	if err != nil {
+		logger.Debug(fmt.Sprintf("Invalid step type: %s", typ))
+	}
 
-func (build *execBuild) getIdentifier(name string, id atc.PlanID, pipelineName string) (worker.Identifier, worker.Metadata) {
 	return worker.Identifier{
 			BuildID: build.buildID,
-			PlanID:  id,
+			PlanID:  planID,
 		},
 		worker.Metadata{
-			StepName:     name,
-			Type:         db.ContainerTypeGet,
+			StepName:     stepName,
+			Type:         stepType,
 			PipelineName: pipelineName,
-		}
-}
-
-func (build *execBuild) putIdentifier(name string, id atc.PlanID, pipelineName string) (worker.Identifier, worker.Metadata) {
-	return worker.Identifier{
-			BuildID: build.buildID,
-			PlanID:  id,
-		},
-		worker.Metadata{
-			StepName:     name,
-			Type:         db.ContainerTypePut,
-			PipelineName: pipelineName,
+			Attempts:     attempts,
 		}
 }

@@ -1,7 +1,8 @@
 package atc
 
 type Plan struct {
-	ID PlanID `json:"id"`
+	ID       PlanID `json:"id"`
+	Attempts []int  `json:"attempts,omitempty"`
 
 	Aggregate    *AggregatePlan    `json:"aggregate,omitempty"`
 	Do           *DoPlan           `json:"do,omitempty"`

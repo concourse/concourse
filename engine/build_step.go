@@ -81,7 +81,14 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		return exec.Identity{}
 	}
 
-	workerID, workerMetadata := build.taskIdentifier(plan.Task.Name, plan.ID, plan.Task.Pipeline)
+	workerID, workerMetadata := build.stepIdentifier(
+		logger.Session("taskIdentifier"),
+		plan.Task.Name,
+		plan.ID,
+		plan.Task.Pipeline,
+		plan.Attempts,
+		"task",
+	)
 
 	return build.factory.Task(
 		logger,
@@ -100,7 +107,14 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		"name": plan.Get.Name,
 	})
 
-	workerID, workerMetadata := build.getIdentifier(plan.Get.Name, plan.ID, plan.Get.Pipeline)
+	workerID, workerMetadata := build.stepIdentifier(
+		logger.Session("stepIdentifier"),
+		plan.Get.Name,
+		plan.ID,
+		plan.Get.Pipeline,
+		plan.Attempts,
+		"get",
+	)
 
 	return build.factory.Get(
 		logger,
@@ -114,8 +128,8 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 			Type:   plan.Get.Type,
 			Source: plan.Get.Source,
 		},
-		plan.Get.Params,
 		plan.Get.Tags,
+		plan.Get.Params,
 		plan.Get.Version,
 	)
 }
@@ -125,7 +139,14 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		"name": plan.Put.Name,
 	})
 
-	workerID, workerMetadata := build.putIdentifier(plan.Put.Name, plan.ID, plan.Put.Pipeline)
+	workerID, workerMetadata := build.stepIdentifier(
+		logger.Session("stepIdentifier"),
+		plan.Put.Name,
+		plan.ID,
+		plan.Put.Pipeline,
+		plan.Attempts,
+		"put",
+	)
 
 	return build.factory.Put(
 		logger,
@@ -149,7 +170,14 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 	})
 
 	getPlan := plan.DependentGet.GetPlan()
-	workerID, workerMetadata := build.getIdentifier(getPlan.Name, plan.ID, plan.DependentGet.Pipeline)
+	workerID, workerMetadata := build.stepIdentifier(
+		logger.Session("stepIdentifier"),
+		getPlan.Name,
+		plan.ID,
+		plan.DependentGet.Pipeline,
+		plan.Attempts,
+		"get",
+	)
 
 	return build.factory.DependentGet(
 		logger,
@@ -173,7 +201,9 @@ func (build *execBuild) buildRetryStep(logger lager.Logger, plan atc.Plan) exec.
 
 	step := exec.Retry{}
 
-	for _, innerPlan := range *plan.Retry {
+	for index, innerPlan := range *plan.Retry {
+		innerPlan.Attempts = append(plan.Attempts, index+1)
+
 		stepFactory := build.buildStepFactory(logger, innerPlan)
 		step = append(step, stepFactory)
 	}

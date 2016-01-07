@@ -30,6 +30,7 @@ type ContainerMetadata struct {
 	CheckType            string
 	CheckSource          atc.Source
 	EnvironmentVariables []string
+	Attempts             []int
 }
 
 type Container struct {

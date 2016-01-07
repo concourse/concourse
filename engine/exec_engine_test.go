@@ -45,6 +45,7 @@ var _ = Describe("ExecEngine", func() {
 			expectedMetadata engine.StepMetadata
 
 			outputPlan atc.Plan
+
 			privileged bool
 			taskConfig *atc.TaskConfig
 
@@ -85,42 +86,6 @@ var _ = Describe("ExecEngine", func() {
 				JobName:      "some-job",
 				PipelineName: "some-pipeline",
 			}
-
-			taskConfig = &atc.TaskConfig{
-				Image:  "some-image",
-				Params: map[string]string{"PARAM": "value"},
-				Run: atc.TaskRunConfig{
-					Path: "some-path",
-					Args: []string{"some", "args"},
-				},
-				Inputs: []atc.TaskInputConfig{
-					{Name: "some-input"},
-				},
-			}
-
-			taskConfigPath = "some-input/build.yml"
-
-			outputPlan = planFactory.NewPlan(atc.OnSuccessPlan{
-				Step: planFactory.NewPlan(atc.PutPlan{
-					Name:     "some-put",
-					Resource: "some-output-resource",
-					Tags:     []string{"some", "putget", "tags"},
-					Type:     "put",
-					Source:   atc.Source{"some": "source"},
-					Params:   atc.Params{"some": "params"},
-					Pipeline: "some-pipeline",
-				}),
-				Next: planFactory.NewPlan(atc.DependentGetPlan{
-					Name:     "some-get",
-					Resource: "some-input-resource",
-					Tags:     []string{"some", "putget", "tags"},
-					Type:     "get",
-					Source:   atc.Source{"some": "source"},
-					Params:   atc.Params{"another": "params"},
-				}),
-			})
-
-			privileged = false
 
 			fakeDelegate = new(fakes.FakeBuildDelegate)
 			fakeDelegateFactory.DelegateReturns(fakeDelegate)
@@ -329,9 +294,156 @@ var _ = Describe("ExecEngine", func() {
 			})
 		})
 
+		Context("with a retry plan", func() {
+			var (
+				getPlan      atc.Plan
+				taskPlan     atc.Plan
+				retryPlan    atc.Plan
+				retryPlanTwo atc.Plan
+				err          error
+			)
+			BeforeEach(func() {
+				getPlan = planFactory.NewPlan(atc.GetPlan{
+					Name:     "some-get",
+					Resource: "some-input-resource",
+					Type:     "get",
+					Source:   atc.Source{"some": "source"},
+					Params:   atc.Params{"some": "params"},
+					Pipeline: "some-pipeline",
+				})
+
+				taskPlan = planFactory.NewPlan(atc.TaskPlan{
+					Name:       "some-task",
+					Privileged: false,
+					Tags:       atc.Tags{"some", "task", "tags"},
+					Pipeline:   "some-pipeline",
+					ConfigPath: "some-config-path",
+				})
+
+				retryPlanTwo = planFactory.NewPlan(atc.RetryPlan{
+					taskPlan,
+					taskPlan,
+				})
+
+				retryPlan = planFactory.NewPlan(atc.RetryPlan{
+					getPlan,
+					retryPlanTwo,
+					getPlan,
+				})
+
+				build, err = execEngine.CreateBuild(logger, buildModel, retryPlan)
+				Expect(err).NotTo(HaveOccurred())
+				build.Resume(logger)
+				Expect(fakeFactory.GetCallCount()).To(Equal(2))
+				Expect(fakeFactory.TaskCallCount()).To(Equal(2))
+			})
+
+			It("constructs the retry correctly", func() {
+				Expect(*retryPlan.Retry).To(HaveLen(3))
+			})
+
+			It("constructss the first get correctly", func() {
+				logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, params, _ := fakeFactory.GetArgsForCall(0)
+				Expect(logger).NotTo(BeNil())
+				Expect(metadata).To(Equal(expectedMetadata))
+				Expect(workerMetadata).To(Equal(worker.Metadata{
+					ResourceName: "",
+					Type:         db.ContainerTypeGet,
+					StepName:     "some-get",
+					PipelineName: "some-pipeline",
+					Attempts:     []int{1},
+				}))
+				Expect(workerID).To(Equal(worker.Identifier{
+					BuildID: 42,
+					PlanID:  getPlan.ID,
+				}))
+
+				Expect(tags).To(BeEmpty())
+				Expect(delegate).To(Equal(fakeInputDelegate))
+
+				Expect(sourceName).To(Equal(exec.SourceName("some-get")))
+				Expect(resourceConfig.Name).To(Equal("some-input-resource"))
+				Expect(resourceConfig.Type).To(Equal("get"))
+				Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
+				Expect(params).To(Equal(atc.Params{"some": "params"}))
+			})
+
+			It("constructs the second get correctly", func() {
+				logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, params, _ := fakeFactory.GetArgsForCall(1)
+				Expect(logger).NotTo(BeNil())
+				Expect(metadata).To(Equal(expectedMetadata))
+				Expect(workerMetadata).To(Equal(worker.Metadata{
+					ResourceName: "",
+					Type:         db.ContainerTypeGet,
+					StepName:     "some-get",
+					PipelineName: "some-pipeline",
+					Attempts:     []int{3},
+				}))
+				Expect(workerID).To(Equal(worker.Identifier{
+					BuildID: 42,
+					PlanID:  getPlan.ID,
+				}))
+
+				Expect(tags).To(BeEmpty())
+				Expect(delegate).To(Equal(fakeInputDelegate))
+
+				Expect(sourceName).To(Equal(exec.SourceName("some-get")))
+				Expect(resourceConfig.Name).To(Equal("some-input-resource"))
+				Expect(resourceConfig.Type).To(Equal("get"))
+				Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
+				Expect(params).To(Equal(atc.Params{"some": "params"}))
+			})
+
+			It("constructs nested retries correctly", func() {
+				Expect(*retryPlanTwo.Retry).To(HaveLen(2))
+			})
+
+			It("constructs nested steps correctly", func() {
+				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource := fakeFactory.TaskArgsForCall(0)
+				Expect(logger).NotTo(BeNil())
+				Expect(sourceName).To(Equal(exec.SourceName("some-task")))
+				Expect(workerMetadata).To(Equal(worker.Metadata{
+					ResourceName: "",
+					Type:         db.ContainerTypeTask,
+					StepName:     "some-task",
+					PipelineName: "some-pipeline",
+					Attempts:     []int{2, 1},
+				}))
+				Expect(workerID).To(Equal(worker.Identifier{
+					BuildID: 42,
+					PlanID:  taskPlan.ID,
+				}))
+
+				Expect(delegate).To(Equal(fakeExecutionDelegate))
+				Expect(privileged).To(Equal(exec.Privileged(false)))
+				Expect(tags).To(Equal(atc.Tags{"some", "task", "tags"}))
+				Expect(configSource).To(Equal(exec.FileConfigSource{"some-config-path"}))
+
+				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource = fakeFactory.TaskArgsForCall(1)
+				Expect(logger).NotTo(BeNil())
+				Expect(sourceName).To(Equal(exec.SourceName("some-task")))
+				Expect(workerMetadata).To(Equal(worker.Metadata{
+					ResourceName: "",
+					Type:         db.ContainerTypeTask,
+					StepName:     "some-task",
+					PipelineName: "some-pipeline",
+					Attempts:     []int{2, 2},
+				}))
+				Expect(workerID).To(Equal(worker.Identifier{
+					BuildID: 42,
+					PlanID:  taskPlan.ID,
+				}))
+
+				Expect(delegate).To(Equal(fakeExecutionDelegate))
+				Expect(privileged).To(Equal(exec.Privileged(false)))
+				Expect(tags).To(Equal(atc.Tags{"some", "task", "tags"}))
+				Expect(configSource).To(Equal(exec.FileConfigSource{"some-config-path"}))
+			})
+		})
+
 		Context("with a basic plan", func() {
+			var plan atc.Plan
 			Context("that contains inputs", func() {
-				var plan atc.Plan
 				BeforeEach(func() {
 					getPlan := atc.GetPlan{
 						Name:     "some-input",
@@ -355,7 +467,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
-					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, params, tags, version := fakeFactory.GetArgsForCall(0)
+					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, params, version := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -399,8 +511,6 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			Context("that contains tasks", func() {
-				var plan atc.Plan
-
 				BeforeEach(func() {
 					privileged = false
 
@@ -417,8 +527,6 @@ var _ = Describe("ExecEngine", func() {
 							{Name: "some-input"},
 						},
 					}
-
-					taskConfigPath = "some-input/build.yml"
 
 					taskPlan := atc.TaskPlan{
 						Name:       "some-task",

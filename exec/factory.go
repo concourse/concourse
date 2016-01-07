@@ -21,8 +21,8 @@ type Factory interface {
 		worker.Metadata,
 		GetDelegate,
 		atc.ResourceConfig,
-		atc.Params,
 		atc.Tags,
+		atc.Params,
 		atc.Version,
 	) StepFactory
 

@@ -12,5 +12,5 @@ type Container struct {
 	ResourceName         string   `json:"resource_name,omitempty"`
 	WorkingDirectory     string   `json:"working_directory,omitempty"`
 	EnvironmentVariables []string `json:"env_variables,omitempty"`
-	Attempts             int      `json:"attempts,omitempty"`
+	Attempts             []int    `json:"attempts,omitempty"`
 }
