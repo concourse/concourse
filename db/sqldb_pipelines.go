@@ -171,7 +171,9 @@ func (state PipelinePausedState) Bool() *bool {
 	}
 }
 
-func (db *SQLDB) SaveConfig(teamName string, pipelineName string, config atc.Config, from ConfigVersion, pausedState PipelinePausedState) (bool, error) {
+func (db *SQLDB) SaveConfig(
+	teamName string, pipelineName string, config atc.Config, from ConfigVersion, pausedState PipelinePausedState,
+) (bool, error) {
 	payload, err := json.Marshal(config)
 	if err != nil {
 		return false, err
@@ -261,7 +263,39 @@ func (db *SQLDB) SaveConfig(teamName string, pipelineName string, config atc.Con
 		}
 	}
 
+	row := tx.QueryRow(`
+		SELECT id
+		FROM pipelines
+		WHERE name = $1
+	`, pipelineName)
+
+	var pipelineID int
+
+	err = row.Scan(&pipelineID)
+	if err != nil {
+		return false, err
+	}
+
+	for _, resource := range config.Resources {
+		err = db.registerResource(tx, resource.Name, pipelineID)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	return created, tx.Commit()
+}
+
+func (db *SQLDB) registerResource(tx *sql.Tx, name string, pipelineID int) error {
+	_, err := tx.Exec(`
+		INSERT INTO resources (name, pipeline_id)
+		SELECT $1, $2
+		WHERE NOT EXISTS (
+			SELECT 1 FROM resources WHERE name = $1 AND pipeline_id = $2
+		)
+	`, name, pipelineID)
+
+	return swallowUniqueViolation(err)
 }
 
 func scanPipeline(rows scannable) (SavedPipeline, error) {

@@ -33,6 +33,7 @@ type PipelineDB interface {
 
 	GetResource(resourceName string) (SavedResource, error)
 	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
+	GetResources() ([]SavedResource, error)
 
 	PauseResource(resourceName string) error
 	UnpauseResource(resourceName string) error
@@ -160,6 +161,38 @@ func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, bool, error) {
 	}
 
 	return config, ConfigVersion(version), true, nil
+}
+
+func (pdb *pipelineDB) GetResources() ([]SavedResource, error) {
+	rows, err := pdb.conn.Query(`
+			SELECT id, name, check_error, paused
+			FROM resources
+			WHERE pipeline_id = $1
+	`, pdb.ID)
+
+	defer rows.Close()
+
+	resources := []SavedResource{}
+
+	for rows.Next() {
+		var checkErr sql.NullString
+		var resource SavedResource
+
+		err = rows.Scan(&resource.ID, &resource.Name, &checkErr, &resource.Paused)
+		if err != nil {
+			return []SavedResource{}, err
+		}
+
+		if checkErr.Valid {
+			resource.CheckError = errors.New(checkErr.String)
+		}
+
+		resource.PipelineName = pdb.Name
+
+		resources = append(resources, resource)
+	}
+
+	return resources, nil
 }
 
 func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {

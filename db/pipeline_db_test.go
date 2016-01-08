@@ -414,8 +414,54 @@ var _ = Describe("PipelineDB", func() {
 
 		BeforeEach(func() {
 			var err error
-			resource, err = pipelineDB.GetResource("some-resource")
+			resource, err = pipelineDB.GetResource(resourceName)
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("can get a list of all currently saved resources in the pipeline", func() {
+			// TODO: Test zero case when GetResource doesn't create a resource...
+
+			haveNames := func(fetchedResources []db.SavedResource) []string {
+				names := []string{}
+
+				for _, r := range fetchedResources {
+					names = append(names, r.Name)
+				}
+
+				return names
+			}
+
+			By("returning the list of resources")
+			pipelineDB.SetResourceCheckError(resource, errors.New("failing"))
+
+			resources, err := pipelineDB.GetResources()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(resources).To(HaveLen(1))
+			Expect(resources).To(WithTransform(haveNames, ConsistOf(resourceName)))
+
+			Expect(resources[0].Paused).To(BeFalse())
+			Expect(resources[0].CheckError).To(MatchError("failing"))
+
+			By("returning the list of updated resources when you add one")
+			resource, err = pipelineDB.GetResource("another-resource")
+			Expect(err).NotTo(HaveOccurred())
+
+			resources, err = pipelineDB.GetResources()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(resources).To(HaveLen(2))
+			Expect(resources).To(WithTransform(haveNames, ConsistOf(resourceName, "another-resource")))
+
+			By("not being affected by a different pipeline")
+			resource, err = otherPipelineDB.GetResource("different-pipeline")
+			Expect(err).NotTo(HaveOccurred())
+
+			resources, err = pipelineDB.GetResources()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(resources).To(HaveLen(2))
+			Expect(resources).To(WithTransform(haveNames, ConsistOf(resourceName, "another-resource")))
 		})
 
 		It("can load up versioned resource information relevant to scheduling", func() {

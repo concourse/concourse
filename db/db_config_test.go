@@ -182,6 +182,22 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 
 			Expect(pipeline.Paused).To(BeTrue())
 		})
+
+		It("creates all of the resources from the pipeline in the database", func() {
+			_, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(team.Name, pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+
+			resources, err := pipelineDB.GetResources()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(resources).To(HaveLen(1))
+			Expect(resources[0]).To(WithTransform(func(resource db.SavedResource) string {
+				return resource.Name
+			}, Equal("some-resource")))
+		})
 	})
 
 	Context("on updates", func() {
