@@ -13,11 +13,6 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type BuildWithInputsOutputs struct {
-	Build     atc.Build
-	Resources atc.BuildInputsOutputs
-}
-
 type handler struct {
 	logger lager.Logger
 
@@ -35,22 +30,16 @@ func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *
 }
 
 type TemplateData struct {
-	Job atc.Job
+	JobName string
+	Since   int
+	Until   int
 
-	Builds     []BuildWithInputsOutputs
-	Pagination concourse.Pagination
-	Since      int
-	Until      int
-
-	GroupStates []group.State
-
-	CurrentBuild *atc.Build
+	GroupStates  []group.State
 	PipelineName string
 }
 
 var ErrConfigNotFound = errors.New("could not find config")
 var ErrJobConfigNotFound = errors.New("could not find job")
-var Err = errors.New("could not find job")
 
 func FetchTemplateData(
 	pipelineName string,
@@ -67,7 +56,7 @@ func FetchTemplateData(
 		return TemplateData{}, ErrConfigNotFound
 	}
 
-	job, jobFound, err := client.Job(pipelineName, jobName)
+	_, jobFound, err := client.Job(pipelineName, jobName)
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -76,45 +65,22 @@ func FetchTemplateData(
 		return TemplateData{}, ErrJobConfigNotFound
 	}
 
-	bs, pagination, _, err := client.JobBuilds(pipelineName, jobName, page)
-	if err != nil {
-		return TemplateData{}, err
-	}
-
-	var bsr []BuildWithInputsOutputs
-
-	for _, build := range bs {
-		buildInputsOutputs, _, err := client.BuildResources(build.ID)
-		if err != nil {
-			return TemplateData{}, err
-		}
-
-		bsr = append(bsr, BuildWithInputsOutputs{
-			Build:     build,
-			Resources: buildInputsOutputs,
-		})
-	}
-
 	return TemplateData{
 		PipelineName: pipelineName,
-		Job:          job,
+		JobName:      jobName,
 
-		Builds:     bsr,
-		Pagination: pagination,
-		Since:      page.Since,
-		Until:      page.Until,
+		Since: page.Since,
+		Until: page.Until,
 
 		GroupStates: group.States(pipeline.Groups, func(g atc.GroupConfig) bool {
 			for _, groupJob := range g.Jobs {
-				if groupJob == job.Name {
+				if groupJob == jobName {
 					return true
 				}
 			}
 
 			return false
 		}),
-
-		CurrentBuild: job.FinishedBuild,
 	}, nil
 }
 

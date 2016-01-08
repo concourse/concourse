@@ -1,4 +1,4 @@
-{{define "title"}}{{.Job.Name}} - Concourse{{end}}
+{{define "title"}}{{.JobName}} - Concourse{{end}}
 
 {{define "body"}}
 <div id="elm-app"></div>
@@ -7,6 +7,6 @@
 <script src="{{asset "concourse.js"}}"></script>
 <script src="{{asset "elm.min.js"}}"></script>
 <script type="text/javascript">
-Elm.embed(Elm.JobPage, document.getElementById("elm-app"), {jobName: {{.Job.Name}}, pipelineName: {{.PipelineName}}, pageSince: {{.Since}}, pageUntil: {{.Until}}});
+Elm.embed(Elm.JobPage, document.getElementById("elm-app"), {jobName: {{.JobName}}, pipelineName: {{.PipelineName}}, pageSince: {{.Since}}, pageUntil: {{.Until}}});
 </script>
 {{end}}
