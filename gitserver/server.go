@@ -14,8 +14,6 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-const gardenDeploymentIP = "10.244.15.2"
-
 type Server struct {
 	gardenClient garden.Client
 	container    garden.Container
@@ -82,13 +80,13 @@ touch .git/git-daemon-export-ok
 	Expect(err).NotTo(HaveOccurred())
 	Expect(process.Wait()).To(Equal(0))
 
-	hostPort, _, err := container.NetIn(0, 9418)
+	info, err := container.Info()
 	Expect(err).NotTo(HaveOccurred())
 
 	return &Server{
 		gardenClient: gardenClient,
 		container:    container,
-		addr:         fmt.Sprintf("%s:%d", gardenDeploymentIP, hostPort),
+		addr:         fmt.Sprintf("%s:%d", info.ContainerIP, 9418),
 	}
 }
 

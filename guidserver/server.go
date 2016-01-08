@@ -13,8 +13,6 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-const gardenDeploymentIP = "10.244.15.2"
-
 const amazingRubyServer = `
 require 'webrick'
 require 'json'
@@ -70,10 +68,10 @@ func Start(helperRootfs string, gardenClient garden.Client) *Server {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	hostPort, _, err := container.NetIn(0, 8080)
+	info, err := container.Info()
 	Expect(err).NotTo(HaveOccurred())
 
-	addr := fmt.Sprintf("%s:%d", gardenDeploymentIP, hostPort)
+	addr := fmt.Sprintf("%s:%d", info.ContainerIP, 8080)
 
 	Eventually(func() (int, error) {
 		curl, err := container.Run(garden.ProcessSpec{
