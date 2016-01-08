@@ -157,7 +157,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	jwtReader := cmd.createUserContextReader(&signingKey.PublicKey)
+	jwtReader := auth.JWTReader{
+		PublicKey: &signingKey.PublicKey,
+	}
 
 	err = cmd.configureOAuthProviders(logger, sqlDB)
 	if err != nil {
@@ -508,16 +510,6 @@ func (cmd *ATCCommand) updateBasicAuthCredentials(sqlDB db.DB) error {
 
 	_, err := sqlDB.UpdateTeamBasicAuth(team)
 	return err
-}
-
-func (cmd *ATCCommand) createUserContextReader(publicKey *rsa.PublicKey) auth.UserContextReader {
-	if cmd.Developer.DevelopmentMode {
-		return auth.NoopReader{}
-	}
-
-	return auth.JWTReader{
-		PublicKey: publicKey,
-	}
 }
 
 func (cmd *ATCCommand) constructEngine(
