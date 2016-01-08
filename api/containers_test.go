@@ -35,6 +35,7 @@ var _ = Describe("Pipelines API", func() {
 		workerName       = "some-worker-guid"
 		workingDirectory = "/tmp/build/my-favorite-guid"
 		envVariables     = []string{"VAR1=VAL1"}
+		attempts         = []int{1, 5}
 
 		req            *http.Request
 		fakeContainer1 db.Container
@@ -52,6 +53,7 @@ var _ = Describe("Pipelines API", func() {
 				WorkerName:           workerName,
 				WorkingDirectory:     workingDirectory,
 				EnvironmentVariables: envVariables,
+				Attempts:             attempts,
 			},
 			Handle: handle,
 		}
@@ -140,7 +142,8 @@ var _ = Describe("Pipelines API", func() {
 									"step_type": "task",
 									"step_name": "some-step",
 									"working_directory": "/tmp/build/my-favorite-guid",
-									"env_variables": ["VAR1=VAL1"]
+									"env_variables": ["VAR1=VAL1"],
+									"attempts": [1,5]
 								},
 								{
 									"id": "some-other-handle",

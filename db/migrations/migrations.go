@@ -77,4 +77,5 @@ var Migrations = []migration.Migrator{
 	RemoveVolumesWithExpiredWorkers,
 	AddWorkerIDToVolumes,
 	RemoveWorkerIds,
+	AddAttemptsToContainers,
 }

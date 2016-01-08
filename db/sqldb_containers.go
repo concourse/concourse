@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/concourse/atc"
 )
 
-const containerMetadataColumns = "handle, expires_at, b.id as build_id, b.name as build_name, r.name as resource_name, worker_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, check_type, check_source, env_variables"
+const containerMetadataColumns = "handle, expires_at, b.id as build_id, b.name as build_name, r.name as resource_name, worker_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, check_type, check_source, env_variables, attempts"
 const containerIdentifierColumns = "handle, expires_at, worker_name, resource_id, build_id, plan_id"
 
 func (db *SQLDB) FindContainersByMetadata(id ContainerMetadata) ([]Container, error) {
@@ -247,11 +248,22 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		workerName = container.ContainerIdentifier.WorkerName
 	}
 
+	var attempts string
+	for _, attemptNumber := range container.Attempts {
+		attemptInt := strconv.Itoa(attemptNumber)
+
+		if attempts == "" {
+			attempts = attemptInt
+		} else {
+			attempts = attempts + "," + attemptInt
+		}
+	}
+
 	defer tx.Rollback()
 
 	newContainer, err := scanContainerIdentifier(tx.QueryRow(`
-		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, check_type, check_source, plan_id, working_directory, env_variables)
-		VALUES ($1, $2, $3, $4, $5, $6,  $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13)
+		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, check_type, check_source, plan_id, working_directory, env_variables, attempts)
+		VALUES ($1, $2, $3, $4, $5, $6,  $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14)
 		RETURNING `+containerIdentifierColumns,
 		container.Handle,
 		resourceID,
@@ -266,6 +278,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		string(container.PlanID),
 		container.WorkingDirectory,
 		envVariables,
+		attempts,
 	))
 
 	if err != nil {
@@ -347,6 +360,7 @@ func scanContainerMetadata(row scannable) (Container, error) {
 		jobName          sql.NullString
 		buildID          sql.NullInt64
 		buildName        sql.NullString
+		attempts         sql.NullString
 	)
 	container := Container{}
 
@@ -366,6 +380,7 @@ func scanContainerMetadata(row scannable) (Container, error) {
 		&container.CheckType,
 		&checkSourceBlob,
 		&envVariablesBlob,
+		&attempts,
 	)
 	if err != nil {
 		return Container{}, err
@@ -408,6 +423,16 @@ func scanContainerMetadata(row scannable) (Container, error) {
 	err = json.Unmarshal(envVariablesBlob, &container.EnvironmentVariables)
 	if err != nil {
 		return Container{}, err
+	}
+
+	if attempts.Valid {
+		for _, item := range strings.Split(attempts.String, ",") {
+			attemptInt, err := strconv.Atoi(item)
+			if err != nil {
+				return Container{}, err
+			}
+			container.Attempts = append(container.Attempts, attemptInt)
+		}
 	}
 
 	return container, nil

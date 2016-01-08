@@ -125,7 +125,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(found).To(BeFalse())
 	})
 
-	It("can create and get a step container info object", func() {
+	FIt("can create and get a step container info object", func() {
 		expectedContainer := db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{
 				PlanID: "some-plan-id",
@@ -137,6 +137,7 @@ var _ = Describe("Keeping track of containers", func() {
 				WorkerName:           "some-worker",
 				WorkingDirectory:     "tmp/build/some-guid",
 				EnvironmentVariables: []string{"VAR1=val1", "VAR2=val2"},
+				Attempts:             []int{1, 2, 4},
 			},
 			Handle: "some-handle",
 		}
@@ -158,18 +159,19 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.ContainerIdentifier.BuildID).To(Equal(createdContainer.ContainerIdentifier.BuildID))
 		Expect(actualContainer.PlanID).To(Equal(createdContainer.PlanID))
 
-		Expect(actualContainer.Handle).To(Equal("some-handle"))
-		Expect(actualContainer.StepName).To(Equal("some-step-container"))
+		Expect(actualContainer.Handle).To(Equal(expectedContainer.Handle))
+		Expect(actualContainer.StepName).To(Equal(expectedContainer.StepName))
 		Expect(actualContainer.ResourceName).To(Equal(""))
 		Expect(actualContainer.PipelineID).To(Equal(pipelineID))
-		Expect(actualContainer.PipelineName).To(Equal("some-pipeline"))
+		Expect(actualContainer.PipelineName).To(Equal(expectedContainer.PipelineName))
 		Expect(actualContainer.ContainerMetadata.BuildID).To(BeNumerically(">", 0))
 		Expect(actualContainer.Type).To(Equal(db.ContainerTypeTask))
-		Expect(actualContainer.ContainerMetadata.WorkerName).To(Equal("some-worker"))
-		Expect(actualContainer.WorkingDirectory).To(Equal("tmp/build/some-guid"))
+		Expect(actualContainer.WorkerName).To(Equal(expectedContainer.WorkerName))
+		Expect(actualContainer.WorkingDirectory).To(Equal(expectedContainer.WorkingDirectory))
 		Expect(actualContainer.CheckType).To(BeEmpty())
 		Expect(actualContainer.CheckSource).To(BeEmpty())
-		Expect(actualContainer.EnvironmentVariables).To(Equal([]string{"VAR1=val1", "VAR2=val2"}))
+		Expect(actualContainer.EnvironmentVariables).To(Equal(expectedContainer.EnvironmentVariables))
+		Expect(actualContainer.Attempts).To(Equal(expectedContainer.Attempts))
 
 		By("returning found = false when getting by a handle that does not exist")
 		_, found, err = database.GetContainer("nope")
