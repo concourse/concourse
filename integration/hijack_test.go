@@ -308,7 +308,7 @@ var _ = Describe("Hijacking", func() {
 							WorkerName:   "worker-name-2",
 							PipelineName: "pipeline-name-1",
 							JobName:      "some-job",
-							BuildName:    "3",
+							BuildName:    "2",
 							BuildID:      13,
 							StepType:     "put",
 							StepName:     "some-output",
@@ -328,8 +328,8 @@ var _ = Describe("Hijacking", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Out).Should(gbytes.Say("1. worker: worker-name-1, pipeline: pipeline-name-1, job: some-job, build #: 2, build id: 12, type: get, name: some-input"))
-			Eventually(sess.Out).Should(gbytes.Say("2. worker: worker-name-2, pipeline: pipeline-name-1, job: some-job, build #: 3, build id: 13, type: put, name: some-output"))
+			Eventually(sess.Out).Should(gbytes.Say("1. build #2, step: some-input, type: get"))
+			Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-output, type: put"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
 			_, err = fmt.Fprintf(stdin, "2\n")

@@ -203,7 +203,7 @@ func (command *HijackCommand) Execute(args []string) error {
 			var infos []string
 
 			if container.JobName != "" {
-				infos = append(infos, fmt.Sprintf("build: #%s", container.BuildName))
+				infos = append(infos, fmt.Sprintf("build #%s", container.BuildName))
 			} else {
 				infos = append(infos, fmt.Sprintf("build id: %d", container.BuildID))
 			}
