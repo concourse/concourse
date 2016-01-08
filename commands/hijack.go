@@ -202,26 +202,18 @@ func (command *HijackCommand) Execute(args []string) error {
 		for _, container := range containers {
 			var infos []string
 
-			infos = append(infos, fmt.Sprintf("worker: %s", container.WorkerName))
-			if container.PipelineName != "" {
-				infos = append(infos, fmt.Sprintf("pipeline: %s", container.PipelineName))
-			}
 			if container.JobName != "" {
-				infos = append(infos, fmt.Sprintf("job: %s", container.JobName))
-			}
-			if container.BuildName != "" {
-				infos = append(infos, fmt.Sprintf("build #: %s", container.BuildName))
-			}
-			if container.BuildID != 0 {
+				infos = append(infos, fmt.Sprintf("build: #%s", container.BuildName))
+			} else {
 				infos = append(infos, fmt.Sprintf("build id: %d", container.BuildID))
 			}
 
 			if container.StepType != "" {
+				infos = append(infos, fmt.Sprintf("step: %s", container.StepName))
 				infos = append(infos, fmt.Sprintf("type: %s", container.StepType))
-				infos = append(infos, fmt.Sprintf("name: %s", container.StepName))
 			} else {
+				infos = append(infos, fmt.Sprintf("resource: %s", container.ResourceName))
 				infos = append(infos, "type: check")
-				infos = append(infos, fmt.Sprintf("name: %s", container.ResourceName))
 			}
 
 			choices = append(choices, interact.Choice{
