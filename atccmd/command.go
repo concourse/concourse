@@ -300,35 +300,40 @@ func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
 	})
 }
 
+func (cmd *ATCCommand) authConfigured() bool {
+	return cmd.BasicAuth.Username != "" || cmd.gitHubAuthConfigured()
+}
+
+func (cmd *ATCCommand) gitHubAuthConfigured() bool {
+	return len(cmd.GitHubAuth.Organizations) > 0 ||
+		len(cmd.GitHubAuth.Teams) > 0 ||
+		len(cmd.GitHubAuth.Users) > 0
+}
+
 func (cmd *ATCCommand) validate() error {
 	var errs *multierror.Error
 
-	gitHubAuthTurnedOn :=
-		len(cmd.GitHubAuth.Organizations) > 0 ||
-			len(cmd.GitHubAuth.Teams) > 0 ||
-			len(cmd.GitHubAuth.Users) > 0
-
-	if !cmd.Developer.DevelopmentMode &&
-		cmd.BasicAuth.Username == "" &&
-		!gitHubAuthTurnedOn {
+	if !cmd.authConfigured() && !cmd.Developer.DevelopmentMode {
 		errs = multierror.Append(
 			errs,
 			errors.New("must configure basic auth, OAuth, or turn on development mode"),
 		)
 	}
 
-	if gitHubAuthTurnedOn && cmd.ExternalURL.URL() == nil {
-		errs = multierror.Append(
-			errs,
-			errors.New("must specify --external-url to use OAuth"),
-		)
-	}
+	if cmd.gitHubAuthConfigured() {
+		if cmd.ExternalURL.URL() == nil {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify --external-url to use OAuth"),
+			)
+		}
 
-	if gitHubAuthTurnedOn && (cmd.GitHubAuth.ClientID == "" || cmd.GitHubAuth.ClientSecret == "") {
-		errs = multierror.Append(
-			errs,
-			errors.New("must specify --github-auth-client-id and --github-auth-client-secret to use GitHub OAuth"),
-		)
+		if cmd.GitHubAuth.ClientID == "" || cmd.GitHubAuth.ClientSecret == "" {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify --github-auth-client-id and --github-auth-client-secret to use GitHub OAuth"),
+			)
+		}
 	}
 
 	return errs.ErrorOrNil()
@@ -471,7 +476,7 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB)
 }
 
 func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.DB) auth.Validator {
-	if cmd.Developer.DevelopmentMode {
+	if !cmd.authConfigured() {
 		return auth.NoopValidator{}
 	}
 
