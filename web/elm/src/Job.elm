@@ -63,6 +63,12 @@ addNextBuild : Build -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithR
 addNextBuild nextBuild buildWithResources =
   { buildWithResources | nextBuild = nextBuild }
 
+addNextBuildFromArray : Array Build -> Int -> LiveUpdatingBuildWithResources -> LiveUpdatingBuildWithResources
+addNextBuildFromArray newBuilds i lubwr =
+  case (Array.get i newBuilds) of
+    Nothing -> lubwr
+    Just newBuild -> addNextBuild newBuild lubwr
+
 initLiveUpdatingBuildWithResources : Build -> LiveUpdatingBuildWithResources
 initLiveUpdatingBuildWithResources nextBuild = {buildWithResources = Nothing, nextBuild = nextBuild}
 
@@ -88,8 +94,8 @@ init redirect jobName pipelineName pageSince pageUntil =
   in
     ( model
     , Effects.batch
-        [fetchJobBuilds model.jobInfo (Just model.page)
-        , fetchJob model.jobInfo
+        [fetchJobBuilds 0 model.jobInfo (Just model.page)
+        , fetchJob 0 model.jobInfo
         ]
     )
 
@@ -105,7 +111,7 @@ update action model =
         (model, Effects.none)
     JobFetched (Ok job) ->
       ( { model | job = Just job }
-      , Effects.none
+      , fetchJob (5 * Time.second) model.jobInfo
       )
     JobFetched (Err err) ->
       Debug.log ("failed to fetch job info: " ++ toString err) <|
@@ -151,19 +157,47 @@ update action model =
       Debug.log ("failed to pause/unpause job: " ++ toString err) <|
         (model, Effects.none)
 
+permalink : List Build -> Page
+permalink builds =
+  case List.head builds of
+    Nothing ->
+      { direction = Concourse.Pagination.Since 0
+      , limit = jobBuildsPerPage
+      }
+    Just build ->
+      { direction = Concourse.Pagination.Since (build.id + 1)
+      , limit = List.length builds
+      }
+
 handleJobBuildsFetched : Paginated Concourse.Build.Build -> Model -> (Model, Effects Action)
 handleJobBuildsFetched paginatedBuilds model =
-  let fetchedBuilds = Array.fromList paginatedBuilds.content
+  let
+    fetchedBuilds = Array.fromList paginatedBuilds.content
+    newPage = permalink paginatedBuilds.content
   in
     ( { model
-        | buildsWithResources = Just <| Array.map initLiveUpdatingBuildWithResources fetchedBuilds
+        | buildsWithResources =
+            Just <| case model.buildsWithResources of
+              Nothing -> Array.map initLiveUpdatingBuildWithResources fetchedBuilds
+              Just lubwrs ->
+                Array.indexedMap (addNextBuildFromArray fetchedBuilds) lubwrs
+        , page = newPage
         , pagination = paginatedBuilds.pagination
       }
     , Effects.batch
-        <| Array.toList
-        <| Array.indexedMap fetchBuildResources
-        <| Array.map .id fetchedBuilds
+        <| (fetchJobBuilds (5 * Time.second) model.jobInfo (Just newPage))
+        :: ( Array.toList
+             <| Array.indexedMap fetchBuildResources
+             <| Array.map .id
+             <| case model.buildsWithResources of
+               Nothing -> fetchedBuilds
+               Just lubwrs ->
+                 Array.filter isRunning
+                 <| Array.map .nextBuild lubwrs )
     )
+
+isRunning : Build -> Bool
+isRunning build = Concourse.BuildStatus.isRunning build.status
 
 view : Signal.Address Action -> Model -> Html
 view actions model = Html.div[]
@@ -352,13 +386,19 @@ viewBuildOutputs model bo =
     ]
   ]
 
-fetchJobBuilds : Concourse.Build.BuildJob -> Maybe Concourse.Pagination.Page -> Effects Action
-fetchJobBuilds jobInfo page =
-  Effects.task (Task.map JobBuildsFetched (Task.toResult (Concourse.Build.fetchJobBuilds jobInfo page)))
+fetchJobBuilds : Time -> Concourse.Build.BuildJob -> Maybe Concourse.Pagination.Page -> Effects Action
+fetchJobBuilds delay jobInfo page =
+  Effects.task
+    <| Task.map JobBuildsFetched
+    <| Task.toResult
+    <| Task.sleep delay `Task.andThen` (always <| Concourse.Build.fetchJobBuilds jobInfo page)
 
-fetchJob : Concourse.Build.BuildJob -> Effects Action
-fetchJob jobInfo =
-  Effects.task (Task.map JobFetched (Task.toResult (Concourse.Job.fetchJob jobInfo)))
+fetchJob : Time -> Concourse.Build.BuildJob -> Effects Action
+fetchJob delay jobInfo =
+  Effects.task
+    <| Task.map JobFetched
+    <| Task.toResult
+    <| Task.sleep delay `Task.andThen` (always <| Concourse.Job.fetchJob jobInfo)
 
 fetchBuildResources : Int -> Concourse.Build.BuildId -> Effects Action
 fetchBuildResources index buildId =

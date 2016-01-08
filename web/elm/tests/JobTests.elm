@@ -43,15 +43,17 @@ all =
           , pausedChanging = False
           , buildsWithResources = Nothing
           , now = 0
-          , page = { direction = Concourse.Pagination.Since 0, limit = 5 }
+          , page = { direction = Concourse.Pagination.Since 0, limit = 100 }
           , pagination = { previousPage = Nothing, nextPage = Nothing }
           }
       in
         [ test "JobBuildsFetched" <|
 
           assertEqual
-            { defaultModel | buildsWithResources = Just <| Array.fromList
+            { defaultModel
+            | buildsWithResources = Just <| Array.fromList
                 [ { buildWithResources = Nothing, nextBuild = someBuild } ]
+            , page = { direction = Concourse.Pagination.Since 124, limit = 1 }
             } <|
             fst <|
               update

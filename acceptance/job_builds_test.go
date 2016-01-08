@@ -70,9 +70,27 @@ var _ = Describe("Job Builds", func() {
 
 		Context("with a job in the configuration", func() {
 			var build db.Build
+			var buildInput = db.BuildInput{
+				Name: "build-input-1",
+				VersionedResource: db.VersionedResource{
+					Resource:     "my-resource",
+					PipelineName: atc.DefaultPipelineName,
+					Version: db.Version{
+						"ref": "thing",
+					},
+				},
+			}
+			var buildOutput = db.VersionedResource{
+				Resource:     "some-output",
+				PipelineName: atc.DefaultPipelineName,
+				Version: db.Version{
+					"thing": "output-version",
+				},
+			}
+			var teamName = atc.DefaultTeamName
 
 			BeforeEach(func() {
-				team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
+				team, err := sqlDB.SaveTeam(db.Team{Name: teamName})
 				Expect(err).NotTo(HaveOccurred())
 
 				// job build data
@@ -102,27 +120,10 @@ var _ = Describe("Job Builds", func() {
 
 				Expect(sqlDB.FinishBuild(build.ID, db.StatusSucceeded)).To(Succeed())
 
-				myBuildInput := db.BuildInput{
-					Name: "build-input-1",
-					VersionedResource: db.VersionedResource{
-						Resource:     "my-resource",
-						PipelineName: atc.DefaultPipelineName,
-						Version: db.Version{
-							"ref": "thing",
-						},
-					},
-				}
-
-				_, err = sqlDB.SaveBuildInput(team.Name, build.ID, myBuildInput)
+				_, err = sqlDB.SaveBuildInput(teamName, build.ID, buildInput)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = sqlDB.SaveBuildOutput(team.Name, build.ID, db.VersionedResource{
-					Resource:     "some-output",
-					PipelineName: atc.DefaultPipelineName,
-					Version: db.Version{
-						"thing": "output-version",
-					},
-				}, true)
+				_, err = sqlDB.SaveBuildOutput(teamName, build.ID, buildOutput, true)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -190,12 +191,14 @@ var _ = Describe("Job Builds", func() {
 					Eventually(page.All(".builds-list li")).Should(HaveCount(2))
 
 					Expect(page.Find(".builds-list li:first-child a")).To(HaveText(fmt.Sprintf("#%d", build2.ID)))
+					Eventually(page.Find(".builds-list li:first-child a.pending")).Should(BeFound())
 
 					pendingBuildTimes, err := page.Find(".builds-list li:first-child .build-duration").Text()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(pendingBuildTimes).To(Equal("pending"))
 
 					Expect(page.Find(".builds-list li:last-child a")).To(HaveText(fmt.Sprintf("#%d", build.ID)))
+					Eventually(page.Find(".builds-list li:last-child a.succeeded")).Should(BeFound())
 
 					buildTimes, err := page.Find(".builds-list li:last-child .build-duration").Text()
 					Expect(err).NotTo(HaveOccurred())
@@ -212,6 +215,44 @@ var _ = Describe("Job Builds", func() {
 					Expect(page.Find(".builds-list li:last-child .outputs .resource-name")).To(HaveText("some-output"))
 					Expect(page.Find(".builds-list li:last-child .outputs .resource-version .dict-key")).To(BeFound())   // Should be "thing"
 					Expect(page.Find(".builds-list li:last-child .outputs .resource-version .dict-value")).To(BeFound()) // Should be "output-version"
+				})
+
+				Context("when the pending build changes state", func() {
+					It("displays the new state via the header color", func() {
+						// homepage -> job detail w/build info
+						Expect(page.Navigate(homepage())).To(Succeed())
+						// we will need to authenticate later to prove it is working for our page
+						Authenticate(page, "admin", "password")
+						Eventually(page.FindByLink("job-name")).Should(BeFound())
+						Expect(page.FindByLink("job-name").Click()).To(Succeed())
+
+						// job detail w/build info -> job detail
+						Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build2.ID))))
+						Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("job-name #%d", build2.ID)))
+						Expect(page.Find("h1 a").Click()).To(Succeed())
+						Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
+
+						Eventually(page.Find(".builds-list li:first-child a.pending")).Should(BeFound())
+
+						_, err := sqlDB.StartBuild(build2.ID, "", "")
+						Expect(err).NotTo(HaveOccurred())
+						_, err = sqlDB.SaveBuildInput(teamName, build2.ID, buildInput)
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(page.Find(".builds-list li:first-child a.started")).Should(BeFound())
+						Eventually(page.Find(".builds-list li:first-child .inputs .resource-name")).Should(BeFound())
+						Expect(page.Find(".builds-list li:last-child .inputs .resource-name")).To(HaveText("my-resource"))
+
+						_, err = sqlDB.SaveBuildOutput(teamName, build2.ID, buildOutput, true)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(sqlDB.FinishBuild(build2.ID, db.StatusFailed)).To(Succeed())
+
+						Eventually(page.Find(".builds-list li:first-child a.failed")).Should(BeFound())
+						Eventually(page.Find(".builds-list li:first-child .outputs .resource-name")).Should(BeFound())
+						Expect(page.Find(".builds-list li:last-child .outputs .resource-name")).To(HaveText("some-output"))
+
+						Eventually(page.Find("#page-header.failed")).Should(BeFound())
+					})
 				})
 			})
 		})
