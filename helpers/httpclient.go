@@ -8,7 +8,7 @@ import (
 )
 
 func GetAuthenticatedHttpClient(atcURL string) (*http.Client, error) {
-	dev, basicAuth, _, err := getAuthMethods(atcURL)
+	dev, basicAuth, _, err := GetAuthMethods(atcURL)
 	if err != nil {
 		return nil, err
 	}

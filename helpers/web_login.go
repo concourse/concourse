@@ -12,7 +12,7 @@ import (
 )
 
 func WebLogin(page *agouti.Page, atcURL string) error {
-	dev, basicAuth, _, err := getAuthMethods(atcURL)
+	dev, basicAuth, _, err := GetAuthMethods(atcURL)
 	if err != nil {
 		return err
 	}

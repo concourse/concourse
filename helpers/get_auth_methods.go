@@ -18,7 +18,7 @@ type basicAuthCred struct {
 
 type gitHubAuthCred struct{}
 
-func getAuthMethods(atcURL string) (bool, *basicAuthCred, *gitHubAuthCred, error) {
+func GetAuthMethods(atcURL string) (bool, *basicAuthCred, *gitHubAuthCred, error) {
 	endpoint := fmt.Sprintf("%s/api/v1/auth/methods", atcURL)
 	response, err := http.Get(endpoint)
 	if err != nil {
@@ -36,7 +36,7 @@ func getAuthMethods(atcURL string) (bool, *basicAuthCred, *gitHubAuthCred, error
 		return false, nil, nil, err
 	}
 
-	var devMode bool
+	var noAuth bool
 	var basicCred *basicAuthCred
 	var gitHubCred *gitHubAuthCred
 
@@ -59,8 +59,8 @@ func getAuthMethods(atcURL string) (bool, *basicAuthCred, *gitHubAuthCred, error
 			}
 		}
 	} else {
-		devMode = true
+		noAuth = true
 	}
 
-	return devMode, basicCred, gitHubCred, nil
+	return noAuth, basicCred, gitHubCred, nil
 }

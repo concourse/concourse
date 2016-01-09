@@ -11,7 +11,7 @@ import (
 )
 
 func FlyLogin(atcURL, concourseAlias, flyBinaryPath string) error {
-	dev, basicAuth, _, err := getAuthMethods(atcURL)
+	dev, basicAuth, _, err := GetAuthMethods(atcURL)
 	if err != nil {
 		return err
 	}

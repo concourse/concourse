@@ -1,0 +1,5 @@
+---
+platform: linux
+run:
+  path: echo
+  args: ["simple"]
