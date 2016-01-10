@@ -80,21 +80,21 @@ case $1 in
     done
 
     /var/vcap/packages/baggageclaim/bin/fs_mounter \
-      -diskImage ${IMAGE_PATH} \
-      -mountPath ${VOLUMES_DIR} \
-      -sizeInMegabytes ${IMAGE_SIZE} \
+      --disk-image ${IMAGE_PATH} \
+      --mount-path ${VOLUMES_DIR} \
+      --size-in-megabytes ${IMAGE_SIZE} \
       1>>$LOG_DIR/fs_mounter.stdout.log \
       2>>$LOG_DIR/fs_mounter.stderr.log
 
     echo $$ > $PIDFILE
 
     exec /var/vcap/packages/baggageclaim/bin/baggageclaim \
-      -volumeDir ${VOLUMES_DIR} \
-      -listenAddress <%= p("baggageclaim.listen_addr.address") %> \
-      -listenPort <%= p("baggageclaim.listen_addr.port") %> \
-      -yellerAPIKey=<%= esc(p("baggageclaim.yeller.api_key")) %> \
-      -yellerEnvironment=<%= esc(p("baggageclaim.yeller.environment_name")) %> \
-      -driverType btrfs \
+      --volumes ${VOLUMES_DIR} \
+      --driver btrfs \
+      --bind-ip <%= p("baggageclaim.listen_addr.address") %> \
+      --bind-port <%= p("baggageclaim.listen_addr.port") %> \
+      --yeller-api-key <%= esc(p("baggageclaim.yeller.api_key")) %> \
+      --yeller-environment <%= esc(p("baggageclaim.yeller.environment_name")) %> \
       1>>$LOG_DIR/baggageclaim.stdout.log \
       2>>$LOG_DIR/baggageclaim.stderr.log
 
