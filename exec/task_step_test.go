@@ -1292,8 +1292,14 @@ var _ = Describe("GardenFactory", func() {
 							It("stops the container", func() {
 								process.Signal(os.Interrupt)
 								Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
-
 								Expect(fakeContainer.StopCallCount()).To(Equal(1))
+							})
+
+							It("registers the source", func() {
+								process.Signal(os.Interrupt)
+								Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
+								_, found := repo.SourceFor(sourceName)
+								Expect(found).To(BeTrue())
 							})
 						})
 

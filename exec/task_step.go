@@ -282,31 +282,13 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	select {
 	case <-signals:
+		step.registerSource(config)
+
 		step.container.Stop(false)
 		return ErrInterrupted
 
 	case status := <-waitExitStatus:
-		if len(config.Outputs) == 0 {
-			step.repo.RegisterSource(step.sourceName, step)
-		} else {
-			volumeMounts := step.container.VolumeMounts()
-
-			for _, output := range config.Outputs {
-				if len(volumeMounts) > 0 {
-					outputPath := artifactsPath(output, step.artifactsRoot)
-
-					for _, mount := range volumeMounts {
-						if mount.MountPath == outputPath {
-							source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, mount.Volume.Handle())
-							step.repo.RegisterSource(SourceName(output.Name), source)
-						}
-					}
-				} else {
-					source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
-					step.repo.RegisterSource(SourceName(output.Name), source)
-				}
-			}
-		}
+		step.registerSource(config)
 
 		step.exitStatus = status
 
@@ -323,6 +305,30 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	case err := <-waitErr:
 		return err
+	}
+}
+
+func (step *TaskStep) registerSource(config atc.TaskConfig) {
+	if len(config.Outputs) == 0 {
+		step.repo.RegisterSource(step.sourceName, step)
+	} else {
+		volumeMounts := step.container.VolumeMounts()
+
+		for _, output := range config.Outputs {
+			if len(volumeMounts) > 0 {
+				outputPath := artifactsPath(output, step.artifactsRoot)
+
+				for _, mount := range volumeMounts {
+					if mount.MountPath == outputPath {
+						source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, mount.Volume.Handle())
+						step.repo.RegisterSource(SourceName(output.Name), source)
+					}
+				}
+			} else {
+				source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
+				step.repo.RegisterSource(SourceName(output.Name), source)
+			}
+		}
 	}
 }
 
