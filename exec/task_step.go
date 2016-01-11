@@ -140,6 +140,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 				return err
 			}
 
+			step.registerSource(config)
 			return nil
 		}
 

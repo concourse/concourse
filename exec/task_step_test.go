@@ -1542,6 +1542,11 @@ var _ = Describe("GardenFactory", func() {
 					Eventually(process.Wait()).Should(Receive(BeNil()))
 					Expect(taskDelegate.FinishedCallCount()).To(BeZero())
 				})
+
+				It("re-registers the source", func() {
+					_, found := repo.SourceFor(sourceName)
+					Expect(found).To(BeTrue())
+				})
 			})
 
 			Context("when the process id can be found", func() {
