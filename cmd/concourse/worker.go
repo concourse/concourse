@@ -27,6 +27,18 @@ type WorkerCommand struct {
 	PeerIP IPFlag `long:"peer-ip" description:"IP used to reach this worker from the ATC nodes. If omitted, the worker will be forwarded through the SSH connection to the TSA."`
 
 	TSA BeaconConfig `group:"TSA Configuration" namespace:"tsa"`
+
+	Baggageclaim struct {
+		BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for API traffic."`
+		BindPort uint16 `long:"bind-port" default:"7788" description:"Port on which to listen for API traffic."`
+
+		ReapInterval time.Duration `long:"reap-interval" default:"10s" description:"Interval on which to reap expired volumes."`
+	} `group:"Baggageclaim Configuration" namespace:"baggageclaim"`
+
+	Metrics struct {
+		YellerAPIKey      string `long:"yeller-api-key"     description:"Yeller API key. If specified, all errors logged will be emitted."`
+		YellerEnvironment string `long:"yeller-environment" description:"Environment to tag on all Yeller events emitted."`
+	} `group:"Metrics & Diagnostics"`
 }
 
 func (cmd *WorkerCommand) Execute(args []string) error {
@@ -38,10 +50,21 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 		return err
 	}
 
+	baggageclaimRunner, err := cmd.baggageclaimRunner(logger.Session("baggageclaim"), args)
+	if err != nil {
+		return err
+	}
+
+	worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP, cmd.Baggageclaim.BindPort)
+
 	members := grouper.Members{
 		{
 			Name:   "garden",
 			Runner: gardenRunner,
+		},
+		{
+			Name:   "baggageclaim",
+			Runner: baggageclaimRunner,
 		},
 	}
 

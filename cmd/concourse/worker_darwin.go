@@ -14,3 +14,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 
 	return cmd.houdiniRunner(logger, "darwin")
 }
+
+func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
+	return cmd.naiveBaggageclaimRunner(logger)
+}

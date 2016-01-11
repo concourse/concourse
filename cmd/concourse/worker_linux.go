@@ -1,12 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/baggageclaim/baggageclaimcmd"
+	"github.com/concourse/baggageclaim/fs"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/vito/concourse-bin/bindata"
@@ -77,6 +81,44 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 	}
 
 	return worker, cmdRunner{gardenCmd}, nil
+}
+
+func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
+	volumesImage := filepath.Join(cmd.WorkDir, "volumes.img")
+	volumesDir := filepath.Join(cmd.WorkDir, "volumes")
+
+	err := os.MkdirAll(volumesDir, 0755)
+	if err != nil {
+		return atc.Worker{}, nil, err
+	}
+
+	var fsStat *syscall.Statfs_t
+	err = syscall.Statfs(volumesDir, &fsStat)
+	if err != nil {
+		return atc.Worker{}, nil, fmt.Errorf("failed to stat volumes filesystem: %s", err)
+	}
+
+	filesystem := fs.New(logger.Session("fs"), volumesImage, volumesDir)
+
+	err = filesystem.Create(fsStat.Blocks * fsStat.Bsize)
+	if err != nil {
+		return atc.Worker{}, nil, fmt.Errorf("failed to set up volumes filesystem: %s", err)
+	}
+
+	bc := &baggageclaimcmd.BaggageclaimCommand{
+		BindIP:   baggageclaimcmd.IPFlag(cmd.Baggageclaim.BindIP),
+		BindPort: baggageclaimcmd.IPFlag(cmd.Baggageclaim.BindPort),
+
+		VolumesDir: volumesDir,
+
+		Driver: "btrfs",
+
+		ReapInterval: cmd.Baggageclaim.ReapInterval,
+
+		Metrics: cmd.Metrics,
+	}
+
+	return bc.Runner(nil), nil
 }
 
 func (cmd *WorkerCommand) extractBusybox(linux string) (string, error) {
