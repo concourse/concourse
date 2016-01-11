@@ -55,8 +55,6 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 		return err
 	}
 
-	worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP, cmd.Baggageclaim.BindPort)
-
 	members := grouper.Members{
 		{
 			Name:   "garden",
@@ -101,9 +99,11 @@ func (cmd *WorkerCommand) beaconRunner(logger lager.Logger, worker atc.Worker) i
 	var beaconRunner ifrit.RunFunc
 	if cmd.PeerIP != "" {
 		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP, cmd.BindPort)
+		worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP, cmd.Baggageclaim.BindPort)
 		beaconRunner = beacon.Register
 	} else {
 		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
+		worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.Baggageclaim.BindIP, cmd.Baggageclaim.BindPort)
 		beaconRunner = beacon.Forward
 	}
 
