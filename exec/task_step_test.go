@@ -1269,10 +1269,8 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						Describe("signalling", func() {
-							var stopped chan struct{}
-
 							BeforeEach(func() {
-								stopped = make(chan struct{})
+								stopped := make(chan struct{})
 
 								fakeProcess.WaitStub = func() (int, error) {
 									defer GinkgoRecover()
