@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/url"
 	"os"
 	"sync"
 	"time"
@@ -16,6 +17,9 @@ import (
 	"github.com/concourse/atc"
 	"github.com/pivotal-golang/lager"
 )
+
+const gardenForwardAddr = "0.0.0.0:7777"
+const baggageclaimForwardAddr = "0.0.0.0:7788"
 
 type Beacon struct {
 	Logger lager.Logger
@@ -31,7 +35,14 @@ func (beacon *Beacon) Forward(signals <-chan os.Signal, ready chan<- struct{}) e
 
 	defer client.Close()
 
-	return beacon.run("forward-worker", client, signals, ready)
+	return beacon.run(
+		"forward-worker "+
+			"--garden "+gardenForwardAddr+" "+
+			"--baggageclaim "+baggageclaimForwardAddr,
+		client,
+		signals,
+		ready,
+	)
 }
 
 func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -69,12 +80,24 @@ func (beacon *Beacon) run(command string, client *ssh.Client, signals <-chan os.
 		return err
 	}
 
-	gardenRemoteListener, err := client.Listen("tcp", "0.0.0.0:0")
+	gardenRemoteListener, err := client.Listen("tcp", gardenForwardAddr)
 	if err != nil {
 		return fmt.Errorf("failed to listen remotely: %s", err)
 	}
 
 	go beacon.proxyListenerTo(gardenRemoteListener, beacon.Worker.GardenAddr)
+
+	bcURL, err := url.Parse(beacon.Worker.BaggageclaimURL)
+	if err != nil {
+		return fmt.Errorf("failed to parse baggageclaim url: %s", err)
+	}
+
+	baggageclaimRemoteListener, err := client.Listen("tcp", baggageclaimForwardAddr)
+	if err != nil {
+		return fmt.Errorf("failed to listen remotely: %s", err)
+	}
+
+	go beacon.proxyListenerTo(baggageclaimRemoteListener, bcURL.Host)
 
 	close(ready)
 
