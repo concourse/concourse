@@ -18,7 +18,7 @@ var (
 	tmpHome string
 )
 
-var atcURL = "http://10.244.15.2:8080"
+var atcURL = os.Getenv("ATC_URL")
 var targetedConcourse = "testflight"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -27,6 +27,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	return []byte(flyBinPath)
 }, func(flyBinPath []byte) {
+	Expect(atcURL).ToNot(BeEmpty(), "must set $ATC_URL")
+
 	flyBin = string(flyBinPath)
 
 	var err error

@@ -2,6 +2,7 @@ package web_test
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/cloudfoundry/gunk/urljoiner"
 	. "github.com/onsi/ginkgo"
@@ -15,7 +16,7 @@ import (
 	"time"
 )
 
-const atcURL = "http://10.244.15.2:8080"
+var atcURL = os.Getenv("ATC_URL")
 
 var pipelineName string
 
@@ -30,6 +31,8 @@ var agoutiDriver *agouti.WebDriver
 var page *agouti.Page
 
 var _ = BeforeSuite(func() {
+	Expect(atcURL).ToNot(BeEmpty(), "must set $ATC_URL")
+
 	httpClient, err := helpers.GetAuthenticatedHttpClient(atcURL)
 	Expect(err).ToNot(HaveOccurred())
 

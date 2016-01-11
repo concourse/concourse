@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/cloudfoundry-incubator/garden"
-	"github.com/cloudfoundry-incubator/garden/client"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/testflight/helpers"
 	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
@@ -18,19 +18,16 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-golang/lager/lagertest"
 
+	gclient "github.com/cloudfoundry-incubator/garden/client"
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 
 	"testing"
 	"time"
 )
 
-// has ruby, curl
-const guidServerRootfs = "/var/vcap/packages/bosh_deployment_resource"
-
-// has git, curl
-const gitServerRootfs = "/var/vcap/packages/git_resource"
-
 var (
+	client concourse.Client
+
 	gardenClient garden.Client
 
 	flyBin string
@@ -38,9 +35,15 @@ var (
 	pipelineName string
 
 	tmpHome string
+
+	// needs ruby, curl
+	guidServerRootfs string
+
+	// needss git, curl
+	gitServerRootfs string
 )
 
-var atcURL = "http://10.244.15.2:8080"
+var atcURL = os.Getenv("ATC_URL")
 var targetedConcourse = "testflight"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -49,9 +52,17 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	return []byte(flyBinPath)
 }, func(flyBinPath []byte) {
+	Expect(atcURL).ToNot(BeEmpty(), "must set $ATC_URL")
+
+	conn, err := concourse.NewConnection(atcURL, nil)
+	Expect(err).NotTo(HaveOccurred())
+
+	Eventually(errorPolling(atcURL)).ShouldNot(HaveOccurred())
+
+	client = concourse.NewClient(conn)
+
 	flyBin = string(flyBinPath)
 
-	var err error
 	tmpHome, err = helpers.CreateTempHomeDir()
 	Expect(err).NotTo(HaveOccurred())
 
@@ -66,10 +77,33 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	logger := lagertest.NewTestLogger("testflight")
 
-	gardenClient = client.New(gconn.NewWithLogger("tcp", "10.244.15.2:7777", logger.Session("garden-connection")))
-	Eventually(gardenClient.Ping).ShouldNot(HaveOccurred())
+	workers, err := client.ListWorkers()
+	Expect(err).NotTo(HaveOccurred())
 
-	Eventually(errorPolling(atcURL)).ShouldNot(HaveOccurred())
+	gLog := logger.Session("garden-connection")
+
+	for _, w := range workers {
+		gitServerRootfs = ""
+		guidServerRootfs = ""
+
+		for _, r := range w.ResourceTypes {
+			if r.Type == "git" {
+				gitServerRootfs = r.Image
+			} else if r.Type == "bosh-deployment" {
+				guidServerRootfs = r.Image
+			}
+		}
+
+		if gitServerRootfs != "" && guidServerRootfs != "" {
+			gardenClient = gclient.New(gconn.NewWithLogger("tcp", w.GardenAddr, gLog))
+		}
+	}
+
+	if gitServerRootfs == "" || guidServerRootfs == "" {
+		Fail("must have at least one worker that supports git and bosh-deployment resource types")
+	}
+
+	Eventually(gardenClient.Ping).ShouldNot(HaveOccurred())
 
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
 })

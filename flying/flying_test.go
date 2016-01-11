@@ -47,8 +47,6 @@ exit 0
 			[]byte(`---
 platform: linux
 
-image: /var/vcap/packages/busybox
-
 inputs:
 - name: fixture
 
