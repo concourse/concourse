@@ -46,7 +46,7 @@ func (beacon *Beacon) Register(signals <-chan os.Signal, ready chan<- struct{}) 
 }
 
 func (beacon *Beacon) run(command string, client *ssh.Client, signals <-chan os.Signal, ready chan<- struct{}) error {
-	keepaliveFailed := beacon.keepAlive(client)
+	keepaliveFailed, cancelKeepalive := beacon.keepAlive(client)
 
 	sess, err := client.NewSession()
 	if err != nil {
@@ -86,6 +86,7 @@ func (beacon *Beacon) run(command string, client *ssh.Client, signals <-chan os.
 
 	select {
 	case <-signals:
+		close(cancelKeepalive)
 		sess.Close()
 
 		<-exited
@@ -102,10 +103,13 @@ func (beacon *Beacon) run(command string, client *ssh.Client, signals <-chan os.
 	return nil
 }
 
-func (beacon *Beacon) keepAlive(conn ssh.Conn) <-chan error {
+func (beacon *Beacon) keepAlive(conn ssh.Conn) (<-chan error, chan<- struct{}) {
 	logger := beacon.Logger.Session("keepalive")
 
 	errs := make(chan error, 1)
+
+	kas := time.NewTicker(5 * time.Second)
+	cancel := make(chan struct{})
 
 	go func() {
 		for {
@@ -121,11 +125,16 @@ func (beacon *Beacon) keepAlive(conn ssh.Conn) <-chan error {
 
 			logger.Debug("ok")
 
-			time.Sleep(5 * time.Second)
+			select {
+			case <-kas.C:
+			case <-cancel:
+				errs <- nil
+				return
+			}
 		}
 	}()
 
-	return errs
+	return errs, cancel
 }
 
 func (beacon *Beacon) proxyListenerTo(listener net.Listener, addr string) {
