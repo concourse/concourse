@@ -33,5 +33,5 @@ func (cmd *WorkerCommand) naiveBaggageclaimRunner(logger lager.Logger) (ifrit.Ru
 		Metrics: cmd.Metrics,
 	}
 
-	return bc.Runner(nil), nil
+	return bc.Runner(nil)
 }

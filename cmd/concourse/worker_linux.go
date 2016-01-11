@@ -118,7 +118,7 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 		Metrics: cmd.Metrics,
 	}
 
-	return bc.Runner(nil), nil
+	return bc.Runner(nil)
 }
 
 func (cmd *WorkerCommand) extractBusybox(linux string) (string, error) {
