@@ -29,6 +29,12 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 
 	linux := filepath.Join(cmd.WorkDir, "linux")
 
+	btrfsToolsDir := filepath.Join(linux, "btrfs")
+	err = os.Setenv("PATH", btrfsToolsDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	if err != nil {
+		return atc.Worker{}, nil, err
+	}
+
 	gardenBin := filepath.Join(linux, "garden-linux")
 	binDir := filepath.Join(linux, "bin")
 	depotDir := filepath.Join(linux, "depot")

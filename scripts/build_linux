@@ -56,4 +56,9 @@ pushd concourse/
     resource_name="$(basename $resource | sed -e 's/-resource.tar.gz//')"
     cp -L "$resource" $ROOT/linux/resources/$resource_name
   done
+
+  mkdir -p $ROOT/linux/btrfs
+  cp -L blobs/btrfs_tools_3.12/btrfs $ROOT/linux/btrfs
+  cp -L blobs/btrfs_tools_3.12/mkfs.btrfs $ROOT/linux/btrfs
+  chmod +x $ROOT/linux/btrfs/*
 popd
