@@ -22,9 +22,9 @@ func (cmd *WorkerCommand) naiveBaggageclaimRunner(logger lager.Logger) (ifrit.Ru
 
 	bc := &baggageclaimcmd.BaggageclaimCommand{
 		BindIP:   baggageclaimcmd.IPFlag(cmd.Baggageclaim.BindIP),
-		BindPort: baggageclaimcmd.IPFlag(cmd.Baggageclaim.BindPort),
+		BindPort: cmd.Baggageclaim.BindPort,
 
-		VolumesDir: volumesDir,
+		VolumesDir: baggageclaimcmd.DirFlag(volumesDir),
 
 		Driver: "naive",
 

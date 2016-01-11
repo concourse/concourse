@@ -89,27 +89,27 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 
 	err := os.MkdirAll(volumesDir, 0755)
 	if err != nil {
-		return atc.Worker{}, nil, err
+		return nil, err
 	}
 
-	var fsStat *syscall.Statfs_t
+	var fsStat syscall.Statfs_t
 	err = syscall.Statfs(volumesDir, &fsStat)
 	if err != nil {
-		return atc.Worker{}, nil, fmt.Errorf("failed to stat volumes filesystem: %s", err)
+		return nil, fmt.Errorf("failed to stat volumes filesystem: %s", err)
 	}
 
 	filesystem := fs.New(logger.Session("fs"), volumesImage, volumesDir)
 
-	err = filesystem.Create(fsStat.Blocks * fsStat.Bsize)
+	err = filesystem.Create(fsStat.Blocks * uint64(fsStat.Bsize))
 	if err != nil {
-		return atc.Worker{}, nil, fmt.Errorf("failed to set up volumes filesystem: %s", err)
+		return nil, fmt.Errorf("failed to set up volumes filesystem: %s", err)
 	}
 
 	bc := &baggageclaimcmd.BaggageclaimCommand{
 		BindIP:   baggageclaimcmd.IPFlag(cmd.Baggageclaim.BindIP),
-		BindPort: baggageclaimcmd.IPFlag(cmd.Baggageclaim.BindPort),
+		BindPort: cmd.Baggageclaim.BindPort,
 
-		VolumesDir: volumesDir,
+		VolumesDir: baggageclaimcmd.DirFlag(volumesDir),
 
 		Driver: "btrfs",
 

@@ -50,7 +50,7 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 		return err
 	}
 
-	baggageclaimRunner, err := cmd.baggageclaimRunner(logger.Session("baggageclaim"), args)
+	baggageclaimRunner, err := cmd.baggageclaimRunner(logger.Session("baggageclaim"))
 	if err != nil {
 		return err
 	}
