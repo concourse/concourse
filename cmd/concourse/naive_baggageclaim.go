@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
@@ -17,7 +16,7 @@ func (cmd *WorkerCommand) naiveBaggageclaimRunner(logger lager.Logger) (ifrit.Ru
 
 	err := os.MkdirAll(volumesDir, 0755)
 	if err != nil {
-		return atc.Worker{}, nil, err
+		return nil, err
 	}
 
 	bc := &baggageclaimcmd.BaggageclaimCommand{
