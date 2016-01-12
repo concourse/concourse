@@ -154,13 +154,13 @@
         "SecurityGroupEgress": [],
         "SecurityGroupIngress": [
           {
-            "CidrIp": "0.0.0.0/0",
+            "SourceSecurityGroupId": { "Ref": "WebSecurityGroup" },
             "IpProtocol": "tcp",
             "FromPort": "0",
             "ToPort": "65535"
           },
           {
-            "CidrIp": "0.0.0.0/0",
+            "SourceSecurityGroupId": { "Ref": "WebSecurityGroup" },
             "IpProtocol": "udp",
             "FromPort": "0",
             "ToPort": "65535"
@@ -172,6 +172,50 @@
             "ToPort": "-1"
           }
         ]
+      }
+    },
+
+    "InternalSecurityGroupIngressTCPfromBOSH": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {"Ref": "InternalSecurityGroup"},
+        "SourceSecurityGroupId": { "Ref": "BOSHSecurityGroup" },
+        "IpProtocol": "tcp",
+        "FromPort": "0",
+        "ToPort": "65535"
+      }
+    },
+
+    "InternalSecurityGroupIngressUDPfromBOSH": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {"Ref": "InternalSecurityGroup"},
+        "SourceSecurityGroupId": { "Ref": "BOSHSecurityGroup" },
+        "IpProtocol": "udp",
+        "FromPort": "0",
+        "ToPort": "65535"
+      }
+    },
+
+    "InternalSecurityGroupIngressTCPfromSelf": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {"Ref": "InternalSecurityGroup"},
+        "SourceSecurityGroupId": { "Ref": "InternalSecurityGroup" },
+        "IpProtocol": "tcp",
+        "FromPort": "0",
+        "ToPort": "65535"
+      }
+    },
+
+    "InternalSecurityGroupIngressUDPfromSelf": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {"Ref": "InternalSecurityGroup"},
+        "SourceSecurityGroupId": { "Ref": "InternalSecurityGroup" },
+        "IpProtocol": "udp",
+        "FromPort": "0",
+        "ToPort": "65535"
       }
     },
 
