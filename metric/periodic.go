@@ -21,6 +21,12 @@ func periodicallyEmit(logger lager.Logger, interval time.Duration) {
 			State:   "ok",
 		})
 
+		emit(tLog, goryman.Event{
+			Service: "database queries",
+			Metric:  DatabaseQueries.Max(),
+			State:   "ok",
+		})
+
 		var memStats runtime.MemStats
 		runtime.ReadMemStats(&memStats)
 

@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/bigdatadev/goryman"
-	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
+
+	"github.com/concourse/atc/db"
 )
 
 type Event interface {
@@ -14,6 +15,7 @@ type Event interface {
 }
 
 var TrackedContainers = &Gauge{}
+var DatabaseQueries = &Gauge{}
 
 type SchedulingFullDuration struct {
 	PipelineName string
