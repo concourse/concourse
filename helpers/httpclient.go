@@ -5,9 +5,24 @@ import (
 	"net/http"
 
 	"github.com/concourse/fly/rc"
+	"github.com/concourse/go-concourse/concourse"
 )
 
-func GetAuthenticatedHttpClient(atcURL string) (*http.Client, error) {
+func ConcourseClient(atcURL string) (concourse.Client, error) {
+	httpClient, err := getAuthenticatedHttpClient(atcURL)
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := concourse.NewConnection(atcURL, httpClient)
+	if err != nil {
+		return nil, err
+	}
+
+	return concourse.NewClient(conn), nil
+}
+
+func getAuthenticatedHttpClient(atcURL string) (*http.Client, error) {
 	dev, basicAuth, _, err := GetAuthMethods(atcURL)
 	if err != nil {
 		return nil, err

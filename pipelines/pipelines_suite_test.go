@@ -2,7 +2,6 @@ package pipelines_test
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
@@ -43,7 +42,7 @@ var (
 	gitServerRootfs string
 )
 
-var atcURL = os.Getenv("ATC_URL")
+var atcURL = helpers.AtcURL()
 var targetedConcourse = "testflight"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -52,19 +51,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	return []byte(flyBinPath)
 }, func(flyBinPath []byte) {
-	Expect(atcURL).ToNot(BeEmpty(), "must set $ATC_URL")
+	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
 
-	conn, err := concourse.NewConnection(atcURL, nil)
+	var err error
+	client, err = helpers.ConcourseClient(atcURL)
 	Expect(err).NotTo(HaveOccurred())
-
-	Eventually(errorPolling(atcURL)).ShouldNot(HaveOccurred())
-
-	client = concourse.NewClient(conn)
-
-	flyBin = string(flyBinPath)
 
 	tmpHome, err = helpers.CreateTempHomeDir()
 	Expect(err).NotTo(HaveOccurred())
+
+	flyBin = string(flyBinPath)
 
 	err = helpers.FlyLogin(atcURL, targetedConcourse, flyBin)
 	Expect(err).NotTo(HaveOccurred())
@@ -189,17 +185,6 @@ func unpausePipeline() {
 
 	Eventually(configure).Should(gbytes.Say("unpaused '%s'", pipelineName))
 	Eventually(configure).Should(gexec.Exit(0))
-}
-
-func errorPolling(url string) func() error {
-	return func() error {
-		resp, err := http.Get(url)
-		if err == nil {
-			resp.Body.Close()
-		}
-
-		return err
-	}
 }
 
 func flyWatch(jobName string, buildName ...string) *gexec.Session {

@@ -1,7 +1,6 @@
 package fly_test
 
 import (
-	"net/http"
 	"os"
 	"os/exec"
 	"time"
@@ -19,7 +18,7 @@ var (
 	tmpHome string
 )
 
-var atcURL = "http://10.244.15.2:8080"
+var atcURL = helpers.AtcURL()
 var targetedConcourse = "testflight"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -41,7 +40,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// poll less frequently
 	SetDefaultEventuallyPollingInterval(time.Second)
 
-	Eventually(errorPolling(atcURL)).ShouldNot(HaveOccurred())
+	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
 
 	err = helpers.FlyLogin(atcURL, targetedConcourse, flyBin)
 	Expect(err).NotTo(HaveOccurred())
@@ -58,17 +57,6 @@ var _ = SynchronizedAfterSuite(func() {
 func TestFly(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Authentication Fly Suite")
-}
-
-func errorPolling(url string) func() error {
-	return func() error {
-		resp, err := http.Get(url)
-		if err == nil {
-			resp.Body.Close()
-		}
-
-		return err
-	}
 }
 
 func executeSimpleTask() {

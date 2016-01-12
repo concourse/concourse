@@ -2,7 +2,6 @@ package web_test
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/cloudfoundry/gunk/urljoiner"
 	. "github.com/onsi/ginkgo"
@@ -16,7 +15,7 @@ import (
 	"time"
 )
 
-var atcURL = os.Getenv("ATC_URL")
+var atcURL = helpers.AtcURL()
 
 var pipelineName string
 
@@ -31,15 +30,9 @@ var agoutiDriver *agouti.WebDriver
 var page *agouti.Page
 
 var _ = BeforeSuite(func() {
-	Expect(atcURL).ToNot(BeEmpty(), "must set $ATC_URL")
-
-	httpClient, err := helpers.GetAuthenticatedHttpClient(atcURL)
+	var err error
+	client, err = helpers.ConcourseClient(atcURL)
 	Expect(err).ToNot(HaveOccurred())
-
-	conn, err := concourse.NewConnection(atcURL, httpClient)
-	Expect(err).ToNot(HaveOccurred())
-
-	client = concourse.NewClient(conn)
 
 	// observed jobs taking ~1m30s, so set the timeout pretty high
 	SetDefaultEventuallyTimeout(5 * time.Minute)
@@ -69,10 +62,6 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	Expect(page.Destroy()).To(Succeed())
 })
-
-func Screenshot(page *agouti.Page) {
-	page.Screenshot("/tmp/screenshot.png")
-}
 
 func atcRoute(path string) string {
 	return urljoiner.Join(atcURL, path)

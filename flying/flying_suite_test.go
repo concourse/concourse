@@ -1,7 +1,6 @@
 package flying_test
 
 import (
-	"net/http"
 	"os"
 
 	"github.com/concourse/testflight/helpers"
@@ -18,7 +17,7 @@ var (
 	tmpHome string
 )
 
-var atcURL = os.Getenv("ATC_URL")
+var atcURL = helpers.AtcURL()
 var targetedConcourse = "testflight"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -27,8 +26,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	return []byte(flyBinPath)
 }, func(flyBinPath []byte) {
-	Expect(atcURL).ToNot(BeEmpty(), "must set $ATC_URL")
-
 	flyBin = string(flyBinPath)
 
 	var err error
@@ -45,7 +42,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// poll less frequently
 	SetDefaultEventuallyPollingInterval(time.Second)
 
-	Eventually(errorPolling(atcURL)).ShouldNot(HaveOccurred())
+	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
 })
 
 var _ = SynchronizedAfterSuite(func() {
@@ -56,15 +53,4 @@ var _ = SynchronizedAfterSuite(func() {
 func TestFlying(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Flying Suite")
-}
-
-func errorPolling(url string) func() error {
-	return func() error {
-		resp, err := http.Get(url)
-		if err == nil {
-			resp.Body.Close()
-		}
-
-		return err
-	}
 }
