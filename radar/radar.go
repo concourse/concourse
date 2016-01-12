@@ -207,9 +207,10 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 			ResourceID: savedResource.ID,
 		},
 		Metadata: worker.Metadata{
-			Type:        db.ContainerTypeCheck,
-			CheckType:   resourceConfig.Type,
-			CheckSource: resourceConfig.Source,
+			Type:         db.ContainerTypeCheck,
+			CheckType:    resourceConfig.Type,
+			CheckSource:  resourceConfig.Source,
+			PipelineName: radar.db.GetPipelineName(),
 		},
 		Ephemeral: true,
 	}

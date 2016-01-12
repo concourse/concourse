@@ -47,7 +47,7 @@ var _ = Describe("Radar", func() {
 		fakeClock = fakeclock.NewFakeClock(epoch)
 		interval = 1 * time.Minute
 
-		fakeRadarDB.GetPipelineNameReturns("some-pipeline-name")
+		fakeRadarDB.GetPipelineNameReturns("some-pipeline")
 		radar = NewRadar(fakeTracker, interval, fakeRadarDB, fakeClock)
 
 		resourceConfig = atc.ResourceConfig{
@@ -139,9 +139,10 @@ var _ = Describe("Radar", func() {
 						ResourceID: 39,
 					},
 					Metadata: worker.Metadata{
-						Type:        db.ContainerTypeCheck,
-						CheckType:   "git",
-						CheckSource: atc.Source{"uri": "http://example.com"},
+						Type:         db.ContainerTypeCheck,
+						CheckType:    "git",
+						CheckSource:  atc.Source{"uri": "http://example.com"},
+						PipelineName: "some-pipeline",
 					},
 					Ephemeral: true,
 				}))
@@ -577,9 +578,10 @@ var _ = Describe("Radar", func() {
 						ResourceID: 39,
 					},
 					Metadata: worker.Metadata{
-						Type:        db.ContainerTypeCheck,
-						CheckType:   "git",
-						CheckSource: atc.Source{"uri": "http://example.com"},
+						Type:         db.ContainerTypeCheck,
+						CheckType:    "git",
+						CheckSource:  atc.Source{"uri": "http://example.com"},
+						PipelineName: "some-pipeline",
 					},
 					Ephemeral: true,
 				}))
