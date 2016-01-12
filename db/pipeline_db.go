@@ -33,7 +33,6 @@ type PipelineDB interface {
 
 	GetResource(resourceName string) (SavedResource, error)
 	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
-	GetResources() ([]SavedResource, error)
 
 	PauseResource(resourceName string) error
 	UnpauseResource(resourceName string) error
@@ -75,6 +74,9 @@ type PipelineDB interface {
 	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
+
+	GetResources() ([]SavedResource, error)
+	GetJobs() ([]SavedJob, error)
 }
 
 type pipelineDB struct {
@@ -161,6 +163,37 @@ func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, bool, error) {
 	}
 
 	return config, ConfigVersion(version), true, nil
+}
+
+func (pdb *pipelineDB) GetJobs() ([]SavedJob, error) {
+	rows, err := pdb.conn.Query(`
+		SELECT id, name, paused
+		FROM jobs
+		WHERE pipeline_id = $1
+  `, pdb.ID)
+
+	if err != nil {
+		return []SavedJob{}, err
+	}
+
+	defer rows.Close()
+
+	jobs := []SavedJob{}
+
+	for rows.Next() {
+		var job SavedJob
+
+		err = rows.Scan(&job.ID, &job.Name, &job.Paused)
+		if err != nil {
+			return []SavedJob{}, err
+		}
+
+		job.PipelineName = pdb.Name
+
+		jobs = append(jobs, job)
+	}
+
+	return jobs, nil
 }
 
 func (pdb *pipelineDB) GetResources() ([]SavedResource, error) {

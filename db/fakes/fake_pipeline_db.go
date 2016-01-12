@@ -91,13 +91,6 @@ type FakePipelineDB struct {
 		result3 bool
 		result4 error
 	}
-	GetResourcesStub        func() ([]db.SavedResource, error)
-	getResourcesMutex       sync.RWMutex
-	getResourcesArgsForCall []struct{}
-	getResourcesReturns     struct {
-		result1 []db.SavedResource
-		result2 error
-	}
 	PauseResourceStub        func(resourceName string) error
 	pauseResourceMutex       sync.RWMutex
 	pauseResourceArgsForCall []struct {
@@ -394,6 +387,20 @@ type FakePipelineDB struct {
 		result1 []db.Build
 		result2 error
 	}
+	GetResourcesStub        func() ([]db.SavedResource, error)
+	getResourcesMutex       sync.RWMutex
+	getResourcesArgsForCall []struct{}
+	getResourcesReturns     struct {
+		result1 []db.SavedResource
+		result2 error
+	}
+	GetJobsStub        func() ([]db.SavedJob, error)
+	getJobsMutex       sync.RWMutex
+	getJobsArgsForCall []struct{}
+	getJobsReturns     struct {
+		result1 []db.SavedJob
+		result2 error
+	}
 }
 
 func (fake *FakePipelineDB) GetPipelineName() string {
@@ -677,31 +684,6 @@ func (fake *FakePipelineDB) GetResourceVersionsReturns(result1 []db.SavedVersion
 		result3 bool
 		result4 error
 	}{result1, result2, result3, result4}
-}
-
-func (fake *FakePipelineDB) GetResources() ([]db.SavedResource, error) {
-	fake.getResourcesMutex.Lock()
-	fake.getResourcesArgsForCall = append(fake.getResourcesArgsForCall, struct{}{})
-	fake.getResourcesMutex.Unlock()
-	if fake.GetResourcesStub != nil {
-		return fake.GetResourcesStub()
-	} else {
-		return fake.getResourcesReturns.result1, fake.getResourcesReturns.result2
-	}
-}
-
-func (fake *FakePipelineDB) GetResourcesCallCount() int {
-	fake.getResourcesMutex.RLock()
-	defer fake.getResourcesMutex.RUnlock()
-	return len(fake.getResourcesArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetResourcesReturns(result1 []db.SavedResource, result2 error) {
-	fake.GetResourcesStub = nil
-	fake.getResourcesReturns = struct {
-		result1 []db.SavedResource
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakePipelineDB) PauseResource(resourceName string) error {
@@ -1734,6 +1716,56 @@ func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputReturns(result1 []db.Bui
 	fake.GetBuildsWithVersionAsOutputStub = nil
 	fake.getBuildsWithVersionAsOutputReturns = struct {
 		result1 []db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) GetResources() ([]db.SavedResource, error) {
+	fake.getResourcesMutex.Lock()
+	fake.getResourcesArgsForCall = append(fake.getResourcesArgsForCall, struct{}{})
+	fake.getResourcesMutex.Unlock()
+	if fake.GetResourcesStub != nil {
+		return fake.GetResourcesStub()
+	} else {
+		return fake.getResourcesReturns.result1, fake.getResourcesReturns.result2
+	}
+}
+
+func (fake *FakePipelineDB) GetResourcesCallCount() int {
+	fake.getResourcesMutex.RLock()
+	defer fake.getResourcesMutex.RUnlock()
+	return len(fake.getResourcesArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetResourcesReturns(result1 []db.SavedResource, result2 error) {
+	fake.GetResourcesStub = nil
+	fake.getResourcesReturns = struct {
+		result1 []db.SavedResource
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) GetJobs() ([]db.SavedJob, error) {
+	fake.getJobsMutex.Lock()
+	fake.getJobsArgsForCall = append(fake.getJobsArgsForCall, struct{}{})
+	fake.getJobsMutex.Unlock()
+	if fake.GetJobsStub != nil {
+		return fake.GetJobsStub()
+	} else {
+		return fake.getJobsReturns.result1, fake.getJobsReturns.result2
+	}
+}
+
+func (fake *FakePipelineDB) GetJobsCallCount() int {
+	fake.getJobsMutex.RLock()
+	defer fake.getJobsMutex.RUnlock()
+	return len(fake.getJobsArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetJobsReturns(result1 []db.SavedJob, result2 error) {
+	fake.GetJobsStub = nil
+	fake.getJobsReturns = struct {
+		result1 []db.SavedJob
 		result2 error
 	}{result1, result2}
 }

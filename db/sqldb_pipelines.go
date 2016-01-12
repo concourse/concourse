@@ -283,7 +283,26 @@ func (db *SQLDB) SaveConfig(
 		}
 	}
 
+	for _, job := range config.Jobs {
+		err = db.registerJob(tx, job.Name, pipelineID)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	return created, tx.Commit()
+}
+
+func (db *SQLDB) registerJob(tx *sql.Tx, name string, pipelineID int) error {
+	_, err := tx.Exec(`
+		INSERT INTO jobs (name, pipeline_id)
+		SELECT $1, $2
+		WHERE NOT EXISTS (
+			SELECT 1 FROM jobs WHERE name = $1 AND pipeline_id = $2
+		)
+	`, name, pipelineID)
+
+	return swallowUniqueViolation(err)
 }
 
 func (db *SQLDB) registerResource(tx *sql.Tx, name string, pipelineID int) error {

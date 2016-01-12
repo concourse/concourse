@@ -465,6 +465,9 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		It("can load up versioned resource information relevant to scheduling", func() {
+			job, err := pipelineDB.GetJob("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
 			versions, err := pipelineDB.LoadVersionsDB()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(versions.ResourceVersions).To(BeEmpty())
@@ -473,7 +476,9 @@ var _ = Describe("PipelineDB", func() {
 				resource.Name: resource.ID,
 			}))
 
-			Expect(versions.JobIDs).To(Equal(map[string]int{}))
+			Expect(versions.JobIDs).To(Equal(map[string]int{
+				"some-job": job.ID,
+			}))
 
 			By("initially having no latest versioned resource")
 			_, found, err := pipelineDB.GetLatestVersionedResource(resource)
@@ -517,7 +522,9 @@ var _ = Describe("PipelineDB", func() {
 				resource.Name: resource.ID,
 			}))
 
-			Expect(versions.JobIDs).To(Equal(map[string]int{}))
+			Expect(versions.JobIDs).To(Equal(map[string]int{
+				"some-job": job.ID,
+			}))
 
 			By("not including saved versioned resources of other pipelines")
 			otherPipelineResource, err := otherPipelineDB.GetResource("some-other-pipeline-resource")
@@ -546,7 +553,9 @@ var _ = Describe("PipelineDB", func() {
 				resource.Name: resource.ID,
 			}))
 
-			Expect(versions.JobIDs).To(Equal(map[string]int{}))
+			Expect(versions.JobIDs).To(Equal(map[string]int{
+				"some-job": job.ID,
+			}))
 
 			By("including outputs of successful builds")
 			build1, err := pipelineDB.CreateJobBuild("a-job")
@@ -581,7 +590,8 @@ var _ = Describe("PipelineDB", func() {
 			}))
 
 			Expect(versions.JobIDs).To(Equal(map[string]int{
-				"a-job": build1.JobID,
+				"some-job": job.ID,
+				"a-job":    build1.JobID,
 			}))
 
 			By("not including outputs of failed builds")
@@ -617,7 +627,8 @@ var _ = Describe("PipelineDB", func() {
 			}))
 
 			Expect(versions.JobIDs).To(Equal(map[string]int{
-				"a-job": build1.JobID,
+				"some-job": job.ID,
+				"a-job":    build1.JobID,
 			}))
 
 			By("not including outputs of builds in other pipelines")
@@ -653,7 +664,8 @@ var _ = Describe("PipelineDB", func() {
 			}))
 
 			Expect(versions.JobIDs).To(Equal(map[string]int{
-				"a-job": build1.JobID,
+				"some-job": job.ID,
+				"a-job":    build1.JobID,
 			}))
 		})
 
@@ -1302,6 +1314,50 @@ var _ = Describe("PipelineDB", func() {
 				Expect(build.Status).To(Equal(db.StatusPending))
 				Expect(build.Scheduled).To(BeFalse())
 			})
+		})
+
+		It("can get a list of all currently saved jobs in the pipeline", func() {
+			haveNames := func(fetchedJobs []db.SavedJob) []string {
+				names := []string{}
+
+				for _, j := range fetchedJobs {
+					names = append(names, j.Name)
+				}
+
+				return names
+			}
+
+			// TODO: Test zero case when GetResource doesn't create a resource...
+
+			By("returning the list of jobs")
+			_, err := pipelineDB.GetJob("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			jobs, err := pipelineDB.GetJobs()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(jobs).To(HaveLen(1))
+			Expect(jobs).To(WithTransform(haveNames, ConsistOf("some-job")))
+
+			By("returning the list of updated jobs when you add one")
+			_, err = pipelineDB.GetJob("another-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			jobs, err = pipelineDB.GetJobs()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(jobs).To(HaveLen(2))
+			Expect(jobs).To(WithTransform(haveNames, ConsistOf("some-job", "another-job")))
+
+			By("not being affected by a different pipeline")
+			_, err = otherPipelineDB.GetJob("another-pipeline-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			jobs, err = pipelineDB.GetJobs()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(jobs).To(HaveLen(2))
+			Expect(jobs).To(WithTransform(haveNames, ConsistOf("some-job", "another-job")))
 		})
 
 		Describe("saving builds for scheduling", func() {
