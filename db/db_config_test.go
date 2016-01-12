@@ -194,9 +194,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(resources).To(HaveLen(1))
-			Expect(resources[0]).To(WithTransform(func(resource db.SavedResource) string {
-				return resource.Name
-			}, Equal("some-resource")))
+			Expect(resources[0].Name).To(Equal("some-resource"))
 		})
 	})
 
