@@ -19,7 +19,7 @@ type Client interface {
 
 	Satisfying(WorkerSpec) (Worker, error)
 	AllSatisfying(WorkerSpec) ([]Worker, error)
-	GetWorker(workerID int) (Worker, error)
+	GetWorker(workerName string) (Worker, error)
 }
 
 //go:generate counterfeiter . Container

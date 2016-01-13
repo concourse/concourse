@@ -32,7 +32,7 @@ var _ = Describe("Tracker", func() {
 
 	var session = Session{
 		ID: worker.Identifier{
-			WorkerID: 1234,
+			WorkerName: "some-worker",
 		},
 		Metadata: worker.Metadata{
 			EnvironmentVariables: []string{"some=value"},
@@ -204,7 +204,7 @@ var _ = Describe("Tracker", func() {
 
 							cacheIdentifier.ResourceVersionReturns(atc.Version{"some": "theversion"})
 							cacheIdentifier.ResourceHashReturns("hash")
-							satisfyingWorker.IDReturns(1234)
+							satisfyingWorker.NameReturns("some-worker")
 							foundVolume.ExpirationReturns(time.Hour, time.Now(), nil)
 						})
 
@@ -247,7 +247,7 @@ var _ = Describe("Tracker", func() {
 							Expect(fakeDB.InsertVolumeCallCount()).To(Equal(1))
 							Expect(fakeDB.InsertVolumeArgsForCall(0)).To(Equal(db.Volume{
 								Handle:          "found-volume-handle",
-								WorkerID:        1234,
+								WorkerName:      "some-worker",
 								TTL:             time.Hour,
 								ResourceVersion: atc.Version{"some": "theversion"},
 								ResourceHash:    "hash",

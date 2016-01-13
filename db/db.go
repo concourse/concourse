@@ -63,7 +63,7 @@ type DB interface {
 	AbortNotifier(buildID int) (Notifier, error)
 
 	Workers() ([]SavedWorker, error) // auto-expires workers based on ttl
-	GetWorker(workerID int) (SavedWorker, bool, error)
+	GetWorker(workerName string) (SavedWorker, bool, error)
 	SaveWorker(WorkerInfo, time.Duration) (SavedWorker, error)
 
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
@@ -154,7 +154,6 @@ type JobHistory struct {
 type SavedWorker struct {
 	WorkerInfo
 
-	ID        int
 	ExpiresIn time.Duration
 }
 
@@ -177,7 +176,6 @@ type SavedVolume struct {
 }
 
 type Volume struct {
-	WorkerID        int
 	WorkerName      string
 	TTL             time.Duration
 	Handle          string

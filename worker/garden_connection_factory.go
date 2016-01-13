@@ -10,7 +10,7 @@ import (
 
 //go:generate counterfeiter . GardenConnectionFactoryDB
 type GardenConnectionFactoryDB interface {
-	GetWorker(int) (db.SavedWorker, bool, error)
+	GetWorker(string) (db.SavedWorker, bool, error)
 }
 
 //go:generate counterfeiter . GardenConnectionFactory
@@ -20,26 +20,26 @@ type GardenConnectionFactory interface {
 }
 
 type gardenConnectionFactory struct {
-	db       GardenConnectionFactoryDB
-	dialer   gconn.DialerFunc
-	logger   lager.Logger
-	workerID int
-	address  string
+	db         GardenConnectionFactoryDB
+	dialer     gconn.DialerFunc
+	logger     lager.Logger
+	workerName string
+	address    string
 }
 
 func NewGardenConnectionFactory(
 	db GardenConnectionFactoryDB,
 	dialer gconn.DialerFunc,
 	logger lager.Logger,
-	workerID int,
+	workerName string,
 	address string,
 ) GardenConnectionFactory {
 	return &gardenConnectionFactory{
-		db:       db,
-		dialer:   dialer,
-		logger:   logger,
-		workerID: workerID,
-		address:  address,
+		db:         db,
+		dialer:     dialer,
+		logger:     logger,
+		workerName: workerName,
+		address:    address,
 	}
 }
 
@@ -48,7 +48,7 @@ func (gcf *gardenConnectionFactory) BuildConnection() gconn.Connection {
 }
 
 func (gcf *gardenConnectionFactory) BuildConnectionFromDB() (gconn.Connection, error) {
-	savedWorker, found, err := gcf.db.GetWorker(gcf.workerID)
+	savedWorker, found, err := gcf.db.GetWorker(gcf.workerName)
 	if err != nil {
 		return nil, err
 	}

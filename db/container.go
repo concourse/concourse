@@ -8,7 +8,7 @@ import (
 )
 
 type ContainerIdentifier struct {
-	WorkerID int
+	WorkerName string
 	// if it's a resource check container
 	ResourceID int
 	// if it's a step container
@@ -17,10 +17,10 @@ type ContainerIdentifier struct {
 }
 
 type ContainerMetadata struct {
+	WorkerName           string
 	BuildID              int
 	BuildName            string
 	ResourceName         string
-	WorkerName           string
 	PipelineID           int
 	PipelineName         string
 	JobName              string

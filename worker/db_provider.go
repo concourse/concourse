@@ -18,7 +18,7 @@ import (
 
 type WorkerDB interface {
 	Workers() ([]db.SavedWorker, error)
-	GetWorker(int) (db.SavedWorker, bool, error)
+	GetWorker(string) (db.SavedWorker, bool, error)
 	CreateContainer(db.Container, time.Duration) (db.Container, error)
 	GetContainer(string) (db.Container, bool, error)
 	FindContainerByIdentifier(db.ContainerIdentifier) (db.Container, bool, error)
@@ -71,8 +71,8 @@ func (provider *dbProvider) Workers() ([]Worker, error) {
 	return workers, nil
 }
 
-func (provider *dbProvider) GetWorker(id int) (Worker, bool, error) {
-	savedWorker, found, err := provider.db.GetWorker(id)
+func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
+	savedWorker, found, err := provider.db.GetWorker(name)
 	if err != nil {
 		return nil, false, err
 	}
@@ -113,7 +113,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 			provider.db,
 			provider.dialer,
 			provider.logger.Session("garden-connection"),
-			savedWorker.ID,
+			savedWorker.Name,
 			savedWorker.GardenAddr,
 		),
 	)
@@ -139,6 +139,6 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		savedWorker.ResourceTypes,
 		savedWorker.Platform,
 		savedWorker.Tags,
-		savedWorker.ID,
+		savedWorker.Name,
 	)
 }

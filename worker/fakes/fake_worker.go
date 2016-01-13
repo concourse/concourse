@@ -62,10 +62,10 @@ type FakeWorker struct {
 		result1 []worker.Worker
 		result2 error
 	}
-	GetWorkerStub        func(workerID int) (worker.Worker, error)
+	GetWorkerStub        func(workerName string) (worker.Worker, error)
 	getWorkerMutex       sync.RWMutex
 	getWorkerArgsForCall []struct {
-		workerID int
+		workerName string
 	}
 	getWorkerReturns struct {
 		result1 worker.Worker
@@ -83,11 +83,11 @@ type FakeWorker struct {
 	descriptionReturns     struct {
 		result1 string
 	}
-	IDStub        func() int
-	iDMutex       sync.RWMutex
-	iDArgsForCall []struct{}
-	iDReturns     struct {
-		result1 int
+	NameStub        func() string
+	nameMutex       sync.RWMutex
+	nameArgsForCall []struct{}
+	nameReturns     struct {
+		result1 string
 	}
 	VolumeManagerStub        func() (baggageclaim.Client, bool)
 	volumeManagerMutex       sync.RWMutex
@@ -270,14 +270,14 @@ func (fake *FakeWorker) AllSatisfyingReturns(result1 []worker.Worker, result2 er
 	}{result1, result2}
 }
 
-func (fake *FakeWorker) GetWorker(workerID int) (worker.Worker, error) {
+func (fake *FakeWorker) GetWorker(workerName string) (worker.Worker, error) {
 	fake.getWorkerMutex.Lock()
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
-		workerID int
-	}{workerID})
+		workerName string
+	}{workerName})
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
-		return fake.GetWorkerStub(workerID)
+		return fake.GetWorkerStub(workerName)
 	} else {
 		return fake.getWorkerReturns.result1, fake.getWorkerReturns.result2
 	}
@@ -289,10 +289,10 @@ func (fake *FakeWorker) GetWorkerCallCount() int {
 	return len(fake.getWorkerArgsForCall)
 }
 
-func (fake *FakeWorker) GetWorkerArgsForCall(i int) int {
+func (fake *FakeWorker) GetWorkerArgsForCall(i int) string {
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
-	return fake.getWorkerArgsForCall[i].workerID
+	return fake.getWorkerArgsForCall[i].workerName
 }
 
 func (fake *FakeWorker) GetWorkerReturns(result1 worker.Worker, result2 error) {
@@ -351,27 +351,27 @@ func (fake *FakeWorker) DescriptionReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeWorker) ID() int {
-	fake.iDMutex.Lock()
-	fake.iDArgsForCall = append(fake.iDArgsForCall, struct{}{})
-	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+func (fake *FakeWorker) Name() string {
+	fake.nameMutex.Lock()
+	fake.nameArgsForCall = append(fake.nameArgsForCall, struct{}{})
+	fake.nameMutex.Unlock()
+	if fake.NameStub != nil {
+		return fake.NameStub()
 	} else {
-		return fake.iDReturns.result1
+		return fake.nameReturns.result1
 	}
 }
 
-func (fake *FakeWorker) IDCallCount() int {
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	return len(fake.iDArgsForCall)
+func (fake *FakeWorker) NameCallCount() int {
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	return len(fake.nameArgsForCall)
 }
 
-func (fake *FakeWorker) IDReturns(result1 int) {
-	fake.IDStub = nil
-	fake.iDReturns = struct {
-		result1 int
+func (fake *FakeWorker) NameReturns(result1 string) {
+	fake.NameStub = nil
+	fake.nameReturns = struct {
+		result1 string
 	}{result1}
 }
 

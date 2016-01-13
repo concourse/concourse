@@ -26,7 +26,7 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 	if data.TTL == 0 {
 		_, err = tx.Exec(`
 		INSERT INTO volumes(
-			worker_id,
+			worker_name,
 			expires_at,
 			ttl,
 			handle,
@@ -40,7 +40,7 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 			$4,
 			$5
 		)
-	`, data.WorkerID,
+	`, data.WorkerName,
 			data.TTL,
 			data.Handle,
 			resourceVersion,
@@ -49,7 +49,7 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 	} else {
 		_, err = tx.Exec(`
 		INSERT INTO volumes(
-			worker_id,
+			worker_name,
 			expires_at,
 			ttl,
 			handle,
@@ -63,7 +63,7 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 			$5,
 			$6
 		)
-	`, data.WorkerID,
+	`, data.WorkerName,
 			interval,
 			data.TTL,
 			data.Handle,
@@ -72,7 +72,7 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 		)
 	}
 	if err != nil {
-		if strings.Contains(err.Error(), `duplicate key value violates unique constraint "volumes_worker_id_handle_key"`) {
+		if strings.Contains(err.Error(), `duplicate key value violates unique constraint "volumes_worker_name_handle_key"`) {
 			return nil
 		}
 
@@ -103,8 +103,7 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 
 	rows, err := db.conn.Query(`
 		SELECT
-			v.worker_id,
-			w.name,
+			v.worker_name,
 			v.ttl,
 			EXTRACT(epoch FROM v.expires_at - NOW()),
 			v.handle,
@@ -112,8 +111,6 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 			v.resource_hash,
 			v.id
 		FROM volumes v
-		JOIN workers w
-			ON w.id = v.worker_id
 	`)
 	if err != nil {
 		return nil, err
@@ -128,7 +125,7 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 		var ttlSeconds *float64
 		var versionJSON []byte
 
-		err := rows.Scan(&volume.WorkerID, &volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &volume.ResourceHash, &volume.ID)
+		err := rows.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &volume.ResourceHash, &volume.ID)
 		if err != nil {
 			return nil, err
 		}

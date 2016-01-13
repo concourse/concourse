@@ -76,7 +76,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		Expect(actualContainer.WorkerID).To(Equal(createdContainer.WorkerID))
+		Expect(actualContainer.ContainerIdentifier.WorkerName).To(Equal(createdContainer.ContainerIdentifier.WorkerName))
 		Expect(actualContainer.ResourceID).To(Equal(createdContainer.ResourceID))
 
 		Expect(actualContainer.Handle).To(Equal("some-handle"))
@@ -86,7 +86,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.PipelineName).To(Equal("some-pipeline"))
 		Expect(actualContainer.ContainerMetadata.BuildID).To(Equal(0))
 		Expect(actualContainer.Type).To(Equal(db.ContainerTypeCheck))
-		Expect(actualContainer.WorkerName).To(Equal("some-worker"))
+		Expect(actualContainer.ContainerMetadata.WorkerName).To(Equal("some-worker"))
 		Expect(actualContainer.WorkingDirectory).To(Equal("tmp/build/some-guid"))
 		Expect(actualContainer.CheckType).To(Equal("some-type"))
 		Expect(actualContainer.CheckSource).To(Equal(atc.Source{"uri": "http://example.com"}))
@@ -127,7 +127,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		Expect(actualContainer.WorkerID).To(Equal(createdContainer.WorkerID))
+		Expect(actualContainer.ContainerIdentifier.WorkerName).To(Equal(createdContainer.ContainerIdentifier.WorkerName))
 		Expect(actualContainer.ContainerIdentifier.BuildID).To(Equal(createdContainer.ContainerIdentifier.BuildID))
 		Expect(actualContainer.PlanID).To(Equal(createdContainer.PlanID))
 
@@ -138,7 +138,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.PipelineName).To(Equal("some-pipeline"))
 		Expect(actualContainer.ContainerMetadata.BuildID).To(BeNumerically(">", 0))
 		Expect(actualContainer.Type).To(Equal(db.ContainerTypeTask))
-		Expect(actualContainer.WorkerName).To(Equal("some-worker"))
+		Expect(actualContainer.ContainerMetadata.WorkerName).To(Equal("some-worker"))
 		Expect(actualContainer.WorkingDirectory).To(Equal("tmp/build/some-guid"))
 		Expect(actualContainer.CheckType).To(BeEmpty())
 		Expect(actualContainer.CheckSource).To(BeEmpty())
@@ -699,7 +699,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 		Expect(actualContainer.Handle).To(Equal("some-handle"))
-		Expect(actualContainer.WorkerID).To(Equal(newContainer.WorkerID))
+		Expect(actualContainer.ContainerIdentifier.WorkerName).To(Equal(newContainer.ContainerIdentifier.WorkerName))
 		Expect(actualContainer.ResourceID).To(Equal(newContainer.ResourceID))
 		Expect(actualContainer.ExpiresAt.String()).NotTo(BeEmpty())
 
@@ -711,7 +711,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 		Expect(actualStepContainer.Handle).To(Equal("other-handle"))
-		Expect(actualStepContainer.WorkerID).To(Equal(newStepContainer.WorkerID))
+		Expect(actualStepContainer.ContainerIdentifier.WorkerName).To(Equal(newStepContainer.ContainerIdentifier.WorkerName))
 		Expect(actualStepContainer.ResourceID).To(Equal(newStepContainer.ResourceID))
 		Expect(actualStepContainer.ExpiresAt.String()).NotTo(BeEmpty())
 
@@ -735,7 +735,7 @@ var _ = Describe("Keeping track of containers", func() {
 		foundContainer, found, err := database.FindContainerByIdentifier(
 			db.ContainerIdentifier{
 				ResourceID: actualMatchingContainer.ResourceID,
-				WorkerID:   actualMatchingContainer.WorkerID,
+				WorkerName: actualMatchingContainer.ContainerIdentifier.WorkerName,
 			})
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(Equal(db.ErrMultipleContainersFound))
@@ -754,9 +754,9 @@ var _ = Describe("Keeping track of containers", func() {
 		By("returning found of false if no containers match the filter")
 		actualContainer, found, err = database.FindContainerByIdentifier(
 			db.ContainerIdentifier{
-				BuildID:  -1,
-				WorkerID: 1,
-				PlanID:   atc.PlanID("plan-id"),
+				BuildID:    -1,
+				WorkerName: "some-worker",
+				PlanID:     atc.PlanID("plan-id"),
 			})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeFalse())
@@ -812,7 +812,7 @@ func CreateIfNotExistPipeline(name string, teamName string, sqlDB *sql.DB) (db.S
 
 func getAllContainers(sqldb *sql.DB) []db.Container {
 	var container_slice []db.Container
-	query := `SELECT worker_id, pipeline_id, resource_id, build_id, plan_id
+	query := `SELECT worker_name, pipeline_id, resource_id, build_id, plan_id
 	          FROM containers
 						`
 	rows, err := sqldb.Query(query)
@@ -821,7 +821,7 @@ func getAllContainers(sqldb *sql.DB) []db.Container {
 
 	for rows.Next() {
 		var container db.Container
-		rows.Scan(&container.WorkerID, &container.ResourceID, &container.ContainerIdentifier.BuildID, &container.PlanID)
+		rows.Scan(&container.ContainerIdentifier.WorkerName, &container.ResourceID, &container.ContainerIdentifier.BuildID, &container.PlanID)
 		container_slice = append(container_slice, container)
 	}
 	return container_slice
@@ -834,7 +834,7 @@ func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB *sql
 	}
 
 	var worker db.WorkerInfo
-	worker.Name = container.WorkerName
+	worker.Name = container.ContainerIdentifier.WorkerName
 	// hacky way to generate unique addresses in the case of multiple workers to
 	// avoid matching on empty string
 	worker.GardenAddr = time.Now().String()
@@ -890,7 +890,7 @@ func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB *sql
 		container.ResourceID = resource.ID
 	}
 
-	container.WorkerID = insertedWorker.ID
+	container.ContainerIdentifier.WorkerName = insertedWorker.Name
 	createdContainer, err := dbSQL.CreateContainer(container, ttl)
 	if err != nil {
 		return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to create container:", err.Error()))

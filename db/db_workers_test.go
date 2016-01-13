@@ -71,7 +71,7 @@ var _ = Describe("Keeping track of workers", func() {
 		By("persisting workers with no TTLs")
 		savedWorkerA, err := database.SaveWorker(infoA, 0)
 		Expect(err).NotTo(HaveOccurred())
-		expectedSavedWorkerA.ID = savedWorkerA.ID
+		expectedSavedWorkerA.Name = savedWorkerA.Name
 
 		Expect(database.Workers()).To(ConsistOf(expectedSavedWorkerA))
 
@@ -138,7 +138,7 @@ var _ = Describe("Keeping track of workers", func() {
 
 	It("it can keep track of a worker", func() {
 		By("returning empty worker when worker doesn't exist")
-		savedWorker, found, err := database.GetWorker(404)
+		savedWorker, found, err := database.GetWorker("no-worker-here")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(savedWorker).To(Equal(db.SavedWorker{}))
 		Expect(found).To(BeFalse())
@@ -188,7 +188,7 @@ var _ = Describe("Keeping track of workers", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("returning one workerinfo by worker id")
-		savedWorker, found, err = database.GetWorker(savedWorkerB.ID)
+		savedWorker, found, err = database.GetWorker(savedWorkerB.Name)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 		Expect(savedWorker.GardenAddr).To(Equal(infoB.GardenAddr))
@@ -206,7 +206,7 @@ var _ = Describe("Keeping track of workers", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		workerFound := func() bool {
-			_, found, _ = database.GetWorker(savedWorkerA.ID)
+			_, found, _ = database.GetWorker(savedWorkerA.Name)
 			return found
 		}
 

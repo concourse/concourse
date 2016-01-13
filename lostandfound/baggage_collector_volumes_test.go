@@ -53,7 +53,7 @@ var _ = Describe("Volumes are reaped", func() {
 
 		returnedSavedVolume = db.SavedVolume{
 			Volume: db.Volume{
-				WorkerID:        1001,
+				WorkerName:      "a-new-worker",
 				TTL:             time.Minute,
 				Handle:          "some-handle",
 				ResourceVersion: atc.Version{"some": "version"},
@@ -115,7 +115,7 @@ var _ = Describe("Volumes are reaped", func() {
 			)
 			newestReturnedSavedVolume = db.SavedVolume{
 				Volume: db.Volume{
-					WorkerID:        1001,
+					WorkerName:      "a-new-worker",
 					TTL:             0,
 					Handle:          "some-other-handle",
 					ResourceVersion: atc.Version{"some": "newest-version"},

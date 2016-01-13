@@ -37,7 +37,7 @@ type Worker interface {
 	ActiveContainers() int
 
 	Description() string
-	ID() int
+	Name() string
 
 	VolumeManager() (baggageclaim.Client, bool)
 }
@@ -63,7 +63,7 @@ type gardenWorker struct {
 	resourceTypes    []atc.WorkerResourceType
 	platform         string
 	tags             []string
-	id               int
+	name             string
 }
 
 func NewGardenWorker(
@@ -77,7 +77,7 @@ func NewGardenWorker(
 	resourceTypes []atc.WorkerResourceType,
 	platform string,
 	tags []string,
-	id int,
+	name string,
 ) Worker {
 	return &gardenWorker{
 		gardenClient:       gardenClient,
@@ -91,7 +91,7 @@ func NewGardenWorker(
 		resourceTypes:    resourceTypes,
 		platform:         platform,
 		tags:             tags,
-		id:               id,
+		name:             name,
 	}
 }
 
@@ -257,7 +257,7 @@ dance:
 		return nil, err
 	}
 
-	id.WorkerID = worker.id
+	id.WorkerName = worker.name
 	_, err = worker.db.CreateContainer(
 		db.Container{
 			ContainerIdentifier: db.ContainerIdentifier(id),
@@ -297,7 +297,7 @@ func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id I
 	if !found {
 		logger.Info("reaping-container-not-found-on-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.WorkerName,
+			"worker-name":      containerInfo.ContainerIdentifier.WorkerName,
 		})
 
 		err := worker.provider.ReapContainer(containerInfo.Handle)
@@ -376,7 +376,7 @@ func (worker *gardenWorker) AllSatisfying(spec WorkerSpec) ([]Worker, error) {
 	return nil, errors.New("Not implemented")
 }
 
-func (worker *gardenWorker) GetWorker(workerID int) (Worker, error) {
+func (worker *gardenWorker) GetWorker(name string) (Worker, error) {
 	return nil, errors.New("Not implemented")
 }
 
@@ -392,8 +392,8 @@ func (worker *gardenWorker) Description() string {
 	return strings.Join(messages, ", ")
 }
 
-func (worker *gardenWorker) ID() int {
-	return worker.id
+func (worker *gardenWorker) Name() string {
+	return worker.name
 }
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {

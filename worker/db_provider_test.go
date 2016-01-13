@@ -79,7 +79,7 @@ var _ = Describe("DBProvider", func() {
 				fakeDB.WorkersReturns([]db.SavedWorker{
 					{
 						WorkerInfo: db.WorkerInfo{
-							Name:             "some-worker-name",
+							Name:             "some-worker",
 							GardenAddr:       workerAddr,
 							BaggageclaimURL:  workerBaggageclaimURL,
 							ActiveContainers: 2,
@@ -87,10 +87,10 @@ var _ = Describe("DBProvider", func() {
 								{Type: "some-resource-a", Image: "some-image-a"},
 							},
 						},
-						ID: 9876,
 					},
 					{
 						WorkerInfo: db.WorkerInfo{
+							Name:             "some-other-worker",
 							GardenAddr:       workerAddr,
 							ActiveContainers: 2,
 							ResourceTypes: []atc.WorkerResourceType{
@@ -196,6 +196,7 @@ var _ = Describe("DBProvider", func() {
 				It("calls through to garden", func() {
 					id := Identifier{
 						ResourceID: 1234,
+						WorkerName: "some-worker",
 					}
 
 					spec := ResourceTypeContainerSpec{
@@ -213,7 +214,7 @@ var _ = Describe("DBProvider", func() {
 
 					Expect(fakeDB.CreateContainerCallCount()).To(Equal(1))
 					createdInfo, _ := fakeDB.CreateContainerArgsForCall(0)
-					Expect(createdInfo.WorkerID).To(Equal(9876))
+					Expect(createdInfo.ContainerIdentifier.WorkerName).To(Equal("some-worker"))
 
 					Expect(container.Handle()).To(Equal("created-handle"))
 
@@ -275,7 +276,7 @@ var _ = Describe("DBProvider", func() {
 			It("returns an error", func() {
 				fakeDB.GetWorkerReturns(db.SavedWorker{}, true, errors.New("disaster"))
 
-				worker, found, workersErr = provider.GetWorker(1234)
+				worker, found, workersErr = provider.GetWorker("a-worker")
 				Expect(workersErr).To(HaveOccurred())
 				Expect(worker).To(BeNil())
 				Expect(found).To(BeFalse())
@@ -286,7 +287,7 @@ var _ = Describe("DBProvider", func() {
 			It("returns found as false", func() {
 				fakeDB.GetWorkerReturns(db.SavedWorker{}, false, nil)
 
-				worker, found, workersErr = provider.GetWorker(1234)
+				worker, found, workersErr = provider.GetWorker("no-worker")
 				Expect(workersErr).NotTo(HaveOccurred())
 				Expect(worker).To(BeNil())
 				Expect(found).To(BeFalse())
@@ -297,17 +298,17 @@ var _ = Describe("DBProvider", func() {
 	Context("when we call to get a container info by metadata", func() {
 		It("calls through to the db object", func() {
 			provider.FindContainerForIdentifier(Identifier{
-				BuildID:  1234,
-				PlanID:   atc.PlanID("planid"),
-				WorkerID: 911,
+				BuildID:    1234,
+				PlanID:     atc.PlanID("planid"),
+				WorkerName: "some-worker",
 			})
 
 			Expect(fakeDB.FindContainerByIdentifierCallCount()).To(Equal(1))
 
 			Expect(fakeDB.FindContainerByIdentifierArgsForCall(0)).To(Equal(db.ContainerIdentifier{
-				BuildID:  1234,
-				PlanID:   atc.PlanID("planid"),
-				WorkerID: 911,
+				BuildID:    1234,
+				PlanID:     atc.PlanID("planid"),
+				WorkerName: "some-worker",
 			}))
 		})
 	})

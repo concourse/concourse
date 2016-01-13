@@ -76,4 +76,5 @@ var Migrations = []migration.Migrator{
 	MakeContainersLinkToWorkerIds,
 	RemoveVolumesWithExpiredWorkers,
 	AddWorkerIDToVolumes,
+	RemoveWorkerIds,
 }

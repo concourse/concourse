@@ -11,8 +11,8 @@ import (
 	"github.com/concourse/atc"
 )
 
-const containerMetadataColumns = "handle, expires_at, b.id as build_id, b.name as build_name, r.name as resource_name, w.name as worker_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, check_type, check_source, env_variables"
-const containerIdentifierColumns = "handle, expires_at, worker_id, resource_id, build_id, plan_id"
+const containerMetadataColumns = "handle, expires_at, b.id as build_id, b.name as build_name, r.name as resource_name, worker_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, check_type, check_source, env_variables"
+const containerIdentifierColumns = "handle, expires_at, worker_name, resource_id, build_id, plan_id"
 
 func (db *SQLDB) FindContainersByMetadata(id ContainerMetadata) ([]Container, error) {
 	err := deleteExpired(db)
@@ -54,7 +54,7 @@ func (db *SQLDB) FindContainersByMetadata(id ContainerMetadata) ([]Container, er
 	}
 
 	if id.WorkerName != "" {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("w.name = $%d", len(params)+1))
+		whereCriteria = append(whereCriteria, fmt.Sprintf("worker_name = $%d", len(params)+1))
 		params = append(params, id.WorkerName)
 	}
 
@@ -77,8 +77,6 @@ func (db *SQLDB) FindContainersByMetadata(id ContainerMetadata) ([]Container, er
 	selectQuery := `
 		SELECT ` + containerMetadataColumns + `
 		FROM containers c
-    JOIN workers w
-		  ON w.id = c.worker_id
 		LEFT JOIN pipelines p
 		  ON p.id = c.pipeline_id
 		LEFT JOIN resources r
@@ -177,8 +175,6 @@ func (db *SQLDB) GetContainer(handle string) (Container, bool, error) {
 		  ON b.id = c.build_id
 		LEFT JOIN jobs j
 		  ON j.id = b.job_id
-	  JOIN workers w
-		  ON w.id = c.worker_id
 		WHERE c.handle = $1
 	`, handle))
 
@@ -246,10 +242,15 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		buildID.Valid = true
 	}
 
+	workerName := container.ContainerMetadata.WorkerName
+	if workerName == "" {
+		workerName = container.ContainerIdentifier.WorkerName
+	}
+
 	defer tx.Rollback()
 
 	newContainer, err := scanContainerIdentifier(tx.QueryRow(`
-		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_id, expires_at, check_type, check_source, plan_id, working_directory, env_variables)
+		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, check_type, check_source, plan_id, working_directory, env_variables)
 		VALUES ($1, $2, $3, $4, $5, $6,  $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13)
 		RETURNING `+containerIdentifierColumns,
 		container.Handle,
@@ -258,7 +259,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		pipelineID,
 		buildID,
 		container.Type.String(),
-		container.WorkerID,
+		workerName,
 		interval,
 		container.CheckType,
 		checkSource,
@@ -355,7 +356,7 @@ func scanContainerMetadata(row scannable) (Container, error) {
 		&buildID,
 		&buildName,
 		&resourceName,
-		&container.WorkerName,
+		&container.ContainerMetadata.WorkerName,
 		&pipelineID,
 		&pipelineName,
 		&jobName,
@@ -421,7 +422,7 @@ func scanContainerIdentifier(row scannable) (Container, error) {
 	err := row.Scan(
 		&container.Handle,
 		&container.ExpiresAt,
-		&container.WorkerID,
+		&container.ContainerIdentifier.WorkerName,
 		&resourceID,
 		&buildID,
 		&planID,

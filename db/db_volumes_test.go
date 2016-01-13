@@ -83,7 +83,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			insertedWorker2, err = database.SaveWorker(workerToInsert2, 2*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 
-			volumeToInsert.WorkerID = insertedWorker.ID
+			volumeToInsert.WorkerName = insertedWorker.Name
 			err = database.InsertVolume(volumeToInsert)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -93,7 +93,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(volumes)).To(Equal(1))
 			actualVolume := volumes[0]
-			Expect(actualVolume.WorkerID).To(Equal(volumeToInsert.WorkerID))
+			Expect(actualVolume.WorkerName).To(Equal(volumeToInsert.WorkerName))
 			Expect(actualVolume.TTL).To(Equal(volumeToInsert.TTL))
 			Expect(actualVolume.ExpiresIn).To(BeNumerically("~", volumeToInsert.TTL, time.Second))
 			Expect(actualVolume.Handle).To(Equal(volumeToInsert.Handle))
@@ -104,7 +104,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 		It("can be reaped", func() {
 			volumeToInsert2 := db.Volume{
-				WorkerID:        insertedWorker2.ID,
+				WorkerName:      insertedWorker2.Name,
 				TTL:             time.Hour,
 				Handle:          "some-volume-handle2",
 				ResourceVersion: atc.Version{"some": "version"},
@@ -125,7 +125,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			insertedWorker3, err := database.SaveWorker(workerToInsert3, 2*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 			volumeToInsert3 := db.Volume{
-				WorkerID:        insertedWorker3.ID,
+				WorkerName:      insertedWorker3.Name,
 				TTL:             time.Hour,
 				Handle:          "some-volume-handle3",
 				ResourceVersion: atc.Version{"some": "version"},
@@ -158,7 +158,7 @@ var _ = Describe("Keeping track of volumes", func() {
 		})
 
 		It("can create the same volume on a different worker", func() {
-			volumeToInsert.WorkerID = insertedWorker2.ID
+			volumeToInsert.WorkerName = insertedWorker2.Name
 			err := database.InsertVolume(volumeToInsert)
 			Expect(err).NotTo(HaveOccurred())
 

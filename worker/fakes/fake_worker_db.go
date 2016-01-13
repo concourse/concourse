@@ -17,10 +17,10 @@ type FakeWorkerDB struct {
 		result1 []db.SavedWorker
 		result2 error
 	}
-	GetWorkerStub        func(int) (db.SavedWorker, bool, error)
+	GetWorkerStub        func(string) (db.SavedWorker, bool, error)
 	getWorkerMutex       sync.RWMutex
 	getWorkerArgsForCall []struct {
-		arg1 int
+		arg1 string
 	}
 	getWorkerReturns struct {
 		result1 db.SavedWorker
@@ -127,10 +127,10 @@ func (fake *FakeWorkerDB) WorkersReturns(result1 []db.SavedWorker, result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerDB) GetWorker(arg1 int) (db.SavedWorker, bool, error) {
+func (fake *FakeWorkerDB) GetWorker(arg1 string) (db.SavedWorker, bool, error) {
 	fake.getWorkerMutex.Lock()
 	fake.getWorkerArgsForCall = append(fake.getWorkerArgsForCall, struct {
-		arg1 int
+		arg1 string
 	}{arg1})
 	fake.getWorkerMutex.Unlock()
 	if fake.GetWorkerStub != nil {
@@ -146,7 +146,7 @@ func (fake *FakeWorkerDB) GetWorkerCallCount() int {
 	return len(fake.getWorkerArgsForCall)
 }
 
-func (fake *FakeWorkerDB) GetWorkerArgsForCall(i int) int {
+func (fake *FakeWorkerDB) GetWorkerArgsForCall(i int) string {
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
 	return fake.getWorkerArgsForCall[i].arg1

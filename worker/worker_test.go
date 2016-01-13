@@ -34,7 +34,7 @@ var _ = Describe("Worker", func() {
 		resourceTypes          []atc.WorkerResourceType
 		platform               string
 		tags                   []string
-		workerID               int
+		workerName             string
 
 		worker Worker
 	)
@@ -53,7 +53,7 @@ var _ = Describe("Worker", func() {
 		}
 		platform = "some-platform"
 		tags = []string{"some", "tags"}
-		workerID = 5678
+		workerName = "some-worker"
 	})
 
 	BeforeEach(func() {
@@ -68,7 +68,7 @@ var _ = Describe("Worker", func() {
 			resourceTypes,
 			platform,
 			tags,
-			workerID,
+			workerName,
 		)
 	})
 
@@ -89,7 +89,7 @@ var _ = Describe("Worker", func() {
 				resourceTypes,
 				platform,
 				tags,
-				workerID,
+				workerName,
 			).VolumeManager()
 		})
 
@@ -171,7 +171,7 @@ var _ = Describe("Worker", func() {
 
 					It("creates the container info in the database", func() {
 						expectedIdentifier := db.ContainerIdentifier(containerID)
-						expectedIdentifier.WorkerID = workerID
+						expectedIdentifier.WorkerName = workerName
 
 						container := db.Container{
 							Handle:              "some-handle",
@@ -1009,7 +1009,7 @@ var _ = Describe("Worker", func() {
 									resourceTypes,
 									platform,
 									tags,
-									workerID,
+									workerName,
 								)
 							})
 
@@ -1064,7 +1064,7 @@ var _ = Describe("Worker", func() {
 									resourceTypes,
 									platform,
 									tags,
-									workerID,
+									workerName,
 								)
 							})
 
@@ -1339,7 +1339,7 @@ var _ = Describe("Worker", func() {
 				resourceTypes,
 				platform,
 				tags,
-				workerID,
+				workerName,
 			)
 
 			satisfyingWorker, satisfyingErr = worker.Satisfying(spec)
