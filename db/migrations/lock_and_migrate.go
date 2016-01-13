@@ -18,7 +18,7 @@ func LockDBAndMigrate(logger lager.Logger, sqlDriver string, sqlDataSource strin
 	var dbConn db.Conn
 
 	for {
-		dbLockConn, err = sql.Open(sqlDriver, sqlDataSource)
+		dbLockConn, err = db.WrapWithError(sql.Open(sqlDriver, sqlDataSource))
 		if err != nil {
 			if strings.Contains(err.Error(), " dial ") {
 				logger.Error("failed-to-open-db-retrying", err)
@@ -44,7 +44,7 @@ func LockDBAndMigrate(logger lager.Logger, sqlDriver string, sqlDataSource strin
 		logger.Info("migration-lock-acquired")
 
 		migrations := Translogrifier(logger, Migrations)
-		dbConn, err = migration.Open(sqlDriver, sqlDataSource, migrations)
+		dbConn, err = db.WrapWithError(migration.Open(sqlDriver, sqlDataSource, migrations))
 		if err != nil {
 			logger.Fatal("failed-to-run-migrations", err)
 		}

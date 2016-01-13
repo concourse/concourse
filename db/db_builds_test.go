@@ -1,7 +1,6 @@
 package db_test
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/lib/pq"
@@ -14,7 +13,7 @@ import (
 )
 
 var _ = Describe("Keeping track of builds", func() {
-	var dbConn *sql.DB
+	var dbConn db.Conn
 	var listener *pq.Listener
 
 	var database db.DB
@@ -23,7 +22,7 @@ var _ = Describe("Keeping track of builds", func() {
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		dbConn = postgresRunner.Open()
+		dbConn = db.Wrap(postgresRunner.Open())
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())

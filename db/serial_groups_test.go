@@ -1,7 +1,6 @@
 package db_test
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/concourse/atc"
@@ -16,7 +15,7 @@ var _ = Describe("Scheduling multiple builds within the same serial groups", fun
 	var jobOneConfig atc.JobConfig
 	var jobOneTwoConfig atc.JobConfig
 	var jobTwoConfig atc.JobConfig
-	var dbConn *sql.DB
+	var dbConn db.Conn
 	var listener *pq.Listener
 
 	var pipelineDBFactory db.PipelineDBFactory
@@ -26,7 +25,7 @@ var _ = Describe("Scheduling multiple builds within the same serial groups", fun
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		dbConn = postgresRunner.Open()
+		dbConn = db.Wrap(postgresRunner.Open())
 
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())

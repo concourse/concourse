@@ -1,7 +1,6 @@
 package db_test
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/concourse/atc"
@@ -15,7 +14,7 @@ import (
 
 var _ = Describe("Leases", func() {
 	var (
-		dbConn   *sql.DB
+		dbConn   db.Conn
 		listener *pq.Listener
 
 		pipelineDBFactory db.PipelineDBFactory
@@ -27,7 +26,7 @@ var _ = Describe("Leases", func() {
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		dbConn = postgresRunner.Open()
+		dbConn = db.Wrap(postgresRunner.Open())
 
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
