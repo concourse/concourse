@@ -25,7 +25,7 @@ var _ = Describe("No Pipelines configured", func() {
 		var err error
 		dbLogger := lagertest.NewTestLogger("test")
 		postgresRunner.Truncate()
-		dbConn = postgresRunner.Open()
+		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 		sqlDB = db.NewSQL(dbLogger, dbConn, bus)

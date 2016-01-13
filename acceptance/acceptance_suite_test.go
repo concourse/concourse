@@ -1,7 +1,6 @@
 package acceptance_test
 
 import (
-	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -31,7 +30,7 @@ func TestAcceptance(t *testing.T) {
 var atcBin string
 
 var postgresRunner postgresrunner.Runner
-var dbConn *sql.DB
+var dbConn db.Conn
 var dbProcess ifrit.Process
 
 var sqlDB *db.SQLDB

@@ -13,7 +13,7 @@ func (db *SQLDB) LeaseBuildTracking(buildID int, interval time.Duration) (Lease,
 		logger: db.logger.Session("lease", lager.Data{
 			"build_id": buildID,
 		}),
-		attemptSignFunc: func(tx *sql.Tx) (sql.Result, error) {
+		attemptSignFunc: func(tx Tx) (sql.Result, error) {
 			return tx.Exec(`
 				UPDATE builds
 				SET last_tracked = now()
@@ -21,7 +21,7 @@ func (db *SQLDB) LeaseBuildTracking(buildID int, interval time.Duration) (Lease,
 					AND now() - last_tracked > ($2 || ' SECONDS')::INTERVAL
 			`, buildID, interval.Seconds())
 		},
-		heartbeatFunc: func(tx *sql.Tx) (sql.Result, error) {
+		heartbeatFunc: func(tx Tx) (sql.Result, error) {
 			return tx.Exec(`
 				UPDATE builds
 				SET last_tracked = now()
@@ -50,7 +50,7 @@ func (db *SQLDB) LeaseBuildScheduling(buildID int, interval time.Duration) (Leas
 		logger: db.logger.Session("lease", lager.Data{
 			"build_id": buildID,
 		}),
-		attemptSignFunc: func(tx *sql.Tx) (sql.Result, error) {
+		attemptSignFunc: func(tx Tx) (sql.Result, error) {
 			return tx.Exec(`
 				UPDATE builds
 				SET last_scheduled = now()
@@ -58,7 +58,7 @@ func (db *SQLDB) LeaseBuildScheduling(buildID int, interval time.Duration) (Leas
 					AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
 			`, buildID, interval.Seconds())
 		},
-		heartbeatFunc: func(tx *sql.Tx) (sql.Result, error) {
+		heartbeatFunc: func(tx Tx) (sql.Result, error) {
 			return tx.Exec(`
 				UPDATE builds
 				SET last_scheduled = now()
@@ -87,7 +87,7 @@ func (db *SQLDB) LeaseCacheInvalidation(interval time.Duration) (Lease, bool, er
 		logger: db.logger.Session("lease", lager.Data{
 			"CacheInvalidator": "Scottsboro",
 		}),
-		attemptSignFunc: func(tx *sql.Tx) (sql.Result, error) {
+		attemptSignFunc: func(tx Tx) (sql.Result, error) {
 			_, err := tx.Exec(`
 				INSERT INTO cache_invalidator (last_invalidated)
 				SELECT 'epoch'
@@ -101,7 +101,7 @@ func (db *SQLDB) LeaseCacheInvalidation(interval time.Duration) (Lease, bool, er
 				WHERE now() - last_invalidated > ($1 || ' SECONDS')::INTERVAL
 			`, interval.Seconds())
 		},
-		heartbeatFunc: func(tx *sql.Tx) (sql.Result, error) {
+		heartbeatFunc: func(tx Tx) (sql.Result, error) {
 			return tx.Exec(`
 				UPDATE cache_invalidator
 				SET last_invalidated = now()
