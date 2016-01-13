@@ -55,6 +55,18 @@ var _ = Describe("Counting Database Queries", func() {
 			countingConn.QueryRow("SELECT $1::int", 1)
 
 			Expect(metric.DatabaseQueries.Max()).To(Equal(3))
+
+			By("working in transactions")
+			underlyingTx := &fakes.FakeTx{}
+			underlyingConn.BeginReturns(underlyingTx, nil)
+
+			tx, err := countingConn.Begin()
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = tx.Query("SELECT $1::int", 1)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(metric.DatabaseQueries.Max()).To(Equal(4))
 		})
 	})
 })

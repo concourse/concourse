@@ -24,6 +24,8 @@ type Conn interface {
 	SetMaxOpenConns(n int)
 }
 
+//go:generate counterfeiter . Tx
+
 type Tx interface {
 	Commit() error
 	Exec(query string, args ...interface{}) (sql.Result, error)
