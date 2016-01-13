@@ -19,11 +19,14 @@ func RemoveWorkerIds(tx migration.LimitedTx) error {
 	}
 
 	_, err = tx.Exec(`
-		BEGIN WORK;
-		LOCK TABLE volumes IN ACCESS EXCLUSIVE MODE;
 		DELETE FROM volumes WHERE worker_name IS NULL;
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
 		ALTER TABLE volumes ALTER COLUMN worker_name SET NOT NULL;
-		COMMIT WORK;
 	`)
 	if err != nil {
 		return err
