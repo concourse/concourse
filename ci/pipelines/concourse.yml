@@ -121,7 +121,7 @@ jobs:
   - task: create-candidate-release
     file: concourse/ci/create-candidate-release.yml
   - put: candidate-release
-    params: {from: candidate-release/concourse-(.*).tgz}
+    params: {file: candidate-release/concourse-*.tgz}
   - put: version
     params: {file: version/number}
 
@@ -226,8 +226,7 @@ jobs:
               BOSH_USER: admin
               BOSH_PASSWORD: admin
         - put: testflight-logs
-          params:
-            from: exported-logs/concourse\.(.*).tgz
+          params: {file: exported-logs/concourse.*.tgz}
 
 - name: deploy
   serial: true
@@ -302,7 +301,7 @@ jobs:
         tag: version/number
         tag_prefix: v
     - put: final-release
-      params: {from: final-release-tarball/concourse-(.*).tgz}
+      params: {file: final-release-tarball/concourse-*.tgz}
 
 - name: virtualbox-box
   public: true
@@ -326,7 +325,7 @@ jobs:
     file: concourse-lite/ci/build-boxes.yml
     tags: [hetzner]
   - put: virtualbox-box
-    params: {from: built-box/(.*).box}
+    params: {file: built-box/*.box}
 
 - name: release-virtualbox-box
   public: true
@@ -372,7 +371,7 @@ jobs:
         AWS_ACCESS_KEY_ID: {{aws-box-access-key}}
         AWS_SECRET_ACCESS_KEY: {{aws-box-secret-key}}
   - put: aws-box
-    params: {from: built-box/(.*).box}
+    params: {file: built-box/*.box}
 
 - name: release-aws-box
   serial: true
@@ -490,7 +489,7 @@ jobs:
   - task: build
     file: p-concourse/ci/build.yml
   - put: product
-    params: {from: product/p-concourse-(.*).pivotal}
+    params: {file: product/p-concourse-*.pivotal}
 
 - name: hangar
   public: true
