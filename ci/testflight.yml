@@ -2,6 +2,9 @@
 platform: linux
 image: docker:///concourse/atc-ci
 
+params:
+  ATC_URL: ~
+
 inputs:
   - name: concourse
 

@@ -215,6 +215,7 @@ jobs:
           - candidate-release/concourse-*.tgz
     - task: build
       file: concourse/ci/testflight.yml
+      config: {params: {ATC_URL: "http://10.244.15.2:8080"}}
       timeout: 1h
     on_failure:
       do:
