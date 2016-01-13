@@ -77,7 +77,7 @@ func (db *SQLDB) GetWorker(name string) (SavedWorker, bool, error) {
 	return savedWorker, true, nil
 }
 
-func (db *SQLDB) saveBuildEvent(tx Tx, buildID int, event atc.Event) error {
+func (db *SQLDB) saveBuildEvent(tx *sql.Tx, buildID int, event atc.Event) error {
 	payload, err := json.Marshal(event)
 	if err != nil {
 		return err

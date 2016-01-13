@@ -10,11 +10,11 @@ import (
 )
 
 type FakeConn struct {
-	BeginStub        func() (db.Tx, error)
+	BeginStub        func() (*sql.Tx, error)
 	beginMutex       sync.RWMutex
 	beginArgsForCall []struct{}
 	beginReturns     struct {
-		result1 db.Tx
+		result1 *sql.Tx
 		result2 error
 	}
 	CloseStub        func() error
@@ -85,7 +85,7 @@ type FakeConn struct {
 	}
 }
 
-func (fake *FakeConn) Begin() (db.Tx, error) {
+func (fake *FakeConn) Begin() (*sql.Tx, error) {
 	fake.beginMutex.Lock()
 	fake.beginArgsForCall = append(fake.beginArgsForCall, struct{}{})
 	fake.beginMutex.Unlock()
@@ -102,10 +102,10 @@ func (fake *FakeConn) BeginCallCount() int {
 	return len(fake.beginArgsForCall)
 }
 
-func (fake *FakeConn) BeginReturns(result1 db.Tx, result2 error) {
+func (fake *FakeConn) BeginReturns(result1 *sql.Tx, result2 error) {
 	fake.BeginStub = nil
 	fake.beginReturns = struct {
-		result1 db.Tx
+		result1 *sql.Tx
 		result2 error
 	}{result1, result2}
 }

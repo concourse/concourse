@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"database/sql"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -13,7 +14,7 @@ import (
 )
 
 var _ = Describe("Keeping track of volumes", func() {
-	var dbConn db.Conn
+	var dbConn *sql.DB
 	var listener *pq.Listener
 
 	var database db.DB
@@ -21,7 +22,7 @@ var _ = Describe("Keeping track of volumes", func() {
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		dbConn = db.Wrap(postgresRunner.Open())
+		dbConn = postgresRunner.Open()
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())

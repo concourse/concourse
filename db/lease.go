@@ -19,8 +19,8 @@ type lease struct {
 	conn   Conn
 	logger lager.Logger
 
-	attemptSignFunc func(Tx) (sql.Result, error)
-	heartbeatFunc   func(Tx) (sql.Result, error)
+	attemptSignFunc func(*sql.Tx) (sql.Result, error)
+	heartbeatFunc   func(*sql.Tx) (sql.Result, error)
 	breakFunc       func()
 
 	breakChan chan struct{}

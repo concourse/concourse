@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"database/sql"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -15,7 +16,7 @@ import (
 )
 
 var _ = Describe("SQL DB Teams", func() {
-	var dbConn db.Conn
+	var dbConn *sql.DB
 	var listener *pq.Listener
 
 	var database db.DB
@@ -23,7 +24,7 @@ var _ = Describe("SQL DB Teams", func() {
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		dbConn = db.Wrap(postgresRunner.Open())
+		dbConn = postgresRunner.Open()
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())

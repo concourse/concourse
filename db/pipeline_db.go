@@ -262,7 +262,7 @@ func (pdb *pipelineDB) LeaseResourceChecking(resourceName string, interval time.
 	lease := &lease{
 		conn:   pdb.conn,
 		logger: logger,
-		attemptSignFunc: func(tx Tx) (sql.Result, error) {
+		attemptSignFunc: func(tx *sql.Tx) (sql.Result, error) {
 			params := []interface{}{resourceName, pdb.ID}
 
 			condition := ""
@@ -280,7 +280,7 @@ func (pdb *pipelineDB) LeaseResourceChecking(resourceName string, interval time.
 					AND pipeline_id = $2
 					AND `+condition, params...)
 		},
-		heartbeatFunc: func(tx Tx) (sql.Result, error) {
+		heartbeatFunc: func(tx *sql.Tx) (sql.Result, error) {
 			return tx.Exec(`
 				UPDATE resources
 				SET last_checked = now()
@@ -321,7 +321,7 @@ func (pdb *pipelineDB) LeaseScheduling(interval time.Duration) (Lease, bool, err
 		logger: pdb.logger.Session("lease", lager.Data{
 			"pipeline": pdb.Name,
 		}),
-		attemptSignFunc: func(tx Tx) (sql.Result, error) {
+		attemptSignFunc: func(tx *sql.Tx) (sql.Result, error) {
 			return tx.Exec(`
 				UPDATE pipelines
 				SET last_scheduled = now()
@@ -329,7 +329,7 @@ func (pdb *pipelineDB) LeaseScheduling(interval time.Duration) (Lease, bool, err
 					AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
 			`, pdb.ID, interval.Seconds())
 		},
-		heartbeatFunc: func(tx Tx) (sql.Result, error) {
+		heartbeatFunc: func(tx *sql.Tx) (sql.Result, error) {
 			return tx.Exec(`
 				UPDATE pipelines
 				SET last_scheduled = now()
@@ -485,7 +485,7 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 	return savedVersionedResources, pagination, true, nil
 }
 
-func (pdb *pipelineDB) getResource(tx Tx, name string) (SavedResource, error) {
+func (pdb *pipelineDB) getResource(tx *sql.Tx, name string) (SavedResource, error) {
 	var checkErr sql.NullString
 	var resource SavedResource
 
@@ -705,7 +705,7 @@ func (pdb *pipelineDB) SetResourceCheckError(resource SavedResource, cause error
 	return err
 }
 
-func (pdb *pipelineDB) registerResource(tx Tx, name string) error {
+func (pdb *pipelineDB) registerResource(tx *sql.Tx, name string) error {
 	_, err := tx.Exec(`
 		INSERT INTO resources (name, pipeline_id)
 		SELECT $1, $2
@@ -731,7 +731,7 @@ func swallowUniqueViolation(err error) error {
 	return nil
 }
 
-func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource) (SavedVersionedResource, error) {
+func (pdb *pipelineDB) saveVersionedResource(tx *sql.Tx, vr VersionedResource) (SavedVersionedResource, error) {
 	err := pdb.registerResource(tx, vr.Resource)
 	if err != nil {
 		return SavedVersionedResource{}, err
@@ -977,7 +977,7 @@ func (pdb *pipelineDB) CreateJobBuild(jobName string) (Build, error) {
 	return build, nil
 }
 
-func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
+func (pdb *pipelineDB) createJobBuild(jobName string, tx *sql.Tx) (Build, error) {
 	err := pdb.registerJob(tx, jobName)
 	if err != nil {
 		return Build{}, err
@@ -1108,7 +1108,7 @@ func (pdb *pipelineDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersi
 	return svr, nil
 }
 
-func (pdb *pipelineDB) saveBuildInput(tx Tx, buildID int, input BuildInput) (SavedVersionedResource, error) {
+func (pdb *pipelineDB) saveBuildInput(tx *sql.Tx, buildID int, input BuildInput) (SavedVersionedResource, error) {
 	svr, err := pdb.saveVersionedResource(tx, input.VersionedResource)
 	if err != nil {
 		return SavedVersionedResource{}, err
@@ -1963,7 +1963,7 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 	return finished, next, nil
 }
 
-func (pdb *pipelineDB) registerJob(tx Tx, name string) error {
+func (pdb *pipelineDB) registerJob(tx *sql.Tx, name string) error {
 	_, err := tx.Exec(`
 		INSERT INTO jobs (name, pipeline_id)
 		SELECT $1, $2
@@ -1975,7 +1975,7 @@ func (pdb *pipelineDB) registerJob(tx Tx, name string) error {
 	return swallowUniqueViolation(err)
 }
 
-func (pdb *pipelineDB) getJob(tx Tx, name string) (SavedJob, error) {
+func (pdb *pipelineDB) getJob(tx *sql.Tx, name string) (SavedJob, error) {
 	var job SavedJob
 
 	err := tx.QueryRow(`

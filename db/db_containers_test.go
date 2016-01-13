@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -17,7 +18,7 @@ import (
 )
 
 var _ = Describe("Keeping track of containers", func() {
-	var dbConn db.Conn
+	var dbConn *sql.DB
 	var listener *pq.Listener
 
 	var database *db.SQLDB
@@ -25,7 +26,7 @@ var _ = Describe("Keeping track of containers", func() {
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
-		dbConn = db.Wrap(postgresRunner.Open())
+		dbConn = postgresRunner.Open()
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
@@ -774,7 +775,7 @@ var _ = Describe("Keeping track of containers", func() {
 	})
 })
 
-func CreateIfNotExistPipeline(name string, teamName string, sqlDB db.Conn) (db.SavedPipeline, error) {
+func CreateIfNotExistPipeline(name string, teamName string, sqlDB *sql.DB) (db.SavedPipeline, error) {
 	var pipeline db.SavedPipeline
 
 	err := sqlDB.QueryRow(`
@@ -809,7 +810,7 @@ func CreateIfNotExistPipeline(name string, teamName string, sqlDB db.Conn) (db.S
 	return pipeline, nil
 }
 
-func getAllContainers(sqldb db.Conn) []db.Container {
+func getAllContainers(sqldb *sql.DB) []db.Container {
 	var container_slice []db.Container
 	query := `SELECT worker_name, pipeline_id, resource_id, build_id, plan_id
 	          FROM containers
@@ -826,7 +827,7 @@ func getAllContainers(sqldb db.Conn) []db.Container {
 	return container_slice
 }
 
-func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB db.Conn, dbSQL *db.SQLDB) (db.Container, int, error) {
+func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB *sql.DB, dbSQL *db.SQLDB) (db.Container, int, error) {
 	pipeline, err := CreateIfNotExistPipeline(container.PipelineName, atc.DefaultTeamName, sqlDB)
 	if err != nil {
 		return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to create pipeline:", err.Error()))

@@ -293,7 +293,7 @@ func (db *SQLDB) SaveConfig(
 	return created, tx.Commit()
 }
 
-func (db *SQLDB) registerJob(tx Tx, name string, pipelineID int) error {
+func (db *SQLDB) registerJob(tx *sql.Tx, name string, pipelineID int) error {
 	_, err := tx.Exec(`
 		INSERT INTO jobs (name, pipeline_id)
 		SELECT $1, $2
@@ -305,7 +305,7 @@ func (db *SQLDB) registerJob(tx Tx, name string, pipelineID int) error {
 	return swallowUniqueViolation(err)
 }
 
-func (db *SQLDB) registerResource(tx Tx, name string, pipelineID int) error {
+func (db *SQLDB) registerResource(tx *sql.Tx, name string, pipelineID int) error {
 	_, err := tx.Exec(`
 		INSERT INTO resources (name, pipeline_id)
 		SELECT $1, $2
