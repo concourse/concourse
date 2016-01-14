@@ -838,9 +838,7 @@ func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB db.C
 	// avoid matching on empty string
 	worker.GardenAddr = time.Now().String()
 	insertedWorker, err := dbSQL.SaveWorker(worker, 0)
-	if err != nil {
-		return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to create worker:", err.Error()))
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	pipelineDBFactory := db.NewPipelineDBFactory(nil, sqlDB, nil, dbSQL)
 	pipelineDB := pipelineDBFactory.Build(pipeline)
@@ -850,10 +848,10 @@ func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB db.C
 		if jobName == "" {
 			jobName = "random-job"
 		}
+
 		build, err := pipelineDB.CreateJobBuild(jobName)
-		if err != nil {
-			return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to create job:", err.Error()))
-		}
+		Expect(err).NotTo(HaveOccurred())
+
 		container.ContainerIdentifier.BuildID = build.ID
 
 		if container.ResourceName != "" {
@@ -879,21 +877,17 @@ func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB db.C
 			},
 			[]atc.Version{atc.Version{"some": "version"}},
 		)
-		if err != nil {
-			return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to save resource:", err.Error()))
-		}
+		Expect(err).NotTo(HaveOccurred())
+
 		resource, err := pipelineDB.GetResource(container.ResourceName)
-		if err != nil {
-			return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to get resource:", err.Error()))
-		}
+		Expect(err).NotTo(HaveOccurred())
+
 		container.ResourceID = resource.ID
 	}
 
 	container.ContainerIdentifier.WorkerName = insertedWorker.Name
 	createdContainer, err := dbSQL.CreateContainer(container, ttl)
-	if err != nil {
-		return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to create container:", err.Error()))
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	return createdContainer, pipeline.ID, nil
 }
