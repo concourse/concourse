@@ -2202,10 +2202,10 @@ span.error {
   border-radius: 1px;
 }
 .legend dt.started {
-  -webkit-animation: 'small-started-ripple' 1s linear infinite;
-  animation: 'small-started-ripple' 1s linear infinite;
+  -webkit-animation: "small-started-ripple-darktooth" 1s linear infinite;
+  animation: "small-started-ripple-darktooth" 1s linear infinite;
 }
-@-webkit-keyframes 'small-started-ripple' {
+@-webkit-keyframes "small-started-ripple-darktooth" {
   0% {
     box-shadow: 0 0 0 -2px #32302F, 0 0 0 0px #FAC03B, 0 0 0 2px #32302F, 0 0 0 4px #FAC03B;
   }
@@ -2216,7 +2216,7 @@ span.error {
     box-shadow: 0 0 0 2px #32302F, 0 0 0 4px #FAC03B, 0 0 0 6px #32302F, 0 0 0 8px transparent;
   }
 }
-@keyframes 'small-started-ripple' {
+@keyframes "small-started-ripple-darktooth" {
   0% {
     box-shadow: 0 0 0 -2px #32302F, 0 0 0 0px #FAC03B, 0 0 0 2px #32302F, 0 0 0 4px #FAC03B;
   }
@@ -2228,10 +2228,10 @@ span.error {
   }
 }
 .legend dt.pending {
-  -webkit-animation: 'small-pending-ripple' 1s linear infinite;
-  animation: 'small-pending-ripple' 1s linear infinite;
+  -webkit-animation: "small-pending-ripple-darktooth" 1s linear infinite;
+  animation: "small-pending-ripple-darktooth" 1s linear infinite;
 }
-@-webkit-keyframes 'small-pending-ripple' {
+@-webkit-keyframes "small-pending-ripple-darktooth" {
   0% {
     box-shadow: 0 0 0 -2px #32302F, 0 0 0 0px #928374, 0 0 0 2px #32302F, 0 0 0 4px #928374;
   }
@@ -2242,7 +2242,7 @@ span.error {
     box-shadow: 0 0 0 2px #32302F, 0 0 0 4px #928374, 0 0 0 6px #32302F, 0 0 0 8px transparent;
   }
 }
-@keyframes 'small-pending-ripple' {
+@keyframes "small-pending-ripple-darktooth" {
   0% {
     box-shadow: 0 0 0 -2px #32302F, 0 0 0 0px #928374, 0 0 0 2px #32302F, 0 0 0 4px #928374;
   }
@@ -2254,10 +2254,10 @@ span.error {
   }
 }
 .job-animation-node.pending .animation-xlarge {
-  -webkit-animation: 'xlarge-pending-ripples' 1s linear infinite;
-  animation: 'xlarge-pending-ripples' 1s linear infinite;
+  -webkit-animation: "xlarge-pending-ripples-darktooth" 1s linear infinite;
+  animation: "xlarge-pending-ripples-darktooth" 1s linear infinite;
 }
-@-webkit-keyframes 'xlarge-pending-ripples' {
+@-webkit-keyframes "xlarge-pending-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -20px #32302F, 0 0 0 0px #928374, 0 0 0 20px #32302F, 0 0 0 40px #928374;
   }
@@ -2268,7 +2268,7 @@ span.error {
     box-shadow: 0 0 0 20px #32302F, 0 0 0 40px #928374, 0 0 0 60px #32302F, 0 0 0 80px transparent;
   }
 }
-@keyframes 'xlarge-pending-ripples' {
+@keyframes "xlarge-pending-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -20px #32302F, 0 0 0 0px #928374, 0 0 0 20px #32302F, 0 0 0 40px #928374;
   }
@@ -2280,10 +2280,10 @@ span.error {
   }
 }
 .job-animation-node.started .animation-xlarge {
-  -webkit-animation: 'xlarge-started-ripples' 1s linear infinite;
-  animation: 'xlarge-started-ripples' 1s linear infinite;
+  -webkit-animation: "xlarge-started-ripples-darktooth" 1s linear infinite;
+  animation: "xlarge-started-ripples-darktooth" 1s linear infinite;
 }
-@-webkit-keyframes 'xlarge-started-ripples' {
+@-webkit-keyframes "xlarge-started-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -20px #32302F, 0 0 0 0px #FAC03B, 0 0 0 20px #32302F, 0 0 0 40px #FAC03B;
   }
@@ -2294,7 +2294,7 @@ span.error {
     box-shadow: 0 0 0 20px #32302F, 0 0 0 40px #FAC03B, 0 0 0 60px #32302F, 0 0 0 80px transparent;
   }
 }
-@keyframes 'xlarge-started-ripples' {
+@keyframes "xlarge-started-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -20px #32302F, 0 0 0 0px #FAC03B, 0 0 0 20px #32302F, 0 0 0 40px #FAC03B;
   }
@@ -2306,10 +2306,10 @@ span.error {
   }
 }
 .job-animation-node.pending .animation-large {
-  -webkit-animation: 'large-pending-ripples' 1s linear infinite;
-  animation: 'large-pending-ripples' 1s linear infinite;
+  -webkit-animation: "large-pending-ripples-darktooth" 1s linear infinite;
+  animation: "large-pending-ripples-darktooth" 1s linear infinite;
 }
-@-webkit-keyframes 'large-pending-ripples' {
+@-webkit-keyframes "large-pending-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -15px #32302F, 0 0 0 0px #928374, 0 0 0 15px #32302F, 0 0 0 30px #928374;
   }
@@ -2320,7 +2320,7 @@ span.error {
     box-shadow: 0 0 0 15px #32302F, 0 0 0 30px #928374, 0 0 0 45px #32302F, 0 0 0 60px transparent;
   }
 }
-@keyframes 'large-pending-ripples' {
+@keyframes "large-pending-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -15px #32302F, 0 0 0 0px #928374, 0 0 0 15px #32302F, 0 0 0 30px #928374;
   }
@@ -2332,10 +2332,10 @@ span.error {
   }
 }
 .job-animation-node.started .animation-large {
-  -webkit-animation: 'large-started-ripples' 1s linear infinite;
-  animation: 'large-started-ripples' 1s linear infinite;
+  -webkit-animation: "large-started-ripples-darktooth" 1s linear infinite;
+  animation: "large-started-ripples-darktooth" 1s linear infinite;
 }
-@-webkit-keyframes 'large-started-ripples' {
+@-webkit-keyframes "large-started-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -15px #32302F, 0 0 0 0px #FAC03B, 0 0 0 15px #32302F, 0 0 0 30px #FAC03B;
   }
@@ -2346,7 +2346,7 @@ span.error {
     box-shadow: 0 0 0 15px #32302F, 0 0 0 30px #FAC03B, 0 0 0 45px #32302F, 0 0 0 60px transparent;
   }
 }
-@keyframes 'large-started-ripples' {
+@keyframes "large-started-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -15px #32302F, 0 0 0 0px #FAC03B, 0 0 0 15px #32302F, 0 0 0 30px #FAC03B;
   }
@@ -2358,10 +2358,10 @@ span.error {
   }
 }
 .job-animation-node.pending .animation-medium {
-  -webkit-animation: 'medium-pending-ripples' 1s linear infinite;
-  animation: 'medium-pending-ripples' 1s linear infinite;
+  -webkit-animation: "medium-pending-ripples-darktooth" 1s linear infinite;
+  animation: "medium-pending-ripples-darktooth" 1s linear infinite;
 }
-@-webkit-keyframes 'medium-pending-ripples' {
+@-webkit-keyframes "medium-pending-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -7px #32302F, 0 0 0 0px #928374, 0 0 0 7px #32302F, 0 0 0 14px #928374;
   }
@@ -2372,7 +2372,7 @@ span.error {
     box-shadow: 0 0 0 7px #32302F, 0 0 0 14px #928374, 0 0 0 21px #32302F, 0 0 0 28px transparent;
   }
 }
-@keyframes 'medium-pending-ripples' {
+@keyframes "medium-pending-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -7px #32302F, 0 0 0 0px #928374, 0 0 0 7px #32302F, 0 0 0 14px #928374;
   }
@@ -2384,10 +2384,10 @@ span.error {
   }
 }
 .job-animation-node.started .animation-medium {
-  -webkit-animation: 'medium-started-ripples' 1s linear infinite;
-  animation: 'medium-started-ripples' 1s linear infinite;
+  -webkit-animation: "medium-started-ripples-darktooth" 1s linear infinite;
+  animation: "medium-started-ripples-darktooth" 1s linear infinite;
 }
-@-webkit-keyframes 'medium-started-ripples' {
+@-webkit-keyframes "medium-started-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -7px #32302F, 0 0 0 0px #FAC03B, 0 0 0 7px #32302F, 0 0 0 14px #FAC03B;
   }
@@ -2398,7 +2398,7 @@ span.error {
     box-shadow: 0 0 0 7px #32302F, 0 0 0 14px #FAC03B, 0 0 0 21px #32302F, 0 0 0 28px transparent;
   }
 }
-@keyframes 'medium-started-ripples' {
+@keyframes "medium-started-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -7px #32302F, 0 0 0 0px #FAC03B, 0 0 0 7px #32302F, 0 0 0 14px #FAC03B;
   }
@@ -2410,10 +2410,10 @@ span.error {
   }
 }
 .job-animation-node.pending .animation-small {
-  -webkit-animation: 'small-pending-ripples' 1s linear infinite;
-  animation: 'small-pending-ripples' 1s linear infinite;
+  -webkit-animation: "small-pending-ripples-darktooth" 1s linear infinite;
+  animation: "small-pending-ripples-darktooth" 1s linear infinite;
 }
-@-webkit-keyframes 'small-pending-ripples' {
+@-webkit-keyframes "small-pending-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -3px #32302F, 0 0 0 0px #928374, 0 0 0 3px #32302F, 0 0 0 6px #928374;
   }
@@ -2424,7 +2424,7 @@ span.error {
     box-shadow: 0 0 0 3px #32302F, 0 0 0 6px #928374, 0 0 0 9px #32302F, 0 0 0 12px transparent;
   }
 }
-@keyframes 'small-pending-ripples' {
+@keyframes "small-pending-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -3px #32302F, 0 0 0 0px #928374, 0 0 0 3px #32302F, 0 0 0 6px #928374;
   }
@@ -2436,10 +2436,10 @@ span.error {
   }
 }
 .job-animation-node.started .animation-small {
-  -webkit-animation: 'small-started-ripples' 1s linear infinite;
-  animation: 'small-started-ripples' 1s linear infinite;
+  -webkit-animation: "small-started-ripples-darktooth" 1s linear infinite;
+  animation: "small-started-ripples-darktooth" 1s linear infinite;
 }
-@-webkit-keyframes 'small-started-ripples' {
+@-webkit-keyframes "small-started-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -3px #32302F, 0 0 0 0px #FAC03B, 0 0 0 3px #32302F, 0 0 0 6px #FAC03B;
   }
@@ -2450,7 +2450,7 @@ span.error {
     box-shadow: 0 0 0 3px #32302F, 0 0 0 6px #FAC03B, 0 0 0 9px #32302F, 0 0 0 12px transparent;
   }
 }
-@keyframes 'small-started-ripples' {
+@keyframes "small-started-ripples-darktooth" {
   0% {
     box-shadow: 0 0 0 -3px #32302F, 0 0 0 0px #FAC03B, 0 0 0 3px #32302F, 0 0 0 6px #FAC03B;
   }
