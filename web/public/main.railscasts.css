@@ -1943,7 +1943,7 @@ h3,
   font-weight: bold;
 }
 svg .node rect {
-  fill: #2b2b2b;
+  fill: #0D0F18;
 }
 svg .node.pending rect {
   fill: #d4cfc9;
@@ -2056,22 +2056,22 @@ nav .groups li a {
   background: #272935;
 }
 #builds {
-  background: #2b2b2b;
+  background: #0D0F18;
 }
 .builds-list {
-  background: #2b2b2b;
+  background: #0D0F18;
 }
 .build-step .header {
-  background: #2b2b2b;
+  background: #0D0F18;
 }
 .groups {
-  background: #2b2b2b;
+  background: #0D0F18;
 }
 .steps .nest.odd {
   background: #3a4055;
 }
 .groups li.main a {
-  background: #2b2b2b;
+  background: #0D0F18;
 }
 .paused.groups li.main a {
   background: #6d9cbe;
@@ -2466,7 +2466,7 @@ span.error {
   color: #f9f7f3;
   padding: 5px;
   text-align: center;
-  border: 5px solid #2b2b2b;
+  border: 5px solid #0D0F18;
   text-decoration: none;
   font-weight: bold;
 }
@@ -2556,7 +2556,7 @@ span.error {
   box-sizing: border-box;
 }
 .list-collapsable-item {
-  background-color: #2b2b2b;
+  background-color: #0D0F18;
   display: block;
   cursor: pointer;
   margin-bottom: 10px;
@@ -2650,7 +2650,7 @@ span.error {
   font-weight: bold;
 }
 .jobs-builds-list .resource {
-  background-color: #2b2b2b;
+  background-color: #0D0F18;
 }
 .jobs-builds-list * {
   box-sizing: border-box;
@@ -3289,7 +3289,7 @@ ul {
   margin: 0;
   height: 100%;
   width: 300px;
-  background: #2b2b2b;
+  background: #0D0F18;
   position: fixed;
   top: 40px;
 }
@@ -3313,7 +3313,7 @@ ul {
   padding: 0;
   margin: 0;
   text-align: right;
-  background: #2b2b2b;
+  background: #0D0F18;
   border-bottom: 1px solid #3a4055;
   line-height: 28px;
 }
@@ -3336,7 +3336,7 @@ ul {
   bottom: 0;
   left: 0;
   width: 300px;
-  background-color: #2b2b2b;
+  background-color: #0D0F18;
   -webkit-transform: translateX(-300px);
   transform: translateX(-300px);
 }
@@ -3346,7 +3346,7 @@ ul {
   transform: translateX(0);
 }
 .pipelinesNav-visible .pipelines {
-  background-color: #2b2b2b;
+  background-color: #0D0F18;
 }
 .pipelinesNav-visible .pipelines::after {
   /* menu cover layer - hide it when navigation is visible */
