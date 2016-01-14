@@ -95,8 +95,12 @@ var _ = Describe("Job Builds", func() {
 
 				// job build data
 				_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
-					Jobs: []atc.JobConfig{
+					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
+					},
+					Resources: atc.ResourceConfigs{
+						{Name: "my-resource"},
+						{Name: "some-output"},
 					},
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())

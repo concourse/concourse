@@ -36,7 +36,16 @@ var _ = Describe("Resource History", func() {
 		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
+		config := atc.Config{
+			Resources: atc.ResourceConfigs{
+				{
+					Name: "some-resource",
+					Type: "some-type",
+				},
+			},
+		}
+
+		_, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "a-pipeline-name")

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/lib/pq"
 )
 
 //go:generate counterfeiter . Conn
@@ -50,6 +51,20 @@ type wrappedDB struct {
 
 func (wrapped *wrappedDB) Begin() (Tx, error) {
 	return wrapped.DB.Begin()
+}
+
+func swallowUniqueViolation(err error) error {
+	if err != nil {
+		if pgErr, ok := err.(*pq.Error); ok {
+			if pgErr.Code.Class().Name() == "integrity_constraint_violation" {
+				return nil
+			}
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 type DB interface {

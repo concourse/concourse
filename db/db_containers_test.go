@@ -1,9 +1,6 @@
 package db_test
 
 import (
-	"errors"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -35,7 +32,27 @@ var _ = Describe("Keeping track of containers", func() {
 
 		_, err := dbConn.Query(`DELETE FROM teams WHERE name = 'main'`)
 		Expect(err).NotTo(HaveOccurred())
+
 		_, err = database.SaveTeam(db.Team{Name: atc.DefaultTeamName})
+		Expect(err).NotTo(HaveOccurred())
+
+		config := atc.Config{
+			Resources: atc.ResourceConfigs{
+				{
+					Name: "some-resource",
+					Type: "some-type",
+				},
+				{
+					Name: "some-other-resource",
+					Type: "some-other-type",
+				},
+			},
+		}
+
+		_, err = database.SaveConfig(atc.DefaultTeamName, "some-pipeline", config, 0, db.PipelineUnpaused)
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = database.SaveConfig(atc.DefaultTeamName, "some-other-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -50,7 +67,7 @@ var _ = Describe("Keeping track of containers", func() {
 	It("can create and get a resource container info object", func() {
 		expectedContainer := db.Container{
 			ContainerMetadata: db.ContainerMetadata{
-				ResourceName:         "some-resource-container",
+				ResourceName:         "some-resource",
 				PipelineName:         "some-pipeline",
 				WorkerName:           "some-worker",
 				Type:                 db.ContainerTypeCheck,
@@ -80,7 +97,7 @@ var _ = Describe("Keeping track of containers", func() {
 
 		Expect(actualContainer.Handle).To(Equal("some-handle"))
 		Expect(actualContainer.StepName).To(Equal(""))
-		Expect(actualContainer.ResourceName).To(Equal("some-resource-container"))
+		Expect(actualContainer.ResourceName).To(Equal("some-resource"))
 		Expect(actualContainer.PipelineID).To(Equal(pipelineID))
 		Expect(actualContainer.PipelineName).To(Equal("some-pipeline"))
 		Expect(actualContainer.ContainerMetadata.BuildID).To(Equal(0))
@@ -305,7 +322,7 @@ var _ = Describe("Keeping track of containers", func() {
 					Handle: "b",
 				},
 			},
-			metadataToFilterFor: db.ContainerMetadata{ResourceName: "some-resource-name"},
+			metadataToFilterFor: db.ContainerMetadata{ResourceName: "some-resource"},
 			expectedHandles:     nil,
 		}),
 
@@ -494,6 +511,7 @@ var _ = Describe("Keeping track of containers", func() {
 						CheckType:    "",
 						WorkerName:   "some-worker",
 						PipelineName: "some-pipeline",
+						ResourceName: "some-resource",
 					},
 					Handle: "a",
 				},
@@ -504,6 +522,7 @@ var _ = Describe("Keeping track of containers", func() {
 						CheckType:    "nope",
 						WorkerName:   "some-worker",
 						PipelineName: "some-other-pipeline",
+						ResourceName: "some-resource",
 					},
 					Handle: "b",
 				},
@@ -514,6 +533,7 @@ var _ = Describe("Keeping track of containers", func() {
 						CheckType:    "some-type",
 						WorkerName:   "some-other-worker",
 						PipelineName: "some-pipeline",
+						ResourceName: "some-resource",
 					},
 					Handle: "c",
 				},
@@ -532,6 +552,7 @@ var _ = Describe("Keeping track of containers", func() {
 						},
 						WorkerName:   "some-worker",
 						PipelineName: "some-pipeline",
+						ResourceName: "some-resource",
 					},
 					Handle: "a",
 				},
@@ -540,6 +561,7 @@ var _ = Describe("Keeping track of containers", func() {
 						Type:         db.ContainerTypeCheck,
 						WorkerName:   "some-worker",
 						PipelineName: "some-other-pipeline",
+						ResourceName: "some-resource",
 					},
 					Handle: "b",
 				},
@@ -551,6 +573,7 @@ var _ = Describe("Keeping track of containers", func() {
 						},
 						WorkerName:   "some-other-worker",
 						PipelineName: "some-pipeline",
+						ResourceName: "some-resource",
 					},
 					Handle: "c",
 				},
@@ -648,7 +671,7 @@ var _ = Describe("Keeping track of containers", func() {
 			Handle: handle,
 			ContainerMetadata: db.ContainerMetadata{
 				PipelineName: "some-pipeline",
-				ResourceName: "some-container",
+				ResourceName: "some-resource",
 				WorkerName:   "some-worker",
 				Type:         db.ContainerTypeCheck,
 				CheckType:    "some-type",
@@ -719,7 +742,7 @@ var _ = Describe("Keeping track of containers", func() {
 			Handle: "matching-handle",
 			ContainerMetadata: db.ContainerMetadata{
 				PipelineName: "some-pipeline",
-				ResourceName: "some-container",
+				ResourceName: "some-resource",
 				WorkerName:   "some-worker",
 				Type:         db.ContainerTypeCheck,
 				CheckType:    "some-type",
@@ -774,41 +797,6 @@ var _ = Describe("Keeping track of containers", func() {
 	})
 })
 
-func CreateIfNotExistPipeline(name string, teamName string, sqlDB db.Conn) (db.SavedPipeline, error) {
-	var pipeline db.SavedPipeline
-
-	err := sqlDB.QueryRow(`
-			INSERT INTO pipelines (name, config, version, ordering, paused, team_id)
-			SELECT
-				$1,
-				'{}',
-				nextval('config_version_seq'),
-				(SELECT COUNT(1) + 1 FROM pipelines),
-				true,
-				(SELECT id FROM teams WHERE name = $2)
-			WHERE NOT EXISTS
-				(SELECT id FROM pipelines WHERE name=$1)
-			RETURNING id
-		`, name, teamName).Scan(&pipeline.ID)
-	if err != nil {
-		if strings.Contains(err.Error(), "no rows in result set") {
-			err = sqlDB.QueryRow(`
-			SELECT p.id
-			FROM pipelines p
-			JOIN teams t ON
-        t.id = p.team_id
-			WHERE p.name=$1
-      AND t.name = $2
-		`, name, teamName).Scan(&pipeline.ID)
-		}
-		if err != nil {
-			return db.SavedPipeline{}, err
-		}
-	}
-
-	return pipeline, nil
-}
-
 func getAllContainers(sqldb db.Conn) []db.Container {
 	var container_slice []db.Container
 	query := `SELECT worker_name, pipeline_id, resource_id, build_id, plan_id
@@ -827,10 +815,8 @@ func getAllContainers(sqldb db.Conn) []db.Container {
 }
 
 func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB db.Conn, dbSQL *db.SQLDB) (db.Container, int, error) {
-	pipeline, err := CreateIfNotExistPipeline(container.PipelineName, atc.DefaultTeamName, sqlDB)
-	if err != nil {
-		return db.Container{}, 0, errors.New(fmt.Sprintf("Failed to create pipeline:", err.Error()))
-	}
+	pipeline, err := dbSQL.GetPipelineByTeamNameAndName(atc.DefaultTeamName, "some-pipeline")
+	Expect(err).NotTo(HaveOccurred())
 
 	var worker db.WorkerInfo
 	worker.Name = container.ContainerIdentifier.WorkerName

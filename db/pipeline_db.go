@@ -75,7 +75,6 @@ type PipelineDB interface {
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
 
-	GetResources() ([]SavedResource, error)
 	GetJobs() ([]SavedJob, error)
 }
 
@@ -196,38 +195,6 @@ func (pdb *pipelineDB) GetJobs() ([]SavedJob, error) {
 	return jobs, nil
 }
 
-func (pdb *pipelineDB) GetResources() ([]SavedResource, error) {
-	rows, err := pdb.conn.Query(`
-			SELECT id, name, check_error, paused
-			FROM resources
-			WHERE pipeline_id = $1
-	`, pdb.ID)
-
-	defer rows.Close()
-
-	resources := []SavedResource{}
-
-	for rows.Next() {
-		var checkErr sql.NullString
-		var resource SavedResource
-
-		err = rows.Scan(&resource.ID, &resource.Name, &checkErr, &resource.Paused)
-		if err != nil {
-			return []SavedResource{}, err
-		}
-
-		if checkErr.Valid {
-			resource.CheckError = errors.New(checkErr.String)
-		}
-
-		resource.PipelineName = pdb.Name
-
-		resources = append(resources, resource)
-	}
-
-	return resources, nil
-}
-
 func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
@@ -235,11 +202,6 @@ func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {
 	}
 
 	defer tx.Rollback()
-
-	err = pdb.registerResource(tx, resourceName)
-	if err != nil {
-		return SavedResource{}, err
-	}
 
 	resource, err := pdb.getResource(tx, resourceName)
 	if err != nil {
@@ -524,11 +486,6 @@ func (pdb *pipelineDB) updatePaused(resource string, pause bool) error {
 
 	defer tx.Rollback()
 
-	err = pdb.registerResource(tx, resource)
-	if err != nil {
-		return err
-	}
-
 	result, err := tx.Exec(`
 		UPDATE resources
 		SET paused = $1
@@ -705,38 +662,7 @@ func (pdb *pipelineDB) SetResourceCheckError(resource SavedResource, cause error
 	return err
 }
 
-func (pdb *pipelineDB) registerResource(tx Tx, name string) error {
-	_, err := tx.Exec(`
-		INSERT INTO resources (name, pipeline_id)
-		SELECT $1, $2
-		WHERE NOT EXISTS (
-			SELECT 1 FROM resources WHERE name = $1 AND pipeline_id = $2
-		)
-	`, name, pdb.ID)
-
-	return swallowUniqueViolation(err)
-}
-
-func swallowUniqueViolation(err error) error {
-	if err != nil {
-		if pgErr, ok := err.(*pq.Error); ok {
-			if pgErr.Code.Class().Name() == "integrity_constraint_violation" {
-				return nil
-			}
-		}
-
-		return err
-	}
-
-	return nil
-}
-
 func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource) (SavedVersionedResource, error) {
-	err := pdb.registerResource(tx, vr.Resource)
-	if err != nil {
-		return SavedVersionedResource{}, err
-	}
-
 	savedResource, err := pdb.getResource(tx, vr.Resource)
 	if err != nil {
 		return SavedVersionedResource{}, err

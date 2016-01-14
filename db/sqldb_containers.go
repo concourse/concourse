@@ -224,7 +224,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 	if container.PipelineName != "" {
 		pipeline, err := db.GetPipelineByTeamNameAndName(atc.DefaultTeamName, container.PipelineName)
 		if err != nil {
-			return Container{}, errors.New(fmt.Sprintf("Failed to find pipeline:", err.Error()))
+			return Container{}, fmt.Errorf("failed to find pipeline: %s", err.Error())
 		}
 		pipelineID.Int64 = int64(pipeline.ID)
 		pipelineID.Valid = true

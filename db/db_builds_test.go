@@ -35,7 +35,24 @@ var _ = Describe("Keeping track of builds", func() {
 		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		sqlDB.SaveConfig(team.Name, "some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		config := atc.Config{
+			Resources: atc.ResourceConfigs{
+				{
+					Name: "some-resource",
+					Type: "some-type",
+				},
+				{
+					Name: "some-implicit-resource",
+					Type: "some-type",
+				},
+				{
+					Name: "some-explicit-resource",
+					Type: "some-type",
+				},
+			},
+		}
+
+		sqlDB.SaveConfig(team.Name, "some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "some-pipeline")
 		Expect(err).NotTo(HaveOccurred())
 
@@ -105,6 +122,7 @@ var _ = Describe("Keeping track of builds", func() {
 			},
 			PipelineName: "some-pipeline",
 		}, true)
+		Expect(err).ToNot(HaveOccurred())
 
 		_, err = pipelineDB.SaveBuildOutput(build.ID, db.VersionedResource{
 			Resource: "some-implicit-resource",

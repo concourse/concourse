@@ -50,13 +50,20 @@ var _ = Describe("PipelineDB", func() {
 			{
 				Name:      "some-group",
 				Jobs:      []string{"job-1", "job-2"},
-				Resources: []string{"resource-1", "resource-2"},
+				Resources: []string{"some-resource", "some-other-resource"},
 			},
 		},
 
 		Resources: atc.ResourceConfigs{
 			{
 				Name: "some-resource",
+				Type: "some-type",
+				Source: atc.Source{
+					"source-config": "some-value",
+				},
+			},
+			{
+				Name: "some-other-resource",
 				Type: "some-type",
 				Source: atc.Source{
 					"source-config": "some-value",
@@ -108,11 +115,18 @@ var _ = Describe("PipelineDB", func() {
 			{
 				Name:      "some-group",
 				Jobs:      []string{"job-1", "job-2"},
-				Resources: []string{"resource-1", "resource-2"},
+				Resources: []string{"some-resource", "some-other-resource"},
 			},
 		},
 
 		Resources: atc.ResourceConfigs{
+			{
+				Name: "some-resource",
+				Type: "some-type",
+				Source: atc.Source{
+					"source-config": "some-value",
+				},
+			},
 			{
 				Name: "some-other-resource",
 				Type: "some-type",
@@ -189,7 +203,6 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			// populate builds table
-
 			build, err := fetchedPipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -201,9 +214,12 @@ var _ = Describe("PipelineDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// populate build_inputs table
-
 			_, err = fetchedPipelineDB.SaveBuildInput(build.ID, db.BuildInput{
 				Name: "build-input",
+				VersionedResource: db.VersionedResource{
+					Resource:     "some-resource",
+					PipelineName: fetchedPipeline.Name,
+				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -286,7 +302,7 @@ var _ = Describe("PipelineDB", func() {
 		})
 	})
 
-	Describe("Pausing and unpausing a pipeline", func() {
+	Describe("pausing and unpausing a pipeline", func() {
 		It("starts out as unpaused", func() {
 			pipeline, err := sqlDB.GetPipelineByTeamNameAndName(team.Name, "a-pipeline-name")
 			Expect(err).NotTo(HaveOccurred())
@@ -408,59 +424,18 @@ var _ = Describe("PipelineDB", func() {
 
 	Context("Resources", func() {
 		resourceName := "some-resource"
+		otherResourceName := "some-other-resource"
 
 		var resource db.SavedResource
+		var otherResource db.SavedResource
 
 		BeforeEach(func() {
 			var err error
 			resource, err = pipelineDB.GetResource(resourceName)
 			Expect(err).NotTo(HaveOccurred())
-		})
 
-		It("can get a list of all currently saved resources in the pipeline", func() {
-			// TODO: Test zero case when GetResource doesn't create a resource...
-
-			haveNames := func(fetchedResources []db.SavedResource) []string {
-				names := []string{}
-
-				for _, r := range fetchedResources {
-					names = append(names, r.Name)
-				}
-
-				return names
-			}
-
-			By("returning the list of resources")
-			pipelineDB.SetResourceCheckError(resource, errors.New("failing"))
-
-			resources, err := pipelineDB.GetResources()
+			otherResource, err = pipelineDB.GetResource(otherResourceName)
 			Expect(err).NotTo(HaveOccurred())
-
-			Expect(resources).To(HaveLen(1))
-			Expect(resources).To(WithTransform(haveNames, ConsistOf(resourceName)))
-
-			Expect(resources[0].Paused).To(BeFalse())
-			Expect(resources[0].CheckError).To(MatchError("failing"))
-
-			By("returning the list of updated resources when you add one")
-			resource, err = pipelineDB.GetResource("another-resource")
-			Expect(err).NotTo(HaveOccurred())
-
-			resources, err = pipelineDB.GetResources()
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(resources).To(HaveLen(2))
-			Expect(resources).To(WithTransform(haveNames, ConsistOf(resourceName, "another-resource")))
-
-			By("not being affected by a different pipeline")
-			resource, err = otherPipelineDB.GetResource("different-pipeline")
-			Expect(err).NotTo(HaveOccurred())
-
-			resources, err = pipelineDB.GetResources()
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(resources).To(HaveLen(2))
-			Expect(resources).To(WithTransform(haveNames, ConsistOf(resourceName, "another-resource")))
 		})
 
 		It("can load up versioned resource information relevant to scheduling", func() {
@@ -472,7 +447,8 @@ var _ = Describe("PipelineDB", func() {
 			Expect(versions.ResourceVersions).To(BeEmpty())
 			Expect(versions.BuildOutputs).To(BeEmpty())
 			Expect(versions.ResourceIDs).To(Equal(map[string]int{
-				resource.Name: resource.ID,
+				resource.Name:      resource.ID,
+				otherResource.Name: otherResource.ID,
 			}))
 
 			Expect(versions.JobIDs).To(Equal(map[string]int{
@@ -518,7 +494,8 @@ var _ = Describe("PipelineDB", func() {
 
 			Expect(versions.BuildOutputs).To(BeEmpty())
 			Expect(versions.ResourceIDs).To(Equal(map[string]int{
-				resource.Name: resource.ID,
+				resource.Name:      resource.ID,
+				otherResource.Name: otherResource.ID,
 			}))
 
 			Expect(versions.JobIDs).To(Equal(map[string]int{
@@ -526,7 +503,7 @@ var _ = Describe("PipelineDB", func() {
 			}))
 
 			By("not including saved versioned resources of other pipelines")
-			otherPipelineResource, err := otherPipelineDB.GetResource("some-other-pipeline-resource")
+			otherPipelineResource, err := otherPipelineDB.GetResource("some-other-resource")
 			Expect(err).NotTo(HaveOccurred())
 
 			err = otherPipelineDB.SaveResourceVersions(atc.ResourceConfig{
@@ -549,7 +526,8 @@ var _ = Describe("PipelineDB", func() {
 
 			Expect(versions.BuildOutputs).To(BeEmpty())
 			Expect(versions.ResourceIDs).To(Equal(map[string]int{
-				resource.Name: resource.ID,
+				resource.Name:      resource.ID,
+				otherResource.Name: otherResource.ID,
 			}))
 
 			Expect(versions.JobIDs).To(Equal(map[string]int{
@@ -585,7 +563,8 @@ var _ = Describe("PipelineDB", func() {
 			}))
 
 			Expect(versions.ResourceIDs).To(Equal(map[string]int{
-				resource.Name: resource.ID,
+				resource.Name:      resource.ID,
+				otherResource.Name: otherResource.ID,
 			}))
 
 			Expect(versions.JobIDs).To(Equal(map[string]int{
@@ -622,7 +601,8 @@ var _ = Describe("PipelineDB", func() {
 			}))
 
 			Expect(versions.ResourceIDs).To(Equal(map[string]int{
-				resource.Name: resource.ID,
+				resource.Name:      resource.ID,
+				otherResource.Name: otherResource.ID,
 			}))
 
 			Expect(versions.JobIDs).To(Equal(map[string]int{
@@ -659,7 +639,8 @@ var _ = Describe("PipelineDB", func() {
 			}))
 
 			Expect(versions.ResourceIDs).To(Equal(map[string]int{
-				resource.Name: resource.ID,
+				resource.Name:      resource.ID,
+				otherResource.Name: otherResource.ID,
 			}))
 
 			Expect(versions.JobIDs).To(Equal(map[string]int{
@@ -701,7 +682,7 @@ var _ = Describe("PipelineDB", func() {
 			Expect(savedVR2.Version).To(Equal(db.Version{"version": "2"}))
 
 			By("not including saved versioned resources of other pipelines")
-			_, err = otherPipelineDB.GetResource("some-other-pipeline-resource")
+			_, err = otherPipelineDB.GetResource("some-other-resource")
 			Expect(err).NotTo(HaveOccurred())
 
 			err = otherPipelineDB.SaveResourceVersions(atc.ResourceConfig{
@@ -1097,13 +1078,13 @@ var _ = Describe("PipelineDB", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						err = otherPipelineDB.SaveResourceVersions(atc.ResourceConfig{
-							Name:   "some-resource2",
+							Name:   "some-other-resource",
 							Type:   "some-type",
 							Source: atc.Source{"some": "source"},
 						}, []atc.Version{{"version": "1"}})
 						Expect(err).NotTo(HaveOccurred())
 
-						otherSavedResource, err := otherPipelineDB.GetResource("some-resource2")
+						otherSavedResource, err := otherPipelineDB.GetResource("some-other-resource")
 						Expect(err).NotTo(HaveOccurred())
 
 						otherSavedVR, found, err := otherPipelineDB.GetLatestVersionedResource(otherSavedResource)
@@ -1152,7 +1133,7 @@ var _ = Describe("PipelineDB", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
-						Name:   "some-resource2",
+						Name:   "some-other-resource",
 						Type:   "some-type",
 						Source: atc.Source{"some": "source"},
 					}, []atc.Version{{"version": "1"}})
@@ -1176,7 +1157,7 @@ var _ = Describe("PipelineDB", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						err = otherPipelineDB.SaveResourceVersions(atc.ResourceConfig{
-							Name:   "some-resource2",
+							Name:   "some-other-resource",
 							Type:   "some-type",
 							Source: atc.Source{"some": "source"},
 						}, []atc.Version{{"version": "1"}})
@@ -1253,7 +1234,7 @@ var _ = Describe("PipelineDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				resource, err = pipelineDB.GetResource("resource-name")
+				resource, err = pipelineDB.GetResource("some-resource")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -1270,7 +1251,7 @@ var _ = Describe("PipelineDB", func() {
 					err := pipelineDB.SetResourceCheckError(resource, originalCause)
 					Expect(err).NotTo(HaveOccurred())
 
-					returnedResource, err := pipelineDB.GetResource("resource-name")
+					returnedResource, err := pipelineDB.GetResource("some-resource")
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(returnedResource.CheckError).To(Equal(originalCause))
@@ -1287,7 +1268,7 @@ var _ = Describe("PipelineDB", func() {
 					err = pipelineDB.SetResourceCheckError(resource, nil)
 					Expect(err).NotTo(HaveOccurred())
 
-					returnedResource, err := pipelineDB.GetResource("resource-name")
+					returnedResource, err := pipelineDB.GetResource("some-resource")
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(returnedResource.CheckError).To(BeNil())
@@ -2739,12 +2720,12 @@ var _ = Describe("PipelineDB", func() {
 				_, found, err := loadAndGetLatestInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
-						Resource: "resource-1",
+						Resource: "some-resource",
 						Passed:   []string{"shared-job", "job-1"},
 					},
 					{
 						Name:     "input-2",
-						Resource: "resource-2",
+						Resource: "some-other-resource",
 						Passed:   []string{"shared-job", "job-2"},
 					},
 				})
@@ -2752,56 +2733,56 @@ var _ = Describe("PipelineDB", func() {
 				Expect(found).To(BeFalse())
 
 				_, err = pipelineDB.SaveBuildOutput(sb1.ID, db.VersionedResource{
-					Resource: "resource-1",
+					Resource: "some-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r1-common-to-shared-and-j1"},
 				}, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = otherPipelineDB.SaveBuildOutput(sb1.ID, db.VersionedResource{
-					Resource: "resource-1",
+					Resource: "some-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r1-common-to-shared-and-j1"},
 				}, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = pipelineDB.SaveBuildOutput(sb1.ID, db.VersionedResource{
-					Resource: "resource-2",
+					Resource: "some-other-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
 				}, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = otherPipelineDB.SaveBuildOutput(sb1.ID, db.VersionedResource{
-					Resource: "resource-2",
+					Resource: "some-other-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
 				}, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				savedVR1, err := pipelineDB.SaveBuildOutput(j1b1.ID, db.VersionedResource{
-					Resource: "resource-1",
+					Resource: "some-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r1-common-to-shared-and-j1"},
 				}, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = otherPipelineDB.SaveBuildOutput(j1b1.ID, db.VersionedResource{
-					Resource: "resource-1",
+					Resource: "some-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r1-common-to-shared-and-j1"},
 				}, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				savedVR2, err := pipelineDB.SaveBuildOutput(j2b1.ID, db.VersionedResource{
-					Resource: "resource-2",
+					Resource: "some-other-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
 				}, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = otherPipelineDB.SaveBuildOutput(j2b1.ID, db.VersionedResource{
-					Resource: "resource-2",
+					Resource: "some-other-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "r2-common-to-shared-and-j2"},
 				}, false)
@@ -2817,12 +2798,12 @@ var _ = Describe("PipelineDB", func() {
 				versions, found, err := loadAndGetLatestInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
-						Resource: "resource-1",
+						Resource: "some-resource",
 						Passed:   []string{"shared-job", "job-1"},
 					},
 					{
 						Name:     "input-2",
-						Resource: "resource-2",
+						Resource: "some-other-resource",
 						Passed:   []string{"shared-job", "job-2"},
 					},
 				})
@@ -2848,37 +2829,37 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				savedCommonVR1, err := pipelineDB.SaveBuildOutput(sb2.ID, db.VersionedResource{
-					Resource: "resource-1",
+					Resource: "some-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "new-r1-common-to-shared-and-j1"},
 				}, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = pipelineDB.SaveBuildOutput(sb2.ID, db.VersionedResource{
-					Resource: "resource-2",
+					Resource: "some-other-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "new-r2-common-to-shared-and-j2"},
 				}, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				savedCommonVR1, err = pipelineDB.SaveBuildOutput(j1b2.ID, db.VersionedResource{
-					Resource: "resource-1",
+					Resource: "some-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "new-r1-common-to-shared-and-j1"},
 				}, false)
 				Expect(err).NotTo(HaveOccurred())
 
-				// do NOT save resource-2 as an output of job-2
+				// do NOT save some-other-resource as an output of job-2
 
 				versions, found, err = loadAndGetLatestInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
-						Resource: "resource-1",
+						Resource: "some-resource",
 						Passed:   []string{"shared-job", "job-1"},
 					},
 					{
 						Name:     "input-2",
-						Resource: "resource-2",
+						Resource: "some-other-resource",
 						Passed:   []string{"shared-job", "job-2"},
 					},
 				})
@@ -2895,9 +2876,9 @@ var _ = Describe("PipelineDB", func() {
 					},
 				}))
 
-				// now save the output of resource-2 job-2
+				// now save the output of some-other-resource job-2
 				savedCommonVR2, err := pipelineDB.SaveBuildOutput(j2b2.ID, db.VersionedResource{
-					Resource: "resource-2",
+					Resource: "some-other-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "new-r2-common-to-shared-and-j2"},
 				}, false)
@@ -2913,12 +2894,12 @@ var _ = Describe("PipelineDB", func() {
 				versions, found, err = loadAndGetLatestInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
-						Resource: "resource-1",
+						Resource: "some-resource",
 						Passed:   []string{"shared-job", "job-1"},
 					},
 					{
 						Name:     "input-2",
-						Resource: "resource-2",
+						Resource: "some-other-resource",
 						Passed:   []string{"shared-job", "job-2"},
 					},
 				})
@@ -2939,7 +2920,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = pipelineDB.SaveBuildOutput(j2b3.ID, db.VersionedResource{
-					Resource: "resource-2",
+					Resource: "some-other-resource",
 					Type:     "some-type",
 					Version:  db.Version{"v": "should-not-be-emitted-because-of-failure"},
 				}, false)
@@ -2953,7 +2934,7 @@ var _ = Describe("PipelineDB", func() {
 				versions, found, err = loadAndGetLatestInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-2",
-						Resource: "resource-2",
+						Resource: "some-other-resource",
 						Passed:   []string{"job-2"},
 					},
 				})
@@ -2971,28 +2952,28 @@ var _ = Describe("PipelineDB", func() {
 					version := fmt.Sprintf("version-%d", i+1)
 
 					savedCommonVR1, err := pipelineDB.SaveBuildOutput(sb1.ID, db.VersionedResource{
-						Resource: "resource-1",
+						Resource: "some-resource",
 						Type:     "some-type",
 						Version:  db.Version{"v": version + "-r1-common-to-shared-and-j1"},
 					}, false)
 					Expect(err).NotTo(HaveOccurred())
 
 					savedCommonVR2, err := pipelineDB.SaveBuildOutput(sb1.ID, db.VersionedResource{
-						Resource: "resource-2",
+						Resource: "some-other-resource",
 						Type:     "some-type",
 						Version:  db.Version{"v": version + "-r2-common-to-shared-and-j2"},
 					}, false)
 					Expect(err).NotTo(HaveOccurred())
 
 					savedCommonVR1, err = pipelineDB.SaveBuildOutput(j1b1.ID, db.VersionedResource{
-						Resource: "resource-1",
+						Resource: "some-resource",
 						Type:     "some-type",
 						Version:  db.Version{"v": version + "-r1-common-to-shared-and-j1"},
 					}, false)
 					Expect(err).NotTo(HaveOccurred())
 
 					savedCommonVR2, err = pipelineDB.SaveBuildOutput(j2b1.ID, db.VersionedResource{
-						Resource: "resource-2",
+						Resource: "some-other-resource",
 						Type:     "some-type",
 						Version:  db.Version{"v": version + "-r2-common-to-shared-and-j2"},
 					}, false)
@@ -3001,12 +2982,12 @@ var _ = Describe("PipelineDB", func() {
 					versions, found, err := loadAndGetLatestInputVersions("a-job", []config.JobInput{
 						{
 							Name:     "input-1",
-							Resource: "resource-1",
+							Resource: "some-resource",
 							Passed:   []string{"shared-job", "job-1"},
 						},
 						{
 							Name:     "input-2",
-							Resource: "resource-2",
+							Resource: "some-other-resource",
 							Passed:   []string{"shared-job", "job-2"},
 						},
 					})
