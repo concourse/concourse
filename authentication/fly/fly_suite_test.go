@@ -3,7 +3,6 @@ package fly_test
 import (
 	"os"
 	"os/exec"
-	"time"
 
 	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
@@ -22,27 +21,15 @@ var atcURL = helpers.AtcURL()
 var targetedConcourse = "testflight"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	flyBinPath, err := gexec.Build("github.com/concourse/fly", "-race")
+	data, err := helpers.FirstNodeFlySetup(atcURL, targetedConcourse)
 	Expect(err).NotTo(HaveOccurred())
 
-	return []byte(flyBinPath)
-}, func(flyBinPath []byte) {
-	flyBin = string(flyBinPath)
-
-	var err error
-
-	tmpHome, err = helpers.CreateTempHomeDir()
-	Expect(err).NotTo(HaveOccurred())
-
-	// observed jobs taking ~1m30s, so set the timeout pretty high
-	SetDefaultEventuallyTimeout(5 * time.Minute)
-
-	// poll less frequently
-	SetDefaultEventuallyPollingInterval(time.Second)
-
+	return data
+}, func(data []byte) {
 	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
 
-	err = helpers.FlyLogin(atcURL, targetedConcourse, flyBin)
+	var err error
+	flyBin, tmpHome, err = helpers.AllNodeFlySetup(data)
 	Expect(err).NotTo(HaveOccurred())
 
 	//For tests that require at least one build to have run

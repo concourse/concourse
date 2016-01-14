@@ -12,11 +12,15 @@ func CreateTempHomeDir() (string, error) {
 		return "", err
 	}
 
-	if runtime.GOOS == "windows" {
-		os.Setenv("USERPROFILE", tmpDir)
-	} else {
-		os.Setenv("HOME", tmpDir)
-	}
+	SetHomeDir(tmpDir)
 
 	return tmpDir, nil
+}
+
+func SetHomeDir(dir string) {
+	if runtime.GOOS == "windows" {
+		os.Setenv("USERPROFILE", dir)
+	} else {
+		os.Setenv("HOME", dir)
+	}
 }

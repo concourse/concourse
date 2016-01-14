@@ -6,10 +6,8 @@ import (
 	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 
 	"testing"
-	"time"
 )
 
 var (
@@ -21,28 +19,16 @@ var atcURL = helpers.AtcURL()
 var targetedConcourse = "testflight"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	flyBinPath, err := gexec.Build("github.com/concourse/fly", "-race")
+	data, err := helpers.FirstNodeFlySetup(atcURL, targetedConcourse)
 	Expect(err).NotTo(HaveOccurred())
 
-	return []byte(flyBinPath)
-}, func(flyBinPath []byte) {
-	flyBin = string(flyBinPath)
+	return data
+}, func(data []byte) {
+	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
 
 	var err error
-
-	tmpHome, err = helpers.CreateTempHomeDir()
+	flyBin, tmpHome, err = helpers.AllNodeFlySetup(data)
 	Expect(err).NotTo(HaveOccurred())
-
-	err = helpers.FlyLogin(atcURL, targetedConcourse, flyBin)
-	Expect(err).NotTo(HaveOccurred())
-
-	// observed jobs taking ~1m30s, so set the timeout pretty high
-	SetDefaultEventuallyTimeout(5 * time.Minute)
-
-	// poll less frequently
-	SetDefaultEventuallyPollingInterval(time.Second)
-
-	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
 })
 
 var _ = SynchronizedAfterSuite(func() {

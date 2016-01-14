@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/testflight/helpers"
 
 	"testing"
-	"time"
 )
 
 var atcURL = helpers.AtcURL()
@@ -29,21 +28,22 @@ func TestWeb(t *testing.T) {
 var agoutiDriver *agouti.WebDriver
 var page *agouti.Page
 
-var _ = BeforeSuite(func() {
+var _ = SynchronizedBeforeSuite(func() []byte {
+	data, err := helpers.FirstNodeClientSetup(atcURL)
+	Expect(err).NotTo(HaveOccurred())
+
+	return data
+}, func(data []byte) {
+	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
+
 	var err error
-	client, err = helpers.ConcourseClient(atcURL)
-	Expect(err).ToNot(HaveOccurred())
-
-	// observed jobs taking ~1m30s, so set the timeout pretty high
-	SetDefaultEventuallyTimeout(5 * time.Minute)
-
-	// poll less frequently
-	SetDefaultEventuallyPollingInterval(time.Second)
-
-	agoutiDriver = agouti.PhantomJS(agouti.Debug)
-	Expect(agoutiDriver.Start()).To(Succeed())
+	client, err = helpers.AllNodeClientSetup(data)
+	Expect(err).NotTo(HaveOccurred())
 
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
+
+	agoutiDriver = agouti.ChromeDriver(agouti.Debug)
+	Expect(agoutiDriver.Start()).To(Succeed())
 })
 
 var _ = AfterSuite(func() {

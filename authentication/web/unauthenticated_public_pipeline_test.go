@@ -35,12 +35,16 @@ var _ = Describe("the quality of being unauthenticated for public pipelines", fu
 
 		Entry("index", func() string { return "/" }),
 
-		Entry("job page (publicly viewable)", func() string { return fmt.Sprintf("/pipelines/%s/jobs/%s", pipelineName, publicBuild.JobName) }),
+		Entry("job page (publicly viewable)", func() string {
+			return fmt.Sprintf("/pipelines/%s/jobs/%s", pipelineName, publicBuild.JobName)
+		}),
 		Entry("build page (publicly viewable)", func() string {
 			return fmt.Sprintf("/pipelines/%s/jobs/%s/builds/%s", pipelineName, publicBuild.JobName, publicBuild.Name)
 		}),
 
-		Entry("job page (private)", func() string { return fmt.Sprintf("/pipelines/%s/jobs/%s", pipelineName, privateBuild.JobName) }),
+		Entry("job page (private)", func() string {
+			return fmt.Sprintf("/pipelines/%s/jobs/%s", pipelineName, privateBuild.JobName)
+		}),
 	)
 
 	DescribeTable("trying to view pages unauthenticated displays a login message",

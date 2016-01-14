@@ -2,7 +2,6 @@ package web_test
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse"
@@ -23,22 +22,21 @@ var page *agouti.Page
 
 var client concourse.Client
 
-var _ = BeforeSuite(func() {
-	// observed jobs taking ~1m30s, so set the timeout pretty high
-	SetDefaultEventuallyTimeout(1 * time.Minute)
+var _ = SynchronizedBeforeSuite(func() []byte {
+	data, err := helpers.FirstNodeClientSetup(atcURL)
+	Expect(err).NotTo(HaveOccurred())
 
-	// poll less frequently
-	SetDefaultEventuallyPollingInterval(time.Second)
-
+	return data
+}, func(data []byte) {
 	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
 
 	var err error
-	client, err = helpers.ConcourseClient(atcURL)
+	client, err = helpers.AllNodeClientSetup(data)
 	Expect(err).NotTo(HaveOccurred())
 
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
 
-	agoutiDriver = agouti.PhantomJS(agouti.Debug)
+	agoutiDriver = agouti.ChromeDriver(agouti.Debug)
 	Expect(agoutiDriver.Start()).To(Succeed())
 })
 

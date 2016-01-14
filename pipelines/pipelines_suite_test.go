@@ -46,30 +46,19 @@ var atcURL = helpers.AtcURL()
 var targetedConcourse = "testflight"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	flyBinPath, err := gexec.Build("github.com/concourse/fly", "-race")
+	data, err := helpers.FirstNodeFlySetup(atcURL, targetedConcourse)
 	Expect(err).NotTo(HaveOccurred())
 
-	return []byte(flyBinPath)
-}, func(flyBinPath []byte) {
+	return data
+}, func(data []byte) {
 	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
 
 	var err error
-	client, err = helpers.ConcourseClient(atcURL)
+	flyBin, tmpHome, err = helpers.AllNodeFlySetup(data)
 	Expect(err).NotTo(HaveOccurred())
 
-	tmpHome, err = helpers.CreateTempHomeDir()
+	client, err = helpers.AllNodeClientSetup(data)
 	Expect(err).NotTo(HaveOccurred())
-
-	flyBin = string(flyBinPath)
-
-	err = helpers.FlyLogin(atcURL, targetedConcourse, flyBin)
-	Expect(err).NotTo(HaveOccurred())
-
-	// observed jobs taking ~1m30s, so set the timeout pretty high
-	SetDefaultEventuallyTimeout(5 * time.Minute)
-
-	// poll less frequently
-	SetDefaultEventuallyPollingInterval(time.Second)
 
 	logger := lagertest.NewTestLogger("testflight")
 
