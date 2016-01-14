@@ -72,25 +72,25 @@ span.error { color: @base08; }
 }
 
 .legend dt.started {
-  .ripple-animation('small-started-ripple', 2px, @base0A);
+  .ripple-animation("small-started-ripple-@{theme}", 2px, @base0A);
 }
 
 .legend dt.pending {
-  .ripple-animation('small-pending-ripple', 2px, @base04);
+  .ripple-animation("small-pending-ripple-@{theme}", 2px, @base04);
 }
 
 .job-animation-node {
-  &.pending .animation-xlarge{.ripple-animation('xlarge-pending-ripples', 20px, @base04);}
-  &.started .animation-xlarge{.ripple-animation('xlarge-started-ripples', 20px, @base0A);}
+  &.pending .animation-xlarge{.ripple-animation("xlarge-pending-ripples-@{theme}", 20px, @base04);}
+  &.started .animation-xlarge{.ripple-animation("xlarge-started-ripples-@{theme}", 20px, @base0A);}
 
-  &.pending .animation-large{.ripple-animation('large-pending-ripples', 15px, @base04);}
-  &.started .animation-large{.ripple-animation('large-started-ripples', 15px, @base0A);}
+  &.pending .animation-large{.ripple-animation("large-pending-ripples-@{theme}", 15px, @base04);}
+  &.started .animation-large{.ripple-animation("large-started-ripples-@{theme}", 15px, @base0A);}
 
-  &.pending .animation-medium{.ripple-animation('medium-pending-ripples', 7px, @base04);}
-  &.started .animation-medium{.ripple-animation('medium-started-ripples', 7px, @base0A);}
+  &.pending .animation-medium{.ripple-animation("medium-pending-ripples-@{theme}", 7px, @base04);}
+  &.started .animation-medium{.ripple-animation("medium-started-ripples-@{theme}", 7px, @base0A);}
 
-  &.pending .animation-small{.ripple-animation('small-pending-ripples', 3px, @base04);}
-  &.started .animation-small{.ripple-animation('small-started-ripples', 3px, @base0A);}
+  &.pending .animation-small{.ripple-animation("small-pending-ripples-@{theme}", 3px, @base04);}
+  &.started .animation-small{.ripple-animation("small-started-ripples-@{theme}", 3px, @base0A);}
 }
 
 .ripple-animation(@name, @ripple-factor, @ripple-color) {

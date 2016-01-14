@@ -2202,10 +2202,10 @@ span.error {
   border-radius: 1px;
 }
 .legend dt.started {
-  -webkit-animation: 'small-started-ripple' 1s linear infinite;
-  animation: 'small-started-ripple' 1s linear infinite;
+  -webkit-animation: "small-started-ripple-google" 1s linear infinite;
+  animation: "small-started-ripple-google" 1s linear infinite;
 }
-@-webkit-keyframes 'small-started-ripple' {
+@-webkit-keyframes "small-started-ripple-google" {
   0% {
     box-shadow: 0 0 0 -2px #282a2e, 0 0 0 0px #FBA922, 0 0 0 2px #282a2e, 0 0 0 4px #FBA922;
   }
@@ -2216,7 +2216,7 @@ span.error {
     box-shadow: 0 0 0 2px #282a2e, 0 0 0 4px #FBA922, 0 0 0 6px #282a2e, 0 0 0 8px transparent;
   }
 }
-@keyframes 'small-started-ripple' {
+@keyframes "small-started-ripple-google" {
   0% {
     box-shadow: 0 0 0 -2px #282a2e, 0 0 0 0px #FBA922, 0 0 0 2px #282a2e, 0 0 0 4px #FBA922;
   }
@@ -2228,10 +2228,10 @@ span.error {
   }
 }
 .legend dt.pending {
-  -webkit-animation: 'small-pending-ripple' 1s linear infinite;
-  animation: 'small-pending-ripple' 1s linear infinite;
+  -webkit-animation: "small-pending-ripple-google" 1s linear infinite;
+  animation: "small-pending-ripple-google" 1s linear infinite;
 }
-@-webkit-keyframes 'small-pending-ripple' {
+@-webkit-keyframes "small-pending-ripple-google" {
   0% {
     box-shadow: 0 0 0 -2px #282a2e, 0 0 0 0px #b4b7b4, 0 0 0 2px #282a2e, 0 0 0 4px #b4b7b4;
   }
@@ -2242,7 +2242,7 @@ span.error {
     box-shadow: 0 0 0 2px #282a2e, 0 0 0 4px #b4b7b4, 0 0 0 6px #282a2e, 0 0 0 8px transparent;
   }
 }
-@keyframes 'small-pending-ripple' {
+@keyframes "small-pending-ripple-google" {
   0% {
     box-shadow: 0 0 0 -2px #282a2e, 0 0 0 0px #b4b7b4, 0 0 0 2px #282a2e, 0 0 0 4px #b4b7b4;
   }
@@ -2254,10 +2254,10 @@ span.error {
   }
 }
 .job-animation-node.pending .animation-xlarge {
-  -webkit-animation: 'xlarge-pending-ripples' 1s linear infinite;
-  animation: 'xlarge-pending-ripples' 1s linear infinite;
+  -webkit-animation: "xlarge-pending-ripples-google" 1s linear infinite;
+  animation: "xlarge-pending-ripples-google" 1s linear infinite;
 }
-@-webkit-keyframes 'xlarge-pending-ripples' {
+@-webkit-keyframes "xlarge-pending-ripples-google" {
   0% {
     box-shadow: 0 0 0 -20px #282a2e, 0 0 0 0px #b4b7b4, 0 0 0 20px #282a2e, 0 0 0 40px #b4b7b4;
   }
@@ -2268,7 +2268,7 @@ span.error {
     box-shadow: 0 0 0 20px #282a2e, 0 0 0 40px #b4b7b4, 0 0 0 60px #282a2e, 0 0 0 80px transparent;
   }
 }
-@keyframes 'xlarge-pending-ripples' {
+@keyframes "xlarge-pending-ripples-google" {
   0% {
     box-shadow: 0 0 0 -20px #282a2e, 0 0 0 0px #b4b7b4, 0 0 0 20px #282a2e, 0 0 0 40px #b4b7b4;
   }
@@ -2280,10 +2280,10 @@ span.error {
   }
 }
 .job-animation-node.started .animation-xlarge {
-  -webkit-animation: 'xlarge-started-ripples' 1s linear infinite;
-  animation: 'xlarge-started-ripples' 1s linear infinite;
+  -webkit-animation: "xlarge-started-ripples-google" 1s linear infinite;
+  animation: "xlarge-started-ripples-google" 1s linear infinite;
 }
-@-webkit-keyframes 'xlarge-started-ripples' {
+@-webkit-keyframes "xlarge-started-ripples-google" {
   0% {
     box-shadow: 0 0 0 -20px #282a2e, 0 0 0 0px #FBA922, 0 0 0 20px #282a2e, 0 0 0 40px #FBA922;
   }
@@ -2294,7 +2294,7 @@ span.error {
     box-shadow: 0 0 0 20px #282a2e, 0 0 0 40px #FBA922, 0 0 0 60px #282a2e, 0 0 0 80px transparent;
   }
 }
-@keyframes 'xlarge-started-ripples' {
+@keyframes "xlarge-started-ripples-google" {
   0% {
     box-shadow: 0 0 0 -20px #282a2e, 0 0 0 0px #FBA922, 0 0 0 20px #282a2e, 0 0 0 40px #FBA922;
   }
@@ -2306,10 +2306,10 @@ span.error {
   }
 }
 .job-animation-node.pending .animation-large {
-  -webkit-animation: 'large-pending-ripples' 1s linear infinite;
-  animation: 'large-pending-ripples' 1s linear infinite;
+  -webkit-animation: "large-pending-ripples-google" 1s linear infinite;
+  animation: "large-pending-ripples-google" 1s linear infinite;
 }
-@-webkit-keyframes 'large-pending-ripples' {
+@-webkit-keyframes "large-pending-ripples-google" {
   0% {
     box-shadow: 0 0 0 -15px #282a2e, 0 0 0 0px #b4b7b4, 0 0 0 15px #282a2e, 0 0 0 30px #b4b7b4;
   }
@@ -2320,7 +2320,7 @@ span.error {
     box-shadow: 0 0 0 15px #282a2e, 0 0 0 30px #b4b7b4, 0 0 0 45px #282a2e, 0 0 0 60px transparent;
   }
 }
-@keyframes 'large-pending-ripples' {
+@keyframes "large-pending-ripples-google" {
   0% {
     box-shadow: 0 0 0 -15px #282a2e, 0 0 0 0px #b4b7b4, 0 0 0 15px #282a2e, 0 0 0 30px #b4b7b4;
   }
@@ -2332,10 +2332,10 @@ span.error {
   }
 }
 .job-animation-node.started .animation-large {
-  -webkit-animation: 'large-started-ripples' 1s linear infinite;
-  animation: 'large-started-ripples' 1s linear infinite;
+  -webkit-animation: "large-started-ripples-google" 1s linear infinite;
+  animation: "large-started-ripples-google" 1s linear infinite;
 }
-@-webkit-keyframes 'large-started-ripples' {
+@-webkit-keyframes "large-started-ripples-google" {
   0% {
     box-shadow: 0 0 0 -15px #282a2e, 0 0 0 0px #FBA922, 0 0 0 15px #282a2e, 0 0 0 30px #FBA922;
   }
@@ -2346,7 +2346,7 @@ span.error {
     box-shadow: 0 0 0 15px #282a2e, 0 0 0 30px #FBA922, 0 0 0 45px #282a2e, 0 0 0 60px transparent;
   }
 }
-@keyframes 'large-started-ripples' {
+@keyframes "large-started-ripples-google" {
   0% {
     box-shadow: 0 0 0 -15px #282a2e, 0 0 0 0px #FBA922, 0 0 0 15px #282a2e, 0 0 0 30px #FBA922;
   }
@@ -2358,10 +2358,10 @@ span.error {
   }
 }
 .job-animation-node.pending .animation-medium {
-  -webkit-animation: 'medium-pending-ripples' 1s linear infinite;
-  animation: 'medium-pending-ripples' 1s linear infinite;
+  -webkit-animation: "medium-pending-ripples-google" 1s linear infinite;
+  animation: "medium-pending-ripples-google" 1s linear infinite;
 }
-@-webkit-keyframes 'medium-pending-ripples' {
+@-webkit-keyframes "medium-pending-ripples-google" {
   0% {
     box-shadow: 0 0 0 -7px #282a2e, 0 0 0 0px #b4b7b4, 0 0 0 7px #282a2e, 0 0 0 14px #b4b7b4;
   }
@@ -2372,7 +2372,7 @@ span.error {
     box-shadow: 0 0 0 7px #282a2e, 0 0 0 14px #b4b7b4, 0 0 0 21px #282a2e, 0 0 0 28px transparent;
   }
 }
-@keyframes 'medium-pending-ripples' {
+@keyframes "medium-pending-ripples-google" {
   0% {
     box-shadow: 0 0 0 -7px #282a2e, 0 0 0 0px #b4b7b4, 0 0 0 7px #282a2e, 0 0 0 14px #b4b7b4;
   }
@@ -2384,10 +2384,10 @@ span.error {
   }
 }
 .job-animation-node.started .animation-medium {
-  -webkit-animation: 'medium-started-ripples' 1s linear infinite;
-  animation: 'medium-started-ripples' 1s linear infinite;
+  -webkit-animation: "medium-started-ripples-google" 1s linear infinite;
+  animation: "medium-started-ripples-google" 1s linear infinite;
 }
-@-webkit-keyframes 'medium-started-ripples' {
+@-webkit-keyframes "medium-started-ripples-google" {
   0% {
     box-shadow: 0 0 0 -7px #282a2e, 0 0 0 0px #FBA922, 0 0 0 7px #282a2e, 0 0 0 14px #FBA922;
   }
@@ -2398,7 +2398,7 @@ span.error {
     box-shadow: 0 0 0 7px #282a2e, 0 0 0 14px #FBA922, 0 0 0 21px #282a2e, 0 0 0 28px transparent;
   }
 }
-@keyframes 'medium-started-ripples' {
+@keyframes "medium-started-ripples-google" {
   0% {
     box-shadow: 0 0 0 -7px #282a2e, 0 0 0 0px #FBA922, 0 0 0 7px #282a2e, 0 0 0 14px #FBA922;
   }
@@ -2410,10 +2410,10 @@ span.error {
   }
 }
 .job-animation-node.pending .animation-small {
-  -webkit-animation: 'small-pending-ripples' 1s linear infinite;
-  animation: 'small-pending-ripples' 1s linear infinite;
+  -webkit-animation: "small-pending-ripples-google" 1s linear infinite;
+  animation: "small-pending-ripples-google" 1s linear infinite;
 }
-@-webkit-keyframes 'small-pending-ripples' {
+@-webkit-keyframes "small-pending-ripples-google" {
   0% {
     box-shadow: 0 0 0 -3px #282a2e, 0 0 0 0px #b4b7b4, 0 0 0 3px #282a2e, 0 0 0 6px #b4b7b4;
   }
@@ -2424,7 +2424,7 @@ span.error {
     box-shadow: 0 0 0 3px #282a2e, 0 0 0 6px #b4b7b4, 0 0 0 9px #282a2e, 0 0 0 12px transparent;
   }
 }
-@keyframes 'small-pending-ripples' {
+@keyframes "small-pending-ripples-google" {
   0% {
     box-shadow: 0 0 0 -3px #282a2e, 0 0 0 0px #b4b7b4, 0 0 0 3px #282a2e, 0 0 0 6px #b4b7b4;
   }
@@ -2436,10 +2436,10 @@ span.error {
   }
 }
 .job-animation-node.started .animation-small {
-  -webkit-animation: 'small-started-ripples' 1s linear infinite;
-  animation: 'small-started-ripples' 1s linear infinite;
+  -webkit-animation: "small-started-ripples-google" 1s linear infinite;
+  animation: "small-started-ripples-google" 1s linear infinite;
 }
-@-webkit-keyframes 'small-started-ripples' {
+@-webkit-keyframes "small-started-ripples-google" {
   0% {
     box-shadow: 0 0 0 -3px #282a2e, 0 0 0 0px #FBA922, 0 0 0 3px #282a2e, 0 0 0 6px #FBA922;
   }
@@ -2450,7 +2450,7 @@ span.error {
     box-shadow: 0 0 0 3px #282a2e, 0 0 0 6px #FBA922, 0 0 0 9px #282a2e, 0 0 0 12px transparent;
   }
 }
-@keyframes 'small-started-ripples' {
+@keyframes "small-started-ripples-google" {
   0% {
     box-shadow: 0 0 0 -3px #282a2e, 0 0 0 0px #FBA922, 0 0 0 3px #282a2e, 0 0 0 6px #FBA922;
   }

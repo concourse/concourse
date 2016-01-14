@@ -11,10 +11,13 @@ if ! [ -d $builder ]; then
 fi
 
 for scheme in ${builder}/schemes/*.yml; do
+  name=$(echo $(basename $scheme) | sed -e 's/.yml//')
+
   grep '^base[0-9A-F]\{2\}' $scheme | \
     sed -e 's/^base\([0-9A-F]\{2\}\): "\(.*\)".*/@base\1: #\2;/' > \
     _vars.less
 
-  name=$(echo $(basename $scheme) | sed -e 's/.yml//')
+  echo "@theme: \"$name\";" >> _vars.less
+
   lessc main.less ../../public/main.${name}.css
 done
