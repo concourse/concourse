@@ -30,6 +30,8 @@ var _ = Describe("SQL DB Teams", func() {
 		bus := db.NewNotificationsBus(listener, dbConn)
 
 		database = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
+
+		database.DeleteTeamByName(atc.DefaultTeamName)
 	})
 
 	AfterEach(func() {
