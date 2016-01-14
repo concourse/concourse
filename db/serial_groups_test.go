@@ -37,7 +37,15 @@ var _ = Describe("Scheduling multiple builds within the same serial groups", fun
 		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		sqlDB.SaveConfig(team.Name, "some-pipeline", atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		config := atc.Config{
+			Jobs: atc.JobConfigs{
+				{Name: "job-one"},
+				{Name: "job-one-two"},
+				{Name: "job-two"},
+			},
+		}
+
+		sqlDB.SaveConfig(team.Name, "some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "some-pipeline")
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -50,7 +58,6 @@ var _ = Describe("Scheduling multiple builds within the same serial groups", fun
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	//TODO: Combine
 	BeforeEach(func() {
 		jobOneConfig = atc.JobConfig{
 			Name:         "job-one",

@@ -200,11 +200,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 			pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(team.Name, pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			jobs, err := pipelineDB.GetJobs()
+			_, err = pipelineDB.GetJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
-
-			Expect(jobs).To(HaveLen(1))
-			Expect(jobs[0].Name).To(Equal("some-job"))
 		})
 	})
 

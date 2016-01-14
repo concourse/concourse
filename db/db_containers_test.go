@@ -37,6 +37,17 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		config := atc.Config{
+			Jobs: atc.JobConfigs{
+				{
+					Name: "some-job",
+				},
+				{
+					Name: "some-other-job",
+				},
+				{
+					Name: "some-random-job",
+				},
+			},
 			Resources: atc.ResourceConfigs{
 				{
 					Name: "some-resource",
@@ -832,7 +843,7 @@ func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB db.C
 	if container.Type != db.ContainerTypeCheck {
 		jobName := container.JobName
 		if jobName == "" {
-			jobName = "random-job"
+			jobName = "some-random-job"
 		}
 
 		build, err := pipelineDB.CreateJobBuild(jobName)

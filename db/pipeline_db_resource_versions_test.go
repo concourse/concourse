@@ -37,6 +37,14 @@ var _ = Describe("Resource History", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		config := atc.Config{
+			Jobs: atc.JobConfigs{
+				{
+					Name: "some-job",
+				},
+				{
+					Name: "some-other-job",
+				},
+			},
 			Resources: atc.ResourceConfigs{
 				{
 					Name: "some-resource",

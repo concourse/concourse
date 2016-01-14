@@ -66,7 +66,7 @@ type PipelineDB interface {
 	GetNextPendingBuild(job string) (Build, bool, error)
 
 	GetCurrentBuild(job string) (Build, bool, error)
-	GetRunningBuildsBySerialGroup(jobName string, serialGrous []string) ([]Build, error)
+	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error)
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error)
 
 	ScheduleBuild(buildID int, job atc.JobConfig) (bool, error)
@@ -74,8 +74,6 @@ type PipelineDB interface {
 	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
-
-	GetJobs() ([]SavedJob, error)
 }
 
 type pipelineDB struct {
@@ -162,37 +160,6 @@ func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, bool, error) {
 	}
 
 	return config, ConfigVersion(version), true, nil
-}
-
-func (pdb *pipelineDB) GetJobs() ([]SavedJob, error) {
-	rows, err := pdb.conn.Query(`
-		SELECT id, name, paused
-		FROM jobs
-		WHERE pipeline_id = $1
-  `, pdb.ID)
-
-	if err != nil {
-		return []SavedJob{}, err
-	}
-
-	defer rows.Close()
-
-	jobs := []SavedJob{}
-
-	for rows.Next() {
-		var job SavedJob
-
-		err = rows.Scan(&job.ID, &job.Name, &job.Paused)
-		if err != nil {
-			return []SavedJob{}, err
-		}
-
-		job.PipelineName = pdb.Name
-
-		jobs = append(jobs, job)
-	}
-
-	return jobs, nil
 }
 
 func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {
@@ -746,11 +713,6 @@ func (pdb *pipelineDB) GetJob(jobName string) (SavedJob, error) {
 
 	defer tx.Rollback()
 
-	err = pdb.registerJob(tx, jobName)
-	if err != nil {
-		return SavedJob{}, err
-	}
-
 	dbJob, err := pdb.getJob(tx, jobName)
 	if err != nil {
 		return SavedJob{}, err
@@ -771,11 +733,6 @@ func (pdb *pipelineDB) GetJobBuild(job string, name string) (Build, bool, error)
 	}
 
 	defer tx.Rollback()
-
-	err = pdb.registerJob(tx, job)
-	if err != nil {
-		return Build{}, false, err
-	}
 
 	dbJob, err := pdb.getJob(tx, job)
 	if err != nil {
@@ -904,11 +861,6 @@ func (pdb *pipelineDB) CreateJobBuild(jobName string) (Build, error) {
 }
 
 func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
-	err := pdb.registerJob(tx, jobName)
-	if err != nil {
-		return Build{}, err
-	}
-
 	dbJob, err := pdb.getJob(tx, jobName)
 	if err != nil {
 		return Build{}, err
@@ -1098,11 +1050,6 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 
 	defer tx.Rollback()
 
-	err = pdb.registerJob(tx, job)
-	if err != nil {
-		return Build{}, false, err
-	}
-
 	dbJob, err := pdb.getJob(tx, job)
 	if err != nil {
 		return Build{}, false, err
@@ -1178,11 +1125,6 @@ func (pdb *pipelineDB) GetNextPendingBuild(job string) (Build, bool, error) {
 	}
 
 	defer tx.Rollback()
-
-	err = pdb.registerJob(tx, job)
-	if err != nil {
-		return Build{}, false, err
-	}
 
 	dbJob, err := pdb.getJob(tx, job)
 	if err != nil {
@@ -1679,11 +1621,6 @@ func (pdb *pipelineDB) updatePausedJob(job string, pause bool) error {
 
 	defer tx.Rollback()
 
-	err = pdb.registerJob(tx, job)
-	if err != nil {
-		return err
-	}
-
 	dbJob, err := pdb.getJob(tx, job)
 	if err != nil {
 		return err
@@ -1887,18 +1824,6 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 	}
 
 	return finished, next, nil
-}
-
-func (pdb *pipelineDB) registerJob(tx Tx, name string) error {
-	_, err := tx.Exec(`
-		INSERT INTO jobs (name, pipeline_id)
-		SELECT $1, $2
-		WHERE NOT EXISTS (
-			SELECT 1 FROM jobs WHERE name = $1 AND pipeline_id = $2
-		)
-	`, name, pdb.ID)
-
-	return swallowUniqueViolation(err)
 }
 
 func (pdb *pipelineDB) getJob(tx Tx, name string) (SavedJob, error) {
