@@ -6,6 +6,13 @@ function setActiveStyleSheet(title) {
       if(a.getAttribute("title") == title) a.disabled = false;
     }
   }
+
+  var switcher = document.getElementById("styleswitcher");
+  if (switcher) {
+    // might not be loaded yet; this function is called twice, once super early
+    // to prevent flickering, and again once all the dom is loaded up
+    switcher.value = title;
+  }
 }
 
 function getActiveStyleSheet() {
@@ -62,3 +69,20 @@ window.onunload = function(e) {
 var cookie = readCookie("style");
 var title = cookie ? cookie : getPreferredStyleSheet();
 setActiveStyleSheet(title);
+
+function switchStyle() {
+  setActiveStyleSheet(document.getElementById("styleswitcher").value);
+}
+
+function toggleSwitcher(event) {
+  if (event.keyCode == 67 && event.altKey) {
+    var switcher = document.getElementById("styleswitcher");
+    if (switcher.style.display == "none") {
+      switcher.style.display = "block";
+    } else {
+      switcher.style.display = "none";
+    }
+  }
+}
+
+document.addEventListener("keyup", toggleSwitcher, false);
