@@ -71,10 +71,6 @@ resources/pool-resource.tar.gz:
   object_id: ac0dcd59-9f78-4a87-8787-08adfc640cfa
   sha: 5e624ad96c4e90b92d2b16e66648a8e51bfa0aec
   size: 9618012
-golang_1.5/go1.5.2.linux-amd64.tar.gz:
-  object_id: 018713cf-8a4c-425b-bc47-c5b110b5f865
-  sha: cae87ed095e8d94a81871281d35da7829bd1234e
-  size: 76350075
 golang_1.5/go1.5.3.linux-amd64.tar.gz:
   object_id: 72a62d59-8d50-404e-836f-8675ea0d5e53
   sha: c5377eca4837968d043b681f00a852a262f0f5f6
