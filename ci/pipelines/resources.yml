@@ -3,10 +3,12 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: busybox-git
+  - get: core-busyboxplus
+    resource: busybox-git
     trigger: true
   - task: build-image
-    file: busybox-git/ci/build.yml
+    privileged: true
+    file: core-busyboxplus/ci/build.yml
     config: {params: {FLAVOR: git}}
   - put: busybox-git-image
     params: {load: built-image/image}
@@ -15,10 +17,12 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: busybox-ruby
+  - get: core-busyboxplus
+    resource: busybox-ruby
     trigger: true
   - task: build-image
-    file: busybox-ruby/ci/build.yml
+    privileged: true
+    file: core-busyboxplus/ci/build.yml
     config: {params: {FLAVOR: ruby}}
   - put: busybox-ruby-image
     params: {load: built-image/image}
@@ -27,10 +31,12 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: busybox-iptables
+  - get: core-busyboxplus
+    resource: busybox-iptables
     trigger: true
   - task: build-image
-    file: busybox-iptables/ci/build.yml
+    privileged: true
+    file: core-busyboxplus/ci/build.yml
     config: {params: {FLAVOR: iptables}}
   - put: busybox-iptables-image
     params: {load: built-image/image}
@@ -667,7 +673,7 @@ resources:
   source:
     uri: https://github.com/concourse/core-busyboxplus.git
     branch: master
-    paths: [git]
+    paths: [git, ci]
 
 - name: busybox-git-image
   type: docker-image
@@ -683,7 +689,7 @@ resources:
   source:
     uri: https://github.com/concourse/core-busyboxplus.git
     branch: master
-    paths: [iptables]
+    paths: [iptables, ci]
 
 - name: busybox-iptables-image
   type: docker-image
@@ -699,7 +705,7 @@ resources:
   source:
     uri: https://github.com/concourse/core-busyboxplus.git
     branch: master
-    paths: [ruby]
+    paths: [ruby, ci]
 
 - name: busybox-ruby-image
   type: docker-image
