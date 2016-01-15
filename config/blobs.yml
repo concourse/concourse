@@ -48,9 +48,9 @@ consul_0.5/consul:
   sha: f461a632165ce878045afaaf04de699510e53374
   size: 17734417
 resources/bosh-io-stemcell-resource.tar.gz:
-  object_id: 206d8ca2-f332-4ae2-b05c-83ac2bd62671
-  sha: 04d1437107e8f45996cae6d6465045a7e9acef22
-  size: 8777610
+  object_id: 11648b8a-0d76-48ff-b0e2-b451ea1339c9
+  sha: d7057f9ce11d12efa4a77c06d655d1471a2a6257
+  size: 8777518
 resources/bosh-io-release-resource.tar.gz:
   object_id: 63271f7a-4335-4a3a-a16e-5475669d4634
   sha: f3fc9aa9307b34f5542a441f707651e0343183e9
