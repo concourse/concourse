@@ -1800,7 +1800,7 @@ body {
   line-height: 1.4;
   margin: 0;
   background: #34495E;
-  color: #e0e0e0;
+  color: #E6E7E8;
 }
 pre {
   font-family: monospace;
@@ -1831,7 +1831,7 @@ h3,
   font-weight: bold;
 }
 .ansi-black-fg {
-  color: #95A5A6;
+  color: #85929D;
 }
 .ansi-red-fg {
   color: #E74C3C;
@@ -1855,7 +1855,7 @@ h3,
   color: #ECF0F1;
 }
 .ansi-bright-black-fg {
-  color: #95A5A6;
+  color: #85929D;
   font-weight: bold;
 }
 .ansi-bright-red-fg {
@@ -1887,7 +1887,7 @@ h3,
   font-weight: bold;
 }
 .ansi-black-bg {
-  background-color: #95A5A6;
+  background-color: #85929D;
 }
 .ansi-red-bg {
   background-color: #E74C3C;
@@ -1911,7 +1911,7 @@ h3,
   background-color: #ECF0F1;
 }
 .ansi-bright-black-bg {
-  background-color: #95A5A6;
+  background-color: #85929D;
   font-weight: bold;
 }
 .ansi-bright-red-bg {
@@ -1964,7 +1964,7 @@ svg .node.paused rect {
   fill: #3498DB;
 }
 svg .node.job.no-builds rect {
-  fill: #95A5A6;
+  fill: #85929D;
 }
 svg .node.input.failing rect {
   fill: #E67E22;
@@ -1973,7 +1973,7 @@ svg .node.resource a {
   color: #f5f5f5;
 }
 svg .edge {
-  stroke: #95A5A6;
+  stroke: #85929D;
 }
 svg .edge.pending {
   stroke: #BDC3C7;
@@ -2068,7 +2068,7 @@ nav .groups li a {
   background: #2C3E50;
 }
 .steps .nest.odd {
-  background: #7F8C8D;
+  background: #5E6D7D;
 }
 .groups li.main a {
   background: #2C3E50;
@@ -2077,10 +2077,10 @@ nav .groups li a {
   background: #3498DB;
 }
 .build-step.first-occurrence .header {
-  background: #95A5A6;
+  background: #85929D;
 }
 .groups li.active a {
-  background: #95A5A6;
+  background: #85929D;
 }
 .legend dt.pending {
   background: #BDC3C7;
@@ -2107,7 +2107,7 @@ nav .groups li a {
   color: #ECF0F1;
 }
 .build-action i:hover {
-  background: #7F8C8D;
+  background: #5E6D7D;
 }
 .build-action i:active {
   background: #BDC3C7;
@@ -2142,7 +2142,7 @@ nav .groups li a {
   background: #E67E22;
 }
 .no-builds {
-  background: #95A5A6;
+  background: #85929D;
 }
 .pending {
   background: #BDC3C7;
@@ -2471,7 +2471,7 @@ span.error {
   font-weight: bold;
 }
 .build-one-off {
-  background-color: #95A5A6;
+  background-color: #85929D;
 }
 .build-action.btn-pause i {
   font-size: 23px;
@@ -2524,7 +2524,7 @@ span.error {
 }
 .btn-pause.disabled,
 .btn-pause.enabled:active {
-  background-color: #95A5A6;
+  background-color: #85929D;
 }
 .btn-large {
   font-size: 25px;
@@ -2547,7 +2547,7 @@ span.error {
 .list-collapsable-content {
   display: none;
   box-sizing: border-box;
-  background-color: #7F8C8D;
+  background-color: #5E6D7D;
 }
 .expanded .list-collapsable-content {
   display: block;
@@ -2593,11 +2593,11 @@ span.error {
 }
 .aggregate {
   padding: 1em;
-  background: #7F8C8D;
+  background: #5E6D7D;
 }
 .aggregate > .seq {
   margin-bottom: .5em;
-  border-top: 1px solid #95A5A6;
+  border-top: 1px solid #85929D;
   padding-top: .5em;
 }
 .aggregate > .seq:first-child {
@@ -2605,22 +2605,22 @@ span.error {
   padding-top: 0;
 }
 .aggregate .aggregate {
-  background: #95A5A6;
+  background: #85929D;
 }
 .aggregate .aggregate > .seq {
-  border-color: #7F8C8D;
+  border-color: #5E6D7D;
 }
 .aggregate .aggregate .aggregate {
-  background: #7F8C8D;
+  background: #5E6D7D;
 }
 .aggregate .aggregate .aggregate > .seq {
-  border-color: #95A5A6;
+  border-color: #85929D;
 }
 .aggregate .aggregate .aggregate .aggregate {
-  background: #95A5A6;
+  background: #85929D;
 }
 .aggregate .aggregate .aggregate .aggregate > .seq {
-  border-color: #7F8C8D;
+  border-color: #5E6D7D;
 }
 .aggregate .aggregate .aggregate .aggregate .aggregate {
   background: #f0f;
@@ -2768,7 +2768,7 @@ span.error {
   background: none;
 }
 .jobs-builds-list li {
-  background-color: #7F8C8D;
+  background-color: #5E6D7D;
   width: 100%;
   float: none;
   margin: 0px;
@@ -2841,7 +2841,7 @@ span.error {
 .build-step.inactive h3,
 .build-step.inactive i,
 .build-step.inactive .dictionary {
-  color: #95A5A6;
+  color: #85929D;
 }
 .build-step.inactive.first-occurrence h3,
 .build-step.inactive.first-occurrence i,
@@ -2993,13 +2993,13 @@ svg .active.node text {
 }
 .table td {
   padding: 5px;
-  border-top: 1px solid #7F8C8D;
+  border-top: 1px solid #5E6D7D;
 }
 .table td:first-child {
   padding-left: 0px;
 }
 .table td:last-child {
-  border-right: 1px solid #7F8C8D;
+  border-right: 1px solid #5E6D7D;
 }
 .table thead {
   text-align: left;
@@ -3314,7 +3314,7 @@ ul {
   margin: 0;
   text-align: right;
   background: #2C3E50;
-  border-bottom: 1px solid #7F8C8D;
+  border-bottom: 1px solid #5E6D7D;
   line-height: 28px;
 }
 .pipelinesNav-enabled .pipelines li:hover {
@@ -3366,7 +3366,7 @@ ul {
   color: #f5f5f5;
 }
 .login-box .options li a:hover {
-  background: #7F8C8D;
+  background: #5E6D7D;
 }
 .pagination-header,
 .pagination-footer {
@@ -3390,11 +3390,11 @@ ul {
   width: 40px;
 }
 .btn-page-link a:hover {
-  background: #95A5A6;
+  background: #85929D;
   border-radius: 50%;
 }
 .btn-page-link.disabled .arrow {
-  color: #95A5A6;
+  color: #85929D;
 }
 .resource-check-status {
   margin-bottom: 24px;
@@ -3423,7 +3423,7 @@ ul {
   margin: 0;
   font-size: 16px;
   line-height: 26px;
-  background: #7F8C8D;
+  background: #5E6D7D;
 }
 .retry-tabs li {
   display: inline-block;
@@ -3436,10 +3436,10 @@ ul {
   display: inline-block;
 }
 .retry-tabs li:hover {
-  background: #95A5A6;
+  background: #85929D;
 }
 .retry-tabs li.current {
-  background: #95A5A6;
+  background: #85929D;
   opacity: 1;
 }
 .retry-tabs li.inactive {
