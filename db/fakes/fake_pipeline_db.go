@@ -317,11 +317,11 @@ type FakePipelineDB struct {
 		result2 bool
 		result3 error
 	}
-	GetRunningBuildsBySerialGroupStub        func(jobName string, serialGrous []string) ([]db.Build, error)
+	GetRunningBuildsBySerialGroupStub        func(jobName string, serialGroups []string) ([]db.Build, error)
 	getRunningBuildsBySerialGroupMutex       sync.RWMutex
 	getRunningBuildsBySerialGroupArgsForCall []struct {
-		jobName     string
-		serialGrous []string
+		jobName      string
+		serialGroups []string
 	}
 	getRunningBuildsBySerialGroupReturns struct {
 		result1 []db.Build
@@ -387,12 +387,13 @@ type FakePipelineDB struct {
 		result1 []db.Build
 		result2 error
 	}
-	GetJobsStub        func() ([]db.SavedJob, error)
-	getJobsMutex       sync.RWMutex
-	getJobsArgsForCall []struct{}
-	getJobsReturns     struct {
-		result1 []db.SavedJob
-		result2 error
+	GetDashboardStub        func() (db.Dashboard, atc.GroupConfigs, error)
+	getDashboardMutex       sync.RWMutex
+	getDashboardArgsForCall []struct{}
+	getDashboardReturns     struct {
+		result1 db.Dashboard
+		result2 atc.GroupConfigs
+		result3 error
 	}
 }
 
@@ -1475,15 +1476,15 @@ func (fake *FakePipelineDB) GetCurrentBuildReturns(result1 db.Build, result2 boo
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGrous []string) ([]db.Build, error) {
+func (fake *FakePipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.Build, error) {
 	fake.getRunningBuildsBySerialGroupMutex.Lock()
 	fake.getRunningBuildsBySerialGroupArgsForCall = append(fake.getRunningBuildsBySerialGroupArgsForCall, struct {
-		jobName     string
-		serialGrous []string
-	}{jobName, serialGrous})
+		jobName      string
+		serialGroups []string
+	}{jobName, serialGroups})
 	fake.getRunningBuildsBySerialGroupMutex.Unlock()
 	if fake.GetRunningBuildsBySerialGroupStub != nil {
-		return fake.GetRunningBuildsBySerialGroupStub(jobName, serialGrous)
+		return fake.GetRunningBuildsBySerialGroupStub(jobName, serialGroups)
 	} else {
 		return fake.getRunningBuildsBySerialGroupReturns.result1, fake.getRunningBuildsBySerialGroupReturns.result2
 	}
@@ -1498,7 +1499,7 @@ func (fake *FakePipelineDB) GetRunningBuildsBySerialGroupCallCount() int {
 func (fake *FakePipelineDB) GetRunningBuildsBySerialGroupArgsForCall(i int) (string, []string) {
 	fake.getRunningBuildsBySerialGroupMutex.RLock()
 	defer fake.getRunningBuildsBySerialGroupMutex.RUnlock()
-	return fake.getRunningBuildsBySerialGroupArgsForCall[i].jobName, fake.getRunningBuildsBySerialGroupArgsForCall[i].serialGrous
+	return fake.getRunningBuildsBySerialGroupArgsForCall[i].jobName, fake.getRunningBuildsBySerialGroupArgsForCall[i].serialGroups
 }
 
 func (fake *FakePipelineDB) GetRunningBuildsBySerialGroupReturns(result1 []db.Build, result2 error) {
@@ -1713,29 +1714,30 @@ func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputReturns(result1 []db.Bui
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetJobs() ([]db.SavedJob, error) {
-	fake.getJobsMutex.Lock()
-	fake.getJobsArgsForCall = append(fake.getJobsArgsForCall, struct{}{})
-	fake.getJobsMutex.Unlock()
-	if fake.GetJobsStub != nil {
-		return fake.GetJobsStub()
+func (fake *FakePipelineDB) GetDashboard() (db.Dashboard, atc.GroupConfigs, error) {
+	fake.getDashboardMutex.Lock()
+	fake.getDashboardArgsForCall = append(fake.getDashboardArgsForCall, struct{}{})
+	fake.getDashboardMutex.Unlock()
+	if fake.GetDashboardStub != nil {
+		return fake.GetDashboardStub()
 	} else {
-		return fake.getJobsReturns.result1, fake.getJobsReturns.result2
+		return fake.getDashboardReturns.result1, fake.getDashboardReturns.result2, fake.getDashboardReturns.result3
 	}
 }
 
-func (fake *FakePipelineDB) GetJobsCallCount() int {
-	fake.getJobsMutex.RLock()
-	defer fake.getJobsMutex.RUnlock()
-	return len(fake.getJobsArgsForCall)
+func (fake *FakePipelineDB) GetDashboardCallCount() int {
+	fake.getDashboardMutex.RLock()
+	defer fake.getDashboardMutex.RUnlock()
+	return len(fake.getDashboardArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetJobsReturns(result1 []db.SavedJob, result2 error) {
-	fake.GetJobsStub = nil
-	fake.getJobsReturns = struct {
-		result1 []db.SavedJob
-		result2 error
-	}{result1, result2}
+func (fake *FakePipelineDB) GetDashboardReturns(result1 db.Dashboard, result2 atc.GroupConfigs, result3 error) {
+	fake.GetDashboardStub = nil
+	fake.getDashboardReturns = struct {
+		result1 db.Dashboard
+		result2 atc.GroupConfigs
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ db.PipelineDB = new(FakePipelineDB)

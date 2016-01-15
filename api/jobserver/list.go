@@ -11,36 +11,22 @@ import (
 
 func (s *Server) ListJobs(pipelineDB db.PipelineDB) http.Handler {
 	logger := s.logger.Session("list-jobs")
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var jobs []atc.Job
-		config, _, found, err := pipelineDB.GetConfig()
+
+		dashboard, groups, err := pipelineDB.GetDashboard()
 		if err != nil {
-			logger.Error("failed-to-get-config", err)
+			logger.Error("failed-to-get-dashboard", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		if !found {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		for _, job := range config.Jobs {
-			finished, next, err := pipelineDB.GetJobFinishedAndNextBuild(job.Name)
-			if err != nil {
-				logger.Error("failed-to-get-job-finished-and-next-build", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			dbJob, err := pipelineDB.GetJob(job.Name)
-			if err != nil {
-				logger.Error("failed-to-get-job", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			jobs = append(jobs, present.Job(dbJob, job, config.Groups, finished, next))
+		for _, job := range dashboard {
+			jobs = append(
+				jobs,
+				present.Job(job.Job, job.JobConfig, groups, job.FinishedBuild, job.NextBuild),
+			)
 		}
 
 		w.WriteHeader(http.StatusOK)

@@ -1332,6 +1332,115 @@ var _ = Describe("PipelineDB", func() {
 	})
 
 	Describe("Jobs", func() {
+		Describe("GetDashboard", func() {
+			It("returns a Dashboard object with a DashboardJob corresponding to each configured job", func() {
+				job, err := pipelineDB.GetJob("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				otherJob, err := pipelineDB.GetJob("some-other-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				aJob, err := pipelineDB.GetJob("a-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				sharedJob, err := pipelineDB.GetJob("shared-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				randomJob, err := pipelineDB.GetJob("random-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				lookupConfig := func(jobName string) atc.JobConfig {
+					config, found := pipelineConfig.Jobs.Lookup(jobName)
+					Expect(found).To(BeTrue())
+
+					return config
+				}
+
+				By("returning jobs with no builds")
+				expectedDashboard := db.Dashboard{
+					{
+						JobConfig:     lookupConfig(job.Name),
+						Job:           job,
+						NextBuild:     nil,
+						FinishedBuild: nil,
+					},
+					{
+						JobConfig:     lookupConfig(otherJob.Name),
+						Job:           otherJob,
+						NextBuild:     nil,
+						FinishedBuild: nil,
+					},
+					{
+						JobConfig:     lookupConfig(aJob.Name),
+						Job:           aJob,
+						NextBuild:     nil,
+						FinishedBuild: nil,
+					},
+					{
+						JobConfig:     lookupConfig(sharedJob.Name),
+						Job:           sharedJob,
+						NextBuild:     nil,
+						FinishedBuild: nil,
+					},
+					{
+						JobConfig:     lookupConfig(randomJob.Name),
+						Job:           randomJob,
+						NextBuild:     nil,
+						FinishedBuild: nil,
+					},
+				}
+
+				actualDashboard, groups, err := pipelineDB.GetDashboard()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(groups).To(Equal(pipelineConfig.Groups))
+				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+
+				By("returning a job's most recent unfinished build")
+				jobBuildOld, err := pipelineDB.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				jobBuild, err := pipelineDB.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				expectedDashboard[0].NextBuild = &jobBuild
+
+				actualDashboard, _, err = pipelineDB.GetDashboard()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+
+				By("returning a job's most recent finished build")
+				err = sqlDB.FinishBuild(jobBuild.ID, db.StatusSucceeded)
+				Expect(err).NotTo(HaveOccurred())
+
+				var found bool
+				jobBuild, found, err = sqlDB.GetBuild(jobBuild.ID)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				expectedDashboard[0].FinishedBuild = &jobBuild
+				expectedDashboard[0].NextBuild = &jobBuildOld
+
+				actualDashboard, _, err = pipelineDB.GetDashboard()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+
+				By("returning a job's most recent finished build even when there is a newer unfinished build")
+				jobBuildNew, err := pipelineDB.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				expectedDashboard[0].FinishedBuild = &jobBuild
+				expectedDashboard[0].NextBuild = &jobBuildNew
+
+				actualDashboard, _, err = pipelineDB.GetDashboard()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+			})
+		})
+
 		Describe("CreateJobBuild", func() {
 			var build db.Build
 

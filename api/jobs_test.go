@@ -270,123 +270,96 @@ var _ = Describe("Jobs API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when getting the job config succeeds", func() {
+		Context("when getting the dashboard succeeds", func() {
 			BeforeEach(func() {
-				pipelineDB.GetConfigReturns(atc.Config{
-					Groups: []atc.GroupConfig{
-						{
-							Name: "group-1",
-							Jobs: []string{"job-1"},
-						},
-						{
-							Name: "group-2",
-							Jobs: []string{"job-1", "job-2"},
-						},
+				groups := []atc.GroupConfig{
+					{
+						Name: "group-1",
+						Jobs: []string{"job-1"},
 					},
+					{
+						Name: "group-2",
+						Jobs: []string{"job-1", "job-2"},
+					},
+				}
 
-					Jobs: []atc.JobConfig{
-						{
-							Name: "job-1",
-							Plan: atc.PlanSequence{{Get: "input-1"}, {Put: "output-1"}},
+				jobs := []atc.JobConfig{
+					{
+						Name: "job-1",
+						Plan: atc.PlanSequence{{Get: "input-1"}, {Put: "output-1"}},
+					},
+					{
+						Name: "job-2",
+						Plan: atc.PlanSequence{{Get: "input-2"}, {Put: "output-2"}},
+					},
+					{
+						Name: "job-3",
+						Plan: atc.PlanSequence{{Get: "input-3"}, {Put: "output-3"}},
+					},
+				}
+
+				job := db.SavedJob{
+					ID:           1,
+					Paused:       true,
+					PipelineName: "another-pipeline",
+					Job: db.Job{
+						Name: "job-not-used", // We use the name from the config.
+					},
+				}
+
+				pipelineDB.GetDashboardReturns(db.Dashboard{
+					{
+						Job:       job,
+						JobConfig: jobs[0],
+						NextBuild: &db.Build{
+							ID:           3,
+							Name:         "2",
+							JobName:      "job-1",
+							PipelineName: "another-pipeline",
+							Status:       db.StatusStarted,
 						},
-						{
-							Name: "job-2",
-							Plan: atc.PlanSequence{{Get: "input-2"}, {Put: "output-2"}},
-						},
-						{
-							Name: "job-3",
-							Plan: atc.PlanSequence{{Get: "input-3"}, {Put: "output-3"}},
+						FinishedBuild: &db.Build{
+							ID:           1,
+							Name:         "1",
+							JobName:      "job-1",
+							PipelineName: "another-pipeline",
+							Status:       db.StatusSucceeded,
+							StartTime:    time.Unix(1, 0),
+							EndTime:      time.Unix(100, 0),
 						},
 					},
-				}, 1, true, nil)
+					{
+						Job:       job,
+						JobConfig: jobs[1],
+						NextBuild: nil,
+						FinishedBuild: &db.Build{
+							ID:           4,
+							Name:         "1",
+							JobName:      "job-2",
+							PipelineName: "another-pipeline",
+							Status:       db.StatusSucceeded,
+							StartTime:    time.Unix(101, 0),
+							EndTime:      time.Unix(200, 0),
+						},
+					},
+					{
+						Job:           job,
+						JobConfig:     jobs[2],
+						NextBuild:     nil,
+						FinishedBuild: nil,
+					},
+				}, groups, nil)
 			})
 
-			Context("when getting each job's builds succeeds", func() {
-				BeforeEach(func() {
-					call := 0
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
 
-					pipelineDB.GetJobFinishedAndNextBuildStub = func(jobName string) (*db.Build, *db.Build, error) {
-						call++
+			It("returns each job's name, url, and any running and finished builds", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
 
-						var finishedBuild, nextBuild *db.Build
-
-						switch call {
-						case 1:
-							Expect(jobName).To(Equal("job-1"))
-
-							finishedBuild = &db.Build{
-								ID:           1,
-								Name:         "1",
-								JobName:      jobName,
-								PipelineName: "another-pipeline",
-								Status:       db.StatusSucceeded,
-								StartTime:    time.Unix(1, 0),
-								EndTime:      time.Unix(100, 0),
-							}
-
-							nextBuild = &db.Build{
-								ID:           3,
-								Name:         "2",
-								JobName:      jobName,
-								PipelineName: "another-pipeline",
-								Status:       db.StatusStarted,
-							}
-
-						case 2:
-							Expect(jobName).To(Equal("job-2"))
-
-							finishedBuild = &db.Build{
-								ID:           4,
-								Name:         "1",
-								JobName:      "job-2",
-								PipelineName: "another-pipeline",
-								Status:       db.StatusSucceeded,
-								StartTime:    time.Unix(101, 0),
-								EndTime:      time.Unix(200, 0),
-							}
-
-						case 3:
-							Expect(jobName).To(Equal("job-3"))
-
-						default:
-							panic("unexpected call count")
-						}
-
-						return finishedBuild, nextBuild, nil
-					}
-				})
-
-				Context("when getting the job fails", func() {
-					BeforeEach(func() {
-						pipelineDB.GetJobReturns(db.SavedJob{}, errors.New("nope"))
-					})
-
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
-				})
-
-				Context("when getting the job succeeds", func() {
-					BeforeEach(func() {
-						pipelineDB.GetJobReturns(db.SavedJob{
-							ID:           1,
-							Paused:       true,
-							PipelineName: "another-pipeline",
-							Job: db.Job{
-								Name: "job-1",
-							},
-						}, nil)
-					})
-
-					It("returns 200 OK", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-
-					It("returns each job's name, url, and any running and finished builds", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(body).To(MatchJSON(`[
+				Expect(body).To(MatchJSON(`[
 							{
 								"name": "job-1",
 								"paused": true,
@@ -446,36 +419,13 @@ var _ = Describe("Jobs API", func() {
 								"groups": []
 							}
 						]`))
-
-					})
-				})
-			})
-
-			Context("when getting the build fails", func() {
-				BeforeEach(func() {
-					pipelineDB.GetJobFinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
-				})
-
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
 			})
 		})
 
-		Context("when getting the job config fails", func() {
-			Context("when the pipeline is no longer configured", func() {
-				BeforeEach(func() {
-					pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
-				})
-
-				It("returns 404", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
+		Context("when getting the dashboard fails", func() {
 			Context("with an unknown error", func() {
 				BeforeEach(func() {
-					pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
+					pipelineDB.GetDashboardReturns(nil, nil, errors.New("oh no!"))
 				})
 
 				It("returns 500", func() {

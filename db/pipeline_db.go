@@ -74,6 +74,8 @@ type PipelineDB interface {
 	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
+
+	GetDashboard() (Dashboard, atc.GroupConfigs, error)
 }
 
 type pipelineDB struct {
@@ -1788,11 +1790,11 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 	finishedBuild, foundFinished, err := pdb.scanBuild(pdb.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
+			INNER JOIN jobs j ON b.job_id = j.id
+			INNER JOIN pipelines p ON j.pipeline_id = p.id
  		WHERE j.name = $1
-		AND j.pipeline_id = $2
-	 	AND b.status NOT IN ('pending', 'started')
+			AND j.pipeline_id = $2
+			AND b.status NOT IN ('pending', 'started')
 		ORDER BY b.id DESC
 		LIMIT 1
 	`, job, pdb.ID))
@@ -1807,11 +1809,11 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 	nextBuild, foundNext, err := pdb.scanBuild(pdb.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
+			INNER JOIN jobs j ON b.job_id = j.id
+			INNER JOIN pipelines p ON j.pipeline_id = p.id
  		WHERE j.name = $1
-		AND j.pipeline_id = $2
-		AND status IN ('pending', 'started')
+			AND j.pipeline_id = $2
+			AND status IN ('pending', 'started')
 		ORDER BY b.id ASC
 		LIMIT 1
 	`, job, pdb.ID))
@@ -1824,6 +1826,127 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 	}
 
 	return finished, next, nil
+}
+
+func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
+	pipelineConfig, _, _, err := pdb.GetConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dashboard := Dashboard{}
+
+	savedJobs, err := pdb.getJobs()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	nextBuilds, err := pdb.getLastJobBuildsSatisfying("b.status IN ('pending', 'started')")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	finishedBuilds, err := pdb.getLastJobBuildsSatisfying("b.status NOT IN ('pending', 'started')")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, job := range pipelineConfig.Jobs {
+		savedJob, found := savedJobs[job.Name]
+		if !found {
+			return nil, nil, fmt.Errorf("found job in pipeline configuration but not in database: %s", job.Name)
+		}
+
+		dashboardJob := DashboardJob{
+			Job:       savedJob,
+			JobConfig: job,
+		}
+
+		if nextBuild, found := nextBuilds[job.Name]; found {
+			dashboardJob.NextBuild = &nextBuild
+		}
+
+		if finishedBuild, found := finishedBuilds[job.Name]; found {
+			dashboardJob.FinishedBuild = &finishedBuild
+		}
+
+		dashboard = append(dashboard, dashboardJob)
+	}
+
+	return dashboard, pipelineConfig.Groups, nil
+}
+
+func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
+	rows, err := pdb.conn.Query(`
+  	SELECT id, name, paused
+  	FROM jobs
+  	WHERE pipeline_id = $1
+  `, pdb.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	savedJobs := make(map[string]SavedJob)
+
+	for rows.Next() {
+		var savedJob SavedJob
+
+		err := rows.Scan(&savedJob.ID, &savedJob.Name, &savedJob.Paused)
+		if err != nil {
+			return nil, err
+		}
+
+		savedJob.PipelineName = pdb.Name
+
+		savedJobs[savedJob.Name] = savedJob
+	}
+
+	return savedJobs, nil
+}
+
+func (pdb *pipelineDB) getLastJobBuildsSatisfying(bRequirement string) (map[string]Build, error) {
+	rows, err := pdb.conn.Query(`
+		 SELECT `+qualifiedBuildColumns+`
+		 FROM builds b, jobs j, pipelines p,
+			 (
+				 SELECT b.job_id AS job_id, MAX(b.id) AS id
+				 FROM builds b, jobs j
+				 WHERE b.job_id = j.id
+					 AND `+bRequirement+`
+					 AND j.pipeline_id = $1
+				 GROUP BY b.job_id
+			 ) max
+		 WHERE b.job_id = j.id
+			 AND b.id = max.id
+			 AND p.id = $1
+			 AND j.pipeline_id = p.id
+  `, pdb.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	nextBuilds := make(map[string]Build)
+
+	for rows.Next() {
+		var build Build
+
+		build, scanned, err := scanBuild(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		if !scanned {
+			return nil, errors.New("row could not be scanned")
+		}
+
+		nextBuilds[build.JobName] = build
+	}
+
+	return nextBuilds, nil
 }
 
 func (pdb *pipelineDB) getJob(tx Tx, name string) (SavedJob, error) {

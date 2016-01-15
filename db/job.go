@@ -1,5 +1,7 @@
 package db
 
+import "github.com/concourse/atc"
+
 type Job struct {
 	Name string
 }
@@ -10,3 +12,13 @@ type SavedJob struct {
 	PipelineName string
 	Job
 }
+
+type DashboardJob struct {
+	Job       SavedJob
+	JobConfig atc.JobConfig
+
+	FinishedBuild *Build
+	NextBuild     *Build
+}
+
+type Dashboard []DashboardJob
