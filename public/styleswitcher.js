@@ -85,4 +85,4 @@ function toggleSwitcher(event) {
   }
 }
 
-document.addEventListener("keyup", toggleSwitcher, false);
+document.addEventListener("keydown", toggleSwitcher, false);
