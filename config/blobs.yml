@@ -20,9 +20,9 @@ resources/s3-resource.tar.gz:
   sha: ea7a84b0f63da2c268c848836865170087f9d40d
   size: 11478953
 resources/tracker-resource.tar.gz:
-  object_id: 7a21ed30-bb00-46de-8582-6332860dd883
-  sha: 9c703f77fd87c1d213171a7c2e502690b8b7f7eb
-  size: 12659459
+  object_id: d1a558f2-4a75-46c4-8788-ec4282bddb19
+  sha: a8c699b29cda2d8b2edb48da18a2bc120683263a
+  size: 12659725
 resources/git-resource.tar.gz:
   object_id: 8a0927f7-4dee-4314-9093-02ba04b88e6d
   sha: 731c0be362b7eaaae0b0f2ccb6baf9c50616b5e5
