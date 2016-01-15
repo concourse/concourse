@@ -678,7 +678,7 @@ resources:
 - name: busybox-git-image
   type: docker-image
   source:
-    repository: concourse/core-busyboxplus
+    repository: concourse/busyboxplus
     tag: git
     username: {{docker-username}}
     email: {{docker-email}}
@@ -694,7 +694,7 @@ resources:
 - name: busybox-iptables-image
   type: docker-image
   source:
-    repository: concourse/core-busyboxplus
+    repository: concourse/busyboxplus
     tag: iptables
     username: {{docker-username}}
     email: {{docker-email}}
@@ -710,7 +710,7 @@ resources:
 - name: busybox-ruby-image
   type: docker-image
   source:
-    repository: concourse/core-busyboxplus
+    repository: concourse/busyboxplus
     tag: ruby
     username: {{docker-username}}
     email: {{docker-email}}
