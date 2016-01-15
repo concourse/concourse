@@ -94,6 +94,10 @@ var _ = Describe("Handler", func() {
 				}
 			})
 
+			AfterEach(func() {
+				Eventually(fakeEventSource.CloseCallCount).Should(Equal(1))
+			})
+
 			It("returns 200", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
@@ -134,10 +138,6 @@ var _ = Describe("Handler", func() {
 					Data: []byte{},
 				}))
 
-			})
-
-			It("closes the event source", func() {
-				Eventually(fakeEventSource.CloseCallCount).Should(Equal(1))
 			})
 
 			Context("when the Last-Event-ID header is given", func() {

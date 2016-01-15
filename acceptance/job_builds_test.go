@@ -156,7 +156,7 @@ var _ = Describe("Job Builds", func() {
 					Eventually(page.Find("h1 a")).Should(BeFound())
 					Expect(page.Find("h1 a").Click()).To(Succeed())
 					Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
-					Expect(page.All(".js-build").Count()).Should(Equal(100))
+					Eventually(page.All(".js-build").Count).Should(Equal(100))
 
 					Expect(page.First(".pagination .disabled .fa-arrow-left")).Should(BeFound())
 					Expect(page.First(".pagination .fa-arrow-right").Click()).To(Succeed())
@@ -177,6 +177,7 @@ var _ = Describe("Job Builds", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 				It("can view the duration and resource information for those builds", func() {
+					Skip("This should be moved to testflight")
 					// homepage -> job detail w/build info
 					Expect(page.Navigate(homepage())).To(Succeed())
 					// we will need to authenticate later to prove it is working for our page
@@ -223,6 +224,7 @@ var _ = Describe("Job Builds", func() {
 
 				Context("when the pending build changes state", func() {
 					It("displays the new state via the header color", func() {
+						Skip("This should be moved to testflight")
 						// homepage -> job detail w/build info
 						Expect(page.Navigate(homepage())).To(Succeed())
 						// we will need to authenticate later to prove it is working for our page
