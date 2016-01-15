@@ -11,7 +11,7 @@ jobs:
     file: core-busyboxplus/ci/build.yml
     config: {params: {FLAVOR: git}}
   - put: busybox-git-image
-    params: {load_file: built-image/image}
+    params: {build: image-root}
 
 - name: busybox-ruby
   serial: true
@@ -25,7 +25,7 @@ jobs:
     file: core-busyboxplus/ci/build.yml
     config: {params: {FLAVOR: ruby}}
   - put: busybox-ruby-image
-    params: {load_file: built-image/image}
+    params: {build: image-root}
 
 - name: busybox-iptables
   serial: true
@@ -39,7 +39,7 @@ jobs:
     file: core-busyboxplus/ci/build.yml
     config: {params: {FLAVOR: iptables}}
   - put: busybox-iptables-image
-    params: {load_file: built-image/image}
+    params: {build: image-root}
 
 - name: git-resource
   serial: true
