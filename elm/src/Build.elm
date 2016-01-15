@@ -6,7 +6,7 @@ import Debug
 import Effects exposing (Effects)
 import Html exposing (Html)
 import Html.Attributes exposing (action, class, classList, href, id, method, title)
-import Html.Events exposing (onClick, on)
+import Html.Events exposing (onClick, on, onWithOptions)
 import Html.Lazy
 import Http
 import Json.Decode exposing ((:=))
@@ -282,7 +282,11 @@ viewBuildHeader actions build {status, now, duration, history} =
           , BuildDuration.view duration now
           ]
       , Html.ul
-          [ on "mousewheel" decodeScrollEvent (scrollEvent actions)
+          [ onWithOptions
+            "mousewheel"
+            { stopPropagation = True, preventDefault = True }
+            decodeScrollEvent
+            ( scrollEvent actions )
           , id "builds"
           ]
           (List.map (viewHistory build status) history)
