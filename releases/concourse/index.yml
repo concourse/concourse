@@ -156,4 +156,6 @@ builds:
     version: 0.69.1
   ca1d6b3b-820e-4ba0-8ccd-75eca29e3ee4:
     version: 0.70.0
+  bad883b6-9084-4697-8e25-cf8df6f1a838:
+    version: 0.71.0
 format-version: '2'
