@@ -8,7 +8,7 @@ all: public/elm.min.js public/main.css bindata.go
 .PHONY: clean
 
 clean:
-	rm -f public/elm.js public/elm.min.js public/main.css
+	rm -f public/elm.js public/elm.min.js public/main.css bindata.go
 
 public/elm.js: $(ELM_FILES)
 	cd elm && elm make --warn --output ../public/elm.js --yes src/BuildPage.elm src/JobPage.elm
