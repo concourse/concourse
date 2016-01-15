@@ -1,13 +1,55 @@
 jobs:
+- name: busybox-git
+  serial: true
+  public: true
+  plan:
+  - get: busybox-git
+    trigger: true
+  - task: build-image
+    file: busybox-git/ci/build.yml
+    config: {params: {FLAVOR: git}}
+  - put: busybox-git-image
+    params: {load: built-image/image}
+
+- name: busybox-ruby
+  serial: true
+  public: true
+  plan:
+  - get: busybox-ruby
+    trigger: true
+  - task: build-image
+    file: busybox-ruby/ci/build.yml
+    config: {params: {FLAVOR: ruby}}
+  - put: busybox-ruby-image
+    params: {load: built-image/image}
+
+- name: busybox-iptables
+  serial: true
+  public: true
+  plan:
+  - get: busybox-iptables
+    trigger: true
+  - task: build-image
+    file: busybox-iptables/ci/build.yml
+    config: {params: {FLAVOR: iptables}}
+  - put: busybox-iptables-image
+    params: {load: built-image/image}
+
 - name: git-resource
   serial: true
   public: true
   plan:
-  - get: git-resource
-    trigger: true
+  - aggregate:
+    - get: git-resource
+      trigger: true
+    - get: busybox-git-image
+      passed: [busybox-git]
+      trigger: true
   - put: resource-image
     resource: git-resource-image
-    params: {build: git-resource}
+    params:
+      load_base: busybox-git-image
+      build: git-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -22,13 +64,19 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: pool-resource
-    trigger: true
+  - aggregate:
+    - get: pool-resource
+      trigger: true
+    - get: busybox-git-image
+      passed: [busybox-git]
+      trigger: true
   - task: unit
     file: pool-resource/build.yml
   - put: resource-image
     resource: pool-resource-image
-    params: {build: unit/gopath/src/github.com/concourse/pool-resource}
+    params:
+      load_base: busybox-git-image
+      build: unit/gopath/src/github.com/concourse/pool-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -43,13 +91,19 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: docker-image-resource
-    trigger: true
+  - aggregate:
+    - get: docker-image-resource
+      trigger: true
+    - get: busybox-iptables-image
+      passed: [busybox-iptables]
+      trigger: true
   - task: build-resource
     file: docker-image-resource/ci/build.yml
   - put: resource-image
     resource: docker-image-resource-image
-    params: {build: built-resource}
+    params:
+      load_base: busybox-iptables-image
+      build: built-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -64,13 +118,18 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: time-resource
-    trigger: true
+  - aggregate:
+    - get: busybox-image
+      trigger: true
+    - get: time-resource
+      trigger: true
   - task: unit
     file: time-resource/build.yml
   - put: resource-image
     resource: time-resource-image
-    params: {build: unit/gopath/src/github.com/concourse/time-resource}
+    params:
+      load_base: busybox-image
+      build: unit/gopath/src/github.com/concourse/time-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -85,13 +144,19 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: archive-resource
-    trigger: true
+  - aggregate:
+    - get: busybox-git-image
+      passed: [busybox-git]
+      trigger: true
+    - get: archive-resource
+      trigger: true
   - task: unit
     file: archive-resource/build.yml
   - put: resource-image
     resource: archive-resource-image
-    params: {build: unit/build-root}
+    params:
+      load_base: busybox-git-image
+      build: unit/build-root
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -106,13 +171,19 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: bosh-deployment-resource
-    trigger: true
+  - aggregate:
+    - get: busybox-ruby-image
+      passed: [busybox-ruby]
+      trigger: true
+    - get: bosh-deployment-resource
+      trigger: true
   - task: unit
     file: bosh-deployment-resource/build.yml
   - put: resource-image
     resource: bosh-deployment-resource-image
-    params: {build: bosh-deployment-resource}
+    params:
+      load_base: busybox-ruby-image
+      build: bosh-deployment-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -134,8 +205,11 @@ jobs:
 - name: s3-resource
   serial: true
   plan:
-  - get: s3-resource
-    trigger: true
+  - aggregate:
+    - get: progrium-busybox-image
+      trigger: true
+    - get: s3-resource
+      trigger: true
   - task: unit
     file: s3-resource/build.yml
     config:
@@ -147,7 +221,9 @@ jobs:
         S3_TESTING_REGION: {{s3-resource-region}}
   - put: resource-image
     resource: s3-resource-image
-    params: {build: unit/gopath/src/github.com/concourse/s3-resource}
+    params:
+      load_base: progrium-busybox-image
+      build: unit/gopath/src/github.com/concourse/s3-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -162,13 +238,18 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: github-release-resource
-    trigger: true
+  - aggregate:
+    - get: progrium-busybox-image
+      trigger: true
+    - get: github-release-resource
+      trigger: true
   - task: unit
     file: github-release-resource/build.yml
   - put: resource-image
     resource: github-release-resource-image
-    params: {build: unit/gopath/src/github.com/concourse/github-release-resource}
+    params:
+      load_base: progrium-busybox-image
+      build: unit/gopath/src/github.com/concourse/github-release-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -184,6 +265,8 @@ jobs:
   public: true
   plan:
   - aggregate:
+    - get: progrium-busybox-image
+      trigger: true
     - get: cf-resource
       trigger: true
     - get: cf-cli
@@ -197,7 +280,9 @@ jobs:
       file: cf-resource/build.yml
   - put: resource-image
     resource: cf-resource-image
-    params: {build: resource-unit/gopath/src/github.com/concourse/cf-resource}
+    params:
+      load_base: progrium-busybox-image
+      build: resource-unit/gopath/src/github.com/concourse/cf-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -212,8 +297,12 @@ jobs:
   serial: true
   public: false # easy to leak bucket params
   plan:
-  - get: semver-resource
-    trigger: true
+  - aggregate:
+    - get: busybox-git-image
+      passed: [busybox-git]
+      trigger: true
+    - get: semver-resource
+      trigger: true
   - task: unit
     file: semver-resource/build.yml
     config:
@@ -224,7 +313,9 @@ jobs:
         SEMVER_TESTING_REGION: {{semver-region}}
   - put: resource-image
     resource: semver-resource-image
-    params: {build: unit/gopath/src/github.com/concourse/semver-resource}
+    params:
+      load_base: busybox-git-image
+      build: unit/gopath/src/github.com/concourse/semver-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -239,11 +330,17 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: bosh-io-release-resource
-    trigger: true
+  - aggregate:
+    - get: busybox-git-image
+      passed: [busybox-git]
+      trigger: true
+    - get: bosh-io-release-resource
+      trigger: true
   - put: resource-image
     resource: bosh-io-release-resource-image
-    params: {build: bosh-io-release-resource}
+    params:
+      load_base: busybox-git-image
+      build: bosh-io-release-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -258,13 +355,19 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: bosh-io-stemcell-resource
-    trigger: true
+  - aggregate:
+    - get: busybox-git-image
+      passed: [busybox-git]
+      trigger: true
+    - get: bosh-io-stemcell-resource
+      trigger: true
   - task: unit
     file: bosh-io-stemcell-resource/build.yml
   - put: resource-image
     resource: bosh-io-stemcell-resource-image
-    params: {build: bosh-io-stemcell-resource}
+    params:
+      load_base: busybox-git-image
+      build: bosh-io-stemcell-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -279,14 +382,20 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: tracker-resource
-    trigger: true
+  - aggregate:
+    - get: busybox-git-image
+      passed: [busybox-git]
+      trigger: true
+    - get: tracker-resource
+      trigger: true
   - task: unit
     file: tracker-resource/build.yml
     config: {params: {TRACKER_TOKEN: {{tracker-testing-token}}}}
   - put: resource-image
     resource: tracker-resource-image
-    params: {build: unit/build-root}
+    params:
+      load_base: busybox-git-image
+      build: unit/build-root
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -301,11 +410,17 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: vagrant-cloud-resource
-    trigger: true
+  - aggregate:
+    - get: busybox-git-image
+      passed: [busybox-git]
+      trigger: true
+    - get: vagrant-cloud-resource
+      trigger: true
   - put: resource-image
     resource: vagrant-cloud-resource-image
-    params: {build: vagrant-cloud-resource}
+    params:
+      load_base: busybox-git-image
+      build: vagrant-cloud-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -546,3 +661,61 @@ resources:
     uri: git@github.com:concourse/deployments.git
     branch: master
     private_key: {{deployments-repo-private-key}}
+
+- name: busybox-git
+  type: git
+  source:
+    uri: https://github.com/concourse/core-busyboxplus.git
+    branch: master
+    paths: [git]
+
+- name: busybox-git-image
+  type: docker-image
+  source:
+    repository: concourse/core-busyboxplus
+    tag: git
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
+- name: busybox-iptables
+  type: git
+  source:
+    uri: https://github.com/concourse/core-busyboxplus.git
+    branch: master
+    paths: [iptables]
+
+- name: busybox-iptables-image
+  type: docker-image
+  source:
+    repository: concourse/core-busyboxplus
+    tag: iptables
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
+- name: busybox-ruby
+  type: git
+  source:
+    uri: https://github.com/concourse/core-busyboxplus.git
+    branch: master
+    paths: [ruby]
+
+- name: busybox-ruby-image
+  type: docker-image
+  source:
+    repository: concourse/core-busyboxplus
+    tag: ruby
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
+- name: progrium-busybox-image
+  type: docker-image
+  source:
+    repository: progrium/busybox
+
+- name: busybox-image
+  type: docker-image
+  source:
+    repository: busybox
