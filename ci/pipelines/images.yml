@@ -78,7 +78,7 @@ resources:
   type: git
   source:
     uri: https://github.com/concourse/atc.git
-    paths: [web/Dockerfile]
+    paths: [web]
 
 - name: concourse-atc-ci-js-image
   type: docker-image
