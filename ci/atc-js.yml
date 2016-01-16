@@ -1,6 +1,6 @@
 ---
 platform: linux
-image: docker:///node
+image: docker:///concourse/atc-ci-js
 
 inputs:
 - name: concourse
