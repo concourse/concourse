@@ -74,7 +74,7 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
-- name: concourse-atc-js-ci
+- name: concourse-atc-ci-js
   type: git
   source:
     uri: https://github.com/concourse/atc.git
