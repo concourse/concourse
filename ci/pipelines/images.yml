@@ -232,7 +232,7 @@ jobs:
   - aggregate:
     - get: concourse-atc-ci-js
       trigger: true
-    - get: chromedriver
+    - get: ubuntu-15.10
       trigger: true
   - put: concourse-atc-ci-js-image
     params:
