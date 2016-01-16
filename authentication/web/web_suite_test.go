@@ -36,7 +36,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
 
-	agoutiDriver = agouti.ChromeDriver(agouti.Debug)
+	agoutiDriver = helpers.AgoutiDriver()
 	Expect(agoutiDriver.Start()).To(Succeed())
 })
 

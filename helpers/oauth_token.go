@@ -1,13 +1,10 @@
 package helpers
 
-import (
-	"errors"
-
-	"github.com/sclevine/agouti"
-)
+import "errors"
 
 func OauthToken(atcURL string, creds *oauthAuthCredentials) (string, error) {
-	agoutiDriver := agouti.ChromeDriver(agouti.Debug)
+	agoutiDriver := AgoutiDriver()
+
 	err := agoutiDriver.Start()
 	if err != nil {
 		return "", err

@@ -40,7 +40,6 @@ func basicAuthenticationWeb(page *agouti.Page, username, password string) error 
 		Value: "Basic " + base64.StdEncoding.EncodeToString([]byte(header)),
 	})
 
-	//TODO: Delete since we're on chrome?
 	// PhantomJS won't send the cookie on ajax requests if the page is not
 	// refreshed
 	return page.Refresh()

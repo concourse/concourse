@@ -42,7 +42,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
 
-	agoutiDriver = agouti.ChromeDriver(agouti.Debug)
+	agoutiDriver = helpers.AgoutiDriver()
 	Expect(agoutiDriver.Start()).To(Succeed())
 })
 
@@ -51,8 +51,6 @@ var _ = AfterSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	Skip("skipping until we can switch to ChromeDriver")
-
 	_, err := client.DeletePipeline(pipelineName)
 	Expect(err).ToNot(HaveOccurred())
 
