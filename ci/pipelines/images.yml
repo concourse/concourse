@@ -74,6 +74,20 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
+- name: concourse-atc-js-ci
+  type: git
+  source:
+    uri: https://github.com/concourse/atc.git
+    paths: [web/Dockerfile]
+
+- name: concourse-atc-ci-js-image
+  type: docker-image
+  source:
+    repository: concourse/atc-ci-js
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
 - name: concourse-tsa-ci
   type: git
   source:
@@ -212,6 +226,18 @@ jobs:
     params:
       load_base: chromedriver
       build: concourse-atc-ci
+
+- name: build-atc-ci-js
+  plan:
+  - aggregate:
+    - get: concourse-atc-ci-js
+      trigger: true
+    - get: chromedriver
+      trigger: true
+  - put: concourse-atc-ci-js-image
+    params:
+      load_base: ubuntu-15.10
+      build: concourse-atc-ci-js
 
 - name: build-tsa-ci
   plan:
