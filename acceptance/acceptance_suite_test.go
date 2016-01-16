@@ -56,7 +56,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	postgresRunner.CreateTestDB()
 
-	agoutiDriver = agouti.ChromeDriver()
+	if _, err := exec.LookPath("phantomjs"); err == nil {
+		fmt.Fprintln(GinkgoWriter, "WARNING: using phantomjs, which is flaky in CI, but is more convenient during development")
+		agoutiDriver = agouti.PhantomJS()
+	} else {
+		agoutiDriver = agouti.Selenium(agouti.Browser("firefox"))
+	}
+
 	Expect(agoutiDriver.Start()).To(Succeed())
 })
 

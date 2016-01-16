@@ -1,4 +1,6 @@
-FROM robcherry/docker-chromedriver
+FROM selenium/standalone-firefox
+
+USER root
 
 # The Basics
 RUN apt-get update && apt-get -y install curl
@@ -8,19 +10,18 @@ RUN curl https://storage.googleapis.com/golang/go1.5.3.linux-amd64.tar.gz | tar 
 ENV PATH $PATH:/usr/local/go/bin
 
 # PostgreSQL
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ wheezy-pgdg main" >> /etc/apt/sources.list.d/pgdg.list
-RUN curl -S https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-RUN apt-get update
-RUN apt-get -y install postgresql-9.4
-RUN chmod 0777 /var/run/postgresql
+RUN apt-get update && apt-get -y install postgresql
 
-# NPM
-RUN curl -sL https://deb.nodesource.com/setup_4.x | bash -
-RUN apt-get -y install nodejs
-RUN update-alternatives --install /usr/bin/node node /usr/bin/nodejs 10
+# NPM (legacy package provides 'node' binary which many npm packages need)
+RUN apt-get update && apt-get -y install nodejs-legacy
 
 # Git (for elm-package)
-RUN apt-get -y install git
+RUN apt-get update && apt-get -y install git
+
+# install selenium-driver wrapper binary for Agouti
+RUN echo '#!/bin/sh' >> /usr/local/bin/selenium-server && \
+    echo 'exec java -jar /opt/selenium/selenium-server-standalone.jar "$@" > /tmp/selenium.log 2>&1' >> /usr/local/bin/selenium-server && \
+    chmod +x /usr/local/bin/selenium-server
 
 RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
