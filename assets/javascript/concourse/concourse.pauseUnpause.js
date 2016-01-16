@@ -29,7 +29,9 @@ concourse.PauseUnpause.prototype.pause = function (pause) {
   }).done(function (resp, jqxhr) {
     _this.pauseBtn.enable();
     _this.pauseCallback();
-  }).error(_this.requestError.bind(_this));
+  }).error(function (resp) {
+    _this.requestError(resp);
+  });
 };
 
 
@@ -43,7 +45,9 @@ concourse.PauseUnpause.prototype.unpause = function (event) {
   }).done(function (resp) {
     _this.pauseBtn.disable();
     _this.unpauseCallback();
-  }).error(_this.requestError.bind(_this));
+  }).error(function (resp) {
+    _this.requestError(resp);
+  });
 };
 
 concourse.PauseUnpause.prototype.requestError = function (resp) {
