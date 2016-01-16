@@ -3,13 +3,6 @@
 
 set -e -x
 
-# needed for elm-make to prevent:
-#
-# elm-make: elm-stuff/packages/elm-lang/core/3.0.0/src/Graphics/Element.elm: hGetContents: invalid argument (invalid byte sequence)
-# elm-make: thread blocked indefinitely in an MVar operation
-locale-gen en_US.UTF-8
-export LANG=en_US.UTF-8
-
 pushd concourse/src/github.com/concourse/atc/web
   npm install --silent
 
