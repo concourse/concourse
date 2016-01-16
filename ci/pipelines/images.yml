@@ -74,20 +74,6 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
-- name: concourse-atc-ci-js
-  type: git
-  source:
-    uri: https://github.com/concourse/atc.git
-    paths: [web]
-
-- name: concourse-atc-ci-js-image
-  type: docker-image
-  source:
-    repository: concourse/atc-ci-js
-    username: {{docker-username}}
-    email: {{docker-email}}
-    password: {{docker-password}}
-
 - name: concourse-tsa-ci
   type: git
   source:
@@ -150,10 +136,10 @@ resources:
     repository: ubuntu
     tag: "15.10"
 
-- name: chromedriver
+- name: selenium-firefox
   type: docker-image
   source:
-    repository: robcherry/docker-chromedriver
+    repository: selenium/standalone-firefox
     tag: latest
 
 - name: golang-1.5
@@ -220,24 +206,12 @@ jobs:
   - aggregate:
     - get: concourse-atc-ci
       trigger: true
-    - get: chromedriver
+    - get: selenium-firefox
       trigger: true
   - put: concourse-atc-ci-image
     params:
-      load_base: chromedriver
+      load_base: selenium-firefox
       build: concourse-atc-ci
-
-- name: build-atc-ci-js
-  plan:
-  - aggregate:
-    - get: concourse-atc-ci-js
-      trigger: true
-    - get: ubuntu-15.10
-      trigger: true
-  - put: concourse-atc-ci-js-image
-    params:
-      load_base: ubuntu-15.10
-      build: concourse-atc-ci-js
 
 - name: build-tsa-ci
   plan:
