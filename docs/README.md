@@ -23,5 +23,5 @@ rebuilds and serves the docs live.
 ## With `fly`
 
 1. Spin up a Concourse somewhere.
-1. From the `concourse` repo, run `fly -t TARGET execute -x -c ci/build-docs.yml -i built-docs=/tmp/docs`
+1. From the `concourse` repo, run `fly -t TARGET execute -x -c ci/build-docs.yml -o built-docs=/tmp/docs`
 1. Open `/tmp/docs/index.html` in your browser.
