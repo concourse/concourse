@@ -50,9 +50,17 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) parseRequest(r *http.Request) (db.ContainerMetadata, error) {
 	var containerType db.ContainerType
+	var attempts []int
 	var err error
 	if r.URL.Query().Get("type") != "" {
 		containerType, err = db.ContainerTypeFromString(r.URL.Query().Get("type"))
+		if err != nil {
+			return db.ContainerMetadata{}, err
+		}
+	}
+
+	if r.URL.Query().Get("attempts") != "" {
+		attempts, err = db.AttemptsSliceFromString(r.URL.Query().Get("attempts"))
 		if err != nil {
 			return db.ContainerMetadata{}, err
 		}
@@ -65,6 +73,7 @@ func (s *Server) parseRequest(r *http.Request) (db.ContainerMetadata, error) {
 		ResourceName: r.URL.Query().Get("resource_name"),
 		StepName:     r.URL.Query().Get("step_name"),
 		BuildName:    r.URL.Query().Get("build_name"),
+		Attempts:     attempts,
 	}
 
 	buildIDParam := r.URL.Query().Get("build-id")

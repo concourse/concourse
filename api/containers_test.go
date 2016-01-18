@@ -355,6 +355,48 @@ var _ = Describe("Pipelines API", func() {
 					})
 				})
 			})
+
+			Describe("querying with attempts", func() {
+				Context("when the attempts can be parsed as a slice of int", func() {
+					BeforeEach(func() {
+						attemptsString := "1,5"
+
+						req.URL.RawQuery = url.Values{
+							"attempts": []string{attemptsString},
+						}.Encode()
+					})
+
+					It("calls db.Containers with the queried attempts", func() {
+						_, err := client.Do(req)
+						Expect(err).NotTo(HaveOccurred())
+
+						expectedArgs := db.ContainerMetadata{
+							Attempts: attempts,
+						}
+						Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
+						Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
+					})
+
+					Context("when the attempts fails to be parsed as a slice of int", func() {
+						BeforeEach(func() {
+							req.URL.RawQuery = url.Values{
+								"attempts": []string{"not-a-slice"},
+							}.Encode()
+						})
+
+						It("returns 400 Bad Request", func() {
+							response, _ := client.Do(req)
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+
+						It("does not lookup containers", func() {
+							client.Do(req)
+
+							Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(0))
+						})
+					})
+				})
+			})
 		})
 	})
 
@@ -444,7 +486,8 @@ var _ = Describe("Pipelines API", func() {
 							"id": "some-handle",
 							"worker_name": "some-worker-guid",
 							"working_directory": "/tmp/build/my-favorite-guid",
-							"env_variables": ["VAR1=VAL1"]
+							"env_variables": ["VAR1=VAL1"],
+							"attempts": [1,5]
 						}
 					`))
 				})

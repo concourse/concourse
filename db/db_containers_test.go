@@ -125,7 +125,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(found).To(BeFalse())
 	})
 
-	FIt("can create and get a step container info object", func() {
+	It("can create and get a step container info object", func() {
 		expectedContainer := db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{
 				PlanID: "some-plan-id",
@@ -166,7 +166,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.PipelineName).To(Equal(expectedContainer.PipelineName))
 		Expect(actualContainer.ContainerMetadata.BuildID).To(BeNumerically(">", 0))
 		Expect(actualContainer.Type).To(Equal(db.ContainerTypeTask))
-		Expect(actualContainer.WorkerName).To(Equal(expectedContainer.WorkerName))
+		Expect(actualContainer.ContainerMetadata.WorkerName).To(Equal(expectedContainer.ContainerMetadata.WorkerName))
 		Expect(actualContainer.WorkingDirectory).To(Equal(expectedContainer.WorkingDirectory))
 		Expect(actualContainer.CheckType).To(BeEmpty())
 		Expect(actualContainer.CheckSource).To(BeEmpty())
@@ -230,26 +230,26 @@ var _ = Describe("Keeping track of containers", func() {
 				WorkerName:   "some-worker",
 				PipelineName: "some-pipeline",
 			},
-			Handle: "some-handle",
+			Handle: "some-reaped-handle",
 		}
 
 		_, _, err := CreateContainerHelper(expectedContainer, time.Minute, dbConn, database)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, found, err := database.GetContainer("some-handle")
+		_, found, err := database.GetContainer("some-reaped-handle")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
 		By("reaping an existing container")
-		err = database.ReapContainer("some-handle")
+		err = database.ReapContainer("some-reaped-handle")
 		Expect(err).NotTo(HaveOccurred())
 
-		_, found, err = database.GetContainer("some-handle")
+		_, found, err = database.GetContainer("some-reaped-handle")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeFalse())
 
 		By("not failing if the container's already been reaped")
-		err = database.ReapContainer("some-handle")
+		err = database.ReapContainer("some-reaped-handle")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -625,6 +625,39 @@ var _ = Describe("Keeping track of containers", func() {
 				},
 			},
 			metadataToFilterFor: db.ContainerMetadata{JobName: "some-job"},
+			expectedHandles:     []string{"b"},
+		}),
+
+		Entry("returns containers where the attempts numbers match", findContainersByMetadataExample{
+			containersToCreate: []db.Container{{
+				ContainerMetadata: db.ContainerMetadata{
+					Type:         db.ContainerTypeTask,
+					WorkerName:   "some-worker",
+					PipelineName: "some-pipeline",
+					Attempts:     []int{1, 2, 5},
+				},
+				Handle: "a",
+			},
+				{
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-worker",
+						PipelineName: "some-pipeline",
+						Attempts:     []int{1, 2},
+					},
+					Handle: "b",
+				},
+				{
+					ContainerMetadata: db.ContainerMetadata{
+						Type:         db.ContainerTypeTask,
+						WorkerName:   "some-other-worker",
+						PipelineName: "some-pipeline",
+						Attempts:     []int{1},
+					},
+					Handle: "c",
+				},
+			},
+			metadataToFilterFor: db.ContainerMetadata{Attempts: []int{1, 2}},
 			expectedHandles:     []string{"b"},
 		}),
 

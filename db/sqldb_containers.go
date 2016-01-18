@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,8 +20,8 @@ func (db *SQLDB) FindContainersByMetadata(id ContainerMetadata) ([]Container, er
 		return nil, err
 	}
 
-	whereCriteria := []string{}
-	params := []interface{}{}
+	var whereCriteria []string
+	var params []interface{}
 
 	if id.ResourceName != "" {
 		whereCriteria = append(whereCriteria, fmt.Sprintf("r.name = $%d", len(params)+1))
@@ -72,6 +71,11 @@ func (db *SQLDB) FindContainersByMetadata(id ContainerMetadata) ([]Container, er
 		}
 		whereCriteria = append(whereCriteria, fmt.Sprintf("check_source = $%d", len(params)+1))
 		params = append(params, checkSourceBlob)
+	}
+
+	if len(id.Attempts) > 0 {
+		whereCriteria = append(whereCriteria, fmt.Sprintf("attempts = $%d", len(params)+1))
+		params = append(params, AttemptsStringFromSlice(id.Attempts))
 	}
 
 	var rows *sql.Rows
@@ -248,15 +252,10 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		workerName = container.ContainerIdentifier.WorkerName
 	}
 
-	var attempts string
-	for _, attemptNumber := range container.Attempts {
-		attemptInt := strconv.Itoa(attemptNumber)
-
-		if attempts == "" {
-			attempts = attemptInt
-		} else {
-			attempts = attempts + "," + attemptInt
-		}
+	var attempts sql.NullString
+	attempts.String = AttemptsStringFromSlice(container.Attempts)
+	if attempts.String != "" {
+		attempts.Valid = true
 	}
 
 	defer tx.Rollback()
@@ -426,13 +425,11 @@ func scanContainerMetadata(row scannable) (Container, error) {
 	}
 
 	if attempts.Valid {
-		for _, item := range strings.Split(attempts.String, ",") {
-			attemptInt, err := strconv.Atoi(item)
-			if err != nil {
-				return Container{}, err
-			}
-			container.Attempts = append(container.Attempts, attemptInt)
+		attemptsSlice, err := AttemptsSliceFromString(attempts.String)
+		if err != nil {
+			return Container{}, err
 		}
+		container.Attempts = attemptsSlice
 	}
 
 	return container, nil
