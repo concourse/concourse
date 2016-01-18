@@ -1,18 +1,16 @@
 ---
 platform: linux
 
-image: docker:///golang#1.6
+image: docker:///ubuntu
 
 inputs:
 - name: concourse-bin
-  path: gopath/src/github.com/vito/concourse-bin
-- name: concourse
-- name: garden-linux-release
-- name: houdini
-  path: gopath/src/github.com/vito/houdini
+- name: linux-binary
+- name: darwin-binary
+- name: windows-binary
 
 outputs:
 - name: release
 
 run:
-  path: gopath/src/github.com/vito/concourse-bin/ci/build-release
+  path: concourse-bin/ci/build-release

@@ -1,0 +1,16 @@
+---
+platform: linux
+
+image: docker:///golang#1.6
+
+inputs:
+- name: concourse-bin
+  path: gopath/src/github.com/vito/concourse-bin
+- name: concourse
+- name: garden-linux-release
+
+outputs:
+- name: linux-binary
+
+run:
+  path: gopath/src/github.com/vito/concourse-bin/ci/build-linux

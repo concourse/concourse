@@ -1,0 +1,15 @@
+---
+platform: windows
+
+inputs:
+- name: concourse-bin
+  path: gopath/src/github.com/vito/concourse-bin
+- name: concourse
+- name: houdini
+  path: gopath/src/github.com/vito/houdini
+
+outputs:
+- name: windows-binary
+
+run:
+  path: gopath/src/github.com/vito/concourse-bin/ci/build-windows

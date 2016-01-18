@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e -x
+
+# for 'go' on our worker
+export PATH=/usr/local/bin:$PATH
+
+export GOPATH=$PWD/gopath:$PWD/concourse
+export PATH=$PWD/gopath/bin:$PATH
+
+go build -o darwin-binary/concourse_darwin_amd64 \
+  github.com/vito/concourse-bin/cmd/concourse
