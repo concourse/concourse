@@ -1,6 +1,7 @@
 package setpipelinehelpers
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"reflect"
@@ -112,7 +113,7 @@ func diffIndices(oldIndex Index, newIndex Index) Diffs {
 			continue
 		}
 
-		if !reflect.DeepEqual(thing, newThing) {
+		if practicallyDifferent(thing, newThing) {
 			diffs = append(diffs, Diff{
 				Before: thing,
 				After:  newThing,
@@ -149,4 +150,18 @@ func renderDiff(to io.Writer, a, b string) {
 			fmt.Fprintf(to, "%s\n", text)
 		}
 	}
+}
+
+func practicallyDifferent(a, b interface{}) bool {
+	if reflect.DeepEqual(a, b) {
+		return true
+	}
+
+	// prevent silly things like 300 != 300.0 due to YAML vs. JSON
+	// inconsistencies
+
+	marshalledA, _ := yaml.Marshal(a)
+	marshalledB, _ := yaml.Marshal(b)
+
+	return !bytes.Equal(marshalledA, marshalledB)
 }

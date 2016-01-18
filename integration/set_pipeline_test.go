@@ -99,6 +99,13 @@ var _ = Describe("Fly CLI", func() {
 							"source-config": "some-value",
 						},
 					},
+					{
+						Name: "some-resource-with-int-field",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": 5,
+						},
+					},
 				},
 
 				Jobs: atc.JobConfigs{
@@ -289,8 +296,14 @@ var _ = Describe("Fly CLI", func() {
 
 					newResource := changedConfig.Resources[1]
 					newResource.Name = "some-new-resource"
-					changedConfig.Resources[0].Type = "some-new-type"
-					changedConfig.Resources = append(changedConfig.Resources[:1], newResource)
+
+					newResources := make(atc.ResourceConfigs, len(changedConfig.Resources))
+					copy(newResources, changedConfig.Resources)
+					newResources[0].Type = "some-new-type"
+					newResources[1] = newResource
+					newResources[2].Source = atc.Source{"source-config": 5.0}
+
+					changedConfig.Resources = newResources
 
 					newJob := changedConfig.Jobs[1]
 					newJob.Name = "some-new-job"
@@ -356,6 +369,8 @@ var _ = Describe("Fly CLI", func() {
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
+
+					Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-resource-with-int-field"))
 
 					Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
 				})
