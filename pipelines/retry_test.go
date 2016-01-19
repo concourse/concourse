@@ -1,8 +1,14 @@
 package pipelines_test
 
 import (
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
+
 	"github.com/concourse/testflight/gitserver"
 	"github.com/concourse/testflight/guidserver"
+	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -43,5 +49,48 @@ var _ = Describe("A job with a step that retries", func() {
 		Expect(watch).To(gbytes.Say("registrations: 3; success!"))
 		Expect(watch).ToNot(gbytes.Say("registrations:"))
 		Expect(watch).To(gbytes.Say("succeeded"))
+	})
+
+	Context("hijacking jobs with retry steps", func() {
+		var hijackS *gexec.Session
+		var hijack *exec.Cmd
+
+		XIt("permits hijacking a specific attempt", func() {
+			tmpdir, err := ioutil.TempDir("", "fly-test")
+			Expect(err).NotTo(HaveOccurred())
+
+			fixture := filepath.Join(tmpdir, "fixture")
+
+			err = os.MkdirAll(fixture, 0755)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = ioutil.WriteFile(
+				filepath.Join(fixture, "run"),
+				[]byte(`#!/bin/sh
+mkfifo /tmp/fifo
+cat < /tmp/fifo
+`),
+				0755,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			hijack = exec.Command(flyBin, "-t", targetedConcourse, "hijack", "-j", pipelineName+"/retry-job", "-s", "curl-server-until-3-curls", "--attempts", "2", "--", "sh", "-c", "echo $RETRY_NUMBER > /tmp/fifo")
+			hijack.Dir = fixture
+			hijackS = helpers.StartFly(hijack)
+			Eventually(hijackS).Should(gbytes.Say("2"))
+			Eventually(hijackS).Should(gexec.Exit())
+		})
+
+		It("correctly displays information about attempts", func() {
+			watch := flyWatch("retry-job")
+			Expect(watch).To(gexec.Exit(0))
+
+			hijack = exec.Command(flyBin, "-t", targetedConcourse, "hijack", "-j", pipelineName+"/retry-job", "-s", "curl-server-until-3-curls", "--", "sh", "-c", "exit")
+			hijackS = helpers.StartFly(hijack)
+			Eventually(hijackS).Should(gbytes.Say("1: build #1, step: curl-server-until-3-curls, type: task, attempts: \\[[1-3]\\]"))
+			Eventually(hijackS).Should(gbytes.Say("2: build #1, step: curl-server-until-3-curls, type: task, attempts: \\[[1-3]\\]"))
+			Eventually(hijackS).Should(gbytes.Say("3: build #1, step: curl-server-until-3-curls, type: task, attempts: \\[[1-3]\\]"))
+			hijackS.Out.Write([]byte("2"))
+			Eventually(hijackS).Should(gexec.Exit())
+		})
 	})
 })
