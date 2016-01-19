@@ -330,8 +330,8 @@ var _ = Describe("Hijacking", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Out).Should(gbytes.Say("1. build #2, step: some-input, type: get, attempts: \\[1, 1, 1\\]"))
-			Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-output, type: put, attempts: \\[1, 1, 2\\]"))
+			Eventually(sess.Out).Should(gbytes.Say("1. build #2, step: some-input, type: get, attempts: \\[1,1,1\\]"))
+			Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-output, type: put, attempts: \\[1,1,2\\]"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
 			_, err = fmt.Fprintf(stdin, "2\n")
@@ -452,7 +452,7 @@ var _ = Describe("Hijacking", func() {
 
 		Context("when called with a specific attempt number", func() {
 			BeforeEach(func() {
-				containerArguments = "pipeline_name=some-pipeline&job_name=some-job&step_name=some-step&attempts=[2, 4]"
+				containerArguments = "pipeline_name=some-pipeline&job_name=some-job&step_name=some-step&attempts=2,4"
 				jobName = "some-job"
 				buildName = "3"
 				buildID = 13

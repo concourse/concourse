@@ -226,7 +226,7 @@ func (command *HijackCommand) Execute(args []string) error {
 
 			if len(container.Attempts) != 0 {
 				attempts := sliceItoa(container.Attempts)
-				infos = append(infos, fmt.Sprintf("attempts: %s", attempts))
+				infos = append(infos, fmt.Sprintf("attempts: [%s]", attempts))
 			}
 
 			choices = append(choices, interact.Choice{
@@ -413,13 +413,12 @@ func canonicalAddr(url *url.URL) string {
 }
 
 func sliceItoa(slice []int) string {
-	strSlice := "["
+	var strSlice string
 	for i, val := range slice {
 		if i > 0 {
-			strSlice += ", "
+			strSlice += ","
 		}
 		strSlice += strconv.Itoa(val)
 	}
-	strSlice += "]"
 	return strSlice
 }
