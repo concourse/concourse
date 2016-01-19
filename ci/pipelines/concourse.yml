@@ -205,10 +205,11 @@ jobs:
         trigger: true
         resource: garden-linux
       - get: lite-stemcell
+      - get: deployments
     - put: lite-deployment
       params:
         target_file: bosh-lites/metadata
-        manifest: concourse/src/github.com/concourse/testflight/deployment.yml
+        manifest: deployments/lite/ci/manifests/no_auth_deployment.yml
         stemcells: [lite-stemcell/*.tgz]
         releases:
           - garden-linux-release/*.tgz
