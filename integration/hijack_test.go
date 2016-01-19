@@ -364,6 +364,7 @@ var _ = Describe("Hijacking", func() {
 			resourceName       string
 			jobName            string
 			buildName          string
+			attempts           []int
 		)
 
 		BeforeEach(func() {
@@ -377,6 +378,7 @@ var _ = Describe("Hijacking", func() {
 			resourceName = ""
 			containerArguments = ""
 			hijackHandlerError = nil
+			attempts = []int{}
 		})
 
 		JustBeforeEach(func() {
@@ -387,7 +389,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/containers", containerArguments),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, StepType: stepType, StepName: stepName, ResourceName: resourceName},
+						{ID: "container-id-1", WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, StepType: stepType, StepName: stepName, ResourceName: resourceName, Attempts: attempts},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, hijackHandlerError),
@@ -411,7 +413,6 @@ var _ = Describe("Hijacking", func() {
 		})
 
 		Context("when called with a specific build id", func() {
-
 			BeforeEach(func() {
 				containerArguments = "build-id=2&step_name=some-step"
 				stepType = "task"
@@ -446,6 +447,22 @@ var _ = Describe("Hijacking", func() {
 				It("hijacks the given build", func() {
 					hijack("--job", "some-pipeline/some-job", "--build", "3", "--step", "some-step")
 				})
+			})
+		})
+
+		Context("when called with a specific attempt number", func() {
+			BeforeEach(func() {
+				containerArguments = "pipeline_name=some-pipeline&job_name=some-job&step_name=some-step&attempts=[2, 4]"
+				jobName = "some-job"
+				buildName = "3"
+				buildID = 13
+				stepType = "task"
+				stepName = "some-step"
+				attempts = []int{2, 4}
+			})
+
+			It("hijacks the job's next build", func() {
+				hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--attempts", "2", "--attempts", "4")
 			})
 		})
 
