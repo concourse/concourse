@@ -216,6 +216,18 @@ func (command *HijackCommand) Execute(args []string) error {
 				infos = append(infos, "type: check")
 			}
 
+			if len(container.Attempts) != 0 {
+				attempts := "["
+				for i, attempt := range container.Attempts {
+					if i > 0 {
+						attempts += ", "
+					}
+					attempts += strconv.Itoa(attempt)
+				}
+				attempts += "]"
+				infos = append(infos, fmt.Sprintf("attempts: %s", attempts))
+			}
+
 			choices = append(choices, interact.Choice{
 				Display: strings.Join(infos, ", "),
 				Value:   container,

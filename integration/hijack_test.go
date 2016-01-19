@@ -302,6 +302,7 @@ var _ = Describe("Hijacking", func() {
 							BuildID:      12,
 							StepType:     "get",
 							StepName:     "some-input",
+							Attempts:     []int{1, 1, 1},
 						},
 						{
 							ID:           "container-id-2",
@@ -312,6 +313,7 @@ var _ = Describe("Hijacking", func() {
 							BuildID:      13,
 							StepType:     "put",
 							StepName:     "some-output",
+							Attempts:     []int{1, 1, 2},
 						},
 					}),
 				),
@@ -328,8 +330,8 @@ var _ = Describe("Hijacking", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Out).Should(gbytes.Say("1. build #2, step: some-input, type: get"))
-			Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-output, type: put"))
+			Eventually(sess.Out).Should(gbytes.Say("1. build #2, step: some-input, type: get, attempts: \\[1, 1, 1\\]"))
+			Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-output, type: put, attempts: \\[1, 1, 2\\]"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
 			_, err = fmt.Fprintf(stdin, "2\n")
