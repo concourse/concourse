@@ -37,8 +37,10 @@ jobs:
           print "registrations: #{registrations.length}; "
 
           if registrations.length == 3
+            `echo 3 > /tmp/retry_number`
             puts "success!"
           else
+            `echo #{registrations.length} > /tmp/retry_number`
             puts "failing"
             exit 1
           end
