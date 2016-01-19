@@ -206,18 +206,37 @@ jobs:
         resource: garden-linux
       - get: lite-stemcell
       - get: deployments
-    - put: lite-deployment
-      params:
-        target_file: bosh-lites/metadata
-        manifest: deployments/lite/ci/manifests/no_auth_deployment.yml
-        stemcells: [lite-stemcell/*.tgz]
-        releases:
-          - garden-linux-release/*.tgz
-          - candidate-release/concourse-*.tgz
-    - task: build
-      file: concourse/ci/testflight.yml
-      config: {params: {ATC_URL: "http://10.244.15.2:8080"}}
-      timeout: 1h
+    - aggregate:
+      - do:
+        - put: lite-deployment
+          params:
+            target_file: bosh-lites/metadata
+            manifest: deployments/lite/ci/manifests/no_auth_deployment.yml
+            stemcells: [lite-stemcell/*.tgz]
+            releases:
+              - garden-linux-release/*.tgz
+              - candidate-release/concourse-*.tgz
+        - task: build
+          file: concourse/ci/testflight.yml
+          config: {params: {ATC_URL: "http://10.244.15.2:8080"}}
+          timeout: 1h
+      - do:
+        - put: lite-deployment-basic-auth
+          params:
+            target_file: bosh-lites/metadata
+            manifest: deployments/lite/ci/manifests/basic_auth_deployment.yml
+            stemcells: [lite-stemcell/*.tgz]
+            releases:
+              - garden-linux-release/*.tgz
+              - candidate-release/concourse-*.tgz
+        - task: build
+          file: concourse/ci/testflight.yml
+          config:
+            params:
+              ATC_URL: "http://10.244.16.2:8080"
+              BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
+              BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+          timeout: 1h
     on_failure:
       do:
         - task: export-bosh-logs
@@ -595,6 +614,13 @@ resources:
     username: admin
     password: admin
     deployment: concourse-testflight
+
+- name: lite-deployment-basic-auth
+  type: bosh-deployment
+  source:
+    username: admin
+    password: admin
+    deployment: concourse-testflight-basic-auth
 
 - name: virtualbox-box-cloud
   type: vagrant-cloud

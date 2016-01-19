@@ -4,6 +4,8 @@ image: docker:///concourse/atc-ci
 
 params:
   ATC_URL: ~
+  BASIC_AUTH_USERNAME:
+  BASIC_AUTH_PASSWORD:
 
 inputs:
   - name: concourse
