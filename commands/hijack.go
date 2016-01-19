@@ -82,7 +82,7 @@ func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (ma
 	}
 
 	if len(fingerprint.attempts) > 0 {
-		reqValues["attempts"] = sliceItoa(fingerprint.attempts)
+		reqValues["attempts"] = SliceItoa(fingerprint.attempts)
 	}
 
 	return reqValues, nil
@@ -225,7 +225,7 @@ func (command *HijackCommand) Execute(args []string) error {
 			}
 
 			if len(container.Attempts) != 0 {
-				attempts := sliceItoa(container.Attempts)
+				attempts := SliceItoa(container.Attempts)
 				infos = append(infos, fmt.Sprintf("attempts: [%s]", attempts))
 			}
 
@@ -410,15 +410,4 @@ func canonicalAddr(url *url.URL) string {
 	}
 
 	return net.JoinHostPort(host, port)
-}
-
-func sliceItoa(slice []int) string {
-	var strSlice string
-	for i, val := range slice {
-		if i > 0 {
-			strSlice += ","
-		}
-		strSlice += strconv.Itoa(val)
-	}
-	return strSlice
 }

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse"
@@ -86,4 +87,15 @@ func GetBuild(client concourse.Client, jobName string, buildNameOrID string, pip
 
 		return atc.Build{}, errors.New("no builds match job")
 	}
+}
+
+func SliceItoa(slice []int) string {
+	var strSlice string
+	for i, val := range slice {
+		if i > 0 {
+			strSlice += ","
+		}
+		strSlice += strconv.Itoa(val)
+	}
+	return strSlice
 }
