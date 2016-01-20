@@ -5,6 +5,7 @@ image: docker:///concourse/concourse-ci
 inputs:
 - name: concourse
 - name: bosh-lites
+- name: deployments
 
 outputs:
 - name: exported-logs

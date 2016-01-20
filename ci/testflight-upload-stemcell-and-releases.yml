@@ -4,6 +4,7 @@ image: docker:///concourse/concourse-ci
 
 inputs:
 - name: concourse
+- name: bosh-lites
 - name: lite-stemcell
 - name: garden-linux-release
 - name: candidate-release
