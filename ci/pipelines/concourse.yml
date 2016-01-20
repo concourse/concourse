@@ -226,6 +226,15 @@ jobs:
           file: concourse/ci/testflight.yml
           config: {params: {ATC_URL: "http://10.244.15.2:8080"}}
           timeout: 1h
+        on_failure:
+          do:
+            - task: export-bosh-logs
+              file: concourse/ci/export-bosh-logs.yml
+              config:
+                params:
+                  MANIFEST: deployments/lite/ci/manifests/no_auth_deployment.yml
+                  BOSH_USER: admin
+                  BOSH_PASSWORD: admin
       - do:
         - put: lite-deployment-basic-auth-public
           params:
@@ -244,6 +253,15 @@ jobs:
               BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
               PIPELINES_PUBLICLY_VIEWABLE: true
           timeout: 1h
+        on_failure:
+          do:
+            - task: export-bosh-logs
+              file: concourse/ci/export-bosh-logs.yml
+              config:
+                params:
+                  MANIFEST: deployments/lite/ci/manifests/basic_auth_public_deployment.yml
+                  BOSH_USER: admin
+                  BOSH_PASSWORD: admin
       - do:
         - put: lite-deployment-basic-auth-private
           params:
@@ -262,16 +280,17 @@ jobs:
               BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
               PIPELINES_PUBLICLY_VIEWABLE: false
           timeout: 1h
-    on_failure:
-      do:
-        - task: export-bosh-logs
-          file: concourse/ci/export-bosh-logs.yml
-          config:
-            params:
-              BOSH_USER: admin
-              BOSH_PASSWORD: admin
-        - put: testflight-logs
-          params: {file: exported-logs/concourse.*.tgz}
+        on_failure:
+          do:
+            - task: export-bosh-logs
+              file: concourse/ci/export-bosh-logs.yml
+              config:
+                params:
+                  MANIFEST: deployments/lite/ci/manifests/basic_auth_private_deployment.yml
+                  BOSH_USER: admin
+                  BOSH_PASSWORD: admin
+            - put: testflight-logs
+              params: {file: exported-logs/concourse.*.tgz}
 
 - name: deploy
   serial: true

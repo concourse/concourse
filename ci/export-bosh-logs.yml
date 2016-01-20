@@ -11,6 +11,7 @@ outputs:
 - name: exported-logs
 
 params:
+  MANIFEST:
   BOSH_USER:
   BOSH_PASSWORD:
 

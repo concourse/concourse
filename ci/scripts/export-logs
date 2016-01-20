@@ -9,15 +9,7 @@ bosh target $(cat bosh-lites/metadata)
 
 director_uuid=$(bosh status --uuid)
 
-cat deployments/lite/ci/manifests/no_auth_deployment.yml | sed "s/director_uuid: ~/director_uuid: $director_uuid/g" > deployment.yml
-
-bosh -d deployment.yml logs concourse 0 --only '*.log,**/*.log'
-
-cat deployments/lite/ci/manifests/basic_auth_public_deployment.yml | sed "s/director_uuid: ~/director_uuid: $director_uuid/g" > deployment.yml
-
-bosh -d deployment.yml logs concourse 0 --only '*.log,**/*.log'
-
-cat deployments/lite/ci/manifests/basic_auth_private_deployment.yml | sed "s/director_uuid: ~/director_uuid: $director_uuid/g" > deployment.yml
+cat $MANIFEST | sed "s/director_uuid: ~/director_uuid: $director_uuid/g" > deployment.yml
 
 bosh -d deployment.yml logs concourse 0 --only '*.log,**/*.log'
 
