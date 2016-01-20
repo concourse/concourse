@@ -137,6 +137,39 @@ func (server *Server) Commit() string {
 	return guid.String()
 }
 
+func (server *Server) CommitRootfs() {
+	process, err := server.container.Run(garden.ProcessSpec{
+		Path: "sh",
+		Args: []string{
+			"-exc",
+			`
+				cd some-repo
+				mkdir rootfs
+				cp -a /bin rootfs/bin
+				cp -a /etc rootfs/etc
+				cp -a /lib rootfs/lib
+				cp -a /lib64 rootfs/lib64
+				cp -a /root rootfs/root || true # prevent copy infinite loop
+				touch rootfs/hello-im-a-git-rootfs
+				git add rootfs
+				git commit -m 'created rootfs'
+			`,
+		},
+		User: "root",
+	}, garden.ProcessIO{
+		Stdout: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[git commit]", "green")),
+			ginkgo.GinkgoWriter,
+		),
+		Stderr: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[git commit]", "green")),
+			ginkgo.GinkgoWriter,
+		),
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(process.Wait()).To(Equal(0))
+}
+
 func (server *Server) RevParse(ref string) string {
 	buf := new(bytes.Buffer)
 
