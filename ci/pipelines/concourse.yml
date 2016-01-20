@@ -206,6 +206,12 @@ jobs:
         resource: garden-linux
       - get: lite-stemcell
       - get: deployments
+    - task: upload-stemcell-and-releases
+      file: concourse/ci/testflight.yml
+      config:
+        params:
+          BOSH_USER: admin
+          BOSH_PASSWORD: admin
     - aggregate:
       - do:
         - put: lite-deployment
@@ -221,10 +227,10 @@ jobs:
           config: {params: {ATC_URL: "http://10.244.15.2:8080"}}
           timeout: 1h
       - do:
-        - put: lite-deployment-basic-auth
+        - put: lite-deployment-basic-auth-public
           params:
             target_file: bosh-lites/metadata
-            manifest: deployments/lite/ci/manifests/basic_auth_deployment.yml
+            manifest: deployments/lite/ci/manifests/basic_auth_public_deployment.yml
             stemcells: [lite-stemcell/*.tgz]
             releases:
               - garden-linux-release/*.tgz
@@ -236,6 +242,25 @@ jobs:
               ATC_URL: "http://10.244.16.2:8080"
               BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
               BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+              PIPELINES_PUBLICLY_VIEWABLE: true
+          timeout: 1h
+      - do:
+        - put: lite-deployment-basic-auth-private
+          params:
+            target_file: bosh-lites/metadata
+            manifest: deployments/lite/ci/manifests/basic_auth_private_deployment.yml
+            stemcells: [lite-stemcell/*.tgz]
+            releases:
+              - garden-linux-release/*.tgz
+              - candidate-release/concourse-*.tgz
+        - task: build
+          file: concourse/ci/testflight.yml
+          config:
+            params:
+              ATC_URL: "http://10.244.17.2:8080"
+              BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
+              BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+              PIPELINES_PUBLICLY_VIEWABLE: false
           timeout: 1h
     on_failure:
       do:
@@ -610,17 +635,22 @@ resources:
 
 - name: lite-deployment
   type: bosh-deployment
-  source:
+  source: &lite-defaults
     username: admin
     password: admin
     deployment: concourse-testflight
 
-- name: lite-deployment-basic-auth
+- name: lite-deployment-basic-auth-public
   type: bosh-deployment
   source:
-    username: admin
-    password: admin
-    deployment: concourse-testflight-basic-auth
+    <<: *lite-defaults
+    deployment: concourse-testflight-basic-auth-public
+
+- name: lite-deployment-basic-auth-private
+  type: bosh-deployment
+  source:
+    <<: *lite-defaults
+    deployment: concourse-testflight-basic-auth-private
 
 - name: virtualbox-box-cloud
   type: vagrant-cloud

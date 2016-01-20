@@ -6,6 +6,7 @@ params:
   ATC_URL: ~
   BASIC_AUTH_USERNAME:
   BASIC_AUTH_PASSWORD:
+  PIPELINES_PUBLICLY_VIEWABLE:
 
 inputs:
   - name: concourse

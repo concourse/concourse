@@ -1,0 +1,13 @@
+---
+platform: linux
+image: docker:///concourse/concourse-ci
+
+inputs:
+- name: bosh-lites
+
+params:
+  BOSH_USER:
+  BOSH_PASSWORD:
+
+run:
+  path: concourse/ci/scripts/upload-stemcell-and-releases
