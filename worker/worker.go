@@ -269,7 +269,9 @@ dance:
 			ContainerIdentifier: db.ContainerIdentifier(id),
 			ContainerMetadata:   db.ContainerMetadata(metadata),
 			Handle:              gardenContainer.Handle(),
-		}, containerTTL)
+		},
+		containerTTL,
+	)
 	if err != nil {
 		return nil, err
 	}
