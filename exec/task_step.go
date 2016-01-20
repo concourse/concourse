@@ -542,10 +542,16 @@ func (step *TaskStep) getContainerImage(signals <-chan os.Signal, worker worker.
 	resourceType := resource.ResourceType(config.ImageResource.Type)
 
 	checkSess := resource.Session{
-		ID: step.containerID,
+		ID:       step.containerID,
+		Metadata: step.metadata,
 	}
 
 	checkSess.ID.Stage = db.ContainerStageCheck
+	checkSess.Metadata.Type = db.ContainerTypeCheck
+	checkSess.Metadata.CheckType = config.ImageResource.Type
+	checkSess.Metadata.CheckSource = config.ImageResource.Source
+	checkSess.Metadata.WorkingDirectory = ""
+	checkSess.Metadata.EnvironmentVariables = nil
 
 	checkingResource, err := tracker.Init(
 		step.logger.Session("check-image"),
@@ -570,10 +576,14 @@ func (step *TaskStep) getContainerImage(signals <-chan os.Signal, worker worker.
 	}
 
 	getSess := resource.Session{
-		ID: step.containerID,
+		ID:       step.containerID,
+		Metadata: step.metadata,
 	}
 
 	getSess.ID.Stage = db.ContainerStageGet
+	getSess.Metadata.Type = db.ContainerTypeGet
+	getSess.Metadata.WorkingDirectory = ""
+	getSess.Metadata.EnvironmentVariables = nil
 
 	getResource, cache, err := tracker.InitWithCache(
 		step.logger.Session("init-image"),
