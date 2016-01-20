@@ -5,6 +5,6 @@ set -e -x
 
 bosh target $(cat bosh-lites/metadata)
 
-bosh upload stemcell lite-stemcell/*.tgz
-bosh upload release garden-linux-release/*.tgz
-bosh upload release candidate-release/*.tgz
+bosh upload stemcell --skip-if-exists lite-stemcell/*.tgz
+bosh upload release --skip-if-exists garden-linux-release/*.tgz
+bosh upload release --skip-if-exists candidate-release/*.tgz
