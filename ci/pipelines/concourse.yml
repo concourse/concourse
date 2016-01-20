@@ -207,7 +207,7 @@ jobs:
       - get: lite-stemcell
       - get: deployments
     - task: upload-stemcell-and-releases
-      file: concourse/ci/testflight.yml
+      file: concourse/ci/testflight-upload-stemcell-and-releases.yml
       config:
         params:
           BOSH_USER: admin

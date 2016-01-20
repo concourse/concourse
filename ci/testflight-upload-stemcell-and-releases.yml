@@ -3,7 +3,10 @@ platform: linux
 image: docker:///concourse/concourse-ci
 
 inputs:
-- name: bosh-lites
+- name: concourse
+- name: lite-stemcell
+- name: garden-linux-release
+- name: candidate-release
 
 params:
   BOSH_USER:
