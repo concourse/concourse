@@ -192,9 +192,9 @@ var _ = Describe("Job Builds", func() {
 				buildTimes, err := page.Find(".builds-list li:first-child .build-duration").Text()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(buildTimes).To(ContainSubstring("started"))
-				Expect(buildTimes).To(MatchRegexp("started \\ds ago"))
-				Expect(buildTimes).To(MatchRegexp("finished \\ds ago"))
-				Expect(buildTimes).To(MatchRegexp("duration \\ds"))
+				Expect(buildTimes).To(MatchRegexp("started \\d+s ago"))
+				Expect(buildTimes).To(MatchRegexp("finished \\d+s ago"))
+				Expect(buildTimes).To(MatchRegexp("duration \\d+s"))
 
 				Eventually(page.Find(".builds-list li:first-child .inputs .resource-name")).Should(BeFound())
 				Expect(page.Find(".builds-list li:first-child .inputs .resource-name")).To(HaveText("my-resource"))
