@@ -13,7 +13,7 @@ type TaskConfig struct {
 	// platform, this may or may not be required (e.g. Windows/OS X vs. Linux).
 	Image string `json:"image,omitempty"   yaml:"image,omitempty"`
 
-	ImageResource *TaskImageConfig `json:"image_resource,omitempty"	yaml:"image_resource,omitempty"`
+	ImageResource *TaskImageConfig `json:"image_resource,omitempty" yaml:"image_resource,omitempty"`
 
 	// Parameters to pass to the task via environment variables.
 	Params map[string]string `json:"params,omitempty"  yaml:"params,omitempty"`
