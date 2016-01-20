@@ -51,10 +51,12 @@ type tracker struct {
 	db           TrackerDB
 }
 
-type TrackerFactory struct{}
+type TrackerFactory struct {
+	DB TrackerDB
+}
 
-func (TrackerFactory) TrackerFor(client worker.Client, db TrackerDB) Tracker {
-	return NewTracker(client, db)
+func (factory TrackerFactory) TrackerFor(client worker.Client) Tracker {
+	return NewTracker(client, factory.DB)
 }
 
 func NewTracker(workerClient worker.Client, db TrackerDB) Tracker {

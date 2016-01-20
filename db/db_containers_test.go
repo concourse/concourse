@@ -20,21 +20,18 @@ var _ = Describe("Keeping track of containers", func() {
 	var database *db.SQLDB
 
 	BeforeEach(func() {
+		var err error
+
 		postgresRunner.Truncate()
 
 		dbConn = db.Wrap(postgresRunner.Open())
+
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
 		database = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
-
-		_, err := dbConn.Query(`DELETE FROM teams WHERE name = 'main'`)
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = database.SaveTeam(db.Team{Name: atc.DefaultTeamName})
-		Expect(err).NotTo(HaveOccurred())
 
 		config := atc.Config{
 			Jobs: atc.JobConfigs{
@@ -75,7 +72,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("can create and get a resource container info object", func() {
+	It("can create and get a resource container object", func() {
 		expectedContainer := db.Container{
 			ContainerMetadata: db.ContainerMetadata{
 				ResourceName:         "some-resource",
@@ -251,6 +248,62 @@ var _ = Describe("Keeping track of containers", func() {
 		By("not failing if the container's already been reaped")
 		err = database.ReapContainer("some-reaped-handle")
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("differentiates between containers with different stages", func() {
+		someBuild, err := database.CreateOneOffBuild()
+		Expect(err).ToNot(HaveOccurred())
+
+		checkStageContainerID := db.ContainerIdentifier{
+			BuildID: someBuild.ID,
+			PlanID:  atc.PlanID("some-task"),
+			Stage:   db.ContainerStageCheck,
+		}
+
+		getStageContainerID := db.ContainerIdentifier{
+			BuildID: someBuild.ID,
+			PlanID:  atc.PlanID("some-task"),
+			Stage:   db.ContainerStageGet,
+		}
+
+		runStageContainerID := db.ContainerIdentifier{
+			BuildID: someBuild.ID,
+			PlanID:  atc.PlanID("some-task"),
+			Stage:   db.ContainerStageRun,
+		}
+
+		checkContainer, err := database.CreateContainer(db.Container{
+			Handle:              "check-handle",
+			ContainerIdentifier: checkStageContainerID,
+		}, time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+
+		getContainer, err := database.CreateContainer(db.Container{
+			Handle:              "get-handle",
+			ContainerIdentifier: getStageContainerID,
+		}, time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+
+		runContainer, err := database.CreateContainer(db.Container{
+			Handle:              "run-handle",
+			ContainerIdentifier: runStageContainerID,
+		}, time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+
+		container, found, err := database.FindContainerByIdentifier(checkStageContainerID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(container.ContainerIdentifier).To(Equal(checkContainer.ContainerIdentifier))
+
+		container, found, err = database.FindContainerByIdentifier(getStageContainerID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(container.ContainerIdentifier).To(Equal(getContainer.ContainerIdentifier))
+
+		container, found, err = database.FindContainerByIdentifier(runStageContainerID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(container.ContainerIdentifier).To(Equal(runContainer.ContainerIdentifier))
 	})
 
 	type findContainersByMetadataExample struct {
@@ -825,7 +878,9 @@ var _ = Describe("Keeping track of containers", func() {
 				BuildID:    -1,
 				WorkerName: "some-worker",
 				PlanID:     atc.PlanID("plan-id"),
-			})
+				Stage:      db.ContainerStageRun,
+			},
+		)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeFalse())
 		Expect(actualContainer.Handle).To(BeEmpty())
@@ -863,6 +918,8 @@ func getAllContainers(sqldb db.Conn) []db.Container {
 func CreateContainerHelper(container db.Container, ttl time.Duration, sqlDB db.Conn, dbSQL *db.SQLDB) (db.Container, int, error) {
 	pipeline, err := dbSQL.GetPipelineByTeamNameAndName(atc.DefaultTeamName, "some-pipeline")
 	Expect(err).NotTo(HaveOccurred())
+
+	container.ContainerIdentifier.Stage = db.ContainerStageRun
 
 	var worker db.WorkerInfo
 	worker.Name = container.ContainerIdentifier.WorkerName

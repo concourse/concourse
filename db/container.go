@@ -11,12 +11,27 @@ import (
 
 type ContainerIdentifier struct {
 	WorkerName string
+
 	// if it's a resource check container
 	ResourceID int
+
 	// if it's a step container
 	BuildID int
 	PlanID  atc.PlanID
+
+	Stage ContainerStage
 }
+
+// ContainerStage is used to distinguish between the 3 potential containers in use by a
+// step, as we'll need to run a 'check' and 'get' for the image used by the
+// container, which themselves correspond to containers.
+type ContainerStage string
+
+const (
+	ContainerStageCheck = "check"
+	ContainerStageGet   = "get"
+	ContainerStageRun   = "run"
+)
 
 type ContainerMetadata struct {
 	WorkerName           string

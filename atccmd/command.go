@@ -131,8 +131,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	workerClient := cmd.constructWorkerPool(logger, sqlDB)
 
 	tracker := resource.NewTracker(workerClient, sqlDB)
+	trackerFactory := resource.TrackerFactory{DB: sqlDB}
 
-	engine := cmd.constructEngine(sqlDB, workerClient, tracker)
+	engine := cmd.constructEngine(sqlDB, workerClient, tracker, trackerFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		tracker,
@@ -523,8 +524,9 @@ func (cmd *ATCCommand) constructEngine(
 	sqlDB *db.SQLDB,
 	workerClient worker.Client,
 	tracker resource.Tracker,
+	trackerFactory resource.TrackerFactory,
 ) engine.Engine {
-	gardenFactory := exec.NewGardenFactory(workerClient, tracker)
+	gardenFactory := exec.NewGardenFactory(workerClient, tracker, trackerFactory)
 
 	execV2Engine := engine.NewExecEngine(
 		gardenFactory,

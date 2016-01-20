@@ -205,6 +205,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 	session := resource.Session{
 		ID: worker.Identifier{
 			ResourceID: savedResource.ID,
+			Stage:      db.ContainerStageRun,
 		},
 		Metadata: worker.Metadata{
 			Type:         db.ContainerTypeCheck,

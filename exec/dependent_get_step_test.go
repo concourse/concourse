@@ -24,8 +24,9 @@ import (
 
 var _ = Describe("GardenFactory", func() {
 	var (
-		fakeTracker      *rfakes.FakeTracker
-		fakeWorkerClient *wfakes.FakeClient
+		fakeTracker        *rfakes.FakeTracker
+		fakeTrackerFactory *fakes.FakeTrackerFactory
+		fakeWorkerClient   *wfakes.FakeClient
 
 		factory Factory
 
@@ -49,10 +50,11 @@ var _ = Describe("GardenFactory", func() {
 
 	BeforeEach(func() {
 		fakeTracker = new(rfakes.FakeTracker)
+		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
 
 		fakeWorkerClient = new(wfakes.FakeClient)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, fakeTrackerFactory)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -153,7 +155,11 @@ var _ = Describe("GardenFactory", func() {
 				_, sm, sid, typ, tags, cacheID := fakeTracker.InitWithCacheArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
-					ID:        identifier,
+					ID: worker.Identifier{
+						BuildID: 1234,
+						PlanID:  atc.PlanID("some-plan-id"),
+						Stage:   db.ContainerStageRun,
+					},
 					Metadata:  workerMetadata,
 					Ephemeral: false,
 				}))

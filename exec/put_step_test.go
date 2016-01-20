@@ -24,8 +24,9 @@ import (
 
 var _ = Describe("GardenFactory", func() {
 	var (
-		fakeWorkerClient *wfakes.FakeClient
-		fakeTracker      *rfakes.FakeTracker
+		fakeWorkerClient   *wfakes.FakeClient
+		fakeTracker        *rfakes.FakeTracker
+		fakeTrackerFactory *fakes.FakeTrackerFactory
 
 		factory Factory
 
@@ -42,22 +43,14 @@ var _ = Describe("GardenFactory", func() {
 			Type:         db.ContainerTypePut,
 			StepName:     "some-step",
 		}
-		expectedIdentifier = worker.Identifier{
-			ResourceID: 1234,
-		}
-		expectedMetadata = worker.Metadata{
-			PipelineName:     "some-pipeline",
-			Type:             db.ContainerTypePut,
-			StepName:         "some-step",
-			WorkingDirectory: "/tmp/build/put",
-		}
 	)
 
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeTracker = new(rfakes.FakeTracker)
+		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, fakeTrackerFactory)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -145,8 +138,16 @@ var _ = Describe("GardenFactory", func() {
 				_, sm, sid, typ, tags, sources := fakeTracker.InitWithSourcesArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
-					ID:       expectedIdentifier,
-					Metadata: expectedMetadata,
+					ID: worker.Identifier{
+						ResourceID: 1234,
+						Stage:      db.ContainerStageRun,
+					},
+					Metadata: worker.Metadata{
+						PipelineName:     "some-pipeline",
+						Type:             db.ContainerTypePut,
+						StepName:         "some-step",
+						WorkingDirectory: "/tmp/build/put",
+					},
 				}))
 				Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))
 				Expect(tags).To(ConsistOf("some", "tags"))

@@ -137,6 +137,7 @@ var _ = Describe("Radar", func() {
 				Expect(session).To(Equal(resource.Session{
 					ID: worker.Identifier{
 						ResourceID: 39,
+						Stage:      db.ContainerStageRun,
 					},
 					Metadata: worker.Metadata{
 						Type:         db.ContainerTypeCheck,
@@ -576,6 +577,7 @@ var _ = Describe("Radar", func() {
 				Expect(session).To(Equal(resource.Session{
 					ID: worker.Identifier{
 						ResourceID: 39,
+						Stage:      db.ContainerStageRun,
 					},
 					Metadata: worker.Metadata{
 						Type:         db.ContainerTypeCheck,

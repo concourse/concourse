@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/pivotal-golang/lager"
 )
@@ -80,10 +81,13 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		resourceSources[string(name)] = resourceSource{source}
 	}
 
+	runSession := step.session
+	runSession.ID.Stage = db.ContainerStageRun
+
 	trackedResource, missingNames, err := step.tracker.InitWithSources(
 		step.logger,
 		step.stepMetadata,
-		step.session,
+		runSession,
 		resource.ResourceType(step.resourceConfig.Type),
 		step.tags,
 		resourceSources,

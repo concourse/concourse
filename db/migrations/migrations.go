@@ -78,4 +78,5 @@ var Migrations = []migration.Migrator{
 	AddWorkerIDToVolumes,
 	RemoveWorkerIds,
 	AddAttemptsToContainers,
+	AddStageToContainers,
 }

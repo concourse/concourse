@@ -18,7 +18,11 @@ var _ = Describe("ConfigSource", func() {
 		someConfig = atc.TaskConfig{
 			Platform: "some-platform",
 			Image:    "some-image",
-			Params:   map[string]string{"PARAM": "value"},
+			ImageResource: &atc.TaskImageConfig{
+				Type:   "docker",
+				Source: atc.Source{"a": "b"},
+			},
+			Params: map[string]string{"PARAM": "value"},
 			Run: atc.TaskRunConfig{
 				Path: "ls",
 				Args: []string{"-al"},

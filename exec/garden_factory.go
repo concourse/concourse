@@ -13,19 +13,26 @@ import (
 )
 
 type gardenFactory struct {
-	workerClient worker.Client
-	tracker      resource.Tracker
+	workerClient   worker.Client
+	tracker        resource.Tracker
+	trackerFactory TrackerFactory
 }
 
-type UUIDGenFunc func() string
+//go:generate counterfeiter . TrackerFactory
+
+type TrackerFactory interface {
+	TrackerFor(client worker.Client) resource.Tracker
+}
 
 func NewGardenFactory(
 	workerClient worker.Client,
 	tracker resource.Tracker,
+	trackerFactory TrackerFactory,
 ) Factory {
 	return &gardenFactory{
-		workerClient: workerClient,
-		tracker:      tracker,
+		workerClient:   workerClient,
+		tracker:        tracker,
+		trackerFactory: trackerFactory,
 	}
 }
 
@@ -144,6 +151,7 @@ func (factory *gardenFactory) Task(
 		configSource,
 		factory.workerClient,
 		workingDirectory,
+		factory.trackerFactory,
 	)
 }
 

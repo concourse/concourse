@@ -3,6 +3,7 @@ package exec
 import (
 	"archive/tar"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
@@ -32,19 +35,30 @@ func (err MissingInputsError) Error() string {
 	return fmt.Sprintf("missing inputs: %s", strings.Join(err.Inputs, ", "))
 }
 
+// ErrImageUnavailable is returned when a task's configured image resource
+// has no versions.
+var ErrImageUnavailable = errors.New("no versions of image available")
+
+type ErrImageGetDidNotProduceVolume error
+
+func NewErrImageGetDidNotProduceVolume(taskName string) ErrImageGetDidNotProduceVolume {
+	return fmt.Errorf("getting the image for task '%s' did not produce a volume", taskName)
+}
+
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
 // SourceRepository and outputs will be added to the SourceRepository.
 type TaskStep struct {
-	logger        lager.Logger
-	sourceName    SourceName
-	containerID   worker.Identifier
-	metadata      worker.Metadata
-	tags          atc.Tags
-	delegate      TaskDelegate
-	privileged    Privileged
-	configSource  TaskConfigSource
-	workerPool    worker.Client
-	artifactsRoot string
+	logger         lager.Logger
+	sourceName     SourceName
+	containerID    worker.Identifier
+	metadata       worker.Metadata
+	tags           atc.Tags
+	delegate       TaskDelegate
+	privileged     Privileged
+	configSource   TaskConfigSource
+	workerPool     worker.Client
+	artifactsRoot  string
+	trackerFactory TrackerFactory
 
 	repo *SourceRepository
 
@@ -65,18 +79,20 @@ func newTaskStep(
 	configSource TaskConfigSource,
 	workerPool worker.Client,
 	artifactsRoot string,
+	trackerFactory TrackerFactory,
 ) TaskStep {
 	return TaskStep{
-		logger:        logger,
-		sourceName:    sourceName,
-		containerID:   containerID,
-		metadata:      metadata,
-		tags:          tags,
-		delegate:      delegate,
-		privileged:    privileged,
-		configSource:  configSource,
-		workerPool:    workerPool,
-		artifactsRoot: artifactsRoot,
+		logger:         logger,
+		sourceName:     sourceName,
+		containerID:    containerID,
+		metadata:       metadata,
+		tags:           tags,
+		delegate:       delegate,
+		privileged:     privileged,
+		configSource:   configSource,
+		workerPool:     workerPool,
+		artifactsRoot:  artifactsRoot,
+		trackerFactory: trackerFactory,
 	}
 }
 
@@ -123,9 +139,12 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	step.metadata.EnvironmentVariables = step.envForParams(config.Params)
 
+	runContainerID := step.containerID
+	runContainerID.Stage = db.ContainerStageRun
+
 	step.container, found, err = step.workerPool.FindContainerForIdentifier(
 		step.logger.Session("found-container"),
-		step.containerID,
+		runContainerID,
 	)
 
 	if err == nil && found {
@@ -169,6 +188,10 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			Tags:     step.tags,
 		}
 
+		if config.ImageResource != nil {
+			workerSpec.ResourceType = config.ImageResource.Type
+		}
+
 		compatibleWorkers, err := step.workerPool.AllSatisfying(workerSpec)
 		if err != nil {
 			return err
@@ -203,33 +226,57 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			})
 		}
 
-		step.container, err = chosenWorker.CreateContainer(
-			step.logger.Session("created-container"),
-			step.containerID,
-			step.metadata,
-			worker.TaskContainerSpec{
-				Platform:   config.Platform,
-				Tags:       step.tags,
-				Image:      config.Image,
-				Privileged: bool(step.privileged),
-				Inputs:     inputMounts,
-				Outputs:    outputMounts,
-			},
-		)
-		if err != nil {
-			return err
+		containerSpec := worker.TaskContainerSpec{
+			Platform:   config.Platform,
+			Tags:       step.tags,
+			Privileged: bool(step.privileged),
+			Inputs:     inputMounts,
+			Outputs:    outputMounts,
 		}
 
+		var imageResource resource.Resource
+
+		if config.ImageResource != nil {
+			imageResource, err = step.getContainerImage(signals, chosenWorker, config)
+			if err != nil {
+				return err
+			}
+
+			imageVolume, found, err := imageResource.CacheVolume()
+			if err != nil {
+				return err
+			}
+
+			if !found {
+				return NewErrImageGetDidNotProduceVolume(string(step.sourceName))
+			}
+
+			containerSpec.ImageVolume = imageVolume
+		} else {
+			containerSpec.Image = config.Image
+		}
+
+		step.container, err = chosenWorker.CreateContainer(
+			step.logger.Session("created-container"),
+			runContainerID,
+			step.metadata,
+			containerSpec,
+		)
+		if imageResource != nil {
+			imageResource.Release(0)
+		}
 		for _, mount := range inputMounts {
 			// stop heartbeating ourselves now that container has picked up the
 			// volumes
 			mount.Volume.Release(0)
 		}
-
 		for _, mount := range outputMounts {
 			// stop heartbeating ourselves now that container has picked up the
 			// volumes
 			mount.Volume.Release(0)
+		}
+		if err != nil {
+			return err
 		}
 
 		err = step.ensureBuildDirExists(step.container)
@@ -487,6 +534,85 @@ func (step *TaskStep) inputDestination(config atc.TaskInputConfig) string {
 	}
 
 	return filepath.Join(step.artifactsRoot, subdir)
+}
+
+func (step *TaskStep) getContainerImage(signals <-chan os.Signal, worker worker.Client, config atc.TaskConfig) (resource.Resource, error) {
+	tracker := step.trackerFactory.TrackerFor(worker)
+
+	resourceType := resource.ResourceType(config.ImageResource.Type)
+
+	checkSess := resource.Session{
+		ID: step.containerID,
+	}
+
+	checkSess.ID.Stage = db.ContainerStageCheck
+
+	checkingResource, err := tracker.Init(
+		step.logger.Session("check-image"),
+		resource.EmptyMetadata{},
+		checkSess,
+		resourceType,
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	defer checkingResource.Release(0)
+
+	versions, err := checkingResource.Check(config.ImageResource.Source, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(versions) == 0 {
+		return nil, ErrImageUnavailable
+	}
+
+	getSess := resource.Session{
+		ID: step.containerID,
+	}
+
+	getSess.ID.Stage = db.ContainerStageGet
+
+	getResource, cache, err := tracker.InitWithCache(
+		step.logger.Session("init-image"),
+		resource.EmptyMetadata{},
+		getSess,
+		resourceType,
+		nil,
+		resource.ResourceCacheIdentifier{
+			Type:    resourceType,
+			Version: versions[0],
+			Source:  config.ImageResource.Source,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	isInitialized, err := cache.IsInitialized()
+	if err != nil {
+		return nil, err
+	}
+
+	if !isInitialized {
+		versionedSource := getResource.Get(
+			resource.IOConfig{},
+			config.ImageResource.Source,
+			nil,
+			versions[0],
+		)
+
+		err := versionedSource.Run(signals, make(chan struct{}))
+		if err != nil {
+			return nil, err
+		}
+
+		cache.Initialize()
+	}
+
+	return getResource, nil
 }
 
 func (step *TaskStep) ensureBuildDirExists(container garden.Container) error {

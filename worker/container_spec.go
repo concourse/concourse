@@ -59,12 +59,13 @@ func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {
 }
 
 type TaskContainerSpec struct {
-	Platform   string
-	Image      string
-	Privileged bool
-	Tags       []string
-	Inputs     []VolumeMount
-	Outputs    []VolumeMount
+	Platform    string
+	Image       string
+	ImageVolume Volume
+	Privileged  bool
+	Tags        []string
+	Inputs      []VolumeMount
+	Outputs     []VolumeMount
 }
 
 func (spec TaskContainerSpec) WorkerSpec() WorkerSpec {

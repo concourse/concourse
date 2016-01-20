@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
@@ -102,10 +103,13 @@ func (step GetStep) Using(prev Step, repo *SourceRepository) Step {
 func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
 	step.delegate.Initializing()
 
+	runSession := step.session
+	runSession.ID.Stage = db.ContainerStageRun
+
 	trackedResource, cache, err := step.tracker.InitWithCache(
 		step.logger,
 		step.stepMetadata,
-		step.session,
+		runSession,
 		resource.ResourceType(step.resourceConfig.Type),
 		step.tags,
 		step.cacheIdentifier,

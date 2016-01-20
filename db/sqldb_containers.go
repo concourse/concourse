@@ -12,7 +12,7 @@ import (
 )
 
 const containerMetadataColumns = "handle, expires_at, b.id as build_id, b.name as build_name, r.name as resource_name, worker_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, check_type, check_source, env_variables, attempts"
-const containerIdentifierColumns = "handle, expires_at, worker_name, resource_id, build_id, plan_id"
+const containerIdentifierColumns = "handle, expires_at, worker_name, resource_id, build_id, plan_id, stage"
 
 func (db *SQLDB) FindContainersByMetadata(id ContainerMetadata) ([]Container, error) {
 	err := deleteExpired(db)
@@ -138,8 +138,9 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 			SELECT ` + containerIdentifierColumns + `
 	    FROM containers
 		  WHERE build_id = $1 AND plan_id = $2
+			AND stage = $3
 	  	`
-		rows, err = db.conn.Query(selectQuery, id.BuildID, string(id.PlanID))
+		rows, err = db.conn.Query(selectQuery, id.BuildID, string(id.PlanID), string(id.Stage))
 	} else {
 		return Container{}, false, errors.New("insufficient container identifiers")
 	}
@@ -261,8 +262,8 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 	defer tx.Rollback()
 
 	newContainer, err := scanContainerIdentifier(tx.QueryRow(`
-		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, check_type, check_source, plan_id, working_directory, env_variables, attempts)
-		VALUES ($1, $2, $3, $4, $5, $6,  $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14)
+		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage)
+		VALUES ($1, $2, $3, $4, $5, $6,  $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15)
 		RETURNING `+containerIdentifierColumns,
 		container.Handle,
 		resourceID,
@@ -278,6 +279,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		container.WorkingDirectory,
 		envVariables,
 		attempts,
+		string(container.Stage),
 	))
 
 	if err != nil {
@@ -439,6 +441,7 @@ func scanContainerIdentifier(row scannable) (Container, error) {
 	var planID sql.NullString
 	var resourceID sql.NullInt64
 	var buildID sql.NullInt64
+	var stage string
 	container := Container{}
 
 	err := row.Scan(
@@ -448,6 +451,7 @@ func scanContainerIdentifier(row scannable) (Container, error) {
 		&resourceID,
 		&buildID,
 		&planID,
+		&stage,
 	)
 	if err != nil {
 		return Container{}, err
@@ -462,6 +466,8 @@ func scanContainerIdentifier(row scannable) (Container, error) {
 	}
 
 	container.PlanID = atc.PlanID(planID.String)
+
+	container.Stage = ContainerStage(stage)
 
 	return container, nil
 }

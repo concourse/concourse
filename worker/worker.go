@@ -173,7 +173,13 @@ dance:
 		return nil, ErrUnsupportedResourceType
 
 	case TaskContainerSpec:
-		gardenSpec.RootFSPath = s.Image
+		if s.ImageVolume != nil {
+			gardenSpec.RootFSPath = path.Join(s.ImageVolume.Path(), "rootfs")
+			volumeHandles = append(volumeHandles, s.ImageVolume.Handle())
+		} else {
+			gardenSpec.RootFSPath = s.Image
+		}
+
 		gardenSpec.Privileged = s.Privileged
 
 		baseVolumeMounts, err := worker.createGardenWorkaroundVolumes(logger, s)

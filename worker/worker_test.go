@@ -542,6 +542,36 @@ var _ = Describe("Worker", func() {
 					}))
 				})
 
+				Context("when an image volume is provided", func() {
+					var imageVolume *bfakes.FakeVolume
+
+					BeforeEach(func() {
+						imageVolume = new(bfakes.FakeVolume)
+						imageVolume.HandleReturns("image-volume")
+						imageVolume.PathReturns("/some/image/path")
+
+						spec = TaskContainerSpec{
+							ImageVolume: imageVolume,
+						}
+					})
+
+					It("creates the container with (volume path)/rootfs as the rootfs", func() {
+						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+						spec := fakeGardenClient.CreateArgsForCall(0)
+						Expect(spec.RootFSPath).To(Equal("/some/image/path/rootfs"))
+						Expect(spec.Properties).To(HaveLen(2))
+						Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
+							`["image-volume"]`,
+						))
+						Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(`{}`))
+					})
+
+					It("does not release the volume", func() {
+						Expect(imageVolume.ReleaseCallCount()).To(Equal(0))
+					})
+				})
+
 				Context("when outputs are provided", func() {
 					var volume1 *bfakes.FakeVolume
 					var volume2 *bfakes.FakeVolume
