@@ -29,13 +29,13 @@ var agoutiDriver *agouti.WebDriver
 var page *agouti.Page
 
 var _ = SynchronizedBeforeSuite(func() []byte {
+	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
+
 	data, err := helpers.FirstNodeClientSetup(atcURL)
 	Expect(err).NotTo(HaveOccurred())
 
 	return data
 }, func(data []byte) {
-	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
-
 	var err error
 	client, err = helpers.AllNodeClientSetup(data)
 	Expect(err).NotTo(HaveOccurred())

@@ -46,13 +46,13 @@ var atcURL = helpers.AtcURL()
 var targetedConcourse = "testflight"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
+	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
+
 	data, err := helpers.FirstNodeFlySetup(atcURL, targetedConcourse)
 	Expect(err).NotTo(HaveOccurred())
 
 	return data
 }, func(data []byte) {
-	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
-
 	var err error
 	flyBin, tmpHome, err = helpers.AllNodeFlySetup(data)
 	Expect(err).NotTo(HaveOccurred())
