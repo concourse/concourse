@@ -214,7 +214,6 @@ jobs:
           BOSH_PASSWORD: admin
     - aggregate:
       - put: lite-deployment
-        retry: 3
         params:
           target_file: bosh-lites/metadata
           manifest: deployments/lite/ci/manifests/no_auth_deployment.yml
@@ -223,7 +222,6 @@ jobs:
             - garden-linux-release/*.tgz
             - candidate-release/concourse-*.tgz
       - put: lite-deployment-basic-auth-public
-        retry: 3
         params:
           target_file: bosh-lites/metadata
           manifest: deployments/lite/ci/manifests/basic_auth_public_deployment.yml
@@ -232,10 +230,25 @@ jobs:
             - garden-linux-release/*.tgz
             - candidate-release/concourse-*.tgz
       - put: lite-deployment-basic-auth-private
-        retry: 3
         params:
           target_file: bosh-lites/metadata
           manifest: deployments/lite/ci/manifests/basic_auth_private_deployment.yml
+          stemcells: [lite-stemcell/*.tgz]
+          releases:
+            - garden-linux-release/*.tgz
+            - candidate-release/concourse-*.tgz
+      - put: lite-deployment-github-auth-public
+        params:
+          target_file: bosh-lites/metadata
+          manifest: deployments/lite/ci/manifests/github_auth_public_deployment.yml
+          stemcells: [lite-stemcell/*.tgz]
+          releases:
+            - garden-linux-release/*.tgz
+            - candidate-release/concourse-*.tgz
+      - put: lite-deployment-github-auth-private
+        params:
+          target_file: bosh-lites/metadata
+          manifest: deployments/lite/ci/manifests/github_auth_private_deployment.yml
           stemcells: [lite-stemcell/*.tgz]
           releases:
             - garden-linux-release/*.tgz
@@ -291,6 +304,46 @@ jobs:
             config:
               params:
                 MANIFEST: deployments/lite/ci/manifests/basic_auth_private_deployment.yml
+                BOSH_USER: admin
+                BOSH_PASSWORD: admin
+          - put: testflight-logs
+            params: {file: exported-logs/concourse.*.tgz}
+    - task: github-auth-public-build
+      file: concourse/ci/testflight.yml
+      config:
+        params:
+          ATC_URL: "http://10.244.18.2:8080"
+          GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+          GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+          PIPELINES_PUBLICLY_VIEWABLE: true
+      timeout: 1h
+      on_failure:
+        do:
+          - task: export-bosh-logs
+            file: concourse/ci/export-bosh-logs.yml
+            config:
+              params:
+                MANIFEST: deployments/lite/ci/manifests/github_auth_public_deployment.yml
+                BOSH_USER: admin
+                BOSH_PASSWORD: admin
+          - put: testflight-logs
+            params: {file: exported-logs/concourse.*.tgz}
+    - task: github-auth-private-build
+      file: concourse/ci/testflight.yml
+      config:
+        params:
+          ATC_URL: "http://10.244.19.2:8080"
+          GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+          GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+          PIPELINES_PUBLICLY_VIEWABLE: false
+      timeout: 1h
+      on_failure:
+        do:
+          - task: export-bosh-logs
+            file: concourse/ci/export-bosh-logs.yml
+            config:
+              params:
+                MANIFEST: deployments/lite/ci/manifests/github_auth_private_deployment.yml
                 BOSH_USER: admin
                 BOSH_PASSWORD: admin
           - put: testflight-logs
@@ -674,6 +727,18 @@ resources:
   source:
     <<: *lite-defaults
     deployment: concourse-testflight-basic-auth-private
+
+- name: lite-deployment-github-auth-public
+  type: bosh-deployment
+  source:
+    <<: *lite-defaults
+    deployment: concourse-testflight-github-auth-public
+
+- name: lite-deployment-github-auth-private
+  type: bosh-deployment
+  source:
+    <<: *lite-defaults
+    deployment: concourse-testflight-github-auth-private
 
 - name: virtualbox-box-cloud
   type: vagrant-cloud
