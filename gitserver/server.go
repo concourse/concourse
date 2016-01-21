@@ -98,7 +98,7 @@ func (server *Server) URI() string {
 	return fmt.Sprintf("git://%s/some-repo", server.addr)
 }
 
-func (server *Server) Commit() string {
+func (server *Server) CommitOnBranch(branch string) string {
 	guid, err := uuid.NewV4()
 	Expect(err).NotTo(HaveOccurred())
 
@@ -109,6 +109,7 @@ func (server *Server) Commit() string {
 			fmt.Sprintf(
 				`
 					cd some-repo
+					git checkout -B `+branch+`
 					echo '%s' >> guids
 					git add guids
 					git commit -m 'commit #%d: %s'
@@ -135,6 +136,10 @@ func (server *Server) Commit() string {
 	server.committedGuids = append(server.committedGuids, guid.String())
 
 	return guid.String()
+}
+
+func (server *Server) Commit() string {
+	return server.CommitOnBranch("master")
 }
 
 func (server *Server) CommitRootfs() {
