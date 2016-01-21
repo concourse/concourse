@@ -264,7 +264,7 @@
     "NATInstance": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "InstanceType": "m3.medium",
+        "InstanceType": "m4.large",
         "SubnetId": { "Ref": "BOSHSubnet" },
         "ImageId" : {
           "Fn::FindInMap": ["AWSNATAMI", { "Ref" : "AWS::Region" }, "AMI"]
