@@ -136,13 +136,13 @@ var _ = Describe("Radar", func() {
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 				Expect(session).To(Equal(resource.Session{
 					ID: worker.Identifier{
-						ResourceID: 39,
-						Stage:      db.ContainerStageRun,
+						ResourceID:  39,
+						Stage:       db.ContainerStageRun,
+						CheckType:   "git",
+						CheckSource: atc.Source{"uri": "http://example.com"},
 					},
 					Metadata: worker.Metadata{
 						Type:         db.ContainerTypeCheck,
-						CheckType:    "git",
-						CheckSource:  atc.Source{"uri": "http://example.com"},
 						PipelineName: "some-pipeline",
 					},
 					Ephemeral: true,
@@ -576,13 +576,13 @@ var _ = Describe("Radar", func() {
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 				Expect(session).To(Equal(resource.Session{
 					ID: worker.Identifier{
-						ResourceID: 39,
-						Stage:      db.ContainerStageRun,
+						ResourceID:  39,
+						Stage:       db.ContainerStageRun,
+						CheckType:   "git",
+						CheckSource: atc.Source{"uri": "http://example.com"},
 					},
 					Metadata: worker.Metadata{
 						Type:         db.ContainerTypeCheck,
-						CheckType:    "git",
-						CheckSource:  atc.Source{"uri": "http://example.com"},
 						PipelineName: "some-pipeline",
 					},
 					Ephemeral: true,

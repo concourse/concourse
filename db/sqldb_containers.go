@@ -11,10 +11,18 @@ import (
 	"github.com/concourse/atc"
 )
 
-const containerMetadataColumns = "handle, expires_at, b.id as build_id, b.name as build_name, r.name as resource_name, worker_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, check_type, check_source, env_variables, attempts"
-const containerIdentifierColumns = "handle, expires_at, worker_name, resource_id, build_id, plan_id, stage"
+const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts"
+const containerJoins = `
+		LEFT JOIN pipelines p
+		  ON p.id = c.pipeline_id
+		LEFT JOIN resources r
+			ON r.id = c.resource_id
+		LEFT JOIN builds b
+		  ON b.id = c.build_id
+		LEFT JOIN jobs j
+		  ON j.id = b.job_id`
 
-func (db *SQLDB) FindContainersByMetadata(id ContainerMetadata) ([]Container, error) {
+func (db *SQLDB) FindContainersByDescriptors(id Container) ([]Container, error) {
 	err := deleteExpired(db)
 	if err != nil {
 		return nil, err
@@ -80,19 +88,11 @@ func (db *SQLDB) FindContainersByMetadata(id ContainerMetadata) ([]Container, er
 
 	var rows *sql.Rows
 	selectQuery := `
-		SELECT ` + containerMetadataColumns + `
-		FROM containers c
-		LEFT JOIN pipelines p
-		  ON p.id = c.pipeline_id
-		LEFT JOIN resources r
-		  ON r.id = c.resource_id
-	  LEFT JOIN builds b
-		  ON b.id = c.build_id
-		LEFT JOIN jobs j
-		  ON j.id = b.job_id
-	  	`
+		SELECT ` + containerColumns + `
+		FROM containers c ` + containerJoins
+
 	if len(whereCriteria) > 0 {
-		selectQuery += fmt.Sprintf("WHERE %s", strings.Join(whereCriteria, " AND "))
+		selectQuery += fmt.Sprintf(" WHERE %s", strings.Join(whereCriteria, " AND "))
 	}
 
 	rows, err = db.conn.Query(selectQuery, params...)
@@ -105,7 +105,7 @@ func (db *SQLDB) FindContainersByMetadata(id ContainerMetadata) ([]Container, er
 
 	infos := []Container{}
 	for rows.Next() {
-		info, err := scanContainerMetadata(rows)
+		info, err := scanContainer(rows)
 
 		if err != nil {
 			return nil, err
@@ -128,15 +128,15 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 	var rows *sql.Rows
 	if id.ResourceID != 0 {
 		selectQuery = `
-			SELECT ` + containerIdentifierColumns + `
-	  	FROM containers
+			SELECT ` + containerColumns + `
+	    FROM containers c ` + containerJoins + `
 		  WHERE resource_id = $1
 	  	`
 		rows, err = db.conn.Query(selectQuery, id.ResourceID)
 	} else if id.BuildID != 0 && id.PlanID != "" {
 		selectQuery = `
-			SELECT ` + containerIdentifierColumns + `
-	    FROM containers
+			SELECT ` + containerColumns + `
+	    FROM containers c ` + containerJoins + `
 		  WHERE build_id = $1 AND plan_id = $2
 			AND stage = $3
 	  	`
@@ -150,7 +150,7 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 	}
 
 	for rows.Next() {
-		container, err := scanContainerIdentifier(rows)
+		container, err := scanContainer(rows)
 		if err != nil {
 			return Container{}, false, nil
 		}
@@ -170,17 +170,14 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 }
 
 func (db *SQLDB) GetContainer(handle string) (Container, bool, error) {
-	containerWithMetadata, err := scanContainerMetadata(db.conn.QueryRow(`
-		SELECT `+containerMetadataColumns+`
-		FROM containers c
-		LEFT JOIN pipelines p
-		  ON p.id = c.pipeline_id
-		LEFT JOIN resources r
-			ON r.id = c.resource_id
-		LEFT JOIN builds b
-		  ON b.id = c.build_id
-		LEFT JOIN jobs j
-		  ON j.id = b.job_id
+	err := deleteExpired(db)
+	if err != nil {
+		return Container{}, false, err
+	}
+
+	container, err := scanContainer(db.conn.QueryRow(`
+		SELECT `+containerColumns+`
+	  FROM containers c `+containerJoins+`
 		WHERE c.handle = $1
 	`, handle))
 
@@ -191,25 +188,11 @@ func (db *SQLDB) GetContainer(handle string) (Container, bool, error) {
 		return Container{}, false, err
 	}
 
-	container, err := scanContainerIdentifier(db.conn.QueryRow(`
-		SELECT `+containerIdentifierColumns+`
-		FROM containers c
-		WHERE c.handle = $1
-	`, handle))
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return Container{}, false, nil
-		}
-		return Container{}, false, err
-	}
-
-	container.ContainerMetadata = containerWithMetadata.ContainerMetadata
 	return container, true, nil
 }
 
 func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Container, error) {
 	tx, err := db.conn.Begin()
-
 	if err != nil {
 		return Container{}, err
 	}
@@ -243,14 +226,14 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 	}
 
 	var buildID sql.NullInt64
-	if container.ContainerIdentifier.BuildID != 0 {
-		buildID.Int64 = int64(container.ContainerIdentifier.BuildID)
+	if container.BuildID != 0 {
+		buildID.Int64 = int64(container.BuildID)
 		buildID.Valid = true
 	}
 
-	workerName := container.ContainerMetadata.WorkerName
+	workerName := container.WorkerName
 	if workerName == "" {
-		workerName = container.ContainerIdentifier.WorkerName
+		workerName = container.WorkerName
 	}
 
 	var attempts sql.NullString
@@ -261,10 +244,9 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 
 	defer tx.Rollback()
 
-	newContainer, err := scanContainerIdentifier(tx.QueryRow(`
+	_, err = tx.Exec(`
 		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage)
-		VALUES ($1, $2, $3, $4, $5, $6,  $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15)
-		RETURNING `+containerIdentifierColumns,
+		VALUES ($1, $2, $3, $4, $5, $6,  $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15)`,
 		container.Handle,
 		resourceID,
 		container.StepName,
@@ -280,15 +262,23 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		envVariables,
 		attempts,
 		string(container.Stage),
-	))
-
+	)
 	if err != nil {
-		return newContainer, err
+		return Container{}, err
+	}
+
+	newContainer, err := scanContainer(tx.QueryRow(`
+		SELECT `+containerColumns+`
+	  FROM containers c `+containerJoins+`
+		WHERE c.handle = $1
+	`, container.Handle))
+	if err != nil {
+		return Container{}, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return newContainer, err
+		return Container{}, err
 	}
 
 	return newContainer, nil
@@ -350,36 +340,41 @@ func (db *SQLDB) DeleteContainer(handle string) error {
 	return err
 }
 
-func scanContainerMetadata(row scannable) (Container, error) {
+func scanContainer(row scannable) (Container, error) {
 	var (
-		infoType         string
+		resourceID       sql.NullInt64
 		checkSourceBlob  []byte
-		envVariablesBlob []byte
+		buildID          sql.NullInt64
+		planID           sql.NullString
+		stage            string
+		buildName        sql.NullString
 		resourceName     sql.NullString
 		pipelineID       sql.NullInt64
 		pipelineName     sql.NullString
 		jobName          sql.NullString
-		buildID          sql.NullInt64
-		buildName        sql.NullString
+		infoType         string
+		envVariablesBlob []byte
 		attempts         sql.NullString
 	)
 	container := Container{}
 
 	err := row.Scan(
-		&container.Handle,
-		&container.ExpiresAt,
+		&container.WorkerName,
+		&resourceID,
+		&container.CheckType,
+		&checkSourceBlob,
 		&buildID,
+		&planID,
+		&stage,
+		&container.Handle,
 		&buildName,
 		&resourceName,
-		&container.ContainerMetadata.WorkerName,
 		&pipelineID,
 		&pipelineName,
 		&jobName,
 		&container.StepName,
 		&infoType,
 		&container.WorkingDirectory,
-		&container.CheckType,
-		&checkSourceBlob,
 		&envVariablesBlob,
 		&attempts,
 	)
@@ -387,9 +382,17 @@ func scanContainerMetadata(row scannable) (Container, error) {
 		return Container{}, err
 	}
 
-	if buildID.Valid {
-		container.ContainerMetadata.BuildID = int(buildID.Int64)
+	if resourceID.Valid {
+		container.ResourceID = int(resourceID.Int64)
 	}
+
+	if buildID.Valid {
+		container.ContainerIdentifier.BuildID = int(buildID.Int64)
+	}
+
+	container.PlanID = atc.PlanID(planID.String)
+
+	container.Stage = ContainerStage(stage)
 
 	if buildName.Valid {
 		container.BuildName = buildName.String
@@ -433,41 +436,6 @@ func scanContainerMetadata(row scannable) (Container, error) {
 		}
 		container.Attempts = attemptsSlice
 	}
-
-	return container, nil
-}
-
-func scanContainerIdentifier(row scannable) (Container, error) {
-	var planID sql.NullString
-	var resourceID sql.NullInt64
-	var buildID sql.NullInt64
-	var stage string
-	container := Container{}
-
-	err := row.Scan(
-		&container.Handle,
-		&container.ExpiresAt,
-		&container.ContainerIdentifier.WorkerName,
-		&resourceID,
-		&buildID,
-		&planID,
-		&stage,
-	)
-	if err != nil {
-		return Container{}, err
-	}
-
-	if resourceID.Valid {
-		container.ResourceID = int(resourceID.Int64)
-	}
-
-	if buildID.Valid {
-		container.ContainerIdentifier.BuildID = int(buildID.Int64)
-	}
-
-	container.PlanID = atc.PlanID(planID.String)
-
-	container.Stage = ContainerStage(stage)
 
 	return container, nil
 }

@@ -264,7 +264,7 @@ var _ = Describe("Config API", func() {
 
 						Context("and saving it fails", func() {
 							BeforeEach(func() {
-								configDB.SaveConfigReturns(false, errors.New("oh no!"))
+								configDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {
@@ -278,7 +278,17 @@ var _ = Describe("Config API", func() {
 
 						Context("when it's the first time the pipeline has been created", func() {
 							BeforeEach(func() {
-								configDB.SaveConfigReturns(true, nil)
+								returnedPipeline := db.SavedPipeline{
+									ID:     1234,
+									Paused: true,
+									TeamID: 1,
+									Pipeline: db.Pipeline{
+										Name:    "a-pipeline",
+										Config:  config,
+										Version: db.ConfigVersion(42),
+									},
+								}
+								configDB.SaveConfigReturns(returnedPipeline, true, nil)
 							})
 
 							It("returns 201", func() {
@@ -410,7 +420,17 @@ jobs:
 
 						Context("when it's the first time the pipeline has been created", func() {
 							BeforeEach(func() {
-								configDB.SaveConfigReturns(true, nil)
+								returnedPipeline := db.SavedPipeline{
+									ID:     1234,
+									Paused: true,
+									TeamID: 1,
+									Pipeline: db.Pipeline{
+										Name:    "a-pipeline",
+										Config:  config,
+										Version: db.ConfigVersion(42),
+									},
+								}
+								configDB.SaveConfigReturns(returnedPipeline, true, nil)
 							})
 
 							It("returns 201", func() {
@@ -420,7 +440,7 @@ jobs:
 
 						Context("and saving it fails", func() {
 							BeforeEach(func() {
-								configDB.SaveConfigReturns(false, errors.New("oh no!"))
+								configDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {
@@ -501,7 +521,17 @@ jobs:
 
 							Context("when it's the first time the pipeline has been created", func() {
 								BeforeEach(func() {
-									configDB.SaveConfigReturns(true, nil)
+									returnedPipeline := db.SavedPipeline{
+										ID:     1234,
+										Paused: true,
+										TeamID: 1,
+										Pipeline: db.Pipeline{
+											Name:    "a-pipeline",
+											Config:  config,
+											Version: db.ConfigVersion(42),
+										},
+									}
+									configDB.SaveConfigReturns(returnedPipeline, true, nil)
 								})
 
 								It("returns 201", func() {
@@ -511,7 +541,7 @@ jobs:
 
 							Context("and saving it fails", func() {
 								BeforeEach(func() {
-									configDB.SaveConfigReturns(false, errors.New("oh no!"))
+									configDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
 								})
 
 								It("returns 500", func() {

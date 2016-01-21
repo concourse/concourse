@@ -94,7 +94,7 @@ var _ = Describe("Job Builds", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				// job build data
-				_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
+				_, _, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},

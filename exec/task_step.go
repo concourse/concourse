@@ -547,9 +547,9 @@ func (step *TaskStep) getContainerImage(signals <-chan os.Signal, worker worker.
 	}
 
 	checkSess.ID.Stage = db.ContainerStageCheck
+	checkSess.ID.CheckType = config.ImageResource.Type
+	checkSess.ID.CheckSource = config.ImageResource.Source
 	checkSess.Metadata.Type = db.ContainerTypeCheck
-	checkSess.Metadata.CheckType = config.ImageResource.Type
-	checkSess.Metadata.CheckSource = config.ImageResource.Source
 	checkSess.Metadata.WorkingDirectory = ""
 	checkSess.Metadata.EnvironmentVariables = nil
 

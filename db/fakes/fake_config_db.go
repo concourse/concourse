@@ -20,7 +20,7 @@ type FakeConfigDB struct {
 		result2 db.ConfigVersion
 		result3 error
 	}
-	SaveConfigStub        func(string, string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (bool, error)
+	SaveConfigStub        func(string, string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (db.SavedPipeline, bool, error)
 	saveConfigMutex       sync.RWMutex
 	saveConfigArgsForCall []struct {
 		arg1 string
@@ -30,8 +30,9 @@ type FakeConfigDB struct {
 		arg5 db.PipelinePausedState
 	}
 	saveConfigReturns struct {
-		result1 bool
-		result2 error
+		result1 db.SavedPipeline
+		result2 bool
+		result3 error
 	}
 }
 
@@ -70,7 +71,7 @@ func (fake *FakeConfigDB) GetConfigReturns(result1 atc.Config, result2 db.Config
 	}{result1, result2, result3}
 }
 
-func (fake *FakeConfigDB) SaveConfig(arg1 string, arg2 string, arg3 atc.Config, arg4 db.ConfigVersion, arg5 db.PipelinePausedState) (bool, error) {
+func (fake *FakeConfigDB) SaveConfig(arg1 string, arg2 string, arg3 atc.Config, arg4 db.ConfigVersion, arg5 db.PipelinePausedState) (db.SavedPipeline, bool, error) {
 	fake.saveConfigMutex.Lock()
 	fake.saveConfigArgsForCall = append(fake.saveConfigArgsForCall, struct {
 		arg1 string
@@ -83,7 +84,7 @@ func (fake *FakeConfigDB) SaveConfig(arg1 string, arg2 string, arg3 atc.Config, 
 	if fake.SaveConfigStub != nil {
 		return fake.SaveConfigStub(arg1, arg2, arg3, arg4, arg5)
 	} else {
-		return fake.saveConfigReturns.result1, fake.saveConfigReturns.result2
+		return fake.saveConfigReturns.result1, fake.saveConfigReturns.result2, fake.saveConfigReturns.result3
 	}
 }
 
@@ -99,12 +100,13 @@ func (fake *FakeConfigDB) SaveConfigArgsForCall(i int) (string, string, atc.Conf
 	return fake.saveConfigArgsForCall[i].arg1, fake.saveConfigArgsForCall[i].arg2, fake.saveConfigArgsForCall[i].arg3, fake.saveConfigArgsForCall[i].arg4, fake.saveConfigArgsForCall[i].arg5
 }
 
-func (fake *FakeConfigDB) SaveConfigReturns(result1 bool, result2 error) {
+func (fake *FakeConfigDB) SaveConfigReturns(result1 db.SavedPipeline, result2 bool, result3 error) {
 	fake.SaveConfigStub = nil
 	fake.saveConfigReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
+		result1 db.SavedPipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ db.ConfigDB = new(FakeConfigDB)

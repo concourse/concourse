@@ -441,10 +441,10 @@ var _ = Describe("Pool", func() {
 			var container db.Container
 			BeforeEach(func() {
 				container = db.Container{
-					ContainerIdentifier: db.ContainerIdentifier{
+					ContainerMetadata: db.ContainerMetadata{
 						WorkerName: "some-worker",
+						Handle:     "some-container-handle",
 					},
-					Handle: "some-container-handle",
 				}
 
 				fakeProvider.GetContainerReturns(container, true, nil)
@@ -566,7 +566,6 @@ var _ = Describe("Pool", func() {
 		BeforeEach(func() {
 			identifier = Identifier{
 				ResourceID: 1234,
-				WorkerName: "some-worker",
 			}
 		})
 
@@ -600,10 +599,10 @@ var _ = Describe("Pool", func() {
 			var container db.Container
 			BeforeEach(func() {
 				container = db.Container{
-					ContainerIdentifier: db.ContainerIdentifier{
+					ContainerMetadata: db.ContainerMetadata{
 						WorkerName: "some-worker",
+						Handle:     "some-container-handle",
 					},
-					Handle: "some-container-handle",
 				}
 
 				fakeProvider.FindContainerForIdentifierReturns(container, true, nil)

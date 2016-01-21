@@ -48,7 +48,7 @@ var _ = Describe("Resource Pausing", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// job build data
-		_, err = sqlDB.SaveConfig(team.Name, "some-pipeline", atc.Config{
+		_, _, err = sqlDB.SaveConfig(team.Name, "some-pipeline", atc.Config{
 			Jobs: atc.JobConfigs{
 				{
 					Name: "job-name",

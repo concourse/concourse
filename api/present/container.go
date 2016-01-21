@@ -12,11 +12,11 @@ func Container(container db.Container) atc.Container {
 	}
 	return atc.Container{
 		ID:                   container.Handle,
-		WorkerName:           container.ContainerMetadata.WorkerName,
+		WorkerName:           container.WorkerName,
 		PipelineName:         container.PipelineName,
 		JobName:              container.JobName,
 		BuildName:            container.BuildName,
-		BuildID:              container.ContainerMetadata.BuildID,
+		BuildID:              container.BuildID,
 		StepType:             stepType,
 		StepName:             container.StepName,
 		ResourceName:         container.ResourceName,

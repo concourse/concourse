@@ -7,9 +7,11 @@ import (
 	"github.com/concourse/atc"
 )
 
+const pipelineColumns = "id, name, config, version, paused, team_id"
+
 func (db *SQLDB) GetPipelineByTeamNameAndName(teamName string, pipelineName string) (SavedPipeline, error) {
 	row := db.conn.QueryRow(`
-		SELECT id, name, config, version, paused, team_id
+		SELECT `+pipelineColumns+`
 		FROM pipelines
 		WHERE name = $1
 		AND team_id = (
@@ -22,7 +24,7 @@ func (db *SQLDB) GetPipelineByTeamNameAndName(teamName string, pipelineName stri
 
 func (db *SQLDB) GetAllActivePipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
-		SELECT id, name, config, version, paused, team_id
+		SELECT ` + pipelineColumns + `
 		FROM pipelines
 		ORDER BY ordering
 	`)
@@ -173,15 +175,15 @@ func (state PipelinePausedState) Bool() *bool {
 
 func (db *SQLDB) SaveConfig(
 	teamName string, pipelineName string, config atc.Config, from ConfigVersion, pausedState PipelinePausedState,
-) (bool, error) {
+) (SavedPipeline, bool, error) {
 	payload, err := json.Marshal(config)
 	if err != nil {
-		return false, err
+		return SavedPipeline{}, false, err
 	}
 
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return false, err
+		return SavedPipeline{}, false, err
 	}
 
 	defer tx.Rollback()
@@ -196,13 +198,12 @@ func (db *SQLDB) SaveConfig(
 		  )
 	`, pipelineName, teamName).Scan(&existingConfig)
 	if err != nil {
-		return false, err
+		return SavedPipeline{}, false, err
 	}
 
-	var result sql.Result
-
+	var savedPipeline SavedPipeline
 	if pausedState == PipelineNoChange {
-		result, err = tx.Exec(`
+		savedPipeline, err = scanPipeline(tx.QueryRow(`
 				UPDATE pipelines
 				SET config = $1, version = nextval('config_version_seq')
 				WHERE name = $2
@@ -210,9 +211,10 @@ func (db *SQLDB) SaveConfig(
 					AND team_id = (
 						SELECT id FROM teams WHERE name = $4
 					)
-			`, payload, pipelineName, from, teamName)
+				RETURNING `+pipelineColumns+`
+			`, payload, pipelineName, from, teamName))
 	} else {
-		result, err = tx.Exec(`
+		savedPipeline, err = scanPipeline(tx.QueryRow(`
 				UPDATE pipelines
 				SET config = $1, version = nextval('config_version_seq'), paused = $2
 				WHERE name = $3
@@ -220,21 +222,16 @@ func (db *SQLDB) SaveConfig(
 					AND team_id = (
 						SELECT id FROM teams WHERE name = $5
 					)
-			`, payload, pausedState.Bool(), pipelineName, from, teamName)
+				RETURNING `+pipelineColumns+`
+			`, payload, pausedState.Bool(), pipelineName, from, teamName))
 	}
-
-	if err != nil {
-		return false, err
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return false, err
+	if err != nil && err != sql.ErrNoRows {
+		return SavedPipeline{}, false, err
 	}
 
 	created := false
 
-	if rows == 0 {
+	if savedPipeline.ID == 0 {
 		if existingConfig == 0 {
 			// If there is no state to change from then start the pipeline out as
 			// paused.
@@ -244,7 +241,7 @@ func (db *SQLDB) SaveConfig(
 
 			created = true
 
-			_, err := tx.Exec(`
+			savedPipeline, err = scanPipeline(tx.QueryRow(`
 			INSERT INTO pipelines (name, config, version, ordering, paused, team_id)
 			VALUES (
 				$1,
@@ -254,43 +251,31 @@ func (db *SQLDB) SaveConfig(
 				$3,
 				(SELECT id FROM teams WHERE name = $4)
 			)
-		`, pipelineName, payload, pausedState.Bool(), teamName)
+			RETURNING `+pipelineColumns+`
+		`, pipelineName, payload, pausedState.Bool(), teamName))
 			if err != nil {
-				return false, err
+				return SavedPipeline{}, false, err
 			}
 		} else {
-			return false, ErrConfigComparisonFailed
+			return SavedPipeline{}, false, ErrConfigComparisonFailed
 		}
 	}
 
-	row := tx.QueryRow(`
-		SELECT id
-		FROM pipelines
-		WHERE name = $1
-	`, pipelineName)
-
-	var pipelineID int
-
-	err = row.Scan(&pipelineID)
-	if err != nil {
-		return false, err
-	}
-
 	for _, resource := range config.Resources {
-		err = db.registerResource(tx, resource.Name, pipelineID)
+		err = db.registerResource(tx, resource.Name, savedPipeline.ID)
 		if err != nil {
-			return false, err
+			return SavedPipeline{}, false, err
 		}
 	}
 
 	for _, job := range config.Jobs {
-		err = db.registerJob(tx, job.Name, pipelineID)
+		err = db.registerJob(tx, job.Name, savedPipeline.ID)
 		if err != nil {
-			return false, err
+			return SavedPipeline{}, false, err
 		}
 	}
 
-	return created, tx.Commit()
+	return savedPipeline, created, tx.Commit()
 }
 
 func (db *SQLDB) registerJob(tx Tx, name string, pipelineID int) error {

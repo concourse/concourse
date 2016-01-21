@@ -170,12 +170,14 @@ var _ = Describe("Worker", func() {
 					})
 
 					It("creates the container info in the database", func() {
-						expectedIdentifier := db.ContainerIdentifier(containerID)
-						expectedIdentifier.WorkerName = workerName
+						expectedMetadata := db.ContainerMetadata{
+							WorkerName: workerName,
+							Handle:     "some-handle",
+						}
 
 						container := db.Container{
-							Handle:              "some-handle",
-							ContainerIdentifier: expectedIdentifier,
+							ContainerIdentifier: db.ContainerIdentifier(containerID),
+							ContainerMetadata:   expectedMetadata,
 						}
 
 						Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
@@ -1192,7 +1194,9 @@ var _ = Describe("Worker", func() {
 				fakeContainer.HandleReturns("provider-handle")
 
 				fakeWorkerProvider.FindContainerForIdentifierReturns(db.Container{
-					Handle: "provider-handle",
+					ContainerMetadata: db.ContainerMetadata{
+						Handle: "provider-handle",
+					},
 				}, true, nil)
 
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
@@ -1317,7 +1321,12 @@ var _ = Describe("Worker", func() {
 
 		Context("when the container cannot be found", func() {
 			BeforeEach(func() {
-				fakeWorkerProvider.FindContainerForIdentifierReturns(db.Container{Handle: "handle"}, true, nil)
+				containerToReturn := db.Container{
+					ContainerMetadata: db.ContainerMetadata{
+						Handle: "handle",
+					},
+				}
+				fakeWorkerProvider.FindContainerForIdentifierReturns(containerToReturn, true, nil)
 				fakeGardenClient.LookupReturns(nil, garden.ContainerNotFoundError{Handle: "handle"})
 			})
 
@@ -1335,7 +1344,12 @@ var _ = Describe("Worker", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeWorkerProvider.FindContainerForIdentifierReturns(db.Container{Handle: "handle"}, true, nil)
+				containerToReturn := db.Container{
+					ContainerMetadata: db.ContainerMetadata{
+						Handle: "handle",
+					},
+				}
+				fakeWorkerProvider.FindContainerForIdentifierReturns(containerToReturn, true, nil)
 				fakeGardenClient.LookupReturns(nil, disaster)
 			})
 

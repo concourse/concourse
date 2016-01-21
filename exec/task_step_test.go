@@ -1618,16 +1618,16 @@ var _ = Describe("GardenFactory", func() {
 													Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 													Expect(session).To(Equal(resource.Session{
 														ID: worker.Identifier{
-															BuildID: 1234,
-															PlanID:  "some-plan-id",
-															Stage:   db.ContainerStageCheck,
+															BuildID:     1234,
+															PlanID:      "some-plan-id",
+															CheckType:   "docker",
+															CheckSource: atc.Source{"some": "source"},
+															Stage:       db.ContainerStageCheck,
 														},
 														Metadata: worker.Metadata{
 															PipelineName:         "some-pipeline",
 															Type:                 db.ContainerTypeCheck,
 															StepName:             "some-step",
-															CheckType:            "docker",
-															CheckSource:          atc.Source{"some": "source"},
 															WorkingDirectory:     "",  // figure this out once we actually support hijacking these
 															EnvironmentVariables: nil, // figure this out once we actually support hijacking these
 														},

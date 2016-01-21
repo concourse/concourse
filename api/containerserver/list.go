@@ -19,7 +19,7 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 		"params": params,
 	})
 
-	containerMetadata, err := s.parseRequest(r)
+	containerDescriptor, err := s.parseRequest(r)
 	if err != nil {
 		hLog.Error("failed-to-parse-request", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -30,7 +30,7 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	hLog.Debug("listing-containers")
 
-	containers, err := s.db.FindContainersByMetadata(containerMetadata)
+	containers, err := s.db.FindContainersByDescriptors(containerDescriptor)
 	if err != nil {
 		hLog.Error("failed-to-find-containers", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -48,42 +48,48 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(presentedContainers)
 }
 
-func (s *Server) parseRequest(r *http.Request) (db.ContainerMetadata, error) {
+func (s *Server) parseRequest(r *http.Request) (db.Container, error) {
 	var containerType db.ContainerType
 	var attempts []int
+	var buildID int
 	var err error
 	if r.URL.Query().Get("type") != "" {
 		containerType, err = db.ContainerTypeFromString(r.URL.Query().Get("type"))
 		if err != nil {
-			return db.ContainerMetadata{}, err
+			return db.Container{}, err
 		}
 	}
 
 	if r.URL.Query().Get("attempts") != "" {
 		attempts, err = db.AttemptsSliceFromString(r.URL.Query().Get("attempts"))
 		if err != nil {
-			return db.ContainerMetadata{}, err
+			return db.Container{}, err
 		}
-	}
-
-	containerMetadata := db.ContainerMetadata{
-		PipelineName: r.URL.Query().Get("pipeline_name"),
-		JobName:      r.URL.Query().Get("job_name"),
-		Type:         containerType,
-		ResourceName: r.URL.Query().Get("resource_name"),
-		StepName:     r.URL.Query().Get("step_name"),
-		BuildName:    r.URL.Query().Get("build_name"),
-		Attempts:     attempts,
 	}
 
 	buildIDParam := r.URL.Query().Get("build-id")
-
 	if len(buildIDParam) != 0 {
 		var err error
-		containerMetadata.BuildID, err = strconv.Atoi(buildIDParam)
+		buildID, err = strconv.Atoi(buildIDParam)
 		if err != nil {
-			return db.ContainerMetadata{}, fmt.Errorf("malformed build ID: %s", err)
+			return db.Container{}, fmt.Errorf("malformed build ID: %s", err)
 		}
 	}
-	return containerMetadata, nil
+
+	container := db.Container{
+		ContainerIdentifier: db.ContainerIdentifier{
+			BuildID: buildID,
+		},
+		ContainerMetadata: db.ContainerMetadata{
+			PipelineName: r.URL.Query().Get("pipeline_name"),
+			JobName:      r.URL.Query().Get("job_name"),
+			Type:         containerType,
+			ResourceName: r.URL.Query().Get("resource_name"),
+			StepName:     r.URL.Query().Get("step_name"),
+			BuildName:    r.URL.Query().Get("build_name"),
+			Attempts:     attempts,
+		},
+	}
+
+	return container, nil
 }

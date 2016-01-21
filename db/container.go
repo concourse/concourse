@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/concourse/atc"
 )
 
 type ContainerIdentifier struct {
-	WorkerName string
-
 	// if it's a resource check container
-	ResourceID int
+	ResourceID  int
+	CheckType   string
+	CheckSource atc.Source
 
 	// if it's a step container
 	BuildID int
@@ -34,8 +33,8 @@ const (
 )
 
 type ContainerMetadata struct {
+	Handle               string
 	WorkerName           string
-	BuildID              int
 	BuildName            string
 	ResourceName         string
 	PipelineID           int
@@ -44,8 +43,6 @@ type ContainerMetadata struct {
 	StepName             string
 	Type                 ContainerType
 	WorkingDirectory     string
-	CheckType            string
-	CheckSource          atc.Source
 	EnvironmentVariables []string
 	Attempts             []int
 }
@@ -53,9 +50,6 @@ type ContainerMetadata struct {
 type Container struct {
 	ContainerIdentifier
 	ContainerMetadata
-
-	ExpiresAt time.Time
-	Handle    string
 }
 
 type ContainerType string

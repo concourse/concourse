@@ -59,7 +59,7 @@ var _ = Describe("Leases", func() {
 	BeforeEach(func() {
 		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
-		_, err = sqlDB.SaveConfig(team.Name, "pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
+		_, _, err = sqlDB.SaveConfig(team.Name, "pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		savedPipeline, err := sqlDB.GetPipelineByTeamNameAndName(team.Name, "pipeline-name")

@@ -196,7 +196,6 @@ var _ = Describe("DBProvider", func() {
 				It("calls through to garden", func() {
 					id := Identifier{
 						ResourceID: 1234,
-						WorkerName: "some-worker",
 					}
 
 					spec := ResourceTypeContainerSpec{
@@ -214,7 +213,7 @@ var _ = Describe("DBProvider", func() {
 
 					Expect(fakeDB.CreateContainerCallCount()).To(Equal(1))
 					createdInfo, _ := fakeDB.CreateContainerArgsForCall(0)
-					Expect(createdInfo.ContainerIdentifier.WorkerName).To(Equal("some-worker"))
+					Expect(createdInfo.WorkerName).To(Equal("some-worker"))
 
 					Expect(container.Handle()).To(Equal("created-handle"))
 
@@ -236,7 +235,12 @@ var _ = Describe("DBProvider", func() {
 					worker.ContainersReturns([]garden.Container{fakeContainer}, nil)
 					worker.LookupReturns(fakeContainer, nil)
 
-					fakeDB.FindContainerByIdentifierReturns(db.Container{Handle: "some-handle"}, true, nil)
+					returnContainer := db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							Handle: "some-handle",
+						},
+					}
+					fakeDB.FindContainerByIdentifierReturns(returnContainer, true, nil)
 
 					container, found, err := workers[0].FindContainerForIdentifier(logger, Identifier{
 						ResourceID: 1234,
@@ -295,20 +299,18 @@ var _ = Describe("DBProvider", func() {
 		})
 	})
 
-	Context("when we call to get a container info by metadata", func() {
+	Context("when we call to get a container info by identifier", func() {
 		It("calls through to the db object", func() {
 			provider.FindContainerForIdentifier(Identifier{
-				BuildID:    1234,
-				PlanID:     atc.PlanID("planid"),
-				WorkerName: "some-worker",
+				BuildID: 1234,
+				PlanID:  atc.PlanID("planid"),
 			})
 
 			Expect(fakeDB.FindContainerByIdentifierCallCount()).To(Equal(1))
 
 			Expect(fakeDB.FindContainerByIdentifierArgsForCall(0)).To(Equal(db.ContainerIdentifier{
-				BuildID:    1234,
-				PlanID:     atc.PlanID("planid"),
-				WorkerName: "some-worker",
+				BuildID: 1234,
+				PlanID:  atc.PlanID("planid"),
 			}))
 		})
 	})

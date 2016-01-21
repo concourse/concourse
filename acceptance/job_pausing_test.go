@@ -83,7 +83,7 @@ var _ = Describe("Job Pausing", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				// job build data
-				_, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
+				_, _, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
 					Jobs: []atc.JobConfig{
 						{Name: "job-name"},
 					},

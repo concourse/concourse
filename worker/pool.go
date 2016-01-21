@@ -139,7 +139,7 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 		return nil, found, nil
 	}
 
-	worker, found, err := pool.provider.GetWorker(containerInfo.ContainerIdentifier.WorkerName)
+	worker, found, err := pool.provider.GetWorker(containerInfo.WorkerName)
 	if err != nil {
 		return nil, found, err
 	}
@@ -147,7 +147,7 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 	if !found {
 		logger.Info("found-container-for-missing-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.ContainerIdentifier.WorkerName,
+			"worker-name":      containerInfo.WorkerName,
 		})
 
 		return nil, false, ErrMissingWorker
@@ -161,7 +161,7 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 	if !found {
 		logger.Info("reaping-container-not-found-on-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.ContainerIdentifier.WorkerName,
+			"worker-name":      containerInfo.WorkerName,
 		})
 
 		err := pool.provider.ReapContainer(containerInfo.Handle)
@@ -186,7 +186,7 @@ func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container
 		return nil, false, nil
 	}
 
-	worker, found, err := pool.provider.GetWorker(containerInfo.ContainerIdentifier.WorkerName)
+	worker, found, err := pool.provider.GetWorker(containerInfo.WorkerName)
 	if err != nil {
 		return nil, false, err
 	}
@@ -194,7 +194,7 @@ func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container
 	if !found {
 		logger.Info("found-container-for-missing-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.ContainerIdentifier.WorkerName,
+			"worker-name":      containerInfo.WorkerName,
 		})
 
 		return nil, false, ErrMissingWorker
@@ -208,7 +208,7 @@ func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container
 	if !found {
 		logger.Info("reaping-container-not-found-on-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.ContainerIdentifier.WorkerName,
+			"worker-name":      containerInfo.WorkerName,
 		})
 
 		err := pool.provider.ReapContainer(handle)

@@ -31,10 +31,9 @@ var _ = Describe("Tracker", func() {
 	)
 
 	var session = Session{
-		ID: worker.Identifier{
-			WorkerName: "some-worker",
-		},
+		ID: worker.Identifier{},
 		Metadata: worker.Metadata{
+			WorkerName:           "some-worker",
 			EnvironmentVariables: []string{"some=value"},
 		},
 		Ephemeral: true,

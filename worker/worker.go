@@ -263,12 +263,12 @@ dance:
 		return nil, err
 	}
 
-	id.WorkerName = worker.name
+	metadata.WorkerName = worker.name
+	metadata.Handle = gardenContainer.Handle()
 	_, err = worker.db.CreateContainer(
 		db.Container{
 			ContainerIdentifier: db.ContainerIdentifier(id),
 			ContainerMetadata:   db.ContainerMetadata(metadata),
-			Handle:              gardenContainer.Handle(),
 		},
 		containerTTL,
 	)
@@ -305,7 +305,7 @@ func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id I
 	if !found {
 		logger.Info("reaping-container-not-found-on-worker", lager.Data{
 			"container-handle": containerInfo.Handle,
-			"worker-name":      containerInfo.ContainerIdentifier.WorkerName,
+			"worker-name":      containerInfo.WorkerName,
 		})
 
 		err := worker.provider.ReapContainer(containerInfo.Handle)

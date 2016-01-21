@@ -43,19 +43,21 @@ var _ = Describe("Pipelines API", func() {
 
 	BeforeEach(func() {
 		fakeContainer1 = db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				BuildID: buildID,
+			},
 			ContainerMetadata: db.ContainerMetadata{
 				StepName:             stepName,
 				PipelineName:         pipelineName,
 				JobName:              jobName,
-				BuildID:              buildID,
 				BuildName:            buildName,
 				Type:                 stepType,
 				WorkerName:           workerName,
 				WorkingDirectory:     workingDirectory,
 				EnvironmentVariables: envVariables,
 				Attempts:             attempts,
+				Handle:               handle,
 			},
-			Handle: handle,
 		}
 	})
 
@@ -99,14 +101,14 @@ var _ = Describe("Pipelines API", func() {
 								Type:         db.ContainerTypeCheck,
 								ResourceName: "some-resource",
 								WorkerName:   "some-other-worker-guid",
+								Handle:       "some-other-handle",
 							},
-							Handle: "some-other-handle",
 						}
 						fakeContainers = []db.Container{
 							fakeContainer1,
 							fakeContainer2,
 						}
-						containerDB.FindContainersByMetadataReturns(fakeContainers, nil)
+						containerDB.FindContainersByDescriptorsReturns(fakeContainers, nil)
 					})
 
 					It("returns 200", func() {
@@ -158,7 +160,7 @@ var _ = Describe("Pipelines API", func() {
 
 				Context("when no containers are found", func() {
 					BeforeEach(func() {
-						containerDB.FindContainersByMetadataReturns([]db.Container{}, nil)
+						containerDB.FindContainersByDescriptorsReturns([]db.Container{}, nil)
 					})
 
 					It("returns 200", func() {
@@ -188,7 +190,7 @@ var _ = Describe("Pipelines API", func() {
 
 					BeforeEach(func() {
 						expectedErr = errors.New("some error")
-						containerDB.FindContainersByMetadataReturns([]db.Container{}, expectedErr)
+						containerDB.FindContainersByDescriptorsReturns([]db.Container{}, expectedErr)
 					})
 
 					It("returns 500", func() {
@@ -211,11 +213,13 @@ var _ = Describe("Pipelines API", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					expectedArgs := db.ContainerMetadata{
-						PipelineName: pipelineName,
+					expectedArgs := db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							PipelineName: pipelineName,
+						},
 					}
-					Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -230,11 +234,13 @@ var _ = Describe("Pipelines API", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					expectedArgs := db.ContainerMetadata{
-						JobName: jobName,
+					expectedArgs := db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							JobName: jobName,
+						},
 					}
-					Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -249,11 +255,13 @@ var _ = Describe("Pipelines API", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					expectedArgs := db.ContainerMetadata{
-						Type: stepType,
+					expectedArgs := db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							Type: stepType,
+						},
 					}
-					Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -268,11 +276,13 @@ var _ = Describe("Pipelines API", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					expectedArgs := db.ContainerMetadata{
-						ResourceName: resourceName,
+					expectedArgs := db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							ResourceName: resourceName,
+						},
 					}
-					Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -287,11 +297,13 @@ var _ = Describe("Pipelines API", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					expectedArgs := db.ContainerMetadata{
-						StepName: stepName,
+					expectedArgs := db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							StepName: stepName,
+						},
 					}
-					Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -306,11 +318,13 @@ var _ = Describe("Pipelines API", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
-					expectedArgs := db.ContainerMetadata{
-						BuildName: buildName,
+					expectedArgs := db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							BuildName: buildName,
+						},
 					}
-					Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
-					Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
+					Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+					Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 				})
 			})
 
@@ -328,11 +342,13 @@ var _ = Describe("Pipelines API", func() {
 						_, err := client.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 
-						expectedArgs := db.ContainerMetadata{
-							BuildID: buildID,
+						expectedArgs := db.Container{
+							ContainerIdentifier: db.ContainerIdentifier{
+								BuildID: buildID,
+							},
 						}
-						Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
-						Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
+						Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+						Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 					})
 
 					Context("when the buildID fails to be parsed as an int", func() {
@@ -350,7 +366,7 @@ var _ = Describe("Pipelines API", func() {
 						It("does not lookup containers", func() {
 							client.Do(req)
 
-							Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(0))
+							Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(0))
 						})
 					})
 				})
@@ -370,11 +386,13 @@ var _ = Describe("Pipelines API", func() {
 						_, err := client.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 
-						expectedArgs := db.ContainerMetadata{
-							Attempts: attempts,
+						expectedArgs := db.Container{
+							ContainerMetadata: db.ContainerMetadata{
+								Attempts: attempts,
+							},
 						}
-						Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(1))
-						Expect(containerDB.FindContainersByMetadataArgsForCall(0)).To(Equal(expectedArgs))
+						Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(1))
+						Expect(containerDB.FindContainersByDescriptorsArgsForCall(0)).To(Equal(expectedArgs))
 					})
 
 					Context("when the attempts fails to be parsed as a slice of int", func() {
@@ -392,7 +410,7 @@ var _ = Describe("Pipelines API", func() {
 						It("does not lookup containers", func() {
 							client.Do(req)
 
-							Expect(containerDB.FindContainersByMetadataCallCount()).To(Equal(0))
+							Expect(containerDB.FindContainersByDescriptorsCallCount()).To(Equal(0))
 						})
 					})
 				})

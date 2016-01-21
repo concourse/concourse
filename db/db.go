@@ -109,7 +109,7 @@ type DB interface {
 	GetWorker(workerName string) (SavedWorker, bool, error)
 	SaveWorker(WorkerInfo, time.Duration) (SavedWorker, error)
 
-	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
+	FindContainersByDescriptors(Container) ([]Container, error)
 	GetContainer(string) (Container, bool, error)
 	CreateContainer(Container, time.Duration) (Container, error)
 	FindContainerByIdentifier(ContainerIdentifier) (Container, bool, error)
@@ -147,7 +147,7 @@ type PipelinesDB interface {
 
 type ConfigDB interface {
 	GetConfig(teamName, pipelineName string) (atc.Config, ConfigVersion, error)
-	SaveConfig(string, string, atc.Config, ConfigVersion, PipelinePausedState) (bool, error)
+	SaveConfig(string, string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
 }
 
 //ConfigVersion is a sequence identifier used for compare-and-swap
