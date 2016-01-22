@@ -62,7 +62,7 @@ var _ = Describe("A job with a step that retries", func() {
 			hijack = exec.Command(flyBin, "-t", targetedConcourse, "hijack",
 				"-j", pipelineName+"/retry-job",
 				"-s", "curl-server-until-3-curls",
-				"--attempts", "2",
+				"--attempt", "2",
 				"--", "sh", "-c",
 				"if [ `cat /tmp/retry_number` -eq 2 ]; then exit 0; else exit 1; fi;")
 			hijackS = helpers.StartFly(hijack)
@@ -72,9 +72,9 @@ var _ = Describe("A job with a step that retries", func() {
 		It("correctly displays information about attempts", func() {
 			hijack = exec.Command(flyBin, "-t", targetedConcourse, "hijack", "-j", pipelineName+"/retry-job", "-s", "curl-server-until-3-curls", "--", "sh", "-c", "exit")
 			hijackS = helpers.StartFly(hijack)
-			Eventually(hijackS).Should(gbytes.Say("1: build #1, step: curl-server-until-3-curls, type: task, attempts: \\[[1-3]\\]"))
-			Eventually(hijackS).Should(gbytes.Say("2: build #1, step: curl-server-until-3-curls, type: task, attempts: \\[[1-3]\\]"))
-			Eventually(hijackS).Should(gbytes.Say("3: build #1, step: curl-server-until-3-curls, type: task, attempts: \\[[1-3]\\]"))
+			Eventually(hijackS).Should(gbytes.Say("1: build #1, step: curl-server-until-3-curls, type: task, attempt: [1-3]"))
+			Eventually(hijackS).Should(gbytes.Say("2: build #1, step: curl-server-until-3-curls, type: task, attempt: [1-3]"))
+			Eventually(hijackS).Should(gbytes.Say("3: build #1, step: curl-server-until-3-curls, type: task, attempt: [1-3]"))
 			hijackS.Out.Write([]byte("2"))
 			Eventually(hijackS).Should(gexec.Exit())
 		})
