@@ -296,11 +296,15 @@ var _ = Describe("ExecEngine", func() {
 
 		Context("with a retry plan", func() {
 			var (
-				getPlan      atc.Plan
-				taskPlan     atc.Plan
-				retryPlan    atc.Plan
-				retryPlanTwo atc.Plan
-				err          error
+				getPlan       atc.Plan
+				taskPlan      atc.Plan
+				aggregatePlan atc.Plan
+				doPlan        atc.Plan
+				timeoutPlan   atc.Plan
+				tryPlan       atc.Plan
+				retryPlan     atc.Plan
+				retryPlanTwo  atc.Plan
+				err           error
 			)
 			BeforeEach(func() {
 				getPlan = planFactory.NewPlan(atc.GetPlan{
@@ -325,9 +329,22 @@ var _ = Describe("ExecEngine", func() {
 					taskPlan,
 				})
 
+				aggregatePlan = planFactory.NewPlan(atc.AggregatePlan{retryPlanTwo})
+
+				doPlan = planFactory.NewPlan(atc.DoPlan{aggregatePlan})
+
+				timeoutPlan = planFactory.NewPlan(atc.TimeoutPlan{
+					Step:     doPlan,
+					Duration: "1m",
+				})
+
+				tryPlan = planFactory.NewPlan(atc.TryPlan{
+					Step: timeoutPlan,
+				})
+
 				retryPlan = planFactory.NewPlan(atc.RetryPlan{
 					getPlan,
-					retryPlanTwo,
+					timeoutPlan,
 					getPlan,
 				})
 
@@ -438,6 +455,61 @@ var _ = Describe("ExecEngine", func() {
 				Expect(privileged).To(Equal(exec.Privileged(false)))
 				Expect(tags).To(Equal(atc.Tags{"some", "task", "tags"}))
 				Expect(configSource).To(Equal(exec.FileConfigSource{"some-config-path"}))
+			})
+		})
+
+		Context("with a plan where conditional steps are inside retries", func() {
+			var (
+				retryPlan     atc.Plan
+				onSuccessPlan atc.Plan
+				onFailurePlan atc.Plan
+				ensurePlan    atc.Plan
+				leafPlan      atc.Plan
+				err           error
+			)
+			BeforeEach(func() {
+				leafPlan = planFactory.NewPlan(atc.TaskPlan{
+					Name:       "some-task",
+					Privileged: false,
+					Tags:       atc.Tags{"some", "task", "tags"},
+					Pipeline:   "some-pipeline",
+					ConfigPath: "some-config-path",
+				})
+
+				onSuccessPlan = planFactory.NewPlan(atc.OnSuccessPlan{
+					Step: leafPlan,
+					Next: leafPlan,
+				})
+
+				onFailurePlan = planFactory.NewPlan(atc.OnFailurePlan{
+					Step: onSuccessPlan,
+					Next: leafPlan,
+				})
+
+				ensurePlan = planFactory.NewPlan(atc.EnsurePlan{
+					Step: onFailurePlan,
+					Next: leafPlan,
+				})
+
+				retryPlan = planFactory.NewPlan(atc.RetryPlan{
+					ensurePlan,
+				})
+
+				build, err = execEngine.CreateBuild(logger, buildModel, retryPlan)
+				Expect(err).NotTo(HaveOccurred())
+				build.Resume(logger)
+				Expect(fakeFactory.TaskCallCount()).To(Equal(4))
+			})
+
+			It("constructs nested steps correctly", func() {
+				_, _, _, workerMetadata, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
+				_, _, _, workerMetadata, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
+				_, _, _, workerMetadata, _, _, _, _ = fakeFactory.TaskArgsForCall(2)
+				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
+				_, _, _, workerMetadata, _, _, _, _ = fakeFactory.TaskArgsForCall(3)
+				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
 			})
 		})
 

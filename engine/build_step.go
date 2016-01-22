@@ -14,6 +14,7 @@ func (build *execBuild) buildAggregateStep(logger lager.Logger, plan atc.Plan) e
 	step := exec.Aggregate{}
 
 	for _, innerPlan := range *plan.Aggregate {
+		innerPlan.Attempts = plan.Attempts
 		stepFactory := build.buildStepFactory(logger, innerPlan)
 		step = append(step, stepFactory)
 	}
@@ -29,7 +30,9 @@ func (build *execBuild) buildDoStep(logger lager.Logger, plan atc.Plan) exec.Ste
 	step = exec.Identity{}
 
 	for i := len(*plan.Do) - 1; i >= 0; i-- {
-		previous := build.buildStepFactory(logger, (*plan.Do)[i])
+		innerPlan := (*plan.Do)[i]
+		innerPlan.Attempts = plan.Attempts
+		previous := build.buildStepFactory(logger, innerPlan)
 		step = exec.OnSuccess(previous, step)
 	}
 
@@ -37,29 +40,39 @@ func (build *execBuild) buildDoStep(logger lager.Logger, plan atc.Plan) exec.Ste
 }
 
 func (build *execBuild) buildTimeoutStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
-	step := build.buildStepFactory(logger, plan.Timeout.Step)
+	innerPlan := plan.Timeout.Step
+	innerPlan.Attempts = plan.Attempts
+	step := build.buildStepFactory(logger, innerPlan)
 	return exec.Timeout(step, plan.Timeout.Duration, clock.NewClock())
 }
 
 func (build *execBuild) buildTryStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
-	step := build.buildStepFactory(logger, plan.Try.Step)
+	innerPlan := plan.Try.Step
+	innerPlan.Attempts = plan.Attempts
+	step := build.buildStepFactory(logger, innerPlan)
 	return exec.Try(step)
 }
 
 func (build *execBuild) buildOnSuccessStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
+	plan.OnSuccess.Step.Attempts = plan.Attempts
 	step := build.buildStepFactory(logger, plan.OnSuccess.Step)
+	plan.OnSuccess.Next.Attempts = plan.Attempts
 	next := build.buildStepFactory(logger, plan.OnSuccess.Next)
 	return exec.OnSuccess(step, next)
 }
 
 func (build *execBuild) buildOnFailureStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
+	plan.OnFailure.Step.Attempts = plan.Attempts
 	step := build.buildStepFactory(logger, plan.OnFailure.Step)
+	plan.OnFailure.Next.Attempts = plan.Attempts
 	next := build.buildStepFactory(logger, plan.OnFailure.Next)
 	return exec.OnFailure(step, next)
 }
 
 func (build *execBuild) buildEnsureStep(logger lager.Logger, plan atc.Plan) exec.StepFactory {
+	plan.Ensure.Step.Attempts = plan.Attempts
 	step := build.buildStepFactory(logger, plan.Ensure.Step)
+	plan.Ensure.Next.Attempts = plan.Attempts
 	next := build.buildStepFactory(logger, plan.Ensure.Next)
 	return exec.Ensure(step, next)
 }
