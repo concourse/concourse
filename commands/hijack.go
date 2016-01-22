@@ -82,7 +82,11 @@ func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (ma
 	}
 
 	if len(fingerprint.attempt) > 0 {
-		reqValues["attempt"] = SliceItoa(fingerprint.attempt)
+		attemptBlob, err := json.Marshal(fingerprint.attempt)
+		if err != nil {
+			return nil, err
+		}
+		reqValues["attempt"] = string(attemptBlob)
 	}
 
 	return reqValues, nil

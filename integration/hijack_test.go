@@ -452,7 +452,7 @@ var _ = Describe("Hijacking", func() {
 
 		Context("when called with a specific attempt number", func() {
 			BeforeEach(func() {
-				containerArguments = "pipeline_name=some-pipeline&job_name=some-job&step_name=some-step&attempt=2.4"
+				containerArguments = "pipeline_name=some-pipeline&job_name=some-job&step_name=some-step&attempt=[2,4]"
 				jobName = "some-job"
 				buildName = "3"
 				buildID = 13
