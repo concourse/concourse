@@ -93,7 +93,7 @@ func SliceItoa(slice []int) string {
 	var strSlice string
 	for i, val := range slice {
 		if i > 0 {
-			strSlice += ","
+			strSlice += "."
 		}
 		strSlice += strconv.Itoa(val)
 	}

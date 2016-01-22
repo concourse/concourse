@@ -38,14 +38,13 @@ func (command *ContainersCommand) Execute([]string) error {
 			{Contents: "build id", Color: color.New(color.Bold)},
 			{Contents: "type", Color: color.New(color.Bold)},
 			{Contents: "name", Color: color.New(color.Bold)},
-			{Contents: "attempts", Color: color.New(color.Bold)},
+			{Contents: "attempt", Color: color.New(color.Bold)},
 		},
 	}
 
 	sort.Sort(containersByHandle(containers))
 
 	for _, c := range containers {
-		attempts := "[" + SliceItoa(c.Attempts) + "]"
 		row := ui.TableRow{
 			{Contents: c.ID},
 			{Contents: c.WorkerName},
@@ -55,7 +54,7 @@ func (command *ContainersCommand) Execute([]string) error {
 			buildIDOrNone(c.BuildID),
 			stringOrDefault(c.StepType, "check"),
 			{Contents: (c.StepName + c.ResourceName)},
-			stringOrDefault(attempts, "n/a"),
+			stringOrDefault(SliceItoa(c.Attempts), "n/a"),
 		}
 
 		table.Data = append(table.Data, row)
