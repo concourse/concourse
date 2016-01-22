@@ -21,12 +21,12 @@ func FirstNodeFlySetup(atcURL, targetedConcourse string) ([]byte, error) {
 		return nil, err
 	}
 
-	tmpHome, err := CreateTempHomeDir()
+	loginInfo, err := SetupLoginInforamtion(atcURL)
 	if err != nil {
 		return nil, err
 	}
 
-	loginInfo, err := SetupLoginInforamtion(atcURL)
+	tmpHome, err := CreateTempHomeDir()
 	if err != nil {
 		return nil, err
 	}
