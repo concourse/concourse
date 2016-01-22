@@ -26,7 +26,7 @@ var _ = Describe("BasicAuthValidator", func() {
 
 	BeforeEach(func() {
 		fakeAuthDB = new(fakes.FakeAuthDB)
-		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 11)
+		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 4)
 		Expect(err).ToNot(HaveOccurred())
 
 		team := db.SavedTeam{

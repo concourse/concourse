@@ -143,7 +143,7 @@ func (db *SQLDB) jsonEncodeTeamBasicAuth(team Team) (string, error) {
 	if team.BasicAuthUsername == "" || team.BasicAuthPassword == "" {
 		team.BasicAuth = BasicAuth{}
 	} else {
-		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(team.BasicAuthPassword), 11)
+		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(team.BasicAuthPassword), 4)
 		if err != nil {
 			return "", err
 		}
