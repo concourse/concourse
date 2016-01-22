@@ -578,8 +578,6 @@ var _ = Describe("Worker", func() {
 					var volume1 *bfakes.FakeVolume
 					var volume2 *bfakes.FakeVolume
 
-					var someDstBaseVolume *bfakes.FakeVolume
-					var someDstOtherBaseVolume *bfakes.FakeVolume
 					var taskSpec TaskContainerSpec
 
 					BeforeEach(func() {
@@ -590,32 +588,6 @@ var _ = Describe("Worker", func() {
 						volume2 = new(bfakes.FakeVolume)
 						volume2.HandleReturns("other-output-volume")
 						volume2.PathReturns("/some/other/src/path")
-
-						someDstBaseVolume = new(bfakes.FakeVolume)
-						someDstBaseVolume.HandleReturns("dst-base-output-volume")
-						someDstBaseVolume.PathReturns("/some/volume/some/dst")
-
-						someDstOtherBaseVolume = new(bfakes.FakeVolume)
-						someDstOtherBaseVolume.HandleReturns("dst-other-base-output-volume")
-						someDstOtherBaseVolume.PathReturns("/some/volume/some/dst/other")
-
-						fakeBaseVolumes := make(chan *bfakes.FakeVolume, 2)
-						fakeBaseVolumes <- someDstBaseVolume
-						fakeBaseVolumes <- someDstOtherBaseVolume
-						close(fakeBaseVolumes)
-
-						fakeBaggageclaimClient.CreateVolumeStub = func(logger lager.Logger, spec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
-							Expect(spec.Privileged).To(BeTrue())
-							Expect(spec.TTL).To(Equal(5 * time.Minute))
-
-							Expect(spec.Strategy).To(Equal(baggageclaim.EmptyStrategy{}))
-							v, ok := <-fakeBaseVolumes
-							if !ok {
-								Fail("too many fake volumes retrieved")
-							}
-
-							return v, nil
-						}
 
 						taskSpec = spec.(TaskContainerSpec)
 
@@ -641,16 +613,6 @@ var _ = Describe("Worker", func() {
 						Expect(spec.Privileged).To(BeTrue())
 						Expect(spec.BindMounts).To(Equal([]garden.BindMount{
 							{
-								SrcPath: "/some/volume/some/dst",
-								DstPath: "/tmp/dst",
-								Mode:    garden.BindMountModeRW,
-							},
-							{
-								SrcPath: "/some/volume/some/dst/other",
-								DstPath: "/tmp/dst/other",
-								Mode:    garden.BindMountModeRW,
-							},
-							{
 								SrcPath: "/some/src/path",
 								DstPath: "/tmp/dst/path",
 								Mode:    garden.BindMountModeRW,
@@ -664,11 +626,11 @@ var _ = Describe("Worker", func() {
 
 						Expect(spec.Properties).To(HaveLen(2))
 						Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
-							`["dst-base-output-volume","dst-other-base-output-volume","output-volume","other-output-volume"]`,
+							`["output-volume","other-output-volume"]`,
 						))
 
 						Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(
-							`{"dst-base-output-volume":"/tmp/dst","dst-other-base-output-volume":"/tmp/dst/other","output-volume":"/tmp/dst/path","other-output-volume":"/tmp/dst/other/path"}`,
+							`{"output-volume":"/tmp/dst/path","other-output-volume":"/tmp/dst/other/path"}`,
 						))
 					})
 				})
@@ -680,8 +642,6 @@ var _ = Describe("Worker", func() {
 					var cowInputVolume *bfakes.FakeVolume
 					var cowOtherInputVolume *bfakes.FakeVolume
 
-					var someDstBaseVolume *bfakes.FakeVolume
-					var someDstOtherBaseVolume *bfakes.FakeVolume
 					var taskSpec TaskContainerSpec
 
 					BeforeEach(func() {
@@ -701,19 +661,6 @@ var _ = Describe("Worker", func() {
 						cowOtherInputVolume.HandleReturns("cow-other-input-volume")
 						cowOtherInputVolume.PathReturns("/some/other/cow/src/path")
 
-						someDstBaseVolume = new(bfakes.FakeVolume)
-						someDstBaseVolume.HandleReturns("some-dst-base-volume")
-						someDstBaseVolume.PathReturns("/some/volume/some/dst")
-
-						someDstOtherBaseVolume = new(bfakes.FakeVolume)
-						someDstOtherBaseVolume.HandleReturns("some-dst-other-base-volume")
-						someDstOtherBaseVolume.PathReturns("/some/volume/some/dst/other")
-
-						fakeBaseVolumes := make(chan *bfakes.FakeVolume, 2)
-						fakeBaseVolumes <- someDstBaseVolume
-						fakeBaseVolumes <- someDstOtherBaseVolume
-						close(fakeBaseVolumes)
-
 						fakeBaggageclaimClient.CreateVolumeStub = func(logger lager.Logger, spec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
 							Expect(spec.Privileged).To(BeTrue())
 							Expect(spec.TTL).To(Equal(5 * time.Minute))
@@ -722,13 +669,6 @@ var _ = Describe("Worker", func() {
 								return cowInputVolume, nil
 							} else if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume2}) {
 								return cowOtherInputVolume, nil
-							} else if reflect.DeepEqual(spec.Strategy, baggageclaim.EmptyStrategy{}) {
-								v, ok := <-fakeBaseVolumes
-								if !ok {
-									Fail("too many fake volumes retrieved")
-								}
-
-								return v, nil
 							} else {
 								Fail(fmt.Sprintf("unknown strategy: %#v", spec.Strategy))
 								return nil, nil
@@ -759,16 +699,6 @@ var _ = Describe("Worker", func() {
 						Expect(spec.Privileged).To(BeTrue())
 						Expect(spec.BindMounts).To(Equal([]garden.BindMount{
 							{
-								SrcPath: "/some/volume/some/dst",
-								DstPath: "/tmp/dst",
-								Mode:    garden.BindMountModeRW,
-							},
-							{
-								SrcPath: "/some/volume/some/dst/other",
-								DstPath: "/tmp/dst/other",
-								Mode:    garden.BindMountModeRW,
-							},
-							{
 								SrcPath: "/some/cow/src/path",
 								DstPath: "/tmp/dst/path",
 								Mode:    garden.BindMountModeRW,
@@ -782,11 +712,11 @@ var _ = Describe("Worker", func() {
 
 						Expect(spec.Properties).To(HaveLen(2))
 						Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
-							`["some-dst-base-volume","some-dst-other-base-volume","cow-input-volume","cow-other-input-volume"]`,
+							`["cow-input-volume","cow-other-input-volume"]`,
 						))
 
 						Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(
-							`{"some-dst-base-volume":"/tmp/dst","some-dst-other-base-volume":"/tmp/dst/other","cow-input-volume":"/tmp/dst/path","cow-other-input-volume":"/tmp/dst/other/path"}`,
+							`{"cow-input-volume":"/tmp/dst/path","cow-other-input-volume":"/tmp/dst/other/path"}`,
 						))
 					})
 
@@ -803,11 +733,6 @@ var _ = Describe("Worker", func() {
 						It("releases the copy-on-write volumes that it made beforehand", func() {
 							Expect(cowInputVolume.ReleaseCallCount()).To(Equal(1))
 							Expect(cowOtherInputVolume.ReleaseCallCount()).To(Equal(1))
-						})
-
-						It("releases the Garden workaround base volumes", func() {
-							Expect(someDstBaseVolume.ReleaseCallCount()).To(Equal(1))
-							Expect(someDstOtherBaseVolume.ReleaseCallCount()).To(Equal(1))
 						})
 					})
 

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"sort"
 	"strings"
 	"time"
 
@@ -181,25 +180,6 @@ dance:
 		}
 
 		gardenSpec.Privileged = s.Privileged
-
-		baseVolumeMounts, err := worker.createGardenWorkaroundVolumes(logger, s)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, mount := range baseVolumeMounts {
-			// release *after* container creation
-			defer mount.Volume.Release(0)
-
-			volumeHandles = append(volumeHandles, mount.Volume.Handle())
-			volumeMounts[mount.Volume.Handle()] = mount.MountPath
-
-			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
-				SrcPath: mount.Volume.Path(),
-				DstPath: mount.MountPath,
-				Mode:    garden.BindMountModeRW,
-			})
-		}
 
 		for _, mount := range s.Inputs {
 			cow, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
@@ -421,58 +401,4 @@ insert_coin:
 	}
 
 	return true
-}
-
-func (worker *gardenWorker) createGardenWorkaroundVolumes(logger lager.Logger, spec TaskContainerSpec) ([]VolumeMount, error) {
-	existingMounts := map[string]bool{}
-
-	volumeMounts := []VolumeMount{}
-
-	mountList := append([]VolumeMount{}, spec.Inputs...)
-	mountList = append(mountList, spec.Outputs...)
-	for _, m := range mountList {
-		for _, dir := range pathSegmentsToWorkaround(m.MountPath) {
-			if existingMounts[dir] {
-				continue
-			}
-
-			existingMounts[dir] = true
-
-			volume, err := worker.baggageclaimClient.CreateVolume(
-				logger.Session("workaround"),
-				baggageclaim.VolumeSpec{
-					Privileged: spec.Privileged,
-					Strategy:   baggageclaim.EmptyStrategy{},
-					TTL:        VolumeTTL,
-				},
-			)
-			if err != nil {
-				for _, v := range volumeMounts {
-					// prevent leaking previously created volumes
-					v.Volume.Release(0)
-				}
-
-				return nil, err
-			}
-
-			volumeMounts = append(volumeMounts, VolumeMount{
-				Volume:    volume,
-				MountPath: dir,
-			})
-		}
-	}
-
-	return volumeMounts, nil
-}
-
-func pathSegmentsToWorkaround(p string) []string {
-	segs := []string{}
-
-	for dir := path.Dir(p); dir != "/" && dir != "/tmp"; dir = path.Dir(dir) {
-		segs = append(segs, dir)
-	}
-
-	sort.Sort(sort.StringSlice(segs))
-
-	return segs
 }
