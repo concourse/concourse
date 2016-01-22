@@ -145,7 +145,7 @@ var _ = Describe("Pipelines API", func() {
 									"step_name": "some-step",
 									"working_directory": "/tmp/build/my-favorite-guid",
 									"env_variables": ["VAR1=VAL1"],
-									"attempts": [1,5]
+									"attempt": [1,5]
 								},
 								{
 									"id": "some-other-handle",
@@ -378,7 +378,7 @@ var _ = Describe("Pipelines API", func() {
 						attemptsString := "1,5"
 
 						req.URL.RawQuery = url.Values{
-							"attempts": []string{attemptsString},
+							"attempt": []string{attemptsString},
 						}.Encode()
 					})
 
@@ -398,7 +398,7 @@ var _ = Describe("Pipelines API", func() {
 					Context("when the attempts fails to be parsed as a slice of int", func() {
 						BeforeEach(func() {
 							req.URL.RawQuery = url.Values{
-								"attempts": []string{"not-a-slice"},
+								"attempt": []string{"not-a-slice"},
 							}.Encode()
 						})
 
@@ -505,7 +505,7 @@ var _ = Describe("Pipelines API", func() {
 							"worker_name": "some-worker-guid",
 							"working_directory": "/tmp/build/my-favorite-guid",
 							"env_variables": ["VAR1=VAL1"],
-							"attempts": [1,5]
+							"attempt": [1,5]
 						}
 					`))
 				})

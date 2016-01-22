@@ -60,8 +60,8 @@ func (s *Server) parseRequest(r *http.Request) (db.Container, error) {
 		}
 	}
 
-	if r.URL.Query().Get("attempts") != "" {
-		attempts, err = db.AttemptsSliceFromString(r.URL.Query().Get("attempts"))
+	if r.URL.Query().Get("attempt") != "" {
+		attempts, err = db.AttemptsSliceFromString(r.URL.Query().Get("attempt"))
 		if err != nil {
 			return db.Container{}, err
 		}
