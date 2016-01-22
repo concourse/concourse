@@ -1684,7 +1684,9 @@ var _ = Describe("GardenFactory", func() {
 													Expect(getVersion).To(Equal(atc.Version{"v": "1"}))
 													Expect(params).To(BeNil())
 													Expect(getSource).To(Equal(fetchedConfig.ImageResource.Source))
-													Expect(ioConfig).To(BeZero())
+													Expect(ioConfig).To(Equal(resource.IOConfig{
+														Stderr: stderrBuf,
+													}))
 												})
 
 												It("ran the 'get' action, forwarding signal and ready channels", func() {

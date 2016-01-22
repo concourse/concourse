@@ -608,7 +608,9 @@ func (step *TaskStep) getContainerImage(signals <-chan os.Signal, worker worker.
 
 	if !isInitialized {
 		versionedSource := getResource.Get(
-			resource.IOConfig{},
+			resource.IOConfig{
+				Stderr: step.delegate.Stderr(),
+			},
 			config.ImageResource.Source,
 			nil,
 			versions[0],
