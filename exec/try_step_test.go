@@ -73,7 +73,19 @@ var _ = Describe("Try Step", func() {
 	})
 
 	Describe("Run", func() {
-		Context("when the inner step returns an error", func() {
+		Context("when the inner step is interrupted", func() {
+			BeforeEach(func() {
+				runStep.ResultStub = successResult(false)
+				runStep.RunReturns(ErrInterrupted)
+			})
+
+			It("propagates the error", func() {
+				err := step.Run(nil, nil)
+				Expect(err).To(Equal(ErrInterrupted))
+			})
+		})
+
+		Context("when the inner step returns any other error", func() {
 			BeforeEach(func() {
 				runStep.ResultStub = successResult(false)
 				runStep.RunReturns(errors.New("some error"))

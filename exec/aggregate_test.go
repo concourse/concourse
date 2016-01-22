@@ -98,28 +98,35 @@ var _ = Describe("Aggregate", func() {
 
 	Describe("signalling", func() {
 		var receivedSignals chan os.Signal
+		var actuallyExit chan struct{}
 
 		BeforeEach(func() {
 			receivedSignals = make(chan os.Signal, 2)
+			actuallyExit = make(chan struct{}, 1)
 
 			outStepA.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				close(ready)
 				receivedSignals <- <-signals
+				<-actuallyExit
 				return ErrInterrupted
 			}
 
 			outStepB.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				close(ready)
 				receivedSignals <- <-signals
+				<-actuallyExit
 				return ErrInterrupted
 			}
 		})
 
-		It("propagates to all sources", func() {
-			interruptedErr := errors.New("sources failed:\ninterrupted\ninterrupted")
+		It("returns ErrInterrupted", func() {
 			process.Signal(os.Interrupt)
 
-			Eventually(process.Wait()).Should(Receive(Equal(interruptedErr)))
+			Eventually(receivedSignals).Should(Receive(Equal(os.Interrupt)))
+			Eventually(receivedSignals).Should(Receive(Equal(os.Interrupt)))
+			Consistently(process.Wait()).ShouldNot(Receive())
+			close(actuallyExit)
+			Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
 		})
 	})
 

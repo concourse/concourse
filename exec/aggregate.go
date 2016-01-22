@@ -51,7 +51,6 @@ func (step AggregateStep) Run(signals <-chan os.Signal, ready chan<- struct{}) e
 
 	var errorMessages []string
 
-dance:
 	for _, mp := range members {
 		select {
 		case sig := <-signals:
@@ -60,13 +59,10 @@ dance:
 			}
 
 			for _, mp := range members {
-				err := <-mp.Wait()
-				if err != nil {
-					errorMessages = append(errorMessages, err.Error())
-				}
+				<-mp.Wait()
 			}
 
-			break dance
+			return ErrInterrupted
 		case err := <-mp.Wait():
 			if err != nil {
 				errorMessages = append(errorMessages, err.Error())

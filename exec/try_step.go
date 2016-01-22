@@ -24,7 +24,10 @@ func (ts TryStep) Using(prev Step, repo *SourceRepository) Step {
 // Run runs the nested step, and always returns nil, ignoring the nested step's
 // error.
 func (ts *TryStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	ts.runStep.Run(signals, ready)
+	err := ts.runStep.Run(signals, ready)
+	if err == ErrInterrupted {
+		return err
+	}
 	return nil
 }
 
