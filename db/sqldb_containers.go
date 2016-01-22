@@ -82,8 +82,12 @@ func (db *SQLDB) FindContainersByDescriptors(id Container) ([]Container, error) 
 	}
 
 	if len(id.Attempts) > 0 {
+		attemptsBlob, err := json.Marshal(id.Attempts)
+		if err != nil {
+			return nil, err
+		}
 		whereCriteria = append(whereCriteria, fmt.Sprintf("attempts = $%d", len(params)+1))
-		params = append(params, AttemptsStringFromSlice(id.Attempts))
+		params = append(params, attemptsBlob)
 	}
 
 	var rows *sql.Rows
@@ -237,9 +241,13 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 	}
 
 	var attempts sql.NullString
-	attempts.String = AttemptsStringFromSlice(container.Attempts)
-	if attempts.String != "" {
+	if len(container.Attempts) > 0 {
+		attemptsBlob, err := json.Marshal(container.Attempts)
+		if err != nil {
+			return Container{}, err
+		}
 		attempts.Valid = true
+		attempts.String = string(attemptsBlob)
 	}
 
 	defer tx.Rollback()
@@ -430,11 +438,10 @@ func scanContainer(row scannable) (Container, error) {
 	}
 
 	if attempts.Valid {
-		attemptsSlice, err := AttemptsSliceFromString(attempts.String)
+		err = json.Unmarshal([]byte(attempts.String), &container.Attempts)
 		if err != nil {
 			return Container{}, err
 		}
-		container.Attempts = attemptsSlice
 	}
 
 	return container, nil

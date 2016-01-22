@@ -2,8 +2,6 @@ package db
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/concourse/atc"
 )
@@ -71,32 +69,6 @@ func ContainerTypeFromString(containerType string) (ContainerType, error) {
 	default:
 		return "", fmt.Errorf("Unrecognized containerType: %s", containerType)
 	}
-}
-
-func AttemptsSliceFromString(attempts string) ([]int, error) {
-	var convertedAttempts []int
-	for _, item := range strings.Split(attempts, ",") {
-		attemptInt, err := strconv.Atoi(item)
-		if err != nil {
-			return nil, err
-		}
-		convertedAttempts = append(convertedAttempts, attemptInt)
-	}
-	return convertedAttempts, nil
-}
-
-func AttemptsStringFromSlice(attempts []int) string {
-	var convertedAttempts string
-	for _, item := range attempts {
-		attempt := strconv.Itoa(item)
-
-		if convertedAttempts == "" {
-			convertedAttempts = attempt
-		} else {
-			convertedAttempts += "," + attempt
-		}
-	}
-	return convertedAttempts
 }
 
 const (

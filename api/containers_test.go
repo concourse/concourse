@@ -375,7 +375,7 @@ var _ = Describe("Pipelines API", func() {
 			Describe("querying with attempts", func() {
 				Context("when the attempts can be parsed as a slice of int", func() {
 					BeforeEach(func() {
-						attemptsString := "1,5"
+						attemptsString := "[1,5]"
 
 						req.URL.RawQuery = url.Values{
 							"attempt": []string{attemptsString},

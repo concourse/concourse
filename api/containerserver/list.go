@@ -61,7 +61,7 @@ func (s *Server) parseRequest(r *http.Request) (db.Container, error) {
 	}
 
 	if r.URL.Query().Get("attempt") != "" {
-		attempts, err = db.AttemptsSliceFromString(r.URL.Query().Get("attempt"))
+		err = json.Unmarshal([]byte(r.URL.Query().Get("attempt")), &attempts)
 		if err != nil {
 			return db.Container{}, err
 		}
