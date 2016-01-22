@@ -34,8 +34,9 @@ var _ = Describe("A job with a task that produces outputs", func() {
 		watch := flyWatch("some-job")
 		Expect(watch).To(gbytes.Say("initializing"))
 		Expect(watch).To(gbytes.Say("./git-repo/guids"))
-		Expect(watch).To(gbytes.Say("./output-1/file-1"))
-		Expect(watch).To(gbytes.Say("./output-2/file-2"))
 		Expect(watch).To(gexec.Exit(0))
+
+		Expect(watch.Out.Contents()).To(ContainSubstring("./output-1/file-1"))
+		Expect(watch.Out.Contents()).To(ContainSubstring("./output-2/file-2"))
 	})
 })
