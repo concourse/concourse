@@ -22,6 +22,8 @@ const containerJoins = `
 		LEFT JOIN jobs j
 		  ON j.id = b.job_id`
 
+var ErrInvalidIdentifier = errors.New("invalid container identifier")
+
 func (db *SQLDB) FindContainersByDescriptors(id Container) ([]Container, error) {
 	err := deleteExpired(db)
 	if err != nil {
@@ -130,14 +132,20 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 	var containers []Container
 	var selectQuery string
 	var rows *sql.Rows
-	if id.ResourceID != 0 {
+	if isValidCheckID(id) {
+		checkSourceBlob, err := json.Marshal(id.CheckSource)
+		if err != nil {
+			return Container{}, false, err
+		}
 		selectQuery = `
 			SELECT ` + containerColumns + `
 	    FROM containers c ` + containerJoins + `
 		  WHERE resource_id = $1
+			AND check_type = $2
+			AND check_source = $3
 	  	`
-		rows, err = db.conn.Query(selectQuery, id.ResourceID)
-	} else if id.BuildID != 0 && id.PlanID != "" {
+		rows, err = db.conn.Query(selectQuery, id.ResourceID, id.CheckType, checkSourceBlob)
+	} else if isValidStepID(id) {
 		selectQuery = `
 			SELECT ` + containerColumns + `
 	    FROM containers c ` + containerJoins + `
@@ -146,7 +154,7 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 	  	`
 		rows, err = db.conn.Query(selectQuery, id.BuildID, string(id.PlanID), string(id.Stage))
 	} else {
-		return Container{}, false, errors.New("insufficient container identifiers")
+		return Container{}, false, ErrInvalidIdentifier
 	}
 
 	if err != nil {
@@ -196,6 +204,10 @@ func (db *SQLDB) GetContainer(handle string) (Container, bool, error) {
 }
 
 func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Container, error) {
+	if !isValidID(container.ContainerIdentifier) {
+		return Container{}, ErrInvalidIdentifier
+	}
+
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return Container{}, err
@@ -346,6 +358,38 @@ func (db *SQLDB) DeleteContainer(handle string) error {
 		WHERE handle = $1
 	`, handle)
 	return err
+}
+
+func isValidID(id ContainerIdentifier) bool {
+	return isValidCheckID(id) || isValidStepID(id)
+}
+
+func isValidCheckID(id ContainerIdentifier) bool {
+	return id.ResourceID > 0 &&
+		id.CheckType != "" &&
+		id.CheckSource != nil &&
+		id.Stage == ContainerStageRun &&
+		id.BuildID == 0 &&
+		id.PlanID == ""
+}
+
+func isValidStepID(id ContainerIdentifier) bool {
+	switch id.Stage {
+	case ContainerStageCheck:
+		return id.ResourceID == 0 &&
+			id.CheckType != "" &&
+			id.CheckSource != nil &&
+			id.BuildID > 0 &&
+			id.PlanID != ""
+	case ContainerStageGet, ContainerStageRun:
+		return id.ResourceID == 0 &&
+			id.CheckType == "" &&
+			id.CheckSource == nil &&
+			id.BuildID > 0 &&
+			id.PlanID != ""
+	default:
+		return false
+	}
 }
 
 func scanContainer(row scannable) (Container, error) {
