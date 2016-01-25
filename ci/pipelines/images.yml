@@ -1,19 +1,10 @@
 ---
 resources:
-- name: concourse-rubinius
-  type: git
-  source:
-    uri: https://github.com/concourse/concourse.git
-    branch: develop
-    paths: [ci/dockerfiles/rubinius]
-
-- name: concourse-rubinius-image
+- name: rubinius
   type: docker-image
   source:
-    repository: concourse/rubinius
-    username: {{docker-username}}
-    email: {{docker-email}}
-    password: {{docker-password}}
+    repository: rubinius/docker
+    tag: latest
 
 - name: concourse-buildbox-ci
   type: git
@@ -169,19 +160,6 @@ resources:
     tag: "1.5"
 
 jobs:
-- name: build-rubinius
-  plan:
-  - aggregate:
-    - get: concourse-rubinius
-      trigger: true
-      params: {submodules: none}
-    - get: ubuntu-15.10
-      trigger: true
-  - put: concourse-rubinius-image
-    params:
-      load_base: ubuntu-15.10
-      build: concourse-rubinius/ci/dockerfiles/rubinius
-
 - name: build-buildbox-ci
   plan:
   - aggregate:
@@ -200,12 +178,11 @@ jobs:
     - get: concourse-docs-ci
       trigger: true
       params: {submodules: none}
-    - get: concourse-rubinius-image
-      passed: [build-rubinius]
+    - get: rubinius
       trigger: true
   - put: concourse-docs-ci-image
     params:
-      load_base: concourse-rubinius-image
+      load_base: rubinius
       build: concourse-docs-ci/ci/dockerfiles/docs-ci
 
 - name: build-concourse-ci
