@@ -223,7 +223,7 @@ The resulting pipeline will look like this:
 }{
   \codeblock{yaml}{
     {}  - put: my-product-rc
-    {}    params: \{from: build-artifact/my-product-.*.tgz\}
+    {}    params: \{file: build-artifact/my-product-*.tgz\}
   }
 }
 
@@ -372,9 +372,9 @@ The resulting pipeline will look like this:
 }{
   \codeblock{yaml}{
     {}  - put: my-product-final
-    {}    params: \{from: promote-to-final/my-product-.*.tgz\}
+    {}    params: \{file: promote-to-final/my-product-*.tgz\}
     {}  - put: version
-    {}    params: \{from: version/number\}
+    {}    params: \{file: version/number\}
   }
 }
 
