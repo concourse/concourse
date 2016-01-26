@@ -251,21 +251,6 @@ func (conn *RetryableConnection) LimitCPU(handle string, limits garden.CPULimits
 	return resultingLimits, nil
 }
 
-func (conn *RetryableConnection) LimitDisk(handle string, limits garden.DiskLimits) (garden.DiskLimits, error) {
-	var resultingLimits garden.DiskLimits
-
-	err := conn.retry(func() error {
-		var err error
-		resultingLimits, err = conn.Connection.LimitDisk(handle, limits)
-		return err
-	})
-	if err != nil {
-		return garden.DiskLimits{}, err
-	}
-
-	return resultingLimits, nil
-}
-
 func (conn *RetryableConnection) LimitMemory(handle string, limits garden.MemoryLimits) (garden.MemoryLimits, error) {
 	var resultingLimits garden.MemoryLimits
 

@@ -474,38 +474,6 @@ var _ = Describe("Retryable", func() {
 		})
 	})
 
-	Describe("LimitDisk", func() {
-		handle := "suitcase"
-
-		limits := garden.DiskLimits{
-			ByteHard: 234,
-		}
-
-		var gotLimits garden.DiskLimits
-
-		itRetries(func() error {
-			var err error
-			gotLimits, err = conn.LimitDisk(handle, limits)
-			return err
-		}, func(err error) {
-			innerConnection.LimitDiskReturns(limits, err)
-		}, func() int {
-			return innerConnection.LimitDiskCallCount()
-		}, func() {
-			It("calls through to garden", func() {
-				Expect(innerConnection.LimitDiskCallCount()).To(Equal(1))
-
-				calledHandle, calledLimits := innerConnection.LimitDiskArgsForCall(0)
-				Expect(calledHandle).To(Equal(handle))
-				Expect(calledLimits).To(Equal(limits))
-			})
-
-			It("returns the limits", func() {
-				Expect(gotLimits).To(Equal(limits))
-			})
-		})
-	})
-
 	Describe("LimitMemory", func() {
 		handle := "suitcase"
 
