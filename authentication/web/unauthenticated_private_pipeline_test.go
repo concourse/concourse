@@ -51,5 +51,9 @@ var _ = Describe("the quality of being unauthenticated for private pipelines", f
 		Entry("build page (private)", func() string {
 			return fmt.Sprintf("/pipelines/%s/jobs/%s/builds/%s", pipelineName, privateBuild.JobName, privateBuild.Name)
 		}),
+
+		Entry("resource page", func() string {
+			return fmt.Sprintf("/pipelines/%s/resources/%s", pipelineName, brokenResource.Name)
+		}),
 	)
 })

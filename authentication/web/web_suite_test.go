@@ -16,6 +16,7 @@ import (
 var atcURL = helpers.AtcURL()
 var pipelineName string
 var publicBuild, privateBuild atc.Build
+var brokenResource atc.Resource
 
 var agoutiDriver *agouti.WebDriver
 var page *agouti.Page
@@ -73,8 +74,8 @@ func pushMainPipeline() {
 						Task: "some-task",
 						TaskConfig: &atc.TaskConfig{
 							Run: atc.TaskRunConfig{
-								Path: "echo",
-								Args: []string{"public job info"},
+								Path: "sh",
+								Args: []string{"-c", "sleep 30 && echo public job info"},
 							},
 						},
 					},
@@ -96,6 +97,17 @@ func pushMainPipeline() {
 				},
 			},
 		},
+		Resources: []atc.ResourceConfig{
+			{
+				Name: "broken-resource",
+				Type: "git",
+				Source: atc.Source{
+					"branch": "master",
+					"uri":    "git@github.com:concourse/deployments.git",
+				},
+				CheckEvery: "",
+			},
+		},
 	})
 	Expect(err).NotTo(HaveOccurred())
 
@@ -106,5 +118,10 @@ func pushMainPipeline() {
 	Expect(err).NotTo(HaveOccurred())
 
 	privateBuild, err = client.CreateJobBuild(pipelineName, "private-job")
+	Expect(err).NotTo(HaveOccurred())
+
+	var found bool
+	brokenResource, found, err = client.Resource(pipelineName, "broken-resource")
+	Expect(found).To(BeTrue())
 	Expect(err).NotTo(HaveOccurred())
 }

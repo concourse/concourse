@@ -27,23 +27,48 @@ var _ = Describe("the quality of being unauthenticated for public pipelines", fu
 	})
 
 	DescribeTable("trying to view pages unauthenticated displays the page",
-		func(uri func() string) {
-			url := urljoiner.Join(atcURL, uri())
+		func(options func() (string, []string)) {
+			uri, clicks := options()
+			url := urljoiner.Join(atcURL, uri)
 			Expect(page.Navigate(url)).To(Succeed())
 			Eventually(page).Should(HaveURL(url))
+
+			if len(clicks) > 0 {
+				By("displays login prompt when clicking on link/button")
+				for _, selector := range clicks {
+					Eventually(page.Find(selector)).Should(BeEnabled())
+					Expect(page.Find(selector).Click()).To(Succeed())
+					Eventually(page).ShouldNot(HaveURL(url))
+					Expect(page.Title()).To(ContainSubstring("Log In"))
+
+					//Return back to previous page
+					Expect(page.Navigate(url)).To(Succeed())
+				}
+			}
 		},
 
-		Entry("index", func() string { return "/" }),
+		Entry("index", func() (string, []string) { return "/", []string{} }),
 
-		Entry("job page (publicly viewable)", func() string {
-			return fmt.Sprintf("/pipelines/%s/jobs/%s", pipelineName, publicBuild.JobName)
-		}),
-		Entry("build page (publicly viewable)", func() string {
-			return fmt.Sprintf("/pipelines/%s/jobs/%s/builds/%s", pipelineName, publicBuild.JobName, publicBuild.Name)
+		Entry("job page (publicly viewable)", func() (string, []string) {
+			return fmt.Sprintf("/pipelines/%s/jobs/%s", pipelineName, publicBuild.JobName),
+				[]string{"#page-header .build-header button.btn-pause"}
 		}),
 
-		Entry("job page (private)", func() string {
-			return fmt.Sprintf("/pipelines/%s/jobs/%s", pipelineName, privateBuild.JobName)
+		Entry("build page (publicly viewable)", func() (string, []string) {
+			return fmt.Sprintf("/pipelines/%s/jobs/%s/builds/%s", pipelineName, publicBuild.JobName, publicBuild.Name),
+				[]string{
+					"#page-header .build-header button.build-action",   //New Build
+					"#page-header .build-header .build-action-abort i", //Abort Build
+				}
+		}),
+
+		Entry("job page (private)", func() (string, []string) {
+			return fmt.Sprintf("/pipelines/%s/jobs/%s", pipelineName, privateBuild.JobName), []string{}
+		}),
+
+		Entry("resource page", func() (string, []string) {
+			return fmt.Sprintf("/pipelines/%s/resources/%s", pipelineName, brokenResource.Name),
+				[]string{".build-step .header span.btn-pause"}
 		}),
 	)
 
