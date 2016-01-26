@@ -32,7 +32,7 @@ var _ = Describe("Reconfiguring a resource", func() {
 		guid1 := originGitServer.Commit()
 		Eventually(guidServer.ReportingGuids).Should(ContainElement(guid1))
 
-		configurePipeline(
+		reconfigurePipeline(
 			"-c", "fixtures/simple-trigger-reconfigured.yml",
 			"-v", "testflight-helper-image="+guidServerRootfs,
 			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),

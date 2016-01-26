@@ -137,6 +137,10 @@ func destroyPipeline() {
 func configurePipeline(argv ...string) {
 	destroyPipeline()
 
+	reconfigurePipeline(argv...)
+}
+
+func reconfigurePipeline(argv ...string) {
 	args := append([]string{
 		"-t", targetedConcourse,
 		"set-pipeline",
