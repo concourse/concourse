@@ -7,13 +7,7 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
-// FLAGS NEEDED FOR CLUSTER:
-// --peer-ip for --peer-url and local worker registration
-//
-// --session-signing-key so all ATCs trust each other's tokens
-//
-// TODO: baggageclaim
-// TODO: fly cli downloads
+
 func main() {
 	var cmd ConcourseCommand
 
