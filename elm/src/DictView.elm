@@ -14,5 +14,5 @@ viewPair : (String, String) -> Html
 viewPair (name, value) =
   Html.tr []
   [ Html.td [class "dict-key"] [Html.text name]
-  , Html.td [class "dict-value"] [Html.text value]
-  ]
+  , Html.td [class "dict-value"]
+  [ Html.pre [] [ Html.text value ] ] ]
