@@ -7,7 +7,6 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
-
 func main() {
 	var cmd ConcourseCommand
 
