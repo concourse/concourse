@@ -1,10 +1,8 @@
 package worker
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"path"
 	"strings"
 	"time"
 
@@ -23,10 +21,6 @@ var ErrMismatchedTags = errors.New("mismatched tags")
 const containerKeepalive = 30 * time.Second
 const containerTTL = 5 * time.Minute
 const VolumeTTL = containerTTL
-
-const ephemeralPropertyName = "concourse:ephemeral"
-const volumePropertyName = "concourse:volumes"
-const volumeMountsPropertyName = "concourse:volume-mounts"
 
 //go:generate counterfeiter . Worker
 
@@ -103,139 +97,13 @@ func (worker *gardenWorker) VolumeManager() (baggageclaim.Client, bool) {
 }
 
 func (worker *gardenWorker) CreateContainer(logger lager.Logger, id Identifier, metadata Metadata, spec ContainerSpec) (Container, error) {
-	gardenSpec := garden.ContainerSpec{
-		Properties: garden.Properties{},
-	}
 
-	var volumeHandles []string
-	volumeMounts := map[string]string{}
+	gardenContainerSpecFactory := NewGardenContainerSpecFactory(logger, worker.baggageclaimClient)
 
-dance:
-	switch s := spec.(type) {
-	case ResourceTypeContainerSpec:
-		if len(s.Mounts) > 0 && s.Cache.Volume != nil {
-			return nil, errors.New("a container may not have mounts and a cache")
-		}
-
-		gardenSpec.Privileged = true
-		gardenSpec.Env = s.Env
-
-		if s.Ephemeral {
-			gardenSpec.Properties[ephemeralPropertyName] = "true"
-		}
-
-		if s.Cache.Volume != nil && s.Cache.MountPath != "" {
-			gardenSpec.BindMounts = []garden.BindMount{
-				{
-					SrcPath: s.Cache.Volume.Path(),
-					DstPath: s.Cache.MountPath,
-					Mode:    garden.BindMountModeRW,
-				},
-			}
-
-			volumeHandles = append(volumeHandles, s.Cache.Volume.Handle())
-			volumeMounts[s.Cache.Volume.Handle()] = s.Cache.MountPath
-		}
-
-		for _, mount := range s.Mounts {
-			cowVolume, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
-				Strategy: baggageclaim.COWStrategy{
-					Parent: mount.Volume,
-				},
-				Privileged: gardenSpec.Privileged,
-				TTL:        VolumeTTL,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			// release *after* container creation
-			defer cowVolume.Release(0)
-
-			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
-				SrcPath: cowVolume.Path(),
-				DstPath: mount.MountPath,
-				Mode:    garden.BindMountModeRW,
-			})
-
-			volumeHandles = append(volumeHandles, cowVolume.Handle())
-			volumeMounts[cowVolume.Handle()] = mount.MountPath
-		}
-
-		for _, t := range worker.resourceTypes {
-			if t.Type == s.Type {
-				gardenSpec.RootFSPath = t.Image
-				break dance
-			}
-		}
-
-		return nil, ErrUnsupportedResourceType
-
-	case TaskContainerSpec:
-		if s.ImageVolume != nil {
-			gardenSpec.RootFSPath = path.Join(s.ImageVolume.Path(), "rootfs")
-			volumeHandles = append(volumeHandles, s.ImageVolume.Handle())
-		} else {
-			gardenSpec.RootFSPath = s.Image
-		}
-
-		gardenSpec.Privileged = s.Privileged
-
-		for _, mount := range s.Inputs {
-			cow, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
-				Strategy: baggageclaim.COWStrategy{
-					Parent: mount.Volume,
-				},
-				Privileged: s.Privileged,
-				TTL:        VolumeTTL,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			// release *after* container creation
-			defer cow.Release(0)
-
-			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
-				SrcPath: cow.Path(),
-				DstPath: mount.MountPath,
-				Mode:    garden.BindMountModeRW,
-			})
-
-			volumeHandles = append(volumeHandles, cow.Handle())
-			volumeMounts[cow.Handle()] = mount.MountPath
-		}
-
-		for _, mount := range s.Outputs {
-			volume := mount.Volume
-			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
-				SrcPath: volume.Path(),
-				DstPath: mount.MountPath,
-				Mode:    garden.BindMountModeRW,
-			})
-
-			volumeHandles = append(volumeHandles, volume.Handle())
-			volumeMounts[volume.Handle()] = mount.MountPath
-		}
-
-	default:
-		return nil, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
-	}
-
-	if len(volumeHandles) > 0 {
-		volumesJSON, err := json.Marshal(volumeHandles)
-		if err != nil {
-			return nil, err
-		}
-
-		gardenSpec.Properties[volumePropertyName] = string(volumesJSON)
-
-		mountsJSON, err := json.Marshal(volumeMounts)
-		if err != nil {
-			return nil, err
-		}
-
-		gardenSpec.Properties[volumeMountsPropertyName] = string(mountsJSON)
+	gardenSpec, err := gardenContainerSpecFactory.BuildContainerSpec(spec, worker.resourceTypes)
+	defer gardenContainerSpecFactory.ReleaseVolumes()
+	if err != nil {
+		return nil, err
 	}
 
 	gardenContainer, err := worker.gardenClient.Create(gardenSpec)

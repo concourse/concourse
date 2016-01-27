@@ -278,6 +278,15 @@ var _ = Describe("Worker", func() {
 										return nil, nil
 									}
 								}
+
+								fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
+									// ensure they're not released before container creation
+									Expect(cowVolume1.ReleaseCallCount()).To(BeZero())
+									Expect(cowVolume2.ReleaseCallCount()).To(BeZero())
+									Expect(volume1.ReleaseCallCount()).To(BeZero())
+									Expect(volume2.ReleaseCallCount()).To(BeZero())
+									return fakeContainer, nil
+								}
 							})
 
 							It("creates the container with read-write copy-on-write bind-mounts for each cache", func() {
