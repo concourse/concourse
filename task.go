@@ -94,37 +94,58 @@ func (config TaskConfig) Validate() error {
 func (config TaskConfig) validateInputsAndOutputs() []string {
 	messages := []string{}
 	previousPaths := make(map[string]int)
+	dotPath := false
 
 	for _, input := range config.Inputs {
-		if val, found := previousPaths[input.resolvePath()]; !found {
-			previousPaths[input.resolvePath()] = 1
+		path := strings.TrimPrefix(input.resolvePath(), "./")
+
+		if path == "." {
+			dotPath = true
+		}
+
+		if val, found := previousPaths[path]; !found {
+			previousPaths[path] = 1
 		} else {
-			previousPaths[input.resolvePath()] = val + 1
+			previousPaths[path] = val + 1
 		}
 	}
 
 	for _, output := range config.Outputs {
-		if val, found := previousPaths[output.resolvePath()]; !found {
-			previousPaths[output.resolvePath()] = 1
-		} else {
-			previousPaths[output.resolvePath()] = val + 1
+		path := strings.TrimPrefix(output.resolvePath(), "./")
+
+		if path == "." {
+			dotPath = true
 		}
+
+		if val, found := previousPaths[path]; !found {
+			previousPaths[path] = 1
+		} else {
+			previousPaths[path] = val + 1
+		}
+	}
+
+	if len(previousPaths) > 1 && dotPath {
+		messages = append(messages, "  you may not have more than one input or output when one of them has a path of '.'")
 	}
 
 	for path, val := range previousPaths {
 		if val > 1 {
-			messages = append(messages, fmt.Sprintf("  inputs and outputs have overlapping path: '%s'", path))
+			messages = append(messages, fmt.Sprintf("  inputs and/or outputs have overlapping path: '%s'", path))
 		}
 
 		for _, input := range config.Inputs {
-			if strings.HasPrefix(input.resolvePath(), path) && input.resolvePath() != path {
-				messages = append(messages, fmt.Sprintf("  inputs and outputs have overlapping path: '%s'", path))
+			inputPath := strings.TrimPrefix(input.resolvePath(), "./")
+
+			if strings.HasPrefix(inputPath, path) && inputPath != path {
+				messages = append(messages, fmt.Sprintf("  inputs and/or outputs have overlapping path: '%s'", path))
 			}
 		}
 
 		for _, output := range config.Outputs {
-			if strings.HasPrefix(output.resolvePath(), path) && output.resolvePath() != path {
-				messages = append(messages, fmt.Sprintf("  inputs and outputs have overlapping path: '%s'", path))
+			outputPath := strings.TrimPrefix(output.resolvePath(), "./")
+
+			if strings.HasPrefix(outputPath, path) && outputPath != path {
+				messages = append(messages, fmt.Sprintf("  inputs and/or outputs have overlapping path: '%s'", path))
 			}
 		}
 	}

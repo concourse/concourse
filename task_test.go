@@ -134,7 +134,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'concourse'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'concourse'")))
 				})
 			})
 
@@ -148,7 +148,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'concourse'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'concourse'")))
 				})
 			})
 
@@ -162,7 +162,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'path'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'path'")))
 				})
 			})
 		})
@@ -178,7 +178,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'concourse'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'concourse'")))
 				})
 			})
 
@@ -192,7 +192,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'concourse'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'concourse'")))
 				})
 			})
 
@@ -206,7 +206,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'path'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'path'")))
 				})
 			})
 		})
@@ -227,7 +227,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'concourse'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'concourse'")))
 				})
 			})
 
@@ -246,7 +246,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'garden'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'garden'")))
 				})
 			})
 
@@ -264,7 +264,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'path'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'path'")))
 				})
 			})
 
@@ -288,8 +288,8 @@ var _ = Describe("TaskConfig", func() {
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'path'")))
-					Expect(err).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'jettison'")))
+					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'path'")))
+					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'jettison'")))
 
 					lines := strings.Split(err.Error(), "\n")
 					Expect(lines).To(HaveLen(3)) // 2 errors + header
@@ -308,9 +308,10 @@ var _ = Describe("TaskConfig", func() {
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'foo'")))
+					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo'")))
 				})
 			})
+
 			Context("when two inputs have a name conflict due to 1 path belonging to the subpath of the other", func() {
 				BeforeEach(func() {
 					invalidConfig.Inputs = append(
@@ -323,9 +324,10 @@ var _ = Describe("TaskConfig", func() {
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'foo'")))
+					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo'")))
 				})
 			})
+
 			Context("when two outputs have a path conflict due to 1 path belonging to the subpath of the other", func() {
 				BeforeEach(func() {
 					invalidConfig.Outputs = append(
@@ -338,9 +340,10 @@ var _ = Describe("TaskConfig", func() {
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'foo'")))
+					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo'")))
 				})
 			})
+
 			Context("when two outputs have a name conflict due to 1 path belonging to the subpath of the other", func() {
 				BeforeEach(func() {
 					invalidConfig.Outputs = append(
@@ -353,9 +356,10 @@ var _ = Describe("TaskConfig", func() {
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'foo'")))
+					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo'")))
 				})
 			})
+
 			Context("when two outputs have a path conflict due to 1 path belonging to the subpath of the other", func() {
 				BeforeEach(func() {
 					invalidConfig.Outputs = append(
@@ -368,7 +372,61 @@ var _ = Describe("TaskConfig", func() {
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and outputs have overlapping path: 'foo1'")))
+					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo1'")))
+				})
+			})
+
+			Context("when an input path starts with ./", func() {
+				BeforeEach(func() {
+					invalidConfig.Inputs = append(
+						invalidConfig.Inputs,
+						TaskInputConfig{Name: "jettison", Path: "foo1"},
+						TaskInputConfig{Name: "concourse", Path: "./foo2/bar"},
+					)
+
+					invalidConfig.Outputs = append(
+						invalidConfig.Outputs,
+						TaskOutputConfig{Name: "jettison", Path: "foo2"},
+						TaskOutputConfig{Name: "concourse", Path: "./foo1/bar"},
+					)
+				})
+
+				It("doesn't care and still returns an error", func() {
+					err := invalidConfig.Validate()
+
+					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo1'")))
+					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo2'")))
+				})
+			})
+
+			Context("when there is only one input and it has path of '.'", func() {
+				BeforeEach(func() {
+					invalidConfig.Inputs = append(
+						invalidConfig.Inputs,
+						TaskInputConfig{Name: "concourse", Path: "."},
+					)
+				})
+
+				It("doesn't care and still returns an error", func() {
+					err := invalidConfig.Validate()
+
+					Expect(err).ToNot(HaveOccurred())
+				})
+			})
+
+			Context("when there is more than one input and one of them has path of '.'", func() {
+				BeforeEach(func() {
+					invalidConfig.Inputs = append(
+						invalidConfig.Inputs,
+						TaskInputConfig{Name: "concourse", Path: "."},
+						TaskInputConfig{Name: "testflight"},
+					)
+				})
+
+				It("returns an error", func() {
+					err := invalidConfig.Validate()
+
+					Expect(err).To(MatchError(ContainSubstring("  you may not have more than one input or output when one of them has a path of '.'")))
 				})
 			})
 		})
