@@ -33,19 +33,19 @@ type TaskImageConfig struct {
 	Source Source `yaml:"source" json:"source" mapstructure:"source"`
 }
 
-func (a TaskConfig) Merge(b TaskConfig) TaskConfig {
+func (config TaskConfig) Merge(b TaskConfig) TaskConfig {
 	if b.Platform != "" {
-		a.Platform = b.Platform
+		config.Platform = b.Platform
 	}
 
 	if b.Image != "" {
-		a.Image = b.Image
+		config.Image = b.Image
 	}
 
-	if len(a.Params) > 0 {
+	if len(config.Params) > 0 {
 		newParams := map[string]string{}
 
-		for k, v := range a.Params {
+		for k, v := range config.Params {
 			newParams[k] = v
 		}
 
@@ -53,41 +53,107 @@ func (a TaskConfig) Merge(b TaskConfig) TaskConfig {
 			newParams[k] = v
 		}
 
-		a.Params = newParams
+		config.Params = newParams
 	} else {
-		a.Params = b.Params
+		config.Params = b.Params
 	}
 
 	if len(b.Inputs) != 0 {
-		a.Inputs = b.Inputs
+		config.Inputs = b.Inputs
 	}
 
 	if b.Run.Path != "" {
-		a.Run = b.Run
+		config.Run = b.Run
 	}
 
-	return a
+	return config
 }
 
 func (config TaskConfig) Validate() error {
-	messages := []string{"invalid task configuration:"}
+	messages := []string{}
 
-	var invalid bool
 	if config.Platform == "" {
 		messages = append(messages, "  missing 'platform'")
-		invalid = true
 	}
 
 	if config.Run.Path == "" {
 		messages = append(messages, "  missing path to executable to run")
-		invalid = true
 	}
 
-	if invalid {
-		return fmt.Errorf(strings.Join(messages, "\n"))
+	messages = append(messages, config.validateInputContainsNames()...)
+	messages = append(messages, config.validateOutputContainsNames()...)
+	messages = append(messages, config.validateInputsAndOutputs()...)
+
+	if len(messages) > 0 {
+		return fmt.Errorf("invalid task configuration:\n%s", strings.Join(messages, "\n"))
 	}
 
 	return nil
+}
+
+func (config TaskConfig) validateInputsAndOutputs() []string {
+	messages := []string{}
+	previousPaths := make(map[string]int)
+
+	for _, input := range config.Inputs {
+		if val, found := previousPaths[input.resolvePath()]; !found {
+			previousPaths[input.resolvePath()] = 1
+		} else {
+			previousPaths[input.resolvePath()] = val + 1
+		}
+	}
+
+	for _, output := range config.Outputs {
+		if val, found := previousPaths[output.resolvePath()]; !found {
+			previousPaths[output.resolvePath()] = 1
+		} else {
+			previousPaths[output.resolvePath()] = val + 1
+		}
+	}
+
+	for path, val := range previousPaths {
+		if val > 1 {
+			messages = append(messages, fmt.Sprintf("  inputs and outputs have overlapping path: '%s'", path))
+		}
+
+		for _, input := range config.Inputs {
+			if strings.HasPrefix(input.resolvePath(), path) && input.resolvePath() != path {
+				messages = append(messages, fmt.Sprintf("  inputs and outputs have overlapping path: '%s'", path))
+			}
+		}
+
+		for _, output := range config.Outputs {
+			if strings.HasPrefix(output.resolvePath(), path) && output.resolvePath() != path {
+				messages = append(messages, fmt.Sprintf("  inputs and outputs have overlapping path: '%s'", path))
+			}
+		}
+	}
+
+	return messages
+}
+
+func (config TaskConfig) validateOutputContainsNames() []string {
+	messages := []string{}
+
+	for i, output := range config.Outputs {
+		if output.Name == "" {
+			messages = append(messages, fmt.Sprintf("  output in position %d is missing a name", i))
+		}
+	}
+
+	return messages
+}
+
+func (config TaskConfig) validateInputContainsNames() []string {
+	messages := []string{}
+
+	for i, input := range config.Inputs {
+		if input.Name == "" {
+			messages = append(messages, fmt.Sprintf("  input in position %d is missing a name", i))
+		}
+	}
+
+	return messages
 }
 
 type TaskRunConfig struct {
@@ -100,9 +166,23 @@ type TaskInputConfig struct {
 	Path string `json:"path,omitempty" yaml:"path"`
 }
 
+func (input TaskInputConfig) resolvePath() string {
+	if input.Path != "" {
+		return input.Path
+	}
+	return input.Name
+}
+
 type TaskOutputConfig struct {
 	Name string `json:"name" yaml:"name"`
 	Path string `json:"path,omitempty" yaml:"path"`
+}
+
+func (output TaskOutputConfig) resolvePath() string {
+	if output.Path != "" {
+		return output.Path
+	}
+	return output.Name
 }
 
 type MetadataField struct {
