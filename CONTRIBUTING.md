@@ -94,7 +94,8 @@ directly to your bosh-lite, this requires a couple of things:
 - Commit all of the changes directly to the submodules
 (just don't push them)
 - Upload a garden-linux-release to your BOSH Lite,
-you can grab it [here](https://github.com/concourse/concocd to the top-level of testflight (it's a submodule)
+you can grab it [here](https://github.com/concourse/concourse/releases)
+- cd to the top-level of testflight (it's a submodule)
 - cd to your top level concourse install directory and run: `bosh target lite
 bosh create release --force
 bosh upload release
