@@ -33,13 +33,13 @@ type TaskImageConfig struct {
 	Source Source `yaml:"source" json:"source" mapstructure:"source"`
 }
 
-func (config TaskConfig) Merge(b TaskConfig) TaskConfig {
-	if b.Platform != "" {
-		config.Platform = b.Platform
+func (config TaskConfig) Merge(other TaskConfig) TaskConfig {
+	if other.Platform != "" {
+		config.Platform = other.Platform
 	}
 
-	if b.Image != "" {
-		config.Image = b.Image
+	if other.Image != "" {
+		config.Image = other.Image
 	}
 
 	if len(config.Params) > 0 {
@@ -49,21 +49,21 @@ func (config TaskConfig) Merge(b TaskConfig) TaskConfig {
 			newParams[k] = v
 		}
 
-		for k, v := range b.Params {
+		for k, v := range other.Params {
 			newParams[k] = v
 		}
 
 		config.Params = newParams
 	} else {
-		config.Params = b.Params
+		config.Params = other.Params
 	}
 
-	if len(b.Inputs) != 0 {
-		config.Inputs = b.Inputs
+	if len(other.Inputs) != 0 {
+		config.Inputs = other.Inputs
 	}
 
-	if b.Run.Path != "" {
-		config.Run = b.Run
+	if other.Run.Path != "" {
+		config.Run = other.Run
 	}
 
 	return config
