@@ -2,6 +2,7 @@ package atc
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -167,6 +168,29 @@ func (counter *pathCounter) registerOutput(output TaskOutputConfig) {
 
 const duplicateErrorMessage = "  cannot have more than one %s using the same path '%s'"
 
+func pathContains(child string, parent string) bool {
+	if child == parent {
+		return false
+	}
+
+	childParts := strings.Split(child, string(filepath.Separator))
+	parentParts := strings.Split(parent, string(filepath.Separator))
+
+	if len(childParts) < len(parentParts) {
+		return false
+	}
+
+	for i, part := range parentParts {
+		if childParts[i] == part {
+			continue
+		} else {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (counter pathCounter) getErrorMessages() []string {
 	messages := []string{}
 
@@ -180,13 +204,13 @@ func (counter pathCounter) getErrorMessages() []string {
 		}
 
 		for candidateParentPath := range counter.inputCount {
-			if strings.HasPrefix(path, candidateParentPath) && path != candidateParentPath {
+			if pathContains(path, candidateParentPath) {
 				messages = append(messages, fmt.Sprintf("  cannot nest inputs: '%s' is nested under input directory '%s'", path, candidateParentPath))
 			}
 		}
 
 		for candidateParentPath := range counter.outputCount {
-			if strings.HasPrefix(path, candidateParentPath) && path != candidateParentPath {
+			if pathContains(path, candidateParentPath) {
 				messages = append(messages, fmt.Sprintf("  cannot nest inputs within outputs: '%s' is nested under output directory '%s'", path, candidateParentPath))
 			}
 		}
@@ -198,13 +222,13 @@ func (counter pathCounter) getErrorMessages() []string {
 		}
 
 		for candidateParentPath := range counter.outputCount {
-			if strings.HasPrefix(path, candidateParentPath) && path != candidateParentPath {
+			if pathContains(path, candidateParentPath) {
 				messages = append(messages, fmt.Sprintf("  cannot nest outputs: '%s' is nested under output directory '%s'", path, candidateParentPath))
 			}
 		}
 
 		for candidateParentPath := range counter.inputCount {
-			if strings.HasPrefix(path, candidateParentPath) && path != candidateParentPath {
+			if pathContains(path, candidateParentPath) {
 				messages = append(messages, fmt.Sprintf("  cannot nest outputs within inputs: '%s' is nested under input directory '%s'", path, candidateParentPath))
 			}
 		}

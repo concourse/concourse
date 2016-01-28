@@ -314,6 +314,22 @@ var _ = Describe("TaskConfig", func() {
 				})
 			})
 
+			Context("when two inputs have the same starting path but are not in the same directory", func() {
+				BeforeEach(func() {
+					invalidConfig.Inputs = append(
+						invalidConfig.Inputs,
+						TaskInputConfig{Name: "jettison", Path: "foo"},
+						TaskInputConfig{Name: "concourse", Path: "foo-bar"},
+					)
+				})
+
+				It("is not an error", func() {
+					err := invalidConfig.Validate()
+
+					Expect(err).ToNot(HaveOccurred())
+				})
+			})
+
 			Context("when two inputs have a name conflict due to 1 path belonging to the subpath of the other", func() {
 				BeforeEach(func() {
 					invalidConfig.Inputs = append(
@@ -343,6 +359,22 @@ var _ = Describe("TaskConfig", func() {
 					err := invalidConfig.Validate()
 
 					Expect(err).To(MatchError(ContainSubstring("  cannot nest outputs: 'foo/bar' is nested under output directory 'foo'")))
+				})
+			})
+
+			Context("when two outputs have the same starting path but are not in the same directory", func() {
+				BeforeEach(func() {
+					invalidConfig.Outputs = append(
+						invalidConfig.Outputs,
+						TaskOutputConfig{Name: "jettison", Path: "foo"},
+						TaskOutputConfig{Name: "concourse", Path: "foo-bar"},
+					)
+				})
+
+				It("is not an error", func() {
+					err := invalidConfig.Validate()
+
+					Expect(err).ToNot(HaveOccurred())
 				})
 			})
 
@@ -398,6 +430,26 @@ var _ = Describe("TaskConfig", func() {
 
 					Expect(err).To(MatchError(ContainSubstring("  cannot nest outputs within inputs: 'foo1/bar' is nested under input directory 'foo1'")))
 					Expect(err).To(MatchError(ContainSubstring("  cannot nest inputs within outputs: 'foo2/bar' is nested under output directory 'foo2'")))
+				})
+			})
+
+			Context("when an input and output have the same starting path but are not in the same directory", func() {
+				BeforeEach(func() {
+					invalidConfig.Inputs = append(
+						invalidConfig.Inputs,
+						TaskInputConfig{Name: "jettison", Path: "foo"},
+					)
+
+					invalidConfig.Outputs = append(
+						invalidConfig.Outputs,
+						TaskOutputConfig{Name: "concourse", Path: "foo-bar"},
+					)
+				})
+
+				It("is not an error", func() {
+					err := invalidConfig.Validate()
+
+					Expect(err).ToNot(HaveOccurred())
 				})
 			})
 
