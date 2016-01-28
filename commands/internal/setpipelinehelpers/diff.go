@@ -154,7 +154,7 @@ func renderDiff(to io.Writer, a, b string) {
 
 func practicallyDifferent(a, b interface{}) bool {
 	if reflect.DeepEqual(a, b) {
-		return true
+		return false
 	}
 
 	// prevent silly things like 300 != 300.0 due to YAML vs. JSON

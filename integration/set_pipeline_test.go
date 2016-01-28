@@ -115,6 +115,9 @@ var _ = Describe("Fly CLI", func() {
 						Serial: true,
 					},
 					{
+						Name: "some-unchanged-job",
+					},
+					{
 						Name: "some-other-job",
 					},
 				},
@@ -305,10 +308,10 @@ var _ = Describe("Fly CLI", func() {
 
 					changedConfig.Resources = newResources
 
-					newJob := changedConfig.Jobs[1]
+					newJob := changedConfig.Jobs[2]
 					newJob.Name = "some-new-job"
 					changedConfig.Jobs[0].Serial = false
-					changedConfig.Jobs = append(changedConfig.Jobs[:1], newJob)
+					changedConfig.Jobs = append(changedConfig.Jobs[:2], newJob)
 
 					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
 					Expect(err).NotTo(HaveOccurred())
@@ -371,6 +374,8 @@ var _ = Describe("Fly CLI", func() {
 					Expect(sess.ExitCode()).To(Equal(0))
 
 					Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-resource-with-int-field"))
+
+					Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-unchanged-job"))
 
 					Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
 				})
