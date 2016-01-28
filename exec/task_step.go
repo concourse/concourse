@@ -575,6 +575,19 @@ func (step *TaskStep) getContainerImage(signals <-chan os.Signal, worker worker.
 		return nil, ErrImageUnavailable
 	}
 
+	cacheID := resource.ResourceCacheIdentifier{
+		Type:    resourceType,
+		Version: versions[0],
+		Source:  config.ImageResource.Source,
+	}
+
+	volumeID := cacheID.VolumeIdentifier()
+
+	err = step.delegate.SaveImageResourceVersion(volumeID)
+	if err != nil {
+		return nil, err
+	}
+
 	getSess := resource.Session{
 		ID:       step.containerID,
 		Metadata: step.metadata,
@@ -591,11 +604,7 @@ func (step *TaskStep) getContainerImage(signals <-chan os.Signal, worker worker.
 		getSess,
 		resourceType,
 		nil,
-		resource.ResourceCacheIdentifier{
-			Type:    resourceType,
-			Version: versions[0],
-			Source:  config.ImageResource.Source,
-		},
+		cacheID,
 	)
 	if err != nil {
 		return nil, err

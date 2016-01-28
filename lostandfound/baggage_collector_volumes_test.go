@@ -53,11 +53,13 @@ var _ = Describe("Volumes are reaped", func() {
 
 		returnedSavedVolume = db.SavedVolume{
 			Volume: db.Volume{
-				WorkerName:      "a-new-worker",
-				TTL:             time.Minute,
-				Handle:          "some-handle",
-				ResourceVersion: atc.Version{"some": "version"},
-				ResourceHash:    "some-hash",
+				WorkerName: "a-new-worker",
+				TTL:        time.Minute,
+				Handle:     "some-handle",
+				VolumeIdentifier: db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"some": "version"},
+					ResourceHash:    "some-hash",
+				},
 			},
 			ID:        123,
 			ExpiresIn: expectedOldResourceGracePeriod,
@@ -115,11 +117,13 @@ var _ = Describe("Volumes are reaped", func() {
 			)
 			newestReturnedSavedVolume = db.SavedVolume{
 				Volume: db.Volume{
-					WorkerName:      "a-new-worker",
-					TTL:             0,
-					Handle:          "some-other-handle",
-					ResourceVersion: atc.Version{"some": "newest-version"},
-					ResourceHash:    hashkey,
+					WorkerName: "a-new-worker",
+					TTL:        0,
+					Handle:     "some-other-handle",
+					VolumeIdentifier: db.VolumeIdentifier{
+						ResourceVersion: atc.Version{"some": "newest-version"},
+						ResourceHash:    hashkey,
+					},
 				},
 				ID:        124,
 				ExpiresIn: 0,

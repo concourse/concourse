@@ -680,6 +680,38 @@ var _ = Describe("BuildDelegate", func() {
 			})
 		})
 
+		Describe("SaveImageResourceVersion", func() {
+			var identifier db.VolumeIdentifier
+
+			BeforeEach(func() {
+				identifier = db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"ref": "asdf"},
+					ResourceHash:    "our-super-sweet-resource-hash",
+				}
+			})
+
+			It("Calls through to the database", func() {
+				fakeDB.SaveImageResourceVersionReturns(nil)
+
+				err := executionDelegate.SaveImageResourceVersion(identifier)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(fakeDB.SaveImageResourceVersionCallCount()).To(Equal(1))
+				actualBuildID, actualPlanID, actualIdentifier := fakeDB.SaveImageResourceVersionArgsForCall(0)
+				Expect(actualBuildID).To(Equal(42))
+				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
+				Expect(actualIdentifier).To(Equal(identifier))
+			})
+
+			It("Propagates errors", func() {
+				distaster := errors.New("sorry mate")
+				fakeDB.SaveImageResourceVersionReturns(distaster)
+
+				err := executionDelegate.SaveImageResourceVersion(identifier)
+				Expect(err).To(Equal(distaster))
+			})
+		})
+
 		Describe("Stdout", func() {
 			var writer io.Writer
 

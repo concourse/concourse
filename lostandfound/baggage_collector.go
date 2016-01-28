@@ -18,6 +18,7 @@ type BaggageCollectorDB interface {
 	GetAllActivePipelines() ([]db.SavedPipeline, error)
 	GetVolumes() ([]db.SavedVolume, error)
 	SetVolumeTTL(string, time.Duration) error
+	GetImageVolumeIdentifiersByBuildID(buildID int) ([]db.VolumeIdentifier, error)
 }
 
 //go:generate counterfeiter . BaggageCollector
@@ -85,6 +86,33 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 				pipelineResource.Source, pipelineResource.Type,
 			)
 			latestVersions[hashKey] = true
+		}
+
+		for _, pipelineJob := range pipeline.Config.Jobs {
+			logger := bc.logger.WithData(lager.Data{
+				"pipeline": pipeline.Name,
+				"job":      pipelineJob.Name,
+			})
+
+			finished, _, err := pipelineDB.GetJobFinishedAndNextBuild(pipelineJob.Name)
+			if err != nil {
+				logger.Error("could-not-acquire-finished-and-next-builds-for-job", err)
+				return nil, err
+			}
+
+			if finished != nil {
+				volumeIdentifiers, err := bc.db.GetImageVolumeIdentifiersByBuildID(finished.ID)
+				if err != nil {
+					logger.Error("could-not-acquire-volume-identifiers-for-build", err)
+					return nil, err
+				}
+
+				for _, identifier := range volumeIdentifiers {
+					version, _ := json.Marshal(identifier.ResourceVersion)
+					hashKey := string(version) + identifier.ResourceHash
+					latestVersions[hashKey] = true
+				}
+			}
 		}
 	}
 

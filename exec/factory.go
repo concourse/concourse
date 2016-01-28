@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
@@ -81,6 +82,8 @@ type TaskDelegate interface {
 
 	Finished(ExitStatus)
 	Failed(error)
+
+	SaveImageResourceVersion(db.VolumeIdentifier) error
 
 	Stdout() io.Writer
 	Stderr() io.Writer

@@ -439,6 +439,10 @@ func (execution *executionDelegate) Failed(err error) {
 	execution.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
+func (execution *executionDelegate) SaveImageResourceVersion(identifier db.VolumeIdentifier) error {
+	return execution.delegate.db.SaveImageResourceVersion(execution.delegate.buildID, atc.PlanID(execution.id), identifier)
+}
+
 func (execution *executionDelegate) Stdout() io.Writer {
 	return execution.delegate.eventWriter(event.Origin{
 		Source: event.OriginSourceStdout,

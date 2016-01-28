@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/baggageclaim"
 	bfakes "github.com/concourse/baggageclaim/fakes"
@@ -193,16 +194,13 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 		})
 	})
 
-	Context("ResourceVersion", func() {
-		It("returns the version the identifier is tracking", func() {
-			Expect(cacheIdentifier.ResourceVersion()).To(Equal(atc.Version{"some": "version"}))
-		})
-	})
-
-	Context("ResourceHash", func() {
-		It("returns a hash of the source and resource type the identifier is tracking", func() {
-			expectedHash := `some-resource-type{"some":"source"}`
-			Expect(cacheIdentifier.ResourceHash()).To(Equal(expectedHash))
+	Context("VolumeIdentifier", func() {
+		It("returns a volume identifier corrsponding to the resource that the identifier is tracking", func() {
+			expectedIdentifier := db.VolumeIdentifier{
+				ResourceVersion: atc.Version{"some": "version"},
+				ResourceHash:    `some-resource-type{"some":"source"}`,
+			}
+			Expect(cacheIdentifier.VolumeIdentifier()).To(Equal(expectedIdentifier))
 		})
 	})
 })

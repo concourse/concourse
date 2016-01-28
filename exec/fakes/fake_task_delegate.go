@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
 )
 
@@ -27,6 +28,14 @@ type FakeTaskDelegate struct {
 	failedMutex       sync.RWMutex
 	failedArgsForCall []struct {
 		arg1 error
+	}
+	SaveImageResourceVersionStub        func(db.VolumeIdentifier) error
+	saveImageResourceVersionMutex       sync.RWMutex
+	saveImageResourceVersionArgsForCall []struct {
+		arg1 db.VolumeIdentifier
+	}
+	saveImageResourceVersionReturns struct {
+		result1 error
 	}
 	StdoutStub        func() io.Writer
 	stdoutMutex       sync.RWMutex
@@ -124,6 +133,38 @@ func (fake *FakeTaskDelegate) FailedArgsForCall(i int) error {
 	fake.failedMutex.RLock()
 	defer fake.failedMutex.RUnlock()
 	return fake.failedArgsForCall[i].arg1
+}
+
+func (fake *FakeTaskDelegate) SaveImageResourceVersion(arg1 db.VolumeIdentifier) error {
+	fake.saveImageResourceVersionMutex.Lock()
+	fake.saveImageResourceVersionArgsForCall = append(fake.saveImageResourceVersionArgsForCall, struct {
+		arg1 db.VolumeIdentifier
+	}{arg1})
+	fake.saveImageResourceVersionMutex.Unlock()
+	if fake.SaveImageResourceVersionStub != nil {
+		return fake.SaveImageResourceVersionStub(arg1)
+	} else {
+		return fake.saveImageResourceVersionReturns.result1
+	}
+}
+
+func (fake *FakeTaskDelegate) SaveImageResourceVersionCallCount() int {
+	fake.saveImageResourceVersionMutex.RLock()
+	defer fake.saveImageResourceVersionMutex.RUnlock()
+	return len(fake.saveImageResourceVersionArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) SaveImageResourceVersionArgsForCall(i int) db.VolumeIdentifier {
+	fake.saveImageResourceVersionMutex.RLock()
+	defer fake.saveImageResourceVersionMutex.RUnlock()
+	return fake.saveImageResourceVersionArgsForCall[i].arg1
+}
+
+func (fake *FakeTaskDelegate) SaveImageResourceVersionReturns(result1 error) {
+	fake.SaveImageResourceVersionStub = nil
+	fake.saveImageResourceVersionReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeTaskDelegate) Stdout() io.Writer {

@@ -4,7 +4,7 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
@@ -32,17 +32,11 @@ type FakeCacheIdentifier struct {
 		result1 baggageclaim.Volume
 		result2 error
 	}
-	ResourceVersionStub        func() atc.Version
-	resourceVersionMutex       sync.RWMutex
-	resourceVersionArgsForCall []struct{}
-	resourceVersionReturns     struct {
-		result1 atc.Version
-	}
-	ResourceHashStub        func() string
-	resourceHashMutex       sync.RWMutex
-	resourceHashArgsForCall []struct{}
-	resourceHashReturns     struct {
-		result1 string
+	VolumeIdentifierStub        func() db.VolumeIdentifier
+	volumeIdentifierMutex       sync.RWMutex
+	volumeIdentifierArgsForCall []struct{}
+	volumeIdentifierReturns     struct {
+		result1 db.VolumeIdentifier
 	}
 }
 
@@ -115,51 +109,27 @@ func (fake *FakeCacheIdentifier) CreateOnReturns(result1 baggageclaim.Volume, re
 	}{result1, result2}
 }
 
-func (fake *FakeCacheIdentifier) ResourceVersion() atc.Version {
-	fake.resourceVersionMutex.Lock()
-	fake.resourceVersionArgsForCall = append(fake.resourceVersionArgsForCall, struct{}{})
-	fake.resourceVersionMutex.Unlock()
-	if fake.ResourceVersionStub != nil {
-		return fake.ResourceVersionStub()
+func (fake *FakeCacheIdentifier) VolumeIdentifier() db.VolumeIdentifier {
+	fake.volumeIdentifierMutex.Lock()
+	fake.volumeIdentifierArgsForCall = append(fake.volumeIdentifierArgsForCall, struct{}{})
+	fake.volumeIdentifierMutex.Unlock()
+	if fake.VolumeIdentifierStub != nil {
+		return fake.VolumeIdentifierStub()
 	} else {
-		return fake.resourceVersionReturns.result1
+		return fake.volumeIdentifierReturns.result1
 	}
 }
 
-func (fake *FakeCacheIdentifier) ResourceVersionCallCount() int {
-	fake.resourceVersionMutex.RLock()
-	defer fake.resourceVersionMutex.RUnlock()
-	return len(fake.resourceVersionArgsForCall)
+func (fake *FakeCacheIdentifier) VolumeIdentifierCallCount() int {
+	fake.volumeIdentifierMutex.RLock()
+	defer fake.volumeIdentifierMutex.RUnlock()
+	return len(fake.volumeIdentifierArgsForCall)
 }
 
-func (fake *FakeCacheIdentifier) ResourceVersionReturns(result1 atc.Version) {
-	fake.ResourceVersionStub = nil
-	fake.resourceVersionReturns = struct {
-		result1 atc.Version
-	}{result1}
-}
-
-func (fake *FakeCacheIdentifier) ResourceHash() string {
-	fake.resourceHashMutex.Lock()
-	fake.resourceHashArgsForCall = append(fake.resourceHashArgsForCall, struct{}{})
-	fake.resourceHashMutex.Unlock()
-	if fake.ResourceHashStub != nil {
-		return fake.ResourceHashStub()
-	} else {
-		return fake.resourceHashReturns.result1
-	}
-}
-
-func (fake *FakeCacheIdentifier) ResourceHashCallCount() int {
-	fake.resourceHashMutex.RLock()
-	defer fake.resourceHashMutex.RUnlock()
-	return len(fake.resourceHashArgsForCall)
-}
-
-func (fake *FakeCacheIdentifier) ResourceHashReturns(result1 string) {
-	fake.ResourceHashStub = nil
-	fake.resourceHashReturns = struct {
-		result1 string
+func (fake *FakeCacheIdentifier) VolumeIdentifierReturns(result1 db.VolumeIdentifier) {
+	fake.VolumeIdentifierStub = nil
+	fake.volumeIdentifierReturns = struct {
+		result1 db.VolumeIdentifier
 	}{result1}
 }
 

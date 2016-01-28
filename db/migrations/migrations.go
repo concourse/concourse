@@ -79,4 +79,5 @@ var Migrations = []migration.Migrator{
 	RemoveWorkerIds,
 	AddAttemptsToContainers,
 	AddStageToContainers,
+	AddImageResourceVersions,
 }

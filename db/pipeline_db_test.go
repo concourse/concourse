@@ -274,6 +274,13 @@ var _ = Describe("PipelineDB", func() {
 			err = sqlDB.SaveBuildEvent(build.ID, event.StartTask{})
 			Expect(err).NotTo(HaveOccurred())
 
+			// populate image_resource_versions table
+			err = sqlDB.SaveImageResourceVersion(build.ID, "some-plan-id", db.VolumeIdentifier{
+				ResourceVersion: atc.Version{"digest": "readers"},
+				ResourceHash:    `docker{"some":"source"}`,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
 			err = fetchedPipelineDB.Destroy()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -320,6 +327,10 @@ var _ = Describe("PipelineDB", func() {
 			oneOffOutputRows, err := dbConn.Query(`select build_id from build_outputs where build_id = $1`, oneOffBuild.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(oneOffOutputRows.Next()).To(BeFalse())
+
+			foundImageVolumeIdentifiers, err := sqlDB.GetImageVolumeIdentifiersByBuildID(build.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(foundImageVolumeIdentifiers).To(BeEmpty())
 		})
 	})
 

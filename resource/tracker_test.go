@@ -201,8 +201,10 @@ var _ = Describe("Tracker", func() {
 							foundVolume.HandleReturns("found-volume-handle")
 							cacheIdentifier.FindOnReturns(foundVolume, true, nil)
 
-							cacheIdentifier.ResourceVersionReturns(atc.Version{"some": "theversion"})
-							cacheIdentifier.ResourceHashReturns("hash")
+							cacheIdentifier.VolumeIdentifierReturns(db.VolumeIdentifier{
+								ResourceVersion: atc.Version{"some": "theversion"},
+								ResourceHash:    "hash",
+							})
 							satisfyingWorker.NameReturns("some-worker")
 							foundVolume.ExpirationReturns(time.Hour, time.Now(), nil)
 						})
@@ -245,11 +247,13 @@ var _ = Describe("Tracker", func() {
 						It("saves the volume information to the database", func() {
 							Expect(fakeDB.InsertVolumeCallCount()).To(Equal(1))
 							Expect(fakeDB.InsertVolumeArgsForCall(0)).To(Equal(db.Volume{
-								Handle:          "found-volume-handle",
-								WorkerName:      "some-worker",
-								TTL:             time.Hour,
-								ResourceVersion: atc.Version{"some": "theversion"},
-								ResourceHash:    "hash",
+								Handle:     "found-volume-handle",
+								WorkerName: "some-worker",
+								TTL:        time.Hour,
+								VolumeIdentifier: db.VolumeIdentifier{
+									ResourceVersion: atc.Version{"some": "theversion"},
+									ResourceHash:    "hash",
+								},
 							}))
 						})
 

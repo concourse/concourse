@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -67,6 +68,11 @@ func swallowUniqueViolation(err error) error {
 	return nil
 }
 
+func HashResourceConfig(checkType string, source atc.Source) string {
+	sourceJSON, _ := json.Marshal(source)
+	return checkType + string(sourceJSON)
+}
+
 type DB interface {
 	SaveTeam(team Team) (SavedTeam, error)
 	GetTeamByName(teamName string) (SavedTeam, bool, error)
@@ -125,6 +131,9 @@ type DB interface {
 	ReapVolume(string) error
 	SetVolumeTTL(string, time.Duration) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, error)
+
+	SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier VolumeIdentifier) error
+	GetImageVolumeIdentifiersByBuildID(buildID int) ([]VolumeIdentifier, error)
 }
 
 //go:generate counterfeiter . Notifier
@@ -219,9 +228,13 @@ type SavedVolume struct {
 }
 
 type Volume struct {
-	WorkerName      string
-	TTL             time.Duration
-	Handle          string
+	WorkerName string
+	TTL        time.Duration
+	Handle     string
+	VolumeIdentifier
+}
+
+type VolumeIdentifier struct {
 	ResourceVersion atc.Version
 	ResourceHash    string
 }

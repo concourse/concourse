@@ -60,6 +60,16 @@ type FakeEngineDB struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}
+	SaveImageResourceVersionStub        func(buildID int, planID atc.PlanID, identifier db.VolumeIdentifier) error
+	saveImageResourceVersionMutex       sync.RWMutex
+	saveImageResourceVersionArgsForCall []struct {
+		buildID    int
+		planID     atc.PlanID
+		identifier db.VolumeIdentifier
+	}
+	saveImageResourceVersionReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeEngineDB) SaveBuildEvent(buildID int, event atc.Event) error {
@@ -230,6 +240,40 @@ func (fake *FakeEngineDB) SaveBuildOutputReturns(result1 db.SavedVersionedResour
 		result1 db.SavedVersionedResource
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeEngineDB) SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier db.VolumeIdentifier) error {
+	fake.saveImageResourceVersionMutex.Lock()
+	fake.saveImageResourceVersionArgsForCall = append(fake.saveImageResourceVersionArgsForCall, struct {
+		buildID    int
+		planID     atc.PlanID
+		identifier db.VolumeIdentifier
+	}{buildID, planID, identifier})
+	fake.saveImageResourceVersionMutex.Unlock()
+	if fake.SaveImageResourceVersionStub != nil {
+		return fake.SaveImageResourceVersionStub(buildID, planID, identifier)
+	} else {
+		return fake.saveImageResourceVersionReturns.result1
+	}
+}
+
+func (fake *FakeEngineDB) SaveImageResourceVersionCallCount() int {
+	fake.saveImageResourceVersionMutex.RLock()
+	defer fake.saveImageResourceVersionMutex.RUnlock()
+	return len(fake.saveImageResourceVersionArgsForCall)
+}
+
+func (fake *FakeEngineDB) SaveImageResourceVersionArgsForCall(i int) (int, atc.PlanID, db.VolumeIdentifier) {
+	fake.saveImageResourceVersionMutex.RLock()
+	defer fake.saveImageResourceVersionMutex.RUnlock()
+	return fake.saveImageResourceVersionArgsForCall[i].buildID, fake.saveImageResourceVersionArgsForCall[i].planID, fake.saveImageResourceVersionArgsForCall[i].identifier
+}
+
+func (fake *FakeEngineDB) SaveImageResourceVersionReturns(result1 error) {
+	fake.SaveImageResourceVersionStub = nil
+	fake.saveImageResourceVersionReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ engine.EngineDB = new(FakeEngineDB)

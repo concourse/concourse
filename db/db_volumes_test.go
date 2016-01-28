@@ -50,10 +50,12 @@ var _ = Describe("Keeping track of volumes", func() {
 
 		BeforeEach(func() {
 			volumeToInsert = db.Volume{
-				TTL:             time.Hour,
-				Handle:          "some-volume-handle",
-				ResourceVersion: atc.Version{"some": "version"},
-				ResourceHash:    "some-hash",
+				TTL:    time.Hour,
+				Handle: "some-volume-handle",
+				VolumeIdentifier: db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"some": "version"},
+					ResourceHash:    "some-hash",
+				},
 			}
 			workerToInsert = db.WorkerInfo{
 				GardenAddr:       "some-garden-address",
@@ -103,11 +105,13 @@ var _ = Describe("Keeping track of volumes", func() {
 
 		It("can be reaped", func() {
 			volumeToInsert2 := db.Volume{
-				WorkerName:      insertedWorker2.Name,
-				TTL:             time.Hour,
-				Handle:          "some-volume-handle2",
-				ResourceVersion: atc.Version{"some": "version"},
-				ResourceHash:    "some-hash2",
+				WorkerName: insertedWorker2.Name,
+				TTL:        time.Hour,
+				Handle:     "some-volume-handle2",
+				VolumeIdentifier: db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"some": "version"},
+					ResourceHash:    "some-hash2",
+				},
 			}
 			err = database.InsertVolume(volumeToInsert2)
 			Expect(err).NotTo(HaveOccurred())
@@ -124,11 +128,13 @@ var _ = Describe("Keeping track of volumes", func() {
 			insertedWorker3, err := database.SaveWorker(workerToInsert3, 2*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 			volumeToInsert3 := db.Volume{
-				WorkerName:      insertedWorker3.Name,
-				TTL:             time.Hour,
-				Handle:          "some-volume-handle3",
-				ResourceVersion: atc.Version{"some": "version"},
-				ResourceHash:    "some-hash3",
+				WorkerName: insertedWorker3.Name,
+				TTL:        time.Hour,
+				Handle:     "some-volume-handle3",
+				VolumeIdentifier: db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"some": "version"},
+					ResourceHash:    "some-hash3",
+				},
 			}
 			err = database.InsertVolume(volumeToInsert3)
 			Expect(err).NotTo(HaveOccurred())

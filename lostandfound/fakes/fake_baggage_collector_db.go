@@ -41,6 +41,15 @@ type FakeBaggageCollectorDB struct {
 	setVolumeTTLReturns struct {
 		result1 error
 	}
+	GetImageVolumeIdentifiersByBuildIDStub        func(buildID int) ([]db.VolumeIdentifier, error)
+	getImageVolumeIdentifiersByBuildIDMutex       sync.RWMutex
+	getImageVolumeIdentifiersByBuildIDArgsForCall []struct {
+		buildID int
+	}
+	getImageVolumeIdentifiersByBuildIDReturns struct {
+		result1 []db.VolumeIdentifier
+		result2 error
+	}
 }
 
 func (fake *FakeBaggageCollectorDB) ReapVolume(arg1 string) error {
@@ -156,6 +165,39 @@ func (fake *FakeBaggageCollectorDB) SetVolumeTTLReturns(result1 error) {
 	fake.setVolumeTTLReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeBaggageCollectorDB) GetImageVolumeIdentifiersByBuildID(buildID int) ([]db.VolumeIdentifier, error) {
+	fake.getImageVolumeIdentifiersByBuildIDMutex.Lock()
+	fake.getImageVolumeIdentifiersByBuildIDArgsForCall = append(fake.getImageVolumeIdentifiersByBuildIDArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.getImageVolumeIdentifiersByBuildIDMutex.Unlock()
+	if fake.GetImageVolumeIdentifiersByBuildIDStub != nil {
+		return fake.GetImageVolumeIdentifiersByBuildIDStub(buildID)
+	} else {
+		return fake.getImageVolumeIdentifiersByBuildIDReturns.result1, fake.getImageVolumeIdentifiersByBuildIDReturns.result2
+	}
+}
+
+func (fake *FakeBaggageCollectorDB) GetImageVolumeIdentifiersByBuildIDCallCount() int {
+	fake.getImageVolumeIdentifiersByBuildIDMutex.RLock()
+	defer fake.getImageVolumeIdentifiersByBuildIDMutex.RUnlock()
+	return len(fake.getImageVolumeIdentifiersByBuildIDArgsForCall)
+}
+
+func (fake *FakeBaggageCollectorDB) GetImageVolumeIdentifiersByBuildIDArgsForCall(i int) int {
+	fake.getImageVolumeIdentifiersByBuildIDMutex.RLock()
+	defer fake.getImageVolumeIdentifiersByBuildIDMutex.RUnlock()
+	return fake.getImageVolumeIdentifiersByBuildIDArgsForCall[i].buildID
+}
+
+func (fake *FakeBaggageCollectorDB) GetImageVolumeIdentifiersByBuildIDReturns(result1 []db.VolumeIdentifier, result2 error) {
+	fake.GetImageVolumeIdentifiersByBuildIDStub = nil
+	fake.getImageVolumeIdentifiersByBuildIDReturns = struct {
+		result1 []db.VolumeIdentifier
+		result2 error
+	}{result1, result2}
 }
 
 var _ lostandfound.BaggageCollectorDB = new(FakeBaggageCollectorDB)

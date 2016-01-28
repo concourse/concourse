@@ -1557,36 +1557,247 @@ var _ = Describe("GardenFactory", func() {
 									fakeCheckResource.CheckReturns([]atc.Version{{"v": "1"}}, nil)
 								})
 
-								Context("when initializing the Get resource works", func() {
-									var (
-										fakeGetResource *rfakes.FakeResource
-										fakeCache       *rfakes.FakeCache
-									)
-
+								Context("when saving the version in the database succeeds", func() {
 									BeforeEach(func() {
-										fakeGetResource = new(rfakes.FakeResource)
-										fakeCache = new(rfakes.FakeCache)
-										fakeImageTracker.InitWithCacheReturns(fakeGetResource, fakeCache, nil)
-
-										fakeVersionedSource = new(rfakes.FakeVersionedSource)
-										fakeGetResource.GetReturns(fakeVersionedSource)
+										taskDelegate.SaveImageResourceVersionReturns(nil)
 									})
 
-									Context("when the cache is not initialized", func() {
+									Context("when initializing the Get resource works", func() {
+										var (
+											fakeGetResource *rfakes.FakeResource
+											fakeCache       *rfakes.FakeCache
+										)
+
 										BeforeEach(func() {
-											fakeCache.IsInitializedReturns(false, nil)
+											fakeGetResource = new(rfakes.FakeResource)
+											fakeCache = new(rfakes.FakeCache)
+											fakeImageTracker.InitWithCacheReturns(fakeGetResource, fakeCache, nil)
+
+											fakeVersionedSource = new(rfakes.FakeVersionedSource)
+											fakeGetResource.GetReturns(fakeVersionedSource)
 										})
 
-										Context("when the 'get' action completes successfully", func() {
+										Context("when the cache is not initialized", func() {
 											BeforeEach(func() {
-												fakeVersionedSource.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
-													Expect(fakeCache.InitializeCallCount()).To(Equal(0))
-													close(ready)
-													return nil
-												}
+												fakeCache.IsInitializedReturns(false, nil)
 											})
 
-											Context("when the resource has a volume", func() {
+											Context("when the 'get' action completes successfully", func() {
+												BeforeEach(func() {
+													fakeVersionedSource.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+														Expect(fakeCache.InitializeCallCount()).To(Equal(0))
+														close(ready)
+														return nil
+													}
+												})
+
+												Context("when the resource has a volume", func() {
+													var (
+														fakeVolume *bfakes.FakeVolume
+														volumePath string
+													)
+
+													BeforeEach(func() {
+														fakeVolume = new(bfakes.FakeVolume)
+														volumePath = "C:/Documents and Settings/Evan/My Documents"
+
+														fakeVolume.PathReturns(volumePath)
+														fakeGetResource.CacheVolumeReturns(fakeVolume, true, nil)
+													})
+
+													It("found the worker with the right spec", func() {
+														Expect(fakeWorkerClient.AllSatisfyingCallCount()).To(Equal(1))
+														spec := fakeWorkerClient.AllSatisfyingArgsForCall(0)
+														Expect(spec.ResourceType).To(Equal("docker"))
+														Expect(spec.Platform).To(Equal("some-platform"))
+													})
+
+													It("creates a tracker for checking and getting the image resource", func() {
+														Expect(fakeTrackerFactory.TrackerForCallCount()).To(Equal(1))
+														Expect(fakeTrackerFactory.TrackerForArgsForCall(0)).To(Equal(fakeWorker))
+													})
+
+													It("created the 'check' resource with the correct session", func() {
+														Expect(fakeImageTracker.InitCallCount()).To(Equal(1))
+														_, metadata, session, resourceType, tags := fakeImageTracker.InitArgsForCall(0)
+														Expect(metadata).To(Equal(resource.EmptyMetadata{}))
+														Expect(session).To(Equal(resource.Session{
+															ID: worker.Identifier{
+																BuildID:     1234,
+																PlanID:      "some-plan-id",
+																CheckType:   "docker",
+																CheckSource: atc.Source{"some": "source"},
+																Stage:       db.ContainerStageCheck,
+															},
+															Metadata: worker.Metadata{
+																PipelineName:         "some-pipeline",
+																Type:                 db.ContainerTypeCheck,
+																StepName:             "some-step",
+																WorkingDirectory:     "",  // figure this out once we actually support hijacking these
+																EnvironmentVariables: nil, // figure this out once we actually support hijacking these
+															},
+														}))
+														Expect(resourceType).To(Equal(resource.ResourceType("docker")))
+														Expect(tags).To(BeNil())
+													})
+
+													It("ran 'check' with the right config", func() {
+														Expect(fakeCheckResource.CheckCallCount()).To(Equal(1))
+														checkSource, checkVersion := fakeCheckResource.CheckArgsForCall(0)
+														Expect(checkVersion).To(BeNil())
+														Expect(checkSource).To(Equal(fetchedConfig.ImageResource.Source))
+													})
+
+													It("saved the image resource version in the database", func() {
+														expectedIdentifier := db.VolumeIdentifier{
+															ResourceVersion: atc.Version{"v": "1"},
+															ResourceHash:    `docker{"some":"source"}`,
+														}
+														Expect(taskDelegate.SaveImageResourceVersionCallCount()).To(Equal(1))
+														Expect(taskDelegate.SaveImageResourceVersionArgsForCall(0)).To(Equal(expectedIdentifier))
+													})
+
+													It("releases the check resource, which includes releasing its volume", func() {
+														Expect(fakeCheckResource.ReleaseCallCount()).To(Equal(1))
+													})
+
+													It("marks the cache as initialized", func() {
+														Expect(fakeCache.InitializeCallCount()).To(Equal(1))
+													})
+
+													It("created the 'get' resource with the correct session", func() {
+														Expect(fakeImageTracker.InitWithCacheCallCount()).To(Equal(1))
+														_, metadata, session, resourceType, tags, cacheID := fakeImageTracker.InitWithCacheArgsForCall(0)
+														Expect(metadata).To(Equal(resource.EmptyMetadata{}))
+														Expect(session).To(Equal(resource.Session{
+															ID: worker.Identifier{
+																BuildID: 1234,
+																PlanID:  "some-plan-id",
+																Stage:   db.ContainerStageGet,
+															},
+															Metadata: worker.Metadata{
+																PipelineName:         "some-pipeline",
+																Type:                 db.ContainerTypeGet,
+																StepName:             "some-step",
+																WorkingDirectory:     "",  // figure this out once we actually support hijacking these
+																EnvironmentVariables: nil, // figure this out once we actually support hijacking these
+															},
+														}))
+														Expect(resourceType).To(Equal(resource.ResourceType("docker")))
+														Expect(tags).To(BeNil())
+														Expect(cacheID).To(Equal(resource.ResourceCacheIdentifier{
+															Type:    "docker",
+															Version: atc.Version{"v": "1"},
+															Source:  atc.Source{"some": "source"},
+														}))
+													})
+
+													It("constructs the 'get' runner", func() {
+														Expect(fakeGetResource.GetCallCount()).To(Equal(1))
+														ioConfig, getSource, params, getVersion := fakeGetResource.GetArgsForCall(0)
+														Expect(getVersion).To(Equal(atc.Version{"v": "1"}))
+														Expect(params).To(BeNil())
+														Expect(getSource).To(Equal(fetchedConfig.ImageResource.Source))
+														Expect(ioConfig).To(Equal(resource.IOConfig{
+															Stderr: stderrBuf,
+														}))
+													})
+
+													It("ran the 'get' action, forwarding signal and ready channels", func() {
+														Expect(fakeVersionedSource.RunCallCount()).To(Equal(1))
+														signals, ready := fakeVersionedSource.RunArgsForCall(0)
+														Expect(signals).ToNot(BeNil())
+														Expect(ready).ToNot(BeNil())
+													})
+
+													It("exits with no error", func() {
+														Expect(<-process.Wait()).To(BeNil())
+													})
+
+													It("marks the cache as initialized", func() {
+														Expect(fakeCache.InitializeCallCount()).To(Equal(1))
+													})
+
+													It("gets the volume", func() {
+														Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(1))
+													})
+
+													It("creates the container with the volume's path as the rootFS", func() {
+														Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(1))
+													})
+
+													It("creates a container with the config's image and the session ID as the handle", func() {
+														Expect(fakeWorker.CreateContainerCallCount()).To(Equal(1))
+														_, _, _, spec := fakeWorker.CreateContainerArgsForCall(0)
+														taskSpec := spec.(worker.TaskContainerSpec)
+														Expect(taskSpec.Platform).To(Equal("some-platform"))
+														Expect(taskSpec.Image).To(BeEmpty())
+														Expect(taskSpec.ImageVolume).To(Equal(fakeVolume))
+														Expect(taskSpec.Privileged).To(BeFalse())
+													})
+
+													Context("after creating the container", func() {
+														BeforeEach(func() {
+															fakeWorker.CreateContainerStub = func(lager.Logger, worker.Identifier, worker.Metadata, worker.ContainerSpec) (worker.Container, error) {
+																Expect(fakeGetResource.ReleaseCallCount()).To(Equal(0))
+																return fakeContainer, nil
+															}
+														})
+
+														It("releases the get resource *after* creating the container", func() {
+															Expect(fakeGetResource.ReleaseCallCount()).To(Equal(1))
+														})
+													})
+												})
+
+												Context("when the resource still does not have a volume for some reason", func() {
+													BeforeEach(func() {
+														fakeGetResource.CacheVolumeReturns(nil, false, nil)
+													})
+
+													It("returns an appropriate error", func() {
+														Expect(<-process.Wait()).To(Equal(NewErrImageGetDidNotProduceVolume("some-source-name")))
+													})
+												})
+
+												Context("when getting the resource's volume returns an error", func() {
+													var (
+														disaster error
+													)
+
+													BeforeEach(func() {
+														disaster = errors.New("wah")
+														fakeGetResource.CacheVolumeReturns(nil, false, disaster)
+													})
+
+													It("returns the error", func() {
+														Expect(<-process.Wait()).To(Equal(disaster))
+													})
+												})
+											})
+
+											Context("when the 'get' action fails", func() {
+												var (
+													disaster error
+												)
+
+												BeforeEach(func() {
+													disaster = errors.New("wah")
+													fakeVersionedSource.RunReturns(disaster)
+												})
+
+												It("returns the error", func() {
+													Expect(<-process.Wait()).To(Equal(disaster))
+												})
+											})
+										})
+
+										Context("when the cache is initialized", func() {
+											BeforeEach(func() {
+												fakeCache.IsInitializedReturns(true, nil)
+											})
+
+											Context("when the resource has a volume", func() { // TODO: corresponding negative case(s)?
 												var (
 													fakeVolume *bfakes.FakeVolume
 													volumePath string
@@ -1600,176 +1811,24 @@ var _ = Describe("GardenFactory", func() {
 													fakeGetResource.CacheVolumeReturns(fakeVolume, true, nil)
 												})
 
-												It("found the worker with the right spec", func() {
-													Expect(fakeWorkerClient.AllSatisfyingCallCount()).To(Equal(1))
-													spec := fakeWorkerClient.AllSatisfyingArgsForCall(0)
-													Expect(spec.ResourceType).To(Equal("docker"))
-													Expect(spec.Platform).To(Equal("some-platform"))
+												It("does not construct the 'get' runner", func() {
+													Expect(fakeGetResource.GetCallCount()).To(Equal(0))
 												})
 
-												It("creates a tracker for checking and getting the image resource", func() {
-													Expect(fakeTrackerFactory.TrackerForCallCount()).To(Equal(1))
-													Expect(fakeTrackerFactory.TrackerForArgsForCall(0)).To(Equal(fakeWorker))
-												})
-
-												It("created the 'check' resource with the correct session", func() {
-													Expect(fakeImageTracker.InitCallCount()).To(Equal(1))
-													_, metadata, session, resourceType, tags := fakeImageTracker.InitArgsForCall(0)
-													Expect(metadata).To(Equal(resource.EmptyMetadata{}))
-													Expect(session).To(Equal(resource.Session{
-														ID: worker.Identifier{
-															BuildID:     1234,
-															PlanID:      "some-plan-id",
-															CheckType:   "docker",
-															CheckSource: atc.Source{"some": "source"},
-															Stage:       db.ContainerStageCheck,
-														},
-														Metadata: worker.Metadata{
-															PipelineName:         "some-pipeline",
-															Type:                 db.ContainerTypeCheck,
-															StepName:             "some-step",
-															WorkingDirectory:     "",  // figure this out once we actually support hijacking these
-															EnvironmentVariables: nil, // figure this out once we actually support hijacking these
-														},
-													}))
-													Expect(resourceType).To(Equal(resource.ResourceType("docker")))
-													Expect(tags).To(BeNil())
-												})
-
-												It("ran 'check' with the right config", func() {
-													Expect(fakeCheckResource.CheckCallCount()).To(Equal(1))
-													checkSource, checkVersion := fakeCheckResource.CheckArgsForCall(0)
-													Expect(checkVersion).To(BeNil())
-													Expect(checkSource).To(Equal(fetchedConfig.ImageResource.Source))
-												})
-
-												It("releases the check resource, which includes releasing its volume", func() {
-													Expect(fakeCheckResource.ReleaseCallCount()).To(Equal(1))
-												})
-
-												It("marks the cache as initialized", func() {
-													Expect(fakeCache.InitializeCallCount()).To(Equal(1))
-												})
-
-												It("created the 'get' resource with the correct session", func() {
-													Expect(fakeImageTracker.InitWithCacheCallCount()).To(Equal(1))
-													_, metadata, session, resourceType, tags, cacheID := fakeImageTracker.InitWithCacheArgsForCall(0)
-													Expect(metadata).To(Equal(resource.EmptyMetadata{}))
-													Expect(session).To(Equal(resource.Session{
-														ID: worker.Identifier{
-															BuildID: 1234,
-															PlanID:  "some-plan-id",
-															Stage:   db.ContainerStageGet,
-														},
-														Metadata: worker.Metadata{
-															PipelineName:         "some-pipeline",
-															Type:                 db.ContainerTypeGet,
-															StepName:             "some-step",
-															WorkingDirectory:     "",  // figure this out once we actually support hijacking these
-															EnvironmentVariables: nil, // figure this out once we actually support hijacking these
-														},
-													}))
-													Expect(resourceType).To(Equal(resource.ResourceType("docker")))
-													Expect(tags).To(BeNil())
-													Expect(cacheID).To(Equal(resource.ResourceCacheIdentifier{
-														Type:    "docker",
-														Version: atc.Version{"v": "1"},
-														Source:  atc.Source{"some": "source"},
-													}))
-												})
-
-												It("constructs the 'get' runner", func() {
-													Expect(fakeGetResource.GetCallCount()).To(Equal(1))
-													ioConfig, getSource, params, getVersion := fakeGetResource.GetArgsForCall(0)
-													Expect(getVersion).To(Equal(atc.Version{"v": "1"}))
-													Expect(params).To(BeNil())
-													Expect(getSource).To(Equal(fetchedConfig.ImageResource.Source))
-													Expect(ioConfig).To(Equal(resource.IOConfig{
-														Stderr: stderrBuf,
-													}))
-												})
-
-												It("ran the 'get' action, forwarding signal and ready channels", func() {
-													Expect(fakeVersionedSource.RunCallCount()).To(Equal(1))
-													signals, ready := fakeVersionedSource.RunArgsForCall(0)
-													Expect(signals).ToNot(BeNil())
-													Expect(ready).ToNot(BeNil())
-												})
-
-												It("exits with no error", func() {
-													Expect(<-process.Wait()).To(BeNil())
-												})
-
-												It("marks the cache as initialized", func() {
-													Expect(fakeCache.InitializeCallCount()).To(Equal(1))
-												})
-
-												It("gets the volume", func() {
-													Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(1))
-												})
-
-												It("creates the container with the volume's path as the rootFS", func() {
-													Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(1))
-												})
-
-												It("creates a container with the config's image and the session ID as the handle", func() {
-													Expect(fakeWorker.CreateContainerCallCount()).To(Equal(1))
-													_, _, _, spec := fakeWorker.CreateContainerArgsForCall(0)
-													taskSpec := spec.(worker.TaskContainerSpec)
-													Expect(taskSpec.Platform).To(Equal("some-platform"))
-													Expect(taskSpec.Image).To(BeEmpty())
-													Expect(taskSpec.ImageVolume).To(Equal(fakeVolume))
-													Expect(taskSpec.Privileged).To(BeFalse())
-												})
-
-												Context("after creating the container", func() {
-													BeforeEach(func() {
-														fakeWorker.CreateContainerStub = func(lager.Logger, worker.Identifier, worker.Metadata, worker.ContainerSpec) (worker.Container, error) {
-															Expect(fakeGetResource.ReleaseCallCount()).To(Equal(0))
-															return fakeContainer, nil
-														}
-													})
-
-													It("releases the get resource *after* creating the container", func() {
-														Expect(fakeGetResource.ReleaseCallCount()).To(Equal(1))
-													})
-												})
-											})
-
-											Context("when the resource still does not have a volume for some reason", func() {
-												BeforeEach(func() {
-													fakeGetResource.CacheVolumeReturns(nil, false, nil)
-												})
-
-												It("returns an appropriate error", func() {
-													Expect(<-process.Wait()).To(Equal(NewErrImageGetDidNotProduceVolume("some-source-name")))
-												})
-											})
-
-											Context("when getting the resource's volume returns an error", func() {
-												var (
-													disaster error
-												)
-
-												BeforeEach(func() {
-													disaster = errors.New("wah")
-													fakeGetResource.CacheVolumeReturns(nil, false, disaster)
-												})
-
-												It("returns the error", func() {
-													Expect(<-process.Wait()).To(Equal(disaster))
+												It("does not mark the cache as initialized again", func() {
+													Expect(fakeCache.InitializeCallCount()).To(Equal(0))
 												})
 											})
 										})
 
-										Context("when the 'get' action fails", func() {
+										Context("when checking if the cache is initialized fails", func() {
 											var (
 												disaster error
 											)
 
 											BeforeEach(func() {
 												disaster = errors.New("wah")
-												fakeVersionedSource.RunReturns(disaster)
+												fakeCache.IsInitializedReturns(false, disaster)
 											})
 
 											It("returns the error", func() {
@@ -1778,43 +1837,14 @@ var _ = Describe("GardenFactory", func() {
 										})
 									})
 
-									Context("when the cache is initialized", func() {
-										BeforeEach(func() {
-											fakeCache.IsInitializedReturns(true, nil)
-										})
-
-										Context("when the resource has a volume", func() { // TODO: corresponding negative case(s)?
-											var (
-												fakeVolume *bfakes.FakeVolume
-												volumePath string
-											)
-
-											BeforeEach(func() {
-												fakeVolume = new(bfakes.FakeVolume)
-												volumePath = "C:/Documents and Settings/Evan/My Documents"
-
-												fakeVolume.PathReturns(volumePath)
-												fakeGetResource.CacheVolumeReturns(fakeVolume, true, nil)
-											})
-
-											It("does not construct the 'get' runner", func() {
-												Expect(fakeGetResource.GetCallCount()).To(Equal(0))
-											})
-
-											It("does not mark the cache as initialized again", func() {
-												Expect(fakeCache.InitializeCallCount()).To(Equal(0))
-											})
-										})
-									})
-
-									Context("when checking if the cache is initialized fails", func() {
+									Context("when initializing the Get resource fails", func() {
 										var (
 											disaster error
 										)
 
 										BeforeEach(func() {
 											disaster = errors.New("wah")
-											fakeCache.IsInitializedReturns(false, disaster)
+											fakeImageTracker.InitWithCacheReturns(nil, nil, disaster)
 										})
 
 										It("returns the error", func() {
@@ -1823,52 +1853,53 @@ var _ = Describe("GardenFactory", func() {
 									})
 								})
 
-								Context("when initializing the Get resource fails", func() {
-									var (
-										disaster error
-									)
-
+								Context("when saving the version in the database fails", func() {
+									var imageVersionSavingCalamity error
 									BeforeEach(func() {
-										disaster = errors.New("wah")
-										fakeImageTracker.InitWithCacheReturns(nil, nil, disaster)
+										imageVersionSavingCalamity = errors.New("hang in there bud")
+										taskDelegate.SaveImageResourceVersionReturns(imageVersionSavingCalamity)
 									})
 
 									It("returns the error", func() {
-										Expect(<-process.Wait()).To(Equal(disaster))
-									})
-								})
-
-								Context("when check returns no versions", func() {
-									BeforeEach(func() {
-										fakeCheckResource.CheckReturns([]atc.Version{}, nil)
-									})
-
-									It("exits with ErrImageUnavailable", func() {
-										Expect(<-process.Wait()).To(Equal(ErrImageUnavailable))
+										Expect(<-process.Wait()).To(Equal(imageVersionSavingCalamity))
 									})
 
 									It("does not construct the 'get' resource", func() {
 										Expect(fakeImageTracker.InitWithCacheCallCount()).To(Equal(0))
 									})
 								})
+							})
 
-								Context("when check returns an error", func() {
-									var (
-										disaster error
-									)
+							Context("when check returns no versions", func() {
+								BeforeEach(func() {
+									fakeCheckResource.CheckReturns([]atc.Version{}, nil)
+								})
 
-									BeforeEach(func() {
-										disaster = errors.New("wah")
-										fakeCheckResource.CheckReturns(nil, disaster)
-									})
+								It("exits with ErrImageUnavailable", func() {
+									Expect(<-process.Wait()).To(Equal(ErrImageUnavailable))
+								})
 
-									It("returns the error", func() {
-										Expect(<-process.Wait()).To(Equal(disaster))
-									})
+								It("does not attempt to save any versions in the database", func() {
+									Expect(taskDelegate.SaveImageResourceVersionCallCount()).To(Equal(0))
+								})
+							})
 
-									It("does not construct the 'get' resource", func() {
-										Expect(fakeImageTracker.InitWithCacheCallCount()).To(Equal(0))
-									})
+							Context("when check returns an error", func() {
+								var (
+									disaster error
+								)
+
+								BeforeEach(func() {
+									disaster = errors.New("wah")
+									fakeCheckResource.CheckReturns(nil, disaster)
+								})
+
+								It("returns the error", func() {
+									Expect(<-process.Wait()).To(Equal(disaster))
+								})
+
+								It("does not construct the 'get' resource", func() {
+									Expect(fakeImageTracker.InitWithCacheCallCount()).To(Equal(0))
 								})
 							})
 						})

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
@@ -20,8 +21,7 @@ type CacheIdentifier interface {
 	FindOn(lager.Logger, baggageclaim.Client) (baggageclaim.Volume, bool, error)
 	CreateOn(lager.Logger, baggageclaim.Client) (baggageclaim.Volume, error)
 
-	ResourceVersion() atc.Version
-	ResourceHash() string
+	VolumeIdentifier() db.VolumeIdentifier
 }
 
 type ResourceCacheIdentifier struct {
@@ -81,12 +81,12 @@ func (identifier ResourceCacheIdentifier) initializedVolumeProperties() baggagec
 	return props
 }
 
-func (identifier ResourceCacheIdentifier) ResourceVersion() atc.Version {
-	return identifier.Version
-}
-
-func (identifier ResourceCacheIdentifier) ResourceHash() string {
-	return GenerateResourceHash(identifier.Source, string(identifier.Type))
+func (identifier ResourceCacheIdentifier) VolumeIdentifier() db.VolumeIdentifier {
+	volumeIdentifier := db.VolumeIdentifier{
+		ResourceVersion: identifier.Version,
+		ResourceHash:    GenerateResourceHash(identifier.Source, string(identifier.Type)),
+	}
+	return volumeIdentifier
 }
 
 func GenerateResourceHash(source atc.Source, resourceType string) string {

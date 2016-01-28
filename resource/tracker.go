@@ -295,11 +295,10 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 	}
 
 	err = tracker.db.InsertVolume(db.Volume{
-		WorkerName:      chosenWorker.Name(),
-		TTL:             ttl,
-		Handle:          cachedVolume.Handle(),
-		ResourceVersion: cacheIdentifier.ResourceVersion(),
-		ResourceHash:    cacheIdentifier.ResourceHash(),
+		WorkerName:       chosenWorker.Name(),
+		TTL:              ttl,
+		Handle:           cachedVolume.Handle(),
+		VolumeIdentifier: cacheIdentifier.VolumeIdentifier(),
 	})
 	if err != nil {
 		return nil, nil, err
