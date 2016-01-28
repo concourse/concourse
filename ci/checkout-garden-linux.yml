@@ -17,4 +17,4 @@ run:
   - |
     tag=v$(cat garden-linux/version)
     git -C ./garden-linux-src fetch --tags
-    git clone --branch $tag ./garden-linux-src ./garden-linux-release
+    git clone --branch $tag --recursive ./garden-linux-src ./garden-linux-release
