@@ -1,0 +1,20 @@
+---
+platform: linux
+
+image: docker:///concourse/git-resource
+
+inputs:
+- name: garden-linux
+- name: garden-linux-src
+
+outputs:
+- name: garden-linux-release
+
+run:
+  path: sh
+  args:
+  - -exc
+  - |
+    tag=v$(cat garden-linux/version)
+    git -C ./garden-linux-src fetch --tags
+    git clone --branch $tag ./garden-linux-src ./garden-linux-release

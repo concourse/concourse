@@ -15,6 +15,7 @@ groups:
   - rc
   - shipit
   - testflight
+  - build-bin
 
 - name: publish
   jobs:
@@ -645,6 +646,39 @@ jobs:
         PROJECT_ID: 1059262
         ORGANIZATION: concourse
 
+- name: build-bin
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [deploy]
+      trigger: true
+    - get: garden-linux
+      passed: [deploy]
+      trigger: true
+    - get: bin
+      trigger: true
+    - get: houdini
+      trigger: true
+    - get: garden-linux-src
+  - task: checkout-release-tag
+    file: concourse/ci/checkout-garden-linux.yml
+  - aggregate:
+    - task: build-linux
+      file: bin/ci/build-linux.yml
+    - task: build-darwin
+      file: bin/ci/build-darwin.yml
+    - task: build-windows
+      file: bin/ci/build-windows.yml
+  - task: build-release
+    file: bin/ci/build-release.yml
+  - put: bin-releases
+    params:
+      name: release/name
+      tag: release/tag
+      body: release/body
+      globs: [release/artifacts/*]
+
 resources:
 - name: version
   type: semver
@@ -892,3 +926,22 @@ resources:
     secret_access_key: {{s3-testflight-log-secret-key}}
     versioned_file: bosh-logs
     region_name: us-west-1
+
+- name: bin
+  type: git
+  source:
+    uri: https://github.com/concourse/bin
+    branch: master
+
+- name: garden-linux-src
+  type: git
+  source:
+    uri: https://github.com/cloudfoundry-incubator/garden-linux-release
+    branch: master
+
+- name: bin-releases
+  type: github-release
+  source:
+    user: concourse
+    repository: bin
+    access_token: {{bin-release-token}}
