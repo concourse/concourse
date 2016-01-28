@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/baggageclaim/fs"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
-	"github.com/vito/concourse-bin/bindata"
+	"github.com/concourse/bin/bindata"
 )
 
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.Worker, ifrit.Runner, error) {

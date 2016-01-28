@@ -4,7 +4,7 @@ platform: linux
 image: docker:///ubuntu
 
 inputs:
-- name: concourse-bin
+- name: bin
 - name: linux-binary
 - name: darwin-binary
 - name: windows-binary
@@ -13,4 +13,4 @@ outputs:
 - name: release
 
 run:
-  path: concourse-bin/ci/build-release
+  path: bin/ci/build-release

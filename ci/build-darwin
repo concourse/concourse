@@ -9,4 +9,4 @@ export GOPATH=$PWD/gopath:$PWD/concourse:$PWD/gopath/src/github.com/vito/houdini
 export PATH=$PWD/gopath/bin:$PATH
 
 go build -o darwin-binary/concourse_darwin_amd64 \
-  github.com/vito/concourse-bin/cmd/concourse
+  github.com/concourse/bin/cmd/concourse

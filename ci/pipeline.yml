@@ -12,10 +12,10 @@ resources:
     uri: https://github.com/cloudfoundry-incubator/garden-linux-release
     branch: bump-and-force-aufs
 
-- name: concourse-bin
+- name: bin
   type: git
   source:
-    uri: https://github.com/vito/concourse-bin
+    uri: https://github.com/concourse/bin
     branch: master
 
 - name: houdini
@@ -24,11 +24,11 @@ resources:
     uri: https://github.com/vito/houdini
     branch: master
 
-- name: concourse-bin-releases
+- name: bin-releases
   type: github-release
   source:
     user: vito
-    repository: concourse-bin
+    repository: bin
     access_token: {{release-token}}
 
 jobs:
@@ -38,18 +38,18 @@ jobs:
   - aggregate:
     - get: concourse
     - get: garden-linux-release
-    - get: concourse-bin
+    - get: bin
     - get: houdini
   - aggregate:
     - task: build-linux
-      file: concourse-bin/ci/build-linux.yml
+      file: bin/ci/build-linux.yml
     - task: build-darwin
-      file: concourse-bin/ci/build-darwin.yml
+      file: bin/ci/build-darwin.yml
     - task: build-windows
-      file: concourse-bin/ci/build-windows.yml
+      file: bin/ci/build-windows.yml
   - task: build-release
-    file: concourse-bin/ci/build-release.yml
-  - put: concourse-bin-releases
+    file: bin/ci/build-release.yml
+  - put: bin-releases
     params:
       name: release/name
       tag: release/tag
