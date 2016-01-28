@@ -8,25 +8,25 @@ import (
 
 type TaskConfig struct {
 	// The platform the task must run on (e.g. linux, windows).
-	Platform string `json:"platform,omitempty" yaml:"platform,omitempty"`
+	Platform string `json:"platform,omitempty" yaml:"platform,omitempty" mapstructure:"platform"`
 
 	// Optional string specifying an image to use for the build. Depending on the
 	// platform, this may or may not be required (e.g. Windows/OS X vs. Linux).
-	Image string `json:"image,omitempty"   yaml:"image,omitempty"`
+	Image string `json:"image,omitempty" yaml:"image,omitempty" mapstructure:"image"`
 
-	ImageResource *TaskImageConfig `json:"image_resource,omitempty" yaml:"image_resource,omitempty"`
+	ImageResource *TaskImageConfig `json:"image_resource,omitempty" yaml:"image_resource,omitempty" mapstructure:"image_resource"`
 
 	// Parameters to pass to the task via environment variables.
-	Params map[string]string `json:"params,omitempty"  yaml:"params,omitempty"`
+	Params map[string]string `json:"params,omitempty" yaml:"params,omitempty" mapstructure:"params"`
 
 	// Script to execute.
-	Run TaskRunConfig `json:"run,omitempty"     yaml:"run,omitempty"`
+	Run TaskRunConfig `json:"run,omitempty" yaml:"run,omitempty" mapstructure:"run"`
 
 	// The set of (logical, name-only) inputs required by the task.
-	Inputs []TaskInputConfig `json:"inputs,omitempty"  yaml:"inputs,omitempty"`
+	Inputs []TaskInputConfig `json:"inputs,omitempty" yaml:"inputs,omitempty" mapstructure:"inputs"`
 
 	// The set of (logical, name-only) outputs provided by the task.
-	Outputs []TaskOutputConfig `json:"outputs,omitempty"  yaml:"outputs,omitempty"`
+	Outputs []TaskOutputConfig `json:"outputs,omitempty" yaml:"outputs,omitempty" mapstructure:"outputs"`
 }
 
 type TaskImageConfig struct {

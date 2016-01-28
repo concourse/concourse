@@ -163,6 +163,29 @@ var _ = Describe("ConfigSource", func() {
 				})
 			})
 
+			Context("when the artifact source provides a valid file with invalid keys", func() {
+				var streamedOut *gbytes.Buffer
+
+				BeforeEach(func() {
+					streamedOut = gbytes.BufferWithBytes([]byte(`
+platform: beos
+
+intputs: []
+
+run: {path: a/file}
+`))
+					fakeArtifactSource.StreamFileReturns(streamedOut, nil)
+				})
+
+				It("fails", func() {
+					Expect(fetchErr).To(HaveOccurred())
+				})
+
+				It("closes the stream", func() {
+					Expect(streamedOut.Closed()).To(BeTrue())
+				})
+			})
+
 			Context("when streaming the file out fails", func() {
 				disaster := errors.New("nope")
 
