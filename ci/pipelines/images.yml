@@ -147,12 +147,6 @@ resources:
     repository: ubuntu
     tag: "15.10"
 
-- name: selenium-firefox
-  type: docker-image
-  source:
-    repository: selenium/standalone-firefox
-    tag: latest
-
 - name: golang-1.5
   type: docker-image
   source:
@@ -203,11 +197,11 @@ jobs:
   - aggregate:
     - get: concourse-atc-ci
       trigger: true
-    - get: selenium-firefox
+    - get: ubuntu-15.10
       trigger: true
   - put: concourse-atc-ci-image
     params:
-      load_base: selenium-firefox
+      load_base: ubuntu-15.10
       build: concourse-atc-ci
 
 - name: build-atc-ci-js
