@@ -535,7 +535,7 @@ viewStep actions model {id, name, log, state, error, expanded, version, metadata
     [ Html.div [class "header", onClick actions (ToggleStep id)]
         [ viewStepState state model.finished
         , typeIcon icon
-        , DictView.view <| Maybe.withDefault Dict.empty version
+        , viewVersion version
         , Html.h3 [] [Html.text name]
         ]
     , Html.div
@@ -546,7 +546,7 @@ viewStep actions model {id, name, log, state, error, expanded, version, metadata
             ]
         ] <|
         if Maybe.withDefault (autoExpanded state) (Maybe.map (always True) expanded) then
-          [ DictView.view <| Dict.fromList <| List.map (\{name, value} -> (name, value)) metadata
+          [ viewMetadata metadata
           , Ansi.Log.view log
           , case error of
               Nothing ->
@@ -558,11 +558,15 @@ viewStep actions model {id, name, log, state, error, expanded, version, metadata
           []
     ]
 
-viewPair : String -> String -> List Html
-viewPair name value =
-  [ Html.dt [] [Html.text name]
-  , Html.dd [] [Html.text value]
-  ]
+viewVersion : Maybe Version -> Html
+viewVersion version =
+  DictView.view << Dict.map (\_ s -> Html.text s) <|
+    Maybe.withDefault Dict.empty version
+
+viewMetadata : List MetadataField -> Html
+viewMetadata metadata =
+  DictView.view << Dict.fromList <|
+    List.map (\{name, value} -> (name, Html.pre [] [Html.text value])) metadata
 
 typeIcon : String -> Html
 typeIcon fa =

@@ -1,6 +1,7 @@
 module Job where
 
 import Array exposing (Array)
+import Dict exposing (Dict)
 import Effects exposing (Effects)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id)
@@ -14,6 +15,7 @@ import Concourse.Job exposing (Job)
 import Concourse.BuildResources exposing (BuildResources, BuildInput, BuildOutput)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Pagination, Paginated, Page)
+import Concourse.Version exposing (Version)
 import BuildDuration
 import DictView
 
@@ -371,7 +373,7 @@ viewBuildInputs model bi =
     [ Html.text(bi.resource)
     ]
   , Html.td [class "resource-version"]
-    [ DictView.view bi.version
+    [ viewVersion bi.version
     ]
   ]
 
@@ -382,9 +384,14 @@ viewBuildOutputs model bo =
     [ Html.text(bo.resource)
     ]
   , Html.td [class "resource-version"]
-    [ DictView.view bo.version
+    [ viewVersion bo.version
     ]
   ]
+
+viewVersion : Version -> Html
+viewVersion version =
+  DictView.view << Dict.map (\_ s -> Html.text s) <|
+    version
 
 fetchJobBuilds : Time -> Concourse.Build.BuildJob -> Maybe Concourse.Pagination.Page -> Effects Action
 fetchJobBuilds delay jobInfo page =
