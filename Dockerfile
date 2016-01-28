@@ -1,6 +1,4 @@
-FROM selenium/standalone-firefox
-
-USER root
+FROM ubuntu:15.10
 
 # The Basics
 RUN apt-get update && apt-get -y install curl
@@ -18,10 +16,10 @@ RUN apt-get update && apt-get -y install nodejs-legacy
 # Git (for elm-package)
 RUN apt-get update && apt-get -y install git
 
-# install selenium-driver wrapper binary for Agouti
-RUN echo '#!/bin/sh' >> /usr/local/bin/selenium-server && \
-    echo 'exec java -jar /opt/selenium/selenium-server-standalone.jar "$@" > /tmp/selenium.log 2>&1' >> /usr/local/bin/selenium-server && \
-    chmod +x /usr/local/bin/selenium-server
+# install PhantomJS 2.1.1
+RUN curl https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 | tar -C /tmp -jxf - && \
+      mv /tmp/phantomjs-*/bin/phantomjs /usr/local/bin && \
+      rm -rf /tmp/phantomjs-*
 
 RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
