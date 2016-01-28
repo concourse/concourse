@@ -134,7 +134,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'concourse'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  cannot have more than one input using the same path 'concourse'")))
 				})
 			})
 
@@ -148,7 +148,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'concourse'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  cannot have more than one input using the same path 'concourse'")))
 				})
 			})
 
@@ -162,7 +162,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'path'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  cannot have more than one input using the same path 'path'")))
 				})
 			})
 		})
@@ -178,7 +178,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'concourse'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  cannot have more than one output using the same path 'concourse'")))
 				})
 			})
 
@@ -192,7 +192,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'concourse'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  cannot have more than one output using the same path 'concourse'")))
 				})
 			})
 
@@ -206,7 +206,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'path'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  cannot have more than one output using the same path 'path'")))
 				})
 			})
 		})
@@ -227,7 +227,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'concourse'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  cannot have an input and output using the same path 'concourse'")))
 				})
 			})
 
@@ -246,7 +246,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'garden'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  cannot have an input and output using the same path 'garden'")))
 				})
 			})
 
@@ -264,7 +264,7 @@ var _ = Describe("TaskConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'path'")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  cannot have an input and output using the same path 'path'")))
 				})
 			})
 
@@ -288,11 +288,13 @@ var _ = Describe("TaskConfig", func() {
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'path'")))
-					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'jettison'")))
+					Expect(err).To(MatchError(ContainSubstring("  cannot have an input and output using the same path 'jettison'")))
+					Expect(err).To(MatchError(ContainSubstring("  cannot have more than one output using the same path 'jettison'")))
+					Expect(err).To(MatchError(ContainSubstring("  cannot have more than one output using the same path 'path'")))
+					Expect(err).To(MatchError(ContainSubstring("  cannot have an input and output using the same path 'path'")))
 
 					lines := strings.Split(err.Error(), "\n")
-					Expect(lines).To(HaveLen(3)) // 2 errors + header
+					Expect(lines).To(HaveLen(5)) // 4 errors + header
 				})
 			})
 
@@ -308,7 +310,7 @@ var _ = Describe("TaskConfig", func() {
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo'")))
+					Expect(err).To(MatchError(ContainSubstring("  cannot nest inputs: 'foo/bar' is nested under input directory 'foo'")))
 				})
 			})
 
@@ -324,7 +326,7 @@ var _ = Describe("TaskConfig", func() {
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo'")))
+					Expect(err).To(MatchError(ContainSubstring("  cannot nest inputs: 'foo/bar' is nested under input directory 'foo'")))
 				})
 			})
 
@@ -340,7 +342,7 @@ var _ = Describe("TaskConfig", func() {
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo'")))
+					Expect(err).To(MatchError(ContainSubstring("  cannot nest outputs: 'foo/bar' is nested under output directory 'foo'")))
 				})
 			})
 
@@ -356,7 +358,7 @@ var _ = Describe("TaskConfig", func() {
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo'")))
+					Expect(err).To(MatchError(ContainSubstring("  cannot nest outputs: 'foo/bar' is nested under output directory 'foo'")))
 				})
 			})
 
@@ -372,7 +374,7 @@ var _ = Describe("TaskConfig", func() {
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo1'")))
+					Expect(err).To(MatchError(ContainSubstring("  cannot nest outputs: 'foo1/bar' is nested under output directory 'foo1'")))
 				})
 			})
 
@@ -394,8 +396,8 @@ var _ = Describe("TaskConfig", func() {
 				It("doesn't care and still returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo1'")))
-					Expect(err).To(MatchError(ContainSubstring("  inputs and/or outputs have overlapping path: 'foo2'")))
+					Expect(err).To(MatchError(ContainSubstring("  cannot nest outputs within inputs: 'foo1/bar' is nested under input directory 'foo1'")))
+					Expect(err).To(MatchError(ContainSubstring("  cannot nest inputs within outputs: 'foo2/bar' is nested under output directory 'foo2'")))
 				})
 			})
 

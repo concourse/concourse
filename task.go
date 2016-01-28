@@ -80,8 +80,6 @@ func (config TaskConfig) Validate() error {
 		messages = append(messages, "  missing path to executable to run")
 	}
 
-	messages = append(messages, config.validateInputContainsNames()...)
-	messages = append(messages, config.validateOutputContainsNames()...)
 	messages = append(messages, config.validateInputsAndOutputs()...)
 
 	if len(messages) > 0 {
@@ -93,7 +91,19 @@ func (config TaskConfig) Validate() error {
 
 func (config TaskConfig) validateInputsAndOutputs() []string {
 	messages := []string{}
-	previousPaths := make(map[string]int)
+
+	messages = append(messages, config.validateInputContainsNames()...)
+	messages = append(messages, config.validateOutputContainsNames()...)
+	messages = append(messages, config.validateDotPath()...)
+	messages = append(messages, config.validateOverlappingPaths()...)
+
+	return messages
+}
+
+func (config TaskConfig) validateDotPath() []string {
+	messages := []string{}
+
+	pathCount := 0
 	dotPath := false
 
 	for _, input := range config.Inputs {
@@ -103,11 +113,7 @@ func (config TaskConfig) validateInputsAndOutputs() []string {
 			dotPath = true
 		}
 
-		if val, found := previousPaths[path]; !found {
-			previousPaths[path] = 1
-		} else {
-			previousPaths[path] = val + 1
-		}
+		pathCount++
 	}
 
 	for _, output := range config.Outputs {
@@ -117,40 +123,117 @@ func (config TaskConfig) validateInputsAndOutputs() []string {
 			dotPath = true
 		}
 
-		if val, found := previousPaths[path]; !found {
-			previousPaths[path] = 1
-		} else {
-			previousPaths[path] = val + 1
-		}
+		pathCount++
 	}
 
-	if len(previousPaths) > 1 && dotPath {
+	if pathCount > 1 && dotPath {
 		messages = append(messages, "  you may not have more than one input or output when one of them has a path of '.'")
 	}
 
-	for path, val := range previousPaths {
-		if val > 1 {
-			messages = append(messages, fmt.Sprintf("  inputs and/or outputs have overlapping path: '%s'", path))
+	return messages
+}
+
+type pathCounter struct {
+	inputCount  map[string]int
+	outputCount map[string]int
+}
+
+func (counter *pathCounter) foundInBoth(path string) bool {
+	_, inputFound := counter.inputCount[path]
+	_, outputFound := counter.outputCount[path]
+
+	return inputFound && outputFound
+}
+
+func (counter *pathCounter) registerInput(input TaskInputConfig) {
+	path := strings.TrimPrefix(input.resolvePath(), "./")
+
+	if val, found := counter.inputCount[path]; !found {
+		counter.inputCount[path] = 1
+	} else {
+		counter.inputCount[path] = val + 1
+	}
+}
+
+func (counter *pathCounter) registerOutput(output TaskOutputConfig) {
+	path := strings.TrimPrefix(output.resolvePath(), "./")
+
+	if val, found := counter.outputCount[path]; !found {
+		counter.outputCount[path] = 1
+	} else {
+		counter.outputCount[path] = val + 1
+	}
+}
+
+const duplicateErrorMessage = "  cannot have more than one %s using the same path '%s'"
+
+func (counter pathCounter) getErrorMessages() []string {
+	messages := []string{}
+
+	for path, numOccurences := range counter.inputCount {
+		if numOccurences > 1 {
+			messages = append(messages, fmt.Sprintf(duplicateErrorMessage, "input", path))
 		}
 
-		for _, input := range config.Inputs {
-			inputPath := strings.TrimPrefix(input.resolvePath(), "./")
+		if counter.foundInBoth(path) {
+			messages = append(messages, fmt.Sprintf("  cannot have an input and output using the same path '%s'", path))
+		}
 
-			if strings.HasPrefix(inputPath, path) && inputPath != path {
-				messages = append(messages, fmt.Sprintf("  inputs and/or outputs have overlapping path: '%s'", path))
+		for candidateParentPath := range counter.inputCount {
+			if strings.HasPrefix(path, candidateParentPath) && path != candidateParentPath {
+				messages = append(messages, fmt.Sprintf("  cannot nest inputs: '%s' is nested under input directory '%s'", path, candidateParentPath))
 			}
 		}
 
-		for _, output := range config.Outputs {
-			outputPath := strings.TrimPrefix(output.resolvePath(), "./")
-
-			if strings.HasPrefix(outputPath, path) && outputPath != path {
-				messages = append(messages, fmt.Sprintf("  inputs and/or outputs have overlapping path: '%s'", path))
+		for candidateParentPath := range counter.outputCount {
+			if strings.HasPrefix(path, candidateParentPath) && path != candidateParentPath {
+				messages = append(messages, fmt.Sprintf("  cannot nest inputs within outputs: '%s' is nested under output directory '%s'", path, candidateParentPath))
 			}
 		}
 	}
 
+	for path, numOccurences := range counter.outputCount {
+		if numOccurences > 1 {
+			messages = append(messages, fmt.Sprintf(duplicateErrorMessage, "output", path))
+		}
+
+		for candidateParentPath := range counter.outputCount {
+			if strings.HasPrefix(path, candidateParentPath) && path != candidateParentPath {
+				messages = append(messages, fmt.Sprintf("  cannot nest outputs: '%s' is nested under output directory '%s'", path, candidateParentPath))
+			}
+		}
+
+		for candidateParentPath := range counter.inputCount {
+			if strings.HasPrefix(path, candidateParentPath) && path != candidateParentPath {
+				messages = append(messages, fmt.Sprintf("  cannot nest outputs within inputs: '%s' is nested under input directory '%s'", path, candidateParentPath))
+			}
+		}
+
+	}
+
 	return messages
+}
+
+func (config TaskConfig) countInputOutputPaths() pathCounter {
+	counter := &pathCounter{
+		inputCount:  make(map[string]int),
+		outputCount: make(map[string]int),
+	}
+
+	for _, input := range config.Inputs {
+		counter.registerInput(input)
+	}
+
+	for _, output := range config.Outputs {
+		counter.registerOutput(output)
+	}
+
+	return *counter
+}
+
+func (config TaskConfig) validateOverlappingPaths() []string {
+	counter := config.countInputOutputPaths()
+	return counter.getErrorMessages()
 }
 
 func (config TaskConfig) validateOutputContainsNames() []string {
