@@ -157,7 +157,7 @@ func (server *Server) CommitRootfs() {
 				cp -a /root rootfs/root || true # prevent copy infinite loop
 				touch rootfs/hello-im-a-git-rootfs
 				git add rootfs
-				git commit -m 'created rootfs'
+				git commit -qm 'created rootfs'
 			`,
 		},
 		User: "root",
