@@ -12,6 +12,7 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/volume"
 )
 
 //go:generate counterfeiter . WorkerDB
@@ -123,7 +124,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		bClient = bclient.New(savedWorker.BaggageclaimURL)
 	}
 
-	volumeFactory := NewVolumeFactory(
+	volumeFactory := volume.NewVolumeFactory(
 		provider.db,
 		tikTok,
 	)

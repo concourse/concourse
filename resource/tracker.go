@@ -3,6 +3,7 @@ package resource
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/volume"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
@@ -115,23 +116,23 @@ func (tracker *tracker) InitWithSources(
 	}
 
 	// find the worker with the most volumes
-	mounts := []worker.VolumeMount{}
+	mounts := []volume.VolumeMount{}
 	missingSources := []string{}
 	var chosenWorker worker.Worker
 
 	for _, w := range compatibleWorkers {
-		candidateMounts := []worker.VolumeMount{}
+		candidateMounts := []volume.VolumeMount{}
 		missing := []string{}
 
 		for name, source := range sources {
-			volume, found, err := source.VolumeOn(w)
+			ourVolume, found, err := source.VolumeOn(w)
 			if err != nil {
 				return nil, nil, err
 			}
 
 			if found {
-				candidateMounts = append(candidateMounts, worker.VolumeMount{
-					Volume:    volume,
+				candidateMounts = append(candidateMounts, volume.VolumeMount{
+					Volume:    ourVolume,
 					MountPath: ResourcesDir("put/" + name),
 				})
 			} else {
@@ -313,7 +314,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 		Ephemeral: session.Ephemeral,
 		Tags:      tags,
 		Env:       metadata.Env(),
-		Cache: worker.VolumeMount{
+		Cache: volume.VolumeMount{
 			Volume:    cachedVolume,
 			MountPath: ResourcesDir("get"),
 		},

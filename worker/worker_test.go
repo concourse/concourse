@@ -10,6 +10,8 @@ import (
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/volume"
+	vfakes "github.com/concourse/atc/volume/fakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
 	"github.com/concourse/baggageclaim"
@@ -26,7 +28,7 @@ var _ = Describe("Worker", func() {
 		logger                 *lagertest.TestLogger
 		fakeGardenClient       *gfakes.FakeClient
 		fakeBaggageclaimClient *bfakes.FakeClient
-		fakeVolumeFactory      *wfakes.FakeVolumeFactory
+		fakeVolumeFactory      *vfakes.FakeVolumeFactory
 		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
 		fakeWorkerProvider     *wfakes.FakeWorkerProvider
 		fakeClock              *fakeclock.FakeClock
@@ -43,7 +45,7 @@ var _ = Describe("Worker", func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeGardenClient = new(gfakes.FakeClient)
 		fakeBaggageclaimClient = new(bfakes.FakeClient)
-		fakeVolumeFactory = new(wfakes.FakeVolumeFactory)
+		fakeVolumeFactory = new(vfakes.FakeVolumeFactory)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeWorkerProvider = new(wfakes.FakeWorkerProvider)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
@@ -245,7 +247,7 @@ var _ = Describe("Worker", func() {
 							BeforeEach(func() {
 								spec = ResourceTypeContainerSpec{
 									Type: "some-resource",
-									Mounts: []VolumeMount{
+									Mounts: []volume.VolumeMount{
 										{
 											Volume:    volume1,
 											MountPath: "/some/dst/path1",
@@ -343,7 +345,7 @@ var _ = Describe("Worker", func() {
 							BeforeEach(func() {
 								spec = ResourceTypeContainerSpec{
 									Type: "some-resource",
-									Cache: VolumeMount{
+									Cache: volume.VolumeMount{
 										Volume:    volume1,
 										MountPath: "/some/dst/path1",
 									},
@@ -379,11 +381,11 @@ var _ = Describe("Worker", func() {
 							BeforeEach(func() {
 								spec = ResourceTypeContainerSpec{
 									Type: "some-resource",
-									Cache: VolumeMount{
+									Cache: volume.VolumeMount{
 										Volume:    volume1,
 										MountPath: "/some/dst/path1",
 									},
-									Mounts: []VolumeMount{
+									Mounts: []volume.VolumeMount{
 										{
 											Volume:    volume1,
 											MountPath: "/some/dst/path1",
@@ -600,7 +602,7 @@ var _ = Describe("Worker", func() {
 
 						taskSpec = spec.(TaskContainerSpec)
 
-						taskSpec.Outputs = []VolumeMount{
+						taskSpec.Outputs = []volume.VolumeMount{
 							{
 								Volume:    volume1,
 								MountPath: "/tmp/dst/path",
@@ -686,7 +688,7 @@ var _ = Describe("Worker", func() {
 
 						taskSpec = spec.(TaskContainerSpec)
 
-						taskSpec.Inputs = []VolumeMount{
+						taskSpec.Inputs = []volume.VolumeMount{
 							{
 								Volume:    volume1,
 								MountPath: "/tmp/dst/path",
@@ -884,15 +886,15 @@ var _ = Describe("Worker", func() {
 					var (
 						handle1Volume         *bfakes.FakeVolume
 						handle2Volume         *bfakes.FakeVolume
-						expectedHandle1Volume *wfakes.FakeVolume
-						expectedHandle2Volume *wfakes.FakeVolume
+						expectedHandle1Volume *vfakes.FakeVolume
+						expectedHandle2Volume *vfakes.FakeVolume
 					)
 
 					BeforeEach(func() {
 						handle1Volume = new(bfakes.FakeVolume)
 						handle2Volume = new(bfakes.FakeVolume)
-						expectedHandle1Volume = new(wfakes.FakeVolume)
-						expectedHandle2Volume = new(wfakes.FakeVolume)
+						expectedHandle1Volume = new(vfakes.FakeVolume)
+						expectedHandle2Volume = new(vfakes.FakeVolume)
 
 						fakeContainer.PropertiesReturns(garden.Properties{
 							"concourse:volumes":       `["handle-1","handle-2"]`,
@@ -909,7 +911,7 @@ var _ = Describe("Worker", func() {
 							}
 						}
 
-						fakeVolumeFactory.BuildStub = func(logger lager.Logger, vol baggageclaim.Volume) (Volume, error) {
+						fakeVolumeFactory.BuildStub = func(logger lager.Logger, vol baggageclaim.Volume) (volume.Volume, error) {
 							if vol == handle1Volume {
 								return expectedHandle1Volume, nil
 							} else if vol == handle2Volume {
@@ -922,7 +924,7 @@ var _ = Describe("Worker", func() {
 
 					Describe("Volumes", func() {
 						It("returns all bound volumes based on properties on the container", func() {
-							Expect(foundContainer.Volumes()).To(Equal([]Volume{
+							Expect(foundContainer.Volumes()).To(Equal([]volume.Volume{
 								expectedHandle1Volume,
 								expectedHandle2Volume,
 							}))
@@ -987,7 +989,7 @@ var _ = Describe("Worker", func() {
 
 					Describe("VolumeMounts", func() {
 						It("returns all bound volumes based on properties on the container", func() {
-							Expect(foundContainer.VolumeMounts()).To(ConsistOf([]VolumeMount{
+							Expect(foundContainer.VolumeMounts()).To(ConsistOf([]volume.VolumeMount{
 								{Volume: expectedHandle1Volume, MountPath: "/handle-1/path"},
 								{Volume: expectedHandle2Volume, MountPath: "/handle-2/path"},
 							}))

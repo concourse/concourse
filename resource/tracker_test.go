@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource/fakes"
+	"github.com/concourse/atc/volume"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
 	"github.com/concourse/baggageclaim"
@@ -238,7 +239,7 @@ var _ = Describe("Tracker", func() {
 							Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
 							Expect(resourceSpec.Ephemeral).To(Equal(true))
 							Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-							Expect(resourceSpec.Cache).To(Equal(worker.VolumeMount{
+							Expect(resourceSpec.Cache).To(Equal(volume.VolumeMount{
 								Volume:    foundVolume,
 								MountPath: "/tmp/build/get",
 							}))
@@ -368,7 +369,7 @@ var _ = Describe("Tracker", func() {
 							Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
 							Expect(resourceSpec.Ephemeral).To(Equal(true))
 							Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-							Expect(resourceSpec.Cache).To(Equal(worker.VolumeMount{
+							Expect(resourceSpec.Cache).To(Equal(volume.VolumeMount{
 								Volume:    createdVolume,
 								MountPath: "/tmp/build/get",
 							}))
@@ -534,7 +535,7 @@ var _ = Describe("Tracker", func() {
 
 				BeforeEach(func() {
 					cacheVolume = new(bfakes.FakeVolume)
-					fakeContainer.VolumesReturns([]worker.Volume{cacheVolume})
+					fakeContainer.VolumesReturns([]volume.Volume{cacheVolume})
 				})
 
 				Describe("the cache", func() {
@@ -605,7 +606,7 @@ var _ = Describe("Tracker", func() {
 
 			Context("when the container has no volumes", func() {
 				BeforeEach(func() {
-					fakeContainer.VolumesReturns([]worker.Volume{})
+					fakeContainer.VolumesReturns([]volume.Volume{})
 				})
 
 				Describe("the cache", func() {
@@ -735,7 +736,7 @@ var _ = Describe("Tracker", func() {
 						Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
 						Expect(resourceSpec.Ephemeral).To(BeTrue())
 						Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-						Expect(resourceSpec.Mounts).To(ConsistOf([]worker.VolumeMount{
+						Expect(resourceSpec.Mounts).To(ConsistOf([]volume.VolumeMount{
 							{
 								Volume:    inputVolume1,
 								MountPath: "/tmp/build/put/source-1-name",

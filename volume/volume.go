@@ -1,4 +1,4 @@
-package worker
+package volume
 
 import (
 	"sync"
@@ -55,6 +55,11 @@ type volume struct {
 	release      chan time.Duration
 	heartbeating *sync.WaitGroup
 	releaseOnce  sync.Once
+}
+
+type VolumeMount struct {
+	Volume    Volume
+	MountPath string
 }
 
 func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock, db VolumeFactoryDB) (Volume, error) {

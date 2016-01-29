@@ -8,6 +8,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/volume"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
@@ -21,7 +22,7 @@ type gardenContainerSpecFactory struct {
 	baggageclaimClient baggageclaim.Client
 	volumeMounts       map[string]string
 	volumeHandles      []string
-	cowVolumes         []Volume
+	cowVolumes         []volume.Volume
 }
 
 func NewGardenContainerSpecFactory(logger lager.Logger, baggageclaimClient baggageclaim.Client) gardenContainerSpecFactory {
@@ -30,7 +31,7 @@ func NewGardenContainerSpecFactory(logger lager.Logger, baggageclaimClient bagga
 		baggageclaimClient: baggageclaimClient,
 		volumeMounts:       map[string]string{},
 		volumeHandles:      nil,
-		cowVolumes:         []Volume{},
+		cowVolumes:         []volume.Volume{},
 	}
 }
 
@@ -148,7 +149,7 @@ func (factory *gardenContainerSpecFactory) ReleaseVolumes() {
 	}
 }
 
-func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.ContainerSpec, mounts []VolumeMount) (garden.ContainerSpec, error) {
+func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.ContainerSpec, mounts []volume.VolumeMount) (garden.ContainerSpec, error) {
 	for _, mount := range mounts {
 		cowVolume, err := factory.baggageclaimClient.CreateVolume(factory.logger, baggageclaim.VolumeSpec{
 			Strategy: baggageclaim.COWStrategy{

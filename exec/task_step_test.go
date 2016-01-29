@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/atc/exec/fakes"
 	"github.com/concourse/atc/resource"
 	rfakes "github.com/concourse/atc/resource/fakes"
+	"github.com/concourse/atc/volume"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
 	"github.com/concourse/baggageclaim"
@@ -404,7 +405,7 @@ var _ = Describe("GardenFactory", func() {
 									It("bind-mounts copy-on-write volumes to their destinations in the container", func() {
 										_, _, _, spec := fakeWorker.CreateContainerArgsForCall(0)
 										taskSpec := spec.(worker.TaskContainerSpec)
-										Expect(taskSpec.Inputs).To(Equal([]worker.VolumeMount{
+										Expect(taskSpec.Inputs).To(Equal([]volume.VolumeMount{
 											{
 												Volume:    inputVolume,
 												MountPath: "/tmp/build/a1f5c0c1/some-input-configured-path",
@@ -597,7 +598,7 @@ var _ = Describe("GardenFactory", func() {
 													fakeNewlyCreatedVolume2.HandleReturns("some-handle-2")
 													fakeNewlyCreatedVolume3 = new(bfakes.FakeVolume)
 													fakeNewlyCreatedVolume3.HandleReturns("some-handle-3")
-													volumeChannel := make(chan worker.Volume, 3)
+													volumeChannel := make(chan volume.Volume, 3)
 													volumeChannel <- fakeNewlyCreatedVolume1
 													volumeChannel <- fakeNewlyCreatedVolume2
 													volumeChannel <- fakeNewlyCreatedVolume3
@@ -614,16 +615,16 @@ var _ = Describe("GardenFactory", func() {
 													fakeVolume3 = new(bfakes.FakeVolume)
 													fakeVolume3.HandleReturns("some-handle-3")
 
-													fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
-														worker.VolumeMount{
+													fakeContainer.VolumeMountsReturns([]volume.VolumeMount{
+														volume.VolumeMount{
 															Volume:    fakeVolume1,
 															MountPath: fakeMountPath1,
 														},
-														worker.VolumeMount{
+														volume.VolumeMount{
 															Volume:    fakeVolume2,
 															MountPath: fakeMountPath2,
 														},
-														worker.VolumeMount{
+														volume.VolumeMount{
 															Volume:    fakeVolume3,
 															MountPath: fakeMountPath3,
 														},

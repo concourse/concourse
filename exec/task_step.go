@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
+	"github.com/concourse/atc/volume"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
@@ -195,7 +196,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
-		outputMounts := []worker.VolumeMount{}
+		outputMounts := []volume.VolumeMount{}
 		for _, output := range config.Outputs {
 			path := artifactsPath(output, step.artifactsRoot)
 
@@ -204,7 +205,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 				break
 			}
 
-			volume, volErr := baggageclaimClient.CreateVolume(step.logger, baggageclaim.VolumeSpec{
+			ourVolume, volErr := baggageclaimClient.CreateVolume(step.logger, baggageclaim.VolumeSpec{
 				Properties: baggageclaim.VolumeProperties{},
 				TTL:        5 * time.Minute,
 				Privileged: bool(step.privileged),
@@ -213,8 +214,8 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 				return volErr
 			}
 
-			outputMounts = append(outputMounts, worker.VolumeMount{
-				Volume:    volume,
+			outputMounts = append(outputMounts, volume.VolumeMount{
+				Volume:    ourVolume,
 				MountPath: path,
 			})
 		}
@@ -443,8 +444,8 @@ func (step *TaskStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool,
 	return nil, false, nil
 }
 
-func (step *TaskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Worker, inputs []atc.TaskInputConfig) (worker.Worker, []worker.VolumeMount, []inputPair, error) {
-	inputMounts := []worker.VolumeMount{}
+func (step *TaskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Worker, inputs []atc.TaskInputConfig) (worker.Worker, []volume.VolumeMount, []inputPair, error) {
+	inputMounts := []volume.VolumeMount{}
 	inputsToStream := []inputPair{}
 
 	var chosenWorker worker.Worker
@@ -477,8 +478,8 @@ type inputPair struct {
 	source ArtifactSource
 }
 
-func (step *TaskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker.Worker) ([]worker.VolumeMount, []inputPair, error) {
-	var mounts []worker.VolumeMount
+func (step *TaskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker.Worker) ([]volume.VolumeMount, []inputPair, error) {
+	var mounts []volume.VolumeMount
 
 	var inputPairs []inputPair
 
@@ -491,14 +492,14 @@ func (step *TaskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker
 			continue
 		}
 
-		volume, existsOnWorker, err := source.VolumeOn(chosenWorker)
+		ourVolume, existsOnWorker, err := source.VolumeOn(chosenWorker)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		if existsOnWorker {
-			mounts = append(mounts, worker.VolumeMount{
-				Volume:    volume,
+			mounts = append(mounts, volume.VolumeMount{
+				Volume:    ourVolume,
 				MountPath: step.inputDestination(input),
 			})
 		} else {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc/metric"
+	"github.com/concourse/atc/volume"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
@@ -21,8 +22,8 @@ type gardenWorkerContainer struct {
 	gardenClient garden.Client
 	db           GardenWorkerDB
 
-	volumes      []Volume
-	volumeMounts []VolumeMount
+	volumes      []volume.Volume
+	volumeMounts []volume.VolumeMount
 
 	clock clock.Clock
 
@@ -39,7 +40,7 @@ func newGardenWorkerContainer(
 	baggageclaimClient baggageclaim.Client,
 	db GardenWorkerDB,
 	clock clock.Clock,
-	volumeFactory VolumeFactory,
+	volumeFactory volume.VolumeFactory,
 ) (Container, error) {
 	workerContainer := &gardenWorkerContainer{
 		Container: container,
@@ -95,11 +96,11 @@ func (container *gardenWorkerContainer) Release(finalTTL time.Duration) {
 	})
 }
 
-func (container *gardenWorkerContainer) Volumes() []Volume {
+func (container *gardenWorkerContainer) Volumes() []volume.Volume {
 	return container.volumes
 }
 
-func (container *gardenWorkerContainer) VolumeMounts() []VolumeMount {
+func (container *gardenWorkerContainer) VolumeMounts() []volume.VolumeMount {
 	return container.volumeMounts
 }
 
@@ -107,13 +108,13 @@ func (container *gardenWorkerContainer) initializeVolumes(
 	logger lager.Logger,
 	properties garden.Properties,
 	baggageclaimClient baggageclaim.Client,
-	volumeFactory VolumeFactory,
+	volumeFactory volume.VolumeFactory,
 ) error {
 	if baggageclaimClient == nil {
 		return nil
 	}
 
-	volumesByHandle := map[string]Volume{}
+	volumesByHandle := map[string]volume.Volume{}
 	handlesJSON, found := properties[volumePropertyName]
 	var err error
 	if found {
@@ -131,9 +132,9 @@ func (container *gardenWorkerContainer) initializeVolumes(
 			return err
 		}
 
-		volumeMounts := []VolumeMount{}
+		volumeMounts := []volume.VolumeMount{}
 		for h, m := range handleToMountPath {
-			volumeMounts = append(volumeMounts, VolumeMount{
+			volumeMounts = append(volumeMounts, volume.VolumeMount{
 				Volume:    volumesByHandle[h],
 				MountPath: m,
 			})
@@ -149,9 +150,9 @@ func (container *gardenWorkerContainer) setVolumes(
 	logger lager.Logger,
 	handlesJSON string,
 	baggageclaimClient baggageclaim.Client,
-	volumeFactory VolumeFactory,
-) (map[string]Volume, error) {
-	volumesByHandle := map[string]Volume{}
+	volumeFactory volume.VolumeFactory,
+) (map[string]volume.Volume, error) {
+	volumesByHandle := map[string]volume.Volume{}
 
 	var handles []string
 	err := json.Unmarshal([]byte(handlesJSON), &handles)
@@ -159,7 +160,7 @@ func (container *gardenWorkerContainer) setVolumes(
 		return nil, err
 	}
 
-	volumes := []Volume{}
+	volumes := []volume.Volume{}
 	for _, h := range handles {
 		volumeLogger := logger.Session("volume", lager.Data{
 			"handle": h,

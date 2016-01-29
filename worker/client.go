@@ -7,6 +7,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/volume"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -31,8 +32,8 @@ type Container interface {
 
 	Release(time.Duration)
 
-	Volumes() []Volume
-	VolumeMounts() []VolumeMount
+	Volumes() []volume.Volume
+	VolumeMounts() []volume.VolumeMount
 }
 
 type Identifier db.ContainerIdentifier

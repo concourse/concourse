@@ -9,6 +9,7 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/volume"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
@@ -45,7 +46,7 @@ type GardenWorkerDB interface {
 type gardenWorker struct {
 	gardenClient       garden.Client
 	baggageclaimClient baggageclaim.Client
-	volumeFactory      VolumeFactory
+	volumeFactory      volume.VolumeFactory
 
 	db       GardenWorkerDB
 	provider WorkerProvider
@@ -62,7 +63,7 @@ type gardenWorker struct {
 func NewGardenWorker(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
-	volumeFactory VolumeFactory,
+	volumeFactory volume.VolumeFactory,
 	db GardenWorkerDB,
 	provider WorkerProvider,
 	clock clock.Clock,
