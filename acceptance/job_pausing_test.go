@@ -145,6 +145,27 @@ var _ = Describe("Job Pausing", func() {
 				Eventually(page.Find("#job-state.btn-pause.disabled")).Should(BeFound())
 				Eventually(page.Find("#job-state.btn-pause.enabled")).ShouldNot(BeFound())
 			})
+
+			Describe("paused pipeline", func() {
+				BeforeEach(func() {
+					pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(atc.DefaultTeamName, atc.DefaultPipelineName)
+					Expect(err).NotTo(HaveOccurred())
+					err = pipelineDB.Pause()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("displays a blue header", func() {
+					// homepage -> job detail w/build info
+					Expect(page.Navigate(homepage())).To(Succeed())
+					// we will need to authenticate later to prove it is working for our page
+					Authenticate(page, "admin", "password")
+
+					Expect(page.Navigate(withPath("jobs/job-name"))).To(Succeed())
+
+					// top bar should show the pipeline is paused
+					Eventually(page.Find(".js-groups.paused")).Should(BeFound())
+				})
+			})
 		})
 	})
 })

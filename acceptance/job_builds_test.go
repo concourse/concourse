@@ -205,6 +205,28 @@ var _ = Describe("Job Builds", func() {
 				Expect(page.Find(".builds-list li:first-child .outputs .resource-version .dict-key")).To(HaveText("thing"))
 				Expect(page.Find(".builds-list li:first-child .outputs .resource-version .dict-value")).To(HaveText("output-version"))
 			})
+
+			Describe("paused pipeline", func() {
+				BeforeEach(func() {
+					pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(teamName, atc.DefaultPipelineName)
+					Expect(err).NotTo(HaveOccurred())
+					err = pipelineDB.Pause()
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("displays a blue header", func() {
+					// homepage -> job detail w/build info
+					Expect(page.Navigate(homepage())).To(Succeed())
+					// we will need to authenticate later to prove it is working for our page
+					Authenticate(page, "admin", "password")
+
+					Expect(page.Navigate(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID)))).To(Succeed())
+
+					Screenshot(page)
+					// top bar should show the pipeline is paused
+					Eventually(page.Find(".js-groups.paused")).Should(BeFound())
+				})
+			})
 		})
 	})
 })
