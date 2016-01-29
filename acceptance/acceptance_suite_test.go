@@ -91,11 +91,24 @@ func Authenticate(page *agouti.Page, username, password string) {
 }
 
 const BASIC_AUTH = "basic"
+const BASIC_AUTH_NO_PASSWORD = "basic-no-password"
+const BASIC_AUTH_NO_USERNAME = "basic-no-username"
 const GITHUB_AUTH = "github"
 const DEVELOPMENT_MODE = "dev"
 const NO_AUTH = DEVELOPMENT_MODE
 
 func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, authTypes ...string) (ifrit.Process, uint16) {
+	atcCommand, atcPort := getATCCommand(atcBin, atcServerNumber, publiclyViewable, authTypes...)
+	atcRunner := ginkgomon.New(ginkgomon.Config{
+		Command:       atcCommand,
+		Name:          "atc",
+		StartCheck:    "atc.listening",
+		AnsiColorCode: "32m",
+	})
+	return ginkgomon.Invoke(atcRunner), atcPort
+}
+
+func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool, authTypes ...string) (*exec.Cmd, uint16) {
 	atcPort := 5697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 	debugPort := 6697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 
@@ -113,12 +126,21 @@ func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, auth
 	}
 
 	for _, authType := range authTypes {
-		if authType == BASIC_AUTH {
+		switch authType {
+		case BASIC_AUTH:
 			params = append(params,
 				"--basic-auth-username", "admin",
 				"--basic-auth-password", "password",
 			)
-		} else if authType == GITHUB_AUTH {
+		case BASIC_AUTH_NO_PASSWORD:
+			params = append(params,
+				"--basic-auth-username", "admin",
+			)
+		case BASIC_AUTH_NO_USERNAME:
+			params = append(params,
+				"--basic-auth-password", "password",
+			)
+		case GITHUB_AUTH:
 			params = append(params,
 				"--github-auth-client-id", "admin",
 				"--github-auth-client-secret", "password",
@@ -127,18 +149,14 @@ func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, auth
 				"--github-auth-user", "myuser",
 				"--external-url", "http://example.com",
 			)
-		} else if authType == DEVELOPMENT_MODE {
+		case DEVELOPMENT_MODE:
 			params = append(params, "--development-mode")
+		default:
+			panic("unknown auth type")
 		}
 	}
 
 	atcCommand := exec.Command(atcBin, params...)
-	atcRunner := ginkgomon.New(ginkgomon.Config{
-		Command:       atcCommand,
-		Name:          "atc",
-		StartCheck:    "atc.listening",
-		AnsiColorCode: "32m",
-	})
 
-	return ginkgomon.Invoke(atcRunner), atcPort
+	return atcCommand, atcPort
 }

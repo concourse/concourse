@@ -303,7 +303,11 @@ func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
 }
 
 func (cmd *ATCCommand) authConfigured() bool {
-	return cmd.BasicAuth.Username != "" || cmd.gitHubAuthConfigured()
+	return cmd.basicAuthConfigured() || cmd.gitHubAuthConfigured()
+}
+
+func (cmd *ATCCommand) basicAuthConfigured() bool {
+	return cmd.BasicAuth.Username != "" || cmd.BasicAuth.Password != ""
 }
 
 func (cmd *ATCCommand) gitHubAuthConfigured() bool {
@@ -334,6 +338,21 @@ func (cmd *ATCCommand) validate() error {
 			errs = multierror.Append(
 				errs,
 				errors.New("must specify --github-auth-client-id and --github-auth-client-secret to use GitHub OAuth"),
+			)
+		}
+	}
+
+	if cmd.basicAuthConfigured() {
+		if cmd.BasicAuth.Username == "" {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify --basic-auth-username to use basic auth"),
+			)
+		}
+		if cmd.BasicAuth.Password == "" {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify --basic-auth-password to use basic auth"),
 			)
 		}
 	}

@@ -12,6 +12,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -86,6 +88,24 @@ var _ = Describe("Auth", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 			Expect(resp.Request.URL.Path).To(Equal("/"))
+		})
+	})
+
+	Context("when basic auth is misconfigured", func() {
+		It("errors when only username is specified", func() {
+			atcCommand, _ := getATCCommand(atcBin, 1, false, BASIC_AUTH_NO_PASSWORD)
+			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must specify --basic-auth-password to use basic auth"))
+		})
+
+		It("errors when only password is specified", func() {
+			atcCommand, _ := getATCCommand(atcBin, 1, false, BASIC_AUTH_NO_USERNAME)
+			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must specify --basic-auth-username to use basic auth"))
 		})
 	})
 
