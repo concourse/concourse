@@ -1407,14 +1407,37 @@ var _ = Describe("PipelineDB", func() {
 				Expect(groups).To(Equal(pipelineConfig.Groups))
 				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
 
-				By("returning a job's most recent unfinished build")
+				By("returning a job's most recent pending build if there are no running builds")
 				jobBuildOld, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
+				expectedDashboard[0].NextBuild = &jobBuildOld
+
+				actualDashboard, _, err = pipelineDB.GetDashboard()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+
+				By("returning a job's most recent started build")
+				sqlDB.StartBuild(jobBuildOld.ID, "engine", "metadata")
+
+				var found bool
+				jobBuildOld, found, err = sqlDB.GetBuild(jobBuildOld.ID)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				expectedDashboard[0].NextBuild = &jobBuildOld
+
+				actualDashboard, _, err = pipelineDB.GetDashboard()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
+
+				By("returning a job's most recent started build even if there is a newer pending build")
 				jobBuild, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				expectedDashboard[0].NextBuild = &jobBuild
+				expectedDashboard[0].NextBuild = &jobBuildOld
 
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
@@ -1425,7 +1448,6 @@ var _ = Describe("PipelineDB", func() {
 				err = sqlDB.FinishBuild(jobBuild.ID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
-				var found bool
 				jobBuild, found, err = sqlDB.GetBuild(jobBuild.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
@@ -1441,6 +1463,10 @@ var _ = Describe("PipelineDB", func() {
 				By("returning a job's most recent finished build even when there is a newer unfinished build")
 				jobBuildNew, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
+				sqlDB.StartBuild(jobBuildNew.ID, "engine", "metadata")
+				jobBuildNew, found, err = sqlDB.GetBuild(jobBuildNew.ID)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
 				expectedDashboard[0].FinishedBuild = &jobBuild
 				expectedDashboard[0].NextBuild = &jobBuildNew

@@ -1841,7 +1841,12 @@ func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
 		return nil, nil, err
 	}
 
-	nextBuilds, err := pdb.getLastJobBuildsSatisfying("b.status IN ('pending', 'started')")
+	startedBuilds, err := pdb.getLastJobBuildsSatisfying("b.status = 'started'")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pendingBuilds, err := pdb.getLastJobBuildsSatisfying("b.status = 'pending'")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1862,8 +1867,10 @@ func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
 			JobConfig: job,
 		}
 
-		if nextBuild, found := nextBuilds[job.Name]; found {
-			dashboardJob.NextBuild = &nextBuild
+		if startedBuild, found := startedBuilds[job.Name]; found {
+			dashboardJob.NextBuild = &startedBuild
+		} else if pendingBuild, found := pendingBuilds[job.Name]; found {
+			dashboardJob.NextBuild = &pendingBuild
 		}
 
 		if finishedBuild, found := finishedBuilds[job.Name]; found {
