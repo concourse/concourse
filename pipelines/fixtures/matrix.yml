@@ -18,12 +18,18 @@ jobs:
               run:
                 path: touch
                 args: [file]
+              outputs:
+              - name: passing-unit-1
+                path: .
           - task: passing-unit-2
             config:
               platform: linux
               run:
                 path: touch
                 args: [file]
+              outputs:
+              - name: passing-unit-2
+                path: .
       - task: curl-server
         config:
           platform: linux

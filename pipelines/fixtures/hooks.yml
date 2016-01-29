@@ -53,24 +53,25 @@ jobs:
           image: {{testflight-helper-image}}
           inputs:
             - name: some-git-resource
-              path: .
           params:
             CURL_COMMAND: {{guid-server-curl-command}}
           run:
             path: sh
-            args: ["-c", "tail -1 guids | $CURL_COMMAND"]
+            args: ["-c", "tail -1 some-git-resource/guids | $CURL_COMMAND && cp -r some-git-resource/. curl-server-output"]
+          outputs:
+          - name: curl-server-output
         ensure:
           put: some-git-resource-ensure-success
           params:
-            repository: curl-server
+            repository: curl-server-output
         on_success:
           put: some-git-resource-success
           params:
-            repository: curl-server
+            repository: curl-server-output
         on_failure:
           put: some-git-resource-no-update
           params:
-            repository: curl-server
+            repository: curl-server-output
 
   - name: some-failing-job
     plan:
@@ -81,22 +82,23 @@ jobs:
           platform: linux
           inputs:
             - name: some-git-resource
-              path: .
           run:
             path: sh
-            args: ["-c", "exit 1"]
+            args: ["-c", "cp -r some-git-resource/. fail-output && exit 1"]
+          outputs:
+            - name: fail-output
         ensure:
           put: some-git-resource-ensure-failure
           params:
-            repository: fail
+            repository: fail-output
         on_success:
           put: some-git-resource-no-update
           params:
-            repository: fail
+            repository: fail-output
         on_failure:
           put: some-git-resource-failure
           params:
-            repository: fail
+            repository: fail-output
 
   - name: some-aborted-job
     plan:
@@ -107,12 +109,12 @@ jobs:
           platform: linux
           inputs:
             - name: some-git-resource
-              path: .
           run:
             path: sh
-            args: ["-c", "sleep 5"]
+            args: ["-c", "cp -r some-git-resource/. ensure-output && sleep 5"]
+          outputs:
+            - name: ensure-output
         ensure:
           put: some-git-resource-ensure-abort
           params:
-            repository: ensure
-       
+            repository: ensure-output

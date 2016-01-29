@@ -36,12 +36,13 @@ jobs:
           image: {{testflight-helper-image}}
           inputs:
             - name: some-git-resource
-              path: .
           params:
             CURL_COMMAND: {{guid-server-curl-command}}
           run:
             path: sh
-            args: ["-c", "tail -1 guids | $CURL_COMMAND"]
+            args: ["-c", "tail -1 some-git-resource/guids | $CURL_COMMAND && cp -r some-git-resource/. curl-server-output"]
+          outputs:
+          - name: curl-server-output
       - task: timeout-task
         timeout: 5s
         config:
@@ -52,12 +53,12 @@ jobs:
         on_success:
           put: some-git-resource-success
           params:
-            repository: curl-server
+            repository: curl-server-output
         on_failure:
           put: some-git-resource-failure
           params:
-            repository: curl-server
+            repository: curl-server-output
         ensure:
           put: some-git-resource-ensure
           params:
-            repository: curl-server
+            repository: curl-server-output

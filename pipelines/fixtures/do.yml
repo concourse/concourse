@@ -31,19 +31,20 @@ jobs:
       image: {{testflight-helper-image}}
       inputs:
         - name: some-git-resource
-          path: .
       params:
         CURL_COMMAND: {{guid-server-curl-command}}
       run:
         path: sh
-        args: ["-c", "tail -1 guids | $CURL_COMMAND"]
+        args: ["-c", "tail -1 some-git-resource/guids | $CURL_COMMAND && cp -r some-git-resource/. curl-server-output"]
+      outputs:
+        - name: curl-server-output
   - do:
     - put: some-git-resource-do-1
       params:
-        repository: curl-server
+        repository: curl-server-output
     - put: some-git-resource-do-2
       params:
-        repository: curl-server
+        repository: curl-server-output
     - put: some-git-resource-do-3
       params:
-        repository: curl-server
+        repository: curl-server-output
