@@ -290,6 +290,20 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
+			Context("when not specifying a config file", func() {
+				It("fails and says you should give a config file", func() {
+					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-p", "awesome-pipeline")
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(1))
+
+					Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("c", "config") + "' was not specified"))
+				})
+			})
+
 			Context("when configuring succeeds", func() {
 				BeforeEach(func() {
 					newGroup := changedConfig.Groups[1]
