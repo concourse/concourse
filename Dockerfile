@@ -16,7 +16,7 @@ RUN apt-get update && apt-get -y install postgresql
 RUN apt-get update && apt-get -y install nodejs-legacy
 
 # Git (for elm-package)
-RUN apt-get update && apt-get -y install git
+RUN apt-get update && apt-get -y install git || apt-get -f install
 
 # install selenium-driver wrapper binary for Agouti
 RUN echo '#!/bin/sh' >> /usr/local/bin/selenium-server && \
