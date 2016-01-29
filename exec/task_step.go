@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/volume"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
@@ -231,7 +232,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		var imageResource resource.Resource
 
 		if config.ImageResource != nil {
-			imageResource, err = step.getContainerImage(signals, chosenWorker, config)
+			imageResource, err = image.GetContainerImage(step.logger, signals, step.trackerFactory, step.containerID, step.metadata, step.delegate, chosenWorker, config)
 			if err != nil {
 				return err
 			}
@@ -524,106 +525,6 @@ func (step *TaskStep) inputDestination(config atc.TaskInputConfig) string {
 	}
 
 	return filepath.Join(step.artifactsRoot, subdir)
-}
-
-func (step *TaskStep) getContainerImage(signals <-chan os.Signal, worker worker.Client, config atc.TaskConfig) (resource.Resource, error) {
-	tracker := step.trackerFactory.TrackerFor(worker)
-
-	resourceType := resource.ResourceType(config.ImageResource.Type)
-
-	checkSess := resource.Session{
-		ID:       step.containerID,
-		Metadata: step.metadata,
-	}
-
-	checkSess.ID.Stage = db.ContainerStageCheck
-	checkSess.ID.CheckType = config.ImageResource.Type
-	checkSess.ID.CheckSource = config.ImageResource.Source
-	checkSess.Metadata.Type = db.ContainerTypeCheck
-	checkSess.Metadata.WorkingDirectory = ""
-	checkSess.Metadata.EnvironmentVariables = nil
-
-	checkingResource, err := tracker.Init(
-		step.logger.Session("check-image"),
-		resource.EmptyMetadata{},
-		checkSess,
-		resourceType,
-		nil,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	defer checkingResource.Release(0)
-
-	versions, err := checkingResource.Check(config.ImageResource.Source, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(versions) == 0 {
-		return nil, ErrImageUnavailable
-	}
-
-	cacheID := resource.ResourceCacheIdentifier{
-		Type:    resourceType,
-		Version: versions[0],
-		Source:  config.ImageResource.Source,
-	}
-
-	volumeID := cacheID.VolumeIdentifier()
-
-	err = step.delegate.SaveImageResourceVersion(volumeID)
-	if err != nil {
-		return nil, err
-	}
-
-	getSess := resource.Session{
-		ID:       step.containerID,
-		Metadata: step.metadata,
-	}
-
-	getSess.ID.Stage = db.ContainerStageGet
-	getSess.Metadata.Type = db.ContainerTypeGet
-	getSess.Metadata.WorkingDirectory = ""
-	getSess.Metadata.EnvironmentVariables = nil
-
-	getResource, cache, err := tracker.InitWithCache(
-		step.logger.Session("init-image"),
-		resource.EmptyMetadata{},
-		getSess,
-		resourceType,
-		nil,
-		cacheID,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	isInitialized, err := cache.IsInitialized()
-	if err != nil {
-		return nil, err
-	}
-
-	if !isInitialized {
-		versionedSource := getResource.Get(
-			resource.IOConfig{
-				Stderr: step.delegate.Stderr(),
-			},
-			config.ImageResource.Source,
-			nil,
-			versions[0],
-		)
-
-		err := versionedSource.Run(signals, make(chan struct{}))
-		if err != nil {
-			return nil, err
-		}
-
-		cache.Initialize()
-	}
-
-	return getResource, nil
 }
 
 func (step *TaskStep) ensureBuildDirExists(container garden.Container) error {
