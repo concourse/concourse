@@ -142,7 +142,6 @@ func (factory *gardenFactory) Task(
 	workerMetadata.WorkingDirectory = workingDirectory
 	return newTaskStep(
 		logger,
-		sourceName,
 		id,
 		workerMetadata,
 		tags,

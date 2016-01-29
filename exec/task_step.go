@@ -39,17 +39,12 @@ func (err MissingInputsError) Error() string {
 // has no versions.
 var ErrImageUnavailable = errors.New("no versions of image available")
 
-type ErrImageGetDidNotProduceVolume error
-
-func NewErrImageGetDidNotProduceVolume(taskName string) ErrImageGetDidNotProduceVolume {
-	return fmt.Errorf("getting the image for task '%s' did not produce a volume", taskName)
-}
+var ErrImageGetDidNotProduceVolume = errors.New("getting the image for the task did not produce a volume")
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
 // SourceRepository and outputs will be added to the SourceRepository.
 type TaskStep struct {
 	logger         lager.Logger
-	sourceName     SourceName
 	containerID    worker.Identifier
 	metadata       worker.Metadata
 	tags           atc.Tags
@@ -70,7 +65,6 @@ type TaskStep struct {
 
 func newTaskStep(
 	logger lager.Logger,
-	sourceName SourceName,
 	containerID worker.Identifier,
 	metadata worker.Metadata,
 	tags atc.Tags,
@@ -83,7 +77,6 @@ func newTaskStep(
 ) TaskStep {
 	return TaskStep{
 		logger:         logger,
-		sourceName:     sourceName,
 		containerID:    containerID,
 		metadata:       metadata,
 		tags:           tags,
@@ -248,7 +241,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			}
 
 			if !found {
-				return NewErrImageGetDidNotProduceVolume(string(step.sourceName))
+				return ErrImageGetDidNotProduceVolume
 			}
 
 			containerSpec.ImageVolume = imageVolume
@@ -357,25 +350,21 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 }
 
 func (step *TaskStep) registerSource(config atc.TaskConfig) {
-	if len(config.Outputs) == 0 {
-		step.repo.RegisterSource(step.sourceName, step)
-	} else {
-		volumeMounts := step.container.VolumeMounts()
+	volumeMounts := step.container.VolumeMounts()
 
-		for _, output := range config.Outputs {
-			if len(volumeMounts) > 0 {
-				outputPath := artifactsPath(output, step.artifactsRoot)
+	for _, output := range config.Outputs {
+		if len(volumeMounts) > 0 {
+			outputPath := artifactsPath(output, step.artifactsRoot)
 
-				for _, mount := range volumeMounts {
-					if mount.MountPath == outputPath {
-						source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, mount.Volume.Handle())
-						step.repo.RegisterSource(SourceName(output.Name), source)
-					}
+			for _, mount := range volumeMounts {
+				if mount.MountPath == outputPath {
+					source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, mount.Volume.Handle())
+					step.repo.RegisterSource(SourceName(output.Name), source)
 				}
-			} else {
-				source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
-				step.repo.RegisterSource(SourceName(output.Name), source)
 			}
+		} else {
+			source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
+			step.repo.RegisterSource(SourceName(output.Name), source)
 		}
 	}
 }

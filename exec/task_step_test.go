@@ -477,13 +477,7 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						Context("when the configuration specifies paths for outputs", func() {
-							var inputSource *fakes.FakeArtifactSource
-							var otherInputSource *fakes.FakeArtifactSource
-
 							BeforeEach(func() {
-								inputSource = new(fakes.FakeArtifactSource)
-								otherInputSource = new(fakes.FakeArtifactSource)
-
 								configSource.FetchConfigReturns(atc.TaskConfig{
 									Platform: "some-platform",
 									Image:    "some-image",
@@ -566,8 +560,8 @@ var _ = Describe("GardenFactory", func() {
 									})
 
 									It("does not register the task as a source", func() {
-										_, found := repo.SourceFor(sourceName)
-										Expect(found).To(BeFalse())
+										sourceMap := repo.AsMap()
+										Expect(sourceMap).To(ConsistOf(artifactSource1, artifactSource2, artifactSource3))
 									})
 
 									Describe("streaming to a destination", func() {
@@ -913,6 +907,49 @@ var _ = Describe("GardenFactory", func() {
 									})
 								})
 							})
+
+							Context("when the process is interrupted", func() {
+								BeforeEach(func() {
+									stopped := make(chan struct{})
+
+									fakeProcess.WaitStub = func() (int, error) {
+										defer GinkgoRecover()
+
+										<-stopped
+										return 128 + 15, nil
+									}
+
+									fakeContainer.StopStub = func(bool) error {
+										defer GinkgoRecover()
+
+										close(stopped)
+										return nil
+									}
+								})
+
+								It("stops the container", func() {
+									process.Signal(os.Interrupt)
+									Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
+									Expect(fakeContainer.StopCallCount()).To(Equal(1))
+								})
+
+								It("registers the outputs as sources", func() {
+									process.Signal(os.Interrupt)
+									Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
+
+									artifactSource1, found := repo.SourceFor("some-output")
+									Expect(found).To(BeTrue())
+
+									artifactSource2, found := repo.SourceFor("some-other-output")
+									Expect(found).To(BeTrue())
+
+									artifactSource3, found := repo.SourceFor("some-trailing-slash-output")
+									Expect(found).To(BeTrue())
+
+									sourceMap := repo.AsMap()
+									Expect(sourceMap).To(ConsistOf(artifactSource1, artifactSource2, artifactSource3))
+								})
+							})
 						})
 
 						Context("when the process exits 0", func() {
@@ -956,160 +993,11 @@ var _ = Describe("GardenFactory", func() {
 								})
 							})
 
-							Describe("the registered source", func() {
-								var artifactSource ArtifactSource
+							It("doesn't register a source", func() {
+								Eventually(process.Wait()).Should(Receive(BeNil()))
 
-								JustBeforeEach(func() {
-									Eventually(process.Wait()).Should(Receive(BeNil()))
-
-									var found bool
-									artifactSource, found = repo.SourceFor(sourceName)
-									Expect(found).To(BeTrue())
-								})
-
-								Describe("streaming to a destination", func() {
-									var fakeDestination *fakes.FakeArtifactDestination
-
-									BeforeEach(func() {
-										fakeDestination = new(fakes.FakeArtifactDestination)
-									})
-
-									Context("when the resource can stream out", func() {
-										var streamedOut io.ReadCloser
-
-										BeforeEach(func() {
-											streamedOut = gbytes.NewBuffer()
-											fakeContainer.StreamOutReturns(streamedOut, nil)
-										})
-
-										It("streams the resource to the destination", func() {
-											err := artifactSource.StreamTo(fakeDestination)
-											Expect(err).NotTo(HaveOccurred())
-
-											Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
-											spec := fakeContainer.StreamOutArgsForCall(0)
-											Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/"))
-											Expect(spec.User).To(Equal("")) // use default
-
-											Expect(fakeDestination.StreamInCallCount()).To(Equal(1))
-											dest, src := fakeDestination.StreamInArgsForCall(0)
-											Expect(dest).To(Equal("."))
-											Expect(src).To(Equal(streamedOut))
-										})
-
-										Context("when streaming out of the versioned source fails", func() {
-											disaster := errors.New("nope")
-
-											BeforeEach(func() {
-												fakeContainer.StreamOutReturns(nil, disaster)
-											})
-
-											It("returns the error", func() {
-												Expect(artifactSource.StreamTo(fakeDestination)).To(Equal(disaster))
-											})
-										})
-
-										Context("when streaming in to the destination fails", func() {
-											disaster := errors.New("nope")
-
-											BeforeEach(func() {
-												fakeDestination.StreamInReturns(disaster)
-											})
-
-											It("returns the error", func() {
-												Expect(artifactSource.StreamTo(fakeDestination)).To(Equal(disaster))
-											})
-										})
-									})
-
-									Context("when the container cannot stream out", func() {
-										disaster := errors.New("nope")
-
-										BeforeEach(func() {
-											fakeContainer.StreamOutReturns(nil, disaster)
-										})
-
-										It("returns the error", func() {
-											Expect(artifactSource.StreamTo(fakeDestination)).To(Equal(disaster))
-										})
-									})
-								})
-
-								Describe("streaming a file out", func() {
-									Context("when the container can stream out", func() {
-										var (
-											fileContent = "file-content"
-
-											tarBuffer *gbytes.Buffer
-										)
-
-										BeforeEach(func() {
-											tarBuffer = gbytes.NewBuffer()
-											fakeContainer.StreamOutReturns(tarBuffer, nil)
-										})
-
-										Context("when the file exists", func() {
-											BeforeEach(func() {
-												tarWriter := tar.NewWriter(tarBuffer)
-
-												err := tarWriter.WriteHeader(&tar.Header{
-													Name: "some-file",
-													Mode: 0644,
-													Size: int64(len(fileContent)),
-												})
-												Expect(err).NotTo(HaveOccurred())
-
-												_, err = tarWriter.Write([]byte(fileContent))
-												Expect(err).NotTo(HaveOccurred())
-											})
-
-											It("streams out the given path", func() {
-												reader, err := artifactSource.StreamFile("some-path")
-												Expect(err).NotTo(HaveOccurred())
-
-												Expect(ioutil.ReadAll(reader)).To(Equal([]byte(fileContent)))
-
-												spec := fakeContainer.StreamOutArgsForCall(0)
-												Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-path"))
-												Expect(spec.User).To(Equal("")) // use default
-											})
-
-											Describe("closing the stream", func() {
-												It("closes the stream from the versioned source", func() {
-													reader, err := artifactSource.StreamFile("some-path")
-													Expect(err).NotTo(HaveOccurred())
-
-													Expect(tarBuffer.Closed()).To(BeFalse())
-
-													err = reader.Close()
-													Expect(err).NotTo(HaveOccurred())
-
-													Expect(tarBuffer.Closed()).To(BeTrue())
-												})
-											})
-										})
-
-										Context("but the stream is empty", func() {
-											It("returns ErrFileNotFound", func() {
-												_, err := artifactSource.StreamFile("some-path")
-												Expect(err).To(MatchError(FileNotFoundError{Path: "some-path"}))
-											})
-										})
-									})
-
-									Context("when the container cannot stream out", func() {
-										disaster := errors.New("nope")
-
-										BeforeEach(func() {
-											fakeContainer.StreamOutReturns(nil, disaster)
-										})
-
-										It("returns the error", func() {
-											_, err := artifactSource.StreamFile("some-path")
-											Expect(err).To(Equal(disaster))
-										})
-									})
-								})
+								sourceMap := repo.AsMap()
+								Expect(sourceMap).To(BeEmpty())
 							})
 
 							Context("when saving the exit status succeeds", func() {
@@ -1288,7 +1176,7 @@ var _ = Describe("GardenFactory", func() {
 							})
 						})
 
-						Describe("signalling", func() {
+						Context("when the process is interrupted", func() {
 							BeforeEach(func() {
 								stopped := make(chan struct{})
 
@@ -1313,11 +1201,12 @@ var _ = Describe("GardenFactory", func() {
 								Expect(fakeContainer.StopCallCount()).To(Equal(1))
 							})
 
-							It("registers the source", func() {
+							It("doesn't register a source", func() {
 								process.Signal(os.Interrupt)
 								Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
-								_, found := repo.SourceFor(sourceName)
-								Expect(found).To(BeTrue())
+
+								sourceMap := repo.AsMap()
+								Expect(sourceMap).To(BeEmpty())
 							})
 						})
 
@@ -1756,7 +1645,7 @@ var _ = Describe("GardenFactory", func() {
 													})
 
 													It("returns an appropriate error", func() {
-														Expect(<-process.Wait()).To(Equal(NewErrImageGetDidNotProduceVolume("some-source-name")))
+														Expect(<-process.Wait()).To(Equal(ErrImageGetDidNotProduceVolume))
 													})
 												})
 
@@ -1952,137 +1841,164 @@ var _ = Describe("GardenFactory", func() {
 				fakeContainer = new(wfakes.FakeContainer)
 				fakeWorkerClient.FindContainerForIdentifierReturns(fakeContainer, true, nil)
 			})
-
-			Context("when an exit status is already saved off", func() {
+			Context("when the configuration specifies paths for outputs", func() {
 				BeforeEach(func() {
-					fakeContainer.PropertyStub = func(name string) (string, error) {
-						defer GinkgoRecover()
-
-						switch name {
-						case "concourse:exit-status":
-							return "123", nil
-						default:
-							return "", errors.New("unstubbed property: " + name)
-						}
-					}
+					configSource.FetchConfigReturns(atc.TaskConfig{
+						Platform: "some-platform",
+						Image:    "some-image",
+						Params:   map[string]string{"SOME": "params"},
+						Run: atc.TaskRunConfig{
+							Path: "ls",
+							Args: []string{"some", "args"},
+						},
+						Outputs: []atc.TaskOutputConfig{
+							{Name: "some-output", Path: "some-output-configured-path"},
+							{Name: "some-other-output"},
+							{Name: "some-trailing-slash-output", Path: "some-output-configured-path-with-trailing-slash/"},
+						},
+					}, nil)
 				})
 
-				It("exits with success", func() {
-					Eventually(process.Wait()).Should(Receive(BeNil()))
-				})
-
-				It("does not attach to any process", func() {
-					Expect(fakeContainer.AttachCallCount()).To(BeZero())
-				})
-
-				It("is not successful", func() {
-					Eventually(process.Wait()).Should(Receive(BeNil()))
-
-					var success Success
-					Expect(step.Result(&success)).To(BeTrue())
-					Expect(bool(success)).To(BeFalse())
-				})
-
-				It("reports its exit status", func() {
-					Eventually(process.Wait()).Should(Receive(BeNil()))
-
-					var status ExitStatus
-					Expect(step.Result(&status)).To(BeTrue())
-					Expect(status).To(Equal(ExitStatus(123)))
-				})
-
-				It("does not invoke the delegate's Started callback", func() {
-					Eventually(process.Wait()).Should(Receive(BeNil()))
-					Expect(taskDelegate.StartedCallCount()).To(BeZero())
-				})
-
-				It("does not invoke the delegate's Finished callback", func() {
-					Eventually(process.Wait()).Should(Receive(BeNil()))
-					Expect(taskDelegate.FinishedCallCount()).To(BeZero())
-				})
-
-				It("re-registers the source", func() {
-					_, found := repo.SourceFor(sourceName)
-					Expect(found).To(BeTrue())
-				})
-			})
-
-			Context("when the process id can be found", func() {
-				BeforeEach(func() {
-					fakeContainer.PropertyStub = func(name string) (string, error) {
-						defer GinkgoRecover()
-
-						switch name {
-						case "concourse:task-process":
-							return "process-id", nil
-						default:
-							return "", errors.New("unstubbed property: " + name)
-						}
-					}
-				})
-
-				Context("when attaching to the process succeeds", func() {
-					var fakeProcess *gfakes.FakeProcess
-
+				Context("when an exit status is already saved off", func() {
 					BeforeEach(func() {
-						fakeProcess = new(gfakes.FakeProcess)
-						fakeContainer.AttachReturns(fakeProcess, nil)
+						fakeContainer.PropertyStub = func(name string) (string, error) {
+							defer GinkgoRecover()
+
+							switch name {
+							case "concourse:exit-status":
+								return "123", nil
+							default:
+								return "", errors.New("unstubbed property: " + name)
+							}
+						}
 					})
 
-					It("attaches to the correct process", func() {
-						Expect(fakeContainer.AttachCallCount()).To(Equal(1))
-
-						pid, _ := fakeContainer.AttachArgsForCall(0)
-						Expect(pid).To(Equal("process-id"))
+					It("exits with success", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
 					})
 
-					It("directs the process's stdout/stderr to the io config", func() {
-						Expect(fakeContainer.AttachCallCount()).To(Equal(1))
+					It("does not attach to any process", func() {
+						Expect(fakeContainer.AttachCallCount()).To(BeZero())
+					})
 
-						_, pio := fakeContainer.AttachArgsForCall(0)
-						Expect(pio.Stdout).To(Equal(stdoutBuf))
-						Expect(pio.Stderr).To(Equal(stderrBuf))
+					It("is not successful", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+
+						var success Success
+						Expect(step.Result(&success)).To(BeTrue())
+						Expect(bool(success)).To(BeFalse())
+					})
+
+					It("reports its exit status", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+
+						var status ExitStatus
+						Expect(step.Result(&status)).To(BeTrue())
+						Expect(status).To(Equal(ExitStatus(123)))
 					})
 
 					It("does not invoke the delegate's Started callback", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
 						Expect(taskDelegate.StartedCallCount()).To(BeZero())
+					})
+
+					It("does not invoke the delegate's Finished callback", func() {
+						Eventually(process.Wait()).Should(Receive(BeNil()))
+						Expect(taskDelegate.FinishedCallCount()).To(BeZero())
+					})
+
+					It("re-registers the outputs as sources", func() {
+						artifactSource1, found := repo.SourceFor("some-output")
+						Expect(found).To(BeTrue())
+
+						artifactSource2, found := repo.SourceFor("some-other-output")
+						Expect(found).To(BeTrue())
+
+						artifactSource3, found := repo.SourceFor("some-trailing-slash-output")
+						Expect(found).To(BeTrue())
+
+						sourceMap := repo.AsMap()
+						Expect(sourceMap).To(ConsistOf(artifactSource1, artifactSource2, artifactSource3))
 					})
 				})
 
-				Context("when attaching to the process fails", func() {
+				Context("when the process id can be found", func() {
+					BeforeEach(func() {
+						fakeContainer.PropertyStub = func(name string) (string, error) {
+							defer GinkgoRecover()
+
+							switch name {
+							case "concourse:task-process":
+								return "process-id", nil
+							default:
+								return "", errors.New("unstubbed property: " + name)
+							}
+						}
+					})
+
+					Context("when attaching to the process succeeds", func() {
+						var fakeProcess *gfakes.FakeProcess
+
+						BeforeEach(func() {
+							fakeProcess = new(gfakes.FakeProcess)
+							fakeContainer.AttachReturns(fakeProcess, nil)
+						})
+
+						It("attaches to the correct process", func() {
+							Expect(fakeContainer.AttachCallCount()).To(Equal(1))
+
+							pid, _ := fakeContainer.AttachArgsForCall(0)
+							Expect(pid).To(Equal("process-id"))
+						})
+
+						It("directs the process's stdout/stderr to the io config", func() {
+							Expect(fakeContainer.AttachCallCount()).To(Equal(1))
+
+							_, pio := fakeContainer.AttachArgsForCall(0)
+							Expect(pio.Stdout).To(Equal(stdoutBuf))
+							Expect(pio.Stderr).To(Equal(stderrBuf))
+						})
+
+						It("does not invoke the delegate's Started callback", func() {
+							Expect(taskDelegate.StartedCallCount()).To(BeZero())
+						})
+					})
+
+					Context("when attaching to the process fails", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeContainer.AttachReturns(nil, disaster)
+						})
+
+						It("exits with the error", func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+						})
+
+						It("invokes the delegate's Failed callback", func() {
+							Eventually(process.Wait()).Should(Receive(Equal(disaster)))
+							Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+							Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
+						})
+					})
+				})
+
+				Context("when the process id cannot be found", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
-						fakeContainer.AttachReturns(nil, disaster)
+						fakeContainer.PropertyReturns("", disaster)
 					})
 
-					It("exits with the error", func() {
+					It("exits with the failure", func() {
 						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 					})
 
 					It("invokes the delegate's Failed callback", func() {
 						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-						Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+						Eventually(taskDelegate.FailedCallCount()).Should(Equal(1))
 						Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 					})
-				})
-			})
-
-			Context("when the process id cannot be found", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeContainer.PropertyReturns("", disaster)
-				})
-
-				It("exits with the failure", func() {
-					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-				})
-
-				It("invokes the delegate's Failed callback", func() {
-					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
-					Eventually(taskDelegate.FailedCallCount()).Should(Equal(1))
-					Expect(taskDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 				})
 			})
 		})
