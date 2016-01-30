@@ -11,11 +11,10 @@ fi
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
 
-cp deployments/ci/config/private.yml concourse/config/private.yml
-
 gzip -c resource-image/rootfs.tar > ${RESOURCE_NAME}.tar.gz
 
 git clone concourse bumped-concourse
+cp deployments/ci/config/private.yml bumped-concourse/config/private.yml
 
 cd bumped-concourse/
 
