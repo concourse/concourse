@@ -64,7 +64,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: git-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: pool-resource
   serial: true
@@ -91,7 +91,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: pool-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: docker-image-resource
   serial: true
@@ -118,7 +118,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: docker-image-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: time-resource
   serial: true
@@ -144,7 +144,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: time-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: archive-resource
   serial: true
@@ -171,7 +171,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: archive-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: bosh-deployment-resource
   serial: true
@@ -198,7 +198,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: bosh-deployment-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: broker-resource
   serial: true
@@ -238,7 +238,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: s3-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: github-release-resource
   serial: true
@@ -249,13 +249,13 @@ jobs:
       trigger: true
     - get: github-release-resource
       trigger: true
-  - task: unit
+  - task: unit-and-build
     file: github-release-resource/build.yml
   - put: resource-image
     resource: github-release-resource-image
     params:
       load_base: progrium-busybox-image
-      build: unit/gopath/src/github.com/concourse/github-release-resource
+      build: built-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -264,7 +264,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: github-release-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: cf-resource
   serial: true
@@ -297,7 +297,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: cf-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: semver-resource
   serial: true
@@ -330,7 +330,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: semver-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: bosh-io-release-resource
   serial: true
@@ -355,7 +355,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: bosh-io-release-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: bosh-io-stemcell-resource
   serial: true
@@ -382,7 +382,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: bosh-io-stemcell-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: tracker-resource
   serial: true
@@ -410,7 +410,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: tracker-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 - name: vagrant-cloud-resource
   serial: true
@@ -435,7 +435,7 @@ jobs:
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: vagrant-cloud-resource}}
   - put: concourse
-    params: {repository: bump-package/concourse, rebase: true}
+    params: {repository: bumped-concourse, rebase: true}
 
 resources:
 - name: git-resource
