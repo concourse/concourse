@@ -82,7 +82,7 @@ jobs:
     resource: pool-resource-image
     params:
       load_base: busybox-git-image
-      build: unit/gopath/src/github.com/concourse/pool-resource
+      build: built-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -129,13 +129,13 @@ jobs:
       trigger: true
     - get: time-resource
       trigger: true
-  - task: unit
+  - task: unit-and-build
     file: time-resource/build.yml
   - put: resource-image
     resource: time-resource-image
     params:
       load_base: busybox-image
-      build: unit/gopath/src/github.com/concourse/time-resource
+      build: built-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -156,13 +156,13 @@ jobs:
       trigger: true
     - get: archive-resource
       trigger: true
-  - task: unit
+  - task: build
     file: archive-resource/build.yml
   - put: resource-image
     resource: archive-resource-image
     params:
       load_base: busybox-git-image
-      build: unit/build-root
+      build: built-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -229,7 +229,7 @@ jobs:
     resource: s3-resource-image
     params:
       load_base: progrium-busybox-image
-      build: unit/gopath/src/github.com/concourse/s3-resource
+      build: built-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -288,7 +288,7 @@ jobs:
     resource: cf-resource-image
     params:
       load_base: progrium-busybox-image
-      build: resource-unit/gopath/src/github.com/concourse/cf-resource
+      build: built-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -321,7 +321,7 @@ jobs:
     resource: semver-resource-image
     params:
       load_base: busybox-git-image
-      build: unit/gopath/src/github.com/concourse/semver-resource
+      build: built-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
@@ -401,7 +401,7 @@ jobs:
     resource: tracker-resource-image
     params:
       load_base: busybox-git-image
-      build: unit/build-root
+      build: built-resource
     get_params: {rootfs: true}
   - aggregate:
     - get: deployments
