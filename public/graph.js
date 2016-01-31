@@ -107,39 +107,38 @@ Graph.prototype.edges = function() {
 };
 
 Graph.prototype.layout = function() {
-  var columns = [];
+  var rankGroups = [];
 
   for (var i in this._nodes) {
     var node = this._nodes[i];
 
-    var columnIdx = node.column();
-    var column = columns[columnIdx];
-    if (!column) {
-      column = new Column(columnIdx);
-      columns[columnIdx] = column;
+    var rankGroupIdx = node.rank();
+    var rankGroup = rankGroups[rankGroupIdx];
+    if (!rankGroup) {
+      rankGroup = new RankGroup(rankGroupIdx);
+      rankGroups[rankGroupIdx] = rankGroup;
     }
 
-    column.nodes.push(node);
+    rankGroup.nodes.push(node);
   }
 
   for (var i in this._nodes) {
     var node = this._nodes[i];
 
-    var column = node.column();
+    var rankGroup = node.rank();
 
-    var columnOffset = 0;
-    for (var c in columns) {
-      if (c < column) {
-        columnOffset += columns[c].width() + 50;
+    var rankGroupOffset = 0;
+    for (var c in rankGroups) {
+      if (c < rankGroup) {
+        rankGroupOffset += rankGroups[c].width() + 50;
       }
     }
 
-    node._position.x = columnOffset + ((columns[column].width() - node.width()) / 2);
+    node._position.x = rankGroupOffset + ((rankGroups[rankGroup].width() - node.width()) / 2);
 
     node._edgeKeys.sort(function(a, b) {
       var targetA = node._edgeTargets[a];
       var targetB = node._edgeTargets[b];
-
       if (targetA && !targetB) {
         return -1;
       } else if (!targetA && targetB) {
@@ -161,9 +160,9 @@ Graph.prototype.layout = function() {
   // first pass: initial rough sorting and layout
   // second pass: detangle now that we know downstream positioning
   for (var repeat = 0; repeat < 2; repeat++) {
-    for (var c in columns) {
-      columns[c].sortNodes();
-      columns[c].layout();
+    for (var c in rankGroups) {
+      rankGroups[c].sortNodes();
+      rankGroups[c].layout();
     }
   }
 }
@@ -217,15 +216,15 @@ Graph.prototype.computeRanks = function() {
     for (var n in backwardNodes) {
       var node = backwardNodes[n];
 
-      // for all upstream nodes, determine rightmost possible column by taking
-      // the minimum rank of all downstream nodes and placing it in the rank
-      // immediately preceding it
+      // for all upstream nodes, determine latest possible rank group by
+      // taking the minimum rank of all downstream nodes and placing it in the
+      // rank immediately preceding it
       for (var e in node._inEdges) {
         var prevNode = node._inEdges[e].source.node;
 
-        var rightmostRank = prevNode.rightmostPossibleRank();
-        if (rightmostRank !== undefined) {
-          prevNode._cachedRank = rightmostRank;
+        var latestRank = prevNode.latestPossibleRank();
+        if (latestRank !== undefined) {
+          prevNode._cachedRank = latestRank;
         }
 
         prevNodes[prevNode.id] = prevNode;
@@ -332,14 +331,14 @@ Graph.prototype.addSpacingNodes = function() {
   }
 }
 
-function Column(idx) {
+function RankGroup(idx) {
   this.index = idx;
   this.nodes = [];
 
   this._spacing = 10;
 }
 
-Column.prototype.sortNodes = function() {
+RankGroup.prototype.sortNodes = function() {
   var nodes = this.nodes;
 
   var before = this.nodes.slice();
@@ -422,13 +421,13 @@ Column.prototype.sortNodes = function() {
   return changed;
 }
 
-Column.prototype.mark = function() {
+RankGroup.prototype.mark = function() {
   for (var i in this.nodes) {
-    this.nodes[i].columnMarked = true;
+    this.nodes[i].rankGroupMarked = true;
   }
 }
 
-Column.prototype.width = function() {
+RankGroup.prototype.width = function() {
   var width = 0;
 
   for (var i in this.nodes) {
@@ -438,7 +437,7 @@ Column.prototype.width = function() {
   return width;
 }
 
-Column.prototype.layout = function() {
+RankGroup.prototype.layout = function() {
   var rollingOffset = 0;
 
   for (var i in this.nodes) {
@@ -536,29 +535,25 @@ Node.prototype.animationRadius = function() {
   return 0
 }
 
-Node.prototype.column = function() {
-  return this.rank();
-};
-
 Node.prototype.rank = function() {
   return this._cachedRank;
 }
 
-Node.prototype.rightmostPossibleRank = function() {
-  var rightmostRank;
+Node.prototype.latestPossibleRank = function() {
+  var latestRank;
 
   for (var o in this._outEdges) {
     var prevTargetNode = this._outEdges[o].target.node;
     var targetPrecedingRank = prevTargetNode.rank() - 1;
 
-    if (rightmostRank === undefined) {
-      rightmostRank = targetPrecedingRank;
+    if (latestRank === undefined) {
+      latestRank = targetPrecedingRank;
     } else {
-      rightmostRank = Math.min(rightmostRank, targetPrecedingRank);
+      latestRank = Math.min(latestRank, targetPrecedingRank);
     }
   }
 
-  return rightmostRank;
+  return latestRank;
 }
 
 Node.prototype.dependsOn = function(node, stack) {
