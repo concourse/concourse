@@ -313,7 +313,7 @@ Graph.prototype.addSpacingNodes = function() {
       }
 
       for (var i = 0; i < (delta - 1); i++) {
-        var spacerID = edge.source.node.id + "-spacing-" + i;
+        var spacerID = edge.id() + "-spacing-" + i;
 
         var spacingNode = this.node(spacerID);
         if (!spacingNode) {
