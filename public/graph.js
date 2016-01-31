@@ -153,6 +153,14 @@ Graph.prototype.layout = function() {
         }
       }
 
+      var sourceA = node._edgeSources[a];
+      var sourceB = node._edgeSources[b];
+      if (sourceA && !sourceB) {
+        return -1;
+      } else if (!sourceA && sourceB) {
+        return 1;
+      }
+
       return compareNames(a, b);
     });
   }
