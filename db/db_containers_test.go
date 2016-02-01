@@ -143,6 +143,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.PipelineID).To(Equal(savedPipeline.ID))
 		Expect(actualContainer.PipelineName).To(Equal(savedPipeline.Name))
 		Expect(actualContainer.BuildID).To(Equal(0))
+		Expect(actualContainer.BuildName).To(Equal(""))
 		Expect(actualContainer.Type).To(Equal(db.ContainerTypeCheck))
 		Expect(actualContainer.ContainerMetadata.WorkerName).To(Equal(containerToCreate.WorkerName))
 		Expect(actualContainer.WorkingDirectory).To(Equal(containerToCreate.WorkingDirectory))
@@ -242,6 +243,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.PipelineID).To(Equal(savedPipeline.ID))
 		Expect(actualContainer.PipelineName).To(Equal(containerToCreate.PipelineName))
 		Expect(actualContainer.StepName).To(Equal(containerToCreate.StepName))
+		Expect(actualContainer.BuildName).To(Equal(""))
 		Expect(actualContainer.Type).To(Equal(containerToCreate.Type))
 		Expect(actualContainer.WorkingDirectory).To(Equal(containerToCreate.WorkingDirectory))
 		Expect(actualContainer.EnvironmentVariables).To(Equal(containerToCreate.EnvironmentVariables))
@@ -256,6 +258,42 @@ var _ = Describe("Keeping track of containers", func() {
 		_, found, err = database.GetContainer("nope")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeFalse())
+	})
+
+	It("can populate metadata that was omitted when creating the container", func() {
+		savedBuild, err := pipelineDB.CreateJobBuild("some-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		containerToCreate := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				BuildID: savedBuild.ID,
+				PlanID:  "some-plan-id",
+				Stage:   db.ContainerStageRun,
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:               "some-handle",
+				WorkerName:           "some-worker",
+				PipelineName:         "some-pipeline",
+				StepName:             "some-step-container",
+				Type:                 db.ContainerTypeTask,
+				WorkingDirectory:     "tmp/build/some-guid",
+				EnvironmentVariables: []string{"VAR1=val1", "VAR2=val2"},
+				Attempts:             []int{1, 2, 4},
+			},
+		}
+
+		By("creating a container with optional metadata fields omitted")
+		_, err = database.CreateContainer(containerToCreate, time.Minute)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("populating those fields when retrieving the container")
+		actualContainer, found, err := database.GetContainer("some-handle")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+
+		Expect(actualContainer.BuildName).To(Equal(savedBuild.Name))
+		Expect(actualContainer.PipelineID).To(Equal(savedPipeline.ID))
+		Expect(actualContainer.JobName).To(Equal("some-job"))
 	})
 
 	It("can update the time to live for a container info object", func() {
@@ -398,7 +436,7 @@ var _ = Describe("Keeping track of containers", func() {
 		expectedHandles        []string
 	}
 
-	DescribeTable("filtering containers by metadata",
+	DescribeTable("filtering containers by descriptors",
 		func(exampleGenerator func() findContainersByDescriptorsExample) {
 			var results []db.Container
 			var handles []string
@@ -907,6 +945,110 @@ var _ = Describe("Keeping track of containers", func() {
 				},
 				descriptorsToFilterFor: db.Container{ContainerMetadata: db.ContainerMetadata{JobName: "some-job"}},
 				expectedHandles:        []string{"b"},
+			}
+		}),
+
+		Entry("returns containers where the build ID matches", func() findContainersByDescriptorsExample {
+			someBuildID := getJobBuildID("some-job")
+			someOtherBuildID := getJobBuildID("some-job")
+			return findContainersByDescriptorsExample{
+				containersToCreate: []db.Container{
+					{
+						ContainerIdentifier: db.ContainerIdentifier{
+							Stage:   db.ContainerStageRun,
+							BuildID: someBuildID,
+							PlanID:  "plan-id",
+						},
+						ContainerMetadata: db.ContainerMetadata{
+							Type:         db.ContainerTypeTask,
+							WorkerName:   "some-worker",
+							PipelineName: "some-pipeline",
+							JobName:      "some-job",
+							Handle:       "a",
+						},
+					},
+					{
+						ContainerIdentifier: db.ContainerIdentifier{
+							Stage:   db.ContainerStageRun,
+							BuildID: someOtherBuildID,
+							PlanID:  "plan-id",
+						},
+						ContainerMetadata: db.ContainerMetadata{
+							Type:         db.ContainerTypeTask,
+							WorkerName:   "some-worker",
+							PipelineName: "some-pipeline",
+							JobName:      "some-other-job",
+							Handle:       "b",
+						},
+					},
+				},
+				descriptorsToFilterFor: db.Container{ContainerIdentifier: db.ContainerIdentifier{BuildID: someBuildID}},
+				expectedHandles:        []string{"a"},
+			}
+		}),
+
+		Entry("returns containers where the build name matches", func() findContainersByDescriptorsExample {
+			savedBuild1, err := pipelineDB.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			savedBuild2, err := pipelineDB.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			savedBuild3, err := pipelineDB.CreateJobBuild("some-other-job")
+			Expect(err).NotTo(HaveOccurred())
+			return findContainersByDescriptorsExample{
+				containersToCreate: []db.Container{
+					{
+						ContainerIdentifier: db.ContainerIdentifier{
+							Stage:   db.ContainerStageRun,
+							BuildID: savedBuild1.ID,
+							PlanID:  "plan-id",
+						},
+						ContainerMetadata: db.ContainerMetadata{
+							Type:         db.ContainerTypeTask,
+							WorkerName:   "some-worker",
+							PipelineName: "some-pipeline",
+							JobName:      "some-job",
+							Handle:       "a",
+						},
+					},
+					{
+						ContainerIdentifier: db.ContainerIdentifier{
+							Stage:   db.ContainerStageRun,
+							BuildID: savedBuild2.ID,
+							PlanID:  "plan-id",
+						},
+						ContainerMetadata: db.ContainerMetadata{
+							Type:         db.ContainerTypeTask,
+							WorkerName:   "some-worker",
+							PipelineName: "some-pipeline",
+							JobName:      "some-job",
+							BuildName:    savedBuild2.Name,
+							Handle:       "b",
+						},
+					},
+					{
+						ContainerIdentifier: db.ContainerIdentifier{
+							Stage:   db.ContainerStageRun,
+							BuildID: savedBuild3.ID,
+							PlanID:  "plan-id",
+						},
+						ContainerMetadata: db.ContainerMetadata{
+							Type:         db.ContainerTypeTask,
+							WorkerName:   "some-worker",
+							PipelineName: "some-pipeline",
+							JobName:      "some-other-job",
+							// purposefully re-use the original build name to test that it
+							// can return multiple containers
+							BuildName: savedBuild1.Name,
+							Handle:    "c",
+						},
+					},
+				},
+				descriptorsToFilterFor: db.Container{
+					ContainerMetadata: db.ContainerMetadata{
+						BuildName: savedBuild1.Name,
+					},
+				},
+				expectedHandles: []string{"a", "c"},
 			}
 		}),
 

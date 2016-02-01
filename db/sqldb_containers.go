@@ -73,6 +73,11 @@ func (db *SQLDB) FindContainersByDescriptors(id Container) ([]Container, error) 
 		params = append(params, id.CheckType)
 	}
 
+	if id.BuildName != "" {
+		whereCriteria = append(whereCriteria, fmt.Sprintf("b.name = $%d", len(params)+1))
+		params = append(params, id.BuildName)
+	}
+
 	var checkSourceBlob []byte
 	if id.CheckSource != nil {
 		checkSourceBlob, err = json.Marshal(id.CheckSource)
