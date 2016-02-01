@@ -579,6 +579,7 @@ Node.prototype.copy = function() {
     name: this.name,
     class: this.class,
     status: this.status,
+    repeatable: this.repeatable,
     key: this.key,
     url: this.url,
     svg: this.svg,
