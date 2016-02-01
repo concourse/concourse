@@ -1,3 +1,8 @@
+var KEY_HEIGHT = 20;
+var KEY_SPACING = 10;
+var RANK_GROUP_SPACING = 50;
+var NODE_PADDING = 5;
+
 function Graph() {
   this._nodes = {};
   this._edges = [];
@@ -130,7 +135,7 @@ Graph.prototype.layout = function() {
     var rankGroupOffset = 0;
     for (var c in rankGroups) {
       if (c < rankGroup) {
-        rankGroupOffset += rankGroups[c].width() + 50;
+        rankGroupOffset += rankGroups[c].width() + RANK_GROUP_SPACING;
       }
     }
 
@@ -522,21 +527,24 @@ Node.prototype.width = function() {
     }
   }
 
-  return this._cachedWidth + 10;
+  return this._cachedWidth + (NODE_PADDING * 2);
 }
 
 Node.prototype.height = function() {
   var keys = Math.max(this._edgeKeys.length, 1);
-  return (20 * keys) + (10 * (keys - 1));
+  return (KEY_HEIGHT * keys) + (KEY_SPACING * (keys - 1));
 }
 
 Node.prototype.position = function() {
-  return this._position;
+  return {
+    x: this._position.x,
+    y: (KEY_HEIGHT + KEY_SPACING) * this._keyOffset
+  }
 }
 
 /* spacing required for firefox to not clip ripple border animation */
 Node.prototype.animationRadius = function() {
-  if(this.class.search('job') > -1) {
+  if (this.class.search('job') > -1) {
     return 70
   }
 
@@ -683,9 +691,6 @@ Edge.prototype.path = function() {
 }
 
 function EdgeSource(node, key) {
-  // spacing between edge sources
-  this._spacing = 30;
-
   // Node
   this.node = node;
 
@@ -701,6 +706,10 @@ EdgeSource.prototype.height = function() {
   return 0;
 }
 
+EdgeSource.prototype.effectiveKeyOffset = function() {
+  return this.node._keyOffset + this.node._edgeKeys.indexOf(this.key);
+}
+
 EdgeSource.prototype.id = function() {
   return this.node.id + "-" + this.key + "-source";
 }
@@ -708,20 +717,11 @@ EdgeSource.prototype.id = function() {
 EdgeSource.prototype.position = function() {
   return {
     x: this.node.position().x + this.node.width(),
-    y: this.y()
+    y: (KEY_HEIGHT / 2) + this.effectiveKeyOffset() * (KEY_HEIGHT + KEY_SPACING)
   }
 };
 
-EdgeSource.prototype.y = function() {
-  var nodePosition = this.node.position();
-  var index = this.node._edgeKeys.indexOf(this.key);
-  return nodePosition.y + 10 + ((this.height() + this._spacing) * index)
-}
-
 function EdgeTarget(node, key) {
-  // spacing between edge targets
-  this._spacing = 30;
-
   // Node
   this.node = node;
 
@@ -735,6 +735,10 @@ EdgeTarget.prototype.width = function() {
 
 EdgeTarget.prototype.height = function() {
   return 0;
+}
+
+EdgeTarget.prototype.effectiveKeyOffset = function() {
+  return this.node._keyOffset + this.node._edgeKeys.indexOf(this.key);
 }
 
 EdgeTarget.prototype.rankOfFirstAppearance = function() {
@@ -781,16 +785,9 @@ EdgeTarget.prototype.id = function() {
 EdgeTarget.prototype.position = function() {
   return {
     x: this.node.position().x,
-    y: this.y()
+    y: (KEY_HEIGHT / 2) + this.effectiveKeyOffset() * (KEY_HEIGHT + KEY_SPACING)
   }
 };
-
-EdgeTarget.prototype.y = function() {
-  var nodePosition = this.node.position();
-  var index = this.node._edgeKeys.indexOf(this.key);
-
-  return nodePosition.y + 10 + ((this.height() + this._spacing) * index)
-}
 
 function compareNames(a, b) {
   var byLength = a.length - b.length;
