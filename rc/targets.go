@@ -84,9 +84,10 @@ func NewConnection(atcURL string, insecure bool) (concourse.Connection, error) {
 	}
 
 	var transport http.RoundTripper
-
+	
 	transport = &http.Transport{
 		TLSClientConfig: tlsConfig,
+		Proxy: http.ProxyFromEnvironment,
 	}
 
 	return concourse.NewConnection(atcURL, &http.Client{
@@ -133,6 +134,7 @@ func CommandTargetConnection(selectedTarget string, commandInsecure *bool) (conc
 
 	transport = &http.Transport{
 		TLSClientConfig: tlsConfig,
+		Proxy: http.ProxyFromEnvironment,
 	}
 
 	if token != nil {
