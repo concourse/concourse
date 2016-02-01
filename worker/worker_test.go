@@ -588,6 +588,9 @@ var _ = Describe("Worker", func() {
 							imageVolume.HandleReturns("image-volume")
 							imageVolume.PathReturns("/some/image/path")
 							image.VolumeReturns(imageVolume)
+							image.MetadataReturns(ImageMetadata{
+								Env: []string{"A=1", "B=2"},
+							})
 
 							fakeImageFetcher.FetchImageReturns(image, nil)
 						})
@@ -616,6 +619,13 @@ var _ = Describe("Worker", func() {
 							Expect(fetchMetadata).To(Equal(containerMetadata))
 							Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 							Expect(fetchWorker).To(Equal(gardenWorker))
+						})
+
+						It("creates the container with env from the image", func() {
+							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+							spec := fakeGardenClient.CreateArgsForCall(0)
+							Expect(spec.Env).To(Equal([]string{"A=1", "B=2"}))
 						})
 
 						Context("after the container is created", func() {

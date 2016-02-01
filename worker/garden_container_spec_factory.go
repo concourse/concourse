@@ -142,6 +142,8 @@ func (factory *gardenContainerSpecFactory) BuildTaskContainerSpec(
 		gardenSpec.RootFSPath = path.Join(imageVolume.Path(), "rootfs")
 		factory.volumeHandles = append(factory.volumeHandles, imageVolume.Handle())
 		factory.volumesToRelease = append(factory.volumesToRelease, imageVolume)
+
+		gardenSpec.Env = append(gardenSpec.Env, image.Metadata().Env...)
 	} else {
 		gardenSpec.RootFSPath = spec.Image
 	}

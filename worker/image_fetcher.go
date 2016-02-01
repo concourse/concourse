@@ -34,5 +34,9 @@ type ImageFetchingDelegate interface {
 
 type Image interface {
 	Volume() Volume
-	// Env() []string
+	Metadata() ImageMetadata
+}
+
+type ImageMetadata struct {
+	Env []string `json:"env"`
 }

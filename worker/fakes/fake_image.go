@@ -14,6 +14,12 @@ type FakeImage struct {
 	volumeReturns     struct {
 		result1 worker.Volume
 	}
+	MetadataStub        func() worker.ImageMetadata
+	metadataMutex       sync.RWMutex
+	metadataArgsForCall []struct{}
+	metadataReturns     struct {
+		result1 worker.ImageMetadata
+	}
 }
 
 func (fake *FakeImage) Volume() worker.Volume {
@@ -37,6 +43,30 @@ func (fake *FakeImage) VolumeReturns(result1 worker.Volume) {
 	fake.VolumeStub = nil
 	fake.volumeReturns = struct {
 		result1 worker.Volume
+	}{result1}
+}
+
+func (fake *FakeImage) Metadata() worker.ImageMetadata {
+	fake.metadataMutex.Lock()
+	fake.metadataArgsForCall = append(fake.metadataArgsForCall, struct{}{})
+	fake.metadataMutex.Unlock()
+	if fake.MetadataStub != nil {
+		return fake.MetadataStub()
+	} else {
+		return fake.metadataReturns.result1
+	}
+}
+
+func (fake *FakeImage) MetadataCallCount() int {
+	fake.metadataMutex.RLock()
+	defer fake.metadataMutex.RUnlock()
+	return len(fake.metadataArgsForCall)
+}
+
+func (fake *FakeImage) MetadataReturns(result1 worker.ImageMetadata) {
+	fake.MetadataStub = nil
+	fake.metadataReturns = struct {
+		result1 worker.ImageMetadata
 	}{result1}
 }
 
