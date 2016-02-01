@@ -439,7 +439,7 @@ func (execution *executionDelegate) Failed(err error) {
 	execution.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
-func (execution *executionDelegate) SaveImageResourceVersion(identifier db.VolumeIdentifier) error {
+func (execution *executionDelegate) ImageVersionDetermined(identifier db.VolumeIdentifier) error {
 	return execution.delegate.db.SaveImageResourceVersion(execution.delegate.buildID, atc.PlanID(execution.id), identifier)
 }
 

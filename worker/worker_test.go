@@ -3,6 +3,7 @@ package worker_test
 import (
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"time"
 
@@ -10,8 +11,6 @@ import (
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/volume"
-	vfakes "github.com/concourse/atc/volume/fakes"
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
 	"github.com/concourse/baggageclaim"
@@ -28,7 +27,8 @@ var _ = Describe("Worker", func() {
 		logger                 *lagertest.TestLogger
 		fakeGardenClient       *gfakes.FakeClient
 		fakeBaggageclaimClient *bfakes.FakeClient
-		fakeVolumeFactory      *vfakes.FakeVolumeFactory
+		fakeVolumeFactory      *wfakes.FakeVolumeFactory
+		fakeImageFetcher       *wfakes.FakeImageFetcher
 		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
 		fakeWorkerProvider     *wfakes.FakeWorkerProvider
 		fakeClock              *fakeclock.FakeClock
@@ -38,14 +38,15 @@ var _ = Describe("Worker", func() {
 		tags                   []string
 		workerName             string
 
-		worker Worker
+		gardenWorker Worker
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakeGardenClient = new(gfakes.FakeClient)
 		fakeBaggageclaimClient = new(bfakes.FakeClient)
-		fakeVolumeFactory = new(vfakes.FakeVolumeFactory)
+		fakeVolumeFactory = new(wfakes.FakeVolumeFactory)
+		fakeImageFetcher = new(wfakes.FakeImageFetcher)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeWorkerProvider = new(wfakes.FakeWorkerProvider)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
@@ -59,10 +60,11 @@ var _ = Describe("Worker", func() {
 	})
 
 	BeforeEach(func() {
-		worker = NewGardenWorker(
+		gardenWorker = NewGardenWorker(
 			fakeGardenClient,
 			fakeBaggageclaimClient,
 			fakeVolumeFactory,
+			fakeImageFetcher,
 			fakeGardenWorkerDB,
 			fakeWorkerProvider,
 			fakeClock,
@@ -84,6 +86,7 @@ var _ = Describe("Worker", func() {
 				fakeGardenClient,
 				baggageclaimClient,
 				fakeVolumeFactory,
+				fakeImageFetcher,
 				fakeGardenWorkerDB,
 				fakeWorkerProvider,
 				fakeClock,
@@ -120,9 +123,12 @@ var _ = Describe("Worker", func() {
 
 	Describe("CreateContainer", func() {
 		var (
-			logger      lager.Logger
-			containerID Identifier
-			spec        ContainerSpec
+			logger                    lager.Logger
+			signals                   <-chan os.Signal
+			fakeImageFetchingDelegate *wfakes.FakeImageFetchingDelegate
+			containerID               Identifier
+			containerMetadata         Metadata
+			spec                      ContainerSpec
 
 			createdContainer Container
 			createErr        error
@@ -131,13 +137,20 @@ var _ = Describe("Worker", func() {
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("test")
 
+			signals = make(chan os.Signal)
+			fakeImageFetchingDelegate = new(wfakes.FakeImageFetchingDelegate)
+
 			containerID = Identifier{
 				BuildID: 42,
+			}
+
+			containerMetadata = Metadata{
+				BuildName: "lol",
 			}
 		})
 
 		JustBeforeEach(func() {
-			createdContainer, createErr = worker.CreateContainer(logger, containerID, Metadata{}, spec)
+			createdContainer, createErr = gardenWorker.CreateContainer(logger, signals, fakeImageFetchingDelegate, containerID, containerMetadata, spec)
 		})
 
 		Context("with a resource type container spec", func() {
@@ -172,14 +185,13 @@ var _ = Describe("Worker", func() {
 					})
 
 					It("creates the container info in the database", func() {
-						expectedMetadata := db.ContainerMetadata{
-							WorkerName: workerName,
-							Handle:     "some-handle",
-						}
+						expectedMetadata := containerMetadata
+						expectedMetadata.WorkerName = workerName
+						expectedMetadata.Handle = "some-handle"
 
 						container := db.Container{
 							ContainerIdentifier: db.ContainerIdentifier(containerID),
-							ContainerMetadata:   expectedMetadata,
+							ContainerMetadata:   db.ContainerMetadata(expectedMetadata),
 						}
 
 						Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
@@ -247,7 +259,7 @@ var _ = Describe("Worker", func() {
 							BeforeEach(func() {
 								spec = ResourceTypeContainerSpec{
 									Type: "some-resource",
-									Mounts: []volume.VolumeMount{
+									Mounts: []VolumeMount{
 										{
 											Volume:    volume1,
 											MountPath: "/some/dst/path1",
@@ -345,7 +357,7 @@ var _ = Describe("Worker", func() {
 							BeforeEach(func() {
 								spec = ResourceTypeContainerSpec{
 									Type: "some-resource",
-									Cache: volume.VolumeMount{
+									Cache: VolumeMount{
 										Volume:    volume1,
 										MountPath: "/some/dst/path1",
 									},
@@ -381,11 +393,11 @@ var _ = Describe("Worker", func() {
 							BeforeEach(func() {
 								spec = ResourceTypeContainerSpec{
 									Type: "some-resource",
-									Cache: volume.VolumeMount{
+									Cache: VolumeMount{
 										Volume:    volume1,
 										MountPath: "/some/dst/path1",
 									},
-									Mounts: []volume.VolumeMount{
+									Mounts: []VolumeMount{
 										{
 											Volume:    volume1,
 											MountPath: "/some/dst/path1",
@@ -555,33 +567,81 @@ var _ = Describe("Worker", func() {
 					}))
 				})
 
-				Context("when an image volume is provided", func() {
-					var imageVolume *bfakes.FakeVolume
-
+				Context("when an image resource is provided", func() {
 					BeforeEach(func() {
-						imageVolume = new(bfakes.FakeVolume)
-						imageVolume.HandleReturns("image-volume")
-						imageVolume.PathReturns("/some/image/path")
-
 						spec = TaskContainerSpec{
-							ImageVolume: imageVolume,
+							ImageResource: &atc.TaskImageConfig{
+								Type:   "some-type",
+								Source: atc.Source{"some": "source"},
+							},
 						}
 					})
 
-					It("creates the container with (volume path)/rootfs as the rootfs", func() {
-						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					Context("when fetching the image succeeds", func() {
+						var image *wfakes.FakeImage
+						var imageVolume *bfakes.FakeVolume
 
-						spec := fakeGardenClient.CreateArgsForCall(0)
-						Expect(spec.RootFSPath).To(Equal("/some/image/path/rootfs"))
-						Expect(spec.Properties).To(HaveLen(2))
-						Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
-							`["image-volume"]`,
-						))
-						Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(`{}`))
+						BeforeEach(func() {
+							image = new(wfakes.FakeImage)
+
+							imageVolume = new(bfakes.FakeVolume)
+							imageVolume.HandleReturns("image-volume")
+							imageVolume.PathReturns("/some/image/path")
+							image.VolumeReturns(imageVolume)
+
+							fakeImageFetcher.FetchImageReturns(image, nil)
+						})
+
+						It("creates the container with (volume path)/rootfs as the rootfs", func() {
+							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+							spec := fakeGardenClient.CreateArgsForCall(0)
+							Expect(spec.RootFSPath).To(Equal("/some/image/path/rootfs"))
+							Expect(spec.Properties).To(HaveLen(2))
+							Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
+								`["image-volume"]`,
+							))
+							Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(`{}`))
+						})
+
+						It("fetches the image with the correct info", func() {
+							Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
+							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker := fakeImageFetcher.FetchImageArgsForCall(0)
+							Expect(fetchImageConfig).To(Equal(atc.TaskImageConfig{
+								Type:   "some-type",
+								Source: atc.Source{"some": "source"},
+							}))
+							Expect(fetchSignals).To(Equal(signals))
+							Expect(fetchID).To(Equal(containerID))
+							Expect(fetchMetadata).To(Equal(containerMetadata))
+							Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
+							Expect(fetchWorker).To(Equal(gardenWorker))
+						})
+
+						Context("after the container is created", func() {
+							BeforeEach(func() {
+								fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
+									Expect(imageVolume.ReleaseCallCount()).To(Equal(0))
+									return fakeContainer, nil
+								}
+							})
+
+							It("releases the image", func() {
+								Expect(imageVolume.ReleaseCallCount()).To(Equal(1))
+							})
+						})
 					})
 
-					It("does not release the volume", func() {
-						Expect(imageVolume.ReleaseCallCount()).To(Equal(0))
+					Context("when fetching the image fails", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeImageFetcher.FetchImageReturns(nil, disaster)
+						})
+
+						It("returns the error", func() {
+							Expect(createErr).To(Equal(disaster))
+						})
 					})
 				})
 
@@ -602,7 +662,7 @@ var _ = Describe("Worker", func() {
 
 						taskSpec = spec.(TaskContainerSpec)
 
-						taskSpec.Outputs = []volume.VolumeMount{
+						taskSpec.Outputs = []VolumeMount{
 							{
 								Volume:    volume1,
 								MountPath: "/tmp/dst/path",
@@ -688,7 +748,7 @@ var _ = Describe("Worker", func() {
 
 						taskSpec = spec.(TaskContainerSpec)
 
-						taskSpec.Inputs = []volume.VolumeMount{
+						taskSpec.Inputs = []VolumeMount{
 							{
 								Volume:    volume1,
 								MountPath: "/tmp/dst/path",
@@ -867,7 +927,7 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns the container and no error", func() {
-				foundContainer, found, err := worker.LookupContainer(logger, handle)
+				foundContainer, found, err := gardenWorker.LookupContainer(logger, handle)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -879,22 +939,22 @@ var _ = Describe("Worker", func() {
 				var findErr error
 
 				JustBeforeEach(func() {
-					foundContainer, _, findErr = worker.LookupContainer(logger, handle)
+					foundContainer, _, findErr = gardenWorker.LookupContainer(logger, handle)
 				})
 
 				Context("when the concourse:volumes property is present", func() {
 					var (
 						handle1Volume         *bfakes.FakeVolume
 						handle2Volume         *bfakes.FakeVolume
-						expectedHandle1Volume *vfakes.FakeVolume
-						expectedHandle2Volume *vfakes.FakeVolume
+						expectedHandle1Volume *wfakes.FakeVolume
+						expectedHandle2Volume *wfakes.FakeVolume
 					)
 
 					BeforeEach(func() {
 						handle1Volume = new(bfakes.FakeVolume)
 						handle2Volume = new(bfakes.FakeVolume)
-						expectedHandle1Volume = new(vfakes.FakeVolume)
-						expectedHandle2Volume = new(vfakes.FakeVolume)
+						expectedHandle1Volume = new(wfakes.FakeVolume)
+						expectedHandle2Volume = new(wfakes.FakeVolume)
 
 						fakeContainer.PropertiesReturns(garden.Properties{
 							"concourse:volumes":       `["handle-1","handle-2"]`,
@@ -911,7 +971,7 @@ var _ = Describe("Worker", func() {
 							}
 						}
 
-						fakeVolumeFactory.BuildStub = func(logger lager.Logger, vol baggageclaim.Volume) (volume.Volume, error) {
+						fakeVolumeFactory.BuildStub = func(logger lager.Logger, vol baggageclaim.Volume) (Volume, error) {
 							if vol == handle1Volume {
 								return expectedHandle1Volume, nil
 							} else if vol == handle2Volume {
@@ -924,7 +984,7 @@ var _ = Describe("Worker", func() {
 
 					Describe("Volumes", func() {
 						It("returns all bound volumes based on properties on the container", func() {
-							Expect(foundContainer.Volumes()).To(Equal([]volume.Volume{
+							Expect(foundContainer.Volumes()).To(Equal([]Volume{
 								expectedHandle1Volume,
 								expectedHandle2Volume,
 							}))
@@ -966,10 +1026,11 @@ var _ = Describe("Worker", func() {
 
 						Context("when there is no baggageclaim", func() {
 							BeforeEach(func() {
-								worker = NewGardenWorker(
+								gardenWorker = NewGardenWorker(
 									fakeGardenClient,
 									nil,
 									nil,
+									fakeImageFetcher,
 									fakeGardenWorkerDB,
 									fakeWorkerProvider,
 									fakeClock,
@@ -989,7 +1050,7 @@ var _ = Describe("Worker", func() {
 
 					Describe("VolumeMounts", func() {
 						It("returns all bound volumes based on properties on the container", func() {
-							Expect(foundContainer.VolumeMounts()).To(ConsistOf([]volume.VolumeMount{
+							Expect(foundContainer.VolumeMounts()).To(ConsistOf([]VolumeMount{
 								{Volume: expectedHandle1Volume, MountPath: "/handle-1/path"},
 								{Volume: expectedHandle2Volume, MountPath: "/handle-2/path"},
 							}))
@@ -1021,10 +1082,11 @@ var _ = Describe("Worker", func() {
 
 						Context("when there is no baggageclaim", func() {
 							BeforeEach(func() {
-								worker = NewGardenWorker(
+								gardenWorker = NewGardenWorker(
 									fakeGardenClient,
 									nil,
 									nil,
+									fakeImageFetcher,
 									fakeGardenWorkerDB,
 									fakeWorkerProvider,
 									fakeClock,
@@ -1077,7 +1139,7 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns false and no error", func() {
-				_, found, err := worker.LookupContainer(logger, handle)
+				_, found, err := gardenWorker.LookupContainer(logger, handle)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(found).To(BeFalse())
@@ -1093,7 +1155,7 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("returns nil and forwards the error", func() {
-				foundContainer, _, err := worker.LookupContainer(logger, handle)
+				foundContainer, _, err := gardenWorker.LookupContainer(logger, handle)
 				Expect(err).To(Equal(expectedErr))
 
 				Expect(foundContainer).To(BeNil())
@@ -1117,7 +1179,7 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
-			foundContainer, found, lookupErr = worker.FindContainerForIdentifier(logger, id)
+			foundContainer, found, lookupErr = gardenWorker.FindContainerForIdentifier(logger, id)
 		})
 
 		Context("when the container can be found", func() {
@@ -1308,10 +1370,11 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
-			worker = NewGardenWorker(
+			gardenWorker = NewGardenWorker(
 				fakeGardenClient,
 				fakeBaggageclaimClient,
 				fakeVolumeFactory,
+				fakeImageFetcher,
 				fakeGardenWorkerDB,
 				fakeWorkerProvider,
 				fakeClock,
@@ -1322,7 +1385,7 @@ var _ = Describe("Worker", func() {
 				workerName,
 			)
 
-			satisfyingWorker, satisfyingErr = worker.Satisfying(spec)
+			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(spec)
 		})
 
 		Context("when the platform is compatible", func() {
@@ -1346,7 +1409,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(worker))
+					Expect(satisfyingWorker).To(Equal(gardenWorker))
 				})
 
 				It("returns no error", func() {
@@ -1360,7 +1423,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(worker))
+					Expect(satisfyingWorker).To(Equal(gardenWorker))
 				})
 
 				It("returns no error", func() {
@@ -1374,7 +1437,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(worker))
+					Expect(satisfyingWorker).To(Equal(gardenWorker))
 				})
 
 				It("returns no error", func() {
@@ -1414,7 +1477,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(worker))
+					Expect(satisfyingWorker).To(Equal(gardenWorker))
 				})
 
 				It("returns no error", func() {
@@ -1428,7 +1491,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns the worker", func() {
-					Expect(satisfyingWorker).To(Equal(worker))
+					Expect(satisfyingWorker).To(Equal(gardenWorker))
 				})
 
 				It("returns no error", func() {

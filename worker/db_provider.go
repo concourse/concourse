@@ -12,7 +12,6 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/volume"
 )
 
 //go:generate counterfeiter . WorkerDB
@@ -35,10 +34,11 @@ type WorkerDB interface {
 var ErrMultipleWorkersWithName = errors.New("More than one worker has given worker name")
 
 type dbProvider struct {
-	logger      lager.Logger
-	db          WorkerDB
-	dialer      gconn.DialerFunc
-	retryPolicy RetryPolicy
+	logger       lager.Logger
+	db           WorkerDB
+	dialer       gconn.DialerFunc
+	retryPolicy  RetryPolicy
+	imageFetcher ImageFetcher
 }
 
 func NewDBWorkerProvider(
@@ -46,12 +46,14 @@ func NewDBWorkerProvider(
 	db WorkerDB,
 	dialer gconn.DialerFunc,
 	retryPolicy RetryPolicy,
+	imageFetcher ImageFetcher,
 ) WorkerProvider {
 	return &dbProvider{
-		logger:      logger,
-		db:          db,
-		dialer:      dialer,
-		retryPolicy: retryPolicy,
+		logger:       logger,
+		db:           db,
+		dialer:       dialer,
+		retryPolicy:  retryPolicy,
+		imageFetcher: imageFetcher,
 	}
 }
 
@@ -124,7 +126,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		bClient = bclient.New(savedWorker.BaggageclaimURL)
 	}
 
-	volumeFactory := volume.NewVolumeFactory(
+	volumeFactory := NewVolumeFactory(
 		provider.db,
 		tikTok,
 	)
@@ -133,6 +135,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		gclient.New(gardenConn),
 		bClient,
 		volumeFactory,
+		provider.imageFetcher,
 		provider.db,
 		provider,
 		tikTok,

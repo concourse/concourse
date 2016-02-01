@@ -1,4 +1,4 @@
-package volume_test
+package worker_test
 
 import (
 	"errors"
@@ -7,8 +7,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc/volume"
-	"github.com/concourse/atc/volume/fakes"
+	"github.com/concourse/atc/worker"
+	"github.com/concourse/atc/worker/fakes"
 	"github.com/concourse/baggageclaim"
 	bfakes "github.com/concourse/baggageclaim/fakes"
 	"github.com/pivotal-golang/clock/fakeclock"
@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("Volumes", func() {
 	var (
-		volumeFactory volume.VolumeFactory
+		volumeFactory worker.VolumeFactory
 		fakeVolume    *bfakes.FakeVolume
 		fakeDB        *fakes.FakeVolumeFactoryDB
 		fakeClock     *fakeclock.FakeClock
@@ -30,7 +30,7 @@ var _ = Describe("Volumes", func() {
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		logger = lagertest.NewTestLogger("test")
 
-		volumeFactory = volume.NewVolumeFactory(fakeDB, fakeClock)
+		volumeFactory = worker.NewVolumeFactory(fakeDB, fakeClock)
 	})
 
 	Context("VolumeFactory", func() {

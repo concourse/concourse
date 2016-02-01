@@ -29,12 +29,12 @@ type FakeTaskDelegate struct {
 	failedArgsForCall []struct {
 		arg1 error
 	}
-	SaveImageResourceVersionStub        func(db.VolumeIdentifier) error
-	saveImageResourceVersionMutex       sync.RWMutex
-	saveImageResourceVersionArgsForCall []struct {
+	ImageVersionDeterminedStub        func(db.VolumeIdentifier) error
+	imageVersionDeterminedMutex       sync.RWMutex
+	imageVersionDeterminedArgsForCall []struct {
 		arg1 db.VolumeIdentifier
 	}
-	saveImageResourceVersionReturns struct {
+	imageVersionDeterminedReturns struct {
 		result1 error
 	}
 	StdoutStub        func() io.Writer
@@ -135,34 +135,34 @@ func (fake *FakeTaskDelegate) FailedArgsForCall(i int) error {
 	return fake.failedArgsForCall[i].arg1
 }
 
-func (fake *FakeTaskDelegate) SaveImageResourceVersion(arg1 db.VolumeIdentifier) error {
-	fake.saveImageResourceVersionMutex.Lock()
-	fake.saveImageResourceVersionArgsForCall = append(fake.saveImageResourceVersionArgsForCall, struct {
+func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 db.VolumeIdentifier) error {
+	fake.imageVersionDeterminedMutex.Lock()
+	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
 		arg1 db.VolumeIdentifier
 	}{arg1})
-	fake.saveImageResourceVersionMutex.Unlock()
-	if fake.SaveImageResourceVersionStub != nil {
-		return fake.SaveImageResourceVersionStub(arg1)
+	fake.imageVersionDeterminedMutex.Unlock()
+	if fake.ImageVersionDeterminedStub != nil {
+		return fake.ImageVersionDeterminedStub(arg1)
 	} else {
-		return fake.saveImageResourceVersionReturns.result1
+		return fake.imageVersionDeterminedReturns.result1
 	}
 }
 
-func (fake *FakeTaskDelegate) SaveImageResourceVersionCallCount() int {
-	fake.saveImageResourceVersionMutex.RLock()
-	defer fake.saveImageResourceVersionMutex.RUnlock()
-	return len(fake.saveImageResourceVersionArgsForCall)
+func (fake *FakeTaskDelegate) ImageVersionDeterminedCallCount() int {
+	fake.imageVersionDeterminedMutex.RLock()
+	defer fake.imageVersionDeterminedMutex.RUnlock()
+	return len(fake.imageVersionDeterminedArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) SaveImageResourceVersionArgsForCall(i int) db.VolumeIdentifier {
-	fake.saveImageResourceVersionMutex.RLock()
-	defer fake.saveImageResourceVersionMutex.RUnlock()
-	return fake.saveImageResourceVersionArgsForCall[i].arg1
+func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) db.VolumeIdentifier {
+	fake.imageVersionDeterminedMutex.RLock()
+	defer fake.imageVersionDeterminedMutex.RUnlock()
+	return fake.imageVersionDeterminedArgsForCall[i].arg1
 }
 
-func (fake *FakeTaskDelegate) SaveImageResourceVersionReturns(result1 error) {
-	fake.SaveImageResourceVersionStub = nil
-	fake.saveImageResourceVersionReturns = struct {
+func (fake *FakeTaskDelegate) ImageVersionDeterminedReturns(result1 error) {
+	fake.ImageVersionDeterminedStub = nil
+	fake.imageVersionDeterminedReturns = struct {
 		result1 error
 	}{result1}
 }

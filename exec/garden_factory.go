@@ -27,12 +27,10 @@ type TrackerFactory interface {
 func NewGardenFactory(
 	workerClient worker.Client,
 	tracker resource.Tracker,
-	trackerFactory TrackerFactory,
 ) Factory {
 	return &gardenFactory{
-		workerClient:   workerClient,
-		tracker:        tracker,
-		trackerFactory: trackerFactory,
+		workerClient: workerClient,
+		tracker:      tracker,
 	}
 }
 

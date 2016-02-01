@@ -1,4 +1,4 @@
-package volume
+package worker
 
 import (
 	"sync"

@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource/fakes"
-	"github.com/concourse/atc/volume"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
 	"github.com/concourse/baggageclaim"
@@ -78,7 +77,7 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("creates a container with the resource's type, env, ephemeral information, and the session as the handle", func() {
-				_, id, containerMetadata, spec := workerClient.CreateContainerArgsForCall(0)
+				_, _, _, id, containerMetadata, spec := workerClient.CreateContainerArgsForCall(0)
 
 				Expect(id).To(Equal(session.ID))
 				Expect(containerMetadata).To(Equal(session.Metadata))
@@ -229,7 +228,7 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("creates the container with the cache volume", func() {
-							_, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+							_, _, _, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 							Expect(id).To(Equal(session.ID))
 							Expect(containerMetadata).To(Equal(session.Metadata))
@@ -239,7 +238,7 @@ var _ = Describe("Tracker", func() {
 							Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
 							Expect(resourceSpec.Ephemeral).To(Equal(true))
 							Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-							Expect(resourceSpec.Cache).To(Equal(volume.VolumeMount{
+							Expect(resourceSpec.Cache).To(Equal(worker.VolumeMount{
 								Volume:    foundVolume,
 								MountPath: "/tmp/build/get",
 							}))
@@ -359,7 +358,7 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("creates the container with the created cache volume", func() {
-							_, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+							_, _, _, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 							Expect(id).To(Equal(session.ID))
 							Expect(containerMetadata).To(Equal(session.Metadata))
@@ -369,7 +368,7 @@ var _ = Describe("Tracker", func() {
 							Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
 							Expect(resourceSpec.Ephemeral).To(Equal(true))
 							Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-							Expect(resourceSpec.Cache).To(Equal(volume.VolumeMount{
+							Expect(resourceSpec.Cache).To(Equal(worker.VolumeMount{
 								Volume:    createdVolume,
 								MountPath: "/tmp/build/get",
 							}))
@@ -452,7 +451,7 @@ var _ = Describe("Tracker", func() {
 					})
 
 					It("creates a container", func() {
-						_, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+						_, _, _, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))
@@ -535,7 +534,7 @@ var _ = Describe("Tracker", func() {
 
 				BeforeEach(func() {
 					cacheVolume = new(bfakes.FakeVolume)
-					fakeContainer.VolumesReturns([]volume.Volume{cacheVolume})
+					fakeContainer.VolumesReturns([]worker.Volume{cacheVolume})
 				})
 
 				Describe("the cache", func() {
@@ -606,7 +605,7 @@ var _ = Describe("Tracker", func() {
 
 			Context("when the container has no volumes", func() {
 				BeforeEach(func() {
-					fakeContainer.VolumesReturns([]volume.Volume{})
+					fakeContainer.VolumesReturns([]worker.Volume{})
 				})
 
 				Describe("the cache", func() {
@@ -726,7 +725,7 @@ var _ = Describe("Tracker", func() {
 
 					It("creates the container with the cache volume", func() {
 						Expect(satisfyingWorker.CreateContainerCallCount()).To(Equal(1))
-						_, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+						_, _, _, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))
@@ -736,7 +735,7 @@ var _ = Describe("Tracker", func() {
 						Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
 						Expect(resourceSpec.Ephemeral).To(BeTrue())
 						Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-						Expect(resourceSpec.Mounts).To(ConsistOf([]volume.VolumeMount{
+						Expect(resourceSpec.Mounts).To(ConsistOf([]worker.VolumeMount{
 							{
 								Volume:    inputVolume1,
 								MountPath: "/tmp/build/put/source-1-name",
@@ -781,7 +780,7 @@ var _ = Describe("Tracker", func() {
 
 					It("creates a container with no volumes", func() {
 						Expect(satisfyingWorker.CreateContainerCallCount()).To(Equal(1))
-						_, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+						_, _, _, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))

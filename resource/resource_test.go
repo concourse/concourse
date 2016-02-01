@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	. "github.com/concourse/atc/resource"
-	"github.com/concourse/atc/volume"
+	"github.com/concourse/atc/worker"
 	bfakes "github.com/concourse/baggageclaim/fakes"
 )
 
@@ -27,7 +27,7 @@ var _ = Describe("Resource", func() {
 
 			BeforeEach(func() {
 				vol1 = new(bfakes.FakeVolume)
-				fakeContainer.VolumesReturns([]volume.Volume{vol1})
+				fakeContainer.VolumesReturns([]worker.Volume{vol1})
 			})
 
 			It("returns the volume and true", func() {
@@ -48,7 +48,7 @@ var _ = Describe("Resource", func() {
 			BeforeEach(func() {
 				vol1 = new(bfakes.FakeVolume)
 				vol2 = new(bfakes.FakeVolume)
-				fakeContainer.VolumesReturns([]volume.Volume{vol1, vol2})
+				fakeContainer.VolumesReturns([]worker.Volume{vol1, vol2})
 			})
 
 			It("returns ErrMultipleVolumes", func() {
@@ -59,7 +59,7 @@ var _ = Describe("Resource", func() {
 
 		Context("when the container has no volumes", func() {
 			BeforeEach(func() {
-				fakeContainer.VolumesReturns([]volume.Volume{})
+				fakeContainer.VolumesReturns([]worker.Volume{})
 			})
 
 			It("returns no volume and false", func() {

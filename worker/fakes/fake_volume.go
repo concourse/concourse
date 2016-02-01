@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/atc/volume"
+	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 )
 
@@ -248,4 +248,4 @@ func (fake *FakeVolume) ReleaseArgsForCall(i int) time.Duration {
 	return fake.releaseArgsForCall[i].arg1
 }
 
-var _ volume.Volume = new(FakeVolume)
+var _ worker.Volume = new(FakeVolume)

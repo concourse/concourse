@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/concourse/atc/volume"
+	"github.com/concourse/atc"
 )
 
 type ContainerSpec interface {
@@ -42,10 +42,10 @@ type ResourceTypeContainerSpec struct {
 	Env       []string
 
 	// Not Copy-on-Write. Used for a single mount in Get containers.
-	Cache volume.VolumeMount
+	Cache VolumeMount
 
 	// Copy-on-Write. Used for mounting multiple resources into a Put container.
-	Mounts []volume.VolumeMount
+	Mounts []VolumeMount
 }
 
 func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {
@@ -56,13 +56,13 @@ func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {
 }
 
 type TaskContainerSpec struct {
-	Platform    string
-	Image       string
-	ImageVolume volume.Volume
-	Privileged  bool
-	Tags        []string
-	Inputs      []volume.VolumeMount
-	Outputs     []volume.VolumeMount
+	Platform      string
+	Image         string
+	ImageResource *atc.TaskImageConfig
+	Privileged    bool
+	Tags          []string
+	Inputs        []VolumeMount
+	Outputs       []VolumeMount
 }
 
 func (spec TaskContainerSpec) WorkerSpec() WorkerSpec {

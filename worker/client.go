@@ -2,19 +2,27 @@ package worker
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/volume"
 	"github.com/pivotal-golang/lager"
 )
 
 //go:generate counterfeiter . Client
 
 type Client interface {
-	CreateContainer(lager.Logger, Identifier, Metadata, ContainerSpec) (Container, error)
+	CreateContainer(
+		lager.Logger,
+		<-chan os.Signal,
+		ImageFetchingDelegate,
+		Identifier,
+		Metadata,
+		ContainerSpec,
+	) (Container, error)
+
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 
@@ -32,8 +40,8 @@ type Container interface {
 
 	Release(time.Duration)
 
-	Volumes() []volume.Volume
-	VolumeMounts() []volume.VolumeMount
+	Volumes() []Volume
+	VolumeMounts() []VolumeMount
 }
 
 type Identifier db.ContainerIdentifier

@@ -37,6 +37,9 @@ var _ = Describe("DBProvider", func() {
 		workerServer          *server.GardenServer
 		provider              WorkerProvider
 
+		fakeImageFetcher          *fakes.FakeImageFetcher
+		fakeImageFetchingDelegate *fakes.FakeImageFetchingDelegate
+
 		workers    []Worker
 		workersErr error
 	)
@@ -53,7 +56,10 @@ var _ = Describe("DBProvider", func() {
 		err := workerServer.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		provider = NewDBWorkerProvider(logger, fakeDB, nil, immediateRetryPolicy{})
+		fakeImageFetcher = new(fakes.FakeImageFetcher)
+		fakeImageFetchingDelegate = new(fakes.FakeImageFetchingDelegate)
+
+		provider = NewDBWorkerProvider(logger, fakeDB, nil, immediateRetryPolicy{}, fakeImageFetcher)
 	})
 
 	AfterEach(func() {
@@ -139,7 +145,7 @@ var _ = Describe("DBProvider", func() {
 					worker.LookupReturns(fakeContainer, nil)
 
 					By("connecting to the worker")
-					container, err := workers[0].CreateContainer(logger, id, Metadata{}, spec)
+					container, err := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -167,7 +173,7 @@ var _ = Describe("DBProvider", func() {
 				It("can continue to connect after the worker address changes", func() {
 					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: workerAddr}}, true, nil)
 
-					container, err := workers[0].CreateContainer(logger, id, Metadata{}, spec)
+					container, err := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = container.Destroy()
@@ -177,7 +183,7 @@ var _ = Describe("DBProvider", func() {
 				It("throws an error if the worker cannot be found", func() {
 					fakeDB.GetWorkerReturns(db.SavedWorker{}, false, nil)
 
-					_, err := workers[0].CreateContainer(logger, id, Metadata{}, spec)
+					_, err := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec)
 					Expect(err).To(HaveOccurred())
 					Expect(err).To(Equal(ErrMissingWorker))
 				})
@@ -186,7 +192,7 @@ var _ = Describe("DBProvider", func() {
 					expectedErr := errors.New("some-db-error")
 					fakeDB.GetWorkerReturns(db.SavedWorker{}, true, expectedErr)
 
-					_, actualErr := workers[0].CreateContainer(logger, id, Metadata{}, spec)
+					_, actualErr := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec)
 					Expect(actualErr).To(HaveOccurred())
 					Expect(actualErr).To(Equal(expectedErr))
 				})
@@ -208,7 +214,7 @@ var _ = Describe("DBProvider", func() {
 					worker.CreateReturns(fakeContainer, nil)
 					worker.LookupReturns(fakeContainer, nil)
 
-					container, err := workers[0].CreateContainer(logger, id, Metadata{}, spec)
+					container, err := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeDB.CreateContainerCallCount()).To(Equal(1))

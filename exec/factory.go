@@ -83,7 +83,7 @@ type TaskDelegate interface {
 	Finished(ExitStatus)
 	Failed(error)
 
-	SaveImageResourceVersion(db.VolumeIdentifier) error
+	ImageVersionDetermined(db.VolumeIdentifier) error
 
 	Stdout() io.Writer
 	Stderr() io.Writer

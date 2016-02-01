@@ -2,7 +2,6 @@ package image
 
 import (
 	"errors"
-	"io"
 	"os"
 
 	"github.com/concourse/atc"
@@ -12,26 +11,39 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-//go:generate counterfeiter . TaskDelegate
-
-type TaskDelegate interface {
-	SaveImageResourceVersion(db.VolumeIdentifier) error
-
-	Stdout() io.Writer
-	Stderr() io.Writer
-}
-
-var ErrImageUnavailable = errors.New("no versions of image available")
-
 //go:generate counterfeiter . TrackerFactory
 
 type TrackerFactory interface {
 	TrackerFor(client worker.Client) resource.Tracker
 }
 
-func GetContainerImage(logger lager.Logger, signals <-chan os.Signal, trackerFactory TrackerFactory, identifier worker.Identifier, metadata worker.Metadata, delegate TaskDelegate, worker worker.Client, config atc.TaskConfig) (resource.Resource, error) {
-	tracker := trackerFactory.TrackerFor(worker)
-	resourceType := resource.ResourceType(config.ImageResource.Type)
+// ErrImageUnavailable is returned when a task's configured image resource
+// has no versions.
+var ErrImageUnavailable = errors.New("no versions of image available")
+
+var ErrImageGetDidNotProduceVolume = errors.New("fetching the image did not produce a volume")
+
+type Fetcher struct {
+	trackerFactory TrackerFactory
+}
+
+func NewFetcher(trackerFactory TrackerFactory) Fetcher {
+	return Fetcher{
+		trackerFactory: trackerFactory,
+	}
+}
+
+func (fetcher Fetcher) FetchImage(
+	logger lager.Logger,
+	imageConfig atc.TaskImageConfig,
+	signals <-chan os.Signal,
+	identifier worker.Identifier,
+	metadata worker.Metadata,
+	delegate worker.ImageFetchingDelegate,
+	worker worker.Client,
+) (worker.Image, error) {
+	tracker := fetcher.trackerFactory.TrackerFor(worker)
+	resourceType := resource.ResourceType(imageConfig.Type)
 
 	checkSess := resource.Session{
 		ID:       identifier,
@@ -39,8 +51,8 @@ func GetContainerImage(logger lager.Logger, signals <-chan os.Signal, trackerFac
 	}
 
 	checkSess.ID.Stage = db.ContainerStageCheck
-	checkSess.ID.CheckType = config.ImageResource.Type
-	checkSess.ID.CheckSource = config.ImageResource.Source
+	checkSess.ID.CheckType = imageConfig.Type
+	checkSess.ID.CheckSource = imageConfig.Source
 	checkSess.Metadata.Type = db.ContainerTypeCheck
 	checkSess.Metadata.WorkingDirectory = ""
 	checkSess.Metadata.EnvironmentVariables = nil
@@ -58,7 +70,7 @@ func GetContainerImage(logger lager.Logger, signals <-chan os.Signal, trackerFac
 
 	defer checkingResource.Release(0)
 
-	versions, err := checkingResource.Check(config.ImageResource.Source, nil)
+	versions, err := checkingResource.Check(imageConfig.Source, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -70,12 +82,12 @@ func GetContainerImage(logger lager.Logger, signals <-chan os.Signal, trackerFac
 	cacheID := resource.ResourceCacheIdentifier{
 		Type:    resourceType,
 		Version: versions[0],
-		Source:  config.ImageResource.Source,
+		Source:  imageConfig.Source,
 	}
 
 	volumeID := cacheID.VolumeIdentifier()
 
-	err = delegate.SaveImageResourceVersion(volumeID)
+	err = delegate.ImageVersionDetermined(volumeID)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +124,7 @@ func GetContainerImage(logger lager.Logger, signals <-chan os.Signal, trackerFac
 			resource.IOConfig{
 				Stderr: delegate.Stderr(),
 			},
-			config.ImageResource.Source,
+			imageConfig.Source,
 			nil,
 			versions[0],
 		)
@@ -125,5 +137,24 @@ func GetContainerImage(logger lager.Logger, signals <-chan os.Signal, trackerFac
 		cache.Initialize()
 	}
 
-	return getResource, nil
+	volume, found, err := getResource.CacheVolume()
+	if err != nil {
+		return nil, err
+	}
+
+	if !found {
+		return nil, ErrImageGetDidNotProduceVolume
+	}
+
+	return resourceImage{
+		volume: volume,
+	}, nil
+}
+
+type resourceImage struct {
+	volume worker.Volume
+}
+
+func (image resourceImage) Volume() worker.Volume {
+	return image.volume
 }

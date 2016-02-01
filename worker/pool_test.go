@@ -280,6 +280,8 @@ var _ = Describe("Pool", func() {
 
 	Describe("Create", func() {
 		var (
+			fakeImageFetchingDelegate *fakes.FakeImageFetchingDelegate
+
 			id   Identifier
 			spec ContainerSpec
 
@@ -288,6 +290,7 @@ var _ = Describe("Pool", func() {
 		)
 
 		BeforeEach(func() {
+			fakeImageFetchingDelegate = new(fakes.FakeImageFetchingDelegate)
 			id = Identifier{
 				ResourceID: 1234,
 			}
@@ -295,7 +298,7 @@ var _ = Describe("Pool", func() {
 		})
 
 		JustBeforeEach(func() {
-			createdContainer, createErr = pool.CreateContainer(logger, id, Metadata{}, spec)
+			createdContainer, createErr = pool.CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec)
 		})
 
 		Context("with multiple workers", func() {
@@ -348,7 +351,7 @@ var _ = Describe("Pool", func() {
 
 			It("creates using a random worker", func() {
 				for i := 1; i < 100; i++ { // account for initial create in JustBefore
-					createdContainer, createErr := pool.CreateContainer(logger, id, Metadata{}, spec)
+					createdContainer, createErr := pool.CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec)
 					Expect(createErr).NotTo(HaveOccurred())
 					Expect(createdContainer).To(Equal(fakeContainer))
 				}

@@ -3,7 +3,6 @@ package resource
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/volume"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
@@ -116,12 +115,12 @@ func (tracker *tracker) InitWithSources(
 	}
 
 	// find the worker with the most volumes
-	mounts := []volume.VolumeMount{}
+	mounts := []worker.VolumeMount{}
 	missingSources := []string{}
 	var chosenWorker worker.Worker
 
 	for _, w := range compatibleWorkers {
-		candidateMounts := []volume.VolumeMount{}
+		candidateMounts := []worker.VolumeMount{}
 		missing := []string{}
 
 		for name, source := range sources {
@@ -131,7 +130,7 @@ func (tracker *tracker) InitWithSources(
 			}
 
 			if found {
-				candidateMounts = append(candidateMounts, volume.VolumeMount{
+				candidateMounts = append(candidateMounts, worker.VolumeMount{
 					Volume:    ourVolume,
 					MountPath: ResourcesDir("put/" + name),
 				})
@@ -157,7 +156,7 @@ func (tracker *tracker) InitWithSources(
 
 	resourceSpec.Mounts = mounts
 
-	container, err = chosenWorker.CreateContainer(logger, session.ID, session.Metadata, resourceSpec)
+	container, err = chosenWorker.CreateContainer(logger, nil, nil, session.ID, session.Metadata, resourceSpec)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
 		return nil, nil, err
@@ -191,7 +190,7 @@ func (tracker *tracker) Init(logger lager.Logger, metadata Metadata, session Ses
 
 	logger.Debug("creating-container")
 
-	container, err = tracker.workerClient.CreateContainer(logger, session.ID, session.Metadata, worker.ResourceTypeContainerSpec{
+	container, err = tracker.workerClient.CreateContainer(logger, nil, nil, session.ID, session.Metadata, worker.ResourceTypeContainerSpec{
 		Type:      string(typ),
 		Ephemeral: session.Ephemeral,
 		Tags:      tags,
@@ -255,7 +254,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 	if !hasVM {
 		logger.Debug("creating-container-without-cache")
 
-		container, err := chosenWorker.CreateContainer(logger, session.ID, session.Metadata, worker.ResourceTypeContainerSpec{
+		container, err := chosenWorker.CreateContainer(logger, nil, nil, session.ID, session.Metadata, worker.ResourceTypeContainerSpec{
 			Type:      string(typ),
 			Ephemeral: session.Ephemeral,
 			Tags:      tags,
@@ -309,12 +308,12 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 
 	logger.Debug("creating-container-with-cache")
 
-	container, err = chosenWorker.CreateContainer(logger, session.ID, session.Metadata, worker.ResourceTypeContainerSpec{
+	container, err = chosenWorker.CreateContainer(logger, nil, nil, session.ID, session.Metadata, worker.ResourceTypeContainerSpec{
 		Type:      string(typ),
 		Ephemeral: session.Ephemeral,
 		Tags:      tags,
 		Env:       metadata.Env(),
-		Cache: volume.VolumeMount{
+		Cache: worker.VolumeMount{
 			Volume:    cachedVolume,
 			MountPath: ResourcesDir("get"),
 		},

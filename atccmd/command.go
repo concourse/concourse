@@ -31,6 +31,7 @@ import (
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/webhandler"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/atc/wrappa"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/context"
@@ -128,12 +129,11 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	workerClient := cmd.constructWorkerPool(logger, sqlDB)
+	trackerFactory := resource.TrackerFactory{DB: sqlDB}
+	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory)
 
 	tracker := resource.NewTracker(workerClient, sqlDB)
-	trackerFactory := resource.TrackerFactory{DB: sqlDB}
-
-	engine := cmd.constructEngine(sqlDB, workerClient, tracker, trackerFactory)
+	engine := cmd.constructEngine(sqlDB, workerClient, tracker)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		tracker,
@@ -422,7 +422,7 @@ func (cmd *ATCCommand) constructDB(logger lager.Logger) (*db.SQLDB, db.PipelineD
 	return sqlDB, pipelineDBFactory, err
 }
 
-func (cmd *ATCCommand) constructWorkerPool(logger lager.Logger, sqlDB *db.SQLDB) worker.Client {
+func (cmd *ATCCommand) constructWorkerPool(logger lager.Logger, sqlDB *db.SQLDB, trackerFactory resource.TrackerFactory) worker.Client {
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(
 			logger,
@@ -431,6 +431,7 @@ func (cmd *ATCCommand) constructWorkerPool(logger lager.Logger, sqlDB *db.SQLDB)
 			worker.ExponentialRetryPolicy{
 				Timeout: 5 * time.Minute,
 			},
+			image.NewFetcher(trackerFactory),
 		),
 	)
 }
@@ -543,9 +544,8 @@ func (cmd *ATCCommand) constructEngine(
 	sqlDB *db.SQLDB,
 	workerClient worker.Client,
 	tracker resource.Tracker,
-	trackerFactory resource.TrackerFactory,
 ) engine.Engine {
-	gardenFactory := exec.NewGardenFactory(workerClient, tracker, trackerFactory)
+	gardenFactory := exec.NewGardenFactory(workerClient, tracker)
 
 	execV2Engine := engine.NewExecEngine(
 		gardenFactory,

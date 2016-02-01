@@ -3,7 +3,6 @@ package exec
 import (
 	"archive/tar"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -15,10 +14,7 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/resource"
-	"github.com/concourse/atc/volume"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
@@ -36,12 +32,6 @@ type MissingInputsError struct {
 func (err MissingInputsError) Error() string {
 	return fmt.Sprintf("missing inputs: %s", strings.Join(err.Inputs, ", "))
 }
-
-// ErrImageUnavailable is returned when a task's configured image resource
-// has no versions.
-var ErrImageUnavailable = errors.New("no versions of image available")
-
-var ErrImageGetDidNotProduceVolume = errors.New("getting the image for the task did not produce a volume")
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
 // SourceRepository and outputs will be added to the SourceRepository.
@@ -197,7 +187,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
-		outputMounts := []volume.VolumeMount{}
+		outputMounts := []worker.VolumeMount{}
 		for _, output := range config.Outputs {
 			path := artifactsPath(output, step.artifactsRoot)
 
@@ -215,61 +205,43 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 				return volErr
 			}
 
-			outputMounts = append(outputMounts, volume.VolumeMount{
+			outputMounts = append(outputMounts, worker.VolumeMount{
 				Volume:    ourVolume,
 				MountPath: path,
 			})
 		}
 
 		containerSpec := worker.TaskContainerSpec{
-			Platform:   config.Platform,
-			Tags:       step.tags,
-			Privileged: bool(step.privileged),
-			Inputs:     inputMounts,
-			Outputs:    outputMounts,
-		}
-
-		var imageResource resource.Resource
-
-		if config.ImageResource != nil {
-			imageResource, err = image.GetContainerImage(step.logger, signals, step.trackerFactory, step.containerID, step.metadata, step.delegate, chosenWorker, config)
-			if err != nil {
-				return err
-			}
-
-			imageVolume, found, err := imageResource.CacheVolume()
-			if err != nil {
-				return err
-			}
-
-			if !found {
-				return ErrImageGetDidNotProduceVolume
-			}
-
-			containerSpec.ImageVolume = imageVolume
-		} else {
-			containerSpec.Image = config.Image
+			Platform:      config.Platform,
+			Tags:          step.tags,
+			Privileged:    bool(step.privileged),
+			Inputs:        inputMounts,
+			Outputs:       outputMounts,
+			ImageResource: config.ImageResource,
+			Image:         config.Image,
 		}
 
 		step.container, err = chosenWorker.CreateContainer(
 			step.logger.Session("created-container"),
+			signals,
+			step.delegate,
 			runContainerID,
 			step.metadata,
 			containerSpec,
 		)
-		if imageResource != nil {
-			imageResource.Release(0)
-		}
+
 		for _, mount := range inputMounts {
 			// stop heartbeating ourselves now that container has picked up the
 			// volumes
 			mount.Volume.Release(0)
 		}
+
 		for _, mount := range outputMounts {
 			// stop heartbeating ourselves now that container has picked up the
 			// volumes
 			mount.Volume.Release(0)
 		}
+
 		if err != nil {
 			return err
 		}
@@ -445,8 +417,8 @@ func (step *TaskStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool,
 	return nil, false, nil
 }
 
-func (step *TaskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Worker, inputs []atc.TaskInputConfig) (worker.Worker, []volume.VolumeMount, []inputPair, error) {
-	inputMounts := []volume.VolumeMount{}
+func (step *TaskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Worker, inputs []atc.TaskInputConfig) (worker.Worker, []worker.VolumeMount, []inputPair, error) {
+	inputMounts := []worker.VolumeMount{}
 	inputsToStream := []inputPair{}
 
 	var chosenWorker worker.Worker
@@ -479,8 +451,8 @@ type inputPair struct {
 	source ArtifactSource
 }
 
-func (step *TaskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker.Worker) ([]volume.VolumeMount, []inputPair, error) {
-	var mounts []volume.VolumeMount
+func (step *TaskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker.Worker) ([]worker.VolumeMount, []inputPair, error) {
+	var mounts []worker.VolumeMount
 
 	var inputPairs []inputPair
 
@@ -499,7 +471,7 @@ func (step *TaskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker
 		}
 
 		if existsOnWorker {
-			mounts = append(mounts, volume.VolumeMount{
+			mounts = append(mounts, worker.VolumeMount{
 				Volume:    ourVolume,
 				MountPath: step.inputDestination(input),
 			})

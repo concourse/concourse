@@ -3,13 +3,13 @@ package worker
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/volume"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
@@ -46,7 +46,9 @@ type GardenWorkerDB interface {
 type gardenWorker struct {
 	gardenClient       garden.Client
 	baggageclaimClient baggageclaim.Client
-	volumeFactory      volume.VolumeFactory
+	volumeFactory      VolumeFactory
+
+	imageFetcher ImageFetcher
 
 	db       GardenWorkerDB
 	provider WorkerProvider
@@ -63,7 +65,8 @@ type gardenWorker struct {
 func NewGardenWorker(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
-	volumeFactory volume.VolumeFactory,
+	volumeFactory VolumeFactory,
+	imageFetcher ImageFetcher,
 	db GardenWorkerDB,
 	provider WorkerProvider,
 	clock clock.Clock,
@@ -77,6 +80,7 @@ func NewGardenWorker(
 		gardenClient:       gardenClient,
 		baggageclaimClient: baggageclaimClient,
 		volumeFactory:      volumeFactory,
+		imageFetcher:       imageFetcher,
 		db:                 db,
 		provider:           provider,
 		clock:              clock,
@@ -97,11 +101,17 @@ func (worker *gardenWorker) VolumeManager() (baggageclaim.Client, bool) {
 	return nil, false
 }
 
-func (worker *gardenWorker) CreateContainer(logger lager.Logger, id Identifier, metadata Metadata, spec ContainerSpec) (Container, error) {
+func (worker *gardenWorker) CreateContainer(
+	logger lager.Logger,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	spec ContainerSpec,
+) (Container, error) {
+	gardenContainerSpecFactory := NewGardenContainerSpecFactory(logger, worker.baggageclaimClient, worker.imageFetcher)
 
-	gardenContainerSpecFactory := NewGardenContainerSpecFactory(logger, worker.baggageclaimClient)
-
-	gardenSpec, err := gardenContainerSpecFactory.BuildContainerSpec(spec, worker.resourceTypes)
+	gardenSpec, err := gardenContainerSpecFactory.BuildContainerSpec(spec, worker.resourceTypes, cancel, delegate, id, metadata, worker)
 	defer gardenContainerSpecFactory.ReleaseVolumes()
 	if err != nil {
 		return nil, err

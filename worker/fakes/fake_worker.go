@@ -2,6 +2,7 @@
 package fakes
 
 import (
+	"os"
 	"sync"
 
 	"github.com/concourse/atc/worker"
@@ -10,13 +11,15 @@ import (
 )
 
 type FakeWorker struct {
-	CreateContainerStub        func(lager.Logger, worker.Identifier, worker.Metadata, worker.ContainerSpec) (worker.Container, error)
+	CreateContainerStub        func(lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec) (worker.Container, error)
 	createContainerMutex       sync.RWMutex
 	createContainerArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 worker.Identifier
-		arg3 worker.Metadata
-		arg4 worker.ContainerSpec
+		arg2 <-chan os.Signal
+		arg3 worker.ImageFetchingDelegate
+		arg4 worker.Identifier
+		arg5 worker.Metadata
+		arg6 worker.ContainerSpec
 	}
 	createContainerReturns struct {
 		result1 worker.Container
@@ -98,17 +101,19 @@ type FakeWorker struct {
 	}
 }
 
-func (fake *FakeWorker) CreateContainer(arg1 lager.Logger, arg2 worker.Identifier, arg3 worker.Metadata, arg4 worker.ContainerSpec) (worker.Container, error) {
+func (fake *FakeWorker) CreateContainer(arg1 lager.Logger, arg2 <-chan os.Signal, arg3 worker.ImageFetchingDelegate, arg4 worker.Identifier, arg5 worker.Metadata, arg6 worker.ContainerSpec) (worker.Container, error) {
 	fake.createContainerMutex.Lock()
 	fake.createContainerArgsForCall = append(fake.createContainerArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 worker.Identifier
-		arg3 worker.Metadata
-		arg4 worker.ContainerSpec
-	}{arg1, arg2, arg3, arg4})
+		arg2 <-chan os.Signal
+		arg3 worker.ImageFetchingDelegate
+		arg4 worker.Identifier
+		arg5 worker.Metadata
+		arg6 worker.ContainerSpec
+	}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.createContainerMutex.Unlock()
 	if fake.CreateContainerStub != nil {
-		return fake.CreateContainerStub(arg1, arg2, arg3, arg4)
+		return fake.CreateContainerStub(arg1, arg2, arg3, arg4, arg5, arg6)
 	} else {
 		return fake.createContainerReturns.result1, fake.createContainerReturns.result2
 	}
@@ -120,10 +125,10 @@ func (fake *FakeWorker) CreateContainerCallCount() int {
 	return len(fake.createContainerArgsForCall)
 }
 
-func (fake *FakeWorker) CreateContainerArgsForCall(i int) (lager.Logger, worker.Identifier, worker.Metadata, worker.ContainerSpec) {
+func (fake *FakeWorker) CreateContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec) {
 	fake.createContainerMutex.RLock()
 	defer fake.createContainerMutex.RUnlock()
-	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2, fake.createContainerArgsForCall[i].arg3, fake.createContainerArgsForCall[i].arg4
+	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2, fake.createContainerArgsForCall[i].arg3, fake.createContainerArgsForCall[i].arg4, fake.createContainerArgsForCall[i].arg5, fake.createContainerArgsForCall[i].arg6
 }
 
 func (fake *FakeWorker) CreateContainerReturns(result1 worker.Container, result2 error) {

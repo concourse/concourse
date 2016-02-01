@@ -4,25 +4,25 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/volume"
+	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
 
 type FakeVolumeFactory struct {
-	BuildStub        func(lager.Logger, baggageclaim.Volume) (volume.Volume, error)
+	BuildStub        func(lager.Logger, baggageclaim.Volume) (worker.Volume, error)
 	buildMutex       sync.RWMutex
 	buildArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 baggageclaim.Volume
 	}
 	buildReturns struct {
-		result1 volume.Volume
+		result1 worker.Volume
 		result2 error
 	}
 }
 
-func (fake *FakeVolumeFactory) Build(arg1 lager.Logger, arg2 baggageclaim.Volume) (volume.Volume, error) {
+func (fake *FakeVolumeFactory) Build(arg1 lager.Logger, arg2 baggageclaim.Volume) (worker.Volume, error) {
 	fake.buildMutex.Lock()
 	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
 		arg1 lager.Logger
@@ -48,12 +48,12 @@ func (fake *FakeVolumeFactory) BuildArgsForCall(i int) (lager.Logger, baggagecla
 	return fake.buildArgsForCall[i].arg1, fake.buildArgsForCall[i].arg2
 }
 
-func (fake *FakeVolumeFactory) BuildReturns(result1 volume.Volume, result2 error) {
+func (fake *FakeVolumeFactory) BuildReturns(result1 worker.Volume, result2 error) {
 	fake.BuildStub = nil
 	fake.buildReturns = struct {
-		result1 volume.Volume
+		result1 worker.Volume
 		result2 error
 	}{result1, result2}
 }
 
-var _ volume.VolumeFactory = new(FakeVolumeFactory)
+var _ worker.VolumeFactory = new(FakeVolumeFactory)

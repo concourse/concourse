@@ -21,7 +21,6 @@ var _ = BeforeEach(func() {
 	workerClient = new(wfakes.FakeClient)
 
 	fakeContainer = new(wfakes.FakeContainer)
-
 	resource = NewResource(fakeContainer)
 })
 

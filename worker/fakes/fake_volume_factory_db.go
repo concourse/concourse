@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/atc/volume"
+	"github.com/concourse/atc/worker"
 )
 
 type FakeVolumeFactoryDB struct {
@@ -135,4 +135,4 @@ func (fake *FakeVolumeFactoryDB) SetVolumeTTLReturns(result1 error) {
 	}{result1}
 }
 
-var _ volume.VolumeFactoryDB = new(FakeVolumeFactoryDB)
+var _ worker.VolumeFactoryDB = new(FakeVolumeFactoryDB)

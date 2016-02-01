@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/volume"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
@@ -20,22 +20,32 @@ const volumeMountsPropertyName = "concourse:volume-mounts"
 type gardenContainerSpecFactory struct {
 	logger             lager.Logger
 	baggageclaimClient baggageclaim.Client
+	imageFetcher       ImageFetcher
 	volumeMounts       map[string]string
 	volumeHandles      []string
-	cowVolumes         []volume.Volume
+	volumesToRelease   []Volume
 }
 
-func NewGardenContainerSpecFactory(logger lager.Logger, baggageclaimClient baggageclaim.Client) gardenContainerSpecFactory {
+func NewGardenContainerSpecFactory(logger lager.Logger, baggageclaimClient baggageclaim.Client, imageFetcher ImageFetcher) gardenContainerSpecFactory {
 	return gardenContainerSpecFactory{
 		logger:             logger,
 		baggageclaimClient: baggageclaimClient,
+		imageFetcher:       imageFetcher,
 		volumeMounts:       map[string]string{},
 		volumeHandles:      nil,
-		cowVolumes:         []volume.Volume{},
+		volumesToRelease:   []Volume{},
 	}
 }
 
-func (factory *gardenContainerSpecFactory) BuildContainerSpec(spec ContainerSpec, resourceTypes []atc.WorkerResourceType) (garden.ContainerSpec, error) {
+func (factory *gardenContainerSpecFactory) BuildContainerSpec(
+	spec ContainerSpec,
+	resourceTypes []atc.WorkerResourceType,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	workerClient Client,
+) (garden.ContainerSpec, error) {
 	var err error
 	gardenSpec := garden.ContainerSpec{
 		Properties: garden.Properties{},
@@ -45,7 +55,7 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(spec ContainerSpec
 	case ResourceTypeContainerSpec:
 		gardenSpec, err = factory.BuildResourceContainerSpec(s, gardenSpec, resourceTypes)
 	case TaskContainerSpec:
-		gardenSpec, err = factory.BuildTaskContainerSpec(s, gardenSpec)
+		gardenSpec, err = factory.BuildTaskContainerSpec(s, gardenSpec, cancel, delegate, id, metadata, workerClient)
 	default:
 		return garden.ContainerSpec{}, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
 	}
@@ -112,10 +122,26 @@ func (factory *gardenContainerSpecFactory) BuildResourceContainerSpec(spec Resou
 	return gardenSpec, ErrUnsupportedResourceType
 }
 
-func (factory *gardenContainerSpecFactory) BuildTaskContainerSpec(spec TaskContainerSpec, gardenSpec garden.ContainerSpec) (garden.ContainerSpec, error) {
-	if spec.ImageVolume != nil {
-		gardenSpec.RootFSPath = path.Join(spec.ImageVolume.Path(), "rootfs")
-		factory.volumeHandles = append(factory.volumeHandles, spec.ImageVolume.Handle())
+func (factory *gardenContainerSpecFactory) BuildTaskContainerSpec(
+	spec TaskContainerSpec,
+	gardenSpec garden.ContainerSpec,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	workerClient Client,
+) (garden.ContainerSpec, error) {
+	if spec.ImageResource != nil {
+		image, err := factory.imageFetcher.FetchImage(factory.logger, *spec.ImageResource, cancel, id, metadata, delegate, workerClient)
+		if err != nil {
+			return garden.ContainerSpec{}, err
+		}
+
+		imageVolume := image.Volume()
+
+		gardenSpec.RootFSPath = path.Join(imageVolume.Path(), "rootfs")
+		factory.volumeHandles = append(factory.volumeHandles, imageVolume.Handle())
+		factory.volumesToRelease = append(factory.volumesToRelease, imageVolume)
 	} else {
 		gardenSpec.RootFSPath = spec.Image
 	}
@@ -144,12 +170,12 @@ func (factory *gardenContainerSpecFactory) BuildTaskContainerSpec(spec TaskConta
 }
 
 func (factory *gardenContainerSpecFactory) ReleaseVolumes() {
-	for _, cow := range factory.cowVolumes {
+	for _, cow := range factory.volumesToRelease {
 		cow.Release(0)
 	}
 }
 
-func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.ContainerSpec, mounts []volume.VolumeMount) (garden.ContainerSpec, error) {
+func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.ContainerSpec, mounts []VolumeMount) (garden.ContainerSpec, error) {
 	for _, mount := range mounts {
 		cowVolume, err := factory.baggageclaimClient.CreateVolume(factory.logger, baggageclaim.VolumeSpec{
 			Strategy: baggageclaim.COWStrategy{
@@ -163,7 +189,7 @@ func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.Co
 		}
 
 		// release *after* container creation
-		factory.cowVolumes = append(factory.cowVolumes, cowVolume)
+		factory.volumesToRelease = append(factory.volumesToRelease, cowVolume)
 
 		containerSpec.BindMounts = append(containerSpec.BindMounts, garden.BindMount{
 			SrcPath: cowVolume.Path(),

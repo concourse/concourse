@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/concourse/atc/db"
@@ -115,13 +116,13 @@ func (pool *pool) Satisfying(spec WorkerSpec) (Worker, error) {
 	return randomWorker, nil
 }
 
-func (pool *pool) CreateContainer(logger lager.Logger, id Identifier, metadata Metadata, spec ContainerSpec) (Container, error) {
+func (pool *pool) CreateContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec) (Container, error) {
 	worker, err := pool.Satisfying(spec.WorkerSpec())
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := worker.CreateContainer(logger, id, metadata, spec)
+	container, err := worker.CreateContainer(logger, signals, delegate, id, metadata, spec)
 	if err != nil {
 		return nil, err
 	}

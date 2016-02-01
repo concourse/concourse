@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
-	"github.com/concourse/atc/volume"
 	"github.com/concourse/atc/worker"
 )
 
@@ -200,17 +199,17 @@ type FakeContainer struct {
 	releaseArgsForCall []struct {
 		arg1 time.Duration
 	}
-	VolumesStub        func() []volume.Volume
+	VolumesStub        func() []worker.Volume
 	volumesMutex       sync.RWMutex
 	volumesArgsForCall []struct{}
 	volumesReturns     struct {
-		result1 []volume.Volume
+		result1 []worker.Volume
 	}
-	VolumeMountsStub        func() []volume.VolumeMount
+	VolumeMountsStub        func() []worker.VolumeMount
 	volumeMountsMutex       sync.RWMutex
 	volumeMountsArgsForCall []struct{}
 	volumeMountsReturns     struct {
-		result1 []volume.VolumeMount
+		result1 []worker.VolumeMount
 	}
 }
 
@@ -918,7 +917,7 @@ func (fake *FakeContainer) ReleaseArgsForCall(i int) time.Duration {
 	return fake.releaseArgsForCall[i].arg1
 }
 
-func (fake *FakeContainer) Volumes() []volume.Volume {
+func (fake *FakeContainer) Volumes() []worker.Volume {
 	fake.volumesMutex.Lock()
 	fake.volumesArgsForCall = append(fake.volumesArgsForCall, struct{}{})
 	fake.volumesMutex.Unlock()
@@ -935,14 +934,14 @@ func (fake *FakeContainer) VolumesCallCount() int {
 	return len(fake.volumesArgsForCall)
 }
 
-func (fake *FakeContainer) VolumesReturns(result1 []volume.Volume) {
+func (fake *FakeContainer) VolumesReturns(result1 []worker.Volume) {
 	fake.VolumesStub = nil
 	fake.volumesReturns = struct {
-		result1 []volume.Volume
+		result1 []worker.Volume
 	}{result1}
 }
 
-func (fake *FakeContainer) VolumeMounts() []volume.VolumeMount {
+func (fake *FakeContainer) VolumeMounts() []worker.VolumeMount {
 	fake.volumeMountsMutex.Lock()
 	fake.volumeMountsArgsForCall = append(fake.volumeMountsArgsForCall, struct{}{})
 	fake.volumeMountsMutex.Unlock()
@@ -959,10 +958,10 @@ func (fake *FakeContainer) VolumeMountsCallCount() int {
 	return len(fake.volumeMountsArgsForCall)
 }
 
-func (fake *FakeContainer) VolumeMountsReturns(result1 []volume.VolumeMount) {
+func (fake *FakeContainer) VolumeMountsReturns(result1 []worker.VolumeMount) {
 	fake.VolumeMountsStub = nil
 	fake.volumeMountsReturns = struct {
-		result1 []volume.VolumeMount
+		result1 []worker.VolumeMount
 	}{result1}
 }
 
