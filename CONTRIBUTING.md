@@ -115,6 +115,14 @@ After cloning ATC run:
 `ginkgo -p -r`
 from the top-level ATC directory
 
+#### Building ATC Javascript
+
+```
+cd src/github.com/concourse/atc/web
+npm install
+env PATH=$(npm bin):$PATH make
+```
+
 ### Fly Testing (What to watch for)
 
 Again, relying on the fact that you have already installed
