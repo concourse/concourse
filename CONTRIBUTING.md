@@ -1,4 +1,5 @@
-# Contributing In General
+# Contributing
+
 So, you've come here hoping to make Concourse better?  Great!
 Concourse welcomes pull-requests on any one of the many open-source
 pieces we currently have within our
@@ -26,7 +27,7 @@ the project!
 Work directly out of the Concourse release `/src` directory!
 All of the major Concourse components are there and you can
 add your fork of each as a separate downstream remote.  This
-will drastically make your time working on Concourse easier.
+will make your time working on Concourse drastically easier.
 
 # Setup
 
