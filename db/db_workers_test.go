@@ -54,6 +54,7 @@ var _ = Describe("Keeping track of workers", func() {
 		}
 
 		infoB := db.WorkerInfo{
+			Name:             "1.2.3.4:8888",
 			GardenAddr:       "1.2.3.4:8888",
 			ActiveContainers: 42,
 			ResourceTypes: []atc.WorkerResourceType{
@@ -104,16 +105,13 @@ var _ = Describe("Keeping track of workers", func() {
 		_, err = database.SaveWorker(infoB, ttl)
 		Expect(err).NotTo(HaveOccurred())
 
-		// name is defaulted to addr
-		infoBFromDB := infoB
-		infoBFromDB.Name = "1.2.3.4:8888"
-
 		workerInfos := func() []db.WorkerInfo {
 			return getWorkerInfos(database.Workers())
 		}
 
-		Consistently(workerInfos, ttl/2).Should(ConsistOf(infoA, infoBFromDB))
+		Consistently(workerInfos, ttl/2).Should(ConsistOf(infoA, infoB))
 		Eventually(workerInfos, 2*ttl).Should(ConsistOf(infoA))
+
 		By("overwriting TTLs")
 		_, err = database.SaveWorker(infoA, ttl)
 		Expect(err).NotTo(HaveOccurred())
