@@ -148,7 +148,9 @@ Graph.prototype.layout = function() {
         return -1;
       } else if (!targetA && targetB) {
         return 1;
-      } else if (targetA && targetB) {
+      }
+
+      if (targetA && targetB) {
         var introRankA = targetA.rankOfFirstAppearance();
         var introRankB = targetB.rankOfFirstAppearance();
         if(introRankA < introRankB) {
@@ -176,6 +178,18 @@ Graph.prototype.layout = function() {
     for (var c in rankGroups) {
       rankGroups[c].sortNodes();
       rankGroups[c].layout();
+    }
+  }
+
+  if (window.location.hash == "#tug") {
+    var anyChanged = true;
+    while (anyChanged) {
+      anyChanged = false;
+      for (var c in rankGroups) {
+        if (rankGroups[c].tug()) {
+          anyChanged = true;
+        }
+      }
     }
   }
 }
@@ -344,11 +358,37 @@ Graph.prototype.addSpacingNodes = function() {
   }
 }
 
+function Ordering() {
+  this.spaces = [];
+}
+
+Ordering.prototype.fill = function(pos, len) {
+  for (var i = pos; i < pos + len; i++) {
+    this.spaces[i] = true;
+  }
+}
+
+Ordering.prototype.free = function(pos, len) {
+  for (var i = pos; i < pos + len; i++) {
+    this.spaces[i] = false;
+  }
+}
+
+Ordering.prototype.isFree = function(pos, len) {
+  for (var i = pos; i < pos + len; i++) {
+    if (this.spaces[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function RankGroup(idx) {
   this.index = idx;
   this.nodes = [];
 
-  this._spacing = 10;
+  this.ordering = new Ordering();
 }
 
 RankGroup.prototype.sortNodes = function() {
@@ -451,15 +491,49 @@ RankGroup.prototype.width = function() {
 }
 
 RankGroup.prototype.layout = function() {
-  var rollingOffset = 0;
+  var rollingKeyOffset = 0;
+
+  this.ordering = new Ordering();
 
   for (var i in this.nodes) {
     var node = this.nodes[i];
 
-    node._position.y = rollingOffset;
+    node._keyOffset = rollingKeyOffset;
 
-    rollingOffset += node.height() + this._spacing;
+    this.ordering.fill(rollingKeyOffset, node._edgeKeys.length);
+
+    rollingKeyOffset += Math.max(node._edgeKeys.length, 1);
   }
+}
+
+RankGroup.prototype.tug = function() {
+  var changed = false;
+
+  for (var i = this.nodes.length - 1; i >= 0; i--) {
+    var node = this.nodes[i];
+
+    var align = node.inAlignment();
+    if (align !== undefined && node._keyOffset < align && this.ordering.isFree(align, node._edgeKeys.length)) {
+      this.ordering.free(node._keyOffset, node._edgeKeys.length);
+      node._keyOffset = align;
+      this.ordering.fill(node._keyOffset, node._edgeKeys.length);
+      changed = true;
+    } else {
+      align = node.outAlignment();
+      if (align !== undefined && node._keyOffset < align && this.ordering.isFree(align, node._edgeKeys.length)) {
+        this.ordering.free(node._keyOffset, node._edgeKeys.length);
+        node._keyOffset = align;
+        this.ordering.fill(node._keyOffset, node._edgeKeys.length);
+        changed = true;
+      }
+    }
+  }
+
+  this.nodes.sort(function(a, b) {
+    return a._keyOffset - b._keyOffset;
+  });
+
+  return changed;
 }
 
 function Node(opts) {
@@ -489,6 +563,8 @@ function Node(opts) {
 
   this._cachedRank = -1;
   this._cachedWidth = 0;
+
+  this._keyOffset = 0;
 
   // position (determined by graph.layout())
   this._position = {
@@ -599,7 +675,7 @@ Node.prototype.highestUpstreamSource = function() {
 
   var y;
   for (var e in this._inEdges) {
-    y = this._inEdges[e].source.position().y;
+    y = this._inEdges[e].source.effectiveKeyOffset();
 
     if (minY === undefined || y < minY) {
       minY = y;
@@ -614,7 +690,7 @@ Node.prototype.highestDownstreamTarget = function() {
 
   var y;
   for (var e in this._outEdges) {
-    y = this._outEdges[e].target.position().y;
+    y = this._outEdges[e].target.effectiveKeyOffset();
 
     if (minY === undefined || y < minY) {
       minY = y;
@@ -622,6 +698,34 @@ Node.prototype.highestDownstreamTarget = function() {
   }
 
   return minY;
+};
+
+Node.prototype.inAlignment = function() {
+  var minAlignment;
+
+  for (var e in this._inEdges) {
+    var edge = this._inEdges[e];
+    var offset = edge.source.effectiveKeyOffset();
+    if (minAlignment === undefined || offset < minAlignment) {
+      minAlignment = offset - this._edgeKeys.indexOf(edge.key);
+    }
+  }
+
+  return minAlignment;
+};
+
+Node.prototype.outAlignment = function() {
+  var minAlignment;
+
+  for (var e in this._outEdges) {
+    var edge = this._outEdges[e];
+    var offset = edge.target.effectiveKeyOffset();
+    if (minAlignment === undefined || offset < minAlignment) {
+      minAlignment = offset - this._edgeKeys.indexOf(edge.key);
+    }
+  }
+
+  return minAlignment;
 };
 
 Node.prototype.passedThroughAnyPreviousNode = function() {
