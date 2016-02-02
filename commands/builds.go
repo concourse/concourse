@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"time"
@@ -25,8 +24,7 @@ type BuildsCommand struct {
 func (command *BuildsCommand) Execute([]string) error {
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
-		log.Fatalln(err)
-		return nil
+		return err
 	}
 
 	page := concourse.Page{Limit: command.Count}
@@ -40,16 +38,17 @@ func (command *BuildsCommand) Execute([]string) error {
 			page,
 		)
 		if err != nil {
-			log.Fatalln(err)
+			return err
 		}
 
 		if !found {
-			log.Fatalln("pipleline/job not found")
+			fmt.Fprintln(os.Stderr, "pipeline/job not found")
+			os.Exit(1)
 		}
 	} else {
 		builds, _, err = client.Builds(page)
 		if err != nil {
-			log.Fatalln(err)
+			return err
 		}
 	}
 

@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
@@ -17,8 +16,7 @@ func (command *UnpausePipelineCommand) Execute(args []string) error {
 
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
-		log.Fatalln(err)
-		return nil
+		return err
 	}
 
 	found, err := client.UnpausePipeline(pipelineName)
@@ -31,5 +29,6 @@ func (command *UnpausePipelineCommand) Execute(args []string) error {
 	} else {
 		displayhelpers.Failf("pipeline '%s' not found\n", pipelineName)
 	}
+
 	return nil
 }

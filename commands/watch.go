@@ -18,13 +18,12 @@ type WatchCommand struct {
 func (command *WatchCommand) Execute(args []string) error {
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
-		log.Fatalln(err)
-		return nil
+		return err
 	}
 
 	build, err := GetBuild(client, command.Job.JobName, command.Build, command.Job.PipelineName)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	eventSource, err := client.BuildEvents(fmt.Sprintf("%d", build.ID))

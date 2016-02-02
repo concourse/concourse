@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
@@ -15,14 +14,14 @@ type ChecklistCommand struct {
 func (command *ChecklistCommand) Execute([]string) error {
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	pipelineName := command.Pipeline
 
 	config, _, _, err := client.PipelineConfig(pipelineName)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	printCheckfile(pipelineName, config, client.URL())

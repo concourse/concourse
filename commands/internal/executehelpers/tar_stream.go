@@ -5,8 +5,8 @@ package executehelpers
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -26,12 +26,12 @@ func tarStreamFrom(workDir string, paths []string) (io.ReadCloser, error) {
 
 		archive, err = tarCmd.StdoutPipe()
 		if err != nil {
-			log.Fatalln("could not create tar pipe:", err)
+			return nil, fmt.Errorf("could not create tar pipe: %s", err)
 		}
 
 		err = tarCmd.Start()
 		if err != nil {
-			log.Fatalln("could not run tar:", err)
+			return nil, fmt.Errorf("could not run tar: %s", err)
 		}
 	} else {
 		return nativeTarGZStreamFrom(workDir, paths)

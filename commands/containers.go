@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -17,12 +16,12 @@ type ContainersCommand struct{}
 func (command *ContainersCommand) Execute([]string) error {
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	containers, err := client.ListContainers(map[string]string{})
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	table := ui.Table{

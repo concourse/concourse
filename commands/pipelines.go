@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"log"
 	"os"
 
 	"github.com/concourse/fly/rc"
@@ -14,13 +13,12 @@ type PipelinesCommand struct{}
 func (command *PipelinesCommand) Execute([]string) error {
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
-		log.Fatalln(err)
-		return nil
+		return err
 	}
 
 	pipelines, err := client.ListPipelines()
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	table := ui.Table{

@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"log"
 	"runtime"
 
 	"github.com/inconshreveable/go-update"
@@ -16,13 +15,12 @@ type SyncCommand struct{}
 func (command *SyncCommand) Execute(args []string) error {
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
-		log.Fatalln(err)
-		return nil
+		return err
 	}
 
 	body, err := client.GetCLIReader(runtime.GOARCH, runtime.GOOS)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	fmt.Printf("downloading fly from %s... ", client.URL())

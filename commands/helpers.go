@@ -22,13 +22,6 @@ func handleBadResponse(process string, resp *http.Response) {
 }
 
 func GetBuild(client concourse.Client, jobName string, buildNameOrID string, pipelineName string) (atc.Build, error) {
-	if pipelineName != "" && jobName == "" {
-		log.Fatalln("job must be specified if pipeline is specified")
-	}
-	if pipelineName == "" && jobName != "" {
-		log.Fatalln("pipeline must be specified if job is specified")
-	}
-
 	if buildNameOrID != "" {
 		var build atc.Build
 		var err error

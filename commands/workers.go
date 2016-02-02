@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -20,12 +19,12 @@ type WorkersCommand struct {
 func (command *WorkersCommand) Execute([]string) error {
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	workers, err := client.ListWorkers()
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	headers := ui.TableRow{

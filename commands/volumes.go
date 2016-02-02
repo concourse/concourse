@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"sort"
 	"strings"
@@ -19,12 +18,12 @@ type VolumesCommand struct{}
 func (command *VolumesCommand) Execute([]string) error {
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	volumes, err := client.ListVolumes()
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	table := ui.Table{

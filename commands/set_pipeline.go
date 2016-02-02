@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"log"
-
 	"github.com/concourse/atc/web"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/commands/internal/setpipelinehelpers"
@@ -31,8 +29,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
-		log.Fatalln(err)
-		return nil
+		return err
 	}
 
 	webRequestGenerator := rata.NewRequestGenerator(client.URL(), web.Routes)

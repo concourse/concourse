@@ -297,7 +297,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("writes an error message to stderr", func() {
-					Eventually(session.Err).Should(gbytes.Say("pipleline/job not found"))
+					Eventually(session.Err).Should(gbytes.Say("pipeline/job not found"))
 					Eventually(session).Should(gexec.Exit(1))
 				})
 			})

@@ -23,15 +23,16 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	config, _, _, err := client.PipelineConfig(pipelineName)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	dump(config, asJSON)
+
 	return nil
 }
 
