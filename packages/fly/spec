@@ -12,7 +12,6 @@ files:
   - github.com/concourse/atc/web/*.go # gosub
   - github.com/concourse/fly/*.go # gosub
   - github.com/concourse/fly/commands/*.go # gosub
-  - github.com/concourse/fly/commands/internal/deprecated/*.go # gosub
   - github.com/concourse/fly/commands/internal/displayhelpers/*.go # gosub
   - github.com/concourse/fly/commands/internal/executehelpers/*.go # gosub
   - github.com/concourse/fly/commands/internal/flaghelpers/*.go # gosub
