@@ -419,7 +419,7 @@ var _ = Describe("Fly CLI", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
-						ghttp.RespondWith(http.StatusUnauthorized, "nope"),
+						ghttp.RespondWith(http.StatusInternalServerError, "nope"),
 					)
 				})
 
@@ -436,7 +436,7 @@ var _ = Describe("Fly CLI", func() {
 					yes(stdin)
 
 					Eventually(sess.Err).Should(gbytes.Say("failed to update configuration:"))
-					Eventually(sess.Err).Should(gbytes.Say("401 Unauthorized"))
+					Eventually(sess.Err).Should(gbytes.Say("500 Internal Server Error"))
 					Eventually(sess.Err).Should(gbytes.Say("nope"))
 
 					<-sess.Exited
