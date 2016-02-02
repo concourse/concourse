@@ -8,6 +8,7 @@ type StepMetadata struct {
 	PipelineName string
 	JobName      string
 	BuildName    string
+	ExternalURL  string
 }
 
 func (metadata StepMetadata) Env() []string {
@@ -23,6 +24,10 @@ func (metadata StepMetadata) Env() []string {
 
 	if metadata.BuildName != "" {
 		env = append(env, "BUILD_NAME="+metadata.BuildName)
+	}
+
+	if metadata.ExternalURL != "" {
+		env = append(env, "ATC_EXTERNAL_URL="+metadata.ExternalURL)
 	}
 
 	return env

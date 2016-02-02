@@ -31,7 +31,7 @@ var _ = Describe("ExecEngine", func() {
 		fakeDelegateFactory = new(fakes.FakeBuildDelegateFactory)
 		fakeDB = new(fakes.FakeEngineDB)
 
-		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB)
+		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB, "http://example.com")
 	})
 
 	Describe("Resume", func() {
@@ -85,6 +85,7 @@ var _ = Describe("ExecEngine", func() {
 				BuildName:    "21",
 				JobName:      "some-job",
 				PipelineName: "some-pipeline",
+				ExternalURL:  "http://example.com",
 			}
 
 			fakeDelegate = new(fakes.FakeBuildDelegate)

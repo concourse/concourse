@@ -37,7 +37,7 @@ var _ = Describe("Exec Engine with Try", func() {
 		fakeDelegateFactory = new(fakes.FakeBuildDelegateFactory)
 		fakeDB = new(fakes.FakeEngineDB)
 
-		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB)
+		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB, "http://example.com")
 
 		fakeDelegate = new(fakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
@@ -54,6 +54,7 @@ var _ = Describe("Exec Engine with Try", func() {
 			BuildName:    "42",
 			JobName:      "some-job",
 			PipelineName: "some-pipeline",
+			ExternalURL:  "http://example.com",
 		}
 	})
 

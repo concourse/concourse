@@ -36,7 +36,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 		fakeDelegateFactory = new(fakes.FakeBuildDelegateFactory)
 		fakeDB = new(fakes.FakeEngineDB)
 
-		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB)
+		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB, "http://example.com")
 
 		fakeDelegate = new(fakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
@@ -53,6 +53,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 			BuildName:    "42",
 			JobName:      "some-job",
 			PipelineName: "some-pipeline",
+			ExternalURL:  "http://example.com",
 		}
 	})
 

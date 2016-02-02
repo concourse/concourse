@@ -25,13 +25,15 @@ type execEngine struct {
 	factory         exec.Factory
 	delegateFactory BuildDelegateFactory
 	db              EngineDB
+	externalURL     string
 }
 
-func NewExecEngine(factory exec.Factory, delegateFactory BuildDelegateFactory, db EngineDB) Engine {
+func NewExecEngine(factory exec.Factory, delegateFactory BuildDelegateFactory, db EngineDB, externalURL string) Engine {
 	return &execEngine{
 		factory:         factory,
 		delegateFactory: delegateFactory,
 		db:              db,
+		externalURL:     externalURL,
 	}
 }
 
@@ -42,7 +44,7 @@ func (engine *execEngine) Name() string {
 func (engine *execEngine) CreateBuild(logger lager.Logger, model db.Build, plan atc.Plan) (Build, error) {
 	return &execBuild{
 		buildID:      model.ID,
-		stepMetadata: buildMetadata(model),
+		stepMetadata: buildMetadata(model, engine.externalURL),
 
 		db:       engine.db,
 		factory:  engine.factory,
@@ -65,7 +67,7 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, model db.Build) (Buil
 
 	return &execBuild{
 		buildID:      model.ID,
-		stepMetadata: buildMetadata(model),
+		stepMetadata: buildMetadata(model, engine.externalURL),
 
 		db:       engine.db,
 		factory:  engine.factory,
@@ -76,12 +78,13 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, model db.Build) (Buil
 	}, nil
 }
 
-func buildMetadata(model db.Build) StepMetadata {
+func buildMetadata(model db.Build, externalURL string) StepMetadata {
 	return StepMetadata{
 		BuildID:      model.ID,
 		BuildName:    model.Name,
 		JobName:      model.JobName,
 		PipelineName: model.PipelineName,
+		ExternalURL:  externalURL,
 	}
 }
 
