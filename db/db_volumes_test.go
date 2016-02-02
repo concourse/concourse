@@ -17,6 +17,7 @@ var _ = Describe("Keeping track of volumes", func() {
 	var listener *pq.Listener
 
 	var database db.DB
+	var pipelineDB db.PipelineDB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -27,7 +28,22 @@ var _ = Describe("Keeping track of volumes", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		database = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
+		sqlDB := db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
+		database = sqlDB
+
+		pipelineDBFactory := db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)
+		_, err := database.SaveTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
+		config := atc.Config{
+			Jobs: atc.JobConfigs{
+				{
+					Name: "some-job",
+				},
+			},
+		}
+		sqlDB.SaveConfig("some-team", "some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName("some-team", "some-pipeline")
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -233,6 +249,117 @@ var _ = Describe("Keeping track of volumes", func() {
 					Expect(volumes[0].ExpiresIn).To(Equal(time.Duration(0)))
 				})
 			})
+		})
+	})
+
+	Describe("GetVolumesForOneOffBuildImageResources", func() {
+		It("returns all volumes containing image resource versions which were used in one-off builds", func() {
+			oneOffBuildA, err := database.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+			oneOffBuildB, err := database.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+			jobBuild, err := pipelineDB.CreateJobBuild("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			// To show that it returns volumes that are used in both one-off builds and job builds
+			volume1 := db.Volume{
+				WorkerName: "worker-1",
+				TTL:        2 * time.Minute,
+				Handle:     "volume-1",
+				VolumeIdentifier: db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"digest": "digest-1"},
+					ResourceHash:    `docker:{"repository":"repository-1"}`,
+				},
+			}
+			err = database.InsertVolume(volume1)
+			Expect(err).NotTo(HaveOccurred())
+			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-1", volume1.VolumeIdentifier)
+			Expect(err).NotTo(HaveOccurred())
+			err = database.SaveImageResourceVersion(jobBuild.ID, "plan-id-1", volume1.VolumeIdentifier)
+			Expect(err).NotTo(HaveOccurred())
+
+			// To show that it can return more than one volume per build ID
+			volume2 := db.Volume{
+				WorkerName: "worker-2",
+				TTL:        2 * time.Minute,
+				Handle:     "volume-2",
+				VolumeIdentifier: db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"digest": "digest-2"},
+					ResourceHash:    `docker:{"repository":"repository-2"}`,
+				},
+			}
+			err = database.InsertVolume(volume2)
+			Expect(err).NotTo(HaveOccurred())
+			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-2", volume2.VolumeIdentifier)
+			Expect(err).NotTo(HaveOccurred())
+
+			// To show that it can return more than one volume per VolumeIdentifier
+			volume3 := db.Volume{
+				WorkerName: "worker-3",
+				TTL:        2 * time.Minute,
+				Handle:     "volume-3",
+				VolumeIdentifier: db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"digest": "digest-1"},
+					ResourceHash:    `docker:{"repository":"repository-1"}`,
+				},
+			}
+			err = database.InsertVolume(volume3)
+			Expect(err).NotTo(HaveOccurred())
+			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-3", volume3.VolumeIdentifier)
+			Expect(err).NotTo(HaveOccurred())
+
+			// To show that it can return volumes from multiple one-off builds
+			volume4 := db.Volume{
+				WorkerName: "worker-4",
+				TTL:        2 * time.Minute,
+				Handle:     "volume-4",
+				VolumeIdentifier: db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"digest": "digest-4"},
+					ResourceHash:    `docker:{"repository":"repository-4"}`,
+				},
+			}
+			err = database.InsertVolume(volume4)
+			Expect(err).NotTo(HaveOccurred())
+			err = database.SaveImageResourceVersion(oneOffBuildB.ID, "plan-id-4", volume4.VolumeIdentifier)
+			Expect(err).NotTo(HaveOccurred())
+
+			// To show that it ignores volumes from job builds even if part of the VolumeIdentifier matches
+			volume5 := db.Volume{
+				WorkerName: "worker-5",
+				TTL:        2 * time.Minute,
+				Handle:     "volume-5",
+				VolumeIdentifier: db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"digest": "digest-1"},
+					ResourceHash:    `docker:{"repository":"repository-2"}`,
+				},
+			}
+			err = database.InsertVolume(volume5)
+			Expect(err).NotTo(HaveOccurred())
+			err = database.SaveImageResourceVersion(jobBuild.ID, "plan-id-5", volume5.VolumeIdentifier)
+			Expect(err).NotTo(HaveOccurred())
+
+			// To show that it reaps expired volumes
+			volume6 := db.Volume{
+				WorkerName: "worker-6",
+				TTL:        -time.Hour,
+				Handle:     "volume-6",
+				VolumeIdentifier: db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"digest": "digest-6"},
+					ResourceHash:    `docker:{"repository":"repository-6"}`,
+				},
+			}
+			err = database.InsertVolume(volume6)
+			Expect(err).NotTo(HaveOccurred())
+			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-6", volume6.VolumeIdentifier)
+			Expect(err).NotTo(HaveOccurred())
+
+			actualSavedVolumes, err := database.GetVolumesForOneOffBuildImageResources()
+			Expect(err).NotTo(HaveOccurred())
+			var actualVolumes []db.Volume
+			for _, actualSavedVolume := range actualSavedVolumes {
+				actualVolumes = append(actualVolumes, actualSavedVolume.Volume)
+			}
+			Expect(actualVolumes).To(ConsistOf(volume1, volume2, volume3, volume4))
 		})
 	})
 })

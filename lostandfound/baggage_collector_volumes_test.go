@@ -28,6 +28,7 @@ var _ = Describe("Volumes are reaped", func() {
 		fakePipelineDBFactory          *dbfakes.FakePipelineDBFactory
 		fakeBaggageCollectorDB         *fakes.FakeBaggageCollectorDB
 		expectedOldResourceGracePeriod = 4 * time.Minute
+		expectedOneOffTTL              = 5 * time.Hour
 
 		baggageCollector          lostandfound.BaggageCollector
 		returnedSavedVolume       db.SavedVolume
@@ -49,6 +50,7 @@ var _ = Describe("Volumes are reaped", func() {
 			fakeBaggageCollectorDB,
 			fakePipelineDBFactory,
 			expectedOldResourceGracePeriod,
+			expectedOneOffTTL,
 		)
 
 		returnedSavedVolume = db.SavedVolume{

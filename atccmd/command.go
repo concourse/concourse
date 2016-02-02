@@ -264,6 +264,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				sqlDB,
 				pipelineDBFactory,
 				cmd.OldResourceGracePeriod,
+				24*time.Hour,
 			),
 			sqlDB,
 			clock.NewClock(),

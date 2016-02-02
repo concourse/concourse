@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -91,12 +92,7 @@ func (db *SQLDB) ReapVolume(handle string) error {
 }
 
 func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
-	// reap expired volumes
-	_, err := db.conn.Exec(`
-		DELETE FROM volumes
-		WHERE expires_at IS NOT NULL
-		AND expires_at < NOW()
-	`)
+	err := db.expireVolumes()
 	if err != nil {
 		return nil, err
 	}
@@ -116,33 +112,39 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 		return nil, err
 	}
 
-	defer rows.Close()
+	volumes, err := scanVolumes(rows)
+	return volumes, err
+}
 
-	volumes := []SavedVolume{}
-
-	for rows.Next() {
-		var volume SavedVolume
-		var ttlSeconds *float64
-		var versionJSON []byte
-
-		err := rows.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &volume.ResourceHash, &volume.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		if ttlSeconds != nil {
-			volume.ExpiresIn = time.Duration(*ttlSeconds) * time.Second
-		}
-
-		err = json.Unmarshal(versionJSON, &volume.ResourceVersion)
-		if err != nil {
-			return nil, err
-		}
-
-		volumes = append(volumes, volume)
+func (db *SQLDB) GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error) {
+	err := db.expireVolumes()
+	if err != nil {
+		return nil, err
 	}
 
-	return volumes, nil
+	rows, err := db.conn.Query(`
+		SELECT DISTINCT
+			v.worker_name,
+			v.ttl,
+			EXTRACT(epoch FROM v.expires_at - NOW()),
+			v.handle,
+			v.resource_version,
+			v.resource_hash,
+			v.id
+		FROM volumes v
+			INNER JOIN image_resource_versions i
+				ON i.version = v.resource_version
+				AND i.resource_hash = v.resource_hash
+			INNER JOIN builds b
+				ON b.id = i.build_id
+		WHERE b.job_id IS NULL
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	volumes, err := scanVolumes(rows)
+	return volumes, err
 }
 
 func (db *SQLDB) SetVolumeTTL(handle string, ttl time.Duration) error {
@@ -178,4 +180,43 @@ func (db *SQLDB) GetVolumeTTL(handle string) (time.Duration, error) {
 	`, handle).Scan(&ttl)
 
 	return ttl, err
+}
+
+func (db *SQLDB) expireVolumes() error {
+	_, err := db.conn.Exec(`
+		DELETE FROM volumes
+		WHERE expires_at IS NOT NULL
+		AND expires_at < NOW()
+	`)
+	return err
+}
+
+func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
+	defer rows.Close()
+
+	volumes := []SavedVolume{}
+
+	for rows.Next() {
+		var volume SavedVolume
+		var ttlSeconds *float64
+		var versionJSON []byte
+
+		err := rows.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &volume.ResourceHash, &volume.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		if ttlSeconds != nil {
+			volume.ExpiresIn = time.Duration(*ttlSeconds) * time.Second
+		}
+
+		err = json.Unmarshal(versionJSON, &volume.ResourceVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		volumes = append(volumes, volume)
+	}
+
+	return volumes, nil
 }

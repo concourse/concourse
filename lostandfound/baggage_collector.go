@@ -19,6 +19,7 @@ type BaggageCollectorDB interface {
 	GetVolumes() ([]db.SavedVolume, error)
 	SetVolumeTTL(string, time.Duration) error
 	GetImageVolumeIdentifiersByBuildID(buildID int) ([]db.VolumeIdentifier, error)
+	GetVolumesForOneOffBuildImageResources() ([]db.SavedVolume, error)
 }
 
 //go:generate counterfeiter . BaggageCollector
@@ -28,11 +29,12 @@ type BaggageCollector interface {
 }
 
 type baggageCollector struct {
-	logger                 lager.Logger
-	workerClient           worker.Client
-	db                     BaggageCollectorDB
-	pipelineDBFactory      db.PipelineDBFactory
-	oldResourceGracePeriod time.Duration
+	logger                              lager.Logger
+	workerClient                        worker.Client
+	db                                  BaggageCollectorDB
+	pipelineDBFactory                   db.PipelineDBFactory
+	oldResourceGracePeriod              time.Duration
+	oneOffBuildImageResourceGracePeriod time.Duration
 }
 
 func (bc *baggageCollector) Collect() error {
@@ -50,7 +52,24 @@ func (bc *baggageCollector) Collect() error {
 	return nil
 }
 
-type hashedVersionSet map[string]bool
+type hashedVersionSet map[string]time.Duration
+
+func insertOrIncreaseVersionTTL(hvs hashedVersionSet, key string, ttl time.Duration) {
+	oldTTL, found := hvs[key]
+	if !found || ttlGreater(ttl, oldTTL) {
+		hvs[key] = ttl
+	}
+}
+
+func ttlGreater(ttl time.Duration, oldTTL time.Duration) bool {
+	if oldTTL == 0 {
+		return false
+	}
+	if ttl == 0 {
+		return true
+	}
+	return ttl > oldTTL
+}
 
 func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 	latestVersions := hashedVersionSet{}
@@ -85,7 +104,7 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 			hashKey := string(version) + resource.GenerateResourceHash(
 				pipelineResource.Source, pipelineResource.Type,
 			)
-			latestVersions[hashKey] = true
+			insertOrIncreaseVersionTTL(latestVersions, hashKey, 0) // live forever
 		}
 
 		for _, pipelineJob := range pipeline.Config.Jobs {
@@ -110,10 +129,23 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 				for _, identifier := range volumeIdentifiers {
 					version, _ := json.Marshal(identifier.ResourceVersion)
 					hashKey := string(version) + identifier.ResourceHash
-					latestVersions[hashKey] = true
+					insertOrIncreaseVersionTTL(latestVersions, hashKey, 0) // live forever
 				}
 			}
 		}
+	}
+
+	logger := bc.logger.Session("image-resources-for-one-off-builds")
+	oneOffImageResourceVolumes, err := bc.db.GetVolumesForOneOffBuildImageResources()
+	if err != nil {
+		logger.Error("could-not-get-volumes-for-one-off-build-image-resources", err)
+		return nil, err
+	}
+	for _, savedVolume := range oneOffImageResourceVolumes {
+		identifier := savedVolume.Volume.VolumeIdentifier
+		version, _ := json.Marshal(identifier.ResourceVersion)
+		hashKey := string(version) + identifier.ResourceHash
+		insertOrIncreaseVersionTTL(latestVersions, hashKey, bc.oneOffBuildImageResourceGracePeriod)
 	}
 
 	return latestVersions, nil
@@ -131,9 +163,9 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 		version, _ := json.Marshal(volumeToExpire.ResourceVersion)
 		hashKey := string(version) + volumeToExpire.ResourceHash
 
-		ttlForVol := bc.oldResourceGracePeriod
-		if latestVersions[hashKey] {
-			ttlForVol = 0 // live forever
+		ttlForVol, found := latestVersions[hashKey]
+		if !found {
+			ttlForVol = bc.oldResourceGracePeriod
 		}
 
 		volumeWorker, err := bc.workerClient.GetWorker(volumeToExpire.WorkerName)
@@ -189,12 +221,14 @@ func NewBaggageCollector(
 	db BaggageCollectorDB,
 	pipelineDBFactory db.PipelineDBFactory,
 	oldResourceGracePeriod time.Duration,
+	oneOffBuildImageResourceGracePeriod time.Duration,
 ) BaggageCollector {
 	return &baggageCollector{
-		logger:                 logger,
-		workerClient:           workerClient,
-		db:                     db,
-		pipelineDBFactory:      pipelineDBFactory,
-		oldResourceGracePeriod: oldResourceGracePeriod,
+		logger:                              logger,
+		workerClient:                        workerClient,
+		db:                                  db,
+		pipelineDBFactory:                   pipelineDBFactory,
+		oldResourceGracePeriod:              oldResourceGracePeriod,
+		oneOffBuildImageResourceGracePeriod: oneOffBuildImageResourceGracePeriod,
 	}
 }

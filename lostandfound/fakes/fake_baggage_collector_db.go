@@ -50,6 +50,13 @@ type FakeBaggageCollectorDB struct {
 		result1 []db.VolumeIdentifier
 		result2 error
 	}
+	GetVolumesForOneOffBuildImageResourcesStub        func() ([]db.SavedVolume, error)
+	getVolumesForOneOffBuildImageResourcesMutex       sync.RWMutex
+	getVolumesForOneOffBuildImageResourcesArgsForCall []struct{}
+	getVolumesForOneOffBuildImageResourcesReturns     struct {
+		result1 []db.SavedVolume
+		result2 error
+	}
 }
 
 func (fake *FakeBaggageCollectorDB) ReapVolume(arg1 string) error {
@@ -196,6 +203,31 @@ func (fake *FakeBaggageCollectorDB) GetImageVolumeIdentifiersByBuildIDReturns(re
 	fake.GetImageVolumeIdentifiersByBuildIDStub = nil
 	fake.getImageVolumeIdentifiersByBuildIDReturns = struct {
 		result1 []db.VolumeIdentifier
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBaggageCollectorDB) GetVolumesForOneOffBuildImageResources() ([]db.SavedVolume, error) {
+	fake.getVolumesForOneOffBuildImageResourcesMutex.Lock()
+	fake.getVolumesForOneOffBuildImageResourcesArgsForCall = append(fake.getVolumesForOneOffBuildImageResourcesArgsForCall, struct{}{})
+	fake.getVolumesForOneOffBuildImageResourcesMutex.Unlock()
+	if fake.GetVolumesForOneOffBuildImageResourcesStub != nil {
+		return fake.GetVolumesForOneOffBuildImageResourcesStub()
+	} else {
+		return fake.getVolumesForOneOffBuildImageResourcesReturns.result1, fake.getVolumesForOneOffBuildImageResourcesReturns.result2
+	}
+}
+
+func (fake *FakeBaggageCollectorDB) GetVolumesForOneOffBuildImageResourcesCallCount() int {
+	fake.getVolumesForOneOffBuildImageResourcesMutex.RLock()
+	defer fake.getVolumesForOneOffBuildImageResourcesMutex.RUnlock()
+	return len(fake.getVolumesForOneOffBuildImageResourcesArgsForCall)
+}
+
+func (fake *FakeBaggageCollectorDB) GetVolumesForOneOffBuildImageResourcesReturns(result1 []db.SavedVolume, result2 error) {
+	fake.GetVolumesForOneOffBuildImageResourcesStub = nil
+	fake.getVolumesForOneOffBuildImageResourcesReturns = struct {
+		result1 []db.SavedVolume
 		result2 error
 	}{result1, result2}
 }
