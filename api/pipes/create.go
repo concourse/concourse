@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/nu7hatch/gouuid"
+	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc"
 )
@@ -27,8 +28,32 @@ func (s *Server) CreatePipe(w http.ResponseWriter, r *http.Request) {
 
 	pr, pw := io.Pipe()
 
+	pipeID := guid.String()
+
+	reqGen := rata.NewRequestGenerator(s.externalURL, atc.Routes)
+
+	readReq, err := reqGen.CreateRequest(atc.ReadPipe, rata.Params{
+		"pipe_id": pipeID,
+	}, nil)
+	if err != nil {
+		logger.Error("failed-to-create-pipe", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	writeReq, err := reqGen.CreateRequest(atc.WritePipe, rata.Params{
+		"pipe_id": pipeID,
+	}, nil)
+	if err != nil {
+		logger.Error("failed-to-create-pipe", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	pipeResource := atc.Pipe{
-		ID: guid.String(),
+		ID:       pipeID,
+		ReadURL:  readReq.URL.String(),
+		WriteURL: writeReq.URL.String(),
 	}
 
 	pipe := pipe{

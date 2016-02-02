@@ -95,7 +95,7 @@ func NewHandler(
 	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL)
 	resourceServer := resourceserver.NewServer(logger)
 	versionServer := versionserver.NewServer(logger, externalURL)
-	pipeServer := pipes.NewServer(logger, peerURL, pipeDB)
+	pipeServer := pipes.NewServer(logger, peerURL, externalURL, pipeDB)
 
 	pipelineServer := pipelineserver.NewServer(logger, pipelinesDB, configDB)
 

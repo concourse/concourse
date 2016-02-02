@@ -3,6 +3,7 @@ package api_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -66,6 +67,11 @@ var _ = Describe("Pipes API", func() {
 			It("returns unique pipe IDs", func() {
 				anotherPipe := createPipe()
 				Expect(anotherPipe.ID).NotTo(Equal(pipe.ID))
+			})
+
+			It("returns the pipe's read/write URLs", func() {
+				Expect(pipe.ReadURL).To(Equal(fmt.Sprintf("https://example.com/api/v1/pipes/%s", pipe.ID)))
+				Expect(pipe.WriteURL).To(Equal(fmt.Sprintf("https://example.com/api/v1/pipes/%s", pipe.ID)))
 			})
 
 			It("saves it", func() {

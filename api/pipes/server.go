@@ -13,7 +13,8 @@ import (
 type Server struct {
 	logger lager.Logger
 
-	url string
+	url         string
+	externalURL string
 
 	pipes  map[string]pipe
 	pipesL *sync.RWMutex
@@ -28,11 +29,12 @@ type PipeDB interface {
 	GetPipe(pipeGUID string) (db.Pipe, error)
 }
 
-func NewServer(logger lager.Logger, url string, db PipeDB) *Server {
+func NewServer(logger lager.Logger, url string, externalURL string, db PipeDB) *Server {
 	return &Server{
 		logger: logger,
 
-		url: url,
+		url:         url,
+		externalURL: externalURL,
 
 		pipes:  make(map[string]pipe),
 		pipesL: new(sync.RWMutex),
