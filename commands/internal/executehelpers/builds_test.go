@@ -1,10 +1,7 @@
 package executehelpers_test
 
 import (
-	"net/http"
-
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/deprecated"
 	. "github.com/concourse/fly/commands/internal/executehelpers"
 	"github.com/concourse/go-concourse/concourse/fakes"
 
@@ -13,12 +10,10 @@ import (
 )
 
 var _ = Describe("Builds", func() {
-	var requester *deprecated.AtcRequester
 	var fakeClient *fakes.FakeClient
 	var config atc.TaskConfig
 
 	BeforeEach(func() {
-		requester = deprecated.NewAtcRequester("foo", &http.Client{})
 		fakeClient = new(fakes.FakeClient)
 
 		config = atc.TaskConfig{
