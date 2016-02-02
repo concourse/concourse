@@ -64,6 +64,7 @@ run:
   - -c
   - |
     ls /hello-im-a-git-rootfs
+    echo $IMAGE_PROVIDED_ENV
 `),
 			0644,
 		)
@@ -74,7 +75,7 @@ run:
 		os.RemoveAll(tmpdir)
 	})
 
-	It("works", func() {
+	It("propagates the rootfs and metadata to the task", func() {
 		fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "task.yml")
 		fly.Dir = fixture
 
@@ -83,5 +84,6 @@ run:
 		Eventually(session).Should(gexec.Exit(0))
 
 		Expect(session).To(gbytes.Say("/hello-im-a-git-rootfs"))
+		Expect(session).To(gbytes.Say("hello-im-image-provided-env"))
 	})
 })

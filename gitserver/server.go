@@ -156,7 +156,8 @@ func (server *Server) CommitRootfs() {
 				cp -a /lib64 rootfs/lib64
 				cp -a /root rootfs/root || true # prevent copy infinite loop
 				touch rootfs/hello-im-a-git-rootfs
-				git add rootfs
+				echo '{"env":["IMAGE_PROVIDED_ENV=hello-im-image-provided-env"]}' > metadata.json
+				git add rootfs metadata.json
 				git commit -qm 'created rootfs'
 			`,
 		},
