@@ -29,19 +29,16 @@ type ExecuteCommand struct {
 }
 
 func (command *ExecuteCommand) Execute(args []string) error {
-	connection, err := rc.TargetConnection(Fly.Target)
-
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
 
-	client := concourse.NewClient(connection)
-
 	taskConfigFile := command.TaskConfig
 	excludeIgnored := command.ExcludeIgnored
 
-	atcRequester := deprecated.NewAtcRequester(connection.URL(), connection.HTTPClient())
+	atcRequester := deprecated.NewAtcRequester(client.URL(), client.HTTPClient())
 
 	taskConfig := config.LoadTaskConfig(string(taskConfigFile), args)
 

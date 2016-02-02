@@ -10,7 +10,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
-	"github.com/concourse/go-concourse/concourse"
 )
 
 type GetPipelineCommand struct {
@@ -22,12 +21,11 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 	asJSON := command.JSON
 	pipelineName := command.Pipeline
 
-	connection, err := rc.TargetConnection(Fly.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	client := concourse.NewClient(connection)
 	config, _, _, err := client.PipelineConfig(pipelineName)
 	if err != nil {
 		log.Fatalln(err)

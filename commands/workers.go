@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/fatih/color"
 )
 
@@ -19,12 +18,10 @@ type WorkersCommand struct {
 }
 
 func (command *WorkersCommand) Execute([]string) error {
-	connection, err := rc.TargetConnection(Fly.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}
-
-	client := concourse.NewClient(connection)
 
 	workers, err := client.ListWorkers()
 	if err != nil {

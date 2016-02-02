@@ -178,11 +178,10 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 		attempt:       attempt,
 	}
 
-	connection, err := rc.TargetConnection(Fly.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln("failed to create client:", err)
 	}
-	client := concourse.NewClient(connection)
 
 	reqValues, err := locateContainer(client, fingerprint)
 	if err != nil {

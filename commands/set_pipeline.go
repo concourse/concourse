@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/fly/commands/internal/setpipelinehelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/template"
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/tedsuo/rata"
 )
 
@@ -30,14 +29,13 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		templateVariables[v.Name] = v.Value
 	}
 
-	connection, err := rc.TargetConnection(Fly.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
-	client := concourse.NewClient(connection)
 
-	webRequestGenerator := rata.NewRequestGenerator(connection.URL(), web.Routes)
+	webRequestGenerator := rata.NewRequestGenerator(client.URL(), web.Routes)
 
 	atcConfig := setpipelinehelpers.ATCConfig{
 		PipelineName:        pipelineName,

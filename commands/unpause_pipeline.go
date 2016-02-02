@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
-	"github.com/concourse/go-concourse/concourse"
 )
 
 type UnpausePipelineCommand struct {
@@ -16,12 +15,12 @@ type UnpausePipelineCommand struct {
 func (command *UnpausePipelineCommand) Execute(args []string) error {
 	pipelineName := command.Pipeline
 
-	connection, err := rc.TargetConnection(Fly.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
-	client := concourse.NewClient(connection)
+
 	found, err := client.UnpausePipeline(pipelineName)
 	if err != nil {
 		return err

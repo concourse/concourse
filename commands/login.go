@@ -25,19 +25,17 @@ func (command *LoginCommand) Execute(args []string) error {
 		return errors.New("name for the target must be specified (--target/-t)")
 	}
 
-	var connection concourse.Connection
+	var client concourse.Client
 	var err error
 
 	if command.ATCURL != "" {
-		connection, err = rc.NewConnection(command.ATCURL, command.Insecure)
+		client = rc.NewClient(command.ATCURL, command.Insecure)
 	} else {
-		connection, err = rc.CommandTargetConnection(Fly.Target, &command.Insecure)
+		client, err = rc.CommandTargetClient(Fly.Target, &command.Insecure)
 	}
 	if err != nil {
 		return err
 	}
-
-	client := concourse.NewClient(connection)
 
 	authMethods, err := client.ListAuthMethods()
 	if err != nil {
@@ -60,7 +58,7 @@ func (command *LoginCommand) Execute(args []string) error {
 		switch len(authMethods) {
 		case 0:
 			return command.saveTarget(
-				connection.URL(),
+				client.URL(),
 				&rc.TargetToken{},
 			)
 		case 1:
@@ -81,10 +79,10 @@ func (command *LoginCommand) Execute(args []string) error {
 		}
 	}
 
-	return command.loginWith(chosenMethod, connection)
+	return command.loginWith(chosenMethod, client)
 }
 
-func (command *LoginCommand) loginWith(method atc.AuthMethod, connection concourse.Connection) error {
+func (command *LoginCommand) loginWith(method atc.AuthMethod, client concourse.Client) error {
 	var token atc.AuthToken
 
 	switch method.Type {
@@ -137,12 +135,9 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, connection concour
 			password = string(interactivePassword)
 		}
 
-		newUnauthedClient, err := rc.NewConnection(connection.URL(), command.Insecure)
-		if err != nil {
-			return err
-		}
+		newUnauthedClient := rc.NewClient(client.URL(), command.Insecure)
 
-		basicAuthClient, err := concourse.NewConnection(
+		basicAuthClient := concourse.NewClient(
 			newUnauthedClient.URL(),
 			&http.Client{
 				Transport: basicAuthTransport{
@@ -152,20 +147,16 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, connection concour
 				},
 			},
 		)
-		if err != nil {
-			return err
-		}
 
-		client := concourse.NewClient(basicAuthClient)
-
-		token, err = client.AuthToken()
+		var err error
+		token, err = basicAuthClient.AuthToken()
 		if err != nil {
 			return err
 		}
 	}
 
 	return command.saveTarget(
-		connection.URL(),
+		client.URL(),
 		&rc.TargetToken{
 			Type:  token.Type,
 			Value: token.Value,

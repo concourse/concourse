@@ -23,13 +23,11 @@ type BuildsCommand struct {
 }
 
 func (command *BuildsCommand) Execute([]string) error {
-	connection, err := rc.TargetConnection(Fly.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
-
-	client := concourse.NewClient(connection)
 
 	page := concourse.Page{Limit: command.Count}
 

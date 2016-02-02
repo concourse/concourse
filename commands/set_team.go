@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/rc"
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/vito/go-interact/interact"
 )
 
@@ -51,12 +50,10 @@ func (command *SetTeamCommand) Execute([]string) error {
 
 	team := command.GetTeam(hasBasicAuth, hasGitHubAuth)
 
-	connection, err := rc.TargetConnection(Fly.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		return err
 	}
-
-	client := concourse.NewClient(connection)
 
 	_, _, _, err = client.SetTeam(command.TeamName, team)
 	if err != nil {

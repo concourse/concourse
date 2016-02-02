@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/concourse/fly/rc"
-	"github.com/concourse/go-concourse/concourse"
 	"github.com/vito/go-interact/interact"
 )
 
@@ -24,12 +23,10 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	connection, err := rc.TargetConnection(Fly.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		return err
 	}
-
-	client := concourse.NewClient(connection)
 
 	found, err := client.DeletePipeline(pipelineName)
 	if err != nil {

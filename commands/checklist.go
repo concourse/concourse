@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
-	"github.com/concourse/go-concourse/concourse"
 )
 
 type ChecklistCommand struct {
@@ -14,20 +13,19 @@ type ChecklistCommand struct {
 }
 
 func (command *ChecklistCommand) Execute([]string) error {
-	connection, err := rc.TargetConnection(Fly.Target)
+	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	pipelineName := command.Pipeline
 
-	client := concourse.NewClient(connection)
 	config, _, _, err := client.PipelineConfig(pipelineName)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	printCheckfile(pipelineName, config, connection.URL())
+	printCheckfile(pipelineName, config, client.URL())
 
 	return nil
 }
