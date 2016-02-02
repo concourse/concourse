@@ -97,5 +97,5 @@ func AllNodeClientSetup(data []byte) (concourse.Client, error) {
 	// poll less frequently
 	SetDefaultEventuallyPollingInterval(time.Second)
 
-	return ConcourseClient(pass.AtcURL, pass.LoginInfo)
+	return ConcourseClient(pass.AtcURL, pass.LoginInfo), nil
 }
