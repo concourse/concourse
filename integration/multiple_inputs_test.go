@@ -129,13 +129,17 @@ run:
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
 				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID: "some-pipe-id",
+					ID:       "some-pipe-id",
+					ReadURL:  atcServer.URL() + "/api/v1/pipes/some-pipe-id",
+					WriteURL: atcServer.URL() + "/api/v1/pipes/some-pipe-id",
 				}),
 			),
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
 				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID: "some-other-pipe-id",
+					ID:       "some-other-pipe-id",
+					ReadURL:  atcServer.URL() + "/api/v1/pipes/some-other-pipe-id",
+					WriteURL: atcServer.URL() + "/api/v1/pipes/some-other-pipe-id",
 				}),
 			),
 		)

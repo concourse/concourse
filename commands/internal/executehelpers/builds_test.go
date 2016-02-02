@@ -33,7 +33,7 @@ var _ = Describe("Builds", func() {
 	Context("when tags are provided", func() {
 		It("add the tags to the plan", func() {
 			tags := []string{"tag", "tag2"}
-			_, err := CreateBuild(requester, fakeClient, false, []Input{}, []Output{}, config, tags, "https://target.com")
+			_, err := CreateBuild(fakeClient, false, []Input{}, []Output{}, config, tags, "https://target.com")
 			Expect(err).ToNot(HaveOccurred())
 
 			plan := fakeClient.CreateBuildArgsForCall(0)
@@ -46,7 +46,7 @@ var _ = Describe("Builds", func() {
 	Context("when tags are not provided", func() {
 		It("should not add tags to the plan", func() {
 			tags := []string{}
-			_, err := CreateBuild(requester, fakeClient, false, []Input{}, []Output{}, config, tags, "https://target.com")
+			_, err := CreateBuild(fakeClient, false, []Input{}, []Output{}, config, tags, "https://target.com")
 			Expect(err).ToNot(HaveOccurred())
 
 			plan := fakeClient.CreateBuildArgsForCall(0)
