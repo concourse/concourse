@@ -34,13 +34,7 @@ func (cf *clientFactory) Build(r *http.Request) concourse.Client {
 		Transport: transport,
 	}
 
-	connection, err := concourse.NewConnection(cf.apiEndpoint, httpClient)
-	if err != nil {
-		// TODO really just shouldn't have this error case in the first place
-		panic(err)
-	}
-
-	return concourse.NewClient(connection)
+	return concourse.NewClient(cf.apiEndpoint, httpClient)
 }
 
 type authorizationTransport struct {
