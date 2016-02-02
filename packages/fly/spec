@@ -25,6 +25,7 @@ files:
   - github.com/concourse/fly/ui/*.go # gosub
   - github.com/concourse/go-concourse/concourse/*.go # gosub
   - github.com/concourse/go-concourse/concourse/eventstream/*.go # gosub
+  - github.com/concourse/go-concourse/concourse/internal/*.go # gosub
   - github.com/fatih/color/*.go # gosub
   - github.com/hashicorp/errwrap/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub

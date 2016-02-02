@@ -76,6 +76,7 @@ files:
   - github.com/concourse/baggageclaim/volume/*.go # gosub
   - github.com/concourse/go-concourse/concourse/*.go # gosub
   - github.com/concourse/go-concourse/concourse/eventstream/*.go # gosub
+  - github.com/concourse/go-concourse/concourse/internal/*.go # gosub
   - github.com/contraband/holler/*.go # gosub
   - github.com/dgrijalva/jwt-go/*.go # gosub
   - github.com/docker/distribution/*.go # gosub
