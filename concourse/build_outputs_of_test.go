@@ -11,13 +11,15 @@ import (
 
 var _ = Describe("ATC Handler Build Outputs", func() {
 	Describe("BuildsWithVersionAsOutput", func() {
-		var (
-			expectedBuilds   []atc.Build
-			serverStatusCode int
-		)
+		expectedURL := "/api/v1/pipelines/some-pipeline/resources/myresource/versions/2/output_of"
+
+		var expectedBuilds []atc.Build
+
+		var actualBuilds []atc.Build
+		var found bool
+		var clientErr error
 
 		BeforeEach(func() {
-			serverStatusCode = http.StatusOK
 			expectedBuilds = []atc.Build{
 				{
 					ID:     2,
@@ -33,45 +35,54 @@ var _ = Describe("ATC Handler Build Outputs", func() {
 		})
 
 		JustBeforeEach(func() {
-			expectedURL := "/api/v1/pipelines/some-pipeline/resources/myresource/versions/2/output_of"
-
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL),
-					ghttp.RespondWithJSONEncoded(serverStatusCode, expectedBuilds),
-				),
-			)
+			actualBuilds, found, clientErr = client.BuildsWithVersionAsOutput("some-pipeline", "myresource", 2)
 		})
 
-		It("returns the builds for a given resource_version_id", func() {
-			actualBuilds, found, err := client.BuildsWithVersionAsOutput("some-pipeline", "myresource", 2)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(actualBuilds).To(Equal(expectedBuilds))
+		Context("when the server returns builds", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
+					),
+				)
+			})
+
+			It("returns the builds for a given resource_version_id", func() {
+				Expect(clientErr).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(actualBuilds).To(Equal(expectedBuilds))
+			})
 		})
 
 		Context("when the server returns a 404", func() {
 			BeforeEach(func() {
-				expectedBuilds = nil
-				serverStatusCode = http.StatusNotFound
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWith(http.StatusNotFound, ""),
+					),
+				)
 			})
 
 			It("returns found of false and no errr", func() {
-				_, found, err := client.BuildsWithVersionAsOutput("some-pipeline", "myresource", 2)
-				Expect(err).ToNot(HaveOccurred())
+				Expect(clientErr).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
 		})
 
 		Context("when the server returns a 500 error", func() {
 			BeforeEach(func() {
-				expectedBuilds = nil
-				serverStatusCode = http.StatusInternalServerError
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWith(http.StatusInternalServerError, ""),
+					),
+				)
 			})
 
 			It("returns found of false and no errr", func() {
-				_, found, err := client.BuildsWithVersionAsOutput("some-pipeline", "myresource", 2)
-				Expect(err).To(HaveOccurred())
+				Expect(clientErr).To(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
 		})

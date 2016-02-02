@@ -14,13 +14,20 @@ import (
 
 var _ = Describe("ATC Handler Resource Versions", func() {
 	Describe("ResourceVersions", func() {
-		var (
-			expectedVersions []atc.VersionedResource
-			expectedURL      string
-			expectedQuery    string
-		)
+		expectedURL := fmt.Sprint("/api/v1/pipelines/mypipeline/resources/myresource/versions")
 
-		JustBeforeEach(func() {
+		var expectedVersions []atc.VersionedResource
+
+		var page concourse.Page
+
+		var versions []atc.VersionedResource
+		var pagination concourse.Pagination
+		var found bool
+		var clientErr error
+
+		BeforeEach(func() {
+			page = concourse.Page{}
+
 			expectedVersions = []atc.VersionedResource{
 				{
 					Version: atc.Version{"version": "v1"},
@@ -29,23 +36,24 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 					Version: atc.Version{"version": "v2"},
 				},
 			}
+		})
 
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL, expectedQuery),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
-				),
-			)
+		JustBeforeEach(func() {
+			versions, pagination, found, clientErr = client.ResourceVersions("mypipeline", "myresource", page)
 		})
 
 		Context("when since, until, and limit are 0", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/resources/myresource/versions")
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
+					),
+				)
 			})
 
 			It("calls to get all versions", func() {
-				versions, _, found, err := client.ResourceVersions("mypipeline", "myresource", concourse.Page{})
-				Expect(err).NotTo(HaveOccurred())
+				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(versions).To(Equal(expectedVersions))
 			})
@@ -53,67 +61,94 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 		Context("when since is specified", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/resources/myresource/versions")
-				expectedQuery = fmt.Sprint("since=24")
+				page = concourse.Page{Since: 24}
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "since=24"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
+					),
+				)
 			})
 
 			It("calls to get all versions since that id", func() {
-				versions, _, found, err := client.ResourceVersions("mypipeline", "myresource", concourse.Page{Since: 24})
-				Expect(err).NotTo(HaveOccurred())
+				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(versions).To(Equal(expectedVersions))
 			})
+		})
 
-			Context("and limit is specified", func() {
-				BeforeEach(func() {
-					expectedQuery = fmt.Sprint("since=24&limit=5")
-				})
+		Context("when since and limit is specified", func() {
+			BeforeEach(func() {
+				page = concourse.Page{Since: 24, Limit: 5}
 
-				It("appends limit to the url", func() {
-					versions, _, found, err := client.ResourceVersions("mypipeline", "myresource", concourse.Page{Since: 24, Limit: 5})
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(versions).To(Equal(expectedVersions))
-				})
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "since=24&limit=5"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
+					),
+				)
+			})
+
+			It("appends limit to the url", func() {
+				Expect(clientErr).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).To(Equal(expectedVersions))
 			})
 		})
 
 		Context("when until is specified", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/resources/myresource/versions")
-				expectedQuery = fmt.Sprint("until=26")
+				page = concourse.Page{Until: 26}
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "until=26"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
+					),
+				)
 			})
 
 			It("calls to get all versions until that id", func() {
-				versions, _, found, err := client.ResourceVersions("mypipeline", "myresource", concourse.Page{Until: 26})
-				Expect(err).NotTo(HaveOccurred())
+				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(versions).To(Equal(expectedVersions))
 			})
+		})
 
-			Context("and limit is specified", func() {
-				BeforeEach(func() {
-					expectedQuery = fmt.Sprint("until=26&limit=15")
-				})
+		Context("when until and limit is specified", func() {
+			BeforeEach(func() {
+				page = concourse.Page{Until: 26, Limit: 15}
 
-				It("appends limit to the url", func() {
-					versions, _, found, err := client.ResourceVersions("mypipeline", "myresource", concourse.Page{Until: 26, Limit: 15})
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(versions).To(Equal(expectedVersions))
-				})
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "until=26&limit=15"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
+					),
+				)
+			})
+
+			It("appends limit to the url", func() {
+				Expect(clientErr).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(versions).To(Equal(expectedVersions))
 			})
 		})
 
 		Context("when since and until are both specified", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/resources/myresource/versions")
-				expectedQuery = fmt.Sprint("until=26")
+				page = concourse.Page{Since: 24, Until: 26}
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "until=26"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
+					),
+				)
 			})
 
 			It("only sends the until", func() {
-				versions, _, found, err := client.ResourceVersions("mypipeline", "myresource", concourse.Page{Since: 24, Until: 26})
-				Expect(err).NotTo(HaveOccurred())
+				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(versions).To(Equal(expectedVersions))
 			})
@@ -121,8 +156,6 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 		Context("when the server returns an error", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/resources/myresource/versions")
-
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
@@ -132,16 +165,13 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			})
 
 			It("returns false and an error", func() {
-				_, _, found, err := client.ResourceVersions("mypipeline", "myresource", concourse.Page{})
-				Expect(err).To(HaveOccurred())
+				Expect(clientErr).To(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
 		})
 
 		Context("when the server returns not found", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/resources/myresource/versions")
-
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
@@ -151,17 +181,14 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			})
 
 			It("returns false and no error", func() {
-				_, _, found, err := client.ResourceVersions("mypipeline", "myresource", concourse.Page{})
-				Expect(err).NotTo(HaveOccurred())
+				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
 		})
 
-		Context("pagination data", func() {
+		Describe("pagination data", func() {
 			Context("with a link header", func() {
 				BeforeEach(func() {
-					expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/resources/myresource/versions")
-
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", expectedURL),
@@ -176,8 +203,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 				})
 
 				It("returns the pagination data from the header", func() {
-					_, pagination, _, err := client.ResourceVersions("mypipeline", "myresource", concourse.Page{})
-					Expect(err).ToNot(HaveOccurred())
+					Expect(clientErr).ToNot(HaveOccurred())
 					Expect(pagination.Previous).To(Equal(&concourse.Page{Since: 452, Limit: 123}))
 					Expect(pagination.Next).To(Equal(&concourse.Page{Until: 254, Limit: 456}))
 				})
@@ -186,8 +212,6 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 		Context("without a link header", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/resources/myresource/versions")
-
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
@@ -197,8 +221,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			})
 
 			It("returns pagination data with nil pages", func() {
-				_, pagination, _, err := client.ResourceVersions("mypipeline", "myresource", concourse.Page{})
-				Expect(err).ToNot(HaveOccurred())
+				Expect(clientErr).ToNot(HaveOccurred())
 
 				Expect(pagination.Previous).To(BeNil())
 				Expect(pagination.Next).To(BeNil())

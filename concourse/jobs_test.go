@@ -16,24 +16,23 @@ var _ = Describe("ATC Handler Jobs", func() {
 	Describe("Job", func() {
 		Context("when job exists", func() {
 			var (
-				expectedPipelineName string
-				expectedJob          atc.Job
-				expectedURL          string
+				expectedJob atc.Job
+				expectedURL string
 			)
 
-			JustBeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/", expectedPipelineName, "/jobs/myjob")
+			BeforeEach(func() {
+				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob")
 
 				expectedJob = atc.Job{
 					Name:      "myjob",
-					URL:       fmt.Sprint("/pipelines/", expectedPipelineName, "/jobs/myjob"),
+					URL:       fmt.Sprint("/pipelines/mypipeline/jobs/myjob"),
 					NextBuild: nil,
 					FinishedBuild: &atc.Build{
 						ID:      123,
 						Name:    "mybuild",
 						Status:  "succeeded",
 						JobName: "myjob",
-						URL:     fmt.Sprint("/pipelines/", expectedPipelineName, "/jobs/myjob/builds/mybuild"),
+						URL:     fmt.Sprint("/pipelines/mypipeline/jobs/myjob/builds/mybuild"),
 						APIURL:  "api/v1/builds/123",
 					},
 					Inputs: []atc.JobInput{
@@ -71,17 +70,11 @@ var _ = Describe("ATC Handler Jobs", func() {
 				)
 			})
 
-			Context("when provided a pipline name", func() {
-				BeforeEach(func() {
-					expectedPipelineName = "mypipeline"
-				})
-
-				It("returns the given job for that pipeline", func() {
-					job, found, err := client.Job("mypipeline", "myjob")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(job).To(Equal(expectedJob))
-					Expect(found).To(BeTrue())
-				})
+			It("returns the given job for that pipeline", func() {
+				job, found, err := client.Job("mypipeline", "myjob")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(job).To(Equal(expectedJob))
+				Expect(found).To(BeTrue())
 			})
 		})
 

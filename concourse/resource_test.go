@@ -11,54 +11,67 @@ import (
 
 var _ = Describe("ATC Handler Resource", func() {
 	Describe("Resource", func() {
-		var (
-			expectedResource atc.Resource
-			serverStatusCode int
-		)
+		var expectedResource atc.Resource
+
+		var resource atc.Resource
+		var found bool
+		var clientErr error
 
 		BeforeEach(func() {
 			expectedResource = atc.Resource{
 				Name: "some-name",
 			}
-			serverStatusCode = http.StatusOK
 		})
 
 		JustBeforeEach(func() {
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/resources/myresource"),
-					ghttp.RespondWithJSONEncoded(serverStatusCode, expectedResource),
-				),
-			)
+			resource, found, clientErr = client.Resource("some-pipeline", "myresource")
 		})
 
-		It("returns resources", func() {
-			resource, found, err := client.Resource("some-pipeline", "myresource")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(resource).To(Equal(expectedResource))
+		Context("when the server returns the resource", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/resources/myresource"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResource),
+					),
+				)
+			})
+
+			It("returns the resource", func() {
+				Expect(clientErr).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(resource).To(Equal(expectedResource))
+			})
 		})
 
 		Context("when the server returns a 404", func() {
 			BeforeEach(func() {
-				serverStatusCode = http.StatusNotFound
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/resources/myresource"),
+						ghttp.RespondWith(http.StatusNotFound, ""),
+					),
+				)
 			})
 
 			It("returns false for found and a nil error", func() {
-				_, found, err := client.Resource("some-pipeline", "myresource")
-				Expect(err).NotTo(HaveOccurred())
+				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
 		})
 
 		Context("when the server returns a 500", func() {
 			BeforeEach(func() {
-				serverStatusCode = http.StatusInternalServerError
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/resources/myresource"),
+						ghttp.RespondWith(http.StatusInternalServerError, ""),
+					),
+				)
 			})
 
 			It("returns false for found and an error", func() {
-				_, found, err := client.Resource("some-pipeline", "myresource")
-				Expect(err).To(HaveOccurred())
+				Expect(clientErr).To(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
 		})

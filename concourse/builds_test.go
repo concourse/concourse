@@ -18,6 +18,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			plan          atc.Plan
 			expectedBuild atc.Build
 		)
+
 		BeforeEach(func() {
 			plan = atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
@@ -43,6 +44,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				URL:     "/builds/123",
 				APIURL:  "/api/v1/builds/123",
 			}
+
 			expectedURL := "/api/v1/builds"
 
 			atcServer.AppendHandlers(
@@ -98,23 +100,22 @@ var _ = Describe("ATC Handler Builds", func() {
 
 	Describe("JobBuild", func() {
 		var (
-			expectedBuild        atc.Build
-			expectedURL          string
-			expectedPipelineName string
+			expectedBuild atc.Build
+			expectedURL   string
 		)
 
 		Context("when build exists", func() {
-			JustBeforeEach(func() {
+			BeforeEach(func() {
 				expectedBuild = atc.Build{
 					ID:      123,
 					Name:    "mybuild",
 					Status:  "succeeded",
 					JobName: "myjob",
-					URL:     fmt.Sprint("/pipelines/", expectedPipelineName, "/jobs/myjob/builds/mybuild"),
+					URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild",
 					APIURL:  "api/v1/builds/123",
 				}
 
-				expectedURL = fmt.Sprint("/api/v1/pipelines/", expectedPipelineName, "/jobs/myjob/builds/mybuild")
+				expectedURL = "/api/v1/pipelines/mypipeline/jobs/myjob/builds/mybuild"
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -124,32 +125,15 @@ var _ = Describe("ATC Handler Builds", func() {
 				)
 			})
 
-			Context("when provided a pipline name", func() {
-				BeforeEach(func() {
-					expectedPipelineName = "mypipeline"
-				})
-
-				It("returns the given build", func() {
-					build, found, err := client.JobBuild("mypipeline", "myjob", "mybuild")
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(build).To(Equal(expectedBuild))
-				})
-			})
-
-			Context("when not provided a pipeline name", func() {
-				BeforeEach(func() {
-					expectedPipelineName = "main"
-				})
-
-				It("errors", func() {
-					_, _, err := client.JobBuild("", "myjob", "mybuild")
-					Expect(err).To(HaveOccurred())
-				})
+			It("returns the given build", func() {
+				build, found, err := client.JobBuild("mypipeline", "myjob", "mybuild")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build).To(Equal(expectedBuild))
 			})
 		})
 
-		Context("when build does not exists", func() {
+		Context("when build does not exist", func() {
 			BeforeEach(func() {
 				expectedURL = "/api/v1/pipelines/mypipeline/jobs/myjob/builds/mybuild"
 
@@ -219,15 +203,18 @@ var _ = Describe("ATC Handler Builds", func() {
 	})
 
 	Describe("Builds", func() {
-		var (
-			expectedBuilds []atc.Build
-			expectedURL    string
-			expectedQuery  string
-		)
+		expectedURL := "/api/v1/builds"
+
+		var expectedBuilds []atc.Build
+
+		var page concourse.Page
+
+		var builds []atc.Build
+		var pagination concourse.Pagination
+		var clientErr error
 
 		BeforeEach(func() {
-			expectedURL = ""
-			expectedQuery = ""
+			page = concourse.Page{}
 
 			expectedBuilds = []atc.Build{
 				{
@@ -250,93 +237,117 @@ var _ = Describe("ATC Handler Builds", func() {
 		})
 
 		JustBeforeEach(func() {
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL, expectedQuery),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
-				),
-			)
+			builds, pagination, clientErr = client.Builds(page)
 		})
 
 		Context("when since, until, and limit are 0", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/builds")
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
+					),
+				)
 			})
 
 			It("calls to get all builds", func() {
-				builds, _, err := client.Builds(concourse.Page{})
-				Expect(err).NotTo(HaveOccurred())
+				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(builds).To(Equal(expectedBuilds))
 			})
 		})
 
 		Context("when since is specified", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/builds")
-				expectedQuery = fmt.Sprint("since=24")
+				page = concourse.Page{Since: 24}
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "since=24"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
+					),
+				)
 			})
 
 			It("calls to get all builds since that id", func() {
-				builds, _, err := client.Builds(concourse.Page{Since: 24})
-				Expect(err).NotTo(HaveOccurred())
+				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(builds).To(Equal(expectedBuilds))
 			})
+		})
 
-			Context("and limit is specified", func() {
-				BeforeEach(func() {
-					expectedQuery = fmt.Sprint("since=24&limit=5")
-				})
+		Context("when since and limit is specified", func() {
+			BeforeEach(func() {
+				page = concourse.Page{Since: 24, Limit: 5}
 
-				It("appends limit to the url", func() {
-					builds, _, err := client.Builds(concourse.Page{Since: 24, Limit: 5})
-					Expect(err).NotTo(HaveOccurred())
-					Expect(builds).To(Equal(expectedBuilds))
-				})
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "since=24&limit=5"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
+					),
+				)
+			})
+
+			It("appends limit to the url", func() {
+				Expect(clientErr).NotTo(HaveOccurred())
+				Expect(builds).To(Equal(expectedBuilds))
 			})
 		})
 
 		Context("when until is specified", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/builds")
-				expectedQuery = fmt.Sprint("until=26")
+				page = concourse.Page{Until: 26}
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "until=26"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
+					),
+				)
 			})
 
 			It("calls to get all builds until that id", func() {
-				builds, _, err := client.Builds(concourse.Page{Until: 26})
-				Expect(err).NotTo(HaveOccurred())
+				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(builds).To(Equal(expectedBuilds))
 			})
+		})
 
-			Context("and limit is specified", func() {
-				BeforeEach(func() {
-					expectedQuery = fmt.Sprint("until=26&limit=15")
-				})
+		Context("when until and limit is specified", func() {
+			BeforeEach(func() {
+				page = concourse.Page{Until: 26, Limit: 15}
 
-				It("appends limit to the url", func() {
-					builds, _, err := client.Builds(concourse.Page{Until: 26, Limit: 15})
-					Expect(err).NotTo(HaveOccurred())
-					Expect(builds).To(Equal(expectedBuilds))
-				})
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "until=26&limit=15"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
+					),
+				)
+			})
+
+			It("appends limit to the url", func() {
+				Expect(clientErr).NotTo(HaveOccurred())
+				Expect(builds).To(Equal(expectedBuilds))
 			})
 		})
 
 		Context("when since and until are both specified", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/builds")
-				expectedQuery = fmt.Sprint("until=26")
+				page = concourse.Page{Since: 24, Until: 26}
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "until=26"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
+					),
+				)
 			})
 
 			It("only sends the until", func() {
-				builds, _, err := client.Builds(concourse.Page{Since: 24, Until: 26})
-				Expect(err).NotTo(HaveOccurred())
+				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(builds).To(Equal(expectedBuilds))
 			})
 		})
 
 		Context("when the server returns an error", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/builds")
-
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
@@ -346,8 +357,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			})
 
 			It("returns false and an error", func() {
-				_, _, err := client.Builds(concourse.Page{})
-				Expect(err).To(HaveOccurred())
+				Expect(clientErr).To(HaveOccurred())
 			})
 		})
 
@@ -370,8 +380,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				})
 
 				It("returns the pagination data from the header", func() {
-					_, pagination, err := client.Builds(concourse.Page{})
-					Expect(err).ToNot(HaveOccurred())
+					Expect(clientErr).ToNot(HaveOccurred())
 					Expect(pagination.Previous).To(Equal(&concourse.Page{Since: 452, Limit: 123}))
 					Expect(pagination.Next).To(Equal(&concourse.Page{Until: 254, Limit: 456}))
 				})
@@ -391,9 +400,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			})
 
 			It("returns pagination data with nil pages", func() {
-				_, pagination, err := client.Builds(concourse.Page{})
-				Expect(err).ToNot(HaveOccurred())
-
+				Expect(clientErr).ToNot(HaveOccurred())
 				Expect(pagination.Previous).To(BeNil())
 				Expect(pagination.Next).To(BeNil())
 			})
