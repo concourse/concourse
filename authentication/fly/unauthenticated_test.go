@@ -29,7 +29,7 @@ var _ = Describe("the quality of being unauthenticated", func() {
 
 			Eventually(session).Should(gexec.Exit(1))
 
-			Expect(session.Err).Should(gbytes.Say("401 Unauthorized"))
+			Expect(session.Err).Should(gbytes.Say("not authorized"))
 		},
 
 		Entry("get-pipeline", "get-pipeline", "-p", "john"),
@@ -60,7 +60,7 @@ var _ = Describe("the quality of being unauthenticated", func() {
 
 			Eventually(session).Should(gexec.Exit(1))
 
-			Expect(session.Err).Should(gbytes.Say("Status: 401 Unauthorized"))
+			Expect(session.Err).Should(gbytes.Say("not authorized"))
 		},
 
 		Entry("destroy-pipeline", "destroy-pipeline", "-p", "john"),
