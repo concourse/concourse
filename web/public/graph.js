@@ -181,7 +181,7 @@ Graph.prototype.layout = function() {
     }
   }
 
-  if (window.location.hash == "#tug") {
+  if (window.location.hash != "#untug") {
     var anyChanged = true;
     while (anyChanged) {
       anyChanged = false;
