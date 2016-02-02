@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/go-concourse/concourse/internal"
 	"github.com/vito/go-sse/sse"
 )
 
@@ -22,19 +22,19 @@ type FakeConnection struct {
 	hTTPClientReturns     struct {
 		result1 *http.Client
 	}
-	SendStub        func(request concourse.Request, response *concourse.Response) error
+	SendStub        func(request internal.Request, response *internal.Response) error
 	sendMutex       sync.RWMutex
 	sendArgsForCall []struct {
-		request  concourse.Request
-		response *concourse.Response
+		request  internal.Request
+		response *internal.Response
 	}
 	sendReturns struct {
 		result1 error
 	}
-	ConnectToEventStreamStub        func(request concourse.Request) (*sse.EventSource, error)
+	ConnectToEventStreamStub        func(request internal.Request) (*sse.EventSource, error)
 	connectToEventStreamMutex       sync.RWMutex
 	connectToEventStreamArgsForCall []struct {
-		request concourse.Request
+		request internal.Request
 	}
 	connectToEventStreamReturns struct {
 		result1 *sse.EventSource
@@ -90,11 +90,11 @@ func (fake *FakeConnection) HTTPClientReturns(result1 *http.Client) {
 	}{result1}
 }
 
-func (fake *FakeConnection) Send(request concourse.Request, response *concourse.Response) error {
+func (fake *FakeConnection) Send(request internal.Request, response *internal.Response) error {
 	fake.sendMutex.Lock()
 	fake.sendArgsForCall = append(fake.sendArgsForCall, struct {
-		request  concourse.Request
-		response *concourse.Response
+		request  internal.Request
+		response *internal.Response
 	}{request, response})
 	fake.sendMutex.Unlock()
 	if fake.SendStub != nil {
@@ -110,7 +110,7 @@ func (fake *FakeConnection) SendCallCount() int {
 	return len(fake.sendArgsForCall)
 }
 
-func (fake *FakeConnection) SendArgsForCall(i int) (concourse.Request, *concourse.Response) {
+func (fake *FakeConnection) SendArgsForCall(i int) (internal.Request, *internal.Response) {
 	fake.sendMutex.RLock()
 	defer fake.sendMutex.RUnlock()
 	return fake.sendArgsForCall[i].request, fake.sendArgsForCall[i].response
@@ -123,10 +123,10 @@ func (fake *FakeConnection) SendReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeConnection) ConnectToEventStream(request concourse.Request) (*sse.EventSource, error) {
+func (fake *FakeConnection) ConnectToEventStream(request internal.Request) (*sse.EventSource, error) {
 	fake.connectToEventStreamMutex.Lock()
 	fake.connectToEventStreamArgsForCall = append(fake.connectToEventStreamArgsForCall, struct {
-		request concourse.Request
+		request internal.Request
 	}{request})
 	fake.connectToEventStreamMutex.Unlock()
 	if fake.ConnectToEventStreamStub != nil {
@@ -142,7 +142,7 @@ func (fake *FakeConnection) ConnectToEventStreamCallCount() int {
 	return len(fake.connectToEventStreamArgsForCall)
 }
 
-func (fake *FakeConnection) ConnectToEventStreamArgsForCall(i int) concourse.Request {
+func (fake *FakeConnection) ConnectToEventStreamArgsForCall(i int) internal.Request {
 	fake.connectToEventStreamMutex.RLock()
 	defer fake.connectToEventStreamMutex.RUnlock()
 	return fake.connectToEventStreamArgsForCall[i].request
@@ -156,4 +156,4 @@ func (fake *FakeConnection) ConnectToEventStreamReturns(result1 *sse.EventSource
 	}{result1, result2}
 }
 
-var _ concourse.Connection = new(FakeConnection)
+var _ internal.Connection = new(FakeConnection)

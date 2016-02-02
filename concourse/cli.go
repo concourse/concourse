@@ -6,12 +6,13 @@ import (
 	"net/url"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse/internal"
 )
 
 func (client *client) GetCLIReader(arch, platform string) (io.ReadCloser, error) {
-	response := Response{}
+	response := internal.Response{}
 
-	err := client.connection.Send(Request{
+	err := client.connection.Send(internal.Request{
 		RequestName: atc.DownloadCLI,
 		Query: url.Values{
 			"arch":     {arch},

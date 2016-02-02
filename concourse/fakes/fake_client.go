@@ -3,6 +3,7 @@ package fakes
 
 import (
 	"io"
+	"net/http"
 	"sync"
 
 	"github.com/concourse/atc"
@@ -10,6 +11,18 @@ import (
 )
 
 type FakeClient struct {
+	URLStub        func() string
+	uRLMutex       sync.RWMutex
+	uRLArgsForCall []struct{}
+	uRLReturns     struct {
+		result1 string
+	}
+	HTTPClientStub        func() *http.Client
+	hTTPClientMutex       sync.RWMutex
+	hTTPClientArgsForCall []struct{}
+	hTTPClientReturns     struct {
+		result1 *http.Client
+	}
 	BuildsStub        func(concourse.Page) ([]atc.Build, concourse.Pagination, error)
 	buildsMutex       sync.RWMutex
 	buildsArgsForCall []struct {
@@ -314,6 +327,54 @@ type FakeClient struct {
 		result3 bool
 		result4 error
 	}
+}
+
+func (fake *FakeClient) URL() string {
+	fake.uRLMutex.Lock()
+	fake.uRLArgsForCall = append(fake.uRLArgsForCall, struct{}{})
+	fake.uRLMutex.Unlock()
+	if fake.URLStub != nil {
+		return fake.URLStub()
+	} else {
+		return fake.uRLReturns.result1
+	}
+}
+
+func (fake *FakeClient) URLCallCount() int {
+	fake.uRLMutex.RLock()
+	defer fake.uRLMutex.RUnlock()
+	return len(fake.uRLArgsForCall)
+}
+
+func (fake *FakeClient) URLReturns(result1 string) {
+	fake.URLStub = nil
+	fake.uRLReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeClient) HTTPClient() *http.Client {
+	fake.hTTPClientMutex.Lock()
+	fake.hTTPClientArgsForCall = append(fake.hTTPClientArgsForCall, struct{}{})
+	fake.hTTPClientMutex.Unlock()
+	if fake.HTTPClientStub != nil {
+		return fake.HTTPClientStub()
+	} else {
+		return fake.hTTPClientReturns.result1
+	}
+}
+
+func (fake *FakeClient) HTTPClientCallCount() int {
+	fake.hTTPClientMutex.RLock()
+	defer fake.hTTPClientMutex.RUnlock()
+	return len(fake.hTTPClientArgsForCall)
+}
+
+func (fake *FakeClient) HTTPClientReturns(result1 *http.Client) {
+	fake.HTTPClientStub = nil
+	fake.hTTPClientReturns = struct {
+		result1 *http.Client
+	}{result1}
 }
 
 func (fake *FakeClient) Builds(arg1 concourse.Page) ([]atc.Build, concourse.Pagination, error) {

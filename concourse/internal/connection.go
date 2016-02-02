@@ -1,9 +1,8 @@
-package concourse
+package internal
 
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -47,11 +46,7 @@ type connection struct {
 	requestGenerator *rata.RequestGenerator
 }
 
-func NewConnection(apiURL string, httpClient *http.Client) (Connection, error) {
-	if apiURL == "" {
-		return nil, errors.New("API is blank")
-	}
-
+func NewConnection(apiURL string, httpClient *http.Client) Connection {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
@@ -63,7 +58,7 @@ func NewConnection(apiURL string, httpClient *http.Client) (Connection, error) {
 		httpClient: httpClient,
 
 		requestGenerator: rata.NewRequestGenerator(apiURL, atc.Routes),
-	}, nil
+	}
 }
 
 func (connection *connection) URL() string {

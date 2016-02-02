@@ -17,22 +17,17 @@ func TestApi(t *testing.T) {
 }
 
 var (
-	atcServer  *ghttp.Server
-	connection concourse.Connection
-	client     concourse.Client
+	atcServer *ghttp.Server
+	client    concourse.Client
 )
 
 var _ = BeforeEach(func() {
-	var err error
 	atcServer = ghttp.NewServer()
 
-	connection, err = concourse.NewConnection(
+	client = concourse.NewClient(
 		atcServer.URL(),
 		&http.Client{},
 	)
-	Expect(err).NotTo(HaveOccurred())
-
-	client = concourse.NewClient(connection)
 })
 
 var _ = AfterEach(func() {

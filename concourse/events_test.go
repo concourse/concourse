@@ -1,38 +1,104 @@
 package concourse_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/tedsuo/rata"
-	"github.com/vito/go-sse/sse"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/go-concourse/concourse"
-	"github.com/concourse/go-concourse/concourse/fakes"
+	"github.com/concourse/atc/event"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
+	"github.com/vito/go-sse/sse"
 )
 
 var _ = Describe("ATC Handler Events", func() {
 	Describe("Events", func() {
-		var fakeConnection *fakes.FakeConnection
+		buildID := "3"
+
+		var streaming chan struct{}
+		var eventsChan chan atc.Event
 
 		BeforeEach(func() {
-			fakeConnection = new(fakes.FakeConnection)
-			client = concourse.NewClient(fakeConnection)
+			streaming = make(chan struct{})
+
+			eventsChan = make(chan atc.Event, 2)
+			eventsChan <- event.Status{Status: atc.StatusStarted}
+			eventsChan <- event.Status{Status: atc.StatusSucceeded}
+			close(eventsChan)
+
+			eventsHandler := func() http.HandlerFunc {
+				return ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/builds/%s/events", buildID)),
+					func(w http.ResponseWriter, r *http.Request) {
+						flusher := w.(http.Flusher)
+
+						w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
+						w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
+						w.Header().Add("Connection", "keep-alive")
+
+						w.WriteHeader(http.StatusOK)
+
+						flusher.Flush()
+
+						close(streaming)
+
+						id := 0
+
+						for e := range eventsChan {
+							payload, err := json.Marshal(event.Message{Event: e})
+							Expect(err).NotTo(HaveOccurred())
+
+							event := sse.Event{
+								ID:   fmt.Sprintf("%d", id),
+								Name: "event",
+								Data: payload,
+							}
+
+							err = event.Write(w)
+							Expect(err).NotTo(HaveOccurred())
+
+							flusher.Flush()
+
+							id++
+						}
+
+						err := sse.Event{
+							Name: "end",
+						}.Write(w)
+						Expect(err).NotTo(HaveOccurred())
+					},
+				)
+			}
+
+			atcServer.AppendHandlers(
+				eventsHandler(),
+			)
 		})
 
 		It("returns events that can stream events", func() {
-			expectedEventStream := sse.EventSource{}
-			expectedBuildID := "1"
-			fakeConnection.ConnectToEventStreamReturns(&expectedEventStream, nil)
-
-			_, err := client.BuildEvents(expectedBuildID)
+			stream, err := client.BuildEvents(buildID)
 			Expect(err).NotTo(HaveOccurred())
 
-			request := fakeConnection.ConnectToEventStreamArgsForCall(0)
-			Expect(request).To(Equal(concourse.Request{
-				RequestName: atc.BuildEvents,
-				Params:      rata.Params{"build_id": expectedBuildID},
+			next, err := stream.NextEvent()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(next).To(Equal(event.Status{
+				Status: atc.StatusStarted,
 			}))
+
+			next, err = stream.NextEvent()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(next).To(Equal(event.Status{
+				Status: atc.StatusSucceeded,
+			}))
+
+			_, err = stream.NextEvent()
+			Expect(err).To(Equal(io.EOF))
+
+			err = stream.Close()
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

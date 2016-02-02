@@ -4,6 +4,7 @@ import (
 	"net/url"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse/internal"
 )
 
 func (client *client) ListContainers(queryList map[string]string) ([]atc.Container, error) {
@@ -13,10 +14,10 @@ func (client *client) ListContainers(queryList map[string]string) ([]atc.Contain
 	for k, v := range queryList {
 		urlValues[k] = []string{v}
 	}
-	err := client.connection.Send(Request{
+	err := client.connection.Send(internal.Request{
 		RequestName: atc.ListContainers,
 		Query:       urlValues,
-	}, &Response{
+	}, &internal.Response{
 		Result: &containers,
 	})
 	return containers, err

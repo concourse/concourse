@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 )
 
@@ -12,11 +13,11 @@ func (client *client) ResourceVersions(pipelineName string, resourceName string,
 	var versionedResources []atc.VersionedResource
 	headers := http.Header{}
 
-	err := client.connection.Send(Request{
+	err := client.connection.Send(internal.Request{
 		RequestName: atc.ListResourceVersions,
 		Params:      params,
 		Query:       page.QueryParams(),
-	}, &Response{
+	}, &internal.Response{
 		Result:  &versionedResources,
 		Headers: &headers,
 	})
@@ -28,7 +29,7 @@ func (client *client) ResourceVersions(pipelineName string, resourceName string,
 		}
 
 		return versionedResources, pagination, true, nil
-	case ResourceNotFoundError:
+	case internal.ResourceNotFoundError:
 		return versionedResources, Pagination{}, false, nil
 	default:
 		return versionedResources, Pagination{}, false, err

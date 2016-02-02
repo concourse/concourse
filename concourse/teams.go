@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 )
 
@@ -22,10 +23,10 @@ func (client *client) SetTeam(teamName string, passedTeam atc.Team) (atc.Team, b
 	}
 
 	var team atc.Team
-	response := Response{
+	response := internal.Response{
 		Result: &team,
 	}
-	err = client.connection.Send(Request{
+	err = client.connection.Send(internal.Request{
 		RequestName: atc.SetTeam,
 		Params:      params,
 		Body:        buffer,

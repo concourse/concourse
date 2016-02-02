@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 )
 
@@ -15,17 +16,17 @@ func (client *client) BuildsWithVersionAsOutput(pipelineName string, resourceNam
 	}
 
 	var builds []atc.Build
-	err := client.connection.Send(Request{
+	err := client.connection.Send(internal.Request{
 		RequestName: atc.ListBuildsWithVersionAsOutput,
 		Params:      params,
-	}, &Response{
+	}, &internal.Response{
 		Result: &builds,
 	})
 
 	switch err.(type) {
 	case nil:
 		return builds, true, nil
-	case ResourceNotFoundError:
+	case internal.ResourceNotFoundError:
 		return builds, false, nil
 	default:
 		return builds, false, err

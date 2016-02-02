@@ -2,6 +2,7 @@ package concourse
 
 import (
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 )
 
@@ -12,16 +13,16 @@ func (client *client) Resource(pipelineName string, resourceName string) (atc.Re
 	}
 
 	var resource atc.Resource
-	err := client.connection.Send(Request{
+	err := client.connection.Send(internal.Request{
 		RequestName: atc.GetResource,
 		Params:      params,
-	}, &Response{
+	}, &internal.Response{
 		Result: &resource,
 	})
 	switch err.(type) {
 	case nil:
 		return resource, true, nil
-	case ResourceNotFoundError:
+	case internal.ResourceNotFoundError:
 		return resource, false, nil
 	default:
 		return resource, false, err

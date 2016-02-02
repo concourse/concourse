@@ -7,6 +7,7 @@ import (
 	"net/textproto"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 	"gopkg.in/yaml.v2"
 )
@@ -18,10 +19,10 @@ func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, b
 	var version string
 	responseHeaders := http.Header{}
 
-	err := client.connection.Send(Request{
+	err := client.connection.Send(internal.Request{
 		RequestName: atc.GetConfig,
 		Params:      params,
-	}, &Response{
+	}, &internal.Response{
 		Result:  &config,
 		Headers: &responseHeaders,
 	})
@@ -31,7 +32,7 @@ func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, b
 	switch err.(type) {
 	case nil:
 		return config, version, true, nil
-	case ResourceNotFoundError:
+	case internal.ResourceNotFoundError:
 		return config, version, false, nil
 	default:
 		return config, version, false, err
@@ -40,7 +41,7 @@ func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, b
 
 func (client *client) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config) (bool, bool, error) {
 	params := rata.Params{"pipeline_name": pipelineName}
-	response := Response{}
+	response := internal.Response{}
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
@@ -65,7 +66,7 @@ func (client *client) CreateOrUpdatePipelineConfig(pipelineName string, configVe
 
 	writer.Close()
 
-	err = client.connection.Send(Request{
+	err = client.connection.Send(internal.Request{
 		RequestName: atc.SaveConfig,
 		Params:      params,
 		Body:        body,

@@ -3,11 +3,11 @@ package concourse
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 )
 
@@ -20,21 +20,15 @@ func (client *client) CreateBuild(plan atc.Plan) (atc.Build, error) {
 		return build, fmt.Errorf("Unable to marshal plan: %s", err)
 	}
 
-	err = client.connection.Send(Request{
+	err = client.connection.Send(internal.Request{
 		RequestName: atc.CreateBuild,
 		Body:        buffer,
 		Header: http.Header{
 			"Content-Type": {"application/json"},
 		},
-	}, &Response{
+	}, &internal.Response{
 		Result: &build,
 	})
-
-	if ure, ok := err.(UnexpectedResponseError); ok {
-		if ure.StatusCode == http.StatusNotFound {
-			return build, errors.New("build not found")
-		}
-	}
 
 	return build, err
 }
@@ -43,10 +37,10 @@ func (client *client) CreateJobBuild(pipelineName string, jobName string) (atc.B
 	params := rata.Params{"job_name": jobName, "pipeline_name": pipelineName}
 
 	var build atc.Build
-	err := client.connection.Send(Request{
+	err := client.connection.Send(internal.Request{
 		RequestName: atc.CreateJobBuild,
 		Params:      params,
-	}, &Response{
+	}, &internal.Response{
 		Result: &build,
 	})
 
@@ -60,17 +54,17 @@ func (client *client) JobBuild(pipelineName, jobName, buildName string) (atc.Bui
 
 	params := rata.Params{"job_name": jobName, "build_name": buildName, "pipeline_name": pipelineName}
 	var build atc.Build
-	err := client.connection.Send(Request{
+	err := client.connection.Send(internal.Request{
 		RequestName: atc.GetJobBuild,
 		Params:      params,
-	}, &Response{
+	}, &internal.Response{
 		Result: &build,
 	})
 
 	switch err.(type) {
 	case nil:
 		return build, true, nil
-	case ResourceNotFoundError:
+	case internal.ResourceNotFoundError:
 		return build, false, nil
 	default:
 		return build, false, err
@@ -80,17 +74,17 @@ func (client *client) JobBuild(pipelineName, jobName, buildName string) (atc.Bui
 func (client *client) Build(buildID string) (atc.Build, bool, error) {
 	params := rata.Params{"build_id": buildID}
 	var build atc.Build
-	err := client.connection.Send(Request{
+	err := client.connection.Send(internal.Request{
 		RequestName: atc.GetBuild,
 		Params:      params,
-	}, &Response{
+	}, &internal.Response{
 		Result: &build,
 	})
 
 	switch err.(type) {
 	case nil:
 		return build, true, nil
-	case ResourceNotFoundError:
+	case internal.ResourceNotFoundError:
 		return build, false, nil
 	default:
 		return build, false, err
@@ -101,10 +95,10 @@ func (client *client) Builds(page Page) ([]atc.Build, Pagination, error) {
 	var builds []atc.Build
 
 	headers := http.Header{}
-	err := client.connection.Send(Request{
+	err := client.connection.Send(internal.Request{
 		RequestName: atc.ListBuilds,
 		Query:       page.QueryParams(),
-	}, &Response{
+	}, &internal.Response{
 		Result:  &builds,
 		Headers: &headers,
 	})
@@ -124,7 +118,7 @@ func (client *client) Builds(page Page) ([]atc.Build, Pagination, error) {
 
 func (client *client) AbortBuild(buildID string) error {
 	params := rata.Params{"build_id": buildID}
-	return client.connection.Send(Request{
+	return client.connection.Send(internal.Request{
 		RequestName: atc.AbortBuild,
 		Params:      params,
 	}, nil)

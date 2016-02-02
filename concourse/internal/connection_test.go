@@ -1,4 +1,4 @@
-package concourse_test
+package internal_test
 
 import (
 	"bytes"
@@ -10,8 +10,8 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
-	. "github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/go-concourse/concourse/eventstream"
+	. "github.com/concourse/go-concourse/concourse/internal"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -21,46 +21,32 @@ import (
 
 var _ = Describe("ATC Connection", func() {
 	var (
+		atcServer *ghttp.Server
+
 		api      string
 		username string
 		password string
 		cert     string
 		insecure bool
+
+		connection Connection
 	)
 
 	BeforeEach(func() {
+		atcServer = ghttp.NewServer()
+
 		api = "f"
 		username = ""
 		password = ""
 		cert = ""
 		insecure = false
-	})
 
-	Describe("#NewConnection", func() {
-		It("returns back an ATC Connection", func() {
-			atcConnection, err := NewConnection(api, nil)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(atcConnection).NotTo(BeNil())
-		})
-
-		It("errors when passed target props with an invalid url", func() {
-			_, err := NewConnection("", nil)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("API is blank"))
-		})
+		connection = NewConnection(atcServer.URL(), nil)
 	})
 
 	Describe("#Send", func() {
-		BeforeEach(func() {
-			var err error
-			connection, err = NewConnection(atcServer.URL(), nil)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		It("is robust to trailing slash in the target", func() {
-			var err error
-			connection, err = NewConnection(atcServer.URL()+"/", nil)
-			Expect(err).NotTo(HaveOccurred())
+			badConnection := NewConnection(atcServer.URL()+"/", nil)
 			expectedURL := "/api/v1/builds/foo"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -69,7 +55,7 @@ var _ = Describe("ATC Connection", func() {
 				),
 			)
 			var build atc.Build
-			err = connection.Send(Request{
+			err := badConnection.Send(Request{
 				RequestName: atc.GetBuild,
 				Params:      rata.Params{"build_id": "foo"},
 			}, &Response{
@@ -81,9 +67,8 @@ var _ = Describe("ATC Connection", func() {
 		})
 
 		It("can ignore responses", func() {
-			var err error
-			connection, err = NewConnection(atcServer.URL()+"/", nil)
-			Expect(err).NotTo(HaveOccurred())
+			badConnection := NewConnection(atcServer.URL(), nil)
+
 			expectedURL := "/api/v1/builds/foo"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -92,7 +77,7 @@ var _ = Describe("ATC Connection", func() {
 				),
 			)
 
-			err = connection.Send(Request{
+			err := badConnection.Send(Request{
 				RequestName: atc.GetBuild,
 				Params:      rata.Params{"build_id": "foo"},
 			}, nil)
@@ -102,7 +87,7 @@ var _ = Describe("ATC Connection", func() {
 		})
 
 		It("uses the given http connection", func() {
-			basicAuthConnection, err := NewConnection(
+			basicAuthConnection := NewConnection(
 				atcServer.URL(),
 				&http.Client{
 					Transport: BasicAuthTransport{
@@ -121,7 +106,7 @@ var _ = Describe("ATC Connection", func() {
 				),
 			)
 			var build atc.Build
-			err = basicAuthConnection.Send(Request{
+			err := basicAuthConnection.Send(Request{
 				RequestName: atc.GetBuild,
 				Params:      rata.Params{"build_id": "foo"},
 			}, &Response{
@@ -228,11 +213,9 @@ var _ = Describe("ATC Connection", func() {
 
 		Context("Request Headers", func() {
 			BeforeEach(func() {
-				var err error
 				atcServer = ghttp.NewServer()
 
-				connection, err = NewConnection(atcServer.URL(), nil)
-				Expect(err).NotTo(HaveOccurred())
+				connection = NewConnection(atcServer.URL(), nil)
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -261,11 +244,9 @@ var _ = Describe("ATC Connection", func() {
 
 		Describe("Response Headers", func() {
 			BeforeEach(func() {
-				var err error
 				atcServer = ghttp.NewServer()
 
-				connection, err = NewConnection(atcServer.URL(), nil)
-				Expect(err).NotTo(HaveOccurred())
+				connection = NewConnection(atcServer.URL(), nil)
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -293,11 +274,9 @@ var _ = Describe("ATC Connection", func() {
 		Describe("Different status codes", func() {
 			Describe("204 no content", func() {
 				BeforeEach(func() {
-					var err error
 					atcServer = ghttp.NewServer()
 
-					connection, err = NewConnection(atcServer.URL(), nil)
-					Expect(err).NotTo(HaveOccurred())
+					connection = NewConnection(atcServer.URL(), nil)
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -319,11 +298,9 @@ var _ = Describe("ATC Connection", func() {
 
 			Describe("Non-2XX response", func() {
 				BeforeEach(func() {
-					var err error
 					atcServer = ghttp.NewServer()
 
-					connection, err = NewConnection(atcServer.URL(), nil)
-					Expect(err).NotTo(HaveOccurred())
+					connection = NewConnection(atcServer.URL(), nil)
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -349,11 +326,9 @@ var _ = Describe("ATC Connection", func() {
 
 			Describe("404 response", func() {
 				BeforeEach(func() {
-					var err error
 					atcServer = ghttp.NewServer()
 
-					connection, err = NewConnection(atcServer.URL(), nil)
-					Expect(err).NotTo(HaveOccurred())
+					connection = NewConnection(atcServer.URL(), nil)
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(

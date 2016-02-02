@@ -2,13 +2,18 @@ package concourse
 
 import (
 	"io"
+	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse/internal"
 )
 
 //go:generate counterfeiter . Client
 
 type Client interface {
+	URL() string
+	HTTPClient() *http.Client
+
 	Builds(Page) ([]atc.Build, Pagination, error)
 	Build(buildID string) (atc.Build, bool, error)
 	BuildEvents(buildID string) (Events, error)
@@ -45,9 +50,17 @@ type Client interface {
 }
 
 type client struct {
-	connection Connection
+	connection internal.Connection
 }
 
-func NewClient(c Connection) Client {
-	return &client{connection: c}
+func NewClient(apiURL string, httpClient *http.Client) Client {
+	return &client{connection: internal.NewConnection(apiURL, httpClient)}
+}
+
+func (client *client) URL() string {
+	return client.connection.URL()
+}
+
+func (client *client) HTTPClient() *http.Client {
+	return client.connection.HTTPClient()
 }
