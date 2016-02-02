@@ -324,6 +324,30 @@ var _ = Describe("ATC Connection", func() {
 				})
 			})
 
+			Describe("401 response", func() {
+				BeforeEach(func() {
+					atcServer = ghttp.NewServer()
+
+					connection = NewConnection(atcServer.URL(), nil)
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/foo"),
+							ghttp.RespondWith(http.StatusUnauthorized, "problem"),
+						),
+					)
+				})
+
+				It("returns back ErrUnauthorized", func() {
+					err := connection.Send(Request{
+						RequestName: atc.DeletePipeline,
+						Params:      rata.Params{"pipeline_name": "foo"},
+					}, nil)
+
+					Expect(err).To(Equal(ErrUnauthorized))
+				})
+			})
+
 			Describe("404 response", func() {
 				BeforeEach(func() {
 					atcServer = ghttp.NewServer()
@@ -347,7 +371,7 @@ var _ = Describe("ATC Connection", func() {
 					Expect(err).To(HaveOccurred())
 					_, ok := err.(ResourceNotFoundError)
 					Expect(ok).To(BeTrue())
-					Expect(err.Error()).To(Equal("Resource Not Found"))
+					Expect(err.Error()).To(Equal("resource not found"))
 				})
 			})
 		})

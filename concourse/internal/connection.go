@@ -79,6 +79,7 @@ func (connection *connection) Send(passedRequest Request, passedResponse *Respon
 	if err != nil {
 		return err
 	}
+
 	if !passedRequest.ReturnResponseBody {
 		defer response.Body.Close()
 	}
@@ -134,6 +135,10 @@ func (connection *connection) getBody(passedRequest Request) *bytes.Buffer {
 func (connection *connection) populateResponse(response *http.Response, returnResponseBody bool, passedResponse *Response) error {
 	if response.StatusCode == http.StatusNotFound {
 		return ResourceNotFoundError{}
+	}
+
+	if response.StatusCode == http.StatusUnauthorized {
+		return ErrUnauthorized
 	}
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {

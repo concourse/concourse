@@ -1,6 +1,9 @@
 package internal
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type UnexpectedResponseError struct {
 	error
@@ -18,5 +21,7 @@ type ResourceNotFoundError struct {
 }
 
 func (e ResourceNotFoundError) Error() string {
-	return fmt.Sprintf("Resource Not Found")
+	return "resource not found"
 }
+
+var ErrUnauthorized = errors.New("not authorized")
