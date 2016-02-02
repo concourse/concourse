@@ -75,6 +75,7 @@ jobs:
           GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
     - task: js-unit
       file: concourse/ci/atc-js.yml
+      attempts: 3
 
 - name: baggageclaim
   public: true
