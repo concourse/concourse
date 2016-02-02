@@ -31,7 +31,6 @@ properties:
 
       Typically this is the URL that you as a user would use to reach your CI.
       For multiple ATCs it would go to some sort of load balancer.
-    default: ""
 
   atc.peer_url:
     description: |
