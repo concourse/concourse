@@ -9,7 +9,6 @@ import (
 	"syscall"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/deprecated"
 	"github.com/concourse/fly/commands/internal/executehelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/config"
@@ -37,8 +36,6 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	taskConfigFile := command.TaskConfig
 	excludeIgnored := command.ExcludeIgnored
 
-	atcRequester := deprecated.NewAtcRequester(client.URL(), client.HTTPClient())
-
 	taskConfig := config.LoadTaskConfig(string(taskConfigFile), args)
 
 	inputs, err := executehelpers.DetermineInputs(
@@ -61,7 +58,6 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	}
 
 	build, err := executehelpers.CreateBuild(
-		atcRequester,
 		client,
 		command.Privileged,
 		inputs,
@@ -86,7 +82,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	go func() {
 		for _, i := range inputs {
 			if i.Path != "" {
-				executehelpers.Upload(i, excludeIgnored, atcRequester)
+				executehelpers.Upload(client, i, excludeIgnored)
 			}
 		}
 		close(inputChan)
@@ -98,7 +94,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 			outputChans = append(outputChans, make(chan interface{}, 1))
 			go func(o executehelpers.Output, outputChan chan<- interface{}) {
 				if o.Path != "" {
-					executehelpers.Download(o, atcRequester)
+					executehelpers.Download(client, o)
 				}
 
 				close(outputChan)

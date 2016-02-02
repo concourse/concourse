@@ -5,25 +5,14 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/deprecated"
-	"github.com/tedsuo/rata"
+	"github.com/concourse/go-concourse/concourse"
 )
 
-func Download(output Output, atcRequester *deprecated.AtcRequester) {
+func Download(client concourse.Client, output Output) {
 	path := output.Path
 	pipe := output.Pipe
 
-	downloadBits, err := atcRequester.CreateRequest(
-		atc.ReadPipe,
-		rata.Params{"pipe_id": pipe.ID},
-		nil,
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	response, err := atcRequester.HttpClient.Do(downloadBits)
+	response, err := client.HTTPClient().Get(pipe.ReadURL)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "download request failed:", err)
 	}

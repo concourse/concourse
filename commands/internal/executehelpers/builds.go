@@ -4,14 +4,11 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/deprecated"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
-	"github.com/tedsuo/rata"
 )
 
 func CreateBuild(
-	atcRequester *deprecated.AtcRequester,
 	client concourse.Client,
 	privileged bool,
 	inputs []Input,
@@ -35,17 +32,8 @@ func CreateBuild(
 	for _, input := range inputs {
 		var getPlan atc.GetPlan
 		if input.Path != "" {
-			readPipe, err := atcRequester.CreateRequest(
-				atc.ReadPipe,
-				rata.Params{"pipe_id": input.Pipe.ID},
-				nil,
-			)
-			if err != nil {
-				return atc.Build{}, err
-			}
-
 			source := atc.Source{
-				"uri": readPipe.URL.String(),
+				"uri": input.Pipe.ReadURL,
 			}
 
 			if targetProps.Token != nil {
@@ -83,16 +71,8 @@ func CreateBuild(
 
 	buildOutputs := atc.AggregatePlan{}
 	for _, output := range outputs {
-		writePipe, err := atcRequester.CreateRequest(
-			atc.WritePipe,
-			rata.Params{"pipe_id": output.Pipe.ID},
-			nil,
-		)
-		if err != nil {
-			return atc.Build{}, err
-		}
 		source := atc.Source{
-			"uri": writePipe.URL.String(),
+			"uri": output.Pipe.ReadURL,
 		}
 
 		params := atc.Params{

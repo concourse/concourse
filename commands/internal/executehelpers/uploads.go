@@ -8,12 +8,10 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/fly/commands/internal/deprecated"
-	"github.com/tedsuo/rata"
+	"github.com/concourse/go-concourse/concourse"
 )
 
-func Upload(input Input, excludeIgnored bool, atcRequester *deprecated.AtcRequester) {
+func Upload(client concourse.Client, input Input, excludeIgnored bool) {
 	path := input.Path
 	pipe := input.Pipe
 
@@ -38,16 +36,12 @@ func Upload(input Input, excludeIgnored bool, atcRequester *deprecated.AtcReques
 
 	defer archive.Close()
 
-	uploadBits, err := atcRequester.CreateRequest(
-		atc.WritePipe,
-		rata.Params{"pipe_id": pipe.ID},
-		archive,
-	)
+	upload, err := http.NewRequest("PUT", pipe.WriteURL, archive)
 	if err != nil {
 		panic(err)
 	}
 
-	response, err := atcRequester.HttpClient.Do(uploadBits)
+	response, err := client.HTTPClient().Do(upload)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "upload request failed:", err)
 		return
