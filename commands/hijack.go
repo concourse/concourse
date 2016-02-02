@@ -155,7 +155,7 @@ func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProces
 	return hijackReq
 }
 
-func getContainerIDs(c *HijackCommand) []atc.Container {
+func getContainerIDs(c *HijackCommand) ([]atc.Container, error) {
 	var pipelineName string
 	if c.Job.PipelineName != "" {
 		pipelineName = c.Job.PipelineName
@@ -180,29 +180,32 @@ func getContainerIDs(c *HijackCommand) []atc.Container {
 
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
-		log.Fatalln("failed to create client:", err)
+		return nil, err
 	}
 
 	reqValues, err := locateContainer(client, fingerprint)
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
 
 	containers, err := client.ListContainers(reqValues)
 	if err != nil {
-		log.Fatalln("failed to get containers:", err)
+		return nil, err
 	}
-	return containers
+
+	return containers, nil
 }
 
 func (command *HijackCommand) Execute(args []string) error {
 	target, err := rc.SelectTarget(Fly.Target)
 	if err != nil {
-		log.Fatalln(err)
-		return nil
+		return err
 	}
 
-	containers := getContainerIDs(command)
+	containers, err := getContainerIDs(command)
+	if err != nil {
+		return err
+	}
 
 	var chosenContainer atc.Container
 	if len(containers) == 0 {
@@ -281,30 +284,35 @@ func (command *HijackCommand) Execute(args []string) error {
 	}
 
 	hijackReq := constructRequest(reqGenerator, spec, chosenContainer.ID, target.Token)
-	hijackResult := performHijack(hijackReq, tlsConfig)
+
+	hijackResult, err := performHijack(hijackReq, tlsConfig)
+	if err != nil {
+		return err
+	}
+
 	os.Exit(hijackResult)
 
 	return nil
 }
 
-func performHijack(hijackReq *http.Request, tlsConfig *tls.Config) int {
+func performHijack(hijackReq *http.Request, tlsConfig *tls.Config) (int, error) {
 	conn, err := dialEndpoint(hijackReq.URL, tlsConfig)
 	if err != nil {
-		log.Fatalln("failed to dial hijack endpoint:", err)
+		return 0, err
 	}
 
 	clientConn := httputil.NewClientConn(conn, nil)
 
 	resp, err := clientConn.Do(hijackReq)
 	if err != nil {
-		log.Fatalln("failed to hijack:", err)
+		return 0, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		handleBadResponse("hijacking", resp)
 	}
 
-	return hijack(clientConn.Hijack())
+	return hijack(clientConn.Hijack()), nil
 }
 
 func hijack(conn net.Conn, br *bufio.Reader) int {
