@@ -40,7 +40,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 
 	pipelines, err := client.ListPipelines()
 	if err != nil {
-		log.Error("failed-to-load-pipelinedb", err)
+		log.Error("failed-to-list-pipelines", err)
 		return err
 	}
 
