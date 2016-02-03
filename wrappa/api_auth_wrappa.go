@@ -7,15 +7,18 @@ import (
 )
 
 type APIAuthWrappa struct {
+	PubliclyViewable  bool
 	Validator         auth.Validator
 	UserContextReader auth.UserContextReader
 }
 
 func NewAPIAuthWrappa(
+	publiclyViewable bool,
 	validator auth.Validator,
 	userContextReader auth.UserContextReader,
 ) *APIAuthWrappa {
 	return &APIAuthWrappa{
+		PubliclyViewable:  publiclyViewable,
 		Validator:         validator,
 		UserContextReader: userContextReader,
 	}
@@ -63,14 +66,18 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			newHandler = auth.CheckAuthHandler(handler, rejector)
 
 		// unauthenticated
-		case atc.ListAuthMethods,
-			atc.BuildEvents,
+		case atc.ListAuthMethods:
+
+		// unauthenticated if publicly viewable
+		case atc.BuildEvents,
 			atc.DownloadCLI,
 			atc.GetBuild,
 			atc.GetJobBuild,
 			atc.BuildResources,
 			atc.GetJob,
 			atc.GetLogLevel,
+			atc.GetResource,
+			atc.ListResourceVersions,
 			atc.ListBuilds,
 			atc.ListBuildsWithVersionAsInput,
 			atc.ListBuildsWithVersionAsOutput,
@@ -79,9 +86,10 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListPipelines,
 			atc.GetPipeline,
 			atc.ListResources,
-			atc.GetBuildPlan,
-			atc.GetResource,
-			atc.ListResourceVersions:
+			atc.GetBuildPlan:
+			if !wrappa.PubliclyViewable {
+				newHandler = auth.CheckAuthHandler(handler, rejector)
+			}
 
 		// think about it!
 		default:

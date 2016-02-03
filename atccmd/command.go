@@ -602,7 +602,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 ) (http.Handler, error) {
 	apiWrapper := wrappa.MultiWrappa{
-		wrappa.NewAPIAuthWrappa(authValidator, userContextReader),
+		wrappa.NewAPIAuthWrappa(cmd.PubliclyViewable, authValidator, userContextReader),
 		wrappa.NewAPIMetricsWrappa(logger),
 	}
 
@@ -647,10 +647,7 @@ func (cmd *ATCCommand) constructWebHandler(
 	userContextReader auth.UserContextReader,
 	pipelineDBFactory db.PipelineDBFactory,
 ) (http.Handler, error) {
-	webWrapper := wrappa.MultiWrappa{
-		wrappa.NewWebAuthWrappa(cmd.PubliclyViewable, authValidator, userContextReader),
-		wrappa.NewWebMetricsWrappa(logger),
-	}
+	webWrapper := wrappa.NewWebMetricsWrappa(logger)
 
 	clientFactory := web.NewClientFactory(
 		fmt.Sprintf("http://127.0.0.1:%d", cmd.BindPort),
