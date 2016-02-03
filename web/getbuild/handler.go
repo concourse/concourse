@@ -27,16 +27,11 @@ type OldBuildTemplateData struct {
 	Inputs []atc.PublicBuildInput
 }
 
-func getNames(r *http.Request) (string, string, string, error) {
-	pipelineName := r.FormValue(":pipeline_name")
-	jobName := r.FormValue(":job")
-	buildName := r.FormValue(":build")
-
-	if len(pipelineName) == 0 || len(jobName) == 0 || len(buildName) == 0 {
-		return "", "", "", errors.New("Missing required parameters")
-	}
-
-	return pipelineName, jobName, buildName, nil
+type Handler struct {
+	logger           lager.Logger
+	clientFactory    web.ClientFactory
+	template         *template.Template
+	oldBuildTemplate *template.Template
 }
 
 func NewHandler(
@@ -44,114 +39,123 @@ func NewHandler(
 	clientFactory web.ClientFactory,
 	template *template.Template,
 	oldBuildTemplate *template.Template,
-) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		client := clientFactory.Build(r)
+) *Handler {
+	return &Handler{
+		logger:           logger,
+		clientFactory:    clientFactory,
+		template:         template,
+		oldBuildTemplate: oldBuildTemplate,
+	}
+}
 
-		pipelineName, jobName, buildName, err := getNames(r)
-		if err != nil {
-			logger.Error("failed-to-get-names", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	logger := handler.logger.Session("handler")
 
-		job, found, err := client.Job(pipelineName, jobName)
-		if err != nil {
-			logger.Error("failed-to-load-job", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if !found {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
+	client := handler.clientFactory.Build(r)
 
-		log := logger.Session("get-build", lager.Data{
-			"job":   job.Name,
-			"build": buildName,
-		})
+	pipelineName, jobName, buildName, err := getNames(r)
+	if err != nil {
+		logger.Error("failed-to-get-names", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return nil
+	}
 
-		requestedBuild, found, err := client.JobBuild(pipelineName, jobName, buildName)
-		if err != nil {
-			log.Error("get-build-failed", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	job, found, err := client.Job(pipelineName, jobName)
+	if err != nil {
+		logger.Error("failed-to-load-job", err)
+		return err
+	}
 
-		if !found {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
 
-		pipeline, _, err := client.Pipeline(pipelineName)
-		if err != nil {
-			log.Error("get-pipeline-failed", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		templateData := TemplateData{
-			GroupStates: group.States(pipeline.Groups, func(g atc.GroupConfig) bool {
-				for _, groupJob := range g.Jobs {
-					if groupJob == job.Name {
-						return true
-					}
-				}
-
-				return false
-			}),
-
-			Job: job,
-
-			Build:        requestedBuild,
-			PipelineName: pipelineName,
-		}
-
-		buildPlan, found, err := client.BuildPlan(requestedBuild.ID)
-		if err != nil {
-			log.Error("get-build-plan-failed", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if buildPlan.Schema == "exec.v2" || !found {
-			// either it's definitely a new build, or it hasn't started yet (and thus
-			// must be new), so render with the new UI
-			err = template.Execute(w, templateData)
-			if err != nil {
-				log.Fatal("failed-to-build-template", err, lager.Data{
-					"template-data": templateData,
-				})
-			}
-		} else {
-			buildInputsOutputs, _, err := client.BuildResources(requestedBuild.ID)
-			if err != nil {
-				log.Error("failed-to-get-build-resources", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			builds, err := getAllJobBuilds(client, pipelineName, jobName)
-			if err != nil {
-				log.Error("get-all-builds-failed", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			oldBuildTemplateData := OldBuildTemplateData{
-				TemplateData: templateData,
-				Builds:       builds,
-				Inputs:       buildInputsOutputs.Inputs,
-			}
-
-			err = oldBuildTemplate.Execute(w, oldBuildTemplateData)
-			if err != nil {
-				log.Fatal("failed-to-build-template", err, lager.Data{
-					"template-data": oldBuildTemplateData,
-				})
-			}
-		}
+	log := logger.Session("get-build", lager.Data{
+		"job":   job.Name,
+		"build": buildName,
 	})
+
+	requestedBuild, found, err := client.JobBuild(pipelineName, jobName, buildName)
+	if err != nil {
+		log.Error("failed-to-get-build", err)
+		return err
+	}
+
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
+		return nil
+	}
+
+	pipeline, _, err := client.Pipeline(pipelineName)
+	if err != nil {
+		log.Error("failed-to-get-pipeline", err)
+		return err
+	}
+
+	templateData := TemplateData{
+		GroupStates: group.States(pipeline.Groups, func(g atc.GroupConfig) bool {
+			for _, groupJob := range g.Jobs {
+				if groupJob == job.Name {
+					return true
+				}
+			}
+
+			return false
+		}),
+
+		Job: job,
+
+		Build:        requestedBuild,
+		PipelineName: pipelineName,
+	}
+
+	buildPlan, found, err := client.BuildPlan(requestedBuild.ID)
+	if err != nil {
+		log.Error("failed-to-get-build-plan", err)
+		return err
+	}
+
+	if buildPlan.Schema == "exec.v2" || !found {
+		// either it's definitely a new build, or it hasn't started yet (and thus
+		// must be new), so render with the new UI
+		err = handler.template.Execute(w, templateData)
+		if err != nil {
+			log.Fatal("failed-to-build-template", err, lager.Data{
+				"template-data": templateData,
+			})
+
+			return err
+		}
+	} else {
+		buildInputsOutputs, _, err := client.BuildResources(requestedBuild.ID)
+		if err != nil {
+			log.Error("failed-to-get-build-resources", err)
+			return err
+		}
+
+		builds, err := getAllJobBuilds(client, pipelineName, jobName)
+		if err != nil {
+			log.Error("get-all-builds-failed", err)
+			return err
+		}
+
+		oldBuildTemplateData := OldBuildTemplateData{
+			TemplateData: templateData,
+			Builds:       builds,
+			Inputs:       buildInputsOutputs.Inputs,
+		}
+
+		err = handler.oldBuildTemplate.Execute(w, oldBuildTemplateData)
+		if err != nil {
+			log.Fatal("failed-to-build-template", err, lager.Data{
+				"template-data": oldBuildTemplateData,
+			})
+			return err
+		}
+	}
+
+	return nil
 }
 
 func getAllJobBuilds(client concourse.Client, pipelineName string, jobName string) ([]atc.Build, error) {
@@ -169,4 +173,16 @@ func getAllJobBuilds(client concourse.Client, pipelineName string, jobName strin
 	}
 
 	return builds, nil
+}
+
+func getNames(r *http.Request) (string, string, string, error) {
+	pipelineName := r.FormValue(":pipeline_name")
+	jobName := r.FormValue(":job")
+	buildName := r.FormValue(":build")
+
+	if len(pipelineName) == 0 || len(jobName) == 0 || len(buildName) == 0 {
+		return "", "", "", errors.New("Missing required parameters")
+	}
+
+	return pipelineName, jobName, buildName, nil
 }

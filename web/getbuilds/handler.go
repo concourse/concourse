@@ -11,7 +11,7 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type handler struct {
+type Handler struct {
 	logger lager.Logger
 
 	clientFactory web.ClientFactory
@@ -19,8 +19,8 @@ type handler struct {
 	template *template.Template
 }
 
-func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) http.Handler {
-	return &handler{
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) *Handler {
+	return &Handler{
 		logger: logger,
 
 		clientFactory: clientFactory,
@@ -47,7 +47,7 @@ func FetchTemplateData(client concourse.Client, page concourse.Page) (TemplateDa
 	}, nil
 }
 
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	client := handler.clientFactory.Build(r)
 
 	log := handler.logger.Session("builds")
@@ -71,12 +71,14 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	templateData, err := FetchTemplateData(client, page)
 	if err != nil {
 		log.Error("failed-to-build-template-data", err)
-		http.Error(w, "failed to fetch builds", http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	err = handler.template.Execute(w, templateData)
 	if err != nil {
 		log.Fatal("failed-to-build-template", err)
+		return err
 	}
+
+	return nil
 }

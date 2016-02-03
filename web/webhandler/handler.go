@@ -9,6 +9,7 @@ import (
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/web"
+	"github.com/concourse/atc/web/authredirect"
 	"github.com/concourse/atc/web/getbuild"
 	"github.com/concourse/atc/web/getbuilds"
 	"github.com/concourse/atc/web/getjob"
@@ -95,17 +96,17 @@ func NewHandler(
 	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
 
 	handlers := map[string]http.Handler{
-		web.Index:           index.NewHandler(logger, clientFactory, pipelineHandler, indexTemplate),
-		web.Pipeline:        pipelineHandler,
+		web.Index:           authredirect.Handler{index.NewHandler(logger, clientFactory, pipelineHandler, indexTemplate)},
+		web.Pipeline:        authredirect.Handler{pipelineHandler},
 		web.Public:          CacheNearlyForever(http.FileServer(publicFS)),
-		web.GetJob:          getjob.NewHandler(logger, clientFactory, jobTemplate),
-		web.GetResource:     getresource.NewHandler(logger, clientFactory, resourceTemplate),
-		web.GetBuild:        getbuild.NewHandler(logger, clientFactory, buildTemplate, oldBuildTemplate),
-		web.GetBuilds:       getbuilds.NewHandler(logger, clientFactory, buildsTemplate),
-		web.GetJoblessBuild: getjoblessbuild.NewHandler(logger, clientFactory, joblessBuildTemplate, oldJoblessBuildTemplate),
+		web.GetJob:          authredirect.Handler{getjob.NewHandler(logger, clientFactory, jobTemplate)},
+		web.GetResource:     authredirect.Handler{getresource.NewHandler(logger, clientFactory, resourceTemplate)},
+		web.GetBuild:        authredirect.Handler{getbuild.NewHandler(logger, clientFactory, buildTemplate, oldBuildTemplate)},
+		web.GetBuilds:       authredirect.Handler{getbuilds.NewHandler(logger, clientFactory, buildsTemplate)},
+		web.GetJoblessBuild: authredirect.Handler{getjoblessbuild.NewHandler(logger, clientFactory, joblessBuildTemplate, oldJoblessBuildTemplate)},
+		web.TriggerBuild:    authredirect.Handler{triggerbuild.NewHandler(logger, clientFactory)},
 		web.LogIn:           login.NewHandler(logger, clientFactory, logInTemplate),
 		web.BasicAuth:       login.NewBasicAuthHandler(logger),
-		web.TriggerBuild:    triggerbuild.NewHandler(logger, clientFactory),
 	}
 
 	return rata.NewRouter(web.Routes, wrapper.Wrap(handlers))
