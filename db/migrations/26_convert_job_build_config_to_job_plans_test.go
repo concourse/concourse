@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("25ConvertJobBuildConfigToJobPlans", func() {
+var _ = Describe("26ConvertJobBuildConfigToJobPlans", func() {
 
 	var postgresRunner postgresrunner.Runner
 
