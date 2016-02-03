@@ -88,7 +88,7 @@ func (connection *connection) Send(passedRequest Request, passedResponse *Respon
 }
 
 func (connection *connection) ConnectToEventStream(passedRequest Request) (*sse.EventSource, error) {
-	return sse.Connect(connection.httpClient, time.Second, func() *http.Request {
+	source, err := sse.Connect(connection.httpClient, time.Second, func() *http.Request {
 		request, reqErr := connection.createHTTPRequest(passedRequest)
 		if reqErr != nil {
 			panic("unexpected error creating request: " + reqErr.Error())
@@ -96,6 +96,17 @@ func (connection *connection) ConnectToEventStream(passedRequest Request) (*sse.
 
 		return request
 	})
+	if err != nil {
+		if brErr, ok := err.(sse.BadResponseError); ok {
+			if brErr.Response.StatusCode == http.StatusUnauthorized {
+				return nil, ErrUnauthorized
+			}
+		}
+
+		return nil, err
+	}
+
+	return source, nil
 }
 
 func (connection *connection) createHTTPRequest(passedRequest Request) (*http.Request, error) {

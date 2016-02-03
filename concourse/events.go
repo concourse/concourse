@@ -17,7 +17,6 @@ func (client *client) BuildEvents(buildID string) (Events, error) {
 		RequestName: atc.BuildEvents,
 		Params:      rata.Params{"build_id": buildID},
 	})
-
 	if err != nil {
 		return nil, err
 	}
