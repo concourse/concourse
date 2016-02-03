@@ -86,7 +86,7 @@ func GetAuthMethods(atcURL string) (bool, *basicAuthCredentials, *oauthAuthCrede
 				username := os.Getenv("BASIC_AUTH_USERNAME")
 				password := os.Getenv("BASIC_AUTH_PASSWORD")
 				if username == "" || password == "" {
-					return false, nil, nil, errors.New("Need both username and password for basic auth")
+					return false, nil, nil, errors.New("must set $BASIC_AUTH_USERNAME and $BASIC_AUTH_PASSWORD for basic auth")
 				}
 
 				basicCred = &basicAuthCredentials{
@@ -98,7 +98,7 @@ func GetAuthMethods(atcURL string) (bool, *basicAuthCredentials, *oauthAuthCrede
 					username := os.Getenv("GITHUB_AUTH_USERNAME")
 					password := os.Getenv("GITHUB_AUTH_PASSWORD")
 					if username == "" || password == "" {
-						return false, nil, nil, errors.New("Need both username and password for github auth")
+						return false, nil, nil, errors.New("must set $GITHUB_AUTH_USERNAME and $GITHUB_AUTH_PASSWORD for github auth")
 					}
 
 					gitHubCred = &oauthAuthCredentials{
