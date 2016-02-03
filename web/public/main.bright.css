@@ -2198,7 +2198,8 @@ span.error {
 .job-animation-node .animation,
 .job-animation-node .animation,
 .legend dt.started,
-.legend dt.pending {
+.legend dt.pending,
+.legend dt.failed {
   border-radius: 1px;
 }
 .legend dt.started {
@@ -2253,6 +2254,9 @@ span.error {
     box-shadow: 0 0 0 2px #303030, 0 0 0 4px #d0d0d0, 0 0 0 6px #303030, 0 0 0 8px transparent;
   }
 }
+.legend dt.failed {
+  box-shadow: 0 0 0 2px #303030, 0 0 0 5px rgba(251, 1, 32, 0.7);
+}
 .job-animation-node.pending .animation-xlarge {
   -webkit-animation: "xlarge-pending-ripples-bright" 1s linear infinite;
   animation: "xlarge-pending-ripples-bright" 1s linear infinite;
@@ -2304,6 +2308,9 @@ span.error {
   100% {
     box-shadow: 0 0 0 20px #303030, 0 0 0 40px #fda331, 0 0 0 60px #303030, 0 0 0 80px transparent;
   }
+}
+.job-animation-node.failed .animation-xlarge {
+  box-shadow: 0 0 0 24px #303030, 0 0 0 60px rgba(251, 1, 32, 0.7);
 }
 .job-animation-node.pending .animation-large {
   -webkit-animation: "large-pending-ripples-bright" 1s linear infinite;
@@ -2357,6 +2364,9 @@ span.error {
     box-shadow: 0 0 0 15px #303030, 0 0 0 30px #fda331, 0 0 0 45px #303030, 0 0 0 60px transparent;
   }
 }
+.job-animation-node.failed .animation-large {
+  box-shadow: 0 0 0 18px #303030, 0 0 0 45px rgba(251, 1, 32, 0.7);
+}
 .job-animation-node.pending .animation-medium {
   -webkit-animation: "medium-pending-ripples-bright" 1s linear infinite;
   animation: "medium-pending-ripples-bright" 1s linear infinite;
@@ -2409,6 +2419,9 @@ span.error {
     box-shadow: 0 0 0 7px #303030, 0 0 0 14px #fda331, 0 0 0 21px #303030, 0 0 0 28px transparent;
   }
 }
+.job-animation-node.failed .animation-medium {
+  box-shadow: 0 0 0 8px #303030, 0 0 0 20px rgba(251, 1, 32, 0.7);
+}
 .job-animation-node.pending .animation-small {
   -webkit-animation: "small-pending-ripples-bright" 1s linear infinite;
   animation: "small-pending-ripples-bright" 1s linear infinite;
@@ -2460,6 +2473,9 @@ span.error {
   100% {
     box-shadow: 0 0 0 3px #303030, 0 0 0 6px #fda331, 0 0 0 9px #303030, 0 0 0 12px transparent;
   }
+}
+.job-animation-node.failed .animation-small {
+  box-shadow: 0 0 0 4px #303030, 0 0 0 10px rgba(251, 1, 32, 0.7);
 }
 .build-number {
   font-size: 2em;
@@ -2823,7 +2839,7 @@ span.error {
 .step-body {
   padding: 10px;
 }
-.step-body pre {
+.build-step pre {
   margin: 0;
 }
 .steps {
