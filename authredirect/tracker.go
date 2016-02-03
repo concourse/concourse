@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/context"
 )
 
-var requestURLKey = &struct{}{}
+var requestURLKey = "original-request-url"
 
 type Tracker struct {
 	http.Handler
