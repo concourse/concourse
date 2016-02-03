@@ -109,7 +109,14 @@ func NewHandler(
 		web.BasicAuth:       login.NewBasicAuthHandler(logger),
 	}
 
-	return rata.NewRouter(web.Routes, wrapper.Wrap(handlers))
+	handler, err := rata.NewRouter(web.Routes, wrapper.Wrap(handlers))
+	if err != nil {
+		return nil, err
+	}
+
+	return authredirect.Tracker{
+		Handler: handler,
+	}, nil
 }
 
 func loadTemplate(name string, funcs template.FuncMap) (*template.Template, error) {
