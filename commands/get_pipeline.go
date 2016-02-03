@@ -3,8 +3,6 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"os"
 
 	"gopkg.in/yaml.v2"
 
@@ -31,12 +29,12 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	dump(config, asJSON)
+	return dump(config, asJSON)
 
 	return nil
 }
 
-func dump(config atc.Config, asJSON bool) {
+func dump(config atc.Config, asJSON bool) error {
 	var payload []byte
 	var err error
 	if asJSON {
@@ -44,11 +42,14 @@ func dump(config atc.Config, asJSON bool) {
 	} else {
 		payload, err = yaml.Marshal(config)
 	}
-
 	if err != nil {
-		log.Println("failed to marshal config to YAML:", err)
-		os.Exit(1)
+		return err
 	}
 
-	fmt.Printf("%s", payload)
+	_, err = fmt.Printf("%s", payload)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

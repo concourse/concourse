@@ -3,23 +3,11 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
 	"strconv"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse"
 )
-
-func handleBadResponse(process string, resp *http.Response) {
-	b, err := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		log.Fatalln("failed to read response when %s:", process, err)
-	}
-	log.Fatalf("bad response when %s:\n%s\n%s", process, resp.Status, b)
-}
 
 func GetBuild(client concourse.Client, jobName string, buildNameOrID string, pipelineName string) (atc.Build, error) {
 	if buildNameOrID != "" {

@@ -5,9 +5,9 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/pty"
 	"github.com/concourse/fly/rc"
@@ -133,10 +134,10 @@ func locateContainer(client concourse.Client, fingerprint containerFingerprint) 
 	return locator.locate(fingerprint)
 }
 
-func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProcessSpec, id string, token *rc.TargetToken) *http.Request {
+func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProcessSpec, id string, token *rc.TargetToken) (*http.Request, error) {
 	payload, err := json.Marshal(spec)
 	if err != nil {
-		log.Fatalln("failed to marshal process spec:", err)
+		return nil, fmt.Errorf("failed to marshal hijack request body: %s", err)
 	}
 
 	hijackReq, err := reqGenerator.CreateRequest(
@@ -145,14 +146,14 @@ func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProces
 		bytes.NewBuffer(payload),
 	)
 	if err != nil {
-		log.Fatalln("failed to create hijack request:", err)
+		return nil, fmt.Errorf("failed to create hijack request: %s", err)
 	}
 
 	if token != nil {
 		hijackReq.Header.Add("Authorization", token.Type+" "+token.Value)
 	}
 
-	return hijackReq
+	return hijackReq, nil
 }
 
 func getContainerIDs(c *HijackCommand) ([]atc.Container, error) {
@@ -209,8 +210,7 @@ func (command *HijackCommand) Execute(args []string) error {
 
 	var chosenContainer atc.Container
 	if len(containers) == 0 {
-		fmt.Fprintln(os.Stderr, "no containers matched your search parameters! they may have expired if your build hasn't recently finished")
-		os.Exit(1)
+		displayhelpers.Failf("no containers matched your search parameters!\n\nthey may have expired if your build hasn't recently finished.")
 	} else if len(containers) > 1 {
 		var choices []interact.Choice
 		for _, container := range containers {
@@ -243,7 +243,7 @@ func (command *HijackCommand) Execute(args []string) error {
 
 		err = interact.NewInteraction("choose a container", choices...).Resolve(&chosenContainer)
 		if err == io.EOF {
-			os.Exit(0)
+			return nil
 		}
 
 		if err != nil {
@@ -283,7 +283,10 @@ func (command *HijackCommand) Execute(args []string) error {
 		TTY:        ttySpec,
 	}
 
-	hijackReq := constructRequest(reqGenerator, spec, chosenContainer.ID, target.Token)
+	hijackReq, err := constructRequest(reqGenerator, spec, chosenContainer.ID, target.Token)
+	if err != nil {
+		return err
+	}
 
 	hijackResult, err := performHijack(hijackReq, tlsConfig)
 	if err != nil {
@@ -309,7 +312,7 @@ func performHijack(hijackReq *http.Request, tlsConfig *tls.Config) (int, error) 
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		handleBadResponse("hijacking", resp)
+		return 0, fmt.Errorf("unexpected response status: %s", resp.Status)
 	}
 
 	return hijack(clientConn.Hijack()), nil
@@ -400,7 +403,10 @@ var canonicalPortMap = map[string]string{
 }
 
 func dialEndpoint(url *url.URL, tlsConfig *tls.Config) (net.Conn, error) {
-	addr := canonicalAddr(url)
+	addr, err := canonicalAddr(url)
+	if err != nil {
+		return nil, fmt.Errorf("could not canonicalize host: %s", err)
+	}
 
 	if url.Scheme == "https" {
 		return tls.Dial("tcp", addr, tlsConfig)
@@ -409,16 +415,16 @@ func dialEndpoint(url *url.URL, tlsConfig *tls.Config) (net.Conn, error) {
 	return net.Dial("tcp", addr)
 }
 
-func canonicalAddr(url *url.URL) string {
+func canonicalAddr(url *url.URL) (string, error) {
 	host, port, err := net.SplitHostPort(url.Host)
 	if err != nil {
 		if strings.Contains(err.Error(), "missing port in address") {
 			host = url.Host
 			port = canonicalPortMap[url.Scheme]
 		} else {
-			log.Fatalln("invalid host:", err)
+			return "", errors.New("unknown url host format")
 		}
 	}
 
-	return net.JoinHostPort(host, port)
+	return net.JoinHostPort(host, port), nil
 }

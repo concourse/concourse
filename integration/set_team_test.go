@@ -209,7 +209,7 @@ var _ = Describe("Fly CLI", func() {
 				Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 				no(stdin)
 
-				Eventually(sess.Out).Should(gbytes.Say("bailing out"))
+				Eventually(sess.Err).Should(gbytes.Say("bailing out"))
 				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})

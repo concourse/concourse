@@ -48,8 +48,7 @@ func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariable
 	diff(existingConfig, newConfig)
 
 	if !atcConfig.ApplyConfigInteraction() {
-		fmt.Println("bailing out")
-		os.Exit(1)
+		displayhelpers.Failf("bailing out")
 	}
 
 	created, updated, err := atcConfig.Client.CreateOrUpdatePipelineConfig(

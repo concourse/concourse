@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"strconv"
@@ -36,7 +35,10 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	taskConfigFile := command.TaskConfig
 	excludeIgnored := command.ExcludeIgnored
 
-	taskConfig := config.LoadTaskConfig(string(taskConfigFile), args)
+	taskConfig, err := config.LoadTaskConfig(string(taskConfigFile), args)
+	if err != nil {
+		return err
+	}
 
 	inputs, err := executehelpers.DetermineInputs(
 		client,
@@ -103,10 +105,8 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	}
 
 	eventSource, err := client.BuildEvents(fmt.Sprintf("%d", build.ID))
-
 	if err != nil {
-		log.Println("failed to attach to stream:", err)
-		os.Exit(1)
+		return err
 	}
 
 	exitCode := eventstream.Render(os.Stdout, eventSource)

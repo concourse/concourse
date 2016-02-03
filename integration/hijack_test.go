@@ -249,7 +249,7 @@ var _ = Describe("Hijacking", func() {
 
 			Eventually(sess).Should(gexec.Exit(1))
 
-			Expect(sess.Err).To(gbytes.Say("no containers matched your search parameters! they may have expired if your build hasn't recently finished"))
+			Expect(sess.Err).To(gbytes.Say("no containers matched your search parameters!\n\nthey may have expired if your build hasn't recently finished.\n"))
 		})
 	})
 
@@ -274,7 +274,7 @@ var _ = Describe("Hijacking", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Err.Contents).Should(ContainSubstring("no containers matched your search parameters! they may have expired if your build hasn't recently finished"))
+			Eventually(sess.Err.Contents).Should(ContainSubstring("no containers matched your search parameters!\n\nthey may have expired if your build hasn't recently finished.\n"))
 
 			err = stdin.Close()
 			Expect(err).NotTo(HaveOccurred())

@@ -3,9 +3,9 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/vito/go-interact/interact"
@@ -43,9 +43,9 @@ func (command *SetTeamCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+
 	if !confirm {
-		fmt.Println("bailing out")
-		os.Exit(1)
+		displayhelpers.Failf("bailing out")
 	}
 
 	team := command.GetTeam(hasBasicAuth, hasGitHubAuth)

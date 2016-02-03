@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/concourse/fly/commands/internal/flaghelpers"
@@ -27,10 +26,8 @@ func (command *WatchCommand) Execute(args []string) error {
 	}
 
 	eventSource, err := client.BuildEvents(fmt.Sprintf("%d", build.ID))
-
 	if err != nil {
-		log.Println("failed to attach to stream:", err)
-		os.Exit(1)
+		return err
 	}
 
 	exitCode := eventstream.Render(os.Stdout, eventSource)

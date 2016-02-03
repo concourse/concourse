@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/fly/ui"
@@ -42,8 +43,7 @@ func (command *BuildsCommand) Execute([]string) error {
 		}
 
 		if !found {
-			fmt.Fprintln(os.Stderr, "pipeline/job not found")
-			os.Exit(1)
+			displayhelpers.Failf("pipeline/job not found")
 		}
 	} else {
 		builds, _, err = client.Builds(page)
