@@ -27,6 +27,53 @@ var _ = Describe("TaskConfig", func() {
 			invalidConfig = validConfig
 		})
 
+		Describe("decode task yaml", func() {
+			Context("given a valid task config", func() {
+				It("works", func() {
+					data := []byte(`
+platform: beos
+
+inputs: []
+
+run: {path: a/file}
+`)
+					task, err := LoadTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(task.Platform).To(Equal("beos"))
+					Expect(task.Run.Path).To(Equal("a/file"))
+				})
+			})
+
+			Context("given a valid task config with extra keys", func() {
+				It("returns an error", func() {
+					data := []byte(`
+platform: beos
+
+intputs: []
+
+run: {path: a/file}
+`)
+					_, err := LoadTaskConfig(data)
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("given an invalid task config", func() {
+				It("errors on validation", func() {
+					data := []byte(`
+platform: beos
+
+inputs: ['a/b/c']
+outputs: ['a/b/c']
+
+run: {path: a/file}
+`)
+					_, err := LoadTaskConfig(data)
+					Expect(err).To(HaveOccurred())
+				})
+			})
+		})
+
 		Context("when platform is missing", func() {
 			BeforeEach(func() {
 				invalidConfig.Platform = ""
