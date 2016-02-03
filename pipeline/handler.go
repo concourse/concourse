@@ -11,14 +11,14 @@ import (
 	"github.com/concourse/atc/web/group"
 )
 
-type handler struct {
+type Handler struct {
 	logger        lager.Logger
 	clientFactory web.ClientFactory
 	template      *template.Template
 }
 
-func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) http.Handler {
-	return &handler{
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) *Handler {
+	return &Handler{
 		logger:        logger,
 		clientFactory: clientFactory,
 		template:      template,
@@ -31,7 +31,7 @@ type TemplateData struct {
 	PipelineName string
 }
 
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	client := handler.clientFactory.Build(r)
 
 	pipelineName := r.FormValue(":pipeline")
@@ -39,13 +39,12 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	pipeline, found, err := client.Pipeline(pipelineName)
 	if err != nil {
 		handler.logger.Error("failed-to-load-config", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	if !found {
 		w.WriteHeader(http.StatusNotFound)
-		return
+		return nil
 	}
 
 	groups := map[string]bool{}
@@ -77,5 +76,8 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("failed-to-build-template", err, lager.Data{
 			"template-data": data,
 		})
+		return err
 	}
+
+	return nil
 }

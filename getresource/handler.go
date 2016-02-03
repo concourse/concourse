@@ -13,14 +13,14 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type handler struct {
+type Handler struct {
 	logger        lager.Logger
 	clientFactory web.ClientFactory
 	template      *template.Template
 }
 
-func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) http.Handler {
-	return &handler{
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) *Handler {
+	return &Handler{
 		logger:        logger,
 		clientFactory: clientFactory,
 		template:      template,
@@ -129,7 +129,7 @@ func FetchTemplateData(pipelineName string, resourceName string, client concours
 	}, nil
 }
 
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	session := handler.logger.Session("get-resource")
 
 	pipelineName := r.FormValue(":pipeline_name")
@@ -162,13 +162,13 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"resource": resourceName,
 		})
 		w.WriteHeader(http.StatusNotFound)
-		return
+		return nil
 	case ErrConfigNotFound:
 		session.Error("could-not-find-config", ErrConfigNotFound, lager.Data{
 			"pipeline": pipelineName,
 		})
 		w.WriteHeader(http.StatusNotFound)
-		return
+		return nil
 	case nil:
 		break
 	default:
@@ -176,8 +176,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"resource": resourceName,
 			"pipeline": pipelineName,
 		})
-		http.Error(w, "failed to fetch resource", http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	err = handler.template.Execute(w, templateData)
@@ -185,5 +184,9 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		session.Fatal("failed-to-build-template", err, lager.Data{
 			"template-data": templateData,
 		})
+
+		return err
 	}
+
+	return nil
 }

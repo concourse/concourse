@@ -6,44 +6,59 @@ import (
 	"net/url"
 
 	"github.com/concourse/atc/web"
+	"github.com/concourse/atc/web/pipeline"
 	"github.com/pivotal-golang/lager"
 )
 
 type TemplateData struct{}
 
+type Handler struct {
+	logger           lager.Logger
+	clientFactory    web.ClientFactory
+	pipelineHandler  *pipeline.Handler
+	noBuildsTemplate *template.Template
+}
+
 func NewHandler(
 	logger lager.Logger,
 	clientFactory web.ClientFactory,
-	pipelineHandler http.Handler,
+	pipelineHandler *pipeline.Handler,
 	noBuildsTemplate *template.Template,
-) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log := logger.Session("index")
+) *Handler {
+	return &Handler{
+		logger:           logger,
+		clientFactory:    clientFactory,
+		pipelineHandler:  pipelineHandler,
+		noBuildsTemplate: noBuildsTemplate,
+	}
+}
 
-		client := clientFactory.Build(r)
+func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	log := handler.logger.Session("index")
 
-		pipelines, err := client.ListPipelines()
+	client := handler.clientFactory.Build(r)
+
+	pipelines, err := client.ListPipelines()
+	if err != nil {
+		log.Error("failed-to-load-pipelinedb", err)
+		return err
+	}
+
+	if len(pipelines) == 0 {
+		err := handler.noBuildsTemplate.Execute(w, TemplateData{})
 		if err != nil {
-			log.Error("failed-to-load-pipelinedb", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			log.Fatal("failed-to-build-template", err, lager.Data{})
+			return err
 		}
 
-		if len(pipelines) == 0 {
-			err = noBuildsTemplate.Execute(w, TemplateData{})
-			if err != nil {
-				log.Fatal("failed-to-build-template", err, lager.Data{})
-			}
+		return nil
+	}
 
-			return
-		}
+	if r.Form == nil {
+		r.Form = url.Values{}
+	}
 
-		if r.Form == nil {
-			r.Form = url.Values{}
-		}
+	r.Form[":pipeline"] = []string{pipelines[0].Name}
 
-		r.Form[":pipeline"] = []string{pipelines[0].Name}
-
-		pipelineHandler.ServeHTTP(w, r)
-	})
+	return handler.pipelineHandler.ServeHTTP(w, r)
 }

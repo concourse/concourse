@@ -11,15 +11,15 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type handler struct {
+type Handler struct {
 	logger        lager.Logger
 	clientFactory web.ClientFactory
 	template      *template.Template
 	oldTemplate   *template.Template
 }
 
-func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template, oldTemplate *template.Template) http.Handler {
-	return &handler{
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template, oldTemplate *template.Template) *Handler {
+	return &Handler{
 		logger:        logger,
 		clientFactory: clientFactory,
 		template:      template,
@@ -46,7 +46,7 @@ func FetchTemplateData(buildID string, client concourse.Client) (TemplateData, e
 	return TemplateData{Build: build}, nil
 }
 
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	client := handler.clientFactory.Build(r)
 
 	log := handler.logger.Session("jobless-build")
@@ -55,24 +55,21 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.FormValue(":build_id"),
 		client,
 	)
-
 	if err == ErrBuildNotFound {
 		log.Info("build-not-found")
 		w.WriteHeader(http.StatusNotFound)
-		return
+		return nil
 	}
 
 	if err != nil {
 		log.Error("failed-to-build-template-data", err)
-		http.Error(w, "failed to fetch builds", http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	buildPlan, found, err := client.BuildPlan(templateData.Build.ID)
 	if err != nil {
-		log.Error("get-build-plan-failed", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		log.Error("failed-to-get-build-plan", err)
+		return err
 	}
 
 	if buildPlan.Schema == "exec.v2" || !found {
@@ -83,5 +80,8 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Fatal("failed-to-execute-template", err)
+		return err
 	}
+
+	return nil
 }

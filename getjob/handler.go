@@ -13,7 +13,7 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type handler struct {
+type Handler struct {
 	logger lager.Logger
 
 	clientFactory web.ClientFactory
@@ -21,8 +21,8 @@ type handler struct {
 	template *template.Template
 }
 
-func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) http.Handler {
-	return &handler{
+func NewHandler(logger lager.Logger, clientFactory web.ClientFactory, template *template.Template) *Handler {
+	return &Handler{
 		logger:        logger,
 		clientFactory: clientFactory,
 		template:      template,
@@ -84,13 +84,13 @@ func FetchTemplateData(
 	}, nil
 }
 
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	log := handler.logger.Session("job")
 
 	jobName := r.FormValue(":job")
 	if len(jobName) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		return
+		return nil
 	}
 
 	since, parseErr := strconv.Atoi(r.FormValue("since"))
@@ -119,15 +119,14 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"job": jobName,
 		})
 		w.WriteHeader(http.StatusNotFound)
-		return
+		return nil
 	case nil:
 		break
 	default:
 		log.Error("failed-to-build-template-data", err, lager.Data{
 			"job": jobName,
 		})
-		http.Error(w, "failed to fetch job", http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	err = handler.template.Execute(w, templateData)
@@ -135,5 +134,9 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("failed-to-build-template", err, lager.Data{
 			"template-data": templateData,
 		})
+
+		return err
 	}
+
+	return nil
 }

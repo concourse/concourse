@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc/web"
 )
 
-type handler struct {
+type Handler struct {
 	logger        lager.Logger
 	clientFactory web.ClientFactory
 }
@@ -18,14 +18,14 @@ type handler struct {
 func NewHandler(
 	logger lager.Logger,
 	clientFactory web.ClientFactory,
-) *handler {
-	return &handler{
+) *Handler {
+	return &Handler{
 		logger:        logger,
 		clientFactory: clientFactory,
 	}
 }
 
-func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	client := handler.clientFactory.Build(r)
 
 	pipelineName := r.FormValue(":pipeline_name")
@@ -34,8 +34,7 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	build, err := client.CreateJobBuild(pipelineName, jobName)
 	if err != nil {
 		handler.logger.Error("failed-to-create-build", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	redirectPath, err := web.Routes.CreatePathForRoute(web.GetBuild, rata.Params{
@@ -52,4 +51,6 @@ func (handler *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, redirectPath, http.StatusFound)
+
+	return nil
 }
