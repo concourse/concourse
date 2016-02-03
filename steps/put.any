@@ -9,14 +9,14 @@ during the plan's execution will be available in the working directory.
 
 For example, the following plan fetches a repo using
 \reference{get-step}{\code{get}} and pushes it to another repo (assuming
-\code{repo-a} and \code{repo-b} are defined as \code{git} resources):
+\code{repo-develop} and \code{repo-master} are defined as \code{git} resources):
 
 \codeblock{yaml}{
 plan:
-- get: repo-a
-- put: repo-b
+- get: repo-develop
+- put: repo-master
   params:
-    repository: repo-a
+    repository: repo-develop
 }
 
 When the \code{put} succeeds, the produced version of the resource will be
