@@ -127,7 +127,7 @@ var _ = BeforeEach(func() {
 
 		externalURL,
 
-		wrappa.NewAPIAuthWrappa(authValidator, userContextReader),
+		wrappa.NewAPIAuthWrappa(true, authValidator, userContextReader),
 
 		fakeTokenGenerator,
 		providerFactory,
