@@ -31,9 +31,10 @@ var _ = Describe("the quality of being unauthenticated for private pipelines", f
 
 	DescribeTable("trying to view pages unauthenticated prompts for login",
 		func(uri func() string) {
-			pageURL := urljoiner.Join(atcURL, uri())
+			path := uri()
+			pageURL := urljoiner.Join(atcURL, path)
 			Expect(page.Navigate(pageURL)).To(Succeed())
-			Eventually(page).Should(HaveURL(loginURL + "?" + url.Values{"redirect": {pageURL}}.Encode()))
+			Eventually(page).Should(HaveURL(loginURL + "?" + url.Values{"redirect": {path}}.Encode()))
 			Eventually(page.Find(".login-box")).Should(MatchText("Log in with"))
 		},
 
