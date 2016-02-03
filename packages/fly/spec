@@ -36,6 +36,7 @@ files:
   - github.com/kr/tarutil/*.go # gosub
   - github.com/mattn/go-isatty/*.go # gosub
   - github.com/mgutz/ansi/*.go # gosub
+  - github.com/mitchellh/mapstructure/*.go # gosub
   - github.com/onsi/gomega/*.go # gosub
   - github.com/onsi/gomega/format/*.go # gosub
   - github.com/onsi/gomega/gbytes/*.go # gosub

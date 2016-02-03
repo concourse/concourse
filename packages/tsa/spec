@@ -21,6 +21,7 @@ files:
   - github.com/dgrijalva/jwt-go/*.go # gosub
   - github.com/felixge/tcpkeepalive/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
+  - github.com/mitchellh/mapstructure/*.go # gosub
   - github.com/pivotal-golang/clock/*.go # gosub
   - github.com/pivotal-golang/lager/*.go # gosub
   - github.com/tedsuo/ifrit/*.go # gosub
@@ -29,3 +30,4 @@ files:
   - github.com/xoebus/zest/*.go # gosub
   - golang.org/x/crypto/curve25519/*.go # gosub
   - golang.org/x/crypto/ssh/*.go # gosub
+  - gopkg.in/yaml.v2/*.go # gosub
