@@ -49,8 +49,9 @@ func LoadTaskConfig(configBytes []byte) (TaskConfig, error) {
 	var metadata mapstructure.Metadata
 
 	msConfig := &mapstructure.DecoderConfig{
-		Metadata: &metadata,
-		Result:   &config,
+		Metadata:         &metadata,
+		Result:           &config,
+		WeaklyTypedInput: true,
 	}
 
 	decoder, err := mapstructure.NewDecoder(msConfig)

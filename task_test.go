@@ -44,6 +44,23 @@ run: {path: a/file}
 				})
 			})
 
+			Context("given a valid task config with numeric params", func() {
+				It("works", func() {
+					data := []byte(`
+platform: beos
+
+params:
+  FOO: 1
+
+run: {path: a/file}
+`)
+					task, err := LoadTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(task.Platform).To(Equal("beos"))
+					Expect(task.Params).To(Equal(map[string]string{"FOO": "1"}))
+				})
+			})
+
 			Context("given a valid task config with extra keys", func() {
 				It("returns an error", func() {
 					data := []byte(`
