@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/context"
 )
 
-var authenticated = &struct{}{}
+var authenticated = "authenticated"
 var teamNameKey = "teamName"
 var teamIDKey = "teamID"
 var isAdminKey = "isAdmin"
