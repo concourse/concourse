@@ -2,6 +2,7 @@ package web_test
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/cloudfoundry/gunk/urljoiner"
 	"github.com/concourse/testflight/helpers"
@@ -30,9 +31,9 @@ var _ = Describe("the quality of being unauthenticated for private pipelines", f
 
 	DescribeTable("trying to view pages unauthenticated prompts for login",
 		func(uri func() string) {
-			url := urljoiner.Join(atcURL, uri())
-			Expect(page.Navigate(url)).To(Succeed())
-			Eventually(page).Should(HaveURL(loginURL))
+			pageURL := urljoiner.Join(atcURL, uri())
+			Expect(page.Navigate(pageURL)).To(Succeed())
+			Eventually(page).Should(HaveURL(loginURL + "?" + url.Values{"redirect": {pageURL}}.Encode()))
 			Eventually(page.Find(".login-box")).Should(MatchText("Log in with"))
 		},
 
