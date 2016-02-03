@@ -647,7 +647,10 @@ func (cmd *ATCCommand) constructWebHandler(
 	userContextReader auth.UserContextReader,
 	pipelineDBFactory db.PipelineDBFactory,
 ) (http.Handler, error) {
-	webWrapper := wrappa.NewWebMetricsWrappa(logger)
+	webWrapper := wrappa.MultiWrappa{
+		wrappa.NewWebAuthWrappa(authValidator, userContextReader),
+		wrappa.NewWebMetricsWrappa(logger),
+	}
 
 	clientFactory := web.NewClientFactory(
 		fmt.Sprintf("http://127.0.0.1:%d", cmd.BindPort),
