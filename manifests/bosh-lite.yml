@@ -23,6 +23,7 @@ jobs:
       - {release: concourse, name: tsa}
     properties:
       atc:
+        external_url: http://10.244.8.2:8080
         development_mode: true
         postgresql:
           database: &atc-db atc
