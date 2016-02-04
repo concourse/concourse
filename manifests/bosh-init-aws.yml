@@ -6,8 +6,8 @@ releases:
     url: https://bosh.io/d/github.com/concourse/concourse?v=0.58.0
     sha1: b922b3595d2eedbc300c68a0e406b4a299af3738
   - name: garden-linux
-    url: https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.275.0
-    sha1: 7eaf67ce4ded73bcced92fa310fa82f68667c96a
+    url: https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.332.0
+    sha1: 5b7f294dc80d1ad76f9249c79fc5f01d34148ee8
   - name: bosh-aws-cpi
     url: https://bosh.io/d/github.com/cloudfoundry-incubator/bosh-aws-cpi-release?v=7
     sha1: 6545812c1c8245331b8c420f886dafd24b866eed
