@@ -163,9 +163,6 @@ no-ops (which still must be correctly implemented as detailed below).
   \list{
     \code{source} is the same value as passed to \reference{resource-check}.
   }{
-    \code{version} is the same type of value passed to
-    \reference{resource-check}, and specifies the version to fetch.
-  }{
     \code{params} is an arbitrary JSON object passed along verbatim from
     \reference{params} on a \reference{get-step}.
   }
