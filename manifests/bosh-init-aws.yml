@@ -9,8 +9,8 @@ releases:
     url: https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.332.0
     sha1: 5b7f294dc80d1ad76f9249c79fc5f01d34148ee8
   - name: bosh-aws-cpi
-    url: https://bosh.io/d/github.com/cloudfoundry-incubator/bosh-aws-cpi-release?v=7
-    sha1: 6545812c1c8245331b8c420f886dafd24b866eed
+    url: https://bosh.io/d/github.com/cloudfoundry-incubator/bosh-aws-cpi-release?v=43
+    sha1: 38cba455cb5beeac5ee60b39f88b2af751655595
 
 resource_pools:
   - name: concourse
