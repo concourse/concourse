@@ -1943,7 +1943,7 @@ h3,
   font-weight: bold;
 }
 svg .node rect {
-  fill: #2b2b2b;
+  fill: #0D0F18;
 }
 svg .node.pending rect {
   fill: #d4cfc9;
@@ -2056,22 +2056,22 @@ nav .groups li a {
   background: #272935;
 }
 #builds {
-  background: #2b2b2b;
+  background: #0D0F18;
 }
 .builds-list {
-  background: #2b2b2b;
+  background: #0D0F18;
 }
 .build-step .header {
-  background: #2b2b2b;
+  background: #0D0F18;
 }
 .groups {
-  background: #2b2b2b;
+  background: #0D0F18;
 }
 .steps .nest.odd {
   background: #3a4055;
 }
 .groups li.main a {
-  background: #2b2b2b;
+  background: #0D0F18;
 }
 .paused.groups li.main a {
   background: #6d9cbe;
@@ -2198,8 +2198,7 @@ span.error {
 .job-animation-node .animation,
 .job-animation-node .animation,
 .legend dt.started,
-.legend dt.pending,
-.legend dt.failed {
+.legend dt.pending {
   border-radius: 1px;
 }
 .legend dt.started {
@@ -2254,9 +2253,6 @@ span.error {
     box-shadow: 0 0 0 2px #272935, 0 0 0 4px #d4cfc9, 0 0 0 6px #272935, 0 0 0 8px transparent;
   }
 }
-.legend dt.failed {
-  box-shadow: 0 0 0 2px #272935, 0 0 0 5px rgba(218, 73, 57, 0.7);
-}
 .job-animation-node.pending .animation-xlarge {
   -webkit-animation: "xlarge-pending-ripples-railscasts" 1s linear infinite;
   animation: "xlarge-pending-ripples-railscasts" 1s linear infinite;
@@ -2308,9 +2304,6 @@ span.error {
   100% {
     box-shadow: 0 0 0 20px #272935, 0 0 0 40px #ffc66d, 0 0 0 60px #272935, 0 0 0 80px transparent;
   }
-}
-.job-animation-node.failed .animation-xlarge {
-  box-shadow: 0 0 0 24px #272935, 0 0 0 60px rgba(218, 73, 57, 0.7);
 }
 .job-animation-node.pending .animation-large {
   -webkit-animation: "large-pending-ripples-railscasts" 1s linear infinite;
@@ -2364,9 +2357,6 @@ span.error {
     box-shadow: 0 0 0 15px #272935, 0 0 0 30px #ffc66d, 0 0 0 45px #272935, 0 0 0 60px transparent;
   }
 }
-.job-animation-node.failed .animation-large {
-  box-shadow: 0 0 0 18px #272935, 0 0 0 45px rgba(218, 73, 57, 0.7);
-}
 .job-animation-node.pending .animation-medium {
   -webkit-animation: "medium-pending-ripples-railscasts" 1s linear infinite;
   animation: "medium-pending-ripples-railscasts" 1s linear infinite;
@@ -2418,9 +2408,6 @@ span.error {
   100% {
     box-shadow: 0 0 0 7px #272935, 0 0 0 14px #ffc66d, 0 0 0 21px #272935, 0 0 0 28px transparent;
   }
-}
-.job-animation-node.failed .animation-medium {
-  box-shadow: 0 0 0 8px #272935, 0 0 0 20px rgba(218, 73, 57, 0.7);
 }
 .job-animation-node.pending .animation-small {
   -webkit-animation: "small-pending-ripples-railscasts" 1s linear infinite;
@@ -2474,15 +2461,12 @@ span.error {
     box-shadow: 0 0 0 3px #272935, 0 0 0 6px #ffc66d, 0 0 0 9px #272935, 0 0 0 12px transparent;
   }
 }
-.job-animation-node.failed .animation-small {
-  box-shadow: 0 0 0 4px #272935, 0 0 0 10px rgba(218, 73, 57, 0.7);
-}
 .build-number {
   font-size: 2em;
   color: #f9f7f3;
   padding: 5px;
   text-align: center;
-  border: 5px solid #2b2b2b;
+  border: 5px solid #0D0F18;
   text-decoration: none;
   font-weight: bold;
 }
@@ -2572,7 +2556,7 @@ span.error {
   box-sizing: border-box;
 }
 .list-collapsable-item {
-  background-color: #2b2b2b;
+  background-color: #0D0F18;
   display: block;
   cursor: pointer;
   margin-bottom: 10px;
@@ -2666,7 +2650,7 @@ span.error {
   font-weight: bold;
 }
 .jobs-builds-list .resource {
-  background-color: #2b2b2b;
+  background-color: #0D0F18;
 }
 .jobs-builds-list * {
   box-sizing: border-box;
@@ -2839,7 +2823,7 @@ span.error {
 .step-body {
   padding: 10px;
 }
-.build-step pre {
+.step-body pre {
   margin: 0;
 }
 .steps {
@@ -3305,7 +3289,7 @@ ul {
   margin: 0;
   height: 100%;
   width: 300px;
-  background: #2b2b2b;
+  background: #0D0F18;
   position: fixed;
   top: 40px;
 }
@@ -3329,7 +3313,7 @@ ul {
   padding: 0;
   margin: 0;
   text-align: right;
-  background: #2b2b2b;
+  background: #0D0F18;
   border-bottom: 1px solid #3a4055;
   line-height: 28px;
 }
@@ -3352,7 +3336,7 @@ ul {
   bottom: 0;
   left: 0;
   width: 300px;
-  background-color: #2b2b2b;
+  background-color: #0D0F18;
   -webkit-transform: translateX(-300px);
   transform: translateX(-300px);
 }
@@ -3362,7 +3346,7 @@ ul {
   transform: translateX(0);
 }
 .pipelinesNav-visible .pipelines {
-  background-color: #2b2b2b;
+  background-color: #0D0F18;
 }
 .pipelinesNav-visible .pipelines::after {
   /* menu cover layer - hide it when navigation is visible */
