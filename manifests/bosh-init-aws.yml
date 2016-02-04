@@ -16,8 +16,8 @@ resource_pools:
   - name: concourse
     network: concourse
     stemcell:
-      url: https://bosh.io/d/stemcells/bosh-aws-xen-hvm-ubuntu-trusty-go_agent?v=2950
-      sha1: 6489bff150d1ecbd12fda30267896f041dd279f0
+      url: https://bosh.io/d/stemcells/bosh-aws-xen-hvm-ubuntu-trusty-go_agent?v=3189
+      sha1: 959736b3c9aa9c649f8299c6192dc9840cf4a7dd
     cloud_properties:
       instance_type: m3.xlarge
       availability_zone: us-west-1a
