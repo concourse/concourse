@@ -67,8 +67,7 @@ span.error { color: @base08; }
 .job-animation-node .animation,
 .job-animation-node .animation,
 .legend dt.started,
-.legend dt.pending,
-.legend dt.failed {
+.legend dt.pending {
   border-radius: 1px;
 }
 
@@ -80,31 +79,18 @@ span.error { color: @base08; }
   .ripple-animation("small-pending-ripple-@{theme}", 2px, @base04);
 }
 
-.legend dt.failed {
-  .failed-outline(2px, 3px);
-}
-
 .job-animation-node {
   &.pending .animation-xlarge{.ripple-animation("xlarge-pending-ripples-@{theme}", 20px, @base04);}
   &.started .animation-xlarge{.ripple-animation("xlarge-started-ripples-@{theme}", 20px, @base0A);}
-  &.failed .animation-xlarge{.failed-outline(24px, 36px);}
 
   &.pending .animation-large{.ripple-animation("large-pending-ripples-@{theme}", 15px, @base04);}
   &.started .animation-large{.ripple-animation("large-started-ripples-@{theme}", 15px, @base0A);}
-  &.failed .animation-large{.failed-outline(18px, 27px);}
 
   &.pending .animation-medium{.ripple-animation("medium-pending-ripples-@{theme}", 7px, @base04);}
   &.started .animation-medium{.ripple-animation("medium-started-ripples-@{theme}", 7px, @base0A);}
-  &.failed .animation-medium{.failed-outline(8px, 12px);}
 
   &.pending .animation-small{.ripple-animation("small-pending-ripples-@{theme}", 3px, @base04);}
   &.started .animation-small{.ripple-animation("small-started-ripples-@{theme}", 3px, @base0A);}
-  &.failed .animation-small{.failed-outline(4px, 6px);}
-
-}
-
-.failed-outline(@blue-radius, @red-radius) {
-  box-shadow: 0 0 0 @blue-radius @base01, 0 0 0 @blue-radius + @red-radius fade(@base08, 70%)
 }
 
 .ripple-animation(@name, @ripple-factor, @ripple-color) {

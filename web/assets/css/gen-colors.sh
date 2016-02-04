@@ -11,6 +11,5 @@ if ! [ -d $builder ]; then
 fi
 
 for scheme in ${builder}/schemes/*.yml; do
-  name=$(echo $(basename "$scheme") | sed -e 's/.yml//')
   ./gen-color.sh $scheme > ../../public/main.${name}.css
 done

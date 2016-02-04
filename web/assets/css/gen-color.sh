@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e -x
-
 scheme="$1"
 
 name=$(echo $(basename "$scheme") | sed -e 's/.yml//')
