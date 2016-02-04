@@ -215,6 +215,9 @@ run: {path: a/file}
 
 			fetchedConfig atc.TaskConfig
 			fetchErr      error
+
+			configA atc.TaskConfig
+			configB atc.TaskConfig
 		)
 
 		BeforeEach(func() {
@@ -225,6 +228,19 @@ run: {path: a/file}
 				A: fakeConfigSourceA,
 				B: fakeConfigSourceB,
 			}
+
+			configA = atc.TaskConfig{
+				Platform: "some-platform",
+				Image:    "some-image",
+				Params:   map[string]string{"PARAM": "A"},
+				Run: atc.TaskRunConfig{
+					Path: "echo",
+					Args: []string{"bananapants"},
+				},
+			}
+			configB = atc.TaskConfig{
+				Params: map[string]string{"PARAM": "B"},
+			}
 		})
 
 		JustBeforeEach(func() {
@@ -232,20 +248,11 @@ run: {path: a/file}
 		})
 
 		Context("when fetching via A succeeds", func() {
-			var configA = atc.TaskConfig{
-				Image:  "some-image",
-				Params: map[string]string{"PARAM": "A"},
-			}
-
 			BeforeEach(func() {
 				fakeConfigSourceA.FetchConfigReturns(configA, nil)
 			})
 
 			Context("and fetching via B succeeds", func() {
-				var configB = atc.TaskConfig{
-					Params: map[string]string{"PARAM": "B"},
-				}
-
 				BeforeEach(func() {
 					fakeConfigSourceB.FetchConfigReturns(configB, nil)
 				})
@@ -261,10 +268,37 @@ run: {path: a/file}
 
 				It("returns the merged config", func() {
 					Expect(fetchedConfig).To(Equal(atc.TaskConfig{
-						Image:  "some-image",
-						Params: map[string]string{"PARAM": "B"},
+						Platform: "some-platform",
+						Image:    "some-image",
+						Params:   map[string]string{"PARAM": "B"},
+						Run: atc.TaskRunConfig{
+							Path: "echo",
+							Args: []string{"bananapants"},
+						},
 					}))
+				})
 
+				Context("and the merge is invalid", func() {
+					BeforeEach(func() {
+						configA = atc.TaskConfig{
+							Image:  "some-image",
+							Inputs: []atc.TaskInputConfig{{Name: "foo", Path: "/bar"}},
+							Run: atc.TaskRunConfig{
+								Path: "echo",
+								Args: []string{"bananapants"},
+							},
+						}
+
+						configB = atc.TaskConfig{
+							Outputs: []atc.TaskOutputConfig{{Name: "foo", Path: "/bar"}},
+						}
+						fakeConfigSourceA.FetchConfigReturns(configA, nil)
+						fakeConfigSourceB.FetchConfigReturns(configB, nil)
+					})
+
+					It("returns a validation error", func() {
+						Expect(fetchErr).To(HaveOccurred())
+					})
 				})
 			})
 

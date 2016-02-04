@@ -102,7 +102,12 @@ func (configSource MergedConfigSource) FetchConfig(source *SourceRepository) (at
 		return atc.TaskConfig{}, err
 	}
 
-	return aConfig.Merge(bConfig), nil
+	mergedConfig := aConfig.Merge(bConfig)
+	if err = mergedConfig.Validate(); err != nil {
+		return atc.TaskConfig{}, err
+	}
+
+	return mergedConfig, nil
 }
 
 // UnknownArtifactSourceError is returned when the SourceName specified by the
