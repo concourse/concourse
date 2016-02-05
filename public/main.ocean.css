@@ -2165,6 +2165,16 @@ nav .groups li a {
 .paused {
   background: #8fa1b3;
 }
+.fail-triangle {
+  stroke: #343d46;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: #bf616a;
+}
+.fail-triangle-outline {
+  fill: #bf616a;
+  opacity: 0.7;
+}
 span.error {
   color: #bf616a;
 }

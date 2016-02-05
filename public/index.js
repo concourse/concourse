@@ -122,6 +122,47 @@ function drawContinuously(svg, groups) {
 
     graph.layout()
 
+    var failureCenters = []
+    var epsilon = 2
+    var graphNodes = graph.nodes()
+    for (var i in graphNodes) {
+      if (graphNodes[i].status == "failed") {
+        xCenter = graphNodes[i].position().x + (graphNodes[i].width() / 2)
+        var found = false
+        for (var i in failureCenters) {
+          if (Math.abs(xCenter - failureCenters[i]) < epsilon) {
+            found = true
+            break
+          }
+        }
+        if(!found) {
+          failureCenters.push(xCenter)
+        }
+      }
+    }
+
+    svg.selectAll("g.fail-triangle-node").remove()
+    failTriangleBottom = 20
+    failTriangleHeight = 24
+    for (var i in failureCenters) {
+      var triangleNode = svg.append("g")
+        .attr("class", "fail-triangle-node")
+      var triangleOutline = triangleNode.append("path")
+        .attr("class", "fail-triangle-outline")
+        .attr("d", "M191.62,136.3778H179.7521a5,5,0,0,1-4.3309-7.4986l5.9337-10.2851a5,5,0,0,1,8.6619,0l5.9337,10.2851A5,5,0,0,1,191.62,136.3778Z")
+        .attr("transform", "translate(-174.7446 -116.0927)")
+      var triangle = triangleNode.append("path")
+        .attr("class", "fail-triangle")
+        .attr("d", "M191.4538,133.0821H179.9179a2,2,0,0,1-1.7324-2.9994l5.7679-9.9978a2,2,0,0,1,3.4647,0l5.7679,9.9978A2,2,0,0,1,191.4538,133.0821Z")
+        .attr("transform", "translate(-174.7446 -116.0927)")
+      var triangleBBox = triangleNode.node().getBBox()
+      var triangleScale = failTriangleHeight / triangleBBox.height
+      var triangleWidth = triangleBBox.width * triangleScale
+      var triangleX = failureCenters[i] - (triangleWidth / 2)
+      var triangleY = -failTriangleBottom - failTriangleHeight
+      triangleNode.attr("transform", "translate(" + triangleX + ", " + triangleY + ") scale(" + triangleScale + ")")
+    }
+
     nodeLink.attr("class", function(node) {
       var classes = [];
 
