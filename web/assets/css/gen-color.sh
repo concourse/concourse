@@ -2,6 +2,7 @@
 
 set -e -x
 
+# Should be the full path to the base16-builder/scheme/<scheme>.yml
 scheme="$1"
 
 name=$(echo $(basename "$scheme") | sed -e 's/.yml//')
