@@ -102,12 +102,28 @@ func (configSource MergedConfigSource) FetchConfig(source *SourceRepository) (at
 		return atc.TaskConfig{}, err
 	}
 
-	mergedConfig := aConfig.Merge(bConfig)
-	if err = mergedConfig.Validate(); err != nil {
+	return aConfig.Merge(bConfig), nil
+}
+
+// ValidatingConfigSource delegates to another ConfigSource, and validates its
+// task config.
+type ValidatingConfigSource struct {
+	ConfigSource TaskConfigSource
+}
+
+// FetchConfig fetches the config using the underlying ConfigSource, and checks
+// that it's valid.
+func (configSource ValidatingConfigSource) FetchConfig(source *SourceRepository) (atc.TaskConfig, error) {
+	config, err := configSource.ConfigSource.FetchConfig(source)
+	if err != nil {
 		return atc.TaskConfig{}, err
 	}
 
-	return mergedConfig, nil
+	if err := config.Validate(); err != nil {
+		return atc.TaskConfig{}, err
+	}
+
+	return config, nil
 }
 
 // UnknownArtifactSourceError is returned when the SourceName specified by the

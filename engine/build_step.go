@@ -94,6 +94,8 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		return exec.Identity{}
 	}
 
+	configSource = exec.ValidatingConfigSource{configSource}
+
 	workerID, workerMetadata := build.stepIdentifier(
 		logger.Session("taskIdentifier"),
 		plan.Task.Name,

@@ -278,28 +278,6 @@ run: {path: a/file}
 					}))
 				})
 
-				Context("and the merge is invalid", func() {
-					BeforeEach(func() {
-						configA = atc.TaskConfig{
-							Image:  "some-image",
-							Inputs: []atc.TaskInputConfig{{Name: "foo", Path: "/bar"}},
-							Run: atc.TaskRunConfig{
-								Path: "echo",
-								Args: []string{"bananapants"},
-							},
-						}
-
-						configB = atc.TaskConfig{
-							Outputs: []atc.TaskOutputConfig{{Name: "foo", Path: "/bar"}},
-						}
-						fakeConfigSourceA.FetchConfigReturns(configA, nil)
-						fakeConfigSourceB.FetchConfigReturns(configB, nil)
-					})
-
-					It("returns a validation error", func() {
-						Expect(fetchErr).To(HaveOccurred())
-					})
-				})
 			})
 
 			Context("and fetching via B fails", func() {
@@ -328,6 +306,76 @@ run: {path: a/file}
 
 			It("does not fetch via B", func() {
 				Expect(fakeConfigSourceB.FetchConfigCallCount()).To(Equal(0))
+			})
+		})
+	})
+
+	Describe("ValidatingConfigSource", func() {
+		var (
+			fakeConfigSource *fakes.FakeTaskConfigSource
+
+			configSource TaskConfigSource
+
+			fetchedConfig atc.TaskConfig
+			fetchErr      error
+		)
+
+		BeforeEach(func() {
+			fakeConfigSource = new(fakes.FakeTaskConfigSource)
+
+			configSource = ValidatingConfigSource{fakeConfigSource}
+		})
+
+		JustBeforeEach(func() {
+			fetchedConfig, fetchErr = configSource.FetchConfig(repo)
+		})
+
+		Context("when the config is valid", func() {
+			config := atc.TaskConfig{
+				Platform: "some-platform",
+				Image:    "some-image",
+				Params:   map[string]string{"PARAM": "A"},
+				Run: atc.TaskRunConfig{
+					Path: "echo",
+					Args: []string{"bananapants"},
+				},
+			}
+
+			BeforeEach(func() {
+				fakeConfigSource.FetchConfigReturns(config, nil)
+			})
+
+			It("returns the config and no error", func() {
+				Expect(fetchErr).ToNot(HaveOccurred())
+				Expect(fetchedConfig).To(Equal(config))
+			})
+		})
+
+		Context("when the config is invalid", func() {
+			BeforeEach(func() {
+				fakeConfigSource.FetchConfigReturns(atc.TaskConfig{
+					Image:  "some-image",
+					Params: map[string]string{"PARAM": "A"},
+					Run: atc.TaskRunConfig{
+						Args: []string{"bananapants"},
+					},
+				}, nil)
+			})
+
+			It("returns the validation error", func() {
+				Expect(fetchErr).To(HaveOccurred())
+			})
+		})
+
+		Context("when fetching the config fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeConfigSource.FetchConfigReturns(atc.TaskConfig{}, disaster)
+			})
+
+			It("returns the error", func() {
+				Expect(fetchErr).To(Equal(disaster))
 			})
 		})
 	})

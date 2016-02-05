@@ -435,7 +435,7 @@ var _ = Describe("ExecEngine", func() {
 				Expect(delegate).To(Equal(fakeExecutionDelegate))
 				Expect(privileged).To(Equal(exec.Privileged(false)))
 				Expect(tags).To(Equal(atc.Tags{"some", "task", "tags"}))
-				Expect(configSource).To(Equal(exec.FileConfigSource{"some-config-path"}))
+				Expect(configSource).To(Equal(exec.ValidatingConfigSource{exec.FileConfigSource{"some-config-path"}}))
 
 				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource = fakeFactory.TaskArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
@@ -455,7 +455,7 @@ var _ = Describe("ExecEngine", func() {
 				Expect(delegate).To(Equal(fakeExecutionDelegate))
 				Expect(privileged).To(Equal(exec.Privileged(false)))
 				Expect(tags).To(Equal(atc.Tags{"some", "task", "tags"}))
-				Expect(configSource).To(Equal(exec.FileConfigSource{"some-config-path"}))
+				Expect(configSource).To(Equal(exec.ValidatingConfigSource{exec.FileConfigSource{"some-config-path"}}))
 			})
 		})
 
