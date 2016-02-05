@@ -25,3 +25,5 @@ jobs:
           inputs:
             - name: missing-outputs
               path: .
+          run:
+            path: /bin/true
