@@ -107,6 +107,8 @@ your \reference{build-plans} via the \reference{get-step} and
       \hyperlink{https://github.com/cfmobile/pool-trigger-resource}{Pool Trigger}
     }{
       \hyperlink{https://github.com/pivotal-cf-experimental/pivnet-resource-boshrelease}{Pivotal Network}
+    }{
+      \hyperlink{https://github.com/aequitas/concourse-ftp-resource}{FTP}
     }
   }
 
