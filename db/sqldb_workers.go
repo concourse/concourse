@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
-	"github.com/concourse/atc"
 )
 
 var workerColumns = "EXTRACT(epoch FROM expires - NOW()), addr, baggageclaim_url, active_containers, resource_types, platform, tags, name"
@@ -70,23 +68,6 @@ func (db *SQLDB) GetWorker(name string) (SavedWorker, bool, error) {
 	}
 
 	return savedWorker, true, nil
-}
-
-func (db *SQLDB) saveBuildEvent(tx Tx, buildID int, event atc.Event) error {
-	payload, err := json.Marshal(event)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(fmt.Sprintf(`
-		INSERT INTO build_events (event_id, build_id, type, version, payload)
-		VALUES (nextval('%s'), $1, $2, $3, $4)
-	`, buildEventSeq(buildID)), buildID, string(event.EventType()), string(event.Version()), payload)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) (SavedWorker, error) {

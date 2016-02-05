@@ -131,10 +131,28 @@ func scanIDs(rows *sql.Rows) ([]string, error) {
 }
 
 func (pdb *pipelineDB) Destroy() error {
-	_, err := pdb.conn.Exec(`
-		DELETE FROM pipelines WHERE id = $1
+	tx, err := pdb.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.Exec(fmt.Sprintf(`
+		DROP TABLE pipeline_build_events_%d
+	`, pdb.ID))
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		DELETE FROM pipelines WHERE id = $1;
 	`, pdb.ID)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, bool, error) {
@@ -888,6 +906,11 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
 		RETURNING `+buildColumns+`,
 			(
 				SELECT j.name
+				FROM jobs j
+				WHERE j.id = job_id
+			),
+			(
+				SELECT j.pipeline_id
 				FROM jobs j
 				WHERE j.id = job_id
 			),

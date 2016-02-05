@@ -12,7 +12,7 @@ import (
 )
 
 const buildColumns = "id, name, job_id, status, scheduled, engine, engine_metadata, start_time, end_time"
-const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.status, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, j.name as job_name, p.name as pipeline_name"
+const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.status, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name"
 
 func (db *SQLDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 	query := `
@@ -356,7 +356,7 @@ func (db *SQLDB) CreateOneOffBuild() (Build, error) {
 	build, _, err := scanBuild(tx.QueryRow(`
 		INSERT INTO builds (name, status)
 		VALUES (nextval('one_off_name'), 'pending')
-		RETURNING ` + buildColumns + `, null, null
+		RETURNING ` + buildColumns + `, null, null, null
 	`))
 	if err != nil {
 		return Build{}, err
@@ -523,8 +523,19 @@ func (db *SQLDB) GetBuildEvents(buildID int, from uint) (EventSource, error) {
 		return nil, err
 	}
 
+	build, _, err := db.GetBuild(buildID)
+	if err != nil {
+		return nil, err
+	}
+
+	table := "build_events"
+	if build.PipelineID != 0 {
+		table = fmt.Sprintf("pipeline_build_events_%d", build.PipelineID)
+	}
+
 	return newSQLDBBuildEventSource(
 		buildID,
+		table,
 		db.conn,
 		notifier,
 		from,
@@ -588,17 +599,44 @@ func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
 	return nil
 }
 
+func (db *SQLDB) saveBuildEvent(tx Tx, buildID int, event atc.Event) error {
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	build, _, err := db.GetBuild(buildID)
+	if err != nil {
+		return err
+	}
+
+	table := "build_events"
+	if build.PipelineID != 0 {
+		table = fmt.Sprintf("pipeline_build_events_%d", build.PipelineID)
+	}
+
+	_, err = tx.Exec(fmt.Sprintf(`
+		INSERT INTO %s (event_id, build_id, type, version, payload)
+		VALUES (nextval('%s'), $1, $2, $3, $4)
+	`, table, buildEventSeq(buildID)), buildID, string(event.EventType()), string(event.Version()), payload)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func scanBuild(row scannable) (Build, bool, error) {
 	var id int
 	var name string
-	var jobID sql.NullInt64
+	var jobID, pipelineID sql.NullInt64
 	var status string
 	var scheduled bool
 	var engine, engineMetadata, jobName, pipelineName sql.NullString
 	var startTime pq.NullTime
 	var endTime pq.NullTime
 
-	err := row.Scan(&id, &name, &jobID, &status, &scheduled, &engine, &engineMetadata, &startTime, &endTime, &jobName, &pipelineName)
+	err := row.Scan(&id, &name, &jobID, &status, &scheduled, &engine, &engineMetadata, &startTime, &endTime, &jobName, &pipelineID, &pipelineName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return Build{}, false, nil
@@ -624,6 +662,7 @@ func scanBuild(row scannable) (Build, bool, error) {
 		build.JobID = int(jobID.Int64)
 		build.JobName = jobName.String
 		build.PipelineName = pipelineName.String
+		build.PipelineID = int(pipelineID.Int64)
 	}
 
 	return build, true, nil

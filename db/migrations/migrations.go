@@ -82,4 +82,5 @@ var Migrations = []migration.Migrator{
 	AddImageResourceVersions,
 	MakeContainerIdentifiersUnique,
 	CleanUpMassiveUniqueConstraint,
+	AddPipelineBuildEventsTables,
 }

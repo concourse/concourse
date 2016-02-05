@@ -170,6 +170,19 @@ func (runner *Runner) Truncate() {
 			END;
 			$$ LANGUAGE plpgsql;
 
+			CREATE OR REPLACE FUNCTION drop_ephemeral_tables() RETURNS void AS $$
+			DECLARE
+					statements CURSOR FOR
+							SELECT relname FROM pg_class
+							WHERE relname LIKE 'pipeline_build_events_%'
+							AND relkind = 'r';
+			BEGIN
+					FOR stmt IN statements LOOP
+							EXECUTE 'DROP TABLE ' || quote_ident(stmt.relname) || ';';
+					END LOOP;
+			END;
+			$$ LANGUAGE plpgsql;
+
 			CREATE OR REPLACE FUNCTION reset_global_sequences() RETURNS void AS $$
 			DECLARE
 					statements CURSOR FOR
@@ -196,6 +209,7 @@ func (runner *Runner) Truncate() {
 
 			SELECT truncate_tables();
 			SELECT drop_ephemeral_sequences();
+			SELECT drop_ephemeral_tables();
 			SELECT reset_global_sequences();
 			SELECT reinsert_default_data();
 		`,

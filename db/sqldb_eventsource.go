@@ -9,6 +9,7 @@ import (
 
 func newSQLDBBuildEventSource(
 	buildID int,
+	table string,
 	conn Conn,
 	notifier Notifier,
 	from uint,
@@ -17,6 +18,7 @@ func newSQLDBBuildEventSource(
 
 	source := &sqldbBuildEventSource{
 		buildID: buildID,
+		table:   table,
 
 		conn: conn,
 
@@ -35,6 +37,7 @@ func newSQLDBBuildEventSource(
 
 type sqldbBuildEventSource struct {
 	buildID int
+	table   string
 
 	conn     Conn
 	notifier Notifier
@@ -85,7 +88,7 @@ func (source *sqldbBuildEventSource) collectEvents(cursor uint) {
 
 		rows, err := source.conn.Query(`
 			SELECT type, version, payload
-			FROM build_events
+			FROM `+source.table+`
 			WHERE build_id = $1
 			ORDER BY event_id ASC
 			OFFSET $2
@@ -142,10 +145,10 @@ func (source *sqldbBuildEventSource) collectEvents(cursor uint) {
 		var completed bool
 		var lastEventID uint
 		err = source.conn.QueryRow(`
-			SELECT builds.completed, coalesce(max(build_events.event_id), 0)
+			SELECT builds.completed, coalesce(max(`+source.table+`.event_id), 0)
 			FROM builds
-			LEFT JOIN build_events
-			ON build_events.build_id = builds.id
+			LEFT JOIN `+source.table+`
+			ON `+source.table+`.build_id = builds.id
 			WHERE builds.id = $1
 			GROUP BY builds.id
 		`, source.buildID).Scan(&completed, &lastEventID)

@@ -22,6 +22,7 @@ type Build struct {
 	JobID        int
 	JobName      string
 	PipelineName string
+	PipelineID   int
 
 	Engine         string
 	EngineMetadata string
