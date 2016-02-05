@@ -1,12 +1,16 @@
 package atccmd
 
-import "net/url"
+import (
+	"net/url"
+	"strings"
+)
 
 type URLFlag struct {
 	url *url.URL
 }
 
 func (u *URLFlag) UnmarshalFlag(value string) error {
+	value = normalizeURL(value)
 	parsedURL, err := url.Parse(value)
 	if err != nil {
 		return err
@@ -27,4 +31,8 @@ func (u URLFlag) String() string {
 
 func (u URLFlag) URL() *url.URL {
 	return u.url
+}
+
+func normalizeURL(urlIn string) string {
+	return strings.TrimRight(urlIn, "/")
 }
