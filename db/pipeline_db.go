@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db/algorithm"
-	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -741,7 +740,7 @@ func (pdb *pipelineDB) GetJobBuild(job string, name string) (Build, bool, error)
 		return Build{}, false, err
 	}
 
-	build, found, err := pdb.scanBuild(tx.QueryRow(`
+	build, found, err := scanBuild(tx.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
@@ -883,7 +882,7 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
 	// We had to resort to sub-selects here because you can't paramaterize a
 	// RETURNING statement in lib/pq... sorry
 
-	build, _, err := pdb.scanBuild(tx.QueryRow(`
+	build, _, err := scanBuild(tx.QueryRow(`
 		INSERT INTO builds (name, job_id, status)
 		VALUES ($1, $2, 'pending')
 		RETURNING `+buildColumns+`,
@@ -929,7 +928,7 @@ func (pdb *pipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]B
 
 	builds := []Build{}
 	for rows.Next() {
-		build, _, err := pdb.scanBuild(rows)
+		build, _, err := scanBuild(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -956,7 +955,7 @@ func (pdb *pipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]
 
 	builds := []Build{}
 	for rows.Next() {
-		build, _, err := pdb.scanBuild(rows)
+		build, _, err := scanBuild(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -1109,7 +1108,7 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 		)
 	}
 
-	return pdb.scanBuild(pdb.conn.QueryRow(fmt.Sprintf(`
+	return scanBuild(pdb.conn.QueryRow(fmt.Sprintf(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM %s
 		WHERE %s
@@ -1138,7 +1137,7 @@ func (pdb *pipelineDB) GetNextPendingBuild(job string) (Build, bool, error) {
 		return Build{}, false, err
 	}
 
-	return pdb.scanBuild(pdb.conn.QueryRow(`
+	return scanBuild(pdb.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
@@ -1195,7 +1194,7 @@ func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGr
 		refs = append(refs, fmt.Sprintf("$%d", i+2))
 	}
 
-	return pdb.scanBuild(pdb.conn.QueryRow(`
+	return scanBuild(pdb.conn.QueryRow(`
 		SELECT DISTINCT `+qualifiedBuildColumns+`
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
@@ -1244,7 +1243,7 @@ func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroup
 	bs := []Build{}
 
 	for rows.Next() {
-		build, _, err := pdb.scanBuild(rows)
+		build, _, err := scanBuild(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -1256,7 +1255,7 @@ func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroup
 }
 
 func (pdb *pipelineDB) getBuild(buildID int) (Build, bool, error) {
-	return pdb.scanBuild(pdb.conn.QueryRow(`
+	return scanBuild(pdb.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
@@ -1379,7 +1378,7 @@ func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, bool, error) {
 	defer rows.Close()
 
 	if rows.Next() {
-		return pdb.scanBuild(rows)
+		return scanBuild(rows)
 	}
 
 	pendingRows, err := pdb.conn.Query(`
@@ -1400,7 +1399,7 @@ func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, bool, error) {
 	defer pendingRows.Close()
 
 	if pendingRows.Next() {
-		return pdb.scanBuild(pendingRows)
+		return scanBuild(pendingRows)
 	}
 
 	return Build{}, false, nil
@@ -1709,7 +1708,7 @@ func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]Build, Paginat
 	builds := []Build{}
 
 	for rows.Next() {
-		build, _, err := pdb.scanBuild(rows)
+		build, _, err := scanBuild(rows)
 		if err != nil {
 			return nil, Pagination{}, err
 		}
@@ -1772,7 +1771,7 @@ func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]Build, error) {
 	bs := []Build{}
 
 	for rows.Next() {
-		build, _, err := pdb.scanBuild(rows)
+		build, _, err := scanBuild(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -1787,7 +1786,7 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 	var finished *Build
 	var next *Build
 
-	finishedBuild, foundFinished, err := pdb.scanBuild(pdb.conn.QueryRow(`
+	finishedBuild, foundFinished, err := scanBuild(pdb.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
 			INNER JOIN jobs j ON b.job_id = j.id
@@ -1806,7 +1805,7 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 		finished = &finishedBuild
 	}
 
-	nextBuild, foundNext, err := pdb.scanBuild(pdb.conn.QueryRow(`
+	nextBuild, foundNext, err := scanBuild(pdb.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
 			INNER JOIN jobs j ON b.job_id = j.id
@@ -1989,40 +1988,4 @@ func (pdb *pipelineDB) getJobByID(id int) (SavedJob, error) {
 	job.PipelineName = pdb.Name
 
 	return job, nil
-}
-
-func (pdb *pipelineDB) scanBuild(row scannable) (Build, bool, error) {
-	var id int
-	var name string
-	var jobID int
-	var status string
-	var scheduled bool
-	var engine, engineMetadata, jobName, pipelineName sql.NullString
-	var startTime pq.NullTime
-	var endTime pq.NullTime
-
-	err := row.Scan(&id, &name, &jobID, &status, &scheduled, &engine, &engineMetadata, &startTime, &endTime, &jobName, &pipelineName)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return Build{}, false, nil
-		}
-
-		return Build{}, false, err
-	}
-
-	return Build{
-		ID:           id,
-		Name:         name,
-		JobID:        jobID,
-		JobName:      jobName.String,
-		PipelineName: pipelineName.String,
-		Status:       Status(status),
-		Scheduled:    scheduled,
-
-		Engine:         engine.String,
-		EngineMetadata: engineMetadata.String,
-
-		StartTime: startTime.Time,
-		EndTime:   endTime.Time,
-	}, true, nil
 }
