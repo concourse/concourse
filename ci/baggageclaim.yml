@@ -1,6 +1,10 @@
 ---
 platform: linux
-image: docker:///concourse/baggageclaim-ci
+
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/baggageclaim-ci
 
 inputs:
   - name: concourse

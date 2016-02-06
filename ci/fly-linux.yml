@@ -1,7 +1,10 @@
 ---
 platform: linux
 
-image: docker:///concourse/atc-ci
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/atc-ci
 
 inputs:
   - name: concourse
