@@ -24,7 +24,11 @@ Once you've figured out your tasks's configuration, you can reuse it for a
   ---
   platform: linux
 
-  image: docker:///ubuntu#14.04
+  image_resource:
+    type: docker-image
+    source:
+      repository: ubuntu
+      tag: 14.04
 
   inputs:
   - name: my-repo
@@ -52,6 +56,21 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     \code{username/repo:tag}). If you for whatever reason have an extracted
     rootfs lying around, you can also specify the absolute path to it on the
     worker VM.
+  }
+
+  \define-attribute{image_resource: object}{
+    \italic{Optional.} The base image of the container. This style of
+    specifying the base image has the same affect as \code{image:} above but
+    uses Concourse resources to download the image.  The contents of this field
+    should be the same as a resource configuration in your pipeline (without
+    the name).
+
+    You can use any resource that returns a filesystem in the correct format (a
+    \code{/rootfs} directory and a \code{metadata.json} file in the top level)
+    but normally this will tbe the
+    \hyperlink{https://github.com/concourse/docker-image-resource}{Docker Image
+    resource}. If you'd like to make a resource of your own that supports this
+    please use that as a reference implementation for now.
   }
 
   \define-attribute{inputs: [object]}{
