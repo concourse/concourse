@@ -205,7 +205,8 @@ The resulting pipeline will look like this:
 \literate-segment{
   Now, we'll execute our \code{build-artifact} task configuration, which
   we'll assume has two inputs (\code{my-product} and \code{version}) and
-  produces a file named \code{my-product-{VERSION}.tgz} when executed.
+  produces a file named \code{my-product-{VERSION}.tgz} in an output called
+  \code{built-artifact} when executed.
 }{
   \codeblock{yaml}{
     {}  - task: build-artifact
@@ -223,7 +224,7 @@ The resulting pipeline will look like this:
 }{
   \codeblock{yaml}{
     {}  - put: my-product-rc
-    {}    params: \{file: build-artifact/my-product-*.tgz\}
+    {}    params: \{file: built-artifact/my-product-*.tgz\}
   }
 }
 
@@ -356,10 +357,10 @@ The resulting pipeline will look like this:
   it's just a matter of renaming the file, but you may also have to
   rebuild it with the new version number, or push dependent files, etc.
 }{
-  For the purposes of this example, let's assume we have a magical task
-  that does it all for us, and leaves us with a file called
-  \code{my-product-{VERSION}.tgz}, just as with the \code{build-rc} job
-  before.
+  For the purposes of this example, let's assume we have a magical task that
+  does it all for us, and leaves us with a file called
+  \code{my-product-{VERSION}.tgz} in a \code{built-product} output, just as
+  with the \code{build-rc} job before.
 }{
   \codeblock{yaml}{
     {}  - task: promote-to-final
@@ -372,7 +373,7 @@ The resulting pipeline will look like this:
 }{
   \codeblock{yaml}{
     {}  - put: my-product-final
-    {}    params: \{file: promote-to-final/my-product-*.tgz\}
+    {}    params: \{file: built-product/my-product-*.tgz\}
     {}  - put: version
     {}    params: \{file: version/number\}
   }
