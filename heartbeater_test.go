@@ -60,7 +60,7 @@ var _ = Describe("Heartbeater", func() {
 		resourceTypes = []atc.WorkerResourceType{
 			{
 				Type:  "git",
-				Image: "docker:///concourse/git-resource",
+				Image: "/path/to/git/resource",
 			},
 		}
 
