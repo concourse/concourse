@@ -48,6 +48,7 @@ var _ = AfterSuite(func() {
 var _ = BeforeEach(func() {
 	_, err := client.DeletePipeline(pipelineName)
 	Expect(err).ToNot(HaveOccurred())
+
 	pushMainPipeline()
 
 	page, err = agoutiDriver.NewPage()
@@ -56,6 +57,9 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	Expect(page.Destroy()).To(Succeed())
+
+	_, err := client.DeletePipeline(pipelineName)
+	Expect(err).ToNot(HaveOccurred())
 })
 
 func TestWeb(t *testing.T) {

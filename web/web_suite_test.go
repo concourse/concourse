@@ -56,11 +56,15 @@ var _ = BeforeEach(func() {
 
 	page, err = agoutiDriver.NewPage()
 	Expect(err).NotTo(HaveOccurred())
+
 	helpers.WebLogin(page, atcURL)
 })
 
 var _ = AfterEach(func() {
 	Expect(page.Destroy()).To(Succeed())
+
+	_, err := client.DeletePipeline(pipelineName)
+	Expect(err).ToNot(HaveOccurred())
 })
 
 func atcRoute(path string) string {

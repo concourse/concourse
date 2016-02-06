@@ -98,6 +98,8 @@ var _ = SynchronizedAfterSuite(func() {
 	os.RemoveAll(tmpHome)
 })
 
+var _ = AfterEach(destroyPipeline)
+
 func TestGitPipeline(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Pipelines Suite")
