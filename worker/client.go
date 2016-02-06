@@ -38,7 +38,7 @@ type Container interface {
 
 	Destroy() error
 
-	Release(time.Duration)
+	Release(*time.Duration)
 
 	Volumes() []Volume
 	VolumeMounts() []VolumeMount

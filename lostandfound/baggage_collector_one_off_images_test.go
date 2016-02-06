@@ -163,7 +163,7 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		_, handle := baggageClaimClient2.LookupVolumeArgsForCall(0)
 		Expect(handle).To(Equal("volume2"))
 		Expect(volume2.ReleaseCallCount()).To(Equal(1))
-		Expect(volume2.ReleaseArgsForCall(0)).To(Equal(expectedLatestVersionTTL))
+		Expect(volume2.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(expectedLatestVersionTTL)))
 
 		Expect(fakeBaggageCollectorDB.SetVolumeTTLCallCount()).To(Equal(1))
 		handle, ttl := fakeBaggageCollectorDB.SetVolumeTTLArgsForCall(0)

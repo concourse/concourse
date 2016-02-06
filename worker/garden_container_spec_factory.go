@@ -173,7 +173,7 @@ func (factory *gardenContainerSpecFactory) BuildTaskContainerSpec(
 
 func (factory *gardenContainerSpecFactory) ReleaseVolumes() {
 	for _, cow := range factory.volumesToRelease {
-		cow.Release(0)
+		cow.Release(nil)
 	}
 }
 

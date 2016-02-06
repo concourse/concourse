@@ -310,7 +310,7 @@ var _ = Describe("GardenFactory", func() {
 
 							step.Release()
 							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(1 * time.Hour)))
 						})
 					})
 				})
@@ -344,7 +344,7 @@ var _ = Describe("GardenFactory", func() {
 
 							step.Release()
 							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(1 * time.Hour)))
 						})
 					})
 				})
@@ -380,7 +380,7 @@ var _ = Describe("GardenFactory", func() {
 
 							step.Release()
 							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(1 * time.Hour)))
 						})
 					})
 				})

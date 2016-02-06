@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
+	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -151,9 +152,9 @@ func (step *PutStep) Release() {
 	}
 
 	if step.succeeded {
-		step.resource.Release(SuccessfulStepTTL)
+		step.resource.Release(worker.FinalTTL(SuccessfulStepTTL))
 	} else {
-		step.resource.Release(FailedStepTTL)
+		step.resource.Release(worker.FinalTTL(FailedStepTTL))
 	}
 }
 

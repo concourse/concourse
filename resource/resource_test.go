@@ -14,10 +14,10 @@ import (
 var _ = Describe("Resource", func() {
 	Describe("Release", func() {
 		It("releases the container", func() {
-			resource.Release(time.Hour)
+			resource.Release(worker.FinalTTL(time.Hour))
 
 			Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-			Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(time.Hour))
+			Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(time.Hour)))
 		})
 	})
 

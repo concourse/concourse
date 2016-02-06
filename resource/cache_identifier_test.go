@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/resource"
+	"github.com/concourse/atc/worker"
 	"github.com/concourse/baggageclaim"
 	bfakes "github.com/concourse/baggageclaim/fakes"
 	"github.com/pivotal-golang/lager"
@@ -90,7 +91,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 
 					Expect(aVolume.SetTTLCallCount()).To(Equal(0))
 					Expect(bVolume.ReleaseCallCount()).To(Equal(1))
-					Expect(bVolume.ReleaseArgsForCall(0)).To(Equal(time.Minute))
+					Expect(bVolume.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(time.Minute)))
 				})
 			})
 
@@ -105,7 +106,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 
 					Expect(aVolume.SetTTLCallCount()).To(Equal(0))
 					Expect(bVolume.ReleaseCallCount()).To(Equal(1))
-					Expect(bVolume.ReleaseArgsForCall(0)).To(Equal(time.Minute))
+					Expect(bVolume.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(time.Minute)))
 				})
 			})
 		})

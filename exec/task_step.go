@@ -233,13 +233,13 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		for _, mount := range inputMounts {
 			// stop heartbeating ourselves now that container has picked up the
 			// volumes
-			mount.Volume.Release(0)
+			mount.Volume.Release(nil)
 		}
 
 		for _, mount := range outputMounts {
 			// stop heartbeating ourselves now that container has picked up the
 			// volumes
-			mount.Volume.Release(0)
+			mount.Volume.Release(nil)
 		}
 
 		if err != nil {
@@ -371,9 +371,9 @@ func (step *TaskStep) Release() {
 	}
 
 	if step.exitStatus == 0 {
-		step.container.Release(SuccessfulStepTTL)
+		step.container.Release(worker.FinalTTL(SuccessfulStepTTL))
 	} else {
-		step.container.Release(FailedStepTTL)
+		step.container.Release(worker.FinalTTL(FailedStepTTL))
 	}
 }
 
@@ -430,7 +430,7 @@ func (step *TaskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Wor
 
 		if len(mounts) >= len(inputMounts) {
 			for _, mount := range inputMounts {
-				mount.Volume.Release(0)
+				mount.Volume.Release(nil)
 			}
 
 			inputMounts = mounts
@@ -438,7 +438,7 @@ func (step *TaskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Wor
 			chosenWorker = w
 		} else {
 			for _, mount := range mounts {
-				mount.Volume.Release(0)
+				mount.Volume.Release(nil)
 			}
 		}
 	}

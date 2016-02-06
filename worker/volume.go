@@ -38,7 +38,7 @@ func NewVolumeFactory(db VolumeFactoryDB, clock clock.Clock) VolumeFactory {
 }
 
 func (vf *volumeFactory) Build(logger lager.Logger, bcVol baggageclaim.Volume) (Volume, error) {
-	bcVol.Release(0)
+	bcVol.Release(nil)
 	return newVolume(logger, bcVol, vf.clock, vf.db)
 }
 
@@ -52,7 +52,7 @@ type volume struct {
 	baggageclaim.Volume
 	db VolumeFactoryDB
 
-	release      chan time.Duration
+	release      chan *time.Duration
 	heartbeating *sync.WaitGroup
 	releaseOnce  sync.Once
 }
@@ -68,7 +68,7 @@ func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock
 		db:     db,
 
 		heartbeating: new(sync.WaitGroup),
-		release:      make(chan time.Duration, 1),
+		release:      make(chan *time.Duration, 1),
 	}
 
 	ttl, err := vol.db.GetVolumeTTL(vol.Handle())
@@ -94,7 +94,7 @@ func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock
 	return vol, nil
 }
 
-func (v *volume) Release(finalTTL time.Duration) {
+func (v *volume) Release(finalTTL *time.Duration) {
 	v.releaseOnce.Do(func() {
 		v.release <- finalTTL
 		v.heartbeating.Wait()
@@ -123,8 +123,8 @@ func (v *volume) heartbeatContinuously(logger lager.Logger, pacemaker clock.Tick
 			v.heartbeat(logger.Session("tick"), ttlToSet)
 
 		case finalTTL := <-v.release:
-			if finalTTL != 0 {
-				v.heartbeat(logger.Session("final"), finalTTL)
+			if finalTTL != nil {
+				v.heartbeat(logger.Session("final"), *finalTTL)
 			}
 
 			return

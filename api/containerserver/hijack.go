@@ -73,7 +73,7 @@ func (s *Server) hijack(w http.ResponseWriter, request hijackRequest, hLog lager
 		return
 	}
 
-	defer container.Release(0)
+	defer container.Release(nil)
 
 	w.WriteHeader(http.StatusOK)
 

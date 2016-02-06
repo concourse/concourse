@@ -228,7 +228,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 		return err
 	}
 
-	defer res.Release(0)
+	defer res.Release(nil)
 
 	vr, found, err := radar.db.GetLatestVersionedResource(savedResource)
 	if err != nil {

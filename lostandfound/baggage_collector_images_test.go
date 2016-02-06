@@ -189,13 +189,13 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 		_, handle = matthewBaggageClaimClient.LookupVolumeArgsForCall(0)
 		Expect(handle).To(Equal("docker-volume-handle"))
 		Expect(dockerVolume.ReleaseCallCount()).To(Equal(1))
-		Expect(dockerVolume.ReleaseArgsForCall(0)).To(Equal(expectedLatestVersionTTL))
+		Expect(dockerVolume.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(expectedLatestVersionTTL)))
 
 		Expect(fredrickBaggageClaimClient.LookupVolumeCallCount()).To(Equal(1))
 		_, handle = fredrickBaggageClaimClient.LookupVolumeArgsForCall(0)
 		Expect(handle).To(Equal("crossed-wires-volume-handle"))
 		Expect(crossedWiresVolume.ReleaseCallCount()).To(Equal(1))
-		Expect(crossedWiresVolume.ReleaseArgsForCall(0)).To(Equal(expectedOldVersionTTL))
+		Expect(crossedWiresVolume.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(expectedOldVersionTTL)))
 
 		Expect(fakeBaggageCollectorDB.SetVolumeTTLCallCount()).To(Equal(2))
 

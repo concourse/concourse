@@ -992,7 +992,7 @@ var _ = Describe("GardenFactory", func() {
 
 									step.Release()
 									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(5 * time.Minute))
+									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(5 * time.Minute)))
 								})
 							})
 
@@ -1089,7 +1089,7 @@ var _ = Describe("GardenFactory", func() {
 
 									step.Release()
 									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(1 * time.Hour))
+									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(1 * time.Hour)))
 								})
 							})
 

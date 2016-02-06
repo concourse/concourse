@@ -141,7 +141,7 @@ func (tracker *tracker) InitWithSources(
 
 		if len(candidateMounts) >= len(mounts) {
 			for _, mount := range mounts {
-				mount.Volume.Release(0)
+				mount.Volume.Release(nil)
 			}
 
 			mounts = candidateMounts
@@ -149,7 +149,7 @@ func (tracker *tracker) InitWithSources(
 			chosenWorker = w
 		} else {
 			for _, mount := range candidateMounts {
-				mount.Volume.Release(0)
+				mount.Volume.Release(nil)
 			}
 		}
 	}
@@ -165,7 +165,7 @@ func (tracker *tracker) InitWithSources(
 	logger.Info("created", lager.Data{"container": container.Handle()})
 
 	for _, mount := range mounts {
-		mount.Volume.Release(0)
+		mount.Volume.Release(nil)
 	}
 
 	return NewResource(container), missingSources, nil
@@ -304,7 +304,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 		return nil, nil, err
 	}
 
-	defer cachedVolume.Release(0)
+	defer cachedVolume.Release(nil)
 
 	logger.Debug("creating-container-with-cache")
 

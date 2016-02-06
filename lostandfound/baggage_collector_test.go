@@ -14,6 +14,7 @@ import (
 	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/concourse/atc/lostandfound"
 	"github.com/concourse/atc/lostandfound/fakes"
+	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
 	"github.com/concourse/baggageclaim"
 	bcfakes "github.com/concourse/baggageclaim/fakes"
@@ -167,7 +168,7 @@ var _ = Describe("Baggage Collector", func() {
 				for handle, expectedTTL := range example.expectedTTLs {
 					Expect(fakeVolumes[handle].ReleaseCallCount()).To(Equal(1))
 					actualTTL := fakeVolumes[handle].ReleaseArgsForCall(0)
-					Expect(actualTTL).To(Equal(expectedTTL))
+					Expect(actualTTL).To(Equal(worker.FinalTTL(expectedTTL)))
 					expectedHandles = append(expectedHandles, handle)
 				}
 

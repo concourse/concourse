@@ -188,9 +188,9 @@ func (step *GetStep) Release() {
 	}
 
 	if step.succeeded {
-		step.resource.Release(0)
+		step.resource.Release(nil)
 	} else {
-		step.resource.Release(FailedStepTTL)
+		step.resource.Release(worker.FinalTTL(FailedStepTTL))
 	}
 }
 

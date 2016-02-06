@@ -26,7 +26,7 @@ type gardenWorkerContainer struct {
 
 	clock clock.Clock
 
-	release      chan time.Duration
+	release      chan *time.Duration
 	heartbeating *sync.WaitGroup
 
 	releaseOnce sync.Once
@@ -50,7 +50,7 @@ func newGardenWorkerContainer(
 		clock: clock,
 
 		heartbeating: new(sync.WaitGroup),
-		release:      make(chan time.Duration, 1),
+		release:      make(chan *time.Duration, 1),
 	}
 
 	workerContainer.heartbeat(logger.Session("initial-heartbeat"), containerTTL)
@@ -65,13 +65,13 @@ func newGardenWorkerContainer(
 
 	properties, err := workerContainer.Properties()
 	if err != nil {
-		workerContainer.Release(0)
+		workerContainer.Release(nil)
 		return nil, err
 	}
 
 	err = workerContainer.initializeVolumes(logger, properties, baggageclaimClient, volumeFactory)
 	if err != nil {
-		workerContainer.Release(0)
+		workerContainer.Release(nil)
 		return nil, err
 	}
 
@@ -79,11 +79,11 @@ func newGardenWorkerContainer(
 }
 
 func (container *gardenWorkerContainer) Destroy() error {
-	container.Release(0)
+	container.Release(nil)
 	return container.gardenClient.Destroy(container.Handle())
 }
 
-func (container *gardenWorkerContainer) Release(finalTTL time.Duration) {
+func (container *gardenWorkerContainer) Release(finalTTL *time.Duration) {
 	container.releaseOnce.Do(func() {
 		container.release <- finalTTL
 		container.heartbeating.Wait()
@@ -204,8 +204,8 @@ func (container *gardenWorkerContainer) heartbeatContinuously(logger lager.Logge
 			container.heartbeat(logger.Session("tick"), containerTTL)
 
 		case finalTTL := <-container.release:
-			if finalTTL != 0 {
-				container.heartbeat(logger.Session("final"), finalTTL)
+			if finalTTL != nil {
+				container.heartbeat(logger.Session("final"), *finalTTL)
 			}
 
 			return

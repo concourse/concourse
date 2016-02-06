@@ -40,7 +40,7 @@ var _ = Describe("Volumes", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
 				actualTTL := fakeVolume.ReleaseArgsForCall(0)
-				Expect(actualTTL).To(Equal(time.Duration(0)))
+				Expect(actualTTL).To(BeNil())
 			})
 
 			It("embeds the original volume in the wrapped volume", func() {
@@ -103,7 +103,7 @@ var _ = Describe("Volumes", func() {
 			Expect(actualTTL).To(Equal(expectedTTL2))
 
 			By("releasing the volume with a final ttl")
-			vol.Release(2 * time.Second)
+			vol.Release(worker.FinalTTL(2 * time.Second))
 			Eventually(fakeVolume.SetTTLCallCount).Should(Equal(4))
 			actualTTL = fakeVolume.SetTTLArgsForCall(3)
 			Expect(actualTTL).To(Equal(2 * time.Second))

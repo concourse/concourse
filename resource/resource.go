@@ -22,7 +22,7 @@ type Resource interface {
 	Put(IOConfig, atc.Source, atc.Params, ArtifactSource) VersionedSource
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
 
-	Release(time.Duration)
+	Release(*time.Duration)
 
 	CacheVolume() (baggageclaim.Volume, bool, error)
 }
@@ -81,7 +81,7 @@ func NewResource(container worker.Container) Resource {
 	}
 }
 
-func (resource *resource) Release(finalTTL time.Duration) {
+func (resource *resource) Release(finalTTL *time.Duration) {
 	resource.container.Release(finalTTL)
 }
 

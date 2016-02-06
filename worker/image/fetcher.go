@@ -81,7 +81,7 @@ func (fetcher Fetcher) FetchImage(
 		return nil, err
 	}
 
-	defer checkingResource.Release(0)
+	defer checkingResource.Release(nil)
 
 	versions, err := checkingResource.Check(imageConfig.Source, nil)
 	if err != nil {
