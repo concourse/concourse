@@ -9,8 +9,8 @@
 
 \list{
   We've added a new way of specifying the image for a task. You can now use
-  \code{image_resource} which will use Concourse resources to pull the image
-  down.
+  \reference{image_resource} which will use Concourse resources to pull the
+  image down.
 
   For example:
 
@@ -32,7 +32,7 @@
   specify if you were defining a resource in your pipeline. This means that
   because the Docker Image resource supports private repositories you can now
   use private repositories for your task images. There are more details in the
-  \reference{tasks} section of the documentation.
+  \reference{running-tasks} section of the documentation.
 
   Further improvements to this feature are coming soon!
 }{
