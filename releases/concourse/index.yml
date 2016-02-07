@@ -160,4 +160,6 @@ builds:
     version: 0.71.0
   cc5a2f56-5312-4016-a286-44ce112e411b:
     version: 0.71.1
+  4947e783-6815-4ffc-95cb-f5d0be1ff4f8:
+    version: 0.72.0
 format-version: '2'
