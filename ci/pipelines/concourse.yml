@@ -581,7 +581,7 @@ jobs:
       commitish: generated-commitish/commitish
       globs:
       - final-release/*.tgz
-      - rename-release/garden-linux/garden-linux-*.tgz
+      - renamed-release/garden-linux/garden-linux-*.tgz
 
 - name: product
   serial: true

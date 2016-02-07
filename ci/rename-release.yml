@@ -10,5 +10,8 @@ inputs:
   - name: concourse
   - name: garden-linux
 
+outputs:
+  - name: renamed-release
+
 run:
   path: concourse/ci/scripts/rename-release
