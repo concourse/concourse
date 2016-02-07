@@ -564,18 +564,21 @@ jobs:
         inputs:
         - name: concourse-master
 
+        outputs:
+        - name: generated-commitish
+
         run:
           path: sh
           args:
           - -c
           - |
-            git -C concourse-master rev-parse HEAD > commitish
+            git -C concourse-master rev-parse HEAD > generated-commitish/commitish
   - put: github-release
     params:
       name: release-notes/release-name
       tag: release-notes/release-name
       body: release-notes/notes.md
-      commitish: generate-commitish/commitish
+      commitish: generated-commitish/commitish
       globs:
       - final-release/*.tgz
       - rename-release/garden-linux/garden-linux-*.tgz
