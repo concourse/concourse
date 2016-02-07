@@ -43,16 +43,20 @@
   The property \code{atc.external_url} is now required for ATC to start up.
 }{
   \italic{Backwards-incompatible:} In order for a task to make something for a
-  later step in the plan it now must use \code{outputs:}. Previously the task's
-  entire working directory was made available if outputs were not configured,
-  which led to more network traffic than necessary if you didn't intend for the
-  task to actually propagate anything to later steps.
+  later step in the plan it now must use \reference{outputs}. Previously the
+  task's entire working directory was made available if outputs were not
+  configured, which led to more network traffic than necessary if you didn't
+  intend for the task to actually propagate anything to later steps.
 }{
   We now validate task configuration at the start of a task. Sneaky things like
   typos and overlapping inputs and outputs are now hard errors.
 }{
   The new default theme \italic{concourse} is the culmination of our work on
   color schemes. It will soon take its place as the one and only color scheme.
+
+  If you've been changing your theme around, make sure to manually switch to
+  the \italic{concourse} theme to check it out, otherwise it'll stick with
+  whatever scheme you last selected.
 }{
   Failed jobs are now displayed with an additional border and a symbol above
   the column that they are contained in. This change along with the improved
