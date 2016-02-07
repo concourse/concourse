@@ -12,6 +12,8 @@ cd concourse-merged
 
 git remote add local $DEVELOP
 
+git branch master HEAD
+
 git fetch local
 git checkout local/develop
 
