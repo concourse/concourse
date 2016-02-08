@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -167,12 +168,14 @@ func (fetcher Fetcher) FetchImage(
 	return resourceImage{
 		volume:   volume,
 		metadata: imageMetadata,
+		resource: getResource,
 	}, nil
 }
 
 type resourceImage struct {
 	volume   worker.Volume
 	metadata worker.ImageMetadata
+	resource resource.Resource
 }
 
 func (image resourceImage) Volume() worker.Volume {
@@ -181,6 +184,10 @@ func (image resourceImage) Volume() worker.Volume {
 
 func (image resourceImage) Metadata() worker.ImageMetadata {
 	return image.metadata
+}
+
+func (image resourceImage) Release(finalTTL *time.Duration) {
+	image.resource.Release(finalTTL)
 }
 
 func loadMetadata(source resource.VersionedSource) (worker.ImageMetadata, error) {

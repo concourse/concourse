@@ -579,12 +579,11 @@ var _ = Describe("Worker", func() {
 
 					Context("when fetching the image succeeds", func() {
 						var image *wfakes.FakeImage
-						var imageVolume *bfakes.FakeVolume
 
 						BeforeEach(func() {
 							image = new(wfakes.FakeImage)
 
-							imageVolume = new(bfakes.FakeVolume)
+							imageVolume := new(bfakes.FakeVolume)
 							imageVolume.HandleReturns("image-volume")
 							imageVolume.PathReturns("/some/image/path")
 							image.VolumeReturns(imageVolume)
@@ -631,13 +630,13 @@ var _ = Describe("Worker", func() {
 						Context("after the container is created", func() {
 							BeforeEach(func() {
 								fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
-									Expect(imageVolume.ReleaseCallCount()).To(Equal(0))
+									Expect(image.ReleaseCallCount()).To(Equal(0))
 									return fakeContainer, nil
 								}
 							})
 
 							It("releases the image", func() {
-								Expect(imageVolume.ReleaseCallCount()).To(Equal(1))
+								Expect(image.ReleaseCallCount()).To(Equal(1))
 							})
 						})
 					})

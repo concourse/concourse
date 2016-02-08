@@ -3,6 +3,7 @@ package fakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/atc/worker"
 )
@@ -19,6 +20,11 @@ type FakeImage struct {
 	metadataArgsForCall []struct{}
 	metadataReturns     struct {
 		result1 worker.ImageMetadata
+	}
+	ReleaseStub        func(*time.Duration)
+	releaseMutex       sync.RWMutex
+	releaseArgsForCall []struct {
+		arg1 *time.Duration
 	}
 }
 
@@ -68,6 +74,29 @@ func (fake *FakeImage) MetadataReturns(result1 worker.ImageMetadata) {
 	fake.metadataReturns = struct {
 		result1 worker.ImageMetadata
 	}{result1}
+}
+
+func (fake *FakeImage) Release(arg1 *time.Duration) {
+	fake.releaseMutex.Lock()
+	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
+		arg1 *time.Duration
+	}{arg1})
+	fake.releaseMutex.Unlock()
+	if fake.ReleaseStub != nil {
+		fake.ReleaseStub(arg1)
+	}
+}
+
+func (fake *FakeImage) ReleaseCallCount() int {
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
+	return len(fake.releaseArgsForCall)
+}
+
+func (fake *FakeImage) ReleaseArgsForCall(i int) *time.Duration {
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
+	return fake.releaseArgsForCall[i].arg1
 }
 
 var _ worker.Image = new(FakeImage)
