@@ -38,7 +38,7 @@ Graph.prototype.removeNode = function(id) {
   delete this._nodes[id];
 }
 
-Graph.prototype.addEdge = function(sourceId, targetId, key) {
+Graph.prototype.addEdge = function(sourceId, targetId, key, customData) {
   var source = this._nodes[sourceId];
   if (source === undefined) {
     throw "source node does not exist: " + sourceId;
@@ -76,7 +76,7 @@ Graph.prototype.addEdge = function(sourceId, targetId, key) {
     target._edgeTargets[key] = edgeTarget;
   }
 
-  var edge = new Edge(edgeSource, edgeTarget, key);
+  var edge = new Edge(edgeSource, edgeTarget, key, customData);
   target._inEdges.push(edge);
   source._outEdges.push(edge);
   this._edges.push(edge);
@@ -301,12 +301,12 @@ Graph.prototype.collapseEquivalentNodes = function() {
 
         for (var ie in loser._inEdges) {
           var edge = loser._inEdges[ie];
-          this.addEdge(edge.source.node.id, chosenOne.id, edge.key);
+          this.addEdge(edge.source.node.id, chosenOne.id, edge.key, edge.customData);
         }
 
         for (var oe in loser._outEdges) {
           var edge = loser._outEdges[oe];
-          this.addEdge(chosenOne.id, edge.target.node.id, edge.key);
+          this.addEdge(chosenOne.id, edge.target.node.id, edge.key, edge.customData);
         }
 
         this.removeNode(loser.id);
@@ -325,10 +325,16 @@ Graph.prototype.addSpacingNodes = function() {
       var downstreamNode = edge.target.node;
 
       var repeatedNode;
+      var initialCustomData;
+      var finalCustomData;
       if (edge.source.node.repeatable) {
         repeatedNode = upstreamNode;
+        initialCustomData = null;
+        finalCustomData = edge.customData;
       } else {
         repeatedNode = downstreamNode;
+        initialCustomData = edge.customData;
+        finalCustomData = null;
       }
 
       for (var i = 0; i < (delta - 1); i++) {
@@ -342,12 +348,13 @@ Graph.prototype.addSpacingNodes = function() {
           this.setNode(spacingNode.id, spacingNode);
         }
 
-        this.addEdge(upstreamNode.id, spacingNode.id, edge.key);
+        currentCustomData = (i == 0 ? initialCustomData : null)
+        this.addEdge(upstreamNode.id, spacingNode.id, edge.key, currentCustomData);
 
         upstreamNode = spacingNode;
       }
 
-      this.addEdge(upstreamNode.id, edge.target.node.id, edge.key);
+      this.addEdge(upstreamNode.id, edge.target.node.id, edge.key, finalCustomData);
 
       edgesToRemove.push(edge);
     }
@@ -751,48 +758,68 @@ Node.prototype.passesThroughAnyNextNode = function() {
   return false;
 };
 
-function Edge(source, target, key) {
+function Edge(source, target, key, customData) {
   this.source = source;
   this.target = target;
   this.key = key;
+  this.customData = customData;
 }
 
 Edge.prototype.id = function() {
   return this.source.id() + "-to-" + this.target.id();
 }
 
-Edge.prototype.path = function() {
+Edge.prototype.bezierPoints = function() {
   var sourcePosition = this.source.position();
   var targetPosition = this.target.position();
 
   var curvature = 0.5;
-
-  var x0 = sourcePosition.x,
-      x1 = targetPosition.x,
-      y0 = sourcePosition.y,
-      y1 = targetPosition.y;
-
-  var intermediatePoints = [];
+  var point2, point3;
 
   if (sourcePosition.x > targetPosition.x) {
     var belowSourceNode = this.source.node.position().y + this.source.node.height(),
         belowTargetNode = this.target.node.position().y + this.target.node.height();
 
-    intermediatePoints = [
-      (sourcePosition.x + 100) + "," + (belowSourceNode + 100),
-      (targetPosition.x - 100) + "," + (belowTargetNode + 100),
-    ]
-  } else {
-    var xi = d3.interpolateNumber(x0, x1),
-        x2 = xi(curvature),
-        x3 = xi(1 - curvature),
+    point2 = {
+      x: sourcePosition.x + 100,
+      y: belowSourceNode + 100
+    }
 
-    intermediatePoints = [x2+","+y0, x3+","+y1]
+    point3 = {
+      x: targetPosition.x - 100,
+      y: belowTargetNode + 100
+    }
+  } else {
+    var xi = d3.interpolateNumber(sourcePosition.x, targetPosition.x);
+
+    point2 = {
+      x: xi(curvature),
+      y: sourcePosition.y
+    }
+
+    point3 = {
+      x: xi(1 - curvature),
+      y: targetPosition.y
+    }
   }
 
-  return "M" + x0 + "," + y0 +" "
-       + "C" + intermediatePoints.join(" ")
-       + " " + x1 + "," + y1;
+  var points = [sourcePosition, point2, point3, targetPosition]
+  return points
+}
+
+Edge.prototype.path = function() {
+  points = this.bezierPoints()
+  return "M" + points[0].x + "," + points[0].y
+       + " C" + points[1].x + "," + points[1].y
+       + " " + points[2].x + "," + points[2].y
+       + " " + points[3].x + "," + points[3].y;
+}
+
+function bezierInterpolate(points, fraction) {
+  q = d3.interpolate(points.slice(0, 3), points.slice(1, 4))(fraction)
+  r = d3.interpolate(q.slice(0, 2), q.slice(1, 3))(fraction)
+  b = d3.interpolate(r[0], r[1])(fraction)
+  return b
 }
 
 function EdgeSource(node, key) {

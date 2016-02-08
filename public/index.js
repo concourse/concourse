@@ -43,6 +43,12 @@ function drawContinuously(svg, groups) {
     var svgEdge = svgEdges.enter().append("g")
       .attr("class", function(edge) { return "edge " + edge.source.node.status })
 
+    svgEdges.each(function(edge) {
+      if (edge.customData.trigger === false) {
+        d3.select(this).classed("trigger-false", true)
+      }
+    })
+
     function highlight(thing) {
       if (!thing.key) {
         return
@@ -373,7 +379,7 @@ function createGraph(svg, groups, jobs, resources) {
         graph.setNode(outputId, jobOutputNode);
       }
 
-      graph.addEdge(id, outputId, output.resource)
+      graph.addEdge(id, outputId, output.resource, null)
     }
   }
 
@@ -415,13 +421,13 @@ function createGraph(svg, groups, jobs, resources) {
             }
 
             if (graph.node(sourceJobNode)) {
-              graph.addEdge(sourceJobNode, sourceInputNode, input.resource);
+              graph.addEdge(sourceJobNode, sourceInputNode, input.resource, null);
             }
 
             sourceNode = sourceInputNode;
           }
 
-          graph.addEdge(sourceNode, id, input.resource);
+          graph.addEdge(sourceNode, id, input.resource, {trigger: input.trigger});
         }
       }
     }
@@ -471,7 +477,7 @@ function createGraph(svg, groups, jobs, resources) {
           }));
         }
 
-        graph.addEdge(inputId, id, input.resource)
+        graph.addEdge(inputId, id, input.resource, {trigger: input.trigger})
       }
     }
   }
