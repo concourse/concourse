@@ -4,6 +4,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -248,5 +249,223 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 				Expect(fakeBaggageCollectorDB.GetImageVolumeIdentifiersByBuildIDCallCount()).To(Equal(0))
 			})
 		})
+	})
+	Context("when multiple jobs get the same image resource", func() {
+		var (
+			fakeWorkerClient *wfakes.FakeClient
+
+			workerA                   *wfakes.FakeWorker
+			workerABaggageClaimClient *bcfakes.FakeClient
+			volumeA                   *bcfakes.FakeVolume
+
+			workerB                   *wfakes.FakeWorker
+			workerBBaggageClaimClient *bcfakes.FakeClient
+			volumeB                   *bcfakes.FakeVolume
+
+			fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
+			fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
+
+			expectedOldVersionTTL    = 4 * time.Minute
+			expectedLatestVersionTTL = time.Duration(0)
+			expectedOneOffTTL        = 5 * time.Hour
+
+			baggageCollector lostandfound.BaggageCollector
+
+			savedPipeline  db.SavedPipeline
+			fakePipelineDB *dbfakes.FakePipelineDB
+		)
+
+		BeforeEach(func() {
+			fakeWorkerClient = new(wfakes.FakeClient)
+
+			workerA = new(wfakes.FakeWorker)
+			workerABaggageClaimClient = new(bcfakes.FakeClient)
+			workerA.VolumeManagerReturns(workerABaggageClaimClient, true)
+			volumeA = new(bcfakes.FakeVolume)
+			workerABaggageClaimClient.LookupVolumeReturns(volumeA, true, nil)
+
+			workerB = new(wfakes.FakeWorker)
+			workerBBaggageClaimClient = new(bcfakes.FakeClient)
+			workerB.VolumeManagerReturns(workerBBaggageClaimClient, true)
+			volumeB = new(bcfakes.FakeVolume)
+			workerBBaggageClaimClient.LookupVolumeReturns(volumeB, true, nil)
+
+			workerMap := map[string]*wfakes.FakeWorker{
+				"workerA": workerA,
+				"workerB": workerB,
+			}
+
+			fakeWorkerClient.GetWorkerStub = func(name string) (worker.Worker, error) {
+				return workerMap[name], nil
+			}
+
+			baggageCollectorLogger := lagertest.NewTestLogger("test")
+
+			fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
+			fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
+
+			baggageCollector = lostandfound.NewBaggageCollector(
+				baggageCollectorLogger,
+				fakeWorkerClient,
+				fakeBaggageCollectorDB,
+				fakePipelineDBFactory,
+				expectedOldVersionTTL,
+				expectedOneOffTTL,
+			)
+
+			savedPipeline = db.SavedPipeline{
+				Pipeline: db.Pipeline{
+					Name: "my-special-pipeline",
+					Config: atc.Config{
+						Groups:    atc.GroupConfigs{},
+						Resources: atc.ResourceConfigs{},
+						Jobs: atc.JobConfigs{
+							{
+								Name: "job-a",
+							},
+							{
+								Name: "job-b",
+							},
+						},
+					},
+				},
+			}
+			fakeBaggageCollectorDB.GetAllActivePipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
+			imageVersionMap := map[int][]db.VolumeIdentifier{
+				1: {
+					{
+						ResourceVersion: atc.Version{"ref": "rence"},
+						ResourceHash:    "git:zxcvbnm",
+					},
+				},
+				2: {
+					{
+						ResourceVersion: atc.Version{"ref": "rence"},
+						ResourceHash:    "git:zxcvbnm",
+					},
+				},
+			}
+
+			fakeBaggageCollectorDB.GetImageVolumeIdentifiersByBuildIDStub = func(buildID int) ([]db.VolumeIdentifier, error) {
+				return imageVersionMap[buildID], nil
+			}
+
+			fakePipelineDB = new(dbfakes.FakePipelineDB)
+			fakePipelineDB.GetJobFinishedAndNextBuildStub = func(jobName string) (*db.Build, *db.Build, error) {
+				switch jobName {
+				case "job-a":
+					return &db.Build{ID: 1}, nil, nil
+				case "job-b":
+					return &db.Build{ID: 2}, nil, nil
+				default:
+					panic("unknown job name")
+				}
+			}
+			fakePipelineDBFactory.BuildReturns(fakePipelineDB)
+		})
+
+		DescribeTable("It preserves a single volume corresponding to that image resource",
+			func(savedVolumes []db.SavedVolume, getVolumes func() (*bcfakes.FakeVolume, *bcfakes.FakeVolume)) {
+				volume1, volume2 := getVolumes()
+
+				fakeBaggageCollectorDB.GetVolumesReturns(savedVolumes, nil)
+
+				err := baggageCollector.Collect()
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(volume1.ReleaseCallCount()).To(Equal(1))
+				Expect(volume1.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(expectedLatestVersionTTL)))
+
+				Expect(volume2.ReleaseCallCount()).To(Equal(1))
+				Expect(volume2.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(expectedOldVersionTTL)))
+
+				Expect(fakeBaggageCollectorDB.SetVolumeTTLCallCount()).To(Equal(2))
+
+				type setVolumeTTLArgs struct {
+					Handle string
+					TTL    time.Duration
+				}
+
+				expectedSetVolumeTTLArgs := []setVolumeTTLArgs{
+					{
+						Handle: "volume-handle-1",
+						TTL:    expectedLatestVersionTTL,
+					},
+					{
+						Handle: "volume-handle-2",
+						TTL:    expectedOldVersionTTL,
+					},
+				}
+
+				var actualSetVolumeTTLArgs []setVolumeTTLArgs
+				for i := range expectedSetVolumeTTLArgs {
+					handle, ttl := fakeBaggageCollectorDB.SetVolumeTTLArgsForCall(i)
+					actualSetVolumeTTLArgs = append(actualSetVolumeTTLArgs, setVolumeTTLArgs{
+						Handle: handle,
+						TTL:    ttl,
+					})
+				}
+
+				Expect(actualSetVolumeTTLArgs).To(ConsistOf(expectedSetVolumeTTLArgs))
+			},
+			Entry("and it chooses the one with the first handle in alphabetical order",
+				[]db.SavedVolume{
+					{
+						Volume: db.Volume{
+							WorkerName: "workerA",
+							TTL:        expectedOldVersionTTL,
+							Handle:     "volume-handle-1",
+							VolumeIdentifier: db.VolumeIdentifier{
+								ResourceVersion: atc.Version{"ref": "rence"},
+								ResourceHash:    "git:zxcvbnm",
+							},
+						},
+					},
+					{
+						Volume: db.Volume{
+							WorkerName: "workerB",
+							TTL:        expectedLatestVersionTTL,
+							Handle:     "volume-handle-2",
+							VolumeIdentifier: db.VolumeIdentifier{
+								ResourceVersion: atc.Version{"ref": "rence"},
+								ResourceHash:    "git:zxcvbnm",
+							},
+						},
+					},
+				},
+				func() (*bcfakes.FakeVolume, *bcfakes.FakeVolume) {
+					return volumeA, volumeB
+				},
+			),
+			Entry("and it chooses the one with the first handle in alphabetical order",
+				[]db.SavedVolume{
+					{
+						Volume: db.Volume{
+							WorkerName: "workerA",
+							TTL:        expectedLatestVersionTTL,
+							Handle:     "volume-handle-2",
+							VolumeIdentifier: db.VolumeIdentifier{
+								ResourceVersion: atc.Version{"ref": "rence"},
+								ResourceHash:    "git:zxcvbnm",
+							},
+						},
+					},
+					{
+						Volume: db.Volume{
+							WorkerName: "workerB",
+							TTL:        expectedOldVersionTTL,
+							Handle:     "volume-handle-1",
+							VolumeIdentifier: db.VolumeIdentifier{
+								ResourceVersion: atc.Version{"ref": "rence"},
+								ResourceHash:    "git:zxcvbnm",
+							},
+						},
+					},
+				},
+				func() (*bcfakes.FakeVolume, *bcfakes.FakeVolume) {
+					return volumeB, volumeA
+				},
+			),
+		)
 	})
 })

@@ -2,6 +2,7 @@ package lostandfound
 
 import (
 	"encoding/json"
+	"sort"
 	"time"
 
 	"github.com/concourse/atc/db"
@@ -151,8 +152,21 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 	return latestVersions, nil
 }
 
+func (bc *baggageCollector) getSortedVolumes() ([]db.SavedVolume, error) {
+	unsorted, err := bc.db.GetVolumes()
+	if err != nil {
+		return []db.SavedVolume{}, err
+	}
+
+	sort.Sort(sortByHandle(unsorted))
+
+	sorted := unsorted
+
+	return sorted, nil
+}
+
 func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error {
-	volumesToExpire, err := bc.db.GetVolumes()
+	volumesToExpire, err := bc.getSortedVolumes()
 
 	if err != nil {
 		bc.logger.Error("could-not-get-volume-data", err)
@@ -163,10 +177,11 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 		version, _ := json.Marshal(volumeToExpire.ResourceVersion)
 		hashKey := string(version) + volumeToExpire.ResourceHash
 
-		ttlForVol, found := latestVersions[hashKey]
-		if !found {
-			ttlForVol = bc.oldResourceGracePeriod
-		}
+		// This first occurrence of hashKey in volumes has the lowest handle alphabetically.
+		// We should treat all later occurences of hashKey as unrecognized so that
+		// they expire because they are redundant. Pop hashKey from latest versions
+		// so that we won't recognize it next time.
+		ttlForVol := popWithDefault(latestVersions, hashKey, bc.oldResourceGracePeriod)
 
 		volumeWorker, err := bc.workerClient.GetWorker(volumeToExpire.WorkerName)
 		if err != nil {
@@ -232,4 +247,20 @@ func NewBaggageCollector(
 		oldResourceGracePeriod:              oldResourceGracePeriod,
 		oneOffBuildImageResourceGracePeriod: oneOffBuildImageResourceGracePeriod,
 	}
+}
+
+type sortByHandle []db.SavedVolume
+
+func (s sortByHandle) Len() int           { return len(s) }
+func (s sortByHandle) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s sortByHandle) Less(i, j int) bool { return s[i].Volume.Handle < s[j].Volume.Handle }
+
+func popWithDefault(latestVersions hashedVersionSet, hashKey string, defaultTTL time.Duration) time.Duration {
+	ttl, found := latestVersions[hashKey]
+	if found {
+		delete(latestVersions, hashKey)
+	} else {
+		ttl = defaultTTL
+	}
+	return ttl
 }
