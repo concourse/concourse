@@ -4,7 +4,7 @@
 
 \list{
   Fixed a bug that would cause containers used by the new
-  \code{image_resource:} not to be released.
+  \reference{image_resource} not to be released.
 }{
   Removed a uniqueness constraint on the database that checked a huge number of
   columns which caused PostgreSQL to error for certain pipelines.
