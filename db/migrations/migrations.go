@@ -81,4 +81,5 @@ var Migrations = []migration.Migrator{
 	AddStageToContainers,
 	AddImageResourceVersions,
 	MakeContainerIdentifiersUnique,
+	CleanUpMassiveUniqueConstraint,
 }
