@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
@@ -17,13 +18,17 @@ const ephemeralPropertyName = "concourse:ephemeral"
 const volumePropertyName = "concourse:volumes"
 const volumeMountsPropertyName = "concourse:volume-mounts"
 
+type releasable interface {
+	Release(*time.Duration)
+}
+
 type gardenContainerSpecFactory struct {
 	logger             lager.Logger
 	baggageclaimClient baggageclaim.Client
 	imageFetcher       ImageFetcher
 	volumeMounts       map[string]string
 	volumeHandles      []string
-	volumesToRelease   []Volume
+	releaseAfterCreate []releasable
 }
 
 func NewGardenContainerSpecFactory(logger lager.Logger, baggageclaimClient baggageclaim.Client, imageFetcher ImageFetcher) gardenContainerSpecFactory {
@@ -33,7 +38,7 @@ func NewGardenContainerSpecFactory(logger lager.Logger, baggageclaimClient bagga
 		imageFetcher:       imageFetcher,
 		volumeMounts:       map[string]string{},
 		volumeHandles:      nil,
-		volumesToRelease:   []Volume{},
+		releaseAfterCreate: []releasable{},
 	}
 }
 
@@ -141,7 +146,7 @@ func (factory *gardenContainerSpecFactory) BuildTaskContainerSpec(
 
 		gardenSpec.RootFSPath = path.Join(imageVolume.Path(), "rootfs")
 		factory.volumeHandles = append(factory.volumeHandles, imageVolume.Handle())
-		factory.volumesToRelease = append(factory.volumesToRelease, imageVolume)
+		factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
 
 		gardenSpec.Env = append(gardenSpec.Env, image.Metadata().Env...)
 	} else {
@@ -172,7 +177,7 @@ func (factory *gardenContainerSpecFactory) BuildTaskContainerSpec(
 }
 
 func (factory *gardenContainerSpecFactory) ReleaseVolumes() {
-	for _, cow := range factory.volumesToRelease {
+	for _, cow := range factory.releaseAfterCreate {
 		cow.Release(nil)
 	}
 }
@@ -190,8 +195,7 @@ func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.Co
 			return containerSpec, err
 		}
 
-		// release *after* container creation
-		factory.volumesToRelease = append(factory.volumesToRelease, cowVolume)
+		factory.releaseAfterCreate = append(factory.releaseAfterCreate, cowVolume)
 
 		containerSpec.BindMounts = append(containerSpec.BindMounts, garden.BindMount{
 			SrcPath: cowVolume.Path(),

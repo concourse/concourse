@@ -3,6 +3,7 @@ package worker
 import (
 	"io"
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -35,6 +36,7 @@ type ImageFetchingDelegate interface {
 type Image interface {
 	Volume() Volume
 	Metadata() ImageMetadata
+	Release(*time.Duration)
 }
 
 type ImageMetadata struct {

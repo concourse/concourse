@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -276,6 +277,16 @@ var _ = Describe("Fetcher", func() {
 
 									It("creates the container with the volume's path as the rootFS", func() {
 										Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(1))
+									})
+
+									Describe("releasing the image", func() {
+										It("releases the get resource", func() {
+											finalTTL := 5 * time.Second
+											fetchedImage.Release(&finalTTL)
+
+											Expect(fakeGetResource.ReleaseCallCount()).To(Equal(1))
+											Expect(fakeGetResource.ReleaseArgsForCall(0)).To(Equal(&finalTTL))
+										})
 									})
 
 									Context("when the metadata.json is bogus", func() {
