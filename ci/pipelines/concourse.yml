@@ -231,14 +231,14 @@ jobs:
         params:
           <<: *lite-deploy-params
           manifest: deployments/lite/ci/manifests/basic_auth_private_deployment.yml
-      # - put: lite-deployment-github-auth-public
-      #   params:
-      #     <<: *lite-deploy-params
-      #     manifest: deployments/lite/ci/manifests/github_auth_public_deployment.yml
-      # - put: lite-deployment-github-auth-private
-      #   params:
-      #     <<: *lite-deploy-params
-      #     manifest: deployments/lite/ci/manifests/github_auth_private_deployment.yml
+      - put: lite-deployment-github-auth-public
+        params:
+          <<: *lite-deploy-params
+          manifest: deployments/lite/ci/manifests/github_auth_public_deployment.yml
+      - put: lite-deployment-github-auth-private
+        params:
+          <<: *lite-deploy-params
+          manifest: deployments/lite/ci/manifests/github_auth_private_deployment.yml
     - aggregate:
       - task: no-auth-build
         file: concourse/ci/testflight.yml
@@ -295,46 +295,46 @@ jobs:
                   BOSH_PASSWORD: admin
             - put: testflight-logs
               params: {file: exported-logs/concourse.*.tgz}
-      # - task: github-auth-public-build
-      #   file: concourse/ci/testflight.yml
-      #   config:
-      #     params:
-      #       ATC_URL: "http://10.244.18.2:8080"
-      #       GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
-      #       GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
-      #       PIPELINES_PUBLICLY_VIEWABLE: true
-      #   timeout: 1h
-      #   on_failure:
-      #     do:
-      #       - task: export-bosh-logs
-      #         file: concourse/ci/export-bosh-logs.yml
-      #         config:
-      #           params:
-      #             MANIFEST: deployments/lite/ci/manifests/github_auth_public_deployment.yml
-      #             BOSH_USER: admin
-      #             BOSH_PASSWORD: admin
-      #       - put: testflight-logs
-      #         params: {file: exported-logs/concourse.*.tgz}
-      # - task: github-auth-private-build
-      #   file: concourse/ci/testflight.yml
-      #   config:
-      #     params:
-      #       ATC_URL: "http://10.244.19.2:8080"
-      #       GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
-      #       GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
-      #       PIPELINES_PUBLICLY_VIEWABLE: false
-      #   timeout: 1h
-      #   on_failure:
-      #     do:
-      #       - task: export-bosh-logs
-      #         file: concourse/ci/export-bosh-logs.yml
-      #         config:
-      #           params:
-      #             MANIFEST: deployments/lite/ci/manifests/github_auth_private_deployment.yml
-      #             BOSH_USER: admin
-      #             BOSH_PASSWORD: admin
-      #       - put: testflight-logs
-      #         params: {file: exported-logs/concourse.*.tgz}
+      - task: github-auth-public-build
+        file: concourse/ci/testflight.yml
+        config:
+          params:
+            ATC_URL: "http://10.244.18.2:8080"
+            GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+            GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+            PIPELINES_PUBLICLY_VIEWABLE: true
+        timeout: 1h
+        on_failure:
+          do:
+            - task: export-bosh-logs
+              file: concourse/ci/export-bosh-logs.yml
+              config:
+                params:
+                  MANIFEST: deployments/lite/ci/manifests/github_auth_public_deployment.yml
+                  BOSH_USER: admin
+                  BOSH_PASSWORD: admin
+            - put: testflight-logs
+              params: {file: exported-logs/concourse.*.tgz}
+      - task: github-auth-private-build
+        file: concourse/ci/testflight.yml
+        config:
+          params:
+            ATC_URL: "http://10.244.19.2:8080"
+            GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+            GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+            PIPELINES_PUBLICLY_VIEWABLE: false
+        timeout: 1h
+        on_failure:
+          do:
+            - task: export-bosh-logs
+              file: concourse/ci/export-bosh-logs.yml
+              config:
+                params:
+                  MANIFEST: deployments/lite/ci/manifests/github_auth_private_deployment.yml
+                  BOSH_USER: admin
+                  BOSH_PASSWORD: admin
+            - put: testflight-logs
+              params: {file: exported-logs/concourse.*.tgz}
 
 - name: deploy
   serial: true
