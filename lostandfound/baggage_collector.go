@@ -16,7 +16,7 @@ import (
 
 type BaggageCollectorDB interface {
 	ReapVolume(string) error
-	GetAllActivePipelines() ([]db.SavedPipeline, error)
+	GetAllPipelines() ([]db.SavedPipeline, error)
 	GetVolumes() ([]db.SavedVolume, error)
 	SetVolumeTTL(string, time.Duration) error
 	GetImageVolumeIdentifiersByBuildID(buildID int) ([]db.VolumeIdentifier, error)
@@ -75,7 +75,7 @@ func ttlGreater(ttl time.Duration, oldTTL time.Duration) bool {
 func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 	latestVersions := hashedVersionSet{}
 
-	pipelines, err := bc.db.GetAllActivePipelines()
+	pipelines, err := bc.db.GetAllPipelines()
 	if err != nil {
 		bc.logger.Error("could-not-get-active-pipelines", err)
 		return nil, err

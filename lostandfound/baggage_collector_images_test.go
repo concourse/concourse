@@ -102,7 +102,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 				},
 			}
 
-			fakeBaggageCollectorDB.GetAllActivePipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
+			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
 
 			imageVersionMap := map[int][]db.VolumeIdentifier{
 				2: {
@@ -173,7 +173,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 		It("preserves only the image versions used by the latest finished build of each job", func() {
 			err := baggageCollector.Collect()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeBaggageCollectorDB.GetAllActivePipelinesCallCount()).To(Equal(1))
+			Expect(fakeBaggageCollectorDB.GetAllPipelinesCallCount()).To(Equal(1))
 			Expect(fakePipelineDBFactory.BuildCallCount()).To(Equal(1))
 			Expect(fakePipelineDBFactory.BuildArgsForCall(0)).To(Equal(savedPipeline))
 			Expect(fakePipelineDB.GetJobFinishedAndNextBuildCallCount()).To(Equal(1))
@@ -348,7 +348,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 					},
 				},
 			}
-			fakeBaggageCollectorDB.GetAllActivePipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
+			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
 
 			fakeBaggageCollectorDB.GetImageVolumeIdentifiersByBuildIDReturns(
 				[]db.VolumeIdentifier{

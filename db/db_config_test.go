@@ -357,7 +357,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		_, _, err = database.SaveConfig(team.Name, "pipeline-6", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelines, err := database.GetAllActivePipelines()
+		pipelines, err := database.GetAllPipelines()
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(pipelines).To(Equal([]db.SavedPipeline{
@@ -448,7 +448,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelines, err := database.GetAllActivePipelines()
+		pipelines, err := database.GetAllPipelines()
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(pipelines).To(Equal([]db.SavedPipeline{

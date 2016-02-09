@@ -133,7 +133,7 @@ var _ = Describe("Volumes are reaped", func() {
 
 			returnedVolumes = append(returnedVolumes, newestReturnedSavedVolume)
 
-			fakeBaggageCollectorDB.GetAllActivePipelinesReturns([]db.SavedPipeline{fakeSavedPipeline}, nil)
+			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{fakeSavedPipeline}, nil)
 			fakePipelineDBFactory.BuildReturns(&fakePipelineDB)
 			fakePipelineDB.GetLatestEnabledVersionedResourceReturns(fakeSavedVersionedResource, true, nil)
 

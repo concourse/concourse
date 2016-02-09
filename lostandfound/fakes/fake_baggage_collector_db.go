@@ -18,10 +18,10 @@ type FakeBaggageCollectorDB struct {
 	reapVolumeReturns struct {
 		result1 error
 	}
-	GetAllActivePipelinesStub        func() ([]db.SavedPipeline, error)
-	getAllActivePipelinesMutex       sync.RWMutex
-	getAllActivePipelinesArgsForCall []struct{}
-	getAllActivePipelinesReturns     struct {
+	GetAllPipelinesStub        func() ([]db.SavedPipeline, error)
+	getAllPipelinesMutex       sync.RWMutex
+	getAllPipelinesArgsForCall []struct{}
+	getAllPipelinesReturns     struct {
 		result1 []db.SavedPipeline
 		result2 error
 	}
@@ -91,26 +91,26 @@ func (fake *FakeBaggageCollectorDB) ReapVolumeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBaggageCollectorDB) GetAllActivePipelines() ([]db.SavedPipeline, error) {
-	fake.getAllActivePipelinesMutex.Lock()
-	fake.getAllActivePipelinesArgsForCall = append(fake.getAllActivePipelinesArgsForCall, struct{}{})
-	fake.getAllActivePipelinesMutex.Unlock()
-	if fake.GetAllActivePipelinesStub != nil {
-		return fake.GetAllActivePipelinesStub()
+func (fake *FakeBaggageCollectorDB) GetAllPipelines() ([]db.SavedPipeline, error) {
+	fake.getAllPipelinesMutex.Lock()
+	fake.getAllPipelinesArgsForCall = append(fake.getAllPipelinesArgsForCall, struct{}{})
+	fake.getAllPipelinesMutex.Unlock()
+	if fake.GetAllPipelinesStub != nil {
+		return fake.GetAllPipelinesStub()
 	} else {
-		return fake.getAllActivePipelinesReturns.result1, fake.getAllActivePipelinesReturns.result2
+		return fake.getAllPipelinesReturns.result1, fake.getAllPipelinesReturns.result2
 	}
 }
 
-func (fake *FakeBaggageCollectorDB) GetAllActivePipelinesCallCount() int {
-	fake.getAllActivePipelinesMutex.RLock()
-	defer fake.getAllActivePipelinesMutex.RUnlock()
-	return len(fake.getAllActivePipelinesArgsForCall)
+func (fake *FakeBaggageCollectorDB) GetAllPipelinesCallCount() int {
+	fake.getAllPipelinesMutex.RLock()
+	defer fake.getAllPipelinesMutex.RUnlock()
+	return len(fake.getAllPipelinesArgsForCall)
 }
 
-func (fake *FakeBaggageCollectorDB) GetAllActivePipelinesReturns(result1 []db.SavedPipeline, result2 error) {
-	fake.GetAllActivePipelinesStub = nil
-	fake.getAllActivePipelinesReturns = struct {
+func (fake *FakeBaggageCollectorDB) GetAllPipelinesReturns(result1 []db.SavedPipeline, result2 error) {
+	fake.GetAllPipelinesStub = nil
+	fake.getAllPipelinesReturns = struct {
 		result1 []db.SavedPipeline
 		result2 error
 	}{result1, result2}

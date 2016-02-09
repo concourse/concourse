@@ -88,7 +88,7 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 			},
 		}
 
-		fakeBaggageCollectorDB.GetAllActivePipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
+		fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
 
 		savedVolumes := []db.SavedVolume{
 			{
@@ -145,7 +145,7 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 	It("sets the ttl of each volume used in a one-off build to at least 24 hours", func() {
 		err := baggageCollector.Collect()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(fakeBaggageCollectorDB.GetAllActivePipelinesCallCount()).To(Equal(1))
+		Expect(fakeBaggageCollectorDB.GetAllPipelinesCallCount()).To(Equal(1))
 		Expect(fakePipelineDBFactory.BuildCallCount()).To(Equal(1))
 		Expect(fakePipelineDBFactory.BuildArgsForCall(0)).To(Equal(savedPipeline))
 		Expect(fakePipelineDB.GetJobFinishedAndNextBuildCallCount()).To(Equal(1))

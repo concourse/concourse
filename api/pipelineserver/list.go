@@ -11,7 +11,7 @@ import (
 func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-pipelines")
 
-	pipelines, err := s.pipelinesDB.GetAllActivePipelines()
+	pipelines, err := s.pipelinesDB.GetAllPipelines()
 	if err != nil {
 		logger.Error("failed-to-get-all-active-pipelines", err)
 		w.WriteHeader(http.StatusInternalServerError)

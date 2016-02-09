@@ -23,7 +23,7 @@ func (db *SQLDB) GetPipelineByTeamNameAndName(teamName string, pipelineName stri
 	return scanPipeline(row)
 }
 
-func (db *SQLDB) GetAllActivePipelines() ([]SavedPipeline, error) {
+func (db *SQLDB) GetAllPipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
 		SELECT ` + pipelineColumns + `
 		FROM pipelines

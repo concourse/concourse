@@ -147,7 +147,7 @@ type Notifier interface {
 //go:generate counterfeiter . PipelinesDB
 
 type PipelinesDB interface {
-	GetAllActivePipelines() ([]SavedPipeline, error)
+	GetAllPipelines() ([]SavedPipeline, error)
 	GetPipelineByTeamNameAndName(teamName string, pipelineName string) (SavedPipeline, error)
 
 	OrderPipelines([]string) error

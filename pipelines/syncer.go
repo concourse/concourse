@@ -11,7 +11,7 @@ import (
 //go:generate counterfeiter . PipelinesDB
 
 type PipelinesDB interface {
-	GetAllActivePipelines() ([]db.SavedPipeline, error)
+	GetAllPipelines() ([]db.SavedPipeline, error)
 }
 
 type PipelineRunnerFactory func(db.PipelineDB) ifrit.Runner
@@ -49,9 +49,9 @@ func NewSyncer(
 }
 
 func (syncer *Syncer) Sync() {
-	pipelines, err := syncer.pipelinesDB.GetAllActivePipelines()
+	pipelines, err := syncer.pipelinesDB.GetAllPipelines()
 	if err != nil {
-		syncer.logger.Error("failed-to-get-active-pipelines", err)
+		syncer.logger.Error("failed-to-get-pipelines", err)
 		return
 	}
 

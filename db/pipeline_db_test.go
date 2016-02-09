@@ -284,7 +284,7 @@ var _ = Describe("PipelineDB", func() {
 			err = fetchedPipelineDB.Destroy()
 			Expect(err).NotTo(HaveOccurred())
 
-			pipelines, err := sqlDB.GetAllActivePipelines()
+			pipelines, err := sqlDB.GetAllPipelines()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipelines).NotTo(ContainElement(fetchedPipeline))
 

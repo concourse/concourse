@@ -130,7 +130,7 @@ var _ = Describe("Baggage Collector", func() {
 					fakePipelineDBs[name] = fakePipelineDB
 				}
 
-				fakeBaggageCollectorDB.GetAllActivePipelinesReturns(savedPipelines, nil)
+				fakeBaggageCollectorDB.GetAllPipelinesReturns(savedPipelines, nil)
 
 				fakePipelineDBFactory.BuildStub = func(savedPipeline db.SavedPipeline) db.PipelineDB {
 					return fakePipelineDBs[savedPipeline.Name]

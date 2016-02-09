@@ -54,7 +54,7 @@ func (pdbf *pipelineDBFactory) Build(pipeline SavedPipeline) PipelineDB {
 }
 
 func (pdbf *pipelineDBFactory) BuildDefault() (PipelineDB, bool, error) {
-	orderedPipelines, err := pdbf.pipelinesDB.GetAllActivePipelines()
+	orderedPipelines, err := pdbf.pipelinesDB.GetAllPipelines()
 	if err != nil {
 		return nil, false, err
 	}

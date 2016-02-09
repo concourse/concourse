@@ -75,7 +75,7 @@ var _ = Describe("Pipelines Syncer", func() {
 			return <-exitChan
 		}
 
-		pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
+		pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
 			{
 				ID: 1,
 				Pipeline: db.Pipeline{
@@ -110,7 +110,7 @@ var _ = Describe("Pipelines Syncer", func() {
 
 	Context("when a pipeline is paused", func() {
 		BeforeEach(func() {
-			pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
+			pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				{
 					ID: 1,
 					Pipeline: db.Pipeline{
@@ -145,7 +145,7 @@ var _ = Describe("Pipelines Syncer", func() {
 			Expect(fakeRunner.RunCallCount()).To(Equal(1))
 			Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 
-			pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
+			pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				{
 					ID: 2,
 					Pipeline: db.Pipeline{
@@ -167,7 +167,7 @@ var _ = Describe("Pipelines Syncer", func() {
 				Expect(fakeRunner.RunCallCount()).To(Equal(1))
 				Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 
-				pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
+				pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
 					{
 						ID: 2,
 						Pipeline: db.Pipeline{
@@ -197,7 +197,7 @@ var _ = Describe("Pipelines Syncer", func() {
 			Expect(fakeRunner.RunCallCount()).To(Equal(1))
 			Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 
-			pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
+			pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				{
 					ID:     1,
 					Paused: true,

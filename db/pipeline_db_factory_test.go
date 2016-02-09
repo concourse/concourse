@@ -58,7 +58,7 @@ var _ = Describe("PipelineDBFactory", func() {
 				},
 			}
 
-			pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{
+			pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				savedPipelineOne,
 				savedPipelineTwo,
 			}, nil)
@@ -72,7 +72,7 @@ var _ = Describe("PipelineDBFactory", func() {
 
 		Context("when there are no pipelines", func() {
 			BeforeEach(func() {
-				pipelinesDB.GetAllActivePipelinesReturns([]db.SavedPipeline{}, nil)
+				pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{}, nil)
 			})
 
 			It("returns a useful error if there are no pipelines", func() {
