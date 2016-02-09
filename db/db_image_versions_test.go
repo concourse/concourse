@@ -103,15 +103,15 @@ var _ = Describe("Image Versions", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(recoveredFakeIdentifiers).To(BeEmpty())
 
-		By("not saving duplicate plan ids to the same build id")
+		By("replacing the version if the id combination already exists")
 
 		err = sqlDB.SaveImageResourceVersion(build.ID, "our-super-sweet-plan", badIdentifier)
-		Expect(err).To(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 
 		recoveredIdentifiers, err = sqlDB.GetImageVolumeIdentifiersByBuildID(build.ID)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(recoveredIdentifiers).To(ConsistOf(identifier, otherIdentifier))
+		Expect(recoveredIdentifiers).To(ConsistOf(badIdentifier, otherIdentifier))
 
 		By("not not enforcing global uniqueness of plan IDs")
 
