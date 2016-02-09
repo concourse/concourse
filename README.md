@@ -63,7 +63,7 @@ concourse web \
   --basic-auth-username myuser \
   --basic-auth-password mypass \
   --session-signing-key session_signing_key \
-  --tsa-host-key session_signing_key \
+  --tsa-host-key host_key \
   --tsa-authorized-keys authorized_worker_keys
 ```
 
@@ -101,7 +101,7 @@ concourse web \
   --basic-auth-username myuser \
   --basic-auth-password mypass \
   --session-signing-key session_signing_key \
-  --tsa-host-key session_signing_key \
+  --tsa-host-key host_key \
   --tsa-authorized-keys authorized_worker_keys
   --postgres-data-source postgres://user:pass@10.0.32.0/concourse \
   --external-url https://ci.example.com \
@@ -115,7 +115,7 @@ concourse web \
   --basic-auth-username myuser \
   --basic-auth-password mypass \
   --session-signing-key session_signing_key \
-  --tsa-host-key session_signing_key \
+  --tsa-host-key host_key \
   --tsa-authorized-keys authorized_worker_keys
   --postgres-data-source postgres://user:pass@10.0.32.0/concourse \
   --external-url https://ci.example.com \
