@@ -1318,6 +1318,29 @@ func (pdb *pipelineDB) getBuild(buildID int) (Build, bool, error) {
 }
 
 func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error) {
+	build, found, err := pdb.getBuild(buildID)
+	if err != nil {
+		return false, err
+	}
+
+	if !found {
+		pdb.logger.Debug("build-deleted-while-scheduling", lager.Data{
+			"buildID": buildID,
+		})
+		return false, nil
+	}
+
+	buildPrep, found, err := pdb.GetBuildPreparation(build.ID)
+	if err != nil {
+		return false, err
+	}
+	if !found {
+		pdb.logger.Debug("unable-to-find-build-preparation-for-build", lager.Data{
+			"buildID": buildID,
+		})
+		return false, nil
+	}
+
 	pipelinePaused, err := pdb.IsPaused()
 	if err != nil {
 		pdb.logger.Error("build-did-not-schedule", err, lager.Data{
@@ -1332,19 +1355,17 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 			"reason":  "pipeline-paused",
 			"buildID": buildID,
 		})
-		return false, nil
-	}
 
-	build, found, err := pdb.getBuild(buildID)
-	if err != nil {
+		buildPrep.PausedPipeline = BuildPreparationStatusBlocking
+		err = pdb.UpdateBuildPreparation(buildPrep)
+
 		return false, err
 	}
 
-	if !found {
-		pdb.logger.Debug("build-deleted-while-scheduling", lager.Data{
-			"buildID": buildID,
-		})
-		return false, nil
+	buildPrep.PausedPipeline = BuildPreparationStatusNotBlocking
+	err = pdb.UpdateBuildPreparation(buildPrep)
+	if err != nil {
+		return false, err
 	}
 
 	// The function needs to be idempotent, that's why this isn't in CanBuildBeScheduled
@@ -1363,6 +1384,13 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 	}
 
 	if canBuildBeScheduled {
+		buildPrep.PausedJob = BuildPreparationStatusNotBlocking
+		buildPrep.MaxRunningBuilds = BuildPreparationStatusNotBlocking
+		err = pdb.UpdateBuildPreparation(buildPrep)
+		if err != nil {
+			return false, err
+		}
+
 		updated, err := pdb.updateBuildToScheduled(buildID)
 		if err != nil {
 			return false, err
@@ -1374,6 +1402,22 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 			"reason":  reason,
 			"buildID": buildID,
 		})
+
+		switch reason {
+		case "job-paused":
+			buildPrep.PausedJob = BuildPreparationStatusBlocking
+			err = pdb.UpdateBuildPreparation(buildPrep)
+			if err != nil {
+				return false, err
+			}
+		case "max-in-flight-reached":
+			buildPrep.MaxRunningBuilds = BuildPreparationStatusBlocking
+			err = pdb.UpdateBuildPreparation(buildPrep)
+			if err != nil {
+				return false, err
+			}
+		}
+
 		return false, nil
 	}
 }
