@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/BurntSushi/migration"
 )
@@ -123,8 +122,6 @@ func populateBuildEventsTable(tx migration.LimitedTx, pipelineID int) error {
 	if err != nil {
 		return fmt.Errorf("failed to determine rows affected: %s", err)
 	}
-
-	log.Println("ROWS AFFECTED:", affected)
 
 	return err
 }
