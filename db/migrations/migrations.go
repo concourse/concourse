@@ -83,4 +83,5 @@ var Migrations = []migration.Migrator{
 	MakeContainerIdentifiersUnique,
 	CleanUpMassiveUniqueConstraint,
 	AddPipelineBuildEventsTables,
+	AddBuildPreparation,
 }

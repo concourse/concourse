@@ -57,6 +57,9 @@ type PipelineDB interface {
 	CreateJobBuild(job string) (Build, error)
 	CreateJobBuildForCandidateInputs(job string) (Build, bool, error)
 
+	GetBuildPreparation(buildID int) (BuildPreparation, bool, error)
+	UpdateBuildPreparation(buildPreparation BuildPreparation) error
+
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
@@ -86,6 +89,8 @@ type pipelineDB struct {
 	SavedPipeline
 
 	versionsDB *algorithm.VersionsDB
+
+	buildPrepHelper buildPreparationHelper
 }
 
 func (pdb *pipelineDB) GetPipelineName() string {
@@ -822,6 +827,26 @@ func (pdb *pipelineDB) CreateJobBuildForCandidateInputs(jobName string) (Build, 
 	return Build{}, false, nil
 }
 
+func (pdb *pipelineDB) GetBuildPreparation(passedBuildID int) (BuildPreparation, bool, error) {
+	return pdb.buildPrepHelper.GetBuildPreparation(pdb.conn, passedBuildID)
+}
+
+func (pdb *pipelineDB) UpdateBuildPreparation(buildPrep BuildPreparation) error {
+	tx, err := pdb.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	err = pdb.buildPrepHelper.UpdateBuildPreparation(tx, buildPrep)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
 func (pdb *pipelineDB) UseInputsForBuild(buildID int, inputs []BuildInput) error {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
@@ -928,6 +953,11 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
 	_, err = tx.Exec(fmt.Sprintf(`
 		CREATE SEQUENCE %s MINVALUE 0
 	`, buildEventSeq(build.ID)))
+	if err != nil {
+		return Build{}, err
+	}
+
+	err = pdb.buildPrepHelper.CreateBuildPreparation(tx, build.ID)
 	if err != nil {
 		return Build{}, err
 	}

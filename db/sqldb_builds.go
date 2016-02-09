@@ -369,12 +369,37 @@ func (db *SQLDB) CreateOneOffBuild() (Build, error) {
 		return Build{}, err
 	}
 
+	err = db.buildPrepHelper.CreateBuildPreparation(tx, build.ID)
+	if err != nil {
+		return Build{}, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return Build{}, err
 	}
 
 	return build, nil
+}
+
+func (db *SQLDB) GetBuildPreparation(passedBuildID int) (BuildPreparation, bool, error) {
+	return db.buildPrepHelper.GetBuildPreparation(db.conn, passedBuildID)
+}
+
+func (db *SQLDB) UpdateBuildPreparation(buildPrep BuildPreparation) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	err = db.buildPrepHelper.UpdateBuildPreparation(tx, buildPrep)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) {

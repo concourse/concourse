@@ -1494,6 +1494,14 @@ var _ = Describe("PipelineDB", func() {
 				Expect(build.Status).To(Equal(db.StatusPending))
 				Expect(build.Scheduled).To(BeFalse())
 			})
+
+			It("creates an entry in build_preparation", func() {
+				buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(buildPrep.BuildID).To(Equal(build.ID))
+			})
 		})
 
 		Describe("saving builds for scheduling", func() {
@@ -1650,6 +1658,18 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(foundBuild).To(Equal(build))
+			})
+
+			It("creates an entry in build_preparation", func() {
+				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(created).To(BeTrue())
+
+				buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(buildPrep.BuildID).To(Equal(build.ID))
 			})
 		})
 

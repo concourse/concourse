@@ -258,6 +258,24 @@ type FakePipelineDB struct {
 		result2 bool
 		result3 error
 	}
+	GetBuildPreparationStub        func(buildID int) (db.BuildPreparation, bool, error)
+	getBuildPreparationMutex       sync.RWMutex
+	getBuildPreparationArgsForCall []struct {
+		buildID int
+	}
+	getBuildPreparationReturns struct {
+		result1 db.BuildPreparation
+		result2 bool
+		result3 error
+	}
+	UpdateBuildPreparationStub        func(buildPreparation db.BuildPreparation) error
+	updateBuildPreparationMutex       sync.RWMutex
+	updateBuildPreparationArgsForCall []struct {
+		buildPreparation db.BuildPreparation
+	}
+	updateBuildPreparationReturns struct {
+		result1 error
+	}
 	UseInputsForBuildStub        func(buildID int, inputs []db.BuildInput) error
 	useInputsForBuildMutex       sync.RWMutex
 	useInputsForBuildArgsForCall []struct {
@@ -1277,6 +1295,72 @@ func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsReturns(result1 db.B
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakePipelineDB) GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error) {
+	fake.getBuildPreparationMutex.Lock()
+	fake.getBuildPreparationArgsForCall = append(fake.getBuildPreparationArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.getBuildPreparationMutex.Unlock()
+	if fake.GetBuildPreparationStub != nil {
+		return fake.GetBuildPreparationStub(buildID)
+	} else {
+		return fake.getBuildPreparationReturns.result1, fake.getBuildPreparationReturns.result2, fake.getBuildPreparationReturns.result3
+	}
+}
+
+func (fake *FakePipelineDB) GetBuildPreparationCallCount() int {
+	fake.getBuildPreparationMutex.RLock()
+	defer fake.getBuildPreparationMutex.RUnlock()
+	return len(fake.getBuildPreparationArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetBuildPreparationArgsForCall(i int) int {
+	fake.getBuildPreparationMutex.RLock()
+	defer fake.getBuildPreparationMutex.RUnlock()
+	return fake.getBuildPreparationArgsForCall[i].buildID
+}
+
+func (fake *FakePipelineDB) GetBuildPreparationReturns(result1 db.BuildPreparation, result2 bool, result3 error) {
+	fake.GetBuildPreparationStub = nil
+	fake.getBuildPreparationReturns = struct {
+		result1 db.BuildPreparation
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipelineDB) UpdateBuildPreparation(buildPreparation db.BuildPreparation) error {
+	fake.updateBuildPreparationMutex.Lock()
+	fake.updateBuildPreparationArgsForCall = append(fake.updateBuildPreparationArgsForCall, struct {
+		buildPreparation db.BuildPreparation
+	}{buildPreparation})
+	fake.updateBuildPreparationMutex.Unlock()
+	if fake.UpdateBuildPreparationStub != nil {
+		return fake.UpdateBuildPreparationStub(buildPreparation)
+	} else {
+		return fake.updateBuildPreparationReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) UpdateBuildPreparationCallCount() int {
+	fake.updateBuildPreparationMutex.RLock()
+	defer fake.updateBuildPreparationMutex.RUnlock()
+	return len(fake.updateBuildPreparationArgsForCall)
+}
+
+func (fake *FakePipelineDB) UpdateBuildPreparationArgsForCall(i int) db.BuildPreparation {
+	fake.updateBuildPreparationMutex.RLock()
+	defer fake.updateBuildPreparationMutex.RUnlock()
+	return fake.updateBuildPreparationArgsForCall[i].buildPreparation
+}
+
+func (fake *FakePipelineDB) UpdateBuildPreparationReturns(result1 error) {
+	fake.UpdateBuildPreparationStub = nil
+	fake.updateBuildPreparationReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakePipelineDB) UseInputsForBuild(buildID int, inputs []db.BuildInput) error {

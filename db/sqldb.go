@@ -12,6 +12,8 @@ type SQLDB struct {
 
 	conn Conn
 	bus  *notificationsBus
+
+	buildPrepHelper buildPreparationHelper
 }
 
 func NewSQL(

@@ -158,45 +158,89 @@ var _ = Describe("Keeping track of builds", func() {
 		Expect(actualBuildOutput[0]).To(Equal(expectedBuildOutput))
 	})
 
-	It("can get (no) resources from a one-off build", func() {
-		oneOff, err := database.CreateOneOffBuild()
-		Expect(err).NotTo(HaveOccurred())
+	Context("build creation", func() {
+		var (
+			oneOff db.Build
+			err    error
+		)
 
-		inputs, outputs, err := database.GetBuildResources(oneOff.ID)
-		Expect(err).NotTo(HaveOccurred())
+		BeforeEach(func() {
+			oneOff, err = database.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+		})
 
-		Expect(inputs).To(BeEmpty())
-		Expect(outputs).To(BeEmpty())
+		It("can get (no) resources from a one-off build", func() {
+			inputs, outputs, err := database.GetBuildResources(oneOff.ID)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(inputs).To(BeEmpty())
+			Expect(outputs).To(BeEmpty())
+		})
+
+		It("can create one-off builds with increasing names", func() {
+			Expect(oneOff.ID).NotTo(BeZero())
+			Expect(oneOff.JobName).To(BeZero())
+			Expect(oneOff.Name).To(Equal("1"))
+			Expect(oneOff.Status).To(Equal(db.StatusPending))
+
+			oneOffGot, found, err := database.GetBuild(oneOff.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(oneOffGot).To(Equal(oneOff))
+
+			jobBuild, err := pipelineDB.CreateJobBuild("some-other-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(jobBuild.Name).To(Equal("1"))
+
+			nextOneOff, err := database.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(nextOneOff.ID).NotTo(BeZero())
+			Expect(nextOneOff.ID).NotTo(Equal(oneOff.ID))
+			Expect(nextOneOff.JobName).To(BeZero())
+			Expect(nextOneOff.Name).To(Equal("2"))
+			Expect(nextOneOff.Status).To(Equal(db.StatusPending))
+
+			allBuilds, _, err := database.GetBuilds(db.Page{Limit: 100})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(allBuilds).To(Equal([]db.Build{nextOneOff, jobBuild, oneOff}))
+		})
+
+		It("also creates buildpreparation", func() {
+			buildPrep, found, err := database.GetBuildPreparation(oneOff.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(buildPrep.BuildID).To(Equal(oneOff.ID))
+		})
 	})
 
-	It("can create one-off builds with increasing names", func() {
-		oneOff, err := database.CreateOneOffBuild()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(oneOff.ID).NotTo(BeZero())
-		Expect(oneOff.JobName).To(BeZero())
-		Expect(oneOff.Name).To(Equal("1"))
-		Expect(oneOff.Status).To(Equal(db.StatusPending))
+	Describe("build preparation update", func() {
+		var (
+			oneOff db.Build
+			err    error
+		)
+		BeforeEach(func() {
+			oneOff, err = database.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+		})
 
-		oneOffGot, found, err := database.GetBuild(oneOff.ID)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
-		Expect(oneOffGot).To(Equal(oneOff))
+		It("can update a builds build preparation", func() {
+			buildPrep, found, err := database.GetBuildPreparation(oneOff.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-		jobBuild, err := pipelineDB.CreateJobBuild("some-other-job")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(jobBuild.Name).To(Equal("1"))
+			buildPrep.PausedPipeline = db.BuildPreparationStatusBlocking
+			buildPrep.Inputs["banana"] = "doesnt matter"
 
-		nextOneOff, err := database.CreateOneOffBuild()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(nextOneOff.ID).NotTo(BeZero())
-		Expect(nextOneOff.ID).NotTo(Equal(oneOff.ID))
-		Expect(nextOneOff.JobName).To(BeZero())
-		Expect(nextOneOff.Name).To(Equal("2"))
-		Expect(nextOneOff.Status).To(Equal(db.StatusPending))
+			err = database.UpdateBuildPreparation(buildPrep)
+			Expect(err).NotTo(HaveOccurred())
 
-		allBuilds, _, err := database.GetBuilds(db.Page{Limit: 100})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(allBuilds).To(Equal([]db.Build{nextOneOff, jobBuild, oneOff}))
+			newBuildPrep, found, err := database.GetBuildPreparation(oneOff.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(newBuildPrep).To(Equal(buildPrep))
+		})
 	})
 
 	Describe("GetAllStartedBuilds", func() {
