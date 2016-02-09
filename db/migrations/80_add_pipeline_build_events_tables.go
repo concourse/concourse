@@ -118,10 +118,5 @@ func populateBuildEventsTable(tx migration.LimitedTx, pipelineID int) error {
 		return fmt.Errorf("failed to insert: %s", err)
 	}
 
-	affected, err := rows.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to determine rows affected: %s", err)
-	}
-
 	return err
 }
