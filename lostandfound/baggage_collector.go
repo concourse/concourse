@@ -165,8 +165,12 @@ func (bc *baggageCollector) getSortedVolumes() ([]db.SavedVolume, error) {
 	return sorted, nil
 }
 
+type volumeIdentifierAndWorkerNameSet map[string]bool
+
 func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error {
 	volumesToExpire, err := bc.getSortedVolumes()
+
+	seenVolumeIdentifierAndWorkerNameCombos := volumeIdentifierAndWorkerNameSet{}
 
 	if err != nil {
 		bc.logger.Error("could-not-get-volume-data", err)
@@ -177,11 +181,15 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 		version, _ := json.Marshal(volumeToExpire.ResourceVersion)
 		hashKey := string(version) + volumeToExpire.ResourceHash
 
-		// This first occurrence of hashKey in volumes has the lowest handle alphabetically.
-		// We should treat all later occurences of hashKey as unrecognized so that
-		// they expire because they are redundant. Pop hashKey from latest versions
-		// so that we won't recognize it next time.
-		ttlForVol := popWithDefault(latestVersions, hashKey, bc.oldResourceGracePeriod)
+		var ttlForVol time.Duration
+
+		volumeIdentifierAndWorkerNameCombo := hashKey + volumeToExpire.WorkerName
+		if contains(seenVolumeIdentifierAndWorkerNameCombos, volumeIdentifierAndWorkerNameCombo) {
+			ttlForVol = bc.oldResourceGracePeriod
+		} else {
+			seenVolumeIdentifierAndWorkerNameCombos[volumeIdentifierAndWorkerNameCombo] = true
+			ttlForVol = getWithDefault(latestVersions, hashKey, bc.oldResourceGracePeriod)
+		}
 
 		volumeWorker, err := bc.workerClient.GetWorker(volumeToExpire.WorkerName)
 		if err != nil {
@@ -255,11 +263,14 @@ func (s sortByHandle) Len() int           { return len(s) }
 func (s sortByHandle) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s sortByHandle) Less(i, j int) bool { return s[i].Volume.Handle < s[j].Volume.Handle }
 
-func popWithDefault(latestVersions hashedVersionSet, hashKey string, defaultTTL time.Duration) time.Duration {
+func contains(set volumeIdentifierAndWorkerNameSet, item string) bool {
+	value, found := set[item]
+	return found && value
+}
+
+func getWithDefault(latestVersions hashedVersionSet, hashKey string, defaultTTL time.Duration) time.Duration {
 	ttl, found := latestVersions[hashKey]
-	if found {
-		delete(latestVersions, hashKey)
-	} else {
+	if !found {
 		ttl = defaultTTL
 	}
 	return ttl
