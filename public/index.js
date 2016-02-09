@@ -44,7 +44,7 @@ function drawContinuously(svg, groups) {
       .attr("class", function(edge) { return "edge " + edge.source.node.status })
 
     svgEdges.each(function(edge) {
-      if (edge.customData.trigger === false) {
+      if ("trigger" in edge.customData && edge.customData.trigger === false) {
         d3.select(this).classed("trigger-false", true)
       }
     })
