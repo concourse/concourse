@@ -27,7 +27,7 @@ resources:
 - name: bin-releases
   type: github-release
   source:
-    user: vito
+    user: concourse
     repository: bin
     access_token: {{release-token}}
 
