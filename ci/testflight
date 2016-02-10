@@ -93,7 +93,8 @@ wait_for_proc_port web $webpid 8080
 $CONCOURSE worker \
   --work-dir /etc/concourse \
   --tsa-worker-private-key /etc/concourse/worker \
-  --tsa-public-key /etc/concourse/tsa-host.pub &
+  --tsa-public-key /etc/concourse/tsa-host.pub \
+  -- -networkPool 10.255.0.0/22 &
 workerpid=$!
 
 wait_for_proc_port worker $workerpid 7777
