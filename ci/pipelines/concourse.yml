@@ -676,6 +676,8 @@ jobs:
       file: bin/ci/build-darwin.yml
     - task: build-windows
       file: bin/ci/build-windows.yml
+  - task: testflight
+    file: bin/ci/testflight.yml
   - task: build-release
     file: bin/ci/build-release.yml
   - put: bin-releases
