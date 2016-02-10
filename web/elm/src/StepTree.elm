@@ -552,7 +552,7 @@ viewStep actions model {id, name, log, state, error, expanded, version, metadata
               Nothing ->
                 Html.span [] []
               Just msg ->
-                Html.span [class "error"] [Html.text msg]
+                Html.span [class "error"] [ Html.pre [] [Html.text msg] ]
           ]
         else
           []
