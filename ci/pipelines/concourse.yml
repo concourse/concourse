@@ -13,9 +13,10 @@ groups:
   - minor
   - patch
   - rc
+  - bosh-rc
+  - bin-rc
   - shipit
   - testflight
-  - build-bin
 
 - name: publish
   jobs:
@@ -111,22 +112,6 @@ jobs:
   - task: build
     file: concourse/ci/tsa.yml
 
-- name: rc
-  public: true
-  serial_groups: [version]
-  plan:
-  - get: concourse
-    trigger: true
-    passed: [atc, fly, go-concourse, blackbox, tsa, jettison, baggageclaim]
-  - get: version
-    params: {pre: rc}
-  - task: create-candidate-release
-    file: concourse/ci/create-candidate-release.yml
-  - put: candidate-release
-    params: {file: candidate-release/concourse-*.tgz}
-  - put: version
-    params: {file: version/number}
-
 - name: major
   public: true
   serial_groups: [version]
@@ -155,6 +140,71 @@ jobs:
     trigger: true
   - put: version
     params: {file: version/number}
+
+- name: rc
+  public: true
+  serial_groups: [version]
+  plan:
+  - get: concourse
+    trigger: true
+    passed: [atc, fly, go-concourse, blackbox, tsa, jettison, baggageclaim]
+  - get: version
+    params: {pre: rc}
+  - put: version
+    params: {file: version/number}
+
+- name: bosh-rc
+  public: true
+  plan:
+  - get: concourse
+    passed: [rc]
+    trigger: true
+  - get: version
+    passed: [rc]
+    trigger: true
+  - task: create-candidate-release
+    file: concourse/ci/create-candidate-release.yml
+  - put: candidate-release
+    params: {file: candidate-release/concourse-*.tgz}
+
+- name: bin-rc
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [rc]
+      trigger: true
+    - get: version
+      passed: [rc]
+      trigger: true
+    - get: garden-linux
+      trigger: true
+    - get: bin
+      trigger: true
+    - get: houdini
+      trigger: true
+    - get: garden-linux-src
+  - task: checkout-release-tag
+    file: concourse/ci/checkout-garden-linux.yml
+  - aggregate:
+    - task: build-linux
+      file: bin/ci/build-linux.yml
+    - task: build-darwin
+      file: bin/ci/build-darwin.yml
+    - task: build-windows
+      file: bin/ci/build-windows.yml
+  - task: testflight
+    file: bin/ci/testflight.yml
+    privileged: true
+  - task: build-release
+    file: bin/ci/build-release.yml
+  - put: bin-releases
+    params:
+      name: release/name
+      tag: release/tag
+      body: release/body
+      globs: [release/artifacts/*]
 
 - name: provision
   serial: true
@@ -195,15 +245,16 @@ jobs:
     do:
     - aggregate:
       - get: concourse
-        passed: [rc]
+        passed: [bosh-rc, bin-rc]
         trigger: true
       - get: candidate-release
-        passed: [rc]
+        passed: [bosh-rc]
         trigger: true
       - get: version
-        passed: [rc]
+        passed: [bosh-rc, bin-rc]
         trigger: true
       - get: garden-linux-release
+        passed: [bin-rc]
         trigger: true
         resource: garden-linux
       - get: lite-stemcell
@@ -651,42 +702,6 @@ jobs:
         TRACKER_TOKEN: {{tracksuit-tracker-token}}
         PROJECT_ID: 1059262
         ORGANIZATION: concourse
-
-- name: build-bin
-  serial: true
-  plan:
-  - aggregate:
-    - get: concourse
-      passed: [deploy]
-      trigger: true
-    - get: garden-linux
-      passed: [deploy]
-      trigger: true
-    - get: bin
-      trigger: true
-    - get: houdini
-      trigger: true
-    - get: garden-linux-src
-  - task: checkout-release-tag
-    file: concourse/ci/checkout-garden-linux.yml
-  - aggregate:
-    - task: build-linux
-      file: bin/ci/build-linux.yml
-    - task: build-darwin
-      file: bin/ci/build-darwin.yml
-    - task: build-windows
-      file: bin/ci/build-windows.yml
-  - task: testflight
-    file: bin/ci/testflight.yml
-    privileged: true
-  - task: build-release
-    file: bin/ci/build-release.yml
-  - put: bin-releases
-    params:
-      name: release/name
-      tag: release/tag
-      body: release/body
-      globs: [release/artifacts/*]
 
 resources:
 - name: version
