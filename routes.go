@@ -6,13 +6,14 @@ const (
 	SaveConfig = "SaveConfig"
 	GetConfig  = "GetConfig"
 
-	GetBuild       = "GetBuild"
-	GetBuildPlan   = "GetBuildPlan"
-	CreateBuild    = "CreateBuild"
-	ListBuilds     = "ListBuilds"
-	BuildEvents    = "BuildEvents"
-	BuildResources = "BuildResources"
-	AbortBuild     = "AbortBuild"
+	GetBuild            = "GetBuild"
+	GetBuildPlan        = "GetBuildPlan"
+	CreateBuild         = "CreateBuild"
+	ListBuilds          = "ListBuilds"
+	BuildEvents         = "BuildEvents"
+	BuildResources      = "BuildResources"
+	AbortBuild          = "AbortBuild"
+	GetBuildPreparation = "GetBuildPreparation"
 
 	GetJob         = "GetJob"
 	CreateJobBuild = "CreateJobBuild"
@@ -77,6 +78,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/builds/:build_id/events", Method: "GET", Name: BuildEvents},
 	{Path: "/api/v1/builds/:build_id/resources", Method: "GET", Name: BuildResources},
 	{Path: "/api/v1/builds/:build_id/abort", Method: "POST", Name: AbortBuild},
+	{Path: "/api/v1/builds/:build_id/preparation", Method: "GET", Name: GetBuildPreparation},
 
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs", Method: "GET", Name: ListJobs},
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name", Method: "GET", Name: GetJob},

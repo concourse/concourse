@@ -843,6 +843,74 @@ var _ = Describe("Builds API", func() {
 		})
 	})
 
+	Describe("GET /api/v1/builds/:build_id/preparation", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+			response, err = http.Get(server.URL + "/api/v1/builds/42/preparation")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when the build is found", func() {
+			var buildPrep db.BuildPreparation
+
+			BeforeEach(func() {
+				buildPrep = db.BuildPreparation{
+					BuildID:          42,
+					PausedPipeline:   db.BuildPreparationStatusNotBlocking,
+					PausedJob:        db.BuildPreparationStatusNotBlocking,
+					MaxRunningBuilds: db.BuildPreparationStatusBlocking,
+					Inputs: map[string]db.BuildPreparationStatus{
+						"foo": db.BuildPreparationStatusUnknown,
+						"bar": db.BuildPreparationStatusBlocking,
+					},
+				}
+				buildsDB.GetBuildPreparationReturns(buildPrep, true, nil)
+			})
+
+			It("returns OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns the build preparation", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`{
+					"build_id": 42,
+					"paused_pipeline": "not_blocking",
+					"paused_job": "not_blocking",
+					"max_running_builds": "blocking",
+					"inputs": {
+						"foo": "unknown",
+						"bar": "blocking"
+					}
+				}`))
+			})
+		})
+
+		Context("when the build preparation is not found", func() {
+			BeforeEach(func() {
+				buildsDB.GetBuildPreparationReturns(db.BuildPreparation{}, false, nil)
+			})
+
+			It("returns Not Found", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+		})
+
+		Context("when looking up the build preparation fails", func() {
+			BeforeEach(func() {
+				buildsDB.GetBuildPreparationReturns(db.BuildPreparation{}, false, errors.New("ho ho ho merry festivus"))
+			})
+
+			It("returns 500 Internal Server Error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+	})
+
 	Describe("GET /api/v1/builds/:build_id/plan", func() {
 		var publicPlan atc.PublicBuildPlan
 

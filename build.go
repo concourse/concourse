@@ -39,3 +39,19 @@ func (b Build) Abortable() bool {
 func (b Build) OneOff() bool {
 	return b.JobName == ""
 }
+
+type BuildPreparationStatus string
+
+const (
+	BuildPreparationStatusUnknown     BuildPreparationStatus = "unknown"
+	BuildPreparationStatusBlocking    BuildPreparationStatus = "blocking"
+	BuildPreparationStatusNotBlocking BuildPreparationStatus = "not_blocking"
+)
+
+type BuildPreparation struct {
+	BuildID          int                               `json:"build_id"`
+	PausedPipeline   BuildPreparationStatus            `json:"paused_pipeline"`
+	PausedJob        BuildPreparationStatus            `json:"paused_job"`
+	MaxRunningBuilds BuildPreparationStatus            `json:"max_running_builds"`
+	Inputs           map[string]BuildPreparationStatus `json:"inputs"`
+}

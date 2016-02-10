@@ -86,7 +86,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListPipelines,
 			atc.GetPipeline,
 			atc.ListResources,
-			atc.GetBuildPlan:
+			atc.GetBuildPlan,
+			atc.GetBuildPreparation:
 			if !wrappa.PubliclyViewable {
 				newHandler = auth.CheckAuthHandler(handler, rejector)
 			}

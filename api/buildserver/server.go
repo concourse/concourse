@@ -36,6 +36,7 @@ type BuildsDB interface {
 	GetBuild(buildID int) (db.Build, bool, error)
 	GetBuildEvents(buildID int, from uint) (db.EventSource, error)
 	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
+	GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error)
 
 	GetBuilds(db.Page) ([]db.Build, db.Pagination, error)
 
