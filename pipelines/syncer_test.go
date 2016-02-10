@@ -125,11 +125,32 @@ var _ = Describe("Pipelines Syncer", func() {
 					},
 				},
 			}, nil)
+
+			buildPreps := []db.BuildPreparation{
+				{
+					BuildID:        1,
+					PausedPipeline: db.BuildPreparationStatusNotBlocking,
+				},
+				{
+					BuildID:        2,
+					PausedPipeline: db.BuildPreparationStatusBlocking,
+				},
+			}
+
+			pipelinesDB.GetBuildPrepsForPendingBuildsForPipelineReturns(buildPreps, nil)
 		})
 
 		It("does not spawn a process for it", func() {
 			Expect(fakeRunner.RunCallCount()).To(Equal(1))
 			Expect(otherFakeRunner.RunCallCount()).To(Equal(0))
+		})
+
+		It("marks all of the pipelines pending builds buildPrep as blocked", func() {
+			Expect(pipelinesDB.GetBuildPrepsForPendingBuildsForPipelineCallCount()).To(Equal(1))
+			Expect(pipelinesDB.GetBuildPrepsForPendingBuildsForPipelineArgsForCall(0)).To(Equal("other-pipeline"))
+			Expect(pipelinesDB.UpdateBuildPreparationCallCount()).To(Equal(1))
+			Expect(pipelinesDB.UpdateBuildPreparationArgsForCall(0).BuildID).To(Equal(1))
+			Expect(pipelinesDB.UpdateBuildPreparationArgsForCall(0).PausedPipeline).To(Equal(db.BuildPreparationStatusBlocking))
 		})
 	})
 

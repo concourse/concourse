@@ -402,6 +402,20 @@ func (db *SQLDB) UpdateBuildPreparation(buildPrep BuildPreparation) error {
 	return tx.Commit()
 }
 
+func (db *SQLDB) GetBuildPrepsForPendingBuildsForPipeline(pipelineName string) ([]BuildPreparation, error) {
+	rows, err := db.conn.Query(fmt.Sprintf(`
+			SELECT %s
+			FROM build_preparation bp, builds b, jobs j,  pipelines p
+			WHERE bp.build_id = b.id AND b.job_id = j.id AND j.pipeline_id = p.id AND
+			b.status = 'pending' AND p.name = '%s'
+		`, BuildPreparationColumns, pipelineName))
+	if err != nil {
+		return []BuildPreparation{}, err
+	}
+
+	return db.buildPrepHelper.constructBuildPreparations(rows)
+}
+
 func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {

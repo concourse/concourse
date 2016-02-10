@@ -36,6 +36,9 @@ type BuildsDB interface {
 	GetAllStartedBuilds() ([]db.Build, error)
 	ErrorBuild(buildID int, err error) error
 	FinishBuild(int, db.Status) error
+
+	GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error)
+	UpdateBuildPreparation(buildPreparation db.BuildPreparation) error
 }
 
 //go:generate counterfeiter . BuildFactory
@@ -211,8 +214,28 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 	}
 
 	buildInputs := config.JobInputs(job)
+	buildPrep, found, err := s.BuildsDB.GetBuildPreparation(build.ID)
+	if err != nil {
+		logger.Error("failed-to-get-build-prep", err, lager.Data{"build-id": build.ID})
+		return nil
+	}
 
-	if versions == nil {
+	if !found {
+		logger.Debug("failed-to-find-build-prep", lager.Data{"build-id": build.ID})
+		return nil
+	}
+
+	if versions == nil { //HERE - Check boxes as they get updated
+		for _, input := range buildInputs {
+			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusBlocking
+		}
+
+		err = s.BuildsDB.UpdateBuildPreparation(buildPrep)
+		if err != nil {
+			logger.Error("failed-to-update-build-prep", err, lager.Data{"build-id": build.ID})
+			return nil
+		}
+
 		for _, input := range buildInputs {
 			scanLog := logger.Session("scan", lager.Data{
 				"input":    input.Name,
@@ -231,6 +254,14 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 				return nil
 			}
 
+			buildPrep = s.cloneBuildPrep(buildPrep)
+			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusNotBlocking
+			err = s.BuildsDB.UpdateBuildPreparation(buildPrep)
+			if err != nil {
+				logger.Error("failed-to-update-build-prep", err, lager.Data{"build-id": build.ID})
+				return nil
+			}
+
 			scanLog.Info("done")
 		}
 
@@ -246,6 +277,15 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 		}
 
 		vLog.Info("done", lager.Data{"took": time.Since(loadStart).String()})
+	} else {
+		for _, input := range buildInputs {
+			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusNotBlocking
+		}
+		err := s.BuildsDB.UpdateBuildPreparation(buildPrep)
+		if err != nil {
+			logger.Error("failed-to-update-build-prep", err)
+			return nil
+		}
 	}
 
 	inputs, found, err := s.PipelineDB.GetLatestInputVersions(versions, job.Name, buildInputs)
@@ -287,4 +327,23 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 	}
 
 	return createdBuild
+}
+
+// Turns out that counterfieter clones the pointer in the build prep so when
+// the build prep gets modified, so does the copy in the fake. This clone is
+// done to get around this. God damn it counterfeiter.
+func (s *Scheduler) cloneBuildPrep(buildPrep db.BuildPreparation) db.BuildPreparation {
+	clone := db.BuildPreparation{
+		BuildID:          buildPrep.BuildID,
+		PausedPipeline:   buildPrep.PausedPipeline,
+		PausedJob:        buildPrep.PausedJob,
+		MaxRunningBuilds: buildPrep.MaxRunningBuilds,
+		Inputs:           map[string]db.BuildPreparationStatus{},
+	}
+
+	for key, value := range buildPrep.Inputs {
+		clone.Inputs[key] = value
+	}
+
+	return clone
 }

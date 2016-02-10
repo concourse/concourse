@@ -369,6 +369,10 @@ var _ = Describe("Scheduler", func() {
 					Context("and it can be scheduled", func() {
 						BeforeEach(func() {
 							fakePipelineDB.ScheduleBuildReturns(true, nil)
+							fakeBuildsDB.GetBuildPreparationReturns(db.BuildPreparation{
+								BuildID: 128,
+								Inputs:  map[string]db.BuildPreparationStatus{},
+							}, true, nil)
 						})
 
 						Context("and creating the engine build succeeds", func() {
@@ -377,6 +381,10 @@ var _ = Describe("Scheduler", func() {
 							BeforeEach(func() {
 								createdBuild = new(enginefakes.FakeBuild)
 								fakeEngine.CreateBuildReturns(createdBuild, nil)
+								fakeBuildsDB.GetBuildPreparationReturns(db.BuildPreparation{
+									BuildID: 128,
+									Inputs:  map[string]db.BuildPreparationStatus{},
+								}, true, nil)
 							})
 
 							It("triggers a build of the job with the found inputs", func() {
@@ -568,6 +576,18 @@ var _ = Describe("Scheduler", func() {
 			Context("when it can be scheduled", func() {
 				BeforeEach(func() {
 					fakePipelineDB.ScheduleBuildReturns(true, nil)
+					fakeBuildsDB.GetBuildPreparationReturns(db.BuildPreparation{
+						BuildID: pendingBuild.ID,
+						Inputs:  map[string]db.BuildPreparationStatus{},
+					}, true, nil)
+				})
+
+				It("should update the build preparation inputs with the correct state", func() {
+					Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(Equal(1))
+					Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(0).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
+						"some-input":       db.BuildPreparationStatusNotBlocking,
+						"some-other-input": db.BuildPreparationStatusNotBlocking,
+					}))
 				})
 
 				Context("when creating the engine build succeeds", func() {
@@ -731,6 +751,10 @@ var _ = Describe("Scheduler", func() {
 			Context("and it can be scheduled", func() {
 				BeforeEach(func() {
 					fakePipelineDB.ScheduleBuildReturns(true, nil)
+					fakeBuildsDB.GetBuildPreparationReturns(db.BuildPreparation{
+						BuildID: createdDBBuild.ID,
+						Inputs:  map[string]db.BuildPreparationStatus{},
+					}, true, nil)
 				})
 
 				Context("and creating the engine build succeeds", func() {
@@ -739,6 +763,26 @@ var _ = Describe("Scheduler", func() {
 					BeforeEach(func() {
 						createdBuild = new(enginefakes.FakeBuild)
 						fakeEngine.CreateBuildReturns(createdBuild, nil)
+					})
+
+					Context("something about how were checking resouces and doing things", func() { //TODO CHANGE DIS
+						It("correctly updates the build prep for every input being used", func() {
+							_, wg, err := scheduler.TriggerImmediately(logger, job, resources)
+							Expect(err).ToNot(HaveOccurred())
+							wg.Wait()
+
+							Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(Equal(3))
+
+							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(0).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
+								"some-input":       db.BuildPreparationStatusBlocking,
+								"some-other-input": db.BuildPreparationStatusBlocking,
+							}))
+
+							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(2).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
+								"some-input":       db.BuildPreparationStatusNotBlocking,
+								"some-other-input": db.BuildPreparationStatusNotBlocking,
+							}))
+						})
 					})
 
 					It("scans for new versions for each input, and queries for the latest job inputs", func() {

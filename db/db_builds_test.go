@@ -243,6 +243,31 @@ var _ = Describe("Keeping track of builds", func() {
 		})
 	})
 
+	Describe("GetBuildPrepsForPendingBuildsForPipeline", func() {
+		var build db.Build
+		var otherBuild db.Build
+
+		BeforeEach(func() {
+			var err error
+			build, err = pipelineDB.CreateJobBuild("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			otherBuild, err = pipelineDB.CreateJobBuild("some-job")
+			Expect(err).ToNot(HaveOccurred())
+
+			success, err := database.StartBuild(build.ID, "", "")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(success).To(BeTrue())
+		})
+
+		It("only returns back build preps of pending builds", func() {
+			buildPreps, err := database.GetBuildPrepsForPendingBuildsForPipeline(pipelineDB.GetPipelineName())
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(len(buildPreps)).To(Equal(1))
+			Expect(buildPreps[0].BuildID).To(Equal(otherBuild.ID))
+		})
+	})
+
 	Describe("GetAllStartedBuilds", func() {
 		var build1 db.Build
 		var build2 db.Build

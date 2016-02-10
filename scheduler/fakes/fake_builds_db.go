@@ -46,6 +46,24 @@ type FakeBuildsDB struct {
 	finishBuildReturns struct {
 		result1 error
 	}
+	GetBuildPreparationStub        func(buildID int) (db.BuildPreparation, bool, error)
+	getBuildPreparationMutex       sync.RWMutex
+	getBuildPreparationArgsForCall []struct {
+		buildID int
+	}
+	getBuildPreparationReturns struct {
+		result1 db.BuildPreparation
+		result2 bool
+		result3 error
+	}
+	UpdateBuildPreparationStub        func(buildPreparation db.BuildPreparation) error
+	updateBuildPreparationMutex       sync.RWMutex
+	updateBuildPreparationArgsForCall []struct {
+		buildPreparation db.BuildPreparation
+	}
+	updateBuildPreparationReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeBuildsDB) LeaseBuildScheduling(buildID int, interval time.Duration) (db.Lease, bool, error) {
@@ -170,6 +188,72 @@ func (fake *FakeBuildsDB) FinishBuildArgsForCall(i int) (int, db.Status) {
 func (fake *FakeBuildsDB) FinishBuildReturns(result1 error) {
 	fake.FinishBuildStub = nil
 	fake.finishBuildReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildsDB) GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error) {
+	fake.getBuildPreparationMutex.Lock()
+	fake.getBuildPreparationArgsForCall = append(fake.getBuildPreparationArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.getBuildPreparationMutex.Unlock()
+	if fake.GetBuildPreparationStub != nil {
+		return fake.GetBuildPreparationStub(buildID)
+	} else {
+		return fake.getBuildPreparationReturns.result1, fake.getBuildPreparationReturns.result2, fake.getBuildPreparationReturns.result3
+	}
+}
+
+func (fake *FakeBuildsDB) GetBuildPreparationCallCount() int {
+	fake.getBuildPreparationMutex.RLock()
+	defer fake.getBuildPreparationMutex.RUnlock()
+	return len(fake.getBuildPreparationArgsForCall)
+}
+
+func (fake *FakeBuildsDB) GetBuildPreparationArgsForCall(i int) int {
+	fake.getBuildPreparationMutex.RLock()
+	defer fake.getBuildPreparationMutex.RUnlock()
+	return fake.getBuildPreparationArgsForCall[i].buildID
+}
+
+func (fake *FakeBuildsDB) GetBuildPreparationReturns(result1 db.BuildPreparation, result2 bool, result3 error) {
+	fake.GetBuildPreparationStub = nil
+	fake.getBuildPreparationReturns = struct {
+		result1 db.BuildPreparation
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildsDB) UpdateBuildPreparation(buildPreparation db.BuildPreparation) error {
+	fake.updateBuildPreparationMutex.Lock()
+	fake.updateBuildPreparationArgsForCall = append(fake.updateBuildPreparationArgsForCall, struct {
+		buildPreparation db.BuildPreparation
+	}{buildPreparation})
+	fake.updateBuildPreparationMutex.Unlock()
+	if fake.UpdateBuildPreparationStub != nil {
+		return fake.UpdateBuildPreparationStub(buildPreparation)
+	} else {
+		return fake.updateBuildPreparationReturns.result1
+	}
+}
+
+func (fake *FakeBuildsDB) UpdateBuildPreparationCallCount() int {
+	fake.updateBuildPreparationMutex.RLock()
+	defer fake.updateBuildPreparationMutex.RUnlock()
+	return len(fake.updateBuildPreparationArgsForCall)
+}
+
+func (fake *FakeBuildsDB) UpdateBuildPreparationArgsForCall(i int) db.BuildPreparation {
+	fake.updateBuildPreparationMutex.RLock()
+	defer fake.updateBuildPreparationMutex.RUnlock()
+	return fake.updateBuildPreparationArgsForCall[i].buildPreparation
+}
+
+func (fake *FakeBuildsDB) UpdateBuildPreparationReturns(result1 error) {
+	fake.UpdateBuildPreparationStub = nil
+	fake.updateBuildPreparationReturns = struct {
 		result1 error
 	}{result1}
 }

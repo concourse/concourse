@@ -93,6 +93,7 @@ type DB interface {
 	CreateOneOffBuild() (Build, error)
 	GetBuildPreparation(buildID int) (BuildPreparation, bool, error)
 	UpdateBuildPreparation(buildPreparation BuildPreparation) error
+	GetBuildPrepsForPendingBuildsForPipeline(pipelineName string) ([]BuildPreparation, error)
 
 	LeaseBuildTracking(buildID int, interval time.Duration) (Lease, bool, error)
 	LeaseBuildScheduling(buildID int, interval time.Duration) (Lease, bool, error)

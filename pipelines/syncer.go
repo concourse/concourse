@@ -12,6 +12,8 @@ import (
 
 type PipelinesDB interface {
 	GetAllPipelines() ([]db.SavedPipeline, error)
+	GetBuildPrepsForPendingBuildsForPipeline(pipelineName string) ([]db.BuildPreparation, error)
+	UpdateBuildPreparation(buildPreparation db.BuildPreparation) error
 }
 
 type PipelineRunnerFactory func(db.PipelineDB) ifrit.Runner
@@ -97,6 +99,34 @@ func (syncer *Syncer) Sync() {
 			Exited:  process.Wait(),
 		}
 	}
+
+	for _, pipeline := range pipelines {
+		if pipeline.Paused {
+			err := syncer.updateBuildPrepsForPendingBuilds(pipeline)
+			if err != nil {
+				syncer.logger.Error("cannot-find-build-preps-for-pipeline", err, lager.Data{"pipeline-id": pipeline.ID})
+			}
+		}
+	}
+}
+
+func (syncer *Syncer) updateBuildPrepsForPendingBuilds(pipeline db.SavedPipeline) error {
+	buildPreps, err := syncer.pipelinesDB.GetBuildPrepsForPendingBuildsForPipeline(pipeline.Name)
+	if err != nil {
+		return err
+	}
+
+	for _, buildPrep := range buildPreps {
+		if buildPrep.PausedPipeline != db.BuildPreparationStatusBlocking {
+			buildPrep.PausedPipeline = db.BuildPreparationStatusBlocking
+			err = syncer.pipelinesDB.UpdateBuildPreparation(buildPrep)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (syncer *Syncer) removePipeline(pipelineID int) {

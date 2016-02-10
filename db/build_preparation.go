@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 )
 
 type BuildPreparationStatus string
@@ -18,10 +20,12 @@ type BuildPreparation struct {
 	PausedPipeline   BuildPreparationStatus
 	PausedJob        BuildPreparationStatus
 	MaxRunningBuilds BuildPreparationStatus
-	Inputs           map[string]string
+	Inputs           map[string]BuildPreparationStatus
 }
 
 type buildPreparationHelper struct{}
+
+const BuildPreparationColumns string = "build_id, paused_pipeline, paused_job, max_running_builds, inputs"
 
 func (b buildPreparationHelper) CreateBuildPreparation(tx Tx, buildID int) error {
 	_, err := tx.Exec(`
@@ -50,36 +54,62 @@ func (b buildPreparationHelper) UpdateBuildPreparation(tx Tx, buildPrep BuildPre
 	return err
 }
 
-func (b buildPreparationHelper) GetBuildPreparation(conn Conn, passedBuildID int) (BuildPreparation, bool, error) {
-	row := conn.QueryRow(`
-			SELECT build_id, paused_pipeline, paused_job, max_running_builds, inputs
+func (b buildPreparationHelper) GetBuildPreparation(conn Conn, buildID int) (BuildPreparation, bool, error) {
+	rows, err := conn.Query(fmt.Sprintf(`
+			SELECT %s
 			FROM build_preparation
-			WHERE build_id = $1
-		`, passedBuildID)
-
-	var buildID int
-	var pausedPipeline, pausedJob, maxRunningBuilds string
-	var inputsBlob []byte
-
-	err := row.Scan(&buildID, &pausedPipeline, &pausedJob, &maxRunningBuilds, &inputsBlob)
+			WHERE build_id = %d
+		`, BuildPreparationColumns, buildID))
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return BuildPreparation{}, false, nil
+		return BuildPreparation{}, false, err
+	}
+
+	buildPreps, err := b.constructBuildPreparations(rows)
+	if err != nil {
+		return BuildPreparation{}, false, err
+	}
+
+	switch len(buildPreps) {
+	case 0:
+		return BuildPreparation{}, false, nil
+	case 1:
+		return buildPreps[0], true, nil
+	default:
+		return BuildPreparation{}, false, errors.New(fmt.Sprintf("Found too many build preparations for build %d", buildID))
+	}
+}
+
+func (b buildPreparationHelper) constructBuildPreparations(rows *sql.Rows) ([]BuildPreparation, error) {
+	defer rows.Close()
+
+	buildPreps := []BuildPreparation{}
+	for rows.Next() {
+		var buildID int
+		var pausedPipeline, pausedJob, maxRunningBuilds string
+		var inputsBlob []byte
+
+		err := rows.Scan(&buildID, &pausedPipeline, &pausedJob, &maxRunningBuilds, &inputsBlob)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return []BuildPreparation{}, nil
+			}
+			return []BuildPreparation{}, err
 		}
-		return BuildPreparation{}, false, err
+
+		var inputs map[string]BuildPreparationStatus
+		err = json.Unmarshal(inputsBlob, &inputs)
+		if err != nil {
+			return []BuildPreparation{}, err
+		}
+
+		buildPreps = append(buildPreps, BuildPreparation{
+			BuildID:          buildID,
+			PausedPipeline:   BuildPreparationStatus(pausedPipeline),
+			PausedJob:        BuildPreparationStatus(pausedJob),
+			MaxRunningBuilds: BuildPreparationStatus(maxRunningBuilds),
+			Inputs:           inputs,
+		})
 	}
 
-	var inputs map[string]string
-	err = json.Unmarshal(inputsBlob, &inputs)
-	if err != nil {
-		return BuildPreparation{}, false, err
-	}
-
-	return BuildPreparation{
-		BuildID:          buildID,
-		PausedPipeline:   BuildPreparationStatus(pausedPipeline),
-		PausedJob:        BuildPreparationStatus(pausedJob),
-		MaxRunningBuilds: BuildPreparationStatus(maxRunningBuilds),
-		Inputs:           inputs,
-	}, true, nil
+	return buildPreps, nil
 }
