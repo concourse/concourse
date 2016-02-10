@@ -104,7 +104,7 @@ func createBuildEventsTable(tx migration.LimitedTx, pipelineID int) error {
 }
 
 func populateBuildEventsTable(tx migration.LimitedTx, pipelineID int) error {
-	rows, err := tx.Exec(fmt.Sprintf(`
+	_, err := tx.Exec(fmt.Sprintf(`
 		INSERT INTO pipeline_build_events_%[1]d (
 			build_id, type, payload, event_id, version
 		)
