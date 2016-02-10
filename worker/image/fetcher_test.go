@@ -145,6 +145,21 @@ var _ = Describe("Fetcher", func() {
 									}
 								})
 
+								Context("when the cache cannot be initialized", func() {
+									var cacheFail error
+
+									BeforeEach(func() {
+										cacheFail = errors.New("boom! cache.Initialize error")
+										fakeCache.InitializeReturns(cacheFail)
+									})
+
+									It("returns an error when cache initialization fails", func() {
+										Expect(fetchedImage).To(BeNil())
+										Expect(fetchErr).To(Equal(cacheFail))
+										Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(0))
+									})
+								})
+
 								Context("when the resource has a volume", func() {
 									var (
 										fakeVolume *wfakes.FakeVolume

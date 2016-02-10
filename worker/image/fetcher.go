@@ -148,7 +148,10 @@ func (fetcher Fetcher) FetchImage(
 			return nil, err
 		}
 
-		cache.Initialize()
+		err = cache.Initialize()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	volume, found, err := getResource.CacheVolume()
