@@ -1,0 +1,101 @@
+#!/bin/bash
+
+set -e -x -u
+
+apt-get update
+
+# TODO: shouldn't need btrfs-tools installed, but unfortunately the packaged
+# binaries use shared libs
+apt-get -y install openssh-client netcat iptables btrfs-tools
+
+CONCOURSE=$PWD/linux-binary/concourse_linux_amd64
+chmod +x $CONCOURSE
+
+# start postgres and set up passwordless superuser
+/etc/init.d/postgresql start
+yes "" | sudo su postgres -c "createuser -s -P $(whoami)"
+createdb atc
+
+# break out of bosh-lite device limitations
+function permit_device_control() {
+  local devices_mount_info=$(cat /proc/self/cgroup | grep devices)
+
+  if [ -z "$devices_mount_info" ]; then
+    # cgroups not set up; must not be in a container
+    return
+  fi
+
+  local devices_subsytems=$(echo $devices_mount_info | cut -d: -f2)
+  local devices_subdir=$(echo $devices_mount_info | cut -d: -f3)
+
+  if [ "$devices_subdir" = "/" ]; then
+    # we're in the root devices cgroup; must not be in a container
+    return
+  fi
+
+  cgroup_dir=/tmp/devices-cgroup
+
+  if [ ! -e ${cgroup_dir} ]; then
+    # mount our container's devices subsystem somewhere
+    mkdir ${cgroup_dir}
+  fi
+
+  if ! mountpoint -q ${cgroup_dir}; then
+    mount -t cgroup -o $devices_subsytems none ${cgroup_dir}
+  fi
+
+  # permit our cgroup to do everything with all devices
+  # ignore failure in case something has already done this; echo appears to
+  # return EINVAL, possibly because devices this affects are already in use
+  echo a > ${cgroup_dir}${devices_subdir}/devices.allow || true
+}
+
+function wait_for_proc_port() {
+  name=$1
+  pid=$2
+  port=$3
+
+  until nc -w1 127.0.0.1 $port </dev/null; do
+    if ! kill -0 $pid; then
+      echo "${name} exited; aborting"
+      exit 1
+    fi
+
+    echo "waiting for ${name}..."
+    sleep 1
+  done
+}
+
+# set up loopbacks for baggageclaim
+permit_device_control
+for i in $(seq 64); do
+  mknod -m 0660 /dev/loop$i b 7 $i
+done
+
+# set up keys
+mkdir /etc/concourse
+ssh-keygen -f /etc/concourse/tsa-host -N ''
+ssh-keygen -f /etc/concourse/worker -N ''
+ssh-keygen -f /etc/concourse/session-signing-key -N ''
+
+export ATC_URL=http://$(hostname -i):8080
+
+$CONCOURSE web \
+  --external-url $ATC_URL \
+  --tsa-host-key /etc/concourse/tsa-host \
+  --tsa-authorized-keys /etc/concourse/worker.pub \
+  --session-signing-key /etc/concourse/session-signing-key \
+  --development-mode &
+webpid=$!
+
+wait_for_proc_port web $webpid 8080
+
+$CONCOURSE worker \
+  --work-dir /etc/concourse \
+  --tsa-worker-private-key /etc/concourse/worker \
+  --tsa-public-key /etc/concourse/tsa-host.pub &
+workerpid=$!
+
+wait_for_proc_port worker $workerpid 7777
+
+./concourse/ci/scripts/testflight
