@@ -49,6 +49,7 @@ jobs:
     - get: git-resource
       trigger: true
     - get: busybox-git-image
+      params: {save: true}
       passed: [busybox-git]
       trigger: true
   - put: resource-image
@@ -74,6 +75,7 @@ jobs:
     - get: pool-resource
       trigger: true
     - get: busybox-git-image
+      params: {save: true}
       passed: [busybox-git]
       trigger: true
   - task: unit
@@ -101,6 +103,7 @@ jobs:
     - get: docker-image-resource
       trigger: true
     - get: busybox-iptables-image
+      params: {save: true}
       passed: [busybox-iptables]
       trigger: true
   - task: build-resource
@@ -126,6 +129,7 @@ jobs:
   plan:
   - aggregate:
     - get: busybox-image
+      params: {save: true}
       trigger: true
     - get: time-resource
       trigger: true
@@ -152,6 +156,7 @@ jobs:
   plan:
   - aggregate:
     - get: busybox-git-image
+      params: {save: true}
       passed: [busybox-git]
       trigger: true
     - get: archive-resource
@@ -179,6 +184,7 @@ jobs:
   plan:
   - aggregate:
     - get: busybox-ruby-image
+      params: {save: true}
       passed: [busybox-ruby]
       trigger: true
     - get: bosh-deployment-resource
@@ -200,19 +206,12 @@ jobs:
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
-- name: broker-resource
-  serial: true
-  plan:
-  - get: broker-resource
-    trigger: true
-  - task: unit
-    file: broker-resource/build.yml
-
 - name: s3-resource
   serial: true
   plan:
   - aggregate:
     - get: progrium-busybox-image
+      params: {save: true}
       trigger: true
     - get: s3-resource
       trigger: true
@@ -246,6 +245,7 @@ jobs:
   plan:
   - aggregate:
     - get: progrium-busybox-image
+      params: {save: true}
       trigger: true
     - get: github-release-resource
       trigger: true
@@ -272,6 +272,7 @@ jobs:
   plan:
   - aggregate:
     - get: progrium-busybox-image
+      params: {save: true}
       trigger: true
     - get: cf-resource
       trigger: true
@@ -305,6 +306,7 @@ jobs:
   plan:
   - aggregate:
     - get: busybox-git-image
+      params: {save: true}
       passed: [busybox-git]
       trigger: true
     - get: semver-resource
@@ -338,6 +340,7 @@ jobs:
   plan:
   - aggregate:
     - get: busybox-git-image
+      params: {save: true}
       passed: [busybox-git]
       trigger: true
     - get: bosh-io-release-resource
@@ -363,6 +366,7 @@ jobs:
   plan:
   - aggregate:
     - get: busybox-git-image
+      params: {save: true}
       passed: [busybox-git]
       trigger: true
     - get: bosh-io-stemcell-resource
@@ -390,6 +394,7 @@ jobs:
   plan:
   - aggregate:
     - get: busybox-git-image
+      params: {save: true}
       passed: [busybox-git]
       trigger: true
     - get: tracker-resource
@@ -418,6 +423,7 @@ jobs:
   plan:
   - aggregate:
     - get: busybox-git-image
+      params: {save: true}
       passed: [busybox-git]
       trigger: true
     - get: vagrant-cloud-resource
@@ -478,12 +484,6 @@ resources:
   type: git
   source:
     uri: https://github.com/concourse/cf-resource.git
-    branch: master
-
-- name: broker-resource
-  type: git
-  source:
-    uri: https://github.com/concourse/broker-resource.git
     branch: master
 
 - name: s3-resource
