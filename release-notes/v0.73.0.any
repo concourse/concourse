@@ -1,0 +1,40 @@
+#language anatomy
+
+\title{v0.73.0}
+
+\list{
+  The \reference{fly-destroy-pipeline} command now runs much quicker.
+  Unfortunately to implement this there's a massive database migration. Expect
+ $quite a few minutes of downtime while you upgrade to this version, depending
+ on how many builds you have and how chatty they are. Sorry about that.
+}{
+  \italic{Backwards-incompatible:} the
+  \hyperlink{https://github.com/concourse/docker-image-resource}{Docker Image
+  resource} no longer produces the \code{docker save}d image by default. This
+  is to reduce disk usage when using the resource as an
+  \reference{image_resource}. You must now pass \code{save: true} as part of
+  \code{params} on the \reference{get-step} step to produce the \code{image}
+  file.
+}{
+  Inputs to jobs that are not configured to \reference{trigger} the job when
+  new versions appear will now be rendered with a dashed line. This makes it
+  easier to see which resources automate the pipeline flow, and which jobs are
+  only ever manually triggered.
+}{
+  The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker
+  Image resource} no longer worked for images configured with
+  \code{ENTRYPOINT}s as of \reference{v0.72.0}, and ended up running whatever
+  the entrypoint was, with our internal binary tool as an argument. It now
+  works again. Our bad.
+}{
+  The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker
+  Image resource} now supports a \code{dockerfile} parameter for specifying a
+  path to the \code{Dockerfile} to use.
+}{
+  The \hyperlink{https://github.com/concourse/git-resource}{Git resource} now
+  supports producing annotated tags via the \code{annotate} parameter.
+}{
+  The \hyperlink{https://github.com/concourse/git-resource}{Git resource} now
+  supports checking for tag patterns like \code{*-production} via the
+  \code{tag_filter} source configuration.
+}
