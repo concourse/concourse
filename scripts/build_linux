@@ -11,7 +11,7 @@ mkdir -p $ROOT/linux/bin
 cp /opt/static-assets/tar $ROOT/linux/bin/tar
 
 mkdir -p $ROOT/linux/btrfs
-cp /opt/static-assets/btrfs /opt/static-assets/mkfs/mkfs.btrfs $ROOT/linux/btrfs
+cp /opt/static-assets/btrfs /opt/static-assets/mkfs.btrfs $ROOT/linux/btrfs
 
 pushd garden-linux-release/
   bosh sync-blobs
