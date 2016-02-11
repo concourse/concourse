@@ -21,6 +21,9 @@
   easier to see which resources automate the pipeline flow, and which jobs are
   only ever manually triggered.
 }{
+  A pending build will now indicate why it's pending, via a checklist that
+  appears at the top of the build output. (Yay!)
+}{
   The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker
   Image resource} no longer worked for images configured with
   \code{ENTRYPOINT}s as of \reference{v0.72.0}, and ended up running whatever
