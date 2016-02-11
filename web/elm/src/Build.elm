@@ -283,7 +283,7 @@ viewBuildPrep prep =
     Just prep ->
       Html.div [class "build-step"]
         [ Html.div [class "header"]
-            [ Html.i [class "left fa fa-fw fa-wrench"] []
+            [ Html.i [class "left fa fa-fw fa-cogs"] []
             , Html.h3 [] [Html.text "preparing build"]
             ]
         , Html.div []
