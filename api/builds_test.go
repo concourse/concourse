@@ -869,6 +869,11 @@ var _ = Describe("Builds API", func() {
 				buildsDB.GetBuildPreparationReturns(buildPrep, true, nil)
 			})
 
+			It("fetches data from the db", func() {
+				Expect(buildsDB.GetBuildPreparationCallCount()).To(Equal(1))
+				Expect(buildsDB.GetBuildPreparationArgsForCall(0)).To(Equal(buildPrep.BuildID))
+			})
+
 			It("returns OK", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
