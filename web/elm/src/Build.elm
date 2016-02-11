@@ -3,6 +3,7 @@ module Build where
 import Date exposing (Date)
 import Date.Format
 import Debug
+import Dict exposing (Dict)
 import Effects exposing (Effects)
 import Html exposing (Html)
 import Html.Attributes exposing (action, class, classList, href, id, method, title)
@@ -15,6 +16,7 @@ import Time exposing (Time)
 
 import BuildOutput
 import Concourse.Build exposing (Build, BuildDuration)
+import Concourse.BuildPrep exposing (BuildPrep, BuildPrepStatus)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Paginated)
 import LoadingIndicator
@@ -26,6 +28,7 @@ type alias Model =
   , actions : Signal.Address Action
   , buildId : Int
   , build : Maybe Build
+  , buildPrep: Maybe BuildPrep
   , history : List Build
   , status : BuildStatus
   , autoScroll : Bool
@@ -43,6 +46,7 @@ type StepRenderingState
 type Action
   = Noop
   | BuildFetched (Result Http.Error Build)
+  | BuildPrepFetched (Result Http.Error BuildPrep)
   | BuildHistoryFetched (Result Http.Error (Paginated Build))
   | BuildOutputAction BuildOutput.Action
   | BuildStatus BuildStatus Date
@@ -61,6 +65,7 @@ init redirect actions buildId =
       , buildId = buildId
       , output = Nothing
       , build = Nothing
+      , buildPrep = Nothing
       , history = []
       , autoScroll = True
       , status = Concourse.BuildStatus.Pending
@@ -94,6 +99,13 @@ update action model =
 
     BuildFetched (Err err) ->
       Debug.log ("failed to fetch build: " ++ toString err) <|
+        (model, Effects.none)
+
+    BuildPrepFetched (Ok buildPrep) ->
+      handleBuildPrepFetched buildPrep model
+
+    BuildPrepFetched (Err err) ->
+      Debug.log ("failed to fetch build preparation: " ++ toString err) <|
         (model, Effects.none)
 
     BuildOutputAction action ->
@@ -161,7 +173,13 @@ handleBuildFetched build model =
 
 pollUntilStarted : Model -> (Model, Effects Action)
 pollUntilStarted model =
-  (model, fetchBuild Time.second model.buildId)
+  (
+    model,
+    Effects.batch
+      [ (fetchBuild Time.second model.buildId)
+      , (fetchBuildPrep Time.second model.buildId)
+      ]
+  )
 
 initBuildOutput : Build -> Model -> (Model, Effects Action)
 initBuildOutput build model =
@@ -203,6 +221,10 @@ handleHistoryFetched history model =
       (Just url, Nothing) ->
         Debug.crash "impossible"
 
+handleBuildPrepFetched : BuildPrep -> Model -> (Model, Effects Action)
+handleBuildPrepFetched buildPrep model =
+  ({model | buildPrep = Just buildPrep}, Effects.none)
+
 updateStartFinishAt : BuildStatus -> Date -> Model -> Model
 updateStartFinishAt status date model =
   let
@@ -228,11 +250,23 @@ view actions model =
     Just build ->
       Html.div []
         [ viewBuildHeader actions build model
-        , Html.Lazy.lazy (viewBuildOutput actions) model.output
+        , Html.div (id "build-body" :: paddingClass build)
+          [ viewBuildPrep model.buildPrep
+          , Html.Lazy.lazy (viewBuildOutput actions) model.output
+          ]
         ]
 
     _ ->
       LoadingIndicator.view
+
+paddingClass : Build -> List Html.Attribute
+paddingClass build =
+  case build.job of
+    Just _ ->
+      []
+
+    _ ->
+      [class "build-body-noSubHeader"]
 
 viewBuildOutput : Signal.Address Action -> Maybe BuildOutput.Model -> Html
 viewBuildOutput actions output =
@@ -242,6 +276,58 @@ viewBuildOutput actions output =
 
     Nothing ->
       LoadingIndicator.view
+
+viewBuildPrep : Maybe BuildPrep -> Html
+viewBuildPrep prep =
+  case prep of
+    Just prep ->
+      Html.div [class "build-step"]
+        [ Html.div [class "header"]
+            [ Html.i [class "left fa fa-fw fa-wrench"] []
+            , Html.h3 [] [Html.text "preparing build"]
+            ]
+        , Html.div []
+            [ Html.ul [class "prep-status-list"]
+                ( List.append
+                    [ viewBuildPrepLi "checking pipeline is not paused" prep.pausedPipeline
+                    , viewBuildPrepLi "checking job is not paused" prep.pausedJob
+                    , viewBuildPrepLi "checking max-in-flight is not reached" prep.maxRunningBuilds
+                    ]
+                    (viewBuildPrepInputs prep.inputs)
+                )
+            ]
+        ]
+    Nothing ->
+      Html.div [] []
+
+viewBuildPrepInputs : Dict String BuildPrepStatus -> List Html
+viewBuildPrepInputs inputs =
+  List.map viewBuildPrepInput (Dict.toList inputs)
+
+viewBuildPrepInput : (String, BuildPrepStatus) -> Html
+viewBuildPrepInput (name, status) =
+  viewBuildPrepLi ("discovering any new versions of " ++ name) status
+
+viewBuildPrepLi : String -> BuildPrepStatus -> Html
+viewBuildPrepLi text status =
+  Html.li
+    [ classList [
+        ("prep-status", True),
+        ("inactive", status == Concourse.BuildPrep.Unknown)
+      ]
+    ]
+    [ Html.span [class "marker"]
+        [ viewBuildPrepStatus status ]
+    , Html.span []
+        [ Html.text text ]
+    ]
+
+viewBuildPrepStatus : BuildPrepStatus -> Html
+viewBuildPrepStatus status =
+  case status of
+    Concourse.BuildPrep.Unknown -> Html.i [class "fa fa-fw fa-circle-o-notch", title "thinking..."] []
+    Concourse.BuildPrep.Blocking -> Html.i [class "fa fa-fw fa-spin fa-circle-o-notch inactive", title "blocking"] []
+    Concourse.BuildPrep.NotBlocking -> Html.i [class "fa fa-fw fa-check", title "not blocking"] []
 
 viewBuildHeader : Signal.Address Action -> Build -> Model -> Html
 viewBuildHeader actions build {status, now, duration, history} =
@@ -326,6 +412,13 @@ fetchBuild delay buildId =
   Task.sleep delay `Task.andThen` (always <| Concourse.Build.fetch buildId)
     |> Task.toResult
     |> Task.map BuildFetched
+    |> Effects.task
+
+fetchBuildPrep : Time -> Int -> Effects Action
+fetchBuildPrep delay buildId =
+  Task.sleep delay `Task.andThen` (always <| Concourse.BuildPrep.fetch buildId)
+    |> Task.toResult
+    |> Task.map BuildPrepFetched
     |> Effects.task
 
 fetchBuildHistory : Concourse.Build.BuildJob -> Maybe Concourse.Pagination.Page -> Effects Action
