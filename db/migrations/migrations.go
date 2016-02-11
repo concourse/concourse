@@ -84,4 +84,5 @@ var Migrations = []migration.Migrator{
 	CleanUpMassiveUniqueConstraint,
 	AddPipelineBuildEventsTables,
 	AddBuildPreparation,
+	DropCompletedFromBuildPreparation,
 }
