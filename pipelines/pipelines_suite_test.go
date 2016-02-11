@@ -88,7 +88,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		Fail("must have at least one worker that supports git and bosh-deployment resource types")
 	}
 
-	Eventually(gardenClient.Ping).ShouldNot(HaveOccurred())
+	Eventually(gardenClient.Ping).Should(Succeed())
 
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
 })
@@ -111,19 +111,11 @@ func destroyPipeline() {
 		"-t", targetedConcourse,
 		"destroy-pipeline",
 		"-p", pipelineName,
+		"-n",
 	)
-
-	stdin, err := destroyCmd.StdinPipe()
-	Expect(err).NotTo(HaveOccurred())
-
-	defer stdin.Close()
 
 	destroy, err := gexec.Start(destroyCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
-
-	Eventually(destroy).Should(gbytes.Say("are you sure?"))
-
-	fmt.Fprintf(stdin, "y\n")
 
 	<-destroy.Exited
 
@@ -147,39 +139,30 @@ func reconfigurePipeline(argv ...string) {
 		"-t", targetedConcourse,
 		"set-pipeline",
 		"-p", pipelineName,
+		"-n",
 	}, argv...)
 
 	configureCmd := exec.Command(flyBin, args...)
 
-	stdin, err := configureCmd.StdinPipe()
-	Expect(err).NotTo(HaveOccurred())
-
-	defer stdin.Close()
-
 	configure, err := gexec.Start(configureCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
-	Eventually(configure).Should(gbytes.Say("apply configuration?"))
+	<-configure.Exited
+	Expect(configure.ExitCode()).To(Equal(0))
 
-	fmt.Fprintf(stdin, "y\n")
-
-	Eventually(configure).Should(gexec.Exit(0))
 	unpausePipeline()
 }
 
 func unpausePipeline() {
 	unpauseCmd := exec.Command(flyBin, "-t", targetedConcourse, "unpause-pipeline", "-p", pipelineName)
 
-	stdin, err := unpauseCmd.StdinPipe()
-	Expect(err).NotTo(HaveOccurred())
-
-	defer stdin.Close()
-
 	configure, err := gexec.Start(unpauseCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
-	Eventually(configure).Should(gbytes.Say("unpaused '%s'", pipelineName))
-	Eventually(configure).Should(gexec.Exit(0))
+	<-configure.Exited
+	Expect(configure.ExitCode()).To(Equal(0))
+
+	Expect(configure).To(gbytes.Say("unpaused '%s'", pipelineName))
 }
 
 func flyWatch(jobName string, buildName ...string) *gexec.Session {

@@ -7,7 +7,6 @@ import (
 	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 
 	"testing"
 )
@@ -50,5 +49,6 @@ func executeSimpleTask() {
 	fly := exec.Command(flyBin, "-t", targetedConcourse, "execute", "-c", "../fixtures/simple-task.yml")
 	session := helpers.StartFly(fly)
 
-	Eventually(session).Should(gexec.Exit(0))
+	<-session.Exited
+	Expect(session.ExitCode()).To(Equal(0))
 }

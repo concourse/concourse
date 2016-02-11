@@ -53,7 +53,7 @@ func oauthAuthenticationWeb(page *agouti.Page, oauth *oauthAuthCredentials, atcU
 			return err
 		}
 
-		Expect(page.Navigate(urljoiner.Join(atcURL, "login"))).Should(Succeed())
+		Expect(page.Navigate(urljoiner.Join(atcURL, "login"))).To(Succeed())
 		if err != nil {
 			return err
 		}

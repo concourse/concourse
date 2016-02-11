@@ -83,7 +83,7 @@ var _ = Describe("Viewing builds", func() {
 			Expect(page.Navigate(atcRoute(build.URL))).To(Succeed())
 			Eventually(page).Should(HaveURL(atcRoute(fmt.Sprintf("/builds/%d", build.ID))))
 			Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("build #%d", build.ID)))
-			Expect(page.Find("#builds").Text()).Should(BeEmpty())
+			Expect(page.Find("#builds").Text()).To(BeEmpty())
 
 			Eventually(page.Find("#page-header.succeeded")).Should(BeFound())
 			Eventually(page.Find(".build-duration").Text).Should(ContainSubstring("duration"))

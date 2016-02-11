@@ -8,33 +8,15 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
-func shouldRunSuccesfully(passedArgs ...string) {
-	args := append([]string{"-t", targetedConcourse}, passedArgs...)
-	fly := exec.Command(flyBin, args...)
-	session := helpers.StartFly(fly)
-
-	Eventually(session).Should(gexec.Exit(0))
-}
-
-func shouldRunSuccesfullyWithConfirmation(passedArgs ...string) {
+func shouldRunSuccessfully(passedArgs ...string) {
 	args := append([]string{"-t", targetedConcourse}, passedArgs...)
 	fly := exec.Command(flyBin, args...)
 
-	stdin, err := fly.StdinPipe()
-	Expect(err).ToNot(HaveOccurred())
-
-	defer stdin.Close()
-
 	session := helpers.StartFly(fly)
-
-	Eventually(session.Out).Should(gbytes.Say("yN"))
-	fmt.Fprint(stdin, "y\n")
-
-	Eventually(session).Should(gexec.Exit(0))
+	<-session.Exited
+	Expect(session.ExitCode()).To(Equal(0))
 }
 
 func pipelineName() string { return fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode()) }
@@ -42,8 +24,8 @@ func pipelineName() string { return fmt.Sprintf("test-pipeline-%d", GinkgoParall
 var _ = Describe("the quality of being authenticated", func() {
 	DescribeTable("running commands with pipeline name when authenticated",
 		func(command string) {
-			shouldRunSuccesfullyWithConfirmation("set-pipeline", "-p", pipelineName(), "-c", "../fixtures/simple-pipeline.yml")
-			shouldRunSuccesfully(command, "-p", pipelineName())
+			shouldRunSuccessfully("set-pipeline", "-p", pipelineName(), "-c", "../fixtures/simple-pipeline.yml", "-n")
+			shouldRunSuccessfully(command, "-p", pipelineName())
 		},
 		Entry("get-pipeline", "get-pipeline"),
 		Entry("pause-pipeline", "pause-pipeline"),
@@ -53,8 +35,8 @@ var _ = Describe("the quality of being authenticated", func() {
 
 	DescribeTable("running commands when authenticated",
 		func(args ...string) {
-			shouldRunSuccesfullyWithConfirmation("set-pipeline", "-p", pipelineName(), "-c", "../fixtures/simple-pipeline.yml")
-			shouldRunSuccesfully(args...)
+			shouldRunSuccessfully("set-pipeline", "-p", pipelineName(), "-c", "../fixtures/simple-pipeline.yml", "-n")
+			shouldRunSuccessfully(args...)
 		},
 		Entry("containers", "containers"),
 		Entry("volumes", "volumes"),
@@ -65,8 +47,8 @@ var _ = Describe("the quality of being authenticated", func() {
 
 	DescribeTable("running commands that require confirmation when authenticated",
 		func(args ...string) {
-			shouldRunSuccesfullyWithConfirmation("set-pipeline", "-p", pipelineName(), "-c", "../fixtures/simple-pipeline.yml")
-			shouldRunSuccesfullyWithConfirmation(append(args, "-p", pipelineName())...)
+			shouldRunSuccessfully("set-pipeline", "-p", pipelineName(), "-c", "../fixtures/simple-pipeline.yml", "-n")
+			shouldRunSuccessfully(append(args, "-p", pipelineName(), "-n")...)
 		},
 		Entry("destroy-pipeline", "destroy-pipeline"),
 		Entry("set-pipeline", "set-pipeline", "-c", "../fixtures/simple-pipeline.yml"),
@@ -84,6 +66,7 @@ var _ = Describe("the quality of being authenticated", func() {
 
 		fmt.Fprint(stdin, "exit\n")
 
-		Eventually(session).Should(gexec.Exit(0))
+		<-session.Exited
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 })

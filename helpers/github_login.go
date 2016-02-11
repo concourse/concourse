@@ -27,7 +27,7 @@ func getGithubOauthToken(atcURL string, creds *oauthAuthCredentials, page *agout
 }
 
 func loginToGithub(creds *oauthAuthCredentials, page *agouti.Page) error {
-	Expect(page.Navigate("https://github.com/login")).Should(Succeed())
+	Expect(page.Navigate("https://github.com/login")).To(Succeed())
 
 	Eventually(page.FindByName("login")).Should(BeFound())
 

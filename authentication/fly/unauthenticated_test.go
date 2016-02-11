@@ -1,7 +1,6 @@
 package fly_test
 
 import (
-	"fmt"
 	"os/exec"
 
 	"github.com/concourse/testflight/helpers"
@@ -9,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("the quality of being unauthenticated", func() {
@@ -27,9 +25,10 @@ var _ = Describe("the quality of being unauthenticated", func() {
 			fly := exec.Command(flyBin, args...)
 			session := helpers.StartFly(fly)
 
-			Eventually(session).Should(gexec.Exit(1))
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(1))
 
-			Expect(session.Err).Should(gbytes.Say("not authorized"))
+			Expect(session.Err).To(gbytes.Say("not authorized"))
 		},
 
 		Entry("get-pipeline", "get-pipeline", "-p", "john"),
@@ -49,20 +48,14 @@ var _ = Describe("the quality of being unauthenticated", func() {
 		func(passedArgs ...string) {
 			args := append([]string{"-t", atcURL}, passedArgs...)
 			fly := exec.Command(flyBin, args...)
-
-			stdin, err := fly.StdinPipe()
-			Expect(err).ToNot(HaveOccurred())
-
 			session := helpers.StartFly(fly)
 
-			Eventually(session.Out).Should(gbytes.Say("are you sure?"))
-			fmt.Fprint(stdin, "y\n")
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(1))
 
-			Eventually(session).Should(gexec.Exit(1))
-
-			Expect(session.Err).Should(gbytes.Say("not authorized"))
+			Expect(session.Err).To(gbytes.Say("not authorized"))
 		},
 
-		Entry("destroy-pipeline", "destroy-pipeline", "-p", "john"),
+		Entry("destroy-pipeline", "destroy-pipeline", "-p", "john", "-n"),
 	)
 })
