@@ -225,9 +225,9 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 		return nil
 	}
 
-	if versions == nil { //HERE - Check boxes as they get updated
+	if versions == nil {
 		for _, input := range buildInputs {
-			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusBlocking
+			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusUnknown
 		}
 
 		err = s.BuildsDB.UpdateBuildPreparation(buildPrep)
@@ -242,7 +242,11 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 				"resource": input.Resource,
 			})
 
-			err := s.Scanner.Scan(scanLog, input.Resource)
+			buildPrep = s.cloneBuildPrep(buildPrep)
+			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusBlocking
+			err := s.BuildsDB.UpdateBuildPreparation(buildPrep)
+
+			err = s.Scanner.Scan(scanLog, input.Resource)
 			if err != nil {
 				scanLog.Error("failed-to-scan", err)
 

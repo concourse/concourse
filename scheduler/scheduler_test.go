@@ -765,20 +765,35 @@ var _ = Describe("Scheduler", func() {
 						fakeEngine.CreateBuildReturns(createdBuild, nil)
 					})
 
-					Context("something about how were checking resouces and doing things", func() { //TODO CHANGE DIS
-						It("correctly updates the build prep for every input being used", func() {
+					Context("updating the build prep inputs list", func() {
+						It("correctly updates the discovery state for every input being used", func() {
 							_, wg, err := scheduler.TriggerImmediately(logger, job, resources)
 							Expect(err).ToNot(HaveOccurred())
 							wg.Wait()
 
-							Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(Equal(3))
+							Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(Equal(5))
 
 							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(0).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
+								"some-input":       db.BuildPreparationStatusUnknown,
+								"some-other-input": db.BuildPreparationStatusUnknown,
+							}))
+
+							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(1).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
 								"some-input":       db.BuildPreparationStatusBlocking,
-								"some-other-input": db.BuildPreparationStatusBlocking,
+								"some-other-input": db.BuildPreparationStatusUnknown,
 							}))
 
 							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(2).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
+								"some-input":       db.BuildPreparationStatusNotBlocking,
+								"some-other-input": db.BuildPreparationStatusUnknown,
+							}))
+
+							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(3).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
+								"some-input":       db.BuildPreparationStatusNotBlocking,
+								"some-other-input": db.BuildPreparationStatusBlocking,
+							}))
+
+							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(4).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
 								"some-input":       db.BuildPreparationStatusNotBlocking,
 								"some-other-input": db.BuildPreparationStatusNotBlocking,
 							}))
