@@ -83,7 +83,8 @@ $CONCOURSE web \
   --tsa-host-key /etc/concourse/tsa-host \
   --tsa-authorized-keys /etc/concourse/worker.pub \
   --session-signing-key /etc/concourse/session-signing-key \
-  --development-mode &
+  --development-mode \
+  --resource-checking-interval 5s &
 webpid=$!
 
 wait_for_proc_port web $webpid 8080
