@@ -17,8 +17,14 @@ if [ ! -e tar ]; then
   mv tar-1.28 tar
 fi
 
+if [ ! -e btrfs-progs ]; then
+  curl https://www.kernel.org/pub/linux/kernel/people/kdave/btrfs-progs/btrfs-progs-v4.4.tar.gz | tar zxf -
+  mv btrfs-progs-v4.4 btrfs-progs
+fi
+
+apt-get update
+
 if ! which bosh 2>/dev/null 2>&1; then
-  apt-get update
   apt-get -y install ruby
   gem install bosh_cli --no-rdoc --no-ri
 fi
@@ -47,6 +53,17 @@ pushd tar/
   cp src/tar $ROOT/linux/bin/tar
 popd
 
+pushd btrfs-progs/
+  apt-get -y install liblzo2-dev libblkid-dev e2fslibs-dev
+
+  LDFLAGS=-static ./configure
+  make
+
+  mkdir -p $ROOT/linux/btrfs
+  cp btrfs $ROOT/linux/btrfs
+  cp mkfs.btrfs $ROOT/linux/btrfs
+popd
+
 pushd concourse/
   mkdir -p $ROOT/linux/resources
 
@@ -56,9 +73,4 @@ pushd concourse/
     resource_name="$(basename $resource | sed -e 's/-resource.tar.gz//')"
     cp -L "$resource" $ROOT/linux/resources/$resource_name
   done
-
-  mkdir -p $ROOT/linux/btrfs
-  cp -L blobs/btrfs_tools_3.12/btrfs $ROOT/linux/btrfs
-  cp -L blobs/btrfs_tools_3.12/mkfs.btrfs $ROOT/linux/btrfs
-  chmod +x $ROOT/linux/btrfs/*
 popd

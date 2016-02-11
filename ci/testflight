@@ -4,9 +4,7 @@ set -e -x -u
 
 apt-get update
 
-# TODO: shouldn't need btrfs-tools installed, but unfortunately the packaged
-# binaries use shared libs
-apt-get -y install openssh-client netcat iptables btrfs-tools
+apt-get -y install openssh-client netcat iptables
 
 CONCOURSE=$PWD/linux-binary/concourse_linux_amd64
 chmod +x $CONCOURSE
