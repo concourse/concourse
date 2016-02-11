@@ -67,6 +67,21 @@ concepts, and how to bootstrap on various infrastructures.
     director, with appropriate security groups/subnets.
   }
 
+  \section{Azure}{
+    For Azure, it is recommended to deploy Concourse within a VNet, with the
+    \code{web} jobs sitting behind an Azure Load Balancer. Registering instances with the Load Balancer
+    is automated by BOSH; you'll just have to create the Azure Load Balancer itself. This
+    configuration is more secure, as your CI system's internal jobs aren't
+    exposed to the outside world.
+
+    To get this all set up you can use the
+    \hyperlink{https://azure.microsoft.com/en-us/documentation/templates/bosh-setup/}{Azure Resource Manager 
+    template}, which will set up a VNet with a Load Balancer, public IPs for the Load Balancer and BOSH
+    director, with appropriate subnets. For more information, visit the \hyperlink{http://bosh.io/docs/azure-cpi.html}{BOSH Azure documentation}.
+
+    Now you're ready to upload the Concourse and Garden-Linux releases and provision concourse.
+  }
+
   \section{vSphere, OpenStack, etc.}{
     As long as BOSH supports your infrastructure, you should be able to deploy
     Concourse to it, in largely the same way.
@@ -93,6 +108,13 @@ concepts, and how to bootstrap on various infrastructures.
     \codeblock{bash}{
     bosh upload stemcell https://bosh.io/d/stemcells/bosh-aws-xen-hvm-ubuntu-trusty-go_agent
     }
+
+    For the Azure Trusty Stemcell, execute the
+    following:
+
+    \codeblock{bash}{
+    bosh upload stemcell http://cloudfoundry.blob.core.windows.net/stemcell/stemcell.tgz
+    }    
   }
 
   \section{Upload the releases}{
@@ -136,6 +158,8 @@ concepts, and how to bootstrap on various infrastructures.
       \hyperlink{https://github.com/concourse/concourse/blob/master/manifests/bosh-lite.yml}{BOSH Lite}
     }{
       \hyperlink{https://github.com/concourse/concourse/blob/master/manifests/aws-vpc.yml}{AWS VPC}
+    }{
+      \hyperlink{https://github.com/concourse/concourse/blob/master/manifests/azure-vnet.yml}{Azure VNET}
     }
 
     If you reuse these manifests, you'll probably want to change them around
@@ -207,3 +231,4 @@ concepts, and how to bootstrap on various infrastructures.
     things are back.
   }
 }
+
