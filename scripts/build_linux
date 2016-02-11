@@ -14,7 +14,8 @@ mkdir -p $ROOT/linux/btrfs
 cp /opt/static-assets/btrfs /opt/static-assets/mkfs.btrfs $ROOT/linux/btrfs
 
 pushd garden-linux-release/
-  bosh sync-blobs
+  # workaround 'mv /root/.tmp/... /tmp/...: invalid cross-device link'
+  HOME=$PWD bosh sync-blobs
 
   cp -L blobs/busybox/busybox.tar.gz $ROOT/linux/busybox.tar.gz
 
@@ -32,7 +33,8 @@ pushd garden-linux-release/
 popd
 
 pushd concourse/
-  bosh sync-blobs
+  # workaround 'mv /root/.tmp/... /tmp/...: invalid cross-device link'
+  HOME=$PWD bosh sync-blobs
 
   mkdir -p $ROOT/linux/resources
 
