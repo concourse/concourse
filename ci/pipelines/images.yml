@@ -107,6 +107,20 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
+- name: concourse-bin-ci
+  type: git
+  source:
+    uri: https://github.com/concourse/bin.git
+    paths: [Dockerfile]
+
+- name: concourse-bin-ci-image
+  type: docker-image
+  source:
+    repository: concourse/bin-ci
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
 - name: concourse-testflight
   type: git
   source:
@@ -159,6 +173,12 @@ resources:
     repository: golang
     tag: "1.5"
 
+- name: golang-1.6
+  type: docker-image
+  source:
+    repository: golang
+    tag: "1.6"
+
 jobs:
 - name: build-buildbox-ci
   plan:
@@ -167,6 +187,7 @@ jobs:
       trigger: true
     - get: ubuntu-15.10
       trigger: true
+      params: {save: true}
   - put: concourse-buildbox-ci-image
     params:
       load_base: ubuntu-15.10
@@ -180,6 +201,7 @@ jobs:
       params: {submodules: none}
     - get: rubinius
       trigger: true
+      params: {save: true}
   - put: concourse-docs-ci-image
     params:
       load_base: rubinius
@@ -193,6 +215,7 @@ jobs:
       params: {submodules: none}
     - get: ubuntu-15.10
       trigger: true
+      params: {save: true}
   - put: concourse-concourse-ci-image
     params:
       load_base: ubuntu-15.10
@@ -205,6 +228,7 @@ jobs:
       trigger: true
     - get: selenium-firefox
       trigger: true
+      params: {save: true}
   - put: concourse-atc-ci-image
     params:
       load_base: selenium-firefox
@@ -217,6 +241,7 @@ jobs:
       trigger: true
     - get: node
       trigger: true
+      params: {save: true}
   - put: concourse-atc-ci-js-image
     params:
       load_base: node
@@ -229,6 +254,7 @@ jobs:
       trigger: true
     - get: ubuntu-15.10
       trigger: true
+      params: {save: true}
   - put: concourse-tsa-ci-image
     params:
       load_base: ubuntu-15.10
@@ -241,10 +267,24 @@ jobs:
       trigger: true
     - get: golang-1.5
       trigger: true
+      params: {save: true}
   - put: concourse-baggageclaim-ci-image
     params:
       load_base: golang-1.5
       build: concourse-baggageclaim-ci
+
+- name: build-bin-ci
+  plan:
+  - aggregate:
+    - get: concourse-bin-ci
+      trigger: true
+    - get: golang-1.6
+      trigger: true
+      params: {save: true}
+  - put: concourse-bin-ci-image
+    params:
+      load_base: golang-1.6
+      build: concourse-bin-ci
 
 - name: build-testflight
   plan:
@@ -253,6 +293,7 @@ jobs:
       trigger: true
     - get: golang-1.5
       trigger: true
+      params: {save: true}
   - put: concourse-testflight-image
     params:
       load_base: golang-1.5
@@ -265,6 +306,7 @@ jobs:
       trigger: true
     - get: golang-1.5
       trigger: true
+      params: {save: true}
   - put: concourse-static-golang-image
     params:
       load_base: golang-1.5
