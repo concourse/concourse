@@ -24,6 +24,11 @@
   A pending build will now indicate why it's pending, via a checklist that
   appears at the top of the build output. (Yay!)
 }{
+  Improved the caching of resources used for \reference{image_resource}.
+  Previously if the same version was fetched multiple times on the same worker,
+  we'd keep all of them around so long as they were the latest version. We'll
+  now only keep one.
+}{
   The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker
   Image resource} no longer worked for images configured with
   \code{ENTRYPOINT}s as of \reference{v0.72.0}, and ended up running whatever
@@ -40,4 +45,7 @@
   The \hyperlink{https://github.com/concourse/git-resource}{Git resource} now
   supports checking for tag patterns like \code{*-production} via the
   \code{tag_filter} source configuration.
+}{
+  The \hyperlink{https://github.com/concourse/git-resource}{Git resource} now
+  includes \hyperlink{https://git-lfs.github.com/}{\code{git lfs}}.
 }
