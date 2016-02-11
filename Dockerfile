@@ -10,8 +10,8 @@ RUN mkdir /opt/static-assets
 # pre-build `tar` so we don't have to every time
 RUN cd /tmp && curl https://ftp.gnu.org/gnu/tar/tar-1.28.tar.gz | tar zxf - && \
       cd tar-1.28 && \
-        FORCE_UNSAFE_CONFIGURE=1 ./configure
-        make LDFLAGS=-static
+        FORCE_UNSAFE_CONFIGURE=1 ./configure && \
+        make LDFLAGS=-static && \
         cp src/tar /opt/static-assets/tar && \
       cd .. && \
       rm -rf tar-1.28
