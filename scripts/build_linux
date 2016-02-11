@@ -56,7 +56,7 @@ popd
 pushd btrfs-progs/
   apt-get -y install liblzo2-dev libblkid-dev e2fslibs-dev pkg-config libz-dev
 
-  LDFLAGS=-static ./configure
+  LDFLAGS=-static ./configure --disable-documentation
   make
 
   mkdir -p $ROOT/linux/btrfs
