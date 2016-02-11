@@ -124,6 +124,53 @@ var _ = Describe("Fly CLI", func() {
 			}
 		})
 
+		Describe(" and unauthorized (401)", func() {
+			var (
+				flyCmd *exec.Cmd
+			)
+
+			BeforeEach(func() {
+				path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+
+				Expect(err).NotTo(HaveOccurred())
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", path),
+						ghttp.RespondWith(200, "{}"),
+					),
+				)
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", path),
+						ghttp.RespondWith(401, ""),
+					),
+				)
+			})
+
+			JustBeforeEach(func() {
+				flyCmd = exec.Command(
+					flyPath, "-t", atcServer.URL()+"/",
+					"set-pipeline",
+					"--pipeline", "awesome-pipeline",
+					"-c", "fixtures/testConfig.yml",
+					"--var", "resource-key=verysecret",
+					"--load-vars-from", "fixtures/vars.yml",
+					"--non-interactive",
+				)
+			})
+			It("returns ErrUnauthorized", func() {
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).ToNot(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+
+				Expect(sess.Err).To(gbytes.Say("not authorized"))
+				Expect(sess.Err).To(gbytes.Say(`fly -t \(alias\)`))
+			})
+		})
+
 		Describe("templating", func() {
 			BeforeEach(func() {
 				config = atc.Config{
@@ -286,7 +333,7 @@ var _ = Describe("Fly CLI", func() {
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
 
-					Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("p", "pipeline") + "' was not specified"))
+					Expect(sess.Err).To(gbytes.Say("the required flag `" + osFlag("p", "pipeline") + "' was not specified"))
 				})
 			})
 
@@ -300,7 +347,7 @@ var _ = Describe("Fly CLI", func() {
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
 
-					Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("c", "config") + "' was not specified"))
+					Expect(sess.Err).To(gbytes.Say("the required flag `" + osFlag("c", "config") + "' was not specified"))
 				})
 			})
 

@@ -42,8 +42,8 @@ var _ = Describe("Fly CLI", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 
-				Expect(sess.Err).To(gbytes.Say("not authorized. run the following to log in:\n\n    "))
-				Expect(sess.Err).To(gbytes.Say(`fly -t \(alias\) login -c ` + atcServer.URL()))
+				Expect(sess.Err).To(gbytes.Say("not authorized"))
+				Expect(sess.Err).To(gbytes.Say(`fly -t \(alias\)`))
 			})
 		})
 	})

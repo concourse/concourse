@@ -6,8 +6,7 @@ import (
 	"regexp"
 
 	"github.com/concourse/fly/commands"
-	"github.com/concourse/go-concourse/concourse"
-	"github.com/fatih/color"
+	"github.com/concourse/fly/internal/displayhelpers"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -17,20 +16,8 @@ func main() {
 
 	_, err := parser.Parse()
 	if err != nil {
-		if err == concourse.ErrUnauthorized {
-			fmt.Fprintln(os.Stderr, "not authorized. run the following to log in:")
-			fmt.Fprintln(os.Stderr, "")
-
-			if isURL(commands.Fly.Target) {
-				fmt.Fprintln(os.Stderr, "    "+color.New(color.Bold).SprintfFunc()("fly -t (alias) login -c %s", commands.Fly.Target))
-			} else {
-				fmt.Fprintln(os.Stderr, "    "+color.New(color.Bold).SprintfFunc()("fly -t %s login", commands.Fly.Target))
-			}
-
-			fmt.Fprintln(os.Stderr, "")
-		} else {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
-		}
+		flyError := displayhelpers.TranslateErrors(err)
+		fmt.Fprintln(os.Stderr, flyError.Error())
 
 		os.Exit(1)
 	}

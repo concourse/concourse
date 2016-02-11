@@ -317,7 +317,7 @@ run:
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Err).Should(gbytes.Say("error: unknown output 'wrong-output'"))
+				Eventually(sess.Err).Should(gbytes.Say("unknown output 'wrong-output'"))
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
