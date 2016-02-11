@@ -277,11 +277,9 @@ closeEvents eventSource =
 
 view : Signal.Address Action -> Model -> Html
 view actions {build, steps, errors, state} =
-  Html.div (id "build-body" :: paddingClass build)
-    [ Html.div [class "steps"]
-        [ viewErrors errors
-        , viewStepTree actions build steps state
-        ]
+  Html.div [class "steps"]
+    [ viewErrors errors
+    , viewStepTree actions build steps state
     ]
 
 viewStepTree : Signal.Address Action -> Build -> Maybe StepTree.Model -> OutputState -> Html
@@ -335,11 +333,3 @@ viewLoginButton build =
         ] []
     ]
 
-paddingClass : Build -> List Html.Attribute
-paddingClass build =
-  case build.job of
-    Just _ ->
-      []
-
-    _ ->
-      [class "build-body-noSubHeader"]
