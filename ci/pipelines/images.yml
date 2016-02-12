@@ -327,7 +327,7 @@ jobs:
       passed: [build-atc-ci]
       trigger: true
       params: {save: true}
-  - put: concourse-bin-ci-image
+  - put: concourse-bin-testflight-ci-image
     params:
       load_base: concourse-atc-ci-image
       build: concourse-bin-testflight-ci
