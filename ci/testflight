@@ -78,13 +78,30 @@ ssh-keygen -f /etc/concourse/session-signing-key -N ''
 
 export ATC_URL=http://$(hostname -i):8080
 
+publicly_viewable=""
+if [ "$PIPELINES_PUBLICLY_VIEWABLE" = "true" ]; then
+  publicly_viewable="--publicly-viewable"
+fi
+
+github_auth_config=""
+if [ -n "$GITHUB_AUTH_CONFIG_ORGANIZATION" ]; then
+  github_auth_config="$github_auth_config --github-auth-organization $GITHUB_AUTH_CONFIG_ORGANIZATION"
+fi
+
 $CONCOURSE web \
   --external-url $ATC_URL \
   --tsa-host-key /etc/concourse/tsa-host \
   --tsa-authorized-keys /etc/concourse/worker.pub \
   --session-signing-key /etc/concourse/session-signing-key \
   --development-mode \
-  --resource-checking-interval 5s &
+  --resource-checking-interval 5s \
+  --basic-auth-username "$BASIC_AUTH_USERNAME" \
+  --basic-auth-password "$BASIC_AUTH_PASSWORD" \
+  --github-auth-client-id "$GITHUB_AUTH_CONFIG_CLIENT_ID" \
+  --github-auth-client-secret "$GITHUB_AUTH_CONFIG_CLIENT_SECRET" \
+  $publicly_viewable \
+  $github_auth_config \
+  &
 webpid=$!
 
 wait_for_proc_port web $webpid 8080

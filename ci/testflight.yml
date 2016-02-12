@@ -5,6 +5,16 @@ image_resource:
   type: docker-image
   source: {repository: concourse/atc-ci}
 
+params:
+  BASIC_AUTH_USERNAME:
+  BASIC_AUTH_PASSWORD:
+  GITHUB_AUTH_USERNAME:
+  GITHUB_AUTH_PASSWORD:
+  GITHUB_AUTH_CONFIG_ORGANIZATION:
+  GITHUB_AUTH_CONFIG_CLIENT_ID:
+  GITHUB_AUTH_CONFIG_CLIENT_SECRET:
+  PIPELINES_PUBLICLY_VIEWABLE: true
+
 inputs:
 - name: linux-binary
 - name: concourse
