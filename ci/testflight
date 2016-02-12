@@ -98,4 +98,4 @@ workerpid=$!
 
 wait_for_proc_port worker $workerpid 7777
 
-./concourse/ci/scripts/testflight
+./concourse/ci/scripts/testflight "$@"
