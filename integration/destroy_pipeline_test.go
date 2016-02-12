@@ -18,8 +18,28 @@ var _ = Describe("Fly CLI", func() {
 	)
 
 	Describe("destroy-pipeline", func() {
+		var (
+			stdin io.Writer
+			args  []string
+			sess  *gexec.Session
+		)
+
 		BeforeEach(func() {
+			stdin = nil
+			args = []string{}
+
 			atcServer = ghttp.NewServer()
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			flyCmd := exec.Command(flyPath, append([]string{"-t", atcServer.URL(), "destroy-pipeline"}, args...)...)
+			stdin, err = flyCmd.StdinPipe()
+			Expect(err).NotTo(HaveOccurred())
+
+			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when a pipeline name is not specified", func() {
@@ -36,52 +56,31 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when a pipeline name is specified", func() {
-			var (
-				stdin io.Writer
-				sess  *gexec.Session
-			)
+			BeforeEach(func() {
+				args = append(args, "-p", "some-pipeline")
+			})
 
 			yes := func() {
+				Eventually(sess).Should(gbytes.Say(`are you sure\? \[yN\]: `))
 				fmt.Fprintf(stdin, "y\n")
 			}
 
 			no := func() {
+				Eventually(sess).Should(gbytes.Say(`are you sure\? \[yN\]: `))
 				fmt.Fprintf(stdin, "n\n")
 			}
 
-			JustBeforeEach(func() {
-				var err error
-
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "destroy-pipeline", "-p", "some-pipeline")
-				stdin, err = flyCmd.StdinPipe()
-				Expect(err).NotTo(HaveOccurred())
-
-				sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
+			It("warns that it's about to do bad things", func() {
 				Eventually(sess).Should(gbytes.Say("!!! this will remove all data for pipeline `some-pipeline`"))
-				Eventually(sess).Should(gbytes.Say(`are you sure\? \[yN\]: `))
 			})
 
-			It("exits successfully if the user confirms", func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/some-pipeline"),
-						ghttp.RespondWith(204, ""),
-					),
-				)
-
-				yes()
-				Eventually(sess).Should(gexec.Exit(0))
-			})
-
-			It("bails out if the user presses no", func() {
+			It("bails out if the user says no", func() {
 				no()
-
 				Eventually(sess).Should(gbytes.Say(`bailing out`))
 				Eventually(sess).Should(gexec.Exit(0))
 			})
 
-			Context("and the pipeline exists", func() {
+			Context("when the pipeline exists", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -91,10 +90,21 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 
-				It("writes a success message to stdout", func() {
+				It("succeeds if the user says yes", func() {
 					yes()
 					Eventually(sess).Should(gbytes.Say("`some-pipeline` deleted"))
 					Eventually(sess).Should(gexec.Exit(0))
+				})
+
+				Context("when run noninteractively", func() {
+					BeforeEach(func() {
+						args = append(args, "-n")
+					})
+
+					It("destroys the pipeline without confirming", func() {
+						Eventually(sess).Should(gbytes.Say("`some-pipeline` deleted"))
+						Eventually(sess).Should(gexec.Exit(0))
+					})
 				})
 			})
 

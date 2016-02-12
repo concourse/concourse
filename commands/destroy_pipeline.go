@@ -8,7 +8,8 @@ import (
 )
 
 type DestroyPipelineCommand struct {
-	Pipeline string `short:"p"  long:"pipeline" required:"true" description:"Pipeline to destroy"`
+	Pipeline        string `short:"p"  long:"pipeline" required:"true" description:"Pipeline to destroy"`
+	SkipInteractive bool   `short:"n"  long:"non-interactive"          description:"Destroy the pipeline without confirmation"`
 }
 
 func (command *DestroyPipelineCommand) Execute(args []string) error {
@@ -16,11 +17,13 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 
 	fmt.Printf("!!! this will remove all data for pipeline `%s`\n\n", pipelineName)
 
-	confirm := false
-	err := interact.NewInteraction("are you sure?").Resolve(&confirm)
-	if err != nil || !confirm {
-		fmt.Println("bailing out")
-		return err
+	confirm := command.SkipInteractive
+	if !confirm {
+		err := interact.NewInteraction("are you sure?").Resolve(&confirm)
+		if err != nil || !confirm {
+			fmt.Println("bailing out")
+			return err
+		}
 	}
 
 	client, err := rc.TargetClient(Fly.Target)
