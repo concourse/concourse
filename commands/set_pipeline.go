@@ -41,6 +41,5 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		SkipInteraction:     command.SkipInteractive,
 	}
 
-	atcConfig.Set(configPath, templateVariables, templateVariablesFiles)
-	return nil
+	return atcConfig.Set(configPath, templateVariables, templateVariablesFiles)
 }

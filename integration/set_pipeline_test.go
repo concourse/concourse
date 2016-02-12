@@ -435,7 +435,6 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 					yes(stdin)
 
-					Eventually(sess.Err).Should(gbytes.Say("failed to update configuration:"))
 					Eventually(sess.Err).Should(gbytes.Say("500 Internal Server Error"))
 					Eventually(sess.Err).Should(gbytes.Say("nope"))
 
@@ -511,7 +510,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 					yes(stdin)
 
-					Eventually(sess.Err).Should(gbytes.Say("failed to update configuration: Put"))
+					Eventually(sess.Err).Should(gbytes.Say("EOF"))
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))

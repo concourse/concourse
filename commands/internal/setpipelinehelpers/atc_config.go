@@ -38,11 +38,11 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 	return confirm
 }
 
-func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariables template.Variables, templateVariablesFiles []flaghelpers.PathFlag) {
+func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariables template.Variables, templateVariablesFiles []flaghelpers.PathFlag) error {
 	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
 	existingConfig, existingConfigVersion, _, err := atcConfig.Client.PipelineConfig(atcConfig.PipelineName)
 	if err != nil {
-		displayhelpers.FailWithErrorf("failed to retrieve config", err)
+		return err
 	}
 
 	diff(existingConfig, newConfig)
@@ -57,9 +57,11 @@ func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariable
 		newConfig,
 	)
 	if err != nil {
-		displayhelpers.FailWithErrorf("failed to update configuration", err)
+		return err
 	}
+
 	atcConfig.showHelpfulMessage(created, updated)
+	return nil
 }
 
 func (atcConfig ATCConfig) newConfig(configPath flaghelpers.PathFlag, templateVariablesFiles []flaghelpers.PathFlag, templateVariables template.Variables) atc.Config {
