@@ -2,11 +2,14 @@
 
 set -e -x
 
-echo 'dev' > release/name
-echo 'dev' > release/tag
+echo "v$(cat version/number)" > release/name
+echo "v$(cat version/number)" > release/tag
 
 cat > release/body <<EOF
-A periodically built release while things are still being worked out.
+A candidate release that has yet to be vetted by our full pipeline.
+
+You may want to look at [the concourse/concourse
+releases](https://github.com/concourse/concourse/releases) instead.
 EOF
 
 mkdir release/artifacts

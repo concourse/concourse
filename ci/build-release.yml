@@ -8,6 +8,7 @@ inputs:
 - name: linux-binary
 - name: darwin-binary
 - name: windows-binary
+- name: version
 
 outputs:
 - name: release
