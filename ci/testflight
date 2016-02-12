@@ -74,6 +74,9 @@ ssh-keygen -f /etc/concourse/session-signing-key -N ''
 
 export ATC_URL=http://$(hostname -i):8080
 
+# don't leak client id/secret
+set +x
+
 publicly_viewable=""
 if [ "$PIPELINES_PUBLICLY_VIEWABLE" = "true" ]; then
   publicly_viewable="--publicly-viewable"
@@ -98,6 +101,10 @@ $CONCOURSE web \
   $publicly_viewable \
   $github_auth_config \
   &
+
+# reenable tracing now that atc is launched
+set -x
+
 webpid=$!
 
 wait_for_proc_port web $webpid 8080
