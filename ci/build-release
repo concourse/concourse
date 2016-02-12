@@ -8,8 +8,7 @@ echo "v$(cat version/number)" > release/tag
 cat > release/body <<EOF
 A candidate release that has yet to be vetted by our full pipeline.
 
-You may want to look at [the concourse/concourse
-releases](https://github.com/concourse/concourse/releases) instead.
+You may want to look at [the concourse/concourse releases](https://github.com/concourse/concourse/releases) instead.
 EOF
 
 mkdir release/artifacts
