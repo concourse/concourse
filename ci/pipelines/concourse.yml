@@ -364,17 +364,20 @@ jobs:
   - aggregate:
     - get: concourse
       params: {submodules: none}
-      passed: [testflight]
+      passed: [testflight, bin-testflight]
       trigger: true
     - get: candidate-release
       passed: [testflight]
       trigger: true
+    - get: bin-releases
+      passed: [bin-testflight]
+      trigger: true
     - get: version
-      passed: [testflight]
+      passed: [testflight, bin-testflight]
       trigger: true
     - get: garden-linux-release
       resource: garden-linux
-      passed: [testflight]
+      passed: [testflight, bin-testflight]
       trigger: true
     - get: bosh-stemcell
       resource: aws-stemcell
