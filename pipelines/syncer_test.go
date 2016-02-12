@@ -18,7 +18,7 @@ import (
 
 var _ = Describe("Pipelines Syncer", func() {
 	var (
-		pipelinesDB           *fakes.FakePipelinesDB
+		syncherDB             *fakes.FakeSyncherDB
 		pipelineDB            *dbfakes.FakePipelineDB
 		otherPipelineDB       *dbfakes.FakePipelineDB
 		pipelineDBFactory     *dbfakes.FakePipelineDBFactory
@@ -32,7 +32,7 @@ var _ = Describe("Pipelines Syncer", func() {
 	)
 
 	BeforeEach(func() {
-		pipelinesDB = new(fakes.FakePipelinesDB)
+		syncherDB = new(fakes.FakeSyncherDB)
 		pipelineDB = new(dbfakes.FakePipelineDB)
 
 		pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
@@ -75,7 +75,7 @@ var _ = Describe("Pipelines Syncer", func() {
 			return <-exitChan
 		}
 
-		pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
+		syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
 			{
 				ID: 1,
 				Pipeline: db.Pipeline{
@@ -93,7 +93,7 @@ var _ = Describe("Pipelines Syncer", func() {
 		syncer = NewSyncer(
 			lagertest.NewTestLogger("test"),
 
-			pipelinesDB,
+			syncherDB,
 			pipelineDBFactory,
 			pipelineRunnerFactory,
 		)
@@ -110,7 +110,7 @@ var _ = Describe("Pipelines Syncer", func() {
 
 	Context("when a pipeline is paused", func() {
 		BeforeEach(func() {
-			pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
+			syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				{
 					ID: 1,
 					Pipeline: db.Pipeline{
@@ -137,7 +137,7 @@ var _ = Describe("Pipelines Syncer", func() {
 				},
 			}
 
-			pipelinesDB.GetBuildPrepsForPendingBuildsForPipelineReturns(buildPreps, nil)
+			syncherDB.GetBuildPrepsForPendingBuildsForPipelineReturns(buildPreps, nil)
 		})
 
 		It("does not spawn a process for it", func() {
@@ -146,11 +146,11 @@ var _ = Describe("Pipelines Syncer", func() {
 		})
 
 		It("marks all of the pipelines pending builds buildPrep as blocked", func() {
-			Expect(pipelinesDB.GetBuildPrepsForPendingBuildsForPipelineCallCount()).To(Equal(1))
-			Expect(pipelinesDB.GetBuildPrepsForPendingBuildsForPipelineArgsForCall(0)).To(Equal("other-pipeline"))
-			Expect(pipelinesDB.UpdateBuildPreparationCallCount()).To(Equal(1))
-			Expect(pipelinesDB.UpdateBuildPreparationArgsForCall(0).BuildID).To(Equal(1))
-			Expect(pipelinesDB.UpdateBuildPreparationArgsForCall(0).PausedPipeline).To(Equal(db.BuildPreparationStatusBlocking))
+			Expect(syncherDB.GetBuildPrepsForPendingBuildsForPipelineCallCount()).To(Equal(1))
+			Expect(syncherDB.GetBuildPrepsForPendingBuildsForPipelineArgsForCall(0)).To(Equal("other-pipeline"))
+			Expect(syncherDB.UpdateBuildPreparationCallCount()).To(Equal(1))
+			Expect(syncherDB.UpdateBuildPreparationArgsForCall(0).BuildID).To(Equal(1))
+			Expect(syncherDB.UpdateBuildPreparationArgsForCall(0).PausedPipeline).To(Equal(db.BuildPreparationStatusBlocking))
 		})
 	})
 
@@ -166,7 +166,7 @@ var _ = Describe("Pipelines Syncer", func() {
 			Expect(fakeRunner.RunCallCount()).To(Equal(1))
 			Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 
-			pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
+			syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				{
 					ID: 2,
 					Pipeline: db.Pipeline{
@@ -188,7 +188,7 @@ var _ = Describe("Pipelines Syncer", func() {
 				Expect(fakeRunner.RunCallCount()).To(Equal(1))
 				Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 
-				pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
+				syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
 					{
 						ID: 2,
 						Pipeline: db.Pipeline{
@@ -218,7 +218,7 @@ var _ = Describe("Pipelines Syncer", func() {
 			Expect(fakeRunner.RunCallCount()).To(Equal(1))
 			Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 
-			pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
+			syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				{
 					ID:     1,
 					Paused: true,

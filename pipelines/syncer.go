@@ -8,9 +8,9 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-//go:generate counterfeiter . PipelinesDB
+//go:generate counterfeiter . SyncherDB
 
-type PipelinesDB interface {
+type SyncherDB interface {
 	GetAllPipelines() ([]db.SavedPipeline, error)
 	GetBuildPrepsForPendingBuildsForPipeline(pipelineName string) ([]db.BuildPreparation, error)
 	UpdateBuildPreparation(buildPreparation db.BuildPreparation) error
@@ -27,7 +27,7 @@ type runningProcess struct {
 type Syncer struct {
 	logger lager.Logger
 
-	pipelinesDB           PipelinesDB
+	syncherDB             SyncherDB
 	pipelineDBFactory     db.PipelineDBFactory
 	pipelineRunnerFactory PipelineRunnerFactory
 
@@ -36,13 +36,13 @@ type Syncer struct {
 
 func NewSyncer(
 	logger lager.Logger,
-	pipelinesDB PipelinesDB,
+	syncherDB SyncherDB,
 	pipelineDBFactory db.PipelineDBFactory,
 	pipelineRunnerFactory PipelineRunnerFactory,
 ) *Syncer {
 	return &Syncer{
 		logger:                logger,
-		pipelinesDB:           pipelinesDB,
+		syncherDB:             syncherDB,
 		pipelineDBFactory:     pipelineDBFactory,
 		pipelineRunnerFactory: pipelineRunnerFactory,
 
@@ -51,7 +51,7 @@ func NewSyncer(
 }
 
 func (syncer *Syncer) Sync() {
-	pipelines, err := syncer.pipelinesDB.GetAllPipelines()
+	pipelines, err := syncer.syncherDB.GetAllPipelines()
 	if err != nil {
 		syncer.logger.Error("failed-to-get-pipelines", err)
 		return
@@ -82,13 +82,14 @@ func (syncer *Syncer) Sync() {
 		}
 	}
 
+	//TODO: Can we combine these two pipelines loops? ~Liz
 	for _, pipeline := range pipelines {
 		if pipeline.Paused || syncer.isPipelineRunning(pipeline.ID) {
 			continue
 		}
 
-		pipelineDB := syncer.pipelineDBFactory.Build(pipeline)
-		runner := syncer.pipelineRunnerFactory(pipelineDB)
+		syncherDB := syncer.pipelineDBFactory.Build(pipeline)
+		runner := syncer.pipelineRunnerFactory(syncherDB)
 
 		syncer.logger.Debug("starting-pipeline", lager.Data{"pipeline": pipeline.Name})
 
@@ -111,7 +112,7 @@ func (syncer *Syncer) Sync() {
 }
 
 func (syncer *Syncer) updateBuildPrepsForPendingBuilds(pipeline db.SavedPipeline) error {
-	buildPreps, err := syncer.pipelinesDB.GetBuildPrepsForPendingBuildsForPipeline(pipeline.Name)
+	buildPreps, err := syncer.syncherDB.GetBuildPrepsForPendingBuildsForPipeline(pipeline.Name)
 	if err != nil {
 		return err
 	}
@@ -119,7 +120,7 @@ func (syncer *Syncer) updateBuildPrepsForPendingBuilds(pipeline db.SavedPipeline
 	for _, buildPrep := range buildPreps {
 		if buildPrep.PausedPipeline != db.BuildPreparationStatusBlocking {
 			buildPrep.PausedPipeline = db.BuildPreparationStatusBlocking
-			err = syncer.pipelinesDB.UpdateBuildPreparation(buildPrep)
+			err = syncer.syncherDB.UpdateBuildPreparation(buildPrep)
 			if err != nil {
 				return err
 			}

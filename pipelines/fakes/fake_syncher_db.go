@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/atc/pipelines"
 )
 
-type FakePipelinesDB struct {
+type FakeSyncherDB struct {
 	GetAllPipelinesStub        func() ([]db.SavedPipeline, error)
 	getAllPipelinesMutex       sync.RWMutex
 	getAllPipelinesArgsForCall []struct{}
@@ -35,7 +35,7 @@ type FakePipelinesDB struct {
 	}
 }
 
-func (fake *FakePipelinesDB) GetAllPipelines() ([]db.SavedPipeline, error) {
+func (fake *FakeSyncherDB) GetAllPipelines() ([]db.SavedPipeline, error) {
 	fake.getAllPipelinesMutex.Lock()
 	fake.getAllPipelinesArgsForCall = append(fake.getAllPipelinesArgsForCall, struct{}{})
 	fake.getAllPipelinesMutex.Unlock()
@@ -46,13 +46,13 @@ func (fake *FakePipelinesDB) GetAllPipelines() ([]db.SavedPipeline, error) {
 	}
 }
 
-func (fake *FakePipelinesDB) GetAllPipelinesCallCount() int {
+func (fake *FakeSyncherDB) GetAllPipelinesCallCount() int {
 	fake.getAllPipelinesMutex.RLock()
 	defer fake.getAllPipelinesMutex.RUnlock()
 	return len(fake.getAllPipelinesArgsForCall)
 }
 
-func (fake *FakePipelinesDB) GetAllPipelinesReturns(result1 []db.SavedPipeline, result2 error) {
+func (fake *FakeSyncherDB) GetAllPipelinesReturns(result1 []db.SavedPipeline, result2 error) {
 	fake.GetAllPipelinesStub = nil
 	fake.getAllPipelinesReturns = struct {
 		result1 []db.SavedPipeline
@@ -60,7 +60,7 @@ func (fake *FakePipelinesDB) GetAllPipelinesReturns(result1 []db.SavedPipeline, 
 	}{result1, result2}
 }
 
-func (fake *FakePipelinesDB) GetBuildPrepsForPendingBuildsForPipeline(pipelineName string) ([]db.BuildPreparation, error) {
+func (fake *FakeSyncherDB) GetBuildPrepsForPendingBuildsForPipeline(pipelineName string) ([]db.BuildPreparation, error) {
 	fake.getBuildPrepsForPendingBuildsForPipelineMutex.Lock()
 	fake.getBuildPrepsForPendingBuildsForPipelineArgsForCall = append(fake.getBuildPrepsForPendingBuildsForPipelineArgsForCall, struct {
 		pipelineName string
@@ -73,19 +73,19 @@ func (fake *FakePipelinesDB) GetBuildPrepsForPendingBuildsForPipeline(pipelineNa
 	}
 }
 
-func (fake *FakePipelinesDB) GetBuildPrepsForPendingBuildsForPipelineCallCount() int {
+func (fake *FakeSyncherDB) GetBuildPrepsForPendingBuildsForPipelineCallCount() int {
 	fake.getBuildPrepsForPendingBuildsForPipelineMutex.RLock()
 	defer fake.getBuildPrepsForPendingBuildsForPipelineMutex.RUnlock()
 	return len(fake.getBuildPrepsForPendingBuildsForPipelineArgsForCall)
 }
 
-func (fake *FakePipelinesDB) GetBuildPrepsForPendingBuildsForPipelineArgsForCall(i int) string {
+func (fake *FakeSyncherDB) GetBuildPrepsForPendingBuildsForPipelineArgsForCall(i int) string {
 	fake.getBuildPrepsForPendingBuildsForPipelineMutex.RLock()
 	defer fake.getBuildPrepsForPendingBuildsForPipelineMutex.RUnlock()
 	return fake.getBuildPrepsForPendingBuildsForPipelineArgsForCall[i].pipelineName
 }
 
-func (fake *FakePipelinesDB) GetBuildPrepsForPendingBuildsForPipelineReturns(result1 []db.BuildPreparation, result2 error) {
+func (fake *FakeSyncherDB) GetBuildPrepsForPendingBuildsForPipelineReturns(result1 []db.BuildPreparation, result2 error) {
 	fake.GetBuildPrepsForPendingBuildsForPipelineStub = nil
 	fake.getBuildPrepsForPendingBuildsForPipelineReturns = struct {
 		result1 []db.BuildPreparation
@@ -93,7 +93,7 @@ func (fake *FakePipelinesDB) GetBuildPrepsForPendingBuildsForPipelineReturns(res
 	}{result1, result2}
 }
 
-func (fake *FakePipelinesDB) UpdateBuildPreparation(buildPreparation db.BuildPreparation) error {
+func (fake *FakeSyncherDB) UpdateBuildPreparation(buildPreparation db.BuildPreparation) error {
 	fake.updateBuildPreparationMutex.Lock()
 	fake.updateBuildPreparationArgsForCall = append(fake.updateBuildPreparationArgsForCall, struct {
 		buildPreparation db.BuildPreparation
@@ -106,23 +106,23 @@ func (fake *FakePipelinesDB) UpdateBuildPreparation(buildPreparation db.BuildPre
 	}
 }
 
-func (fake *FakePipelinesDB) UpdateBuildPreparationCallCount() int {
+func (fake *FakeSyncherDB) UpdateBuildPreparationCallCount() int {
 	fake.updateBuildPreparationMutex.RLock()
 	defer fake.updateBuildPreparationMutex.RUnlock()
 	return len(fake.updateBuildPreparationArgsForCall)
 }
 
-func (fake *FakePipelinesDB) UpdateBuildPreparationArgsForCall(i int) db.BuildPreparation {
+func (fake *FakeSyncherDB) UpdateBuildPreparationArgsForCall(i int) db.BuildPreparation {
 	fake.updateBuildPreparationMutex.RLock()
 	defer fake.updateBuildPreparationMutex.RUnlock()
 	return fake.updateBuildPreparationArgsForCall[i].buildPreparation
 }
 
-func (fake *FakePipelinesDB) UpdateBuildPreparationReturns(result1 error) {
+func (fake *FakeSyncherDB) UpdateBuildPreparationReturns(result1 error) {
 	fake.UpdateBuildPreparationStub = nil
 	fake.updateBuildPreparationReturns = struct {
 		result1 error
 	}{result1}
 }
 
-var _ pipelines.PipelinesDB = new(FakePipelinesDB)
+var _ pipelines.SyncherDB = new(FakeSyncherDB)
