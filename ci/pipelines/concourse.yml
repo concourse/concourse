@@ -17,6 +17,7 @@ groups:
   - bin-rc
   - shipit
   - testflight
+  - bin-testflight
 
 - name: publish
   jobs:
@@ -148,6 +149,7 @@ jobs:
   - get: concourse
     trigger: true
     passed: [atc, fly, go-concourse, blackbox, tsa, jettison, baggageclaim]
+  - get: garden-linux
   - get: version
     params: {pre: rc}
   - put: version
@@ -157,6 +159,9 @@ jobs:
   public: true
   plan:
   - get: concourse
+    passed: [rc]
+    trigger: true
+  - get: garden-linux
     passed: [rc]
     trigger: true
   - get: version
@@ -179,6 +184,7 @@ jobs:
       passed: [rc]
       trigger: true
     - get: garden-linux
+      passed: [rc]
       trigger: true
     - get: bin
       trigger: true
@@ -187,6 +193,8 @@ jobs:
     - get: garden-linux-src
   - task: checkout-release-tag
     file: concourse/ci/checkout-garden-linux.yml
+  - task: build-cli-artifacts
+    file: bin/ci/build-cli-artifacts.yml
   - aggregate:
     - task: build-linux
       file: bin/ci/build-linux.yml
@@ -194,9 +202,6 @@ jobs:
       file: bin/ci/build-darwin.yml
     - task: build-windows
       file: bin/ci/build-windows.yml
-  - task: testflight
-    file: bin/ci/testflight.yml
-    privileged: true
   - task: build-release
     file: bin/ci/build-release.yml
   - put: bin-releases
@@ -245,147 +250,113 @@ jobs:
     do:
     - aggregate:
       - get: concourse
-        passed: [bosh-rc, bin-rc]
+        passed: [bosh-rc]
         trigger: true
       - get: candidate-release
         passed: [bosh-rc]
         trigger: true
       - get: version
-        passed: [bosh-rc, bin-rc]
+        passed: [bosh-rc]
         trigger: true
       - get: garden-linux-release
-        passed: [bin-rc]
+        passed: [bosh-rc]
         trigger: true
         resource: garden-linux
       - get: lite-stemcell
       - get: deployments
-    - task: upload-stemcell-and-releases
-      file: concourse/ci/testflight-upload-stemcell-and-releases.yml
+    - put: lite-deployment
+      params:
+        manifest: deployments/lite/ci/manifests/no_auth_deployment.yml
+        target_file: bosh-lites/metadata
+        stemcells: [lite-stemcell/*.tgz]
+        releases:
+          - garden-linux-release/*.tgz
+          - candidate-release/concourse-*.tgz
+    - task: no-auth-build
+      file: concourse/ci/testflight.yml
+      config: {params: {ATC_URL: "http://10.244.15.2:8080"}}
+      timeout: 1h
+      on_failure:
+        do:
+          - task: export-bosh-logs
+            file: concourse/ci/export-bosh-logs.yml
+            config:
+              params:
+                MANIFEST: deployments/lite/ci/manifests/no_auth_deployment.yml
+                BOSH_USER: admin
+                BOSH_PASSWORD: admin
+          - put: testflight-logs
+            params: {file: exported-logs/concourse.*.tgz}
+
+- name: bin-testflight
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: bin
+      passed: [bin-rc]
+      trigger: true
+    - get: concourse
+      passed: [bin-rc]
+      trigger: true
+    - get: linux-binary
+      resource: bin-releases
+      passed: [bin-rc]
+      trigger: true
+    - get: version
+      passed: [bin-rc]
+      trigger: true
+    - get: garden-linux-release
+      passed: [bin-rc]
+      trigger: true
+      resource: garden-linux
+  - aggregate:
+    - task: no-auth
+      file: bin/ci/testflight.yml
+      privileged: true
+      timeout: 1h
+    - task: basic-auth-public
+      file: bin/ci/testflight.yml
       config:
         params:
-          BOSH_USER: admin
-          BOSH_PASSWORD: admin
-    - aggregate:
-      - put: lite-deployment
-        params: &lite-deploy-params
-          manifest: deployments/lite/ci/manifests/no_auth_deployment.yml
-          target_file: bosh-lites/metadata
-          stemcells: [lite-stemcell/*.tgz]
-          releases:
-            - garden-linux-release/*.tgz
-            - candidate-release/concourse-*.tgz
-      - put: lite-deployment-basic-auth-public
+          BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
+          BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+          PIPELINES_PUBLICLY_VIEWABLE: true
+      privileged: true
+      timeout: 1h
+    - task: basic-auth-private
+      file: bin/ci/testflight.yml
+      config:
         params:
-          <<: *lite-deploy-params
-          manifest: deployments/lite/ci/manifests/basic_auth_public_deployment.yml
-      - put: lite-deployment-basic-auth-private
+          BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
+          BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+          PIPELINES_PUBLICLY_VIEWABLE: false
+      privileged: true
+      timeout: 1h
+    - task: github-auth-public
+      file: bin/ci/testflight.yml
+      config:
         params:
-          <<: *lite-deploy-params
-          manifest: deployments/lite/ci/manifests/basic_auth_private_deployment.yml
-      - put: lite-deployment-github-auth-public
+          GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+          GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+          GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
+          GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-client-id}}
+          GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-client-secret}}
+          PIPELINES_PUBLICLY_VIEWABLE: true
+      privileged: true
+      timeout: 1h
+    - task: github-auth-private
+      file: bin/ci/testflight.yml
+      config:
         params:
-          <<: *lite-deploy-params
-          manifest: deployments/lite/ci/manifests/github_auth_public_deployment.yml
-      - put: lite-deployment-github-auth-private
-        params:
-          <<: *lite-deploy-params
-          manifest: deployments/lite/ci/manifests/github_auth_private_deployment.yml
-    - aggregate:
-      - task: no-auth-build
-        file: concourse/ci/testflight.yml
-        config: {params: {ATC_URL: "http://10.244.15.2:8080"}}
-        timeout: 1h
-        on_failure:
-          do:
-            - task: export-bosh-logs
-              file: concourse/ci/export-bosh-logs.yml
-              config:
-                params:
-                  MANIFEST: deployments/lite/ci/manifests/no_auth_deployment.yml
-                  BOSH_USER: admin
-                  BOSH_PASSWORD: admin
-            - put: testflight-logs
-              params: {file: exported-logs/concourse.*.tgz}
-      - task: basic-auth-public-build
-        file: concourse/ci/testflight.yml
-        config:
-          params:
-            ATC_URL: "http://10.244.16.2:8080"
-            BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
-            BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
-            PIPELINES_PUBLICLY_VIEWABLE: true
-        timeout: 1h
-        on_failure:
-          do:
-            - task: export-bosh-logs
-              file: concourse/ci/export-bosh-logs.yml
-              config:
-                params:
-                  MANIFEST: deployments/lite/ci/manifests/basic_auth_public_deployment.yml
-                  BOSH_USER: admin
-                  BOSH_PASSWORD: admin
-            - put: testflight-logs
-              params: {file: exported-logs/concourse.*.tgz}
-      - task: basic-auth-private-build
-        file: concourse/ci/testflight.yml
-        config:
-          params:
-            ATC_URL: "http://10.244.17.2:8080"
-            BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
-            BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
-            PIPELINES_PUBLICLY_VIEWABLE: false
-        timeout: 1h
-        on_failure:
-          do:
-            - task: export-bosh-logs
-              file: concourse/ci/export-bosh-logs.yml
-              config:
-                params:
-                  MANIFEST: deployments/lite/ci/manifests/basic_auth_private_deployment.yml
-                  BOSH_USER: admin
-                  BOSH_PASSWORD: admin
-            - put: testflight-logs
-              params: {file: exported-logs/concourse.*.tgz}
-      - task: github-auth-public-build
-        file: concourse/ci/testflight.yml
-        config:
-          params:
-            ATC_URL: "http://10.244.18.2:8080"
-            GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
-            GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
-            PIPELINES_PUBLICLY_VIEWABLE: true
-        timeout: 1h
-        on_failure:
-          do:
-            - task: export-bosh-logs
-              file: concourse/ci/export-bosh-logs.yml
-              config:
-                params:
-                  MANIFEST: deployments/lite/ci/manifests/github_auth_public_deployment.yml
-                  BOSH_USER: admin
-                  BOSH_PASSWORD: admin
-            - put: testflight-logs
-              params: {file: exported-logs/concourse.*.tgz}
-      - task: github-auth-private-build
-        file: concourse/ci/testflight.yml
-        config:
-          params:
-            ATC_URL: "http://10.244.19.2:8080"
-            GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
-            GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
-            PIPELINES_PUBLICLY_VIEWABLE: false
-        timeout: 1h
-        on_failure:
-          do:
-            - task: export-bosh-logs
-              file: concourse/ci/export-bosh-logs.yml
-              config:
-                params:
-                  MANIFEST: deployments/lite/ci/manifests/github_auth_private_deployment.yml
-                  BOSH_USER: admin
-                  BOSH_PASSWORD: admin
-            - put: testflight-logs
-              params: {file: exported-logs/concourse.*.tgz}
+          GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+          GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+          GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
+          GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-client-id}}
+          GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-client-secret}}
+          PIPELINES_PUBLICLY_VIEWABLE: false
+      privileged: true
+      timeout: 1h
 
 - name: deploy
   serial: true
