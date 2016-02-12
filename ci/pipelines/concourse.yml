@@ -204,7 +204,7 @@ jobs:
       file: bin/ci/build-windows.yml
   - task: build-release
     file: bin/ci/build-release.yml
-  - put: bin-releases
+  - put: bin-rc
     params:
       name: release/name
       tag: release/tag
@@ -300,16 +300,12 @@ jobs:
       passed: [bin-rc]
       trigger: true
     - get: linux-binary
-      resource: bin-releases
+      resource: bin-rc
       passed: [bin-rc]
       trigger: true
     - get: version
       passed: [bin-rc]
       trigger: true
-    - get: garden-linux-release
-      passed: [bin-rc]
-      trigger: true
-      resource: garden-linux
   - aggregate:
     - task: no-auth
       file: bin/ci/testflight.yml
@@ -366,18 +362,18 @@ jobs:
       params: {submodules: none}
       passed: [testflight, bin-testflight]
       trigger: true
-    - get: candidate-release
-      passed: [testflight]
-      trigger: true
-    - get: bin-releases
-      passed: [bin-testflight]
-      trigger: true
     - get: version
       passed: [testflight, bin-testflight]
       trigger: true
+    - get: candidate-release
+      passed: [testflight]
+      trigger: true
     - get: garden-linux-release
       resource: garden-linux
-      passed: [testflight, bin-testflight]
+      passed: [testflight]
+      trigger: true
+    - get: bin-rc
+      passed: [bin-testflight]
       trigger: true
     - get: bosh-stemcell
       resource: aws-stemcell
@@ -422,6 +418,8 @@ jobs:
     - get: garden-linux-release
       passed: [deploy]
       resource: garden-linux
+    - get: bin-rc
+      passed: [deploy]
     - get: deployments
   - task: finalize-release
     file: concourse/ci/finalize-release.yml
@@ -565,6 +563,9 @@ jobs:
     - get: garden-linux
       passed: [shipit]
       trigger: true
+    - get: bin-rc
+      passed: [shipit]
+      trigger: true
     - get: concourse
       params: {submodules: none}
       passed: [shipit]
@@ -607,6 +608,7 @@ jobs:
       globs:
       - final-release/*.tgz
       - renamed-release/garden-linux-*.tgz
+      - bin-rc/concourse_*
 
 - name: product
   serial: true
@@ -937,7 +939,7 @@ resources:
     uri: https://github.com/cloudfoundry-incubator/garden-linux-release
     branch: master
 
-- name: bin-releases
+- name: bin-rc
   type: github-release
   source:
     user: concourse
