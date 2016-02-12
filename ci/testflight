@@ -2,10 +2,6 @@
 
 set -e -x -u
 
-apt-get update
-
-apt-get -y install openssh-client netcat iptables
-
 CONCOURSE=$PWD/linux-binary/concourse_linux_amd64
 chmod +x $CONCOURSE
 
