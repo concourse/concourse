@@ -156,7 +156,7 @@ func (tracker *tracker) InitWithSources(
 
 	resourceSpec.Mounts = mounts
 
-	container, err = chosenWorker.CreateContainer(logger, nil, nil, session.ID, session.Metadata, resourceSpec)
+	container, err = chosenWorker.CreateContainer(logger, nil, nil, session.ID, session.Metadata, resourceSpec, nil)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
 		return nil, nil, err
@@ -195,7 +195,7 @@ func (tracker *tracker) Init(logger lager.Logger, metadata Metadata, session Ses
 		Ephemeral: session.Ephemeral,
 		Tags:      tags,
 		Env:       metadata.Env(),
-	})
+	}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +259,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 			Ephemeral: session.Ephemeral,
 			Tags:      tags,
 			Env:       metadata.Env(),
-		})
+		}, nil)
 		if err != nil {
 			logger.Error("failed-to-create-container", err)
 			return nil, nil, err
@@ -317,7 +317,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 			Volume:    cachedVolume,
 			MountPath: ResourcesDir("get"),
 		},
-	})
+	}, nil)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
 		return nil, nil, err

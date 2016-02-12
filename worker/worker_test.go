@@ -129,6 +129,7 @@ var _ = Describe("Worker", func() {
 			containerID               Identifier
 			containerMetadata         Metadata
 			spec                      ContainerSpec
+			customTypes               atc.ResourceTypes
 
 			createdContainer Container
 			createErr        error
@@ -147,10 +148,38 @@ var _ = Describe("Worker", func() {
 			containerMetadata = Metadata{
 				BuildName: "lol",
 			}
+
+			customTypes = atc.ResourceTypes{
+				{
+					Name:   "custom-type-b",
+					Type:   "custom-type-a",
+					Source: atc.Source{"some": "source"},
+				},
+				{
+					Name:   "custom-type-a",
+					Type:   "some-resource",
+					Source: atc.Source{"some": "source"},
+				},
+				{
+					Name:   "custom-type-c",
+					Type:   "custom-type-b",
+					Source: atc.Source{"some": "source"},
+				},
+				{
+					Name:   "custom-type-d",
+					Type:   "custom-type-b",
+					Source: atc.Source{"some": "source"},
+				},
+				{
+					Name:   "unknown-custom-type",
+					Type:   "unknown-base-type",
+					Source: atc.Source{"some": "source"},
+				},
+			}
 		})
 
 		JustBeforeEach(func() {
-			createdContainer, createErr = gardenWorker.CreateContainer(logger, signals, fakeImageFetchingDelegate, containerID, containerMetadata, spec)
+			createdContainer, createErr = gardenWorker.CreateContainer(logger, signals, fakeImageFetchingDelegate, containerID, containerMetadata, spec, customTypes)
 		})
 
 		Context("with a resource type container spec", func() {
@@ -212,6 +241,98 @@ var _ = Describe("Worker", func() {
 							Expect(createErr).To(Equal(disaster))
 						})
 
+					})
+
+					Context("when an image resource is provided", func() {
+						BeforeEach(func() {
+							spec = ResourceTypeContainerSpec{
+								ImageResourcePointer: &atc.TaskImageConfig{
+									Type:   "some-type",
+									Source: atc.Source{"some": "source"},
+								},
+								Env: []string{"C=3"},
+							}
+						})
+
+						Context("when fetching the image succeeds", func() {
+							var image *wfakes.FakeImage
+
+							BeforeEach(func() {
+								image = new(wfakes.FakeImage)
+
+								imageVolume := new(bfakes.FakeVolume)
+								imageVolume.HandleReturns("image-volume")
+								imageVolume.PathReturns("/some/image/path")
+								image.VolumeReturns(imageVolume)
+								image.MetadataReturns(ImageMetadata{
+									Env: []string{"A=1", "B=2"},
+								})
+
+								fakeImageFetcher.FetchImageReturns(image, nil)
+							})
+
+							It("succeeds", func() {
+								Expect(createErr).NotTo(HaveOccurred())
+							})
+
+							It("creates the container with (volume path)/rootfs as the rootfs", func() {
+								Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+								spec := fakeGardenClient.CreateArgsForCall(0)
+								Expect(spec.RootFSPath).To(Equal("/some/image/path/rootfs"))
+								Expect(spec.Properties).To(HaveLen(2))
+								Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
+									`["image-volume"]`,
+								))
+								Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(`{}`))
+							})
+
+							It("fetches the image with the correct info", func() {
+								Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
+								_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker := fakeImageFetcher.FetchImageArgsForCall(0)
+								Expect(fetchImageConfig).To(Equal(atc.TaskImageConfig{
+									Type:   "some-type",
+									Source: atc.Source{"some": "source"},
+								}))
+								Expect(fetchSignals).To(Equal(signals))
+								Expect(fetchID).To(Equal(containerID))
+								Expect(fetchMetadata).To(Equal(containerMetadata))
+								Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
+								Expect(fetchWorker).To(Equal(gardenWorker))
+							})
+
+							It("creates the container with env from the image", func() {
+								Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+
+								spec := fakeGardenClient.CreateArgsForCall(0)
+								Expect(spec.Env).To(Equal([]string{"A=1", "B=2", "C=3"}))
+							})
+
+							Context("after the container is created", func() {
+								BeforeEach(func() {
+									fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
+										Expect(image.ReleaseCallCount()).To(Equal(0))
+										return fakeContainer, nil
+									}
+								})
+
+								It("releases the image", func() {
+									Expect(image.ReleaseCallCount()).To(Equal(1))
+								})
+							})
+						})
+
+						Context("when fetching the image fails", func() {
+							disaster := errors.New("nope")
+
+							BeforeEach(func() {
+								fakeImageFetcher.FetchImageReturns(nil, disaster)
+							})
+
+							It("returns the error", func() {
+								Expect(createErr).To(Equal(disaster))
+							})
+						})
 					})
 
 					Context("when env vars are provided", func() {
@@ -570,7 +691,7 @@ var _ = Describe("Worker", func() {
 				Context("when an image resource is provided", func() {
 					BeforeEach(func() {
 						spec = TaskContainerSpec{
-							ImageResource: &atc.TaskImageConfig{
+							ImageResourcePointer: &atc.TaskImageConfig{
 								Type:   "some-type",
 								Source: atc.Source{"some": "source"},
 							},
@@ -592,6 +713,10 @@ var _ = Describe("Worker", func() {
 							})
 
 							fakeImageFetcher.FetchImageReturns(image, nil)
+						})
+
+						It("succeeds", func() {
+							Expect(createErr).NotTo(HaveOccurred())
 						})
 
 						It("creates the container with (volume path)/rootfs as the rootfs", func() {

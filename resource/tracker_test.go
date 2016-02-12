@@ -77,7 +77,7 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("creates a container with the resource's type, env, ephemeral information, and the session as the handle", func() {
-				_, _, _, id, containerMetadata, spec := workerClient.CreateContainerArgsForCall(0)
+				_, _, _, id, containerMetadata, spec, _ := workerClient.CreateContainerArgsForCall(0)
 
 				Expect(id).To(Equal(session.ID))
 				Expect(containerMetadata).To(Equal(session.Metadata))
@@ -228,7 +228,7 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("creates the container with the cache volume", func() {
-							_, _, _, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+							_, _, _, id, containerMetadata, spec, _ := satisfyingWorker.CreateContainerArgsForCall(0)
 
 							Expect(id).To(Equal(session.ID))
 							Expect(containerMetadata).To(Equal(session.Metadata))
@@ -358,7 +358,7 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("creates the container with the created cache volume", func() {
-							_, _, _, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+							_, _, _, id, containerMetadata, spec, _ := satisfyingWorker.CreateContainerArgsForCall(0)
 
 							Expect(id).To(Equal(session.ID))
 							Expect(containerMetadata).To(Equal(session.Metadata))
@@ -451,7 +451,7 @@ var _ = Describe("Tracker", func() {
 					})
 
 					It("creates a container", func() {
-						_, _, _, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+						_, _, _, id, containerMetadata, spec, _ := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))
@@ -725,7 +725,7 @@ var _ = Describe("Tracker", func() {
 
 					It("creates the container with the cache volume", func() {
 						Expect(satisfyingWorker.CreateContainerCallCount()).To(Equal(1))
-						_, _, _, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+						_, _, _, id, containerMetadata, spec, _ := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))
@@ -780,7 +780,7 @@ var _ = Describe("Tracker", func() {
 
 					It("creates a container with no volumes", func() {
 						Expect(satisfyingWorker.CreateContainerCallCount()).To(Equal(1))
-						_, _, _, id, containerMetadata, spec := satisfyingWorker.CreateContainerArgsForCall(0)
+						_, _, _, id, containerMetadata, spec, _ := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))

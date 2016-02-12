@@ -22,6 +22,7 @@ type Client interface {
 		Identifier,
 		Metadata,
 		ContainerSpec,
+		atc.ResourceTypes,
 	) (Container, error)
 
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)

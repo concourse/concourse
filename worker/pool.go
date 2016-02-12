@@ -117,13 +117,13 @@ func (pool *pool) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (
 	return randomWorker, nil
 }
 
-func (pool *pool) CreateContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec) (Container, error) {
-	worker, err := pool.Satisfying(spec.WorkerSpec(), nil)
+func (pool *pool) CreateContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes atc.ResourceTypes) (Container, error) {
+	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := worker.CreateContainer(logger, signals, delegate, id, metadata, spec)
+	container, err := worker.CreateContainer(logger, signals, delegate, id, metadata, spec, resourceTypes)
 	if err != nil {
 		return nil, err
 	}

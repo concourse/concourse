@@ -52,8 +52,29 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 	workerClient Client,
 ) (garden.ContainerSpec, error) {
 	var err error
-	gardenSpec := garden.ContainerSpec{
-		Properties: garden.Properties{},
+
+	imageResourceConfig, hasImageResource := spec.ImageResource()
+	var gardenSpec garden.ContainerSpec
+	if hasImageResource {
+		image, err := factory.imageFetcher.FetchImage(factory.logger, imageResourceConfig, cancel, id, metadata, delegate, workerClient)
+		if err != nil {
+			return garden.ContainerSpec{}, err
+		}
+
+		imageVolume := image.Volume()
+
+		factory.volumeHandles = append(factory.volumeHandles, imageVolume.Handle())
+		factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
+
+		gardenSpec = garden.ContainerSpec{
+			Properties: garden.Properties{},
+			RootFSPath: path.Join(imageVolume.Path(), "rootfs"),
+			Env:        image.Metadata().Env,
+		}
+	} else {
+		gardenSpec = garden.ContainerSpec{
+			Properties: garden.Properties{},
+		}
 	}
 
 	switch s := spec.(type) {
@@ -92,7 +113,7 @@ func (factory *gardenContainerSpecFactory) BuildResourceContainerSpec(spec Resou
 	}
 
 	gardenSpec.Privileged = true
-	gardenSpec.Env = spec.Env
+	gardenSpec.Env = append(gardenSpec.Env, spec.Env...)
 
 	if spec.Ephemeral {
 		gardenSpec.Properties[ephemeralPropertyName] = "true"
@@ -117,14 +138,17 @@ func (factory *gardenContainerSpecFactory) BuildResourceContainerSpec(spec Resou
 		return gardenSpec, err
 	}
 
-	for _, t := range resourceTypes {
-		if t.Type == spec.Type {
-			gardenSpec.RootFSPath = t.Image
-			return gardenSpec, nil
+	if spec.ImageResourcePointer == nil {
+		for _, t := range resourceTypes {
+			if t.Type == spec.Type {
+				gardenSpec.RootFSPath = t.Image
+				return gardenSpec, nil
+			}
 		}
+		return gardenSpec, ErrUnsupportedResourceType
 	}
 
-	return gardenSpec, ErrUnsupportedResourceType
+	return gardenSpec, nil
 }
 
 func (factory *gardenContainerSpecFactory) BuildTaskContainerSpec(
@@ -136,20 +160,7 @@ func (factory *gardenContainerSpecFactory) BuildTaskContainerSpec(
 	metadata Metadata,
 	workerClient Client,
 ) (garden.ContainerSpec, error) {
-	if spec.ImageResource != nil {
-		image, err := factory.imageFetcher.FetchImage(factory.logger, *spec.ImageResource, cancel, id, metadata, delegate, workerClient)
-		if err != nil {
-			return garden.ContainerSpec{}, err
-		}
-
-		imageVolume := image.Volume()
-
-		gardenSpec.RootFSPath = path.Join(imageVolume.Path(), "rootfs")
-		factory.volumeHandles = append(factory.volumeHandles, imageVolume.Handle())
-		factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
-
-		gardenSpec.Env = append(gardenSpec.Env, image.Metadata().Env...)
-	} else {
+	if spec.ImageResourcePointer == nil {
 		gardenSpec.RootFSPath = spec.Image
 	}
 

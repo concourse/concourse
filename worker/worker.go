@@ -108,6 +108,7 @@ func (worker *gardenWorker) CreateContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
+	resourceTypes atc.ResourceTypes,
 ) (Container, error) {
 	gardenContainerSpecFactory := NewGardenContainerSpecFactory(logger, worker.baggageclaimClient, worker.imageFetcher)
 
