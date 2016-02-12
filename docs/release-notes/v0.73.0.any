@@ -5,8 +5,8 @@
 \list{
   The \reference{fly-destroy-pipeline} command now runs much quicker.
   Unfortunately to implement this there's a massive database migration. Expect
- $quite a few minutes of downtime while you upgrade to this version, depending
- on how many builds you have and how chatty they are. Sorry about that.
+  quite a few minutes of downtime while you upgrade to this version, depending
+  on how many builds you have and how chatty they are. Sorry about that.
 }{
   \italic{Backwards-incompatible:} the
   \hyperlink{https://github.com/concourse/docker-image-resource}{Docker Image
