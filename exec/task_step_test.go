@@ -189,7 +189,7 @@ var _ = Describe("GardenFactory", func() {
 
 						It("found the worker with the right spec", func() {
 							Expect(fakeWorkerClient.AllSatisfyingCallCount()).To(Equal(1))
-							spec := fakeWorkerClient.AllSatisfyingArgsForCall(0)
+							spec, _ := fakeWorkerClient.AllSatisfyingArgsForCall(0)
 							Expect(spec.Platform).To(Equal("some-platform"))
 						})
 

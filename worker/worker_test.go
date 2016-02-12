@@ -1372,10 +1372,39 @@ var _ = Describe("Worker", func() {
 
 			satisfyingWorker Worker
 			satisfyingErr    error
+
+			customTypes atc.ResourceTypes
 		)
 
 		BeforeEach(func() {
 			spec = WorkerSpec{}
+			customTypes = atc.ResourceTypes{
+				{
+					Name:   "custom-type-b",
+					Type:   "custom-type-a",
+					Source: atc.Source{"some": "source"},
+				},
+				{
+					Name:   "custom-type-a",
+					Type:   "some-resource",
+					Source: atc.Source{"some": "source"},
+				},
+				{
+					Name:   "custom-type-c",
+					Type:   "custom-type-b",
+					Source: atc.Source{"some": "source"},
+				},
+				{
+					Name:   "custom-type-d",
+					Type:   "custom-type-b",
+					Source: atc.Source{"some": "source"},
+				},
+				{
+					Name:   "unknown-custom-type",
+					Type:   "unknown-base-type",
+					Source: atc.Source{"some": "source"},
+				},
+			}
 		})
 
 		JustBeforeEach(func() {
@@ -1394,7 +1423,7 @@ var _ = Describe("Worker", func() {
 				workerName,
 			)
 
-			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(spec)
+			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(spec, customTypes)
 		})
 
 		Context("when the platform is compatible", func() {
@@ -1516,6 +1545,32 @@ var _ = Describe("Worker", func() {
 				It("returns ErrMismatchedTags", func() {
 					Expect(satisfyingErr).To(Equal(ErrMismatchedTags))
 				})
+			})
+		})
+
+		Context("when the resource type is a custom type supported by the worker", func() {
+			BeforeEach(func() {
+				spec.ResourceType = "custom-type-c"
+				spec.Tags = []string{"some", "tags"}
+			})
+
+			It("returns the worker", func() {
+				Expect(satisfyingWorker).To(Equal(gardenWorker))
+			})
+
+			It("returns no error", func() {
+				Expect(satisfyingErr).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when the resource type is a custom type not supported by the worker", func() {
+			BeforeEach(func() {
+				spec.ResourceType = "unknown-custom-type"
+				spec.Tags = []string{"some", "tags"}
+			})
+
+			It("returns ErrUnsupportedResourceType", func() {
+				Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
 			})
 		})
 

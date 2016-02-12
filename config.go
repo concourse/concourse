@@ -40,6 +40,14 @@ type ResourceConfig struct {
 	CheckEvery string `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
 }
 
+type ResourceType struct {
+	Name   string `yaml:"name" json:"name" mapstructure:"name"`
+	Type   string `yaml:"type" json:"type" mapstructure:"type"`
+	Source Source `yaml:"source" json:"source" mapstructure:"source"`
+}
+
+type ResourceTypes []ResourceType
+
 type JobConfig struct {
 	Name   string `yaml:"name" json:"name" mapstructure:"name"`
 	Public bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`

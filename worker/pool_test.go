@@ -3,6 +3,7 @@ package worker_test
 import (
 	"errors"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/fakes"
@@ -78,6 +79,7 @@ var _ = Describe("Pool", func() {
 
 			satisfyingErr    error
 			satisfyingWorker Worker
+			resourceTypes    atc.ResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -85,10 +87,17 @@ var _ = Describe("Pool", func() {
 				Platform: "some-platform",
 				Tags:     []string{"step", "tags"},
 			}
+			resourceTypes = atc.ResourceTypes{
+				{
+					Name:   "some-resource-type",
+					Type:   "some-underlying-type",
+					Source: atc.Source{"some": "source"},
+				},
+			}
 		})
 
 		JustBeforeEach(func() {
-			satisfyingWorker, satisfyingErr = pool.Satisfying(spec)
+			satisfyingWorker, satisfyingErr = pool.Satisfying(spec, resourceTypes)
 		})
 
 		Context("with multiple workers", func() {
@@ -116,19 +125,25 @@ var _ = Describe("Pool", func() {
 
 			It("checks that the workers satisfy the given spec", func() {
 				Expect(workerA.SatisfyingCallCount()).To(Equal(1))
-				Expect(workerA.SatisfyingArgsForCall(0)).To(Equal(spec))
+				actualSpec, actualResourceTypes := workerA.SatisfyingArgsForCall(0)
+				Expect(actualSpec).To(Equal(spec))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 				Expect(workerB.SatisfyingCallCount()).To(Equal(1))
-				Expect(workerB.SatisfyingArgsForCall(0)).To(Equal(spec))
+				actualSpec, actualResourceTypes = workerB.SatisfyingArgsForCall(0)
+				Expect(actualSpec).To(Equal(spec))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 				Expect(workerC.SatisfyingCallCount()).To(Equal(1))
-				Expect(workerC.SatisfyingArgsForCall(0)).To(Equal(spec))
+				actualSpec, actualResourceTypes = workerC.SatisfyingArgsForCall(0)
+				Expect(actualSpec).To(Equal(spec))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
 			})
 
 			It("returns a random worker satisfying the spec", func() {
 				chosenCount := map[Worker]int{workerA: 0, workerB: 0, workerC: 0}
 				for i := 0; i < 100; i++ {
-					satisfyingWorker, satisfyingErr = pool.Satisfying(spec)
+					satisfyingWorker, satisfyingErr = pool.Satisfying(spec, resourceTypes)
 					Expect(satisfyingErr).NotTo(HaveOccurred())
 					chosenCount[satisfyingWorker]++
 				}
@@ -181,6 +196,7 @@ var _ = Describe("Pool", func() {
 
 			satisfyingErr     error
 			satisfyingWorkers []Worker
+			resourceTypes     atc.ResourceTypes
 		)
 
 		BeforeEach(func() {
@@ -188,10 +204,17 @@ var _ = Describe("Pool", func() {
 				Platform: "some-platform",
 				Tags:     []string{"step", "tags"},
 			}
+			resourceTypes = atc.ResourceTypes{
+				{
+					Name:   "some-resource-type",
+					Type:   "some-underlying-type",
+					Source: atc.Source{"some": "source"},
+				},
+			}
 		})
 
 		JustBeforeEach(func() {
-			satisfyingWorkers, satisfyingErr = pool.AllSatisfying(spec)
+			satisfyingWorkers, satisfyingErr = pool.AllSatisfying(spec, resourceTypes)
 		})
 
 		Context("with multiple workers", func() {
@@ -219,19 +242,25 @@ var _ = Describe("Pool", func() {
 
 			It("checks that the workers satisfy the given spec", func() {
 				Expect(workerA.SatisfyingCallCount()).To(Equal(1))
-				Expect(workerA.SatisfyingArgsForCall(0)).To(Equal(spec))
+				actualSpec, actualResourceTypes := workerA.SatisfyingArgsForCall(0)
+				Expect(actualSpec).To(Equal(spec))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 				Expect(workerB.SatisfyingCallCount()).To(Equal(1))
-				Expect(workerB.SatisfyingArgsForCall(0)).To(Equal(spec))
+				actualSpec, actualResourceTypes = workerB.SatisfyingArgsForCall(0)
+				Expect(actualSpec).To(Equal(spec))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 				Expect(workerC.SatisfyingCallCount()).To(Equal(1))
-				Expect(workerC.SatisfyingArgsForCall(0)).To(Equal(spec))
+				actualSpec, actualResourceTypes = workerC.SatisfyingArgsForCall(0)
+				Expect(actualSpec).To(Equal(spec))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
 			})
 
 			It("returns all workers satisfying the spec in a random order", func() {
 				firstCount := map[Worker]int{workerA: 0, workerB: 0}
 				for i := 0; i < 100; i++ {
-					satisfyingWorkers, satisfyingErr = pool.AllSatisfying(spec)
+					satisfyingWorkers, satisfyingErr = pool.AllSatisfying(spec, resourceTypes)
 					Expect(satisfyingErr).NotTo(HaveOccurred())
 					Expect(satisfyingWorkers).To(ConsistOf(workerA, workerB))
 					firstCount[satisfyingWorkers[0]]++

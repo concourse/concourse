@@ -177,7 +177,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			workerSpec.ResourceType = config.ImageResource.Type
 		}
 
-		compatibleWorkers, err := step.workerPool.AllSatisfying(workerSpec)
+		compatibleWorkers, err := step.workerPool.AllSatisfying(workerSpec, nil)
 		if err != nil {
 			return err
 		}

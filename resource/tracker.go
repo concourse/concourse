@@ -109,7 +109,7 @@ func (tracker *tracker) InitWithSources(
 		Env:       metadata.Env(),
 	}
 
-	compatibleWorkers, err := tracker.workerClient.AllSatisfying(resourceSpec.WorkerSpec())
+	compatibleWorkers, err := tracker.workerClient.AllSatisfying(resourceSpec.WorkerSpec(), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -242,7 +242,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 		Tags:         tags,
 	}
 
-	chosenWorker, err := tracker.workerClient.Satisfying(resourceSpec)
+	chosenWorker, err := tracker.workerClient.Satisfying(resourceSpec, nil)
 	if err != nil {
 		logger.Info("no-workers-satisfying-spec", lager.Data{
 			"error": err.Error(),

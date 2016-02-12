@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
@@ -26,8 +27,8 @@ type Client interface {
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 
-	Satisfying(WorkerSpec) (Worker, error)
-	AllSatisfying(WorkerSpec) ([]Worker, error)
+	Satisfying(WorkerSpec, atc.ResourceTypes) (Worker, error)
+	AllSatisfying(WorkerSpec, atc.ResourceTypes) ([]Worker, error)
 	GetWorker(workerName string) (Worker, error)
 }
 
