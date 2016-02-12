@@ -121,6 +121,20 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
+- name: concourse-bin-testflight-ci
+  type: git
+  source:
+    uri: https://github.com/concourse/bin.git
+    paths: [Dockerfile.testflight]
+
+- name: concourse-bin-testflight-ci-image
+  type: docker-image
+  source:
+    repository: concourse/bin-testflight-ci
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
 - name: concourse-testflight
   type: git
   source:
@@ -181,6 +195,8 @@ resources:
 
 jobs:
 - name: build-buildbox-ci
+  public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse-buildbox-ci
@@ -194,6 +210,8 @@ jobs:
       build: concourse-buildbox-ci/
 
 - name: build-docs-ci
+  public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse-docs-ci
@@ -208,6 +226,8 @@ jobs:
       build: concourse-docs-ci/ci/dockerfiles/docs-ci
 
 - name: build-concourse-ci
+  public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse-concourse-ci
@@ -222,6 +242,8 @@ jobs:
       build: concourse-concourse-ci/ci/dockerfiles/concourse-ci
 
 - name: build-atc-ci
+  public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse-atc-ci
@@ -235,6 +257,8 @@ jobs:
       build: concourse-atc-ci
 
 - name: build-atc-ci-js
+  public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse-atc-ci-js
@@ -248,6 +272,8 @@ jobs:
       build: concourse-atc-ci-js/web
 
 - name: build-tsa-ci
+  public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse-tsa-ci
@@ -261,6 +287,8 @@ jobs:
       build: concourse-tsa-ci
 
 - name: build-baggageclaim-ci
+  public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse-baggageclaim-ci
@@ -274,6 +302,8 @@ jobs:
       build: concourse-baggageclaim-ci
 
 - name: build-bin-ci
+  public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse-bin-ci
@@ -286,7 +316,26 @@ jobs:
       load_base: golang-1.6
       build: concourse-bin-ci
 
+- name: build-bin-testflight-ci
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse-bin-testflight-ci
+      trigger: true
+    - get: concourse-atc-ci-image
+      passed: [build-atc-ci]
+      trigger: true
+      params: {save: true}
+  - put: concourse-bin-ci-image
+    params:
+      load_base: concourse-atc-ci-image
+      build: concourse-bin-testflight-ci
+      dockerfile: concourse-bin-testflight-ci/Dockerfile.testflight
+
 - name: build-testflight
+  public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse-testflight
@@ -300,6 +349,8 @@ jobs:
       build: concourse-testflight
 
 - name: build-static-golang
+  public: true
+  serial: true
   plan:
   - aggregate:
     - get: concourse-static-golang
