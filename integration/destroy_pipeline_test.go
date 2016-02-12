@@ -51,7 +51,7 @@ var _ = Describe("Fly CLI", func() {
 
 				Eventually(sess).Should(gexec.Exit(1))
 
-				Expect(sess.Err).To(gbytes.Say("the required flag `" + osFlag("p", "pipeline") + "' was not specified"))
+				Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("p", "pipeline") + "' was not specified"))
 			})
 		})
 

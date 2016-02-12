@@ -7,8 +7,8 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/fly/internal/displayhelpers"
 	"github.com/concourse/fly/template"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/onsi/gomega/gexec"

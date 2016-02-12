@@ -17,8 +17,8 @@ import (
 	"strings"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/fly/internal/displayhelpers"
 	"github.com/concourse/fly/pty"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
