@@ -2,22 +2,22 @@
 
 set -e -u -x
 
-ROOT=$(cd $(dirname $0)/.. && pwd)
+LINUX_ASSETS=$PWD/linux
 
-rm -rf $ROOT/linux
-mkdir -p $ROOT/linux
+rm -rf $LINUX_ASSETS
+mkdir -p $LINUX_ASSETS
 
-mkdir -p $ROOT/linux/bin
-cp /opt/static-assets/tar $ROOT/linux/bin/tar
+mkdir -p $LINUX_ASSETS/bin
+cp /opt/static-assets/tar $LINUX_ASSETS/bin/tar
 
-mkdir -p $ROOT/linux/btrfs
-cp /opt/static-assets/btrfs /opt/static-assets/mkfs.btrfs $ROOT/linux/btrfs
+mkdir -p $LINUX_ASSETS/btrfs
+cp /opt/static-assets/btrfs /opt/static-assets/mkfs.btrfs $LINUX_ASSETS/btrfs
 
 pushd garden-linux-release/
   # workaround 'mv /root/.tmp/... /tmp/...: invalid cross-device link'
   HOME=$PWD bosh sync-blobs
 
-  cp -L blobs/busybox/busybox.tar.gz $ROOT/linux/busybox.tar.gz
+  cp -L blobs/busybox/busybox.tar.gz $LINUX_ASSETS/busybox.tar.gz
 
   (
     set -e -u -x
@@ -26,9 +26,9 @@ pushd garden-linux-release/
 
     cd ./src/github.com/cloudfoundry-incubator/garden-linux
     make
-    cp -a out/garden-linux $ROOT/linux/garden-linux
-    cp -a linux_backend/bin/* $ROOT/linux/bin/
-    cp -a linux_backend/skeleton $ROOT/linux/skeleton
+    cp -a out/garden-linux $LINUX_ASSETS/garden-linux
+    cp -a linux_backend/bin/* $LINUX_ASSETS/bin/
+    cp -a linux_backend/skeleton $LINUX_ASSETS/skeleton
   )
 popd
 
@@ -36,12 +36,10 @@ pushd concourse/
   # workaround 'mv /root/.tmp/... /tmp/...: invalid cross-device link'
   HOME=$PWD bosh sync-blobs
 
-  mkdir -p $ROOT/linux/resources
+  mkdir -p $LINUX_ASSETS/resources
 
   for resource in blobs/resources/*-resource.tar.gz; do
     resource_name="$(basename $resource | sed -e 's/-resource.tar.gz//')"
-    cp -L "$resource" $ROOT/linux/resources/$resource_name
+    cp -L "$resource" $LINUX_ASSETS/resources/$resource_name
   done
 popd
-
-cd $ROOT
