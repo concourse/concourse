@@ -10,6 +10,7 @@ inputs:
   path: gopath/src/github.com/concourse/bin
 - name: concourse
 - name: garden-linux-release
+- name: cli-artifacts
 
 outputs:
 - name: linux-binary

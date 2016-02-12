@@ -3,8 +3,10 @@ package main
 import (
 	"net"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/atccmd"
 	"github.com/concourse/tsa/tsacmd"
 	"github.com/tedsuo/ifrit"
@@ -19,14 +21,23 @@ type WebCommand struct {
 		BindIP   tsacmd.IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for SSH."`
 		BindPort uint16        `long:"bind-port" default:"2222"    description:"Port on which to listen for SSH."`
 
-		HostKeyPath        tsacmd.FileFlag `long:"host-key"               required:"true" description:"Key to use for the TSA's ssh server."`
+		HostKeyPath        tsacmd.FileFlag `long:"host-key"        required:"true" description:"Key to use for the TSA's ssh server."`
 		AuthorizedKeysPath tsacmd.FileFlag `long:"authorized-keys" required:"true" description:"Path to a file containing public keys to authorize for SSH access."`
 
 		HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
 	} `group:"TSA Configuration" namespace:"tsa"`
 }
 
+const cliArtifactsBindata = "cli-artifacts"
+
 func (cmd *WebCommand) Execute(args []string) error {
+	err := bindata.RestoreAssets(os.TempDir(), cliArtifactsBindata)
+	if err != nil {
+		return atc.Worker{}, nil, err
+	}
+
+	cmd.ATCCommand.CLIArtifactsDir = atccmd.DirFlag(filepath.Join(os.TempDir(), cliArtifactsBindata))
+
 	tsa := &tsacmd.TSACommand{
 		BindIP:   cmd.TSA.BindIP,
 		BindPort: cmd.TSA.BindPort,

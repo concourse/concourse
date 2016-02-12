@@ -43,3 +43,5 @@ pushd concourse/
     cp -L "$resource" $ROOT/linux/resources/$resource_name
   done
 popd
+
+cd $ROOT
