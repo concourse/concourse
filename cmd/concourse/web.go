@@ -6,12 +6,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/atccmd"
 	"github.com/concourse/tsa/tsacmd"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
+
+	"github.com/concourse/bin/bindata"
 )
 
 type WebCommand struct {
@@ -33,7 +34,7 @@ const cliArtifactsBindata = "cli-artifacts"
 func (cmd *WebCommand) Execute(args []string) error {
 	err := bindata.RestoreAssets(os.TempDir(), cliArtifactsBindata)
 	if err != nil {
-		return atc.Worker{}, nil, err
+		return err
 	}
 
 	cmd.ATCCommand.CLIArtifactsDir = atccmd.DirFlag(filepath.Join(os.TempDir(), cliArtifactsBindata))
