@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e -u -x
+
+export GOPATH=$PWD/concourse
+
+for platform in linux darwin windows; do
+  mkdir -p cli-artifacts/$platform/amd64
+  GOOS=$platform GOARCH=amd64 CGO_ENABLED=0 \
+    go build -o cli-artifacts/${platform}/amd64/fly \
+      github.com/concourse/fly
+done
