@@ -12,13 +12,12 @@ files:
   - github.com/concourse/atc/web/*.go # gosub
   - github.com/concourse/fly/*.go # gosub
   - github.com/concourse/fly/commands/*.go # gosub
+  - github.com/concourse/fly/commands/internal/displayhelpers/*.go # gosub
   - github.com/concourse/fly/commands/internal/executehelpers/*.go # gosub
   - github.com/concourse/fly/commands/internal/flaghelpers/*.go # gosub
   - github.com/concourse/fly/commands/internal/setpipelinehelpers/*.go # gosub
   - github.com/concourse/fly/config/*.go # gosub
   - github.com/concourse/fly/eventstream/*.go # gosub
-  - github.com/concourse/fly/internal/displayhelpers/*.go # gosub
-  - github.com/concourse/fly/internal/flyerrors/*.go # gosub
   - github.com/concourse/fly/pty/*.go # gosub
   - github.com/concourse/fly/rc/*.go # gosub
   - github.com/concourse/fly/template/*.go # gosub
