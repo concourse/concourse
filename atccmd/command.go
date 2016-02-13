@@ -53,6 +53,8 @@ type ATCCommand struct {
 	ExternalURL URLFlag `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
 	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
 
+	OAuthBaseURL URLFlag `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
+
 	PostgresDataSource string `long:"postgres-data-source" default:"postgres://127.0.0.1:5432/atc?sslmode=disable" description:"PostgreSQL connection string."`
 
 	DebugBindIP   IPFlag `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
@@ -170,7 +172,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	providerFactory := provider.NewOAuthFactory(
 		sqlDB,
-		cmd.ExternalURL.String(),
+		cmd.oauthBaseURL(),
 		auth.OAuthRoutes,
 		auth.OAuthCallback,
 	)
@@ -301,6 +303,14 @@ func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
 			}
 		}
 	})
+}
+
+func (cmd *ATCCommand) oauthBaseURL() string {
+	baseURL := cmd.OAuthBaseURL.String()
+	if baseURL == "" {
+		baseURL = cmd.ExternalURL.String()
+	}
+	return baseURL
 }
 
 func (cmd *ATCCommand) authConfigured() bool {
@@ -613,6 +623,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		auth.NewTokenGenerator(signingKey),
 		providerFactory,
+		cmd.oauthBaseURL(),
 
 		pipelineDBFactory,
 

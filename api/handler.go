@@ -39,6 +39,7 @@ func NewHandler(
 
 	tokenGenerator auth.TokenGenerator,
 	providerFactory auth.ProviderFactory,
+	oAuthBaseURL string,
 
 	pipelineDBFactory db.PipelineDBFactory,
 	configDB db.ConfigDB,
@@ -76,6 +77,7 @@ func NewHandler(
 	authServer := authserver.NewServer(
 		logger,
 		externalURL,
+		oAuthBaseURL,
 		tokenGenerator,
 		providerFactory,
 		authDB,

@@ -32,7 +32,8 @@ import (
 var (
 	sink *lager.ReconfigurableSink
 
-	externalURL = "https://example.com"
+	externalURL  = "https://example.com"
+	oAuthBaseURL = "https://oauth.example.com"
 
 	authValidator        *authfakes.FakeValidator
 	userContextReader    *authfakes.FakeUserContextReader
@@ -131,6 +132,7 @@ var _ = BeforeEach(func() {
 
 		fakeTokenGenerator,
 		providerFactory,
+		oAuthBaseURL,
 
 		pipelineDBFactory,
 		configDB,

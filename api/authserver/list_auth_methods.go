@@ -43,7 +43,7 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 		methods = append(methods, atc.AuthMethod{
 			Type:        atc.AuthTypeOAuth,
 			DisplayName: provider.DisplayName(),
-			AuthURL:     s.externalURL + path,
+			AuthURL:     s.oAuthBaseURL + path,
 		})
 	}
 

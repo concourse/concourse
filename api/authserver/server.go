@@ -9,6 +9,7 @@ import (
 type Server struct {
 	logger          lager.Logger
 	externalURL     string
+	oAuthBaseURL    string
 	tokenGenerator  auth.TokenGenerator
 	providerFactory auth.ProviderFactory
 	db              AuthDB
@@ -23,6 +24,7 @@ type AuthDB interface {
 func NewServer(
 	logger lager.Logger,
 	externalURL string,
+	oAuthBaseURL string,
 	tokenGenerator auth.TokenGenerator,
 	providerFactory auth.ProviderFactory,
 	db AuthDB,
@@ -30,6 +32,7 @@ func NewServer(
 	return &Server{
 		logger:          logger,
 		externalURL:     externalURL,
+		oAuthBaseURL:    oAuthBaseURL,
 		tokenGenerator:  tokenGenerator,
 		providerFactory: providerFactory,
 		db:              db,
