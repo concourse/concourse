@@ -85,10 +85,8 @@ if [ -n "$GITHUB_AUTH_CONFIG_ORGANIZATION" ]; then
   github_auth_config="$github_auth_config --github-auth-organization $GITHUB_AUTH_CONFIG_ORGANIZATION"
 fi
 
-export ATC_URL="http://$(hostname -i):8080"
-
 $CONCOURSE web \
-  --external-url "$ATC_URL" \
+  --external-url "http://$(hostname -i):8080" \
   --oauth-base-url "http://127.0.0.1:8080" \
   --tsa-host-key /etc/concourse/tsa-host \
   --tsa-authorized-keys /etc/concourse/worker.pub \
@@ -118,5 +116,7 @@ $CONCOURSE worker \
 workerpid=$!
 
 wait_for_proc_port worker $workerpid 7777
+
+export ATC_URL=http://127.0.0.1:8080
 
 ./concourse/ci/scripts/testflight "$@"
