@@ -88,7 +88,8 @@ var _ = Describe("Viewing builds", func() {
 			Eventually(page.Find("#page-header.succeeded")).Should(BeFound())
 			Eventually(page.Find(".build-duration").Text).Should(ContainSubstring("duration"))
 
-			Eventually(page.Find(".build-step .header .succeeded").Text).Should(ContainSubstring("some-task"))
+			Eventually(page.Find(".build-step .header").Text).Should(ContainSubstring("some-task"))
+			Eventually(page.Find(".build-step .header .succeeded")).Should(BeFound())
 			Expect(page.Find(".build-step .header .succeeded").Click()).To(Succeed())
 			Eventually(page.Find("#build-body").Text).Should(ContainSubstring("hello from one-off"))
 		})
