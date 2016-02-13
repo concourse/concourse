@@ -108,11 +108,11 @@ func (worker *gardenWorker) CreateContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	resourceTypes atc.ResourceTypes,
+	customTypes atc.ResourceTypes,
 ) (Container, error) {
 	gardenContainerSpecFactory := NewGardenContainerSpecFactory(logger, worker.baggageclaimClient, worker.imageFetcher)
 
-	gardenSpec, err := gardenContainerSpecFactory.BuildContainerSpec(spec, worker.resourceTypes, cancel, delegate, id, metadata, worker)
+	gardenSpec, err := gardenContainerSpecFactory.BuildContainerSpec(spec, worker.resourceTypes, cancel, delegate, id, metadata, worker, customTypes)
 	defer gardenContainerSpecFactory.ReleaseVolumes()
 	if err != nil {
 		return nil, err

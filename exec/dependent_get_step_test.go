@@ -152,7 +152,7 @@ var _ = Describe("GardenFactory", func() {
 			It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
 				Expect(fakeTracker.InitWithCacheCallCount()).To(Equal(1))
 
-				_, sm, sid, typ, tags, cacheID := fakeTracker.InitWithCacheArgsForCall(0)
+				_, sm, sid, typ, tags, cacheID, _ := fakeTracker.InitWithCacheArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
 					ID: worker.Identifier{

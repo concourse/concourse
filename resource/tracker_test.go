@@ -26,8 +26,9 @@ func (m testMetadata) Env() []string { return m }
 
 var _ = Describe("Tracker", func() {
 	var (
-		fakeDB  *fakes.FakeTrackerDB
-		tracker Tracker
+		fakeDB      *fakes.FakeTrackerDB
+		tracker     Tracker
+		customTypes atc.ResourceTypes
 	)
 
 	var session = Session{
@@ -42,6 +43,18 @@ var _ = Describe("Tracker", func() {
 	BeforeEach(func() {
 		fakeDB = new(fakes.FakeTrackerDB)
 		tracker = NewTracker(workerClient, fakeDB)
+		customTypes = atc.ResourceTypes{
+			{
+				Name:   "custom-type-a",
+				Type:   "base-type",
+				Source: atc.Source{"some": "source"},
+			},
+			{
+				Name:   "custom-type-b",
+				Type:   "custom-type-a",
+				Source: atc.Source{"some": "source"},
+			},
+		}
 	})
 
 	Describe("Init", func() {
@@ -63,7 +76,7 @@ var _ = Describe("Tracker", func() {
 		})
 
 		JustBeforeEach(func() {
-			initResource, initErr = tracker.Init(logger, metadata, session, initType, []string{"resource", "tags"})
+			initResource, initErr = tracker.Init(logger, metadata, session, initType, []string{"resource", "tags"}, customTypes)
 		})
 
 		Context("when a container does not exist for the session", func() {
@@ -77,7 +90,7 @@ var _ = Describe("Tracker", func() {
 			})
 
 			It("creates a container with the resource's type, env, ephemeral information, and the session as the handle", func() {
-				_, _, _, id, containerMetadata, spec, _ := workerClient.CreateContainerArgsForCall(0)
+				_, _, _, id, containerMetadata, spec, actualCustomTypes := workerClient.CreateContainerArgsForCall(0)
 
 				Expect(id).To(Equal(session.ID))
 				Expect(containerMetadata).To(Equal(session.Metadata))
@@ -88,6 +101,8 @@ var _ = Describe("Tracker", func() {
 				Expect(resourceSpec.Ephemeral).To(Equal(true))
 				Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
 				Expect(resourceSpec.Cache).To(BeZero())
+
+				Expect(actualCustomTypes).To(Equal(customTypes))
 			})
 
 			Context("when creating the container fails", func() {
@@ -167,6 +182,7 @@ var _ = Describe("Tracker", func() {
 				initType,
 				[]string{"resource", "tags"},
 				cacheIdentifier,
+				customTypes,
 			)
 		})
 
@@ -215,10 +231,14 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("chose the worker satisfying the resource type and tags", func() {
-							Expect(workerClient.SatisfyingArgsForCall(0)).To(Equal(worker.WorkerSpec{
-								ResourceType: "type1",
-								Tags:         []string{"resource", "tags"},
-							}))
+							actualSpec, actualCustomTypes := workerClient.SatisfyingArgsForCall(0)
+							Expect(actualSpec).To(Equal(
+								worker.WorkerSpec{
+									ResourceType: "type1",
+									Tags:         []string{"resource", "tags"},
+								},
+							))
+							Expect(actualCustomTypes).To(Equal(customTypes))
 						})
 
 						It("located it on the correct worker", func() {
@@ -228,7 +248,7 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("creates the container with the cache volume", func() {
-							_, _, _, id, containerMetadata, spec, _ := satisfyingWorker.CreateContainerArgsForCall(0)
+							_, _, _, id, containerMetadata, spec, actualCustomTypes := satisfyingWorker.CreateContainerArgsForCall(0)
 
 							Expect(id).To(Equal(session.ID))
 							Expect(containerMetadata).To(Equal(session.Metadata))
@@ -242,6 +262,8 @@ var _ = Describe("Tracker", func() {
 								Volume:    foundVolume,
 								MountPath: "/tmp/build/get",
 							}))
+
+							Expect(actualCustomTypes).To(Equal(customTypes))
 						})
 
 						It("saves the volume information to the database", func() {
@@ -345,10 +367,14 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("chose the worker satisfying the resource type and tags", func() {
-							Expect(workerClient.SatisfyingArgsForCall(0)).To(Equal(worker.WorkerSpec{
-								ResourceType: "type1",
-								Tags:         []string{"resource", "tags"},
-							}))
+							actualSpec, actualCustomTypes := workerClient.SatisfyingArgsForCall(0)
+							Expect(actualSpec).To(Equal(
+								worker.WorkerSpec{
+									ResourceType: "type1",
+									Tags:         []string{"resource", "tags"},
+								},
+							))
+							Expect(actualCustomTypes).To(Equal(customTypes))
 						})
 
 						It("created the volume on the right worker", func() {
@@ -358,7 +384,7 @@ var _ = Describe("Tracker", func() {
 						})
 
 						It("creates the container with the created cache volume", func() {
-							_, _, _, id, containerMetadata, spec, _ := satisfyingWorker.CreateContainerArgsForCall(0)
+							_, _, _, id, containerMetadata, spec, actualCustomTypes := satisfyingWorker.CreateContainerArgsForCall(0)
 
 							Expect(id).To(Equal(session.ID))
 							Expect(containerMetadata).To(Equal(session.Metadata))
@@ -372,6 +398,8 @@ var _ = Describe("Tracker", func() {
 								Volume:    createdVolume,
 								MountPath: "/tmp/build/get",
 							}))
+
+							Expect(actualCustomTypes).To(Equal(customTypes))
 						})
 
 						It("releases the volume, since the container keeps it alive", func() {
@@ -451,7 +479,7 @@ var _ = Describe("Tracker", func() {
 					})
 
 					It("creates a container", func() {
-						_, _, _, id, containerMetadata, spec, _ := satisfyingWorker.CreateContainerArgsForCall(0)
+						_, _, _, id, containerMetadata, spec, actualCustomTypes := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))
@@ -462,6 +490,8 @@ var _ = Describe("Tracker", func() {
 						Expect(resourceSpec.Ephemeral).To(Equal(true))
 						Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
 						Expect(resourceSpec.Cache).To(BeZero())
+
+						Expect(actualCustomTypes).To(Equal(customTypes))
 					})
 
 					Context("when creating the container fails", func() {
@@ -663,6 +693,7 @@ var _ = Describe("Tracker", func() {
 				initType,
 				[]string{"resource", "tags"},
 				inputSources,
+				customTypes,
 			)
 		})
 
@@ -703,10 +734,14 @@ var _ = Describe("Tracker", func() {
 
 					It("chose the worker satisfying the resource type and tags", func() {
 						Expect(workerClient.AllSatisfyingCallCount()).To(Equal(1))
-						Expect(workerClient.AllSatisfyingArgsForCall(0)).To(Equal(worker.WorkerSpec{
-							ResourceType: "type1",
-							Tags:         []string{"resource", "tags"},
-						}))
+						actualSpec, actualCustomTypes := workerClient.AllSatisfyingArgsForCall(0)
+						Expect(actualSpec).To(Equal(
+							worker.WorkerSpec{
+								ResourceType: "type1",
+								Tags:         []string{"resource", "tags"},
+							},
+						))
+						Expect(actualCustomTypes).To(Equal(customTypes))
 					})
 
 					It("looked for the sources on the correct worker", func() {
@@ -725,7 +760,7 @@ var _ = Describe("Tracker", func() {
 
 					It("creates the container with the cache volume", func() {
 						Expect(satisfyingWorker.CreateContainerCallCount()).To(Equal(1))
-						_, _, _, id, containerMetadata, spec, _ := satisfyingWorker.CreateContainerArgsForCall(0)
+						_, _, _, id, containerMetadata, spec, actualCustomTypes := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))
@@ -745,6 +780,8 @@ var _ = Describe("Tracker", func() {
 								MountPath: "/tmp/build/put/source-3-name",
 							},
 						}))
+
+						Expect(actualCustomTypes).To(Equal(customTypes))
 					})
 
 					It("releases the volume, since the container keeps it alive", func() {
@@ -780,7 +817,7 @@ var _ = Describe("Tracker", func() {
 
 					It("creates a container with no volumes", func() {
 						Expect(satisfyingWorker.CreateContainerCallCount()).To(Equal(1))
-						_, _, _, id, containerMetadata, spec, _ := satisfyingWorker.CreateContainerArgsForCall(0)
+						_, _, _, id, containerMetadata, spec, actualCustomTypes := satisfyingWorker.CreateContainerArgsForCall(0)
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))
@@ -791,6 +828,8 @@ var _ = Describe("Tracker", func() {
 						Expect(resourceSpec.Ephemeral).To(Equal(true))
 						Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
 						Expect(resourceSpec.Cache).To(BeZero())
+
+						Expect(actualCustomTypes).To(Equal(customTypes))
 					})
 
 					It("returns them all as missing sources", func() {

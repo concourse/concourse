@@ -92,6 +92,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		resource.ResourceType(step.resourceConfig.Type),
 		step.tags,
 		resourceSources,
+		nil,
 	)
 
 	if err != nil {

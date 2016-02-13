@@ -50,13 +50,27 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 	id Identifier,
 	metadata Metadata,
 	workerClient Client,
+	customTypes atc.ResourceTypes,
 ) (garden.ContainerSpec, error) {
 	var err error
+
+	resourceTypeContainerSpec, ok := spec.(ResourceTypeContainerSpec)
+	if ok {
+		customType, found := lookupCustomType(resourceTypeContainerSpec.Type, customTypes)
+		if found {
+			resourceTypeContainerSpec.ImageResourcePointer = &atc.TaskImageConfig{
+				Source: customType.Source,
+				Type:   customType.Type,
+			}
+			resourceTypeContainerSpec.Type = ""
+			spec = resourceTypeContainerSpec
+		}
+	}
 
 	imageResourceConfig, hasImageResource := spec.ImageResource()
 	var gardenSpec garden.ContainerSpec
 	if hasImageResource {
-		image, err := factory.imageFetcher.FetchImage(factory.logger, imageResourceConfig, cancel, id, metadata, delegate, workerClient)
+		image, err := factory.imageFetcher.FetchImage(factory.logger, imageResourceConfig, cancel, id, metadata, delegate, workerClient, customTypes)
 		if err != nil {
 			return garden.ContainerSpec{}, err
 		}
@@ -149,6 +163,15 @@ func (factory *gardenContainerSpecFactory) BuildResourceContainerSpec(spec Resou
 	}
 
 	return gardenSpec, nil
+}
+
+func lookupCustomType(typeName string, customTypes atc.ResourceTypes) (atc.ResourceType, bool) {
+	for _, customType := range customTypes {
+		if customType.Name == typeName {
+			return customType, true
+		}
+	}
+	return atc.ResourceType{}, false
 }
 
 func (factory *gardenContainerSpecFactory) BuildTaskContainerSpec(

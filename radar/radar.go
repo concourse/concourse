@@ -222,6 +222,7 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 		session,
 		resource.ResourceType(resourceConfig.Type),
 		[]string{},
+		nil,
 	)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-resource", err)

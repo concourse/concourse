@@ -113,6 +113,7 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		resource.ResourceType(step.resourceConfig.Type),
 		step.tags,
 		step.cacheIdentifier,
+		nil,
 	)
 	if err != nil {
 		step.logger.Error("failed-to-initialize-resource", err)

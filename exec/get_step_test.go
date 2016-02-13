@@ -138,7 +138,7 @@ var _ = Describe("GardenFactory", func() {
 
 			It("created a cached resource", func() {
 				Expect(fakeTracker.InitWithCacheCallCount()).To(Equal(1))
-				_, sm, sid, typ, tags, cacheID := fakeTracker.InitWithCacheArgsForCall(0)
+				_, sm, sid, typ, tags, cacheID, _ := fakeTracker.InitWithCacheArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
 					ID: worker.Identifier{
@@ -169,7 +169,7 @@ var _ = Describe("GardenFactory", func() {
 				BeforeEach(func() {
 					callCountDuringInit = make(chan int, 1)
 
-					fakeTracker.InitWithCacheStub = func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier) (resource.Resource, resource.Cache, error) {
+					fakeTracker.InitWithCacheStub = func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier, atc.ResourceTypes) (resource.Resource, resource.Cache, error) {
 						callCountDuringInit <- getDelegate.InitializingCallCount()
 						return fakeResource, fakeCache, nil
 					}

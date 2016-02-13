@@ -39,6 +39,7 @@ var _ = Describe("Fetcher", func() {
 	var metadata worker.Metadata
 	var fakeImageFetchingDelegate *wfakes.FakeImageFetchingDelegate
 	var fakeWorker *wfakes.FakeClient
+	var customTypes atc.ResourceTypes
 
 	var fetchedImage worker.Image
 	var fetchErr error
@@ -73,6 +74,18 @@ var _ = Describe("Fetcher", func() {
 		fakeImageFetchingDelegate = new(wfakes.FakeImageFetchingDelegate)
 		fakeImageFetchingDelegate.StderrReturns(stderrBuf)
 		fakeWorker = new(wfakes.FakeClient)
+		customTypes = atc.ResourceTypes{
+			{
+				Name:   "custom-type-a",
+				Type:   "base-type",
+				Source: atc.Source{"some": "source"},
+			},
+			{
+				Name:   "custom-type-b",
+				Type:   "custom-type-a",
+				Source: atc.Source{"some": "source"},
+			},
+		}
 	})
 
 	JustBeforeEach(func() {
@@ -84,6 +97,7 @@ var _ = Describe("Fetcher", func() {
 			metadata,
 			fakeImageFetchingDelegate,
 			fakeWorker,
+			customTypes,
 		)
 	})
 
@@ -191,7 +205,7 @@ var _ = Describe("Fetcher", func() {
 
 									It("created the 'check' resource with the correct session", func() {
 										Expect(fakeImageTracker.InitCallCount()).To(Equal(1))
-										_, metadata, session, resourceType, tags := fakeImageTracker.InitArgsForCall(0)
+										_, metadata, session, resourceType, tags, actualCustomTypes := fakeImageTracker.InitArgsForCall(0)
 										Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 										Expect(session).To(Equal(resource.Session{
 											ID: worker.Identifier{
@@ -211,6 +225,7 @@ var _ = Describe("Fetcher", func() {
 										}))
 										Expect(resourceType).To(Equal(resource.ResourceType("docker")))
 										Expect(tags).To(BeNil())
+										Expect(actualCustomTypes).To(Equal(customTypes))
 									})
 
 									It("ran 'check' with the right config", func() {
@@ -239,7 +254,7 @@ var _ = Describe("Fetcher", func() {
 
 									It("created the 'get' resource with the correct session", func() {
 										Expect(fakeImageTracker.InitWithCacheCallCount()).To(Equal(1))
-										_, metadata, session, resourceType, tags, cacheID := fakeImageTracker.InitWithCacheArgsForCall(0)
+										_, metadata, session, resourceType, tags, cacheID, actualCustomTypes := fakeImageTracker.InitWithCacheArgsForCall(0)
 										Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 										Expect(session).To(Equal(resource.Session{
 											ID: worker.Identifier{
@@ -262,6 +277,7 @@ var _ = Describe("Fetcher", func() {
 											Version: atc.Version{"v": "1"},
 											Source:  atc.Source{"some": "source"},
 										}))
+										Expect(actualCustomTypes).To(Equal(customTypes))
 									})
 
 									It("constructs the 'get' runner", func() {

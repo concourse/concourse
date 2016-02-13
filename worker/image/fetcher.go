@@ -55,6 +55,7 @@ func (fetcher Fetcher) FetchImage(
 	metadata worker.Metadata,
 	delegate worker.ImageFetchingDelegate,
 	worker worker.Client,
+	customTypes atc.ResourceTypes,
 ) (worker.Image, error) {
 	tracker := fetcher.trackerFactory.TrackerFor(worker)
 	resourceType := resource.ResourceType(imageConfig.Type)
@@ -77,6 +78,7 @@ func (fetcher Fetcher) FetchImage(
 		checkSess,
 		resourceType,
 		nil,
+		customTypes,
 	)
 	if err != nil {
 		return nil, err
@@ -123,6 +125,7 @@ func (fetcher Fetcher) FetchImage(
 		resourceType,
 		nil,
 		cacheID,
+		customTypes,
 	)
 	if err != nil {
 		return nil, err
