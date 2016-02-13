@@ -116,6 +116,20 @@ func (pdb *pipelineDB) Pause() error {
 		SET paused = true
 		WHERE id = $1
 	`, pdb.ID)
+	if err != nil {
+		return err
+	}
+
+	_, err = pdb.conn.Exec(`
+			UPDATE build_preparation
+			SET paused_pipeline='blocking',
+			    paused_job='unknown',
+					max_running_builds='unknown',
+					inputs='{}'
+			FROM build_preparation bp, builds b, jobs j
+			WHERE bp.build_id = b.id AND b.job_id = j.id
+				AND j.pipeline_id = $1 AND b.status = 'pending'
+		`, pdb.ID)
 	return err
 }
 
@@ -1370,6 +1384,13 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 
 	// The function needs to be idempotent, that's why this isn't in CanBuildBeScheduled
 	if build.Scheduled {
+		buildPrep.PausedJob = BuildPreparationStatusNotBlocking
+		buildPrep.MaxRunningBuilds = BuildPreparationStatusNotBlocking
+		err = pdb.UpdateBuildPreparation(buildPrep)
+		if err != nil {
+			return false, err
+		}
+
 		return true, nil
 	}
 
@@ -1740,6 +1761,21 @@ func (pdb *pipelineDB) updatePausedJob(job string, pause bool) error {
 
 	if rowsAffected != 1 {
 		return nonOneRowAffectedError{rowsAffected}
+	}
+
+	if pause {
+		result, err = tx.Exec(`
+    UPDATE build_preparation
+		SET paused_job = 'blocking',
+		    max_running_builds = 'unknown',
+				inputs = '{}'
+		FROM build_preparation bp, builds b
+		WHERE b.id = bp.build_id
+		  AND b.job_id = $1
+	`, dbJob.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()

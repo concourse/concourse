@@ -108,52 +108,6 @@ var _ = Describe("Pipelines Syncer", func() {
 		Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 	})
 
-	Context("when a pipeline is paused", func() {
-		BeforeEach(func() {
-			syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
-				{
-					ID: 1,
-					Pipeline: db.Pipeline{
-						Name: "pipeline",
-					},
-				},
-				{
-					ID:     2,
-					Paused: true,
-					Pipeline: db.Pipeline{
-						Name: "other-pipeline",
-					},
-				},
-			}, nil)
-
-			buildPreps := []db.BuildPreparation{
-				{
-					BuildID:        1,
-					PausedPipeline: db.BuildPreparationStatusNotBlocking,
-				},
-				{
-					BuildID:        2,
-					PausedPipeline: db.BuildPreparationStatusBlocking,
-				},
-			}
-
-			syncherDB.GetBuildPrepsForPendingBuildsForPipelineReturns(buildPreps, nil)
-		})
-
-		It("does not spawn a process for it", func() {
-			Expect(fakeRunner.RunCallCount()).To(Equal(1))
-			Expect(otherFakeRunner.RunCallCount()).To(Equal(0))
-		})
-
-		It("marks all of the pipelines pending builds buildPrep as blocked", func() {
-			Expect(syncherDB.GetBuildPrepsForPendingBuildsForPipelineCallCount()).To(Equal(1))
-			Expect(syncherDB.GetBuildPrepsForPendingBuildsForPipelineArgsForCall(0)).To(Equal("other-pipeline"))
-			Expect(syncherDB.UpdateBuildPreparationCallCount()).To(Equal(1))
-			Expect(syncherDB.UpdateBuildPreparationArgsForCall(0).BuildID).To(Equal(1))
-			Expect(syncherDB.UpdateBuildPreparationArgsForCall(0).PausedPipeline).To(Equal(db.BuildPreparationStatusBlocking))
-		})
-	})
-
 	Context("when we sync again", func() {
 		It("does not spawn any processes again", func() {
 			syncer.Sync()

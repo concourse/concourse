@@ -12,8 +12,6 @@ import (
 
 type SyncherDB interface {
 	GetAllPipelines() ([]db.SavedPipeline, error)
-	GetBuildPrepsForPendingBuildsForPipeline(pipelineName string) ([]db.BuildPreparation, error)
-	UpdateBuildPreparation(buildPreparation db.BuildPreparation) error
 }
 
 type PipelineRunnerFactory func(db.PipelineDB) ifrit.Runner
@@ -82,14 +80,13 @@ func (syncer *Syncer) Sync() {
 		}
 	}
 
-	//TODO: Can we combine these two pipelines loops? ~Liz
 	for _, pipeline := range pipelines {
 		if pipeline.Paused || syncer.isPipelineRunning(pipeline.ID) {
 			continue
 		}
 
-		syncherDB := syncer.pipelineDBFactory.Build(pipeline)
-		runner := syncer.pipelineRunnerFactory(syncherDB)
+		pipelineDB := syncer.pipelineDBFactory.Build(pipeline)
+		runner := syncer.pipelineRunnerFactory(pipelineDB)
 
 		syncer.logger.Debug("starting-pipeline", lager.Data{"pipeline": pipeline.Name})
 
@@ -100,34 +97,6 @@ func (syncer *Syncer) Sync() {
 			Exited:  process.Wait(),
 		}
 	}
-
-	for _, pipeline := range pipelines {
-		if pipeline.Paused {
-			err := syncer.updateBuildPrepsForPendingBuilds(pipeline)
-			if err != nil {
-				syncer.logger.Error("cannot-find-build-preps-for-pipeline", err, lager.Data{"pipeline-id": pipeline.ID})
-			}
-		}
-	}
-}
-
-func (syncer *Syncer) updateBuildPrepsForPendingBuilds(pipeline db.SavedPipeline) error {
-	buildPreps, err := syncer.syncherDB.GetBuildPrepsForPendingBuildsForPipeline(pipeline.Name)
-	if err != nil {
-		return err
-	}
-
-	for _, buildPrep := range buildPreps {
-		if buildPrep.PausedPipeline != db.BuildPreparationStatusBlocking {
-			buildPrep.PausedPipeline = db.BuildPreparationStatusBlocking
-			err = syncer.syncherDB.UpdateBuildPreparation(buildPrep)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }
 
 func (syncer *Syncer) removePipeline(pipelineID int) {

@@ -356,6 +356,47 @@ var _ = Describe("PipelineDB", func() {
 			Expect(otherPipelinePaused).To(BeFalse())
 		})
 
+		Describe("build preparation", func() {
+			var buildID int
+			BeforeEach(func() {
+				jobConfig := pipelineConfig.Jobs[0]
+				build, err := pipelineDB.CreateJobBuild(jobConfig.Name)
+				Expect(err).NotTo(HaveOccurred())
+				buildID = build.ID
+
+				buildPrep := db.BuildPreparation{
+					BuildID:          buildID,
+					PausedPipeline:   db.BuildPreparationStatusNotBlocking,
+					PausedJob:        db.BuildPreparationStatusNotBlocking,
+					MaxRunningBuilds: db.BuildPreparationStatusNotBlocking,
+					Inputs: map[string]db.BuildPreparationStatus{
+						"banana": db.BuildPreparationStatusNotBlocking,
+						"potato": db.BuildPreparationStatusNotBlocking,
+					},
+				}
+
+				err = pipelineDB.UpdateBuildPreparation(buildPrep)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("marks build prep status as blocked when pipeline is paused", func() {
+				err := pipelineDB.Pause()
+				Expect(err).NotTo(HaveOccurred())
+
+				buildPrep, found, err := pipelineDB.GetBuildPreparation(buildID)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(buildPrep).To(Equal(db.BuildPreparation{
+					BuildID:          buildID,
+					PausedPipeline:   db.BuildPreparationStatusBlocking,
+					PausedJob:        db.BuildPreparationStatusUnknown,
+					MaxRunningBuilds: db.BuildPreparationStatusUnknown,
+					Inputs:           map[string]db.BuildPreparationStatus{},
+				}))
+			})
+		})
+
 		It("can be unpaused", func() {
 			err := pipelineDB.Pause()
 			Expect(err).NotTo(HaveOccurred())
@@ -384,70 +425,106 @@ var _ = Describe("PipelineDB", func() {
 			jobConfig = pipelineConfig.Jobs[0]
 		})
 
-		JustBeforeEach(func() {
-			var err error
-			build, err = pipelineDB.CreateJobBuild(jobConfig.Name)
-			Expect(err).NotTo(HaveOccurred())
-
-			pipelineDB.ScheduleBuild(build.ID, jobConfig)
-		})
-
-		Context("paused pipeline", func() {
+		Context("unpaused pipeline", func() {
 			BeforeEach(func() {
-				err := pipelineDB.Pause()
+				var err error
+				build, err = pipelineDB.CreateJobBuild(jobConfig.Name)
+				Expect(err).NotTo(HaveOccurred())
+
+				var scheduled bool
+				scheduled, err = pipelineDB.ScheduleBuild(build.ID, jobConfig)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(scheduled).To(BeTrue())
+
+				err = pipelineDB.Pause()
+				Expect(err).NotTo(HaveOccurred())
+				err = pipelineDB.Unpause()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("marks the build preparation as having a paused pipeline", func() {
+			It("marks build prep to nonblocking states when build is already schedule", func() {
+				pipelineDB.ScheduleBuild(build.ID, jobConfig)
+
 				buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(buildPrep.PausedPipeline).To(Equal(db.BuildPreparationStatusBlocking))
+				Expect(buildPrep).To(Equal(db.BuildPreparation{
+					BuildID:          build.ID,
+					PausedPipeline:   db.BuildPreparationStatusNotBlocking,
+					PausedJob:        db.BuildPreparationStatusNotBlocking,
+					MaxRunningBuilds: db.BuildPreparationStatusNotBlocking,
+					Inputs:           map[string]db.BuildPreparationStatus{},
+				}))
 			})
 		})
 
-		Context("running pipeline", func() {
-			Context("paused job", func() {
+		Context("first time scheduling build", func() {
+			JustBeforeEach(func() {
+				var err error
+				build, err = pipelineDB.CreateJobBuild(jobConfig.Name)
+				Expect(err).NotTo(HaveOccurred())
+
+				pipelineDB.ScheduleBuild(build.ID, jobConfig)
+			})
+
+			Context("paused pipeline", func() {
 				BeforeEach(func() {
-					err := pipelineDB.PauseJob(jobConfig.Name)
+					err := pipelineDB.Pause()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("marks the build preparation as having a running pipeline but paused job", func() {
+				It("marks the build preparation as having a paused pipeline", func() {
 					buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					Expect(buildPrep.PausedPipeline).To(Equal(db.BuildPreparationStatusNotBlocking))
-					Expect(buildPrep.PausedJob).To(Equal(db.BuildPreparationStatusBlocking))
+					Expect(buildPrep.PausedPipeline).To(Equal(db.BuildPreparationStatusBlocking))
 				})
 			})
 
-			Context("running job", func() {
-				It("marks the build preparation has having a running pipeline and job", func() {
-					buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					Expect(buildPrep.PausedPipeline).To(Equal(db.BuildPreparationStatusNotBlocking))
-					Expect(buildPrep.PausedJob).To(Equal(db.BuildPreparationStatusNotBlocking))
-				})
-
-				Context("hanging due to running builds", func() {
+			Context("running pipeline", func() {
+				Context("paused job", func() {
 					BeforeEach(func() {
-						otherBuild, err := pipelineDB.CreateJobBuild(jobConfig.Name)
+						err := pipelineDB.PauseJob(jobConfig.Name)
 						Expect(err).NotTo(HaveOccurred())
-
-						pipelineDB.ScheduleBuild(otherBuild.ID, jobConfig)
 					})
 
-					It("marks the build as bananana", func() {
+					It("marks the build preparation as having a running pipeline but paused job", func() {
 						buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
 
-						Expect(buildPrep.MaxRunningBuilds).To(Equal(db.BuildPreparationStatusBlocking))
+						Expect(buildPrep.PausedPipeline).To(Equal(db.BuildPreparationStatusNotBlocking))
+						Expect(buildPrep.PausedJob).To(Equal(db.BuildPreparationStatusBlocking))
+					})
+				})
+
+				Context("running job", func() {
+					It("marks the build preparation has having a running pipeline and job", func() {
+						buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+
+						Expect(buildPrep.PausedPipeline).To(Equal(db.BuildPreparationStatusNotBlocking))
+						Expect(buildPrep.PausedJob).To(Equal(db.BuildPreparationStatusNotBlocking))
+					})
+
+					Context("hanging due to running builds", func() {
+						BeforeEach(func() {
+							otherBuild, err := pipelineDB.CreateJobBuild(jobConfig.Name)
+							Expect(err).NotTo(HaveOccurred())
+
+							pipelineDB.ScheduleBuild(otherBuild.ID, jobConfig)
+						})
+
+						It("marks the build as bananana", func() {
+							buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
+							Expect(err).NotTo(HaveOccurred())
+							Expect(found).To(BeTrue())
+
+							Expect(buildPrep.MaxRunningBuilds).To(Equal(db.BuildPreparationStatusBlocking))
+						})
 					})
 				})
 			})
@@ -2055,6 +2132,50 @@ var _ = Describe("PipelineDB", func() {
 				otherJob, err := otherPipelineDB.GetJob(job)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(otherJob.Paused).To(BeFalse())
+			})
+
+			Describe("build preparation", func() {
+				var buildID int
+				var jobName string
+
+				BeforeEach(func() {
+					jobConfig := pipelineConfig.Jobs[0]
+					build, err := pipelineDB.CreateJobBuild(jobConfig.Name)
+					Expect(err).NotTo(HaveOccurred())
+					buildID = build.ID
+					jobName = jobConfig.Name
+
+					buildPrep := db.BuildPreparation{
+						BuildID:          buildID,
+						PausedPipeline:   db.BuildPreparationStatusNotBlocking,
+						PausedJob:        db.BuildPreparationStatusNotBlocking,
+						MaxRunningBuilds: db.BuildPreparationStatusNotBlocking,
+						Inputs: map[string]db.BuildPreparationStatus{
+							"banana": db.BuildPreparationStatusNotBlocking,
+							"potato": db.BuildPreparationStatusNotBlocking,
+						},
+					}
+
+					err = pipelineDB.UpdateBuildPreparation(buildPrep)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("marks build prep status as blocked when job is paused", func() {
+					err := pipelineDB.PauseJob(jobName)
+					Expect(err).NotTo(HaveOccurred())
+
+					buildPrep, found, err := pipelineDB.GetBuildPreparation(buildID)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					Expect(buildPrep).To(Equal(db.BuildPreparation{
+						BuildID:          buildID,
+						PausedPipeline:   db.BuildPreparationStatusNotBlocking,
+						PausedJob:        db.BuildPreparationStatusBlocking,
+						MaxRunningBuilds: db.BuildPreparationStatusUnknown,
+						Inputs:           map[string]db.BuildPreparationStatus{},
+					}))
+				})
 			})
 
 			It("can be unpaused", func() {
