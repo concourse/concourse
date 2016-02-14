@@ -336,8 +336,8 @@ jobs:
           GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
           GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
           GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
-          GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-client-id}}
-          GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-client-secret}}
+          GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-public-client-id}}
+          GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-public-client-secret}}
           PIPELINES_PUBLICLY_VIEWABLE: true
       privileged: true
       timeout: 1h
@@ -348,8 +348,8 @@ jobs:
           GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
           GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
           GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
-          GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-client-id}}
-          GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-client-secret}}
+          GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-private-client-id}}
+          GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-private-client-secret}}
           PIPELINES_PUBLICLY_VIEWABLE: false
       privileged: true
       timeout: 1h
