@@ -275,7 +275,7 @@ viewBuildOutput actions output =
       BuildOutput.view (Signal.forwardTo actions BuildOutputAction) o
 
     Nothing ->
-      LoadingIndicator.view
+      Html.div [] []
 
 viewBuildPrep : Maybe BuildPrep -> Html
 viewBuildPrep prep =
@@ -288,12 +288,13 @@ viewBuildPrep prep =
             ]
         , Html.div []
             [ Html.ul [class "prep-status-list"]
-                ( List.append
+                (
                     [ viewBuildPrepLi "checking pipeline is not paused" prep.pausedPipeline
                     , viewBuildPrepLi "checking job is not paused" prep.pausedJob
                     , viewBuildPrepLi "checking max-in-flight is not reached" prep.maxRunningBuilds
-                    ]
-                    (viewBuildPrepInputs prep.inputs)
+                    ] ++
+                    (viewBuildPrepInputs prep.inputs) ++
+                    [ viewBuildPrepLi "checking for a set of inputs that satisfy the passed constraints" prep.inputsSatisfied ]
                 )
             ]
         ]
