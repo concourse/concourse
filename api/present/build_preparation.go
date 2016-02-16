@@ -18,5 +18,6 @@ func BuildPreparation(preparation db.BuildPreparation) atc.BuildPreparation {
 		PausedJob:        atc.BuildPreparationStatus(preparation.PausedJob),
 		MaxRunningBuilds: atc.BuildPreparationStatus(preparation.MaxRunningBuilds),
 		Inputs:           inputs,
+		InputsSatisfied:  atc.BuildPreparationStatus(preparation.InputsSatisfied),
 	}
 }

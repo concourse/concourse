@@ -373,6 +373,7 @@ var _ = Describe("PipelineDB", func() {
 						"banana": db.BuildPreparationStatusNotBlocking,
 						"potato": db.BuildPreparationStatusNotBlocking,
 					},
+					InputsSatisfied: db.BuildPreparationStatusBlocking,
 				}
 
 				err = sqlDB.UpdateBuildPreparation(buildPrep)
@@ -393,6 +394,7 @@ var _ = Describe("PipelineDB", func() {
 					PausedJob:        db.BuildPreparationStatusUnknown,
 					MaxRunningBuilds: db.BuildPreparationStatusUnknown,
 					Inputs:           map[string]db.BuildPreparationStatus{},
+					InputsSatisfied:  db.BuildPreparationStatusUnknown,
 				}))
 			})
 		})
@@ -455,6 +457,7 @@ var _ = Describe("PipelineDB", func() {
 					PausedJob:        db.BuildPreparationStatusNotBlocking,
 					MaxRunningBuilds: db.BuildPreparationStatusNotBlocking,
 					Inputs:           map[string]db.BuildPreparationStatus{},
+					InputsSatisfied:  db.BuildPreparationStatusUnknown,
 				}))
 			})
 		})
@@ -2154,6 +2157,7 @@ var _ = Describe("PipelineDB", func() {
 							"banana": db.BuildPreparationStatusNotBlocking,
 							"potato": db.BuildPreparationStatusNotBlocking,
 						},
+						InputsSatisfied: db.BuildPreparationStatusBlocking,
 					}
 
 					err = sqlDB.UpdateBuildPreparation(buildPrep)
@@ -2174,6 +2178,7 @@ var _ = Describe("PipelineDB", func() {
 						PausedJob:        db.BuildPreparationStatusBlocking,
 						MaxRunningBuilds: db.BuildPreparationStatusUnknown,
 						Inputs:           map[string]db.BuildPreparationStatus{},
+						InputsSatisfied:  db.BuildPreparationStatusUnknown,
 					}))
 				})
 			})

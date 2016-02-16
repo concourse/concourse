@@ -122,7 +122,8 @@ func (pdb *pipelineDB) Pause() error {
 			SET paused_pipeline='blocking',
 			    paused_job='unknown',
 					max_running_builds='unknown',
-					inputs='{}'
+					inputs='{}',
+					inputs_satisfied='unknown'
 			FROM build_preparation bp, builds b, jobs j
 			WHERE bp.build_id = b.id AND b.job_id = j.id
 				AND j.pipeline_id = $1 AND b.status = 'pending'
@@ -1761,7 +1762,8 @@ func (pdb *pipelineDB) updatePausedJob(job string, pause bool) error {
     UPDATE build_preparation
 		SET paused_job = 'blocking',
 		    max_running_builds = 'unknown',
-				inputs = '{}'
+				inputs = '{}',
+				inputs_satisfied = 'unknown'
 		FROM build_preparation bp, builds b
 		WHERE b.id = bp.build_id
 		  AND b.job_id = $1

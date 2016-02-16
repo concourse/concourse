@@ -231,6 +231,7 @@ var _ = Describe("Keeping track of builds", func() {
 
 			buildPrep.PausedPipeline = db.BuildPreparationStatusBlocking
 			buildPrep.Inputs["banana"] = "doesnt matter"
+			buildPrep.InputsSatisfied = db.BuildPreparationStatusNotBlocking
 
 			err = database.UpdateBuildPreparation(buildPrep)
 			Expect(err).NotTo(HaveOccurred())

@@ -54,4 +54,5 @@ type BuildPreparation struct {
 	PausedJob        BuildPreparationStatus            `json:"paused_job"`
 	MaxRunningBuilds BuildPreparationStatus            `json:"max_running_builds"`
 	Inputs           map[string]BuildPreparationStatus `json:"inputs"`
+	InputsSatisfied  BuildPreparationStatus            `json:"inputs_satisfied"`
 }

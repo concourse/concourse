@@ -583,11 +583,17 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("should update the build preparation inputs with the correct state", func() {
-					Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(Equal(1))
-					Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(0).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
+					Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(Equal(2))
+
+					buildPrep := fakeBuildsDB.UpdateBuildPreparationArgsForCall(0)
+					Expect(buildPrep.Inputs).To(Equal(map[string]db.BuildPreparationStatus{
 						"some-input":       db.BuildPreparationStatusNotBlocking,
 						"some-other-input": db.BuildPreparationStatusNotBlocking,
 					}))
+
+					Expect(buildPrep.InputsSatisfied).To(Equal(db.BuildPreparationStatusBlocking))
+					buildPrep = fakeBuildsDB.UpdateBuildPreparationArgsForCall(1)
+					Expect(buildPrep.InputsSatisfied).To(Equal(db.BuildPreparationStatusNotBlocking))
 				})
 
 				Context("when creating the engine build succeeds", func() {
@@ -771,7 +777,11 @@ var _ = Describe("Scheduler", func() {
 							Expect(err).ToNot(HaveOccurred())
 							wg.Wait()
 
-							Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(Equal(5))
+							Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(Equal(6))
+
+							for i := 0; i < 5; i++ {
+								Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(i).InputsSatisfied).To(Equal(db.BuildPreparationStatusBlocking))
+							}
 
 							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(0).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
 								"some-input":       db.BuildPreparationStatusUnknown,
@@ -797,6 +807,8 @@ var _ = Describe("Scheduler", func() {
 								"some-input":       db.BuildPreparationStatusNotBlocking,
 								"some-other-input": db.BuildPreparationStatusNotBlocking,
 							}))
+
+							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(5).InputsSatisfied).To(Equal(db.BuildPreparationStatusNotBlocking))
 						})
 					})
 

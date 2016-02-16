@@ -21,11 +21,12 @@ type BuildPreparation struct {
 	PausedJob        BuildPreparationStatus
 	MaxRunningBuilds BuildPreparationStatus
 	Inputs           map[string]BuildPreparationStatus
+	InputsSatisfied  BuildPreparationStatus
 }
 
 type buildPreparationHelper struct{}
 
-const BuildPreparationColumns string = "build_id, paused_pipeline, paused_job, max_running_builds, inputs"
+const BuildPreparationColumns string = "build_id, paused_pipeline, paused_job, max_running_builds, inputs, inputs_satisfied"
 
 func (b buildPreparationHelper) CreateBuildPreparation(tx Tx, buildID int) error {
 	_, err := tx.Exec(`
@@ -42,7 +43,7 @@ func (b buildPreparationHelper) UpdateBuildPreparation(tx Tx, buildPrep BuildPre
 	}
 	_, err = tx.Exec(`
 	UPDATE build_preparation
-	SET paused_pipeline = $2, paused_job = $3, max_running_builds = $4, inputs = $5
+	SET paused_pipeline = $2, paused_job = $3, max_running_builds = $4, inputs = $5, inputs_satisfied = $6
 	WHERE build_id = $1
 	`,
 		buildPrep.BuildID,
@@ -50,6 +51,7 @@ func (b buildPreparationHelper) UpdateBuildPreparation(tx Tx, buildPrep BuildPre
 		string(buildPrep.PausedJob),
 		string(buildPrep.MaxRunningBuilds),
 		string(inputsJSON),
+		string(buildPrep.InputsSatisfied),
 	)
 	return err
 }
@@ -85,10 +87,10 @@ func (b buildPreparationHelper) constructBuildPreparations(rows *sql.Rows) ([]Bu
 	buildPreps := []BuildPreparation{}
 	for rows.Next() {
 		var buildID int
-		var pausedPipeline, pausedJob, maxRunningBuilds string
+		var pausedPipeline, pausedJob, maxRunningBuilds, inputsSatisfied string
 		var inputsBlob []byte
 
-		err := rows.Scan(&buildID, &pausedPipeline, &pausedJob, &maxRunningBuilds, &inputsBlob)
+		err := rows.Scan(&buildID, &pausedPipeline, &pausedJob, &maxRunningBuilds, &inputsBlob, &inputsSatisfied)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return []BuildPreparation{}, nil
@@ -108,6 +110,7 @@ func (b buildPreparationHelper) constructBuildPreparations(rows *sql.Rows) ([]Bu
 			PausedJob:        BuildPreparationStatus(pausedJob),
 			MaxRunningBuilds: BuildPreparationStatus(maxRunningBuilds),
 			Inputs:           inputs,
+			InputsSatisfied:  BuildPreparationStatus(inputsSatisfied),
 		})
 	}
 

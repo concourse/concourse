@@ -230,9 +230,11 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusUnknown
 		}
 
+		buildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
+
 		err = s.BuildsDB.UpdateBuildPreparation(buildPrep)
 		if err != nil {
-			logger.Error("failed-to-update-build-prep", err, lager.Data{"build-id": build.ID})
+			logger.Error("failed-to-update-build-prep-with-inputs", err, lager.Data{"build-id": build.ID})
 			return nil
 		}
 
@@ -245,6 +247,10 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 			buildPrep = s.cloneBuildPrep(buildPrep)
 			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusBlocking
 			err := s.BuildsDB.UpdateBuildPreparation(buildPrep)
+			if err != nil {
+				logger.Error("failed-to-update-build-prep-with-blocking-input", err, lager.Data{"build-id": build.ID})
+				return nil
+			}
 
 			err = s.Scanner.Scan(scanLog, input.Resource)
 			if err != nil {
@@ -262,7 +268,7 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusNotBlocking
 			err = s.BuildsDB.UpdateBuildPreparation(buildPrep)
 			if err != nil {
-				logger.Error("failed-to-update-build-prep", err, lager.Data{"build-id": build.ID})
+				logger.Error("failed-to-update-build-prep-with-not-blocking-input", err, lager.Data{"build-id": build.ID})
 				return nil
 			}
 
@@ -285,9 +291,10 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 		for _, input := range buildInputs {
 			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusNotBlocking
 		}
+		buildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
 		err := s.BuildsDB.UpdateBuildPreparation(buildPrep)
 		if err != nil {
-			logger.Error("failed-to-update-build-prep", err)
+			logger.Error("failed-to-update-build-prep-with-discovered-inputs", err)
 			return nil
 		}
 	}
@@ -300,6 +307,13 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 
 	if !found {
 		logger.Debug("no-input-versions-available")
+		return nil
+	}
+
+	buildPrep.InputsSatisfied = db.BuildPreparationStatusNotBlocking
+	err = s.BuildsDB.UpdateBuildPreparation(buildPrep)
+	if err != nil {
+		logger.Error("failed-to-update-build-prep-with-inputs-satisfied", err)
 		return nil
 	}
 
@@ -343,6 +357,7 @@ func (s *Scheduler) cloneBuildPrep(buildPrep db.BuildPreparation) db.BuildPrepar
 		PausedJob:        buildPrep.PausedJob,
 		MaxRunningBuilds: buildPrep.MaxRunningBuilds,
 		Inputs:           map[string]db.BuildPreparationStatus{},
+		InputsSatisfied:  buildPrep.InputsSatisfied,
 	}
 
 	for key, value := range buildPrep.Inputs {

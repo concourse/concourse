@@ -865,6 +865,7 @@ var _ = Describe("Builds API", func() {
 						"foo": db.BuildPreparationStatusUnknown,
 						"bar": db.BuildPreparationStatusBlocking,
 					},
+					InputsSatisfied: db.BuildPreparationStatusBlocking,
 				}
 				buildsDB.GetBuildPreparationReturns(buildPrep, true, nil)
 			})
@@ -890,7 +891,8 @@ var _ = Describe("Builds API", func() {
 					"inputs": {
 						"foo": "unknown",
 						"bar": "blocking"
-					}
+					},
+					"inputs_satisfied": "blocking"
 				}`))
 			})
 		})
