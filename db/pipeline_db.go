@@ -57,9 +57,6 @@ type PipelineDB interface {
 	CreateJobBuild(job string) (Build, error)
 	CreateJobBuildForCandidateInputs(job string) (Build, bool, error)
 
-	GetBuildPreparation(buildID int) (BuildPreparation, bool, error)
-	UpdateBuildPreparation(buildPreparation BuildPreparation) error
-
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
@@ -841,26 +838,6 @@ func (pdb *pipelineDB) CreateJobBuildForCandidateInputs(jobName string) (Build, 
 	return Build{}, false, nil
 }
 
-func (pdb *pipelineDB) GetBuildPreparation(passedBuildID int) (BuildPreparation, bool, error) {
-	return pdb.buildPrepHelper.GetBuildPreparation(pdb.conn, passedBuildID)
-}
-
-func (pdb *pipelineDB) UpdateBuildPreparation(buildPrep BuildPreparation) error {
-	tx, err := pdb.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	err = pdb.buildPrepHelper.UpdateBuildPreparation(tx, buildPrep)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
 func (pdb *pipelineDB) UseInputsForBuild(buildID int, inputs []BuildInput) error {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
@@ -1331,6 +1308,22 @@ func (pdb *pipelineDB) getBuild(buildID int) (Build, bool, error) {
 	`, buildID))
 }
 
+func (pdb *pipelineDB) updateBuildPreparation(prep BuildPreparation) error {
+	tx, err := pdb.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	err = pdb.buildPrepHelper.UpdateBuildPreparation(tx, prep)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
 func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error) {
 	build, found, err := pdb.getBuild(buildID)
 	if err != nil {
@@ -1344,7 +1337,7 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 		return false, nil
 	}
 
-	buildPrep, found, err := pdb.GetBuildPreparation(build.ID)
+	buildPrep, found, err := pdb.buildPrepHelper.GetBuildPreparation(pdb.conn, build.ID)
 	if err != nil {
 		return false, err
 	}
@@ -1371,13 +1364,13 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 		})
 
 		buildPrep.PausedPipeline = BuildPreparationStatusBlocking
-		err = pdb.UpdateBuildPreparation(buildPrep)
+		err = pdb.updateBuildPreparation(buildPrep)
 
 		return false, err
 	}
 
 	buildPrep.PausedPipeline = BuildPreparationStatusNotBlocking
-	err = pdb.UpdateBuildPreparation(buildPrep)
+	err = pdb.updateBuildPreparation(buildPrep)
 	if err != nil {
 		return false, err
 	}
@@ -1386,7 +1379,7 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 	if build.Scheduled {
 		buildPrep.PausedJob = BuildPreparationStatusNotBlocking
 		buildPrep.MaxRunningBuilds = BuildPreparationStatusNotBlocking
-		err = pdb.UpdateBuildPreparation(buildPrep)
+		err = pdb.updateBuildPreparation(buildPrep)
 		if err != nil {
 			return false, err
 		}
@@ -1407,7 +1400,7 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 	if canBuildBeScheduled {
 		buildPrep.PausedJob = BuildPreparationStatusNotBlocking
 		buildPrep.MaxRunningBuilds = BuildPreparationStatusNotBlocking
-		err = pdb.UpdateBuildPreparation(buildPrep)
+		err = pdb.updateBuildPreparation(buildPrep)
 		if err != nil {
 			return false, err
 		}
@@ -1427,13 +1420,13 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 		switch reason {
 		case "job-paused":
 			buildPrep.PausedJob = BuildPreparationStatusBlocking
-			err = pdb.UpdateBuildPreparation(buildPrep)
+			err = pdb.updateBuildPreparation(buildPrep)
 			if err != nil {
 				return false, err
 			}
 		case "max-in-flight-reached":
 			buildPrep.MaxRunningBuilds = BuildPreparationStatusBlocking
-			err = pdb.UpdateBuildPreparation(buildPrep)
+			err = pdb.updateBuildPreparation(buildPrep)
 			if err != nil {
 				return false, err
 			}

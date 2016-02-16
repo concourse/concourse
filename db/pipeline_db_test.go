@@ -375,7 +375,7 @@ var _ = Describe("PipelineDB", func() {
 					},
 				}
 
-				err = pipelineDB.UpdateBuildPreparation(buildPrep)
+				err = sqlDB.UpdateBuildPreparation(buildPrep)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -383,7 +383,7 @@ var _ = Describe("PipelineDB", func() {
 				err := pipelineDB.Pause()
 				Expect(err).NotTo(HaveOccurred())
 
-				buildPrep, found, err := pipelineDB.GetBuildPreparation(buildID)
+				buildPrep, found, err := sqlDB.GetBuildPreparation(buildID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -445,7 +445,7 @@ var _ = Describe("PipelineDB", func() {
 			It("marks build prep to nonblocking states when build is already schedule", func() {
 				pipelineDB.ScheduleBuild(build.ID, jobConfig)
 
-				buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
+				buildPrep, found, err := sqlDB.GetBuildPreparation(build.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -475,7 +475,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("marks the build preparation as having a paused pipeline", func() {
-					buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
+					buildPrep, found, err := sqlDB.GetBuildPreparation(build.ID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
@@ -491,7 +491,7 @@ var _ = Describe("PipelineDB", func() {
 					})
 
 					It("marks the build preparation as having a running pipeline but paused job", func() {
-						buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
+						buildPrep, found, err := sqlDB.GetBuildPreparation(build.ID)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
 
@@ -502,7 +502,7 @@ var _ = Describe("PipelineDB", func() {
 
 				Context("running job", func() {
 					It("marks the build preparation has having a running pipeline and job", func() {
-						buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
+						buildPrep, found, err := sqlDB.GetBuildPreparation(build.ID)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
 
@@ -518,8 +518,8 @@ var _ = Describe("PipelineDB", func() {
 							pipelineDB.ScheduleBuild(otherBuild.ID, jobConfig)
 						})
 
-						It("marks the build as bananana", func() {
-							buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
+						It("marks the build prep as blocking for max running builds", func() {
+							buildPrep, found, err := sqlDB.GetBuildPreparation(build.ID)
 							Expect(err).NotTo(HaveOccurred())
 							Expect(found).To(BeTrue())
 
@@ -1652,7 +1652,7 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			It("creates an entry in build_preparation", func() {
-				buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
+				buildPrep, found, err := sqlDB.GetBuildPreparation(build.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1821,7 +1821,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				buildPrep, found, err := pipelineDB.GetBuildPreparation(build.ID)
+				buildPrep, found, err := sqlDB.GetBuildPreparation(build.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2156,7 +2156,7 @@ var _ = Describe("PipelineDB", func() {
 						},
 					}
 
-					err = pipelineDB.UpdateBuildPreparation(buildPrep)
+					err = sqlDB.UpdateBuildPreparation(buildPrep)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -2164,7 +2164,7 @@ var _ = Describe("PipelineDB", func() {
 					err := pipelineDB.PauseJob(jobName)
 					Expect(err).NotTo(HaveOccurred())
 
-					buildPrep, found, err := pipelineDB.GetBuildPreparation(buildID)
+					buildPrep, found, err := sqlDB.GetBuildPreparation(buildID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
