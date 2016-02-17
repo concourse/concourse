@@ -252,6 +252,7 @@ func determineUnderlyingTypeName(typeName string, resourceTypes atc.ResourceType
 	for ok {
 		underlyingTypeName = underlyingType.Type
 		underlyingType, ok = resourceTypesMap[underlyingTypeName]
+		delete(resourceTypesMap, underlyingTypeName)
 	}
 	return underlyingTypeName
 }

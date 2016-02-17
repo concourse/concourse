@@ -49,6 +49,17 @@ type ResourceType struct {
 
 type ResourceTypes []ResourceType
 
+func (types ResourceTypes) Without(name string) ResourceTypes {
+	newTypes := ResourceTypes{}
+	for _, t := range types {
+		if t.Name != name {
+			newTypes = append(newTypes, t)
+		}
+	}
+
+	return newTypes
+}
+
 type JobConfig struct {
 	Name   string `yaml:"name" json:"name" mapstructure:"name"`
 	Public bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`

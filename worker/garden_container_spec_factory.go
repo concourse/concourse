@@ -70,7 +70,16 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 	imageResourceConfig, hasImageResource := spec.ImageResource()
 	var gardenSpec garden.ContainerSpec
 	if hasImageResource {
-		image, err := factory.imageFetcher.FetchImage(factory.logger, imageResourceConfig, cancel, id, metadata, delegate, workerClient, customTypes)
+		image, err := factory.imageFetcher.FetchImage(
+			factory.logger,
+			imageResourceConfig,
+			cancel,
+			id,
+			metadata,
+			delegate,
+			workerClient,
+			customTypes.Without(imageResourceConfig.Type),
+		)
 		if err != nil {
 			return garden.ContainerSpec{}, err
 		}

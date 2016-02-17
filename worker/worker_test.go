@@ -696,7 +696,7 @@ var _ = Describe("Worker", func() {
 							Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(`{}`))
 						})
 
-						It("fetches the image with the correct info", func() {
+						It("fetches the image with the correct info, with the current custom resource type removed from the set", func() {
 							Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
 							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
 							Expect(fetchImageConfig).To(Equal(atc.TaskImageConfig{
@@ -708,7 +708,28 @@ var _ = Describe("Worker", func() {
 							Expect(fetchMetadata).To(Equal(containerMetadata))
 							Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 							Expect(fetchWorker).To(Equal(gardenWorker))
-							Expect(fetchCustomTypes).To(Equal(customTypes))
+							Expect(fetchCustomTypes).To(Equal(atc.ResourceTypes{
+								{
+									Name:   "custom-type-a",
+									Type:   "some-resource",
+									Source: atc.Source{"some": "source"},
+								},
+								{
+									Name:   "custom-type-c",
+									Type:   "custom-type-b",
+									Source: atc.Source{"some": "source"},
+								},
+								{
+									Name:   "custom-type-d",
+									Type:   "custom-type-b",
+									Source: atc.Source{"some": "source"},
+								},
+								{
+									Name:   "unknown-custom-type",
+									Type:   "unknown-base-type",
+									Source: atc.Source{"some": "source"},
+								},
+							}))
 						})
 
 						It("creates the container with env from the image", func() {
@@ -1776,6 +1797,52 @@ var _ = Describe("Worker", func() {
 
 			It("returns no error", func() {
 				Expect(satisfyingErr).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when the resource type is a custom type that overrides one supported by the worker", func() {
+			BeforeEach(func() {
+				customTypes = append(customTypes, atc.ResourceType{
+					Name:   "some-resource",
+					Type:   "some-resource",
+					Source: atc.Source{"some": "source"},
+				})
+
+				spec.ResourceType = "some-resource"
+				spec.Tags = []string{"some", "tags"}
+			})
+
+			It("returns the worker", func() {
+				Expect(satisfyingWorker).To(Equal(gardenWorker))
+			})
+
+			It("returns no error", func() {
+				Expect(satisfyingErr).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when the resource type is a custom type that results in a circular dependency", func() {
+			BeforeEach(func() {
+				customTypes = append(customTypes, atc.ResourceType{
+					Name:   "circle-a",
+					Type:   "circle-b",
+					Source: atc.Source{"some": "source"},
+				}, atc.ResourceType{
+					Name:   "circle-b",
+					Type:   "circle-c",
+					Source: atc.Source{"some": "source"},
+				}, atc.ResourceType{
+					Name:   "circle-c",
+					Type:   "circle-a",
+					Source: atc.Source{"some": "source"},
+				})
+
+				spec.ResourceType = "circle-a"
+				spec.Tags = []string{"some", "tags"}
+			})
+
+			It("returns ErrUnsupportedResourceType", func() {
+				Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
 			})
 		})
 
