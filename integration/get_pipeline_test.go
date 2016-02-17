@@ -61,6 +61,23 @@ var _ = Describe("Fly CLI", func() {
 					},
 				},
 
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name: "some-resource-type",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+					{
+						Name: "some-other-resource-type",
+						Type: "some-other-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+				},
+
 				Jobs: atc.JobConfigs{
 					{
 						Name:   "some-job",

@@ -108,6 +108,23 @@ var _ = Describe("Fly CLI", func() {
 					},
 				},
 
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name: "some-resource-type",
+						Type: "some-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+					{
+						Name: "some-other-resource-type",
+						Type: "some-other-type",
+						Source: atc.Source{
+							"source-config": "some-value",
+						},
+					},
+				},
+
 				Jobs: atc.JobConfigs{
 					{
 						Name:   "some-job",
@@ -128,6 +145,7 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				config = atc.Config{
 					Groups: atc.GroupConfigs{},
+
 					Resources: atc.ResourceConfigs{
 						{
 							Name: "some-resource",
@@ -144,6 +162,8 @@ var _ = Describe("Fly CLI", func() {
 							},
 						},
 					},
+
+					ResourceTypes: atc.ResourceTypes{},
 
 					Jobs: atc.JobConfigs{},
 				}
@@ -322,6 +342,16 @@ var _ = Describe("Fly CLI", func() {
 
 					changedConfig.Resources = newResources
 
+					newResourceType := changedConfig.ResourceTypes[1]
+					newResourceType.Name = "some-new-resource-type"
+
+					newResourceTypes := make(atc.ResourceTypes, len(changedConfig.ResourceTypes))
+					copy(newResourceTypes, changedConfig.ResourceTypes)
+					newResourceTypes[0].Type = "some-new-type"
+					newResourceTypes[1] = newResourceType
+
+					changedConfig.ResourceTypes = newResourceTypes
+
 					newJob := changedConfig.Jobs[2]
 					newJob.Name = "some-new-job"
 					changedConfig.Jobs[0].Serial = false
@@ -369,6 +399,16 @@ var _ = Describe("Fly CLI", func() {
 
 					Eventually(sess).Should(gbytes.Say("resource some-new-resource has been added"))
 					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-resource", "green")))
+
+					Eventually(sess).Should(gbytes.Say("resource type some-resource-type has changed"))
+					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-type", "red")))
+					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-new-type", "green")))
+
+					Eventually(sess).Should(gbytes.Say("resource type some-other-resource-type has been removed"))
+					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-resource-type", "red")))
+
+					Eventually(sess).Should(gbytes.Say("resource type some-new-resource-type has been added"))
+					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-resource-type", "green")))
 
 					Eventually(sess).Should(gbytes.Say("job some-job has changed"))
 					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("serial: true", "red")))

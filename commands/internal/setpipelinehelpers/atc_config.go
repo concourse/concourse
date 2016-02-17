@@ -145,6 +145,15 @@ func diff(existingConfig atc.Config, newConfig atc.Config) {
 		}
 	}
 
+	resourceTypeDiffs := diffIndices(ResourceTypeIndex(existingConfig.ResourceTypes), ResourceTypeIndex(newConfig.ResourceTypes))
+	if len(resourceTypeDiffs) > 0 {
+		fmt.Println("resource types:")
+
+		for _, diff := range resourceTypeDiffs {
+			diff.Render(indent, "resource type")
+		}
+	}
+
 	jobDiffs := diffIndices(JobIndex(existingConfig.Jobs), JobIndex(newConfig.Jobs))
 	if len(jobDiffs) > 0 {
 		fmt.Println("jobs:")
