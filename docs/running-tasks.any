@@ -28,7 +28,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     type: docker-image
     source:
       repository: ubuntu
-      tag: 14.04
+      tag: '14.04'
 
   inputs:
   - name: my-repo
