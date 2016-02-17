@@ -24,16 +24,29 @@
   A pending build will now indicate why it's pending, via a checklist that
   appears at the top of the build output. (Yay!)
 }{
+  The theme selector is gone. So are all but one of the themes. This new theme
+  is the product of our research and your feedback. I'm confident that it's
+  perfect in every way.  But let us know if you have any major problems with
+  it.
+}{
   Improved the caching of resources used for \reference{image_resource}.
   Previously if the same version was fetched multiple times on the same worker,
   we'd keep all of them around so long as they were the latest version. We'll
   now only keep one.
+}{
+  The \reference{fly-destroy-pipeline} command learnt the \code{-n} option
+  which when used will not ask you to confirm the deletion of the pipeline.
+  Useful for scripts. Dangerous for users.
 }{
   The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker
   Image resource} no longer worked for images configured with
   \code{ENTRYPOINT}s as of \reference{v0.72.0}, and ended up running whatever
   the entrypoint was, with our internal binary tool as an argument. It now
   works again. Our bad.
+}{
+  The \hyperlink{https://github.com/concourse/github-release-resource}{GitHub
+  release resource} would have issues when fetching artefacts from S3 via
+  GitHub when using an access token. It no longer has these issues.
 }{
   The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker
   Image resource} now supports a \code{dockerfile} parameter for specifying a
