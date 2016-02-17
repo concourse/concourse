@@ -1,0 +1,60 @@
+---
+resource_types:
+- name: custom-resource-type
+  type: git
+  source:
+    uri: {{origin-git-server}}
+    branch: master
+
+resources:
+- name: my-resource
+  type: custom-resource-type
+  source: {}
+
+- name: my-resource-updated
+  type: custom-resource-type
+  source: {}
+
+jobs:
+- name: resource-getter
+  plan:
+  - get: my-resource
+    trigger: true
+  - task: print-fetched-stuff
+    config:
+      platform: linux
+      image: {{testflight-helper-image}}
+      inputs:
+        - name: my-resource
+      run:
+        path: find
+        args: [.]
+
+- name: resource-putter
+  plan:
+  - get: my-resource
+    trigger: true
+  - task: make-some-output
+    config:
+      platform: linux
+      image: {{testflight-helper-image}}
+      outputs:
+      - name: some-output
+      run:
+        path: touch
+        args: [some-output/some-file]
+  - put: my-resource-updated
+
+- name: resource-imgur
+  plan:
+  - get: my-resource
+    trigger: true
+  - task: use-custom-resource-type
+    config:
+      platform: linux
+      image_resource:
+        type: custom-resource-type
+        source: {}
+      run:
+        path: sh
+        args: [-exc, "cat /some-file; env"]
