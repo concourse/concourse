@@ -526,6 +526,7 @@ var _ = Describe("PipelineDB", func() {
 							Expect(err).NotTo(HaveOccurred())
 							Expect(found).To(BeTrue())
 
+							Expect(buildPrep.PausedJob).To(Equal(db.BuildPreparationStatusNotBlocking))
 							Expect(buildPrep.MaxRunningBuilds).To(Equal(db.BuildPreparationStatusBlocking))
 						})
 					})

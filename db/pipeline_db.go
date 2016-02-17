@@ -1426,6 +1426,7 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 				return false, err
 			}
 		case "max-in-flight-reached":
+			buildPrep.PausedJob = BuildPreparationStatusNotBlocking
 			buildPrep.MaxRunningBuilds = BuildPreparationStatusBlocking
 			err = pdb.updateBuildPreparation(buildPrep)
 			if err != nil {
