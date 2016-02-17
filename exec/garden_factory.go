@@ -44,6 +44,7 @@ func (factory *gardenFactory) DependentGet(
 	resourceConfig atc.ResourceConfig,
 	tags atc.Tags,
 	params atc.Params,
+	resourceTypes atc.ResourceTypes,
 ) StepFactory {
 	return newDependentGetStep(
 		logger,
@@ -59,6 +60,7 @@ func (factory *gardenFactory) DependentGet(
 		tags,
 		delegate,
 		factory.tracker,
+		resourceTypes,
 	)
 }
 
@@ -73,6 +75,7 @@ func (factory *gardenFactory) Get(
 	tags atc.Tags,
 	params atc.Params,
 	version atc.Version,
+	resourceTypes atc.ResourceTypes,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 	return newGetStep(
@@ -96,6 +99,7 @@ func (factory *gardenFactory) Get(
 		tags,
 		delegate,
 		factory.tracker,
+		resourceTypes,
 	)
 }
 
@@ -108,6 +112,7 @@ func (factory *gardenFactory) Put(
 	resourceConfig atc.ResourceConfig,
 	tags atc.Tags,
 	params atc.Params,
+	resourceTypes atc.ResourceTypes,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 	return newPutStep(
@@ -123,6 +128,7 @@ func (factory *gardenFactory) Put(
 		tags,
 		delegate,
 		factory.tracker,
+		resourceTypes,
 	)
 }
 
@@ -135,6 +141,7 @@ func (factory *gardenFactory) Task(
 	privileged Privileged,
 	tags atc.Tags,
 	configSource TaskConfigSource,
+	resourceTypes atc.ResourceTypes,
 ) StepFactory {
 	workingDirectory := factory.taskWorkingDirectory(sourceName)
 	workerMetadata.WorkingDirectory = workingDirectory
@@ -149,6 +156,7 @@ func (factory *gardenFactory) Task(
 		factory.workerClient,
 		workingDirectory,
 		factory.trackerFactory,
+		resourceTypes,
 	)
 }
 

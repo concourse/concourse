@@ -35,7 +35,7 @@ func (s *Server) CreateJobBuild(pipelineDB db.PipelineDB) http.Handler {
 
 		scheduler := s.schedulerFactory.BuildScheduler(pipelineDB)
 
-		build, _, err := scheduler.TriggerImmediately(logger, job, config.Resources)
+		build, _, err := scheduler.TriggerImmediately(logger, job, config.Resources, config.ResourceTypes)
 		if err != nil {
 			logger.Error("failed-to-trigger", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -67,6 +67,7 @@ var _ = Describe("GardenFactory", func() {
 			params         atc.Params
 			version        atc.Version
 			tags           []string
+			resourceTypes  atc.ResourceTypes
 
 			satisfiedWorker *wfakes.FakeWorker
 
@@ -98,6 +99,14 @@ var _ = Describe("GardenFactory", func() {
 
 			inStep = &NoopStep{}
 			repo = NewSourceRepository()
+
+			resourceTypes = atc.ResourceTypes{
+				{
+					Name:   "custom-resource",
+					Type:   "custom-type",
+					Source: atc.Source{"some-custom": "source"},
+				},
+			}
 		})
 
 		JustBeforeEach(func() {
@@ -112,6 +121,7 @@ var _ = Describe("GardenFactory", func() {
 				tags,
 				params,
 				version,
+				resourceTypes,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -138,7 +148,7 @@ var _ = Describe("GardenFactory", func() {
 
 			It("created a cached resource", func() {
 				Expect(fakeTracker.InitWithCacheCallCount()).To(Equal(1))
-				_, sm, sid, typ, tags, cacheID := fakeTracker.InitWithCacheArgsForCall(0)
+				_, sm, sid, typ, tags, cacheID, actualResourceTypes, delegate := fakeTracker.InitWithCacheArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
 					ID: worker.Identifier{
@@ -161,6 +171,14 @@ var _ = Describe("GardenFactory", func() {
 					Params:  params,
 					Version: version,
 				}))
+				Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{
+					{
+						Name:   "custom-resource",
+						Type:   "custom-type",
+						Source: atc.Source{"some-custom": "source"},
+					},
+				}))
+				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 			})
 
 			Context("before initializing the resource", func() {
@@ -169,7 +187,7 @@ var _ = Describe("GardenFactory", func() {
 				BeforeEach(func() {
 					callCountDuringInit = make(chan int, 1)
 
-					fakeTracker.InitWithCacheStub = func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier) (resource.Resource, resource.Cache, error) {
+					fakeTracker.InitWithCacheStub = func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate) (resource.Resource, resource.Cache, error) {
 						callCountDuringInit <- getDelegate.InitializingCallCount()
 						return fakeResource, fakeCache, nil
 					}

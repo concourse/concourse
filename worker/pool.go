@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
@@ -77,7 +78,7 @@ func (pool *pool) GetWorker(workerName string) (Worker, error) {
 	return worker, nil
 }
 
-func (pool *pool) AllSatisfying(spec WorkerSpec) ([]Worker, error) {
+func (pool *pool) AllSatisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) ([]Worker, error) {
 	workers, err := pool.provider.Workers()
 	if err != nil {
 		return nil, err
@@ -89,7 +90,7 @@ func (pool *pool) AllSatisfying(spec WorkerSpec) ([]Worker, error) {
 
 	compatibleWorkers := []Worker{}
 	for _, worker := range workers {
-		satisfyingWorker, err := worker.Satisfying(spec)
+		satisfyingWorker, err := worker.Satisfying(spec, resourceTypes)
 		if err == nil {
 			compatibleWorkers = append(compatibleWorkers, satisfyingWorker)
 		}
@@ -107,8 +108,8 @@ func (pool *pool) AllSatisfying(spec WorkerSpec) ([]Worker, error) {
 	return compatibleWorkers, nil
 }
 
-func (pool *pool) Satisfying(spec WorkerSpec) (Worker, error) {
-	compatibleWorkers, err := pool.AllSatisfying(spec)
+func (pool *pool) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (Worker, error) {
+	compatibleWorkers, err := pool.AllSatisfying(spec, resourceTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -116,13 +117,13 @@ func (pool *pool) Satisfying(spec WorkerSpec) (Worker, error) {
 	return randomWorker, nil
 }
 
-func (pool *pool) CreateContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec) (Container, error) {
-	worker, err := pool.Satisfying(spec.WorkerSpec())
+func (pool *pool) CreateContainer(logger lager.Logger, signals <-chan os.Signal, delegate ImageFetchingDelegate, id Identifier, metadata Metadata, spec ContainerSpec, resourceTypes atc.ResourceTypes) (Container, error) {
+	worker, err := pool.Satisfying(spec.WorkerSpec(), resourceTypes)
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := worker.CreateContainer(logger, signals, delegate, id, metadata, spec)
+	container, err := worker.CreateContainer(logger, signals, delegate, id, metadata, spec, resourceTypes)
 	if err != nil {
 		return nil, err
 	}

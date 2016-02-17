@@ -25,6 +25,7 @@ type Factory interface {
 		atc.Tags,
 		atc.Params,
 		atc.Version,
+		atc.ResourceTypes,
 	) StepFactory
 
 	// Put constructs a PutStep factory.
@@ -37,6 +38,7 @@ type Factory interface {
 		atc.ResourceConfig,
 		atc.Tags,
 		atc.Params,
+		atc.ResourceTypes,
 	) StepFactory
 
 	// DependentGet constructs a GetStep factory whose version is determined by
@@ -51,6 +53,7 @@ type Factory interface {
 		atc.ResourceConfig,
 		atc.Tags,
 		atc.Params,
+		atc.ResourceTypes,
 	) StepFactory
 
 	// Task constructs a TaskStep factory.
@@ -63,6 +66,7 @@ type Factory interface {
 		Privileged,
 		atc.Tags,
 		TaskConfigSource,
+		atc.ResourceTypes,
 	) StepFactory
 }
 

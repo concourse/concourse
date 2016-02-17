@@ -12,34 +12,37 @@ import (
 )
 
 type FakeBuildScheduler struct {
-	TryNextPendingBuildStub        func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) scheduler.Waiter
+	TryNextPendingBuildStub        func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) scheduler.Waiter
 	tryNextPendingBuildMutex       sync.RWMutex
 	tryNextPendingBuildArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 *algorithm.VersionsDB
 		arg3 atc.JobConfig
 		arg4 atc.ResourceConfigs
+		arg5 atc.ResourceTypes
 	}
 	tryNextPendingBuildReturns struct {
 		result1 scheduler.Waiter
 	}
-	BuildLatestInputsStub        func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) error
+	BuildLatestInputsStub        func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) error
 	buildLatestInputsMutex       sync.RWMutex
 	buildLatestInputsArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 *algorithm.VersionsDB
 		arg3 atc.JobConfig
 		arg4 atc.ResourceConfigs
+		arg5 atc.ResourceTypes
 	}
 	buildLatestInputsReturns struct {
 		result1 error
 	}
-	TriggerImmediatelyStub        func(lager.Logger, atc.JobConfig, atc.ResourceConfigs) (db.Build, scheduler.Waiter, error)
+	TriggerImmediatelyStub        func(lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) (db.Build, scheduler.Waiter, error)
 	triggerImmediatelyMutex       sync.RWMutex
 	triggerImmediatelyArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 atc.JobConfig
 		arg3 atc.ResourceConfigs
+		arg4 atc.ResourceTypes
 	}
 	triggerImmediatelyReturns struct {
 		result1 db.Build
@@ -48,17 +51,18 @@ type FakeBuildScheduler struct {
 	}
 }
 
-func (fake *FakeBuildScheduler) TryNextPendingBuild(arg1 lager.Logger, arg2 *algorithm.VersionsDB, arg3 atc.JobConfig, arg4 atc.ResourceConfigs) scheduler.Waiter {
+func (fake *FakeBuildScheduler) TryNextPendingBuild(arg1 lager.Logger, arg2 *algorithm.VersionsDB, arg3 atc.JobConfig, arg4 atc.ResourceConfigs, arg5 atc.ResourceTypes) scheduler.Waiter {
 	fake.tryNextPendingBuildMutex.Lock()
 	fake.tryNextPendingBuildArgsForCall = append(fake.tryNextPendingBuildArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 *algorithm.VersionsDB
 		arg3 atc.JobConfig
 		arg4 atc.ResourceConfigs
-	}{arg1, arg2, arg3, arg4})
+		arg5 atc.ResourceTypes
+	}{arg1, arg2, arg3, arg4, arg5})
 	fake.tryNextPendingBuildMutex.Unlock()
 	if fake.TryNextPendingBuildStub != nil {
-		return fake.TryNextPendingBuildStub(arg1, arg2, arg3, arg4)
+		return fake.TryNextPendingBuildStub(arg1, arg2, arg3, arg4, arg5)
 	} else {
 		return fake.tryNextPendingBuildReturns.result1
 	}
@@ -70,10 +74,10 @@ func (fake *FakeBuildScheduler) TryNextPendingBuildCallCount() int {
 	return len(fake.tryNextPendingBuildArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) TryNextPendingBuildArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) {
+func (fake *FakeBuildScheduler) TryNextPendingBuildArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) {
 	fake.tryNextPendingBuildMutex.RLock()
 	defer fake.tryNextPendingBuildMutex.RUnlock()
-	return fake.tryNextPendingBuildArgsForCall[i].arg1, fake.tryNextPendingBuildArgsForCall[i].arg2, fake.tryNextPendingBuildArgsForCall[i].arg3, fake.tryNextPendingBuildArgsForCall[i].arg4
+	return fake.tryNextPendingBuildArgsForCall[i].arg1, fake.tryNextPendingBuildArgsForCall[i].arg2, fake.tryNextPendingBuildArgsForCall[i].arg3, fake.tryNextPendingBuildArgsForCall[i].arg4, fake.tryNextPendingBuildArgsForCall[i].arg5
 }
 
 func (fake *FakeBuildScheduler) TryNextPendingBuildReturns(result1 scheduler.Waiter) {
@@ -83,17 +87,18 @@ func (fake *FakeBuildScheduler) TryNextPendingBuildReturns(result1 scheduler.Wai
 	}{result1}
 }
 
-func (fake *FakeBuildScheduler) BuildLatestInputs(arg1 lager.Logger, arg2 *algorithm.VersionsDB, arg3 atc.JobConfig, arg4 atc.ResourceConfigs) error {
+func (fake *FakeBuildScheduler) BuildLatestInputs(arg1 lager.Logger, arg2 *algorithm.VersionsDB, arg3 atc.JobConfig, arg4 atc.ResourceConfigs, arg5 atc.ResourceTypes) error {
 	fake.buildLatestInputsMutex.Lock()
 	fake.buildLatestInputsArgsForCall = append(fake.buildLatestInputsArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 *algorithm.VersionsDB
 		arg3 atc.JobConfig
 		arg4 atc.ResourceConfigs
-	}{arg1, arg2, arg3, arg4})
+		arg5 atc.ResourceTypes
+	}{arg1, arg2, arg3, arg4, arg5})
 	fake.buildLatestInputsMutex.Unlock()
 	if fake.BuildLatestInputsStub != nil {
-		return fake.BuildLatestInputsStub(arg1, arg2, arg3, arg4)
+		return fake.BuildLatestInputsStub(arg1, arg2, arg3, arg4, arg5)
 	} else {
 		return fake.buildLatestInputsReturns.result1
 	}
@@ -105,10 +110,10 @@ func (fake *FakeBuildScheduler) BuildLatestInputsCallCount() int {
 	return len(fake.buildLatestInputsArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) BuildLatestInputsArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) {
+func (fake *FakeBuildScheduler) BuildLatestInputsArgsForCall(i int) (lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) {
 	fake.buildLatestInputsMutex.RLock()
 	defer fake.buildLatestInputsMutex.RUnlock()
-	return fake.buildLatestInputsArgsForCall[i].arg1, fake.buildLatestInputsArgsForCall[i].arg2, fake.buildLatestInputsArgsForCall[i].arg3, fake.buildLatestInputsArgsForCall[i].arg4
+	return fake.buildLatestInputsArgsForCall[i].arg1, fake.buildLatestInputsArgsForCall[i].arg2, fake.buildLatestInputsArgsForCall[i].arg3, fake.buildLatestInputsArgsForCall[i].arg4, fake.buildLatestInputsArgsForCall[i].arg5
 }
 
 func (fake *FakeBuildScheduler) BuildLatestInputsReturns(result1 error) {
@@ -118,16 +123,17 @@ func (fake *FakeBuildScheduler) BuildLatestInputsReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuildScheduler) TriggerImmediately(arg1 lager.Logger, arg2 atc.JobConfig, arg3 atc.ResourceConfigs) (db.Build, scheduler.Waiter, error) {
+func (fake *FakeBuildScheduler) TriggerImmediately(arg1 lager.Logger, arg2 atc.JobConfig, arg3 atc.ResourceConfigs, arg4 atc.ResourceTypes) (db.Build, scheduler.Waiter, error) {
 	fake.triggerImmediatelyMutex.Lock()
 	fake.triggerImmediatelyArgsForCall = append(fake.triggerImmediatelyArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.JobConfig
 		arg3 atc.ResourceConfigs
-	}{arg1, arg2, arg3})
+		arg4 atc.ResourceTypes
+	}{arg1, arg2, arg3, arg4})
 	fake.triggerImmediatelyMutex.Unlock()
 	if fake.TriggerImmediatelyStub != nil {
-		return fake.TriggerImmediatelyStub(arg1, arg2, arg3)
+		return fake.TriggerImmediatelyStub(arg1, arg2, arg3, arg4)
 	} else {
 		return fake.triggerImmediatelyReturns.result1, fake.triggerImmediatelyReturns.result2, fake.triggerImmediatelyReturns.result3
 	}
@@ -139,10 +145,10 @@ func (fake *FakeBuildScheduler) TriggerImmediatelyCallCount() int {
 	return len(fake.triggerImmediatelyArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) TriggerImmediatelyArgsForCall(i int) (lager.Logger, atc.JobConfig, atc.ResourceConfigs) {
+func (fake *FakeBuildScheduler) TriggerImmediatelyArgsForCall(i int) (lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) {
 	fake.triggerImmediatelyMutex.RLock()
 	defer fake.triggerImmediatelyMutex.RUnlock()
-	return fake.triggerImmediatelyArgsForCall[i].arg1, fake.triggerImmediatelyArgsForCall[i].arg2, fake.triggerImmediatelyArgsForCall[i].arg3
+	return fake.triggerImmediatelyArgsForCall[i].arg1, fake.triggerImmediatelyArgsForCall[i].arg2, fake.triggerImmediatelyArgsForCall[i].arg3, fake.triggerImmediatelyArgsForCall[i].arg4
 }
 
 func (fake *FakeBuildScheduler) TriggerImmediatelyReturns(result1 db.Build, result2 scheduler.Waiter, result3 error) {

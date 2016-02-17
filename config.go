@@ -9,9 +9,10 @@ const DefaultTeamName = "main"
 type Tags []string
 
 type Config struct {
-	Groups    GroupConfigs    `yaml:"groups" json:"groups" mapstructure:"groups"`
-	Resources ResourceConfigs `yaml:"resources" json:"resources" mapstructure:"resources"`
-	Jobs      JobConfigs      `yaml:"jobs" json:"jobs" mapstructure:"jobs"`
+	Groups        GroupConfigs    `yaml:"groups" json:"groups" mapstructure:"groups"`
+	Resources     ResourceConfigs `yaml:"resources" json:"resources" mapstructure:"resources"`
+	ResourceTypes ResourceTypes   `yaml:"resource_types" json:"resource_types" mapstructure:"resource_types"`
+	Jobs          JobConfigs      `yaml:"jobs" json:"jobs" mapstructure:"jobs"`
 }
 
 type GroupConfig struct {
@@ -38,6 +39,25 @@ type ResourceConfig struct {
 	Type       string `yaml:"type" json:"type" mapstructure:"type"`
 	Source     Source `yaml:"source" json:"source" mapstructure:"source"`
 	CheckEvery string `yaml:"check_every,omitempty" json:"check_every" mapstructure:"check_every"`
+}
+
+type ResourceType struct {
+	Name   string `yaml:"name" json:"name" mapstructure:"name"`
+	Type   string `yaml:"type" json:"type" mapstructure:"type"`
+	Source Source `yaml:"source" json:"source" mapstructure:"source"`
+}
+
+type ResourceTypes []ResourceType
+
+func (types ResourceTypes) Without(name string) ResourceTypes {
+	newTypes := ResourceTypes{}
+	for _, t := range types {
+		if t.Name != name {
+			newTypes = append(newTypes, t)
+		}
+	}
+
+	return newTypes
 }
 
 type JobConfig struct {

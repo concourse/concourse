@@ -363,22 +363,40 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("differentiates between containers with different stages", func() {
+	It("differentiates between a single step's containers with different stages", func() {
 		someBuild, err := database.CreateOneOffBuild()
 		Expect(err).ToNot(HaveOccurred())
 
-		checkStageContainerID := db.ContainerIdentifier{
-			BuildID:     someBuild.ID,
-			PlanID:      atc.PlanID("some-task"),
-			CheckSource: atc.Source{"some": "source"},
-			CheckType:   "some-type",
-			Stage:       db.ContainerStageCheck,
+		checkStageAContainerID := db.ContainerIdentifier{
+			BuildID:             someBuild.ID,
+			PlanID:              atc.PlanID("some-task"),
+			ImageResourceSource: atc.Source{"some": "source"},
+			ImageResourceType:   "some-type-a",
+			Stage:               db.ContainerStageCheck,
 		}
 
-		getStageContainerID := db.ContainerIdentifier{
-			BuildID: someBuild.ID,
-			PlanID:  atc.PlanID("some-task"),
-			Stage:   db.ContainerStageGet,
+		getStageAContainerID := db.ContainerIdentifier{
+			BuildID:             someBuild.ID,
+			PlanID:              atc.PlanID("some-task"),
+			ImageResourceSource: atc.Source{"some": "source"},
+			ImageResourceType:   "some-type-a",
+			Stage:               db.ContainerStageGet,
+		}
+
+		checkStageBContainerID := db.ContainerIdentifier{
+			BuildID:             someBuild.ID,
+			PlanID:              atc.PlanID("some-task"),
+			ImageResourceSource: atc.Source{"some": "source"},
+			ImageResourceType:   "some-type-b",
+			Stage:               db.ContainerStageCheck,
+		}
+
+		getStageBContainerID := db.ContainerIdentifier{
+			BuildID:             someBuild.ID,
+			PlanID:              atc.PlanID("some-task"),
+			ImageResourceSource: atc.Source{"some": "source"},
+			ImageResourceType:   "some-type-b",
+			Stage:               db.ContainerStageGet,
 		}
 
 		runStageContainerID := db.ContainerIdentifier{
@@ -387,19 +405,37 @@ var _ = Describe("Keeping track of containers", func() {
 			Stage:   db.ContainerStageRun,
 		}
 
-		checkContainer, err := database.CreateContainer(db.Container{
-			ContainerIdentifier: checkStageContainerID,
+		checkContainerA, err := database.CreateContainer(db.Container{
+			ContainerIdentifier: checkStageAContainerID,
 			ContainerMetadata: db.ContainerMetadata{
-				Handle: "check-handle",
+				Handle: "check-a-handle",
 				Type:   db.ContainerTypeCheck,
 			},
 		}, time.Minute)
 		Expect(err).ToNot(HaveOccurred())
 
-		getContainer, err := database.CreateContainer(db.Container{
-			ContainerIdentifier: getStageContainerID,
+		getContainerA, err := database.CreateContainer(db.Container{
+			ContainerIdentifier: getStageAContainerID,
 			ContainerMetadata: db.ContainerMetadata{
-				Handle: "get-handle",
+				Handle: "get-a-handle",
+				Type:   db.ContainerTypeGet,
+			},
+		}, time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+
+		checkContainerB, err := database.CreateContainer(db.Container{
+			ContainerIdentifier: checkStageBContainerID,
+			ContainerMetadata: db.ContainerMetadata{
+				Handle: "check-b-handle",
+				Type:   db.ContainerTypeCheck,
+			},
+		}, time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+
+		getContainerB, err := database.CreateContainer(db.Container{
+			ContainerIdentifier: getStageBContainerID,
+			ContainerMetadata: db.ContainerMetadata{
+				Handle: "get-b-handle",
 				Type:   db.ContainerTypeGet,
 			},
 		}, time.Minute)
@@ -414,15 +450,140 @@ var _ = Describe("Keeping track of containers", func() {
 		}, time.Minute)
 		Expect(err).ToNot(HaveOccurred())
 
-		container, found, err := database.FindContainerByIdentifier(checkStageContainerID)
+		container, found, err := database.FindContainerByIdentifier(checkStageAContainerID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(found).To(BeTrue())
-		Expect(container.ContainerIdentifier).To(Equal(checkContainer.ContainerIdentifier))
+		Expect(container.ContainerIdentifier).To(Equal(checkContainerA.ContainerIdentifier))
 
-		container, found, err = database.FindContainerByIdentifier(getStageContainerID)
+		container, found, err = database.FindContainerByIdentifier(getStageAContainerID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(found).To(BeTrue())
-		Expect(container.ContainerIdentifier).To(Equal(getContainer.ContainerIdentifier))
+		Expect(container.ContainerIdentifier).To(Equal(getContainerA.ContainerIdentifier))
+
+		container, found, err = database.FindContainerByIdentifier(checkStageBContainerID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(container.ContainerIdentifier).To(Equal(checkContainerB.ContainerIdentifier))
+
+		container, found, err = database.FindContainerByIdentifier(getStageBContainerID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(container.ContainerIdentifier).To(Equal(getContainerB.ContainerIdentifier))
+
+		container, found, err = database.FindContainerByIdentifier(runStageContainerID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(container.ContainerIdentifier).To(Equal(runContainer.ContainerIdentifier))
+	})
+
+	It("differentiates between a single resource's checking containers with different stages", func() {
+		checkStageAContainerID := db.ContainerIdentifier{
+			ResourceID:          1,
+			CheckSource:         atc.Source{"some": "source"},
+			CheckType:           "some-type",
+			ImageResourceSource: atc.Source{"some": "image-source"},
+			ImageResourceType:   "some-image-type-a",
+			Stage:               db.ContainerStageCheck,
+		}
+
+		getStageAContainerID := db.ContainerIdentifier{
+			ResourceID:          1,
+			CheckSource:         atc.Source{"some": "source"},
+			CheckType:           "some-type",
+			ImageResourceSource: atc.Source{"some": "image-source"},
+			ImageResourceType:   "some-image-type-a",
+			Stage:               db.ContainerStageGet,
+		}
+
+		checkStageBContainerID := db.ContainerIdentifier{
+			ResourceID:          1,
+			CheckSource:         atc.Source{"some": "source"},
+			CheckType:           "some-type",
+			ImageResourceSource: atc.Source{"some": "image-source"},
+			ImageResourceType:   "some-image-type-b",
+			Stage:               db.ContainerStageCheck,
+		}
+
+		getStageBContainerID := db.ContainerIdentifier{
+			ResourceID:          1,
+			CheckSource:         atc.Source{"some": "source"},
+			CheckType:           "some-type",
+			ImageResourceSource: atc.Source{"some": "image-source"},
+			ImageResourceType:   "some-image-type-b",
+			Stage:               db.ContainerStageGet,
+		}
+
+		runStageContainerID := db.ContainerIdentifier{
+			ResourceID:  1,
+			CheckSource: atc.Source{"some": "source"},
+			CheckType:   "some-type",
+			Stage:       db.ContainerStageRun,
+		}
+
+		checkContainerA, err := database.CreateContainer(db.Container{
+			ContainerIdentifier: checkStageAContainerID,
+			ContainerMetadata: db.ContainerMetadata{
+				Handle: "check-a-handle",
+				Type:   db.ContainerTypeCheck,
+			},
+		}, time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+
+		getContainerA, err := database.CreateContainer(db.Container{
+			ContainerIdentifier: getStageAContainerID,
+			ContainerMetadata: db.ContainerMetadata{
+				Handle: "get-a-handle",
+				Type:   db.ContainerTypeGet,
+			},
+		}, time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+
+		checkContainerB, err := database.CreateContainer(db.Container{
+			ContainerIdentifier: checkStageBContainerID,
+			ContainerMetadata: db.ContainerMetadata{
+				Handle: "check-b-handle",
+				Type:   db.ContainerTypeCheck,
+			},
+		}, time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+
+		getContainerB, err := database.CreateContainer(db.Container{
+			ContainerIdentifier: getStageBContainerID,
+			ContainerMetadata: db.ContainerMetadata{
+				Handle: "get-b-handle",
+				Type:   db.ContainerTypeGet,
+			},
+		}, time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+
+		runContainer, err := database.CreateContainer(db.Container{
+			ContainerIdentifier: runStageContainerID,
+			ContainerMetadata: db.ContainerMetadata{
+				Handle: "run-handle",
+				Type:   db.ContainerTypeTask,
+			},
+		}, time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+
+		container, found, err := database.FindContainerByIdentifier(checkStageAContainerID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(container.ContainerIdentifier).To(Equal(checkContainerA.ContainerIdentifier))
+
+		container, found, err = database.FindContainerByIdentifier(getStageAContainerID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(container.ContainerIdentifier).To(Equal(getContainerA.ContainerIdentifier))
+
+		container, found, err = database.FindContainerByIdentifier(checkStageBContainerID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(container.ContainerIdentifier).To(Equal(checkContainerB.ContainerIdentifier))
+
+		container, found, err = database.FindContainerByIdentifier(getStageBContainerID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(container.ContainerIdentifier).To(Equal(getContainerB.ContainerIdentifier))
 
 		container, found, err = database.FindContainerByIdentifier(runStageContainerID)
 		Expect(err).ToNot(HaveOccurred())

@@ -5,12 +5,13 @@ import (
 	"os"
 	"sync"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
 
 type FakeClient struct {
-	CreateContainerStub        func(lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec) (worker.Container, error)
+	CreateContainerStub        func(lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes) (worker.Container, error)
 	createContainerMutex       sync.RWMutex
 	createContainerArgsForCall []struct {
 		arg1 lager.Logger
@@ -19,6 +20,7 @@ type FakeClient struct {
 		arg4 worker.Identifier
 		arg5 worker.Metadata
 		arg6 worker.ContainerSpec
+		arg7 atc.ResourceTypes
 	}
 	createContainerReturns struct {
 		result1 worker.Container
@@ -46,19 +48,21 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
-	SatisfyingStub        func(worker.WorkerSpec) (worker.Worker, error)
+	SatisfyingStub        func(worker.WorkerSpec, atc.ResourceTypes) (worker.Worker, error)
 	satisfyingMutex       sync.RWMutex
 	satisfyingArgsForCall []struct {
 		arg1 worker.WorkerSpec
+		arg2 atc.ResourceTypes
 	}
 	satisfyingReturns struct {
 		result1 worker.Worker
 		result2 error
 	}
-	AllSatisfyingStub        func(worker.WorkerSpec) ([]worker.Worker, error)
+	AllSatisfyingStub        func(worker.WorkerSpec, atc.ResourceTypes) ([]worker.Worker, error)
 	allSatisfyingMutex       sync.RWMutex
 	allSatisfyingArgsForCall []struct {
 		arg1 worker.WorkerSpec
+		arg2 atc.ResourceTypes
 	}
 	allSatisfyingReturns struct {
 		result1 []worker.Worker
@@ -75,7 +79,7 @@ type FakeClient struct {
 	}
 }
 
-func (fake *FakeClient) CreateContainer(arg1 lager.Logger, arg2 <-chan os.Signal, arg3 worker.ImageFetchingDelegate, arg4 worker.Identifier, arg5 worker.Metadata, arg6 worker.ContainerSpec) (worker.Container, error) {
+func (fake *FakeClient) CreateContainer(arg1 lager.Logger, arg2 <-chan os.Signal, arg3 worker.ImageFetchingDelegate, arg4 worker.Identifier, arg5 worker.Metadata, arg6 worker.ContainerSpec, arg7 atc.ResourceTypes) (worker.Container, error) {
 	fake.createContainerMutex.Lock()
 	fake.createContainerArgsForCall = append(fake.createContainerArgsForCall, struct {
 		arg1 lager.Logger
@@ -84,10 +88,11 @@ func (fake *FakeClient) CreateContainer(arg1 lager.Logger, arg2 <-chan os.Signal
 		arg4 worker.Identifier
 		arg5 worker.Metadata
 		arg6 worker.ContainerSpec
-	}{arg1, arg2, arg3, arg4, arg5, arg6})
+		arg7 atc.ResourceTypes
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.createContainerMutex.Unlock()
 	if fake.CreateContainerStub != nil {
-		return fake.CreateContainerStub(arg1, arg2, arg3, arg4, arg5, arg6)
+		return fake.CreateContainerStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	} else {
 		return fake.createContainerReturns.result1, fake.createContainerReturns.result2
 	}
@@ -99,10 +104,10 @@ func (fake *FakeClient) CreateContainerCallCount() int {
 	return len(fake.createContainerArgsForCall)
 }
 
-func (fake *FakeClient) CreateContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec) {
+func (fake *FakeClient) CreateContainerArgsForCall(i int) (lager.Logger, <-chan os.Signal, worker.ImageFetchingDelegate, worker.Identifier, worker.Metadata, worker.ContainerSpec, atc.ResourceTypes) {
 	fake.createContainerMutex.RLock()
 	defer fake.createContainerMutex.RUnlock()
-	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2, fake.createContainerArgsForCall[i].arg3, fake.createContainerArgsForCall[i].arg4, fake.createContainerArgsForCall[i].arg5, fake.createContainerArgsForCall[i].arg6
+	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2, fake.createContainerArgsForCall[i].arg3, fake.createContainerArgsForCall[i].arg4, fake.createContainerArgsForCall[i].arg5, fake.createContainerArgsForCall[i].arg6, fake.createContainerArgsForCall[i].arg7
 }
 
 func (fake *FakeClient) CreateContainerReturns(result1 worker.Container, result2 error) {
@@ -183,14 +188,15 @@ func (fake *FakeClient) LookupContainerReturns(result1 worker.Container, result2
 	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) Satisfying(arg1 worker.WorkerSpec) (worker.Worker, error) {
+func (fake *FakeClient) Satisfying(arg1 worker.WorkerSpec, arg2 atc.ResourceTypes) (worker.Worker, error) {
 	fake.satisfyingMutex.Lock()
 	fake.satisfyingArgsForCall = append(fake.satisfyingArgsForCall, struct {
 		arg1 worker.WorkerSpec
-	}{arg1})
+		arg2 atc.ResourceTypes
+	}{arg1, arg2})
 	fake.satisfyingMutex.Unlock()
 	if fake.SatisfyingStub != nil {
-		return fake.SatisfyingStub(arg1)
+		return fake.SatisfyingStub(arg1, arg2)
 	} else {
 		return fake.satisfyingReturns.result1, fake.satisfyingReturns.result2
 	}
@@ -202,10 +208,10 @@ func (fake *FakeClient) SatisfyingCallCount() int {
 	return len(fake.satisfyingArgsForCall)
 }
 
-func (fake *FakeClient) SatisfyingArgsForCall(i int) worker.WorkerSpec {
+func (fake *FakeClient) SatisfyingArgsForCall(i int) (worker.WorkerSpec, atc.ResourceTypes) {
 	fake.satisfyingMutex.RLock()
 	defer fake.satisfyingMutex.RUnlock()
-	return fake.satisfyingArgsForCall[i].arg1
+	return fake.satisfyingArgsForCall[i].arg1, fake.satisfyingArgsForCall[i].arg2
 }
 
 func (fake *FakeClient) SatisfyingReturns(result1 worker.Worker, result2 error) {
@@ -216,14 +222,15 @@ func (fake *FakeClient) SatisfyingReturns(result1 worker.Worker, result2 error) 
 	}{result1, result2}
 }
 
-func (fake *FakeClient) AllSatisfying(arg1 worker.WorkerSpec) ([]worker.Worker, error) {
+func (fake *FakeClient) AllSatisfying(arg1 worker.WorkerSpec, arg2 atc.ResourceTypes) ([]worker.Worker, error) {
 	fake.allSatisfyingMutex.Lock()
 	fake.allSatisfyingArgsForCall = append(fake.allSatisfyingArgsForCall, struct {
 		arg1 worker.WorkerSpec
-	}{arg1})
+		arg2 atc.ResourceTypes
+	}{arg1, arg2})
 	fake.allSatisfyingMutex.Unlock()
 	if fake.AllSatisfyingStub != nil {
-		return fake.AllSatisfyingStub(arg1)
+		return fake.AllSatisfyingStub(arg1, arg2)
 	} else {
 		return fake.allSatisfyingReturns.result1, fake.allSatisfyingReturns.result2
 	}
@@ -235,10 +242,10 @@ func (fake *FakeClient) AllSatisfyingCallCount() int {
 	return len(fake.allSatisfyingArgsForCall)
 }
 
-func (fake *FakeClient) AllSatisfyingArgsForCall(i int) worker.WorkerSpec {
+func (fake *FakeClient) AllSatisfyingArgsForCall(i int) (worker.WorkerSpec, atc.ResourceTypes) {
 	fake.allSatisfyingMutex.RLock()
 	defer fake.allSatisfyingMutex.RUnlock()
-	return fake.allSatisfyingArgsForCall[i].arg1
+	return fake.allSatisfyingArgsForCall[i].arg1, fake.allSatisfyingArgsForCall[i].arg2
 }
 
 func (fake *FakeClient) AllSatisfyingReturns(result1 []worker.Worker, result2 error) {

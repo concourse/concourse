@@ -26,9 +26,9 @@ type TrackerDB interface {
 //go:generate counterfeiter . Tracker
 
 type Tracker interface {
-	Init(lager.Logger, Metadata, Session, ResourceType, atc.Tags) (Resource, error)
-	InitWithCache(lager.Logger, Metadata, Session, ResourceType, atc.Tags, CacheIdentifier) (Resource, Cache, error)
-	InitWithSources(lager.Logger, Metadata, Session, ResourceType, atc.Tags, map[string]ArtifactSource) (Resource, []string, error)
+	Init(lager.Logger, Metadata, Session, ResourceType, atc.Tags, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, error)
+	InitWithCache(lager.Logger, Metadata, Session, ResourceType, atc.Tags, CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, Cache, error)
+	InitWithSources(lager.Logger, Metadata, Session, ResourceType, atc.Tags, map[string]ArtifactSource, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, []string, error)
 }
 
 //go:generate counterfeiter . Cache
@@ -78,6 +78,8 @@ func (tracker *tracker) InitWithSources(
 	typ ResourceType,
 	tags atc.Tags,
 	sources map[string]ArtifactSource,
+	customTypes atc.ResourceTypes,
+	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, []string, error) {
 	logger = logger.Session("init-with-sources")
 
@@ -109,7 +111,7 @@ func (tracker *tracker) InitWithSources(
 		Env:       metadata.Env(),
 	}
 
-	compatibleWorkers, err := tracker.workerClient.AllSatisfying(resourceSpec.WorkerSpec())
+	compatibleWorkers, err := tracker.workerClient.AllSatisfying(resourceSpec.WorkerSpec(), customTypes)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -156,7 +158,15 @@ func (tracker *tracker) InitWithSources(
 
 	resourceSpec.Mounts = mounts
 
-	container, err = chosenWorker.CreateContainer(logger, nil, nil, session.ID, session.Metadata, resourceSpec)
+	container, err = chosenWorker.CreateContainer(
+		logger,
+		nil,
+		imageFetchingDelegate,
+		session.ID,
+		session.Metadata,
+		resourceSpec,
+		customTypes,
+	)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
 		return nil, nil, err
@@ -171,7 +181,15 @@ func (tracker *tracker) InitWithSources(
 	return NewResource(container), missingSources, nil
 }
 
-func (tracker *tracker) Init(logger lager.Logger, metadata Metadata, session Session, typ ResourceType, tags atc.Tags) (Resource, error) {
+func (tracker *tracker) Init(
+	logger lager.Logger,
+	metadata Metadata,
+	session Session,
+	typ ResourceType,
+	tags atc.Tags,
+	customTypes atc.ResourceTypes,
+	imageFetchingDelegate worker.ImageFetchingDelegate,
+) (Resource, error) {
 	logger = logger.Session("init")
 
 	logger.Debug("start")
@@ -190,12 +208,20 @@ func (tracker *tracker) Init(logger lager.Logger, metadata Metadata, session Ses
 
 	logger.Debug("creating-container")
 
-	container, err = tracker.workerClient.CreateContainer(logger, nil, nil, session.ID, session.Metadata, worker.ResourceTypeContainerSpec{
-		Type:      string(typ),
-		Ephemeral: session.Ephemeral,
-		Tags:      tags,
-		Env:       metadata.Env(),
-	})
+	container, err = tracker.workerClient.CreateContainer(
+		logger,
+		nil,
+		imageFetchingDelegate,
+		session.ID,
+		session.Metadata,
+		worker.ResourceTypeContainerSpec{
+			Type:      string(typ),
+			Ephemeral: session.Ephemeral,
+			Tags:      tags,
+			Env:       metadata.Env(),
+		},
+		customTypes,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +231,16 @@ func (tracker *tracker) Init(logger lager.Logger, metadata Metadata, session Ses
 	return NewResource(container), nil
 }
 
-func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, session Session, typ ResourceType, tags atc.Tags, cacheIdentifier CacheIdentifier) (Resource, Cache, error) {
+func (tracker *tracker) InitWithCache(
+	logger lager.Logger,
+	metadata Metadata,
+	session Session,
+	typ ResourceType,
+	tags atc.Tags,
+	cacheIdentifier CacheIdentifier,
+	customTypes atc.ResourceTypes,
+	imageFetchingDelegate worker.ImageFetchingDelegate,
+) (Resource, Cache, error) {
 	logger = logger.Session("init-with-cache")
 
 	logger.Debug("start")
@@ -242,7 +277,7 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 		Tags:         tags,
 	}
 
-	chosenWorker, err := tracker.workerClient.Satisfying(resourceSpec)
+	chosenWorker, err := tracker.workerClient.Satisfying(resourceSpec, customTypes)
 	if err != nil {
 		logger.Info("no-workers-satisfying-spec", lager.Data{
 			"error": err.Error(),
@@ -254,12 +289,20 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 	if !hasVM {
 		logger.Debug("creating-container-without-cache")
 
-		container, err := chosenWorker.CreateContainer(logger, nil, nil, session.ID, session.Metadata, worker.ResourceTypeContainerSpec{
-			Type:      string(typ),
-			Ephemeral: session.Ephemeral,
-			Tags:      tags,
-			Env:       metadata.Env(),
-		})
+		container, err := chosenWorker.CreateContainer(
+			logger,
+			nil,
+			imageFetchingDelegate,
+			session.ID,
+			session.Metadata,
+			worker.ResourceTypeContainerSpec{
+				Type:      string(typ),
+				Ephemeral: session.Ephemeral,
+				Tags:      tags,
+				Env:       metadata.Env(),
+			},
+			customTypes,
+		)
 		if err != nil {
 			logger.Error("failed-to-create-container", err)
 			return nil, nil, err
@@ -308,16 +351,24 @@ func (tracker *tracker) InitWithCache(logger lager.Logger, metadata Metadata, se
 
 	logger.Debug("creating-container-with-cache")
 
-	container, err = chosenWorker.CreateContainer(logger, nil, nil, session.ID, session.Metadata, worker.ResourceTypeContainerSpec{
-		Type:      string(typ),
-		Ephemeral: session.Ephemeral,
-		Tags:      tags,
-		Env:       metadata.Env(),
-		Cache: worker.VolumeMount{
-			Volume:    cachedVolume,
-			MountPath: ResourcesDir("get"),
+	container, err = chosenWorker.CreateContainer(
+		logger,
+		nil,
+		imageFetchingDelegate,
+		session.ID,
+		session.Metadata,
+		worker.ResourceTypeContainerSpec{
+			Type:      string(typ),
+			Ephemeral: session.Ephemeral,
+			Tags:      tags,
+			Env:       metadata.Env(),
+			Cache: worker.VolumeMount{
+				Volume:    cachedVolume,
+				MountPath: ResourcesDir("get"),
+			},
 		},
-	})
+		customTypes,
+	)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
 		return nil, nil, err

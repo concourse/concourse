@@ -14,7 +14,7 @@ var ErrResourceNotFound = errors.New("resource not found")
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) (atc.Plan, error)
+	Create(atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 type buildFactory struct {
@@ -32,6 +32,7 @@ func NewBuildFactory(pipelineName string, planFactory atc.PlanFactory) BuildFact
 func (factory *buildFactory) Create(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
+	resourceTypes atc.ResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	planSequence := job.Plan
@@ -40,16 +41,18 @@ func (factory *buildFactory) Create(
 		return factory.constructPlanFromConfig(
 			planSequence[0],
 			resources,
+			resourceTypes,
 			inputs,
 		)
 	}
 
-	return factory.do(planSequence, resources, inputs)
+	return factory.do(planSequence, resources, resourceTypes, inputs)
 }
 
 func (factory *buildFactory) do(
 	planSequence atc.PlanSequence,
 	resources atc.ResourceConfigs,
+	resourceTypes atc.ResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	do := atc.DoPlan{}
@@ -59,6 +62,7 @@ func (factory *buildFactory) do(
 		nextStep, err := factory.constructPlanFromConfig(
 			planConfig,
 			resources,
+			resourceTypes,
 			inputs,
 		)
 		if err != nil {
@@ -74,13 +78,14 @@ func (factory *buildFactory) do(
 func (factory *buildFactory) constructPlanFromConfig(
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
+	resourceTypes atc.ResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	var plan atc.Plan
 	var err error
 
 	if planConfig.Attempts == 0 {
-		plan, err = factory.constructUnhookedPlan(planConfig, resources, inputs)
+		plan, err = factory.constructUnhookedPlan(planConfig, resources, resourceTypes, inputs)
 		if err != nil {
 			return atc.Plan{}, err
 		}
@@ -88,7 +93,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 		retryStep := make(atc.RetryPlan, planConfig.Attempts)
 
 		for i := 0; i < planConfig.Attempts; i++ {
-			attempt, err := factory.constructUnhookedPlan(planConfig, resources, inputs)
+			attempt, err := factory.constructUnhookedPlan(planConfig, resources, resourceTypes, inputs)
 			if err != nil {
 				return atc.Plan{}, err
 			}
@@ -101,10 +106,11 @@ func (factory *buildFactory) constructPlanFromConfig(
 
 	constructionParams, err := factory.failureIfPresent(
 		constructionParams{
-			plan:       plan,
-			planConfig: planConfig,
-			resources:  resources,
-			inputs:     inputs,
+			plan:          plan,
+			planConfig:    planConfig,
+			resources:     resources,
+			resourceTypes: resourceTypes,
+			inputs:        inputs,
 		})
 	if err != nil {
 		return atc.Plan{}, err
@@ -126,6 +132,7 @@ func (factory *buildFactory) constructPlanFromConfig(
 func (factory *buildFactory) constructUnhookedPlan(
 	planConfig atc.PlanConfig,
 	resources atc.ResourceConfigs,
+	resourceTypes atc.ResourceTypes,
 	inputs []db.BuildInput,
 ) (atc.Plan, error) {
 	var plan atc.Plan
@@ -136,6 +143,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 		plan, err = factory.do(
 			*planConfig.Do,
 			resources,
+			resourceTypes,
 			inputs,
 		)
 		if err != nil {
@@ -156,23 +164,25 @@ func (factory *buildFactory) constructUnhookedPlan(
 		}
 
 		putPlan := atc.PutPlan{
-			Type:     resource.Type,
-			Name:     logicalName,
-			Pipeline: factory.PipelineName,
-			Resource: resourceName,
-			Source:   resource.Source,
-			Params:   planConfig.Params,
-			Tags:     planConfig.Tags,
+			Type:          resource.Type,
+			Name:          logicalName,
+			Pipeline:      factory.PipelineName,
+			Resource:      resourceName,
+			Source:        resource.Source,
+			Params:        planConfig.Params,
+			Tags:          planConfig.Tags,
+			ResourceTypes: resourceTypes,
 		}
 
 		dependentGetPlan := atc.DependentGetPlan{
-			Type:     resource.Type,
-			Name:     logicalName,
-			Pipeline: factory.PipelineName,
-			Resource: resourceName,
-			Params:   planConfig.GetParams,
-			Tags:     planConfig.Tags,
-			Source:   resource.Source,
+			Type:          resource.Type,
+			Name:          logicalName,
+			Pipeline:      factory.PipelineName,
+			Resource:      resourceName,
+			Params:        planConfig.GetParams,
+			Tags:          planConfig.Tags,
+			Source:        resource.Source,
+			ResourceTypes: resourceTypes,
 		}
 
 		plan = factory.planFactory.NewPlan(atc.OnSuccessPlan{
@@ -201,30 +211,33 @@ func (factory *buildFactory) constructUnhookedPlan(
 		}
 
 		plan = factory.planFactory.NewPlan(atc.GetPlan{
-			Type:     resource.Type,
-			Name:     name,
-			Pipeline: factory.PipelineName,
-			Resource: resourceName,
-			Source:   resource.Source,
-			Params:   planConfig.Params,
-			Version:  atc.Version(version),
-			Tags:     planConfig.Tags,
+			Type:          resource.Type,
+			Name:          name,
+			Pipeline:      factory.PipelineName,
+			Resource:      resourceName,
+			Source:        resource.Source,
+			Params:        planConfig.Params,
+			Version:       atc.Version(version),
+			Tags:          planConfig.Tags,
+			ResourceTypes: resourceTypes,
 		})
 
 	case planConfig.Task != "":
 		plan = factory.planFactory.NewPlan(atc.TaskPlan{
-			Name:       planConfig.Task,
-			Pipeline:   factory.PipelineName,
-			Privileged: planConfig.Privileged,
-			Config:     planConfig.TaskConfig,
-			ConfigPath: planConfig.TaskConfigPath,
-			Tags:       planConfig.Tags,
+			Name:          planConfig.Task,
+			Pipeline:      factory.PipelineName,
+			Privileged:    planConfig.Privileged,
+			Config:        planConfig.TaskConfig,
+			ConfigPath:    planConfig.TaskConfigPath,
+			Tags:          planConfig.Tags,
+			ResourceTypes: resourceTypes,
 		})
 
 	case planConfig.Try != nil:
 		nextStep, err := factory.constructPlanFromConfig(
 			*planConfig.Try,
 			resources,
+			resourceTypes,
 			inputs,
 		)
 		if err != nil {
@@ -242,6 +255,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 			nextStep, err := factory.constructPlanFromConfig(
 				planConfig,
 				resources,
+				resourceTypes,
 				inputs,
 			)
 			if err != nil {
@@ -265,10 +279,11 @@ func (factory *buildFactory) constructUnhookedPlan(
 }
 
 type constructionParams struct {
-	plan       atc.Plan
-	planConfig atc.PlanConfig
-	resources  atc.ResourceConfigs
-	inputs     []db.BuildInput
+	plan          atc.Plan
+	planConfig    atc.PlanConfig
+	resources     atc.ResourceConfigs
+	resourceTypes atc.ResourceTypes
+	inputs        []db.BuildInput
 }
 
 func (factory *buildFactory) successIfPresent(cp constructionParams) (constructionParams, error) {
@@ -277,6 +292,7 @@ func (factory *buildFactory) successIfPresent(cp constructionParams) (constructi
 		nextPlan, err := factory.constructPlanFromConfig(
 			*cp.planConfig.Success,
 			cp.resources,
+			cp.resourceTypes,
 			cp.inputs,
 		)
 		if err != nil {
@@ -296,6 +312,7 @@ func (factory *buildFactory) failureIfPresent(cp constructionParams) (constructi
 		nextPlan, err := factory.constructPlanFromConfig(
 			*cp.planConfig.Failure,
 			cp.resources,
+			cp.resourceTypes,
 			cp.inputs,
 		)
 		if err != nil {
@@ -316,6 +333,7 @@ func (factory *buildFactory) ensureIfPresent(cp constructionParams) (constructio
 		nextPlan, err := factory.constructPlanFromConfig(
 			*cp.planConfig.Ensure,
 			cp.resources,
+			cp.resourceTypes,
 			cp.inputs,
 		)
 		if err != nil {

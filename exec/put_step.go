@@ -21,6 +21,7 @@ type PutStep struct {
 	tags           atc.Tags
 	delegate       PutDelegate
 	tracker        resource.Tracker
+	resourceTypes  atc.ResourceTypes
 
 	repository *SourceRepository
 
@@ -40,6 +41,7 @@ func newPutStep(
 	tags atc.Tags,
 	delegate PutDelegate,
 	tracker resource.Tracker,
+	resourceTypes atc.ResourceTypes,
 ) PutStep {
 	return PutStep{
 		logger:         logger,
@@ -50,6 +52,7 @@ func newPutStep(
 		tags:           tags,
 		delegate:       delegate,
 		tracker:        tracker,
+		resourceTypes:  resourceTypes,
 	}
 }
 
@@ -92,6 +95,8 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		resource.ResourceType(step.resourceConfig.Type),
 		step.tags,
 		resourceSources,
+		step.resourceTypes,
+		worker.NoopImageFetchingDelegate{},
 	)
 
 	if err != nil {
