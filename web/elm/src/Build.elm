@@ -290,11 +290,11 @@ viewBuildPrep prep =
             [ Html.ul [class "prep-status-list"]
                 (
                     [ viewBuildPrepLi "checking pipeline is not paused" prep.pausedPipeline
-                    , viewBuildPrepLi "checking job is not paused" prep.pausedJob
                     , viewBuildPrepLi "checking max-in-flight is not reached" prep.maxRunningBuilds
+                    , viewBuildPrepLi "checking job is not paused" prep.pausedJob
                     ] ++
                     (viewBuildPrepInputs prep.inputs) ++
-                    [ viewBuildPrepLi "checking for a set of inputs that satisfy the passed constraints" prep.inputsSatisfied ]
+                    [ viewBuildPrepLi "waiting for a suitable set of input versions" prep.inputsSatisfied ]
                 )
             ]
         ]
