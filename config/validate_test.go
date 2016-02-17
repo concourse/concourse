@@ -35,6 +35,16 @@ var _ = Describe("ValidateConfig", func() {
 				},
 			},
 
+			ResourceTypes: atc.ResourceTypes{
+				{
+					Name: "some-resource-type",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				},
+			},
+
 			Jobs: atc.JobConfigs{
 				{
 					Name:   "some-job",
@@ -165,6 +175,63 @@ var _ = Describe("ValidateConfig", func() {
 					"resources[0] and resources[1] have the same name ('some-resource')",
 				))
 
+			})
+		})
+	})
+
+	Describe("invalid resource types", func() {
+		Context("when a resource type has no name", func() {
+			BeforeEach(func() {
+				config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
+					Name: "",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(validateErr).To(HaveOccurred())
+				Expect(validateErr.Error()).To(ContainSubstring("resource_types[1] has no name"))
+			})
+		})
+
+		Context("when a resource has no type", func() {
+			BeforeEach(func() {
+				config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
+					Name: "bogus-resource-type",
+					Type: "",
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(validateErr).To(HaveOccurred())
+				Expect(validateErr.Error()).To(ContainSubstring("resource_types.bogus-resource-type has no type"))
+			})
+		})
+
+		Context("when a resource has no name or type", func() {
+			BeforeEach(func() {
+				config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
+					Name: "",
+					Type: "",
+				})
+			})
+
+			It("returns an error describing both errors", func() {
+				Expect(validateErr).To(HaveOccurred())
+				Expect(validateErr.Error()).To(ContainSubstring("resource_types[1] has no name"))
+				Expect(validateErr.Error()).To(ContainSubstring("resource_types[1] has no type"))
+			})
+		})
+
+		Context("when two resource types have the same name", func() {
+			BeforeEach(func() {
+				config.ResourceTypes = append(config.ResourceTypes, config.ResourceTypes...)
+			})
+
+			It("returns an error", func() {
+				Expect(validateErr).To(HaveOccurred())
+				Expect(validateErr.Error()).To(ContainSubstring(
+					"resource_types[0] and resource_types[1] have the same name ('some-resource-type')",
+				))
 			})
 		})
 	})
