@@ -58,6 +58,14 @@ var _ = Describe("Config API", func() {
 				},
 			},
 
+			ResourceTypes: atc.ResourceTypes{
+				{
+					Name:   "custom-resource",
+					Type:   "custom-type",
+					Source: atc.Source{"custom": "source"},
+				},
+			},
+
 			Jobs: atc.JobConfigs{
 				{
 					Name:   "some-job",

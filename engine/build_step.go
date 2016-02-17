@@ -114,6 +114,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		exec.Privileged(plan.Task.Privileged),
 		plan.Task.Tags,
 		configSource,
+		plan.Task.ResourceTypes,
 	)
 }
 
@@ -146,6 +147,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		plan.Get.Tags,
 		plan.Get.Params,
 		plan.Get.Version,
+		plan.Get.ResourceTypes,
 	)
 }
 
@@ -176,6 +178,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		},
 		plan.Put.Tags,
 		plan.Put.Params,
+		plan.Put.ResourceTypes,
 	)
 }
 
@@ -208,6 +211,7 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 		},
 		getPlan.Tags,
 		getPlan.Params,
+		getPlan.ResourceTypes,
 	)
 }
 

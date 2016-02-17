@@ -46,6 +46,7 @@ type TaskStep struct {
 	workerPool     worker.Client
 	artifactsRoot  string
 	trackerFactory TrackerFactory
+	resourceTypes  atc.ResourceTypes
 
 	repo *SourceRepository
 
@@ -66,6 +67,7 @@ func newTaskStep(
 	workerPool worker.Client,
 	artifactsRoot string,
 	trackerFactory TrackerFactory,
+	resourceTypes atc.ResourceTypes,
 ) TaskStep {
 	return TaskStep{
 		logger:         logger,
@@ -78,6 +80,7 @@ func newTaskStep(
 		workerPool:     workerPool,
 		artifactsRoot:  artifactsRoot,
 		trackerFactory: trackerFactory,
+		resourceTypes:  resourceTypes,
 	}
 }
 
@@ -177,7 +180,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			workerSpec.ResourceType = config.ImageResource.Type
 		}
 
-		compatibleWorkers, err := step.workerPool.AllSatisfying(workerSpec, nil)
+		compatibleWorkers, err := step.workerPool.AllSatisfying(workerSpec, step.resourceTypes)
 		if err != nil {
 			return err
 		}
@@ -228,7 +231,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			runContainerID,
 			step.metadata,
 			containerSpec,
-			nil,
+			step.resourceTypes,
 		)
 
 		for _, mount := range inputMounts {

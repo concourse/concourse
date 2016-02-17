@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"errors"
 	"io"
 	"path/filepath"
 	"sync"
@@ -13,8 +12,6 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-var ErrMultipleVolumes = errors.New("multiple volumes mounted; expected 1 or 0")
-
 //go:generate counterfeiter . Resource
 
 type Resource interface {
@@ -24,7 +21,7 @@ type Resource interface {
 
 	Release(*time.Duration)
 
-	CacheVolume() (baggageclaim.Volume, bool, error)
+	CacheVolume() (baggageclaim.Volume, bool)
 }
 
 type IOConfig struct {
@@ -85,15 +82,14 @@ func (resource *resource) Release(finalTTL *time.Duration) {
 	resource.container.Release(finalTTL)
 }
 
-func (resource *resource) CacheVolume() (baggageclaim.Volume, bool, error) {
-	volumes := resource.container.Volumes()
+func (resource *resource) CacheVolume() (baggageclaim.Volume, bool) {
+	mounts := resource.container.VolumeMounts()
 
-	switch len(volumes) {
-	case 0:
-		return nil, false, nil
-	case 1:
-		return volumes[0], true, nil
-	default:
-		return nil, false, ErrMultipleVolumes
+	for _, mount := range mounts {
+		if mount.MountPath == ResourcesDir("get") {
+			return mount.Volume, true
+		}
 	}
+
+	return nil, false
 }

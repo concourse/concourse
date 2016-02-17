@@ -61,6 +61,7 @@ var _ = Describe("Tracker", func() {
 		var (
 			logger   *lagertest.TestLogger
 			metadata Metadata = testMetadata{"a=1", "b=2"}
+			delegate worker.ImageFetchingDelegate
 
 			initType ResourceType
 
@@ -71,12 +72,13 @@ var _ = Describe("Tracker", func() {
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("test")
 			initType = "type1"
+			delegate = new(wfakes.FakeImageFetchingDelegate)
 
 			workerClient.CreateContainerReturns(fakeContainer, nil)
 		})
 
 		JustBeforeEach(func() {
-			initResource, initErr = tracker.Init(logger, metadata, session, initType, []string{"resource", "tags"}, customTypes)
+			initResource, initErr = tracker.Init(logger, metadata, session, initType, []string{"resource", "tags"}, customTypes, delegate)
 		})
 
 		Context("when a container does not exist for the session", func() {
@@ -159,6 +161,7 @@ var _ = Describe("Tracker", func() {
 		var (
 			logger   *lagertest.TestLogger
 			metadata Metadata = testMetadata{"a=1", "b=2"}
+			delegate worker.ImageFetchingDelegate
 
 			initType        ResourceType
 			cacheIdentifier *fakes.FakeCacheIdentifier
@@ -172,6 +175,7 @@ var _ = Describe("Tracker", func() {
 			logger = lagertest.NewTestLogger("test")
 			initType = "type1"
 			cacheIdentifier = new(fakes.FakeCacheIdentifier)
+			delegate = new(wfakes.FakeImageFetchingDelegate)
 		})
 
 		JustBeforeEach(func() {
@@ -183,6 +187,7 @@ var _ = Describe("Tracker", func() {
 				[]string{"resource", "tags"},
 				cacheIdentifier,
 				customTypes,
+				delegate,
 			)
 		})
 
@@ -658,6 +663,7 @@ var _ = Describe("Tracker", func() {
 			logger       *lagertest.TestLogger
 			metadata     Metadata = testMetadata{"a=1", "b=2"}
 			inputSources map[string]ArtifactSource
+			delegate     worker.ImageFetchingDelegate
 
 			inputSource1 *fakes.FakeArtifactSource
 			inputSource2 *fakes.FakeArtifactSource
@@ -673,6 +679,7 @@ var _ = Describe("Tracker", func() {
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("test")
 			initType = "type1"
+			delegate = new(wfakes.FakeImageFetchingDelegate)
 
 			inputSource1 = new(fakes.FakeArtifactSource)
 			inputSource2 = new(fakes.FakeArtifactSource)
@@ -694,6 +701,7 @@ var _ = Describe("Tracker", func() {
 				[]string{"resource", "tags"},
 				inputSources,
 				customTypes,
+				delegate,
 			)
 		})
 

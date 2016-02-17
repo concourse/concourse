@@ -26,9 +26,9 @@ type TrackerDB interface {
 //go:generate counterfeiter . Tracker
 
 type Tracker interface {
-	Init(lager.Logger, Metadata, Session, ResourceType, atc.Tags, atc.ResourceTypes) (Resource, error)
-	InitWithCache(lager.Logger, Metadata, Session, ResourceType, atc.Tags, CacheIdentifier, atc.ResourceTypes) (Resource, Cache, error)
-	InitWithSources(lager.Logger, Metadata, Session, ResourceType, atc.Tags, map[string]ArtifactSource, atc.ResourceTypes) (Resource, []string, error)
+	Init(lager.Logger, Metadata, Session, ResourceType, atc.Tags, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, error)
+	InitWithCache(lager.Logger, Metadata, Session, ResourceType, atc.Tags, CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, Cache, error)
+	InitWithSources(lager.Logger, Metadata, Session, ResourceType, atc.Tags, map[string]ArtifactSource, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, []string, error)
 }
 
 //go:generate counterfeiter . Cache
@@ -79,6 +79,7 @@ func (tracker *tracker) InitWithSources(
 	tags atc.Tags,
 	sources map[string]ArtifactSource,
 	customTypes atc.ResourceTypes,
+	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, []string, error) {
 	logger = logger.Session("init-with-sources")
 
@@ -157,7 +158,15 @@ func (tracker *tracker) InitWithSources(
 
 	resourceSpec.Mounts = mounts
 
-	container, err = chosenWorker.CreateContainer(logger, nil, nil, session.ID, session.Metadata, resourceSpec, customTypes)
+	container, err = chosenWorker.CreateContainer(
+		logger,
+		nil,
+		imageFetchingDelegate,
+		session.ID,
+		session.Metadata,
+		resourceSpec,
+		customTypes,
+	)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
 		return nil, nil, err
@@ -179,6 +188,7 @@ func (tracker *tracker) Init(
 	typ ResourceType,
 	tags atc.Tags,
 	customTypes atc.ResourceTypes,
+	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, error) {
 	logger = logger.Session("init")
 
@@ -201,7 +211,7 @@ func (tracker *tracker) Init(
 	container, err = tracker.workerClient.CreateContainer(
 		logger,
 		nil,
-		nil,
+		imageFetchingDelegate,
 		session.ID,
 		session.Metadata,
 		worker.ResourceTypeContainerSpec{
@@ -229,6 +239,7 @@ func (tracker *tracker) InitWithCache(
 	tags atc.Tags,
 	cacheIdentifier CacheIdentifier,
 	customTypes atc.ResourceTypes,
+	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, Cache, error) {
 	logger = logger.Session("init-with-cache")
 
@@ -281,7 +292,7 @@ func (tracker *tracker) InitWithCache(
 		container, err := chosenWorker.CreateContainer(
 			logger,
 			nil,
-			nil,
+			imageFetchingDelegate,
 			session.ID,
 			session.Metadata,
 			worker.ResourceTypeContainerSpec{
@@ -343,7 +354,7 @@ func (tracker *tracker) InitWithCache(
 	container, err = chosenWorker.CreateContainer(
 		logger,
 		nil,
-		nil,
+		imageFetchingDelegate,
 		session.ID,
 		session.Metadata,
 		worker.ResourceTypeContainerSpec{

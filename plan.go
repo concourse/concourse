@@ -21,24 +21,26 @@ type Plan struct {
 type PlanID string
 
 type DependentGetPlan struct {
-	Type     string `json:"type"`
-	Name     string `json:"name,omitempty"`
-	Resource string `json:"resource"`
-	Pipeline string `json:"pipeline"`
-	Params   Params `json:"params,omitempty"`
-	Tags     Tags   `json:"tags,omitempty"`
-	Source   Source `json:"source"`
+	Type          string        `json:"type"`
+	Name          string        `json:"name,omitempty"`
+	Resource      string        `json:"resource"`
+	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`
+	Pipeline      string        `json:"pipeline"`
+	Params        Params        `json:"params,omitempty"`
+	Tags          Tags          `json:"tags,omitempty"`
+	Source        Source        `json:"source"`
 }
 
 func (plan DependentGetPlan) GetPlan() GetPlan {
 	return GetPlan{
-		Type:     plan.Type,
-		Name:     plan.Name,
-		Resource: plan.Resource,
-		Pipeline: plan.Pipeline,
-		Source:   plan.Source,
-		Tags:     plan.Tags,
-		Params:   plan.Params,
+		Type:          plan.Type,
+		Name:          plan.Name,
+		Resource:      plan.Resource,
+		ResourceTypes: plan.ResourceTypes,
+		Pipeline:      plan.Pipeline,
+		Source:        plan.Source,
+		Tags:          plan.Tags,
+		Params:        plan.Params,
 	}
 }
 
@@ -71,24 +73,26 @@ type AggregatePlan []Plan
 type DoPlan []Plan
 
 type GetPlan struct {
-	Type     string  `json:"type"`
-	Name     string  `json:"name,omitempty"`
-	Resource string  `json:"resource"`
-	Pipeline string  `json:"pipeline"`
-	Source   Source  `json:"source"`
-	Params   Params  `json:"params,omitempty"`
-	Version  Version `json:"version,omitempty"`
-	Tags     Tags    `json:"tags,omitempty"`
+	Type          string        `json:"type"`
+	Name          string        `json:"name,omitempty"`
+	Resource      string        `json:"resource"`
+	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`
+	Pipeline      string        `json:"pipeline"`
+	Source        Source        `json:"source"`
+	Params        Params        `json:"params,omitempty"`
+	Version       Version       `json:"version,omitempty"`
+	Tags          Tags          `json:"tags,omitempty"`
 }
 
 type PutPlan struct {
-	Type     string `json:"type"`
-	Name     string `json:"name,omitempty"`
-	Resource string `json:"resource"`
-	Pipeline string `json:"pipeline"`
-	Source   Source `json:"source"`
-	Params   Params `json:"params,omitempty"`
-	Tags     Tags   `json:"tags,omitempty"`
+	Type          string        `json:"type"`
+	Name          string        `json:"name,omitempty"`
+	Resource      string        `json:"resource"`
+	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`
+	Pipeline      string        `json:"pipeline"`
+	Source        Source        `json:"source"`
+	Params        Params        `json:"params,omitempty"`
+	Tags          Tags          `json:"tags,omitempty"`
 }
 
 type TaskPlan struct {
@@ -100,7 +104,8 @@ type TaskPlan struct {
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`
 
-	Pipeline string `json:"pipeline"`
+	Pipeline      string        `json:"pipeline"`
+	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`
 }
 
 type RetryPlan []Plan

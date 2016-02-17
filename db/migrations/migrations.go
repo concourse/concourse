@@ -85,4 +85,5 @@ var Migrations = []migration.Migrator{
 	AddPipelineBuildEventsTables,
 	AddBuildPreparation,
 	DropCompletedFromBuildPreparation,
+	AddImageResourceTypeAndSourceToContainers,
 }

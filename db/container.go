@@ -16,6 +16,10 @@ type ContainerIdentifier struct {
 	BuildID int
 	PlanID  atc.PlanID
 
+	// for the check + get stages of a container with a resource backed image
+	ImageResourceType   string
+	ImageResourceSource atc.Source
+
 	Stage ContainerStage
 }
 

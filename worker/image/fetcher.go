@@ -66,8 +66,8 @@ func (fetcher Fetcher) FetchImage(
 	}
 
 	checkSess.ID.Stage = db.ContainerStageCheck
-	checkSess.ID.CheckType = imageConfig.Type
-	checkSess.ID.CheckSource = imageConfig.Source
+	checkSess.ID.ImageResourceType = imageConfig.Type
+	checkSess.ID.ImageResourceSource = imageConfig.Source
 	checkSess.Metadata.Type = db.ContainerTypeCheck
 	checkSess.Metadata.WorkingDirectory = ""
 	checkSess.Metadata.EnvironmentVariables = nil
@@ -79,6 +79,7 @@ func (fetcher Fetcher) FetchImage(
 		resourceType,
 		nil,
 		customTypes,
+		delegate,
 	)
 	if err != nil {
 		return nil, err
@@ -114,6 +115,8 @@ func (fetcher Fetcher) FetchImage(
 	}
 
 	getSess.ID.Stage = db.ContainerStageGet
+	getSess.ID.ImageResourceType = imageConfig.Type
+	getSess.ID.ImageResourceSource = imageConfig.Source
 	getSess.Metadata.Type = db.ContainerTypeGet
 	getSess.Metadata.WorkingDirectory = ""
 	getSess.Metadata.EnvironmentVariables = nil
@@ -126,6 +129,7 @@ func (fetcher Fetcher) FetchImage(
 		nil,
 		cacheID,
 		customTypes,
+		delegate,
 	)
 	if err != nil {
 		return nil, err
@@ -157,11 +161,7 @@ func (fetcher Fetcher) FetchImage(
 		}
 	}
 
-	volume, found, err := getResource.CacheVolume()
-	if err != nil {
-		return nil, err
-	}
-
+	volume, found := getResource.CacheVolume()
 	if !found {
 		return nil, ErrImageGetDidNotProduceVolume
 	}

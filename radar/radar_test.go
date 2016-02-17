@@ -64,6 +64,13 @@ var _ = Describe("Radar", func() {
 			Resources: atc.ResourceConfigs{
 				resourceConfig,
 			},
+			ResourceTypes: atc.ResourceTypes{
+				{
+					Name:   "some-custom-resource",
+					Type:   "docker-image",
+					Source: atc.Source{"custom": "source"},
+				},
+			},
 		}, 1, true, nil)
 
 		savedResource = db.SavedResource{
@@ -132,7 +139,7 @@ var _ = Describe("Radar", func() {
 			It("constructs the resource of the correct type", func() {
 				<-times
 
-				_, metadata, session, typ, tags, _ := fakeTracker.InitArgsForCall(0)
+				_, metadata, session, typ, tags, customTypes, delegate := fakeTracker.InitArgsForCall(0)
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 				Expect(session).To(Equal(resource.Session{
 					ID: worker.Identifier{
@@ -147,6 +154,14 @@ var _ = Describe("Radar", func() {
 					},
 					Ephemeral: true,
 				}))
+				Expect(customTypes).To(Equal(atc.ResourceTypes{
+					{
+						Name:   "some-custom-resource",
+						Type:   "docker-image",
+						Source: atc.Source{"custom": "source"},
+					},
+				}))
+				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 
 				Expect(typ).To(Equal(resource.ResourceType("git")))
 				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
@@ -572,7 +587,7 @@ var _ = Describe("Radar", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, metadata, session, typ, tags, _ := fakeTracker.InitArgsForCall(0)
+				_, metadata, session, typ, tags, _, _ := fakeTracker.InitArgsForCall(0)
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 				Expect(session).To(Equal(resource.Session{
 					ID: worker.Identifier{

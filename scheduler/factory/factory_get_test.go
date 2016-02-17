@@ -13,6 +13,7 @@ var _ = Describe("Factory Get", func() {
 		buildFactory factory.BuildFactory
 
 		resources           atc.ResourceConfigs
+		resourceTypes       atc.ResourceTypes
 		input               atc.JobConfig
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
@@ -30,6 +31,14 @@ var _ = Describe("Factory Get", func() {
 				Source: atc.Source{"uri": "git://some-resource"},
 			},
 		}
+
+		resourceTypes = atc.ResourceTypes{
+			{
+				Name:   "some-custom-resource",
+				Type:   "docker-image",
+				Source: atc.Source{"some": "custom-source"},
+			},
+		}
 	})
 
 	Context("with a get at the top-level", func() {
@@ -45,7 +54,7 @@ var _ = Describe("Factory Get", func() {
 		})
 
 		It("returns the correct plan", func() {
-			actual, err := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.GetPlan{
@@ -56,6 +65,7 @@ var _ = Describe("Factory Get", func() {
 				Source: atc.Source{
 					"uri": "git://some-resource",
 				},
+				ResourceTypes: resourceTypes,
 			})
 			Expect(actual).To(testhelpers.MatchPlan(expected))
 		})
@@ -74,7 +84,7 @@ var _ = Describe("Factory Get", func() {
 		})
 
 		It("returns the correct error", func() {
-			_, err := buildFactory.Create(input, resources, nil)
+			_, err := buildFactory.Create(input, resources, resourceTypes, nil)
 			Expect(err).To(Equal(factory.ErrResourceNotFound))
 		})
 	})

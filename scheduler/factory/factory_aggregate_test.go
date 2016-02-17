@@ -12,6 +12,7 @@ var _ = Describe("Factory Aggregate", func() {
 		buildFactory factory.BuildFactory
 
 		resources           atc.ResourceConfigs
+		resourceTypes       atc.ResourceTypes
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
 	)
@@ -27,6 +28,14 @@ var _ = Describe("Factory Aggregate", func() {
 				Name:   "some-resource",
 				Type:   "git",
 				Source: atc.Source{"uri": "git://some-resource"},
+			},
+		}
+
+		resourceTypes = atc.ResourceTypes{
+			{
+				Name:   "some-custom-resource",
+				Type:   "docker-image",
+				Source: atc.Source{"some": "custom-source"},
 			},
 		}
 	})
@@ -46,17 +55,19 @@ var _ = Describe("Factory Aggregate", func() {
 						},
 					},
 				},
-			}, resources, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "some thing",
-					Pipeline: "some-pipeline",
+					Name:          "some thing",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "some other thing",
-					Pipeline: "some-pipeline",
+					Name:          "some other thing",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 			})
 			Expect(actual).To(Equal(expected))
@@ -85,22 +96,25 @@ var _ = Describe("Factory Aggregate", func() {
 						},
 					},
 				},
-			}, resources, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "some thing",
-					Pipeline: "some-pipeline",
+					Name:          "some thing",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 				expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "some nested thing",
-						Pipeline: "some-pipeline",
+						Name:          "some nested thing",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "some nested other thing",
-						Pipeline: "some-pipeline",
+						Name:          "some nested other thing",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				}),
 			})
@@ -123,18 +137,20 @@ var _ = Describe("Factory Aggregate", func() {
 						},
 					},
 				},
-			}, resources, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.AggregatePlan{
 				expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "some thing",
-						Pipeline: "some-pipeline",
+						Name:          "some thing",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "some success hook",
-						Pipeline: "some-pipeline",
+						Name:          "some success hook",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				}),
 			})
@@ -157,19 +173,21 @@ var _ = Describe("Factory Aggregate", func() {
 						},
 					},
 				},
-			}, resources, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "some thing",
-						Pipeline: "some-pipeline",
+						Name:          "some thing",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "some success hook",
-					Pipeline: "some-pipeline",
+					Name:          "some success hook",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 			})
 			Expect(actual).To(Equal(expected))

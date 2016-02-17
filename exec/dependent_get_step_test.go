@@ -67,6 +67,7 @@ var _ = Describe("GardenFactory", func() {
 			params         atc.Params
 			version        atc.Version
 			tags           []string
+			resourceTypes  atc.ResourceTypes
 
 			satisfiedWorker *wfakes.FakeWorker
 
@@ -97,6 +98,14 @@ var _ = Describe("GardenFactory", func() {
 
 			tags = []string{"some", "tags"}
 
+			resourceTypes = atc.ResourceTypes{
+				{
+					Name:   "custom-resource",
+					Type:   "custom-type",
+					Source: atc.Source{"some-custom": "source"},
+				},
+			}
+
 			inStep = new(fakes.FakeStep)
 			inStep.ResultStub = func(x interface{}) bool {
 				switch v := x.(type) {
@@ -125,6 +134,7 @@ var _ = Describe("GardenFactory", func() {
 				resourceConfig,
 				tags,
 				params,
+				resourceTypes,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -152,7 +162,7 @@ var _ = Describe("GardenFactory", func() {
 			It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
 				Expect(fakeTracker.InitWithCacheCallCount()).To(Equal(1))
 
-				_, sm, sid, typ, tags, cacheID, _ := fakeTracker.InitWithCacheArgsForCall(0)
+				_, sm, sid, typ, tags, cacheID, actualResourceTypes, delegate := fakeTracker.InitWithCacheArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
 					ID: worker.Identifier{
@@ -171,6 +181,15 @@ var _ = Describe("GardenFactory", func() {
 					Params:  params,
 					Version: version,
 				}))
+				Expect(actualResourceTypes).To(Equal(
+					atc.ResourceTypes{
+						{
+							Name:   "custom-resource",
+							Type:   "custom-type",
+							Source: atc.Source{"some-custom": "source"},
+						},
+					}))
+				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 			})
 
 			It("gets the resource with the correct source, params, and version", func() {

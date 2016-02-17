@@ -30,8 +30,9 @@ var _ = Describe("Scheduler", func() {
 
 		createdPlan atc.Plan
 
-		job       atc.JobConfig
-		resources atc.ResourceConfigs
+		job           atc.JobConfig
+		resources     atc.ResourceConfigs
+		resourceTypes atc.ResourceTypes
 
 		scheduler *Scheduler
 
@@ -142,6 +143,14 @@ var _ = Describe("Scheduler", func() {
 			},
 		}
 
+		resourceTypes = atc.ResourceTypes{
+			{
+				Name:   "some-custom-resource",
+				Type:   "custom-type",
+				Source: atc.Source{"custom": "source"},
+			},
+		}
+
 		lease = new(dbfakes.FakeLease)
 		fakeBuildsDB.LeaseBuildSchedulingReturns(lease, true, nil)
 	})
@@ -153,12 +162,12 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("returns no error", func() {
-				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("does not trigger a build", func() {
-				scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+				scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 				Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
 			})
 		})
@@ -171,12 +180,12 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("returns the error", func() {
-				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 				Expect(err).To(Equal(disaster))
 			})
 
 			It("does not trigger a build", func() {
-				scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+				scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 				Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
 			})
 		})
@@ -187,24 +196,24 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("succeeds", func() {
-				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("does not load the versions database, as it was given one", func() {
-				scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+				scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 
 				Expect(fakePipelineDB.LoadVersionsDBCallCount()).To(Equal(0))
 			})
 
 			It("does not try to fetch inputs from the database", func() {
-				scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+				scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 
 				Expect(fakePipelineDB.GetLatestInputVersionsCallCount()).To(BeZero())
 			})
 
 			It("does not trigger a build", func() {
-				scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+				scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 
 				Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
 			})
@@ -231,13 +240,13 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("does not load the versions database, as it was given one", func() {
-				scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+				scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 
 				Expect(fakePipelineDB.LoadVersionsDBCallCount()).To(Equal(0))
 			})
 
 			It("checks if they are already used for a build", func() {
-				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakePipelineDB.GetLatestInputVersionsCallCount()).To(Equal(1))
@@ -288,7 +297,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("excludes them from the inputs when checking for a build", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipelineDB.GetJobBuildForInputsCallCount()).To(Equal(1))
@@ -310,21 +319,21 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not check for builds for the inputs", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipelineDB.GetJobBuildForInputsCallCount()).To(Equal(0))
 				})
 
 				It("does not create a build", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipelineDB.CreateJobBuildForCandidateInputsCallCount()).To(Equal(0))
 				})
 
 				It("does not trigger a build", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
@@ -337,7 +346,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("creates a build with the found inputs", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipelineDB.CreateJobBuildForCandidateInputsCallCount()).To(Equal(1))
@@ -388,7 +397,7 @@ var _ = Describe("Scheduler", func() {
 							})
 
 							It("triggers a build of the job with the found inputs", func() {
-								err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+								err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(fakePipelineDB.ScheduleBuildCallCount()).To(Equal(1))
@@ -397,10 +406,11 @@ var _ = Describe("Scheduler", func() {
 								Expect(jobConfig).To(Equal(job))
 
 								Expect(factory.CreateCallCount()).To(Equal(1))
-								createJob, createResources, createInputs := factory.CreateArgsForCall(0)
+								createJob, createResources, actualResourceTypes, createInputs := factory.CreateArgsForCall(0)
 								Expect(createJob).To(Equal(job))
 								Expect(createResources).To(Equal(resources))
 								Expect(createInputs).To(Equal(newInputs))
+								Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 								Expect(fakePipelineDB.UseInputsForBuildCallCount()).To(Equal(1))
 								usedBuildID, usedInputs := fakePipelineDB.UseInputsForBuildArgsForCall(0)
@@ -414,7 +424,7 @@ var _ = Describe("Scheduler", func() {
 							})
 
 							It("immediately resumes the build", func() {
-								err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+								err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 								Expect(err).NotTo(HaveOccurred())
 
 								Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
@@ -429,12 +439,12 @@ var _ = Describe("Scheduler", func() {
 							})
 
 							It("returns no error", func() {
-								err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+								err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 								Expect(err).NotTo(HaveOccurred())
 							})
 
 							It("marks the build as errored", func() {
-								scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+								scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 								Expect(fakeBuildsDB.FinishBuildCallCount()).To(Equal(1))
 								buildID, status := fakeBuildsDB.FinishBuildArgsForCall(0)
 								Expect(buildID).To(Equal(128))
@@ -449,7 +459,7 @@ var _ = Describe("Scheduler", func() {
 						})
 
 						It("does not start a build", func() {
-							err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+							err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
@@ -465,12 +475,12 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("returns the error", func() {
-						err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+						err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 						Expect(err).To(Equal(disaster))
 					})
 
 					It("does not start a build", func() {
-						scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+						scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
 					})
 				})
@@ -481,12 +491,12 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("exits without error", func() {
-						err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+						err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 						Expect(err).NotTo(HaveOccurred())
 					})
 
 					It("does not start a build", func() {
-						scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+						scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
 					})
 				})
@@ -498,7 +508,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not enqueue or trigger a build", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipelineDB.CreateJobBuildForCandidateInputsCallCount()).To(Equal(0))
@@ -514,7 +524,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not enqueue or a build", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).To(Equal(disaster))
 
 					Expect(fakePipelineDB.CreateJobBuildForCandidateInputsCallCount()).To(Equal(0))
@@ -526,7 +536,7 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("TryNextPendingBuild", func() {
 		JustBeforeEach(func() {
-			scheduler.TryNextPendingBuild(logger, someVersions, job, resources).Wait()
+			scheduler.TryNextPendingBuild(logger, someVersions, job, resources, resourceTypes).Wait()
 		})
 
 		It("does not load the versions database, as it was given one", func() {
@@ -566,7 +576,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not schedule the build", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources)
+					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipelineDB.ScheduleBuildCallCount()).To(Equal(0))
@@ -637,10 +647,11 @@ var _ = Describe("Scheduler", func() {
 						Expect(usedInputs).To(Equal(pendingInputs))
 
 						Expect(factory.CreateCallCount()).To(Equal(1))
-						createJob, createResources, createInputs := factory.CreateArgsForCall(0)
+						createJob, createResources, actualResourceTypes, createInputs := factory.CreateArgsForCall(0)
 						Expect(createJob).To(Equal(job))
 						Expect(createResources).To(Equal(resources))
 						Expect(createInputs).To(Equal(pendingInputs))
+						Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
 						_, builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
@@ -692,7 +703,7 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("does not start a build", func() {
-				scheduler.TryNextPendingBuild(logger, someVersions, job, resources)
+				scheduler.TryNextPendingBuild(logger, someVersions, job, resources, resourceTypes)
 				Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
 			})
 		})
@@ -705,7 +716,7 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("does not start a build", func() {
-				scheduler.TryNextPendingBuild(logger, someVersions, job, resources)
+				scheduler.TryNextPendingBuild(logger, someVersions, job, resources, resourceTypes)
 				Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
 			})
 		})
@@ -713,7 +724,7 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("TriggerImmediately", func() {
 		It("creates a build without any specific inputs", func() {
-			_, _, err := scheduler.TriggerImmediately(logger, job, resources)
+			_, _, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakePipelineDB.GetLatestInputVersionsCallCount()).To(Equal(0))
@@ -767,7 +778,7 @@ var _ = Describe("Scheduler", func() {
 
 					Context("updating the build prep inputs list", func() {
 						It("correctly updates the discovery state for every input being used", func() {
-							_, wg, err := scheduler.TriggerImmediately(logger, job, resources)
+							_, wg, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 							Expect(err).ToNot(HaveOccurred())
 							wg.Wait()
 
@@ -801,7 +812,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("scans for new versions for each input, and queries for the latest job inputs", func() {
-						_, w, err := scheduler.TriggerImmediately(logger, job, resources)
+						_, w, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 						Expect(err).NotTo(HaveOccurred())
 
 						w.Wait()
@@ -839,10 +850,11 @@ var _ = Describe("Scheduler", func() {
 						Expect(usedInputs).To(Equal(pendingInputs))
 
 						Expect(factory.CreateCallCount()).To(Equal(1))
-						createJob, createResources, createInputs := factory.CreateArgsForCall(0)
+						createJob, createResources, actualResourceTypes, createInputs := factory.CreateArgsForCall(0)
 						Expect(createJob).To(Equal(job))
 						Expect(createResources).To(Equal(resources))
 						Expect(createInputs).To(Equal(pendingInputs))
+						Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
 						_, builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
@@ -858,7 +870,7 @@ var _ = Describe("Scheduler", func() {
 						})
 
 						It("errors the build", func() {
-							_, w, err := scheduler.TriggerImmediately(logger, job, resources)
+							_, w, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 							Expect(err).NotTo(HaveOccurred())
 
 							w.Wait()
@@ -877,7 +889,7 @@ var _ = Describe("Scheduler", func() {
 						})
 
 						It("does not run the build", func() {
-							_, w, err := scheduler.TriggerImmediately(logger, job, resources)
+							_, w, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 							Expect(err).NotTo(HaveOccurred())
 
 							w.Wait()
@@ -886,7 +898,7 @@ var _ = Describe("Scheduler", func() {
 						})
 
 						It("does not error the build, as it may have been an ephemeral database issue", func() {
-							_, w, err := scheduler.TriggerImmediately(logger, job, resources)
+							_, w, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 							Expect(err).NotTo(HaveOccurred())
 
 							w.Wait()
@@ -896,7 +908,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("triggers a build of the job with the found inputs", func() {
-						build, w, err := scheduler.TriggerImmediately(logger, job, resources)
+						build, w, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(build).To(Equal(db.Build{ID: 128, Name: "42"}))
 
@@ -913,10 +925,11 @@ var _ = Describe("Scheduler", func() {
 						Expect(usedInputs).To(Equal(pendingInputs))
 
 						Expect(factory.CreateCallCount()).To(Equal(1))
-						createJob, createResources, createInputs := factory.CreateArgsForCall(0)
+						createJob, createResources, actualResourceTypes, createInputs := factory.CreateArgsForCall(0)
 						Expect(createJob).To(Equal(job))
 						Expect(createResources).To(Equal(resources))
 						Expect(createInputs).To(Equal(pendingInputs))
+						Expect(actualResourceTypes).To(Equal(resourceTypes))
 
 						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
 						_, builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
@@ -925,7 +938,7 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("immediately resumes the build", func() {
-						build, w, err := scheduler.TriggerImmediately(logger, job, resources)
+						build, w, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(build).To(Equal(db.Build{ID: 128, Name: "42"}))
 
@@ -943,12 +956,12 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("returns no error", func() {
-						_, _, err := scheduler.TriggerImmediately(logger, job, resources)
+						_, _, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 						Expect(err).NotTo(HaveOccurred())
 					})
 
 					It("marks the build as errored", func() {
-						_, w, _ := scheduler.TriggerImmediately(logger, job, resources)
+						_, w, _ := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 						w.Wait()
 						Expect(fakeBuildsDB.FinishBuildCallCount()).To(Equal(1))
 						buildID, status := fakeBuildsDB.FinishBuildArgsForCall(0)
@@ -964,7 +977,7 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not start a build", func() {
-					_, _, err := scheduler.TriggerImmediately(logger, job, resources)
+					_, _, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
@@ -980,12 +993,12 @@ var _ = Describe("Scheduler", func() {
 			})
 
 			It("returns the error", func() {
-				_, _, err := scheduler.TriggerImmediately(logger, job, resources)
+				_, _, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 				Expect(err).To(Equal(disaster))
 			})
 
 			It("does not start a build", func() {
-				scheduler.TriggerImmediately(logger, job, resources)
+				scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 				Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
 			})
 		})

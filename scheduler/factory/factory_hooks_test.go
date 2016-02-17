@@ -14,6 +14,7 @@ var _ = Describe("Factory Hooks", func() {
 		buildFactory factory.BuildFactory
 
 		resources           atc.ResourceConfigs
+		resourceTypes       atc.ResourceTypes
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
 	)
@@ -28,6 +29,14 @@ var _ = Describe("Factory Hooks", func() {
 				Name:   "some-resource",
 				Type:   "git",
 				Source: atc.Source{"uri": "git://some-resource"},
+			},
+		}
+
+		resourceTypes = atc.ResourceTypes{
+			{
+				Name:   "some-custom-resource",
+				Type:   "docker-image",
+				Source: atc.Source{"some": "custom-source"},
 			},
 		}
 	})
@@ -59,27 +68,31 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("builds the plan correctly", func() {
-			actual, err := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "those who resist our will",
-						Pipeline: "some-pipeline",
+						Name:          "those who resist our will",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "those who also resist our will",
-						Pipeline: "some-pipeline",
+						Name:          "those who also resist our will",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "third task",
-						Pipeline: "some-pipeline",
+						Name:          "third task",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "some other failure",
-					Pipeline: "some-pipeline",
+					Name:          "some other failure",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 			})
 
@@ -111,23 +124,26 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("builds the plan correctly", func() {
-			actual, err := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "those who resist our will",
-						Pipeline: "some-pipeline",
+						Name:          "those who resist our will",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "those who also resist our will",
-						Pipeline: "some-pipeline",
+						Name:          "those who also resist our will",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "some other failure",
-					Pipeline: "some-pipeline",
+					Name:          "some other failure",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 			})
 
@@ -137,7 +153,7 @@ var _ = Describe("Factory Hooks", func() {
 
 	Context("when I have an empty plan", func() {
 		It("returns an empty 'do' plan", func() {
-			actual, err := buildFactory.Create(atc.JobConfig{}, resources, nil)
+			actual, err := buildFactory.Create(atc.JobConfig{}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := atc.Plan{Do: &atc.DoPlan{}}
@@ -173,23 +189,26 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("builds correctly", func() {
-			actual, err := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "some-task",
-					Pipeline: "some-pipeline",
+					Name:          "some-task",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "agg-task-1",
-						Pipeline: "some-pipeline",
+						Name:          "agg-task-1",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.AggregatePlan{
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "agg-agg-task-1",
-							Pipeline: "some-pipeline",
+							Name:          "agg-agg-task-1",
+							Pipeline:      "some-pipeline",
+							ResourceTypes: resourceTypes,
 						}),
 					}),
 				}),
@@ -220,18 +239,20 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("builds correctly", func() {
-			actual, err := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "some-task",
-					Pipeline: "some-pipeline",
+					Name:          "some-task",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "do-task-1",
-						Pipeline: "some-pipeline",
+						Name:          "do-task-1",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				}),
 			})
@@ -274,32 +295,37 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("builds correctly", func() {
-			actual, err := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "some-task",
-					Pipeline: "some-pipeline",
+					Name:          "some-task",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "do-task-1",
-						Pipeline: "some-pipeline",
+						Name:          "do-task-1",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.DoPlan{
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "do-task-2",
-							Pipeline: "some-pipeline",
+							Name:          "do-task-2",
+							Pipeline:      "some-pipeline",
+							ResourceTypes: resourceTypes,
 						}),
 						expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 							Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-								Name:     "do-task-3",
-								Pipeline: "some-pipeline",
+								Name:          "do-task-3",
+								Pipeline:      "some-pipeline",
+								ResourceTypes: resourceTypes,
 							}),
 							Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-								Name:     "do-task-4",
-								Pipeline: "some-pipeline",
+								Name:          "do-task-4",
+								Pipeline:      "some-pipeline",
+								ResourceTypes: resourceTypes,
 							}),
 						}),
 					}),
@@ -337,28 +363,32 @@ var _ = Describe("Factory Hooks", func() {
 		})
 
 		It("builds correctly", func() {
-			actual, err := buildFactory.Create(input, resources, nil)
+			actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "some-task",
-					Pipeline: "some-pipeline",
+					Name:          "some-task",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 						Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "agg-task-1",
-							Pipeline: "some-pipeline",
+							Name:          "agg-task-1",
+							Pipeline:      "some-pipeline",
+							ResourceTypes: resourceTypes,
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "agg-task-1-success",
-							Pipeline: "some-pipeline",
+							Name:          "agg-task-1-success",
+							Pipeline:      "some-pipeline",
+							ResourceTypes: resourceTypes,
 						}),
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "agg-task-2",
-						Pipeline: "some-pipeline",
+						Name:          "agg-task-2",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				}),
 			})
@@ -378,13 +408,14 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "those who resist our will",
-					Pipeline: "some-pipeline",
+					Name:          "those who resist our will",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.GetPlan{
 					Name:     "some-resource",
@@ -394,6 +425,7 @@ var _ = Describe("Factory Hooks", func() {
 					Source: atc.Source{
 						"uri": "git://some-resource",
 					},
+					ResourceTypes: resourceTypes,
 				}),
 			})
 
@@ -411,13 +443,14 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "those who resist our will",
-					Pipeline: "some-pipeline",
+					Name:          "those who resist our will",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TimeoutPlan{
 					Duration: "10s",
@@ -429,6 +462,7 @@ var _ = Describe("Factory Hooks", func() {
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
+						ResourceTypes: resourceTypes,
 					}),
 				}),
 			})
@@ -449,13 +483,14 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "those who resist our will",
-					Pipeline: "some-pipeline",
+					Name:          "those who resist our will",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 					Step: expectedPlanFactory.NewPlan(atc.GetPlan{
@@ -466,10 +501,12 @@ var _ = Describe("Factory Hooks", func() {
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
+						ResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "those who still resist our will",
-						Pipeline: "some-pipeline",
+						Name:          "those who still resist our will",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				}),
 			})
@@ -490,13 +527,14 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "those who resist our will",
-					Pipeline: "some-pipeline",
+					Name:          "those who resist our will",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.EnsurePlan{
 					Step: expectedPlanFactory.NewPlan(atc.GetPlan{
@@ -507,10 +545,12 @@ var _ = Describe("Factory Hooks", func() {
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
+						ResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "those who still resist our will",
-						Pipeline: "some-pipeline",
+						Name:          "those who still resist our will",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				}),
 			})
@@ -534,29 +574,33 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.EnsurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 					Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 						Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "those who resist our will",
-							Pipeline: "some-pipeline",
+							Name:          "those who resist our will",
+							Pipeline:      "some-pipeline",
+							ResourceTypes: resourceTypes,
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "those who failed to resist our will",
-							Pipeline: "some-pipeline",
+							Name:          "those who failed to resist our will",
+							Pipeline:      "some-pipeline",
+							ResourceTypes: resourceTypes,
 						}),
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "those who successfully resisted our will",
-						Pipeline: "some-pipeline",
+						Name:          "those who successfully resisted our will",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "those who always resist our will",
-					Pipeline: "some-pipeline",
+					Name:          "those who always resist our will",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 			})
 
@@ -579,14 +623,15 @@ var _ = Describe("Factory Hooks", func() {
 						},
 					},
 				},
-			}, resources, nil)
+			}, resources, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "those who resist our will",
-						Pipeline: "some-pipeline",
+						Name:          "those who resist our will",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.EnsurePlan{
 						Step: expectedPlanFactory.NewPlan(atc.GetPlan{
@@ -597,10 +642,12 @@ var _ = Describe("Factory Hooks", func() {
 							Source: atc.Source{
 								"uri": "git://some-resource",
 							},
+							ResourceTypes: resourceTypes,
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "those who still resist our will",
-							Pipeline: "some-pipeline",
+							Name:          "those who still resist our will",
+							Pipeline:      "some-pipeline",
+							ResourceTypes: resourceTypes,
 						}),
 					}),
 				}),
@@ -612,6 +659,7 @@ var _ = Describe("Factory Hooks", func() {
 					Source: atc.Source{
 						"uri": "git://some-resource",
 					},
+					ResourceTypes: resourceTypes,
 				}),
 			})
 
@@ -638,33 +686,38 @@ var _ = Describe("Factory Hooks", func() {
 							Task: "shall be defeated",
 						},
 					},
-				}, resources, nil)
+				}, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 						Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 							Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-								Name:     "those who resist our will",
-								Pipeline: "some-pipeline",
+								Name:          "those who resist our will",
+								Pipeline:      "some-pipeline",
+								ResourceTypes: resourceTypes,
 							}),
 							Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-								Name:     "some other task",
-								Pipeline: "some-pipeline",
+								Name:          "some other task",
+								Pipeline:      "some-pipeline",
+								ResourceTypes: resourceTypes,
 							}),
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "some other success task",
-							Pipeline: "some-pipeline",
+							Name:          "some other success task",
+							Pipeline:      "some-pipeline",
+							ResourceTypes: resourceTypes,
 						}),
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "those who still resist our will",
-						Pipeline: "some-pipeline",
+						Name:          "those who still resist our will",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "shall be defeated",
-						Pipeline: "some-pipeline",
+						Name:          "shall be defeated",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				})
 				Expect(actual).To(testhelpers.MatchPlan(expected))
@@ -693,34 +746,39 @@ var _ = Describe("Factory Hooks", func() {
 							},
 						},
 					},
-				}, resources, nil)
+				}, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "those who start resisting our will",
-						Pipeline: "some-pipeline",
+						Name:          "those who start resisting our will",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.DoPlan{
 						expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 							Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 								Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-									Name:     "those who resist our will",
-									Pipeline: "some-pipeline",
+									Name:          "those who resist our will",
+									Pipeline:      "some-pipeline",
+									ResourceTypes: resourceTypes,
 								}),
 								Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-									Name:     "some other task",
-									Pipeline: "some-pipeline",
+									Name:          "some other task",
+									Pipeline:      "some-pipeline",
+									ResourceTypes: resourceTypes,
 								}),
 							}),
 							Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-								Name:     "some other success task",
-								Pipeline: "some-pipeline",
+								Name:          "some other success task",
+								Pipeline:      "some-pipeline",
+								ResourceTypes: resourceTypes,
 							}),
 						}),
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "those who used to resist our will",
-							Pipeline: "some-pipeline",
+							Name:          "those who used to resist our will",
+							Pipeline:      "some-pipeline",
+							ResourceTypes: resourceTypes,
 						}),
 					}),
 				})
@@ -744,24 +802,27 @@ var _ = Describe("Factory Hooks", func() {
 							Task: "those who start resisting our will",
 						},
 					},
-				}, resources, nil)
+				}, resources, resourceTypes, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.DoPlan{
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "those who resist our will",
-							Pipeline: "some-pipeline",
+							Name:          "those who resist our will",
+							Pipeline:      "some-pipeline",
+							ResourceTypes: resourceTypes,
 						}),
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
-							Name:     "those who used to resist our will",
-							Pipeline: "some-pipeline",
+							Name:          "those who used to resist our will",
+							Pipeline:      "some-pipeline",
+							ResourceTypes: resourceTypes,
 						}),
 					}),
 
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "those who start resisting our will",
-						Pipeline: "some-pipeline",
+						Name:          "those who start resisting our will",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				})
 

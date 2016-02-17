@@ -44,7 +44,7 @@ type BuildsDB interface {
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, []db.BuildInput) (atc.Plan, error)
+	Create(atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 type Waiter interface {
@@ -65,7 +65,7 @@ type Scheduler struct {
 	Scanner    Scanner
 }
 
-func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs) error {
+func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs, resourceTypes atc.ResourceTypes) error {
 	logger = logger.Session("build-latest")
 
 	inputs := config.JobInputs(job)
@@ -136,12 +136,12 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 	// NOTE: this is intentionally serial within a scheduler tick, so that
 	// multiple ATCs don't do redundant work to determine a build's inputs.
 
-	s.scheduleAndResumePendingBuild(logger, versions, build, job, resources)
+	s.scheduleAndResumePendingBuild(logger, versions, build, job, resources, resourceTypes)
 
 	return nil
 }
 
-func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs) Waiter {
+func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs, resourceTypes atc.ResourceTypes) Waiter {
 	logger = logger.Session("try-next-pending")
 
 	wg := new(sync.WaitGroup)
@@ -160,13 +160,13 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm
 			return
 		}
 
-		s.scheduleAndResumePendingBuild(logger, versions, build, job, resources)
+		s.scheduleAndResumePendingBuild(logger, versions, build, job, resources, resourceTypes)
 	}()
 
 	return wg
 }
 
-func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs) (db.Build, Waiter, error) {
+func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs, resourceTypes atc.ResourceTypes) (db.Build, Waiter, error) {
 	logger = logger.Session("trigger-immediately")
 
 	build, err := s.PipelineDB.CreateJobBuild(job.Name)
@@ -181,13 +181,13 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 	// do not block request on scanning input versions
 	go func() {
 		defer wg.Done()
-		s.scheduleAndResumePendingBuild(logger, nil, build, job, resources)
+		s.scheduleAndResumePendingBuild(logger, nil, build, job, resources, resourceTypes)
 	}()
 
 	return build, wg, nil
 }
 
-func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions *algorithm.VersionsDB, build db.Build, job atc.JobConfig, resources atc.ResourceConfigs) engine.Build {
+func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions *algorithm.VersionsDB, build db.Build, job atc.JobConfig, resources atc.ResourceConfigs, resourceTypes atc.ResourceTypes) engine.Build {
 	lease, acquired, err := s.BuildsDB.LeaseBuildScheduling(build.ID, 10*time.Second)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
@@ -309,7 +309,7 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 		return nil
 	}
 
-	plan, err := s.Factory.Create(job, resources, inputs)
+	plan, err := s.Factory.Create(job, resources, resourceTypes, inputs)
 	if err != nil {
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
 		err := s.BuildsDB.FinishBuild(build.ID, db.StatusErrored)

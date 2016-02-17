@@ -9,9 +9,10 @@ const DefaultTeamName = "main"
 type Tags []string
 
 type Config struct {
-	Groups    GroupConfigs    `yaml:"groups" json:"groups" mapstructure:"groups"`
-	Resources ResourceConfigs `yaml:"resources" json:"resources" mapstructure:"resources"`
-	Jobs      JobConfigs      `yaml:"jobs" json:"jobs" mapstructure:"jobs"`
+	Groups        GroupConfigs    `yaml:"groups" json:"groups" mapstructure:"groups"`
+	Resources     ResourceConfigs `yaml:"resources" json:"resources" mapstructure:"resources"`
+	ResourceTypes ResourceTypes   `yaml:"resource_types" json:"resource_types" mapstructure:"resource_types"`
+	Jobs          JobConfigs      `yaml:"jobs" json:"jobs" mapstructure:"jobs"`
 }
 
 type GroupConfig struct {

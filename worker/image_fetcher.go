@@ -2,6 +2,7 @@ package worker
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -43,3 +44,8 @@ type Image interface {
 type ImageMetadata struct {
 	Env []string `json:"env"`
 }
+
+type NoopImageFetchingDelegate struct{}
+
+func (NoopImageFetchingDelegate) Stderr() io.Writer                                { return ioutil.Discard }
+func (NoopImageFetchingDelegate) ImageVersionDetermined(db.VolumeIdentifier) error { return nil }

@@ -77,6 +77,7 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 			timer := radar.clock.NewTimer(interval)
 
 			var resourceConfig atc.ResourceConfig
+			var resourceTypes atc.ResourceTypes
 
 			select {
 			case <-signals:
@@ -86,7 +87,7 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 			case <-timer.C():
 				var err error
 
-				resourceConfig, err = radar.getResourceConfig(logger, resourceName)
+				resourceConfig, resourceTypes, err = radar.getResourceConfig(logger, resourceName)
 				if err != nil {
 					return err
 				}
@@ -124,7 +125,7 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 					break
 				}
 
-				err = radar.scan(logger.Session("tick"), resourceConfig, savedResource)
+				err = radar.scan(logger.Session("tick"), resourceConfig, resourceTypes, savedResource)
 
 				lease.Break()
 
@@ -141,7 +142,7 @@ func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 		"resource": resourceName,
 	})
 
-	resourceConfig, err := radar.getResourceConfig(logger, resourceName)
+	resourceConfig, resourceTypes, err := radar.getResourceConfig(logger, resourceName)
 	if err != nil {
 		return err
 	}
@@ -182,10 +183,10 @@ func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 		break
 	}
 
-	return radar.scan(logger, resourceConfig, savedResource)
+	return radar.scan(logger, resourceConfig, resourceTypes, savedResource)
 }
 
-func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig, savedResource db.SavedResource) error {
+func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig, resourceTypes atc.ResourceTypes, savedResource db.SavedResource) error {
 	pipelinePaused, err := radar.db.IsPaused()
 	if err != nil {
 		logger.Error("failed-to-check-if-pipeline-paused", err)
@@ -222,7 +223,8 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 		session,
 		resource.ResourceType(resourceConfig.Type),
 		[]string{},
-		nil,
+		resourceTypes,
+		worker.NoopImageFetchingDelegate{},
 	)
 	if err != nil {
 		logger.Error("failed-to-initialize-new-resource", err)
@@ -299,23 +301,23 @@ func (radar *Radar) checkInterval(resourceConfig atc.ResourceConfig) (time.Durat
 
 var errPipelineRemoved = errors.New("pipeline removed")
 
-func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) (atc.ResourceConfig, error) {
+func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) (atc.ResourceConfig, atc.ResourceTypes, error) {
 	config, _, found, err := radar.db.GetConfig()
 	if err != nil {
 		logger.Error("failed-to-get-config", err)
-		return atc.ResourceConfig{}, err
+		return atc.ResourceConfig{}, nil, err
 	}
 
 	if !found {
 		logger.Info("pipeline-removed")
-		return atc.ResourceConfig{}, errPipelineRemoved
+		return atc.ResourceConfig{}, nil, errPipelineRemoved
 	}
 
 	resourceConfig, found := config.Resources.Lookup(resourceName)
 	if !found {
 		logger.Info("resource-removed-from-configuration")
-		return resourceConfig, ResourceNotConfiguredError{ResourceName: resourceName}
+		return resourceConfig, nil, ResourceNotConfiguredError{ResourceName: resourceName}
 	}
 
-	return resourceConfig, nil
+	return resourceConfig, config.ResourceTypes, nil
 }
