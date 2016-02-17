@@ -167,7 +167,13 @@ handleBuildFetched build model =
       if build.status == Concourse.BuildStatus.Pending then
         pollUntilStarted withBuild
       else
-        initBuildOutput build withBuild
+        case model.buildPrep of
+          Nothing -> initBuildOutput build withBuild
+          Just _ ->
+            let (newModel, effects) = initBuildOutput build withBuild in
+              ( newModel
+              , Effects.batch [effects, fetchBuildPrep Time.second model.buildId]
+              )
   in
     (newModel, Effects.batch [effects, fetchHistory])
 
@@ -290,8 +296,8 @@ viewBuildPrep prep =
             [ Html.ul [class "prep-status-list"]
                 (
                     [ viewBuildPrepLi "checking pipeline is not paused" prep.pausedPipeline
-                    , viewBuildPrepLi "checking max-in-flight is not reached" prep.maxRunningBuilds
                     , viewBuildPrepLi "checking job is not paused" prep.pausedJob
+                    , viewBuildPrepLi "checking max-in-flight is not reached" prep.maxRunningBuilds
                     ] ++
                     (viewBuildPrepInputs prep.inputs) ++
                     [ viewBuildPrepLi "waiting for a suitable set of input versions" prep.inputsSatisfied ]
