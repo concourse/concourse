@@ -60,6 +60,16 @@ func (types ResourceTypes) Without(name string) ResourceTypes {
 	return newTypes
 }
 
+func (types ResourceTypes) Lookup(name string) (ResourceType, bool) {
+	for _, t := range types {
+		if t.Name == name {
+			return t, true
+		}
+	}
+
+	return ResourceType{}, false
+}
+
 type JobConfig struct {
 	Name   string `yaml:"name" json:"name" mapstructure:"name"`
 	Public bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
