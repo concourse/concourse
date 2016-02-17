@@ -96,7 +96,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		step.tags,
 		resourceSources,
 		step.resourceTypes,
-		worker.NoopImageFetchingDelegate{},
+		step.delegate,
 	)
 
 	if err != nil {

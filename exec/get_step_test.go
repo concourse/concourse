@@ -178,7 +178,7 @@ var _ = Describe("GardenFactory", func() {
 						Source: atc.Source{"some-custom": "source"},
 					},
 				}))
-				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
+				Expect(delegate).To(Equal(getDelegate))
 			})
 
 			Context("before initializing the resource", func() {

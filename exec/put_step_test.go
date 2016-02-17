@@ -168,7 +168,7 @@ var _ = Describe("GardenFactory", func() {
 						Source: atc.Source{"some-custom": "source"},
 					},
 				}))
-				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
+				Expect(delegate).To(Equal(putDelegate))
 
 				// TODO: Can we test the map values?
 				Expect(sources).To(HaveKey("some-source"))

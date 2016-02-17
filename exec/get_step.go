@@ -117,7 +117,7 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		step.tags,
 		step.cacheIdentifier,
 		step.resourceTypes,
-		worker.NoopImageFetchingDelegate{},
+		step.delegate,
 	)
 	if err != nil {
 		step.logger.Error("failed-to-initialize-resource", err)

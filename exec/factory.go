@@ -101,6 +101,8 @@ type ResourceDelegate interface {
 	Completed(ExitStatus, *VersionInfo)
 	Failed(error)
 
+	ImageVersionDetermined(db.VolumeIdentifier) error
+
 	Stdout() io.Writer
 	Stderr() io.Writer
 }
