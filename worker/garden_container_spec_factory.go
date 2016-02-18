@@ -58,11 +58,13 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 	if ok {
 		customType, found := lookupCustomType(resourceTypeContainerSpec.Type, customTypes)
 		if found {
+			customTypes = customTypes.Without(resourceTypeContainerSpec.Type)
+
 			resourceTypeContainerSpec.ImageResourcePointer = &atc.TaskImageConfig{
 				Source: customType.Source,
 				Type:   customType.Type,
 			}
-			resourceTypeContainerSpec.Type = ""
+
 			spec = resourceTypeContainerSpec
 		}
 	}

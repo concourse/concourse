@@ -314,34 +314,6 @@ var _ = Describe("Fetcher", func() {
 										Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(1))
 									})
 
-									Context("when fetching using a custom resource type", func() {
-										BeforeEach(func() {
-											imageConfig.Type = "custom-type-b"
-										})
-
-										It("removes it from the set of types when recursing to prevent an infinite loop (allowing it to use a worker-provided resource type)", func() {
-											Expect(fakeImageTracker.InitCallCount()).To(Equal(1))
-											_, _, _, _, _, actualCustomTypes, _ := fakeImageTracker.InitArgsForCall(0)
-											Expect(actualCustomTypes).To(Equal(atc.ResourceTypes{
-												{
-													Name:   "custom-type-a",
-													Type:   "base-type",
-													Source: atc.Source{"some": "source"},
-												},
-											}))
-
-											Expect(fakeImageTracker.InitWithCacheCallCount()).To(Equal(1))
-											_, _, _, _, _, _, actualCustomTypes, _ = fakeImageTracker.InitWithCacheArgsForCall(0)
-											Expect(actualCustomTypes).To(Equal(atc.ResourceTypes{
-												{
-													Name:   "custom-type-a",
-													Type:   "base-type",
-													Source: atc.Source{"some": "source"},
-												},
-											}))
-										})
-									})
-
 									Describe("releasing the image", func() {
 										It("releases the get resource", func() {
 											finalTTL := 5 * time.Second
