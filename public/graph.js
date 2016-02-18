@@ -874,8 +874,12 @@ EdgeTarget.prototype.effectiveKeyOffset = function() {
 }
 
 EdgeTarget.prototype.rankOfFirstAppearance = function() {
+  if (this._rankOfFirstAppearance !== undefined) {
+    return this._rankOfFirstAppearance;
+  }
+
   var inEdges = this.node._inEdges;
-  var minRank = Infinity;
+  var rank = Infinity;
   for (var i in inEdges) {
     var inEdge = inEdges[i];
 
@@ -883,7 +887,8 @@ EdgeTarget.prototype.rankOfFirstAppearance = function() {
       var upstreamNodeInEdges = inEdge.source.node._inEdges;
 
       if (upstreamNodeInEdges.length == 0) {
-        return inEdge.source.node.rank();
+        rank = inEdge.source.node.rank();
+        break;
       }
 
       var foundUpstreamInEdge = false;
@@ -893,21 +898,24 @@ EdgeTarget.prototype.rankOfFirstAppearance = function() {
         if (upstreamEdge.target.key == this.key) {
           foundUpstreamInEdge = true;
 
-          var rank = upstreamEdge.target.rankOfFirstAppearance()
+          var upstreamRank = upstreamEdge.target.rankOfFirstAppearance()
 
-          if (rank < minRank) {
-            minRank = rank;
+          if (upstreamRank < rank) {
+            rank = upstreamRank;
           }
         }
       }
 
       if (!foundUpstreamInEdge) {
-        return inEdge.source.node.rank();
+        rank = inEdge.source.node.rank();
+        break;
       }
     }
   }
 
-  return minRank;
+  this._rankOfFirstAppearance = rank;
+
+  return rank;
 }
 
 EdgeTarget.prototype.id = function() {
