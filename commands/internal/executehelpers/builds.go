@@ -98,12 +98,12 @@ func CreateBuild(
 			taskPlan,
 		})
 	} else {
-		plan = fact.NewPlan(atc.DoPlan{
-			fact.NewPlan(buildInputs),
-			fact.NewPlan(atc.EnsurePlan{
-				Step: taskPlan,
-				Next: fact.NewPlan(buildOutputs),
+		plan = fact.NewPlan(atc.EnsurePlan{
+			Step: fact.NewPlan(atc.DoPlan{
+				fact.NewPlan(buildInputs),
+				taskPlan,
 			}),
+			Next: fact.NewPlan(buildOutputs),
 		})
 	}
 

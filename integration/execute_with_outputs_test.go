@@ -87,18 +87,18 @@ run:
 
 		planFactory := atc.NewPlanFactory(0)
 
-		expectedPlan = planFactory.NewPlan(atc.DoPlan{
-			planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.GetPlan{
-					Name: filepath.Base(buildDir),
-					Type: "archive",
-					Source: atc.Source{
-						"uri": atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-					},
+		expectedPlan = planFactory.NewPlan(atc.EnsurePlan{
+			Step: planFactory.NewPlan(atc.DoPlan{
+				planFactory.NewPlan(atc.AggregatePlan{
+					planFactory.NewPlan(atc.GetPlan{
+						Name: filepath.Base(buildDir),
+						Type: "archive",
+						Source: atc.Source{
+							"uri": atcServer.URL() + "/api/v1/pipes/input-pipe-id",
+						},
+					}),
 				}),
-			}),
-			planFactory.NewPlan(atc.EnsurePlan{
-				Step: planFactory.NewPlan(atc.TaskPlan{
+				planFactory.NewPlan(atc.TaskPlan{
 					Name: "one-off",
 					Config: &atc.TaskConfig{
 						Platform: "some-platform",
@@ -120,17 +120,17 @@ run:
 						},
 					},
 				}),
-				Next: planFactory.NewPlan(atc.AggregatePlan{
-					planFactory.NewPlan(atc.PutPlan{
-						Name: "some-dir",
-						Type: "archive",
-						Source: atc.Source{
-							"uri": atcServer.URL() + "/api/v1/pipes/some-other-pipe-id",
-						},
-						Params: atc.Params{
-							"directory": "some-dir",
-						},
-					}),
+			}),
+			Next: planFactory.NewPlan(atc.AggregatePlan{
+				planFactory.NewPlan(atc.PutPlan{
+					Name: "some-dir",
+					Type: "archive",
+					Source: atc.Source{
+						"uri": atcServer.URL() + "/api/v1/pipes/output-pipe-id",
+					},
+					Params: atc.Params{
+						"directory": "some-dir",
+					},
 				}),
 			}),
 		})
@@ -152,17 +152,17 @@ run:
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
 				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID:       "some-pipe-id",
-					ReadURL:  atcServer.URL() + "/api/v1/pipes/some-pipe-id",
-					WriteURL: atcServer.URL() + "/api/v1/pipes/some-pipe-id",
+					ID:       "input-pipe-id",
+					ReadURL:  atcServer.URL() + "/api/v1/pipes/input-pipe-id",
+					WriteURL: atcServer.URL() + "/api/v1/pipes/input-pipe-id",
 				}),
 			),
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", "/api/v1/pipes"),
 				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Pipe{
-					ID:       "some-other-pipe-id",
-					ReadURL:  atcServer.URL() + "/api/v1/pipes/some-other-pipe-id",
-					WriteURL: atcServer.URL() + "/api/v1/pipes/some-other-pipe-id",
+					ID:       "output-pipe-id",
+					ReadURL:  atcServer.URL() + "/api/v1/pipes/output-pipe-id",
+					WriteURL: atcServer.URL() + "/api/v1/pipes/output-pipe-id",
 				}),
 			),
 		)
@@ -224,9 +224,9 @@ run:
 				},
 			),
 		)
-		atcServer.RouteToHandler("PUT", "/api/v1/pipes/some-pipe-id",
+		atcServer.RouteToHandler("PUT", "/api/v1/pipes/input-pipe-id",
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/pipes/some-pipe-id"),
+				ghttp.VerifyRequest("PUT", "/api/v1/pipes/input-pipe-id"),
 				func(w http.ResponseWriter, req *http.Request) {
 					close(uploading)
 
@@ -248,9 +248,9 @@ run:
 				ghttp.RespondWith(200, ""),
 			),
 		)
-		atcServer.RouteToHandler("GET", "/api/v1/pipes/some-other-pipe-id",
+		atcServer.RouteToHandler("GET", "/api/v1/pipes/output-pipe-id",
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/api/v1/pipes/some-other-pipe-id"),
+				ghttp.VerifyRequest("GET", "/api/v1/pipes/output-pipe-id"),
 				func(w http.ResponseWriter, req *http.Request) {
 					gw := gzip.NewWriter(w)
 
