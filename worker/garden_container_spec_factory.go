@@ -78,7 +78,7 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 			metadata,
 			delegate,
 			workerClient,
-			customTypes.Without(imageResourceConfig.Type),
+			customTypes,
 		)
 		if err != nil {
 			return garden.ContainerSpec{}, err
@@ -168,6 +168,7 @@ func (factory *gardenContainerSpecFactory) BuildResourceContainerSpec(spec Resou
 				return gardenSpec, nil
 			}
 		}
+
 		return gardenSpec, ErrUnsupportedResourceType
 	}
 

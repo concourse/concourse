@@ -78,7 +78,7 @@ func (fetcher Fetcher) FetchImage(
 		checkSess,
 		resourceType,
 		nil,
-		customTypes,
+		customTypes.Without(imageConfig.Type),
 		delegate,
 	)
 	if err != nil {
@@ -128,7 +128,7 @@ func (fetcher Fetcher) FetchImage(
 		resourceType,
 		nil,
 		cacheID,
-		customTypes,
+		customTypes.Without(imageConfig.Type),
 		delegate,
 	)
 	if err != nil {

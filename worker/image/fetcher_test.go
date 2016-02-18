@@ -203,7 +203,7 @@ var _ = Describe("Fetcher", func() {
 										Expect(fakeTrackerFactory.TrackerForArgsForCall(0)).To(Equal(fakeWorker))
 									})
 
-									It("created the 'check' resource with the correct session", func() {
+									It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 										Expect(fakeImageTracker.InitCallCount()).To(Equal(1))
 										_, metadata, session, resourceType, tags, actualCustomTypes, delegate := fakeImageTracker.InitArgsForCall(0)
 										Expect(metadata).To(Equal(resource.EmptyMetadata{}))
@@ -312,6 +312,34 @@ var _ = Describe("Fetcher", func() {
 
 									It("creates the container with the volume's path as the rootFS", func() {
 										Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(1))
+									})
+
+									Context("when fetching using a custom resource type", func() {
+										BeforeEach(func() {
+											imageConfig.Type = "custom-type-b"
+										})
+
+										It("removes it from the set of types when recursing to prevent an infinite loop (allowing it to use a worker-provided resource type)", func() {
+											Expect(fakeImageTracker.InitCallCount()).To(Equal(1))
+											_, _, _, _, _, actualCustomTypes, _ := fakeImageTracker.InitArgsForCall(0)
+											Expect(actualCustomTypes).To(Equal(atc.ResourceTypes{
+												{
+													Name:   "custom-type-a",
+													Type:   "base-type",
+													Source: atc.Source{"some": "source"},
+												},
+											}))
+
+											Expect(fakeImageTracker.InitWithCacheCallCount()).To(Equal(1))
+											_, _, _, _, _, _, actualCustomTypes, _ = fakeImageTracker.InitWithCacheArgsForCall(0)
+											Expect(actualCustomTypes).To(Equal(atc.ResourceTypes{
+												{
+													Name:   "custom-type-a",
+													Type:   "base-type",
+													Source: atc.Source{"some": "source"},
+												},
+											}))
+										})
 									})
 
 									Describe("releasing the image", func() {

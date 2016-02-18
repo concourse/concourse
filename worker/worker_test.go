@@ -696,7 +696,7 @@ var _ = Describe("Worker", func() {
 							Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(`{}`))
 						})
 
-						It("fetches the image with the correct info, with the current custom resource type removed from the set", func() {
+						It("fetches the image with the correct info", func() {
 							Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
 							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
 							Expect(fetchImageConfig).To(Equal(atc.TaskImageConfig{
@@ -708,28 +708,7 @@ var _ = Describe("Worker", func() {
 							Expect(fetchMetadata).To(Equal(containerMetadata))
 							Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 							Expect(fetchWorker).To(Equal(gardenWorker))
-							Expect(fetchCustomTypes).To(Equal(atc.ResourceTypes{
-								{
-									Name:   "custom-type-a",
-									Type:   "some-resource",
-									Source: atc.Source{"some": "source"},
-								},
-								{
-									Name:   "custom-type-c",
-									Type:   "custom-type-b",
-									Source: atc.Source{"some": "source"},
-								},
-								{
-									Name:   "custom-type-d",
-									Type:   "custom-type-b",
-									Source: atc.Source{"some": "source"},
-								},
-								{
-									Name:   "unknown-custom-type",
-									Type:   "unknown-base-type",
-									Source: atc.Source{"some": "source"},
-								},
-							}))
+							Expect(fetchCustomTypes).To(Equal(customTypes))
 						})
 
 						It("creates the container with env from the image", func() {
