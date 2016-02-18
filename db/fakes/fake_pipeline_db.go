@@ -307,6 +307,16 @@ type FakePipelineDB struct {
 		result2 bool
 		result3 error
 	}
+	GetBuildStub        func(buildID int) (db.Build, bool, error)
+	getBuildMutex       sync.RWMutex
+	getBuildArgsForCall []struct {
+		buildID int
+	}
+	getBuildReturns struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}
 	GetCurrentBuildStub        func(job string) (db.Build, bool, error)
 	getCurrentBuildMutex       sync.RWMutex
 	getCurrentBuildArgsForCall []struct {
@@ -348,6 +358,15 @@ type FakePipelineDB struct {
 		result1 bool
 		result2 error
 	}
+	UpdateBuildToScheduledStub        func(buildID int) (bool, error)
+	updateBuildToScheduledMutex       sync.RWMutex
+	updateBuildToScheduledArgsForCall []struct {
+		buildID int
+	}
+	updateBuildToScheduledReturns struct {
+		result1 bool
+		result2 error
+	}
 	SaveBuildInputStub        func(buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
 	saveBuildInputMutex       sync.RWMutex
 	saveBuildInputArgsForCall []struct {
@@ -386,6 +405,14 @@ type FakePipelineDB struct {
 	getBuildsWithVersionAsOutputReturns struct {
 		result1 []db.Build
 		result2 error
+	}
+	UpdateBuildPreparationStub        func(prep db.BuildPreparation) error
+	updateBuildPreparationMutex       sync.RWMutex
+	updateBuildPreparationArgsForCall []struct {
+		prep db.BuildPreparation
+	}
+	updateBuildPreparationReturns struct {
+		result1 error
 	}
 	GetDashboardStub        func() (db.Dashboard, atc.GroupConfigs, error)
 	getDashboardMutex       sync.RWMutex
@@ -1442,6 +1469,40 @@ func (fake *FakePipelineDB) GetNextPendingBuildReturns(result1 db.Build, result2
 	}{result1, result2, result3}
 }
 
+func (fake *FakePipelineDB) GetBuild(buildID int) (db.Build, bool, error) {
+	fake.getBuildMutex.Lock()
+	fake.getBuildArgsForCall = append(fake.getBuildArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.getBuildMutex.Unlock()
+	if fake.GetBuildStub != nil {
+		return fake.GetBuildStub(buildID)
+	} else {
+		return fake.getBuildReturns.result1, fake.getBuildReturns.result2, fake.getBuildReturns.result3
+	}
+}
+
+func (fake *FakePipelineDB) GetBuildCallCount() int {
+	fake.getBuildMutex.RLock()
+	defer fake.getBuildMutex.RUnlock()
+	return len(fake.getBuildArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetBuildArgsForCall(i int) int {
+	fake.getBuildMutex.RLock()
+	defer fake.getBuildMutex.RUnlock()
+	return fake.getBuildArgsForCall[i].buildID
+}
+
+func (fake *FakePipelineDB) GetBuildReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.GetBuildStub = nil
+	fake.getBuildReturns = struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakePipelineDB) GetCurrentBuild(job string) (db.Build, bool, error) {
 	fake.getCurrentBuildMutex.Lock()
 	fake.getCurrentBuildArgsForCall = append(fake.getCurrentBuildArgsForCall, struct {
@@ -1574,6 +1635,39 @@ func (fake *FakePipelineDB) ScheduleBuildArgsForCall(i int) (int, atc.JobConfig)
 func (fake *FakePipelineDB) ScheduleBuildReturns(result1 bool, result2 error) {
 	fake.ScheduleBuildStub = nil
 	fake.scheduleBuildReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) UpdateBuildToScheduled(buildID int) (bool, error) {
+	fake.updateBuildToScheduledMutex.Lock()
+	fake.updateBuildToScheduledArgsForCall = append(fake.updateBuildToScheduledArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.updateBuildToScheduledMutex.Unlock()
+	if fake.UpdateBuildToScheduledStub != nil {
+		return fake.UpdateBuildToScheduledStub(buildID)
+	} else {
+		return fake.updateBuildToScheduledReturns.result1, fake.updateBuildToScheduledReturns.result2
+	}
+}
+
+func (fake *FakePipelineDB) UpdateBuildToScheduledCallCount() int {
+	fake.updateBuildToScheduledMutex.RLock()
+	defer fake.updateBuildToScheduledMutex.RUnlock()
+	return len(fake.updateBuildToScheduledArgsForCall)
+}
+
+func (fake *FakePipelineDB) UpdateBuildToScheduledArgsForCall(i int) int {
+	fake.updateBuildToScheduledMutex.RLock()
+	defer fake.updateBuildToScheduledMutex.RUnlock()
+	return fake.updateBuildToScheduledArgsForCall[i].buildID
+}
+
+func (fake *FakePipelineDB) UpdateBuildToScheduledReturns(result1 bool, result2 error) {
+	fake.UpdateBuildToScheduledStub = nil
+	fake.updateBuildToScheduledReturns = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}
@@ -1712,6 +1806,38 @@ func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputReturns(result1 []db.Bui
 		result1 []db.Build
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) UpdateBuildPreparation(prep db.BuildPreparation) error {
+	fake.updateBuildPreparationMutex.Lock()
+	fake.updateBuildPreparationArgsForCall = append(fake.updateBuildPreparationArgsForCall, struct {
+		prep db.BuildPreparation
+	}{prep})
+	fake.updateBuildPreparationMutex.Unlock()
+	if fake.UpdateBuildPreparationStub != nil {
+		return fake.UpdateBuildPreparationStub(prep)
+	} else {
+		return fake.updateBuildPreparationReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) UpdateBuildPreparationCallCount() int {
+	fake.updateBuildPreparationMutex.RLock()
+	defer fake.updateBuildPreparationMutex.RUnlock()
+	return len(fake.updateBuildPreparationArgsForCall)
+}
+
+func (fake *FakePipelineDB) UpdateBuildPreparationArgsForCall(i int) db.BuildPreparation {
+	fake.updateBuildPreparationMutex.RLock()
+	defer fake.updateBuildPreparationMutex.RUnlock()
+	return fake.updateBuildPreparationArgsForCall[i].prep
+}
+
+func (fake *FakePipelineDB) UpdateBuildPreparationReturns(result1 error) {
+	fake.UpdateBuildPreparationStub = nil
+	fake.updateBuildPreparationReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakePipelineDB) GetDashboard() (db.Dashboard, atc.GroupConfigs, error) {

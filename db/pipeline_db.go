@@ -64,15 +64,19 @@ type PipelineDB interface {
 	GetJobBuildForInputs(job string, inputs []BuildInput) (Build, bool, error)
 	GetNextPendingBuild(job string) (Build, bool, error)
 
+	GetBuild(buildID int) (Build, bool, error)
 	GetCurrentBuild(job string) (Build, bool, error)
 	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error)
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error)
 
 	ScheduleBuild(buildID int, job atc.JobConfig) (bool, error)
+	UpdateBuildToScheduled(buildID int) (bool, error)
 	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
 	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
+
+	UpdateBuildPreparation(prep BuildPreparation) error
 
 	GetDashboard() (Dashboard, atc.GroupConfigs, error)
 }
@@ -1343,7 +1347,7 @@ func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroup
 	return bs, nil
 }
 
-func (pdb *pipelineDB) getBuild(buildID int) (Build, bool, error) {
+func (pdb *pipelineDB) GetBuild(buildID int) (Build, bool, error) {
 	return scanBuild(pdb.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
@@ -1353,7 +1357,7 @@ func (pdb *pipelineDB) getBuild(buildID int) (Build, bool, error) {
 	`, buildID))
 }
 
-func (pdb *pipelineDB) updateBuildPreparation(prep BuildPreparation) error {
+func (pdb *pipelineDB) UpdateBuildPreparation(prep BuildPreparation) error {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return err
@@ -1370,7 +1374,7 @@ func (pdb *pipelineDB) updateBuildPreparation(prep BuildPreparation) error {
 }
 
 func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error) {
-	build, found, err := pdb.getBuild(buildID)
+	build, found, err := pdb.GetBuild(buildID)
 	if err != nil {
 		return false, err
 	}
@@ -1393,64 +1397,18 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 		return false, nil
 	}
 
-	pipelinePaused, err := pdb.IsPaused()
-	if err != nil {
-		pdb.logger.Error("build-did-not-schedule", err, lager.Data{
-			"reason":  "unexpected error",
-			"buildID": buildID,
-		})
-		return false, err
-	}
-
-	if pipelinePaused {
-		pdb.logger.Debug("build-did-not-schedule", lager.Data{
-			"reason":  "pipeline-paused",
-			"buildID": buildID,
-		})
-
-		buildPrep.PausedPipeline = BuildPreparationStatusBlocking
-		err = pdb.updateBuildPreparation(buildPrep)
-
-		return false, err
-	}
-
-	buildPrep.PausedPipeline = BuildPreparationStatusNotBlocking
-	err = pdb.updateBuildPreparation(buildPrep)
-	if err != nil {
-		return false, err
-	}
-
-	// The function needs to be idempotent, that's why this isn't in CanBuildBeScheduled
-	if build.Scheduled {
-		buildPrep.PausedJob = BuildPreparationStatusNotBlocking
-		buildPrep.MaxRunningBuilds = BuildPreparationStatusNotBlocking
-		err = pdb.updateBuildPreparation(buildPrep)
-		if err != nil {
-			return false, err
-		}
-
-		return true, nil
-	}
-
 	jobService, err := NewJobService(jobConfig, pdb)
 	if err != nil {
 		return false, err
 	}
 
-	canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(build)
+	canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(build, buildPrep)
 	if err != nil {
 		return false, err
 	}
 
 	if canBuildBeScheduled {
-		buildPrep.PausedJob = BuildPreparationStatusNotBlocking
-		buildPrep.MaxRunningBuilds = BuildPreparationStatusNotBlocking
-		err = pdb.updateBuildPreparation(buildPrep)
-		if err != nil {
-			return false, err
-		}
-
-		updated, err := pdb.updateBuildToScheduled(buildID)
+		updated, err := pdb.UpdateBuildToScheduled(buildID)
 		if err != nil {
 			return false, err
 		}
@@ -1461,23 +1419,6 @@ func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool
 			"reason":  reason,
 			"buildID": buildID,
 		})
-
-		switch reason {
-		case "job-paused":
-			buildPrep.PausedJob = BuildPreparationStatusBlocking
-			err = pdb.updateBuildPreparation(buildPrep)
-			if err != nil {
-				return false, err
-			}
-		case "max-in-flight-reached":
-			buildPrep.PausedJob = BuildPreparationStatusNotBlocking
-			buildPrep.MaxRunningBuilds = BuildPreparationStatusBlocking
-			err = pdb.updateBuildPreparation(buildPrep)
-			if err != nil {
-				return false, err
-			}
-		}
-
 		return false, nil
 	}
 }
@@ -1498,7 +1439,7 @@ func (pdb *pipelineDB) IsPaused() (bool, error) {
 	return paused, nil
 }
 
-func (pdb *pipelineDB) updateBuildToScheduled(buildID int) (bool, error) {
+func (pdb *pipelineDB) UpdateBuildToScheduled(buildID int) (bool, error) {
 	result, err := pdb.conn.Exec(`
 			UPDATE builds
 			SET scheduled = true

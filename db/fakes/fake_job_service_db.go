@@ -38,6 +38,21 @@ type FakeJobServiceDB struct {
 		result2 bool
 		result3 error
 	}
+	UpdateBuildPreparationStub        func(prep db.BuildPreparation) error
+	updateBuildPreparationMutex       sync.RWMutex
+	updateBuildPreparationArgsForCall []struct {
+		prep db.BuildPreparation
+	}
+	updateBuildPreparationReturns struct {
+		result1 error
+	}
+	IsPausedStub        func() (bool, error)
+	isPausedMutex       sync.RWMutex
+	isPausedArgsForCall []struct{}
+	isPausedReturns     struct {
+		result1 bool
+		result2 error
+	}
 }
 
 func (fake *FakeJobServiceDB) GetJob(job string) (db.SavedJob, error) {
@@ -140,6 +155,63 @@ func (fake *FakeJobServiceDB) GetNextPendingBuildBySerialGroupReturns(result1 db
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeJobServiceDB) UpdateBuildPreparation(prep db.BuildPreparation) error {
+	fake.updateBuildPreparationMutex.Lock()
+	fake.updateBuildPreparationArgsForCall = append(fake.updateBuildPreparationArgsForCall, struct {
+		prep db.BuildPreparation
+	}{prep})
+	fake.updateBuildPreparationMutex.Unlock()
+	if fake.UpdateBuildPreparationStub != nil {
+		return fake.UpdateBuildPreparationStub(prep)
+	} else {
+		return fake.updateBuildPreparationReturns.result1
+	}
+}
+
+func (fake *FakeJobServiceDB) UpdateBuildPreparationCallCount() int {
+	fake.updateBuildPreparationMutex.RLock()
+	defer fake.updateBuildPreparationMutex.RUnlock()
+	return len(fake.updateBuildPreparationArgsForCall)
+}
+
+func (fake *FakeJobServiceDB) UpdateBuildPreparationArgsForCall(i int) db.BuildPreparation {
+	fake.updateBuildPreparationMutex.RLock()
+	defer fake.updateBuildPreparationMutex.RUnlock()
+	return fake.updateBuildPreparationArgsForCall[i].prep
+}
+
+func (fake *FakeJobServiceDB) UpdateBuildPreparationReturns(result1 error) {
+	fake.UpdateBuildPreparationStub = nil
+	fake.updateBuildPreparationReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeJobServiceDB) IsPaused() (bool, error) {
+	fake.isPausedMutex.Lock()
+	fake.isPausedArgsForCall = append(fake.isPausedArgsForCall, struct{}{})
+	fake.isPausedMutex.Unlock()
+	if fake.IsPausedStub != nil {
+		return fake.IsPausedStub()
+	} else {
+		return fake.isPausedReturns.result1, fake.isPausedReturns.result2
+	}
+}
+
+func (fake *FakeJobServiceDB) IsPausedCallCount() int {
+	fake.isPausedMutex.RLock()
+	defer fake.isPausedMutex.RUnlock()
+	return len(fake.isPausedArgsForCall)
+}
+
+func (fake *FakeJobServiceDB) IsPausedReturns(result1 bool, result2 error) {
+	fake.IsPausedStub = nil
+	fake.isPausedReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 var _ db.JobServiceDB = new(FakeJobServiceDB)
