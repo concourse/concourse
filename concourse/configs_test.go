@@ -192,9 +192,10 @@ var _ = Describe("ATC Handler Configs", func() {
 			expectedPipelineName = "mypipeline"
 			expectedVersion = "42"
 			expectedConfig = atc.Config{
-				Groups:    atc.GroupConfigs{},
-				Jobs:      atc.JobConfigs{},
-				Resources: atc.ResourceConfigs{},
+				Groups:        atc.GroupConfigs{},
+				Jobs:          atc.JobConfigs{},
+				Resources:     atc.ResourceConfigs{},
+				ResourceTypes: atc.ResourceTypes{},
 			}
 
 			expectedPath := "/api/v1/pipelines/mypipeline/config"
