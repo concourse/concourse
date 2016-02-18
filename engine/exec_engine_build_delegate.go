@@ -338,6 +338,10 @@ func (input *inputDelegate) Failed(err error) {
 	input.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
+func (input *inputDelegate) ImageVersionDetermined(identifier db.VolumeIdentifier) error {
+	return input.delegate.db.SaveImageResourceVersion(input.delegate.buildID, atc.PlanID(input.id), identifier)
+}
+
 func (input *inputDelegate) Stdout() io.Writer {
 	return input.delegate.eventWriter(event.Origin{
 		Source: event.OriginSourceStdout,
@@ -381,6 +385,10 @@ func (output *outputDelegate) Failed(err error) {
 	})
 
 	output.logger.Info("errored", lager.Data{"error": err.Error()})
+}
+
+func (output *outputDelegate) ImageVersionDetermined(identifier db.VolumeIdentifier) error {
+	return output.delegate.db.SaveImageResourceVersion(output.delegate.buildID, atc.PlanID(output.id), identifier)
 }
 
 func (output *outputDelegate) Stdout() io.Writer {

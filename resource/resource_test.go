@@ -22,49 +22,64 @@ var _ = Describe("Resource", func() {
 	})
 
 	Describe("CacheVolume", func() {
-		Context("when the container has one volume", func() {
-			var vol1 *bfakes.FakeVolume
-
-			BeforeEach(func() {
-				vol1 = new(bfakes.FakeVolume)
-				fakeContainer.VolumesReturns([]worker.Volume{vol1})
-			})
-
-			It("returns the volume and true", func() {
-				volume, found, err := resource.CacheVolume()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				Expect(fakeContainer.VolumesCallCount()).To(Equal(1))
-
-				Expect(volume).To(Equal(vol1))
-			})
-		})
-
-		Context("when the container has two volumes", func() {
+		Context("when the container has a volume mount for /tmp/build/get", func() {
 			var vol1 *bfakes.FakeVolume
 			var vol2 *bfakes.FakeVolume
 
 			BeforeEach(func() {
 				vol1 = new(bfakes.FakeVolume)
 				vol2 = new(bfakes.FakeVolume)
-				fakeContainer.VolumesReturns([]worker.Volume{vol1, vol2})
+				fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
+					{
+						Volume:    vol1,
+						MountPath: "/tmp/build/get",
+					},
+					{
+						Volume:    vol2,
+						MountPath: "/tmp/build/forgetaboutit",
+					},
+				})
 			})
 
-			It("returns ErrMultipleVolumes", func() {
-				_, _, err := resource.CacheVolume()
-				Expect(err).To(Equal(ErrMultipleVolumes))
+			It("returns the volume and true", func() {
+				volume, found := resource.CacheVolume()
+				Expect(found).To(BeTrue())
+
+				Expect(fakeContainer.VolumeMountsCallCount()).To(Equal(1))
+
+				Expect(volume).To(Equal(vol1))
+			})
+		})
+
+		Context("when the container does not have a volume mount for /tmp/build/get", func() {
+			var vol1 *bfakes.FakeVolume
+
+			BeforeEach(func() {
+				vol1 = new(bfakes.FakeVolume)
+				fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
+					{
+						Volume:    vol1,
+						MountPath: "/tmp/build/forgetaboutit",
+					},
+				})
+			})
+
+			It("returns no volume and false", func() {
+				volume, found := resource.CacheVolume()
+				Expect(volume).To(BeNil())
+				Expect(found).To(BeFalse())
+
+				Expect(fakeContainer.VolumeMountsCallCount()).To(Equal(1))
 			})
 		})
 
 		Context("when the container has no volumes", func() {
 			BeforeEach(func() {
-				fakeContainer.VolumesReturns([]worker.Volume{})
+				fakeContainer.VolumeMountsReturns([]worker.VolumeMount{})
 			})
 
 			It("returns no volume and false", func() {
-				volume, found, err := resource.CacheVolume()
-				Expect(err).NotTo(HaveOccurred())
+				volume, found := resource.CacheVolume()
 				Expect(found).To(BeFalse())
 				Expect(volume).To(BeNil())
 			})

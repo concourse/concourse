@@ -11,9 +11,10 @@ import (
 )
 
 type InvalidConfigError struct {
-	GroupsErr    error
-	ResourcesErr error
-	JobsErr      error
+	GroupsErr        error
+	ResourcesErr     error
+	ResourceTypesErr error
+	JobsErr          error
 }
 
 func (err InvalidConfigError) Error() string {
@@ -25,6 +26,10 @@ func (err InvalidConfigError) Error() string {
 
 	if err.ResourcesErr != nil {
 		errorMsgs = append(errorMsgs, indent(fmt.Sprintf("invalid resources:\n%s\n", indent(err.ResourcesErr.Error()))))
+	}
+
+	if err.ResourceTypesErr != nil {
+		errorMsgs = append(errorMsgs, indent(fmt.Sprintf("invalid resource types:\n%s\n", indent(err.ResourceTypesErr.Error()))))
 	}
 
 	if err.JobsErr != nil {
@@ -48,16 +53,18 @@ func indent(msgs string) string {
 func ValidateConfig(c atc.Config) error {
 	groupsErr := validateGroups(c)
 	resourcesErr := validateResources(c)
+	resourceTypesErr := validateResourceTypes(c)
 	jobsErr := validateJobs(c)
 
-	if groupsErr == nil && resourcesErr == nil && jobsErr == nil {
+	if groupsErr == nil && resourcesErr == nil && resourceTypesErr == nil && jobsErr == nil {
 		return nil
 	}
 
 	return InvalidConfigError{
-		GroupsErr:    groupsErr,
-		ResourcesErr: resourcesErr,
-		JobsErr:      jobsErr,
+		GroupsErr:        groupsErr,
+		ResourcesErr:     resourcesErr,
+		ResourceTypesErr: resourceTypesErr,
+		JobsErr:          jobsErr,
 	}
 }
 
@@ -112,6 +119,40 @@ func validateResources(c atc.Config) error {
 		}
 
 		if resource.Type == "" {
+			errorMessages = append(errorMessages, identifier+" has no type")
+		}
+	}
+
+	return compositeErr(errorMessages)
+}
+
+func validateResourceTypes(c atc.Config) error {
+	errorMessages := []string{}
+
+	names := map[string]int{}
+
+	for i, resourceType := range c.ResourceTypes {
+		var identifier string
+		if resourceType.Name == "" {
+			identifier = fmt.Sprintf("resource_types[%d]", i)
+		} else {
+			identifier = fmt.Sprintf("resource_types.%s", resourceType.Name)
+		}
+
+		if other, exists := names[resourceType.Name]; exists {
+			errorMessages = append(errorMessages,
+				fmt.Sprintf(
+					"resource_types[%d] and resource_types[%d] have the same name ('%s')",
+					other, i, resourceType.Name))
+		} else if resourceType.Name != "" {
+			names[resourceType.Name] = i
+		}
+
+		if resourceType.Name == "" {
+			errorMessages = append(errorMessages, identifier+" has no name")
+		}
+
+		if resourceType.Type == "" {
 			errorMessages = append(errorMessages, identifier+" has no type")
 		}
 	}

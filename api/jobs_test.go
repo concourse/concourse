@@ -622,6 +622,9 @@ var _ = Describe("Jobs API", func() {
 							{Name: "resource-1", Type: "some-type"},
 							{Name: "resource-2", Type: "some-other-type"},
 						},
+						ResourceTypes: atc.ResourceTypes{
+							{Name: "custom-resource", Type: "custom-type"},
+						},
 					}, 1, true, nil)
 				})
 
@@ -641,7 +644,7 @@ var _ = Describe("Jobs API", func() {
 					It("triggers using the current config", func() {
 						Expect(fakeScheduler.TriggerImmediatelyCallCount()).To(Equal(1))
 
-						_, job, resources := fakeScheduler.TriggerImmediatelyArgsForCall(0)
+						_, job, resources, resourceTypes := fakeScheduler.TriggerImmediatelyArgsForCall(0)
 						Expect(job).To(Equal(atc.JobConfig{
 							Name: "some-job",
 							Plan: atc.PlanSequence{
@@ -653,6 +656,9 @@ var _ = Describe("Jobs API", func() {
 						Expect(resources).To(Equal(atc.ResourceConfigs{
 							{Name: "resource-1", Type: "some-type"},
 							{Name: "resource-2", Type: "some-other-type"},
+						}))
+						Expect(resourceTypes).To(Equal(atc.ResourceTypes{
+							{Name: "custom-resource", Type: "custom-type"},
 						}))
 					})
 

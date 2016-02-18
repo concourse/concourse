@@ -64,7 +64,7 @@ var _ = Describe("Runner", func() {
 
 		pipelineDB.LoadVersionsDBReturns(someVersions, nil)
 
-		scheduler.TryNextPendingBuildStub = func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs) Waiter {
+		scheduler.TryNextPendingBuildStub = func(lager.Logger, *algorithm.VersionsDB, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) Waiter {
 			return new(sync.WaitGroup)
 		}
 
@@ -148,29 +148,33 @@ var _ = Describe("Runner", func() {
 	It("schedules pending builds", func() {
 		Eventually(scheduler.TryNextPendingBuildCallCount).Should(Equal(2))
 
-		_, versions, job, resources := scheduler.TryNextPendingBuildArgsForCall(0)
+		_, versions, job, resources, resourceTypes := scheduler.TryNextPendingBuildArgsForCall(0)
 		Expect(versions).To(Equal(someVersions))
 		Expect(job).To(Equal(atc.JobConfig{Name: "some-job"}))
 		Expect(resources).To(Equal(initialConfig.Resources))
+		Expect(resourceTypes).To(Equal(initialConfig.ResourceTypes))
 
-		_, versions, job, resources = scheduler.TryNextPendingBuildArgsForCall(1)
+		_, versions, job, resources, resourceTypes = scheduler.TryNextPendingBuildArgsForCall(1)
 		Expect(versions).To(Equal(someVersions))
 		Expect(job).To(Equal(atc.JobConfig{Name: "some-other-job"}))
 		Expect(resources).To(Equal(initialConfig.Resources))
+		Expect(resourceTypes).To(Equal(initialConfig.ResourceTypes))
 	})
 
 	It("schedules builds for new inputs using the given versions dataset", func() {
 		Eventually(scheduler.BuildLatestInputsCallCount).Should(Equal(2))
 
-		_, versions, job, resources := scheduler.BuildLatestInputsArgsForCall(0)
+		_, versions, job, resources, resourceTypes := scheduler.BuildLatestInputsArgsForCall(0)
 		Expect(versions).To(Equal(someVersions))
 		Expect(job).To(Equal(atc.JobConfig{Name: "some-job"}))
 		Expect(resources).To(Equal(initialConfig.Resources))
+		Expect(resourceTypes).To(Equal(initialConfig.ResourceTypes))
 
-		_, versions, job, resources = scheduler.BuildLatestInputsArgsForCall(1)
+		_, versions, job, resources, resourceTypes = scheduler.BuildLatestInputsArgsForCall(1)
 		Expect(versions).To(Equal(someVersions))
 		Expect(job).To(Equal(atc.JobConfig{Name: "some-other-job"}))
 		Expect(resources).To(Equal(initialConfig.Resources))
+		Expect(resourceTypes).To(Equal(initialConfig.ResourceTypes))
 	})
 
 	Context("when in noop mode", func() {

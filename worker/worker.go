@@ -108,10 +108,11 @@ func (worker *gardenWorker) CreateContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
+	customTypes atc.ResourceTypes,
 ) (Container, error) {
 	gardenContainerSpecFactory := NewGardenContainerSpecFactory(logger, worker.baggageclaimClient, worker.imageFetcher)
 
-	gardenSpec, err := gardenContainerSpecFactory.BuildContainerSpec(spec, worker.resourceTypes, cancel, delegate, id, metadata, worker)
+	gardenSpec, err := gardenContainerSpecFactory.BuildContainerSpec(spec, worker.resourceTypes, cancel, delegate, id, metadata, worker, customTypes)
 	defer gardenContainerSpecFactory.ReleaseVolumes()
 	if err != nil {
 		return nil, err
@@ -211,11 +212,13 @@ func (worker *gardenWorker) ActiveContainers() int {
 	return worker.activeContainers
 }
 
-func (worker *gardenWorker) Satisfying(spec WorkerSpec) (Worker, error) {
+func (worker *gardenWorker) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (Worker, error) {
 	if spec.ResourceType != "" {
+		underlyingType := determineUnderlyingTypeName(spec.ResourceType, resourceTypes)
+
 		matchedType := false
 		for _, t := range worker.resourceTypes {
-			if t.Type == spec.ResourceType {
+			if t.Type == underlyingType {
 				matchedType = true
 				break
 			}
@@ -239,7 +242,22 @@ func (worker *gardenWorker) Satisfying(spec WorkerSpec) (Worker, error) {
 	return worker, nil
 }
 
-func (worker *gardenWorker) AllSatisfying(spec WorkerSpec) ([]Worker, error) {
+func determineUnderlyingTypeName(typeName string, resourceTypes atc.ResourceTypes) string {
+	resourceTypesMap := make(map[string]atc.ResourceType)
+	for _, resourceType := range resourceTypes {
+		resourceTypesMap[resourceType.Name] = resourceType
+	}
+	underlyingTypeName := typeName
+	underlyingType, ok := resourceTypesMap[underlyingTypeName]
+	for ok {
+		underlyingTypeName = underlyingType.Type
+		underlyingType, ok = resourceTypesMap[underlyingTypeName]
+		delete(resourceTypesMap, underlyingTypeName)
+	}
+	return underlyingTypeName
+}
+
+func (worker *gardenWorker) AllSatisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) ([]Worker, error) {
 	return nil, errors.New("Not implemented")
 }
 

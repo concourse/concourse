@@ -87,4 +87,5 @@ var Migrations = []migration.Migrator{
 	DropCompletedFromBuildPreparation,
 	AddInputsSatisfiedToBuildPreparation,
 	AddOrderToVersionedResources,
+	AddImageResourceTypeAndSourceToContainers,
 }

@@ -134,34 +134,77 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 		return Container{}, false, err
 	}
 
+	var imageResourceSource sql.NullString
+	if id.ImageResourceSource != nil {
+		marshaled, err := json.Marshal(id.ImageResourceSource)
+		if err != nil {
+			return Container{}, false, err
+		}
+
+		imageResourceSource.String = string(marshaled)
+		imageResourceSource.Valid = true
+	}
+
+	var imageResourceType sql.NullString
+	if id.ImageResourceType != "" {
+		imageResourceType.String = id.ImageResourceType
+		imageResourceType.Valid = true
+	}
+
 	var containers []Container
-	var selectQuery string
-	var rows *sql.Rows
+
+	selectQuery := `
+		SELECT ` + containerColumns + `
+		FROM containers c ` + containerJoins + `
+		`
+
+	conditions := []string{}
+	params := []interface{}{}
+
 	if isValidCheckID(id) {
 		checkSourceBlob, err := json.Marshal(id.CheckSource)
 		if err != nil {
 			return Container{}, false, err
 		}
-		selectQuery = `
-			SELECT ` + containerColumns + `
-	    FROM containers c ` + containerJoins + `
-		  WHERE resource_id = $1
-			AND check_type = $2
-			AND check_source = $3
-	  	`
-		rows, err = db.conn.Query(selectQuery, id.ResourceID, id.CheckType, checkSourceBlob)
+
+		conditions = append(conditions, "resource_id = $1")
+		params = append(params, id.ResourceID)
+
+		conditions = append(conditions, "check_type = $2")
+		params = append(params, id.CheckType)
+
+		conditions = append(conditions, "check_source = $3")
+		params = append(params, checkSourceBlob)
+
+		conditions = append(conditions, "stage = $4")
+		params = append(params, string(id.Stage))
 	} else if isValidStepID(id) {
-		selectQuery = `
-			SELECT ` + containerColumns + `
-	    FROM containers c ` + containerJoins + `
-		  WHERE build_id = $1 AND plan_id = $2
-			AND stage = $3
-	  	`
-		rows, err = db.conn.Query(selectQuery, id.BuildID, string(id.PlanID), string(id.Stage))
+		conditions = append(conditions, "build_id = $1")
+		params = append(params, id.BuildID)
+
+		conditions = append(conditions, "plan_id = $2")
+		params = append(params, string(id.PlanID))
+
+		conditions = append(conditions, "stage = $3")
+		params = append(params, string(id.Stage))
 	} else {
 		return Container{}, false, ErrInvalidIdentifier
 	}
 
+	if imageResourceSource.Valid && imageResourceType.Valid {
+		conditions = append(conditions, fmt.Sprintf("image_resource_source = $%d", len(params)+1))
+		params = append(params, imageResourceSource.String)
+
+		conditions = append(conditions, fmt.Sprintf("image_resource_type = $%d", len(params)+1))
+		params = append(params, imageResourceType.String)
+	} else {
+		conditions = append(conditions, "image_resource_source IS NULL")
+		conditions = append(conditions, "image_resource_type IS NULL")
+	}
+
+	selectQuery += "WHERE " + strings.Join(conditions, " AND ")
+
+	rows, err := db.conn.Query(selectQuery, params...)
 	if err != nil {
 		return Container{}, false, err
 	}
@@ -267,11 +310,28 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		attempts.String = string(attemptsBlob)
 	}
 
+	var imageResourceSource sql.NullString
+	if container.ImageResourceSource != nil {
+		marshaled, err := json.Marshal(container.ImageResourceSource)
+		if err != nil {
+			return Container{}, err
+		}
+
+		imageResourceSource.String = string(marshaled)
+		imageResourceSource.Valid = true
+	}
+
+	var imageResourceType sql.NullString
+	if container.ImageResourceType != "" {
+		imageResourceType.String = container.ImageResourceType
+		imageResourceType.Valid = true
+	}
+
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage)
-		VALUES ($1, $2, $3, $4, $5, $6,  $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15)`,
+		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage, image_resource_type, image_resource_source)
+		VALUES ($1, $2, $3, $4, $5, $6,  $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
 		container.Handle,
 		resourceID,
 		container.StepName,
@@ -287,6 +347,8 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		envVariables,
 		attempts,
 		string(container.Stage),
+		imageResourceType,
+		imageResourceSource,
 	)
 	if err != nil {
 		return Container{}, err
@@ -370,26 +432,44 @@ func isValidID(id ContainerIdentifier) bool {
 }
 
 func isValidCheckID(id ContainerIdentifier) bool {
-	return id.ResourceID > 0 &&
-		id.CheckType != "" &&
-		id.CheckSource != nil &&
-		id.Stage == ContainerStageRun &&
-		id.BuildID == 0 &&
-		id.PlanID == ""
+	switch id.Stage {
+	case ContainerStageCheck, ContainerStageGet:
+		return id.ResourceID > 0 &&
+			id.CheckType != "" &&
+			id.CheckSource != nil &&
+			id.ImageResourceType != "" &&
+			id.ImageResourceSource != nil &&
+			id.BuildID == 0 &&
+			id.PlanID == ""
+	case ContainerStageRun:
+		return id.ResourceID > 0 &&
+			id.CheckType != "" &&
+			id.CheckSource != nil &&
+			id.ImageResourceType == "" &&
+			id.ImageResourceSource == nil &&
+			id.BuildID == 0 &&
+			id.PlanID == ""
+	default:
+		return false
+	}
 }
 
 func isValidStepID(id ContainerIdentifier) bool {
 	switch id.Stage {
-	case ContainerStageCheck:
-		return id.ResourceID == 0 &&
-			id.CheckType != "" &&
-			id.CheckSource != nil &&
-			id.BuildID > 0 &&
-			id.PlanID != ""
-	case ContainerStageGet, ContainerStageRun:
+	case ContainerStageCheck, ContainerStageGet:
 		return id.ResourceID == 0 &&
 			id.CheckType == "" &&
 			id.CheckSource == nil &&
+			id.ImageResourceType != "" &&
+			id.ImageResourceSource != nil &&
+			id.BuildID > 0 &&
+			id.PlanID != ""
+	case ContainerStageRun:
+		return id.ResourceID == 0 &&
+			id.CheckType == "" &&
+			id.CheckSource == nil &&
+			id.ImageResourceType == "" &&
+			id.ImageResourceSource == nil &&
 			id.BuildID > 0 &&
 			id.PlanID != ""
 	default:

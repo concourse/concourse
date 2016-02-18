@@ -441,6 +441,38 @@ var _ = Describe("BuildDelegate", func() {
 			})
 		})
 
+		Describe("ImageVersionDetermined", func() {
+			var identifier db.VolumeIdentifier
+
+			BeforeEach(func() {
+				identifier = db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"ref": "asdf"},
+					ResourceHash:    "our-super-sweet-resource-hash",
+				}
+			})
+
+			It("calls through to the database", func() {
+				fakeDB.SaveImageResourceVersionReturns(nil)
+
+				err := inputDelegate.ImageVersionDetermined(identifier)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(fakeDB.SaveImageResourceVersionCallCount()).To(Equal(1))
+				actualBuildID, actualPlanID, actualIdentifier := fakeDB.SaveImageResourceVersionArgsForCall(0)
+				Expect(actualBuildID).To(Equal(42))
+				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
+				Expect(actualIdentifier).To(Equal(identifier))
+			})
+
+			It("propagates errors", func() {
+				distaster := errors.New("sorry mate")
+				fakeDB.SaveImageResourceVersionReturns(distaster)
+
+				err := inputDelegate.ImageVersionDetermined(identifier)
+				Expect(err).To(Equal(distaster))
+			})
+		})
+
 		Describe("Stdout", func() {
 			var writer io.Writer
 
@@ -1002,6 +1034,38 @@ var _ = Describe("BuildDelegate", func() {
 					Message: "nope",
 				}))
 
+			})
+		})
+
+		Describe("ImageVersionDetermined", func() {
+			var identifier db.VolumeIdentifier
+
+			BeforeEach(func() {
+				identifier = db.VolumeIdentifier{
+					ResourceVersion: atc.Version{"ref": "asdf"},
+					ResourceHash:    "our-super-sweet-resource-hash",
+				}
+			})
+
+			It("calls through to the database", func() {
+				fakeDB.SaveImageResourceVersionReturns(nil)
+
+				err := outputDelegate.ImageVersionDetermined(identifier)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(fakeDB.SaveImageResourceVersionCallCount()).To(Equal(1))
+				actualBuildID, actualPlanID, actualIdentifier := fakeDB.SaveImageResourceVersionArgsForCall(0)
+				Expect(actualBuildID).To(Equal(42))
+				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
+				Expect(actualIdentifier).To(Equal(identifier))
+			})
+
+			It("propagates errors", func() {
+				distaster := errors.New("sorry mate")
+				fakeDB.SaveImageResourceVersionReturns(distaster)
+
+				err := outputDelegate.ImageVersionDetermined(identifier)
+				Expect(err).To(Equal(distaster))
 			})
 		})
 

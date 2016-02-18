@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
 )
 
@@ -22,6 +23,14 @@ type FakeGetDelegate struct {
 	failedMutex       sync.RWMutex
 	failedArgsForCall []struct {
 		arg1 error
+	}
+	ImageVersionDeterminedStub        func(db.VolumeIdentifier) error
+	imageVersionDeterminedMutex       sync.RWMutex
+	imageVersionDeterminedArgsForCall []struct {
+		arg1 db.VolumeIdentifier
+	}
+	imageVersionDeterminedReturns struct {
+		result1 error
 	}
 	StdoutStub        func() io.Writer
 	stdoutMutex       sync.RWMutex
@@ -97,6 +106,38 @@ func (fake *FakeGetDelegate) FailedArgsForCall(i int) error {
 	fake.failedMutex.RLock()
 	defer fake.failedMutex.RUnlock()
 	return fake.failedArgsForCall[i].arg1
+}
+
+func (fake *FakeGetDelegate) ImageVersionDetermined(arg1 db.VolumeIdentifier) error {
+	fake.imageVersionDeterminedMutex.Lock()
+	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
+		arg1 db.VolumeIdentifier
+	}{arg1})
+	fake.imageVersionDeterminedMutex.Unlock()
+	if fake.ImageVersionDeterminedStub != nil {
+		return fake.ImageVersionDeterminedStub(arg1)
+	} else {
+		return fake.imageVersionDeterminedReturns.result1
+	}
+}
+
+func (fake *FakeGetDelegate) ImageVersionDeterminedCallCount() int {
+	fake.imageVersionDeterminedMutex.RLock()
+	defer fake.imageVersionDeterminedMutex.RUnlock()
+	return len(fake.imageVersionDeterminedArgsForCall)
+}
+
+func (fake *FakeGetDelegate) ImageVersionDeterminedArgsForCall(i int) db.VolumeIdentifier {
+	fake.imageVersionDeterminedMutex.RLock()
+	defer fake.imageVersionDeterminedMutex.RUnlock()
+	return fake.imageVersionDeterminedArgsForCall[i].arg1
+}
+
+func (fake *FakeGetDelegate) ImageVersionDeterminedReturns(result1 error) {
+	fake.ImageVersionDeterminedStub = nil
+	fake.imageVersionDeterminedReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeGetDelegate) Stdout() io.Writer {

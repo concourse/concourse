@@ -28,6 +28,7 @@ type GetStep struct {
 	tags            atc.Tags
 	delegate        GetDelegate
 	tracker         resource.Tracker
+	resourceTypes   atc.ResourceTypes
 
 	repository *SourceRepository
 
@@ -50,6 +51,7 @@ func newGetStep(
 	tags atc.Tags,
 	delegate GetDelegate,
 	tracker resource.Tracker,
+	resourceTypes atc.ResourceTypes,
 ) GetStep {
 	return GetStep{
 		logger:          logger,
@@ -63,6 +65,7 @@ func newGetStep(
 		tags:            tags,
 		delegate:        delegate,
 		tracker:         tracker,
+		resourceTypes:   resourceTypes,
 	}
 }
 
@@ -113,6 +116,8 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		resource.ResourceType(step.resourceConfig.Type),
 		step.tags,
 		step.cacheIdentifier,
+		step.resourceTypes,
+		step.delegate,
 	)
 	if err != nil {
 		step.logger.Error("failed-to-initialize-resource", err)

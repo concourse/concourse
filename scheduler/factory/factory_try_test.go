@@ -11,6 +11,8 @@ import (
 
 var _ = Describe("Factory Try Step", func() {
 	var (
+		resourceTypes atc.ResourceTypes
+
 		buildFactory        factory.BuildFactory
 		actualPlanFactory   atc.PlanFactory
 		expectedPlanFactory atc.PlanFactory
@@ -20,6 +22,14 @@ var _ = Describe("Factory Try Step", func() {
 		actualPlanFactory = atc.NewPlanFactory(123)
 		expectedPlanFactory = atc.NewPlanFactory(123)
 		buildFactory = factory.NewBuildFactory("some-pipeline", actualPlanFactory)
+
+		resourceTypes = atc.ResourceTypes{
+			{
+				Name:   "some-custom-resource",
+				Type:   "docker-image",
+				Source: atc.Source{"some": "custom-source"},
+			},
+		}
 	})
 
 	Context("when there is a task wrapped in a try", func() {
@@ -35,19 +45,21 @@ var _ = Describe("Factory Try Step", func() {
 						Task: "second task",
 					},
 				},
-			}, nil, nil)
+			}, nil, resourceTypes, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 				expectedPlanFactory.NewPlan(atc.TryPlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "first task",
-						Pipeline: "some-pipeline",
+						Name:          "first task",
+						Pipeline:      "some-pipeline",
+						ResourceTypes: resourceTypes,
 					}),
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "second task",
-					Pipeline: "some-pipeline",
+					Name:          "second task",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
 				}),
 			})
 
@@ -68,7 +80,7 @@ var _ = Describe("Factory Try Step", func() {
 						},
 					},
 				},
-			}, nil, nil)
+			}, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{

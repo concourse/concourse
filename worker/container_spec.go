@@ -9,6 +9,7 @@ import (
 
 type ContainerSpec interface {
 	WorkerSpec() WorkerSpec
+	ImageResource() (atc.TaskImageConfig, bool)
 }
 
 type WorkerSpec struct {
@@ -36,10 +37,11 @@ func (spec WorkerSpec) Description() string {
 }
 
 type ResourceTypeContainerSpec struct {
-	Type      string
-	Ephemeral bool
-	Tags      []string
-	Env       []string
+	Type                 string
+	ImageResourcePointer *atc.TaskImageConfig
+	Ephemeral            bool
+	Tags                 []string
+	Env                  []string
 
 	// Not Copy-on-Write. Used for a single mount in Get containers.
 	Cache VolumeMount
@@ -55,19 +57,35 @@ func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {
 	}
 }
 
+func (spec ResourceTypeContainerSpec) ImageResource() (atc.TaskImageConfig, bool) {
+	if spec.ImageResourcePointer == nil {
+		return atc.TaskImageConfig{}, false
+	} else {
+		return *spec.ImageResourcePointer, true
+	}
+}
+
 type TaskContainerSpec struct {
-	Platform      string
-	Image         string
-	ImageResource *atc.TaskImageConfig
-	Privileged    bool
-	Tags          []string
-	Inputs        []VolumeMount
-	Outputs       []VolumeMount
+	Platform             string
+	Image                string
+	ImageResourcePointer *atc.TaskImageConfig
+	Privileged           bool
+	Tags                 []string
+	Inputs               []VolumeMount
+	Outputs              []VolumeMount
 }
 
 func (spec TaskContainerSpec) WorkerSpec() WorkerSpec {
 	return WorkerSpec{
 		Platform: spec.Platform,
 		Tags:     spec.Tags,
+	}
+}
+
+func (spec TaskContainerSpec) ImageResource() (atc.TaskImageConfig, bool) {
+	if spec.ImageResourcePointer == nil {
+		return atc.TaskImageConfig{}, false
+	} else {
+		return *spec.ImageResourcePointer, true
 	}
 }

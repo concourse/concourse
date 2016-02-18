@@ -62,6 +62,7 @@ var _ = Describe("GardenFactory", func() {
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
 			tags           []string
+			resourceTypes  atc.ResourceTypes
 
 			inStep *fakes.FakeStep
 			repo   *SourceRepository
@@ -91,6 +92,14 @@ var _ = Describe("GardenFactory", func() {
 			inStep = new(fakes.FakeStep)
 			repo = NewSourceRepository()
 
+			resourceTypes = atc.ResourceTypes{
+				{
+					Name:   "custom-resource",
+					Type:   "custom-type",
+					Source: atc.Source{"some-custom": "source"},
+				},
+			}
+
 			fakeSource = new(fakes.FakeArtifactSource)
 			fakeOtherSource = new(fakes.FakeArtifactSource)
 			fakeMountedSource = new(fakes.FakeArtifactSource)
@@ -110,6 +119,7 @@ var _ = Describe("GardenFactory", func() {
 				resourceConfig,
 				tags,
 				params,
+				resourceTypes,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -135,7 +145,7 @@ var _ = Describe("GardenFactory", func() {
 			It("initializes the resource with the correct type, session, and sources", func() {
 				Expect(fakeTracker.InitWithSourcesCallCount()).To(Equal(1))
 
-				_, sm, sid, typ, tags, sources := fakeTracker.InitWithSourcesArgsForCall(0)
+				_, sm, sid, typ, tags, sources, actualResourceTypes, delegate := fakeTracker.InitWithSourcesArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
 					ID: worker.Identifier{
@@ -151,6 +161,14 @@ var _ = Describe("GardenFactory", func() {
 				}))
 				Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))
 				Expect(tags).To(ConsistOf("some", "tags"))
+				Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{
+					{
+						Name:   "custom-resource",
+						Type:   "custom-type",
+						Source: atc.Source{"some-custom": "source"},
+					},
+				}))
+				Expect(delegate).To(Equal(putDelegate))
 
 				// TODO: Can we test the map values?
 				Expect(sources).To(HaveKey("some-source"))
@@ -243,7 +261,7 @@ var _ = Describe("GardenFactory", func() {
 				BeforeEach(func() {
 					callCountDuringInit = make(chan int, 1)
 
-					fakeTracker.InitWithSourcesStub = func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, map[string]resource.ArtifactSource) (resource.Resource, []string, error) {
+					fakeTracker.InitWithSourcesStub = func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, map[string]resource.ArtifactSource, atc.ResourceTypes, worker.ImageFetchingDelegate) (resource.Resource, []string, error) {
 						callCountDuringInit <- putDelegate.InitializingCallCount()
 						return fakeResource, []string{"some-source", "some-other-source"}, nil
 					}
