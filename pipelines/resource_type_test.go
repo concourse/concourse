@@ -25,19 +25,15 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 		originGitServer.Stop()
 	})
 
-	It("can use custom resource types for 'get'", func() {
+	It("can use custom resource types for 'get', 'put', and task 'image_resource's", func() {
 		watch := flyWatch("resource-getter")
 		Expect(watch).To(gbytes.Say("rootfs/some-file"))
-	})
 
-	It("can use custom resource types for 'put'", func() {
-		watch := flyWatch("resource-putter")
+		watch = flyWatch("resource-putter")
 		Expect(watch).To(gbytes.Say("pushing using custom resource"))
 		Expect(watch).To(gbytes.Say("some-output/some-file"))
-	})
 
-	It("can use custom resource types for a task's 'image_resource'", func() {
-		watch := flyWatch("resource-imgur")
+		watch = flyWatch("resource-imgur")
 		Expect(watch).To(gbytes.Say("fetched from custom resource"))
 		Expect(watch).To(gbytes.Say("SOME_ENV=yep"))
 	})
