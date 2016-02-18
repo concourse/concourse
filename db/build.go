@@ -92,6 +92,8 @@ type SavedVersionedResource struct {
 	ModifiedTime time.Time
 
 	VersionedResource
+
+	CheckOrder int
 }
 
 type SavedVersionedResources []SavedVersionedResource

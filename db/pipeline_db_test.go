@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -16,6 +17,43 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+func getCheckOrderedVersionedResources(resourceName string, resourceType string, conn db.Conn) ([]db.SavedVersionedResource, error) {
+	var svr db.SavedVersionedResource
+	var svrs []db.SavedVersionedResource
+	rows, err := conn.Query(`
+					SELECT vr.resource_id, vr.version, vr.check_order
+					FROM versioned_resources vr, resources r
+					WHERE r.name = $1
+					AND vr.type = $2
+					ORDER BY check_order ASC
+				`, resourceName, resourceType)
+
+	if err != nil {
+		return []db.SavedVersionedResource{}, err
+	}
+
+	var version string
+
+	for rows.Next() {
+		fmt.Println("wat??")
+		err = rows.Scan(&svr.Resource, &version, &svr.CheckOrder)
+		if err != nil {
+			return []db.SavedVersionedResource{}, err
+		}
+
+		fmt.Sprintf("makin a thing w/ version: %+v", version)
+
+		err = json.Unmarshal([]byte(version), &svr.Version)
+		if err != nil {
+			return []db.SavedVersionedResource{}, err
+		}
+
+		svrs = append(svrs, svr)
+	}
+
+	return svrs, nil
+}
 
 var _ = Describe("PipelineDB", func() {
 	var dbConn db.Conn
@@ -628,6 +666,54 @@ var _ = Describe("PipelineDB", func() {
 
 			otherResource, err = pipelineDB.GetResource(otherResourceName)
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("SaveResourceVersions", func() {
+			var (
+				originalVersionSlice []atc.Version
+				resourceConfig       atc.ResourceConfig
+			)
+
+			BeforeEach(func() {
+				resourceConfig = atc.ResourceConfig{
+					Name:   resource.Name,
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}
+
+				originalVersionSlice = []atc.Version{
+					{"ref": "v1"},
+					{"ref": "v3"},
+				}
+			})
+
+			JustBeforeEach(func() {
+
+				err := pipelineDB.SaveResourceVersions(resourceConfig, originalVersionSlice)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("ensures versioned resources have the correct check_order", func() {
+				latestVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(latestVR.Version).To(Equal(db.Version{"ref": "v3"}))
+
+				pretendCheckResults := []atc.Version{
+					{"ref": "v2"},
+					{"ref": "v3"},
+				}
+
+				err = pipelineDB.SaveResourceVersions(resourceConfig, pretendCheckResults)
+				Expect(err).NotTo(HaveOccurred())
+
+				latestVR, found, err = pipelineDB.GetLatestVersionedResource(resource)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(latestVR.Version).To(Equal(db.Version{"ref": "v3"}))
+			})
 		})
 
 		It("can load up versioned resource information relevant to scheduling", func() {

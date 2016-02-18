@@ -618,12 +618,20 @@ func (pdb *pipelineDB) GetLatestVersionedResource(resource SavedResource) (Saved
 	}
 
 	err := pdb.conn.QueryRow(`
-		SELECT id, enabled, type, version, metadata, modified_time
+		SELECT id, enabled, type, version, metadata, modified_time, check_order
 		FROM versioned_resources
 		WHERE resource_id = $1
-		ORDER BY id DESC
+		ORDER BY check_order DESC
 		LIMIT 1
-	`, resource.ID).Scan(&svr.ID, &svr.Enabled, &svr.Type, &versionBytes, &metadataBytes, &svr.ModifiedTime)
+	`, resource.ID).Scan(
+		&svr.ID,
+		&svr.Enabled,
+		&svr.Type,
+		&versionBytes,
+		&metadataBytes,
+		&svr.ModifiedTime,
+		&svr.CheckOrder,
+	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return SavedVersionedResource{}, false, nil
@@ -665,6 +673,35 @@ func (pdb *pipelineDB) SetResourceCheckError(resource SavedResource, cause error
 	return err
 }
 
+func (pdb *pipelineDB) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, resourceType string, version string) error {
+	query, err := tx.Prepare(` 
+	    WITH max_checkorder AS
+			(SELECT max(check_order) co
+			 FROM versioned_resources
+			 WHERE resource_id = $1
+			 AND type = $2)
+
+			UPDATE versioned_resources
+			SET check_order = mc.co + 1
+			FROM max_checkorder mc
+			WHERE resource_id = $1
+			AND type = $2
+			AND version = $3
+			AND check_order <= mc.co;
+
+			`)
+	if err != nil {
+		return err
+	}
+
+	_, err2 := query.Exec(resourceID, resourceType, version)
+	if err2 != nil {
+		return err2
+	}
+
+	return nil
+}
+
 func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource) (SavedVersionedResource, error) {
 	savedResource, err := pdb.getResource(tx, vr.Resource)
 	if err != nil {
@@ -684,6 +721,7 @@ func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource) (Saved
 	var id int
 	var enabled bool
 	var modified_time time.Time
+	var check_order int
 
 	_, err = tx.Exec(`
 		INSERT INTO versioned_resources (resource_id, type, version, metadata, modified_time)
@@ -702,6 +740,11 @@ func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource) (Saved
 		return SavedVersionedResource{}, err
 	}
 
+	err = pdb.incrementCheckOrderWhenNewerVersion(tx, savedResource.ID, vr.Type, string(versionJSON))
+	if err != nil {
+		return SavedVersionedResource{}, err
+	}
+
 	var savedMetadata string
 
 	// separate from above, as it conditionally inserts (can't use RETURNING)
@@ -712,16 +755,16 @@ func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource) (Saved
 			WHERE resource_id = $1
 			AND type = $2
 			AND version = $3
-			RETURNING id, enabled, metadata, modified_time
-		`, savedResource.ID, vr.Type, string(versionJSON), string(metadataJSON)).Scan(&id, &enabled, &savedMetadata, &modified_time)
+			RETURNING id, enabled, metadata, modified_time, check_order
+		`, savedResource.ID, vr.Type, string(versionJSON), string(metadataJSON)).Scan(&id, &enabled, &savedMetadata, &modified_time, &check_order)
 	} else {
 		err = tx.QueryRow(`
-			SELECT id, enabled, metadata, modified_time
+			SELECT id, enabled, metadata, modified_time, check_order
 			FROM versioned_resources
 			WHERE resource_id = $1
 			AND type = $2
 			AND version = $3
-		`, savedResource.ID, vr.Type, string(versionJSON)).Scan(&id, &enabled, &savedMetadata, &modified_time)
+		`, savedResource.ID, vr.Type, string(versionJSON)).Scan(&id, &enabled, &savedMetadata, &modified_time, &check_order)
 	}
 	if err != nil {
 		return SavedVersionedResource{}, err
@@ -738,6 +781,7 @@ func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource) (Saved
 		ModifiedTime: modified_time,
 
 		VersionedResource: vr,
+		CheckOrder:        check_order,
 	}, nil
 }
 
