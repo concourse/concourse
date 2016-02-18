@@ -67,7 +67,7 @@ func AddPipelineBuildEventsTables(tx migration.LimitedTx) error {
 	}
 
 	_, err = tx.Exec(`
-		DELETE FROM build_events
+		DELETE FROM ONLY build_events
 		WHERE build_id IN (SELECT id FROM builds WHERE job_id IS NOT NULL)
 	`)
 	if err != nil {
