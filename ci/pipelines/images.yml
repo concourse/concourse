@@ -181,12 +181,6 @@ resources:
     repository: selenium/standalone-firefox
     tag: latest
 
-- name: golang-1.5
-  type: docker-image
-  source:
-    repository: golang
-    tag: "1.5"
-
 - name: golang-1.6
   type: docker-image
   source:
@@ -293,12 +287,12 @@ jobs:
   - aggregate:
     - get: concourse-baggageclaim-ci
       trigger: true
-    - get: golang-1.5
+    - get: golang-1.6
       trigger: true
       params: {save: true}
   - put: concourse-baggageclaim-ci-image
     params:
-      load_base: golang-1.5
+      load_base: golang-1.6
       build: concourse-baggageclaim-ci
 
 - name: build-bin-ci
@@ -340,12 +334,12 @@ jobs:
   - aggregate:
     - get: concourse-testflight
       trigger: true
-    - get: golang-1.5
+    - get: golang-1.6
       trigger: true
       params: {save: true}
   - put: concourse-testflight-image
     params:
-      load_base: golang-1.5
+      load_base: golang-1.6
       build: concourse-testflight
 
 - name: build-static-golang
@@ -355,10 +349,10 @@ jobs:
   - aggregate:
     - get: concourse-static-golang
       trigger: true
-    - get: golang-1.5
+    - get: golang-1.6
       trigger: true
       params: {save: true}
   - put: concourse-static-golang-image
     params:
-      load_base: golang-1.5
+      load_base: golang-1.6
       build: concourse-static-golang
