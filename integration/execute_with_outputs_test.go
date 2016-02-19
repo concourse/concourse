@@ -281,8 +281,6 @@ run:
 	Context("when running with --output", func() {
 		Context("when the task specifies those outputs", func() {
 			It("downloads the tasks output to the directory provided", func() {
-				atcServer.AllowUnhandledRequests = true
-
 				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "--output", "some-dir="+outputDir)
 				flyCmd.Dir = buildDir
 
