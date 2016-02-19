@@ -134,6 +134,8 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 
 	if factory.user != "" {
 		gardenSpec.Properties["user"] = factory.user
+	} else {
+		gardenSpec.Properties["user"] = "root"
 	}
 	return gardenSpec, nil
 }

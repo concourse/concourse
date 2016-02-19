@@ -204,12 +204,12 @@ var _ = Describe("Worker", func() {
 						Expect(createErr).NotTo(HaveOccurred())
 					})
 
-					It("creates the container with the Garden client", func() {
+					It("creates the container with the Garden client, defaults user to 'root' if not specified", func() {
 						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 						Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 							RootFSPath: "some-resource-image",
 							Privileged: true,
-							Properties: garden.Properties{},
+							Properties: garden.Properties{"user": "root"},
 						}))
 					})
 
@@ -217,6 +217,7 @@ var _ = Describe("Worker", func() {
 						expectedMetadata := containerMetadata
 						expectedMetadata.WorkerName = workerName
 						expectedMetadata.Handle = "some-handle"
+						expectedMetadata.User = "root"
 
 						container := db.Container{
 							ContainerIdentifier: db.ContainerIdentifier(containerID),
@@ -280,7 +281,7 @@ var _ = Describe("Worker", func() {
 
 								spec := fakeGardenClient.CreateArgsForCall(0)
 								Expect(spec.RootFSPath).To(Equal("/some/image/path/rootfs"))
-								Expect(spec.Properties).To(HaveLen(2))
+								Expect(spec.Properties).To(HaveLen(3))
 								Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
 									`["image-volume"]`,
 								))
@@ -350,7 +351,7 @@ var _ = Describe("Worker", func() {
 								RootFSPath: "some-resource-image",
 								Privileged: true,
 								Env:        []string{"a=1", "b=2"},
-								Properties: garden.Properties{},
+								Properties: garden.Properties{"user": "root"},
 							}))
 
 						})
@@ -444,7 +445,7 @@ var _ = Describe("Worker", func() {
 									},
 								}))
 
-								Expect(spec.Properties).To(HaveLen(2))
+								Expect(spec.Properties).To(HaveLen(3))
 								Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
 									`["cow-volume1","cow-volume2"]`,
 								))
@@ -500,7 +501,7 @@ var _ = Describe("Worker", func() {
 									},
 								}))
 
-								Expect(spec.Properties).To(HaveLen(2))
+								Expect(spec.Properties).To(HaveLen(3))
 								Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
 									`["some-volume1"]`,
 								))
@@ -554,6 +555,7 @@ var _ = Describe("Worker", func() {
 								Privileged: true,
 								Properties: garden.Properties{
 									"concourse:ephemeral": "true",
+									"user":                "root",
 								},
 							}))
 						})
@@ -689,7 +691,7 @@ var _ = Describe("Worker", func() {
 
 							spec := fakeGardenClient.CreateArgsForCall(0)
 							Expect(spec.RootFSPath).To(Equal("/some/image/path/rootfs"))
-							Expect(spec.Properties).To(HaveLen(2))
+							Expect(spec.Properties).To(HaveLen(3))
 							Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
 								`["image-volume"]`,
 							))
@@ -802,7 +804,7 @@ var _ = Describe("Worker", func() {
 
 							spec := fakeGardenClient.CreateArgsForCall(0)
 							Expect(spec.RootFSPath).To(Equal("/some/image/path/rootfs"))
-							Expect(spec.Properties).To(HaveLen(2))
+							Expect(spec.Properties).To(HaveLen(3))
 							Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
 								`["image-volume"]`,
 							))
@@ -880,7 +882,7 @@ var _ = Describe("Worker", func() {
 					Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 						RootFSPath: "some-image",
 						Privileged: true,
-						Properties: garden.Properties{},
+						Properties: garden.Properties{"user": "root"},
 					}))
 				})
 
@@ -1044,7 +1046,7 @@ var _ = Describe("Worker", func() {
 							},
 						}))
 
-						Expect(spec.Properties).To(HaveLen(2))
+						Expect(spec.Properties).To(HaveLen(3))
 						Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
 							`["output-volume","other-output-volume"]`,
 						))
@@ -1130,7 +1132,7 @@ var _ = Describe("Worker", func() {
 							},
 						}))
 
-						Expect(spec.Properties).To(HaveLen(2))
+						Expect(spec.Properties).To(HaveLen(3))
 						Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
 							`["cow-input-volume","cow-other-input-volume"]`,
 						))
