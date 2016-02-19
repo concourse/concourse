@@ -64,6 +64,8 @@ var _ = Describe("Resource Out", func() {
 			Stdout: stdoutBuf,
 			Stderr: stderrBuf,
 		}
+
+		fakeContainer.PropertiesReturns(garden.Properties{"user": "iceman"}, nil)
 	})
 
 	JustBeforeEach(func() {
@@ -366,7 +368,7 @@ var _ = Describe("Resource Out", func() {
 			spec, io := fakeContainer.RunArgsForCall(0)
 			Expect(spec.Path).To(Equal("/opt/resource/out"))
 			Expect(spec.Args).To(ConsistOf("/tmp/build/put"))
-			Expect(spec.User).To(Equal("root"))
+			Expect(spec.User).To(Equal("iceman"))
 
 			request, err := ioutil.ReadAll(io.Stdin)
 			Expect(err).NotTo(HaveOccurred())

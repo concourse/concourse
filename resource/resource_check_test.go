@@ -44,6 +44,8 @@ var _ = Describe("Resource Check", func() {
 
 		checkResult = nil
 		checkErr = nil
+
+		fakeContainer.PropertiesReturns(garden.Properties{"user": "maverick"}, nil)
 	})
 
 	JustBeforeEach(func() {
@@ -70,7 +72,7 @@ var _ = Describe("Resource Check", func() {
 		spec, io := fakeContainer.RunArgsForCall(0)
 		Expect(spec.Path).To(Equal("/opt/resource/check"))
 		Expect(spec.Args).To(BeEmpty())
-		Expect(spec.User).To(Equal("root"))
+		Expect(spec.User).To(Equal("maverick"))
 
 		request, err := ioutil.ReadAll(io.Stdin)
 		Expect(err).NotTo(HaveOccurred())

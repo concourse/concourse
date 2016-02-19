@@ -63,6 +63,8 @@ var _ = Describe("Resource In", func() {
 			Stdout: stdoutBuf,
 			Stderr: stderrBuf,
 		}
+
+		fakeContainer.PropertiesReturns(garden.Properties{"user": "goose"}, nil)
 	})
 
 	itCanStreamOut := func() {
@@ -378,7 +380,7 @@ var _ = Describe("Resource In", func() {
 				Expect(spec.Path).To(Equal("/opt/resource/in"))
 
 				Expect(spec.Args).To(ConsistOf("/tmp/build/get"))
-				Expect(spec.User).To(Equal("root"))
+				Expect(spec.User).To(Equal("goose"))
 
 				request, err := ioutil.ReadAll(io.Stdin)
 				Expect(err).NotTo(HaveOccurred())

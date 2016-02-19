@@ -100,10 +100,19 @@ func (resource *resource) runScript(
 				}
 			}
 
+			props, err := resource.container.Properties()
+			if err != nil {
+				return err
+			}
+			user := props["user"]
+			if user == "" {
+				user = "root"
+			}
+
 			process, err = resource.container.Run(garden.ProcessSpec{
 				Path: path,
 				Args: args,
-				User: "root",
+				User: user,
 			}, processIO)
 			if err != nil {
 				return err
