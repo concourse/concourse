@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 
 	"github.com/kr/tarutil"
 )
@@ -23,6 +24,10 @@ func tarStreamFrom(workDir string, paths []string) (io.ReadCloser, error) {
 		tarCmd.Stderr = os.Stderr
 
 		tarCmd.Stdin = bytes.NewBufferString(strings.Join(paths, "\x00"))
+
+		tarCmd.SysProcAttr = &syscall.SysProcAttr{
+			Setpgid: true,
+		}
 
 		archive, err = tarCmd.StdoutPipe()
 		if err != nil {
@@ -47,6 +52,10 @@ func tarStreamTo(workDir string, stream io.Reader) error {
 		tarCmd.Stderr = os.Stderr
 
 		tarCmd.Stdin = stream
+
+		tarCmd.SysProcAttr = &syscall.SysProcAttr{
+			Setpgid: true,
+		}
 
 		return tarCmd.Run()
 	}
