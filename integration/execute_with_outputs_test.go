@@ -28,7 +28,6 @@ var _ = Describe("Fly CLI", func() {
 	var buildDir string
 	var taskConfigPath string
 
-	var atcServer *ghttp.Server
 	var streaming chan struct{}
 	var events chan atc.Event
 	var uploadingBits <-chan struct{}
@@ -79,8 +78,6 @@ run:
 			0644,
 		)
 		Expect(err).NotTo(HaveOccurred())
-
-		atcServer = ghttp.NewServer()
 
 		streaming = make(chan struct{})
 		events = make(chan atc.Event)
@@ -281,7 +278,7 @@ run:
 	Context("when running with --output", func() {
 		Context("when the task specifies those outputs", func() {
 			It("downloads the tasks output to the directory provided", func() {
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "--output", "some-dir="+outputDir)
+				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "--output", "some-dir="+outputDir)
 				flyCmd.Dir = buildDir
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -309,7 +306,7 @@ run:
 
 		Context("when the task does not specify those outputs", func() {
 			It("exits 1", func() {
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "e", "-c", taskConfigPath, "-o", "wrong-output=wrong-path")
+				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-o", "wrong-output=wrong-path")
 				flyCmd.Dir = buildDir
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)

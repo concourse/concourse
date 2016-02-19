@@ -14,18 +14,13 @@ import (
 )
 
 var _ = Describe("Fly CLI", func() {
-	var (
-		atcServer *ghttp.Server
-	)
-
 	Describe("containers", func() {
 		var (
 			flyCmd *exec.Cmd
 		)
 
 		BeforeEach(func() {
-			atcServer = ghttp.NewServer()
-			flyCmd = exec.Command(flyPath, "-t", atcServer.URL(), "containers")
+			flyCmd = exec.Command(flyPath, "-t", targetName, "containers")
 		})
 
 		Context("when containers are returned from the API", func() {

@@ -16,17 +16,12 @@ import (
 
 var _ = Describe("Fly CLI", func() {
 	var (
-		atcServer *ghttp.Server
 		flyCmd    *exec.Cmd
 		cmdParams []string
 	)
 
-	BeforeEach(func() {
-		atcServer = ghttp.NewServer()
-	})
-
 	JustBeforeEach(func() {
-		params := append([]string{"-t", atcServer.URL(), "set-team", "--team-name", "venture"}, cmdParams...)
+		params := append([]string{"-t", targetName, "set-team", "--team-name", "venture"}, cmdParams...)
 		flyCmd = exec.Command(flyPath, params...)
 	})
 

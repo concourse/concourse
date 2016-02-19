@@ -18,12 +18,10 @@ import (
 )
 
 var _ = Describe("Watching", func() {
-	var atcServer *ghttp.Server
 	var streaming chan struct{}
 	var events chan atc.Event
 
 	BeforeEach(func() {
-		atcServer = ghttp.NewServer()
 		streaming = make(chan struct{})
 		events = make(chan atc.Event)
 	})
@@ -75,7 +73,7 @@ var _ = Describe("Watching", func() {
 	watch := func(args ...string) {
 		watchWithArgs := append([]string{"watch"}, args...)
 
-		flyCmd := exec.Command(flyPath, append([]string{"-t", atcServer.URL()}, watchWithArgs...)...)
+		flyCmd := exec.Command(flyPath, append([]string{"-t", targetName}, watchWithArgs...)...)
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
@@ -126,7 +124,7 @@ var _ = Describe("Watching", func() {
 			})
 
 			It("returns an error and exits", func() {
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "watch", "--job", "some-pipeline/some-job")
+				flyCmd := exec.Command(flyPath, "-t", targetName, "watch", "--job", "some-pipeline/some-job")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 

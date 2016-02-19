@@ -11,18 +11,13 @@ import (
 )
 
 var _ = Describe("Fly CLI", func() {
-	var (
-		atcServer *ghttp.Server
-	)
-
 	Describe("auth failures", func() {
 		var (
 			flyCmd *exec.Cmd
 		)
 
 		BeforeEach(func() {
-			atcServer = ghttp.NewServer()
-			flyCmd = exec.Command(flyPath, "-t", atcServer.URL(), "containers")
+			flyCmd = exec.Command(flyPath, "-t", targetName, "containers")
 		})
 
 		Context("when a 401 response is received", func() {
@@ -43,7 +38,7 @@ var _ = Describe("Fly CLI", func() {
 				Expect(sess.ExitCode()).To(Equal(1))
 
 				Expect(sess.Err).To(gbytes.Say("not authorized. run the following to log in:\n\n    "))
-				Expect(sess.Err).To(gbytes.Say(`fly -t \(alias\) login -c ` + atcServer.URL()))
+				Expect(sess.Err).To(gbytes.Say(`fly -t ` + targetName + ` login`))
 			})
 		})
 	})

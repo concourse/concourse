@@ -15,7 +15,7 @@ func CreateBuild(
 	outputs []Output,
 	config atc.TaskConfig,
 	tags []string,
-	target string,
+	target rc.TargetName,
 ) (atc.Build, error) {
 	fact := atc.NewPlanFactory(time.Now().Unix())
 
@@ -36,8 +36,8 @@ func CreateBuild(
 				"uri": input.Pipe.ReadURL,
 			}
 
-			if targetProps.Token != nil {
-				source["authorization"] = targetProps.Token.Type + " " + targetProps.Token.Value
+			if auth, ok := targetAuthorization(targetProps.Token); ok {
+				source["authorization"] = auth
 			}
 
 			getPlan = atc.GetPlan{
@@ -79,8 +79,8 @@ func CreateBuild(
 			"directory": output.Name,
 		}
 
-		if targetProps.Token != nil {
-			source["authorization"] = targetProps.Token.Type + " " + targetProps.Token.Value
+		if auth, ok := targetAuthorization(targetProps.Token); ok {
+			source["authorization"] = auth
 		}
 
 		buildOutputs = append(buildOutputs, fact.NewPlan(atc.PutPlan{
@@ -108,4 +108,12 @@ func CreateBuild(
 	}
 
 	return client.CreateBuild(plan)
+}
+
+func targetAuthorization(token *rc.TargetToken) (string, bool) {
+	if token == nil || (token.Type == "" && token.Value == "") {
+		return "", false
+	}
+
+	return token.Type + " " + token.Value, true
 }

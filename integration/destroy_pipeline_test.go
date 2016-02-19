@@ -13,10 +13,6 @@ import (
 )
 
 var _ = Describe("Fly CLI", func() {
-	var (
-		atcServer *ghttp.Server
-	)
-
 	Describe("destroy-pipeline", func() {
 		var (
 			stdin io.Writer
@@ -27,14 +23,12 @@ var _ = Describe("Fly CLI", func() {
 		BeforeEach(func() {
 			stdin = nil
 			args = []string{}
-
-			atcServer = ghttp.NewServer()
 		})
 
 		JustBeforeEach(func() {
 			var err error
 
-			flyCmd := exec.Command(flyPath, append([]string{"-t", atcServer.URL(), "destroy-pipeline"}, args...)...)
+			flyCmd := exec.Command(flyPath, append([]string{"-t", targetName, "destroy-pipeline"}, args...)...)
 			stdin, err = flyCmd.StdinPipe()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -44,7 +38,7 @@ var _ = Describe("Fly CLI", func() {
 
 		Context("when a pipeline name is not specified", func() {
 			It("asks the user to specifiy a pipeline name", func() {
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "destroy-pipeline")
+				flyCmd := exec.Command(flyPath, "-t", targetName, "destroy-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())

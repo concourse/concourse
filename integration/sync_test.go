@@ -19,8 +19,6 @@ import (
 
 var _ = Describe("Syncing", func() {
 	var (
-		atcServer *ghttp.Server
-
 		newFlyDir  string
 		newFlyPath string
 	)
@@ -66,7 +64,6 @@ var _ = Describe("Syncing", func() {
 		err = os.Chmod(newFlyPath, 0755)
 		Expect(err).NotTo(HaveOccurred())
 
-		atcServer = ghttp.NewServer()
 		atcServer.AppendHandlers(cliHandler())
 	})
 
@@ -75,7 +72,7 @@ var _ = Describe("Syncing", func() {
 	})
 
 	It("downloads and replaces the currently running executable", func() {
-		flyCmd := exec.Command(newFlyPath, "-t", atcServer.URL(), "sync")
+		flyCmd := exec.Command(newFlyPath, "-t", targetName, "sync")
 
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())

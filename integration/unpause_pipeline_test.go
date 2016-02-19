@@ -15,14 +15,7 @@ import (
 )
 
 var _ = Describe("Fly CLI", func() {
-	var atcServer *ghttp.Server
-
 	Describe("unpause-pipeline", func() {
-
-		BeforeEach(func() {
-			atcServer = ghttp.NewServer()
-		})
-
 		Context("when the pipeline name is specified", func() {
 			var (
 				path string
@@ -44,7 +37,8 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("unpauses the pipeline", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "unpause-pipeline", "-p", "awesome-pipeline")
+					reqsBefore := len(atcServer.ReceivedRequests())
+					flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "awesome-pipeline")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -53,7 +47,7 @@ var _ = Describe("Fly CLI", func() {
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 1))
 				})
 			})
 
@@ -68,7 +62,8 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints helpful message", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "unpause-pipeline", "-p", "awesome-pipeline")
+					reqsBefore := len(atcServer.ReceivedRequests())
+					flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "awesome-pipeline")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -77,13 +72,15 @@ var _ = Describe("Fly CLI", func() {
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 1))
 				})
 			})
 		})
+
 		Context("when the pipline name is not specified", func() {
 			It("errors", func() {
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "unpause-pipeline")
+				reqsBefore := len(atcServer.ReceivedRequests())
+				flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
@@ -92,9 +89,8 @@ var _ = Describe("Fly CLI", func() {
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
-				Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore))
 			})
 		})
 	})
-
 })

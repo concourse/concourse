@@ -20,8 +20,6 @@ const timeDateLayout = "2006-01-02@15:04:05-0700"
 
 var _ = Describe("Fly CLI", func() {
 	var (
-		atcServer *ghttp.Server
-
 		runningBuildStartTime   time.Time
 		pendingBuildStartTime   time.Time
 		pendingBuildEndTime     time.Time
@@ -53,8 +51,7 @@ var _ = Describe("Fly CLI", func() {
 		)
 
 		BeforeEach(func() {
-			atcServer = ghttp.NewServer()
-			cmdArgs = []string{"-t", atcServer.URL(), "builds"}
+			cmdArgs = []string{"-t", targetName, "builds"}
 
 			expectedHeaders = ui.TableRow{
 				{Contents: "id", Color: color.New(color.Bold)},

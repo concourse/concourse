@@ -15,10 +15,6 @@ import (
 )
 
 var _ = Describe("Fly CLI", func() {
-	var (
-		atcServer *ghttp.Server
-	)
-
 	Describe("checklist", func() {
 		var (
 			config atc.Config
@@ -26,8 +22,6 @@ var _ = Describe("Fly CLI", func() {
 		)
 
 		BeforeEach(func() {
-			atcServer = ghttp.NewServer()
-
 			config = atc.Config{
 				Groups: atc.GroupConfigs{
 					{
@@ -66,7 +60,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("prints the config as yaml to stdout", func() {
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "checklist", "-p", "some-pipeline")
+				flyCmd := exec.Command(flyPath, "-t", targetName, "checklist", "-p", "some-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
@@ -102,7 +96,7 @@ some-orphaned-job: concourse.check %s some-pipeline some-orphaned-job
 			})
 
 			It("prints the config as yaml to stdout", func() {
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "checklist", "-p", "some-pipeline")
+				flyCmd := exec.Command(flyPath, "-t", targetName, "checklist", "-p", "some-pipeline")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())

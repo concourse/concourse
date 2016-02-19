@@ -26,7 +26,6 @@ var _ = Describe("Fly CLI", func() {
 	var buildDir string
 	var otherInputDir string
 
-	var atcServer *ghttp.Server
 	var streaming chan struct{}
 	var events chan atc.Event
 	var uploading chan struct{}
@@ -73,8 +72,6 @@ run:
 			0644,
 		)
 		Expect(err).NotTo(HaveOccurred())
-
-		atcServer = ghttp.NewServer()
 
 		streaming = make(chan struct{})
 		events = make(chan atc.Event)
@@ -253,7 +250,7 @@ run:
 
 	It("flies with multiple passengers", func() {
 		flyCmd := exec.Command(
-			flyPath, "-t", atcServer.URL(), "e",
+			flyPath, "-t", targetName, "e",
 			"--input", fmt.Sprintf("some-input=%s", buildDir),
 			"--input", fmt.Sprintf("some-other-input=%s", otherInputDir),
 			"--config", filepath.Join(buildDir, "task.yml"),

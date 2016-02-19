@@ -35,7 +35,8 @@ var _ = Describe("Targets", func() {
 
 	Describe("Insecure Flag", func() {
 		Describe("when 'insecure' is set to false in the flyrc", func() {
-			var targetName string
+			var targetName rc.TargetName
+
 			BeforeEach(func() {
 				targetName = "foo"
 				err := rc.SaveTarget(
@@ -55,7 +56,8 @@ var _ = Describe("Targets", func() {
 		})
 
 		Describe("when 'insecure' is set to true in the flyrc", func() {
-			var targetName string
+			var targetName rc.TargetName
+
 			BeforeEach(func() {
 				targetName = "foo"
 				err := rc.SaveTarget(
@@ -71,19 +73,6 @@ var _ = Describe("Targets", func() {
 				returnedTarget, err := rc.SelectTarget(targetName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(returnedTarget.Insecure).To(BeTrue())
-			})
-		})
-
-		Describe("When the target does not exist in the flyrc", func() {
-			var targetName string
-			BeforeEach(func() {
-				targetName = "https://foo.com"
-			})
-
-			It("returns the target with insecure is set to false", func() {
-				returnedTarget, err := rc.SelectTarget(targetName)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(returnedTarget.Insecure).To(BeFalse())
 			})
 		})
 	})

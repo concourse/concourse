@@ -21,7 +21,7 @@ type LoginCommand struct {
 }
 
 func (command *LoginCommand) Execute(args []string) error {
-	if isURL(Fly.Target) {
+	if Fly.Target == "" {
 		return errors.New("name for the target must be specified (--target/-t)")
 	}
 

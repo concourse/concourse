@@ -16,20 +16,14 @@ import (
 )
 
 var _ = Describe("Hijacking", func() {
-	var atcServer *ghttp.Server
 	var hijacked <-chan struct{}
 	var workingDirectory string
 	var envVariables []string
 
 	BeforeEach(func() {
-		atcServer = ghttp.NewServer()
 		hijacked = nil
 		workingDirectory = ""
 		envVariables = nil
-	})
-
-	AfterEach(func() {
-		atcServer.Close()
 	})
 
 	hijackHandler := func(id string, didHijack chan<- struct{}, errorMessages []string) http.HandlerFunc {
@@ -105,7 +99,7 @@ var _ = Describe("Hijacking", func() {
 	fly := func(command string, args ...string) {
 		commandWithArgs := append([]string{command}, args...)
 
-		flyCmd := exec.Command(flyPath, append([]string{"-t", atcServer.URL()}, commandWithArgs...)...)
+		flyCmd := exec.Command(flyPath, append([]string{"-t", targetName}, commandWithArgs...)...)
 
 		stdin, err := flyCmd.StdinPipe()
 		Expect(err).NotTo(HaveOccurred())
@@ -243,7 +237,7 @@ var _ = Describe("Hijacking", func() {
 		})
 
 		It("return a friendly error message", func() {
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-s", "some-step")
+			flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "-s", "some-step")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -266,7 +260,7 @@ var _ = Describe("Hijacking", func() {
 		})
 
 		It("logs an error message and response status/body", func() {
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-b", "0")
+			flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "-b", "0")
 
 			stdin, err := flyCmd.StdinPipe()
 			Expect(err).NotTo(HaveOccurred())
@@ -322,7 +316,7 @@ var _ = Describe("Hijacking", func() {
 		})
 
 		It("asks the user to select the container from a menu", func() {
-			flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "-j", "pipeline-name-1/some-job")
+			flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "-j", "pipeline-name-1/some-job")
 
 			stdin, err := flyCmd.StdinPipe()
 			Expect(err).NotTo(HaveOccurred())
@@ -474,7 +468,7 @@ var _ = Describe("Hijacking", func() {
 			})
 
 			It("prints it to stderr and exits 255", func() {
-				flyCmd := exec.Command(flyPath, "-t", atcServer.URL(), "hijack", "--check", "a-pipeline/some-resource-name")
+				flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "--check", "a-pipeline/some-resource-name")
 
 				stdin, err := flyCmd.StdinPipe()
 				Expect(err).NotTo(HaveOccurred())

@@ -24,36 +24,7 @@ import (
 	"github.com/concourse/atc"
 )
 
-func getConfig(r *http.Request) []byte {
-	defer r.Body.Close()
-
-	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	Expect(err).NotTo(HaveOccurred())
-
-	reader := multipart.NewReader(r.Body, params["boundary"])
-
-	var payload []byte
-
-	for {
-		part, err := reader.NextPart()
-		if err == io.EOF {
-			break
-		}
-		Expect(err).NotTo(HaveOccurred())
-
-		payload, err = ioutil.ReadAll(part)
-
-		part.Close()
-	}
-
-	return payload
-}
-
 var _ = Describe("Fly CLI", func() {
-	var (
-		atcServer *ghttp.Server
-	)
-
 	Describe("set-pipeline", func() {
 		var (
 			config atc.Config
@@ -68,8 +39,6 @@ var _ = Describe("Fly CLI", func() {
 		}
 
 		BeforeEach(func() {
-			atcServer = ghttp.NewServer()
-
 			config = atc.Config{
 				Groups: atc.GroupConfigs{
 					{
@@ -203,8 +172,10 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("parses the config file and sends it to the ATC", func() {
+					reqsBefore := len(atcServer.ReceivedRequests())
+
 					flyCmd := exec.Command(
-						flyPath, "-t", atcServer.URL()+"/",
+						flyPath, "-t", targetName,
 						"set-pipeline",
 						"--pipeline", "awesome-pipeline",
 						"-c", "fixtures/testConfig.yml",
@@ -225,13 +196,15 @@ var _ = Describe("Fly CLI", func() {
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
 
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 2))
 				})
 
 				Context("when the --non-interactive is passed", func() {
 					It("parses the config file and sends it to the ATC without interaction", func() {
+						reqsBefore := len(atcServer.ReceivedRequests())
+
 						flyCmd := exec.Command(
-							flyPath, "-t", atcServer.URL()+"/",
+							flyPath, "-t", targetName,
 							"set-pipeline",
 							"--pipeline", "awesome-pipeline",
 							"-c", "fixtures/testConfig.yml",
@@ -248,7 +221,7 @@ var _ = Describe("Fly CLI", func() {
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(0))
 
-						Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
+						Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 2))
 					})
 				})
 			})
@@ -298,7 +271,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when not specifying a pipeline name", func() {
 				It("fails and says you should give a pipeline name", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-c", configFile.Name())
+					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-c", configFile.Name())
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -312,7 +285,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when not specifying a config file", func() {
 				It("fails and says you should give a config file", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-p", "awesome-pipeline")
+					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -373,7 +346,8 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("parses the config file and sends it to the ATC", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
+					reqsBefore := len(atcServer.ReceivedRequests())
+					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
 
 					stdin, err := flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())
@@ -431,11 +405,12 @@ var _ = Describe("Fly CLI", func() {
 
 					Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-unchanged-job"))
 
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 2))
 				})
 
 				It("bails if the user rejects the diff", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
+					reqsBefore := len(atcServer.ReceivedRequests())
+					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
 
 					stdin, err := flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())
@@ -449,7 +424,7 @@ var _ = Describe("Fly CLI", func() {
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
 
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 1))
 				})
 			})
 
@@ -464,7 +439,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints the error to stderr and exits 1", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-c", configFile.Name(), "-p", "awesome-pipeline")
+					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-c", configFile.Name(), "-p", "awesome-pipeline")
 
 					stdin, err := flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())
@@ -500,7 +475,8 @@ var _ = Describe("Fly CLI", func() {
 					})
 
 					It("succeeds and prints an error message to help the user", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
+						reqsBefore := len(atcServer.ReceivedRequests())
+						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
 
 						stdin, err := flyCmd.StdinPipe()
 						Expect(err).NotTo(HaveOccurred())
@@ -523,7 +499,7 @@ var _ = Describe("Fly CLI", func() {
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(0))
 
-						Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
+						Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 2))
 					})
 				})
 			})
@@ -539,7 +515,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints the error to stderr and exits 1", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "set-pipeline", "-c", configFile.Name(), "-p", "awesome-pipeline")
+					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-c", configFile.Name(), "-p", "awesome-pipeline")
 
 					stdin, err := flyCmd.StdinPipe()
 					Expect(err).NotTo(HaveOccurred())
@@ -559,3 +535,28 @@ var _ = Describe("Fly CLI", func() {
 		})
 	})
 })
+
+func getConfig(r *http.Request) []byte {
+	defer r.Body.Close()
+
+	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	Expect(err).NotTo(HaveOccurred())
+
+	reader := multipart.NewReader(r.Body, params["boundary"])
+
+	var payload []byte
+
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+		Expect(err).NotTo(HaveOccurred())
+
+		payload, err = ioutil.ReadAll(part)
+
+		part.Close()
+	}
+
+	return payload
+}

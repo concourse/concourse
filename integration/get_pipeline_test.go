@@ -18,18 +18,12 @@ import (
 )
 
 var _ = Describe("Fly CLI", func() {
-	var (
-		atcServer *ghttp.Server
-	)
-
 	Describe("get-pipeline", func() {
 		var (
 			config atc.Config
 		)
 
 		BeforeEach(func() {
-			atcServer = ghttp.NewServer()
-
 			config = atc.Config{
 				Groups: atc.GroupConfigs{
 					{
@@ -94,7 +88,7 @@ var _ = Describe("Fly CLI", func() {
 		Describe("getting", func() {
 			Context("when not specifying a pipeline name", func() {
 				It("fails and says you should give a pipeline name", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "get-pipeline")
+					flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -120,7 +114,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints the config as yaml to stdout", func() {
-					flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "get-pipeline", "--pipeline", "some-pipeline")
+					flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -137,7 +131,7 @@ var _ = Describe("Fly CLI", func() {
 
 				Context("when -j is given", func() {
 					It("prints the config as json to stdout", func() {
-						flyCmd := exec.Command(flyPath, "-t", atcServer.URL()+"/", "get-pipeline", "--pipeline", "some-pipeline", "-j")
+						flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline", "-j")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())

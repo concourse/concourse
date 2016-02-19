@@ -14,18 +14,13 @@ import (
 )
 
 var _ = Describe("Fly CLI", func() {
-	var (
-		atcServer *ghttp.Server
-	)
-
 	Describe("workers", func() {
 		var (
 			flyCmd *exec.Cmd
 		)
 
 		BeforeEach(func() {
-			atcServer = ghttp.NewServer()
-			flyCmd = exec.Command(flyPath, "-t", atcServer.URL(), "workers")
+			flyCmd = exec.Command(flyPath, "-t", targetName, "workers")
 		})
 
 		Context("when workers are returned from the API", func() {

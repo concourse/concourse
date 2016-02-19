@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 
@@ -30,7 +29,7 @@ type TargetToken struct {
 }
 
 type targetDetailsYAML struct {
-	Targets map[string]TargetProps
+	Targets map[TargetName]TargetProps
 }
 
 func NewTarget(api string, insecure bool, token *TargetToken) TargetProps {
@@ -41,7 +40,7 @@ func NewTarget(api string, insecure bool, token *TargetToken) TargetProps {
 	}
 }
 
-func SaveTarget(targetName string, api string, insecure bool, token *TargetToken) error {
+func SaveTarget(targetName TargetName, api string, insecure bool, token *TargetToken) error {
 	flyrc := filepath.Join(userHomeDir(), ".flyrc")
 	flyTargets, err := loadTargets(flyrc)
 	if err != nil {
@@ -58,11 +57,7 @@ func SaveTarget(targetName string, api string, insecure bool, token *TargetToken
 	return writeTargets(flyrc, flyTargets)
 }
 
-func SelectTarget(selectedTarget string) (TargetProps, error) {
-	if isURL(selectedTarget) {
-		return NewTarget(selectedTarget, false, nil), nil
-	}
-
+func SelectTarget(selectedTarget TargetName) (TargetProps, error) {
 	flyrc := filepath.Join(userHomeDir(), ".flyrc")
 	flyTargets, err := loadTargets(flyrc)
 	if err != nil {
@@ -94,15 +89,11 @@ func NewClient(atcURL string, insecure bool) concourse.Client {
 	})
 }
 
-func TargetClient(selectedTarget string) (concourse.Client, error) {
+func TargetClient(selectedTarget TargetName) (concourse.Client, error) {
 	return CommandTargetClient(selectedTarget, nil)
 }
 
-func CommandTargetClient(selectedTarget string, commandInsecure *bool) (concourse.Client, error) {
-	if isURL(selectedTarget) {
-		return NewClient(selectedTarget, false), nil
-	}
-
+func CommandTargetClient(selectedTarget TargetName, commandInsecure *bool) (concourse.Client, error) {
 	flyrc := filepath.Join(userHomeDir(), ".flyrc")
 	flyTargets, err := loadTargets(flyrc)
 	if err != nil {
@@ -182,7 +173,7 @@ func loadTargets(configFileLocation string) (*targetDetailsYAML, error) {
 	}
 
 	if flyTargets == nil {
-		return &targetDetailsYAML{Targets: map[string]TargetProps{}}, nil
+		return &targetDetailsYAML{Targets: map[TargetName]TargetProps{}}, nil
 	}
 
 	return flyTargets, nil
@@ -200,9 +191,4 @@ func writeTargets(configFileLocation string, targetsToWrite *targetDetailsYAML) 
 	}
 
 	return nil
-}
-
-func isURL(passedURL string) bool {
-	matched, _ := regexp.MatchString("^http[s]?://", passedURL)
-	return matched
 }

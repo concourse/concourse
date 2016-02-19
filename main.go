@@ -21,7 +21,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "not authorized. run the following to log in:")
 			fmt.Fprintln(os.Stderr, "")
 
-			if isURL(commands.Fly.Target) {
+			if commands.Fly.Target == "" {
 				fmt.Fprintln(os.Stderr, "    "+color.New(color.Bold).SprintfFunc()("fly -t (alias) login -c %s", commands.Fly.Target))
 			} else {
 				fmt.Fprintln(os.Stderr, "    "+color.New(color.Bold).SprintfFunc()("fly -t %s login", commands.Fly.Target))

@@ -3,10 +3,7 @@ package integration_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
 	"os/exec"
-	"runtime"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,26 +17,7 @@ import (
 var _ = Describe("login Command", func() {
 	var (
 		atcServer *ghttp.Server
-
-		homeDir string
 	)
-
-	BeforeEach(func() {
-		var err error
-
-		homeDir, err = ioutil.TempDir("", "fly-test")
-		Expect(err).NotTo(HaveOccurred())
-
-		if runtime.GOOS == "windows" {
-			os.Setenv("USERPROFILE", homeDir)
-		} else {
-			os.Setenv("HOME", homeDir)
-		}
-	})
-
-	AfterEach(func() {
-		os.RemoveAll(homeDir)
-	})
 
 	Describe("login with no target name", func() {
 		var (
