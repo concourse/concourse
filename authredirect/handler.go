@@ -9,6 +9,8 @@ import (
 	"github.com/gorilla/context"
 )
 
+//go:generate counterfeiter . ErrHandler
+
 type ErrHandler interface {
 	ServeHTTP(w http.ResponseWriter, r *http.Request) error
 }
@@ -25,10 +27,9 @@ func (handler Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		reqURL := context.Get(r, requestURLKey)
-		if reqURLStr, ok := reqURL.(string); ok {
+		if redirectURL, ok := handler.redirectTargetFor(r); ok {
 			path += "?" + url.Values{
-				"redirect": {reqURLStr},
+				"redirect": {redirectURL},
 			}.Encode()
 		}
 
@@ -36,4 +37,19 @@ func (handler Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+func (handler Handler) redirectTargetFor(r *http.Request) (string, bool) {
+	if r.Method == "GET" {
+		reqURL := context.Get(r, requestURLKey)
+		reqURLStr, ok := reqURL.(string)
+		return reqURLStr, ok
+	}
+
+	referer := r.Referer()
+	if referer != "" {
+		return referer, true
+	}
+
+	return "", false
 }
