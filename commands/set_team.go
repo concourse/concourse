@@ -29,6 +29,11 @@ type SetTeamCommand struct {
 }
 
 func (command *SetTeamCommand) Execute([]string) error {
+	client, err := rc.TargetClient(Fly.Target)
+	if err != nil {
+		return err
+	}
+
 	hasBasicAuth, hasGitHubAuth, err := command.ValidateFlags()
 	if err != nil {
 		return err
@@ -49,11 +54,6 @@ func (command *SetTeamCommand) Execute([]string) error {
 	}
 
 	team := command.GetTeam(hasBasicAuth, hasGitHubAuth)
-
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
-	}
 
 	_, _, _, err = client.SetTeam(command.TeamName, team)
 	if err != nil {

@@ -13,8 +13,12 @@ type DestroyPipelineCommand struct {
 }
 
 func (command *DestroyPipelineCommand) Execute(args []string) error {
-	pipelineName := command.Pipeline
+	client, err := rc.TargetClient(Fly.Target)
+	if err != nil {
+		return err
+	}
 
+	pipelineName := command.Pipeline
 	fmt.Printf("!!! this will remove all data for pipeline `%s`\n\n", pipelineName)
 
 	confirm := command.SkipInteractive
@@ -24,11 +28,6 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 			fmt.Println("bailing out")
 			return err
 		}
-	}
-
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
 	}
 
 	found, err := client.DeletePipeline(pipelineName)

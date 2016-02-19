@@ -16,6 +16,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/mattn/go-isatty"
 
 	"gopkg.in/yaml.v2"
 )
@@ -110,7 +111,14 @@ func NewClient(atcURL string, insecure bool) concourse.Client {
 }
 
 func TargetClient(selectedTarget TargetName) (concourse.Client, error) {
-	return CommandTargetClient(selectedTarget, nil)
+	targetClient, err := CommandTargetClient(selectedTarget, nil)
+	if err != nil {
+		return nil, err
+	}
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		fmt.Printf("targeting %s\n\n", targetClient.URL())
+	}
+	return targetClient, nil
 }
 
 func CommandTargetClient(selectedTarget TargetName, commandInsecure *bool) (concourse.Client, error) {
