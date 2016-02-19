@@ -9,7 +9,7 @@ import (
 //go:generate counterfeiter . SchedulerFactory
 
 type SchedulerFactory interface {
-	BuildScheduler(db.PipelineDB) scheduler.BuildScheduler
+	BuildScheduler(db.PipelineDB, string) scheduler.BuildScheduler
 }
 
 type Server struct {

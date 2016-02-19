@@ -11,32 +11,35 @@ import (
 )
 
 type FakeRadarSchedulerFactory struct {
-	BuildRadarStub        func(pipelineDB db.PipelineDB) *radar.Radar
+	BuildRadarStub        func(pipelineDB db.PipelineDB, externalURL string) *radar.Radar
 	buildRadarMutex       sync.RWMutex
 	buildRadarArgsForCall []struct {
-		pipelineDB db.PipelineDB
+		pipelineDB  db.PipelineDB
+		externalURL string
 	}
 	buildRadarReturns struct {
 		result1 *radar.Radar
 	}
-	BuildSchedulerStub        func(pipelineDB db.PipelineDB) scheduler.BuildScheduler
+	BuildSchedulerStub        func(pipelineDB db.PipelineDB, externalURL string) scheduler.BuildScheduler
 	buildSchedulerMutex       sync.RWMutex
 	buildSchedulerArgsForCall []struct {
-		pipelineDB db.PipelineDB
+		pipelineDB  db.PipelineDB
+		externalURL string
 	}
 	buildSchedulerReturns struct {
 		result1 scheduler.BuildScheduler
 	}
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildRadar(pipelineDB db.PipelineDB) *radar.Radar {
+func (fake *FakeRadarSchedulerFactory) BuildRadar(pipelineDB db.PipelineDB, externalURL string) *radar.Radar {
 	fake.buildRadarMutex.Lock()
 	fake.buildRadarArgsForCall = append(fake.buildRadarArgsForCall, struct {
-		pipelineDB db.PipelineDB
-	}{pipelineDB})
+		pipelineDB  db.PipelineDB
+		externalURL string
+	}{pipelineDB, externalURL})
 	fake.buildRadarMutex.Unlock()
 	if fake.BuildRadarStub != nil {
-		return fake.BuildRadarStub(pipelineDB)
+		return fake.BuildRadarStub(pipelineDB, externalURL)
 	} else {
 		return fake.buildRadarReturns.result1
 	}
@@ -48,10 +51,10 @@ func (fake *FakeRadarSchedulerFactory) BuildRadarCallCount() int {
 	return len(fake.buildRadarArgsForCall)
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildRadarArgsForCall(i int) db.PipelineDB {
+func (fake *FakeRadarSchedulerFactory) BuildRadarArgsForCall(i int) (db.PipelineDB, string) {
 	fake.buildRadarMutex.RLock()
 	defer fake.buildRadarMutex.RUnlock()
-	return fake.buildRadarArgsForCall[i].pipelineDB
+	return fake.buildRadarArgsForCall[i].pipelineDB, fake.buildRadarArgsForCall[i].externalURL
 }
 
 func (fake *FakeRadarSchedulerFactory) BuildRadarReturns(result1 *radar.Radar) {
@@ -61,14 +64,15 @@ func (fake *FakeRadarSchedulerFactory) BuildRadarReturns(result1 *radar.Radar) {
 	}{result1}
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB) scheduler.BuildScheduler {
+func (fake *FakeRadarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, externalURL string) scheduler.BuildScheduler {
 	fake.buildSchedulerMutex.Lock()
 	fake.buildSchedulerArgsForCall = append(fake.buildSchedulerArgsForCall, struct {
-		pipelineDB db.PipelineDB
-	}{pipelineDB})
+		pipelineDB  db.PipelineDB
+		externalURL string
+	}{pipelineDB, externalURL})
 	fake.buildSchedulerMutex.Unlock()
 	if fake.BuildSchedulerStub != nil {
-		return fake.BuildSchedulerStub(pipelineDB)
+		return fake.BuildSchedulerStub(pipelineDB, externalURL)
 	} else {
 		return fake.buildSchedulerReturns.result1
 	}
@@ -80,10 +84,10 @@ func (fake *FakeRadarSchedulerFactory) BuildSchedulerCallCount() int {
 	return len(fake.buildSchedulerArgsForCall)
 }
 
-func (fake *FakeRadarSchedulerFactory) BuildSchedulerArgsForCall(i int) db.PipelineDB {
+func (fake *FakeRadarSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.PipelineDB, string) {
 	fake.buildSchedulerMutex.RLock()
 	defer fake.buildSchedulerMutex.RUnlock()
-	return fake.buildSchedulerArgsForCall[i].pipelineDB
+	return fake.buildSchedulerArgsForCall[i].pipelineDB, fake.buildSchedulerArgsForCall[i].externalURL
 }
 
 func (fake *FakeRadarSchedulerFactory) BuildSchedulerReturns(result1 scheduler.BuildScheduler) {

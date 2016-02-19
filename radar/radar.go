@@ -50,6 +50,7 @@ type Radar struct {
 	defaultInterval time.Duration
 	db              RadarDB
 	clock           clock.Clock
+	externalURL     string
 }
 
 func NewRadar(
@@ -57,12 +58,14 @@ func NewRadar(
 	defaultInterval time.Duration,
 	db RadarDB,
 	clock clock.Clock,
+	externalURL string,
 ) *Radar {
 	return &Radar{
 		tracker:         tracker,
 		defaultInterval: defaultInterval,
 		db:              db,
 		clock:           clock,
+		externalURL:     externalURL,
 	}
 }
 
@@ -203,6 +206,8 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 		return nil
 	}
 
+	pipelineName := radar.db.GetPipelineName()
+
 	session := resource.Session{
 		ID: worker.Identifier{
 			ResourceID:  savedResource.ID,
@@ -212,14 +217,18 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 		},
 		Metadata: worker.Metadata{
 			Type:         db.ContainerTypeCheck,
-			PipelineName: radar.db.GetPipelineName(),
+			PipelineName: pipelineName,
 		},
 		Ephemeral: true,
 	}
 
 	res, err := radar.tracker.Init(
 		logger,
-		resource.EmptyMetadata{},
+		resource.TrackerMetadata{
+			ResourceName: resourceConfig.Name,
+			PipelineName: pipelineName,
+			ExternalURL:  radar.externalURL,
+		},
 		session,
 		resource.ResourceType(resourceConfig.Type),
 		[]string{},
