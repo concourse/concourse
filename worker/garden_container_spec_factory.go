@@ -28,6 +28,7 @@ type gardenContainerSpecFactory struct {
 	imageFetcher       ImageFetcher
 	volumeMounts       map[string]string
 	volumeHandles      []string
+	user               string
 	releaseAfterCreate []releasable
 }
 
@@ -90,6 +91,7 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 
 		factory.volumeHandles = append(factory.volumeHandles, imageVolume.Handle())
 		factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
+		factory.user = image.Metadata().User
 
 		gardenSpec = garden.ContainerSpec{
 			Properties: garden.Properties{},
@@ -129,10 +131,18 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 
 		gardenSpec.Properties[volumeMountsPropertyName] = string(mountsJSON)
 	}
+
+	if factory.user != "" {
+		gardenSpec.Properties["user"] = factory.user
+	}
 	return gardenSpec, nil
 }
 
-func (factory *gardenContainerSpecFactory) BuildResourceContainerSpec(spec ResourceTypeContainerSpec, gardenSpec garden.ContainerSpec, resourceTypes []atc.WorkerResourceType) (garden.ContainerSpec, error) {
+func (factory *gardenContainerSpecFactory) BuildResourceContainerSpec(
+	spec ResourceTypeContainerSpec,
+	gardenSpec garden.ContainerSpec,
+	resourceTypes []atc.WorkerResourceType,
+) (garden.ContainerSpec, error) {
 	if len(spec.Mounts) > 0 && spec.Cache.Volume != nil {
 		return gardenSpec, errors.New("a container may not have mounts and a cache")
 	}

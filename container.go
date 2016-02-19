@@ -13,4 +13,5 @@ type Container struct {
 	WorkingDirectory     string   `json:"working_directory,omitempty"`
 	EnvironmentVariables []string `json:"env_variables,omitempty"`
 	Attempts             []int    `json:"attempt,omitempty"`
+	User                 string   `json:"user,omitempty"`
 }

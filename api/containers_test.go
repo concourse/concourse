@@ -36,6 +36,7 @@ var _ = Describe("Pipelines API", func() {
 		workingDirectory = "/tmp/build/my-favorite-guid"
 		envVariables     = []string{"VAR1=VAL1"}
 		attempts         = []int{1, 5}
+		user             = "snoopy"
 
 		req            *http.Request
 		fakeContainer1 db.Container
@@ -56,6 +57,7 @@ var _ = Describe("Pipelines API", func() {
 				WorkingDirectory:     workingDirectory,
 				EnvironmentVariables: envVariables,
 				Attempts:             attempts,
+				User:                 user,
 				Handle:               handle,
 			},
 		}
@@ -145,7 +147,8 @@ var _ = Describe("Pipelines API", func() {
 									"step_name": "some-step",
 									"working_directory": "/tmp/build/my-favorite-guid",
 									"env_variables": ["VAR1=VAL1"],
-									"attempt": [1,5]
+									"attempt": [1,5],
+									"user": "snoopy"
 								},
 								{
 									"id": "some-other-handle",
@@ -505,7 +508,8 @@ var _ = Describe("Pipelines API", func() {
 							"worker_name": "some-worker-guid",
 							"working_directory": "/tmp/build/my-favorite-guid",
 							"env_variables": ["VAR1=VAL1"],
-							"attempt": [1,5]
+							"attempt": [1,5],
+							"user": "snoopy"
 						}
 					`))
 				})
@@ -545,7 +549,7 @@ var _ = Describe("Pipelines API", func() {
 		)
 
 		BeforeEach(func() {
-			requestPayload = `{"path":"ls", "user": "root"}`
+			requestPayload = `{"path":"ls", "user": "snoopy"}`
 		})
 
 		JustBeforeEach(func() {
@@ -645,7 +649,7 @@ var _ = Describe("Pipelines API", func() {
 						spec, io := fakeContainer.RunArgsForCall(0)
 						Expect(spec).To(Equal(garden.ProcessSpec{
 							Path: "ls",
-							User: "root",
+							User: "snoopy",
 						}))
 
 						Expect(io.Stdin).NotTo(BeNil())

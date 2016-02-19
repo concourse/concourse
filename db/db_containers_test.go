@@ -172,6 +172,7 @@ var _ = Describe("Keeping track of containers", func() {
 				Type:                 db.ContainerTypeTask,
 				WorkingDirectory:     "tmp/build/some-guid",
 				EnvironmentVariables: []string{"VAR1=val1", "VAR2=val2"},
+				User:                 "test-user",
 				Attempts:             []int{1, 2, 4},
 			},
 		}
@@ -247,6 +248,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.Type).To(Equal(containerToCreate.Type))
 		Expect(actualContainer.WorkingDirectory).To(Equal(containerToCreate.WorkingDirectory))
 		Expect(actualContainer.EnvironmentVariables).To(Equal(containerToCreate.EnvironmentVariables))
+		Expect(actualContainer.User).To(Equal(containerToCreate.User))
 		Expect(actualContainer.Attempts).To(Equal(containerToCreate.Attempts))
 
 		Expect(actualContainer.ResourceID).To(Equal(0))

@@ -905,7 +905,8 @@ var _ = Describe("Worker", func() {
 							imageVolume.PathReturns("/some/image/path")
 							image.VolumeReturns(imageVolume)
 							image.MetadataReturns(ImageMetadata{
-								Env: []string{"A=1", "B=2"},
+								Env:  []string{"A=1", "B=2"},
+								User: "pilot",
 							})
 
 							fakeImageFetcher.FetchImageReturns(image, nil)
@@ -920,7 +921,7 @@ var _ = Describe("Worker", func() {
 
 							spec := fakeGardenClient.CreateArgsForCall(0)
 							Expect(spec.RootFSPath).To(Equal("/some/image/path/rootfs"))
-							Expect(spec.Properties).To(HaveLen(2))
+							Expect(spec.Properties).To(HaveLen(3))
 							Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
 								`["image-volume"]`,
 							))
@@ -947,6 +948,23 @@ var _ = Describe("Worker", func() {
 
 							spec := fakeGardenClient.CreateArgsForCall(0)
 							Expect(spec.Env).To(Equal([]string{"A=1", "B=2"}))
+						})
+
+						It("creates the container info in the database", func() {
+							expectedMetadata := containerMetadata
+							expectedMetadata.WorkerName = workerName
+							expectedMetadata.Handle = "some-handle"
+							expectedMetadata.User = "pilot"
+
+							container := db.Container{
+								ContainerIdentifier: db.ContainerIdentifier(containerID),
+								ContainerMetadata:   db.ContainerMetadata(expectedMetadata),
+							}
+
+							Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
+							actualContainer, ttl := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+							Expect(actualContainer).To(Equal(container))
+							Expect(ttl).To(Equal(5 * time.Minute))
 						})
 
 						Context("after the container is created", func() {

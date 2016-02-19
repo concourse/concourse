@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc"
 )
 
-const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts"
+const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user"
 const containerJoins = `
 		LEFT JOIN pipelines p
 		  ON p.id = c.pipeline_id
@@ -271,6 +271,8 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		return Container{}, err
 	}
 
+	user := container.User
+
 	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
 	var pipelineID sql.NullInt64
@@ -330,8 +332,8 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage, image_resource_type, image_resource_source)
-		VALUES ($1, $2, $3, $4, $5, $6,  $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage, image_resource_type, image_resource_source, process_user)
+		VALUES ($1, $2, $3, $4, $5, $6,  $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
 		container.Handle,
 		resourceID,
 		container.StepName,
@@ -349,6 +351,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		string(container.Stage),
 		imageResourceType,
 		imageResourceSource,
+		user,
 	)
 	if err != nil {
 		return Container{}, err
@@ -514,6 +517,7 @@ func scanContainer(row scannable) (Container, error) {
 		&container.WorkingDirectory,
 		&envVariablesBlob,
 		&attempts,
+		&container.User,
 	)
 	if err != nil {
 		return Container{}, err

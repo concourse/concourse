@@ -47,6 +47,7 @@ type ContainerMetadata struct {
 	WorkingDirectory     string
 	EnvironmentVariables []string
 	Attempts             []int
+	User                 string
 }
 
 type Container struct {

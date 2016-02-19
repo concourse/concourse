@@ -42,7 +42,8 @@ type Image interface {
 }
 
 type ImageMetadata struct {
-	Env []string `json:"env"`
+	Env  []string `json:"env"`
+	User string   `json:"user"`
 }
 
 type NoopImageFetchingDelegate struct{}

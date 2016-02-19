@@ -142,7 +142,7 @@ var _ = Describe("Fetcher", func() {
 
 					Context("when the 'get' source provides a metadata.json", func() {
 						BeforeEach(func() {
-							fakeVersionedSource.StreamOutReturns(tarStreamWith(`{"env": ["why=does", "this=package", "dot=import", "everything=why?"]}`), nil)
+							fakeVersionedSource.StreamOutReturns(tarStreamWith(`{"env": ["why=does", "this=package", "dot=import", "everything=why?"], "user":"pilot"}`), nil)
 						})
 
 						Context("when the cache is not initialized", func() {
@@ -194,7 +194,8 @@ var _ = Describe("Fetcher", func() {
 
 									It("has the correct env on the image", func() {
 										Expect(fetchedImage.Metadata()).To(Equal(worker.ImageMetadata{
-											Env: []string{"why=does", "this=package", "dot=import", "everything=why?"},
+											Env:  []string{"why=does", "this=package", "dot=import", "everything=why?"},
+											User: "pilot",
 										}))
 									})
 

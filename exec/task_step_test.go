@@ -119,7 +119,7 @@ var _ = Describe("GardenFactory", func() {
 				fakeWorkerClient.FindContainerForIdentifierReturns(nil, false, errors.New("nope"))
 			})
 
-			Context("when the getting the config works", func() {
+			Context("when getting the config works", func() {
 				var fetchedConfig atc.TaskConfig
 
 				BeforeEach(func() {
@@ -179,6 +179,7 @@ var _ = Describe("GardenFactory", func() {
 							fakeProcess = new(gfakes.FakeProcess)
 							fakeProcess.IDReturns("process-id")
 							fakeContainer.RunReturns(fakeProcess, nil)
+							fakeContainer.PropertiesReturns(garden.Properties{"user": "Red Baron"}, nil)
 
 							fakeContainer.StreamInReturns(nil)
 						})
@@ -281,7 +282,7 @@ var _ = Describe("GardenFactory", func() {
 							Expect(spec.Args).To(Equal([]string{"some", "args"}))
 							Expect(spec.Env).To(Equal([]string{"SOME=params"}))
 							Expect(spec.Dir).To(Equal("/tmp/build/a1f5c0c1"))
-							Expect(spec.User).To(Equal("root"))
+							Expect(spec.User).To(Equal("Red Baron"))
 							Expect(spec.TTY).To(Equal(&garden.TTYSpec{}))
 						})
 
@@ -332,7 +333,7 @@ var _ = Describe("GardenFactory", func() {
 								Expect(taskSpec.Privileged).To(BeTrue())
 							})
 
-							It("runs the process as root", func() {
+							It("runs the process as the specified user", func() {
 								Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 								spec, _ := fakeContainer.RunArgsForCall(0)
@@ -341,7 +342,7 @@ var _ = Describe("GardenFactory", func() {
 									Args: []string{"some", "args"},
 									Env:  []string{"SOME=params"},
 									Dir:  "/tmp/build/a1f5c0c1",
-									User: "root",
+									User: "Red Baron",
 									TTY:  &garden.TTYSpec{},
 								}))
 

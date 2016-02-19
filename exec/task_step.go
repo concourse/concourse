@@ -266,6 +266,14 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		}
 
 		step.delegate.Started()
+		containerProperties, err := step.container.Properties()
+		if err != nil {
+			return err
+		}
+		user := containerProperties["user"]
+		if user == "" {
+			user = "root"
+		}
 
 		step.process, err = step.container.Run(garden.ProcessSpec{
 			Path: config.Run.Path,
@@ -273,7 +281,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			Env:  step.envForParams(config.Params),
 
 			Dir:  step.artifactsRoot,
-			User: "root",
+			User: user,
 			TTY:  &garden.TTYSpec{},
 		}, processIO)
 		if err != nil {

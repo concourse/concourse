@@ -125,6 +125,7 @@ func (worker *gardenWorker) CreateContainer(
 
 	metadata.WorkerName = worker.name
 	metadata.Handle = gardenContainer.Handle()
+	metadata.User = gardenSpec.Properties["user"]
 	_, err = worker.db.CreateContainer(
 		db.Container{
 			ContainerIdentifier: db.ContainerIdentifier(id),

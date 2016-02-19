@@ -23,5 +23,6 @@ func Container(container db.Container) atc.Container {
 		WorkingDirectory:     container.WorkingDirectory,
 		EnvironmentVariables: container.EnvironmentVariables,
 		Attempts:             container.Attempts,
+		User:                 container.User,
 	}
 }
