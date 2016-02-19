@@ -276,7 +276,7 @@ func (command *HijackCommand) Execute(args []string) error {
 		Path: path,
 		Args: args,
 		Env:  envVariables,
-		User: "root",
+		User: chosenContainer.User,
 		Dir:  chosenContainer.WorkingDirectory,
 
 		Privileged: privileged,

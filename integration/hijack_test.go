@@ -19,11 +19,13 @@ var _ = Describe("Hijacking", func() {
 	var hijacked <-chan struct{}
 	var workingDirectory string
 	var envVariables []string
+	var user string
 
 	BeforeEach(func() {
 		hijacked = nil
 		workingDirectory = ""
 		envVariables = nil
+		user = "root"
 	})
 
 	hijackHandler := func(id string, didHijack chan<- struct{}, errorMessages []string) http.HandlerFunc {
@@ -41,7 +43,7 @@ var _ = Describe("Hijacking", func() {
 				err := body.Decode(&processSpec)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(processSpec.User).To(Equal("root"))
+				Expect(processSpec.User).To(Equal(user))
 				Expect(processSpec.Dir).To(Equal(workingDirectory))
 				for _, envVariable := range envVariables {
 					Expect(processSpec.Env).To(ContainElement(envVariable))
@@ -144,7 +146,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step"},
+						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step", User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -176,7 +178,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step", WorkingDirectory: workingDirectory},
+						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step", WorkingDirectory: workingDirectory, User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -204,7 +206,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&step_name=some-step"),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step", EnvironmentVariables: envVariables},
+						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step", EnvironmentVariables: envVariables, User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, nil),
@@ -212,6 +214,34 @@ var _ = Describe("Hijacking", func() {
 		})
 
 		It("hijacks the most recent one-off build and sets the specified environment variables", func() {
+			hijack("-s", "some-step")
+		})
+	})
+
+	Context("when the container specifies a user", func() {
+		BeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+			user = "amelia"
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/builds"),
+					ghttp.RespondWithJSONEncoded(200, []atc.Build{
+						{ID: 3, Name: "3", Status: "started"},
+					}),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/containers", "build-id=3&step_name=some-step"),
+					ghttp.RespondWithJSONEncoded(200, []atc.Container{
+						{ID: "container-id-1", BuildID: 3, StepType: "task", StepName: "some-step", User: "amelia"},
+					}),
+				),
+				hijackHandler("container-id-1", didHijack, nil),
+			)
+		})
+
+		It("hijacks the most recent one-off build as the specified user", func() {
 			hijack("-s", "some-step")
 		})
 	})
@@ -297,6 +327,7 @@ var _ = Describe("Hijacking", func() {
 							StepType:     "get",
 							StepName:     "some-input",
 							Attempts:     []int{1, 1, 1},
+							User:         user,
 						},
 						{
 							ID:           "container-id-2",
@@ -308,6 +339,7 @@ var _ = Describe("Hijacking", func() {
 							StepType:     "put",
 							StepName:     "some-output",
 							Attempts:     []int{1, 1, 2},
+							User:         user,
 						},
 					}),
 				),
@@ -383,7 +415,7 @@ var _ = Describe("Hijacking", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/containers", containerArguments),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
-						{ID: "container-id-1", WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, StepType: stepType, StepName: stepName, ResourceName: resourceName, Attempts: attempt},
+						{ID: "container-id-1", WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, StepType: stepType, StepName: stepName, ResourceName: resourceName, Attempts: attempt, User: user},
 					}),
 				),
 				hijackHandler("container-id-1", didHijack, hijackHandlerError),
