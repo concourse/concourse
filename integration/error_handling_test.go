@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"net/http"
 	"os/exec"
 
 	. "github.com/onsi/ginkgo"
@@ -61,6 +62,33 @@ var _ = Describe("Fly CLI", func() {
 
 			Expect(sess.Err).To(gbytes.Say("no target specified\\. specify the target with -t or log in like so:"))
 			Expect(sess.Err).To(gbytes.Say(`fly -t \(alias\) login -c \(concourse url\)`))
+		})
+	})
+
+	Describe("network errors", func() {
+		var (
+			flyCmd *exec.Cmd
+		)
+
+		BeforeEach(func() {
+			atcServer.AppendHandlers(
+				func(w http.ResponseWriter, r *http.Request) {
+					atcServer.CloseClientConnections()
+				},
+			)
+
+			flyCmd = exec.Command(flyPath, "-t", targetName, "containers")
+		})
+
+		It("tells the user a network error occurred, and that their target may be wrong, and makes fun of them", func() {
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).ToNot(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+
+			Expect(sess.Err).To(gbytes.Say("could not reach the Concourse server at " + atcServer.URL()))
+			Expect(sess.Err).To(gbytes.Say("lol"))
 		})
 	})
 })

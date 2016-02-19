@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"regexp"
 
@@ -30,6 +31,18 @@ func main() {
 			fmt.Fprintln(os.Stderr, "")
 			fmt.Fprintln(os.Stderr, "    "+embolden("fly -t (alias) login -c (concourse url)"))
 			fmt.Fprintln(os.Stderr, "")
+		} else if netErr, ok := err.(net.Error); ok {
+			client, err := rc.TargetClient(commands.Fly.Target)
+			if err == nil {
+				fmt.Fprintln(os.Stderr, "could not reach the Concourse server at "+client.URL()+":")
+			} else {
+				fmt.Fprintln(os.Stderr, "could not reach the Concourse server:")
+			}
+
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "    "+embolden("%s", netErr))
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "is the targeted Concourse running? better go catch it lol")
 		} else {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		}

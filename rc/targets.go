@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"golang.org/x/oauth2"
 
@@ -97,6 +99,9 @@ func NewClient(atcURL string, insecure bool) concourse.Client {
 
 	transport = &http.Transport{
 		TLSClientConfig: tlsConfig,
+		Dial: (&net.Dialer{
+			Timeout: 10 * time.Second,
+		}).Dial,
 	}
 
 	return concourse.NewClient(atcURL, &http.Client{
@@ -133,6 +138,9 @@ func CommandTargetClient(selectedTarget TargetName, commandInsecure *bool) (conc
 
 	transport = &http.Transport{
 		TLSClientConfig: tlsConfig,
+		Dial: (&net.Dialer{
+			Timeout: 10 * time.Second,
+		}).Dial,
 	}
 
 	if token != nil {
