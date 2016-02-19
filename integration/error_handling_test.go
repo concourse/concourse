@@ -37,9 +37,30 @@ var _ = Describe("Fly CLI", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 
-				Expect(sess.Err).To(gbytes.Say("not authorized. run the following to log in:\n\n    "))
+				Expect(sess.Err).To(gbytes.Say("not authorized\\. run the following to log in:\n\n    "))
 				Expect(sess.Err).To(gbytes.Say(`fly -t ` + targetName + ` login`))
 			})
+		})
+	})
+
+	Describe("missing target", func() {
+		var (
+			flyCmd *exec.Cmd
+		)
+
+		BeforeEach(func() {
+			flyCmd = exec.Command(flyPath, "containers")
+		})
+
+		It("instructs the user to specify a target", func() {
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).ToNot(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+
+			Expect(sess.Err).To(gbytes.Say("no target specified\\. specify the target with -t or log in like so:"))
+			Expect(sess.Err).To(gbytes.Say(`fly -t \(alias\) login -c \(concourse url\)`))
 		})
 	})
 })

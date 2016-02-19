@@ -2,6 +2,7 @@ package rc
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -16,6 +17,16 @@ import (
 
 	"gopkg.in/yaml.v2"
 )
+
+var ErrNoTargetSpecified = errors.New("no target specified")
+
+type UnknownTargetError struct {
+	TargetName TargetName
+}
+
+func (err UnknownTargetError) Error() string {
+	return fmt.Sprintf("unknown target: %s", err.TargetName)
+}
 
 type TargetProps struct {
 	API      string       `yaml:"api"`
@@ -58,6 +69,10 @@ func SaveTarget(targetName TargetName, api string, insecure bool, token *TargetT
 }
 
 func SelectTarget(selectedTarget TargetName) (TargetProps, error) {
+	if selectedTarget == "" {
+		return TargetProps{}, ErrNoTargetSpecified
+	}
+
 	flyrc := filepath.Join(userHomeDir(), ".flyrc")
 	flyTargets, err := loadTargets(flyrc)
 	if err != nil {
@@ -66,7 +81,7 @@ func SelectTarget(selectedTarget TargetName) (TargetProps, error) {
 
 	target, ok := flyTargets.Targets[selectedTarget]
 	if !ok {
-		return TargetProps{}, fmt.Errorf("Unable to find target %s in %s", selectedTarget, flyrc)
+		return TargetProps{}, UnknownTargetError{selectedTarget}
 	}
 
 	return target, nil
@@ -94,15 +109,9 @@ func TargetClient(selectedTarget TargetName) (concourse.Client, error) {
 }
 
 func CommandTargetClient(selectedTarget TargetName, commandInsecure *bool) (concourse.Client, error) {
-	flyrc := filepath.Join(userHomeDir(), ".flyrc")
-	flyTargets, err := loadTargets(flyrc)
+	target, err := SelectTarget(selectedTarget)
 	if err != nil {
 		return nil, err
-	}
-
-	target, ok := flyTargets.Targets[selectedTarget]
-	if !ok {
-		return nil, fmt.Errorf("Unable to find target %s in %s", selectedTarget, flyrc)
 	}
 
 	var token *oauth2.Token

@@ -76,4 +76,18 @@ var _ = Describe("Targets", func() {
 			})
 		})
 	})
+
+	Context("when selecting a target that does not exist", func() {
+		It("returns UnknownTargetError", func() {
+			_, err := rc.SelectTarget("bogus")
+			Expect(err).To(Equal(rc.UnknownTargetError{"bogus"}))
+		})
+	})
+
+	Context("when a target is not specified", func() {
+		It("returns ErrNoTargetSpecified", func() {
+			_, err := rc.SelectTarget("")
+			Expect(err).To(Equal(rc.ErrNoTargetSpecified))
+		})
+	})
 })
