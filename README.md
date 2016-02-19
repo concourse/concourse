@@ -11,7 +11,7 @@ Concourse cluster via the following subcommands:
 
 ## Prerequisites
 
-* Linux: kernel 3.19+, `iptables`
+* Linux: kernel 3.19+, `iptables`, `ip`
 * Darwin/Windows: nothing special.
 
 To run a Concourse cluster securely you'll need to generate 3 private keys:
