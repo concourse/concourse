@@ -3,12 +3,15 @@ package fly_test
 import (
 	"os/exec"
 
+	"github.com/concourse/fly/rc"
 	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 )
+
+const bogusTarget = "bogus-target"
 
 var _ = Describe("the quality of being unauthenticated", func() {
 	BeforeEach(func() {
@@ -17,11 +20,14 @@ var _ = Describe("the quality of being unauthenticated", func() {
 		if noAuth {
 			Skip("No auth methods enabled; skipping unauthenticated tests")
 		}
+
+		err = rc.SaveTarget(bogusTarget, atcURL, false, nil)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	DescribeTable("trying to run commands when unauthenticated",
 		func(passedArgs ...string) {
-			args := append([]string{"-t", atcURL}, passedArgs...)
+			args := append([]string{"-t", bogusTarget}, passedArgs...)
 			fly := exec.Command(flyBin, args...)
 			session := helpers.StartFly(fly)
 
@@ -46,7 +52,7 @@ var _ = Describe("the quality of being unauthenticated", func() {
 
 	DescribeTable("trying to run commands that require confirmation when unauthenticated",
 		func(passedArgs ...string) {
-			args := append([]string{"-t", atcURL}, passedArgs...)
+			args := append([]string{"-t", bogusTarget}, passedArgs...)
 			fly := exec.Command(flyBin, args...)
 			session := helpers.StartFly(fly)
 
