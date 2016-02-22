@@ -204,12 +204,13 @@ var _ = Describe("Worker", func() {
 						Expect(createErr).NotTo(HaveOccurred())
 					})
 
-					It("creates the container with the Garden client, defaults user to 'root' if not specified", func() {
+					It("creates the container with the Garden client, ", func() {
 						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+						By("temporarily using an empty user until we require one to be set")
 						Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 							RootFSPath: "some-resource-image",
 							Privileged: true,
-							Properties: garden.Properties{"user": "root"},
+							Properties: garden.Properties{"user": ""},
 						}))
 					})
 
@@ -217,7 +218,7 @@ var _ = Describe("Worker", func() {
 						expectedMetadata := containerMetadata
 						expectedMetadata.WorkerName = workerName
 						expectedMetadata.Handle = "some-handle"
-						expectedMetadata.User = "root"
+						expectedMetadata.User = ""
 
 						container := db.Container{
 							ContainerIdentifier: db.ContainerIdentifier(containerID),
@@ -351,7 +352,7 @@ var _ = Describe("Worker", func() {
 								RootFSPath: "some-resource-image",
 								Privileged: true,
 								Env:        []string{"a=1", "b=2"},
-								Properties: garden.Properties{"user": "root"},
+								Properties: garden.Properties{"user": ""},
 							}))
 
 						})
@@ -555,7 +556,7 @@ var _ = Describe("Worker", func() {
 								Privileged: true,
 								Properties: garden.Properties{
 									"concourse:ephemeral": "true",
-									"user":                "root",
+									"user":                "",
 								},
 							}))
 						})
@@ -882,7 +883,7 @@ var _ = Describe("Worker", func() {
 					Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
 						RootFSPath: "some-image",
 						Privileged: true,
-						Properties: garden.Properties{"user": "root"},
+						Properties: garden.Properties{"user": ""},
 					}))
 				})
 
@@ -1478,6 +1479,85 @@ var _ = Describe("Worker", func() {
 					Describe("Volumes", func() {
 						It("returns an empty slice", func() {
 							Expect(foundContainer.Volumes()).To(BeEmpty())
+						})
+					})
+				})
+
+				Context("when the user property is present", func() {
+					var (
+						actualSpec garden.ProcessSpec
+						actualIO   garden.ProcessIO
+					)
+
+					BeforeEach(func() {
+						actualSpec = garden.ProcessSpec{
+							Path: "some-path",
+							Args: []string{"some", "args"},
+							Env:  []string{"some=env"},
+							Dir:  "some-dir",
+						}
+
+						actualIO = garden.ProcessIO{}
+
+						fakeContainer.PropertiesReturns(garden.Properties{"user": "maverick"}, nil)
+					})
+
+					JustBeforeEach(func() {
+						foundContainer.RunProcess(actualSpec, actualIO)
+					})
+
+					Describe("RunProcess", func() {
+						It("calls Run() on the garden container and injects the user", func() {
+							Expect(fakeContainer.RunCallCount()).To(Equal(1))
+							spec, io := fakeContainer.RunArgsForCall(0)
+							Expect(spec).To(Equal(garden.ProcessSpec{
+								Path: "some-path",
+								Args: []string{"some", "args"},
+								Env:  []string{"some=env"},
+								Dir:  "some-dir",
+								User: "maverick",
+							}))
+							Expect(io).To(Equal(garden.ProcessIO{}))
+						})
+					})
+				})
+
+				Context("when the user property is not present", func() {
+					var (
+						actualSpec garden.ProcessSpec
+						actualIO   garden.ProcessIO
+					)
+
+					BeforeEach(func() {
+						actualSpec = garden.ProcessSpec{
+							Path: "some-path",
+							Args: []string{"some", "args"},
+							Env:  []string{"some=env"},
+							Dir:  "some-dir",
+						}
+
+						actualIO = garden.ProcessIO{}
+
+						fakeContainer.PropertiesReturns(garden.Properties{"user": ""}, nil)
+					})
+
+					JustBeforeEach(func() {
+						foundContainer.RunProcess(actualSpec, actualIO)
+					})
+
+					Describe("RunProcess", func() {
+						It("calls Run() on the garden container and injects the default user", func() {
+							Expect(fakeContainer.RunCallCount()).To(Equal(1))
+							spec, io := fakeContainer.RunArgsForCall(0)
+							Expect(spec).To(Equal(garden.ProcessSpec{
+								Path: "some-path",
+								Args: []string{"some", "args"},
+								Env:  []string{"some=env"},
+								Dir:  "some-dir",
+								User: "root",
+							}))
+							Expect(io).To(Equal(garden.ProcessIO{}))
+							Expect(fakeContainer.RunCallCount()).To(Equal(1))
 						})
 					})
 				})

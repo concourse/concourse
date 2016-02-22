@@ -577,6 +577,14 @@ func scanContainer(row scannable) (Container, error) {
 		}
 	}
 
+	//TODO remove this check once all containers have a user
+	// specifically waiting upon worker provided resources to
+	// use image resources that specifiy a metadata.json with
+	// a user
+	if container.User == "" {
+		container.User = "root"
+	}
+
 	return container, nil
 }
 

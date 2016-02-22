@@ -266,19 +266,14 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		}
 
 		step.delegate.Started()
-		containerProperties, err := step.container.Properties()
-		if err != nil {
-			return err
-		}
 
-		step.process, err = step.container.Run(garden.ProcessSpec{
+		step.process, err = step.container.RunProcess(garden.ProcessSpec{
 			Path: config.Run.Path,
 			Args: config.Run.Args,
 			Env:  step.envForParams(config.Params),
 
-			Dir:  step.artifactsRoot,
-			User: containerProperties["user"],
-			TTY:  &garden.TTYSpec{},
+			Dir: step.artifactsRoot,
+			TTY: &garden.TTYSpec{},
 		}, processIO)
 		if err != nil {
 			return err

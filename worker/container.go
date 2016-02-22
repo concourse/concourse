@@ -24,6 +24,8 @@ type gardenWorkerContainer struct {
 	volumes      []Volume
 	volumeMounts []VolumeMount
 
+	user string
+
 	clock clock.Clock
 
 	release      chan *time.Duration
@@ -75,6 +77,12 @@ func newGardenWorkerContainer(
 		return nil, err
 	}
 
+	if properties["user"] != "" {
+		workerContainer.user = properties["user"]
+	} else {
+		workerContainer.user = "root"
+	}
+
 	return workerContainer, nil
 }
 
@@ -93,6 +101,11 @@ func (container *gardenWorkerContainer) Release(finalTTL *time.Duration) {
 			v.Release(finalTTL)
 		}
 	})
+}
+
+func (container *gardenWorkerContainer) RunProcess(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+	spec.User = container.user
+	return container.Run(spec, io)
 }
 
 func (container *gardenWorkerContainer) Volumes() []Volume {

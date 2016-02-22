@@ -178,8 +178,7 @@ var _ = Describe("GardenFactory", func() {
 
 							fakeProcess = new(gfakes.FakeProcess)
 							fakeProcess.IDReturns("process-id")
-							fakeContainer.RunReturns(fakeProcess, nil)
-							fakeContainer.PropertiesReturns(garden.Properties{"user": "Red Baron"}, nil)
+							fakeContainer.RunProcessReturns(fakeProcess, nil)
 
 							fakeContainer.StreamInReturns(nil)
 						})
@@ -275,21 +274,20 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						It("runs a process with the config's path and args, in the specified build directory", func() {
-							Expect(fakeContainer.RunCallCount()).To(Equal(1))
+							Expect(fakeContainer.RunProcessCallCount()).To(Equal(1))
 
-							spec, _ := fakeContainer.RunArgsForCall(0)
+							spec, _ := fakeContainer.RunProcessArgsForCall(0)
 							Expect(spec.Path).To(Equal("ls"))
 							Expect(spec.Args).To(Equal([]string{"some", "args"}))
 							Expect(spec.Env).To(Equal([]string{"SOME=params"}))
 							Expect(spec.Dir).To(Equal("/tmp/build/a1f5c0c1"))
-							Expect(spec.User).To(Equal("Red Baron"))
 							Expect(spec.TTY).To(Equal(&garden.TTYSpec{}))
 						})
 
 						It("directs the process's stdout/stderr to the io config", func() {
-							Expect(fakeContainer.RunCallCount()).To(Equal(1))
+							Expect(fakeContainer.RunProcessCallCount()).To(Equal(1))
 
-							_, io := fakeContainer.RunArgsForCall(0)
+							_, io := fakeContainer.RunProcessArgsForCall(0)
 							Expect(io.Stdout).To(Equal(stdoutBuf))
 							Expect(io.Stderr).To(Equal(stderrBuf))
 						})
@@ -334,15 +332,14 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							It("runs the process as the specified user", func() {
-								Expect(fakeContainer.RunCallCount()).To(Equal(1))
+								Expect(fakeContainer.RunProcessCallCount()).To(Equal(1))
 
-								spec, _ := fakeContainer.RunArgsForCall(0)
+								spec, _ := fakeContainer.RunProcessArgsForCall(0)
 								Expect(spec).To(Equal(garden.ProcessSpec{
 									Path: "ls",
 									Args: []string{"some", "args"},
 									Env:  []string{"SOME=params"},
 									Dir:  "/tmp/build/a1f5c0c1",
-									User: "Red Baron",
 									TTY:  &garden.TTYSpec{},
 								}))
 
@@ -469,7 +466,7 @@ var _ = Describe("GardenFactory", func() {
 
 									It("does not run anything", func() {
 										Eventually(process.Wait()).Should(Receive())
-										Expect(fakeContainer.RunCallCount()).To(Equal(0))
+										Expect(fakeContainer.RunProcessCallCount()).To(Equal(0))
 									})
 
 									It("invokes the delegate's Failed callback", func() {
@@ -1254,7 +1251,7 @@ var _ = Describe("GardenFactory", func() {
 							disaster := errors.New("nope")
 
 							BeforeEach(func() {
-								fakeContainer.RunReturns(nil, disaster)
+								fakeContainer.RunProcessReturns(nil, disaster)
 							})
 
 							It("exits with the error", func() {

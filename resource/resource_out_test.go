@@ -64,12 +64,10 @@ var _ = Describe("Resource Out", func() {
 			Stdout: stdoutBuf,
 			Stderr: stderrBuf,
 		}
-
-		fakeContainer.PropertiesReturns(garden.Properties{"user": "iceman"}, nil)
 	})
 
 	JustBeforeEach(func() {
-		fakeContainer.RunStub = func(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+		fakeContainer.RunProcessStub = func(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 			if runOutError != nil {
 				return nil, runOutError
 			}
@@ -202,7 +200,7 @@ var _ = Describe("Resource Out", func() {
 		It("does not run or attach to anything", func() {
 			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
-			Expect(fakeContainer.RunCallCount()).To(BeZero())
+			Expect(fakeContainer.RunProcessCallCount()).To(BeZero())
 			Expect(fakeContainer.AttachCallCount()).To(BeZero())
 		})
 
@@ -250,7 +248,7 @@ var _ = Describe("Resource Out", func() {
 		It("does not run an additional process", func() {
 			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
-			Expect(fakeContainer.RunCallCount()).To(BeZero())
+			Expect(fakeContainer.RunProcessCallCount()).To(BeZero())
 		})
 
 		It("does not stream the artifact source to the versioned source", func() {
@@ -355,8 +353,8 @@ var _ = Describe("Resource Out", func() {
 			Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
 			streamOutSpec := fakeContainer.StreamOutArgsForCall(0)
 
-			Expect(fakeContainer.RunCallCount()).To(Equal(1))
-			spec, _ := fakeContainer.RunArgsForCall(0)
+			Expect(fakeContainer.RunProcessCallCount()).To(Equal(1))
+			spec, _ := fakeContainer.RunProcessArgsForCall(0)
 
 			Expect(streamSpec.Path).To(HavePrefix(spec.Args[0]))
 			Expect(streamSpec.Path).To(Equal(streamOutSpec.Path))
@@ -365,10 +363,9 @@ var _ = Describe("Resource Out", func() {
 		It("runs /opt/resource/out <source path> with the request on stdin", func() {
 			Eventually(outProcess.Wait()).Should(Receive(BeNil()))
 
-			spec, io := fakeContainer.RunArgsForCall(0)
+			spec, io := fakeContainer.RunProcessArgsForCall(0)
 			Expect(spec.Path).To(Equal("/opt/resource/out"))
 			Expect(spec.Args).To(ConsistOf("/tmp/build/put"))
-			Expect(spec.User).To(Equal("iceman"))
 
 			request, err := ioutil.ReadAll(io.Stdin)
 			Expect(err).NotTo(HaveOccurred())

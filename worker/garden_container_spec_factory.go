@@ -132,11 +132,8 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 		gardenSpec.Properties[volumeMountsPropertyName] = string(mountsJSON)
 	}
 
-	if factory.user != "" {
-		gardenSpec.Properties["user"] = factory.user
-	} else {
-		gardenSpec.Properties["user"] = "root"
-	}
+	gardenSpec.Properties["user"] = factory.user
+
 	return gardenSpec, nil
 }
 

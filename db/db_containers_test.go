@@ -296,6 +296,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.BuildName).To(Equal(savedBuild.Name))
 		Expect(actualContainer.PipelineID).To(Equal(savedPipeline.ID))
 		Expect(actualContainer.JobName).To(Equal("some-job"))
+		Expect(actualContainer.User).To(Equal("root"))
 	})
 
 	It("can update the time to live for a container info object", func() {
