@@ -63,7 +63,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config, pausedState, err := saveConfigRequestUnmarshler(r)
+	config, pausedState, err := saveConfigRequestUnmarshaler(r)
 
 	switch err {
 	case ErrStatusUnsupportedMediaType:
@@ -198,7 +198,7 @@ func requestToConfig(contentType string, requestBody io.ReadCloser, configStruct
 	return pausedState, nil
 }
 
-func saveConfigRequestUnmarshler(r *http.Request) (atc.Config, db.PipelinePausedState, error) {
+func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePausedState, error) {
 	var configStructure interface{}
 	pausedState, err := requestToConfig(r.Header.Get("Content-Type"), r.Body, &configStructure)
 	if err != nil {
