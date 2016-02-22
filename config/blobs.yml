@@ -1,3 +1,4 @@
+---
 btrfs_tools_3.12/btrfs:
   size: 353424
   object_id: 8a522cff-b202-43a6-8d10-7e68c473f66e
@@ -51,9 +52,9 @@ resources/github-release-resource.tar.gz:
   object_id: 28329efb-bf19-495b-9fc1-f7b055f58afc
   sha: 8c5fa2f9cb7191c6d8e82640791af7ad2a5b477e
 resources/pool-resource.tar.gz:
-  size: 9616278
-  object_id: 0a9a538d-37dd-4609-8781-43039facf89f
-  sha: 2c6631929215c0f7c53abc370ed21d8098c0bb67
+  object_id: 30b46cd7-94a5-4ddc-85bf-be05bd12dcbe
+  sha: 7cecaf4edd8367d50905dfeeb4d8de1c11a2d18d
+  size: 9616228
 resources/s3-resource.tar.gz:
   size: 11496399
   object_id: 65452499-b057-49d6-a02c-1e93138b4b38
