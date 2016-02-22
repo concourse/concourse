@@ -87,7 +87,7 @@ var _ = Describe("Fly CLI", func() {
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
 
-			Expect(sess.Err).To(gbytes.Say("could not reach the Concourse server at " + atcServer.URL()))
+			Expect(sess.Err).To(gbytes.Say("could not reach the Concourse server called " + targetName))
 			Expect(sess.Err).To(gbytes.Say("lol"))
 		})
 	})

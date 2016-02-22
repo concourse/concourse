@@ -32,12 +32,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "    "+embolden("fly -t (alias) login -c (concourse url)"))
 			fmt.Fprintln(os.Stderr, "")
 		} else if netErr, ok := err.(net.Error); ok {
-			client, err := rc.TargetClient(commands.Fly.Target)
-			if err == nil {
-				fmt.Fprintln(os.Stderr, "could not reach the Concourse server at "+client.URL()+":")
-			} else {
-				fmt.Fprintln(os.Stderr, "could not reach the Concourse server:")
-			}
+			fmt.Fprintf(os.Stderr, "could not reach the Concourse server called %s:\n", embolden("%s", commands.Fly.Target))
 
 			fmt.Fprintln(os.Stderr, "")
 			fmt.Fprintln(os.Stderr, "    "+embolden("%s", netErr))
