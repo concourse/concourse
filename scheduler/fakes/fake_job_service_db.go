@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/scheduler"
 )
 
 type FakeJobServiceDB struct {
@@ -214,4 +215,4 @@ func (fake *FakeJobServiceDB) IsPausedReturns(result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-var _ db.JobServiceDB = new(FakeJobServiceDB)
+var _ scheduler.JobServiceDB = new(FakeJobServiceDB)

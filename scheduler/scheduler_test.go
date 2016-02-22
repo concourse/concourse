@@ -2,13 +2,13 @@ package scheduler_test
 
 import (
 	"errors"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
 	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/engine"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 	. "github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
@@ -16,6 +16,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("Scheduler", func() {
@@ -172,20 +173,20 @@ var _ = Describe("Scheduler", func() {
 			})
 		})
 
-		Context("when the inputs cannot be deteremined", func() {
+		Context("when the inputs cannot be determined", func() {
 			disaster := errors.New("oh no!")
+			var err error
 
 			BeforeEach(func() {
 				fakePipelineDB.GetLatestInputVersionsReturns(nil, false, disaster)
+				err = scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 			})
 
 			It("returns the error", func() {
-				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 				Expect(err).To(Equal(disaster))
 			})
 
 			It("does not trigger a build", func() {
-				scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 				Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
 			})
 		})
@@ -193,60 +194,63 @@ var _ = Describe("Scheduler", func() {
 		Context("when the job has no inputs", func() {
 			BeforeEach(func() {
 				job.Plan = atc.PlanSequence{}
-			})
-
-			It("succeeds", func() {
 				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("does not load the versions database, as it was given one", func() {
-				scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
-
-				Expect(fakePipelineDB.LoadVersionsDBCallCount()).To(Equal(0))
-			})
-
 			It("does not try to fetch inputs from the database", func() {
-				scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
-
-				Expect(fakePipelineDB.GetLatestInputVersionsCallCount()).To(BeZero())
-			})
-
-			It("does not trigger a build", func() {
-				scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
-
 				Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
 			})
 		})
 
 		Context("when versions are found", func() {
-			newInputs := []db.BuildInput{
-				{
-					Name: "some-input",
-					VersionedResource: db.VersionedResource{
-						Resource: "some-resource", Version: db.Version{"version": "1"},
-					},
-				},
-				{
-					Name: "some-other-input",
-					VersionedResource: db.VersionedResource{
-						Resource: "some-other-resource", Version: db.Version{"version": "2"},
-					},
-				},
-			}
+			var newInputs []db.BuildInput
+			var err error
 
 			BeforeEach(func() {
+				newInputs = []db.BuildInput{
+					{
+						Name: "some-input",
+						VersionedResource: db.VersionedResource{
+							Resource: "some-resource", Version: db.Version{"version": "1"},
+						},
+					},
+					{
+						Name: "some-other-input",
+						VersionedResource: db.VersionedResource{
+							Resource: "some-other-resource", Version: db.Version{"version": "2"},
+						},
+					},
+				}
 				fakePipelineDB.GetLatestInputVersionsReturns(newInputs, true, nil)
 			})
 
-			It("does not load the versions database, as it was given one", func() {
-				scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
+			JustBeforeEach(func() {
+				err = scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
+			})
 
-				Expect(fakePipelineDB.LoadVersionsDBCallCount()).To(Equal(0))
+			Context("loading versions db", func() {
+				BeforeEach(func() {
+					pendingBuild := db.Build{
+						Status: db.StatusPending,
+					}
+					buildPrep := db.BuildPreparation{
+						Inputs: map[string]db.BuildPreparationStatus{},
+					}
+
+					fakeBuildsDB.GetBuildPreparationReturns(buildPrep, true, nil)
+					fakePipelineDB.CreateJobBuildForCandidateInputsReturns(pendingBuild, true, nil)
+					fakePipelineDB.GetNextPendingBuildReturns(pendingBuild, true, nil)
+					fakePipelineDB.GetNextPendingBuildBySerialGroupReturns(pendingBuild, true, nil)
+					fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
+				})
+
+				It("does not happen", func() {
+					Expect(fakePipelineDB.LoadVersionsDBCallCount()).To(Equal(0))
+				})
 			})
 
 			It("checks if they are already used for a build", func() {
-				err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakePipelineDB.GetLatestInputVersionsCallCount()).To(Equal(1))
@@ -297,7 +301,6 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("excludes them from the inputs when checking for a build", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipelineDB.GetJobBuildForInputsCallCount()).To(Equal(1))
@@ -319,152 +322,32 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not check for builds for the inputs", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
-
 					Expect(fakePipelineDB.GetJobBuildForInputsCallCount()).To(Equal(0))
 				})
 
 				It("does not create a build", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
-
 					Expect(fakePipelineDB.CreateJobBuildForCandidateInputsCallCount()).To(Equal(0))
 				})
 
 				It("does not trigger a build", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
-
 					Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
 				})
 			})
 
-			Context("when they are not used for a build", func() {
+			Context("when latest inputs are not already used for a build", func() {
 				BeforeEach(func() {
 					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{}, false, nil)
 				})
 
 				It("creates a build with the found inputs", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipelineDB.CreateJobBuildForCandidateInputsCallCount()).To(Equal(1))
 					buildJob := fakePipelineDB.CreateJobBuildForCandidateInputsArgsForCall(0)
 					Expect(buildJob).To(Equal("some-job"))
-				})
-
-				Context("when creating the build succeeds", func() {
-					BeforeEach(func() {
-						fakePipelineDB.CreateJobBuildForCandidateInputsReturns(
-							db.Build{
-								ID:   128,
-								Name: "42",
-							},
-							true,
-							nil,
-						)
-
-						fakePipelineDB.GetNextPendingBuildReturns(
-							db.Build{
-								ID:   128,
-								Name: "42",
-							},
-							true,
-							nil,
-						)
-					})
-
-					Context("and it can be scheduled", func() {
-						BeforeEach(func() {
-							fakePipelineDB.ScheduleBuildReturns(true, nil)
-							fakeBuildsDB.GetBuildPreparationReturns(db.BuildPreparation{
-								BuildID: 128,
-								Inputs:  map[string]db.BuildPreparationStatus{},
-							}, true, nil)
-						})
-
-						Context("and creating the engine build succeeds", func() {
-							var createdBuild *enginefakes.FakeBuild
-
-							BeforeEach(func() {
-								createdBuild = new(enginefakes.FakeBuild)
-								fakeEngine.CreateBuildReturns(createdBuild, nil)
-								fakeBuildsDB.GetBuildPreparationReturns(db.BuildPreparation{
-									BuildID: 128,
-									Inputs:  map[string]db.BuildPreparationStatus{},
-								}, true, nil)
-							})
-
-							It("triggers a build of the job with the found inputs", func() {
-								err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
-								Expect(err).NotTo(HaveOccurred())
-
-								Expect(fakePipelineDB.ScheduleBuildCallCount()).To(Equal(1))
-								scheduledBuildID, jobConfig := fakePipelineDB.ScheduleBuildArgsForCall(0)
-								Expect(scheduledBuildID).To(Equal(128))
-								Expect(jobConfig).To(Equal(job))
-
-								Expect(factory.CreateCallCount()).To(Equal(1))
-								createJob, createResources, actualResourceTypes, createInputs := factory.CreateArgsForCall(0)
-								Expect(createJob).To(Equal(job))
-								Expect(createResources).To(Equal(resources))
-								Expect(createInputs).To(Equal(newInputs))
-								Expect(actualResourceTypes).To(Equal(resourceTypes))
-
-								Expect(fakePipelineDB.UseInputsForBuildCallCount()).To(Equal(1))
-								usedBuildID, usedInputs := fakePipelineDB.UseInputsForBuildArgsForCall(0)
-								Expect(usedBuildID).To(Equal(128))
-								Expect(usedInputs).To(Equal(newInputs))
-
-								Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
-								_, builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
-								Expect(builtBuild).To(Equal(db.Build{ID: 128, Name: "42"}))
-								Expect(plan).To(Equal(createdPlan))
-							})
-
-							It("immediately resumes the build", func() {
-								err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
-								Expect(err).NotTo(HaveOccurred())
-
-								Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
-							})
-						})
-
-						Context("when creating the engine build fails", func() {
-							disaster := errors.New("sorry")
-
-							BeforeEach(func() {
-								factory.CreateReturns(atc.Plan{}, disaster)
-							})
-
-							It("returns no error", func() {
-								err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
-								Expect(err).NotTo(HaveOccurred())
-							})
-
-							It("marks the build as errored", func() {
-								scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
-								Expect(fakeBuildsDB.FinishBuildCallCount()).To(Equal(1))
-								buildID, status := fakeBuildsDB.FinishBuildArgsForCall(0)
-								Expect(buildID).To(Equal(128))
-								Expect(status).To(Equal(db.StatusErrored))
-							})
-						})
-					})
-
-					Context("when the build cannot be scheduled", func() {
-						BeforeEach(func() {
-							fakePipelineDB.ScheduleBuildReturns(false, nil)
-						})
-
-						It("does not start a build", func() {
-							err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
-						})
-					})
 				})
 
 				Context("when creating the build fails", func() {
@@ -475,7 +358,6 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("returns the error", func() {
-						err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 						Expect(err).To(Equal(disaster))
 					})
 
@@ -491,7 +373,6 @@ var _ = Describe("Scheduler", func() {
 					})
 
 					It("exits without error", func() {
-						err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 						Expect(err).NotTo(HaveOccurred())
 					})
 
@@ -508,7 +389,6 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not enqueue or trigger a build", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakePipelineDB.CreateJobBuildForCandidateInputsCallCount()).To(Equal(0))
@@ -524,7 +404,6 @@ var _ = Describe("Scheduler", func() {
 				})
 
 				It("does not enqueue or a build", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 					Expect(err).To(Equal(disaster))
 
 					Expect(fakePipelineDB.CreateJobBuildForCandidateInputsCallCount()).To(Equal(0))
@@ -535,171 +414,38 @@ var _ = Describe("Scheduler", func() {
 	})
 
 	Describe("TryNextPendingBuild", func() {
+
 		JustBeforeEach(func() {
 			scheduler.TryNextPendingBuild(logger, someVersions, job, resources, resourceTypes).Wait()
 		})
 
-		It("does not load the versions database, as it was given one", func() {
-			Expect(fakePipelineDB.LoadVersionsDBCallCount()).To(Equal(0))
-		})
-
 		Context("when a pending build is found", func() {
-			pendingInputs := []db.BuildInput{
-				{
-					Name: "some-input",
-					VersionedResource: db.VersionedResource{
-						Resource: "some-resource", Version: db.Version{"version": "1"},
-					},
-				},
-				{
-					Name: "some-other-input",
-					VersionedResource: db.VersionedResource{
-						Resource: "some-other-resource", Version: db.Version{"version": "2"},
-					},
-				},
-			}
-
-			pendingBuild := db.Build{
-				ID:     128,
-				Name:   "42",
-				Status: db.StatusPending,
-			}
+			var pendingBuild db.Build
 
 			BeforeEach(func() {
+				pendingBuild = db.Build{
+					ID:     128,
+					Name:   "42",
+					Status: db.StatusPending,
+				}
+
 				fakePipelineDB.GetNextPendingBuildReturns(pendingBuild, true, nil)
-				fakePipelineDB.GetLatestInputVersionsReturns(pendingInputs, true, nil)
+				buildPrep := db.BuildPreparation{
+					Inputs: map[string]db.BuildPreparationStatus{},
+				}
+
+				fakeBuildsDB.GetBuildPreparationReturns(buildPrep, true, nil)
+				fakePipelineDB.CreateJobBuildReturns(pendingBuild, nil)
+				fakePipelineDB.GetNextPendingBuildBySerialGroupReturns(pendingBuild, true, nil)
+				fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
 			})
 
-			Context("when the scheduling lease cannot be acquired", func() {
-				BeforeEach(func() {
-					fakeBuildsDB.LeaseBuildSchedulingReturns(nil, false, nil)
-				})
-
-				It("does not schedule the build", func() {
-					err := scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(fakePipelineDB.ScheduleBuildCallCount()).To(Equal(0))
-				})
+			It("schedules the build", func() {
+				Expect(fakePipelineDB.GetNextPendingBuildCallCount()).To(Equal(1))
 			})
 
-			Context("when it can be scheduled", func() {
-				BeforeEach(func() {
-					fakePipelineDB.ScheduleBuildReturns(true, nil)
-					fakeBuildsDB.GetBuildPreparationReturns(db.BuildPreparation{
-						BuildID: pendingBuild.ID,
-						Inputs:  map[string]db.BuildPreparationStatus{},
-					}, true, nil)
-				})
-
-				It("should update the build preparation inputs with the correct state", func() {
-					Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(Equal(2))
-
-					buildPrep := fakeBuildsDB.UpdateBuildPreparationArgsForCall(0)
-					Expect(buildPrep.Inputs).To(Equal(map[string]db.BuildPreparationStatus{
-						"some-input":       db.BuildPreparationStatusNotBlocking,
-						"some-other-input": db.BuildPreparationStatusNotBlocking,
-					}))
-
-					Expect(buildPrep.InputsSatisfied).To(Equal(db.BuildPreparationStatusBlocking))
-					buildPrep = fakeBuildsDB.UpdateBuildPreparationArgsForCall(1)
-					Expect(buildPrep.InputsSatisfied).To(Equal(db.BuildPreparationStatusNotBlocking))
-				})
-
-				Context("when creating the engine build succeeds", func() {
-					var createdBuild *enginefakes.FakeBuild
-
-					BeforeEach(func() {
-						createdBuild = new(enginefakes.FakeBuild)
-						fakeEngine.CreateBuildReturns(createdBuild, nil)
-					})
-
-					It("immediately resumes the build", func() {
-						Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
-					})
-
-					It("breaks the scheduling lease", func() {
-						leasedBuildID, interval := fakeBuildsDB.LeaseBuildSchedulingArgsForCall(0)
-						Expect(leasedBuildID).To(Equal(128))
-						Expect(interval).To(Equal(10 * time.Second))
-						Expect(lease.BreakCallCount()).To(Equal(1))
-					})
-
-					It("does not scan for new versions, and queries for the latest job inputs using the given versions dataset", func() {
-						Expect(fakeScanner.ScanCallCount()).To(Equal(0))
-
-						Expect(fakePipelineDB.GetLatestInputVersionsCallCount()).To(Equal(1))
-						versions, jobName, inputConfigs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
-						Expect(versions).To(Equal(someVersions))
-						Expect(jobName).To(Equal(job.Name))
-						Expect(inputConfigs).To(Equal([]config.JobInput{
-							{
-								Name:     "some-input",
-								Resource: "some-resource",
-								Trigger:  true,
-								Params:   atc.Params{"some": "params"},
-							},
-							{
-								Name:     "some-other-input",
-								Resource: "some-other-resource",
-								Trigger:  true,
-								Params:   atc.Params{"some": "other-params"},
-							},
-						}))
-
-						Expect(fakePipelineDB.UseInputsForBuildCallCount()).To(Equal(1))
-						usedBuildID, usedInputs := fakePipelineDB.UseInputsForBuildArgsForCall(0)
-						Expect(usedBuildID).To(Equal(128))
-						Expect(usedInputs).To(Equal(pendingInputs))
-
-						Expect(factory.CreateCallCount()).To(Equal(1))
-						createJob, createResources, actualResourceTypes, createInputs := factory.CreateArgsForCall(0)
-						Expect(createJob).To(Equal(job))
-						Expect(createResources).To(Equal(resources))
-						Expect(createInputs).To(Equal(pendingInputs))
-						Expect(actualResourceTypes).To(Equal(resourceTypes))
-
-						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
-						_, builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
-						Expect(builtBuild).To(Equal(pendingBuild))
-						Expect(plan).To(Equal(createdPlan))
-					})
-				})
-
-				Context("when creating the engine build fails", func() {
-					disaster := errors.New("sorry")
-
-					BeforeEach(func() {
-						factory.CreateReturns(atc.Plan{}, disaster)
-					})
-
-					It("marks the build as errored", func() {
-						Expect(fakeBuildsDB.FinishBuildCallCount()).To(Equal(1))
-						buildID, status := fakeBuildsDB.FinishBuildArgsForCall(0)
-						Expect(buildID).To(Equal(128))
-						Expect(status).To(Equal(db.StatusErrored))
-					})
-				})
-			})
-
-			Context("when the build cannot be scheduled", func() {
-				BeforeEach(func() {
-					fakePipelineDB.ScheduleBuildReturns(false, nil)
-				})
-
-				It("does not start a build", func() {
-					Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
-				})
-
-				Context("and the build's inputs are not determined", func() {
-					BeforeEach(func() {
-						fakePipelineDB.GetNextPendingBuildReturns(pendingBuild, true, nil)
-					})
-
-					It("does not perform any scans", func() {
-						Expect(fakeScanner.ScanCallCount()).To(Equal(0))
-					})
-				})
+			It("does not load the versions database, as it was given one", func() {
+				Expect(fakePipelineDB.LoadVersionsDBCallCount()).To(Equal(0))
 			})
 		})
 
@@ -729,272 +475,32 @@ var _ = Describe("Scheduler", func() {
 	})
 
 	Describe("TriggerImmediately", func() {
+		BeforeEach(func() {
+			dbBuild := db.Build{
+				Status: db.StatusPending,
+			}
+			buildPrep := db.BuildPreparation{
+				Inputs: map[string]db.BuildPreparationStatus{},
+			}
+
+			fakeBuildsDB.GetBuildPreparationReturns(buildPrep, true, nil)
+			fakePipelineDB.CreateJobBuildReturns(dbBuild, nil)
+			fakePipelineDB.GetNextPendingBuildBySerialGroupReturns(dbBuild, true, nil)
+			fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
+		})
+
 		It("creates a build without any specific inputs", func() {
-			_, _, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
+			_, wg, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(fakePipelineDB.GetLatestInputVersionsCallCount()).To(Equal(0))
+			wg.Wait()
 
 			Expect(fakePipelineDB.CreateJobBuildCallCount()).To(Equal(1))
 
 			jobName := fakePipelineDB.CreateJobBuildArgsForCall(0)
 			Expect(jobName).To(Equal("some-job"))
-		})
 
-		Context("when creating the build succeeds", func() {
-			createdDBBuild := db.Build{ID: 128, Name: "42"}
-
-			pendingInputs := []db.BuildInput{
-				{
-					Name: "some-input",
-					VersionedResource: db.VersionedResource{
-						Resource: "some-resource", Version: db.Version{"version": "1"},
-					},
-				},
-				{
-					Name: "some-other-input",
-					VersionedResource: db.VersionedResource{
-						Resource: "some-other-resource", Version: db.Version{"version": "2"},
-					},
-				},
-			}
-
-			BeforeEach(func() {
-				fakePipelineDB.CreateJobBuildReturns(createdDBBuild, nil)
-				fakePipelineDB.GetLatestInputVersionsReturns(pendingInputs, true, nil)
-				fakePipelineDB.LoadVersionsDBReturns(someVersions, nil)
-			})
-
-			Context("and it can be scheduled", func() {
-				BeforeEach(func() {
-					fakePipelineDB.ScheduleBuildReturns(true, nil)
-					fakeBuildsDB.GetBuildPreparationReturns(db.BuildPreparation{
-						BuildID: createdDBBuild.ID,
-						Inputs:  map[string]db.BuildPreparationStatus{},
-					}, true, nil)
-				})
-
-				Context("and creating the engine build succeeds", func() {
-					var createdBuild *enginefakes.FakeBuild
-
-					BeforeEach(func() {
-						createdBuild = new(enginefakes.FakeBuild)
-						fakeEngine.CreateBuildReturns(createdBuild, nil)
-					})
-
-					Context("updating the build prep inputs list", func() {
-						It("correctly updates the discovery state for every input being used", func() {
-							_, wg, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
-							Expect(err).ToNot(HaveOccurred())
-							wg.Wait()
-
-							Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(Equal(6))
-
-							for i := 0; i < 5; i++ {
-								Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(i).InputsSatisfied).To(Equal(db.BuildPreparationStatusBlocking))
-							}
-
-							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(0).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
-								"some-input":       db.BuildPreparationStatusUnknown,
-								"some-other-input": db.BuildPreparationStatusUnknown,
-							}))
-
-							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(1).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
-								"some-input":       db.BuildPreparationStatusBlocking,
-								"some-other-input": db.BuildPreparationStatusUnknown,
-							}))
-
-							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(2).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
-								"some-input":       db.BuildPreparationStatusNotBlocking,
-								"some-other-input": db.BuildPreparationStatusUnknown,
-							}))
-
-							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(3).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
-								"some-input":       db.BuildPreparationStatusNotBlocking,
-								"some-other-input": db.BuildPreparationStatusBlocking,
-							}))
-
-							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(4).Inputs).To(Equal(map[string]db.BuildPreparationStatus{
-								"some-input":       db.BuildPreparationStatusNotBlocking,
-								"some-other-input": db.BuildPreparationStatusNotBlocking,
-							}))
-
-							Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(5).InputsSatisfied).To(Equal(db.BuildPreparationStatusNotBlocking))
-						})
-					})
-
-					It("scans for new versions for each input, and queries for the latest job inputs", func() {
-						_, w, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
-						Expect(err).NotTo(HaveOccurred())
-
-						w.Wait()
-
-						Expect(fakeScanner.ScanCallCount()).To(Equal(2))
-
-						_, resourceName := fakeScanner.ScanArgsForCall(0)
-						Expect(resourceName).To(Equal("some-resource"))
-
-						_, resourceName = fakeScanner.ScanArgsForCall(1)
-						Expect(resourceName).To(Equal("some-other-resource"))
-
-						Expect(fakePipelineDB.GetLatestInputVersionsCallCount()).To(Equal(1))
-						versions, jobName, inputConfigs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
-						Expect(versions).To(Equal(someVersions))
-						Expect(jobName).To(Equal(job.Name))
-						Expect(inputConfigs).To(Equal([]config.JobInput{
-							{
-								Name:     "some-input",
-								Resource: "some-resource",
-								Trigger:  true,
-								Params:   atc.Params{"some": "params"},
-							},
-							{
-								Name:     "some-other-input",
-								Resource: "some-other-resource",
-								Trigger:  true,
-								Params:   atc.Params{"some": "other-params"},
-							},
-						}))
-
-						Expect(fakePipelineDB.UseInputsForBuildCallCount()).To(Equal(1))
-						usedBuildID, usedInputs := fakePipelineDB.UseInputsForBuildArgsForCall(0)
-						Expect(usedBuildID).To(Equal(128))
-						Expect(usedInputs).To(Equal(pendingInputs))
-
-						Expect(factory.CreateCallCount()).To(Equal(1))
-						createJob, createResources, actualResourceTypes, createInputs := factory.CreateArgsForCall(0)
-						Expect(createJob).To(Equal(job))
-						Expect(createResources).To(Equal(resources))
-						Expect(createInputs).To(Equal(pendingInputs))
-						Expect(actualResourceTypes).To(Equal(resourceTypes))
-
-						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
-						_, builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
-						Expect(builtBuild).To(Equal(createdDBBuild))
-						Expect(plan).To(Equal(createdPlan))
-					})
-
-					Context("when scanning fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							fakeScanner.ScanReturns(disaster)
-						})
-
-						It("errors the build", func() {
-							_, w, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
-							Expect(err).NotTo(HaveOccurred())
-
-							w.Wait()
-
-							Expect(fakeBuildsDB.ErrorBuildCallCount()).To(Equal(1))
-
-							buildID, err := fakeBuildsDB.ErrorBuildArgsForCall(0)
-							Expect(buildID).To(Equal(128))
-							Expect(err).To(Equal(disaster))
-						})
-					})
-
-					Context("when loading the versions dataset fails", func() {
-						BeforeEach(func() {
-							fakePipelineDB.LoadVersionsDBReturns(nil, errors.New("oh no!"))
-						})
-
-						It("does not run the build", func() {
-							_, w, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
-							Expect(err).NotTo(HaveOccurred())
-
-							w.Wait()
-
-							Expect(fakePipelineDB.GetLatestInputVersionsCallCount()).To(Equal(0))
-						})
-
-						It("does not error the build, as it may have been an ephemeral database issue", func() {
-							_, w, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
-							Expect(err).NotTo(HaveOccurred())
-
-							w.Wait()
-
-							Expect(fakeBuildsDB.ErrorBuildCallCount()).To(Equal(0))
-						})
-					})
-
-					It("triggers a build of the job with the found inputs", func() {
-						build, w, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(build).To(Equal(db.Build{ID: 128, Name: "42"}))
-
-						w.Wait()
-
-						Expect(fakePipelineDB.ScheduleBuildCallCount()).To(Equal(1))
-						scheduledBuildID, jobConfig := fakePipelineDB.ScheduleBuildArgsForCall(0)
-						Expect(scheduledBuildID).To(Equal(128))
-						Expect(jobConfig).To(Equal(job))
-
-						Expect(fakePipelineDB.UseInputsForBuildCallCount()).To(Equal(1))
-						usedBuildID, usedInputs := fakePipelineDB.UseInputsForBuildArgsForCall(0)
-						Expect(usedBuildID).To(Equal(128))
-						Expect(usedInputs).To(Equal(pendingInputs))
-
-						Expect(factory.CreateCallCount()).To(Equal(1))
-						createJob, createResources, actualResourceTypes, createInputs := factory.CreateArgsForCall(0)
-						Expect(createJob).To(Equal(job))
-						Expect(createResources).To(Equal(resources))
-						Expect(createInputs).To(Equal(pendingInputs))
-						Expect(actualResourceTypes).To(Equal(resourceTypes))
-
-						Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
-						_, builtBuild, plan := fakeEngine.CreateBuildArgsForCall(0)
-						Expect(builtBuild).To(Equal(db.Build{ID: 128, Name: "42"}))
-						Expect(plan).To(Equal(createdPlan))
-					})
-
-					It("immediately resumes the build", func() {
-						build, w, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(build).To(Equal(db.Build{ID: 128, Name: "42"}))
-
-						w.Wait()
-
-						Eventually(createdBuild.ResumeCallCount).Should(Equal(1))
-					})
-				})
-
-				Context("when creating the engine build fails", func() {
-					disaster := errors.New("sorry")
-
-					BeforeEach(func() {
-						factory.CreateReturns(atc.Plan{}, disaster)
-					})
-
-					It("returns no error", func() {
-						_, _, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("marks the build as errored", func() {
-						_, w, _ := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
-						w.Wait()
-						Expect(fakeBuildsDB.FinishBuildCallCount()).To(Equal(1))
-						buildID, status := fakeBuildsDB.FinishBuildArgsForCall(0)
-						Expect(buildID).To(Equal(128))
-						Expect(status).To(Equal(db.StatusErrored))
-					})
-				})
-			})
-
-			Context("when the build cannot be scheduled", func() {
-				BeforeEach(func() {
-					fakePipelineDB.ScheduleBuildReturns(false, nil)
-				})
-
-				It("does not start a build", func() {
-					_, _, err := scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
-				})
-			})
+			Expect(fakePipelineDB.LoadVersionsDBCallCount()).To(Equal(1))
 		})
 
 		Context("when creating the build fails", func() {
@@ -1012,6 +518,454 @@ var _ = Describe("Scheduler", func() {
 			It("does not start a build", func() {
 				scheduler.TriggerImmediately(logger, job, resources, resourceTypes)
 				Expect(fakeEngine.CreateBuildCallCount()).To(Equal(0))
+			})
+		})
+	})
+
+	Describe("ScheduleAndResumePendingBuild", func() {
+		var (
+			build          db.Build
+			engineBuild    engine.Build
+			fakeJobService *fakes.FakeJobService
+		)
+
+		BeforeEach(func() {
+			fakeJobService = new(fakes.FakeJobService)
+
+			build = db.Build{
+				ID: 123,
+			}
+		})
+
+		JustBeforeEach(func() {
+			engineBuild = scheduler.ScheduleAndResumePendingBuild(logger, someVersions, build, job, resources, resourceTypes, fakeJobService)
+		})
+
+		Context("when the lease is aquired", func() {
+			BeforeEach(func() {
+				fakeBuildsDB.LeaseBuildSchedulingReturns(lease, true, nil)
+
+			})
+			AfterEach(func() {
+				Expect(lease.BreakCallCount()).To(Equal(1))
+			})
+
+			Context("when build prep can be acquired", func() {
+				var buildPrep db.BuildPreparation
+
+				BeforeEach(func() {
+					buildPrep = db.BuildPreparation{
+						BuildID: build.ID,
+						Inputs:  map[string]db.BuildPreparationStatus{},
+					}
+
+					fakeBuildsDB.GetBuildPreparationReturns(buildPrep, true, nil)
+				})
+
+				Context("when build can be scheduled", func() {
+					BeforeEach(func() {
+						fakeJobService.CanBuildBeScheduledReturns(true, "yep", nil)
+					})
+
+					Context("UpdateBuildToSchedule fails to update build", func() {
+						BeforeEach(func() {
+							fakePipelineDB.UpdateBuildToScheduledReturns(false, errors.New("po-tate-toe"))
+						})
+
+						It("logs and returns nil", func() {
+							Expect(engineBuild).To(BeNil())
+							Expect(logger).To(gbytes.Say("failed-to-update-build-to-scheduled"))
+						})
+					})
+
+					Context("UpdateBuildToSchedule doesn't update a build", func() {
+						BeforeEach(func() {
+							fakePipelineDB.UpdateBuildToScheduledReturns(false, nil)
+						})
+
+						It("logs and returns nil", func() {
+							Expect(engineBuild).To(BeNil())
+							Expect(logger).To(gbytes.Say("unable-to-update-build-to-scheduled"))
+						})
+					})
+
+					Context("when the build is successfully marked as scheduled", func() {
+						BeforeEach(func() {
+							fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
+						})
+
+						Context("when passed a versions db", func() {
+							It("does not load the versions database, as it was given one", func() {
+								Expect(fakePipelineDB.LoadVersionsDBCallCount()).To(Equal(0))
+							})
+
+							It("should update the build preparation inputs with the correct state", func() {
+								Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 1))
+
+								buildPrep := fakeBuildsDB.UpdateBuildPreparationArgsForCall(0)
+								Expect(buildPrep.Inputs).To(Equal(map[string]db.BuildPreparationStatus{
+									"some-input":       db.BuildPreparationStatusNotBlocking,
+									"some-other-input": db.BuildPreparationStatusNotBlocking,
+								}))
+
+								Expect(buildPrep.InputsSatisfied).To(Equal(db.BuildPreparationStatusBlocking))
+							})
+						})
+
+						Context("when not passed a versions db", func() {
+							BeforeEach(func() {
+								someVersions = nil
+							})
+
+							It("correctly updates the discovery state for every input being used", func() {
+								Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 5))
+
+								for i := 0; i < 4; i++ {
+									Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(i).InputsSatisfied).To(Equal(db.BuildPreparationStatusBlocking))
+								}
+
+								Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(0).Inputs).To(Equal(
+									map[string]db.BuildPreparationStatus{
+										"some-input":       db.BuildPreparationStatusUnknown,
+										"some-other-input": db.BuildPreparationStatusUnknown,
+									}))
+
+								Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(1).Inputs).To(Equal(
+									map[string]db.BuildPreparationStatus{
+										"some-input":       db.BuildPreparationStatusBlocking,
+										"some-other-input": db.BuildPreparationStatusUnknown,
+									}))
+
+								Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(2).Inputs).To(Equal(
+									map[string]db.BuildPreparationStatus{
+										"some-input":       db.BuildPreparationStatusNotBlocking,
+										"some-other-input": db.BuildPreparationStatusUnknown,
+									}))
+
+								Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(3).Inputs).To(Equal(
+									map[string]db.BuildPreparationStatus{
+										"some-input":       db.BuildPreparationStatusNotBlocking,
+										"some-other-input": db.BuildPreparationStatusBlocking,
+									}))
+
+								Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(4).Inputs).To(Equal(
+									map[string]db.BuildPreparationStatus{
+										"some-input":       db.BuildPreparationStatusNotBlocking,
+										"some-other-input": db.BuildPreparationStatusNotBlocking,
+									}))
+							})
+
+							Context("scanning for new versions", func() {
+								It("scans for new versions for each input", func() {
+									Expect(fakeScanner.ScanCallCount()).To(Equal(2))
+
+									_, resourceName := fakeScanner.ScanArgsForCall(0)
+									Expect(resourceName).To(Equal("some-resource"))
+
+									_, resourceName = fakeScanner.ScanArgsForCall(1)
+									Expect(resourceName).To(Equal("some-other-resource"))
+								})
+
+								Context("when scanning fails", func() {
+									disaster := errors.New("nope")
+
+									BeforeEach(func() {
+										fakeScanner.ScanReturns(disaster)
+									})
+
+									It("errors the build", func() {
+										Expect(fakeBuildsDB.ErrorBuildCallCount()).To(Equal(1))
+
+										buildID, err := fakeBuildsDB.ErrorBuildArgsForCall(0)
+										Expect(buildID).To(Equal(123))
+										Expect(err).To(Equal(disaster))
+									})
+								})
+							})
+
+							It("attempts to access the versions dataset", func() {
+								Expect(fakePipelineDB.LoadVersionsDBCallCount()).To(Equal(1))
+							})
+
+							Context("when loading the versions dataset fails", func() {
+								BeforeEach(func() {
+									fakePipelineDB.LoadVersionsDBReturns(nil, errors.New("oh no!"))
+								})
+
+								It("does not error the build, as it may have been an ephemeral database issue", func() {
+									Expect(fakeBuildsDB.ErrorBuildCallCount()).To(Equal(0))
+								})
+
+								Context("due to an error", func() {
+									It("logs an error and returns nil", func() {
+										Expect(engineBuild).To(BeNil())
+										Expect(logger).To(gbytes.Say("failed"))
+									})
+								})
+							})
+						})
+
+						Context("getting latest input versions", func() {
+							var newInputs []db.BuildInput
+
+							BeforeEach(func() {
+								newInputs = []db.BuildInput{
+									{
+										Name: "some-input",
+										VersionedResource: db.VersionedResource{
+											Resource: "some-resource", Version: db.Version{"version": "1"},
+										},
+									},
+									{
+										Name: "some-other-input",
+										VersionedResource: db.VersionedResource{
+											Resource: "some-other-resource", Version: db.Version{"version": "2"},
+										},
+									},
+								}
+
+								fakePipelineDB.GetLatestInputVersionsReturns(newInputs, true, nil)
+							})
+
+							It("gets latest input versions", func() {
+								Expect(fakePipelineDB.GetLatestInputVersionsCallCount()).To(Equal(1))
+
+								versions, jobName, inputConfigs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
+								Expect(versions).To(Equal(someVersions))
+								Expect(jobName).To(Equal(job.Name))
+								Expect(inputConfigs).To(Equal([]config.JobInput{
+									{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Trigger:  true,
+										Params:   atc.Params{"some": "params"},
+									},
+									{
+										Name:     "some-other-input",
+										Resource: "some-other-resource",
+										Trigger:  true,
+										Params:   atc.Params{"some": "other-params"},
+									},
+								}))
+							})
+
+							Context("when latest input versions are successfully acquired", func() {
+								BeforeEach(func() {
+
+								})
+
+								It("marks the build prep's inputs statisfied as not blocking", func() {
+									Expect(fakeBuildsDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 2))
+									Expect(fakeBuildsDB.UpdateBuildPreparationArgsForCall(1).InputsSatisfied).To(Equal(db.BuildPreparationStatusNotBlocking))
+								})
+
+								Context("when build prep update fails due to an error", func() {
+									BeforeEach(func() {
+										ranOnce := false
+
+										fakeBuildsDB.UpdateBuildPreparationStub = func(buildPrep db.BuildPreparation) error {
+											if ranOnce {
+												return errors.New("noooope")
+											}
+											ranOnce = true
+											return nil
+										}
+									})
+
+									It("logs and returns nil", func() {
+										Expect(engineBuild).To(BeNil())
+										Expect(logger).To(gbytes.Say("failed-to-update-build-prep-with-inputs-satisfied"))
+									})
+								})
+
+								It("marks inputs as being used for build", func() {
+									Expect(fakePipelineDB.UseInputsForBuildCallCount()).To(Equal(1))
+
+									buildID, inputs := fakePipelineDB.UseInputsForBuildArgsForCall(0)
+									Expect(buildID).To(Equal(build.ID))
+									Expect(inputs).To(ConsistOf(newInputs))
+								})
+
+								Context("when marking inputs as being used for the build fails", func() {
+									BeforeEach(func() {
+										fakePipelineDB.UseInputsForBuildReturns(errors.New("this does not compute"))
+									})
+									Context("due to an error", func() {
+										It("logs and returns nil", func() {
+											Expect(engineBuild).To(BeNil())
+											Expect(logger).To(gbytes.Say("failed-to-use-inputs-for-build"))
+										})
+									})
+								})
+
+								It("creates a plan", func() {
+									Expect(factory.CreateCallCount()).To(Equal(1))
+
+									passedJob, passedResources, passedResourceTypes, passedInputs := factory.CreateArgsForCall(0)
+									Expect(passedJob).To(Equal(job))
+									Expect(passedResources).To(Equal(resources))
+									Expect(passedResourceTypes).To(Equal(resourceTypes))
+									Expect(passedInputs).To(ConsistOf(passedInputs))
+								})
+
+								Context("when making a plan for the build fails due to an error", func() {
+									BeforeEach(func() {
+										factory.CreateReturns(atc.Plan{}, errors.New("to err is human"))
+									})
+
+									It("marks the build as finished with an errored status and returns nil", func() {
+										Expect(fakeBuildsDB.FinishBuildCallCount()).To(Equal(1))
+
+										buildID, status := fakeBuildsDB.FinishBuildArgsForCall(0)
+										Expect(buildID).To(Equal(build.ID))
+										Expect(status).To(Equal(db.StatusErrored))
+									})
+
+									Context("when updating the builds status errors", func() {
+										BeforeEach(func() {
+											fakeBuildsDB.FinishBuildReturns(errors.New("but to really foul up requires a computer"))
+										})
+
+										It("logs and returns nil", func() {
+											Expect(engineBuild).To(BeNil())
+											Expect(logger).To(gbytes.Say("failed-to-mark-build-as-errored"))
+										})
+									})
+								})
+
+								Context("when the plan is created", func() {
+									var plan atc.Plan
+									var fakeEngineBuild *enginefakes.FakeBuild
+
+									BeforeEach(func() {
+										plan = atc.Plan{}
+										factory.CreateReturns(plan, nil)
+
+										fakeEngineBuild = new(enginefakes.FakeBuild)
+
+										fakeEngine.CreateBuildReturns(fakeEngineBuild, nil)
+									})
+
+									It("tells the engine to create the build", func() {
+										Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
+
+										_, passedBuild, passedPlan := fakeEngine.CreateBuildArgsForCall(0)
+										Expect(passedBuild).To(Equal(build))
+										Expect(passedPlan).To(Equal(plan))
+									})
+
+									It("returns back created build", func() {
+										Expect(engineBuild).To(Equal(fakeEngineBuild))
+									})
+
+									It("calls Resume() on the created build", func() {
+										Expect(logger).To(gbytes.Say("building"))
+										Eventually(fakeEngineBuild.ResumeCallCount).Should(Equal(1))
+									})
+
+									Context("when the engine fails to create the build due to an error", func() {
+										BeforeEach(func() {
+											fakeEngine.CreateBuildReturns(nil, errors.New("no engine 4 u"))
+										})
+
+										It("logs and returns nil", func() {
+											Expect(engineBuild).To(BeNil())
+											Expect(logger).To(gbytes.Say("failed-to-create-build"))
+										})
+									})
+								})
+							})
+
+							Context("when getting latest input versions is not successful", func() {
+								BeforeEach(func() {
+									fakePipelineDB.GetLatestInputVersionsReturns(newInputs, false, nil)
+								})
+
+								It("logs and returns nil", func() {
+									Expect(engineBuild).To(BeNil())
+									Expect(logger).To(gbytes.Say("no-input-versions-available"))
+								})
+
+								Context("due to an error", func() {
+									BeforeEach(func() {
+										fakePipelineDB.GetLatestInputVersionsReturns(newInputs, false, errors.New("banana"))
+									})
+
+									It("logs and returns nil", func() {
+										Expect(engineBuild).To(BeNil())
+										Expect(logger).To(gbytes.Say("failed-to-get-latest-input-versions"))
+									})
+								})
+							})
+						})
+
+					})
+				})
+
+				Context("when build can NOT be scheduled", func() {
+					BeforeEach(func() {
+						fakeJobService.CanBuildBeScheduledReturns(false, "nope", nil)
+					})
+
+					It("logs and returns nil", func() {
+						Expect(engineBuild).To(BeNil())
+						Expect(logger).To(gbytes.Say("build-could-not-be-scheduled"))
+					})
+
+					Context("due to an error", func() {
+						BeforeEach(func() {
+							fakeJobService.CanBuildBeScheduledReturns(false, "db-nope", errors.New("ermagersh errorz"))
+						})
+
+						It("logs and returns nil", func() {
+							Expect(engineBuild).To(BeNil())
+							Expect(logger).To(gbytes.Say("failed-to-schedule-build"))
+						})
+					})
+				})
+			})
+
+			Context("when build prep cannot be acquired", func() {
+				BeforeEach(func() {
+					fakeBuildsDB.GetBuildPreparationReturns(db.BuildPreparation{}, false, nil)
+				})
+
+				It("logs and returns nil", func() {
+					Expect(engineBuild).To(BeNil())
+					Expect(logger).To(gbytes.Say("failed-to-find-build-prep"))
+				})
+
+				Context("due to an error", func() {
+					BeforeEach(func() {
+						fakeBuildsDB.GetBuildPreparationReturns(db.BuildPreparation{}, false, errors.New("ermagersh an error"))
+					})
+
+					It("logs and returns nil", func() {
+						Expect(engineBuild).To(BeNil())
+						Expect(logger).To(gbytes.Say("failed-to-get-build-prep"))
+					})
+				})
+			})
+		})
+
+		Context("when the lease is not aquired", func() {
+			BeforeEach(func() {
+				fakeBuildsDB.LeaseBuildSchedulingReturns(nil, false, nil)
+			})
+
+			It("returns nil", func() {
+				Expect(engineBuild).To(BeNil())
+			})
+
+			Context("due to an error", func() {
+				BeforeEach(func() {
+					fakeBuildsDB.LeaseBuildSchedulingReturns(nil, false, errors.New("i screwed up boss"))
+				})
+
+				It("logs and returns nil", func() {
+					Expect(engineBuild).To(BeNil())
+					Expect(logger).To(gbytes.Say("failed-to-get-lease"))
+				})
 			})
 		})
 	})

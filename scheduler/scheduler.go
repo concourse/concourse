@@ -16,9 +16,10 @@ import (
 //go:generate counterfeiter . PipelineDB
 
 type PipelineDB interface {
+	JobServiceDB
 	CreateJobBuild(job string) (db.Build, error)
 	CreateJobBuildForCandidateInputs(job string) (db.Build, bool, error)
-	ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error)
+	UpdateBuildToScheduled(buildID int) (bool, error)
 
 	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, bool, error)
 	GetNextPendingBuild(job string) (db.Build, bool, error)
@@ -133,10 +134,16 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 
 	logger.Debug("created-build", lager.Data{"build": build.ID})
 
+	jobService, err := NewJobService(job, s.PipelineDB)
+	if err != nil {
+		logger.Error("failed-to-get-job-service", err)
+		return nil
+	}
+
 	// NOTE: this is intentionally serial within a scheduler tick, so that
 	// multiple ATCs don't do redundant work to determine a build's inputs.
 
-	s.scheduleAndResumePendingBuild(logger, versions, build, job, resources, resourceTypes)
+	s.ScheduleAndResumePendingBuild(logger, versions, build, job, resources, resourceTypes, jobService)
 
 	return nil
 }
@@ -160,7 +167,13 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm
 			return
 		}
 
-		s.scheduleAndResumePendingBuild(logger, versions, build, job, resources, resourceTypes)
+		jobService, err := NewJobService(job, s.PipelineDB)
+		if err != nil {
+			logger.Error("failed-to-get-job-service", err)
+			return
+		}
+
+		s.ScheduleAndResumePendingBuild(logger, versions, build, job, resources, resourceTypes, jobService)
 	}()
 
 	return wg
@@ -175,19 +188,54 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 		return db.Build{}, nil, err
 	}
 
+	jobService, err := NewJobService(job, s.PipelineDB)
+	if err != nil {
+		return db.Build{}, nil, err
+	}
+
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
 
 	// do not block request on scanning input versions
 	go func() {
 		defer wg.Done()
-		s.scheduleAndResumePendingBuild(logger, nil, build, job, resources, resourceTypes)
+		s.ScheduleAndResumePendingBuild(logger, nil, build, job, resources, resourceTypes, jobService)
 	}()
 
 	return build, wg, nil
 }
 
-func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions *algorithm.VersionsDB, build db.Build, job atc.JobConfig, resources atc.ResourceConfigs, resourceTypes atc.ResourceTypes) engine.Build {
+func (s *Scheduler) updateBuildToScheduled(logger lager.Logger, canBuildBeScheduled bool, buildID int, reason string) bool {
+	if canBuildBeScheduled {
+		updated, err := s.PipelineDB.UpdateBuildToScheduled(buildID)
+		if err != nil {
+			logger.Error("failed-to-update-build-to-scheduled", err, lager.Data{"build-id": buildID})
+			return false
+		}
+
+		if !updated {
+			logger.Debug("unable-to-update-build-to-scheduled", lager.Data{"build-id": buildID})
+			return false
+		}
+
+		return true
+	}
+	logger.Debug("build-could-not-be-scheduled", lager.Data{
+		"build-id": buildID,
+		"reason":   reason,
+	})
+	return false
+}
+
+func (s *Scheduler) ScheduleAndResumePendingBuild(
+	logger lager.Logger,
+	versions *algorithm.VersionsDB,
+	build db.Build,
+	job atc.JobConfig,
+	resources atc.ResourceConfigs,
+	resourceTypes atc.ResourceTypes,
+	jobService JobService,
+) engine.Build {
 	lease, acquired, err := s.BuildsDB.LeaseBuildScheduling(build.ID, 10*time.Second)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
@@ -202,18 +250,6 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 
 	logger = logger.WithData(lager.Data{"build": build.ID})
 
-	scheduled, err := s.PipelineDB.ScheduleBuild(build.ID, job)
-	if err != nil {
-		logger.Error("failed-to-schedule-build", err)
-		return nil
-	}
-
-	if !scheduled {
-		logger.Debug("build-could-not-be-scheduled")
-		return nil
-	}
-
-	buildInputs := config.JobInputs(job)
 	buildPrep, found, err := s.BuildsDB.GetBuildPreparation(build.ID)
 	if err != nil {
 		logger.Error("failed-to-get-build-prep", err, lager.Data{"build-id": build.ID})
@@ -225,6 +261,17 @@ func (s *Scheduler) scheduleAndResumePendingBuild(logger lager.Logger, versions 
 		return nil
 	}
 
+	canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(build, &buildPrep)
+	if err != nil {
+		logger.Error("failed-to-schedule-build", err)
+		return nil
+	}
+
+	if !s.updateBuildToScheduled(logger, canBuildBeScheduled, build.ID, reason) {
+		return nil
+	}
+
+	buildInputs := config.JobInputs(job)
 	if versions == nil {
 		for _, input := range buildInputs {
 			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusUnknown

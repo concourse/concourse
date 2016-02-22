@@ -348,16 +348,6 @@ type FakePipelineDB struct {
 		result2 bool
 		result3 error
 	}
-	ScheduleBuildStub        func(buildID int, job atc.JobConfig) (bool, error)
-	scheduleBuildMutex       sync.RWMutex
-	scheduleBuildArgsForCall []struct {
-		buildID int
-		job     atc.JobConfig
-	}
-	scheduleBuildReturns struct {
-		result1 bool
-		result2 error
-	}
 	UpdateBuildToScheduledStub        func(buildID int) (bool, error)
 	updateBuildToScheduledMutex       sync.RWMutex
 	updateBuildToScheduledArgsForCall []struct {
@@ -1604,40 +1594,6 @@ func (fake *FakePipelineDB) GetNextPendingBuildBySerialGroupReturns(result1 db.B
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakePipelineDB) ScheduleBuild(buildID int, job atc.JobConfig) (bool, error) {
-	fake.scheduleBuildMutex.Lock()
-	fake.scheduleBuildArgsForCall = append(fake.scheduleBuildArgsForCall, struct {
-		buildID int
-		job     atc.JobConfig
-	}{buildID, job})
-	fake.scheduleBuildMutex.Unlock()
-	if fake.ScheduleBuildStub != nil {
-		return fake.ScheduleBuildStub(buildID, job)
-	} else {
-		return fake.scheduleBuildReturns.result1, fake.scheduleBuildReturns.result2
-	}
-}
-
-func (fake *FakePipelineDB) ScheduleBuildCallCount() int {
-	fake.scheduleBuildMutex.RLock()
-	defer fake.scheduleBuildMutex.RUnlock()
-	return len(fake.scheduleBuildArgsForCall)
-}
-
-func (fake *FakePipelineDB) ScheduleBuildArgsForCall(i int) (int, atc.JobConfig) {
-	fake.scheduleBuildMutex.RLock()
-	defer fake.scheduleBuildMutex.RUnlock()
-	return fake.scheduleBuildArgsForCall[i].buildID, fake.scheduleBuildArgsForCall[i].job
-}
-
-func (fake *FakePipelineDB) ScheduleBuildReturns(result1 bool, result2 error) {
-	fake.ScheduleBuildStub = nil
-	fake.scheduleBuildReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakePipelineDB) UpdateBuildToScheduled(buildID int) (bool, error) {

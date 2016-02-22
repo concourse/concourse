@@ -1,17 +1,18 @@
-package db_test
+package scheduler_test
 
 import (
 	"errors"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/scheduler"
+	"github.com/concourse/atc/scheduler/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Db/JobService", func() {
+var _ = Describe("JobService", func() {
 	var fakeDB *fakes.FakeJobServiceDB
 
 	Describe("NewJobService", func() {
@@ -28,20 +29,16 @@ var _ = Describe("Db/JobService", func() {
 
 			fakeDB.GetJobReturns(dbJob, nil)
 
-			service, err := db.NewJobService(atc.JobConfig{}, fakeDB)
+			_, err := scheduler.NewJobService(atc.JobConfig{Name: "a-job"}, fakeDB)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(service).To(Equal(db.JobService{
-				JobConfig: atc.JobConfig{},
-				DBJob:     dbJob,
-				DB:        fakeDB,
-			}))
-
+			Expect(fakeDB.GetJobCallCount()).To(Equal(1))
+			Expect(fakeDB.GetJobArgsForCall(0)).To(Equal("a-job"))
 		})
 
 		Context("when the GetJob lookup fails", func() {
 			It("returns an error", func() {
 				fakeDB.GetJobReturns(db.SavedJob{}, errors.New("disaster"))
-				_, err := db.NewJobService(atc.JobConfig{}, fakeDB)
+				_, err := scheduler.NewJobService(atc.JobConfig{}, fakeDB)
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -50,7 +47,7 @@ var _ = Describe("Db/JobService", func() {
 	Describe("CanBuildBeScheduled", func() {
 		var (
 			err                 error
-			service             db.JobService
+			service             scheduler.JobService
 			dbSavedJob          db.SavedJob
 			config              atc.JobConfig
 			canBuildBeScheduled bool
@@ -67,10 +64,10 @@ var _ = Describe("Db/JobService", func() {
 		})
 
 		JustBeforeEach(func() {
-			service, err = db.NewJobService(config, fakeDB)
+			service, err = scheduler.NewJobService(config, fakeDB)
 			Expect(err).NotTo(HaveOccurred())
 
-			canBuildBeScheduled, reason, err = service.CanBuildBeScheduled(dbBuild, buildPrep)
+			canBuildBeScheduled, reason, err = service.CanBuildBeScheduled(dbBuild, &buildPrep)
 		})
 
 		Context("when the pipeline is not paused", func() {
@@ -127,6 +124,7 @@ var _ = Describe("Db/JobService", func() {
 						BeforeEach(func() {
 							dbBuild.Status = db.StatusPending
 						})
+
 						It("returns true", func() {
 							Expect(err).NotTo(HaveOccurred())
 							Expect(reason).To(Equal("can-be-scheduled"))
@@ -138,6 +136,7 @@ var _ = Describe("Db/JobService", func() {
 						BeforeEach(func() {
 							dbBuild.Status = db.StatusStarted
 						})
+
 						It("returns false", func() {
 							Expect(err).NotTo(HaveOccurred())
 							Expect(reason).To(Equal("build-not-pending"))

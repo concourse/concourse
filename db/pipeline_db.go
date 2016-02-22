@@ -69,7 +69,6 @@ type PipelineDB interface {
 	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error)
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error)
 
-	ScheduleBuild(buildID int, job atc.JobConfig) (bool, error)
 	UpdateBuildToScheduled(buildID int) (bool, error)
 	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
 	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
@@ -1371,56 +1370,6 @@ func (pdb *pipelineDB) UpdateBuildPreparation(prep BuildPreparation) error {
 	}
 
 	return tx.Commit()
-}
-
-func (pdb *pipelineDB) ScheduleBuild(buildID int, jobConfig atc.JobConfig) (bool, error) {
-	build, found, err := pdb.GetBuild(buildID)
-	if err != nil {
-		return false, err
-	}
-
-	if !found {
-		pdb.logger.Debug("build-deleted-while-scheduling", lager.Data{
-			"buildID": buildID,
-		})
-		return false, nil
-	}
-
-	buildPrep, found, err := pdb.buildPrepHelper.GetBuildPreparation(pdb.conn, build.ID)
-	if err != nil {
-		return false, err
-	}
-	if !found {
-		pdb.logger.Debug("unable-to-find-build-preparation-for-build", lager.Data{
-			"buildID": buildID,
-		})
-		return false, nil
-	}
-
-	jobService, err := NewJobService(jobConfig, pdb)
-	if err != nil {
-		return false, err
-	}
-
-	canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(build, buildPrep)
-	if err != nil {
-		return false, err
-	}
-
-	if canBuildBeScheduled {
-		updated, err := pdb.UpdateBuildToScheduled(buildID)
-		if err != nil {
-			return false, err
-		}
-
-		return updated, nil
-	} else {
-		pdb.logger.Debug("build-did-not-schedule", lager.Data{
-			"reason":  reason,
-			"buildID": buildID,
-		})
-		return false, nil
-	}
 }
 
 func (pdb *pipelineDB) IsPaused() (bool, error) {
