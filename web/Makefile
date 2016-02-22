@@ -20,5 +20,5 @@ public/elm.min.js: public/elm.js
 	uglifyjs < $< > $@
 
 bindata.go: $(PUBLIC_FILES) $(TEMPLATE_FILES)
-	go-bindata -pkg web templates/... public/...
+	go-bindata ${DEV} -pkg web templates/... public/...
 	go fmt bindata.go
