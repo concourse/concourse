@@ -447,6 +447,10 @@ scrollToCurrentBuildInHistory =
     |> Task.map (always Noop)
     |> Effects.task
 
+shouldAutoscroll : Model -> Bool
+shouldAutoscroll model =
+  model.status /= Concourse.BuildStatus.Succeeded
+
 redirectToLogin : Model -> Effects Action
 redirectToLogin model =
   Signal.send model.redirect "/login"
