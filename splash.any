@@ -1,0 +1,107 @@
+#language anatomy
+
+\use{\load{concourse/splash}}
+
+\table-of-contents
+
+\template{\load{concourse/template}}
+
+\title{Concourse\aux{: CI that scales with your project}}{index}
+
+\top-intro{
+  \top-intro-nav{
+    \reference{what-and-why}{Introduction}
+  }{
+    \reference{docs}{Documentation}
+  }{
+    \reference{community}{Community}
+  }{
+    \reference{releases}{Releases}
+  }
+
+  \top-intro-text{CI that scales with your project.}
+
+  \top-intro-buttons{
+    \reference{getting-started}{\button{Get Started}}
+  }{
+    \reference{contribute}{\button{\font-awesome{fa-github} Contribute}}
+  }
+
+  \top-intro-pipes
+}
+
+\include-section{./concourse.any}
+
+{-
+\value-props{
+  \value-prop-left{Simple and Scalable}{simple-and-scalable}{
+    Simple primitives scale with your project to help you build understandable
+    pipelines.
+  }
+
+  \value-prop-right{Streamlined UI}{streamlined-ui}{
+    Concourse's user interface helps you find out what you need to know about
+    your builds as quickly as possible.
+  }
+
+  \value-prop-left{Dependable Results}{dependable-results}{
+    Concourse controls the inputs to your pipeline so that the results are
+    repeatable every time.
+  }
+
+  \value-prop-right{Integrations}{integrations}{
+    Concourse works out-of-the-box with Git repositories, S3 buckets, and other
+    common external services.
+
+    Using these allows Concourse to do the hard work of fetching and versioning
+    external artifacts. You can delete your scripts which do the same thing.
+    You can even write your own resources to extend the system.
+  }
+}
+
+\getting-started{Getting Started Takes 5 Minutes}{
+  \step{3 min}{Vagrant Up}{
+    \code-window{bash}{
+      $ vagrant init concourse/lite  # creates ./Vagrantfile
+      $ vagrant up                   # downloads the box and spins up the VM
+    }
+
+    The web server will be running at
+    \hyperlink{https://192.168.100.4:8080}{192.168.100.4:8080}.
+  }
+
+  \step{1 min}{Save a .yml file with this example pipeline:}{
+    \code-window{yaml}{
+      jobs:
+      - name: hello-world
+        plan:
+        - task: say-hello
+          config:
+            platform: linux
+            image: "docker:///ubuntu"
+            run:
+              path: echo
+              args: ["Hello, world!"]
+    }
+  }
+
+  \step{1 sec}{Push to Concourse}{
+    \code-window{bash}{
+      $ fly -t lite login -c http://192.168.100.4:8080
+      $ fly -t lite set-pipeline -p really-cool-pipeline -c somewhere.yml
+    }
+
+    If you refresh the \hyperlink{http://192.168.100.4:8080}{main page}, you
+    should now see the world's tiniest pipeline!
+  }
+
+  \coffee{
+    \truitt{Come fly the friendly CI!}
+  }
+}
+
+\slack{
+  To chit chat, ask for help, or offer your own, join us in the Concourse team:
+  \hyperlink{https://concourseci.slack.com}{concourseci.slack.com}.
+}
+-}

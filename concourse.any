@@ -2,7 +2,7 @@
 
 \use{\require{concourse/docs}}
 
-\title{Concourse\aux{: CI that scales with your project}}{index}
+\title{Documentation}{docs}
 
 \pipeline-image{images/example-pipeline.svg}
 

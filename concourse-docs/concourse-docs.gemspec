@@ -11,5 +11,5 @@ Gem::Specification.new do |s|
 
   s.license = "Apache-2.0"
 
-  s.add_runtime_dependency "anatomy", "~> 0.1.3"
+  s.add_runtime_dependency "anatomy", "~> 0.2.0"
 end
