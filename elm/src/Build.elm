@@ -374,19 +374,27 @@ viewBuildHeader actions build {status, now, duration, history} =
           , Html.h1 [] [buildTitle]
           , BuildDuration.view duration now
           ]
-      , Html.ul
+      , Html.div
           [ onWithOptions
-            "mousewheel"
-            { stopPropagation = True, preventDefault = True }
-            decodeScrollEvent
-            ( scrollEvent actions )
-          , id "builds"
+              "mousewheel"
+              { stopPropagation = True, preventDefault = True }
+              decodeScrollEvent
+              ( scrollEvent actions )
           ]
-          (List.map (viewHistory build status) history)
+          [ lazyViewHistory build status history ]
       ]
 
-viewHistory : Build -> BuildStatus -> Build -> Html
-viewHistory currentBuild currentStatus build =
+lazyViewHistory : Build -> BuildStatus -> List Build -> Html
+lazyViewHistory currentBuild currentStatus builds =
+  Html.Lazy.lazy3 viewHistory currentBuild currentStatus builds
+
+viewHistory : Build -> BuildStatus -> List Build -> Html
+viewHistory currentBuild currentStatus builds =
+  Html.ul [id "builds"]
+    (List.map (viewHistoryItem currentBuild currentStatus) builds)
+
+viewHistoryItem : Build -> BuildStatus -> Build -> Html
+viewHistoryItem currentBuild currentStatus build =
   Html.li
     [ classList
         [ ( if build.name == currentBuild.name then

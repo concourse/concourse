@@ -33,7 +33,7 @@ app =
           [ Signal.map Autoscroll.SubAction pageDrivenActions.signal
           , Signal.merge
               (Signal.map Autoscroll.FromBottom Scroll.fromBottom)
-              (Signal.map (always Autoscroll.ScrollDown) (Time.every (50 * Time.millisecond)))
+              (Signal.map (always Autoscroll.ScrollDown) (Time.every (100 * Time.millisecond)))
           ]
       , inits = [Signal.map (Autoscroll.SubAction << Build.ClockTick) (Time.every Time.second)]
       }
