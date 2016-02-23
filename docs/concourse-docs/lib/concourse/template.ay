@@ -1,0 +1,9 @@
+use(require("atomy"))
+
+html = require("anatomy/renderers/html")
+
+def(template-for(part, out)):
+  part parts each [sub]:
+    html render(sub, out)
+
+  html over(part body)
