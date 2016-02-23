@@ -679,15 +679,6 @@ jobs:
         PROJECT_ID: 1059262
         ORGANIZATION: concourse
 
-resource_types:
-- name: time
-  type: docker-image
-  source: {repository: concourse/time-resource}
-
-- name: s3
-  type: docker-image
-  source: {repository: concourse/s3-resource}
-
 resources:
 - name: version
   type: semver
