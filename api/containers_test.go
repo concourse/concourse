@@ -626,11 +626,12 @@ var _ = Describe("Pipelines API", func() {
 					)
 
 					BeforeEach(func() {
-						processExit = make(chan int)
+						exit := make(chan int)
+						processExit = exit
 
 						fakeProcess = new(gfakes.FakeProcess)
 						fakeProcess.WaitStub = func() (int, error) {
-							return <-processExit, nil
+							return <-exit, nil
 						}
 
 						fakeContainer.RunReturns(fakeProcess, nil)
