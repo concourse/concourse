@@ -44,8 +44,6 @@ type Container interface {
 
 	Volumes() []Volume
 	VolumeMounts() []VolumeMount
-
-	RunProcess(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
 }
 
 type Identifier db.ContainerIdentifier

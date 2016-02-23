@@ -100,7 +100,7 @@ func (resource *resource) runScript(
 				}
 			}
 
-			process, err = resource.container.RunProcess(garden.ProcessSpec{
+			process, err = resource.container.Run(garden.ProcessSpec{
 				Path: path,
 				Args: args,
 			}, processIO)

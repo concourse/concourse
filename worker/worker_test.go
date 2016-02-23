@@ -1503,10 +1503,10 @@ var _ = Describe("Worker", func() {
 					})
 
 					JustBeforeEach(func() {
-						foundContainer.RunProcess(actualSpec, actualIO)
+						foundContainer.Run(actualSpec, actualIO)
 					})
 
-					Describe("RunProcess", func() {
+					Describe("Run", func() {
 						It("calls Run() on the garden container and injects the user", func() {
 							Expect(fakeContainer.RunCallCount()).To(Equal(1))
 							spec, io := fakeContainer.RunArgsForCall(0)
@@ -1542,10 +1542,10 @@ var _ = Describe("Worker", func() {
 					})
 
 					JustBeforeEach(func() {
-						foundContainer.RunProcess(actualSpec, actualIO)
+						foundContainer.Run(actualSpec, actualIO)
 					})
 
-					Describe("RunProcess", func() {
+					Describe("Run", func() {
 						It("calls Run() on the garden container and injects the default user", func() {
 							Expect(fakeContainer.RunCallCount()).To(Equal(1))
 							spec, io := fakeContainer.RunArgsForCall(0)

@@ -103,9 +103,9 @@ func (container *gardenWorkerContainer) Release(finalTTL *time.Duration) {
 	})
 }
 
-func (container *gardenWorkerContainer) RunProcess(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+func (container *gardenWorkerContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 	spec.User = container.user
-	return container.Run(spec, io)
+	return container.Container.Run(spec, io)
 }
 
 func (container *gardenWorkerContainer) Volumes() []Volume {

@@ -211,16 +211,6 @@ type FakeContainer struct {
 	volumeMountsReturns     struct {
 		result1 []worker.VolumeMount
 	}
-	RunProcessStub        func(garden.ProcessSpec, garden.ProcessIO) (garden.Process, error)
-	runProcessMutex       sync.RWMutex
-	runProcessArgsForCall []struct {
-		arg1 garden.ProcessSpec
-		arg2 garden.ProcessIO
-	}
-	runProcessReturns struct {
-		result1 garden.Process
-		result2 error
-	}
 }
 
 func (fake *FakeContainer) Handle() string {
@@ -973,40 +963,6 @@ func (fake *FakeContainer) VolumeMountsReturns(result1 []worker.VolumeMount) {
 	fake.volumeMountsReturns = struct {
 		result1 []worker.VolumeMount
 	}{result1}
-}
-
-func (fake *FakeContainer) RunProcess(arg1 garden.ProcessSpec, arg2 garden.ProcessIO) (garden.Process, error) {
-	fake.runProcessMutex.Lock()
-	fake.runProcessArgsForCall = append(fake.runProcessArgsForCall, struct {
-		arg1 garden.ProcessSpec
-		arg2 garden.ProcessIO
-	}{arg1, arg2})
-	fake.runProcessMutex.Unlock()
-	if fake.RunProcessStub != nil {
-		return fake.RunProcessStub(arg1, arg2)
-	} else {
-		return fake.runProcessReturns.result1, fake.runProcessReturns.result2
-	}
-}
-
-func (fake *FakeContainer) RunProcessCallCount() int {
-	fake.runProcessMutex.RLock()
-	defer fake.runProcessMutex.RUnlock()
-	return len(fake.runProcessArgsForCall)
-}
-
-func (fake *FakeContainer) RunProcessArgsForCall(i int) (garden.ProcessSpec, garden.ProcessIO) {
-	fake.runProcessMutex.RLock()
-	defer fake.runProcessMutex.RUnlock()
-	return fake.runProcessArgsForCall[i].arg1, fake.runProcessArgsForCall[i].arg2
-}
-
-func (fake *FakeContainer) RunProcessReturns(result1 garden.Process, result2 error) {
-	fake.RunProcessStub = nil
-	fake.runProcessReturns = struct {
-		result1 garden.Process
-		result2 error
-	}{result1, result2}
 }
 
 var _ worker.Container = new(FakeContainer)

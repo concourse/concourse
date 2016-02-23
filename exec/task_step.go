@@ -267,7 +267,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 		step.delegate.Started()
 
-		step.process, err = step.container.RunProcess(garden.ProcessSpec{
+		step.process, err = step.container.Run(garden.ProcessSpec{
 			Path: config.Run.Path,
 			Args: config.Run.Args,
 			Env:  step.envForParams(config.Params),

@@ -151,7 +151,7 @@ var _ = Describe("Resource In", func() {
 
 	Describe("running", func() {
 		JustBeforeEach(func() {
-			fakeContainer.RunProcessStub = func(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+			fakeContainer.RunStub = func(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 				if runInError != nil {
 					return nil, runInError
 				}
@@ -212,7 +212,7 @@ var _ = Describe("Resource In", func() {
 			It("does not run or attach to anything", func() {
 				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
-				Expect(fakeContainer.RunProcessCallCount()).To(BeZero())
+				Expect(fakeContainer.RunCallCount()).To(BeZero())
 				Expect(fakeContainer.AttachCallCount()).To(BeZero())
 			})
 
@@ -259,7 +259,7 @@ var _ = Describe("Resource In", func() {
 			It("does not run an additional process", func() {
 				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
-				Expect(fakeContainer.RunProcessCallCount()).To(BeZero())
+				Expect(fakeContainer.RunCallCount()).To(BeZero())
 			})
 
 			Context("when /opt/resource/in prints the response", func() {
@@ -364,8 +364,8 @@ var _ = Describe("Resource In", func() {
 				streamOutSpec := fakeContainer.StreamOutArgsForCall(0)
 				Expect(streamOutSpec.User).To(Equal("")) // use default
 
-				Expect(fakeContainer.RunProcessCallCount()).To(Equal(1))
-				spec, _ := fakeContainer.RunProcessArgsForCall(0)
+				Expect(fakeContainer.RunCallCount()).To(Equal(1))
+				spec, _ := fakeContainer.RunArgsForCall(0)
 
 				Expect(streamSpec.Path).To(HavePrefix(spec.Args[0]))
 				Expect(streamSpec.Path).To(Equal(streamOutSpec.Path))
@@ -374,7 +374,7 @@ var _ = Describe("Resource In", func() {
 			It("runs /opt/resource/in <destination> with the request on stdin", func() {
 				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
 
-				spec, io := fakeContainer.RunProcessArgsForCall(0)
+				spec, io := fakeContainer.RunArgsForCall(0)
 				Expect(spec.Path).To(Equal("/opt/resource/in"))
 
 				Expect(spec.Args).To(ConsistOf("/tmp/build/get"))
