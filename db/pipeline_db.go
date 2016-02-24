@@ -70,6 +70,7 @@ type PipelineDB interface {
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error)
 
 	UpdateBuildToScheduled(buildID int) (bool, error)
+	UpdateBuildToUnscheduled(buildID int) error
 	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
 	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
@@ -129,7 +130,7 @@ func (pdb *pipelineDB) Pause() error {
 					inputs_satisfied='unknown'
 			FROM build_preparation bp, builds b, jobs j
 			WHERE bp.build_id = b.id AND b.job_id = j.id
-				AND j.pipeline_id = $1 AND b.status = 'pending'
+				AND j.pipeline_id = $1 AND b.status = 'pending' AND b.scheduled = false
 		`, pdb.ID)
 	return err
 }
@@ -894,6 +895,14 @@ func (pdb *pipelineDB) UseInputsForBuild(buildID int, inputs []BuildInput) error
 
 	defer tx.Rollback()
 
+	result, err := tx.Exec(`
+		DELETE FROM build_inputs
+		WHERE build_id = $1
+	`, buildID)
+	if err != nil {
+		return err
+	}
+
 	for _, input := range inputs {
 		_, err := pdb.saveBuildInput(tx, buildID, input)
 		if err != nil {
@@ -901,7 +910,7 @@ func (pdb *pipelineDB) UseInputsForBuild(buildID int, inputs []BuildInput) error
 		}
 	}
 
-	result, err := tx.Exec(`
+	result, err = tx.Exec(`
 		UPDATE builds b
 		SET inputs_determined = true
 		WHERE b.id = $1
@@ -1294,6 +1303,7 @@ func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGr
 		INNER JOIN jobs_serial_groups jsg ON j.id = jsg.job_id
 				AND jsg.serial_group IN (`+strings.Join(refs, ",")+`)
 		WHERE b.status = 'pending'
+			AND b.inputs_determined = true
 			AND j.pipeline_id = $1
 		ORDER BY b.id ASC
 		LIMIT 1
@@ -1404,6 +1414,15 @@ func (pdb *pipelineDB) UpdateBuildToScheduled(buildID int) (bool, error) {
 	}
 
 	return rows == 1, nil
+}
+
+func (pdb *pipelineDB) UpdateBuildToUnscheduled(buildID int) error {
+	_, err := pdb.conn.Exec(`
+			UPDATE builds
+			SET scheduled = false
+			WHERE id = $1
+	`, buildID)
+	return err
 }
 
 func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, bool, error) {
@@ -1702,6 +1721,7 @@ func (pdb *pipelineDB) updatePausedJob(job string, pause bool) error {
 		FROM build_preparation bp, builds b
 		WHERE b.id = bp.build_id
 		  AND b.job_id = $1
+			AND b.scheduled = false
 	`, dbJob.ID)
 		if err != nil {
 			return err

@@ -357,6 +357,14 @@ type FakePipelineDB struct {
 		result1 bool
 		result2 error
 	}
+	UpdateBuildToUnscheduledStub        func(buildID int) error
+	updateBuildToUnscheduledMutex       sync.RWMutex
+	updateBuildToUnscheduledArgsForCall []struct {
+		buildID int
+	}
+	updateBuildToUnscheduledReturns struct {
+		result1 error
+	}
 	SaveBuildInputStub        func(buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
 	saveBuildInputMutex       sync.RWMutex
 	saveBuildInputArgsForCall []struct {
@@ -1627,6 +1635,38 @@ func (fake *FakePipelineDB) UpdateBuildToScheduledReturns(result1 bool, result2 
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) UpdateBuildToUnscheduled(buildID int) error {
+	fake.updateBuildToUnscheduledMutex.Lock()
+	fake.updateBuildToUnscheduledArgsForCall = append(fake.updateBuildToUnscheduledArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.updateBuildToUnscheduledMutex.Unlock()
+	if fake.UpdateBuildToUnscheduledStub != nil {
+		return fake.UpdateBuildToUnscheduledStub(buildID)
+	} else {
+		return fake.updateBuildToUnscheduledReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) UpdateBuildToUnscheduledCallCount() int {
+	fake.updateBuildToUnscheduledMutex.RLock()
+	defer fake.updateBuildToUnscheduledMutex.RUnlock()
+	return len(fake.updateBuildToUnscheduledArgsForCall)
+}
+
+func (fake *FakePipelineDB) UpdateBuildToUnscheduledArgsForCall(i int) int {
+	fake.updateBuildToUnscheduledMutex.RLock()
+	defer fake.updateBuildToUnscheduledMutex.RUnlock()
+	return fake.updateBuildToUnscheduledArgsForCall[i].buildID
+}
+
+func (fake *FakePipelineDB) UpdateBuildToUnscheduledReturns(result1 error) {
+	fake.UpdateBuildToUnscheduledStub = nil
+	fake.updateBuildToUnscheduledReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakePipelineDB) SaveBuildInput(buildID int, input db.BuildInput) (db.SavedVersionedResource, error) {

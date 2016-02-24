@@ -2,9 +2,13 @@ package scheduler
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/algorithm"
+	"github.com/pivotal-golang/lager"
 )
 
 //go:generate counterfeiter . JobServiceDB
@@ -14,22 +18,28 @@ type JobServiceDB interface {
 	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.Build, error)
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (db.Build, bool, error)
 	UpdateBuildPreparation(prep db.BuildPreparation) error
+	UpdateBuildToUnscheduled(buildID int) error
 	IsPaused() (bool, error)
+
+	LoadVersionsDB() (*algorithm.VersionsDB, error)
+	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, error)
+	UseInputsForBuild(buildID int, inputs []db.BuildInput) error
 }
 
 //go:generate counterfeiter . JobService
 
 type JobService interface {
-	CanBuildBeScheduled(build db.Build, buildPrep *db.BuildPreparation) (bool, string, error)
+	CanBuildBeScheduled(logger lager.Logger, build db.Build, buildPrep *db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error)
 }
 
 type jobService struct {
 	JobConfig atc.JobConfig
 	DBJob     db.SavedJob
 	DB        JobServiceDB
+	Scanner   Scanner
 }
 
-func NewJobService(config atc.JobConfig, jobServiceDB JobServiceDB) (JobService, error) {
+func NewJobService(config atc.JobConfig, jobServiceDB JobServiceDB, scanner Scanner) (JobService, error) {
 	job, err := jobServiceDB.GetJob(config.Name)
 	if err != nil {
 		return jobService{}, err
@@ -39,21 +49,132 @@ func NewJobService(config atc.JobConfig, jobServiceDB JobServiceDB) (JobService,
 		JobConfig: config,
 		DBJob:     job,
 		DB:        jobServiceDB,
+		Scanner:   scanner,
 	}, nil
 }
 
-func (s jobService) updateBuildPrepAndReturn(buildPrep db.BuildPreparation, scheduled bool, message string) (bool, string, error) {
+func (s jobService) updateBuildPrepAndReturn(buildPrep db.BuildPreparation, scheduled bool, message string) ([]db.BuildInput, bool, string, error) {
 	err := s.DB.UpdateBuildPreparation(buildPrep)
 	if err != nil {
-		return false, fmt.Sprintf("update-build-prep-db-failed-when-%s", message), err
+		return []db.BuildInput{}, false, fmt.Sprintf("update-build-prep-db-failed-when-%s", message), err
 	}
-	return scheduled, message, nil
+	return []db.BuildInput{}, scheduled, message, nil
 }
 
-func (s jobService) CanBuildBeScheduled(build db.Build, buildPrep *db.BuildPreparation) (bool, string, error) {
+func (s jobService) getBuildInputs(logger lager.Logger, build db.Build, buildPrep *db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, string, error) {
+	buildInputs := config.JobInputs(s.JobConfig)
+	if versions == nil {
+		for _, input := range buildInputs {
+			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusUnknown
+		}
+
+		buildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
+
+		err := s.DB.UpdateBuildPreparation(*buildPrep)
+		if err != nil {
+			return nil, "failed-to-update-build-prep-with-inputs", err
+		}
+
+		for _, input := range buildInputs {
+			scanLog := logger.Session("scan", lager.Data{
+				"input":    input.Name,
+				"resource": input.Resource,
+			})
+
+			buildPrep = s.cloneBuildPrep(*buildPrep)
+			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusBlocking
+			err := s.DB.UpdateBuildPreparation(*buildPrep)
+			if err != nil {
+				return nil, "failed-to-update-build-prep-with-blocking-input", err
+			}
+
+			err = s.Scanner.Scan(scanLog, input.Resource)
+			if err != nil {
+				return nil, "failed-to-scan", err
+			}
+
+			buildPrep = s.cloneBuildPrep(*buildPrep)
+			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusNotBlocking
+			err = s.DB.UpdateBuildPreparation(*buildPrep)
+			if err != nil {
+				return nil, "failed-to-update-build-prep-with-not-blocking-input", err
+			}
+
+			scanLog.Info("done")
+		}
+
+		loadStart := time.Now()
+
+		vLog := logger.Session("loading-versions")
+		vLog.Info("start")
+
+		versions, err = s.DB.LoadVersionsDB()
+		if err != nil {
+			vLog.Error("failed", err)
+			return nil, "failed-to-load-versions-db", err
+		}
+
+		vLog.Info("done", lager.Data{"took": time.Since(loadStart).String()})
+	} else {
+		for _, input := range buildInputs {
+			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusNotBlocking
+		}
+		buildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
+		err := s.DB.UpdateBuildPreparation(*buildPrep)
+		if err != nil {
+			return nil, "failed-to-update-build-prep-with-discovered-inputs", err
+		}
+	}
+
+	inputs, message, err := s.determineInputs(versions, buildInputs, build)
+	if err != nil || message != "" {
+		return nil, message, err
+	}
+
+	buildPrep.InputsSatisfied = db.BuildPreparationStatusNotBlocking
+	err = s.DB.UpdateBuildPreparation(*buildPrep)
+	if err != nil {
+		return nil, "failed-to-update-build-prep-with-inputs-satisfied", err
+	}
+
+	return inputs, "", nil
+}
+
+func (s jobService) determineInputs(versions *algorithm.VersionsDB, buildInputs []config.JobInput, build db.Build) ([]db.BuildInput, string, error) {
+	inputs, found, err := s.DB.GetLatestInputVersions(versions, s.DBJob.Name, buildInputs)
+	if err != nil {
+		updateErr := s.DB.UpdateBuildToUnscheduled(build.ID)
+		if updateErr != nil {
+			return nil, "failed-to-unschedule-build", updateErr
+		}
+
+		return nil, "failed-to-get-latest-input-versions", err
+	}
+
+	if !found {
+		updateErr := s.DB.UpdateBuildToUnscheduled(build.ID)
+		if err != nil {
+			return nil, "failed-to-unschedule-build", updateErr
+		}
+		return nil, "no-input-versions-available", nil
+	}
+
+	err = s.DB.UseInputsForBuild(build.ID, inputs)
+	if err != nil {
+		return nil, "failed-to-use-inputs-for-build", err
+	}
+
+	return inputs, "", nil
+}
+
+func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, buildPrep *db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error) {
+	if build.Scheduled {
+		return s.updateBuildPrepAndReturn(*buildPrep, true, "build-scheduled")
+	}
+
 	paused, err := s.DB.IsPaused()
 	if err != nil {
-		return false, "pause-pipeline-db-failed", err
+		return []db.BuildInput{}, false, "pause-pipeline-db-failed", err
 	}
 
 	if paused {
@@ -64,12 +185,7 @@ func (s jobService) CanBuildBeScheduled(build db.Build, buildPrep *db.BuildPrepa
 	buildPrep.PausedPipeline = db.BuildPreparationStatusNotBlocking
 	err = s.DB.UpdateBuildPreparation(*buildPrep)
 	if err != nil {
-		return false, "update-build-prep-db-failed-pipeline-not-paused", err
-	}
-
-	if build.Scheduled {
-		buildPrep.MaxRunningBuilds = db.BuildPreparationStatusNotBlocking
-		return s.updateBuildPrepAndReturn(*buildPrep, true, "build-scheduled")
+		return []db.BuildInput{}, false, "update-build-prep-db-failed-pipeline-not-paused", err
 	}
 
 	if s.DBJob.Paused {
@@ -80,11 +196,22 @@ func (s jobService) CanBuildBeScheduled(build db.Build, buildPrep *db.BuildPrepa
 	buildPrep.PausedJob = db.BuildPreparationStatusNotBlocking
 	err = s.DB.UpdateBuildPreparation(*buildPrep)
 	if err != nil {
-		return false, "update-build-prep-db-failed-job-not-paused", err
+		return []db.BuildInput{}, false, "update-build-prep-db-failed-job-not-paused", err
 	}
 
 	if build.Status != db.StatusPending {
-		return false, "build-not-pending", nil
+		return []db.BuildInput{}, false, "build-not-pending", nil
+	}
+
+	buildInputs, message, err := s.getBuildInputs(logger, build, buildPrep, versions)
+	if err != nil || message != "" {
+		return []db.BuildInput{}, false, message, err
+	}
+
+	buildPrep.MaxRunningBuilds = db.BuildPreparationStatusBlocking
+	err = s.DB.UpdateBuildPreparation(*buildPrep)
+	if err != nil {
+		return []db.BuildInput{}, false, "update-build-prep-db-failed-pipeline-not-paused", err
 	}
 
 	maxInFlight := s.JobConfig.MaxInFlight()
@@ -92,7 +219,7 @@ func (s jobService) CanBuildBeScheduled(build db.Build, buildPrep *db.BuildPrepa
 	if maxInFlight > 0 {
 		builds, err := s.DB.GetRunningBuildsBySerialGroup(s.DBJob.Name, s.JobConfig.GetSerialGroups())
 		if err != nil {
-			return false, "db-failed", err
+			return []db.BuildInput{}, false, "db-failed", err
 		}
 
 		if len(builds) >= maxInFlight {
@@ -102,23 +229,43 @@ func (s jobService) CanBuildBeScheduled(build db.Build, buildPrep *db.BuildPrepa
 
 		nextMostPendingBuild, found, err := s.DB.GetNextPendingBuildBySerialGroup(s.DBJob.Name, s.JobConfig.GetSerialGroups())
 		if err != nil {
-			return false, "db-failed", err
+			return []db.BuildInput{}, false, "db-failed", err
 		}
 
 		if !found {
-			return false, "no-pending-build", nil
+			return []db.BuildInput{}, false, "no-pending-build", nil
 		}
 
 		if nextMostPendingBuild.ID != build.ID {
-			return false, "not-next-most-pending", nil
+			return []db.BuildInput{}, false, "not-next-most-pending", nil
 		}
 	}
 
 	buildPrep.MaxRunningBuilds = db.BuildPreparationStatusNotBlocking
 	err = s.DB.UpdateBuildPreparation(*buildPrep)
 	if err != nil {
-		return false, "update-build-prep-db-failed-not-max-running-builds", err
+		return []db.BuildInput{}, false, "update-build-prep-db-failed-not-max-running-builds", err
 	}
 
-	return true, "can-be-scheduled", nil
+	return buildInputs, true, "can-be-scheduled", nil
+}
+
+// Turns out that counterfieter clones the pointer in the build prep so when
+// the build prep gets modified, so does the copy in the fake. This clone is
+// done to get around this. God damn it counterfeiter.
+func (s *jobService) cloneBuildPrep(buildPrep db.BuildPreparation) *db.BuildPreparation {
+	clone := db.BuildPreparation{
+		BuildID:          buildPrep.BuildID,
+		PausedPipeline:   buildPrep.PausedPipeline,
+		PausedJob:        buildPrep.PausedJob,
+		MaxRunningBuilds: buildPrep.MaxRunningBuilds,
+		Inputs:           map[string]db.BuildPreparationStatus{},
+		InputsSatisfied:  buildPrep.InputsSatisfied,
+	}
+
+	for key, value := range buildPrep.Inputs {
+		clone.Inputs[key] = value
+	}
+
+	return &clone
 }

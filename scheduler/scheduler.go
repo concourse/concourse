@@ -24,17 +24,13 @@ type PipelineDB interface {
 	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, bool, error)
 	GetNextPendingBuild(job string) (db.Build, bool, error)
 
-	LoadVersionsDB() (*algorithm.VersionsDB, error)
-	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, error)
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
-	UseInputsForBuild(buildID int, inputs []db.BuildInput) error
 }
 
 //go:generate counterfeiter . BuildsDB
 
 type BuildsDB interface {
 	LeaseBuildScheduling(buildID int, interval time.Duration) (db.Lease, bool, error)
-	GetAllStartedBuilds() ([]db.Build, error)
 	ErrorBuild(buildID int, err error) error
 	FinishBuild(int, db.Status) error
 
@@ -134,7 +130,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 
 	logger.Debug("created-build", lager.Data{"build": build.ID})
 
-	jobService, err := NewJobService(job, s.PipelineDB)
+	jobService, err := NewJobService(job, s.PipelineDB, s.Scanner)
 	if err != nil {
 		logger.Error("failed-to-get-job-service", err)
 		return nil
@@ -167,7 +163,7 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm
 			return
 		}
 
-		jobService, err := NewJobService(job, s.PipelineDB)
+		jobService, err := NewJobService(job, s.PipelineDB, s.Scanner)
 		if err != nil {
 			logger.Error("failed-to-get-job-service", err)
 			return
@@ -188,7 +184,7 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 		return db.Build{}, nil, err
 	}
 
-	jobService, err := NewJobService(job, s.PipelineDB)
+	jobService, err := NewJobService(job, s.PipelineDB, s.Scanner)
 	if err != nil {
 		return db.Build{}, nil, err
 	}
@@ -261,112 +257,13 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 		return nil
 	}
 
-	canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(build, &buildPrep)
+	inputs, canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(logger, build, &buildPrep, versions)
 	if err != nil {
 		logger.Error("failed-to-schedule-build", err)
 		return nil
 	}
 
 	if !s.updateBuildToScheduled(logger, canBuildBeScheduled, build.ID, reason) {
-		return nil
-	}
-
-	buildInputs := config.JobInputs(job)
-	if versions == nil {
-		for _, input := range buildInputs {
-			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusUnknown
-		}
-
-		buildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
-
-		err = s.BuildsDB.UpdateBuildPreparation(buildPrep)
-		if err != nil {
-			logger.Error("failed-to-update-build-prep-with-inputs", err, lager.Data{"build-id": build.ID})
-			return nil
-		}
-
-		for _, input := range buildInputs {
-			scanLog := logger.Session("scan", lager.Data{
-				"input":    input.Name,
-				"resource": input.Resource,
-			})
-
-			buildPrep = s.cloneBuildPrep(buildPrep)
-			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusBlocking
-			err := s.BuildsDB.UpdateBuildPreparation(buildPrep)
-			if err != nil {
-				logger.Error("failed-to-update-build-prep-with-blocking-input", err, lager.Data{"build-id": build.ID})
-				return nil
-			}
-
-			err = s.Scanner.Scan(scanLog, input.Resource)
-			if err != nil {
-				scanLog.Error("failed-to-scan", err)
-
-				err := s.BuildsDB.ErrorBuild(build.ID, err)
-				if err != nil {
-					logger.Error("failed-to-mark-build-as-errored", err)
-				}
-
-				return nil
-			}
-
-			buildPrep = s.cloneBuildPrep(buildPrep)
-			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusNotBlocking
-			err = s.BuildsDB.UpdateBuildPreparation(buildPrep)
-			if err != nil {
-				logger.Error("failed-to-update-build-prep-with-not-blocking-input", err, lager.Data{"build-id": build.ID})
-				return nil
-			}
-
-			scanLog.Info("done")
-		}
-
-		loadStart := time.Now()
-
-		vLog := logger.Session("loading-versions")
-		vLog.Info("start")
-
-		versions, err = s.PipelineDB.LoadVersionsDB()
-		if err != nil {
-			vLog.Error("failed", err)
-			return nil
-		}
-
-		vLog.Info("done", lager.Data{"took": time.Since(loadStart).String()})
-	} else {
-		for _, input := range buildInputs {
-			buildPrep.Inputs[input.Name] = db.BuildPreparationStatusNotBlocking
-		}
-		buildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
-		err := s.BuildsDB.UpdateBuildPreparation(buildPrep)
-		if err != nil {
-			logger.Error("failed-to-update-build-prep-with-discovered-inputs", err)
-			return nil
-		}
-	}
-
-	inputs, found, err := s.PipelineDB.GetLatestInputVersions(versions, job.Name, buildInputs)
-	if err != nil {
-		logger.Error("failed-to-get-latest-input-versions", err)
-		return nil
-	}
-
-	if !found {
-		logger.Debug("no-input-versions-available")
-		return nil
-	}
-
-	buildPrep.InputsSatisfied = db.BuildPreparationStatusNotBlocking
-	err = s.BuildsDB.UpdateBuildPreparation(buildPrep)
-	if err != nil {
-		logger.Error("failed-to-update-build-prep-with-inputs-satisfied", err)
-		return nil
-	}
-
-	err = s.PipelineDB.UseInputsForBuild(build.ID, inputs)
-	if err != nil {
-		logger.Error("failed-to-use-inputs-for-build", err)
 		return nil
 	}
 
@@ -392,24 +289,4 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 	}
 
 	return createdBuild
-}
-
-// Turns out that counterfieter clones the pointer in the build prep so when
-// the build prep gets modified, so does the copy in the fake. This clone is
-// done to get around this. God damn it counterfeiter.
-func (s *Scheduler) cloneBuildPrep(buildPrep db.BuildPreparation) db.BuildPreparation {
-	clone := db.BuildPreparation{
-		BuildID:          buildPrep.BuildID,
-		PausedPipeline:   buildPrep.PausedPipeline,
-		PausedJob:        buildPrep.PausedJob,
-		MaxRunningBuilds: buildPrep.MaxRunningBuilds,
-		Inputs:           map[string]db.BuildPreparationStatus{},
-		InputsSatisfied:  buildPrep.InputsSatisfied,
-	}
-
-	for key, value := range buildPrep.Inputs {
-		clone.Inputs[key] = value
-	}
-
-	return clone
 }

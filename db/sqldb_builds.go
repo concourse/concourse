@@ -11,8 +11,8 @@ import (
 	"github.com/lib/pq"
 )
 
-const buildColumns = "id, name, job_id, status, scheduled, engine, engine_metadata, start_time, end_time"
-const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.status, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name"
+const buildColumns = "id, name, job_id, status, scheduled, inputs_determined, engine, engine_metadata, start_time, end_time"
+const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.status, b.scheduled, b.inputs_determined, b.engine, b.engine_metadata, b.start_time, b.end_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name"
 
 func (db *SQLDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 	query := `
@@ -671,11 +671,12 @@ func scanBuild(row scannable) (Build, bool, error) {
 	var jobID, pipelineID sql.NullInt64
 	var status string
 	var scheduled bool
+	var inputsDetermined bool
 	var engine, engineMetadata, jobName, pipelineName sql.NullString
 	var startTime pq.NullTime
 	var endTime pq.NullTime
 
-	err := row.Scan(&id, &name, &jobID, &status, &scheduled, &engine, &engineMetadata, &startTime, &endTime, &jobName, &pipelineID, &pipelineName)
+	err := row.Scan(&id, &name, &jobID, &status, &scheduled, &inputsDetermined, &engine, &engineMetadata, &startTime, &endTime, &jobName, &pipelineID, &pipelineName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return Build{}, false, nil
@@ -685,10 +686,11 @@ func scanBuild(row scannable) (Build, bool, error) {
 	}
 
 	build := Build{
-		ID:        id,
-		Name:      name,
-		Status:    Status(status),
-		Scheduled: scheduled,
+		ID:               id,
+		Name:             name,
+		Status:           Status(status),
+		Scheduled:        scheduled,
+		InputsDetermined: inputsDetermined,
 
 		Engine:         engine.String,
 		EngineMetadata: engineMetadata.String,

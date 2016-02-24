@@ -4,7 +4,9 @@ package fakes
 import (
 	"sync"
 
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/scheduler"
 )
 
@@ -47,12 +49,48 @@ type FakeJobServiceDB struct {
 	updateBuildPreparationReturns struct {
 		result1 error
 	}
+	UpdateBuildToUnscheduledStub        func(buildID int) error
+	updateBuildToUnscheduledMutex       sync.RWMutex
+	updateBuildToUnscheduledArgsForCall []struct {
+		buildID int
+	}
+	updateBuildToUnscheduledReturns struct {
+		result1 error
+	}
 	IsPausedStub        func() (bool, error)
 	isPausedMutex       sync.RWMutex
 	isPausedArgsForCall []struct{}
 	isPausedReturns     struct {
 		result1 bool
 		result2 error
+	}
+	LoadVersionsDBStub        func() (*algorithm.VersionsDB, error)
+	loadVersionsDBMutex       sync.RWMutex
+	loadVersionsDBArgsForCall []struct{}
+	loadVersionsDBReturns     struct {
+		result1 *algorithm.VersionsDB
+		result2 error
+	}
+	GetLatestInputVersionsStub        func(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, error)
+	getLatestInputVersionsMutex       sync.RWMutex
+	getLatestInputVersionsArgsForCall []struct {
+		versions *algorithm.VersionsDB
+		job      string
+		inputs   []config.JobInput
+	}
+	getLatestInputVersionsReturns struct {
+		result1 []db.BuildInput
+		result2 bool
+		result3 error
+	}
+	UseInputsForBuildStub        func(buildID int, inputs []db.BuildInput) error
+	useInputsForBuildMutex       sync.RWMutex
+	useInputsForBuildArgsForCall []struct {
+		buildID int
+		inputs  []db.BuildInput
+	}
+	useInputsForBuildReturns struct {
+		result1 error
 	}
 }
 
@@ -190,6 +228,38 @@ func (fake *FakeJobServiceDB) UpdateBuildPreparationReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeJobServiceDB) UpdateBuildToUnscheduled(buildID int) error {
+	fake.updateBuildToUnscheduledMutex.Lock()
+	fake.updateBuildToUnscheduledArgsForCall = append(fake.updateBuildToUnscheduledArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.updateBuildToUnscheduledMutex.Unlock()
+	if fake.UpdateBuildToUnscheduledStub != nil {
+		return fake.UpdateBuildToUnscheduledStub(buildID)
+	} else {
+		return fake.updateBuildToUnscheduledReturns.result1
+	}
+}
+
+func (fake *FakeJobServiceDB) UpdateBuildToUnscheduledCallCount() int {
+	fake.updateBuildToUnscheduledMutex.RLock()
+	defer fake.updateBuildToUnscheduledMutex.RUnlock()
+	return len(fake.updateBuildToUnscheduledArgsForCall)
+}
+
+func (fake *FakeJobServiceDB) UpdateBuildToUnscheduledArgsForCall(i int) int {
+	fake.updateBuildToUnscheduledMutex.RLock()
+	defer fake.updateBuildToUnscheduledMutex.RUnlock()
+	return fake.updateBuildToUnscheduledArgsForCall[i].buildID
+}
+
+func (fake *FakeJobServiceDB) UpdateBuildToUnscheduledReturns(result1 error) {
+	fake.UpdateBuildToUnscheduledStub = nil
+	fake.updateBuildToUnscheduledReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeJobServiceDB) IsPaused() (bool, error) {
 	fake.isPausedMutex.Lock()
 	fake.isPausedArgsForCall = append(fake.isPausedArgsForCall, struct{}{})
@@ -213,6 +283,100 @@ func (fake *FakeJobServiceDB) IsPausedReturns(result1 bool, result2 error) {
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeJobServiceDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
+	fake.loadVersionsDBMutex.Lock()
+	fake.loadVersionsDBArgsForCall = append(fake.loadVersionsDBArgsForCall, struct{}{})
+	fake.loadVersionsDBMutex.Unlock()
+	if fake.LoadVersionsDBStub != nil {
+		return fake.LoadVersionsDBStub()
+	} else {
+		return fake.loadVersionsDBReturns.result1, fake.loadVersionsDBReturns.result2
+	}
+}
+
+func (fake *FakeJobServiceDB) LoadVersionsDBCallCount() int {
+	fake.loadVersionsDBMutex.RLock()
+	defer fake.loadVersionsDBMutex.RUnlock()
+	return len(fake.loadVersionsDBArgsForCall)
+}
+
+func (fake *FakeJobServiceDB) LoadVersionsDBReturns(result1 *algorithm.VersionsDB, result2 error) {
+	fake.LoadVersionsDBStub = nil
+	fake.loadVersionsDBReturns = struct {
+		result1 *algorithm.VersionsDB
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeJobServiceDB) GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, error) {
+	fake.getLatestInputVersionsMutex.Lock()
+	fake.getLatestInputVersionsArgsForCall = append(fake.getLatestInputVersionsArgsForCall, struct {
+		versions *algorithm.VersionsDB
+		job      string
+		inputs   []config.JobInput
+	}{versions, job, inputs})
+	fake.getLatestInputVersionsMutex.Unlock()
+	if fake.GetLatestInputVersionsStub != nil {
+		return fake.GetLatestInputVersionsStub(versions, job, inputs)
+	} else {
+		return fake.getLatestInputVersionsReturns.result1, fake.getLatestInputVersionsReturns.result2, fake.getLatestInputVersionsReturns.result3
+	}
+}
+
+func (fake *FakeJobServiceDB) GetLatestInputVersionsCallCount() int {
+	fake.getLatestInputVersionsMutex.RLock()
+	defer fake.getLatestInputVersionsMutex.RUnlock()
+	return len(fake.getLatestInputVersionsArgsForCall)
+}
+
+func (fake *FakeJobServiceDB) GetLatestInputVersionsArgsForCall(i int) (*algorithm.VersionsDB, string, []config.JobInput) {
+	fake.getLatestInputVersionsMutex.RLock()
+	defer fake.getLatestInputVersionsMutex.RUnlock()
+	return fake.getLatestInputVersionsArgsForCall[i].versions, fake.getLatestInputVersionsArgsForCall[i].job, fake.getLatestInputVersionsArgsForCall[i].inputs
+}
+
+func (fake *FakeJobServiceDB) GetLatestInputVersionsReturns(result1 []db.BuildInput, result2 bool, result3 error) {
+	fake.GetLatestInputVersionsStub = nil
+	fake.getLatestInputVersionsReturns = struct {
+		result1 []db.BuildInput
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeJobServiceDB) UseInputsForBuild(buildID int, inputs []db.BuildInput) error {
+	fake.useInputsForBuildMutex.Lock()
+	fake.useInputsForBuildArgsForCall = append(fake.useInputsForBuildArgsForCall, struct {
+		buildID int
+		inputs  []db.BuildInput
+	}{buildID, inputs})
+	fake.useInputsForBuildMutex.Unlock()
+	if fake.UseInputsForBuildStub != nil {
+		return fake.UseInputsForBuildStub(buildID, inputs)
+	} else {
+		return fake.useInputsForBuildReturns.result1
+	}
+}
+
+func (fake *FakeJobServiceDB) UseInputsForBuildCallCount() int {
+	fake.useInputsForBuildMutex.RLock()
+	defer fake.useInputsForBuildMutex.RUnlock()
+	return len(fake.useInputsForBuildArgsForCall)
+}
+
+func (fake *FakeJobServiceDB) UseInputsForBuildArgsForCall(i int) (int, []db.BuildInput) {
+	fake.useInputsForBuildMutex.RLock()
+	defer fake.useInputsForBuildMutex.RUnlock()
+	return fake.useInputsForBuildArgsForCall[i].buildID, fake.useInputsForBuildArgsForCall[i].inputs
+}
+
+func (fake *FakeJobServiceDB) UseInputsForBuildReturns(result1 error) {
+	fake.UseInputsForBuildStub = nil
+	fake.useInputsForBuildReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ scheduler.JobServiceDB = new(FakeJobServiceDB)

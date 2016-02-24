@@ -21,13 +21,6 @@ type FakeBuildsDB struct {
 		result2 bool
 		result3 error
 	}
-	GetAllStartedBuildsStub        func() ([]db.Build, error)
-	getAllStartedBuildsMutex       sync.RWMutex
-	getAllStartedBuildsArgsForCall []struct{}
-	getAllStartedBuildsReturns     struct {
-		result1 []db.Build
-		result2 error
-	}
 	ErrorBuildStub        func(buildID int, err error) error
 	errorBuildMutex       sync.RWMutex
 	errorBuildArgsForCall []struct {
@@ -99,31 +92,6 @@ func (fake *FakeBuildsDB) LeaseBuildSchedulingReturns(result1 db.Lease, result2 
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeBuildsDB) GetAllStartedBuilds() ([]db.Build, error) {
-	fake.getAllStartedBuildsMutex.Lock()
-	fake.getAllStartedBuildsArgsForCall = append(fake.getAllStartedBuildsArgsForCall, struct{}{})
-	fake.getAllStartedBuildsMutex.Unlock()
-	if fake.GetAllStartedBuildsStub != nil {
-		return fake.GetAllStartedBuildsStub()
-	} else {
-		return fake.getAllStartedBuildsReturns.result1, fake.getAllStartedBuildsReturns.result2
-	}
-}
-
-func (fake *FakeBuildsDB) GetAllStartedBuildsCallCount() int {
-	fake.getAllStartedBuildsMutex.RLock()
-	defer fake.getAllStartedBuildsMutex.RUnlock()
-	return len(fake.getAllStartedBuildsArgsForCall)
-}
-
-func (fake *FakeBuildsDB) GetAllStartedBuildsReturns(result1 []db.Build, result2 error) {
-	fake.GetAllStartedBuildsStub = nil
-	fake.getAllStartedBuildsReturns = struct {
-		result1 []db.Build
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeBuildsDB) ErrorBuild(buildID int, err error) error {

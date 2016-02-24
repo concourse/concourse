@@ -14,10 +14,11 @@ const (
 )
 
 type Build struct {
-	ID        int
-	Name      string
-	Status    Status
-	Scheduled bool
+	ID               int
+	Name             string
+	Status           Status
+	Scheduled        bool
+	InputsDetermined bool
 
 	JobID        int
 	JobName      string
