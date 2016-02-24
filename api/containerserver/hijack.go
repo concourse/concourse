@@ -1,15 +1,20 @@
 package containerserver
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
+	"github.com/gorilla/websocket"
 	"github.com/pivotal-golang/lager"
 )
+
+var upgrader = websocket.Upgrader{
+	HandshakeTimeout: 5 * time.Second,
+}
 
 func (s *Server) HijackContainer(w http.ResponseWriter, r *http.Request) {
 	handle := r.FormValue(":id")
@@ -18,17 +23,9 @@ func (s *Server) HijackContainer(w http.ResponseWriter, r *http.Request) {
 		"handle": handle,
 	})
 
-	var processSpec atc.HijackProcessSpec
-	err := json.NewDecoder(r.Body).Decode(&processSpec)
-	if err != nil {
-		hLog.Error("malformed-process-spec", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	_, found, err := s.db.GetContainer(handle)
 	if err != nil {
-		hLog.Error("failed-to-lookup-container", err)
+		hLog.Error("failed-to-find-container", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -41,12 +38,28 @@ func (s *Server) HijackContainer(w http.ResponseWriter, r *http.Request) {
 
 	hLog.Debug("found-container")
 
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		hLog.Error("unable-to-upgrade-connection-for-websockets", err)
+		return
+	}
+
+	defer conn.Close()
+
+	var processSpec atc.HijackProcessSpec
+	err = conn.ReadJSON(&processSpec)
+	if err != nil {
+		hLog.Error("malformed-process-spec", err)
+		closeWithErr(hLog, conn, websocket.CloseUnsupportedData, fmt.Sprintf("malformed process spec"))
+		return
+	}
+
 	hijackRequest := hijackRequest{
 		ContainerHandle: handle,
 		Process:         processSpec,
 	}
 
-	s.hijack(w, hijackRequest, hLog)
+	s.hijack(hLog, conn, hijackRequest)
 }
 
 type hijackRequest struct {
@@ -54,7 +67,19 @@ type hijackRequest struct {
 	Process         atc.HijackProcessSpec
 }
 
-func (s *Server) hijack(w http.ResponseWriter, request hijackRequest, hLog lager.Logger) {
+func closeWithErr(log lager.Logger, conn *websocket.Conn, code int, reason string) {
+	err := conn.WriteControl(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(code, reason),
+		time.Time{},
+	)
+
+	if err != nil {
+		log.Error("failed-to-close-websocket-connection", err)
+	}
+}
+
+func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackRequest) {
 	hLog = hLog.Session("hijack", lager.Data{
 		"handle":  request.ContainerHandle,
 		"process": request.Process,
@@ -62,33 +87,20 @@ func (s *Server) hijack(w http.ResponseWriter, request hijackRequest, hLog lager
 
 	container, found, err := s.workerClient.LookupContainer(hLog, request.ContainerHandle)
 	if err != nil {
-		hLog.Error("failed-to-get-container", err)
-		http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusInternalServerError)
+		hLog.Error("failed-to-lookup-container", err)
+		closeWithErr(hLog, conn, websocket.CloseInternalServerErr, "failed to lookup container")
 		return
 	}
 
 	if !found {
-		hLog.Info("failed-to-get-container")
-		http.Error(w, fmt.Sprintf("failed to get container: %s", err), http.StatusNotFound)
+		hLog.Info("could-not-find-container")
+		closeWithErr(hLog, conn, websocket.CloseInternalServerErr, fmt.Sprintf("could not find container"))
 		return
 	}
 
 	defer container.Release(nil)
 
-	w.WriteHeader(http.StatusOK)
-
-	conn, br, err := w.(http.Hijacker).Hijack()
-	if err != nil {
-		hLog.Error("failed-to-hijack", err)
-		return
-	}
-
-	defer conn.Close()
-
 	stdinR, stdinW := io.Pipe()
-
-	enc := json.NewEncoder(conn)
-	dec := json.NewDecoder(br)
 
 	inputs := make(chan atc.HijackInput)
 	outputs := make(chan atc.HijackOutput)
@@ -143,7 +155,7 @@ func (s *Server) hijack(w http.ResponseWriter, request hijackRequest, hLog lager
 	go func() {
 		for {
 			var input atc.HijackInput
-			err := dec.Decode(&input)
+			err := conn.ReadJSON(&input)
 			if err != nil {
 				break
 			}
@@ -176,7 +188,7 @@ func (s *Server) hijack(w http.ResponseWriter, request hijackRequest, hLog lager
 					},
 				})
 				if err != nil {
-					enc.Encode(atc.HijackOutput{
+					conn.WriteJSON(atc.HijackOutput{
 						Error: err.Error(),
 					})
 				}
@@ -185,20 +197,20 @@ func (s *Server) hijack(w http.ResponseWriter, request hijackRequest, hLog lager
 			}
 
 		case output := <-outputs:
-			err := enc.Encode(output)
+			err := conn.WriteJSON(output)
 			if err != nil {
 				return
 			}
 
 		case status := <-exited:
-			enc.Encode(atc.HijackOutput{
+			conn.WriteJSON(atc.HijackOutput{
 				ExitStatus: &status,
 			})
 
 			return
 
 		case err := <-errs:
-			enc.Encode(atc.HijackOutput{
+			conn.WriteJSON(atc.HijackOutput{
 				Error: err.Error(),
 			})
 

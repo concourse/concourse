@@ -2,27 +2,26 @@ package api_test
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strconv"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
+	"github.com/gorilla/websocket"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	workerfakes "github.com/concourse/atc/worker/fakes"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Pipelines API", func() {
+var _ = Describe("Containers API", func() {
 	var (
 		pipelineName     = "some-pipeline"
 		jobName          = "some-job"
@@ -535,49 +534,48 @@ var _ = Describe("Pipelines API", func() {
 		})
 	})
 
-	Describe("POST /api/v1/containers/:id/hijack", func() {
+	Describe("GET /api/v1/containers/:id/hijack", func() {
 		var (
 			requestPayload string
 
+			conn     *websocket.Conn
 			response *http.Response
 
-			clientConn   net.Conn
-			clientReader *bufio.Reader
-
-			clientEnc *json.Encoder
-			clientDec *json.Decoder
+			expectBadHandshake bool
 		)
 
 		BeforeEach(func() {
+			expectBadHandshake = false
 			requestPayload = `{"path":"ls", "user": "snoopy"}`
 		})
 
 		JustBeforeEach(func() {
-			var err error
-
-			hijackReq, err := http.NewRequest(
-				"POST",
-				server.URL+"/api/v1/containers/"+handle+"/hijack",
-				bytes.NewBufferString(requestPayload),
-			)
+			wsURL, err := url.Parse(server.URL)
 			Expect(err).NotTo(HaveOccurred())
 
-			conn, err := net.Dial("tcp", server.Listener.Addr().String())
-			Expect(err).NotTo(HaveOccurred())
+			wsURL.Scheme = "ws"
+			wsURL.Path = "/api/v1/containers/" + handle + "/hijack"
 
-			client := httputil.NewClientConn(conn, nil)
+			dialer := websocket.Dialer{}
+			conn, response, err = dialer.Dial(wsURL.String(), nil)
+			if !expectBadHandshake {
+				Expect(err).NotTo(HaveOccurred())
 
-			response, err = client.Do(hijackReq)
-			Expect(err).NotTo(HaveOccurred())
+				writer, err := conn.NextWriter(websocket.TextMessage)
+				Expect(err).NotTo(HaveOccurred())
 
-			clientConn, clientReader = client.Hijack()
+				_, err = writer.Write([]byte(requestPayload))
+				Expect(err).NotTo(HaveOccurred())
 
-			clientEnc = json.NewEncoder(clientConn)
-			clientDec = json.NewDecoder(clientReader)
+				err = writer.Close()
+				Expect(err).NotTo(HaveOccurred())
+			}
 		})
 
 		AfterEach(func() {
-			clientConn.Close()
+			if !expectBadHandshake {
+				conn.Close()
+			}
 		})
 
 		Context("when authenticated", func() {
@@ -604,8 +602,11 @@ var _ = Describe("Pipelines API", func() {
 						fakeWorkerClient.LookupContainerReturns(nil, false, errors.New("nope"))
 					})
 
-					It("returns a 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					It("closes the websocket connection with an error", func() {
+						_, _, err := conn.ReadMessage()
+
+						Expect(websocket.IsCloseError(err, 1011)).To(BeTrue()) // internal server error
+						Expect(err).To(MatchError(ContainSubstring("failed to lookup container")))
 					})
 				})
 
@@ -614,8 +615,24 @@ var _ = Describe("Pipelines API", func() {
 						fakeWorkerClient.LookupContainerReturns(nil, false, nil)
 					})
 
-					It("returns a 404", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					It("closes the websocket connection with an error", func() {
+						_, _, err := conn.ReadMessage()
+
+						Expect(websocket.IsCloseError(err, 1011)).To(BeTrue()) // internal server error
+						Expect(err).To(MatchError(ContainSubstring("could not find container")))
+					})
+				})
+
+				Context("when the request payload is invalid", func() {
+					BeforeEach(func() {
+						requestPayload = "ß"
+					})
+
+					It("closes the connection with an error", func() {
+						_, _, err := conn.ReadMessage()
+
+						Expect(websocket.IsCloseError(err, 1003)).To(BeTrue()) // unsupported data
+						Expect(err).To(MatchError(ContainSubstring("malformed process spec")))
 					})
 				})
 
@@ -660,7 +677,7 @@ var _ = Describe("Pipelines API", func() {
 
 					Context("when stdin is sent over the API", func() {
 						JustBeforeEach(func() {
-							err := clientEnc.Encode(atc.HijackInput{
+							err := conn.WriteJSON(atc.HijackInput{
 								Stdin: []byte("some stdin\n"),
 							})
 							Expect(err).NotTo(HaveOccurred())
@@ -686,7 +703,7 @@ var _ = Describe("Pipelines API", func() {
 
 						It("forwards it to the response", func() {
 							var hijackOutput atc.HijackOutput
-							err := clientDec.Decode(&hijackOutput)
+							err := conn.ReadJSON(&hijackOutput)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(hijackOutput).To(Equal(atc.HijackOutput{
@@ -707,13 +724,12 @@ var _ = Describe("Pipelines API", func() {
 
 						It("forwards it to the response", func() {
 							var hijackOutput atc.HijackOutput
-							err := clientDec.Decode(&hijackOutput)
+							err := conn.ReadJSON(&hijackOutput)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(hijackOutput).To(Equal(atc.HijackOutput{
 								Stderr: []byte("some stderr\n"),
 							}))
-
 						})
 					})
 
@@ -724,7 +740,7 @@ var _ = Describe("Pipelines API", func() {
 
 						It("forwards its exit status to the response", func() {
 							var hijackOutput atc.HijackOutput
-							err := clientDec.Decode(&hijackOutput)
+							err := conn.ReadJSON(&hijackOutput)
 							Expect(err).NotTo(HaveOccurred())
 
 							exitStatus := 123
@@ -741,7 +757,7 @@ var _ = Describe("Pipelines API", func() {
 
 					Context("when new tty settings are sent over the API", func() {
 						JustBeforeEach(func() {
-							err := clientEnc.Encode(atc.HijackInput{
+							err := conn.WriteJSON(atc.HijackInput{
 								TTYSpec: &atc.HijackTTYSpec{
 									WindowSize: atc.HijackWindowSize{
 										Columns: 123,
@@ -761,7 +777,6 @@ var _ = Describe("Pipelines API", func() {
 									Rows:    456,
 								},
 							}))
-
 						})
 
 						Context("and setting the TTY on the process fails", func() {
@@ -771,13 +786,12 @@ var _ = Describe("Pipelines API", func() {
 
 							It("forwards the error to the response", func() {
 								var hijackOutput atc.HijackOutput
-								err := clientDec.Decode(&hijackOutput)
+								err := conn.ReadJSON(&hijackOutput)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(hijackOutput).To(Equal(atc.HijackOutput{
 									Error: "oh no!",
 								}))
-
 							})
 						})
 					})
@@ -789,13 +803,12 @@ var _ = Describe("Pipelines API", func() {
 
 						It("forwards the error to the response", func() {
 							var hijackOutput atc.HijackOutput
-							err := clientDec.Decode(&hijackOutput)
+							err := conn.ReadJSON(&hijackOutput)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(hijackOutput).To(Equal(atc.HijackOutput{
 								Error: "oh no!",
 							}))
-
 						})
 					})
 				})
@@ -803,6 +816,8 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when the container cannot be found", func() {
 				BeforeEach(func() {
+					expectBadHandshake = true
+
 					containerDB.GetContainerReturns(db.Container{}, false, nil)
 				})
 
@@ -814,28 +829,22 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when the db request fails", func() {
 				BeforeEach(func() {
+					expectBadHandshake = true
+
 					fakeErr := errors.New("error")
 					containerDB.GetContainerReturns(db.Container{}, false, fakeErr)
 				})
+
 				It("returns 500 internal error", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-
-			})
-
-			Context("when the request payload is invalid", func() {
-				BeforeEach(func() {
-					requestPayload = "ß"
-				})
-
-				It("returns 400 Bad Request", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 			})
 		})
 
 		Context("when not authenticated", func() {
 			BeforeEach(func() {
+				expectBadHandshake = true
+
 				authValidator.IsAuthenticatedReturns(false)
 			})
 
