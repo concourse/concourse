@@ -109,11 +109,12 @@ func (server *Server) CommitOnBranch(branch string) string {
 			fmt.Sprintf(
 				`
 					cd some-repo
-					git checkout -B `+branch+`
+					git checkout -B '%s'
 					echo '%s' >> guids
 					git add guids
 					git commit -m 'commit #%d: %s'
 				`,
+				branch,
 				guid,
 				len(server.committedGuids)+1,
 				guid,

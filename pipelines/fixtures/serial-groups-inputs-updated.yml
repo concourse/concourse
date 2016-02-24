@@ -1,0 +1,65 @@
+---
+resources:
+  - name: some-git-resource
+    type: git
+    source:
+      uri: {{origin-git-server}}
+      branch: master
+
+  - name: other-git-resource
+    type: git
+    source:
+      uri: {{origin-git-server}}
+      branch: other-branch
+
+jobs:
+  - name: some-passing-job
+    serial_groups:
+      - serial-group-1
+    plan:
+      - get: some-git-resource
+        trigger: true
+      - task: curl-server
+        config:
+          platform: linux
+          image: {{testflight-helper-image}}
+          inputs:
+            - name: some-git-resource
+              path: .
+          params:
+            CURL_COMMAND: {{guid-server-curl-command}}
+          run:
+            path: sh
+            args: ["-c", "tail -1 guids | $CURL_COMMAND"]
+
+  - name: some-pending-job
+    serial_groups:
+      - serial-group-1
+    plan:
+      - get: other-git-resource
+        trigger: true
+      - get: some-git-resource
+      - task: curl-server-other-git-resource
+        config:
+          platform: linux
+          image: {{testflight-helper-image}}
+          inputs:
+            - name: other-git-resource
+              path: .
+          params:
+            CURL_COMMAND: {{guid-server-curl-command}}
+          run:
+            path: sh
+            args: ["-c", "tail -1 guids | $CURL_COMMAND"]
+      - task: curl-server-some-git-resource
+        config:
+          platform: linux
+          image: {{testflight-helper-image}}
+          inputs:
+            - name: some-git-resource
+              path: .
+          params:
+            CURL_COMMAND: {{guid-server-curl-command}}
+          run:
+            path: sh
+            args: ["-c", "tail -1 guids | $CURL_COMMAND"]
