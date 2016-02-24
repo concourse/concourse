@@ -4,14 +4,22 @@ body {
 	-webkit-font-smoothing: antialiased;
    }
 
-h1, h2, h3, h4, h5, h6, .nav {
-  font-family:  'Montserrat', arial;
+h1, h2, h3, h4 {
+  font-family: 'Montserrat', arial;
   font-weight: 300;
   -webkit-font-smoothing: antialiased;
 }
 
-h5, h6 {
+h5, h6, .nav, .bottom-nav {
+  font-family: 'Montserrat', arial;
   font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+}
+
+.slack-section h6 {
+  font-family: 'Montserrat', arial;
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
 }
 
 /*Top Introduction section _________________*/
@@ -38,12 +46,20 @@ img.responsive-image {
 	height: 30px; 
 }
 
-.navbar-link a {
+.navbar-link, .navbar-link a {
 	color: white;
 	-webkit-transition: all 0.3s;
 	-moz-transition: all 0.3s;
 	transition: all 0.3s;
 	min-width: 142px;
+}
+
+.sponsorship {
+  padding-bottom: 1em;
+}
+
+.sponsorship a {
+  text-decoration: underline;
 }
 
 a:hover {
@@ -120,6 +136,16 @@ a:hover {
 	background-color: #5C6D7F;
 	padding: 45px 0px 45px 0px;
 	color: #eefcff;
+}
+
+.get-started h6 a {
+  color: #fff;
+  text-decoration: underline;
+  -webkit-transition: all 0.3s;
+}
+
+.get-started h6 a:hover {
+  color: #379ADC;
 }
 
 .started-title {
@@ -200,7 +226,7 @@ li {
   height: 10px;
   top: 2px;
   left: 13px;
-  margin: 0 3px 0 0;
+  margin: 0 6px 0 0;
   border-radius: 50%;
   background-color: rgba(255, 255, 255, .20);
   position: relative;
@@ -214,6 +240,23 @@ li {
 
 .code-comment {
 	color: #8D8E8E;
+}
+
+.code-lines {
+  padding: 1rem 1.5rem;
+  margin: 1em 0;
+}
+
+.code-lines pre {
+  padding: 0;
+  margin: 0;
+}
+
+.code-lines .code-line pre:before {
+  content: "$ ";
+  float: left;
+  color: #379ADC;
+  font-size: 16px;
 }
 
 pre {
@@ -337,6 +380,7 @@ code {
 
 .logo-div1 {
 	margin-top: 30px;
+        padding-bottom: 1em;
 	display: inline-block;
 	position: relative;
 }

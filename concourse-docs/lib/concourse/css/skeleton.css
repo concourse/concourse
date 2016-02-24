@@ -324,6 +324,12 @@ pre > code {
   padding: 1rem 1.5rem;
   white-space: pre; }
 
+pre.verbatim {
+  padding: 1rem 1.5rem;
+  font-size: 16px;
+  font-weight: bold;
+}
+
 .styleguide-code {
   background: #F1F1F1;
   border: 1px solid #E1E1E1;

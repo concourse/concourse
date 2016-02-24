@@ -2,8 +2,6 @@
 
 \use{\load{concourse/splash}}
 
-\table-of-contents
-
 \template{\load{concourse/template}}
 
 \title{Concourse\aux{: CI that scales with your project}}{index}
@@ -22,86 +20,140 @@
   \top-intro-text{CI that scales with your project.}
 
   \top-intro-buttons{
-    \reference{getting-started}{\button{Get Started}}
+    \reference{getting-started}{\light-button{Get Started}}
   }{
-    \reference{contribute}{\button{\font-awesome{fa-github} Contribute}}
+    \reference{contribute}{\light-button{\font-awesome{fa-github} Contribute}}
   }
 
   \top-intro-pipes
 }
 
-\include-section{./concourse.any}
+\value-prop-left{Simple and Scalable}{value_prop_simple_f2}{
+  Simple primitives scale with your project to help you build understandable
+  pipelines.
+}
 
-{-
-\value-props{
-  \value-prop-left{Simple and Scalable}{simple-and-scalable}{
-    Simple primitives scale with your project to help you build understandable
-    pipelines.
-  }
+\value-prop-right{Streamlined UI}{value_prop_streamlined_f2}{
+  Concourse's user interface helps you find out what you need to know about
+  your builds as quickly as possible.
+}
 
-  \value-prop-right{Streamlined UI}{streamlined-ui}{
-    Concourse's user interface helps you find out what you need to know about
-    your builds as quickly as possible.
-  }
+\value-prop-left{Dependable Results}{value_prop_repeatable_f2}{
+  Concourse controls the inputs to your pipeline so that the results are
+  repeatable every time.
+}
 
-  \value-prop-left{Dependable Results}{dependable-results}{
-    Concourse controls the inputs to your pipeline so that the results are
-    repeatable every time.
-  }
+\value-prop-right{Integrations}{value_prop_integrations_f24}{
+  Concourse works out-of-the-box with Git repositories, S3 buckets, and other
+  common external services.
 
-  \value-prop-right{Integrations}{integrations}{
-    Concourse works out-of-the-box with Git repositories, S3 buckets, and other
-    common external services.
-
-    Using these allows Concourse to do the hard work of fetching and versioning
-    external artifacts. You can delete your scripts which do the same thing.
-    You can even write your own resources to extend the system.
-  }
+  Using these allows Concourse to do the hard work of fetching and versioning
+  external artifacts. You can delete your scripts which do the same thing.
+  You can even write your own resources to extend the system.
 }
 
 \getting-started{Getting Started Takes 5 Minutes}{
-  \step{3 min}{Vagrant Up}{
-    \code-window{bash}{
-      $ vagrant init concourse/lite  # creates ./Vagrantfile
-      $ vagrant up                   # downloads the box and spins up the VM
+  \list{
+    \step-with-line{3{\newline}min}{Vagrant Up}{
+      \code-lines{bash}{
+        vagrant init concourse/lite  # creates ./Vagrantfile
+      }{
+        vagrant up                   # downloads the box and spins up the VM
+      }
+
+      The web server will be running at
+      \hyperlink{https://192.168.100.4:8080}{192.168.100.4:8080}.
     }
 
-    The web server will be running at
-    \hyperlink{https://192.168.100.4:8080}{192.168.100.4:8080}.
-  }
+    \step{1{\newline}min}{Save a .yml file with this example pipeline:}{
+      \code-window{yaml}{
+        jobs:
+        - name: hello-world
+          plan:
+          - task: say-hello
+            config:
+              platform: linux
+              image: "docker:///ubuntu"
+              run:
+                path: echo
+                args: ["Hello, world!"]
+      }
+    }
 
-  \step{1 min}{Save a .yml file with this example pipeline:}{
-    \code-window{yaml}{
-      jobs:
-      - name: hello-world
-        plan:
-        - task: say-hello
-          config:
-            platform: linux
-            image: "docker:///ubuntu"
-            run:
-              path: echo
-              args: ["Hello, world!"]
+    \step{1{\newline}sec}{Push to Concourse}{
+      \code-lines{bash}{
+        fly -t lite login -c http://192.168.100.4:8080
+      }{
+        fly -t lite set-pipeline -p really-cool-pipeline -c somewhere.yml
+      }
+
+      If you refresh the \hyperlink{http://192.168.100.4:8080}{main page}, you
+      should now see the world's tiniest pipeline!
     }
   }
 
-  \step{1 sec}{Push to Concourse}{
-    \code-window{bash}{
-      $ fly -t lite login -c http://192.168.100.4:8080
-      $ fly -t lite set-pipeline -p really-cool-pipeline -c somewhere.yml
-    }
+  \coffee
+}
 
-    If you refresh the \hyperlink{http://192.168.100.4:8080}{main page}, you
-    should now see the world's tiniest pipeline!
-  }
-
-  \coffee{
-    \truitt{Come fly the friendly CI!}
-  }
+\truitt{Come fly the friendly CI!}{
+  \reference{getting-started}{\blue-button{Get Started}}
 }
 
 \slack{
   To chit chat, ask for help, or offer your own, join us in the Concourse team:
   \hyperlink{https://concourseci.slack.com}{concourseci.slack.com}.
 }
--}
+
+\bottom-nav{
+  \nav-columns{
+    \nav-column{\reference{index}{Concourse}}{
+      \reference{team}{Team}
+    }
+
+    \nav-column{\reference{docs}{Documentation}}{
+      \reference{what-and-why}{What and Why}
+    }{
+      \reference{getting-started}{Getting Started}
+    }
+
+    \nav-column{\reference{community}{Community}}{
+      \hyperlink{https://github.com/concourse}{GitHub}
+    }{
+      \hyperlink{https://concourseci.slack.com/}{Slack}
+    }{
+      \hyperlink{https://groups.google.com/group/concourse-security}{Security Mailing List}
+    }{
+      \reference{talks}{Talks}
+    }
+
+    \nav-column{\reference{releases}{Releases}}{
+      \reference{release-notes}{Release Notes}
+    }{
+      \hyperlink{https://github.com/concourse/concourse/releases}{Concourse Binaries}
+    }{
+      \hyperlink{http://bosh.io/releases/github.com/concourse/concourse?all=1}{BOSH Releases}
+    }
+  }
+
+  \sponsorship{Sponsored by \hyperlink{http://pivotal.io/}{Pivotal Software}, Inc.}
+}
+
+\include-section{./concourse.any}
+\include-section{./what-and-why.any}
+\include-section{./concourse-vs.any}
+\include-section{./getting-started.any}
+\include-section{./concepts.any}
+\include-section{./pipeline-mechanics.any}
+\include-section{./examples.any}
+\include-section{./fly-cli.any}
+\include-section{./running-tasks.any}
+\include-section{./pipelines.any}
+\include-section{./build-plans.any}
+\include-section{./serious/bosh.any}
+\include-section{./serious/worker-pools.any}
+\include-section{./restricting-access.any}
+\include-section{./implementing-resources.any}
+\include-section{./metrics.any}
+\include-section{./release-notes.any}
+
+\table-of-contents
