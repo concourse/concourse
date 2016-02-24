@@ -674,7 +674,7 @@ var _ = Describe("Scheduler", func() {
 
 				Context("when build can NOT be scheduled", func() {
 					BeforeEach(func() {
-						fakeJobService.CanBuildBeScheduledReturns([]db.BuildInput{}, false, "nope", nil)
+						fakeJobService.CanBuildBeScheduledReturns(nil, false, "nope", nil)
 					})
 
 					It("logs and returns nil", func() {
@@ -684,12 +684,43 @@ var _ = Describe("Scheduler", func() {
 
 					Context("due to an error", func() {
 						BeforeEach(func() {
-							fakeJobService.CanBuildBeScheduledReturns([]db.BuildInput{}, false, "db-nope", errors.New("ermagersh errorz"))
+							fakeJobService.CanBuildBeScheduledReturns(nil, false, "db-nope", errors.New("ermagersh errorz"))
 						})
 
 						It("logs and returns nil", func() {
 							Expect(engineBuild).To(BeNil())
 							Expect(logger).To(gbytes.Say("failed-to-schedule-build"))
+						})
+
+					})
+
+					Context("due to a scanning error", func() {
+						var problemz error
+						BeforeEach(func() {
+							problemz = errors.New("ermagersh errorz")
+							fakeJobService.CanBuildBeScheduledReturns(nil, false, "failed-to-scan", problemz)
+						})
+
+						It("logs and returns nil", func() {
+							Expect(engineBuild).To(BeNil())
+							Expect(logger).To(gbytes.Say("failed-to-schedule-build"))
+
+							Expect(fakeBuildsDB.ErrorBuildCallCount()).To(Equal(1))
+							buildID, scanningError := fakeBuildsDB.ErrorBuildArgsForCall(0)
+							Expect(buildID).To(Equal(build.ID))
+							Expect(scanningError).To(Equal(problemz))
+						})
+
+						Context("when ErrorBuild errors", func() {
+							BeforeEach(func() {
+								fakeBuildsDB.ErrorBuildReturns(errors.New("freak out!?"))
+							})
+
+							It("logs and returns nil", func() {
+								Expect(engineBuild).To(BeNil())
+								Expect(logger).To(gbytes.Say("failed-to-schedule-build"))
+								Expect(logger).To(gbytes.Say("failed-to-mark-build-as-errored"))
+							})
 						})
 					})
 				})

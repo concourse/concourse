@@ -259,7 +259,17 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 
 	inputs, canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(logger, build, &buildPrep, versions)
 	if err != nil {
-		logger.Error("failed-to-schedule-build", err)
+		logger.Error("failed-to-schedule-build", err, lager.Data{
+			"build-id": build.ID,
+			"reason":   reason,
+		})
+
+		if reason == "failed-to-scan" {
+			err = s.BuildsDB.ErrorBuild(build.ID, err)
+			if err != nil {
+				logger.Error("failed-to-mark-build-as-errored", err)
+			}
+		}
 		return nil
 	}
 
