@@ -43,7 +43,7 @@ img.responsive-image {
 }
 
 .navbar-brand img {
-	height: 30px; 
+	height: 30px;
 }
 
 .navbar-link, .navbar-link a {
@@ -52,6 +52,10 @@ img.responsive-image {
 	-moz-transition: all 0.3s;
 	transition: all 0.3s;
 	min-width: 142px;
+}
+
+.top-intro .button {
+  margin: 3px;
 }
 
 .sponsorship {
@@ -89,7 +93,12 @@ a:hover {
 .pipes {
 	left: 50%;
 	bottom: 0;
+        margin-top: 25px;
 
+}
+
+.intro-slogan {
+        margin-bottom: 25px;
 }
 
 .pipe-pic {

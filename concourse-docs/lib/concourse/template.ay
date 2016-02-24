@@ -1,9 +1,14 @@
 use(require("atomy"))
 
+use(require("anatomy/html"))
 html = require("anatomy/renderers/html")
 
 def(template-for(part, out)):
+  part assets << File expand-path("../js/bootstrap.min.js", __FILE__)
+
   part parts each [sub]:
     html render(sub, out)
 
-  html over(part body)
+  [ html over(part body)
+    <script(src = "bootstrap.min.js"){}
+  ]

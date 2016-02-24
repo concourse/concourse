@@ -43,25 +43,27 @@ def(top-intro-nav(link1, link2, link3, link4)):
                       data Element new("", .class("icon-bar"))
                       data Element new("", .class("icon-bar"))
                     ]
-                    .classed(.button, "navbar-toggle"))
+                    .with-data(.classed(.button, "navbar-toggle"), #{"toggle" -> "collapse", "target" -> "#bs-example-navbar-collapse-1"}))
                   data Element new(
                     data Element new("", .image("logo_mobile_top.svg"))
-                    .hyperlink("#page-top"))
+                    .classed(.hyperlink("#page-top"), "navbar-brand"))
                 ]
                 .class("navbar-header", "page-scroll"))
+              data Block new(
+                data Block new(
+                  [ data Block new(link1, .classed(.list-item, "navbar-link"))
+                    data Block new(link2, .classed(.list-item, "navbar-link"))
+                    data Block new(
+                      [ data Element new(data Element new("", .image("concourse_white.svg", "174px")), .hyperlink(html url(part)))
+                      ]
+                      .classed(.list-item, "home-button"))
+                    data Block new(link3, .classed(.list-item, "navbar-link"))
+                    data Block new(link4, .classed(.list-item, "navbar-link"))
+                  ]
+                  .classed(.unordered-list, "nav", "navbar-nav"))
+                .id(.class("collapse", "navbar-collapse"), "bs-example-navbar-collapse-1"))
             ]
             .class("container-fluid"))
-          data Block new(
-            [ data Block new(link1, .classed(.list-item, "navbar-link"))
-              data Block new(link2, .classed(.list-item, "navbar-link"))
-              data Block new(
-                [ data Element new(data Element new("", .image("concourse_white.svg", "174px")), .hyperlink(html url(part)))
-                ]
-                .classed(.list-item, "home-button"))
-              data Block new(link3, .classed(.list-item, "navbar-link"))
-              data Block new(link4, .classed(.list-item, "navbar-link"))
-            ]
-            .classed(.unordered-list, "nav", "navbar-nav"))
         ]
         .class("navbar", "navbar-default", "navbar-static-top")))
 
@@ -69,7 +71,7 @@ def(top-intro-text(content)):
   data Block new(
     data Block new(
       data Block new(
-        data Block new(content, .header(1))
+        data Block new(content, .classed(.header(1), "intro-slogan"))
         .class("twelve", "columns"))
       .class("row"))
     .class("container", "white-text", "txt-c"))
