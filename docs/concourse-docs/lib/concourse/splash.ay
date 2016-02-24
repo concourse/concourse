@@ -20,6 +20,7 @@ def(top-intro(content)):
       part css-additions << File expand-path("../css/bootstrap.css", __FILE__)
       part css-additions << File expand-path("../css/main.css", __FILE__)
       part css-additions << File expand-path("../css/fonts.css", __FILE__)
+      part css-additions << File expand-path("../css/highlight.css", __FILE__)
 
       data Block new(
         [ data Target new("page-top")
@@ -98,5 +99,214 @@ def(top-intro-pipes):
 def(font-awesome(class)):
   data Element new("", .font-awesome(class))
 
-def(button(content)):
+def(light-button(content)):
   data Element new(content, .class("button", "button-primary", "button-light"))
+
+def(blue-button(content)):
+  data Element new(content, .class("button", "button-primary", "button-blue"))
+
+def(value-prop-left(title, image, *content)):
+  data ResolveBlock new(
+    [part]:
+      part assets << File expand-path(i"../images/#{image}.svg", __FILE__)
+
+      prop =
+        [ data Block new(title, .classed(.header(4), "value-prop-title"))
+          data Paragraph new(content)
+        ]
+
+      vis =
+        data Element new("", .classed(.image(i"#{image}.svg"), "value-pics"))
+
+      data Block new(
+        data Block new(
+          data Block new(
+            [ data Block new(prop, .class("six", "columns"))
+              data Block new(vis, .class("six", "columns"))
+            ]
+            .class("twelve", "columns", "value-prop-a", "center-columns"))
+          .class("row"))
+        .class("container", "value-props")))
+
+def(value-prop-right(title, image, *content)):
+  data ResolveBlock new(
+    [part]:
+      part assets << File expand-path(i"../images/#{image}.svg", __FILE__)
+
+      prop =
+        [ data Block new(title, .classed(.header(4), "value-prop-title"))
+          data Paragraph new(content)
+        ]
+
+      vis =
+        data Element new("", .classed(.image(i"#{image}.svg"), "value-pics"))
+
+      data Block new(
+        data Block new(
+          data Block new(
+            data Block new(
+              [ data Block new(vis, .class("six", "columns"))
+                data Block new(prop, .class("six", "columns"))
+              ]
+              .class("twelve", "columns", "value-prop-b-flex", "center-columns"))
+            .class("row"))
+          .class("container"))
+        .class("u-full-width", "value-prop-b")))
+
+def(getting-started(title, *content)):
+  data Block new(
+    data Block new(
+      data Block new(
+        data Block new(
+          [ data Block new(title, .classed(.header(3), "started-title"))
+            content
+          ]
+          .class("twelve", "columns"))
+        .class("row"))
+      .class("container"))
+    .class("u-full-width", "get-started"))
+
+def(step-with-line(duration, title, *content)):
+  data ResolveBlock new(
+    [part]:
+      part assets << File expand-path(i"../images/line_simple.svg", __FILE__)
+
+      data Block new(
+        [ data Block new(
+            [ data Block new(duration, .class("time"))
+              data Element new("", .classed(.image("line_simple.svg"), "line"))
+            ]
+            .class("time-circle"))
+          data Block new(title, .header(4))
+          data Block new(content, .header(6))
+        ]
+        .classed(.list-item, "steps")))
+
+def(step(duration, title, *content)):
+  data Block new(
+    [ data Block new(
+        [ data Block new(duration, .class("time"))
+        ]
+        .class("time-circle"))
+      data Block new(title, .header(4))
+      data Block new(content, .header(6))
+    ]
+    .classed(.list-item, "steps"))
+
+def(code-window(language, *content)):
+  button = data Block new(nil, .class("window-buttons"))
+
+  data Block new(
+    [ [button] * 3
+      data Block new(
+        base codeblock(language, *content)
+        .class("window-frame"))
+    ]
+    .class("code-step"))
+
+def(code-lines(language, *lines)):
+  button = data Block new(nil, .class("window-buttons"))
+
+  data Block new(
+    [ [button] * 3
+      data Block new(
+        data Block new(
+          lines collect [line]:
+            data Block new(base codeblock(language, line), .class("code-line"))
+          .class("code-lines"))
+        .class("window-frame"))
+    ]
+    .class("code-step"))
+
+def(coffee):
+  data ResolveBlock new(
+    [part]:
+      part assets << File expand-path(i"../images/coffee.svg", __FILE__)
+
+      data Block new(
+        data Block new(
+          data Block new(
+            data Element new("", .classed(.image("coffee.svg"), "coffee-icon"))
+            .class("txt-c"))
+          .class("time-circle", "coffee"))
+        .class("u-full-width")))
+
+def(truitt(title, content)):
+  data ResolveBlock new(
+    [part]:
+      part assets << File expand-path(i"../images/line_path.svg", __FILE__)
+      part assets << File expand-path(i"../images/line_path_sml.svg", __FILE__)
+      part assets << File expand-path(i"../images/line_path_xsml.svg", __FILE__)
+
+      data Block new(
+        data Block new(
+          data Block new(
+            data Block new(
+              [ data Element new(
+                  ""
+                  .classed(.picture("line_path.svg", #{
+                    "(min-width: 1040px)" -> "line_path.svg"
+                    "(min-width: 550px)" -> "line_path_sml.svg"
+                    "(min-width: 150px)" -> "line_path_xsml.svg"
+                  }), "line-path"))
+                data Block new(
+                  [ data Block new(title, .header(4))
+                    content
+                  ]
+                  .class("fly-tagline"))
+              ]
+              .class("twelve", "columns"))
+            .class("row"))
+          .class("container"))
+        .class("u-full-width", "come-fly")))
+
+def(slack(content)):
+  data ResolveBlock new(
+    [part]:
+      part assets << File expand-path(i"../images/slack.png", __FILE__)
+
+      data Block new(
+        data Block new(
+          data Block new(
+            data Block new(
+              data Block new(
+                [ data Element new("", .image("slack.png"))
+                  content
+                ], .header(6))
+              .class("twelve", "columns", "center-columns"))
+            .class("row"))
+          .class("container"))
+        .class("u-full-width", "slack-section")))
+
+def(bottom-nav(content)):
+  data ResolveBlock new(
+    [part]:
+      part assets << File expand-path(i"../images/logo-white.png", __FILE__)
+
+      data Block new(
+        data Block new(
+          [ data Block new(
+              data Block new(
+                data Element new("", .classed(.image("logo-white.png"), "logo-div"))
+                .class("txt-c", "logo-div1"))
+              .class("conc-div"))
+            content
+          ]
+          .class("container"))
+        .class("u-full-width", "bottom-nav")))
+
+def(nav-columns(*content)):
+  data Block new(content, .classed(.unordered-list, "bottom-nav-list"))
+
+def(nav-column(title, *entries)):
+  data Block new(
+    [ data Block new(title, .classed(.header(5), "navbar-link"))
+      data Block new(
+        entries collect [entry]:
+          data Block new(entry, .classed(.list-item, "navbar-link"))
+        .classed(.unordered-list, "list-unstyled"))
+    ]
+    .classed(.list-item, "bottom-nav-list-item"))
+
+def(sponsorship(content)):
+  data Block new(content, .class("sponsorship", "navbar-link"))

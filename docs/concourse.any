@@ -23,22 +23,3 @@ We deal with bugs and problems using GitHub Issues for each repo - please use
 \hyperlink{https://github.com/concourse/concourse/issues}{Concourse Issues}
 if you're not sure. If you want to contribute patches, please use GitHub pull
 requests.
-
-\include-section{./what-and-why.any}
-\include-section{./concourse-vs.any}
-\include-section{./getting-started.any}
-\include-section{./concepts.any}
-\include-section{./pipeline-mechanics.any}
-\include-section{./examples.any}
-\include-section{./fly-cli.any}
-\include-section{./running-tasks.any}
-\include-section{./pipelines.any}
-\include-section{./build-plans.any}
-\include-section{./serious/bosh.any}
-\include-section{./serious/worker-pools.any}
-\include-section{./restricting-access.any}
-\include-section{./implementing-resources.any}
-\include-section{./metrics.any}
-\include-section{./release-notes.any}
-
-\table-of-contents
