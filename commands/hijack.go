@@ -1,17 +1,10 @@
 package commands
 
 import (
-	"bufio"
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"net"
-	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -22,6 +15,7 @@ import (
 	"github.com/concourse/fly/pty"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/gorilla/websocket"
 	"github.com/mgutz/ansi"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-interact/interact"
@@ -132,28 +126,6 @@ func locateContainer(client concourse.Client, fingerprint containerFingerprint) 
 	}
 
 	return locator.locate(fingerprint)
-}
-
-func constructRequest(reqGenerator *rata.RequestGenerator, spec atc.HijackProcessSpec, id string, token *rc.TargetToken) (*http.Request, error) {
-	payload, err := json.Marshal(spec)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal hijack request body: %s", err)
-	}
-
-	hijackReq, err := reqGenerator.CreateRequest(
-		atc.HijackContainer,
-		rata.Params{"id": id},
-		bytes.NewBuffer(payload),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create hijack request: %s", err)
-	}
-
-	if token != nil {
-		hijackReq.Header.Add("Authorization", token.Type+" "+token.Value)
-	}
-
-	return hijackReq, nil
 }
 
 func getContainerIDs(c *HijackCommand) ([]atc.Container, error) {
@@ -283,42 +255,53 @@ func (command *HijackCommand) Execute(args []string) error {
 		TTY:        ttySpec,
 	}
 
-	hijackReq, err := constructRequest(reqGenerator, spec, chosenContainer.ID, target.Token)
+	result, err := hijack(tlsConfig, reqGenerator, target, chosenContainer.ID, spec)
 	if err != nil {
 		return err
 	}
 
-	hijackResult, err := performHijack(hijackReq, tlsConfig)
-	if err != nil {
-		return err
-	}
-
-	os.Exit(hijackResult)
+	os.Exit(result)
 
 	return nil
 }
 
-func performHijack(hijackReq *http.Request, tlsConfig *tls.Config) (int, error) {
-	conn, err := dialEndpoint(hijackReq.URL, tlsConfig)
+func hijack(tlsConfig *tls.Config, reqGenerator *rata.RequestGenerator, target rc.TargetProps, containerID string, spec atc.HijackProcessSpec) (int, error) {
+	hijackReq, err := reqGenerator.CreateRequest(
+		atc.HijackContainer,
+		rata.Params{"id": containerID},
+		nil,
+	)
 	if err != nil {
-		return 0, err
+		return -1, fmt.Errorf("failed to create hijack request: %s", err)
 	}
 
-	clientConn := httputil.NewClientConn(conn, nil)
+	if target.Token != nil {
+		hijackReq.Header.Add("Authorization", target.Token.Type+" "+target.Token.Value)
+	}
 
-	resp, err := clientConn.Do(hijackReq)
+	wsUrl := hijackReq.URL
+
+	var found bool
+	wsUrl.Scheme, found = websocketSchemeMap[wsUrl.Scheme]
+	if !found {
+		return -1, fmt.Errorf("unknown target scheme: %s", wsUrl.Scheme)
+	}
+	dialer := websocket.Dialer{
+		TLSClientConfig: tlsConfig,
+	}
+
+	conn, _, err := dialer.Dial(wsUrl.String(), hijackReq.Header)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return 0, fmt.Errorf("unexpected response status: %s", resp.Status)
+	defer conn.Close()
+
+	err = conn.WriteJSON(spec)
+	if err != nil {
+		return -1, err
 	}
 
-	return hijack(clientConn.Hijack()), nil
-}
-
-func hijack(conn net.Conn, br *bufio.Reader) int {
 	var in io.Reader
 
 	term, err := pty.OpenRawTerm()
@@ -330,25 +313,25 @@ func hijack(conn net.Conn, br *bufio.Reader) int {
 		in = os.Stdin
 	}
 
-	encoder := json.NewEncoder(conn)
-	decoder := json.NewDecoder(br)
+	inputs := make(chan atc.HijackInput, 1)
+	finished := make(chan struct{}, 1)
 
-	resized := pty.ResizeNotifier()
+	go monitorTTYSize(inputs, finished)
+	go io.Copy(&stdinWriter{inputs}, in)
+	go handleInput(conn, inputs, finished)
 
-	go func() {
-		for {
-			<-resized
-			// TODO json race
-			sendSize(encoder)
-		}
-	}()
+	exitStatus := handleOutput(conn)
 
-	go io.Copy(&stdinWriter{encoder}, in)
+	close(finished)
 
+	return exitStatus, nil
+}
+
+func handleOutput(conn *websocket.Conn) int {
 	var exitStatus int
 	for {
 		var output atc.HijackOutput
-		err := decoder.Decode(&output)
+		err := conn.ReadJSON(&output)
 		if err != nil {
 			break
 		}
@@ -368,63 +351,57 @@ func hijack(conn net.Conn, br *bufio.Reader) int {
 	return exitStatus
 }
 
-func sendSize(enc *json.Encoder) {
-	rows, cols, err := pty.Getsize(os.Stdin)
-	if err == nil {
-		enc.Encode(atc.HijackInput{
-			TTYSpec: &atc.HijackTTYSpec{
-				WindowSize: atc.HijackWindowSize{
-					Columns: cols,
-					Rows:    rows,
-				},
-			},
-		})
+func handleInput(conn *websocket.Conn, inputs <-chan atc.HijackInput, finished chan struct{}) {
+	for {
+		select {
+		case input := <-inputs:
+			err := conn.WriteJSON(input)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to send input:", err)
+				return
+			}
+		case <-finished:
+			return
+		}
+	}
+}
+
+func monitorTTYSize(inputs chan<- atc.HijackInput, finished chan struct{}) {
+	resized := pty.ResizeNotifier()
+
+	for {
+		select {
+		case <-resized:
+			rows, cols, err := pty.Getsize(os.Stdin)
+			if err == nil {
+				inputs <- atc.HijackInput{
+					TTYSpec: &atc.HijackTTYSpec{
+						WindowSize: atc.HijackWindowSize{
+							Columns: cols,
+							Rows:    rows,
+						},
+					},
+				}
+			}
+		case <-finished:
+			return
+		}
 	}
 }
 
 type stdinWriter struct {
-	enc *json.Encoder
+	inputs chan<- atc.HijackInput
 }
 
 func (w *stdinWriter) Write(d []byte) (int, error) {
-	err := w.enc.Encode(atc.HijackInput{
+	w.inputs <- atc.HijackInput{
 		Stdin: d,
-	})
-	if err != nil {
-		return 0, err
 	}
 
 	return len(d), nil
 }
 
-var canonicalPortMap = map[string]string{
-	"http":  "80",
-	"https": "443",
-}
-
-func dialEndpoint(url *url.URL, tlsConfig *tls.Config) (net.Conn, error) {
-	addr, err := canonicalAddr(url)
-	if err != nil {
-		return nil, fmt.Errorf("could not canonicalize host: %s", err)
-	}
-
-	if url.Scheme == "https" {
-		return tls.Dial("tcp", addr, tlsConfig)
-	}
-
-	return net.Dial("tcp", addr)
-}
-
-func canonicalAddr(url *url.URL) (string, error) {
-	host, port, err := net.SplitHostPort(url.Host)
-	if err != nil {
-		if strings.Contains(err.Error(), "missing port in address") {
-			host = url.Host
-			port = canonicalPortMap[url.Scheme]
-		} else {
-			return "", errors.New("unknown url host format")
-		}
-	}
-
-	return net.JoinHostPort(host, port), nil
+var websocketSchemeMap = map[string]string{
+	"http":  "ws",
+	"https": "wss",
 }

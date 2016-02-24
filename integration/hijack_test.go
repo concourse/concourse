@@ -1,12 +1,12 @@
 package integration_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os/exec"
 
 	"github.com/concourse/atc"
+	"github.com/gorilla/websocket"
 	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,19 +28,23 @@ var _ = Describe("Hijacking", func() {
 		user = "root"
 	})
 
+	upgrader := websocket.Upgrader{}
+
 	hijackHandler := func(id string, didHijack chan<- struct{}, errorMessages []string) http.HandlerFunc {
 		return ghttp.CombineHandlers(
-			ghttp.VerifyRequest("POST", fmt.Sprintf("/api/v1/containers/%s/hijack", id)),
+			ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/containers/%s/hijack", id)),
 			func(w http.ResponseWriter, r *http.Request) {
 				defer GinkgoRecover()
 
-				w.WriteHeader(http.StatusOK)
+				conn, err := upgrader.Upgrade(w, r, nil)
+				Expect(err).NotTo(HaveOccurred())
 
-				body := json.NewDecoder(r.Body)
-				defer r.Body.Close()
+				defer conn.Close()
+
+				close(didHijack)
 
 				var processSpec atc.HijackProcessSpec
-				err := body.Decode(&processSpec)
+				err = conn.ReadJSON(&processSpec)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(processSpec.User).To(Equal(user))
@@ -49,38 +53,28 @@ var _ = Describe("Hijacking", func() {
 					Expect(processSpec.Env).To(ContainElement(envVariable))
 				}
 
-				sconn, sbr, err := w.(http.Hijacker).Hijack()
-				Expect(err).NotTo(HaveOccurred())
-
-				defer sconn.Close()
-
-				close(didHijack)
-
-				decoder := json.NewDecoder(sbr)
-				encoder := json.NewEncoder(sconn)
-
 				var payload atc.HijackInput
 
-				err = decoder.Decode(&payload)
+				err = conn.ReadJSON(&payload)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(payload).To(Equal(atc.HijackInput{
 					Stdin: []byte("some stdin"),
 				}))
 
-				err = encoder.Encode(atc.HijackOutput{
+				err = conn.WriteJSON(atc.HijackOutput{
 					Stdout: []byte("some stdout"),
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				err = encoder.Encode(atc.HijackOutput{
+				err = conn.WriteJSON(atc.HijackOutput{
 					Stderr: []byte("some stderr"),
 				})
 				Expect(err).NotTo(HaveOccurred())
 
 				if len(errorMessages) > 0 {
 					for _, msg := range errorMessages {
-						err := encoder.Encode(atc.HijackOutput{
+						err := conn.WriteJSON(atc.HijackOutput{
 							Error: msg,
 						})
 						Expect(err).NotTo(HaveOccurred())
@@ -90,7 +84,7 @@ var _ = Describe("Hijacking", func() {
 				}
 
 				exitStatus := 123
-				err = encoder.Encode(atc.HijackOutput{
+				err = conn.WriteJSON(atc.HijackOutput{
 					ExitStatus: &exitStatus,
 				})
 				Expect(err).NotTo(HaveOccurred())
