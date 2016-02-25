@@ -6,12 +6,12 @@
 
 \title{\code{attempts}\aux{: retry a step}}{retry-step}
 
-Any step can have the number of times it should be attempted by attaching
-an \code{attempts} parameter and the number of times it should be retried.
+Any step can set the number of times it should be attempted by attaching
+an \code{attempts} parameter with the number of times it should be tried.
 
 \define-attribute{attempts: integer}{
-  The number of attempts that a failing step should be retried, e.g. \code{5}
-  will retry the step 5 times before giving up.
+  The total number of times a step should be tried should it fail, e.g. \code{5}
+  will try the step up to 5 times before giving up.
 
   When the number of attempts is reached and the step has still not succeeded
   then the step will fail.
@@ -19,7 +19,8 @@ an \code{attempts} parameter and the number of times it should be retried.
 
 Attempts will retry on a Concourse error as well as build failure.
 
-The following will run the task, and retry it 10 times if it fails:
+The following will run the task, and retry it 9 times (for a total of 10
+attempts) if it fails:
 
 \codeblock{yaml}{
 plan:
