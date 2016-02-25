@@ -297,10 +297,11 @@ viewBuildPrep prep =
                 (
                     [ viewBuildPrepLi "checking pipeline is not paused" prep.pausedPipeline
                     , viewBuildPrepLi "checking job is not paused" prep.pausedJob
-                    , viewBuildPrepLi "checking max-in-flight is not reached" prep.maxRunningBuilds
                     ] ++
                     (viewBuildPrepInputs prep.inputs) ++
-                    [ viewBuildPrepLi "waiting for a suitable set of input versions" prep.inputsSatisfied ]
+                    [ viewBuildPrepLi "waiting for a suitable set of input versions" prep.inputsSatisfied
+                    , viewBuildPrepLi "checking max-in-flight is not reached" prep.maxRunningBuilds
+                    ]
                 )
             ]
         ]
