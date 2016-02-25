@@ -70,7 +70,6 @@ type PipelineDB interface {
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error)
 
 	UpdateBuildToScheduled(buildID int) (bool, error)
-	UpdateBuildToUnscheduled(buildID int) error
 	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
 	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
@@ -1414,15 +1413,6 @@ func (pdb *pipelineDB) UpdateBuildToScheduled(buildID int) (bool, error) {
 	}
 
 	return rows == 1, nil
-}
-
-func (pdb *pipelineDB) UpdateBuildToUnscheduled(buildID int) error {
-	_, err := pdb.conn.Exec(`
-			UPDATE builds
-			SET scheduled = false
-			WHERE id = $1
-	`, buildID)
-	return err
 }
 
 func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, bool, error) {

@@ -2584,30 +2584,6 @@ var _ = Describe("PipelineDB", func() {
 			})
 		})
 
-		Describe("UpdateBuildToUnscheduled", func() {
-			var serialGroupBuild db.Build
-			var err error
-
-			BeforeEach(func() {
-				serialGroupBuild, err = pipelineDB.CreateJobBuild("some-job")
-				Expect(err).NotTo(HaveOccurred())
-
-				scheduled, err := pipelineDB.UpdateBuildToScheduled(serialGroupBuild.ID)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(scheduled).To(BeTrue())
-
-				err = pipelineDB.UpdateBuildToUnscheduled(serialGroupBuild.ID)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("sets the build to not be scheduled", func() {
-				build, found, err := pipelineDB.GetJobBuild("some-job", serialGroupBuild.Name)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.Scheduled).To(BeFalse())
-			})
-		})
-
 		Context("when a build is created for a job", func() {
 			var build1 db.Build
 			var jobConfig atc.JobConfig

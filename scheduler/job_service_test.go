@@ -717,17 +717,9 @@ var _ = Describe("JobService", func() {
 								Expect(reason).To(Equal("no-input-versions-available"))
 							})
 
-							It("unschedules the build", func() {
-								Expect(fakeDB.UpdateBuildToUnscheduledCallCount()).To(Equal(1))
-							})
-
 							Context("due to an error", func() {
 								BeforeEach(func() {
 									fakeDB.GetLatestInputVersionsReturns(nil, false, errors.New("banana"))
-								})
-
-								It("unschedules the build", func() {
-									Expect(fakeDB.UpdateBuildToUnscheduledCallCount()).To(Equal(1))
 								})
 
 								It("logs and returns nil", func() {

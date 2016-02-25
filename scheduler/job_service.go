@@ -18,7 +18,6 @@ type JobServiceDB interface {
 	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.Build, error)
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (db.Build, bool, error)
 	UpdateBuildPreparation(prep db.BuildPreparation) error
-	UpdateBuildToUnscheduled(buildID int) error
 	IsPaused() (bool, error)
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
@@ -143,19 +142,10 @@ func (s jobService) getBuildInputs(logger lager.Logger, build db.Build, buildPre
 func (s jobService) determineInputs(versions *algorithm.VersionsDB, buildInputs []config.JobInput, build db.Build) ([]db.BuildInput, string, error) {
 	inputs, found, err := s.DB.GetLatestInputVersions(versions, s.DBJob.Name, buildInputs)
 	if err != nil {
-		updateErr := s.DB.UpdateBuildToUnscheduled(build.ID)
-		if updateErr != nil {
-			return nil, "failed-to-unschedule-build", updateErr
-		}
-
 		return nil, "failed-to-get-latest-input-versions", err
 	}
 
 	if !found {
-		updateErr := s.DB.UpdateBuildToUnscheduled(build.ID)
-		if err != nil {
-			return nil, "failed-to-unschedule-build", updateErr
-		}
 		return nil, "no-input-versions-available", nil
 	}
 
