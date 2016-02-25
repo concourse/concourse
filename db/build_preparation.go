@@ -24,6 +24,17 @@ type BuildPreparation struct {
 	InputsSatisfied  BuildPreparationStatus
 }
 
+func NewBuildPreparation(buildID int) BuildPreparation {
+	return BuildPreparation{
+		BuildID:          buildID,
+		PausedPipeline:   BuildPreparationStatusUnknown,
+		PausedJob:        BuildPreparationStatusUnknown,
+		MaxRunningBuilds: BuildPreparationStatusUnknown,
+		Inputs:           map[string]BuildPreparationStatus{},
+		InputsSatisfied:  BuildPreparationStatusUnknown,
+	}
+}
+
 type buildPreparationHelper struct{}
 
 const BuildPreparationColumns string = "build_id, paused_pipeline, paused_job, max_running_builds, inputs, inputs_satisfied"

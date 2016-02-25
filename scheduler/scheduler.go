@@ -35,7 +35,6 @@ type BuildsDB interface {
 	FinishBuild(int, db.Status) error
 
 	GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error)
-	UpdateBuildPreparation(buildPreparation db.BuildPreparation) error
 }
 
 //go:generate counterfeiter . BuildFactory
@@ -257,7 +256,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 		return nil
 	}
 
-	inputs, canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(logger, build, &buildPrep, versions)
+	inputs, canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(logger, build, buildPrep, versions)
 	if err != nil {
 		logger.Error("failed-to-schedule-build", err, lager.Data{
 			"build-id": build.ID,

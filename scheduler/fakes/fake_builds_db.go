@@ -49,14 +49,6 @@ type FakeBuildsDB struct {
 		result2 bool
 		result3 error
 	}
-	UpdateBuildPreparationStub        func(buildPreparation db.BuildPreparation) error
-	updateBuildPreparationMutex       sync.RWMutex
-	updateBuildPreparationArgsForCall []struct {
-		buildPreparation db.BuildPreparation
-	}
-	updateBuildPreparationReturns struct {
-		result1 error
-	}
 }
 
 func (fake *FakeBuildsDB) LeaseBuildScheduling(buildID int, interval time.Duration) (db.Lease, bool, error) {
@@ -192,38 +184,6 @@ func (fake *FakeBuildsDB) GetBuildPreparationReturns(result1 db.BuildPreparation
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeBuildsDB) UpdateBuildPreparation(buildPreparation db.BuildPreparation) error {
-	fake.updateBuildPreparationMutex.Lock()
-	fake.updateBuildPreparationArgsForCall = append(fake.updateBuildPreparationArgsForCall, struct {
-		buildPreparation db.BuildPreparation
-	}{buildPreparation})
-	fake.updateBuildPreparationMutex.Unlock()
-	if fake.UpdateBuildPreparationStub != nil {
-		return fake.UpdateBuildPreparationStub(buildPreparation)
-	} else {
-		return fake.updateBuildPreparationReturns.result1
-	}
-}
-
-func (fake *FakeBuildsDB) UpdateBuildPreparationCallCount() int {
-	fake.updateBuildPreparationMutex.RLock()
-	defer fake.updateBuildPreparationMutex.RUnlock()
-	return len(fake.updateBuildPreparationArgsForCall)
-}
-
-func (fake *FakeBuildsDB) UpdateBuildPreparationArgsForCall(i int) db.BuildPreparation {
-	fake.updateBuildPreparationMutex.RLock()
-	defer fake.updateBuildPreparationMutex.RUnlock()
-	return fake.updateBuildPreparationArgsForCall[i].buildPreparation
-}
-
-func (fake *FakeBuildsDB) UpdateBuildPreparationReturns(result1 error) {
-	fake.UpdateBuildPreparationStub = nil
-	fake.updateBuildPreparationReturns = struct {
-		result1 error
-	}{result1}
 }
 
 var _ scheduler.BuildsDB = new(FakeBuildsDB)
