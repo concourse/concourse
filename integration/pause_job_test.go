@@ -47,7 +47,7 @@ var _ = Describe("Fly CLI", func() {
 				Expect(sess.ExitCode()).To(Equal(0))
 				Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 1))
 
-				Eventually(sess).Should(gbytes.Say(fmt.Sprintf("paused '%s'", jobName)))
+				Eventually(sess).Should(gbytes.Say(fmt.Sprintf("paused '%s'\n", jobName)))
 			})
 		})
 

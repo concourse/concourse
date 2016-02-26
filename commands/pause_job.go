@@ -22,7 +22,7 @@ func (command *PauseJobCommand) Execute(args []string) error {
 		return err
 	}
 
-	fmt.Printf("paused '%s'", command.Job.JobName)
+	fmt.Printf("paused '%s'\n", command.Job.JobName)
 
 	return nil
 }
