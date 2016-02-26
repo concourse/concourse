@@ -244,3 +244,7 @@
 	path = src/github.com/jteeuwen/go-bindata
 	url = https://github.com/jteeuwen/go-bindata
 	branch = master
+[submodule "src/github.com/gorilla/websocket"]
+	path = src/github.com/gorilla/websocket
+	url = https://github.com/gorilla/websocket
+	branch = master

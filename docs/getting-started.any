@@ -28,6 +28,16 @@ page} where there are links to binaries for common platforms.
   with \code{install $DEST path/to/fly}.
 }
 
+Once you have \code{fly}, you'll want to target your local Virtualbox like so:
+
+\codeblock{bash}{
+$ fly -t lite login -c http://192.168.100.4:8080
+}
+
+This will save the target as \code{lite}, which we'll use for all later
+commands that we want to run against the local box by using the same \code{-t}
+flag.
+
 Out of the box, Concourse doesn't have any \reference{pipelines} configured.
 That's boring. Here, have this YAML!
 
@@ -50,7 +60,7 @@ Dump that into a \code{.yml} file somewhere, and run this random command on
 your machine:
 
 \codeblock{bash}{
-$ fly set-pipeline -p really-cool-pipeline -c somewhere.yml
+$ fly -t lite set-pipeline -p really-cool-pipeline -c somewhere.yml
 }
 
 If you refresh the \hyperlink{http://192.168.100.4:8080}{main page}, you should
@@ -62,13 +72,13 @@ reveal the pipelines sidebar via the hamburger icon in the top left and press
 "play", or run:
 
 \codeblock{bash}{
-$ fly unpause-pipeline -p really-cool-pipeline
+$ fly -t lite unpause-pipeline -p really-cool-pipeline
 }
 
 You can always fetch the current configuration of a pipeline by running:
 
 \codeblock{bash}{
-$ fly get-pipeline -p really-cool-pipeline
+$ fly -t lite get-pipeline -p really-cool-pipeline
 }
 
 This pipeline configuration so far describes a single \reference{jobs}{job},
