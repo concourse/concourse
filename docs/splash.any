@@ -2,7 +2,7 @@
 
 \use{\load{concourse/splash}}
 
-\template{\load{concourse/template}}
+\template{\load{concourse/splash-template}}
 
 \title{Concourse\aux{: CI that scales with your project}}{index}
 
@@ -138,7 +138,6 @@
   \sponsorship{Sponsored by \hyperlink{http://pivotal.io/}{Pivotal Software}, Inc.}
 }
 
-\include-section{./concourse.any}
 \include-section{./what-and-why.any}
 \include-section{./concourse-vs.any}
 \include-section{./getting-started.any}

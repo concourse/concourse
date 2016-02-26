@@ -1,5 +1,9 @@
 #language anatomy
 
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
+
 \title{Tasks}{tasks}
 
 \omit-children-from-table-of-contents

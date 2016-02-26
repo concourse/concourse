@@ -278,13 +278,12 @@ pre {
 code {
 	font-family: monospace;
 	font-weight: bold;
-	font-size: 16px;
 }
 
 .no-touch {
-	-webkit-user-select: none;       
+	-webkit-user-select: none;
 	-moz-user-select: none;
-	-ms-user-select: none; 
+	-ms-user-select: none;
 }
 
 .greenc {

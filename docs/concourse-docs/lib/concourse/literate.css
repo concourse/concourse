@@ -5,6 +5,7 @@
 @media (min-width: 1525px) {
   .literate-segment {
     display: table;
+    margin-bottom: 40px;
   }
 
   .literate-entry {
@@ -18,13 +19,17 @@
     vertical-align: top;
   }
 
+  .literate-segment .prose p {
+    max-width: 700px;
+  }
+
   .literate-segment .code {
     display: table-cell;
     min-width: 525px;
     vertical-align: top;
   }
 
-  .literate-segment .code .highlight {
-    margin: 0;
+  .literate-segment .code .highlight pre {
+    margin: 0 !important;
   }
 }

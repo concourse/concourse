@@ -1,5 +1,9 @@
 #language anatomy
 
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
+
 \title{Build Plans}{build-plans}
 
 Each \reference{jobs}{Job} has a single build plan. When a build of a job is
