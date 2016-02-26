@@ -18,6 +18,8 @@ type FlyCommand struct {
 	Containers ContainersCommand `command:"containers" alias:"cs" description:"Print the active containers"`
 	Hijack     HijackCommand     `command:"hijack"     alias:"intercept" alias:"i" description:"Execute a command in a container"`
 
+	PauseJob PauseJobCommand `command:"pause-job" alias:"pj" description:"Pause a job"`
+
 	Pipelines       PipelinesCommand       `command:"pipelines"        alias:"ps" description:"List the configured pipelines"`
 	DestroyPipeline DestroyPipelineCommand `command:"destroy-pipeline" alias:"dp" description:"Destroy a pipeline"`
 	GetPipeline     GetPipelineCommand     `command:"get-pipeline"     alias:"gp" description:"Get a pipeline's current configuration"`
