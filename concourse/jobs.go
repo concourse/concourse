@@ -58,3 +58,37 @@ func (client *client) JobBuilds(pipelineName string, jobName string, page Page) 
 		return builds, Pagination{}, false, err
 	}
 }
+
+func (client *client) PauseJob(pipelineName string, jobName string) (bool, error) {
+	params := rata.Params{"pipeline_name": pipelineName, "job_name": jobName}
+	err := client.connection.Send(internal.Request{
+		RequestName: atc.PauseJob,
+		Params:      params,
+	}, &internal.Response{})
+
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case internal.ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
+	}
+}
+
+func (client *client) UnpauseJob(pipelineName string, jobName string) (bool, error) {
+	params := rata.Params{"pipeline_name": pipelineName, "job_name": jobName}
+	err := client.connection.Send(internal.Request{
+		RequestName: atc.UnpauseJob,
+		Params:      params,
+	}, &internal.Response{})
+
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case internal.ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
+	}
+}

@@ -192,6 +192,26 @@ type FakeClient struct {
 		result3 bool
 		result4 error
 	}
+	PauseJobStub        func(pipelineName string, jobName string) (bool, error)
+	pauseJobMutex       sync.RWMutex
+	pauseJobArgsForCall []struct {
+		pipelineName string
+		jobName      string
+	}
+	pauseJobReturns struct {
+		result1 bool
+		result2 error
+	}
+	UnpauseJobStub        func(pipelineName string, jobName string) (bool, error)
+	unpauseJobMutex       sync.RWMutex
+	unpauseJobArgsForCall []struct {
+		pipelineName string
+		jobName      string
+	}
+	unpauseJobReturns struct {
+		result1 bool
+		result2 error
+	}
 	ListContainersStub        func(queryList map[string]string) ([]atc.Container, error)
 	listContainersMutex       sync.RWMutex
 	listContainersArgsForCall []struct {
@@ -946,6 +966,74 @@ func (fake *FakeClient) JobBuildsReturns(result1 []atc.Build, result2 concourse.
 		result3 bool
 		result4 error
 	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeClient) PauseJob(pipelineName string, jobName string) (bool, error) {
+	fake.pauseJobMutex.Lock()
+	fake.pauseJobArgsForCall = append(fake.pauseJobArgsForCall, struct {
+		pipelineName string
+		jobName      string
+	}{pipelineName, jobName})
+	fake.pauseJobMutex.Unlock()
+	if fake.PauseJobStub != nil {
+		return fake.PauseJobStub(pipelineName, jobName)
+	} else {
+		return fake.pauseJobReturns.result1, fake.pauseJobReturns.result2
+	}
+}
+
+func (fake *FakeClient) PauseJobCallCount() int {
+	fake.pauseJobMutex.RLock()
+	defer fake.pauseJobMutex.RUnlock()
+	return len(fake.pauseJobArgsForCall)
+}
+
+func (fake *FakeClient) PauseJobArgsForCall(i int) (string, string) {
+	fake.pauseJobMutex.RLock()
+	defer fake.pauseJobMutex.RUnlock()
+	return fake.pauseJobArgsForCall[i].pipelineName, fake.pauseJobArgsForCall[i].jobName
+}
+
+func (fake *FakeClient) PauseJobReturns(result1 bool, result2 error) {
+	fake.PauseJobStub = nil
+	fake.pauseJobReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) UnpauseJob(pipelineName string, jobName string) (bool, error) {
+	fake.unpauseJobMutex.Lock()
+	fake.unpauseJobArgsForCall = append(fake.unpauseJobArgsForCall, struct {
+		pipelineName string
+		jobName      string
+	}{pipelineName, jobName})
+	fake.unpauseJobMutex.Unlock()
+	if fake.UnpauseJobStub != nil {
+		return fake.UnpauseJobStub(pipelineName, jobName)
+	} else {
+		return fake.unpauseJobReturns.result1, fake.unpauseJobReturns.result2
+	}
+}
+
+func (fake *FakeClient) UnpauseJobCallCount() int {
+	fake.unpauseJobMutex.RLock()
+	defer fake.unpauseJobMutex.RUnlock()
+	return len(fake.unpauseJobArgsForCall)
+}
+
+func (fake *FakeClient) UnpauseJobArgsForCall(i int) (string, string) {
+	fake.unpauseJobMutex.RLock()
+	defer fake.unpauseJobMutex.RUnlock()
+	return fake.unpauseJobArgsForCall[i].pipelineName, fake.unpauseJobArgsForCall[i].jobName
+}
+
+func (fake *FakeClient) UnpauseJobReturns(result1 bool, result2 error) {
+	fake.UnpauseJobStub = nil
+	fake.unpauseJobReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeClient) ListContainers(queryList map[string]string) ([]atc.Container, error) {

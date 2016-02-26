@@ -291,4 +291,120 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 		})
 	})
+
+	Describe("PauseJob", func() {
+		var (
+			expectedStatus int
+			pipelineName   = "banana"
+			jobName        = "disjob"
+			expectedURL    = fmt.Sprintf("/api/v1/pipelines/%s/jobs/%s/pause", pipelineName, jobName)
+		)
+
+		JustBeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.RespondWith(expectedStatus, nil),
+				),
+			)
+		})
+
+		Context("when the job exists and there are no issues", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusOK
+			})
+
+			It("calls the pause job and returns no error", func() {
+				paused, err := client.PauseJob(pipelineName, jobName)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(paused).To(BeTrue())
+
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+			})
+		})
+
+		Context("when the pause job call fails", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusInternalServerError
+			})
+
+			It("calls the pause job and returns an error", func() {
+				paused, err := client.PauseJob(pipelineName, jobName)
+				Expect(err).To(HaveOccurred())
+				Expect(paused).To(BeFalse())
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+			})
+		})
+
+		Context("when the job does not exist", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusNotFound
+			})
+
+			It("calls the pause job and returns an error", func() {
+				paused, err := client.PauseJob(pipelineName, jobName)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(paused).To(BeFalse())
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+			})
+		})
+	})
+
+	Describe("UnpauseJob", func() {
+		var (
+			expectedStatus int
+			pipelineName   = "banana"
+			jobName        = "disjob"
+			expectedURL    = fmt.Sprintf("/api/v1/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
+		)
+
+		JustBeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.RespondWith(expectedStatus, nil),
+				),
+			)
+		})
+
+		Context("when the job exists and there are no issues", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusOK
+			})
+
+			It("calls the pause job and returns no error", func() {
+				paused, err := client.UnpauseJob(pipelineName, jobName)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(paused).To(BeTrue())
+
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+			})
+		})
+
+		Context("when the pause job call fails", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusInternalServerError
+			})
+
+			It("calls the pause job and returns an error", func() {
+				paused, err := client.UnpauseJob(pipelineName, jobName)
+				Expect(err).To(HaveOccurred())
+				Expect(paused).To(BeFalse())
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+			})
+		})
+
+		Context("when the job does not exist", func() {
+			BeforeEach(func() {
+				expectedStatus = http.StatusNotFound
+			})
+
+			It("calls the pause job and returns an error", func() {
+				paused, err := client.UnpauseJob(pipelineName, jobName)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(paused).To(BeFalse())
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+			})
+		})
+	})
 })
