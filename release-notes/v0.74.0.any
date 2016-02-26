@@ -27,6 +27,16 @@
   cached. This should provide a significant speedup and decrease in CPU load
   when viewing a pipeline.
 }{
+  We've made some tweaks to the ATC's build scheduling that should fix
+  "deadlock" scenarios with serial groups.
+
+  Previously, if a pipeline of "A -> B -> C" had all 3 jobs in a serial group,
+  and the builds were enqueued in order of C, B, then A (manually), nothing
+  could ever run, as the scheduling was based on the order of the builds being
+  enqueued, and C would never be satisifed. This is now fixed by collecting
+  inputs and then scheduling only once they're available, so that C never gets
+  scheduled, and so A is able to be scheduled, followed by B, and then C.
+}{
   The icon font that was broken in Safari by v0.73.0 are now unbroken by v0.74.0.
 }{
   Interrupting a \code{fly execute} that was fetching outputs will no longer
