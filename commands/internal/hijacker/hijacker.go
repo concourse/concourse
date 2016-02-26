@@ -107,7 +107,9 @@ func (h *Hijacker) handleOutput(conn *websocket.Conn, pio ProcessIO) int {
 		var output atc.HijackOutput
 		err := conn.ReadJSON(&output)
 		if err != nil {
-			fmt.Println(err)
+			if !websocket.IsCloseError(err) && !websocket.IsUnexpectedCloseError(err) {
+				fmt.Println(err)
+			}
 			break
 		}
 
