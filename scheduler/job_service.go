@@ -164,6 +164,11 @@ func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, bui
 	if build.Scheduled {
 		return s.updateBuildPrepAndReturn(buildPrep, true, "build-scheduled")
 	}
+	buildPrep = db.NewBuildPreparation(buildPrep.BuildID)
+	err := s.DB.UpdateBuildPreparation(buildPrep)
+	if err != nil {
+		return []db.BuildInput{}, false, "update-build-prep-db-failed-reset-build-prep", err
+	}
 
 	paused, err := s.DB.IsPaused()
 	if err != nil {

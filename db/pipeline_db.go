@@ -1701,23 +1701,6 @@ func (pdb *pipelineDB) updatePausedJob(job string, pause bool) error {
 		return nonOneRowAffectedError{rowsAffected}
 	}
 
-	if pause {
-		result, err = tx.Exec(`
-    UPDATE build_preparation
-		SET paused_job = 'blocking',
-		    max_running_builds = 'unknown',
-				inputs = '{}',
-				inputs_satisfied = 'unknown'
-		FROM build_preparation bp, builds b
-		WHERE b.id = bp.build_id
-		  AND b.job_id = $1
-			AND b.scheduled = false
-	`, dbJob.ID)
-		if err != nil {
-			return err
-		}
-	}
-
 	return tx.Commit()
 }
 

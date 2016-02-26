@@ -143,6 +143,23 @@ var _ = Describe("JobService", func() {
 			})
 		})
 
+		Context("when the build has failed to schedule at least once", func() {
+			BeforeEach(func() {
+				buildPrep.PausedPipeline = db.BuildPreparationStatusNotBlocking
+				buildPrep.PausedJob = db.BuildPreparationStatusNotBlocking
+				buildPrep.Inputs["spoon"] = "too big"
+				buildPrep.InputsSatisfied = db.BuildPreparationStatusBlocking
+			})
+
+			It("resets the build prep", func() {
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 1))
+				returnedBuildPrep := fakeDB.UpdateBuildPreparationArgsForCall(0)
+				Expect(returnedBuildPrep).To(Equal(db.NewBuildPreparation(dbBuild.ID)))
+			})
+		})
+
 		Context("when the pipeline is not paused", func() {
 			BeforeEach(func() {
 				fakeDB.IsPausedReturns(false, nil)
@@ -151,8 +168,8 @@ var _ = Describe("JobService", func() {
 			It("marks the build prep paused pipeline to not blocking", func() {
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 1))
-				buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(0)
+				Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 2))
+				buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(1)
 				Expect(buildPrep.PausedPipeline).To(Equal(db.BuildPreparationStatusNotBlocking))
 			})
 
@@ -171,8 +188,8 @@ var _ = Describe("JobService", func() {
 					It("marks the build prep paused job to blocking", func() {
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 2))
-						buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(1)
+						Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 3))
+						buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(2)
 						Expect(buildPrep.PausedJob).To(Equal(db.BuildPreparationStatusBlocking))
 					})
 				})
@@ -185,8 +202,8 @@ var _ = Describe("JobService", func() {
 					It("marks the build prep paused job to not blocking", func() {
 						Expect(err).NotTo(HaveOccurred())
 
-						Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 2))
-						buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(1)
+						Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 3))
+						buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(2)
 						Expect(buildPrep.PausedJob).To(Equal(db.BuildPreparationStatusNotBlocking))
 					})
 
@@ -229,33 +246,33 @@ var _ = Describe("JobService", func() {
 							})
 
 							It("correctly updates the discovery state for every input being used", func() {
-								Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 7))
+								Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 8))
 
-								Expect(fakeDB.UpdateBuildPreparationArgsForCall(1).Inputs).To(Equal(
+								Expect(fakeDB.UpdateBuildPreparationArgsForCall(2).Inputs).To(Equal(
 									map[string]db.BuildPreparationStatus{
 										"some-input":       db.BuildPreparationStatusUnknown,
 										"some-other-input": db.BuildPreparationStatusUnknown,
 									}))
 
-								Expect(fakeDB.UpdateBuildPreparationArgsForCall(3).Inputs).To(Equal(
-									map[string]db.BuildPreparationStatus{
-										"some-input":       db.BuildPreparationStatusBlocking,
-										"some-other-input": db.BuildPreparationStatusUnknown,
-									}))
-
 								Expect(fakeDB.UpdateBuildPreparationArgsForCall(4).Inputs).To(Equal(
 									map[string]db.BuildPreparationStatus{
-										"some-input":       db.BuildPreparationStatusNotBlocking,
+										"some-input":       db.BuildPreparationStatusBlocking,
 										"some-other-input": db.BuildPreparationStatusUnknown,
 									}))
 
 								Expect(fakeDB.UpdateBuildPreparationArgsForCall(5).Inputs).To(Equal(
 									map[string]db.BuildPreparationStatus{
 										"some-input":       db.BuildPreparationStatusNotBlocking,
-										"some-other-input": db.BuildPreparationStatusBlocking,
+										"some-other-input": db.BuildPreparationStatusUnknown,
 									}))
 
 								Expect(fakeDB.UpdateBuildPreparationArgsForCall(6).Inputs).To(Equal(
+									map[string]db.BuildPreparationStatus{
+										"some-input":       db.BuildPreparationStatusNotBlocking,
+										"some-other-input": db.BuildPreparationStatusBlocking,
+									}))
+
+								Expect(fakeDB.UpdateBuildPreparationArgsForCall(7).Inputs).To(Equal(
 									map[string]db.BuildPreparationStatus{
 										"some-input":       db.BuildPreparationStatusNotBlocking,
 										"some-other-input": db.BuildPreparationStatusNotBlocking,
@@ -357,8 +374,8 @@ var _ = Describe("JobService", func() {
 							})
 
 							It("marks the build prep's inputs statisfied as not blocking", func() {
-								Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 5))
-								Expect(fakeDB.UpdateBuildPreparationArgsForCall(4).InputsSatisfied).To(Equal(db.BuildPreparationStatusNotBlocking))
+								Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 6))
+								Expect(fakeDB.UpdateBuildPreparationArgsForCall(5).InputsSatisfied).To(Equal(db.BuildPreparationStatusNotBlocking))
 							})
 
 							Context("when build prep update fails due to an error", func() {
@@ -366,7 +383,7 @@ var _ = Describe("JobService", func() {
 									runCount := 0
 
 									fakeDB.UpdateBuildPreparationStub = func(buildPrep db.BuildPreparation) error {
-										if runCount == 4 {
+										if runCount == 5 {
 											return errors.New("noooope")
 										}
 										runCount++
@@ -401,8 +418,8 @@ var _ = Describe("JobService", func() {
 							})
 
 							It("updates max in flight build prep to be blocking", func() {
-								Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 6))
-								Expect(fakeDB.UpdateBuildPreparationArgsForCall(5).MaxRunningBuilds).To(Equal(db.BuildPreparationStatusBlocking))
+								Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 7))
+								Expect(fakeDB.UpdateBuildPreparationArgsForCall(6).MaxRunningBuilds).To(Equal(db.BuildPreparationStatusBlocking))
 							})
 
 							Context("when the job is serial", func() {
@@ -440,8 +457,8 @@ var _ = Describe("JobService", func() {
 									It("marks the build prep max running builds to blocking", func() {
 										Expect(err).NotTo(HaveOccurred())
 
-										Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 6))
-										buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(5)
+										Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 7))
+										buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(6)
 										Expect(buildPrep.MaxRunningBuilds).To(Equal(db.BuildPreparationStatusBlocking))
 									})
 								})
@@ -501,8 +518,8 @@ var _ = Describe("JobService", func() {
 										It("marks the build prep max running builds to not blocking", func() {
 											Expect(err).NotTo(HaveOccurred())
 
-											Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 7))
-											buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(6)
+											Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 8))
+											buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(7)
 											Expect(buildPrep.MaxRunningBuilds).To(Equal(db.BuildPreparationStatusNotBlocking))
 										})
 									})
@@ -740,8 +757,8 @@ var _ = Describe("JobService", func() {
 				It("marks the build prep paused pipeline to blocking", func() {
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 1))
-					buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(0)
+					Expect(fakeDB.UpdateBuildPreparationCallCount()).To(BeNumerically(">=", 2))
+					buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(1)
 					Expect(buildPrep.PausedPipeline).To(Equal(db.BuildPreparationStatusBlocking))
 				})
 			})
