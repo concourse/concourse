@@ -11,9 +11,11 @@ useful.
 You can download \code{fly} from a Concourse. There are download links for
 common platforms in the bottom right hand corner of the main page.
 
-Throughout this document we'll stick to the long-form name of every command and
+Throughout this section we'll stick to the long-form name of every command and
 flag. Once you've learned what the commands do, you may want to consult
 \code{fly -h} to learn the short forms.
+
+\table-of-contents
 
 \section{Targeting your Concourse}{
   Fly works with an already deployed Concourse. If you don't already have one of
