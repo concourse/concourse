@@ -264,28 +264,6 @@ flag. Once you've learned what the commands do, you may want to consult
   This will resume job scheduling and resource checking.
 }
 
-\section{\code{pause-job}\aux{: Preventing new job activity}}{fly-pause-job}{
-  To pause a job, run:
-
-  \codeblock{bash}{
-  $ fly pause-job --job my-pipeline/my-job
-  }
-
-  This will prevent pending builds of the job from being scheduled, though
-  builds that are in-flight will still run, and pending builds will still be
-  created as normal.
-}
-
-\section{\code{unpause-job}\aux{: Resuming job activity}}{fly-unpause-job}{
-  To unpause a job, run:
-
-  \codeblock{bash}{
-  $ fly unpause-job --job my-pipeline/my-job
-  }
-
-  This will resume scheduling of builds queued for the job.
-}
-
 \section{\code{get-pipeline}\aux{: Fetching a pipeline's configuration}}{fly-get-pipeline}{
   Fly can be used to fetch and update the configuration for your pipelines. This
   is achieved by using the \reference{fly-get-pipeline} and
@@ -389,6 +367,28 @@ flag. Once you've learned what the commands do, you may want to consult
   \codeblock{bash}{
   $ fly destroy-pipeline --pipeline my-pipeline
   }
+}
+
+\section{\code{pause-job}\aux{: Preventing new job activity}}{fly-pause-job}{
+  To pause a job, run:
+
+  \codeblock{bash}{
+  $ fly pause-job --job my-pipeline/my-job
+  }
+
+  This will prevent pending builds of the job from being scheduled, though
+  builds that are in-flight will still run, and pending builds will still be
+  created as normal.
+}
+
+\section{\code{unpause-job}\aux{: Resuming job activity}}{fly-unpause-job}{
+  To unpause a job, run:
+
+  \codeblock{bash}{
+  $ fly unpause-job --job my-pipeline/my-job
+  }
+
+  This will resume scheduling of builds queued for the job.
 }
 
 \section{\code{builds}\aux{: Showing build history}}{fly-builds}{
