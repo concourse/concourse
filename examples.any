@@ -1,5 +1,9 @@
 #language anatomy
 
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
+
 \title{Examples}{examples}
 
 It's pretty hard to get going without a point of reference. This section is

@@ -1,5 +1,9 @@
 #language anatomy
 
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
+
 \title{The Fly CLI}{fly-cli}
 
 The \code{fly} tool is a command line interface to Concourse. It is used for
@@ -14,6 +18,8 @@ common platforms in the bottom right hand corner of the main page.
 Throughout this document we'll stick to the long-form name of every command and
 flag. Once you've learned what the commands do, you may want to consult
 \code{fly -h} to learn the short forms.
+
+\table-of-contents
 
 \section{Targeting your Concourse}{
   Fly works with an already deployed Concourse. If you don't already have one of

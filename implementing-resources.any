@@ -1,5 +1,9 @@
 #language anatomy
 
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
+
 \title{Implementing a Resource}{implementing-resources}
 
 A resource type is implemented by a container image with three scripts:

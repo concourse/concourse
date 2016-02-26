@@ -1,6 +1,8 @@
 #language anatomy
 
-\use{\require{concourse/docs}}
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
 
 \title{Tasks}{running-tasks}
 
@@ -20,7 +22,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
   Conventionally a task's configuration is placed in the root of a repo as
   \code{task.yml}. It may look something like:
 
-  \codeblock{yaml}{
+  \titled-codeblock{task.yml}{yaml}{
   ---
   platform: linux
 

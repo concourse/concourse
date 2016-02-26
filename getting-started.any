@@ -1,5 +1,9 @@
 #language anatomy
 
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
+
 \title{Getting Started}{getting-started}
 
 The easiest way to get a Concourse instance going so that you can learn the
