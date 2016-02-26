@@ -82,7 +82,7 @@ your \reference{build-plans} via the \reference{get-step} and
     }
   }
 
-  \section{Unsupported Community Resources}{
+  \section{Unsupported Community Resources}{community-resources}{
     WARNING: These are third-party resources. Use at your own risk!
 
     \list{
