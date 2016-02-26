@@ -21,8 +21,7 @@
   task. This user will also be used when hijacking in to a build container.
 }{
   Hijacked connections will no longer cause connection timeouts at interim load
-  balancers if there is no input or output. If you previously raised your
-  connection timeout to mitigate this then you can bring it back down again.
+  balancers if there is no input or output.
 }{
   The pipeline graph rendering now has large portions of the computation
   cached. This should provide a significant speedup and decrease in CPU load
@@ -36,21 +35,6 @@
   If you try and trigger a build while you are not logged in then we'll now
   redirect you back to the build page you were on rather than the main pipeline
   page.
-}{
-  The \hyperlink{https://github.com/concourse/git-resource}{Git resource}
-  learnt some new tricks.
-
-  \list{
-    You can configure it to only output versions if a tag matching a pattern is
-    pushed to a repository.
-  }{
-    Annotated tags can be created by \code{put:} steps rather than just
-    lightweight tags.
-  }
-
-  See the
-  \hyperlink{https://github.com/concourse/git-resource/blob/master/README.md}{Git
-  resource README} for full details.
 }{
   The \hyperlink{https://github.com/concourse/pool-resource}{Pool resource}
   will now ignore in-place modifications when working out if a log aquisition
