@@ -116,21 +116,6 @@ func (pdb *pipelineDB) Pause() error {
 		SET paused = true
 		WHERE id = $1
 	`, pdb.ID)
-	if err != nil {
-		return err
-	}
-
-	_, err = pdb.conn.Exec(`
-			UPDATE build_preparation
-			SET paused_pipeline='blocking',
-			    paused_job='unknown',
-					max_running_builds='unknown',
-					inputs='{}',
-					inputs_satisfied='unknown'
-			FROM build_preparation bp, builds b, jobs j
-			WHERE bp.build_id = b.id AND b.job_id = j.id
-				AND j.pipeline_id = $1 AND b.status = 'pending' AND b.scheduled = false
-		`, pdb.ID)
 	return err
 }
 

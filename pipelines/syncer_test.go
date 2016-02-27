@@ -168,32 +168,51 @@ var _ = Describe("Pipelines Syncer", func() {
 	})
 
 	Context("when a pipeline is paused", func() {
-		It("stops the process", func() {
+		pipelines := []db.SavedPipeline{
+			{
+				ID:     1,
+				Paused: true,
+				Pipeline: db.Pipeline{
+					Name: "pipeline",
+				},
+			},
+			{
+				ID: 2,
+				Pipeline: db.Pipeline{
+					Name: "other-pipeline",
+				},
+			},
+		}
+
+		JustBeforeEach(func() {
 			Expect(fakeRunner.RunCallCount()).To(Equal(1))
 			Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
 
-			syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
-				{
-					ID:     1,
-					Paused: true,
-					Pipeline: db.Pipeline{
-						Name: "pipeline",
-					},
-				},
-				{
-					ID: 2,
-					Pipeline: db.Pipeline{
-						Name: "other-pipeline",
-					},
-				},
-			}, nil)
+			syncherDB.GetAllPipelinesReturns(pipelines, nil)
 
 			syncer.Sync()
+		})
 
+		It("stops the process", func() {
 			Expect(fakeRunner.RunCallCount()).To(Equal(1))
 
 			signals, _ := fakeRunner.RunArgsForCall(0)
 			Eventually(signals).Should(Receive(Equal(os.Interrupt)))
+		})
+
+		It("resets all the pending build preparations", func() {
+			Expect(syncherDB.ResetBuildPreparationsWithPipelinePausedCallCount()).To(Equal(1))
+			Expect(syncherDB.ResetBuildPreparationsWithPipelinePausedArgsForCall(0)).To(Equal(pipelines[0].ID))
+		})
+
+		Context("on subsequent runs", func() {
+			JustBeforeEach(func() {
+				syncer.Sync()
+			})
+
+			It("does not send the signal again", func() {
+				Expect(syncherDB.ResetBuildPreparationsWithPipelinePausedCallCount()).To(Equal(1))
+			})
 		})
 	})
 

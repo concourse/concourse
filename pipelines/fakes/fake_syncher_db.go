@@ -16,6 +16,14 @@ type FakeSyncherDB struct {
 		result1 []db.SavedPipeline
 		result2 error
 	}
+	ResetBuildPreparationsWithPipelinePausedStub        func(pipelineID int) error
+	resetBuildPreparationsWithPipelinePausedMutex       sync.RWMutex
+	resetBuildPreparationsWithPipelinePausedArgsForCall []struct {
+		pipelineID int
+	}
+	resetBuildPreparationsWithPipelinePausedReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeSyncherDB) GetAllPipelines() ([]db.SavedPipeline, error) {
@@ -41,6 +49,38 @@ func (fake *FakeSyncherDB) GetAllPipelinesReturns(result1 []db.SavedPipeline, re
 		result1 []db.SavedPipeline
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeSyncherDB) ResetBuildPreparationsWithPipelinePaused(pipelineID int) error {
+	fake.resetBuildPreparationsWithPipelinePausedMutex.Lock()
+	fake.resetBuildPreparationsWithPipelinePausedArgsForCall = append(fake.resetBuildPreparationsWithPipelinePausedArgsForCall, struct {
+		pipelineID int
+	}{pipelineID})
+	fake.resetBuildPreparationsWithPipelinePausedMutex.Unlock()
+	if fake.ResetBuildPreparationsWithPipelinePausedStub != nil {
+		return fake.ResetBuildPreparationsWithPipelinePausedStub(pipelineID)
+	} else {
+		return fake.resetBuildPreparationsWithPipelinePausedReturns.result1
+	}
+}
+
+func (fake *FakeSyncherDB) ResetBuildPreparationsWithPipelinePausedCallCount() int {
+	fake.resetBuildPreparationsWithPipelinePausedMutex.RLock()
+	defer fake.resetBuildPreparationsWithPipelinePausedMutex.RUnlock()
+	return len(fake.resetBuildPreparationsWithPipelinePausedArgsForCall)
+}
+
+func (fake *FakeSyncherDB) ResetBuildPreparationsWithPipelinePausedArgsForCall(i int) int {
+	fake.resetBuildPreparationsWithPipelinePausedMutex.RLock()
+	defer fake.resetBuildPreparationsWithPipelinePausedMutex.RUnlock()
+	return fake.resetBuildPreparationsWithPipelinePausedArgsForCall[i].pipelineID
+}
+
+func (fake *FakeSyncherDB) ResetBuildPreparationsWithPipelinePausedReturns(result1 error) {
+	fake.ResetBuildPreparationsWithPipelinePausedStub = nil
+	fake.resetBuildPreparationsWithPipelinePausedReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ pipelines.SyncherDB = new(FakeSyncherDB)

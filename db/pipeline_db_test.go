@@ -409,69 +409,6 @@ var _ = Describe("PipelineDB", func() {
 			Expect(otherPipelinePaused).To(BeFalse())
 		})
 
-		Describe("build preparation", func() {
-			var buildID int
-			var originalBuildPrep db.BuildPreparation
-
-			BeforeEach(func() {
-				jobConfig := pipelineConfig.Jobs[0]
-				build, err := pipelineDB.CreateJobBuild(jobConfig.Name)
-				Expect(err).NotTo(HaveOccurred())
-				buildID = build.ID
-
-				originalBuildPrep = db.BuildPreparation{
-					BuildID:          buildID,
-					PausedPipeline:   db.BuildPreparationStatusNotBlocking,
-					PausedJob:        db.BuildPreparationStatusNotBlocking,
-					MaxRunningBuilds: db.BuildPreparationStatusNotBlocking,
-					Inputs: map[string]db.BuildPreparationStatus{
-						"banana": db.BuildPreparationStatusNotBlocking,
-						"potato": db.BuildPreparationStatusNotBlocking,
-					},
-					InputsSatisfied: db.BuildPreparationStatusBlocking,
-				}
-
-				err = sqlDB.UpdateBuildPreparation(originalBuildPrep)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			JustBeforeEach(func() {
-				err := pipelineDB.Pause()
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("marks build prep status as blocked when pipeline is paused", func() {
-				buildPrep, found, err := sqlDB.GetBuildPreparation(buildID)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				Expect(buildPrep).To(Equal(db.BuildPreparation{
-					BuildID:          buildID,
-					PausedPipeline:   db.BuildPreparationStatusBlocking,
-					PausedJob:        db.BuildPreparationStatusUnknown,
-					MaxRunningBuilds: db.BuildPreparationStatusUnknown,
-					Inputs:           map[string]db.BuildPreparationStatus{},
-					InputsSatisfied:  db.BuildPreparationStatusUnknown,
-				}))
-			})
-
-			Context("where the build is scheduled", func() {
-				BeforeEach(func() {
-					scheduled, err := pipelineDB.UpdateBuildToScheduled(buildID)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(scheduled).To(BeTrue())
-				})
-
-				It("does not update scheduled build's build prep", func() {
-					buildPrep, found, err := sqlDB.GetBuildPreparation(buildID)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					Expect(buildPrep).To(Equal(originalBuildPrep))
-				})
-			})
-		})
-
 		It("can be unpaused", func() {
 			err := pipelineDB.Pause()
 			Expect(err).NotTo(HaveOccurred())

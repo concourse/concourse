@@ -402,18 +402,19 @@ func (db *SQLDB) UpdateBuildPreparation(buildPrep BuildPreparation) error {
 	return tx.Commit()
 }
 
-func (db *SQLDB) GetBuildPrepsForPendingBuildsForPipeline(pipelineName string) ([]BuildPreparation, error) {
-	rows, err := db.conn.Query(fmt.Sprintf(`
-			SELECT %s
-			FROM build_preparation bp, builds b, jobs j,  pipelines p
-			WHERE bp.build_id = b.id AND b.job_id = j.id AND j.pipeline_id = p.id AND
-			b.status = 'pending' AND p.name = '%s'
-		`, BuildPreparationColumns, pipelineName))
-	if err != nil {
-		return []BuildPreparation{}, err
-	}
-
-	return db.buildPrepHelper.constructBuildPreparations(rows)
+func (db *SQLDB) ResetBuildPreparationsWithPipelinePaused(pipelineID int) error {
+	_, err := db.conn.Exec(`
+			UPDATE build_preparation
+			SET paused_pipeline='blocking',
+			    paused_job='unknown',
+					max_running_builds='unknown',
+					inputs='{}',
+					inputs_satisfied='unknown'
+			FROM build_preparation bp, builds b, jobs j
+			WHERE bp.build_id = b.id AND b.job_id = j.id
+				AND j.pipeline_id = $1 AND b.status = 'pending' AND b.scheduled = false
+		`, pipelineID)
+	return err
 }
 
 func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) {
