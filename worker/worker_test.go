@@ -35,7 +35,7 @@ var _ = Describe("Worker", func() {
 		activeContainers       int
 		resourceTypes          []atc.WorkerResourceType
 		platform               string
-		tags                   []string
+		tags                   atc.Tags
 		workerName             string
 
 		gardenWorker Worker
@@ -55,7 +55,7 @@ var _ = Describe("Worker", func() {
 			{Type: "some-resource", Image: "some-resource-image"},
 		}
 		platform = "some-platform"
-		tags = []string{"some", "tags"}
+		tags = atc.Tags{"some", "tags"}
 		workerName = "some-worker"
 	})
 
@@ -291,7 +291,7 @@ var _ = Describe("Worker", func() {
 
 							It("fetches the image with the correct info", func() {
 								Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
-								_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
+								_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
 								Expect(fetchImageConfig).To(Equal(atc.TaskImageConfig{
 									Type:   "some-type",
 									Source: atc.Source{"some": "source"},
@@ -301,6 +301,7 @@ var _ = Describe("Worker", func() {
 								Expect(fetchMetadata).To(Equal(containerMetadata))
 								Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 								Expect(fetchWorker).To(Equal(gardenWorker))
+								Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
 								Expect(fetchCustomTypes).To(Equal(customTypes))
 							})
 
@@ -701,7 +702,7 @@ var _ = Describe("Worker", func() {
 
 						It("fetches the image with the correct info", func() {
 							Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
-							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
+							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
 							Expect(fetchImageConfig).To(Equal(atc.TaskImageConfig{
 								Type:   "custom-type-b",
 								Source: atc.Source{"some": "source"},
@@ -711,6 +712,7 @@ var _ = Describe("Worker", func() {
 							Expect(fetchMetadata).To(Equal(containerMetadata))
 							Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 							Expect(fetchWorker).To(Equal(gardenWorker))
+							Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
 							Expect(fetchCustomTypes).To(Equal(atc.ResourceTypes{
 								{
 									Name:   "custom-type-b",
@@ -814,7 +816,7 @@ var _ = Describe("Worker", func() {
 
 						It("fetches the image with the correct info", func() {
 							Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
-							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
+							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
 							Expect(fetchImageConfig).To(Equal(atc.TaskImageConfig{
 								Type:   "custom-type-c",
 								Source: atc.Source{"some": "source"},
@@ -824,6 +826,7 @@ var _ = Describe("Worker", func() {
 							Expect(fetchMetadata).To(Equal(containerMetadata))
 							Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 							Expect(fetchWorker).To(Equal(gardenWorker))
+							Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
 							Expect(fetchCustomTypes).To(Equal(customTypes))
 						})
 
@@ -933,7 +936,7 @@ var _ = Describe("Worker", func() {
 
 						It("fetches the image with the correct info", func() {
 							Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
-							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
+							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
 							Expect(fetchImageConfig).To(Equal(atc.TaskImageConfig{
 								Type:   "some-type",
 								Source: atc.Source{"some": "source"},
@@ -943,6 +946,7 @@ var _ = Describe("Worker", func() {
 							Expect(fetchMetadata).To(Equal(containerMetadata))
 							Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 							Expect(fetchWorker).To(Equal(gardenWorker))
+							Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
 							Expect(fetchCustomTypes).To(Equal(customTypes))
 						})
 

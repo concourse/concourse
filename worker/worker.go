@@ -58,7 +58,7 @@ type gardenWorker struct {
 	activeContainers int
 	resourceTypes    []atc.WorkerResourceType
 	platform         string
-	tags             []string
+	tags             atc.Tags
 	name             string
 }
 
@@ -73,7 +73,7 @@ func NewGardenWorker(
 	activeContainers int,
 	resourceTypes []atc.WorkerResourceType,
 	platform string,
-	tags []string,
+	tags atc.Tags,
 	name string,
 ) Worker {
 	return &gardenWorker{
@@ -112,7 +112,7 @@ func (worker *gardenWorker) CreateContainer(
 ) (Container, error) {
 	gardenContainerSpecFactory := NewGardenContainerSpecFactory(logger, worker.baggageclaimClient, worker.imageFetcher)
 
-	gardenSpec, err := gardenContainerSpecFactory.BuildContainerSpec(spec, worker.resourceTypes, cancel, delegate, id, metadata, worker, customTypes)
+	gardenSpec, err := gardenContainerSpecFactory.BuildContainerSpec(spec, worker.resourceTypes, worker.tags, cancel, delegate, id, metadata, worker, customTypes)
 	defer gardenContainerSpecFactory.ReleaseVolumes()
 	if err != nil {
 		return nil, err

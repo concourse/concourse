@@ -97,6 +97,7 @@ var _ = Describe("Fetcher", func() {
 			metadata,
 			fakeImageFetchingDelegate,
 			fakeWorker,
+			atc.Tags{"worker", "tags"},
 			customTypes,
 		)
 	})
@@ -225,7 +226,7 @@ var _ = Describe("Fetcher", func() {
 											},
 										}))
 										Expect(resourceType).To(Equal(resource.ResourceType("docker")))
-										Expect(tags).To(BeNil())
+										Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
 										Expect(actualCustomTypes).To(Equal(customTypes))
 										Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 									})

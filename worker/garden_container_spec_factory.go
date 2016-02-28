@@ -46,6 +46,7 @@ func NewGardenContainerSpecFactory(logger lager.Logger, baggageclaimClient bagga
 func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 	spec ContainerSpec,
 	resourceTypes []atc.WorkerResourceType,
+	workerTags atc.Tags,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	id Identifier,
@@ -81,6 +82,7 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 			metadata,
 			delegate,
 			workerClient,
+			workerTags,
 			customTypes,
 		)
 		if err != nil {

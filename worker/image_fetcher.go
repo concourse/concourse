@@ -22,6 +22,7 @@ type ImageFetcher interface {
 		Metadata,
 		ImageFetchingDelegate,
 		Client,
+		atc.Tags,
 		atc.ResourceTypes,
 	) (Image, error)
 }

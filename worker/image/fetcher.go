@@ -55,6 +55,7 @@ func (fetcher Fetcher) FetchImage(
 	metadata worker.Metadata,
 	delegate worker.ImageFetchingDelegate,
 	worker worker.Client,
+	workerTags atc.Tags,
 	customTypes atc.ResourceTypes,
 ) (worker.Image, error) {
 	tracker := fetcher.trackerFactory.TrackerFor(worker)
@@ -77,7 +78,7 @@ func (fetcher Fetcher) FetchImage(
 		resource.EmptyMetadata{},
 		checkSess,
 		resourceType,
-		nil,
+		workerTags,
 		customTypes,
 		delegate,
 	)
