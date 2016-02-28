@@ -127,7 +127,7 @@ func (fetcher Fetcher) FetchImage(
 		resource.EmptyMetadata{},
 		getSess,
 		resourceType,
-		nil,
+		workerTags,
 		cacheID,
 		customTypes,
 		delegate,

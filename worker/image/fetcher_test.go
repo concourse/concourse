@@ -276,7 +276,7 @@ var _ = Describe("Fetcher", func() {
 											},
 										}))
 										Expect(resourceType).To(Equal(resource.ResourceType("docker")))
-										Expect(tags).To(BeNil())
+										Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
 										Expect(cacheID).To(Equal(resource.ResourceCacheIdentifier{
 											Type:    "docker",
 											Version: atc.Version{"v": "1"},
