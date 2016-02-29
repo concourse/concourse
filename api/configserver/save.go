@@ -10,7 +10,6 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
-	"reflect"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -211,28 +210,7 @@ func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePause
 		Metadata:         &md,
 		Result:           &config,
 		WeaklyTypedInput: true,
-		DecodeHook: func(
-			dataKind reflect.Kind,
-			valKind reflect.Kind,
-			data interface{},
-		) (interface{}, error) {
-			if valKind == reflect.Map {
-				if dataKind == reflect.Map {
-					return sanitize(data)
-				}
-			}
-
-			if valKind == reflect.String {
-				if dataKind == reflect.String {
-					return data, nil
-				}
-
-				// format it as JSON/YAML would
-				return json.Marshal(data)
-			}
-
-			return data, nil
-		},
+		DecodeHook:       atc.SanitizeDecodeHook,
 	}
 	decoder, err := mapstructure.NewDecoder(msConfig)
 	if err != nil {
@@ -248,30 +226,4 @@ func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePause
 	}
 
 	return config, pausedState, nil
-}
-
-func sanitize(root interface{}) (interface{}, error) {
-	switch rootVal := root.(type) {
-	case map[interface{}]interface{}:
-		sanitized := map[string]interface{}{}
-
-		for key, val := range rootVal {
-			str, ok := key.(string)
-			if !ok {
-				return nil, errors.New("non-string key")
-			}
-
-			sub, err := sanitize(val)
-			if err != nil {
-				return nil, err
-			}
-
-			sanitized[str] = sub
-		}
-
-		return sanitized, nil
-
-	default:
-		return rootVal, nil
-	}
 }

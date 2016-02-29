@@ -56,6 +56,21 @@ run: {path: a/file}
 					Expect(err).ToNot(HaveOccurred())
 					Expect(config.Params["testParam"]).To(Equal("true"))
 				})
+
+				It("converts maps to json in params", func() {
+					data := []byte(`
+platform: beos
+
+params:
+  testParam:
+    foo: bar
+
+run: {path: a/file}
+`)
+					config, err := LoadTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(config.Params["testParam"]).To(Equal(`{"foo":"bar"}`))
+				})
 			})
 
 			Context("given a valid task config with numeric params", func() {
