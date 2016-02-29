@@ -3,6 +3,7 @@ package atc
 import (
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -38,6 +39,14 @@ type TaskImageConfig struct {
 	Source Source `yaml:"source" json:"source" mapstructure:"source"`
 }
 
+var convertBoolToStringDecodeFunc = func(sourceType reflect.Type, resultType reflect.Type, data interface{}) (interface{}, error) {
+	if sourceType.Kind() == reflect.Bool {
+		return fmt.Sprintf("%t", data), nil
+	}
+
+	return data, nil
+}
+
 func LoadTaskConfig(configBytes []byte) (TaskConfig, error) {
 	var untypedInput map[string]interface{}
 
@@ -52,6 +61,7 @@ func LoadTaskConfig(configBytes []byte) (TaskConfig, error) {
 		Metadata:         &metadata,
 		Result:           &config,
 		WeaklyTypedInput: true,
+		DecodeHook:       convertBoolToStringDecodeFunc,
 	}
 
 	decoder, err := mapstructure.NewDecoder(msConfig)

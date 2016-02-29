@@ -42,6 +42,20 @@ run: {path: a/file}
 					Expect(task.Platform).To(Equal("beos"))
 					Expect(task.Run.Path).To(Equal("a/file"))
 				})
+
+				It("converts yaml booleans to strings in params", func() {
+					data := []byte(`
+platform: beos
+
+params:
+  testParam: true
+
+run: {path: a/file}
+`)
+					config, err := LoadTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(config.Params["testParam"]).To(Equal("true"))
+				})
 			})
 
 			Context("given a valid task config with numeric params", func() {
