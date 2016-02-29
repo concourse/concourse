@@ -3,14 +3,14 @@ name: concourse
 
 releases:
   - name: concourse
-    url: https://bosh.io/d/github.com/concourse/concourse?v=0.71.1
-    sha1: b28e7dc2bfd34b8b7f93349a83b7d5d136c3462c
+    url: https://bosh.io/d/github.com/concourse/concourse?v=0.74.0
+    sha1: c99ef709e9d4468ac25cca31dd5be1444417011d
   - name: garden-linux
-    url: https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.332.0
-    sha1: 5b7f294dc80d1ad76f9249c79fc5f01d34148ee8
+    url: https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.334.0
+    sha1: 85170c5089fa4ff317f139c2f1da024860dbea85
   - name: bosh-aws-cpi
-    url: https://bosh.io/d/github.com/cloudfoundry-incubator/bosh-aws-cpi-release?v=43
-    sha1: 38cba455cb5beeac5ee60b39f88b2af751655595
+    url: https://bosh.io/d/github.com/cloudfoundry-incubator/bosh-aws-cpi-release?v=44
+    sha1: a1fe03071e8b9bf1fa97a4022151081bf144c8bc
 
 resource_pools:
   - name: concourse
@@ -84,7 +84,7 @@ jobs:
           host: 127.0.0.1
 
 cloud_provider:
-  template: {name: cpi, release: bosh-aws-cpi}
+  template: {name: aws_cpi, release: bosh-aws-cpi}
 
   ssh_tunnel:
     host: ELASTIC_IP
