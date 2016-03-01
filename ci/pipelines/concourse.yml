@@ -536,12 +536,13 @@ jobs:
   serial: true
   plan:
   - aggregate:
-    - get: concourse
-      passed: [aws-box]
     - get: aws-box
       passed: [aws-box]
+      trigger: true
+    - get: concourse
+      passed: [aws-box, virtualbox-testflight]
     - get: final-release
-      passed: [aws-box]
+      passed: [aws-box, virtualbox-testflight]
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
   - put: aws-box-cloud
