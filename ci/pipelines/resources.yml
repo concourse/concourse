@@ -1,4 +1,18 @@
 jobs:
+- name: busybox-base
+  serial: true
+  public: true
+  plan:
+  - get: core-busyboxplus
+    resource: busybox-base
+    trigger: true
+  - task: build-image
+    privileged: true
+    file: core-busyboxplus/ci/build.yml
+    config: {params: {FLAVOR: base}}
+  - put: busybox-base-image
+    params: {build: image-root}
+
 - name: busybox-git
   serial: true
   public: true
@@ -128,8 +142,9 @@ jobs:
   public: true
   plan:
   - aggregate:
-    - get: busybox-image
+    - get: busybox-base-image
       params: {save: true}
+      passed: [busybox-base]
       trigger: true
     - get: time-resource
       trigger: true
@@ -138,7 +153,7 @@ jobs:
   - put: resource-image
     resource: time-resource-image
     params:
-      load_base: busybox-image
+      load_base: busybox-base-image
       build: built-resource
     get_params: {rootfs: true}
   - aggregate:
@@ -210,8 +225,9 @@ jobs:
   serial: true
   plan:
   - aggregate:
-    - get: progrium-busybox-image
+    - get: busybox-base-image
       params: {save: true}
+      passed: [busybox-base]
       trigger: true
     - get: s3-resource
       trigger: true
@@ -227,7 +243,7 @@ jobs:
   - put: resource-image
     resource: s3-resource-image
     params:
-      load_base: progrium-busybox-image
+      load_base: busybox-base-image
       build: built-resource
     get_params: {rootfs: true}
   - aggregate:
@@ -244,8 +260,9 @@ jobs:
   public: true
   plan:
   - aggregate:
-    - get: progrium-busybox-image
+    - get: busybox-base-image
       params: {save: true}
+      passed: [busybox-base]
       trigger: true
     - get: github-release-resource
       trigger: true
@@ -254,7 +271,7 @@ jobs:
   - put: resource-image
     resource: github-release-resource-image
     params:
-      load_base: progrium-busybox-image
+      load_base: busybox-base-image
       build: built-resource
     get_params: {rootfs: true}
   - aggregate:
@@ -271,8 +288,9 @@ jobs:
   public: true
   plan:
   - aggregate:
-    - get: progrium-busybox-image
+    - get: busybox-base-image
       params: {save: true}
+      passed: [busybox-base]
       trigger: true
     - get: cf-resource
       trigger: true
@@ -288,7 +306,7 @@ jobs:
   - put: resource-image
     resource: cf-resource-image
     params:
-      load_base: progrium-busybox-image
+      load_base: busybox-base-image
       build: built-resource
     get_params: {rootfs: true}
   - aggregate:
@@ -668,6 +686,22 @@ resources:
     branch: master
     private_key: {{deployments-repo-private-key}}
 
+- name: busybox-base
+  type: git
+  source:
+    uri: https://github.com/concourse/core-busyboxplus.git
+    branch: master
+    paths: [base, ci]
+
+- name: busybox-base-image
+  type: docker-image
+  source:
+    repository: concourse/busyboxplus
+    tag: base
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
 - name: busybox-git
   type: git
   source:
@@ -715,13 +749,3 @@ resources:
     username: {{docker-username}}
     email: {{docker-email}}
     password: {{docker-password}}
-
-- name: progrium-busybox-image
-  type: docker-image
-  source:
-    repository: progrium/busybox
-
-- name: busybox-image
-  type: docker-image
-  source:
-    repository: busybox
