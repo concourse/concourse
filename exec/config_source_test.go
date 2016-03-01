@@ -15,14 +15,24 @@ import (
 
 var _ = Describe("ConfigSource", func() {
 	var (
-		someConfig = atc.TaskConfig{
+		taskConfig atc.TaskConfig
+		taskPlan   atc.TaskPlan
+		repo       *SourceRepository
+	)
+
+	BeforeEach(func() {
+		repo = NewSourceRepository()
+		taskConfig = atc.TaskConfig{
 			Platform: "some-platform",
 			Image:    "some-image",
 			ImageResource: &atc.TaskImageConfig{
 				Type:   "docker",
 				Source: atc.Source{"a": "b"},
 			},
-			Params: map[string]string{"PARAM": "value"},
+			Params: atc.Params{
+				"task-config-param-key": "task-config-param-val-1",
+				"common-key":            "task-config-param-val-2",
+			},
 			Run: atc.TaskRunConfig{
 				Path: "ls",
 				Args: []string{"-al"},
@@ -32,35 +42,64 @@ var _ = Describe("ConfigSource", func() {
 			},
 		}
 
-		repo *SourceRepository
-	)
-
-	BeforeEach(func() {
-		repo = NewSourceRepository()
+		taskPlan = atc.TaskPlan{
+			Params: atc.Params{
+				"task-plan-param-key": "task-plan-param-val-1",
+				"common-key":          "task-plan-param-val-2",
+			},
+			Config: &taskConfig,
+		}
 	})
 
 	Describe("StaticConfigSource", func() {
 		var (
 			configSource TaskConfigSource
-
-			fetchedConfig atc.TaskConfig
-			fetchErr      error
 		)
 
-		BeforeEach(func() {
-			configSource = StaticConfigSource{Config: someConfig}
-		})
-
 		JustBeforeEach(func() {
-			fetchedConfig, fetchErr = configSource.FetchConfig(repo)
+			configSource = StaticConfigSource{Plan: taskPlan}
 		})
 
-		It("succeeds", func() {
-			Expect(fetchErr).NotTo(HaveOccurred())
+		It("merges task params prefering params in task plan", func() {
+			fetchedConfig, err := configSource.FetchConfig(repo)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(fetchedConfig.Params).To(Equal(map[string]string{
+				"task-plan-param-key":   "task-plan-param-val-1",
+				"task-config-param-key": "task-config-param-val-1",
+				"common-key":            "task-plan-param-val-2",
+			}))
 		})
 
-		It("returns the static config", func() {
-			Expect(fetchedConfig).To(Equal(someConfig))
+		Context("when task config params are not set", func() {
+			BeforeEach(func() {
+				taskConfig = atc.TaskConfig{}
+			})
+
+			It("uses params from task plan", func() {
+				fetchedConfig, err := configSource.FetchConfig(repo)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fetchedConfig.Params).To(Equal(map[string]string{
+					"task-plan-param-key": "task-plan-param-val-1",
+					"common-key":          "task-plan-param-val-2",
+				}))
+			})
+		})
+
+		Context("when task plan params are not set", func() {
+			BeforeEach(func() {
+				taskPlan = atc.TaskPlan{
+					Config: &taskConfig,
+				}
+			})
+
+			It("uses params from task config", func() {
+				fetchedConfig, err := configSource.FetchConfig(repo)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fetchedConfig.Params).To(Equal(map[string]string{
+					"task-config-param-key": "task-config-param-val-1",
+					"common-key":            "task-config-param-val-2",
+				}))
+			})
 		})
 	})
 
@@ -102,7 +141,7 @@ var _ = Describe("ConfigSource", func() {
 				var streamedOut *gbytes.Buffer
 
 				BeforeEach(func() {
-					marshalled, err := yaml.Marshal(someConfig)
+					marshalled, err := yaml.Marshal(taskConfig)
 					Expect(err).NotTo(HaveOccurred())
 
 					streamedOut = gbytes.BufferWithBytes(marshalled)
@@ -118,7 +157,7 @@ var _ = Describe("ConfigSource", func() {
 				})
 
 				It("returns the unmarshalled config", func() {
-					Expect(fetchedConfig).To(Equal(someConfig))
+					Expect(fetchedConfig).To(Equal(taskConfig))
 				})
 
 				It("closes the stream", func() {
@@ -130,7 +169,7 @@ var _ = Describe("ConfigSource", func() {
 				var streamedOut *gbytes.Buffer
 
 				BeforeEach(func() {
-					invalidConfig := someConfig
+					invalidConfig := taskConfig
 					invalidConfig.Platform = ""
 					invalidConfig.Run = atc.TaskRunConfig{}
 

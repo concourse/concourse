@@ -412,10 +412,6 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 			plan, identifier)...,
 		)
 
-		if plan.Params != nil {
-			errorMessages = append(errorMessages, identifier+" specifies params, which should be config.params")
-		}
-
 	case plan.Try != nil:
 		subIdentifier := fmt.Sprintf("%s.try", identifier)
 		errorMessages = append(errorMessages, validatePlan(c, subIdentifier, *plan.Try)...)

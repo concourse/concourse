@@ -84,10 +84,10 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 	if plan.Task.Config != nil && plan.Task.ConfigPath != "" {
 		configSource = exec.MergedConfigSource{
 			A: exec.FileConfigSource{plan.Task.ConfigPath},
-			B: exec.StaticConfigSource{*plan.Task.Config},
+			B: exec.StaticConfigSource{*plan.Task},
 		}
 	} else if plan.Task.Config != nil {
-		configSource = exec.StaticConfigSource{*plan.Task.Config}
+		configSource = exec.StaticConfigSource{*plan.Task}
 	} else if plan.Task.ConfigPath != "" {
 		configSource = exec.FileConfigSource{plan.Task.ConfigPath}
 	} else {

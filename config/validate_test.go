@@ -363,25 +363,6 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when a task plan has params specified", func() {
-				BeforeEach(func() {
-					job.Plan = append(job.Plan, atc.PlanConfig{
-						Task:   "lol",
-						Params: atc.Params{"A": "B"},
-					})
-
-					config.Jobs = append(config.Jobs, job)
-				})
-
-				It("returns an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].task.lol specifies params, which should be config.params",
-					))
-
-				})
-			})
-
 			Context("when a task plan has neither a config or a path set", func() {
 				BeforeEach(func() {
 					job.Plan = append(job.Plan, atc.PlanConfig{

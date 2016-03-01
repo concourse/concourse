@@ -19,12 +19,20 @@ type TaskConfigSource interface {
 
 // StaticConfigSource represents a statically configured TaskConfig.
 type StaticConfigSource struct {
-	Config atc.TaskConfig
+	Plan atc.TaskPlan
 }
 
 // FetchConfig returns the configuration. It cannot fail.
 func (configSource StaticConfigSource) FetchConfig(*SourceRepository) (atc.TaskConfig, error) {
-	return configSource.Config, nil
+	taskConfig := *configSource.Plan.Config
+	if taskConfig.Params == nil {
+		taskConfig.Params = atc.Params{}
+	}
+	for key, val := range configSource.Plan.Params {
+		taskConfig.Params[key] = val
+	}
+
+	return taskConfig, nil
 }
 
 // FileConfigSource represents a dynamically configured TaskConfig, which will
