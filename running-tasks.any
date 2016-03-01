@@ -57,6 +57,29 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     should be the same as a resource configuration in your pipeline (without
     the name).
 
+    The following example configures the task to use the \code{golang:1.6}
+    Docker image:
+
+    \codeblock{yaml}{
+    image_resource:
+      type: docker-image
+      source: \{repository: golang, tag: "1.6"\}
+    }
+
+    ...and the following example uses an insecure private Docker registry with
+    a username and password:
+
+    \codeblock{yaml}{
+    image_resource:
+      type: docker-image
+      source:
+        repository: my.local.registry:8080/my/image
+        insecure_registries: ["my.local.registry:8080"]
+        username: myuser
+        password: mypass
+        email: x@x.com
+    }
+
     You can use any resource that returns a filesystem in the correct format (a
     \code{/rootfs} directory and a \code{metadata.json} file in the top level)
     but normally this will tbe the
@@ -106,11 +129,12 @@ Once you've figured out your tasks's configuration, you can reuse it for a
   }
 
   \define-attribute{outputs: [object]}{
-    \italic{Optional.} The outputs for the task.
+    \italic{Optional.} The artifacts produced by the task.
 
-    This determines which artifacts can be extracted from the task, as the
-    \reference{build-plans}{build plan} executes. Outputs can be used in later
-    steps in a plan instead of propogating the task's entire working directory.
+    Each output configures a directory to make available to later steps in the
+    \reference{build-plans}{build plan}. The directory will be automatically
+    created before the task runs, and the task should place any artifacts it
+    wants to export in the directory.
 
     Each output has the following attributes:
 
@@ -130,6 +154,49 @@ Once you've figured out your tasks's configuration, you can reuse it for a
         should place artifacts in; if the path overlaps it'll clobber whatever
         files used to be there.
       }
+    }
+
+    For example, the following task and script would be used to propagate a
+    built binary to later steps:
+
+    \codeblock{yaml}{
+    ---
+    platform: linux
+
+    image_resource: # ...
+
+    inputs:
+    - name: project-src
+
+    outputs:
+    - name: built-project
+
+    run:
+      path: project-src/ci/build
+    }
+
+    ...assuming \code{project-src/ci/build} looks something like:
+
+    \codeblock{bash}{
+    #!/bin/bash
+
+    set -e -u -x
+
+    export GOPATH=$PWD/project-src
+
+    go build -o built-project/my-project github.com/concourse/my-project
+    }
+
+    ...this task could then be used in a \reference{build-plans}{build plan}
+    like so:
+
+    \codeblock{yaml}{
+    plan:
+    - get: project-src
+    - task: build-bin
+      file: project-src/ci/build.yml
+    - put: project-bin
+      params: {file: built-project-bin/my-project}
     }
   }
 
