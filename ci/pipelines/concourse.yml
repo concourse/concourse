@@ -468,9 +468,10 @@ jobs:
     params: {acquire: true}
   - do:
     - aggregate:
-      - get: concourse
-        passed: [virtualbox-box]
       - get: virtualbox-box
+        passed: [virtualbox-box]
+        trigger: true
+      - get: concourse
         passed: [virtualbox-box]
       - get: concourse-lite
         passed: [virtualbox-box]
@@ -489,9 +490,10 @@ jobs:
   serial: true
   plan:
   - aggregate:
-    - get: concourse
-      passed: [virtualbox-testflight]
     - get: virtualbox-box
+      passed: [virtualbox-testflight]
+      trigger: true
+    - get: concourse
       passed: [virtualbox-testflight]
     - get: final-release
       passed: [virtualbox-testflight]
