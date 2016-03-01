@@ -28,6 +28,7 @@ groups:
   - push-departures
   - push-docs
   - virtualbox-box
+  - virtualbox-testflight
   - release-virtualbox-box
   - aws-box
   - release-aws-box
@@ -459,17 +460,41 @@ jobs:
   - put: virtualbox-box
     params: {file: built-box/*.box}
 
+- name: virtualbox-testflight
+  public: true
+  serial: true
+  plan:
+  - put: hetzner
+    params: {acquire: true}
+  - do:
+    - aggregate:
+      - get: concourse
+        passed: [virtualbox-box]
+      - get: virtualbox-box
+        passed: [virtualbox-box]
+      - get: concourse-lite
+        passed: [virtualbox-box]
+      - get: final-release
+        passed: [virtualbox-box]
+    - task: testflight
+      privileged: true
+      file: concourse-lite/ci/testflight.yml
+      tags: [hetzner]
+    ensure:
+      put: hetzner
+      params: {release: hetzner}
+
 - name: release-virtualbox-box
   public: true
   serial: true
   plan:
   - aggregate:
     - get: concourse
-      passed: [virtualbox-box]
+      passed: [virtualbox-testflight]
     - get: virtualbox-box
-      passed: [virtualbox-box]
+      passed: [virtualbox-testflight]
     - get: final-release
-      passed: [virtualbox-box]
+      passed: [virtualbox-testflight]
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
   - put: virtualbox-box-cloud
@@ -907,6 +932,14 @@ resources:
     uri: git@github.com:concourse/locks.git
     branch: master
     pool: bosh-lites
+    private_key: {{locks-repo-private-key}}
+
+- name: hetzner
+  type: pool
+  source:
+    uri: git@github.com:concourse/locks.git
+    branch: master
+    pool: hetzner
     private_key: {{locks-repo-private-key}}
 
 - name: tracksuit

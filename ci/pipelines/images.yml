@@ -11,12 +11,27 @@ resources:
   source:
     uri: https://github.com/concourse/concourse-lite.git
     branch: master
-    paths: [Dockerfile, box-setup]
+    paths: [ci/dockerfiles/buildbox-ci, box-setup]
 
 - name: concourse-buildbox-ci-image
   type: docker-image
   source:
     repository: concourse/buildbox-ci
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
+- name: concourse-buildbox-testflight-ci
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse-lite.git
+    branch: master
+    paths: [ci/dockerfiles/buildbox-testflight-ci]
+
+- name: concourse-buildbox-testflight-ci-image
+  type: docker-image
+  source:
+    repository: concourse/buildbox-testflight-ci
     username: {{docker-username}}
     email: {{docker-email}}
     password: {{docker-password}}
@@ -200,8 +215,26 @@ jobs:
       params: {save: true}
   - put: concourse-buildbox-ci-image
     params:
+      dockerfile: concourse-buildbox-testflight-ci/ci/dockerfiles/buildbox-ci/Dockerfile
       load_base: ubuntu-15.10
       build: concourse-buildbox-ci/
+
+- name: build-buildbox-testflight-ci
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse-buildbox-testflight-ci
+      trigger: true
+    - get: concourse-atc-ci-image
+      passed: [build-atc-ci]
+      trigger: true
+      params: {save: true}
+  - put: concourse-buildbox-testflight-ci-image
+    params:
+      dockerfile: concourse-buildbox-testflight-ci/ci/dockerfiles/buildbox-testflight-ci/Dockerfile
+      load_base: concourse-atc-ci-image
+      build: concourse-buildbox-testflight-ci/
 
 - name: build-docs-ci
   public: true
