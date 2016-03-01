@@ -159,3 +159,6 @@ Refer to [Prerequisites](#prerequisites) if you're not sure what this means.
 The `--tsa-worker-private-key` flag specifies the key to use when
 authenticating to the TSA. Refer to [Prerequisites](#prerequisites) if you're
 not sure what this means.
+
+If you are starting a windows worker you will likely need `--bind-ip 127.0.0.1`
+as well. 
