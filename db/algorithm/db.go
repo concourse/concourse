@@ -13,6 +13,7 @@ type VersionsDB struct {
 type ResourceVersion struct {
 	VersionID  int
 	ResourceID int
+	CheckOrder int
 }
 
 type BuildOutput struct {
@@ -50,9 +51,10 @@ func (db VersionsDB) versionsOfResourcePassedJob(resourceID int, job int) Versio
 	for _, output := range db.BuildOutputs {
 		if output.ResourceID == resourceID && output.JobID == job {
 			versions[VersionCandidate{
-				VersionID: output.VersionID,
-				BuildID:   output.BuildID,
-				JobID:     output.JobID,
+				VersionID:  output.VersionID,
+				BuildID:    output.BuildID,
+				JobID:      output.JobID,
+				CheckOrder: output.CheckOrder,
 			}] = struct{}{}
 		}
 	}
@@ -66,7 +68,8 @@ func (db VersionsDB) versionsOfResource(resourceID int) VersionCandidates {
 	for _, output := range db.ResourceVersions {
 		if output.ResourceID == resourceID {
 			versions[VersionCandidate{
-				VersionID: output.VersionID,
+				VersionID:  output.VersionID,
+				CheckOrder: output.CheckOrder,
 			}] = struct{}{}
 		}
 	}

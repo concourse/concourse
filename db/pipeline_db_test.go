@@ -1,7 +1,6 @@
 package db_test
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -17,43 +16,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
-
-func getCheckOrderedVersionedResources(resourceName string, resourceType string, conn db.Conn) ([]db.SavedVersionedResource, error) {
-	var svr db.SavedVersionedResource
-	var svrs []db.SavedVersionedResource
-	rows, err := conn.Query(`
-					SELECT vr.resource_id, vr.version, vr.check_order
-					FROM versioned_resources vr, resources r
-					WHERE r.name = $1
-					AND vr.type = $2
-					ORDER BY check_order ASC
-				`, resourceName, resourceType)
-
-	if err != nil {
-		return []db.SavedVersionedResource{}, err
-	}
-
-	var version string
-
-	for rows.Next() {
-		fmt.Println("wat??")
-		err = rows.Scan(&svr.Resource, &version, &svr.CheckOrder)
-		if err != nil {
-			return []db.SavedVersionedResource{}, err
-		}
-
-		fmt.Sprintf("makin a thing w/ version: %+v", version)
-
-		err = json.Unmarshal([]byte(version), &svr.Version)
-		if err != nil {
-			return []db.SavedVersionedResource{}, err
-		}
-
-		svrs = append(svrs, svr)
-	}
-
-	return svrs, nil
-}
 
 var _ = Describe("PipelineDB", func() {
 	var dbConn db.Conn
@@ -549,7 +511,6 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			JustBeforeEach(func() {
-
 				err := pipelineDB.SaveResourceVersions(resourceConfig, originalVersionSlice)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -560,6 +521,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(found).To(BeTrue())
 
 				Expect(latestVR.Version).To(Equal(db.Version{"ref": "v3"}))
+				Expect(latestVR.CheckOrder).To(Equal(2))
 
 				pretendCheckResults := []atc.Version{
 					{"ref": "v2"},
@@ -574,6 +536,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(found).To(BeTrue())
 
 				Expect(latestVR.Version).To(Equal(db.Version{"ref": "v3"}))
+				Expect(latestVR.CheckOrder).To(Equal(4))
 			})
 		})
 
@@ -652,8 +615,8 @@ var _ = Describe("PipelineDB", func() {
 			versions, err = pipelineDB.LoadVersionsDB()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(versions.ResourceVersions).To(ConsistOf([]algorithm.ResourceVersion{
-				{VersionID: savedVR1.ID, ResourceID: resource.ID},
-				{VersionID: savedVR2.ID, ResourceID: resource.ID},
+				{VersionID: savedVR1.ID, ResourceID: resource.ID, CheckOrder: savedVR1.CheckOrder},
+				{VersionID: savedVR2.ID, ResourceID: resource.ID, CheckOrder: savedVR2.CheckOrder},
 			}))
 
 			Expect(versions.BuildOutputs).To(BeEmpty())
@@ -691,8 +654,8 @@ var _ = Describe("PipelineDB", func() {
 			versions, err = pipelineDB.LoadVersionsDB()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(versions.ResourceVersions).To(ConsistOf([]algorithm.ResourceVersion{
-				{VersionID: savedVR1.ID, ResourceID: resource.ID},
-				{VersionID: savedVR2.ID, ResourceID: resource.ID},
+				{VersionID: savedVR1.ID, ResourceID: resource.ID, CheckOrder: savedVR1.CheckOrder},
+				{VersionID: savedVR2.ID, ResourceID: resource.ID, CheckOrder: savedVR2.CheckOrder},
 			}))
 
 			Expect(versions.BuildOutputs).To(BeEmpty())
@@ -716,7 +679,7 @@ var _ = Describe("PipelineDB", func() {
 			build1, err := pipelineDB.CreateJobBuild("a-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = pipelineDB.SaveBuildOutput(build1.ID, savedVR1.VersionedResource, false)
+			savedVR1, err = pipelineDB.SaveBuildOutput(build1.ID, savedVR1.VersionedResource, false)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = sqlDB.FinishBuild(build1.ID, db.StatusSucceeded)
@@ -725,8 +688,8 @@ var _ = Describe("PipelineDB", func() {
 			versions, err = pipelineDB.LoadVersionsDB()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(versions.ResourceVersions).To(ConsistOf([]algorithm.ResourceVersion{
-				{VersionID: savedVR1.ID, ResourceID: resource.ID},
-				{VersionID: savedVR2.ID, ResourceID: resource.ID},
+				{VersionID: savedVR1.ID, ResourceID: resource.ID, CheckOrder: savedVR1.CheckOrder},
+				{VersionID: savedVR2.ID, ResourceID: resource.ID, CheckOrder: savedVR2.CheckOrder},
 			}))
 
 			Expect(versions.BuildOutputs).To(ConsistOf([]algorithm.BuildOutput{
@@ -734,6 +697,7 @@ var _ = Describe("PipelineDB", func() {
 					ResourceVersion: algorithm.ResourceVersion{
 						VersionID:  savedVR1.ID,
 						ResourceID: resource.ID,
+						CheckOrder: savedVR1.CheckOrder,
 					},
 					JobID:   build1.JobID,
 					BuildID: build1.ID,
@@ -760,7 +724,7 @@ var _ = Describe("PipelineDB", func() {
 			build2, err := pipelineDB.CreateJobBuild("a-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = pipelineDB.SaveBuildOutput(build2.ID, savedVR1.VersionedResource, false)
+			savedVR1, err = pipelineDB.SaveBuildOutput(build2.ID, savedVR1.VersionedResource, false)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = sqlDB.FinishBuild(build2.ID, db.StatusFailed)
@@ -769,8 +733,8 @@ var _ = Describe("PipelineDB", func() {
 			versions, err = pipelineDB.LoadVersionsDB()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(versions.ResourceVersions).To(ConsistOf([]algorithm.ResourceVersion{
-				{VersionID: savedVR1.ID, ResourceID: resource.ID},
-				{VersionID: savedVR2.ID, ResourceID: resource.ID},
+				{VersionID: savedVR1.ID, ResourceID: resource.ID, CheckOrder: savedVR1.CheckOrder},
+				{VersionID: savedVR2.ID, ResourceID: resource.ID, CheckOrder: savedVR2.CheckOrder},
 			}))
 
 			Expect(versions.BuildOutputs).To(ConsistOf([]algorithm.BuildOutput{
@@ -778,6 +742,7 @@ var _ = Describe("PipelineDB", func() {
 					ResourceVersion: algorithm.ResourceVersion{
 						VersionID:  savedVR1.ID,
 						ResourceID: resource.ID,
+						CheckOrder: savedVR1.CheckOrder,
 					},
 					JobID:   build1.JobID,
 					BuildID: build1.ID,
@@ -813,8 +778,8 @@ var _ = Describe("PipelineDB", func() {
 			versions, err = pipelineDB.LoadVersionsDB()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(versions.ResourceVersions).To(ConsistOf([]algorithm.ResourceVersion{
-				{VersionID: savedVR1.ID, ResourceID: resource.ID},
-				{VersionID: savedVR2.ID, ResourceID: resource.ID},
+				{VersionID: savedVR1.ID, ResourceID: resource.ID, CheckOrder: savedVR1.CheckOrder},
+				{VersionID: savedVR2.ID, ResourceID: resource.ID, CheckOrder: savedVR2.CheckOrder},
 			}))
 
 			Expect(versions.BuildOutputs).To(ConsistOf([]algorithm.BuildOutput{
@@ -822,6 +787,7 @@ var _ = Describe("PipelineDB", func() {
 					ResourceVersion: algorithm.ResourceVersion{
 						VersionID:  savedVR1.ID,
 						ResourceID: resource.ID,
+						CheckOrder: savedVR1.CheckOrder,
 					},
 					JobID:   build1.JobID,
 					BuildID: build1.ID,

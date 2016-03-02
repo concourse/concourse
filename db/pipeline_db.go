@@ -1494,7 +1494,7 @@ func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	}
 
 	rows, err := pdb.conn.Query(`
-    SELECT v.id, r.id, o.build_id, j.id
+    SELECT v.id, v.check_order, r.id, o.build_id, j.id
     FROM build_outputs o, builds b, versioned_resources v, jobs j, resources r
     WHERE v.id = o.versioned_resource_id
     AND b.id = o.build_id
@@ -1510,16 +1510,18 @@ func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 
 	for rows.Next() {
 		var output algorithm.BuildOutput
-		err := rows.Scan(&output.VersionID, &output.ResourceID, &output.BuildID, &output.JobID)
+		err := rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID, &output.BuildID, &output.JobID)
 		if err != nil {
 			return nil, err
 		}
+
+		output.ResourceVersion.CheckOrder = output.CheckOrder
 
 		db.BuildOutputs = append(db.BuildOutputs, output)
 	}
 
 	rows, err = pdb.conn.Query(`
-    SELECT v.id, r.id
+    SELECT v.id, v.check_order, r.id
     FROM versioned_resources v, resources r
     WHERE r.id = v.resource_id
     AND v.enabled
@@ -1531,7 +1533,7 @@ func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 
 	for rows.Next() {
 		var output algorithm.ResourceVersion
-		err := rows.Scan(&output.VersionID, &output.ResourceID)
+		err := rows.Scan(&output.VersionID, &output.CheckOrder, &output.ResourceID)
 		if err != nil {
 			return nil, err
 		}

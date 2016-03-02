@@ -6,9 +6,10 @@ import (
 )
 
 type VersionCandidate struct {
-	VersionID int
-	BuildID   int
-	JobID     int
+	VersionID  int
+	BuildID    int
+	JobID      int
+	CheckOrder int
 }
 
 func (candidate VersionCandidate) String() string {
@@ -73,21 +74,27 @@ func (candidates VersionCandidates) PruneVersionsOfOtherBuildIDs(jobID int, buil
 }
 
 func (candidates VersionCandidates) VersionIDs() []int {
-	ids := map[int]struct{}{}
-	for version := range candidates {
-		ids[version.VersionID] = struct{}{}
+	uniqueVersionIDCandidates := map[int]VersionCandidate{}
+	uniqueCandidates := []VersionCandidate{}
+	for candidate, _ := range candidates {
+		if _, ok := uniqueVersionIDCandidates[candidate.VersionID]; !ok {
+			uniqueVersionIDCandidates[candidate.VersionID] = candidate
+			uniqueCandidates = append(uniqueCandidates, candidate)
+		}
 	}
 
-	sortedIDs := make([]int, len(ids))
-	i := 0
-	for id, _ := range ids {
-		sortedIDs[i] = id
-		i++
+	sorter := versionCandidatesSorter{
+		VersionCandidates: uniqueCandidates,
 	}
 
-	sort.Sort(sort.Reverse(sort.IntSlice(sortedIDs)))
+	sort.Sort(sort.Reverse(sorter))
 
-	return sortedIDs
+	versionIDs := make([]int, len(uniqueCandidates))
+	for i, candidate := range sorter.VersionCandidates {
+		versionIDs[i] = candidate.VersionID
+	}
+
+	return versionIDs
 }
 
 func (candidates VersionCandidates) ForVersion(versionID int) VersionCandidates {
@@ -99,4 +106,20 @@ func (candidates VersionCandidates) ForVersion(versionID int) VersionCandidates 
 	}
 
 	return newCandidates
+}
+
+type versionCandidatesSorter struct {
+	VersionCandidates []VersionCandidate
+}
+
+func (s versionCandidatesSorter) Len() int {
+	return len(s.VersionCandidates)
+}
+
+func (s versionCandidatesSorter) Swap(i, j int) {
+	s.VersionCandidates[i], s.VersionCandidates[j] = s.VersionCandidates[j], s.VersionCandidates[i]
+}
+
+func (s versionCandidatesSorter) Less(i, j int) bool {
+	return s.VersionCandidates[i].CheckOrder < s.VersionCandidates[j].CheckOrder
 }

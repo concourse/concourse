@@ -548,6 +548,7 @@ var _ = Describe("Pipelines API", func() {
 							{
 								VersionID:  73,
 								ResourceID: 127,
+								CheckOrder: 123,
 							},
 						},
 						BuildOutputs: []algorithm.BuildOutput{
@@ -555,6 +556,7 @@ var _ = Describe("Pipelines API", func() {
 								ResourceVersion: algorithm.ResourceVersion{
 									VersionID:  73,
 									ResourceID: 127,
+									CheckOrder: 123,
 								},
 								BuildID: 66,
 								JobID:   13,
@@ -588,7 +590,8 @@ var _ = Describe("Pipelines API", func() {
 				"ResourceVersions": [
 					{
 						"VersionID": 73,
-						"ResourceID": 127
+						"ResourceID": 127,
+						"CheckOrder": 123
 			    }
 				],
 				"BuildOutputs": [
@@ -596,7 +599,8 @@ var _ = Describe("Pipelines API", func() {
 						"VersionID": 73,
 						"ResourceID": 127,
 						"BuildID": 66,
-						"JobID": 13
+						"JobID": 13,
+						"CheckOrder": 123
 					}
 				],
 				"JobIDs": {

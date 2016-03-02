@@ -12,10 +12,12 @@ import (
 type DB []DBRow
 
 type DBRow struct {
-	Job      string
-	BuildID  int
-	Resource string
-	Version  string
+	Job        string
+	BuildID    int
+	Resource   string
+	Version    string
+	CheckOrder int
+	VersionID  int
 }
 
 type Example struct {
@@ -88,6 +90,7 @@ func (example Example) Run() {
 			version := algorithm.ResourceVersion{
 				VersionID:  versionIDs.ID(row.Version),
 				ResourceID: resourceIDs.ID(row.Resource),
+				CheckOrder: row.CheckOrder,
 			}
 
 			if row.Job != "" {
