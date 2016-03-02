@@ -21,7 +21,20 @@ func formatErr(groupName string, err error) string {
 	return fmt.Sprintf("invalid %s:\n%s\n", groupName, strings.Join(indented, "\n"))
 }
 
-func ValidateConfig(c atc.Config) []string {
+type Warning struct {
+	Type    string `json:"type"`
+	Message string `json:"message"`
+}
+
+func newDeprecationWarning(message string) Warning {
+	return Warning{
+		Type:    "deprecation",
+		Message: message,
+	}
+}
+
+func ValidateConfig(c atc.Config) ([]Warning, []string) {
+	warnings := []Warning{}
 	errorMessages := []string{}
 
 	groupsErr := validateGroups(c)
@@ -39,12 +52,13 @@ func ValidateConfig(c atc.Config) []string {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
 	}
 
-	jobsErr := validateJobs(c)
+	jobWarnings, jobsErr := validateJobs(c)
 	if jobsErr != nil {
 		errorMessages = append(errorMessages, formatErr("jobs", jobsErr))
 	}
+	warnings = append(warnings, jobWarnings...)
 
-	return errorMessages
+	return warnings, errorMessages
 }
 
 func validateGroups(c atc.Config) error {
@@ -139,8 +153,9 @@ func validateResourceTypes(c atc.Config) error {
 	return compositeErr(errorMessages)
 }
 
-func validateJobs(c atc.Config) error {
+func validateJobs(c atc.Config) ([]Warning, error) {
 	errorMessages := []string{}
+	warnings := []Warning{}
 
 	names := map[string]int{}
 
@@ -164,11 +179,12 @@ func validateJobs(c atc.Config) error {
 		if job.Name == "" {
 			errorMessages = append(errorMessages, identifier+" has no name")
 		}
-
-		errorMessages = append(errorMessages, validatePlan(c, identifier+".plan", atc.PlanConfig{Do: &job.Plan})...)
+		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", atc.PlanConfig{Do: &job.Plan})
+		warnings = append(warnings, planWarnings...)
+		errorMessages = append(errorMessages, planErrMessages...)
 	}
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
 func doesAnyStepMatch(planSequence atc.PlanSequence, predicate func(step atc.PlanConfig) bool) bool {
@@ -222,7 +238,7 @@ func (ft foundTypes) IsValid() (bool, string) {
 	return true, ""
 }
 
-func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string {
+func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) ([]Warning, []string) {
 	foundTypes := foundTypes{
 		identifier: identifier,
 		found:      make(map[string]bool),
@@ -253,22 +269,27 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 	}
 
 	if valid, message := foundTypes.IsValid(); !valid {
-		return []string{message}
+		return []Warning{}, []string{message}
 	}
 
 	errorMessages := []string{}
+	warnings := []Warning{}
 
 	switch {
 	case plan.Do != nil:
 		for i, plan := range *plan.Do {
 			subIdentifier := fmt.Sprintf("%s[%d]", identifier, i)
-			errorMessages = append(errorMessages, validatePlan(c, subIdentifier, plan)...)
+			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
+			warnings = append(warnings, planWarnings...)
+			errorMessages = append(errorMessages, planErrMessages...)
 		}
 
 	case plan.Aggregate != nil:
 		for i, plan := range *plan.Aggregate {
 			subIdentifier := fmt.Sprintf("%s.aggregate[%d]", identifier, i)
-			errorMessages = append(errorMessages, validatePlan(c, subIdentifier, plan)...)
+			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
+			warnings = append(warnings, planWarnings...)
+			errorMessages = append(errorMessages, planErrMessages...)
 		}
 
 	case plan.Get != "":
@@ -386,6 +407,10 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 			errorMessages = append(errorMessages, identifier+" does not specify any task configuration")
 		}
 
+		if plan.TaskConfig != nil && plan.TaskConfigPath != "" {
+			warnings = append(warnings, newDeprecationWarning(identifier+" specifies both `file` and `config` in a task step"))
+		}
+
 		errorMessages = append(errorMessages, validateInapplicableFields(
 			[]string{"resource", "passed", "trigger"},
 			plan, identifier)...,
@@ -393,22 +418,30 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 
 	case plan.Try != nil:
 		subIdentifier := fmt.Sprintf("%s.try", identifier)
-		errorMessages = append(errorMessages, validatePlan(c, subIdentifier, *plan.Try)...)
+		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Try)
+		warnings = append(warnings, planWarnings...)
+		errorMessages = append(errorMessages, planErrMessages...)
 	}
 
 	if plan.Ensure != nil {
 		subIdentifier := fmt.Sprintf("%s.ensure", identifier)
-		errorMessages = append(errorMessages, validatePlan(c, subIdentifier, *plan.Ensure)...)
+		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Ensure)
+		warnings = append(warnings, planWarnings...)
+		errorMessages = append(errorMessages, planErrMessages...)
 	}
 
 	if plan.Success != nil {
 		subIdentifier := fmt.Sprintf("%s.success", identifier)
-		errorMessages = append(errorMessages, validatePlan(c, subIdentifier, *plan.Success)...)
+		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Success)
+		warnings = append(warnings, planWarnings...)
+		errorMessages = append(errorMessages, planErrMessages...)
 	}
 
 	if plan.Failure != nil {
 		subIdentifier := fmt.Sprintf("%s.failure", identifier)
-		errorMessages = append(errorMessages, validatePlan(c, subIdentifier, *plan.Failure)...)
+		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Failure)
+		warnings = append(warnings, planWarnings...)
+		errorMessages = append(errorMessages, planErrMessages...)
 	}
 
 	if plan.Timeout != "" {
@@ -424,7 +457,7 @@ func validatePlan(c atc.Config, identifier string, plan atc.PlanConfig) []string
 		errorMessages = append(errorMessages, subIdentifier+fmt.Sprintf(" has an invalid number of attempts (%d)", plan.Attempts))
 	}
 
-	return errorMessages
+	return warnings, errorMessages
 }
 
 func validateInapplicableFields(inapplicableFields []string, plan atc.PlanConfig, identifier string) []string {

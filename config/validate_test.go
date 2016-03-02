@@ -12,7 +12,8 @@ var _ = Describe("ValidateConfig", func() {
 	var (
 		config atc.Config
 
-		errorMessages []string
+		errorMessages  []string
+		configWarnings []Warning
 	)
 
 	BeforeEach(func() {
@@ -62,9 +63,6 @@ var _ = Describe("ValidateConfig", func() {
 							Task:           "some-task",
 							Privileged:     true,
 							TaskConfigPath: "some/config/path.yml",
-							TaskConfig: &atc.TaskConfig{
-								Image: "some-image",
-							},
 						},
 						{
 							Put: "some-resource",
@@ -82,7 +80,7 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	JustBeforeEach(func() {
-		errorMessages = ValidateConfig(config)
+		configWarnings, errorMessages = ValidateConfig(config)
 	})
 
 	Context("when the config is valid", func() {
@@ -372,6 +370,29 @@ var _ = Describe("ValidateConfig", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].task.lol does not specify any task configuration"))
+				})
+			})
+
+			Context("when a task plan has config path and config specified", func() {
+				BeforeEach(func() {
+					job.Plan = append(job.Plan, atc.PlanConfig{
+						Task:           "lol",
+						TaskConfigPath: "task.yml",
+						TaskConfig: &atc.TaskConfig{
+							Params: map[string]string{
+								"param1": "value1",
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns a deprecation warning", func() {
+					Expect(configWarnings).To(ContainElement(Warning{
+						Type:    "deprecation",
+						Message: "jobs.some-other-job.plan[0].task.lol specifies both `file` and `config` in a task step",
+					}))
 				})
 			})
 

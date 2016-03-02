@@ -10,6 +10,7 @@ import (
 	"net/textproto"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -262,8 +263,8 @@ var _ = Describe("Config API", func() {
 							request.Body = gbytes.BufferWithBytes(payload)
 						})
 
-						It("returns 204", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
 						It("saves it", func() {
@@ -344,8 +345,8 @@ var _ = Describe("Config API", func() {
 							request.Body = gbytes.BufferWithBytes(payload)
 						})
 
-						It("returns 204", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
 						It("saves it", func() {
@@ -391,8 +392,8 @@ jobs:
 								request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
 							})
 
-							It("returns 204", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+							It("returns 200", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
 							})
 
 							It("saves it", func() {
@@ -529,8 +530,8 @@ jobs:
 								request.Body = gbytes.BufferWithBytes(body.Bytes())
 							})
 
-							It("returns 204", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+							It("returns 200", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
 							})
 
 							It("saves it", func() {
@@ -596,6 +597,26 @@ jobs:
 
 								It("does not save it", func() {
 									Expect(configDB.SaveConfigCallCount()).To(BeZero())
+								})
+							})
+
+							Context("when the config includes deprecations", func() {
+								BeforeEach(func() {
+									configValidationWarnings = []config.Warning{
+										{
+											Type:    "deprecation",
+											Message: "deprecated",
+										},
+									}
+								})
+
+								It("returns warnings", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusOK))
+									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
+										"warnings": [
+										  {"type":"deprecation", "message":"deprecated"}
+										]
+									}`))
 								})
 							})
 						}

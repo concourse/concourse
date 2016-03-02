@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pivotal-golang/lager"
@@ -44,18 +45,12 @@ func (eke ExtraKeysError) Error() string {
 }
 
 type SaveConfigResponse struct {
-	Errors []string `json:"errors,omitempty"`
-}
-
-func newSaveConfigResponse(errorMessages []string) SaveConfigResponse {
-	return SaveConfigResponse{
-		Errors: errorMessages,
-	}
+	Errors   []string         `json:"errors,omitempty"`
+	Warnings []config.Warning `json:"warnings,omitempty"`
 }
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	session := s.logger.Session("set-config")
-
 	configVersionStr := r.Header.Get(atc.ConfigVersionHeader)
 	if len(configVersionStr) == 0 {
 		s.handleBadRequest(w, []string{"no config version specified"}, session)
@@ -108,7 +103,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	errorMessages := s.validate(config)
+	warnings, errorMessages := s.validate(config)
 	if len(errorMessages) > 0 {
 		session.Error("ignoring-invalid-config", err)
 		s.handleBadRequest(w, errorMessages, session)
@@ -131,12 +126,20 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	if created {
 		w.WriteHeader(http.StatusCreated)
 	} else {
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusOK)
 	}
+
+	s.writeSaveConfigResponse(w, SaveConfigResponse{Warnings: warnings}, session)
 }
 
 func (s *Server) handleBadRequest(w http.ResponseWriter, errorMessages []string, session lager.Logger) {
-	saveConfigResponse := newSaveConfigResponse(errorMessages)
+	w.WriteHeader(http.StatusBadRequest)
+	s.writeSaveConfigResponse(w, SaveConfigResponse{
+		Errors: errorMessages,
+	}, session)
+}
+
+func (s *Server) writeSaveConfigResponse(w http.ResponseWriter, saveConfigResponse SaveConfigResponse, session lager.Logger) {
 	responseJSON, err := json.Marshal(saveConfigResponse)
 	if err != nil {
 		session.Error("failed-to-marshal-validation-response", err)
@@ -145,7 +148,6 @@ func (s *Server) handleBadRequest(w http.ResponseWriter, errorMessages []string,
 		return
 	}
 
-	w.WriteHeader(http.StatusBadRequest)
 	w.Write(responseJSON)
 }
 

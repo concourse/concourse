@@ -23,6 +23,7 @@ import (
 	volumeserverfakes "github.com/concourse/atc/api/volumeserver/fakes"
 	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
 	authfakes "github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/config"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 	workerfakes "github.com/concourse/atc/worker/fakes"
@@ -53,6 +54,7 @@ var (
 	teamDB                        *teamserverfakes.FakeTeamDB
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	configValidationErrorMessages []string
+	configValidationWarnings      []config.Warning
 	peerAddr                      string
 	drain                         chan struct{}
 	cliDownloadsDir               string
@@ -103,6 +105,7 @@ var _ = BeforeEach(func() {
 	providerFactory = new(authfakes.FakeProviderFactory)
 
 	configValidationErrorMessages = []string{}
+	configValidationWarnings = []config.Warning{}
 	peerAddr = "127.0.0.1:1234"
 	drain = make(chan struct{})
 
@@ -146,7 +149,9 @@ var _ = BeforeEach(func() {
 		pipelinesDB,
 		teamDB,
 
-		func(atc.Config) []string { return configValidationErrorMessages },
+		func(atc.Config) ([]config.Warning, []string) {
+			return configValidationWarnings, configValidationErrorMessages
+		},
 		peerAddr,
 		constructedEventHandler.Construct,
 		drain,
