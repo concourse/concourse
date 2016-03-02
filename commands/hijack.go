@@ -59,7 +59,7 @@ func (command *HijackCommand) Execute(args []string) error {
 				infos = append(infos, fmt.Sprintf("step: %s", container.StepName))
 				infos = append(infos, fmt.Sprintf("type: %s", container.StepType))
 			} else {
-				infos = append(infos, fmt.Sprintf("resource: %s", container.ResourceName))
+				infos = append(infos, fmt.Sprintf("step: %s", container.StepName))
 				infos = append(infos, "type: check")
 			}
 

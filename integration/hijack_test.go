@@ -335,6 +335,18 @@ var _ = Describe("Hijacking", func() {
 							Attempts:     []int{1, 1, 2},
 							User:         user,
 						},
+						{
+							ID:           "container-id-3",
+							WorkerName:   "worker-name-2",
+							PipelineName: "pipeline-name-2",
+							JobName:      "some-job",
+							BuildName:    "2",
+							BuildID:      13,
+							StepType:     "check",
+							StepName:     "some-output",
+							Attempts:     []int{1},
+							User:         user,
+						},
 					}),
 				),
 				hijackHandler("container-id-2", didHijack, nil),
@@ -351,10 +363,11 @@ var _ = Describe("Hijacking", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess.Out).Should(gbytes.Say("1. build #2, step: some-input, type: get, attempt: 1.1.1"))
-			Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-output, type: put, attempt: 1.1.2"))
+			Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-output, type: check, attempt: 1"))
+			Eventually(sess.Out).Should(gbytes.Say("3. build #2, step: some-output, type: put, attempt: 1.1.2"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
-			_, err = fmt.Fprintf(stdin, "2\n")
+			_, err = fmt.Fprintf(stdin, "3\n")
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(hijacked).Should(BeClosed())
