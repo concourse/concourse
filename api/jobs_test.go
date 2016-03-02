@@ -262,6 +262,9 @@ var _ = Describe("Jobs API", func() {
 
 	Describe("GET /api/v1/pipelines/:pipeline_name/jobs", func() {
 		var response *http.Response
+		var jobs []atc.JobConfig
+		var dashboardResponse db.Dashboard
+		var groups []atc.GroupConfig
 
 		JustBeforeEach(func() {
 			var err error
@@ -272,7 +275,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the dashboard succeeds", func() {
 			BeforeEach(func() {
-				groups := []atc.GroupConfig{
+				groups = []atc.GroupConfig{
 					{
 						Name: "group-1",
 						Jobs: []string{"job-1"},
@@ -283,7 +286,7 @@ var _ = Describe("Jobs API", func() {
 					},
 				}
 
-				jobs := []atc.JobConfig{
+				jobs = []atc.JobConfig{
 					{
 						Name: "job-1",
 						Plan: atc.PlanSequence{{Get: "input-1"}, {Put: "output-1"}},
@@ -307,7 +310,7 @@ var _ = Describe("Jobs API", func() {
 					},
 				}
 
-				pipelineDB.GetDashboardReturns(db.Dashboard{
+				dashboardResponse = db.Dashboard{
 					{
 						Job:       job,
 						JobConfig: jobs[0],
@@ -348,7 +351,8 @@ var _ = Describe("Jobs API", func() {
 						NextBuild:     nil,
 						FinishedBuild: nil,
 					},
-				}, groups, nil)
+				}
+				pipelineDB.GetDashboardReturns(dashboardResponse, groups, nil)
 			})
 
 			It("returns 200 OK", func() {
@@ -419,6 +423,80 @@ var _ = Describe("Jobs API", func() {
 								"groups": []
 							}
 						]`))
+			})
+
+			Context("when manual triggering of a job is disabled", func() {
+				BeforeEach(func() {
+					dashboardResponse[0].JobConfig.DisableManualTrigger = true
+					pipelineDB.GetDashboardReturns(dashboardResponse, groups, nil)
+				})
+
+				It("returns each job's name, url, manual trigger state and any running and finished builds", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
+							{
+								"name": "job-1",
+								"paused": true,
+								"url": "/pipelines/another-pipeline/jobs/job-1",
+								"disable_manual_trigger": true,
+								"next_build": {
+									"id": 3,
+									"name": "2",
+									"job_name": "job-1",
+									"status": "started",
+									"url": "/pipelines/another-pipeline/jobs/job-1/builds/2",
+									"api_url": "/api/v1/builds/3",
+									"pipeline_name":"another-pipeline"
+								},
+								"finished_build": {
+									"id": 1,
+									"name": "1",
+									"job_name": "job-1",
+									"status": "succeeded",
+									"url": "/pipelines/another-pipeline/jobs/job-1/builds/1",
+									"api_url": "/api/v1/builds/1",
+									"pipeline_name":"another-pipeline",
+									"start_time": 1,
+									"end_time": 100
+								},
+								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": false}],
+								"outputs": [{"name": "output-1", "resource": "output-1"}],
+								"groups": ["group-1", "group-2"]
+							},
+							{
+								"name": "job-2",
+								"paused": true,
+								"url": "/pipelines/another-pipeline/jobs/job-2",
+								"next_build": null,
+								"finished_build": {
+									"id": 4,
+									"name": "1",
+									"job_name": "job-2",
+									"status": "succeeded",
+									"url": "/pipelines/another-pipeline/jobs/job-2/builds/1",
+									"api_url": "/api/v1/builds/4",
+									"pipeline_name":"another-pipeline",
+									"start_time": 101,
+									"end_time": 200
+								},
+								"inputs": [{"name": "input-2", "resource": "input-2", "trigger": false}],
+								"outputs": [{"name": "output-2", "resource": "output-2"}],
+								"groups": ["group-2"]
+							},
+							{
+								"name": "job-3",
+								"paused": true,
+								"url": "/pipelines/another-pipeline/jobs/job-3",
+								"next_build": null,
+								"finished_build": null,
+								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": false}],
+								"outputs": [{"name": "output-3", "resource": "output-3"}],
+								"groups": []
+							}
+						]`))
+				})
 			})
 		})
 
@@ -602,6 +680,37 @@ var _ = Describe("Jobs API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			Context("when manual triggering is disabled", func() {
+				BeforeEach(func() {
+					pipelineDB.GetConfigReturns(atc.Config{
+						Jobs: []atc.JobConfig{
+							{
+								Name: "some-job",
+								DisableManualTrigger: true,
+								Plan: atc.PlanSequence{
+									{
+										Get: "some-input",
+									},
+								},
+							},
+						},
+
+						Resources: atc.ResourceConfigs{
+							{Name: "resource-1", Type: "some-type"},
+							{Name: "resource-2", Type: "some-other-type"},
+						},
+					}, 1, true, nil)
+				})
+
+				It("should return 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+
+				It("does not trigger the build", func() {
+					Expect(fakeScheduler.TriggerImmediatelyCallCount()).To(Equal(0))
+				})
 			})
 
 			Context("when getting the job config succeeds", func() {

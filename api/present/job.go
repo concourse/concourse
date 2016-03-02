@@ -62,6 +62,7 @@ func Job(dbJob db.SavedJob, job atc.JobConfig, groups atc.GroupConfigs, finished
 	return atc.Job{
 		Name:          job.Name,
 		URL:           req.URL.String(),
+		DisableManualTrigger: job.DisableManualTrigger,
 		Paused:        dbJob.Paused,
 		FinishedBuild: presentedFinishedBuild,
 		NextBuild:     presentedNextBuild,
