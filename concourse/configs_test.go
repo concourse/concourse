@@ -10,6 +10,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/go-concourse/concourse"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -186,6 +187,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			expectedConfig       atc.Config
 
 			returnHeader int
+			returnBody   []byte
 		)
 
 		BeforeEach(func() {
@@ -215,6 +217,7 @@ var _ = Describe("ATC Handler Configs", func() {
 						Expect(receivedConfig).To(Equal(expectedConfig))
 
 						w.WriteHeader(returnHeader)
+						w.Write(returnBody)
 					},
 				),
 			)
@@ -223,26 +226,101 @@ var _ = Describe("ATC Handler Configs", func() {
 		Context("when creating a new config", func() {
 			BeforeEach(func() {
 				returnHeader = http.StatusCreated
+				returnBody = []byte(`{"warnings":[
+				  {"type": "warning-1-type", "message": "fake-warning1"},
+					{"type": "warning-2-type", "message": "fake-warning2"}
+				]}`)
 			})
 
 			It("returns true for created and false for updated", func() {
-				created, updated, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+				created, updated, warnings, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 				Expect(updated).To(BeFalse())
+				Expect(warnings).To(ConsistOf([]concourse.ConfigWarning{
+					{
+						Type:    "warning-2-type",
+						Message: "fake-warning2",
+					},
+					{
+						Type:    "warning-1-type",
+						Message: "fake-warning1",
+					},
+				}))
+			})
+
+			Context("when response contains bad JSON", func() {
+				BeforeEach(func() {
+					returnBody = []byte(`bad-json`)
+				})
+
+				It("returns an error", func() {
+					_, _, _, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+					Expect(err).To(HaveOccurred())
+				})
 			})
 		})
 
 		Context("when updating a config", func() {
 			BeforeEach(func() {
-				returnHeader = http.StatusNoContent
+				returnHeader = http.StatusOK
+				returnBody = []byte(`{"warnings":[
+				  {"type": "warning-1-type", "message": "fake-warning1"},
+					{"type": "warning-2-type", "message": "fake-warning2"}
+				]}`)
 			})
 
 			It("returns false for created and true for updated", func() {
-				created, updated, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+				created, updated, warnings, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeFalse())
 				Expect(updated).To(BeTrue())
+				Expect(warnings).To(ConsistOf([]concourse.ConfigWarning{
+					{
+						Type:    "warning-2-type",
+						Message: "fake-warning2",
+					},
+					{
+						Type:    "warning-1-type",
+						Message: "fake-warning1",
+					},
+				}))
+			})
+
+			Context("when response contains bad JSON", func() {
+				BeforeEach(func() {
+					returnBody = []byte(`bad-json`)
+				})
+
+				It("returns an error", func() {
+					_, _, _, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+					Expect(err).To(HaveOccurred())
+				})
+			})
+		})
+
+		Context("when setting config returns bad request", func() {
+			BeforeEach(func() {
+				returnHeader = http.StatusBadRequest
+				returnBody = []byte(`{"errors":["fake-error1","fake-error2"]}`)
+			})
+
+			It("returns config validation error", func() {
+				_, _, _, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("invalid configuration:\n"))
+				Expect(err.Error()).To(ContainSubstring("fake-error1\nfake-error2"))
+			})
+
+			Context("when response contains bad JSON", func() {
+				BeforeEach(func() {
+					returnBody = []byte(`bad-json`)
+				})
+
+				It("returns an error", func() {
+					_, _, _, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+					Expect(err).To(HaveOccurred())
+				})
 			})
 		})
 	})
