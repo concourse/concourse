@@ -2,6 +2,7 @@ package exec
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"strings"
 
@@ -15,6 +16,7 @@ type TaskConfigSource interface {
 	// FetchConfig returns the TaskConfig, and may have to a task config file out
 	// of the SourceRepository.
 	FetchConfig(*SourceRepository) (atc.TaskConfig, error)
+	Warnings() []string
 }
 
 // StaticConfigSource represents a statically configured TaskConfig.
@@ -33,6 +35,39 @@ func (configSource StaticConfigSource) FetchConfig(*SourceRepository) (atc.TaskC
 	}
 
 	return taskConfig, nil
+}
+
+func (configSource StaticConfigSource) Warnings() []string {
+	warnings := []string{}
+	if configSource.Plan.ConfigPath != "" && configSource.Plan.Config != nil {
+		warnings = append(warnings, "DEPRECATION WARNING: Specifying both `file` and `config.params` in a task step is deprecated, use params on task step directly")
+	}
+
+	return warnings
+}
+
+// DeprecationConfigSource represents a statically configured TaskConfig.
+type DeprecationConfigSource struct {
+	Delegate TaskConfigSource
+	Stderr   io.Writer
+}
+
+// FetchConfig returns the configuration. It cannot fail.
+func (configSource DeprecationConfigSource) FetchConfig(repo *SourceRepository) (atc.TaskConfig, error) {
+	taskConfig, err := configSource.Delegate.FetchConfig(repo)
+	if err != nil {
+		return atc.TaskConfig{}, err
+	}
+
+	for _, warning := range configSource.Delegate.Warnings() {
+		fmt.Fprintln(configSource.Stderr, warning)
+	}
+
+	return taskConfig, nil
+}
+
+func (configSource DeprecationConfigSource) Warnings() []string {
+	return []string{}
 }
 
 // FileConfigSource represents a dynamically configured TaskConfig, which will
@@ -90,6 +125,10 @@ func (configSource FileConfigSource) FetchConfig(repo *SourceRepository) (atc.Ta
 	return config, nil
 }
 
+func (configSource FileConfigSource) Warnings() []string {
+	return []string{}
+}
+
 // MergedConfigSource is used to join two config sources together.
 type MergedConfigSource struct {
 	A TaskConfigSource
@@ -113,6 +152,10 @@ func (configSource MergedConfigSource) FetchConfig(source *SourceRepository) (at
 	return aConfig.Merge(bConfig), nil
 }
 
+func (configSource MergedConfigSource) Warnings() []string {
+	return []string{}
+}
+
 // ValidatingConfigSource delegates to another ConfigSource, and validates its
 // task config.
 type ValidatingConfigSource struct {
@@ -132,6 +175,10 @@ func (configSource ValidatingConfigSource) FetchConfig(source *SourceRepository)
 	}
 
 	return config, nil
+}
+
+func (configSource ValidatingConfigSource) Warnings() []string {
+	return []string{}
 }
 
 // UnknownArtifactSourceError is returned when the SourceName specified by the

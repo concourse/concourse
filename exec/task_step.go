@@ -120,7 +120,12 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		Stderr: step.delegate.Stderr(),
 	}
 
-	config, err := step.configSource.FetchConfig(step.repo)
+	deprecationConfigSource := DeprecationConfigSource{
+		Delegate: step.configSource,
+		Stderr:   step.delegate.Stderr(),
+	}
+
+	config, err := deprecationConfigSource.FetchConfig(step.repo)
 	if err != nil {
 		return err
 	}

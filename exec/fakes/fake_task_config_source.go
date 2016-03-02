@@ -18,6 +18,12 @@ type FakeTaskConfigSource struct {
 		result1 atc.TaskConfig
 		result2 error
 	}
+	WarningsStub        func() []string
+	warningsMutex       sync.RWMutex
+	warningsArgsForCall []struct{}
+	warningsReturns struct {
+		result1 []string
+	}
 }
 
 func (fake *FakeTaskConfigSource) FetchConfig(arg1 *exec.SourceRepository) (atc.TaskConfig, error) {
@@ -51,6 +57,30 @@ func (fake *FakeTaskConfigSource) FetchConfigReturns(result1 atc.TaskConfig, res
 		result1 atc.TaskConfig
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeTaskConfigSource) Warnings() []string {
+	fake.warningsMutex.Lock()
+	fake.warningsArgsForCall = append(fake.warningsArgsForCall, struct{}{})
+	fake.warningsMutex.Unlock()
+	if fake.WarningsStub != nil {
+		return fake.WarningsStub()
+	} else {
+		return fake.warningsReturns.result1
+	}
+}
+
+func (fake *FakeTaskConfigSource) WarningsCallCount() int {
+	fake.warningsMutex.RLock()
+	defer fake.warningsMutex.RUnlock()
+	return len(fake.warningsArgsForCall)
+}
+
+func (fake *FakeTaskConfigSource) WarningsReturns(result1 []string) {
+	fake.WarningsStub = nil
+	fake.warningsReturns = struct {
+		result1 []string
+	}{result1}
 }
 
 var _ exec.TaskConfigSource = new(FakeTaskConfigSource)
