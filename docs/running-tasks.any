@@ -196,7 +196,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     - task: build-bin
       file: project-src/ci/build.yml
     - put: project-bin
-      params: {file: built-project-bin/my-project}
+      params: {file: built-project/my-project}
     }
   }
 
