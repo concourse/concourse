@@ -42,10 +42,6 @@ type Metadata interface {
 	Env() []string
 }
 
-type EmptyMetadata struct{}
-
-func (m EmptyMetadata) Env() []string { return nil }
-
 type tracker struct {
 	workerClient worker.Client
 	db           TrackerDB

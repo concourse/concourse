@@ -691,7 +691,7 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 					radar.NewRunner(
 						logger.Session(pipelineDB.ScopedName("radar")),
 						cmd.Developer.Noop,
-						radarSchedulerFactory.BuildRadar(pipelineDB),
+						radarSchedulerFactory.BuildRadar(pipelineDB, cmd.ExternalURL.String()),
 						pipelineDB,
 						1*time.Minute,
 					),
@@ -703,7 +703,7 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 
 						DB: pipelineDB,
 
-						Scheduler: radarSchedulerFactory.BuildScheduler(pipelineDB),
+						Scheduler: radarSchedulerFactory.BuildScheduler(pipelineDB, cmd.ExternalURL.String()),
 
 						Noop: cmd.Developer.Noop,
 

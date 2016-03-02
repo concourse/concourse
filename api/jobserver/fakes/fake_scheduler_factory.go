@@ -10,24 +10,26 @@ import (
 )
 
 type FakeSchedulerFactory struct {
-	BuildSchedulerStub        func(db.PipelineDB) scheduler.BuildScheduler
+	BuildSchedulerStub        func(db.PipelineDB, string) scheduler.BuildScheduler
 	buildSchedulerMutex       sync.RWMutex
 	buildSchedulerArgsForCall []struct {
 		arg1 db.PipelineDB
+		arg2 string
 	}
 	buildSchedulerReturns struct {
 		result1 scheduler.BuildScheduler
 	}
 }
 
-func (fake *FakeSchedulerFactory) BuildScheduler(arg1 db.PipelineDB) scheduler.BuildScheduler {
+func (fake *FakeSchedulerFactory) BuildScheduler(arg1 db.PipelineDB, arg2 string) scheduler.BuildScheduler {
 	fake.buildSchedulerMutex.Lock()
 	fake.buildSchedulerArgsForCall = append(fake.buildSchedulerArgsForCall, struct {
 		arg1 db.PipelineDB
-	}{arg1})
+		arg2 string
+	}{arg1, arg2})
 	fake.buildSchedulerMutex.Unlock()
 	if fake.BuildSchedulerStub != nil {
-		return fake.BuildSchedulerStub(arg1)
+		return fake.BuildSchedulerStub(arg1, arg2)
 	} else {
 		return fake.buildSchedulerReturns.result1
 	}
@@ -39,10 +41,10 @@ func (fake *FakeSchedulerFactory) BuildSchedulerCallCount() int {
 	return len(fake.buildSchedulerArgsForCall)
 }
 
-func (fake *FakeSchedulerFactory) BuildSchedulerArgsForCall(i int) db.PipelineDB {
+func (fake *FakeSchedulerFactory) BuildSchedulerArgsForCall(i int) (db.PipelineDB, string) {
 	fake.buildSchedulerMutex.RLock()
 	defer fake.buildSchedulerMutex.RUnlock()
-	return fake.buildSchedulerArgsForCall[i].arg1
+	return fake.buildSchedulerArgsForCall[i].arg1, fake.buildSchedulerArgsForCall[i].arg2
 }
 
 func (fake *FakeSchedulerFactory) BuildSchedulerReturns(result1 scheduler.BuildScheduler) {

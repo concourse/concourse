@@ -48,7 +48,7 @@ var _ = Describe("Radar", func() {
 		interval = 1 * time.Minute
 
 		fakeRadarDB.GetPipelineNameReturns("some-pipeline")
-		radar = NewRadar(fakeTracker, interval, fakeRadarDB, fakeClock)
+		radar = NewRadar(fakeTracker, interval, fakeRadarDB, fakeClock, "https://www.example.com")
 
 		resourceConfig = atc.ResourceConfig{
 			Name:   "some-resource",
@@ -140,7 +140,12 @@ var _ = Describe("Radar", func() {
 				<-times
 
 				_, metadata, session, typ, tags, customTypes, delegate := fakeTracker.InitArgsForCall(0)
-				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
+				Expect(metadata).To(Equal(resource.TrackerMetadata{
+					ResourceName: "some-resource",
+					PipelineName: "some-pipeline",
+					ExternalURL:  "https://www.example.com",
+				}))
+
 				Expect(session).To(Equal(resource.Session{
 					ID: worker.Identifier{
 						ResourceID:  39,
@@ -588,7 +593,12 @@ var _ = Describe("Radar", func() {
 
 			It("constructs the resource of the correct type", func() {
 				_, metadata, session, typ, tags, _, _ := fakeTracker.InitArgsForCall(0)
-				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
+				Expect(metadata).To(Equal(resource.TrackerMetadata{
+					ResourceName: "some-resource",
+					PipelineName: "some-pipeline",
+					ExternalURL:  "https://www.example.com",
+				}))
+
 				Expect(session).To(Equal(resource.Session{
 					ID: worker.Identifier{
 						ResourceID:  39,

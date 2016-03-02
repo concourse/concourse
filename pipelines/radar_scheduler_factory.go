@@ -16,8 +16,8 @@ import (
 //go:generate counterfeiter . RadarSchedulerFactory
 
 type RadarSchedulerFactory interface {
-	BuildRadar(pipelineDB db.PipelineDB) *radar.Radar
-	BuildScheduler(pipelineDB db.PipelineDB) scheduler.BuildScheduler
+	BuildRadar(pipelineDB db.PipelineDB, externalURL string) *radar.Radar
+	BuildScheduler(pipelineDB db.PipelineDB, externalURL string) scheduler.BuildScheduler
 }
 
 type radarSchedulerFactory struct {
@@ -41,12 +41,12 @@ func NewRadarSchedulerFactory(
 	}
 }
 
-func (rsf *radarSchedulerFactory) BuildRadar(pipelineDB db.PipelineDB) *radar.Radar {
-	return radar.NewRadar(rsf.tracker, rsf.interval, pipelineDB, clock.NewClock())
+func (rsf *radarSchedulerFactory) BuildRadar(pipelineDB db.PipelineDB, externalURL string) *radar.Radar {
+	return radar.NewRadar(rsf.tracker, rsf.interval, pipelineDB, clock.NewClock(), externalURL)
 }
 
-func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB) scheduler.BuildScheduler {
-	radar := rsf.BuildRadar(pipelineDB)
+func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, externalURL string) scheduler.BuildScheduler {
+	radar := rsf.BuildRadar(pipelineDB, externalURL)
 	return &scheduler.Scheduler{
 		PipelineDB: pipelineDB,
 		BuildsDB:   rsf.db,
