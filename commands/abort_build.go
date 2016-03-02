@@ -8,12 +8,12 @@ import (
 	"github.com/concourse/fly/rc"
 )
 
-type CancelBuildCommand struct {
+type AbortBuildCommand struct {
 	Job   flaghelpers.JobFlag `short:"j" long:"job"   required:"true" value-name:"PIPELINE/JOB"   description:"Name of a job to cancel"`
 	Build string              `short:"b" long:"build" required:"true" description:"Name of the build to cancel"`
 }
 
-func (command *CancelBuildCommand) Execute([]string) error {
+func (command *AbortBuildCommand) Execute([]string) error {
 	client, err := rc.TargetClient(Fly.Target)
 	if err != nil {
 		return err
@@ -32,6 +32,6 @@ func (command *CancelBuildCommand) Execute([]string) error {
 		return fmt.Errorf("failed to abort build")
 	}
 
-	fmt.Println("build successfully cancelled")
+	fmt.Println("build successfully aborted")
 	return nil
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/concourse/atc"
 )
 
-var _ = Describe("CancelBuild", func() {
+var _ = Describe("AbortBuild", func() {
 	BeforeEach(func() {
 		expectedBuild := atc.Build{
 			ID:      23,
@@ -42,7 +42,7 @@ var _ = Describe("CancelBuild", func() {
 
 	Context("when the job name is not specified", func() {
 		It("asks the user to specifiy a job name", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "cancel-build", "-b", "some-build-name")
+			flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-b", "some-build-name")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -55,7 +55,7 @@ var _ = Describe("CancelBuild", func() {
 
 	Context("when the build name is not specified", func() {
 		It("asks the user to specifiy a build name", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "cancel-build", "-j", "some-pipeline-name/some-job-name")
+			flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "some-pipeline-name/some-job-name")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -67,8 +67,8 @@ var _ = Describe("CancelBuild", func() {
 	})
 
 	Context("when the pipeline/build exists", func() {
-		It("cancels the build", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "cancel-build", "-j", "my-pipeline/my-job", "-b", "42")
+		It("aborts the build", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -76,7 +76,7 @@ var _ = Describe("CancelBuild", func() {
 			Eventually(sess).Should(gexec.Exit(0))
 			Expect(atcServer.ReceivedRequests()).To(HaveLen(3))
 
-			Expect(sess.Out).To(gbytes.Say("build successfully cancelled"))
+			Expect(sess.Out).To(gbytes.Say("build successfully aborted"))
 		})
 	})
 
@@ -91,7 +91,7 @@ var _ = Describe("CancelBuild", func() {
 		})
 
 		It("returns a helpful error message", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "cancel-build", "-j", "my-pipeline/my-job", "-b", "42")
+			flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -114,7 +114,7 @@ var _ = Describe("CancelBuild", func() {
 		})
 
 		It("returns a helpful error message", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "cancel-build", "-j", "my-pipeline/my-job", "-b", "42")
+			flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -138,7 +138,7 @@ var _ = Describe("CancelBuild", func() {
 		})
 
 		It("returns a helpful error message", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "cancel-build", "-j", "my-pipeline/my-job", "-b", "42")
+			flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
