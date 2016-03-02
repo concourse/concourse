@@ -12,7 +12,7 @@ var _ = Describe("ValidateConfig", func() {
 	var (
 		config atc.Config
 
-		validateErr error
+		errorMessages []string
 	)
 
 	BeforeEach(func() {
@@ -82,12 +82,12 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	JustBeforeEach(func() {
-		validateErr = ValidateConfig(config)
+		errorMessages = ValidateConfig(config)
 	})
 
 	Context("when the config is valid", func() {
 		It("returns no error", func() {
-			Expect(validateErr).NotTo(HaveOccurred())
+			Expect(errorMessages).To(HaveLen(0))
 		})
 	})
 
@@ -101,8 +101,9 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring("unknown resource 'bogus-resource'"))
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
+				Expect(errorMessages[0]).To(ContainSubstring("unknown resource 'bogus-resource'"))
 			})
 		})
 
@@ -115,8 +116,9 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring("unknown job 'bogus-job'"))
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
+				Expect(errorMessages[0]).To(ContainSubstring("unknown job 'bogus-job'"))
 			})
 		})
 	})
@@ -130,8 +132,9 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring("resources[1] has no name"))
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid resources:"))
+				Expect(errorMessages[0]).To(ContainSubstring("resources[1] has no name"))
 			})
 		})
 
@@ -144,8 +147,9 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring("resources.bogus-resource has no type"))
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid resources:"))
+				Expect(errorMessages[0]).To(ContainSubstring("resources.bogus-resource has no type"))
 			})
 		})
 
@@ -158,9 +162,10 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns an error describing both errors", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring("resources[1] has no name"))
-				Expect(validateErr.Error()).To(ContainSubstring("resources[1] has no type"))
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid resources:"))
+				Expect(errorMessages[0]).To(ContainSubstring("resources[1] has no name"))
+				Expect(errorMessages[0]).To(ContainSubstring("resources[1] has no type"))
 			})
 		})
 
@@ -170,11 +175,11 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring(
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid resources:"))
+				Expect(errorMessages[0]).To(ContainSubstring(
 					"resources[0] and resources[1] have the same name ('some-resource')",
 				))
-
 			})
 		})
 	})
@@ -188,8 +193,9 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring("resource_types[1] has no name"))
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid resource types:"))
+				Expect(errorMessages[0]).To(ContainSubstring("resource_types[1] has no name"))
 			})
 		})
 
@@ -202,8 +208,9 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring("resource_types.bogus-resource-type has no type"))
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid resource types:"))
+				Expect(errorMessages[0]).To(ContainSubstring("resource_types.bogus-resource-type has no type"))
 			})
 		})
 
@@ -216,9 +223,10 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns an error describing both errors", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring("resource_types[1] has no name"))
-				Expect(validateErr.Error()).To(ContainSubstring("resource_types[1] has no type"))
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid resource types:"))
+				Expect(errorMessages[0]).To(ContainSubstring("resource_types[1] has no name"))
+				Expect(errorMessages[0]).To(ContainSubstring("resource_types[1] has no type"))
 			})
 		})
 
@@ -228,10 +236,9 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring(
-					"resource_types[0] and resource_types[1] have the same name ('some-resource-type')",
-				))
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid resource types:"))
+				Expect(errorMessages[0]).To(ContainSubstring("resource_types[0] and resource_types[1] have the same name ('some-resource-type')"))
 			})
 		})
 	})
@@ -252,10 +259,9 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring(
-					"jobs[2] has no name",
-				))
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs[2] has no name"))
 			})
 		})
 
@@ -275,11 +281,9 @@ var _ = Describe("ValidateConfig", func() {
 					})
 
 					It("returns an error", func() {
-						Expect(validateErr).To(HaveOccurred())
-						Expect(validateErr.Error()).To(ContainSubstring(
-							"jobs.some-other-job.plan[0] has multiple actions specified (aggregate, do, get, put, task)",
-						))
-
+						Expect(errorMessages).To(HaveLen(1))
+						Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+						Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0] has multiple actions specified (aggregate, do, get, put, task)"))
 					})
 				})
 
@@ -296,12 +300,10 @@ var _ = Describe("ValidateConfig", func() {
 						config.Jobs = append(config.Jobs, job)
 					})
 
-					It("does not return an error", func() {
-						Expect(validateErr).To(HaveOccurred())
-						Expect(validateErr.Error()).To(ContainSubstring(
-							"jobs.some-other-job.plan[0] has multiple actions specified (get, put)",
-						))
-
+					It("returns an error", func() {
+						Expect(errorMessages).To(HaveLen(1))
+						Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+						Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0] has multiple actions specified (get, put)"))
 					})
 				})
 			})
@@ -314,11 +316,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0] has no action specified",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0] has no action specified"))
 				})
 			})
 
@@ -334,11 +334,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].get.lol has invalid fields specified (privileged, file)",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.lol has invalid fields specified (privileged, file)"))
 				})
 			})
 
@@ -355,11 +353,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].task.lol has invalid fields specified (resource, passed, trigger)",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].task.lol has invalid fields specified (resource, passed, trigger)"))
 				})
 			})
 
@@ -373,11 +369,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].task.lol does not specify any task configuration",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].task.lol does not specify any task configuration"))
 				})
 			})
 
@@ -395,11 +389,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].put.lol has invalid fields specified (passed, trigger, privileged, file)",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].put.lol has invalid fields specified (passed, trigger, privileged, file)"))
 				})
 			})
 
@@ -413,7 +405,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("does not return an error", func() {
-					Expect(validateErr).NotTo(HaveOccurred())
+					Expect(errorMessages).To(HaveLen(0))
 				})
 			})
 
@@ -427,11 +419,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].get.some-nonexistent-resource refers to a resource that does not exist",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-nonexistent-resource refers to a resource that does not exist"))
 				})
 			})
 
@@ -445,11 +435,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].put.some-nonexistent-resource refers to a resource that does not exist",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].put.some-nonexistent-resource refers to a resource that does not exist"))
 				})
 			})
 
@@ -464,7 +452,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("does not return an error", func() {
-					Expect(validateErr).NotTo(HaveOccurred())
+					Expect(errorMessages).To(HaveLen(0))
 				})
 			})
 
@@ -478,12 +466,10 @@ var _ = Describe("ValidateConfig", func() {
 					config.Jobs = append(config.Jobs, job)
 				})
 
-				It("does return an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].get.custom-name refers to a resource that does not exist ('some-missing-resource')",
-					))
-
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.custom-name refers to a resource that does not exist ('some-missing-resource')"))
 				})
 			})
 
@@ -498,7 +484,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("does not return an error", func() {
-					Expect(validateErr).NotTo(HaveOccurred())
+					Expect(errorMessages).To(HaveLen(0))
 				})
 			})
 
@@ -531,7 +517,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("does not return an error", func() {
-					Expect(validateErr).NotTo(HaveOccurred())
+					Expect(errorMessages).To(HaveLen(0))
 				})
 			})
 
@@ -564,7 +550,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("does not return an error", func() {
-					Expect(validateErr).NotTo(HaveOccurred())
+					Expect(errorMessages).To(HaveLen(0))
 				})
 			})
 
@@ -597,7 +583,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("does not return an error", func() {
-					Expect(validateErr).NotTo(HaveOccurred())
+					Expect(errorMessages).To(HaveLen(0))
 				})
 			})
 
@@ -630,7 +616,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("does not return an error", func() {
-					Expect(validateErr).NotTo(HaveOccurred())
+					Expect(errorMessages).To(HaveLen(0))
 				})
 			})
 
@@ -648,10 +634,8 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("throws a validation error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].get.some-resource.ensure.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
-					))
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.ensure.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
 				})
 			})
 
@@ -669,10 +653,8 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("throws a validation error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].get.some-resource.success.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
-					))
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.success.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
 				})
 			})
 
@@ -690,11 +672,8 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("throws a validation error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].get.some-resource.failure.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.failure.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
 				})
 			})
 
@@ -709,11 +688,8 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("throws a validation error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].get.some-resource.timeout refers to a duration that could not be parsed ('nope')",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.timeout refers to a duration that could not be parsed ('nope')"))
 				})
 			})
 
@@ -730,11 +706,8 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("throws a validation error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].try.put.custom-name refers to a resource that does not exist ('some-missing-resource')",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].try.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
 				})
 			})
 
@@ -749,11 +722,8 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("does return an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].put.some-resource.attempts has an invalid number of attempts (-1)",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].put.some-resource.attempts has an invalid number of attempts (-1)"))
 				})
 			})
 
@@ -768,11 +738,8 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("does return an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].put.custom-name refers to a resource that does not exist ('some-missing-resource')",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
 				})
 			})
 
@@ -787,11 +754,8 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].get.lol.passed references an unknown job ('bogus-job')",
-					))
-
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.lol.passed references an unknown job ('bogus-job')"))
 				})
 			})
 
@@ -811,7 +775,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("does not return an error", func() {
-					Expect(validateErr).NotTo(HaveOccurred())
+					Expect(errorMessages).To(HaveLen(0))
 				})
 			})
 
@@ -826,7 +790,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("does not return an error", func() {
-					Expect(validateErr).NotTo(HaveOccurred())
+					Expect(errorMessages).To(HaveLen(0))
 				})
 			})
 
@@ -842,7 +806,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("does not return an error", func() {
-					Expect(validateErr).NotTo(HaveOccurred())
+					Expect(errorMessages).To(HaveLen(0))
 				})
 			})
 
@@ -857,10 +821,8 @@ var _ = Describe("ValidateConfig", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(validateErr).To(HaveOccurred())
-					Expect(validateErr.Error()).To(ContainSubstring(
-						"jobs.some-other-job.plan[0].get.some-resource.passed references a job ('some-empty-job') which doesn't interact with the resource ('some-resource')",
-					))
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.passed references a job ('some-empty-job') which doesn't interact with the resource ('some-resource')"))
 				})
 			})
 		})
@@ -871,8 +833,8 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(validateErr).To(HaveOccurred())
-				Expect(validateErr.Error()).To(ContainSubstring("jobs[0] and jobs[2] have the same name ('some-job')"))
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs[0] and jobs[2] have the same name ('some-job')"))
 			})
 		})
 	})

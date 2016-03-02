@@ -10,62 +10,41 @@ import (
 	"github.com/concourse/atc"
 )
 
-type InvalidConfigError struct {
-	GroupsErr        error
-	ResourcesErr     error
-	ResourceTypesErr error
-	JobsErr          error
-}
-
-func (err InvalidConfigError) Error() string {
-	errorMsgs := []string{"invalid configuration:"}
-
-	if err.GroupsErr != nil {
-		errorMsgs = append(errorMsgs, indent(fmt.Sprintf("invalid groups:\n%s\n", indent(err.GroupsErr.Error()))))
-	}
-
-	if err.ResourcesErr != nil {
-		errorMsgs = append(errorMsgs, indent(fmt.Sprintf("invalid resources:\n%s\n", indent(err.ResourcesErr.Error()))))
-	}
-
-	if err.ResourceTypesErr != nil {
-		errorMsgs = append(errorMsgs, indent(fmt.Sprintf("invalid resource types:\n%s\n", indent(err.ResourceTypesErr.Error()))))
-	}
-
-	if err.JobsErr != nil {
-		errorMsgs = append(errorMsgs, indent(fmt.Sprintf("invalid jobs:\n%s\n", indent(err.JobsErr.Error()))))
-	}
-
-	return strings.Join(errorMsgs, "\n")
-}
-
-func indent(msgs string) string {
-	lines := strings.Split(msgs, "\n")
+func formatErr(groupName string, err error) string {
+	lines := strings.Split(err.Error(), "\n")
 	indented := make([]string, len(lines))
 
 	for i, l := range lines {
 		indented[i] = "\t" + l
 	}
 
-	return strings.Join(indented, "\n")
+	return fmt.Sprintf("invalid %s:\n%s\n", groupName, strings.Join(indented, "\n"))
 }
 
-func ValidateConfig(c atc.Config) error {
+func ValidateConfig(c atc.Config) []string {
+	errorMessages := []string{}
+
 	groupsErr := validateGroups(c)
+	if groupsErr != nil {
+		errorMessages = append(errorMessages, formatErr("groups", groupsErr))
+	}
+
 	resourcesErr := validateResources(c)
+	if resourcesErr != nil {
+		errorMessages = append(errorMessages, formatErr("resources", resourcesErr))
+	}
+
 	resourceTypesErr := validateResourceTypes(c)
+	if resourceTypesErr != nil {
+		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
+	}
+
 	jobsErr := validateJobs(c)
-
-	if groupsErr == nil && resourcesErr == nil && resourceTypesErr == nil && jobsErr == nil {
-		return nil
+	if jobsErr != nil {
+		errorMessages = append(errorMessages, formatErr("jobs", jobsErr))
 	}
 
-	return InvalidConfigError{
-		GroupsErr:        groupsErr,
-		ResourcesErr:     resourcesErr,
-		ResourceTypesErr: resourceTypesErr,
-		JobsErr:          jobsErr,
-	}
+	return errorMessages
 }
 
 func validateGroups(c atc.Config) error {

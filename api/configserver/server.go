@@ -13,7 +13,7 @@ type Server struct {
 	validate ConfigValidator
 }
 
-type ConfigValidator func(atc.Config) error
+type ConfigValidator func(atc.Config) []string
 
 func NewServer(
 	logger lager.Logger,

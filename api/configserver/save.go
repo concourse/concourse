@@ -43,13 +43,22 @@ func (eke ExtraKeysError) Error() string {
 	return msg.String()
 }
 
+type SaveConfigResponse struct {
+	Errors []string `json:"errors,omitempty"`
+}
+
+func newSaveConfigResponse(errorMessages []string) SaveConfigResponse {
+	return SaveConfigResponse{
+		Errors: errorMessages,
+	}
+}
+
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	session := s.logger.Session("set-config")
 
 	configVersionStr := r.Header.Get(atc.ConfigVersionHeader)
 	if len(configVersionStr) == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "no config version specified")
+		s.handleBadRequest(w, []string{"no config version specified"}, session)
 		return
 	}
 
@@ -57,8 +66,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	_, err := fmt.Sscanf(configVersionStr, "%d", &version)
 	if err != nil {
 		session.Error("malformed-config-version", err)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "config version is malformed: %s", err)
+		s.handleBadRequest(w, []string{fmt.Sprintf("config version is malformed: %s", err)}, session)
 		return
 	}
 
@@ -73,7 +81,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 			"content-type": r.Header.Get("Content-Type"),
 		})
 
-		w.WriteHeader(http.StatusBadRequest)
+		s.handleBadRequest(w, []string{"malformed config"}, session)
 		return
 	case ErrFailedToConstructDecoder:
 		session.Error("failed-to-construct-decoder", err)
@@ -81,18 +89,16 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	case ErrCouldNotDecode:
 		session.Error("could-not-decode", err)
-		w.WriteHeader(http.StatusBadRequest)
+		s.handleBadRequest(w, []string{"failed to decode config"}, session)
 		return
 	case ErrInvalidPausedValue:
 		session.Error("invalid-paused-value", err)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "invalid paused value")
+		s.handleBadRequest(w, []string{"invalid paused value"}, session)
 		return
 	default:
 		if err != nil {
 			if eke, ok := err.(ExtraKeysError); ok {
-				w.WriteHeader(http.StatusBadRequest)
-				fmt.Fprintln(w, eke)
+				s.handleBadRequest(w, []string{eke.Error()}, session)
 			} else {
 				session.Error("unexpected-error", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -102,11 +108,10 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = s.validate(config)
-	if err != nil {
+	errorMessages := s.validate(config)
+	if len(errorMessages) > 0 {
 		session.Error("ignoring-invalid-config", err)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "%s", err)
+		s.handleBadRequest(w, errorMessages, session)
 		return
 	}
 
@@ -128,6 +133,20 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+func (s *Server) handleBadRequest(w http.ResponseWriter, errorMessages []string, session lager.Logger) {
+	saveConfigResponse := newSaveConfigResponse(errorMessages)
+	responseJSON, err := json.Marshal(saveConfigResponse)
+	if err != nil {
+		session.Error("failed-to-marshal-validation-response", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "failed to generate error response: %s", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusBadRequest)
+	w.Write(responseJSON)
 }
 
 func requestToConfig(contentType string, requestBody io.ReadCloser, configStructure interface{}) (db.PipelinePausedState, error) {

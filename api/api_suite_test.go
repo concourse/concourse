@@ -35,27 +35,27 @@ var (
 	externalURL  = "https://example.com"
 	oAuthBaseURL = "https://oauth.example.com"
 
-	authValidator        *authfakes.FakeValidator
-	userContextReader    *authfakes.FakeUserContextReader
-	fakeTokenGenerator   *authfakes.FakeTokenGenerator
-	providerFactory      *authfakes.FakeProviderFactory
-	fakeEngine           *enginefakes.FakeEngine
-	fakeWorkerClient     *workerfakes.FakeClient
-	authDB               *authfakes.FakeAuthDB
-	buildsDB             *buildfakes.FakeBuildsDB
-	volumesDB            *volumeserverfakes.FakeVolumesDB
-	configDB             *dbfakes.FakeConfigDB
-	workerDB             *workerserverfakes.FakeWorkerDB
-	containerDB          *containerserverfakes.FakeContainerDB
-	pipeDB               *pipeserverfakes.FakePipeDB
-	pipelineDBFactory    *dbfakes.FakePipelineDBFactory
-	pipelinesDB          *dbfakes.FakePipelinesDB
-	teamDB               *teamserverfakes.FakeTeamDB
-	fakeSchedulerFactory *jobserverfakes.FakeSchedulerFactory
-	configValidationErr  error
-	peerAddr             string
-	drain                chan struct{}
-	cliDownloadsDir      string
+	authValidator                 *authfakes.FakeValidator
+	userContextReader             *authfakes.FakeUserContextReader
+	fakeTokenGenerator            *authfakes.FakeTokenGenerator
+	providerFactory               *authfakes.FakeProviderFactory
+	fakeEngine                    *enginefakes.FakeEngine
+	fakeWorkerClient              *workerfakes.FakeClient
+	authDB                        *authfakes.FakeAuthDB
+	buildsDB                      *buildfakes.FakeBuildsDB
+	volumesDB                     *volumeserverfakes.FakeVolumesDB
+	configDB                      *dbfakes.FakeConfigDB
+	workerDB                      *workerserverfakes.FakeWorkerDB
+	containerDB                   *containerserverfakes.FakeContainerDB
+	pipeDB                        *pipeserverfakes.FakePipeDB
+	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
+	pipelinesDB                   *dbfakes.FakePipelinesDB
+	teamDB                        *teamserverfakes.FakeTeamDB
+	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
+	configValidationErrorMessages []string
+	peerAddr                      string
+	drain                         chan struct{}
+	cliDownloadsDir               string
 
 	constructedEventHandler *fakeEventHandlerFactory
 
@@ -102,7 +102,7 @@ var _ = BeforeEach(func() {
 	fakeTokenGenerator = new(authfakes.FakeTokenGenerator)
 	providerFactory = new(authfakes.FakeProviderFactory)
 
-	configValidationErr = nil
+	configValidationErrorMessages = []string{}
 	peerAddr = "127.0.0.1:1234"
 	drain = make(chan struct{})
 
@@ -146,7 +146,7 @@ var _ = BeforeEach(func() {
 		pipelinesDB,
 		teamDB,
 
-		func(atc.Config) error { return configValidationErr },
+		func(atc.Config) []string { return configValidationErrorMessages },
 		peerAddr,
 		constructedEventHandler.Construct,
 		drain,

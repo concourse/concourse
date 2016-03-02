@@ -26,14 +26,14 @@ type RemoraConfig struct {
 
 var _ = Describe("Config API", func() {
 	var (
-		config           atc.Config
+		pipelineConfig   atc.Config
 		requestGenerator *rata.RequestGenerator
 	)
 
 	BeforeEach(func() {
 		requestGenerator = rata.NewRequestGenerator(server.URL, atc.Routes)
 
-		config = atc.Config{
+		pipelineConfig = atc.Config{
 			Groups: atc.GroupConfigs{
 				{
 					Name:      "some-group",
@@ -123,7 +123,7 @@ var _ = Describe("Config API", func() {
 
 			Context("when the config can be loaded", func() {
 				BeforeEach(func() {
-					configDB.GetConfigReturns(config, 1, nil)
+					configDB.GetConfigReturns(pipelineConfig, 1, nil)
 				})
 
 				It("returns 200", func() {
@@ -139,7 +139,7 @@ var _ = Describe("Config API", func() {
 					err := json.NewDecoder(response.Body).Decode(&returnedConfig)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(returnedConfig).To(Equal(config))
+					Expect(returnedConfig).To(Equal(pipelineConfig))
 				})
 
 				It("calls get config with the correct arguments", func() {
@@ -212,6 +212,15 @@ var _ = Describe("Config API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 						})
 
+						It("returns error JSON", func() {
+							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+								{
+									"errors": [
+										"malformed config"
+									]
+								}`))
+						})
+
 						It("does not save anything", func() {
 							Expect(configDB.SaveConfigCallCount()).To(Equal(0))
 						})
@@ -227,6 +236,15 @@ var _ = Describe("Config API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 						})
 
+						It("returns error JSON", func() {
+							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+								{
+									"errors": [
+										"malformed config"
+									]
+								}`))
+						})
+
 						It("does not save anything", func() {
 							Expect(configDB.SaveConfigCallCount()).To(Equal(0))
 						})
@@ -238,7 +256,7 @@ var _ = Describe("Config API", func() {
 						BeforeEach(func() {
 							request.Header.Set("Content-Type", "application/json")
 
-							payload, err := json.Marshal(config)
+							payload, err := json.Marshal(pipelineConfig)
 							Expect(err).NotTo(HaveOccurred())
 
 							request.Body = gbytes.BufferWithBytes(payload)
@@ -253,7 +271,7 @@ var _ = Describe("Config API", func() {
 
 							_, name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
-							Expect(savedConfig).To(Equal(config))
+							Expect(savedConfig).To(Equal(pipelineConfig))
 							Expect(id).To(Equal(db.ConfigVersion(42)))
 							Expect(pipelineState).To(Equal(db.PipelineNoChange))
 						})
@@ -280,7 +298,7 @@ var _ = Describe("Config API", func() {
 									TeamID: 1,
 									Pipeline: db.Pipeline{
 										Name:    "a-pipeline",
-										Config:  config,
+										Config:  pipelineConfig,
 										Version: db.ConfigVersion(42),
 									},
 								}
@@ -294,15 +312,20 @@ var _ = Describe("Config API", func() {
 
 						Context("when the config is invalid", func() {
 							BeforeEach(func() {
-								configValidationErr = errors.New("totally invalid")
+								configValidationErrorMessages = []string{"totally invalid"}
 							})
 
 							It("returns 400", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							})
 
-							It("returns the validation error in the response body", func() {
-								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("totally invalid")))
+							It("returns error JSON", func() {
+								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+								{
+									"errors": [
+										"totally invalid"
+									]
+								}`))
 							})
 
 							It("does not save it", func() {
@@ -315,7 +338,7 @@ var _ = Describe("Config API", func() {
 						BeforeEach(func() {
 							request.Header.Set("Content-Type", "application/x-yaml")
 
-							payload, err := yaml.Marshal(config)
+							payload, err := yaml.Marshal(pipelineConfig)
 							Expect(err).NotTo(HaveOccurred())
 
 							request.Body = gbytes.BufferWithBytes(payload)
@@ -330,7 +353,7 @@ var _ = Describe("Config API", func() {
 
 							_, name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
-							Expect(savedConfig).To(Equal(config))
+							Expect(savedConfig).To(Equal(pipelineConfig))
 							Expect(id).To(Equal(db.ConfigVersion(42)))
 							Expect(pipelineState).To(Equal(db.PipelineNoChange))
 						})
@@ -339,9 +362,9 @@ var _ = Describe("Config API", func() {
 							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
 
 							_, _, savedConfig, _, _ := configDB.SaveConfigArgsForCall(0)
-							Expect(savedConfig).To(Equal(config))
+							Expect(savedConfig).To(Equal(pipelineConfig))
 
-							_, err := json.Marshal(config)
+							_, err := json.Marshal(pipelineConfig)
 							Expect(err).NotTo(HaveOccurred())
 						})
 
@@ -422,7 +445,7 @@ jobs:
 									TeamID: 1,
 									Pipeline: db.Pipeline{
 										Name:    "a-pipeline",
-										Config:  config,
+										Config:  pipelineConfig,
 										Version: db.ConfigVersion(42),
 									},
 								}
@@ -450,15 +473,20 @@ jobs:
 
 						Context("when the config is invalid", func() {
 							BeforeEach(func() {
-								configValidationErr = errors.New("totally invalid")
+								configValidationErrorMessages = []string{"totally invalid"}
 							})
 
 							It("returns 400", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							})
 
-							It("returns the validation error in the response body", func() {
-								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("totally invalid")))
+							It("returns error JSON", func() {
+								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+								{
+									"errors": [
+										"totally invalid"
+									]
+								}`))
 							})
 
 							It("does not save it", func() {
@@ -483,7 +511,7 @@ jobs:
 								)
 								Expect(err).NotTo(HaveOccurred())
 
-								yml, err := yaml.Marshal(config)
+								yml, err := yaml.Marshal(pipelineConfig)
 								Expect(err).NotTo(HaveOccurred())
 
 								_, err = yamlWriter.Write(yml)
@@ -510,7 +538,7 @@ jobs:
 
 								_, name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
 								Expect(name).To(Equal("a-pipeline"))
-								Expect(savedConfig).To(Equal(config))
+								Expect(savedConfig).To(Equal(pipelineConfig))
 								Expect(id).To(Equal(db.ConfigVersion(42)))
 								Expect(pipelineState).To(Equal(expectedDBValue))
 							})
@@ -523,7 +551,7 @@ jobs:
 										TeamID: 1,
 										Pipeline: db.Pipeline{
 											Name:    "a-pipeline",
-											Config:  config,
+											Config:  pipelineConfig,
 											Version: db.ConfigVersion(42),
 										},
 									}
@@ -551,15 +579,19 @@ jobs:
 
 							Context("when the config is invalid", func() {
 								BeforeEach(func() {
-									configValidationErr = errors.New("totally invalid")
+									configValidationErrorMessages = []string{"totally invalid"}
 								})
 
 								It("returns 400", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 								})
 
-								It("returns the validation error in the response body", func() {
-									Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("totally invalid")))
+								It("returns error JSON", func() {
+									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
+										"errors": [
+											"totally invalid"
+										]
+									}`))
 								})
 
 								It("does not save it", func() {
@@ -607,7 +639,7 @@ jobs:
 								)
 								Expect(err).NotTo(HaveOccurred())
 
-								yml, err := yaml.Marshal(config)
+								yml, err := yaml.Marshal(pipelineConfig)
 								Expect(err).NotTo(HaveOccurred())
 
 								_, err = yamlWriter.Write(yml)
@@ -627,8 +659,12 @@ jobs:
 								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 							})
 
-							It("returns the validation error in the response body", func() {
-								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("invalid paused value")))
+							It("returns error JSON", func() {
+								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
+										"errors": [
+											"invalid paused value"
+										]
+									}`))
 							})
 						})
 
@@ -659,6 +695,15 @@ jobs:
 									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 								})
 
+								It("returns error JSON", func() {
+									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+										{
+											"errors": [
+												"malformed config"
+											]
+										}`))
+								})
+
 								It("does not save anything", func() {
 									Expect(configDB.SaveConfigCallCount()).To(Equal(0))
 								})
@@ -677,7 +722,6 @@ jobs:
 									Expect(err).NotTo(HaveOccurred())
 
 									_, err = yamlWriter.Write([]byte("{"))
-
 									Expect(err).NotTo(HaveOccurred())
 
 									writer.Close()
@@ -688,6 +732,15 @@ jobs:
 
 								It("returns 400", func() {
 									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+								})
+
+								It("returns error JSON", func() {
+									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+										{
+											"errors": [
+												"malformed config"
+											]
+										}`))
 								})
 
 								It("does not save anything", func() {
@@ -702,7 +755,7 @@ jobs:
 					BeforeEach(func() {
 						request.Header.Set("Content-Type", "application/x-toml")
 
-						payload, err := yaml.Marshal(config)
+						payload, err := yaml.Marshal(pipelineConfig)
 						Expect(err).NotTo(HaveOccurred())
 
 						request.Body = gbytes.BufferWithBytes(payload)
@@ -722,7 +775,7 @@ jobs:
 						request.Header.Set("Content-Type", "application/json")
 
 						remoraPayload, err := json.Marshal(RemoraConfig{
-							Config: config,
+							Config: pipelineConfig,
 							Extra:  "noooooo",
 						})
 						Expect(err).NotTo(HaveOccurred())
@@ -735,11 +788,12 @@ jobs:
 					})
 
 					It("returns an error in the response body", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(body).To(ContainSubstring("unknown/extra keys:"))
-						Expect(body).To(ContainSubstring("- extra"))
+						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"errors": [
+									"unknown/extra keys:\n  - extra\n"
+								]
+							}`))
 					})
 
 					It("does not save it", func() {
@@ -758,7 +812,12 @@ jobs:
 				})
 
 				It("returns an error in the response body", func() {
-					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("no config version specified")))
+					Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"errors": [
+									"no config version specified"
+								]
+							}`))
 				})
 
 				It("does not save it", func() {
@@ -776,7 +835,12 @@ jobs:
 				})
 
 				It("returns an error in the response body", func() {
-					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("config version is malformed: expected integer")))
+					Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"errors": [
+									"config version is malformed: expected integer"
+								]
+							}`))
 				})
 
 				It("does not save it", func() {
