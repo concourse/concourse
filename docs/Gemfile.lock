@@ -2,12 +2,12 @@ PATH
   remote: concourse-docs
   specs:
     concourse-docs (0.0.0)
-      anatomy (~> 0.1.3)
+      anatomy (~> 0.2.1)
 
 GEM
   remote: https://rubygems.org/
   specs:
-    anatomy (0.1.7)
+    anatomy (0.2.1)
       atomy (~> 0.6.3)
       broomhlda (~> 0.2.0)
       json_pure (~> 1.8)
@@ -26,7 +26,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  anatomy (~> 0.1.7)
+  anatomy (~> 0.2.1)
   concourse-docs!
 
 BUNDLED WITH
