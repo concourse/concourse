@@ -16,6 +16,7 @@ files:
   - github.com/concourse/fly/commands/internal/executehelpers/*.go # gosub
   - github.com/concourse/fly/commands/internal/flaghelpers/*.go # gosub
   - github.com/concourse/fly/commands/internal/hijacker/*.go # gosub
+  - github.com/concourse/fly/commands/internal/hijackhelpers/*.go # gosub
   - github.com/concourse/fly/commands/internal/setpipelinehelpers/*.go # gosub
   - github.com/concourse/fly/config/*.go # gosub
   - github.com/concourse/fly/eventstream/*.go # gosub
