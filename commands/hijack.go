@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/commands/internal/hijacker"
+	"github.com/concourse/fly/commands/internal/hijackhelpers"
 	"github.com/concourse/fly/pty"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
@@ -282,6 +284,7 @@ func getContainerIDs(c *HijackCommand) ([]atc.Container, error) {
 	if err != nil {
 		return nil, err
 	}
+	sort.Sort(hijackhelpers.ContainerSorter(containers))
 
 	return containers, nil
 }
