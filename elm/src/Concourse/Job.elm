@@ -11,6 +11,7 @@ type alias Job =
   , pipelineName: String
   , finishedBuild: Maybe Build
   , paused: Bool
+  , disableManualTrigger: Bool
   }
 
 fetchJob : BuildJob -> Task Http.Error Job
@@ -19,13 +20,14 @@ fetchJob job =
 
 decode : String -> Json.Decode.Decoder Job
 decode pipelineName =
-  Json.Decode.object3 (init pipelineName)
+  Json.Decode.object4 (init pipelineName)
     ("name" := Json.Decode.string )
     (Json.Decode.maybe ("finished_build" := Concourse.Build.decode))
     (Json.Decode.maybe ("paused" := Json.Decode.bool))
+    (Json.Decode.maybe ("disable_manual_trigger" := Json.Decode.bool))
 
-init : String -> String -> Maybe Build -> Maybe Bool -> Job
-init pipelineName name finishedBuild maybePaused =
+init : String -> String -> Maybe Build -> Maybe Bool -> Maybe Bool ->Job
+init pipelineName name finishedBuild maybePaused maybeDisableManualTrigger =
   { name = name
   , pipelineName = pipelineName
   , finishedBuild = finishedBuild
@@ -33,6 +35,10 @@ init pipelineName name finishedBuild maybePaused =
     case maybePaused of
       Nothing -> False
       Just paused -> paused
+  , disableManualTrigger =
+    case maybeDisableManualTrigger of
+      Nothing -> False
+      Just disableManualTrigger -> disableManualTrigger
   }
 
 pause : BuildJob -> Task Http.Error ()

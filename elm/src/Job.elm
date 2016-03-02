@@ -4,7 +4,7 @@ import Array exposing (Array)
 import Dict exposing (Dict)
 import Effects exposing (Effects)
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, id)
+import Html.Attributes exposing (class, href, id, disabled)
 import Html.Events exposing (onClick)
 import Http
 import Task exposing (Task)
@@ -220,7 +220,7 @@ view actions model = Html.div[]
           , Html.Attributes.action <| "/pipelines/" ++ model.jobInfo.pipelineName
             ++ "/jobs/" ++ model.jobInfo.name ++ "/builds"
           ]
-          [ Html.button [ class "build-action fr" ]
+          [ Html.button [ class "build-action fr", disabled job.disableManualTrigger ]
             [ Html.i [ class "fa fa-plus-circle" ] []
             ]
           ]
