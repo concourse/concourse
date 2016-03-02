@@ -18,46 +18,54 @@ var _ = Describe("ContainerSorter", func() {
 	BeforeEach(func() {
 		containers = []atc.Container{
 			{
-				ID:       "6",
+				ID:       "8",
 				BuildID:  2,
 				StepName: "first",
 				StepType: "task",
 			},
 			{
-				ID:       "1",
+				ID:       "3",
 				BuildID:  1,
 				StepName: "first",
 				StepType: "check",
 			},
 			{
-				ID:       "4",
+				ID:       "6",
 				BuildID:  1,
 				StepName: "second",
 				StepType: "get",
 			},
 			{
-				ID:       "2",
+				ID:       "4",
 				BuildID:  1,
 				StepName: "first",
 				StepType: "get",
 			},
 			{
-				ID:       "5",
+				ID:       "7",
 				BuildID:  2,
 				StepName: "first",
 				StepType: "put",
 			},
 			{
-				ID:       "3",
+				ID:       "5",
 				BuildID:  1,
 				StepName: "second",
 				StepType: "check",
 			},
 			{
-				ID:       "7",
+				ID:       "9",
 				BuildID:  3,
 				StepName: "first",
 				StepType: "check",
+			},
+			{
+				ID:           "2",
+				ResourceName: "zed",
+			},
+			{
+				ID:           "1",
+				ResourceName: "clarity",
 			},
 		}
 		sorter = ContainerSorter(containers)
@@ -73,8 +81,8 @@ var _ = Describe("ContainerSorter", func() {
 		Context("Swap", func() {
 			It("swaps the elements with indexes i and j", func() {
 				sorter.Swap(0, 1)
-				Expect(sorter[0].ID).To(Equal("1"))
-				Expect(sorter[1].ID).To(Equal("6"))
+				Expect(sorter[0].ID).To(Equal("3"))
+				Expect(sorter[1].ID).To(Equal("8"))
 			})
 		})
 
@@ -93,6 +101,20 @@ var _ = Describe("ContainerSorter", func() {
 				})
 
 				Context("when BuildID of i is equal to j", func() {
+					Context("handling background check containers", func() {
+						Context("when ResourceName of i is less than j", func() {
+							It("returns true", func() {
+								Expect(sorter.Less(8, 7)).To(BeTrue())
+							})
+						})
+
+						Context("when ResourceName of i is greater than j", func() {
+							It("returns false", func() {
+								Expect(sorter.Less(7, 8)).To(BeFalse())
+							})
+						})
+					})
+
 					Context("when StepName of i is less than j", func() {
 						It("returns true", func() {
 							Expect(sorter.Less(1, 2)).To(BeTrue())
