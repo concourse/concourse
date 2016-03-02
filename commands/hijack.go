@@ -49,15 +49,20 @@ func (command *HijackCommand) Execute(args []string) error {
 		for _, container := range containers {
 			var infos []string
 
-			if container.JobName != "" {
-				infos = append(infos, fmt.Sprintf("build #%s", container.BuildName))
-			} else {
-				infos = append(infos, fmt.Sprintf("build id: %d", container.BuildID))
+			if container.BuildID != 0 {
+				if container.JobName != "" {
+					infos = append(infos, fmt.Sprintf("build #%s", container.BuildName))
+				} else {
+					infos = append(infos, fmt.Sprintf("build id: %d", container.BuildID))
+				}
 			}
 
 			if container.StepType != "" {
 				infos = append(infos, fmt.Sprintf("step: %s", container.StepName))
 				infos = append(infos, fmt.Sprintf("type: %s", container.StepType))
+			} else if container.ResourceName != "" {
+				infos = append(infos, fmt.Sprintf("resource: %s", container.ResourceName))
+				infos = append(infos, "type: check")
 			} else {
 				infos = append(infos, fmt.Sprintf("step: %s", container.StepName))
 				infos = append(infos, "type: check")

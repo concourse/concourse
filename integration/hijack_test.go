@@ -342,9 +342,15 @@ var _ = Describe("Hijacking", func() {
 							JobName:      "some-job",
 							BuildName:    "2",
 							BuildID:      13,
-							StepType:     "check",
 							StepName:     "some-output",
 							Attempts:     []int{1},
+							User:         user,
+						},
+						{
+							ID:           "container-id-4",
+							WorkerName:   "worker-name-2",
+							PipelineName: "pipeline-name-2",
+							ResourceName: "banana",
 							User:         user,
 						},
 					}),
@@ -362,12 +368,13 @@ var _ = Describe("Hijacking", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Out).Should(gbytes.Say("1. build #2, step: some-input, type: get, attempt: 1.1.1"))
-			Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-output, type: check, attempt: 1"))
-			Eventually(sess.Out).Should(gbytes.Say("3. build #2, step: some-output, type: put, attempt: 1.1.2"))
+			Eventually(sess.Out).Should(gbytes.Say("1. resource: banana, type: check"))
+			Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-input, type: get, attempt: 1.1.1"))
+			Eventually(sess.Out).Should(gbytes.Say("3. build #2, step: some-output, type: check, attempt: 1"))
+			Eventually(sess.Out).Should(gbytes.Say("4. build #2, step: some-output, type: put, attempt: 1.1.2"))
 			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
 
-			_, err = fmt.Fprintf(stdin, "3\n")
+			_, err = fmt.Fprintf(stdin, "4\n")
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(hijacked).Should(BeClosed())
