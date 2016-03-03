@@ -44,7 +44,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns the user's login", func() {
-				user, err := client.CurrentUser(proxiedClient)
+				user, err := client.CurrentUser(proxiedClient, "")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(user).To(Equal("some-user"))
 			})
@@ -61,7 +61,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := client.CurrentUser(proxiedClient)
+				_, err := client.CurrentUser(proxiedClient, "")
 				Expect(err).To(BeAssignableToTypeOf(&gogithub.ErrorResponse{}))
 			})
 		})
@@ -83,7 +83,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns the list of organization names", func() {
-				orgs, err := client.Organizations(proxiedClient)
+				orgs, err := client.Organizations(proxiedClient, "")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(orgs).To(Equal([]string{"org-1", "org-2", "org-3"}))
 			})
@@ -100,7 +100,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := client.Organizations(proxiedClient)
+				_, err := client.Organizations(proxiedClient, "")
 				Expect(err).To(BeAssignableToTypeOf(&gogithub.ErrorResponse{}))
 			})
 		})
@@ -125,7 +125,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns the map of organization to team names", func() {
-				teams, err := client.Teams(proxiedClient)
+				teams, err := client.Teams(proxiedClient, "")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(teams).To(HaveLen(2))
 				Expect(teams["org-1"]).To(ConsistOf([]string{"Team 1", "Team 2"}))
@@ -144,7 +144,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := client.Teams(proxiedClient)
+				_, err := client.Teams(proxiedClient, "")
 				Expect(err).To(BeAssignableToTypeOf(&gogithub.ErrorResponse{}))
 			})
 		})
