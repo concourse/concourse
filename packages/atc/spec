@@ -3,9 +3,9 @@ name: atc
 
 dependencies:
   - golang
+  - concourse_version
 
 files:
-  - version/*
   - github.com/concourse/atc/web/templates/**/*
   - github.com/concourse/atc/web/public/**/*
   - github.com/BurntSushi/migration/*.go # gosub
