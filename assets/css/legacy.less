@@ -44,27 +44,37 @@
   outline: none;
 }
 
-#cli-downloads {
+.cli-downloads {
   margin: 0;
   padding: 0;
   list-style-type: none;
+  text-align: right;
 }
 
-.fixed-bottom-right {
+.version-info {
   position: fixed;
   bottom: 1em;
   right: 1em;
 }
 
-#cli-downloads:before {
-  content: "cli:";
+.version-info td {
+  text-align: right;
+  padding: 0;
 }
 
-#cli-downloads li {
+.version-info td.label {
+  padding-right: .5em;
+}
+
+#concourse-version {
+  font-weight: bold;
+}
+
+.cli-downloads li {
   display: inline-block;
 }
 
-#cli-downloads a {
+.cli-downloads a {
   text-decoration: none;
 }
 
