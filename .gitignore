@@ -1,3 +1,6 @@
+# version, managed by CI
+src/version/VERSION
+
 config/dev.yml
 config/private.yml
 releases/*.tgz
