@@ -190,6 +190,11 @@ jobs:
     - get: version
       passed: [rc]
       trigger: true
+    - get: final-version
+      resource: version
+      passed: [rc]
+      params: {bump: final}
+      trigger: true
     - get: garden-linux
       passed: [rc]
       trigger: true
