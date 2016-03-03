@@ -14,20 +14,23 @@ type Team struct {
 type TeamVerifier struct {
 	teams        []Team
 	gitHubClient Client
+	gitHubAPIURL string
 }
 
 func NewTeamVerifier(
 	teams []Team,
 	gitHubClient Client,
+	gitHubAPIURL string,
 ) Verifier {
 	return TeamVerifier{
 		teams:        teams,
 		gitHubClient: gitHubClient,
+		gitHubAPIURL: gitHubAPIURL,
 	}
 }
 
 func (verifier TeamVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
-	usersOrgTeams, err := verifier.gitHubClient.Teams(httpClient)
+	usersOrgTeams, err := verifier.gitHubClient.Teams(httpClient, verifier.gitHubAPIURL)
 	if err != nil {
 		logger.Error("failed-to-get-teams", err)
 		return false, err
