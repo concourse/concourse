@@ -318,10 +318,10 @@ jobs:
     - get: version
       passed: [bin-rc]
       trigger: true
-    - task: no-auth
-      file: bin/ci/testflight.yml
-      privileged: true
-      timeout: 1h
+  - task: no-auth
+    file: bin/ci/testflight.yml
+    privileged: true
+    timeout: 1h
   - aggregate:
     - task: basic-auth-public
       file: bin/ci/testflight.yml
