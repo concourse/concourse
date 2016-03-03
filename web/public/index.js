@@ -7,8 +7,8 @@ function draw(groups, renderFn, completeFn) {
       $.ajax({
         url: "/api/v1/pipelines/" + concourse.pipelineName + "/resources",
         dataType: "json",
-        success: function(resources) {
-          renderFn(jobs, resources);
+        success: function(resources, httpStatus, request) {
+          renderFn(jobs, resources, request.getResponseHeader("X-Concourse-Version"));
         }
       });
     }
@@ -18,12 +18,14 @@ function draw(groups, renderFn, completeFn) {
 var currentHighlight;
 
 function drawContinuously(svg, groups) {
-  draw(groups, function(jobs, resources) {
+  draw(groups, function(jobs, resources, concourseVersion) {
+    $("#concourse-version .number").text(concourseVersion);
+
     // reset viewbox so calculations are done from a blank slate.
     //
     // without this text and boxes jump around on every redraw,
     // in affected browsers (seemingly anything but Chrome + OS X).
-    d3.select(svg.node().parentNode).attr("viewBox", "")
+    d3.select(svg.node().parentNode).attr("viewBox", "");
 
     var graph = createGraph(svg, groups, jobs, resources);
 

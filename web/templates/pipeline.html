@@ -20,12 +20,22 @@
   </dl>
 </div>
 
-<ul id="cli-downloads" class="fixed-bottom-right">
-  <li><a href="{{url "DownloadCLI" "darwin" "amd64"}}"><i class="fa fa-apple"></i></a></li>
-  <li><a href="{{url "DownloadCLI" "windows" "amd64"}}"><i class="fa fa-windows"></i></a></li>
-  <li><a href="{{url "DownloadCLI" "linux" "amd64"}}"><i class="fa fa-linux"></i></a></li>
-</ul>
-</script>
+<table class="version-info">
+  <tr>
+    <td class="label">cli:</td>
+    <td>
+      <ul class="cli-downloads">
+        <li><a href="{{url "DownloadCLI" "darwin" "amd64"}}"><i class="fa fa-apple"></i></a></li>
+        <li><a href="{{url "DownloadCLI" "windows" "amd64"}}"><i class="fa fa-windows"></i></a></li>
+        <li><a href="{{url "DownloadCLI" "linux" "amd64"}}"><i class="fa fa-linux"></i></a></li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td class="label">version:</td>
+    <td><div id="concourse-version">v<span class="number"></span></div></td>
+  </tr>
+</table>
 
 <script src="{{asset "jquery-2.1.1.min.js"}}"></script>
 <script src="{{asset "d3.v355.min.js"}}"></script>
