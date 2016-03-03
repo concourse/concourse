@@ -16,7 +16,7 @@ var _ = Describe("Viewing resources", func() {
 		var brokenResource atc.Resource
 
 		BeforeEach(func() {
-			_, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Resources: []atc.ResourceConfig{
 					{
 						Name: "broken-resource",

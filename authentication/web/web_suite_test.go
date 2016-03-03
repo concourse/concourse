@@ -68,7 +68,7 @@ func TestWeb(t *testing.T) {
 }
 
 func pushMainPipeline() {
-	_, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+	_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 		Jobs: []atc.JobConfig{
 			{
 				Name:   "public-job",

@@ -15,7 +15,7 @@ var _ = Describe("Aborting a build", func() {
 		var build atc.Build
 
 		BeforeEach(func() {
-			_, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
