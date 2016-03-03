@@ -1,6 +1,7 @@
 package acceptance_test
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -65,6 +66,24 @@ var _ = Describe("Auth", func() {
 			Expect(team.ClientID).To(Equal("admin"))
 			Expect(team.ClientSecret).To(Equal("password"))
 			Expect(team.Organizations).To(Equal([]string{"myorg"}))
+		})
+	})
+
+	Describe("GitHub Enterprise Auth", func() {
+		BeforeEach(func() {
+			atcProcess, atcPort = startATC(atcBin, 1, false, GITHUB_ENTERPRISE_AUTH)
+		})
+
+		It("forces a redirect to override github", func() {
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/github?redirect=%2F", atcPort), nil)
+
+			client := new(http.Client)
+			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return errors.New("error")
+			}
+			resp, err := client.Do(request)
+			Expect(err.Error()).To(ContainSubstring("https://github.example.com/login/oauth/authorize"))
+			Expect(resp.StatusCode).To(Equal(http.StatusTemporaryRedirect))
 		})
 	})
 

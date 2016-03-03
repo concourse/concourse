@@ -94,6 +94,7 @@ const BASIC_AUTH = "basic"
 const BASIC_AUTH_NO_PASSWORD = "basic-no-password"
 const BASIC_AUTH_NO_USERNAME = "basic-no-username"
 const GITHUB_AUTH = "github"
+const GITHUB_ENTERPRISE_AUTH = "github-enterprise"
 const DEVELOPMENT_MODE = "dev"
 const NO_AUTH = DEVELOPMENT_MODE
 
@@ -147,6 +148,18 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 				"--github-auth-organization", "myorg",
 				"--github-auth-team", "myorg/all",
 				"--github-auth-user", "myuser",
+				"--external-url", "http://example.com",
+			)
+		case GITHUB_ENTERPRISE_AUTH:
+			params = append(params,
+				"--github-auth-client-id", "admin",
+				"--github-auth-client-secret", "password",
+				"--github-auth-organization", "myorg",
+				"--github-auth-team", "myorg/all",
+				"--github-auth-user", "myuser",
+				"--github-auth-auth-url", "https://github.example.com/login/oauth/authorize",
+				"--github-auth-token-url", "https://github.example.com/login/oauth/access_token",
+				"--github-auth-api-url", "https://github.example.com/api/v3/",
 				"--external-url", "http://example.com",
 			)
 		case DEVELOPMENT_MODE:
