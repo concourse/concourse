@@ -73,5 +73,59 @@ var _ = Describe("Factory Task", func() {
 				Expect(actual).To(testhelpers.MatchPlan(expected))
 			})
 		})
+
+		Context("when input mapping is specified", func() {
+			BeforeEach(func() {
+				input = atc.JobConfig{
+					Plan: atc.PlanSequence{
+						{
+							Task: "some-task",
+							InputMappings: map[string]string{
+								"bosh-release": "concourse-release",
+							},
+							TaskConfig: &atc.TaskConfig{
+								Inputs: []atc.TaskInputConfig{
+									{
+										Name: "bosh-release",
+										Path: "fake-bosh-release-path",
+									},
+									{
+										Name: "other-input",
+										Path: "fake-other-input-path",
+									},
+								},
+							},
+						},
+					},
+				}
+			})
+
+			It("creates build plan with aliased inputs", func() {
+				actual, err := buildFactory.Create(input, resources, resourceTypes, nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
+					Name:          "some-task",
+					Pipeline:      "some-pipeline",
+					ResourceTypes: resourceTypes,
+					InputMappings: map[string]string{
+						"bosh-release": "concourse-release",
+					},
+					Config: &atc.TaskConfig{
+						Inputs: []atc.TaskInputConfig{
+							{
+								Name: "bosh-release",
+								Path: "fake-bosh-release-path",
+							},
+							{
+								Name: "other-input",
+								Path: "fake-other-input-path",
+							},
+						},
+					},
+				})
+				Expect(actual).To(testhelpers.MatchPlan(expected))
+			})
+		})
 	})
 })

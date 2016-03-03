@@ -47,6 +47,7 @@ type TaskStep struct {
 	artifactsRoot  string
 	trackerFactory TrackerFactory
 	resourceTypes  atc.ResourceTypes
+	inputMappings  map[string]string
 
 	repo *SourceRepository
 
@@ -68,6 +69,7 @@ func newTaskStep(
 	artifactsRoot string,
 	trackerFactory TrackerFactory,
 	resourceTypes atc.ResourceTypes,
+	inputMappings map[string]string,
 ) TaskStep {
 	return TaskStep{
 		logger:         logger,
@@ -81,6 +83,7 @@ func newTaskStep(
 		artifactsRoot:  artifactsRoot,
 		trackerFactory: trackerFactory,
 		resourceTypes:  resourceTypes,
+		inputMappings:  inputMappings,
 	}
 }
 
@@ -467,9 +470,14 @@ func (step *TaskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker
 	var missingInputs []string
 
 	for _, input := range inputs {
-		source, found := step.repo.SourceFor(SourceName(input.Name))
+		inputName := input.Name
+		if sourceName, ok := step.inputMappings[inputName]; ok {
+			inputName = sourceName
+		}
+
+		source, found := step.repo.SourceFor(SourceName(inputName))
 		if !found {
-			missingInputs = append(missingInputs, input.Name)
+			missingInputs = append(missingInputs, inputName)
 			continue
 		}
 

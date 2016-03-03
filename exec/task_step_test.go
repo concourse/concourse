@@ -69,6 +69,7 @@ var _ = Describe("GardenFactory", func() {
 			tags          []string
 			configSource  *fakes.FakeTaskConfigSource
 			resourceTypes atc.ResourceTypes
+			inputMappings map[string]string
 
 			inStep *fakes.FakeStep
 			repo   *SourceRepository
@@ -96,6 +97,8 @@ var _ = Describe("GardenFactory", func() {
 					Source: atc.Source{"some-custom": "source"},
 				},
 			}
+
+			inputMappings = nil
 		})
 
 		JustBeforeEach(func() {
@@ -109,6 +112,7 @@ var _ = Describe("GardenFactory", func() {
 				tags,
 				configSource,
 				resourceTypes,
+				inputMappings,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -498,6 +502,101 @@ var _ = Describe("GardenFactory", func() {
 									err := taskDelegate.FailedArgsForCall(0)
 									Expect(err).To(BeAssignableToTypeOf(MissingInputsError{}))
 									Expect(err.(MissingInputsError).Inputs).To(ConsistOf("some-other-input"))
+								})
+							})
+						})
+
+						Context("when input is remapped", func() {
+							var remappedInputSource *fakes.FakeArtifactSource
+
+							BeforeEach(func() {
+								remappedInputSource = new(fakes.FakeArtifactSource)
+								inputMappings = map[string]string{"remapped-input": "remapped-input-src"}
+
+								configSource.FetchConfigReturns(atc.TaskConfig{
+									Run: atc.TaskRunConfig{
+										Path: "ls",
+									},
+									Inputs: []atc.TaskInputConfig{
+										{Name: "remapped-input"},
+									},
+								}, nil)
+							})
+
+							Context("when all inputs are present in the in source repository", func() {
+								BeforeEach(func() {
+									repo.RegisterSource("remapped-input-src", remappedInputSource)
+								})
+
+								It("uses remapped input", func() {
+									streamIn := new(bytes.Buffer)
+
+									Expect(remappedInputSource.StreamToCallCount()).To(Equal(1))
+
+									destination := remappedInputSource.StreamToArgsForCall(0)
+
+									initial := fakeContainer.StreamInCallCount()
+
+									err := destination.StreamIn("foo", streamIn)
+									Expect(err).NotTo(HaveOccurred())
+
+									Expect(fakeContainer.StreamInCallCount()).To(Equal(initial + 1))
+
+									spec := fakeContainer.StreamInArgsForCall(initial)
+									Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/remapped-input/foo"))
+									Expect(spec.User).To(Equal("")) // use default
+									Expect(spec.TarStream).To(Equal(streamIn))
+
+									Eventually(process.Wait()).Should(Receive(BeNil()))
+								})
+
+								Context("when the inputs have volumes on the chosen worker", func() {
+									var remappedInputVolume *bfakes.FakeVolume
+
+									BeforeEach(func() {
+										remappedInputVolume = new(bfakes.FakeVolume)
+										remappedInputVolume.HandleReturns("remapped-input-volume")
+
+										remappedInputSource.VolumeOnReturns(remappedInputVolume, true, nil)
+									})
+
+									It("bind-mounts copy-on-write volumes to their destinations in the container", func() {
+										_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+										taskSpec := spec.(worker.TaskContainerSpec)
+										Expect(taskSpec.Inputs).To(Equal([]worker.VolumeMount{
+											{
+												Volume:    remappedInputVolume,
+												MountPath: "/tmp/build/a1f5c0c1/remapped-input",
+											},
+										}))
+									})
+
+									It("releases the volumes given to the worker", func() {
+										Expect(remappedInputVolume.ReleaseCallCount()).To(Equal(1))
+									})
+
+									It("does not stream inputs that had volumes", func() {
+										Expect(remappedInputSource.StreamToCallCount()).To(Equal(0))
+									})
+								})
+							})
+
+							Context("when any of the inputs are missing", func() {
+								It("exits with failure", func() {
+									var err error
+									Eventually(process.Wait()).Should(Receive(&err))
+									Expect(err).To(BeAssignableToTypeOf(MissingInputsError{}))
+									Expect(err.(MissingInputsError).Inputs).To(ConsistOf("remapped-input-src"))
+								})
+
+								It("invokes the delegate's Failed callback", func() {
+									Eventually(process.Wait()).Should(Receive(HaveOccurred()))
+
+									Expect(taskDelegate.FailedCallCount()).To(Equal(1))
+
+									err := taskDelegate.FailedArgsForCall(0)
+									Expect(err).To(BeAssignableToTypeOf(MissingInputsError{}))
+									Expect(err.(MissingInputsError).Inputs).To(ConsistOf("remapped-input-src"))
 								})
 							})
 						})

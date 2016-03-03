@@ -21,7 +21,7 @@ type FakeTaskConfigSource struct {
 	WarningsStub        func() []string
 	warningsMutex       sync.RWMutex
 	warningsArgsForCall []struct{}
-	warningsReturns struct {
+	warningsReturns     struct {
 		result1 []string
 	}
 }
