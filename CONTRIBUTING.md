@@ -65,7 +65,16 @@ to the develop branch.
 Jump over to the BOSH Lite [repo](https://github.com/cloudfoundry/bosh-lite)
 and follow the instructions provided
 [for virtual-box](https://github.com/cloudfoundry/bosh-lite#using-the-virtualbox-provider)
-(we recommend virtual-box for the smoothest bootstrapping experience).
+(we recommend virtualbox for the smoothest bootstrapping experience).
+
+Once your BOSH Lite is set up, target it like so:
+
+```
+bosh target 192.168.50.4 lite
+```
+
+This will point the `bosh` CLI at your local VM and save this target as
+the alias `lite`, should you need to target it again.
 
 ### Grabbing the Concourse Release
 All set with BOSH Lite?  Great!  Let's grab the concourse release
@@ -90,20 +99,30 @@ level.  This will allow you to run a local testflight easily.
 This is where your BOSH Lite finally comes in handy.
 
 You're going to deploy your changes to the various submodules
-directly to your bosh-lite, this requires a couple of things:
+directly to your bosh-lite, which requires a couple of things:
 
-- Commit all of the changes directly to the submodules
-(just don't push them)
-- Upload a garden-linux-release to your BOSH Lite,
-you can grab it [here](https://github.com/concourse/concourse/releases)
-- cd to the top-level of testflight (it's a submodule)
-- cd to your top level concourse install directory and run: `bosh target lite
+- Commit all of the changes directly to the submodules (just don't push them)
+- Upload a garden-linux-release to your BOSH Lite, which you can grab from [the Concourse GitHub releases](https://github.com/concourse/concourse/releases)
+- Upload the latest BOSH lite stemcell from [bosh.io](http://bosh.io/stemcells/bosh-warden-boshlite-ubuntu-trusty-go_agent)
+
+Then, from the root of the `concourse` repository, run:
+
+```
 bosh create release --force
 bosh upload release
-src/github.com/concourse/testflight/scripts/local_deploy
-src/github.com/concourse/testflight/scripts/test
-`
-- Sit back and wait for the testflight to pass
+./src/github.com/concourse/testflight/scripts/local_deploy
+```
+
+At this point you should have a Concourse running in your local BOSH Lite
+with your changes active. You can browse around it at `http://10.244.15.2:8080`,
+and run `testflight`, Concourse's integration suite, by running the following:
+
+```
+./src/github.com/concourse/testflight/scripts/test
+```
+
+...or by `cd`ing to `src/github.com/concourse/testflight` and running `ginkgo -r`.
+
 
 ### Running ATC Suite
 
