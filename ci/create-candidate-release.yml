@@ -9,6 +9,7 @@ image_resource:
 inputs:
 - name: concourse
 - name: version
+- name: final-version
 
 outputs:
 - name: candidate-release

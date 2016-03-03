@@ -169,6 +169,10 @@ jobs:
   - get: version
     passed: [rc]
     trigger: true
+  - get: final-version
+    passed: [rc]
+    params: {bump: final}
+    trigger: true
   - task: create-candidate-release
     file: concourse/ci/create-candidate-release.yml
   - put: candidate-release
