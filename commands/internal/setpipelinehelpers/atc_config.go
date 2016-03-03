@@ -51,13 +51,17 @@ func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariable
 		displayhelpers.Failf("bailing out")
 	}
 
-	created, updated, err := atcConfig.Client.CreateOrUpdatePipelineConfig(
+	created, updated, warnings, err := atcConfig.Client.CreateOrUpdatePipelineConfig(
 		atcConfig.PipelineName,
 		existingConfigVersion,
 		newConfig,
 	)
 	if err != nil {
 		return err
+	}
+
+	if len(warnings) > 0 {
+		atcConfig.showWarnings(warnings)
 	}
 
 	atcConfig.showHelpfulMessage(created, updated)
@@ -95,6 +99,14 @@ func (atcConfig ATCConfig) newConfig(configPath flaghelpers.PathFlag, templateVa
 	}
 
 	return newConfig
+}
+
+func (atcConfig ATCConfig) showWarnings(warnings []concourse.ConfigWarning) {
+	fmt.Fprintln(os.Stderr, "DEPRECATION WARNING:")
+
+	for _, warning := range warnings {
+		fmt.Fprintf(os.Stderr, "  - %s\n", warning.Message)
+	}
 }
 
 func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool) {

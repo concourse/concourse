@@ -165,7 +165,8 @@ var _ = Describe("Fly CLI", func() {
 
 								Expect(receivedConfig).To(Equal(config))
 
-								w.WriteHeader(http.StatusNoContent)
+								w.WriteHeader(http.StatusOK)
+								w.Write([]byte(`{}`))
 							},
 						),
 					)
@@ -340,7 +341,7 @@ var _ = Describe("Fly CLI", func() {
 								config := getConfig(r)
 								Expect(config).To(Equal(payload))
 							},
-							ghttp.RespondWith(http.StatusNoContent, ""),
+							ghttp.RespondWith(http.StatusOK, "{}"),
 						),
 					)
 				})
@@ -470,7 +471,7 @@ var _ = Describe("Fly CLI", func() {
 								config := getConfig(r)
 								Expect(config).To(Equal(payload))
 							},
-							ghttp.RespondWith(http.StatusCreated, ""),
+							ghttp.RespondWith(http.StatusCreated, "{}"),
 						))
 					})
 
@@ -501,6 +502,49 @@ var _ = Describe("Fly CLI", func() {
 
 						Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 2))
 					})
+				})
+			})
+
+			Context("when the server returns warnings", func() {
+				BeforeEach(func() {
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+					Expect(err).NotTo(HaveOccurred())
+
+					atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
+						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+						func(w http.ResponseWriter, r *http.Request) {
+							config := getConfig(r)
+							Expect(config).To(Equal(payload))
+						},
+						ghttp.RespondWith(http.StatusCreated, `{"warnings":[
+							{"type":"deprecation","message":"warning-1"},
+							{"type":"deprecation","message":"warning-2"}
+						]}`),
+					))
+				})
+
+				It("succeeds and prints warnings", func() {
+					reqsBefore := len(atcServer.ReceivedRequests())
+					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
+
+					stdin, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					yes(stdin)
+
+					Eventually(sess.Err).Should(gbytes.Say("DEPRECATION WARNING:"))
+					Eventually(sess.Err).Should(gbytes.Say("  - warning-1"))
+					Eventually(sess.Err).Should(gbytes.Say("  - warning-2"))
+					Eventually(sess).Should(gbytes.Say("pipeline created!"))
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+
+					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 2))
 				})
 			})
 
