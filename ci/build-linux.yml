@@ -11,6 +11,7 @@ inputs:
 - name: concourse
 - name: garden-linux-release
 - name: cli-artifacts
+- name: final-version
 
 outputs:
 - name: linux-binary
