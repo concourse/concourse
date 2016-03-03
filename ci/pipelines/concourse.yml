@@ -318,11 +318,11 @@ jobs:
     - get: version
       passed: [bin-rc]
       trigger: true
-  - aggregate:
     - task: no-auth
       file: bin/ci/testflight.yml
       privileged: true
       timeout: 1h
+  - aggregate:
     - task: basic-auth-public
       file: bin/ci/testflight.yml
       config:
@@ -341,6 +341,7 @@ jobs:
           PIPELINES_PUBLICLY_VIEWABLE: false
       privileged: true
       timeout: 1h
+  - aggregate:
     - task: github-auth-public
       file: bin/ci/testflight.yml
       config:
