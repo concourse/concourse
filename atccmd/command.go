@@ -614,6 +614,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIAuthWrappa(cmd.PubliclyViewable, authValidator, userContextReader),
 		wrappa.NewAPIMetricsWrappa(logger),
+		wrappa.NewConcourseVersionWrappa(Version),
 	}
 
 	return api.NewHandler(
