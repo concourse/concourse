@@ -215,7 +215,7 @@ jobs:
       params: {save: true}
   - put: concourse-buildbox-ci-image
     params:
-      dockerfile: concourse-buildbox-testflight-ci/ci/dockerfiles/buildbox-ci/Dockerfile
+      dockerfile: concourse-buildbox-ci/ci/dockerfiles/buildbox-ci/Dockerfile
       load_base: ubuntu-15.10
       build: concourse-buildbox-ci/
 
