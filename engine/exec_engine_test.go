@@ -417,7 +417,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, _ := fakeFactory.TaskArgsForCall(0)
+				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, _, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(sourceName).To(Equal(exec.SourceName("some-task")))
 				Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -437,7 +437,7 @@ var _ = Describe("ExecEngine", func() {
 				Expect(tags).To(Equal(atc.Tags{"some", "task", "tags"}))
 				Expect(configSource).To(Equal(exec.ValidatingConfigSource{exec.FileConfigSource{"some-config-path"}}))
 
-				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, _ = fakeFactory.TaskArgsForCall(1)
+				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, _, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
 				Expect(sourceName).To(Equal(exec.SourceName("some-task")))
 				Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -503,13 +503,13 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				_, _, _, workerMetadata, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				_, _, _, workerMetadata, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
-				_, _, _, workerMetadata, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				_, _, _, workerMetadata, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
-				_, _, _, workerMetadata, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(2)
+				_, _, _, workerMetadata, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(2)
 				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
-				_, _, _, workerMetadata, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(3)
+				_, _, _, workerMetadata, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(3)
 				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
 			})
 		})
@@ -584,7 +584,10 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			Context("that contains tasks", func() {
-				var inputMappings map[string]string
+				var (
+					inputMappings  map[string]string
+					outputMappings map[string]string
+				)
 
 				BeforeEach(func() {
 					privileged = false
@@ -604,14 +607,16 @@ var _ = Describe("ExecEngine", func() {
 					}
 
 					inputMappings = map[string]string{"foo": "bar"}
+					outputMappings = map[string]string{"baz": "qux"}
 
 					taskPlan := atc.TaskPlan{
-						Name:          "some-task",
-						Config:        taskConfig,
-						ConfigPath:    taskConfigPath,
-						Privileged:    privileged,
-						Pipeline:      "some-pipeline",
-						InputMappings: inputMappings,
+						Name:           "some-task",
+						Config:         taskConfig,
+						ConfigPath:     taskConfigPath,
+						Privileged:     privileged,
+						Pipeline:       "some-pipeline",
+						InputMappings:  inputMappings,
+						OutputMappings: outputMappings,
 					}
 
 					plan = planFactory.NewPlan(taskPlan)
@@ -625,7 +630,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-					logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, actualInputMappings := fakeFactory.TaskArgsForCall(0)
+					logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, actualInputMappings, actualOutputMappings := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -649,6 +654,7 @@ var _ = Describe("ExecEngine", func() {
 					Expect(planID).To(Equal(event.OriginID(plan.ID)))
 
 					Expect(actualInputMappings).To(Equal(inputMappings))
+					Expect(actualOutputMappings).To(Equal(outputMappings))
 				})
 
 				It("releases the tasks correctly", func() {

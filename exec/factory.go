@@ -68,6 +68,7 @@ type Factory interface {
 		TaskConfigSource,
 		atc.ResourceTypes,
 		map[string]string,
+		map[string]string,
 	) StepFactory
 }
 

@@ -64,12 +64,13 @@ var _ = Describe("GardenFactory", func() {
 
 	Describe("Task", func() {
 		var (
-			taskDelegate  *fakes.FakeTaskDelegate
-			privileged    Privileged
-			tags          []string
-			configSource  *fakes.FakeTaskConfigSource
-			resourceTypes atc.ResourceTypes
-			inputMappings map[string]string
+			taskDelegate   *fakes.FakeTaskDelegate
+			privileged     Privileged
+			tags           []string
+			configSource   *fakes.FakeTaskConfigSource
+			resourceTypes  atc.ResourceTypes
+			inputMappings  map[string]string
+			outputMappings map[string]string
 
 			inStep *fakes.FakeStep
 			repo   *SourceRepository
@@ -99,6 +100,7 @@ var _ = Describe("GardenFactory", func() {
 			}
 
 			inputMappings = nil
+			outputMappings = nil
 		})
 
 		JustBeforeEach(func() {
@@ -113,6 +115,7 @@ var _ = Describe("GardenFactory", func() {
 				configSource,
 				resourceTypes,
 				inputMappings,
+				outputMappings,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -622,6 +625,10 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							Context("when volume manager does not exist", func() {
+								BeforeEach(func() {
+									fakeWorker.VolumeManagerReturns(nil, false)
+								})
+
 								It("ensures the output directories exist by streaming in an empty payload", func() {
 									Expect(fakeContainer.StreamInCallCount()).To(Equal(4))
 
@@ -1073,6 +1080,90 @@ var _ = Describe("GardenFactory", func() {
 
 									sourceMap := repo.AsMap()
 									Expect(sourceMap).To(ConsistOf(artifactSource1, artifactSource2, artifactSource3))
+								})
+							})
+						})
+
+						Context("when output is remapped", func() {
+							BeforeEach(func() {
+								outputMappings = map[string]string{"generic-remapped-output": "specific-remapped-output"}
+								configSource.FetchConfigReturns(atc.TaskConfig{
+									Run: atc.TaskRunConfig{
+										Path: "ls",
+									},
+									Outputs: []atc.TaskOutputConfig{
+										{Name: "generic-remapped-output"},
+									},
+								}, nil)
+
+								fakeBaggageclaimClient.CreateVolumeReturns(new(bfakes.FakeVolume), nil)
+								fakeProcess.WaitReturns(0, nil)
+							})
+
+							Context("when volume manager does not exist", func() {
+								It("ensures the output directories exist with the generic name", func() {
+									Expect(fakeContainer.StreamInCallCount()).To(Equal(2))
+
+									spec := fakeContainer.StreamInArgsForCall(1)
+									Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/generic-remapped-output/"))
+									Expect(spec.User).To(Equal("")) // use default
+
+									tarReader := tar.NewReader(spec.TarStream)
+
+									_, err := tarReader.Next()
+									Expect(err).To(Equal(io.EOF))
+								})
+							})
+
+							It("registers the outputs as sources with specific name", func() {
+								artifactSource, found := repo.SourceFor("specific-remapped-output")
+								Expect(found).To(BeTrue())
+
+								sourceMap := repo.AsMap()
+								Expect(sourceMap).To(ConsistOf(artifactSource))
+							})
+
+							Context("when volumes are configured", func() {
+								var (
+									fakeMountPath string = "/tmp/build/a1f5c0c1/generic-remapped-output/"
+									fakeVolume    *bfakes.FakeVolume
+								)
+
+								BeforeEach(func() {
+									fakeNewlyCreatedVolume := new(bfakes.FakeVolume)
+									fakeNewlyCreatedVolume.HandleReturns("some-handle")
+
+									fakeBaggageclaimClient.CreateVolumeReturns(fakeNewlyCreatedVolume, nil)
+
+									fakeVolume = new(bfakes.FakeVolume)
+									fakeVolume.HandleReturns("some-handle")
+
+									fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
+										worker.VolumeMount{
+											Volume:    fakeVolume,
+											MountPath: fakeMountPath,
+										},
+									})
+								})
+
+								Context("when the output volume can be found on the worker", func() {
+									BeforeEach(func() {
+										fakeBaggageclaimClient.LookupVolumeReturns(fakeVolume, true, nil)
+									})
+
+									It("stores an artifact source in the repo that can be used to mount the volume", func() {
+										artifactSource, found := repo.SourceFor("specific-remapped-output")
+										Expect(found).To(BeTrue())
+
+										actualVolume, found, err := artifactSource.VolumeOn(fakeWorker)
+										Expect(err).ToNot(HaveOccurred())
+										Expect(found).To(BeTrue())
+										Expect(actualVolume).To(Equal(fakeVolume))
+
+										Expect(fakeBaggageclaimClient.LookupVolumeCallCount()).To(Equal(1))
+										_, handle := fakeBaggageclaimClient.LookupVolumeArgsForCall(0)
+										Expect(handle).To(Equal("some-handle"))
+									})
 								})
 							})
 						})

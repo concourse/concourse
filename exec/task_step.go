@@ -48,6 +48,7 @@ type TaskStep struct {
 	trackerFactory TrackerFactory
 	resourceTypes  atc.ResourceTypes
 	inputMappings  map[string]string
+	outputMappings map[string]string
 
 	repo *SourceRepository
 
@@ -70,6 +71,7 @@ func newTaskStep(
 	trackerFactory TrackerFactory,
 	resourceTypes atc.ResourceTypes,
 	inputMappings map[string]string,
+	outputMappings map[string]string,
 ) TaskStep {
 	return TaskStep{
 		logger:         logger,
@@ -84,6 +86,7 @@ func newTaskStep(
 		trackerFactory: trackerFactory,
 		resourceTypes:  resourceTypes,
 		inputMappings:  inputMappings,
+		outputMappings: outputMappings,
 	}
 }
 
@@ -338,18 +341,23 @@ func (step *TaskStep) registerSource(config atc.TaskConfig) {
 	volumeMounts := step.container.VolumeMounts()
 
 	for _, output := range config.Outputs {
+		outputName := output.Name
+		if destinationName, ok := step.outputMappings[output.Name]; ok {
+			outputName = destinationName
+		}
+
 		if len(volumeMounts) > 0 {
 			outputPath := artifactsPath(output, step.artifactsRoot)
 
 			for _, mount := range volumeMounts {
 				if mount.MountPath == outputPath {
 					source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, mount.Volume.Handle())
-					step.repo.RegisterSource(SourceName(output.Name), source)
+					step.repo.RegisterSource(SourceName(outputName), source)
 				}
 			}
 		} else {
 			source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
-			step.repo.RegisterSource(SourceName(output.Name), source)
+			step.repo.RegisterSource(SourceName(outputName), source)
 		}
 	}
 }

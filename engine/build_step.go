@@ -116,6 +116,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		configSource,
 		plan.Task.ResourceTypes,
 		plan.Task.InputMappings,
+		plan.Task.OutputMappings,
 	)
 }
 
