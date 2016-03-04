@@ -610,11 +610,11 @@ var _ = Describe("ExecEngine", func() {
 					outputMapping = map[string]string{"baz": "qux"}
 
 					taskPlan := atc.TaskPlan{
-						Name:           "some-task",
-						Config:         taskConfig,
-						ConfigPath:     taskConfigPath,
-						Privileged:     privileged,
-						Pipeline:       "some-pipeline",
+						Name:          "some-task",
+						Config:        taskConfig,
+						ConfigPath:    taskConfigPath,
+						Privileged:    privileged,
+						Pipeline:      "some-pipeline",
 						InputMapping:  inputMapping,
 						OutputMapping: outputMapping,
 					}

@@ -64,11 +64,11 @@ var _ = Describe("GardenFactory", func() {
 
 	Describe("Task", func() {
 		var (
-			taskDelegate   *fakes.FakeTaskDelegate
-			privileged     Privileged
-			tags           []string
-			configSource   *fakes.FakeTaskConfigSource
-			resourceTypes  atc.ResourceTypes
+			taskDelegate  *fakes.FakeTaskDelegate
+			privileged    Privileged
+			tags          []string
+			configSource  *fakes.FakeTaskConfigSource
+			resourceTypes atc.ResourceTypes
 			inputMapping  map[string]string
 			outputMapping map[string]string
 

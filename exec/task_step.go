@@ -47,8 +47,8 @@ type TaskStep struct {
 	artifactsRoot  string
 	trackerFactory TrackerFactory
 	resourceTypes  atc.ResourceTypes
-	inputMapping  map[string]string
-	outputMapping map[string]string
+	inputMapping   map[string]string
+	outputMapping  map[string]string
 
 	repo *SourceRepository
 
@@ -85,8 +85,8 @@ func newTaskStep(
 		artifactsRoot:  artifactsRoot,
 		trackerFactory: trackerFactory,
 		resourceTypes:  resourceTypes,
-		inputMapping:  inputMapping,
-		outputMapping: outputMapping,
+		inputMapping:   inputMapping,
+		outputMapping:  outputMapping,
 	}
 }
 

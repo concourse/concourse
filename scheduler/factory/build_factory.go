@@ -224,14 +224,14 @@ func (factory *buildFactory) constructUnhookedPlan(
 
 	case planConfig.Task != "":
 		plan = factory.planFactory.NewPlan(atc.TaskPlan{
-			Name:           planConfig.Task,
-			Pipeline:       factory.PipelineName,
-			Privileged:     planConfig.Privileged,
-			Config:         planConfig.TaskConfig,
-			ConfigPath:     planConfig.TaskConfigPath,
-			Tags:           planConfig.Tags,
-			ResourceTypes:  resourceTypes,
-			Params:         planConfig.Params,
+			Name:          planConfig.Task,
+			Pipeline:      factory.PipelineName,
+			Privileged:    planConfig.Privileged,
+			Config:        planConfig.TaskConfig,
+			ConfigPath:    planConfig.TaskConfigPath,
+			Tags:          planConfig.Tags,
+			ResourceTypes: resourceTypes,
+			Params:        planConfig.Params,
 			InputMapping:  planConfig.InputMapping,
 			OutputMapping: planConfig.OutputMapping,
 		})
