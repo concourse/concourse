@@ -2187,7 +2187,7 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			Context("when some jobs have builds with inputs determined as false", func() {
-				var acutalBuild db.Build
+				var actualBuild db.Build
 
 				BeforeEach(func() {
 					//TODO: Delete this query after #114257887
@@ -2204,13 +2204,13 @@ var _ = Describe("PipelineDB", func() {
 					_, err := pipelineDB.CreateJobBuild(jobOneConfig.Name)
 					Expect(err).NotTo(HaveOccurred())
 
-					acutalBuild, err = pipelineDB.CreateJobBuild(jobOneTwoConfig.Name)
+					actualBuild, err = pipelineDB.CreateJobBuild(jobOneTwoConfig.Name)
 					Expect(err).NotTo(HaveOccurred())
 					_, err = dbConn.Query(`
 						UPDATE builds
 						SET inputs_determined = true
 						WHERE id = $1
-					`, acutalBuild.ID)
+					`, actualBuild.ID)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -2218,7 +2218,7 @@ var _ = Describe("PipelineDB", func() {
 					build, found, err := pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"one"})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
-					Expect(build.ID).To(Equal(acutalBuild.ID))
+					Expect(build.ID).To(Equal(actualBuild.ID))
 				})
 			})
 
