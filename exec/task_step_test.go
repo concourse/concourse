@@ -1100,6 +1100,10 @@ var _ = Describe("GardenFactory", func() {
 								fakeProcess.WaitReturns(0, nil)
 							})
 
+							JustBeforeEach(func() {
+								Eventually(process.Wait()).Should(Receive(BeNil()))
+							})
+
 							Context("when volume manager does not exist", func() {
 								It("ensures the output directories exist with the generic name", func() {
 									Expect(fakeContainer.StreamInCallCount()).To(Equal(2))
