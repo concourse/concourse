@@ -4,9 +4,59 @@
 
 \list{
   The \reference{fly-destroy-pipeline} command now runs much quicker.
-  Unfortunately to implement this there's a massive database migration. Expect
-  quite a few minutes of downtime while you upgrade to this version, depending
-  on how many builds you have and how chatty they are. Sorry about that.
+  Unfortunately to implement this there's a massive database migration.
+  Expect anywhere from a few minutes of downtime up to a few hours when
+  you upgrade to this version, depending on how many builds you have and
+  how chatty they are. Sorry about that.
+
+  There is no way of predicting how long this migration may take for your
+  instance. It depends on the chattiness of your builds and the performance of
+  your database. For a rough approximation: running the migration on the
+  Concourse team's server took 20 minutes to migrate 13 million build events.
+
+  You can find out how many build events you have by running the following
+  query against your Concourse database:
+
+  \codeblock{sql}{
+    SELECT relname, n_live_tup
+    FROM pg_stat_user_tables
+    WHERE relname = 'build_events';
+  }
+
+  The root of the issue is the amount of data in the `build_events` table.  If
+  you don't have many build logs then then you can probably just upgrade and
+  not worry about the rest of this email. If the upgrade is going to take too
+  long then we need to find some way to reduce the rows in that table.
+
+  Before you delete any data from the system you should make sure to take a
+  \hyperlink{http://www.postgresql.org/docs/9.1/static/backup.html}{backup of
+  your database} and make doubly sure you can restore it while blind-folded and
+  upside-down in case anything goes wrong.
+
+  If you don't care about your old build logs then you can simply run
+  \code{TRUNCATE build_events;} before upgrading and the migration will be
+  quick and painless.
+
+  Many of you probably do care about your build events but maybe only those
+  which were created in the past X months. If this sounds like a good idea then
+  have I got the SQL query for you! Run this against your Concourse database
+  (change the X to the number of months you'd like to keep):
+
+  \codeblock{sql}{
+    DELETE FROM build_events
+    WHERE build_id IN (
+      SELECT builds.id
+      FROM jobs JOIN builds ON jobs.id = builds.job_id
+      WHERE builds.end_time < NOW() - INTERVAL 'X month'
+      ORDER BY builds.id
+    );
+  }
+
+  This query may take a while to execute but your Concourse can be online the
+  entire time that it is running.
+
+  If you want to keep all of your build logs and have a fast migration then I'm
+  sorry, I can't help you. :( Maybe upgrade over a weekend?
 }{
   \italic{Backwards-incompatible:} the
   \hyperlink{https://github.com/concourse/docker-image-resource}{Docker Image
