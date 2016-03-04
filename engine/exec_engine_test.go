@@ -46,11 +46,7 @@ var _ = Describe("ExecEngine", func() {
 
 			outputPlan atc.Plan
 
-			privileged bool
-			taskConfig *atc.TaskConfig
-
-			build          engine.Build
-			taskConfigPath string
+			build engine.Build
 
 			logger *lagertest.TestLogger
 
@@ -587,38 +583,23 @@ var _ = Describe("ExecEngine", func() {
 				var (
 					inputMapping  map[string]string
 					outputMapping map[string]string
+					taskPlan      atc.TaskPlan
 				)
 
 				BeforeEach(func() {
-					privileged = false
-
-					taskConfigPath = "some-input/build.yml"
-
-					taskConfig = &atc.TaskConfig{
-						Image:  "some-image",
-						Params: map[string]string{"PARAM": "value"},
-						Run: atc.TaskRunConfig{
-							Path: "some-path",
-							Args: []string{"some", "args"},
-						},
-						Inputs: []atc.TaskInputConfig{
-							{Name: "some-input"},
-						},
-					}
-
 					inputMapping = map[string]string{"foo": "bar"}
 					outputMapping = map[string]string{"baz": "qux"}
 
-					taskPlan := atc.TaskPlan{
+					taskPlan = atc.TaskPlan{
 						Name:          "some-task",
-						Config:        taskConfig,
-						ConfigPath:    taskConfigPath,
-						Privileged:    privileged,
+						ConfigPath:    "some-input/build.yml",
 						Pipeline:      "some-pipeline",
 						InputMapping:  inputMapping,
 						OutputMapping: outputMapping,
 					}
+				})
 
+				JustBeforeEach(func() {
 					plan = planFactory.NewPlan(taskPlan)
 				})
 
@@ -655,6 +636,54 @@ var _ = Describe("ExecEngine", func() {
 
 					Expect(actualInputMapping).To(Equal(inputMapping))
 					Expect(actualOutputMapping).To(Equal(outputMapping))
+				})
+
+				Context("when the plan contains params and config path", func() {
+					BeforeEach(func() {
+						taskPlan.Params = map[string]interface{}{
+							"task-param": "task-param-value",
+						}
+					})
+
+					It("creates the task with a MergedConfigSource wrapped in a ValidatingConfigSource", func() {
+						var err error
+						build, err = execEngine.CreateBuild(logger, buildModel, plan)
+						Expect(err).NotTo(HaveOccurred())
+
+						build.Resume(logger)
+						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
+
+						_, _, _, _, _, _, _, configSource, _, _, _ := fakeFactory.TaskArgsForCall(0)
+						vcs, ok := configSource.(exec.ValidatingConfigSource)
+						Expect(ok).To(BeTrue())
+						_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
+						Expect(ok).To(BeTrue())
+					})
+				})
+
+				Context("when the plan contains config and config path", func() {
+					BeforeEach(func() {
+						taskPlan.Config = &atc.TaskConfig{
+							Params: map[string]string{
+								"task-param": "task-param-value",
+							},
+						}
+					})
+
+					It("creates the task with a MergedConfigSource wrapped in a ValidatingConfigSource", func() {
+						var err error
+						build, err = execEngine.CreateBuild(logger, buildModel, plan)
+						Expect(err).NotTo(HaveOccurred())
+
+						build.Resume(logger)
+						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
+
+						_, _, _, _, _, _, _, configSource, _, _, _ := fakeFactory.TaskArgsForCall(0)
+						vcs, ok := configSource.(exec.ValidatingConfigSource)
+						Expect(ok).To(BeTrue())
+						_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
+						Expect(ok).To(BeTrue())
+					})
 				})
 
 				It("releases the tasks correctly", func() {

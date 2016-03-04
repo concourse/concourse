@@ -56,7 +56,7 @@ func (configSource StaticConfigSource) toString(obj interface{}) (string, error)
 func (configSource StaticConfigSource) Warnings() []string {
 	warnings := []string{}
 	if configSource.Plan.ConfigPath != "" && configSource.Plan.Config != nil {
-		warnings = append(warnings, "DEPRECATION WARNING: Specifying both `file` and `config.params` in a task step is deprecated, use params on task step directly")
+		warnings = append(warnings, "\x1b[31mDEPRECATION WARNING: Specifying both `file` and `config.params` in a task step is deprecated, use params on task step directly\x1b[0m")
 	}
 
 	return warnings
@@ -169,7 +169,11 @@ func (configSource MergedConfigSource) FetchConfig(source *SourceRepository) (at
 }
 
 func (configSource MergedConfigSource) Warnings() []string {
-	return []string{}
+	warnings := []string{}
+	warnings = append(warnings, configSource.A.Warnings()...)
+	warnings = append(warnings, configSource.B.Warnings()...)
+
+	return warnings
 }
 
 // ValidatingConfigSource delegates to another ConfigSource, and validates its
@@ -194,7 +198,7 @@ func (configSource ValidatingConfigSource) FetchConfig(source *SourceRepository)
 }
 
 func (configSource ValidatingConfigSource) Warnings() []string {
-	return []string{}
+	return configSource.ConfigSource.Warnings()
 }
 
 // UnknownArtifactSourceError is returned when the SourceName specified by the
