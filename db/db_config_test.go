@@ -13,6 +13,11 @@ import (
 )
 
 var _ = Describe("Keeping track of pipeline configs", func() {
+	type SerialGroup struct {
+		JobID int
+		Name  string
+	}
+
 	var dbConn db.Conn
 	var listener *pq.Listener
 
@@ -65,7 +70,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 
 					Public: true,
 
-					Serial: true,
+					Serial:       true,
+					SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
 					Plan: atc.PlanSequence{
 						{
@@ -202,6 +208,38 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 
 			_, err = pipelineDB.GetJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("creates all of the serial groups from the jobs in the database", func() {
+			_, _, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			serialGroups := []SerialGroup{}
+			rows, err := dbConn.Query("SELECT job_id, serial_group FROM jobs_serial_groups")
+			Expect(err).NotTo(HaveOccurred())
+
+			for rows.Next() {
+				var serialGroup SerialGroup
+				err = rows.Scan(&serialGroup.JobID, &serialGroup.Name)
+				Expect(err).NotTo(HaveOccurred())
+				serialGroups = append(serialGroups, serialGroup)
+			}
+
+			pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(team.Name, pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+			job, err := pipelineDB.GetJob("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(serialGroups).To(ConsistOf([]SerialGroup{
+				{
+					JobID: job.ID,
+					Name:  "serial-group-1",
+				},
+				{
+					JobID: job.ID,
+					Name:  "serial-group-2",
+				},
+			}))
 		})
 	})
 

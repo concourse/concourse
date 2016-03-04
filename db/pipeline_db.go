@@ -1270,8 +1270,6 @@ func (pdb *pipelineDB) updateSerialGroupsForJob(jobName string, serialGroups []s
 }
 
 func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error) {
-	pdb.updateSerialGroupsForJob(jobName, serialGroups)
-
 	serialGroupNames := []interface{}{}
 	refs := []string{}
 	serialGroupNames = append(serialGroupNames, pdb.ID)
@@ -1296,8 +1294,6 @@ func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGr
 }
 
 func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error) {
-	pdb.updateSerialGroupsForJob(jobName, serialGroups)
-
 	serialGroupNames := []interface{}{}
 	refs := []string{}
 	serialGroupNames = append(serialGroupNames, pdb.ID)

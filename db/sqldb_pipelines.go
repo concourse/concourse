@@ -271,6 +271,18 @@ func (db *SQLDB) SaveConfig(
 		if savedPipeline.ID == 0 {
 			return SavedPipeline{}, false, ErrConfigComparisonFailed
 		}
+
+		_, err = tx.Exec(`
+      DELETE FROM jobs_serial_groups
+      WHERE job_id in (
+        SELECT j.id
+        FROM jobs j
+        WHERE j.pipeline_id = $1
+      )
+		`, savedPipeline.ID)
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
 	}
 
 	for _, resource := range config.Resources {
@@ -285,6 +297,13 @@ func (db *SQLDB) SaveConfig(
 		if err != nil {
 			return SavedPipeline{}, false, err
 		}
+
+		for _, sg := range job.SerialGroups {
+			err = db.registerSerialGroup(tx, job.Name, sg, savedPipeline.ID)
+			if err != nil {
+				return SavedPipeline{}, false, err
+			}
+		}
 	}
 
 	return savedPipeline, created, tx.Commit()
@@ -298,6 +317,22 @@ func (db *SQLDB) registerJob(tx Tx, name string, pipelineID int) error {
 			SELECT 1 FROM jobs WHERE name = $1 AND pipeline_id = $2
 		)
 	`, name, pipelineID)
+
+	return swallowUniqueViolation(err)
+}
+
+func (db *SQLDB) registerSerialGroup(tx Tx, jobName, serialGroup string, pipelineID int) error {
+	_, err := tx.Exec(`
+    INSERT INTO jobs_serial_groups (serial_group, job_id) VALUES
+    ($1, (SELECT j.id
+                  FROM jobs j
+                       JOIN pipelines p
+                         ON j.pipeline_id = p.id
+                  WHERE j.name = $2
+                    AND j.pipeline_id = $3
+                 LIMIT  1));`,
+		serialGroup, jobName, pipelineID,
+	)
 
 	return swallowUniqueViolation(err)
 }

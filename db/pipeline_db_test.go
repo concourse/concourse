@@ -129,7 +129,7 @@ var _ = Describe("PipelineDB", func() {
 			},
 			{
 				Name:         "other-serial-group-job",
-				SerialGroups: []string{"serial-group"},
+				SerialGroups: []string{"serial-group", "really-different-group"},
 			},
 			{
 				Name:         "different-serial-group-job",
@@ -176,6 +176,9 @@ var _ = Describe("PipelineDB", func() {
 			},
 			{
 				Name: "shared-job",
+			},
+			{
+				Name: "other-serial-group-job",
 			},
 		},
 	}
@@ -2176,29 +2179,12 @@ var _ = Describe("PipelineDB", func() {
 			var jobOneTwoConfig atc.JobConfig
 
 			BeforeEach(func() {
-				jobOneConfig = atc.JobConfig{
-					Name:         "some-job",
-					SerialGroups: []string{"one"},
-				}
-				jobOneTwoConfig = atc.JobConfig{
-					Name:         "some-other-job",
-					SerialGroups: []string{"one", "two"},
-				}
+				jobOneConfig = pipelineConfig.Jobs[0]    //serial-group
+				jobOneTwoConfig = pipelineConfig.Jobs[5] //serial-group, really-different-group
 			})
 
 			Context("when some jobs have builds with inputs determined as false", func() {
 				var actualBuild db.Build
-
-				BeforeEach(func() {
-					//TODO: Delete this query after #114257887
-					_, err := dbConn.Query(`
-				INSERT INTO jobs_serial_groups (serial_group, job_id) VALUES
-				('one', (select j.id from jobs j, pipelines p where j.name = 'some-job' and j.pipeline_id = p.id and p.name = $1)),
-				('one', (select j.id from jobs j, pipelines p where j.name = 'some-other-job' and j.pipeline_id = p.id and p.name = $1)),
-				('two', (select j.id from jobs j, pipelines p where j.name = 'some-other-job' and j.pipeline_id = p.id and p.name = $1))
-			`, pipelineDB.GetPipelineName())
-					Expect(err).NotTo(HaveOccurred())
-				})
 
 				BeforeEach(func() {
 					_, err := pipelineDB.CreateJobBuild(jobOneConfig.Name)
@@ -2215,7 +2201,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("should return the next most pending build in a group of jobs", func() {
-					build, found, err := pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"one"})
+					build, found, err := pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"serial-group"})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(build.ID).To(Equal(actualBuild.ID))
@@ -2232,98 +2218,51 @@ var _ = Describe("PipelineDB", func() {
 				buildThree, err := pipelineDB.CreateJobBuild(jobOneTwoConfig.Name)
 				Expect(err).NotTo(HaveOccurred())
 
-				otherBuildOne, err := otherPipelineDB.CreateJobBuild(jobOneConfig.Name)
-				Expect(err).NotTo(HaveOccurred())
-
-				otherBuildTwo, err := otherPipelineDB.CreateJobBuild(jobOneConfig.Name)
-				Expect(err).NotTo(HaveOccurred())
-
-				otherBuildThree, err := otherPipelineDB.CreateJobBuild(jobOneTwoConfig.Name)
-				Expect(err).NotTo(HaveOccurred())
-
 				_, err = dbConn.Query(`
 				UPDATE builds
 				SET inputs_determined = true
-				WHERE id in ($1, $2, $3, $4, $5, $6)
-			`, buildOne.ID, buildTwo.ID, buildThree.ID, otherBuildOne.ID, otherBuildTwo.ID, otherBuildThree.ID)
+				WHERE id in ($1, $2, $3)
+			`, buildOne.ID, buildTwo.ID, buildThree.ID)
 
 				Expect(err).NotTo(HaveOccurred())
 
-				build, found, err := pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"one"})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(buildOne.ID))
-
-				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"one", "two"})
+				build, found, err := pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"serial-group"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(build.ID).To(Equal(buildOne.ID))
 
-				scheduled, err := pipelineDB.UpdateBuildToScheduled(buildOne.ID)
+				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"serial-group", "really-different-group"})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(scheduled).To(BeTrue())
+				Expect(found).To(BeTrue())
+				Expect(build.ID).To(Equal(buildOne.ID))
+
+				_, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"nonexistent-group"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+
 				Expect(sqlDB.FinishBuild(buildOne.ID, db.StatusSucceeded)).To(Succeed())
 
-				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"one"})
+				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"serial-group"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(build.ID).To(Equal(buildTwo.ID))
 
-				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"one", "two"})
+				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"serial-group", "really-different-group"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(build.ID).To(Equal(buildTwo.ID))
 
-				scheduled, err = pipelineDB.UpdateBuildToScheduled(buildTwo.ID)
+				scheduled, err := pipelineDB.UpdateBuildToScheduled(buildTwo.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(scheduled).To(BeTrue())
 				Expect(sqlDB.FinishBuild(buildTwo.ID, db.StatusSucceeded)).To(Succeed())
 
-				build, found, err = otherPipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"one"})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(otherBuildOne.ID))
-
-				build, found, err = otherPipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"one", "two"})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(otherBuildOne.ID))
-
-				scheduled, err = otherPipelineDB.UpdateBuildToScheduled(otherBuildOne.ID)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(scheduled).To(BeTrue())
-				Expect(sqlDB.FinishBuild(otherBuildOne.ID, db.StatusSucceeded)).To(Succeed())
-
-				build, found, err = otherPipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"one"})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(otherBuildTwo.ID))
-
-				build, found, err = otherPipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"one", "two"})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(otherBuildTwo.ID))
-
-				scheduled, err = otherPipelineDB.UpdateBuildToScheduled(otherBuildTwo.ID)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(scheduled).To(BeTrue())
-				Expect(sqlDB.FinishBuild(otherBuildTwo.ID, db.StatusSucceeded)).To(Succeed())
-
-				build, found, err = otherPipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"one"})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(otherBuildThree.ID))
-				build, found, err = otherPipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"one", "two"})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(otherBuildThree.ID))
-
-				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"one"})
+				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"serial-group"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(build.ID).To(Equal(buildThree.ID))
 
-				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"one", "two"})
+				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"serial-group", "really-different-group"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(build.ID).To(Equal(buildThree.ID))
@@ -2331,17 +2270,6 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		Describe("GetRunningBuildsBySerialGroup", func() {
-			//TODO: Delete this before each after #114257887
-			BeforeEach(func() {
-				_, err := dbConn.Query(`
-				INSERT INTO jobs_serial_groups (serial_group, job_id) VALUES
-				('serial-group', (select j.id from jobs j, pipelines p where j.name = 'some-job' and j.pipeline_id = p.id and p.name = $1)),
-				('serial-group', (select j.id from jobs j, pipelines p where j.name = 'other-serial-group-job' and j.pipeline_id = p.id and p.name = $1)),
-				('different-serial-group', (select j.id from jobs j, pipelines p where j.name = 'different-serial-group-job' and j.pipeline_id = p.id and p.name = $1))
-			`, pipelineDB.GetPipelineName())
-				Expect(err).NotTo(HaveOccurred())
-			})
-
 			Describe("same job", func() {
 				var startedBuild, scheduledBuild db.Build
 
