@@ -77,8 +77,8 @@ attempt.
   pipelines as a first class citizen to CI! CF decided to switch and unify the
   disparate CI approaches to form a unified pipeline.
 
-  Unfortunately there were significant problems with some of the GoCD design
-  decisions that, in our opinion, make it very difficult to use.
+  Unfortunately there were some problems with some of the GoCD design decisions
+  that, in our opinion, make it very difficult to use.
 
   \list{
     Finding how to configure something is very difficult. There are two distinct
@@ -101,10 +101,9 @@ attempt.
     resources inside jobs in Concourse is explicit and user-defined. There are
     no surprises about when or where you'll have a resource available.
   }{
-    Our biggest frustration with GoCD was that it didn't bring anything new to
-    the world of CI. This may sound like an extremely boring (but well tested)
-    world but since nearly all software developers need to use it we should
-    always be trying to make it better.
+    Another frustration with GoCD was that - by the time it was released
+    publicly - it didn't bring anything new to the world of CI (first-class
+    pipelines non-withstanding (which are great)).
 
     If you'll indulge us tooting our own horn a second: we feel that Concourse
     brings some interesting new ideas to the table:
