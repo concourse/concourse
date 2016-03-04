@@ -189,6 +189,9 @@ func (db *SQLDB) SaveConfig(
 
 	defer tx.Rollback()
 
+	var created bool
+	var savedPipeline SavedPipeline
+
 	var existingConfig int
 	err = tx.QueryRow(`
 		SELECT COUNT(1)
@@ -202,74 +205,70 @@ func (db *SQLDB) SaveConfig(
 		return SavedPipeline{}, false, err
 	}
 
-	var savedPipeline SavedPipeline
-	if pausedState == PipelineNoChange {
+	if existingConfig == 0 {
+		if pausedState == PipelineNoChange {
+			pausedState = PipelinePaused
+		}
+
 		savedPipeline, err = scanPipeline(tx.QueryRow(`
-				UPDATE pipelines
-				SET config = $1, version = nextval('config_version_seq')
-				WHERE name = $2
-					AND version = $3
-					AND team_id = (
-						SELECT id FROM teams WHERE name = $4
-					)
-				RETURNING `+pipelineColumns+`
-			`, payload, pipelineName, from, teamName))
+		INSERT INTO pipelines (name, config, version, ordering, paused, team_id)
+		VALUES (
+			$1,
+			$2,
+			nextval('config_version_seq'),
+			(SELECT COUNT(1) + 1 FROM pipelines),
+			$3,
+			(SELECT id FROM teams WHERE name = $4)
+		)
+		RETURNING `+pipelineColumns+`
+		`, pipelineName, payload, pausedState.Bool(), teamName))
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
+
+		created = true
+
+		_, err = tx.Exec(fmt.Sprintf(`
+		CREATE TABLE pipeline_build_events_%[1]d ()
+		INHERITS (build_events);
+
+		CREATE INDEX pipeline_build_events_%[1]d_build_id ON pipeline_build_events_%[1]d (build_id);
+
+		CREATE UNIQUE INDEX pipeline_build_events_%[1]d_build_id_event_id ON pipeline_build_events_%[1]d (build_id, event_id);
+		`, savedPipeline.ID))
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
 	} else {
-		savedPipeline, err = scanPipeline(tx.QueryRow(`
-				UPDATE pipelines
-				SET config = $1, version = nextval('config_version_seq'), paused = $2
-				WHERE name = $3
-					AND version = $4
-					AND team_id = (
-						SELECT id FROM teams WHERE name = $5
-					)
-				RETURNING `+pipelineColumns+`
-			`, payload, pausedState.Bool(), pipelineName, from, teamName))
-	}
-	if err != nil && err != sql.ErrNoRows {
-		return SavedPipeline{}, false, err
-	}
-
-	created := false
-
-	if savedPipeline.ID == 0 {
-		if existingConfig == 0 {
-			// If there is no state to change from then start the pipeline out as
-			// paused.
-			if pausedState == PipelineNoChange {
-				pausedState = PipelinePaused
-			}
-
-			created = true
-
+		if pausedState == PipelineNoChange {
 			savedPipeline, err = scanPipeline(tx.QueryRow(`
-			INSERT INTO pipelines (name, config, version, ordering, paused, team_id)
-			VALUES (
-				$1,
-				$2,
-				nextval('config_version_seq'),
-				(SELECT COUNT(1) + 1 FROM pipelines),
-				$3,
-				(SELECT id FROM teams WHERE name = $4)
+			UPDATE pipelines
+			SET config = $1, version = nextval('config_version_seq')
+			WHERE name = $2
+			AND version = $3
+			AND team_id = (
+				SELECT id FROM teams WHERE name = $4
 			)
 			RETURNING `+pipelineColumns+`
-		`, pipelineName, payload, pausedState.Bool(), teamName))
-			if err != nil {
-				return SavedPipeline{}, false, err
-			}
-
-			_, err = tx.Exec(fmt.Sprintf(`
-				CREATE TABLE pipeline_build_events_%[1]d ()
-				INHERITS (build_events);
-
-				CREATE INDEX pipeline_build_events_%[1]d_build_id ON pipeline_build_events_%[1]d (build_id);
-
-				CREATE UNIQUE INDEX pipeline_build_events_%[1]d_build_id_event_id ON pipeline_build_events_%[1]d (build_id, event_id);
-			`, savedPipeline.ID))
-			if err != nil {
-				return SavedPipeline{}, false, err
-			}
+			`, payload, pipelineName, from, teamName))
 		} else {
+			savedPipeline, err = scanPipeline(tx.QueryRow(`
+			UPDATE pipelines
+			SET config = $1, version = nextval('config_version_seq'), paused = $2
+			WHERE name = $3
+			AND version = $4
+			AND team_id = (
+				SELECT id FROM teams WHERE name = $5
+			)
+			RETURNING `+pipelineColumns+`
+			`, payload, pausedState.Bool(), pipelineName, from, teamName))
+		}
+
+		if err != nil && err != sql.ErrNoRows {
+			return SavedPipeline{}, false, err
+		}
+
+		if savedPipeline.ID == 0 {
 			return SavedPipeline{}, false, ErrConfigComparisonFailed
 		}
 	}
