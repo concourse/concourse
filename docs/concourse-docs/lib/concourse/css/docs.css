@@ -30,8 +30,8 @@
 }
 
 #content ul li:before {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   background: #686868;
   border: 1px solid #686868;
   border-radius: 50%;
@@ -45,6 +45,45 @@
 
 #content ol li {
   list-style: decimal;
+}
+
+#content .toc li {
+  list-style: none;
+}
+
+.section-label {
+  margin-right: 10px;
+}
+
+#sidebar .section-label {
+    margin-right: 10px;
+    color: #686868;
+    font-weight: 300;
+    position: absolute;
+    left: -28px;
+    /* text-align: right; */
+    width: 50px;
+}
+
+#sidebar .toc > li > a > .section-label {
+  display: none;
+}
+
+.toc {
+  margin-bottom: 2em;
+  line-height: 1.4em;
+}
+#table_of_contents {
+  font-size: 1.1em;
+}
+#table_of_contents > li {
+  margin-bottom: 1em;
+}
+#table_of_contents > li > a {
+  font-weight: 600;
+}
+.toc p {
+  padding: 0;
 }
 
 #content code,
@@ -112,7 +151,7 @@
 #content .codeblock-title {
   line-height: 40px;
   background: #E6E7E8;
-  padding: 0 5px;
+  padding: 0 10px;
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
 }
@@ -123,6 +162,7 @@
 
 #content .codeblock-title code {
   background: transparent;
+  box-shadow: none;
   font-weight: bold;
   color: #379ADC;
 }
