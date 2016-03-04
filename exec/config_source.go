@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -28,13 +29,28 @@ type StaticConfigSource struct {
 func (configSource StaticConfigSource) FetchConfig(*SourceRepository) (atc.TaskConfig, error) {
 	taskConfig := *configSource.Plan.Config
 	if taskConfig.Params == nil {
-		taskConfig.Params = atc.Params{}
+		taskConfig.Params = map[string]string{}
 	}
 	for key, val := range configSource.Plan.Params {
-		taskConfig.Params[key] = val
+		strVal, err := configSource.toString(val)
+		if err != nil {
+			return atc.TaskConfig{}, err
+		}
+
+		taskConfig.Params[key] = strVal
 	}
 
 	return taskConfig, nil
+}
+
+func (configSource StaticConfigSource) toString(obj interface{}) (string, error) {
+	switch data := obj.(type) {
+	case string:
+		return data, nil
+	default:
+		str, err := json.Marshal(data)
+		return string(str), err
+	}
 }
 
 func (configSource StaticConfigSource) Warnings() []string {

@@ -29,7 +29,7 @@ var _ = Describe("ConfigSource", func() {
 				Type:   "docker",
 				Source: atc.Source{"a": "b"},
 			},
-			Params: atc.Params{
+			Params: map[string]string{
 				"task-config-param-key": "task-config-param-val-1",
 				"common-key":            "task-config-param-val-2",
 			},
