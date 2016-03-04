@@ -5,6 +5,8 @@ import "github.com/concourse/fly/rc"
 type FlyCommand struct {
 	Target rc.TargetName `short:"t" long:"target" description:"Concourse target name"`
 
+	Version func() `short:"v" long:"version" description:"Print the version of Fly and exit"`
+
 	Login LoginCommand `command:"login" alias:"l" description:"Authenticate with the target"`
 	Sync  SyncCommand  `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
 
