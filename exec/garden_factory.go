@@ -142,8 +142,8 @@ func (factory *gardenFactory) Task(
 	tags atc.Tags,
 	configSource TaskConfigSource,
 	resourceTypes atc.ResourceTypes,
-	inputMappings map[string]string,
-	outputMappings map[string]string,
+	inputMapping map[string]string,
+	outputMapping map[string]string,
 ) StepFactory {
 	workingDirectory := factory.taskWorkingDirectory(sourceName)
 	workerMetadata.WorkingDirectory = workingDirectory
@@ -159,8 +159,8 @@ func (factory *gardenFactory) Task(
 		workingDirectory,
 		factory.trackerFactory,
 		resourceTypes,
-		inputMappings,
-		outputMappings,
+		inputMapping,
+		outputMapping,
 	)
 }
 

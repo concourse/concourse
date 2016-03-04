@@ -47,8 +47,8 @@ type TaskStep struct {
 	artifactsRoot  string
 	trackerFactory TrackerFactory
 	resourceTypes  atc.ResourceTypes
-	inputMappings  map[string]string
-	outputMappings map[string]string
+	inputMapping  map[string]string
+	outputMapping map[string]string
 
 	repo *SourceRepository
 
@@ -70,8 +70,8 @@ func newTaskStep(
 	artifactsRoot string,
 	trackerFactory TrackerFactory,
 	resourceTypes atc.ResourceTypes,
-	inputMappings map[string]string,
-	outputMappings map[string]string,
+	inputMapping map[string]string,
+	outputMapping map[string]string,
 ) TaskStep {
 	return TaskStep{
 		logger:         logger,
@@ -85,8 +85,8 @@ func newTaskStep(
 		artifactsRoot:  artifactsRoot,
 		trackerFactory: trackerFactory,
 		resourceTypes:  resourceTypes,
-		inputMappings:  inputMappings,
-		outputMappings: outputMappings,
+		inputMapping:  inputMapping,
+		outputMapping: outputMapping,
 	}
 }
 
@@ -342,7 +342,7 @@ func (step *TaskStep) registerSource(config atc.TaskConfig) {
 
 	for _, output := range config.Outputs {
 		outputName := output.Name
-		if destinationName, ok := step.outputMappings[output.Name]; ok {
+		if destinationName, ok := step.outputMapping[output.Name]; ok {
 			outputName = destinationName
 		}
 
@@ -479,7 +479,7 @@ func (step *TaskStep) inputsOn(inputs []atc.TaskInputConfig, chosenWorker worker
 
 	for _, input := range inputs {
 		inputName := input.Name
-		if sourceName, ok := step.inputMappings[inputName]; ok {
+		if sourceName, ok := step.inputMapping[inputName]; ok {
 			inputName = sourceName
 		}
 

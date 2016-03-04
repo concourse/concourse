@@ -80,7 +80,7 @@ var _ = Describe("Factory Task", func() {
 					Plan: atc.PlanSequence{
 						{
 							Task: "some-task",
-							InputMappings: map[string]string{
+							InputMapping: map[string]string{
 								"bosh-release": "concourse-release",
 							},
 							TaskConfig: &atc.TaskConfig{
@@ -108,7 +108,7 @@ var _ = Describe("Factory Task", func() {
 					Name:          "some-task",
 					Pipeline:      "some-pipeline",
 					ResourceTypes: resourceTypes,
-					InputMappings: map[string]string{
+					InputMapping: map[string]string{
 						"bosh-release": "concourse-release",
 					},
 					Config: &atc.TaskConfig{
@@ -134,7 +134,7 @@ var _ = Describe("Factory Task", func() {
 					Plan: atc.PlanSequence{
 						{
 							Task: "some-task",
-							OutputMappings: map[string]string{
+							OutputMapping: map[string]string{
 								"bosh-release": "concourse-release",
 							},
 							TaskConfig: &atc.TaskConfig{
@@ -162,7 +162,7 @@ var _ = Describe("Factory Task", func() {
 					Name:          "some-task",
 					Pipeline:      "some-pipeline",
 					ResourceTypes: resourceTypes,
-					OutputMappings: map[string]string{
+					OutputMapping: map[string]string{
 						"bosh-release": "concourse-release",
 					},
 					Config: &atc.TaskConfig{

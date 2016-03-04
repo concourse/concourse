@@ -153,8 +153,8 @@ type PlanConfig struct {
 	Params Params `yaml:"params,omitempty" json:"params,omitempty" mapstructure:"params"`
 
 	// used to pass specific inputs/outputs as generic inputs/outputs in task config
-	InputMappings  map[string]string `yaml:"input_mappings,omitempty" json:"input_mappings,omitempty" mapstructure:"input_mappings"`
-	OutputMappings map[string]string `yaml:"output_mappings,omitempty" json:"output_mappings,omitempty" mapstructure:"output_mappings"`
+	InputMapping  map[string]string `yaml:"input_mapping,omitempty" json:"input_mapping,omitempty" mapstructure:"input_mapping"`
+	OutputMapping map[string]string `yaml:"output_mapping,omitempty" json:"output_mapping,omitempty" mapstructure:"output_mapping"`
 
 	// used by Put to specify params for the subsequent Get
 	GetParams Params `yaml:"get_params,omitempty" json:"get_params,omitempty" mapstructure:"get_params"`

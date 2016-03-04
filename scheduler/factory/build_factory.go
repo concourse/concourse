@@ -232,8 +232,8 @@ func (factory *buildFactory) constructUnhookedPlan(
 			Tags:           planConfig.Tags,
 			ResourceTypes:  resourceTypes,
 			Params:         planConfig.Params,
-			InputMappings:  planConfig.InputMappings,
-			OutputMappings: planConfig.OutputMappings,
+			InputMapping:  planConfig.InputMapping,
+			OutputMapping: planConfig.OutputMapping,
 		})
 	case planConfig.Try != nil:
 		nextStep, err := factory.constructPlanFromConfig(

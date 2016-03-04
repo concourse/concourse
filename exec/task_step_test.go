@@ -69,8 +69,8 @@ var _ = Describe("GardenFactory", func() {
 			tags           []string
 			configSource   *fakes.FakeTaskConfigSource
 			resourceTypes  atc.ResourceTypes
-			inputMappings  map[string]string
-			outputMappings map[string]string
+			inputMapping  map[string]string
+			outputMapping map[string]string
 
 			inStep *fakes.FakeStep
 			repo   *SourceRepository
@@ -99,8 +99,8 @@ var _ = Describe("GardenFactory", func() {
 				},
 			}
 
-			inputMappings = nil
-			outputMappings = nil
+			inputMapping = nil
+			outputMapping = nil
 		})
 
 		JustBeforeEach(func() {
@@ -114,8 +114,8 @@ var _ = Describe("GardenFactory", func() {
 				tags,
 				configSource,
 				resourceTypes,
-				inputMappings,
-				outputMappings,
+				inputMapping,
+				outputMapping,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -514,7 +514,7 @@ var _ = Describe("GardenFactory", func() {
 
 							BeforeEach(func() {
 								remappedInputSource = new(fakes.FakeArtifactSource)
-								inputMappings = map[string]string{"remapped-input": "remapped-input-src"}
+								inputMapping = map[string]string{"remapped-input": "remapped-input-src"}
 
 								configSource.FetchConfigReturns(atc.TaskConfig{
 									Run: atc.TaskRunConfig{
@@ -1086,7 +1086,7 @@ var _ = Describe("GardenFactory", func() {
 
 						Context("when output is remapped", func() {
 							BeforeEach(func() {
-								outputMappings = map[string]string{"generic-remapped-output": "specific-remapped-output"}
+								outputMapping = map[string]string{"generic-remapped-output": "specific-remapped-output"}
 								configSource.FetchConfigReturns(atc.TaskConfig{
 									Run: atc.TaskRunConfig{
 										Path: "ls",
