@@ -8,6 +8,7 @@ image_resource:
 inputs:
 - name: bin
 - name: concourse
+- name: final-version
 
 outputs:
 - name: cli-artifacts
