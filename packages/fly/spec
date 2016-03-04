@@ -2,6 +2,7 @@
 name: fly
 
 dependencies:
+  - concourse_version
   - golang
 
 files:
