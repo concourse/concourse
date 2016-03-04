@@ -23,10 +23,10 @@
     WHERE relname = 'build_events';
   }
 
-  The root of the issue is the amount of data in the `build_events` table.  If
-  you don't have many build logs then then you can probably just upgrade and
-  not worry about the rest of this email. If the upgrade is going to take too
-  long then we need to find some way to reduce the rows in that table.
+  The root of the issue is the amount of data in the \code{build_events} table.
+  If you don't have many build logs then then you can probably just upgrade and
+  not worry about the rest of this. If the upgrade is going to take too long
+  then you'll need to find some way to reduce the rows in that table.
 
   Before you delete any data from the system you should make sure to take a
   \hyperlink{http://www.postgresql.org/docs/9.1/static/backup.html}{backup of
