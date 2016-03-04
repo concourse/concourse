@@ -1270,12 +1270,12 @@ func (pdb *pipelineDB) updateSerialGroupsForJob(jobName string, serialGroups []s
 }
 
 func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error) {
-	serialGroupNames := []interface{}{}
-	refs := []string{}
-	serialGroupNames = append(serialGroupNames, pdb.ID)
+	args := []interface{}{pdb.ID}
+	refs := make([]string, len(serialGroups))
+
 	for i, serialGroup := range serialGroups {
-		serialGroupNames = append(serialGroupNames, serialGroup)
-		refs = append(refs, fmt.Sprintf("$%d", i+2))
+		args = append(args, serialGroup)
+		refs[i] = fmt.Sprintf("$%d", i+2)
 	}
 
 	return scanBuild(pdb.conn.QueryRow(`
@@ -1290,16 +1290,16 @@ func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGr
 			AND j.pipeline_id = $1
 		ORDER BY b.id ASC
 		LIMIT 1
-	`, serialGroupNames...))
+	`, args...))
 }
 
 func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error) {
-	serialGroupNames := []interface{}{}
-	refs := []string{}
-	serialGroupNames = append(serialGroupNames, pdb.ID)
+	args := []interface{}{pdb.ID}
+	refs := make([]string, len(serialGroups))
+
 	for i, serialGroup := range serialGroups {
-		serialGroupNames = append(serialGroupNames, serialGroup)
-		refs = append(refs, fmt.Sprintf("$%d", i+2))
+		args = append(args, serialGroup)
+		refs[i] = fmt.Sprintf("$%d", i+2)
 	}
 
 	rows, err := pdb.conn.Query(`
@@ -1315,7 +1315,7 @@ func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroup
 				(b.scheduled = true AND b.status = 'pending')
 			)
 			AND j.pipeline_id = $1
-	`, serialGroupNames...)
+	`, args...)
 
 	if err != nil {
 		return nil, err
