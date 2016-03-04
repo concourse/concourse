@@ -79,6 +79,12 @@ var _ = Describe("Config API", func() {
 							Passed:   []string{"job-1", "job-2"},
 							Params: atc.Params{
 								"some-param": "some-value",
+								"nested": map[string]interface{}{
+									"key": "value",
+									"nested": map[string]interface{}{
+										"key": "value",
+									},
+								},
 							},
 						},
 						{
@@ -94,6 +100,12 @@ var _ = Describe("Config API", func() {
 							Resource: "some-resource",
 							Params: atc.Params{
 								"some-param": "some-value",
+								"nested": map[string]interface{}{
+									"key": "value",
+									"nested": map[string]interface{}{
+										"key": "value",
+									},
+								},
 							},
 						},
 					},
