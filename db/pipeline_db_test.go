@@ -2236,10 +2236,6 @@ var _ = Describe("PipelineDB", func() {
 				Expect(found).To(BeTrue())
 				Expect(build.ID).To(Equal(buildOne.ID))
 
-				_, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"nonexistent-group"})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
-
 				Expect(sqlDB.FinishBuild(buildOne.ID, db.StatusSucceeded)).To(Succeed())
 
 				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"serial-group"})
