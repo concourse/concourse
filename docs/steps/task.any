@@ -30,10 +30,11 @@ plan:
 
 Only if both tasks succeed will the build go green.
 
-When a task completes, its resulting file tree will be made available as a
-source named after the task. This allows subsequent steps to process the
-result of a task. For example, the follwing plan pulls down a repo, makes a
-commit to it, and pushes the commit to another repo:
+When a task completes, the files in its declared outputs will be made avaliable
+to subsequent steps. This allows those subsequent steps to process the result
+of a task. For example, the following plan pulls down a repo, makes a commit to
+it, and pushes the commit to another repo (the task must have an output called
+\code{repo-with-commit}):
 
 \codeblock{yaml}{
 plan:
@@ -42,7 +43,7 @@ plan:
   file: my-repo/commit.yml
 - put: other-repo
   params:
-    repository: commit/my-repo
+    repository: repo-with-commit
 }
 
 \define-attribute{task: string}{
