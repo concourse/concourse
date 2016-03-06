@@ -1,11 +1,15 @@
 ---
 platform: linux
 
-image: docker:///concourse/concourse-ci
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/concourse-ci
 
 inputs:
 - name: concourse
 - name: version
+- name: final-version
 
 outputs:
 - name: candidate-release

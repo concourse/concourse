@@ -3,21 +3,21 @@ name: concourse
 
 releases:
   - name: concourse
-    url: https://bosh.io/d/github.com/concourse/concourse?v=0.58.0
-    sha1: b922b3595d2eedbc300c68a0e406b4a299af3738
+    url: https://bosh.io/d/github.com/concourse/concourse?v=0.74.0
+    sha1: c99ef709e9d4468ac25cca31dd5be1444417011d
   - name: garden-linux
-    url: https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.275.0
-    sha1: 7eaf67ce4ded73bcced92fa310fa82f68667c96a
+    url: https://bosh.io/d/github.com/cloudfoundry-incubator/garden-linux-release?v=0.334.0
+    sha1: 85170c5089fa4ff317f139c2f1da024860dbea85
   - name: bosh-aws-cpi
-    url: https://bosh.io/d/github.com/cloudfoundry-incubator/bosh-aws-cpi-release?v=7
-    sha1: 6545812c1c8245331b8c420f886dafd24b866eed
+    url: https://bosh.io/d/github.com/cloudfoundry-incubator/bosh-aws-cpi-release?v=44
+    sha1: a1fe03071e8b9bf1fa97a4022151081bf144c8bc
 
 resource_pools:
   - name: concourse
     network: concourse
     stemcell:
-      url: https://bosh.io/d/stemcells/bosh-aws-xen-hvm-ubuntu-trusty-go_agent?v=2950
-      sha1: 6489bff150d1ecbd12fda30267896f041dd279f0
+      url: https://bosh.io/d/stemcells/bosh-aws-xen-hvm-ubuntu-trusty-go_agent?v=3189
+      sha1: 959736b3c9aa9c649f8299c6192dc9840cf4a7dd
     cloud_properties:
       instance_type: m3.xlarge
       availability_zone: us-west-1a
@@ -84,7 +84,7 @@ jobs:
           host: 127.0.0.1
 
 cloud_provider:
-  template: {name: cpi, release: bosh-aws-cpi}
+  template: {name: aws_cpi, release: bosh-aws-cpi}
 
   ssh_tunnel:
     host: ELASTIC_IP

@@ -50,19 +50,20 @@ EOF
     # TODO: handle multiple ATCs
     exec chpst -u vcap:vcap /var/vcap/packages/tsa/bin/tsa \
       <% link("atc").each do |node| %> \
-      -atcAPIURL=<%= "http://#{node.address}:#{node.p("port")}" %> \
+      --atc-url <%= "http://#{node.address}:#{node.p("atc.web_bind_port")}" %> \
       <% end %> \
-      -forwardHost=<%= p("tsa.forward_host", my_addr) %> \
+      --peer-ip <%= my_ip %> \
+      --bind-port <%= p("tsa.listen_port") %> \
       <% if p("tsa.host_key") != "" %> \
-      -hostKey=/var/vcap/jobs/tsa/config/host_key \
+      --host-key /var/vcap/jobs/tsa/config/host_key \
       <% else %> \
-      -hostKey=/var/vcap/packages/generated_tsa_host_key/id_rsa \
+      --host-key /var/vcap/packages/generated_tsa_host_key/id_rsa \
       <% end %> \
-      -authorizedKeys=/var/vcap/jobs/tsa/config/authorized_keys \
-      -heartbeatInterval=<%= p("tsa.heartbeat_interval") %> \
-      -yellerAPIKey=<%= esc(p("tsa.yeller.api_key")) %> \
-      -sessionSigningKey $SIGNING_KEY \
-      -yellerEnvironment=<%= esc(p("tsa.yeller.environment_name")) %> \
+      --authorized-keys /var/vcap/jobs/tsa/config/authorized_keys \
+      --session-signing-key $SIGNING_KEY \
+      --heartbeat-interval <%= p("tsa.heartbeat_interval") %> \
+      --yeller-api-key <%= esc(p("tsa.yeller.api_key")) %> \
+      --yeller-environment <%= esc(p("tsa.yeller.environment_name")) %> \
       1>>$LOG_DIR/tsa.stdout.log \
       2>>$LOG_DIR/tsa.stderr.log
 

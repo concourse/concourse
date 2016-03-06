@@ -56,8 +56,6 @@ case $1 in
       --bind-port <%= p("atc.web_bind_port") %> \
       --peer-url <%= p("atc.peer_url", "http://#{my_addr}:#{p("atc.web_bind_port")}") %> \
       --external-url <%= esc(p("atc.external_url")) %> \
-      --templates /var/vcap/packages/atc/templates \
-      --public /var/vcap/packages/atc/public \
       --postgres-data-source <%= esc("postgres://#{postgres_role_name}:#{postgres_role_password}@#{postgres_addr}:#{postgres_port}/#{postgres_database}?sslmode=disable") %> \
       <% if p("atc.publicly_viewable") %> \
       --publicly-viewable \
@@ -90,6 +88,8 @@ case $1 in
       --github-auth-client-secret <%= esc(p("atc.github_auth.client_secret")) %> \
       --session-signing-key $SIGNING_KEY \
       --resource-checking-interval <%= p("atc.default_check_interval") %> \
+      --old-resource-grace-period <%= p("atc.old_resource_grace_period") %> \
+      --resource-cache-cleanup-interval <%= p("atc.resource_cache_cleanup_interval") %> \
       --cli-artifacts-dir /var/vcap/packages/fly \
       --yeller-api-key <%= esc(p("atc.yeller.api_key")) %> \
       --yeller-environment <%= esc(p("atc.yeller.environment_name")) %> \

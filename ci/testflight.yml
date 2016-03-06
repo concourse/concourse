@@ -1,6 +1,18 @@
 ---
 platform: linux
-image: docker:///concourse/testflight
+
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/atc-ci
+
+params:
+  ATC_URL: ~
+  BASIC_AUTH_USERNAME:
+  BASIC_AUTH_PASSWORD:
+  GITHUB_AUTH_USERNAME:
+  GITHUB_AUTH_PASSWORD:
+  PIPELINES_PUBLICLY_VIEWABLE:
 
 inputs:
   - name: concourse

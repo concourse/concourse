@@ -6,7 +6,9 @@ export PATH=$GOPATH/bin:$PATH
 
 DEVELOP=$PWD/concourse-develop
 
-cd concourse-master
+git clone ./concourse-master ./concourse-merged
+
+cd concourse-merged
 
 git remote add local $DEVELOP
 

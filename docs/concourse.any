@@ -28,6 +28,7 @@ requests.
 \include-section{./concourse-vs.any}
 \include-section{./getting-started.any}
 \include-section{./concepts.any}
+\include-section{./pipeline-mechanics.any}
 \include-section{./examples.any}
 \include-section{./fly-cli.any}
 \include-section{./running-tasks.any}
@@ -35,6 +36,7 @@ requests.
 \include-section{./build-plans.any}
 \include-section{./serious/bosh.any}
 \include-section{./serious/worker-pools.any}
+\include-section{./restricting-access.any}
 \include-section{./implementing-resources.any}
 \include-section{./metrics.any}
 \include-section{./release-notes.any}

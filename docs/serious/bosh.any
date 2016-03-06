@@ -3,10 +3,23 @@
 \title{Deploying with BOSH}{deploying-with-bosh}
 
 Once you start needing more workers and \italic{really} caring about your CI
-deployment, it's best to manage it with BOSH proper.
+deployment, you may want to consider deploying and managing Concourse with
+\hyperlink{https://bosh.io}{BOSH}.
 
-Using BOSH gives you a self-healing, predictable environment, that can be
-scaled up or down just by changing numbers in your deployment manifest.
+Using BOSH gives you a self-healing, predictable environment that can be
+scaled up or down just by changing numbers in a \code{.yml} file and running
+\code{bosh deploy}. It's not only for spinning up the initial deployment, but
+for managing it and upgrading it the next day.
+
+If you grok Concourse and agree with a lot of its opinions, then you'll
+probably enjoy BOSH, though the learning curve may seem a bit steep at first.
+That being said, you can deploy Concourse however you want; it doesn't require
+BOSH or integrate with it at all once it's running.
+
+The \hyperlink{https://github.com/concourse/concourse}{Concourse repo} is a
+\hyperlink{https://github.com/cloudfoundry/bosh}{BOSH} release containing
+everything necessary to deploy to arbitrary infrastructures (or your laptop)
+with largely the same configuration.
 
 The \hyperlink{https://bosh.io/docs}{BOSH documentation} outlines the
 concepts, and how to bootstrap on various infrastructures.
@@ -131,6 +144,13 @@ concepts, and how to bootstrap on various infrastructures.
     for more information about the properties to set. For everything else, e.g.
     \code{resource_pools} and other non-Concourse-specific configuration,
     consult the rest of BOSH's \hyperlink{http://bosh.io/docs}{documentation}.
+    
+    The one thing that you'll \bold{definitely} need to add to your manifest
+    is basic authentication credentials. The server will fail to start without
+    an authentication mechanism set. We don't provide any defaults here to stop
+    someone accidentally deploying with those defaults and then never changing
+    them. The properties are called \code{atc.basic_auth_username} and
+    \code{atc.basic_auth_password}.
 
     Once you have a deployment manifest, deploying Concourse should simply be:
 

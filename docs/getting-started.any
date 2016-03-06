@@ -2,11 +2,6 @@
 
 \title{Getting Started}{getting-started}
 
-The \hyperlink{https://github.com/concourse/concourse}{Concourse repo} is a
-\hyperlink{https://github.com/cloudfoundry/bosh}{BOSH} release containing
-everything necessary to deploy to arbitrary infrastructures (or your laptop)
-with largely the same configuration.
-
 The easiest way to get a Concourse instance going so that you can learn the
 concepts first-hand is by using the pre-built Vagrant boxes.
 
@@ -29,6 +24,16 @@ page} where there are links to binaries for common platforms.
   with \code{install $DEST path/to/fly}.
 }
 
+Once you have \code{fly}, you'll want to target your local Virtualbox like so:
+
+\codeblock{bash}{
+$ fly -t lite login -c http://192.168.100.4:8080
+}
+
+This will save the target as \code{lite}, which we'll use for all later
+commands that we want to run against the local box by using the same \code{-t}
+flag.
+
 Out of the box, Concourse doesn't have any \reference{pipelines} configured.
 That's boring. Here, have this YAML!
 
@@ -39,7 +44,9 @@ jobs:
   - task: say-hello
     config:
       platform: linux
-      image: "docker:///ubuntu"
+      image_resource:
+        type: docker-image
+        source: \{repository: ubuntu\}
       run:
         path: echo
         args: ["Hello, world!"]
@@ -49,7 +56,7 @@ Dump that into a \code{.yml} file somewhere, and run this random command on
 your machine:
 
 \codeblock{bash}{
-$ fly set-pipeline -p really-cool-pipeline -c somewhere.yml
+$ fly -t lite set-pipeline -p really-cool-pipeline -c somewhere.yml
 }
 
 If you refresh the \hyperlink{http://192.168.100.4:8080}{main page}, you should
@@ -61,19 +68,21 @@ reveal the pipelines sidebar via the hamburger icon in the top left and press
 "play", or run:
 
 \codeblock{bash}{
-$ fly unpause-pipeline -p really-cool-pipeline
+$ fly -t lite unpause-pipeline -p really-cool-pipeline
 }
 
 You can always fetch the current configuration of a pipeline by running:
 
 \codeblock{bash}{
-$ fly get-pipeline -p really-cool-pipeline
+$ fly -t lite get-pipeline -p really-cool-pipeline
 }
 
 This pipeline configuration so far describes a single \reference{jobs}{job},
 whose \reference{build-plans}{\code{plan}} has a single
-\reference{running-tasks}{task}. The task simply boots up, prints \code{Hello,
-world!}, and completes successfully.
+\reference{running-tasks}{task}. There are no resources for this job to
+automatically trigger so we'll have to give it a helping hand. Click the job
+and then press the plus button in the top right. The task boots up, prints
+\code{Hello, world!}, and completes successfully.
 
 Not very useful? Well, time to learn how to write your own. There are a few
 ways to approach learning Concourse:

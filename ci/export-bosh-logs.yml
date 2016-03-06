@@ -1,12 +1,21 @@
 ---
 platform: linux
-image: docker:///concourse/concourse-ci
+
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/concourse-ci
 
 inputs:
-  - name: concourse
-  - name: bosh-lites
+- name: concourse
+- name: bosh-lites
+- name: deployments
+
+outputs:
+- name: exported-logs
 
 params:
+  MANIFEST:
   BOSH_USER:
   BOSH_PASSWORD:
 

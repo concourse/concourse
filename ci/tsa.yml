@@ -1,7 +1,10 @@
 ---
 platform: linux
 
-image: docker:///concourse/tsa-ci
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/tsa-ci
 
 inputs:
   - name: concourse

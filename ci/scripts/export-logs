@@ -3,11 +3,14 @@
 
 set -e -x
 
+EXPORTED_LOGS=$PWD/exported-logs
+
 bosh target $(cat bosh-lites/metadata)
 
 director_uuid=$(bosh status --uuid)
 
-cat concourse/src/github.com/concourse/testflight/deployment.yml | sed "s/director_uuid: ~/director_uuid: $director_uuid/g" > deployment.yml
+cat $MANIFEST | sed "s/director_uuid: ~/director_uuid: $director_uuid/g" > deployment.yml
 
-bosh -d deployment.yml logs concourse 0 
+bosh -d deployment.yml logs concourse 0 --only '*.log,**/*.log'
 
+mv concourse*.tgz $EXPORTED_LOGS

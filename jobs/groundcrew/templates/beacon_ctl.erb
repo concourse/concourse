@@ -85,6 +85,9 @@ case $1 in
         -i /var/vcap/packages/generated_worker_key/id_rsa \
         <% end %> \
         -o UserKnownHostsFile=${KNOWN_HOSTS_FILE} \
+        -o ConnectTimeout=30 \
+        -o ServerAliveInterval=8 \
+        -o ServerAliveCountMax=3 \
         <% if p("groundcrew.garden.forward_address", nil) %> \
           -R0.0.0.0:7777:<%= p("groundcrew.garden.forward_address") %> \
           <% if p("groundcrew.baggageclaim.forward_address", nil) %> \

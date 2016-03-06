@@ -2,12 +2,12 @@
 
 set -e -x
 
-function abort() {
-  echo "$@" >&2
-  exit 1
-}
+BUILT_DOCS=$PWD/built-docs
 
 cd concourse/docs/
 
 bundle install
-bundle exec anatomy -i concourse.any -o out
+bundle exec anatomy -i concourse.any -o $BUILT_DOCS
+
+cp Staticfile $BUILT_DOCS
+cp manifest.yml $BUILT_DOCS

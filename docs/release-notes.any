@@ -2,6 +2,18 @@
 
 \title{Release Notes}{release-notes}
 
+\include-section{./release-notes/v0.74.0.any}
+\include-section{./release-notes/v0.73.0.any}
+\include-section{./release-notes/v0.72.1.any}
+\include-section{./release-notes/v0.72.0.any}
+\include-section{./release-notes/v0.71.1.any}
+\include-section{./release-notes/v0.71.0.any}
+\include-section{./release-notes/v0.70.0.any}
+\include-section{./release-notes/v0.69.1.any}
+\include-section{./release-notes/v0.69.0.any}
+\include-section{./release-notes/v0.68.0.any}
+\include-section{./release-notes/v0.67.1.any}
+\include-section{./release-notes/v0.67.0.any}
 \include-section{./release-notes/v0.66.1.any}
 \include-section{./release-notes/v0.66.0.any}
 \include-section{./release-notes/v0.65.1.any}

@@ -13,8 +13,11 @@ groups:
   - minor
   - patch
   - rc
+  - bosh-rc
+  - bin-rc
   - shipit
   - testflight
+  - bin-testflight
 
 - name: publish
   jobs:
@@ -25,6 +28,7 @@ groups:
   - push-departures
   - push-docs
   - virtualbox-box
+  - virtualbox-testflight
   - release-virtualbox-box
   - aws-box
   - release-aws-box
@@ -69,11 +73,12 @@ jobs:
   - aggregate:
     - task: go-unit
       file: concourse/ci/atc-go.yml
-      config:
-        params:
-          GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
+      params:
+        GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
     - task: js-unit
       file: concourse/ci/atc-js.yml
+      attempts: 3
+      timeout: 5m
 
 - name: baggageclaim
   public: true
@@ -109,22 +114,6 @@ jobs:
   - task: build
     file: concourse/ci/tsa.yml
 
-- name: rc
-  public: true
-  serial_groups: [version]
-  plan:
-  - get: concourse
-    trigger: true
-    passed: [atc, fly, blackbox, tsa, jettison, baggageclaim]
-  - get: version
-    params: {pre: rc}
-  - task: create-candidate-release
-    file: concourse/ci/create-candidate-release.yml
-  - put: candidate-release
-    params: {from: candidate-release/concourse-(.*).tgz}
-  - put: version
-    params: {file: version/number}
-
 - name: major
   public: true
   serial_groups: [version]
@@ -154,6 +143,85 @@ jobs:
   - put: version
     params: {file: version/number}
 
+- name: rc
+  public: true
+  serial_groups: [version]
+  plan:
+  - get: concourse
+    trigger: true
+    passed: [atc, fly, go-concourse, blackbox, tsa, jettison, baggageclaim]
+  - get: garden-linux
+  - get: version
+    params: {pre: rc}
+  - put: version
+    params: {file: version/number}
+
+- name: bosh-rc
+  public: true
+  plan:
+  - get: concourse
+    passed: [rc]
+    trigger: true
+  - get: garden-linux
+    passed: [rc]
+    trigger: true
+  - get: version
+    passed: [rc]
+    trigger: true
+  - get: final-version
+    resource: version
+    passed: [rc]
+    params: {bump: final}
+    trigger: true
+  - task: create-candidate-release
+    file: concourse/ci/create-candidate-release.yml
+  - put: candidate-release
+    params: {file: candidate-release/concourse-*.tgz}
+
+- name: bin-rc
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse
+      passed: [rc]
+      trigger: true
+    - get: version
+      passed: [rc]
+      trigger: true
+    - get: final-version
+      resource: version
+      passed: [rc]
+      params: {bump: final}
+      trigger: true
+    - get: garden-linux
+      passed: [rc]
+      trigger: true
+    - get: bin
+      trigger: true
+    - get: houdini
+      trigger: true
+    - get: garden-linux-src
+  - task: checkout-release-tag
+    file: concourse/ci/checkout-garden-linux.yml
+  - task: build-cli-artifacts
+    file: bin/ci/build-cli-artifacts.yml
+  - aggregate:
+    - task: build-linux
+      file: bin/ci/build-linux.yml
+    - task: build-darwin
+      file: bin/ci/build-darwin.yml
+    - task: build-windows
+      file: bin/ci/build-windows.yml
+  - task: build-release
+    file: bin/ci/build-release.yml
+  - put: bin-rc
+    params:
+      name: release/name
+      tag: release/tag
+      body: release/body
+      globs: [release/artifacts/*]
+
 - name: provision
   serial: true
   plan:
@@ -163,7 +231,7 @@ jobs:
     file: deployments/lite/ci/provision-bosh-lite.yml
   - put: bosh-lites
     params:
-      add: provision/lock
+      add: bosh-lite-lock
 
 - name: teardown
   serial: true
@@ -193,40 +261,105 @@ jobs:
     do:
     - aggregate:
       - get: concourse
-        passed: [rc]
+        passed: [bosh-rc]
         trigger: true
       - get: candidate-release
-        passed: [rc]
+        passed: [bosh-rc]
         trigger: true
       - get: version
-        passed: [rc]
+        passed: [bosh-rc]
         trigger: true
       - get: garden-linux-release
+        passed: [bosh-rc]
         trigger: true
         resource: garden-linux
       - get: lite-stemcell
+      - get: deployments
     - put: lite-deployment
       params:
+        manifest: deployments/lite/ci/manifests/no_auth_deployment.yml
         target_file: bosh-lites/metadata
-        manifest: concourse/src/github.com/concourse/testflight/deployment.yml
         stemcells: [lite-stemcell/*.tgz]
         releases:
           - garden-linux-release/*.tgz
           - candidate-release/concourse-*.tgz
-    - task: build
+    - task: no-auth-build
       file: concourse/ci/testflight.yml
+      params: {ATC_URL: "http://10.244.15.2:8080"}
       timeout: 1h
-    on_failure:
-      do:
-        - task: export-bosh-logs
-          file: concourse/ci/export-bosh-logs.yml
-          config:
+      on_failure:
+        do:
+          - task: export-bosh-logs
+            file: concourse/ci/export-bosh-logs.yml
             params:
+              MANIFEST: deployments/lite/ci/manifests/no_auth_deployment.yml
               BOSH_USER: admin
               BOSH_PASSWORD: admin
-        - put: testflight-logs
-          params:
-            from: concourse\.(.*).tgz
+          - put: testflight-logs
+            params: {file: exported-logs/concourse.*.tgz}
+
+- name: bin-testflight
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: bin
+      passed: [bin-rc]
+      trigger: true
+    - get: concourse
+      passed: [bin-rc]
+      trigger: true
+    - get: linux-binary
+      resource: bin-rc
+      passed: [bin-rc]
+      trigger: true
+    - get: version
+      passed: [bin-rc]
+      trigger: true
+  - task: no-auth
+    file: bin/ci/testflight.yml
+    privileged: true
+    timeout: 1h
+  - aggregate:
+    - task: basic-auth-public
+      file: bin/ci/testflight.yml
+      params:
+        BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
+        BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+        PIPELINES_PUBLICLY_VIEWABLE: true
+      privileged: true
+      timeout: 1h
+    - task: basic-auth-private
+      file: bin/ci/testflight.yml
+      params:
+        BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
+        BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+        PIPELINES_PUBLICLY_VIEWABLE: false
+      privileged: true
+      timeout: 1h
+  - aggregate:
+    - task: github-auth-public
+      file: bin/ci/testflight.yml
+      params:
+        GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+        GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+        GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
+        GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-public-client-id}}
+        GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-public-client-secret}}
+        PIPELINES_PUBLICLY_VIEWABLE: true
+      privileged: true
+      timeout: 1h
+    - task: github-auth-private
+      file: bin/ci/testflight.yml
+      params:
+        GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+        GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+        GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
+        GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-private-client-id}}
+        GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-private-client-secret}}
+        PIPELINES_PUBLICLY_VIEWABLE: false
+      privileged: true
+      timeout: 1h
 
 - name: deploy
   serial: true
@@ -234,17 +367,20 @@ jobs:
   - aggregate:
     - get: concourse
       params: {submodules: none}
-      passed: [testflight]
-      trigger: true
-    - get: candidate-release
-      passed: [testflight]
+      passed: [testflight, bin-testflight]
       trigger: true
     - get: version
+      passed: [testflight, bin-testflight]
+      trigger: true
+    - get: candidate-release
       passed: [testflight]
       trigger: true
     - get: garden-linux-release
       resource: garden-linux
       passed: [testflight]
+      trigger: true
+    - get: bin-rc
+      passed: [bin-testflight]
       trigger: true
     - get: bosh-stemcell
       resource: aws-stemcell
@@ -252,6 +388,7 @@ jobs:
       trigger: true
   - put: aws-deployment
     params:
+      cleanup: true
       manifest: deployments/ci/deployments/concourse.yml
       stemcells: [bosh-stemcell/*.tgz]
       releases:
@@ -259,11 +396,10 @@ jobs:
         - candidate-release/concourse-*.tgz
   - task: emit-yeller-deploy
     file: concourse/ci/emit-yeller-deploy.yml
-    config:
-      params:
-        YELLER_API_KEY: {{yeller-api-key}}
-        YELLER_USER: {{yeller-user}}
-        YELLER_ENVIRONMENT: {{yeller-environment-name}}
+    params:
+      YELLER_API_KEY: {{yeller-api-key}}
+      YELLER_USER: {{yeller-user}}
+      YELLER_ENVIRONMENT: {{yeller-environment-name}}
   - put: tracker
     params: {repos: [concourse]}
 
@@ -279,7 +415,7 @@ jobs:
   - aggregate:
     - get: concourse
       passed: [deploy]
-      params: {submodules: none, fetch: [master]}
+      params: {submodules: none}
     - get: candidate-release
       passed: [deploy]
     - get: version
@@ -288,6 +424,8 @@ jobs:
     - get: garden-linux-release
       passed: [deploy]
       resource: garden-linux
+    - get: bin-rc
+      passed: [deploy]
     - get: deployments
   - task: finalize-release
     file: concourse/ci/finalize-release.yml
@@ -296,11 +434,11 @@ jobs:
       params: {file: version/number}
     - put: concourse-master
       params:
-        repository: finalize-release/concourse
+        repository: final-release-repo
         tag: version/number
         tag_prefix: v
     - put: final-release
-      params: {from: finalize-release/concourse-(.*).tgz}
+      params: {file: final-release-tarball/concourse-*.tgz}
 
 - name: virtualbox-box
   public: true
@@ -319,29 +457,55 @@ jobs:
       passed: [shipit]
       trigger: true
     - get: concourse-lite
-    - get: deployments
   - task: build-box
     privileged: true
-    file: deployments/buildbox/ci/build-boxes.yml
+    file: concourse-lite/ci/build-boxes.yml
+    tags: [hetzner]
   - put: virtualbox-box
-    params: {from: build-box/concourse-lite/concourse-virtualbox-ubuntu-trusty-(.*).box}
+    params: {file: built-box/*.box}
+
+- name: virtualbox-testflight
+  public: true
+  serial: true
+  plan:
+  - put: hetzner
+    params: {acquire: true}
+  - do:
+    - aggregate:
+      - get: virtualbox-box
+        passed: [virtualbox-box]
+        trigger: true
+      - get: concourse
+        passed: [virtualbox-box]
+      - get: concourse-lite
+        passed: [virtualbox-box]
+      - get: final-release
+        passed: [virtualbox-box]
+    - task: testflight
+      privileged: true
+      file: concourse-lite/ci/testflight.yml
+      tags: [hetzner]
+    ensure:
+      put: hetzner
+      params: {release: hetzner}
 
 - name: release-virtualbox-box
   public: true
   serial: true
   plan:
   - aggregate:
-    - get: concourse
-      passed: [virtualbox-box]
     - get: virtualbox-box
-      passed: [virtualbox-box]
+      passed: [virtualbox-testflight]
+      trigger: true
+    - get: concourse
+      passed: [virtualbox-testflight]
     - get: final-release
-      passed: [virtualbox-box]
+      passed: [virtualbox-testflight]
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
   - put: virtualbox-box-cloud
     params:
-      description: build-release-notes/notes.md
+      description: release-notes/notes.md
       release: true
       url: virtualbox-box/url
       version: virtualbox-box/version
@@ -365,28 +529,28 @@ jobs:
   - task: build-box
     privileged: true
     file: concourse-lite/ci/build-aws.yml
-    config:
-      params:
-        AWS_ACCESS_KEY_ID: {{aws-box-access-key}}
-        AWS_SECRET_ACCESS_KEY: {{aws-box-secret-key}}
+    params:
+      AWS_ACCESS_KEY_ID: {{aws-box-access-key}}
+      AWS_SECRET_ACCESS_KEY: {{aws-box-secret-key}}
   - put: aws-box
-    params: {from: build-box/concourse-lite/concourse-aws-ubuntu-trusty-(.*).box}
+    params: {file: built-box/*.box}
 
 - name: release-aws-box
   serial: true
   plan:
   - aggregate:
-    - get: concourse
-      passed: [aws-box]
     - get: aws-box
       passed: [aws-box]
+      trigger: true
+    - get: concourse
+      passed: [aws-box, virtualbox-testflight]
     - get: final-release
-      passed: [aws-box]
+      passed: [aws-box, virtualbox-testflight]
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
   - put: aws-box-cloud
     params:
-      description: build-release-notes/notes.md
+      description: release-notes/notes.md
       release: true
       url: aws-box/url
       version: aws-box/version
@@ -401,16 +565,15 @@ jobs:
     - get: concourse
       params: {submodules: none}
       resource: concourse-develop
-  - task: build
+  - task: build-docs
     file: concourse/ci/build-docs.yml
-    config:
-      params:
-        ANALYTICS_ID: {{analytics-id}}
-        VERSION_FILE: version/number
+    params:
+      ANALYTICS_ID: {{analytics-id}}
+      VERSION_FILE: version/number
   - put: concourse-docs
     params:
       current_app_name: docs
-      manifest: build/concourse/docs/manifest.yml
+      manifest: built-docs/manifest.yml
 
 - name: push-departures
   serial: true
@@ -431,6 +594,9 @@ jobs:
     - get: garden-linux
       passed: [shipit]
       trigger: true
+    - get: bin-rc
+      passed: [shipit]
+      trigger: true
     - get: concourse
       params: {submodules: none}
       passed: [shipit]
@@ -448,26 +614,32 @@ jobs:
       config:
         platform: linux
 
-        image: docker:///concourse/git-resource
+        image_resource:
+          type: docker-image
+          source: {repository: concourse/git-resource}
 
         inputs:
         - name: concourse-master
+
+        outputs:
+        - name: generated-commitish
 
         run:
           path: sh
           args:
           - -c
           - |
-            git -C concourse-master rev-parse HEAD > commitish
+            git -C concourse-master rev-parse HEAD > generated-commitish/commitish
   - put: github-release
     params:
-      name: build-release-notes/release-name
-      tag: build-release-notes/release-name
-      body: build-release-notes/notes.md
-      commitish: generate-commitish/commitish
+      name: release-notes/release-name
+      tag: release-notes/release-name
+      body: release-notes/notes.md
+      commitish: generated-commitish/commitish
       globs:
       - final-release/*.tgz
-      - rename-release/garden-linux/garden-linux-*.tgz
+      - renamed-release/garden-linux-*.tgz
+      - bin-rc/concourse_*
 
 - name: product
   serial: true
@@ -488,7 +660,7 @@ jobs:
   - task: build
     file: p-concourse/ci/build.yml
   - put: product
-    params: {from: build/p-concourse/p-concourse-(.*).pivotal}
+    params: {file: product/p-concourse-*.pivotal}
 
 - name: hangar
   public: true
@@ -506,23 +678,22 @@ jobs:
     file: houdini/ci/build-artifacts.yml
   - put: houdini-artifacts
     params:
-      name: build-artifacts/dist/release-name
-      tag: build-artifacts/dist/release-name
-      globs: [build-artifacts/dist/artifacts/*]
+      name: release/release-name
+      tag: release/release-name
+      globs: [release/artifacts/*]
 
 - name: master-merge
   plan:
-    - aggregate:
-      - get: concourse-master
-        params: {submodules: none}
-        trigger: true
-      - get: concourse-develop
-        params: {submodules: none}
-    - task: merge-to-develop
-      file: concourse-develop/ci/master-merge.yml
-    - put: concourse
-      params:
-        repository: merge-to-develop/concourse-master
+  - aggregate:
+    - get: concourse-master
+      params: {submodules: none}
+      trigger: true
+    - get: concourse-develop
+      params: {submodules: none}
+  - task: merge-to-develop
+    file: concourse-develop/ci/master-merge.yml
+  - put: concourse
+    params: {repository: concourse-merged}
 
 - name: tracksuit
   serial: true
@@ -532,12 +703,11 @@ jobs:
   - get: tracksuit
   - task: tracksuit
     file: tracksuit/run.yml
-    config:
-      params:
-        GITHUB_TOKEN: {{tracksuit-github-token}}
-        TRACKER_TOKEN: {{tracksuit-tracker-token}}
-        PROJECT_ID: 1059262
-        ORGANIZATION: concourse
+    params:
+      GITHUB_TOKEN: {{tracksuit-github-token}}
+      TRACKER_TOKEN: {{tracksuit-tracker-token}}
+      PROJECT_ID: 1059262
+      ORGANIZATION: concourse
 
 resources:
 - name: version
@@ -590,10 +760,34 @@ resources:
 
 - name: lite-deployment
   type: bosh-deployment
-  source:
+  source: &lite-defaults
     username: admin
     password: admin
     deployment: concourse-testflight
+
+- name: lite-deployment-basic-auth-public
+  type: bosh-deployment
+  source:
+    <<: *lite-defaults
+    deployment: concourse-testflight-basic-auth-public
+
+- name: lite-deployment-basic-auth-private
+  type: bosh-deployment
+  source:
+    <<: *lite-defaults
+    deployment: concourse-testflight-basic-auth-private
+
+- name: lite-deployment-github-auth-public
+  type: bosh-deployment
+  source:
+    <<: *lite-defaults
+    deployment: concourse-testflight-github-auth-public
+
+- name: lite-deployment-github-auth-private
+  type: bosh-deployment
+  source:
+    <<: *lite-defaults
+    deployment: concourse-testflight-github-auth-private
 
 - name: virtualbox-box-cloud
   type: vagrant-cloud
@@ -744,6 +938,14 @@ resources:
     pool: bosh-lites
     private_key: {{locks-repo-private-key}}
 
+- name: hetzner
+  type: pool
+  source:
+    uri: git@github.com:concourse/locks.git
+    branch: master
+    pool: hetzner
+    private_key: {{locks-repo-private-key}}
+
 - name: tracksuit
   type: git
   source:
@@ -762,3 +964,22 @@ resources:
     secret_access_key: {{s3-testflight-log-secret-key}}
     versioned_file: bosh-logs
     region_name: us-west-1
+
+- name: bin
+  type: git
+  source:
+    uri: https://github.com/concourse/bin
+    branch: master
+
+- name: garden-linux-src
+  type: git
+  source:
+    uri: https://github.com/cloudfoundry-incubator/garden-linux-release
+    branch: master
+
+- name: bin-rc
+  type: github-release
+  source:
+    user: concourse
+    repository: bin
+    access_token: {{bin-release-token}}

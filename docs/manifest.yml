@@ -4,5 +4,4 @@ instances: 2
 memory: 64M
 domains: [concourse.ci, concourse-ci.org, concourse-ci.net, concourse-ci.com]
 host: ''
-buildpack: staticfile_buildpack
-path: ./out
+path: .

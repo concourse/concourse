@@ -2,6 +2,25 @@
   garden_node = link("garden").first
   garden_addr = "#{garden_node.address}:#{garden_node.p("port")}"
 
+  def merge_resource_types(base_resource_types, additional_resource_types)
+    merged_resource_types = {}
+
+    base_resource_types.each do |resource_type|
+      merged_resource_types[resource_type.fetch("type")] = resource_type.fetch("image")
+    end
+
+    additional_resource_types.each do |resource_type|
+      merged_resource_types[resource_type.fetch("type")] = resource_type.fetch("image")
+    end
+
+    merged_resource_types.map do |type, image|
+      {
+        "type" => type,
+        "image" => image,
+      }
+    end
+  end
+
   # could be some interesting links stuff here. optional dependency?
   baggageclaim_url = p("groundcrew.baggageclaim.url", "")
   if baggageclaim_url.empty? && spec.job.templates && spec.job.templates.collect(&:name).include?("baggageclaim")
@@ -17,6 +36,6 @@
     "addr" => garden_addr,
     "baggageclaim_url" => baggageclaim_url,
 
-    "resource_types" => p("groundcrew.resource_types"),
+    "resource_types" => merge_resource_types(p("groundcrew.resource_types"), p("groundcrew.additional_resource_types")),
   }.to_json
 %>

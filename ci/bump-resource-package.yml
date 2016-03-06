@@ -1,11 +1,18 @@
 ---
 platform: linux
-image: docker:///concourse/concourse-ci
+
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/concourse-ci
 
 inputs:
-  - name: concourse
-  - name: deployments
-  - name: resource-image
+- name: concourse
+- name: deployments
+- name: resource-image
+
+outputs:
+- name: bumped-concourse
 
 params:
   RESOURCE_NAME:

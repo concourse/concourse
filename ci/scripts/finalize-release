@@ -3,7 +3,9 @@
 
 set -e -x
 
-ROOT_DIR=$PWD
+FINAL_RELEASE_TARBALL=$PWD/final-release-tarball
+FINAL_RELEASE_REPO=$PWD/final-release-repo
+
 CANDIDATE_DIR=$PWD/candidate-release
 
 VERSION=$(cat ./version/number)
@@ -12,14 +14,14 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
-cp deployments/ci/config/private.yml concourse/config/private.yml
+git clone ./concourse $FINAL_RELEASE_REPO
 
-cd concourse/
+cp deployments/ci/config/private.yml $FINAL_RELEASE_REPO/config/private.yml
+
+cd $FINAL_RELEASE_REPO
 
 git config --global user.email "ci@localhost"
 git config --global user.name "CI Bot"
-
-git merge --no-edit master
 
 RELEASE_YML=$PWD/releases/concourse/concourse-${VERSION}.yml
 RELEASE_TGZ=$PWD/releases/concourse/concourse-${VERSION}.tgz
@@ -34,4 +36,4 @@ else
   git commit -m "release v${VERSION}"
 fi
 
-mv ${RELEASE_TGZ} ${ROOT_DIR}
+mv ${RELEASE_TGZ} ${FINAL_RELEASE_TARBALL}

@@ -41,7 +41,6 @@ properties:
 
       Typically this is the URL that you as a user would use to reach your CI.
       For multiple ATCs it would go to some sort of load balancer.
-    default: ""
 
   atc.peer_url:
     description: |
@@ -119,6 +118,18 @@ properties:
       This can also be specified on a per-resource basis by specifying
       `check_every` on the resource config.
     default: 1m
+
+  atc.resource_cache_cleanup_interval:
+    description: |
+      The interval, in Go duration format (1m = 1 minute), on which to check
+      for and release old caches of resource versions.
+    default: 30s
+
+  atc.old_resource_grace_period:
+    description: |
+      How long to cache the result of a get step after a newer version of the
+      resource is found. Use Go duration format (1m = 1 minute).
+    default: 5m
 
   atc.yeller.api_key:
     description: |

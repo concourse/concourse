@@ -11,48 +11,18 @@ useful.
 You can download \code{fly} from a Concourse. There are download links for
 common platforms in the bottom right hand corner of the main page.
 
-Throughout this document we'll stick to the long-form name of every command and
+Throughout this section we'll stick to the long-form name of every command and
 flag. Once you've learned what the commands do, you may want to consult
 \code{fly -h} to learn the short forms.
 
-\section{Targeting your Concourse}{
-  Fly works with an already deployed Concourse. If you don't already have one of
-  these you should follow the \reference{getting-started}{Getting Started}
-  guide to deploy a Concourse.
+\table-of-contents
 
-  Once you've deployed Concourse you can tell \code{fly} to target it via the
-  \code{--target} flag. For example, if we wanted to run \code{fly sync} (don't
-  worry what this means just yet) while pointing at Concourse that you normally
-  reach by going to \code{https://ci.example.com} then you could run:
-
-  \codeblock{bash}{
-  $ fly --target 'https://ci.example.com' sync
-  }
-
-  \margin-note{
-    The default Vagrant address is set as the default target in \code{fly}. This
-    means that you don't need to do anything extra if you are using the Vagrant
-    boxes to deploy Concourse.
-  }
-
-  The next step you'll want to do is authenticate with your target. This is
+\section{\code{login}\aux{: Authenticating with and saving Concourse targets}}{fly-login}{
+  The first thing you'll want to do is authenticate with your target. This is
   done with the \reference{fly-login} command. This is also useful to save
   targets under a more convenient alias, so you don't have to type out the URL
   all the time:
 
-  \codeblock{bash}{
-  $ fly --target new-name login --concourse 'https://ci.example.com'
-  }
-
-  After you've done this you can use \code{--target new-name} to run a command
-  against the saved target \code{new-name}. See \reference{fly-login} for more
-  information.
-
-  For the rest of this document it is assumed you are setting the target in
-  each of the commands and so it will not be included for brevity.
-}
-
-\section{\code{login}\aux{: Authenticating with and saving Concourse targets}}{fly-login}{
   The \code{login} command serves double duty: it authenticates with a given
   endpoint, and saves it under a more convenient name. The name and token are
   stored in \code{~/.flyrc} (though you shouldn't really edit the file
@@ -62,7 +32,7 @@ flag. Once you've learned what the commands do, you may want to consult
   it as the more convenient name \code{example}, you would run:
 
   \codeblock{bash}{
-  $ fly --target example login --concourse https://ci.example.com
+  $ fly --target example login --concourse-url https://ci.example.com
   }
 
   The \code{login} command will see which authentication methods are available
@@ -74,6 +44,11 @@ flag. Once you've learned what the commands do, you may want to consult
 
   In either case, a token is saved in your \code{~/.flyrc}, which will expire
   after one day.
+
+  After you've done this you can use \code{--target example} (or \code{-t
+  example} for short) to run a command against the saved target \code{example}.
+  For eample, \code{fly -t example builds} will list the last few builds
+  on the \code{example} Concourse instance.
 
   If your Concourse uses SSL but does not have a certificate signed by a
   trusted CA, you can use the \code{-k} or \code{--insecure} flag in order to
@@ -96,7 +71,7 @@ flag. Once you've learned what the commands do, you may want to consult
   local \code{fly}. It can be used like so:
 
   \codeblock{bash}{
-  $ fly sync
+  $ fly -t example sync
   }
 
   If you see anything odd, for example the output of builds not rendering or
@@ -114,13 +89,10 @@ flag. Once you've learned what the commands do, you may want to consult
   OS X or to avoid all of those debugging commits when something is configured
   differently between your local and remote setup.
 
-  If you have a task configuration called \code{task.yml} that describes a
-  task that only requires a single input, whose contents are in the current
-  directory (e.g. most unit tests and simple integration tests) then you can
-  just run:
+  You can execute a task like this:
 
   \codeblock{bash}{
-  $ fly execute
+  $ fly -t example execute --config tests.yml
   }
 
   Your files will be uploaded and the task will be executed with them. The
@@ -132,14 +104,7 @@ flag. Once you've learned what the commands do, you may want to consult
   build when received. This allows it to be transparently composed with other
   toolchains.
 
-  If your task configuration is in a non-standard location then you can
-  specify it using the \code{-c} or \code{--config} argument like so:
-
-  \codeblock{bash}{
-  $ fly execute --config tests.yml
-  }
-
-  If you have many extra files or large files in your currect directory that
+  If you have many extra files or large files in your current directory that
   would normally be ignored by your version control system, then you can use
   the \code{-x} or \code{--exclude-ignored} flags in order to limit the files
   that you send to Concourse to just those that are not ignored.
@@ -158,7 +123,7 @@ flag. Once you've learned what the commands do, you may want to consult
     \code{--input} arguments with name and path pairs. For example:
 
     \codeblock{bash}{
-    $ fly execute --input code=. --input stemcells=../stemcells
+    $ fly -t example execute --input code=. --input stemcells=../stemcells
     }
 
     This would work together with a \code{task.yml} if its \code{inputs:}
@@ -189,7 +154,7 @@ flag. Once you've learned what the commands do, you may want to consult
     For example:
 
     \codeblock{bash}{
-    $ fly execute --config task.yml --inputs-from main/integration --input foo=./foo
+    $ fly -t example execute --config task.yml --inputs-from main/integration --input foo=./foo
     }
 
     This will trigger a one-off-build using the \code{task.yml} task
@@ -200,6 +165,26 @@ flag. Once you've learned what the commands do, you may want to consult
     This can be used to more closely replicate the state in CI when weeding out
     flakiness, or as a shortcut for local development so that you don't have to
     upload every single resource from your local machine.
+  }
+
+  \section{Taking artifacts from the build with \code{--output}}{
+    If a task specifies outputs then you're able to extract these back out of
+    the build and back to your local system. For example:
+
+    \codeblock{bash}{
+    $ fly -t example execute --input code=. --config build-stemcell.yml --output stemcell=/tmp/stemcell
+    }
+
+    This would work together with a \code{task.yml} if its \code{outputs:}
+    section was as follows:
+
+    \codeblock{yaml}{
+    outputs:
+    - name: stemcell
+    }
+
+    This feature is useful to farm work out to your Concourse server to build
+    things in a repeatable manner.
   }
 
   \section{Providing values for \code{params}}{
@@ -229,7 +214,7 @@ flag. Once you've learned what the commands do, you may want to consult
   To list the currently-configured pipelines and their paused state, run:
 
   \codeblock{bash}{
-  $ fly pipelines
+  $ fly -t example pipelines
   }
 }
 
@@ -237,7 +222,7 @@ flag. Once you've learned what the commands do, you may want to consult
   To pause a pipeline, run:
 
   \codeblock{bash}{
-  $ fly pause-pipeline --pipeline my-pipeline
+  $ fly -t example pause-pipeline --pipeline my-pipeline
   }
 
   This will prevent jobs from being scheduled and stop the periodic checking
@@ -248,7 +233,7 @@ flag. Once you've learned what the commands do, you may want to consult
   To unpause a pipeline, run:
 
   \codeblock{bash}{
-  $ fly unpause-pipeline --pipeline my-pipeline
+  $ fly -t example unpause-pipeline --pipeline my-pipeline
   }
 
   This will resume job scheduling and resource checking.
@@ -262,7 +247,7 @@ flag. Once you've learned what the commands do, you may want to consult
   \code{STDOUT} run the following:
 
   \codeblock{bash}{
-  $ fly get-pipeline --pipeline my-pipeline
+  $ fly -t example get-pipeline --pipeline my-pipeline
   }
 
   To get JSON instead of YAML you can use the \code{-j} or \code{--json}
@@ -277,7 +262,7 @@ flag. Once you've learned what the commands do, you may want to consult
   you can use the \code{-c} or \code{--config} flag, like so:
 
   \codeblock{bash}{
-  $ fly set-pipeline --config pipeline.yml --pipeline my-pipeline
+  $ fly -t example set-pipeline --config pipeline.yml --pipeline my-pipeline
   }
 
   This will present a diff of the changes and ask you to confirm the changes.
@@ -319,7 +304,7 @@ flag. Once you've learned what the commands do, you may want to consult
     ...you could then configure this pipeline like so:
 
     \codeblock{bash}{
-    $ fly set-pipeline --pipeline my-pipeline --config pipeline.yml --var "private-repo-key=$(cat id_rsa)"
+    $ fly -t example set-pipeline --pipeline my-pipeline --config pipeline.yml --var "private-repo-key=$(cat id_rsa)"
     }
 
     Or, if you had a \code{credentials.yml} as follows:
@@ -334,7 +319,7 @@ flag. Once you've learned what the commands do, you may want to consult
     ...you could configure it like so:
 
     \codeblock{bash}{
-    $ fly set-pipeline --pipeline my-pipeline --config pipeline.yml --load-vars-from credentials.yml
+    $ fly -t example set-pipeline --pipeline my-pipeline --config pipeline.yml --load-vars-from credentials.yml
     }
 
     If both \code{--var} and \code{--load-vars-from} are specified, the \code{--var}
@@ -355,15 +340,54 @@ flag. Once you've learned what the commands do, you may want to consult
   For example, to destroy the \code{my-pipeline} pipeline, you would run:
 
   \codeblock{bash}{
-  $ fly destroy-pipeline --pipeline my-pipeline
+  $ fly -t example destroy-pipeline --pipeline my-pipeline
   }
+}
+
+\section{\code{pause-job}\aux{: Preventing new job activity}}{fly-pause-job}{
+  To pause a job, run:
+
+  \codeblock{bash}{
+  $ fly -t example pause-job --job my-pipeline/my-job
+  }
+
+  This will prevent pending builds of the job from being scheduled, though
+  builds that are in-flight will still run, and pending builds will still be
+  created as normal.
+}
+
+\section{\code{unpause-job}\aux{: Resuming job activity}}{fly-unpause-job}{
+  To unpause a job, run:
+
+  \codeblock{bash}{
+  $ fly -t example unpause-job --job my-pipeline/my-job
+  }
+
+  This will resume scheduling of builds queued for the job.
+}
+
+\section{\code{builds}\aux{: Showing build history}}{fly-builds}{
+  To list the most recent builds, run:
+
+  \codeblock{bash}{
+  $ fly -t example builds
+  }
+
+  To list the builds of a job, run:
+
+  \codeblock{bash}{
+  $ fly -t example builds -j pipeline-name/job-name
+  }
+
+  This can be useful for periodically monitoring the state of a job. The output
+  also works well with tools like \code{awk} and \code{grep}.
 }
 
 \section{\code{containers}\aux{: Listing active containers}}{fly-containers}{
   To list the active containers across all your workers, run:
 
   \codeblock{bash}{
-  $ fly containers
+  $ fly -t example containers
   }
 
   This can be useful when discovering the containers available for
@@ -391,8 +415,8 @@ flag. Once you've learned what the commands do, you may want to consult
   finished task's container:
 
   \codeblock{bash}{
-  $ fly execute
-  $ fly intercept --step build
+  $ fly -t example execute
+  $ fly -t example intercept --step build
   }
 
   \margin-note{
@@ -409,7 +433,7 @@ flag. Once you've learned what the commands do, you may want to consult
   forms, like so:
 
   \codeblock{bash}{
-  $ fly intercept -j some-pipeline/some-job -b some-build -s some-step
+  $ fly -t example intercept -j some-pipeline/some-job -b some-build -s some-step
   }
 
   Note that \code{--build} can be omitted, and will default to the most recent
@@ -423,13 +447,17 @@ flag. Once you've learned what the commands do, you may want to consult
   \code{-c}:
 
   \codeblock{bash}{
-  $ fly intercept --check some-pipeline/some-resource
+  $ fly -t example intercept --check some-pipeline/some-resource
   }
 
   A specific command can also be given, e.g. \code{fly intercept ps auxf} or
   \code{fly intercept htop}. This allows for patterns such as \code{watch fly
   intercept ps auxf}, which will continuously show the process tree of the
   current build's task, even as the "current build" changes.
+
+  The working directory and any relevant environment variables (e.g. those
+  having come from \reference{params}) used by the original process will also
+  be used for the process run by intercept.
 }
 
 \section{\code{watch}\aux{: View logs of in-progress builds}}{fly-watch}{
@@ -456,7 +484,7 @@ flag. Once you've learned what the commands do, you may want to consult
   it will stream the current logs if the build is still in progress.
 
   \codeblock{bash}{
-  $ fly watch --job my-pipeline/tests --build 52
+  $ fly -t example watch --job my-pipeline/tests --build 52
   }
 
   If the \code{--job} flag is specified and \code{--build} is omitted, the most
@@ -467,7 +495,7 @@ flag. Once you've learned what the commands do, you may want to consult
   To list the currently registered workers, including additional metadata, run:
 
   \codeblock{bash}{
-  $ fly workers
+  $ fly -t example workers
   }
 
   This can be useful for monitoring the status of your workers, if you suspect
@@ -479,7 +507,7 @@ flag. Once you've learned what the commands do, you may want to consult
   To list the active volumes across all your workers, run:
 
   \codeblock{bash}{
-  $ fly volumes
+  $ fly -t example volumes
   }
 
   This can be useful to observe the caches warming across your cluster, and
@@ -495,6 +523,6 @@ flag. Once you've learned what the commands do, you may want to consult
   Checkman files based on your pipelines using the command below.
 
   \codeblock{bash}{
-  $ fly checklist --pipeline my-pipeline > ~/Checkman/my-pipeline
+  $ fly -t example checklist --pipeline my-pipeline > ~/Checkman/my-pipeline
   }
 }

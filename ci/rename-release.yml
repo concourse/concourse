@@ -1,10 +1,17 @@
 ---
 platform: linux
-image: docker:///concourse/docs-ci
+
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/docs-ci
 
 inputs:
   - name: concourse
   - name: garden-linux
+
+outputs:
+  - name: renamed-release
 
 run:
   path: concourse/ci/scripts/rename-release

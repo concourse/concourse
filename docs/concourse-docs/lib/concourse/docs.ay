@@ -100,3 +100,34 @@ def(slack-button):
       data Element new(
         [],
         .async-script-src("http://slack.concourse.ci/slackin.js")))
+
+def(column(name, content)):
+  ents = []
+  Array(content) select [x]:
+    x match:
+      .entry(content, type):
+        ents << data Block new([data Block new([content], .class("cell"))], .class(type))
+
+  data List new([data Block new([name], .class("header"))] + ents)
+
+def(normal(content)):
+  .entry(content, "normal")
+
+def(good(content)):
+  .entry(content, "good")
+
+def(bad(content)):
+  .entry(content, "bad")
+
+def(gap(content)):
+  .entry(content, "gap")
+
+def(disabled(content)):
+  .entry(content, "disabled")
+
+def(resources-table(body)):
+  data ResolveElement new(
+    [part]:
+      part css-additions << File expand-path("../resources-table.css", __FILE__)
+
+      data Block new(body, .class("resources-table")))

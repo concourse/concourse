@@ -86,10 +86,6 @@
 	path = src/github.com/concourse/baggageclaim
 	url = https://github.com/concourse/baggageclaim
 	branch = master
-[submodule "src/github.com/yeller/yeller-golang"]
-	path = src/github.com/yeller/yeller-golang
-	url = https://github.com/yeller/yeller-golang
-	branch = master
 [submodule "src/github.com/xoebus/zest"]
 	path = src/github.com/xoebus/zest
 	url = https://github.com/xoebus/zest
@@ -172,6 +168,7 @@
 [submodule "src/github.com/jessevdk/go-flags"]
 	path = src/github.com/jessevdk/go-flags
 	url = https://github.com/jessevdk/go-flags
+	branch = master
 [submodule "src/github.com/concourse/jettison"]
 	path = src/github.com/concourse/jettison
 	url = https://github.com/concourse/jettison
@@ -226,4 +223,28 @@
 [submodule "src/github.com/concourse/go-concourse"]
 	path = src/github.com/concourse/go-concourse
 	url = https://github.com/concourse/go-concourse
+	branch = master
+[submodule "src/github.com/kr/tarutil"]
+	path = src/github.com/kr/tarutil
+	url = https://github.com/kr/tarutil
+	branch = master
+[submodule "src/github.com/contraband/holler"]
+	path = src/github.com/contraband/holler
+	url = https://github.com/contraband/holler
+	branch = master
+[submodule "src/github.com/peterhellberg/link"]
+	path = src/github.com/peterhellberg/link
+	url = https://github.com/peterhellberg/link
+	branch = master
+[submodule "src/github.com/elazarl/go-bindata-assetfs"]
+	path = src/github.com/elazarl/go-bindata-assetfs
+	url = https://github.com/elazarl/go-bindata-assetfs
+	branch = master
+[submodule "src/github.com/jteeuwen/go-bindata"]
+	path = src/github.com/jteeuwen/go-bindata
+	url = https://github.com/jteeuwen/go-bindata
+	branch = master
+[submodule "src/github.com/gorilla/websocket"]
+	path = src/github.com/gorilla/websocket
+	url = https://github.com/gorilla/websocket
 	branch = master

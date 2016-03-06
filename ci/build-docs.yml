@@ -1,9 +1,16 @@
 ---
 platform: linux
-image: docker:///concourse/docs-ci
+
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/docs-ci
 
 inputs:
-  - name: concourse
+- name: concourse
+
+outputs:
+- name: built-docs
 
 params:
   ANALYTICS_ID:

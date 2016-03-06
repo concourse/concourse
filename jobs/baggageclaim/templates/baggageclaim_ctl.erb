@@ -64,18 +64,8 @@ case $1 in
     mkdir -p $LOG_DIR
     chown -R vcap:vcap $LOG_DIR
 
-    # NB: when the mount path lives on the persistent disk, it seems to
-    # disappear as soon as a privileged container is created. seems to be a
-    # kernel bug or something. so, put the backing file on the persistent disk,
-    # but always mount on the ephemeral disk.
-
-    if mountpoint -q /var/vcap/store; then
-      IMAGE_PATH=/var/vcap/store/baggageclaim/volumes.img
-      IMAGE_SIZE=$(df -m /var/vcap/store | tail -n1 | awk '{print $2}')
-    else
-      IMAGE_PATH=/var/vcap/data/baggageclaim/volumes.img
-      IMAGE_SIZE=$(df -m /var/vcap/data | tail -n1 | awk '{print $2}')
-    fi
+    IMAGE_PATH=/var/vcap/data/baggageclaim/volumes.img
+    IMAGE_SIZE=$(df -m /var/vcap/data | tail -n1 | awk '{print $2}')
     mkdir -p $(dirname ${IMAGE_PATH})
 
     VOLUMES_DIR=/var/vcap/data/baggageclaim/volumes
@@ -90,21 +80,21 @@ case $1 in
     done
 
     /var/vcap/packages/baggageclaim/bin/fs_mounter \
-      -diskImage ${IMAGE_PATH} \
-      -mountPath ${VOLUMES_DIR} \
-      -sizeInMegabytes ${IMAGE_SIZE} \
+      --disk-image ${IMAGE_PATH} \
+      --mount-path ${VOLUMES_DIR} \
+      --size-in-megabytes ${IMAGE_SIZE} \
       1>>$LOG_DIR/fs_mounter.stdout.log \
       2>>$LOG_DIR/fs_mounter.stderr.log
 
     echo $$ > $PIDFILE
 
     exec /var/vcap/packages/baggageclaim/bin/baggageclaim \
-      -volumeDir ${VOLUMES_DIR} \
-      -listenAddress <%= p("baggageclaim.listen_addr.address") %> \
-      -listenPort <%= p("baggageclaim.listen_addr.port") %> \
-      -yellerAPIKey=<%= esc(p("baggageclaim.yeller.api_key")) %> \
-      -yellerEnvironment=<%= esc(p("baggageclaim.yeller.environment_name")) %> \
-      -driverType btrfs \
+      --volumes ${VOLUMES_DIR} \
+      --driver btrfs \
+      --bind-ip <%= p("baggageclaim.listen_addr.address") %> \
+      --bind-port <%= p("baggageclaim.listen_addr.port") %> \
+      --yeller-api-key <%= esc(p("baggageclaim.yeller.api_key")) %> \
+      --yeller-environment <%= esc(p("baggageclaim.yeller.environment_name")) %> \
       1>>$LOG_DIR/baggageclaim.stdout.log \
       2>>$LOG_DIR/baggageclaim.stderr.log
 

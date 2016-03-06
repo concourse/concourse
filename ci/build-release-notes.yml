@@ -1,10 +1,17 @@
 ---
 platform: linux
-image: docker:///concourse/docs-ci
+
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/docs-ci
 
 inputs:
-  - name: concourse
-  - name: final-release
+- name: concourse
+- name: final-release
+
+outputs:
+- name: release-notes
 
 run:
   path: concourse/ci/scripts/build-release-notes
