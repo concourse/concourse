@@ -18,8 +18,22 @@ PIDFILE=$RUN_DIR/jettison.pid
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
 <%
-  garden_node = link("garden").first
-  garden_addr = "#{garden_node.address}:#{garden_node.p("port")}"
+  current_instance = link("groundcrew").instances.find { |i| i.id == spec.id }
+
+  garden_addr = ""
+
+  if_link("garden") do |garden|
+    instance = garden.instances.find { |i| i.id == spec.id }
+    if instance
+      garden_addr = "#{instance.address}:#{instance.p("garden.bind_port")}"
+    end
+  end
+
+  # no garden link found (probably release didn't support it); assume it's
+  # colocated
+  if garden_addr.empty?
+    garden_addr = "#{current_instance.address}:7777"
+  end
 %>
 
 case $1 in

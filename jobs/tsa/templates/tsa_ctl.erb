@@ -9,6 +9,8 @@ set -e
   def esc(x)
     Shellwords.shellescape(x)
   end
+
+  my_addr = link("tsa").instances.find { |i| i.id == spec.id }.address
 %>
 
 RUN_DIR=/var/vcap/sys/run/tsa
@@ -53,7 +55,7 @@ EOF
       <% link("atc").instances.each do |node| %> \
       --atc-url <%= "http://#{node.address}:8080" %> \
       <% end %> \
-      --peer-ip <%= my_ip %> \
+      --peer-ip <%= my_addr %> \
       --bind-port <%= p("tsa.listen_port") %> \
       <% if p("tsa.host_key") != "" %> \
       --host-key /var/vcap/jobs/tsa/config/host_key \
