@@ -13,6 +13,8 @@ packages:
 provides:
 - name: db
   type: postgresql
+  properties:
+  - postgresql.listen_port
 
 properties:
   postgresql.listen_host:

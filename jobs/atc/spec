@@ -19,6 +19,7 @@ requires:
   type: atc
 - name: atcdb
   type: postgresql
+  optional: true
 
 provides:
 - name: atc
@@ -153,6 +154,12 @@ properties:
       Port of the Riemann server to emit events to.
     default: 5555
 
+  atc.postgresql.address:
+    description: |
+      Address of an PostgreSQL server to connect to, in `HOST:PORT` format.
+
+      If not specified, one will be autodiscovered via BOSH links.
+
   atc.postgresql.database:
     description: |
       Name of the database to use.
@@ -165,7 +172,7 @@ properties:
 
   atc.postgresql.role.password:
     description: |
-      password to use when connecting.
+      Password to use when connecting.
 
   blackbox.syslog.sources.atc:
     description: |

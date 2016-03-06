@@ -21,12 +21,20 @@ source /var/vcap/packages/pid_utils/pid_utils.sh
 <%
   my_addr = link("atc").instances.find { |i| i.id == spec.id }.address
 
-  postgres_node = link_node("atcdb")
-  postgres_addr = postgres_node.address
-  postgres_port = postgres_node.p("port")
-  postgres_role_name = postgres_node.p("role.name")
-  postgres_role_password = postgres_node.p("role.password")
-  postgres_database = postgres_node.p("database")
+  postgres_addr = ""
+
+  if_p("atc.postgresql.address") do |addr|
+    postgres_addr = addr
+  end
+
+  if postgres_addr.empty?
+    postgres_node = link("atcdb").instances.first
+    "#{postgres_node.address}:#{postgres_node.p("postgresql.listen_port")}"
+  end
+
+  postgres_role_name = p("atc.postgresql.role.name")
+  postgres_role_password = p("atc.postgresql.role.password")
+  postgres_database = p("atc.postgresql.database")
 %>
 
 case $1 in
@@ -50,7 +58,7 @@ case $1 in
       --bind-port <%= p("atc.web_bind_port") %> \
       --peer-url <%= p("atc.peer_url", "http://#{my_addr}:#{p("atc.web_bind_port")}") %> \
       --external-url <%= esc(p("atc.external_url")) %> \
-      --postgres-data-source <%= esc("postgres://#{postgres_role_name}:#{postgres_role_password}@#{postgres_addr}:#{postgres_port}/#{postgres_database}?sslmode=disable") %> \
+      --postgres-data-source <%= esc("postgres://#{postgres_role_name}:#{postgres_role_password}@#{postgres_addr}/#{postgres_database}?sslmode=disable") %> \
       <% if p("atc.publicly_viewable") %> \
       --publicly-viewable \
       <% end %> \
