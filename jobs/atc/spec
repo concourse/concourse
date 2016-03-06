@@ -156,7 +156,7 @@ properties:
 
   atc.postgresql.address:
     description: |
-      Address of an PostgreSQL server to connect to, in `HOST:PORT` format.
+      Address of a PostgreSQL server to connect to, in `HOST:PORT` format.
 
       If not specified, one will be autodiscovered via BOSH links.
 
