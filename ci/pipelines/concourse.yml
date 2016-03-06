@@ -73,9 +73,8 @@ jobs:
   - aggregate:
     - task: go-unit
       file: concourse/ci/atc-go.yml
-      config:
-        params:
-          GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
+      params:
+        GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
     - task: js-unit
       file: concourse/ci/atc-js.yml
       attempts: 3
@@ -286,17 +285,16 @@ jobs:
           - candidate-release/concourse-*.tgz
     - task: no-auth-build
       file: concourse/ci/testflight.yml
-      config: {params: {ATC_URL: "http://10.244.15.2:8080"}}
+      params: {ATC_URL: "http://10.244.15.2:8080"}
       timeout: 1h
       on_failure:
         do:
           - task: export-bosh-logs
             file: concourse/ci/export-bosh-logs.yml
-            config:
-              params:
-                MANIFEST: deployments/lite/ci/manifests/no_auth_deployment.yml
-                BOSH_USER: admin
-                BOSH_PASSWORD: admin
+            params:
+              MANIFEST: deployments/lite/ci/manifests/no_auth_deployment.yml
+              BOSH_USER: admin
+              BOSH_PASSWORD: admin
           - put: testflight-logs
             params: {file: exported-logs/concourse.*.tgz}
 
@@ -325,45 +323,41 @@ jobs:
   - aggregate:
     - task: basic-auth-public
       file: bin/ci/testflight.yml
-      config:
-        params:
-          BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
-          BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
-          PIPELINES_PUBLICLY_VIEWABLE: true
+      params:
+        BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
+        BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+        PIPELINES_PUBLICLY_VIEWABLE: true
       privileged: true
       timeout: 1h
     - task: basic-auth-private
       file: bin/ci/testflight.yml
-      config:
-        params:
-          BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
-          BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
-          PIPELINES_PUBLICLY_VIEWABLE: false
+      params:
+        BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
+        BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+        PIPELINES_PUBLICLY_VIEWABLE: false
       privileged: true
       timeout: 1h
   - aggregate:
     - task: github-auth-public
       file: bin/ci/testflight.yml
-      config:
-        params:
-          GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
-          GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
-          GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
-          GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-public-client-id}}
-          GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-public-client-secret}}
-          PIPELINES_PUBLICLY_VIEWABLE: true
+      params:
+        GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+        GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+        GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
+        GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-public-client-id}}
+        GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-public-client-secret}}
+        PIPELINES_PUBLICLY_VIEWABLE: true
       privileged: true
       timeout: 1h
     - task: github-auth-private
       file: bin/ci/testflight.yml
-      config:
-        params:
-          GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
-          GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
-          GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
-          GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-private-client-id}}
-          GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-private-client-secret}}
-          PIPELINES_PUBLICLY_VIEWABLE: false
+      params:
+        GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+        GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+        GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
+        GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-private-client-id}}
+        GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-private-client-secret}}
+        PIPELINES_PUBLICLY_VIEWABLE: false
       privileged: true
       timeout: 1h
 
@@ -402,11 +396,10 @@ jobs:
         - candidate-release/concourse-*.tgz
   - task: emit-yeller-deploy
     file: concourse/ci/emit-yeller-deploy.yml
-    config:
-      params:
-        YELLER_API_KEY: {{yeller-api-key}}
-        YELLER_USER: {{yeller-user}}
-        YELLER_ENVIRONMENT: {{yeller-environment-name}}
+    params:
+      YELLER_API_KEY: {{yeller-api-key}}
+      YELLER_USER: {{yeller-user}}
+      YELLER_ENVIRONMENT: {{yeller-environment-name}}
   - put: tracker
     params: {repos: [concourse]}
 
@@ -536,10 +529,9 @@ jobs:
   - task: build-box
     privileged: true
     file: concourse-lite/ci/build-aws.yml
-    config:
-      params:
-        AWS_ACCESS_KEY_ID: {{aws-box-access-key}}
-        AWS_SECRET_ACCESS_KEY: {{aws-box-secret-key}}
+    params:
+      AWS_ACCESS_KEY_ID: {{aws-box-access-key}}
+      AWS_SECRET_ACCESS_KEY: {{aws-box-secret-key}}
   - put: aws-box
     params: {file: built-box/*.box}
 
@@ -575,10 +567,9 @@ jobs:
       resource: concourse-develop
   - task: build-docs
     file: concourse/ci/build-docs.yml
-    config:
-      params:
-        ANALYTICS_ID: {{analytics-id}}
-        VERSION_FILE: version/number
+    params:
+      ANALYTICS_ID: {{analytics-id}}
+      VERSION_FILE: version/number
   - put: concourse-docs
     params:
       current_app_name: docs
@@ -712,12 +703,11 @@ jobs:
   - get: tracksuit
   - task: tracksuit
     file: tracksuit/run.yml
-    config:
-      params:
-        GITHUB_TOKEN: {{tracksuit-github-token}}
-        TRACKER_TOKEN: {{tracksuit-tracker-token}}
-        PROJECT_ID: 1059262
-        ORGANIZATION: concourse
+    params:
+      GITHUB_TOKEN: {{tracksuit-github-token}}
+      TRACKER_TOKEN: {{tracksuit-tracker-token}}
+      PROJECT_ID: 1059262
+      ORGANIZATION: concourse
 
 resources:
 - name: version
