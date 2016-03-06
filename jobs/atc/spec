@@ -17,7 +17,7 @@ packages:
 consumes:
 - name: atc
   type: atc
-- name: atcdb
+- name: db
   type: postgresql
   optional: true
 

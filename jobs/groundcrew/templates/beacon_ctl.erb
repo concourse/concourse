@@ -74,8 +74,8 @@ case $1 in
 
     while true; do
       rand=$RANDOM
-      tsa_addr=${tsa_addrs[$rand % ${#tsas_addrs[@]}]}
-      tsa_port=${tsa_ports[$rand % ${#tsas_ports[@]}]}
+      tsa_addr=${tsa_addrs[$rand % ${#tsa_addrs[@]}]}
+      tsa_port=${tsa_ports[$rand % ${#tsa_ports[@]}]}
 
       chpst -u vcap:vcap ssh \
         -p $tsa_port $tsa_addr \

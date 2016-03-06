@@ -28,8 +28,8 @@ source /var/vcap/packages/pid_utils/pid_utils.sh
   end
 
   if postgres_addr.empty?
-    postgres_node = link("atcdb").instances.first
-    "#{postgres_node.address}:5432" # TODO: #{postgres_node.p("postgresql.listen_port")}"
+    postgres_node = link("db").instances.first
+    postgres_addr = "#{postgres_node.address}:5432" # TODO: #{postgres_node.p("postgresql.listen_port")}"
   end
 
   postgres_role_name = p("atc.postgresql.role.name")
