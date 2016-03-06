@@ -19,13 +19,7 @@ PIDFILE=$RUN_DIR/atc.pid
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
 <%
-  # address by default picks first address on shared network
-  #
-  # anything more fancy is imo something that should be part of the link
-  # interface, i.e. as part of path definition, since the release cannot
-  # possibly know
-
-  my_addr = link_nodes("atc").find { |n| n.id == spec.id }.address
+  my_addr = link("atc").instances.find { |i| i.id == spec.id }.address
 
   postgres_node = link_node("atcdb")
   postgres_addr = postgres_node.address

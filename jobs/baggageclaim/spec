@@ -9,19 +9,18 @@ packages:
   - btrfs_tools
   - baggageclaim
 
-# BOGUS
-requires: [tsa]
-
 provides:
 - name: baggageclaim
   type: baggageclaim
+  properties:
+  - baggageclaim.bind_port
 
 properties:
-  baggageclaim.listen_addr.address:
+  baggageclaim.bind_ip:
     description: "the host or ip which baggageclaim hosts its api on"
     default: 0.0.0.0
 
-  baggageclaim.listen_addr.port:
+  baggageclaim.bind_port:
     description: "the port which baggageclaim hosts its api on"
     default: 7788
 

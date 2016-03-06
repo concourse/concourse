@@ -1,6 +1,28 @@
 <%=
-  garden_node = link("garden").first
-  garden_addr = "#{garden_node.address}:#{garden_node.p("port")}"
+  current_instance = link("groundcrew").instances.find { |i| i.id == spec.id }
+
+  garden_addr = ""
+  baggageclaim_url = ""
+
+  if_link("garden") do |garden|
+    instance = garden.instances.find { |i| i.id == spec.id }
+    if instance
+      garden_addr = "#{instance.address}:#{instance.p("garden.bind_port")}"
+    end
+  end
+
+  # no garden link found (probably release didn't support it); assume it's
+  # colocated
+  if garden_addr.empty?
+    garden_addr = "#{current_instance.address}:7777"
+  end
+
+  if_link("baggageclaim") do |baggageclaim|
+    instance = baggageclaim.instances.find { |i| i.id == spec.id }
+    if instance
+      baggageclaim_url = "http://#{instance.address}:#{instance.p("baggageclaim.bind_port")}"
+    end
+  end
 
   def merge_resource_types(base_resource_types, additional_resource_types)
     merged_resource_types = {}
@@ -21,12 +43,6 @@
     end
   end
 
-  # could be some interesting links stuff here. optional dependency?
-  baggageclaim_url = p("groundcrew.baggageclaim.url", "")
-  if baggageclaim_url.empty? && spec.job.templates && spec.job.templates.collect(&:name).include?("baggageclaim")
-    baggageclaim_url = "http://#{garden_addr}:7788"
-  end
-
   {
     "name" => "HOSTNAME_REPLACE_ME",
 
@@ -36,6 +52,9 @@
     "addr" => garden_addr,
     "baggageclaim_url" => baggageclaim_url,
 
-    "resource_types" => merge_resource_types(p("groundcrew.resource_types"), p("groundcrew.additional_resource_types")),
+    "resource_types" => merge_resource_types(
+      p("groundcrew.resource_types"),
+      p("groundcrew.additional_resource_types")
+    ),
   }.to_json
 %>

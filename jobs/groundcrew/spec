@@ -41,6 +41,18 @@ requires:
   type: tsa
 - name: garden
   type: garden
+  optional: true
+- name: baggageclaim
+  type: baggageclaim
+  optional: true
+# for discovering our own IP in case no Garden link is available, assuming it's
+# colocated
+- name: groundcrew
+  type: groundcrew
+
+provides:
+- name: groundcrew
+  type: groundcrew
 
 properties:
   groundcrew.tsa.port:
@@ -69,9 +81,6 @@ properties:
 
   groundcrew.garden.forward_address:
     description: "garden server connection address to forward through SSH to the TSA"
-
-  groundcrew.baggageclaim.url:
-    description: "baggageclaim server URL to advertise to the TSA"
 
   groundcrew.baggageclaim.forward_address:
     description: "baggageclaim server connection address to forward through SSH to the TSA"
