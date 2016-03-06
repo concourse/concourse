@@ -1,5 +1,7 @@
 <%=
-  link("tsa")["nodes"].collect { |node|
-    "[#{n.address}]:#{node.p("port")} #{p("groundcrew.tsa.host_public_key")}"
+  link("tsa").instances.collect { |i|
+    port = "2222"
+    # TODO: port = i.p("tsa.listen_port")
+    "[#{i.address}]:#{port} #{p("groundcrew.tsa.host_public_key")}"
   }.join("\n")
 %>

@@ -23,6 +23,8 @@ consumes:
 provides:
 - name: tsa
   type: tsa
+  properties:
+  - tsa.listen_port
 
 properties:
   tsa.heartbeat_interval:

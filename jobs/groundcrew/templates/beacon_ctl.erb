@@ -50,8 +50,8 @@ case $1 in
     # even more ideal would be for each node to have its own key and stop doing
     # the generated_tsa_host_key thing
     {
-      <% link_nodes("tsa").each do |node| %>
-      echo -n '[<%= node.address %>]:<%= node.p("port") %> '
+      <% link("tsa").instances.each do |instance| %>
+      echo -n '[<%= instance.address %>]:2222 ' # TODO: instance.p("tsa.listen_port")
       cat /var/vcap/packages/generated_tsa_host_key/id_rsa.pub
       <% end %>
     } > /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts
@@ -69,8 +69,8 @@ case $1 in
       sed -e "s/HOSTNAME_REPLACE_ME/$(hostname)/g" > \
       $RUN_DIR/worker.json
 
-    tsa_addrs=(<%= link("tsa").collect(&:address).join(" ") %>)
-    tsa_ports=(<%= link("tsa").collect { |n| n.p("port") }.join(" ") %>)
+    tsa_addrs=(<%= link("tsa").instances.collect(&:address).join(" ") %>)
+    tsa_ports=(<%= link("tsa").instances.collect { |n| 2222 }.join(" ") %>) # TODO: n.p("port") }.join(" ")
 
     while true; do
       rand=$RANDOM

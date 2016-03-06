@@ -2,7 +2,6 @@
   current_instance = link("groundcrew").instances.find { |i| i.id == spec.id }
 
   garden_addr = ""
-  baggageclaim_url = ""
 
   if_link("garden") do |garden|
     instance = garden.instances.find { |i| i.id == spec.id }
@@ -17,10 +16,14 @@
     garden_addr = "#{current_instance.address}:7777"
   end
 
+  baggageclaim_url = ""
+
   if_link("baggageclaim") do |baggageclaim|
     instance = baggageclaim.instances.find { |i| i.id == spec.id }
     if instance
-      baggageclaim_url = "http://#{instance.address}:#{instance.p("baggageclaim.bind_port")}"
+      port = "7788"
+      # TODO: port = instance.p("baggageclaim.bind_port")
+      baggageclaim_url = "http://#{instance.address}:#{port}"
     end
   end
 

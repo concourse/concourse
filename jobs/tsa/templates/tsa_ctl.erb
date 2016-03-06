@@ -48,9 +48,10 @@ EOF
     } > /var/vcap/jobs/tsa/config/authorized_keys
 
     # TODO: handle multiple ATCs
+    # TODO: #{node.p("atc.web_bind_port")}" %> \
     exec chpst -u vcap:vcap /var/vcap/packages/tsa/bin/tsa \
-      <% link("atc").each do |node| %> \
-      --atc-url <%= "http://#{node.address}:#{node.p("atc.web_bind_port")}" %> \
+      <% link("atc").instances.each do |node| %> \
+      --atc-url <%= "http://#{node.address}:8080" %> \
       <% end %> \
       --peer-ip <%= my_ip %> \
       --bind-port <%= p("tsa.listen_port") %> \
