@@ -14,7 +14,7 @@ packages:
   - generated_tsa_host_key
   - generated_worker_key
 
-requires:
+consumes:
 - name: tsa
   type: tsa
 - name: atc

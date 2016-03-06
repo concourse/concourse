@@ -36,7 +36,7 @@ packages:
   - bosh_io_stemcell_resource
   - bosh_deployment_resource
 
-requires:
+consumes:
 - name: tsa
   type: tsa
 - name: garden

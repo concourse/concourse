@@ -14,7 +14,7 @@ packages:
   - fly
   - generated_signing_key
 
-requires:
+consumes:
 - name: atc
   type: atc
 - name: atcdb
