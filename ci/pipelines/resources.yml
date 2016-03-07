@@ -27,6 +27,20 @@ jobs:
   - put: busybox-git-image
     params: {build: image-root}
 
+- name: busybox-hg
+  serial: true
+  public: true
+  plan:
+  - get: core-busyboxplus
+    resource: busybox-hg
+    trigger: true
+  - task: build-image
+    privileged: true
+    file: core-busyboxplus/ci/build.yml
+    config: {params: {FLAVOR: hg}}
+  - put: busybox-hg-image
+    params: {build: image-root}
+
 - name: busybox-ruby
   serial: true
   public: true
@@ -714,6 +728,22 @@ resources:
   source:
     repository: concourse/busyboxplus
     tag: git
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
+- name: busybox-hg
+  type: git
+  source:
+    uri: https://github.com/concourse/core-busyboxplus.git
+    branch: master
+    paths: [hg, ci]
+
+- name: busybox-hg-image
+  type: docker-image
+  source:
+    repository: concourse/busyboxplus
+    tag: hg
     username: {{docker-username}}
     email: {{docker-email}}
     password: {{docker-password}}
