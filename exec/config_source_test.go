@@ -171,6 +171,18 @@ var _ = Describe("ConfigSource", func() {
 				}))
 			})
 		})
+
+		Context("when the plan has no task config", func() {
+			BeforeEach(func() {
+				taskPlan.Config = nil
+			})
+
+			It("returns an empty config", func() {
+				fetchedConfig, err := configSource.FetchConfig(repo)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fetchedConfig).To(Equal(atc.TaskConfig{}))
+			})
+		})
 	})
 
 	Describe("FileConfigSource", func() {

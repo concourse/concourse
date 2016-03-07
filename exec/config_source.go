@@ -27,30 +27,29 @@ type StaticConfigSource struct {
 
 // FetchConfig returns the configuration.
 func (configSource StaticConfigSource) FetchConfig(*SourceRepository) (atc.TaskConfig, error) {
+	if configSource.Plan.Config == nil {
+		return atc.TaskConfig{}, nil
+	}
+
 	taskConfig := *configSource.Plan.Config
+
 	if taskConfig.Params == nil {
 		taskConfig.Params = map[string]string{}
 	}
-	for key, val := range configSource.Plan.Params {
-		strVal, err := configSource.toString(val)
-		if err != nil {
-			return atc.TaskConfig{}, err
-		}
 
-		taskConfig.Params[key] = strVal
+	for key, val := range configSource.Plan.Params {
+		if str, ok := val.(string); ok {
+			taskConfig.Params[key] = str
+		} else {
+			bs, err := json.Marshal(val)
+			if err != nil {
+				return atc.TaskConfig{}, err
+			}
+			taskConfig.Params[key] = string(bs)
+		}
 	}
 
 	return taskConfig, nil
-}
-
-func (configSource StaticConfigSource) toString(obj interface{}) (string, error) {
-	switch data := obj.(type) {
-	case string:
-		return data, nil
-	default:
-		str, err := json.Marshal(data)
-		return string(str), err
-	}
 }
 
 func (configSource StaticConfigSource) Warnings() []string {
