@@ -111,6 +111,8 @@ your \reference{build-plans} via the \reference{get-step} and
       \hyperlink{https://github.com/aequitas/concourse-ftp-resource}{FTP}
     }{
       \hyperlink{https://github.com/pivotal-cf-experimental/cloudformation-resource}{Cloudformation}
+    }{
+      \hyperlink{https://github.com/aequitas/concourse-http-api-resource}{Generic HTTP API}
     }
   }
 
