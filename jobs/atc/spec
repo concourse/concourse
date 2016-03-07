@@ -15,8 +15,6 @@ packages:
   - generated_signing_key
 
 consumes:
-- name: atc
-  type: atc
 - name: db
   type: postgresql
   optional: true

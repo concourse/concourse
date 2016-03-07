@@ -19,8 +19,6 @@ PIDFILE=$RUN_DIR/atc.pid
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
 <%
-  my_addr = link("atc").instances.find { |i| i.id == spec.id }.address
-
   postgres_addr = ""
 
   if_p("atc.postgresql.address") do |addr|
@@ -56,7 +54,7 @@ case $1 in
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
       --bind-ip <%= p("atc.web_bind_ip") %> \
       --bind-port <%= p("atc.web_bind_port") %> \
-      --peer-url <%= p("atc.peer_url", "http://#{my_addr}:#{p("atc.web_bind_port")}") %> \
+      --peer-url <%= p("atc.peer_url", "http://#{spec.address}:#{p("atc.web_bind_port")}") %> \
       --external-url <%= esc(p("atc.external_url")) %> \
       --postgres-data-source <%= esc("postgres://#{postgres_role_name}:#{postgres_role_password}@#{postgres_addr}/#{postgres_database}?sslmode=disable") %> \
       <% if p("atc.publicly_viewable") %> \

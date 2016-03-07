@@ -15,8 +15,6 @@ packages:
   - generated_worker_key
 
 consumes:
-- name: tsa
-  type: tsa
 - name: atc
   type: atc
 

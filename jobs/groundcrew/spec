@@ -45,14 +45,6 @@ consumes:
 - name: baggageclaim
   type: baggageclaim
   optional: true
-# for discovering our own IP in case no Garden link is available, assuming it's
-# colocated
-- name: groundcrew
-  type: groundcrew
-
-provides:
-- name: groundcrew
-  type: groundcrew
 
 properties:
   groundcrew.tsa.port:

@@ -18,8 +18,6 @@ PIDFILE=$RUN_DIR/jettison.pid
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
 <%
-  current_instance = link("groundcrew").instances.find { |i| i.id == spec.id }
-
   garden_addr = ""
 
   if_link("garden") do |garden|
@@ -32,7 +30,7 @@ source /var/vcap/packages/pid_utils/pid_utils.sh
   # no garden link found (probably release didn't support it); assume it's
   # colocated
   if garden_addr.empty?
-    garden_addr = "#{current_instance.address}:7777"
+    garden_addr = "#{spec.address}:7777"
   end
 %>
 
