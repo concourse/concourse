@@ -121,6 +121,16 @@ properties:
       resource is found. Use Go duration format (1m = 1 minute).
     default: 5m
 
+  atc.retention.container.success_duration:
+    description: |
+      The duration to keep a succeeded step's containers before expiring them.
+    default: 5m
+
+  atc.retention.container.failure_duration:
+    description: |
+      The duration to keep a failed step's containers before expiring them.
+    default: 1h
+
   atc.yeller.api_key:
     description: |
       If configured, errors emitted to the logs will also be emitted to Yeller.
