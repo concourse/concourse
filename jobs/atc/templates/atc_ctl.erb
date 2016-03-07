@@ -95,6 +95,8 @@ case $1 in
       --resource-checking-interval <%= p("atc.default_check_interval") %> \
       --old-resource-grace-period <%= p("atc.old_resource_grace_period") %> \
       --resource-cache-cleanup-interval <%= p("atc.resource_cache_cleanup_interval") %> \
+      --container-retention-success-duration <%= p("atc.retention.container.success_duration") %> \
+      --container-retention-failure-duration <%= p("atc.retention.container.failure_duration") %> \
       --cli-artifacts-dir /var/vcap/packages/fly \
       --yeller-api-key <%= esc(p("atc.yeller.api_key")) %> \
       --yeller-environment <%= esc(p("atc.yeller.environment_name")) %> \
