@@ -80,8 +80,7 @@ jobs:
       params: {save: true}
       passed: [busybox-git]
       trigger: true
-  - put: resource-image
-    resource: git-resource-image
+  - put: git-resource-image
     params:
       load_base: busybox-git-image
       build: git-resource
@@ -90,6 +89,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: git-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: git-resource}}
   - put: concourse
@@ -108,8 +109,7 @@ jobs:
       trigger: true
   - task: unit
     file: pool-resource/build.yml
-  - put: resource-image
-    resource: pool-resource-image
+  - put: pool-resource-image
     params:
       load_base: busybox-git-image
       build: built-resource
@@ -118,6 +118,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: pool-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: pool-resource}}
   - put: concourse
@@ -136,8 +138,7 @@ jobs:
       trigger: true
   - task: build-resource
     file: docker-image-resource/ci/build.yml
-  - put: resource-image
-    resource: docker-image-resource-image
+  - put: docker-image-resource-image
     params:
       load_base: busybox-iptables-image
       build: built-resource
@@ -146,6 +147,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: docker-image-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: docker-image-resource}}
   - put: concourse
@@ -164,8 +167,7 @@ jobs:
       trigger: true
   - task: unit-and-build
     file: time-resource/build.yml
-  - put: resource-image
-    resource: time-resource-image
+  - put: time-resource-image
     params:
       load_base: busybox-base-image
       build: built-resource
@@ -174,6 +176,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: time-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: time-resource}}
   - put: concourse
@@ -192,8 +196,7 @@ jobs:
       trigger: true
   - task: build
     file: archive-resource/build.yml
-  - put: resource-image
-    resource: archive-resource-image
+  - put: archive-resource-image
     params:
       load_base: busybox-git-image
       build: built-resource
@@ -202,6 +205,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: archive-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: archive-resource}}
   - put: concourse
@@ -220,8 +225,7 @@ jobs:
       trigger: true
   - task: unit
     file: bosh-deployment-resource/build.yml
-  - put: resource-image
-    resource: bosh-deployment-resource-image
+  - put: bosh-deployment-resource-image
     params:
       load_base: busybox-ruby-image
       build: bosh-deployment-resource
@@ -230,6 +234,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: bosh-deployment-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: bosh-deployment-resource}}
   - put: concourse
@@ -254,8 +260,7 @@ jobs:
         S3_TESTING_BUCKET: {{s3-resource-bucket}}
         S3_VERSIONED_TESTING_BUCKET: {{s3-resource-versioned-bucket}}
         S3_TESTING_REGION: {{s3-resource-region}}
-  - put: resource-image
-    resource: s3-resource-image
+  - put: s3-resource-image
     params:
       load_base: busybox-base-image
       build: built-resource
@@ -264,6 +269,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: s3-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: s3-resource}}
   - put: concourse
@@ -282,8 +289,7 @@ jobs:
       trigger: true
   - task: unit-and-build
     file: github-release-resource/build.yml
-  - put: resource-image
-    resource: github-release-resource-image
+  - put: github-release-resource-image
     params:
       load_base: busybox-base-image
       build: built-resource
@@ -292,6 +298,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: github-release-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: github-release-resource}}
   - put: concourse
@@ -317,8 +325,7 @@ jobs:
       file: autopilot/build.yml
     - task: resource-unit
       file: cf-resource/build.yml
-  - put: resource-image
-    resource: cf-resource-image
+  - put: cf-resource-image
     params:
       load_base: busybox-base-image
       build: built-resource
@@ -327,6 +334,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: cf-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: cf-resource}}
   - put: concourse
@@ -351,8 +360,7 @@ jobs:
         SEMVER_TESTING_SECRET_ACCESS_KEY: {{semver-secret-key}}
         SEMVER_TESTING_BUCKET: {{semver-bucket}}
         SEMVER_TESTING_REGION: {{semver-region}}
-  - put: resource-image
-    resource: semver-resource-image
+  - put: semver-resource-image
     params:
       load_base: busybox-git-image
       build: built-resource
@@ -361,6 +369,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: semver-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: semver-resource}}
   - put: concourse
@@ -377,8 +387,7 @@ jobs:
       trigger: true
     - get: bosh-io-release-resource
       trigger: true
-  - put: resource-image
-    resource: bosh-io-release-resource-image
+  - put: bosh-io-release-resource-image
     params:
       load_base: busybox-git-image
       build: bosh-io-release-resource
@@ -387,6 +396,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: bosh-io-release-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: bosh-io-release-resource}}
   - put: concourse
@@ -405,8 +416,7 @@ jobs:
       trigger: true
   - task: unit
     file: bosh-io-stemcell-resource/build.yml
-  - put: resource-image
-    resource: bosh-io-stemcell-resource-image
+  - put: bosh-io-stemcell-resource-image
     params:
       load_base: busybox-git-image
       build: bosh-io-stemcell-resource
@@ -415,6 +425,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: bosh-io-stemcell-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: bosh-io-stemcell-resource}}
   - put: concourse
@@ -434,8 +446,7 @@ jobs:
   - task: unit
     file: tracker-resource/build.yml
     config: {params: {TRACKER_TOKEN: {{tracker-testing-token}}}}
-  - put: resource-image
-    resource: tracker-resource-image
+  - put: tracker-resource-image
     params:
       load_base: busybox-git-image
       build: built-resource
@@ -444,6 +455,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: tracker-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: tracker-resource}}
   - put: concourse
@@ -460,8 +473,7 @@ jobs:
       trigger: true
     - get: vagrant-cloud-resource
       trigger: true
-  - put: resource-image
-    resource: vagrant-cloud-resource-image
+  - put: vagrant-cloud-resource-image
     params:
       load_base: busybox-git-image
       build: vagrant-cloud-resource
@@ -470,6 +482,8 @@ jobs:
     - get: deployments
     - get: concourse
   - task: bump-package
+    input_mapping:
+      resource-image: vagrant-cloud-resource-image
     file: concourse/ci/bump-resource-package.yml
     config: {params: {RESOURCE_NAME: vagrant-cloud-resource}}
   - put: concourse
