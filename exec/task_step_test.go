@@ -50,13 +50,16 @@ var _ = Describe("GardenFactory", func() {
 			Type:         db.ContainerTypeTask,
 			StepName:     "some-step",
 		}
+
+		containerSuccessTTL = 1 * time.Minute
+		containerFailureTTL = 2 * time.Minute
 	)
 
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeTracker = new(rfakes.FakeTracker)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, containerSuccessTTL, containerFailureTTL)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -1204,12 +1207,12 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							Describe("release", func() {
-								It("releases with a ttl of 5 minutes", func() {
+								It("releases with the configured container success TTL", func() {
 									<-process.Wait()
 
 									step.Release()
 									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(5 * time.Minute)))
+									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerSuccessTTL)))
 								})
 							})
 
@@ -1301,12 +1304,12 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							Describe("release", func() {
-								It("releases with a ttl of 1 hour", func() {
+								It("releases with the configured container failure TTL", func() {
 									Eventually(process.Wait()).Should(Receive(BeNil()))
 
 									step.Release()
 									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(1 * time.Hour)))
+									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
 								})
 							})
 

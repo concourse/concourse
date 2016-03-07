@@ -43,6 +43,9 @@ var _ = Describe("GardenFactory", func() {
 			Type:         db.ContainerTypePut,
 			StepName:     "some-step",
 		}
+
+		containerSuccessTTL = 1 * time.Minute
+		containerFailureTTL = 2 * time.Minute
 	)
 
 	BeforeEach(func() {
@@ -50,7 +53,7 @@ var _ = Describe("GardenFactory", func() {
 		fakeTracker = new(rfakes.FakeTracker)
 		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, containerSuccessTTL, containerFailureTTL)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -273,14 +276,14 @@ var _ = Describe("GardenFactory", func() {
 			})
 
 			Describe("releasing", func() {
-				It("releases the resource with a ttl of 5 minutes", func() {
+				It("releases the resource with the configured containerSuccessTTL", func() {
 					<-process.Wait()
 
 					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 					step.Release()
 					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(5 * time.Minute)))
+					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerSuccessTTL)))
 				})
 			})
 
@@ -327,14 +330,14 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					Describe("releasing", func() {
-						It("releases the resource with a ttl of 1 hour", func() {
+						It("releases the resource with the configured containerFailureTTL", func() {
 							<-process.Wait()
 
 							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 							step.Release()
 							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(1 * time.Hour)))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
 						})
 					})
 				})
@@ -358,14 +361,14 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					Describe("releasing", func() {
-						It("releases the resource with a ttl of 1 hour", func() {
+						It("releases the resource with the configured containerFailureTTL", func() {
 							<-process.Wait()
 
 							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 							step.Release()
 							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(1 * time.Hour)))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
 						})
 					})
 				})
@@ -403,14 +406,14 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					Describe("releasing", func() {
-						It("releases the resource with a ttl of 1 hour", func() {
+						It("releases the resource with the configured containerFailureTTL", func() {
 							<-process.Wait()
 
 							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 							step.Release()
 							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(1 * time.Hour)))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
 						})
 					})
 				})

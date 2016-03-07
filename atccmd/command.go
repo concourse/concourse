@@ -68,6 +68,11 @@ type ATCCommand struct {
 	OldResourceGracePeriod       time.Duration `long:"old-resource-grace-period" default:"5m" description:"How long to cache the result of a get step after a newer version of the resource is found."`
 	ResourceCacheCleanupInterval time.Duration `long:"resource-cache-cleanup-interval" default:"30s" description:"Interval on which to cleanup old caches of resources."`
 
+	ContainerRetention struct {
+		SuccessDuration time.Duration `long:"success-duration" default:"5m" description:"The duration to keep a succeeded step's containers before expiring them."`
+		FailureDuration time.Duration `long:"failure-duration" default:"1h" description:"The duration to keep a failed step's containers before expiring them."`
+	} `group:"Container Retention" namespace:"container-retention"`
+
 	CLIArtifactsDir DirFlag `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
 
 	Developer struct {
@@ -135,7 +140,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory)
 
 	tracker := resource.NewTracker(workerClient, sqlDB)
-	engine := cmd.constructEngine(sqlDB, workerClient, tracker, cmd.ExternalURL.String())
+	engine := cmd.constructEngine(sqlDB, workerClient, tracker)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		tracker,
@@ -556,15 +561,19 @@ func (cmd *ATCCommand) constructEngine(
 	sqlDB *db.SQLDB,
 	workerClient worker.Client,
 	tracker resource.Tracker,
-	externalUrl string,
 ) engine.Engine {
-	gardenFactory := exec.NewGardenFactory(workerClient, tracker)
+	gardenFactory := exec.NewGardenFactory(
+		workerClient,
+		tracker,
+		cmd.ContainerRetention.SuccessDuration,
+		cmd.ContainerRetention.FailureDuration,
+	)
 
 	execV2Engine := engine.NewExecEngine(
 		gardenFactory,
 		engine.NewBuildDelegateFactory(sqlDB),
 		sqlDB,
-		externalUrl,
+		cmd.ExternalURL.String(),
 	)
 
 	execV1Engine := engine.NewExecV1DummyEngine()

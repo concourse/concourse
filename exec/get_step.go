@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -17,18 +18,19 @@ import (
 // GetStep will fetch a version of a resource on a worker that supports the
 // resource type.
 type GetStep struct {
-	logger          lager.Logger
-	sourceName      SourceName
-	resourceConfig  atc.ResourceConfig
-	version         atc.Version
-	params          atc.Params
-	cacheIdentifier resource.CacheIdentifier
-	stepMetadata    StepMetadata
-	session         resource.Session
-	tags            atc.Tags
-	delegate        GetDelegate
-	tracker         resource.Tracker
-	resourceTypes   atc.ResourceTypes
+	logger              lager.Logger
+	sourceName          SourceName
+	resourceConfig      atc.ResourceConfig
+	version             atc.Version
+	params              atc.Params
+	cacheIdentifier     resource.CacheIdentifier
+	stepMetadata        StepMetadata
+	session             resource.Session
+	tags                atc.Tags
+	delegate            GetDelegate
+	tracker             resource.Tracker
+	resourceTypes       atc.ResourceTypes
+	containerFailureTTL time.Duration
 
 	repository *SourceRepository
 
@@ -52,20 +54,22 @@ func newGetStep(
 	delegate GetDelegate,
 	tracker resource.Tracker,
 	resourceTypes atc.ResourceTypes,
+	containerFailureTTL time.Duration,
 ) GetStep {
 	return GetStep{
-		logger:          logger,
-		sourceName:      sourceName,
-		resourceConfig:  resourceConfig,
-		version:         version,
-		params:          params,
-		cacheIdentifier: cacheIdentifier,
-		stepMetadata:    stepMetadata,
-		session:         session,
-		tags:            tags,
-		delegate:        delegate,
-		tracker:         tracker,
-		resourceTypes:   resourceTypes,
+		logger:              logger,
+		sourceName:          sourceName,
+		resourceConfig:      resourceConfig,
+		version:             version,
+		params:              params,
+		cacheIdentifier:     cacheIdentifier,
+		stepMetadata:        stepMetadata,
+		session:             session,
+		tags:                tags,
+		delegate:            delegate,
+		tracker:             tracker,
+		resourceTypes:       resourceTypes,
+		containerFailureTTL: containerFailureTTL,
 	}
 }
 
@@ -184,9 +188,10 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 }
 
 // Release releases the resource's container (and thus volumes). If the step
-// failed, they are released with FailedStepTTL. Otherwise, they are released
-// without setting a final TTL, so that the cache's own TTL is respected. This
-// differs from other steps which typically release with SuccessfulStepTTL.
+// failed, they are released with the configured containerFailureTTL.
+// Otherwise, they are released without setting a final TTL, so that the
+// cache's own TTL is respected. This differs from other steps which typically
+// release with the configured containerSuccessTTL.
 func (step *GetStep) Release() {
 	if step.resource == nil {
 		return
@@ -195,7 +200,7 @@ func (step *GetStep) Release() {
 	if step.succeeded {
 		step.resource.Release(nil)
 	} else {
-		step.resource.Release(worker.FinalTTL(FailedStepTTL))
+		step.resource.Release(worker.FinalTTL(step.containerFailureTTL))
 	}
 }
 

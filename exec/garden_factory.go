@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/pivotal-golang/lager"
 
@@ -13,9 +14,11 @@ import (
 )
 
 type gardenFactory struct {
-	workerClient   worker.Client
-	tracker        resource.Tracker
-	trackerFactory TrackerFactory
+	workerClient        worker.Client
+	tracker             resource.Tracker
+	trackerFactory      TrackerFactory
+	containerSuccessTTL time.Duration
+	containerFailureTTL time.Duration
 }
 
 //go:generate counterfeiter . TrackerFactory
@@ -27,10 +30,14 @@ type TrackerFactory interface {
 func NewGardenFactory(
 	workerClient worker.Client,
 	tracker resource.Tracker,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) Factory {
 	return &gardenFactory{
-		workerClient: workerClient,
-		tracker:      tracker,
+		workerClient:        workerClient,
+		tracker:             tracker,
+		containerSuccessTTL: containerSuccessTTL,
+		containerFailureTTL: containerFailureTTL,
 	}
 }
 
@@ -61,6 +68,7 @@ func (factory *gardenFactory) DependentGet(
 		delegate,
 		factory.tracker,
 		resourceTypes,
+		factory.containerFailureTTL,
 	)
 }
 
@@ -100,6 +108,7 @@ func (factory *gardenFactory) Get(
 		delegate,
 		factory.tracker,
 		resourceTypes,
+		factory.containerFailureTTL,
 	)
 }
 
@@ -129,6 +138,8 @@ func (factory *gardenFactory) Put(
 		delegate,
 		factory.tracker,
 		resourceTypes,
+		factory.containerSuccessTTL,
+		factory.containerFailureTTL,
 	)
 }
 
@@ -159,6 +170,8 @@ func (factory *gardenFactory) Task(
 		workingDirectory,
 		factory.trackerFactory,
 		resourceTypes,
+		factory.containerSuccessTTL,
+		factory.containerFailureTTL,
 		inputMapping,
 		outputMapping,
 	)

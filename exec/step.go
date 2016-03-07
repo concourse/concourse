@@ -3,7 +3,6 @@ package exec
 import (
 	"errors"
 	"os"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/tedsuo/ifrit"
@@ -12,15 +11,6 @@ import (
 // ErrInterrupted is returned by steps when they exited as a result of
 // receiving a signal.
 var ErrInterrupted = errors.New("interrupted")
-
-// SuccessfulStepTTL is the duration to keep a succeeded step's containers
-// before expiring them.
-const SuccessfulStepTTL = 5 * time.Minute
-
-// FailedStepTTL is the duration to keep a succeeded step's containers before
-// expiring them. It is higher than SuccessfulStepTTL so that the user has more
-// time to notice and investigate.
-const FailedStepTTL = 1 * time.Hour
 
 //go:generate counterfeiter . StepFactory
 
@@ -59,7 +49,8 @@ type Step interface {
 
 	// Release is called when the build has completed and no more steps will be
 	// executed in the build plan. Steps with containers should release their
-	// containers, with a final TTL of either SuccessfulStepTTL or FailedStepTTL.
+	// containers, with a final TTL of either the configured containerSuccessTTL
+	// or containerFailureTTL.
 	Release()
 
 	// Result is used to collect metadata from the step. Usually this is

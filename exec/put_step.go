@@ -2,6 +2,7 @@ package exec
 
 import (
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -13,15 +14,17 @@ import (
 // PutStep produces a resource version using preconfigured params and any data
 // available in the SourceRepository.
 type PutStep struct {
-	logger         lager.Logger
-	resourceConfig atc.ResourceConfig
-	params         atc.Params
-	stepMetadata   StepMetadata
-	session        resource.Session
-	tags           atc.Tags
-	delegate       PutDelegate
-	tracker        resource.Tracker
-	resourceTypes  atc.ResourceTypes
+	logger              lager.Logger
+	resourceConfig      atc.ResourceConfig
+	params              atc.Params
+	stepMetadata        StepMetadata
+	session             resource.Session
+	tags                atc.Tags
+	delegate            PutDelegate
+	tracker             resource.Tracker
+	resourceTypes       atc.ResourceTypes
+	containerSuccessTTL time.Duration
+	containerFailureTTL time.Duration
 
 	repository *SourceRepository
 
@@ -42,17 +45,21 @@ func newPutStep(
 	delegate PutDelegate,
 	tracker resource.Tracker,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) PutStep {
 	return PutStep{
-		logger:         logger,
-		resourceConfig: resourceConfig,
-		params:         params,
-		stepMetadata:   stepMetadata,
-		session:        session,
-		tags:           tags,
-		delegate:       delegate,
-		tracker:        tracker,
-		resourceTypes:  resourceTypes,
+		logger:              logger,
+		resourceConfig:      resourceConfig,
+		params:              params,
+		stepMetadata:        stepMetadata,
+		session:             session,
+		tags:                tags,
+		delegate:            delegate,
+		tracker:             tracker,
+		resourceTypes:       resourceTypes,
+		containerSuccessTTL: containerSuccessTTL,
+		containerFailureTTL: containerFailureTTL,
 	}
 }
 
@@ -149,17 +156,17 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return nil
 }
 
-// Release releases the created container for either SuccessfulStepTTL or
-// FailedStepTTL.
+// Release releases the created container for either the configured
+// containerSuccessTTL or containerFailureTTL.
 func (step *PutStep) Release() {
 	if step.resource == nil {
 		return
 	}
 
 	if step.succeeded {
-		step.resource.Release(worker.FinalTTL(SuccessfulStepTTL))
+		step.resource.Release(worker.FinalTTL(step.containerSuccessTTL))
 	} else {
-		step.resource.Release(worker.FinalTTL(FailedStepTTL))
+		step.resource.Release(worker.FinalTTL(step.containerFailureTTL))
 	}
 }
 

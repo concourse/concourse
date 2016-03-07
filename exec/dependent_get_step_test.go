@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -45,6 +46,9 @@ var _ = Describe("GardenFactory", func() {
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
+		containerSuccessTTL = 1 * time.Minute
+		containerFailureTTL = 2 * time.Minute
+
 		sourceName SourceName = "some-source-name"
 	)
 
@@ -54,7 +58,7 @@ var _ = Describe("GardenFactory", func() {
 
 		fakeWorkerClient = new(wfakes.FakeClient)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, containerSuccessTTL, containerFailureTTL)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -272,6 +276,16 @@ var _ = Describe("GardenFactory", func() {
 					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 				})
 
+				It("releases the resource with the containerFailureTTL", func() {
+					<-process.Wait()
+
+					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+					step.Release()
+					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
+				})
+
 				It("invokes the delegate's Failed callback without completing", func() {
 					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 
@@ -317,11 +331,12 @@ var _ = Describe("GardenFactory", func() {
 			})
 
 			Describe("releasing", func() {
-				It("releases the resource", func() {
+				It("releases the resource with the original container TTL", func() {
 					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 					step.Release()
 					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+					Expect(fakeResource.ReleaseArgsForCall(0)).To(BeNil())
 				})
 			})
 

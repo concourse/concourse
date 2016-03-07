@@ -36,19 +36,21 @@ func (err MissingInputsError) Error() string {
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
 // SourceRepository and outputs will be added to the SourceRepository.
 type TaskStep struct {
-	logger         lager.Logger
-	containerID    worker.Identifier
-	metadata       worker.Metadata
-	tags           atc.Tags
-	delegate       TaskDelegate
-	privileged     Privileged
-	configSource   TaskConfigSource
-	workerPool     worker.Client
-	artifactsRoot  string
-	trackerFactory TrackerFactory
-	resourceTypes  atc.ResourceTypes
-	inputMapping   map[string]string
-	outputMapping  map[string]string
+	logger              lager.Logger
+	containerID         worker.Identifier
+	metadata            worker.Metadata
+	tags                atc.Tags
+	delegate            TaskDelegate
+	privileged          Privileged
+	configSource        TaskConfigSource
+	workerPool          worker.Client
+	artifactsRoot       string
+	trackerFactory      TrackerFactory
+	resourceTypes       atc.ResourceTypes
+	containerSuccessTTL time.Duration
+	containerFailureTTL time.Duration
+	inputMapping        map[string]string
+	outputMapping       map[string]string
 
 	repo *SourceRepository
 
@@ -70,23 +72,27 @@ func newTaskStep(
 	artifactsRoot string,
 	trackerFactory TrackerFactory,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 	inputMapping map[string]string,
 	outputMapping map[string]string,
 ) TaskStep {
 	return TaskStep{
-		logger:         logger,
-		containerID:    containerID,
-		metadata:       metadata,
-		tags:           tags,
-		delegate:       delegate,
-		privileged:     privileged,
-		configSource:   configSource,
-		workerPool:     workerPool,
-		artifactsRoot:  artifactsRoot,
-		trackerFactory: trackerFactory,
-		resourceTypes:  resourceTypes,
-		inputMapping:   inputMapping,
-		outputMapping:  outputMapping,
+		logger:              logger,
+		containerID:         containerID,
+		metadata:            metadata,
+		tags:                tags,
+		delegate:            delegate,
+		privileged:          privileged,
+		configSource:        configSource,
+		workerPool:          workerPool,
+		artifactsRoot:       artifactsRoot,
+		trackerFactory:      trackerFactory,
+		resourceTypes:       resourceTypes,
+		containerSuccessTTL: containerSuccessTTL,
+		containerFailureTTL: containerFailureTTL,
+		inputMapping:        inputMapping,
+		outputMapping:       outputMapping,
 	}
 }
 
@@ -382,17 +388,17 @@ func (step *TaskStep) Result(x interface{}) bool {
 	}
 }
 
-// Release releases the created container for either SuccessfulStepTTL or
-// FailedStepTTL.
+// Release releases the created container for either the configured
+// containerSuccessTTL or containerFailureTTL.
 func (step *TaskStep) Release() {
 	if step.container == nil {
 		return
 	}
 
 	if step.exitStatus == 0 {
-		step.container.Release(worker.FinalTTL(SuccessfulStepTTL))
+		step.container.Release(worker.FinalTTL(step.containerSuccessTTL))
 	} else {
-		step.container.Release(worker.FinalTTL(FailedStepTTL))
+		step.container.Release(worker.FinalTTL(step.containerFailureTTL))
 	}
 }
 
