@@ -25,7 +25,7 @@ type StaticConfigSource struct {
 	Plan atc.TaskPlan
 }
 
-// FetchConfig returns the configuration. It cannot fail.
+// FetchConfig returns the configuration.
 func (configSource StaticConfigSource) FetchConfig(*SourceRepository) (atc.TaskConfig, error) {
 	taskConfig := *configSource.Plan.Config
 	if taskConfig.Params == nil {
