@@ -10,7 +10,7 @@ templates:
   beacon_ctl.erb: bin/beacon_ctl
   jettison_ctl.erb: bin/jettison_ctl
 
-  known_hosts.erb: config/known_hosts
+  static_known_hosts.erb: config/static_known_hosts
   private_key.erb: config/private_key
   worker.json.erb: config/worker.json
 
@@ -39,6 +39,7 @@ packages:
 consumes:
 - name: tsa
   type: tsa
+  optional: true
 - name: garden
   type: garden
   optional: true
@@ -47,38 +48,75 @@ consumes:
   optional: true
 
 properties:
-  groundcrew.tsa.port:
-    description: "port of the TSA server to register with"
+  tsa.host:
+    description: |
+      IP or DNS address of the TSA server to register with.
+
+      If not specified, the `tsa` link is used.
+
+  tsa.port:
+    description: |
+      Port of the TSA server to register with.
+
+      Only used when `tsa.host` is also specified. Otherwise the port is
+      autodiscovered via the `tsa` link.
     default: 2222
 
-  groundcrew.tsa.host_public_key:
+  tsa.host_public_key:
     description: >
-      host key to verify for the TSA server. if not specified, a
-      deployment-scoped default is used.
+      Host key to verify for the TSA server.
+
+      If not specified, a deployment-scoped default is used.
     default: ""
 
-  groundcrew.tsa.private_key:
+  tsa.private_key:
     description: >
-      private key to use when authenticating with the TSA. if not specified, a
-      deployment-scoped default is used.
+      Private key to use when authenticating with the TSA.
+
+      If not specified, a deployment-scoped default is used.
     default: ""
 
-  groundcrew.yeller.api_key:
-    description: "api key from yeller to output errors from concourse to yeller"
-    default: ""
+  garden.address:
+    description: |
+      Garden server connection address to advertise directly to the TSA.
 
-  groundcrew.yeller.environment_name:
-    description: "environment name you wish to group errors under in yeller"
-    default: ""
+      If not specified, either the `garden` link is used, or
+      the instance's address is advertised if the link is not
+      found.
 
-  groundcrew.garden.forward_address:
-    description: "garden server connection address to forward through SSH to the TSA"
+  garden.forward_address:
+    description: |
+      Garden server connection address to forward through SSH to the TSA.
 
-  groundcrew.baggageclaim.forward_address:
-    description: "baggageclaim server connection address to forward through SSH to the TSA"
+      If not specified, the Garden server address is registered directly.
 
-  groundcrew.resource_types:
-    description: "resource types supported by the worker, in [{type: type, image: image}] form"
+  baggageclaim.url:
+    description: |
+      Baggageclaim server URL to advertise directly to the
+      TSA.
+
+      If not specified, either the `baggageclaim` link is
+      used.
+
+  baggageclaim.forward_address:
+    description: |
+      Baggageclaim server connection address to forward through SSH to the TSA.
+
+      If not specified, the Baggageclaim server address is registered directly.
+
+  platform:
+    description: |
+      Platform to advertise for each worker.
+    default: linux
+
+  tags:
+    description: |
+      An array of tags to advertise for each worker.
+    default: []
+
+  resource_types:
+    description: |
+      Resource types supported by the workers, in `[{type: string, image: string}]` form.
     default:
       - type: archive
         image: /var/vcap/packages/archive_resource
@@ -109,17 +147,21 @@ properties:
       - type: bosh-deployment
         image: /var/vcap/packages/bosh_deployment_resource
 
-  groundcrew.additional_resource_types:
-    description: "additional resource types that will be merged into groundcrew.resource_types (the same format is used)"
+  additional_resource_types:
+    description: |
+      Additional resource types that will be merged into resource_types. The
+      same format is used.
     default: []
 
-  groundcrew.platform:
-    description: "platform of the worker to advertise"
-    default: linux
+  yeller.api_key:
+    description: |
+      API key to output errors from Concourse to Yeller.
+    default: ""
 
-  groundcrew.tags:
-    description: "an array of tags to advertise for the worker"
-    default: []
+  yeller.environment_name:
+    description: |
+      Environment name you wish to group errors under in yeller.
+    default: ""
 
   blackbox.syslog.sources.groundcrew:
     description: "files whose contents blackbox will emit to its syslog drain"

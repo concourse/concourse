@@ -22,26 +22,28 @@ consumes:
 provides:
 - name: atc
   type: atc
+  properties:
+  - bind_port
 
 properties:
-  atc.web_bind_ip:
+  bind_ip:
     description: |
-      IP address for the web server to listen on.
+      IP address on which the ATC should listen for HTTP traffic.
     default: 0.0.0.0
 
-  atc.web_bind_port:
+  bind_port:
     description: |
-      Port for the web server to listen on.
+      Port on which the ATC should listen for HTTP traffic.
     default: 8080
 
-  atc.external_url:
+  external_url:
     description: |
       Externally reachable URL of the ATCs. Required for OAuth.
 
       Typically this is the URL that you as a user would use to reach your CI.
       For multiple ATCs it would go to some sort of load balancer.
 
-  atc.peer_url:
+  peer_url:
     description: |
       Address used internally to reach the ATC. This will be auto-generated
       using the IP of each ATC VM if not specified.
@@ -52,7 +54,7 @@ properties:
 
       You should otherwise leave this value blank.
 
-  atc.publicly_viewable:
+  publicly_viewable:
     description: |
       Allow viewing of pipelines as an anonymous user. Destructive operations
       still require auth, and the output of builds will only be visible if
@@ -62,41 +64,41 @@ properties:
       monitoring your pipeline status easier.
     default: false
 
-  atc.development_mode:
+  development_mode:
     description: |
       Loosen up security for development purposes. This allows the ATC to be
       configured with no authentication methods.
     default: false
 
-  atc.basic_auth_username:
+  basic_auth_username:
     description: |
       Username for HTTP basic auth.
     default: ""
 
-  atc.basic_auth_password:
+  basic_auth_password:
     description: |
       Password for HTTP basic auth, in plaintext.
     default: ""
 
-  atc.github_auth.client_id:
+  github_auth.client_id:
     description: |
       GitHub client ID to use for OAuth.
 
       The application must be configured with its callback URL as
-      `{atc.external_url}/auth/github/callback` (replacing `{atc.external_url}`
+      `{external_url}/auth/github/callback` (replacing `{external_url}`
       with the actual value).
     default: ""
 
-  atc.github_auth.client_secret:
+  github_auth.client_secret:
     description: |
       GitHub client secret to use for OAuth.
 
       The application must be configured with its callback URL as
-      `{atc.external_url}/auth/github/callback` (replacing `{atc.external_url}`
+      `{external_url}/auth/github/callback` (replacing `{external_url}`
       with the actual value).
     default: ""
 
-  atc.github_auth.authorize:
+  github_auth.authorize:
     default: []
     description: |
       An array of different criteria to check for when authorizing a GitHub
@@ -109,7 +111,7 @@ properties:
     - user: user1
     - user: user2
 
-  atc.default_check_interval:
+  default_check_interval:
     description: |
       The interval, in Go duration format (1m = 1 minute), on which to check
       for new versions of resources.
@@ -118,59 +120,63 @@ properties:
       `check_every` on the resource config.
     default: 1m
 
-  atc.resource_cache_cleanup_interval:
+  resource_cache_cleanup_interval:
     description: |
       The interval, in Go duration format (1m = 1 minute), on which to check
       for and release old caches of resource versions.
     default: 30s
 
-  atc.old_resource_grace_period:
+  old_resource_grace_period:
     description: |
       How long to cache the result of a get step after a newer version of the
       resource is found. Use Go duration format (1m = 1 minute).
     default: 5m
 
-  atc.yeller.api_key:
+  postgresql_database:
     description: |
-      If configured, errors emitted to the logs will also be emitted to Yeller.
-      This is only really useful for Concourse developers.
-    default: ""
+      Name of the database to use from the `postgresql` link.
 
-  atc.yeller.environment_name:
-    description: |
-      Environment name to specify for errors emitted to Yeller.
-    default: ""
-
-  atc.riemann.host:
-    description: |
-      If configured, detailed metrics will be emitted to the specified Riemann
-      server.
-    default: ""
-
-  atc.riemann.port:
-    description: |
-      Port of the Riemann server to emit events to.
-    default: 5555
-
-  atc.postgresql.address:
+  postgresql.address:
     description: |
       Address of a PostgreSQL server to connect to, in `HOST:PORT` format.
 
       If not specified, one will be autodiscovered via BOSH links.
 
-  atc.postgresql.database:
+  postgresql.database:
     description: |
       Name of the database to use.
     default: atc
 
-  atc.postgresql.role.name:
+  postgresql.role.name:
     description: |
       Name of role to connect with.
     default: atc
 
-  atc.postgresql.role.password:
+  postgresql.role.password:
     description: |
       Password to use when connecting.
+
+  yeller.api_key:
+    description: |
+      If configured, errors emitted to the logs will also be emitted to Yeller.
+      This is only really useful for Concourse developers.
+    default: ""
+
+  yeller.environment_name:
+    description: |
+      Environment name to specify for errors emitted to Yeller.
+    default: ""
+
+  riemann.host:
+    description: |
+      If configured, detailed metrics will be emitted to the specified Riemann
+      server.
+    default: ""
+
+  riemann.port:
+    description: |
+      Port of the Riemann server to emit events to.
+    default: 5555
 
   blackbox.syslog.sources.atc:
     description: |

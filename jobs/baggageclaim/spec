@@ -13,23 +13,28 @@ provides:
 - name: baggageclaim
   type: baggageclaim
   properties:
-  - baggageclaim.bind_port
+  - bind_port
 
 properties:
-  baggageclaim.bind_ip:
-    description: "the host or ip which baggageclaim hosts its api on"
+  bind_ip:
+    description: |
+      IP address on which Baggageclaim should listen for HTTP traffic.
     default: 0.0.0.0
 
-  baggageclaim.bind_port:
-    description: "the port which baggageclaim hosts its api on"
+  bind_port:
+    description: |
+      Port on which Baggageclaim should listen for HTTP traffic.
     default: 7788
 
-  baggageclaim.yeller.api_key:
-    description: "api key from yeller to output errors from concourse to yeller"
+  yeller.api_key:
+    description: |
+      If configured, errors emitted to the logs will also be emitted to Yeller.
+      This is only really useful for Concourse developers.
     default: ""
 
-  baggageclaim.yeller.environment_name:
-    description: "environment name you wish to group errors under in yeller"
+  yeller.environment_name:
+    description: |
+      Environment name to specify for errors emitted to Yeller.
     default: ""
 
   blackbox.syslog.sources.baggageclaim:

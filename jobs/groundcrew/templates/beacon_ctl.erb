@@ -3,8 +3,19 @@
 set -e
 
 <%
-  require "cgi"
-  require "shellwords"
+  tsa_addrs = nil
+  tsa_port = nil
+
+  if_p("tsa.host", "tsa.port") do |host, port|
+    tsa_addrs = [host]
+    tsa_port = port
+  end
+
+  if tsa_addrs.nil? && tsa_port.nil?
+    tsa = link("tsa")
+    tsa_addrs = tsa.instances.collect(&:address)
+    tsa_port = tsa.p("bind_port")
+  end
 %>
 
 RUN_DIR=/var/vcap/sys/run/groundcrew
@@ -50,18 +61,18 @@ case $1 in
     # even more ideal would be for each node to have its own key and stop doing
     # the generated_tsa_host_key thing
     {
-      <% link("tsa").instances.each do |instance| %>
-      echo -n '[<%= instance.address %>]:2222 ' # TODO: instance.p("tsa.listen_port")
+      <% tsa_addrs.each do |addr| %>
+      echo -n '[<%= addr %>]:<%= tsa_port %> '
       cat /var/vcap/packages/generated_tsa_host_key/id_rsa.pub
       <% end %>
     } > /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts
 
     KNOWN_HOSTS_FILE=${RUN_DIR}/known_hosts
-    <% if p("groundcrew.tsa.host_public_key") != "" %>
-    cp /var/vcap/jobs/groundcrew/config/known_hosts $KNOWN_HOSTS_FILE
-    <% else %>
-    cp /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts $KNOWN_HOSTS_FILE
-    <% end %>
+
+    cat \
+      /var/vcap/jobs/groundcrew/config/static_known_hosts \
+      /var/vcap/jobs/groundcrew/config/generated_tsa_known_hosts \
+      > $KNOWN_HOSTS_FILE
 
     chown vcap:vcap $KNOWN_HOSTS_FILE
 
@@ -69,17 +80,15 @@ case $1 in
       sed -e "s/HOSTNAME_REPLACE_ME/$(hostname)/g" > \
       $RUN_DIR/worker.json
 
-    tsa_addrs=(<%= link("tsa").instances.collect(&:address).join(" ") %>)
-    tsa_ports=(<%= link("tsa").instances.collect { |n| 2222 }.join(" ") %>) # TODO: n.p("port") }.join(" ")
+    tsa_addrs=(<%= tsa_addrs.join(" ") %>)
 
     while true; do
       rand=$RANDOM
       tsa_addr=${tsa_addrs[$rand % ${#tsa_addrs[@]}]}
-      tsa_port=${tsa_ports[$rand % ${#tsa_ports[@]}]}
 
       chpst -u vcap:vcap ssh \
-        -p $tsa_port $tsa_addr \
-        <% if p("groundcrew.tsa.private_key") != "" %> \
+        -p <%= tsa_port %> $tsa_addr \
+        <% if p("tsa.private_key") != "" %> \
         -i /var/vcap/jobs/groundcrew/config/private_key \
         <% else %> \
         -i /var/vcap/packages/generated_worker_key/id_rsa \
@@ -88,14 +97,14 @@ case $1 in
         -o ConnectTimeout=30 \
         -o ServerAliveInterval=8 \
         -o ServerAliveCountMax=3 \
-        <% if p("groundcrew.garden.forward_address", nil) %> \
-          -R0.0.0.0:7777:<%= p("groundcrew.garden.forward_address") %> \
-          <% if p("groundcrew.baggageclaim.forward_address", nil) %> \
-          -R0.0.0.0:7788:<%= p("groundcrew.baggageclaim.forward_address") %> \
+        <% if p("garden.forward_address", nil) %> \
+          -R0.0.0.0:7777:<%= p("garden.forward_address") %> \
+          <% if p("baggageclaim.forward_address", nil) %> \
+          -R0.0.0.0:7788:<%= p("baggageclaim.forward_address") %> \
           <% end %> \
           forward-worker \
           --garden 0.0.0.0:7777 \
-          <% if p("groundcrew.baggageclaim.forward_address", nil) %> \
+          <% if p("baggageclaim.forward_address", nil) %> \
           --baggageclaim 0.0.0.0:7788 \
           <% end %> \
         <% else %> \

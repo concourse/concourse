@@ -9,6 +9,8 @@ set -e
   def esc(x)
     Shellwords.shellescape(x)
   end
+
+  atc = link("atc")
 %>
 
 RUN_DIR=/var/vcap/sys/run/tsa
@@ -39,32 +41,31 @@ case $1 in
     done
 
     {
-<% if p("tsa.authorize_generated_worker_key") %>
+<% if p("authorize_generated_worker_key") %>
       cat /var/vcap/packages/generated_worker_key/id_rsa.pub
 <% end %>
       cat <<EOF
-<%= p("tsa.authorized_keys").join("\n") %>
+<%= p("authorized_keys").join("\n") %>
 EOF
     } > /var/vcap/jobs/tsa/config/authorized_keys
 
-    # TODO: handle multiple ATCs
-    # TODO: #{node.p("atc.web_bind_port")}" %> \
+    # TODO: TSA should support multiple ATCs
     exec chpst -u vcap:vcap /var/vcap/packages/tsa/bin/tsa \
-      <% link("atc").instances.each do |node| %> \
-      --atc-url <%= "http://#{node.address}:8080" %> \
+      <% atc.instances.each do |instance| %> \
+      --atc-url <%= "http://#{instance.address}:#{atc.p("bind_port")}" %> \
       <% end %> \
       --peer-ip <%= spec.address %> \
-      --bind-port <%= p("tsa.listen_port") %> \
-      <% if p("tsa.host_key") != "" %> \
+      --bind-port <%= p("bind_port") %> \
+      <% if p("host_key") != "" %> \
       --host-key /var/vcap/jobs/tsa/config/host_key \
       <% else %> \
       --host-key /var/vcap/packages/generated_tsa_host_key/id_rsa \
       <% end %> \
       --authorized-keys /var/vcap/jobs/tsa/config/authorized_keys \
       --session-signing-key $SIGNING_KEY \
-      --heartbeat-interval <%= p("tsa.heartbeat_interval") %> \
-      --yeller-api-key <%= esc(p("tsa.yeller.api_key")) %> \
-      --yeller-environment <%= esc(p("tsa.yeller.environment_name")) %> \
+      --heartbeat-interval <%= p("heartbeat_interval") %> \
+      --yeller-api-key <%= esc(p("yeller.api_key")) %> \
+      --yeller-environment <%= esc(p("yeller.environment_name")) %> \
       1>>$LOG_DIR/tsa.stdout.log \
       2>>$LOG_DIR/tsa.stderr.log
 

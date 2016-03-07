@@ -20,17 +20,22 @@ source /var/vcap/packages/pid_utils/pid_utils.sh
 <%
   garden_addr = ""
 
-  if_link("garden") do |garden|
-    instance = garden.instances.find { |i| i.id == spec.id }
-    if instance
-      garden_addr = "#{instance.address}:#{instance.p("garden.bind_port")}"
+  if_p("garden.address") do |addr|
+    garden_addr = addr
+  end
+
+  if garden_addr.empty?
+    if_link("garden") do |garden|
+      instance = garden.instances.find { |i| i.id == spec.id }
+      if instance
+        garden_addr = "#{instance.address}:#{garden.p("bind_port")}"
+      end
     end
   end
 
-  # no garden link found (probably release didn't support it); assume it's
-  # colocated
   if garden_addr.empty?
-    garden_addr = "#{spec.address}:7777"
+    # no property and no link; assume it's colocated
+    garden_addr = "127.0.0.1:7777"
   end
 %>
 
@@ -54,11 +59,11 @@ case $1 in
     ;;
 
   stop)
-  <% unless p("groundcrew.garden.forward_address", nil) %> \
+  <% unless p("garden.forward_address", nil) %> \
     /var/vcap/packages/jettison/bin/jettison \
       -gardenAddr=<%= garden_addr %> \
-      -yellerAPIKey=<%= esc(p("groundcrew.yeller.api_key")) %> \
-      -yellerEnvironment=<%= esc(p("groundcrew.yeller.environment_name")) %> \
+      -yellerAPIKey=<%= esc(p("yeller.api_key")) %> \
+      -yellerEnvironment=<%= esc(p("yeller.environment_name")) %> \
       1>>$LOG_DIR/jettison.stdout.log \
       2>>$LOG_DIR/jettison.stderr.log
   <% end %>

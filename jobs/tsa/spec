@@ -22,41 +22,62 @@ provides:
 - name: tsa
   type: tsa
   properties:
-  - tsa.listen_port
+  - bind_port
+  - host_public_key
 
 properties:
-  tsa.heartbeat_interval:
-    description: "interval on which to register with the ATC"
+  heartbeat_interval:
+    description: |
+      Interval on which to register workers with the ATC.
     default: 30s
 
-  tsa.forward_host:
-    description: "address to advertise forwarded worker connections to. if not specified, determined dynamically."
+  forward_host:
+    description: |
+      Address to advertise forwarded worker connections to.
 
-  tsa.listen_port:
-    description: "port to listen on for tsa ssh server"
+      If not specified, the instance's address is used.
+
+  bind_port:
+    description: |
+      Port on which to listen for SSH connections.
     default: 2222
 
-  tsa.yeller.api_key:
-    description: "api key from yeller to output errors from concourse to yeller"
-    default: ""
-
-  tsa.yeller.environment_name:
-    description: "environment name you wish to group errors under in yeller"
-    default: ""
-
-  tsa.host_key:
+  host_key:
     description: >
-      private key to use for the SSH server. if not specified, a
-      deployment-scoped default is used.
+      Private key to use for the SSH server.
+
+      If not specified, a deployment-scoped default is used.
     default: ""
 
-  tsa.authorized_keys:
-    description: "public keys to permit"
+  host_public_key:
+    description: >
+      Public key component of the host's key. This property is
+      exported via the `tsa` link so that workers can discover
+      it.
+    default: ""
+
+  authorized_keys:
+    description: |
+      Public keys to authorize for SSH connections.
     default: []
 
-  tsa.authorize_generated_worker_key:
-    description: "permit access via generated worker key, local to deployment"
+  authorize_generated_worker_key:
+    description: |
+      Permit access via generated worker key, local to the deployment. Set to
+      `false` if you plan on only ever using explicitly configured and
+      authorized worker keys.
     default: true
+
+  yeller.api_key:
+    description: |
+      If configured, errors emitted to the logs will also be emitted to Yeller.
+      This is only really useful for Concourse developers.
+    default: ""
+
+  yeller.environment_name:
+    description: |
+      Environment name to specify for errors emitted to Yeller.
+    default: ""
 
   blackbox.syslog.sources.tsa:
     description: "files whose contents blackbox will emit to its syslog drain"

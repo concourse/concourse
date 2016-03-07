@@ -15,8 +15,8 @@ LOG_DIR=/var/vcap/sys/log/postgresql
 # overwriting $PIDFILE with actual DB server pid
 PIDFILE=$RUN_DIR/postgres.pid
 
-HOST="<%= p("postgresql.listen_host") %>"
-PORT="<%= p("postgresql.listen_port") %>"
+HOST="<%= p("bind_ip") %>"
+PORT="<%= p("bind_port") %>"
 LD_LIBRARY_PATH=$PACKAGE_DIR/lib
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
@@ -55,25 +55,22 @@ case "$1" in
 
     echo "PostgreSQL started successfully"
 
-    echo "Creating roles..."
-    <% p("postgresql.roles", []).each do |role| %>
-      echo "Trying to create role <%= role["name"] %>..."
+    echo "Creating databases and roles..."
+    <% p("databases", []).each do |db| %>
+      echo "Trying to create role <%= db["role"] %>..."
 
       $PACKAGE_DIR/bin/psql -U vcap -p $PORT -d postgres \
-                            -c "CREATE ROLE \"<%= role["name"] %>\"" ||
+                            -c "CREATE ROLE \"<%= db["role"] %>\"" ||
         echo "Role already exists?"
 
-      echo "Setting password for role <%= role["name"] %>..."
+      echo "Setting password for role <%= db["role"] %>..."
       $PACKAGE_DIR/bin/psql -U vcap -p $PORT -d postgres \
-                            -c "ALTER ROLE \"<%= role["name"] %>\" \
-                                WITH LOGIN PASSWORD '<%= role["password"] %>'"
-    <% end %>
+                            -c "ALTER ROLE \"<%= db["role"] %>\" \
+                                WITH LOGIN PASSWORD '<%= db["password"] %>'"
 
-    echo "Creating databases..."
-    <% p("postgresql.databases", []).each do |database| %>
-      echo "Trying to create database <%= database["name"] %>..."
+      echo "Trying to create database <%= db["name"] %>..."
 
-      su - vcap -c "$PACKAGE_DIR/bin/createdb \"<%= database["name"] %>\" -p $PORT" ||
+      su - vcap -c "$PACKAGE_DIR/bin/createdb \"<%= db["name"] %>\" -p $PORT" ||
         echo "Database already exists?"
     <% end %>
 

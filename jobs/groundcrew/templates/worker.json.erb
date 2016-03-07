@@ -1,27 +1,36 @@
 <%=
   garden_addr = ""
 
-  if_link("garden") do |garden|
-    instance = garden.instances.find { |i| i.id == spec.id }
-    if instance
-      garden_addr = "#{instance.address}:#{instance.p("garden.bind_port")}"
+  if_p("garden.address") do |addr|
+    garden_addr = addr
+  end
+
+  if garden_addr.empty?
+    if_link("garden") do |garden|
+      instance = garden.instances.find { |i| i.id == spec.id }
+      if instance
+        garden_addr = "#{instance.address}:#{garden.p("bind_port")}"
+      end
     end
   end
 
-  # no garden link found (probably release didn't support it); assume it's
-  # colocated
   if garden_addr.empty?
+    # no property and no link; assume it's colocated
     garden_addr = "#{spec.address}:7777"
   end
 
   baggageclaim_url = ""
 
-  if_link("baggageclaim") do |baggageclaim|
-    instance = baggageclaim.instances.find { |i| i.id == spec.id }
-    if instance
-      port = "7788"
-      # TODO: port = instance.p("baggageclaim.bind_port")
-      baggageclaim_url = "http://#{instance.address}:#{port}"
+  if_p("baggageclaim.url") do |url|
+    baggageclaim_url = url
+  end
+
+  if baggageclaim_url.empty?
+    if_link("baggageclaim") do |baggageclaim|
+      instance = baggageclaim.instances.find { |i| i.id == spec.id }
+      if instance
+        baggageclaim_url = "http://#{instance.address}:#{baggageclaim.p("bind_port")}"
+      end
     end
   end
 
@@ -47,15 +56,15 @@
   {
     "name" => "HOSTNAME_REPLACE_ME",
 
-    "platform" => p("groundcrew.platform"),
-    "tags" => p("groundcrew.tags"),
+    "platform" => p("platform"),
+    "tags" => p("tags"),
 
     "addr" => garden_addr,
     "baggageclaim_url" => baggageclaim_url,
 
     "resource_types" => merge_resource_types(
-      p("groundcrew.resource_types"),
-      p("groundcrew.additional_resource_types")
+      p("resource_types"),
+      p("additional_resource_types")
     ),
   }.to_json
 %>

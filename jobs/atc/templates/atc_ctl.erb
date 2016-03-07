@@ -20,19 +20,31 @@ source /var/vcap/packages/pid_utils/pid_utils.sh
 
 <%
   postgres_addr = ""
+  postgres_role_name = ""
+  postgres_role_password = ""
+  postgres_database = ""
 
-  if_p("atc.postgresql.address") do |addr|
+  if_p("postgresql.address", "postgresql.role.name", "postgresql.role.password", "postgresql.database") do |addr, rn, rp, db|
     postgres_addr = addr
+    postgres_role_name = rn
+    postgres_role_password = rp
+    postgres_database = db
   end
 
   if postgres_addr.empty?
-    postgres_node = link("db").instances.first
-    postgres_addr = "#{postgres_node.address}:5432" # TODO: #{postgres_node.p("postgresql.listen_port")}"
-  end
+    db = link("db")
 
-  postgres_role_name = p("atc.postgresql.role.name")
-  postgres_role_password = p("atc.postgresql.role.password")
-  postgres_database = p("atc.postgresql.database")
+    postgres_addr = "#{db.instances.first.address}:#{db.p("bind_port")}"
+    postgres_database = p("postgresql_database")
+
+    postgres_db = db.p("databases").find { |db| db["name"] == postgres_database }
+    if postgres_db.nil?
+      raise "database '#{db_name}' not provided by 'postgresql' link"
+    end
+
+    postgres_role_name = postgres_db["role"]
+    postgres_role_password = postgres_db["password"]
+  end
 %>
 
 case $1 in
@@ -52,20 +64,20 @@ case $1 in
     chmod 0400 $SIGNING_KEY
 
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
-      --bind-ip <%= p("atc.web_bind_ip") %> \
-      --bind-port <%= p("atc.web_bind_port") %> \
-      --peer-url <%= p("atc.peer_url", "http://#{spec.address}:#{p("atc.web_bind_port")}") %> \
-      --external-url <%= esc(p("atc.external_url")) %> \
+      --bind-ip <%= p("bind_ip") %> \
+      --bind-port <%= p("bind_port") %> \
+      --peer-url <%= p("peer_url", "http://#{spec.address}:#{p("bind_port")}") %> \
+      --external-url <%= esc(p("external_url")) %> \
       --postgres-data-source <%= esc("postgres://#{postgres_role_name}:#{postgres_role_password}@#{postgres_addr}/#{postgres_database}?sslmode=disable") %> \
-      <% if p("atc.publicly_viewable") %> \
+      <% if p("publicly_viewable") %> \
       --publicly-viewable \
       <% end %> \
-      <% if p("atc.development_mode") %> \
+      <% if p("development_mode") %> \
       --development-mode \
       <% end %> \
-      --basic-auth-username <%= esc(p("atc.basic_auth_username")) %> \
-      --basic-auth-password <%= esc(p("atc.basic_auth_password")) %> \
-      <% p("atc.github_auth.authorize").each do |a| %> \
+      --basic-auth-username <%= esc(p("basic_auth_username")) %> \
+      --basic-auth-password <%= esc(p("basic_auth_password")) %> \
+      <% p("github_auth.authorize").each do |a| %> \
         <% if org = a["organization"] %> \
           <% if a["teams"] == "all" %> \
       --github-auth-organization <%= esc(org) %> \
@@ -84,16 +96,16 @@ case $1 in
           <% raise "organization or user not specified" %> \
         <% end %> \
       <% end %> \
-      --github-auth-client-id <%= esc(p("atc.github_auth.client_id")) %> \
-      --github-auth-client-secret <%= esc(p("atc.github_auth.client_secret")) %> \
+      --github-auth-client-id <%= esc(p("github_auth.client_id")) %> \
+      --github-auth-client-secret <%= esc(p("github_auth.client_secret")) %> \
       --session-signing-key $SIGNING_KEY \
-      --resource-checking-interval <%= p("atc.default_check_interval") %> \
-      --old-resource-grace-period <%= p("atc.old_resource_grace_period") %> \
-      --resource-cache-cleanup-interval <%= p("atc.resource_cache_cleanup_interval") %> \
+      --resource-checking-interval <%= p("default_check_interval") %> \
+      --old-resource-grace-period <%= p("old_resource_grace_period") %> \
+      --resource-cache-cleanup-interval <%= p("resource_cache_cleanup_interval") %> \
       --cli-artifacts-dir /var/vcap/packages/fly \
-      --yeller-api-key <%= esc(p("atc.yeller.api_key")) %> \
-      --yeller-environment <%= esc(p("atc.yeller.environment_name")) %> \
-      <% if_p("atc.riemann.host", "atc.riemann.port") do |host, port| %> \
+      --yeller-api-key <%= esc(p("yeller.api_key")) %> \
+      --yeller-environment <%= esc(p("yeller.environment_name")) %> \
+      <% if_p("riemann.host", "riemann.port") do |host, port| %> \
       --riemann-host <%= esc(host) %> \
       --riemann-port <%= port.to_i %> \
       <% end %> \
