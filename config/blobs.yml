@@ -24,9 +24,9 @@ resources/archive-resource.tar.gz:
   sha: dbc63ae8d0c554aedb03e90a4619b6ec683bdc39
   size: 11793713
 resources/bosh-deployment-resource.tar.gz:
-  object_id: ca014019-4b25-47f8-a3c4-e6a6cd3bb03e
-  sha: a1f5ecdff1cd242c6601a880c4e3c4eca43e71f5
-  size: 12858389
+  object_id: b189791a-f821-4254-bd4b-6ff2db79e8f2
+  sha: 15d13c06f4c256f815ad26f5687b60e7f11a44e0
+  size: 12871706
 resources/bosh-io-release-resource.tar.gz:
   object_id: 65550782-0fad-4050-961d-ace573fb9257
   sha: 27e27184b1a6888dcc5f70dcad08b38f826174ad
@@ -36,17 +36,17 @@ resources/bosh-io-stemcell-resource.tar.gz:
   sha: 70cd44341cd29a75fe53f3b5241071857839f664
   size: 9174279
 resources/cf-resource.tar.gz:
-  object_id: 83d1fedb-2794-4910-83f8-d3c579e75029
-  sha: 2606386a9a19cf070c8728f76435e4f0484862ba
-  size: 25124254
+  object_id: f0fa1b3c-b36a-4f07-bd6d-9c079d165225
+  sha: 88617fcb98dcfd6dd4f0566aba265dd7d82ef423
+  size: 25123953
 resources/docker-image-resource.tar.gz:
   object_id: fa178441-bd0e-44a6-bb3d-f6451cc1a134
   sha: b51f348d1605bed0ba9bf4ce2ec37d8544825014
   size: 23128839
 resources/git-resource.tar.gz:
-  object_id: 3b63989f-020e-4a85-88a7-d77a5dd5b664
-  sha: 74fbd56f74d92cd64ae75d2291adc86cc599e831
-  size: 12132984
+  object_id: 57112b3b-208a-4e48-9c40-0efea9c18549
+  sha: 8e7b42205a0bb7009e087c1b6a91130e6fc23331
+  size: 12442799
 resources/github-release-resource.tar.gz:
   object_id: 413d2909-6bb8-4fee-842e-db1c9d7f04a8
   sha: c2d8be36091fdc1ae0202636a444247b5f2079ef
@@ -60,13 +60,13 @@ resources/s3-resource.tar.gz:
   sha: 28d5c20ab80f6084475fbdc87b61d4eb01a6a446
   size: 20660579
 resources/semver-resource.tar.gz:
-  object_id: 595fa32e-2a84-4474-9bb6-b0467a594ad7
-  sha: 1a1ace58a86f0215955cb5bd5ed54768512d1387
-  size: 15632566
+  object_id: d145d9e3-bc26-49c6-8e65-03a9010ca18e
+  sha: ab535f9e70b9b398880c1d0b78bc4cffa73710fa
+  size: 15631677
 resources/time-resource.tar.gz:
-  object_id: 114d850d-9a2a-4ee7-9a77-e6a9aed010e5
-  sha: c44057fc858376b91084f0bab9139d2ddd598fb0
-  size: 13663269
+  object_id: b1be9554-9dc0-4b5f-8cbc-e59c08cd8e56
+  sha: 35c8568559a7cce98ec88aee48ae9cac1353c659
+  size: 13663509
 resources/tracker-resource.tar.gz:
   object_id: 30373465-83d0-4b17-8c0a-60bd29a21297
   sha: f402725a8b9ab06b1753dc520f9427c05d7bb019
