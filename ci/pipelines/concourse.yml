@@ -210,10 +210,13 @@ jobs:
   - aggregate:
     - task: build-linux
       file: bin/ci/build-linux.yml
+      output_mapping: {binary: linux-binary}
     - task: build-darwin
       file: bin/ci/build-darwin.yml
+      output_mapping: {binary: darwin-binary}
     - task: build-windows
       file: bin/ci/build-windows.yml
+      output_mapping: {binary: windows-binary}
   - task: build-release
     file: bin/ci/build-release.yml
   - put: bin-rc
