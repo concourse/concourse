@@ -122,7 +122,7 @@ jobs:
   - get: version
     params: {bump: major, pre: rc}
   - put: version
-    params: {file: version/number}
+    params: {file: version/version}
 
 - name: minor
   public: true
@@ -131,7 +131,7 @@ jobs:
   - get: version
     params: {bump: minor, pre: rc}
   - put: version
-    params: {file: version/number}
+    params: {file: version/version}
 
 - name: patch
   public: true
@@ -142,7 +142,7 @@ jobs:
     params: {bump: patch, pre: rc}
     trigger: true
   - put: version
-    params: {file: version/number}
+    params: {file: version/version}
 
 - name: rc
   public: true
@@ -155,7 +155,7 @@ jobs:
   - get: version
     params: {pre: rc}
   - put: version
-    params: {file: version/number}
+    params: {file: version/version}
 
 - name: bosh-rc
   public: true
@@ -438,11 +438,11 @@ jobs:
     file: concourse/ci/finalize-release.yml
   - aggregate:
     - put: version
-      params: {file: version/number}
+      params: {file: version/version}
     - put: concourse-master
       params:
         repository: final-release-repo
-        tag: version/number
+        tag: version/version
         tag_prefix: v
     - put: final-release
       params: {file: final-release-tarball/concourse-*.tgz}
@@ -578,7 +578,7 @@ jobs:
     config:
       params:
         ANALYTICS_ID: {{analytics-id}}
-        VERSION_FILE: version/number
+        VERSION_FILE: version/version
   - put: concourse-docs
     params:
       current_app_name: docs

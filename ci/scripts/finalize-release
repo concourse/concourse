@@ -8,7 +8,7 @@ FINAL_RELEASE_REPO=$PWD/final-release-repo
 
 CANDIDATE_DIR=$PWD/candidate-release
 
-VERSION=$(cat ./version/number)
+VERSION=$(cat ./version/version)
 if [ -z "$VERSION" ]; then
   echo "missing version number"
   exit 1
