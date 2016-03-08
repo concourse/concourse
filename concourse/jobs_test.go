@@ -315,11 +315,13 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("calls the pause job and returns no error", func() {
-				paused, err := client.PauseJob(pipelineName, jobName)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(paused).To(BeTrue())
-
-				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+				Expect(func() {
+					paused, err := client.PauseJob(pipelineName, jobName)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(paused).To(BeTrue())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
 			})
 		})
 
@@ -329,10 +331,13 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("calls the pause job and returns an error", func() {
-				paused, err := client.PauseJob(pipelineName, jobName)
-				Expect(err).To(HaveOccurred())
-				Expect(paused).To(BeFalse())
-				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+				Expect(func() {
+					paused, err := client.PauseJob(pipelineName, jobName)
+					Expect(err).To(HaveOccurred())
+					Expect(paused).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
 			})
 		})
 
@@ -342,10 +347,13 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("calls the pause job and returns an error", func() {
-				paused, err := client.PauseJob(pipelineName, jobName)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(paused).To(BeFalse())
-				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+				Expect(func() {
+					paused, err := client.PauseJob(pipelineName, jobName)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(paused).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
 			})
 		})
 	})
@@ -373,11 +381,13 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("calls the pause job and returns no error", func() {
-				paused, err := client.UnpauseJob(pipelineName, jobName)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(paused).To(BeTrue())
-
-				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+				Expect(func() {
+					paused, err := client.UnpauseJob(pipelineName, jobName)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(paused).To(BeTrue())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
 			})
 		})
 
@@ -387,10 +397,13 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("calls the pause job and returns an error", func() {
-				paused, err := client.UnpauseJob(pipelineName, jobName)
-				Expect(err).To(HaveOccurred())
-				Expect(paused).To(BeFalse())
-				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+				Expect(func() {
+					paused, err := client.UnpauseJob(pipelineName, jobName)
+					Expect(err).To(HaveOccurred())
+					Expect(paused).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
 			})
 		})
 
@@ -400,10 +413,13 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("calls the pause job and returns an error", func() {
-				paused, err := client.UnpauseJob(pipelineName, jobName)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(paused).To(BeFalse())
-				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+				Expect(func() {
+					paused, err := client.UnpauseJob(pipelineName, jobName)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(paused).To(BeFalse())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
 			})
 		})
 	})

@@ -420,9 +420,12 @@ var _ = Describe("ATC Handler Builds", func() {
 		})
 
 		It("sends an abort request to ATC", func() {
-			err := client.AbortBuild("123")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+			Expect(func() {
+				err := client.AbortBuild("123")
+				Expect(err).NotTo(HaveOccurred())
+			}).To(Change(func() int {
+				return len(atcServer.ReceivedRequests())
+			}).By(1))
 		})
 	})
 })

@@ -14,13 +14,13 @@ type FakeClient struct {
 	URLStub        func() string
 	uRLMutex       sync.RWMutex
 	uRLArgsForCall []struct{}
-	uRLReturns struct {
+	uRLReturns     struct {
 		result1 string
 	}
 	HTTPClientStub        func() *http.Client
 	hTTPClientMutex       sync.RWMutex
 	hTTPClientArgsForCall []struct{}
-	hTTPClientReturns struct {
+	hTTPClientReturns     struct {
 		result1 *http.Client
 	}
 	BuildsStub        func(concourse.Page) ([]atc.Build, concourse.Pagination, error)
@@ -126,7 +126,7 @@ type FakeClient struct {
 	CreatePipeStub        func() (atc.Pipe, error)
 	createPipeMutex       sync.RWMutex
 	createPipeArgsForCall []struct{}
-	createPipeReturns struct {
+	createPipeReturns     struct {
 		result1 atc.Pipe
 		result2 error
 	}
@@ -225,22 +225,29 @@ type FakeClient struct {
 	ListPipelinesStub        func() ([]atc.Pipeline, error)
 	listPipelinesMutex       sync.RWMutex
 	listPipelinesArgsForCall []struct{}
-	listPipelinesReturns struct {
+	listPipelinesReturns     struct {
 		result1 []atc.Pipeline
 		result2 error
 	}
 	ListVolumesStub        func() ([]atc.Volume, error)
 	listVolumesMutex       sync.RWMutex
 	listVolumesArgsForCall []struct{}
-	listVolumesReturns struct {
+	listVolumesReturns     struct {
 		result1 []atc.Volume
 		result2 error
 	}
 	ListWorkersStub        func() ([]atc.Worker, error)
 	listWorkersMutex       sync.RWMutex
 	listWorkersArgsForCall []struct{}
-	listWorkersReturns struct {
+	listWorkersReturns     struct {
 		result1 []atc.Worker
+		result2 error
+	}
+	GetInfoStub        func() (atc.Info, error)
+	getInfoMutex       sync.RWMutex
+	getInfoArgsForCall []struct{}
+	getInfoReturns     struct {
+		result1 atc.Info
 		result2 error
 	}
 	PipelineConfigStub        func(pipelineName string) (atc.Config, string, bool, error)
@@ -267,14 +274,14 @@ type FakeClient struct {
 	ListAuthMethodsStub        func() ([]atc.AuthMethod, error)
 	listAuthMethodsMutex       sync.RWMutex
 	listAuthMethodsArgsForCall []struct{}
-	listAuthMethodsReturns struct {
+	listAuthMethodsReturns     struct {
 		result1 []atc.AuthMethod
 		result2 error
 	}
 	AuthTokenStub        func() (atc.AuthToken, error)
 	authTokenMutex       sync.RWMutex
 	authTokenArgsForCall []struct{}
-	authTokenReturns struct {
+	authTokenReturns     struct {
 		result1 atc.AuthToken
 		result2 error
 	}
@@ -1142,6 +1149,31 @@ func (fake *FakeClient) ListWorkersReturns(result1 []atc.Worker, result2 error) 
 	fake.ListWorkersStub = nil
 	fake.listWorkersReturns = struct {
 		result1 []atc.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) GetInfo() (atc.Info, error) {
+	fake.getInfoMutex.Lock()
+	fake.getInfoArgsForCall = append(fake.getInfoArgsForCall, struct{}{})
+	fake.getInfoMutex.Unlock()
+	if fake.GetInfoStub != nil {
+		return fake.GetInfoStub()
+	} else {
+		return fake.getInfoReturns.result1, fake.getInfoReturns.result2
+	}
+}
+
+func (fake *FakeClient) GetInfoCallCount() int {
+	fake.getInfoMutex.RLock()
+	defer fake.getInfoMutex.RUnlock()
+	return len(fake.getInfoArgsForCall)
+}
+
+func (fake *FakeClient) GetInfoReturns(result1 atc.Info, result2 error) {
+	fake.GetInfoStub = nil
+	fake.getInfoReturns = struct {
+		result1 atc.Info
 		result2 error
 	}{result1, result2}
 }

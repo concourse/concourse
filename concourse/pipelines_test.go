@@ -162,10 +162,13 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("deletes the pipeline when called", func() {
-				found, err := client.DeletePipeline("mypipeline")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+				Expect(func() {
+					found, err := client.DeletePipeline("mypipeline")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
 			})
 		})
 
