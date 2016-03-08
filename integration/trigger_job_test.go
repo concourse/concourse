@@ -37,17 +37,19 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("starts the build", func() {
-					reqsBefore := len(atcServer.ReceivedRequests())
-					flyCmd := exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "awesome-pipeline/awesome-job")
+					Expect(func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "awesome-pipeline/awesome-job")
 
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess).Should(gbytes.Say(`started 'awesome-pipeline/awesome-job'`))
+						Eventually(sess).Should(gbytes.Say(`started 'awesome-pipeline/awesome-job'`))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 1))
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(2))
 				})
 			})
 
@@ -62,17 +64,19 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints helpful message", func() {
-					reqsBefore := len(atcServer.ReceivedRequests())
-					flyCmd := exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "awesome-pipeline/awesome-job")
+					Expect(func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "awesome-pipeline/awesome-job")
 
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Err).Should(gbytes.Say(`pipeline/job 'awesome-pipeline/awesome-job' not found`))
+						Eventually(sess.Err).Should(gbytes.Say(`pipeline/job 'awesome-pipeline/awesome-job' not found`))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 1))
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(1))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(2))
 				})
 			})
 		})

@@ -19,6 +19,10 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	_, err = client.CreateJobBuild(pipelineName, jobName)
 	if err != nil {
