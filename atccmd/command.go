@@ -660,6 +660,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		reconfigurableSink,
 
 		cmd.CLIArtifactsDir.Path(),
+		Version,
 	)
 }
 

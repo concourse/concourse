@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/atc/api/cliserver"
 	"github.com/concourse/atc/api/configserver"
 	"github.com/concourse/atc/api/containerserver"
+	"github.com/concourse/atc/api/infoserver"
 	"github.com/concourse/atc/api/jobserver"
 	"github.com/concourse/atc/api/loglevelserver"
 	"github.com/concourse/atc/api/pipelineserver"
@@ -66,6 +67,7 @@ func NewHandler(
 	sink *lager.ReconfigurableSink,
 
 	cliDownloadsDir string,
+	version string,
 ) (http.Handler, error) {
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
 	if err != nil {
@@ -114,6 +116,8 @@ func NewHandler(
 	volumesServer := volumeserver.NewServer(logger, volumesDB)
 
 	teamServer := teamserver.NewServer(logger, teamDB)
+
+	infoServer := infoserver.NewServer(logger, version)
 
 	handlers := map[string]http.Handler{
 		atc.ListAuthMethods: http.HandlerFunc(authServer.ListAuthMethods),
@@ -170,6 +174,7 @@ func NewHandler(
 		atc.GetLogLevel: http.HandlerFunc(logLevelServer.GetMinLevel),
 
 		atc.DownloadCLI: http.HandlerFunc(cliServer.Download),
+		atc.GetInfo:     http.HandlerFunc(infoServer.Info),
 
 		atc.ListContainers:  http.HandlerFunc(containerServer.ListContainers),
 		atc.GetContainer:    http.HandlerFunc(containerServer.GetContainer),

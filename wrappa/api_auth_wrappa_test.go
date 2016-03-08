@@ -110,6 +110,7 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.DownloadCLI:                   unauthed(inputHandlers[atc.DownloadCLI]),
 					atc.GetBuild:                      unauthed(inputHandlers[atc.GetBuild]),
 					atc.GetBuildPreparation:           unauthed(inputHandlers[atc.GetBuildPreparation]),
+					atc.GetInfo:                       unauthed(inputHandlers[atc.GetInfo]),
 					atc.GetJob:                        unauthed(inputHandlers[atc.GetJob]),
 					atc.GetJobBuild:                   unauthed(inputHandlers[atc.GetJobBuild]),
 					atc.GetLogLevel:                   unauthed(inputHandlers[atc.GetLogLevel]),
@@ -179,6 +180,7 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.WritePipe:              authed(inputHandlers[atc.WritePipe]),
 
 					atc.ListAuthMethods: unauthed(inputHandlers[atc.ListAuthMethods]),
+					atc.GetInfo:         unauthed(inputHandlers[atc.GetInfo]),
 
 					atc.BuildEvents:                   authed(inputHandlers[atc.BuildEvents]),
 					atc.BuildResources:                authed(inputHandlers[atc.BuildResources]),

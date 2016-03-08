@@ -2,6 +2,10 @@ package atc
 
 import "github.com/tedsuo/rata"
 
+type Info struct {
+	Version string
+}
+
 const (
 	SaveConfig = "SaveConfig"
 	GetConfig  = "GetConfig"
@@ -54,6 +58,7 @@ const (
 	GetLogLevel = "GetLogLevel"
 
 	DownloadCLI = "DownloadCLI"
+	GetInfo     = "Info"
 
 	ListContainers  = "ListContainers"
 	GetContainer    = "GetContainer"
@@ -119,6 +124,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/log-level", Method: "PUT", Name: SetLogLevel},
 
 	{Path: "/api/v1/cli", Method: "GET", Name: DownloadCLI},
+	{Path: "/api/v1/info", Method: "GET", Name: GetInfo},
 
 	{Path: "/api/v1/containers", Method: "GET", Name: ListContainers},
 	{Path: "/api/v1/containers/:id", Method: "GET", Name: GetContainer},
