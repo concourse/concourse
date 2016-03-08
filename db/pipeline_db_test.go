@@ -538,8 +538,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(latestVR.Version).To(Equal(db.Version{"ref": "v3"}))
-				Expect(latestVR.CheckOrder).To(Equal(4))
+				Expect(latestVR.CheckOrder).To(Equal(latestVR.ID))
 			})
 		})
 

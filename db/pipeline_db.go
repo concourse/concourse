@@ -662,31 +662,7 @@ func (pdb *pipelineDB) SetResourceCheckError(resource SavedResource, cause error
 	return err
 }
 
-func (pdb *pipelineDB) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int, resourceType string, version string) error {
-	query, err := tx.Prepare(` 
-	    WITH max_checkorder AS
-			(SELECT max(check_order) co
-			 FROM versioned_resources
-			 WHERE resource_id = $1
-			 AND type = $2)
-
-			UPDATE versioned_resources
-			SET check_order = mc.co + 1
-			FROM max_checkorder mc
-			WHERE resource_id = $1
-			AND type = $2
-			AND version = $3
-			AND check_order <= mc.co;
-
-			`)
-	if err != nil {
-		return err
-	}
-
-	_, err2 := query.Exec(resourceID, resourceType, version)
-	if err2 != nil {
-		return err2
-	}
+func (pdb *pipelineDB) setCheckOrder(tx Tx, versionedResourceID int) error {
 
 	return nil
 }
@@ -729,7 +705,25 @@ func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource) (Saved
 		return SavedVersionedResource{}, err
 	}
 
-	err = pdb.incrementCheckOrderWhenNewerVersion(tx, savedResource.ID, vr.Type, string(versionJSON))
+	row := tx.QueryRow(`
+			SELECT id
+			FROM versioned_resources
+			WHERE resource_id = $1
+				AND type = $2
+				AND version = $3
+	`, savedResource.ID, vr.Type, string(versionJSON))
+
+	var savedVersionedResourceID int
+	err = row.Scan(&savedVersionedResourceID)
+	if err != nil {
+		return SavedVersionedResource{}, err
+	}
+
+	_, err = tx.Exec(`
+			UPDATE versioned_resources
+			SET check_order = id
+			WHERE id = $1
+	`, savedVersionedResourceID)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}

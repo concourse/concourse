@@ -182,17 +182,6 @@ var _ = Describe("Resource History", func() {
 					FirstOccurrence:   true,
 				})
 			})
-
-			It("returns the metadata in the version history", func() {
-				historyPage, _, found, err := pipelineDB.GetResourceVersions("some-resource", db.Page{Limit: 1})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				// We resaved a previous SavedVersionedResource in SaveBuildInput()
-				// creating a new newest VersionedResource
-				expectedVersions[9].CheckOrder = 11
-				Expect(historyPage).To(Equal([]db.SavedVersionedResource{expectedVersions[9]}))
-			})
 		})
 
 		Context("when a version is disabled", func() {
