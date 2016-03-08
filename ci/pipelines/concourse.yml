@@ -463,6 +463,8 @@ jobs:
       params: {submodules: none}
       passed: [shipit]
       trigger: true
+    - get: version
+      passed: [shipit]
     - get: concourse-lite
   - task: build-box
     privileged: true
@@ -486,7 +488,7 @@ jobs:
         passed: [virtualbox-box]
       - get: concourse-lite
         passed: [virtualbox-box]
-      - get: final-release
+      - get: version
         passed: [virtualbox-box]
     - task: testflight
       privileged: true
@@ -504,9 +506,9 @@ jobs:
     - get: virtualbox-box
       passed: [virtualbox-testflight]
       trigger: true
-    - get: concourse
+    - get: version
       passed: [virtualbox-testflight]
-    - get: final-release
+    - get: concourse
       passed: [virtualbox-testflight]
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
@@ -532,6 +534,8 @@ jobs:
       params: {submodules: none}
       passed: [shipit]
       trigger: true
+    - get: version
+      passed: [shipit]
     - get: concourse-lite
   - task: build-box
     privileged: true
@@ -551,6 +555,8 @@ jobs:
       passed: [aws-box]
       trigger: true
     - get: concourse
+      passed: [aws-box, virtualbox-testflight]
+    - get: version
       passed: [aws-box, virtualbox-testflight]
     - get: final-release
       passed: [aws-box, virtualbox-testflight]
@@ -611,6 +617,9 @@ jobs:
       trigger: true
     - get: concourse-master
       params: {submodules: none}
+      passed: [shipit]
+      trigger: true
+    - get: version
       passed: [shipit]
       trigger: true
   - aggregate:

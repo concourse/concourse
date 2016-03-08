@@ -4,7 +4,7 @@ set -e
 
 NOTES=$PWD/release-notes
 
-version=$(cat final-release/version)
+version=$(cat version/version)
 
 echo v${version} > $NOTES/release-name
 

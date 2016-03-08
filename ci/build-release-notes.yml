@@ -8,7 +8,7 @@ image_resource:
 
 inputs:
 - name: concourse
-- name: final-release
+- name: version
 
 outputs:
 - name: release-notes
