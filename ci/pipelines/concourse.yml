@@ -30,8 +30,6 @@ groups:
   - virtualbox-box
   - virtualbox-testflight
   - release-virtualbox-box
-  - aws-box
-  - release-aws-box
 
 - name: bosh-lite
   jobs: [provision, teardown]
@@ -522,54 +520,6 @@ jobs:
       url: virtualbox-box/url
       version: virtualbox-box/version
 
-- name: aws-box
-  serial: true
-  plan:
-  - aggregate:
-    - get: final-release
-      passed: [shipit]
-      trigger: true
-    - get: garden-linux-release
-      passed: [shipit]
-      resource: garden-linux
-      trigger: true
-    - get: concourse
-      params: {submodules: none}
-      passed: [shipit]
-      trigger: true
-    - get: version
-      passed: [shipit]
-    - get: concourse-lite
-  - task: build-box
-    privileged: true
-    file: concourse-lite/ci/build-aws.yml
-    config:
-      params:
-        AWS_ACCESS_KEY_ID: {{aws-box-access-key}}
-        AWS_SECRET_ACCESS_KEY: {{aws-box-secret-key}}
-  - put: aws-box
-    params: {file: built-box/*.box}
-
-- name: release-aws-box
-  serial: true
-  plan:
-  - aggregate:
-    - get: aws-box
-      passed: [aws-box]
-      trigger: true
-    - get: concourse
-      passed: [aws-box, virtualbox-testflight]
-    - get: version
-      passed: [aws-box, virtualbox-testflight]
-  - task: build-release-notes
-    file: concourse/ci/build-release-notes.yml
-  - put: aws-box-cloud
-    params:
-      description: release-notes/notes.md
-      release: true
-      url: aws-box/url
-      version: aws-box/version
-
 - name: push-docs
   serial: true
   plan:
@@ -761,14 +711,6 @@ resources:
     access_key_id: {{pipeline-bucket-access-key}}
     secret_access_key: {{pipeline-bucket-secret-key}}
 
-- name: aws-box
-  type: s3
-  source:
-    bucket: concourse-boxes
-    regexp: concourse-aws-ubuntu-trusty-(.*).box
-    access_key_id: {{pipeline-bucket-access-key}}
-    secret_access_key: {{pipeline-bucket-secret-key}}
-
 - name: aws-deployment
   type: bosh-deployment
   source:
@@ -814,14 +756,6 @@ resources:
     username: concourse
     box: lite
     provider: virtualbox
-    access_token: {{atlas-access-token}}
-
-- name: aws-box-cloud
-  type: vagrant-cloud
-  source:
-    username: concourse
-    box: lite
-    provider: aws
     access_token: {{atlas-access-token}}
 
 - name: garden-linux
