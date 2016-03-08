@@ -17,7 +17,7 @@ for platform in linux darwin windows; do
   GOOS=${platform} GOARCH=amd64 \
     CGO_ENABLED=0 \
     go build \
-      -ldflags "-X github.com/concourse/fly/commands.Version=$(cat $VERSION_FILE)" \
+      -ldflags "-X github.com/concourse/fly/version.Version=$(cat $VERSION_FILE)" \
       -o ${BOSH_INSTALL_TARGET}/${platform}/amd64/fly \
       ${REPO_NAME}
 done
