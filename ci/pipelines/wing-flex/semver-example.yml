@@ -53,7 +53,7 @@ jobs:
   - put: my-product-rc
     params: {file: build-artifact/my-product-*.tgz}
   - put: version
-    params: {file: version/number}
+    params: {file: version/version}
 
 - name: integration
   serial: true
@@ -84,7 +84,7 @@ jobs:
   - put: my-product-final
     params: {file: promote-to-final/my-product-.*.tgz}
   - put: version
-    params: {file: version/number}
+    params: {file: version/version}
 
 - name: major
   plan:
