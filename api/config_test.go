@@ -51,8 +51,10 @@ var _ = Describe("Config API", func() {
 						"source-config": "some-value",
 						"nested": map[string]interface{}{
 							"key": "value",
-							"nested": map[string]interface{}{
-								"key": "value",
+							"array": []interface{}{
+								map[string]interface{}{
+									"key": "value",
+								},
 							},
 						},
 					},
@@ -81,8 +83,10 @@ var _ = Describe("Config API", func() {
 								"some-param": "some-value",
 								"nested": map[string]interface{}{
 									"key": "value",
-									"nested": map[string]interface{}{
-										"key": "value",
+									"array": []interface{}{
+										map[string]interface{}{
+											"key": "value",
+										},
 									},
 								},
 							},
@@ -102,8 +106,10 @@ var _ = Describe("Config API", func() {
 								"some-param": "some-value",
 								"nested": map[string]interface{}{
 									"key": "value",
-									"nested": map[string]interface{}{
-										"key": "value",
+									"array": []interface{}{
+										map[string]interface{}{
+											"key": "value",
+										},
 									},
 								},
 							},

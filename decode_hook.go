@@ -50,6 +50,17 @@ func sanitize(root interface{}) (interface{}, error) {
 
 		return sanitized, nil
 
+	case []interface{}:
+		sanitized := make([]interface{}, len(rootVal))
+		for i, val := range rootVal {
+			sub, err := sanitize(val)
+			if err != nil {
+				return nil, err
+			}
+			sanitized[i] = sub
+		}
+		return sanitized, nil
+
 	default:
 		return rootVal, nil
 	}
