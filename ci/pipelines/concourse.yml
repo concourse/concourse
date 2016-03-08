@@ -558,8 +558,6 @@ jobs:
       passed: [aws-box, virtualbox-testflight]
     - get: version
       passed: [aws-box, virtualbox-testflight]
-    - get: final-release
-      passed: [aws-box, virtualbox-testflight]
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
   - put: aws-box-cloud
