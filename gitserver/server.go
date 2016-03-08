@@ -139,6 +139,43 @@ func (server *Server) CommitOnBranch(branch string) string {
 	return guid.String()
 }
 
+func (server *Server) CommitFileToBranch(fileContents, fileName, branch string) {
+
+	process, err := server.container.Run(garden.ProcessSpec{
+		Path: "sh",
+		Args: []string{
+			"-c",
+			fmt.Sprintf(
+				`
+					cd some-repo
+					git checkout -B '%s'
+					cat > %s <<EOF
+%s
+EOF
+					git add -A
+					git commit -m "adding file %s"
+				`,
+				branch,
+				fileName,
+				fileContents,
+				fileName,
+			),
+		},
+		User: "root",
+	}, garden.ProcessIO{
+		Stdout: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[git commit]", "green")),
+			ginkgo.GinkgoWriter,
+		),
+		Stderr: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[git commit]", "green")),
+			ginkgo.GinkgoWriter,
+		),
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(process.Wait()).To(Equal(0))
+}
+
 func (server *Server) Commit() string {
 	return server.CommitOnBranch("master")
 }
