@@ -18,5 +18,5 @@ go build -o go-bindata github.com/jteeuwen/go-bindata/go-bindata
 
 go build \
   -ldflags "-X github.com/concourse/atc/atccmd.Version=${FINAL_VERSION}" \
-  -o darwin-binary/concourse_darwin_amd64 \
+  -o binary/concourse_darwin_amd64 \
   github.com/concourse/bin/cmd/concourse

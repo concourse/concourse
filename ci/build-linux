@@ -15,5 +15,5 @@ go-bindata -pkg bindata -o gopath/src/github.com/concourse/bin/bindata/bindata.g
 
 go build \
   -ldflags "-X github.com/concourse/atc/atccmd.Version=${FINAL_VERSION}" \
-  -o linux-binary/concourse_linux_amd64 \
+  -o binary/concourse_linux_amd64 \
   github.com/concourse/bin/cmd/concourse

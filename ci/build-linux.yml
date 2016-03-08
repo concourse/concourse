@@ -14,7 +14,7 @@ inputs:
 - name: final-version
 
 outputs:
-- name: linux-binary
+- name: binary
 
 run:
   path: gopath/src/github.com/concourse/bin/ci/build-linux
