@@ -25,6 +25,7 @@ files:
   - github.com/concourse/fly/rc/*.go # gosub
   - github.com/concourse/fly/template/*.go # gosub
   - github.com/concourse/fly/ui/*.go # gosub
+  - github.com/concourse/fly/version/*.go # gosub
   - github.com/concourse/go-concourse/concourse/*.go # gosub
   - github.com/concourse/go-concourse/concourse/eventstream/*.go # gosub
   - github.com/concourse/go-concourse/concourse/internal/*.go # gosub
