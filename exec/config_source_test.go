@@ -177,10 +177,29 @@ var _ = Describe("ConfigSource", func() {
 				taskPlan.Config = nil
 			})
 
-			It("returns an empty config", func() {
-				fetchedConfig, err := configSource.FetchConfig(repo)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fetchedConfig).To(Equal(atc.TaskConfig{}))
+			Context("when plan has params", func() {
+				It("returns an config with plan params", func() {
+					fetchedConfig, err := configSource.FetchConfig(repo)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(fetchedConfig).To(Equal(atc.TaskConfig{
+						Params: map[string]string{
+							"task-plan-param-key": "task-plan-param-val-1",
+							"common-key":          "task-plan-param-val-2",
+						},
+					}))
+				})
+			})
+
+			Context("when plan does not have params", func() {
+				BeforeEach(func() {
+					taskPlan.Params = nil
+				})
+
+				It("returns an empty config", func() {
+					fetchedConfig, err := configSource.FetchConfig(repo)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(fetchedConfig).To(Equal(atc.TaskConfig{}))
+				})
 			})
 		})
 	})

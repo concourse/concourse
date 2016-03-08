@@ -27,11 +27,15 @@ type StaticConfigSource struct {
 
 // FetchConfig returns the configuration.
 func (configSource StaticConfigSource) FetchConfig(*SourceRepository) (atc.TaskConfig, error) {
-	if configSource.Plan.Config == nil {
-		return atc.TaskConfig{}, nil
+	taskConfig := atc.TaskConfig{}
+
+	if configSource.Plan.Config != nil {
+		taskConfig = *configSource.Plan.Config
 	}
 
-	taskConfig := *configSource.Plan.Config
+	if configSource.Plan.Params == nil {
+		return taskConfig, nil
+	}
 
 	if taskConfig.Params == nil {
 		taskConfig.Params = map[string]string{}
