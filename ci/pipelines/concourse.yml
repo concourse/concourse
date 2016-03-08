@@ -578,7 +578,6 @@ jobs:
     config:
       params:
         ANALYTICS_ID: {{analytics-id}}
-        VERSION_FILE: version/version
   - put: concourse-docs
     params:
       current_app_name: docs
