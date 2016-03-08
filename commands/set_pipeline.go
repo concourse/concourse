@@ -31,6 +31,10 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	webRequestGenerator := rata.NewRequestGenerator(client.URL(), web.Routes)
 

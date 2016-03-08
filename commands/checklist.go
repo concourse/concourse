@@ -16,6 +16,10 @@ func (command *ChecklistCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	pipelineName := command.Pipeline
 

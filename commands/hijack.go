@@ -279,6 +279,10 @@ func getContainerIDs(c *HijackCommand) ([]atc.Container, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return nil, err
+	}
 
 	reqValues, err := locateContainer(client, fingerprint)
 	if err != nil {

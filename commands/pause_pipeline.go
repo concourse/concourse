@@ -18,6 +18,10 @@ func (command *PausePipelineCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	found, err := client.PausePipeline(pipelineName)
 	if err != nil {

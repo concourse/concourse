@@ -23,6 +23,10 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	config, _, _, err := client.PipelineConfig(pipelineName)
 	if err != nil {

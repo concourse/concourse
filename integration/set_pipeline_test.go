@@ -173,37 +173,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("parses the config file and sends it to the ATC", func() {
-					reqsBefore := len(atcServer.ReceivedRequests())
-
-					flyCmd := exec.Command(
-						flyPath, "-t", targetName,
-						"set-pipeline",
-						"--pipeline", "awesome-pipeline",
-						"-c", "fixtures/testConfig.yml",
-						"--var", "resource-key=verysecret",
-						"--load-vars-from", "fixtures/vars.yml",
-					)
-
-					stdin, err := flyCmd.StdinPipe()
-					Expect(err).NotTo(HaveOccurred())
-
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
-
-					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
-					yes(stdin)
-					Eventually(sess).Should(gbytes.Say("configuration updated"))
-
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
-
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 2))
-				})
-
-				Context("when the --non-interactive is passed", func() {
-					It("parses the config file and sends it to the ATC without interaction", func() {
-						reqsBefore := len(atcServer.ReceivedRequests())
-
+					Expect(func() {
 						flyCmd := exec.Command(
 							flyPath, "-t", targetName,
 							"set-pipeline",
@@ -211,18 +181,49 @@ var _ = Describe("Fly CLI", func() {
 							"-c", "fixtures/testConfig.yml",
 							"--var", "resource-key=verysecret",
 							"--load-vars-from", "fixtures/vars.yml",
-							"--non-interactive",
 						)
+
+						stdin, err := flyCmd.StdinPipe()
+						Expect(err).NotTo(HaveOccurred())
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
+						Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+						yes(stdin)
 						Eventually(sess).Should(gbytes.Say("configuration updated"))
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(0))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(3))
+				})
 
-						Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 2))
+				Context("when the --non-interactive is passed", func() {
+					It("parses the config file and sends it to the ATC without interaction", func() {
+						Expect(func() {
+							flyCmd := exec.Command(
+								flyPath, "-t", targetName,
+								"set-pipeline",
+								"--pipeline", "awesome-pipeline",
+								"-c", "fixtures/testConfig.yml",
+								"--var", "resource-key=verysecret",
+								"--load-vars-from", "fixtures/vars.yml",
+								"--non-interactive",
+							)
+
+							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
+
+							Eventually(sess).Should(gbytes.Say("configuration updated"))
+
+							<-sess.Exited
+							Expect(sess.ExitCode()).To(Equal(0))
+
+						}).To(Change(func() int {
+							return len(atcServer.ReceivedRequests())
+						}).By(3))
 					})
 				})
 			})
@@ -347,85 +348,88 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("parses the config file and sends it to the ATC", func() {
-					reqsBefore := len(atcServer.ReceivedRequests())
-					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
+					Expect(func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
 
-					stdin, err := flyCmd.StdinPipe()
-					Expect(err).NotTo(HaveOccurred())
+						stdin, err := flyCmd.StdinPipe()
+						Expect(err).NotTo(HaveOccurred())
 
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess).Should(gbytes.Say("group some-group has changed"))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("- some-new-job", "green")))
+						Eventually(sess).Should(gbytes.Say("group some-group has changed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("- some-new-job", "green")))
 
-					Eventually(sess).Should(gbytes.Say("group some-other-group has been removed"))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-group", "red")))
+						Eventually(sess).Should(gbytes.Say("group some-other-group has been removed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-group", "red")))
 
-					Eventually(sess).Should(gbytes.Say("group some-new-group has been added"))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-group", "green")))
+						Eventually(sess).Should(gbytes.Say("group some-new-group has been added"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-group", "green")))
 
-					Eventually(sess).Should(gbytes.Say("resource some-resource has changed"))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-type", "red")))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-new-type", "green")))
+						Eventually(sess).Should(gbytes.Say("resource some-resource has changed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-type", "red")))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-new-type", "green")))
 
-					Eventually(sess).Should(gbytes.Say("resource some-other-resource has been removed"))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-resource", "red")))
+						Eventually(sess).Should(gbytes.Say("resource some-other-resource has been removed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-resource", "red")))
 
-					Eventually(sess).Should(gbytes.Say("resource some-new-resource has been added"))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-resource", "green")))
+						Eventually(sess).Should(gbytes.Say("resource some-new-resource has been added"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-resource", "green")))
 
-					Eventually(sess).Should(gbytes.Say("resource type some-resource-type has changed"))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-type", "red")))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-new-type", "green")))
+						Eventually(sess).Should(gbytes.Say("resource type some-resource-type has changed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-type", "red")))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-new-type", "green")))
 
-					Eventually(sess).Should(gbytes.Say("resource type some-other-resource-type has been removed"))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-resource-type", "red")))
+						Eventually(sess).Should(gbytes.Say("resource type some-other-resource-type has been removed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-resource-type", "red")))
 
-					Eventually(sess).Should(gbytes.Say("resource type some-new-resource-type has been added"))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-resource-type", "green")))
+						Eventually(sess).Should(gbytes.Say("resource type some-new-resource-type has been added"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-resource-type", "green")))
 
-					Eventually(sess).Should(gbytes.Say("job some-job has changed"))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("serial: true", "red")))
+						Eventually(sess).Should(gbytes.Say("job some-job has changed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("serial: true", "red")))
 
-					Eventually(sess).Should(gbytes.Say("job some-other-job has been removed"))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-job", "red")))
+						Eventually(sess).Should(gbytes.Say("job some-other-job has been removed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-job", "red")))
 
-					Eventually(sess).Should(gbytes.Say("job some-new-job has been added"))
-					Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-job", "green")))
+						Eventually(sess).Should(gbytes.Say("job some-new-job has been added"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-job", "green")))
 
-					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
-					yes(stdin)
+						Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+						yes(stdin)
 
-					Eventually(sess).Should(gbytes.Say("configuration updated"))
+						Eventually(sess).Should(gbytes.Say("configuration updated"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
 
-					Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-resource-with-int-field"))
+						Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-resource-with-int-field"))
 
-					Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-unchanged-job"))
+						Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-unchanged-job"))
 
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 2))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(3))
 				})
 
 				It("bails if the user rejects the diff", func() {
-					reqsBefore := len(atcServer.ReceivedRequests())
-					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
+					Expect(func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
 
-					stdin, err := flyCmd.StdinPipe()
-					Expect(err).NotTo(HaveOccurred())
+						stdin, err := flyCmd.StdinPipe()
+						Expect(err).NotTo(HaveOccurred())
 
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
-					no(stdin)
+						Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+						no(stdin)
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
-
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 1))
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(1))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(2))
 				})
 			})
 
@@ -476,31 +480,32 @@ var _ = Describe("Fly CLI", func() {
 					})
 
 					It("succeeds and prints an error message to help the user", func() {
-						reqsBefore := len(atcServer.ReceivedRequests())
-						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
+						Expect(func() {
+							flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
 
-						stdin, err := flyCmd.StdinPipe()
-						Expect(err).NotTo(HaveOccurred())
+							stdin, err := flyCmd.StdinPipe()
+							Expect(err).NotTo(HaveOccurred())
 
-						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-						Expect(err).NotTo(HaveOccurred())
+							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
 
-						Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
-						yes(stdin)
+							Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+							yes(stdin)
 
-						pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "awesome-pipeline")
+							pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "awesome-pipeline")
 
-						Eventually(sess).Should(gbytes.Say("pipeline created!"))
-						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
+							Eventually(sess).Should(gbytes.Say("pipeline created!"))
+							Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
 
-						Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
-						Eventually(sess).Should(gbytes.Say("  - run the unpause-pipeline command"))
-						Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
+							Eventually(sess).Should(gbytes.Say("the pipeline is currently paused. to unpause, either:"))
+							Eventually(sess).Should(gbytes.Say("  - run the unpause-pipeline command"))
+							Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
-
-						Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 2))
+							<-sess.Exited
+							Expect(sess.ExitCode()).To(Equal(0))
+						}).To(Change(func() int {
+							return len(atcServer.ReceivedRequests())
+						}).By(3))
 					})
 				})
 			})
@@ -524,27 +529,28 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("succeeds and prints warnings", func() {
-					reqsBefore := len(atcServer.ReceivedRequests())
-					flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
+					Expect(func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
 
-					stdin, err := flyCmd.StdinPipe()
-					Expect(err).NotTo(HaveOccurred())
+						stdin, err := flyCmd.StdinPipe()
+						Expect(err).NotTo(HaveOccurred())
 
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
-					yes(stdin)
+						Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+						yes(stdin)
 
-					Eventually(sess.Err).Should(gbytes.Say("DEPRECATION WARNING:"))
-					Eventually(sess.Err).Should(gbytes.Say("  - warning-1"))
-					Eventually(sess.Err).Should(gbytes.Say("  - warning-2"))
-					Eventually(sess).Should(gbytes.Say("pipeline created!"))
+						Eventually(sess.Err).Should(gbytes.Say("DEPRECATION WARNING:"))
+						Eventually(sess.Err).Should(gbytes.Say("  - warning-1"))
+						Eventually(sess.Err).Should(gbytes.Say("  - warning-2"))
+						Eventually(sess).Should(gbytes.Say("pipeline created!"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
-
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 2))
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(3))
 				})
 			})
 

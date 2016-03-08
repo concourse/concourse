@@ -17,6 +17,10 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	pipelineName := command.Pipeline
 	fmt.Printf("!!! this will remove all data for pipeline `%s`\n\n", pipelineName)

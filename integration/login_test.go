@@ -26,6 +26,13 @@ var _ = Describe("login Command", func() {
 
 		BeforeEach(func() {
 			atcServer = ghttp.NewServer()
+			atcServer.AppendHandlers(
+				infoHandler(),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+					ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
+				),
+			)
 			flyCmd = exec.Command(flyPath, "login", "-c", atcServer.URL())
 		})
 
@@ -58,6 +65,7 @@ var _ = Describe("login Command", func() {
 		Context("when auth methods are returned from the API", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
+					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
@@ -145,6 +153,7 @@ var _ = Describe("login Command", func() {
 					Describe("running other commands", func() {
 						BeforeEach(func() {
 							atcServer.AppendHandlers(
+								infoHandler(),
 								ghttp.CombineHandlers(
 									ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
 									ghttp.VerifyHeaderKV("Authorization", "Bearer some-entered-token"),
@@ -282,6 +291,7 @@ var _ = Describe("login Command", func() {
 					Describe("running other commands", func() {
 						BeforeEach(func() {
 							atcServer.AppendHandlers(
+								infoHandler(),
 								ghttp.CombineHandlers(
 									ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
 									ghttp.VerifyHeaderKV("Authorization", "Bearer some-token"),
@@ -309,6 +319,7 @@ var _ = Describe("login Command", func() {
 					Describe("logging in again with the same target", func() {
 						BeforeEach(func() {
 							atcServer.AppendHandlers(
+								infoHandler(),
 								ghttp.CombineHandlers(
 									ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
 									ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
@@ -327,6 +338,7 @@ var _ = Describe("login Command", func() {
 										Value: "some-new-token",
 									}),
 								),
+								infoHandler(),
 								ghttp.CombineHandlers(
 									ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
 									ghttp.VerifyHeaderKV("Authorization", "Bearer some-new-token"),
@@ -385,6 +397,7 @@ var _ = Describe("login Command", func() {
 		Context("when only non-basic auth methods are returned from the API", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
+					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
@@ -425,6 +438,7 @@ var _ = Describe("login Command", func() {
 		Context("when only one auth method is returned from the API", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
+					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
@@ -475,6 +489,7 @@ var _ = Describe("login Command", func() {
 		Context("when no auth methods are returned from the API", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
+					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
@@ -495,6 +510,7 @@ var _ = Describe("login Command", func() {
 			Describe("running other commands", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
+						infoHandler(),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
@@ -526,6 +542,7 @@ var _ = Describe("login Command", func() {
 		Context("and the api returns an internal server error", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
+					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
 						ghttp.RespondWith(500, ""),

@@ -68,15 +68,18 @@ var _ = Describe("AbortBuild", func() {
 
 	Context("when the pipeline/build exists", func() {
 		It("aborts the build", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
+			Expect(func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
 
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess).Should(gexec.Exit(0))
-			Expect(atcServer.ReceivedRequests()).To(HaveLen(3))
+				Eventually(sess).Should(gexec.Exit(0))
 
-			Expect(sess.Out).To(gbytes.Say("build successfully aborted"))
+				Expect(sess.Out).To(gbytes.Say("build successfully aborted"))
+			}).To(Change(func() int {
+				return len(atcServer.ReceivedRequests())
+			}).By(3))
 		})
 	})
 
@@ -84,22 +87,25 @@ var _ = Describe("AbortBuild", func() {
 		BeforeEach(func() {
 			expectedJobBuildURL := "/api/v1/pipelines/my-pipeline/jobs/my-job/builds/42"
 
-			atcServer.SetHandler(1, ghttp.CombineHandlers(
+			atcServer.SetHandler(3, ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", expectedJobBuildURL),
 				ghttp.RespondWith(http.StatusInternalServerError, "{}"),
 			))
 		})
 
 		It("returns a helpful error message", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
+			Expect(func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
 
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess).Should(gexec.Exit(1))
-			Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
+				Eventually(sess).Should(gexec.Exit(1))
 
-			Expect(sess.Err).To(gbytes.Say("error: failed to get job build"))
+				Expect(sess.Err).To(gbytes.Say("error: failed to get job build"))
+			}).To(Change(func() int {
+				return len(atcServer.ReceivedRequests())
+			}).By(2))
 		})
 	})
 
@@ -107,22 +113,23 @@ var _ = Describe("AbortBuild", func() {
 		BeforeEach(func() {
 			expectedJobBuildURL := "/api/v1/pipelines/my-pipeline/jobs/my-job/builds/42"
 
-			atcServer.SetHandler(1, ghttp.CombineHandlers(
+			atcServer.SetHandler(3, ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", expectedJobBuildURL),
 				ghttp.RespondWith(http.StatusNotFound, "{}"),
 			))
 		})
 
 		It("returns a helpful error message", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
+			Expect(func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
 
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(sess).Should(gexec.Exit(1))
-			Expect(atcServer.ReceivedRequests()).To(HaveLen(2))
-
-			Expect(sess.Err).To(gbytes.Say("error: job build does not exist"))
+				Eventually(sess).Should(gexec.Exit(1))
+				Expect(sess.Err).To(gbytes.Say("error: job build does not exist"))
+			}).To(Change(func() int {
+				return len(atcServer.ReceivedRequests())
+			}).By(2))
 		})
 	})
 
@@ -130,7 +137,7 @@ var _ = Describe("AbortBuild", func() {
 		BeforeEach(func() {
 			expectedAbortURL := "/api/v1/builds/23/abort"
 
-			atcServer.SetHandler(2, ghttp.CombineHandlers(
+			atcServer.SetHandler(4, ghttp.CombineHandlers(
 				ghttp.VerifyRequest("POST", expectedAbortURL),
 				ghttp.RespondWith(http.StatusTeapot, ""),
 			),
@@ -138,15 +145,18 @@ var _ = Describe("AbortBuild", func() {
 		})
 
 		It("returns a helpful error message", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
+			Expect(func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
 
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess).Should(gexec.Exit(1))
-			Expect(atcServer.ReceivedRequests()).To(HaveLen(3))
+				Eventually(sess).Should(gexec.Exit(1))
 
-			Expect(sess.Err).To(gbytes.Say("error: failed to abort build"))
+				Expect(sess.Err).To(gbytes.Say("error: failed to abort build"))
+			}).To(Change(func() int {
+				return len(atcServer.ReceivedRequests())
+			}).By(3))
 		})
 	})
 })

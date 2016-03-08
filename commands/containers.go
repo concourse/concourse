@@ -18,6 +18,10 @@ func (command *ContainersCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	containers, err := client.ListContainers(map[string]string{})
 	if err != nil {

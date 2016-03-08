@@ -18,6 +18,10 @@ func (command *AbortBuildCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	build, exists, err := client.JobBuild(command.Job.PipelineName, command.Job.JobName, command.Build)
 	if err != nil {

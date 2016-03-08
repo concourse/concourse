@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/concourse/fly/version"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/mattn/go-isatty"
 
@@ -22,6 +23,7 @@ import (
 )
 
 var ErrNoTargetSpecified = errors.New("no target specified")
+var ErrVersionMismatch = errors.New("version mismatch")
 
 type UnknownTargetError struct {
 	TargetName TargetName
@@ -90,7 +92,7 @@ func SelectTarget(selectedTarget TargetName) (TargetProps, error) {
 	return target, nil
 }
 
-func NewClient(atcURL string, insecure bool) concourse.Client {
+func NewUnauthenticatedClient(atcURL string, insecure bool) concourse.Client {
 	var tlsConfig *tls.Config
 	if insecure {
 		tlsConfig = &tls.Config{InsecureSkipVerify: insecure}
@@ -105,9 +107,11 @@ func NewClient(atcURL string, insecure bool) concourse.Client {
 		}).Dial,
 	}
 
-	return concourse.NewClient(atcURL, &http.Client{
+	client := concourse.NewClient(atcURL, &http.Client{
 		Transport: transport,
 	})
+
+	return client
 }
 
 func TargetClient(selectedTarget TargetName) (concourse.Client, error) {
@@ -163,6 +167,37 @@ func CommandTargetClient(selectedTarget TargetName, commandInsecure *bool) (conc
 	}
 
 	return concourse.NewClient(target.API, httpClient), nil
+}
+
+func ValidateClient(client concourse.Client) error {
+	info, err := client.GetInfo()
+	if err != nil {
+		return err
+	}
+
+	if info.Version == version.Version || version.IsDev(version.Version) {
+		return nil
+	}
+
+	atcMajor, atcMinor, atcPatch, err := version.GetSemver(info.Version)
+	if err != nil {
+		return err
+	}
+	flyMajor, flyMinor, flyPatch, err := version.GetSemver(version.Version)
+	if err != nil {
+		return err
+	}
+
+	if ((atcMajor == flyMajor) && (atcMinor != flyMinor)) ||
+		(atcMajor != flyMajor) {
+		return ErrVersionMismatch
+	}
+
+	if (atcMajor == flyMajor) && (atcMinor == flyMinor) && (atcPatch != flyPatch) {
+		fmt.Fprintln(os.Stderr, "fly version does not match the target version, please re-sync it")
+	}
+
+	return nil
 }
 
 func userHomeDir() string {

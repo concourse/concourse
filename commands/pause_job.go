@@ -16,6 +16,10 @@ func (command *PauseJobCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	_, err = client.PauseJob(command.Job.PipelineName, command.Job.JobName)
 	if err != nil {

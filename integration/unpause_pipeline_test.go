@@ -37,17 +37,19 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("unpauses the pipeline", func() {
-					reqsBefore := len(atcServer.ReceivedRequests())
-					flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "awesome-pipeline")
+					Expect(func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "awesome-pipeline")
 
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess).Should(gbytes.Say(`unpaused 'awesome-pipeline'`))
+						Eventually(sess).Should(gbytes.Say(`unpaused 'awesome-pipeline'`))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 1))
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(2))
 				})
 			})
 
@@ -62,34 +64,38 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("prints helpful message", func() {
-					reqsBefore := len(atcServer.ReceivedRequests())
-					flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "awesome-pipeline")
+					Expect(func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "awesome-pipeline")
 
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Err).Should(gbytes.Say(`pipeline 'awesome-pipeline' not found`))
+						Eventually(sess.Err).Should(gbytes.Say(`pipeline 'awesome-pipeline' not found`))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 1))
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(1))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(2))
 				})
 			})
 		})
 
 		Context("when the pipline name is not specified", func() {
 			It("errors", func() {
-				reqsBefore := len(atcServer.ReceivedRequests())
-				flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline")
+				Expect(func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline")
 
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Err).Should(gbytes.Say(`was not specified`))
+					Eventually(sess.Err).Should(gbytes.Say(`was not specified`))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
-				Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore))
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(1))
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(0))
 			})
 		})
 	})

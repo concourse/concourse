@@ -15,6 +15,10 @@ func (command *PipelinesCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	pipelines, err := client.ListPipelines()
 	if err != nil {

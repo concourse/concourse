@@ -33,6 +33,10 @@ func (command *SetTeamCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	hasBasicAuth, hasGitHubAuth, err := command.ValidateFlags()
 	if err != nil {

@@ -3,14 +3,13 @@ package commands
 import (
 	"fmt"
 	"os"
-)
 
-// overridden via linker flags
-var Version = "0.0.0-dev"
+	"github.com/concourse/fly/version"
+)
 
 func init() {
 	Fly.Version = func() {
-		fmt.Println(Version)
+		fmt.Println(version.Version)
 		os.Exit(0)
 	}
 }

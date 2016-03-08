@@ -19,6 +19,10 @@ func (command *WatchCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	build, err := GetBuild(client, command.Job.JobName, command.Build, command.Job.PipelineName)
 	if err != nil {

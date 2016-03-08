@@ -27,6 +27,10 @@ func (command *BuildsCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client)
+	if err != nil {
+		return err
+	}
 
 	page := concourse.Page{Limit: command.Count}
 

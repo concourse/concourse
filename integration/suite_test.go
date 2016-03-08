@@ -1,8 +1,10 @@
 package integration_test
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -16,12 +18,12 @@ import (
 )
 
 var flyPath string
-
 var homeDir string
 
 var atcServer *ghttp.Server
 
 const targetName = "testserver"
+const atcVersion = "1.2.3"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	binPath, err := gexec.Build("github.com/concourse/fly")
@@ -37,14 +39,23 @@ var _ = SynchronizedAfterSuite(func() {
 	gexec.CleanupBuildArtifacts()
 })
 
+func infoHandler() http.HandlerFunc {
+	return ghttp.CombineHandlers(
+		ghttp.VerifyRequest("GET", "/api/v1/info"),
+		ghttp.RespondWithJSONEncoded(200, atc.Info{Version: atcVersion}),
+	)
+}
+
 var _ = BeforeEach(func() {
 	atcServer = ghttp.NewServer()
 
 	atcServer.AppendHandlers(
+		infoHandler(),
 		ghttp.CombineHandlers(
 			ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
 			ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 		),
+		infoHandler(),
 	)
 
 	var err error
@@ -102,4 +113,47 @@ func userHomeDir() string {
 		return home
 	}
 	return os.Getenv("HOME")
+}
+
+func Change(fn func() int) *changeMatcher {
+	return &changeMatcher{
+		fn: fn,
+	}
+}
+
+type changeMatcher struct {
+	fn     func() int
+	amount int
+
+	before int
+	after  int
+}
+
+func (cm *changeMatcher) By(amount int) *changeMatcher {
+	cm.amount = amount
+
+	return cm
+}
+
+func (cm *changeMatcher) Match(actual interface{}) (success bool, err error) {
+	cm.before = cm.fn()
+
+	ac, ok := actual.(func())
+	if !ok {
+		return false, errors.New("expected a function")
+	}
+
+	ac()
+
+	cm.after = cm.fn()
+
+	return (cm.after - cm.before) == cm.amount, nil
+}
+
+func (cm *changeMatcher) FailureMessage(actual interface{}) (message string) {
+	return fmt.Sprintf("Expected value to change by %d but it changed from %d to %d", cm.amount, cm.before, cm.after)
+}
+
+func (cm *changeMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+	return fmt.Sprintf("Expected value not to change by %d but it changed from %d to %d", cm.amount, cm.before, cm.after)
 }
