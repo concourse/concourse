@@ -9,8 +9,7 @@ jobs:
   - task: build-image
     privileged: true
     file: core-busyboxplus/ci/build.yml
-    params:
-      FLAVOR: base
+    config: {params: {FLAVOR: base}}
   - put: busybox-base-image
     params: {build: image-root}
 
@@ -24,8 +23,7 @@ jobs:
   - task: build-image
     privileged: true
     file: core-busyboxplus/ci/build.yml
-    params:
-      FLAVOR: git
+    config: {params: {FLAVOR: git}}
   - put: busybox-git-image
     params: {build: image-root}
 
@@ -39,8 +37,7 @@ jobs:
   - task: build-image
     privileged: true
     file: core-busyboxplus/ci/build.yml
-    params:
-      FLAVOR: hg
+    config: {params: {FLAVOR: hg}}
   - put: busybox-hg-image
     params: {build: image-root}
 
@@ -54,8 +51,7 @@ jobs:
   - task: build-image
     privileged: true
     file: core-busyboxplus/ci/build.yml
-    params:
-      FLAVOR: ruby
+    config: {params: {FLAVOR: ruby}}
   - put: busybox-ruby-image
     params: {build: image-root}
 
@@ -69,8 +65,7 @@ jobs:
   - task: build-image
     privileged: true
     file: core-busyboxplus/ci/build.yml
-    params:
-      FLAVOR: iptables
+    config: {params: {FLAVOR: iptables}}
   - put: busybox-iptables-image
     params: {build: image-root}
 
@@ -97,8 +92,7 @@ jobs:
     input_mapping:
       resource-image: git-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: git-resource
+    config: {params: {RESOURCE_NAME: git-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -127,8 +121,7 @@ jobs:
     input_mapping:
       resource-image: pool-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: pool-resource
+    config: {params: {RESOURCE_NAME: pool-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -157,8 +150,7 @@ jobs:
     input_mapping:
       resource-image: docker-image-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: docker-image-resource
+    config: {params: {RESOURCE_NAME: docker-image-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -187,8 +179,7 @@ jobs:
     input_mapping:
       resource-image: time-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: time-resource
+    config: {params: {RESOURCE_NAME: time-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -217,8 +208,7 @@ jobs:
     input_mapping:
       resource-image: archive-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: archive-resource
+    config: {params: {RESOURCE_NAME: archive-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -247,8 +237,7 @@ jobs:
     input_mapping:
       resource-image: bosh-deployment-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: bosh-deployment-resource
+    config: {params: {RESOURCE_NAME: bosh-deployment-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -264,12 +253,13 @@ jobs:
       trigger: true
   - task: unit
     file: s3-resource/build.yml
-    params:
-      S3_TESTING_ACCESS_KEY_ID:  {{s3-resource-access-key}}
-      S3_TESTING_SECRET_ACCESS_KEY: {{s3-resource-secret-key}}
-      S3_TESTING_BUCKET: {{s3-resource-bucket}}
-      S3_VERSIONED_TESTING_BUCKET: {{s3-resource-versioned-bucket}}
-      S3_TESTING_REGION: {{s3-resource-region}}
+    config:
+      params:
+        S3_TESTING_ACCESS_KEY_ID:  {{s3-resource-access-key}}
+        S3_TESTING_SECRET_ACCESS_KEY: {{s3-resource-secret-key}}
+        S3_TESTING_BUCKET: {{s3-resource-bucket}}
+        S3_VERSIONED_TESTING_BUCKET: {{s3-resource-versioned-bucket}}
+        S3_TESTING_REGION: {{s3-resource-region}}
   - put: s3-resource-image
     params:
       load_base: busybox-base-image
@@ -282,8 +272,7 @@ jobs:
     input_mapping:
       resource-image: s3-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: s3-resource
+    config: {params: {RESOURCE_NAME: s3-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -312,8 +301,7 @@ jobs:
     input_mapping:
       resource-image: github-release-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: github-release-resource
+    config: {params: {RESOURCE_NAME: github-release-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -349,8 +337,7 @@ jobs:
     input_mapping:
       resource-image: cf-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: cf-resource
+    config: {params: {RESOURCE_NAME: cf-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -367,11 +354,12 @@ jobs:
       trigger: true
   - task: unit
     file: semver-resource/build.yml
-    params:
-      SEMVER_TESTING_ACCESS_KEY_ID: {{semver-access-key}}
-      SEMVER_TESTING_SECRET_ACCESS_KEY: {{semver-secret-key}}
-      SEMVER_TESTING_BUCKET: {{semver-bucket}}
-      SEMVER_TESTING_REGION: {{semver-region}}
+    config:
+      params:
+        SEMVER_TESTING_ACCESS_KEY_ID: {{semver-access-key}}
+        SEMVER_TESTING_SECRET_ACCESS_KEY: {{semver-secret-key}}
+        SEMVER_TESTING_BUCKET: {{semver-bucket}}
+        SEMVER_TESTING_REGION: {{semver-region}}
   - put: semver-resource-image
     params:
       load_base: busybox-git-image
@@ -384,8 +372,7 @@ jobs:
     input_mapping:
       resource-image: semver-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: semver-resource
+    config: {params: {RESOURCE_NAME: semver-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -412,8 +399,7 @@ jobs:
     input_mapping:
       resource-image: bosh-io-release-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: bosh-io-release-resource
+    config: {params: {RESOURCE_NAME: bosh-io-release-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -442,8 +428,7 @@ jobs:
     input_mapping:
       resource-image: bosh-io-stemcell-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: bosh-io-stemcell-resource
+    config: {params: {RESOURCE_NAME: bosh-io-stemcell-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -460,8 +445,7 @@ jobs:
       trigger: true
   - task: unit
     file: tracker-resource/build.yml
-    params:
-      TRACKER_TOKEN: {{tracker-testing-token}}
+    config: {params: {TRACKER_TOKEN: {{tracker-testing-token}}}}
   - put: tracker-resource-image
     params:
       load_base: busybox-git-image
@@ -474,8 +458,7 @@ jobs:
     input_mapping:
       resource-image: tracker-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: tracker-resource
+    config: {params: {RESOURCE_NAME: tracker-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -502,8 +485,7 @@ jobs:
     input_mapping:
       resource-image: vagrant-cloud-resource-image
     file: concourse/ci/bump-resource-package.yml
-    params:
-      RESOURCE_NAME: vagrant-cloud-resource
+    config: {params: {RESOURCE_NAME: vagrant-cloud-resource}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
