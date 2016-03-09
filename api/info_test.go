@@ -1,10 +1,9 @@
 package api_test
 
 import (
-	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
-	"github.com/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -21,12 +20,12 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		It("contains the version", func() {
-			var info atc.Info
-
-			err := json.NewDecoder(response.Body).Decode(&info)
+			body, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(info.Version).To(Equal("1.2.3"))
+			Expect(body).To(MatchJSON(`{
+				"version": "1.2.3"
+			}`))
 		})
 	})
 })

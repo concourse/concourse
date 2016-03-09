@@ -2,10 +2,6 @@ package atc
 
 import "github.com/tedsuo/rata"
 
-type Info struct {
-	Version string
-}
-
 const (
 	SaveConfig = "SaveConfig"
 	GetConfig  = "GetConfig"
