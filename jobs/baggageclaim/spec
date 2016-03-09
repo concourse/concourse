@@ -3,6 +3,7 @@ name: baggageclaim
 
 templates:
   baggageclaim_ctl.erb: bin/baggageclaim_ctl
+  permit_device_control: bin/permit_device_control
 
 packages:
   - pid_utils
