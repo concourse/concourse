@@ -59,4 +59,8 @@
   We've bumped the version of \hyperlink{https://buildroot.org/}{Buildroot}
   that many of our resources are based on, which should bring in updated CA
   certificates and other miscellaneous things.
+}{
+  Previously resources that had \reference{put-params} involving lists of
+  objects would cause Concourse to blow up instead of working. It should now
+  work.
 }
