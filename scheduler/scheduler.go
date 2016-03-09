@@ -292,10 +292,8 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 		return nil
 	}
 
-	if createdBuild != nil {
-		logger.Info("building")
-		go createdBuild.Resume(logger)
-	}
+	logger.Info("building-build")
+	go createdBuild.Resume(logger)
 
 	return createdBuild
 }

@@ -49,6 +49,8 @@ var _ = Describe("Scheduler", func() {
 		fakeEngine = new(enginefakes.FakeEngine)
 		fakeScanner = new(fakes.FakeScanner)
 
+		fakeEngine.CreateBuildReturns(&enginefakes.FakeBuild{}, nil)
+
 		someVersions = &algorithm.VersionsDB{
 			BuildOutputs: []algorithm.BuildOutput{
 				{
