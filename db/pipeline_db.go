@@ -730,14 +730,17 @@ func (pdb *pipelineDB) saveVersionedResource(tx Tx, savedResource SavedResource,
 		)
 	`, savedResource.ID, vr.Type, string(versionJSON), string(metadataJSON))
 
-	err = swallowUniqueViolation(err)
-	if err != nil {
-		return SavedVersionedResource{}, false, err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return SavedVersionedResource{}, false, err
+	var rowsAffected int64
+	if err == nil {
+		rowsAffected, err = result.RowsAffected()
+		if err != nil {
+			return SavedVersionedResource{}, false, err
+		}
+	} else {
+		err = swallowUniqueViolation(err)
+		if err != nil {
+			return SavedVersionedResource{}, false, err
+		}
 	}
 
 	var savedMetadata string
