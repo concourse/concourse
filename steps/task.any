@@ -50,8 +50,7 @@ plan:
 }
 
 \define-attributes{file: string}{config: object}{
-  \italic{At least one required.} The configuration for the task's running
-  environment.
+  \italic{One required.} The configuration for the task's running environment.
 
   \code{file} points at a \code{.yml} file containing the
   \reference{configuring-tasks}{task config}, which allows this to be tracked
@@ -71,11 +70,6 @@ plan:
   would set \code{file: something/unit.yml}.
 
   \code{config} can be defined to inline the task config statically.
-
-  If both \code{file} and \code{config} are specified, the value of
-  \code{config} is "merged" into the config loaded from the file. This allows
-  task parameters to be specified in the task's config file, and overridden in
-  the pipeline (i.e. for passing in secret credentials).
 }
 
 \define-attribute{privileged: boolean}{
@@ -84,4 +78,70 @@ plan:
   configuration to prevent privilege escalation via pull requests.
 
   This is a gaping security hole; use wisely and only if necessary.
+}
+
+\define-attribute{params: object}{
+  \italic{Optional.} A map of task parameters to set, overriding those
+  configured in \code{config} or \code{file}. This is useful for passing in
+  credentials or other configuration to the task from the pipeline.
+
+  For example:
+
+  \codeblock{yaml}{
+  plan:
+  - get: my-repo
+  - task: integration
+    file: my-repo/ci/integration.yml
+    params:
+      REMOTE_SERVER: 10.20.30.40:8080
+      USERNAME: my-user
+      PASSWORD: my-pass
+  }
+
+  This is often used in combination with
+  \reference{parameters}{\code{\{\{parameters\}\}}} in the pipeline.
+}
+
+\define-attribute{input_mapping: object}{
+  \italic{Optional.} A map from task input names to concrete names in the build
+  plan. This allows a task with generic input names to be used multiple times
+  in the same plan, mapping its inputs to specific resources within the plan.
+
+  For example:
+
+  \codeblock{yaml}{
+  plan:
+  - get: diego-release
+  - get: cf-release
+  - get: ci-scripts
+  - task: audit-diego-release
+    file: ci-scripts/audit-release.yml
+    input_mapping: {release-repo: diego-release}
+  - task: audit-cf-release
+    file: ci-scripts/audit-release.yml
+    input_mapping: {release-repo: cf-release}
+  }
+}
+
+\define-attribute{output_mapping: object}{
+  \italic{Optional.} A map from task output names to concrete names to register
+  in the build plan. This allows a task with generic output names to be used
+  multiple times in the same plan.
+
+  This is often used together with \reference{input_mapping}. For example:
+
+  \codeblock{yaml}{
+  plan:
+  - get: diego-release
+  - get: cf-release
+  - get: ci-scripts
+  - task: create-diego-release
+    file: ci-scripts/create-release.yml
+    input_mapping: {release-repo: diego-release}
+    output_mapping: {release-tarball: diego-release-tarball}
+  - task: create-cf-release
+    file: ci-scripts/create-release.yml
+    input_mapping: {release-repo: cf-release}
+    output_mapping: {release-tarball: cf-release-tarball}
+  }
 }
