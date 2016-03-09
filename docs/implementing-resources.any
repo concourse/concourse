@@ -229,7 +229,7 @@ no-ops (which still must be correctly implemented as detailed below).
     \item{\code{$BUILD_PIPELINE_NAME}}{
       The pipeline that the build's job lives in.
     }
-	
+
     \item{\code{$ATC_EXTERNAL_URL}}{
       The public URL for your ATC; useful for debugging.
     }

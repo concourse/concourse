@@ -50,13 +50,7 @@ fn(format-inline(tokens, link-only = nil)):
       -- constants, identifiers, and operators
       if((link-only && link-only include?(t contents)) ||
           (!link-only && ["no", "n", "o"] include?(t type tag)))
-        then:
-          data ResolveElement new(
-            [part]:
-              tag = part find-tag(t contents)
-              if(tag)
-                then: data Reference new(tag, t contents)
-                else: t contents)
+        then: base reference(t contents, t contents)
         else: t contents
       .class(t type tag))
 
@@ -80,18 +74,30 @@ def(define-metric(metric-name, body)):
     ]
     .class("definition"))
 
-def(define-attribute(what, body)):
-  define-attributes(what, body)
+def(define-attribute(what, *tags, body)):
+  define-tagged-attributes([what], tags, body)
 
 def(define-attributes(*whats, body)):
+  define-tagged-attributes(whats, [], body)
+
+def(define-tagged-attributes(whats, tags, body)):
   attribute-names = whats collect [w]: w split(":") first
 
-  targets = attribute-names collect [a]:
-    base target-element(a, base code(format-inline(yaml lex(a), [])))
+  tags =
+    if(tags empty?)
+      then: attribute-names
+      else: tags
+
+  targets = attribute-names collect [attr] {
+    tags collect [tag]:
+      base target-element(tag, base code(format-inline(yaml lex(attr), [])))
+  } flatten
+
+  link-target = tags first
 
   data Block new(
     [ whats collect with-index [w, i]:
-        display = format-inline(yaml lex(w), attribute-names[i])
+        display = base reference(link-target, format-inline(yaml lex(w), []))
 
         data Block new(
           [data Block new([targets, display], .tt)]
