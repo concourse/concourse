@@ -509,11 +509,28 @@ func (pdb *pipelineDB) SaveResourceVersions(config atc.ResourceConfig, versions 
 	defer tx.Rollback()
 
 	for _, version := range versions {
-		_, err := pdb.saveVersionedResource(tx, VersionedResource{
+		vr := VersionedResource{
 			Resource: config.Name,
 			Type:     config.Type,
 			Version:  Version(version),
-		}, true)
+		}
+
+		versionJSON, err := json.Marshal(vr.Version)
+		if err != nil {
+			return err
+		}
+
+		savedResource, err := pdb.getResource(tx, vr.Resource)
+		if err != nil {
+			return err
+		}
+
+		_, _, err = pdb.saveVersionedResource(tx, savedResource, vr)
+		if err != nil {
+			return err
+		}
+
+		err = pdb.incrementCheckOrderWhenNewerVersion(tx, savedResource.ID, vr.Type, string(versionJSON))
 		if err != nil {
 			return err
 		}
@@ -685,20 +702,15 @@ func (pdb *pipelineDB) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int
 	return nil
 }
 
-func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource, updateCheckOrder bool) (SavedVersionedResource, error) {
-	savedResource, err := pdb.getResource(tx, vr.Resource)
-	if err != nil {
-		return SavedVersionedResource{}, err
-	}
-
+func (pdb *pipelineDB) saveVersionedResource(tx Tx, savedResource SavedResource, vr VersionedResource) (SavedVersionedResource, bool, error) {
 	versionJSON, err := json.Marshal(vr.Version)
 	if err != nil {
-		return SavedVersionedResource{}, err
+		return SavedVersionedResource{}, false, err
 	}
 
 	metadataJSON, err := json.Marshal(vr.Metadata)
 	if err != nil {
-		return SavedVersionedResource{}, err
+		return SavedVersionedResource{}, false, err
 	}
 
 	var id int
@@ -720,19 +732,12 @@ func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource, update
 
 	err = swallowUniqueViolation(err)
 	if err != nil {
-		return SavedVersionedResource{}, err
+		return SavedVersionedResource{}, false, err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return SavedVersionedResource{}, err
-	}
-
-	if rowsAffected != 0 || updateCheckOrder {
-		err = pdb.incrementCheckOrderWhenNewerVersion(tx, savedResource.ID, vr.Type, string(versionJSON))
-		if err != nil {
-			return SavedVersionedResource{}, err
-		}
+		return SavedVersionedResource{}, false, err
 	}
 
 	var savedMetadata string
@@ -757,14 +762,15 @@ func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource, update
 		`, savedResource.ID, vr.Type, string(versionJSON)).Scan(&id, &enabled, &savedMetadata, &modified_time, &check_order)
 	}
 	if err != nil {
-		return SavedVersionedResource{}, err
+		return SavedVersionedResource{}, false, err
 	}
 
 	err = json.Unmarshal([]byte(savedMetadata), &vr.Metadata)
 	if err != nil {
-		return SavedVersionedResource{}, err
+		return SavedVersionedResource{}, false, err
 	}
 
+	created := rowsAffected != 0
 	return SavedVersionedResource{
 		ID:           id,
 		Enabled:      enabled,
@@ -772,7 +778,7 @@ func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource, update
 
 		VersionedResource: vr,
 		CheckOrder:        check_order,
-	}, nil
+	}, created, nil
 }
 
 func (pdb *pipelineDB) GetJob(jobName string) (SavedJob, error) {
@@ -1075,7 +1081,12 @@ func (pdb *pipelineDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersi
 }
 
 func (pdb *pipelineDB) saveBuildInput(tx Tx, buildID int, input BuildInput) (SavedVersionedResource, error) {
-	svr, err := pdb.saveVersionedResource(tx, input.VersionedResource, false)
+	savedResource, err := pdb.getResource(tx, input.VersionedResource.Resource)
+	if err != nil {
+		return SavedVersionedResource{}, err
+	}
+
+	svr, _, err := pdb.saveVersionedResource(tx, savedResource, input.VersionedResource)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -1109,9 +1120,26 @@ func (pdb *pipelineDB) SaveBuildOutput(buildID int, vr VersionedResource, explic
 
 	defer tx.Rollback()
 
-	svr, err := pdb.saveVersionedResource(tx, vr, false)
+	savedResource, err := pdb.getResource(tx, vr.Resource)
 	if err != nil {
 		return SavedVersionedResource{}, err
+	}
+
+	svr, created, err := pdb.saveVersionedResource(tx, savedResource, vr)
+	if err != nil {
+		return SavedVersionedResource{}, err
+	}
+
+	if created {
+		versionJSON, err := json.Marshal(vr.Version)
+		if err != nil {
+			return SavedVersionedResource{}, err
+		}
+
+		err = pdb.incrementCheckOrderWhenNewerVersion(tx, savedResource.ID, vr.Type, string(versionJSON))
+		if err != nil {
+			return SavedVersionedResource{}, err
+		}
 	}
 
 	_, err = tx.Exec(`
