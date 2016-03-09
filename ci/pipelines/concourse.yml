@@ -323,50 +323,50 @@ jobs:
     file: bin/ci/testflight.yml
     privileged: true
     timeout: 1h
-  - aggregate:
-    - task: basic-auth-public
-      file: bin/ci/testflight.yml
-      config:
-        params:
-          BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
-          BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
-          PIPELINES_PUBLICLY_VIEWABLE: true
-      privileged: true
-      timeout: 1h
-    - task: basic-auth-private
-      file: bin/ci/testflight.yml
-      config:
-        params:
-          BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
-          BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
-          PIPELINES_PUBLICLY_VIEWABLE: false
-      privileged: true
-      timeout: 1h
-  - aggregate:
-    - task: github-auth-public
-      file: bin/ci/testflight.yml
-      config:
-        params:
-          GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
-          GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
-          GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
-          GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-public-client-id}}
-          GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-public-client-secret}}
-          PIPELINES_PUBLICLY_VIEWABLE: true
-      privileged: true
-      timeout: 1h
-    - task: github-auth-private
-      file: bin/ci/testflight.yml
-      config:
-        params:
-          GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
-          GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
-          GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
-          GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-private-client-id}}
-          GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-private-client-secret}}
-          PIPELINES_PUBLICLY_VIEWABLE: false
-      privileged: true
-      timeout: 1h
+  # - aggregate:
+  #   - task: basic-auth-public
+  #     file: bin/ci/testflight.yml
+  #     config:
+  #       params:
+  #         BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
+  #         BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+  #         PIPELINES_PUBLICLY_VIEWABLE: true
+  #     privileged: true
+  #     timeout: 1h
+  #   - task: basic-auth-private
+  #     file: bin/ci/testflight.yml
+  #     config:
+  #       params:
+  #         BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
+  #         BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+  #         PIPELINES_PUBLICLY_VIEWABLE: false
+  #     privileged: true
+  #     timeout: 1h
+  # - aggregate:
+  #   - task: github-auth-public
+  #     file: bin/ci/testflight.yml
+  #     config:
+  #       params:
+  #         GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+  #         GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+  #         GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
+  #         GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-public-client-id}}
+  #         GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-public-client-secret}}
+  #         PIPELINES_PUBLICLY_VIEWABLE: true
+  #     privileged: true
+  #     timeout: 1h
+  #   - task: github-auth-private
+  #     file: bin/ci/testflight.yml
+  #     config:
+  #       params:
+  #         GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+  #         GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+  #         GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
+  #         GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-private-client-id}}
+  #         GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-private-client-secret}}
+  #         PIPELINES_PUBLICLY_VIEWABLE: false
+  #     privileged: true
+  #     timeout: 1h
 
 - name: deploy
   serial: true
