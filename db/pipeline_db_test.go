@@ -1092,6 +1092,116 @@ var _ = Describe("PipelineDB", func() {
 				Expect(someOtherInput.VersionedResource.PipelineName).To(Equal(savedVR2.VersionedResource.PipelineName))
 			})
 
+			It("doesn't change the check_order when saving a new build input", func() {
+				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{
+					{"version": "1"},
+					{"version": "2"},
+					{"version": "3"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				build, err := pipelineDB.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				beforeVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{
+					{"version": "4"},
+					{"version": "5"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				input := db.BuildInput{
+					Name:              "input-name",
+					VersionedResource: beforeVR.VersionedResource,
+				}
+
+				afterVR, err := pipelineDB.SaveBuildInput(build.ID, input)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(afterVR.CheckOrder).To(Equal(beforeVR.CheckOrder))
+			})
+
+			It("doesn't change the check_order when saving a new implicit build output", func() {
+				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{
+					{"version": "1"},
+					{"version": "2"},
+					{"version": "3"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				build, err := pipelineDB.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				beforeVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{
+					{"version": "4"},
+					{"version": "5"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				afterVR, err := pipelineDB.SaveBuildOutput(build.ID, beforeVR.VersionedResource, false)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(afterVR.CheckOrder).To(Equal(beforeVR.CheckOrder))
+			})
+
+			It("doesn't change the check_order when saving a new implicit build output", func() {
+				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{
+					{"version": "1"},
+					{"version": "2"},
+					{"version": "3"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				build, err := pipelineDB.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				beforeVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{
+					{"version": "4"},
+					{"version": "5"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				afterVR, err := pipelineDB.SaveBuildOutput(build.ID, beforeVR.VersionedResource, true)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(afterVR.CheckOrder).To(Equal(beforeVR.CheckOrder))
+			})
+
 			It("prevents the resource version from being a candidate for build inputs", func() {
 				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
 					Name:   "some-resource",

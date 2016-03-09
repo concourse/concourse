@@ -513,7 +513,7 @@ func (pdb *pipelineDB) SaveResourceVersions(config atc.ResourceConfig, versions 
 			Resource: config.Name,
 			Type:     config.Type,
 			Version:  Version(version),
-		})
+		}, true)
 		if err != nil {
 			return err
 		}
@@ -685,7 +685,7 @@ func (pdb *pipelineDB) incrementCheckOrderWhenNewerVersion(tx Tx, resourceID int
 	return nil
 }
 
-func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource) (SavedVersionedResource, error) {
+func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource, updateCheckOrder bool) (SavedVersionedResource, error) {
 	savedResource, err := pdb.getResource(tx, vr.Resource)
 	if err != nil {
 		return SavedVersionedResource{}, err
@@ -706,7 +706,7 @@ func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource) (Saved
 	var modified_time time.Time
 	var check_order int
 
-	_, err = tx.Exec(`
+	result, err := tx.Exec(`
 		INSERT INTO versioned_resources (resource_id, type, version, metadata, modified_time)
 		SELECT $1, $2, $3, $4, now()
 		WHERE NOT EXISTS (
@@ -723,9 +723,16 @@ func (pdb *pipelineDB) saveVersionedResource(tx Tx, vr VersionedResource) (Saved
 		return SavedVersionedResource{}, err
 	}
 
-	err = pdb.incrementCheckOrderWhenNewerVersion(tx, savedResource.ID, vr.Type, string(versionJSON))
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return SavedVersionedResource{}, err
+	}
+
+	if rowsAffected != 0 || updateCheckOrder {
+		err = pdb.incrementCheckOrderWhenNewerVersion(tx, savedResource.ID, vr.Type, string(versionJSON))
+		if err != nil {
+			return SavedVersionedResource{}, err
+		}
 	}
 
 	var savedMetadata string
@@ -1068,7 +1075,7 @@ func (pdb *pipelineDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersi
 }
 
 func (pdb *pipelineDB) saveBuildInput(tx Tx, buildID int, input BuildInput) (SavedVersionedResource, error) {
-	svr, err := pdb.saveVersionedResource(tx, input.VersionedResource)
+	svr, err := pdb.saveVersionedResource(tx, input.VersionedResource, false)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -1102,7 +1109,7 @@ func (pdb *pipelineDB) SaveBuildOutput(buildID int, vr VersionedResource, explic
 
 	defer tx.Rollback()
 
-	svr, err := pdb.saveVersionedResource(tx, vr)
+	svr, err := pdb.saveVersionedResource(tx, vr, false)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}

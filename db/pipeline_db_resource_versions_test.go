@@ -190,7 +190,7 @@ var _ = Describe("Resource History", func() {
 
 				// We resaved a previous SavedVersionedResource in SaveBuildInput()
 				// creating a new newest VersionedResource
-				expectedVersions[9].CheckOrder = 11
+				expectedVersions[9].CheckOrder = 10
 				Expect(historyPage).To(Equal([]db.SavedVersionedResource{expectedVersions[9]}))
 			})
 		})
