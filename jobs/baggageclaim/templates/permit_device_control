@@ -32,3 +32,6 @@ mount -t cgroup -o "$devices_subsytems" none "$cgroup_mount"
 # ignore failure in case something has already done this; echo appears to
 # return EINVAL, possibly because devices this affects are already in use
 echo a > "${cgroup_mount}${devices_subdir}/devices.allow" || true
+
+# remove mount point so we can clean it up
+umount "$cgroup_mount"
