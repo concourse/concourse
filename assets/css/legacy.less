@@ -48,26 +48,6 @@
   margin: 0;
   padding: 0;
   list-style-type: none;
-  text-align: right;
-}
-
-.version-info {
-  position: fixed;
-  bottom: 1em;
-  right: 1em;
-}
-
-.version-info td {
-  text-align: right;
-  padding: 0;
-}
-
-.version-info td.label {
-  padding-right: .5em;
-}
-
-#concourse-version {
-  font-weight: bold;
 }
 
 .cli-downloads li {
@@ -76,6 +56,29 @@
 
 .cli-downloads a {
   text-decoration: none;
+}
+
+.lower-right-info {
+  position: fixed;
+  bottom: 1em;
+  right: 1em;
+}
+
+.lower-right-info td {
+  text-align: right;
+  padding: 0;
+}
+
+.lower-right-info > .cli-downloads {
+  text-align: right;
+}
+
+.lower-right-info td.label {
+  padding-right: .5em;
+}
+
+#concourse-version {
+  font-weight: bold;
 }
 
 #builds,
