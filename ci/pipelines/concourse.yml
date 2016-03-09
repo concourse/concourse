@@ -715,9 +715,10 @@ resources:
   type: bosh-deployment
   source:
     target: {{bosh-target}}
-    username: {{bosh-username}}
-    password: {{bosh-password}}
     deployment: {{bosh-deployment}}
+    client_id: {{bosh-client-id}}
+    client_secret: {{bosh-client-secret}}
+    ca_cert: {{bosh-ca-cert}}
 
 - name: lite-deployment
   type: bosh-deployment
