@@ -18,7 +18,7 @@ func (command *AbortBuildCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
-	err = rc.ValidateClient(client)
+	err = rc.ValidateClient(client, Fly.Target)
 	if err != nil {
 		return err
 	}

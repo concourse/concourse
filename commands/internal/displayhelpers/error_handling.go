@@ -7,9 +7,9 @@ import (
 	"github.com/concourse/fly/ui"
 )
 
-func Warn(message string) {
+func PrintDeprecationWarning() {
 	printColorFunc := ui.ErroredColor.SprintFunc()
-	fmt.Fprintf(os.Stderr, "%s\n", printColorFunc(message))
+	fmt.Fprintf(os.Stderr, "%s\n", printColorFunc("DEPRECATION WARNING:"))
 }
 
 func Failf(message string, args ...interface{}) {

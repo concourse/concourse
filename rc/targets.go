@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/concourse/fly/ui"
 	"github.com/concourse/fly/version"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/mattn/go-isatty"
@@ -23,7 +24,24 @@ import (
 )
 
 var ErrNoTargetSpecified = errors.New("no target specified")
-var ErrVersionMismatch = errors.New("version mismatch")
+
+type ErrVersionMismatch struct {
+	flyVersion string
+	atcVersion string
+	targetName TargetName
+}
+
+func NewErrVersionMismatch(flyVersion string, atcVersion string, targetName TargetName) ErrVersionMismatch {
+	return ErrVersionMismatch{
+		flyVersion: flyVersion,
+		atcVersion: atcVersion,
+		targetName: targetName,
+	}
+}
+
+func (e ErrVersionMismatch) Error() string {
+	return fmt.Sprintf("fly version (%s) is out of sync with the target (%s). to sync up, run the following:\n\n    fly -t %s sync\n", ui.Embolden(e.flyVersion), ui.Embolden(e.atcVersion), e.targetName)
+}
 
 type UnknownTargetError struct {
 	TargetName TargetName
@@ -169,7 +187,7 @@ func CommandTargetClient(selectedTarget TargetName, commandInsecure *bool) (conc
 	return concourse.NewClient(target.API, httpClient), nil
 }
 
-func ValidateClient(client concourse.Client) error {
+func ValidateClient(client concourse.Client, targetName TargetName) error {
 	info, err := client.GetInfo()
 	if err != nil {
 		return err
@@ -183,6 +201,7 @@ func ValidateClient(client concourse.Client) error {
 	if err != nil {
 		return err
 	}
+
 	flyMajor, flyMinor, flyPatch, err := version.GetSemver(version.Version)
 	if err != nil {
 		return err
@@ -190,11 +209,12 @@ func ValidateClient(client concourse.Client) error {
 
 	if ((atcMajor == flyMajor) && (atcMinor != flyMinor)) ||
 		(atcMajor != flyMajor) {
-		return ErrVersionMismatch
+		return NewErrVersionMismatch(version.Version, info.Version, targetName)
 	}
 
 	if (atcMajor == flyMajor) && (atcMinor == flyMinor) && (atcPatch != flyPatch) {
-		fmt.Fprintln(os.Stderr, "fly version does not match the target version, please re-sync it")
+		fmt.Fprintln(os.Stderr, ui.WarningColor("WARNING:\n"))
+		fmt.Fprintln(os.Stderr, ui.WarningColor(NewErrVersionMismatch(version.Version, info.Version, targetName).Error()))
 	}
 
 	return nil

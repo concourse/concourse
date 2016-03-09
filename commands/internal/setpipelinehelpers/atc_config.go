@@ -103,7 +103,7 @@ func (atcConfig ATCConfig) newConfig(configPath flaghelpers.PathFlag, templateVa
 
 func (atcConfig ATCConfig) showWarnings(warnings []concourse.ConfigWarning) {
 	fmt.Fprintln(os.Stderr, "")
-	displayhelpers.Warn("DEPRECATION WARNING:")
+	displayhelpers.PrintDeprecationWarning()
 
 	for _, warning := range warnings {
 		fmt.Fprintf(os.Stderr, "  - %s\n", warning.Message)

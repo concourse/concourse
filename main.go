@@ -29,11 +29,9 @@ func main() {
 			fmt.Fprintln(os.Stderr, "")
 			fmt.Fprintln(os.Stderr, "    "+ui.Embolden("fly -t (alias) login -c (concourse url)"))
 			fmt.Fprintln(os.Stderr, "")
-		} else if err == rc.ErrVersionMismatch {
-			fmt.Fprintln(os.Stderr, "fly version is out of sync with the target. run the following command to re-sync it:")
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "    "+ui.Embolden("fly -t (alias) sync"))
-			fmt.Fprintln(os.Stderr, "")
+		} else if versionErr, ok := err.(rc.ErrVersionMismatch); ok {
+			fmt.Fprintln(os.Stderr, versionErr.Error())
+			fmt.Fprintln(os.Stderr, ui.WarningColor("cowardly refusing to run due to significant version discrepancy"))
 		} else if netErr, ok := err.(net.Error); ok {
 			fmt.Fprintf(os.Stderr, "could not reach the Concourse server called %s:\n", ui.Embolden("%s", commands.Fly.Target))
 

@@ -52,8 +52,9 @@ var _ = Describe("Version Checks", func() {
 		})
 
 		It("warns the user that there is a difference", func() {
-			Eventually(flySession.Err).Should(gbytes.Say("fly version does not match the target version, please re-sync it"))
 			Eventually(flySession).Should(gexec.Exit(0))
+			Expect(flySession.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:`, flyVersion, atcVersion))
+			Expect(flySession.Err).To(gbytes.Say(`    fly -t %s sync\n`, targetName))
 		})
 	})
 
@@ -80,8 +81,9 @@ var _ = Describe("Version Checks", func() {
 
 		It("error and tell the user to upgrade", func() {
 			Eventually(flySession).Should(gexec.Exit(1))
-			Expect(flySession.Err).Should(gbytes.Say("fly version is out of sync with the target. run the following command to re-sync it:"))
-			Expect(flySession.Err).Should(gbytes.Say(`    fly -t \(alias\) sync`))
+			Expect(flySession.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:`, flyVersion, atcVersion))
+			Expect(flySession.Err).To(gbytes.Say(`    fly -t %s sync\n`, targetName))
+			Expect(flySession.Err).To(gbytes.Say("cowardly refusing to run due to significant version discrepancy"))
 		})
 	})
 
@@ -96,8 +98,9 @@ var _ = Describe("Version Checks", func() {
 
 		It("error and tell the user to upgrade", func() {
 			Eventually(flySession).Should(gexec.Exit(1))
-			Expect(flySession.Err).Should(gbytes.Say("fly version is out of sync with the target. run the following command to re-sync it:"))
-			Expect(flySession.Err).Should(gbytes.Say(`    fly -t \(alias\) sync`))
+			Expect(flySession.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:`, flyVersion, atcVersion))
+			Expect(flySession.Err).To(gbytes.Say(`    fly -t %s sync\n`, targetName))
+			Expect(flySession.Err).To(gbytes.Say("cowardly refusing to run due to significant version discrepancy"))
 		})
 	})
 

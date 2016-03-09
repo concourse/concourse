@@ -279,7 +279,7 @@ func getContainerIDs(c *HijackCommand) ([]atc.Container, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = rc.ValidateClient(client)
+	err = rc.ValidateClient(client, Fly.Target)
 	if err != nil {
 		return nil, err
 	}
