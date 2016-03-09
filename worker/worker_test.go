@@ -235,7 +235,7 @@ var _ = Describe("Worker", func() {
 						disaster := errors.New("bad")
 
 						BeforeEach(func() {
-							fakeGardenWorkerDB.CreateContainerReturns(db.Container{}, disaster)
+							fakeGardenWorkerDB.CreateContainerReturns(db.SavedContainer{}, disaster)
 						})
 
 						It("returns the error", func() {
@@ -1626,9 +1626,11 @@ var _ = Describe("Worker", func() {
 				fakeContainer = new(gfakes.FakeContainer)
 				fakeContainer.HandleReturns("provider-handle")
 
-				fakeWorkerProvider.FindContainerForIdentifierReturns(db.Container{
-					ContainerMetadata: db.ContainerMetadata{
-						Handle: "provider-handle",
+				fakeWorkerProvider.FindContainerForIdentifierReturns(db.SavedContainer{
+					Container: db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							Handle: "provider-handle",
+						},
 					},
 				}, true, nil)
 
@@ -1732,7 +1734,7 @@ var _ = Describe("Worker", func() {
 
 		Context("when no containers are found", func() {
 			BeforeEach(func() {
-				fakeWorkerProvider.FindContainerForIdentifierReturns(db.Container{}, false, nil)
+				fakeWorkerProvider.FindContainerForIdentifierReturns(db.SavedContainer{}, false, nil)
 			})
 
 			It("returns that the container could not be found", func() {
@@ -1744,7 +1746,7 @@ var _ = Describe("Worker", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeWorkerProvider.FindContainerForIdentifierReturns(db.Container{}, false, disaster)
+				fakeWorkerProvider.FindContainerForIdentifierReturns(db.SavedContainer{}, false, disaster)
 			})
 
 			It("returns the error", func() {
@@ -1754,11 +1756,14 @@ var _ = Describe("Worker", func() {
 
 		Context("when the container cannot be found", func() {
 			BeforeEach(func() {
-				containerToReturn := db.Container{
-					ContainerMetadata: db.ContainerMetadata{
-						Handle: "handle",
+				containerToReturn := db.SavedContainer{
+					Container: db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							Handle: "handle",
+						},
 					},
 				}
+
 				fakeWorkerProvider.FindContainerForIdentifierReturns(containerToReturn, true, nil)
 				fakeGardenClient.LookupReturns(nil, garden.ContainerNotFoundError{Handle: "handle"})
 			})
@@ -1777,11 +1782,14 @@ var _ = Describe("Worker", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				containerToReturn := db.Container{
-					ContainerMetadata: db.ContainerMetadata{
-						Handle: "handle",
+				containerToReturn := db.SavedContainer{
+					Container: db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							Handle: "handle",
+						},
 					},
 				}
+
 				fakeWorkerProvider.FindContainerForIdentifierReturns(containerToReturn, true, nil)
 				fakeGardenClient.LookupReturns(nil, disaster)
 			})

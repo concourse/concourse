@@ -26,23 +26,23 @@ type FakeWorkerProvider struct {
 		result2 bool
 		result3 error
 	}
-	FindContainerForIdentifierStub        func(worker.Identifier) (db.Container, bool, error)
+	FindContainerForIdentifierStub        func(worker.Identifier) (db.SavedContainer, bool, error)
 	findContainerForIdentifierMutex       sync.RWMutex
 	findContainerForIdentifierArgsForCall []struct {
 		arg1 worker.Identifier
 	}
 	findContainerForIdentifierReturns struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 bool
 		result3 error
 	}
-	GetContainerStub        func(string) (db.Container, bool, error)
+	GetContainerStub        func(string) (db.SavedContainer, bool, error)
 	getContainerMutex       sync.RWMutex
 	getContainerArgsForCall []struct {
 		arg1 string
 	}
 	getContainerReturns struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 bool
 		result3 error
 	}
@@ -115,7 +115,7 @@ func (fake *FakeWorkerProvider) GetWorkerReturns(result1 worker.Worker, result2 
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerProvider) FindContainerForIdentifier(arg1 worker.Identifier) (db.Container, bool, error) {
+func (fake *FakeWorkerProvider) FindContainerForIdentifier(arg1 worker.Identifier) (db.SavedContainer, bool, error) {
 	fake.findContainerForIdentifierMutex.Lock()
 	fake.findContainerForIdentifierArgsForCall = append(fake.findContainerForIdentifierArgsForCall, struct {
 		arg1 worker.Identifier
@@ -140,16 +140,16 @@ func (fake *FakeWorkerProvider) FindContainerForIdentifierArgsForCall(i int) wor
 	return fake.findContainerForIdentifierArgsForCall[i].arg1
 }
 
-func (fake *FakeWorkerProvider) FindContainerForIdentifierReturns(result1 db.Container, result2 bool, result3 error) {
+func (fake *FakeWorkerProvider) FindContainerForIdentifierReturns(result1 db.SavedContainer, result2 bool, result3 error) {
 	fake.FindContainerForIdentifierStub = nil
 	fake.findContainerForIdentifierReturns = struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerProvider) GetContainer(arg1 string) (db.Container, bool, error) {
+func (fake *FakeWorkerProvider) GetContainer(arg1 string) (db.SavedContainer, bool, error) {
 	fake.getContainerMutex.Lock()
 	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
 		arg1 string
@@ -174,10 +174,10 @@ func (fake *FakeWorkerProvider) GetContainerArgsForCall(i int) string {
 	return fake.getContainerArgsForCall[i].arg1
 }
 
-func (fake *FakeWorkerProvider) GetContainerReturns(result1 db.Container, result2 bool, result3 error) {
+func (fake *FakeWorkerProvider) GetContainerReturns(result1 db.SavedContainer, result2 bool, result3 error) {
 	fake.GetContainerStub = nil
 	fake.getContainerReturns = struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

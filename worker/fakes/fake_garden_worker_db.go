@@ -10,14 +10,14 @@ import (
 )
 
 type FakeGardenWorkerDB struct {
-	CreateContainerStub        func(db.Container, time.Duration) (db.Container, error)
+	CreateContainerStub        func(db.Container, time.Duration) (db.SavedContainer, error)
 	createContainerMutex       sync.RWMutex
 	createContainerArgsForCall []struct {
 		arg1 db.Container
 		arg2 time.Duration
 	}
 	createContainerReturns struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 error
 	}
 	UpdateExpiresAtOnContainerStub        func(handle string, ttl time.Duration) error
@@ -31,7 +31,7 @@ type FakeGardenWorkerDB struct {
 	}
 }
 
-func (fake *FakeGardenWorkerDB) CreateContainer(arg1 db.Container, arg2 time.Duration) (db.Container, error) {
+func (fake *FakeGardenWorkerDB) CreateContainer(arg1 db.Container, arg2 time.Duration) (db.SavedContainer, error) {
 	fake.createContainerMutex.Lock()
 	fake.createContainerArgsForCall = append(fake.createContainerArgsForCall, struct {
 		arg1 db.Container
@@ -57,10 +57,10 @@ func (fake *FakeGardenWorkerDB) CreateContainerArgsForCall(i int) (db.Container,
 	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2
 }
 
-func (fake *FakeGardenWorkerDB) CreateContainerReturns(result1 db.Container, result2 error) {
+func (fake *FakeGardenWorkerDB) CreateContainerReturns(result1 db.SavedContainer, result2 error) {
 	fake.CreateContainerStub = nil
 	fake.createContainerReturns = struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 error
 	}{result1, result2}
 }

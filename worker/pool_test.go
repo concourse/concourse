@@ -479,7 +479,7 @@ var _ = Describe("Pool", func() {
 	Describe("LookupContainer", func() {
 		Context("when looking up the container info contains an error", func() {
 			BeforeEach(func() {
-				fakeProvider.GetContainerReturns(db.Container{}, false, errors.New("disaster"))
+				fakeProvider.GetContainerReturns(db.SavedContainer{}, false, errors.New("disaster"))
 			})
 
 			It("returns the error", func() {
@@ -492,7 +492,7 @@ var _ = Describe("Pool", func() {
 
 		Context("when looking up the container info does not find the container info", func() {
 			BeforeEach(func() {
-				fakeProvider.GetContainerReturns(db.Container{}, false, nil)
+				fakeProvider.GetContainerReturns(db.SavedContainer{}, false, nil)
 			})
 
 			It("returns that it was not found", func() {
@@ -504,12 +504,14 @@ var _ = Describe("Pool", func() {
 		})
 
 		Context("when looking up the container info is successful", func() {
-			var container db.Container
+			var container db.SavedContainer
 			BeforeEach(func() {
-				container = db.Container{
-					ContainerMetadata: db.ContainerMetadata{
-						WorkerName: "some-worker",
-						Handle:     "some-container-handle",
+				container = db.SavedContainer{
+					Container: db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							WorkerName: "some-worker",
+							Handle:     "some-container-handle",
+						},
 					},
 				}
 
@@ -637,7 +639,7 @@ var _ = Describe("Pool", func() {
 
 		Context("when looking up the container info contains an error", func() {
 			BeforeEach(func() {
-				fakeProvider.FindContainerForIdentifierReturns(db.Container{}, false, errors.New("disaster"))
+				fakeProvider.FindContainerForIdentifierReturns(db.SavedContainer{}, false, errors.New("disaster"))
 			})
 
 			It("returns the error", func() {
@@ -650,7 +652,7 @@ var _ = Describe("Pool", func() {
 
 		Context("when looking up the container info does not find the container info", func() {
 			BeforeEach(func() {
-				fakeProvider.FindContainerForIdentifierReturns(db.Container{}, false, nil)
+				fakeProvider.FindContainerForIdentifierReturns(db.SavedContainer{}, false, nil)
 			})
 
 			It("returns that it was not found", func() {
@@ -662,12 +664,14 @@ var _ = Describe("Pool", func() {
 		})
 
 		Context("when looking up the container info is successful", func() {
-			var container db.Container
+			var container db.SavedContainer
 			BeforeEach(func() {
-				container = db.Container{
-					ContainerMetadata: db.ContainerMetadata{
-						WorkerName: "some-worker",
-						Handle:     "some-container-handle",
+				container = db.SavedContainer{
+					Container: db.Container{
+						ContainerMetadata: db.ContainerMetadata{
+							WorkerName: "some-worker",
+							Handle:     "some-container-handle",
+						},
 					},
 				}
 

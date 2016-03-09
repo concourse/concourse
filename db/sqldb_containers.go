@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc"
 )
 
-const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user"
+const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user, ttl, EXTRACT(epoch FROM expires_at - NOW())"
 const containerJoins = `
 		LEFT JOIN pipelines p
 		  ON p.id = c.pipeline_id
@@ -24,7 +24,7 @@ const containerJoins = `
 
 var ErrInvalidIdentifier = errors.New("invalid container identifier")
 
-func (db *SQLDB) FindContainersByDescriptors(id Container) ([]Container, error) {
+func (db *SQLDB) FindContainersByDescriptors(id Container) ([]SavedContainer, error) {
 	err := deleteExpired(db)
 	if err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func (db *SQLDB) FindContainersByDescriptors(id Container) ([]Container, error) 
 
 	defer rows.Close()
 
-	infos := []Container{}
+	infos := []SavedContainer{}
 	for rows.Next() {
 		info, err := scanContainer(rows)
 
@@ -128,17 +128,17 @@ func (db *SQLDB) FindContainersByDescriptors(id Container) ([]Container, error) 
 	return infos, nil
 }
 
-func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, bool, error) {
+func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContainer, bool, error) {
 	err := deleteExpired(db)
 	if err != nil {
-		return Container{}, false, err
+		return SavedContainer{}, false, err
 	}
 
 	var imageResourceSource sql.NullString
 	if id.ImageResourceSource != nil {
 		marshaled, err := json.Marshal(id.ImageResourceSource)
 		if err != nil {
-			return Container{}, false, err
+			return SavedContainer{}, false, err
 		}
 
 		imageResourceSource.String = string(marshaled)
@@ -151,7 +151,7 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 		imageResourceType.Valid = true
 	}
 
-	var containers []Container
+	var containers []SavedContainer
 
 	selectQuery := `
 		SELECT ` + containerColumns + `
@@ -164,7 +164,7 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 	if isValidCheckID(id) {
 		checkSourceBlob, err := json.Marshal(id.CheckSource)
 		if err != nil {
-			return Container{}, false, err
+			return SavedContainer{}, false, err
 		}
 
 		conditions = append(conditions, "resource_id = $1")
@@ -188,7 +188,7 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 		conditions = append(conditions, "stage = $3")
 		params = append(params, string(id.Stage))
 	} else {
-		return Container{}, false, ErrInvalidIdentifier
+		return SavedContainer{}, false, ErrInvalidIdentifier
 	}
 
 	if imageResourceSource.Valid && imageResourceType.Valid {
@@ -206,33 +206,33 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (Container, b
 
 	rows, err := db.conn.Query(selectQuery, params...)
 	if err != nil {
-		return Container{}, false, err
+		return SavedContainer{}, false, err
 	}
 
 	for rows.Next() {
 		container, err := scanContainer(rows)
 		if err != nil {
-			return Container{}, false, nil
+			return SavedContainer{}, false, nil
 		}
 		containers = append(containers, container)
 	}
 
 	switch len(containers) {
 	case 0:
-		return Container{}, false, nil
+		return SavedContainer{}, false, nil
 
 	case 1:
 		return containers[0], true, nil
 
 	default:
-		return Container{}, false, ErrMultipleContainersFound
+		return SavedContainer{}, false, ErrMultipleContainersFound
 	}
 }
 
-func (db *SQLDB) GetContainer(handle string) (Container, bool, error) {
+func (db *SQLDB) GetContainer(handle string) (SavedContainer, bool, error) {
 	err := deleteExpired(db)
 	if err != nil {
-		return Container{}, false, err
+		return SavedContainer{}, false, err
 	}
 
 	container, err := scanContainer(db.conn.QueryRow(`
@@ -243,32 +243,32 @@ func (db *SQLDB) GetContainer(handle string) (Container, bool, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return Container{}, false, nil
+			return SavedContainer{}, false, nil
 		}
-		return Container{}, false, err
+		return SavedContainer{}, false, err
 	}
 
 	return container, true, nil
 }
 
-func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Container, error) {
+func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (SavedContainer, error) {
 	if !isValidID(container.ContainerIdentifier) {
-		return Container{}, ErrInvalidIdentifier
+		return SavedContainer{}, ErrInvalidIdentifier
 	}
 
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return Container{}, err
+		return SavedContainer{}, err
 	}
 
 	checkSource, err := json.Marshal(container.CheckSource)
 	if err != nil {
-		return Container{}, err
+		return SavedContainer{}, err
 	}
 
 	envVariables, err := json.Marshal(container.EnvironmentVariables)
 	if err != nil {
-		return Container{}, err
+		return SavedContainer{}, err
 	}
 
 	user := container.User
@@ -279,7 +279,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 	if container.PipelineName != "" {
 		pipeline, err := db.GetPipelineByTeamNameAndName(atc.DefaultTeamName, container.PipelineName)
 		if err != nil {
-			return Container{}, fmt.Errorf("failed to find pipeline: %s", err.Error())
+			return SavedContainer{}, fmt.Errorf("failed to find pipeline: %s", err.Error())
 		}
 		pipelineID.Int64 = int64(pipeline.ID)
 		pipelineID.Valid = true
@@ -306,7 +306,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 	if len(container.Attempts) > 0 {
 		attemptsBlob, err := json.Marshal(container.Attempts)
 		if err != nil {
-			return Container{}, err
+			return SavedContainer{}, err
 		}
 		attempts.Valid = true
 		attempts.String = string(attemptsBlob)
@@ -316,7 +316,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 	if container.ImageResourceSource != nil {
 		marshaled, err := json.Marshal(container.ImageResourceSource)
 		if err != nil {
-			return Container{}, err
+			return SavedContainer{}, err
 		}
 
 		imageResourceSource.String = string(marshaled)
@@ -332,8 +332,8 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage, image_resource_type, image_resource_source, process_user)
-		VALUES ($1, $2, $3, $4, $5, $6,  $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, ttl, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage, image_resource_type, image_resource_source, process_user)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
 		container.Handle,
 		resourceID,
 		container.StepName,
@@ -342,6 +342,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		container.Type.String(),
 		workerName,
 		interval,
+		ttl,
 		container.CheckType,
 		checkSource,
 		string(container.PlanID),
@@ -354,7 +355,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		user,
 	)
 	if err != nil {
-		return Container{}, err
+		return SavedContainer{}, err
 	}
 
 	newContainer, err := scanContainer(tx.QueryRow(`
@@ -363,12 +364,12 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (Contai
 		WHERE c.handle = $1
 	`, container.Handle))
 	if err != nil {
-		return Container{}, err
+		return SavedContainer{}, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return Container{}, err
+		return SavedContainer{}, err
 	}
 
 	return newContainer, nil
@@ -386,11 +387,12 @@ func (db *SQLDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) er
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		UPDATE containers SET expires_at = NOW() + $2::INTERVAL
+		UPDATE containers SET expires_at = NOW() + $2::INTERVAL, ttl = $3
 		WHERE handle = $1
 		`,
 		handle,
 		interval,
+		ttl,
 	)
 
 	if err != nil {
@@ -480,7 +482,7 @@ func isValidStepID(id ContainerIdentifier) bool {
 	}
 }
 
-func scanContainer(row scannable) (Container, error) {
+func scanContainer(row scannable) (SavedContainer, error) {
 	var (
 		resourceID       sql.NullInt64
 		checkSourceBlob  []byte
@@ -495,8 +497,9 @@ func scanContainer(row scannable) (Container, error) {
 		infoType         string
 		envVariablesBlob []byte
 		attempts         sql.NullString
+		ttlInSeconds     *float64
 	)
-	container := Container{}
+	container := SavedContainer{}
 
 	err := row.Scan(
 		&container.WorkerName,
@@ -518,9 +521,11 @@ func scanContainer(row scannable) (Container, error) {
 		&envVariablesBlob,
 		&attempts,
 		&container.User,
+		&container.TTL,
+		&ttlInSeconds,
 	)
 	if err != nil {
-		return Container{}, err
+		return SavedContainer{}, err
 	}
 
 	if resourceID.Valid {
@@ -557,23 +562,23 @@ func scanContainer(row scannable) (Container, error) {
 
 	container.Type, err = ContainerTypeFromString(infoType)
 	if err != nil {
-		return Container{}, err
+		return SavedContainer{}, err
 	}
 
 	err = json.Unmarshal(checkSourceBlob, &container.CheckSource)
 	if err != nil {
-		return Container{}, err
+		return SavedContainer{}, err
 	}
 
 	err = json.Unmarshal(envVariablesBlob, &container.EnvironmentVariables)
 	if err != nil {
-		return Container{}, err
+		return SavedContainer{}, err
 	}
 
 	if attempts.Valid {
 		err = json.Unmarshal([]byte(attempts.String), &container.Attempts)
 		if err != nil {
-			return Container{}, err
+			return SavedContainer{}, err
 		}
 	}
 
@@ -583,6 +588,10 @@ func scanContainer(row scannable) (Container, error) {
 	// a user
 	if container.User == "" {
 		container.User = "root"
+	}
+
+	if ttlInSeconds != nil {
+		container.ExpiresIn = time.Duration(*ttlInSeconds) * time.Second
 	}
 
 	return container, nil

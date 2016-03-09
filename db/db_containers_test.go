@@ -314,12 +314,23 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 		}
 
-		_, err := database.CreateContainer(containerToCreate, 5*time.Minute)
+		savedContainer, err := database.CreateContainer(containerToCreate, 5*time.Minute)
 		Expect(err).NotTo(HaveOccurred())
 
+		Expect(savedContainer.TTL).To(Equal(5 * time.Minute))
+		Expect(savedContainer.ExpiresIn).To(BeNumerically("<=", 5*time.Minute, 5*time.Second))
+
 		timeBefore := time.Now()
-		err = database.UpdateExpiresAtOnContainer("some-handle", time.Second)
+
+		err = database.UpdateExpiresAtOnContainer("some-handle", 3*time.Second)
 		Expect(err).NotTo(HaveOccurred())
+
+		updatedContainer, found, err := database.GetContainer("some-handle")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+
+		Expect(updatedContainer.TTL).To(Equal(3 * time.Second))
+		Expect(updatedContainer.ExpiresIn).To(BeNumerically("<=", 3*time.Second, 2*time.Second))
 
 		Eventually(func() bool {
 			_, found, err := database.GetContainer("some-handle")
@@ -328,7 +339,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}, 10*time.Second).Should(BeFalse())
 
 		timeAfter := time.Now()
-		Expect(timeAfter.Sub(timeBefore)).To(BeNumerically(">=", time.Second))
+		Expect(timeAfter.Sub(timeBefore)).To(BeNumerically("<=", 5*time.Second))
 		Expect(timeAfter.Sub(timeBefore)).To(BeNumerically("<", 10*time.Second))
 	})
 
@@ -602,7 +613,7 @@ var _ = Describe("Keeping track of containers", func() {
 
 	DescribeTable("filtering containers by descriptors",
 		func(exampleGenerator func() findContainersByDescriptorsExample) {
-			var results []db.Container
+			var results []db.SavedContainer
 			var handles []string
 			var err error
 

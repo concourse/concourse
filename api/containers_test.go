@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -37,28 +38,34 @@ var _ = Describe("Containers API", func() {
 		attempts         = []int{1, 5}
 		user             = "snoopy"
 
-		req            *http.Request
-		fakeContainer1 db.Container
+		req *http.Request
+
+		fakeContainer1 db.SavedContainer
 	)
 
 	BeforeEach(func() {
-		fakeContainer1 = db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: buildID,
+		fakeContainer1 = db.SavedContainer{
+			Container: db.Container{
+				ContainerIdentifier: db.ContainerIdentifier{
+					BuildID: buildID,
+				},
+				ContainerMetadata: db.ContainerMetadata{
+					StepName:             stepName,
+					PipelineName:         pipelineName,
+					JobName:              jobName,
+					BuildName:            buildName,
+					Type:                 stepType,
+					WorkerName:           workerName,
+					WorkingDirectory:     workingDirectory,
+					EnvironmentVariables: envVariables,
+					Attempts:             attempts,
+					User:                 user,
+					Handle:               handle,
+				},
 			},
-			ContainerMetadata: db.ContainerMetadata{
-				StepName:             stepName,
-				PipelineName:         pipelineName,
-				JobName:              jobName,
-				BuildName:            buildName,
-				Type:                 stepType,
-				WorkerName:           workerName,
-				WorkingDirectory:     workingDirectory,
-				EnvironmentVariables: envVariables,
-				Attempts:             attempts,
-				User:                 user,
-				Handle:               handle,
-			},
+
+			TTL:       5 * time.Minute,
+			ExpiresIn: 2 * time.Minute,
 		}
 	})
 
@@ -91,24 +98,31 @@ var _ = Describe("Containers API", func() {
 			Context("with no params", func() {
 				Context("when no errors are returned", func() {
 					var (
-						fakeContainer2 db.Container
-						fakeContainers []db.Container
+						fakeContainer2 db.SavedContainer
+						fakeContainers []db.SavedContainer
 					)
 
 					BeforeEach(func() {
-						fakeContainer2 = db.Container{
-							ContainerMetadata: db.ContainerMetadata{
-								PipelineName: "some-other-pipeline",
-								Type:         db.ContainerTypeCheck,
-								ResourceName: "some-resource",
-								WorkerName:   "some-other-worker-guid",
-								Handle:       "some-other-handle",
+						fakeContainer2 = db.SavedContainer{
+							Container: db.Container{
+								ContainerMetadata: db.ContainerMetadata{
+									PipelineName: "some-other-pipeline",
+									Type:         db.ContainerTypeCheck,
+									ResourceName: "some-resource",
+									WorkerName:   "some-other-worker-guid",
+									Handle:       "some-other-handle",
+								},
 							},
+
+							TTL:       0,
+							ExpiresIn: 0,
 						}
-						fakeContainers = []db.Container{
+
+						fakeContainers = []db.SavedContainer{
 							fakeContainer1,
 							fakeContainer2,
 						}
+
 						containerDB.FindContainersByDescriptorsReturns(fakeContainers, nil)
 					})
 
@@ -137,6 +151,8 @@ var _ = Describe("Containers API", func() {
 							[
 								{
 									"id": "some-handle",
+									"ttl_in_seconds": 120,
+									"validity_in_seconds": 300,
 									"worker_name": "some-worker-guid",
 									"pipeline_name": "some-pipeline",
 									"job_name": "some-job",
@@ -151,6 +167,8 @@ var _ = Describe("Containers API", func() {
 								},
 								{
 									"id": "some-other-handle",
+									"ttl_in_seconds": 0,
+									"validity_in_seconds": 0,
 									"worker_name": "some-other-worker-guid",
 									"pipeline_name": "some-other-pipeline",
 									"resource_name": "some-resource"
@@ -162,7 +180,7 @@ var _ = Describe("Containers API", func() {
 
 				Context("when no containers are found", func() {
 					BeforeEach(func() {
-						containerDB.FindContainersByDescriptorsReturns([]db.Container{}, nil)
+						containerDB.FindContainersByDescriptorsReturns([]db.SavedContainer{}, nil)
 					})
 
 					It("returns 200", func() {
@@ -192,7 +210,7 @@ var _ = Describe("Containers API", func() {
 
 					BeforeEach(func() {
 						expectedErr = errors.New("some error")
-						containerDB.FindContainersByDescriptorsReturns([]db.Container{}, expectedErr)
+						containerDB.FindContainersByDescriptorsReturns([]db.SavedContainer{}, expectedErr)
 					})
 
 					It("returns 500", func() {
@@ -211,7 +229,7 @@ var _ = Describe("Containers API", func() {
 					}.Encode()
 				})
 
-				It("calls db.Containers with the queried pipeline name", func() {
+				It("queries the db via the pipeline name", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -450,7 +468,7 @@ var _ = Describe("Containers API", func() {
 
 			Context("when the container is not found", func() {
 				BeforeEach(func() {
-					containerDB.GetContainerReturns(db.Container{}, false, nil)
+					containerDB.GetContainerReturns(db.SavedContainer{}, false, nil)
 				})
 
 				It("returns 404 Not Found", func() {
@@ -504,6 +522,8 @@ var _ = Describe("Containers API", func() {
 							"build_id": 1234,
 							"build_name": "2",
 							"id": "some-handle",
+							"ttl_in_seconds": 120,
+							"validity_in_seconds": 300,
 							"worker_name": "some-worker-guid",
 							"working_directory": "/tmp/build/my-favorite-guid",
 							"env_variables": ["VAR1=VAL1"],
@@ -512,8 +532,8 @@ var _ = Describe("Containers API", func() {
 						}
 					`))
 				})
-
 			})
+
 			Context("when there is an error", func() {
 				var (
 					expectedErr error
@@ -521,7 +541,7 @@ var _ = Describe("Containers API", func() {
 
 				BeforeEach(func() {
 					expectedErr = errors.New("some error")
-					containerDB.GetContainerReturns(db.Container{}, false, expectedErr)
+					containerDB.GetContainerReturns(db.SavedContainer{}, false, expectedErr)
 				})
 
 				It("returns 500", func() {
@@ -585,12 +605,12 @@ var _ = Describe("Containers API", func() {
 
 			Context("and the worker client returns a container", func() {
 				var (
-					fakeDBContainer db.Container
+					fakeDBContainer db.SavedContainer
 					fakeContainer   *workerfakes.FakeContainer
 				)
 
 				BeforeEach(func() {
-					fakeDBContainer = db.Container{}
+					fakeDBContainer = db.SavedContainer{}
 					containerDB.GetContainerReturns(fakeDBContainer, true, nil)
 
 					fakeContainer = new(workerfakes.FakeContainer)
@@ -818,7 +838,7 @@ var _ = Describe("Containers API", func() {
 				BeforeEach(func() {
 					expectBadHandshake = true
 
-					containerDB.GetContainerReturns(db.Container{}, false, nil)
+					containerDB.GetContainerReturns(db.SavedContainer{}, false, nil)
 				})
 
 				It("returns 404 Not Found", func() {
@@ -832,7 +852,7 @@ var _ = Describe("Containers API", func() {
 					expectBadHandshake = true
 
 					fakeErr := errors.New("error")
-					containerDB.GetContainerReturns(db.Container{}, false, fakeErr)
+					containerDB.GetContainerReturns(db.SavedContainer{}, false, fakeErr)
 				})
 
 				It("returns 500 internal error", func() {

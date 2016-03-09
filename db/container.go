@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/concourse/atc"
 )
@@ -53,6 +54,13 @@ type ContainerMetadata struct {
 type Container struct {
 	ContainerIdentifier
 	ContainerMetadata
+}
+
+type SavedContainer struct {
+	Container
+
+	TTL       time.Duration
+	ExpiresIn time.Duration
 }
 
 type ContainerType string

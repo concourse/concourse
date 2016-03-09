@@ -39,7 +39,7 @@ type Worker interface {
 //go:generate counterfeiter . GardenWorkerDB
 
 type GardenWorkerDB interface {
-	CreateContainer(db.Container, time.Duration) (db.Container, error)
+	CreateContainer(db.Container, time.Duration) (db.SavedContainer, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 }
 

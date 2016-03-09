@@ -19,9 +19,9 @@ import (
 type WorkerDB interface {
 	Workers() ([]db.SavedWorker, error)
 	GetWorker(string) (db.SavedWorker, bool, error)
-	CreateContainer(db.Container, time.Duration) (db.Container, error)
-	GetContainer(string) (db.Container, bool, error)
-	FindContainerByIdentifier(db.ContainerIdentifier) (db.Container, bool, error)
+	CreateContainer(db.Container, time.Duration) (db.SavedContainer, error)
+	GetContainer(string) (db.SavedContainer, bool, error)
+	FindContainerByIdentifier(db.ContainerIdentifier) (db.SavedContainer, bool, error)
 
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
@@ -91,11 +91,11 @@ func (provider *dbProvider) GetWorker(name string) (Worker, bool, error) {
 	return worker, found, nil
 }
 
-func (provider *dbProvider) FindContainerForIdentifier(id Identifier) (db.Container, bool, error) {
+func (provider *dbProvider) FindContainerForIdentifier(id Identifier) (db.SavedContainer, bool, error) {
 	return provider.db.FindContainerByIdentifier(db.ContainerIdentifier(id))
 }
 
-func (provider *dbProvider) GetContainer(handle string) (db.Container, bool, error) {
+func (provider *dbProvider) GetContainer(handle string) (db.SavedContainer, bool, error) {
 	return provider.db.GetContainer(handle)
 }
 

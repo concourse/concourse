@@ -9,28 +9,28 @@ import (
 )
 
 type FakeContainerDB struct {
-	GetContainerStub        func(handle string) (db.Container, bool, error)
+	GetContainerStub        func(handle string) (db.SavedContainer, bool, error)
 	getContainerMutex       sync.RWMutex
 	getContainerArgsForCall []struct {
 		handle string
 	}
 	getContainerReturns struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 bool
 		result3 error
 	}
-	FindContainersByDescriptorsStub        func(db.Container) ([]db.Container, error)
+	FindContainersByDescriptorsStub        func(db.Container) ([]db.SavedContainer, error)
 	findContainersByDescriptorsMutex       sync.RWMutex
 	findContainersByDescriptorsArgsForCall []struct {
 		arg1 db.Container
 	}
 	findContainersByDescriptorsReturns struct {
-		result1 []db.Container
+		result1 []db.SavedContainer
 		result2 error
 	}
 }
 
-func (fake *FakeContainerDB) GetContainer(handle string) (db.Container, bool, error) {
+func (fake *FakeContainerDB) GetContainer(handle string) (db.SavedContainer, bool, error) {
 	fake.getContainerMutex.Lock()
 	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
 		handle string
@@ -55,16 +55,16 @@ func (fake *FakeContainerDB) GetContainerArgsForCall(i int) string {
 	return fake.getContainerArgsForCall[i].handle
 }
 
-func (fake *FakeContainerDB) GetContainerReturns(result1 db.Container, result2 bool, result3 error) {
+func (fake *FakeContainerDB) GetContainerReturns(result1 db.SavedContainer, result2 bool, result3 error) {
 	fake.GetContainerStub = nil
 	fake.getContainerReturns = struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeContainerDB) FindContainersByDescriptors(arg1 db.Container) ([]db.Container, error) {
+func (fake *FakeContainerDB) FindContainersByDescriptors(arg1 db.Container) ([]db.SavedContainer, error) {
 	fake.findContainersByDescriptorsMutex.Lock()
 	fake.findContainersByDescriptorsArgsForCall = append(fake.findContainersByDescriptorsArgsForCall, struct {
 		arg1 db.Container
@@ -89,10 +89,10 @@ func (fake *FakeContainerDB) FindContainersByDescriptorsArgsForCall(i int) db.Co
 	return fake.findContainersByDescriptorsArgsForCall[i].arg1
 }
 
-func (fake *FakeContainerDB) FindContainersByDescriptorsReturns(result1 []db.Container, result2 error) {
+func (fake *FakeContainerDB) FindContainersByDescriptorsReturns(result1 []db.SavedContainer, result2 error) {
 	fake.FindContainersByDescriptorsStub = nil
 	fake.findContainersByDescriptorsReturns = struct {
-		result1 []db.Container
+		result1 []db.SavedContainer
 		result2 error
 	}{result1, result2}
 }

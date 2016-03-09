@@ -118,10 +118,10 @@ type DB interface {
 	GetWorker(workerName string) (SavedWorker, bool, error)
 	SaveWorker(WorkerInfo, time.Duration) (SavedWorker, error)
 
-	FindContainersByDescriptors(Container) ([]Container, error)
-	GetContainer(string) (Container, bool, error)
-	CreateContainer(Container, time.Duration) (Container, error)
-	FindContainerByIdentifier(ContainerIdentifier) (Container, bool, error)
+	FindContainersByDescriptors(Container) ([]SavedContainer, error)
+	GetContainer(string) (SavedContainer, bool, error)
+	CreateContainer(Container, time.Duration) (SavedContainer, error)
+	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
 

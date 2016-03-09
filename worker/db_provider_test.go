@@ -241,9 +241,11 @@ var _ = Describe("DBProvider", func() {
 					worker.ContainersReturns([]garden.Container{fakeContainer}, nil)
 					worker.LookupReturns(fakeContainer, nil)
 
-					returnContainer := db.Container{
-						ContainerMetadata: db.ContainerMetadata{
-							Handle: "some-handle",
+					returnContainer := db.SavedContainer{
+						Container: db.Container{
+							ContainerMetadata: db.ContainerMetadata{
+								Handle: "some-handle",
+							},
 						},
 					}
 					fakeDB.FindContainerByIdentifierReturns(returnContainer, true, nil)

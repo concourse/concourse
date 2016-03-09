@@ -27,33 +27,33 @@ type FakeWorkerDB struct {
 		result2 bool
 		result3 error
 	}
-	CreateContainerStub        func(db.Container, time.Duration) (db.Container, error)
+	CreateContainerStub        func(db.Container, time.Duration) (db.SavedContainer, error)
 	createContainerMutex       sync.RWMutex
 	createContainerArgsForCall []struct {
 		arg1 db.Container
 		arg2 time.Duration
 	}
 	createContainerReturns struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 error
 	}
-	GetContainerStub        func(string) (db.Container, bool, error)
+	GetContainerStub        func(string) (db.SavedContainer, bool, error)
 	getContainerMutex       sync.RWMutex
 	getContainerArgsForCall []struct {
 		arg1 string
 	}
 	getContainerReturns struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 bool
 		result3 error
 	}
-	FindContainerByIdentifierStub        func(db.ContainerIdentifier) (db.Container, bool, error)
+	FindContainerByIdentifierStub        func(db.ContainerIdentifier) (db.SavedContainer, bool, error)
 	findContainerByIdentifierMutex       sync.RWMutex
 	findContainerByIdentifierArgsForCall []struct {
 		arg1 db.ContainerIdentifier
 	}
 	findContainerByIdentifierReturns struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 bool
 		result3 error
 	}
@@ -161,7 +161,7 @@ func (fake *FakeWorkerDB) GetWorkerReturns(result1 db.SavedWorker, result2 bool,
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerDB) CreateContainer(arg1 db.Container, arg2 time.Duration) (db.Container, error) {
+func (fake *FakeWorkerDB) CreateContainer(arg1 db.Container, arg2 time.Duration) (db.SavedContainer, error) {
 	fake.createContainerMutex.Lock()
 	fake.createContainerArgsForCall = append(fake.createContainerArgsForCall, struct {
 		arg1 db.Container
@@ -187,15 +187,15 @@ func (fake *FakeWorkerDB) CreateContainerArgsForCall(i int) (db.Container, time.
 	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2
 }
 
-func (fake *FakeWorkerDB) CreateContainerReturns(result1 db.Container, result2 error) {
+func (fake *FakeWorkerDB) CreateContainerReturns(result1 db.SavedContainer, result2 error) {
 	fake.CreateContainerStub = nil
 	fake.createContainerReturns = struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerDB) GetContainer(arg1 string) (db.Container, bool, error) {
+func (fake *FakeWorkerDB) GetContainer(arg1 string) (db.SavedContainer, bool, error) {
 	fake.getContainerMutex.Lock()
 	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
 		arg1 string
@@ -220,16 +220,16 @@ func (fake *FakeWorkerDB) GetContainerArgsForCall(i int) string {
 	return fake.getContainerArgsForCall[i].arg1
 }
 
-func (fake *FakeWorkerDB) GetContainerReturns(result1 db.Container, result2 bool, result3 error) {
+func (fake *FakeWorkerDB) GetContainerReturns(result1 db.SavedContainer, result2 bool, result3 error) {
 	fake.GetContainerStub = nil
 	fake.getContainerReturns = struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerDB) FindContainerByIdentifier(arg1 db.ContainerIdentifier) (db.Container, bool, error) {
+func (fake *FakeWorkerDB) FindContainerByIdentifier(arg1 db.ContainerIdentifier) (db.SavedContainer, bool, error) {
 	fake.findContainerByIdentifierMutex.Lock()
 	fake.findContainerByIdentifierArgsForCall = append(fake.findContainerByIdentifierArgsForCall, struct {
 		arg1 db.ContainerIdentifier
@@ -254,10 +254,10 @@ func (fake *FakeWorkerDB) FindContainerByIdentifierArgsForCall(i int) db.Contain
 	return fake.findContainerByIdentifierArgsForCall[i].arg1
 }
 
-func (fake *FakeWorkerDB) FindContainerByIdentifierReturns(result1 db.Container, result2 bool, result3 error) {
+func (fake *FakeWorkerDB) FindContainerByIdentifierReturns(result1 db.SavedContainer, result2 bool, result3 error) {
 	fake.FindContainerByIdentifierStub = nil
 	fake.findContainerByIdentifierReturns = struct {
-		result1 db.Container
+		result1 db.SavedContainer
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

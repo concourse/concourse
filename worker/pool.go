@@ -17,8 +17,8 @@ import (
 type WorkerProvider interface {
 	Workers() ([]Worker, error)
 	GetWorker(string) (Worker, bool, error)
-	FindContainerForIdentifier(Identifier) (db.Container, bool, error)
-	GetContainer(string) (db.Container, bool, error)
+	FindContainerForIdentifier(Identifier) (db.SavedContainer, bool, error)
+	GetContainer(string) (db.SavedContainer, bool, error)
 	ReapContainer(string) error
 }
 

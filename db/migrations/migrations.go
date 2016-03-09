@@ -91,4 +91,5 @@ var Migrations = []migration.Migrator{
 	AddUserToContainer,
 	ResetPendingBuilds,
 	ResetCheckOrder,
+	AddTTLToContainers,
 }
