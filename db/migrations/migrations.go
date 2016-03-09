@@ -90,4 +90,5 @@ var Migrations = []migration.Migrator{
 	AddImageResourceTypeAndSourceToContainers,
 	AddUserToContainer,
 	ResetPendingBuilds,
+	ResetCheckOrder,
 }
