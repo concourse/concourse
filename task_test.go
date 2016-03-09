@@ -57,6 +57,34 @@ run: {path: a/file}
 					Expect(config.Params["testParam"]).To(Equal("true"))
 				})
 
+				It("converts yaml ints to the correct string in params", func() {
+					data := []byte(`
+platform: beos
+
+params:
+  testParam: 1059262
+
+run: {path: a/file}
+`)
+					config, err := LoadTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(config.Params["testParam"]).To(Equal("1059262"))
+				})
+
+				It("converts yaml floats to the correct string in params", func() {
+					data := []byte(`
+platform: beos
+
+params:
+  testParam: 1059262.123123123
+
+run: {path: a/file}
+`)
+					config, err := LoadTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(config.Params["testParam"]).To(Equal("1059262.123123123"))
+				})
+
 				It("converts maps to json in params", func() {
 					data := []byte(`
 platform: beos

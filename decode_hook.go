@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"strconv"
 )
 
 var SanitizeDecodeHook = func(
@@ -20,6 +21,14 @@ var SanitizeDecodeHook = func(
 	if valKind == reflect.String {
 		if dataKind == reflect.String {
 			return data, nil
+		}
+
+		if dataKind == reflect.Float64 {
+			if f, ok := data.(float64); ok {
+				return strconv.FormatFloat(f, 'f', -1, 64), nil
+			}
+
+			return nil, errors.New("impossible: float64 != float64")
 		}
 
 		// format it as JSON/YAML would

@@ -130,6 +130,20 @@ var _ = Describe("ConfigSource", func() {
 			configSource = StaticConfigSource{Plan: taskPlan}
 		})
 
+		Context("when the params contain a floating point value", func() {
+			BeforeEach(func() {
+				taskPlan.Params["int-val"] = float64(1059262)
+				taskPlan.Params["float-val"] = float64(1059262.987345987)
+			})
+
+			It("does the right thing", func() {
+				fetchedConfig, err := configSource.FetchConfig(repo)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(fetchedConfig.Params).To(HaveKeyWithValue("int-val", "1059262"))
+				Expect(fetchedConfig.Params).To(HaveKeyWithValue("float-val", "1059262.987345987"))
+			})
+		})
+
 		It("merges task params prefering params in task plan", func() {
 			fetchedConfig, err := configSource.FetchConfig(repo)
 			Expect(err).ToNot(HaveOccurred())

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
+	"strconv"
 	"strings"
 
 	"github.com/concourse/atc"
@@ -42,9 +44,16 @@ func (configSource StaticConfigSource) FetchConfig(*SourceRepository) (atc.TaskC
 	}
 
 	for key, val := range configSource.Plan.Params {
-		if str, ok := val.(string); ok {
-			taskConfig.Params[key] = str
-		} else {
+		switch v := val.(type) {
+		case string:
+			taskConfig.Params[key] = v
+		case float64:
+			if math.Floor(v) == v {
+				taskConfig.Params[key] = strconv.FormatInt(int64(v), 10)
+			} else {
+				taskConfig.Params[key] = strconv.FormatFloat(v, 'f', -1, 64)
+			}
+		default:
 			bs, err := json.Marshal(val)
 			if err != nil {
 				return atc.TaskConfig{}, err
