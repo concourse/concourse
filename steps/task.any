@@ -116,10 +116,10 @@ plan:
   - get: ci-scripts
   - task: audit-diego-release
     file: ci-scripts/audit-release.yml
-    input_mapping: {release-repo: diego-release}
+    input_mapping: \{release-repo: diego-release\}
   - task: audit-cf-release
     file: ci-scripts/audit-release.yml
-    input_mapping: {release-repo: cf-release}
+    input_mapping: \{release-repo: cf-release\}
   }
 }
 
@@ -137,11 +137,11 @@ plan:
   - get: ci-scripts
   - task: create-diego-release
     file: ci-scripts/create-release.yml
-    input_mapping: {release-repo: diego-release}
-    output_mapping: {release-tarball: diego-release-tarball}
+    input_mapping: \{release-repo: diego-release\}
+    output_mapping: \{release-tarball: diego-release-tarball\}
   - task: create-cf-release
     file: ci-scripts/create-release.yml
-    input_mapping: {release-repo: cf-release}
-    output_mapping: {release-tarball: cf-release-tarball}
+    input_mapping: \{release-repo: cf-release\}
+    output_mapping: \{release-tarball: cf-release-tarball\}
   }
 }
