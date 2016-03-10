@@ -136,9 +136,8 @@ func (db *SQLDB) GetConfig(teamName, pipelineName string) (atc.Config, ConfigVer
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return atc.Config{}, 0, nil
-		} else {
-			return atc.Config{}, 0, err
 		}
+		return atc.Config{}, 0, err
 	}
 
 	var config atc.Config
