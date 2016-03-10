@@ -21,5 +21,7 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", id))
 
-	json.NewEncoder(w).Encode(config)
+	json.NewEncoder(w).Encode(atc.ConfigResponse{
+		Config: config,
+	})
 }

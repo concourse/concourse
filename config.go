@@ -8,6 +8,10 @@ const DefaultTeamName = "main"
 
 type Tags []string
 
+type ConfigResponse struct {
+	Config Config `json:"config"`
+}
+
 type Config struct {
 	Groups        GroupConfigs    `yaml:"groups" json:"groups" mapstructure:"groups"`
 	Resources     ResourceConfigs `yaml:"resources" json:"resources" mapstructure:"resources"`
