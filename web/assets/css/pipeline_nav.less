@@ -55,6 +55,8 @@
 
   position: fixed;
   top: 40px;
+
+  overflow: auto;
 }
 
 .pipelinesNav-visible .pipelines {
@@ -78,6 +80,7 @@
 }
 
 .pipelinesNav-enabled .pipelines li {
+  position: relative;
   padding: 0;
   margin: 0;
   text-align: right;
@@ -98,6 +101,12 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+  }
+
+  span.fl {
+    position: absolute;
+    top: 0px;
+    left: 0px;
   }
 }
 
