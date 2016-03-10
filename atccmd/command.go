@@ -693,7 +693,7 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 ) *pipelines.Syncer {
 	return pipelines.NewSyncer(
-		logger.Session("syncer"),
+		logger,
 		sqlDB,
 		pipelineDBFactory,
 		func(pipelineDB db.PipelineDB) ifrit.Runner {
