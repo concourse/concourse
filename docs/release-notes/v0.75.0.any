@@ -14,9 +14,10 @@
   consistent with other resources that provide a version. We still create
   \code{number} for backwards compatibility, but you should switch.
 }{
-  \italic{Deprecation:} Specifying both \reference{file} and \reference{config}
-  on a task step is now deprecated. You should receive warnings when running
-  \reference{fly-set-pipeline} and when running a task that specifies both.
+  \italic{Deprecation:} Specifying both \reference{file}{\code{file}} and
+  \reference{config}{\code{config}} on a task step is now deprecated. You
+  should receive warnings when running \reference{fly-set-pipeline} and when
+  running a task that specifies both.
 
   Instead, you should be specifying \reference{task-params},
   \reference{input_mapping}, and \reference{output_mapping}.
