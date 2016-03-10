@@ -22,7 +22,6 @@ func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, b
 	params := rata.Params{"pipeline_name": pipelineName}
 
 	var config atc.Config
-	var version string
 	responseHeaders := http.Header{}
 
 	err := client.connection.Send(internal.Request{
@@ -33,15 +32,14 @@ func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, b
 		Headers: &responseHeaders,
 	})
 
-	version = responseHeaders.Get(atc.ConfigVersionHeader)
-
 	switch err.(type) {
 	case nil:
+		version := responseHeaders.Get(atc.ConfigVersionHeader)
 		return config, version, true, nil
 	case internal.ResourceNotFoundError:
-		return config, version, false, nil
+		return atc.Config{}, "", false, nil
 	default:
-		return config, version, false, err
+		return atc.Config{}, "", false, err
 	}
 }
 
