@@ -21,21 +21,21 @@ import (
 func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
 	params := rata.Params{"pipeline_name": pipelineName}
 
-	var config atc.Config
+	var configResponse atc.ConfigResponse
 	responseHeaders := http.Header{}
 
 	err := client.connection.Send(internal.Request{
 		RequestName: atc.GetConfig,
 		Params:      params,
 	}, &internal.Response{
-		Result:  &config,
+		Result:  &configResponse,
 		Headers: &responseHeaders,
 	})
 
 	switch err.(type) {
 	case nil:
 		version := responseHeaders.Get(atc.ConfigVersionHeader)
-		return config, version, true, nil
+		return configResponse.Config, version, true, nil
 	case internal.ResourceNotFoundError:
 		return atc.Config{}, "", false, nil
 	default:

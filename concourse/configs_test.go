@@ -113,10 +113,14 @@ var _ = Describe("ATC Handler Configs", func() {
 
 				expectedVersion = "42"
 
+				configResponse := atc.ConfigResponse{
+					Config: expectedConfig,
+				}
+
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedConfig, http.Header{atc.ConfigVersionHeader: {expectedVersion}}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, configResponse, http.Header{atc.ConfigVersionHeader: {expectedVersion}}),
 					),
 				)
 			})
