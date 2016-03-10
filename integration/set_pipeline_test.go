@@ -143,7 +143,7 @@ var _ = Describe("Fly CLI", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", path),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 					),
 				)
 			})
@@ -249,7 +249,7 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.RouteToHandler("GET", path,
-					ghttp.RespondWithJSONEncoded(http.StatusOK, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 				)
 			})
 
