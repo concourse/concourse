@@ -10,7 +10,6 @@ import (
 	"net/textproto"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/configserver"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
@@ -155,11 +154,11 @@ var _ = Describe("Config API", func() {
 				})
 
 				It("returns the config", func() {
-					var actualConfigResponse configserver.ConfigResponse
+					var actualConfigResponse atc.ConfigResponse
 					err := json.NewDecoder(response.Body).Decode(&actualConfigResponse)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(actualConfigResponse).To(Equal(configserver.ConfigResponse{Config: pipelineConfig}))
+					Expect(actualConfigResponse).To(Equal(atc.ConfigResponse{Config: pipelineConfig}))
 				})
 
 				It("calls get config with the correct arguments", func() {
