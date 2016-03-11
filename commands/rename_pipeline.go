@@ -7,8 +7,8 @@ import (
 )
 
 type RenamePipelineCommand struct {
-	Pipeline string `short:"p"  long:"pipeline" required:"true"      description:"Pipeline to rename"`
-	Name     string `short:"n"  long:"name" required:"true"      description:"Name to set as pipeline name"`
+	Pipeline string `short:"o"  long:"old-name" required:"true"  description:"Pipeline to rename"`
+	Name     string `short:"n"  long:"new-name" required:"true"  description:"Name to set as pipeline name"`
 }
 
 func (rp *RenamePipelineCommand) Execute([]string) error {
@@ -17,13 +17,14 @@ func (rp *RenamePipelineCommand) Execute([]string) error {
 		return err
 	}
 
-	renamed, err := client.RenamePipeline(rp.Pipeline, rp.Name)
+	err = rc.ValidateClient(client, Fly.Target)
 	if err != nil {
-		return fmt.Errorf("pipeline failed to rename")
+		return err
 	}
 
-	if !renamed {
-		return fmt.Errorf(fmt.Sprintf("pipeline %s not found", rp.Pipeline))
+	err = client.RenamePipeline(rp.Pipeline, rp.Name)
+	if err != nil {
+		return fmt.Errorf("pipeline failed to rename")
 	}
 
 	fmt.Printf("pipeline successfully renamed to %s", rp.Name)

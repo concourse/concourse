@@ -29,7 +29,7 @@ type FlyCommand struct {
 	SetPipeline     SetPipelineCommand     `command:"set-pipeline"     alias:"sp" description:"Create or update a pipeline's configuration"`
 	PausePipeline   PausePipelineCommand   `command:"pause-pipeline"   alias:"pp" description:"Pause a pipeline"`
 	UnpausePipeline UnpausePipelineCommand `command:"unpause-pipeline" alias:"up" description:"Un-pause a pipeline"`
-	RenamePipeline  RenamePipelineCommand  `command:"rename-pipeline" alias:"rp" description:"Rename a pipeline"`
+	RenamePipeline  RenamePipelineCommand  `command:"rename-pipeline"  alias:"rp" description:"Rename a pipeline"`
 
 	Builds     BuildsCommand     `command:"builds"      alias:"bs" description:"List builds data"`
 	AbortBuild AbortBuildCommand `command:"abort-build" alias:"ab" description:"Abort a build"`
