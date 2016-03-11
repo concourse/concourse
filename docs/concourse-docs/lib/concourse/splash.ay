@@ -8,6 +8,8 @@ yaml = hl load("yaml")
 
 base = require("anatomy/base")
 
+docs = load("concourse/docs")
+
 def(top-intro(content)):
   data ResolveBlock new(
     [part]: -- keep this here for now lol
@@ -79,13 +81,19 @@ def(top-intro-buttons(getting-started, contribute)):
     .class("container", "white-text", "txt-c"))
 
 def(top-intro-pipes):
-  data ResolveBlock new(
-    [part]:
-      part assets << File expand-path("../images/pipes.svg", __FILE__)
+  data Block new(
+    data ResolveBlock new(
+      [part]:
+        part assets << File expand-path("../images/pipes.svg", __FILE__)
+        part assets << File expand-path("../pipeline-svg.css", __FILE__)
+        part assets << File expand-path("../css/splash-pipeline-svg.css", __FILE__)
 
-      data Block new(
-        data Element new("", .classed(.image("pipes.svg", "800px"), "pipe-pic", "responsive-image"))
-        .class("pipes", "txt-c")))
+        data Block new(
+          data Element new(
+            ""
+            .svg("pipes.svg"))
+          .class("splash-pipeline-image")))
+    .class("pipes", "txt-c"))
 
 def(font-awesome(class)):
   data Element new("", .font-awesome(class))

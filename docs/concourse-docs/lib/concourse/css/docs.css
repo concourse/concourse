@@ -56,13 +56,12 @@
 }
 
 #sidebar .section-label {
-    margin-right: 10px;
-    color: #686868;
-    font-weight: 300;
-    position: absolute;
-    left: -28px;
-    /* text-align: right; */
-    width: 50px;
+  color: #686868;
+  font-weight: 300;
+  text-align: right;
+  float: right;
+  margin-right: 0;
+  font-family: Consolas, monospace;
 }
 
 #sidebar .toc > li > a > .section-label {

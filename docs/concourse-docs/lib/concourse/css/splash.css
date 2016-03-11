@@ -1,3 +1,19 @@
 .intro-slogan {
   margin-top: 20px;
 }
+
+.pipes {
+  line-height: 0; /* fixes weird padding at the bottom */
+}
+
+.pipes object {
+  width: 780px;
+  height: 185px;
+  border-top: 10px solid #b4b4b4;
+  border-left: 10px solid #b4b4b4;
+  border-right: 10px solid #b4b4b4;
+  border-radius: 10px;
+  margin-top: 25px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
