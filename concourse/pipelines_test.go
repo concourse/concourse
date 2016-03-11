@@ -205,9 +205,8 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("renames the pipeline when called", func() {
-				renamed, err := client.RenamePipeline("mypipeline", "newpipelinename")
+				err := client.RenamePipeline("mypipeline", "newpipelinename")
 				Expect(err).NotTo(HaveOccurred())
-				Expect(renamed).To(BeTrue())
 			})
 		})
 
@@ -218,10 +217,9 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				)
 			})
 
-			It("returns false with no error", func() {
-				renamed, err := client.RenamePipeline("mypipeline", "newpipelinename")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(renamed).To(BeFalse())
+			It("returns an error", func() {
+				err := client.RenamePipeline("mypipeline", "newpipelinename")
+				Expect(err).To(MatchError("resource not found"))
 			})
 		})
 
@@ -233,9 +231,8 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("returns an error", func() {
-				renamed, err := client.RenamePipeline("mypipeline", "newpipelinename")
+				err := client.RenamePipeline("mypipeline", "newpipelinename")
 				Expect(err).To(MatchError(ContainSubstring("418 I'm a teapot")))
-				Expect(renamed).To(BeFalse())
 			})
 		})
 	})
