@@ -74,10 +74,15 @@ plan:
 
 \define-attribute{privileged: boolean}{
   \italic{Optional. Default \code{false}.} If set to \code{true}, the task will
-  run as \code{root} with full capabilities. This is not part of the task
-  configuration to prevent privilege escalation via pull requests.
+  run with full capabilities, as determined by the Garden backend the task runs
+  on. For Linux-based backends it typically determines whether or not the
+  container will run in a separate user namespace, and whether the \code{root}
+  user is "actual" \code{root} (if set to \code{true}) or a user namespaced
+  \code{root} (if set to \code{false}, the default).
 
-  This is a gaping security hole; use wisely and only if necessary.
+  This is a gaping security hole; use wisely and only if necessary. This is not
+  part of the task configuration to prevent privilege escalation via pull
+  requests.
 }
 
 \define-attribute{params: object}{task-params}{
