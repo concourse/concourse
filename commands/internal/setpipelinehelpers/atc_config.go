@@ -40,7 +40,7 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 
 func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariables template.Variables, templateVariablesFiles []flaghelpers.PathFlag) error {
 	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
-	existingConfig, existingConfigVersion, _, err := atcConfig.Client.PipelineConfig(atcConfig.PipelineName)
+	existingConfig, _, existingConfigVersion, _, err := atcConfig.Client.PipelineConfig(atcConfig.PipelineName)
 	errorMessages := []string{}
 	if err != nil {
 		if configError, ok := err.(concourse.PipelineConfigError); ok {
