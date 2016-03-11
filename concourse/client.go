@@ -38,7 +38,7 @@ type Client interface {
 	ListVolumes() ([]atc.Volume, error)
 	ListWorkers() ([]atc.Worker, error)
 	GetInfo() (atc.Info, error)
-	PipelineConfig(pipelineName string) (atc.Config, string, bool, error)
+	PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error)
 	GetCLIReader(arch, platform string) (io.ReadCloser, error)
 	ListAuthMethods() ([]atc.AuthMethod, error)
 	AuthToken() (atc.AuthToken, error)

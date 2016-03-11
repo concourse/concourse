@@ -18,7 +18,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
+func (client *client) PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error) {
 	params := rata.Params{"pipeline_name": pipelineName}
 
 	var configResponse atc.ConfigResponse
@@ -38,14 +38,14 @@ func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, b
 		version := responseHeaders.Get(atc.ConfigVersionHeader)
 
 		if len(configResponse.Errors) > 0 {
-			return atc.Config{}, version, false, PipelineConfigError{configResponse.Errors}
+			return atc.Config{}, configResponse.RawConfig, version, false, PipelineConfigError{configResponse.Errors}
 		}
 
-		return *configResponse.Config, version, true, nil
+		return *configResponse.Config, configResponse.RawConfig, version, true, nil
 	case internal.ResourceNotFoundError:
-		return atc.Config{}, "", false, nil
+		return atc.Config{}, atc.RawConfig(""), "", false, nil
 	default:
-		return atc.Config{}, "", false, err
+		return atc.Config{}, atc.RawConfig(""), "", false, err
 	}
 }
 

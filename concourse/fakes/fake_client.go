@@ -250,16 +250,17 @@ type FakeClient struct {
 		result1 atc.Info
 		result2 error
 	}
-	PipelineConfigStub        func(pipelineName string) (atc.Config, string, bool, error)
+	PipelineConfigStub        func(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error)
 	pipelineConfigMutex       sync.RWMutex
 	pipelineConfigArgsForCall []struct {
 		pipelineName string
 	}
 	pipelineConfigReturns struct {
 		result1 atc.Config
-		result2 string
-		result3 bool
-		result4 error
+		result2 atc.RawConfig
+		result3 string
+		result4 bool
+		result5 error
 	}
 	GetCLIReaderStub        func(arch, platform string) (io.ReadCloser, error)
 	getCLIReaderMutex       sync.RWMutex
@@ -1178,7 +1179,7 @@ func (fake *FakeClient) GetInfoReturns(result1 atc.Info, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeClient) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
+func (fake *FakeClient) PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error) {
 	fake.pipelineConfigMutex.Lock()
 	fake.pipelineConfigArgsForCall = append(fake.pipelineConfigArgsForCall, struct {
 		pipelineName string
@@ -1187,7 +1188,7 @@ func (fake *FakeClient) PipelineConfig(pipelineName string) (atc.Config, string,
 	if fake.PipelineConfigStub != nil {
 		return fake.PipelineConfigStub(pipelineName)
 	} else {
-		return fake.pipelineConfigReturns.result1, fake.pipelineConfigReturns.result2, fake.pipelineConfigReturns.result3, fake.pipelineConfigReturns.result4
+		return fake.pipelineConfigReturns.result1, fake.pipelineConfigReturns.result2, fake.pipelineConfigReturns.result3, fake.pipelineConfigReturns.result4, fake.pipelineConfigReturns.result5
 	}
 }
 
@@ -1203,14 +1204,15 @@ func (fake *FakeClient) PipelineConfigArgsForCall(i int) string {
 	return fake.pipelineConfigArgsForCall[i].pipelineName
 }
 
-func (fake *FakeClient) PipelineConfigReturns(result1 atc.Config, result2 string, result3 bool, result4 error) {
+func (fake *FakeClient) PipelineConfigReturns(result1 atc.Config, result2 atc.RawConfig, result3 string, result4 bool, result5 error) {
 	fake.PipelineConfigStub = nil
 	fake.pipelineConfigReturns = struct {
 		result1 atc.Config
-		result2 string
-		result3 bool
-		result4 error
-	}{result1, result2, result3, result4}
+		result2 atc.RawConfig
+		result3 string
+		result4 bool
+		result5 error
+	}{result1, result2, result3, result4, result5}
 }
 
 func (fake *FakeClient) GetCLIReader(arch string, platform string) (io.ReadCloser, error) {
