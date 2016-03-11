@@ -114,7 +114,7 @@ var _ = Describe("ATC Handler Configs", func() {
 				expectedVersion = "42"
 
 				configResponse := atc.ConfigResponse{
-					Config: expectedConfig,
+					Config: &expectedConfig,
 				}
 
 				atcServer.AppendHandlers(
@@ -131,6 +131,27 @@ var _ = Describe("ATC Handler Configs", func() {
 				Expect(pipelineConfig).To(Equal(expectedConfig))
 				Expect(version).To(Equal(expectedVersion))
 				Expect(found).To(BeTrue())
+			})
+		})
+
+		Context("when atc returns error messages", func() {
+			BeforeEach(func() {
+				configResponse := atc.ConfigResponse{Errors: []string{"config-error"}}
+				headers := http.Header{atc.ConfigVersionHeader: {"42"}}
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, configResponse, headers),
+					),
+				)
+			})
+
+			It("returns an error", func() {
+				_, actualConfigVersion, found, err := client.PipelineConfig("mypipeline")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("config-error"))
+				Expect(actualConfigVersion).To(Equal("42"))
+				Expect(found).To(BeFalse())
 			})
 		})
 
@@ -172,7 +193,7 @@ var _ = Describe("ATC Handler Configs", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Config{}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: &atc.Config{}}),
 					),
 				)
 			})

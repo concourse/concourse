@@ -22,25 +22,36 @@ func (client *client) PipelineConfig(pipelineName string) (atc.Config, string, b
 	params := rata.Params{"pipeline_name": pipelineName}
 
 	var configResponse atc.ConfigResponse
-	responseHeaders := http.Header{}
 
+	responseHeaders := http.Header{}
+	response := internal.Response{
+		Headers: &responseHeaders,
+		Result:  &configResponse,
+	}
 	err := client.connection.Send(internal.Request{
 		RequestName: atc.GetConfig,
 		Params:      params,
-	}, &internal.Response{
-		Result:  &configResponse,
-		Headers: &responseHeaders,
-	})
+	}, &response)
 
 	switch err.(type) {
 	case nil:
 		version := responseHeaders.Get(atc.ConfigVersionHeader)
-		return configResponse.Config, version, true, nil
+
+		if len(configResponse.Errors) > 0 {
+			return atc.Config{}, version, false, PipelineConfigError{configResponse.Errors}
+		}
+
+		return *configResponse.Config, version, true, nil
 	case internal.ResourceNotFoundError:
 		return atc.Config{}, "", false, nil
 	default:
 		return atc.Config{}, "", false, err
 	}
+}
+
+type pipelineConfigResponse struct {
+	Config *atc.Config
+	Errors []string `json:"errors"`
 }
 
 type configValidationError struct {
