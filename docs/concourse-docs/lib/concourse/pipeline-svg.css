@@ -53,11 +53,11 @@ svg {
 
 .node.input.failing rect { fill: #d28445; }
 
-.edge.pending rect { fill: #BDC3C7; }
-.edge.succeeded rect { fill: #2ECC71; }
-.edge.failed rect { fill: #E74C3C; }
-.edge.errored rect { fill: #E67E22; }
-.edge.aborted rect { fill: #8F4B2D; }
+.edge.pending { stroke: #BDC3C7; }
+.edge.succeeded { stroke: #2ECC71; }
+.edge.failed { stroke: #E74C3C; }
+.edge.errored { stroke: #E67E22; }
+.edge.aborted { stroke: #8F4B2D; }
 
 .job.node.started .animation {
   border-radius: 1px;
