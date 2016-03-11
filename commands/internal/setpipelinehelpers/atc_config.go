@@ -41,11 +41,20 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariables template.Variables, templateVariablesFiles []flaghelpers.PathFlag) error {
 	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
 	existingConfig, existingConfigVersion, _, err := atcConfig.Client.PipelineConfig(atcConfig.PipelineName)
+	errorMessages := []string{}
 	if err != nil {
-		return err
+		if configError, ok := err.(concourse.PipelineConfigError); ok {
+			errorMessages = configError.ErrorMessages
+		} else {
+			return err
+		}
 	}
 
 	diff(existingConfig, newConfig)
+
+	if len(errorMessages) > 0 {
+		atcConfig.showPipelineConfigErrors(errorMessages)
+	}
 
 	if !atcConfig.ApplyConfigInteraction() {
 		displayhelpers.Failf("bailing out")
@@ -101,9 +110,21 @@ func (atcConfig ATCConfig) newConfig(configPath flaghelpers.PathFlag, templateVa
 	return newConfig
 }
 
+func (atcConfig ATCConfig) showPipelineConfigErrors(errorMessages []string) {
+	fmt.Fprintln(os.Stderr, "")
+	displayhelpers.PrintWarningHeader()
+
+	fmt.Fprintln(os.Stderr, "Error loading existing config:")
+	for _, errorMessage := range errorMessages {
+		fmt.Fprintf(os.Stderr, "  - %s\n", errorMessage)
+	}
+
+	fmt.Fprintln(os.Stderr, "")
+}
+
 func (atcConfig ATCConfig) showWarnings(warnings []concourse.ConfigWarning) {
 	fmt.Fprintln(os.Stderr, "")
-	displayhelpers.PrintDeprecationWarning()
+	displayhelpers.PrintDeprecationWarningHeader()
 
 	for _, warning := range warnings {
 		fmt.Fprintf(os.Stderr, "  - %s\n", warning.Message)

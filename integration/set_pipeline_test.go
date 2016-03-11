@@ -143,7 +143,7 @@ var _ = Describe("Fly CLI", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", path),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: &config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 					),
 				)
 			})
@@ -249,7 +249,7 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.RouteToHandler("GET", path,
-					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: &config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 				)
 			})
 
@@ -544,6 +544,53 @@ var _ = Describe("Fly CLI", func() {
 						Eventually(sess.Err).Should(gbytes.Say("DEPRECATION WARNING:"))
 						Eventually(sess.Err).Should(gbytes.Say("  - warning-1"))
 						Eventually(sess.Err).Should(gbytes.Say("  - warning-2"))
+						Eventually(sess).Should(gbytes.Say("pipeline created!"))
+
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(3))
+				})
+			})
+
+			Context("when the existing config is invalid", func() {
+				BeforeEach(func() {
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+					Expect(err).NotTo(HaveOccurred())
+
+					configResponse := atc.ConfigResponse{Errors: []string{"invalid-config"}}
+					atcServer.RouteToHandler("GET", path,
+						ghttp.RespondWithJSONEncoded(http.StatusOK, configResponse, http.Header{atc.ConfigVersionHeader: {"42"}}),
+					)
+
+					atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
+						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+						func(w http.ResponseWriter, r *http.Request) {
+							config := getConfig(r)
+							Expect(config).To(Equal(payload))
+						},
+						ghttp.RespondWith(http.StatusCreated, `{}`),
+					))
+				})
+
+				It("succeeds and prints a warning", func() {
+					Expect(func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", configFile.Name())
+
+						stdin, err := flyCmd.StdinPipe()
+						Expect(err).NotTo(HaveOccurred())
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess.Err).Should(gbytes.Say("WARNING:"))
+						Eventually(sess.Err).Should(gbytes.Say("Error loading existing config:"))
+						Eventually(sess.Err).Should(gbytes.Say("  - invalid-config"))
+
+						Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+						yes(stdin)
+
 						Eventually(sess).Should(gbytes.Say("pipeline created!"))
 
 						<-sess.Exited
