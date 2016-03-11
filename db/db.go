@@ -162,7 +162,7 @@ type PipelinesDB interface {
 //go:generate counterfeiter . ConfigDB
 
 type ConfigDB interface {
-	GetConfig(teamName, pipelineName string) (atc.Config, ConfigVersion, error)
+	GetConfig(teamName, pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
 	SaveConfig(string, string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
 }
 

@@ -9,8 +9,9 @@ const DefaultTeamName = "main"
 type Tags []string
 
 type ConfigResponse struct {
-	Config *Config  `json:"config"`
-	Errors []string `json:"errors"`
+	Config    *Config   `json:"config"`
+	Errors    []string  `json:"errors"`
+	RawConfig RawConfig `json:"raw_config"`
 }
 
 type Config struct {
@@ -19,6 +20,8 @@ type Config struct {
 	ResourceTypes ResourceTypes   `yaml:"resource_types" json:"resource_types" mapstructure:"resource_types"`
 	Jobs          JobConfigs      `yaml:"jobs" json:"jobs" mapstructure:"jobs"`
 }
+
+type RawConfig string
 
 type GroupConfig struct {
 	Name      string   `yaml:"name" json:"name" mapstructure:"name"`

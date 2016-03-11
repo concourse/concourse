@@ -142,7 +142,7 @@ var _ = Describe("Config API", func() {
 
 			Context("when the config can be loaded", func() {
 				BeforeEach(func() {
-					configDB.GetConfigReturns(pipelineConfig, 1, nil)
+					configDB.GetConfigReturns(pipelineConfig, atc.RawConfig("raw-config"), 1, nil)
 				})
 
 				It("returns 200", func() {
@@ -158,7 +158,10 @@ var _ = Describe("Config API", func() {
 					err := json.NewDecoder(response.Body).Decode(&actualConfigResponse)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(actualConfigResponse).To(Equal(atc.ConfigResponse{Config: &pipelineConfig}))
+					Expect(actualConfigResponse).To(Equal(atc.ConfigResponse{
+						Config:    &pipelineConfig,
+						RawConfig: atc.RawConfig("raw-config"),
+					}))
 				})
 
 				It("calls get config with the correct arguments", func() {
@@ -170,7 +173,7 @@ var _ = Describe("Config API", func() {
 
 			Context("when getting the config fails", func() {
 				BeforeEach(func() {
-					configDB.GetConfigReturns(atc.Config{}, 0, errors.New("oh no!"))
+					configDB.GetConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("oh no!"))
 				})
 
 				It("returns 500", func() {
@@ -180,7 +183,7 @@ var _ = Describe("Config API", func() {
 
 			Context("when getting the config fails because it is malformed", func() {
 				BeforeEach(func() {
-					configDB.GetConfigReturns(atc.Config{}, 42, atc.MalformedConfigError{errors.New("invalid character")})
+					configDB.GetConfigReturns(atc.Config{}, atc.RawConfig("raw-config"), 42, atc.MalformedConfigError{errors.New("invalid character")})
 				})
 
 				It("returns 200", func() {
@@ -193,7 +196,8 @@ var _ = Describe("Config API", func() {
 						"config": null,
 						"errors": [
 						  "malformed config: invalid character"
-						]
+						],
+						"raw_config": "raw-config"
 					}`))
 				})
 

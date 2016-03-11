@@ -9,7 +9,7 @@ import (
 )
 
 type FakeConfigDB struct {
-	GetConfigStub        func(teamName, pipelineName string) (atc.Config, db.ConfigVersion, error)
+	GetConfigStub        func(teamName, pipelineName string) (atc.Config, atc.RawConfig, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct {
 		teamName     string
@@ -17,8 +17,9 @@ type FakeConfigDB struct {
 	}
 	getConfigReturns struct {
 		result1 atc.Config
-		result2 db.ConfigVersion
-		result3 error
+		result2 atc.RawConfig
+		result3 db.ConfigVersion
+		result4 error
 	}
 	SaveConfigStub        func(string, string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (db.SavedPipeline, bool, error)
 	saveConfigMutex       sync.RWMutex
@@ -36,7 +37,7 @@ type FakeConfigDB struct {
 	}
 }
 
-func (fake *FakeConfigDB) GetConfig(teamName string, pipelineName string) (atc.Config, db.ConfigVersion, error) {
+func (fake *FakeConfigDB) GetConfig(teamName string, pipelineName string) (atc.Config, atc.RawConfig, db.ConfigVersion, error) {
 	fake.getConfigMutex.Lock()
 	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct {
 		teamName     string
@@ -46,7 +47,7 @@ func (fake *FakeConfigDB) GetConfig(teamName string, pipelineName string) (atc.C
 	if fake.GetConfigStub != nil {
 		return fake.GetConfigStub(teamName, pipelineName)
 	} else {
-		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3
+		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3, fake.getConfigReturns.result4
 	}
 }
 
@@ -62,13 +63,14 @@ func (fake *FakeConfigDB) GetConfigArgsForCall(i int) (string, string) {
 	return fake.getConfigArgsForCall[i].teamName, fake.getConfigArgsForCall[i].pipelineName
 }
 
-func (fake *FakeConfigDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 error) {
+func (fake *FakeConfigDB) GetConfigReturns(result1 atc.Config, result2 atc.RawConfig, result3 db.ConfigVersion, result4 error) {
 	fake.GetConfigStub = nil
 	fake.getConfigReturns = struct {
 		result1 atc.Config
-		result2 db.ConfigVersion
-		result3 error
-	}{result1, result2, result3}
+		result2 atc.RawConfig
+		result3 db.ConfigVersion
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
 func (fake *FakeConfigDB) SaveConfig(arg1 string, arg2 string, arg3 atc.Config, arg4 db.ConfigVersion, arg5 db.PipelinePausedState) (db.SavedPipeline, bool, error) {

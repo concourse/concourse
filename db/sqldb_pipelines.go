@@ -120,7 +120,7 @@ func (db *SQLDB) GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, err
 	return config, ConfigVersion(version), nil
 }
 
-func (db *SQLDB) GetConfig(teamName, pipelineName string) (atc.Config, ConfigVersion, error) {
+func (db *SQLDB) GetConfig(teamName, pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error) {
 	var configBlob []byte
 	var version int
 	err := db.conn.QueryRow(`
@@ -134,18 +134,18 @@ func (db *SQLDB) GetConfig(teamName, pipelineName string) (atc.Config, ConfigVer
 	`, pipelineName, teamName).Scan(&configBlob, &version)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return atc.Config{}, 0, nil
+			return atc.Config{}, atc.RawConfig(""), 0, nil
 		}
-		return atc.Config{}, 0, err
+		return atc.Config{}, atc.RawConfig(""), 0, err
 	}
 
 	var config atc.Config
 	err = json.Unmarshal(configBlob, &config)
 	if err != nil {
-		return atc.Config{}, ConfigVersion(version), atc.MalformedConfigError{err}
+		return atc.Config{}, atc.RawConfig(string(configBlob)), ConfigVersion(version), atc.MalformedConfigError{err}
 	}
 
-	return config, ConfigVersion(version), nil
+	return config, atc.RawConfig(string(configBlob)), ConfigVersion(version), nil
 }
 
 type PipelinePausedState string

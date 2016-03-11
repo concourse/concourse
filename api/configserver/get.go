@@ -12,22 +12,27 @@ import (
 func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("get-config")
 	pipelineName := rata.Param(r, "pipeline_name")
-	config, id, err := s.db.GetConfig(atc.DefaultTeamName, pipelineName)
+	config, rawConfig, id, err := s.db.GetConfig(atc.DefaultTeamName, pipelineName)
 	if err != nil {
 		if malformedErr, ok := err.(atc.MalformedConfigError); ok {
 			getConfigResponse := atc.ConfigResponse{
-				Errors: []string{malformedErr.Error()},
+				Errors:    []string{malformedErr.Error()},
+				RawConfig: rawConfig,
 			}
+
 			responseJSON, err := json.Marshal(getConfigResponse)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
+
 			w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", id))
 			w.Write(responseJSON)
-		} else {
-			logger.Error("failed-to-get-config", err)
-			w.WriteHeader(http.StatusInternalServerError)
+
+			return
 		}
+
+		logger.Error("failed-to-get-config", err)
+		w.WriteHeader(http.StatusInternalServerError)
 
 		return
 	}
@@ -35,6 +40,7 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", id))
 
 	json.NewEncoder(w).Encode(atc.ConfigResponse{
-		Config: &config,
+		Config:    &config,
+		RawConfig: rawConfig,
 	})
 }
