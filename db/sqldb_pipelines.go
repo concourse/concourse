@@ -38,7 +38,6 @@ func (db *SQLDB) GetAllPipelines() ([]SavedPipeline, error) {
 	pipelines := []SavedPipeline{}
 
 	for rows.Next() {
-
 		pipeline, err := scanPipeline(rows)
 
 		if err != nil {
@@ -143,7 +142,7 @@ func (db *SQLDB) GetConfig(teamName, pipelineName string) (atc.Config, ConfigVer
 	var config atc.Config
 	err = json.Unmarshal(configBlob, &config)
 	if err != nil {
-		return atc.Config{}, 0, err
+		return atc.Config{}, ConfigVersion(version), atc.MalformedConfigError{err}
 	}
 
 	return config, ConfigVersion(version), nil

@@ -619,6 +619,22 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(otherReturnedConfig).To(Equal(updatedConfig))
 		Expect(newOtherConfigVersion).NotTo(Equal(otherConfigVersion))
+
+		By("being able to retrieve invalid config")
+		invalidPipelineName := "invalid-config"
+		_, _, err = database.SaveConfig(team.Name, invalidPipelineName, config, 1, db.PipelineUnpaused)
+		Expect(err).NotTo(HaveOccurred())
+
+		dbConn.Exec(`
+		UPDATE pipelines
+		SET config = ':bad_json:'
+		WHERE name = 'invalid-config'
+		`)
+
+		_, invalidConfigVersion, err := database.GetConfig(team.Name, invalidPipelineName)
+		Expect(err).To(BeAssignableToTypeOf(atc.MalformedConfigError{}))
+		Expect(err.Error()).To(ContainSubstring("malformed config:"))
+		Expect(invalidConfigVersion).NotTo(Equal(db.ConfigVersion(1)))
 	})
 
 	Context("when there are multiple teams", func() {

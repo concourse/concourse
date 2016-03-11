@@ -14,14 +14,27 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	pipelineName := rata.Param(r, "pipeline_name")
 	config, id, err := s.db.GetConfig(atc.DefaultTeamName, pipelineName)
 	if err != nil {
-		logger.Error("failed-to-get-config", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		if malformedErr, ok := err.(atc.MalformedConfigError); ok {
+			getConfigResponse := atc.ConfigResponse{
+				Errors: []string{malformedErr.Error()},
+			}
+			responseJSON, err := json.Marshal(getConfigResponse)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", id))
+			w.Write(responseJSON)
+		} else {
+			logger.Error("failed-to-get-config", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+
 		return
 	}
 
 	w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", id))
 
 	json.NewEncoder(w).Encode(atc.ConfigResponse{
-		Config: config,
+		Config: &config,
 	})
 }

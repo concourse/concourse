@@ -9,7 +9,8 @@ const DefaultTeamName = "main"
 type Tags []string
 
 type ConfigResponse struct {
-	Config Config `json:"config"`
+	Config *Config  `json:"config"`
+	Errors []string `json:"errors"`
 }
 
 type Config struct {

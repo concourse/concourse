@@ -158,7 +158,7 @@ var _ = Describe("Config API", func() {
 					err := json.NewDecoder(response.Body).Decode(&actualConfigResponse)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(actualConfigResponse).To(Equal(atc.ConfigResponse{Config: pipelineConfig}))
+					Expect(actualConfigResponse).To(Equal(atc.ConfigResponse{Config: &pipelineConfig}))
 				})
 
 				It("calls get config with the correct arguments", func() {
@@ -175,6 +175,30 @@ var _ = Describe("Config API", func() {
 
 				It("returns 500", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when getting the config fails because it is malformed", func() {
+				BeforeEach(func() {
+					configDB.GetConfigReturns(atc.Config{}, 42, atc.MalformedConfigError{errors.New("invalid character")})
+				})
+
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns error JSON", func() {
+					Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+					{
+						"config": null,
+						"errors": [
+						  "malformed config: invalid character"
+						]
+					}`))
+				})
+
+				It("returns the config version header", func() {
+					Expect(response.Header.Get(atc.ConfigVersionHeader)).To(Equal("42"))
 				})
 			})
 		})
