@@ -36,7 +36,9 @@ directory to setup your environment.
 
 Fly is available for download in the lower right-hand corner of the concourse UI.
 
-1. Click the button corresponding to your OS
+![fly download links](images/fly_download_ui.png)
+
+1. Navigate to your Concourse instance in the browser, and click the button corresponding to your OS
 
 2. Move the downloaded file onto your PATH
 
