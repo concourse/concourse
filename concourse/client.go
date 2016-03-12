@@ -28,7 +28,7 @@ type Client interface {
 	DeletePipeline(pipelineName string) (bool, error)
 	PausePipeline(pipelineName string) (bool, error)
 	UnpausePipeline(pipelineName string) (bool, error)
-	RenamePipeline(pipelineName, name string) error
+	RenamePipeline(pipelineName, name string) (bool, error)
 	Job(pipelineName, jobName string) (atc.Job, bool, error)
 	JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error)
 	JobBuilds(pipelineName string, jobName string, page Page) ([]atc.Build, Pagination, bool, error)

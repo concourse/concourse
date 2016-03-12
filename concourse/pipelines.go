@@ -93,13 +93,13 @@ func (client *client) UnpausePipeline(pipelineName string) (bool, error) {
 	}
 }
 
-func (client *client) RenamePipeline(pipelineName, name string) error {
+func (client *client) RenamePipeline(pipelineName, name string) (bool, error) {
 	params := rata.Params{"pipeline_name": pipelineName}
 	jsonBytes, err := json.Marshal(struct {
 		Name string `json:"name"`
 	}{Name: name})
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	err = client.connection.Send(internal.Request{
@@ -108,9 +108,12 @@ func (client *client) RenamePipeline(pipelineName, name string) error {
 		Body:        bytes.NewBuffer(jsonBytes),
 		Header:      http.Header{"Content-Type": []string{"application/json"}},
 	}, nil)
-	if err != nil {
-		return err
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case internal.ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
 	}
-
-	return nil
 }
