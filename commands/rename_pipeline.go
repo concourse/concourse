@@ -22,12 +22,16 @@ func (rp *RenamePipelineCommand) Execute([]string) error {
 		return err
 	}
 
-	err = client.RenamePipeline(rp.Pipeline, rp.Name)
+	renamed, err := client.RenamePipeline(rp.Pipeline, rp.Name)
 	if err != nil {
-		return fmt.Errorf("pipeline failed to rename")
+		return fmt.Errorf("client failed with error: %s\n", err)
 	}
 
-	fmt.Printf("pipeline successfully renamed to %s", rp.Name)
+	if !renamed {
+		return fmt.Errorf("failed to find pipeline")
+	}
+
+	fmt.Printf("pipeline successfully renamed to %s\n", rp.Name)
 
 	return nil
 }

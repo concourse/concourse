@@ -79,7 +79,7 @@ var _ = Describe("RenamePipeline", func() {
 
 				Eventually(sess).Should(gexec.Exit(1))
 				Expect(atcServer.ReceivedRequests()).To(HaveLen(4))
-				Expect(sess.Err).To(gbytes.Say("pipeline failed to rename"))
+				Expect(sess.Err).To(gbytes.Say("failed to find pipeline"))
 			})
 		})
 
@@ -96,7 +96,7 @@ var _ = Describe("RenamePipeline", func() {
 
 				Eventually(sess).Should(gexec.Exit(1))
 				Expect(atcServer.ReceivedRequests()).To(HaveLen(4))
-				Expect(sess.Err).To(gbytes.Say("pipeline failed to rename"))
+				Expect(sess.Err).To(gbytes.Say("client failed with error: "))
 			})
 		})
 	})
