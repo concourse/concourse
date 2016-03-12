@@ -61,7 +61,6 @@ var _ = Describe("Keeping track of volumes", func() {
 			workerToInsert2 db.WorkerInfo
 			insertedWorker  db.SavedWorker
 			insertedWorker2 db.SavedWorker
-			err             error
 		)
 
 		BeforeEach(func() {
@@ -73,6 +72,7 @@ var _ = Describe("Keeping track of volumes", func() {
 					ResourceHash:    "some-hash",
 				},
 			}
+
 			workerToInsert = db.WorkerInfo{
 				GardenAddr:       "some-garden-address",
 				BaggageclaimURL:  "some-baggageclaim-url",
@@ -94,6 +94,8 @@ var _ = Describe("Keeping track of volumes", func() {
 		})
 
 		JustBeforeEach(func() {
+			var err error
+
 			insertedWorker, err = database.SaveWorker(workerToInsert, 2*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -117,6 +119,44 @@ var _ = Describe("Keeping track of volumes", func() {
 			Expect(actualVolume.ResourceVersion).To(Equal(volumeToInsert.ResourceVersion))
 			Expect(actualVolume.ResourceHash).To(Equal(volumeToInsert.ResourceHash))
 			Expect(actualVolume.WorkerName).To(Equal(insertedWorker.Name))
+			Expect(actualVolume.OriginalVolumeHandle).To(BeEmpty())
+		})
+
+		Describe("cow volumes", func() {
+			var (
+				originalVolume          db.SavedVolume
+				cowVolumeToInsertHandle string
+				ttl                     time.Duration
+			)
+
+			JustBeforeEach(func() {
+				cowVolumeToInsertHandle = "cow-volume-handle"
+				ttl = 5 * time.Minute
+
+				volumes, err := database.GetVolumes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(volumes)).To(Equal(1))
+				originalVolume = volumes[0]
+
+				err = database.InsertCOWVolume(originalVolume.Handle, cowVolumeToInsertHandle, ttl)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("can be retrieved", func() {
+				volumes, err := database.GetVolumes()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(volumes)).To(Equal(2))
+				cowVolume := volumes[1]
+				Expect(cowVolume.Handle).To(Equal(cowVolumeToInsertHandle))
+				Expect(cowVolume.OriginalVolumeHandle).To(Equal(originalVolume.Handle))
+				Expect(cowVolume.TTL).To(Equal(ttl))
+				Expect(cowVolume.ExpiresIn).To(BeNumerically("~", ttl, time.Second))
+
+				Expect(cowVolume.WorkerName).To(Equal(originalVolume.WorkerName))
+				Expect(cowVolume.WorkerName).To(Equal(insertedWorker.Name))
+				Expect(cowVolume.ResourceVersion).To(Equal(originalVolume.ResourceVersion))
+				Expect(cowVolume.ResourceHash).To(Equal(originalVolume.ResourceHash))
+			})
 		})
 
 		It("can be reaped", func() {
@@ -129,7 +169,7 @@ var _ = Describe("Keeping track of volumes", func() {
 					ResourceHash:    "some-hash2",
 				},
 			}
-			err = database.InsertVolume(volumeToInsert2)
+			err := database.InsertVolume(volumeToInsert2)
 			Expect(err).NotTo(HaveOccurred())
 
 			workerToInsert3 := db.WorkerInfo{
