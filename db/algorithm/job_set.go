@@ -1,5 +1,11 @@
 package algorithm
 
+import (
+	"fmt"
+	"sort"
+	"strings"
+)
+
 type JobSet map[int]struct{}
 
 func (set JobSet) Contains(jobID int) bool {
@@ -46,4 +52,15 @@ func (set JobSet) Equal(otherSet JobSet) bool {
 	}
 
 	return true
+}
+
+func (set JobSet) String() string {
+	xs := []string{}
+	for x, _ := range set {
+		xs = append(xs, fmt.Sprintf("%v", x))
+	}
+
+	sort.Strings(xs)
+
+	return fmt.Sprintf("{%s}", strings.Join(xs, " "))
 }

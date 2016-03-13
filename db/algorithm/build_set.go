@@ -1,5 +1,11 @@
 package algorithm
 
+import (
+	"fmt"
+	"sort"
+	"strings"
+)
+
 type BuildSet map[int]struct{}
 
 func (set BuildSet) Contains(buildID int) bool {
@@ -46,4 +52,15 @@ func (set BuildSet) Equal(otherSet BuildSet) bool {
 	}
 
 	return true
+}
+
+func (set BuildSet) String() string {
+	xs := []string{}
+	for x, _ := range set {
+		xs = append(xs, fmt.Sprintf("%v", x))
+	}
+
+	sort.Strings(xs)
+
+	return fmt.Sprintf("{%s}", strings.Join(xs, " "))
 }

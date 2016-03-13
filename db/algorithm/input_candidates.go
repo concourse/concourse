@@ -1,10 +1,26 @@
 package algorithm
 
-type InputCandidates map[string]InputVersionCandidates
+import (
+	"fmt"
+	"strings"
+)
+
+type InputCandidates []InputVersionCandidates
 
 type InputVersionCandidates struct {
-	VersionCandidates
+	Input  string
 	Passed JobSet
+
+	VersionCandidates
+}
+
+func (candidates InputCandidates) String() string {
+	lens := []string{}
+	for _, vcs := range candidates {
+		lens = append(lens, fmt.Sprintf("%s (%d candidates for %d versions)", vcs.Input, len(vcs.VersionCandidates), len(vcs.VersionIDs())))
+	}
+
+	return fmt.Sprintf("[%s]", strings.Join(lens, "; "))
 }
 
 func (candidates InputCandidates) Reduce(jobs JobSet) (InputMapping, bool) {
@@ -35,7 +51,7 @@ func (candidates InputCandidates) Reduce(jobs JobSet) (InputMapping, bool) {
 	}
 
 	mapping := InputMapping{}
-	for input, versionCandidates := range newCandidates {
+	for _, versionCandidates := range newCandidates {
 		versionIDs := versionCandidates.VersionIDs()
 		if len(versionIDs) != 1 {
 			// could not reduce
@@ -48,25 +64,23 @@ func (candidates InputCandidates) Reduce(jobs JobSet) (InputMapping, bool) {
 			return nil, false
 		}
 
-		mapping[input] = versionIDs[0]
+		mapping[versionCandidates.Input] = versionIDs[0]
 	}
 
 	return mapping, true
 }
 
 func (candidates InputCandidates) pruneToCommonBuilds(jobs JobSet) InputCandidates {
-	newCandidates := InputCandidates{}
-	for input, versions := range candidates {
-		newCandidates[input] = versions
-	}
+	newCandidates := make(InputCandidates, len(candidates))
+	copy(newCandidates, candidates)
 
 	for jobID, _ := range jobs {
 		commonBuildIDs := newCandidates.commonBuildIDs(jobID)
 
-		for input, versionCandidates := range newCandidates {
+		for i, versionCandidates := range newCandidates {
 			inputCandidates := versionCandidates
 			inputCandidates.VersionCandidates = versionCandidates.PruneVersionsOfOtherBuildIDs(jobID, commonBuildIDs)
-			newCandidates[input] = inputCandidates
+			newCandidates[i] = inputCandidates
 		}
 	}
 

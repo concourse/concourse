@@ -1,5 +1,10 @@
 package algorithm
 
+import (
+	"fmt"
+	"sort"
+)
+
 type InputConfigs []InputConfig
 
 type InputConfig struct {
@@ -23,11 +28,29 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 			return nil, false
 		}
 
-		inputCandidates[inputConfig.Name] = InputVersionCandidates{
+		inputCandidates = append(inputCandidates, InputVersionCandidates{
+			Input:  inputConfig.Name,
+			Passed: inputConfig.Passed,
+
 			VersionCandidates: candidateSet,
-			Passed:            inputConfig.Passed,
-		}
+		})
 	}
 
+	sort.Sort(byTotalVersions(inputCandidates))
+
+	fmt.Println("initial candidates", inputCandidates)
+
 	return inputCandidates.Reduce(jobs)
+}
+
+type byTotalVersions InputCandidates
+
+func (candidates byTotalVersions) Len() int { return len(candidates) }
+
+func (candidates byTotalVersions) Swap(i int, j int) {
+	candidates[i], candidates[j] = candidates[j], candidates[i]
+}
+
+func (candidates byTotalVersions) Less(i int, j int) bool {
+	return len(candidates[i].VersionIDs()) > len(candidates[j].VersionIDs())
 }
