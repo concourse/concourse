@@ -1,9 +1,6 @@
 package algorithm
 
-import (
-	"fmt"
-	"sort"
-)
+import "sort"
 
 type InputConfigs []InputConfig
 
@@ -37,8 +34,6 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 	}
 
 	sort.Sort(byTotalVersions(inputCandidates))
-
-	fmt.Println("initial candidates", inputCandidates)
 
 	return inputCandidates.Reduce(jobs)
 }
