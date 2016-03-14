@@ -13,8 +13,8 @@ var _ = Describe("TrackerMetadata", func() {
 			PipelineName: "some-pipeline-name",
 			ResourceName: "some-resource-name",
 		}.Env()).To(Equal([]string{
-			"EXTERNAL_URL=https://www.example.com",
-			"PIPELINE_NAME=some-pipeline-name",
+			"ATC_EXTERNAL_URL=https://www.example.com",
+			"RESOURCE_PIPELINE_NAME=some-pipeline-name",
 			"RESOURCE_NAME=some-resource-name",
 		}))
 	})
@@ -23,7 +23,7 @@ var _ = Describe("TrackerMetadata", func() {
 		Expect(TrackerMetadata{
 			PipelineName: "some-pipeline-name",
 		}.Env()).To(Equal([]string{
-			"PIPELINE_NAME=some-pipeline-name",
+			"RESOURCE_PIPELINE_NAME=some-pipeline-name",
 		}))
 	})
 })
