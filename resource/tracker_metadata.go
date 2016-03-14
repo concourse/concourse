@@ -18,11 +18,11 @@ func (m TrackerMetadata) Env() []string {
 	var env []string
 
 	if m.ExternalURL != "" {
-		env = append(env, fmt.Sprintf("EXTERNAL_URL=%s", m.ExternalURL))
+		env = append(env, fmt.Sprintf("ATC_EXTERNAL_URL=%s", m.ExternalURL))
 	}
 
 	if m.PipelineName != "" {
-		env = append(env, fmt.Sprintf("PIPELINE_NAME=%s", m.PipelineName))
+		env = append(env, fmt.Sprintf("RESOURCE_PIPELINE_NAME=%s", m.PipelineName))
 	}
 
 	if m.ResourceName != "" {
