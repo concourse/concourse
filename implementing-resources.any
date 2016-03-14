@@ -168,7 +168,7 @@ no-ops (which still must be correctly implemented as detailed below).
     \code{source} is the same value as passed to \reference{resource-check}.
   }{
     \code{params} is an arbitrary JSON object passed along verbatim from
-    \reference{params} on a \reference{get-step}.
+    \reference{params} on a \reference{put-step}.
   }
 
   Example request, in this case for the \code{git} resource:
