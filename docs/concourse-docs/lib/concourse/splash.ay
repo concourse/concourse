@@ -10,6 +10,11 @@ base = require("anatomy/base")
 
 docs = load("concourse/docs")
 
+def(soft-line(*content)):
+  data Element new(
+      content
+      .class("soft-line"))
+
 def(top-intro(content)):
   data ResolveBlock new(
     [part]: -- keep this here for now lol
@@ -65,7 +70,7 @@ def(top-intro-text(content)):
         data Block new(content, .classed(.header(1), "intro-slogan"))
         .class("twelve", "columns"))
       .class("row"))
-    .class("container", "white-text", "txt-c"))
+    .class("white-text", "txt-c"))
 
 def(top-intro-buttons(getting-started, contribute)):
   data Block new(

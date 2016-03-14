@@ -23,12 +23,12 @@ def(template-for(part, out)):
     html render(sub, out)
 
   <div(#everything):
-    <div(class = "u-full-width top-intro"):
+    <div(class = "u-full-width top-intro docs-header"):
       <a(name = "page-top"){}
       <div(class = "navbar navbar-default navbar-static-top"):
         <div(class = "container-fluid"):
           <div(class = "navbar-header page-scroll"):
-            <button(class = "navbar-toggle", data-toggle = "collapse", data-target = "#bs-example-navbar-collapse-1"):
+            <button(class = "navbar-toggle", "data-toggle" = "collapse", "data-target" = "#bs-example-navbar-collapse-1"):
               <span(class = "sr-only"):
                 "Toggle navigation"
               <span(class = "icon-bar"){}
