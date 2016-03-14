@@ -1,8 +1,12 @@
+/* * { */
+/*   max-height: 999999px; */
+/* } */
+
 body {
-	font-family: 'Open Sans', "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
-	font-weight: 600;
-	-webkit-font-smoothing: antialiased;
-   }
+  font-family: 'Open Sans', "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 600;
+  -webkit-font-smoothing: antialiased;
+}
 
 h1, h2, h3, h4 {
   font-family: 'Montserrat', arial;

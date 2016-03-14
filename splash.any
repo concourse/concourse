@@ -6,6 +6,8 @@
 
 \title{Concourse\aux{: CI that scales with your project}}{index}
 
+\mobile-optimized
+
 \top-intro{
   \top-intro-nav{
     \reference{what-and-why}{Introduction}
@@ -17,12 +19,12 @@
     \reference{releases}{Releases}
   }
 
-  \top-intro-text{CI that scales with your project.}
+  \top-intro-text{\soft-line{CI that scales with} \soft-line{your project.}}
 
   \top-intro-buttons{
-    \reference{getting-started}{\light-button{Get Started}}
+    \reference{getting-started}{\light-button{\font-awesome{fa-paper-plane} Get Started}}
   }{
-    \reference{contribute}{\light-button{\font-awesome{fa-github} Contribute}}
+    \reference{contribute}{\light-button{\font-awesome{fa-github} GitHub}}
   }
 
   \top-intro-pipes

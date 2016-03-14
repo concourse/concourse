@@ -319,3 +319,7 @@
   border-width: 14px;
   margin-top: -14px;
 }
+
+.docs-header .navbar-header, .docs-header .navbar-collapse {
+  border-bottom: 0;
+}
