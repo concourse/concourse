@@ -93,4 +93,5 @@ var Migrations = []migration.Migrator{
 	ResetCheckOrder,
 	AddTTLToContainers,
 	AddOriginalVolumeHandleToVolumes,
+	DropNotNullResourceConstraintsOnVolumes,
 }

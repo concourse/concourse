@@ -37,6 +37,14 @@ type FakeTaskDelegate struct {
 	imageVersionDeterminedReturns struct {
 		result1 error
 	}
+	InsertOutputVolumeStub        func(db.Volume) error
+	insertOutputVolumeMutex       sync.RWMutex
+	insertOutputVolumeArgsForCall []struct {
+		arg1 db.Volume
+	}
+	insertOutputVolumeReturns struct {
+		result1 error
+	}
 	StdoutStub        func() io.Writer
 	stdoutMutex       sync.RWMutex
 	stdoutArgsForCall []struct{}
@@ -163,6 +171,38 @@ func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) db.Volume
 func (fake *FakeTaskDelegate) ImageVersionDeterminedReturns(result1 error) {
 	fake.ImageVersionDeterminedStub = nil
 	fake.imageVersionDeterminedReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTaskDelegate) InsertOutputVolume(arg1 db.Volume) error {
+	fake.insertOutputVolumeMutex.Lock()
+	fake.insertOutputVolumeArgsForCall = append(fake.insertOutputVolumeArgsForCall, struct {
+		arg1 db.Volume
+	}{arg1})
+	fake.insertOutputVolumeMutex.Unlock()
+	if fake.InsertOutputVolumeStub != nil {
+		return fake.InsertOutputVolumeStub(arg1)
+	} else {
+		return fake.insertOutputVolumeReturns.result1
+	}
+}
+
+func (fake *FakeTaskDelegate) InsertOutputVolumeCallCount() int {
+	fake.insertOutputVolumeMutex.RLock()
+	defer fake.insertOutputVolumeMutex.RUnlock()
+	return len(fake.insertOutputVolumeArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) InsertOutputVolumeArgsForCall(i int) db.Volume {
+	fake.insertOutputVolumeMutex.RLock()
+	defer fake.insertOutputVolumeMutex.RUnlock()
+	return fake.insertOutputVolumeArgsForCall[i].arg1
+}
+
+func (fake *FakeTaskDelegate) InsertOutputVolumeReturns(result1 error) {
+	fake.InsertOutputVolumeStub = nil
+	fake.insertOutputVolumeReturns = struct {
 		result1 error
 	}{result1}
 }

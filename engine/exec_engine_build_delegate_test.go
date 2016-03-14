@@ -795,6 +795,34 @@ var _ = Describe("BuildDelegate", func() {
 
 			})
 		})
+
+		Describe("InsertOutputVolume", func() {
+			var expectedVolume db.Volume
+			BeforeEach(func() {
+				expectedVolume = db.Volume{
+					WorkerName: "bob the builder",
+					TTL:        5000 * time.Second,
+					Handle:     "handle me",
+				}
+			})
+
+			It("saves output volume to the db", func() {
+				fakeDB.InsertOutputVolumeReturns(nil)
+				err := executionDelegate.InsertOutputVolume(expectedVolume)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(fakeDB.InsertOutputVolumeCallCount()).To(Equal(1))
+				volume := fakeDB.InsertOutputVolumeArgsForCall(0)
+				Expect(volume).To(Equal(expectedVolume))
+			})
+
+			It("returns an error if saving the volume fails", func() {
+				disaster := errors.New("Oh, No")
+				fakeDB.InsertOutputVolumeReturns(disaster)
+				err := executionDelegate.InsertOutputVolume(expectedVolume)
+				Expect(err).To(Equal(disaster))
+			})
+		})
 	})
 
 	Describe("OutputDelegate", func() {

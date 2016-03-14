@@ -225,10 +225,21 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 				return volErr
 			}
 
+			err := step.delegate.InsertOutputVolume(db.Volume{
+				WorkerName: chosenWorker.Name(),
+				TTL:        5 * time.Minute,
+				Handle:     ourVolume.Handle(),
+			})
+			if err != nil {
+				return err
+			}
+
 			outputMounts = append(outputMounts, worker.VolumeMount{
 				Volume:    ourVolume,
 				MountPath: path,
 			})
+
+			step.logger.Info("created-output-volume", lager.Data{"volumeHandle": ourVolume.Handle()})
 		}
 
 		containerSpec := worker.TaskContainerSpec{

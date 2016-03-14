@@ -451,6 +451,10 @@ func (execution *executionDelegate) ImageVersionDetermined(identifier db.VolumeI
 	return execution.delegate.db.SaveImageResourceVersion(execution.delegate.buildID, atc.PlanID(execution.id), identifier)
 }
 
+func (execution *executionDelegate) InsertOutputVolume(volume db.Volume) error {
+	return execution.delegate.db.InsertOutputVolume(volume)
+}
+
 func (execution *executionDelegate) Stdout() io.Writer {
 	return execution.delegate.eventWriter(event.Origin{
 		Source: event.OriginSourceStdout,

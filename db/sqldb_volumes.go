@@ -133,6 +133,37 @@ func (db *SQLDB) InsertCOWVolume(originalVolumeHandle string, cowVolumeHandle st
 	return tx.Commit()
 }
 
+func (db *SQLDB) InsertOutputVolume(outputVolume Volume) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	interval := fmt.Sprintf("%d second", int(outputVolume.TTL.Seconds()))
+
+	_, err = tx.Exec(`
+		INSERT INTO volumes (
+			worker_name,
+			expires_at,
+			ttl,
+			handle
+		) VALUES (
+			$1,
+			NOW() + $2::INTERVAL,
+			$3,
+			$4
+		)
+	`,
+		outputVolume.WorkerName,
+		interval,
+		outputVolume.TTL,
+		outputVolume.Handle,
+	)
+
+	return tx.Commit()
+}
+
 func (db *SQLDB) ReapVolume(handle string) error {
 	_, err := db.conn.Exec(`
 		DELETE FROM volumes
@@ -286,10 +317,11 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 	for rows.Next() {
 		var volume SavedVolume
 		var ttlSeconds *float64
-		var versionJSON []byte
+		var versionJSON sql.NullString
+		var resourceHash sql.NullString
 		var originalVolumeHandle sql.NullString
 
-		err := rows.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &volume.ResourceHash, &volume.ID, &originalVolumeHandle)
+		err := rows.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &resourceHash, &volume.ID, &originalVolumeHandle)
 		if err != nil {
 			return nil, err
 		}
@@ -298,9 +330,15 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 			volume.ExpiresIn = time.Duration(*ttlSeconds) * time.Second
 		}
 
-		err = json.Unmarshal(versionJSON, &volume.ResourceVersion)
-		if err != nil {
-			return nil, err
+		if versionJSON.Valid {
+			err = json.Unmarshal([]byte(versionJSON.String), &volume.ResourceVersion)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if resourceHash.Valid {
+			volume.ResourceHash = resourceHash.String
 		}
 
 		if originalVolumeHandle.Valid {
