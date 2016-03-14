@@ -56,26 +56,76 @@ def(template-for(part, out)):
                 <a(class = "undefined"):
                   "Releases"
 
-    <div(#page):
-      <div(#sidebar):
-        with(html omit-aux? = true):
-          <div(class = "sidebar-spacing"):
-            <div(.search):
-              <form(action = "javascript:void(0)"):
-                <input(
-                    type = "text"
-                    placeholder = "Search&hellip;"
-                    autocomplete = "off"
-                    #search)
+    <div:
+      <div(#page):
+        <div(#sidebar):
+          with(html omit-aux? = true):
+            <div(class = "sidebar-spacing"):
+              <div(.search):
+                <form(action = "javascript:void(0)"):
+                  <input(
+                      type = "text"
+                      placeholder = "Search&hellip;"
+                      autocomplete = "off"
+                      #search)
 
-                <ul(.search-results) {}
+                  <ul(.search-results) {}
 
-            <ol(.toc):
-              part top parts collect [p]:
-                html toc-leaf(part, p)
+              <ol(.toc):
+                part top parts collect [p]:
+                  html toc-leaf(part, p)
 
-      <div(#content):
-        <div(class = "content-spacing"):
-          html render-part(part, out)
+        <div(#content):
+          <div(class = "content-spacing"):
+            html render-part(part, out)
 
-    <script(src = "bootstrap.min.js"){}
+      <div(class = "u-full-width bottom-nav"):
+        <div(class = "container"):
+          <div(class = "conc-div"):
+            <div(class = "txt-c logo-div1"):
+              <img(src = "logo-white.png", alt = "", class = "logo-div")
+
+          <ul(class = "bottom-nav-list"):
+            <li(class = "bottom-nav-list-item"):
+              <h5(class = "navbar-link"):
+                <a(href = "index.html"): "Concourse"
+              <ul(class = "list-unstyled"):
+                <li(class = "navbar-link"):
+                  <a(class = "undefined"): "Team"
+
+            <li(class = "bottom-nav-list-item"):
+              <h5(class = "navbar-link"):
+                <a(class = "undefined"): "Documentation"
+              <ul(class = "list-unstyled"):
+                <li(class = "navbar-link"):
+                  <a(href = "what-and-why.html"): "What and Why"
+                <li(class = "navbar-link"):
+                  <a(href = "getting-started.html"): "Getting Started"
+
+            <li(class = "bottom-nav-list-item"):
+              <h5(class = "navbar-link"): <a(class = "undefined"): "Community"
+              <ul(class = "list-unstyled"):
+                <li(class = "navbar-link"):
+                  <a(href = "https://github.com/concourse"): "GitHub"
+                <li(class = "navbar-link"):
+                  <a(href = "https://concourseci.slack.com/"): "Slack"
+                <li(class = "navbar-link"):
+                  <a(href = "https://groups.google.com/group/concourse-security"): "Security Mailing List"
+                <li(class = "navbar-link"):
+                  <a(class = "undefined"): "Talks"
+
+            <li(class = "bottom-nav-list-item"):
+              <h5(class = "navbar-link"):
+                <a(class = "undefined"): "Releases"
+              <ul(class = "list-unstyled"):
+                <li(class = "navbar-link"):
+                  <a(href = "release-notes.html"): "Release Notes"
+                <li(class = "navbar-link"):
+                  <a(href = "https://github.com/concourse/concourse/releases"): "Concourse Binaries"
+                <li(class = "navbar-link"):
+                  <a(href = "http://bosh.io/releases/github.com/concourse/concourse?all=1"): "BOSH Releases"
+
+          <div(class = "sponsorship navbar-link"):
+            ["Sponsored by ", <a(href = "http://pivotal.io/"): "Pivotal Software, Inc."]
+
+      <script(src = "bootstrap.min.js"){}
