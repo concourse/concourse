@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/sclevine/agouti"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
@@ -27,13 +26,12 @@ var _ = Describe("Resource Pausing", func() {
 	var atcPort uint16
 
 	BeforeEach(func() {
-		dbLogger := lagertest.NewTestLogger("test")
 		postgresRunner.Truncate()
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 
-		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
+		sqlDB = db.NewSQL(dbConn, bus)
 
 		atcProcess, atcPort = startATC(atcBin, 1, true, BASIC_AUTH)
 		_, err := dbConn.Query(`DELETE FROM teams WHERE name = 'main'`)
@@ -65,7 +63,7 @@ var _ = Describe("Resource Pausing", func() {
 		}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbLogger, dbConn, bus, sqlDB)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, sqlDB)
 
 		var found bool
 		pipelineDB, found, err = pipelineDBFactory.BuildDefault()

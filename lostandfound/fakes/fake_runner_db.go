@@ -7,12 +7,14 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/lostandfound"
+	"github.com/pivotal-golang/lager"
 )
 
 type FakeRunnerDB struct {
-	LeaseCacheInvalidationStub        func(interval time.Duration) (db.Lease, bool, error)
+	LeaseCacheInvalidationStub        func(logger lager.Logger, interval time.Duration) (db.Lease, bool, error)
 	leaseCacheInvalidationMutex       sync.RWMutex
 	leaseCacheInvalidationArgsForCall []struct {
+		logger   lager.Logger
 		interval time.Duration
 	}
 	leaseCacheInvalidationReturns struct {
@@ -22,14 +24,15 @@ type FakeRunnerDB struct {
 	}
 }
 
-func (fake *FakeRunnerDB) LeaseCacheInvalidation(interval time.Duration) (db.Lease, bool, error) {
+func (fake *FakeRunnerDB) LeaseCacheInvalidation(logger lager.Logger, interval time.Duration) (db.Lease, bool, error) {
 	fake.leaseCacheInvalidationMutex.Lock()
 	fake.leaseCacheInvalidationArgsForCall = append(fake.leaseCacheInvalidationArgsForCall, struct {
+		logger   lager.Logger
 		interval time.Duration
-	}{interval})
+	}{logger, interval})
 	fake.leaseCacheInvalidationMutex.Unlock()
 	if fake.LeaseCacheInvalidationStub != nil {
-		return fake.LeaseCacheInvalidationStub(interval)
+		return fake.LeaseCacheInvalidationStub(logger, interval)
 	} else {
 		return fake.leaseCacheInvalidationReturns.result1, fake.leaseCacheInvalidationReturns.result2, fake.leaseCacheInvalidationReturns.result3
 	}
@@ -41,10 +44,10 @@ func (fake *FakeRunnerDB) LeaseCacheInvalidationCallCount() int {
 	return len(fake.leaseCacheInvalidationArgsForCall)
 }
 
-func (fake *FakeRunnerDB) LeaseCacheInvalidationArgsForCall(i int) time.Duration {
+func (fake *FakeRunnerDB) LeaseCacheInvalidationArgsForCall(i int) (lager.Logger, time.Duration) {
 	fake.leaseCacheInvalidationMutex.RLock()
 	defer fake.leaseCacheInvalidationMutex.RUnlock()
-	return fake.leaseCacheInvalidationArgsForCall[i].interval
+	return fake.leaseCacheInvalidationArgsForCall[i].logger, fake.leaseCacheInvalidationArgsForCall[i].interval
 }
 
 func (fake *FakeRunnerDB) LeaseCacheInvalidationReturns(result1 db.Lease, result2 bool, result3 error) {

@@ -7,10 +7,10 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-func (db *SQLDB) LeaseBuildTracking(buildID int, interval time.Duration) (Lease, bool, error) {
+func (db *SQLDB) LeaseBuildTracking(logger lager.Logger, buildID int, interval time.Duration) (Lease, bool, error) {
 	lease := &lease{
 		conn: db.conn,
-		logger: db.logger.Session("lease", lager.Data{
+		logger: logger.Session("lease", lager.Data{
 			"build_id": buildID,
 		}),
 		attemptSignFunc: func(tx Tx) (sql.Result, error) {
@@ -44,10 +44,10 @@ func (db *SQLDB) LeaseBuildTracking(buildID int, interval time.Duration) (Lease,
 	return lease, true, nil
 }
 
-func (db *SQLDB) LeaseBuildScheduling(buildID int, interval time.Duration) (Lease, bool, error) {
+func (db *SQLDB) LeaseBuildScheduling(logger lager.Logger, buildID int, interval time.Duration) (Lease, bool, error) {
 	lease := &lease{
 		conn: db.conn,
-		logger: db.logger.Session("lease", lager.Data{
+		logger: logger.Session("lease", lager.Data{
 			"build_id": buildID,
 		}),
 		attemptSignFunc: func(tx Tx) (sql.Result, error) {
@@ -81,10 +81,10 @@ func (db *SQLDB) LeaseBuildScheduling(buildID int, interval time.Duration) (Leas
 	return lease, true, nil
 }
 
-func (db *SQLDB) LeaseCacheInvalidation(interval time.Duration) (Lease, bool, error) {
+func (db *SQLDB) LeaseCacheInvalidation(logger lager.Logger, interval time.Duration) (Lease, bool, error) {
 	lease := &lease{
 		conn: db.conn,
-		logger: db.logger.Session("lease", lager.Data{
+		logger: logger.Session("lease", lager.Data{
 			"CacheInvalidator": "Scottsboro",
 		}),
 		attemptSignFunc: func(tx Tx) (sql.Result, error) {

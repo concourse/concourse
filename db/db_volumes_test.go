@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/lib/pq"
-	"github.com/pivotal-golang/lager/lagertest"
 )
 
 var _ = Describe("Keeping track of volumes", func() {
@@ -28,10 +27,10 @@ var _ = Describe("Keeping track of volumes", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		sqlDB := db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
+		sqlDB := db.NewSQL(dbConn, bus)
 		database = sqlDB
 
-		pipelineDBFactory := db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, sqlDB)
 		_, err := database.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 		config := atc.Config{

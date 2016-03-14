@@ -7,12 +7,14 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/scheduler"
+	"github.com/pivotal-golang/lager"
 )
 
 type FakeBuildsDB struct {
-	LeaseBuildSchedulingStub        func(buildID int, interval time.Duration) (db.Lease, bool, error)
+	LeaseBuildSchedulingStub        func(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error)
 	leaseBuildSchedulingMutex       sync.RWMutex
 	leaseBuildSchedulingArgsForCall []struct {
+		logger   lager.Logger
 		buildID  int
 		interval time.Duration
 	}
@@ -51,15 +53,16 @@ type FakeBuildsDB struct {
 	}
 }
 
-func (fake *FakeBuildsDB) LeaseBuildScheduling(buildID int, interval time.Duration) (db.Lease, bool, error) {
+func (fake *FakeBuildsDB) LeaseBuildScheduling(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error) {
 	fake.leaseBuildSchedulingMutex.Lock()
 	fake.leaseBuildSchedulingArgsForCall = append(fake.leaseBuildSchedulingArgsForCall, struct {
+		logger   lager.Logger
 		buildID  int
 		interval time.Duration
-	}{buildID, interval})
+	}{logger, buildID, interval})
 	fake.leaseBuildSchedulingMutex.Unlock()
 	if fake.LeaseBuildSchedulingStub != nil {
-		return fake.LeaseBuildSchedulingStub(buildID, interval)
+		return fake.LeaseBuildSchedulingStub(logger, buildID, interval)
 	} else {
 		return fake.leaseBuildSchedulingReturns.result1, fake.leaseBuildSchedulingReturns.result2, fake.leaseBuildSchedulingReturns.result3
 	}
@@ -71,10 +74,10 @@ func (fake *FakeBuildsDB) LeaseBuildSchedulingCallCount() int {
 	return len(fake.leaseBuildSchedulingArgsForCall)
 }
 
-func (fake *FakeBuildsDB) LeaseBuildSchedulingArgsForCall(i int) (int, time.Duration) {
+func (fake *FakeBuildsDB) LeaseBuildSchedulingArgsForCall(i int) (lager.Logger, int, time.Duration) {
 	fake.leaseBuildSchedulingMutex.RLock()
 	defer fake.leaseBuildSchedulingMutex.RUnlock()
-	return fake.leaseBuildSchedulingArgsForCall[i].buildID, fake.leaseBuildSchedulingArgsForCall[i].interval
+	return fake.leaseBuildSchedulingArgsForCall[i].logger, fake.leaseBuildSchedulingArgsForCall[i].buildID, fake.leaseBuildSchedulingArgsForCall[i].interval
 }
 
 func (fake *FakeBuildsDB) LeaseBuildSchedulingReturns(result1 db.Lease, result2 bool, result3 error) {

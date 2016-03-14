@@ -9,6 +9,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/lib/pq"
+	"github.com/pivotal-golang/lager"
 )
 
 //go:generate counterfeiter . Conn
@@ -95,9 +96,9 @@ type DB interface {
 	UpdateBuildPreparation(buildPreparation BuildPreparation) error
 	ResetBuildPreparationsWithPipelinePaused(pipelineID int) error
 
-	LeaseBuildTracking(buildID int, interval time.Duration) (Lease, bool, error)
-	LeaseBuildScheduling(buildID int, interval time.Duration) (Lease, bool, error)
-	LeaseCacheInvalidation(interval time.Duration) (Lease, bool, error)
+	LeaseBuildTracking(logger lager.Logger, buildID int, interval time.Duration) (Lease, bool, error)
+	LeaseBuildScheduling(logger lager.Logger, buildID int, interval time.Duration) (Lease, bool, error)
+	LeaseCacheInvalidation(logger lager.Logger, interval time.Duration) (Lease, bool, error)
 
 	StartBuild(buildID int, engineName, engineMetadata string) (bool, error)
 	FinishBuild(buildID int, status Status) error

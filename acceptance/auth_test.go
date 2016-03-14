@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
@@ -25,12 +24,11 @@ var _ = Describe("Auth", func() {
 	var atcPort uint16
 
 	BeforeEach(func() {
-		logger := lagertest.NewTestLogger("test")
 		postgresRunner.Truncate()
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-		sqlDB = db.NewSQL(logger, dbConn, bus)
+		sqlDB = db.NewSQL(dbConn, bus)
 
 		err := sqlDB.DeleteTeamByName(atc.DefaultPipelineName)
 		Expect(err).NotTo(HaveOccurred())

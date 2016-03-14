@@ -6,7 +6,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/lib/pq"
-	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,8 +28,8 @@ var _ = Describe("Image Versions", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		sqlDB = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)
+		sqlDB = db.NewSQL(dbConn, bus)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, sqlDB)
 
 		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())

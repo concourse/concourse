@@ -523,7 +523,7 @@ func (db *SQLDB) ErrorBuild(buildID int, cause error) error {
 }
 
 func (db *SQLDB) SaveBuildInput(teamName string, buildID int, input BuildInput) (SavedVersionedResource, error) {
-	pipelineDBFactory := NewPipelineDBFactory(db.logger, db.conn, db.bus, db)
+	pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus, db)
 	pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(teamName, input.VersionedResource.PipelineName)
 	if err != nil {
 		return SavedVersionedResource{}, err
@@ -533,7 +533,7 @@ func (db *SQLDB) SaveBuildInput(teamName string, buildID int, input BuildInput) 
 }
 
 func (db *SQLDB) SaveBuildOutput(teamName string, buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
-	pipelineDBFactory := NewPipelineDBFactory(db.logger, db.conn, db.bus, db)
+	pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus, db)
 	pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(teamName, vr.PipelineName)
 	if err != nil {
 		return SavedVersionedResource{}, err

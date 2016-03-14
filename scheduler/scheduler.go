@@ -30,7 +30,7 @@ type PipelineDB interface {
 //go:generate counterfeiter . BuildsDB
 
 type BuildsDB interface {
-	LeaseBuildScheduling(buildID int, interval time.Duration) (db.Lease, bool, error)
+	LeaseBuildScheduling(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error)
 	ErrorBuild(buildID int, err error) error
 	FinishBuild(int, db.Status) error
 
@@ -244,7 +244,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 ) engine.Build {
 	logger = logger.Session("scheduling")
 
-	lease, acquired, err := s.BuildsDB.LeaseBuildScheduling(build.ID, 10*time.Second)
+	lease, acquired, err := s.BuildsDB.LeaseBuildScheduling(logger, build.ID, 10*time.Second)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return nil

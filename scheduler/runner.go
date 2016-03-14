@@ -79,7 +79,7 @@ func (runner *Runner) tick(logger lager.Logger) error {
 		return nil
 	}
 
-	schedulingLease, leased, err := runner.DB.LeaseScheduling(runner.Interval)
+	schedulingLease, leased, err := runner.DB.LeaseScheduling(logger, runner.Interval)
 	if err != nil {
 		logger.Error("failed-to-acquire-scheduling-lease", err)
 		return nil

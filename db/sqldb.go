@@ -3,13 +3,9 @@ package db
 import (
 	"fmt"
 	"time"
-
-	"github.com/pivotal-golang/lager"
 )
 
 type SQLDB struct {
-	logger lager.Logger
-
 	conn Conn
 	bus  *notificationsBus
 
@@ -17,13 +13,10 @@ type SQLDB struct {
 }
 
 func NewSQL(
-	logger lager.Logger,
 	sqldbConnection Conn,
 	bus *notificationsBus,
 ) *SQLDB {
 	return &SQLDB{
-		logger: logger,
-
 		conn: sqldbConnection,
 		bus:  bus,
 	}

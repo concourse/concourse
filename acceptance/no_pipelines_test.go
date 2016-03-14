@@ -8,7 +8,6 @@ import (
 	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/sclevine/agouti"
 	. "github.com/sclevine/agouti/matchers"
 	"github.com/tedsuo/ifrit"
@@ -23,12 +22,11 @@ var _ = Describe("No Pipelines configured", func() {
 
 	BeforeEach(func() {
 		var err error
-		dbLogger := lagertest.NewTestLogger("test")
 		postgresRunner.Truncate()
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
+		sqlDB = db.NewSQL(dbConn, bus)
 		atcProcess, atcPort = startATC(atcBin, 1, true, BASIC_AUTH)
 
 		page, err = agoutiDriver.NewPage()

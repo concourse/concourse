@@ -275,7 +275,7 @@ var _ = Describe("DBEngine", func() {
 						fakeBuildDB.AbortBuildStub = func(int) error {
 							Expect(fakeBuildDB.LeaseBuildTrackingCallCount()).To(Equal(1))
 
-							lockedBuild, interval := fakeBuildDB.LeaseBuildTrackingArgsForCall(0)
+							_, lockedBuild, interval := fakeBuildDB.LeaseBuildTrackingArgsForCall(0)
 							Expect(lockedBuild).To(Equal(model.ID))
 							Expect(interval).To(Equal(10 * time.Second))
 
@@ -521,7 +521,7 @@ var _ = Describe("DBEngine", func() {
 							realBuild.ResumeStub = func(lager.Logger) {
 								Expect(fakeBuildDB.LeaseBuildTrackingCallCount()).To(Equal(1))
 
-								lockedBuild, interval := fakeBuildDB.LeaseBuildTrackingArgsForCall(0)
+								_, lockedBuild, interval := fakeBuildDB.LeaseBuildTrackingArgsForCall(0)
 								Expect(lockedBuild).To(Equal(model.ID))
 								Expect(interval).To(Equal(10 * time.Second))
 

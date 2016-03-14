@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	"github.com/pivotal-golang/lager"
 )
 
 type FakePipelineDB struct {
@@ -60,10 +61,11 @@ type FakePipelineDB struct {
 		result3 bool
 		result4 error
 	}
-	LeaseSchedulingStub        func(time.Duration) (db.Lease, bool, error)
+	LeaseSchedulingStub        func(lager.Logger, time.Duration) (db.Lease, bool, error)
 	leaseSchedulingMutex       sync.RWMutex
 	leaseSchedulingArgsForCall []struct {
-		arg1 time.Duration
+		arg1 lager.Logger
+		arg2 time.Duration
 	}
 	leaseSchedulingReturns struct {
 		result1 db.Lease
@@ -161,9 +163,10 @@ type FakePipelineDB struct {
 	setResourceCheckErrorReturns struct {
 		result1 error
 	}
-	LeaseResourceCheckingStub        func(resource string, length time.Duration, immediate bool) (db.Lease, bool, error)
+	LeaseResourceCheckingStub        func(logger lager.Logger, resource string, length time.Duration, immediate bool) (db.Lease, bool, error)
 	leaseResourceCheckingMutex       sync.RWMutex
 	leaseResourceCheckingArgsForCall []struct {
+		logger    lager.Logger
 		resource  string
 		length    time.Duration
 		immediate bool
@@ -594,14 +597,15 @@ func (fake *FakePipelineDB) GetConfigReturns(result1 atc.Config, result2 db.Conf
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakePipelineDB) LeaseScheduling(arg1 time.Duration) (db.Lease, bool, error) {
+func (fake *FakePipelineDB) LeaseScheduling(arg1 lager.Logger, arg2 time.Duration) (db.Lease, bool, error) {
 	fake.leaseSchedulingMutex.Lock()
 	fake.leaseSchedulingArgsForCall = append(fake.leaseSchedulingArgsForCall, struct {
-		arg1 time.Duration
-	}{arg1})
+		arg1 lager.Logger
+		arg2 time.Duration
+	}{arg1, arg2})
 	fake.leaseSchedulingMutex.Unlock()
 	if fake.LeaseSchedulingStub != nil {
-		return fake.LeaseSchedulingStub(arg1)
+		return fake.LeaseSchedulingStub(arg1, arg2)
 	} else {
 		return fake.leaseSchedulingReturns.result1, fake.leaseSchedulingReturns.result2, fake.leaseSchedulingReturns.result3
 	}
@@ -613,10 +617,10 @@ func (fake *FakePipelineDB) LeaseSchedulingCallCount() int {
 	return len(fake.leaseSchedulingArgsForCall)
 }
 
-func (fake *FakePipelineDB) LeaseSchedulingArgsForCall(i int) time.Duration {
+func (fake *FakePipelineDB) LeaseSchedulingArgsForCall(i int) (lager.Logger, time.Duration) {
 	fake.leaseSchedulingMutex.RLock()
 	defer fake.leaseSchedulingMutex.RUnlock()
-	return fake.leaseSchedulingArgsForCall[i].arg1
+	return fake.leaseSchedulingArgsForCall[i].arg1, fake.leaseSchedulingArgsForCall[i].arg2
 }
 
 func (fake *FakePipelineDB) LeaseSchedulingReturns(result1 db.Lease, result2 bool, result3 error) {
@@ -959,16 +963,17 @@ func (fake *FakePipelineDB) SetResourceCheckErrorReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) LeaseResourceChecking(resource string, length time.Duration, immediate bool) (db.Lease, bool, error) {
+func (fake *FakePipelineDB) LeaseResourceChecking(logger lager.Logger, resource string, length time.Duration, immediate bool) (db.Lease, bool, error) {
 	fake.leaseResourceCheckingMutex.Lock()
 	fake.leaseResourceCheckingArgsForCall = append(fake.leaseResourceCheckingArgsForCall, struct {
+		logger    lager.Logger
 		resource  string
 		length    time.Duration
 		immediate bool
-	}{resource, length, immediate})
+	}{logger, resource, length, immediate})
 	fake.leaseResourceCheckingMutex.Unlock()
 	if fake.LeaseResourceCheckingStub != nil {
-		return fake.LeaseResourceCheckingStub(resource, length, immediate)
+		return fake.LeaseResourceCheckingStub(logger, resource, length, immediate)
 	} else {
 		return fake.leaseResourceCheckingReturns.result1, fake.leaseResourceCheckingReturns.result2, fake.leaseResourceCheckingReturns.result3
 	}
@@ -980,10 +985,10 @@ func (fake *FakePipelineDB) LeaseResourceCheckingCallCount() int {
 	return len(fake.leaseResourceCheckingArgsForCall)
 }
 
-func (fake *FakePipelineDB) LeaseResourceCheckingArgsForCall(i int) (string, time.Duration, bool) {
+func (fake *FakePipelineDB) LeaseResourceCheckingArgsForCall(i int) (lager.Logger, string, time.Duration, bool) {
 	fake.leaseResourceCheckingMutex.RLock()
 	defer fake.leaseResourceCheckingMutex.RUnlock()
-	return fake.leaseResourceCheckingArgsForCall[i].resource, fake.leaseResourceCheckingArgsForCall[i].length, fake.leaseResourceCheckingArgsForCall[i].immediate
+	return fake.leaseResourceCheckingArgsForCall[i].logger, fake.leaseResourceCheckingArgsForCall[i].resource, fake.leaseResourceCheckingArgsForCall[i].length, fake.leaseResourceCheckingArgsForCall[i].immediate
 }
 
 func (fake *FakePipelineDB) LeaseResourceCheckingReturns(result1 db.Lease, result2 bool, result3 error) {

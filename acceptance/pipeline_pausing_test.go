@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/sclevine/agouti"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
@@ -26,13 +25,12 @@ var _ = Describe("Pipeline Pausing", func() {
 	var pipelineDBFactory db.PipelineDBFactory
 
 	BeforeEach(func() {
-		dbLogger := lagertest.NewTestLogger("test")
 		postgresRunner.Truncate()
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbLogger, dbConn, bus, sqlDB)
+		sqlDB = db.NewSQL(dbConn, bus)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, sqlDB)
 		atcProcess, atcPort = startATC(atcBin, 1, true, BASIC_AUTH)
 		err := sqlDB.DeleteTeamByName(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())

@@ -13,7 +13,7 @@ import (
 //go:generate counterfeiter . RunnerDB
 
 type RunnerDB interface {
-	LeaseCacheInvalidation(interval time.Duration) (db.Lease, bool, error)
+	LeaseCacheInvalidation(logger lager.Logger, interval time.Duration) (db.Lease, bool, error)
 }
 
 func NewRunner(
@@ -36,7 +36,7 @@ func NewRunner(
 				leaseLogger := logger.Session("lease-invalidate-cache")
 				leaseLogger.Info("tick")
 
-				lease, leased, err := db.LeaseCacheInvalidation(interval)
+				lease, leased, err := db.LeaseCacheInvalidation(leaseLogger, interval)
 
 				if err != nil {
 					leaseLogger.Error("failed-to-get-lease", err)

@@ -60,7 +60,7 @@ var _ = Describe("Runner", func() {
 
 		It("calls to get a lease for cache invalidation", func() {
 			Eventually(fakeDB.LeaseCacheInvalidationCallCount).Should(Equal(1))
-			actualInterval := fakeDB.LeaseCacheInvalidationArgsForCall(0)
+			_, actualInterval := fakeDB.LeaseCacheInvalidationArgsForCall(0)
 			Expect(actualInterval).To(Equal(interval))
 		})
 

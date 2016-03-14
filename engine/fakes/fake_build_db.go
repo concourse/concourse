@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
+	"github.com/pivotal-golang/lager"
 )
 
 type FakeBuildDB struct {
@@ -48,9 +49,10 @@ type FakeBuildDB struct {
 		result1 db.Notifier
 		result2 error
 	}
-	LeaseBuildTrackingStub        func(buildID int, interval time.Duration) (db.Lease, bool, error)
+	LeaseBuildTrackingStub        func(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error)
 	leaseBuildTrackingMutex       sync.RWMutex
 	leaseBuildTrackingArgsForCall []struct {
+		logger   lager.Logger
 		buildID  int
 		interval time.Duration
 	}
@@ -204,15 +206,16 @@ func (fake *FakeBuildDB) AbortNotifierReturns(result1 db.Notifier, result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBuildDB) LeaseBuildTracking(buildID int, interval time.Duration) (db.Lease, bool, error) {
+func (fake *FakeBuildDB) LeaseBuildTracking(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error) {
 	fake.leaseBuildTrackingMutex.Lock()
 	fake.leaseBuildTrackingArgsForCall = append(fake.leaseBuildTrackingArgsForCall, struct {
+		logger   lager.Logger
 		buildID  int
 		interval time.Duration
-	}{buildID, interval})
+	}{logger, buildID, interval})
 	fake.leaseBuildTrackingMutex.Unlock()
 	if fake.LeaseBuildTrackingStub != nil {
-		return fake.LeaseBuildTrackingStub(buildID, interval)
+		return fake.LeaseBuildTrackingStub(logger, buildID, interval)
 	} else {
 		return fake.leaseBuildTrackingReturns.result1, fake.leaseBuildTrackingReturns.result2, fake.leaseBuildTrackingReturns.result3
 	}
@@ -224,10 +227,10 @@ func (fake *FakeBuildDB) LeaseBuildTrackingCallCount() int {
 	return len(fake.leaseBuildTrackingArgsForCall)
 }
 
-func (fake *FakeBuildDB) LeaseBuildTrackingArgsForCall(i int) (int, time.Duration) {
+func (fake *FakeBuildDB) LeaseBuildTrackingArgsForCall(i int) (lager.Logger, int, time.Duration) {
 	fake.leaseBuildTrackingMutex.RLock()
 	defer fake.leaseBuildTrackingMutex.RUnlock()
-	return fake.leaseBuildTrackingArgsForCall[i].buildID, fake.leaseBuildTrackingArgsForCall[i].interval
+	return fake.leaseBuildTrackingArgsForCall[i].logger, fake.leaseBuildTrackingArgsForCall[i].buildID, fake.leaseBuildTrackingArgsForCall[i].interval
 }
 
 func (fake *FakeBuildDB) LeaseBuildTrackingReturns(result1 db.Lease, result2 bool, result3 error) {

@@ -115,7 +115,7 @@ var _ = Describe("Runner", func() {
 	It("signs the scheduling lease for the pipeline", func() {
 		Eventually(pipelineDB.LeaseSchedulingCallCount).Should(BeNumerically(">=", 1))
 
-		duration := pipelineDB.LeaseSchedulingArgsForCall(0)
+		_, duration := pipelineDB.LeaseSchedulingArgsForCall(0)
 		Expect(duration).To(Equal(100 * time.Millisecond))
 	})
 

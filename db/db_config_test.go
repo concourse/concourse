@@ -6,7 +6,6 @@ import (
 	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -38,8 +37,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		database = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, database)
+		database = db.NewSQL(dbConn, bus)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, database)
 
 		var err error
 		team, err = database.SaveTeam(db.Team{Name: "some-team"})

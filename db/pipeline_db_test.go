@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/atc/db/algorithm"
 	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
-	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,8 +32,8 @@ var _ = Describe("PipelineDB", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		sqlDB = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, sqlDB)
+		sqlDB = db.NewSQL(dbConn, bus)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, sqlDB)
 	})
 
 	AfterEach(func() {

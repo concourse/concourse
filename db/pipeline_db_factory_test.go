@@ -6,7 +6,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/fakes"
 	"github.com/lib/pq"
-	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -31,7 +30,7 @@ var _ = Describe("PipelineDBFactory", func() {
 
 		pipelinesDB = new(fakes.FakePipelinesDB)
 
-		pipelineDBFactory = db.NewPipelineDBFactory(lagertest.NewTestLogger("test"), dbConn, bus, pipelinesDB)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, pipelinesDB)
 	})
 
 	AfterEach(func() {

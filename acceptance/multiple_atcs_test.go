@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
@@ -31,13 +30,11 @@ var _ = Describe("Multiple ATCs", func() {
 	var dbListener *pq.Listener
 
 	BeforeEach(func() {
-		dbLogger := lagertest.NewTestLogger("test")
-
 		postgresRunner.Truncate()
 		dbConn = db.Wrap(postgresRunner.Open())
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
-		sqlDB = db.NewSQL(dbLogger, dbConn, bus)
+		sqlDB = db.NewSQL(dbConn, bus)
 
 		atcOneProcess, atcOnePort = startATC(atcBin, 1, true, BASIC_AUTH)
 		atcTwoProcess, atcTwoPort = startATC(atcBin, 2, true, BASIC_AUTH)

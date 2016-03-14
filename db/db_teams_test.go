@@ -8,7 +8,6 @@ import (
 	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -29,7 +28,7 @@ var _ = Describe("SQL DB Teams", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		database = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
+		database = db.NewSQL(dbConn, bus)
 
 		database.DeleteTeamByName(atc.DefaultTeamName)
 	})

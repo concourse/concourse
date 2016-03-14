@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -33,7 +32,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		database = db.NewSQL(lagertest.NewTestLogger("test"), dbConn, bus)
+		database = db.NewSQL(dbConn, bus)
 
 		config := atc.Config{
 			Jobs: atc.JobConfigs{
@@ -65,7 +64,7 @@ var _ = Describe("Keeping track of containers", func() {
 		_, _, err = database.SaveConfig(atc.DefaultTeamName, "some-other-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDBFactory := db.NewPipelineDBFactory(nil, dbConn, nil, database)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, nil, database)
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 

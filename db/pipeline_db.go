@@ -28,7 +28,7 @@ type PipelineDB interface {
 
 	GetConfig() (atc.Config, ConfigVersion, bool, error)
 
-	LeaseScheduling(time.Duration) (Lease, bool, error)
+	LeaseScheduling(lager.Logger, time.Duration) (Lease, bool, error)
 
 	GetResource(resourceName string) (SavedResource, error)
 	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
@@ -42,7 +42,7 @@ type PipelineDB interface {
 	EnableVersionedResource(versionedResourceID int) error
 	DisableVersionedResource(versionedResourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
-	LeaseResourceChecking(resource string, length time.Duration, immediate bool) (Lease, bool, error)
+	LeaseResourceChecking(logger lager.Logger, resource string, length time.Duration, immediate bool) (Lease, bool, error)
 
 	GetJob(job string) (SavedJob, error)
 	PauseJob(job string) error
@@ -81,8 +81,6 @@ type PipelineDB interface {
 }
 
 type pipelineDB struct {
-	logger lager.Logger
-
 	conn Conn
 	bus  *notificationsBus
 
@@ -207,8 +205,8 @@ func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {
 	return resource, nil
 }
 
-func (pdb *pipelineDB) LeaseResourceChecking(resourceName string, interval time.Duration, immediate bool) (Lease, bool, error) {
-	logger := pdb.logger.Session("lease", lager.Data{
+func (pdb *pipelineDB) LeaseResourceChecking(logger lager.Logger, resourceName string, interval time.Duration, immediate bool) (Lease, bool, error) {
+	logger = logger.Session("lease", lager.Data{
 		"resource": resourceName,
 	})
 
@@ -268,10 +266,10 @@ func (pdb *pipelineDB) LeaseResourceChecking(resourceName string, interval time.
 	return lease, true, nil
 }
 
-func (pdb *pipelineDB) LeaseScheduling(interval time.Duration) (Lease, bool, error) {
+func (pdb *pipelineDB) LeaseScheduling(logger lager.Logger, interval time.Duration) (Lease, bool, error) {
 	lease := &lease{
 		conn: pdb.conn,
-		logger: pdb.logger.Session("lease", lager.Data{
+		logger: logger.Session("lease", lager.Data{
 			"pipeline": pdb.Name,
 		}),
 		attemptSignFunc: func(tx Tx) (sql.Result, error) {

@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/radar"
+	"github.com/pivotal-golang/lager"
 )
 
 type FakeRadarDB struct {
@@ -94,9 +95,10 @@ type FakeRadarDB struct {
 	setResourceCheckErrorReturns struct {
 		result1 error
 	}
-	LeaseResourceCheckingStub        func(resource string, interval time.Duration, immediate bool) (db.Lease, bool, error)
+	LeaseResourceCheckingStub        func(logger lager.Logger, resource string, interval time.Duration, immediate bool) (db.Lease, bool, error)
 	leaseResourceCheckingMutex       sync.RWMutex
 	leaseResourceCheckingArgsForCall []struct {
+		logger    lager.Logger
 		resource  string
 		interval  time.Duration
 		immediate bool
@@ -413,16 +415,17 @@ func (fake *FakeRadarDB) SetResourceCheckErrorReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeRadarDB) LeaseResourceChecking(resource string, interval time.Duration, immediate bool) (db.Lease, bool, error) {
+func (fake *FakeRadarDB) LeaseResourceChecking(logger lager.Logger, resource string, interval time.Duration, immediate bool) (db.Lease, bool, error) {
 	fake.leaseResourceCheckingMutex.Lock()
 	fake.leaseResourceCheckingArgsForCall = append(fake.leaseResourceCheckingArgsForCall, struct {
+		logger    lager.Logger
 		resource  string
 		interval  time.Duration
 		immediate bool
-	}{resource, interval, immediate})
+	}{logger, resource, interval, immediate})
 	fake.leaseResourceCheckingMutex.Unlock()
 	if fake.LeaseResourceCheckingStub != nil {
-		return fake.LeaseResourceCheckingStub(resource, interval, immediate)
+		return fake.LeaseResourceCheckingStub(logger, resource, interval, immediate)
 	} else {
 		return fake.leaseResourceCheckingReturns.result1, fake.leaseResourceCheckingReturns.result2, fake.leaseResourceCheckingReturns.result3
 	}
@@ -434,10 +437,10 @@ func (fake *FakeRadarDB) LeaseResourceCheckingCallCount() int {
 	return len(fake.leaseResourceCheckingArgsForCall)
 }
 
-func (fake *FakeRadarDB) LeaseResourceCheckingArgsForCall(i int) (string, time.Duration, bool) {
+func (fake *FakeRadarDB) LeaseResourceCheckingArgsForCall(i int) (lager.Logger, string, time.Duration, bool) {
 	fake.leaseResourceCheckingMutex.RLock()
 	defer fake.leaseResourceCheckingMutex.RUnlock()
-	return fake.leaseResourceCheckingArgsForCall[i].resource, fake.leaseResourceCheckingArgsForCall[i].interval, fake.leaseResourceCheckingArgsForCall[i].immediate
+	return fake.leaseResourceCheckingArgsForCall[i].logger, fake.leaseResourceCheckingArgsForCall[i].resource, fake.leaseResourceCheckingArgsForCall[i].interval, fake.leaseResourceCheckingArgsForCall[i].immediate
 }
 
 func (fake *FakeRadarDB) LeaseResourceCheckingReturns(result1 db.Lease, result2 bool, result3 error) {

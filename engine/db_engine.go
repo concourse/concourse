@@ -25,7 +25,7 @@ type BuildDB interface {
 	AbortBuild(int) error
 	AbortNotifier(int) (db.Notifier, error)
 
-	LeaseBuildTracking(buildID int, interval time.Duration) (db.Lease, bool, error)
+	LeaseBuildTracking(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error)
 
 	FinishBuild(int, db.Status) error
 }
@@ -132,7 +132,7 @@ func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, bool
 func (build *dbBuild) Abort(logger lager.Logger) error {
 	// the order below is very important to avoid races with build creation.
 
-	lease, leased, err := build.db.LeaseBuildTracking(build.id, trackingInterval)
+	lease, leased, err := build.db.LeaseBuildTracking(logger, build.id, trackingInterval)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return err
@@ -198,7 +198,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 }
 
 func (build *dbBuild) Resume(logger lager.Logger) {
-	lease, leased, err := build.db.LeaseBuildTracking(build.id, trackingInterval)
+	lease, leased, err := build.db.LeaseBuildTracking(logger, build.id, trackingInterval)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return

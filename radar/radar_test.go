@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/clock/fakeclock"
+	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 
@@ -195,7 +196,7 @@ var _ = Describe("Radar", func() {
 
 					Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(1))
 
-					resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
+					_, resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
 					Expect(resourceName).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeFalse())
@@ -230,7 +231,7 @@ var _ = Describe("Radar", func() {
 
 				Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(1))
 
-				resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
+				_, resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
 				Expect(resourceName).To(Equal("some-resource"))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeFalse())
@@ -620,7 +621,7 @@ var _ = Describe("Radar", func() {
 			It("grabs an immediate resource checking lease before checking, breaks lease after done", func() {
 				Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(1))
 
-				resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
+				_, resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
 				Expect(resourceName).To(Equal("some-resource"))
 				Expect(leaseInterval).To(Equal(interval))
 				Expect(immediate).To(BeTrue())
@@ -642,7 +643,7 @@ var _ = Describe("Radar", func() {
 				It("leases for the configured interval", func() {
 					Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(1))
 
-					resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
+					_, resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
 					Expect(resourceName).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(10 * time.Millisecond))
 					Expect(immediate).To(BeTrue())
@@ -681,7 +682,7 @@ var _ = Describe("Radar", func() {
 					results <- true
 					close(results)
 
-					fakeRadarDB.LeaseResourceCheckingStub = func(resourceName string, interval time.Duration, immediate bool) (db.Lease, bool, error) {
+					fakeRadarDB.LeaseResourceCheckingStub = func(logger lager.Logger, resourceName string, interval time.Duration, immediate bool) (db.Lease, bool, error) {
 						if <-results {
 							return fakeLease, true, nil
 						} else {
@@ -695,17 +696,17 @@ var _ = Describe("Radar", func() {
 				It("retries every second until it is", func() {
 					Expect(fakeRadarDB.LeaseResourceCheckingCallCount()).To(Equal(3))
 
-					resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
+					_, resourceName, leaseInterval, immediate := fakeRadarDB.LeaseResourceCheckingArgsForCall(0)
 					Expect(resourceName).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
-					resourceName, leaseInterval, immediate = fakeRadarDB.LeaseResourceCheckingArgsForCall(1)
+					_, resourceName, leaseInterval, immediate = fakeRadarDB.LeaseResourceCheckingArgsForCall(1)
 					Expect(resourceName).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())
 
-					resourceName, leaseInterval, immediate = fakeRadarDB.LeaseResourceCheckingArgsForCall(2)
+					_, resourceName, leaseInterval, immediate = fakeRadarDB.LeaseResourceCheckingArgsForCall(2)
 					Expect(resourceName).To(Equal("some-resource"))
 					Expect(leaseInterval).To(Equal(interval))
 					Expect(immediate).To(BeTrue())

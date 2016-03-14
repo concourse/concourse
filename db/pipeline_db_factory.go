@@ -1,7 +1,5 @@
 package db
 
-import "github.com/pivotal-golang/lager"
-
 //go:generate counterfeiter . PipelineDBFactory
 
 type PipelineDBFactory interface {
@@ -11,22 +9,17 @@ type PipelineDBFactory interface {
 }
 
 type pipelineDBFactory struct {
-	logger lager.Logger
-
 	conn        Conn
 	bus         *notificationsBus
 	pipelinesDB PipelinesDB
 }
 
 func NewPipelineDBFactory(
-	logger lager.Logger,
 	sqldbConnection Conn,
 	bus *notificationsBus,
 	pipelinesDB PipelinesDB,
 ) *pipelineDBFactory {
 	return &pipelineDBFactory{
-		logger: logger,
-
 		conn:        sqldbConnection,
 		bus:         bus,
 		pipelinesDB: pipelinesDB,
@@ -44,8 +37,6 @@ func (pdbf *pipelineDBFactory) BuildWithTeamNameAndName(teamName, pipelineName s
 
 func (pdbf *pipelineDBFactory) Build(pipeline SavedPipeline) PipelineDB {
 	return &pipelineDB{
-		logger: pdbf.logger,
-
 		conn: pdbf.conn,
 		bus:  pdbf.bus,
 
@@ -64,8 +55,6 @@ func (pdbf *pipelineDBFactory) BuildDefault() (PipelineDB, bool, error) {
 	}
 
 	return &pipelineDB{
-		logger: pdbf.logger,
-
 		conn: pdbf.conn,
 		bus:  pdbf.bus,
 

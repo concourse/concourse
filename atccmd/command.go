@@ -432,9 +432,9 @@ func (cmd *ATCCommand) constructDB(logger lager.Logger) (*db.SQLDB, db.PipelineD
 
 	explainDBConn := db.Explain(logger, dbConn, clock.NewClock(), 500*time.Millisecond)
 	countingDBConn := metric.CountQueries(explainDBConn)
-	sqlDB := db.NewSQL(logger.Session("db"), countingDBConn, bus)
+	sqlDB := db.NewSQL(countingDBConn, bus)
 
-	pipelineDBFactory := db.NewPipelineDBFactory(logger.Session("db"), explainDBConn, bus, sqlDB)
+	pipelineDBFactory := db.NewPipelineDBFactory(explainDBConn, bus, sqlDB)
 
 	return sqlDB, pipelineDBFactory, err
 }
