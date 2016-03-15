@@ -293,11 +293,14 @@ func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {
 		return SavedVolume{}, err
 	}
 
-	if len(volumes) != 1 {
-		return SavedVolume{}, errors.New("0 or 2+ volumes found for same handle")
+	switch len(volumes) {
+	case 0:
+		return SavedVolume{}, errors.New(fmt.Sprintf("unable to find volume handle %s", originalVolumeHandle))
+	case 1:
+		return volumes[0], nil
+	default:
+		return SavedVolume{}, errors.New(fmt.Sprintf("multiple volumes found for handle %s", originalVolumeHandle))
 	}
-
-	return volumes[0], nil
 }
 
 func (db *SQLDB) expireVolumes() error {
