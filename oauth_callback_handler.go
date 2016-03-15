@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/pivotal-golang/lager"
 
+	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 
@@ -120,7 +121,9 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	httpClient := provider.Client(oauth2.NoContext, token)
+	disabledKeepAliveClient := http.Client{Transport: &http.Transport{DisableKeepAlives: true}}
+	ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, disabledKeepAliveClient)
+	httpClient := provider.Client(ctx, token)
 
 	verified, err := provider.Verify(hLog.Session("verify"), httpClient)
 	if err != nil {
