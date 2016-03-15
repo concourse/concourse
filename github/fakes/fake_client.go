@@ -9,7 +9,7 @@ import (
 )
 
 type FakeClient struct {
-	CurrentUserStub        func(*http.Client, string) (string, error)
+	CurrentUserStub        func(*http.Client) (string, error)
 	currentUserMutex       sync.RWMutex
 	currentUserArgsForCall []struct {
 		arg1 *http.Client
@@ -18,7 +18,7 @@ type FakeClient struct {
 		result1 string
 		result2 error
 	}
-	OrganizationsStub        func(*http.Client, string) ([]string, error)
+	OrganizationsStub        func(*http.Client) ([]string, error)
 	organizationsMutex       sync.RWMutex
 	organizationsArgsForCall []struct {
 		arg1 *http.Client
@@ -27,7 +27,7 @@ type FakeClient struct {
 		result1 []string
 		result2 error
 	}
-	TeamsStub        func(*http.Client, string) (github.OrganizationTeams, error)
+	TeamsStub        func(*http.Client) (github.OrganizationTeams, error)
 	teamsMutex       sync.RWMutex
 	teamsArgsForCall []struct {
 		arg1 *http.Client
@@ -38,14 +38,14 @@ type FakeClient struct {
 	}
 }
 
-func (fake *FakeClient) CurrentUser(arg1 *http.Client, arg2 string) (string, error) {
+func (fake *FakeClient) CurrentUser(arg1 *http.Client) (string, error) {
 	fake.currentUserMutex.Lock()
 	fake.currentUserArgsForCall = append(fake.currentUserArgsForCall, struct {
 		arg1 *http.Client
 	}{arg1})
 	fake.currentUserMutex.Unlock()
 	if fake.CurrentUserStub != nil {
-		return fake.CurrentUserStub(arg1, arg2)
+		return fake.CurrentUserStub(arg1)
 	} else {
 		return fake.currentUserReturns.result1, fake.currentUserReturns.result2
 	}
@@ -71,14 +71,14 @@ func (fake *FakeClient) CurrentUserReturns(result1 string, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeClient) Organizations(arg1 *http.Client, arg2 string) ([]string, error) {
+func (fake *FakeClient) Organizations(arg1 *http.Client) ([]string, error) {
 	fake.organizationsMutex.Lock()
 	fake.organizationsArgsForCall = append(fake.organizationsArgsForCall, struct {
 		arg1 *http.Client
 	}{arg1})
 	fake.organizationsMutex.Unlock()
 	if fake.OrganizationsStub != nil {
-		return fake.OrganizationsStub(arg1, arg2)
+		return fake.OrganizationsStub(arg1)
 	} else {
 		return fake.organizationsReturns.result1, fake.organizationsReturns.result2
 	}
@@ -104,14 +104,14 @@ func (fake *FakeClient) OrganizationsReturns(result1 []string, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeClient) Teams(arg1 *http.Client, arg2 string) (github.OrganizationTeams, error) {
+func (fake *FakeClient) Teams(arg1 *http.Client) (github.OrganizationTeams, error) {
 	fake.teamsMutex.Lock()
 	fake.teamsArgsForCall = append(fake.teamsArgsForCall, struct {
 		arg1 *http.Client
 	}{arg1})
 	fake.teamsMutex.Unlock()
 	if fake.TeamsStub != nil {
-		return fake.TeamsStub(arg1, arg2)
+		return fake.TeamsStub(arg1)
 	} else {
 		return fake.teamsReturns.result1, fake.teamsReturns.result2
 	}

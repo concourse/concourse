@@ -24,7 +24,7 @@ var _ = Describe("OrganizationVerifier", func() {
 		organizations = []string{"some-organization", "another-organization"}
 		fakeClient = new(fakes.FakeClient)
 
-		verifier = NewOrganizationVerifier(organizations, fakeClient, "")
+		verifier = NewOrganizationVerifier(organizations, fakeClient)
 	})
 
 	Describe("Verify", func() {

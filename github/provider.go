@@ -21,7 +21,7 @@ func NewProvider(
 	gitHubAuth db.GitHubAuth,
 	redirectURL string,
 ) Provider {
-	client := NewClient()
+	client := NewClient(gitHubAuth.APIURL)
 
 	endpoint := github.Endpoint
 	if gitHubAuth.AuthURL != "" && gitHubAuth.TokenURL != "" {
@@ -31,9 +31,9 @@ func NewProvider(
 
 	return Provider{
 		Verifier: NewVerifierBasket(
-			NewTeamVerifier(dbTeamsToGitHubTeams(gitHubAuth.Teams), client, gitHubAuth.APIURL),
-			NewOrganizationVerifier(gitHubAuth.Organizations, client, gitHubAuth.APIURL),
-			NewUserVerifier(gitHubAuth.Users, client, gitHubAuth.APIURL),
+			NewTeamVerifier(dbTeamsToGitHubTeams(gitHubAuth.Teams), client),
+			NewOrganizationVerifier(gitHubAuth.Organizations, client),
+			NewUserVerifier(gitHubAuth.Users, client),
 		),
 		Config: &oauth2.Config{
 			ClientID:     gitHubAuth.ClientID,

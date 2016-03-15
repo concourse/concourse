@@ -23,7 +23,7 @@ var _ = Describe("Client", func() {
 	BeforeEach(func() {
 		githubServer = ghttp.NewServer()
 
-		client = github.NewClient()
+		client = github.NewClient("")
 
 		proxiedClient = &http.Client{
 			Transport: proxiedTransport{githubServer},
@@ -44,7 +44,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns the user's login", func() {
-				user, err := client.CurrentUser(proxiedClient, "")
+				user, err := client.CurrentUser(proxiedClient)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(user).To(Equal("some-user"))
 			})
@@ -61,7 +61,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := client.CurrentUser(proxiedClient, "")
+				_, err := client.CurrentUser(proxiedClient)
 				Expect(err).To(BeAssignableToTypeOf(&gogithub.ErrorResponse{}))
 			})
 		})
@@ -83,7 +83,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns the list of organization names", func() {
-				orgs, err := client.Organizations(proxiedClient, "")
+				orgs, err := client.Organizations(proxiedClient)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(orgs).To(Equal([]string{"org-1", "org-2", "org-3"}))
 			})
@@ -100,7 +100,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := client.Organizations(proxiedClient, "")
+				_, err := client.Organizations(proxiedClient)
 				Expect(err).To(BeAssignableToTypeOf(&gogithub.ErrorResponse{}))
 			})
 		})
@@ -125,7 +125,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns the map of organization to team names", func() {
-				teams, err := client.Teams(proxiedClient, "")
+				teams, err := client.Teams(proxiedClient)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(teams).To(HaveLen(2))
 				Expect(teams["org-1"]).To(ConsistOf([]string{"Team 1", "Team 2"}))
@@ -144,13 +144,17 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := client.Teams(proxiedClient, "")
+				_, err := client.Teams(proxiedClient)
 				Expect(err).To(BeAssignableToTypeOf(&gogithub.ErrorResponse{}))
 			})
 		})
 	})
 
 	Describe("Github Enterprise", func() {
+		BeforeEach(func() {
+			client = github.NewClient("https://github.example.com/api/v3/")
+		})
+
 		Context("when getting the current user succeeds", func() {
 			BeforeEach(func() {
 				githubServer.AppendHandlers(
@@ -164,7 +168,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns the user's login", func() {
-				user, err := client.CurrentUser(proxiedClient, "https://github.example.com/api/v3/")
+				user, err := client.CurrentUser(proxiedClient)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(user).To(Equal("some-user"))
 			})
@@ -188,7 +192,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns the map of organization to team names", func() {
-				teams, err := client.Teams(proxiedClient, "https://github.example.com/api/v3/")
+				teams, err := client.Teams(proxiedClient)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(teams).To(HaveLen(2))
 				Expect(teams["org-1"]).To(ConsistOf([]string{"Team 1", "Team 2"}))
@@ -210,7 +214,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns the list of organization names", func() {
-				orgs, err := client.Organizations(proxiedClient, "https://github.example.com/api/v3/")
+				orgs, err := client.Organizations(proxiedClient)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(orgs).To(Equal([]string{"org-1", "org-2", "org-3"}))
 			})
