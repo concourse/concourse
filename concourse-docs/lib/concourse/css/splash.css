@@ -49,3 +49,9 @@
 .intro-slogan {
   padding: 0 30px;
 }
+
+@media (min-width: 985px) {
+  .value-props, .value-prop-b {
+    padding: 80px 0;
+  }
+}
