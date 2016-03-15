@@ -31,27 +31,43 @@
 }
 
 \value-prop-left{Simple and Scalable}{value_prop_simple_f2}{
-  Simple primitives scale with your project to help you build understandable
-  pipelines.
+  Rather than a myriad of checkboxes, pipelines are defined as a single
+  declarative config file, composing together just three core
+  \reference{concepts}.
+}{
+  As your project grows in complexity, your pipeline will grow in size, but
+  remain understandable.
 }
 
 \value-prop-right{Streamlined UI}{value_prop_streamlined_f2}{
   Concourse's user interface helps you find out what you need to know about
   your builds as quickly as possible.
+}{
+  For a live example, see \hyperlink{https://ci.concourse.ci}{Concourse's own
+  pipeline}.
 }
 
 \value-prop-left{Dependable Results}{value_prop_repeatable_f2}{
   Concourse controls the inputs to your pipeline so that the results are
   repeatable every time.
+}{
+  Rather than sharing state, every \reference{running-tasks}{task} runs in its
+  own container, controlling its own dependencies.
+}{
+  Local changes can be tested with \reference{fly-execute}{the Fly CLI},
+  allowing you to see if they would succeed or fail in your pipeline ahead of
+  time.
 }
 
 \value-prop-right{Integrations}{value_prop_integrations_f24}{
+  Interacting with the world is a crucial part of any pipeline.
+  Concourse expresses these interactions as \reference{resources}{Resources},
+  allowing you to delete your boring plumbing code and focus on your
+  interesting code instead.
+}{
   Concourse works out-of-the-box with Git repositories, S3 buckets, and other
-  common external services.
-
-  Using these allows Concourse to do the hard work of fetching and versioning
-  external artifacts. You can delete your scripts which do the same thing.
-  You can even write your own resources to extend the system.
+  common external services. \reference{resource_types}{Custom resource types}
+  allow you to extend your pipeline with support for anything else.
 }
 
 \getting-started{Getting Started Takes 5 Minutes}{
