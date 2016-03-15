@@ -132,6 +132,7 @@ type DB interface {
 
 	InsertVolume(data Volume) error
 	InsertCOWVolume(originalVolumeHandle string, cowVolumeHandle string, ttl time.Duration) error
+	InsertOutputVolume(outputVolume Volume) error
 	GetVolumes() ([]SavedVolume, error)
 	ReapVolume(string) error
 	SetVolumeTTL(string, time.Duration) error

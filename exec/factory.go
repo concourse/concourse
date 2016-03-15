@@ -91,6 +91,8 @@ type TaskDelegate interface {
 
 	ImageVersionDetermined(db.VolumeIdentifier) error
 
+	InsertOutputVolume(db.Volume) error
+
 	Stdout() io.Writer
 	Stderr() io.Writer
 }

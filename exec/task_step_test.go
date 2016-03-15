@@ -763,15 +763,26 @@ var _ = Describe("GardenFactory", func() {
 															MountPath: fakeMountPath3,
 														},
 													})
+
+													fakeWorker.NameReturns("bananapants")
 												})
 
 												It("creates volumes for each output", func() {
 													Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(3))
+													Expect(taskDelegate.InsertOutputVolumeCallCount()).To(Equal(3))
+
 													for i := 0; i < 3; i++ {
 														_, volSpec := fakeBaggageclaimClient.CreateVolumeArgsForCall(i)
 														Expect(volSpec.Properties).To(Equal(baggageclaim.VolumeProperties{}))
 														Expect(volSpec.TTL).ToNot(BeZero())
 														Expect(volSpec.Privileged).To(Equal(bool(privileged)))
+
+														volume := taskDelegate.InsertOutputVolumeArgsForCall(i)
+														Expect(volume).To(Equal(db.Volume{
+															WorkerName: fakeWorker.Name(),
+															TTL:        volSpec.TTL,
+															Handle:     fmt.Sprintf("some-handle-%d", i+1),
+														}))
 													}
 												})
 
