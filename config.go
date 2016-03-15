@@ -23,6 +23,10 @@ type Config struct {
 
 type RawConfig string
 
+func (r RawConfig) String() string {
+	return string(r)
+}
+
 type GroupConfig struct {
 	Name      string   `yaml:"name" json:"name" mapstructure:"name"`
 	Jobs      []string `yaml:"jobs,omitempty" json:"jobs,omitempty" mapstructure:"jobs"`
