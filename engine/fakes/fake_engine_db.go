@@ -60,14 +60,6 @@ type FakeEngineDB struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}
-	InsertOutputVolumeStub        func(outputVolume db.Volume) error
-	insertOutputVolumeMutex       sync.RWMutex
-	insertOutputVolumeArgsForCall []struct {
-		outputVolume db.Volume
-	}
-	insertOutputVolumeReturns struct {
-		result1 error
-	}
 	SaveImageResourceVersionStub        func(buildID int, planID atc.PlanID, identifier db.VolumeIdentifier) error
 	saveImageResourceVersionMutex       sync.RWMutex
 	saveImageResourceVersionArgsForCall []struct {
@@ -248,38 +240,6 @@ func (fake *FakeEngineDB) SaveBuildOutputReturns(result1 db.SavedVersionedResour
 		result1 db.SavedVersionedResource
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeEngineDB) InsertOutputVolume(outputVolume db.Volume) error {
-	fake.insertOutputVolumeMutex.Lock()
-	fake.insertOutputVolumeArgsForCall = append(fake.insertOutputVolumeArgsForCall, struct {
-		outputVolume db.Volume
-	}{outputVolume})
-	fake.insertOutputVolumeMutex.Unlock()
-	if fake.InsertOutputVolumeStub != nil {
-		return fake.InsertOutputVolumeStub(outputVolume)
-	} else {
-		return fake.insertOutputVolumeReturns.result1
-	}
-}
-
-func (fake *FakeEngineDB) InsertOutputVolumeCallCount() int {
-	fake.insertOutputVolumeMutex.RLock()
-	defer fake.insertOutputVolumeMutex.RUnlock()
-	return len(fake.insertOutputVolumeArgsForCall)
-}
-
-func (fake *FakeEngineDB) InsertOutputVolumeArgsForCall(i int) db.Volume {
-	fake.insertOutputVolumeMutex.RLock()
-	defer fake.insertOutputVolumeMutex.RUnlock()
-	return fake.insertOutputVolumeArgsForCall[i].outputVolume
-}
-
-func (fake *FakeEngineDB) InsertOutputVolumeReturns(result1 error) {
-	fake.InsertOutputVolumeStub = nil
-	fake.insertOutputVolumeReturns = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeEngineDB) SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier db.VolumeIdentifier) error {

@@ -270,10 +270,7 @@ func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.Co
 		factory.volumeHandles = append(factory.volumeHandles, cowVolume.Handle())
 		factory.volumeMounts[cowVolume.Handle()] = mount.MountPath
 
-		factory.logger.Info("created-cow-volume", lager.Data{
-			"original-volume-handle": mount.Volume.Handle(),
-			"cow-volume-handle":      cowVolume.Handle(),
-		})
+		factory.logger.Info("created-cow-volume", lager.Data{"volume-handle": cowVolume.Handle()})
 	}
 
 	return containerSpec, nil
