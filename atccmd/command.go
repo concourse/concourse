@@ -97,6 +97,9 @@ type ATCCommand struct {
 		Organizations []string         `long:"organization"  description:"GitHub organization whose members will have access." value-name:"ORG"`
 		Teams         []GitHubTeamFlag `long:"team"          description:"GitHub team whose members will have access." value-name:"ORG/TEAM"`
 		Users         []string         `long:"user"          description:"GitHub user to permit access." value-name:"LOGIN"`
+		AuthURL       string           `long:"auth-url"      description:"Override default endpoint AuthURL for Github Enterprise"`
+		TokenURL      string           `long:"token-url"     description:"Override default endpoint TokenURL for Github Enterprise"`
+		APIURL        string           `long:"api-url"     	description:"Override default API endpoint URL for Github Enterprise"`
 	} `group:"GitHub Authentication" namespace:"github-auth"`
 
 	Metrics struct {
@@ -501,6 +504,9 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB)
 			Organizations: cmd.GitHubAuth.Organizations,
 			Teams:         gitHubTeams,
 			Users:         cmd.GitHubAuth.Users,
+			AuthURL:       cmd.GitHubAuth.AuthURL,
+			TokenURL:      cmd.GitHubAuth.TokenURL,
+			APIURL:        cmd.GitHubAuth.APIURL,
 		}
 		team.GitHubAuth = gitHubAuth
 	} else {

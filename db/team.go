@@ -18,6 +18,9 @@ type GitHubAuth struct {
 	Organizations []string     `json:"organizations"`
 	Teams         []GitHubTeam `json:"teams"`
 	Users         []string     `json:"users"`
+	AuthURL       string       `json:"authurl"`
+	TokenURL      string       `json:"tokenurl"`
+	APIURL        string       `json:"apiurl"`
 }
 
 type GitHubTeam struct {

@@ -9,20 +9,23 @@ import (
 type OrganizationVerifier struct {
 	organizations []string
 	gitHubClient  Client
+	gitHubAPIURL  string
 }
 
 func NewOrganizationVerifier(
 	organizations []string,
 	gitHubClient Client,
+	gitHubAPIURL string,
 ) OrganizationVerifier {
 	return OrganizationVerifier{
 		organizations: organizations,
 		gitHubClient:  gitHubClient,
+		gitHubAPIURL:  gitHubAPIURL,
 	}
 }
 
 func (verifier OrganizationVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
-	orgs, err := verifier.gitHubClient.Organizations(httpClient)
+	orgs, err := verifier.gitHubClient.Organizations(httpClient, verifier.gitHubAPIURL)
 	if err != nil {
 		logger.Error("failed-to-get-organizations", err)
 		return false, err

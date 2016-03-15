@@ -9,20 +9,23 @@ import (
 type UserVerifier struct {
 	users        []string
 	gitHubClient Client
+	gitHubAPIURL string
 }
 
 func NewUserVerifier(
 	users []string,
 	gitHubClient Client,
+	gitHubAPIURL string,
 ) Verifier {
 	return UserVerifier{
 		users:        users,
 		gitHubClient: gitHubClient,
+		gitHubAPIURL: gitHubAPIURL,
 	}
 }
 
 func (verifier UserVerifier) Verify(logger lager.Logger, httpClient *http.Client) (bool, error) {
-	currentUser, err := verifier.gitHubClient.CurrentUser(httpClient)
+	currentUser, err := verifier.gitHubClient.CurrentUser(httpClient, verifier.gitHubAPIURL)
 	if err != nil {
 		logger.Error("failed-to-get-current-user", err)
 		return false, err
