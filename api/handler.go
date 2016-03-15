@@ -151,6 +151,7 @@ func NewHandler(
 		atc.PausePipeline:   pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline),
 		atc.UnpausePipeline: pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline),
 		atc.GetVersionsDB:   pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB),
+		atc.RenamePipeline:  pipelineHandlerFactory.HandlerFor(pipelineServer.RenamePipeline),
 
 		atc.ListResources:   pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
 		atc.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),

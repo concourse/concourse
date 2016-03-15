@@ -45,6 +45,14 @@ type FakePipelineDB struct {
 		result1 bool
 		result2 error
 	}
+	UpdateNameStub        func(string) error
+	updateNameMutex       sync.RWMutex
+	updateNameArgsForCall []struct {
+		arg1 string
+	}
+	updateNameReturns struct {
+		result1 error
+	}
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct{}
@@ -541,6 +549,38 @@ func (fake *FakePipelineDB) IsPausedReturns(result1 bool, result2 error) {
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) UpdateName(arg1 string) error {
+	fake.updateNameMutex.Lock()
+	fake.updateNameArgsForCall = append(fake.updateNameArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.updateNameMutex.Unlock()
+	if fake.UpdateNameStub != nil {
+		return fake.UpdateNameStub(arg1)
+	} else {
+		return fake.updateNameReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) UpdateNameCallCount() int {
+	fake.updateNameMutex.RLock()
+	defer fake.updateNameMutex.RUnlock()
+	return len(fake.updateNameArgsForCall)
+}
+
+func (fake *FakePipelineDB) UpdateNameArgsForCall(i int) string {
+	fake.updateNameMutex.RLock()
+	defer fake.updateNameMutex.RUnlock()
+	return fake.updateNameArgsForCall[i].arg1
+}
+
+func (fake *FakePipelineDB) UpdateNameReturns(result1 error) {
+	fake.UpdateNameStub = nil
+	fake.updateNameReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakePipelineDB) Destroy() error {

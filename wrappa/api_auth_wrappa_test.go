@@ -104,6 +104,7 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.UnpausePipeline:        authed(inputHandlers[atc.UnpausePipeline]),
 					atc.UnpauseResource:        authed(inputHandlers[atc.UnpauseResource]),
 					atc.WritePipe:              authed(inputHandlers[atc.WritePipe]),
+					atc.RenamePipeline:         authed(inputHandlers[atc.RenamePipeline]),
 
 					atc.BuildEvents:                   unauthed(inputHandlers[atc.BuildEvents]),
 					atc.BuildResources:                unauthed(inputHandlers[atc.BuildResources]),
@@ -178,6 +179,7 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.UnpausePipeline:        authed(inputHandlers[atc.UnpausePipeline]),
 					atc.UnpauseResource:        authed(inputHandlers[atc.UnpauseResource]),
 					atc.WritePipe:              authed(inputHandlers[atc.WritePipe]),
+					atc.RenamePipeline:         authed(inputHandlers[atc.RenamePipeline]),
 
 					atc.ListAuthMethods: unauthed(inputHandlers[atc.ListAuthMethods]),
 					atc.GetInfo:         unauthed(inputHandlers[atc.GetInfo]),

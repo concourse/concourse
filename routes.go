@@ -42,6 +42,7 @@ const (
 	OrderPipelines  = "OrderPipelines"
 	PausePipeline   = "PausePipeline"
 	UnpausePipeline = "UnpausePipeline"
+	RenamePipeline  = "RenamePipeline"
 
 	CreatePipe = "CreatePipe"
 	WritePipe  = "WritePipe"
@@ -97,6 +98,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/pipelines/:pipeline_name/pause", Method: "PUT", Name: PausePipeline},
 	{Path: "/api/v1/pipelines/:pipeline_name/unpause", Method: "PUT", Name: UnpausePipeline},
 	{Path: "/api/v1/pipelines/:pipeline_name/versions-db", Method: "GET", Name: GetVersionsDB},
+	{Path: "/api/v1/pipelines/:pipeline_name/rename", Method: "PUT", Name: RenamePipeline},
 
 	{Path: "/api/v1/pipelines/:pipeline_name/resources", Method: "GET", Name: ListResources},
 	{Path: "/api/v1/pipelines/:pipeline_name/resources/:resource_name", Method: "GET", Name: GetResource},

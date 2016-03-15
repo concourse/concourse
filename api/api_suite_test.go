@@ -58,6 +58,7 @@ var (
 	peerAddr                      string
 	drain                         chan struct{}
 	cliDownloadsDir               string
+	logger                        *lagertest.TestLogger
 
 	constructedEventHandler *fakeEventHandlerFactory
 
@@ -121,7 +122,7 @@ var _ = BeforeEach(func() {
 
 	constructedEventHandler = &fakeEventHandlerFactory{}
 
-	logger := lagertest.NewTestLogger("callbacks")
+	logger = lagertest.NewTestLogger("callbacks")
 
 	sink = lager.NewReconfigurableSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG), lager.DEBUG)
 	logger.RegisterSink(sink)

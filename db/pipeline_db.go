@@ -23,6 +23,7 @@ type PipelineDB interface {
 	Pause() error
 	Unpause() error
 	IsPaused() (bool, error)
+	UpdateName(string) error
 
 	Destroy() error
 
@@ -116,6 +117,15 @@ func (pdb *pipelineDB) Pause() error {
 		SET paused = true
 		WHERE id = $1
 	`, pdb.ID)
+	return err
+}
+
+func (pdb *pipelineDB) UpdateName(newName string) error {
+	_, err := pdb.conn.Exec(`
+		UPDATE pipelines
+		SET name = $1
+		WHERE name = $2
+	`, newName, pdb.Name)
 	return err
 }
 
