@@ -2,6 +2,7 @@ package github
 
 import (
 	"net/http"
+	"net/url"
 
 	gogithub "github.com/google/go-github/github"
 )
@@ -9,9 +10,9 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
-	CurrentUser(*http.Client) (string, error)
-	Organizations(*http.Client) ([]string, error)
-	Teams(*http.Client) (OrganizationTeams, error)
+	CurrentUser(*http.Client, string) (string, error)
+	Organizations(*http.Client, string) ([]string, error)
+	Teams(*http.Client, string) (OrganizationTeams, error)
 }
 
 type client struct{}
@@ -22,8 +23,12 @@ func NewClient() Client {
 
 type OrganizationTeams map[string][]string
 
-func (c *client) CurrentUser(httpClient *http.Client) (string, error) {
+func (c *client) CurrentUser(httpClient *http.Client, APIURL string) (string, error) {
 	client := gogithub.NewClient(httpClient)
+	if APIURL != "" {
+		client.BaseURL, _ = url.Parse(APIURL)
+	}
+
 	currentUser, _, err := client.Users.Get("")
 	if err != nil {
 		return "", err
@@ -32,8 +37,12 @@ func (c *client) CurrentUser(httpClient *http.Client) (string, error) {
 	return *currentUser.Login, nil
 }
 
-func (c *client) Teams(httpClient *http.Client) (OrganizationTeams, error) {
+func (c *client) Teams(httpClient *http.Client, APIURL string) (OrganizationTeams, error) {
 	client := gogithub.NewClient(httpClient)
+	if APIURL != "" {
+		client.BaseURL, _ = url.Parse(APIURL)
+	}
+
 	teams, _, err := client.Organizations.ListUserTeams(nil)
 	if err != nil {
 		return nil, err
@@ -53,8 +62,11 @@ func (c *client) Teams(httpClient *http.Client) (OrganizationTeams, error) {
 	return organizationTeams, nil
 }
 
-func (c *client) Organizations(httpClient *http.Client) ([]string, error) {
+func (c *client) Organizations(httpClient *http.Client, APIURL string) ([]string, error) {
 	client := gogithub.NewClient(httpClient)
+	if APIURL != "" {
+		client.BaseURL, _ = url.Parse(APIURL)
+	}
 
 	orgs, _, err := client.Organizations.List("", nil)
 	if err != nil {
