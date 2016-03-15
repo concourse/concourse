@@ -299,7 +299,7 @@ func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {
 	case 1:
 		return volumes[0], nil
 	default:
-		return SavedVolume{}, errors.New(fmt.Sprintf("multiple volumes found for handle %s", originalVolumeHandle))
+		return SavedVolume{}, errors.New(fmt.Sprintf("%d volumes found for handle %s", len(volumes), originalVolumeHandle))
 	}
 }
 
