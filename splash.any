@@ -32,11 +32,11 @@
 
 \value-prop-left{Simple and Scalable}{value_prop_simple_f2}{
   Rather than a myriad of checkboxes, pipelines are defined as a single
-  declarative config file, composing together just three core
-  \reference{concepts}.
+  declarative config file, composing together just \reference{concepts}{three
+  core concepts}.
 }{
-  As your project grows in complexity, your pipeline will grow in size, but
-  remain understandable.
+  As your project grows, your pipeline will grow with it, and remain
+  understandable.
 }
 
 \value-prop-right{Streamlined UI}{value_prop_streamlined_f2}{
