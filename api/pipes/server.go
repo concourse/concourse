@@ -58,7 +58,9 @@ func (s *Server) forwardRequest(w http.ResponseWriter, r *http.Request, host str
 	req.Header = r.Header
 
 	client := &http.Client{
-		Transport: &http.Transport{},
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
 	}
 
 	response, err := client.Do(req)

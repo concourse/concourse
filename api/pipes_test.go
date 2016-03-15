@@ -10,6 +10,8 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/onsi/gomega/ghttp"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -60,7 +62,7 @@ var _ = Describe("Pipes API", func() {
 				pipe = createPipe()
 				pipeDB.GetPipeReturns(db.Pipe{
 					ID:  pipe.ID,
-					URL: "127.0.0.1:1234",
+					URL: peerAddr,
 				}, nil)
 			})
 
@@ -149,6 +151,40 @@ var _ = Describe("Pipes API", func() {
 					defer writeRes.Body.Close()
 
 					Expect(writeRes.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when pipe was created on another ATC", func() {
+				var otherATCServer *ghttp.Server
+
+				BeforeEach(func() {
+					otherATCServer = ghttp.NewServer()
+
+					otherATCServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/pipes/some-guid"),
+							ghttp.VerifyHeaderKV("Connection", "close"),
+							ghttp.RespondWith(200, "hello from the other side"),
+						),
+					)
+
+					pipeDB.GetPipeReturns(db.Pipe{
+						ID:  "some-guid",
+						URL: otherATCServer.URL(),
+					}, nil)
+
+				})
+
+				It("forwards request to that ATC with disabled keep-alive", func() {
+					req, err := http.NewRequest("GET", server.URL+"/api/v1/pipes/some-guid", nil)
+					Expect(err).NotTo(HaveOccurred())
+
+					response, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(otherATCServer.ReceivedRequests()).To(HaveLen(1))
+
+					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("hello from the other side")))
 				})
 			})
 		})
