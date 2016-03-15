@@ -99,7 +99,7 @@ type ATCCommand struct {
 		Users         []string         `long:"user"          description:"GitHub user to permit access." value-name:"LOGIN"`
 		AuthURL       string           `long:"auth-url"      description:"Override default endpoint AuthURL for Github Enterprise"`
 		TokenURL      string           `long:"token-url"     description:"Override default endpoint TokenURL for Github Enterprise"`
-		APIURL        string           `long:"api-url"     	description:"Override default API endpoint URL for Github Enterprise"`
+		APIURL        string           `long:"api-url"       description:"Override default API endpoint URL for Github Enterprise"`
 	} `group:"GitHub Authentication" namespace:"github-auth"`
 
 	Metrics struct {

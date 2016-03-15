@@ -10,24 +10,23 @@ import (
 //go:generate counterfeiter . Client
 
 type Client interface {
-	CurrentUser(*http.Client, string) (string, error)
-	Organizations(*http.Client, string) ([]string, error)
-	Teams(*http.Client, string) (OrganizationTeams, error)
+	CurrentUser(*http.Client) (string, error)
+	Organizations(*http.Client) ([]string, error)
+	Teams(*http.Client) (OrganizationTeams, error)
 }
 
-type client struct{}
+type client struct {
+	baseURL string
+}
 
-func NewClient() Client {
-	return &client{}
+func NewClient(baseURL string) Client {
+	return &client{baseURL: baseURL}
 }
 
 type OrganizationTeams map[string][]string
 
-func (c *client) CurrentUser(httpClient *http.Client, APIURL string) (string, error) {
-	client := gogithub.NewClient(httpClient)
-	if APIURL != "" {
-		client.BaseURL, _ = url.Parse(APIURL)
-	}
+func (c *client) CurrentUser(httpClient *http.Client) (string, error) {
+	client := c.githubClient(httpClient)
 
 	currentUser, _, err := client.Users.Get("")
 	if err != nil {
@@ -37,11 +36,8 @@ func (c *client) CurrentUser(httpClient *http.Client, APIURL string) (string, er
 	return *currentUser.Login, nil
 }
 
-func (c *client) Teams(httpClient *http.Client, APIURL string) (OrganizationTeams, error) {
-	client := gogithub.NewClient(httpClient)
-	if APIURL != "" {
-		client.BaseURL, _ = url.Parse(APIURL)
-	}
+func (c *client) Teams(httpClient *http.Client) (OrganizationTeams, error) {
+	client := c.githubClient(httpClient)
 
 	teams, _, err := client.Organizations.ListUserTeams(nil)
 	if err != nil {
@@ -62,11 +58,8 @@ func (c *client) Teams(httpClient *http.Client, APIURL string) (OrganizationTeam
 	return organizationTeams, nil
 }
 
-func (c *client) Organizations(httpClient *http.Client, APIURL string) ([]string, error) {
-	client := gogithub.NewClient(httpClient)
-	if APIURL != "" {
-		client.BaseURL, _ = url.Parse(APIURL)
-	}
+func (c *client) Organizations(httpClient *http.Client) ([]string, error) {
+	client := c.githubClient(httpClient)
 
 	orgs, _, err := client.Organizations.List("", nil)
 	if err != nil {
@@ -79,4 +72,13 @@ func (c *client) Organizations(httpClient *http.Client, APIURL string) ([]string
 	}
 
 	return organizations, nil
+}
+
+func (c *client) githubClient(httpClient *http.Client) *gogithub.Client {
+	client := gogithub.NewClient(httpClient)
+	if c.baseURL != "" {
+		client.BaseURL, _ = url.Parse(c.baseURL)
+	}
+
+	return client
 }

@@ -27,7 +27,7 @@ var _ = Describe("TeamVerifier", func() {
 		}
 		fakeClient = new(fakes.FakeClient)
 
-		verifier = NewTeamVerifier(teams, fakeClient, "")
+		verifier = NewTeamVerifier(teams, fakeClient)
 	})
 
 	Describe("Verify", func() {

@@ -22,7 +22,7 @@ var _ = Describe("UserVerifier", func() {
 	BeforeEach(func() {
 		fakeClient = new(fakes.FakeClient)
 
-		verifier = NewUserVerifier([]string{"some-user", "some-other-user"}, fakeClient, "")
+		verifier = NewUserVerifier([]string{"some-user", "some-other-user"}, fakeClient)
 	})
 
 	Describe("Verify", func() {
