@@ -170,6 +170,13 @@ var _ = Describe("OAuthCallbackHandler", func() {
 						Expect(code).To(Equal("some-code"))
 					})
 
+					It("constructs HTTP client with disable keep alive context", func() {
+						ctx, _ := fakeProviderB.ClientArgsForCall(0)
+						httpClient, ok := ctx.Value(oauth2.HTTPClient).(http.Client)
+						Expect(ok).To(BeTrue())
+						Expect(httpClient.Transport.(*http.Transport).DisableKeepAlives).To(BeTrue())
+					})
+
 					Context("when the token is verified", func() {
 						BeforeEach(func() {
 							fakeProviderB.VerifyReturns(true, nil)

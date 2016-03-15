@@ -41,6 +41,11 @@ func NewProvider(
 
 type Provider struct {
 	*oauth2.Config
+	// oauth2.Config implements the required Provider methods:
+	// AuthCodeURL(string, ...oauth2.AuthCodeOption) string
+	// Exchange(context.Context, string) (*oauth2.Token, error)
+	// Client(context.Context, *oauth2.Token) *http.Client
+
 	Verifier
 }
 
