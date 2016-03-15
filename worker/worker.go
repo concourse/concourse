@@ -41,7 +41,6 @@ type Worker interface {
 type GardenWorkerDB interface {
 	CreateContainer(db.Container, time.Duration) (db.SavedContainer, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
-	InsertCOWVolume(originalVolumeHandle string, cowVolumeHandle string, ttl time.Duration) error
 }
 
 type gardenWorker struct {
@@ -111,7 +110,7 @@ func (worker *gardenWorker) CreateContainer(
 	spec ContainerSpec,
 	customTypes atc.ResourceTypes,
 ) (Container, error) {
-	gardenContainerSpecFactory := NewGardenContainerSpecFactory(logger, worker.baggageclaimClient, worker.imageFetcher, worker.db)
+	gardenContainerSpecFactory := NewGardenContainerSpecFactory(logger, worker.baggageclaimClient, worker.imageFetcher)
 
 	gardenSpec, err := gardenContainerSpecFactory.BuildContainerSpec(spec, worker.resourceTypes, worker.tags, cancel, delegate, id, metadata, worker, customTypes)
 	defer gardenContainerSpecFactory.ReleaseVolumes()

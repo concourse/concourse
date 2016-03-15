@@ -74,16 +74,6 @@ type FakeWorkerDB struct {
 	reapContainerReturns struct {
 		result1 error
 	}
-	InsertCOWVolumeStub        func(originalVolumeHandle string, cowVolumeHandle string, ttl time.Duration) error
-	insertCOWVolumeMutex       sync.RWMutex
-	insertCOWVolumeArgsForCall []struct {
-		originalVolumeHandle string
-		cowVolumeHandle      string
-		ttl                  time.Duration
-	}
-	insertCOWVolumeReturns struct {
-		result1 error
-	}
 	GetVolumeTTLStub        func(volumeHandle string) (time.Duration, error)
 	getVolumeTTLMutex       sync.RWMutex
 	getVolumeTTLArgsForCall []struct {
@@ -334,40 +324,6 @@ func (fake *FakeWorkerDB) ReapContainerArgsForCall(i int) string {
 func (fake *FakeWorkerDB) ReapContainerReturns(result1 error) {
 	fake.ReapContainerStub = nil
 	fake.reapContainerReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeWorkerDB) InsertCOWVolume(originalVolumeHandle string, cowVolumeHandle string, ttl time.Duration) error {
-	fake.insertCOWVolumeMutex.Lock()
-	fake.insertCOWVolumeArgsForCall = append(fake.insertCOWVolumeArgsForCall, struct {
-		originalVolumeHandle string
-		cowVolumeHandle      string
-		ttl                  time.Duration
-	}{originalVolumeHandle, cowVolumeHandle, ttl})
-	fake.insertCOWVolumeMutex.Unlock()
-	if fake.InsertCOWVolumeStub != nil {
-		return fake.InsertCOWVolumeStub(originalVolumeHandle, cowVolumeHandle, ttl)
-	} else {
-		return fake.insertCOWVolumeReturns.result1
-	}
-}
-
-func (fake *FakeWorkerDB) InsertCOWVolumeCallCount() int {
-	fake.insertCOWVolumeMutex.RLock()
-	defer fake.insertCOWVolumeMutex.RUnlock()
-	return len(fake.insertCOWVolumeArgsForCall)
-}
-
-func (fake *FakeWorkerDB) InsertCOWVolumeArgsForCall(i int) (string, string, time.Duration) {
-	fake.insertCOWVolumeMutex.RLock()
-	defer fake.insertCOWVolumeMutex.RUnlock()
-	return fake.insertCOWVolumeArgsForCall[i].originalVolumeHandle, fake.insertCOWVolumeArgsForCall[i].cowVolumeHandle, fake.insertCOWVolumeArgsForCall[i].ttl
-}
-
-func (fake *FakeWorkerDB) InsertCOWVolumeReturns(result1 error) {
-	fake.InsertCOWVolumeStub = nil
-	fake.insertCOWVolumeReturns = struct {
 		result1 error
 	}{result1}
 }

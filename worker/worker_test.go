@@ -457,20 +457,6 @@ var _ = Describe("Worker", func() {
 								))
 							})
 
-							It("inserts the created COW volumes into the database", func() {
-								Expect(fakeGardenWorkerDB.InsertCOWVolumeCallCount()).To(Equal(2))
-
-								originalHandle, cowVolumeHandle, ttl := fakeGardenWorkerDB.InsertCOWVolumeArgsForCall(0)
-								Expect(originalHandle).To(Equal(volume1.Handle()))
-								Expect(cowVolumeHandle).To(Equal(cowVolume1.Handle()))
-								Expect(ttl).To(Equal(VolumeTTL))
-
-								originalHandle, cowVolumeHandle, ttl = fakeGardenWorkerDB.InsertCOWVolumeArgsForCall(1)
-								Expect(originalHandle).To(Equal(volume2.Handle()))
-								Expect(cowVolumeHandle).To(Equal(cowVolume2.Handle()))
-								Expect(ttl).To(Equal(VolumeTTL))
-							})
-
 							It("releases the volumes that it instantiated but not the ones that were passed in", func() {
 								Expect(cowVolume1.ReleaseCallCount()).To(Equal(1))
 								Expect(cowVolume2.ReleaseCallCount()).To(Equal(1))

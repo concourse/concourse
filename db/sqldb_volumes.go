@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -84,55 +83,6 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 	return tx.Commit()
 }
 
-func (db *SQLDB) InsertCOWVolume(originalVolumeHandle string, cowVolumeHandle string, ttl time.Duration) error {
-	originalVolume, err := db.getVolume(originalVolumeHandle)
-	if err != nil {
-		return err
-	}
-
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
-
-	resourceVersion, err := json.Marshal(originalVolume.ResourceVersion)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
-		INSERT INTO volumes (
-			worker_name,
-			expires_at,
-			ttl,
-			handle,
-			resource_version,
-			resource_hash,
-			original_volume_handle
-		) VALUES (
-			$1,
-			NOW() + $2::INTERVAL,
-			$3,
-			$4,
-			$5,
-			$6,
-			$7
-		)
-	`, originalVolume.WorkerName,
-		interval,
-		ttl,
-		cowVolumeHandle,
-		resourceVersion,
-		originalVolume.ResourceHash,
-		originalVolumeHandle,
-	)
-
-	return tx.Commit()
-}
-
 func (db *SQLDB) ReapVolume(handle string) error {
 	_, err := db.conn.Exec(`
 		DELETE FROM volumes
@@ -149,15 +99,14 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 
 	rows, err := db.conn.Query(`
 		SELECT
-			worker_name,
-			ttl,
-			EXTRACT(epoch FROM expires_at - NOW()),
-			handle,
-			resource_version,
-			resource_hash,
-			id,
-			original_volume_handle
-		FROM volumes
+			v.worker_name,
+			v.ttl,
+			EXTRACT(epoch FROM v.expires_at - NOW()),
+			v.handle,
+			v.resource_version,
+			v.resource_hash,
+			v.id
+		FROM volumes v
 	`)
 	if err != nil {
 		return nil, err
@@ -181,8 +130,7 @@ func (db *SQLDB) GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 			v.handle,
 			v.resource_version,
 			v.resource_hash,
-			v.id,
-			v.original_volume_handle
+			v.id
 		FROM volumes v
 			INNER JOIN image_resource_versions i
 				ON i.version = v.resource_version
@@ -234,41 +182,6 @@ func (db *SQLDB) GetVolumeTTL(handle string) (time.Duration, error) {
 	return ttl, err
 }
 
-func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {
-	err := db.expireVolumes()
-	if err != nil {
-		return SavedVolume{}, err
-	}
-
-	rows, err := db.conn.Query(`
-		SELECT
-			worker_name,
-			ttl,
-			EXTRACT(epoch FROM expires_at - NOW()),
-			handle,
-			resource_version,
-			resource_hash,
-			id,
-			original_volume_handle
-		FROM volumes
-		WHERE handle = $1
-	`, originalVolumeHandle)
-	if err != nil {
-		return SavedVolume{}, err
-	}
-
-	volumes, err := scanVolumes(rows)
-	if err != nil {
-		return SavedVolume{}, err
-	}
-
-	if len(volumes) != 1 {
-		return SavedVolume{}, errors.New("0 or 2+ volumes found for same handle")
-	}
-
-	return volumes[0], nil
-}
-
 func (db *SQLDB) expireVolumes() error {
 	_, err := db.conn.Exec(`
 		DELETE FROM volumes
@@ -287,9 +200,8 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 		var volume SavedVolume
 		var ttlSeconds *float64
 		var versionJSON []byte
-		var originalVolumeHandle sql.NullString
 
-		err := rows.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &volume.ResourceHash, &volume.ID, &originalVolumeHandle)
+		err := rows.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &volume.ResourceHash, &volume.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -301,10 +213,6 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 		err = json.Unmarshal(versionJSON, &volume.ResourceVersion)
 		if err != nil {
 			return nil, err
-		}
-
-		if originalVolumeHandle.Valid {
-			volume.OriginalVolumeHandle = originalVolumeHandle.String
 		}
 
 		volumes = append(volumes, volume)

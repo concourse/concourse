@@ -92,5 +92,4 @@ var Migrations = []migration.Migrator{
 	ResetPendingBuilds,
 	ResetCheckOrder,
 	AddTTLToContainers,
-	AddOriginalVolumeHandleToVolumes,
 }
