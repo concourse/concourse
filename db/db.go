@@ -131,6 +131,7 @@ type DB interface {
 	GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, error)
 
 	InsertVolume(data Volume) error
+	InsertCOWVolume(originalVolumeHandle string, cowVolumeHandle string, ttl time.Duration) error
 	GetVolumes() ([]SavedVolume, error)
 	ReapVolume(string) error
 	SetVolumeTTL(string, time.Duration) error
@@ -233,9 +234,10 @@ type SavedVolume struct {
 }
 
 type Volume struct {
-	WorkerName string
-	TTL        time.Duration
-	Handle     string
+	WorkerName           string
+	TTL                  time.Duration
+	Handle               string
+	OriginalVolumeHandle string
 	VolumeIdentifier
 }
 

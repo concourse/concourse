@@ -30,9 +30,10 @@ type gardenContainerSpecFactory struct {
 	volumeHandles      []string
 	user               string
 	releaseAfterCreate []releasable
+	db                 GardenWorkerDB
 }
 
-func NewGardenContainerSpecFactory(logger lager.Logger, baggageclaimClient baggageclaim.Client, imageFetcher ImageFetcher) gardenContainerSpecFactory {
+func NewGardenContainerSpecFactory(logger lager.Logger, baggageclaimClient baggageclaim.Client, imageFetcher ImageFetcher, db GardenWorkerDB) gardenContainerSpecFactory {
 	return gardenContainerSpecFactory{
 		logger:             logger,
 		baggageclaimClient: baggageclaimClient,
@@ -40,6 +41,7 @@ func NewGardenContainerSpecFactory(logger lager.Logger, baggageclaimClient bagga
 		volumeMounts:       map[string]string{},
 		volumeHandles:      nil,
 		releaseAfterCreate: []releasable{},
+		db:                 db,
 	}
 }
 
@@ -248,6 +250,11 @@ func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.Co
 			Privileged: containerSpec.Privileged,
 			TTL:        VolumeTTL,
 		})
+		if err != nil {
+			return containerSpec, err
+		}
+
+		err = factory.db.InsertCOWVolume(mount.Volume.Handle(), cowVolume.Handle(), VolumeTTL)
 		if err != nil {
 			return containerSpec, err
 		}
