@@ -1,9 +1,8 @@
 package pipelineserver
 
 import (
-	"bytes"
 	"encoding/json"
-	"io"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/concourse/atc/db"
@@ -11,8 +10,7 @@ import (
 
 func (s *Server) RenamePipeline(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var data bytes.Buffer
-		_, err := io.Copy(&data, r.Body)
+		data, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			s.logger.Error("call-to-update-pipeline-name-copy-failed", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -20,7 +18,7 @@ func (s *Server) RenamePipeline(pipelineDB db.PipelineDB) http.Handler {
 		}
 
 		var value struct{ Name string }
-		err = json.Unmarshal(data.Bytes(), &value)
+		err = json.Unmarshal(data, &value)
 		if err != nil {
 			s.logger.Error("call-to-update-pipeline-name-unmarshal-failed", err)
 			w.WriteHeader(http.StatusInternalServerError)
