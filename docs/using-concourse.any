@@ -1,0 +1,19 @@
+#language anatomy
+
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
+
+\title{Using Concourse}{using-concourse}
+
+put some words here too
+
+\include-section{./using-concourse/getting-started.any}
+\include-section{./using-concourse/examples.any}
+\include-section{./using-concourse/fly-cli.any}
+\include-section{./using-concourse/running-tasks.any}
+\include-section{./using-concourse/pipelines.any}
+\include-section{./using-concourse/build-plans.any}
+\include-section{./using-concourse/implementing-resources.any}
+
+\table-of-contents

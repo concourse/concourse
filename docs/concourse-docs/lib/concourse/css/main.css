@@ -52,10 +52,25 @@ img.responsive-image {
 
 .navbar-link, .navbar-link a {
 	color: white;
-	-webkit-transition: all 0.3s;
-	-moz-transition: all 0.3s;
-	transition: all 0.3s;
 	min-width: 142px;
+}
+
+.navbar-link a:hover {
+  color: white !important;
+}
+
+.navbar-link .fa {
+  font-family: 16px;
+  opacity: 0.5;
+  position: relative;
+  left: -3px;
+  -webkit-transition: all 0.3s;
+  -moz-transition: all 0.3s;
+  transition: all 0.3s;
+}
+
+.navbar-link a:hover .fa {
+  opacity: 1;
 }
 
 .top-intro .button {
@@ -461,10 +476,6 @@ input[type="button"].button-light:focus {
 	-webkit-transition: all 0.3s;
 	-moz-transition: all 0.3s;
 	transition: all 0.3s;
-}
-
-.fa-github {
-	font-size: 25px;
 }
 
 .contribute-btn {

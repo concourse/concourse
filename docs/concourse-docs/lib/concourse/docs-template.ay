@@ -71,9 +71,16 @@ def(template-for(part, out)):
 
                   <ul(.search-results) {}
 
-              <ol(.toc):
-                part top parts collect [p]:
-                  html toc-leaf(part, p)
+              part top parts collect [p]:
+                <div(.sidebar-section):
+                  <h3(.section-header):
+                    <a(href = html url(p)):
+                      html over(p title)
+
+                  <ol(.toc):
+                    p parts collect [p]:
+                      html toc-leaf(part, p)
+
 
         <div(#content):
           <div(class = "content-spacing"):

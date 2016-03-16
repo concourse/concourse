@@ -86,7 +86,7 @@
 }
 
 #content code,
-.search_results code {
+.search-results code {
   background: #f5f5f5;
   font-weight: normal;
   box-shadow: #f5f5f5 0 0 0 .25em;
@@ -265,7 +265,7 @@
   border: 2px solid #BDC3C7;
   width: 100%;
 }
-#sidebar .search .search_results {
+#sidebar .search .search-results {
   margin: 0;
   border: 2px solid #BDC3C7;
   border-radius: 4px;
@@ -277,27 +277,27 @@
   top: 0;
   z-index: 10;
 }
-#sidebar .search .search_results li {
+#sidebar .search .search-results li {
   list-style: none;
   padding: 5px 8px 5px 16px;
   text-indent: -8px;
 }
-#sidebar .search .search_results .parent {
+#sidebar .search .search-results .parent {
   font-size: 12px;
   font-style: italic;
   color: #686868;
 }
-#sidebar .search .search_results .parent a {
+#sidebar .search .search-results .parent a {
   color: #424242;
 }
-#sidebar .search .search_results .tag {
+#sidebar .search .search-results .tag {
   font-style: italic;
   color: #686868;
 }
-.search_results code {
+.search-results code {
   padding: 0; /* SKELETOOOON */
 }
-.search_results:after, .search_results:before {
+.search-results:after, .search-results:before {
   right: 100%;
   top: 17px;
   border: solid transparent;
@@ -307,13 +307,13 @@
   position: absolute;
   pointer-events: none;
 }
-.search_results:after {
+.search-results:after {
   border-color: transparent;
   border-right-color: #ffffff;
   border-width: 11px;
   margin-top: -11px;
 }
-.search_results:before {
+.search-results:before {
   border-color: transparent;
   border-right-color: #BDC3C7;
   border-width: 14px;
@@ -322,4 +322,22 @@
 
 .docs-header .navbar-header, .docs-header .navbar-collapse {
   border-bottom: 0;
+}
+
+.sidebar-section {
+  margin-top: 20px;
+  padding-bottom: 20px;
+}
+
+.sidebar-section .section-header {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.sidebar-section .section-header a {
+  color: #686868;
+  font-weight: 500;
+  padding: 0 16px;
+  display: block;
+  border-left: 3px solid transparent; /* align with list below */
 }

@@ -1351,6 +1351,7 @@ tbody.collapse.in {
   padding-bottom: 10px;
   line-height: 20px;
 }
+
 @media (max-width: 891px) {
   .navbar-nav .open .dropdown-menu {
     position: static;
@@ -1362,6 +1363,7 @@ tbody.collapse.in {
     -webkit-box-shadow: none;
             box-shadow: none;
   }
+
   .home-button {
     display: none;
   }
@@ -1781,4 +1783,10 @@ fieldset[disabled] .navbar-inverse .btn-link:focus {
 }
 .affix {
   position: fixed;
+}
+
+.navbar-nav .home-button {
+  position: relative;
+  top: 4px;
+  margin: 0 4px;
 }

@@ -302,6 +302,11 @@ subset of the worker's tags, by setting \reference{step-tags}.
     }
   }
 
+  \section{Manually provisioning workers}{manual-workers}{
+    To spin up workers using the standalone binaries, consult
+    \reference{standalone-workers}.
+  }
+
   \section{Deploying external workers with BOSH}{bosh-deployed-workers}{
     If you have some other environment separate from your primary Concourse
     deployment, but still manageable by BOSH, configuration is done via
@@ -422,146 +427,6 @@ subset of the worker's tags, by setting \reference{step-tags}.
         You would do this if your worker lives in a private network (e.g. a
         local cluster), but your TSA is publicly reachable (which is much
         safer).
-      }
-    }
-  }
-
-  \section{Manually provisioning workers}{manual-workers}{
-    Sometimes BOSH can't manage your cluster. Maybe you're on some
-    custom-provisioned hardware, or BOSH just doesn't support your
-    infrastructure.
-
-    In this case you'll just need to manually spin up a Garden server (for
-    whatever platform is appropriate) and set up your own SSH client to
-    advertise it for you. Ideally both would be health monitored. Sometimes
-    that just means a while loop.
-
-    \section{Garden Linux}{linux-workers}{
-      To deploy Garden Linux, your most-supported route will be to provision
-      the
-      \hyperlink{https://github.com/cloudfoundry-incubator/garden-linux-release}{Garden
-        Linux release}, by using the
-      \hyperlink{https://github.com/tknerr/vagrant-managed-servers}{Vagrant
-        Managed Servers} provider and the
-      \hyperlink{https://github.com/cppforlife/vagrant-bosh}{Vagrant BOSH}
-      provisioner.
-
-      This will look the closest to a BOSH-deployed instance, while only
-      relying on SSH access to the machine.
-    }
-
-    \section{Garden on Windows and OS X}{other-workers}{
-      For Windows and OS X, a primitive Garden backend is available, called
-      \hyperlink{http://github.com/vito/houdini}{Houdini}.
-
-      Containers running via Houdini are not isolated from each other. This
-      is much less safe than the Linux workers, but will do just fine if you
-      trust your builds.
-
-      A proper
-      \hyperlink{https://github.com/cloudfoundry-incubator/garden-windows}{Garden
-        Windows} implementation is in the works.
-
-      To set up Houdini, download the appropriate binary from its
-      \hyperlink{https://github.com/vito/houdini/releases/latest}{latest GitHub
-      release}.
-
-      By default, Houdini will place container data in \code{./containers}
-      relative to wherever Houdini started from. To change this location, or see
-      other settings, run Houdini with \code{--help}.
-    }
-
-    \section{Registering via SSH}{
-      The \hyperlink{https://github.com/concourse/tsa}{TSA} is a SSH server that
-      can register and heartbeat workers via two pseudo-commands:
-      \code{register-worker} and \code{forward-worker}.
-
-      Both commands read a worker JSON payload from \code{stdin}. So long as the
-      SSH connection is live and the Garden server is responsive, the TSA will
-      register it with the ATC.
-
-      \section{Authenticating}{authorizing-with-tsa}{
-        The TSA authorizes connections via public key authentication only (no
-        passwords).
-
-        Concourse automatically generates and authorizes a keypair for all workers
-        within the BOSH deployment, so you don't have to do any extra
-        configuration to register internal workers.
-
-        \margin-note{
-          In the event of a leak, the auto-generated keypair can be disabled by
-          setting the \code{tsa.authorize_generated_worker_key} property to
-          \code{false}.
-        }
-
-        To register an external worker using the TSA, however, you'll first need
-        to generate a private key, and then list it as an authorized key. For
-        a BOSH deployment, this can be done by listing the authorized public keys
-        under the \code{tsa.authorized_keys} property.
-      }
-
-      \section{Registering a worker directly}{
-        The \code{register-worker} command is used when you have a Garden worker
-        accessible from within the private network. For example, registering
-        a Windows EC2 instance with the rest of your cluster, all within a VPC.
-        This is also the default registration mode for all Concourse workers
-        within the deployment.
-
-        So, to register a worker for direct access, you would run something like
-        this:
-
-        \codeblock{bash}{
-          ssh \\
-            -i path/to/private-key \\
-            -p 2222 some-atc.com \\
-            register-worker < worker.json
-        }
-
-        ...where \code{worker.json} contains the worker JSON payload to advertise.
-      }
-
-      \section{Forwarding a local Garden server}{
-        The \code{forward-worker} command is used when you want to tunnel
-        a locally-reachable Garden server (e.g. one listening on \code{127.0.0.1})
-        through the TSA, who will advertise the tunneled address on the client's
-        behalf.
-
-        For example, to securely register a local Garden server as a worker, you
-        would run:
-
-        \codeblock{bash}{
-          ssh \\
-            -i path/to/private-key \\
-            -R 0.0.0.0:0:127.0.0.1:7777 \\
-            -p 2222 some-atc.com \\
-            forward-worker < worker.json
-        }
-
-        ...where \code{127.0.0.1:7777} is the address of the local Garden server,
-        and \code{worker.json} is a file containing the worker JSON payload (sans
-        \code{"addr"}).
-      }
-
-      \section{Forwarding local Garden and Baggageclaim servers}{
-        The same \code{forward-worker} command as above, but with two \code{-R}
-        forwards, and flags for identifying which is which:
-
-        \codeblock{bash}{
-          ssh \\
-            -i path/to/private-key \\
-            -R 0.0.0.0:7777:127.0.0.1:7777 \\
-            -R 0.0.0.0:7788:127.0.0.1:7788 \\
-            -p 2222 some-atc.com \\
-            forward-worker \\
-            --garden 0.0.0.0:7777 \\
-            --baggageclaim 0.0.0.0:7788 \\
-            < worker.json
-        }
-
-        Note that \code{--garden} and \code{--baggageclaim} specify the
-        requested remote-end of their \code{-R} forward flags, respectively.
-        The specified addresses are not actually used; on the server side; this
-        is just a sort of hacky way to keep the SSH interaction simple.
       }
     }
   }
