@@ -254,11 +254,6 @@ func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.Co
 			return containerSpec, err
 		}
 
-		err = factory.db.InsertCOWVolume(mount.Volume.Handle(), cowVolume.Handle(), VolumeTTL)
-		if err != nil {
-			return containerSpec, err
-		}
-
 		factory.releaseAfterCreate = append(factory.releaseAfterCreate, cowVolume)
 
 		containerSpec.BindMounts = append(containerSpec.BindMounts, garden.BindMount{
