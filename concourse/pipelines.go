@@ -1,6 +1,10 @@
 package concourse
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
@@ -79,6 +83,31 @@ func (client *client) UnpausePipeline(pipelineName string) (bool, error) {
 		Params:      params,
 	}, nil)
 
+	switch err.(type) {
+	case nil:
+		return true, nil
+	case internal.ResourceNotFoundError:
+		return false, nil
+	default:
+		return false, err
+	}
+}
+
+func (client *client) RenamePipeline(pipelineName, name string) (bool, error) {
+	params := rata.Params{"pipeline_name": pipelineName}
+	jsonBytes, err := json.Marshal(struct {
+		Name string `json:"name"`
+	}{Name: name})
+	if err != nil {
+		return false, err
+	}
+
+	err = client.connection.Send(internal.Request{
+		RequestName: atc.RenamePipeline,
+		Params:      params,
+		Body:        bytes.NewBuffer(jsonBytes),
+		Header:      http.Header{"Content-Type": []string{"application/json"}},
+	}, nil)
 	switch err.(type) {
 	case nil:
 		return true, nil

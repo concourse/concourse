@@ -189,4 +189,54 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 		})
 	})
+
+	Describe("RenamePipeline", func() {
+		expectedURL := "/api/v1/pipelines/mypipeline/rename"
+
+		Context("when the pipeline exists", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.VerifyJSON(`{"name":"newpipelinename"}`),
+						ghttp.RespondWith(http.StatusNoContent, ""),
+					),
+				)
+			})
+
+			It("renames the pipeline when called", func() {
+				renamed, err := client.RenamePipeline("mypipeline", "newpipelinename")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(renamed).To(BeTrue())
+			})
+		})
+
+		Context("when the pipeline does not exist", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.RespondWith(http.StatusNotFound, ""),
+				)
+			})
+
+			It("returns false and no error", func() {
+				renamed, err := client.RenamePipeline("mypipeline", "newpipelinename")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(renamed).To(BeFalse())
+			})
+		})
+
+		Context("when an error occurs", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.RespondWith(http.StatusTeapot, ""),
+				)
+			})
+
+			It("returns an error", func() {
+				renamed, err := client.RenamePipeline("mypipeline", "newpipelinename")
+				Expect(err).To(MatchError(ContainSubstring("418 I'm a teapot")))
+				Expect(renamed).To(BeFalse())
+			})
+		})
+	})
 })

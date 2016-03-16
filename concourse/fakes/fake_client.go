@@ -14,13 +14,13 @@ type FakeClient struct {
 	URLStub        func() string
 	uRLMutex       sync.RWMutex
 	uRLArgsForCall []struct{}
-	uRLReturns     struct {
+	uRLReturns struct {
 		result1 string
 	}
 	HTTPClientStub        func() *http.Client
 	hTTPClientMutex       sync.RWMutex
 	hTTPClientArgsForCall []struct{}
-	hTTPClientReturns     struct {
+	hTTPClientReturns struct {
 		result1 *http.Client
 	}
 	BuildsStub        func(concourse.Page) ([]atc.Build, concourse.Pagination, error)
@@ -126,7 +126,7 @@ type FakeClient struct {
 	CreatePipeStub        func() (atc.Pipe, error)
 	createPipeMutex       sync.RWMutex
 	createPipeArgsForCall []struct{}
-	createPipeReturns     struct {
+	createPipeReturns struct {
 		result1 atc.Pipe
 		result2 error
 	}
@@ -154,6 +154,16 @@ type FakeClient struct {
 		pipelineName string
 	}
 	unpausePipelineReturns struct {
+		result1 bool
+		result2 error
+	}
+	RenamePipelineStub        func(pipelineName, name string) (bool, error)
+	renamePipelineMutex       sync.RWMutex
+	renamePipelineArgsForCall []struct {
+		pipelineName string
+		name         string
+	}
+	renamePipelineReturns struct {
 		result1 bool
 		result2 error
 	}
@@ -225,21 +235,21 @@ type FakeClient struct {
 	ListPipelinesStub        func() ([]atc.Pipeline, error)
 	listPipelinesMutex       sync.RWMutex
 	listPipelinesArgsForCall []struct{}
-	listPipelinesReturns     struct {
+	listPipelinesReturns struct {
 		result1 []atc.Pipeline
 		result2 error
 	}
 	ListVolumesStub        func() ([]atc.Volume, error)
 	listVolumesMutex       sync.RWMutex
 	listVolumesArgsForCall []struct{}
-	listVolumesReturns     struct {
+	listVolumesReturns struct {
 		result1 []atc.Volume
 		result2 error
 	}
 	ListWorkersStub        func() ([]atc.Worker, error)
 	listWorkersMutex       sync.RWMutex
 	listWorkersArgsForCall []struct{}
-	listWorkersReturns     struct {
+	listWorkersReturns struct {
 		result1 []atc.Worker
 		result2 error
 	}
@@ -275,14 +285,14 @@ type FakeClient struct {
 	ListAuthMethodsStub        func() ([]atc.AuthMethod, error)
 	listAuthMethodsMutex       sync.RWMutex
 	listAuthMethodsArgsForCall []struct{}
-	listAuthMethodsReturns     struct {
+	listAuthMethodsReturns struct {
 		result1 []atc.AuthMethod
 		result2 error
 	}
 	AuthTokenStub        func() (atc.AuthToken, error)
 	authTokenMutex       sync.RWMutex
 	authTokenArgsForCall []struct{}
-	authTokenReturns     struct {
+	authTokenReturns struct {
 		result1 atc.AuthToken
 		result2 error
 	}
@@ -865,6 +875,40 @@ func (fake *FakeClient) UnpausePipelineArgsForCall(i int) string {
 func (fake *FakeClient) UnpausePipelineReturns(result1 bool, result2 error) {
 	fake.UnpausePipelineStub = nil
 	fake.unpausePipelineReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) RenamePipeline(pipelineName string, name string) (bool, error) {
+	fake.renamePipelineMutex.Lock()
+	fake.renamePipelineArgsForCall = append(fake.renamePipelineArgsForCall, struct {
+		pipelineName string
+		name         string
+	}{pipelineName, name})
+	fake.renamePipelineMutex.Unlock()
+	if fake.RenamePipelineStub != nil {
+		return fake.RenamePipelineStub(pipelineName, name)
+	} else {
+		return fake.renamePipelineReturns.result1, fake.renamePipelineReturns.result2
+	}
+}
+
+func (fake *FakeClient) RenamePipelineCallCount() int {
+	fake.renamePipelineMutex.RLock()
+	defer fake.renamePipelineMutex.RUnlock()
+	return len(fake.renamePipelineArgsForCall)
+}
+
+func (fake *FakeClient) RenamePipelineArgsForCall(i int) (string, string) {
+	fake.renamePipelineMutex.RLock()
+	defer fake.renamePipelineMutex.RUnlock()
+	return fake.renamePipelineArgsForCall[i].pipelineName, fake.renamePipelineArgsForCall[i].name
+}
+
+func (fake *FakeClient) RenamePipelineReturns(result1 bool, result2 error) {
+	fake.RenamePipelineStub = nil
+	fake.renamePipelineReturns = struct {
 		result1 bool
 		result2 error
 	}{result1, result2}
