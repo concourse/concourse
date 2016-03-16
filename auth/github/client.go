@@ -1,6 +1,7 @@
 package github
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -26,7 +27,10 @@ func NewClient(baseURL string) Client {
 type OrganizationTeams map[string][]string
 
 func (c *client) CurrentUser(httpClient *http.Client) (string, error) {
-	client := c.githubClient(httpClient)
+	client, err := c.githubClient(httpClient)
+	if err != nil {
+		return "", err
+	}
 
 	currentUser, _, err := client.Users.Get("")
 	if err != nil {
@@ -37,7 +41,10 @@ func (c *client) CurrentUser(httpClient *http.Client) (string, error) {
 }
 
 func (c *client) Teams(httpClient *http.Client) (OrganizationTeams, error) {
-	client := c.githubClient(httpClient)
+	client, err := c.githubClient(httpClient)
+	if err != nil {
+		return nil, err
+	}
 
 	teams, _, err := client.Organizations.ListUserTeams(nil)
 	if err != nil {
@@ -59,7 +66,10 @@ func (c *client) Teams(httpClient *http.Client) (OrganizationTeams, error) {
 }
 
 func (c *client) Organizations(httpClient *http.Client) ([]string, error) {
-	client := c.githubClient(httpClient)
+	client, err := c.githubClient(httpClient)
+	if err != nil {
+		return nil, err
+	}
 
 	orgs, _, err := client.Organizations.List("", nil)
 	if err != nil {
@@ -74,11 +84,15 @@ func (c *client) Organizations(httpClient *http.Client) ([]string, error) {
 	return organizations, nil
 }
 
-func (c *client) githubClient(httpClient *http.Client) *gogithub.Client {
+func (c *client) githubClient(httpClient *http.Client) (*gogithub.Client, error) {
 	client := gogithub.NewClient(httpClient)
 	if c.baseURL != "" {
-		client.BaseURL, _ = url.Parse(c.baseURL)
+		var err error
+		client.BaseURL, err = url.Parse(c.baseURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid github auth API URL '%s'", c.baseURL)
+		}
 	}
 
-	return client
+	return client, nil
 }

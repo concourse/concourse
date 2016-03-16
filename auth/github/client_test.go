@@ -199,6 +199,7 @@ var _ = Describe("Client", func() {
 				Expect(teams["org-2"]).To(ConsistOf([]string{"Team 3"}))
 			})
 		})
+
 		Context("when listing organization succeeds", func() {
 			BeforeEach(func() {
 				githubServer.AppendHandlers(
@@ -220,8 +221,18 @@ var _ = Describe("Client", func() {
 			})
 		})
 
-	})
+		Context("when invalid URL is provded", func() {
+			BeforeEach(func() {
+				client = github.NewClient("%invalid-url")
+			})
 
+			It("returns an error", func() {
+				_, err := client.CurrentUser(proxiedClient)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("invalid github auth API URL '%invalid-url'"))
+			})
+		})
+	})
 })
 
 type proxiedTransport struct {
