@@ -86,7 +86,7 @@ difference being operational concerns like scaling up your workers.
 
     To generate these keys, run:
 
-    \codeblock{sh}{
+    \codeblock{bash}{
     ssh-keygen -t rsa -f host_key -N ''
     ssh-keygen -t rsa -f worker_key -N ''
     ssh-keygen -t rsa -f session_signing_key -N ''
@@ -95,7 +95,7 @@ difference being operational concerns like scaling up your workers.
     ...and we'll also start on an \code{authorized_keys} file, currently
     listing this initial worker key:
 
-    \codeblock{sh}{
+    \codeblock{bash}{
     cp worker_key.pub authorized_worker_keys
     }
   }
@@ -117,7 +117,7 @@ difference being operational concerns like scaling up your workers.
       \code{8080}, with some basic auth configured, and a TSA listening on port
       \code{2222}.
 
-      \codeblock{sh}{
+      \codeblock{bash}{
       concourse web \\
         --basic-auth-username myuser \\
         --basic-auth-password mypass \\
@@ -161,7 +161,7 @@ difference being operational concerns like scaling up your workers.
 
       Node 0:
 
-      \codeblock{sh}{
+      \codeblock{bash}{
       concourse web \\
         --basic-auth-username myuser \\
         --basic-auth-password mypass \\
@@ -175,7 +175,7 @@ difference being operational concerns like scaling up your workers.
 
       Node 1 (only difference is \code{--peer-url}):
 
-      \codeblock{sh}{
+      \codeblock{bash}{
       concourse web \\
         --basic-auth-username myuser \\
         --basic-auth-password mypass \\
@@ -205,7 +205,7 @@ difference being operational concerns like scaling up your workers.
     To spin up a worker and register it with your Concourse cluster at
     \code{ci.example.com}, run:
 
-    \codeblock{sh}{
+    \codeblock{bash}{
     sudo concourse worker \\
       --work-dir /opt/concourse/worker \\
       --peer-ip 10.0.48.0 \\
