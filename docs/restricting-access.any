@@ -76,8 +76,8 @@ options below are useless without using TLS to secure your connection.
         \code{--github-auth-team=ORG/TEAM}, and \code{--github-auth-user=LOGIN}
         multiple times to achieve the same effect.
 
-        When authenticated against a Github Enterprise use the following settings
-        to override the URL's used for authentication:
+        When using Github Enterprise as an authentication provider, specify the
+        following properties:
         \code{--github-auth-auth-url=https://github.example.com/login/oauth/authorize},
         \code{--github-auth-token-url=https://github.example.com/login/oauth/access_token},
         \code{--github-auth-api-url=https://github.example.com/api/v3/}. Make sure the API URL ends with a slash!
