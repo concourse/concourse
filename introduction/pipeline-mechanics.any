@@ -15,6 +15,8 @@ life of its own, to continously detect resource versions and schedule jobs over
 time. The mechanics of this are described below.
 
 \section{Scheduling with Resources}{
+  \omit-children-from-table-of-contents
+
   Resources are at the core of Concourse and are used to model all external
   dependencies that enter or exit your pipeline.  This lets Concourse ensure
   that builds are repeatable and recorded.
@@ -149,6 +151,8 @@ time. The mechanics of this are described below.
 }
 
 \section{Applying the Brakes}{
+  \omit-children-from-table-of-contents
+
   Sometimes your house just starts to burn down. It's no one's fault, but you
   want it to stop. In Concourse, there are various levels of "panic buttons"
   that let you deal with emergent behavior such as backwards incompatibility or

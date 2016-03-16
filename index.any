@@ -10,22 +10,16 @@
 
 \top-intro{
   \top-intro-nav{
-    \reference{what-and-why}{Introduction}
+    \reference{introduction}{\font-awesome{fa-book} Documentation}
   }{
-    \reference{docs}{Documentation}
+    \reference{community}{\font-awesome{fa-comments} Community}
   }{
-    \reference{community}{Community}
+    \reference{releases}{\font-awesome{fa-download} Downloads}
   }{
-    \reference{releases}{Releases}
+    \reference{github}{\font-awesome{fa-github} GitHub}
   }
 
   \top-intro-text{\soft-line{CI that scales with} \soft-line{your project.}}
-
-  \top-intro-buttons{
-    \reference{getting-started}{\light-button{\font-awesome{fa-paper-plane} Get Started}}
-  }{
-    \reference{contribute}{\light-button{\font-awesome{fa-github} GitHub}}
-  }
 
   \top-intro-pipes
 }
@@ -156,21 +150,9 @@
   \sponsorship{Sponsored by \hyperlink{http://pivotal.io/}{Pivotal Software}, Inc.}
 }
 
-\include-section{./what-and-why.any}
-\include-section{./concourse-vs.any}
+\include-section{./introduction.any}
 \include-section{./setting-up.any}
-\include-section{./getting-started.any}
-\include-section{./concepts.any}
-\include-section{./pipeline-mechanics.any}
-\include-section{./examples.any}
-\include-section{./fly-cli.any}
-\include-section{./running-tasks.any}
-\include-section{./pipelines.any}
-\include-section{./build-plans.any}
-\include-section{./worker-pools.any}
-\include-section{./restricting-access.any}
-\include-section{./implementing-resources.any}
-\include-section{./metrics.any}
+\include-section{./using-concourse.any}
 \include-section{./release-notes.any}
 
 \table-of-contents

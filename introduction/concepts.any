@@ -1,0 +1,212 @@
+#language anatomy
+
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
+
+\title{Concepts}{concepts}
+
+Like files and pipes in Unix, the goal is to build an expressive system with as
+few distinct moving parts as possible.
+
+Concourse limits itself to three core concepts: tasks, resources, and the jobs
+that compose them. Interesting features like timed triggers and synchronizing
+usage of external environments are modeled in terms of these, rather than as
+layers on top.
+
+With these primitives you can model any pipeline, from simple (unit →
+integration → deploy → ship) to complex (testing on multiple infrastructures,
+fanning out and in, etc.).
+
+There are no more nooks and crannies of Concourse introduced as your pipeline
+becomes more involved.
+
+\section{Tasks}{tasks}{
+  \omit-children-from-table-of-contents
+
+  A task is the execution of a script in an isolated environment with
+  dependent resources available to it. For example, running
+  \code{myrepo/scripts/test} in a Docker container, with the working directory
+  containing all of the task's dependencies.
+
+  If the script exits \code{0}, the task succeeds. Otherwise, it fails.
+
+  A task can either be executed by a \reference{jobs}{Job} or executed manually
+  with the \reference{fly}{Fly} commandline. Both execute the same configuration,
+  giving the guarantee that locally-executed tasks with Fly are running the same
+  way they would in your pipeline.
+
+
+  \section{Runtime Environment}{
+    A task's script is executed in a working directory containing all of the
+    task's fetched resources, and with any provided parameters set as
+    environment variables.
+
+    By default, tasks run as an unprivileged user. When run with
+    \code{privileged} enabled either by a job or with
+    \reference{fly-execute}{\code{fly execute}}, tasks run as \code{root} with
+    full capabilities.
+
+    Note that a task \italic{cannot} configure itself to be run with full
+    privileges. This is to prevent things like pull requests from escalating
+    privileges and running arbitrary code.
+  }
+}
+
+\section{Resources}{resources}{
+  \omit-children-from-table-of-contents
+
+  A resource is any entity that can be checked for new versions, pulled down
+  at a specific version, and/or pushed up to idempotently create new versions.
+  A common example would be a git repository, but it can also represent more
+  abstract things like
+  \hyperlink{https://github.com/concourse/time-resource}{time itself}.
+
+  At its core, Concourse knows nothing about things like \code{git}. Instead,
+  it consumes a generic interface implemented by \italic{resource types}. This
+  allows Concourse to be extended by configuring workers with resource type
+  implementations.
+
+  This abstraction is immensely powerful, as it does not limit Concourse to
+  whatever things its authors thought to integrate with. Instead, as a user of
+  Concourse you can just reuse resource type implementations, or
+  \reference{implementing-resources}{implement your own}.
+
+  To use resources, configure them in your pipeline via the
+  \reference{configuring-resources}{\code{resources}} section, and use them in
+  your \reference{build-plans} via the \reference{get-step} and
+  \reference{put-step} steps.
+
+  \section{What types are supported?}{
+    At some point we'd like to put together some sort of registry, and make it
+    easy to extend your own deployment with third-party resource types. We're not
+    there yet though.
+
+    Be sure to read the \code{README} file for a resource to know what it does
+    before using it!
+
+    \section{Resources Provided With Concourse}{
+      Concourse ships with a number of prebuilt resources:
+
+      \list{
+        The \hyperlink{https://github.com/concourse/git-resource}{Git} resource can
+        pull and push to git repositories.
+      }{
+        The \hyperlink{https://github.com/concourse/time-resource}{Time} resource can
+        start jobs on a schedule or timestamp outputs.
+      }{
+        The \hyperlink{https://github.com/concourse/s3-resource}{S3} resource can fetch
+        from and upload to S3 buckets.
+      }{
+        The \hyperlink{https://github.com/concourse/archive-resource}{Archive} resource
+        can fetch and extract .tar.gz archives.
+      }{
+        The \hyperlink{https://github.com/concourse/semver-resource}{Semver} resource can
+        set or bump version numbers.
+      }{
+        The \hyperlink{https://github.com/concourse/github-release-resource}{GitHub Release} resource can
+        fetch and publish versioned GitHub resources.
+      }{
+        The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker Image}
+        resource can fetch, build, and push Docker images
+      }{
+        The \hyperlink{https://github.com/concourse/tracker-resource}{Tracker} resource can
+        close stories and bugs on Pivotal Tracker
+      }{
+        The \hyperlink{https://github.com/concourse/pool-resource}{Pool} resource
+        allows you to configure how to serialize use of an external system. This
+        lets you prevent test interference or overwork on shared systems.
+      }{
+        The \hyperlink{https://github.com/concourse/cf-resource}{Cloud Foundry} resource
+        can deploy an application to Cloud Foundry.
+      }{
+        The \hyperlink{https://github.com/concourse/bosh-io-release-resource}{Bosh.io Release} resource
+        can track and fetch new BOSH releases from bosh.io.
+      }{
+        The \hyperlink{https://github.com/concourse/bosh-deployment-resource}{Bosh Deployment} resource
+        can deploy BOSH stemcells and releases.
+      }{
+        The \hyperlink{https://github.com/concourse/bosh-io-stemcell-resource}{Bosh.io Stemcell} resource
+        can track and fetch new BOSH stemcells from bosh.io.
+      }{
+        The \hyperlink{https://github.com/concourse/vagrant-cloud-resource}{Vagrant Cloud} resource
+        can fetch and publish Vagrant boxes.
+      }
+    }
+
+    \section{Unsupported Community Resources}{community-resources}{
+      WARNING: These are third-party resources. Use at your own risk!
+
+      \list{
+        \hyperlink{https://github.com/Nopik/slack-notification-resource}{Slack notifications}
+      }{
+        \hyperlink{https://github.com/jtarchie/pullrequest-resource}{Pull Requests}
+      }{
+        \hyperlink{https://github.com/sapcc/concourse-swift-resource}{OpenStack Swift}
+      }{
+        \hyperlink{https://github.com/starkandwayne/flowdock-concourse-notification-resource}{Flowdock notifications}
+      }{
+        \hyperlink{https://github.com/pivotal-cf/email-resource}{Email}
+      }{
+        \hyperlink{https://github.com/jamiemonserrate/bintray-resource}{Bintray}
+      }{
+        \hyperlink{https://github.com/olhtbr/p4-resource}{Perforce}
+      }{
+        \hyperlink{https://github.com/cromega/http-resource}{HTTP client}
+      }{
+        \hyperlink{https://github.com/starkandwayne/bosh-errand-resource-boshrelease}{BOSH Errands}
+      }{
+        \hyperlink{https://github.com/cfmobile/pool-trigger-resource}{Pool Trigger}
+      }{
+        \hyperlink{https://github.com/pivotal-cf-experimental/pivnet-resource}{Pivotal Network}
+      }{
+        \hyperlink{https://github.com/aequitas/concourse-ftp-resource}{FTP}
+      }{
+        \hyperlink{https://github.com/pivotal-cf-experimental/cloudformation-resource}{Cloudformation}
+      }{
+        \hyperlink{https://github.com/aequitas/concourse-http-api-resource}{Generic HTTP API}
+      }{
+        \hyperlink{https://github.com/seadowg/hockey-resource}{Hockey App}
+      }
+    }
+
+    \section{Adding to this list}{
+      Fork the \hyperlink{https://github.com/concourse/concourse}{\code{concourse/concourse}}
+      repository, edit \code{concourse/docs/concepts/resources.any}, then make a pull request.
+    }
+  }
+}
+
+\section{Jobs}{jobs}{
+  \omit-children-from-table-of-contents
+
+  At a high level, a job describes some actions to perform when dependent
+  resources change (or when manually triggered). For example, you may define a
+  job that runs your unit tests whenever new code is pushed to a repository.
+
+  Jobs can be thought of as functions with inputs and outputs, that
+  automatically run when new inputs are available. A job can depend on the
+  outputs of upstream jobs, which is the root of pipeline functionality.
+
+  The definition of actions to perform is done via a
+  \reference{build-plans}{Build Plan}, which is a very powerful
+  composition-based DSL that can express anything from running simple unit
+  tests to running a matrix of tasks and aggregating the result.
+
+  \section{Builds}{job-builds}{
+    An instance of execution of a job's plan is called a \italic{build}. A build
+    can either succeed or fail, or error if something unrelated to your code goes
+    wrong (for example, if the resources fail to fetch).
+
+    When a build runs, the job's plan is realized. Each step described by the
+    job's plan is executed, and so long as all \reference{tasks} succeed, the
+    build succeeds. If a task fails, the build fails, and its resources do not
+    propagate to the rest of the pipeline.
+
+    Builds can be accessed while they're running (and also shortly after they
+    finish) via \reference{fly-intercept}{\code{fly intercept}}, which can
+    greatly help in debugging.
+  }
+}
+
+\table-of-contents
