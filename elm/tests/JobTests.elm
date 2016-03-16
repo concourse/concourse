@@ -16,7 +16,10 @@ all =
   suite "Job"
     [ suite "update" <|
       let
-        someJobInfo = { name = "some-job", pipelineName = "some-pipeline" }
+        someJobInfo =
+          { name = "some-job"
+          , pipelineName = "some-pipeline"
+          }
       in let
         someBuild =
           { id = 123
@@ -35,6 +38,7 @@ all =
           , pipelineName = "some-pipeline"
           , finishedBuild = Just someBuild
           , paused = False
+          , disableManualTrigger = False
           }
         defaultModel =
           { redirect = redirects.address
