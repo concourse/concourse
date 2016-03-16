@@ -97,7 +97,7 @@ func NewClient(atcURL string, insecure bool) concourse.Client {
 	}
 
 	var transport http.RoundTripper
-	
+
 	transport = &http.Transport{
 		TLSClientConfig: tlsConfig,
 		Dial: (&net.Dialer{
