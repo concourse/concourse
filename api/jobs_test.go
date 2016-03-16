@@ -687,7 +687,7 @@ var _ = Describe("Jobs API", func() {
 					pipelineDB.GetConfigReturns(atc.Config{
 						Jobs: []atc.JobConfig{
 							{
-								Name: "some-job",
+								Name:                 "some-job",
 								DisableManualTrigger: true,
 								Plan: atc.PlanSequence{
 									{
@@ -704,8 +704,8 @@ var _ = Describe("Jobs API", func() {
 					}, 1, true, nil)
 				})
 
-				It("should return 403", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				It("should return 409", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusConflict))
 				})
 
 				It("does not trigger the build", func() {

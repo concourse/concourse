@@ -182,8 +182,7 @@ var _ = Describe("Job Builds", func() {
 				// button should not have the boolean attribute "disabled" set. agouti currently returns
 				// an empty string in that case.
 				Expect(page.Find("button.build-action")).ToNot(BeNil())
-				// Expect(page.Find("button.build-action")).To(HaveAttribute("disabled", ""))
-				Eventually(page.Find("button.build-action"), 60).Should(HaveAttribute("disabled", ""))
+				Eventually(page.Find("button.build-action")).Should(HaveAttribute("disabled", ""))
 
 				Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("job-name #%d", build.ID)))
 				Expect(page.Find("h1 a").Click()).To(Succeed())
@@ -234,7 +233,6 @@ var _ = Describe("Job Builds", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					manualTriggerDisabledBuild, err = pipelineDB.CreateJobBuild("job-manual-trigger-disabled")
-					fmt.Printf("new build id is: %d\n", manualTriggerDisabledBuild.ID)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -248,7 +246,6 @@ var _ = Describe("Job Builds", func() {
 
 					// job detail w/build info -> job detail
 					Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-manual-trigger-disabled/builds/%s", manualTriggerDisabledBuild.Name))))
-					// TODO is the build id really stored as "name" in the builds table? how does the router look it up?
 					Expect(page.Find("button.build-action")).To(HaveAttribute("disabled", "true"))
 				})
 
@@ -266,12 +263,10 @@ var _ = Describe("Job Builds", func() {
 					Expect(page.Find("h1 a").Click()).To(Succeed())
 					Eventually(page).Should(HaveURL(withPath("jobs/job-manual-trigger-disabled")))
 
-					// TODO is the build id really stored as "name" in the builds table? how does the router look it up?
 					Expect(page.Find("button.build-action")).ToNot(BeNil())
 					Expect(page.Find("button.build-action")).To(HaveAttribute("disabled", "true"))
 				})
 			})
-
 
 			Describe("paused pipeline", func() {
 				BeforeEach(func() {

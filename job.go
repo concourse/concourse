@@ -1,12 +1,12 @@
 package atc
 
 type Job struct {
-	Name          string `json:"name"`
-	URL           string `json:"url"`
-	Paused        bool   `json:"paused,omitempty"`
-	DisableManualTrigger bool	`json:"disable_manual_trigger,omitempty"`
-	NextBuild     *Build `json:"next_build"`
-	FinishedBuild *Build `json:"finished_build"`
+	Name                 string `json:"name"`
+	URL                  string `json:"url"`
+	Paused               bool   `json:"paused,omitempty"`
+	DisableManualTrigger bool   `json:"disable_manual_trigger,omitempty"`
+	NextBuild            *Build `json:"next_build"`
+	FinishedBuild        *Build `json:"finished_build"`
 
 	Inputs  []JobInput  `json:"inputs"`
 	Outputs []JobOutput `json:"outputs"`
