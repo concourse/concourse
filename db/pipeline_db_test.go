@@ -393,6 +393,18 @@ var _ = Describe("PipelineDB", func() {
 		})
 	})
 
+	Describe("UpdateName", func() {
+		It("can update the name of a given pipeline", func() {
+			err := pipelineDB.UpdateName("some-other-weird-name")
+			Expect(err).NotTo(HaveOccurred())
+
+			pipeline, err := sqlDB.GetPipelineByTeamNameAndName(team.Name, "some-other-weird-name")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(pipeline.Name).To(Equal("some-other-weird-name"))
+		})
+	})
+
 	Describe("ScopedName", func() {
 		It("concatenates the pipeline name with the passed in name", func() {
 			pipelineDB := pipelineDBFactory.Build(db.SavedPipeline{

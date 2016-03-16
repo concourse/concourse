@@ -624,4 +624,65 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 	})
+
+	Describe("PUT /api/v1/pipelines/:pipeline_name/rename", func() {
+		var response *http.Response
+		var pipelineDB *dbfakes.FakePipelineDB
+
+		BeforeEach(func() {
+			authValidator.IsAuthenticatedReturns(true)
+			pipelineDB = new(dbfakes.FakePipelineDB)
+
+			pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/rename", bytes.NewBufferString(`{"name":"some-new-name"}`))
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			It("injects the proper pipelineDB", func() {
+				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
+				Expect(pipelineName).To(Equal("a-pipeline"))
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
+			})
+
+			It("returns 204", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+			})
+
+			It("renames the pipeline to the name provided", func() {
+				Expect(pipelineDB.UpdateNameCallCount()).To(Equal(1))
+				Expect(pipelineDB.UpdateNameArgsForCall(0)).To(Equal("some-new-name"))
+			})
+
+			Context("when an error occurs on update", func() {
+				BeforeEach(func() {
+					pipelineDB.UpdateNameReturns(errors.New("whoops"))
+				})
+
+				It("returns a 500 internal server error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					Expect(logger.LogMessages()).To(ContainElement("callbacks.call-to-update-pipeline-name-failed"))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
 })
