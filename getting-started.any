@@ -6,21 +6,8 @@
 
 \title{Getting Started}{getting-started}
 
-The easiest way to get a Concourse instance going so that you can learn the
-concepts first-hand is by using the pre-built Vagrant boxes.
-
-To spin up Concourse with Vagrant, run the following in any directory:
-
-\codeblock{bash}{
-vagrant init concourse/lite # creates ./Vagrantfile
-vagrant up                  # downloads the box and spins up the VM
-}
-
-The web server will be running at
-\hyperlink{http://192.168.100.4:8080}{192.168.100.4:8080}.
-
-Next, download the Fly CLI from the \hyperlink{http://192.168.100.4:8080}{main
-page} where there are links to binaries for common platforms.
+Once you've got your Concourse all \reference{setting-up}{set up}, you'll want to
+download the Fly CLI from your instance via the web UI.
 
 \margin-note{
   If you're on Linux or OS X, you will have to \code{chmod +x} the downloaded
@@ -101,6 +88,3 @@ ways to approach learning Concourse:
   \reference{pipelines} - to learn how to continuously integrate resources
   and tasks together.
 }
-
-After all that, if you want a proper Concourse deployment (not just a local
-VM), put your game face on and head over to \reference{deploying-with-bosh}.
