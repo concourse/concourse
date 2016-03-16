@@ -6,7 +6,7 @@ import Debug
 import Dict exposing (Dict)
 import Effects exposing (Effects)
 import Html exposing (Html)
-import Html.Attributes exposing (action, class, classList, href, id, method, title)
+import Html.Attributes exposing (action, class, classList, href, id, method, title, disabled)
 import Html.Events exposing (onClick, on, onWithOptions)
 import Html.Lazy
 import Http
@@ -23,6 +23,8 @@ import LoadingIndicator
 import BuildDuration
 import Scroll
 
+import Concourse.Job exposing (Job)
+
 type alias Model =
   { redirect : Signal.Address String
   , actions : Signal.Address Action
@@ -30,6 +32,7 @@ type alias Model =
   , build : Maybe Build
   , buildPrep: Maybe BuildPrep
   , history : List Build
+  , job : Maybe Job
   , status : BuildStatus
   , autoScroll : Bool
   , now : Time.Time
@@ -48,6 +51,7 @@ type Action
   | BuildFetched (Result Http.Error Build)
   | BuildPrepFetched (Result Http.Error BuildPrep)
   | BuildHistoryFetched (Result Http.Error (Paginated Build))
+  | BuildJobDetailsFetched (Result Http.Error Job)
   | BuildOutputAction BuildOutput.Action
   | BuildStatus BuildStatus Date
   | ScrollBuilds (Float, Float)
@@ -67,6 +71,7 @@ init redirect actions buildId =
       , build = Nothing
       , buildPrep = Nothing
       , history = []
+      , job = Nothing
       , autoScroll = True
       , status = Concourse.BuildStatus.Pending
       , now = 0
@@ -135,6 +140,13 @@ update action model =
     BuildHistoryFetched (Ok history) ->
       handleHistoryFetched history model
 
+    BuildJobDetailsFetched (Ok job) ->
+      handleBuildJobFetched job model
+
+    BuildJobDetailsFetched (Err err) ->
+      Debug.log ("failed to fetch build job details: " ++ toString err) <|
+        (model, Effects.none)
+
     RevealCurrentBuildInHistory ->
       (model, scrollToCurrentBuildInHistory)
 
@@ -163,6 +175,13 @@ handleBuildFetched build model =
         _ ->
           Effects.none
 
+    fetchJobDetails =
+      case model.job of
+        Nothing ->
+          fetchBuildJobDetails build
+        _ ->
+          Effects.none
+
     (newModel, effects) =
       if build.status == Concourse.BuildStatus.Pending then
         pollUntilStarted withBuild
@@ -175,7 +194,7 @@ handleBuildFetched build model =
               , Effects.batch [effects, fetchBuildPrep Time.second model.buildId]
               )
   in
-    (newModel, Effects.batch [effects, fetchHistory])
+    (newModel, Effects.batch [effects, fetchHistory, fetchJobDetails])
 
 pollUntilStarted : Model -> (Model, Effects Action)
 pollUntilStarted model =
@@ -200,6 +219,14 @@ initBuildOutput build model =
     ( { model | output = Just output }
     , Effects.map BuildOutputAction outputEffects
     )
+
+handleBuildJobFetched : Job -> Model -> (Model, Effects Action)
+handleBuildJobFetched job model =
+  let
+    withJobDetails =
+      { model | job = Just job }
+  in
+    (withJobDetails, Effects.none)
 
 handleHistoryFetched : Paginated Build -> Model -> (Model, Effects Action)
 handleHistoryFetched history model =
@@ -338,17 +365,20 @@ viewBuildPrepStatus status =
     Concourse.BuildPrep.NotBlocking -> Html.i [class "fa fa-fw fa-check", title "not blocking"] []
 
 viewBuildHeader : Signal.Address Action -> Build -> Model -> Html
-viewBuildHeader actions build {status, now, duration, history} =
+viewBuildHeader actions build {status, now, duration, history, job} =
   let
     triggerButton =
       case build.job of
         Just {name, pipelineName} ->
           let
             actionUrl = "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name ++ "/builds"
+            buttonDisabled = case job of
+              Nothing -> True
+              Just job -> job.disableManualTrigger
           in
             Html.form
               [class "trigger-build", method "post", action (actionUrl)]
-              [Html.button [class "build-action fr"] [Html.i [class "fa fa-plus-circle"] []]]
+              [Html.button [class "build-action fr", disabled buttonDisabled] [Html.i [class "fa fa-plus-circle"] []]]
 
         _ ->
           Html.div [] []
@@ -429,6 +459,17 @@ fetchBuild delay buildId =
     |> Task.toResult
     |> Task.map BuildFetched
     |> Effects.task
+
+fetchBuildJobDetails : Build -> Effects Action
+fetchBuildJobDetails build =
+  case build.job of
+    Nothing ->
+      Effects.none
+    Just buildJob ->
+      Concourse.Job.fetchJob buildJob
+        |> Task.toResult
+        |> Task.map BuildJobDetailsFetched
+        |> Effects.task
 
 fetchBuildPrep : Time -> Int -> Effects Action
 fetchBuildPrep delay buildId =

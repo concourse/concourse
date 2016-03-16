@@ -86,6 +86,7 @@ type JobConfig struct {
 	Name   string `yaml:"name" json:"name" mapstructure:"name"`
 	Public bool   `yaml:"public,omitempty" json:"public,omitempty" mapstructure:"public"`
 
+	DisableManualTrigger bool	`yaml:"disable_manual_trigger,omitempty" json:"disable_manual_trigger,omitempty" mapstructure:"disable_manual_trigger"`
 	Serial         bool     `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
 	SerialGroups   []string `yaml:"serial_groups,omitempty" json:"serial_groups,omitempty" mapstructure:"serial_groups"`
 	RawMaxInFlight int      `yaml:"max_in_flight,omitempty" json:"max_in_flight,omitempty" mapstructure:"max_in_flight"`

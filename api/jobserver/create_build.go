@@ -33,6 +33,11 @@ func (s *Server) CreateJobBuild(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
+		if job.DisableManualTrigger {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
 		scheduler := s.schedulerFactory.BuildScheduler(pipelineDB, s.externalURL)
 
 		build, _, err := scheduler.TriggerImmediately(logger, job, config.Resources, config.ResourceTypes)

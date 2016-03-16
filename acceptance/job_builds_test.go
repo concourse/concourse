@@ -68,6 +68,7 @@ var _ = Describe("Job Builds", func() {
 
 		Context("with a job in the configuration", func() {
 			var build db.Build
+			var team db.SavedTeam
 			var buildInput = db.BuildInput{
 				Name: "build-input-1",
 				VersionedResource: db.VersionedResource{
@@ -88,7 +89,8 @@ var _ = Describe("Job Builds", func() {
 			var teamName = atc.DefaultTeamName
 
 			BeforeEach(func() {
-				team, err := sqlDB.SaveTeam(db.Team{Name: teamName})
+				var err error
+				team, err = sqlDB.SaveTeam(db.Team{Name: teamName})
 				Expect(err).NotTo(HaveOccurred())
 
 				// job build data
@@ -176,6 +178,13 @@ var _ = Describe("Job Builds", func() {
 
 				// job detail w/build info -> job detail
 				Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-name/builds/%d", build.ID))))
+
+				// button should not have the boolean attribute "disabled" set. agouti currently returns
+				// an empty string in that case.
+				Expect(page.Find("button.build-action")).ToNot(BeNil())
+				// Expect(page.Find("button.build-action")).To(HaveAttribute("disabled", ""))
+				Eventually(page.Find("button.build-action"), 60).Should(HaveAttribute("disabled", ""))
+
 				Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("job-name #%d", build.ID)))
 				Expect(page.Find("h1 a").Click()).To(Succeed())
 				Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
@@ -202,7 +211,67 @@ var _ = Describe("Job Builds", func() {
 				Expect(page.Find(".builds-list li:first-child .outputs .resource-name")).To(HaveText("some-output"))
 				Expect(page.Find(".builds-list li:first-child .outputs .resource-version .dict-key")).To(HaveText("thing"))
 				Expect(page.Find(".builds-list li:first-child .outputs .resource-version .dict-value")).To(HaveText("output-version"))
+
+				// button should not have the boolean attribute "disabled" set. agouti currently returns
+				// an empty string in that case.
+				Expect(page.Find("button.build-action")).ToNot(BeNil())
+				Expect(page.Find("button.build-action")).To(HaveAttribute("disabled", ""))
 			})
+
+			Context("when manual triggering of the job is disabled", func() {
+				var manualTriggerDisabledBuild db.Build
+
+				BeforeEach(func() {
+					_, _, err := sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
+						Jobs: atc.JobConfigs{
+							{Name: "job-manual-trigger-disabled", DisableManualTrigger: true},
+						},
+						Resources: atc.ResourceConfigs{
+							{Name: "my-resource"},
+							{Name: "some-output"},
+						},
+					}, db.ConfigVersion(1), db.PipelineUnpaused)
+					Expect(err).NotTo(HaveOccurred())
+
+					manualTriggerDisabledBuild, err = pipelineDB.CreateJobBuild("job-manual-trigger-disabled")
+					fmt.Printf("new build id is: %d\n", manualTriggerDisabledBuild.ID)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("should have a disabled button in the build details view", func() {
+					// homepage -> job detail w/build info
+					Expect(page.Navigate(homepage())).To(Succeed())
+					// we will need to authenticate later to prove it is working for our page
+					Authenticate(page, "admin", "password")
+					Eventually(page.FindByLink("job-manual-trigger-disabled")).Should(BeFound())
+					Expect(page.FindByLink("job-manual-trigger-disabled").Click()).To(Succeed())
+
+					// job detail w/build info -> job detail
+					Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-manual-trigger-disabled/builds/%s", manualTriggerDisabledBuild.Name))))
+					// TODO is the build id really stored as "name" in the builds table? how does the router look it up?
+					Expect(page.Find("button.build-action")).To(HaveAttribute("disabled", "true"))
+				})
+
+				It("should have a disabled button in the job details view", func() {
+					// homepage -> job detail w/build info
+					Expect(page.Navigate(homepage())).To(Succeed())
+					// we will need to authenticate later to prove it is working for our page
+					Authenticate(page, "admin", "password")
+					Eventually(page.FindByLink("job-manual-trigger-disabled")).Should(BeFound())
+					Expect(page.FindByLink("job-manual-trigger-disabled").Click()).To(Succeed())
+
+					// job detail w/build info -> job detail
+					Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-manual-trigger-disabled/builds/%s", manualTriggerDisabledBuild.Name))))
+
+					Expect(page.Find("h1 a").Click()).To(Succeed())
+					Eventually(page).Should(HaveURL(withPath("jobs/job-manual-trigger-disabled")))
+
+					// TODO is the build id really stored as "name" in the builds table? how does the router look it up?
+					Expect(page.Find("button.build-action")).ToNot(BeNil())
+					Expect(page.Find("button.build-action")).To(HaveAttribute("disabled", "true"))
+				})
+			})
+
 
 			Describe("paused pipeline", func() {
 				BeforeEach(func() {

@@ -44,6 +44,28 @@
   outline: none;
 }
 
+button.build-action[disabled]:hover:before {
+	position: absolute;
+	    content: "manual triggering disabled in job config";
+	    right: 50px;
+	    padding: 15px;
+	    padding-top: 13px;
+	    overflow: hidden;
+	    display: block;
+	    text-align: left;
+	    font-family: monospace;
+	    color: #ECF0F1;
+}
+
+button.build-action[disabled] {
+	opacity: 0.7;
+}
+
+button.build-action[disabled] i {
+    background: none;
+    cursor: default;
+}
+
 .cli-downloads {
   margin: 0;
   padding: 0;
