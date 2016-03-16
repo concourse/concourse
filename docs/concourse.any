@@ -158,6 +158,7 @@
 
 \include-section{./what-and-why.any}
 \include-section{./concourse-vs.any}
+\include-section{./setting-up.any}
 \include-section{./getting-started.any}
 \include-section{./concepts.any}
 \include-section{./pipeline-mechanics.any}
@@ -166,8 +167,7 @@
 \include-section{./running-tasks.any}
 \include-section{./pipelines.any}
 \include-section{./build-plans.any}
-\include-section{./serious/bosh.any}
-\include-section{./serious/worker-pools.any}
+\include-section{./worker-pools.any}
 \include-section{./restricting-access.any}
 \include-section{./implementing-resources.any}
 \include-section{./metrics.any}
