@@ -59,12 +59,25 @@ concepts, and how to bootstrap on various infrastructures.
     configuration is more secure, as your CI system's internal jobs aren't
     exposed to the outside world.
 
-    To get this all set up, follow along with the
-    \hyperlink{http://bosh.io/docs/init-aws.html}{\code{bosh-init} AWS docs}.
-    You may also want to use our
-    \hyperlink{https://github.com/concourse/concourse/blob/master/manifests/cloudformation.json}{CloudFormation
-    template}, which will set up a VPC with an ELB and an elastic IP for a BOSH
-    director, with appropriate security groups/subnets.
+    To get this all set up:
+    \list{
+      Use our
+      \hyperlink{https://github.com/concourse/concourse/blob/master/manifests/cloudformation.json}{CloudFormation
+      template}, which will set up a VPC, ELB and an elastic IP for a BOSH
+      director, with the appropriate security groups/subnets. 
+      Note: Alternatively, you could replicate a similar setup after examining
+      the template without having to use CloudFormation. 
+      
+    }{
+      Follow along with the (skipping step 2 if you used CloudFormation)
+      \hyperlink{http://bosh.io/docs/init-aws.html}{\code{bosh-init} AWS docs}.
+    }{
+      Correctly configure SSL for the Elastic Load Balancer see: 
+      \hyperlink{http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/ssl-server-cert.html}{SSL for AWS ELB Setup}.
+    }{
+      Test your installation by checking the AWS assigned DNS for the Load 
+      Balancer and navigating to that address in your web browser. 
+    }
   }
 
   \section{vSphere, OpenStack, etc.}{
