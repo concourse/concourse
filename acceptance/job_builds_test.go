@@ -260,6 +260,7 @@ var _ = Describe("Job Builds", func() {
 					// job detail w/build info -> job detail
 					Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-manual-trigger-disabled/builds/%s", manualTriggerDisabledBuild.Name))))
 
+					Eventually(page.Find("h1 a")).Should(BeFound())
 					Expect(page.Find("h1 a").Click()).To(Succeed())
 					Eventually(page).Should(HaveURL(withPath("jobs/job-manual-trigger-disabled")))
 
