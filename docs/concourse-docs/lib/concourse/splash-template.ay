@@ -3,10 +3,13 @@ use(require("atomy"))
 use(require("anatomy/html"))
 html = require("anatomy/renderers/html")
 
+partials = load("concourse/partials")
+
 def(template-for(part, out)):
   part css-url-additions << "https://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700"
 
   part assets << File expand-path("../fonts", __FILE__)
+  part assets << File expand-path("../images/pipes.svg", __FILE__)
   part assets << File expand-path("../js/bootstrap.min.js", __FILE__)
 
   part css-additions << File expand-path("../css/font-awesome.min.css", __FILE__)
@@ -22,6 +25,24 @@ def(template-for(part, out)):
   part parts each [sub]:
     html render(sub, out)
 
-  [ html over(part body)
+  <div(#everything):
+    <div(class = "u-full-width top-intro docs-header"):
+      <a(name = "page-top"){}
+
+      partials nav-bar(part)
+
+      <div(class = "white-text txt-c"):
+        <div(.row):
+          <div(class = "twelve columns"):
+            <h1(.intro-slogan):
+              <span(.soft-line): "CI that scales with"
+              <span(.soft-line): "your project."
+
+      <div(class = "pipes txt-c"):
+        <div(.splash-pipeline-image):
+          <object(data = "pipes.svg", type = "image/svg+xml", width = "100%", height = "100%"):
+            <param(name = "src", value = "pipes.svg")
+
+    html over(part body)
+
     <script(src = "bootstrap.min.js"){}
-  ]

@@ -8,22 +8,6 @@
 
 \mobile-optimized
 
-\top-intro{
-  \top-intro-nav{
-    \reference{introduction}{\font-awesome{fa-book} Documentation}
-  }{
-    \reference{community}{\font-awesome{fa-comments} Community}
-  }{
-    \reference{releases}{\font-awesome{fa-download} Downloads}
-  }{
-    \reference{github}{\font-awesome{fa-github} GitHub}
-  }
-
-  \top-intro-text{\soft-line{CI that scales with} \soft-line{your project.}}
-
-  \top-intro-pipes
-}
-
 \value-prop-left{Simple and Scalable}{value_prop_simple_f2}{
   Rather than a myriad of checkboxes, pipelines are defined as a single
   declarative config file, composing together just \reference{concepts}{three

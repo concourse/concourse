@@ -51,26 +51,26 @@ img.responsive-image {
 }
 
 .navbar-link, .navbar-link a {
-	color: white;
-	min-width: 142px;
-}
-
-.navbar-link a:hover {
-  color: white !important;
-}
-
-.navbar-link .fa {
-  font-size: 16px;
-  opacity: 0.5;
-  position: relative;
-  left: -3px;
+  color: white;
+  min-width: 142px;
   -webkit-transition: all 0.3s;
   -moz-transition: all 0.3s;
   transition: all 0.3s;
 }
 
-.navbar-link a:hover .fa {
+.navbar-link a {
+  opacity: 0.75;
+}
+
+.navbar-link a:hover {
+  color: white !important;
   opacity: 1;
+}
+
+.navbar-link .fa {
+  font-size: 16px;
+  position: relative;
+  left: -5px;
 }
 
 .top-intro .button {
