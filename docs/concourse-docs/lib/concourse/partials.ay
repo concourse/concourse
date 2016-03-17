@@ -3,14 +3,16 @@ use(require("atomy"))
 use(require("anatomy/html"))
 html = require("anatomy/renderers/html")
 
-fn(link-to(part, tag-name, content)):
+fn(link-to(part, tag-name, content = nil)):
   tag = part find-tag(tag-name)
 
   if(tag)
     then:
+      content ||= html over(tag part title)
       <a(href = html url(tag part)):
         content
     else:
+      content ||= tag-name
       <a(.undefined):
         content
 
@@ -57,3 +59,55 @@ def(nav-bar(part)):
               <i(class = "fa fa-github"){}
               "GitHub"
 
+def(bottom-nav(part)):
+  <div(class = "u-full-width bottom-nav"):
+    <div(class = "container"):
+      <div(class = "conc-div"):
+        <div(class = "txt-c logo-div1"):
+          <img(src = "logo-white.png", alt = "", class = "logo-div")
+
+      <ul(class = "bottom-nav-list"):
+        <li(class = "bottom-nav-list-item"):
+          <h5(class = "navbar-link"):
+            link-to(part, "index", "Concourse")
+
+          <ul(class = "list-unstyled"):
+            <li(class = "navbar-link"):
+              link-to(part, "team", "Team")
+
+        <li(class = "bottom-nav-list-item"):
+          <h5(class = "navbar-link"):
+            link-to(part, "introduction", "Documentation")
+          <ul(class = "list-unstyled"):
+            <li(class = "navbar-link"):
+              link-to(part, "setting-up", "Setting Up")
+            <li(class = "navbar-link"):
+              link-to(part, "using-concourse", "Using Concourse")
+
+        <li(class = "bottom-nav-list-item"):
+          <h5(class = "navbar-link"):
+            link-to(part, "community", "Community")
+
+          <ul(class = "list-unstyled"):
+            <li(class = "navbar-link"):
+              <a(href = "https://github.com/concourse"): "GitHub"
+            <li(class = "navbar-link"):
+              <a(href = "https://concourseci.slack.com/"): "Slack"
+            <li(class = "navbar-link"):
+              <a(href = "https://groups.google.com/group/concourse-security"): "Security Mailing List"
+            <li(class = "navbar-link"):
+              link-to(part, "talks")
+
+        <li(class = "bottom-nav-list-item"):
+          <h5(class = "navbar-link"):
+            link-to(part, "downloads")
+          <ul(class = "list-unstyled"):
+            <li(class = "navbar-link"):
+              link-to(part, "release-notes")
+            <li(class = "navbar-link"):
+              <a(href = "https://github.com/concourse/concourse/releases"): "Concourse Binaries"
+            <li(class = "navbar-link"):
+              <a(href = "http://bosh.io/releases/github.com/concourse/concourse?all=1"): "BOSH Releases"
+
+      <div(class = "sponsorship navbar-link"):
+        ["Sponsored by ", <a(href = "http://pivotal.io/"): "Pivotal Software, Inc."]

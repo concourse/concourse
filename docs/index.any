@@ -100,40 +100,6 @@
   \hyperlink{https://concourseci.slack.com}{concourseci.slack.com}.
 }
 
-\bottom-nav{
-  \nav-columns{
-    \nav-column{\reference{index}{Concourse}}{
-      \reference{team}{Team}
-    }
-
-    \nav-column{\reference{docs}{Documentation}}{
-      \reference{what-and-why}{What and Why}
-    }{
-      \reference{getting-started}{Getting Started}
-    }
-
-    \nav-column{\reference{community}{Community}}{
-      \hyperlink{https://github.com/concourse}{GitHub}
-    }{
-      \hyperlink{https://concourseci.slack.com/}{Slack}
-    }{
-      \hyperlink{https://groups.google.com/group/concourse-security}{Security Mailing List}
-    }{
-      \reference{talks}{Talks}
-    }
-
-    \nav-column{\reference{releases}{Releases}}{
-      \reference{release-notes}{Release Notes}
-    }{
-      \hyperlink{https://github.com/concourse/concourse/releases}{Concourse Binaries}
-    }{
-      \hyperlink{http://bosh.io/releases/github.com/concourse/concourse?all=1}{BOSH Releases}
-    }
-  }
-
-  \sponsorship{Sponsored by \hyperlink{http://pivotal.io/}{Pivotal Software}, Inc.}
-}
-
 \include-section{./introduction.any}
 \include-section{./setting-up.any}
 \include-section{./using-concourse.any}
