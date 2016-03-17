@@ -122,8 +122,8 @@ func (pdb *pipelineDB) UpdateName(newName string) error {
 	_, err := pdb.conn.Exec(`
 		UPDATE pipelines
 		SET name = $1
-		WHERE name = $2
-	`, newName, pdb.Name)
+		WHERE id = $2
+	`, newName, pdb.ID)
 	return err
 }
 

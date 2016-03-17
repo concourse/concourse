@@ -403,6 +403,27 @@ var _ = Describe("PipelineDB", func() {
 
 			Expect(pipeline.Name).To(Equal("some-other-weird-name"))
 		})
+
+		Context("when there is a pipeline with the same name in another team", func() {
+			var team2 db.SavedTeam
+
+			BeforeEach(func() {
+				var err error
+				team2, err = sqlDB.SaveTeam(db.Team{Name: "some-other-team"})
+				Expect(err).NotTo(HaveOccurred())
+
+				_, _, err = sqlDB.SaveConfig(team2.Name, "a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("doesn't rename the other pipeline", func() {
+				err := pipelineDB.UpdateName("some-other-weird-name")
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = sqlDB.GetPipelineByTeamNameAndName(team2.Name, "a-pipeline-name")
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
 	})
 
 	Describe("ScopedName", func() {
