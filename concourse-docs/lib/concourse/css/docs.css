@@ -68,17 +68,18 @@
   display: none;
 }
 
-.toc {
+#content .toc {
   margin-bottom: 2em;
   line-height: 1.4em;
 }
-#table_of_contents {
+
+#table-of-contents {
   font-size: 1.1em;
 }
-#table_of_contents > li {
+#table-of-contents > li {
   margin-bottom: 1em;
 }
-#table_of_contents > li > a {
+#table-of-contents > li > a {
   font-weight: 600;
 }
 .toc p {
