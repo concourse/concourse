@@ -98,35 +98,24 @@ func (db *SQLDB) InsertCOWVolume(originalVolumeHandle string, cowVolumeHandle st
 
 	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
-	resourceVersion, err := json.Marshal(originalVolume.ResourceVersion)
-	if err != nil {
-		return err
-	}
-
 	_, err = tx.Exec(`
 		INSERT INTO volumes (
 			worker_name,
 			expires_at,
 			ttl,
 			handle,
-			resource_version,
-			resource_hash,
 			original_volume_handle
 		) VALUES (
 			$1,
 			NOW() + $2::INTERVAL,
 			$3,
 			$4,
-			$5,
-			$6,
-			$7
+			$5
 		)
 	`, originalVolume.WorkerName,
 		interval,
 		ttl,
 		cowVolumeHandle,
-		resourceVersion,
-		originalVolume.ResourceHash,
 		originalVolumeHandle,
 	)
 

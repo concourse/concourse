@@ -228,6 +228,11 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 			continue
 		}
 
+		bc.logger.Debug("releasing-volume", lager.Data{
+			"worker":        volumeWorker.Name(),
+			"volume-handle": volume.Handle(),
+			"ttl":           ttlForVol,
+		})
 		volume.Release(worker.FinalTTL(ttlForVol))
 
 		err = bc.db.SetVolumeTTL(volumeToExpire.Handle, ttlForVol)

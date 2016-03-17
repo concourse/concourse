@@ -154,8 +154,8 @@ var _ = Describe("Keeping track of volumes", func() {
 
 					Expect(cowVolume.WorkerName).To(Equal(originalVolume.WorkerName))
 					Expect(cowVolume.WorkerName).To(Equal(insertedWorker.Name))
-					Expect(cowVolume.ResourceVersion).To(Equal(originalVolume.ResourceVersion))
-					Expect(cowVolume.ResourceHash).To(Equal(originalVolume.ResourceHash))
+					Expect(cowVolume.ResourceVersion).To(BeNil())
+					Expect(cowVolume.ResourceHash).To(Equal(""))
 				})
 			})
 
