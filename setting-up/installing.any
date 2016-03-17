@@ -12,9 +12,19 @@ standalone binaries that you can run (almost) anywhere, and
 \hyperlink{https://bosh.io}{BOSH} for all your clustering needs.
 
 All distributions of Concourse are equivalent in feature set, the only
-difference being operational concerns like scaling up your workers.
+difference being operational concerns like scaling up your workers, and how
+quickly you can get it going.
 
-\table-of-contents
+For the quickest introduction, you may want to spin up a
+\reference{vagrant}{local VM with Vagrant}. This should take only a few
+minutes, depending on how quickly you can download the image.
+
+Once you're ready to install Concourse onto a VM, have a look at the
+\reference{binaries}{standalone binaries}. Or, if you want to invest a bit in
+spinning up a fully automated cluster using a tool that meshes well with
+Concourse's ideals, buckle up and head over to \reference{bosh}.
+
+\split-sections
 
 \section{Local VM with Vagrant}{vagrant}{
   \omit-children-from-table-of-contents
