@@ -1,0 +1,59 @@
+use(require("atomy"))
+
+use(require("anatomy/html"))
+html = require("anatomy/renderers/html")
+
+fn(link-to(part, tag-name, content)):
+  tag = part find-tag(tag-name)
+
+  if(tag)
+    then:
+      <a(href = html url(tag part)):
+        content
+    else:
+      <a(.undefined):
+        content
+
+def(nav-bar(part)):
+  <div(class = "navbar navbar-default navbar-static-top"):
+    <div(class = "container-fluid"):
+      <div(class = "navbar-header page-scroll"):
+        <button(class = "navbar-toggle", "data-toggle" = "collapse", "data-target" = "#bs-example-navbar-collapse-1"):
+          <span(class = "sr-only"):
+            "Toggle navigation"
+
+          <span(class = "icon-bar"){}
+          <span(class = "icon-bar"){}
+          <span(class = "icon-bar"){}
+
+        <a(href = "#page-top", class = "navbar-brand"):
+          <img(src = "logo_mobile_top.svg")
+
+      <div(class = "collapse navbar-collapse", id = "bs-example-navbar-collapse-1"):
+        <ul(class = "nav navbar-nav"):
+          <li(class = "navbar-link"):
+            link-to(part, "introduction", [
+              <i(class = "fa fa-book"){}
+              "Documentation"
+            ])
+
+          <li(class = "navbar-link"):
+            link-to(part, "community", [
+              <i(class = "fa fa-comments"){}
+              "Community"
+            ])
+
+          <li(class = "home-button"):
+            link-to(part, "index", <img(src = "concourse_white.svg", width = "174px", data-pin-nopin = "true"))
+
+          <li(class = "navbar-link"):
+            link-to(part, "downloads", [
+              <i(class = "fa fa-download"){}
+              "Downloads"
+            ])
+
+          <li(class = "navbar-link"):
+            <a(href = "https://github.com/concourse/concourse"):
+              <i(class = "fa fa-github"){}
+              "GitHub"
+

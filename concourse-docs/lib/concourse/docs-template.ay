@@ -3,6 +3,8 @@ use(require("atomy"))
 use(require("anatomy/html"))
 html = require("anatomy/renderers/html")
 
+partials = load("concourse/partials")
+
 def(template-for(part, out)):
   part css-url-additions << "https://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700"
 
@@ -25,36 +27,8 @@ def(template-for(part, out)):
   <div(#everything):
     <div(class = "u-full-width top-intro docs-header"):
       <a(name = "page-top"){}
-      <div(class = "navbar navbar-default navbar-static-top"):
-        <div(class = "container-fluid"):
-          <div(class = "navbar-header page-scroll"):
-            <button(class = "navbar-toggle", "data-toggle" = "collapse", "data-target" = "#bs-example-navbar-collapse-1"):
-              <span(class = "sr-only"):
-                "Toggle navigation"
-              <span(class = "icon-bar"){}
-              <span(class = "icon-bar"){}
-              <span(class = "icon-bar"){}
 
-            <a(href = "#page-top", class = "navbar-brand"):
-              <img(src = "logo_mobile_top.svg")
-
-          <div(class = "collapse navbar-collapse", id = "bs-example-navbar-collapse-1"):
-            <ul(class = "nav navbar-nav"):
-              <li(class = "navbar-link"):
-                <a(href = "what-and-why.html"):
-                  "Introduction"
-              <li(class = "navbar-link"):
-                <a(href = "docs.html"):
-                  "Documentation"
-              <li(class = "home-button"):
-                <a(href = "index.html"):
-                  <img(src = "concourse_white.svg", width = "174px", data-pin-nopin = "true")
-              <li(class = "navbar-link"):
-                <a(class = "undefined"):
-                  "Community"
-              <li(class = "navbar-link"):
-                <a(class = "undefined"):
-                  "Releases"
+      partials nav-bar(part)
 
     <div:
       <div(#page):
