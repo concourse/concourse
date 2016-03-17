@@ -16,10 +16,14 @@ func (command *ChecklistCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client, Fly.Target)
+	if err != nil {
+		return err
+	}
 
 	pipelineName := command.Pipeline
 
-	config, _, _, err := client.PipelineConfig(pipelineName)
+	config, _, _, _, err := client.PipelineConfig(pipelineName)
 	if err != nil {
 		return err
 	}

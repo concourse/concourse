@@ -64,7 +64,8 @@ var _ = Describe("Syncing", func() {
 		err = os.Chmod(newFlyPath, 0755)
 		Expect(err).NotTo(HaveOccurred())
 
-		atcServer.AppendHandlers(cliHandler())
+		// replace info handler with sync handler, since sync does not verify client version
+		atcServer.SetHandler(2, cliHandler())
 	})
 
 	AfterEach(func() {

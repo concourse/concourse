@@ -61,6 +61,7 @@ var _ = Describe("login -k Command", func() {
 		Context("to new target with invalid SSL with -k", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
+					infoHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
@@ -117,6 +118,7 @@ var _ = Describe("login -k Command", func() {
 				var otherCmd *exec.Cmd
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
+						infoHandler(),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
 							ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
@@ -245,6 +247,7 @@ var _ = Describe("login -k Command", func() {
 				Context("with -k", func() {
 					BeforeEach(func() {
 						atcServer.AppendHandlers(
+							infoHandler(),
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
 								ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{

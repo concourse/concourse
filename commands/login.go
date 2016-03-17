@@ -29,10 +29,14 @@ func (command *LoginCommand) Execute(args []string) error {
 	var err error
 
 	if command.ATCURL != "" {
-		client = rc.NewClient(command.ATCURL, command.Insecure)
+		client = rc.NewUnauthenticatedClient(command.ATCURL, command.Insecure)
 	} else {
 		client, err = rc.CommandTargetClient(Fly.Target, &command.Insecure)
 	}
+	if err != nil {
+		return err
+	}
+	err = rc.ValidateClient(client, Fly.Target)
 	if err != nil {
 		return err
 	}
@@ -135,7 +139,7 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client concourse.C
 			password = string(interactivePassword)
 		}
 
-		newUnauthedClient := rc.NewClient(client.URL(), command.Insecure)
+		newUnauthedClient := rc.NewUnauthenticatedClient(client.URL(), command.Insecure)
 
 		basicAuthClient := concourse.NewClient(
 			newUnauthedClient.URL(),

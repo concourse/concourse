@@ -15,35 +15,35 @@ import (
 )
 
 var _ = Describe("Fly CLI", func() {
-	Describe("pause-pipeline", func() {
-		Context("when the pipeline name is specified", func() {
+	Describe("trigger-job", func() {
+		Context("when the pipeline and job name are specified", func() {
 			var (
 				path string
 				err  error
 			)
 			BeforeEach(func() {
-				path, err = atc.Routes.CreatePathForRoute(atc.PausePipeline, rata.Params{"pipeline_name": "awesome-pipeline"})
+				path, err = atc.Routes.CreatePathForRoute(atc.CreateJobBuild, rata.Params{"pipeline_name": "awesome-pipeline", "job_name": "awesome-job"})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when the pipeline exists", func() {
+			Context("when the pipeline and job exists", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", path),
-							ghttp.RespondWith(http.StatusOK, nil),
+							ghttp.VerifyRequest("POST", path),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{}),
 						),
 					)
 				})
 
-				It("pauses the pipeline", func() {
+				It("starts the build", func() {
 					Expect(func() {
-						flyCmd := exec.Command(flyPath, "-t", targetName, "pause-pipeline", "-p", "awesome-pipeline")
+						flyCmd := exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "awesome-pipeline/awesome-job")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						Eventually(sess).Should(gbytes.Say(`paused 'awesome-pipeline'`))
+						Eventually(sess).Should(gbytes.Say(`started 'awesome-pipeline/awesome-job'`))
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(0))
@@ -53,11 +53,11 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
-			Context("when the pipeline doesn't exist", func() {
+			Context("when the pipeline/job doesn't exist", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", path),
+							ghttp.VerifyRequest("POST", path),
 							ghttp.RespondWith(http.StatusNotFound, nil),
 						),
 					)
@@ -65,12 +65,12 @@ var _ = Describe("Fly CLI", func() {
 
 				It("prints helpful message", func() {
 					Expect(func() {
-						flyCmd := exec.Command(flyPath, "-t", targetName, "pause-pipeline", "-p", "awesome-pipeline")
+						flyCmd := exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "awesome-pipeline/awesome-job")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						Eventually(sess.Err).Should(gbytes.Say(`pipeline 'awesome-pipeline' not found`))
+						Eventually(sess.Err).Should(gbytes.Say(`pipeline/job 'awesome-pipeline/awesome-job' not found`))
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(1))
@@ -81,19 +81,17 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
-		Context("when the pipline name is not specified", func() {
+		Context("when the pipeline/job name is not specified", func() {
 			It("errors", func() {
-				Expect(func() {
-					flyCmd := exec.Command(flyPath, "-t", targetName, "pause-pipeline")
+				reqsBefore := len(atcServer.ReceivedRequests())
+				flyCmd := exec.Command(flyPath, "-t", targetName, "trigger-job")
 
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
-				}).To(Change(func() int {
-					return len(atcServer.ReceivedRequests())
-				}).By(0))
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore))
 			})
 		})
 	})

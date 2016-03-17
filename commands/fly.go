@@ -5,6 +5,8 @@ import "github.com/concourse/fly/rc"
 type FlyCommand struct {
 	Target rc.TargetName `short:"t" long:"target" description:"Concourse target name"`
 
+	Version func() `short:"v" long:"version" description:"Print the version of Fly and exit"`
+
 	Login LoginCommand `command:"login" alias:"l" description:"Authenticate with the target"`
 	Sync  SyncCommand  `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
 
@@ -27,8 +29,12 @@ type FlyCommand struct {
 	SetPipeline     SetPipelineCommand     `command:"set-pipeline"     alias:"sp" description:"Create or update a pipeline's configuration"`
 	PausePipeline   PausePipelineCommand   `command:"pause-pipeline"   alias:"pp" description:"Pause a pipeline"`
 	UnpausePipeline UnpausePipelineCommand `command:"unpause-pipeline" alias:"up" description:"Un-pause a pipeline"`
+	RenamePipeline  RenamePipelineCommand  `command:"rename-pipeline"  alias:"rp" description:"Rename a pipeline"`
 
-	Builds BuildsCommand `command:"builds" alias:"bs" description:"List builds data"`
+	Builds     BuildsCommand     `command:"builds"      alias:"bs" description:"List builds data"`
+	AbortBuild AbortBuildCommand `command:"abort-build" alias:"ab" description:"Abort a build"`
+
+	TriggerJob TriggerJobCommand `command:"trigger-job" alias:"tj" description:"Start a job in a pipeline"`
 
 	Volumes VolumesCommand `command:"volumes" alias:"vs" description:"List the active volumes"`
 	Workers WorkersCommand `command:"workers" alias:"ws" description:"List the registered workers"`

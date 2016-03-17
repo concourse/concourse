@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/commands/internal/hijacker"
+	"github.com/concourse/fly/commands/internal/hijackhelpers"
 	"github.com/concourse/fly/pty"
 	"github.com/concourse/fly/rc"
 	"github.com/concourse/go-concourse/concourse"
@@ -47,17 +49,22 @@ func (command *HijackCommand) Execute(args []string) error {
 		for _, container := range containers {
 			var infos []string
 
-			if container.JobName != "" {
-				infos = append(infos, fmt.Sprintf("build #%s", container.BuildName))
-			} else {
-				infos = append(infos, fmt.Sprintf("build id: %d", container.BuildID))
+			if container.BuildID != 0 {
+				if container.JobName != "" {
+					infos = append(infos, fmt.Sprintf("build #%s", container.BuildName))
+				} else {
+					infos = append(infos, fmt.Sprintf("build id: %d", container.BuildID))
+				}
 			}
 
 			if container.StepType != "" {
 				infos = append(infos, fmt.Sprintf("step: %s", container.StepName))
 				infos = append(infos, fmt.Sprintf("type: %s", container.StepType))
-			} else {
+			} else if container.ResourceName != "" {
 				infos = append(infos, fmt.Sprintf("resource: %s", container.ResourceName))
+				infos = append(infos, "type: check")
+			} else {
+				infos = append(infos, fmt.Sprintf("step: %s", container.StepName))
 				infos = append(infos, "type: check")
 			}
 
@@ -272,6 +279,10 @@ func getContainerIDs(c *HijackCommand) ([]atc.Container, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = rc.ValidateClient(client, Fly.Target)
+	if err != nil {
+		return nil, err
+	}
 
 	reqValues, err := locateContainer(client, fingerprint)
 	if err != nil {
@@ -282,6 +293,7 @@ func getContainerIDs(c *HijackCommand) ([]atc.Container, error) {
 	if err != nil {
 		return nil, err
 	}
+	sort.Sort(hijackhelpers.ContainerSorter(containers))
 
 	return containers, nil
 }

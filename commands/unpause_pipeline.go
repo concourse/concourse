@@ -18,6 +18,10 @@ func (command *UnpausePipelineCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client, Fly.Target)
+	if err != nil {
+		return err
+	}
 
 	found, err := client.UnpausePipeline(pipelineName)
 	if err != nil {

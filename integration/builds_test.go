@@ -136,7 +136,14 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "started"},
 							{Contents: runningBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: "n/a"},
-							{Contents: runningBuildDuration.String() + "+"}},
+							{
+								Contents: TableDurationWithDelta{
+									Duration: runningBuildDuration,
+									Delta:    2 * time.Second,
+									Suffix:   "+",
+								}.String(),
+							},
+						},
 						{
 							{Contents: "3"},
 							{Contents: "some-other-pipeline/some-other-job"},

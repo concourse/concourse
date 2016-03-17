@@ -41,14 +41,16 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("successfully unpauses the job", func() {
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
+					Expect(func() {
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 1))
-
-					Eventually(sess).Should(gbytes.Say(fmt.Sprintf("unpaused '%s'\n", jobName)))
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gbytes.Say(fmt.Sprintf("unpaused '%s'\n", jobName)))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(2))
 				})
 			})
 
@@ -64,14 +66,17 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("exists 1 and outputs an error", func() {
-					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-					Expect(err).NotTo(HaveOccurred())
+					Expect(func() {
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Err).Should(gbytes.Say(`error`))
+						Eventually(sess.Err).Should(gbytes.Say(`error`))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
-					Expect(atcServer.ReceivedRequests()).To(HaveLen(reqsBefore + 1))
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(1))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(2))
 				})
 			})
 		})

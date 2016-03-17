@@ -54,7 +54,7 @@ var _ = Describe("Fly CLI", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/config"),
-						ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+						ghttp.RespondWithJSONEncoded(200, atc.ConfigResponse{Config: &config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 					),
 				)
 			})
@@ -90,7 +90,7 @@ some-orphaned-job: concourse.check %s some-pipeline some-orphaned-job
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/config"),
-						ghttp.RespondWithJSONEncoded(200, config, http.Header{atc.ConfigVersionHeader: {"42"}}),
+						ghttp.RespondWithJSONEncoded(200, atc.ConfigResponse{Config: &config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 					),
 				)
 			})

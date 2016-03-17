@@ -31,6 +31,10 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client, Fly.Target)
+	if err != nil {
+		return err
+	}
 
 	taskConfigFile := command.TaskConfig
 	excludeIgnored := command.ExcludeIgnored

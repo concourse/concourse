@@ -20,6 +20,10 @@ func (command *VolumesCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client, Fly.Target)
+	if err != nil {
+		return err
+	}
 
 	volumes, err := client.ListVolumes()
 	if err != nil {

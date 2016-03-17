@@ -38,9 +38,9 @@ var _ = Describe("Fly CLI", func() {
 							},
 							{
 								ID:                "aaaaaa",
+								WorkerName:        "dddddd",
 								TTLInSeconds:      86340,
 								ValidityInSeconds: 86400,
-								WorkerName:        "dddddd",
 								ResourceVersion:   atc.Version{"version": "three"},
 							},
 							{

@@ -16,6 +16,10 @@ func (command *UnpauseJobCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	err = rc.ValidateClient(client, Fly.Target)
+	if err != nil {
+		return err
+	}
 
 	_, err = client.UnpauseJob(command.Job.PipelineName, command.Job.JobName)
 	if err != nil {
