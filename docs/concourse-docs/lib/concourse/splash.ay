@@ -198,36 +198,3 @@ def(slack(content)):
             .class("row"))
           .class("container"))
         .class("u-full-width", "slack-section")))
-
-def(bottom-nav(content)):
-  data ResolveBlock new(
-    [part]:
-      part assets << File expand-path(i"../images/logo-white.png", __FILE__)
-
-      data Block new(
-        data Block new(
-          [ data Block new(
-              data Block new(
-                data Element new("", .classed(.image("logo-white.png"), "logo-div"))
-                .class("txt-c", "logo-div1"))
-              .class("conc-div"))
-            content
-          ]
-          .class("container"))
-        .class("u-full-width", "bottom-nav")))
-
-def(nav-columns(*content)):
-  data Block new(content, .classed(.unordered-list, "bottom-nav-list"))
-
-def(nav-column(title, *entries)):
-  data Block new(
-    [ data Block new(title, .classed(.header(5), "navbar-link"))
-      data Block new(
-        entries collect [entry]:
-          data Block new(entry, .classed(.list-item, "navbar-link"))
-        .classed(.unordered-list, "list-unstyled"))
-    ]
-    .classed(.list-item, "bottom-nav-list-item"))
-
-def(sponsorship(content)):
-  data Block new(content, .class("sponsorship", "navbar-link"))
