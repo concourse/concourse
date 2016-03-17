@@ -198,15 +198,14 @@
   box-flex: 0;
 }
 .sidebar-spacing {
+  width: 230px;
   padding: 16px;
   float: right;
 }
 #sidebar .toc {
-  width: 230px;
   margin: 0;
   padding: 0;
   font-size: 16px;
-  margin-right: -16px;
 }
 #sidebar .toc ol {
   margin: 0;
@@ -295,6 +294,22 @@
   font-style: italic;
   color: #686868;
 }
+.sidebar-section {
+  margin-right: -16px;
+  margin-top: 20px;
+  padding-bottom: 20px;
+}
+.sidebar-section .section-header {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.sidebar-section .section-header a {
+  color: #686868;
+  font-weight: 500;
+  padding: 0 16px;
+  display: block;
+  border-left: 3px solid transparent; /* align with list below */
+}
 .search-results code {
   padding: 0; /* SKELETOOOON */
 }
@@ -325,20 +340,3 @@
   border-bottom: 0;
 }
 
-.sidebar-section {
-  margin-top: 20px;
-  padding-bottom: 20px;
-}
-
-.sidebar-section .section-header {
-  font-size: 18px;
-  margin-bottom: 10px;
-}
-
-.sidebar-section .section-header a {
-  color: #686868;
-  font-weight: 500;
-  padding: 0 16px;
-  display: block;
-  border-left: 3px solid transparent; /* align with list below */
-}
