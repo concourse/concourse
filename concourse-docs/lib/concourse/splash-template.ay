@@ -45,4 +45,6 @@ def(template-for(part, out)):
 
     html over(part body)
 
+    partials bottom-nav(part)
+
     <script(src = "bootstrap.min.js"){}
