@@ -37,29 +37,19 @@ def(nav-bar(part)):
       <div(class = "collapse navbar-collapse", id = "bs-example-navbar-collapse-1"):
         <ul(class = "nav navbar-nav"):
           <li(class = "navbar-link"):
-            link-to(part, "introduction", [
-              <i(class = "fa fa-book"){}
-              "Documentation"
-            ])
+            link-to(part, "introduction", "Documentation")
 
           <li(class = "navbar-link"):
-            link-to(part, "community", [
-              <i(class = "fa fa-comments"){}
-              "Community"
-            ])
+            link-to(part, "community", "Community")
 
           <li(class = "home-button"):
             link-to(part, "index", <img(src = "concourse_white.svg", width = "174px", data-pin-nopin = "true"))
 
           <li(class = "navbar-link"):
-            link-to(part, "downloads", [
-              <i(class = "fa fa-download"){}
-              "Downloads"
-            ])
+            link-to(part, "downloads", "Downloads")
 
           <li(class = "navbar-link"):
             <a(href = "https://github.com/concourse/concourse"):
-              <i(class = "fa fa-github"){}
               "GitHub"
 
 def(bottom-nav(part)):
