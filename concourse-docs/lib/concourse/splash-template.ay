@@ -11,6 +11,8 @@ def(template-for(part, out)):
   part assets << File expand-path("../fonts", __FILE__)
   part assets << File expand-path("../images/pipes.svg", __FILE__)
   part assets << File expand-path("../js/bootstrap.min.js", __FILE__)
+  part assets << File expand-path("../css/pipeline-svg.css", __FILE__)
+  part assets << File expand-path("../css/splash-pipeline-svg.css", __FILE__)
 
   part css-additions << File expand-path("../css/font-awesome.min.css", __FILE__)
   part css-additions << File expand-path("../css/normalize.css", __FILE__)
