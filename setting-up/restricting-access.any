@@ -6,6 +6,12 @@
 
 \title{Restricting Access}{authentication}
 
+\warn{
+  This topic isn't crucial to understanding Concourse; if you're just getting
+  started and have finished the \reference{installing} section, you may want to
+  first move on to \reference{using-concourse}.
+}
+
 Continuous Integration servers often contain a considerable number of secrets
 to let them access source code and deploy applications. It is important that
 those secrets remain well guarded. Concourse provides options for both
