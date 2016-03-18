@@ -17,6 +17,9 @@ fn(link-to(part, tag-name, content = nil)):
         content
 
 def(nav-bar(part)):
+  part assets << File expand-path("../images/concourse_white.svg", __FILE__)
+  part assets << File expand-path("../images/logo_mobile_top.svg", __FILE__)
+
   <div(class = "navbar navbar-default navbar-static-top"):
     <div(class = "container-fluid"):
       <div(class = "navbar-header page-scroll"):

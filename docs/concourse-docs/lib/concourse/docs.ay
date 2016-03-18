@@ -11,8 +11,8 @@ def(pipeline-image(asset-path)):
   data ResolveBlock new(
     [part]:
       part assets << File expand-path(asset-path)
-      part assets << File expand-path("../pipeline-svg.css", __FILE__)
-      part css-additions << File expand-path("../flex-pipeline-image.css", __FILE__)
+      part assets << File expand-path("../css/pipeline-svg.css", __FILE__)
+      part css-additions << File expand-path("../css/flex-pipeline-image.css", __FILE__)
 
       data Block new(
         data Element new(

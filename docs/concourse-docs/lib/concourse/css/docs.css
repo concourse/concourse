@@ -341,3 +341,23 @@
   border-bottom: 0;
 }
 
+.tutorial-image {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.tutorial-image img {
+  width: 70%;
+}
+
+.warning {
+  background: #FCF3CF;
+  border-left: 2px solid #F1C40F;
+  padding: 10px 13px;
+  margin-bottom: 2.5rem;
+}
+
+.warning p:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
