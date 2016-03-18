@@ -24,9 +24,9 @@ resources/archive-resource.tar.gz:
   sha: dbc63ae8d0c554aedb03e90a4619b6ec683bdc39
   size: 11793713
 resources/bosh-deployment-resource.tar.gz:
-  object_id: 79bde7ea-59a5-40f7-8c20-889ece5791a1
-  sha: 44308d9c9d593515ff2785f330087568ea30c45f
-  size: 12867496
+  object_id: ea135d3c-dd37-4f8a-9259-f8c1754ba7ef
+  sha: 2881437a714c76ce9a01a2ffeea9f04e7cd8b980
+  size: 12891919
 resources/bosh-io-release-resource.tar.gz:
   object_id: 65550782-0fad-4050-961d-ace573fb9257
   sha: 27e27184b1a6888dcc5f70dcad08b38f826174ad
@@ -36,13 +36,13 @@ resources/bosh-io-stemcell-resource.tar.gz:
   sha: 70cd44341cd29a75fe53f3b5241071857839f664
   size: 9174279
 resources/cf-resource.tar.gz:
-  object_id: f0fa1b3c-b36a-4f07-bd6d-9c079d165225
-  sha: 88617fcb98dcfd6dd4f0566aba265dd7d82ef423
-  size: 25123953
+  object_id: f66cf936-d6ba-4674-b345-37b764afcada
+  sha: 61dff427e87fbec74774b735ea19285a0b886afa
+  size: 25130693
 resources/docker-image-resource.tar.gz:
-  object_id: fa178441-bd0e-44a6-bb3d-f6451cc1a134
-  sha: b51f348d1605bed0ba9bf4ce2ec37d8544825014
-  size: 23128839
+  object_id: dee0d377-9c46-45c1-8548-b5b099cb1cac
+  sha: 78fcab6db85fad00d583092f71675a1543290cdf
+  size: 23144915
 resources/git-resource.tar.gz:
   object_id: 57112b3b-208a-4e48-9c40-0efea9c18549
   sha: 8e7b42205a0bb7009e087c1b6a91130e6fc23331
@@ -52,25 +52,25 @@ resources/github-release-resource.tar.gz:
   sha: c2d8be36091fdc1ae0202636a444247b5f2079ef
   size: 19345476
 resources/pool-resource.tar.gz:
-  object_id: 8b755d63-995c-4ed1-bb84-10c80c64a467
-  sha: 10cd84118b0bec1c45e597ad9dd0dc541b2f73ae
-  size: 10013679
+  object_id: 20e7161c-af24-4ed4-a449-c85c8ccbfde8
+  sha: 832ca2852a165f99667dcc170c12885911871569
+  size: 10047147
 resources/s3-resource.tar.gz:
-  object_id: 65d40826-673d-4bdb-9ace-b820bff8467e
-  sha: 28d5c20ab80f6084475fbdc87b61d4eb01a6a446
-  size: 20660579
+  object_id: f5c4ee97-587f-4880-a017-f5294b096658
+  sha: 46b85d969bfa56a44f765e0be139cec55130633f
+  size: 20660515
 resources/semver-resource.tar.gz:
-  object_id: d145d9e3-bc26-49c6-8e65-03a9010ca18e
-  sha: ab535f9e70b9b398880c1d0b78bc4cffa73710fa
-  size: 15631677
+  object_id: 158fa3bc-1c17-4a26-b645-adef1026cb4c
+  sha: 830e8eba14285b5e8de08b981d39271aaa154a50
+  size: 15873919
 resources/time-resource.tar.gz:
-  object_id: 9832b44b-a82f-42a9-93fd-a6beef397774
-  sha: da06d3b37e0eec78d2ef5c4ddb35c3eeafa71bb1
-  size: 13663326
+  object_id: 2c173277-d403-4b04-9232-c5f3b6f81fe3
+  sha: 227786300e9ab815866966f7837941287559cbdc
+  size: 13659875
 resources/tracker-resource.tar.gz:
-  object_id: 30373465-83d0-4b17-8c0a-60bd29a21297
-  sha: f402725a8b9ab06b1753dc520f9427c05d7bb019
-  size: 13168788
+  object_id: bcc8fd90-7098-498c-a1ec-5188bb1c08a6
+  sha: 1f4909ef30602ca499def7e5fa4e3d9bef322862
+  size: 13168842
 resources/vagrant-cloud-resource.tar.gz:
   object_id: 42ba2824-6a1c-4a39-a333-45d90d353232
   sha: 92fe7d0bd42ea5fc784bce4e6762270b1c1a98cc
