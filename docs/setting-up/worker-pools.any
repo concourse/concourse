@@ -4,7 +4,13 @@
 
 \template{\load{concourse/docs-template}}
 
-\title{Managing Worker Pools}{worker-pools}
+\title{Worker Pools}{worker-pools}
+
+\warn{
+  This topic isn't crucial to understanding Concourse; if you're just getting
+  started and have finished the \reference{installing} section, you may want to
+  first move on to \reference{using-concourse}.
+}
 
 Workers are \hyperlink{http://github.com/cloudfoundry-incubator/garden}{Garden}
 servers, continuously heartbeating their presence to the Concourse API. Workers
@@ -12,12 +18,11 @@ have a statically configured \code{platform} and a set of \code{tags}, both of
 which determine where steps in a \reference{build-plans}{Build Plan} are
 scheduled.
 
-The worker also advertises which resource types it supports. This is just
-a mapping from resource type (e.g. \code{git}) to the image URI (e.g.
-\code{/var/vcap/packages/...} or \code{docker:///concourse/git-resource}).
-
-For a given resource, the workers declaring that they support its type are
-used to run its containers. The \code{platform} does not matter in this case.
+The worker also advertises which resource types it supports natively. This is
+just a mapping from resource type (e.g. \code{git}) to the location of the
+resource's rootfs on the worker (e.g. \code{/opt/resources/git}). For a given
+resource, the workers declaring that they support its type are used to run its
+containers. The \code{platform} does not matter in this case.
 
 For a given task, only workers with a \code{platform} that matches the task's
 \code{platform} will be chosen. A worker's \code{platform} is typically one of
@@ -27,9 +32,7 @@ If a worker specifies \code{tags}, it is taken out of the "default" placement
 pool, and steps only run on the worker if they explicitly specify a common
 subset of the worker's tags, by setting \reference{step-tags}.
 
-\table-of-contents
-
-\section{The basic \code{/api/v1/workers} API}{worker-api}{
+\section{The \code{/api/v1/workers} API}{worker-api}{
   The most direct way to see existing workers and register new ones is via the
   \code{/api/v1/workers} API endpoint provided by the ATC.
 
@@ -139,9 +142,10 @@ subset of the worker's tags, by setting \reference{step-tags}.
       the ATC
     }
 
-    \item{\hyperlink{https://github.com/concourse/baggageclaim}{a Baggageclaim server} (optional)}{
+    \item{\hyperlink{https://github.com/concourse/baggageclaim}{a Baggageclaim server}}{
       the API endpoint of a colocated Baggageclaim server, to be used for
-      caching artifacts on the worker
+      caching artifacts on the worker and more efficient propagation of
+      artifacts between steps
     }
 
     \item{an \code{ssh} client}{
@@ -163,17 +167,21 @@ subset of the worker's tags, by setting \reference{step-tags}.
   man-in-the-middle business by going over SSH.
 }
 
+{-
 \section{Standing up external workers}{external-workers}{
-  A typical Concourse BOSH deployment includes Garden Linux, to deploy a set of
-  workers as part of the same deployment as the TSA and ATC.
+  A typical Concourse \reference{bosh}{BOSH deployment} uses
+  \hyperlink{https://github.com/cloudfoundry-incubator/garden-linux-release}{Garden
+    Linux} to deploy a set of \reference{architecture-worker}{workers} as part
+  of the same deployment as the \reference{architecture-tsa} and
+  \reference{architecture-atc}.
 
   If you're deploying everything together as one BOSH deployment, all worker
   registration is automatically configured, and you can dynamically grow and
   shrink the worker pool just by changing the instance count and redeploying.
 
   However, sometimes your workers can't be automated by BOSH, or at least can't
-  be deployed with the rest of the cluster. Perhaps you have some managed
-  server, and you want to run builds on it.
+  be deployed with the rest of the cluster. Perhaps you have some externally
+  managed server, and you want to run builds on it.
 
   There are various ways to deploy and register these external workers,
   depending on your use case. First you'll need to
@@ -182,13 +190,15 @@ subset of the worker's tags, by setting \reference{step-tags}.
 
   \table-of-contents
 
-  \section{Configuring the TSA}{configuring-tsa}{
-    The TSA is the entryway for workers to join the cluster. For every new
-    worker key pair, the TSA will be told to authorize its public key, and the
-    workers must also know the TSA's public key ahead of time, so they know who
-    they're connecting to.
+  \omit-children-from-table-of-contents
 
-    \section{Stabilizing the TSA's host key}{
+  \section{Configuring the TSA}{configuring-tsa}{
+    The \reference{architecture-tsa} is the entryway for workers to join the
+    cluster. For every new worker key pair, the TSA will be told to authorize
+    its public key, and the workers must also know the TSA's public key ahead
+    of time, so they know who they're connecting to.
+
+    \section{Configuring the TSA's host key}{
       Before you get started, though, you'll need to remove the "magic" from the
       default deployment. By default, Concourse generates a key pair for the TSA,
       and gives the public key to the workers so they can trust the connection.
@@ -431,3 +441,4 @@ subset of the worker's tags, by setting \reference{step-tags}.
     }
   }
 }
+-}

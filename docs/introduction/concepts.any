@@ -77,104 +77,8 @@ becomes more involved.
   your \reference{build-plans} via the \reference{get-step} and
   \reference{put-step} steps.
 
-  \section{What types are supported?}{
-    At some point we'd like to put together some sort of registry, and make it
-    easy to extend your own deployment with third-party resource types. We're not
-    there yet though.
-
-    Be sure to read the \code{README} file for a resource to know what it does
-    before using it!
-
-    \section{Resources Provided With Concourse}{
-      Concourse ships with a number of prebuilt resources:
-
-      \list{
-        The \hyperlink{https://github.com/concourse/git-resource}{Git} resource can
-        pull and push to git repositories.
-      }{
-        The \hyperlink{https://github.com/concourse/time-resource}{Time} resource can
-        start jobs on a schedule or timestamp outputs.
-      }{
-        The \hyperlink{https://github.com/concourse/s3-resource}{S3} resource can fetch
-        from and upload to S3 buckets.
-      }{
-        The \hyperlink{https://github.com/concourse/archive-resource}{Archive} resource
-        can fetch and extract .tar.gz archives.
-      }{
-        The \hyperlink{https://github.com/concourse/semver-resource}{Semver} resource can
-        set or bump version numbers.
-      }{
-        The \hyperlink{https://github.com/concourse/github-release-resource}{GitHub Release} resource can
-        fetch and publish versioned GitHub resources.
-      }{
-        The \hyperlink{https://github.com/concourse/docker-image-resource}{Docker Image}
-        resource can fetch, build, and push Docker images
-      }{
-        The \hyperlink{https://github.com/concourse/tracker-resource}{Tracker} resource can
-        close stories and bugs on Pivotal Tracker
-      }{
-        The \hyperlink{https://github.com/concourse/pool-resource}{Pool} resource
-        allows you to configure how to serialize use of an external system. This
-        lets you prevent test interference or overwork on shared systems.
-      }{
-        The \hyperlink{https://github.com/concourse/cf-resource}{Cloud Foundry} resource
-        can deploy an application to Cloud Foundry.
-      }{
-        The \hyperlink{https://github.com/concourse/bosh-io-release-resource}{Bosh.io Release} resource
-        can track and fetch new BOSH releases from bosh.io.
-      }{
-        The \hyperlink{https://github.com/concourse/bosh-deployment-resource}{Bosh Deployment} resource
-        can deploy BOSH stemcells and releases.
-      }{
-        The \hyperlink{https://github.com/concourse/bosh-io-stemcell-resource}{Bosh.io Stemcell} resource
-        can track and fetch new BOSH stemcells from bosh.io.
-      }{
-        The \hyperlink{https://github.com/concourse/vagrant-cloud-resource}{Vagrant Cloud} resource
-        can fetch and publish Vagrant boxes.
-      }
-    }
-
-    \section{Unsupported Community Resources}{community-resources}{
-      WARNING: These are third-party resources. Use at your own risk!
-
-      \list{
-        \hyperlink{https://github.com/Nopik/slack-notification-resource}{Slack notifications}
-      }{
-        \hyperlink{https://github.com/jtarchie/pullrequest-resource}{Pull Requests}
-      }{
-        \hyperlink{https://github.com/sapcc/concourse-swift-resource}{OpenStack Swift}
-      }{
-        \hyperlink{https://github.com/starkandwayne/flowdock-concourse-notification-resource}{Flowdock notifications}
-      }{
-        \hyperlink{https://github.com/pivotal-cf/email-resource}{Email}
-      }{
-        \hyperlink{https://github.com/jamiemonserrate/bintray-resource}{Bintray}
-      }{
-        \hyperlink{https://github.com/olhtbr/p4-resource}{Perforce}
-      }{
-        \hyperlink{https://github.com/cromega/http-resource}{HTTP client}
-      }{
-        \hyperlink{https://github.com/starkandwayne/bosh-errand-resource-boshrelease}{BOSH Errands}
-      }{
-        \hyperlink{https://github.com/cfmobile/pool-trigger-resource}{Pool Trigger}
-      }{
-        \hyperlink{https://github.com/pivotal-cf-experimental/pivnet-resource}{Pivotal Network}
-      }{
-        \hyperlink{https://github.com/aequitas/concourse-ftp-resource}{FTP}
-      }{
-        \hyperlink{https://github.com/pivotal-cf-experimental/cloudformation-resource}{Cloudformation}
-      }{
-        \hyperlink{https://github.com/aequitas/concourse-http-api-resource}{Generic HTTP API}
-      }{
-        \hyperlink{https://github.com/seadowg/hockey-resource}{Hockey App}
-      }
-    }
-
-    \section{Adding to this list}{
-      Fork the \hyperlink{https://github.com/concourse/concourse}{\code{concourse/concourse}}
-      repository, edit \code{concourse/docs/concepts/resources.any}, then make a pull request.
-    }
-  }
+  See \reference{resource-types} to learn more about what types of resources
+  Concourse supports.
 }
 
 \section{Jobs}{jobs}{
@@ -208,5 +112,3 @@ becomes more involved.
     greatly help in debugging.
   }
 }
-
-\table-of-contents

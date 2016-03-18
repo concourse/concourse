@@ -6,6 +6,12 @@
 
 \title{Concourse Architecture}{architecture}
 
+\warn{
+  This topic isn't crucial to understanding Concourse; if you're just getting
+  started and have finished the \reference{installing} section, you may want to
+  first move on to \reference{using-concourse}.
+}
+
 Concourse is a fairly simple distributed system built up from the following
 components. You'll see them referenced here and there throughout the
 documentation, so you may want to skim this page just to get an idea of what
@@ -62,10 +68,10 @@ they are.
   Each worker registers itself with the Concourse cluster via the
   \reference{architecture-tsa}{TSA}.
 
-  Workers by default listen on ports \code{7777} for Garden and port
-  \code{7788} for Baggageclaim. If they are within a private network reachable
-  by the \reference{architecture-atc}{ATC}, they'll probably bind on all
-  addresses (\code{0.0.0.0}) and register themselves directly. Otherwise they
-  should bind on \code{127.0.0.1} and forward themselves through the
+  Workers by default listen on port \code{7777} for Garden and port \code{7788}
+  for Baggageclaim. If they are within a private network reachable by the
+  \reference{architecture-atc}{ATC}, they'll probably bind on all addresses
+  (\code{0.0.0.0}) and register themselves directly. Otherwise they should bind
+  on \code{127.0.0.1} and forward themselves through the
   \reference{architecture-tsa}{TSA}.
 }

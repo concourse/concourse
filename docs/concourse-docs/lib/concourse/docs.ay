@@ -7,6 +7,16 @@ yaml = hl load("yaml")
 
 base = require("anatomy/base")
 
+def(tutorial-image(asset-path)):
+  data Block new(
+      base image(asset-path)
+      .class("tutorial-image"))
+
+def(warn(content)):
+  data Block new(
+      content
+      .class("warning"))
+
 def(pipeline-image(asset-path)):
   data ResolveBlock new(
     [part]:
