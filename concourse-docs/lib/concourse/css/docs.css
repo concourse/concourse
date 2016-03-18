@@ -361,3 +361,7 @@
   padding-bottom: 0;
   margin-bottom: 0;
 }
+
+p .fa {
+  margin: 0 3px;
+}
