@@ -53,6 +53,8 @@ def(nav-bar(part)):
               "GitHub"
 
 def(bottom-nav(part)):
+  part assets << File expand-path("../images/logo-white.png", __FILE__)
+
   <div(class = "u-full-width bottom-nav"):
     <div(class = "container"):
       <div(class = "conc-div"):
