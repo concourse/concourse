@@ -37,7 +37,7 @@ def(template-for(part, out)):
         <div(.row):
           <div(class = "twelve columns"):
             <h1(.intro-slogan):
-              <span(.soft-line): "CI that scales with"
+              <span(.soft-line): "CI that scales with "
               <span(.soft-line): "your project."
 
       <div(class = "pipes txt-c"):
