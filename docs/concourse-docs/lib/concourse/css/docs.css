@@ -163,8 +163,7 @@
 #content .codeblock-title code {
   background: transparent;
   box-shadow: none;
-  font-weight: bold;
-  color: #379ADC;
+  color: #424242;
 }
 
 #content .titled-codeblock pre {
