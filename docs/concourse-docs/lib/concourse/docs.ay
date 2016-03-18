@@ -12,6 +12,9 @@ def(tutorial-image(asset-path)):
       base image(asset-path)
       .class("tutorial-image"))
 
+def(font-awesome(class)):
+  data Element new("", .font-awesome(class))
+
 def(warn(content)):
   data Block new(
       content
