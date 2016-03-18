@@ -46,9 +46,14 @@ def(template-for(part, out)):
                   <ul(.search-results) {}
 
               part top parts collect [p]:
+                class =
+                  if(p == part)
+                    then: "current"
+                    else: "not-current"
+
                 <div(.sidebar-section):
                   <h3(.section-header):
-                    <a(href = html url(p)):
+                    <a(href = html url(p), class = class):
                       html over(p title)
 
                   <ol(.toc):

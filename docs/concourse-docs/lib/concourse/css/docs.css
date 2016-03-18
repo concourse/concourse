@@ -233,13 +233,14 @@
 #sidebar .toc li.active ol {
   display: block;
 }
-#sidebar .toc li.current > a {
+#sidebar .toc li.current > a,
+#sidebar .section-header a.current {
   background: #FFFFFF;
 }
 #sidebar .toc li.current > a,
-#sidebar .toc li.active > a {
+#sidebar .toc li.active > a,
+#sidebar .section-header a.current {
   border-left-color: #379ADC;
-  font-weight: 700;
 }
 #sidebar ol ol {
   font-size: 14px;
@@ -299,13 +300,14 @@
   padding-bottom: 20px;
 }
 .sidebar-section .section-header {
-  font-size: 18px;
-  margin-bottom: 10px;
+  font-family: 'Open Sans', "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 0;
 }
 .sidebar-section .section-header a {
   color: #686868;
-  font-weight: 500;
-  padding: 0 16px;
+  padding: 8px 16px;
   display: block;
   border-left: 3px solid transparent; /* align with list below */
 }
