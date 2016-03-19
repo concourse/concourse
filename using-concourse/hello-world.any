@@ -81,8 +81,8 @@ This pipeline configuration so far describes a single \reference{jobs}{job},
 whose \reference{build-plans}{\code{plan}} has a single
 \reference{running-tasks}{task}. There are no resources for this job to
 automatically trigger so we'll have to give it a helping hand. Click the job
-and then press the plus button in the top right. The task boots up, prints
-\code{Hello, world!}, and completes successfully:
+and then press the \font-awesome{fa-plus-circle} button in the top right. The
+task boots up, prints \code{Hello, world!}, and completes successfully:
 
 \tutorial-image{images/hello-build.png}
 
