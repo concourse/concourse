@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
 )
 
@@ -22,13 +23,14 @@ func (rp *RenamePipelineCommand) Execute([]string) error {
 		return err
 	}
 
-	renamed, err := client.RenamePipeline(rp.Pipeline, rp.Name)
+	found, err := client.RenamePipeline(rp.Pipeline, rp.Name)
 	if err != nil {
-		return fmt.Errorf("client failed with error: %s\n", err)
+		return err
 	}
 
-	if !renamed {
-		return fmt.Errorf("failed to find pipeline")
+	if !found {
+		displayhelpers.Failf("pipeline '%s' not found\n", rp.Pipeline)
+		return nil
 	}
 
 	fmt.Printf("pipeline successfully renamed to %s\n", rp.Name)
