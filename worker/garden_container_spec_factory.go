@@ -109,11 +109,77 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 		}
 	}
 
+dance:
 	switch s := spec.(type) {
 	case ResourceTypeContainerSpec:
-		gardenSpec, err = factory.BuildResourceContainerSpec(s, gardenSpec, resourceTypes)
+		if len(s.Mounts) > 0 && s.Cache.Volume != nil {
+			return gardenSpec, errors.New("a container may not have mounts and a cache")
+		}
+
+		gardenSpec.Privileged = true
+		gardenSpec.Env = append(gardenSpec.Env, s.Env...)
+
+		if s.Ephemeral {
+			gardenSpec.Properties[ephemeralPropertyName] = "true"
+		}
+
+		if s.Cache.Volume != nil && s.Cache.MountPath != "" {
+			gardenSpec.BindMounts = []garden.BindMount{
+				{
+					SrcPath: s.Cache.Volume.Path(),
+					DstPath: s.Cache.MountPath,
+					Mode:    garden.BindMountModeRW,
+				},
+			}
+
+			factory.volumeHandles = append(factory.volumeHandles, s.Cache.Volume.Handle())
+			factory.volumeMounts[s.Cache.Volume.Handle()] = s.Cache.MountPath
+		}
+
+		var err error
+		gardenSpec, err = factory.createVolumes(gardenSpec, s.Mounts)
+		if err != nil {
+			return garden.ContainerSpec{}, err
+		}
+
+		if s.ImageResourcePointer == nil {
+			for _, t := range resourceTypes {
+				if t.Type == s.Type {
+					gardenSpec.RootFSPath = t.Image
+					break dance
+				}
+			}
+
+			return garden.ContainerSpec{}, ErrUnsupportedResourceType
+		}
+
+		break dance
 	case TaskContainerSpec:
-		gardenSpec, err = factory.BuildTaskContainerSpec(s, gardenSpec, cancel, delegate, id, metadata, workerClient)
+		if s.ImageResourcePointer == nil {
+			gardenSpec.RootFSPath = s.Image
+		}
+
+		gardenSpec.Privileged = s.Privileged
+
+		var err error
+		gardenSpec, err = factory.createVolumes(gardenSpec, s.Inputs)
+		if err != nil {
+			return garden.ContainerSpec{}, err
+		}
+
+		for _, mount := range s.Outputs {
+			volume := mount.Volume
+			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
+				SrcPath: volume.Path(),
+				DstPath: mount.MountPath,
+				Mode:    garden.BindMountModeRW,
+			})
+
+			factory.volumeHandles = append(factory.volumeHandles, volume.Handle())
+			factory.volumeMounts[volume.Handle()] = mount.MountPath
+		}
+
+		break dance
 	default:
 		return garden.ContainerSpec{}, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
 	}
@@ -138,91 +204,6 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 	}
 
 	gardenSpec.Properties["user"] = factory.user
-
-	return gardenSpec, nil
-}
-
-func (factory *gardenContainerSpecFactory) BuildResourceContainerSpec(
-	spec ResourceTypeContainerSpec,
-	gardenSpec garden.ContainerSpec,
-	resourceTypes []atc.WorkerResourceType,
-) (garden.ContainerSpec, error) {
-	if len(spec.Mounts) > 0 && spec.Cache.Volume != nil {
-		return gardenSpec, errors.New("a container may not have mounts and a cache")
-	}
-
-	gardenSpec.Privileged = true
-	gardenSpec.Env = append(gardenSpec.Env, spec.Env...)
-
-	if spec.Ephemeral {
-		gardenSpec.Properties[ephemeralPropertyName] = "true"
-	}
-
-	if spec.Cache.Volume != nil && spec.Cache.MountPath != "" {
-		gardenSpec.BindMounts = []garden.BindMount{
-			{
-				SrcPath: spec.Cache.Volume.Path(),
-				DstPath: spec.Cache.MountPath,
-				Mode:    garden.BindMountModeRW,
-			},
-		}
-
-		factory.volumeHandles = append(factory.volumeHandles, spec.Cache.Volume.Handle())
-		factory.volumeMounts[spec.Cache.Volume.Handle()] = spec.Cache.MountPath
-	}
-
-	var err error
-	gardenSpec, err = factory.createVolumes(gardenSpec, spec.Mounts)
-	if err != nil {
-		return gardenSpec, err
-	}
-
-	if spec.ImageResourcePointer == nil {
-		for _, t := range resourceTypes {
-			if t.Type == spec.Type {
-				gardenSpec.RootFSPath = t.Image
-				return gardenSpec, nil
-			}
-		}
-
-		return gardenSpec, ErrUnsupportedResourceType
-	}
-
-	return gardenSpec, nil
-}
-
-func (factory *gardenContainerSpecFactory) BuildTaskContainerSpec(
-	spec TaskContainerSpec,
-	gardenSpec garden.ContainerSpec,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
-	workerClient Client,
-) (garden.ContainerSpec, error) {
-	if spec.ImageResourcePointer == nil {
-		gardenSpec.RootFSPath = spec.Image
-	}
-
-	gardenSpec.Privileged = spec.Privileged
-
-	var err error
-	gardenSpec, err = factory.createVolumes(gardenSpec, spec.Inputs)
-	if err != nil {
-		return gardenSpec, err
-	}
-
-	for _, mount := range spec.Outputs {
-		volume := mount.Volume
-		gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
-			SrcPath: volume.Path(),
-			DstPath: mount.MountPath,
-			Mode:    garden.BindMountModeRW,
-		})
-
-		factory.volumeHandles = append(factory.volumeHandles, volume.Handle())
-		factory.volumeMounts[volume.Handle()] = mount.MountPath
-	}
 
 	return gardenSpec, nil
 }
