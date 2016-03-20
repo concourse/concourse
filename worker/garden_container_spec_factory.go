@@ -133,8 +133,6 @@ dance:
 
 			return garden.ContainerSpec{}, ErrUnsupportedResourceType
 		}
-
-		break dance
 	case TaskContainerSpec:
 		if s.ImageResourcePointer == nil {
 			gardenSpec.RootFSPath = s.Image
@@ -160,8 +158,6 @@ dance:
 			volumeHandles = append(volumeHandles, volume.Handle())
 			volumeMountPaths[volume] = mount.MountPath
 		}
-
-		break dance
 	default:
 		return garden.ContainerSpec{}, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
 	}
