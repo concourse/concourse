@@ -96,7 +96,7 @@ dance:
 	switch s := spec.(type) {
 	case ResourceTypeContainerSpec:
 		if len(s.Mounts) > 0 && s.Cache.Volume != nil {
-			return gardenSpec, errors.New("a container may not have mounts and a cache")
+			return garden.ContainerSpec{}, errors.New("a container may not have mounts and a cache")
 		}
 
 		gardenSpec.Privileged = true
