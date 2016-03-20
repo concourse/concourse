@@ -89,7 +89,7 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 		}
 	}
 
-	volumeMounts := map[baggageclaim.Volume]string{}
+	volumeMountPaths := map[baggageclaim.Volume]string{}
 
 dance:
 	switch s := spec.(type) {
@@ -107,10 +107,10 @@ dance:
 
 		if s.Cache.Volume != nil && s.Cache.MountPath != "" {
 			volumeHandles = append(volumeHandles, s.Cache.Volume.Handle())
-			volumeMounts[s.Cache.Volume] = s.Cache.MountPath
+			volumeMountPaths[s.Cache.Volume] = s.Cache.MountPath
 		}
 
-		newVolumeHandles, newVolumeMounts, err := factory.createVolumes(gardenSpec, s.Mounts)
+		newVolumeHandles, newVolumeMountPaths, err := factory.createVolumes(gardenSpec, s.Mounts)
 		if err != nil {
 			return garden.ContainerSpec{}, err
 		}
@@ -119,8 +119,8 @@ dance:
 			volumeHandles = append(volumeHandles, h)
 		}
 
-		for k, v := range newVolumeMounts {
-			volumeMounts[k] = v
+		for volume, mountPath := range newVolumeMountPaths {
+			volumeMountPaths[volume] = mountPath
 		}
 
 		if s.ImageResourcePointer == nil {
@@ -142,7 +142,7 @@ dance:
 
 		gardenSpec.Privileged = s.Privileged
 
-		newVolumeHandles, newVolumeMounts, err := factory.createVolumes(gardenSpec, s.Inputs)
+		newVolumeHandles, newVolumeMountPaths, err := factory.createVolumes(gardenSpec, s.Inputs)
 		if err != nil {
 			return garden.ContainerSpec{}, err
 		}
@@ -151,14 +151,14 @@ dance:
 			volumeHandles = append(volumeHandles, h)
 		}
 
-		for k, v := range newVolumeMounts {
-			volumeMounts[k] = v
+		for volume, mountPath := range newVolumeMountPaths {
+			volumeMountPaths[volume] = mountPath
 		}
 
 		for _, mount := range s.Outputs {
 			volume := mount.Volume
 			volumeHandles = append(volumeHandles, volume.Handle())
-			volumeMounts[volume] = mount.MountPath
+			volumeMountPaths[volume] = mount.MountPath
 		}
 
 		break dance
@@ -166,10 +166,10 @@ dance:
 		return garden.ContainerSpec{}, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
 	}
 
-	for k, v := range volumeMounts {
+	for volume, mount := range volumeMountPaths {
 		gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
-			SrcPath: k.Path(),
-			DstPath: v,
+			SrcPath: volume.Path(),
+			DstPath: mount,
 			Mode:    garden.BindMountModeRW,
 		})
 	}
@@ -184,7 +184,7 @@ dance:
 
 		volumeHandleMounts := map[string]string{}
 
-		for k, v := range volumeMounts {
+		for k, v := range volumeMountPaths {
 			volumeHandleMounts[k.Handle()] = v
 		}
 
@@ -209,7 +209,7 @@ func (factory *gardenContainerSpecFactory) ReleaseVolumes() {
 
 func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.ContainerSpec, mounts []VolumeMount) ([]string, map[baggageclaim.Volume]string, error) {
 	var volumeHandles []string
-	volumeMounts := map[baggageclaim.Volume]string{}
+	volumeMountPaths := map[baggageclaim.Volume]string{}
 
 	for _, mount := range mounts {
 		cowVolume, err := factory.baggageclaimClient.CreateVolume(factory.logger, baggageclaim.VolumeSpec{
@@ -231,7 +231,7 @@ func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.Co
 		}
 
 		volumeHandles = append(volumeHandles, cowVolume.Handle())
-		volumeMounts[cowVolume] = mount.MountPath
+		volumeMountPaths[cowVolume] = mount.MountPath
 
 		factory.logger.Info("created-cow-volume", lager.Data{
 			"original-volume-handle": mount.Volume.Handle(),
@@ -239,5 +239,5 @@ func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.Co
 		})
 	}
 
-	return volumeHandles, volumeMounts, nil
+	return volumeHandles, volumeMountPaths, nil
 }
