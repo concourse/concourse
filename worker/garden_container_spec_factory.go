@@ -224,8 +224,8 @@ dance:
 }
 
 func (factory *gardenContainerSpecFactory) ReleaseVolumes() {
-	for _, cow := range factory.releaseAfterCreate {
-		cow.Release(nil)
+	for _, releasable := range factory.releaseAfterCreate {
+		releasable.Release(nil)
 	}
 }
 
