@@ -58,12 +58,11 @@ type gardenWorker struct {
 
 	clock clock.Clock
 
-	activeContainers   int
-	resourceTypes      []atc.WorkerResourceType
-	platform           string
-	tags               atc.Tags
-	name               string
-	releaseAfterCreate []releasable
+	activeContainers int
+	resourceTypes    []atc.WorkerResourceType
+	platform         string
+	tags             atc.Tags
+	name             string
 }
 
 func NewGardenWorker(
@@ -172,9 +171,9 @@ dance:
 		gardenSpec = baseGardenSpec
 
 		if imageFetched {
+			defer image.Release(nil)
 			imageVolume := image.Volume()
 			volumeHandles = append(volumeHandles, imageVolume.Handle())
-			worker.releaseAfterCreate = append(worker.releaseAfterCreate, image)
 			gardenSpec.Properties[userPropertyName] = image.Metadata().User
 		} else {
 			gardenSpec.Properties[userPropertyName] = ""
@@ -224,9 +223,9 @@ dance:
 		gardenSpec = baseGardenSpec
 
 		if imageFetched {
+			defer image.Release(nil)
 			imageVolume := image.Volume()
 			volumeHandles = append(volumeHandles, imageVolume.Handle())
-			worker.releaseAfterCreate = append(worker.releaseAfterCreate, image)
 			gardenSpec.Properties[userPropertyName] = image.Metadata().User
 		} else {
 			gardenSpec.Properties[userPropertyName] = ""
@@ -241,17 +240,32 @@ dance:
 		return nil, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
 	}
 
-	newVolumeHandles, newVolumeMountPaths, err := worker.createVolumes(logger, gardenSpec, volumeMounts)
-	if err != nil {
-		return nil, err
-	}
+	for _, mount := range volumeMounts {
+		cowVolume, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
+			Strategy: baggageclaim.COWStrategy{
+				Parent: mount.Volume,
+			},
+			Privileged: gardenSpec.Privileged,
+			TTL:        VolumeTTL,
+		})
+		if err != nil {
+			return nil, err
+		}
 
-	for _, h := range newVolumeHandles {
-		volumeHandles = append(volumeHandles, h)
-	}
+		defer cowVolume.Release(nil)
 
-	for volume, mountPath := range newVolumeMountPaths {
-		volumeMountPaths[volume] = mountPath
+		err = worker.db.InsertCOWVolume(mount.Volume.Handle(), cowVolume.Handle(), VolumeTTL)
+		if err != nil {
+			return nil, err
+		}
+
+		volumeHandles = append(volumeHandles, cowVolume.Handle())
+		volumeMountPaths[cowVolume] = mount.MountPath
+
+		logger.Info("created-cow-volume", lager.Data{
+			"original-volume-handle": mount.Volume.Handle(),
+			"cow-volume-handle":      cowVolume.Handle(),
+		})
 	}
 
 	for volume, mount := range volumeMountPaths {
@@ -283,12 +297,6 @@ dance:
 
 		gardenSpec.Properties[volumeMountsPropertyName] = string(mountsJSON)
 	}
-
-	defer func() {
-		for _, releasable := range worker.releaseAfterCreate {
-			releasable.Release(nil)
-		}
-	}()
 
 	gardenContainer, err := worker.gardenClient.Create(gardenSpec)
 	if err != nil {
@@ -360,41 +368,6 @@ func (worker *gardenWorker) baseGardenSpec(
 		Properties: garden.Properties{},
 	}
 	return gardenSpec, false, nil, nil
-}
-
-func (worker *gardenWorker) createVolumes(logger lager.Logger, containerSpec garden.ContainerSpec, mounts []VolumeMount) ([]string, map[baggageclaim.Volume]string, error) {
-	var volumeHandles []string
-	volumeMountPaths := map[baggageclaim.Volume]string{}
-
-	for _, mount := range mounts {
-		cowVolume, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
-			Strategy: baggageclaim.COWStrategy{
-				Parent: mount.Volume,
-			},
-			Privileged: containerSpec.Privileged,
-			TTL:        VolumeTTL,
-		})
-		if err != nil {
-			return []string{}, map[baggageclaim.Volume]string{}, err
-		}
-
-		worker.releaseAfterCreate = append(worker.releaseAfterCreate, cowVolume)
-
-		err = worker.db.InsertCOWVolume(mount.Volume.Handle(), cowVolume.Handle(), VolumeTTL)
-		if err != nil {
-			return []string{}, map[baggageclaim.Volume]string{}, err
-		}
-
-		volumeHandles = append(volumeHandles, cowVolume.Handle())
-		volumeMountPaths[cowVolume] = mount.MountPath
-
-		logger.Info("created-cow-volume", lager.Data{
-			"original-volume-handle": mount.Volume.Handle(),
-			"cow-volume-handle":      cowVolume.Handle(),
-		})
-	}
-
-	return volumeHandles, volumeMountPaths, nil
 }
 
 func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
