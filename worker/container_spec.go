@@ -9,7 +9,6 @@ import (
 
 type ContainerSpec interface {
 	WorkerSpec() WorkerSpec
-	ImageResource() (atc.TaskImageConfig, bool)
 }
 
 type WorkerSpec struct {
@@ -57,14 +56,6 @@ func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {
 	}
 }
 
-func (spec ResourceTypeContainerSpec) ImageResource() (atc.TaskImageConfig, bool) {
-	if spec.ImageResourcePointer == nil {
-		return atc.TaskImageConfig{}, false
-	} else {
-		return *spec.ImageResourcePointer, true
-	}
-}
-
 type TaskContainerSpec struct {
 	Platform             string
 	Image                string
@@ -79,13 +70,5 @@ func (spec TaskContainerSpec) WorkerSpec() WorkerSpec {
 	return WorkerSpec{
 		Platform: spec.Platform,
 		Tags:     spec.Tags,
-	}
-}
-
-func (spec TaskContainerSpec) ImageResource() (atc.TaskImageConfig, bool) {
-	if spec.ImageResourcePointer == nil {
-		return atc.TaskImageConfig{}, false
-	} else {
-		return *spec.ImageResourcePointer, true
 	}
 }

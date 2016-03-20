@@ -51,45 +51,13 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 	workerClient Client,
 	customTypes atc.ResourceTypes,
 ) (garden.ContainerSpec, error) {
-	var volumeHandles []string
-	var user string
-
-	imageResourceConfig, hasImageResource := spec.ImageResource()
-	var gardenSpec garden.ContainerSpec
-	if hasImageResource {
-		image, err := factory.imageFetcher.FetchImage(
-			factory.logger,
-			imageResourceConfig,
-			cancel,
-			id,
-			metadata,
-			delegate,
-			workerClient,
-			workerTags,
-			customTypes,
-		)
-		if err != nil {
-			return garden.ContainerSpec{}, err
-		}
-
-		imageVolume := image.Volume()
-		volumeHandles = append(volumeHandles, imageVolume.Handle())
-		factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
-		user = image.Metadata().User
-
-		gardenSpec = garden.ContainerSpec{
-			Properties: garden.Properties{},
-			RootFSPath: path.Join(imageVolume.Path(), "rootfs"),
-			Env:        image.Metadata().Env,
-		}
-	} else {
-		gardenSpec = garden.ContainerSpec{
-			Properties: garden.Properties{},
-		}
-	}
-
+	var (
+		volumeHandles []string
+		user          string
+		volumeMounts  []VolumeMount
+		gardenSpec    garden.ContainerSpec
+	)
 	volumeMountPaths := map[baggageclaim.Volume]string{}
-	var volumeMounts []VolumeMount
 
 dance:
 	switch s := spec.(type) {
@@ -98,19 +66,41 @@ dance:
 			return garden.ContainerSpec{}, errors.New("a container may not have mounts and a cache")
 		}
 
-		gardenSpec.Privileged = true
-		gardenSpec.Env = append(gardenSpec.Env, s.Env...)
-
-		if s.Ephemeral {
-			gardenSpec.Properties[ephemeralPropertyName] = "true"
-		}
+		volumeMounts = s.Mounts
 
 		if s.Cache.Volume != nil && s.Cache.MountPath != "" {
 			volumeHandles = append(volumeHandles, s.Cache.Volume.Handle())
 			volumeMountPaths[s.Cache.Volume] = s.Cache.MountPath
 		}
 
-		volumeMounts = s.Mounts
+		baseGardenSpec, imageFetched, image, err := factory.baseGardenSpec(
+			s.ImageResourcePointer,
+			workerTags,
+			cancel,
+			delegate,
+			id,
+			metadata,
+			workerClient,
+			customTypes,
+		)
+		if err != nil {
+			return garden.ContainerSpec{}, err
+		}
+
+		if imageFetched {
+			imageVolume := image.Volume()
+			volumeHandles = append(volumeHandles, imageVolume.Handle())
+			factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
+			user = image.Metadata().User
+		}
+
+		gardenSpec = baseGardenSpec
+		gardenSpec.Privileged = true
+		gardenSpec.Env = append(gardenSpec.Env, s.Env...)
+
+		if s.Ephemeral {
+			gardenSpec.Properties[ephemeralPropertyName] = "true"
+		}
 
 		if s.ImageResourcePointer == nil {
 			for _, t := range resourceTypes {
@@ -123,18 +113,40 @@ dance:
 			return garden.ContainerSpec{}, ErrUnsupportedResourceType
 		}
 	case TaskContainerSpec:
-		if s.ImageResourcePointer == nil {
-			gardenSpec.RootFSPath = s.Image
-		}
-
-		gardenSpec.Privileged = s.Privileged
-
 		volumeMounts = s.Inputs
 
 		for _, mount := range s.Outputs {
 			volume := mount.Volume
 			volumeHandles = append(volumeHandles, volume.Handle())
 			volumeMountPaths[volume] = mount.MountPath
+		}
+
+		baseGardenSpec, imageFetched, image, err := factory.baseGardenSpec(
+			s.ImageResourcePointer,
+			workerTags,
+			cancel,
+			delegate,
+			id,
+			metadata,
+			workerClient,
+			customTypes,
+		)
+		if err != nil {
+			return garden.ContainerSpec{}, err
+		}
+
+		if imageFetched {
+			imageVolume := image.Volume()
+			volumeHandles = append(volumeHandles, imageVolume.Handle())
+			factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
+			user = image.Metadata().User
+		}
+
+		gardenSpec = baseGardenSpec
+		gardenSpec.Privileged = s.Privileged
+
+		if s.ImageResourcePointer == nil {
+			gardenSpec.RootFSPath = s.Image
 		}
 	default:
 		return garden.ContainerSpec{}, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
@@ -192,6 +204,47 @@ func (factory *gardenContainerSpecFactory) ReleaseVolumes() {
 	for _, releasable := range factory.releaseAfterCreate {
 		releasable.Release(nil)
 	}
+}
+
+func (factory *gardenContainerSpecFactory) baseGardenSpec(
+	taskImageConfig *atc.TaskImageConfig,
+	workerTags atc.Tags,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	workerClient Client,
+	customTypes atc.ResourceTypes,
+) (garden.ContainerSpec, bool, Image, error) {
+	if taskImageConfig != nil {
+		image, err := factory.imageFetcher.FetchImage(
+			factory.logger,
+			*taskImageConfig,
+			cancel,
+			id,
+			metadata,
+			delegate,
+			workerClient,
+			workerTags,
+			customTypes,
+		)
+		if err != nil {
+			return garden.ContainerSpec{}, false, nil, err
+		}
+
+		gardenSpec := garden.ContainerSpec{
+			Properties: garden.Properties{},
+			RootFSPath: path.Join(image.Volume().Path(), "rootfs"),
+			Env:        image.Metadata().Env,
+		}
+
+		return gardenSpec, true, image, nil
+	}
+
+	gardenSpec := garden.ContainerSpec{
+		Properties: garden.Properties{},
+	}
+	return gardenSpec, false, nil, nil
 }
 
 func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.ContainerSpec, mounts []VolumeMount) ([]string, map[baggageclaim.Volume]string, error) {
