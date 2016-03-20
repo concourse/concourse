@@ -90,6 +90,7 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 	}
 
 	volumeMountPaths := map[baggageclaim.Volume]string{}
+	var volumeMounts []VolumeMount
 
 dance:
 	switch s := spec.(type) {
@@ -110,18 +111,7 @@ dance:
 			volumeMountPaths[s.Cache.Volume] = s.Cache.MountPath
 		}
 
-		newVolumeHandles, newVolumeMountPaths, err := factory.createVolumes(gardenSpec, s.Mounts)
-		if err != nil {
-			return garden.ContainerSpec{}, err
-		}
-
-		for _, h := range newVolumeHandles {
-			volumeHandles = append(volumeHandles, h)
-		}
-
-		for volume, mountPath := range newVolumeMountPaths {
-			volumeMountPaths[volume] = mountPath
-		}
+		volumeMounts = s.Mounts
 
 		if s.ImageResourcePointer == nil {
 			for _, t := range resourceTypes {
@@ -140,18 +130,7 @@ dance:
 
 		gardenSpec.Privileged = s.Privileged
 
-		newVolumeHandles, newVolumeMountPaths, err := factory.createVolumes(gardenSpec, s.Inputs)
-		if err != nil {
-			return garden.ContainerSpec{}, err
-		}
-
-		for _, h := range newVolumeHandles {
-			volumeHandles = append(volumeHandles, h)
-		}
-
-		for volume, mountPath := range newVolumeMountPaths {
-			volumeMountPaths[volume] = mountPath
-		}
+		volumeMounts = s.Inputs
 
 		for _, mount := range s.Outputs {
 			volume := mount.Volume
@@ -160,6 +139,19 @@ dance:
 		}
 	default:
 		return garden.ContainerSpec{}, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
+	}
+
+	newVolumeHandles, newVolumeMountPaths, err := factory.createVolumes(gardenSpec, volumeMounts)
+	if err != nil {
+		return garden.ContainerSpec{}, err
+	}
+
+	for _, h := range newVolumeHandles {
+		volumeHandles = append(volumeHandles, h)
+	}
+
+	for volume, mountPath := range newVolumeMountPaths {
+		volumeMountPaths[volume] = mountPath
 	}
 
 	for volume, mount := range volumeMountPaths {
