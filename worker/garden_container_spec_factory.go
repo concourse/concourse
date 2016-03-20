@@ -120,7 +120,7 @@ dance:
 
 		var err error
 		var newVolumeHandles []string
-		var newVolumeMounts map[string]string
+		var newVolumeMounts map[baggageclaim.Volume]string
 		gardenSpec, newVolumeHandles, newVolumeMounts, err = factory.createVolumes(gardenSpec, s.Mounts)
 		if err != nil {
 			return garden.ContainerSpec{}, err
@@ -131,7 +131,7 @@ dance:
 		}
 
 		for k, v := range newVolumeMounts {
-			volumeMounts[k] = v
+			volumeMounts[k.Handle()] = v
 		}
 
 		if s.ImageResourcePointer == nil {
@@ -155,7 +155,7 @@ dance:
 
 		var err error
 		var newVolumeHandles []string
-		var newVolumeMounts map[string]string
+		var newVolumeMounts map[baggageclaim.Volume]string
 		gardenSpec, newVolumeHandles, newVolumeMounts, err = factory.createVolumes(gardenSpec, s.Inputs)
 		if err != nil {
 			return garden.ContainerSpec{}, err
@@ -166,7 +166,7 @@ dance:
 		}
 
 		for k, v := range newVolumeMounts {
-			volumeMounts[k] = v
+			volumeMounts[k.Handle()] = v
 		}
 
 		for _, mount := range s.Outputs {
@@ -213,9 +213,9 @@ func (factory *gardenContainerSpecFactory) ReleaseVolumes() {
 	}
 }
 
-func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.ContainerSpec, mounts []VolumeMount) (garden.ContainerSpec, []string, map[string]string, error) {
+func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.ContainerSpec, mounts []VolumeMount) (garden.ContainerSpec, []string, map[baggageclaim.Volume]string, error) {
 	var volumeHandles []string
-	volumeMounts := map[string]string{}
+	volumeMounts := map[baggageclaim.Volume]string{}
 
 	for _, mount := range mounts {
 		cowVolume, err := factory.baggageclaimClient.CreateVolume(factory.logger, baggageclaim.VolumeSpec{
@@ -226,14 +226,14 @@ func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.Co
 			TTL:        VolumeTTL,
 		})
 		if err != nil {
-			return containerSpec, []string{}, map[string]string{}, err
+			return containerSpec, []string{}, map[baggageclaim.Volume]string{}, err
 		}
 
 		factory.releaseAfterCreate = append(factory.releaseAfterCreate, cowVolume)
 
 		err = factory.db.InsertCOWVolume(mount.Volume.Handle(), cowVolume.Handle(), VolumeTTL)
 		if err != nil {
-			return containerSpec, []string{}, map[string]string{}, err
+			return containerSpec, []string{}, map[baggageclaim.Volume]string{}, err
 		}
 
 		containerSpec.BindMounts = append(containerSpec.BindMounts, garden.BindMount{
@@ -243,7 +243,7 @@ func (factory *gardenContainerSpecFactory) createVolumes(containerSpec garden.Co
 		})
 
 		volumeHandles = append(volumeHandles, cowVolume.Handle())
-		volumeMounts[cowVolume.Handle()] = mount.MountPath
+		volumeMounts[cowVolume] = mount.MountPath
 
 		factory.logger.Info("created-cow-volume", lager.Data{
 			"original-volume-handle": mount.Volume.Handle(),
