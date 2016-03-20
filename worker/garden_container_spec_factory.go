@@ -51,22 +51,6 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 	workerClient Client,
 	customTypes atc.ResourceTypes,
 ) (garden.ContainerSpec, error) {
-	resourceTypeContainerSpec, ok := spec.(ResourceTypeContainerSpec)
-	if ok {
-		for _, customType := range customTypes {
-			if customType.Name == resourceTypeContainerSpec.Type {
-				customTypes = customTypes.Without(resourceTypeContainerSpec.Type)
-
-				resourceTypeContainerSpec.ImageResourcePointer = &atc.TaskImageConfig{
-					Source: customType.Source,
-					Type:   customType.Type,
-				}
-
-				spec = resourceTypeContainerSpec
-			}
-		}
-	}
-
 	var volumeHandles []string
 	var user string
 
