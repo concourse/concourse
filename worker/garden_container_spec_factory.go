@@ -60,16 +60,17 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 
 	resourceTypeContainerSpec, ok := spec.(ResourceTypeContainerSpec)
 	if ok {
-		customType, found := lookupCustomType(resourceTypeContainerSpec.Type, customTypes)
-		if found {
-			customTypes = customTypes.Without(resourceTypeContainerSpec.Type)
+		for _, customType := range customTypes {
+			if customType.Name == resourceTypeContainerSpec.Type {
+				customTypes = customTypes.Without(resourceTypeContainerSpec.Type)
 
-			resourceTypeContainerSpec.ImageResourcePointer = &atc.TaskImageConfig{
-				Source: customType.Source,
-				Type:   customType.Type,
+				resourceTypeContainerSpec.ImageResourcePointer = &atc.TaskImageConfig{
+					Source: customType.Source,
+					Type:   customType.Type,
+				}
+
+				spec = resourceTypeContainerSpec
 			}
-
-			spec = resourceTypeContainerSpec
 		}
 	}
 
@@ -188,15 +189,6 @@ func (factory *gardenContainerSpecFactory) BuildResourceContainerSpec(
 	}
 
 	return gardenSpec, nil
-}
-
-func lookupCustomType(typeName string, customTypes atc.ResourceTypes) (atc.ResourceType, bool) {
-	for _, customType := range customTypes {
-		if customType.Name == typeName {
-			return customType, true
-		}
-	}
-	return atc.ResourceType{}, false
 }
 
 func (factory *gardenContainerSpecFactory) BuildTaskContainerSpec(
