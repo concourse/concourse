@@ -56,8 +56,6 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 	workerClient Client,
 	customTypes atc.ResourceTypes,
 ) (garden.ContainerSpec, error) {
-	var err error
-
 	resourceTypeContainerSpec, ok := spec.(ResourceTypeContainerSpec)
 	if ok {
 		for _, customType := range customTypes {
@@ -182,9 +180,6 @@ dance:
 		break dance
 	default:
 		return garden.ContainerSpec{}, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
-	}
-	if err != nil {
-		return garden.ContainerSpec{}, err
 	}
 
 	if len(factory.volumeHandles) > 0 {
