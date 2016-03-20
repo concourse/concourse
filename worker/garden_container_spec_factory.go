@@ -17,6 +17,7 @@ import (
 const ephemeralPropertyName = "concourse:ephemeral"
 const volumePropertyName = "concourse:volumes"
 const volumeMountsPropertyName = "concourse:volume-mounts"
+const userPropertyName = "user"
 
 type releasable interface {
 	Release(*time.Duration)
@@ -92,9 +93,9 @@ dance:
 			imageVolume := image.Volume()
 			volumeHandles = append(volumeHandles, imageVolume.Handle())
 			factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
-			gardenSpec.Properties["user"] = image.Metadata().User
+			gardenSpec.Properties[userPropertyName] = image.Metadata().User
 		} else {
-			gardenSpec.Properties["user"] = ""
+			gardenSpec.Properties[userPropertyName] = ""
 		}
 
 		gardenSpec.Privileged = true
@@ -143,9 +144,9 @@ dance:
 			imageVolume := image.Volume()
 			volumeHandles = append(volumeHandles, imageVolume.Handle())
 			factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
-			gardenSpec.Properties["user"] = image.Metadata().User
+			gardenSpec.Properties[userPropertyName] = image.Metadata().User
 		} else {
-			gardenSpec.Properties["user"] = ""
+			gardenSpec.Properties[userPropertyName] = ""
 		}
 
 		gardenSpec.Privileged = s.Privileged
