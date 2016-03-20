@@ -126,6 +126,8 @@ func (worker *gardenWorker) CreateContainer(
 		volumeHandles []string
 		volumeMounts  []VolumeMount
 		gardenSpec    garden.ContainerSpec
+		imageFetched  bool
+		image         Image
 	)
 	volumeMountPaths := map[baggageclaim.Volume]string{}
 
@@ -153,7 +155,8 @@ dance:
 			volumeMountPaths[s.Cache.Volume] = s.Cache.MountPath
 		}
 
-		baseGardenSpec, imageFetched, image, err := worker.baseGardenSpec(
+		var err error
+		gardenSpec, imageFetched, image, err = worker.baseGardenSpec(
 			logger,
 			s.ImageResourcePointer,
 			worker.tags,
@@ -168,15 +171,8 @@ dance:
 			return nil, err
 		}
 
-		gardenSpec = baseGardenSpec
-
 		if imageFetched {
 			defer image.Release(nil)
-			imageVolume := image.Volume()
-			volumeHandles = append(volumeHandles, imageVolume.Handle())
-			gardenSpec.Properties[userPropertyName] = image.Metadata().User
-		} else {
-			gardenSpec.Properties[userPropertyName] = ""
 		}
 
 		gardenSpec.Privileged = true
@@ -205,7 +201,8 @@ dance:
 			volumeMountPaths[volume] = mount.MountPath
 		}
 
-		baseGardenSpec, imageFetched, image, err := worker.baseGardenSpec(
+		var err error
+		gardenSpec, imageFetched, image, err = worker.baseGardenSpec(
 			logger,
 			s.ImageResourcePointer,
 			worker.tags,
@@ -220,15 +217,8 @@ dance:
 			return nil, err
 		}
 
-		gardenSpec = baseGardenSpec
-
 		if imageFetched {
 			defer image.Release(nil)
-			imageVolume := image.Volume()
-			volumeHandles = append(volumeHandles, imageVolume.Handle())
-			gardenSpec.Properties[userPropertyName] = image.Metadata().User
-		} else {
-			gardenSpec.Properties[userPropertyName] = ""
 		}
 
 		gardenSpec.Privileged = s.Privileged
@@ -238,6 +228,13 @@ dance:
 		}
 	default:
 		return nil, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
+	}
+
+	if imageFetched {
+		volumeHandles = append(volumeHandles, image.Volume().Handle())
+		gardenSpec.Properties[userPropertyName] = image.Metadata().User
+	} else {
+		gardenSpec.Properties[userPropertyName] = ""
 	}
 
 	for _, mount := range volumeMounts {
