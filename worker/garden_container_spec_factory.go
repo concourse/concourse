@@ -73,7 +73,6 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 		}
 
 		imageVolume := image.Volume()
-
 		volumeHandles = append(volumeHandles, imageVolume.Handle())
 		factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
 		user = image.Metadata().User
