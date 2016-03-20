@@ -26,7 +26,6 @@ type gardenContainerSpecFactory struct {
 	logger             lager.Logger
 	baggageclaimClient baggageclaim.Client
 	imageFetcher       ImageFetcher
-	user               string
 	releaseAfterCreate []releasable
 	db                 GardenWorkerDB
 }
@@ -69,6 +68,7 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 	}
 
 	var volumeHandles []string
+	var user string
 
 	imageResourceConfig, hasImageResource := spec.ImageResource()
 	var gardenSpec garden.ContainerSpec
@@ -92,7 +92,7 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 
 		volumeHandles = append(volumeHandles, imageVolume.Handle())
 		factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
-		factory.user = image.Metadata().User
+		user = image.Metadata().User
 
 		gardenSpec = garden.ContainerSpec{
 			Properties: garden.Properties{},
@@ -218,7 +218,7 @@ dance:
 		gardenSpec.Properties[volumeMountsPropertyName] = string(mountsJSON)
 	}
 
-	gardenSpec.Properties["user"] = factory.user
+	gardenSpec.Properties["user"] = user
 
 	return gardenSpec, nil
 }
