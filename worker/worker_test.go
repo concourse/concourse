@@ -434,17 +434,17 @@ var _ = Describe("Worker", func() {
 								spec := fakeGardenClient.CreateArgsForCall(0)
 								Expect(spec.RootFSPath).To(Equal("some-resource-image"))
 								Expect(spec.Privileged).To(BeTrue())
-								Expect(spec.BindMounts).To(Equal([]garden.BindMount{
-									{
-										SrcPath: "/some/cow/src/path",
-										DstPath: "/some/dst/path1",
-										Mode:    garden.BindMountModeRW,
-									},
-									{
-										SrcPath: "/some/other/cow/src/path",
-										DstPath: "/some/dst/path2",
-										Mode:    garden.BindMountModeRW,
-									},
+								Expect(spec.BindMounts).To(HaveLen(2))
+								Expect(spec.BindMounts).To(ContainElement(garden.BindMount{
+									SrcPath: "/some/cow/src/path",
+									DstPath: "/some/dst/path1",
+									Mode:    garden.BindMountModeRW,
+								}))
+
+								Expect(spec.BindMounts).To(ContainElement(garden.BindMount{
+									SrcPath: "/some/other/cow/src/path",
+									DstPath: "/some/dst/path2",
+									Mode:    garden.BindMountModeRW,
 								}))
 
 								Expect(spec.Properties).To(HaveLen(3))
@@ -1052,17 +1052,17 @@ var _ = Describe("Worker", func() {
 						spec := fakeGardenClient.CreateArgsForCall(0)
 						Expect(spec.RootFSPath).To(Equal("some-image"))
 						Expect(spec.Privileged).To(BeTrue())
-						Expect(spec.BindMounts).To(Equal([]garden.BindMount{
-							{
-								SrcPath: "/some/src/path",
-								DstPath: "/tmp/dst/path",
-								Mode:    garden.BindMountModeRW,
-							},
-							{
-								SrcPath: "/some/other/src/path",
-								DstPath: "/tmp/dst/other/path",
-								Mode:    garden.BindMountModeRW,
-							},
+						Expect(spec.BindMounts).To(HaveLen(2))
+						Expect(spec.BindMounts).To(ContainElement(garden.BindMount{
+							SrcPath: "/some/src/path",
+							DstPath: "/tmp/dst/path",
+							Mode:    garden.BindMountModeRW,
+						}))
+
+						Expect(spec.BindMounts).To(ContainElement(garden.BindMount{
+							SrcPath: "/some/other/src/path",
+							DstPath: "/tmp/dst/other/path",
+							Mode:    garden.BindMountModeRW,
 						}))
 
 						Expect(spec.Properties).To(HaveLen(3))
@@ -1138,17 +1138,17 @@ var _ = Describe("Worker", func() {
 						spec := fakeGardenClient.CreateArgsForCall(0)
 						Expect(spec.RootFSPath).To(Equal("some-image"))
 						Expect(spec.Privileged).To(BeTrue())
-						Expect(spec.BindMounts).To(Equal([]garden.BindMount{
-							{
-								SrcPath: "/some/cow/src/path",
-								DstPath: "/tmp/dst/path",
-								Mode:    garden.BindMountModeRW,
-							},
-							{
-								SrcPath: "/some/other/cow/src/path",
-								DstPath: "/tmp/dst/other/path",
-								Mode:    garden.BindMountModeRW,
-							},
+						Expect(spec.BindMounts).To(HaveLen(2))
+						Expect(spec.BindMounts).To(ContainElement(garden.BindMount{
+							SrcPath: "/some/cow/src/path",
+							DstPath: "/tmp/dst/path",
+							Mode:    garden.BindMountModeRW,
+						}))
+
+						Expect(spec.BindMounts).To(ContainElement(garden.BindMount{
+							SrcPath: "/some/other/cow/src/path",
+							DstPath: "/tmp/dst/other/path",
+							Mode:    garden.BindMountModeRW,
 						}))
 
 						Expect(spec.Properties).To(HaveLen(3))

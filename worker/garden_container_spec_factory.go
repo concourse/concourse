@@ -89,7 +89,7 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 		}
 	}
 
-	volumeMounts := map[string]string{}
+	volumeMounts := map[baggageclaim.Volume]string{}
 
 dance:
 	switch s := spec.(type) {
@@ -106,16 +106,8 @@ dance:
 		}
 
 		if s.Cache.Volume != nil && s.Cache.MountPath != "" {
-			gardenSpec.BindMounts = []garden.BindMount{
-				{
-					SrcPath: s.Cache.Volume.Path(),
-					DstPath: s.Cache.MountPath,
-					Mode:    garden.BindMountModeRW,
-				},
-			}
-
 			volumeHandles = append(volumeHandles, s.Cache.Volume.Handle())
-			volumeMounts[s.Cache.Volume.Handle()] = s.Cache.MountPath
+			volumeMounts[s.Cache.Volume] = s.Cache.MountPath
 		}
 
 		newVolumeHandles, newVolumeMounts, err := factory.createVolumes(gardenSpec, s.Mounts)
@@ -128,13 +120,7 @@ dance:
 		}
 
 		for k, v := range newVolumeMounts {
-			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
-				SrcPath: k.Path(),
-				DstPath: v,
-				Mode:    garden.BindMountModeRW,
-			})
-
-			volumeMounts[k.Handle()] = v
+			volumeMounts[k] = v
 		}
 
 		if s.ImageResourcePointer == nil {
@@ -166,30 +152,26 @@ dance:
 		}
 
 		for k, v := range newVolumeMounts {
-			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
-				SrcPath: k.Path(),
-				DstPath: v,
-				Mode:    garden.BindMountModeRW,
-			})
-
-			volumeMounts[k.Handle()] = v
+			volumeMounts[k] = v
 		}
 
 		for _, mount := range s.Outputs {
 			volume := mount.Volume
-			gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
-				SrcPath: volume.Path(),
-				DstPath: mount.MountPath,
-				Mode:    garden.BindMountModeRW,
-			})
-
 			volumeHandles = append(volumeHandles, volume.Handle())
-			volumeMounts[volume.Handle()] = mount.MountPath
+			volumeMounts[volume] = mount.MountPath
 		}
 
 		break dance
 	default:
 		return garden.ContainerSpec{}, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
+	}
+
+	for k, v := range volumeMounts {
+		gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
+			SrcPath: k.Path(),
+			DstPath: v,
+			Mode:    garden.BindMountModeRW,
+		})
 	}
 
 	if len(volumeHandles) > 0 {
@@ -200,7 +182,13 @@ dance:
 
 		gardenSpec.Properties[volumePropertyName] = string(volumesJSON)
 
-		mountsJSON, err := json.Marshal(volumeMounts)
+		volumeHandleMounts := map[string]string{}
+
+		for k, v := range volumeMounts {
+			volumeHandleMounts[k.Handle()] = v
+		}
+
+		mountsJSON, err := json.Marshal(volumeHandleMounts)
 		if err != nil {
 			return garden.ContainerSpec{}, err
 		}
