@@ -55,7 +55,7 @@ they are.
   the \reference{architecture-atc}{ATC} and sitting behind a load balancer.
 }
 
-\section{Workers\aux{: container management}}{architecture-worker}{
+\section{Workers\aux{: container runtime & cache management}}{architecture-worker}{
   Workers are machines running
   \hyperlink{https://github.com/cloudfoundry-incubator/garden}{Garden} and
   \hyperlink{https://github.com/concourse/baggageclaim}{Baggageclaim} servers
