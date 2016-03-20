@@ -28,6 +28,9 @@ they are.
 
   The ATC by default listens on port \code{8080}, and is usually colocated with
   the \reference{architecture-tsa}{TSA} and sitting behind a load balancer.
+
+  \bold{Note:} for \reference{fly-intercept} to function, make sure your load
+  balancer is configured to do TCP or SSL forwarding, not HTTP or HTTPS.
 }
 
 \section{TSA\aux{: worker registration & forwarding}}{architecture-tsa}{
