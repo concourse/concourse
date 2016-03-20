@@ -53,7 +53,6 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 ) (garden.ContainerSpec, error) {
 	var (
 		volumeHandles []string
-		user          string
 		volumeMounts  []VolumeMount
 		gardenSpec    garden.ContainerSpec
 	)
@@ -87,14 +86,17 @@ dance:
 			return garden.ContainerSpec{}, err
 		}
 
+		gardenSpec = baseGardenSpec
+
 		if imageFetched {
 			imageVolume := image.Volume()
 			volumeHandles = append(volumeHandles, imageVolume.Handle())
 			factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
-			user = image.Metadata().User
+			gardenSpec.Properties["user"] = image.Metadata().User
+		} else {
+			gardenSpec.Properties["user"] = ""
 		}
 
-		gardenSpec = baseGardenSpec
 		gardenSpec.Privileged = true
 		gardenSpec.Env = append(gardenSpec.Env, s.Env...)
 
@@ -135,14 +137,17 @@ dance:
 			return garden.ContainerSpec{}, err
 		}
 
+		gardenSpec = baseGardenSpec
+
 		if imageFetched {
 			imageVolume := image.Volume()
 			volumeHandles = append(volumeHandles, imageVolume.Handle())
 			factory.releaseAfterCreate = append(factory.releaseAfterCreate, image)
-			user = image.Metadata().User
+			gardenSpec.Properties["user"] = image.Metadata().User
+		} else {
+			gardenSpec.Properties["user"] = ""
 		}
 
-		gardenSpec = baseGardenSpec
 		gardenSpec.Privileged = s.Privileged
 
 		if s.ImageResourcePointer == nil {
@@ -194,8 +199,6 @@ dance:
 
 		gardenSpec.Properties[volumeMountsPropertyName] = string(mountsJSON)
 	}
-
-	gardenSpec.Properties["user"] = user
 
 	return gardenSpec, nil
 }
