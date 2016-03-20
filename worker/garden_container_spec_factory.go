@@ -62,6 +62,16 @@ func (factory *gardenContainerSpecFactory) BuildContainerSpec(
 dance:
 	switch s := spec.(type) {
 	case ResourceTypeContainerSpec:
+		for _, customType := range customTypes {
+			if customType.Name == s.Type {
+				customTypes = customTypes.Without(s.Type)
+				s.ImageResourcePointer = &atc.TaskImageConfig{
+					Source: customType.Source,
+					Type:   customType.Type,
+				}
+			}
+		}
+
 		if len(s.Mounts) > 0 && s.Cache.Volume != nil {
 			return garden.ContainerSpec{}, errors.New("a container may not have mounts and a cache")
 		}

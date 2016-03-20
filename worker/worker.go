@@ -113,21 +113,6 @@ func (worker *gardenWorker) CreateContainer(
 ) (Container, error) {
 	gardenContainerSpecFactory := NewGardenContainerSpecFactory(logger, worker.baggageclaimClient, worker.imageFetcher, worker.db)
 
-	if resourceTypeContainerSpec, ok := spec.(ResourceTypeContainerSpec); ok {
-		for _, customType := range customTypes {
-			if customType.Name == resourceTypeContainerSpec.Type {
-				customTypes = customTypes.Without(resourceTypeContainerSpec.Type)
-
-				resourceTypeContainerSpec.ImageResourcePointer = &atc.TaskImageConfig{
-					Source: customType.Source,
-					Type:   customType.Type,
-				}
-
-				spec = resourceTypeContainerSpec
-			}
-		}
-	}
-
 	gardenSpec, err := gardenContainerSpecFactory.BuildContainerSpec(spec, worker.resourceTypes, worker.tags, cancel, delegate, id, metadata, worker, customTypes)
 	defer gardenContainerSpecFactory.ReleaseVolumes()
 	if err != nil {
