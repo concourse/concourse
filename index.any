@@ -92,7 +92,7 @@
 }
 
 \truitt{Come fly the friendly CI!}{
-  \reference{getting-started}{\blue-button{Get Started}}
+  \reference{introduction}{\blue-button{Get Started}}
 }
 
 \slack{
