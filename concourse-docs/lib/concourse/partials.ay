@@ -69,7 +69,7 @@ def(bottom-nav(part)):
 
           <ul(class = "list-unstyled"):
             <li(class = "navbar-link"):
-              link-to(part, "team", "Team")
+              <a(href = "https://github.com/orgs/concourse/people"): "Team"
 
         <li(class = "bottom-nav-list-item"):
           <h5(class = "navbar-link"):
