@@ -6,8 +6,8 @@
 
 \title{Concepts}{concepts}
 
-Like files and pipes in Unix, the goal is to build an expressive system with as
-few distinct moving parts as possible.
+Concourse's end goal is to provide an expressive system with as few distinct
+moving parts as possible.
 
 Concourse limits itself to three core concepts: tasks, resources, and the jobs
 that compose them. Interesting features like timed triggers and synchronizing
@@ -32,25 +32,12 @@ becomes more involved.
   If the script exits \code{0}, the task succeeds. Otherwise, it fails.
 
   A task can either be executed by a \reference{jobs}{Job} or executed manually
-  with the \reference{fly}{Fly} commandline. Both execute the same configuration,
-  giving the guarantee that locally-executed tasks with Fly are running the same
-  way they would in your pipeline.
+  with \reference{fly-cli}{the Fly CLI}. Both execute the same configuration,
+  giving the guarantee that locally-executed tasks with Fly are running the
+  same way they would in your pipeline.
 
-
-  \section{Runtime Environment}{
-    A task's script is executed in a working directory containing all of the
-    task's fetched resources, and with any provided parameters set as
-    environment variables.
-
-    By default, tasks run as an unprivileged user. When run with
-    \code{privileged} enabled either by a job or with
-    \reference{fly-execute}{\code{fly execute}}, tasks run as \code{root} with
-    full capabilities.
-
-    Note that a task \italic{cannot} configure itself to be run with full
-    privileges. This is to prevent things like pull requests from escalating
-    privileges and running arbitrary code.
-  }
+  To learn more about configuring and running tasks, see
+  \reference{running-tasks}.
 }
 
 \section{Resources}{resources}{
@@ -99,16 +86,17 @@ becomes more involved.
 
   \section{Builds}{job-builds}{
     An instance of execution of a job's plan is called a \italic{build}. A build
-    can either succeed or fail, or error if something unrelated to your code goes
-    wrong (for example, if the resources fail to fetch).
+    can either succeed or fail, or error if something unrelated to your code
+    goes wrong (i.e. if one of your workers falls off the face of the earth).
 
     When a build runs, the job's plan is realized. Each step described by the
     job's plan is executed, and so long as all \reference{tasks} succeed, the
     build succeeds. If a task fails, the build fails, and its resources do not
     propagate to the rest of the pipeline.
 
-    Builds can be accessed while they're running (and also shortly after they
-    finish) via \reference{fly-intercept}{\code{fly intercept}}, which can
-    greatly help in debugging.
+    The containers running in a build can be accessed while they're running
+    (and also shortly after they finish) via
+    \reference{fly-intercept}{\code{fly intercept}}, which can greatly help in
+    debugging.
   }
 }
