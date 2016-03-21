@@ -543,6 +543,7 @@ jobs:
   serial: true
   plan:
   - get: concourse
+    trigger: true
     params: {submodules: none}
     resource: concourse-marketing
   - task: build-docs
