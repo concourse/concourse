@@ -5,3 +5,4 @@ memory: 64M
 domains: [concourse.ci, concourse-ci.org, concourse-ci.net, concourse-ci.com]
 host: ''
 path: .
+buildpack: "https://github.com/cloudfoundry/staticfile-buildpack#v1.3.2"
