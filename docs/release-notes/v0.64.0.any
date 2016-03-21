@@ -37,10 +37,6 @@
   \hyperlink{https://github.com/concourse/concourse/tree/master/manifests}{example
   manifests}.
 
-  For using Baggageclaim with external workers, see the newly updated
-  \reference{external-workers} docs; it's pretty similar to registering Garden
-  itself.
-
   If you're interested in how this all works then read on. If not, then feel
   free to skip this next bit.
 

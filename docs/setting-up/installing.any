@@ -287,7 +287,7 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
 
   \section{Deploying Concourse}{
     Once you've got all that set up, download the releases listed for your
-    version of Concourse from the \reference{Downloads} section, and
+    version of Concourse from the \reference{downloads} section, and
     \hyperlink{http://bosh.io/docs/uploading-releases.html}{upload them to the
     BOSH director}.
 
