@@ -25,6 +25,11 @@ const containerKeepalive = 30 * time.Second
 const containerTTL = 5 * time.Minute
 const VolumeTTL = containerTTL
 
+const ephemeralPropertyName = "concourse:ephemeral"
+const volumePropertyName = "concourse:volumes"
+const volumeMountsPropertyName = "concourse:volume-mounts"
+const userPropertyName = "user"
+
 //go:generate counterfeiter . Worker
 
 type Worker interface {
@@ -104,15 +109,6 @@ func (worker *gardenWorker) VolumeManager() (baggageclaim.Client, bool) {
 	return nil, false
 }
 
-const ephemeralPropertyName = "concourse:ephemeral"
-const volumePropertyName = "concourse:volumes"
-const volumeMountsPropertyName = "concourse:volume-mounts"
-const userPropertyName = "user"
-
-type releasable interface {
-	Release(*time.Duration)
-}
-
 func (worker *gardenWorker) CreateContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
@@ -120,7 +116,7 @@ func (worker *gardenWorker) CreateContainer(
 	id Identifier,
 	metadata Metadata,
 	spec ContainerSpec,
-	customTypes atc.ResourceTypes,
+	resourceTypes atc.ResourceTypes,
 ) (Container, error) {
 	var (
 		volumeHandles []string
@@ -134,16 +130,6 @@ func (worker *gardenWorker) CreateContainer(
 dance:
 	switch s := spec.(type) {
 	case ResourceTypeContainerSpec:
-		for _, customType := range customTypes {
-			if customType.Name == s.Type {
-				customTypes = customTypes.Without(s.Type)
-				s.ImageResourcePointer = &atc.TaskImageConfig{
-					Source: customType.Source,
-					Type:   customType.Type,
-				}
-			}
-		}
-
 		if len(s.Mounts) > 0 && s.Cache.Volume != nil {
 			return nil, errors.New("a container may not have mounts and a cache")
 		}
@@ -153,6 +139,16 @@ dance:
 		if s.Cache.Volume != nil && s.Cache.MountPath != "" {
 			volumeHandles = append(volumeHandles, s.Cache.Volume.Handle())
 			volumeMountPaths[s.Cache.Volume] = s.Cache.MountPath
+		}
+
+		for _, resourceType := range resourceTypes {
+			if resourceType.Name == s.Type {
+				resourceTypes = resourceTypes.Without(s.Type)
+				s.ImageResourcePointer = &atc.TaskImageConfig{
+					Source: resourceType.Source,
+					Type:   resourceType.Type,
+				}
+			}
 		}
 
 		var err error
@@ -165,13 +161,14 @@ dance:
 			id,
 			metadata,
 			worker,
-			customTypes,
+			resourceTypes,
 		)
 		if err != nil {
 			return nil, err
 		}
 
 		if imageFetched {
+			// ensure the image is released even if the resourceType is invalid
 			defer image.Release(nil)
 		}
 
@@ -211,7 +208,7 @@ dance:
 			id,
 			metadata,
 			worker,
-			customTypes,
+			resourceTypes,
 		)
 		if err != nil {
 			return nil, err
@@ -249,6 +246,7 @@ dance:
 			return nil, err
 		}
 
+		// release *after* container creation
 		defer cowVolume.Release(nil)
 
 		err = worker.db.InsertCOWVolume(mount.Volume.Handle(), cowVolume.Handle(), VolumeTTL)
@@ -282,7 +280,6 @@ dance:
 		gardenSpec.Properties[volumePropertyName] = string(volumesJSON)
 
 		volumeHandleMounts := map[string]string{}
-
 		for k, v := range volumeMountPaths {
 			volumeHandleMounts[k.Handle()] = v
 		}
@@ -334,7 +331,7 @@ func (worker *gardenWorker) baseGardenSpec(
 	id Identifier,
 	metadata Metadata,
 	workerClient Client,
-	customTypes atc.ResourceTypes,
+	resourceTypes atc.ResourceTypes,
 ) (garden.ContainerSpec, bool, Image, error) {
 	if taskImageConfig != nil {
 		image, err := worker.imageFetcher.FetchImage(
@@ -346,7 +343,7 @@ func (worker *gardenWorker) baseGardenSpec(
 			delegate,
 			workerClient,
 			workerTags,
-			customTypes,
+			resourceTypes,
 		)
 		if err != nil {
 			return garden.ContainerSpec{}, false, nil, err
@@ -364,6 +361,7 @@ func (worker *gardenWorker) baseGardenSpec(
 	gardenSpec := garden.ContainerSpec{
 		Properties: garden.Properties{},
 	}
+
 	return gardenSpec, false, nil, nil
 }
 
