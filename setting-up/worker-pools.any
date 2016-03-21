@@ -214,13 +214,17 @@ added to your workers.
 
       \item{\code{tsa.private_key}}{
         The private key to use when authenticating with the TSA. This must
-        be authorized by the TSA in advance; see
-        \reference{configuring-tsa}.
+        be authorized by the TSA in advance
+
+        For more information, see \reference{configuring-bosh-tsa} for
+        BOSH or \reference{generating-keys} for the standalone binaries.
       }
 
       \item{\code{tsa.host_public_key}}{
-        The public key to expect when connecting to the TSA. See
-        \reference{configuring-tsa}.
+        The public key to expect when connecting to the TSA.
+
+        For more information, see \reference{configuring-bosh-tsa} for
+        BOSH or \reference{generating-keys} for the standalone binaries.
       }
     }
 
