@@ -13,6 +13,7 @@ fn(link-to(part, tag-name, content = nil)):
         content
     else:
       content ||= tag-name
+      warning(.undefined-in-partials(tag-name))
       <a(.undefined):
         content
 
