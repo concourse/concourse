@@ -6,7 +6,7 @@ BUILT_DOCS=$PWD/built-docs
 
 cd concourse/docs/
 
-bundle install
+bundle install --full-index
 bundle exec anatomy -i index.any -o $BUILT_DOCS
 
 cp Staticfile $BUILT_DOCS
