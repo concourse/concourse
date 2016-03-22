@@ -4,7 +4,9 @@
 
 \template{\load{concourse/downloads-template}}
 
-\title{Release Notes & Downloads}{downloads}
+\mobile-optimized
+
+\title{Downloads}{downloads}
 
 \omit-children-from-table-of-contents
 

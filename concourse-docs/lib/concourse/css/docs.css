@@ -430,6 +430,25 @@ p .fa {
   }
 }
 
+@media (max-width: 919px) {
+  .release {
+    flex-direction: column;
+  }
+
+  .release .notes {
+    margin-right: 0;
+  }
+
+  .release .downloads {
+    max-width: initial;
+  }
+
+  .release .download-links {
+    float: left;
+    margin-right: 20px;
+  }
+}
+
 /* clear dot */
 .tags li:before {
   display: none;
