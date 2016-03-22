@@ -96,14 +96,19 @@ def(bottom-nav(part)):
 
         <li(class = "bottom-nav-list-item"):
           <h5(class = "navbar-link"):
-            link-to(part, "downloads")
+            link-to(part, "downloads", "Downloads")
+
           <ul(class = "list-unstyled"):
             <li(class = "navbar-link"):
-              link-to(part, "release-notes")
+              link-to(part, "downloads", "Release Notes")
+
             <li(class = "navbar-link"):
-              <a(href = "https://github.com/concourse/concourse/releases"): "Concourse Binaries"
+              <a(href = "https://github.com/concourse/concourse/releases"):
+                "Concourse Binaries"
+
             <li(class = "navbar-link"):
-              <a(href = "http://bosh.io/releases/github.com/concourse/concourse?all=1"): "BOSH Releases"
+              <a(href = "http://bosh.io/releases/github.com/concourse/concourse?all=1"):
+                "BOSH Releases"
 
       <div(class = "sponsorship navbar-link"):
         ["Sponsored by ", <a(href = "http://pivotal.io/"): "Pivotal Software, Inc."]
