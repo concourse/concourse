@@ -52,6 +52,17 @@ def(release(concourse-version, garden-linux-version, notes)):
     .class("release"))
 
 def(note(*tags, content)):
+  tags sort! [a, b]:
+    [a, b] match:
+      ["feature" | "fix", _]:
+        -1
+
+      [_, "feature" | "fix"]:
+        1
+
+      _:
+        0
+
   data Block new(
       [ data Block new(
           tags collect [tag]:
