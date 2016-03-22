@@ -154,7 +154,7 @@ def(disabled(content)):
   .entry(content, "disabled")
 
 def(resources-table(body)):
-  data ResolveElement new(
+  data ResolveBlock new(
     [part]:
       part css-additions << File expand-path("../resources-table.css", __FILE__)
 
