@@ -44,6 +44,7 @@
 
 .soft-line {
   display: inline-block;
+  white-space: pre;
 }
 
 .intro-slogan {
