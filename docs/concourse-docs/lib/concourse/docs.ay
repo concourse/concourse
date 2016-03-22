@@ -13,43 +13,51 @@ fn(release-asset(version, filename)):
 fn(binary-url(version, platform)):
   release-asset(version, i"concourse_#{platform}_amd64")
 
-fn(download-link(label, url)):
+fn(download-link(label, url, *extra)):
   data Block new(
-    data Element new([font-awesome("fa-download"), label], .hyperlink(url))
+    [data Element new([font-awesome("fa-download"), label], .hyperlink(url))] + extra
     .list-item)
+
+fn(version(number)):
+ data Element new(i"v#{number}", .class("version-number"))
 
 def(release(concourse-version, garden-linux-version, notes)):
   data Block new(
-    [ data Block new(
-        [ title(i"v#{concourse-version}")
-          notes
-        ]
-        .class("notes"))
+    [ set-title(i"v#{concourse-version}")
+      data Block new(i"v#{concourse-version}", .header(1))
       data Block new(
-        [ data Block new("Downloads", .header(2))
-          data Block new(
-            [ data Block new("Concourse Binaries", .header(3))
-              data Block new(
-                [ download-link("Linux", binary-url(concourse-version, "linux"))
-                  download-link("Windows", binary-url(concourse-version, "windows"))
-                  download-link("OS X", binary-url(concourse-version, "darwin"))
-                ]
-                .unordered-list)
+        [ data Block new(
+            [ data Block new("Release Notes", .header(2))
+              notes
             ]
-            .class("download-links"))
+            .class("notes"))
           data Block new(
-            [ data Block new("BOSH Releases", .header(3))
+            [ data Block new(["Downloads", version(concourse-version)], .header(2))
               data Block new(
-                [ download-link("Concourse", release-asset(concourse-version, i"concourse-#{concourse-version}.tgz"))
-                  download-link("Garden Linux", release-asset(concourse-version, i"garden-linux-#{garden-linux-version}.tgz"))
+                [ data Block new("Concourse Binaries", .header(3))
+                  data Block new(
+                    [ download-link("Linux", binary-url(concourse-version, "linux"))
+                      download-link("Windows", binary-url(concourse-version, "windows"))
+                      download-link("OS X", binary-url(concourse-version, "darwin"))
+                    ]
+                    .unordered-list)
                 ]
-                .unordered-list)
+                .class("download-links"))
+              data Block new(
+                [ data Block new("BOSH Releases", .header(3))
+                  data Block new(
+                    [ download-link("Concourse", release-asset(concourse-version, i"concourse-#{concourse-version}.tgz"), version(concourse-version))
+                      download-link("Garden Linux", release-asset(concourse-version, i"garden-linux-#{garden-linux-version}.tgz"), version(garden-linux-version))
+                    ]
+                    .unordered-list)
+                ]
+                .class("download-links"))
             ]
-            .class("download-links"))
+            .class("downloads"))
         ]
-        .class("downloads"))
+        .class("release"))
     ]
-    .class("release"))
+    .class("version"))
 
 def(note(*tags, content)):
   tags sort! [a, b]:
