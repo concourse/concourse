@@ -1,13 +1,13 @@
-.content-spacing {
-  padding: 32px;
+#page {
+  display: flex;
+  flex-direction: row;
 }
 
-#content {
- -ms-flex: 1;
- -webkit-box-flex: 1;
- -moz-box-flex: 1;
- -ms-box-flex: 1;
- box-flex: 1;
+#sidebar {
+  background: #F5F5F5;
+  font-weight: 500;
+  width: 30%;
+  order: 0;
 }
 
 #content {
@@ -16,6 +16,16 @@
   line-height: 26px;
   font-weight: 500;
   max-width: 914px;
+  order: 1;
+}
+
+#content.full-width {
+  width: 914px;
+  margin: 0 auto;
+}
+
+.content-spacing {
+  padding: 32px;
 }
 
 #content pre {
@@ -172,30 +182,6 @@
   border-top-right-radius: 0;
 }
 
-#page {
-  display: -ms-flexbox;
-  display: -webkit-box;
-  display: -moz-box;
-  display: -ms-box;
-  display: box;
-
-  -ms-flex-direction: row;
-  -webkit-box-orient: horizontal;
-  -moz-box-orient: horizontal;
-  -ms-box-orient: horizontal;
-  box-orient: horizontal;
-}
-
-#sidebar {
-  background: #F5F5F5;
-  font-weight: 500;
-  width: 30%;
-  -ms-flex: 0 100px;
-  -webkit-box-flex: 0;
-  -moz-box-flex: 0;
-  -ms-box-flex: 0;
-  box-flex: 0;
-}
 .sidebar-spacing {
   width: 230px;
   padding: 16px;
@@ -364,4 +350,63 @@
 
 p .fa {
   margin: 0 3px;
+}
+
+.release {
+  display: flex;
+  flex-direction: row;
+}
+
+.release .notes {
+  order: 0;
+  width: 625px;
+  margin-right: 20px;
+}
+
+.release .downloads {
+  order: 1;
+  width: 205px;
+}
+
+/* specificity matters here */
+#content .release .notes .tags {
+  width: 100px;
+  margin-left: -120px;
+  float: left;
+  list-style-type: none;
+  text-align: right;
+}
+
+/* clear dot */
+.tags li:before {
+  display: none;
+}
+
+.release-note {
+  margin-bottom: 35px;
+}
+
+.note-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-bottom: 5px;
+  font-size: 14px;
+  border-right: 2px solid red;
+  background: #f5f5f5;
+}
+
+.note-tag p {
+  margin-bottom: 0;
+}
+
+.note-tag.feature {
+  border-color: #2ECC71;
+}
+
+.note-tag.bug {
+  border-color: #3498DB;
+}
+
+.note-tag.deprecation {
+  border-color: #E74C3C;
 }

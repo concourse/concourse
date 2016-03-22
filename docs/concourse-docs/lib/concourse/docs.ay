@@ -7,6 +7,33 @@ yaml = hl load("yaml")
 
 base = require("anatomy/base")
 
+def(release(version, notes)):
+  data Block new(
+    [ data Block new(
+        [ title(i"v#{version}")
+          notes
+        ]
+        .class("notes"))
+      data Block new(
+        [ data Block new("Downloads", .header(2))
+          "blah"
+        ]
+        .class("downloads"))
+    ]
+    .class("release"))
+
+def(note(*tags, content)):
+  data Block new(
+      [ data Block new(
+          tags collect [tag]:
+            data Block new(
+              data Block new(tag, .class("note-tag", tag))
+              .list-item)
+          .classed(.unordered-list, "tags"))
+        content
+      ]
+      .class("release-note"))
+
 def(tutorial-image(asset-path)):
   data Block new(
       base image(asset-path)

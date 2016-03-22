@@ -7,7 +7,7 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    anatomy (0.2.10)
+    anatomy (0.2.11)
       atomy (~> 0.6.3)
       broomhlda (~> 0.2.0)
       json_pure (~> 1.8)
