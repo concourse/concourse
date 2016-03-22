@@ -365,7 +365,7 @@ p .fa {
 
 .release .downloads {
   order: 1;
-  max-width: 205px;
+  width: 205px;
 }
 
 .note-tag {
@@ -437,10 +437,11 @@ p .fa {
 
   .release .notes {
     margin-right: 0;
+    max-width: initial;
   }
 
   .release .downloads {
-    max-width: initial;
+    width: initial;
   }
 
   .release .download-links {
