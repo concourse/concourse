@@ -4,7 +4,7 @@
 
 \template{\load{concourse/splash-template}}
 
-\title{Concourse\aux{: CI that scales with your project}}{index}
+\set-title{Concourse\aux{: CI that scales with your project}}{index}
 
 \mobile-optimized
 
