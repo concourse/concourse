@@ -1,9 +1,3 @@
-resource_types:
-- name: bosh-deployment
-  type: docker-image
-  source:
-    repository: concourse/bosh-deployment-resource
-
 groups:
 - name: concourse
   jobs:
