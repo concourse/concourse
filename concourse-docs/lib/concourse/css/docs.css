@@ -359,8 +359,8 @@ p .fa {
 
 .release .notes {
   order: 0;
-  max-width: 625px;
-  margin-right: 20px;
+  max-width: 605px;
+  margin-right: 40px;
 }
 
 .release .downloads {
@@ -495,4 +495,21 @@ p .fa {
 
 #content .release h2 {
   margin-top: 10px;
+}
+
+.downloads .version-number {
+  font-size: 14px;
+  line-height: 14px;
+  color: #686868;
+  margin-left: 5px;
+}
+
+.downloads h2 {
+  position: relative;
+}
+
+.downloads h2 .version-number {
+  position: absolute;
+  right: 0;
+  bottom: 13px;
 }

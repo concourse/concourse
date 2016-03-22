@@ -12,6 +12,8 @@ def(template-for(part, out)):
 
   part js-additions += html search-js-additions
   part js-additions << File expand-path("../js/bootstrap.min.js", __FILE__)
+  part js-additions << File expand-path("../js/sticky.js", __FILE__)
+  part js-additions << File expand-path("../js/downloads.js", __FILE__)
 
   part css-additions << File expand-path("../css/font-awesome.min.css", __FILE__)
   part css-additions << File expand-path("../css/normalize.css", __FILE__)
