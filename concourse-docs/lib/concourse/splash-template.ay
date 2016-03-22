@@ -13,6 +13,8 @@ def(template-for(part, out)):
   part assets << File expand-path("../css/pipeline-svg.css", __FILE__)
   part assets << File expand-path("../css/splash-pipeline-svg.css", __FILE__)
 
+  -- needed for jQuery
+  part js-additions += html search-js-additions
   part js-additions << File expand-path("../js/bootstrap.min.js", __FILE__)
 
   part css-additions << File expand-path("../css/font-awesome.min.css", __FILE__)
