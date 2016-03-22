@@ -359,22 +359,75 @@ p .fa {
 
 .release .notes {
   order: 0;
-  width: 625px;
+  max-width: 625px;
   margin-right: 20px;
 }
 
 .release .downloads {
   order: 1;
-  width: 205px;
+  max-width: 205px;
+}
+
+.note-tag {
+  padding: 0 8px;
+  display: inline-block;
+  font-size: 14px;
+  background: #F5F6F7;
+}
+
+.note-tag p {
+  margin-bottom: 0;
+}
+
+.note-tag.feature {
+  border-color: #7DE0A6;
+}
+
+.note-tag.fix {
+  border-color: #81BFEA;
+}
+
+.note-tag.deprecation, .note-tag.breaking {
+  border-color: #F29286;
 }
 
 /* specificity matters here */
-#content .release .notes .tags {
-  width: 100px;
-  margin-left: -120px;
-  float: left;
-  list-style-type: none;
-  text-align: right;
+@media (min-width: 1154px) {
+  #content .release .tags {
+    width: 100px;
+    margin-left: -120px;
+    float: left;
+    text-align: right;
+  }
+
+  #content .release .tags li {
+    display: inline-block;
+    margin-bottom: 5px;
+  }
+
+  .note-tag {
+    border-right: 2px solid #686868;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+  }
+}
+
+@media (max-width: 1153px) {
+  #content .release .tags {
+    margin-left: 0;
+    margin-bottom: 10px;
+  }
+
+  #content .release .tags li {
+    display: inline-block;
+    margin-right: 5px;
+  }
+
+  .note-tag {
+    border-bottom: 2px solid #686868;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+  }
 }
 
 /* clear dot */
@@ -386,27 +439,40 @@ p .fa {
   margin-bottom: 35px;
 }
 
-.note-tag {
-  display: inline-block;
-  padding: 1px 6px;
-  margin-bottom: 5px;
-  font-size: 14px;
-  border-right: 2px solid red;
-  background: #f5f5f5;
+.download-links {
+  margin-bottom: 25px;
 }
 
-.note-tag p {
+/* specificity matters here */
+#content .release .download-links ul {
+  margin-left: 0;
+}
+
+/* clear dot */
+.download-links li:before {
+  display: none;
+}
+
+/* specificity matters here */
+#content .download-links h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.download-links li {
+  margin-bottom: 5px;
+}
+
+.download-links p {
   margin-bottom: 0;
 }
 
-.note-tag.feature {
-  border-color: #2ECC71;
+.download-links .fa {
+  margin-right: 5px;
+  font-size: 14px;
 }
 
-.note-tag.bug {
-  border-color: #3498DB;
-}
-
-.note-tag.deprecation {
-  border-color: #E74C3C;
+#content .release h2 {
+  margin-top: 10px;
 }
