@@ -9,9 +9,9 @@ def(template-for(part, out)):
   part css-url-additions << "https://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700"
 
   part assets << File expand-path("../fonts", __FILE__)
-  part assets << File expand-path("../js/bootstrap.min.js", __FILE__)
 
   part js-additions += html search-js-additions
+  part js-additions << File expand-path("../js/bootstrap.min.js", __FILE__)
 
   part css-additions << File expand-path("../css/font-awesome.min.css", __FILE__)
   part css-additions << File expand-path("../css/normalize.css", __FILE__)
@@ -69,5 +69,3 @@ def(template-for(part, out)):
             html render-part(part, out)
 
       partials bottom-nav(part)
-
-      <script(src = "bootstrap.min.js"){}
