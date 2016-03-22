@@ -58,9 +58,10 @@ def(template-for(part, out)):
                     <a(href = html url(p), class = class):
                       html over(p title)
 
-                  <ol(.toc):
-                    p parts collect [p]:
-                      html toc-leaf(part, p)
+                  unless(p omit-children-from-table-of-contents?):
+                    <ol(.toc):
+                      p parts collect [p]:
+                        html toc-leaf(part, p)
 
 
         <div(#content):
