@@ -550,9 +550,9 @@ jobs:
     file: concourse/ci/build-docs.yml
     params:
       ANALYTICS_ID: {{analytics-id}}
-  - put: concourse-docs
+  - put: concourse-one-oh-docs
     params:
-      current_app_name: docs
+      current_app_name: one-oh-docs
       manifest: built-docs/manifest.yml
 
 - name: push-departures
@@ -813,6 +813,15 @@ resources:
     branch: marketing
 
 - name: concourse-docs
+  type: cf
+  source:
+    api: {{cf-target}}
+    username: {{cf-username}}
+    password: {{cf-password}}
+    organization: {{cf-organization}}
+    space: {{cf-space}}
+
+- name: concourse-one-oh-docs
   type: cf
   source:
     api: {{cf-target}}
