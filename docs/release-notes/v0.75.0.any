@@ -39,8 +39,7 @@
 
   \note{feature}{
     The duration that containers stick around for after finishing is now
-    configurable via the \code{atc.retention.container.success_duration} and
-    \code{atc.retention.container.failure_duration} BOSH properties (and
+    configurable via new \code{atc.retention.*} BOSH properties (and
     corresponding flags to the ATC).
   }
 
