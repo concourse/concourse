@@ -2,12 +2,14 @@
 
 \use{\load{concourse/docs}}
 
-\release{0.75.0}{
+\release{0.75.0}{0.334.0}{
   \note{deprecation}{feature}{
-    The \hyperlink{https://github.com/concourse/semver-resource}{Semver resource}
-    now creates a file called \code{version} containing the version number,
-    making it consistent with other resources that provide a version. We still
-    create \code{number} for backwards compatibility, but you should switch.
+    The \hyperlink{https://github.com/concourse/semver-resource}{Semver
+    resource} now creates a file called \code{version} containing the version
+    number, making it consistent with other resources that provide a version.
+
+    We still create \code{number} for backwards compatibility, but you should
+    switch.
   }
 
   \note{deprecation}{feature}{
@@ -26,12 +28,12 @@
     printing a shrugging emoticon, and the web UI now has the version at the
     bottom right (it even live updates, for all your CI monitors out there).
 
-    In addition, \code{fly} will print a warning if the versions are slightly out
-    of sync (patch release), and straight up prevent itself from running if
+    In addition, \code{fly} will print a warning if the versions are slightly
+    out of sync (patch release), and straight up prevent itself from running if
     they're significantly out of sync (i.e. minor or major).
   }
 
-  \note{bug}{
+  \note{fix}{
     Tagged workers are now supported by \reference{image_resource}.
   }
 
@@ -49,26 +51,27 @@
 
   \note{feature}{
     \reference{fly-containers} now shows the TTL (as we've configured it) and
-    validity (actual expiration, which counts down to 0) for each container. This
-    will be useful to know which ones are sticking around because they failed,
-    and which ones are sticking around because of a build that's running too
-    frequently.
+    validity (actual expiration, which counts down to 0) for each container.
+    This will be useful to know which ones are sticking around because they
+    failed, and which ones are sticking around because of a build that's
+    running too frequently.
   }
 
   \note{feature}{
-    \code{fly} learned the \reference{fly-abort-build} command, thanks to a pull
-    request from \hyperlink{https://github.com/zachgersh}{\bold{@zachgersh}}.
+    \code{fly} learned the \reference{fly-abort-build} command, thanks to a
+    pull request from
+    \hyperlink{https://github.com/zachgersh}{\bold{@zachgersh}}.
   }
 
   \note{feature}{
-    \code{fly} learned the \reference{fly-trigger-job} command, thanks to a pull
-    request from \hyperlink{https://github.com/aminjam}{\bold{@aminjam}}.
+    \code{fly} learned the \reference{fly-trigger-job} command, thanks to a
+    pull request from \hyperlink{https://github.com/aminjam}{\bold{@aminjam}}.
   }
 
   \note{feature}{
     The \hyperlink{https://github.com/concourse/bosh-deployment-resource}{BOSH
-    deployment resource} now supports deploying to a director using UAA client
-    ID/secret for auth.
+    deployment resource} now supports deploying to a director using UAA
+    client ID/secret for auth.
   }
 
   \note{feature}{
@@ -77,7 +80,7 @@
     certificates and other miscellaneous things.
   }
 
-  \note{bug}{
+  \note{fix}{
     Previously resources that had \reference{put-params} involving lists of
     objects would cause Concourse to blow up instead of working. It should now
     work.

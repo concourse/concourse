@@ -7,16 +7,45 @@ yaml = hl load("yaml")
 
 base = require("anatomy/base")
 
-def(release(version, notes)):
+fn(release-asset(version, filename)):
+  i"https://github.com/concourse/concourse/releases/download/v#{version}/#{filename}"
+
+fn(binary-url(version, platform)):
+  release-asset(version, i"concourse_#{platform}_amd64")
+
+fn(download-link(label, url)):
+  data Block new(
+    data Element new([font-awesome("fa-download"), label], .hyperlink(url))
+    .list-item)
+
+def(release(concourse-version, garden-linux-version, notes)):
   data Block new(
     [ data Block new(
-        [ title(i"v#{version}")
+        [ title(i"v#{concourse-version}")
           notes
         ]
         .class("notes"))
       data Block new(
         [ data Block new("Downloads", .header(2))
-          "blah"
+          data Block new(
+            [ data Block new("Concourse Binaries", .header(3))
+              data Block new(
+                [ download-link("Linux", binary-url(concourse-version, "linux"))
+                  download-link("Windows", binary-url(concourse-version, "windows"))
+                  download-link("OS X", binary-url(concourse-version, "darwin"))
+                ]
+                .unordered-list)
+            ]
+            .class("download-links"))
+          data Block new(
+            [ data Block new("BOSH Releases", .header(3))
+              data Block new(
+                [ download-link("Concourse", release-asset(concourse-version, i"concourse-#{concourse-version}.tgz"))
+                  download-link("Garden Linux", release-asset(concourse-version, i"garden-linux-#{garden-linux-version}.tgz"))
+                ]
+                .unordered-list)
+            ]
+            .class("download-links"))
         ]
         .class("downloads"))
     ]
