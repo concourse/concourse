@@ -2,8 +2,10 @@
 
 \use{\load{concourse/docs}}
 
-\template{\load{concourse/docs-template}}
+\template{\load{concourse/downloads-template}}
 
 \title{Downloads}{downloads}
 
-TODO
+\omit-children-from-table-of-contents
+
+\include-section{./release-notes/v0.75.0.any}
