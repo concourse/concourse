@@ -71,6 +71,12 @@ Each configured job consists of the following attributes:
   showing sensitive information in the build log.
 }
 
+\define-attribute{disable_manual_trigger: boolean}{
+  \italic{Optional. Default \code{false}.} If set to \code{true}, manual
+  triggering of the job (via the web UI or \reference{trigger-job}) will be
+  disabled.
+}
+
 \define-attribute{plan: [step]}{
   \italic{Required.} The \reference{build-plans}{Build Plan} to execute.
 }
