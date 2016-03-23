@@ -222,6 +222,14 @@ flag. Once you've learned what the commands do, you may want to consult
   }
 }
 
+\section{\code{rename-pipeline}\aux{: Rename a pipeline}}{fly-rename-pipeline}{
+  To rename a pipeline, run:
+
+  \codeblock{bash}{
+  $ fly -t example rename-pipeline --old-name my-pipeline --new-name my-cool-pipeline
+  }
+}
+
 \section{\code{pause-pipeline}\aux{: Preventing new pipeline activity}}{fly-pause-pipeline}{
   To pause a pipeline, run:
 
