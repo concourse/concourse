@@ -56,4 +56,8 @@
   Previously the \hyperlink{https://github.com/concourse/pool-resource}{Pool
   resource} would require you to specify \code{retry_delay} in nanoseconds,
   which was a bit silly. It now accepts Go duration format, e.g. \code{30s}.
+}{
+  The \hyperlink{https://github.com/concourse/tracker-resource}{Tracker
+  resource} now correctly handles rejected stories by only delivering them if a
+  new commit has been made after they were rejected.
 }
