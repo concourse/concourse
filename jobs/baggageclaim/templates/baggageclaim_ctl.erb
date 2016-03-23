@@ -13,45 +13,12 @@ set -e
 
 RUN_DIR=/var/vcap/sys/run/baggageclaim
 LOG_DIR=/var/vcap/sys/log/baggageclaim
+BIN_DIR="$(cd $(dirname $0) && pwd)"
 PIDFILE=$RUN_DIR/baggageclaim.pid
 
 source /var/vcap/packages/pid_utils/pid_utils.sh
 
 export PATH=$PATH:/var/vcap/packages/btrfs_tools/sbin
-
-# break out of bosh-lite device limitations
-function permit_device_control() {
-  local devices_mount_info=$(cat /proc/self/cgroup | grep devices)
-
-  if [ -z "$devices_mount_info" ]; then
-    # cgroups not set up; must not be in a container
-    return
-  fi
-
-  local devices_subsytems=$(echo $devices_mount_info | cut -d: -f2)
-  local devices_subdir=$(echo $devices_mount_info | cut -d: -f3)
-
-  if [ "$devices_subdir" = "/" ]; then
-    # we're in the root devices cgroup; must not be in a container
-    return
-  fi
-
-  cgroup_dir=${RUN_DIR}/devices-cgroup
-
-  if [ ! -e ${cgroup_dir} ]; then
-    # mount our container's devices subsystem somewhere
-    mkdir ${cgroup_dir}
-  fi
-
-  if ! mountpoint -q ${cgroup_dir}; then
-    mount -t cgroup -o $devices_subsytems none ${cgroup_dir}
-  fi
-
-  # permit our cgroup to do everything with all devices
-  # ignore failure in case something has already done this; echo appears to
-  # return EINVAL, possibly because devices this affects are already in use
-  echo a > ${cgroup_dir}${devices_subdir}/devices.allow || true
-}
 
 case $1 in
 
@@ -71,7 +38,9 @@ case $1 in
     VOLUMES_DIR=/var/vcap/data/baggageclaim/volumes
     mkdir -p ${VOLUMES_DIR}
 
-    permit_device_control
+    # break out of bosh-lite device limitations
+    chmod +x "${BIN_DIR}/permit_device_control"
+    unshare -m "${BIN_DIR}/permit_device_control" $$
 
     for i in $(seq 0 64); do
       if ! mknod -m 0660 /dev/loop$i b 7 $i; then

@@ -4,8 +4,8 @@
 set -e
 
 OUTPUT="$PWD/candidate-release"
-VERSION="$(cat version/number)"
-FINAL_VERSION="$(cat final-version/number)"
+VERSION="$(cat version/version)"
+FINAL_VERSION="$(cat final-version/version)"
 
 pushd concourse/
   echo "$FINAL_VERSION" > src/version/VERSION

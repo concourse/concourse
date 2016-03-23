@@ -30,8 +30,6 @@ groups:
   - virtualbox-box
   - virtualbox-testflight
   - release-virtualbox-box
-  - aws-box
-  - release-aws-box
 
 - name: bosh-lite
   jobs: [provision, teardown]
@@ -73,9 +71,8 @@ jobs:
   - aggregate:
     - task: go-unit
       file: concourse/ci/atc-go.yml
-      config:
-        params:
-          GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
+      params:
+        GITHUB_ACCESS_TOKEN: {{github-api-test-access-token}}
     - task: js-unit
       file: concourse/ci/atc-js.yml
       attempts: 3
@@ -122,7 +119,7 @@ jobs:
   - get: version
     params: {bump: major, pre: rc}
   - put: version
-    params: {file: version/number}
+    params: {file: version/version}
 
 - name: minor
   public: true
@@ -131,7 +128,7 @@ jobs:
   - get: version
     params: {bump: minor, pre: rc}
   - put: version
-    params: {file: version/number}
+    params: {file: version/version}
 
 - name: patch
   public: true
@@ -142,7 +139,7 @@ jobs:
     params: {bump: patch, pre: rc}
     trigger: true
   - put: version
-    params: {file: version/number}
+    params: {file: version/version}
 
 - name: rc
   public: true
@@ -155,7 +152,7 @@ jobs:
   - get: version
     params: {pre: rc}
   - put: version
-    params: {file: version/number}
+    params: {file: version/version}
 
 - name: bosh-rc
   public: true
@@ -210,10 +207,13 @@ jobs:
   - aggregate:
     - task: build-linux
       file: bin/ci/build-linux.yml
+      output_mapping: {binary: linux-binary}
     - task: build-darwin
       file: bin/ci/build-darwin.yml
+      output_mapping: {binary: darwin-binary}
     - task: build-windows
       file: bin/ci/build-windows.yml
+      output_mapping: {binary: windows-binary}
   - task: build-release
     file: bin/ci/build-release.yml
   - put: bin-rc
@@ -286,17 +286,17 @@ jobs:
           - candidate-release/concourse-*.tgz
     - task: no-auth-build
       file: concourse/ci/testflight.yml
-      config: {params: {ATC_URL: "http://10.244.15.2:8080"}}
+      params:
+        ATC_URL: "http://10.244.15.2:8080"
       timeout: 1h
       on_failure:
         do:
           - task: export-bosh-logs
             file: concourse/ci/export-bosh-logs.yml
-            config:
-              params:
-                MANIFEST: deployments/lite/ci/manifests/no_auth_deployment.yml
-                BOSH_USER: admin
-                BOSH_PASSWORD: admin
+            params:
+              MANIFEST: deployments/lite/ci/manifests/no_auth_deployment.yml
+              BOSH_USER: admin
+              BOSH_PASSWORD: admin
           - put: testflight-logs
             params: {file: exported-logs/concourse.*.tgz}
 
@@ -322,50 +322,46 @@ jobs:
     file: bin/ci/testflight.yml
     privileged: true
     timeout: 1h
-  - aggregate:
-    - task: basic-auth-public
-      file: bin/ci/testflight.yml
-      config:
-        params:
-          BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
-          BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
-          PIPELINES_PUBLICLY_VIEWABLE: true
-      privileged: true
-      timeout: 1h
-    - task: basic-auth-private
-      file: bin/ci/testflight.yml
-      config:
-        params:
-          BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
-          BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
-          PIPELINES_PUBLICLY_VIEWABLE: false
-      privileged: true
-      timeout: 1h
-  - aggregate:
-    - task: github-auth-public
-      file: bin/ci/testflight.yml
-      config:
-        params:
-          GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
-          GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
-          GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
-          GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-public-client-id}}
-          GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-public-client-secret}}
-          PIPELINES_PUBLICLY_VIEWABLE: true
-      privileged: true
-      timeout: 1h
-    - task: github-auth-private
-      file: bin/ci/testflight.yml
-      config:
-        params:
-          GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
-          GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
-          GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
-          GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-private-client-id}}
-          GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-private-client-secret}}
-          PIPELINES_PUBLICLY_VIEWABLE: false
-      privileged: true
-      timeout: 1h
+  # - aggregate:
+  #   - task: basic-auth-public
+  #     file: bin/ci/testflight.yml
+  #     params:
+  #       BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
+  #       BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+  #       PIPELINES_PUBLICLY_VIEWABLE: true
+  #     privileged: true
+  #     timeout: 1h
+  #   - task: basic-auth-private
+  #     file: bin/ci/testflight.yml
+  #     params:
+  #       BASIC_AUTH_USERNAME: {{testflight-basic-auth-username}}
+  #       BASIC_AUTH_PASSWORD: {{testflight-basic-auth-password}}
+  #       PIPELINES_PUBLICLY_VIEWABLE: false
+  #     privileged: true
+  #     timeout: 1h
+  # - aggregate:
+  #   - task: github-auth-public
+  #     file: bin/ci/testflight.yml
+  #     params:
+  #       GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+  #       GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+  #       GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
+  #       GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-public-client-id}}
+  #       GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-public-client-secret}}
+  #       PIPELINES_PUBLICLY_VIEWABLE: true
+  #     privileged: true
+  #     timeout: 1h
+  #   - task: github-auth-private
+  #     file: bin/ci/testflight.yml
+  #     params:
+  #       GITHUB_AUTH_USERNAME: {{testflight-github-auth-username}}
+  #       GITHUB_AUTH_PASSWORD: {{testflight-github-auth-password}}
+  #       GITHUB_AUTH_CONFIG_ORGANIZATION: {{testflight-github-auth-organization}}
+  #       GITHUB_AUTH_CONFIG_CLIENT_ID: {{testflight-github-auth-private-client-id}}
+  #       GITHUB_AUTH_CONFIG_CLIENT_SECRET: {{testflight-github-auth-private-client-secret}}
+  #       PIPELINES_PUBLICLY_VIEWABLE: false
+  #     privileged: true
+  #     timeout: 1h
 
 - name: deploy
   serial: true
@@ -402,11 +398,10 @@ jobs:
         - candidate-release/concourse-*.tgz
   - task: emit-yeller-deploy
     file: concourse/ci/emit-yeller-deploy.yml
-    config:
-      params:
-        YELLER_API_KEY: {{yeller-api-key}}
-        YELLER_USER: {{yeller-user}}
-        YELLER_ENVIRONMENT: {{yeller-environment-name}}
+    params:
+      YELLER_API_KEY: {{yeller-api-key}}
+      YELLER_USER: {{yeller-user}}
+      YELLER_ENVIRONMENT: {{yeller-environment-name}}
   - put: tracker
     params: {repos: [concourse]}
 
@@ -438,11 +433,11 @@ jobs:
     file: concourse/ci/finalize-release.yml
   - aggregate:
     - put: version
-      params: {file: version/number}
+      params: {file: version/version}
     - put: concourse-master
       params:
         repository: final-release-repo
-        tag: version/number
+        tag: version/version
         tag_prefix: v
     - put: final-release
       params: {file: final-release-tarball/concourse-*.tgz}
@@ -463,6 +458,8 @@ jobs:
       params: {submodules: none}
       passed: [shipit]
       trigger: true
+    - get: version
+      passed: [shipit]
     - get: concourse-lite
   - task: build-box
     privileged: true
@@ -486,7 +483,7 @@ jobs:
         passed: [virtualbox-box]
       - get: concourse-lite
         passed: [virtualbox-box]
-      - get: final-release
+      - get: version
         passed: [virtualbox-box]
     - task: testflight
       privileged: true
@@ -504,9 +501,9 @@ jobs:
     - get: virtualbox-box
       passed: [virtualbox-testflight]
       trigger: true
-    - get: concourse
+    - get: version
       passed: [virtualbox-testflight]
-    - get: final-release
+    - get: concourse
       passed: [virtualbox-testflight]
   - task: build-release-notes
     file: concourse/ci/build-release-notes.yml
@@ -516,52 +513,6 @@ jobs:
       release: true
       url: virtualbox-box/url
       version: virtualbox-box/version
-
-- name: aws-box
-  serial: true
-  plan:
-  - aggregate:
-    - get: final-release
-      passed: [shipit]
-      trigger: true
-    - get: garden-linux-release
-      passed: [shipit]
-      resource: garden-linux
-      trigger: true
-    - get: concourse
-      params: {submodules: none}
-      passed: [shipit]
-      trigger: true
-    - get: concourse-lite
-  - task: build-box
-    privileged: true
-    file: concourse-lite/ci/build-aws.yml
-    config:
-      params:
-        AWS_ACCESS_KEY_ID: {{aws-box-access-key}}
-        AWS_SECRET_ACCESS_KEY: {{aws-box-secret-key}}
-  - put: aws-box
-    params: {file: built-box/*.box}
-
-- name: release-aws-box
-  serial: true
-  plan:
-  - aggregate:
-    - get: aws-box
-      passed: [aws-box]
-      trigger: true
-    - get: concourse
-      passed: [aws-box, virtualbox-testflight]
-    - get: final-release
-      passed: [aws-box, virtualbox-testflight]
-  - task: build-release-notes
-    file: concourse/ci/build-release-notes.yml
-  - put: aws-box-cloud
-    params:
-      description: release-notes/notes.md
-      release: true
-      url: aws-box/url
-      version: aws-box/version
 
 - name: push-docs
   serial: true
@@ -575,10 +526,8 @@ jobs:
       resource: concourse-develop
   - task: build-docs
     file: concourse/ci/build-docs.yml
-    config:
-      params:
-        ANALYTICS_ID: {{analytics-id}}
-        VERSION_FILE: version/number
+    params:
+      ANALYTICS_ID: {{analytics-id}}
   - put: concourse-docs
     params:
       current_app_name: docs
@@ -612,6 +561,9 @@ jobs:
       trigger: true
     - get: concourse-master
       params: {submodules: none}
+      passed: [shipit]
+      trigger: true
+    - get: version
       passed: [shipit]
       trigger: true
   - aggregate:
@@ -712,12 +664,11 @@ jobs:
   - get: tracksuit
   - task: tracksuit
     file: tracksuit/run.yml
-    config:
-      params:
-        GITHUB_TOKEN: {{tracksuit-github-token}}
-        TRACKER_TOKEN: {{tracksuit-tracker-token}}
-        PROJECT_ID: 1059262
-        ORGANIZATION: concourse
+    params:
+      GITHUB_TOKEN: {{tracksuit-github-token}}
+      TRACKER_TOKEN: {{tracksuit-tracker-token}}
+      PROJECT_ID: 1059262
+      ORGANIZATION: concourse
 
 resources:
 - name: version
@@ -752,21 +703,13 @@ resources:
     access_key_id: {{pipeline-bucket-access-key}}
     secret_access_key: {{pipeline-bucket-secret-key}}
 
-- name: aws-box
-  type: s3
-  source:
-    bucket: concourse-boxes
-    regexp: concourse-aws-ubuntu-trusty-(.*).box
-    access_key_id: {{pipeline-bucket-access-key}}
-    secret_access_key: {{pipeline-bucket-secret-key}}
-
 - name: aws-deployment
   type: bosh-deployment
   source:
     target: {{bosh-target}}
-    username: {{bosh-username}}
-    password: {{bosh-password}}
     deployment: {{bosh-deployment}}
+    client_id: {{bosh-client-id}}
+    client_secret: {{bosh-client-secret}}
 
 - name: lite-deployment
   type: bosh-deployment
@@ -805,14 +748,6 @@ resources:
     username: concourse
     box: lite
     provider: virtualbox
-    access_token: {{atlas-access-token}}
-
-- name: aws-box-cloud
-  type: vagrant-cloud
-  source:
-    username: concourse
-    box: lite
-    provider: aws
     access_token: {{atlas-access-token}}
 
 - name: garden-linux

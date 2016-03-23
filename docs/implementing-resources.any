@@ -164,7 +164,7 @@ no-ops (which still must be correctly implemented as detailed below).
     \code{source} is the same value as passed to \reference{resource-check}.
   }{
     \code{params} is an arbitrary JSON object passed along verbatim from
-    \reference{params} on a \reference{get-step}.
+    \reference{params} on a \reference{put-step}.
   }
 
   Example request, in this case for the \code{git} resource:
@@ -225,7 +225,7 @@ no-ops (which still must be correctly implemented as detailed below).
     \item{\code{$BUILD_PIPELINE_NAME}}{
       The pipeline that the build's job lives in.
     }
-	
+
     \item{\code{$ATC_EXTERNAL_URL}}{
       The public URL for your ATC; useful for debugging.
     }
