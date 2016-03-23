@@ -86,7 +86,7 @@ func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock
 
 	vol.heartbeating.Add(1)
 	go vol.heartbeatContinuously(
-		logger.Session("continous-heartbeat"),
+		logger.Session("continuous-heartbeat"),
 		clock.NewTicker(volumeKeepalive),
 		ttl,
 	)
