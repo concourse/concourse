@@ -26,8 +26,10 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 
 	_, err = client.CreateJobBuild(pipelineName, jobName)
 	if err != nil {
-		displayhelpers.FailWithErrorf("pipeline/job '%s/%s' not found\n", err, pipelineName, jobName)
+		displayhelpers.FailWithErrorf("failed to create build", err)
 	}
+
 	fmt.Printf("started '%s/%s'\n", pipelineName, jobName)
+
 	return nil
 }
