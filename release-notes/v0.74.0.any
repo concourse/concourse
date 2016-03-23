@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{0.74.0}{0.334.0}{
+\release{2016-02-26}{0.74.0}{0.334.0}{
   \note{feature}{
     You can now \reference{configuring-resource-types}{configure resource types
     in your pipeline} rather than redeploying your workers with additional

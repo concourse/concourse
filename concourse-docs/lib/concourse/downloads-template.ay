@@ -24,6 +24,7 @@ def(template-for(part, out)):
   part css-additions << File expand-path("../css/fonts.css", __FILE__)
   part css-additions << File expand-path("../css/highlight.css", __FILE__)
   part css-additions << File expand-path("../css/docs.css", __FILE__)
+  part css-additions << File expand-path("../css/downloads.css", __FILE__)
 
   part parts each [sub]:
     html render(sub, out)

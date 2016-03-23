@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{0.72.1}{0.332.0}{
+\release{2016-02-08}{0.72.1}{0.332.0}{
   \note{fix}{
     Fixed a bug that would cause containers used by the new
     \reference{image_resource} not to be released.

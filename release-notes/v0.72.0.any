@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{0.72.0}{0.332.0}{
+\release{2016-02-06}{0.72.0}{0.332.0}{
   \note{feature}{deprecation}{
     We've added a new way of specifying the image for a task. You can now use
     \reference{image_resource} which will use Concourse resources to pull the

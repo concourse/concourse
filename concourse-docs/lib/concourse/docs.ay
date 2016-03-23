@@ -1,5 +1,7 @@
 use(require("atomy"))
 
+require("time")
+
 data = require("anatomy/data")
 
 hl = require("hl")
@@ -21,13 +23,20 @@ fn(download-link(label, url, *extra)):
 fn(version(number)):
  data Element new(i"v#{number}", .class("version-number"))
 
-def(release(concourse-version, garden-linux-version, notes)):
+def(release(date = nil, concourse-version, garden-linux-version, notes)):
+  release-date = nil
+  when(date):
+    release-date =
+      data Element new(
+        Time parse(date) strftime("%B %e, %Y")
+        .class("release-date"))
+
   data Block new(
     [ set-title(i"v#{concourse-version}")
-      data Block new(i"v#{concourse-version}", .header(1))
+      data Block new(i"v#{concourse-version}", .classed(.header(1), "version-header"))
       data Block new(
         [ data Block new(
-            [ data Block new("Release Notes", .header(2))
+            [ data Block new(["Release Notes", release-date], .header(2))
               notes
             ]
             .class("notes"))
@@ -56,8 +65,7 @@ def(release(concourse-version, garden-linux-version, notes)):
             .class("downloads"))
         ]
         .class("release"))
-    ]
-    .class("version"))
+    ])
 
 def(note(*tags, content)):
   tags sort! [a, b]:
