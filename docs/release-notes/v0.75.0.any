@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{0.75.0}{0.334.0}{
+\release{2016-03-09}{0.75.0}{0.334.0}{
   \note{deprecation}{feature}{
     The \hyperlink{https://github.com/concourse/semver-resource}{Semver
     resource} now creates a file called \code{version} containing the version
