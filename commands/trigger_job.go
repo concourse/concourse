@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 
-	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/rc"
 )
@@ -19,6 +18,7 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+
 	err = rc.ValidateClient(client, Fly.Target)
 	if err != nil {
 		return err
@@ -26,7 +26,7 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 
 	_, err = client.CreateJobBuild(pipelineName, jobName)
 	if err != nil {
-		displayhelpers.FailWithErrorf("failed to create build", err)
+		return err
 	}
 
 	fmt.Printf("started '%s/%s'\n", pipelineName, jobName)

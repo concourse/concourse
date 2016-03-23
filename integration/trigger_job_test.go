@@ -63,14 +63,14 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 
-				It("prints helpful message", func() {
+				It("prints an error message", func() {
 					Expect(func() {
 						flyCmd := exec.Command(flyPath, "-t", targetName, "trigger-job", "-j", "awesome-pipeline/awesome-job")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						Eventually(sess.Err).Should(gbytes.Say(`pipeline/job 'awesome-pipeline/awesome-job' not found`))
+						Eventually(sess.Err).Should(gbytes.Say(`error: resource not found`))
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(1))
