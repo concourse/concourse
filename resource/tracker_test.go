@@ -543,10 +543,22 @@ var _ = Describe("Tracker", func() {
 
 			Context("when the container has a cache volume", func() {
 				var cacheVolume *wfakes.FakeVolume
+				var otherVolume *wfakes.FakeVolume
 
 				BeforeEach(func() {
 					cacheVolume = new(wfakes.FakeVolume)
-					fakeContainer.VolumesReturns([]worker.Volume{cacheVolume})
+					otherVolume = new(wfakes.FakeVolume)
+
+					fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
+						{
+							Volume:    otherVolume,
+							MountPath: "/tmp/build/forgetaboutit",
+						},
+						{
+							Volume:    cacheVolume,
+							MountPath: "/tmp/build/get",
+						},
+					})
 				})
 
 				Describe("the cache", func() {
@@ -615,9 +627,36 @@ var _ = Describe("Tracker", func() {
 				})
 			})
 
+			Context("when the container has volumes but none of them are the cache", func() {
+				var otherVolume *wfakes.FakeVolume
+
+				BeforeEach(func() {
+					otherVolume = new(wfakes.FakeVolume)
+
+					fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
+						{
+							Volume:    otherVolume,
+							MountPath: "/tmp/build/forgetaboutit",
+						},
+					})
+				})
+
+				Describe("the cache", func() {
+					It("is not initialized", func() {
+						initialized, err := initCache.IsInitialized()
+						Expect(initialized).To(BeFalse())
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("does a no-op initialize", func() {
+						Expect(initCache.Initialize()).To(Succeed())
+					})
+				})
+			})
+
 			Context("when the container has no volumes", func() {
 				BeforeEach(func() {
-					fakeContainer.VolumesReturns([]worker.Volume{})
+					fakeContainer.VolumeMountsReturns([]worker.VolumeMount{})
 				})
 
 				Describe("the cache", func() {

@@ -239,19 +239,19 @@ func (tracker *tracker) InitWithCache(
 	if found {
 		logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
 
-		var cache Cache
+		resource := NewResource(container)
 
-		volumes := container.Volumes()
-		switch len(volumes) {
-		case 0:
+		var cache Cache
+		cacheVolume, found := resource.CacheVolume()
+		if found {
+			logger.Debug("found-cache")
+			cache = volumeCache{cacheVolume}
+		} else {
 			logger.Debug("no-cache")
 			cache = noopCache{}
-		default:
-			logger.Debug("found-cache")
-			cache = volumeCache{volumes[0]}
 		}
 
-		return NewResource(container), cache, nil
+		return resource, cache, nil
 	}
 
 	logger.Debug("no-existing-container")
