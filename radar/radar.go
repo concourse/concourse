@@ -206,6 +206,17 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 		return nil
 	}
 
+	vr, found, err := radar.db.GetLatestVersionedResource(savedResource)
+	if err != nil {
+		logger.Error("failed-to-get-current-version", err)
+		return err
+	}
+
+	var from db.Version
+	if found {
+		from = vr.Version
+	}
+
 	pipelineName := radar.db.GetPipelineName()
 
 	session := resource.Session{
@@ -241,17 +252,6 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 	}
 
 	defer res.Release(nil)
-
-	vr, found, err := radar.db.GetLatestVersionedResource(savedResource)
-	if err != nil {
-		logger.Error("failed-to-get-current-version", err)
-		return err
-	}
-
-	var from db.Version
-	if found {
-		from = vr.Version
-	}
 
 	logger.Debug("checking", lager.Data{
 		"from": from,
