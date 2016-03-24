@@ -19,7 +19,6 @@ import (
 )
 
 var _ = Describe("Baggage Collector", func() {
-
 	var (
 		fakeWorkerClient *wfakes.FakeClient
 		fakeWorker       *wfakes.FakeWorker
@@ -170,6 +169,97 @@ var _ = Describe("Baggage Collector", func() {
 				Expect(actualHandles).To(ConsistOf(expectedHandles))
 			}
 		},
+		Entry("when there are non-resource cache volumes present", baggageCollectionExample{
+			pipelineData: map[string][]resourceConfigAndVersions{
+				"pipeline-a": []resourceConfigAndVersions{
+					{
+						config: atc.ResourceConfig{
+							Name: "resource-a",
+							Type: "some-a-type",
+							Source: atc.Source{
+								"some": "a-source",
+							},
+						},
+						versions: []atc.Version{
+							{"version": "older"},
+							{"version": "latest"},
+						},
+					},
+					{
+						config: atc.ResourceConfig{
+							Name: "resource-b",
+							Type: "some-b-type",
+							Source: atc.Source{
+								"some": "b-source",
+							},
+						},
+						versions: []atc.Version{
+							{"version": "older"},
+							{"version": "latest"},
+						},
+					},
+				},
+			},
+			volumeData: []db.Volume{
+				{
+					WorkerName: "some-worker",
+					TTL:        expectedLatestVersionTTL,
+					Handle:     "some-volume-handle-1",
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "older"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
+					},
+				},
+				{
+					WorkerName: "some-other-worker",
+					TTL:        expectedLatestVersionTTL,
+					Handle:     "some-volume-handle-2",
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "latest"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
+					},
+				},
+				{
+					WorkerName: "some-other-worker",
+					TTL:        expectedLatestVersionTTL,
+					Handle:     "some-volume-handle-3",
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "older"},
+							ResourceHash:    `some-b-type{"some":"b-source"}`,
+						},
+					},
+				},
+				{
+					WorkerName: "some-other-worker",
+					TTL:        worker.VolumeTTL,
+					Handle:     "some-volume-handle-4",
+					Identifier: db.VolumeIdentifier{
+						COW: &db.COWIdentifier{
+							ParentVolumeHandle: "parent-volume",
+						},
+					},
+				},
+				{
+					WorkerName: "some-other-worker",
+					TTL:        worker.VolumeTTL,
+					Handle:     "some-volume-handle-5",
+					Identifier: db.VolumeIdentifier{
+						Output: &db.OutputIdentifier{
+							Name: "some-output",
+						},
+					},
+				},
+			},
+			expectedTTLs: map[string]time.Duration{
+				"some-volume-handle-1": expectedOldResourceGracePeriod,
+				"some-volume-handle-3": expectedOldResourceGracePeriod,
+			},
+		}),
 		Entry("when there are volumes cached for multiple versions of the resource", baggageCollectionExample{
 			pipelineData: map[string][]resourceConfigAndVersions{
 				"pipeline-a": []resourceConfigAndVersions{

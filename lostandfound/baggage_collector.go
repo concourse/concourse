@@ -104,6 +104,7 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 			hashKey := string(version) + resource.GenerateResourceHash(
 				pipelineResource.Source, pipelineResource.Type,
 			)
+
 			insertOrIncreaseVersionTTL(latestVersions, hashKey, 0) // live forever
 		}
 
@@ -143,9 +144,11 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 	}
 
 	for _, savedVolume := range oneOffImageResourceVolumes {
-		identifier := savedVolume.Volume.Identifier.ResourceCache
-		version, _ := json.Marshal(identifier.ResourceVersion)
-		hashKey := string(version) + identifier.ResourceHash
+		hashKey, isResourceCache := resourceCacheHashKey(savedVolume)
+		if !isResourceCache {
+			continue
+		}
+
 		insertOrIncreaseVersionTTL(latestVersions, hashKey, bc.oneOffBuildImageResourceGracePeriod)
 	}
 
@@ -165,12 +168,22 @@ func (bc *baggageCollector) getSortedVolumes() ([]db.SavedVolume, error) {
 	return sorted, nil
 }
 
-type volumeIdentifierAndWorkerNameSet map[string]bool
+type resourceCacheIdentifierAndWorkerNameSet map[string]bool
+
+func resourceCacheHashKey(volume db.SavedVolume) (string, bool) {
+	resourceCacheID := volume.Volume.Identifier.ResourceCache
+	if resourceCacheID == nil {
+		return "", false
+	}
+
+	version, _ := json.Marshal(resourceCacheID.ResourceVersion)
+	return string(version) + resourceCacheID.ResourceHash, true
+}
 
 func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error {
 	volumesToExpire, err := bc.getSortedVolumes()
 
-	seenVolumeIdentifierAndWorkerNameCombos := volumeIdentifierAndWorkerNameSet{}
+	seenResourceCacheIdentifierAndWorkerNameCombos := resourceCacheIdentifierAndWorkerNameSet{}
 
 	if err != nil {
 		bc.logger.Error("could-not-get-volume-data", err)
@@ -178,16 +191,18 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 	}
 
 	for _, volumeToExpire := range volumesToExpire {
-		version, _ := json.Marshal(volumeToExpire.Volume.Identifier.ResourceCache.ResourceVersion)
-		hashKey := string(version) + volumeToExpire.Volume.Identifier.ResourceCache.ResourceHash
+		hashKey, isResourceCache := resourceCacheHashKey(volumeToExpire)
+		if !isResourceCache {
+			continue
+		}
 
 		var ttlForVol time.Duration
 
-		volumeIdentifierAndWorkerNameCombo := hashKey + volumeToExpire.WorkerName
-		if contains(seenVolumeIdentifierAndWorkerNameCombos, volumeIdentifierAndWorkerNameCombo) {
+		resourceCacheIdentifierAndWorkerNameCombo := hashKey + volumeToExpire.WorkerName
+		if contains(seenResourceCacheIdentifierAndWorkerNameCombos, resourceCacheIdentifierAndWorkerNameCombo) {
 			ttlForVol = bc.oldResourceGracePeriod
 		} else {
-			seenVolumeIdentifierAndWorkerNameCombos[volumeIdentifierAndWorkerNameCombo] = true
+			seenResourceCacheIdentifierAndWorkerNameCombos[resourceCacheIdentifierAndWorkerNameCombo] = true
 			ttlForVol = getWithDefault(latestVersions, hashKey, bc.oldResourceGracePeriod)
 		}
 
@@ -256,7 +271,7 @@ func (s sortByHandle) Len() int           { return len(s) }
 func (s sortByHandle) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s sortByHandle) Less(i, j int) bool { return s[i].Volume.Handle < s[j].Volume.Handle }
 
-func contains(set volumeIdentifierAndWorkerNameSet, item string) bool {
+func contains(set resourceCacheIdentifierAndWorkerNameSet, item string) bool {
 	value, found := set[item]
 	return found && value
 }
