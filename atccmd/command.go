@@ -708,7 +708,7 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 					radar.NewRunner(
 						logger.Session(pipelineDB.ScopedName("radar")),
 						cmd.Developer.Noop,
-						radarSchedulerFactory.BuildRadar(pipelineDB, cmd.ExternalURL.String()),
+						radarSchedulerFactory.BuildScannerFactory(pipelineDB, cmd.ExternalURL.String()),
 						pipelineDB,
 						1*time.Minute,
 					),

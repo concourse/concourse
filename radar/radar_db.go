@@ -1,0 +1,31 @@
+package radar
+
+import (
+	"time"
+
+	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
+	"github.com/pivotal-golang/lager"
+)
+
+//go:generate counterfeiter . RadarDB
+
+type RadarDB interface {
+	GetPipelineName() string
+	ScopedName(string) string
+
+	IsPaused() (bool, error)
+
+	GetConfig() (atc.Config, db.ConfigVersion, bool, error)
+
+	GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, bool, error)
+	GetResource(resourceName string) (db.SavedResource, error)
+	GetResourceType(resourceTypeName string) (db.SavedResourceType, bool, error)
+	PauseResource(resourceName string) error
+	UnpauseResource(resourceName string) error
+
+	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
+	SaveResourceTypeVersion(atc.ResourceType, atc.Version) error
+	SetResourceCheckError(resource db.SavedResource, err error) error
+	LeaseResourceChecking(logger lager.Logger, resource string, interval time.Duration, immediate bool) (db.Lease, bool, error)
+}

@@ -16,7 +16,7 @@ import (
 //go:generate counterfeiter . RadarSchedulerFactory
 
 type RadarSchedulerFactory interface {
-	BuildRadar(pipelineDB db.PipelineDB, externalURL string) *radar.Radar
+	BuildScannerFactory(pipelineDB db.PipelineDB, externalURL string) radar.ScannerFactory
 	BuildScheduler(pipelineDB db.PipelineDB, externalURL string) scheduler.BuildScheduler
 }
 
@@ -41,12 +41,18 @@ func NewRadarSchedulerFactory(
 	}
 }
 
-func (rsf *radarSchedulerFactory) BuildRadar(pipelineDB db.PipelineDB, externalURL string) *radar.Radar {
-	return radar.NewRadar(rsf.tracker, rsf.interval, pipelineDB, clock.NewClock(), externalURL)
+func (rsf *radarSchedulerFactory) BuildScannerFactory(pipelineDB db.PipelineDB, externalURL string) radar.ScannerFactory {
+	return radar.NewScannerFactory(rsf.tracker, rsf.interval, pipelineDB, clock.NewClock(), externalURL)
 }
 
 func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, externalURL string) scheduler.BuildScheduler {
-	radar := rsf.BuildRadar(pipelineDB, externalURL)
+	scanner := radar.NewResourceScanner(
+		clock.NewClock(),
+		rsf.tracker,
+		rsf.interval,
+		pipelineDB,
+		externalURL,
+	)
 	return &scheduler.Scheduler{
 		PipelineDB: pipelineDB,
 		BuildsDB:   rsf.db,
@@ -55,6 +61,6 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, exter
 			atc.NewPlanFactory(time.Now().Unix()),
 		),
 		Engine:  rsf.engine,
-		Scanner: radar,
+		Scanner: scanner,
 	}
 }

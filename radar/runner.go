@@ -12,11 +12,6 @@ import (
 
 //go:generate counterfeiter . ScannerFactory
 
-type ScannerFactory interface {
-	Scanner(lager.Logger, string) ifrit.Runner
-	ResourceTypeScanner(lager.Logger, string) ifrit.Runner
-}
-
 type Runner struct {
 	logger lager.Logger
 
@@ -129,7 +124,7 @@ func (runner *Runner) tick(
 		logger := runner.logger.Session("scan", lager.Data{
 			"pipeline:resource-type": runner.db.ScopedName(resourceType.Name),
 		})
-		runner := runner.scannerFactory.ResourceTypeScanner(logger, resourceType.Name)
+		runner := runner.scannerFactory.ScanResourceTypeRunner(logger, resourceType.Name)
 
 		// avoid deadlock if exit event is blocked; inserting in this case
 		// will block on the event being consumed (which is in this select)
@@ -153,7 +148,7 @@ func (runner *Runner) tick(
 		logger := runner.logger.Session("scan", lager.Data{
 			"pipeline:resource": runner.db.ScopedName(resource.Name),
 		})
-		runner := runner.scannerFactory.Scanner(logger, resource.Name)
+		runner := runner.scannerFactory.ScanResourceRunner(logger, resource.Name)
 
 		// avoid deadlock if exit event is blocked; inserting in this case
 		// will block on the event being consumed (which is in this select)
