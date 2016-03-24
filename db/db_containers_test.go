@@ -1395,6 +1395,29 @@ var _ = Describe("Keeping track of containers", func() {
 				Type:         db.ContainerTypeTask,
 			},
 		}
+		resourceTypeContainerToCreate := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				Stage:               db.ContainerStageRun,
+				CheckType:           "some-type",
+				CheckSource:         atc.Source{"some": "other-source"},
+				ResourceTypeVersion: atc.Version{"foo": "bar"},
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				PipelineName: "some-pipeline",
+				Type:         db.ContainerTypeCheck,
+			},
+		}
+		invalidCheckContainerToCreate := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				Stage:       db.ContainerStageRun,
+				CheckType:   "some-type",
+				CheckSource: atc.Source{"some": "other-source"},
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				PipelineName: "some-pipeline",
+				Type:         db.ContainerTypeCheck,
+			},
+		}
 
 		_, err := database.CreateContainer(containerToCreate, time.Minute)
 		Expect(err).NotTo(HaveOccurred())
@@ -1427,6 +1450,21 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualStepContainer.Handle).To(Equal("other-handle"))
 		Expect(actualStepContainer.WorkerName).To(Equal(stepContainerToCreate.WorkerName))
 		Expect(actualStepContainer.ResourceID).To(Equal(stepContainerToCreate.ResourceID))
+
+		By("returning a single matching resource type container info")
+		actualResourceTypeContainer, found, err := database.FindContainerByIdentifier(
+			resourceTypeContainerToCreate.ContainerIdentifier,
+		)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+
+		Expect(actualResourceTypeContainer.ResourceTypeVersion).To(Equal(containerToCreate.ContainerIdentifier.ResourceTypeVersion))
+
+		By("validating check container has either resource id or resource type version")
+		_, _, err = database.FindContainerByIdentifier(
+			invalidCheckContainerToCreate.ContainerIdentifier,
+		)
+		Expect(err).To(HaveOccurred())
 
 		By("differentiating check containers based on their check source")
 		newSourceContainerToCreate := db.Container{

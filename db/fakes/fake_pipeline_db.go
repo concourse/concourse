@@ -89,6 +89,16 @@ type FakePipelineDB struct {
 		result1 db.SavedResource
 		result2 error
 	}
+	GetResourceTypeStub        func(resourceTypeName string) (db.SavedResourceType, bool, error)
+	getResourceTypeMutex       sync.RWMutex
+	getResourceTypeArgsForCall []struct {
+		resourceTypeName string
+	}
+	getResourceTypeReturns struct {
+		result1 db.SavedResourceType
+		result2 bool
+		result3 error
+	}
 	GetResourceVersionsStub        func(resourceName string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, bool, error)
 	getResourceVersionsMutex       sync.RWMutex
 	getResourceVersionsArgsForCall []struct {
@@ -124,6 +134,15 @@ type FakePipelineDB struct {
 		arg2 []atc.Version
 	}
 	saveResourceVersionsReturns struct {
+		result1 error
+	}
+	SaveResourceTypeVersionStub        func(atc.ResourceType, atc.Version) error
+	saveResourceTypeVersionMutex       sync.RWMutex
+	saveResourceTypeVersionArgsForCall []struct {
+		arg1 atc.ResourceType
+		arg2 atc.Version
+	}
+	saveResourceTypeVersionReturns struct {
 		result1 error
 	}
 	GetLatestVersionedResourceStub        func(resource db.SavedResource) (db.SavedVersionedResource, bool, error)
@@ -705,6 +724,40 @@ func (fake *FakePipelineDB) GetResourceReturns(result1 db.SavedResource, result2
 	}{result1, result2}
 }
 
+func (fake *FakePipelineDB) GetResourceType(resourceTypeName string) (db.SavedResourceType, bool, error) {
+	fake.getResourceTypeMutex.Lock()
+	fake.getResourceTypeArgsForCall = append(fake.getResourceTypeArgsForCall, struct {
+		resourceTypeName string
+	}{resourceTypeName})
+	fake.getResourceTypeMutex.Unlock()
+	if fake.GetResourceTypeStub != nil {
+		return fake.GetResourceTypeStub(resourceTypeName)
+	} else {
+		return fake.getResourceTypeReturns.result1, fake.getResourceTypeReturns.result2, fake.getResourceTypeReturns.result3
+	}
+}
+
+func (fake *FakePipelineDB) GetResourceTypeCallCount() int {
+	fake.getResourceTypeMutex.RLock()
+	defer fake.getResourceTypeMutex.RUnlock()
+	return len(fake.getResourceTypeArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetResourceTypeArgsForCall(i int) string {
+	fake.getResourceTypeMutex.RLock()
+	defer fake.getResourceTypeMutex.RUnlock()
+	return fake.getResourceTypeArgsForCall[i].resourceTypeName
+}
+
+func (fake *FakePipelineDB) GetResourceTypeReturns(result1 db.SavedResourceType, result2 bool, result3 error) {
+	fake.GetResourceTypeStub = nil
+	fake.getResourceTypeReturns = struct {
+		result1 db.SavedResourceType
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakePipelineDB) GetResourceVersions(resourceName string, page db.Page) ([]db.SavedVersionedResource, db.Pagination, bool, error) {
 	fake.getResourceVersionsMutex.Lock()
 	fake.getResourceVersionsArgsForCall = append(fake.getResourceVersionsArgsForCall, struct {
@@ -834,6 +887,39 @@ func (fake *FakePipelineDB) SaveResourceVersionsArgsForCall(i int) (atc.Resource
 func (fake *FakePipelineDB) SaveResourceVersionsReturns(result1 error) {
 	fake.SaveResourceVersionsStub = nil
 	fake.saveResourceVersionsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipelineDB) SaveResourceTypeVersion(arg1 atc.ResourceType, arg2 atc.Version) error {
+	fake.saveResourceTypeVersionMutex.Lock()
+	fake.saveResourceTypeVersionArgsForCall = append(fake.saveResourceTypeVersionArgsForCall, struct {
+		arg1 atc.ResourceType
+		arg2 atc.Version
+	}{arg1, arg2})
+	fake.saveResourceTypeVersionMutex.Unlock()
+	if fake.SaveResourceTypeVersionStub != nil {
+		return fake.SaveResourceTypeVersionStub(arg1, arg2)
+	} else {
+		return fake.saveResourceTypeVersionReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) SaveResourceTypeVersionCallCount() int {
+	fake.saveResourceTypeVersionMutex.RLock()
+	defer fake.saveResourceTypeVersionMutex.RUnlock()
+	return len(fake.saveResourceTypeVersionArgsForCall)
+}
+
+func (fake *FakePipelineDB) SaveResourceTypeVersionArgsForCall(i int) (atc.ResourceType, atc.Version) {
+	fake.saveResourceTypeVersionMutex.RLock()
+	defer fake.saveResourceTypeVersionMutex.RUnlock()
+	return fake.saveResourceTypeVersionArgsForCall[i].arg1, fake.saveResourceTypeVersionArgsForCall[i].arg2
+}
+
+func (fake *FakePipelineDB) SaveResourceTypeVersionReturns(result1 error) {
+	fake.SaveResourceTypeVersionStub = nil
+	fake.saveResourceTypeVersionReturns = struct {
 		result1 error
 	}{result1}
 }

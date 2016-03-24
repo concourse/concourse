@@ -1584,6 +1584,87 @@ var _ = Describe("PipelineDB", func() {
 		})
 	})
 
+	Describe("GetResourceType", func() {
+		It("returns a SavedResourceType", func() {
+			_, found, err := pipelineDB.GetResourceType("resource-type-name")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+
+		Context("when the resource type exists", func() {
+			BeforeEach(func() {
+				resourceType := atc.ResourceType{
+					Name: "resource-type-name",
+					Type: "resource-type-type",
+				}
+				err := pipelineDB.SaveResourceTypeVersion(resourceType, atc.Version{"foo": "bar"})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns a SavedResourceType", func() {
+				savedResourceType, found, err := pipelineDB.GetResourceType("resource-type-name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(savedResourceType.Name).To(Equal("resource-type-name"))
+				Expect(savedResourceType.Type).To(Equal("resource-type-type"))
+			})
+		})
+	})
+
+	Describe("SaveResourceTypeVersion", func() {
+		Context("when resource type does not exist in database", func() {
+			It("creates resource type", func() {
+				resourceType := atc.ResourceType{
+					Name: "fake-resource-type-name",
+					Type: "fake-resource-type-type",
+				}
+				err := pipelineDB.SaveResourceTypeVersion(resourceType, atc.Version{"foo": "bar"})
+				Expect(err).NotTo(HaveOccurred())
+
+				var savedResourceTypeName string
+				var savedResourceTypeType string
+				var versionJSON string
+				err = dbConn.QueryRow(`
+					SELECT name, type, version
+					FROM resource_types
+				`).Scan(&savedResourceTypeName, &savedResourceTypeType, &versionJSON)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(savedResourceTypeName).To(Equal("fake-resource-type-name"))
+				Expect(savedResourceTypeType).To(Equal("fake-resource-type-type"))
+				Expect(versionJSON).To(MatchJSON(`{"foo":"bar"}`))
+			})
+		})
+
+		Context("when resource type exists in database", func() {
+			var resourceType atc.ResourceType
+			BeforeEach(func() {
+				resourceType = atc.ResourceType{
+					Name: "fake-resource-type-name",
+					Type: "fake-resource-type-type",
+				}
+				err := pipelineDB.SaveResourceTypeVersion(resourceType, atc.Version{"foo": "bar"})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("creates resource type", func() {
+				err := pipelineDB.SaveResourceTypeVersion(resourceType, atc.Version{"baz": "qux"})
+				Expect(err).NotTo(HaveOccurred())
+
+				var savedResourceTypeName string
+				var savedResourceTypeType string
+				var versionJSON string
+				err = dbConn.QueryRow(`
+					SELECT name, type, version
+					FROM resource_types
+				`).Scan(&savedResourceTypeName, &savedResourceTypeType, &versionJSON)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(savedResourceTypeName).To(Equal("fake-resource-type-name"))
+				Expect(savedResourceTypeType).To(Equal("fake-resource-type-type"))
+				Expect(versionJSON).To(MatchJSON(`{"baz":"qux"}`))
+			})
+		})
+	})
+
 	Describe("Jobs", func() {
 		Describe("GetDashboard", func() {
 			It("returns a Dashboard object with a DashboardJob corresponding to each configured job", func() {

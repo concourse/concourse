@@ -176,6 +176,7 @@ func (fetcher Fetcher) FetchImage(
 		volume:   volume,
 		metadata: imageMetadata,
 		resource: getResource,
+		version:  versions[0],
 	}, nil
 }
 
@@ -183,6 +184,7 @@ type resourceImage struct {
 	volume   worker.Volume
 	metadata worker.ImageMetadata
 	resource resource.Resource
+	version  atc.Version
 }
 
 func (image resourceImage) Volume() worker.Volume {
@@ -195,6 +197,10 @@ func (image resourceImage) Metadata() worker.ImageMetadata {
 
 func (image resourceImage) Release(finalTTL *time.Duration) {
 	image.resource.Release(finalTTL)
+}
+
+func (image resourceImage) Version() atc.Version {
+	return image.version
 }
 
 func loadMetadata(source resource.VersionedSource) (worker.ImageMetadata, error) {

@@ -412,6 +412,10 @@ dance:
 	metadata.WorkerName = worker.name
 	metadata.Handle = gardenContainer.Handle()
 	metadata.User = gardenSpec.Properties["user"]
+
+	if imageFetched {
+		id.ResourceTypeVersion = image.Version()
+	}
 	_, err = worker.db.CreateContainer(
 		db.Container{
 			ContainerIdentifier: db.ContainerIdentifier(id),

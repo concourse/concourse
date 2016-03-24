@@ -1338,6 +1338,7 @@ var _ = Describe("Worker", func() {
 								Env:  []string{"A=1", "B=2"},
 								User: "pilot",
 							})
+							image.VersionReturns(atc.Version{"v": "42"})
 
 							fakeImageFetcher.FetchImageReturns(image, nil)
 						})
@@ -1387,14 +1388,17 @@ var _ = Describe("Worker", func() {
 							expectedMetadata.Handle = "some-handle"
 							expectedMetadata.User = "pilot"
 
-							container := db.Container{
-								ContainerIdentifier: db.ContainerIdentifier(containerID),
-								ContainerMetadata:   db.ContainerMetadata(expectedMetadata),
+							expectedContainer := db.Container{
+								ContainerIdentifier: db.ContainerIdentifier(Identifier{
+									BuildID:             42,
+									ResourceTypeVersion: atc.Version{"v": "42"},
+								}),
+								ContainerMetadata: db.ContainerMetadata(expectedMetadata),
 							}
 
 							Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
 							actualContainer, ttl := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
-							Expect(actualContainer).To(Equal(container))
+							Expect(actualContainer).To(Equal(expectedContainer))
 							Expect(ttl).To(Equal(5 * time.Minute))
 						})
 

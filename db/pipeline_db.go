@@ -32,12 +32,14 @@ type PipelineDB interface {
 	LeaseScheduling(lager.Logger, time.Duration) (Lease, bool, error)
 
 	GetResource(resourceName string) (SavedResource, error)
+	GetResourceType(resourceTypeName string) (SavedResourceType, bool, error)
 	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
 
 	PauseResource(resourceName string) error
 	UnpauseResource(resourceName string) error
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
+	SaveResourceTypeVersion(atc.ResourceType, atc.Version) error
 	GetLatestVersionedResource(resource SavedResource) (SavedVersionedResource, bool, error)
 	GetLatestEnabledVersionedResource(resourceName string) (SavedVersionedResource, bool, error)
 	EnableVersionedResource(versionedResourceID int) error
@@ -470,6 +472,32 @@ func (pdb *pipelineDB) getResource(tx Tx, name string) (SavedResource, error) {
 	return resource, nil
 }
 
+func (pdb *pipelineDB) GetResourceType(name string) (SavedResourceType, bool, error) {
+	var savedResourceType SavedResourceType
+	var versionJSON string
+	err := pdb.conn.QueryRow(`
+			SELECT id, name, type, version
+			FROM resource_types
+			WHERE name = $1
+				AND pipeline_id = $2
+		`, name, pdb.ID).Scan(&savedResourceType.ID, &savedResourceType.Name, &savedResourceType.Type, &versionJSON)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return SavedResourceType{}, false, nil
+		}
+		return SavedResourceType{}, false, err
+	}
+
+	err = json.Unmarshal([]byte(versionJSON), &savedResourceType.Version)
+	if err != nil {
+		return SavedResourceType{}, false, err
+	}
+
+	savedResourceType.PipelineName = pdb.Name
+
+	return savedResourceType, true, nil
+}
+
 func (pdb *pipelineDB) PauseResource(resource string) error {
 	return pdb.updatePaused(resource, true)
 }
@@ -539,6 +567,65 @@ func (pdb *pipelineDB) SaveResourceVersions(config atc.ResourceConfig, versions 
 		}
 
 		err = pdb.incrementCheckOrderWhenNewerVersion(tx, savedResource.ID, vr.Type, string(versionJSON))
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (pdb *pipelineDB) SaveResourceTypeVersion(resourceType atc.ResourceType, version atc.Version) error {
+	tx, err := pdb.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	versionJSON, err := json.Marshal(version)
+	if err != nil {
+		return err
+	}
+
+	result, err := tx.Exec(`
+		INSERT INTO resource_types (name, type, version, pipeline_id)
+		SELECT $1, $2, $3, $4
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM resource_types
+			WHERE name = $1
+			AND type = $2
+			AND pipeline_id = $4
+		)
+	`, resourceType.Name, resourceType.Type, string(versionJSON), pdb.ID)
+
+	var rowsAffected int64
+	if err == nil {
+		rowsAffected, err = result.RowsAffected()
+		if err != nil {
+			return err
+		}
+
+		if rowsAffected == 0 {
+			_, err = tx.Exec(`
+				UPDATE resource_types
+				SET version = $1
+				WHERE name = $2
+				AND type = $3
+				AND pipeline_id = $4
+			`, string(versionJSON), resourceType.Name, resourceType.Type, pdb.ID)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		err = swallowUniqueViolation(err)
 		if err != nil {
 			return err
 		}

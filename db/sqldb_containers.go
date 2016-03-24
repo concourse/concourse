@@ -149,7 +149,9 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 			return SavedContainer{}, false, err
 		}
 
-		addParam("resource_id", id.ResourceID)
+		if id.ResourceID > 0 {
+			addParam("resource_id", id.ResourceID)
+		}
 		addParam("check_type", id.CheckType)
 		addParam("check_source", checkSourceBlob)
 		addParam("stage", string(id.Stage))
@@ -269,6 +271,15 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (SavedC
 		resourceID.Valid = true
 	}
 
+	var resourceTypeVersion string
+	if container.ResourceTypeVersion != nil {
+		resourceTypeVersionBytes, err := json.Marshal(container.ResourceTypeVersion)
+		if err != nil {
+			return SavedContainer{}, err
+		}
+		resourceTypeVersion = string(resourceTypeVersionBytes)
+	}
+
 	var buildID sql.NullInt64
 	if container.BuildID != 0 {
 		buildID.Int64 = int64(container.BuildID)
@@ -310,8 +321,8 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (SavedC
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, ttl, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage, image_resource_type, image_resource_source, process_user)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, ttl, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage, image_resource_type, image_resource_source, process_user, resource_type_version)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
 		container.Handle,
 		resourceID,
 		container.StepName,
@@ -331,6 +342,7 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (SavedC
 		imageResourceType,
 		imageResourceSource,
 		user,
+		resourceTypeVersion,
 	)
 	if err != nil {
 		return SavedContainer{}, err
@@ -411,7 +423,7 @@ func (db *SQLDB) DeleteContainer(handle string) error {
 }
 
 func isValidCheckID(id ContainerIdentifier) bool {
-	if !(id.ResourceID > 0 &&
+	if !((id.ResourceID > 0 || id.ResourceTypeVersion != nil) &&
 		id.CheckType != "" &&
 		id.CheckSource != nil &&
 		id.BuildID == 0 &&

@@ -200,6 +200,10 @@ var _ = Describe("Fetcher", func() {
 										}))
 									})
 
+									It("has the version on the image", func() {
+										Expect(fetchedImage.Version()).To(Equal(atc.Version{"v": "1"}))
+									})
+
 									It("creates a tracker for checking and getting the image resource", func() {
 										Expect(fakeTrackerFactory.TrackerForCallCount()).To(Equal(1))
 										Expect(fakeTrackerFactory.TrackerForArgsForCall(0)).To(Equal(fakeWorker))

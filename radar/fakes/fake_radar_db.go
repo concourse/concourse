@@ -61,6 +61,16 @@ type FakeRadarDB struct {
 		result1 db.SavedResource
 		result2 error
 	}
+	GetResourceTypeStub        func(resourceTypeName string) (db.SavedResourceType, bool, error)
+	getResourceTypeMutex       sync.RWMutex
+	getResourceTypeArgsForCall []struct {
+		resourceTypeName string
+	}
+	getResourceTypeReturns struct {
+		result1 db.SavedResourceType
+		result2 bool
+		result3 error
+	}
 	PauseResourceStub        func(resourceName string) error
 	pauseResourceMutex       sync.RWMutex
 	pauseResourceArgsForCall []struct {
@@ -84,6 +94,15 @@ type FakeRadarDB struct {
 		arg2 []atc.Version
 	}
 	saveResourceVersionsReturns struct {
+		result1 error
+	}
+	SaveResourceTypeVersionStub        func(atc.ResourceType, atc.Version) error
+	saveResourceTypeVersionMutex       sync.RWMutex
+	saveResourceTypeVersionArgsForCall []struct {
+		arg1 atc.ResourceType
+		arg2 atc.Version
+	}
+	saveResourceTypeVersionReturns struct {
 		result1 error
 	}
 	SetResourceCheckErrorStub        func(resource db.SavedResource, err error) error
@@ -285,6 +304,40 @@ func (fake *FakeRadarDB) GetResourceReturns(result1 db.SavedResource, result2 er
 	}{result1, result2}
 }
 
+func (fake *FakeRadarDB) GetResourceType(resourceTypeName string) (db.SavedResourceType, bool, error) {
+	fake.getResourceTypeMutex.Lock()
+	fake.getResourceTypeArgsForCall = append(fake.getResourceTypeArgsForCall, struct {
+		resourceTypeName string
+	}{resourceTypeName})
+	fake.getResourceTypeMutex.Unlock()
+	if fake.GetResourceTypeStub != nil {
+		return fake.GetResourceTypeStub(resourceTypeName)
+	} else {
+		return fake.getResourceTypeReturns.result1, fake.getResourceTypeReturns.result2, fake.getResourceTypeReturns.result3
+	}
+}
+
+func (fake *FakeRadarDB) GetResourceTypeCallCount() int {
+	fake.getResourceTypeMutex.RLock()
+	defer fake.getResourceTypeMutex.RUnlock()
+	return len(fake.getResourceTypeArgsForCall)
+}
+
+func (fake *FakeRadarDB) GetResourceTypeArgsForCall(i int) string {
+	fake.getResourceTypeMutex.RLock()
+	defer fake.getResourceTypeMutex.RUnlock()
+	return fake.getResourceTypeArgsForCall[i].resourceTypeName
+}
+
+func (fake *FakeRadarDB) GetResourceTypeReturns(result1 db.SavedResourceType, result2 bool, result3 error) {
+	fake.GetResourceTypeStub = nil
+	fake.getResourceTypeReturns = struct {
+		result1 db.SavedResourceType
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeRadarDB) PauseResource(resourceName string) error {
 	fake.pauseResourceMutex.Lock()
 	fake.pauseResourceArgsForCall = append(fake.pauseResourceArgsForCall, struct {
@@ -378,6 +431,39 @@ func (fake *FakeRadarDB) SaveResourceVersionsArgsForCall(i int) (atc.ResourceCon
 func (fake *FakeRadarDB) SaveResourceVersionsReturns(result1 error) {
 	fake.SaveResourceVersionsStub = nil
 	fake.saveResourceVersionsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeRadarDB) SaveResourceTypeVersion(arg1 atc.ResourceType, arg2 atc.Version) error {
+	fake.saveResourceTypeVersionMutex.Lock()
+	fake.saveResourceTypeVersionArgsForCall = append(fake.saveResourceTypeVersionArgsForCall, struct {
+		arg1 atc.ResourceType
+		arg2 atc.Version
+	}{arg1, arg2})
+	fake.saveResourceTypeVersionMutex.Unlock()
+	if fake.SaveResourceTypeVersionStub != nil {
+		return fake.SaveResourceTypeVersionStub(arg1, arg2)
+	} else {
+		return fake.saveResourceTypeVersionReturns.result1
+	}
+}
+
+func (fake *FakeRadarDB) SaveResourceTypeVersionCallCount() int {
+	fake.saveResourceTypeVersionMutex.RLock()
+	defer fake.saveResourceTypeVersionMutex.RUnlock()
+	return len(fake.saveResourceTypeVersionArgsForCall)
+}
+
+func (fake *FakeRadarDB) SaveResourceTypeVersionArgsForCall(i int) (atc.ResourceType, atc.Version) {
+	fake.saveResourceTypeVersionMutex.RLock()
+	defer fake.saveResourceTypeVersionMutex.RUnlock()
+	return fake.saveResourceTypeVersionArgsForCall[i].arg1, fake.saveResourceTypeVersionArgsForCall[i].arg2
+}
+
+func (fake *FakeRadarDB) SaveResourceTypeVersionReturns(result1 error) {
+	fake.SaveResourceTypeVersionStub = nil
+	fake.saveResourceTypeVersionReturns = struct {
 		result1 error
 	}{result1}
 }

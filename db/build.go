@@ -61,6 +61,14 @@ type SavedResource struct {
 	Resource
 }
 
+type SavedResourceType struct {
+	ID           int
+	Name         string
+	Type         string
+	Version      Version
+	PipelineName string
+}
+
 func (r SavedResource) FailingToCheck() bool {
 	return r.CheckError != nil
 }

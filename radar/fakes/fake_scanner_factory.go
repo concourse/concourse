@@ -19,6 +19,15 @@ type FakeScannerFactory struct {
 	scannerReturns struct {
 		result1 ifrit.Runner
 	}
+	ResourceTypeScannerStub        func(lager.Logger, string) ifrit.Runner
+	resourceTypeScannerMutex       sync.RWMutex
+	resourceTypeScannerArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
+	}
+	resourceTypeScannerReturns struct {
+		result1 ifrit.Runner
+	}
 }
 
 func (fake *FakeScannerFactory) Scanner(arg1 lager.Logger, arg2 string) ifrit.Runner {
@@ -50,6 +59,39 @@ func (fake *FakeScannerFactory) ScannerArgsForCall(i int) (lager.Logger, string)
 func (fake *FakeScannerFactory) ScannerReturns(result1 ifrit.Runner) {
 	fake.ScannerStub = nil
 	fake.scannerReturns = struct {
+		result1 ifrit.Runner
+	}{result1}
+}
+
+func (fake *FakeScannerFactory) ResourceTypeScanner(arg1 lager.Logger, arg2 string) ifrit.Runner {
+	fake.resourceTypeScannerMutex.Lock()
+	fake.resourceTypeScannerArgsForCall = append(fake.resourceTypeScannerArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+	}{arg1, arg2})
+	fake.resourceTypeScannerMutex.Unlock()
+	if fake.ResourceTypeScannerStub != nil {
+		return fake.ResourceTypeScannerStub(arg1, arg2)
+	} else {
+		return fake.resourceTypeScannerReturns.result1
+	}
+}
+
+func (fake *FakeScannerFactory) ResourceTypeScannerCallCount() int {
+	fake.resourceTypeScannerMutex.RLock()
+	defer fake.resourceTypeScannerMutex.RUnlock()
+	return len(fake.resourceTypeScannerArgsForCall)
+}
+
+func (fake *FakeScannerFactory) ResourceTypeScannerArgsForCall(i int) (lager.Logger, string) {
+	fake.resourceTypeScannerMutex.RLock()
+	defer fake.resourceTypeScannerMutex.RUnlock()
+	return fake.resourceTypeScannerArgsForCall[i].arg1, fake.resourceTypeScannerArgsForCall[i].arg2
+}
+
+func (fake *FakeScannerFactory) ResourceTypeScannerReturns(result1 ifrit.Runner) {
+	fake.ResourceTypeScannerStub = nil
+	fake.resourceTypeScannerReturns = struct {
 		result1 ifrit.Runner
 	}{result1}
 }

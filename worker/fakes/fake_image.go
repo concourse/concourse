@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 )
 
@@ -25,6 +26,12 @@ type FakeImage struct {
 	releaseMutex       sync.RWMutex
 	releaseArgsForCall []struct {
 		arg1 *time.Duration
+	}
+	VersionStub        func() atc.Version
+	versionMutex       sync.RWMutex
+	versionArgsForCall []struct{}
+	versionReturns     struct {
+		result1 atc.Version
 	}
 }
 
@@ -97,6 +104,30 @@ func (fake *FakeImage) ReleaseArgsForCall(i int) *time.Duration {
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
 	return fake.releaseArgsForCall[i].arg1
+}
+
+func (fake *FakeImage) Version() atc.Version {
+	fake.versionMutex.Lock()
+	fake.versionArgsForCall = append(fake.versionArgsForCall, struct{}{})
+	fake.versionMutex.Unlock()
+	if fake.VersionStub != nil {
+		return fake.VersionStub()
+	} else {
+		return fake.versionReturns.result1
+	}
+}
+
+func (fake *FakeImage) VersionCallCount() int {
+	fake.versionMutex.RLock()
+	defer fake.versionMutex.RUnlock()
+	return len(fake.versionArgsForCall)
+}
+
+func (fake *FakeImage) VersionReturns(result1 atc.Version) {
+	fake.VersionStub = nil
+	fake.versionReturns = struct {
+		result1 atc.Version
+	}{result1}
 }
 
 var _ worker.Image = new(FakeImage)

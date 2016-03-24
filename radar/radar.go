@@ -36,10 +36,12 @@ type RadarDB interface {
 
 	GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, bool, error)
 	GetResource(resourceName string) (db.SavedResource, error)
+	GetResourceType(resourceTypeName string) (db.SavedResourceType, bool, error)
 	PauseResource(resourceName string) error
 	UnpauseResource(resourceName string) error
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
+	SaveResourceTypeVersion(atc.ResourceType, atc.Version) error
 	SetResourceCheckError(resource db.SavedResource, err error) error
 	LeaseResourceChecking(logger lager.Logger, resource string, interval time.Duration, immediate bool) (db.Lease, bool, error)
 }
@@ -140,6 +142,40 @@ func (radar *Radar) Scanner(logger lager.Logger, resourceName string) ifrit.Runn
 	})
 }
 
+func (radar *Radar) ResourceTypeScanner(logger lager.Logger, resourceTypeName string) ifrit.Runner {
+	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		// do an immediate initial check
+		interval := radar.defaultInterval
+
+		close(ready)
+
+		for {
+			timer := radar.clock.NewTimer(interval)
+
+			var resourceType atc.ResourceType
+
+			select {
+			case <-signals:
+				timer.Stop()
+				return nil
+
+			case <-timer.C():
+				var err error
+
+				resourceType, err = radar.getResourceTypeConfig(logger, resourceTypeName)
+				if err != nil {
+					return err
+				}
+
+				err = radar.resourceTypeScan(logger.Session("tick"), resourceType)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	})
+}
+
 func (radar *Radar) Scan(logger lager.Logger, resourceName string) error {
 	leaseLogger := logger.Session("lease", lager.Data{
 		"resource": resourceName,
@@ -219,12 +255,26 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 
 	pipelineName := radar.db.GetPipelineName()
 
+	var resourceTypeVersion atc.Version
+	_, found = resourceTypes.Lookup(resourceConfig.Type)
+	if found {
+		savedResourceType, resourceTypeFound, err := radar.db.GetResourceType(resourceConfig.Type)
+		if err != nil {
+			logger.Error("failed-to-find-resource-type", err)
+			return err
+		}
+		if resourceTypeFound {
+			resourceTypeVersion = atc.Version(savedResourceType.Version)
+		}
+	}
+
 	session := resource.Session{
 		ID: worker.Identifier{
-			ResourceID:  savedResource.ID,
-			Stage:       db.ContainerStageRun,
-			CheckType:   resourceConfig.Type,
-			CheckSource: resourceConfig.Source,
+			ResourceTypeVersion: resourceTypeVersion,
+			ResourceID:          savedResource.ID,
+			Stage:               db.ContainerStageRun,
+			CheckType:           resourceConfig.Type,
+			CheckSource:         resourceConfig.Source,
 		},
 		Metadata: worker.Metadata{
 			Type:         db.ContainerTypeCheck,
@@ -294,6 +344,76 @@ func (radar *Radar) scan(logger lager.Logger, resourceConfig atc.ResourceConfig,
 	return nil
 }
 
+func (radar *Radar) resourceTypeScan(logger lager.Logger, resourceType atc.ResourceType) error {
+	pipelineName := radar.db.GetPipelineName()
+
+	session := resource.Session{
+		ID: worker.Identifier{
+			Stage:               db.ContainerStageCheck,
+			CheckType:           resourceType.Type,
+			CheckSource:         resourceType.Source,
+			ImageResourceType:   resourceType.Type,
+			ImageResourceSource: resourceType.Source,
+		},
+		Metadata: worker.Metadata{
+			Type:                 db.ContainerTypeCheck,
+			PipelineName:         pipelineName,
+			WorkingDirectory:     "",
+			EnvironmentVariables: nil,
+		},
+		Ephemeral: true,
+	}
+
+	res, err := radar.tracker.Init(
+		logger.Session("check-image"),
+		resource.EmptyMetadata{},
+		session,
+		resource.ResourceType(resourceType.Type),
+		[]string{},
+		atc.ResourceTypes{},
+		worker.NoopImageFetchingDelegate{},
+	)
+	if err != nil {
+		return err
+	}
+
+	defer res.Release(nil)
+
+	logger.Debug("checking")
+
+	newVersions, err := res.Check(resourceType.Source, atc.Version{})
+	if err != nil {
+		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
+			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
+			return nil
+		}
+
+		logger.Error("failed-to-check", err)
+		return err
+	}
+
+	if len(newVersions) == 0 {
+		logger.Debug("no-new-versions")
+		return nil
+	}
+
+	logger.Info("versions-found", lager.Data{
+		"versions": newVersions,
+		"total":    len(newVersions),
+	})
+
+	version := newVersions[len(newVersions)-1]
+	err = radar.db.SaveResourceTypeVersion(resourceType, version)
+	if err != nil {
+		logger.Error("failed-to-save-resource-type-version", err, lager.Data{
+			"version": version,
+		})
+		return err
+	}
+
+	return nil
+}
+
 func (radar *Radar) checkInterval(resourceConfig atc.ResourceConfig) (time.Duration, error) {
 	interval := radar.defaultInterval
 	if resourceConfig.CheckEvery != "" {
@@ -329,4 +449,25 @@ func (radar *Radar) getResourceConfig(logger lager.Logger, resourceName string) 
 	}
 
 	return resourceConfig, config.ResourceTypes, nil
+}
+
+func (radar *Radar) getResourceTypeConfig(logger lager.Logger, resourceTypeName string) (atc.ResourceType, error) {
+	config, _, found, err := radar.db.GetConfig()
+	if err != nil {
+		logger.Error("failed-to-get-config", err)
+		return atc.ResourceType{}, err
+	}
+
+	if !found {
+		logger.Info("pipeline-removed")
+		return atc.ResourceType{}, errPipelineRemoved
+	}
+
+	resourceType, found := config.ResourceTypes.Lookup(resourceTypeName)
+	if !found {
+		logger.Info("resource-type-removed-from-configuration")
+		return resourceType, ResourceNotConfiguredError{ResourceName: resourceTypeName}
+	}
+
+	return resourceType, nil
 }

@@ -39,6 +39,7 @@ type Image interface {
 	Volume() Volume
 	Metadata() ImageMetadata
 	Release(*time.Duration)
+	Version() atc.Version
 }
 
 type ImageMetadata struct {
