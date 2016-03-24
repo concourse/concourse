@@ -144,32 +144,25 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 	conditions := []string{}
 	params := []interface{}{}
 
+	addParam := func(column string, param interface{}) {
+		conditions = append(conditions, fmt.Sprintf("%s = $%d", column, len(params)+1))
+		params = append(params, param)
+	}
+
 	if isValidCheckID(id) {
 		checkSourceBlob, err := json.Marshal(id.CheckSource)
 		if err != nil {
 			return SavedContainer{}, false, err
 		}
 
-		conditions = append(conditions, "resource_id = $1")
-		params = append(params, id.ResourceID)
-
-		conditions = append(conditions, "check_type = $2")
-		params = append(params, id.CheckType)
-
-		conditions = append(conditions, "check_source = $3")
-		params = append(params, checkSourceBlob)
-
-		conditions = append(conditions, "stage = $4")
-		params = append(params, string(id.Stage))
+		addParam("resource_id", id.ResourceID)
+		addParam("check_type", id.CheckType)
+		addParam("check_source", checkSourceBlob)
+		addParam("stage", string(id.Stage))
 	} else if isValidStepID(id) {
-		conditions = append(conditions, "build_id = $1")
-		params = append(params, id.BuildID)
-
-		conditions = append(conditions, "plan_id = $2")
-		params = append(params, string(id.PlanID))
-
-		conditions = append(conditions, "stage = $3")
-		params = append(params, string(id.Stage))
+		addParam("build_id", id.BuildID)
+		addParam("plan_id", string(id.PlanID))
+		addParam("stage", string(id.Stage))
 	} else {
 		return SavedContainer{}, false, ErrInvalidIdentifier
 	}
@@ -180,14 +173,13 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 			return SavedContainer{}, false, err
 		}
 
-		conditions = append(conditions, fmt.Sprintf("image_resource_source = $%d", len(params)+1))
-		params = append(params, string(marshaled))
-
-		conditions = append(conditions, fmt.Sprintf("image_resource_type = $%d", len(params)+1))
-		params = append(params, id.ImageResourceType)
+		addParam("image_resource_source", string(marshaled))
+		addParam("image_resource_type", id.ImageResourceType)
 	} else {
-		conditions = append(conditions, "image_resource_source IS NULL")
-		conditions = append(conditions, "image_resource_type IS NULL")
+		conditions = append(conditions, []string{
+			"image_resource_source IS NULL",
+			"image_resource_type IS NULL",
+		}...)
 	}
 
 	selectQuery += "WHERE " + strings.Join(conditions, " AND ")
