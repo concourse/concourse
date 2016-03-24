@@ -5,7 +5,6 @@ import (
 	"io"
 	"sync"
 
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 )
 
@@ -16,10 +15,10 @@ type FakeImageFetchingDelegate struct {
 	stderrReturns     struct {
 		result1 io.Writer
 	}
-	ImageVersionDeterminedStub        func(db.VolumeIdentifier) error
+	ImageVersionDeterminedStub        func(worker.VolumeIdentifier) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
-		arg1 db.VolumeIdentifier
+		arg1 worker.VolumeIdentifier
 	}
 	imageVersionDeterminedReturns struct {
 		result1 error
@@ -50,10 +49,10 @@ func (fake *FakeImageFetchingDelegate) StderrReturns(result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakeImageFetchingDelegate) ImageVersionDetermined(arg1 db.VolumeIdentifier) error {
+func (fake *FakeImageFetchingDelegate) ImageVersionDetermined(arg1 worker.VolumeIdentifier) error {
 	fake.imageVersionDeterminedMutex.Lock()
 	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
-		arg1 db.VolumeIdentifier
+		arg1 worker.VolumeIdentifier
 	}{arg1})
 	fake.imageVersionDeterminedMutex.Unlock()
 	if fake.ImageVersionDeterminedStub != nil {
@@ -69,7 +68,7 @@ func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedCallCount() int {
 	return len(fake.imageVersionDeterminedArgsForCall)
 }
 
-func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedArgsForCall(i int) db.VolumeIdentifier {
+func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedArgsForCall(i int) worker.VolumeIdentifier {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	return fake.imageVersionDeterminedArgsForCall[i].arg1

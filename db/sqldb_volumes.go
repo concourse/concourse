@@ -242,7 +242,7 @@ func (db *SQLDB) SetVolumeTTL(handle string, ttl time.Duration) error {
 	return err
 }
 
-func (db *SQLDB) GetVolumeTTL(handle string) (time.Duration, error) {
+func (db *SQLDB) GetVolumeTTL(handle string) (time.Duration, bool, error) {
 	var ttl time.Duration
 
 	err := db.conn.QueryRow(`
@@ -250,8 +250,13 @@ func (db *SQLDB) GetVolumeTTL(handle string) (time.Duration, error) {
 		FROM volumes
 		WHERE handle = $1
 	`, handle).Scan(&ttl)
+	if err == sql.ErrNoRows {
+		return 0, false, nil
+	} else if err != nil {
+		return 0, false, err
+	}
 
-	return ttl, err
+	return ttl, true, nil
 }
 
 func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {

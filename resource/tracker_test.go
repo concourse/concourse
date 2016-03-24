@@ -3,18 +3,15 @@ package resource_test
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource/fakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
 	"github.com/concourse/baggageclaim"
-	bfakes "github.com/concourse/baggageclaim/fakes"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/concourse/atc/resource"
@@ -26,7 +23,6 @@ func (m testMetadata) Env() []string { return m }
 
 var _ = Describe("Tracker", func() {
 	var (
-		fakeDB      *fakes.FakeTrackerDB
 		tracker     Tracker
 		customTypes atc.ResourceTypes
 	)
@@ -41,8 +37,7 @@ var _ = Describe("Tracker", func() {
 	}
 
 	BeforeEach(func() {
-		fakeDB = new(fakes.FakeTrackerDB)
-		tracker = NewTracker(workerClient, fakeDB)
+		tracker = NewTracker(workerClient)
 		customTypes = atc.ResourceTypes{
 			{
 				Name:   "custom-type-a",
@@ -206,161 +201,143 @@ var _ = Describe("Tracker", func() {
 					satisfyingWorker.CreateContainerReturns(fakeContainer, nil)
 				})
 
-				Context("when the worker supports volume management", func() {
-					var fakeBaggageclaimClient *bfakes.FakeClient
+				Context("when the cache is already present", func() {
+					var foundVolume *wfakes.FakeVolume
 
 					BeforeEach(func() {
-						fakeBaggageclaimClient = new(bfakes.FakeClient)
-						satisfyingWorker.VolumeManagerReturns(fakeBaggageclaimClient, true)
+						foundVolume = new(wfakes.FakeVolume)
+						foundVolume.HandleReturns("found-volume-handle")
+						cacheIdentifier.FindOnReturns(foundVolume, true, nil)
+
+						cacheIdentifier.VolumeIdentifierReturns(worker.VolumeIdentifier{
+							ResourceVersion: atc.Version{"some": "theversion"},
+							ResourceHash:    "hash",
+						})
+
+						satisfyingWorker.NameReturns("some-worker")
 					})
 
-					Context("when the cache is already present", func() {
-						var foundVolume *bfakes.FakeVolume
+					It("does not error and returns a resource", func() {
+						Expect(initErr).NotTo(HaveOccurred())
+						Expect(initResource).NotTo(BeNil())
+					})
 
-						BeforeEach(func() {
-							foundVolume = new(bfakes.FakeVolume)
-							foundVolume.HandleReturns("found-volume-handle")
-							cacheIdentifier.FindOnReturns(foundVolume, true, nil)
+					It("chose the worker satisfying the resource type and tags", func() {
+						actualSpec, actualCustomTypes := workerClient.SatisfyingArgsForCall(0)
+						Expect(actualSpec).To(Equal(
+							worker.WorkerSpec{
+								ResourceType: "type1",
+								Tags:         []string{"resource", "tags"},
+							},
+						))
+						Expect(actualCustomTypes).To(Equal(customTypes))
+					})
 
-							cacheIdentifier.VolumeIdentifierReturns(db.VolumeIdentifier{
-								ResourceVersion: atc.Version{"some": "theversion"},
-								ResourceHash:    "hash",
-							})
-							satisfyingWorker.NameReturns("some-worker")
-							foundVolume.ExpirationReturns(time.Hour, time.Now(), nil)
-						})
+					It("located it on the correct worker", func() {
+						Expect(cacheIdentifier.FindOnCallCount()).To(Equal(1))
+						_, workerClient := cacheIdentifier.FindOnArgsForCall(0)
+						Expect(workerClient).To(Equal(satisfyingWorker))
+					})
 
-						It("does not error and returns a resource", func() {
-							Expect(initErr).NotTo(HaveOccurred())
-							Expect(initResource).NotTo(BeNil())
-						})
+					It("creates the container with the cache volume", func() {
+						_, _, _, id, containerMetadata, spec, actualCustomTypes := satisfyingWorker.CreateContainerArgsForCall(0)
 
-						It("chose the worker satisfying the resource type and tags", func() {
-							actualSpec, actualCustomTypes := workerClient.SatisfyingArgsForCall(0)
-							Expect(actualSpec).To(Equal(
-								worker.WorkerSpec{
-									ResourceType: "type1",
-									Tags:         []string{"resource", "tags"},
-								},
-							))
-							Expect(actualCustomTypes).To(Equal(customTypes))
-						})
+						Expect(id).To(Equal(session.ID))
+						Expect(containerMetadata).To(Equal(session.Metadata))
+						resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
-						It("located it on the correct worker", func() {
-							Expect(cacheIdentifier.FindOnCallCount()).To(Equal(1))
-							_, baggageclaimClient := cacheIdentifier.FindOnArgsForCall(0)
-							Expect(baggageclaimClient).To(Equal(fakeBaggageclaimClient))
-						})
+						Expect(resourceSpec.Type).To(Equal(string(initType)))
+						Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
+						Expect(resourceSpec.Ephemeral).To(Equal(true))
+						Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
+						Expect(resourceSpec.Cache).To(Equal(worker.VolumeMount{
+							Volume:    foundVolume,
+							MountPath: "/tmp/build/get",
+						}))
 
-						It("creates the container with the cache volume", func() {
-							_, _, _, id, containerMetadata, spec, actualCustomTypes := satisfyingWorker.CreateContainerArgsForCall(0)
+						Expect(actualCustomTypes).To(Equal(customTypes))
+					})
 
-							Expect(id).To(Equal(session.ID))
-							Expect(containerMetadata).To(Equal(session.Metadata))
-							resourceSpec := spec.(worker.ResourceTypeContainerSpec)
+					It("releases the volume, since the container keeps it alive", func() {
+						Expect(foundVolume.ReleaseCallCount()).To(Equal(1))
+					})
 
-							Expect(resourceSpec.Type).To(Equal(string(initType)))
-							Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
-							Expect(resourceSpec.Ephemeral).To(Equal(true))
-							Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-							Expect(resourceSpec.Cache).To(Equal(worker.VolumeMount{
-								Volume:    foundVolume,
-								MountPath: "/tmp/build/get",
-							}))
-
-							Expect(actualCustomTypes).To(Equal(customTypes))
-						})
-
-						It("saves the volume information to the database", func() {
-							Expect(fakeDB.InsertVolumeCallCount()).To(Equal(1))
-							Expect(fakeDB.InsertVolumeArgsForCall(0)).To(Equal(db.Volume{
-								Handle:     "found-volume-handle",
-								WorkerName: "some-worker",
-								TTL:        time.Hour,
-								VolumeIdentifier: db.VolumeIdentifier{
-									ResourceVersion: atc.Version{"some": "theversion"},
-									ResourceHash:    "hash",
-								},
-							}))
-						})
-
-						It("releases the volume, since the container keeps it alive", func() {
-							Expect(foundVolume.ReleaseCallCount()).To(Equal(1))
-						})
-
-						Describe("the cache", func() {
-							Describe("IsInitialized", func() {
-								Context("when the volume has the initialized property set", func() {
-									BeforeEach(func() {
-										foundVolume.PropertiesReturns(baggageclaim.VolumeProperties{
-											"initialized": "any-value",
-										}, nil)
-									})
-
-									It("returns true", func() {
-										Expect(initCache.IsInitialized()).To(BeTrue())
-									})
+					Describe("the cache", func() {
+						Describe("IsInitialized", func() {
+							Context("when the volume has the initialized property set", func() {
+								BeforeEach(func() {
+									foundVolume.PropertiesReturns(baggageclaim.VolumeProperties{
+										"initialized": "any-value",
+									}, nil)
 								})
 
-								Context("when the volume has no initialized property", func() {
-									BeforeEach(func() {
-										foundVolume.PropertiesReturns(baggageclaim.VolumeProperties{}, nil)
-									})
-
-									It("returns false", func() {
-										initialized, err := initCache.IsInitialized()
-										Expect(initialized).To(BeFalse())
-										Expect(err).ToNot(HaveOccurred())
-									})
-								})
-
-								Context("when getting the properties fails", func() {
-									disaster := errors.New("nope")
-
-									BeforeEach(func() {
-										foundVolume.PropertiesReturns(nil, disaster)
-									})
-
-									It("returns the error", func() {
-										_, err := initCache.IsInitialized()
-										Expect(err).To(Equal(disaster))
-									})
+								It("returns true", func() {
+									Expect(initCache.IsInitialized()).To(BeTrue())
 								})
 							})
 
-							Describe("Initialize", func() {
-								It("sets the initialized property on the volume", func() {
-									Expect(initCache.Initialize()).To(Succeed())
-
-									Expect(foundVolume.SetPropertyCallCount()).To(Equal(1))
-									name, value := foundVolume.SetPropertyArgsForCall(0)
-									Expect(name).To(Equal("initialized"))
-									Expect(value).To(Equal("yep"))
+							Context("when the volume has no initialized property", func() {
+								BeforeEach(func() {
+									foundVolume.PropertiesReturns(baggageclaim.VolumeProperties{}, nil)
 								})
 
-								Context("when setting the property fails", func() {
-									disaster := errors.New("nope")
+								It("returns false", func() {
+									initialized, err := initCache.IsInitialized()
+									Expect(initialized).To(BeFalse())
+									Expect(err).ToNot(HaveOccurred())
+								})
+							})
 
-									BeforeEach(func() {
-										foundVolume.SetPropertyReturns(disaster)
-									})
+							Context("when getting the properties fails", func() {
+								disaster := errors.New("nope")
 
-									It("returns the error", func() {
-										err := initCache.Initialize()
-										Expect(err).To(Equal(disaster))
-									})
+								BeforeEach(func() {
+									foundVolume.PropertiesReturns(nil, disaster)
+								})
+
+								It("returns the error", func() {
+									_, err := initCache.IsInitialized()
+									Expect(err).To(Equal(disaster))
+								})
+							})
+						})
+
+						Describe("Initialize", func() {
+							It("sets the initialized property on the volume", func() {
+								Expect(initCache.Initialize()).To(Succeed())
+
+								Expect(foundVolume.SetPropertyCallCount()).To(Equal(1))
+								name, value := foundVolume.SetPropertyArgsForCall(0)
+								Expect(name).To(Equal("initialized"))
+								Expect(value).To(Equal("yep"))
+							})
+
+							Context("when setting the property fails", func() {
+								disaster := errors.New("nope")
+
+								BeforeEach(func() {
+									foundVolume.SetPropertyReturns(disaster)
+								})
+
+								It("returns the error", func() {
+									err := initCache.Initialize()
+									Expect(err).To(Equal(disaster))
 								})
 							})
 						})
 					})
+				})
 
-					Context("when an initialized volume for the cache is not present", func() {
-						var createdVolume *bfakes.FakeVolume
+				Context("when an initialized volume for the cache is not present", func() {
+					BeforeEach(func() {
+						cacheIdentifier.FindOnReturns(nil, false, nil)
+					})
+
+					Context("when creating the cache succeeds", func() {
+						var createdVolume *wfakes.FakeVolume
 
 						BeforeEach(func() {
-							cacheIdentifier.FindOnReturns(nil, false, nil)
-
-							createdVolume = new(bfakes.FakeVolume)
+							createdVolume = new(wfakes.FakeVolume)
 							createdVolume.HandleReturns("created-volume-handle")
 
 							cacheIdentifier.CreateOnReturns(createdVolume, nil)
@@ -384,8 +361,8 @@ var _ = Describe("Tracker", func() {
 
 						It("created the volume on the right worker", func() {
 							Expect(cacheIdentifier.CreateOnCallCount()).To(Equal(1))
-							_, baggageclaimClient := cacheIdentifier.CreateOnArgsForCall(0)
-							Expect(baggageclaimClient).To(Equal(fakeBaggageclaimClient))
+							_, workerClient := cacheIdentifier.CreateOnArgsForCall(0)
+							Expect(workerClient).To(Equal(satisfyingWorker))
 						})
 
 						It("creates the container with the created cache volume", func() {
@@ -476,39 +453,39 @@ var _ = Describe("Tracker", func() {
 							})
 						})
 					})
-				})
 
-				Context("when the worker does not support volume management", func() {
-					BeforeEach(func() {
-						satisfyingWorker.VolumeManagerReturns(nil, false)
-					})
-
-					It("creates a container", func() {
-						_, _, _, id, containerMetadata, spec, actualCustomTypes := satisfyingWorker.CreateContainerArgsForCall(0)
-
-						Expect(id).To(Equal(session.ID))
-						Expect(containerMetadata).To(Equal(session.Metadata))
-						resourceSpec := spec.(worker.ResourceTypeContainerSpec)
-
-						Expect(resourceSpec.Type).To(Equal(string(initType)))
-						Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
-						Expect(resourceSpec.Ephemeral).To(Equal(true))
-						Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-						Expect(resourceSpec.Cache).To(BeZero())
-
-						Expect(actualCustomTypes).To(Equal(customTypes))
-					})
-
-					Context("when creating the container fails", func() {
-						disaster := errors.New("oh no!")
-
+					Context("when the worker does not support volume management", func() {
 						BeforeEach(func() {
-							satisfyingWorker.CreateContainerReturns(nil, disaster)
+							cacheIdentifier.CreateOnReturns(nil, worker.ErrNoVolumeManager)
 						})
 
-						It("returns the error and no resource", func() {
-							Expect(initErr).To(Equal(disaster))
-							Expect(initResource).To(BeNil())
+						It("creates a container with no cache", func() {
+							_, _, _, id, containerMetadata, spec, actualCustomTypes := satisfyingWorker.CreateContainerArgsForCall(0)
+
+							Expect(id).To(Equal(session.ID))
+							Expect(containerMetadata).To(Equal(session.Metadata))
+							resourceSpec := spec.(worker.ResourceTypeContainerSpec)
+
+							Expect(resourceSpec.Type).To(Equal(string(initType)))
+							Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
+							Expect(resourceSpec.Ephemeral).To(Equal(true))
+							Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
+							Expect(resourceSpec.Cache).To(BeZero())
+
+							Expect(actualCustomTypes).To(Equal(customTypes))
+						})
+
+						Context("when creating the container fails", func() {
+							disaster := errors.New("oh no!")
+
+							BeforeEach(func() {
+								satisfyingWorker.CreateContainerReturns(nil, disaster)
+							})
+
+							It("returns the error and no resource", func() {
+								Expect(initErr).To(Equal(disaster))
+								Expect(initResource).To(BeNil())
+							})
 						})
 					})
 				})
@@ -565,10 +542,10 @@ var _ = Describe("Tracker", func() {
 			})
 
 			Context("when the container has a cache volume", func() {
-				var cacheVolume *bfakes.FakeVolume
+				var cacheVolume *wfakes.FakeVolume
 
 				BeforeEach(func() {
-					cacheVolume = new(bfakes.FakeVolume)
+					cacheVolume = new(wfakes.FakeVolume)
 					fakeContainer.VolumesReturns([]worker.Volume{cacheVolume})
 				})
 
@@ -722,13 +699,13 @@ var _ = Describe("Tracker", func() {
 
 				Context("when some volumes are found on the worker", func() {
 					var (
-						inputVolume1 *bfakes.FakeVolume
-						inputVolume3 *bfakes.FakeVolume
+						inputVolume1 *wfakes.FakeVolume
+						inputVolume3 *wfakes.FakeVolume
 					)
 
 					BeforeEach(func() {
-						inputVolume1 = new(bfakes.FakeVolume)
-						inputVolume3 = new(bfakes.FakeVolume)
+						inputVolume1 = new(wfakes.FakeVolume)
+						inputVolume3 = new(wfakes.FakeVolume)
 
 						inputSource1.VolumeOnReturns(inputVolume1, true, nil)
 						inputSource2.VolumeOnReturns(nil, false, nil)
@@ -886,25 +863,25 @@ var _ = Describe("Tracker", func() {
 				})
 
 				Context("and some workers have more matching input volumes than others", func() {
-					var inputVolume *bfakes.FakeVolume
-					var inputVolume2 *bfakes.FakeVolume
-					var inputVolume3 *bfakes.FakeVolume
-					var otherInputVolume *bfakes.FakeVolume
+					var inputVolume *wfakes.FakeVolume
+					var inputVolume2 *wfakes.FakeVolume
+					var inputVolume3 *wfakes.FakeVolume
+					var otherInputVolume *wfakes.FakeVolume
 
 					BeforeEach(func() {
-						inputVolume = new(bfakes.FakeVolume)
+						inputVolume = new(wfakes.FakeVolume)
 						inputVolume.HandleReturns("input-volume-1")
 
-						inputVolume2 = new(bfakes.FakeVolume)
+						inputVolume2 = new(wfakes.FakeVolume)
 						inputVolume2.HandleReturns("input-volume-2")
 
-						inputVolume3 = new(bfakes.FakeVolume)
+						inputVolume3 = new(wfakes.FakeVolume)
 						inputVolume3.HandleReturns("input-volume-3")
 
-						otherInputVolume = new(bfakes.FakeVolume)
+						otherInputVolume = new(wfakes.FakeVolume)
 						otherInputVolume.HandleReturns("other-input-volume")
 
-						inputSource1.VolumeOnStub = func(w worker.Worker) (baggageclaim.Volume, bool, error) {
+						inputSource1.VolumeOnStub = func(w worker.Worker) (worker.Volume, bool, error) {
 							if w == satisfyingWorker1 {
 								return inputVolume, true, nil
 							} else if w == satisfyingWorker2 {
@@ -915,7 +892,8 @@ var _ = Describe("Tracker", func() {
 								return nil, false, fmt.Errorf("unexpected worker: %#v\n", w)
 							}
 						}
-						inputSource2.VolumeOnStub = func(w worker.Worker) (baggageclaim.Volume, bool, error) {
+
+						inputSource2.VolumeOnStub = func(w worker.Worker) (worker.Volume, bool, error) {
 							if w == satisfyingWorker1 {
 								return nil, false, nil
 							} else if w == satisfyingWorker2 {

@@ -18,7 +18,6 @@ type BaggageCollectorDB interface {
 	ReapVolume(string) error
 	GetAllPipelines() ([]db.SavedPipeline, error)
 	GetVolumes() ([]db.SavedVolume, error)
-	SetVolumeTTL(string, time.Duration) error
 	GetImageVolumeIdentifiersByBuildID(buildID int) ([]db.VolumeIdentifier, error)
 	GetVolumesForOneOffBuildImageResources() ([]db.SavedVolume, error)
 }
@@ -205,40 +204,28 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 			continue
 		}
 
-		baggageClaimClient, found := volumeWorker.VolumeManager()
+		vLogger := bc.logger.Session("volume", lager.Data{
+			"worker-name": volumeToExpire.WorkerName,
+			"handle":      volumeToExpire.Handle,
+		})
+
+		volume, found, err := volumeWorker.LookupVolume(bc.logger, volumeToExpire.Handle)
+		if err != nil {
+			vLogger.Error("failed-to-lookup-volume", err)
+			continue
+		}
+
 		if !found {
-			bc.logger.Info("no-volume-manager-on-worker", lager.Data{
-				"worker-id": volumeToExpire.WorkerName,
-			})
+			vLogger.Info("volume-not-found")
 			bc.db.ReapVolume(volumeToExpire.Handle)
 			continue
 		}
 
-		volume, found, err := baggageClaimClient.LookupVolume(bc.logger, volumeToExpire.Handle)
-		if !found || err != nil {
-			var e string
-			if err != nil {
-				e = err.Error()
-			}
-			bc.logger.Info("could-not-locate-volume", lager.Data{
-				"error":     e,
-				"worker-id": volumeToExpire.WorkerName,
-				"handle":    volumeToExpire.Handle,
-			})
-			continue
-		}
-
-		bc.logger.Debug("releasing-volume", lager.Data{
-			"worker":        volumeWorker.Name(),
-			"volume-handle": volume.Handle(),
-			"ttl":           ttlForVol,
+		vLogger.Debug("releasing", lager.Data{
+			"ttl": ttlForVol,
 		})
-		volume.Release(worker.FinalTTL(ttlForVol))
 
-		err = bc.db.SetVolumeTTL(volumeToExpire.Handle, ttlForVol)
-		if err != nil {
-			bc.logger.Error("failed-to-update-ttl-in-db", err)
-		}
+		volume.Release(worker.FinalTTL(ttlForVol))
 	}
 
 	return nil

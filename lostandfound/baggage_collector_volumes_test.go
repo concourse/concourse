@@ -13,7 +13,6 @@ import (
 
 	dbfakes "github.com/concourse/atc/db/fakes"
 	wfakes "github.com/concourse/atc/worker/fakes"
-	bcfakes "github.com/concourse/baggageclaim/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,9 +20,8 @@ import (
 
 var _ = Describe("Volumes are reaped", func() {
 	var (
-		fakeWorkerClient       *wfakes.FakeClient
-		fakeWorker             *wfakes.FakeWorker
-		fakeBaggageClaimClient *bcfakes.FakeClient
+		fakeWorkerClient *wfakes.FakeClient
+		fakeWorker       *wfakes.FakeWorker
 
 		fakePipelineDBFactory          *dbfakes.FakePipelineDBFactory
 		fakeBaggageCollectorDB         *fakes.FakeBaggageCollectorDB
@@ -39,7 +37,6 @@ var _ = Describe("Volumes are reaped", func() {
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeWorker = new(wfakes.FakeWorker)
-		fakeBaggageClaimClient = new(bcfakes.FakeClient)
 		baggageCollectorLogger := lagertest.NewTestLogger("test")
 		fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
@@ -165,26 +162,10 @@ var _ = Describe("Volumes are reaped", func() {
 			})
 		})
 
-		Context("baggage claim is no longer found on the worker", func() {
-			BeforeEach(func() {
-				fakeWorkerClient.GetWorkerReturns(fakeWorker, nil)
-				fakeWorker.VolumeManagerReturns(nil, false)
-			})
-
-			It("removes the volume from the database", func() {
-				err := baggageCollector.Collect()
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(fakeBaggageCollectorDB.ReapVolumeCallCount()).To(Equal(1))
-				Expect(fakeBaggageCollectorDB.ReapVolumeArgsForCall(0)).To(Equal(returnedSavedVolume.Handle))
-			})
-		})
-
 		Context("the volume is no longer found on the worker", func() {
 			BeforeEach(func() {
 				fakeWorkerClient.GetWorkerReturns(fakeWorker, nil)
-				fakeWorker.VolumeManagerReturns(nil, false)
-				fakeBaggageClaimClient.LookupVolumeReturns(nil, false, errors.New("could-not-locate-volume"))
+				fakeWorker.LookupVolumeReturns(nil, false, nil)
 			})
 
 			It("removes the volume from the database", func() {
@@ -195,7 +176,5 @@ var _ = Describe("Volumes are reaped", func() {
 				Expect(fakeBaggageCollectorDB.ReapVolumeArgsForCall(0)).To(Equal(returnedSavedVolume.Handle))
 			})
 		})
-
 	})
-
 })

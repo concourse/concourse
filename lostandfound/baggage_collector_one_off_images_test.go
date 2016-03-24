@@ -14,7 +14,6 @@ import (
 	"github.com/concourse/atc/lostandfound/fakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
-	bcfakes "github.com/concourse/baggageclaim/fakes"
 )
 
 var _ = Describe("Baggage-collecting image resource volumes created by one-off builds", func() {
@@ -23,9 +22,8 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		fakeWorkerClient *wfakes.FakeClient
 		worker1          *wfakes.FakeWorker
 
-		worker2             *wfakes.FakeWorker
-		baggageClaimClient2 *bcfakes.FakeClient
-		volume2             *bcfakes.FakeVolume
+		worker2 *wfakes.FakeWorker
+		volume2 *wfakes.FakeVolume
 
 		fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
 		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
@@ -46,10 +44,8 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		worker1 = new(wfakes.FakeWorker)
 
 		worker2 = new(wfakes.FakeWorker)
-		baggageClaimClient2 = new(bcfakes.FakeClient)
-		worker2.VolumeManagerReturns(baggageClaimClient2, true)
-		volume2 = new(bcfakes.FakeVolume)
-		baggageClaimClient2.LookupVolumeReturns(volume2, true, nil)
+		volume2 = new(wfakes.FakeVolume)
+		worker2.LookupVolumeReturns(volume2, true, nil)
 
 		workerMap := map[string]*wfakes.FakeWorker{
 			"worker1": worker1,
@@ -156,18 +152,10 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		Expect(fakeBaggageCollectorDB.GetVolumesCallCount()).To(Equal(1))
 		Expect(fakeWorkerClient.GetWorkerCallCount()).To(Equal(2))
 
-		Expect(worker1.VolumeManagerCallCount()).To(Equal(0))
-		Expect(worker2.VolumeManagerCallCount()).To(Equal(1))
-
-		Expect(baggageClaimClient2.LookupVolumeCallCount()).To(Equal(1))
-		_, handle := baggageClaimClient2.LookupVolumeArgsForCall(0)
+		Expect(worker2.LookupVolumeCallCount()).To(Equal(1))
+		_, handle := worker2.LookupVolumeArgsForCall(0)
 		Expect(handle).To(Equal("volume2"))
 		Expect(volume2.ReleaseCallCount()).To(Equal(1))
 		Expect(volume2.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(expectedLatestVersionTTL)))
-
-		Expect(fakeBaggageCollectorDB.SetVolumeTTLCallCount()).To(Equal(1))
-		handle, ttl := fakeBaggageCollectorDB.SetVolumeTTLArgsForCall(0)
-		Expect(handle).To(Equal("volume2"))
-		Expect(ttl).To(Equal(expectedLatestVersionTTL))
 	})
 })

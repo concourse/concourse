@@ -16,16 +16,13 @@ import (
 	"github.com/concourse/atc/lostandfound/fakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
-	"github.com/concourse/baggageclaim"
-	bcfakes "github.com/concourse/baggageclaim/fakes"
 )
 
 var _ = Describe("Baggage Collector", func() {
 
 	var (
-		fakeWorkerClient       *wfakes.FakeClient
-		fakeWorker             *wfakes.FakeWorker
-		fakeBaggageClaimClient *bcfakes.FakeClient
+		fakeWorkerClient *wfakes.FakeClient
+		fakeWorker       *wfakes.FakeWorker
 
 		fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
 		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
@@ -56,9 +53,7 @@ var _ = Describe("Baggage Collector", func() {
 			for _, example := range examples {
 				fakeWorkerClient = new(wfakes.FakeClient)
 				fakeWorker = new(wfakes.FakeWorker)
-				fakeBaggageClaimClient = new(bcfakes.FakeClient)
 				fakeWorkerClient.GetWorkerReturns(fakeWorker, nil)
-				fakeWorker.VolumeManagerReturns(fakeBaggageClaimClient, true)
 				baggageCollectorLogger := lagertest.NewTestLogger("test")
 
 				fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
@@ -136,19 +131,19 @@ var _ = Describe("Baggage Collector", func() {
 					return fakePipelineDBs[savedPipeline.Name]
 				}
 
-				fakeVolumes := map[string]*bcfakes.FakeVolume{}
+				fakeVolumes := map[string]*wfakes.FakeVolume{}
 
 				var savedVolumes []db.SavedVolume
 				for _, volume := range example.volumeData {
 					savedVolumes = append(savedVolumes, db.SavedVolume{
 						Volume: volume,
 					})
-					fakeVolumes[volume.Handle] = new(bcfakes.FakeVolume)
+					fakeVolumes[volume.Handle] = new(wfakes.FakeVolume)
 				}
 
 				fakeBaggageCollectorDB.GetVolumesReturns(savedVolumes, nil)
 
-				fakeBaggageClaimClient.LookupVolumeStub = func(_ lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
+				fakeWorker.LookupVolumeStub = func(_ lager.Logger, handle string) (worker.Volume, bool, error) {
 					vol, ok := fakeVolumes[handle]
 					Expect(ok).To(BeTrue())
 					return vol, true, nil
@@ -157,10 +152,10 @@ var _ = Describe("Baggage Collector", func() {
 				err = baggageCollector.Collect()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeBaggageClaimClient.LookupVolumeCallCount()).To(Equal(len(example.expectedTTLs)))
+				Expect(fakeWorker.LookupVolumeCallCount()).To(Equal(len(example.expectedTTLs)))
 				var actualHandles []string
-				for i := 0; i < fakeBaggageClaimClient.LookupVolumeCallCount(); i++ {
-					_, actualHandle := fakeBaggageClaimClient.LookupVolumeArgsForCall(i)
+				for i := 0; i < fakeWorker.LookupVolumeCallCount(); i++ {
+					_, actualHandle := fakeWorker.LookupVolumeArgsForCall(i)
 					actualHandles = append(actualHandles, actualHandle)
 				}
 
@@ -170,17 +165,6 @@ var _ = Describe("Baggage Collector", func() {
 					actualTTL := fakeVolumes[handle].ReleaseArgsForCall(0)
 					Expect(actualTTL).To(Equal(worker.FinalTTL(expectedTTL)))
 					expectedHandles = append(expectedHandles, handle)
-				}
-
-				Expect(actualHandles).To(ConsistOf(expectedHandles))
-				Expect(fakeBaggageCollectorDB.SetVolumeTTLCallCount()).To(Equal(len(example.expectedTTLs)))
-				actualHandles = nil
-
-				for i := 0; i < fakeBaggageCollectorDB.SetVolumeTTLCallCount(); i++ {
-					actualHandle, actualTTL := fakeBaggageCollectorDB.SetVolumeTTLArgsForCall(i)
-					actualHandles = append(actualHandles, actualHandle)
-
-					Expect(actualTTL).To(Equal(example.expectedTTLs[actualHandle]))
 				}
 
 				Expect(actualHandles).To(ConsistOf(expectedHandles))

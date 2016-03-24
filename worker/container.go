@@ -185,14 +185,19 @@ func (container *gardenWorkerContainer) setVolumes(
 		}
 
 		if !volumeFound {
-			volumeLogger.Error("volume-is-missing", ErrMissingVolume)
+			volumeLogger.Error("volume-is-missing-on-worker", ErrMissingVolume)
 			return nil, ErrMissingVolume
 		}
 
-		volume, err := volumeFactory.Build(volumeLogger, baggageClaimVolume)
+		volume, volumeFound, err := volumeFactory.Build(volumeLogger, baggageClaimVolume)
 		if err != nil {
 			volumeLogger.Error("failed-to-build-volume", nil)
 			return nil, err
+		}
+
+		if !volumeFound {
+			volumeLogger.Error("volume-is-missing-in-database", ErrMissingVolume)
+			return nil, ErrMissingVolume
 		}
 
 		volumes = append(volumes, volume)

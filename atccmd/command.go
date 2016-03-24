@@ -139,10 +139,10 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	trackerFactory := resource.TrackerFactory{DB: sqlDB}
+	trackerFactory := resource.TrackerFactory{}
 	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory)
 
-	tracker := resource.NewTracker(workerClient, sqlDB)
+	tracker := resource.NewTracker(workerClient)
 	engine := cmd.constructEngine(sqlDB, workerClient, tracker)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(

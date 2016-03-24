@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 )
 
 type FakeTaskDelegate struct {
@@ -29,20 +29,12 @@ type FakeTaskDelegate struct {
 	failedArgsForCall []struct {
 		arg1 error
 	}
-	ImageVersionDeterminedStub        func(db.VolumeIdentifier) error
+	ImageVersionDeterminedStub        func(worker.VolumeIdentifier) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
-		arg1 db.VolumeIdentifier
+		arg1 worker.VolumeIdentifier
 	}
 	imageVersionDeterminedReturns struct {
-		result1 error
-	}
-	InsertOutputVolumeStub        func(db.Volume) error
-	insertOutputVolumeMutex       sync.RWMutex
-	insertOutputVolumeArgsForCall []struct {
-		arg1 db.Volume
-	}
-	insertOutputVolumeReturns struct {
 		result1 error
 	}
 	StdoutStub        func() io.Writer
@@ -143,10 +135,10 @@ func (fake *FakeTaskDelegate) FailedArgsForCall(i int) error {
 	return fake.failedArgsForCall[i].arg1
 }
 
-func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 db.VolumeIdentifier) error {
+func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 worker.VolumeIdentifier) error {
 	fake.imageVersionDeterminedMutex.Lock()
 	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
-		arg1 db.VolumeIdentifier
+		arg1 worker.VolumeIdentifier
 	}{arg1})
 	fake.imageVersionDeterminedMutex.Unlock()
 	if fake.ImageVersionDeterminedStub != nil {
@@ -162,7 +154,7 @@ func (fake *FakeTaskDelegate) ImageVersionDeterminedCallCount() int {
 	return len(fake.imageVersionDeterminedArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) db.VolumeIdentifier {
+func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) worker.VolumeIdentifier {
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	return fake.imageVersionDeterminedArgsForCall[i].arg1
@@ -171,38 +163,6 @@ func (fake *FakeTaskDelegate) ImageVersionDeterminedArgsForCall(i int) db.Volume
 func (fake *FakeTaskDelegate) ImageVersionDeterminedReturns(result1 error) {
 	fake.ImageVersionDeterminedStub = nil
 	fake.imageVersionDeterminedReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeTaskDelegate) InsertOutputVolume(arg1 db.Volume) error {
-	fake.insertOutputVolumeMutex.Lock()
-	fake.insertOutputVolumeArgsForCall = append(fake.insertOutputVolumeArgsForCall, struct {
-		arg1 db.Volume
-	}{arg1})
-	fake.insertOutputVolumeMutex.Unlock()
-	if fake.InsertOutputVolumeStub != nil {
-		return fake.InsertOutputVolumeStub(arg1)
-	} else {
-		return fake.insertOutputVolumeReturns.result1
-	}
-}
-
-func (fake *FakeTaskDelegate) InsertOutputVolumeCallCount() int {
-	fake.insertOutputVolumeMutex.RLock()
-	defer fake.insertOutputVolumeMutex.RUnlock()
-	return len(fake.insertOutputVolumeArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) InsertOutputVolumeArgsForCall(i int) db.Volume {
-	fake.insertOutputVolumeMutex.RLock()
-	defer fake.insertOutputVolumeMutex.RUnlock()
-	return fake.insertOutputVolumeArgsForCall[i].arg1
-}
-
-func (fake *FakeTaskDelegate) InsertOutputVolumeReturns(result1 error) {
-	fake.InsertOutputVolumeStub = nil
-	fake.insertOutputVolumeReturns = struct {
 		result1 error
 	}{result1}
 }

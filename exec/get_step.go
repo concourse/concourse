@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -231,13 +230,8 @@ func (step *GetStep) Result(x interface{}) bool {
 
 // VolumeOn locates the cache for the GetStep's resource and version on the
 // given worker.
-func (step *GetStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, error) {
-	vm, hasVM := worker.VolumeManager()
-	if !hasVM {
-		return nil, false, nil
-	}
-
-	return step.cacheIdentifier.FindOn(step.logger.Session("volume-on"), vm)
+func (step *GetStep) VolumeOn(worker worker.Worker) (worker.Volume, bool, error) {
+	return step.cacheIdentifier.FindOn(step.logger.Session("volume-on"), worker)
 }
 
 // StreamTo streams the resource's data to the destination.

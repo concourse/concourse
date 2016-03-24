@@ -3,7 +3,6 @@ package fakes
 
 import (
 	"sync"
-	"time"
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/lostandfound"
@@ -31,15 +30,6 @@ type FakeBaggageCollectorDB struct {
 	getVolumesReturns     struct {
 		result1 []db.SavedVolume
 		result2 error
-	}
-	SetVolumeTTLStub        func(string, time.Duration) error
-	setVolumeTTLMutex       sync.RWMutex
-	setVolumeTTLArgsForCall []struct {
-		arg1 string
-		arg2 time.Duration
-	}
-	setVolumeTTLReturns struct {
-		result1 error
 	}
 	GetImageVolumeIdentifiersByBuildIDStub        func(buildID int) ([]db.VolumeIdentifier, error)
 	getImageVolumeIdentifiersByBuildIDMutex       sync.RWMutex
@@ -139,39 +129,6 @@ func (fake *FakeBaggageCollectorDB) GetVolumesReturns(result1 []db.SavedVolume, 
 		result1 []db.SavedVolume
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeBaggageCollectorDB) SetVolumeTTL(arg1 string, arg2 time.Duration) error {
-	fake.setVolumeTTLMutex.Lock()
-	fake.setVolumeTTLArgsForCall = append(fake.setVolumeTTLArgsForCall, struct {
-		arg1 string
-		arg2 time.Duration
-	}{arg1, arg2})
-	fake.setVolumeTTLMutex.Unlock()
-	if fake.SetVolumeTTLStub != nil {
-		return fake.SetVolumeTTLStub(arg1, arg2)
-	} else {
-		return fake.setVolumeTTLReturns.result1
-	}
-}
-
-func (fake *FakeBaggageCollectorDB) SetVolumeTTLCallCount() int {
-	fake.setVolumeTTLMutex.RLock()
-	defer fake.setVolumeTTLMutex.RUnlock()
-	return len(fake.setVolumeTTLArgsForCall)
-}
-
-func (fake *FakeBaggageCollectorDB) SetVolumeTTLArgsForCall(i int) (string, time.Duration) {
-	fake.setVolumeTTLMutex.RLock()
-	defer fake.setVolumeTTLMutex.RUnlock()
-	return fake.setVolumeTTLArgsForCall[i].arg1, fake.setVolumeTTLArgsForCall[i].arg2
-}
-
-func (fake *FakeBaggageCollectorDB) SetVolumeTTLReturns(result1 error) {
-	fake.SetVolumeTTLStub = nil
-	fake.setVolumeTTLReturns = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeBaggageCollectorDB) GetImageVolumeIdentifiersByBuildID(buildID int) ([]db.VolumeIdentifier, error) {

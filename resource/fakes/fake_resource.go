@@ -7,7 +7,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
-	"github.com/concourse/baggageclaim"
+	"github.com/concourse/atc/worker"
 )
 
 type FakeResource struct {
@@ -48,11 +48,11 @@ type FakeResource struct {
 	releaseArgsForCall []struct {
 		arg1 *time.Duration
 	}
-	CacheVolumeStub        func() (baggageclaim.Volume, bool)
+	CacheVolumeStub        func() (worker.Volume, bool)
 	cacheVolumeMutex       sync.RWMutex
 	cacheVolumeArgsForCall []struct{}
 	cacheVolumeReturns     struct {
-		result1 baggageclaim.Volume
+		result1 worker.Volume
 		result2 bool
 	}
 }
@@ -184,7 +184,7 @@ func (fake *FakeResource) ReleaseArgsForCall(i int) *time.Duration {
 	return fake.releaseArgsForCall[i].arg1
 }
 
-func (fake *FakeResource) CacheVolume() (baggageclaim.Volume, bool) {
+func (fake *FakeResource) CacheVolume() (worker.Volume, bool) {
 	fake.cacheVolumeMutex.Lock()
 	fake.cacheVolumeArgsForCall = append(fake.cacheVolumeArgsForCall, struct{}{})
 	fake.cacheVolumeMutex.Unlock()
@@ -201,10 +201,10 @@ func (fake *FakeResource) CacheVolumeCallCount() int {
 	return len(fake.cacheVolumeArgsForCall)
 }
 
-func (fake *FakeResource) CacheVolumeReturns(result1 baggageclaim.Volume, result2 bool) {
+func (fake *FakeResource) CacheVolumeReturns(result1 worker.Volume, result2 bool) {
 	fake.CacheVolumeStub = nil
 	fake.cacheVolumeReturns = struct {
-		result1 baggageclaim.Volume
+		result1 worker.Volume
 		result2 bool
 	}{result1, result2}
 }

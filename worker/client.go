@@ -28,6 +28,10 @@ type Client interface {
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 
+	CreateVolume(lager.Logger, VolumeIdentifier, VolumeProperties, bool, time.Duration) (Volume, error)
+	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
+	LookupVolume(lager.Logger, string) (Volume, bool, error)
+
 	Satisfying(WorkerSpec, atc.ResourceTypes) (Worker, error)
 	AllSatisfying(WorkerSpec, atc.ResourceTypes) ([]Worker, error)
 	GetWorker(workerName string) (Worker, error)
@@ -45,6 +49,9 @@ type Container interface {
 	Volumes() []Volume
 	VolumeMounts() []VolumeMount
 }
+
+type VolumeProperties map[string]string
+type VolumeIdentifier db.VolumeIdentifier
 
 type Identifier db.ContainerIdentifier
 type Metadata db.ContainerMetadata

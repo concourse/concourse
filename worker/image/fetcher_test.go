@@ -239,7 +239,7 @@ var _ = Describe("Fetcher", func() {
 									})
 
 									It("saved the image resource version in the database", func() {
-										expectedIdentifier := db.VolumeIdentifier{
+										expectedIdentifier := worker.VolumeIdentifier{
 											ResourceVersion: atc.Version{"v": "1"},
 											ResourceHash:    `docker{"some":"source"}`,
 										}

@@ -59,6 +59,9 @@ type FakeVolume struct {
 	releaseArgsForCall []struct {
 		arg1 *time.Duration
 	}
+	HeartbeatingToDBStub        func()
+	heartbeatingToDBMutex       sync.RWMutex
+	heartbeatingToDBArgsForCall []struct{}
 }
 
 func (fake *FakeVolume) Handle() string {
@@ -246,6 +249,21 @@ func (fake *FakeVolume) ReleaseArgsForCall(i int) *time.Duration {
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
 	return fake.releaseArgsForCall[i].arg1
+}
+
+func (fake *FakeVolume) HeartbeatingToDB() {
+	fake.heartbeatingToDBMutex.Lock()
+	fake.heartbeatingToDBArgsForCall = append(fake.heartbeatingToDBArgsForCall, struct{}{})
+	fake.heartbeatingToDBMutex.Unlock()
+	if fake.HeartbeatingToDBStub != nil {
+		fake.HeartbeatingToDBStub()
+	}
+}
+
+func (fake *FakeVolume) HeartbeatingToDBCallCount() int {
+	fake.heartbeatingToDBMutex.RLock()
+	defer fake.heartbeatingToDBMutex.RUnlock()
+	return len(fake.heartbeatingToDBArgsForCall)
 }
 
 var _ worker.Volume = new(FakeVolume)

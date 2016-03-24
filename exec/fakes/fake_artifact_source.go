@@ -7,7 +7,6 @@ import (
 
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 )
 
 type FakeArtifactSource struct {
@@ -28,13 +27,13 @@ type FakeArtifactSource struct {
 		result1 io.ReadCloser
 		result2 error
 	}
-	VolumeOnStub        func(worker.Worker) (baggageclaim.Volume, bool, error)
+	VolumeOnStub        func(worker.Worker) (worker.Volume, bool, error)
 	volumeOnMutex       sync.RWMutex
 	volumeOnArgsForCall []struct {
 		arg1 worker.Worker
 	}
 	volumeOnReturns struct {
-		result1 baggageclaim.Volume
+		result1 worker.Volume
 		result2 bool
 		result3 error
 	}
@@ -105,7 +104,7 @@ func (fake *FakeArtifactSource) StreamFileReturns(result1 io.ReadCloser, result2
 	}{result1, result2}
 }
 
-func (fake *FakeArtifactSource) VolumeOn(arg1 worker.Worker) (baggageclaim.Volume, bool, error) {
+func (fake *FakeArtifactSource) VolumeOn(arg1 worker.Worker) (worker.Volume, bool, error) {
 	fake.volumeOnMutex.Lock()
 	fake.volumeOnArgsForCall = append(fake.volumeOnArgsForCall, struct {
 		arg1 worker.Worker
@@ -130,10 +129,10 @@ func (fake *FakeArtifactSource) VolumeOnArgsForCall(i int) worker.Worker {
 	return fake.volumeOnArgsForCall[i].arg1
 }
 
-func (fake *FakeArtifactSource) VolumeOnReturns(result1 baggageclaim.Volume, result2 bool, result3 error) {
+func (fake *FakeArtifactSource) VolumeOnReturns(result1 worker.Volume, result2 bool, result3 error) {
 	fake.VolumeOnStub = nil
 	fake.volumeOnReturns = struct {
-		result1 baggageclaim.Volume
+		result1 worker.Volume
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

@@ -242,9 +242,17 @@ var _ = Describe("Keeping track of volumes", func() {
 
 			Context("TTL's", func() {
 				It("can be retrieved by volume handler", func() {
-					actualTTL, err := database.GetVolumeTTL(volumeToInsert.Handle)
+					actualTTL, found, err := database.GetVolumeTTL(volumeToInsert.Handle)
 					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
 					Expect(actualTTL).To(Equal(volumeToInsert.TTL))
+				})
+
+				It("returns false if the volume doesn't exist", func() {
+					actualTTL, found, err := database.GetVolumeTTL("bogus-handle")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeFalse())
+					Expect(actualTTL).To(BeZero())
 				})
 
 				It("can be updated", func() {

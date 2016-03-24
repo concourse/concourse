@@ -4,47 +4,46 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
-	"github.com/concourse/baggageclaim"
+	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
 
 type FakeCacheIdentifier struct {
-	FindOnStub        func(lager.Logger, baggageclaim.Client) (baggageclaim.Volume, bool, error)
+	FindOnStub        func(lager.Logger, worker.Client) (worker.Volume, bool, error)
 	findOnMutex       sync.RWMutex
 	findOnArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 baggageclaim.Client
+		arg2 worker.Client
 	}
 	findOnReturns struct {
-		result1 baggageclaim.Volume
+		result1 worker.Volume
 		result2 bool
 		result3 error
 	}
-	CreateOnStub        func(lager.Logger, baggageclaim.Client) (baggageclaim.Volume, error)
+	CreateOnStub        func(lager.Logger, worker.Client) (worker.Volume, error)
 	createOnMutex       sync.RWMutex
 	createOnArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 baggageclaim.Client
+		arg2 worker.Client
 	}
 	createOnReturns struct {
-		result1 baggageclaim.Volume
+		result1 worker.Volume
 		result2 error
 	}
-	VolumeIdentifierStub        func() db.VolumeIdentifier
+	VolumeIdentifierStub        func() worker.VolumeIdentifier
 	volumeIdentifierMutex       sync.RWMutex
 	volumeIdentifierArgsForCall []struct{}
 	volumeIdentifierReturns     struct {
-		result1 db.VolumeIdentifier
+		result1 worker.VolumeIdentifier
 	}
 }
 
-func (fake *FakeCacheIdentifier) FindOn(arg1 lager.Logger, arg2 baggageclaim.Client) (baggageclaim.Volume, bool, error) {
+func (fake *FakeCacheIdentifier) FindOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, bool, error) {
 	fake.findOnMutex.Lock()
 	fake.findOnArgsForCall = append(fake.findOnArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 baggageclaim.Client
+		arg2 worker.Client
 	}{arg1, arg2})
 	fake.findOnMutex.Unlock()
 	if fake.FindOnStub != nil {
@@ -60,26 +59,26 @@ func (fake *FakeCacheIdentifier) FindOnCallCount() int {
 	return len(fake.findOnArgsForCall)
 }
 
-func (fake *FakeCacheIdentifier) FindOnArgsForCall(i int) (lager.Logger, baggageclaim.Client) {
+func (fake *FakeCacheIdentifier) FindOnArgsForCall(i int) (lager.Logger, worker.Client) {
 	fake.findOnMutex.RLock()
 	defer fake.findOnMutex.RUnlock()
 	return fake.findOnArgsForCall[i].arg1, fake.findOnArgsForCall[i].arg2
 }
 
-func (fake *FakeCacheIdentifier) FindOnReturns(result1 baggageclaim.Volume, result2 bool, result3 error) {
+func (fake *FakeCacheIdentifier) FindOnReturns(result1 worker.Volume, result2 bool, result3 error) {
 	fake.FindOnStub = nil
 	fake.findOnReturns = struct {
-		result1 baggageclaim.Volume
+		result1 worker.Volume
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeCacheIdentifier) CreateOn(arg1 lager.Logger, arg2 baggageclaim.Client) (baggageclaim.Volume, error) {
+func (fake *FakeCacheIdentifier) CreateOn(arg1 lager.Logger, arg2 worker.Client) (worker.Volume, error) {
 	fake.createOnMutex.Lock()
 	fake.createOnArgsForCall = append(fake.createOnArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 baggageclaim.Client
+		arg2 worker.Client
 	}{arg1, arg2})
 	fake.createOnMutex.Unlock()
 	if fake.CreateOnStub != nil {
@@ -95,21 +94,21 @@ func (fake *FakeCacheIdentifier) CreateOnCallCount() int {
 	return len(fake.createOnArgsForCall)
 }
 
-func (fake *FakeCacheIdentifier) CreateOnArgsForCall(i int) (lager.Logger, baggageclaim.Client) {
+func (fake *FakeCacheIdentifier) CreateOnArgsForCall(i int) (lager.Logger, worker.Client) {
 	fake.createOnMutex.RLock()
 	defer fake.createOnMutex.RUnlock()
 	return fake.createOnArgsForCall[i].arg1, fake.createOnArgsForCall[i].arg2
 }
 
-func (fake *FakeCacheIdentifier) CreateOnReturns(result1 baggageclaim.Volume, result2 error) {
+func (fake *FakeCacheIdentifier) CreateOnReturns(result1 worker.Volume, result2 error) {
 	fake.CreateOnStub = nil
 	fake.createOnReturns = struct {
-		result1 baggageclaim.Volume
+		result1 worker.Volume
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCacheIdentifier) VolumeIdentifier() db.VolumeIdentifier {
+func (fake *FakeCacheIdentifier) VolumeIdentifier() worker.VolumeIdentifier {
 	fake.volumeIdentifierMutex.Lock()
 	fake.volumeIdentifierArgsForCall = append(fake.volumeIdentifierArgsForCall, struct{}{})
 	fake.volumeIdentifierMutex.Unlock()
@@ -126,10 +125,10 @@ func (fake *FakeCacheIdentifier) VolumeIdentifierCallCount() int {
 	return len(fake.volumeIdentifierArgsForCall)
 }
 
-func (fake *FakeCacheIdentifier) VolumeIdentifierReturns(result1 db.VolumeIdentifier) {
+func (fake *FakeCacheIdentifier) VolumeIdentifierReturns(result1 worker.VolumeIdentifier) {
 	fake.VolumeIdentifierStub = nil
 	fake.volumeIdentifierReturns = struct {
-		result1 db.VolumeIdentifier
+		result1 worker.VolumeIdentifier
 	}{result1}
 }
 

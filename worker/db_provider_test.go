@@ -115,16 +115,6 @@ var _ = Describe("DBProvider", func() {
 				Expect(workers).To(HaveLen(2))
 			})
 
-			It("constructs workers with baggageclaim clients if they had addresses", func() {
-				vm, ok := workers[0].VolumeManager()
-				Expect(ok).To(BeTrue())
-				Expect(vm).NotTo(BeNil())
-
-				vm, ok = workers[1].VolumeManager()
-				Expect(ok).To(BeFalse())
-				Expect(vm).To(BeNil())
-			})
-
 			Context("creating the connection to garden", func() {
 				var id Identifier
 				var spec ResourceTypeContainerSpec

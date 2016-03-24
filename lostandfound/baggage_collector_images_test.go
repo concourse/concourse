@@ -16,8 +16,6 @@ import (
 	"github.com/concourse/atc/lostandfound/fakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
-	"github.com/concourse/baggageclaim"
-	bcfakes "github.com/concourse/baggageclaim/fakes"
 )
 
 var _ = Describe("Baggage-collecting image resource volumes", func() {
@@ -26,13 +24,11 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			fakeWorkerClient *wfakes.FakeClient
 			workerA          *wfakes.FakeWorker
 
-			workerB                   *wfakes.FakeWorker
-			workerBBaggageClaimClient *bcfakes.FakeClient
-			dockerVolume              *bcfakes.FakeVolume
+			workerB      *wfakes.FakeWorker
+			dockerVolume *wfakes.FakeVolume
 
-			workerC                   *wfakes.FakeWorker
-			workerCBaggageClaimClient *bcfakes.FakeClient
-			crossedWiresVolume        *bcfakes.FakeVolume
+			workerC            *wfakes.FakeWorker
+			crossedWiresVolume *wfakes.FakeVolume
 
 			fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
 			fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
@@ -53,16 +49,12 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			workerA = new(wfakes.FakeWorker)
 
 			workerB = new(wfakes.FakeWorker)
-			workerBBaggageClaimClient = new(bcfakes.FakeClient)
-			workerB.VolumeManagerReturns(workerBBaggageClaimClient, true)
-			dockerVolume = new(bcfakes.FakeVolume)
-			workerBBaggageClaimClient.LookupVolumeReturns(dockerVolume, true, nil)
+			dockerVolume = new(wfakes.FakeVolume)
+			workerB.LookupVolumeReturns(dockerVolume, true, nil)
 
 			workerC = new(wfakes.FakeWorker)
-			workerCBaggageClaimClient = new(bcfakes.FakeClient)
-			workerC.VolumeManagerReturns(workerCBaggageClaimClient, true)
-			crossedWiresVolume = new(bcfakes.FakeVolume)
-			workerCBaggageClaimClient.LookupVolumeReturns(crossedWiresVolume, true, nil)
+			crossedWiresVolume = new(wfakes.FakeVolume)
+			workerC.LookupVolumeReturns(crossedWiresVolume, true, nil)
 
 			workerMap := map[string]*wfakes.FakeWorker{
 				"workerA": workerA,
@@ -183,65 +175,29 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			Expect(fakeBaggageCollectorDB.GetVolumesCallCount()).To(Equal(1))
 			Expect(fakeWorkerClient.GetWorkerCallCount()).To(Equal(3))
 
-			Expect(workerA.VolumeManagerCallCount()).To(Equal(0))
-			Expect(workerB.VolumeManagerCallCount()).To(Equal(1))
-			Expect(workerC.VolumeManagerCallCount()).To(Equal(1))
-
 			var handle string
-			Expect(workerBBaggageClaimClient.LookupVolumeCallCount()).To(Equal(1))
-			_, handle = workerBBaggageClaimClient.LookupVolumeArgsForCall(0)
+			Expect(workerB.LookupVolumeCallCount()).To(Equal(1))
+			_, handle = workerB.LookupVolumeArgsForCall(0)
 			Expect(handle).To(Equal("docker-volume-handle"))
 			Expect(dockerVolume.ReleaseCallCount()).To(Equal(1))
 			Expect(dockerVolume.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(expectedLatestVersionTTL)))
 
-			Expect(workerCBaggageClaimClient.LookupVolumeCallCount()).To(Equal(1))
-			_, handle = workerCBaggageClaimClient.LookupVolumeArgsForCall(0)
+			Expect(workerC.LookupVolumeCallCount()).To(Equal(1))
+			_, handle = workerC.LookupVolumeArgsForCall(0)
 			Expect(handle).To(Equal("crossed-wires-volume-handle"))
 			Expect(crossedWiresVolume.ReleaseCallCount()).To(Equal(1))
 			Expect(crossedWiresVolume.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(expectedOldVersionTTL)))
-
-			Expect(fakeBaggageCollectorDB.SetVolumeTTLCallCount()).To(Equal(2))
-
-			type setVolumeTTLArgs struct {
-				Handle string
-				TTL    time.Duration
-			}
-
-			expectedSetVolumeTTLArgs := []setVolumeTTLArgs{
-				{
-					Handle: "docker-volume-handle",
-					TTL:    expectedLatestVersionTTL,
-				},
-				{
-					Handle: "crossed-wires-volume-handle",
-					TTL:    expectedOldVersionTTL,
-				},
-			}
-
-			var actualSetVolumeTTLArgs []setVolumeTTLArgs
-			for i := range expectedSetVolumeTTLArgs {
-				handle, ttl := fakeBaggageCollectorDB.SetVolumeTTLArgsForCall(i)
-				actualSetVolumeTTLArgs = append(actualSetVolumeTTLArgs, setVolumeTTLArgs{
-					Handle: handle,
-					TTL:    ttl,
-				})
-			}
-
-			Expect(actualSetVolumeTTLArgs).To(ConsistOf(expectedSetVolumeTTLArgs))
 		})
 
 		Context("When the job has no previously finished builds", func() {
 			var (
-				workerABaggageClaimClient *bcfakes.FakeClient
-				gitVolume                 *bcfakes.FakeVolume
+				gitVolume *wfakes.FakeVolume
 			)
 			BeforeEach(func() {
 				fakePipelineDB.GetJobFinishedAndNextBuildReturns(nil, nil, nil)
 
-				workerABaggageClaimClient = new(bcfakes.FakeClient)
-				workerA.VolumeManagerReturns(workerABaggageClaimClient, true)
-				gitVolume = new(bcfakes.FakeVolume)
-				workerABaggageClaimClient.LookupVolumeReturns(gitVolume, true, nil)
+				gitVolume = new(wfakes.FakeVolume)
+				workerA.LookupVolumeReturns(gitVolume, true, nil)
 			})
 
 			It("keeps its cool", func() {
@@ -256,14 +212,12 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 		var (
 			fakeWorkerClient *wfakes.FakeClient
 
-			workerA                   *wfakes.FakeWorker
-			workerABaggageClaimClient *bcfakes.FakeClient
-			volumeA1                  *bcfakes.FakeVolume
-			volumeA2                  *bcfakes.FakeVolume
+			workerA  *wfakes.FakeWorker
+			volumeA1 *wfakes.FakeVolume
+			volumeA2 *wfakes.FakeVolume
 
-			workerB                   *wfakes.FakeWorker
-			workerBBaggageClaimClient *bcfakes.FakeClient
-			volumeB1                  *bcfakes.FakeVolume
+			workerB  *wfakes.FakeWorker
+			volumeB1 *wfakes.FakeVolume
 
 			fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
 			fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
@@ -282,11 +236,9 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			fakeWorkerClient = new(wfakes.FakeClient)
 
 			workerA = new(wfakes.FakeWorker)
-			workerABaggageClaimClient = new(bcfakes.FakeClient)
-			workerA.VolumeManagerReturns(workerABaggageClaimClient, true)
-			volumeA1 = new(bcfakes.FakeVolume)
-			volumeA2 = new(bcfakes.FakeVolume)
-			workerABaggageClaimClient.LookupVolumeStub = func(logger lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
+			volumeA1 = new(wfakes.FakeVolume)
+			volumeA2 = new(wfakes.FakeVolume)
+			workerA.LookupVolumeStub = func(logger lager.Logger, handle string) (worker.Volume, bool, error) {
 				switch handle {
 				case "volume-a1":
 					return volumeA1, true, nil
@@ -298,10 +250,8 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			}
 
 			workerB = new(wfakes.FakeWorker)
-			workerBBaggageClaimClient = new(bcfakes.FakeClient)
-			workerB.VolumeManagerReturns(workerBBaggageClaimClient, true)
-			volumeB1 = new(bcfakes.FakeVolume)
-			workerBBaggageClaimClient.LookupVolumeReturns(volumeB1, true, nil)
+			volumeB1 = new(wfakes.FakeVolume)
+			workerB.LookupVolumeReturns(volumeB1, true, nil)
 
 			fakeWorkerClient.GetWorkerStub = func(name string) (worker.Worker, error) {
 				switch name {
@@ -391,39 +341,6 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 				Expect(volumeB1.ReleaseCallCount()).To(Equal(1))
 				Expect(volumeB1.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(expectedLatestVersionTTL)))
-
-				Expect(fakeBaggageCollectorDB.SetVolumeTTLCallCount()).To(Equal(3))
-
-				type setVolumeTTLArgs struct {
-					Handle string
-					TTL    time.Duration
-				}
-
-				expectedSetVolumeTTLArgs := []setVolumeTTLArgs{
-					{
-						Handle: "volume-a1",
-						TTL:    expectedLatestVersionTTL,
-					},
-					{
-						Handle: "volume-a2",
-						TTL:    expectedOldVersionTTL,
-					},
-					{
-						Handle: "volume-b1",
-						TTL:    expectedLatestVersionTTL,
-					},
-				}
-
-				var actualSetVolumeTTLArgs []setVolumeTTLArgs
-				for i := range expectedSetVolumeTTLArgs {
-					handle, ttl := fakeBaggageCollectorDB.SetVolumeTTLArgsForCall(i)
-					actualSetVolumeTTLArgs = append(actualSetVolumeTTLArgs, setVolumeTTLArgs{
-						Handle: handle,
-						TTL:    ttl,
-					})
-				}
-
-				Expect(actualSetVolumeTTLArgs).To(ConsistOf(expectedSetVolumeTTLArgs))
 			},
 			Entry("and it chooses the ones with the first handle in alphabetical order",
 				[]db.SavedVolume{

@@ -4,10 +4,10 @@ package fakes
 import (
 	"os"
 	"sync"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -46,6 +46,40 @@ type FakeWorker struct {
 	}
 	lookupContainerReturns struct {
 		result1 worker.Container
+		result2 bool
+		result3 error
+	}
+	CreateVolumeStub        func(lager.Logger, worker.VolumeIdentifier, worker.VolumeProperties, bool, time.Duration) (worker.Volume, error)
+	createVolumeMutex       sync.RWMutex
+	createVolumeArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 worker.VolumeIdentifier
+		arg3 worker.VolumeProperties
+		arg4 bool
+		arg5 time.Duration
+	}
+	createVolumeReturns struct {
+		result1 worker.Volume
+		result2 error
+	}
+	ListVolumesStub        func(lager.Logger, worker.VolumeProperties) ([]worker.Volume, error)
+	listVolumesMutex       sync.RWMutex
+	listVolumesArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 worker.VolumeProperties
+	}
+	listVolumesReturns struct {
+		result1 []worker.Volume
+		result2 error
+	}
+	LookupVolumeStub        func(lager.Logger, string) (worker.Volume, bool, error)
+	lookupVolumeMutex       sync.RWMutex
+	lookupVolumeArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
+	}
+	lookupVolumeReturns struct {
+		result1 worker.Volume
 		result2 bool
 		result3 error
 	}
@@ -95,13 +129,6 @@ type FakeWorker struct {
 	nameArgsForCall []struct{}
 	nameReturns     struct {
 		result1 string
-	}
-	VolumeManagerStub        func() (baggageclaim.Client, bool)
-	volumeManagerMutex       sync.RWMutex
-	volumeManagerArgsForCall []struct{}
-	volumeManagerReturns     struct {
-		result1 baggageclaim.Client
-		result2 bool
 	}
 }
 
@@ -209,6 +236,112 @@ func (fake *FakeWorker) LookupContainerReturns(result1 worker.Container, result2
 	fake.LookupContainerStub = nil
 	fake.lookupContainerReturns = struct {
 		result1 worker.Container
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeWorker) CreateVolume(arg1 lager.Logger, arg2 worker.VolumeIdentifier, arg3 worker.VolumeProperties, arg4 bool, arg5 time.Duration) (worker.Volume, error) {
+	fake.createVolumeMutex.Lock()
+	fake.createVolumeArgsForCall = append(fake.createVolumeArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 worker.VolumeIdentifier
+		arg3 worker.VolumeProperties
+		arg4 bool
+		arg5 time.Duration
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.createVolumeMutex.Unlock()
+	if fake.CreateVolumeStub != nil {
+		return fake.CreateVolumeStub(arg1, arg2, arg3, arg4, arg5)
+	} else {
+		return fake.createVolumeReturns.result1, fake.createVolumeReturns.result2
+	}
+}
+
+func (fake *FakeWorker) CreateVolumeCallCount() int {
+	fake.createVolumeMutex.RLock()
+	defer fake.createVolumeMutex.RUnlock()
+	return len(fake.createVolumeArgsForCall)
+}
+
+func (fake *FakeWorker) CreateVolumeArgsForCall(i int) (lager.Logger, worker.VolumeIdentifier, worker.VolumeProperties, bool, time.Duration) {
+	fake.createVolumeMutex.RLock()
+	defer fake.createVolumeMutex.RUnlock()
+	return fake.createVolumeArgsForCall[i].arg1, fake.createVolumeArgsForCall[i].arg2, fake.createVolumeArgsForCall[i].arg3, fake.createVolumeArgsForCall[i].arg4, fake.createVolumeArgsForCall[i].arg5
+}
+
+func (fake *FakeWorker) CreateVolumeReturns(result1 worker.Volume, result2 error) {
+	fake.CreateVolumeStub = nil
+	fake.createVolumeReturns = struct {
+		result1 worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorker) ListVolumes(arg1 lager.Logger, arg2 worker.VolumeProperties) ([]worker.Volume, error) {
+	fake.listVolumesMutex.Lock()
+	fake.listVolumesArgsForCall = append(fake.listVolumesArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 worker.VolumeProperties
+	}{arg1, arg2})
+	fake.listVolumesMutex.Unlock()
+	if fake.ListVolumesStub != nil {
+		return fake.ListVolumesStub(arg1, arg2)
+	} else {
+		return fake.listVolumesReturns.result1, fake.listVolumesReturns.result2
+	}
+}
+
+func (fake *FakeWorker) ListVolumesCallCount() int {
+	fake.listVolumesMutex.RLock()
+	defer fake.listVolumesMutex.RUnlock()
+	return len(fake.listVolumesArgsForCall)
+}
+
+func (fake *FakeWorker) ListVolumesArgsForCall(i int) (lager.Logger, worker.VolumeProperties) {
+	fake.listVolumesMutex.RLock()
+	defer fake.listVolumesMutex.RUnlock()
+	return fake.listVolumesArgsForCall[i].arg1, fake.listVolumesArgsForCall[i].arg2
+}
+
+func (fake *FakeWorker) ListVolumesReturns(result1 []worker.Volume, result2 error) {
+	fake.ListVolumesStub = nil
+	fake.listVolumesReturns = struct {
+		result1 []worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorker) LookupVolume(arg1 lager.Logger, arg2 string) (worker.Volume, bool, error) {
+	fake.lookupVolumeMutex.Lock()
+	fake.lookupVolumeArgsForCall = append(fake.lookupVolumeArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+	}{arg1, arg2})
+	fake.lookupVolumeMutex.Unlock()
+	if fake.LookupVolumeStub != nil {
+		return fake.LookupVolumeStub(arg1, arg2)
+	} else {
+		return fake.lookupVolumeReturns.result1, fake.lookupVolumeReturns.result2, fake.lookupVolumeReturns.result3
+	}
+}
+
+func (fake *FakeWorker) LookupVolumeCallCount() int {
+	fake.lookupVolumeMutex.RLock()
+	defer fake.lookupVolumeMutex.RUnlock()
+	return len(fake.lookupVolumeArgsForCall)
+}
+
+func (fake *FakeWorker) LookupVolumeArgsForCall(i int) (lager.Logger, string) {
+	fake.lookupVolumeMutex.RLock()
+	defer fake.lookupVolumeMutex.RUnlock()
+	return fake.lookupVolumeArgsForCall[i].arg1, fake.lookupVolumeArgsForCall[i].arg2
+}
+
+func (fake *FakeWorker) LookupVolumeReturns(result1 worker.Volume, result2 bool, result3 error) {
+	fake.LookupVolumeStub = nil
+	fake.lookupVolumeReturns = struct {
+		result1 worker.Volume
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -385,31 +518,6 @@ func (fake *FakeWorker) NameReturns(result1 string) {
 	fake.nameReturns = struct {
 		result1 string
 	}{result1}
-}
-
-func (fake *FakeWorker) VolumeManager() (baggageclaim.Client, bool) {
-	fake.volumeManagerMutex.Lock()
-	fake.volumeManagerArgsForCall = append(fake.volumeManagerArgsForCall, struct{}{})
-	fake.volumeManagerMutex.Unlock()
-	if fake.VolumeManagerStub != nil {
-		return fake.VolumeManagerStub()
-	} else {
-		return fake.volumeManagerReturns.result1, fake.volumeManagerReturns.result2
-	}
-}
-
-func (fake *FakeWorker) VolumeManagerCallCount() int {
-	fake.volumeManagerMutex.RLock()
-	defer fake.volumeManagerMutex.RUnlock()
-	return len(fake.volumeManagerArgsForCall)
-}
-
-func (fake *FakeWorker) VolumeManagerReturns(result1 baggageclaim.Client, result2 bool) {
-	fake.VolumeManagerStub = nil
-	fake.volumeManagerReturns = struct {
-		result1 baggageclaim.Client
-		result2 bool
-	}{result1, result2}
 }
 
 var _ worker.Worker = new(FakeWorker)

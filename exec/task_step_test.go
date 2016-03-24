@@ -19,8 +19,6 @@ import (
 	rfakes "github.com/concourse/atc/resource/fakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
-	"github.com/concourse/baggageclaim"
-	bfakes "github.com/concourse/baggageclaim/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -164,14 +162,9 @@ var _ = Describe("GardenFactory", func() {
 
 				Context("when a single worker can be located", func() {
 					var fakeWorker *wfakes.FakeWorker
-					var fakeBaggageclaimClient *bfakes.FakeClient
 
 					BeforeEach(func() {
 						fakeWorker = new(wfakes.FakeWorker)
-
-						fakeBaggageclaimClient = new(bfakes.FakeClient)
-						fakeWorker.VolumeManagerReturns(fakeBaggageclaimClient, true)
-
 						fakeWorkerClient.AllSatisfyingReturns([]worker.Worker{fakeWorker}, nil)
 					})
 
@@ -423,14 +416,14 @@ var _ = Describe("GardenFactory", func() {
 								})
 
 								Context("when the inputs have volumes on the chosen worker", func() {
-									var inputVolume *bfakes.FakeVolume
-									var otherInputVolume *bfakes.FakeVolume
+									var inputVolume *wfakes.FakeVolume
+									var otherInputVolume *wfakes.FakeVolume
 
 									BeforeEach(func() {
-										inputVolume = new(bfakes.FakeVolume)
+										inputVolume = new(wfakes.FakeVolume)
 										inputVolume.HandleReturns("input-volume")
 
-										otherInputVolume = new(bfakes.FakeVolume)
+										otherInputVolume = new(wfakes.FakeVolume)
 										otherInputVolume.HandleReturns("other-input-volume")
 
 										inputSource.VolumeOnReturns(inputVolume, true, nil)
@@ -557,10 +550,10 @@ var _ = Describe("GardenFactory", func() {
 								})
 
 								Context("when the inputs have volumes on the chosen worker", func() {
-									var remappedInputVolume *bfakes.FakeVolume
+									var remappedInputVolume *wfakes.FakeVolume
 
 									BeforeEach(func() {
-										remappedInputVolume = new(bfakes.FakeVolume)
+										remappedInputVolume = new(wfakes.FakeVolume)
 										remappedInputVolume.HandleReturns("remapped-input-volume")
 
 										remappedInputSource.VolumeOnReturns(remappedInputVolume, true, nil)
@@ -624,44 +617,38 @@ var _ = Describe("GardenFactory", func() {
 									},
 								}, nil)
 
-								fakeBaggageclaimClient.CreateVolumeReturns(new(bfakes.FakeVolume), nil)
+								fakeWorker.CreateVolumeReturns(new(wfakes.FakeVolume), nil)
 							})
 
-							Context("when volume manager does not exist", func() {
-								BeforeEach(func() {
-									fakeWorker.VolumeManagerReturns(nil, false)
-								})
+							It("ensures the output directories exist by streaming in an empty payload", func() {
+								Expect(fakeContainer.StreamInCallCount()).To(Equal(4))
 
-								It("ensures the output directories exist by streaming in an empty payload", func() {
-									Expect(fakeContainer.StreamInCallCount()).To(Equal(4))
+								spec := fakeContainer.StreamInArgsForCall(1)
+								Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-output-configured-path/"))
+								Expect(spec.User).To(Equal("")) // use default
 
-									spec := fakeContainer.StreamInArgsForCall(1)
-									Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-output-configured-path/"))
-									Expect(spec.User).To(Equal("")) // use default
+								tarReader := tar.NewReader(spec.TarStream)
 
-									tarReader := tar.NewReader(spec.TarStream)
+								_, err := tarReader.Next()
+								Expect(err).To(Equal(io.EOF))
 
-									_, err := tarReader.Next()
-									Expect(err).To(Equal(io.EOF))
+								spec = fakeContainer.StreamInArgsForCall(2)
+								Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-other-output/"))
+								Expect(spec.User).To(Equal("")) // use default
 
-									spec = fakeContainer.StreamInArgsForCall(2)
-									Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-other-output/"))
-									Expect(spec.User).To(Equal("")) // use default
+								tarReader = tar.NewReader(spec.TarStream)
 
-									tarReader = tar.NewReader(spec.TarStream)
+								_, err = tarReader.Next()
+								Expect(err).To(Equal(io.EOF))
 
-									_, err = tarReader.Next()
-									Expect(err).To(Equal(io.EOF))
+								spec = fakeContainer.StreamInArgsForCall(3)
+								Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-output-configured-path-with-trailing-slash/"))
+								Expect(spec.User).To(Equal("")) // use default
 
-									spec = fakeContainer.StreamInArgsForCall(3)
-									Expect(spec.Path).To(Equal("/tmp/build/a1f5c0c1/some-output-configured-path-with-trailing-slash/"))
-									Expect(spec.User).To(Equal("")) // use default
+								tarReader = tar.NewReader(spec.TarStream)
 
-									tarReader = tar.NewReader(spec.TarStream)
-
-									_, err = tarReader.Next()
-									Expect(err).To(Equal(io.EOF))
-								})
+								_, err = tarReader.Next()
+								Expect(err).To(Equal(io.EOF))
 							})
 
 							Context("when the process exits 0", func() {
@@ -716,21 +703,21 @@ var _ = Describe("GardenFactory", func() {
 
 											Context("when volumes are configured", func() {
 												var (
-													fakeNewlyCreatedVolume1 *bfakes.FakeVolume
-													fakeNewlyCreatedVolume2 *bfakes.FakeVolume
-													fakeNewlyCreatedVolume3 *bfakes.FakeVolume
+													fakeNewlyCreatedVolume1 *wfakes.FakeVolume
+													fakeNewlyCreatedVolume2 *wfakes.FakeVolume
+													fakeNewlyCreatedVolume3 *wfakes.FakeVolume
 
-													fakeVolume1 *bfakes.FakeVolume
-													fakeVolume2 *bfakes.FakeVolume
-													fakeVolume3 *bfakes.FakeVolume
+													fakeVolume1 *wfakes.FakeVolume
+													fakeVolume2 *wfakes.FakeVolume
+													fakeVolume3 *wfakes.FakeVolume
 												)
 
 												BeforeEach(func() {
-													fakeNewlyCreatedVolume1 = new(bfakes.FakeVolume)
+													fakeNewlyCreatedVolume1 = new(wfakes.FakeVolume)
 													fakeNewlyCreatedVolume1.HandleReturns("some-handle-1")
-													fakeNewlyCreatedVolume2 = new(bfakes.FakeVolume)
+													fakeNewlyCreatedVolume2 = new(wfakes.FakeVolume)
 													fakeNewlyCreatedVolume2.HandleReturns("some-handle-2")
-													fakeNewlyCreatedVolume3 = new(bfakes.FakeVolume)
+													fakeNewlyCreatedVolume3 = new(wfakes.FakeVolume)
 													fakeNewlyCreatedVolume3.HandleReturns("some-handle-3")
 													volumeChannel := make(chan worker.Volume, 3)
 													volumeChannel <- fakeNewlyCreatedVolume1
@@ -738,15 +725,15 @@ var _ = Describe("GardenFactory", func() {
 													volumeChannel <- fakeNewlyCreatedVolume3
 													close(volumeChannel)
 
-													fakeBaggageclaimClient.CreateVolumeStub = func(lager.Logger, baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+													fakeWorker.CreateVolumeStub = func(lager.Logger, worker.VolumeIdentifier, worker.VolumeProperties, bool, time.Duration) (worker.Volume, error) {
 														return <-volumeChannel, nil
 													}
 
-													fakeVolume1 = new(bfakes.FakeVolume)
+													fakeVolume1 = new(wfakes.FakeVolume)
 													fakeVolume1.HandleReturns("some-handle-1")
-													fakeVolume2 = new(bfakes.FakeVolume)
+													fakeVolume2 = new(wfakes.FakeVolume)
 													fakeVolume2.HandleReturns("some-handle-2")
-													fakeVolume3 = new(bfakes.FakeVolume)
+													fakeVolume3 = new(wfakes.FakeVolume)
 													fakeVolume3.HandleReturns("some-handle-3")
 
 													fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
@@ -768,21 +755,14 @@ var _ = Describe("GardenFactory", func() {
 												})
 
 												It("creates volumes for each output", func() {
-													Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(3))
-													Expect(taskDelegate.InsertOutputVolumeCallCount()).To(Equal(3))
+													Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(3))
 
 													for i := 0; i < 3; i++ {
-														_, volSpec := fakeBaggageclaimClient.CreateVolumeArgsForCall(i)
-														Expect(volSpec.Properties).To(Equal(baggageclaim.VolumeProperties{}))
-														Expect(volSpec.TTL).ToNot(BeZero())
-														Expect(volSpec.Privileged).To(Equal(bool(privileged)))
-
-														volume := taskDelegate.InsertOutputVolumeArgsForCall(i)
-														Expect(volume).To(Equal(db.Volume{
-															WorkerName: fakeWorker.Name(),
-															TTL:        volSpec.TTL,
-															Handle:     fmt.Sprintf("some-handle-%d", i+1),
-														}))
+														_, vID, vProperties, vPrivileged, vTTL := fakeWorker.CreateVolumeArgsForCall(i)
+														Expect(vID).To(Equal(worker.VolumeIdentifier{}))
+														Expect(vProperties).To(Equal(worker.VolumeProperties{}))
+														Expect(vTTL).To(Equal(worker.VolumeTTL))
+														Expect(vPrivileged).To(Equal(bool(privileged)))
 													}
 												})
 
@@ -790,10 +770,10 @@ var _ = Describe("GardenFactory", func() {
 													_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
 													taskSpec, ok := spec.(worker.TaskContainerSpec)
 													Expect(ok).To(BeTrue())
-													var actualVolumes []baggageclaim.Volume
+													var actualVolumes []worker.Volume
 													var actualPaths []string
 													for _, v := range taskSpec.Outputs {
-														actualVolume, ok := v.Volume.(baggageclaim.Volume)
+														actualVolume, ok := v.Volume.(worker.Volume)
 														Expect(ok).To(BeTrue())
 														actualVolumes = append(actualVolumes, actualVolume)
 														actualPaths = append(actualPaths, v.MountPath)
@@ -811,7 +791,7 @@ var _ = Describe("GardenFactory", func() {
 
 												Context("when the output volume can be found on the worker", func() {
 													BeforeEach(func() {
-														fakeBaggageclaimClient.LookupVolumeReturns(fakeVolume1, true, nil)
+														fakeWorker.LookupVolumeReturns(fakeVolume1, true, nil)
 													})
 
 													It("stores an artifact source in the repo that can be used to mount the volume", func() {
@@ -820,15 +800,15 @@ var _ = Describe("GardenFactory", func() {
 														Expect(found).To(BeTrue())
 														Expect(actualVolume1).To(Equal(fakeVolume1))
 
-														Expect(fakeBaggageclaimClient.LookupVolumeCallCount()).To(Equal(1))
-														_, handle := fakeBaggageclaimClient.LookupVolumeArgsForCall(0)
+														Expect(fakeWorker.LookupVolumeCallCount()).To(Equal(1))
+														_, handle := fakeWorker.LookupVolumeArgsForCall(0)
 														Expect(handle).To(Equal("some-handle-1"))
 													})
 												})
 
 												Context("when the output volume cannot be found on the worker", func() {
 													BeforeEach(func() {
-														fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
+														fakeWorker.LookupVolumeReturns(nil, false, nil)
 													})
 
 													It("stores an artifact source in the repo that can be used to mount the volume", func() {
@@ -1110,7 +1090,7 @@ var _ = Describe("GardenFactory", func() {
 									},
 								}, nil)
 
-								fakeBaggageclaimClient.CreateVolumeReturns(new(bfakes.FakeVolume), nil)
+								fakeWorker.CreateVolumeReturns(new(wfakes.FakeVolume), nil)
 								fakeProcess.WaitReturns(0, nil)
 							})
 
@@ -1144,16 +1124,16 @@ var _ = Describe("GardenFactory", func() {
 							Context("when volumes are configured", func() {
 								var (
 									fakeMountPath string = "/tmp/build/a1f5c0c1/generic-remapped-output/"
-									fakeVolume    *bfakes.FakeVolume
+									fakeVolume    *wfakes.FakeVolume
 								)
 
 								BeforeEach(func() {
-									fakeNewlyCreatedVolume := new(bfakes.FakeVolume)
+									fakeNewlyCreatedVolume := new(wfakes.FakeVolume)
 									fakeNewlyCreatedVolume.HandleReturns("some-handle")
 
-									fakeBaggageclaimClient.CreateVolumeReturns(fakeNewlyCreatedVolume, nil)
+									fakeWorker.CreateVolumeReturns(fakeNewlyCreatedVolume, nil)
 
-									fakeVolume = new(bfakes.FakeVolume)
+									fakeVolume = new(wfakes.FakeVolume)
 									fakeVolume.HandleReturns("some-handle")
 
 									fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
@@ -1166,7 +1146,7 @@ var _ = Describe("GardenFactory", func() {
 
 								Context("when the output volume can be found on the worker", func() {
 									BeforeEach(func() {
-										fakeBaggageclaimClient.LookupVolumeReturns(fakeVolume, true, nil)
+										fakeWorker.LookupVolumeReturns(fakeVolume, true, nil)
 									})
 
 									It("stores an artifact source in the repo that can be used to mount the volume", func() {
@@ -1178,8 +1158,8 @@ var _ = Describe("GardenFactory", func() {
 										Expect(found).To(BeTrue())
 										Expect(actualVolume).To(Equal(fakeVolume))
 
-										Expect(fakeBaggageclaimClient.LookupVolumeCallCount()).To(Equal(1))
-										_, handle := fakeBaggageclaimClient.LookupVolumeArgsForCall(0)
+										Expect(fakeWorker.LookupVolumeCallCount()).To(Equal(1))
+										_, handle := fakeWorker.LookupVolumeArgsForCall(0)
 										Expect(handle).To(Equal("some-handle"))
 									})
 								})
@@ -1497,15 +1477,11 @@ var _ = Describe("GardenFactory", func() {
 					var fakeWorker *wfakes.FakeWorker
 					var fakeWorker2 *wfakes.FakeWorker
 					var fakeWorker3 *wfakes.FakeWorker
-					var fakeBaggageclaimClient *bfakes.FakeClient
 
 					BeforeEach(func() {
 						fakeWorker = new(wfakes.FakeWorker)
 						fakeWorker2 = new(wfakes.FakeWorker)
 						fakeWorker3 = new(wfakes.FakeWorker)
-
-						fakeBaggageclaimClient = new(bfakes.FakeClient)
-						fakeWorker2.VolumeManagerReturns(fakeBaggageclaimClient, true)
 
 						fakeWorkerClient.AllSatisfyingReturns([]worker.Worker{fakeWorker, fakeWorker2, fakeWorker3}, nil)
 					})
@@ -1540,31 +1516,31 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							Context("and some workers have more matching input volumes than others", func() {
-								var rootVolume *bfakes.FakeVolume
-								var inputVolume *bfakes.FakeVolume
-								var inputVolume2 *bfakes.FakeVolume
-								var inputVolume3 *bfakes.FakeVolume
-								var otherInputVolume *bfakes.FakeVolume
+								var rootVolume *wfakes.FakeVolume
+								var inputVolume *wfakes.FakeVolume
+								var inputVolume2 *wfakes.FakeVolume
+								var inputVolume3 *wfakes.FakeVolume
+								var otherInputVolume *wfakes.FakeVolume
 
 								BeforeEach(func() {
-									rootVolume = new(bfakes.FakeVolume)
+									rootVolume = new(wfakes.FakeVolume)
 									rootVolume.HandleReturns("root-volume")
 
-									inputVolume = new(bfakes.FakeVolume)
+									inputVolume = new(wfakes.FakeVolume)
 									inputVolume.HandleReturns("input-volume")
 
-									inputVolume2 = new(bfakes.FakeVolume)
+									inputVolume2 = new(wfakes.FakeVolume)
 									inputVolume2.HandleReturns("input-volume")
 
-									inputVolume3 = new(bfakes.FakeVolume)
+									inputVolume3 = new(wfakes.FakeVolume)
 									inputVolume3.HandleReturns("input-volume")
 
-									otherInputVolume = new(bfakes.FakeVolume)
+									otherInputVolume = new(wfakes.FakeVolume)
 									otherInputVolume.HandleReturns("other-input-volume")
 
-									fakeBaggageclaimClient.CreateVolumeReturns(rootVolume, nil)
+									fakeWorker2.CreateVolumeReturns(rootVolume, nil)
 
-									inputSource.VolumeOnStub = func(w worker.Worker) (baggageclaim.Volume, bool, error) {
+									inputSource.VolumeOnStub = func(w worker.Worker) (worker.Volume, bool, error) {
 										if w == fakeWorker {
 											return inputVolume, true, nil
 										} else if w == fakeWorker2 {
@@ -1575,7 +1551,8 @@ var _ = Describe("GardenFactory", func() {
 											return nil, false, fmt.Errorf("unexpected worker: %#v\n", w)
 										}
 									}
-									otherInputSource.VolumeOnStub = func(w worker.Worker) (baggageclaim.Volume, bool, error) {
+
+									otherInputSource.VolumeOnStub = func(w worker.Worker) (worker.Volume, bool, error) {
 										if w == fakeWorker {
 											return nil, false, nil
 										} else if w == fakeWorker2 {

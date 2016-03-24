@@ -2,9 +2,7 @@ package resource
 
 import (
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -15,12 +13,6 @@ type Session struct {
 	ID        worker.Identifier
 	Metadata  worker.Metadata
 	Ephemeral bool
-}
-
-//go:generate counterfeiter . TrackerDB
-
-type TrackerDB interface {
-	InsertVolume(data db.Volume) error
 }
 
 //go:generate counterfeiter . Tracker
@@ -44,26 +36,22 @@ type Metadata interface {
 
 type tracker struct {
 	workerClient worker.Client
-	db           TrackerDB
 }
 
-type TrackerFactory struct {
-	DB TrackerDB
-}
+type TrackerFactory struct{}
 
 func (factory TrackerFactory) TrackerFor(client worker.Client) Tracker {
-	return NewTracker(client, factory.DB)
+	return NewTracker(client)
 }
 
-func NewTracker(workerClient worker.Client, db TrackerDB) Tracker {
+func NewTracker(workerClient worker.Client) Tracker {
 	return &tracker{
 		workerClient: workerClient,
-		db:           db,
 	}
 }
 
 type VolumeMount struct {
-	Volume    baggageclaim.Volume
+	Volume    worker.Volume
 	MountPath string
 }
 
@@ -281,35 +269,14 @@ func (tracker *tracker) InitWithCache(
 		return nil, nil, err
 	}
 
-	vm, hasVM := chosenWorker.VolumeManager()
-	if !hasVM {
-		logger.Debug("creating-container-without-cache")
-
-		container, err := chosenWorker.CreateContainer(
-			logger,
-			nil,
-			imageFetchingDelegate,
-			session.ID,
-			session.Metadata,
-			worker.ResourceTypeContainerSpec{
-				Type:      string(typ),
-				Ephemeral: session.Ephemeral,
-				Tags:      tags,
-				Env:       metadata.Env(),
-			},
-			customTypes,
-		)
-		if err != nil {
-			logger.Error("failed-to-create-container", err)
-			return nil, nil, err
-		}
-
-		logger.Info("created", lager.Data{"container": container.Handle()})
-
-		return NewResource(container), noopCache{}, nil
+	containerSpec := worker.ResourceTypeContainerSpec{
+		Type:      string(typ),
+		Ephemeral: session.Ephemeral,
+		Tags:      tags,
+		Env:       metadata.Env(),
 	}
 
-	cachedVolume, cacheFound, err := cacheIdentifier.FindOn(logger, vm)
+	cachedVolume, cacheFound, err := cacheIdentifier.FindOn(logger, chosenWorker)
 	if err != nil {
 		logger.Error("failed-to-look-for-cache", err)
 		return nil, nil, err
@@ -320,32 +287,29 @@ func (tracker *tracker) InitWithCache(
 	} else {
 		logger.Debug("no-cache-found")
 
-		cachedVolume, err = cacheIdentifier.CreateOn(logger, vm)
-		if err != nil {
+		cachedVolume, err = cacheIdentifier.CreateOn(logger, chosenWorker)
+		if err == worker.ErrNoVolumeManager {
+			logger.Info("worker-has-no-volume-manager")
+		} else if err != nil {
+			logger.Error("failed-to-create-cache", err)
 			return nil, nil, err
 		}
-
-		logger.Debug("new-cache", lager.Data{"volume": cachedVolume.Handle()})
 	}
 
-	ttl, _, err := cachedVolume.Expiration()
-	if err != nil {
-		return nil, nil, err
+	if cachedVolume == nil {
+		logger.Debug("creating-container-without-cache")
+	} else {
+		logger.Debug("creating-container-with-cache", lager.Data{
+			"cache-handle": cachedVolume.Handle(),
+		})
+
+		defer cachedVolume.Release(nil)
+
+		containerSpec.Cache = worker.VolumeMount{
+			Volume:    cachedVolume,
+			MountPath: ResourcesDir("get"),
+		}
 	}
-
-	err = tracker.db.InsertVolume(db.Volume{
-		WorkerName:       chosenWorker.Name(),
-		TTL:              ttl,
-		Handle:           cachedVolume.Handle(),
-		VolumeIdentifier: cacheIdentifier.VolumeIdentifier(),
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	defer cachedVolume.Release(nil)
-
-	logger.Debug("creating-container-with-cache")
 
 	container, err = chosenWorker.CreateContainer(
 		logger,
@@ -353,16 +317,7 @@ func (tracker *tracker) InitWithCache(
 		imageFetchingDelegate,
 		session.ID,
 		session.Metadata,
-		worker.ResourceTypeContainerSpec{
-			Type:      string(typ),
-			Ephemeral: session.Ephemeral,
-			Tags:      tags,
-			Env:       metadata.Env(),
-			Cache: worker.VolumeMount{
-				Volume:    cachedVolume,
-				MountPath: ResourcesDir("get"),
-			},
-		},
+		containerSpec,
 		customTypes,
 	)
 	if err != nil {

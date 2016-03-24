@@ -8,7 +8,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -21,7 +20,7 @@ type Resource interface {
 
 	Release(*time.Duration)
 
-	CacheVolume() (baggageclaim.Volume, bool)
+	CacheVolume() (worker.Volume, bool)
 }
 
 type IOConfig struct {
@@ -38,7 +37,7 @@ type ArtifactSource interface {
 	// ArtifactSource which is on a particular Worker. If a volume cannot be found
 	// or a volume manager cannot be found on the worker then it will return
 	// false.
-	VolumeOn(worker.Worker) (baggageclaim.Volume, bool, error)
+	VolumeOn(worker.Worker) (worker.Volume, bool, error)
 }
 
 //go:generate counterfeiter . ArtifactDestination
@@ -82,7 +81,7 @@ func (resource *resource) Release(finalTTL *time.Duration) {
 	resource.container.Release(finalTTL)
 }
 
-func (resource *resource) CacheVolume() (baggageclaim.Volume, bool) {
+func (resource *resource) CacheVolume() (worker.Volume, bool) {
 	mounts := resource.container.VolumeMounts()
 
 	for _, mount := range mounts {

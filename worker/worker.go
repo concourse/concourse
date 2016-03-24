@@ -20,6 +20,7 @@ import (
 var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 var ErrIncompatiblePlatform = errors.New("incompatible platform")
 var ErrMismatchedTags = errors.New("mismatched tags")
+var ErrNoVolumeManager = errors.New("worker does not support volume management")
 
 const containerKeepalive = 30 * time.Second
 const containerTTL = 5 * time.Minute
@@ -39,8 +40,6 @@ type Worker interface {
 
 	Description() string
 	Name() string
-
-	VolumeManager() (baggageclaim.Client, bool)
 }
 
 //go:generate counterfeiter . GardenWorkerDB
@@ -48,6 +47,8 @@ type Worker interface {
 type GardenWorkerDB interface {
 	CreateContainer(db.Container, time.Duration) (db.SavedContainer, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
+
+	InsertVolume(db.Volume) error
 	InsertCOWVolume(originalVolumeHandle string, cowVolumeHandle string, ttl time.Duration) error
 }
 
@@ -101,12 +102,104 @@ func NewGardenWorker(
 	}
 }
 
-func (worker *gardenWorker) VolumeManager() (baggageclaim.Client, bool) {
-	if worker.baggageclaimClient != nil {
-		return worker.baggageclaimClient, true
+func (worker *gardenWorker) CreateVolume(
+	logger lager.Logger,
+	identifier VolumeIdentifier,
+	properties VolumeProperties,
+	privileged bool,
+	ttl time.Duration,
+) (Volume, error) {
+	if worker.baggageclaimClient == nil {
+		return nil, ErrNoVolumeManager
 	}
 
-	return nil, false
+	bcVolume, err := worker.baggageclaimClient.CreateVolume(
+		logger.Session("create-volume"),
+		baggageclaim.VolumeSpec{
+			Strategy:   baggageclaim.EmptyStrategy{},
+			Properties: baggageclaim.VolumeProperties(properties),
+			TTL:        ttl,
+			Privileged: privileged,
+		},
+	)
+	if err != nil {
+		logger.Error("failed-to-create-volume", err)
+		return nil, err
+	}
+
+	err = worker.db.InsertVolume(db.Volume{
+		Handle:           bcVolume.Handle(),
+		WorkerName:       worker.Name(),
+		TTL:              ttl,
+		VolumeIdentifier: db.VolumeIdentifier(identifier),
+	})
+	if err != nil {
+		logger.Error("failed-to-save-volume-to-db", err)
+		return nil, err
+	}
+
+	volume, found, err := worker.volumeFactory.Build(logger, bcVolume)
+	if err != nil {
+		logger.Error("failed-build-volume", err)
+		return nil, err
+	}
+
+	if !found {
+		err = ErrMissingVolume
+		logger.Error("volume-expired-immediately", err)
+		return nil, err
+	}
+
+	return volume, nil
+}
+
+func (worker *gardenWorker) ListVolumes(logger lager.Logger, properties VolumeProperties) ([]Volume, error) {
+	if worker.baggageclaimClient == nil {
+		return []Volume{}, nil
+	}
+
+	bcVolumes, err := worker.baggageclaimClient.ListVolumes(
+		logger,
+		baggageclaim.VolumeProperties(properties),
+	)
+	if err != nil {
+		logger.Error("failed-to-list-volumes", err)
+		return nil, err
+	}
+
+	volumes := []Volume{}
+	for _, bcVolume := range bcVolumes {
+		volume, found, err := worker.volumeFactory.Build(logger, bcVolume)
+		if err != nil {
+			return []Volume{}, err
+		}
+
+		if !found {
+			continue
+		}
+
+		volumes = append(volumes, volume)
+	}
+
+	return volumes, nil
+}
+
+func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {
+	if worker.baggageclaimClient == nil {
+		return nil, false, nil
+	}
+
+	bcVolume, found, err := worker.baggageclaimClient.LookupVolume(logger, handle)
+	if err != nil {
+		logger.Error("failed-to-lookup-volume", err)
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return worker.volumeFactory.Build(logger, bcVolume)
 }
 
 func (worker *gardenWorker) CreateContainer(
@@ -235,7 +328,7 @@ dance:
 	}
 
 	for _, mount := range volumeMounts {
-		cowVolume, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
+		cowBCVolume, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
 			Strategy: baggageclaim.COWStrategy{
 				Parent: mount.Volume,
 			},
@@ -246,18 +339,29 @@ dance:
 			return nil, err
 		}
 
-		// release *after* container creation
-		defer cowVolume.Release(nil)
-
-		err = worker.db.InsertCOWVolume(mount.Volume.Handle(), cowVolume.Handle(), VolumeTTL)
+		err = worker.db.InsertCOWVolume(mount.Volume.Handle(), cowBCVolume.Handle(), VolumeTTL)
 		if err != nil {
 			return nil, err
 		}
 
+		cowVolume, found, err := worker.volumeFactory.Build(logger, cowBCVolume)
+		if err != nil {
+			return nil, err
+		}
+
+		if !found {
+			err = ErrMissingVolume
+			logger.Error("cow-volume-expired-immediately", err)
+			return nil, err
+		}
+
+		// release *after* container creation
+		defer cowVolume.Release(nil)
+
 		volumeHandles = append(volumeHandles, cowVolume.Handle())
 		volumeMountPaths[cowVolume] = mount.MountPath
 
-		logger.Info("created-cow-volume", lager.Data{
+		logger.Debug("created-cow-volume", lager.Data{
 			"original-volume-handle": mount.Volume.Handle(),
 			"cow-volume-handle":      cowVolume.Handle(),
 		})

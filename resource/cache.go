@@ -1,6 +1,6 @@
 package resource
 
-import "github.com/concourse/baggageclaim"
+import "github.com/concourse/atc/worker"
 
 const initializedProperty = "initialized"
 
@@ -10,7 +10,7 @@ func (noopCache) IsInitialized() (bool, error) { return false, nil }
 func (noopCache) Initialize() error            { return nil }
 
 type volumeCache struct {
-	volume baggageclaim.Volume
+	volume worker.Volume
 }
 
 func (cache volumeCache) IsInitialized() (bool, error) {

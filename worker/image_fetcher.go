@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -31,7 +30,7 @@ type ImageFetcher interface {
 
 type ImageFetchingDelegate interface {
 	Stderr() io.Writer
-	ImageVersionDetermined(db.VolumeIdentifier) error
+	ImageVersionDetermined(VolumeIdentifier) error
 }
 
 //go:generate counterfeiter . Image
@@ -49,5 +48,5 @@ type ImageMetadata struct {
 
 type NoopImageFetchingDelegate struct{}
 
-func (NoopImageFetchingDelegate) Stderr() io.Writer                                { return ioutil.Discard }
-func (NoopImageFetchingDelegate) ImageVersionDetermined(db.VolumeIdentifier) error { return nil }
+func (NoopImageFetchingDelegate) Stderr() io.Writer                             { return ioutil.Discard }
+func (NoopImageFetchingDelegate) ImageVersionDetermined(VolumeIdentifier) error { return nil }

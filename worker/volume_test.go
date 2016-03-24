@@ -35,19 +35,42 @@ var _ = Describe("Volumes", func() {
 
 	Context("VolumeFactory", func() {
 		Describe("Build", func() {
-			It("releases the volume it was given", func() {
-				_, err := volumeFactory.Build(logger, fakeVolume)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
-				actualTTL := fakeVolume.ReleaseArgsForCall(0)
-				Expect(actualTTL).To(BeNil())
+			Context("when the volume's TTL can be found", func() {
+				BeforeEach(func() {
+					fakeDB.GetVolumeTTLReturns(time.Minute, true, nil)
+				})
+
+				It("releases the volume it was given", func() {
+					_, found, err := volumeFactory.Build(logger, fakeVolume)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
+					actualTTL := fakeVolume.ReleaseArgsForCall(0)
+					Expect(actualTTL).To(BeNil())
+				})
+
+				It("embeds the original volume in the wrapped volume", func() {
+					fakeVolume.HandleReturns("some-handle")
+					vol, found, err := volumeFactory.Build(logger, fakeVolume)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(vol.Handle()).To(Equal("some-handle"))
+				})
 			})
 
-			It("embeds the original volume in the wrapped volume", func() {
-				fakeVolume.HandleReturns("some-handle")
-				vol, err := volumeFactory.Build(logger, fakeVolume)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(vol.Handle()).To(Equal("some-handle"))
+			Context("when the volume's TTL cannot be found", func() {
+				BeforeEach(func() {
+					fakeDB.GetVolumeTTLReturns(0, false, nil)
+				})
+
+				It("releases the volume it was given and returns false", func() {
+					_, found, err := volumeFactory.Build(logger, fakeVolume)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeFalse())
+					Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
+					actualTTL := fakeVolume.ReleaseArgsForCall(0)
+					Expect(actualTTL).To(BeNil())
+				})
 			})
 		})
 	})
@@ -60,12 +83,13 @@ var _ = Describe("Volumes", func() {
 			expectedTTL = 10 * time.Second
 			expectedTTL2 = 5 * time.Second
 			fakeVolume.HandleReturns("some-handle")
-			fakeDB.GetVolumeTTLReturns(expectedTTL, nil)
+			fakeDB.GetVolumeTTLReturns(expectedTTL, true, nil)
 		})
 
 		It("heartbeats", func() {
-			vol, err := volumeFactory.Build(logger, fakeVolume)
+			vol, found, err := volumeFactory.Build(logger, fakeVolume)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			By("looking up the initial ttl in the database")
 			Expect(fakeDB.GetVolumeTTLCallCount()).To(Equal(1))
@@ -83,7 +107,7 @@ var _ = Describe("Volumes", func() {
 			Expect(actualTTL).To(Equal(expectedTTL))
 
 			By("using the ttl from the database each tick")
-			fakeDB.GetVolumeTTLReturns(expectedTTL2, nil)
+			fakeDB.GetVolumeTTLReturns(expectedTTL2, true, nil)
 			fakeClock.Increment(30 * time.Second)
 
 			Eventually(fakeVolume.SetTTLCallCount).Should(Equal(2))
@@ -96,7 +120,7 @@ var _ = Describe("Volumes", func() {
 			Expect(actualTTL).To(Equal(expectedTTL2))
 
 			By("being resiliant to db errors")
-			fakeDB.GetVolumeTTLReturns(0, errors.New("disaster"))
+			fakeDB.GetVolumeTTLReturns(0, false, errors.New("disaster"))
 			fakeClock.Increment(30 * time.Second)
 			Eventually(fakeVolume.SetTTLCallCount).Should(Equal(3))
 			actualTTL = fakeVolume.SetTTLArgsForCall(2)
@@ -114,30 +138,13 @@ var _ = Describe("Volumes", func() {
 			Expect(actualTTL).To(Equal(2 * time.Second))
 		})
 
-		It("is resiliant to errors while heartbeating", func() {
-			By("using the baggage claim volumes ttl if the initial db lookup fails")
-			fakeVolume.ExpirationReturns(expectedTTL, time.Now(), nil)
-			fakeDB.GetVolumeTTLReturns(0, errors.New("disaster"))
-			_, err := volumeFactory.Build(logger, fakeVolume)
-			Expect(err).ToNot(HaveOccurred())
-			By("using that ttl to heartbeat the volume initially")
-			Expect(fakeVolume.SetTTLCallCount()).To(Equal(1))
-			actualTTL := fakeVolume.SetTTLArgsForCall(0)
-			Expect(actualTTL).To(Equal(expectedTTL))
-
-			By("continuing to use the same ttl if the db continues to error")
-			fakeClock.Increment(30 * time.Second)
-			Eventually(fakeVolume.SetTTLCallCount).Should(Equal(2))
-			actualTTL = fakeVolume.SetTTLArgsForCall(1)
-			Expect(actualTTL).To(Equal(expectedTTL))
-		})
-
 		It("reaps the volume during heartbeat if the volume is not found", func() {
 			fakeVolume.SetTTLReturns(baggageclaim.ErrVolumeNotFound)
 			fakeVolume.HandleReturns("some-handle")
 
-			_, err := volumeFactory.Build(logger, fakeVolume)
+			_, found, err := volumeFactory.Build(logger, fakeVolume)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 
 			fakeClock.Increment(30 * time.Second)
 			Expect(fakeDB.ReapVolumeCallCount()).To(Equal(1))

@@ -8,7 +8,7 @@ import (
 
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	bfakes "github.com/concourse/baggageclaim/fakes"
+	wfakes "github.com/concourse/atc/worker/fakes"
 )
 
 var _ = Describe("Resource", func() {
@@ -23,12 +23,12 @@ var _ = Describe("Resource", func() {
 
 	Describe("CacheVolume", func() {
 		Context("when the container has a volume mount for /tmp/build/get", func() {
-			var vol1 *bfakes.FakeVolume
-			var vol2 *bfakes.FakeVolume
+			var vol1 *wfakes.FakeVolume
+			var vol2 *wfakes.FakeVolume
 
 			BeforeEach(func() {
-				vol1 = new(bfakes.FakeVolume)
-				vol2 = new(bfakes.FakeVolume)
+				vol1 = new(wfakes.FakeVolume)
+				vol2 = new(wfakes.FakeVolume)
 				fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
 					{
 						Volume:    vol1,
@@ -52,10 +52,10 @@ var _ = Describe("Resource", func() {
 		})
 
 		Context("when the container does not have a volume mount for /tmp/build/get", func() {
-			var vol1 *bfakes.FakeVolume
+			var vol1 *wfakes.FakeVolume
 
 			BeforeEach(func() {
-				vol1 = new(bfakes.FakeVolume)
+				vol1 = new(wfakes.FakeVolume)
 				fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
 					{
 						Volume:    vol1,

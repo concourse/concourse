@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 )
 
 // SourceName is just a string, with its own type to make interfaces using it
@@ -107,7 +106,7 @@ func (repo *SourceRepository) StreamFile(path string) (io.ReadCloser, error) {
 
 // VolumeOn returns nothing, as it's impossible for there to be a single volume
 // representing all ArtifactSources.
-func (repo *SourceRepository) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, error) {
+func (repo *SourceRepository) VolumeOn(worker worker.Worker) (worker.Volume, bool, error) {
 	return nil, false, nil
 }
 

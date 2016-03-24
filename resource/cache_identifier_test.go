@@ -5,11 +5,9 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
-	bfakes "github.com/concourse/baggageclaim/fakes"
+	wfakes "github.com/concourse/atc/worker/fakes"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -20,11 +18,11 @@ import (
 var _ = Describe("ResourceCacheIdentifier", func() {
 	var logger lager.Logger
 	var cacheIdentifier CacheIdentifier
-	var fakeBaggageclaimClient *bfakes.FakeClient
+	var fakeWorkerClient *wfakes.FakeClient
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
-		fakeBaggageclaimClient = new(bfakes.FakeClient)
+		fakeWorkerClient = new(wfakes.FakeClient)
 
 		cacheIdentifier = ResourceCacheIdentifier{
 			Type:    "some-resource-type",
@@ -35,21 +33,21 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 	})
 
 	Describe("FindOn", func() {
-		var foundVolume baggageclaim.Volume
+		var foundVolume worker.Volume
 		var found bool
 		var findErr error
 
 		JustBeforeEach(func() {
-			foundVolume, found, findErr = cacheIdentifier.FindOn(logger, fakeBaggageclaimClient)
+			foundVolume, found, findErr = cacheIdentifier.FindOn(logger, fakeWorkerClient)
 		})
 
 		Context("when one cache volume is present", func() {
-			var workerVolume *bfakes.FakeVolume
+			var workerVolume *wfakes.FakeVolume
 
 			BeforeEach(func() {
-				workerVolume = new(bfakes.FakeVolume)
+				workerVolume = new(wfakes.FakeVolume)
 				workerVolume.HandleReturns("found-volume-handle")
-				fakeBaggageclaimClient.ListVolumesReturns([]baggageclaim.Volume{workerVolume}, nil)
+				fakeWorkerClient.ListVolumesReturns([]worker.Volume{workerVolume}, nil)
 			})
 
 			It("returns the volume and true", func() {
@@ -58,8 +56,8 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 			})
 
 			It("found it by querying for the correct properties", func() {
-				_, spec := fakeBaggageclaimClient.ListVolumesArgsForCall(0)
-				Expect(spec).To(Equal(baggageclaim.VolumeProperties{
+				_, spec := fakeWorkerClient.ListVolumesArgsForCall(0)
+				Expect(spec).To(Equal(worker.VolumeProperties{
 					"resource-type":    "some-resource-type",
 					"resource-version": `{"some":"version"}`,
 					"resource-source":  "968e27f71617a029e58a09fb53895f1e1875b51bdaa11293ddc2cb335960875cb42c19ae8bc696caec88d55221f33c2bcc3278a7d15e8d13f23782d1a05564f1",
@@ -70,19 +68,19 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 		})
 
 		Context("when multiple cache volumes are present", func() {
-			var aVolume *bfakes.FakeVolume
-			var bVolume *bfakes.FakeVolume
+			var aVolume *wfakes.FakeVolume
+			var bVolume *wfakes.FakeVolume
 
 			BeforeEach(func() {
-				aVolume = new(bfakes.FakeVolume)
+				aVolume = new(wfakes.FakeVolume)
 				aVolume.HandleReturns("a")
-				bVolume = new(bfakes.FakeVolume)
+				bVolume = new(wfakes.FakeVolume)
 				bVolume.HandleReturns("b")
 			})
 
 			Context("with a, b order", func() {
 				BeforeEach(func() {
-					fakeBaggageclaimClient.ListVolumesReturns([]baggageclaim.Volume{aVolume, bVolume}, nil)
+					fakeWorkerClient.ListVolumesReturns([]worker.Volume{aVolume, bVolume}, nil)
 				})
 
 				It("selects the volume based on the lowest alphabetical name", func() {
@@ -97,7 +95,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 
 			Context("with b, a order", func() {
 				BeforeEach(func() {
-					fakeBaggageclaimClient.ListVolumesReturns([]baggageclaim.Volume{bVolume, aVolume}, nil)
+					fakeWorkerClient.ListVolumesReturns([]worker.Volume{bVolume, aVolume}, nil)
 				})
 
 				It("selects the volume based on the lowest alphabetical name", func() {
@@ -113,7 +111,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 
 		Context("when a cache volume is not present", func() {
 			BeforeEach(func() {
-				fakeBaggageclaimClient.ListVolumesReturns([]baggageclaim.Volume{}, nil)
+				fakeWorkerClient.ListVolumesReturns([]worker.Volume{}, nil)
 			})
 
 			It("does not error and returns false", func() {
@@ -124,15 +122,15 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 	})
 
 	Context("CreateOn", func() {
-		var createdVolume baggageclaim.Volume
+		var createdVolume worker.Volume
 		var createErr error
 
 		JustBeforeEach(func() {
-			createdVolume, createErr = cacheIdentifier.CreateOn(logger, fakeBaggageclaimClient)
+			createdVolume, createErr = cacheIdentifier.CreateOn(logger, fakeWorkerClient)
 		})
 
 		Context("when creating a volume with no version", func() {
-			var volume *bfakes.FakeVolume
+			var volume *wfakes.FakeVolume
 
 			BeforeEach(func() {
 				cacheIdentifier = ResourceCacheIdentifier{
@@ -141,22 +139,22 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 					Source:  atc.Source{"some": "source"},
 					Params:  atc.Params{"some": "params"},
 				}
-				volume = new(bfakes.FakeVolume)
-				fakeBaggageclaimClient.CreateVolumeReturns(volume, nil)
+				volume = new(wfakes.FakeVolume)
+				fakeWorkerClient.CreateVolumeReturns(volume, nil)
 			})
 
 			It("sets the TTL to 5 minutes", func() {
-				_, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
-				Expect(spec.TTL).To(Equal(5 * time.Minute))
+				_, _, _, _, ttl := fakeWorkerClient.CreateVolumeArgsForCall(0)
+				Expect(ttl).To(Equal(5 * time.Minute))
 			})
 		})
 
 		Context("when creating the volume succeeds", func() {
-			var volume *bfakes.FakeVolume
+			var volume *wfakes.FakeVolume
 
 			BeforeEach(func() {
-				volume = new(bfakes.FakeVolume)
-				fakeBaggageclaimClient.CreateVolumeReturns(volume, nil)
+				volume = new(wfakes.FakeVolume)
+				fakeWorkerClient.CreateVolumeReturns(volume, nil)
 			})
 
 			It("succeeds", func() {
@@ -168,17 +166,16 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 			})
 
 			It("created with the right properties", func() {
-				_, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
-				Expect(spec).To(Equal(baggageclaim.VolumeSpec{
-					Properties: baggageclaim.VolumeProperties{
-						"resource-type":    "some-resource-type",
-						"resource-version": `{"some":"version"}`,
-						"resource-source":  "968e27f71617a029e58a09fb53895f1e1875b51bdaa11293ddc2cb335960875cb42c19ae8bc696caec88d55221f33c2bcc3278a7d15e8d13f23782d1a05564f1",
-						"resource-params":  "fe7d9dbc2ac75030c3e8c88e54a33676c38d8d9d2876700bc01d4961caf898e7cbe8e738232e86afcf6a5f64a9527c458a130277b08d72fb339962968d0d0967",
-					},
-					TTL:        0,
-					Privileged: true,
+				_, id, props, privileged, ttl := fakeWorkerClient.CreateVolumeArgsForCall(0)
+				Expect(id).To(Equal(cacheIdentifier.VolumeIdentifier()))
+				Expect(props).To(Equal(worker.VolumeProperties{
+					"resource-type":    "some-resource-type",
+					"resource-version": `{"some":"version"}`,
+					"resource-source":  "968e27f71617a029e58a09fb53895f1e1875b51bdaa11293ddc2cb335960875cb42c19ae8bc696caec88d55221f33c2bcc3278a7d15e8d13f23782d1a05564f1",
+					"resource-params":  "fe7d9dbc2ac75030c3e8c88e54a33676c38d8d9d2876700bc01d4961caf898e7cbe8e738232e86afcf6a5f64a9527c458a130277b08d72fb339962968d0d0967",
 				}))
+				Expect(privileged).To(BeTrue())
+				Expect(ttl).To(BeZero())
 			})
 		})
 
@@ -186,7 +183,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 			disaster := errors.New("nope")
 
 			BeforeEach(func() {
-				fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
+				fakeWorkerClient.CreateVolumeReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {
@@ -197,10 +194,11 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 
 	Context("VolumeIdentifier", func() {
 		It("returns a volume identifier corrsponding to the resource that the identifier is tracking", func() {
-			expectedIdentifier := db.VolumeIdentifier{
+			expectedIdentifier := worker.VolumeIdentifier{
 				ResourceVersion: atc.Version{"some": "version"},
 				ResourceHash:    `some-resource-type{"some":"source"}`,
 			}
+
 			Expect(cacheIdentifier.VolumeIdentifier()).To(Equal(expectedIdentifier))
 		})
 	})

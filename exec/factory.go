@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
@@ -89,9 +88,7 @@ type TaskDelegate interface {
 	Finished(ExitStatus)
 	Failed(error)
 
-	ImageVersionDetermined(db.VolumeIdentifier) error
-
-	InsertOutputVolume(db.Volume) error
+	ImageVersionDetermined(worker.VolumeIdentifier) error
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -105,7 +102,7 @@ type ResourceDelegate interface {
 	Completed(ExitStatus, *VersionInfo)
 	Failed(error)
 
-	ImageVersionDetermined(db.VolumeIdentifier) error
+	ImageVersionDetermined(worker.VolumeIdentifier) error
 
 	Stdout() io.Writer
 	Stderr() io.Writer

@@ -10,7 +10,7 @@ import (
 )
 
 type FakeVolumeFactory struct {
-	BuildStub        func(lager.Logger, baggageclaim.Volume) (worker.Volume, error)
+	BuildStub        func(lager.Logger, baggageclaim.Volume) (worker.Volume, bool, error)
 	buildMutex       sync.RWMutex
 	buildArgsForCall []struct {
 		arg1 lager.Logger
@@ -18,11 +18,12 @@ type FakeVolumeFactory struct {
 	}
 	buildReturns struct {
 		result1 worker.Volume
-		result2 error
+		result2 bool
+		result3 error
 	}
 }
 
-func (fake *FakeVolumeFactory) Build(arg1 lager.Logger, arg2 baggageclaim.Volume) (worker.Volume, error) {
+func (fake *FakeVolumeFactory) Build(arg1 lager.Logger, arg2 baggageclaim.Volume) (worker.Volume, bool, error) {
 	fake.buildMutex.Lock()
 	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
 		arg1 lager.Logger
@@ -32,7 +33,7 @@ func (fake *FakeVolumeFactory) Build(arg1 lager.Logger, arg2 baggageclaim.Volume
 	if fake.BuildStub != nil {
 		return fake.BuildStub(arg1, arg2)
 	} else {
-		return fake.buildReturns.result1, fake.buildReturns.result2
+		return fake.buildReturns.result1, fake.buildReturns.result2, fake.buildReturns.result3
 	}
 }
 
@@ -48,12 +49,13 @@ func (fake *FakeVolumeFactory) BuildArgsForCall(i int) (lager.Logger, baggagecla
 	return fake.buildArgsForCall[i].arg1, fake.buildArgsForCall[i].arg2
 }
 
-func (fake *FakeVolumeFactory) BuildReturns(result1 worker.Volume, result2 error) {
+func (fake *FakeVolumeFactory) BuildReturns(result1 worker.Volume, result2 bool, result3 error) {
 	fake.BuildStub = nil
 	fake.buildReturns = struct {
 		result1 worker.Volume
-		result2 error
-	}{result1, result2}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ worker.VolumeFactory = new(FakeVolumeFactory)

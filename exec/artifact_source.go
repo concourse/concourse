@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 )
 
 //go:generate counterfeiter . ArtifactSource
@@ -27,7 +26,7 @@ type ArtifactSource interface {
 	// VolumeOn attempts to locate a volume equivalent to this source on the
 	// given worker. If a volume can be found, it will be used directly. If not,
 	// `StreamTo` will be used to copy the data to the destination instead.
-	VolumeOn(worker.Worker) (baggageclaim.Volume, bool, error)
+	VolumeOn(worker.Worker) (worker.Volume, bool, error)
 }
 
 //go:generate counterfeiter . ArtifactDestination

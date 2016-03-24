@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -211,35 +210,27 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		for _, output := range config.Outputs {
 			path := artifactsPath(output, step.artifactsRoot)
 
-			baggageclaimClient, found := chosenWorker.VolumeManager()
-			if !found {
+			outVolume, err := chosenWorker.CreateVolume(
+				step.logger,
+				worker.VolumeIdentifier{},
+				worker.VolumeProperties{},
+				bool(step.privileged),
+				worker.VolumeTTL,
+			)
+			if err == worker.ErrNoVolumeManager {
 				break
 			}
 
-			ourVolume, volErr := baggageclaimClient.CreateVolume(step.logger, baggageclaim.VolumeSpec{
-				Properties: baggageclaim.VolumeProperties{},
-				TTL:        5 * time.Minute,
-				Privileged: bool(step.privileged),
-			})
-			if volErr != nil {
-				return volErr
-			}
-
-			err := step.delegate.InsertOutputVolume(db.Volume{
-				WorkerName: chosenWorker.Name(),
-				TTL:        5 * time.Minute,
-				Handle:     ourVolume.Handle(),
-			})
 			if err != nil {
 				return err
 			}
 
 			outputMounts = append(outputMounts, worker.VolumeMount{
-				Volume:    ourVolume,
+				Volume:    outVolume,
 				MountPath: path,
 			})
 
-			step.logger.Info("created-output-volume", lager.Data{"volumeHandle": ourVolume.Handle()})
+			step.logger.Debug("created-output-volume", lager.Data{"volume-Handle": outVolume.Handle()})
 		}
 
 		containerSpec := worker.TaskContainerSpec{
@@ -253,7 +244,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		}
 
 		step.container, err = chosenWorker.CreateContainer(
-			step.logger.Session("created-container"),
+			step.logger.Session("create-container"),
 			signals,
 			step.delegate,
 			runContainerID,
@@ -449,7 +440,7 @@ func (step *TaskStep) StreamTo(destination ArtifactDestination) error {
 }
 
 // VolumeOn returns nothing.
-func (step *TaskStep) VolumeOn(worker worker.Worker) (baggageclaim.Volume, bool, error) {
+func (step *TaskStep) VolumeOn(worker worker.Worker) (worker.Volume, bool, error) {
 	return nil, false, nil
 }
 
@@ -687,15 +678,8 @@ func (src *containerSource) StreamFile(filename string) (io.ReadCloser, error) {
 	}, nil
 }
 
-func (src *containerSource) VolumeOn(w worker.Worker) (baggageclaim.Volume, bool, error) {
-	if baggageclaimClient, found := w.VolumeManager(); len(src.volumeHandle) > 0 && found {
-		volume, found, err := baggageclaimClient.LookupVolume(src.logger, src.volumeHandle)
-		if err != nil {
-			return nil, false, err
-		}
-		return volume, found, nil
-	}
-	return nil, false, nil
+func (src *containerSource) VolumeOn(w worker.Worker) (worker.Volume, bool, error) {
+	return w.LookupVolume(src.logger, src.volumeHandle)
 }
 
 func artifactsPath(outputConfig atc.TaskOutputConfig, artifactsRoot string) string {

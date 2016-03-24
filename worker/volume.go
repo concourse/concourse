@@ -14,7 +14,7 @@ const volumeKeepalive = 30 * time.Second
 //go:generate counterfeiter . VolumeFactoryDB
 
 type VolumeFactoryDB interface {
-	GetVolumeTTL(volumeHandle string) (time.Duration, error)
+	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	ReapVolume(handle string) error
 	SetVolumeTTL(string, time.Duration) error
 }
@@ -22,7 +22,7 @@ type VolumeFactoryDB interface {
 //go:generate counterfeiter . VolumeFactory
 
 type VolumeFactory interface {
-	Build(lager.Logger, baggageclaim.Volume) (Volume, error)
+	Build(lager.Logger, baggageclaim.Volume) (Volume, bool, error)
 }
 
 type volumeFactory struct {
@@ -37,7 +37,7 @@ func NewVolumeFactory(db VolumeFactoryDB, clock clock.Clock) VolumeFactory {
 	}
 }
 
-func (vf *volumeFactory) Build(logger lager.Logger, bcVol baggageclaim.Volume) (Volume, error) {
+func (vf *volumeFactory) Build(logger lager.Logger, bcVol baggageclaim.Volume) (Volume, bool, error) {
 	bcVol.Release(nil)
 	return newVolume(logger, bcVol, vf.clock, vf.db)
 }
@@ -46,10 +46,14 @@ func (vf *volumeFactory) Build(logger lager.Logger, bcVol baggageclaim.Volume) (
 
 type Volume interface {
 	baggageclaim.Volume
+
+	// a noop method to ensure things aren't just returning baggageclaim.Volume
+	HeartbeatingToDB()
 }
 
 type volume struct {
 	baggageclaim.Volume
+
 	db VolumeFactoryDB
 
 	release      chan *time.Duration
@@ -62,7 +66,7 @@ type VolumeMount struct {
 	MountPath string
 }
 
-func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock, db VolumeFactoryDB) (Volume, error) {
+func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock, db VolumeFactoryDB) (Volume, bool, error) {
 	vol := &volume{
 		Volume: bcVol,
 		db:     db,
@@ -71,15 +75,14 @@ func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock
 		release:      make(chan *time.Duration, 1),
 	}
 
-	ttl, err := vol.db.GetVolumeTTL(vol.Handle())
+	ttl, found, err := vol.db.GetVolumeTTL(vol.Handle())
 	if err != nil {
-		logger.Info("failed-to-lookup-ttl", lager.Data{"error": err.Error()})
+		logger.Error("failed-to-lookup-expiration-of-volume", err)
+		return nil, false, err
+	}
 
-		ttl, _, err = bcVol.Expiration()
-		if err != nil {
-			logger.Error("failed-to-lookup-expiration-of-volume", err)
-			return nil, err
-		}
+	if !found {
+		return nil, false, nil
 	}
 
 	vol.heartbeat(logger.Session("initial-heartbeat"), ttl)
@@ -91,8 +94,10 @@ func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock
 		ttl,
 	)
 
-	return vol, nil
+	return vol, true, nil
 }
+
+func (*volume) HeartbeatingToDB() {}
 
 func (v *volume) Release(finalTTL *time.Duration) {
 	v.releaseOnce.Do(func() {
@@ -111,15 +116,22 @@ func (v *volume) heartbeatContinuously(logger lager.Logger, pacemaker clock.Tick
 	defer logger.Debug("done")
 
 	ttlToSet := initialTTL
+
 	for {
 		select {
 		case <-pacemaker.C():
-			ttl, err := v.db.GetVolumeTTL(v.Handle())
+			ttl, found, err := v.db.GetVolumeTTL(v.Handle())
 			if err != nil {
-				logger.Info("failed-to-lookup-ttl", lager.Data{"error": err.Error()})
+				logger.Error("failed-to-lookup-ttl", err)
 			} else {
+				if !found {
+					logger.Info("volume-expired-from-database")
+					return
+				}
+
 				ttlToSet = ttl
 			}
+
 			v.heartbeat(logger.Session("tick"), ttlToSet)
 
 		case finalTTL := <-v.release:

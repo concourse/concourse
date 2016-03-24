@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc/engine/fakes"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -442,10 +443,10 @@ var _ = Describe("BuildDelegate", func() {
 		})
 
 		Describe("ImageVersionDetermined", func() {
-			var identifier db.VolumeIdentifier
+			var identifier worker.VolumeIdentifier
 
 			BeforeEach(func() {
-				identifier = db.VolumeIdentifier{
+				identifier = worker.VolumeIdentifier{
 					ResourceVersion: atc.Version{"ref": "asdf"},
 					ResourceHash:    "our-super-sweet-resource-hash",
 				}
@@ -461,7 +462,7 @@ var _ = Describe("BuildDelegate", func() {
 				actualBuildID, actualPlanID, actualIdentifier := fakeDB.SaveImageResourceVersionArgsForCall(0)
 				Expect(actualBuildID).To(Equal(42))
 				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
-				Expect(actualIdentifier).To(Equal(identifier))
+				Expect(actualIdentifier).To(Equal(db.VolumeIdentifier(identifier)))
 			})
 
 			It("propagates errors", func() {
@@ -713,10 +714,10 @@ var _ = Describe("BuildDelegate", func() {
 		})
 
 		Describe("ImageVersionDetermined", func() {
-			var identifier db.VolumeIdentifier
+			var identifier worker.VolumeIdentifier
 
 			BeforeEach(func() {
-				identifier = db.VolumeIdentifier{
+				identifier = worker.VolumeIdentifier{
 					ResourceVersion: atc.Version{"ref": "asdf"},
 					ResourceHash:    "our-super-sweet-resource-hash",
 				}
@@ -732,7 +733,7 @@ var _ = Describe("BuildDelegate", func() {
 				actualBuildID, actualPlanID, actualIdentifier := fakeDB.SaveImageResourceVersionArgsForCall(0)
 				Expect(actualBuildID).To(Equal(42))
 				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
-				Expect(actualIdentifier).To(Equal(identifier))
+				Expect(actualIdentifier).To(Equal(db.VolumeIdentifier(identifier)))
 			})
 
 			It("Propagates errors", func() {
@@ -793,34 +794,6 @@ var _ = Describe("BuildDelegate", func() {
 					Payload: "some stderr",
 				}))
 
-			})
-		})
-
-		Describe("InsertOutputVolume", func() {
-			var expectedVolume db.Volume
-			BeforeEach(func() {
-				expectedVolume = db.Volume{
-					WorkerName: "bob the builder",
-					TTL:        5000 * time.Second,
-					Handle:     "handle me",
-				}
-			})
-
-			It("saves output volume to the db", func() {
-				fakeDB.InsertOutputVolumeReturns(nil)
-				err := executionDelegate.InsertOutputVolume(expectedVolume)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(fakeDB.InsertOutputVolumeCallCount()).To(Equal(1))
-				volume := fakeDB.InsertOutputVolumeArgsForCall(0)
-				Expect(volume).To(Equal(expectedVolume))
-			})
-
-			It("returns an error if saving the volume fails", func() {
-				disaster := errors.New("Oh, No")
-				fakeDB.InsertOutputVolumeReturns(disaster)
-				err := executionDelegate.InsertOutputVolume(expectedVolume)
-				Expect(err).To(Equal(disaster))
 			})
 		})
 	})
@@ -1066,10 +1039,10 @@ var _ = Describe("BuildDelegate", func() {
 		})
 
 		Describe("ImageVersionDetermined", func() {
-			var identifier db.VolumeIdentifier
+			var identifier worker.VolumeIdentifier
 
 			BeforeEach(func() {
-				identifier = db.VolumeIdentifier{
+				identifier = worker.VolumeIdentifier{
 					ResourceVersion: atc.Version{"ref": "asdf"},
 					ResourceHash:    "our-super-sweet-resource-hash",
 				}
@@ -1085,7 +1058,7 @@ var _ = Describe("BuildDelegate", func() {
 				actualBuildID, actualPlanID, actualIdentifier := fakeDB.SaveImageResourceVersionArgsForCall(0)
 				Expect(actualBuildID).To(Equal(42))
 				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
-				Expect(actualIdentifier).To(Equal(identifier))
+				Expect(actualIdentifier).To(Equal(db.VolumeIdentifier(identifier)))
 			})
 
 			It("propagates errors", func() {

@@ -29,6 +29,14 @@ type FakeGardenWorkerDB struct {
 	updateExpiresAtOnContainerReturns struct {
 		result1 error
 	}
+	InsertVolumeStub        func(db.Volume) error
+	insertVolumeMutex       sync.RWMutex
+	insertVolumeArgsForCall []struct {
+		arg1 db.Volume
+	}
+	insertVolumeReturns struct {
+		result1 error
+	}
 	InsertCOWVolumeStub        func(originalVolumeHandle string, cowVolumeHandle string, ttl time.Duration) error
 	insertCOWVolumeMutex       sync.RWMutex
 	insertCOWVolumeArgsForCall []struct {
@@ -104,6 +112,38 @@ func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainerArgsForCall(i int) (st
 func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainerReturns(result1 error) {
 	fake.UpdateExpiresAtOnContainerStub = nil
 	fake.updateExpiresAtOnContainerReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeGardenWorkerDB) InsertVolume(arg1 db.Volume) error {
+	fake.insertVolumeMutex.Lock()
+	fake.insertVolumeArgsForCall = append(fake.insertVolumeArgsForCall, struct {
+		arg1 db.Volume
+	}{arg1})
+	fake.insertVolumeMutex.Unlock()
+	if fake.InsertVolumeStub != nil {
+		return fake.InsertVolumeStub(arg1)
+	} else {
+		return fake.insertVolumeReturns.result1
+	}
+}
+
+func (fake *FakeGardenWorkerDB) InsertVolumeCallCount() int {
+	fake.insertVolumeMutex.RLock()
+	defer fake.insertVolumeMutex.RUnlock()
+	return len(fake.insertVolumeArgsForCall)
+}
+
+func (fake *FakeGardenWorkerDB) InsertVolumeArgsForCall(i int) db.Volume {
+	fake.insertVolumeMutex.RLock()
+	defer fake.insertVolumeMutex.RUnlock()
+	return fake.insertVolumeArgsForCall[i].arg1
+}
+
+func (fake *FakeGardenWorkerDB) InsertVolumeReturns(result1 error) {
+	fake.InsertVolumeStub = nil
+	fake.insertVolumeReturns = struct {
 		result1 error
 	}{result1}
 }

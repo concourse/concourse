@@ -26,8 +26,9 @@ type WorkerDB interface {
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
 
+	InsertVolume(db.Volume) error
 	InsertCOWVolume(originalVolumeHandle string, cowVolumeHandle string, ttl time.Duration) error
-	GetVolumeTTL(volumeHandle string) (time.Duration, error)
+	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	ReapVolume(handle string) error
 	SetVolumeTTL(string, time.Duration) error
 }

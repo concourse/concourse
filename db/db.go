@@ -136,7 +136,7 @@ type DB interface {
 	GetVolumes() ([]SavedVolume, error)
 	ReapVolume(string) error
 	SetVolumeTTL(string, time.Duration) error
-	GetVolumeTTL(volumeHandle string) (time.Duration, error)
+	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 
 	SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier VolumeIdentifier) error
@@ -225,24 +225,4 @@ type WorkerInfo struct {
 	Platform         string
 	Tags             []string
 	Name             string
-}
-
-type SavedVolume struct {
-	Volume
-
-	ID        int
-	ExpiresIn time.Duration
-}
-
-type Volume struct {
-	WorkerName           string
-	TTL                  time.Duration
-	Handle               string
-	OriginalVolumeHandle string
-	VolumeIdentifier
-}
-
-type VolumeIdentifier struct {
-	ResourceVersion atc.Version
-	ResourceHash    string
 }
