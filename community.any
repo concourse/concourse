@@ -2,12 +2,29 @@
 
 \use{\load{concourse/docs}}
 
-\template{\load{concourse/docs-template}}
+\template{\load{concourse/community-template}}
 
 \title{Community}{community}
 
-TODO
+\omit-children-from-table-of-contents
 
-\section{Talks}{talks}{
+join us
+
+\section{GitHub}{github-blurb}{
+  Concourse lives in the sky.
+}
+
+\section{Slack}{slack-blurb}{
+}
+
+\section{Talks}{talks-blurb}{
+  20 GO TO \reference{talks}
+
+  \split-sections
+
+  \include-section{./community/talks.any}
+}
+
+\section{Security}{security-blurb}{
   TODO
 }
