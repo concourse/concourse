@@ -134,13 +134,6 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		return SavedContainer{}, false, err
 	}
 
-	var containers []SavedContainer
-
-	selectQuery := `
-		SELECT ` + containerColumns + `
-		FROM containers c ` + containerJoins + `
-		`
-
 	conditions := []string{}
 	params := []interface{}{}
 
@@ -182,13 +175,17 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		}...)
 	}
 
-	selectQuery += "WHERE " + strings.Join(conditions, " AND ")
+	selectQuery := `
+		SELECT ` + containerColumns + `
+		FROM containers c ` + containerJoins + `
+		WHERE ` + strings.Join(conditions, " AND ")
 
 	rows, err := db.conn.Query(selectQuery, params...)
 	if err != nil {
 		return SavedContainer{}, false, err
 	}
 
+	var containers []SavedContainer
 	for rows.Next() {
 		container, err := scanContainer(rows)
 		if err != nil {
