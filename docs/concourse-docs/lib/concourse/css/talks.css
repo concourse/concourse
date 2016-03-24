@@ -65,6 +65,7 @@
 @media (max-width: 650px) {
   .talk {
     flex-direction: column;
+    margin-bottom: 30px;
   }
 
   .talk-thumbnail img {
@@ -75,7 +76,7 @@
     padding: 0;
   }
 
-  .talk-links p {
-    margin-bottom: 0;
+  .talk-links {
+    margin-bottom: 10px;
   }
 }
