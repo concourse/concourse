@@ -15,6 +15,12 @@ resources:
   type: custom-resource-type
   source: {}
 
+- name: trigger-build
+  type: git
+  source:
+    uri: {{origin-git-server}}
+    branch: trigger
+
 jobs:
 - name: resource-getter
   plan:
@@ -49,8 +55,12 @@ jobs:
   plan:
   - get: my-resource
     trigger: true
+  - get: trigger-build
+    trigger: true
   - task: use-custom-resource-type
     config:
+      inputs:
+      - name: my-resource
       platform: linux
       image_resource:
         type: custom-resource-type

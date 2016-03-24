@@ -246,6 +246,8 @@ func (server *Server) CommitResource() {
 				echo '{}' > metadata.json
 
 				mkdir -p rootfs/opt/resource
+				echo some-bogus-version > rootfs/version
+				echo fetched from custom resource > rootfs/some-file
 
 				cat > rootfs/opt/resource/in <<EOF
 #!/bin/sh
@@ -262,7 +264,7 @@ cp -a /lib rootfs/lib
 cp -a /lib64 rootfs/lib64
 cp -a /usr rootfs/usr
 cp -a /root rootfs/root
-echo fetched from custom resource > rootfs/some-file
+cp -a /some-file rootfs/some-file
 echo '{"env":["SOME_ENV=yep"]}' > metadata.json
 
 cat <<EOR
@@ -291,7 +293,7 @@ EOF
 set -e -x
 
 cat <<EOR
-[{"timestamp":"some-bogus-trigger-once-timestamp"}]
+[{"version":"\$(cat /version)"}]
 EOR
 EOF
 

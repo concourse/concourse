@@ -13,6 +13,7 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 	BeforeEach(func() {
 		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
 		originGitServer.CommitResource()
+		originGitServer.CommitFileToBranch("initial", "initial", "trigger")
 
 		configurePipeline(
 			"-c", "fixtures/resource-types.yml",
