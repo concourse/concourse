@@ -7,12 +7,8 @@
 \title{Talks}{talks}
 
 \talk{CI that scales with your project}{Alex Suraci}{images/talks/ci-that-scales-with-your-project-thumb.png}{https://www.youtube.com/watch?v=mYTn3qBxPhQ}{https://docs.google.com/presentation/d/13pEbkTs9--d2eYHSnzM9dUo7JJpdv8Xt6a2lWu1aa68/pub}{
-  An introduction to Concourse from one of its original authors. Compares it to
-  other CI systems, and provides a quick overview of the primitives and how
-  they build on each other.
-
-  Assumes general knowledge of Continuous Integration and possibly some
-  experience with Jenkins and GoCD.
+  An introduction to Concourse from one of its original authors. Assumes
+  general knowledge of Continuous Integration and experience with other tools.
 }
 
 \talk{6 months using Concourse CI}{Benedict Dodd}{images/talks/6-months-using-concourse-ci-thumb.jpg}{https://vimeo.com/148152513}{https://speakerdeck.com/armakuni/6-months-with-concourse-ci}{
