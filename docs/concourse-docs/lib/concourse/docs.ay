@@ -258,7 +258,8 @@ def(talk(title, author, thumb, video, slides, description)):
       data Block new(
         [ data Block new(
             [ data Element new(image(thumb, "talk thumbnail"), .hyperlink(video))
-            , data Element new("slides", .classed(.hyperlink(slides), "talk-slides-link"))
+              unless(slides empty?):
+                data Element new("slides", .classed(.hyperlink(slides), "talk-slides-link"))
             ]
             .class("talk-thumbnail"))
         ]
