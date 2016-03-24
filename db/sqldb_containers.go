@@ -142,7 +142,8 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		params = append(params, param)
 	}
 
-	if isValidCheckID(id) {
+	switch {
+	case isValidCheckID(id):
 		checkSourceBlob, err := json.Marshal(id.CheckSource)
 		if err != nil {
 			return SavedContainer{}, false, err
@@ -152,11 +153,11 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		addParam("check_type", id.CheckType)
 		addParam("check_source", checkSourceBlob)
 		addParam("stage", string(id.Stage))
-	} else if isValidStepID(id) {
+	case isValidStepID(id):
 		addParam("build_id", id.BuildID)
 		addParam("plan_id", string(id.PlanID))
 		addParam("stage", string(id.Stage))
-	} else {
+	default:
 		return SavedContainer{}, false, ErrInvalidIdentifier
 	}
 
