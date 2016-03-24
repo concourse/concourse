@@ -62,7 +62,7 @@ func (tracker *tracker) InitWithSources(
 	typ ResourceType,
 	tags atc.Tags,
 	sources map[string]ArtifactSource,
-	customTypes atc.ResourceTypes,
+	resourceTypes atc.ResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, []string, error) {
 	logger = logger.Session("init-with-sources")
@@ -95,7 +95,7 @@ func (tracker *tracker) InitWithSources(
 		Env:       metadata.Env(),
 	}
 
-	compatibleWorkers, err := tracker.workerClient.AllSatisfying(resourceSpec.WorkerSpec(), customTypes)
+	compatibleWorkers, err := tracker.workerClient.AllSatisfying(resourceSpec.WorkerSpec(), resourceTypes)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -149,7 +149,7 @@ func (tracker *tracker) InitWithSources(
 		session.ID,
 		session.Metadata,
 		resourceSpec,
-		customTypes,
+		resourceTypes,
 	)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
@@ -171,7 +171,7 @@ func (tracker *tracker) Init(
 	session Session,
 	typ ResourceType,
 	tags atc.Tags,
-	customTypes atc.ResourceTypes,
+	resourceTypes atc.ResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, error) {
 	logger = logger.Session("init")
@@ -204,7 +204,7 @@ func (tracker *tracker) Init(
 			Tags:      tags,
 			Env:       metadata.Env(),
 		},
-		customTypes,
+		resourceTypes,
 	)
 	if err != nil {
 		return nil, err
@@ -222,7 +222,7 @@ func (tracker *tracker) InitWithCache(
 	typ ResourceType,
 	tags atc.Tags,
 	cacheIdentifier CacheIdentifier,
-	customTypes atc.ResourceTypes,
+	resourceTypes atc.ResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, Cache, error) {
 	logger = logger.Session("init-with-cache")
@@ -261,7 +261,7 @@ func (tracker *tracker) InitWithCache(
 		Tags:         tags,
 	}
 
-	chosenWorker, err := tracker.workerClient.Satisfying(resourceSpec, customTypes)
+	chosenWorker, err := tracker.workerClient.Satisfying(resourceSpec, resourceTypes)
 	if err != nil {
 		logger.Info("no-workers-satisfying-spec", lager.Data{
 			"error": err.Error(),
@@ -269,11 +269,32 @@ func (tracker *tracker) InitWithCache(
 		return nil, nil, err
 	}
 
-	containerSpec := worker.ResourceTypeContainerSpec{
-		Type:      string(typ),
-		Ephemeral: session.Ephemeral,
-		Tags:      tags,
-		Env:       metadata.Env(),
+	vm, hasVM := chosenWorker.VolumeManager()
+	if !hasVM {
+		logger.Debug("creating-container-without-cache")
+
+		container, err := chosenWorker.CreateContainer(
+			logger,
+			nil,
+			imageFetchingDelegate,
+			session.ID,
+			session.Metadata,
+			worker.ResourceTypeContainerSpec{
+				Type:      string(typ),
+				Ephemeral: session.Ephemeral,
+				Tags:      tags,
+				Env:       metadata.Env(),
+			},
+			resourceTypes,
+		)
+		if err != nil {
+			logger.Error("failed-to-create-container", err)
+			return nil, nil, err
+		}
+
+		logger.Info("created", lager.Data{"container": container.Handle()})
+
+		return NewResource(container), noopCache{}, nil
 	}
 
 	cachedVolume, cacheFound, err := cacheIdentifier.FindOn(logger, chosenWorker)
@@ -317,8 +338,17 @@ func (tracker *tracker) InitWithCache(
 		imageFetchingDelegate,
 		session.ID,
 		session.Metadata,
-		containerSpec,
-		customTypes,
+		worker.ResourceTypeContainerSpec{
+			Type:      string(typ),
+			Ephemeral: session.Ephemeral,
+			Tags:      tags,
+			Env:       metadata.Env(),
+			Cache: worker.VolumeMount{
+				Volume:    cachedVolume,
+				MountPath: ResourcesDir("get"),
+			},
+		},
+		resourceTypes,
 	)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
