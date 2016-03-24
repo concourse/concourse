@@ -242,3 +242,26 @@ def(resources-table(body)):
       part css-additions << File expand-path("../resources-table.css", __FILE__)
 
       data Block new(body, .class("resources-table")))
+
+def(talk(title, author, thumb, video, slides, description)):
+  data Block new(
+    [ data Block new(
+        [ data Block new(
+            data Element new(title, .classed(.hyperlink(video), "talk-title"))
+            .classed(.header(2), "talk-header"))
+          data Block new(["by ", author], .class("talk-author"))
+          data Block new(
+            description
+            .class("talk-description"))
+        ]
+        .class("talk-info"))
+      data Block new(
+        [ data Block new(
+            [ data Element new(image(thumb, "talk thumbnail"), .hyperlink(video))
+            , data Element new("slides", .classed(.hyperlink(slides), "talk-slides-link"))
+            ]
+            .class("talk-thumbnail"))
+        ]
+        .class("talk-links"))
+    ]
+    .class("talk"))

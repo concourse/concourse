@@ -17,6 +17,7 @@
   font-weight: 500;
   max-width: 914px;
   order: 1;
+  flex-grow: 1;
 }
 
 #content.full-width {
