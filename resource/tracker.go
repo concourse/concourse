@@ -269,32 +269,11 @@ func (tracker *tracker) InitWithCache(
 		return nil, nil, err
 	}
 
-	vm, hasVM := chosenWorker.VolumeManager()
-	if !hasVM {
-		logger.Debug("creating-container-without-cache")
-
-		container, err := chosenWorker.CreateContainer(
-			logger,
-			nil,
-			imageFetchingDelegate,
-			session.ID,
-			session.Metadata,
-			worker.ResourceTypeContainerSpec{
-				Type:      string(typ),
-				Ephemeral: session.Ephemeral,
-				Tags:      tags,
-				Env:       metadata.Env(),
-			},
-			resourceTypes,
-		)
-		if err != nil {
-			logger.Error("failed-to-create-container", err)
-			return nil, nil, err
-		}
-
-		logger.Info("created", lager.Data{"container": container.Handle()})
-
-		return NewResource(container), noopCache{}, nil
+	containerSpec := worker.ResourceTypeContainerSpec{
+		Type:      string(typ),
+		Ephemeral: session.Ephemeral,
+		Tags:      tags,
+		Env:       metadata.Env(),
 	}
 
 	cachedVolume, cacheFound, err := cacheIdentifier.FindOn(logger, chosenWorker)
@@ -338,16 +317,7 @@ func (tracker *tracker) InitWithCache(
 		imageFetchingDelegate,
 		session.ID,
 		session.Metadata,
-		worker.ResourceTypeContainerSpec{
-			Type:      string(typ),
-			Ephemeral: session.Ephemeral,
-			Tags:      tags,
-			Env:       metadata.Env(),
-			Cache: worker.VolumeMount{
-				Volume:    cachedVolume,
-				MountPath: ResourcesDir("get"),
-			},
-		},
+		containerSpec,
 		resourceTypes,
 	)
 	if err != nil {
