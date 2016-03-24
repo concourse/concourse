@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
@@ -84,8 +85,10 @@ func (identifier ResourceCacheIdentifier) initializedVolumeProperties() worker.V
 
 func (identifier ResourceCacheIdentifier) VolumeIdentifier() worker.VolumeIdentifier {
 	return worker.VolumeIdentifier{
-		ResourceVersion: identifier.Version,
-		ResourceHash:    GenerateResourceHash(identifier.Source, string(identifier.Type)),
+		ResourceCache: &db.ResourceCacheIdentifier{
+			ResourceVersion: identifier.Version,
+			ResourceHash:    GenerateResourceHash(identifier.Source, string(identifier.Type)),
+		},
 	}
 }
 

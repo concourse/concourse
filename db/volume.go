@@ -7,16 +7,30 @@ import (
 )
 
 type Volume struct {
-	Handle               string
-	WorkerName           string
-	TTL                  time.Duration
-	OriginalVolumeHandle string
-	VolumeIdentifier
+	Handle     string
+	WorkerName string
+	TTL        time.Duration
+	Identifier VolumeIdentifier
 }
 
+// pls gib algebraic data types
 type VolumeIdentifier struct {
+	ResourceCache *ResourceCacheIdentifier
+	COW           *COWIdentifier
+	Output        *OutputIdentifier
+}
+
+type ResourceCacheIdentifier struct {
 	ResourceVersion atc.Version
 	ResourceHash    string
+}
+
+type COWIdentifier struct {
+	ParentVolumeHandle string
+}
+
+type OutputIdentifier struct {
+	Name string
 }
 
 type SavedVolume struct {

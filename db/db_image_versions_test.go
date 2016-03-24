@@ -64,17 +64,17 @@ var _ = Describe("Image Versions", func() {
 		otherBuild, err := pipelineDB.CreateJobBuild("some-job")
 		Expect(err).ToNot(HaveOccurred())
 
-		identifier := db.VolumeIdentifier{
+		identifier := db.ResourceCacheIdentifier{
 			ResourceVersion: atc.Version{"ref": "our super sweet ref"},
 			ResourceHash:    "our even sweeter resource hash",
 		}
 
-		otherIdentifier := db.VolumeIdentifier{
+		otherIdentifier := db.ResourceCacheIdentifier{
 			ResourceVersion: atc.Version{"ref": "our super sweet ref"},
 			ResourceHash:    "our even sweeter resource hash",
 		}
 
-		badIdentifier := db.VolumeIdentifier{
+		badIdentifier := db.ResourceCacheIdentifier{
 			ResourceVersion: atc.Version{"ref": "our super bad ref"},
 			ResourceHash:    "our even badder resource hash",
 		}
@@ -88,7 +88,7 @@ var _ = Describe("Image Versions", func() {
 		err = sqlDB.SaveImageResourceVersion(otherBuild.ID, "our-super-bad-plan", badIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		recoveredIdentifiers, err := sqlDB.GetImageVolumeIdentifiersByBuildID(build.ID)
+		recoveredIdentifiers, err := sqlDB.GetImageResourceCacheIdentifiersByBuildID(build.ID)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(recoveredIdentifiers).To(ConsistOf(identifier, otherIdentifier))
@@ -98,7 +98,7 @@ var _ = Describe("Image Versions", func() {
 		err = sqlDB.SaveImageResourceVersion(555, "our-super-fake-plan", badIdentifier)
 		Expect(err).To(HaveOccurred())
 
-		recoveredFakeIdentifiers, err := sqlDB.GetImageVolumeIdentifiersByBuildID(555)
+		recoveredFakeIdentifiers, err := sqlDB.GetImageResourceCacheIdentifiersByBuildID(555)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(recoveredFakeIdentifiers).To(BeEmpty())
 
@@ -107,7 +107,7 @@ var _ = Describe("Image Versions", func() {
 		err = sqlDB.SaveImageResourceVersion(build.ID, "our-super-sweet-plan", badIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		recoveredIdentifiers, err = sqlDB.GetImageVolumeIdentifiersByBuildID(build.ID)
+		recoveredIdentifiers, err = sqlDB.GetImageResourceCacheIdentifiersByBuildID(build.ID)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(recoveredIdentifiers).To(ConsistOf(badIdentifier, otherIdentifier))
@@ -117,7 +117,7 @@ var _ = Describe("Image Versions", func() {
 		err = sqlDB.SaveImageResourceVersion(otherBuild.ID, "our-super-sweet-plan", badIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		otherRecoveredIdentifiers, err := sqlDB.GetImageVolumeIdentifiersByBuildID(otherBuild.ID)
+		otherRecoveredIdentifiers, err := sqlDB.GetImageResourceCacheIdentifiersByBuildID(otherBuild.ID)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(otherRecoveredIdentifiers).To(ConsistOf(badIdentifier, badIdentifier))

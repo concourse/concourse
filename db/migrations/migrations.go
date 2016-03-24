@@ -63,7 +63,7 @@ var Migrations = []migration.Migrator{
 	MakeContainerWorkingDirectoryNotNull,
 	AddEnvVariablesToContainers,
 	AddModifiedTimeToVersionedResourcesAndBuildOutputs,
-	ReplaceStepLocationWithPlanID, //even though this is 56, it's meant to be here
+	ReplaceStepLocationWithPlanID,
 	AddTeamsColumnToPipelinesAndTeamsTable,
 	CascadePipelineDeletes,
 	AddTeamIDToPipelineNameUniqueness,
@@ -94,4 +94,5 @@ var Migrations = []migration.Migrator{
 	AddTTLToContainers,
 	AddOriginalVolumeHandleToVolumes,
 	DropNotNullResourceConstraintsOnVolumes,
+	AddOutputNameToVolumes,
 }

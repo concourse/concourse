@@ -48,9 +48,11 @@ var _ = Describe("Pipelines API", func() {
 								WorkerName: "some-worker",
 								TTL:        10 * time.Minute,
 								Handle:     "some-handle",
-								VolumeIdentifier: db.VolumeIdentifier{
-									ResourceVersion: atc.Version{"some": "version"},
-									ResourceHash:    "some-hash",
+								Identifier: db.VolumeIdentifier{
+									ResourceCache: &db.ResourceCacheIdentifier{
+										ResourceVersion: atc.Version{"some": "version"},
+										ResourceHash:    "some-hash",
+									},
 								},
 							},
 						},
@@ -61,9 +63,11 @@ var _ = Describe("Pipelines API", func() {
 								WorkerName: "some-other-worker",
 								TTL:        24 * time.Hour,
 								Handle:     "some-other-handle",
-								VolumeIdentifier: db.VolumeIdentifier{
-									ResourceVersion: atc.Version{"some": "other-version"},
-									ResourceHash:    "some-other-hash",
+								Identifier: db.VolumeIdentifier{
+									ResourceCache: &db.ResourceCacheIdentifier{
+										ResourceVersion: atc.Version{"some": "other-version"},
+										ResourceHash:    "some-other-hash",
+									},
 								},
 							},
 						},
@@ -74,9 +78,11 @@ var _ = Describe("Pipelines API", func() {
 								WorkerName: "some-worker",
 								TTL:        time.Duration(0),
 								Handle:     "some-immortal-handle",
-								VolumeIdentifier: db.VolumeIdentifier{
-									ResourceVersion: atc.Version{"some": "other-version"},
-									ResourceHash:    "some-hash",
+								Identifier: db.VolumeIdentifier{
+									ResourceCache: &db.ResourceCacheIdentifier{
+										ResourceVersion: atc.Version{"some": "other-version"},
+										ResourceHash:    "some-hash",
+									},
 								},
 							},
 						},

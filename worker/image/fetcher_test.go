@@ -240,8 +240,10 @@ var _ = Describe("Fetcher", func() {
 
 									It("saved the image resource version in the database", func() {
 										expectedIdentifier := worker.VolumeIdentifier{
-											ResourceVersion: atc.Version{"v": "1"},
-											ResourceHash:    `docker{"some":"source"}`,
+											ResourceCache: &db.ResourceCacheIdentifier{
+												ResourceVersion: atc.Version{"v": "1"},
+												ResourceHash:    `docker{"some":"source"}`,
+											},
 										}
 										Expect(fakeImageFetchingDelegate.ImageVersionDeterminedCallCount()).To(Equal(1))
 										Expect(fakeImageFetchingDelegate.ImageVersionDeterminedArgsForCall(0)).To(Equal(expectedIdentifier))

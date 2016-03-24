@@ -27,9 +27,7 @@ type EngineDB interface {
 	SaveBuildInput(teamName string, buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
 	SaveBuildOutput(teamName string, buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error)
 
-	InsertOutputVolume(outputVolume db.Volume) error
-
-	SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier db.VolumeIdentifier) error
+	SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier db.ResourceCacheIdentifier) error
 }
 
 //go:generate counterfeiter . Build

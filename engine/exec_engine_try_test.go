@@ -15,7 +15,6 @@ import (
 )
 
 var _ = Describe("Exec Engine with Try", func() {
-
 	var (
 		fakeFactory         *execfakes.FakeFactory
 		fakeDelegateFactory *fakes.FakeBuildDelegateFactory

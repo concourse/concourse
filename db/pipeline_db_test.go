@@ -293,7 +293,7 @@ var _ = Describe("PipelineDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// populate image_resource_versions table
-			err = sqlDB.SaveImageResourceVersion(build.ID, "some-plan-id", db.VolumeIdentifier{
+			err = sqlDB.SaveImageResourceVersion(build.ID, "some-plan-id", db.ResourceCacheIdentifier{
 				ResourceVersion: atc.Version{"digest": "readers"},
 				ResourceHash:    `docker{"some":"source"}`,
 			})
@@ -346,7 +346,7 @@ var _ = Describe("PipelineDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(oneOffOutputRows.Next()).To(BeFalse())
 
-			foundImageVolumeIdentifiers, err := sqlDB.GetImageVolumeIdentifiersByBuildID(build.ID)
+			foundImageVolumeIdentifiers, err := sqlDB.GetImageResourceCacheIdentifiersByBuildID(build.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(foundImageVolumeIdentifiers).To(BeEmpty())
 		})

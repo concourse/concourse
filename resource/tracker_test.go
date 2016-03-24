@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource/fakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
@@ -210,8 +211,10 @@ var _ = Describe("Tracker", func() {
 						cacheIdentifier.FindOnReturns(foundVolume, true, nil)
 
 						cacheIdentifier.VolumeIdentifierReturns(worker.VolumeIdentifier{
-							ResourceVersion: atc.Version{"some": "theversion"},
-							ResourceHash:    "hash",
+							ResourceCache: &db.ResourceCacheIdentifier{
+								ResourceVersion: atc.Version{"some": "theversion"},
+								ResourceHash:    "hash",
+							},
 						})
 
 						satisfyingWorker.NameReturns("some-worker")

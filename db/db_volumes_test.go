@@ -66,9 +66,11 @@ var _ = Describe("Keeping track of volumes", func() {
 			volumeToInsert = db.Volume{
 				TTL:    time.Hour,
 				Handle: "some-volume-handle",
-				VolumeIdentifier: db.VolumeIdentifier{
-					ResourceVersion: atc.Version{"some": "version"},
-					ResourceHash:    "some-hash",
+				Identifier: db.VolumeIdentifier{
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"some": "version"},
+						ResourceHash:    "some-hash",
+					},
 				},
 			}
 
@@ -116,10 +118,8 @@ var _ = Describe("Keeping track of volumes", func() {
 				Expect(actualVolume.TTL).To(Equal(volumeToInsert.TTL))
 				Expect(actualVolume.ExpiresIn).To(BeNumerically("~", volumeToInsert.TTL, time.Second))
 				Expect(actualVolume.Handle).To(Equal(volumeToInsert.Handle))
-				Expect(actualVolume.ResourceVersion).To(Equal(volumeToInsert.ResourceVersion))
-				Expect(actualVolume.ResourceHash).To(Equal(volumeToInsert.ResourceHash))
+				Expect(actualVolume.Volume.Identifier).To(Equal(volumeToInsert.Identifier))
 				Expect(actualVolume.WorkerName).To(Equal(insertedWorker.Name))
-				Expect(actualVolume.OriginalVolumeHandle).To(BeEmpty())
 			})
 
 			Describe("cow volumes", func() {
@@ -138,7 +138,16 @@ var _ = Describe("Keeping track of volumes", func() {
 					Expect(len(volumes)).To(Equal(1))
 					originalVolume = volumes[0]
 
-					err = database.InsertCOWVolume(originalVolume.Handle, cowVolumeToInsertHandle, ttl)
+					err = database.InsertVolume(db.Volume{
+						Handle:     cowVolumeToInsertHandle,
+						WorkerName: originalVolume.WorkerName,
+						TTL:        ttl,
+						Identifier: db.VolumeIdentifier{
+							COW: &db.COWIdentifier{
+								ParentVolumeHandle: originalVolume.Handle,
+							},
+						},
+					})
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -148,14 +157,11 @@ var _ = Describe("Keeping track of volumes", func() {
 					Expect(len(volumes)).To(Equal(2))
 					cowVolume := volumes[1]
 					Expect(cowVolume.Handle).To(Equal(cowVolumeToInsertHandle))
-					Expect(cowVolume.OriginalVolumeHandle).To(Equal(originalVolume.Handle))
+					Expect(cowVolume.Volume.Identifier.COW.ParentVolumeHandle).To(Equal(originalVolume.Handle))
 					Expect(cowVolume.TTL).To(Equal(ttl))
 					Expect(cowVolume.ExpiresIn).To(BeNumerically("~", ttl, time.Second))
-
 					Expect(cowVolume.WorkerName).To(Equal(originalVolume.WorkerName))
 					Expect(cowVolume.WorkerName).To(Equal(insertedWorker.Name))
-					Expect(cowVolume.ResourceVersion).To(BeNil())
-					Expect(cowVolume.ResourceHash).To(Equal(""))
 				})
 			})
 
@@ -164,9 +170,11 @@ var _ = Describe("Keeping track of volumes", func() {
 					WorkerName: insertedWorker2.Name,
 					TTL:        time.Hour,
 					Handle:     "some-volume-handle2",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"some": "version"},
-						ResourceHash:    "some-hash2",
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"some": "version"},
+							ResourceHash:    "some-hash2",
+						},
 					},
 				}
 				err := database.InsertVolume(volumeToInsert2)
@@ -187,9 +195,11 @@ var _ = Describe("Keeping track of volumes", func() {
 					WorkerName: insertedWorker3.Name,
 					TTL:        time.Hour,
 					Handle:     "some-volume-handle3",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"some": "version"},
-						ResourceHash:    "some-hash3",
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"some": "version"},
+							ResourceHash:    "some-hash3",
+						},
 					},
 				}
 				err = database.InsertVolume(volumeToInsert3)
@@ -308,9 +318,14 @@ var _ = Describe("Keeping track of volumes", func() {
 					WorkerName: insertedWorker.Name,
 					TTL:        5 * time.Minute,
 					Handle:     "my-output-handle",
+					Identifier: db.VolumeIdentifier{
+						Output: &db.OutputIdentifier{
+							Name: "some-output",
+						},
+					},
 				}
 
-				err := database.InsertOutputVolume(outputVolume)
+				err := database.InsertVolume(outputVolume)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -322,11 +337,8 @@ var _ = Describe("Keeping track of volumes", func() {
 				Expect(savedOutputVolume.WorkerName).To(Equal(outputVolume.WorkerName))
 				Expect(savedOutputVolume.TTL).To(Equal(outputVolume.TTL))
 				Expect(savedOutputVolume.Handle).To(Equal(outputVolume.Handle))
-				Expect(savedOutputVolume.OriginalVolumeHandle).To(BeEmpty())
+				Expect(savedOutputVolume.Volume.Identifier.Output.Name).To(Equal("some-output"))
 				Expect(savedOutputVolume.ExpiresIn).To(BeNumerically("~", outputVolume.TTL, time.Second))
-
-				Expect(savedOutputVolume.ResourceVersion).To(BeNil())
-				Expect(savedOutputVolume.ResourceHash).To(BeEmpty())
 			})
 		})
 	})
@@ -345,16 +357,18 @@ var _ = Describe("Keeping track of volumes", func() {
 				WorkerName: "worker-1",
 				TTL:        2 * time.Minute,
 				Handle:     "volume-1",
-				VolumeIdentifier: db.VolumeIdentifier{
-					ResourceVersion: atc.Version{"digest": "digest-1"},
-					ResourceHash:    `docker:{"repository":"repository-1"}`,
+				Identifier: db.VolumeIdentifier{
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"digest": "digest-1"},
+						ResourceHash:    `docker:{"repository":"repository-1"}`,
+					},
 				},
 			}
 			err = database.InsertVolume(volume1)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-1", volume1.VolumeIdentifier)
+			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-1", *volume1.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(jobBuild.ID, "plan-id-1", volume1.VolumeIdentifier)
+			err = database.SaveImageResourceVersion(jobBuild.ID, "plan-id-1", *volume1.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			// To show that it can return more than one volume per build ID
@@ -362,14 +376,16 @@ var _ = Describe("Keeping track of volumes", func() {
 				WorkerName: "worker-2",
 				TTL:        2 * time.Minute,
 				Handle:     "volume-2",
-				VolumeIdentifier: db.VolumeIdentifier{
-					ResourceVersion: atc.Version{"digest": "digest-2"},
-					ResourceHash:    `docker:{"repository":"repository-2"}`,
+				Identifier: db.VolumeIdentifier{
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"digest": "digest-2"},
+						ResourceHash:    `docker:{"repository":"repository-2"}`,
+					},
 				},
 			}
 			err = database.InsertVolume(volume2)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-2", volume2.VolumeIdentifier)
+			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-2", *volume2.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			// To show that it can return more than one volume per VolumeIdentifier
@@ -377,14 +393,16 @@ var _ = Describe("Keeping track of volumes", func() {
 				WorkerName: "worker-3",
 				TTL:        2 * time.Minute,
 				Handle:     "volume-3",
-				VolumeIdentifier: db.VolumeIdentifier{
-					ResourceVersion: atc.Version{"digest": "digest-1"},
-					ResourceHash:    `docker:{"repository":"repository-1"}`,
+				Identifier: db.VolumeIdentifier{
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"digest": "digest-1"},
+						ResourceHash:    `docker:{"repository":"repository-1"}`,
+					},
 				},
 			}
 			err = database.InsertVolume(volume3)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-3", volume3.VolumeIdentifier)
+			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-3", *volume3.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			// To show that it can return volumes from multiple one-off builds
@@ -392,14 +410,16 @@ var _ = Describe("Keeping track of volumes", func() {
 				WorkerName: "worker-4",
 				TTL:        2 * time.Minute,
 				Handle:     "volume-4",
-				VolumeIdentifier: db.VolumeIdentifier{
-					ResourceVersion: atc.Version{"digest": "digest-4"},
-					ResourceHash:    `docker:{"repository":"repository-4"}`,
+				Identifier: db.VolumeIdentifier{
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"digest": "digest-4"},
+						ResourceHash:    `docker:{"repository":"repository-4"}`,
+					},
 				},
 			}
 			err = database.InsertVolume(volume4)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(oneOffBuildB.ID, "plan-id-4", volume4.VolumeIdentifier)
+			err = database.SaveImageResourceVersion(oneOffBuildB.ID, "plan-id-4", *volume4.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			// To show that it ignores volumes from job builds even if part of the VolumeIdentifier matches
@@ -407,14 +427,16 @@ var _ = Describe("Keeping track of volumes", func() {
 				WorkerName: "worker-5",
 				TTL:        2 * time.Minute,
 				Handle:     "volume-5",
-				VolumeIdentifier: db.VolumeIdentifier{
-					ResourceVersion: atc.Version{"digest": "digest-1"},
-					ResourceHash:    `docker:{"repository":"repository-2"}`,
+				Identifier: db.VolumeIdentifier{
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"digest": "digest-1"},
+						ResourceHash:    `docker:{"repository":"repository-2"}`,
+					},
 				},
 			}
 			err = database.InsertVolume(volume5)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(jobBuild.ID, "plan-id-5", volume5.VolumeIdentifier)
+			err = database.SaveImageResourceVersion(jobBuild.ID, "plan-id-5", *volume5.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			// To show that it reaps expired volumes
@@ -422,14 +444,16 @@ var _ = Describe("Keeping track of volumes", func() {
 				WorkerName: "worker-6",
 				TTL:        -time.Hour,
 				Handle:     "volume-6",
-				VolumeIdentifier: db.VolumeIdentifier{
-					ResourceVersion: atc.Version{"digest": "digest-6"},
-					ResourceHash:    `docker:{"repository":"repository-6"}`,
+				Identifier: db.VolumeIdentifier{
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"digest": "digest-6"},
+						ResourceHash:    `docker:{"repository":"repository-6"}`,
+					},
 				},
 			}
 			err = database.InsertVolume(volume6)
 			Expect(err).NotTo(HaveOccurred())
-			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-6", volume6.VolumeIdentifier)
+			err = database.SaveImageResourceVersion(oneOffBuildA.ID, "plan-id-6", *volume6.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 
 			actualSavedVolumes, err := database.GetVolumesForOneOffBuildImageResources()

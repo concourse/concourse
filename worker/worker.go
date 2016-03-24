@@ -49,7 +49,6 @@ type GardenWorkerDB interface {
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 
 	InsertVolume(db.Volume) error
-	InsertCOWVolume(originalVolumeHandle string, cowVolumeHandle string, ttl time.Duration) error
 }
 
 type gardenWorker struct {
@@ -128,10 +127,10 @@ func (worker *gardenWorker) CreateVolume(
 	}
 
 	err = worker.db.InsertVolume(db.Volume{
-		Handle:           bcVolume.Handle(),
-		WorkerName:       worker.Name(),
-		TTL:              ttl,
-		VolumeIdentifier: db.VolumeIdentifier(identifier),
+		Handle:     bcVolume.Handle(),
+		WorkerName: worker.Name(),
+		TTL:        ttl,
+		Identifier: db.VolumeIdentifier(identifier),
 	})
 	if err != nil {
 		logger.Error("failed-to-save-volume-to-db", err)
@@ -339,7 +338,16 @@ dance:
 			return nil, err
 		}
 
-		err = worker.db.InsertCOWVolume(mount.Volume.Handle(), cowBCVolume.Handle(), VolumeTTL)
+		err = worker.db.InsertVolume(db.Volume{
+			Handle:     cowBCVolume.Handle(),
+			WorkerName: worker.Name(),
+			TTL:        VolumeTTL,
+			Identifier: db.VolumeIdentifier{
+				COW: &db.COWIdentifier{
+					ParentVolumeHandle: mount.Volume.Handle(),
+				},
+			},
+		})
 		if err != nil {
 			return nil, err
 		}

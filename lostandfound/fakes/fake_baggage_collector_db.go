@@ -31,13 +31,13 @@ type FakeBaggageCollectorDB struct {
 		result1 []db.SavedVolume
 		result2 error
 	}
-	GetImageVolumeIdentifiersByBuildIDStub        func(buildID int) ([]db.VolumeIdentifier, error)
-	getImageVolumeIdentifiersByBuildIDMutex       sync.RWMutex
-	getImageVolumeIdentifiersByBuildIDArgsForCall []struct {
+	GetImageResourceCacheIdentifiersByBuildIDStub        func(buildID int) ([]db.ResourceCacheIdentifier, error)
+	getImageResourceCacheIdentifiersByBuildIDMutex       sync.RWMutex
+	getImageResourceCacheIdentifiersByBuildIDArgsForCall []struct {
 		buildID int
 	}
-	getImageVolumeIdentifiersByBuildIDReturns struct {
-		result1 []db.VolumeIdentifier
+	getImageResourceCacheIdentifiersByBuildIDReturns struct {
+		result1 []db.ResourceCacheIdentifier
 		result2 error
 	}
 	GetVolumesForOneOffBuildImageResourcesStub        func() ([]db.SavedVolume, error)
@@ -131,35 +131,35 @@ func (fake *FakeBaggageCollectorDB) GetVolumesReturns(result1 []db.SavedVolume, 
 	}{result1, result2}
 }
 
-func (fake *FakeBaggageCollectorDB) GetImageVolumeIdentifiersByBuildID(buildID int) ([]db.VolumeIdentifier, error) {
-	fake.getImageVolumeIdentifiersByBuildIDMutex.Lock()
-	fake.getImageVolumeIdentifiersByBuildIDArgsForCall = append(fake.getImageVolumeIdentifiersByBuildIDArgsForCall, struct {
+func (fake *FakeBaggageCollectorDB) GetImageResourceCacheIdentifiersByBuildID(buildID int) ([]db.ResourceCacheIdentifier, error) {
+	fake.getImageResourceCacheIdentifiersByBuildIDMutex.Lock()
+	fake.getImageResourceCacheIdentifiersByBuildIDArgsForCall = append(fake.getImageResourceCacheIdentifiersByBuildIDArgsForCall, struct {
 		buildID int
 	}{buildID})
-	fake.getImageVolumeIdentifiersByBuildIDMutex.Unlock()
-	if fake.GetImageVolumeIdentifiersByBuildIDStub != nil {
-		return fake.GetImageVolumeIdentifiersByBuildIDStub(buildID)
+	fake.getImageResourceCacheIdentifiersByBuildIDMutex.Unlock()
+	if fake.GetImageResourceCacheIdentifiersByBuildIDStub != nil {
+		return fake.GetImageResourceCacheIdentifiersByBuildIDStub(buildID)
 	} else {
-		return fake.getImageVolumeIdentifiersByBuildIDReturns.result1, fake.getImageVolumeIdentifiersByBuildIDReturns.result2
+		return fake.getImageResourceCacheIdentifiersByBuildIDReturns.result1, fake.getImageResourceCacheIdentifiersByBuildIDReturns.result2
 	}
 }
 
-func (fake *FakeBaggageCollectorDB) GetImageVolumeIdentifiersByBuildIDCallCount() int {
-	fake.getImageVolumeIdentifiersByBuildIDMutex.RLock()
-	defer fake.getImageVolumeIdentifiersByBuildIDMutex.RUnlock()
-	return len(fake.getImageVolumeIdentifiersByBuildIDArgsForCall)
+func (fake *FakeBaggageCollectorDB) GetImageResourceCacheIdentifiersByBuildIDCallCount() int {
+	fake.getImageResourceCacheIdentifiersByBuildIDMutex.RLock()
+	defer fake.getImageResourceCacheIdentifiersByBuildIDMutex.RUnlock()
+	return len(fake.getImageResourceCacheIdentifiersByBuildIDArgsForCall)
 }
 
-func (fake *FakeBaggageCollectorDB) GetImageVolumeIdentifiersByBuildIDArgsForCall(i int) int {
-	fake.getImageVolumeIdentifiersByBuildIDMutex.RLock()
-	defer fake.getImageVolumeIdentifiersByBuildIDMutex.RUnlock()
-	return fake.getImageVolumeIdentifiersByBuildIDArgsForCall[i].buildID
+func (fake *FakeBaggageCollectorDB) GetImageResourceCacheIdentifiersByBuildIDArgsForCall(i int) int {
+	fake.getImageResourceCacheIdentifiersByBuildIDMutex.RLock()
+	defer fake.getImageResourceCacheIdentifiersByBuildIDMutex.RUnlock()
+	return fake.getImageResourceCacheIdentifiersByBuildIDArgsForCall[i].buildID
 }
 
-func (fake *FakeBaggageCollectorDB) GetImageVolumeIdentifiersByBuildIDReturns(result1 []db.VolumeIdentifier, result2 error) {
-	fake.GetImageVolumeIdentifiersByBuildIDStub = nil
-	fake.getImageVolumeIdentifiersByBuildIDReturns = struct {
-		result1 []db.VolumeIdentifier
+func (fake *FakeBaggageCollectorDB) GetImageResourceCacheIdentifiersByBuildIDReturns(result1 []db.ResourceCacheIdentifier, result2 error) {
+	fake.GetImageResourceCacheIdentifiersByBuildIDStub = nil
+	fake.getImageResourceCacheIdentifiersByBuildIDReturns = struct {
+		result1 []db.ResourceCacheIdentifier
 		result2 error
 	}{result1, result2}
 }

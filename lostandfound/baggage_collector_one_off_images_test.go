@@ -92,9 +92,11 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 					WorkerName: "worker1",
 					TTL:        expectedOneOffTTL,
 					Handle:     "volume1",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"digest": "digest1"},
-						ResourceHash:    `docker:{"repository":"repository1"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"digest": "digest1"},
+							ResourceHash:    `docker:{"repository":"repository1"}`,
+						},
 					},
 				},
 			},
@@ -103,9 +105,11 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 					WorkerName: "worker2",
 					TTL:        expectedOneOffTTL,
 					Handle:     "volume2",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"digest": "digest2"},
-						ResourceHash:    `docker:{"repository":"repository2"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"digest": "digest2"},
+							ResourceHash:    `docker:{"repository":"repository2"}`,
+						},
 					},
 				},
 			},
@@ -113,22 +117,22 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		fakeBaggageCollectorDB.GetVolumesReturns(savedVolumes, nil)
 		fakeBaggageCollectorDB.GetVolumesForOneOffBuildImageResourcesReturns(savedVolumes, nil)
 
-		identifier1 := db.VolumeIdentifier{
+		identifier1 := db.ResourceCacheIdentifier{
 			ResourceVersion: atc.Version{"digest": "digest1"},
 			ResourceHash:    `docker:{"repository":"repository1"}`,
 		}
-		identifier2 := db.VolumeIdentifier{
+		identifier2 := db.ResourceCacheIdentifier{
 			ResourceVersion: atc.Version{"digest": "digest2"},
 			ResourceHash:    `docker:{"repository":"repository2"}`,
 		}
-		imageVersionMap := map[int][]db.VolumeIdentifier{
+		imageVersionMap := map[int][]db.ResourceCacheIdentifier{
 			1: {identifier1},
 			2: {identifier2},
 			4: {identifier1},
 			5: {identifier2},
 		}
 
-		fakeBaggageCollectorDB.GetImageVolumeIdentifiersByBuildIDStub = func(buildID int) ([]db.VolumeIdentifier, error) {
+		fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDStub = func(buildID int) ([]db.ResourceCacheIdentifier, error) {
 			return imageVersionMap[buildID], nil
 		}
 
@@ -146,8 +150,8 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		Expect(fakePipelineDBFactory.BuildArgsForCall(0)).To(Equal(savedPipeline))
 		Expect(fakePipelineDB.GetJobFinishedAndNextBuildCallCount()).To(Equal(1))
 		Expect(fakePipelineDB.GetJobFinishedAndNextBuildArgsForCall(0)).To(Equal("my-precious-job"))
-		Expect(fakeBaggageCollectorDB.GetImageVolumeIdentifiersByBuildIDCallCount()).To(Equal(1))
-		Expect(fakeBaggageCollectorDB.GetImageVolumeIdentifiersByBuildIDArgsForCall(0)).To(Equal(2))
+		Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDCallCount()).To(Equal(1))
+		Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDArgsForCall(0)).To(Equal(2))
 		Expect(fakeBaggageCollectorDB.GetVolumesForOneOffBuildImageResourcesCallCount()).To(Equal(1))
 		Expect(fakeBaggageCollectorDB.GetVolumesCallCount()).To(Equal(1))
 		Expect(fakeWorkerClient.GetWorkerCallCount()).To(Equal(2))

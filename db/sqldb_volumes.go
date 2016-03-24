@@ -17,62 +17,56 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 
 	var resourceVersion []byte
 
-	resourceVersion, err = json.Marshal(data.ResourceVersion)
-	if err != nil {
-		return err
+	columns := []string{"worker_name", "ttl", "handle"}
+	params := []interface{}{data.WorkerName, data.TTL, data.Handle}
+	values := []string{"$1", "$2", "$3"}
+
+	if data.TTL == 0 {
+		columns = append(columns, "expires_at")
+		values = append(values, "NULL")
+	} else {
+		columns = append(columns, "expires_at")
+		params = append(params, fmt.Sprintf("%d second", int(data.TTL.Seconds())))
+		values = append(values, fmt.Sprintf("NOW() + $%d::INTERVAL", len(params)))
 	}
 
-	interval := fmt.Sprintf("%d second", int(data.TTL.Seconds()))
+	if data.Identifier.ResourceCache != nil {
+		resourceVersion, err = json.Marshal(data.Identifier.ResourceCache.ResourceVersion)
+		if err != nil {
+			return err
+		}
+
+		columns = append(columns, "resource_version")
+		params = append(params, resourceVersion)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
+
+		columns = append(columns, "resource_hash")
+		params = append(params, data.Identifier.ResourceCache.ResourceHash)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
+	} else if data.Identifier.COW != nil {
+		columns = append(columns, "original_volume_handle")
+		params = append(params, data.Identifier.COW.ParentVolumeHandle)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
+	} else if data.Identifier.Output != nil {
+		columns = append(columns, "output_name")
+		params = append(params, data.Identifier.Output.Name)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
+	}
 
 	defer tx.Rollback()
-	if data.TTL == 0 {
-		_, err = tx.Exec(`
-		INSERT INTO volumes(
-			worker_name,
-			expires_at,
-			ttl,
-			handle,
-			resource_version,
-			resource_hash
-		) VALUES (
-			$1,
-		  NULL,
-			$2,
-			$3,
-			$4,
-			$5
-		)
-	`, data.WorkerName,
-			data.TTL,
-			data.Handle,
-			resourceVersion,
-			data.ResourceHash,
-		)
-	} else {
-		_, err = tx.Exec(`
-		INSERT INTO volumes(
-			worker_name,
-			expires_at,
-			ttl,
-			handle,
-			resource_version,
-			resource_hash
-		) VALUES (
-			$1,
-			NOW() + $2::INTERVAL,
-			$3,
-			$4,
-			$5,
-			$6
-		)
-	`, data.WorkerName,
-			interval,
-			data.TTL,
-			data.Handle,
-			resourceVersion,
-			data.ResourceHash,
-		)
-	}
+
+	_, err = tx.Exec(
+		fmt.Sprintf(
+			`
+				INSERT INTO volumes(
+					%s
+				) VALUES (
+					%s
+				)
+			`,
+			strings.Join(columns, ", "),
+			strings.Join(values, ", "),
+		), params...)
 	if err != nil {
 		if strings.Contains(err.Error(), `duplicate key value violates unique constraint "volumes_worker_name_handle_key"`) {
 			return nil
@@ -80,75 +74,6 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 
 		return err
 	}
-
-	return tx.Commit()
-}
-
-func (db *SQLDB) InsertCOWVolume(originalVolumeHandle string, cowVolumeHandle string, ttl time.Duration) error {
-	originalVolume, err := db.getVolume(originalVolumeHandle)
-	if err != nil {
-		return err
-	}
-
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
-
-	_, err = tx.Exec(`
-		INSERT INTO volumes (
-			worker_name,
-			expires_at,
-			ttl,
-			handle,
-			original_volume_handle
-		) VALUES (
-			$1,
-			NOW() + $2::INTERVAL,
-			$3,
-			$4,
-			$5
-		)
-	`, originalVolume.WorkerName,
-		interval,
-		ttl,
-		cowVolumeHandle,
-		originalVolumeHandle,
-	)
-
-	return tx.Commit()
-}
-
-func (db *SQLDB) InsertOutputVolume(outputVolume Volume) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	interval := fmt.Sprintf("%d second", int(outputVolume.TTL.Seconds()))
-
-	_, err = tx.Exec(`
-		INSERT INTO volumes (
-			worker_name,
-			expires_at,
-			ttl,
-			handle
-		) VALUES (
-			$1,
-			NOW() + $2::INTERVAL,
-			$3,
-			$4
-		)
-	`,
-		outputVolume.WorkerName,
-		interval,
-		outputVolume.TTL,
-		outputVolume.Handle,
-	)
 
 	return tx.Commit()
 }
@@ -176,7 +101,8 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 			resource_version,
 			resource_hash,
 			id,
-			original_volume_handle
+			original_volume_handle,
+			output_name
 		FROM volumes
 	`)
 	if err != nil {
@@ -202,7 +128,8 @@ func (db *SQLDB) GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 			v.resource_version,
 			v.resource_hash,
 			v.id,
-			v.original_volume_handle
+			v.original_volume_handle,
+			v.output_name
 		FROM volumes v
 			INNER JOIN image_resource_versions i
 				ON i.version = v.resource_version
@@ -275,6 +202,7 @@ func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {
 			resource_hash,
 			id,
 			original_volume_handle
+			output_name
 		FROM volumes
 		WHERE handle = $1
 	`, originalVolumeHandle)
@@ -317,8 +245,9 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 		var versionJSON sql.NullString
 		var resourceHash sql.NullString
 		var originalVolumeHandle sql.NullString
+		var outputName sql.NullString
 
-		err := rows.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &resourceHash, &volume.ID, &originalVolumeHandle)
+		err := rows.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &resourceHash, &volume.ID, &originalVolumeHandle, &outputName)
 		if err != nil {
 			return nil, err
 		}
@@ -327,19 +256,25 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 			volume.ExpiresIn = time.Duration(*ttlSeconds) * time.Second
 		}
 
-		if versionJSON.Valid {
-			err = json.Unmarshal([]byte(versionJSON.String), &volume.ResourceVersion)
+		if versionJSON.Valid && resourceHash.Valid {
+			var cacheID ResourceCacheIdentifier
+
+			err = json.Unmarshal([]byte(versionJSON.String), &cacheID.ResourceVersion)
 			if err != nil {
 				return nil, err
 			}
-		}
 
-		if resourceHash.Valid {
-			volume.ResourceHash = resourceHash.String
-		}
+			cacheID.ResourceHash = resourceHash.String
 
-		if originalVolumeHandle.Valid {
-			volume.OriginalVolumeHandle = originalVolumeHandle.String
+			volume.Volume.Identifier.ResourceCache = &cacheID
+		} else if originalVolumeHandle.Valid {
+			volume.Volume.Identifier.COW = &COWIdentifier{
+				ParentVolumeHandle: originalVolumeHandle.String,
+			}
+		} else if outputName.Valid {
+			volume.Volume.Identifier.Output = &OutputIdentifier{
+				Name: outputName.String,
+			}
 		}
 
 		volumes = append(volumes, volume)

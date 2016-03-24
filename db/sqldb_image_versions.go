@@ -6,7 +6,7 @@ import (
 	"github.com/concourse/atc"
 )
 
-func (db *SQLDB) SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier VolumeIdentifier) error {
+func (db *SQLDB) SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier ResourceCacheIdentifier) error {
 	version, err := json.Marshal(identifier.ResourceVersion)
 	if err != nil {
 		return err
@@ -39,7 +39,7 @@ func (db *SQLDB) SaveImageResourceVersion(buildID int, planID atc.PlanID, identi
 	return nil
 }
 
-func (db *SQLDB) GetImageVolumeIdentifiersByBuildID(buildID int) ([]VolumeIdentifier, error) {
+func (db *SQLDB) GetImageResourceCacheIdentifiersByBuildID(buildID int) ([]ResourceCacheIdentifier, error) {
 	rows, err := db.conn.Query(`
   	SELECT version, resource_hash
   	FROM image_resource_versions
@@ -51,10 +51,10 @@ func (db *SQLDB) GetImageVolumeIdentifiersByBuildID(buildID int) ([]VolumeIdenti
 
 	defer rows.Close()
 
-	var volumeIdentifiers []VolumeIdentifier
+	var identifiers []ResourceCacheIdentifier
 
 	for rows.Next() {
-		var identifier VolumeIdentifier
+		var identifier ResourceCacheIdentifier
 		var marshalledVersion []byte
 
 		err := rows.Scan(&marshalledVersion, &identifier.ResourceHash)
@@ -67,8 +67,8 @@ func (db *SQLDB) GetImageVolumeIdentifiersByBuildID(buildID int) ([]VolumeIdenti
 			return nil, err
 		}
 
-		volumeIdentifiers = append(volumeIdentifiers, identifier)
+		identifiers = append(identifiers, identifier)
 	}
 
-	return volumeIdentifiers, nil
+	return identifiers, nil
 }

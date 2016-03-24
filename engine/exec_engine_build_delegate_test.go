@@ -447,8 +447,10 @@ var _ = Describe("BuildDelegate", func() {
 
 			BeforeEach(func() {
 				identifier = worker.VolumeIdentifier{
-					ResourceVersion: atc.Version{"ref": "asdf"},
-					ResourceHash:    "our-super-sweet-resource-hash",
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"ref": "asdf"},
+						ResourceHash:    "our-super-sweet-resource-hash",
+					},
 				}
 			})
 
@@ -462,7 +464,10 @@ var _ = Describe("BuildDelegate", func() {
 				actualBuildID, actualPlanID, actualIdentifier := fakeDB.SaveImageResourceVersionArgsForCall(0)
 				Expect(actualBuildID).To(Equal(42))
 				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
-				Expect(actualIdentifier).To(Equal(db.VolumeIdentifier(identifier)))
+				Expect(actualIdentifier).To(Equal(db.ResourceCacheIdentifier{
+					ResourceVersion: atc.Version{"ref": "asdf"},
+					ResourceHash:    "our-super-sweet-resource-hash",
+				}))
 			})
 
 			It("propagates errors", func() {
@@ -718,8 +723,10 @@ var _ = Describe("BuildDelegate", func() {
 
 			BeforeEach(func() {
 				identifier = worker.VolumeIdentifier{
-					ResourceVersion: atc.Version{"ref": "asdf"},
-					ResourceHash:    "our-super-sweet-resource-hash",
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"ref": "asdf"},
+						ResourceHash:    "our-super-sweet-resource-hash",
+					},
 				}
 			})
 
@@ -733,7 +740,10 @@ var _ = Describe("BuildDelegate", func() {
 				actualBuildID, actualPlanID, actualIdentifier := fakeDB.SaveImageResourceVersionArgsForCall(0)
 				Expect(actualBuildID).To(Equal(42))
 				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
-				Expect(actualIdentifier).To(Equal(db.VolumeIdentifier(identifier)))
+				Expect(actualIdentifier).To(Equal(db.ResourceCacheIdentifier{
+					ResourceVersion: atc.Version{"ref": "asdf"},
+					ResourceHash:    "our-super-sweet-resource-hash",
+				}))
 			})
 
 			It("Propagates errors", func() {
@@ -1043,8 +1053,10 @@ var _ = Describe("BuildDelegate", func() {
 
 			BeforeEach(func() {
 				identifier = worker.VolumeIdentifier{
-					ResourceVersion: atc.Version{"ref": "asdf"},
-					ResourceHash:    "our-super-sweet-resource-hash",
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"ref": "asdf"},
+						ResourceHash:    "our-super-sweet-resource-hash",
+					},
 				}
 			})
 
@@ -1058,7 +1070,10 @@ var _ = Describe("BuildDelegate", func() {
 				actualBuildID, actualPlanID, actualIdentifier := fakeDB.SaveImageResourceVersionArgsForCall(0)
 				Expect(actualBuildID).To(Equal(42))
 				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
-				Expect(actualIdentifier).To(Equal(db.VolumeIdentifier(identifier)))
+				Expect(actualIdentifier).To(Equal(db.ResourceCacheIdentifier{
+					ResourceVersion: atc.Version{"ref": "asdf"},
+					ResourceHash:    "our-super-sweet-resource-hash",
+				}))
 			})
 
 			It("propagates errors", func() {

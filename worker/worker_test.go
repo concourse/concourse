@@ -89,8 +89,10 @@ var _ = Describe("Worker", func() {
 
 		BeforeEach(func() {
 			volumeIdentifier = VolumeIdentifier{
-				ResourceHash:    "some-resource-hash",
-				ResourceVersion: atc.Version{"some": "resource-version"},
+				ResourceCache: &db.ResourceCacheIdentifier{
+					ResourceHash:    "some-resource-hash",
+					ResourceVersion: atc.Version{"some": "resource-version"},
+				},
 			}
 
 			volumeProperties = VolumeProperties{
@@ -166,10 +168,10 @@ var _ = Describe("Worker", func() {
 
 				dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
 				Expect(dbVolume).To(Equal(db.Volume{
-					Handle:           "created-volume",
-					WorkerName:       workerName,
-					TTL:              ttl,
-					VolumeIdentifier: db.VolumeIdentifier(volumeIdentifier),
+					Handle:     "created-volume",
+					WorkerName: workerName,
+					TTL:        ttl,
+					Identifier: db.VolumeIdentifier(volumeIdentifier),
 				}))
 			})
 
@@ -852,17 +854,31 @@ var _ = Describe("Worker", func() {
 							})
 
 							It("inserts the created COW volumes into the database", func() {
-								Expect(fakeGardenWorkerDB.InsertCOWVolumeCallCount()).To(Equal(2))
+								Expect(fakeGardenWorkerDB.InsertVolumeCallCount()).To(Equal(2))
 
-								originalHandle, cowVolumeHandle, ttl := fakeGardenWorkerDB.InsertCOWVolumeArgsForCall(0)
-								Expect(originalHandle).To(Equal(volume1.Handle()))
-								Expect(cowVolumeHandle).To(Equal(cowVolume1.Handle()))
-								Expect(ttl).To(Equal(VolumeTTL))
+								dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
+								Expect(dbVolume).To(Equal(db.Volume{
+									Handle:     cowVolume1.Handle(),
+									WorkerName: workerName,
+									TTL:        VolumeTTL,
+									Identifier: db.VolumeIdentifier{
+										COW: &db.COWIdentifier{
+											ParentVolumeHandle: volume1.Handle(),
+										},
+									},
+								}))
 
-								originalHandle, cowVolumeHandle, ttl = fakeGardenWorkerDB.InsertCOWVolumeArgsForCall(1)
-								Expect(originalHandle).To(Equal(volume2.Handle()))
-								Expect(cowVolumeHandle).To(Equal(cowVolume2.Handle()))
-								Expect(ttl).To(Equal(VolumeTTL))
+								dbVolume = fakeGardenWorkerDB.InsertVolumeArgsForCall(1)
+								Expect(dbVolume).To(Equal(db.Volume{
+									Handle:     cowVolume2.Handle(),
+									WorkerName: workerName,
+									TTL:        VolumeTTL,
+									Identifier: db.VolumeIdentifier{
+										COW: &db.COWIdentifier{
+											ParentVolumeHandle: volume2.Handle(),
+										},
+									},
+								}))
 							})
 
 							It("releases the volumes that it instantiated but not the ones that were passed in", func() {

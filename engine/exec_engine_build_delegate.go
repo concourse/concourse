@@ -340,7 +340,7 @@ func (input *inputDelegate) Failed(err error) {
 }
 
 func (input *inputDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
-	return input.delegate.db.SaveImageResourceVersion(input.delegate.buildID, atc.PlanID(input.id), db.VolumeIdentifier(identifier))
+	return input.delegate.db.SaveImageResourceVersion(input.delegate.buildID, atc.PlanID(input.id), *identifier.ResourceCache)
 }
 
 func (input *inputDelegate) Stdout() io.Writer {
@@ -389,7 +389,7 @@ func (output *outputDelegate) Failed(err error) {
 }
 
 func (output *outputDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
-	return output.delegate.db.SaveImageResourceVersion(output.delegate.buildID, atc.PlanID(output.id), db.VolumeIdentifier(identifier))
+	return output.delegate.db.SaveImageResourceVersion(output.delegate.buildID, atc.PlanID(output.id), *identifier.ResourceCache)
 }
 
 func (output *outputDelegate) Stdout() io.Writer {
@@ -449,7 +449,7 @@ func (execution *executionDelegate) Failed(err error) {
 }
 
 func (execution *executionDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
-	return execution.delegate.db.SaveImageResourceVersion(execution.delegate.buildID, atc.PlanID(execution.id), db.VolumeIdentifier(identifier))
+	return execution.delegate.db.SaveImageResourceVersion(execution.delegate.buildID, atc.PlanID(execution.id), *identifier.ResourceCache)
 }
 
 func (execution *executionDelegate) Stdout() io.Writer {

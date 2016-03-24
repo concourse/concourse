@@ -757,13 +757,35 @@ var _ = Describe("GardenFactory", func() {
 												It("creates volumes for each output", func() {
 													Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(3))
 
-													for i := 0; i < 3; i++ {
-														_, vID, vProperties, vPrivileged, vTTL := fakeWorker.CreateVolumeArgsForCall(i)
-														Expect(vID).To(Equal(worker.VolumeIdentifier{}))
-														Expect(vProperties).To(Equal(worker.VolumeProperties{}))
-														Expect(vTTL).To(Equal(worker.VolumeTTL))
-														Expect(vPrivileged).To(Equal(bool(privileged)))
-													}
+													_, vID, vProperties, vPrivileged, vTTL := fakeWorker.CreateVolumeArgsForCall(0)
+													Expect(vID).To(Equal(worker.VolumeIdentifier{
+														Output: &db.OutputIdentifier{
+															Name: "some-output",
+														},
+													}))
+													Expect(vProperties).To(Equal(worker.VolumeProperties{}))
+													Expect(vTTL).To(Equal(worker.VolumeTTL))
+													Expect(vPrivileged).To(Equal(bool(privileged)))
+
+													_, vID, vProperties, vPrivileged, vTTL = fakeWorker.CreateVolumeArgsForCall(1)
+													Expect(vID).To(Equal(worker.VolumeIdentifier{
+														Output: &db.OutputIdentifier{
+															Name: "some-other-output",
+														},
+													}))
+													Expect(vProperties).To(Equal(worker.VolumeProperties{}))
+													Expect(vTTL).To(Equal(worker.VolumeTTL))
+													Expect(vPrivileged).To(Equal(bool(privileged)))
+
+													_, vID, vProperties, vPrivileged, vTTL = fakeWorker.CreateVolumeArgsForCall(2)
+													Expect(vID).To(Equal(worker.VolumeIdentifier{
+														Output: &db.OutputIdentifier{
+															Name: "some-trailing-slash-output",
+														},
+													}))
+													Expect(vProperties).To(Equal(worker.VolumeProperties{}))
+													Expect(vTTL).To(Equal(worker.VolumeTTL))
+													Expect(vPrivileged).To(Equal(bool(privileged)))
 												})
 
 												It("passes the created output volumes to the worker", func() {

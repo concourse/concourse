@@ -206,36 +206,44 @@ var _ = Describe("Baggage Collector", func() {
 					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-1",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "older"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "older"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-other-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-2",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "latest"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "latest"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-other-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-3",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "older"},
-						ResourceHash:    `some-b-type{"some":"b-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "older"},
+							ResourceHash:    `some-b-type{"some":"b-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-other-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-4",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "latest"},
-						ResourceHash:    `some-b-type{"some":"b-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "latest"},
+							ResourceHash:    `some-b-type{"some":"b-source"}`,
+						},
 					},
 				},
 			},
@@ -283,27 +291,33 @@ var _ = Describe("Baggage Collector", func() {
 					WorkerName: "some-other-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-1",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "older"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "older"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-other-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-2",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "latest"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "latest"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-other-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-3",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "latest-in-b-but-not-yet-in-a"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "latest-in-b-but-not-yet-in-a"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 			},
@@ -337,36 +351,44 @@ var _ = Describe("Baggage Collector", func() {
 					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-1",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "older"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "older"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-worker",
 					TTL:        expectedOldResourceGracePeriod,
 					Handle:     "some-volume-handle-2",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "latest-enabled-version"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "latest-enabled-version"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-3",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "latest-but-disabled"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "latest-but-disabled"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-4",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "latest-but-also-disabled"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "latest-but-also-disabled"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 			},
@@ -403,36 +425,44 @@ var _ = Describe("Baggage Collector", func() {
 					WorkerName: "some-worker",
 					TTL:        expectedOldResourceGracePeriod,
 					Handle:     "some-volume-handle-1",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "oldest"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "oldest"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-worker",
 					TTL:        expectedOldResourceGracePeriod,
 					Handle:     "some-volume-handle-2",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "even-older-and-disabled"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "even-older-and-disabled"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-worker",
 					TTL:        expectedOldResourceGracePeriod,
 					Handle:     "some-volume-handle-3",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "older"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "older"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-4",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "latest"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "latest"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 			},
@@ -462,36 +492,44 @@ var _ = Describe("Baggage Collector", func() {
 					WorkerName: "some-worker",
 					TTL:        expectedOldResourceGracePeriod,
 					Handle:     "some-volume-handle-1",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "oldest"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "oldest"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-worker",
 					TTL:        expectedOldResourceGracePeriod,
 					Handle:     "some-volume-handle-3",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "older"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "older"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-4",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "latest"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "latest"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-5",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "not-in-pipeline-anymore"},
-						ResourceHash:    `some-b-type{"some":"b-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "not-in-pipeline-anymore"},
+							ResourceHash:    `some-b-type{"some":"b-source"}`,
+						},
 					},
 				},
 			},
@@ -533,27 +571,33 @@ var _ = Describe("Baggage Collector", func() {
 					WorkerName: "some-worker",
 					TTL:        expectedOldResourceGracePeriod,
 					Handle:     "some-volume-handle-1",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "oldest"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "oldest"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-worker",
 					TTL:        expectedOldResourceGracePeriod,
 					Handle:     "some-volume-handle-3",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "older"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "older"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 				{
 					WorkerName: "some-worker",
 					TTL:        expectedLatestVersionTTL,
 					Handle:     "some-volume-handle-4",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"version": "latest"},
-						ResourceHash:    `some-a-type{"some":"a-source"}`,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"version": "latest"},
+							ResourceHash:    `some-a-type{"some":"a-source"}`,
+						},
 					},
 				},
 			},

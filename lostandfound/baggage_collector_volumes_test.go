@@ -55,9 +55,11 @@ var _ = Describe("Volumes are reaped", func() {
 				WorkerName: "a-new-worker",
 				TTL:        time.Minute,
 				Handle:     "some-handle",
-				VolumeIdentifier: db.VolumeIdentifier{
-					ResourceVersion: atc.Version{"some": "version"},
-					ResourceHash:    "some-hash",
+				Identifier: db.VolumeIdentifier{
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"some": "version"},
+						ResourceHash:    "some-hash",
+					},
 				},
 			},
 			ID:        123,
@@ -119,9 +121,11 @@ var _ = Describe("Volumes are reaped", func() {
 					WorkerName: "a-new-worker",
 					TTL:        0,
 					Handle:     "some-other-handle",
-					VolumeIdentifier: db.VolumeIdentifier{
-						ResourceVersion: atc.Version{"some": "newest-version"},
-						ResourceHash:    hashkey,
+					Identifier: db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"some": "newest-version"},
+							ResourceHash:    hashkey,
+						},
 					},
 				},
 				ID:        124,

@@ -96,7 +96,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
 
-			imageVersionMap := map[int][]db.VolumeIdentifier{
+			imageVersionMap := map[int][]db.ResourceCacheIdentifier{
 				2: {
 					{
 						ResourceVersion: atc.Version{"ref": "rence"},
@@ -115,7 +115,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 				},
 			}
 
-			fakeBaggageCollectorDB.GetImageVolumeIdentifiersByBuildIDStub = func(buildID int) ([]db.VolumeIdentifier, error) {
+			fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDStub = func(buildID int) ([]db.ResourceCacheIdentifier, error) {
 				return imageVersionMap[buildID], nil
 			}
 
@@ -130,9 +130,11 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 						WorkerName: "workerA",
 						TTL:        expectedLatestVersionTTL,
 						Handle:     "git-volume-handle",
-						VolumeIdentifier: db.VolumeIdentifier{
-							ResourceVersion: atc.Version{"ref": "rence"},
-							ResourceHash:    "git:zxcvbnm",
+						Identifier: db.VolumeIdentifier{
+							ResourceCache: &db.ResourceCacheIdentifier{
+								ResourceVersion: atc.Version{"ref": "rence"},
+								ResourceHash:    "git:zxcvbnm",
+							},
 						},
 					},
 				},
@@ -141,9 +143,11 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 						WorkerName: "workerB",
 						TTL:        expectedOldVersionTTL,
 						Handle:     "docker-volume-handle",
-						VolumeIdentifier: db.VolumeIdentifier{
-							ResourceVersion: atc.Version{"digest": "readers"},
-							ResourceHash:    "docker:qwertyuiop",
+						Identifier: db.VolumeIdentifier{
+							ResourceCache: &db.ResourceCacheIdentifier{
+								ResourceVersion: atc.Version{"digest": "readers"},
+								ResourceHash:    "docker:qwertyuiop",
+							},
 						},
 					},
 				},
@@ -152,9 +156,11 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 						WorkerName: "workerC",
 						TTL:        92 * time.Minute,
 						Handle:     "crossed-wires-volume-handle",
-						VolumeIdentifier: db.VolumeIdentifier{
-							ResourceVersion: atc.Version{"ref": "rence"},
-							ResourceHash:    "docker:qwertyuiop",
+						Identifier: db.VolumeIdentifier{
+							ResourceCache: &db.ResourceCacheIdentifier{
+								ResourceVersion: atc.Version{"ref": "rence"},
+								ResourceHash:    "docker:qwertyuiop",
+							},
 						},
 					},
 				},
@@ -170,8 +176,8 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			Expect(fakePipelineDBFactory.BuildArgsForCall(0)).To(Equal(savedPipeline))
 			Expect(fakePipelineDB.GetJobFinishedAndNextBuildCallCount()).To(Equal(1))
 			Expect(fakePipelineDB.GetJobFinishedAndNextBuildArgsForCall(0)).To(Equal("my-precious-job"))
-			Expect(fakeBaggageCollectorDB.GetImageVolumeIdentifiersByBuildIDCallCount()).To(Equal(1))
-			Expect(fakeBaggageCollectorDB.GetImageVolumeIdentifiersByBuildIDArgsForCall(0)).To(Equal(2))
+			Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDCallCount()).To(Equal(1))
+			Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDArgsForCall(0)).To(Equal(2))
 			Expect(fakeBaggageCollectorDB.GetVolumesCallCount()).To(Equal(1))
 			Expect(fakeWorkerClient.GetWorkerCallCount()).To(Equal(3))
 
@@ -204,7 +210,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 				err := baggageCollector.Collect()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeBaggageCollectorDB.GetImageVolumeIdentifiersByBuildIDCallCount()).To(Equal(0))
+				Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDCallCount()).To(Equal(0))
 			})
 		})
 	})
@@ -300,8 +306,8 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			}
 			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
 
-			fakeBaggageCollectorDB.GetImageVolumeIdentifiersByBuildIDReturns(
-				[]db.VolumeIdentifier{
+			fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDReturns(
+				[]db.ResourceCacheIdentifier{
 					{
 						ResourceVersion: atc.Version{"ref": "rence"},
 						ResourceHash:    "git:zxcvbnm",
@@ -349,9 +355,11 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 							WorkerName: "worker-a",
 							TTL:        expectedOldVersionTTL,
 							Handle:     "volume-a1",
-							VolumeIdentifier: db.VolumeIdentifier{
-								ResourceVersion: atc.Version{"ref": "rence"},
-								ResourceHash:    "git:zxcvbnm",
+							Identifier: db.VolumeIdentifier{
+								ResourceCache: &db.ResourceCacheIdentifier{
+									ResourceVersion: atc.Version{"ref": "rence"},
+									ResourceHash:    "git:zxcvbnm",
+								},
 							},
 						},
 					},
@@ -360,9 +368,11 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 							WorkerName: "worker-a",
 							TTL:        expectedLatestVersionTTL,
 							Handle:     "volume-a2",
-							VolumeIdentifier: db.VolumeIdentifier{
-								ResourceVersion: atc.Version{"ref": "rence"},
-								ResourceHash:    "git:zxcvbnm",
+							Identifier: db.VolumeIdentifier{
+								ResourceCache: &db.ResourceCacheIdentifier{
+									ResourceVersion: atc.Version{"ref": "rence"},
+									ResourceHash:    "git:zxcvbnm",
+								},
 							},
 						},
 					},
@@ -371,9 +381,11 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 							WorkerName: "worker-b",
 							TTL:        expectedOldVersionTTL,
 							Handle:     "volume-b1",
-							VolumeIdentifier: db.VolumeIdentifier{
-								ResourceVersion: atc.Version{"ref": "rence"},
-								ResourceHash:    "git:zxcvbnm",
+							Identifier: db.VolumeIdentifier{
+								ResourceCache: &db.ResourceCacheIdentifier{
+									ResourceVersion: atc.Version{"ref": "rence"},
+									ResourceHash:    "git:zxcvbnm",
+								},
 							},
 						},
 					},
@@ -386,9 +398,11 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 							WorkerName: "worker-a",
 							TTL:        expectedLatestVersionTTL,
 							Handle:     "volume-a2",
-							VolumeIdentifier: db.VolumeIdentifier{
-								ResourceVersion: atc.Version{"ref": "rence"},
-								ResourceHash:    "git:zxcvbnm",
+							Identifier: db.VolumeIdentifier{
+								ResourceCache: &db.ResourceCacheIdentifier{
+									ResourceVersion: atc.Version{"ref": "rence"},
+									ResourceHash:    "git:zxcvbnm",
+								},
 							},
 						},
 					},
@@ -397,9 +411,11 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 							WorkerName: "worker-b",
 							TTL:        expectedOldVersionTTL,
 							Handle:     "volume-b1",
-							VolumeIdentifier: db.VolumeIdentifier{
-								ResourceVersion: atc.Version{"ref": "rence"},
-								ResourceHash:    "git:zxcvbnm",
+							Identifier: db.VolumeIdentifier{
+								ResourceCache: &db.ResourceCacheIdentifier{
+									ResourceVersion: atc.Version{"ref": "rence"},
+									ResourceHash:    "git:zxcvbnm",
+								},
 							},
 						},
 					},
@@ -408,9 +424,11 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 							WorkerName: "worker-a",
 							TTL:        expectedOldVersionTTL,
 							Handle:     "volume-a1",
-							VolumeIdentifier: db.VolumeIdentifier{
-								ResourceVersion: atc.Version{"ref": "rence"},
-								ResourceHash:    "git:zxcvbnm",
+							Identifier: db.VolumeIdentifier{
+								ResourceCache: &db.ResourceCacheIdentifier{
+									ResourceVersion: atc.Version{"ref": "rence"},
+									ResourceHash:    "git:zxcvbnm",
+								},
 							},
 						},
 					},

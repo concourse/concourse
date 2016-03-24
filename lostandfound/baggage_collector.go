@@ -18,7 +18,7 @@ type BaggageCollectorDB interface {
 	ReapVolume(string) error
 	GetAllPipelines() ([]db.SavedPipeline, error)
 	GetVolumes() ([]db.SavedVolume, error)
-	GetImageVolumeIdentifiersByBuildID(buildID int) ([]db.VolumeIdentifier, error)
+	GetImageResourceCacheIdentifiersByBuildID(buildID int) ([]db.ResourceCacheIdentifier, error)
 	GetVolumesForOneOffBuildImageResources() ([]db.SavedVolume, error)
 }
 
@@ -120,13 +120,13 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 			}
 
 			if finished != nil {
-				volumeIdentifiers, err := bc.db.GetImageVolumeIdentifiersByBuildID(finished.ID)
+				resourceCacheIdentifiers, err := bc.db.GetImageResourceCacheIdentifiersByBuildID(finished.ID)
 				if err != nil {
 					logger.Error("could-not-acquire-volume-identifiers-for-build", err)
 					return nil, err
 				}
 
-				for _, identifier := range volumeIdentifiers {
+				for _, identifier := range resourceCacheIdentifiers {
 					version, _ := json.Marshal(identifier.ResourceVersion)
 					hashKey := string(version) + identifier.ResourceHash
 					insertOrIncreaseVersionTTL(latestVersions, hashKey, 0) // live forever
@@ -141,8 +141,9 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 		logger.Error("could-not-get-volumes-for-one-off-build-image-resources", err)
 		return nil, err
 	}
+
 	for _, savedVolume := range oneOffImageResourceVolumes {
-		identifier := savedVolume.Volume.VolumeIdentifier
+		identifier := savedVolume.Volume.Identifier.ResourceCache
 		version, _ := json.Marshal(identifier.ResourceVersion)
 		hashKey := string(version) + identifier.ResourceHash
 		insertOrIncreaseVersionTTL(latestVersions, hashKey, bc.oneOffBuildImageResourceGracePeriod)
@@ -177,8 +178,8 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 	}
 
 	for _, volumeToExpire := range volumesToExpire {
-		version, _ := json.Marshal(volumeToExpire.ResourceVersion)
-		hashKey := string(version) + volumeToExpire.ResourceHash
+		version, _ := json.Marshal(volumeToExpire.Volume.Identifier.ResourceCache.ResourceVersion)
+		hashKey := string(version) + volumeToExpire.Volume.Identifier.ResourceCache.ResourceHash
 
 		var ttlForVol time.Duration
 

@@ -131,16 +131,14 @@ type DB interface {
 	GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, error)
 
 	InsertVolume(data Volume) error
-	InsertCOWVolume(originalVolumeHandle string, cowVolumeHandle string, ttl time.Duration) error
-	InsertOutputVolume(outputVolume Volume) error
 	GetVolumes() ([]SavedVolume, error)
 	ReapVolume(string) error
 	SetVolumeTTL(string, time.Duration) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 
-	SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier VolumeIdentifier) error
-	GetImageVolumeIdentifiersByBuildID(buildID int) ([]VolumeIdentifier, error)
+	SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier ResourceCacheIdentifier) error
+	GetImageResourceCacheIdentifiersByBuildID(buildID int) ([]ResourceCacheIdentifier, error)
 }
 
 //go:generate counterfeiter . Notifier
