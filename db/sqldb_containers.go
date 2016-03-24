@@ -252,7 +252,7 @@ func (db *SQLDB) GetContainer(handle string) (SavedContainer, bool, error) {
 }
 
 func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (SavedContainer, error) {
-	if !isValidID(container.ContainerIdentifier) {
+	if !(isValidCheckID(container.ContainerIdentifier) || isValidStepID(container.ContainerIdentifier)) {
 		return SavedContainer{}, ErrInvalidIdentifier
 	}
 
@@ -430,10 +430,6 @@ func (db *SQLDB) DeleteContainer(handle string) error {
 		WHERE handle = $1
 	`, handle)
 	return err
-}
-
-func isValidID(id ContainerIdentifier) bool {
-	return isValidCheckID(id) || isValidStepID(id)
 }
 
 func isValidCheckID(id ContainerIdentifier) bool {
