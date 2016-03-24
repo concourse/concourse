@@ -433,46 +433,38 @@ func (db *SQLDB) DeleteContainer(handle string) error {
 }
 
 func isValidCheckID(id ContainerIdentifier) bool {
+	if !(id.ResourceID > 0 &&
+		id.CheckType != "" &&
+		id.CheckSource != nil &&
+		id.BuildID == 0 &&
+		id.PlanID == "") {
+		return false
+	}
+
 	switch id.Stage {
 	case ContainerStageCheck, ContainerStageGet:
-		return id.ResourceID > 0 &&
-			id.CheckType != "" &&
-			id.CheckSource != nil &&
-			id.ImageResourceType != "" &&
-			id.ImageResourceSource != nil &&
-			id.BuildID == 0 &&
-			id.PlanID == ""
+		return id.ImageResourceType != "" && id.ImageResourceSource != nil
 	case ContainerStageRun:
-		return id.ResourceID > 0 &&
-			id.CheckType != "" &&
-			id.CheckSource != nil &&
-			id.ImageResourceType == "" &&
-			id.ImageResourceSource == nil &&
-			id.BuildID == 0 &&
-			id.PlanID == ""
+		return id.ImageResourceType == "" && id.ImageResourceSource == nil
 	default:
 		return false
 	}
 }
 
 func isValidStepID(id ContainerIdentifier) bool {
+	if !(id.ResourceID == 0 &&
+		id.CheckType == "" &&
+		id.CheckSource == nil &&
+		id.BuildID > 0 &&
+		id.PlanID != "") {
+		return false
+	}
+
 	switch id.Stage {
 	case ContainerStageCheck, ContainerStageGet:
-		return id.ResourceID == 0 &&
-			id.CheckType == "" &&
-			id.CheckSource == nil &&
-			id.ImageResourceType != "" &&
-			id.ImageResourceSource != nil &&
-			id.BuildID > 0 &&
-			id.PlanID != ""
+		return id.ImageResourceType != "" && id.ImageResourceSource != nil
 	case ContainerStageRun:
-		return id.ResourceID == 0 &&
-			id.CheckType == "" &&
-			id.CheckSource == nil &&
-			id.ImageResourceType == "" &&
-			id.ImageResourceSource == nil &&
-			id.BuildID > 0 &&
-			id.PlanID != ""
+		return id.ImageResourceType == "" && id.ImageResourceSource == nil
 	default:
 		return false
 	}
