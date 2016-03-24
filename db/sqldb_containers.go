@@ -134,23 +134,6 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		return SavedContainer{}, false, err
 	}
 
-	var imageResourceSource sql.NullString
-	if id.ImageResourceSource != nil {
-		marshaled, err := json.Marshal(id.ImageResourceSource)
-		if err != nil {
-			return SavedContainer{}, false, err
-		}
-
-		imageResourceSource.String = string(marshaled)
-		imageResourceSource.Valid = true
-	}
-
-	var imageResourceType sql.NullString
-	if id.ImageResourceType != "" {
-		imageResourceType.String = id.ImageResourceType
-		imageResourceType.Valid = true
-	}
-
 	var containers []SavedContainer
 
 	selectQuery := `
@@ -191,12 +174,17 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		return SavedContainer{}, false, ErrInvalidIdentifier
 	}
 
-	if imageResourceSource.Valid && imageResourceType.Valid {
+	if id.ImageResourceSource != nil && id.ImageResourceType != "" {
+		marshaled, err := json.Marshal(id.ImageResourceSource)
+		if err != nil {
+			return SavedContainer{}, false, err
+		}
+
 		conditions = append(conditions, fmt.Sprintf("image_resource_source = $%d", len(params)+1))
-		params = append(params, imageResourceSource.String)
+		params = append(params, string(marshaled))
 
 		conditions = append(conditions, fmt.Sprintf("image_resource_type = $%d", len(params)+1))
-		params = append(params, imageResourceType.String)
+		params = append(params, id.ImageResourceType)
 	} else {
 		conditions = append(conditions, "image_resource_source IS NULL")
 		conditions = append(conditions, "image_resource_type IS NULL")
