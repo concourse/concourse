@@ -409,9 +409,9 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
     defined in a single declarative document.
 
     So, to add more workers or web nodes, just change the \code{instances}
-    value for the instance group and re-deploy.
+    value for the instance group and re-run \code{bosh deploy}.
 
-    To upgrade, just upload the new releases and re-deploy.
+    To upgrade, just upload the new releases and re-run \code{bosh deploy}.
   }
 
   \section{Supporting external workers}{configuring-bosh-tsa}{
