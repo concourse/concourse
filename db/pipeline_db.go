@@ -46,6 +46,7 @@ type PipelineDB interface {
 	DisableVersionedResource(versionedResourceID int) error
 	SetResourceCheckError(resource SavedResource, err error) error
 	LeaseResourceChecking(logger lager.Logger, resource string, length time.Duration, immediate bool) (Lease, bool, error)
+	LeaseResourceTypeChecking(logger lager.Logger, resourceType string, length time.Duration, immediate bool) (Lease, bool, error)
 
 	GetJob(job string) (SavedJob, error)
 	PauseJob(job string) error
@@ -278,6 +279,67 @@ func (pdb *pipelineDB) LeaseResourceChecking(logger lager.Logger, resourceName s
 	return lease, true, nil
 }
 
+func (pdb *pipelineDB) LeaseResourceTypeChecking(logger lager.Logger, resourceTypeName string, interval time.Duration, immediate bool) (Lease, bool, error) {
+	logger = logger.Session("lease", lager.Data{
+		"resource-type": resourceTypeName,
+	})
+
+	lease := &lease{
+		conn:   pdb.conn,
+		logger: logger,
+		attemptSignFunc: func(tx Tx) (sql.Result, error) {
+			params := []interface{}{resourceTypeName, pdb.ID}
+
+			condition := ""
+			if immediate {
+				condition = "NOT checking"
+			} else {
+				condition = "now() - last_checked > ($3 || ' SECONDS')::INTERVAL"
+				params = append(params, interval.Seconds())
+			}
+
+			return tx.Exec(`
+				UPDATE resource_types
+				SET last_checked = now(), checking = true
+				WHERE name = $1
+					AND pipeline_id = $2
+					AND `+condition, params...)
+		},
+		heartbeatFunc: func(tx Tx) (sql.Result, error) {
+			return tx.Exec(`
+				UPDATE resource_types
+				SET last_checked = now()
+				WHERE name = $1
+					AND pipeline_id = $2
+			`, resourceTypeName, pdb.ID)
+		},
+		breakFunc: func() {
+			_, err := pdb.conn.Exec(`
+				UPDATE resource_types
+				SET checking = false
+				WHERE name = $1
+				  AND pipeline_id = $2
+			`, resourceTypeName, pdb.ID)
+			if err != nil {
+				logger.Error("failed-to-reset-checking-state", err)
+			}
+		},
+	}
+
+	renewed, err := lease.AttemptSign(interval)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !renewed {
+		return nil, renewed, nil
+	}
+
+	lease.KeepSigned(interval)
+
+	return lease, true, nil
+}
+
 func (pdb *pipelineDB) LeaseScheduling(logger lager.Logger, interval time.Duration) (Lease, bool, error) {
 	lease := &lease{
 		conn: pdb.conn,
@@ -474,7 +536,7 @@ func (pdb *pipelineDB) getResource(tx Tx, name string) (SavedResource, error) {
 
 func (pdb *pipelineDB) GetResourceType(name string) (SavedResourceType, bool, error) {
 	var savedResourceType SavedResourceType
-	var versionJSON string
+	var versionJSON interface{}
 	err := pdb.conn.QueryRow(`
 			SELECT id, name, type, version
 			FROM resource_types
@@ -488,9 +550,13 @@ func (pdb *pipelineDB) GetResourceType(name string) (SavedResourceType, bool, er
 		return SavedResourceType{}, false, err
 	}
 
-	err = json.Unmarshal([]byte(versionJSON), &savedResourceType.Version)
-	if err != nil {
-		return SavedResourceType{}, false, err
+	if versionJSON != nil {
+		if version, ok := versionJSON.([]byte); ok {
+			err = json.Unmarshal(version, &savedResourceType.Version)
+			if err != nil {
+				return SavedResourceType{}, false, err
+			}
+		}
 	}
 
 	savedResourceType.PipelineName = pdb.Name
@@ -593,50 +659,26 @@ func (pdb *pipelineDB) SaveResourceTypeVersion(resourceType atc.ResourceType, ve
 		return err
 	}
 
-	result, err := tx.Exec(`
-		INSERT INTO resource_types (name, type, version, pipeline_id)
-		SELECT $1, $2, $3, $4
-		WHERE NOT EXISTS (
-			SELECT 1
-			FROM resource_types
-			WHERE name = $1
-			AND type = $2
-			AND pipeline_id = $4
-		)
-	`, resourceType.Name, resourceType.Type, string(versionJSON), pdb.ID)
-
-	var rowsAffected int64
-	if err == nil {
-		rowsAffected, err = result.RowsAffected()
-		if err != nil {
-			return err
-		}
-
-		if rowsAffected == 0 {
-			_, err = tx.Exec(`
-				UPDATE resource_types
-				SET version = $1
-				WHERE name = $2
-				AND type = $3
-				AND pipeline_id = $4
-			`, string(versionJSON), resourceType.Name, resourceType.Type, pdb.ID)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		err = swallowUniqueViolation(err)
-		if err != nil {
-			return err
-		}
+	_, found, err := pdb.GetResourceType(resourceType.Name)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.New("failed-to-find-resource-type")
 	}
 
-	err = tx.Commit()
+	_, err = tx.Exec(`
+		UPDATE resource_types
+		SET version = $1
+		WHERE name = $2
+		AND type = $3
+		AND pipeline_id = $4
+	`, string(versionJSON), resourceType.Name, resourceType.Type, pdb.ID)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 func (pdb *pipelineDB) DisableVersionedResource(versionedResourceID int) error {

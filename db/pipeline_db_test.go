@@ -77,6 +77,16 @@ var _ = Describe("PipelineDB", func() {
 			},
 		},
 
+		ResourceTypes: atc.ResourceTypes{
+			{
+				Name: "some-resource-type",
+				Type: "some-type",
+				Source: atc.Source{
+					"source-config": "some-value",
+				},
+			},
+		},
+
 		Jobs: atc.JobConfigs{
 			{
 				Name: "some-job",
@@ -1591,47 +1601,51 @@ var _ = Describe("PipelineDB", func() {
 			Expect(found).To(BeFalse())
 		})
 
-		Context("when the resource type exists", func() {
+		Context("when the resource type has a version", func() {
 			BeforeEach(func() {
 				resourceType := atc.ResourceType{
-					Name: "resource-type-name",
-					Type: "resource-type-type",
+					Name: "some-resource-type",
+					Type: "some-type",
 				}
 				err := pipelineDB.SaveResourceTypeVersion(resourceType, atc.Version{"foo": "bar"})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns a SavedResourceType", func() {
-				savedResourceType, found, err := pipelineDB.GetResourceType("resource-type-name")
+				savedResourceType, found, err := pipelineDB.GetResourceType("some-resource-type")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(savedResourceType.Name).To(Equal("resource-type-name"))
-				Expect(savedResourceType.Type).To(Equal("resource-type-type"))
+				Expect(savedResourceType.Name).To(Equal("some-resource-type"))
+				Expect(savedResourceType.Type).To(Equal("some-type"))
+				Expect(savedResourceType.Version).To(Equal(db.Version{"foo": "bar"}))
 			})
+		})
+
+		It("returns a SavedResourceType with no version when the resource type does not have a version", func() {
+			savedResourceType, found, err := pipelineDB.GetResourceType("some-resource-type")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(savedResourceType.Name).To(Equal("some-resource-type"))
+			Expect(savedResourceType.Type).To(Equal("some-type"))
+			Expect(savedResourceType.Version).To(BeNil())
+		})
+
+		It("returns not found when the resource type cannot be found", func() {
+			_, found, err := pipelineDB.GetResourceType("nonexistent-resource-type")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
 		})
 	})
 
 	Describe("SaveResourceTypeVersion", func() {
 		Context("when resource type does not exist in database", func() {
-			It("creates resource type", func() {
+			It("returns an error", func() {
 				resourceType := atc.ResourceType{
-					Name: "fake-resource-type-name",
-					Type: "fake-resource-type-type",
+					Name: "other-resource-type",
+					Type: "resource-type-type",
 				}
 				err := pipelineDB.SaveResourceTypeVersion(resourceType, atc.Version{"foo": "bar"})
-				Expect(err).NotTo(HaveOccurred())
-
-				var savedResourceTypeName string
-				var savedResourceTypeType string
-				var versionJSON string
-				err = dbConn.QueryRow(`
-					SELECT name, type, version
-					FROM resource_types
-				`).Scan(&savedResourceTypeName, &savedResourceTypeType, &versionJSON)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(savedResourceTypeName).To(Equal("fake-resource-type-name"))
-				Expect(savedResourceTypeType).To(Equal("fake-resource-type-type"))
-				Expect(versionJSON).To(MatchJSON(`{"foo":"bar"}`))
+				Expect(err).To(HaveOccurred())
 			})
 		})
 
@@ -1639,9 +1653,10 @@ var _ = Describe("PipelineDB", func() {
 			var resourceType atc.ResourceType
 			BeforeEach(func() {
 				resourceType = atc.ResourceType{
-					Name: "fake-resource-type-name",
-					Type: "fake-resource-type-type",
+					Name: "some-resource-type",
+					Type: "some-type",
 				}
+
 				err := pipelineDB.SaveResourceTypeVersion(resourceType, atc.Version{"foo": "bar"})
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -1658,8 +1673,8 @@ var _ = Describe("PipelineDB", func() {
 					FROM resource_types
 				`).Scan(&savedResourceTypeName, &savedResourceTypeType, &versionJSON)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(savedResourceTypeName).To(Equal("fake-resource-type-name"))
-				Expect(savedResourceTypeType).To(Equal("fake-resource-type-type"))
+				Expect(savedResourceTypeName).To(Equal("some-resource-type"))
+				Expect(savedResourceTypeType).To(Equal("some-type"))
 				Expect(versionJSON).To(MatchJSON(`{"baz":"qux"}`))
 			})
 		})

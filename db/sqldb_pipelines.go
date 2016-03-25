@@ -290,6 +290,13 @@ func (db *SQLDB) SaveConfig(
 		}
 	}
 
+	for _, resourceType := range config.ResourceTypes {
+		err = db.registerResourceType(tx, resourceType, savedPipeline.ID)
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
+	}
+
 	for _, job := range config.Jobs {
 		err = db.registerJob(tx, job.Name, savedPipeline.ID)
 		if err != nil {
@@ -343,6 +350,21 @@ func (db *SQLDB) registerResource(tx Tx, name string, pipelineID int) error {
 			SELECT 1 FROM resources WHERE name = $1 AND pipeline_id = $2
 		)
 	`, name, pipelineID)
+
+	return swallowUniqueViolation(err)
+}
+
+func (db *SQLDB) registerResourceType(tx Tx, resourceType atc.ResourceType, pipelineID int) error {
+	_, err := tx.Exec(`
+		INSERT INTO resource_types (name, type, pipeline_id)
+		SELECT $1, $2, $3
+		WHERE NOT EXISTS (
+			SELECT 1 FROM resource_types
+				WHERE name = $1
+				AND type = $2
+				AND pipeline_id = $3
+		)
+	`, resourceType.Name, resourceType.Type, pipelineID)
 
 	return swallowUniqueViolation(err)
 }

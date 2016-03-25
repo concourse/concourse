@@ -96,4 +96,5 @@ var Migrations = []migration.Migrator{
 	DropNotNullResourceConstraintsOnVolumes,
 	AddOutputNameToVolumes,
 	CreateResourceTypes,
+	AddLastCheckedAndCheckingToResourceTypes,
 }

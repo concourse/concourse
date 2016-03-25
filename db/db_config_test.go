@@ -64,6 +64,16 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 				},
 			},
 
+			ResourceTypes: atc.ResourceTypes{
+				{
+					Name: "some-resource-type",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				},
+			},
+
 			Jobs: atc.JobConfigs{
 				{
 					Name: "some-job",
@@ -197,6 +207,18 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 
 			_, err = pipelineDB.GetResource("some-resource")
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("creates all of the resource types from the pipeline in the database", func() {
+			_, _, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
+			Expect(err).NotTo(HaveOccurred())
+
+			pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(team.Name, pipelineName)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err := pipelineDB.GetResourceType("some-resource-type")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 		})
 
 		It("creates all of the jobs from the pipeline in the database", func() {

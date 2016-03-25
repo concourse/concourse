@@ -57,6 +57,15 @@ var _ = Describe("Leases", func() {
 				},
 			},
 		},
+		ResourceTypes: atc.ResourceTypes{
+			{
+				Name: "some-resource-type",
+				Type: "some-type",
+				Source: atc.Source{
+					"source-config": "some-value",
+				},
+			},
+		},
 	}
 
 	BeforeEach(func() {
@@ -112,7 +121,7 @@ var _ = Describe("Leases", func() {
 		})
 	})
 
-	Describe("taking out a lease on resource checking", func() {
+	Describe("LeaseResourceChecking", func() {
 		BeforeEach(func() {
 			_, err := pipelineDB.GetResource("some-resource")
 			Expect(err).NotTo(HaveOccurred())
@@ -240,6 +249,144 @@ var _ = Describe("Leases", func() {
 					time.Sleep(time.Second)
 
 					newLease, leased, err := pipelineDB.LeaseResourceChecking(logger, "some-resource", 1*time.Second, false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
+
+					newLease.Break()
+				})
+			})
+		})
+	})
+
+	Describe("LeaseResourceTypeChecking", func() {
+		BeforeEach(func() {
+			_, found, err := pipelineDB.GetResourceType("some-resource-type")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
+		Context("when there has been a check recently", func() {
+			Context("when acquiring immediately", func() {
+				It("gets the lease", func() {
+					lease, leased, err := pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
+
+					lease.Break()
+
+					lease, leased, err = pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, true)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
+
+					lease.Break()
+				})
+			})
+
+			Context("when not acquiring immediately", func() {
+				It("does not get the lease", func() {
+					lease, leased, err := pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
+
+					lease.Break()
+
+					_, leased, err = pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeFalse())
+				})
+			})
+		})
+
+		Context("when there has not been a check recently", func() {
+			Context("when acquiring immediately", func() {
+				It("gets and keeps the lease and stops others from periodically getting it", func() {
+					lease, leased, err := pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, true)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
+
+					Consistently(func() bool {
+						_, leased, err = pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
+						Expect(err).NotTo(HaveOccurred())
+
+						return leased
+					}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
+
+					lease.Break()
+
+					time.Sleep(time.Second)
+
+					newLease, leased, err := pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, true)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
+
+					newLease.Break()
+				})
+
+				It("gets and keeps the lease and stops others from immediately getting it", func() {
+					lease, leased, err := pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, true)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
+
+					Consistently(func() bool {
+						_, leased, err = pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, true)
+						Expect(err).NotTo(HaveOccurred())
+
+						return leased
+					}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
+
+					lease.Break()
+
+					time.Sleep(time.Second)
+
+					newLease, leased, err := pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, true)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
+
+					newLease.Break()
+				})
+			})
+
+			Context("when not acquiring immediately", func() {
+				It("gets and keeps the lease and stops others from periodically getting it", func() {
+					lease, leased, err := pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
+
+					Consistently(func() bool {
+						_, leased, err = pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
+						Expect(err).NotTo(HaveOccurred())
+
+						return leased
+					}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
+
+					lease.Break()
+
+					time.Sleep(time.Second)
+
+					newLease, leased, err := pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
+
+					newLease.Break()
+				})
+
+				It("gets and keeps the lease and stops others from immediately getting it", func() {
+					lease, leased, err := pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(leased).To(BeTrue())
+
+					Consistently(func() bool {
+						_, leased, err = pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, true)
+						Expect(err).NotTo(HaveOccurred())
+
+						return leased
+					}, 1500*time.Millisecond, 100*time.Millisecond).Should(BeFalse())
+
+					lease.Break()
+
+					time.Sleep(time.Second)
+
+					newLease, leased, err := pipelineDB.LeaseResourceTypeChecking(logger, "some-resource-type", 1*time.Second, false)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(leased).To(BeTrue())
 
