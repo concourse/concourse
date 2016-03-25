@@ -27,7 +27,6 @@ var _ = Describe("IntervalRunner", func() {
 		fakeScanner    *fakes.FakeScanner
 
 		signalCh chan os.Signal
-		doneCh   chan struct{}
 		readyCh  chan struct{}
 		errCh    chan error
 	)
@@ -35,7 +34,6 @@ var _ = Describe("IntervalRunner", func() {
 	BeforeEach(func() {
 		signalCh = make(chan os.Signal)
 		readyCh = make(chan struct{})
-		doneCh = make(chan struct{})
 		errCh = make(chan error)
 
 		epoch = time.Unix(123, 456).UTC()
@@ -57,32 +55,48 @@ var _ = Describe("IntervalRunner", func() {
 		JustBeforeEach(func() {
 			go func() {
 				errCh <- intervalRunner.RunFunc(signalCh, readyCh)
-				doneCh <- struct{}{}
 			}()
 			<-readyCh
 		})
 
-		AfterEach(func() {
-			select {
-			case <-doneCh:
-			case signalCh <- os.Interrupt:
+		Context("when run does not return error", func() {
+			AfterEach(func() {
+				signalCh <- os.Interrupt
 				<-errCh
-			}
-		})
+			})
 
-		It("closes the ready channel immediately", func() {
-			Expect(readyCh).To(BeClosed())
-		})
+			It("closes the ready channel immediately", func() {
+				Expect(readyCh).To(BeClosed())
+			})
 
-		It("immediately runs a scan", func() {
-			Expect(<-times).To(Equal(epoch))
-		})
+			It("immediately runs a scan", func() {
+				Expect(<-times).To(Equal(epoch))
+			})
 
-		It("runs a scan on returned interval", func() {
-			Expect(<-times).To(Equal(epoch))
+			It("runs a scan on returned interval", func() {
+				Expect(<-times).To(Equal(epoch))
 
-			fakeClock.WaitForWatcherAndIncrement(interval)
-			Expect(<-times).To(Equal(epoch.Add(interval)))
+				fakeClock.WaitForWatcherAndIncrement(interval)
+				Expect(<-times).To(Equal(epoch.Add(interval)))
+			})
+
+			Context("when Run takes a while", func() {
+				BeforeEach(func() {
+					fakeScanner.RunStub = func(lager.Logger, string) (time.Duration, error) {
+						times <- fakeClock.Now()
+						fakeClock.Increment(interval / 2)
+						return interval, nil
+					}
+				})
+
+				It("starts counting interval after the process is finished", func() {
+					Expect(<-times).To(Equal(epoch))
+
+					fakeClock.WaitForWatcherAndIncrement(interval / 2)
+					fakeClock.Increment(interval / 2)
+					Expect(<-times).To(Equal(epoch.Add(interval + (interval / 2))))
+				})
+			})
 		})
 
 		Context("when scanner.Run() returns an error", func() {
@@ -107,6 +121,11 @@ var _ = Describe("IntervalRunner", func() {
 				}
 			})
 
+			AfterEach(func() {
+				signalCh <- os.Interrupt
+				<-errCh
+			})
+
 			It("waits for the interval and tries again", func() {
 				<-times
 
@@ -115,22 +134,5 @@ var _ = Describe("IntervalRunner", func() {
 			})
 		})
 
-		Context("when Run takes a while", func() {
-			BeforeEach(func() {
-				fakeScanner.RunStub = func(lager.Logger, string) (time.Duration, error) {
-					times <- fakeClock.Now()
-					fakeClock.Increment(interval / 2)
-					return interval, nil
-				}
-			})
-
-			It("starts counting interval after the process is finished", func() {
-				Expect(<-times).To(Equal(epoch))
-
-				fakeClock.WaitForWatcherAndIncrement(interval / 2)
-				fakeClock.Increment(interval / 2)
-				Expect(<-times).To(Equal(epoch.Add(interval + (interval / 2))))
-			})
-		})
 	})
 })
