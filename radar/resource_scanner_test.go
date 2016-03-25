@@ -303,6 +303,16 @@ var _ = Describe("ResourceScanner", func() {
 						{"version": "3"},
 					}))
 				})
+
+				Context("when saving versions fails", func() {
+					BeforeEach(func() {
+						fakeRadarDB.SaveResourceVersionsReturns(errors.New("failed"))
+					})
+
+					It("does not return an error", func() {
+						Expect(runErr).NotTo(HaveOccurred())
+					})
+				})
 			})
 
 			Context("when checking fails", func() {
