@@ -413,7 +413,6 @@ func (step *TaskStep) StreamFile(source string) (io.ReadCloser, error) {
 	out, err := step.container.StreamOut(garden.StreamOutSpec{
 		Path: path.Join(step.artifactsRoot, source),
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -439,6 +438,8 @@ func (step *TaskStep) StreamTo(destination ArtifactDestination) error {
 	if err != nil {
 		return err
 	}
+
+	defer out.Close()
 
 	return destination.StreamIn(".", out)
 }
@@ -657,6 +658,8 @@ func (src *containerSource) StreamTo(destination ArtifactDestination) error {
 		return err
 	}
 
+	defer out.Close()
+
 	return destination.StreamIn(".", out)
 }
 
@@ -664,7 +667,6 @@ func (src *containerSource) StreamFile(filename string) (io.ReadCloser, error) {
 	out, err := src.container.StreamOut(garden.StreamOutSpec{
 		Path: path.Join(artifactsPath(src.outputConfig, src.artifactsRoot), filename),
 	})
-
 	if err != nil {
 		return nil, err
 	}

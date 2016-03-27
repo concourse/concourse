@@ -209,6 +209,8 @@ func loadMetadata(source resource.VersionedSource) (worker.ImageMetadata, error)
 		return worker.ImageMetadata{}, err
 	}
 
+	defer reader.Close()
+
 	tarReader := tar.NewReader(reader)
 
 	_, err = tarReader.Next()

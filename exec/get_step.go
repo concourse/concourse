@@ -241,6 +241,8 @@ func (step *GetStep) StreamTo(destination ArtifactDestination) error {
 		return err
 	}
 
+	defer out.Close()
+
 	return destination.StreamIn(".", out)
 }
 
