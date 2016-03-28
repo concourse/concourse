@@ -33,10 +33,14 @@ def(release(date = nil, concourse-version, garden-linux-version, notes)):
 
   data Block new(
     [ set-title(i"v#{concourse-version}")
-      data Block new(i"v#{concourse-version}", .classed(.header(1), "version-header"))
+      data Block new(
+        [ data Block new(i"v#{concourse-version}", .header(1))
+          data Block new(release-date, .class("version-info"))
+        ]
+        .class("version-header"))
       data Block new(
         [ data Block new(
-            [ data Block new(["Release Notes", release-date], .header(2))
+            [ data Block new("Release Notes", .header(2))
               notes
             ]
             .class("notes"))
