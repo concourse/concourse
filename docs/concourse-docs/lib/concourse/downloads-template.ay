@@ -30,15 +30,14 @@ def(template-for(part, out)):
     html render(sub, out)
 
   <div(#everything):
-    <div(class = "u-full-width top-intro docs-header"):
+    <div(#header, class = "u-full-width top-intro docs-header"):
       <a(name = "page-top"){}
 
       partials nav-bar(part)
 
-    <div:
-      <div(#page):
-        <div(#content, .full-width):
-          <div(class = "content-spacing"):
-            html render-part(part, out)
+    <div(#page):
+      <div(#content, .full-width):
+        <div(class = "content-spacing"):
+          html render-part(part, out)
 
-      partials bottom-nav(part)
+    partials bottom-nav(part)

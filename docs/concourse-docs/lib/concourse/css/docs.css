@@ -1,6 +1,25 @@
+html, body, #everything {
+  height: 100%;
+}
+
+#everything {
+  display: flex;
+  flex-direction: column;
+}
+
+#header {
+  order: 0;
+}
+
 #page {
+  order: 1;
+  flex-grow: 1;
   display: flex;
   flex-direction: row;
+}
+
+#footer {
+  order: 2;
 }
 
 #sidebar {
