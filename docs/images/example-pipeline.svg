@@ -91,7 +91,7 @@
     </foreignObject>
     <text dominant-baseline="middle" text-anchor="middle" x="44.75" y="40">integration</text>
     </g>
-    <g class="node job succeeded started" transform="translate(784.125, 0)">
+    <g class="node job succeeded" transform="translate(784.125, 0)">
     <rect height="110" width="53.375" />
     <foreignObject height="130" x="-10" y="-10" width="73.375">
     <div xmlns="http://www.w3.org/1999/xhtml" style="padding: 10px; height: 110px; width: 53.375px;">
