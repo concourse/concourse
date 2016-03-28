@@ -35,9 +35,10 @@ def(template-for(part, out)):
 
       partials nav-bar(part)
 
-    <div(#page):
-      <div(#content, .full-width):
-        <div(class = "content-spacing"):
-          html render-part(part, out)
+    <div(#middle):
+      <div(#page):
+        <div(#content, .full-width):
+          <div(class = "content-spacing"):
+            html render-part(part, out)
 
     partials bottom-nav(part)

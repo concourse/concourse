@@ -373,10 +373,8 @@ code {
 	background-image: -webkit-linear-gradient(#45C3D1 0%, #3498DB 100%);
 	background-image: -o-linear-gradient(#45C3D1 0%, #3498DB 100%);
 	background-image: linear-gradient(#45C3D1 0%, #3498DB 100%);
-	min-height: 270px;
 	position: relative;
 	z-index: 101;
-	overflow: hidden;
 }
 
 .bottom-nav-list {
@@ -392,6 +390,7 @@ code {
 .conc-div {
 	line-height: .5;
   	text-align: center;
+        overflow: hidden;
 }
 
 .logo-div {

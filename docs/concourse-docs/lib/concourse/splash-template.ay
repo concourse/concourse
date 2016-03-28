@@ -48,6 +48,7 @@ def(template-for(part, out)):
           <object(data = "pipes.svg", type = "image/svg+xml", width = "100%", height = "100%"):
             <param(name = "src", value = "pipes.svg")
 
-    html over(part body)
+    <div(#middle):
+      html over(part body)
 
     partials bottom-nav(part)
