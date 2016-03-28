@@ -27,45 +27,44 @@ def(template-for(part, out)):
     html render(sub, out)
 
   <div(#everything):
-    <div(class = "u-full-width top-intro docs-header"):
+    <div(#header, class = "u-full-width top-intro docs-header"):
       <a(name = "page-top"){}
 
       partials nav-bar(part)
 
-    <div:
-      <div(#page):
-        <div(#sidebar):
-          with(html omit-aux? = true):
-            <div(class = "sidebar-spacing"):
-              <div(.search):
-                <form(action = "javascript:void(0)"):
-                  <input(
-                      type = "text"
-                      placeholder = "Search&hellip;"
-                      autocomplete = "off"
-                      #search)
+    <div(#page):
+      <div(#sidebar):
+        with(html omit-aux? = true):
+          <div(class = "sidebar-spacing"):
+            <div(.search):
+              <form(action = "javascript:void(0)"):
+                <input(
+                    type = "text"
+                    placeholder = "Search&hellip;"
+                    autocomplete = "off"
+                    #search)
 
-                  <ul(.search-results) {}
+                <ul(.search-results) {}
 
-              part top parts collect [p]:
-                class =
-                  if(p == part)
-                    then: "current"
-                    else: "not-current"
+            part top parts collect [p]:
+              class =
+                if(p == part)
+                  then: "current"
+                  else: "not-current"
 
-                <div(.sidebar-section):
-                  <h3(.section-header):
-                    <a(href = html url(p), class = class):
-                      html over(p title)
+              <div(.sidebar-section):
+                <h3(.section-header):
+                  <a(href = html url(p), class = class):
+                    html over(p title)
 
-                  unless(p omit-children-from-table-of-contents?):
-                    <ol(.toc):
-                      p parts collect [p]:
-                        html toc-leaf(part, p)
+                unless(p omit-children-from-table-of-contents?):
+                  <ol(.toc):
+                    p parts collect [p]:
+                      html toc-leaf(part, p)
 
 
-        <div(#content):
-          <div(class = "content-spacing"):
-            html render-part(part, out)
+      <div(#content):
+        <div(class = "content-spacing"):
+          html render-part(part, out)
 
-      partials bottom-nav(part)
+    partials bottom-nav(part)
