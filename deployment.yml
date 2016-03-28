@@ -9,7 +9,7 @@ releases:
   - name: garden-linux
     version: latest
 
-jobs:
+instance_groups:
   - name: concourse
     instances: 1
     networks:
@@ -17,49 +17,54 @@ jobs:
         static_ips: [&web-ip 10.244.15.2]
     persistent_disk: 10240
     resource_pool: concourse
-    templates:
-      - {release: concourse, name: atc}
-      - {release: concourse, name: tsa}
-      - {release: concourse, name: groundcrew}
-      - {release: concourse, name: postgresql}
-      - {release: concourse, name: baggageclaim}
-      - {release: garden-linux, name: garden}
-    properties:
-      atc:
-        # turn off and provide auth for a real vagrant instance
-        development_mode: true
+    jobs:
+      - release: concourse
+        name: atc
+        properties:
+          # turn off and provide auth for a real vagrant instance
+          development_mode: true
 
-        default_check_interval: 5s
+          default_check_interval: 5s
 
-        external_url: http://10.244.15.2:8080
+          external_url: http://10.244.15.2:8080
 
-        postgresql:
-          address: 127.0.0.1:5432
-          role: &atc-role
-            name: atc
+          postgresql_database: atc
+          postgresql:
+            address: 127.0.0.1:5432
+            role:
+              name: atc
+              password: dummy-password
+
+      - release: concourse
+        name: tsa
+        properties:
+          atc:
+            address: 127.0.0.1:8080
+
+      - release: concourse
+        name: groundcrew
+        properties:
+          tsa:
+            host: 127.0.0.1
+
+      - release: concourse
+        name: postgresql
+        properties:
+          databases:
+          - name: atc
+            role: atc
             password: dummy-password
 
-      tsa:
-        atc:
-          address: 127.0.0.1:8080
+      - release: concourse
+        name: baggageclaim
 
-      postgresql:
-        databases: [{name: atc}]
-        roles:
-          - *atc-role
-
-      groundcrew:
-        tsa:
-          host: 127.0.0.1
-
-      garden:
-        listen_network: tcp
-        listen_address: 0.0.0.0:7777
-        allow_host_access: true
-
-      consul:
-        agent:
-          mode: server
+      - release: garden-linux
+        name: garden
+        properties:
+          garden:
+            listen_network: tcp
+            listen_address: 0.0.0.0:7777
+            allow_host_access: true
 
 networks:
   - name: concourse
