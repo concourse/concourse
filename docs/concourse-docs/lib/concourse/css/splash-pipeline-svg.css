@@ -10,6 +10,10 @@ svg {
   fill: #2B3E50;
 }
 
+.node.job.no-builds rect {
+  fill: #B4B4B4;
+}
+
 .job.node.started .animation {
   -webkit-animation: started-ripples-ng 1s linear infinite;
   animation: started-ripples-ng 1s linear infinite;
