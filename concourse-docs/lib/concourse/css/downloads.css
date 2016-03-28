@@ -1,22 +1,20 @@
-.section .section:first-of-type .version-header {
-  position: relative;
+.version-header {
+  margin-bottom: 2rem;
 }
 
-.version-header p {
-  display: inline-block;
+.version-header h1 {
   margin-bottom: 0;
 }
 
-.release-date {
-  float: right;
-  line-height: 30px;
+.version-header .release-date {
+  font-size: 14px;
 }
 
-.section .section:first-of-type .version-header::after {
+.section .section:first-of-type .release-date::after {
   content: "latest release";
   color: #fff;
   background: #2ECC71;
-  padding: 3px 6px;
+  padding: 0 6px;
   font-size: 14px;
   font-weight: 500;
   display: inline-block;
