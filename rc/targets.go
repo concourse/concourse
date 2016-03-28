@@ -76,7 +76,7 @@ func NewTarget(api string, insecure bool, token *TargetToken) TargetProps {
 
 func SaveTarget(targetName TargetName, api string, insecure bool, token *TargetToken) error {
 	flyrc := filepath.Join(userHomeDir(), ".flyrc")
-	flyTargets, err := loadTargets(flyrc)
+	flyTargets, err := LoadTargets(flyrc)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func SelectTarget(selectedTarget TargetName) (TargetProps, error) {
 	}
 
 	flyrc := filepath.Join(userHomeDir(), ".flyrc")
-	flyTargets, err := loadTargets(flyrc)
+	flyTargets, err := LoadTargets(flyrc)
 	if err != nil {
 		return TargetProps{}, err
 	}
@@ -236,7 +236,7 @@ func userHomeDir() string {
 	return os.Getenv("HOME")
 }
 
-func loadTargets(configFileLocation string) (*targetDetailsYAML, error) {
+func LoadTargets(configFileLocation string) (*targetDetailsYAML, error) {
 	var flyTargets *targetDetailsYAML
 
 	if _, err := os.Stat(configFileLocation); err == nil {

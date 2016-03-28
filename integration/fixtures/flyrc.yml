@@ -1,0 +1,16 @@
+targets:
+  test:
+    api: https://example.com/test
+    token:
+      type: Bearer
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiIxNDU4OTQ4NTk3IiwiaXNBZG1pbiI6Im5vcGUiLCJ0ZWFtSUQiOjEsInRlYW1OYW1lIjoibWFpbiJ9.278HuhPsg5mU51ipDI2aVrhzIHfM-a8OcyQ5Us_0faw
+  another-test:
+    api: https://example.com/another-test
+    token:
+      type: Bearer
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiIxNDU4OTQ4NzYwIiwiaXNBZG1pbiI6Im5vcGUiLCJ0ZWFtSUQiOjEsInRlYW1OYW1lIjoibWFpbiJ9.kOuiiZTF92s1QpgH4P78-BpKwDTwyDIT7DZNx2n4qss
+  omt:
+    api: https://example.com/omt
+    token:
+      type: Bearer
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOiIxNDU4OTQ4NzcyIiwiaXNBZG1pbiI6Im5vcGUiLCJ0ZWFtSUQiOjEsInRlYW1OYW1lIjoibWFpbiJ9.Qh9AXE0q6IOD0ReyXoFbNQp-zT62ktZhBj2F0OXRngQ
