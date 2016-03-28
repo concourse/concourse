@@ -14,4 +14,6 @@ concepts as they go along, though.
 
 \include-section{./examples/versioned-s3-artifacts.any}
 
+\include-section{./examples/flight-school.any}
+
 \table-of-contents
