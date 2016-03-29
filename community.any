@@ -1,6 +1,6 @@
 #language anatomy
 
-\use{\load{concourse/docs}}
+\use{\load{concourse/community}}
 
 \template{\load{concourse/community-template}}
 
@@ -8,23 +8,49 @@
 
 \omit-children-from-table-of-contents
 
-join us
-
 \section{GitHub}{github-blurb}{
-  Concourse lives in the sky.
+  \community-image{community_github}
+
+  Concourse is completely open source. All of the source code lives under the
+  \hyperlink{https://github.com/concourse/concourse}{Concourse organization} on
+  GitHub. \hyperlink{https://github.com/concourse/concourse/issues}{Issues} and
+  \hyperlink{https://github.com/concourse/concourse/pulls}{pull requests}
+  welcome!
 }
 
 \section{Slack}{slack-blurb}{
+  \community-image{community_slack}
+
+  We use \hyperlink{https://slack.com}{Slack} for public discussions and
+  support. To chit chat, ask for help, or offer your own, join us in the
+  \hyperlink{http://concourseci.slack.com}{Concourse Slack team}. To sign up,
+  use our \hyperlink{http://slack.concourse.ci}{Slack inviter}.
+}
+
+\section{Pivotal Tracker}{tracker-blurb}{
+  \community-image{community_tracker}
+
+  We use \hyperlink{https://www.pivotaltracker.com/n/projects/1059262}{Pivotal
+  Tracker} to provide visibility into what our team at Pivotal is working on,
+  and what things are coming soon.
+}
+
+\section{Security}{security-blurb}{
+  \community-image{community_mail}
+
+  To be notified of any security issues or vulnerabilities, join the
+  \hyperlink{https://groups.google.com/group/concourse-security}{Concourse
+  Security mailing list}. To report a security issue, send an email to
+  \hyperlink{mailto:security@concourse.ci}{security@concourse.ci}.
 }
 
 \section{Talks}{talks-blurb}{
-  20 GO TO \reference{talks}
+  \community-image{community_talks}
+
+  To see introductory Concourse material and to check out what folks in the
+  community are using Concourse for, check out \reference{talks}.
 
   \split-sections
 
   \include-section{./community/talks.any}
-}
-
-\section{Security}{security-blurb}{
-  TODO
 }
