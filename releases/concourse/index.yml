@@ -172,4 +172,6 @@ builds:
     version: 0.75.0
   1b82ff3d-bd60-4f27-886d-254fa1ec2c90:
     version: 0.76.0
+  f3927374-0619-4ce6-b425-b5a5db1e0270:
+    version: 1.0.0
 format-version: '2'
