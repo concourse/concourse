@@ -15,18 +15,21 @@ If you don't, the most important thing is that you don't panic and go through
 the \reference{vagrant}{Vagrant installation guide} before coming back here.
 
 \section{Getting Set Up}{
-  First, let's get your training materials.
+  First, let's get you a copy of your training materials.
 
   Fork \hyperlink{https://github.com/concourse/flight-school}{this repository}
   on GitHub into your own account. This will give you somewhere to keep your
   work.
 
+  Next, clone your fork down to your local machine by running this command:
+
   \codeblock{bash}{
   $ git clone https://github.com/(your username)/flight-school
   }
 
-  This is a simple Ruby project that will let you get a feel for flying. Let's
-  check everything is working by running the tests locally.
+  This is a simple \hyperlink{https://www.ruby-lang.org}{Ruby} project that will
+  let you get a feel for flying. Let's check everything is working by running
+  the tests locally.
 
   \codeblock{bash}{
   $ cd flight-school
@@ -46,8 +49,9 @@ the \reference{vagrant}{Vagrant installation guide} before coming back here.
   pipeline up gradually rather than attempting to do the whole thing at once.
   Let's start at the start by running those unit tests we just ran in Concourse.
 
-  Download \code{fly} from your Concourse. Either from the links in the bottom
-  right or in the middle if you don't have any pipelines yet.
+  Download \code{fly} from your Concourse. You can find a download link on your
+  Concourse installation main page. They will either be at the bottom right or
+  in the middle if you don't have any pipelines yet.
 
   \codeblock{bash}{
   $ mkdir -p $HOME/bin
@@ -357,33 +361,79 @@ the \reference{vagrant}{Vagrant installation guide} before coming back here.
 \section{Extending the Pipeline}{
   What you've seen so far is the very essence of the way pipelines work in
   Concourse: a new version of a resource appears and then a job runs to do
-  something with that new version.
+  something with that new version. This is the very start of a pipeline. Let's
+  keep adding to it and have it do more things for us.
 
   \section{Deploying your Application}{
-    Let's deploy to PWS.
+    We've shown ourselves that we have a working application. Let's show the
+    rest of the world by deploying the application to a PaaS (Platform as a
+    Service).
 
-    Follow this thing it's tip top
+    The author of this walkthrough is most familiar with
+    \hyperlink{https://run.pivotal.io/}{Pivotal Web Services} (PWS). So that's
+    what this guide is going to use. Feel free to use whichever deployment
+    environment you'd like to use (such as Heroku, etc.). The mechanics and
+    placement in the pipeline will be similar for all of them.
 
-    http://docs.run.pivotal.io/starting/index.html
+    Follow \hyperlink{https://docs.run.pivotal.io/starting/}{this guide} to get
+    yourself set up with a PWS account and push some sample applications.
+    There's a 60 day free trial so don't worry about this costing you anything.
+
+    Now, that you're familiar with how to deploy an application to PWS, let's
+    have the pipeline do all the hard work for us. First, let's add a resource
+    for the pipeline to interact with.
 
     \codeblock{yaml}{
     - name: staging-app
+      type: cf
+      source:
+        api: https://api.run.pivotal.io
+        username: ((your cf username))
+        password: ((your cf password))
+        organization: ((your cf organization))
+        space: ((your cf space))
     }
+
+    Then, in our job, we can push our application.
+
+    \codeblock{yaml}{
+    - name: test-app
+      plan:
+      - get: flight-school
+        trigger: true
+      - task: tests
+        file: flight-school/build.yml
+      - put: staging-app
+        params:
+          manifest: flight-school/manifest.yml
+    }
+
+    Now, if we run the job again we'll see that after the tests have passed that
+    Concourse deploys our application for the world to see. Try pushing some
+    commits to the repository and seeing that they are automatically tested and
+    pushed. (For example, try adding or removing a U.S. airport code from the
+    list).
   }
 
+  {-
   \section{Delivering Tracker Stories (Optional)}{
     As an optional aside let's try out marking stories as delivered in Pivotal
     Tracker. If you don't have a Tracker account and aren't interested in getting
     one then feel free to skip this section.
   }
+  -}
 }
 
-\section{Adding a Second Component}{
+\section{Adding and Integrating Second Component}{
+  Coming soon!
+}
+
+{-
   A single component pipeline is interesting but it's nothing to write home
   about. Let's spice it up a little by adding a second component to the mix.
 
-  Our application has a small API too that lets a user get the status of an
-  airport in JSON format. Let's try it out now.
+  Our application has a small API that lets a user get the status of an airport
+  in JSON format. Let's try it out now.
 
   \codeblock{bash}{
   $ cd flight-school
@@ -394,7 +444,7 @@ the \reference{vagrant}{Vagrant installation guide} before coming back here.
 
   \codeblock{bash}{
   $ curl http://localhost:9292/api/airports/JFK
-  {"code":"JFK","name":"John F Kennedy International","city":"New York","weather":"Overcast"}
+  \{"code":"JFK","name":"John F Kennedy International","city":"New York","weather":"Overcast"\}
   }
 
   Great! This isn't very user friendly though. What if there was a nifty little
@@ -450,6 +500,7 @@ the \reference{vagrant}{Vagrant installation guide} before coming back here.
   Ok, people can get to the application already but how can they get a CLI binary
   that they can use?
 }
+-}
 
 \section{Next Steps}{
   By now you have a good grasp on the practical side of using Concourse. For a
