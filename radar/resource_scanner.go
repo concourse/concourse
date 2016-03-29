@@ -165,7 +165,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceConfig atc.Res
 		from = vr.Version
 	}
 
-	pipelineName := scanner.db.GetPipelineName()
+	pipelineID := scanner.db.GetPipelineID()
 
 	var resourceTypeVersion atc.Version
 	_, found = resourceTypes.Lookup(resourceConfig.Type)
@@ -189,8 +189,8 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceConfig atc.Res
 			CheckSource:         resourceConfig.Source,
 		},
 		Metadata: worker.Metadata{
-			Type:         db.ContainerTypeCheck,
-			PipelineName: pipelineName,
+			Type:       db.ContainerTypeCheck,
+			PipelineID: pipelineID,
 		},
 		Ephemeral: true,
 	}
@@ -199,7 +199,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceConfig atc.Res
 		logger,
 		resource.TrackerMetadata{
 			ResourceName: resourceConfig.Name,
-			PipelineName: pipelineName,
+			PipelineName: scanner.db.GetPipelineName(), // TODO: fix this too
 			ExternalURL:  scanner.externalURL,
 		},
 		session,

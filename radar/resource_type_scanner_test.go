@@ -39,7 +39,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		fakeRadarDB = new(fakes.FakeRadarDB)
 		interval = 1 * time.Minute
 
-		fakeRadarDB.GetPipelineNameReturns("some-pipeline")
+		fakeRadarDB.GetPipelineIDReturns(42)
 		scanner = NewResourceTypeScanner(
 			fakeTracker,
 			interval,
@@ -128,7 +128,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 					},
 					Metadata: worker.Metadata{
 						Type:                 db.ContainerTypeCheck,
-						PipelineName:         "some-pipeline",
+						PipelineID:           42,
 						WorkingDirectory:     "",
 						EnvironmentVariables: nil,
 					},

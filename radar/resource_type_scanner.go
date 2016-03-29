@@ -93,7 +93,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		from = vr.Version
 	}
 
-	pipelineName := scanner.db.GetPipelineName()
+	pipelineID := scanner.db.GetPipelineID()
 
 	session := resource.Session{
 		ID: worker.Identifier{
@@ -105,7 +105,7 @@ func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resour
 		},
 		Metadata: worker.Metadata{
 			Type:                 db.ContainerTypeCheck,
-			PipelineName:         pipelineName,
+			PipelineID:           pipelineID,
 			WorkingDirectory:     "",
 			EnvironmentVariables: nil,
 		},

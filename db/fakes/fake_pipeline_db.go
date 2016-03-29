@@ -19,6 +19,12 @@ type FakePipelineDB struct {
 	getPipelineNameReturns     struct {
 		result1 string
 	}
+	GetPipelineIDStub        func() int
+	getPipelineIDMutex       sync.RWMutex
+	getPipelineIDArgsForCall []struct{}
+	getPipelineIDReturns     struct {
+		result1 int
+	}
 	ScopedNameStub        func(string) string
 	scopedNameMutex       sync.RWMutex
 	scopedNameArgsForCall []struct {
@@ -478,6 +484,30 @@ func (fake *FakePipelineDB) GetPipelineNameReturns(result1 string) {
 	fake.GetPipelineNameStub = nil
 	fake.getPipelineNameReturns = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakePipelineDB) GetPipelineID() int {
+	fake.getPipelineIDMutex.Lock()
+	fake.getPipelineIDArgsForCall = append(fake.getPipelineIDArgsForCall, struct{}{})
+	fake.getPipelineIDMutex.Unlock()
+	if fake.GetPipelineIDStub != nil {
+		return fake.GetPipelineIDStub()
+	} else {
+		return fake.getPipelineIDReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) GetPipelineIDCallCount() int {
+	fake.getPipelineIDMutex.RLock()
+	defer fake.getPipelineIDMutex.RUnlock()
+	return len(fake.getPipelineIDArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetPipelineIDReturns(result1 int) {
+	fake.GetPipelineIDStub = nil
+	fake.getPipelineIDReturns = struct {
+		result1 int
 	}{result1}
 }
 

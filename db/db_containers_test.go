@@ -13,12 +13,15 @@ import (
 )
 
 var _ = Describe("Keeping track of containers", func() {
-	var dbConn db.Conn
-	var listener *pq.Listener
+	var (
+		dbConn   db.Conn
+		listener *pq.Listener
 
-	var database *db.SQLDB
-	var savedPipeline db.SavedPipeline
-	var pipelineDB db.PipelineDB
+		database           *db.SQLDB
+		savedPipeline      db.SavedPipeline
+		savedOtherPipeline db.SavedPipeline
+		pipelineDB         db.PipelineDB
+	)
 
 	BeforeEach(func() {
 		var err error
@@ -61,7 +64,7 @@ var _ = Describe("Keeping track of containers", func() {
 		savedPipeline, _, err = database.SaveConfig(atc.DefaultTeamName, "some-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = database.SaveConfig(atc.DefaultTeamName, "some-other-pipeline", config, 0, db.PipelineUnpaused)
+		savedOtherPipeline, _, err = database.SaveConfig(atc.DefaultTeamName, "some-other-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, nil, database)
@@ -105,7 +108,7 @@ var _ = Describe("Keeping track of containers", func() {
 			ContainerMetadata: db.ContainerMetadata{
 				Handle:               "some-handle",
 				WorkerName:           "some-worker",
-				PipelineName:         "some-pipeline",
+				PipelineID:           savedPipeline.ID,
 				Type:                 db.ContainerTypeCheck,
 				WorkingDirectory:     "tmp/build/some-guid",
 				EnvironmentVariables: []string{"VAR1=val1", "VAR2=val2"},
@@ -166,7 +169,7 @@ var _ = Describe("Keeping track of containers", func() {
 			ContainerMetadata: db.ContainerMetadata{
 				Handle:               "some-handle",
 				WorkerName:           "some-worker",
-				PipelineName:         "some-pipeline",
+				PipelineID:           savedPipeline.ID,
 				StepName:             "some-step-container",
 				Type:                 db.ContainerTypeTask,
 				WorkingDirectory:     "tmp/build/some-guid",
@@ -188,10 +191,10 @@ var _ = Describe("Keeping track of containers", func() {
 				Stage:   db.ContainerStageRun,
 			},
 			ContainerMetadata: db.ContainerMetadata{
-				Handle:       "some-handle",
-				WorkerName:   "some-worker",
-				PipelineName: "some-pipeline",
-				Type:         db.ContainerTypeTask,
+				Handle:     "some-handle",
+				WorkerName: "some-worker",
+				PipelineID: savedPipeline.ID,
+				Type:       db.ContainerTypeTask,
 			},
 		}
 		_, err = database.CreateContainer(duplicateHandleContainer, time.Second)
@@ -204,10 +207,10 @@ var _ = Describe("Keeping track of containers", func() {
 				Stage:   db.ContainerStageRun,
 			},
 			ContainerMetadata: db.ContainerMetadata{
-				Handle:       "some-handle-2",
-				WorkerName:   "some-worker",
-				PipelineName: "some-pipeline",
-				Type:         db.ContainerTypeTask,
+				Handle:     "some-handle-2",
+				WorkerName: "some-worker",
+				PipelineID: savedPipeline.ID,
+				Type:       db.ContainerTypeTask,
 			},
 		}
 		_, err = database.CreateContainer(insufficientStepContainer, time.Second)
@@ -221,10 +224,10 @@ var _ = Describe("Keeping track of containers", func() {
 				Stage:      db.ContainerStageRun,
 			},
 			ContainerMetadata: db.ContainerMetadata{
-				Handle:       "some-handle-3",
-				WorkerName:   "some-worker",
-				PipelineName: "some-pipeline",
-				Type:         db.ContainerTypeCheck,
+				Handle:     "some-handle-3",
+				WorkerName: "some-worker",
+				PipelineID: savedPipeline.ID,
+				Type:       db.ContainerTypeCheck,
 			},
 		}
 		_, err = database.CreateContainer(insufficientCheckContainer, time.Second)
@@ -241,7 +244,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.Handle).To(Equal(containerToCreate.Handle))
 		Expect(actualContainer.WorkerName).To(Equal(containerToCreate.WorkerName))
 		Expect(actualContainer.PipelineID).To(Equal(savedPipeline.ID))
-		Expect(actualContainer.PipelineName).To(Equal(containerToCreate.PipelineName))
+		Expect(actualContainer.PipelineName).To(Equal(savedPipeline.Name))
 		Expect(actualContainer.StepName).To(Equal(containerToCreate.StepName))
 		Expect(actualContainer.BuildName).To(Equal(""))
 		Expect(actualContainer.Type).To(Equal(containerToCreate.Type))
@@ -274,7 +277,7 @@ var _ = Describe("Keeping track of containers", func() {
 			ContainerMetadata: db.ContainerMetadata{
 				Handle:               "some-handle",
 				WorkerName:           "some-worker",
-				PipelineName:         "some-pipeline",
+				PipelineID:           savedPipeline.ID,
 				StepName:             "some-step-container",
 				Type:                 db.ContainerTypeTask,
 				WorkingDirectory:     "tmp/build/some-guid",
@@ -294,6 +297,7 @@ var _ = Describe("Keeping track of containers", func() {
 
 		Expect(actualContainer.BuildName).To(Equal(savedBuild.Name))
 		Expect(actualContainer.PipelineID).To(Equal(savedPipeline.ID))
+		Expect(actualContainer.PipelineName).To(Equal(savedPipeline.Name))
 		Expect(actualContainer.JobName).To(Equal("some-job"))
 		Expect(actualContainer.User).To(Equal("root"))
 	})
@@ -306,10 +310,10 @@ var _ = Describe("Keeping track of containers", func() {
 				BuildID: 2000,
 			},
 			ContainerMetadata: db.ContainerMetadata{
-				Handle:       "some-handle",
-				Type:         db.ContainerTypeTask,
-				WorkerName:   "some-worker",
-				PipelineName: "some-pipeline",
+				Handle:     "some-handle",
+				Type:       db.ContainerTypeTask,
+				WorkerName: "some-worker",
+				PipelineID: savedPipeline.ID,
 			},
 		}
 
@@ -350,10 +354,10 @@ var _ = Describe("Keeping track of containers", func() {
 				BuildID: 1000,
 			},
 			ContainerMetadata: db.ContainerMetadata{
-				Handle:       "some-reaped-handle",
-				Type:         db.ContainerTypeTask,
-				WorkerName:   "some-worker",
-				PipelineName: "some-pipeline",
+				Handle:     "some-reaped-handle",
+				Type:       db.ContainerTypeTask,
+				WorkerName: "some-worker",
+				PipelineID: savedPipeline.ID,
 			},
 		}
 		_, err := database.CreateContainer(containerToCreate, time.Minute)
@@ -652,10 +656,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "a",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							PipelineName: "",
+							Handle:     "a",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							PipelineID: 0,
 						},
 					},
 					{
@@ -665,10 +669,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "b",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-other-worker",
-							PipelineName: "some-other-pipeline",
+							Handle:     "b",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-other-worker",
+							PipelineID: savedPipeline.ID,
 						},
 					},
 				},
@@ -687,10 +691,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "a",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
+							Handle:     "a",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
 						},
 					},
 					{
@@ -700,10 +704,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "b",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-other-worker",
-							PipelineName: "some-other-pipeline",
+							Handle:     "b",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-other-worker",
+							PipelineID: savedOtherPipeline.ID,
 						},
 					},
 				},
@@ -722,11 +726,11 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "a",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
-							StepName:     "some-step",
+							Handle:     "a",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
+							StepName:   "some-step",
 						},
 					},
 					{
@@ -736,11 +740,11 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "b",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-other-worker",
-							PipelineName: "some-other-pipeline",
-							StepName:     "some-other-step",
+							Handle:     "b",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-other-worker",
+							PipelineID: savedOtherPipeline.ID,
+							StepName:   "some-other-step",
 						},
 					},
 					{
@@ -750,11 +754,11 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "c",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-other-worker",
-							PipelineName: "some-other-pipeline",
-							StepName:     "some-step",
+							Handle:     "c",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-other-worker",
+							PipelineID: savedOtherPipeline.ID,
+							StepName:   "some-step",
 						},
 					},
 				},
@@ -777,7 +781,7 @@ var _ = Describe("Keeping track of containers", func() {
 							Handle:       "a",
 							Type:         db.ContainerTypeCheck,
 							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
+							PipelineID:   savedPipeline.ID,
 							ResourceName: "some-resource",
 						},
 					},
@@ -792,7 +796,7 @@ var _ = Describe("Keeping track of containers", func() {
 							Handle:       "b",
 							Type:         db.ContainerTypeCheck,
 							WorkerName:   "some-other-worker",
-							PipelineName: "some-other-pipeline",
+							PipelineID:   savedOtherPipeline.ID,
 							ResourceName: "some-resource",
 						},
 					},
@@ -807,7 +811,7 @@ var _ = Describe("Keeping track of containers", func() {
 							Handle:       "c",
 							Type:         db.ContainerTypeCheck,
 							WorkerName:   "some-other-worker",
-							PipelineName: "some-other-pipeline",
+							PipelineID:   savedOtherPipeline.ID,
 							ResourceName: "some-other-resource",
 						},
 					},
@@ -827,10 +831,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "a",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
+							Handle:     "a",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
 						},
 					},
 					{
@@ -840,10 +844,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "b",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-other-worker",
-							PipelineName: "some-other-pipeline",
+							Handle:     "b",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-other-worker",
+							PipelineID: savedOtherPipeline.ID,
 						},
 					},
 					{
@@ -853,10 +857,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "c",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-Oother-worker",
-							PipelineName: "some-pipeline",
+							Handle:     "c",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-Oother-worker",
+							PipelineID: savedPipeline.ID,
 						},
 					},
 				},
@@ -875,10 +879,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "a",
-							Type:         db.ContainerTypePut,
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
+							Handle:     "a",
+							Type:       db.ContainerTypePut,
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
 						},
 					},
 					{
@@ -888,10 +892,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "b",
-							Type:         db.ContainerTypePut,
-							WorkerName:   "some-other-worker",
-							PipelineName: "some-other-pipeline",
+							Handle:     "b",
+							Type:       db.ContainerTypePut,
+							WorkerName: "some-other-worker",
+							PipelineID: savedOtherPipeline.ID,
 						},
 					},
 					{
@@ -901,10 +905,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "c",
-							Type:         db.ContainerTypeGet,
-							WorkerName:   "some-Oother-worker",
-							PipelineName: "some-pipeline",
+							Handle:     "c",
+							Type:       db.ContainerTypeGet,
+							WorkerName: "some-Oother-worker",
+							PipelineID: savedPipeline.ID,
 						},
 					},
 				},
@@ -923,10 +927,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "a",
-							Type:         db.ContainerTypePut,
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
+							Handle:     "a",
+							Type:       db.ContainerTypePut,
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
 						},
 					},
 					{
@@ -936,10 +940,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "b",
-							Type:         db.ContainerTypePut,
-							WorkerName:   "some-worker",
-							PipelineName: "some-other-pipeline",
+							Handle:     "b",
+							Type:       db.ContainerTypePut,
+							WorkerName: "some-worker",
+							PipelineID: savedOtherPipeline.ID,
 						},
 					},
 					{
@@ -949,10 +953,10 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Handle:       "c",
-							Type:         db.ContainerTypeGet,
-							WorkerName:   "some-other-worker",
-							PipelineName: "some-pipeline",
+							Handle:     "c",
+							Type:       db.ContainerTypeGet,
+							WorkerName: "some-other-worker",
+							PipelineID: savedPipeline.ID,
 						},
 					},
 				},
@@ -975,7 +979,7 @@ var _ = Describe("Keeping track of containers", func() {
 							Handle:       "a",
 							Type:         db.ContainerTypeCheck,
 							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
+							PipelineID:   savedPipeline.ID,
 							ResourceName: "some-resource",
 						},
 					},
@@ -990,7 +994,7 @@ var _ = Describe("Keeping track of containers", func() {
 							Handle:       "b",
 							Type:         db.ContainerTypeCheck,
 							WorkerName:   "some-worker",
-							PipelineName: "some-other-pipeline",
+							PipelineID:   savedOtherPipeline.ID,
 							ResourceName: "some-resource",
 						},
 					},
@@ -1005,7 +1009,7 @@ var _ = Describe("Keeping track of containers", func() {
 							Handle:       "c",
 							Type:         db.ContainerTypeCheck,
 							WorkerName:   "some-other-worker",
-							PipelineName: "some-pipeline",
+							PipelineID:   savedPipeline.ID,
 							ResourceName: "some-resource",
 						},
 					},
@@ -1031,7 +1035,7 @@ var _ = Describe("Keeping track of containers", func() {
 							Handle:       "a",
 							Type:         db.ContainerTypeCheck,
 							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
+							PipelineID:   savedPipeline.ID,
 							ResourceName: "some-resource",
 						},
 					},
@@ -1045,7 +1049,7 @@ var _ = Describe("Keeping track of containers", func() {
 							Handle:       "b",
 							Type:         db.ContainerTypeTask,
 							WorkerName:   "some-worker",
-							PipelineName: "some-other-pipeline",
+							PipelineID:   savedOtherPipeline.ID,
 							ResourceName: "some-resource",
 						},
 					},
@@ -1062,7 +1066,7 @@ var _ = Describe("Keeping track of containers", func() {
 							Handle:       "c",
 							Type:         db.ContainerTypeCheck,
 							WorkerName:   "some-other-worker",
-							PipelineName: "some-pipeline",
+							PipelineID:   savedPipeline.ID,
 							ResourceName: "some-resource",
 						},
 					},
@@ -1081,11 +1085,11 @@ var _ = Describe("Keeping track of containers", func() {
 						PlanID:  "plan-id",
 					},
 					ContainerMetadata: db.ContainerMetadata{
-						Type:         db.ContainerTypeTask,
-						WorkerName:   "some-worker",
-						PipelineName: "some-pipeline",
-						JobName:      "some-other-job",
-						Handle:       "a",
+						Type:       db.ContainerTypeTask,
+						WorkerName: "some-worker",
+						PipelineID: savedPipeline.ID,
+						JobName:    "some-other-job",
+						Handle:     "a",
 					},
 				},
 					{
@@ -1095,11 +1099,11 @@ var _ = Describe("Keeping track of containers", func() {
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
-							JobName:      "some-job",
-							Handle:       "b",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
+							JobName:    "some-job",
+							Handle:     "b",
 						},
 					},
 					{
@@ -1109,11 +1113,11 @@ var _ = Describe("Keeping track of containers", func() {
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-other-worker",
-							PipelineName: "",
-							JobName:      "",
-							Handle:       "c",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-other-worker",
+							PipelineID: 0,
+							JobName:    "",
+							Handle:     "c",
 						},
 					},
 				},
@@ -1134,11 +1138,11 @@ var _ = Describe("Keeping track of containers", func() {
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
-							JobName:      "some-job",
-							Handle:       "a",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
+							JobName:    "some-job",
+							Handle:     "a",
 						},
 					},
 					{
@@ -1148,11 +1152,11 @@ var _ = Describe("Keeping track of containers", func() {
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
-							JobName:      "some-other-job",
-							Handle:       "b",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
+							JobName:    "some-other-job",
+							Handle:     "b",
 						},
 					},
 				},
@@ -1177,11 +1181,11 @@ var _ = Describe("Keeping track of containers", func() {
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
-							JobName:      "some-job",
-							Handle:       "a",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
+							JobName:    "some-job",
+							Handle:     "a",
 						},
 					},
 					{
@@ -1191,12 +1195,12 @@ var _ = Describe("Keeping track of containers", func() {
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
-							JobName:      "some-job",
-							BuildName:    savedBuild2.Name,
-							Handle:       "b",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
+							JobName:    "some-job",
+							BuildName:  savedBuild2.Name,
+							Handle:     "b",
 						},
 					},
 					{
@@ -1206,10 +1210,10 @@ var _ = Describe("Keeping track of containers", func() {
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
-							JobName:      "some-other-job",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
+							JobName:    "some-other-job",
 							// purposefully re-use the original build name to test that it
 							// can return multiple containers
 							BuildName: savedBuild1.Name,
@@ -1235,11 +1239,11 @@ var _ = Describe("Keeping track of containers", func() {
 						BuildID: 1234,
 					},
 					ContainerMetadata: db.ContainerMetadata{
-						Type:         db.ContainerTypeTask,
-						WorkerName:   "some-worker",
-						PipelineName: "some-pipeline",
-						Attempts:     []int{1, 2, 5},
-						Handle:       "a",
+						Type:       db.ContainerTypeTask,
+						WorkerName: "some-worker",
+						PipelineID: savedPipeline.ID,
+						Attempts:   []int{1, 2, 5},
+						Handle:     "a",
 					},
 				},
 					{
@@ -1249,11 +1253,11 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
-							Attempts:     []int{1, 2},
-							Handle:       "b",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
+							Attempts:   []int{1, 2},
+							Handle:     "b",
 						},
 					},
 					{
@@ -1263,11 +1267,11 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-other-worker",
-							PipelineName: "some-pipeline",
-							Attempts:     []int{1},
-							Handle:       "c",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-other-worker",
+							PipelineID: savedPipeline.ID,
+							Attempts:   []int{1},
+							Handle:     "c",
 						},
 					},
 				},
@@ -1286,11 +1290,11 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							StepName:     "some-name",
-							PipelineName: "some-pipeline",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							Handle:       "a",
+							StepName:   "some-name",
+							PipelineID: savedPipeline.ID,
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							Handle:     "a",
 						},
 					},
 					{
@@ -1300,11 +1304,11 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							StepName:     "WROONG",
-							PipelineName: "some-pipeline",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							Handle:       "b",
+							StepName:   "WROONG",
+							PipelineID: savedPipeline.ID,
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							Handle:     "b",
 						},
 					},
 					{
@@ -1314,11 +1318,11 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							StepName:     "some-name",
-							PipelineName: "some-pipeline",
-							Type:         db.ContainerTypeTask,
-							WorkerName:   "some-worker",
-							Handle:       "c",
+							StepName:   "some-name",
+							PipelineID: savedPipeline.ID,
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-worker",
+							Handle:     "c",
 						},
 					},
 					{
@@ -1328,19 +1332,19 @@ var _ = Describe("Keeping track of containers", func() {
 							BuildID: 1234,
 						},
 						ContainerMetadata: db.ContainerMetadata{
-							WorkerName:   "some-worker",
-							PipelineName: "some-pipeline",
-							Type:         db.ContainerTypeTask,
-							Handle:       "d",
+							WorkerName: "some-worker",
+							PipelineID: savedPipeline.ID,
+							Type:       db.ContainerTypeTask,
+							Handle:     "d",
 						},
 					},
 				},
 				descriptorsToFilterFor: db.Container{
 					ContainerMetadata: db.ContainerMetadata{
-						StepName:     "some-name",
-						PipelineName: "some-pipeline",
-						Type:         db.ContainerTypeTask,
-						WorkerName:   "some-worker",
+						StepName:   "some-name",
+						PipelineID: savedPipeline.ID,
+						Type:       db.ContainerTypeTask,
+						WorkerName: "some-worker",
 					},
 				},
 				expectedHandles: []string{"a", "c"},
@@ -1361,7 +1365,7 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 			ContainerMetadata: db.ContainerMetadata{
 				Handle:       handle,
-				PipelineName: "some-pipeline",
+				PipelineID:   savedPipeline.ID,
 				ResourceName: "some-resource",
 				WorkerName:   "some-worker",
 				Type:         db.ContainerTypeCheck,
@@ -1374,11 +1378,11 @@ var _ = Describe("Keeping track of containers", func() {
 				BuildID: 555,
 			},
 			ContainerMetadata: db.ContainerMetadata{
-				Handle:       otherHandle,
-				PipelineName: "some-pipeline",
-				WorkerName:   "some-worker",
-				StepName:     "other-container",
-				Type:         db.ContainerTypeTask,
+				Handle:     otherHandle,
+				PipelineID: savedPipeline.ID,
+				WorkerName: "some-worker",
+				StepName:   "other-container",
+				Type:       db.ContainerTypeTask,
 			},
 		}
 		otherStepContainer := db.Container{
@@ -1388,11 +1392,11 @@ var _ = Describe("Keeping track of containers", func() {
 				BuildID: 666,
 			},
 			ContainerMetadata: db.ContainerMetadata{
-				Handle:       "very-other-handle",
-				PipelineName: "some-pipeline",
-				WorkerName:   "some-worker",
-				StepName:     "other-container",
-				Type:         db.ContainerTypeTask,
+				Handle:     "very-other-handle",
+				PipelineID: savedPipeline.ID,
+				WorkerName: "some-worker",
+				StepName:   "other-container",
+				Type:       db.ContainerTypeTask,
 			},
 		}
 		resourceTypeContainerToCreate := db.Container{
@@ -1403,8 +1407,8 @@ var _ = Describe("Keeping track of containers", func() {
 				ResourceTypeVersion: atc.Version{"foo": "bar"},
 			},
 			ContainerMetadata: db.ContainerMetadata{
-				PipelineName: "some-pipeline",
-				Type:         db.ContainerTypeCheck,
+				PipelineID: savedPipeline.ID,
+				Type:       db.ContainerTypeCheck,
 			},
 		}
 		invalidCheckContainerToCreate := db.Container{
@@ -1414,7 +1418,19 @@ var _ = Describe("Keeping track of containers", func() {
 				CheckSource: atc.Source{"some": "other-source"},
 			},
 			ContainerMetadata: db.ContainerMetadata{
-				PipelineName: "some-pipeline",
+				PipelineID: savedPipeline.ID,
+				Type:       db.ContainerTypeCheck,
+			},
+		}
+		invalidMetadataContainerToCreate := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				Stage:               db.ContainerStageRun,
+				CheckType:           "some-type",
+				CheckSource:         atc.Source{"some": "other-source"},
+				ResourceTypeVersion: atc.Version{"foo": "bar"},
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				PipelineName: "some-pipeline-name",
 				Type:         db.ContainerTypeCheck,
 			},
 		}
@@ -1461,9 +1477,11 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualResourceTypeContainer.ResourceTypeVersion).To(Equal(containerToCreate.ContainerIdentifier.ResourceTypeVersion))
 
 		By("validating check container has either resource id or resource type version")
-		_, _, err = database.FindContainerByIdentifier(
-			invalidCheckContainerToCreate.ContainerIdentifier,
-		)
+		_, err = database.CreateContainer(invalidCheckContainerToCreate, time.Minute)
+		Expect(err).To(HaveOccurred())
+
+		By("validating pipeline container has pipeline ID")
+		_, err = database.CreateContainer(invalidMetadataContainerToCreate, time.Minute)
 		Expect(err).To(HaveOccurred())
 
 		By("differentiating check containers based on their check source")
@@ -1476,7 +1494,7 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 			ContainerMetadata: db.ContainerMetadata{
 				Handle:       "new-source-handle",
-				PipelineName: "some-pipeline",
+				PipelineID:   savedPipeline.ID,
 				ResourceName: "some-resource",
 				WorkerName:   "some-worker",
 				Type:         db.ContainerTypeCheck,
@@ -1506,7 +1524,7 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 			ContainerMetadata: db.ContainerMetadata{
 				Handle:       "new-check-type-handle",
-				PipelineName: "some-pipeline",
+				PipelineID:   savedPipeline.ID,
 				ResourceName: "some-resource",
 				WorkerName:   "some-worker",
 				Type:         db.ContainerTypeCheck,
@@ -1536,7 +1554,7 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 			ContainerMetadata: db.ContainerMetadata{
 				Handle:       "matching-handle",
-				PipelineName: "some-pipeline",
+				PipelineID:   savedPipeline.ID,
 				ResourceName: "some-resource",
 				WorkerName:   "some-worker",
 				Type:         db.ContainerTypeCheck,

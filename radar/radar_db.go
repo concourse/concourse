@@ -12,6 +12,7 @@ import (
 
 type RadarDB interface {
 	GetPipelineName() string
+	GetPipelineID() int
 	ScopedName(string) string
 
 	IsPaused() (bool, error)

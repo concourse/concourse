@@ -18,6 +18,7 @@ import (
 
 type PipelineDB interface {
 	GetPipelineName() string
+	GetPipelineID() int
 	ScopedName(string) string
 
 	Pause() error
@@ -97,6 +98,10 @@ type pipelineDB struct {
 
 func (pdb *pipelineDB) GetPipelineName() string {
 	return pdb.Name
+}
+
+func (pdb *pipelineDB) GetPipelineID() int {
+	return pdb.ID
 }
 
 func (pdb *pipelineDB) ScopedName(name string) string {

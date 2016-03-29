@@ -255,13 +255,13 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (SavedC
 
 	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
+	if container.PipelineName != "" && container.PipelineID == 0 {
+		// containers that belong to some pipeline must be identified by pipeline ID not name
+		return SavedContainer{}, errors.New("container metadata must include pipeline ID")
+	}
 	var pipelineID sql.NullInt64
-	if container.PipelineName != "" {
-		pipeline, err := db.GetPipelineByTeamNameAndName(atc.DefaultTeamName, container.PipelineName)
-		if err != nil {
-			return SavedContainer{}, fmt.Errorf("failed to find pipeline: %s", err.Error())
-		}
-		pipelineID.Int64 = int64(pipeline.ID)
+	if container.PipelineID != 0 {
+		pipelineID.Int64 = int64(container.PipelineID)
 		pipelineID.Valid = true
 	}
 

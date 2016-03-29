@@ -45,6 +45,7 @@ var _ = Describe("ResourceScanner", func() {
 		interval = 1 * time.Minute
 
 		fakeRadarDB.GetPipelineNameReturns("some-pipeline")
+		fakeRadarDB.GetPipelineIDReturns(42)
 		scanner = NewResourceScanner(
 			fakeClock,
 			fakeTracker,
@@ -145,8 +146,8 @@ var _ = Describe("ResourceScanner", func() {
 						CheckSource: atc.Source{"uri": "http://example.com"},
 					},
 					Metadata: worker.Metadata{
-						Type:         db.ContainerTypeCheck,
-						PipelineName: "some-pipeline",
+						Type:       db.ContainerTypeCheck,
+						PipelineID: 42,
 					},
 					Ephemeral: true,
 				}))
@@ -438,8 +439,8 @@ var _ = Describe("ResourceScanner", func() {
 						CheckSource: atc.Source{"uri": "http://example.com"},
 					},
 					Metadata: worker.Metadata{
-						Type:         db.ContainerTypeCheck,
-						PipelineName: "some-pipeline",
+						Type:       db.ContainerTypeCheck,
+						PipelineID: 42,
 					},
 					Ephemeral: true,
 				}))
