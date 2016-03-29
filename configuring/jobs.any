@@ -75,7 +75,7 @@ Each configured job consists of the following attributes:
 
 \define-attribute{disable_manual_trigger: boolean}{
   \italic{Optional. Default \code{false}.} If set to \code{true}, manual
-  triggering of the job (via the web UI or \reference{trigger-job}) will be
+  triggering of the job (via the web UI or \reference{fly-trigger-job}) will be
   disabled.
 }
 
