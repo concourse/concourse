@@ -36,7 +36,7 @@ options below are useless without using TLS to secure your connection.
   }
 
   \section{OAuth}{
-    \section{GitHub}{
+    \section{GitHub}{github-auth}{
       A Concourse server can authenticate against GitHub to take advantage of
       their permission model and other security improvements in their
       infrastructure. There are a number of steps you need to take to enable
