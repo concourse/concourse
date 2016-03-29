@@ -4,6 +4,17 @@
 
 .splash-pipeline-image {
   padding: 0 10px; /* spacing for narrow window/mobile */
+  position: relative;
+}
+
+.concourse-pipeline-link {
+  display: inline-block;
+  position: absolute;
+  top: 35px;
+  bottom: 0;
+  width: 100%;
+  max-width: 950px;
+  margin: 0 10px;
 }
 
 .pipes {
