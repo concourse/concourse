@@ -8,12 +8,20 @@ fn(link-to(part, tag-name, content = nil)):
 
   if(tag)
     then:
+      class =
+        if(tag part contains-part?(part))
+          then: "active"
+          else: "inactive"
+
       content ||= html over(tag part title)
-      <a(href = html url(tag part)):
+
+      <a(href = html url(tag part), class = class):
         content
     else:
       content ||= tag-name
+
       warning(.undefined-in-partials(tag-name))
+
       <a(.undefined):
         content
 

@@ -50,21 +50,36 @@ img.responsive-image {
 	height: 30px;
 }
 
-.navbar-link, .navbar-link a {
+.navbar {
+  border-width: 0 !important;
+}
+
+.navbar-nav .navbar-link {
+  min-width: 172px;
+}
+
+.navbar-link a {
   color: white;
-  min-width: 142px;
   -webkit-transition: all 0.3s;
   -moz-transition: all 0.3s;
   transition: all 0.3s;
 }
 
-.navbar-link a {
+.navbar-nav .navbar-link a {
   opacity: 0.75;
+  border-bottom: 2px solid transparent;
+  display: inline-block !important;
+  padding: 15px 0 13px !important;
 }
 
 .navbar-link a:hover {
   color: white !important;
   opacity: 1;
+}
+
+.navbar-link a.active {
+  opacity: 1;
+  border-bottom-color: white;
 }
 
 .navbar-link .fa {
@@ -79,6 +94,7 @@ img.responsive-image {
 
 .sponsorship {
   padding-bottom: 1em;
+  color: white;
 }
 
 .sponsorship a {
@@ -410,7 +426,7 @@ code {
 	height: 19px;
 	border-bottom: 1px solid rgba(255,255,255,.40);
 	top: 0;
-	width: 45vh; 
+	width: 45vw;
 }
 
 .logo-div1:before {
