@@ -339,6 +339,7 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
             postgresql_database: &atc_db atc
         - name: tsa
           release: concourse
+          properties: \{\}
 
       - name: db
         instances: 1
@@ -366,8 +367,10 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
         jobs:
         - name: groundcrew
           release: concourse
+          properties: \{\}
         - name: baggageclaim
           release: concourse
+          properties: \{\}
         - name: garden
           release: garden-linux
           properties:
