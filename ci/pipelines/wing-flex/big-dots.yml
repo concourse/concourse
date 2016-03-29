@@ -1,0 +1,17 @@
+groups: []
+
+jobs:
+- name: generate-data
+  max_in_flight: 3
+  plan:
+  - task: more-dots
+    config:
+      platform: linux
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          for i in $(seq 10000 | sort -nr); do
+            echo -n "."
+          done
