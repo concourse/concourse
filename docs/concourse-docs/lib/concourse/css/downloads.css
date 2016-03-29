@@ -6,6 +6,11 @@
   margin-bottom: 0;
 }
 
+.version-header h1 a {
+  margin-bottom: 0;
+  color: #424242;
+}
+
 .version-header .release-date {
   font-size: 14px;
 }
