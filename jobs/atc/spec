@@ -98,6 +98,22 @@ properties:
       with the actual value).
     default: ""
 
+  github_auth.auth_url:
+    description: |
+      Override default OAuth endpoint for Github Enterprise.
+    example: "https://github.example.com/login/oauth/authorize"
+
+  github_auth.token_url:
+    description: |
+      Override default access token endpoint for Github Enterprise.
+    example: "https://github.example.com/login/oauth/access_token"
+
+  github_auth.api_url:
+    description: |
+      Override default API endpoint URL for Github Enterprise. Must end in a
+      trailing slash.
+    example: "https://github.example.com/api/v3/"
+
   github_auth.authorize:
     default: []
     description: |
