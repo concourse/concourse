@@ -12,8 +12,8 @@ base = require("anatomy/base")
 fn(release-asset(version, filename)):
   i"https://github.com/concourse/concourse/releases/download/v#{version}/#{filename}"
 
-fn(binary-url(version, platform)):
-  release-asset(version, i"concourse_#{platform}_amd64")
+fn(binary-url(version, platform, extension)):
+  release-asset(version, i"concourse_#{platform}_amd64#{extension}")
 
 fn(download-link(label, url, *extra)):
   data Block new(
@@ -49,9 +49,9 @@ def(release(date = nil, concourse-version, garden-linux-version, notes)):
               data Block new(
                 [ data Block new("Concourse Binaries", .header(3))
                   data Block new(
-                    [ download-link("Linux", binary-url(concourse-version, "linux"))
-                      download-link("Windows", binary-url(concourse-version, "windows"))
-                      download-link("OS X", binary-url(concourse-version, "darwin"))
+                    [ download-link("Linux", binary-url(concourse-version, "linux", ""))
+                      download-link("Windows", binary-url(concourse-version, "windows", ".exe"))
+                      download-link("OS X", binary-url(concourse-version, "darwin", ""))
                     ]
                     .unordered-list)
                 ]
