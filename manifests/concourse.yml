@@ -36,6 +36,7 @@ instance_groups:
       postgresql_database: &atc_db atc
   - name: tsa
     release: concourse
+    properties: {}
 
 - name: db
   instances: 1
@@ -63,8 +64,10 @@ instance_groups:
   jobs:
   - name: groundcrew
     release: concourse
+    properties: {}
   - name: baggageclaim
     release: concourse
+    properties: {}
   - name: garden
     release: garden-linux
     properties:
