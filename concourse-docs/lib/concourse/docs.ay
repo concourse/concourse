@@ -31,10 +31,13 @@ def(release(date = nil, concourse-version, garden-linux-version, notes)):
         Time parse(date) strftime("%B %e, %Y")
         .class("release-date"))
 
+  version-title = i"v#{concourse-version}"
+
   data Block new(
-    [ set-title(i"v#{concourse-version}")
+    [ set-title(version-title)
+      data Target new(version-title)
       data Block new(
-        [ data Block new(i"v#{concourse-version}", .header(1))
+        [ data Block new(reference(version-title, version-title), .header(1))
           data Block new(release-date, .class("version-info"))
         ]
         .class("version-header"))
