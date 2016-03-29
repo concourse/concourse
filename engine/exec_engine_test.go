@@ -74,6 +74,7 @@ var _ = Describe("ExecEngine", func() {
 				Name:         "21",
 				JobName:      "some-job",
 				PipelineName: "some-pipeline",
+				PipelineID:   57,
 			}
 
 			expectedMetadata = engine.StepMetadata{
@@ -131,37 +132,37 @@ var _ = Describe("ExecEngine", func() {
 
 			BeforeEach(func() {
 				putPlan = planFactory.NewPlan(atc.PutPlan{
-					Name:     "some-put",
-					Resource: "some-output-resource",
-					Type:     "put",
-					Source:   atc.Source{"some": "source"},
-					Params:   atc.Params{"some": "params"},
-					Pipeline: "some-pipeline",
+					Name:       "some-put",
+					Resource:   "some-output-resource",
+					Type:       "put",
+					Source:     atc.Source{"some": "source"},
+					Params:     atc.Params{"some": "params"},
+					PipelineID: 57,
 				})
 				dependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
-					Name:     "some-get",
-					Resource: "some-input-resource",
-					Type:     "get",
-					Source:   atc.Source{"some": "source"},
-					Params:   atc.Params{"another": "params"},
-					Pipeline: "some-pipeline",
+					Name:       "some-get",
+					Resource:   "some-input-resource",
+					Type:       "get",
+					Source:     atc.Source{"some": "source"},
+					Params:     atc.Params{"another": "params"},
+					PipelineID: 57,
 				})
 
 				otherPutPlan = planFactory.NewPlan(atc.PutPlan{
-					Name:     "some-put-2",
-					Resource: "some-output-resource-2",
-					Type:     "put",
-					Source:   atc.Source{"some": "source-2"},
-					Params:   atc.Params{"some": "params-2"},
-					Pipeline: "some-pipeline",
+					Name:       "some-put-2",
+					Resource:   "some-output-resource-2",
+					Type:       "put",
+					Source:     atc.Source{"some": "source-2"},
+					Params:     atc.Params{"some": "params-2"},
+					PipelineID: 57,
 				})
 				otherDependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
-					Name:     "some-get-2",
-					Resource: "some-input-resource-2",
-					Type:     "get",
-					Source:   atc.Source{"some": "source-2"},
-					Params:   atc.Params{"another": "params-2"},
-					Pipeline: "some-pipeline",
+					Name:       "some-get-2",
+					Resource:   "some-input-resource-2",
+					Type:       "get",
+					Source:     atc.Source{"some": "source-2"},
+					Params:     atc.Params{"another": "params-2"},
+					PipelineID: 57,
 				})
 
 				outputPlan = planFactory.NewPlan(atc.AggregatePlan{
@@ -192,7 +193,7 @@ var _ = Describe("ExecEngine", func() {
 						ResourceName: "",
 						Type:         db.ContainerTypePut,
 						StepName:     "some-put",
-						PipelineName: "some-pipeline",
+						PipelineID:   57,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -213,7 +214,7 @@ var _ = Describe("ExecEngine", func() {
 						ResourceName: "",
 						Type:         db.ContainerTypePut,
 						StepName:     "some-put-2",
-						PipelineName: "some-pipeline",
+						PipelineID:   57,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -243,7 +244,7 @@ var _ = Describe("ExecEngine", func() {
 						ResourceName: "",
 						Type:         db.ContainerTypeGet,
 						StepName:     "some-get",
-						PipelineName: "some-pipeline",
+						PipelineID:   57,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -269,7 +270,7 @@ var _ = Describe("ExecEngine", func() {
 						ResourceName: "",
 						Type:         db.ContainerTypeGet,
 						StepName:     "some-get-2",
-						PipelineName: "some-pipeline",
+						PipelineID:   57,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -305,19 +306,19 @@ var _ = Describe("ExecEngine", func() {
 			)
 			BeforeEach(func() {
 				getPlan = planFactory.NewPlan(atc.GetPlan{
-					Name:     "some-get",
-					Resource: "some-input-resource",
-					Type:     "get",
-					Source:   atc.Source{"some": "source"},
-					Params:   atc.Params{"some": "params"},
-					Pipeline: "some-pipeline",
+					Name:       "some-get",
+					Resource:   "some-input-resource",
+					Type:       "get",
+					Source:     atc.Source{"some": "source"},
+					Params:     atc.Params{"some": "params"},
+					PipelineID: 57,
 				})
 
 				taskPlan = planFactory.NewPlan(atc.TaskPlan{
 					Name:       "some-task",
 					Privileged: false,
 					Tags:       atc.Tags{"some", "task", "tags"},
-					Pipeline:   "some-pipeline",
+					PipelineID: 57,
 					ConfigPath: "some-config-path",
 				})
 
@@ -356,7 +357,7 @@ var _ = Describe("ExecEngine", func() {
 				Expect(*retryPlan.Retry).To(HaveLen(3))
 			})
 
-			It("constructss the first get correctly", func() {
+			It("constructs the first get correctly", func() {
 				logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, params, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(metadata).To(Equal(expectedMetadata))
@@ -364,7 +365,7 @@ var _ = Describe("ExecEngine", func() {
 					ResourceName: "",
 					Type:         db.ContainerTypeGet,
 					StepName:     "some-get",
-					PipelineName: "some-pipeline",
+					PipelineID:   57,
 					Attempts:     []int{1},
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
@@ -390,7 +391,7 @@ var _ = Describe("ExecEngine", func() {
 					ResourceName: "",
 					Type:         db.ContainerTypeGet,
 					StepName:     "some-get",
-					PipelineName: "some-pipeline",
+					PipelineID:   57,
 					Attempts:     []int{3},
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
@@ -420,7 +421,7 @@ var _ = Describe("ExecEngine", func() {
 					ResourceName: "",
 					Type:         db.ContainerTypeTask,
 					StepName:     "some-task",
-					PipelineName: "some-pipeline",
+					PipelineID:   57,
 					Attempts:     []int{2, 1},
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
@@ -440,7 +441,7 @@ var _ = Describe("ExecEngine", func() {
 					ResourceName: "",
 					Type:         db.ContainerTypeTask,
 					StepName:     "some-task",
-					PipelineName: "some-pipeline",
+					PipelineID:   57,
 					Attempts:     []int{2, 2},
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
@@ -515,14 +516,14 @@ var _ = Describe("ExecEngine", func() {
 			Context("that contains inputs", func() {
 				BeforeEach(func() {
 					getPlan := atc.GetPlan{
-						Name:     "some-input",
-						Resource: "some-input-resource",
-						Type:     "get",
-						Tags:     []string{"some", "get", "tags"},
-						Version:  atc.Version{"some": "version"},
-						Source:   atc.Source{"some": "source"},
-						Params:   atc.Params{"some": "params"},
-						Pipeline: "some-pipeline",
+						Name:       "some-input",
+						Resource:   "some-input-resource",
+						Type:       "get",
+						Tags:       []string{"some", "get", "tags"},
+						Version:    atc.Version{"some": "version"},
+						Source:     atc.Source{"some": "source"},
+						Params:     atc.Params{"some": "params"},
+						PipelineID: 57,
 					}
 
 					plan = planFactory.NewPlan(getPlan)
@@ -543,7 +544,7 @@ var _ = Describe("ExecEngine", func() {
 						ResourceName: "",
 						Type:         db.ContainerTypeGet,
 						StepName:     "some-input",
-						PipelineName: "some-pipeline",
+						PipelineID:   57,
 					}))
 					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
 					Expect(workerID).To(Equal(worker.Identifier{
@@ -593,7 +594,7 @@ var _ = Describe("ExecEngine", func() {
 					taskPlan = atc.TaskPlan{
 						Name:          "some-task",
 						ConfigPath:    "some-input/build.yml",
-						Pipeline:      "some-pipeline",
+						PipelineID:    57,
 						InputMapping:  inputMapping,
 						OutputMapping: outputMapping,
 					}
@@ -618,7 +619,7 @@ var _ = Describe("ExecEngine", func() {
 						ResourceName: "",
 						Type:         db.ContainerTypeTask,
 						StepName:     "some-task",
-						PipelineName: "some-pipeline",
+						PipelineID:   57,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -710,22 +711,22 @@ var _ = Describe("ExecEngine", func() {
 
 				BeforeEach(func() {
 					putPlan = planFactory.NewPlan(atc.PutPlan{
-						Name:     "some-put",
-						Resource: "some-output-resource",
-						Tags:     []string{"some", "putget", "tags"},
-						Type:     "put",
-						Source:   atc.Source{"some": "source"},
-						Params:   atc.Params{"some": "params"},
-						Pipeline: "some-pipeline",
+						Name:       "some-put",
+						Resource:   "some-output-resource",
+						Tags:       []string{"some", "putget", "tags"},
+						Type:       "put",
+						Source:     atc.Source{"some": "source"},
+						Params:     atc.Params{"some": "params"},
+						PipelineID: 57,
 					})
 					dependentGetPlan = planFactory.NewPlan(atc.DependentGetPlan{
-						Name:     "some-get",
-						Resource: "some-input-resource",
-						Tags:     []string{"some", "putget", "tags"},
-						Type:     "get",
-						Source:   atc.Source{"some": "source"},
-						Params:   atc.Params{"another": "params"},
-						Pipeline: "some-pipeline",
+						Name:       "some-get",
+						Resource:   "some-input-resource",
+						Tags:       []string{"some", "putget", "tags"},
+						Type:       "get",
+						Source:     atc.Source{"some": "source"},
+						Params:     atc.Params{"another": "params"},
+						PipelineID: 57,
 					})
 
 					plan = planFactory.NewPlan(atc.OnSuccessPlan{
@@ -749,7 +750,7 @@ var _ = Describe("ExecEngine", func() {
 						ResourceName: "",
 						Type:         db.ContainerTypePut,
 						StepName:     "some-put",
-						PipelineName: "some-pipeline",
+						PipelineID:   57,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -783,7 +784,7 @@ var _ = Describe("ExecEngine", func() {
 						ResourceName: "",
 						Type:         db.ContainerTypeGet,
 						StepName:     "some-get",
-						PipelineName: "some-pipeline",
+						PipelineID:   57,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,

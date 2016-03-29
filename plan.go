@@ -26,6 +26,7 @@ type DependentGetPlan struct {
 	Resource      string        `json:"resource"`
 	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`
 	Pipeline      string        `json:"pipeline"`
+	PipelineID    int           `json:"pipeline_id"`
 	Params        Params        `json:"params,omitempty"`
 	Tags          Tags          `json:"tags,omitempty"`
 	Source        Source        `json:"source"`
@@ -38,6 +39,7 @@ func (plan DependentGetPlan) GetPlan() GetPlan {
 		Resource:      plan.Resource,
 		ResourceTypes: plan.ResourceTypes,
 		Pipeline:      plan.Pipeline,
+		PipelineID:    plan.PipelineID,
 		Source:        plan.Source,
 		Tags:          plan.Tags,
 		Params:        plan.Params,
@@ -78,6 +80,7 @@ type GetPlan struct {
 	Resource      string        `json:"resource"`
 	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`
 	Pipeline      string        `json:"pipeline"`
+	PipelineID    int           `json:"pipeline_id"`
 	Source        Source        `json:"source"`
 	Params        Params        `json:"params,omitempty"`
 	Version       Version       `json:"version,omitempty"`
@@ -90,6 +93,7 @@ type PutPlan struct {
 	Resource      string        `json:"resource"`
 	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`
 	Pipeline      string        `json:"pipeline"`
+	PipelineID    int           `json:"pipeline_id"`
 	Source        Source        `json:"source"`
 	Params        Params        `json:"params,omitempty"`
 	Tags          Tags          `json:"tags,omitempty"`
@@ -109,6 +113,7 @@ type TaskPlan struct {
 	OutputMapping map[string]string `json:"output_mapping,omitempty"`
 
 	Pipeline      string        `json:"pipeline"`
+	PipelineID    int           `json:"pipeline_id"`
 	ResourceTypes ResourceTypes `json:"resource_types,omitempty"`
 }
 

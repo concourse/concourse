@@ -215,7 +215,7 @@ func (build *execBuild) stepIdentifier(
 	logger lager.Logger,
 	stepName string,
 	planID atc.PlanID,
-	pipelineName string,
+	pipelineID int,
 	attempts []int,
 	typ string,
 ) (worker.Identifier, worker.Metadata) {
@@ -229,9 +229,9 @@ func (build *execBuild) stepIdentifier(
 			PlanID:  planID,
 		},
 		worker.Metadata{
-			StepName:     stepName,
-			Type:         stepType,
-			PipelineName: pipelineName,
-			Attempts:     attempts,
+			StepName:   stepName,
+			Type:       stepType,
+			PipelineID: pipelineID,
+			Attempts:   attempts,
 		}
 }

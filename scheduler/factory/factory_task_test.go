@@ -24,7 +24,7 @@ var _ = Describe("Factory Task", func() {
 		BeforeEach(func() {
 			actualPlanFactory = atc.NewPlanFactory(123)
 			expectedPlanFactory = atc.NewPlanFactory(123)
-			buildFactory = factory.NewBuildFactory("some-pipeline", actualPlanFactory)
+			buildFactory = factory.NewBuildFactory(42, actualPlanFactory)
 
 			resources = atc.ResourceConfigs{
 				{
@@ -66,7 +66,7 @@ var _ = Describe("Factory Task", func() {
 
 				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "some-task",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 					Params:        params,
 				})
@@ -106,7 +106,7 @@ var _ = Describe("Factory Task", func() {
 
 				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "some-task",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 					InputMapping: map[string]string{
 						"bosh-release": "concourse-release",
@@ -160,7 +160,7 @@ var _ = Describe("Factory Task", func() {
 
 				expected := expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "some-task",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 					OutputMapping: map[string]string{
 						"bosh-release": "concourse-release",

@@ -21,7 +21,7 @@ var _ = Describe("Factory Try Step", func() {
 	BeforeEach(func() {
 		actualPlanFactory = atc.NewPlanFactory(123)
 		expectedPlanFactory = atc.NewPlanFactory(123)
-		buildFactory = factory.NewBuildFactory("some-pipeline", actualPlanFactory)
+		buildFactory = factory.NewBuildFactory(42, actualPlanFactory)
 
 		resourceTypes = atc.ResourceTypes{
 			{
@@ -52,13 +52,13 @@ var _ = Describe("Factory Try Step", func() {
 				expectedPlanFactory.NewPlan(atc.TryPlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "first task",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 				}),
 				expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "second task",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 			})
@@ -86,13 +86,13 @@ var _ = Describe("Factory Try Step", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TryPlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
-						Name:     "first task",
-						Pipeline: "some-pipeline",
+						Name:       "first task",
+						PipelineID: 42,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
-					Name:     "second task",
-					Pipeline: "some-pipeline",
+					Name:       "second task",
+					PipelineID: 42,
 				}),
 			})
 

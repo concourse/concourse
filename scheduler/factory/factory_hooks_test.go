@@ -22,7 +22,7 @@ var _ = Describe("Factory Hooks", func() {
 	BeforeEach(func() {
 		actualPlanFactory = atc.NewPlanFactory(123)
 		expectedPlanFactory = atc.NewPlanFactory(123)
-		buildFactory = factory.NewBuildFactory("some-pipeline", actualPlanFactory)
+		buildFactory = factory.NewBuildFactory(42, actualPlanFactory)
 
 		resources = atc.ResourceConfigs{
 			{
@@ -75,23 +75,23 @@ var _ = Describe("Factory Hooks", func() {
 				Step: expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "those who resist our will",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "those who also resist our will",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "third task",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "some other failure",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 			})
@@ -131,18 +131,18 @@ var _ = Describe("Factory Hooks", func() {
 				Step: expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "those who resist our will",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "those who also resist our will",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "some other failure",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 			})
@@ -195,19 +195,19 @@ var _ = Describe("Factory Hooks", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "some-task",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "agg-task-1",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.AggregatePlan{
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:          "agg-agg-task-1",
-							Pipeline:      "some-pipeline",
+							PipelineID:    42,
 							ResourceTypes: resourceTypes,
 						}),
 					}),
@@ -245,13 +245,13 @@ var _ = Describe("Factory Hooks", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "some-task",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "do-task-1",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 				}),
@@ -301,30 +301,30 @@ var _ = Describe("Factory Hooks", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "some-task",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "do-task-1",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.DoPlan{
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:          "do-task-2",
-							Pipeline:      "some-pipeline",
+							PipelineID:    42,
 							ResourceTypes: resourceTypes,
 						}),
 						expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 							Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 								Name:          "do-task-3",
-								Pipeline:      "some-pipeline",
+								PipelineID:    42,
 								ResourceTypes: resourceTypes,
 							}),
 							Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 								Name:          "do-task-4",
-								Pipeline:      "some-pipeline",
+								PipelineID:    42,
 								ResourceTypes: resourceTypes,
 							}),
 						}),
@@ -369,25 +369,25 @@ var _ = Describe("Factory Hooks", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "some-task",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.AggregatePlan{
 					expectedPlanFactory.NewPlan(atc.OnSuccessPlan{
 						Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:          "agg-task-1",
-							Pipeline:      "some-pipeline",
+							PipelineID:    42,
 							ResourceTypes: resourceTypes,
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:          "agg-task-1-success",
-							Pipeline:      "some-pipeline",
+							PipelineID:    42,
 							ResourceTypes: resourceTypes,
 						}),
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "agg-task-2",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 				}),
@@ -414,14 +414,14 @@ var _ = Describe("Factory Hooks", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "those who resist our will",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.GetPlan{
-					Name:     "some-resource",
-					Type:     "git",
-					Resource: "some-resource",
-					Pipeline: "some-pipeline",
+					Name:       "some-resource",
+					Type:       "git",
+					Resource:   "some-resource",
+					PipelineID: 42,
 					Source: atc.Source{
 						"uri": "git://some-resource",
 					},
@@ -449,16 +449,16 @@ var _ = Describe("Factory Hooks", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "those who resist our will",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TimeoutPlan{
 					Duration: "10s",
 					Step: expectedPlanFactory.NewPlan(atc.GetPlan{
-						Name:     "some-resource",
-						Type:     "git",
-						Resource: "some-resource",
-						Pipeline: "some-pipeline",
+						Name:       "some-resource",
+						Type:       "git",
+						Resource:   "some-resource",
+						PipelineID: 42,
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
@@ -489,15 +489,15 @@ var _ = Describe("Factory Hooks", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "those who resist our will",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 					Step: expectedPlanFactory.NewPlan(atc.GetPlan{
-						Name:     "some-resource",
-						Type:     "git",
-						Resource: "some-resource",
-						Pipeline: "some-pipeline",
+						Name:       "some-resource",
+						Type:       "git",
+						Resource:   "some-resource",
+						PipelineID: 42,
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
@@ -505,7 +505,7 @@ var _ = Describe("Factory Hooks", func() {
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "those who still resist our will",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 				}),
@@ -533,15 +533,15 @@ var _ = Describe("Factory Hooks", func() {
 			expected := expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "those who resist our will",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.EnsurePlan{
 					Step: expectedPlanFactory.NewPlan(atc.GetPlan{
-						Name:     "some-resource",
-						Type:     "git",
-						Resource: "some-resource",
-						Pipeline: "some-pipeline",
+						Name:       "some-resource",
+						Type:       "git",
+						Resource:   "some-resource",
+						PipelineID: 42,
 						Source: atc.Source{
 							"uri": "git://some-resource",
 						},
@@ -549,7 +549,7 @@ var _ = Describe("Factory Hooks", func() {
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "those who still resist our will",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 				}),
@@ -582,24 +582,24 @@ var _ = Describe("Factory Hooks", func() {
 					Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 						Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:          "those who resist our will",
-							Pipeline:      "some-pipeline",
+							PipelineID:    42,
 							ResourceTypes: resourceTypes,
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:          "those who failed to resist our will",
-							Pipeline:      "some-pipeline",
+							PipelineID:    42,
 							ResourceTypes: resourceTypes,
 						}),
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "those who successfully resisted our will",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "those who always resist our will",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 			})
@@ -630,15 +630,15 @@ var _ = Describe("Factory Hooks", func() {
 				Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 					Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "those who resist our will",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 					Next: expectedPlanFactory.NewPlan(atc.EnsurePlan{
 						Step: expectedPlanFactory.NewPlan(atc.GetPlan{
-							Name:     "some-resource",
-							Type:     "git",
-							Resource: "some-resource",
-							Pipeline: "some-pipeline",
+							Name:       "some-resource",
+							Type:       "git",
+							Resource:   "some-resource",
+							PipelineID: 42,
 							Source: atc.Source{
 								"uri": "git://some-resource",
 							},
@@ -646,16 +646,16 @@ var _ = Describe("Factory Hooks", func() {
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:          "those who still resist our will",
-							Pipeline:      "some-pipeline",
+							PipelineID:    42,
 							ResourceTypes: resourceTypes,
 						}),
 					}),
 				}),
 				Next: expectedPlanFactory.NewPlan(atc.GetPlan{
-					Name:     "some-resource",
-					Type:     "git",
-					Resource: "some-resource",
-					Pipeline: "some-pipeline",
+					Name:       "some-resource",
+					Type:       "git",
+					Resource:   "some-resource",
+					PipelineID: 42,
 					Source: atc.Source{
 						"uri": "git://some-resource",
 					},
@@ -694,29 +694,29 @@ var _ = Describe("Factory Hooks", func() {
 						Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 							Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 								Name:          "those who resist our will",
-								Pipeline:      "some-pipeline",
+								PipelineID:    42,
 								ResourceTypes: resourceTypes,
 							}),
 							Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 								Name:          "some other task",
-								Pipeline:      "some-pipeline",
+								PipelineID:    42,
 								ResourceTypes: resourceTypes,
 							}),
 						}),
 						Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:          "some other success task",
-							Pipeline:      "some-pipeline",
+							PipelineID:    42,
 							ResourceTypes: resourceTypes,
 						}),
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "those who still resist our will",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "shall be defeated",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 				})
@@ -752,7 +752,7 @@ var _ = Describe("Factory Hooks", func() {
 				expected := expectedPlanFactory.NewPlan(atc.DoPlan{
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "those who start resisting our will",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 					expectedPlanFactory.NewPlan(atc.DoPlan{
@@ -760,24 +760,24 @@ var _ = Describe("Factory Hooks", func() {
 							Step: expectedPlanFactory.NewPlan(atc.OnFailurePlan{
 								Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 									Name:          "those who resist our will",
-									Pipeline:      "some-pipeline",
+									PipelineID:    42,
 									ResourceTypes: resourceTypes,
 								}),
 								Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 									Name:          "some other task",
-									Pipeline:      "some-pipeline",
+									PipelineID:    42,
 									ResourceTypes: resourceTypes,
 								}),
 							}),
 							Next: expectedPlanFactory.NewPlan(atc.TaskPlan{
 								Name:          "some other success task",
-								Pipeline:      "some-pipeline",
+								PipelineID:    42,
 								ResourceTypes: resourceTypes,
 							}),
 						}),
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:          "those who used to resist our will",
-							Pipeline:      "some-pipeline",
+							PipelineID:    42,
 							ResourceTypes: resourceTypes,
 						}),
 					}),
@@ -809,19 +809,19 @@ var _ = Describe("Factory Hooks", func() {
 					expectedPlanFactory.NewPlan(atc.DoPlan{
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:          "those who resist our will",
-							Pipeline:      "some-pipeline",
+							PipelineID:    42,
 							ResourceTypes: resourceTypes,
 						}),
 						expectedPlanFactory.NewPlan(atc.TaskPlan{
 							Name:          "those who used to resist our will",
-							Pipeline:      "some-pipeline",
+							PipelineID:    42,
 							ResourceTypes: resourceTypes,
 						}),
 					}),
 
 					expectedPlanFactory.NewPlan(atc.TaskPlan{
 						Name:          "those who start resisting our will",
-						Pipeline:      "some-pipeline",
+						PipelineID:    42,
 						ResourceTypes: resourceTypes,
 					}),
 				})

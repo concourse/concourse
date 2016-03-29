@@ -45,6 +45,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 			ID:           84,
 			Name:         "42",
 			JobName:      "some-job",
+			PipelineID:   57,
 			PipelineName: "some-pipeline",
 		}
 
@@ -134,28 +135,28 @@ var _ = Describe("Exec Engine With Hooks", func() {
 				BeforeEach(func() {
 					planFactory = atc.NewPlanFactory(123)
 					inputPlan = planFactory.NewPlan(atc.GetPlan{
-						Name:     "some-input",
-						Pipeline: "some-pipeline",
+						Name:       "some-input",
+						PipelineID: 57,
 					})
 					failureTaskPlan = planFactory.NewPlan(atc.TaskPlan{
-						Name:     "some-failure-task",
-						Pipeline: "some-pipeline",
-						Config:   &atc.TaskConfig{},
+						Name:       "some-failure-task",
+						PipelineID: 57,
+						Config:     &atc.TaskConfig{},
 					})
 					successTaskPlan = planFactory.NewPlan(atc.TaskPlan{
-						Name:     "some-success-task",
-						Pipeline: "some-pipeline",
-						Config:   &atc.TaskConfig{},
+						Name:       "some-success-task",
+						PipelineID: 57,
+						Config:     &atc.TaskConfig{},
 					})
 					completionTaskPlan = planFactory.NewPlan(atc.TaskPlan{
-						Name:     "some-completion-task",
-						Pipeline: "some-pipeline",
-						Config:   &atc.TaskConfig{},
+						Name:       "some-completion-task",
+						PipelineID: 57,
+						Config:     &atc.TaskConfig{},
 					})
 					nextTaskPlan = planFactory.NewPlan(atc.TaskPlan{
-						Name:     "some-next-task",
-						Pipeline: "some-pipeline",
-						Config:   &atc.TaskConfig{},
+						Name:       "some-next-task",
+						PipelineID: 57,
+						Config:     &atc.TaskConfig{},
 					})
 
 					plan = planFactory.NewPlan(atc.OnSuccessPlan{
@@ -184,9 +185,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
-						PipelineName: "some-pipeline",
-						StepName:     "some-input",
-						Type:         db.ContainerTypeGet,
+						PipelineID: 57,
+						StepName:   "some-input",
+						Type:       db.ContainerTypeGet,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 84,
@@ -204,9 +205,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-completion-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
-						PipelineName: "some-pipeline",
-						StepName:     "some-completion-task",
-						Type:         db.ContainerTypeTask,
+						PipelineID: 57,
+						StepName:   "some-completion-task",
+						Type:       db.ContainerTypeTask,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 84,
@@ -225,9 +226,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-failure-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
-						PipelineName: "some-pipeline",
-						StepName:     "some-failure-task",
-						Type:         db.ContainerTypeTask,
+						PipelineID: 57,
+						StepName:   "some-failure-task",
+						Type:       db.ContainerTypeTask,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 84,
@@ -246,9 +247,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-success-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
-						PipelineName: "some-pipeline",
-						StepName:     "some-success-task",
-						Type:         db.ContainerTypeTask,
+						PipelineID: 57,
+						StepName:   "some-success-task",
+						Type:       db.ContainerTypeTask,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 84,
@@ -267,9 +268,9 @@ var _ = Describe("Exec Engine With Hooks", func() {
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-next-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
-						PipelineName: "some-pipeline",
-						StepName:     "some-next-task",
-						Type:         db.ContainerTypeTask,
+						PipelineID: 57,
+						StepName:   "some-next-task",
+						Type:       db.ContainerTypeTask,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 84,

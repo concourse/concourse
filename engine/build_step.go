@@ -100,7 +100,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		logger.Session("taskIdentifier"),
 		plan.Task.Name,
 		plan.ID,
-		plan.Task.Pipeline,
+		plan.Task.PipelineID,
 		plan.Attempts,
 		"task",
 	)
@@ -129,7 +129,7 @@ func (build *execBuild) buildGetStep(logger lager.Logger, plan atc.Plan) exec.St
 		logger.Session("stepIdentifier"),
 		plan.Get.Name,
 		plan.ID,
-		plan.Get.Pipeline,
+		plan.Get.PipelineID,
 		plan.Attempts,
 		"get",
 	)
@@ -162,7 +162,7 @@ func (build *execBuild) buildPutStep(logger lager.Logger, plan atc.Plan) exec.St
 		logger.Session("stepIdentifier"),
 		plan.Put.Name,
 		plan.ID,
-		plan.Put.Pipeline,
+		plan.Put.PipelineID,
 		plan.Attempts,
 		"put",
 	)
@@ -194,7 +194,7 @@ func (build *execBuild) buildDependentGetStep(logger lager.Logger, plan atc.Plan
 		logger.Session("stepIdentifier"),
 		getPlan.Name,
 		plan.ID,
-		plan.DependentGet.Pipeline,
+		plan.DependentGet.PipelineID,
 		plan.Attempts,
 		"get",
 	)

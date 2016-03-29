@@ -22,7 +22,7 @@ var _ = Describe("Factory Get", func() {
 	BeforeEach(func() {
 		actualPlanFactory = atc.NewPlanFactory(123)
 		expectedPlanFactory = atc.NewPlanFactory(123)
-		buildFactory = factory.NewBuildFactory("some-pipeline", actualPlanFactory)
+		buildFactory = factory.NewBuildFactory(42, actualPlanFactory)
 
 		resources = atc.ResourceConfigs{
 			{
@@ -58,10 +58,10 @@ var _ = Describe("Factory Get", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			expected := expectedPlanFactory.NewPlan(atc.GetPlan{
-				Type:     "git",
-				Name:     "some-get",
-				Resource: "some-resource",
-				Pipeline: "some-pipeline",
+				Type:       "git",
+				Name:       "some-get",
+				Resource:   "some-resource",
+				PipelineID: 42,
 				Source: atc.Source{
 					"uri": "git://some-resource",
 				},

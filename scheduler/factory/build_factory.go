@@ -18,14 +18,14 @@ type BuildFactory interface {
 }
 
 type buildFactory struct {
-	PipelineName string
-	planFactory  atc.PlanFactory
+	PipelineID  int
+	planFactory atc.PlanFactory
 }
 
-func NewBuildFactory(pipelineName string, planFactory atc.PlanFactory) BuildFactory {
+func NewBuildFactory(pipelineID int, planFactory atc.PlanFactory) BuildFactory {
 	return &buildFactory{
-		PipelineName: pipelineName,
-		planFactory:  planFactory,
+		PipelineID:  pipelineID,
+		planFactory: planFactory,
 	}
 }
 
@@ -166,7 +166,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 		putPlan := atc.PutPlan{
 			Type:          resource.Type,
 			Name:          logicalName,
-			Pipeline:      factory.PipelineName,
+			PipelineID:    factory.PipelineID,
 			Resource:      resourceName,
 			Source:        resource.Source,
 			Params:        planConfig.Params,
@@ -177,7 +177,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 		dependentGetPlan := atc.DependentGetPlan{
 			Type:          resource.Type,
 			Name:          logicalName,
-			Pipeline:      factory.PipelineName,
+			PipelineID:    factory.PipelineID,
 			Resource:      resourceName,
 			Params:        planConfig.GetParams,
 			Tags:          planConfig.Tags,
@@ -213,7 +213,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 		plan = factory.planFactory.NewPlan(atc.GetPlan{
 			Type:          resource.Type,
 			Name:          name,
-			Pipeline:      factory.PipelineName,
+			PipelineID:    factory.PipelineID,
 			Resource:      resourceName,
 			Source:        resource.Source,
 			Params:        planConfig.Params,
@@ -225,7 +225,7 @@ func (factory *buildFactory) constructUnhookedPlan(
 	case planConfig.Task != "":
 		plan = factory.planFactory.NewPlan(atc.TaskPlan{
 			Name:          planConfig.Task,
-			Pipeline:      factory.PipelineName,
+			PipelineID:    factory.PipelineID,
 			Privileged:    planConfig.Privileged,
 			Config:        planConfig.TaskConfig,
 			ConfigPath:    planConfig.TaskConfigPath,

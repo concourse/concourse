@@ -20,7 +20,7 @@ var _ = Describe("Factory Timeout Step", func() {
 	BeforeEach(func() {
 		actualPlanFactory = atc.NewPlanFactory(321)
 		expectedPlanFactory = atc.NewPlanFactory(321)
-		buildFactory = factory.NewBuildFactory("some-pipeline", actualPlanFactory)
+		buildFactory = factory.NewBuildFactory(42, actualPlanFactory)
 
 		resourceTypes = atc.ResourceTypes{
 			{
@@ -47,7 +47,7 @@ var _ = Describe("Factory Timeout Step", func() {
 				Duration: "10s",
 				Step: expectedPlanFactory.NewPlan(atc.TaskPlan{
 					Name:          "first task",
-					Pipeline:      "some-pipeline",
+					PipelineID:    42,
 					ResourceTypes: resourceTypes,
 				}),
 			})
