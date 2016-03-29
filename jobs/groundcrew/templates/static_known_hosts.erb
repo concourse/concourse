@@ -11,7 +11,7 @@
 
   if tsa_addrs.nil? && tsa_port.nil?
     tsa = link("tsa")
-    tsa_addrs = tsa.instances
+    tsa_addrs = tsa.instances.map(&:address)
     tsa_port = tsa.p("bind_port")
     tsa_host_public_key = tsa.p("host_public_key")
   end
