@@ -6,7 +6,7 @@
     <div class="pagination fr">
       {{if .Pagination.Previous}}
       <div class="btn-page-link">
-        <a class="arrow" href="{{url "GetBuilds" .Pagination.Previous}}"><i class="fa fa-arrow-left"></i></a>
+        <a class="arrow" href="{{url "GetBuilds" .Pagination.Previous}}" aria-label="Previous Page"><i class="fa fa-arrow-left"></i></a>
       </div>
       {{else}}
       <div class="btn-page-link disabled">
@@ -15,7 +15,7 @@
       {{end}}
       {{if .Pagination.Next}}
       <div class="btn-page-link">
-        <a class="arrow" href="{{url "GetBuilds" .Pagination.Next}}"><i class="fa fa-arrow-right"></i></a>
+        <a class="arrow" href="{{url "GetBuilds" .Pagination.Next}}" aria-label="Next Page"><i class="fa fa-arrow-right"></i></a>
       </div>
       {{else}}
       <div class="btn-page-link disabled">
@@ -51,7 +51,7 @@
     <div class="pagination fr">
       {{if .Pagination.Previous}}
       <div class="btn-page-link">
-        <a class="arrow" href="{{url "GetBuilds" .Pagination.Previous}}"><i class="fa fa-arrow-left"></i></a>
+        <a class="arrow" href="{{url "GetBuilds" .Pagination.Previous}}" aria-label="Next Page"><i class="fa fa-arrow-left"></i></a>
       </div>
       {{else}}
       <div class="btn-page-link disabled">
@@ -60,7 +60,7 @@
       {{end}}
       {{if .Pagination.Next}}
       <div class="btn-page-link">
-        <a class="arrow" href="{{url "GetBuilds" .Pagination.Next}}"><i class="fa fa-arrow-right"></i></a>
+        <a class="arrow" href="{{url "GetBuilds" .Pagination.Next}}" aria-label="Previous Page"><i class="fa fa-arrow-right"></i></a>
       </div>
       {{else}}
       <div class="btn-page-link disabled">

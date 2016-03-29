@@ -6,7 +6,7 @@ import Debug
 import Dict exposing (Dict)
 import Effects exposing (Effects)
 import Html exposing (Html)
-import Html.Attributes exposing (action, class, classList, href, id, method, title, disabled)
+import Html.Attributes exposing (action, class, classList, href, id, method, title, disabled, attribute)
 import Html.Events exposing (onClick, on, onWithOptions)
 import Html.Lazy
 import Http
@@ -378,7 +378,7 @@ viewBuildHeader actions build {status, now, duration, history, job} =
           in
             Html.form
               [class "trigger-build", method "post", action (actionUrl)]
-              [Html.button [class "build-action fr", disabled buttonDisabled] [Html.i [class "fa fa-plus-circle"] []]]
+              [Html.button [class "build-action fr", disabled buttonDisabled, attribute "aria-label" "Trigger Build"] [Html.i [class "fa fa-plus-circle"] []]]
 
         _ ->
           Html.div [] []
@@ -386,7 +386,7 @@ viewBuildHeader actions build {status, now, duration, history, job} =
     abortButton =
       if Concourse.BuildStatus.isRunning status then
         Html.span
-          [class "build-action build-action-abort fr", onClick actions AbortBuild]
+          [class "build-action build-action-abort fr", onClick actions AbortBuild, attribute "aria-label" "Abort Build"]
           [Html.i [class "fa fa-times-circle"] []]
       else
         Html.span [] []

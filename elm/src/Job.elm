@@ -4,7 +4,7 @@ import Array exposing (Array)
 import Dict exposing (Dict)
 import Effects exposing (Effects)
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, disabled)
+import Html.Attributes exposing (class, href, id, disabled, attribute)
 import Html.Events exposing (onClick)
 import Http
 import Task exposing (Task)
@@ -210,7 +210,7 @@ view actions model = Html.div[]
       [ Html.div [ class "build-header" ]
         [ Html.button
           ( List.append
-            [id "job-state", class <| "btn-pause btn-large fl " ++ (getPausedState job model.pausedChanging)]
+            [id "job-state", attribute "aria-label" "Toggle Job Paused State", class <| "btn-pause btn-large fl " ++ (getPausedState job model.pausedChanging)]
             (if not model.pausedChanging then [onClick actions TogglePaused] else [])
           )
           [ Html.i [ class <| "fa fa-fw fa-play " ++ (getPlayPauseLoadIcon job model.pausedChanging) ] [] ]
@@ -220,7 +220,7 @@ view actions model = Html.div[]
           , Html.Attributes.action <| "/pipelines/" ++ model.jobInfo.pipelineName
             ++ "/jobs/" ++ model.jobInfo.name ++ "/builds"
           ]
-          [ Html.button [ class "build-action fr", disabled job.disableManualTrigger ]
+          [ Html.button [ class "build-action fr", disabled job.disableManualTrigger, attribute "aria-label" "Trigger Build" ]
             [ Html.i [ class "fa fa-plus-circle" ] []
             ]
           ]
@@ -291,6 +291,7 @@ viewPaginationBar model =
             [ class "arrow"
             , href <| "/pipelines/" ++ model.jobInfo.pipelineName ++ "/jobs/"
               ++ model.jobInfo.name ++ "?" ++ paginationParam page
+            , attribute "aria-label" "Previous Page"
             ]
             [ Html.i [ class "fa fa-arrow-left"] []
             ]
@@ -308,6 +309,7 @@ viewPaginationBar model =
             [ class "arrow"
             , href <| "/pipelines/" ++ model.jobInfo.pipelineName ++ "/jobs/"
               ++ model.jobInfo.name ++ "?" ++ paginationParam page
+            , attribute "aria-label" "Next Page"
             ]
             [ Html.i [ class "fa fa-arrow-right"] []
             ]

@@ -43,7 +43,7 @@ update subUpdate action model =
       (model, Effects.none)
 
     FromBottom num ->
-      ({ model | shouldScroll = Debug.log ("num: " ++ toString num) (num < 16) }, Effects.none)
+      ({ model | shouldScroll = (num < 16) }, Effects.none)
 
 
 view : (Signal.Address subAction -> subModel -> Html) -> Signal.Address (Action subAction) -> Model subModel -> Html

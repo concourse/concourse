@@ -25,16 +25,16 @@
   <body>
     <div>
       <ul class="nav-right">
-        <li class="nav-item"><a href="/builds"><i class="fa fa-tasks"></i></a></li>
+        <li class="nav-item"><a href="/builds" aria-label="Builds List"><i class="fa fa-tasks"></i></a></li>
       </ul>
     </div>
     <div class="display-in-middle">
         <div class="h1">no pipelines configured</div>
         <h3>first, download the CLI tools:</h3>
         <ul class="cli-downloads">
-          <li><a href="{{url "DownloadCLI" "darwin" "amd64"}}"><i class="fa fa-apple fa-5x"></i></a></li>
-          <li><a href="{{url "DownloadCLI" "windows" "amd64"}}"><i class="fa fa-windows fa-5x"></i></a></li>
-          <li><a href="{{url "DownloadCLI" "linux" "amd64"}}"><i class="fa fa-linux fa-5x"></i></a></li>
+          <li><a href="{{url "DownloadCLI" "darwin" "amd64"}}" aria-label="Download OS X CLI"><i class="fa fa-apple fa-5x"></i></a></li>
+          <li><a href="{{url "DownloadCLI" "windows" "amd64"}}" aria-label="Download Windows CLI"><i class="fa fa-windows fa-5x"></i></a></li>
+          <li><a href="{{url "DownloadCLI" "linux" "amd64"}}" aria-label="Download Linux CLI"><i class="fa fa-linux fa-5x"></i></a></li>
         </ul>
         <h3>then, use `<a class="ansi-blue-fg" target="_blank" href="https://concourse.ci/fly-set-pipeline.html">fly set-pipeline</a>` to set up your new pipeline</h3>
     </div>
