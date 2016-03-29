@@ -8,6 +8,7 @@ partials = load("concourse/partials")
 def(template-for(part, out)):
   part css-url-additions << "https://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700"
 
+  part assets << File expand-path("../images/favicon.ico", __FILE__)
   part assets << File expand-path("../fonts", __FILE__)
 
   part js-additions += html search-js-additions
