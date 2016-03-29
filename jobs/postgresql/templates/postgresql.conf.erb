@@ -1,6 +1,6 @@
-listen_addresses = '<%= p("postgresql.listen_host") %>'
-port = <%= p("postgresql.listen_port") %>
-max_connections = <%= p("postgresql.max_connections") %>
+listen_addresses = '<%= p("bind_ip") %>'
+port = <%= p("bind_port") %>
+max_connections = <%= p("max_connections") %>
 external_pid_file = '/var/vcap/sys/run/postgresql/postgresql.pid'
 authentication_timeout = 1min
 

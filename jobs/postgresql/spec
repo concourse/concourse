@@ -10,28 +10,40 @@ packages:
   - pid_utils
   - postgresql_9.3
 
+provides:
+- name: db
+  type: postgresql
+  properties:
+  - bind_port
+  - databases
+
 properties:
-  postgresql.listen_host:
-    description: "listening host of the PostgreSQL service"
+  bind_ip:
+    description: |
+      IP address on which the PostgresSQL server will listen.
     default: 0.0.0.0
 
-  postgresql.listen_port:
-    description: "listening port of the PostgreSQL service"
+  bind_port:
+    description: |
+      Port on which the PostgresSQL server will listen.
     default: 5432
 
-  postgresql.databases:
-    description: "a list of databases to create, e.g. [{name:foo}]"
+  databases:
+    description: |
+      List of databases to create, along with a role name and password of a role
+      to create for the database.
+    example:
+    - name: my-database
+      role: my-db-role
+      password: my-db-password
+    - name: my-other-database
+      role: my-other-db-role
+      password: my-other-db-password
 
-  postgresql.roles:
-    description: "a list of roles to create, e.g. [{name:foo,password:bar}]"
-
-  postgresql.max_connections:
-    description: "maximum number of open database connections"
+  max_connections:
+    description: |
+      Maximum number of open database connections to support.
     default: 500
-
-  consul.agent.services.postgresql:
-    description: "this property auto-registers PostgreSQL as a service"
-    default: {}
 
   blackbox.syslog.sources.postgresql:
     description: "files whose contents blackbox will emit to its syslog drain"
