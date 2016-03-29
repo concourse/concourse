@@ -96,8 +96,7 @@
 }
 
 \slack{
-  To chit chat, ask for help, or offer your own, join us in the Concourse team:
-  \hyperlink{https://concourseci.slack.com}{concourseci.slack.com}.
+  To chit chat, ask for help, or offer your own, join us in \reference{slack-blurb}{Slack}.
 }
 
 \include-section{./introduction.any}
