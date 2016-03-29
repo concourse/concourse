@@ -1,6 +1,8 @@
 #language anatomy
 
-\use{\require{concourse/docs}}
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
 
 \title{\code{groups}\aux{: Splitting up your pipeline into sections}}{configuring-groups}
 
@@ -26,6 +28,8 @@ groups:
 }
 
 This would display two tabs at the top of the home page: "tests" and "deploy".
+Once you have added groups to your pipeline then all jobs must be in a group
+otherwise they will not be visible.
 
 For a real world example of how groups can be used to simplify navigation and
 provide logical grouping, see the groups used at the top of the page in the

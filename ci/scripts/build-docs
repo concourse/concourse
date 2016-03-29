@@ -6,8 +6,8 @@ BUILT_DOCS=$PWD/built-docs
 
 cd concourse/docs/
 
-bundle install
-bundle exec anatomy -i concourse.any -o $BUILT_DOCS
+bundle install --full-index
+bundle exec anatomy -i index.any -o $BUILT_DOCS
 
 cp Staticfile $BUILT_DOCS
 cp manifest.yml $BUILT_DOCS

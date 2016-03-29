@@ -1,6 +1,8 @@
 #language anatomy
 
-\use{\require{concourse/docs}}
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
 
 \title{\code{on_failure}\aux{: perform a step when another fails}}{on-failure-step}
 

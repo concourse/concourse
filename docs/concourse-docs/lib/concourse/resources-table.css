@@ -11,8 +11,12 @@
 }
 
 .resources-table ul li {
-  list-style-type: none;
+  list-style: none;
   text-align: center;
+}
+
+.resources-table ul li:before {
+  display: none;
 }
 
 .resources-table ul li:after {
@@ -45,24 +49,24 @@
 
 .resources-table ul li .cell {
   padding: 4px 0;
-  background: #303030;
+  background: #2B3E50;
   color: #f5f5f5;
 }
 
 .resources-table ul li .good .cell {
-  border-right: 10px solid #90A959;
+  border-right: 10px solid #2ECC71;
   border-left: 10px solid transparent;
 }
 
 .resources-table ul li .bad .cell {
-  border-right: 10px solid #AC4142;
+  border-right: 10px solid #E74C3C;
   border-left: 10px solid transparent;
 }
 
 .resources-table ul li .disabled .cell {
-  border-right: 10px solid #505050;
+  border-right: 10px solid #5C6D7F;
   border-left: 10px solid transparent;
-  color: #505050;
+  color: #5C6D7F;
 }
 
 .resources-table ul li .gap {

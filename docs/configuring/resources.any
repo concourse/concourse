@@ -1,6 +1,8 @@
 #language anatomy
 
-\use{\require{concourse/docs}}
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
 
 \title{\code{resources}\aux{: Objects flowing through the pipeline}}{configuring-resources}
 
@@ -17,6 +19,7 @@ resources:
   type: git
   source:
     uri: https://github.com/concourse/concourse.git
+    branch: master
 }
 
 Any time commits are pushed, the resource will detect them and save new

@@ -533,6 +533,22 @@ jobs:
       current_app_name: docs
       manifest: built-docs/manifest.yml
 
+- name: push-one-oh-docs
+  serial: true
+  plan:
+  - get: concourse
+    trigger: true
+    params: {submodules: none}
+    resource: concourse-marketing
+  - task: build-docs
+    file: concourse/ci/build-docs.yml
+    params:
+      ANALYTICS_ID: {{analytics-id}}
+  - put: concourse-one-oh-docs
+    params:
+      current_app_name: one-oh-docs
+      manifest: built-docs/manifest.yml
+
 - name: push-departures
   serial: true
   plan:
@@ -784,7 +800,22 @@ resources:
     uri: https://github.com/concourse/concourse.git
     branch: develop
 
+- name: concourse-marketing
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: marketing
+
 - name: concourse-docs
+  type: cf
+  source:
+    api: {{cf-target}}
+    username: {{cf-username}}
+    password: {{cf-password}}
+    organization: {{cf-organization}}
+    space: {{cf-space}}
+
+- name: concourse-one-oh-docs
   type: cf
   source:
     api: {{cf-target}}

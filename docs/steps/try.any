@@ -1,6 +1,8 @@
 #language anatomy
 
-\use{\require{concourse/docs}}
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
 
 \title{\code{try}\aux{: permit failure of a step}}{try-step}
 

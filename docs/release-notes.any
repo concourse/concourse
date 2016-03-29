@@ -1,6 +1,12 @@
 #language anatomy
 
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/docs-template}}
+
 \title{Release Notes}{release-notes}
+
+\omit-children-from-table-of-contents
 
 \include-section{./release-notes/v0.76.0.any}
 \include-section{./release-notes/v0.75.0.any}

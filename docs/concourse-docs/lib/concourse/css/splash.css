@@ -1,0 +1,69 @@
+.intro-slogan {
+  margin-top: 20px;
+}
+
+.splash-pipeline-image {
+  padding: 0 10px; /* spacing for narrow window/mobile */
+  position: relative;
+}
+
+.concourse-pipeline-link {
+  display: inline-block;
+  position: absolute;
+  top: 35px;
+  bottom: 0;
+  width: 100%;
+  max-width: 950px;
+  margin: 0 10px;
+}
+
+.pipes {
+  line-height: 0; /* fixes weird padding at the bottom */
+}
+
+.pipes object {
+  max-width: 950px;
+  height: 185px;
+  border-top: 10px solid #b4b4b4;
+  border-left: 10px solid #b4b4b4;
+  border-right: 10px solid #b4b4b4;
+  border-radius: 10px;
+  margin-top: 25px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  transition: all 0.5s ease;
+}
+
+@media (max-width: 985px) {
+  .pipes object {
+    position: relative;
+    left: -5px;
+    height: auto;
+    border-top: 5px solid #b4b4b4;
+    border-left: 5px solid #b4b4b4;
+    border-right: 5px solid #b4b4b4;
+    border-radius: 5px;
+    transition: all 0.5s ease;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+.top-intro .button {
+  padding: 0 15px; /* less padding so they don't wrap */
+}
+
+.soft-line {
+  display: inline-block;
+  white-space: pre;
+}
+
+.intro-slogan {
+  padding: 0 30px;
+}
+
+@media (min-width: 985px) {
+  .value-props, .value-prop-b {
+    padding: 80px 0;
+  }
+}

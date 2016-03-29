@@ -1,0 +1,18 @@
+#language anatomy
+
+\use{\load{concourse/docs}}
+
+\template{\load{concourse/downloads-template}}
+
+\mobile-optimized
+
+\set-title{Downloads}{downloads}
+
+\omit-children-from-table-of-contents
+
+\include-section{./release-notes/v0.76.0.any}
+\include-section{./release-notes/v0.75.0.any}
+\include-section{./release-notes/v0.74.0.any}
+\include-section{./release-notes/v0.73.0.any}
+\include-section{./release-notes/v0.72.1.any}
+\include-section{./release-notes/v0.72.0.any}

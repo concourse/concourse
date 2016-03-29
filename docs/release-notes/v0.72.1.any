@@ -1,11 +1,15 @@
 #language anatomy
 
-\title{v0.72.1}
+\use{\load{concourse/docs}}
 
-\list{
-  Fixed a bug that would cause containers used by the new
-  \reference{image_resource} not to be released.
-}{
-  Removed a uniqueness constraint on the database that checked a huge number of
-  columns which caused PostgreSQL to error for certain pipelines.
+\release{2016-02-08}{0.72.1}{0.332.0}{
+  \note{fix}{
+    Fixed a bug that would cause containers used by the new
+    \reference{image_resource} not to be released.
+  }
+
+  \note{fix}{
+    Removed a uniqueness constraint on the database that checked a huge number
+    of columns which caused PostgreSQL to error for certain pipelines.
+  }
 }
