@@ -17,7 +17,7 @@
 
   With 1.0.0 comes a more rigid release policy on our end. You may see
   deprecations here and there, so keep an eye out for those via the tags next
-  to each release notes, but nothing should change backwards-incompatibly until
+  to each release note, but nothing should change backwards-incompatibly until
   2.0.0. We'll still be releasing at the same cadence as before, so we'll
   probably end up at v1.23.0 pretty soon.
 
