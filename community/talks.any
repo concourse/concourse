@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\template{\load{concourse/community-template}}
+\template{\load{concourse/talks-template}}
 
 \title{Talks}{talks}
 
