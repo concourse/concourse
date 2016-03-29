@@ -5,7 +5,7 @@
   <div class="build-header js-build" data-build-id="{{.Build.ID}}">
 
     {{if .Build.Abortable}}
-    <span class="build-action build-action-abort fr js-abortBuild"><i class="fa fa-times-circle"></i></span>
+    <span class="build-action build-action-abort fr js-abortBuild" aria-label="Abort Build"><i class="fa fa-times-circle"></i></span>
     {{end}}
 
     <h1>build #{{.Build.ID}}</h1>
