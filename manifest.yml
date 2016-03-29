@@ -1,8 +1,8 @@
 ---
-name: one-point-oh-docs
+name: docs
 instances: 2
 memory: 64M
 domains: [concourse.ci, concourse-ci.org, concourse-ci.net, concourse-ci.com]
-host: one-point-oh
+host: ''
 path: .
 buildpack: "https://github.com/cloudfoundry/staticfile-buildpack#v1.3.2"
