@@ -11,9 +11,15 @@
   system.
 
   First off, a huge thanks to \hyperlink{https://pivotal.io}{Pivotal} for
-  sponsoring our project and letting us work on it full-time. Over the last
+  sponsoring our project and letting us work on it full-time. Over the past
   year we've had 17 team members rotating through, including 2 designers.
   Pretty sweet.
+
+  With 1.0.0 comes a more rigid release policy on our end. You may see
+  deprecations here and there, so keep an eye out for those via the tags next
+  to each release notes, but nothing should change backwards-incompatibly until
+  2.0.0. We'll still be releasing at the same cadence as before, so we'll
+  probably end up at v1.23.0 pretty soon.
 
   Here's a text-form 80's montage of all the things you may have
   missed since v0.17.0, our first release:
