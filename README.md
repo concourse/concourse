@@ -4,7 +4,7 @@ A [BOSH](https://github.com/cloudfoundry/bosh) release for concourse. The
 easiest way to deploy your own instance of concourse on AWS, vSphere,
 Openstack or with Vagrant.
 
-* Documentation: [concourse.ci](http://concourse.ci)
+* Documentation: [concourse.ci](https://concourse.ci)
 * Slack: [concourseci.slack.com](https://concourseci.slack.com) (get an invite at [slack.concourse.ci](http://slack.concourse.ci))
 * IRC: [#concourse](http://webchat.freenode.net/?channels=concourse) on Freenode
 * Roadmap: [Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1059262)
@@ -29,7 +29,7 @@ vagrant up
 ```
 
 Browse to [http://192.168.100.4:8080](http://192.168.100.4:8080) and download
-the [Fly CLI](http://concourse.ci/fly-cli.html) from the bottom-right.
+the [Fly CLI](https://concourse.ci/fly-cli.html) from the bottom-right.
 
-Follow the [Getting Started](http://concourse.ci/getting-started.html) docs
+Follow the [Getting Started](https://concourse.ci/getting-started.html) docs
 for more information.
