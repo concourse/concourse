@@ -287,7 +287,7 @@
 
 \literate-segment{
   We'll now run the actual integration task. Since it has to talk to some
-  external environment, we'll use \code{config.params} to forward its
+  external environment, we'll use \code{params} to forward its
   credentials along to the task. See \reference{task-step} for more
   information.
 
@@ -297,10 +297,9 @@
   \codeblock{yaml}{
     {}  - task: integration
     {}    file: my-product/ci/integration.yml
-    {}    config:
-    {}      params:
-    {}        API_ENDPOINT: \{\{integration-api-endpoint\}\}
-    {}        ACCESS_KEY: \{\{integration-access-key\}\}
+    {}    params:
+    {}      API_ENDPOINT: \{\{integration-api-endpoint\}\}
+    {}      ACCESS_KEY: \{\{integration-access-key\}\}
   }
 }
 

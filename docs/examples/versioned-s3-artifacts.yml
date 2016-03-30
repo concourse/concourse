@@ -58,10 +58,9 @@ jobs:
     passed: [build-rc]
   - task: integration
     file: my-product/ci/integration.yml
-    config:
-      params:
-        API_ENDPOINT: {{integration-api-endpoint}}
-        ACCESS_KEY: {{integration-access-key}}
+    params:
+      API_ENDPOINT: {{integration-api-endpoint}}
+      ACCESS_KEY: {{integration-access-key}}
 - name: shipit
   serial_groups: [version]
   plan:
