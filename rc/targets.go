@@ -75,11 +75,12 @@ func NewTarget(api string, insecure bool, token *TargetToken) TargetProps {
 }
 
 func SaveTarget(targetName TargetName, api string, insecure bool, token *TargetToken) error {
-	flyrc := filepath.Join(userHomeDir(), ".flyrc")
-	flyTargets, err := LoadTargets(flyrc)
+	flyTargets, err := LoadTargets()
 	if err != nil {
 		return err
 	}
+
+	flyrc := filepath.Join(userHomeDir(), ".flyrc")
 
 	newInfo := flyTargets.Targets[targetName]
 	newInfo.API = api
@@ -96,8 +97,7 @@ func SelectTarget(selectedTarget TargetName) (TargetProps, error) {
 		return TargetProps{}, ErrNoTargetSpecified
 	}
 
-	flyrc := filepath.Join(userHomeDir(), ".flyrc")
-	flyTargets, err := LoadTargets(flyrc)
+	flyTargets, err := LoadTargets()
 	if err != nil {
 		return TargetProps{}, err
 	}
@@ -236,18 +236,19 @@ func userHomeDir() string {
 	return os.Getenv("HOME")
 }
 
-func LoadTargets(configFileLocation string) (*targetDetailsYAML, error) {
+func LoadTargets() (*targetDetailsYAML, error) {
 	var flyTargets *targetDetailsYAML
 
-	if _, err := os.Stat(configFileLocation); err == nil {
-		flyTargetsBytes, err := ioutil.ReadFile(configFileLocation)
+	flyrc := filepath.Join(userHomeDir(), ".flyrc")
+	if _, err := os.Stat(flyrc); err == nil {
+		flyTargetsBytes, err := ioutil.ReadFile(flyrc)
 		if err != nil {
-			return nil, fmt.Errorf("could not read %s", configFileLocation)
+			return nil, fmt.Errorf("could not read %s", flyrc)
 		}
 
 		err = yaml.Unmarshal(flyTargetsBytes, &flyTargets)
 		if err != nil {
-			return nil, fmt.Errorf("could not unmarshal %s", configFileLocation)
+			return nil, fmt.Errorf("could not unmarshal %s", flyrc)
 		}
 	}
 

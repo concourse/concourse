@@ -44,8 +44,6 @@ func (command *ContainersCommand) Execute([]string) error {
 		},
 	}
 
-	sort.Sort(containersByHandle(containers))
-
 	for _, c := range containers {
 		row := ui.TableRow{
 			{Contents: c.ID},
@@ -64,14 +62,12 @@ func (command *ContainersCommand) Execute([]string) error {
 		table.Data = append(table.Data, row)
 	}
 
+	sort.Sort(table.Data)
+
 	return table.Render(os.Stdout)
 }
 
 type containersByHandle []atc.Container
-
-func (cs containersByHandle) Len() int               { return len(cs) }
-func (cs containersByHandle) Swap(i int, j int)      { cs[i], cs[j] = cs[j], cs[i] }
-func (cs containersByHandle) Less(i int, j int) bool { return cs[i].ID < cs[j].ID }
 
 func buildIDOrNone(id int) ui.TableCell {
 	var column ui.TableCell
