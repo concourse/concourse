@@ -5,7 +5,6 @@ dependencies:
   - golang
 
 files:
-  - github.com/Sirupsen/logrus/*.go # gosub
   - github.com/bmizerany/pat/*.go # gosub
   - github.com/concourse/baggageclaim/*.go # gosub
   - github.com/concourse/baggageclaim/api/*.go # gosub
@@ -18,23 +17,6 @@ files:
   - github.com/concourse/baggageclaim/volume/*.go # gosub
   - github.com/concourse/baggageclaim/volume/driver/*.go # gosub
   - github.com/contraband/holler/*.go # gosub
-  - github.com/docker/distribution/*.go # gosub
-  - github.com/docker/distribution/context/*.go # gosub
-  - github.com/docker/distribution/digest/*.go # gosub
-  - github.com/docker/distribution/manifest/*.go # gosub
-  - github.com/docker/distribution/manifest/schema1/*.go # gosub
-  - github.com/docker/distribution/registry/api/errcode/*.go # gosub
-  - github.com/docker/distribution/registry/api/v2/*.go # gosub
-  - github.com/docker/distribution/registry/client/*.go # gosub
-  - github.com/docker/distribution/registry/client/auth/*.go # gosub
-  - github.com/docker/distribution/registry/client/transport/*.go # gosub
-  - github.com/docker/distribution/registry/storage/cache/*.go # gosub
-  - github.com/docker/distribution/registry/storage/cache/memory/*.go # gosub
-  - github.com/docker/distribution/uuid/*.go # gosub
-  - github.com/docker/docker/pkg/tarsum/*.go # gosub
-  - github.com/docker/libtrust/*.go # gosub
-  - github.com/gorilla/context/*.go # gosub
-  - github.com/gorilla/mux/*.go # gosub
   - github.com/hashicorp/errwrap/*.go # gosub
   - github.com/hashicorp/go-multierror/*.go # gosub
   - github.com/jessevdk/go-flags/*.go # gosub
@@ -47,4 +29,3 @@ files:
   - github.com/tedsuo/ifrit/sigmon/*.go # gosub
   - github.com/tedsuo/rata/*.go # gosub
   - github.com/xoebus/zest/*.go # gosub
-  - golang.org/x/net/context/*.go # gosub

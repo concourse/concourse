@@ -110,14 +110,6 @@
 	path = src/golang.org/x/oauth2
 	url = https://go.googlesource.com/oauth2
 	branch = master
-[submodule "src/github.com/docker/libtrust"]
-	path = src/github.com/docker/libtrust
-	url = https://github.com/docker/libtrust
-	branch = master
-[submodule "src/github.com/gorilla/mux"]
-	path = src/github.com/gorilla/mux
-	url = https://github.com/gorilla/mux
-	branch = master
 [submodule "src/github.com/docker/distribution"]
 	path = src/github.com/docker/distribution
 	url = https://github.com/docker/distribution
@@ -188,9 +180,6 @@
 [submodule "src/github.com/ActiveState/tail"]
 	path = src/github.com/ActiveState/tail
 	url = https://github.com/ActiveState/tail
-[submodule "src/github.com/Sirupsen/logrus"]
-	path = src/github.com/Sirupsen/logrus
-	url = https://github.com/Sirupsen/logrus
 [submodule "src/github.com/golang/protobuf"]
 	path = src/github.com/golang/protobuf
 	url = https://github.com/golang/protobuf
