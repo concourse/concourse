@@ -12,14 +12,23 @@ import (
 
 type Table struct {
 	Headers TableRow
-	Data    []TableRow
+	Data    Data
 }
+
+type Data []TableRow
 
 type TableRow []TableCell
 
 type TableCell struct {
 	Contents string
 	Color    *color.Color
+}
+
+func (d Data) Len() int          { return len(d) }
+func (d Data) Swap(i int, j int) { d[i], d[j] = d[j], d[i] }
+
+func (d Data) Less(i int, j int) bool {
+	return strings.Compare(d[i][0].Contents, d[j][0].Contents) == -1
 }
 
 func (table Table) Render(dst io.Writer) error {

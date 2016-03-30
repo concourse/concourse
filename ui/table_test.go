@@ -3,6 +3,7 @@ package ui_test
 import (
 	"io"
 	"runtime"
+	"sort"
 
 	"github.com/concourse/fly/pty"
 	. "github.com/concourse/fly/ui"
@@ -39,47 +40,92 @@ var _ = Describe("Table", func() {
 		}
 	})
 
-	Context("when the render method is called without a TTY", func() {
-		It("prints the data with no headers", func() {
-			expectedOutput := "" +
-				"r1c1  r1c2\n" +
-				"r2c1  r2c2\n" +
-				"r3c1  r3c2\n"
+	Describe("Sort", func() {
+		Context("when rows are provided", func() {
+			BeforeEach(func() {
+				table = Table{
+					Headers: TableRow{
+						{Contents: "column1", Color: color.New(color.Bold)},
+						{Contents: "column2", Color: color.New(color.Bold)},
+					},
+					Data: []TableRow{
+						{
+							{Contents: "zzz"},
+							{Contents: "bbb"},
+						},
+						{
+							{Contents: "aaa"},
+							{Contents: "zzz"},
+						},
+						{
+							{Contents: "xxx"},
+							{Contents: "aaa"},
+						},
+					},
+				}
+			})
 
-			buf := gbytes.NewBuffer()
+			It("sorts them on the given column index", func() {
+				expectedOutput := "" +
+					"aaa  zzz\n" +
+					"xxx  aaa\n" +
+					"zzz  bbb\n"
 
-			err := table.Render(buf)
-			Expect(err).ToNot(HaveOccurred())
+				buf := gbytes.NewBuffer()
 
-			Expect(string(buf.Contents())).To(Equal(expectedOutput))
+				sort.Sort(table.Data)
+
+				err := table.Render(buf)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(string(buf.Contents())).To(Equal(expectedOutput))
+			})
 		})
 	})
 
-	Context("when the render method is called in a TTY", func() {
-		It("prints the headers and the data in color", func() {
-			if runtime.GOOS == "windows" {
-				Skip("these escape codes, and the pty stuff, don't apply to Windows")
-			}
+	Describe("Render", func() {
+		Context("when the render method is called without a TTY", func() {
+			It("prints the data with no headers", func() {
+				expectedOutput := "" +
+					"r1c1  r1c2\n" +
+					"r2c1  r2c2\n" +
+					"r3c1  r3c2\n"
 
-			pty, err := pty.Open()
-			Expect(err).NotTo(HaveOccurred())
+				buf := gbytes.NewBuffer()
 
-			defer pty.Close()
+				err := table.Render(buf)
+				Expect(err).ToNot(HaveOccurred())
 
-			buf := gbytes.NewBuffer()
+				Expect(string(buf.Contents())).To(Equal(expectedOutput))
+			})
+		})
 
-			go io.Copy(buf, pty.PTYR)
+		Context("when the render method is called in a TTY", func() {
+			It("prints the headers and the data in color", func() {
+				if runtime.GOOS == "windows" {
+					Skip("these escape codes, and the pty stuff, don't apply to Windows")
+				}
 
-			err = table.Render(pty.TTYW)
-			Expect(err).ToNot(HaveOccurred())
+				pty, err := pty.Open()
+				Expect(err).NotTo(HaveOccurred())
 
-			expectedOutput := "" +
-				"\x1b[1mcolumn1\x1b[0m  \x1b[1mcolumn2\x1b[0m\r\n" +
-				"r1c1     r1c2   \r\n" +
-				"r2c1     r2c2   \r\n" +
-				"r3c1     r3c2   \r\n"
+				defer pty.Close()
 
-			Eventually(buf.Contents).Should(Equal([]byte(expectedOutput)))
+				buf := gbytes.NewBuffer()
+
+				go io.Copy(buf, pty.PTYR)
+
+				err = table.Render(pty.TTYW)
+				Expect(err).ToNot(HaveOccurred())
+
+				expectedOutput := "" +
+					"\x1b[1mcolumn1\x1b[0m  \x1b[1mcolumn2\x1b[0m\r\n" +
+					"r1c1     r1c2   \r\n" +
+					"r2c1     r2c2   \r\n" +
+					"r3c1     r3c2   \r\n"
+
+				Eventually(buf.Contents).Should(Equal([]byte(expectedOutput)))
+			})
 		})
 	})
 })
