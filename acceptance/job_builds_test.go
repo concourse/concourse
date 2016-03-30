@@ -246,7 +246,7 @@ var _ = Describe("Job Builds", func() {
 
 					// job detail w/build info -> job detail
 					Eventually(page).Should(HaveURL(withPath(fmt.Sprintf("jobs/job-manual-trigger-disabled/builds/%s", manualTriggerDisabledBuild.Name))))
-					Expect(page.Find("button.build-action")).To(HaveAttribute("disabled", "true"))
+					Eventually(page.Find("button.build-action")).Should(HaveAttribute("disabled", "true"))
 				})
 
 				It("should have a disabled button in the job details view", func() {
