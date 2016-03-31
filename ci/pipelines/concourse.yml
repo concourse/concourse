@@ -449,7 +449,7 @@ jobs:
   - aggregate:
     - get: binaries
       resource: bin-rc
-      passed: [deploy]
+      passed: [shipit]
     - get: concourse
       params: {submodules: none}
       passed: [shipit]
