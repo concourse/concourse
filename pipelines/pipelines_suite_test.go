@@ -128,6 +128,24 @@ func destroyPipeline() {
 	Expect(destroy).To(gexec.Exit(0))
 }
 
+func renamePipeline(newName string) {
+	renameCmd := exec.Command(
+		flyBin,
+		"-t", targetedConcourse,
+		"rename-pipeline",
+		"-o", pipelineName,
+		"-n", newName,
+	)
+
+	rename, err := gexec.Start(renameCmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred())
+
+	<-rename.Exited
+	Expect(rename).To(gexec.Exit(0))
+
+	pipelineName = newName
+}
+
 func configurePipeline(argv ...string) {
 	destroyPipeline()
 
