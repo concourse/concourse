@@ -155,9 +155,9 @@ var _ = Describe("FetchTemplateData", func() {
 				BeforeEach(func() {
 					versionedResources = []atc.VersionedResource{
 						{
-							ID:           2,
-							PipelineName: "some-pipeline",
-							Type:         "some-type",
+							ID:         2,
+							PipelineID: 57,
+							Type:       "some-type",
 							Metadata: []atc.MetadataField{
 								{
 									Name:  "some",
@@ -170,9 +170,9 @@ var _ = Describe("FetchTemplateData", func() {
 							},
 						},
 						{
-							ID:           3,
-							PipelineName: "some-pipeline",
-							Type:         "some-type",
+							ID:         3,
+							PipelineID: 57,
+							Type:       "some-type",
 							Metadata: []atc.MetadataField{
 								{
 									Name:  "some",
