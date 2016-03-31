@@ -59,6 +59,8 @@ var _ = Describe("Pipelines Syncer", func() {
 				return pipelineDB
 			case "other-pipeline":
 				return otherPipelineDB
+			case "renamed-pipeline":
+				return pipelineDB
 			default:
 				panic("unexpected pipeline input received")
 				return nil
@@ -153,6 +155,35 @@ var _ = Describe("Pipelines Syncer", func() {
 						ID: 3,
 						Pipeline: db.Pipeline{
 							Name: "pipeline",
+						},
+					},
+				}, nil)
+
+				syncer.Sync()
+
+				Expect(fakeRunner.RunCallCount()).To(Equal(2))
+
+				signals, _ := fakeRunner.RunArgsForCall(0)
+				Eventually(signals).Should(Receive(Equal(os.Interrupt)))
+			})
+		})
+
+		Context("when pipeline name was changed", func() {
+			It("recreates syncer with new name", func() {
+				Expect(fakeRunner.RunCallCount()).To(Equal(1))
+				Expect(otherFakeRunner.RunCallCount()).To(Equal(1))
+
+				syncherDB.GetAllPipelinesReturns([]db.SavedPipeline{
+					{
+						ID: 1,
+						Pipeline: db.Pipeline{
+							Name: "renamed-pipeline",
+						},
+					},
+					{
+						ID: 2,
+						Pipeline: db.Pipeline{
+							Name: "other-pipeline",
 						},
 					},
 				}, nil)

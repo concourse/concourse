@@ -17,12 +17,6 @@ type SyncherDB interface {
 
 type PipelineRunnerFactory func(db.PipelineDB) ifrit.Runner
 
-type runningProcess struct {
-	ifrit.Process
-
-	Exited <-chan error
-}
-
 type Syncer struct {
 	logger lager.Logger
 
@@ -30,7 +24,15 @@ type Syncer struct {
 	pipelineDBFactory     db.PipelineDBFactory
 	pipelineRunnerFactory PipelineRunnerFactory
 
-	runningPipelines map[int]runningProcess
+	runningPipelines map[int]runningPipeline
+}
+
+type runningPipeline struct {
+	Name string
+
+	ifrit.Process
+
+	Exited <-chan error
 }
 
 func NewSyncer(
@@ -45,7 +47,7 @@ func NewSyncer(
 		pipelineDBFactory:     pipelineDBFactory,
 		pipelineRunnerFactory: pipelineRunnerFactory,
 
-		runningPipelines: map[int]runningProcess{},
+		runningPipelines: map[int]runningPipeline{},
 	}
 }
 
@@ -70,7 +72,7 @@ func (syncer *Syncer) Sync() {
 				continue
 			}
 
-			if pipeline.ID == id {
+			if pipeline.ID == id && pipeline.Name == runningPipeline.Name {
 				found = true
 			}
 		}
@@ -99,7 +101,8 @@ func (syncer *Syncer) Sync() {
 
 		process := ifrit.Invoke(runner)
 
-		syncer.runningPipelines[pipeline.ID] = runningProcess{
+		syncer.runningPipelines[pipeline.ID] = runningPipeline{
+			Name:    pipeline.Name,
 			Process: process,
 			Exited:  process.Wait(),
 		}
