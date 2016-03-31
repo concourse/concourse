@@ -31,5 +31,5 @@ vagrant up
 Browse to [http://192.168.100.4:8080](http://192.168.100.4:8080) and download
 the [Fly CLI](http://concourse.ci/fly-cli.html) from the bottom-right.
 
-Follow the [Getting Started](http://concourse.ci/getting-started.html) docs
+Follow the [Getting Started](http://concourse.ci/introduction.html) docs
 for more information.
