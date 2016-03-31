@@ -447,13 +447,9 @@ jobs:
   serial: true
   plan:
   - aggregate:
-    - get: final-release
-      passed: [shipit]
-      trigger: true
-    - get: garden-linux-release
-      passed: [shipit]
-      resource: garden-linux
-      trigger: true
+    - get: binaries
+      resource: bin-rc
+      passed: [deploy]
     - get: concourse
       params: {submodules: none}
       passed: [shipit]
