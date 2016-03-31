@@ -1,44 +1,77 @@
 package atc
 
-type PlanTraversal struct {
-	TraverseFunc func(plan *Plan)
+type PlanTraverseFunc func(plan *Plan) error
+
+type PlanTraversal interface {
+	Traverse(plan *Plan) error
 }
 
-func (pt PlanTraversal) Traverse(plan *Plan) {
-	pt.TraverseFunc(plan)
+type planTraversal struct {
+	traverseFunc PlanTraverseFunc
+}
+
+func NewPlanTraversal(f PlanTraverseFunc) PlanTraversal {
+	return &planTraversal{traverseFunc: f}
+}
+
+func (pt *planTraversal) Traverse(plan *Plan) error {
+	err := pt.traverseFunc(plan)
+	if err != nil {
+		return err
+	}
 
 	switch {
 	case plan.Aggregate != nil:
 		for i := range *plan.Aggregate {
-			pt.Traverse(&(*plan.Aggregate)[i])
+			err = pt.Traverse(&(*plan.Aggregate)[i])
+			if err != nil {
+				return err
+			}
 		}
 
 	case plan.Do != nil:
 		for i := range *plan.Do {
-			pt.Traverse(&(*plan.Do)[i])
+			err = pt.Traverse(&(*plan.Do)[i])
+			if err != nil {
+				return err
+			}
 		}
 
 	case plan.Timeout != nil:
-		pt.Traverse(&plan.Timeout.Step)
+		return pt.Traverse(&plan.Timeout.Step)
 
 	case plan.Try != nil:
-		pt.Traverse(&plan.Try.Step)
+		return pt.Traverse(&plan.Try.Step)
 
 	case plan.OnSuccess != nil:
-		pt.Traverse(&plan.OnSuccess.Step)
-		pt.Traverse(&plan.OnSuccess.Next)
+		err = pt.Traverse(&plan.OnSuccess.Step)
+		if err != nil {
+			return err
+		}
+		return pt.Traverse(&plan.OnSuccess.Next)
 
 	case plan.OnFailure != nil:
-		pt.Traverse(&plan.OnFailure.Step)
-		pt.Traverse(&plan.OnFailure.Next)
+		err = pt.Traverse(&plan.OnFailure.Step)
+		if err != nil {
+			return err
+		}
+		return pt.Traverse(&plan.OnFailure.Next)
 
 	case plan.Ensure != nil:
-		pt.Traverse(&plan.Ensure.Step)
-		pt.Traverse(&plan.Ensure.Next)
+		err = pt.Traverse(&plan.Ensure.Step)
+		if err != nil {
+			return err
+		}
+		return pt.Traverse(&plan.Ensure.Next)
 
 	case plan.Retry != nil:
 		for i := range *plan.Retry {
-			pt.Traverse(&(*plan.Retry)[i])
+			err = pt.Traverse(&(*plan.Retry)[i])
+			if err != nil {
+				return err
+			}
 		}
 	}
+
+	return nil
 }

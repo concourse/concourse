@@ -1,6 +1,9 @@
 package engine_test
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 
 	"github.com/concourse/atc"
@@ -22,6 +25,7 @@ var _ = Describe("ExecEngine", func() {
 		fakeFactory         *execfakes.FakeFactory
 		fakeDelegateFactory *fakes.FakeBuildDelegateFactory
 		fakeDB              *fakes.FakeEngineDB
+		logger              *lagertest.TestLogger
 
 		execEngine engine.Engine
 	)
@@ -30,6 +34,7 @@ var _ = Describe("ExecEngine", func() {
 		fakeFactory = new(execfakes.FakeFactory)
 		fakeDelegateFactory = new(fakes.FakeBuildDelegateFactory)
 		fakeDB = new(fakes.FakeEngineDB)
+		logger = lagertest.NewTestLogger("test")
 
 		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB, "http://example.com")
 	})
@@ -48,8 +53,6 @@ var _ = Describe("ExecEngine", func() {
 
 			build engine.Build
 
-			logger *lagertest.TestLogger
-
 			inputStepFactory *execfakes.FakeStepFactory
 			inputStep        *execfakes.FakeStep
 
@@ -66,7 +69,6 @@ var _ = Describe("ExecEngine", func() {
 		)
 
 		BeforeEach(func() {
-			logger = lagertest.NewTestLogger("test")
 			planFactory = atc.NewPlanFactory(123)
 
 			buildModel = db.Build{
@@ -872,6 +874,135 @@ var _ = Describe("ExecEngine", func() {
 
 		It("cleans out sensitive/irrelevant information from the original plan", func() {
 			Expect(publicPlan.Plan).To(Equal(plan.Public()))
+		})
+	})
+
+	Describe("LookupBuild", func() {
+		Context("when pipeline name is specified and pipeline ID is not", func() {
+			var build db.Build
+
+			BeforeEach(func() {
+				build = db.Build{
+					EngineMetadata: `{
+						"Plan": {
+							"id": "1",
+							"do": [
+								{"id": "2", "get": {"pipeline": "some-pipeline-1"}},
+								{"id": "3", "task": {"pipeline": "some-pipeline-2"}},
+								{
+									"id": "4",
+									"on_success": {
+										"step": {
+											"id": "5", "put": {"pipeline": "some-pipeline-1"}
+										},
+										"on_success": {
+											"id": "6", "dependent_get": {"pipeline": "some-pipeline-2"}
+										}
+									}
+								}
+							]
+						}
+					}`,
+				}
+				fakeDB.GetPipelineByTeamNameAndNameStub = func(teamName string, pipelineName string) (db.SavedPipeline, error) {
+					Expect(teamName).To(Equal("main"))
+					switch pipelineName {
+					case "some-pipeline-1":
+						return db.SavedPipeline{ID: 1}, nil
+					case "some-pipeline-2":
+						return db.SavedPipeline{ID: 2}, nil
+					default:
+						errMessage := fmt.Sprintf("unknown pipeline name `%s`", pipelineName)
+						Fail(errMessage)
+						return db.SavedPipeline{}, errors.New(errMessage)
+					}
+				}
+			})
+
+			It("sets pipeline ID for each plan", func() {
+				foundBuild, err := execEngine.LookupBuild(logger, build)
+				Expect(err).NotTo(HaveOccurred())
+				type metadata struct {
+					Plan atc.Plan
+				}
+				var foundMetadata metadata
+				err = json.Unmarshal([]byte(foundBuild.Metadata()), &foundMetadata)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(foundMetadata.Plan).To(Equal(atc.Plan{
+					ID: "1",
+					Do: &atc.DoPlan{
+						{
+							ID:  "2",
+							Get: &atc.GetPlan{PipelineID: 1},
+						},
+						{
+							ID:   "3",
+							Task: &atc.TaskPlan{PipelineID: 2},
+						},
+						{
+							ID: "4",
+							OnSuccess: &atc.OnSuccessPlan{
+								Step: atc.Plan{
+									ID: "5",
+									Put: &atc.PutPlan{
+										PipelineID: 1,
+									},
+								},
+								Next: atc.Plan{
+									ID: "6",
+									DependentGet: &atc.DependentGetPlan{
+										PipelineID: 2,
+									},
+								},
+							},
+						},
+					},
+				}))
+			})
+
+			Context("when pipeline can not be found", func() {
+				var disaster error
+				BeforeEach(func() {
+					build = db.Build{
+						EngineMetadata: `{
+						"Plan": {
+							"id": "1",
+							"task": {"pipeline": "unknown-pipeline"}
+						}
+					}`,
+					}
+					disaster = errors.New("oh dear")
+					fakeDB.GetPipelineByTeamNameAndNameReturns(db.SavedPipeline{}, disaster)
+				})
+
+				It("returns an error", func() {
+					foundBuild, err := execEngine.LookupBuild(logger, build)
+					Expect(err).To(Equal(disaster))
+					Expect(foundBuild).To(BeNil())
+				})
+			})
+
+			Context("when build plan has pipeline name and pipeline ID", func() {
+				BeforeEach(func() {
+					build = db.Build{
+						EngineMetadata: `{
+						"Plan": {
+							"id": "1",
+							"task": {"pipeline": "some-pipeline","pipeline_id": 42}
+						}
+					}`,
+					}
+				})
+
+				It("returns an error", func() {
+					foundBuild, err := execEngine.LookupBuild(logger, build)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring(
+						"build plan with ID 1 has both pipeline name (some-pipeline) and ID (42)",
+					))
+					Expect(foundBuild).To(BeNil())
+				})
+			})
 		})
 	})
 })

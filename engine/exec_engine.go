@@ -65,6 +65,11 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, model db.Build) (Buil
 		return nil, err
 	}
 
+	err = atc.NewPlanTraversal(engine.convertPipelineNameToID).Traverse(&metadata.Plan)
+	if err != nil {
+		return nil, err
+	}
+
 	return &execBuild{
 		buildID:      model.ID,
 		stepMetadata: buildMetadata(model, engine.externalURL),
@@ -76,6 +81,48 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, model db.Build) (Buil
 
 		signals: make(chan os.Signal, 1),
 	}, nil
+}
+
+func (engine *execEngine) convertPipelineNameToID(plan *atc.Plan) error {
+	var pipelineName *string
+	var pipelineID *int
+
+	switch {
+	case plan.Get != nil:
+		pipelineName = &plan.Get.Pipeline
+		pipelineID = &plan.Get.PipelineID
+	case plan.Put != nil:
+		pipelineName = &plan.Put.Pipeline
+		pipelineID = &plan.Put.PipelineID
+	case plan.Task != nil:
+		pipelineName = &plan.Task.Pipeline
+		pipelineID = &plan.Task.PipelineID
+	case plan.DependentGet != nil:
+		pipelineName = &plan.DependentGet.Pipeline
+		pipelineID = &plan.DependentGet.PipelineID
+	}
+
+	if pipelineName != nil && *pipelineName != "" {
+		if *pipelineID != 0 {
+			return fmt.Errorf(
+				"build plan with ID %s has both pipeline name (%s) and ID (%d)",
+				plan.ID,
+				*pipelineName,
+				*pipelineID,
+			)
+		}
+
+		savedPipeline, err := engine.db.GetPipelineByTeamNameAndName(atc.DefaultTeamName, *pipelineName)
+
+		if err != nil {
+			return err
+		}
+
+		*pipelineID = savedPipeline.ID
+		*pipelineName = ""
+	}
+
+	return nil
 }
 
 func buildMetadata(model db.Build, externalURL string) StepMetadata {
