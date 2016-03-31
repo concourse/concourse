@@ -20,7 +20,7 @@ func PublicBuildInput(input db.BuildInput) atc.PublicBuildInput {
 		Type:            input.Type,
 		Version:         atc.Version(input.Version),
 		Metadata:        metadata,
-		PipelineName:    input.PipelineName,
+		PipelineID:      input.PipelineID,
 		FirstOccurrence: input.FirstOccurrence,
 	}
 }

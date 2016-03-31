@@ -94,7 +94,7 @@ var _ = Describe("Versions API", func() {
 									Value: "metadata",
 								},
 							},
-							PipelineName: "some-pipeline",
+							PipelineID: 42,
 						},
 					},
 					{
@@ -112,7 +112,7 @@ var _ = Describe("Versions API", func() {
 									Value: "metadata",
 								},
 							},
-							PipelineName: "some-pipeline",
+							PipelineID: 42,
 						},
 					},
 				}
@@ -136,7 +136,7 @@ var _ = Describe("Versions API", func() {
 					{
 						"id": 4,
 						"enabled": true,
-						"pipeline_name": "some-pipeline",
+						"pipeline_id": 42,
 						"resource": "some-resource",
 						"type": "some-type",
 						"version": {"some":"version"},
@@ -150,7 +150,7 @@ var _ = Describe("Versions API", func() {
 					{
 						"id":2,
 						"enabled": false,
-						"pipeline_name": "some-pipeline",
+						"pipeline_id": 42,
 						"resource": "some-resource",
 						"type": "some-type",
 						"version": {"some":"version"},

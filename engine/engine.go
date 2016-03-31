@@ -24,8 +24,8 @@ type EngineDB interface {
 
 	SaveBuildEngineMetadata(buildID int, metadata string) error
 
-	SaveBuildInput(teamName string, buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
-	SaveBuildOutput(teamName string, buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error)
+	SaveBuildInput(buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
+	SaveBuildOutput(buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error)
 
 	SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier db.ResourceCacheIdentifier) error
 

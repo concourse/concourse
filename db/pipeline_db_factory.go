@@ -4,6 +4,7 @@ package db
 
 type PipelineDBFactory interface {
 	Build(pipeline SavedPipeline) PipelineDB
+	BuildWithID(pipelineID int) (PipelineDB, error)
 	BuildWithTeamNameAndName(teamName, pipelineName string) (PipelineDB, error)
 	BuildDefault() (PipelineDB, bool, error)
 }
@@ -24,6 +25,15 @@ func NewPipelineDBFactory(
 		bus:         bus,
 		pipelinesDB: pipelinesDB,
 	}
+}
+
+func (pdbf *pipelineDBFactory) BuildWithID(pipelineID int) (PipelineDB, error) {
+	savedPipeline, err := pdbf.pipelinesDB.GetPipelineByID(pipelineID)
+	if err != nil {
+		return nil, err
+	}
+
+	return pdbf.Build(savedPipeline), nil
 }
 
 func (pdbf *pipelineDBFactory) BuildWithTeamNameAndName(teamName, pipelineName string) (PipelineDB, error) {

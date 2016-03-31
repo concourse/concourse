@@ -917,19 +917,19 @@ var _ = Describe("Jobs API", func() {
 									{
 										Name: "some-input",
 										VersionedResource: db.VersionedResource{
-											Resource:     "some-resource",
-											Type:         "some-type",
-											Version:      db.Version{"some": "version"},
-											PipelineName: "some-pipeline",
+											Resource:   "some-resource",
+											Type:       "some-type",
+											Version:    db.Version{"some": "version"},
+											PipelineID: 42,
 										},
 									},
 									{
 										Name: "some-other-input",
 										VersionedResource: db.VersionedResource{
-											Resource:     "some-other-resource",
-											Type:         "some-other-type",
-											Version:      db.Version{"some": "other-version"},
-											PipelineName: "some-pipeline",
+											Resource:   "some-other-resource",
+											Type:       "some-other-type",
+											Version:    db.Version{"some": "other-version"},
+											PipelineID: 42,
 										},
 									},
 								}, true, nil)

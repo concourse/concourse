@@ -19,6 +19,7 @@ var _ = Describe("Resource History", func() {
 	var pipelineDBFactory db.PipelineDBFactory
 	var sqlDB *db.SQLDB
 	var pipelineDB db.PipelineDB
+	var savedPipeline db.SavedPipeline
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -52,7 +53,7 @@ var _ = Describe("Resource History", func() {
 			},
 		}
 
-		_, _, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", config, 0, db.PipelineUnpaused)
+		savedPipeline, _, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "a-pipeline-name")
@@ -89,11 +90,11 @@ var _ = Describe("Resource History", func() {
 						ID:      i + 1,
 						Enabled: true,
 						VersionedResource: db.VersionedResource{
-							Resource:     resource.Name,
-							Type:         resource.Type,
-							Version:      db.Version(version),
-							Metadata:     nil,
-							PipelineName: pipelineDB.GetPipelineName(),
+							Resource:   resource.Name,
+							Type:       resource.Type,
+							Version:    db.Version(version),
+							Metadata:   nil,
+							PipelineID: savedPipeline.ID,
 						},
 						CheckOrder: i + 1,
 					})
@@ -240,7 +241,7 @@ var _ = Describe("Resource History", func() {
 							Value: "value",
 						},
 					},
-					PipelineName: "some-pipeline",
+					PipelineID: savedPipeline.ID,
 				},
 				FirstOccurrence: true,
 			})
@@ -260,7 +261,7 @@ var _ = Describe("Resource History", func() {
 							Value: "value",
 						},
 					},
-					PipelineName: "some-pipeline",
+					PipelineID: savedPipeline.ID,
 				},
 				FirstOccurrence: true,
 			})
@@ -309,7 +310,7 @@ var _ = Describe("Resource History", func() {
 						Value: "value",
 					},
 				},
-				PipelineName: "some-pipeline",
+				PipelineID: savedPipeline.ID,
 			}, false)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -325,7 +326,7 @@ var _ = Describe("Resource History", func() {
 						Value: "value",
 					},
 				},
-				PipelineName: "some-pipeline",
+				PipelineID: savedPipeline.ID,
 			}, false)
 			Expect(err).NotTo(HaveOccurred())
 

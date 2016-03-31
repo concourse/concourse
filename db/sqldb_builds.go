@@ -167,7 +167,7 @@ func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 	outputs := []BuildOutput{}
 
 	rows, err := db.conn.Query(`
-		SELECT i.name, r.name, v.type, v.version, v.metadata,
+		SELECT i.name, r.name, v.type, v.version, v.metadata, r.pipeline_id,
 		NOT EXISTS (
 			SELECT 1
 			FROM build_inputs ci, builds cb
@@ -195,18 +195,13 @@ func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 
 	defer rows.Close()
 
-	pipelineName, err := db.getPipelineName(buildID)
-	if err != sql.ErrNoRows && err != nil {
-		return nil, nil, err
-	}
-
 	for rows.Next() {
 		var inputName string
 		var vr VersionedResource
 		var firstOccurrence bool
 
 		var version, metadata string
-		err := rows.Scan(&inputName, &vr.Resource, &vr.Type, &version, &metadata, &firstOccurrence)
+		err := rows.Scan(&inputName, &vr.Resource, &vr.Type, &version, &metadata, &vr.PipelineID, &firstOccurrence)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -221,8 +216,6 @@ func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 			return nil, nil, err
 		}
 
-		vr.PipelineName = pipelineName
-
 		inputs = append(inputs, BuildInput{
 			Name:              inputName,
 			VersionedResource: vr,
@@ -231,7 +224,7 @@ func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 	}
 
 	rows, err = db.conn.Query(`
-		SELECT r.name, v.type, v.version, v.metadata
+		SELECT r.name, v.type, v.version, v.metadata, r.pipeline_id
 		FROM versioned_resources v, build_outputs o, builds b, resources r
 		WHERE b.id = $1
 		AND o.build_id = b.id
@@ -249,7 +242,7 @@ func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 		var vr VersionedResource
 
 		var version, metadata string
-		err := rows.Scan(&vr.Resource, &vr.Type, &version, &metadata)
+		err := rows.Scan(&vr.Resource, &vr.Type, &version, &metadata, &vr.PipelineID)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -263,8 +256,6 @@ func (db *SQLDB) GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, er
 		if err != nil {
 			return nil, nil, err
 		}
-
-		vr.PipelineName = pipelineName
 
 		outputs = append(outputs, BuildOutput{
 			VersionedResource: vr,
@@ -289,7 +280,7 @@ func (db *SQLDB) getBuildVersionedResources(buildID int, resourceRequest string)
 		var versionedResource SavedVersionedResource
 		var versionJSON []byte
 		var metadataJSON []byte
-		err = rows.Scan(&versionedResource.ID, &versionedResource.Enabled, &versionJSON, &metadataJSON, &versionedResource.Type, &versionedResource.Resource, &versionedResource.PipelineName, &versionedResource.ModifiedTime)
+		err = rows.Scan(&versionedResource.ID, &versionedResource.Enabled, &versionJSON, &metadataJSON, &versionedResource.Type, &versionedResource.Resource, &versionedResource.PipelineID, &versionedResource.ModifiedTime)
 
 		err = json.Unmarshal(versionJSON, &versionedResource.Version)
 		if err != nil {
@@ -316,11 +307,10 @@ func (db *SQLDB) GetBuildVersionedResources(buildID int) (SavedVersionedResource
 			vr.metadata,
 			vr.type,
 			r.name,
-			p.name,
+			r.pipeline_id,
 			vr.modified_time
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
 		INNER JOIN build_inputs bi ON bi.build_id = b.id
 		INNER JOIN versioned_resources vr ON bi.versioned_resource_id = vr.id
 		INNER JOIN resources r ON vr.resource_id = r.id
@@ -334,11 +324,10 @@ func (db *SQLDB) GetBuildVersionedResources(buildID int) (SavedVersionedResource
 			vr.metadata,
 			vr.type,
 			r.name,
-			p.name,
+			r.pipeline_id,
 			vr.modified_time
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
 		INNER JOIN build_outputs bo ON bo.build_id = b.id
 		INNER JOIN versioned_resources vr ON bo.versioned_resource_id = vr.id
 		INNER JOIN resources r ON vr.resource_id = r.id
@@ -522,9 +511,9 @@ func (db *SQLDB) ErrorBuild(buildID int, cause error) error {
 	return db.FinishBuild(buildID, StatusErrored)
 }
 
-func (db *SQLDB) SaveBuildInput(teamName string, buildID int, input BuildInput) (SavedVersionedResource, error) {
+func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error) {
 	pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus, db)
-	pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(teamName, input.VersionedResource.PipelineName)
+	pipelineDB, err := pipelineDBFactory.BuildWithID(input.VersionedResource.PipelineID)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -532,9 +521,9 @@ func (db *SQLDB) SaveBuildInput(teamName string, buildID int, input BuildInput) 
 	return pipelineDB.SaveBuildInput(buildID, input)
 }
 
-func (db *SQLDB) SaveBuildOutput(teamName string, buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
+func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
 	pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus, db)
-	pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(teamName, vr.PipelineName)
+	pipelineDB, err := pipelineDBFactory.BuildWithID(vr.PipelineID)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}

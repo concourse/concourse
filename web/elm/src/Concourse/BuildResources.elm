@@ -18,7 +18,6 @@ type alias BuildInput =
   , type' : String
   , version : Version
   , metadata : Metadata
-  , pipelineName : String
   , firstOccurrence : Bool
   }
 
@@ -48,13 +47,12 @@ decode =
 
 decodeInput : Json.Decode.Decoder BuildInput
 decodeInput =
-  Json.Decode.object7 BuildInput
+  Json.Decode.object6 BuildInput
     ("name" := Json.Decode.string)
     ("resource" := Json.Decode.string)
     ("type" := Json.Decode.string)
     ("version" := Concourse.Version.decode)
     ("metadata" := Concourse.Metadata.decode)
-    ("pipeline_name" := Json.Decode.string)
     ("first_occurrence" := Json.Decode.bool)
 
 decodeOutput : Json.Decode.Decoder BuildOutput

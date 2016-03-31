@@ -69,23 +69,8 @@ var _ = Describe("Job Builds", func() {
 		Context("with a job in the configuration", func() {
 			var build db.Build
 			var team db.SavedTeam
-			var buildInput = db.BuildInput{
-				Name: "build-input-1",
-				VersionedResource: db.VersionedResource{
-					Resource:     "my-resource",
-					PipelineName: atc.DefaultPipelineName,
-					Version: db.Version{
-						"ref": "thing",
-					},
-				},
-			}
-			var buildOutput = db.VersionedResource{
-				Resource:     "some-output",
-				PipelineName: atc.DefaultPipelineName,
-				Version: db.Version{
-					"thing": "output-version",
-				},
-			}
+			var buildInput db.BuildInput
+			var buildOutput db.VersionedResource
 			var teamName = atc.DefaultTeamName
 
 			BeforeEach(func() {
@@ -94,7 +79,7 @@ var _ = Describe("Job Builds", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				// job build data
-				_, _, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
+				savedPipeline, _, err := sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -104,6 +89,24 @@ var _ = Describe("Job Builds", func() {
 					},
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
+
+				buildInput = db.BuildInput{
+					Name: "build-input-1",
+					VersionedResource: db.VersionedResource{
+						Resource:   "my-resource",
+						PipelineID: savedPipeline.ID,
+						Version: db.Version{
+							"ref": "thing",
+						},
+					},
+				}
+				buildOutput = db.VersionedResource{
+					Resource:   "some-output",
+					PipelineID: savedPipeline.ID,
+					Version: db.Version{
+						"thing": "output-version",
+					},
+				}
 
 				pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, atc.DefaultPipelineName)
 				Expect(err).NotTo(HaveOccurred())
@@ -124,10 +127,10 @@ var _ = Describe("Job Builds", func() {
 
 				Expect(sqlDB.FinishBuild(build.ID, db.StatusSucceeded)).To(Succeed())
 
-				_, err = sqlDB.SaveBuildInput(teamName, build.ID, buildInput)
+				_, err = sqlDB.SaveBuildInput(build.ID, buildInput)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = sqlDB.SaveBuildOutput(teamName, build.ID, buildOutput, true)
+				_, err = sqlDB.SaveBuildOutput(build.ID, buildOutput, true)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

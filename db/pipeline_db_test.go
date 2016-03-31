@@ -193,9 +193,11 @@ var _ = Describe("PipelineDB", func() {
 	}
 
 	var (
-		team            db.SavedTeam
-		pipelineDB      db.PipelineDB
-		otherPipelineDB db.PipelineDB
+		team               db.SavedTeam
+		pipelineDB         db.PipelineDB
+		otherPipelineDB    db.PipelineDB
+		savedPipeline      db.SavedPipeline
+		otherSavedPipeline db.SavedPipeline
 	)
 
 	BeforeEach(func() {
@@ -203,12 +205,12 @@ var _ = Describe("PipelineDB", func() {
 		team, err = sqlDB.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
+		savedPipeline, _, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 		savedPipeline, err := sqlDB.GetPipelineByTeamNameAndName(team.Name, "a-pipeline-name")
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = sqlDB.SaveConfig(team.Name, "other-pipeline-name", otherPipelineConfig, 0, db.PipelineUnpaused)
+		otherSavedPipeline, _, err = sqlDB.SaveConfig(team.Name, "other-pipeline-name", otherPipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 		otherSavedPipeline, err := sqlDB.GetPipelineByTeamNameAndName(team.Name, "other-pipeline-name")
 		Expect(err).NotTo(HaveOccurred())
@@ -229,7 +231,7 @@ var _ = Describe("PipelineDB", func() {
 	Describe("destroying a pipeline", func() {
 		It("can be deleted", func() {
 			// populate pipelines table
-			_, _, err := sqlDB.SaveConfig(team.Name, "a-pipeline-that-will-be-deleted", pipelineConfig, 0, db.PipelineUnpaused)
+			pipelineThatWillBeDeleted, _, err := sqlDB.SaveConfig(team.Name, "a-pipeline-that-will-be-deleted", pipelineConfig, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			fetchedPipeline, err := sqlDB.GetPipelineByTeamNameAndName(team.Name, "a-pipeline-that-will-be-deleted")
@@ -266,8 +268,8 @@ var _ = Describe("PipelineDB", func() {
 			_, err = fetchedPipelineDB.SaveBuildInput(build.ID, db.BuildInput{
 				Name: "build-input",
 				VersionedResource: db.VersionedResource{
-					Resource:     "some-resource",
-					PipelineName: fetchedPipeline.Name,
+					Resource:   "some-resource",
+					PipelineID: savedPipeline.ID,
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -278,8 +280,8 @@ var _ = Describe("PipelineDB", func() {
 			_, err = fetchedPipelineDB.SaveBuildInput(oneOffBuild.ID, db.BuildInput{
 				Name: "one-off-build-input",
 				VersionedResource: db.VersionedResource{
-					Resource:     "some-resource",
-					PipelineName: "a-pipeline-that-will-be-deleted",
+					Resource:   "some-resource",
+					PipelineID: pipelineThatWillBeDeleted.ID,
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -287,14 +289,14 @@ var _ = Describe("PipelineDB", func() {
 			// populate build_outputs table
 
 			_, err = fetchedPipelineDB.SaveBuildOutput(build.ID, db.VersionedResource{
-				Resource:     "some-resource",
-				PipelineName: "a-pipeline-that-will-be-deleted",
+				Resource:   "some-resource",
+				PipelineID: pipelineThatWillBeDeleted.ID,
 			}, false)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = fetchedPipelineDB.SaveBuildOutput(oneOffBuild.ID, db.VersionedResource{
-				Resource:     "some-resource",
-				PipelineName: "a-pipeline-that-will-be-deleted",
+				Resource:   "some-resource",
+				PipelineID: pipelineThatWillBeDeleted.ID,
 			}, false)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -1124,14 +1126,14 @@ var _ = Describe("PipelineDB", func() {
 				Expect(someInput.VersionedResource.Type).To(Equal(savedVR1.VersionedResource.Type))
 				Expect(someInput.VersionedResource.Version).To(Equal(savedVR1.VersionedResource.Version))
 				Expect(someInput.VersionedResource.Metadata).To(Equal(savedVR1.VersionedResource.Metadata))
-				Expect(someInput.VersionedResource.PipelineName).To(Equal(savedVR1.VersionedResource.PipelineName))
+				Expect(someInput.VersionedResource.PipelineID).To(Equal(savedVR1.VersionedResource.PipelineID))
 
 				Expect(someOtherInput.Name).To(Equal("some-other-input-name"))
 				Expect(someOtherInput.VersionedResource.Resource).To(Equal(otherSavedVR2.VersionedResource.Resource))
 				Expect(someOtherInput.VersionedResource.Type).To(Equal(savedVR2.VersionedResource.Type))
 				Expect(someOtherInput.VersionedResource.Version).To(Equal(savedVR2.VersionedResource.Version))
 				Expect(someOtherInput.VersionedResource.Metadata).To(Equal(savedVR2.VersionedResource.Metadata))
-				Expect(someOtherInput.VersionedResource.PipelineName).To(Equal(savedVR2.VersionedResource.PipelineName))
+				Expect(someOtherInput.VersionedResource.PipelineID).To(Equal(savedVR2.VersionedResource.PipelineID))
 			})
 
 			It("doesn't change the check_order when saving a new build input", func() {
@@ -1284,7 +1286,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(someInput.VersionedResource.Type).To(Equal(savedVR2.VersionedResource.Type))
 				Expect(someInput.VersionedResource.Version).To(Equal(savedVR2.VersionedResource.Version))
 				Expect(someInput.VersionedResource.Metadata).To(Equal(savedVR2.VersionedResource.Metadata))
-				Expect(someInput.VersionedResource.PipelineName).To(Equal(savedVR2.VersionedResource.PipelineName))
+				Expect(someInput.VersionedResource.PipelineID).To(Equal(savedVR2.VersionedResource.PipelineID))
 
 				err = pipelineDB.DisableVersionedResource(savedVR2.ID)
 				Expect(err).NotTo(HaveOccurred())
@@ -1299,7 +1301,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(someInput.VersionedResource.Type).To(Equal(savedVR1.VersionedResource.Type))
 				Expect(someInput.VersionedResource.Version).To(Equal(savedVR1.VersionedResource.Version))
 				Expect(someInput.VersionedResource.Metadata).To(Equal(savedVR1.VersionedResource.Metadata))
-				Expect(someInput.VersionedResource.PipelineName).To(Equal(savedVR1.VersionedResource.PipelineName))
+				Expect(someInput.VersionedResource.PipelineID).To(Equal(savedVR1.VersionedResource.PipelineID))
 
 				err = pipelineDB.DisableVersionedResource(savedVR1.ID)
 				Expect(err).NotTo(HaveOccurred())
@@ -1321,7 +1323,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(someInput.VersionedResource.Type).To(Equal(savedVR1.VersionedResource.Type))
 				Expect(someInput.VersionedResource.Version).To(Equal(savedVR1.VersionedResource.Version))
 				Expect(someInput.VersionedResource.Metadata).To(Equal(savedVR1.VersionedResource.Metadata))
-				Expect(someInput.VersionedResource.PipelineName).To(Equal(savedVR1.VersionedResource.PipelineName))
+				Expect(someInput.VersionedResource.PipelineID).To(Equal(savedVR1.VersionedResource.PipelineID))
 
 				err = pipelineDB.EnableVersionedResource(savedVR2.ID)
 				Expect(err).NotTo(HaveOccurred())
@@ -1336,7 +1338,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(someInput.VersionedResource.Type).To(Equal(savedVR2.VersionedResource.Type))
 				Expect(someInput.VersionedResource.Version).To(Equal(savedVR2.VersionedResource.Version))
 				Expect(someInput.VersionedResource.Metadata).To(Equal(savedVR2.VersionedResource.Metadata))
-				Expect(someInput.VersionedResource.PipelineName).To(Equal(savedVR2.VersionedResource.PipelineName))
+				Expect(someInput.VersionedResource.PipelineID).To(Equal(savedVR2.VersionedResource.PipelineID))
 			})
 		})
 
@@ -1873,18 +1875,18 @@ var _ = Describe("PipelineDB", func() {
 			}
 
 			vr1 := db.VersionedResource{
-				PipelineName: "a-pipeline-name",
-				Resource:     "some-resource",
-				Type:         "some-type",
-				Version:      db.Version{"ver": "1"},
-				Metadata:     buildMetadata,
+				PipelineID: savedPipeline.ID,
+				Resource:   "some-resource",
+				Type:       "some-type",
+				Version:    db.Version{"ver": "1"},
+				Metadata:   buildMetadata,
 			}
 
 			vr2 := db.VersionedResource{
-				PipelineName: "a-pipeline-name",
-				Resource:     "some-other-resource",
-				Type:         "some-type",
-				Version:      db.Version{"ver": "2"},
+				PipelineID: savedPipeline.ID,
+				Resource:   "some-other-resource",
+				Type:       "some-type",
+				Version:    db.Version{"ver": "2"},
 			}
 
 			input1 := db.BuildInput{
@@ -2020,10 +2022,10 @@ var _ = Describe("PipelineDB", func() {
 
 			It("removes old build inputs", func() {
 				vr3 := db.VersionedResource{
-					PipelineName: "a-pipeline-name",
-					Resource:     "some-really-other-resource",
-					Type:         "some-type",
-					Version:      db.Version{"ver": "3"},
+					PipelineID: savedPipeline.ID,
+					Resource:   "some-really-other-resource",
+					Type:       "some-type",
+					Version:    db.Version{"ver": "3"},
 				}
 				input3 := db.BuildInput{
 					Name:              "some-really-other-input",
@@ -2072,31 +2074,39 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		Describe("saving build inputs", func() {
-			buildMetadata := []db.MetadataField{
-				{
-					Name:  "meta1",
-					Value: "value1",
-				},
-				{
-					Name:  "meta2",
-					Value: "value2",
-				},
-			}
+			var (
+				buildMetadata []db.MetadataField
+				vr1           db.VersionedResource
+				vr2           db.VersionedResource
+			)
 
-			vr1 := db.VersionedResource{
-				PipelineName: "a-pipeline-name",
-				Resource:     "some-resource",
-				Type:         "some-type",
-				Version:      db.Version{"ver": "1"},
-				Metadata:     buildMetadata,
-			}
+			BeforeEach(func() {
+				buildMetadata = []db.MetadataField{
+					{
+						Name:  "meta1",
+						Value: "value1",
+					},
+					{
+						Name:  "meta2",
+						Value: "value2",
+					},
+				}
 
-			vr2 := db.VersionedResource{
-				PipelineName: "a-pipeline-name",
-				Resource:     "some-other-resource",
-				Type:         "some-type",
-				Version:      db.Version{"ver": "2"},
-			}
+				vr1 = db.VersionedResource{
+					PipelineID: savedPipeline.ID,
+					Resource:   "some-resource",
+					Type:       "some-type",
+					Version:    db.Version{"ver": "1"},
+					Metadata:   buildMetadata,
+				}
+
+				vr2 = db.VersionedResource{
+					PipelineID: savedPipeline.ID,
+					Resource:   "some-other-resource",
+					Type:       "some-type",
+					Version:    db.Version{"ver": "2"},
+				}
+			})
 
 			It("saves build's inputs and outputs as versioned resources", func() {
 				build, err := pipelineDB.CreateJobBuild("some-job")
@@ -2117,7 +2127,7 @@ var _ = Describe("PipelineDB", func() {
 					VersionedResource: vr2,
 				}
 
-				_, err = sqlDB.SaveBuildInput(team.Name, build.ID, input1)
+				_, err = sqlDB.SaveBuildInput(build.ID, input1)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, found, err := pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
@@ -2127,7 +2137,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 
-				_, err = sqlDB.SaveBuildInput(team.Name, build.ID, otherInput)
+				_, err = sqlDB.SaveBuildInput(build.ID, otherInput)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, found, err = pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
@@ -2137,7 +2147,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 
-				_, err = sqlDB.SaveBuildInput(team.Name, build.ID, input2)
+				_, err = sqlDB.SaveBuildInput(build.ID, input2)
 				Expect(err).NotTo(HaveOccurred())
 
 				foundBuild, found, err := pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
@@ -2162,13 +2172,13 @@ var _ = Describe("PipelineDB", func() {
 				duplicateBuild, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = sqlDB.SaveBuildInput(team.Name, duplicateBuild.ID, db.BuildInput{
+				_, err = sqlDB.SaveBuildInput(duplicateBuild.ID, db.BuildInput{
 					Name:              "other-build-input",
 					VersionedResource: vr1,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = sqlDB.SaveBuildInput(team.Name, duplicateBuild.ID, db.BuildInput{
+				_, err = sqlDB.SaveBuildInput(duplicateBuild.ID, db.BuildInput{
 					Name:              "other-build-other-input",
 					VersionedResource: vr2,
 				})
@@ -2184,13 +2194,13 @@ var _ = Describe("PipelineDB", func() {
 				newBuildInOtherJob, err := pipelineDB.CreateJobBuild("some-other-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = sqlDB.SaveBuildInput(team.Name, newBuildInOtherJob.ID, db.BuildInput{
+				_, err = sqlDB.SaveBuildInput(newBuildInOtherJob.ID, db.BuildInput{
 					Name:              "other-job-input",
 					VersionedResource: vr1,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = sqlDB.SaveBuildInput(team.Name, newBuildInOtherJob.ID, db.BuildInput{
+				_, err = sqlDB.SaveBuildInput(newBuildInOtherJob.ID, db.BuildInput{
 					Name:              "other-job-other-input",
 					VersionedResource: vr2,
 				})
@@ -2209,7 +2219,7 @@ var _ = Describe("PipelineDB", func() {
 				build, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = sqlDB.SaveBuildInput(team.Name, build.ID, db.BuildInput{
+				_, err = sqlDB.SaveBuildInput(build.ID, db.BuildInput{
 					Name:              "some-input",
 					VersionedResource: vr2,
 				})
@@ -2224,7 +2234,7 @@ var _ = Describe("PipelineDB", func() {
 				withMetadata := vr2
 				withMetadata.Metadata = buildMetadata
 
-				_, err = sqlDB.SaveBuildInput(team.Name, build.ID, db.BuildInput{
+				_, err = sqlDB.SaveBuildInput(build.ID, db.BuildInput{
 					Name:              "some-other-input",
 					VersionedResource: withMetadata,
 				})
@@ -2237,7 +2247,7 @@ var _ = Describe("PipelineDB", func() {
 					{Name: "some-other-input", VersionedResource: withMetadata, FirstOccurrence: true},
 				}))
 
-				_, err = sqlDB.SaveBuildInput(team.Name, build.ID, db.BuildInput{
+				_, err = sqlDB.SaveBuildInput(build.ID, db.BuildInput{
 					Name:              "some-input",
 					VersionedResource: withMetadata,
 				})
@@ -2262,7 +2272,7 @@ var _ = Describe("PipelineDB", func() {
 				withoutMetadata := vr2
 				withoutMetadata.Metadata = nil
 
-				savedVR, err := sqlDB.SaveBuildInput(team.Name, build.ID, db.BuildInput{
+				savedVR, err := sqlDB.SaveBuildInput(build.ID, db.BuildInput{
 					Name:              "some-input",
 					VersionedResource: withMetadata,
 				})
@@ -2275,7 +2285,7 @@ var _ = Describe("PipelineDB", func() {
 					{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
 				}))
 
-				savedVR, err = sqlDB.SaveBuildInput(team.Name, build.ID, db.BuildInput{
+				savedVR, err = sqlDB.SaveBuildInput(build.ID, db.BuildInput{
 					Name:              "some-other-input",
 					VersionedResource: withoutMetadata,
 				})
@@ -2293,48 +2303,55 @@ var _ = Describe("PipelineDB", func() {
 		})
 
 		Describe("saving inputs, implicit outputs, and explicit outputs", func() {
-			vr1 := db.VersionedResource{
-				PipelineName: "a-pipeline-name",
-				Resource:     "some-resource",
-				Type:         "some-type",
-				Version:      db.Version{"ver": "1"},
-			}
+			var (
+				vr1 db.VersionedResource
+				vr2 db.VersionedResource
+			)
 
-			vr2 := db.VersionedResource{
-				PipelineName: "a-pipeline-name",
-				Resource:     "some-other-resource",
-				Type:         "some-type",
-				Version:      db.Version{"ver": "2"},
-			}
+			BeforeEach(func() {
+				vr1 = db.VersionedResource{
+					PipelineID: savedPipeline.ID,
+					Resource:   "some-resource",
+					Type:       "some-type",
+					Version:    db.Version{"ver": "1"},
+				}
+
+				vr2 = db.VersionedResource{
+					PipelineID: savedPipeline.ID,
+					Resource:   "some-other-resource",
+					Type:       "some-type",
+					Version:    db.Version{"ver": "2"},
+				}
+			})
 
 			It("correctly distinguishes them", func() {
 				build, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
 				// save a normal 'get'
-				_, err = sqlDB.SaveBuildInput(team.Name, build.ID, db.BuildInput{
+				_, err = sqlDB.SaveBuildInput(build.ID, db.BuildInput{
 					Name:              "some-input",
 					VersionedResource: vr1,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
 				// save implicit output from 'get'
-				_, err = sqlDB.SaveBuildOutput(team.Name, build.ID, vr1, false)
+				_, err = sqlDB.SaveBuildOutput(build.ID, vr1, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				// save explicit output from 'put'
-				_, err = sqlDB.SaveBuildOutput(team.Name, build.ID, vr2, true)
+				_, err = sqlDB.SaveBuildOutput(build.ID, vr2, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				// save the dependent get
-				_, err = sqlDB.SaveBuildInput(team.Name, build.ID, db.BuildInput{
+				_, err = sqlDB.SaveBuildInput(build.ID, db.BuildInput{
 					Name:              "some-dependent-input",
 					VersionedResource: vr2,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
 				// save the dependent 'get's implicit output
-				_, err = sqlDB.SaveBuildOutput(team.Name, build.ID, vr2, false)
+				_, err = sqlDB.SaveBuildOutput(build.ID, vr2, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				inputs, outputs, err := sqlDB.GetBuildResources(build.ID)
@@ -2976,14 +2993,14 @@ var _ = Describe("PipelineDB", func() {
 				Expect(someInput.VersionedResource.Type).To(Equal(savedVR1.VersionedResource.Type))
 				Expect(someInput.VersionedResource.Version).To(Equal(savedVR1.VersionedResource.Version))
 				Expect(someInput.VersionedResource.Metadata).To(Equal(savedVR1.VersionedResource.Metadata))
-				Expect(someInput.VersionedResource.PipelineName).To(Equal(savedVR1.VersionedResource.PipelineName))
+				Expect(someInput.VersionedResource.PipelineID).To(Equal(savedVR1.VersionedResource.PipelineID))
 
 				Expect(someOtherInput.Name).To(Equal("some-other-input-name"))
 				Expect(someOtherInput.VersionedResource.Resource).To(Equal(otherSavedVR3.VersionedResource.Resource))
 				Expect(someOtherInput.VersionedResource.Type).To(Equal(savedVR3.VersionedResource.Type))
 				Expect(someOtherInput.VersionedResource.Version).To(Equal(savedVR3.VersionedResource.Version))
 				Expect(someOtherInput.VersionedResource.Metadata).To(Equal(savedVR3.VersionedResource.Metadata))
-				Expect(someOtherInput.VersionedResource.PipelineName).To(Equal(savedVR3.VersionedResource.PipelineName))
+				Expect(someOtherInput.VersionedResource.PipelineID).To(Equal(savedVR3.VersionedResource.PipelineID))
 			})
 
 			It("ensures that versions from jobs mentioned in two input's 'passed' sections came from the same successful builds", func() {

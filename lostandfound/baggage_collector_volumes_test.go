@@ -105,10 +105,10 @@ var _ = Describe("Volumes are reaped", func() {
 				Enabled:      true,
 				ModifiedTime: time.Now(),
 				VersionedResource: db.VersionedResource{
-					Resource:     "our-resource",
-					Type:         "git",
-					Version:      db.Version{"some": "newest-version"},
-					PipelineName: "some-pipeline",
+					Resource:   "our-resource",
+					Type:       "git",
+					Version:    db.Version{"some": "newest-version"},
+					PipelineID: fakeSavedPipeline.ID,
 				},
 			}
 

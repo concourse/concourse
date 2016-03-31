@@ -23,12 +23,12 @@ func SavedVersionedResource(svr db.SavedVersionedResource) atc.VersionedResource
 	}
 
 	return atc.VersionedResource{
-		ID:           svr.ID,
-		PipelineName: svr.PipelineName,
-		Resource:     svr.Resource,
-		Enabled:      svr.Enabled,
-		Type:         svr.Type,
-		Version:      atc.Version(svr.Version),
-		Metadata:     metadata,
+		ID:         svr.ID,
+		PipelineID: svr.PipelineID,
+		Resource:   svr.Resource,
+		Enabled:    svr.Enabled,
+		Type:       svr.Type,
+		Version:    atc.Version(svr.Version),
+		Metadata:   metadata,
 	}
 }

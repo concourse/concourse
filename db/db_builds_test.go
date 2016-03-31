@@ -98,7 +98,7 @@ var _ = Describe("Keeping track of builds", func() {
 						Value: "data2",
 					},
 				},
-				PipelineName: "some-pipeline",
+				PipelineID: pipeline.ID,
 			},
 		})
 		Expect(err).ToNot(HaveOccurred())
@@ -130,7 +130,7 @@ var _ = Describe("Keeping track of builds", func() {
 					Value: "data2",
 				},
 			},
-			PipelineName: "some-pipeline",
+			PipelineID: pipeline.ID,
 		}, true)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -150,7 +150,7 @@ var _ = Describe("Keeping track of builds", func() {
 					Value: "data2",
 				},
 			},
-			PipelineName: "some-pipeline",
+			PipelineID: pipeline.ID,
 		}, false)
 		Expect(err).ToNot(HaveOccurred())
 

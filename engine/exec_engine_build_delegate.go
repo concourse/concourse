@@ -205,8 +205,8 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 	var version atc.Version
 	var metadata []atc.MetadataField
 
-	if info != nil && plan.Pipeline != "" {
-		savedVR, err := delegate.db.SaveBuildInput(atc.DefaultTeamName, delegate.buildID, db.BuildInput{
+	if info != nil && plan.PipelineID != 0 {
+		savedVR, err := delegate.db.SaveBuildInput(delegate.buildID, db.BuildInput{
 			Name:              plan.Name,
 			VersionedResource: vrFromInput(plan, *info),
 		})
@@ -263,8 +263,8 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 		logger.Error("failed-to-save-output-event", err)
 	}
 
-	if info != nil && plan.Pipeline != "" {
-		_, err = delegate.db.SaveBuildOutput(atc.DefaultTeamName, delegate.buildID, vrFromOutput(plan.Pipeline, ev), true)
+	if info != nil && plan.PipelineID != 0 {
+		_, err = delegate.db.SaveBuildOutput(delegate.buildID, vrFromOutput(plan.PipelineID, ev), true)
 		if err != nil {
 			logger.Error("failed-to-save-output", err)
 		}
@@ -272,7 +272,7 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 }
 
 func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPlan, info exec.VersionInfo) {
-	if plan.Pipeline == "" {
+	if plan.PipelineID == 0 {
 		return
 	}
 
@@ -284,12 +284,12 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPl
 		}
 	}
 
-	_, err := delegate.db.SaveBuildOutput(atc.DefaultTeamName, delegate.buildID, db.VersionedResource{
-		PipelineName: plan.Pipeline,
-		Resource:     plan.Resource,
-		Type:         plan.Type,
-		Version:      db.Version(info.Version),
-		Metadata:     metadata,
+	_, err := delegate.db.SaveBuildOutput(delegate.buildID, db.VersionedResource{
+		PipelineID: plan.PipelineID,
+		Resource:   plan.Resource,
+		Type:       plan.Type,
+		Version:    db.Version(info.Version),
+		Metadata:   metadata,
 	}, false)
 	if err != nil {
 		logger.Error("failed-to-save", err)
@@ -496,21 +496,21 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 
 func vrFromInput(plan atc.GetPlan, fetchedInfo exec.VersionInfo) db.VersionedResource {
 	return db.VersionedResource{
-		Resource:     plan.Resource,
-		PipelineName: plan.Pipeline,
-		Type:         plan.Type,
-		Version:      db.Version(fetchedInfo.Version),
-		Metadata:     atcMetadataToDBMetadata(fetchedInfo.Metadata),
+		Resource:   plan.Resource,
+		PipelineID: plan.PipelineID,
+		Type:       plan.Type,
+		Version:    db.Version(fetchedInfo.Version),
+		Metadata:   atcMetadataToDBMetadata(fetchedInfo.Metadata),
 	}
 }
 
-func vrFromOutput(pipelineName string, putted event.FinishPut) db.VersionedResource {
+func vrFromOutput(pipelineID int, putted event.FinishPut) db.VersionedResource {
 	return db.VersionedResource{
-		Resource:     putted.Plan.Resource,
-		PipelineName: pipelineName,
-		Type:         putted.Plan.Type,
-		Version:      db.Version(putted.CreatedVersion),
-		Metadata:     atcMetadataToDBMetadata(putted.CreatedMetadata),
+		Resource:   putted.Plan.Resource,
+		PipelineID: pipelineID,
+		Type:       putted.Plan.Type,
+		Version:    db.Version(putted.CreatedVersion),
+		Metadata:   atcMetadataToDBMetadata(putted.CreatedMetadata),
 	}
 }
 

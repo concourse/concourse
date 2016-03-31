@@ -298,18 +298,18 @@ var _ = Describe("Builds API", func() {
 										Value: "value2",
 									},
 								},
-								PipelineName: "mypipeline",
+								PipelineID: 42,
 							},
 							FirstOccurrence: true,
 						},
 						{
 							Name: "input2",
 							VersionedResource: db.VersionedResource{
-								Resource:     "myresource2",
-								Type:         "git",
-								Version:      db.Version{"version": "value2"},
-								Metadata:     []db.MetadataField{},
-								PipelineName: "mypipeline",
+								Resource:   "myresource2",
+								Type:       "git",
+								Version:    db.Version{"version": "value2"},
+								Metadata:   []db.MetadataField{},
+								PipelineID: 42,
 							},
 							FirstOccurrence: false,
 						},
@@ -351,7 +351,7 @@ var _ = Describe("Builds API", func() {
 											"value": "value2"
 										}
 									],
-									"pipeline_name": "mypipeline",
+									"pipeline_id": 42,
 									"first_occurrence": true
 								},
 								{
@@ -360,14 +360,14 @@ var _ = Describe("Builds API", func() {
 									"type": "git",
 									"version": {"version": "value2"},
 									"metadata": [],
-									"pipeline_name": "mypipeline",
+									"pipeline_id": 42,
 									"first_occurrence": false
 								}
 							],
 							"outputs": [
 								{
 									"id": 0,
-									"pipeline_name":"",
+									"pipeline_id": 0,
 									"type":"",
 									"metadata":null,
 									"resource": "myresource3",
@@ -376,7 +376,7 @@ var _ = Describe("Builds API", func() {
 								},
 								{
 									"id": 0,
-									"pipeline_name":"",
+									"pipeline_id": 0,
 									"type":"",
 									"metadata":null,
 									"resource": "myresource4",

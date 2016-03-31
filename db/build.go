@@ -74,11 +74,11 @@ func (r SavedResource) FailingToCheck() bool {
 }
 
 type VersionedResource struct {
-	Resource     string
-	Type         string
-	Version      Version
-	Metadata     []MetadataField
-	PipelineName string
+	Resource   string
+	Type       string
+	Version    Version
+	Metadata   []MetadataField
+	PipelineID int
 }
 
 type VersionedResources []VersionedResource

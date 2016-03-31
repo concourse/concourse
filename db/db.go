@@ -104,8 +104,8 @@ type DB interface {
 	FinishBuild(buildID int, status Status) error
 	ErrorBuild(buildID int, cause error) error
 
-	SaveBuildInput(teamName string, buildID int, input BuildInput) (SavedVersionedResource, error)
-	SaveBuildOutput(teamName string, buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
+	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
+	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 
 	GetBuildEvents(buildID int, from uint) (EventSource, error)
 	SaveBuildEvent(buildID int, event atc.Event) error
@@ -152,6 +152,7 @@ type Notifier interface {
 
 type PipelinesDB interface {
 	GetAllPipelines() ([]SavedPipeline, error)
+	GetPipelineByID(pipelineID int) (SavedPipeline, error)
 	GetPipelineByTeamNameAndName(teamName string, pipelineName string) (SavedPipeline, error)
 
 	OrderPipelines([]string) error

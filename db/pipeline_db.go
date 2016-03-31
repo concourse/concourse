@@ -472,7 +472,7 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 			return nil, Pagination{}, false, err
 		}
 
-		savedVersionedResource.PipelineName = pdb.GetPipelineName()
+		savedVersionedResource.PipelineID = pdb.GetPipelineID()
 
 		savedVersionedResources = append(savedVersionedResources, savedVersionedResource)
 	}

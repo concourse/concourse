@@ -53,13 +53,13 @@ var _ = Describe("BuildDelegate", func() {
 
 		BeforeEach(func() {
 			getPlan = atc.GetPlan{
-				Name:     "some-input",
-				Resource: "some-input-resource",
-				Pipeline: "some-pipeline",
-				Type:     "some-type",
-				Version:  atc.Version{"some": "version"},
-				Source:   atc.Source{"some": "source"},
-				Params:   atc.Params{"some": "params"},
+				Name:       "some-input",
+				Resource:   "some-input-resource",
+				PipelineID: 57,
+				Type:       "some-type",
+				Version:    atc.Version{"some": "version"},
+				Source:     atc.Source{"some": "source"},
+				Params:     atc.Params{"some": "params"},
 			}
 
 			inputDelegate = delegate.InputDelegate(logger, getPlan, originID)
@@ -153,9 +153,9 @@ var _ = Describe("BuildDelegate", func() {
 				})
 			})
 
-			Context("when the pipeline name is empty because of a one-off build", func() {
+			Context("when the pipeline ID is not set because of a one-off build", func() {
 				BeforeEach(func() {
-					getPlan.Pipeline = ""
+					getPlan.PipelineID = 0
 
 					inputDelegate = delegate.InputDelegate(logger, getPlan, originID)
 				})
@@ -241,11 +241,11 @@ var _ = Describe("BuildDelegate", func() {
 						fakeDB.SaveBuildInputReturns(db.SavedVersionedResource{
 							ID: 42,
 							VersionedResource: db.VersionedResource{
-								PipelineName: "some-pipeline",
-								Resource:     "some-input-resource",
-								Type:         "some-type",
-								Version:      db.Version{"result": "version"},
-								Metadata:     []db.MetadataField{{"saved", "metadata"}},
+								PipelineID: 57,
+								Resource:   "some-input-resource",
+								Type:       "some-type",
+								Version:    db.Version{"result": "version"},
+								Metadata:   []db.MetadataField{{"saved", "metadata"}},
 							},
 						}, nil)
 					})
@@ -257,17 +257,16 @@ var _ = Describe("BuildDelegate", func() {
 					It("saves the build's input", func() {
 						Expect(fakeDB.SaveBuildInputCallCount()).To(Equal(1))
 
-						teamName, buildID, savedInput := fakeDB.SaveBuildInputArgsForCall(0)
-						Expect(teamName).To(Equal(atc.DefaultTeamName))
+						buildID, savedInput := fakeDB.SaveBuildInputArgsForCall(0)
 						Expect(buildID).To(Equal(42))
 						Expect(savedInput).To(Equal(db.BuildInput{
 							Name: "some-input",
 							VersionedResource: db.VersionedResource{
-								PipelineName: "some-pipeline",
-								Resource:     "some-input-resource",
-								Type:         "some-type",
-								Version:      db.Version{"result": "version"},
-								Metadata:     []db.MetadataField{{"result", "metadata"}},
+								PipelineID: 57,
+								Resource:   "some-input-resource",
+								Type:       "some-type",
+								Version:    db.Version{"result": "version"},
+								Metadata:   []db.MetadataField{{"result", "metadata"}},
 							},
 						}))
 					})
@@ -312,15 +311,14 @@ var _ = Describe("BuildDelegate", func() {
 
 									Expect(fakeDB.SaveBuildOutputCallCount()).To(Equal(1))
 
-									teamName, buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
-									Expect(teamName).To(Equal(atc.DefaultTeamName))
+									buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
 									Expect(buildID).To(Equal(42))
 									Expect(savedOutput).To(Equal(db.VersionedResource{
-										PipelineName: "some-pipeline",
-										Resource:     "some-input-resource",
-										Type:         "some-type",
-										Version:      db.Version{"result": "version"},
-										Metadata:     []db.MetadataField{{"result", "metadata"}},
+										PipelineID: 57,
+										Resource:   "some-input-resource",
+										Type:       "some-type",
+										Version:    db.Version{"result": "version"},
+										Metadata:   []db.MetadataField{{"result", "metadata"}},
 									}))
 
 									Expect(explicit).To(BeFalse())
@@ -353,11 +351,11 @@ var _ = Describe("BuildDelegate", func() {
 
 						BeforeEach(func() {
 							putPlan = atc.PutPlan{
-								Pipeline: "some-pipeline",
-								Resource: "some-input-resource",
-								Type:     "some-type",
-								Source:   atc.Source{"some": "source"},
-								Params:   atc.Params{"some": "output-params"},
+								PipelineID: 57,
+								Resource:   "some-input-resource",
+								Type:       "some-type",
+								Source:     atc.Source{"some": "source"},
+								Params:     atc.Params{"some": "output-params"},
 							}
 
 							outputDelegate = delegate.OutputDelegate(logger, putPlan, originID)
@@ -386,15 +384,14 @@ var _ = Describe("BuildDelegate", func() {
 
 								Expect(fakeDB.SaveBuildOutputCallCount()).To(Equal(1))
 
-								teamName, buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
-								Expect(teamName).To(Equal(atc.DefaultTeamName))
+								buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
 								Expect(buildID).To(Equal(42))
 								Expect(savedOutput).To(Equal(db.VersionedResource{
-									PipelineName: "some-pipeline",
-									Resource:     "some-input-resource",
-									Type:         "some-type",
-									Version:      db.Version{"explicit": "version"},
-									Metadata:     []db.MetadataField{{"explicit", "metadata"}},
+									PipelineID: 57,
+									Resource:   "some-input-resource",
+									Type:       "some-type",
+									Version:    db.Version{"explicit": "version"},
+									Metadata:   []db.MetadataField{{"explicit", "metadata"}},
 								}))
 
 								Expect(explicit).To(BeTrue())
@@ -402,7 +399,7 @@ var _ = Describe("BuildDelegate", func() {
 
 							Context("when the pipeline name is empty because of a one-off build", func() {
 								BeforeEach(func() {
-									putPlan.Pipeline = ""
+									putPlan.PipelineID = 0
 
 									outputDelegate = delegate.OutputDelegate(logger, putPlan, originID)
 								})
@@ -817,12 +814,12 @@ var _ = Describe("BuildDelegate", func() {
 
 		BeforeEach(func() {
 			putPlan = atc.PutPlan{
-				Name:     "some-output-name",
-				Resource: "some-output-resource",
-				Pipeline: "some-other-pipeline",
-				Type:     "some-type",
-				Source:   atc.Source{"some": "source"},
-				Params:   atc.Params{"some": "params"},
+				Name:       "some-output-name",
+				Resource:   "some-output-resource",
+				PipelineID: 86,
+				Type:       "some-type",
+				Source:     atc.Source{"some": "source"},
+				Params:     atc.Params{"some": "params"},
 			}
 
 			outputDelegate = delegate.OutputDelegate(logger, putPlan, originID)
@@ -895,15 +892,14 @@ var _ = Describe("BuildDelegate", func() {
 				It("saves the build's output", func() {
 					Expect(fakeDB.SaveBuildOutputCallCount()).To(Equal(1))
 
-					teamName, buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
-					Expect(teamName).To(Equal(atc.DefaultTeamName))
+					buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
 					Expect(buildID).To(Equal(42))
 					Expect(savedOutput).To(Equal(db.VersionedResource{
-						PipelineName: "some-other-pipeline",
-						Resource:     "some-output-resource",
-						Type:         "some-type",
-						Version:      db.Version{"result": "version"},
-						Metadata:     []db.MetadataField{{"result", "metadata"}},
+						PipelineID: 86,
+						Resource:   "some-output-resource",
+						Type:       "some-type",
+						Version:    db.Version{"result": "version"},
+						Metadata:   []db.MetadataField{{"result", "metadata"}},
 					}))
 
 					Expect(explicit).To(BeTrue())
@@ -939,15 +935,14 @@ var _ = Describe("BuildDelegate", func() {
 				It("saves the build's output", func() {
 					Expect(fakeDB.SaveBuildOutputCallCount()).To(Equal(1))
 
-					teamName, buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
-					Expect(teamName).To(Equal(atc.DefaultTeamName))
+					buildID, savedOutput, explicit := fakeDB.SaveBuildOutputArgsForCall(0)
 					Expect(buildID).To(Equal(42))
 					Expect(savedOutput).To(Equal(db.VersionedResource{
-						PipelineName: "some-other-pipeline",
-						Resource:     "some-output-resource",
-						Type:         "some-type",
-						Version:      db.Version{"result": "version"},
-						Metadata:     []db.MetadataField{{"result", "metadata"}},
+						PipelineID: 86,
+						Resource:   "some-output-resource",
+						Type:       "some-type",
+						Version:    db.Version{"result": "version"},
+						Metadata:   []db.MetadataField{{"result", "metadata"}},
 					}))
 
 					Expect(explicit).To(BeTrue())

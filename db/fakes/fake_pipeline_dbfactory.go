@@ -16,6 +16,15 @@ type FakePipelineDBFactory struct {
 	buildReturns struct {
 		result1 db.PipelineDB
 	}
+	BuildWithIDStub        func(pipelineID int) (db.PipelineDB, error)
+	buildWithIDMutex       sync.RWMutex
+	buildWithIDArgsForCall []struct {
+		pipelineID int
+	}
+	buildWithIDReturns struct {
+		result1 db.PipelineDB
+		result2 error
+	}
 	BuildWithTeamNameAndNameStub        func(teamName, pipelineName string) (db.PipelineDB, error)
 	buildWithTeamNameAndNameMutex       sync.RWMutex
 	buildWithTeamNameAndNameArgsForCall []struct {
@@ -66,6 +75,39 @@ func (fake *FakePipelineDBFactory) BuildReturns(result1 db.PipelineDB) {
 	fake.buildReturns = struct {
 		result1 db.PipelineDB
 	}{result1}
+}
+
+func (fake *FakePipelineDBFactory) BuildWithID(pipelineID int) (db.PipelineDB, error) {
+	fake.buildWithIDMutex.Lock()
+	fake.buildWithIDArgsForCall = append(fake.buildWithIDArgsForCall, struct {
+		pipelineID int
+	}{pipelineID})
+	fake.buildWithIDMutex.Unlock()
+	if fake.BuildWithIDStub != nil {
+		return fake.BuildWithIDStub(pipelineID)
+	} else {
+		return fake.buildWithIDReturns.result1, fake.buildWithIDReturns.result2
+	}
+}
+
+func (fake *FakePipelineDBFactory) BuildWithIDCallCount() int {
+	fake.buildWithIDMutex.RLock()
+	defer fake.buildWithIDMutex.RUnlock()
+	return len(fake.buildWithIDArgsForCall)
+}
+
+func (fake *FakePipelineDBFactory) BuildWithIDArgsForCall(i int) int {
+	fake.buildWithIDMutex.RLock()
+	defer fake.buildWithIDMutex.RUnlock()
+	return fake.buildWithIDArgsForCall[i].pipelineID
+}
+
+func (fake *FakePipelineDBFactory) BuildWithIDReturns(result1 db.PipelineDB, result2 error) {
+	fake.BuildWithIDStub = nil
+	fake.buildWithIDReturns = struct {
+		result1 db.PipelineDB
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakePipelineDBFactory) BuildWithTeamNameAndName(teamName string, pipelineName string) (db.PipelineDB, error) {
