@@ -530,11 +530,11 @@ func (pdb *pipelineDB) getResource(tx Tx, name string) (SavedResource, error) {
 		return SavedResource{}, err
 	}
 
+	resource.PipelineName = pdb.GetPipelineName()
+
 	if checkErr.Valid {
 		resource.CheckError = errors.New(checkErr.String)
 	}
-
-	resource.PipelineName = pdb.Name
 
 	return resource, nil
 }
@@ -563,8 +563,6 @@ func (pdb *pipelineDB) GetResourceType(name string) (SavedResourceType, bool, er
 			}
 		}
 	}
-
-	savedResourceType.PipelineName = pdb.Name
 
 	return savedResourceType, true, nil
 }

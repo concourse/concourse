@@ -538,6 +538,18 @@ var _ = Describe("PipelineDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		It("returns correct resource", func() {
+			Expect(resource).To(Equal(db.SavedResource{
+				ID: resource.ID,
+				Resource: db.Resource{
+					Name: "some-resource",
+				},
+				Paused:       false,
+				PipelineName: "a-pipeline-name",
+				CheckError:   nil,
+			}))
+		})
+
 		Context("SaveResourceVersions", func() {
 			var (
 				originalVersionSlice []atc.Version

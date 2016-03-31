@@ -62,10 +62,9 @@ var _ = Describe("ResourceTypeScanner", func() {
 		}, 1, true, nil)
 
 		savedResourceType = db.SavedResourceType{
-			ID:           39,
-			Name:         "some-resource-type",
-			Type:         "docker-image",
-			PipelineName: "some-pipeline",
+			ID:   39,
+			Name: "some-resource-type",
+			Type: "docker-image",
 		}
 
 		fakeLease = &dbfakes.FakeLease{}

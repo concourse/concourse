@@ -62,11 +62,10 @@ type SavedResource struct {
 }
 
 type SavedResourceType struct {
-	ID           int
-	Name         string
-	Type         string
-	Version      Version
-	PipelineName string
+	ID      int
+	Name    string
+	Type    string
+	Version Version
 }
 
 func (r SavedResource) FailingToCheck() bool {

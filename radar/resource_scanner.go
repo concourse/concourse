@@ -199,7 +199,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceConfig atc.Res
 		logger,
 		resource.TrackerMetadata{
 			ResourceName: resourceConfig.Name,
-			PipelineName: scanner.db.GetPipelineName(), // TODO: fix this too
+			PipelineName: savedResource.PipelineName,
 			ExternalURL:  scanner.externalURL,
 		},
 		session,

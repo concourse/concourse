@@ -44,7 +44,6 @@ var _ = Describe("ResourceScanner", func() {
 		fakeClock = fakeclock.NewFakeClock(epoch)
 		interval = 1 * time.Minute
 
-		fakeRadarDB.GetPipelineNameReturns("some-pipeline")
 		fakeRadarDB.GetPipelineIDReturns(42)
 		scanner = NewResourceScanner(
 			fakeClock,
@@ -82,7 +81,8 @@ var _ = Describe("ResourceScanner", func() {
 			Resource: db.Resource{
 				Name: "some-resource",
 			},
-			Paused: false,
+			PipelineName: "some-pipeline",
+			Paused:       false,
 		}
 
 		fakeLease = &dbfakes.FakeLease{}
