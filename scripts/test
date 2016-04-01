@@ -15,7 +15,7 @@ if not_installed ginkgo; then
 fi
 
 bosh_lite_routes_setup() {
-  route get 10.244.0.0 | grep 192.168.50.4
+  (route get 10.244.0.0 || ip route get 10.244.0.0) | grep 192.168.50.4
 }
 
 if ! bosh_lite_routes_setup; then
