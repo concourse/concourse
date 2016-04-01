@@ -35,7 +35,7 @@ var _ = Describe("ATC Handler Build Resources", func() {
 									Value: "value2",
 								},
 							},
-							PipelineName:    "mypipeline",
+							PipelineID:      57,
 							FirstOccurrence: true,
 						},
 						{
@@ -44,7 +44,7 @@ var _ = Describe("ATC Handler Build Resources", func() {
 							Type:            "git",
 							Version:         atc.Version{"version": "value2"},
 							Metadata:        []atc.MetadataField{},
-							PipelineName:    "mypipeline",
+							PipelineID:      57,
 							FirstOccurrence: false,
 						},
 					},
