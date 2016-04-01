@@ -424,7 +424,10 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 }
 
 func (cmd *ATCCommand) constructDB(logger lager.Logger) (*db.SQLDB, db.PipelineDBFactory, error) {
-	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), "postgres", cmd.PostgresDataSource)
+	driverName := "connection-counting"
+	metric.SetupConnectionCountingDriver("postgres", cmd.PostgresDataSource, driverName)
+
+	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), driverName, cmd.PostgresDataSource)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
 	}

@@ -239,9 +239,19 @@ func (db *SQLDB) SaveConfig(
 		_, err = tx.Exec(fmt.Sprintf(`
 		CREATE TABLE pipeline_build_events_%[1]d ()
 		INHERITS (build_events);
+		`, savedPipeline.ID))
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
 
+		_, err = tx.Exec(fmt.Sprintf(`
 		CREATE INDEX pipeline_build_events_%[1]d_build_id ON pipeline_build_events_%[1]d (build_id);
+		`, savedPipeline.ID))
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
 
+		_, err = tx.Exec(fmt.Sprintf(`
 		CREATE UNIQUE INDEX pipeline_build_events_%[1]d_build_id_event_id ON pipeline_build_events_%[1]d (build_id, event_id);
 		`, savedPipeline.ID))
 		if err != nil {

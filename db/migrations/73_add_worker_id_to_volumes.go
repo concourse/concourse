@@ -34,6 +34,12 @@ func AddWorkerIDToVolumes(tx migration.LimitedTx) error {
 
 	_, err = tx.Exec(`
     ALTER TABLE volumes DROP CONSTRAINT volumes_worker_name_handle_key;
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
     ALTER TABLE volumes ADD UNIQUE (worker_id, handle);
 	`)
 	if err != nil {

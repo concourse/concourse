@@ -7,7 +7,6 @@ import (
 )
 
 func AddPipelineBuildEventsTables(tx migration.LimitedTx) error {
-
 	_, err := tx.Exec(`
 		ALTER TABLE build_events
 		DROP CONSTRAINT build_events_build_id_fkey
@@ -48,19 +47,84 @@ func AddPipelineBuildEventsTables(tx migration.LimitedTx) error {
 	}
 
 	_, err = tx.Exec(`
-		CREATE INDEX build_events_build_id_idx ON build_events (build_id);
-		CREATE INDEX build_outputs_build_id_idx ON build_outputs (build_id);
-		CREATE INDEX build_inputs_build_id_idx ON build_inputs (build_id);
-		CREATE INDEX build_outputs_versioned_resource_id_idx ON build_outputs (versioned_resource_id);
-		CREATE INDEX build_inputs_versioned_resource_id_idx ON build_inputs (versioned_resource_id);
+		CREATE INDEX build_events_build_id_idx ON build_events (build_id)
+	`)
+	if err != nil {
+		return err
+	}
 
-		CREATE INDEX image_resource_versions_build_id_idx ON image_resource_versions (build_id);
-		CREATE INDEX pipelines_team_id_idx ON pipelines (team_id);
-		CREATE INDEX resources_pipeline_id_idx ON resources (pipeline_id);
-		CREATE INDEX jobs_pipeline_id_idx ON jobs (pipeline_id);
-		CREATE INDEX jobs_serial_groups_job_id_idx ON jobs_serial_groups (job_id);
-		CREATE INDEX builds_job_id_idx ON builds (job_id);
-		CREATE INDEX versioned_resources_resource_id_idx ON versioned_resources (resource_id);
+	_, err = tx.Exec(`
+		CREATE INDEX build_outputs_build_id_idx ON build_outputs (build_id)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE INDEX build_inputs_build_id_idx ON build_inputs (build_id)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE INDEX build_outputs_versioned_resource_id_idx ON build_outputs (versioned_resource_id)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE INDEX build_inputs_versioned_resource_id_idx ON build_inputs (versioned_resource_id)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE INDEX image_resource_versions_build_id_idx ON image_resource_versions (build_id)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE INDEX pipelines_team_id_idx ON pipelines (team_id)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE INDEX resources_pipeline_id_idx ON resources (pipeline_id)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE INDEX jobs_pipeline_id_idx ON jobs (pipeline_id)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE INDEX jobs_serial_groups_job_id_idx ON jobs_serial_groups (job_id)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE INDEX builds_job_id_idx ON builds (job_id)
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		CREATE INDEX versioned_resources_resource_id_idx ON versioned_resources (resource_id)
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to create indexes: %s", err)
