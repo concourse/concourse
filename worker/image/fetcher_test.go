@@ -33,7 +33,7 @@ var _ = Describe("Fetcher", func() {
 	var stderrBuf *gbytes.Buffer
 
 	var logger lager.Logger
-	var imageConfig atc.TaskImageConfig
+	var imageConfig atc.ImageResource
 	var signals chan os.Signal
 	var identifier worker.Identifier
 	var metadata worker.Metadata
@@ -55,7 +55,7 @@ var _ = Describe("Fetcher", func() {
 		stderrBuf = gbytes.NewBuffer()
 
 		logger = lagertest.NewTestLogger("test")
-		imageConfig = atc.TaskImageConfig{
+		imageConfig = atc.ImageResource{
 			Type:   "docker",
 			Source: atc.Source{"some": "source"},
 		}

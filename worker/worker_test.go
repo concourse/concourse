@@ -732,7 +732,7 @@ var _ = Describe("Worker", func() {
 					Context("when an image resource is provided", func() {
 						BeforeEach(func() {
 							spec = ResourceTypeContainerSpec{
-								ImageResourcePointer: &atc.TaskImageConfig{
+								ImageResourcePointer: &atc.ImageResource{
 									Type:   "some-type",
 									Source: atc.Source{"some": "source"},
 								},
@@ -776,7 +776,7 @@ var _ = Describe("Worker", func() {
 							It("fetches the image with the correct info", func() {
 								Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
 								_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
-								Expect(fetchImageConfig).To(Equal(atc.TaskImageConfig{
+								Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 									Type:   "some-type",
 									Source: atc.Source{"some": "source"},
 								}))
@@ -1226,7 +1226,7 @@ var _ = Describe("Worker", func() {
 						It("fetches the image with the correct info", func() {
 							Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
 							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
-							Expect(fetchImageConfig).To(Equal(atc.TaskImageConfig{
+							Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 								Type:   "custom-type-b",
 								Source: atc.Source{"some": "source"},
 							}))
@@ -1287,7 +1287,7 @@ var _ = Describe("Worker", func() {
 			Context("with a custom resource type for a task container's image_resource", func() {
 				BeforeEach(func() {
 					spec = TaskContainerSpec{
-						ImageResourcePointer: &atc.TaskImageConfig{
+						ImageResourcePointer: &atc.ImageResource{
 							Type:   "custom-type-c",
 							Source: atc.Source{"some": "source"},
 						},
@@ -1340,7 +1340,7 @@ var _ = Describe("Worker", func() {
 						It("fetches the image with the correct info", func() {
 							Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
 							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
-							Expect(fetchImageConfig).To(Equal(atc.TaskImageConfig{
+							Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 								Type:   "custom-type-c",
 								Source: atc.Source{"some": "source"},
 							}))
@@ -1416,7 +1416,7 @@ var _ = Describe("Worker", func() {
 				Context("when an image resource is provided", func() {
 					BeforeEach(func() {
 						spec = TaskContainerSpec{
-							ImageResourcePointer: &atc.TaskImageConfig{
+							ImageResourcePointer: &atc.ImageResource{
 								Type:   "some-type",
 								Source: atc.Source{"some": "source"},
 							},
@@ -1461,7 +1461,7 @@ var _ = Describe("Worker", func() {
 						It("fetches the image with the correct info", func() {
 							Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
 							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
-							Expect(fetchImageConfig).To(Equal(atc.TaskImageConfig{
+							Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 								Type:   "some-type",
 								Source: atc.Source{"some": "source"},
 							}))

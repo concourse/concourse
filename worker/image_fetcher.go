@@ -15,7 +15,7 @@ import (
 type ImageFetcher interface {
 	FetchImage(
 		lager.Logger,
-		atc.TaskImageConfig,
+		atc.ImageResource,
 		<-chan os.Signal,
 		Identifier,
 		Metadata,

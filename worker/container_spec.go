@@ -37,7 +37,7 @@ func (spec WorkerSpec) Description() string {
 
 type ResourceTypeContainerSpec struct {
 	Type                 string
-	ImageResourcePointer *atc.TaskImageConfig
+	ImageResourcePointer *atc.ImageResource
 	Ephemeral            bool
 	Tags                 []string
 	Env                  []string
@@ -59,7 +59,7 @@ func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {
 type TaskContainerSpec struct {
 	Platform             string
 	Image                string
-	ImageResourcePointer *atc.TaskImageConfig
+	ImageResourcePointer *atc.ImageResource
 	Privileged           bool
 	Tags                 []string
 	Inputs               []VolumeMount

@@ -25,7 +25,7 @@ var _ = Describe("ConfigSource", func() {
 		taskConfig = atc.TaskConfig{
 			Platform: "some-platform",
 			Image:    "some-image",
-			ImageResource: &atc.TaskImageConfig{
+			ImageResource: &atc.ImageResource{
 				Type:   "docker",
 				Source: atc.Source{"a": "b"},
 			},

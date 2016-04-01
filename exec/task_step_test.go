@@ -134,7 +134,7 @@ var _ = Describe("GardenFactory", func() {
 					fetchedConfig = atc.TaskConfig{
 						Platform: "some-platform",
 						Image:    "some-image",
-						ImageResource: &atc.TaskImageConfig{
+						ImageResource: &atc.ImageResource{
 							Type:   "docker",
 							Source: atc.Source{"some": "source"},
 						},
@@ -248,7 +248,7 @@ var _ = Describe("GardenFactory", func() {
 							taskSpec := spec.(worker.TaskContainerSpec)
 							Expect(taskSpec.Platform).To(Equal("some-platform"))
 							Expect(taskSpec.Image).To(Equal("some-image"))
-							Expect(taskSpec.ImageResourcePointer).To(Equal(&atc.TaskImageConfig{
+							Expect(taskSpec.ImageResourcePointer).To(Equal(&atc.ImageResource{
 								Type:   "docker",
 								Source: atc.Source{"some": "source"},
 							}))

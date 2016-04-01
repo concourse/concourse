@@ -228,7 +228,7 @@ dance:
 		for _, resourceType := range resourceTypes {
 			if resourceType.Name == s.Type {
 				resourceTypes = resourceTypes.Without(s.Type)
-				s.ImageResourcePointer = &atc.TaskImageConfig{
+				s.ImageResourcePointer = &atc.ImageResource{
 					Source: resourceType.Source,
 					Type:   resourceType.Type,
 				}
@@ -432,7 +432,7 @@ dance:
 
 func (worker *gardenWorker) baseGardenSpec(
 	logger lager.Logger,
-	taskImageConfig *atc.TaskImageConfig,
+	taskImageConfig *atc.ImageResource,
 	workerTags atc.Tags,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,

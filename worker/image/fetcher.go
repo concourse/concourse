@@ -49,7 +49,7 @@ func NewFetcher(trackerFactory TrackerFactory) Fetcher {
 
 func (fetcher Fetcher) FetchImage(
 	logger lager.Logger,
-	imageConfig atc.TaskImageConfig,
+	imageConfig atc.ImageResource,
 	signals <-chan os.Signal,
 	identifier worker.Identifier,
 	metadata worker.Metadata,
