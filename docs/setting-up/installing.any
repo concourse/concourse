@@ -63,9 +63,12 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
       Grab the appropriate binary for your platform from the
       \reference{downloads}{downloads} section.
     }{
-      For the Linux distribution you'll need kernel version 3.19 or above, plus
-      \code{iptables} and \code{ip} commands. Windows and Darwin don't really
-      need anything special.
+      Linux: Ubuntu 14.04 (LTS), kernel 3.19 (backported for security updates),
+      plus \code{iptables} and \code{ip} commands. We'll be switching to
+      \hyperlink{https://github.com/cloudfoundry-incubator/guardian}{Guardian}
+      soon which will make this much more flexible.
+
+      Windows and Darwin don't really need anything special.
     }{
       PostgresSQL 9.3+
     }
