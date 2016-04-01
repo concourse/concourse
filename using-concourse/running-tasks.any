@@ -46,7 +46,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
   }
 
   This configuration specifies that the task must run with the
-  \code{golang:1.6} Docker image with a \code{my-app} input, and when the task
+  \code{ruby:2.1} Docker image with a \code{my-app} input, and when the task
   is executed it will run the \code{scripts/test} script in the same repo.
 
   A task's configuration specifies the following:
@@ -90,7 +90,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
 
     You can use any resource that returns a filesystem in the correct format (a
     \code{/rootfs} directory and a \code{metadata.json} file in the top level)
-    but normally this will tbe the
+    but normally this will be the
     \hyperlink{https://github.com/concourse/docker-image-resource}{Docker Image
     resource}. If you'd like to make a resource of your own that supports this
     please use that as a reference implementation for now.
