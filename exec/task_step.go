@@ -235,13 +235,13 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		}
 
 		containerSpec := worker.TaskContainerSpec{
-			Platform:             config.Platform,
-			Tags:                 step.tags,
-			Privileged:           bool(step.privileged),
-			Inputs:               inputMounts,
-			Outputs:              outputMounts,
-			ImageResourcePointer: config.ImageResource,
-			Image:                config.Image,
+			Platform:      config.Platform,
+			Tags:          step.tags,
+			Privileged:    bool(step.privileged),
+			Inputs:        inputMounts,
+			Outputs:       outputMounts,
+			ImageResource: config.ImageResource,
+			Image:         config.Image,
 		}
 
 		step.container, err = chosenWorker.CreateContainer(

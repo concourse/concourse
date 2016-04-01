@@ -732,7 +732,7 @@ var _ = Describe("Worker", func() {
 					Context("when an image resource is provided", func() {
 						BeforeEach(func() {
 							spec = ResourceTypeContainerSpec{
-								ImageResourcePointer: &atc.ImageResource{
+								ImageResource: &atc.ImageResource{
 									Type:   "some-type",
 									Source: atc.Source{"some": "source"},
 								},
@@ -1287,7 +1287,7 @@ var _ = Describe("Worker", func() {
 			Context("with a custom resource type for a task container's image_resource", func() {
 				BeforeEach(func() {
 					spec = TaskContainerSpec{
-						ImageResourcePointer: &atc.ImageResource{
+						ImageResource: &atc.ImageResource{
 							Type:   "custom-type-c",
 							Source: atc.Source{"some": "source"},
 						},
@@ -1416,7 +1416,7 @@ var _ = Describe("Worker", func() {
 				Context("when an image resource is provided", func() {
 					BeforeEach(func() {
 						spec = TaskContainerSpec{
-							ImageResourcePointer: &atc.ImageResource{
+							ImageResource: &atc.ImageResource{
 								Type:   "some-type",
 								Source: atc.Source{"some": "source"},
 							},

@@ -33,7 +33,7 @@ var _ = Describe("Fetcher", func() {
 	var stderrBuf *gbytes.Buffer
 
 	var logger lager.Logger
-	var imageConfig atc.ImageResource
+	var imageResource atc.ImageResource
 	var signals chan os.Signal
 	var identifier worker.Identifier
 	var metadata worker.Metadata
@@ -55,7 +55,7 @@ var _ = Describe("Fetcher", func() {
 		stderrBuf = gbytes.NewBuffer()
 
 		logger = lagertest.NewTestLogger("test")
-		imageConfig = atc.ImageResource{
+		imageResource = atc.ImageResource{
 			Type:   "docker",
 			Source: atc.Source{"some": "source"},
 		}
@@ -91,7 +91,7 @@ var _ = Describe("Fetcher", func() {
 	JustBeforeEach(func() {
 		fetchedImage, fetchErr = fetcher.FetchImage(
 			logger,
-			imageConfig,
+			imageResource,
 			signals,
 			identifier,
 			metadata,
@@ -239,7 +239,7 @@ var _ = Describe("Fetcher", func() {
 										Expect(fakeCheckResource.CheckCallCount()).To(Equal(1))
 										checkSource, checkVersion := fakeCheckResource.CheckArgsForCall(0)
 										Expect(checkVersion).To(BeNil())
-										Expect(checkSource).To(Equal(imageConfig.Source))
+										Expect(checkSource).To(Equal(imageResource.Source))
 									})
 
 									It("saved the image resource version in the database", func() {
@@ -297,7 +297,7 @@ var _ = Describe("Fetcher", func() {
 										ioConfig, getSource, params, getVersion := fakeGetResource.GetArgsForCall(0)
 										Expect(getVersion).To(Equal(atc.Version{"v": "1"}))
 										Expect(params).To(BeNil())
-										Expect(getSource).To(Equal(imageConfig.Source))
+										Expect(getSource).To(Equal(imageResource.Source))
 										Expect(ioConfig).To(Equal(resource.IOConfig{
 											Stderr: stderrBuf,
 										}))

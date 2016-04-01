@@ -49,7 +49,7 @@ func NewFetcher(trackerFactory TrackerFactory) Fetcher {
 
 func (fetcher Fetcher) FetchImage(
 	logger lager.Logger,
-	imageConfig atc.ImageResource,
+	imageResource atc.ImageResource,
 	signals <-chan os.Signal,
 	identifier worker.Identifier,
 	metadata worker.Metadata,
@@ -59,7 +59,7 @@ func (fetcher Fetcher) FetchImage(
 	customTypes atc.ResourceTypes,
 ) (worker.Image, error) {
 	tracker := fetcher.trackerFactory.TrackerFor(worker)
-	resourceType := resource.ResourceType(imageConfig.Type)
+	resourceType := resource.ResourceType(imageResource.Type)
 
 	checkSess := resource.Session{
 		ID:       identifier,
@@ -67,8 +67,8 @@ func (fetcher Fetcher) FetchImage(
 	}
 
 	checkSess.ID.Stage = db.ContainerStageCheck
-	checkSess.ID.ImageResourceType = imageConfig.Type
-	checkSess.ID.ImageResourceSource = imageConfig.Source
+	checkSess.ID.ImageResourceType = imageResource.Type
+	checkSess.ID.ImageResourceSource = imageResource.Source
 	checkSess.Metadata.Type = db.ContainerTypeCheck
 	checkSess.Metadata.WorkingDirectory = ""
 	checkSess.Metadata.EnvironmentVariables = nil
@@ -88,7 +88,7 @@ func (fetcher Fetcher) FetchImage(
 
 	defer checkingResource.Release(nil)
 
-	versions, err := checkingResource.Check(imageConfig.Source, nil)
+	versions, err := checkingResource.Check(imageResource.Source, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (fetcher Fetcher) FetchImage(
 	cacheID := resource.ResourceCacheIdentifier{
 		Type:    resourceType,
 		Version: versions[0],
-		Source:  imageConfig.Source,
+		Source:  imageResource.Source,
 	}
 
 	volumeID := cacheID.VolumeIdentifier()
@@ -116,8 +116,8 @@ func (fetcher Fetcher) FetchImage(
 	}
 
 	getSess.ID.Stage = db.ContainerStageGet
-	getSess.ID.ImageResourceType = imageConfig.Type
-	getSess.ID.ImageResourceSource = imageConfig.Source
+	getSess.ID.ImageResourceType = imageResource.Type
+	getSess.ID.ImageResourceSource = imageResource.Source
 	getSess.Metadata.Type = db.ContainerTypeGet
 	getSess.Metadata.WorkingDirectory = ""
 	getSess.Metadata.EnvironmentVariables = nil
@@ -145,7 +145,7 @@ func (fetcher Fetcher) FetchImage(
 		resource.IOConfig{
 			Stderr: delegate.Stderr(),
 		},
-		imageConfig.Source,
+		imageResource.Source,
 		nil,
 		versions[0],
 	)

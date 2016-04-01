@@ -36,11 +36,11 @@ func (spec WorkerSpec) Description() string {
 }
 
 type ResourceTypeContainerSpec struct {
-	Type                 string
-	ImageResourcePointer *atc.ImageResource
-	Ephemeral            bool
-	Tags                 []string
-	Env                  []string
+	Type          string
+	ImageResource *atc.ImageResource
+	Ephemeral     bool
+	Tags          []string
+	Env           []string
 
 	// Not Copy-on-Write. Used for a single mount in Get containers.
 	Cache VolumeMount
@@ -57,13 +57,13 @@ func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {
 }
 
 type TaskContainerSpec struct {
-	Platform             string
-	Image                string
-	ImageResourcePointer *atc.ImageResource
-	Privileged           bool
-	Tags                 []string
-	Inputs               []VolumeMount
-	Outputs              []VolumeMount
+	Platform      string
+	Image         string
+	ImageResource *atc.ImageResource
+	Privileged    bool
+	Tags          []string
+	Inputs        []VolumeMount
+	Outputs       []VolumeMount
 }
 
 func (spec TaskContainerSpec) WorkerSpec() WorkerSpec {

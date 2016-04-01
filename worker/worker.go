@@ -228,7 +228,7 @@ dance:
 		for _, resourceType := range resourceTypes {
 			if resourceType.Name == s.Type {
 				resourceTypes = resourceTypes.Without(s.Type)
-				s.ImageResourcePointer = &atc.ImageResource{
+				s.ImageResource = &atc.ImageResource{
 					Source: resourceType.Source,
 					Type:   resourceType.Type,
 				}
@@ -238,7 +238,7 @@ dance:
 		var err error
 		gardenSpec, imageFetched, image, err = worker.baseGardenSpec(
 			logger,
-			s.ImageResourcePointer,
+			s.ImageResource,
 			worker.tags,
 			cancel,
 			delegate,
@@ -263,7 +263,7 @@ dance:
 			gardenSpec.Properties[ephemeralPropertyName] = "true"
 		}
 
-		if s.ImageResourcePointer == nil {
+		if s.ImageResource == nil {
 			for _, t := range worker.resourceTypes {
 				if t.Type == s.Type {
 					gardenSpec.RootFSPath = t.Image
@@ -285,7 +285,7 @@ dance:
 		var err error
 		gardenSpec, imageFetched, image, err = worker.baseGardenSpec(
 			logger,
-			s.ImageResourcePointer,
+			s.ImageResource,
 			worker.tags,
 			cancel,
 			delegate,
@@ -304,7 +304,7 @@ dance:
 
 		gardenSpec.Privileged = s.Privileged
 
-		if s.ImageResourcePointer == nil {
+		if s.ImageResource == nil {
 			gardenSpec.RootFSPath = s.Image
 		}
 	default:
