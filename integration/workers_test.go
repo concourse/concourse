@@ -64,7 +64,11 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("lists them to the user, ordered by name", func() {
-				Expect(flyCmd).To(PrintTable(ui.Table{
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(0))
+				Expect(sess.Out).To(PrintTable(ui.Table{
 					Headers: ui.TableRow{
 						{Contents: "name", Color: color.New(color.Bold)},
 						{Contents: "containers", Color: color.New(color.Bold)},
@@ -77,8 +81,6 @@ var _ = Describe("Fly CLI", func() {
 						{{Contents: "worker-3"}, {Contents: "10"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}},
 					},
 				}))
-
-				Expect(flyCmd).To(HaveExited(0))
 			})
 
 			Context("when --details is given", func() {
@@ -87,7 +89,11 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("lists them to the user, ordered by name", func() {
-					Expect(flyCmd).To(PrintTable(ui.Table{
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+					Expect(sess.Out).To(PrintTable(ui.Table{
 						Headers: ui.TableRow{
 							{Contents: "name", Color: color.New(color.Bold)},
 							{Contents: "containers", Color: color.New(color.Bold)},
@@ -103,8 +109,6 @@ var _ = Describe("Fly CLI", func() {
 							{{Contents: "worker-3"}, {Contents: "10"}, {Contents: "platform3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "3.2.3.4:7777"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}},
 						},
 					}))
-
-					Expect(flyCmd).To(HaveExited(0))
 				})
 			})
 		})
@@ -120,10 +124,11 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("writes an error message to stderr", func() {
-				sess, err := gexec.Start(flyCmd, nil, nil)
-				Expect(err).ToNot(HaveOccurred())
-				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
 				Eventually(sess).Should(gexec.Exit(1))
+				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 			})
 		})
 	})

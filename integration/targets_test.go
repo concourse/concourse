@@ -43,12 +43,12 @@ var _ = Describe("Fly CLI", func() {
 	Describe("targets", func() {
 		Context("when there are targets in the .flyrc", func() {
 			It("displays all the targets with their token expiration", func() {
-				session, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(session).Should(gexec.Exit(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
-				Expect(session.Out).To(PrintTable(ui.Table{
+				Expect(sess.Out).To(PrintTable(ui.Table{
 					Headers: ui.TableRow{
 						{Contents: "name", Color: color.New(color.Bold)},
 						{Contents: "url", Color: color.New(color.Bold)},
@@ -70,11 +70,11 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("asks the users to add targets", func() {
-				session, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(session).Should(gexec.Exit(1))
-				Expect(session.Err).To(gbytes.Say("no targets found, please add some and try again"))
+				Eventually(sess).Should(gexec.Exit(1))
+				Expect(sess.Err).To(gbytes.Say("no targets found, please add some and try again"))
 			})
 		})
 	})

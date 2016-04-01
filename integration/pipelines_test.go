@@ -38,7 +38,11 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("lists them to the user", func() {
-				Expect(flyCmd).To(PrintTable(ui.Table{
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(sess).Should(gexec.Exit(0))
+
+				Expect(sess.Out).To(PrintTable(ui.Table{
 					Headers: ui.TableRow{
 						{Contents: "name", Color: color.New(color.Bold)},
 						{Contents: "paused", Color: color.New(color.Bold)},
@@ -49,8 +53,6 @@ var _ = Describe("Fly CLI", func() {
 						{{Contents: "pipeline-3"}, {Contents: "no"}},
 					},
 				}))
-
-				Expect(flyCmd).To(HaveExited(0))
 			})
 		})
 
@@ -65,10 +67,11 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("writes an error message to stderr", func() {
-				sess, err := gexec.Start(flyCmd, nil, nil)
-				Expect(err).ToNot(HaveOccurred())
-				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
 				Eventually(sess).Should(gexec.Exit(1))
+				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 			})
 		})
 	})

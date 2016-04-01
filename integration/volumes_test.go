@@ -68,7 +68,12 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("lists them to the user, ordered by worker name and volume name", func() {
-				Expect(flyCmd).To(PrintTable(ui.Table{
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(0))
+
+				Expect(sess.Out).To(PrintTable(ui.Table{
 					Headers: ui.TableRow{
 						{Contents: "handle", Color: color.New(color.Bold)},
 						{Contents: "ttl", Color: color.New(color.Bold)},
@@ -84,8 +89,6 @@ var _ = Describe("Fly CLI", func() {
 						{{Contents: "eeeeee"}, {Contents: "indefinite"}, {Contents: "indefinite"}, {Contents: "ffffff"}, {Contents: "n/a", Color: color.New(color.Faint)}},
 					},
 				}))
-
-				Expect(flyCmd).To(HaveExited(0))
 			})
 		})
 
@@ -100,10 +103,11 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("writes an error message to stderr", func() {
-				sess, err := gexec.Start(flyCmd, nil, nil)
-				Expect(err).ToNot(HaveOccurred())
-				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
 				Eventually(sess).Should(gexec.Exit(1))
+				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 			})
 		})
 	})
