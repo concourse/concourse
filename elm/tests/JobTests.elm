@@ -91,7 +91,6 @@ all =
               , type' = "git"
               , version = Dict.fromList [ ("version", "v1") ]
               , metadata = [ { name = "some", value = "metadata" } ]
-              , pipelineName = "some-pipeline"
               , firstOccurrence = True
               }
             buildOutput =
