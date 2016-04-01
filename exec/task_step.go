@@ -212,14 +212,11 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 			outVolume, err := chosenWorker.CreateVolume(
 				step.logger,
-				worker.VolumeIdentifier{
-					Output: &db.OutputIdentifier{
-						Name: output.Name,
-					},
+				worker.VolumeSpec{
+					Strategy:   worker.OutputStrategy{Name: output.Name},
+					Privileged: bool(step.privileged),
+					TTL:        worker.VolumeTTL,
 				},
-				worker.VolumeProperties{},
-				bool(step.privileged),
-				worker.VolumeTTL,
 			)
 			if err == worker.ErrNoVolumeManager {
 				break

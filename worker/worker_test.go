@@ -79,29 +79,19 @@ var _ = Describe("Worker", func() {
 	Describe("CreateVolume", func() {
 		var baggageclaimClient baggageclaim.Client
 
-		var volumeIdentifier VolumeIdentifier
-		var volumeProperties VolumeProperties
-		var privileged bool
-		var ttl time.Duration
+		var volumeSpec VolumeSpec
 
 		var createdVolume Volume
 		var createErr error
 
 		BeforeEach(func() {
-			volumeIdentifier = VolumeIdentifier{
-				ResourceCache: &db.ResourceCacheIdentifier{
-					ResourceHash:    "some-resource-hash",
-					ResourceVersion: atc.Version{"some": "resource-version"},
+			volumeSpec = VolumeSpec{
+				Properties: VolumeProperties{
+					"some": "property",
 				},
+				Privileged: true,
+				TTL:        6 * time.Minute,
 			}
-
-			volumeProperties = VolumeProperties{
-				"some": "property",
-			}
-
-			privileged = true
-
-			ttl = 6 * time.Minute
 		})
 
 		JustBeforeEach(func() {
@@ -118,7 +108,7 @@ var _ = Describe("Worker", func() {
 				platform,
 				tags,
 				workerName,
-			).CreateVolume(logger, volumeIdentifier, volumeProperties, privileged, ttl)
+			).CreateVolume(logger, volumeSpec)
 		})
 
 		Context("when there is no baggageclaim client", func() {
@@ -147,86 +137,195 @@ var _ = Describe("Worker", func() {
 				fakeVolumeFactory.BuildReturns(builtVolume, true, nil)
 			})
 
-			It("succeeds", func() {
-				Expect(createErr).ToNot(HaveOccurred())
-			})
-
-			It("creates the volume via BaggageClaim", func() {
-				Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
-
-				_, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
-				Expect(spec).To(Equal(baggageclaim.VolumeSpec{
-					Strategy:   baggageclaim.EmptyStrategy{},
-					Properties: baggageclaim.VolumeProperties(volumeProperties),
-					TTL:        ttl,
-					Privileged: privileged,
-				}))
-			})
-
-			It("inserts the volume into the database", func() {
-				Expect(fakeGardenWorkerDB.InsertVolumeCallCount()).To(Equal(1))
-
-				dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
-				Expect(dbVolume).To(Equal(db.Volume{
-					Handle:     "created-volume",
-					WorkerName: workerName,
-					TTL:        ttl,
-					Identifier: db.VolumeIdentifier(volumeIdentifier),
-				}))
-			})
-
-			It("builds the baggageclaim.Volume into a worker.Volume", func() {
-				Expect(fakeVolumeFactory.BuildCallCount()).To(Equal(1))
-
-				_, volume := fakeVolumeFactory.BuildArgsForCall(0)
-				Expect(volume).To(Equal(fakeBaggageclaimVolume))
-
-				Expect(createdVolume).To(Equal(builtVolume))
-			})
-
-			Context("when creating the volume fails", func() {
-				disaster := errors.New("nope")
-
+			Context("when creating a ResourceCacheStrategy volume", func() {
 				BeforeEach(func() {
-					fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
+					volumeSpec.Strategy = ResourceCacheStrategy{
+						ResourceHash:    "some-resource-hash",
+						ResourceVersion: atc.Version{"some": "resource-version"},
+					}
 				})
 
-				It("returns the error", func() {
-					Expect(createErr).To(Equal(disaster))
+				It("succeeds", func() {
+					Expect(createErr).ToNot(HaveOccurred())
+				})
+
+				It("creates the volume via BaggageClaim", func() {
+					Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
+
+					_, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
+					Expect(spec).To(Equal(baggageclaim.VolumeSpec{
+						Strategy:   baggageclaim.EmptyStrategy{},
+						Properties: baggageclaim.VolumeProperties(volumeSpec.Properties),
+						TTL:        volumeSpec.TTL,
+						Privileged: volumeSpec.Privileged,
+					}))
+				})
+
+				It("inserts the volume into the database", func() {
+					Expect(fakeGardenWorkerDB.InsertVolumeCallCount()).To(Equal(1))
+
+					dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
+					Expect(dbVolume).To(Equal(db.Volume{
+						Handle:     "created-volume",
+						WorkerName: workerName,
+						TTL:        volumeSpec.TTL,
+						Identifier: db.VolumeIdentifier{
+							ResourceCache: &db.ResourceCacheIdentifier{
+								ResourceHash:    "some-resource-hash",
+								ResourceVersion: atc.Version{"some": "resource-version"},
+							},
+						},
+					}))
+				})
+
+				It("builds the baggageclaim.Volume into a worker.Volume", func() {
+					Expect(fakeVolumeFactory.BuildCallCount()).To(Equal(1))
+
+					_, volume := fakeVolumeFactory.BuildArgsForCall(0)
+					Expect(volume).To(Equal(fakeBaggageclaimVolume))
+
+					Expect(createdVolume).To(Equal(builtVolume))
+				})
+
+				Context("when creating the volume fails", func() {
+					disaster := errors.New("nope")
+
+					BeforeEach(func() {
+						fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
+					})
+
+					It("returns the error", func() {
+						Expect(createErr).To(Equal(disaster))
+					})
+				})
+
+				Context("when inserting the volume fails", func() {
+					disaster := errors.New("nope")
+
+					BeforeEach(func() {
+						fakeGardenWorkerDB.InsertVolumeReturns(disaster)
+					})
+
+					It("returns the error", func() {
+						Expect(createErr).To(Equal(disaster))
+					})
+				})
+
+				Context("when building the volume fails", func() {
+					disaster := errors.New("nope")
+
+					BeforeEach(func() {
+						fakeVolumeFactory.BuildReturns(nil, false, disaster)
+					})
+
+					It("returns the error", func() {
+						Expect(createErr).To(Equal(disaster))
+					})
+				})
+
+				Context("when building the volume cannot find the volume in the database", func() {
+					BeforeEach(func() {
+						fakeVolumeFactory.BuildReturns(nil, false, nil)
+					})
+
+					It("returns ErrMissingVolume", func() {
+						Expect(createErr).To(Equal(ErrMissingVolume))
+					})
 				})
 			})
 
-			Context("when inserting the volume fails", func() {
-				disaster := errors.New("nope")
-
+			Context("when creating a OutputStrategy volume", func() {
 				BeforeEach(func() {
-					fakeGardenWorkerDB.InsertVolumeReturns(disaster)
+					volumeSpec.Strategy = OutputStrategy{
+						Name: "some-output",
+					}
 				})
 
-				It("returns the error", func() {
-					Expect(createErr).To(Equal(disaster))
-				})
-			})
-
-			Context("when building the volume fails", func() {
-				disaster := errors.New("nope")
-
-				BeforeEach(func() {
-					fakeVolumeFactory.BuildReturns(nil, false, disaster)
+				It("succeeds", func() {
+					Expect(createErr).ToNot(HaveOccurred())
 				})
 
-				It("returns the error", func() {
-					Expect(createErr).To(Equal(disaster))
-				})
-			})
+				It("creates the volume via BaggageClaim", func() {
+					Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
 
-			Context("when building the volume cannot find the volume in the database", func() {
-				BeforeEach(func() {
-					fakeVolumeFactory.BuildReturns(nil, false, nil)
+					_, spec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
+					Expect(spec).To(Equal(baggageclaim.VolumeSpec{
+						Strategy:   baggageclaim.EmptyStrategy{},
+						Properties: baggageclaim.VolumeProperties(volumeSpec.Properties),
+						TTL:        volumeSpec.TTL,
+						Privileged: volumeSpec.Privileged,
+					}))
 				})
 
-				It("returns ErrMissingVolume", func() {
-					Expect(createErr).To(Equal(ErrMissingVolume))
+				It("inserts the volume into the database", func() {
+					Expect(fakeGardenWorkerDB.InsertVolumeCallCount()).To(Equal(1))
+
+					dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
+					Expect(dbVolume).To(Equal(db.Volume{
+						Handle:     "created-volume",
+						WorkerName: workerName,
+						TTL:        volumeSpec.TTL,
+						Identifier: db.VolumeIdentifier{
+							Output: &db.OutputIdentifier{
+								Name: "some-output",
+							},
+						},
+					}))
+				})
+
+				It("builds the baggageclaim.Volume into a worker.Volume", func() {
+					Expect(fakeVolumeFactory.BuildCallCount()).To(Equal(1))
+
+					_, volume := fakeVolumeFactory.BuildArgsForCall(0)
+					Expect(volume).To(Equal(fakeBaggageclaimVolume))
+
+					Expect(createdVolume).To(Equal(builtVolume))
+				})
+
+				Context("when creating the volume fails", func() {
+					disaster := errors.New("nope")
+
+					BeforeEach(func() {
+						fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
+					})
+
+					It("returns the error", func() {
+						Expect(createErr).To(Equal(disaster))
+					})
+				})
+
+				Context("when inserting the volume fails", func() {
+					disaster := errors.New("nope")
+
+					BeforeEach(func() {
+						fakeGardenWorkerDB.InsertVolumeReturns(disaster)
+					})
+
+					It("returns the error", func() {
+						Expect(createErr).To(Equal(disaster))
+					})
+				})
+
+				Context("when building the volume fails", func() {
+					disaster := errors.New("nope")
+
+					BeforeEach(func() {
+						fakeVolumeFactory.BuildReturns(nil, false, disaster)
+					})
+
+					It("returns the error", func() {
+						Expect(createErr).To(Equal(disaster))
+					})
+				})
+
+				Context("when building the volume cannot find the volume in the database", func() {
+					BeforeEach(func() {
+						fakeVolumeFactory.BuildReturns(nil, false, nil)
+					})
+
+					It("returns ErrMissingVolume", func() {
+						Expect(createErr).To(Equal(ErrMissingVolume))
+					})
 				})
 			})
 		})

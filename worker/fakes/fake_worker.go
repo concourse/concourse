@@ -4,7 +4,6 @@ package fakes
 import (
 	"os"
 	"sync"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
@@ -49,14 +48,11 @@ type FakeWorker struct {
 		result2 bool
 		result3 error
 	}
-	CreateVolumeStub        func(lager.Logger, worker.VolumeIdentifier, worker.VolumeProperties, bool, time.Duration) (worker.Volume, error)
+	CreateVolumeStub        func(lager.Logger, worker.VolumeSpec) (worker.Volume, error)
 	createVolumeMutex       sync.RWMutex
 	createVolumeArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 worker.VolumeIdentifier
-		arg3 worker.VolumeProperties
-		arg4 bool
-		arg5 time.Duration
+		arg2 worker.VolumeSpec
 	}
 	createVolumeReturns struct {
 		result1 worker.Volume
@@ -241,18 +237,15 @@ func (fake *FakeWorker) LookupContainerReturns(result1 worker.Container, result2
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorker) CreateVolume(arg1 lager.Logger, arg2 worker.VolumeIdentifier, arg3 worker.VolumeProperties, arg4 bool, arg5 time.Duration) (worker.Volume, error) {
+func (fake *FakeWorker) CreateVolume(arg1 lager.Logger, arg2 worker.VolumeSpec) (worker.Volume, error) {
 	fake.createVolumeMutex.Lock()
 	fake.createVolumeArgsForCall = append(fake.createVolumeArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 worker.VolumeIdentifier
-		arg3 worker.VolumeProperties
-		arg4 bool
-		arg5 time.Duration
-	}{arg1, arg2, arg3, arg4, arg5})
+		arg2 worker.VolumeSpec
+	}{arg1, arg2})
 	fake.createVolumeMutex.Unlock()
 	if fake.CreateVolumeStub != nil {
-		return fake.CreateVolumeStub(arg1, arg2, arg3, arg4, arg5)
+		return fake.CreateVolumeStub(arg1, arg2)
 	} else {
 		return fake.createVolumeReturns.result1, fake.createVolumeReturns.result2
 	}
@@ -264,10 +257,10 @@ func (fake *FakeWorker) CreateVolumeCallCount() int {
 	return len(fake.createVolumeArgsForCall)
 }
 
-func (fake *FakeWorker) CreateVolumeArgsForCall(i int) (lager.Logger, worker.VolumeIdentifier, worker.VolumeProperties, bool, time.Duration) {
+func (fake *FakeWorker) CreateVolumeArgsForCall(i int) (lager.Logger, worker.VolumeSpec) {
 	fake.createVolumeMutex.RLock()
 	defer fake.createVolumeMutex.RUnlock()
-	return fake.createVolumeArgsForCall[i].arg1, fake.createVolumeArgsForCall[i].arg2, fake.createVolumeArgsForCall[i].arg3, fake.createVolumeArgsForCall[i].arg4, fake.createVolumeArgsForCall[i].arg5
+	return fake.createVolumeArgsForCall[i].arg1, fake.createVolumeArgsForCall[i].arg2
 }
 
 func (fake *FakeWorker) CreateVolumeReturns(result1 worker.Volume, result2 error) {

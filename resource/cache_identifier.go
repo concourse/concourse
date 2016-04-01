@@ -55,10 +55,15 @@ func (identifier ResourceCacheIdentifier) CreateOn(logger lager.Logger, workerCl
 
 	return workerClient.CreateVolume(
 		logger,
-		identifier.VolumeIdentifier(),
-		identifier.volumeProperties(),
-		true,
-		ttl,
+		worker.VolumeSpec{
+			Strategy: worker.ResourceCacheStrategy{
+				ResourceVersion: identifier.Version,
+				ResourceHash:    GenerateResourceHash(identifier.Source, string(identifier.Type)),
+			},
+			Properties: identifier.volumeProperties(),
+			Privileged: true,
+			TTL:        ttl,
+		},
 	)
 }
 

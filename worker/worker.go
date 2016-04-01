@@ -103,10 +103,7 @@ func NewGardenWorker(
 
 func (worker *gardenWorker) CreateVolume(
 	logger lager.Logger,
-	identifier VolumeIdentifier,
-	properties VolumeProperties,
-	privileged bool,
-	ttl time.Duration,
+	volumeSpec VolumeSpec,
 ) (Volume, error) {
 	if worker.baggageclaimClient == nil {
 		return nil, ErrNoVolumeManager
@@ -114,12 +111,7 @@ func (worker *gardenWorker) CreateVolume(
 
 	bcVolume, err := worker.baggageclaimClient.CreateVolume(
 		logger.Session("create-volume"),
-		baggageclaim.VolumeSpec{
-			Strategy:   baggageclaim.EmptyStrategy{},
-			Properties: baggageclaim.VolumeProperties(properties),
-			TTL:        ttl,
-			Privileged: privileged,
-		},
+		volumeSpec.baggageclaimVolumeSpec(),
 	)
 	if err != nil {
 		logger.Error("failed-to-create-volume", err)
@@ -129,8 +121,8 @@ func (worker *gardenWorker) CreateVolume(
 	err = worker.db.InsertVolume(db.Volume{
 		Handle:     bcVolume.Handle(),
 		WorkerName: worker.Name(),
-		TTL:        ttl,
-		Identifier: db.VolumeIdentifier(identifier),
+		TTL:        volumeSpec.TTL,
+		Identifier: volumeSpec.Strategy.dbIdentifier(),
 	})
 	if err != nil {
 		logger.Error("failed-to-save-volume-to-db", err)

@@ -9,6 +9,7 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -28,13 +29,68 @@ type Client interface {
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 
-	CreateVolume(lager.Logger, VolumeIdentifier, VolumeProperties, bool, time.Duration) (Volume, error)
+	CreateVolume(lager.Logger, VolumeSpec) (Volume, error)
 	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 
 	Satisfying(WorkerSpec, atc.ResourceTypes) (Worker, error)
 	AllSatisfying(WorkerSpec, atc.ResourceTypes) ([]Worker, error)
 	GetWorker(workerName string) (Worker, error)
+}
+
+type VolumeSpec struct {
+	Strategy   Strategy
+	Properties VolumeProperties
+	Privileged bool
+	TTL        time.Duration
+}
+
+func (spec VolumeSpec) baggageclaimVolumeSpec() baggageclaim.VolumeSpec {
+	return baggageclaim.VolumeSpec{
+		Strategy:   spec.Strategy.baggageclaimStrategy(),
+		Privileged: spec.Privileged,
+		Properties: baggageclaim.VolumeProperties(spec.Properties),
+		TTL:        spec.TTL,
+	}
+}
+
+type Strategy interface {
+	baggageclaimStrategy() baggageclaim.Strategy
+	dbIdentifier() db.VolumeIdentifier
+}
+
+type ResourceCacheStrategy struct {
+	ResourceHash    string
+	ResourceVersion atc.Version
+}
+
+func (ResourceCacheStrategy) baggageclaimStrategy() baggageclaim.Strategy {
+	return baggageclaim.EmptyStrategy{}
+}
+
+func (strategy ResourceCacheStrategy) dbIdentifier() db.VolumeIdentifier {
+	return db.VolumeIdentifier{
+		ResourceCache: &db.ResourceCacheIdentifier{
+			ResourceHash:    strategy.ResourceHash,
+			ResourceVersion: strategy.ResourceVersion,
+		},
+	}
+}
+
+type OutputStrategy struct {
+	Name string
+}
+
+func (OutputStrategy) baggageclaimStrategy() baggageclaim.Strategy {
+	return baggageclaim.EmptyStrategy{}
+}
+
+func (strategy OutputStrategy) dbIdentifier() db.VolumeIdentifier {
+	return db.VolumeIdentifier{
+		Output: &db.OutputIdentifier{
+			Name: strategy.Name,
+		},
+	}
 }
 
 //go:generate counterfeiter . Container

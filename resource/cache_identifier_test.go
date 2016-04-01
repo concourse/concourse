@@ -145,8 +145,8 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 			})
 
 			It("sets the TTL to 5 minutes", func() {
-				_, _, _, _, ttl := fakeWorkerClient.CreateVolumeArgsForCall(0)
-				Expect(ttl).To(Equal(5 * time.Minute))
+				_, spec := fakeWorkerClient.CreateVolumeArgsForCall(0)
+				Expect(spec.TTL).To(Equal(5 * time.Minute))
 			})
 		})
 
@@ -167,16 +167,21 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 			})
 
 			It("created with the right properties", func() {
-				_, id, props, privileged, ttl := fakeWorkerClient.CreateVolumeArgsForCall(0)
-				Expect(id).To(Equal(cacheIdentifier.VolumeIdentifier()))
-				Expect(props).To(Equal(worker.VolumeProperties{
-					"resource-type":    "some-resource-type",
-					"resource-version": `{"some":"version"}`,
-					"resource-source":  "968e27f71617a029e58a09fb53895f1e1875b51bdaa11293ddc2cb335960875cb42c19ae8bc696caec88d55221f33c2bcc3278a7d15e8d13f23782d1a05564f1",
-					"resource-params":  "fe7d9dbc2ac75030c3e8c88e54a33676c38d8d9d2876700bc01d4961caf898e7cbe8e738232e86afcf6a5f64a9527c458a130277b08d72fb339962968d0d0967",
+				_, spec := fakeWorkerClient.CreateVolumeArgsForCall(0)
+				Expect(spec).To(Equal(worker.VolumeSpec{
+					Strategy: worker.ResourceCacheStrategy{
+						ResourceVersion: atc.Version{"some": "version"},
+						ResourceHash:    `some-resource-type{"some":"source"}`,
+					},
+					Properties: worker.VolumeProperties{
+						"resource-type":    "some-resource-type",
+						"resource-version": `{"some":"version"}`,
+						"resource-source":  "968e27f71617a029e58a09fb53895f1e1875b51bdaa11293ddc2cb335960875cb42c19ae8bc696caec88d55221f33c2bcc3278a7d15e8d13f23782d1a05564f1",
+						"resource-params":  "fe7d9dbc2ac75030c3e8c88e54a33676c38d8d9d2876700bc01d4961caf898e7cbe8e738232e86afcf6a5f64a9527c458a130277b08d72fb339962968d0d0967",
+					},
+					Privileged: true,
+					TTL:        0,
 				}))
-				Expect(privileged).To(BeTrue())
-				Expect(ttl).To(BeZero())
 			})
 		})
 

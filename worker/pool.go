@@ -224,27 +224,15 @@ func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container
 	return container, true, nil
 }
 
-func (*pool) CreateVolume(
-	logger lager.Logger,
-	identifier VolumeIdentifier,
-	properties VolumeProperties,
-	privileged bool,
-	ttl time.Duration,
-) (Volume, error) {
+func (*pool) CreateVolume(lager.Logger, VolumeSpec) (Volume, error) {
 	return nil, errors.New("CreateVolume not implemented for pool")
 }
 
-func (*pool) ListVolumes(
-	logger lager.Logger,
-	properties VolumeProperties,
-) ([]Volume, error) {
+func (*pool) ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error) {
 	return nil, errors.New("ListVolumes not implemented for pool")
 }
 
-func (*pool) LookupVolume(
-	logger lager.Logger,
-	handle string,
-) (Volume, bool, error) {
+func (*pool) LookupVolume(lager.Logger, string) (Volume, bool, error) {
 	return nil, false, errors.New("LookupVolume not implemented for pool")
 }
 

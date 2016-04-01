@@ -725,7 +725,7 @@ var _ = Describe("GardenFactory", func() {
 													volumeChannel <- fakeNewlyCreatedVolume3
 													close(volumeChannel)
 
-													fakeWorker.CreateVolumeStub = func(lager.Logger, worker.VolumeIdentifier, worker.VolumeProperties, bool, time.Duration) (worker.Volume, error) {
+													fakeWorker.CreateVolumeStub = func(lager.Logger, worker.VolumeSpec) (worker.Volume, error) {
 														return <-volumeChannel, nil
 													}
 
@@ -757,35 +757,32 @@ var _ = Describe("GardenFactory", func() {
 												It("creates volumes for each output", func() {
 													Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(3))
 
-													_, vID, vProperties, vPrivileged, vTTL := fakeWorker.CreateVolumeArgsForCall(0)
-													Expect(vID).To(Equal(worker.VolumeIdentifier{
-														Output: &db.OutputIdentifier{
+													_, vSpec := fakeWorker.CreateVolumeArgsForCall(0)
+													Expect(vSpec).To(Equal(worker.VolumeSpec{
+														Strategy: worker.OutputStrategy{
 															Name: "some-output",
 														},
+														TTL:        worker.VolumeTTL,
+														Privileged: bool(privileged),
 													}))
-													Expect(vProperties).To(Equal(worker.VolumeProperties{}))
-													Expect(vTTL).To(Equal(worker.VolumeTTL))
-													Expect(vPrivileged).To(Equal(bool(privileged)))
 
-													_, vID, vProperties, vPrivileged, vTTL = fakeWorker.CreateVolumeArgsForCall(1)
-													Expect(vID).To(Equal(worker.VolumeIdentifier{
-														Output: &db.OutputIdentifier{
+													_, vSpec = fakeWorker.CreateVolumeArgsForCall(1)
+													Expect(vSpec).To(Equal(worker.VolumeSpec{
+														Strategy: worker.OutputStrategy{
 															Name: "some-other-output",
 														},
+														TTL:        worker.VolumeTTL,
+														Privileged: bool(privileged),
 													}))
-													Expect(vProperties).To(Equal(worker.VolumeProperties{}))
-													Expect(vTTL).To(Equal(worker.VolumeTTL))
-													Expect(vPrivileged).To(Equal(bool(privileged)))
 
-													_, vID, vProperties, vPrivileged, vTTL = fakeWorker.CreateVolumeArgsForCall(2)
-													Expect(vID).To(Equal(worker.VolumeIdentifier{
-														Output: &db.OutputIdentifier{
+													_, vSpec = fakeWorker.CreateVolumeArgsForCall(2)
+													Expect(vSpec).To(Equal(worker.VolumeSpec{
+														Strategy: worker.OutputStrategy{
 															Name: "some-trailing-slash-output",
 														},
+														TTL:        worker.VolumeTTL,
+														Privileged: bool(privileged),
 													}))
-													Expect(vProperties).To(Equal(worker.VolumeProperties{}))
-													Expect(vTTL).To(Equal(worker.VolumeTTL))
-													Expect(vPrivileged).To(Equal(bool(privileged)))
 												})
 
 												It("passes the created output volumes to the worker", func() {
