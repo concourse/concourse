@@ -55,7 +55,7 @@ func newGardenWorkerContainer(
 		release:      make(chan *time.Duration, 1),
 	}
 
-	workerContainer.heartbeat(logger.Session("initial-heartbeat"), containerTTL)
+	workerContainer.heartbeat(logger.Session("initial-heartbeat"), ContainerTTL)
 
 	workerContainer.heartbeating.Add(1)
 	go workerContainer.heartbeatContinuously(
@@ -219,7 +219,7 @@ func (container *gardenWorkerContainer) heartbeatContinuously(logger lager.Logge
 	for {
 		select {
 		case <-pacemaker.C():
-			container.heartbeat(logger.Session("tick"), containerTTL)
+			container.heartbeat(logger.Session("tick"), ContainerTTL)
 
 		case finalTTL := <-container.release:
 			if finalTTL != nil {

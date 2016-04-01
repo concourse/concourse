@@ -23,8 +23,8 @@ var ErrMismatchedTags = errors.New("mismatched tags")
 var ErrNoVolumeManager = errors.New("worker does not support volume management")
 
 const containerKeepalive = 30 * time.Second
-const containerTTL = 5 * time.Minute
-const VolumeTTL = containerTTL
+const ContainerTTL = 5 * time.Minute
+const VolumeTTL = 5 * time.Minute
 
 const ephemeralPropertyName = "concourse:ephemeral"
 const volumePropertyName = "concourse:volumes"
@@ -413,7 +413,7 @@ dance:
 			ContainerIdentifier: db.ContainerIdentifier(id),
 			ContainerMetadata:   db.ContainerMetadata(metadata),
 		},
-		containerTTL,
+		ContainerTTL,
 	)
 	if err != nil {
 		return nil, err
