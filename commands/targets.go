@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -20,6 +21,10 @@ func (command *TargetsCommand) Execute([]string) error {
 		return err
 	}
 
+	if len(flyYAML.Targets) == 0 {
+		log.Fatalln("no targets found, please add some and try again")
+	}
+
 	table := ui.Table{
 		Headers: ui.TableRow{
 			{Contents: "name", Color: color.New(color.Bold)},
@@ -29,10 +34,7 @@ func (command *TargetsCommand) Execute([]string) error {
 	}
 
 	for targetName, targetValues := range flyYAML.Targets {
-		expirationTime, err := GetExpirationFromString(targetValues.Token.Value)
-		if err != nil {
-			return err
-		}
+		expirationTime := GetExpirationFromString(targetValues.Token)
 
 		row := ui.TableRow{
 			{Contents: string(targetName)},
@@ -48,8 +50,12 @@ func (command *TargetsCommand) Execute([]string) error {
 	return table.Render(os.Stdout)
 }
 
-func GetExpirationFromString(token string) (string, error) {
-	parsedToken, _ := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+func GetExpirationFromString(token *rc.TargetToken) string {
+	if token == nil {
+		return "n/a"
+	}
+
+	parsedToken, _ := jwt.Parse(token.Value, func(token *jwt.Token) (interface{}, error) {
 		return "", nil
 	})
 
@@ -58,15 +64,15 @@ func GetExpirationFromString(token string) (string, error) {
 		expClaim interface{}
 	)
 	if expClaim, ok = parsedToken.Claims["exp"]; !ok {
-		return "", nil
+		return "n/a"
 	}
 
 	intSeconds, err := strconv.ParseInt(string(expClaim.(string)), 10, 64)
 	if err != nil {
-		return "", nil
+		return "n/a"
 	}
 
 	unixSeconds := time.Unix(intSeconds, 0)
 
-	return unixSeconds.Format(time.RFC1123), nil
+	return unixSeconds.Format(time.RFC1123)
 }
