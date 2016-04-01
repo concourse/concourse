@@ -507,7 +507,7 @@ flag. Once you've learned what the commands do, you may want to consult
   \code{SIGINT} or \code{SIGTERM} will \italic{not} abort the build.
 
   To watch the most recent one-off build, just run \code{fly watch} with no
-  arugments. To watch a specific build (one-off or no), pass \code{--build}
+  arguments. To watch a specific build (one-off or no), pass \code{--build}
   with the ID of the build to watch. This ID is available at the start of
   \reference{fly-execute}'s output or by browsing to the builds list in the web
   UI.
