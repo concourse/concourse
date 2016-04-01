@@ -36,7 +36,7 @@ func (command *LoginCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	err = rc.ValidateClient(client, Fly.Target)
+	err = rc.ValidateClient(client, Fly.Target, true)
 	if err != nil {
 		return err
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/fly/version"
 )
 
 var _ = Describe("login Command", func() {
@@ -60,6 +61,42 @@ var _ = Describe("login Command", func() {
 			var err error
 			stdin, err = flyCmd.StdinPipe()
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when fly and atc differ in major versions", func() {
+			var flyVersion string
+
+			BeforeEach(func() {
+				major, minor, patch, err := version.GetSemver(atcVersion)
+				Expect(err).NotTo(HaveOccurred())
+
+				flyVersion = fmt.Sprintf("%d.%d.%d", major+1, minor, patch)
+				flyPath, err := gexec.Build(
+					"github.com/concourse/fly",
+					"-ldflags", fmt.Sprintf("-X github.com/concourse/fly/version.Version=%s", flyVersion),
+				)
+				Expect(err).NotTo(HaveOccurred())
+				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
+				stdin, err = flyCmd.StdinPipe()
+				Expect(err).NotTo(HaveOccurred())
+
+				atcServer.AppendHandlers(
+					infoHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
+					),
+				)
+			})
+
+			It("warns user and does not fail", func() {
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(0))
+				Expect(sess.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:`, flyVersion, atcVersion))
+				Expect(sess.Err).To(gbytes.Say(`    fly -t some-target sync\n`))
+			})
 		})
 
 		Context("when auth methods are returned from the API", func() {

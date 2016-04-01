@@ -15,7 +15,7 @@ func (command *PipelinesCommand) Execute([]string) error {
 	if err != nil {
 		return err
 	}
-	err = rc.ValidateClient(client, Fly.Target)
+	err = rc.ValidateClient(client, Fly.Target, false)
 	if err != nil {
 		return err
 	}

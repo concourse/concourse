@@ -187,7 +187,7 @@ func CommandTargetClient(selectedTarget TargetName, commandInsecure *bool) (conc
 	return concourse.NewClient(target.API, httpClient), nil
 }
 
-func ValidateClient(client concourse.Client, targetName TargetName) error {
+func ValidateClient(client concourse.Client, targetName TargetName, allowVersionMismatch bool) error {
 	info, err := client.GetInfo()
 	if err != nil {
 		return err
@@ -207,12 +207,11 @@ func ValidateClient(client concourse.Client, targetName TargetName) error {
 		return err
 	}
 
-	if ((atcMajor == flyMajor) && (atcMinor != flyMinor)) ||
-		(atcMajor != flyMajor) {
+	if !allowVersionMismatch && (atcMajor != flyMajor || atcMinor != flyMinor) {
 		return NewErrVersionMismatch(version.Version, info.Version, targetName)
 	}
 
-	if (atcMajor == flyMajor) && (atcMinor == flyMinor) && (atcPatch != flyPatch) {
+	if atcMajor != flyMajor || atcMinor != flyMinor || atcPatch != flyPatch {
 		fmt.Fprintln(os.Stderr, ui.WarningColor("WARNING:\n"))
 		fmt.Fprintln(os.Stderr, ui.WarningColor(NewErrVersionMismatch(version.Version, info.Version, targetName).Error()))
 	}
