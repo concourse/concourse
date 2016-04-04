@@ -58,7 +58,7 @@
       }
 
       The web server will be running at
-      \hyperlink{https://192.168.100.4:8080}{192.168.100.4:8080}.
+      \hyperlink{http://192.168.100.4:8080}{192.168.100.4:8080}.
     }
 
     \step{1{\newline}min}{Save a .yml file with this example pipeline:}{
