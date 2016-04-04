@@ -264,7 +264,7 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
-	Entry("concourse deploy high cpi regression test", Example{
+	Entry("concourse deploy high cpu regression test", Example{
 		LoadDB: "testdata/concourse-versions-high-cpu-deploy.json",
 
 		Inputs: Inputs{
