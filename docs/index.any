@@ -71,7 +71,7 @@
               platform: linux
               image_resource:
                 type: docker-image
-                source: {repository: ubuntu}
+                source: \{repository: ubuntu\}
               run:
                 path: echo
                 args: ["Hello, world!"]
