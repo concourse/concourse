@@ -24,9 +24,11 @@ type connectionCountingDriver struct {
 }
 
 func SetupConnectionCountingDriver(delegateDriverName, sqlDataSource, newDriverName string) {
-	// ignoring any connection errors since we only need this to access the driver struct
-	delegateDBConn, _ := sql.Open(delegateDriverName, sqlDataSource)
-	delegateDBConn.Close()
+	delegateDBConn, err := sql.Open(delegateDriverName, sqlDataSource)
+	if err == nil {
+		// ignoring any connection errors since we only need this to access the driver struct
+		delegateDBConn.Close()
+	}
 
 	connectionCountingDriver := &connectionCountingDriver{delegateDBConn.Driver()}
 	sql.Register(newDriverName, connectionCountingDriver)
