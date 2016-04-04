@@ -28,7 +28,7 @@ func (d Data) Len() int          { return len(d) }
 func (d Data) Swap(i int, j int) { d[i], d[j] = d[j], d[i] }
 
 func (d Data) Less(i int, j int) bool {
-	return strings.Compare(d[i][0].Contents, d[j][0].Contents) == -1
+	return d[i][0].Contents < d[j][0].Contents
 }
 
 func (table Table) Render(dst io.Writer) error {

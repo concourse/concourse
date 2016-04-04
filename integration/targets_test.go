@@ -8,7 +8,6 @@ import (
 
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
 	. "github.com/onsi/ginkgo"
@@ -69,12 +68,18 @@ var _ = Describe("Fly CLI", func() {
 				os.RemoveAll(flyrc)
 			})
 
-			It("asks the users to add targets", func() {
+			It("prints an empty table", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess).Should(gexec.Exit(1))
-				Expect(sess.Err).To(gbytes.Say("no targets found, please add some and try again"))
+				Eventually(sess).Should(gexec.Exit(0))
+				Expect(sess.Out).To(PrintTable(ui.Table{
+					Headers: ui.TableRow{
+						{Contents: "name", Color: color.New(color.Bold)},
+						{Contents: "url", Color: color.New(color.Bold)},
+						{Contents: "expiry", Color: color.New(color.Bold)},
+					},
+					Data: []ui.TableRow{}}))
 			})
 		})
 	})

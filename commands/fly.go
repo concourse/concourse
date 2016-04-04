@@ -4,7 +4,7 @@ import "github.com/concourse/fly/rc"
 
 type FlyCommand struct {
 	Target  rc.TargetName  `short:"t" long:"target" description:"Concourse target name"`
-	Targets TargetsCommand `command:"targets" description:"View all targets save to your .flyrc"`
+	Targets TargetsCommand `command:"targets" alias:"ts" description:"List saved targets"`
 
 	Version func() `short:"v" long:"version" description:"Print the version of Fly and exit"`
 

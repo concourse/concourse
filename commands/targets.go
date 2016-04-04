@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -19,10 +18,6 @@ func (command *TargetsCommand) Execute([]string) error {
 	flyYAML, err := rc.LoadTargets()
 	if err != nil {
 		return err
-	}
-
-	if len(flyYAML.Targets) == 0 {
-		log.Fatalln("no targets found, please add some and try again")
 	}
 
 	table := ui.Table{
