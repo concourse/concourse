@@ -61,7 +61,7 @@
       \hyperlink{http://192.168.100.4:8080}{192.168.100.4:8080}.
     }
 
-    \step{1{\newline}min}{Save a .yml file with this example pipeline:}{
+    \step{1{\newline}min}{Save hello.yml with this example pipeline:}{
       \code-window{yaml}{
         jobs:
         - name: hello-world
@@ -82,7 +82,7 @@
       \code-lines{bash}{
         fly -t lite login -c http://192.168.100.4:8080
       }{
-        fly -t lite set-pipeline -p really-cool-pipeline -c somewhere.yml
+        fly -t lite set-pipeline -p hello-world -c hello.yml
       }
 
       If you refresh the \hyperlink{http://192.168.100.4:8080}{main page}, you
