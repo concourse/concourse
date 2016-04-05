@@ -44,7 +44,7 @@
   interesting code instead.
 }{
   Concourse works out-of-the-box with Git repositories, S3 buckets, and other
-  common external services. \reference{resource_types}{Custom resource types}
+  common external services. \reference{resource-types}{Custom resource types}
   allow you to extend your pipeline with support for anything else.
 }
 
