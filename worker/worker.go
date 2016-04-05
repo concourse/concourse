@@ -214,16 +214,20 @@ func (worker *gardenWorker) CreateContainer(
 dance:
 	switch s := spec.(type) {
 	case ResourceTypeContainerSpec:
-		if len(s.Mounts) > 0 && s.Cache.Volume != nil {
-			return nil, errors.New("a container may not have mounts and a cache")
+		if s.Cache.Volume != nil {
+			defer s.Cache.Volume.Release(nil)
+
+			if len(s.Mounts) > 0 {
+				return nil, errors.New("a container may not have mounts and a cache")
+			}
+
+			if s.Cache.MountPath != "" {
+				volumeHandles = append(volumeHandles, s.Cache.Volume.Handle())
+				volumeMountPaths[s.Cache.Volume] = s.Cache.MountPath
+			}
 		}
 
 		volumeMounts = s.Mounts
-
-		if s.Cache.Volume != nil && s.Cache.MountPath != "" {
-			volumeHandles = append(volumeHandles, s.Cache.Volume.Handle())
-			volumeMountPaths[s.Cache.Volume] = s.Cache.MountPath
-		}
 
 		for _, resourceType := range resourceTypes {
 			if resourceType.Name == s.Type {

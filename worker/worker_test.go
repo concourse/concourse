@@ -1481,11 +1481,17 @@ var _ = Describe("Worker", func() {
 			})
 
 			Context("when the spec defines a cache volume", func() {
+				var cacheVolume *wfakes.FakeVolume
 				BeforeEach(func() {
-					v := new(wfakes.FakeVolume)
-					v.PathReturns("cache-volume-src-path")
-					v.HandleReturns("cache-volume-handle")
-					resourceTypeContainerSpec.Cache.Volume = v
+					cacheVolume = new(wfakes.FakeVolume)
+					cacheVolume.PathReturns("cache-volume-src-path")
+					cacheVolume.HandleReturns("cache-volume-handle")
+					resourceTypeContainerSpec.Cache.Volume = cacheVolume
+				})
+
+				It("releases cache volume with no ttl changes", func() {
+					Expect(cacheVolume.ReleaseCallCount()).To(Equal(1))
+					Expect(cacheVolume.ReleaseArgsForCall(0)).To(BeNil())
 				})
 
 				Context("when the spec defines a cache mount path", func() {
