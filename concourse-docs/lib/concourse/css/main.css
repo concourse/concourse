@@ -47,7 +47,15 @@ img.responsive-image {
 }
 
 .navbar-brand img {
-	height: 30px;
+  height: 30px;
+}
+
+.navbar-brand {
+  padding: 15px 0;
+}
+
+.navbar-toggle {
+  margin-right: 0;
 }
 
 .navbar {

@@ -2,6 +2,12 @@
   margin-top: 20px;
 }
 
+@media (max-width: 640px) {
+  .intro-slogan {
+    font-size: 30px !important;
+  }
+}
+
 .splash-pipeline-image {
   padding: 0 10px; /* spacing for narrow window/mobile */
   position: relative;
@@ -12,9 +18,10 @@
   position: absolute;
   top: 35px;
   bottom: 0;
-  width: 100%;
+  left: 0;
+  right: 0;
   max-width: 950px;
-  margin: 0 10px;
+  margin: 0 auto;
 }
 
 .pipes {
@@ -65,5 +72,33 @@
 @media (min-width: 985px) {
   .value-props, .value-prop-b {
     padding: 80px 0;
+  }
+}
+
+.line-path {
+  display: inline-block;
+}
+
+@media (min-width: 150px) {
+  .line-path {
+    background-image: url("line_path_xsml.svg");
+    width: 239px;
+    height: 73px;
+  }
+}
+
+@media (min-width: 550px) {
+  .line-path {
+    background-image: url("line_path_sml.svg");
+    width: 355px;
+    height: 119px;
+  }
+}
+
+@media (min-width: 1040px) {
+  .line-path {
+    background-image: url("line_path.svg");
+    width: 505px;
+    height: 177px;
   }
 }

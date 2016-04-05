@@ -163,13 +163,7 @@ def(truitt(title, content)):
         data Block new(
           data Block new(
             data Block new(
-              [ data Element new(
-                  ""
-                  .classed(.picture("line_path.svg", #{
-                    "(min-width: 1040px)" -> "line_path.svg"
-                    "(min-width: 550px)" -> "line_path_sml.svg"
-                    "(min-width: 150px)" -> "line_path_xsml.svg"
-                  }), "line-path"))
+              [ data Element new("", .class("line-path"))
                 data Block new(
                   [ data Block new(title, .header(4))
                     content
