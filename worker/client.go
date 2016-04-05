@@ -93,6 +93,24 @@ func (strategy OutputStrategy) dbIdentifier() db.VolumeIdentifier {
 	}
 }
 
+type ContainerRootFSStrategy struct {
+	Parent Volume
+}
+
+func (strategy ContainerRootFSStrategy) baggageclaimStrategy() baggageclaim.Strategy {
+	return baggageclaim.COWStrategy{
+		Parent: strategy.Parent,
+	}
+}
+
+func (strategy ContainerRootFSStrategy) dbIdentifier() db.VolumeIdentifier {
+	return db.VolumeIdentifier{
+		COW: &db.COWIdentifier{
+			ParentVolumeHandle: strategy.Parent.Handle(),
+		},
+	}
+}
+
 //go:generate counterfeiter . Container
 
 type Container interface {

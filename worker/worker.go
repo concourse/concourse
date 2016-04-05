@@ -319,8 +319,8 @@ dance:
 	}
 
 	for _, mount := range volumeMounts {
-		cowBCVolume, err := worker.baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
-			Strategy: baggageclaim.COWStrategy{
+		cowVolume, err := worker.CreateVolume(logger, VolumeSpec{
+			Strategy: ContainerRootFSStrategy{
 				Parent: mount.Volume,
 			},
 			Privileged: gardenSpec.Privileged,
@@ -329,32 +329,6 @@ dance:
 		if err != nil {
 			return nil, err
 		}
-
-		insertErr := worker.db.InsertVolume(db.Volume{
-			Handle:     cowBCVolume.Handle(),
-			WorkerName: worker.Name(),
-			TTL:        VolumeTTL,
-			Identifier: db.VolumeIdentifier{
-				COW: &db.COWIdentifier{
-					ParentVolumeHandle: mount.Volume.Handle(),
-				},
-			},
-		})
-		if insertErr != nil {
-			return nil, insertErr
-		}
-
-		cowVolume, found, err := worker.volumeFactory.Build(logger, cowBCVolume)
-		if err != nil {
-			return nil, err
-		}
-
-		if !found {
-			err = ErrMissingVolume
-			logger.Error("cow-volume-expired-immediately", err)
-			return nil, err
-		}
-
 		// release *after* container creation
 		defer cowVolume.Release(nil)
 
