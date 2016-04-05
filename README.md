@@ -1,35 +1,38 @@
 # concourse [![slack.concourse.ci](http://slack.concourse.ci/badge.svg)](http://slack.concourse.ci)
 
-A [BOSH](https://github.com/cloudfoundry/bosh) release for concourse. The
-easiest way to deploy your own instance of concourse on AWS, vSphere,
-Openstack or with Vagrant.
+[Concourse](https://concourse.ci) is a pipeline-based CI system written in Go.
 
-* Documentation: [concourse.ci](http://concourse.ci)
-* Slack: [concourseci.slack.com](https://concourseci.slack.com) (get an invite at [slack.concourse.ci](http://slack.concourse.ci))
-* IRC: [#concourse](http://webchat.freenode.net/?channels=concourse) on Freenode
-* Roadmap: [Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1059262)
+* Website: [concourse.ci](https://concourse.ci)
+* Documentation:
+  * [Introduction](https://concourse.ci/introduction.html)
+  * [Setting Up](https://concourse.ci/setting-up.html)
+  * [Using Concourse](https://concourse.ci/using-concourse.html)
+* Slack:
+  * [Invitation](http://slack.concourse.ci)
+  * [#general](https://concourseci.slack.com) for help and chit-chat
+* Roadmap:
+  * [GitHub Issues](https://github.com/concourse/concourse/issues)
+  * [Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1059262)
 
-### Example
+## Contributing
 
-Concourse's own CI deployment lives at [ci.concourse.ci][concourse-pipeline].
-Its pipeline configurations live in this repo under
-[ci/pipelines][concourse-config].
+Concourse is actually built on a few components, all written in Go with cutesy
+aerospace-themed names. This repository is actually its [BOSH](https://bosh.io)
+release, which ties everything together and also serves as the central hub for
+GitHub issues.
 
-[concourse-pipeline]: https://ci.concourse.ci
-[concourse-config]: https://github.com/concourse/concourse/blob/develop/ci/pipelines
+Each component has its own repository:
 
-### Try it on Vagrant
+* [ATC](https://github.com/concourse/atc) is most of Concourse: it provides
+  the API, web UI, and all pipeline orchestration
+* [Fly](https://github.com/concourse/fly) is the CLI for interacting with and
+  configuring Concourse pipelines
+* [TSA](https://github.com/concourse/tsa) is a SSH server used for authorizing
+  worker registration
+* [Garden](https://github.com/cloudfoundry-incubator/garden) is a generic
+  interface for orchestrating containers remotely on a worker
+* [Baggageclaim](https://github.com/concourse/baggageclaim) is a server for
+  managing caches and artifacts on the workers
 
-Pre-built Vagrant boxes are available for VirtualBox and AWS. You can stand up
-a new instance pretty quickly without having to clone this repo:
-
-```
-vagrant init concourse/lite
-vagrant up
-```
-
-Browse to [http://192.168.100.4:8080](http://192.168.100.4:8080) and download
-the [Fly CLI](http://concourse.ci/fly-cli.html) from the bottom-right.
-
-Follow the [Getting Started](http://concourse.ci/introduction.html) docs
-for more information.
+To learn more about how they fit together, see [Concourse
+Architecture](https://concourse.ci/architecture.html).
