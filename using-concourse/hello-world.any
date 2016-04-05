@@ -35,7 +35,7 @@ flag.
 Out of the box, Concourse doesn't have any \reference{pipelines} configured.
 That's boring. Here, have this YAML!
 
-\titled-codeblock{pipeline.yml}{yaml}{
+\titled-codeblock{hello.yml}{yaml}{
 jobs:
 - name: hello-world
   plan:
@@ -50,10 +50,10 @@ jobs:
         args: ["Hello, world!"]
 }
 
-Dump that into a file called \code{pipeline.yml}, and run the following:
+Dump that into a file called \code{hello.yml}, and run the following:
 
 \codeblock{bash}{
-$ fly -t lite set-pipeline -p really-cool-pipeline -c pipeline.yml
+$ fly -t lite set-pipeline -p hello-world -c hello.yml
 }
 
 If you refresh the \hyperlink{http://192.168.100.4:8080}{main page}, you should
