@@ -1,10 +1,10 @@
 package worker_test
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
@@ -612,8 +612,9 @@ var _ = Describe("Worker", func() {
 			fakeImageFetchingDelegate *wfakes.FakeImageFetchingDelegate
 			containerID               Identifier
 			containerMetadata         Metadata
-			spec                      ContainerSpec
 			customTypes               atc.ResourceTypes
+			resourceTypeContainerSpec *ResourceTypeContainerSpec
+			taskContainerSpec         *TaskContainerSpec
 
 			createdContainer Container
 			createErr        error
@@ -663,1139 +664,869 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
+			var spec ContainerSpec
+			if resourceTypeContainerSpec != nil {
+				spec = *resourceTypeContainerSpec
+			} else if taskContainerSpec != nil {
+				spec = *taskContainerSpec
+			}
 			createdContainer, createErr = gardenWorker.CreateContainer(logger, signals, fakeImageFetchingDelegate, containerID, containerMetadata, spec, customTypes)
 		})
 
-		Context("with a resource type container spec", func() {
-			Context("when the resource type is supported by the worker", func() {
+		Context("when the spec is a TaskContainerSpec", func() {
+			BeforeEach(func() {
+				taskContainerSpec = &TaskContainerSpec{
+					Privileged: true,
+					Image:      "some-image",
+				}
+				fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
+					return new(gfakes.FakeContainer), nil
+				}
+			})
+
+			Context("when the spec specifies Inputs", func() {
+				var (
+					volume1                *wfakes.FakeVolume
+					volume2                *wfakes.FakeVolume
+					baggageclaimCOWVolume1 *wfakes.FakeVolume
+					baggageclaimCOWVolume2 *wfakes.FakeVolume
+					cowVolume1             *wfakes.FakeVolume
+					cowVolume2             *wfakes.FakeVolume
+				)
+
 				BeforeEach(func() {
-					spec = ResourceTypeContainerSpec{
-						Type: "some-resource",
+					volume1 = new(wfakes.FakeVolume)
+					volume1.HandleReturns("vol-1-handle")
+					volume2 = new(wfakes.FakeVolume)
+					volume2.HandleReturns("vol-2-handle")
+
+					taskContainerSpec.Inputs = []VolumeMount{
+						{
+							volume1,
+							"vol-1-mount-path",
+						},
+						{
+							volume2,
+							"vol-2-mount-path",
+						},
+					}
+
+					baggageclaimCOWVolume1 = new(wfakes.FakeVolume)
+					baggageclaimCOWVolume1.HandleReturns("bc-cow-vol-1-handle")
+					baggageclaimCOWVolume2 = new(wfakes.FakeVolume)
+					baggageclaimCOWVolume2.HandleReturns("bc-cow-vol-2-handle")
+
+					fakeBaggageclaimClient.CreateVolumeStub = func(lager.Logger, baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+						switch fakeBaggageclaimClient.CreateVolumeCallCount() {
+						case 1:
+							return baggageclaimCOWVolume1, nil
+						case 2:
+							return baggageclaimCOWVolume2, nil
+						default:
+							return nil, nil
+						}
+					}
+
+					cowVolume1 = new(wfakes.FakeVolume)
+					cowVolume1.HandleReturns("cow-vol-1-handle")
+					cowVolume2 = new(wfakes.FakeVolume)
+					cowVolume2.HandleReturns("cow-vol-2-handle")
+
+					fakeVolumeFactory.BuildStub = func(logger lager.Logger, volume baggageclaim.Volume) (Volume, bool, error) {
+						switch fakeVolumeFactory.BuildCallCount() {
+						case 1:
+							return cowVolume1, true, nil
+						case 2:
+							return cowVolume2, true, nil
+						default:
+							return new(wfakes.FakeVolume), true, nil
+						}
 					}
 				})
 
-				Context("when creating the garden container works", func() {
-					var fakeContainer *gfakes.FakeContainer
-
-					BeforeEach(func() {
-						fakeContainer = new(gfakes.FakeContainer)
-						fakeContainer.HandleReturns("some-handle")
-
-						fakeGardenClient.CreateReturns(fakeContainer, nil)
-					})
-
-					It("succeeds", func() {
-						Expect(createErr).NotTo(HaveOccurred())
-					})
-
-					It("creates the container with the Garden client, ", func() {
-						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-						By("temporarily using an empty user until we require one to be set")
-						Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
-							RootFSPath: "some-resource-image",
-							Privileged: true,
-							Properties: garden.Properties{"user": ""},
-						}))
-					})
-
-					It("creates the container info in the database", func() {
-						expectedMetadata := containerMetadata
-						expectedMetadata.WorkerName = workerName
-						expectedMetadata.Handle = "some-handle"
-						expectedMetadata.User = ""
-
-						container := db.Container{
-							ContainerIdentifier: db.ContainerIdentifier(containerID),
-							ContainerMetadata:   db.ContainerMetadata(expectedMetadata),
-						}
-
-						Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
-						actualContainer, ttl := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
-						Expect(actualContainer).To(Equal(container))
-						Expect(ttl).To(Equal(5 * time.Minute))
-					})
-
-					Context("when creating the container info in the db fails", func() {
-						disaster := errors.New("bad")
-
-						BeforeEach(func() {
-							fakeGardenWorkerDB.CreateContainerReturns(db.SavedContainer{}, disaster)
-						})
-
-						It("returns the error", func() {
-
-							Expect(createErr).To(Equal(disaster))
-						})
-
-					})
-
-					Context("when an image resource is provided", func() {
-						BeforeEach(func() {
-							spec = ResourceTypeContainerSpec{
-								ImageResource: &atc.ImageResource{
-									Type:   "some-type",
-									Source: atc.Source{"some": "source"},
-								},
-								Env: []string{"C=3"},
-							}
-						})
-
-						Context("when fetching the image succeeds", func() {
-							var image *wfakes.FakeImage
-
-							BeforeEach(func() {
-								image = new(wfakes.FakeImage)
-
-								imageVolume := new(wfakes.FakeVolume)
-								imageVolume.HandleReturns("image-volume")
-								imageVolume.PathReturns("/some/image/path")
-								image.VolumeReturns(imageVolume)
-								image.MetadataReturns(ImageMetadata{
-									Env: []string{"A=1", "B=2"},
-								})
-
-								fakeImageFetcher.FetchImageReturns(image, nil)
-							})
-
-							It("succeeds", func() {
-								Expect(createErr).NotTo(HaveOccurred())
-							})
-
-							It("creates the container with (volume path)/rootfs as the rootfs", func() {
-								Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-								spec := fakeGardenClient.CreateArgsForCall(0)
-								Expect(spec.RootFSPath).To(Equal("/some/image/path/rootfs"))
-								Expect(spec.Properties).To(HaveLen(3))
-								Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
-									`["image-volume"]`,
-								))
-								Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(`{}`))
-							})
-
-							It("fetches the image with the correct info", func() {
-								Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
-								_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
-								Expect(fetchImageConfig).To(Equal(atc.ImageResource{
-									Type:   "some-type",
-									Source: atc.Source{"some": "source"},
-								}))
-								Expect(fetchSignals).To(Equal(signals))
-								Expect(fetchID).To(Equal(containerID))
-								Expect(fetchMetadata).To(Equal(containerMetadata))
-								Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
-								Expect(fetchWorker).To(Equal(gardenWorker))
-								Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
-								Expect(fetchCustomTypes).To(Equal(customTypes))
-							})
-
-							It("creates the container with env from the image", func() {
-								Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-								spec := fakeGardenClient.CreateArgsForCall(0)
-								Expect(spec.Env).To(Equal([]string{"A=1", "B=2", "C=3"}))
-							})
-
-							Context("after the container is created", func() {
-								BeforeEach(func() {
-									fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
-										Expect(image.ReleaseCallCount()).To(Equal(0))
-										return fakeContainer, nil
-									}
-								})
-
-								It("releases the image", func() {
-									Expect(image.ReleaseCallCount()).To(Equal(1))
-								})
-							})
-						})
-
-						Context("when fetching the image fails", func() {
-							disaster := errors.New("nope")
-
-							BeforeEach(func() {
-								fakeImageFetcher.FetchImageReturns(nil, disaster)
-							})
-
-							It("returns the error", func() {
-								Expect(createErr).To(Equal(disaster))
-							})
-						})
-					})
-
-					Context("when env vars are provided", func() {
-						BeforeEach(func() {
-							spec = ResourceTypeContainerSpec{
-								Type: "some-resource",
-								Env:  []string{"a=1", "b=2"},
-							}
-						})
-
-						It("creates the container with the given env vars", func() {
-							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-							Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
-								RootFSPath: "some-resource-image",
-								Privileged: true,
-								Env:        []string{"a=1", "b=2"},
-								Properties: garden.Properties{"user": ""},
-							}))
-
-						})
-					})
-
-					Context("when a volume mount is provided", func() {
-						var (
-							volume1 *wfakes.FakeVolume
-							volume2 *wfakes.FakeVolume
-						)
-
-						BeforeEach(func() {
-							volume1 = new(wfakes.FakeVolume)
-							volume1.HandleReturns("some-volume1")
-							volume1.PathReturns("/some/src/path1")
-
-							volume2 = new(wfakes.FakeVolume)
-							volume2.HandleReturns("some-volume2")
-							volume2.PathReturns("/some/src/path2")
-						})
-
-						Context("when copy-on-write is specified", func() {
-							var (
-								cowVolume1 *wfakes.FakeVolume
-								cowVolume2 *wfakes.FakeVolume
-							)
-
-							BeforeEach(func() {
-								spec = ResourceTypeContainerSpec{
-									Type: "some-resource",
-									Mounts: []VolumeMount{
-										{
-											Volume:    volume1,
-											MountPath: "/some/dst/path1",
-										},
-										{
-											Volume:    volume2,
-											MountPath: "/some/dst/path2",
-										},
-									},
-								}
-
-								cowVolume1 = new(wfakes.FakeVolume)
-								cowVolume1.HandleReturns("cow-volume1")
-								cowVolume1.PathReturns("/some/cow/src/path")
-
-								cowVolume2 = new(wfakes.FakeVolume)
-								cowVolume2.HandleReturns("cow-volume2")
-								cowVolume2.PathReturns("/some/other/cow/src/path")
-
-								fakeBaggageclaimClient.CreateVolumeStub = func(logger lager.Logger, spec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
-									Expect(spec.Privileged).To(BeTrue())
-									Expect(spec.TTL).To(Equal(5 * time.Minute))
-
-									if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume1}) {
-										return cowVolume1, nil
-									} else if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume2}) {
-										return cowVolume2, nil
-									} else {
-										Fail(fmt.Sprintf("unknown strategy: %#v", spec.Strategy))
-										return nil, nil
-									}
-								}
-
-								fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
-									// ensure they're not released before container creation
-									Expect(cowVolume1.ReleaseCallCount()).To(BeZero())
-									Expect(cowVolume2.ReleaseCallCount()).To(BeZero())
-									Expect(volume1.ReleaseCallCount()).To(BeZero())
-									Expect(volume2.ReleaseCallCount()).To(BeZero())
-									return fakeContainer, nil
-								}
-
-								fakeVolumeFactory.BuildStub = func(logger lager.Logger, volume baggageclaim.Volume) (Volume, bool, error) {
-									switch volume.Handle() {
-									case "cow-volume1":
-										return cowVolume1, true, nil
-									case "cow-volume2":
-										return cowVolume2, true, nil
-									default:
-										return nil, false, nil
-									}
-								}
-							})
-
-							It("creates the container with read-write copy-on-write bind-mounts for each cache", func() {
-								Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-								spec := fakeGardenClient.CreateArgsForCall(0)
-								Expect(spec.RootFSPath).To(Equal("some-resource-image"))
-								Expect(spec.Privileged).To(BeTrue())
-								Expect(spec.BindMounts).To(HaveLen(2))
-								Expect(spec.BindMounts).To(ContainElement(garden.BindMount{
-									SrcPath: "/some/cow/src/path",
-									DstPath: "/some/dst/path1",
-									Mode:    garden.BindMountModeRW,
-								}))
-
-								Expect(spec.BindMounts).To(ContainElement(garden.BindMount{
-									SrcPath: "/some/other/cow/src/path",
-									DstPath: "/some/dst/path2",
-									Mode:    garden.BindMountModeRW,
-								}))
-
-								Expect(spec.Properties).To(HaveLen(3))
-								Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
-									`["cow-volume1","cow-volume2"]`,
-								))
-
-								Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(
-									`{"cow-volume1":"/some/dst/path1","cow-volume2":"/some/dst/path2"}`,
-								))
-							})
-
-							It("inserts the created COW volumes into the database", func() {
-								Expect(fakeGardenWorkerDB.InsertVolumeCallCount()).To(Equal(2))
-
-								dbVolume := fakeGardenWorkerDB.InsertVolumeArgsForCall(0)
-								Expect(dbVolume).To(Equal(db.Volume{
-									Handle:     cowVolume1.Handle(),
-									WorkerName: workerName,
-									TTL:        VolumeTTL,
-									Identifier: db.VolumeIdentifier{
-										COW: &db.COWIdentifier{
-											ParentVolumeHandle: volume1.Handle(),
-										},
-									},
-								}))
-
-								dbVolume = fakeGardenWorkerDB.InsertVolumeArgsForCall(1)
-								Expect(dbVolume).To(Equal(db.Volume{
-									Handle:     cowVolume2.Handle(),
-									WorkerName: workerName,
-									TTL:        VolumeTTL,
-									Identifier: db.VolumeIdentifier{
-										COW: &db.COWIdentifier{
-											ParentVolumeHandle: volume2.Handle(),
-										},
-									},
-								}))
-							})
-
-							It("releases the volumes that it instantiated but not the ones that were passed in", func() {
-								Expect(cowVolume1.ReleaseCallCount()).To(Equal(1))
-								Expect(cowVolume2.ReleaseCallCount()).To(Equal(1))
-								Expect(volume1.ReleaseCallCount()).To(BeZero())
-								Expect(volume2.ReleaseCallCount()).To(BeZero())
-							})
-
-							Context("and the copy-on-write volumes fail to be created", func() {
-								disaster := errors.New("par")
-
-								BeforeEach(func() {
-									fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
-								})
-
-								It("errors", func() {
-									Expect(createErr).To(Equal(disaster))
-									Expect(fakeGardenClient.CreateCallCount()).To(BeZero())
-								})
-							})
-						})
-
-						Context("when a cache is specified", func() {
-							BeforeEach(func() {
-								spec = ResourceTypeContainerSpec{
-									Type: "some-resource",
-									Cache: VolumeMount{
-										Volume:    volume1,
-										MountPath: "/some/dst/path1",
-									},
-								}
-							})
-
-							It("creates the container with a read-write bind-mount", func() {
-								Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-								spec := fakeGardenClient.CreateArgsForCall(0)
-								Expect(spec.RootFSPath).To(Equal("some-resource-image"))
-								Expect(spec.Privileged).To(BeTrue())
-								Expect(spec.BindMounts).To(Equal([]garden.BindMount{
-									{
-										SrcPath: "/some/src/path1",
-										DstPath: "/some/dst/path1",
-										Mode:    garden.BindMountModeRW,
-									},
-								}))
-
-								Expect(spec.Properties).To(HaveLen(3))
-								Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
-									`["some-volume1"]`,
-								))
-
-								Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(
-									`{"some-volume1":"/some/dst/path1"}`,
-								))
-							})
-						})
-
-						Context("when both cache and volumes are specified", func() {
-							BeforeEach(func() {
-								spec = ResourceTypeContainerSpec{
-									Type: "some-resource",
-									Cache: VolumeMount{
-										Volume:    volume1,
-										MountPath: "/some/dst/path1",
-									},
-									Mounts: []VolumeMount{
-										{
-											Volume:    volume1,
-											MountPath: "/some/dst/path1",
-										},
-										{
-											Volume:    volume2,
-											MountPath: "/some/dst/path2",
-										},
-									},
-								}
-							})
-
-							It("errors (may be ok but I don't know how they get along)", func() {
-								Expect(createErr).To(HaveOccurred())
-								Expect(fakeGardenClient.CreateCallCount()).To(BeZero())
-							})
-						})
-					})
-
-					Context("when the container is marked as ephemeral", func() {
-						BeforeEach(func() {
-							spec = ResourceTypeContainerSpec{
-								Type:      "some-resource",
-								Ephemeral: true,
-							}
-						})
-
-						It("adds an 'ephemeral' property to the container", func() {
-							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-							Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
-								RootFSPath: "some-resource-image",
-								Privileged: true,
-								Properties: garden.Properties{
-									"concourse:ephemeral": "true",
-									"user":                "",
-								},
-							}))
-						})
-					})
-
-					Describe("the created container", func() {
-						It("can be destroyed", func() {
-							err := createdContainer.Destroy()
-							Expect(err).NotTo(HaveOccurred())
-
-							By("destroying via garden")
-							Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
-							Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle"))
-
-							By("no longer heartbeating")
-							fakeClock.Increment(30 * time.Second)
-							Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
-						})
-
-						It("performs an initial heartbeat synchronously", func() {
-							Expect(fakeContainer.SetGraceTimeCallCount()).To(Equal(1))
-							Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(1))
-						})
-
-						Describe("every 30 seconds", func() {
-							It("heartbeats to the database and the container", func() {
-								fakeClock.Increment(30 * time.Second)
-
-								Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
-								Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(5 * time.Minute))
-
-								Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
-								handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
-								Expect(handle).To(Equal("some-handle"))
-								Expect(interval).To(Equal(5 * time.Minute))
-
-								fakeClock.Increment(30 * time.Second)
-
-								Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
-								Expect(fakeContainer.SetGraceTimeArgsForCall(2)).To(Equal(5 * time.Minute))
-
-								Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(3))
-								handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(2)
-								Expect(handle).To(Equal("some-handle"))
-								Expect(interval).To(Equal(5 * time.Minute))
-							})
-						})
-
-						Describe("releasing", func() {
-							It("sets a final ttl on the container and stops heartbeating", func() {
-								createdContainer.Release(FinalTTL(30 * time.Minute))
-
-								Expect(fakeContainer.SetGraceTimeCallCount()).Should(Equal(2))
-								Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(30 * time.Minute))
-
-								Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).Should(Equal(2))
-								handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
-								Expect(handle).To(Equal("some-handle"))
-								Expect(interval).To(Equal(30 * time.Minute))
-
-								fakeClock.Increment(30 * time.Second)
-
-								Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
-								Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
-							})
-
-							Context("with no final ttl", func() {
-								It("does not perform a final heartbeat", func() {
-									createdContainer.Release(nil)
-
-									Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
-									Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(1))
-								})
-							})
-						})
-					})
+				It("creates a COW volume for each mount", func() {
+					Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(2))
+					_, volumeSpec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
+					Expect(volumeSpec).To(Equal(baggageclaim.VolumeSpec{
+						Strategy: baggageclaim.COWStrategy{
+							Parent: volume1,
+						},
+						Privileged: true,
+						TTL:        VolumeTTL,
+					}))
+
+					_, volumeSpec = fakeBaggageclaimClient.CreateVolumeArgsForCall(1)
+					Expect(volumeSpec).To(Equal(baggageclaim.VolumeSpec{
+						Strategy: baggageclaim.COWStrategy{
+							Parent: volume2,
+						},
+						Privileged: true,
+						TTL:        VolumeTTL,
+					}))
 				})
 
-				Context("when creating fails", func() {
-					disaster := errors.New("nope")
+				Context("when creating any baggageclaim COW volume fails", func() {
+					var baggageclaimCOWVolume1 *wfakes.FakeVolume
+					var bccCreateVolumeErr error
 
 					BeforeEach(func() {
-						fakeGardenClient.CreateReturns(nil, disaster)
+						bccCreateVolumeErr = errors.New("an-error")
+						baggageclaimCOWVolume1 = new(wfakes.FakeVolume)
+						fakeBaggageclaimClient.CreateVolumeStub = func(lager.Logger, baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+							if fakeBaggageclaimClient.CreateVolumeCallCount() != 1 {
+								return nil, bccCreateVolumeErr
+							}
+
+							return baggageclaimCOWVolume1, nil
+						}
 					})
 
 					It("returns the error", func() {
-						Expect(createErr).To(Equal(disaster))
+						Expect(createErr).To(HaveOccurred())
+						Expect(createErr).To(Equal(bccCreateVolumeErr))
 					})
 				})
-			})
 
-			Context("with a custom resource type for a resource container", func() {
-				BeforeEach(func() {
-					spec = ResourceTypeContainerSpec{
-						Type: "custom-type-c",
-						Env:  []string{"C=3"},
-					}
+				It("inserts each baggageclaim COW volume into the db", func() {
+					Expect(fakeGardenWorkerDB.InsertVolumeCallCount()).To(Equal(2))
+					Expect(fakeGardenWorkerDB.InsertVolumeArgsForCall(0)).To(Equal(db.Volume{
+						Handle:     "bc-cow-vol-1-handle",
+						WorkerName: "some-worker",
+						TTL:        VolumeTTL,
+						Identifier: db.VolumeIdentifier{
+							COW: &db.COWIdentifier{
+								ParentVolumeHandle: "vol-1-handle",
+							},
+						},
+					}))
 				})
 
-				Context("when creating the garden container works", func() {
-					var fakeContainer *gfakes.FakeContainer
+				Context("when inserting any volume into the db fails", func() {
+					var insertErr error
 
 					BeforeEach(func() {
-						fakeContainer = new(gfakes.FakeContainer)
-						fakeContainer.HandleReturns("some-handle")
-
-						fakeGardenClient.CreateReturns(fakeContainer, nil)
+						insertErr = errors.New("an-error")
+						fakeGardenWorkerDB.InsertVolumeStub = func(db.Volume) error {
+							if fakeGardenWorkerDB.InsertVolumeCallCount() == 1 {
+								return nil
+							}
+							return insertErr
+						}
 					})
 
-					Context("when fetching the image succeeds", func() {
-						var image *wfakes.FakeImage
-
-						BeforeEach(func() {
-							image = new(wfakes.FakeImage)
-
-							imageVolume := new(wfakes.FakeVolume)
-							imageVolume.HandleReturns("image-volume")
-							imageVolume.PathReturns("/some/image/path")
-							image.VolumeReturns(imageVolume)
-							image.MetadataReturns(ImageMetadata{
-								Env: []string{"A=1", "B=2"},
-							})
-
-							fakeImageFetcher.FetchImageReturns(image, nil)
-						})
-
-						It("succeeds", func() {
-							Expect(createErr).NotTo(HaveOccurred())
-						})
-
-						It("creates the container with (volume path)/rootfs as the rootfs", func() {
-							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-							spec := fakeGardenClient.CreateArgsForCall(0)
-							Expect(spec.RootFSPath).To(Equal("/some/image/path/rootfs"))
-							Expect(spec.Properties).To(HaveLen(3))
-							Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
-								`["image-volume"]`,
-							))
-							Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(`{}`))
-						})
-
-						It("fetches the image with the correct info", func() {
-							Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
-							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
-							Expect(fetchImageConfig).To(Equal(atc.ImageResource{
-								Type:   "custom-type-b",
-								Source: atc.Source{"some": "source"},
-							}))
-							Expect(fetchSignals).To(Equal(signals))
-							Expect(fetchID).To(Equal(containerID))
-							Expect(fetchMetadata).To(Equal(containerMetadata))
-							Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
-							Expect(fetchWorker).To(Equal(gardenWorker))
-							Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
-							Expect(fetchCustomTypes).To(Equal(atc.ResourceTypes{
-								{
-									Name:   "custom-type-b",
-									Type:   "custom-type-a",
-									Source: atc.Source{"some": "source"},
-								},
-								{
-									Name:   "custom-type-a",
-									Type:   "some-resource",
-									Source: atc.Source{"some": "source"},
-								},
-								// no c!
-								{
-									Name:   "custom-type-d",
-									Type:   "custom-type-b",
-									Source: atc.Source{"some": "source"},
-								},
-								{
-									Name:   "unknown-custom-type",
-									Type:   "unknown-base-type",
-									Source: atc.Source{"some": "source"},
-								},
-							}))
-						})
-
-						It("creates the container with env from the image", func() {
-							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-							spec := fakeGardenClient.CreateArgsForCall(0)
-							Expect(spec.Env).To(Equal([]string{"A=1", "B=2", "C=3"}))
-						})
-
-						Context("after the container is created", func() {
-							BeforeEach(func() {
-								fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
-									Expect(image.ReleaseCallCount()).To(Equal(0))
-									return fakeContainer, nil
-								}
-							})
-
-							It("releases the image", func() {
-								Expect(image.ReleaseCallCount()).To(Equal(1))
-							})
-						})
+					It("returns the error", func() {
+						Expect(createErr).To(Equal(insertErr))
 					})
+				})
+
+				It("tries to build a COW volume with the volume factory for each baggageclaim COW volume", func() {
+					Expect(fakeVolumeFactory.BuildCallCount()).To(Equal(2))
+					_, actualBCCOWVolume1 := fakeVolumeFactory.BuildArgsForCall(0)
+					Expect(actualBCCOWVolume1).To(Equal(baggageclaimCOWVolume1))
+					_, actualBCCOWVolume2 := fakeVolumeFactory.BuildArgsForCall(1)
+					Expect(actualBCCOWVolume2).To(Equal(baggageclaimCOWVolume2))
+				})
+
+				Context("when building any COW volume fails", func() {
+					var buildErr error
+
+					BeforeEach(func() {
+						buildErr = errors.New("an-error")
+						fakeVolumeFactory.BuildStub = func(lager.Logger, baggageclaim.Volume) (Volume, bool, error) {
+							switch fakeVolumeFactory.BuildCallCount() {
+							case 2:
+								return nil, false, buildErr
+							default:
+								return new(wfakes.FakeVolume), true, nil
+							}
+						}
+					})
+
+					It("returns the error", func() {
+						Expect(createErr).To(Equal(buildErr))
+					})
+				})
+
+				Context("when any COW volume cannot be found", func() {
+					BeforeEach(func() {
+						fakeVolumeFactory.BuildStub = func(lager.Logger, baggageclaim.Volume) (Volume, bool, error) {
+							switch fakeVolumeFactory.BuildCallCount() {
+							case 2:
+								return nil, false, nil
+							default:
+								return new(wfakes.FakeVolume), true, nil
+							}
+						}
+					})
+
+					It("returns an error", func() {
+						Expect(createErr).To(Equal(ErrMissingVolume))
+					})
+				})
+
+				It("releases each cow volume after attempting to create the container", func() {
+					Expect(cowVolume1.ReleaseCallCount()).To(Equal(1))
+					Expect(cowVolume1.ReleaseArgsForCall(0)).To(BeNil())
+					Expect(cowVolume2.ReleaseCallCount()).To(Equal(1))
+					Expect(cowVolume2.ReleaseArgsForCall(0)).To(BeNil())
+				})
+
+				It("adds each cow volume to the garden spec properties", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					concourseVolumes := []string{}
+					err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volumes"]), &concourseVolumes)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(concourseVolumes).To(ContainElement("cow-vol-1-handle"))
+					Expect(concourseVolumes).To(ContainElement("cow-vol-2-handle"))
+				})
+
+				It("adds each cow volume to the garden spec properties", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					volumeMountProperties := map[string]string{}
+					err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volume-mounts"]), &volumeMountProperties)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(volumeMountProperties["cow-vol-1-handle"]).To(Equal("vol-1-mount-path"))
+					Expect(volumeMountProperties["cow-vol-2-handle"]).To(Equal("vol-2-mount-path"))
 				})
 			})
 
-			Context("with a custom resource type for a task container's image_resource", func() {
+			Context("when the spec specifies Outputs", func() {
+				var (
+					volume1 *wfakes.FakeVolume
+					volume2 *wfakes.FakeVolume
+				)
+
 				BeforeEach(func() {
-					spec = TaskContainerSpec{
-						ImageResource: &atc.ImageResource{
-							Type:   "custom-type-c",
-							Source: atc.Source{"some": "source"},
+					volume1 = new(wfakes.FakeVolume)
+					volume1.HandleReturns("vol-1-handle")
+					volume1.PathReturns("vol-1-path")
+					volume2 = new(wfakes.FakeVolume)
+					volume2.HandleReturns("vol-2-handle")
+					volume2.PathReturns("vol-2-path")
+
+					taskContainerSpec.Outputs = []VolumeMount{
+						{
+							volume1,
+							"vol-1-mount-path",
+						},
+						{
+							volume2,
+							"vol-2-mount-path",
 						},
 					}
 				})
 
-				Context("when creating the garden container works", func() {
-					var fakeContainer *gfakes.FakeContainer
+				It("creates a bind mount for each output volume", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualGardenSpec.BindMounts).To(ConsistOf([]garden.BindMount{
+						{
+							SrcPath: "vol-1-path",
+							DstPath: "vol-1-mount-path",
+							Mode:    garden.BindMountModeRW,
+						},
+						{
+							SrcPath: "vol-2-path",
+							DstPath: "vol-2-mount-path",
+							Mode:    garden.BindMountModeRW,
+						},
+					}))
+				})
 
-					BeforeEach(func() {
-						fakeContainer = new(gfakes.FakeContainer)
-						fakeContainer.HandleReturns("some-handle")
-
-						fakeGardenClient.CreateReturns(fakeContainer, nil)
-					})
-
-					Context("when fetching the image succeeds", func() {
-						var image *wfakes.FakeImage
-
-						BeforeEach(func() {
-							image = new(wfakes.FakeImage)
-
-							imageVolume := new(wfakes.FakeVolume)
-							imageVolume.HandleReturns("image-volume")
-							imageVolume.PathReturns("/some/image/path")
-							image.VolumeReturns(imageVolume)
-							image.MetadataReturns(ImageMetadata{
-								Env: []string{"A=1", "B=2"},
-							})
-
-							fakeImageFetcher.FetchImageReturns(image, nil)
-						})
-
-						It("succeeds", func() {
-							Expect(createErr).NotTo(HaveOccurred())
-						})
-
-						It("creates the container with (volume path)/rootfs as the rootfs", func() {
-							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-							spec := fakeGardenClient.CreateArgsForCall(0)
-							Expect(spec.RootFSPath).To(Equal("/some/image/path/rootfs"))
-							Expect(spec.Properties).To(HaveLen(3))
-							Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
-								`["image-volume"]`,
-							))
-							Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(`{}`))
-						})
-
-						It("fetches the image with the correct info", func() {
-							Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
-							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
-							Expect(fetchImageConfig).To(Equal(atc.ImageResource{
-								Type:   "custom-type-c",
-								Source: atc.Source{"some": "source"},
-							}))
-							Expect(fetchSignals).To(Equal(signals))
-							Expect(fetchID).To(Equal(containerID))
-							Expect(fetchMetadata).To(Equal(containerMetadata))
-							Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
-							Expect(fetchWorker).To(Equal(gardenWorker))
-							Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
-							Expect(fetchCustomTypes).To(Equal(customTypes))
-						})
-
-						Context("after the container is created", func() {
-							BeforeEach(func() {
-								fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
-									Expect(image.ReleaseCallCount()).To(Equal(0))
-									return fakeContainer, nil
-								}
-							})
-
-							It("releases the image", func() {
-								Expect(image.ReleaseCallCount()).To(Equal(1))
-							})
-						})
-					})
+				It("adds each output volume to the garden spec properties", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					concourseVolumes := []string{}
+					err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volumes"]), &concourseVolumes)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(concourseVolumes).To(ConsistOf([]string{"vol-1-handle", "vol-2-handle"}))
 				})
 			})
 
-			Context("when the type is unknown", func() {
+			It("uses the Image of the spec as the rootfs", func() {
+				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+				actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+				Expect(actualGardenSpec.RootFSPath).To(Equal("some-image"))
+			})
+
+			Context("when the spec specifies ImageResource", func() {
+				var image *wfakes.FakeImage
+
 				BeforeEach(func() {
-					spec = ResourceTypeContainerSpec{
-						Type: "some-bogus-resource",
+					taskContainerSpec.ImageResource = &atc.ImageResource{
+						Type:   "some-resource",
+						Source: atc.Source{"some": "source"},
 					}
+
+					image = new(wfakes.FakeImage)
+
+					imageVolume := new(wfakes.FakeVolume)
+					imageVolume.HandleReturns("image-volume")
+					imageVolume.PathReturns("/some/image/path")
+					image.VolumeReturns(imageVolume)
+					image.MetadataReturns(ImageMetadata{
+						Env:  []string{"A=1", "B=2"},
+						User: "image-volume-user",
+					})
+					image.VersionReturns(atc.Version{"image": "version"})
+
+					fakeImageFetcher.FetchImageReturns(image, nil)
+
+					fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
+						Expect(image.ReleaseCallCount()).To(Equal(0))
+						fakeContainer := new(gfakes.FakeContainer)
+						return fakeContainer, nil
+					}
+				})
+
+				It("tries to fetch the image for the resource type", func() {
+					Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
+				})
+
+				It("releases the image after creating the container", func() {
+					// see fakeGardenClient.CreateStub for the rest of this assertion
+					Expect(image.ReleaseCallCount()).To(Equal(1))
+				})
+
+				It("adds the image volume to the garden spec properties", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					concourseVolumes := []string{}
+					err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volumes"]), &concourseVolumes)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(concourseVolumes).To(ContainElement("image-volume"))
+				})
+
+				It("adds the image user to the garden spec properties", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualGardenSpec.Properties["user"]).To(Equal("image-volume-user"))
+				})
+
+				Context("when fetching the image fails", func() {
+					BeforeEach(func() {
+						fakeImageFetcher.FetchImageReturns(nil, errors.New("fetch-err"))
+					})
+
+					It("returns an error", func() {
+						Expect(createErr).To(HaveOccurred())
+						Expect(createErr.Error()).To(Equal("fetch-err"))
+					})
+				})
+			})
+		})
+
+		Context("when the spec is a ResourceTypeContainerSpec", func() {
+			var image *wfakes.FakeImage
+			BeforeEach(func() {
+				resourceTypeContainerSpec = &ResourceTypeContainerSpec{
+					Type: "custom-type-a",
+					Env:  []string{"env-1", "env-2"},
+				}
+
+				image = new(wfakes.FakeImage)
+
+				imageVolume := new(wfakes.FakeVolume)
+				imageVolume.HandleReturns("image-volume")
+				imageVolume.PathReturns("/some/image/path")
+				image.VolumeReturns(imageVolume)
+				image.MetadataReturns(ImageMetadata{
+					Env:  []string{"A=1", "B=2"},
+					User: "image-volume-user",
+				})
+				image.VersionReturns(atc.Version{"image": "version"})
+
+				fakeImageFetcher.FetchImageReturns(image, nil)
+				fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
+					Expect(image.ReleaseCallCount()).To(Equal(0))
+					fakeContainer := new(gfakes.FakeContainer)
+					return fakeContainer, nil
+				}
+			})
+
+			It("tries to fetch the image for the resource type", func() {
+				Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
+				_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
+				Expect(fetchImageConfig).To(Equal(atc.ImageResource{
+					Type:   "some-resource",
+					Source: atc.Source{"some": "source"},
+				}))
+				Expect(fetchSignals).To(Equal(signals))
+				Expect(fetchID).To(Equal(containerID))
+				Expect(fetchMetadata).To(Equal(containerMetadata))
+				Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
+				Expect(fetchWorker).To(Equal(gardenWorker))
+				Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
+				Expect(fetchCustomTypes).To(Equal(customTypes.Without("custom-type-a")))
+			})
+
+			It("releases the image after creating the container", func() {
+				// see fakeGardenClient.CreateStub for the rest of this assertion
+				Expect(image.ReleaseCallCount()).To(Equal(1))
+			})
+
+			It("adds the image volume to the garden spec properties", func() {
+				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+				actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+				concourseVolumes := []string{}
+				err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volumes"]), &concourseVolumes)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(concourseVolumes).To(ContainElement("image-volume"))
+			})
+
+			It("adds the image user to the garden spec properties", func() {
+				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+				actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+				Expect(actualGardenSpec.Properties["user"]).To(Equal("image-volume-user"))
+			})
+
+			Context("when fetching the image fails", func() {
+				BeforeEach(func() {
+					fakeImageFetcher.FetchImageReturns(nil, errors.New("fetch-err"))
+				})
+
+				It("returns an error", func() {
+					Expect(createErr).To(HaveOccurred())
+					Expect(createErr.Error()).To(Equal("fetch-err"))
+				})
+			})
+
+			It("tries to create a container", func() {
+				Expect(createErr).NotTo(HaveOccurred())
+				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+				actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+				expectedEnv := resourceTypeContainerSpec.Env
+				expectedEnv = append([]string{"A=1", "B=2"}, expectedEnv...)
+				Expect(actualGardenSpec.Env).To(Equal(expectedEnv))
+				Expect(actualGardenSpec.Properties["user"]).To(Equal("image-volume-user"))
+				Expect(actualGardenSpec.Privileged).To(BeTrue())
+			})
+
+			Context("when the spec specifies Ephemeral", func() {
+				BeforeEach(func() {
+					resourceTypeContainerSpec.Ephemeral = true
+				})
+
+				It("creates the container with ephemeral = true", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualGardenSpec.Properties["concourse:ephemeral"]).To(Equal("true"))
+				})
+			})
+
+			Context("when the spec specifies Mounts", func() {
+				var (
+					volume1                *wfakes.FakeVolume
+					volume2                *wfakes.FakeVolume
+					baggageclaimCOWVolume1 *wfakes.FakeVolume
+					baggageclaimCOWVolume2 *wfakes.FakeVolume
+					cowVolume1             *wfakes.FakeVolume
+					cowVolume2             *wfakes.FakeVolume
+				)
+
+				BeforeEach(func() {
+					volume1 = new(wfakes.FakeVolume)
+					volume1.HandleReturns("vol-1-handle")
+					volume2 = new(wfakes.FakeVolume)
+					volume2.HandleReturns("vol-2-handle")
+
+					resourceTypeContainerSpec.Mounts = []VolumeMount{
+						{
+							volume1,
+							"vol-1-mount-path",
+						},
+						{
+							volume2,
+							"vol-2-mount-path",
+						},
+					}
+
+					baggageclaimCOWVolume1 = new(wfakes.FakeVolume)
+					baggageclaimCOWVolume1.HandleReturns("bc-cow-vol-1-handle")
+					baggageclaimCOWVolume2 = new(wfakes.FakeVolume)
+					baggageclaimCOWVolume2.HandleReturns("bc-cow-vol-2-handle")
+
+					fakeBaggageclaimClient.CreateVolumeStub = func(lager.Logger, baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+						switch fakeBaggageclaimClient.CreateVolumeCallCount() {
+						case 1:
+							return baggageclaimCOWVolume1, nil
+						case 2:
+							return baggageclaimCOWVolume2, nil
+						default:
+							return nil, nil
+						}
+					}
+
+					cowVolume1 = new(wfakes.FakeVolume)
+					cowVolume1.HandleReturns("cow-vol-1-handle")
+					cowVolume2 = new(wfakes.FakeVolume)
+					cowVolume2.HandleReturns("cow-vol-2-handle")
+
+					fakeVolumeFactory.BuildStub = func(logger lager.Logger, volume baggageclaim.Volume) (Volume, bool, error) {
+						switch fakeVolumeFactory.BuildCallCount() {
+						case 1:
+							return cowVolume1, true, nil
+						case 2:
+							return cowVolume2, true, nil
+						default:
+							return new(wfakes.FakeVolume), true, nil
+						}
+					}
+				})
+
+				It("creates a COW volume for each mount", func() {
+					Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(2))
+					_, volumeSpec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
+					Expect(volumeSpec).To(Equal(baggageclaim.VolumeSpec{
+						Strategy: baggageclaim.COWStrategy{
+							Parent: volume1,
+						},
+						Privileged: true,
+						TTL:        VolumeTTL,
+					}))
+
+					_, volumeSpec = fakeBaggageclaimClient.CreateVolumeArgsForCall(1)
+					Expect(volumeSpec).To(Equal(baggageclaim.VolumeSpec{
+						Strategy: baggageclaim.COWStrategy{
+							Parent: volume2,
+						},
+						Privileged: true,
+						TTL:        VolumeTTL,
+					}))
+				})
+
+				Context("when creating any baggageclaim COW volume fails", func() {
+					var baggageclaimCOWVolume1 *wfakes.FakeVolume
+					var bccCreateVolumeErr error
+
+					BeforeEach(func() {
+						bccCreateVolumeErr = errors.New("an-error")
+						baggageclaimCOWVolume1 = new(wfakes.FakeVolume)
+						fakeBaggageclaimClient.CreateVolumeStub = func(lager.Logger, baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+							if fakeBaggageclaimClient.CreateVolumeCallCount() != 1 {
+								return nil, bccCreateVolumeErr
+							}
+
+							return baggageclaimCOWVolume1, nil
+						}
+					})
+
+					It("returns the error", func() {
+						Expect(createErr).To(HaveOccurred())
+						Expect(createErr).To(Equal(bccCreateVolumeErr))
+					})
+				})
+
+				It("inserts each baggageclaim COW volume into the db", func() {
+					Expect(fakeGardenWorkerDB.InsertVolumeCallCount()).To(Equal(2))
+					Expect(fakeGardenWorkerDB.InsertVolumeArgsForCall(0)).To(Equal(db.Volume{
+						Handle:     "bc-cow-vol-1-handle",
+						WorkerName: "some-worker",
+						TTL:        VolumeTTL,
+						Identifier: db.VolumeIdentifier{
+							COW: &db.COWIdentifier{
+								ParentVolumeHandle: "vol-1-handle",
+							},
+						},
+					}))
+				})
+
+				Context("when inserting any volume into the db fails", func() {
+					var insertErr error
+
+					BeforeEach(func() {
+						insertErr = errors.New("an-error")
+						fakeGardenWorkerDB.InsertVolumeStub = func(db.Volume) error {
+							if fakeGardenWorkerDB.InsertVolumeCallCount() == 1 {
+								return nil
+							}
+							return insertErr
+						}
+					})
+
+					It("returns the error", func() {
+						Expect(createErr).To(Equal(insertErr))
+					})
+				})
+
+				It("tries to build a COW volume with the volume factory for each baggageclaim COW volume", func() {
+					Expect(fakeVolumeFactory.BuildCallCount()).To(Equal(2))
+					_, actualBCCOWVolume1 := fakeVolumeFactory.BuildArgsForCall(0)
+					Expect(actualBCCOWVolume1).To(Equal(baggageclaimCOWVolume1))
+					_, actualBCCOWVolume2 := fakeVolumeFactory.BuildArgsForCall(1)
+					Expect(actualBCCOWVolume2).To(Equal(baggageclaimCOWVolume2))
+				})
+
+				Context("when building any COW volume fails", func() {
+					var buildErr error
+
+					BeforeEach(func() {
+						buildErr = errors.New("an-error")
+						fakeVolumeFactory.BuildStub = func(lager.Logger, baggageclaim.Volume) (Volume, bool, error) {
+							switch fakeVolumeFactory.BuildCallCount() {
+							case 2:
+								return nil, false, buildErr
+							default:
+								return new(wfakes.FakeVolume), true, nil
+							}
+						}
+					})
+
+					It("returns the error", func() {
+						Expect(createErr).To(Equal(buildErr))
+					})
+				})
+
+				Context("when any COW volume cannot be found", func() {
+					BeforeEach(func() {
+						fakeVolumeFactory.BuildStub = func(lager.Logger, baggageclaim.Volume) (Volume, bool, error) {
+							switch fakeVolumeFactory.BuildCallCount() {
+							case 2:
+								return nil, false, nil
+							default:
+								return new(wfakes.FakeVolume), true, nil
+							}
+						}
+					})
+
+					It("returns an error", func() {
+						Expect(createErr).To(Equal(ErrMissingVolume))
+					})
+				})
+
+				It("releases each cow volume after attempting to create the container", func() {
+					Expect(cowVolume1.ReleaseCallCount()).To(Equal(1))
+					Expect(cowVolume1.ReleaseArgsForCall(0)).To(BeNil())
+					Expect(cowVolume2.ReleaseCallCount()).To(Equal(1))
+					Expect(cowVolume2.ReleaseArgsForCall(0)).To(BeNil())
+				})
+
+				It("does not release the volumes that were passed in", func() {
+					Expect(volume1.ReleaseCallCount()).To(BeZero())
+					Expect(volume2.ReleaseCallCount()).To(BeZero())
+				})
+
+				It("adds each cow volume to the garden spec properties", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					concourseVolumes := []string{}
+					err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volumes"]), &concourseVolumes)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(concourseVolumes).To(ContainElement("cow-vol-1-handle"))
+					Expect(concourseVolumes).To(ContainElement("cow-vol-2-handle"))
+				})
+
+				It("adds each cow volume to the garden spec properties", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					volumeMountProperties := map[string]string{}
+					err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volume-mounts"]), &volumeMountProperties)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(volumeMountProperties["cow-vol-1-handle"]).To(Equal("vol-1-mount-path"))
+					Expect(volumeMountProperties["cow-vol-2-handle"]).To(Equal("vol-2-mount-path"))
+				})
+			})
+
+			Context("when the spec specifies a resource type that a worker provides", func() {
+				BeforeEach(func() {
+					resourceTypeContainerSpec.Type = "some-resource"
+				})
+
+				It("uses the Image of the resource type as the rootfs", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualGardenSpec.RootFSPath).To(Equal("some-resource-image"))
+				})
+			})
+
+			Context("when the spec specifies a resource type that is unknown", func() {
+				BeforeEach(func() {
+					resourceTypeContainerSpec.Type = "some-bogus-resource"
 				})
 
 				It("returns ErrUnsupportedResourceType", func() {
 					Expect(createErr).To(Equal(ErrUnsupportedResourceType))
 				})
 			})
-		})
 
-		Context("with a task container spec", func() {
-			BeforeEach(func() {
-				spec = TaskContainerSpec{
-					Image:      "some-image",
-					Privileged: true,
-				}
-			})
-
-			Context("when creating works", func() {
+			Context("when creating the container succeeds", func() {
 				var fakeContainer *gfakes.FakeContainer
-
 				BeforeEach(func() {
 					fakeContainer = new(gfakes.FakeContainer)
-					fakeContainer.HandleReturns("some-handle")
-
+					fakeContainer.HandleReturns("some-container-handle")
 					fakeGardenClient.CreateReturns(fakeContainer, nil)
 				})
 
-				It("succeeds", func() {
-					Expect(createErr).NotTo(HaveOccurred())
-				})
+				It("tries to create the container in the db", func() {
+					Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
+					c, ttl := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
 
-				It("creates the container with the Garden client", func() {
-					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-					Expect(fakeGardenClient.CreateArgsForCall(0)).To(Equal(garden.ContainerSpec{
-						RootFSPath: "some-image",
-						Privileged: true,
-						Properties: garden.Properties{"user": ""},
+					expectedContainerID := containerID
+					expectedContainerID.ResourceTypeVersion = atc.Version{"image": "version"}
+
+					expectedContainerMetadata := containerMetadata
+					expectedContainerMetadata.Handle = "some-container-handle"
+					expectedContainerMetadata.User = "image-volume-user"
+					expectedContainerMetadata.WorkerName = "some-worker"
+
+					Expect(c).To(Equal(db.Container{
+						ContainerIdentifier: db.ContainerIdentifier(expectedContainerID),
+						ContainerMetadata:   db.ContainerMetadata(expectedContainerMetadata),
 					}))
+
+					Expect(ttl).To(Equal(ContainerTTL))
 				})
 
-				Context("when an image resource is provided", func() {
+				It("returns a container that be destroyed", func() {
+					err := createdContainer.Destroy()
+					Expect(err).NotTo(HaveOccurred())
+
+					By("destroying via garden")
+					Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
+					Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-container-handle"))
+
+					By("no longer heartbeating")
+					fakeClock.Increment(30 * time.Second)
+					Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
+				})
+
+				It("performs an initial heartbeat synchronously on the returned container", func() {
+					Expect(fakeContainer.SetGraceTimeCallCount()).To(Equal(1))
+					Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(1))
+				})
+
+				It("heartbeats to the database and the container", func() {
+					fakeClock.Increment(30 * time.Second)
+
+					Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
+					Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(5 * time.Minute))
+
+					Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
+					handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
+					Expect(handle).To(Equal("some-container-handle"))
+					Expect(interval).To(Equal(5 * time.Minute))
+
+					fakeClock.Increment(30 * time.Second)
+
+					Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
+					Expect(fakeContainer.SetGraceTimeArgsForCall(2)).To(Equal(5 * time.Minute))
+
+					Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(3))
+					handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(2)
+					Expect(handle).To(Equal("some-container-handle"))
+					Expect(interval).To(Equal(5 * time.Minute))
+				})
+
+				It("sets a final ttl on the container and stops heartbeating when the container is released", func() {
+					createdContainer.Release(FinalTTL(30 * time.Minute))
+
+					Expect(fakeContainer.SetGraceTimeCallCount()).Should(Equal(2))
+					Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(30 * time.Minute))
+
+					Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).Should(Equal(2))
+					handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
+					Expect(handle).To(Equal("some-container-handle"))
+					Expect(interval).To(Equal(30 * time.Minute))
+
+					fakeClock.Increment(30 * time.Second)
+
+					Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
+					Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
+				})
+
+				It("does not perform a final heartbeat when there is no final ttl", func() {
+					createdContainer.Release(nil)
+
+					Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
+					Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(1))
+				})
+
+				Context("when creating the container in the db fails", func() {
+					var gardenWorkerDBCreateContainerErr error
 					BeforeEach(func() {
-						spec = TaskContainerSpec{
-							ImageResource: &atc.ImageResource{
-								Type:   "some-type",
-								Source: atc.Source{"some": "source"},
-							},
-						}
+						gardenWorkerDBCreateContainerErr = errors.New("an-error")
+						fakeGardenWorkerDB.CreateContainerReturns(db.SavedContainer{}, gardenWorkerDBCreateContainerErr)
 					})
 
-					Context("when fetching the image succeeds", func() {
-						var image *wfakes.FakeImage
-
-						BeforeEach(func() {
-							image = new(wfakes.FakeImage)
-
-							imageVolume := new(wfakes.FakeVolume)
-							imageVolume.HandleReturns("image-volume")
-							imageVolume.PathReturns("/some/image/path")
-							image.VolumeReturns(imageVolume)
-							image.MetadataReturns(ImageMetadata{
-								Env:  []string{"A=1", "B=2"},
-								User: "pilot",
-							})
-							image.VersionReturns(atc.Version{"v": "42"})
-
-							fakeImageFetcher.FetchImageReturns(image, nil)
-						})
-
-						It("succeeds", func() {
-							Expect(createErr).NotTo(HaveOccurred())
-						})
-
-						It("creates the container with (volume path)/rootfs as the rootfs", func() {
-							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-							spec := fakeGardenClient.CreateArgsForCall(0)
-							Expect(spec.RootFSPath).To(Equal("/some/image/path/rootfs"))
-							Expect(spec.Properties).To(HaveLen(3))
-							Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
-								`["image-volume"]`,
-							))
-							Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(`{}`))
-						})
-
-						It("fetches the image with the correct info", func() {
-							Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
-							_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
-							Expect(fetchImageConfig).To(Equal(atc.ImageResource{
-								Type:   "some-type",
-								Source: atc.Source{"some": "source"},
-							}))
-							Expect(fetchSignals).To(Equal(signals))
-							Expect(fetchID).To(Equal(containerID))
-							Expect(fetchMetadata).To(Equal(containerMetadata))
-							Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
-							Expect(fetchWorker).To(Equal(gardenWorker))
-							Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
-							Expect(fetchCustomTypes).To(Equal(customTypes))
-						})
-
-						It("creates the container with env from the image", func() {
-							Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-							spec := fakeGardenClient.CreateArgsForCall(0)
-							Expect(spec.Env).To(Equal([]string{"A=1", "B=2"}))
-						})
-
-						It("creates the container info in the database", func() {
-							expectedMetadata := containerMetadata
-							expectedMetadata.WorkerName = workerName
-							expectedMetadata.Handle = "some-handle"
-							expectedMetadata.User = "pilot"
-
-							expectedContainer := db.Container{
-								ContainerIdentifier: db.ContainerIdentifier(Identifier{
-									BuildID:             42,
-									ResourceTypeVersion: atc.Version{"v": "42"},
-								}),
-								ContainerMetadata: db.ContainerMetadata(expectedMetadata),
-							}
-
-							Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
-							actualContainer, ttl := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
-							Expect(actualContainer).To(Equal(expectedContainer))
-							Expect(ttl).To(Equal(5 * time.Minute))
-						})
-
-						Context("after the container is created", func() {
-							BeforeEach(func() {
-								fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
-									Expect(image.ReleaseCallCount()).To(Equal(0))
-									return fakeContainer, nil
-								}
-							})
-
-							It("releases the image", func() {
-								Expect(image.ReleaseCallCount()).To(Equal(1))
-							})
-						})
-					})
-
-					Context("when fetching the image fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							fakeImageFetcher.FetchImageReturns(nil, disaster)
-						})
-
-						It("returns the error", func() {
-							Expect(createErr).To(Equal(disaster))
-						})
+					It("returns the error", func() {
+						Expect(createErr).To(Equal(gardenWorkerDBCreateContainerErr))
 					})
 				})
 
-				Context("when outputs are provided", func() {
-					var volume1 *wfakes.FakeVolume
-					var volume2 *wfakes.FakeVolume
-
-					var taskSpec TaskContainerSpec
-
+				Context("when creating the container in the db succeeds", func() {
 					BeforeEach(func() {
-						volume1 = new(wfakes.FakeVolume)
-						volume1.HandleReturns("output-volume")
-						volume1.PathReturns("/some/src/path")
-
-						volume2 = new(wfakes.FakeVolume)
-						volume2.HandleReturns("other-output-volume")
-						volume2.PathReturns("/some/other/src/path")
-
-						taskSpec = spec.(TaskContainerSpec)
-
-						taskSpec.Outputs = []VolumeMount{
-							{
-								Volume:    volume1,
-								MountPath: "/tmp/dst/path",
-							},
-							{
-								Volume:    volume2,
-								MountPath: "/tmp/dst/other/path",
-							},
-						}
-
-						spec = taskSpec
+						fakeGardenWorkerDB.CreateContainerReturns(db.SavedContainer{}, nil)
 					})
 
-					It("creates the container with read-write bind-mounts for each output", func() {
-						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-						spec := fakeGardenClient.CreateArgsForCall(0)
-						Expect(spec.RootFSPath).To(Equal("some-image"))
-						Expect(spec.Privileged).To(BeTrue())
-						Expect(spec.BindMounts).To(HaveLen(2))
-						Expect(spec.BindMounts).To(ContainElement(garden.BindMount{
-							SrcPath: "/some/src/path",
-							DstPath: "/tmp/dst/path",
-							Mode:    garden.BindMountModeRW,
-						}))
-
-						Expect(spec.BindMounts).To(ContainElement(garden.BindMount{
-							SrcPath: "/some/other/src/path",
-							DstPath: "/tmp/dst/other/path",
-							Mode:    garden.BindMountModeRW,
-						}))
-
-						Expect(spec.Properties).To(HaveLen(3))
-						Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
-							`["output-volume","other-output-volume"]`,
-						))
-
-						Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(
-							`{"output-volume":"/tmp/dst/path","other-output-volume":"/tmp/dst/other/path"}`,
-						))
-					})
-				})
-
-				Context("when inputs are provided", func() {
-					var volume1 *wfakes.FakeVolume
-					var volume2 *wfakes.FakeVolume
-
-					var cowInputVolume *wfakes.FakeVolume
-					var cowOtherInputVolume *wfakes.FakeVolume
-
-					var taskSpec TaskContainerSpec
-
-					BeforeEach(func() {
-						volume1 = new(wfakes.FakeVolume)
-						volume1.HandleReturns("some-volume")
-						volume1.PathReturns("/some/src/path")
-
-						volume2 = new(wfakes.FakeVolume)
-						volume2.HandleReturns("some-other-volume")
-						volume2.PathReturns("/some/other/src/path")
-
-						cowInputVolume = new(wfakes.FakeVolume)
-						cowInputVolume.HandleReturns("cow-input-volume")
-						cowInputVolume.PathReturns("/some/cow/src/path")
-
-						cowOtherInputVolume = new(wfakes.FakeVolume)
-						cowOtherInputVolume.HandleReturns("cow-other-input-volume")
-						cowOtherInputVolume.PathReturns("/some/other/cow/src/path")
-
-						fakeBaggageclaimClient.CreateVolumeStub = func(logger lager.Logger, spec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
-							Expect(spec.Privileged).To(BeTrue())
-							Expect(spec.TTL).To(Equal(5 * time.Minute))
-
-							if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume1}) {
-								return cowInputVolume, nil
-							} else if reflect.DeepEqual(spec.Strategy, baggageclaim.COWStrategy{Parent: volume2}) {
-								return cowOtherInputVolume, nil
-							} else {
-								Fail(fmt.Sprintf("unknown strategy: %#v", spec.Strategy))
-								return nil, nil
-							}
-						}
-
-						fakeVolumeFactory.BuildStub = func(logger lager.Logger, volume baggageclaim.Volume) (Volume, bool, error) {
-							switch volume.Handle() {
-							case "cow-input-volume":
-								return cowInputVolume, true, nil
-							case "cow-other-input-volume":
-								return cowOtherInputVolume, true, nil
-							default:
-								return nil, false, nil
-							}
-						}
-
-						taskSpec = spec.(TaskContainerSpec)
-
-						taskSpec.Inputs = []VolumeMount{
-							{
-								Volume:    volume1,
-								MountPath: "/tmp/dst/path",
-							},
-							{
-								Volume:    volume2,
-								MountPath: "/tmp/dst/other/path",
-							},
-						}
-
-						spec = taskSpec
-					})
-
-					It("creates the container with read-write copy-on-write bind-mounts for each input", func() {
-						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-
-						spec := fakeGardenClient.CreateArgsForCall(0)
-						Expect(spec.RootFSPath).To(Equal("some-image"))
-						Expect(spec.Privileged).To(BeTrue())
-						Expect(spec.BindMounts).To(HaveLen(2))
-						Expect(spec.BindMounts).To(ContainElement(garden.BindMount{
-							SrcPath: "/some/cow/src/path",
-							DstPath: "/tmp/dst/path",
-							Mode:    garden.BindMountModeRW,
-						}))
-
-						Expect(spec.BindMounts).To(ContainElement(garden.BindMount{
-							SrcPath: "/some/other/cow/src/path",
-							DstPath: "/tmp/dst/other/path",
-							Mode:    garden.BindMountModeRW,
-						}))
-
-						Expect(spec.Properties).To(HaveLen(3))
-						Expect(spec.Properties["concourse:volumes"]).To(MatchJSON(
-							`["cow-input-volume","cow-other-input-volume"]`,
-						))
-
-						Expect(spec.Properties["concourse:volume-mounts"]).To(MatchJSON(
-							`{"cow-input-volume":"/tmp/dst/path","cow-other-input-volume":"/tmp/dst/other/path"}`,
-						))
-					})
-
-					Context("after the container is created", func() {
-						BeforeEach(func() {
-							fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
-								// ensure they're not released before container creation
-								Expect(cowInputVolume.ReleaseCallCount()).To(Equal(0))
-								Expect(cowOtherInputVolume.ReleaseCallCount()).To(Equal(0))
-								return fakeContainer, nil
-							}
-						})
-
-						It("releases the copy-on-write volumes that it made beforehand", func() {
-							Expect(cowInputVolume.ReleaseCallCount()).To(Equal(1))
-							Expect(cowOtherInputVolume.ReleaseCallCount()).To(Equal(1))
-						})
-					})
-
-					Context("when creating the copy-on-write volumes fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
-						})
-
-						It("returns the error", func() {
-							Expect(createErr).To(Equal(disaster))
-						})
-					})
-				})
-
-				Describe("the created container", func() {
-					It("can be destroyed", func() {
-						err := createdContainer.Destroy()
-						Expect(err).NotTo(HaveOccurred())
-
-						By("destroying via garden")
-						Expect(fakeGardenClient.DestroyCallCount()).To(Equal(1))
-						Expect(fakeGardenClient.DestroyArgsForCall(0)).To(Equal("some-handle"))
-
-						By("no longer heartbeating")
-						fakeClock.Increment(30 * time.Second)
-						Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
-					})
-
-					It("performs an initial heartbeat synchronously", func() {
-						Expect(fakeContainer.SetGraceTimeCallCount()).To(Equal(1))
-						Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(1))
-					})
-
-					Describe("every 30 seconds", func() {
-						It("heartbeats to the database and the container", func() {
-							fakeClock.Increment(30 * time.Second)
-
-							Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
-							Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(5 * time.Minute))
-
-							Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
-							handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
-							Expect(handle).To(Equal("some-handle"))
-							Expect(interval).To(Equal(5 * time.Minute))
-
-							fakeClock.Increment(30 * time.Second)
-
-							Eventually(fakeContainer.SetGraceTimeCallCount).Should(Equal(3))
-							Expect(fakeContainer.SetGraceTimeArgsForCall(2)).To(Equal(5 * time.Minute))
-
-							Eventually(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(3))
-							handle, interval = fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(2)
-							Expect(handle).To(Equal("some-handle"))
-							Expect(interval).To(Equal(5 * time.Minute))
-						})
-					})
-
-					Describe("releasing", func() {
-						It("sets a final ttl on the container and stops heartbeating", func() {
-							createdContainer.Release(FinalTTL(30 * time.Minute))
-
-							Expect(fakeContainer.SetGraceTimeCallCount()).Should(Equal(2))
-							Expect(fakeContainer.SetGraceTimeArgsForCall(1)).To(Equal(30 * time.Minute))
-
-							Expect(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount()).Should(Equal(2))
-							handle, interval := fakeGardenWorkerDB.UpdateExpiresAtOnContainerArgsForCall(1)
-							Expect(handle).To(Equal("some-handle"))
-							Expect(interval).To(Equal(30 * time.Minute))
-
-							fakeClock.Increment(30 * time.Second)
-
-							Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(2))
-							Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(2))
-						})
-
-						Context("with no final ttl", func() {
-							It("does not perform a final heartbeat", func() {
-								createdContainer.Release(nil)
-
-								Consistently(fakeContainer.SetGraceTimeCallCount).Should(Equal(1))
-								Consistently(fakeGardenWorkerDB.UpdateExpiresAtOnContainerCallCount).Should(Equal(1))
-							})
-						})
+					It("returns a Container", func() {
+						Expect(createdContainer).NotTo(BeNil())
 					})
 				})
 			})
 
-			Context("when creating fails", func() {
-				disaster := errors.New("nope")
+			Context("when creating the container fails", func() {
+				var gardenCreateErr error
 
 				BeforeEach(func() {
-					fakeGardenClient.CreateReturns(nil, disaster)
+					gardenCreateErr = errors.New("an-error")
+					fakeGardenClient.CreateReturns(nil, gardenCreateErr)
 				})
 
 				It("returns the error", func() {
-					Expect(createErr).To(Equal(disaster))
+					Expect(createErr).To(HaveOccurred())
+					Expect(createErr).To(Equal(gardenCreateErr))
+				})
+			})
+
+			Context("when the spec defines a cache volume", func() {
+				BeforeEach(func() {
+					v := new(wfakes.FakeVolume)
+					v.PathReturns("cache-volume-src-path")
+					v.HandleReturns("cache-volume-handle")
+					resourceTypeContainerSpec.Cache.Volume = v
+				})
+
+				Context("when the spec defines a cache mount path", func() {
+					BeforeEach(func() {
+						resourceTypeContainerSpec.Cache.MountPath = "cache-volume-mount-path"
+					})
+
+					It("creates a bind mount for the cache volume", func() {
+						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+						actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+						Expect(actualGardenSpec.BindMounts).To(ContainElement(garden.BindMount{
+							SrcPath: "cache-volume-src-path",
+							DstPath: "cache-volume-mount-path",
+							Mode:    garden.BindMountModeRW,
+						}))
+					})
+
+					It("adds the cache volume to the garden spec properties", func() {
+						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+						actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+						volumeMountProperties := map[string]string{}
+						err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volume-mounts"]), &volumeMountProperties)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(volumeMountProperties["cache-volume-handle"]).To(Equal("cache-volume-mount-path"))
+					})
+				})
+
+				Context("when the spec also defines mounts", func() {
+					BeforeEach(func() {
+						resourceTypeContainerSpec.Mounts = []VolumeMount{
+							{
+								new(wfakes.FakeVolume),
+								"mount-path",
+							},
+						}
+					})
+
+					It("returns an error", func() {
+						Expect(createErr).To(HaveOccurred())
+						Expect(createErr.Error()).To(Equal("a container may not have mounts and a cache"))
+					})
 				})
 			})
 		})

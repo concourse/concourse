@@ -330,7 +330,7 @@ dance:
 			return nil, err
 		}
 
-		err = worker.db.InsertVolume(db.Volume{
+		insertErr := worker.db.InsertVolume(db.Volume{
 			Handle:     cowBCVolume.Handle(),
 			WorkerName: worker.Name(),
 			TTL:        VolumeTTL,
@@ -340,8 +340,8 @@ dance:
 				},
 			},
 		})
-		if err != nil {
-			return nil, err
+		if insertErr != nil {
+			return nil, insertErr
 		}
 
 		cowVolume, found, err := worker.volumeFactory.Build(logger, cowBCVolume)
