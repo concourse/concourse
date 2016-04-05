@@ -54,11 +54,8 @@ func GetExpirationFromString(token *rc.TargetToken) string {
 		return "", nil
 	})
 
-	var (
-		ok       bool
-		expClaim interface{}
-	)
-	if expClaim, ok = parsedToken.Claims["exp"]; !ok {
+	expClaim, ok := parsedToken.Claims["exp"]
+	if !ok {
 		return "n/a"
 	}
 
