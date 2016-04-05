@@ -16,7 +16,7 @@
 
 ## Contributing
 
-Concourse is actually built on a few components, all written in Go with cutesy
+Concourse is built on a few components, all written in Go with cutesy
 aerospace-themed names. This repository is actually its [BOSH](https://bosh.io)
 release, which ties everything together and also serves as the central hub for
 GitHub issues.
