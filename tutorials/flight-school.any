@@ -12,7 +12,7 @@ Welcome, Cadet.
 
 This walkthrough assumes you've already got a Concourse set up and ready to go.
 If you don't, the most important thing is that you don't panic and go through
-the \reference{vagrant}{Vagrant installation guide} before coming back here.
+the \reference{installing}{installation guide} before coming back here.
 
 \section{Getting Set Up}{
   First, let's get you a copy of your training materials.
