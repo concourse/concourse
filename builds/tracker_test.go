@@ -45,9 +45,9 @@ var _ = Describe("Tracker", func() {
 
 		BeforeEach(func() {
 			inFlightBuilds = []db.Build{
-				{ID: 1},
-				{ID: 2},
-				{ID: 3},
+				{ID: 1, PipelineID: 57},
+				{ID: 2, PipelineID: 57},
+				{ID: 3, PipelineID: 57},
 			}
 
 			engineBuilds = []*enginefakes.FakeBuild{
@@ -81,16 +81,19 @@ var _ = Describe("Tracker", func() {
 
 				Expect(fakeTrackerDB.ErrorBuildCallCount()).To(Equal(3))
 
-				savedBuilID1, savedErr1 := fakeTrackerDB.ErrorBuildArgsForCall(0)
+				savedBuilID1, savedPipelineID1, savedErr1 := fakeTrackerDB.ErrorBuildArgsForCall(0)
 				Expect(savedBuilID1).To(Equal(1))
+				Expect(savedPipelineID1).To(Equal(57))
 				Expect(savedErr1).To(Equal(errors.New("nope")))
 
-				savedBuilID2, savedErr2 := fakeTrackerDB.ErrorBuildArgsForCall(1)
+				savedBuilID2, savedPipelineID2, savedErr2 := fakeTrackerDB.ErrorBuildArgsForCall(1)
 				Expect(savedBuilID2).To(Equal(2))
+				Expect(savedPipelineID2).To(Equal(57))
 				Expect(savedErr2).To(Equal(errors.New("nope")))
 
-				savedBuilID3, savedErr3 := fakeTrackerDB.ErrorBuildArgsForCall(2)
+				savedBuilID3, savedPipelineID3, savedErr3 := fakeTrackerDB.ErrorBuildArgsForCall(2)
 				Expect(savedBuilID3).To(Equal(3))
+				Expect(savedPipelineID3).To(Equal(57))
 				Expect(savedErr3).To(Equal(errors.New("nope")))
 			})
 		})

@@ -10,7 +10,7 @@ import (
 
 type TrackerDB interface {
 	GetAllStartedBuilds() ([]db.Build, error)
-	ErrorBuild(buildID int, err error) error
+	ErrorBuild(buildID int, pipelineID int, err error) error
 }
 
 func NewTracker(
@@ -50,7 +50,7 @@ func (bt *Tracker) Track() {
 		if err != nil {
 			tLog.Error("failed-to-lookup-build", err)
 
-			err := bt.trackerDB.ErrorBuild(b.ID, err)
+			err := bt.trackerDB.ErrorBuild(b.ID, b.PipelineID, err)
 			if err != nil {
 				tLog.Error("failed-to-mark-build-as-errored", err)
 			}

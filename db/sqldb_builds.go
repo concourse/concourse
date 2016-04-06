@@ -406,12 +406,7 @@ func (db *SQLDB) ResetBuildPreparationsWithPipelinePaused(pipelineID int) error 
 	return err
 }
 
-func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) {
-	build, _, err := db.GetBuild(buildID)
-	if err != nil {
-		return false, err
-	}
-
+func (db *SQLDB) StartBuild(buildID int, pipelineID int, engine, metadata string) (bool, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return false, err
@@ -436,7 +431,7 @@ func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) 
 		return false, err
 	}
 
-	err = db.saveBuildEvent(tx, buildID, build.PipelineID, event.Status{
+	err = db.saveBuildEvent(tx, buildID, pipelineID, event.Status{
 		Status: atc.StatusStarted,
 		Time:   startTime.Unix(),
 	})
@@ -457,12 +452,7 @@ func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) 
 	return true, nil
 }
 
-func (db *SQLDB) FinishBuild(buildID int, status Status) error {
-	build, _, err := db.GetBuild(buildID)
-	if err != nil {
-		return err
-	}
-
+func (db *SQLDB) FinishBuild(buildID int, pipelineID int, status Status) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -482,7 +472,7 @@ func (db *SQLDB) FinishBuild(buildID int, status Status) error {
 		return err
 	}
 
-	err = db.saveBuildEvent(tx, buildID, build.PipelineID, event.Status{
+	err = db.saveBuildEvent(tx, buildID, pipelineID, event.Status{
 		Status: atc.BuildStatus(status),
 		Time:   endTime.Unix(),
 	})
@@ -510,15 +500,15 @@ func (db *SQLDB) FinishBuild(buildID int, status Status) error {
 	return nil
 }
 
-func (db *SQLDB) ErrorBuild(buildID int, cause error) error {
-	err := db.SaveBuildEvent(buildID, event.Error{
+func (db *SQLDB) ErrorBuild(buildID int, pipelineID int, cause error) error {
+	err := db.SaveBuildEvent(buildID, pipelineID, event.Error{
 		Message: cause.Error(),
 	})
 	if err != nil {
 		return err
 	}
 
-	return db.FinishBuild(buildID, StatusErrored)
+	return db.FinishBuild(buildID, pipelineID, StatusErrored)
 }
 
 func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error) {
@@ -612,12 +602,7 @@ func (db *SQLDB) AbortNotifier(buildID int) (Notifier, error) {
 	})
 }
 
-func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
-	build, _, err := db.GetBuild(buildID)
-	if err != nil {
-		return err
-	}
-
+func (db *SQLDB) SaveBuildEvent(buildID int, pipelineID int, event atc.Event) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -625,7 +610,7 @@ func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
 
 	defer tx.Rollback()
 
-	err = db.saveBuildEvent(tx, buildID, build.PipelineID, event)
+	err = db.saveBuildEvent(tx, buildID, pipelineID, event)
 	if err != nil {
 		return err
 	}

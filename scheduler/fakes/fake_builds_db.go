@@ -23,20 +23,22 @@ type FakeBuildsDB struct {
 		result2 bool
 		result3 error
 	}
-	ErrorBuildStub        func(buildID int, err error) error
+	ErrorBuildStub        func(buildID int, pipelineID int, err error) error
 	errorBuildMutex       sync.RWMutex
 	errorBuildArgsForCall []struct {
-		buildID int
-		err     error
+		buildID    int
+		pipelineID int
+		err        error
 	}
 	errorBuildReturns struct {
 		result1 error
 	}
-	FinishBuildStub        func(int, db.Status) error
+	FinishBuildStub        func(int, int, db.Status) error
 	finishBuildMutex       sync.RWMutex
 	finishBuildArgsForCall []struct {
 		arg1 int
-		arg2 db.Status
+		arg2 int
+		arg3 db.Status
 	}
 	finishBuildReturns struct {
 		result1 error
@@ -89,15 +91,16 @@ func (fake *FakeBuildsDB) LeaseBuildSchedulingReturns(result1 db.Lease, result2 
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuildsDB) ErrorBuild(buildID int, err error) error {
+func (fake *FakeBuildsDB) ErrorBuild(buildID int, pipelineID int, err error) error {
 	fake.errorBuildMutex.Lock()
 	fake.errorBuildArgsForCall = append(fake.errorBuildArgsForCall, struct {
-		buildID int
-		err     error
-	}{buildID, err})
+		buildID    int
+		pipelineID int
+		err        error
+	}{buildID, pipelineID, err})
 	fake.errorBuildMutex.Unlock()
 	if fake.ErrorBuildStub != nil {
-		return fake.ErrorBuildStub(buildID, err)
+		return fake.ErrorBuildStub(buildID, pipelineID, err)
 	} else {
 		return fake.errorBuildReturns.result1
 	}
@@ -109,10 +112,10 @@ func (fake *FakeBuildsDB) ErrorBuildCallCount() int {
 	return len(fake.errorBuildArgsForCall)
 }
 
-func (fake *FakeBuildsDB) ErrorBuildArgsForCall(i int) (int, error) {
+func (fake *FakeBuildsDB) ErrorBuildArgsForCall(i int) (int, int, error) {
 	fake.errorBuildMutex.RLock()
 	defer fake.errorBuildMutex.RUnlock()
-	return fake.errorBuildArgsForCall[i].buildID, fake.errorBuildArgsForCall[i].err
+	return fake.errorBuildArgsForCall[i].buildID, fake.errorBuildArgsForCall[i].pipelineID, fake.errorBuildArgsForCall[i].err
 }
 
 func (fake *FakeBuildsDB) ErrorBuildReturns(result1 error) {
@@ -122,15 +125,16 @@ func (fake *FakeBuildsDB) ErrorBuildReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuildsDB) FinishBuild(arg1 int, arg2 db.Status) error {
+func (fake *FakeBuildsDB) FinishBuild(arg1 int, arg2 int, arg3 db.Status) error {
 	fake.finishBuildMutex.Lock()
 	fake.finishBuildArgsForCall = append(fake.finishBuildArgsForCall, struct {
 		arg1 int
-		arg2 db.Status
-	}{arg1, arg2})
+		arg2 int
+		arg3 db.Status
+	}{arg1, arg2, arg3})
 	fake.finishBuildMutex.Unlock()
 	if fake.FinishBuildStub != nil {
-		return fake.FinishBuildStub(arg1, arg2)
+		return fake.FinishBuildStub(arg1, arg2, arg3)
 	} else {
 		return fake.finishBuildReturns.result1
 	}
@@ -142,10 +146,10 @@ func (fake *FakeBuildsDB) FinishBuildCallCount() int {
 	return len(fake.finishBuildArgsForCall)
 }
 
-func (fake *FakeBuildsDB) FinishBuildArgsForCall(i int) (int, db.Status) {
+func (fake *FakeBuildsDB) FinishBuildArgsForCall(i int) (int, int, db.Status) {
 	fake.finishBuildMutex.RLock()
 	defer fake.finishBuildMutex.RUnlock()
-	return fake.finishBuildArgsForCall[i].arg1, fake.finishBuildArgsForCall[i].arg2
+	return fake.finishBuildArgsForCall[i].arg1, fake.finishBuildArgsForCall[i].arg2, fake.finishBuildArgsForCall[i].arg3
 }
 
 func (fake *FakeBuildsDB) FinishBuildReturns(result1 error) {

@@ -100,15 +100,15 @@ type DB interface {
 	LeaseBuildScheduling(logger lager.Logger, buildID int, interval time.Duration) (Lease, bool, error)
 	LeaseCacheInvalidation(logger lager.Logger, interval time.Duration) (Lease, bool, error)
 
-	StartBuild(buildID int, engineName, engineMetadata string) (bool, error)
-	FinishBuild(buildID int, status Status) error
-	ErrorBuild(buildID int, cause error) error
+	StartBuild(buildID int, pipelineID int, engineName, engineMetadata string) (bool, error)
+	FinishBuild(buildID int, pipelineID int, status Status) error
+	ErrorBuild(buildID int, pipelineID int, cause error) error
 
 	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
 	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 
 	GetBuildEvents(buildID int, from uint) (EventSource, error)
-	SaveBuildEvent(buildID int, event atc.Event) error
+	SaveBuildEvent(buildID int, pipelineID int, event atc.Event) error
 
 	SaveBuildEngineMetadata(buildID int, engineMetadata string) error
 

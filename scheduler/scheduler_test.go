@@ -534,7 +534,8 @@ var _ = Describe("Scheduler", func() {
 			fakeJobService = new(fakes.FakeJobService)
 
 			build = db.Build{
-				ID: 123,
+				ID:         123,
+				PipelineID: 456,
 			}
 		})
 
@@ -613,8 +614,9 @@ var _ = Describe("Scheduler", func() {
 							It("marks the build as finished with an errored status and returns nil", func() {
 								Expect(fakeBuildsDB.FinishBuildCallCount()).To(Equal(1))
 
-								buildID, status := fakeBuildsDB.FinishBuildArgsForCall(0)
+								buildID, pipelineID, status := fakeBuildsDB.FinishBuildArgsForCall(0)
 								Expect(buildID).To(Equal(build.ID))
+								Expect(pipelineID).To(Equal(build.PipelineID))
 								Expect(status).To(Equal(db.StatusErrored))
 							})
 
@@ -708,8 +710,9 @@ var _ = Describe("Scheduler", func() {
 							Expect(logger).To(gbytes.Say("failed-to-schedule-build"))
 
 							Expect(fakeBuildsDB.ErrorBuildCallCount()).To(Equal(1))
-							buildID, scanningError := fakeBuildsDB.ErrorBuildArgsForCall(0)
+							buildID, pipelineID, scanningError := fakeBuildsDB.ErrorBuildArgsForCall(0)
 							Expect(buildID).To(Equal(build.ID))
+							Expect(pipelineID).To(Equal(build.PipelineID))
 							Expect(scanningError).To(Equal(problemz))
 						})
 

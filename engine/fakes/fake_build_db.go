@@ -21,12 +21,13 @@ type FakeBuildDB struct {
 		result2 bool
 		result3 error
 	}
-	StartBuildStub        func(int, string, string) (bool, error)
+	StartBuildStub        func(int, int, string, string) (bool, error)
 	startBuildMutex       sync.RWMutex
 	startBuildArgsForCall []struct {
 		arg1 int
-		arg2 string
+		arg2 int
 		arg3 string
+		arg4 string
 	}
 	startBuildReturns struct {
 		result1 bool
@@ -61,11 +62,12 @@ type FakeBuildDB struct {
 		result2 bool
 		result3 error
 	}
-	FinishBuildStub        func(int, db.Status) error
+	FinishBuildStub        func(int, int, db.Status) error
 	finishBuildMutex       sync.RWMutex
 	finishBuildArgsForCall []struct {
 		arg1 int
-		arg2 db.Status
+		arg2 int
+		arg3 db.Status
 	}
 	finishBuildReturns struct {
 		result1 error
@@ -106,16 +108,17 @@ func (fake *FakeBuildDB) GetBuildReturns(result1 db.Build, result2 bool, result3
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuildDB) StartBuild(arg1 int, arg2 string, arg3 string) (bool, error) {
+func (fake *FakeBuildDB) StartBuild(arg1 int, arg2 int, arg3 string, arg4 string) (bool, error) {
 	fake.startBuildMutex.Lock()
 	fake.startBuildArgsForCall = append(fake.startBuildArgsForCall, struct {
 		arg1 int
-		arg2 string
+		arg2 int
 		arg3 string
-	}{arg1, arg2, arg3})
+		arg4 string
+	}{arg1, arg2, arg3, arg4})
 	fake.startBuildMutex.Unlock()
 	if fake.StartBuildStub != nil {
-		return fake.StartBuildStub(arg1, arg2, arg3)
+		return fake.StartBuildStub(arg1, arg2, arg3, arg4)
 	} else {
 		return fake.startBuildReturns.result1, fake.startBuildReturns.result2
 	}
@@ -127,10 +130,10 @@ func (fake *FakeBuildDB) StartBuildCallCount() int {
 	return len(fake.startBuildArgsForCall)
 }
 
-func (fake *FakeBuildDB) StartBuildArgsForCall(i int) (int, string, string) {
+func (fake *FakeBuildDB) StartBuildArgsForCall(i int) (int, int, string, string) {
 	fake.startBuildMutex.RLock()
 	defer fake.startBuildMutex.RUnlock()
-	return fake.startBuildArgsForCall[i].arg1, fake.startBuildArgsForCall[i].arg2, fake.startBuildArgsForCall[i].arg3
+	return fake.startBuildArgsForCall[i].arg1, fake.startBuildArgsForCall[i].arg2, fake.startBuildArgsForCall[i].arg3, fake.startBuildArgsForCall[i].arg4
 }
 
 func (fake *FakeBuildDB) StartBuildReturns(result1 bool, result2 error) {
@@ -242,15 +245,16 @@ func (fake *FakeBuildDB) LeaseBuildTrackingReturns(result1 db.Lease, result2 boo
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuildDB) FinishBuild(arg1 int, arg2 db.Status) error {
+func (fake *FakeBuildDB) FinishBuild(arg1 int, arg2 int, arg3 db.Status) error {
 	fake.finishBuildMutex.Lock()
 	fake.finishBuildArgsForCall = append(fake.finishBuildArgsForCall, struct {
 		arg1 int
-		arg2 db.Status
-	}{arg1, arg2})
+		arg2 int
+		arg3 db.Status
+	}{arg1, arg2, arg3})
 	fake.finishBuildMutex.Unlock()
 	if fake.FinishBuildStub != nil {
-		return fake.FinishBuildStub(arg1, arg2)
+		return fake.FinishBuildStub(arg1, arg2, arg3)
 	} else {
 		return fake.finishBuildReturns.result1
 	}
@@ -262,10 +266,10 @@ func (fake *FakeBuildDB) FinishBuildCallCount() int {
 	return len(fake.finishBuildArgsForCall)
 }
 
-func (fake *FakeBuildDB) FinishBuildArgsForCall(i int) (int, db.Status) {
+func (fake *FakeBuildDB) FinishBuildArgsForCall(i int) (int, int, db.Status) {
 	fake.finishBuildMutex.RLock()
 	defer fake.finishBuildMutex.RUnlock()
-	return fake.finishBuildArgsForCall[i].arg1, fake.finishBuildArgsForCall[i].arg2
+	return fake.finishBuildArgsForCall[i].arg1, fake.finishBuildArgsForCall[i].arg2, fake.finishBuildArgsForCall[i].arg3
 }
 
 func (fake *FakeBuildDB) FinishBuildReturns(result1 error) {

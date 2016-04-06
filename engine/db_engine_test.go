@@ -57,8 +57,9 @@ var _ = Describe("DBEngine", func() {
 			planFactory = atc.NewPlanFactory(123)
 
 			build = db.Build{
-				ID:   128,
-				Name: "some-build",
+				ID:         128,
+				PipelineID: 256,
+				Name:       "some-build",
 			}
 
 			plan = planFactory.NewPlan(atc.TaskPlan{
@@ -105,8 +106,9 @@ var _ = Describe("DBEngine", func() {
 			It("starts the build in the database", func() {
 				Expect(fakeBuildDB.StartBuildCallCount()).To(Equal(1))
 
-				buildID, engine, metadata := fakeBuildDB.StartBuildArgsForCall(0)
+				buildID, pipelineID, engine, metadata := fakeBuildDB.StartBuildArgsForCall(0)
 				Expect(buildID).To(Equal(128))
+				Expect(pipelineID).To(Equal(256))
 				Expect(engine).To(Equal("fake-engine-a"))
 				Expect(metadata).To(Equal("some-metadata"))
 			})
@@ -240,7 +242,8 @@ var _ = Describe("DBEngine", func() {
 
 		BeforeEach(func() {
 			model = db.Build{
-				ID: 128,
+				ID:         128,
+				PipelineID: 256,
 
 				Status: db.StatusStarted,
 				Engine: "fake-engine-b",
@@ -395,8 +398,9 @@ var _ = Describe("DBEngine", func() {
 					It("finishes the build in the db so that the aborted event is emitted", func() {
 						Expect(fakeBuildDB.FinishBuildCallCount()).To(Equal(1))
 
-						buildID, status := fakeBuildDB.FinishBuildArgsForCall(0)
+						buildID, pipelineID, status := fakeBuildDB.FinishBuildArgsForCall(0)
 						Expect(buildID).To(Equal(model.ID))
+						Expect(pipelineID).To(Equal(model.PipelineID))
 						Expect(status).To(Equal(db.StatusAborted))
 					})
 
@@ -625,8 +629,9 @@ var _ = Describe("DBEngine", func() {
 
 						It("marks the build as errored", func() {
 							Expect(fakeBuildDB.FinishBuildCallCount()).To(Equal(1))
-							buildID, buildStatus := fakeBuildDB.FinishBuildArgsForCall(0)
+							buildID, pipelineID, buildStatus := fakeBuildDB.FinishBuildArgsForCall(0)
 							Expect(buildID).To(Equal(model.ID))
+							Expect(pipelineID).To(Equal(model.PipelineID))
 							Expect(buildStatus).To(Equal(db.StatusErrored))
 						})
 					})
@@ -640,8 +645,9 @@ var _ = Describe("DBEngine", func() {
 
 					It("marks the build as errored", func() {
 						Expect(fakeBuildDB.FinishBuildCallCount()).To(Equal(1))
-						buildID, buildStatus := fakeBuildDB.FinishBuildArgsForCall(0)
+						buildID, pipelineID, buildStatus := fakeBuildDB.FinishBuildArgsForCall(0)
 						Expect(buildID).To(Equal(model.ID))
+						Expect(pipelineID).To(Equal(model.PipelineID))
 						Expect(buildStatus).To(Equal(db.StatusErrored))
 					})
 				})

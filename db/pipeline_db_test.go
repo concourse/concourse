@@ -301,7 +301,7 @@ var _ = Describe("PipelineDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// populate build_events table
-			err = sqlDB.SaveBuildEvent(build.ID, event.StartTask{})
+			err = sqlDB.SaveBuildEvent(build.ID, pipelineThatWillBeDeleted.ID, event.StartTask{})
 			Expect(err).NotTo(HaveOccurred())
 
 			// populate image_resource_versions table
@@ -741,7 +741,7 @@ var _ = Describe("PipelineDB", func() {
 			savedVR1, err = pipelineDB.SaveBuildOutput(build1.ID, savedVR1.VersionedResource, false)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = sqlDB.FinishBuild(build1.ID, db.StatusSucceeded)
+			err = sqlDB.FinishBuild(build1.ID, build1.PipelineID, db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
 			versions, err = pipelineDB.LoadVersionsDB()
@@ -786,7 +786,7 @@ var _ = Describe("PipelineDB", func() {
 			savedVR1, err = pipelineDB.SaveBuildOutput(build2.ID, savedVR1.VersionedResource, false)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = sqlDB.FinishBuild(build2.ID, db.StatusFailed)
+			err = sqlDB.FinishBuild(build2.ID, build2.PipelineID, db.StatusFailed)
 			Expect(err).NotTo(HaveOccurred())
 
 			versions, err = pipelineDB.LoadVersionsDB()
@@ -831,7 +831,7 @@ var _ = Describe("PipelineDB", func() {
 			_, err = otherPipelineDB.SaveBuildOutput(otherPipelineBuild.ID, otherPipelineSavedVR.VersionedResource, false)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = sqlDB.FinishBuild(otherPipelineBuild.ID, db.StatusSucceeded)
+			err = sqlDB.FinishBuild(otherPipelineBuild.ID, otherPipelineBuild.PipelineID, db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
 			versions, err = pipelineDB.LoadVersionsDB()
@@ -1789,7 +1789,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
 
 				By("returning a job's most recent started build")
-				sqlDB.StartBuild(jobBuildOld.ID, "engine", "metadata")
+				sqlDB.StartBuild(jobBuildOld.ID, jobBuildOld.PipelineID, "engine", "metadata")
 
 				var found bool
 				jobBuildOld, found, err = sqlDB.GetBuild(jobBuildOld.ID)
@@ -1815,7 +1815,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(actualDashboard).To(ConsistOf(expectedDashboard))
 
 				By("returning a job's most recent finished build")
-				err = sqlDB.FinishBuild(jobBuild.ID, db.StatusSucceeded)
+				err = sqlDB.FinishBuild(jobBuild.ID, jobBuild.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
 				jobBuild, found, err = sqlDB.GetBuild(jobBuild.ID)
@@ -1833,7 +1833,7 @@ var _ = Describe("PipelineDB", func() {
 				By("returning a job's most recent finished build even when there is a newer unfinished build")
 				jobBuildNew, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
-				sqlDB.StartBuild(jobBuildNew.ID, "engine", "metadata")
+				sqlDB.StartBuild(jobBuildNew.ID, jobBuildNew.PipelineID, "engine", "metadata")
 				jobBuildNew, found, err = sqlDB.GetBuild(jobBuildNew.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
@@ -1966,7 +1966,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				err = sqlDB.ErrorBuild(build.ID, errors.New("disaster"))
+				err = sqlDB.ErrorBuild(build.ID, savedPipeline.ID, errors.New("disaster"))
 				Expect(err).NotTo(HaveOccurred())
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
@@ -1992,7 +1992,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				err = sqlDB.FinishBuild(build.ID, db.StatusSucceeded)
+				err = sqlDB.FinishBuild(build.ID, build.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
@@ -2005,7 +2005,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				err = sqlDB.FinishBuild(build.ID, db.StatusFailed)
+				err = sqlDB.FinishBuild(build.ID, build.PipelineID, db.StatusFailed)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
@@ -2503,7 +2503,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(found).To(BeTrue())
 				Expect(build.ID).To(Equal(buildOne.ID))
 
-				Expect(sqlDB.FinishBuild(buildOne.ID, db.StatusSucceeded)).To(Succeed())
+				Expect(sqlDB.FinishBuild(buildOne.ID, buildOne.PipelineID, db.StatusSucceeded)).To(Succeed())
 
 				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"serial-group"})
 				Expect(err).NotTo(HaveOccurred())
@@ -2518,7 +2518,7 @@ var _ = Describe("PipelineDB", func() {
 				scheduled, err := pipelineDB.UpdateBuildToScheduled(buildTwo.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(scheduled).To(BeTrue())
-				Expect(sqlDB.FinishBuild(buildTwo.ID, db.StatusSucceeded)).To(Succeed())
+				Expect(sqlDB.FinishBuild(buildTwo.ID, buildTwo.PipelineID, db.StatusSucceeded)).To(Succeed())
 
 				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"serial-group"})
 				Expect(err).NotTo(HaveOccurred())
@@ -2543,7 +2543,7 @@ var _ = Describe("PipelineDB", func() {
 
 					startedBuild, err = pipelineDB.CreateJobBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
-					_, err = sqlDB.StartBuild(startedBuild.ID, "", "")
+					_, err = sqlDB.StartBuild(startedBuild.ID, startedBuild.PipelineID, "", "")
 					Expect(err).NotTo(HaveOccurred())
 
 					scheduledBuild, err = pipelineDB.CreateJobBuild("some-job")
@@ -2560,7 +2560,7 @@ var _ = Describe("PipelineDB", func() {
 						scheduled, err = pipelineDB.UpdateBuildToScheduled(finishedBuild.ID)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(scheduled).To(BeTrue())
-						err = sqlDB.FinishBuild(finishedBuild.ID, s)
+						err = sqlDB.FinishBuild(finishedBuild.ID, finishedBuild.PipelineID, s)
 					}
 
 					_, err = pipelineDB.CreateJobBuild("some-other-job")
@@ -2722,7 +2722,7 @@ var _ = Describe("PipelineDB", func() {
 
 			Context("when started", func() {
 				BeforeEach(func() {
-					started, err := sqlDB.StartBuild(build1.ID, "some-engine", "some-metadata")
+					started, err := sqlDB.StartBuild(build1.ID, build1.PipelineID, "some-engine", "some-metadata")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(started).To(BeTrue())
 				})
@@ -2746,7 +2746,7 @@ var _ = Describe("PipelineDB", func() {
 
 			Context("when the build finishes", func() {
 				BeforeEach(func() {
-					err := sqlDB.FinishBuild(build1.ID, db.StatusSucceeded)
+					err := sqlDB.FinishBuild(build1.ID, build1.PipelineID, db.StatusSucceeded)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -2967,11 +2967,11 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				err = sqlDB.FinishBuild(build1.ID, db.StatusSucceeded)
+				err = sqlDB.FinishBuild(build1.ID, build1.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
-				err = sqlDB.FinishBuild(otherBuild2.ID, db.StatusSucceeded)
+				err = sqlDB.FinishBuild(otherBuild2.ID, otherBuild2.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
-				err = sqlDB.FinishBuild(build3.ID, db.StatusSucceeded)
+				err = sqlDB.FinishBuild(build3.ID, build3.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
 				jobBuildInputs := []config.JobInput{
@@ -3105,11 +3105,11 @@ var _ = Describe("PipelineDB", func() {
 				}, false)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = sqlDB.FinishBuild(sb1.ID, db.StatusSucceeded)
+				err = sqlDB.FinishBuild(sb1.ID, sb1.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
-				err = sqlDB.FinishBuild(j1b1.ID, db.StatusSucceeded)
+				err = sqlDB.FinishBuild(j1b1.ID, j1b1.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
-				err = sqlDB.FinishBuild(j2b1.ID, db.StatusSucceeded)
+				err = sqlDB.FinishBuild(j2b1.ID, j2b1.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
 				versions, found, err := loadAndGetLatestInputVersions("a-job", []config.JobInput{
@@ -3201,11 +3201,11 @@ var _ = Describe("PipelineDB", func() {
 				}, false)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = sqlDB.FinishBuild(sb2.ID, db.StatusSucceeded)
+				err = sqlDB.FinishBuild(sb2.ID, sb2.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
-				err = sqlDB.FinishBuild(j1b2.ID, db.StatusSucceeded)
+				err = sqlDB.FinishBuild(j1b2.ID, j1b2.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
-				err = sqlDB.FinishBuild(j2b2.ID, db.StatusSucceeded)
+				err = sqlDB.FinishBuild(j2b2.ID, j2b2.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
 				versions, found, err = loadAndGetLatestInputVersions("a-job", []config.JobInput{
@@ -3245,7 +3245,7 @@ var _ = Describe("PipelineDB", func() {
 
 				// Fail the 3rd build of the 2nd job, this should put the versions back to the previous set
 
-				err = sqlDB.FinishBuild(j2b3.ID, db.StatusFailed)
+				err = sqlDB.FinishBuild(j2b3.ID, j2b3.PipelineID, db.StatusFailed)
 				Expect(err).NotTo(HaveOccurred())
 
 				versions, found, err = loadAndGetLatestInputVersions("a-job", []config.JobInput{
@@ -3334,13 +3334,13 @@ var _ = Describe("PipelineDB", func() {
 			finishedBuild, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = sqlDB.FinishBuild(finishedBuild.ID, db.StatusSucceeded)
+			err = sqlDB.FinishBuild(finishedBuild.ID, finishedBuild.PipelineID, db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
 			otherFinishedBuild, err := otherPipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = sqlDB.FinishBuild(otherFinishedBuild.ID, db.StatusSucceeded)
+			err = sqlDB.FinishBuild(otherFinishedBuild.ID, otherFinishedBuild.PipelineID, db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
 			finished, next, err = pipelineDB.GetJobFinishedAndNextBuild("some-job")
@@ -3352,14 +3352,14 @@ var _ = Describe("PipelineDB", func() {
 			nextBuild, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			started, err := sqlDB.StartBuild(nextBuild.ID, "some-engine", "meta")
+			started, err := sqlDB.StartBuild(nextBuild.ID, nextBuild.PipelineID, "some-engine", "meta")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
 			otherNextBuild, err := otherPipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			otherStarted, err := sqlDB.StartBuild(otherNextBuild.ID, "some-engine", "meta")
+			otherStarted, err := sqlDB.StartBuild(otherNextBuild.ID, otherNextBuild.PipelineID, "some-engine", "meta")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(otherStarted).To(BeTrue())
 
@@ -3378,7 +3378,7 @@ var _ = Describe("PipelineDB", func() {
 			Expect(next.ID).To(Equal(nextBuild.ID)) // not anotherRunningBuild
 			Expect(finished.ID).To(Equal(finishedBuild.ID))
 
-			started, err = sqlDB.StartBuild(anotherRunningBuild.ID, "some-engine", "meta")
+			started, err = sqlDB.StartBuild(anotherRunningBuild.ID, anotherRunningBuild.PipelineID, "some-engine", "meta")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
@@ -3388,7 +3388,7 @@ var _ = Describe("PipelineDB", func() {
 			Expect(next.ID).To(Equal(nextBuild.ID)) // not anotherRunningBuild
 			Expect(finished.ID).To(Equal(finishedBuild.ID))
 
-			err = sqlDB.FinishBuild(nextBuild.ID, db.StatusSucceeded)
+			err = sqlDB.FinishBuild(nextBuild.ID, nextBuild.PipelineID, db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
 			finished, next, err = pipelineDB.GetJobFinishedAndNextBuild("some-job")

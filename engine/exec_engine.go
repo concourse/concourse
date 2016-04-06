@@ -48,7 +48,7 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, model db.Build, plan 
 
 		db:       engine.db,
 		factory:  engine.factory,
-		delegate: engine.delegateFactory.Delegate(model.ID),
+		delegate: engine.delegateFactory.Delegate(model.ID, model.PipelineID),
 		metadata: execMetadata{
 			Plan: plan,
 		},
@@ -76,7 +76,7 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, model db.Build) (Buil
 
 		db:       engine.db,
 		factory:  engine.factory,
-		delegate: engine.delegateFactory.Delegate(model.ID),
+		delegate: engine.delegateFactory.Delegate(model.ID, model.PipelineID),
 		metadata: metadata,
 
 		signals: make(chan os.Signal, 1),

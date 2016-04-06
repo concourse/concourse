@@ -16,11 +16,12 @@ type FakeTrackerDB struct {
 		result1 []db.Build
 		result2 error
 	}
-	ErrorBuildStub        func(buildID int, err error) error
+	ErrorBuildStub        func(buildID int, pipelineID int, err error) error
 	errorBuildMutex       sync.RWMutex
 	errorBuildArgsForCall []struct {
-		buildID int
-		err     error
+		buildID    int
+		pipelineID int
+		err        error
 	}
 	errorBuildReturns struct {
 		result1 error
@@ -52,15 +53,16 @@ func (fake *FakeTrackerDB) GetAllStartedBuildsReturns(result1 []db.Build, result
 	}{result1, result2}
 }
 
-func (fake *FakeTrackerDB) ErrorBuild(buildID int, err error) error {
+func (fake *FakeTrackerDB) ErrorBuild(buildID int, pipelineID int, err error) error {
 	fake.errorBuildMutex.Lock()
 	fake.errorBuildArgsForCall = append(fake.errorBuildArgsForCall, struct {
-		buildID int
-		err     error
-	}{buildID, err})
+		buildID    int
+		pipelineID int
+		err        error
+	}{buildID, pipelineID, err})
 	fake.errorBuildMutex.Unlock()
 	if fake.ErrorBuildStub != nil {
-		return fake.ErrorBuildStub(buildID, err)
+		return fake.ErrorBuildStub(buildID, pipelineID, err)
 	} else {
 		return fake.errorBuildReturns.result1
 	}
@@ -72,10 +74,10 @@ func (fake *FakeTrackerDB) ErrorBuildCallCount() int {
 	return len(fake.errorBuildArgsForCall)
 }
 
-func (fake *FakeTrackerDB) ErrorBuildArgsForCall(i int) (int, error) {
+func (fake *FakeTrackerDB) ErrorBuildArgsForCall(i int) (int, int, error) {
 	fake.errorBuildMutex.RLock()
 	defer fake.errorBuildMutex.RUnlock()
-	return fake.errorBuildArgsForCall[i].buildID, fake.errorBuildArgsForCall[i].err
+	return fake.errorBuildArgsForCall[i].buildID, fake.errorBuildArgsForCall[i].pipelineID, fake.errorBuildArgsForCall[i].err
 }
 
 func (fake *FakeTrackerDB) ErrorBuildReturns(result1 error) {

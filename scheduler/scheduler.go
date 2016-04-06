@@ -31,8 +31,8 @@ type PipelineDB interface {
 
 type BuildsDB interface {
 	LeaseBuildScheduling(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error)
-	ErrorBuild(buildID int, err error) error
-	FinishBuild(int, db.Status) error
+	ErrorBuild(buildID int, pipelineID int, err error) error
+	FinishBuild(int, int, db.Status) error
 
 	GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error)
 }
@@ -274,7 +274,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 		})
 
 		if reason == "failed-to-scan" {
-			err = s.BuildsDB.ErrorBuild(build.ID, err)
+			err = s.BuildsDB.ErrorBuild(build.ID, build.PipelineID, err)
 			if err != nil {
 				logger.Error("failed-to-mark-build-as-errored", err)
 			}
@@ -289,7 +289,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 	plan, err := s.Factory.Create(job, resources, resourceTypes, inputs)
 	if err != nil {
 		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
-		err := s.BuildsDB.FinishBuild(build.ID, db.StatusErrored)
+		err := s.BuildsDB.FinishBuild(build.ID, build.PipelineID, db.StatusErrored)
 		if err != nil {
 			logger.Error("failed-to-mark-build-as-errored", err)
 		}

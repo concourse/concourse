@@ -8,24 +8,26 @@ import (
 )
 
 type FakeBuildDelegateFactory struct {
-	DelegateStub        func(buildID int) engine.BuildDelegate
+	DelegateStub        func(buildID int, pipelineID int) engine.BuildDelegate
 	delegateMutex       sync.RWMutex
 	delegateArgsForCall []struct {
-		buildID int
+		buildID    int
+		pipelineID int
 	}
 	delegateReturns struct {
 		result1 engine.BuildDelegate
 	}
 }
 
-func (fake *FakeBuildDelegateFactory) Delegate(buildID int) engine.BuildDelegate {
+func (fake *FakeBuildDelegateFactory) Delegate(buildID int, pipelineID int) engine.BuildDelegate {
 	fake.delegateMutex.Lock()
 	fake.delegateArgsForCall = append(fake.delegateArgsForCall, struct {
-		buildID int
-	}{buildID})
+		buildID    int
+		pipelineID int
+	}{buildID, pipelineID})
 	fake.delegateMutex.Unlock()
 	if fake.DelegateStub != nil {
-		return fake.DelegateStub(buildID)
+		return fake.DelegateStub(buildID, pipelineID)
 	} else {
 		return fake.delegateReturns.result1
 	}
@@ -37,10 +39,10 @@ func (fake *FakeBuildDelegateFactory) DelegateCallCount() int {
 	return len(fake.delegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegateFactory) DelegateArgsForCall(i int) int {
+func (fake *FakeBuildDelegateFactory) DelegateArgsForCall(i int) (int, int) {
 	fake.delegateMutex.RLock()
 	defer fake.delegateMutex.RUnlock()
-	return fake.delegateArgsForCall[i].buildID
+	return fake.delegateArgsForCall[i].buildID, fake.delegateArgsForCall[i].pipelineID
 }
 
 func (fake *FakeBuildDelegateFactory) DelegateReturns(result1 engine.BuildDelegate) {

@@ -66,7 +66,7 @@ var _ = Describe("SQL DB", func() {
 		defer events.Close()
 
 		By("saving them in order")
-		err = database.SaveBuildEvent(build.ID, event.Log{
+		err = database.SaveBuildEvent(build.ID, 0, event.Log{
 			Payload: "some ",
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -75,7 +75,7 @@ var _ = Describe("SQL DB", func() {
 			Payload: "some ",
 		}))
 
-		err = database.SaveBuildEvent(build.ID, event.Log{
+		err = database.SaveBuildEvent(build.ID, 0, event.Log{
 			Payload: "log",
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -110,7 +110,7 @@ var _ = Describe("SQL DB", func() {
 		Consistently(nextEvent).ShouldNot(Receive())
 		Consistently(nextErr).ShouldNot(Receive())
 
-		err = database.SaveBuildEvent(build.ID, event.Log{
+		err = database.SaveBuildEvent(build.ID, 0, event.Log{
 			Payload: "log 2",
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -144,7 +144,7 @@ var _ = Describe("SQL DB", func() {
 		defer events.Close()
 
 		By("emitting a status event when started")
-		started, err := database.StartBuild(build.ID, "engine", "metadata")
+		started, err := database.StartBuild(build.ID, build.PipelineID, "engine", "metadata")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(started).To(BeTrue())
 
@@ -158,7 +158,7 @@ var _ = Describe("SQL DB", func() {
 		}))
 
 		By("emitting a status event when finished")
-		err = database.FinishBuild(build.ID, db.StatusSucceeded)
+		err = database.FinishBuild(build.ID, build.PipelineID, db.StatusSucceeded)
 		Expect(err).NotTo(HaveOccurred())
 
 		finishedBuild, found, err := database.GetBuild(build.ID)

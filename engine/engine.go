@@ -18,9 +18,9 @@ type Engine interface {
 //go:generate counterfeiter . EngineDB
 
 type EngineDB interface {
-	SaveBuildEvent(buildID int, event atc.Event) error
+	SaveBuildEvent(buildID int, pipelineID int, event atc.Event) error
 
-	FinishBuild(buildID int, status db.Status) error
+	FinishBuild(buildID int, pipelineID int, status db.Status) error
 
 	SaveBuildEngineMetadata(buildID int, metadata string) error
 

@@ -114,10 +114,10 @@ var _ = Describe("Job Builds", func() {
 				build, err = pipelineDB.CreateJobBuild("job-name")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = sqlDB.StartBuild(build.ID, "", "")
+				_, err = sqlDB.StartBuild(build.ID, savedPipeline.ID, "", "")
 				Expect(err).NotTo(HaveOccurred())
 
-				sqlDB.SaveBuildEvent(build.ID, event.Log{
+				sqlDB.SaveBuildEvent(build.ID, build.PipelineID, event.Log{
 					Origin: event.Origin{
 						Source: event.OriginSourceStdout,
 						ID:     "some-id",
@@ -125,7 +125,7 @@ var _ = Describe("Job Builds", func() {
 					Payload: "hello this is a payload",
 				})
 
-				Expect(sqlDB.FinishBuild(build.ID, db.StatusSucceeded)).To(Succeed())
+				Expect(sqlDB.FinishBuild(build.ID, build.PipelineID, db.StatusSucceeded)).To(Succeed())
 
 				_, err = sqlDB.SaveBuildInput(build.ID, buildInput)
 				Expect(err).NotTo(HaveOccurred())

@@ -320,11 +320,11 @@ var _ = Describe("Keeping track of builds", func() {
 			_, err = database.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			started, err := database.StartBuild(build1.ID, "some-engine", "so-meta")
+			started, err := database.StartBuild(build1.ID, build1.PipelineID, "some-engine", "so-meta")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
-			started, err = database.StartBuild(build2.ID, "some-engine", "so-meta")
+			started, err = database.StartBuild(build2.ID, build2.PipelineID, "some-engine", "so-meta")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 		})
