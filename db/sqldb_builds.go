@@ -407,6 +407,11 @@ func (db *SQLDB) ResetBuildPreparationsWithPipelinePaused(pipelineID int) error 
 }
 
 func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) {
+	build, _, err := db.GetBuild(buildID)
+	if err != nil {
+		return false, err
+	}
+
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return false, err
@@ -431,7 +436,7 @@ func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) 
 		return false, err
 	}
 
-	err = db.saveBuildEvent(tx, buildID, event.Status{
+	err = db.saveBuildEvent(tx, buildID, build.PipelineID, event.Status{
 		Status: atc.StatusStarted,
 		Time:   startTime.Unix(),
 	})
@@ -453,6 +458,11 @@ func (db *SQLDB) StartBuild(buildID int, engine, metadata string) (bool, error) 
 }
 
 func (db *SQLDB) FinishBuild(buildID int, status Status) error {
+	build, _, err := db.GetBuild(buildID)
+	if err != nil {
+		return err
+	}
+
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -472,7 +482,7 @@ func (db *SQLDB) FinishBuild(buildID int, status Status) error {
 		return err
 	}
 
-	err = db.saveBuildEvent(tx, buildID, event.Status{
+	err = db.saveBuildEvent(tx, buildID, build.PipelineID, event.Status{
 		Status: atc.BuildStatus(status),
 		Time:   endTime.Unix(),
 	})
@@ -603,6 +613,11 @@ func (db *SQLDB) AbortNotifier(buildID int) (Notifier, error) {
 }
 
 func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
+	build, _, err := db.GetBuild(buildID)
+	if err != nil {
+		return err
+	}
+
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return err
@@ -610,7 +625,7 @@ func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
 
 	defer tx.Rollback()
 
-	err = db.saveBuildEvent(tx, buildID, event)
+	err = db.saveBuildEvent(tx, buildID, build.PipelineID, event)
 	if err != nil {
 		return err
 	}
@@ -628,20 +643,15 @@ func (db *SQLDB) SaveBuildEvent(buildID int, event atc.Event) error {
 	return nil
 }
 
-func (db *SQLDB) saveBuildEvent(tx Tx, buildID int, event atc.Event) error {
+func (db *SQLDB) saveBuildEvent(tx Tx, buildID int, pipelineID int, event atc.Event) error {
 	payload, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
 
-	build, _, err := db.GetBuild(buildID)
-	if err != nil {
-		return err
-	}
-
 	table := "build_events"
-	if build.PipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", build.PipelineID)
+	if pipelineID != 0 {
+		table = fmt.Sprintf("pipeline_build_events_%d", pipelineID)
 	}
 
 	_, err = tx.Exec(fmt.Sprintf(`
