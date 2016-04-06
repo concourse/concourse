@@ -383,14 +383,7 @@ func (pdb *pipelineDB) LeaseScheduling(logger lager.Logger, interval time.Durati
 }
 
 func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error) {
-	tx, err := pdb.conn.Begin()
-	if err != nil {
-		return []SavedVersionedResource{}, Pagination{}, false, err
-	}
-
-	defer tx.Rollback()
-
-	dbResource, err := pdb.getResource(tx, resourceName)
+	dbResource, err := pdb.GetResource(resourceName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return []SavedVersionedResource{}, Pagination{}, false, nil
@@ -540,9 +533,30 @@ func (pdb *pipelineDB) getResource(tx Tx, name string) (SavedResource, error) {
 }
 
 func (pdb *pipelineDB) GetResourceType(name string) (SavedResourceType, bool, error) {
+	tx, err := pdb.conn.Begin()
+	if err != nil {
+		return SavedResourceType{}, false, err
+	}
+
+	defer tx.Rollback()
+
+	resourceType, found, err := pdb.getResourceType(tx, name)
+	if err != nil {
+		return SavedResourceType{}, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return SavedResourceType{}, false, err
+	}
+
+	return resourceType, found, nil
+}
+
+func (pdb *pipelineDB) getResourceType(tx Tx, name string) (SavedResourceType, bool, error) {
 	var savedResourceType SavedResourceType
 	var versionJSON interface{}
-	err := pdb.conn.QueryRow(`
+	err := tx.QueryRow(`
 			SELECT id, name, type, version
 			FROM resource_types
 			WHERE name = $1
@@ -662,7 +676,7 @@ func (pdb *pipelineDB) SaveResourceTypeVersion(resourceType atc.ResourceType, ve
 		return err
 	}
 
-	_, found, err := pdb.GetResourceType(resourceType.Name)
+	_, found, err := pdb.getResourceType(tx, resourceType.Name)
 	if err != nil {
 		return err
 	}
