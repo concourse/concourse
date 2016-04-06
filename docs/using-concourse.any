@@ -15,7 +15,7 @@ can read more about in great detail at \reference{fly-cli}, so it's still worth
 a read.
 
 \include-section{./using-concourse/hello-world.any}
-\include-section{./using-concourse/larger-examples.any}
+\include-section{./using-concourse/tutorials.any}
 \include-section{./using-concourse/fly-cli.any}
 \include-section{./using-concourse/running-tasks.any}
 \include-section{./using-concourse/pipelines.any}

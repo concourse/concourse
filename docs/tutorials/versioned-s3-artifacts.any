@@ -22,7 +22,7 @@
 
   The resulting pipeline will look like this:
 
-  \pipeline-image{examples/versioned-s3-artifacts.svg}
+  \pipeline-image{tutorials/versioned-s3-artifacts.svg}
 }
 
 \literate-segment{
