@@ -9,6 +9,7 @@ import (
 
 type ContainerSpec interface {
 	WorkerSpec() WorkerSpec
+	IsPrivileged() bool
 }
 
 type WorkerSpec struct {
@@ -56,6 +57,10 @@ func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {
 	}
 }
 
+func (spec ResourceTypeContainerSpec) IsPrivileged() bool {
+	return true
+}
+
 type TaskContainerSpec struct {
 	Platform      string
 	Image         string
@@ -71,4 +76,8 @@ func (spec TaskContainerSpec) WorkerSpec() WorkerSpec {
 		Platform: spec.Platform,
 		Tags:     spec.Tags,
 	}
+}
+
+func (spec TaskContainerSpec) IsPrivileged() bool {
+	return spec.Privileged
 }

@@ -260,7 +260,6 @@ dance:
 			defer image.Release(nil)
 		}
 
-		gardenSpec.Privileged = true
 		gardenSpec.Env = append(gardenSpec.Env, s.Env...)
 
 		if s.Ephemeral {
@@ -306,14 +305,14 @@ dance:
 			defer image.Release(nil)
 		}
 
-		gardenSpec.Privileged = s.Privileged
-
 		if s.ImageResource == nil {
 			gardenSpec.RootFSPath = s.Image
 		}
 	default:
 		return nil, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
 	}
+
+	gardenSpec.Privileged = spec.IsPrivileged()
 
 	if imageFetched {
 		volumeHandles = append(volumeHandles, image.Volume().Handle())
