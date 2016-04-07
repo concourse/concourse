@@ -111,6 +111,26 @@ func (strategy ContainerRootFSStrategy) dbIdentifier() db.VolumeIdentifier {
 	}
 }
 
+type HostRootFSStrategy struct {
+	Path       string
+	WorkerName string
+}
+
+func (strategy HostRootFSStrategy) baggageclaimStrategy() baggageclaim.Strategy {
+	return baggageclaim.ImportStrategy{
+		Path: strategy.Path,
+	}
+}
+
+func (strategy HostRootFSStrategy) dbIdentifier() db.VolumeIdentifier {
+	return db.VolumeIdentifier{
+		Import: &db.ImportIdentifier{
+			Path:       strategy.Path,
+			WorkerName: strategy.WorkerName,
+		},
+	}
+}
+
 //go:generate counterfeiter . Container
 
 type Container interface {

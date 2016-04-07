@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
@@ -13,10 +14,12 @@ import (
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
 )
 
 type immediateRetryPolicy struct{}
@@ -31,11 +34,11 @@ var _ = Describe("DBProvider", func() {
 
 		logger *lagertest.TestLogger
 
-		worker                *gfakes.FakeBackend
-		workerAddr            string
-		workerBaggageclaimURL string
-		workerServer          *server.GardenServer
-		provider              WorkerProvider
+		fakeGardenBackend  *gfakes.FakeBackend
+		gardenAddr         string
+		baggageclaimServer *ghttp.Server
+		gardenServer       *server.GardenServer
+		provider           WorkerProvider
 
 		fakeImageFetcher          *fakes.FakeImageFetcher
 		fakeImageFetchingDelegate *fakes.FakeImageFetchingDelegate
@@ -45,15 +48,29 @@ var _ = Describe("DBProvider", func() {
 	)
 
 	BeforeEach(func() {
+		baggageclaimServer = ghttp.NewServer()
+
+		baggageclaimServer.RouteToHandler("POST", "/volumes", ghttp.RespondWithJSONEncoded(
+			http.StatusCreated,
+			baggageclaim.VolumeResponse{Handle: "vol-handle"},
+		))
+		baggageclaimServer.RouteToHandler("PUT", "/volumes/vol-handle/ttl", ghttp.RespondWith(
+			http.StatusNoContent,
+			nil,
+		))
+		baggageclaimServer.RouteToHandler("GET", "/volumes/vol-handle", ghttp.RespondWithJSONEncoded(
+			http.StatusOK,
+			baggageclaim.VolumeResponse{Handle: "vol-handle"},
+		))
+
 		fakeDB = new(fakes.FakeWorkerDB)
+		fakeDB.GetVolumeTTLReturns(1*time.Millisecond, true, nil)
+
+		gardenAddr = fmt.Sprintf("0.0.0.0:%d", 8888+GinkgoParallelNode())
+		fakeGardenBackend = new(gfakes.FakeBackend)
 		logger = lagertest.NewTestLogger("test")
-		worker = new(gfakes.FakeBackend)
-
-		workerAddr = fmt.Sprintf("0.0.0.0:%d", 8888+GinkgoParallelNode())
-		workerBaggageclaimURL = "http://1.2.3.4:7788"
-
-		workerServer = server.New("tcp", workerAddr, 0, worker, logger)
-		err := workerServer.Start()
+		gardenServer = server.New("tcp", gardenAddr, 0, fakeGardenBackend, logger)
+		err := gardenServer.Start()
 		Expect(err).NotTo(HaveOccurred())
 
 		fakeImageFetcher = new(fakes.FakeImageFetcher)
@@ -63,16 +80,18 @@ var _ = Describe("DBProvider", func() {
 	})
 
 	AfterEach(func() {
-		workerServer.Stop()
+		gardenServer.Stop()
 
 		Eventually(func() error {
-			conn, err := net.Dial("tcp", workerAddr)
+			conn, err := net.Dial("tcp", gardenAddr)
 			if err == nil {
 				conn.Close()
 			}
 
 			return err
 		}).Should(HaveOccurred())
+
+		baggageclaimServer.Close()
 	})
 
 	Context("when we call to get multiple workers", func() {
@@ -86,8 +105,8 @@ var _ = Describe("DBProvider", func() {
 					{
 						WorkerInfo: db.WorkerInfo{
 							Name:             "some-worker",
-							GardenAddr:       workerAddr,
-							BaggageclaimURL:  workerBaggageclaimURL,
+							GardenAddr:       gardenAddr,
+							BaggageclaimURL:  baggageclaimServer.URL(),
 							ActiveContainers: 2,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource-a", Image: "some-image-a"},
@@ -97,7 +116,7 @@ var _ = Describe("DBProvider", func() {
 					{
 						WorkerInfo: db.WorkerInfo{
 							Name:             "some-other-worker",
-							GardenAddr:       workerAddr,
+							GardenAddr:       gardenAddr,
 							ActiveContainers: 2,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource-b", Image: "some-image-b"},
@@ -131,8 +150,8 @@ var _ = Describe("DBProvider", func() {
 					fakeContainer := new(gfakes.FakeContainer)
 					fakeContainer.HandleReturns("created-handle")
 
-					worker.CreateReturns(fakeContainer, nil)
-					worker.LookupReturns(fakeContainer, nil)
+					fakeGardenBackend.CreateReturns(fakeContainer, nil)
+					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
 					By("connecting to the worker")
 					container, err := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil)
@@ -142,10 +161,10 @@ var _ = Describe("DBProvider", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					By("restarting the worker with a new address")
-					workerServer.Stop()
+					gardenServer.Stop()
 
 					Eventually(func() error {
-						conn, err := net.Dial("tcp", workerAddr)
+						conn, err := net.Dial("tcp", gardenAddr)
 						if err == nil {
 							conn.Close()
 						}
@@ -153,15 +172,15 @@ var _ = Describe("DBProvider", func() {
 						return err
 					}).Should(HaveOccurred())
 
-					workerAddr = fmt.Sprintf("0.0.0.0:%d", 7777+GinkgoParallelNode())
+					gardenAddr = fmt.Sprintf("0.0.0.0:%d", 7777+GinkgoParallelNode())
 
-					workerServer = server.New("tcp", workerAddr, 0, worker, logger)
-					err = workerServer.Start()
+					gardenServer = server.New("tcp", gardenAddr, 0, fakeGardenBackend, logger)
+					err = gardenServer.Start()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
 				It("can continue to connect after the worker address changes", func() {
-					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: workerAddr}}, true, nil)
+					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
 
 					container, err := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
@@ -201,8 +220,8 @@ var _ = Describe("DBProvider", func() {
 					fakeContainer := new(gfakes.FakeContainer)
 					fakeContainer.HandleReturns("created-handle")
 
-					worker.CreateReturns(fakeContainer, nil)
-					worker.LookupReturns(fakeContainer, nil)
+					fakeGardenBackend.CreateReturns(fakeContainer, nil)
+					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
 					container, err := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
@@ -213,13 +232,13 @@ var _ = Describe("DBProvider", func() {
 
 					Expect(container.Handle()).To(Equal("created-handle"))
 
-					Expect(worker.CreateCallCount()).To(Equal(1))
+					Expect(fakeGardenBackend.CreateCallCount()).To(Equal(1))
 
 					err = container.Destroy()
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(worker.DestroyCallCount()).To(Equal(1))
-					Expect(worker.DestroyArgsForCall(0)).To(Equal("created-handle"))
+					Expect(fakeGardenBackend.DestroyCallCount()).To(Equal(1))
+					Expect(fakeGardenBackend.DestroyArgsForCall(0)).To(Equal("created-handle"))
 				})
 			})
 
@@ -228,8 +247,8 @@ var _ = Describe("DBProvider", func() {
 					fakeContainer := new(gfakes.FakeContainer)
 					fakeContainer.HandleReturns("some-handle")
 
-					worker.ContainersReturns([]garden.Container{fakeContainer}, nil)
-					worker.LookupReturns(fakeContainer, nil)
+					fakeGardenBackend.ContainersReturns([]garden.Container{fakeContainer}, nil)
+					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
 					returnContainer := db.SavedContainer{
 						Container: db.Container{
@@ -251,8 +270,8 @@ var _ = Describe("DBProvider", func() {
 					err = container.Destroy()
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(worker.DestroyCallCount()).To(Equal(1))
-					Expect(worker.DestroyArgsForCall(0)).To(Equal("some-handle"))
+					Expect(fakeGardenBackend.DestroyCallCount()).To(Equal(1))
+					Expect(fakeGardenBackend.DestroyArgsForCall(0)).To(Equal("some-handle"))
 				})
 			})
 		})

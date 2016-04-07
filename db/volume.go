@@ -18,6 +18,7 @@ type VolumeIdentifier struct {
 	ResourceCache *ResourceCacheIdentifier
 	COW           *COWIdentifier
 	Output        *OutputIdentifier
+	Import        *ImportIdentifier
 }
 
 type ResourceCacheIdentifier struct {
@@ -31,6 +32,11 @@ type COWIdentifier struct {
 
 type OutputIdentifier struct {
 	Name string
+}
+
+type ImportIdentifier struct {
+	WorkerName string
+	Path       string
 }
 
 type SavedVolume struct {

@@ -272,7 +272,36 @@ dance:
 		if s.ImageResource == nil {
 			for _, t := range worker.resourceTypes {
 				if t.Type == s.Type {
-					gardenSpec.RootFSPath = t.Image
+					importVolume, err := worker.CreateVolume(logger, VolumeSpec{
+						Strategy: HostRootFSStrategy{
+							Path:       t.Image,
+							WorkerName: worker.Name(),
+						},
+						Privileged: true,
+						Properties: VolumeProperties{},
+						TTL:        0,
+					})
+					if err != nil {
+						return nil, err
+					}
+					defer importVolume.Release(nil)
+
+					cowVolume, err := worker.CreateVolume(logger, VolumeSpec{
+						Strategy: ContainerRootFSStrategy{
+							Parent: importVolume,
+						},
+						Privileged: true,
+						Properties: VolumeProperties{},
+						TTL:        VolumeTTL,
+					})
+					if err != nil {
+						return nil, err
+					}
+					defer cowVolume.Release(nil)
+					volumeHandles = append(volumeHandles, cowVolume.Handle())
+					volumeMountPaths[cowVolume] = cowVolume.Path()
+
+					gardenSpec.RootFSPath = cowVolume.Path()
 					break dance
 				}
 			}
