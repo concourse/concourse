@@ -110,10 +110,15 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 
 			It("can be retrieved", func() {
-				volumes, err := database.GetVolumes()
+				actualVolume, found, err := database.GetVolumeByIdentifier(
+					db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"some": "version"},
+							ResourceHash:    "some-hash",
+						},
+					})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(len(volumes)).To(Equal(1))
-				actualVolume := volumes[0]
+				Expect(found).To(BeTrue())
 				Expect(actualVolume.WorkerName).To(Equal(volumeToInsert.WorkerName))
 				Expect(actualVolume.TTL).To(Equal(volumeToInsert.TTL))
 				Expect(actualVolume.ExpiresIn).To(BeNumerically("~", volumeToInsert.TTL, time.Second))
@@ -127,6 +132,7 @@ var _ = Describe("Keeping track of volumes", func() {
 					originalVolume          db.SavedVolume
 					cowVolumeToInsertHandle string
 					ttl                     time.Duration
+					cowIdentifier           db.VolumeIdentifier
 				)
 
 				JustBeforeEach(func() {
@@ -138,24 +144,25 @@ var _ = Describe("Keeping track of volumes", func() {
 					Expect(len(volumes)).To(Equal(1))
 					originalVolume = volumes[0]
 
+					cowIdentifier = db.VolumeIdentifier{
+						COW: &db.COWIdentifier{
+							ParentVolumeHandle: originalVolume.Handle,
+						},
+					}
+
 					err = database.InsertVolume(db.Volume{
 						Handle:     cowVolumeToInsertHandle,
 						WorkerName: originalVolume.WorkerName,
 						TTL:        ttl,
-						Identifier: db.VolumeIdentifier{
-							COW: &db.COWIdentifier{
-								ParentVolumeHandle: originalVolume.Handle,
-							},
-						},
+						Identifier: cowIdentifier,
 					})
 					Expect(err).NotTo(HaveOccurred())
 				})
 
 				It("can be retrieved", func() {
-					volumes, err := database.GetVolumes()
+					cowVolume, found, err := database.GetVolumeByIdentifier(cowIdentifier)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(len(volumes)).To(Equal(2))
-					cowVolume := volumes[1]
+					Expect(found).To(BeTrue())
 					Expect(cowVolume.Handle).To(Equal(cowVolumeToInsertHandle))
 					Expect(cowVolume.Volume.Identifier.COW.ParentVolumeHandle).To(Equal(originalVolume.Handle))
 					Expect(cowVolume.TTL).To(Equal(ttl))
@@ -248,6 +255,17 @@ var _ = Describe("Keeping track of volumes", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(volumes).To(HaveLen(0))
 				})
+
+				It("does not return it", func() {
+					_, found, err := database.GetVolumeByIdentifier(db.VolumeIdentifier{
+						ResourceCache: &db.ResourceCacheIdentifier{
+							ResourceVersion: atc.Version{"some": "version"},
+							ResourceHash:    "some-hash",
+						},
+					})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
 			})
 
 			Context("TTL's", func() {
@@ -310,19 +328,31 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 		})
 
+		It("does not return an error if the volume does not exist", func() {
+			_, found, err := database.GetVolumeByIdentifier(db.VolumeIdentifier{
+				Output: &db.OutputIdentifier{
+					Name: "some-output",
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+
 		Describe("output volumes", func() {
 			var outputVolume db.Volume
+			var outputIdentifier db.VolumeIdentifier
 
 			BeforeEach(func() {
+				outputIdentifier = db.VolumeIdentifier{
+					Output: &db.OutputIdentifier{
+						Name: "some-output",
+					},
+				}
 				outputVolume = db.Volume{
 					WorkerName: insertedWorker.Name,
 					TTL:        5 * time.Minute,
 					Handle:     "my-output-handle",
-					Identifier: db.VolumeIdentifier{
-						Output: &db.OutputIdentifier{
-							Name: "some-output",
-						},
-					},
+					Identifier: outputIdentifier,
 				}
 
 				err := database.InsertVolume(outputVolume)
@@ -330,10 +360,9 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 
 			It("can be retrieved", func() {
-				volumes, err := database.GetVolumes()
+				savedOutputVolume, found, err := database.GetVolumeByIdentifier(outputIdentifier)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(volumes).To(HaveLen(1))
-				savedOutputVolume := volumes[0]
+				Expect(found).To(BeTrue())
 				Expect(savedOutputVolume.WorkerName).To(Equal(outputVolume.WorkerName))
 				Expect(savedOutputVolume.TTL).To(Equal(outputVolume.TTL))
 				Expect(savedOutputVolume.Handle).To(Equal(outputVolume.Handle))

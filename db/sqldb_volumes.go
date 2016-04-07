@@ -113,6 +113,61 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 	return volumes, err
 }
 
+func (db *SQLDB) GetVolumeByIdentifier(id VolumeIdentifier) (SavedVolume, bool, error) {
+	err := db.expireVolumes()
+	if err != nil {
+		return SavedVolume{}, false, err
+	}
+
+	conditions := []string{}
+	params := []interface{}{}
+
+	addParam := func(column string, param interface{}) {
+		conditions = append(conditions, fmt.Sprintf("%s = $%d", column, len(params)+1))
+		params = append(params, param)
+	}
+
+	switch {
+	case id.ResourceCache != nil:
+		resourceVersion, err := json.Marshal(id.ResourceCache.ResourceVersion)
+		if err != nil {
+			return SavedVolume{}, false, err
+		}
+		addParam("resource_version", resourceVersion)
+		addParam("resource_hash", id.ResourceCache.ResourceHash)
+	case id.COW != nil:
+		addParam("original_volume_handle", id.COW.ParentVolumeHandle)
+	case id.Output != nil:
+		addParam("output_name", id.Output.Name)
+	}
+
+	statement := `
+		SELECT
+			worker_name,
+			ttl,
+			EXTRACT(epoch FROM expires_at - NOW()),
+			handle,
+			resource_version,
+			resource_hash,
+			id,
+			original_volume_handle,
+			output_name
+		FROM volumes
+		`
+
+	statement += "WHERE " + strings.Join(conditions, " AND ")
+
+	savedVolume, err := scanVolume(db.conn.QueryRow(statement, params...))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return SavedVolume{}, false, nil
+		}
+		return SavedVolume{}, false, err
+	}
+
+	return savedVolume, true, nil
+}
+
 func (db *SQLDB) GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error) {
 	err := db.expireVolumes()
 	if err != nil {
@@ -234,50 +289,59 @@ func (db *SQLDB) expireVolumes() error {
 	return err
 }
 
+func scanVolume(row scannable) (SavedVolume, error) {
+	var volume SavedVolume
+	var ttlSeconds *float64
+	var versionJSON sql.NullString
+	var resourceHash sql.NullString
+	var originalVolumeHandle sql.NullString
+	var outputName sql.NullString
+
+	err := row.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &resourceHash, &volume.ID, &originalVolumeHandle, &outputName)
+	if err != nil {
+		return SavedVolume{}, err
+	}
+
+	if ttlSeconds != nil {
+		volume.ExpiresIn = time.Duration(*ttlSeconds) * time.Second
+	}
+
+	if versionJSON.Valid && resourceHash.Valid {
+		var cacheID ResourceCacheIdentifier
+
+		err = json.Unmarshal([]byte(versionJSON.String), &cacheID.ResourceVersion)
+		if err != nil {
+			return SavedVolume{}, err
+		}
+
+		cacheID.ResourceHash = resourceHash.String
+
+		volume.Volume.Identifier.ResourceCache = &cacheID
+	} else if originalVolumeHandle.Valid {
+		volume.Volume.Identifier.COW = &COWIdentifier{
+			ParentVolumeHandle: originalVolumeHandle.String,
+		}
+	} else if outputName.Valid {
+		volume.Volume.Identifier.Output = &OutputIdentifier{
+			Name: outputName.String,
+		}
+	}
+
+	return volume, nil
+}
+
 func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 	defer rows.Close()
 
 	volumes := []SavedVolume{}
 
 	for rows.Next() {
-		var volume SavedVolume
-		var ttlSeconds *float64
-		var versionJSON sql.NullString
-		var resourceHash sql.NullString
-		var originalVolumeHandle sql.NullString
-		var outputName sql.NullString
-
-		err := rows.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &resourceHash, &volume.ID, &originalVolumeHandle, &outputName)
+		savedVolume, err := scanVolume(rows)
 		if err != nil {
 			return nil, err
 		}
 
-		if ttlSeconds != nil {
-			volume.ExpiresIn = time.Duration(*ttlSeconds) * time.Second
-		}
-
-		if versionJSON.Valid && resourceHash.Valid {
-			var cacheID ResourceCacheIdentifier
-
-			err = json.Unmarshal([]byte(versionJSON.String), &cacheID.ResourceVersion)
-			if err != nil {
-				return nil, err
-			}
-
-			cacheID.ResourceHash = resourceHash.String
-
-			volume.Volume.Identifier.ResourceCache = &cacheID
-		} else if originalVolumeHandle.Valid {
-			volume.Volume.Identifier.COW = &COWIdentifier{
-				ParentVolumeHandle: originalVolumeHandle.String,
-			}
-		} else if outputName.Valid {
-			volume.Volume.Identifier.Output = &OutputIdentifier{
-				Name: outputName.String,
-			}
-		}
-
-		volumes = append(volumes, volume)
+		volumes = append(volumes, savedVolume)
 	}
 
 	return volumes, nil

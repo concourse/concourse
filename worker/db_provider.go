@@ -27,6 +27,7 @@ type WorkerDB interface {
 	ReapContainer(handle string) error
 
 	InsertVolume(db.Volume) error
+	GetVolumeByIdentifier(db.VolumeIdentifier) (db.SavedVolume, bool, error)
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	ReapVolume(handle string) error
 	SetVolumeTTL(string, time.Duration) error

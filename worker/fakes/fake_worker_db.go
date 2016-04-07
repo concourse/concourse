@@ -82,6 +82,16 @@ type FakeWorkerDB struct {
 	insertVolumeReturns struct {
 		result1 error
 	}
+	GetVolumeByIdentifierStub        func(db.VolumeIdentifier) (db.SavedVolume, bool, error)
+	getVolumeByIdentifierMutex       sync.RWMutex
+	getVolumeByIdentifierArgsForCall []struct {
+		arg1 db.VolumeIdentifier
+	}
+	getVolumeByIdentifierReturns struct {
+		result1 db.SavedVolume
+		result2 bool
+		result3 error
+	}
 	GetVolumeTTLStub        func(volumeHandle string) (time.Duration, bool, error)
 	getVolumeTTLMutex       sync.RWMutex
 	getVolumeTTLArgsForCall []struct {
@@ -367,6 +377,40 @@ func (fake *FakeWorkerDB) InsertVolumeReturns(result1 error) {
 	fake.insertVolumeReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeWorkerDB) GetVolumeByIdentifier(arg1 db.VolumeIdentifier) (db.SavedVolume, bool, error) {
+	fake.getVolumeByIdentifierMutex.Lock()
+	fake.getVolumeByIdentifierArgsForCall = append(fake.getVolumeByIdentifierArgsForCall, struct {
+		arg1 db.VolumeIdentifier
+	}{arg1})
+	fake.getVolumeByIdentifierMutex.Unlock()
+	if fake.GetVolumeByIdentifierStub != nil {
+		return fake.GetVolumeByIdentifierStub(arg1)
+	} else {
+		return fake.getVolumeByIdentifierReturns.result1, fake.getVolumeByIdentifierReturns.result2, fake.getVolumeByIdentifierReturns.result3
+	}
+}
+
+func (fake *FakeWorkerDB) GetVolumeByIdentifierCallCount() int {
+	fake.getVolumeByIdentifierMutex.RLock()
+	defer fake.getVolumeByIdentifierMutex.RUnlock()
+	return len(fake.getVolumeByIdentifierArgsForCall)
+}
+
+func (fake *FakeWorkerDB) GetVolumeByIdentifierArgsForCall(i int) db.VolumeIdentifier {
+	fake.getVolumeByIdentifierMutex.RLock()
+	defer fake.getVolumeByIdentifierMutex.RUnlock()
+	return fake.getVolumeByIdentifierArgsForCall[i].arg1
+}
+
+func (fake *FakeWorkerDB) GetVolumeByIdentifierReturns(result1 db.SavedVolume, result2 bool, result3 error) {
+	fake.GetVolumeByIdentifierStub = nil
+	fake.getVolumeByIdentifierReturns = struct {
+		result1 db.SavedVolume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeWorkerDB) GetVolumeTTL(volumeHandle string) (time.Duration, bool, error) {

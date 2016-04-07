@@ -51,6 +51,7 @@ type GardenWorkerDB interface {
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 
 	InsertVolume(db.Volume) error
+	GetVolumeByIdentifier(db.VolumeIdentifier) (db.SavedVolume, bool, error)
 }
 
 type gardenWorker struct {

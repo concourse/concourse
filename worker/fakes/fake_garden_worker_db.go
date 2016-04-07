@@ -37,6 +37,16 @@ type FakeGardenWorkerDB struct {
 	insertVolumeReturns struct {
 		result1 error
 	}
+	GetVolumeByIdentifierStub        func(db.VolumeIdentifier) (db.SavedVolume, bool, error)
+	getVolumeByIdentifierMutex       sync.RWMutex
+	getVolumeByIdentifierArgsForCall []struct {
+		arg1 db.VolumeIdentifier
+	}
+	getVolumeByIdentifierReturns struct {
+		result1 db.SavedVolume
+		result2 bool
+		result3 error
+	}
 }
 
 func (fake *FakeGardenWorkerDB) CreateContainer(arg1 db.Container, arg2 time.Duration) (db.SavedContainer, error) {
@@ -136,6 +146,40 @@ func (fake *FakeGardenWorkerDB) InsertVolumeReturns(result1 error) {
 	fake.insertVolumeReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeGardenWorkerDB) GetVolumeByIdentifier(arg1 db.VolumeIdentifier) (db.SavedVolume, bool, error) {
+	fake.getVolumeByIdentifierMutex.Lock()
+	fake.getVolumeByIdentifierArgsForCall = append(fake.getVolumeByIdentifierArgsForCall, struct {
+		arg1 db.VolumeIdentifier
+	}{arg1})
+	fake.getVolumeByIdentifierMutex.Unlock()
+	if fake.GetVolumeByIdentifierStub != nil {
+		return fake.GetVolumeByIdentifierStub(arg1)
+	} else {
+		return fake.getVolumeByIdentifierReturns.result1, fake.getVolumeByIdentifierReturns.result2, fake.getVolumeByIdentifierReturns.result3
+	}
+}
+
+func (fake *FakeGardenWorkerDB) GetVolumeByIdentifierCallCount() int {
+	fake.getVolumeByIdentifierMutex.RLock()
+	defer fake.getVolumeByIdentifierMutex.RUnlock()
+	return len(fake.getVolumeByIdentifierArgsForCall)
+}
+
+func (fake *FakeGardenWorkerDB) GetVolumeByIdentifierArgsForCall(i int) db.VolumeIdentifier {
+	fake.getVolumeByIdentifierMutex.RLock()
+	defer fake.getVolumeByIdentifierMutex.RUnlock()
+	return fake.getVolumeByIdentifierArgsForCall[i].arg1
+}
+
+func (fake *FakeGardenWorkerDB) GetVolumeByIdentifierReturns(result1 db.SavedVolume, result2 bool, result3 error) {
+	fake.GetVolumeByIdentifierStub = nil
+	fake.getVolumeByIdentifierReturns = struct {
+		result1 db.SavedVolume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ worker.GardenWorkerDB = new(FakeGardenWorkerDB)
