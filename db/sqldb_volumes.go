@@ -302,15 +302,28 @@ func (db *SQLDB) expireVolumes() error {
 }
 
 func scanVolume(row scannable) (SavedVolume, error) {
-	var volume SavedVolume
-	var ttlSeconds *float64
-	var versionJSON sql.NullString
-	var resourceHash sql.NullString
-	var originalVolumeHandle sql.NullString
-	var outputName sql.NullString
-	var path sql.NullString
+	var (
+		volume               SavedVolume
+		ttlSeconds           *float64
+		versionJSON          sql.NullString
+		resourceHash         sql.NullString
+		originalVolumeHandle sql.NullString
+		outputName           sql.NullString
+		path                 sql.NullString
+	)
 
-	err := row.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &resourceHash, &volume.ID, &originalVolumeHandle, &outputName, &path)
+	err := row.Scan(
+		&volume.WorkerName,
+		&volume.TTL,
+		&ttlSeconds,
+		&volume.Handle,
+		&versionJSON,
+		&resourceHash,
+		&volume.ID,
+		&originalVolumeHandle,
+		&outputName,
+		&path,
+	)
 	if err != nil {
 		return SavedVolume{}, err
 	}
