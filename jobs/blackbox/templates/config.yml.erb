@@ -6,12 +6,5 @@ syslog:
     transport: <%= p("blackbox.syslog.destination.transport") %>
     address: <%= p("blackbox.syslog.destination.address") %>
 
-  sources: <%=
-    p("blackbox.syslog.sources").collect { |tag, paths|
-      paths.collect { |path|
-        { "path" => path, "tag" => tag }
-      }
-    }.flatten.to_json
-  %>
+  source_dir: <%= p("blackbox.syslog.source_dir") %>
 <% end %>
-

@@ -17,9 +17,8 @@ properties:
     description: "transport protocol for syslog drain (udp/tcp/tls)"
     default: tls
 
-  blackbox.syslog.sources:
+  blackbox.syslog.source_dir:
     description: >
-      files whose contents will be emitted to the destination.
-      the format is `{ "tag" => ["/path/to/log"] }`.
-    default: {}
-
+      directory with subdirectories containing log files.
+      log lines will be tagged with subdirectory name.
+    default: /var/vcap/sys/log

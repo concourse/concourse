@@ -78,9 +78,3 @@ properties:
     description: |
       Environment name to specify for errors emitted to Yeller.
     default: ""
-
-  blackbox.syslog.sources.tsa:
-    description: "files whose contents blackbox will emit to its syslog drain"
-    default:
-      - /var/vcap/sys/log/tsa/tsa.stdout.log
-      - /var/vcap/sys/log/tsa/tsa.stderr.log

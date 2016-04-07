@@ -203,14 +203,3 @@ properties:
     description: |
       Port of the Riemann server to emit events to.
     default: 5555
-
-  blackbox.syslog.sources.atc:
-    description: |
-      This property auto-configures `blackbox` to emit ATC's logs to its syslog
-      drain. You shouldn't need to touch it.
-    default:
-      - /var/vcap/sys/log/atc/atc.stdout.log
-      - /var/vcap/sys/log/atc/atc.stderr.log
-      - /var/vcap/sys/log/monit/atc_ctl.out.log
-      - /var/vcap/sys/log/monit/atc_ctl.err.log
-

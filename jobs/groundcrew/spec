@@ -162,23 +162,3 @@ properties:
     description: |
       Environment name you wish to group errors under in yeller.
     default: ""
-
-  blackbox.syslog.sources.groundcrew:
-    description: "files whose contents blackbox will emit to its syslog drain"
-    default:
-      - /var/vcap/sys/log/groundcrew/beacon.stdout.log
-      - /var/vcap/sys/log/groundcrew/beacon.stderr.log
-      - /var/vcap/sys/log/groundcrew/jettison.stdout.log
-      - /var/vcap/sys/log/groundcrew/jettison.stderr.log
-      - /var/vcap/sys/log/monit/beacon_ctl.out.log
-      - /var/vcap/sys/log/monit/beacon_ctl.err.log
-      - /var/vcap/sys/log/monit/jettison_ctl.out.log
-      - /var/vcap/sys/log/monit/jettison_ctl.err.log
-
-  blackbox.syslog.sources.garden:
-    description: "files whose contents blackbox will emit to its syslog drain"
-    default:
-      - /var/vcap/sys/log/garden/garden.stdout.log
-      - /var/vcap/sys/log/garden/garden.stderr.log
-      - /var/vcap/sys/log/monit/garden_ctl.log
-      - /var/vcap/sys/log/monit/garden_ctl.err.log

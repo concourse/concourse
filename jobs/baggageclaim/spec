@@ -37,13 +37,3 @@ properties:
     description: |
       Environment name to specify for errors emitted to Yeller.
     default: ""
-
-  blackbox.syslog.sources.baggageclaim:
-    description: "files whose contents blackbox will emit to its syslog drain"
-    default:
-      - /var/vcap/sys/log/baggageclaim/baggageclaim.stdout.log
-      - /var/vcap/sys/log/baggageclaim/baggageclaim.stderr.log
-      - /var/vcap/sys/log/baggageclaim/fs_mounter.stdout.log
-      - /var/vcap/sys/log/baggageclaim/fs_mounter.stderr.log
-      - /var/vcap/sys/log/monit/baggageclaim_ctl.out.log
-      - /var/vcap/sys/log/monit/baggageclaim_ctl.err.log
