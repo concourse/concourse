@@ -6,7 +6,6 @@ dependencies:
 
 files:
   - github.com/ActiveState/tail/*.go # gosub
-  - github.com/ActiveState/tail/watch/*.go # gosub
   - github.com/concourse/blackbox/*.go # gosub
   - github.com/concourse/blackbox/cmd/blackbox/*.go # gosub
   - github.com/concourse/blackbox/syslog/*.go # gosub
