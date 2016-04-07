@@ -56,10 +56,6 @@
   }
 }
 
-.top-intro .button {
-  padding: 0 15px; /* less padding so they don't wrap */
-}
-
 .soft-line {
   display: inline-block;
   white-space: pre;
