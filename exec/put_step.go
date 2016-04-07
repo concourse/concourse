@@ -1,6 +1,8 @@
 package exec
 
 import (
+	"archive/tar"
+	"bytes"
 	"os"
 	"time"
 
@@ -122,6 +124,13 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		return err
 	}
 
+	var artifactSource resource.ArtifactSource
+	if len(sources) == 0 {
+		artifactSource = emptySource{}
+	} else {
+		artifactSource = resourceSource{scopedRepo}
+	}
+
 	step.versionedSource = step.resource.Put(
 		resource.IOConfig{
 			Stdout: step.delegate.Stdout(),
@@ -129,7 +138,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		},
 		step.resourceConfig.Source,
 		step.params,
-		resourceSource{scopedRepo},
+		artifactSource,
 	)
 
 	err = step.versionedSource.Run(signals, ready)
@@ -198,4 +207,24 @@ type resourceSource struct {
 
 func (source resourceSource) StreamTo(dest resource.ArtifactDestination) error {
 	return source.ArtifactSource.StreamTo(resource.ArtifactDestination(dest))
+}
+
+type emptySource struct {
+	ArtifactSource
+}
+
+func (source emptySource) StreamTo(dest resource.ArtifactDestination) error {
+	emptyTar := new(bytes.Buffer)
+
+	err := tar.NewWriter(emptyTar).Close()
+	if err != nil {
+		return err
+	}
+
+	err = dest.StreamIn(".", emptyTar)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
