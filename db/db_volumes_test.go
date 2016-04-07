@@ -94,6 +94,37 @@ var _ = Describe("Keeping track of volumes", func() {
 			}
 		})
 
+		Describe("cow volumes", func() {
+			var cowIdentifier db.VolumeIdentifier
+
+			JustBeforeEach(func() {
+				cowIdentifier = db.VolumeIdentifier{
+					COW: &db.COWIdentifier{
+						ParentVolumeHandle: "parent-volume-handle",
+					},
+				}
+
+				err := database.InsertVolume(db.Volume{
+					Handle:     "cow-volume-handle",
+					WorkerName: "some-worker-name",
+					TTL:        5 * time.Minute,
+					Identifier: cowIdentifier,
+				})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("can be retrieved", func() {
+				cowVolume, found, err := database.GetVolumeByIdentifier(cowIdentifier)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(cowVolume.Handle).To(Equal("cow-volume-handle"))
+				Expect(cowVolume.Volume.Identifier.COW.ParentVolumeHandle).To(Equal("parent-volume-handle"))
+				Expect(cowVolume.TTL).To(Equal(5 * time.Minute))
+				Expect(cowVolume.ExpiresIn).To(BeNumerically("~", 5*time.Minute, time.Second))
+				Expect(cowVolume.WorkerName).To(Equal("some-worker-name"))
+			})
+		})
+
 		Describe("output volumes", func() {
 			JustBeforeEach(func() {
 				var err error
@@ -127,103 +158,30 @@ var _ = Describe("Keeping track of volumes", func() {
 				Expect(actualVolume.WorkerName).To(Equal(insertedWorker.Name))
 			})
 
-			Describe("cow volumes", func() {
-				var (
-					originalVolume          db.SavedVolume
-					cowVolumeToInsertHandle string
-					ttl                     time.Duration
-					cowIdentifier           db.VolumeIdentifier
-				)
-
-				JustBeforeEach(func() {
-					cowVolumeToInsertHandle = "cow-volume-handle"
-					ttl = 5 * time.Minute
-
-					volumes, err := database.GetVolumes()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(len(volumes)).To(Equal(1))
-					originalVolume = volumes[0]
-
-					cowIdentifier = db.VolumeIdentifier{
-						COW: &db.COWIdentifier{
-							ParentVolumeHandle: originalVolume.Handle,
-						},
-					}
-
-					err = database.InsertVolume(db.Volume{
-						Handle:     cowVolumeToInsertHandle,
-						WorkerName: originalVolume.WorkerName,
-						TTL:        ttl,
-						Identifier: cowIdentifier,
-					})
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				It("can be retrieved", func() {
-					cowVolume, found, err := database.GetVolumeByIdentifier(cowIdentifier)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(cowVolume.Handle).To(Equal(cowVolumeToInsertHandle))
-					Expect(cowVolume.Volume.Identifier.COW.ParentVolumeHandle).To(Equal(originalVolume.Handle))
-					Expect(cowVolume.TTL).To(Equal(ttl))
-					Expect(cowVolume.ExpiresIn).To(BeNumerically("~", ttl, time.Second))
-					Expect(cowVolume.WorkerName).To(Equal(originalVolume.WorkerName))
-					Expect(cowVolume.WorkerName).To(Equal(insertedWorker.Name))
-				})
-			})
-
 			It("can be reaped", func() {
-				volumeToInsert2 := db.Volume{
-					WorkerName: insertedWorker2.Name,
-					TTL:        time.Hour,
-					Handle:     "some-volume-handle2",
-					Identifier: db.VolumeIdentifier{
-						ResourceCache: &db.ResourceCacheIdentifier{
-							ResourceVersion: atc.Version{"some": "version"},
-							ResourceHash:    "some-hash2",
-						},
+				err := database.InsertVolume(volumeToInsert)
+				Expect(err).NotTo(HaveOccurred())
+
+				volume, found, err := database.GetVolumeByIdentifier(db.VolumeIdentifier{
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"some": "version"},
+						ResourceHash:    "some-hash",
 					},
-				}
-				err := database.InsertVolume(volumeToInsert2)
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = database.ReapVolume(volume.Handle)
 				Expect(err).NotTo(HaveOccurred())
 
-				workerToInsert3 := db.WorkerInfo{
-					GardenAddr:       "third-garden-address",
-					BaggageclaimURL:  "some-baggageclaim-url",
-					ActiveContainers: 0,
-					ResourceTypes:    []atc.WorkerResourceType{},
-					Platform:         "linux",
-					Tags:             []string{"vsphere"},
-					Name:             "third-worker",
-				}
-				insertedWorker3, err := database.SaveWorker(workerToInsert3, 2*time.Minute)
-				Expect(err).NotTo(HaveOccurred())
-				volumeToInsert3 := db.Volume{
-					WorkerName: insertedWorker3.Name,
-					TTL:        time.Hour,
-					Handle:     "some-volume-handle3",
-					Identifier: db.VolumeIdentifier{
-						ResourceCache: &db.ResourceCacheIdentifier{
-							ResourceVersion: atc.Version{"some": "version"},
-							ResourceHash:    "some-hash3",
-						},
+				volume, found, err = database.GetVolumeByIdentifier(db.VolumeIdentifier{
+					ResourceCache: &db.ResourceCacheIdentifier{
+						ResourceVersion: atc.Version{"some": "version"},
+						ResourceHash:    "some-hash",
 					},
-				}
-				err = database.InsertVolume(volumeToInsert3)
+				})
 				Expect(err).NotTo(HaveOccurred())
-
-				volumes, err := database.GetVolumes()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(len(volumes)).To(Equal(3))
-
-				reapedVolume := volumes[0]
-				err = database.ReapVolume(reapedVolume.Handle)
-				Expect(err).NotTo(HaveOccurred())
-
-				volumes, err = database.GetVolumes()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(len(volumes)).To(Equal(2))
-				Expect(volumes).NotTo(ContainElement(reapedVolume))
+				Expect(found).To(BeFalse())
 			})
 
 			It("can insert the same data twice, without erroring or data duplication", func() {
