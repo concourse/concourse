@@ -96,9 +96,9 @@ def(bottom-nav(part)):
             <li(class = "navbar-link"):
               <a(href = "https://github.com/concourse"): "GitHub"
             <li(class = "navbar-link"):
-              <a(href = "https://concourseci.slack.com/"): "Slack"
+              link-to(part, "slack-blurb")
             <li(class = "navbar-link"):
-              <a(href = "https://groups.google.com/group/concourse-security"): "Security Mailing List"
+              link-to(part, "security-blurb", "Security")
             <li(class = "navbar-link"):
               link-to(part, "talks")
 
