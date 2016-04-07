@@ -104,6 +104,29 @@ func NewGardenWorker(
 	}
 }
 
+func (worker *gardenWorker) FindVolume(
+	logger lager.Logger,
+	volumeSpec VolumeSpec,
+) (Volume, bool, error) {
+	if worker.baggageclaimClient == nil {
+		return nil, false, ErrNoVolumeManager
+	}
+
+	volumeIdentifier := volumeSpec.Strategy.dbIdentifier()
+	savedVolume, found, err := worker.db.GetVolumeByIdentifier(volumeIdentifier)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		err = ErrMissingVolume
+		logger.Error("failed-to-find-volume-in-db", err)
+		return nil, false, err
+	}
+
+	return worker.LookupVolume(logger, savedVolume.Handle)
+}
+
 func (worker *gardenWorker) CreateVolume(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,

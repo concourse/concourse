@@ -702,6 +702,181 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
+	Describe("FindVolume", func() {
+		var (
+			foundVolume Volume
+			found       bool
+			err         error
+		)
+
+		JustBeforeEach(func() {
+			foundVolume, found, err = gardenWorker.FindVolume(logger, VolumeSpec{
+				Strategy: HostRootFSStrategy{
+					Path:       "/some/path",
+					WorkerName: "worker-name",
+				},
+			})
+		})
+
+		Context("when there is no baggageclaim client", func() {
+			BeforeEach(func() {
+				gardenWorker = NewGardenWorker(
+					fakeGardenClient,
+					nil, // baggageclaimClient
+					fakeVolumeFactory,
+					fakeImageFetcher,
+					fakeGardenWorkerDB,
+					fakeWorkerProvider,
+					fakeClock,
+					activeContainers,
+					resourceTypes,
+					platform,
+					tags,
+					workerName,
+				)
+			})
+
+			It("returns ErrNoVolumeManager", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(ErrNoVolumeManager))
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		It("tries to find the volume in the db", func() {
+			Expect(fakeGardenWorkerDB.GetVolumeByIdentifierCallCount()).To(Equal(1))
+			Expect(fakeGardenWorkerDB.GetVolumeByIdentifierArgsForCall(0)).To(Equal(db.VolumeIdentifier{
+				Import: &db.ImportIdentifier{
+					Path:       "/some/path",
+					WorkerName: "worker-name",
+				},
+			}))
+		})
+
+		Context("when the volume is found in the db", func() {
+			BeforeEach(func() {
+				fakeGardenWorkerDB.GetVolumeByIdentifierReturns(db.SavedVolume{
+					Volume: db.Volume{
+						Handle: "db-vol-handle",
+					},
+				}, true, nil)
+			})
+
+			It("tries to find the db volume in baggageclaim", func() {
+				Expect(fakeBaggageclaimClient.LookupVolumeCallCount()).To(Equal(1))
+				_, actualHandle := fakeBaggageclaimClient.LookupVolumeArgsForCall(0)
+				Expect(actualHandle).To(Equal("db-vol-handle"))
+			})
+
+			Context("when the volume can be found in baggageclaim", func() {
+				var fakeBaggageclaimVolume *bfakes.FakeVolume
+
+				BeforeEach(func() {
+					fakeBaggageclaimVolume = new(bfakes.FakeVolume)
+					fakeBaggageclaimVolume.HandleReturns("bg-vol-handle")
+
+					fakeBaggageclaimClient.LookupVolumeReturns(fakeBaggageclaimVolume, true, nil)
+
+				})
+
+				It("tries to build the worker volume", func() {
+					Expect(fakeVolumeFactory.BuildCallCount()).To(Equal(1))
+					_, volume := fakeVolumeFactory.BuildArgsForCall(0)
+					Expect(volume).To(Equal(fakeBaggageclaimVolume))
+				})
+
+				Context("when building the worker volume succeeds", func() {
+					var builtVolume *wfakes.FakeVolume
+
+					BeforeEach(func() {
+						builtVolume = new(wfakes.FakeVolume)
+						fakeVolumeFactory.BuildReturns(builtVolume, true, nil)
+					})
+
+					It("returns the worker volume", func() {
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeTrue())
+						Expect(foundVolume).To(Equal(builtVolume))
+					})
+				})
+
+				Context("when building the worker volume fails", func() {
+					disaster := errors.New("nope")
+
+					BeforeEach(func() {
+						fakeVolumeFactory.BuildReturns(nil, false, disaster)
+					})
+
+					It("returns the error", func() {
+						Expect(err).To(Equal(disaster))
+						Expect(found).To(BeFalse())
+					})
+				})
+
+				Context("when the volume ttl cannot be found in the database", func() {
+					BeforeEach(func() {
+						fakeVolumeFactory.BuildReturns(nil, false, nil)
+					})
+
+					It("does not return an error", func() {
+						Expect(err).NotTo(HaveOccurred())
+						Expect(found).To(BeFalse())
+					})
+				})
+			})
+
+			Context("when the volume cannot be found in baggageclaim", func() {
+				BeforeEach(func() {
+					fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
+				})
+
+				It("does not return an error", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
+			})
+
+			Context("when looking up the volume in baggageclaim fails", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeBaggageclaimClient.LookupVolumeReturns(nil, false, disaster)
+				})
+
+				It("returns the error", func() {
+					Expect(err).To(Equal(disaster))
+					Expect(found).To(BeFalse())
+				})
+			})
+		})
+
+		Context("when the volume is not found in the db", func() {
+			BeforeEach(func() {
+				fakeGardenWorkerDB.GetVolumeByIdentifierReturns(db.SavedVolume{}, false, nil)
+			})
+
+			It("returns an error", func() {
+				Expect(err).To(Equal(ErrMissingVolume))
+				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when finding the volume in the db results in an error", func() {
+			var dbErr error
+
+			BeforeEach(func() {
+				dbErr = errors.New("an-error")
+				fakeGardenWorkerDB.GetVolumeByIdentifierReturns(db.SavedVolume{}, false, dbErr)
+			})
+
+			It("returns an error", func() {
+				Expect(err).To(Equal(dbErr))
+				Expect(found).To(BeFalse())
+			})
+		})
+
+	})
+
 	Describe("CreateContainer", func() {
 		var (
 			logger                    lager.Logger
