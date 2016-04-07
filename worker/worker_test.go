@@ -992,10 +992,10 @@ var _ = Describe("Worker", func() {
 					Expect(image.ReleaseCallCount()).To(Equal(1))
 				})
 
-				It("creates the container with /volume/path/rootfs as the rootfs", func() {
+				It("creates the container with raw://volume/path/rootfs as the rootfs", func() {
 					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-					Expect(actualGardenSpec.RootFSPath).To(Equal("/some/image/path/rootfs"))
+					Expect(actualGardenSpec.RootFSPath).To(Equal("raw:///some/image/path/rootfs"))
 				})
 
 				It("adds the image volume to the garden spec properties", func() {
@@ -1111,7 +1111,7 @@ var _ = Describe("Worker", func() {
 				Expect(actualGardenSpec.Env).To(Equal(expectedEnv))
 				Expect(actualGardenSpec.Properties["user"]).To(Equal("image-volume-user"))
 				Expect(actualGardenSpec.Privileged).To(BeTrue())
-				Expect(actualGardenSpec.RootFSPath).To(Equal("/some/image/path/rootfs"))
+				Expect(actualGardenSpec.RootFSPath).To(Equal("raw:///some/image/path/rootfs"))
 			})
 
 			Context("when the spec specifies Ephemeral", func() {

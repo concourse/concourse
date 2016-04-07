@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -30,6 +31,7 @@ const ephemeralPropertyName = "concourse:ephemeral"
 const volumePropertyName = "concourse:volumes"
 const volumeMountsPropertyName = "concourse:volume-mounts"
 const userPropertyName = "user"
+const RawRootFSScheme = "raw"
 
 //go:generate counterfeiter . Worker
 
@@ -438,9 +440,13 @@ func (worker *gardenWorker) baseGardenSpec(
 			return garden.ContainerSpec{}, false, nil, err
 		}
 
+		rootFSURL := url.URL{
+			Scheme: RawRootFSScheme,
+			Path:   path.Join(image.Volume().Path(), "rootfs"),
+		}
 		gardenSpec := garden.ContainerSpec{
 			Properties: garden.Properties{},
-			RootFSPath: path.Join(image.Volume().Path(), "rootfs"),
+			RootFSPath: rootFSURL.String(),
 			Env:        image.Metadata().Env,
 		}
 
