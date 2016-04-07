@@ -23,6 +23,7 @@ type ImageFetcher interface {
 		Client,
 		atc.Tags,
 		atc.ResourceTypes,
+		bool,
 	) (Image, error)
 }
 

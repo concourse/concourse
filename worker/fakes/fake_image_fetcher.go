@@ -11,18 +11,19 @@ import (
 )
 
 type FakeImageFetcher struct {
-	FetchImageStub        func(lager.Logger, atc.ImageResource, <-chan os.Signal, worker.Identifier, worker.Metadata, worker.ImageFetchingDelegate, worker.Client, atc.Tags, atc.ResourceTypes) (worker.Image, error)
+	FetchImageStub        func(lager.Logger, atc.ImageResource, <-chan os.Signal, worker.Identifier, worker.Metadata, worker.ImageFetchingDelegate, worker.Client, atc.Tags, atc.ResourceTypes, bool) (worker.Image, error)
 	fetchImageMutex       sync.RWMutex
 	fetchImageArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 atc.ImageResource
-		arg3 <-chan os.Signal
-		arg4 worker.Identifier
-		arg5 worker.Metadata
-		arg6 worker.ImageFetchingDelegate
-		arg7 worker.Client
-		arg8 atc.Tags
-		arg9 atc.ResourceTypes
+		arg1  lager.Logger
+		arg2  atc.ImageResource
+		arg3  <-chan os.Signal
+		arg4  worker.Identifier
+		arg5  worker.Metadata
+		arg6  worker.ImageFetchingDelegate
+		arg7  worker.Client
+		arg8  atc.Tags
+		arg9  atc.ResourceTypes
+		arg10 bool
 	}
 	fetchImageReturns struct {
 		result1 worker.Image
@@ -30,22 +31,23 @@ type FakeImageFetcher struct {
 	}
 }
 
-func (fake *FakeImageFetcher) FetchImage(arg1 lager.Logger, arg2 atc.ImageResource, arg3 <-chan os.Signal, arg4 worker.Identifier, arg5 worker.Metadata, arg6 worker.ImageFetchingDelegate, arg7 worker.Client, arg8 atc.Tags, arg9 atc.ResourceTypes) (worker.Image, error) {
+func (fake *FakeImageFetcher) FetchImage(arg1 lager.Logger, arg2 atc.ImageResource, arg3 <-chan os.Signal, arg4 worker.Identifier, arg5 worker.Metadata, arg6 worker.ImageFetchingDelegate, arg7 worker.Client, arg8 atc.Tags, arg9 atc.ResourceTypes, arg10 bool) (worker.Image, error) {
 	fake.fetchImageMutex.Lock()
 	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 atc.ImageResource
-		arg3 <-chan os.Signal
-		arg4 worker.Identifier
-		arg5 worker.Metadata
-		arg6 worker.ImageFetchingDelegate
-		arg7 worker.Client
-		arg8 atc.Tags
-		arg9 atc.ResourceTypes
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9})
+		arg1  lager.Logger
+		arg2  atc.ImageResource
+		arg3  <-chan os.Signal
+		arg4  worker.Identifier
+		arg5  worker.Metadata
+		arg6  worker.ImageFetchingDelegate
+		arg7  worker.Client
+		arg8  atc.Tags
+		arg9  atc.ResourceTypes
+		arg10 bool
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10})
 	fake.fetchImageMutex.Unlock()
 	if fake.FetchImageStub != nil {
-		return fake.FetchImageStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
+		return fake.FetchImageStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)
 	} else {
 		return fake.fetchImageReturns.result1, fake.fetchImageReturns.result2
 	}
@@ -57,10 +59,10 @@ func (fake *FakeImageFetcher) FetchImageCallCount() int {
 	return len(fake.fetchImageArgsForCall)
 }
 
-func (fake *FakeImageFetcher) FetchImageArgsForCall(i int) (lager.Logger, atc.ImageResource, <-chan os.Signal, worker.Identifier, worker.Metadata, worker.ImageFetchingDelegate, worker.Client, atc.Tags, atc.ResourceTypes) {
+func (fake *FakeImageFetcher) FetchImageArgsForCall(i int) (lager.Logger, atc.ImageResource, <-chan os.Signal, worker.Identifier, worker.Metadata, worker.ImageFetchingDelegate, worker.Client, atc.Tags, atc.ResourceTypes, bool) {
 	fake.fetchImageMutex.RLock()
 	defer fake.fetchImageMutex.RUnlock()
-	return fake.fetchImageArgsForCall[i].arg1, fake.fetchImageArgsForCall[i].arg2, fake.fetchImageArgsForCall[i].arg3, fake.fetchImageArgsForCall[i].arg4, fake.fetchImageArgsForCall[i].arg5, fake.fetchImageArgsForCall[i].arg6, fake.fetchImageArgsForCall[i].arg7, fake.fetchImageArgsForCall[i].arg8, fake.fetchImageArgsForCall[i].arg9
+	return fake.fetchImageArgsForCall[i].arg1, fake.fetchImageArgsForCall[i].arg2, fake.fetchImageArgsForCall[i].arg3, fake.fetchImageArgsForCall[i].arg4, fake.fetchImageArgsForCall[i].arg5, fake.fetchImageArgsForCall[i].arg6, fake.fetchImageArgsForCall[i].arg7, fake.fetchImageArgsForCall[i].arg8, fake.fetchImageArgsForCall[i].arg9, fake.fetchImageArgsForCall[i].arg10
 }
 
 func (fake *FakeImageFetcher) FetchImageReturns(result1 worker.Image, result2 error) {

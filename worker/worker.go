@@ -250,6 +250,7 @@ dance:
 			metadata,
 			worker,
 			resourceTypes,
+			true,
 		)
 		if err != nil {
 			return nil, err
@@ -296,6 +297,7 @@ dance:
 			metadata,
 			worker,
 			resourceTypes,
+			s.IsPrivileged(),
 		)
 		if err != nil {
 			return nil, err
@@ -417,6 +419,7 @@ func (worker *gardenWorker) baseGardenSpec(
 	metadata Metadata,
 	workerClient Client,
 	resourceTypes atc.ResourceTypes,
+	privileged bool,
 ) (garden.ContainerSpec, bool, Image, error) {
 	if taskImageConfig != nil {
 		image, err := worker.imageFetcher.FetchImage(
@@ -429,6 +432,7 @@ func (worker *gardenWorker) baseGardenSpec(
 			workerClient,
 			workerTags,
 			resourceTypes,
+			privileged,
 		)
 		if err != nil {
 			return garden.ContainerSpec{}, false, nil, err

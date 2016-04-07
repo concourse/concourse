@@ -945,10 +945,12 @@ var _ = Describe("Worker", func() {
 				})
 			})
 
-			It("uses the Image of the spec as the rootfs", func() {
+			It("tries to create a container", func() {
+				Expect(createErr).NotTo(HaveOccurred())
 				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 				actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-				Expect(actualGardenSpec.RootFSPath).To(Equal("some-image"))
+				Expect(actualGardenSpec.Properties["user"]).To(Equal(""))
+				Expect(actualGardenSpec.Privileged).To(BeTrue())
 			})
 
 			Context("when the spec specifies ImageResource", func() {
@@ -988,6 +990,12 @@ var _ = Describe("Worker", func() {
 				It("releases the image after creating the container", func() {
 					// see fakeGardenClient.CreateStub for the rest of this assertion
 					Expect(image.ReleaseCallCount()).To(Equal(1))
+				})
+
+				It("creates the container with /volume/path/rootfs as the rootfs", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualGardenSpec.RootFSPath).To(Equal("/some/image/path/rootfs"))
 				})
 
 				It("adds the image volume to the garden spec properties", func() {
@@ -1048,7 +1056,7 @@ var _ = Describe("Worker", func() {
 
 			It("tries to fetch the image for the resource type", func() {
 				Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
-				_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes := fakeImageFetcher.FetchImageArgsForCall(0)
+				_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes, fetchPrivileged := fakeImageFetcher.FetchImageArgsForCall(0)
 				Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 					Type:   "some-resource",
 					Source: atc.Source{"some": "source"},
@@ -1060,6 +1068,7 @@ var _ = Describe("Worker", func() {
 				Expect(fetchWorker).To(Equal(gardenWorker))
 				Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
 				Expect(fetchCustomTypes).To(Equal(customTypes.Without("custom-type-a")))
+				Expect(fetchPrivileged).To(Equal(true))
 			})
 
 			It("releases the image after creating the container", func() {
@@ -1102,6 +1111,7 @@ var _ = Describe("Worker", func() {
 				Expect(actualGardenSpec.Env).To(Equal(expectedEnv))
 				Expect(actualGardenSpec.Properties["user"]).To(Equal("image-volume-user"))
 				Expect(actualGardenSpec.Privileged).To(BeTrue())
+				Expect(actualGardenSpec.RootFSPath).To(Equal("/some/image/path/rootfs"))
 			})
 
 			Context("when the spec specifies Ephemeral", func() {
@@ -1326,18 +1336,6 @@ var _ = Describe("Worker", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(volumeMountProperties["cow-vol-1-handle"]).To(Equal("vol-1-mount-path"))
 					Expect(volumeMountProperties["cow-vol-2-handle"]).To(Equal("vol-2-mount-path"))
-				})
-			})
-
-			Context("when the spec specifies a resource type that a worker provides", func() {
-				BeforeEach(func() {
-					resourceTypeContainerSpec.Type = "some-resource"
-				})
-
-				It("uses the Image of the resource type as the rootfs", func() {
-					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-					Expect(actualGardenSpec.RootFSPath).To(Equal("some-resource-image"))
 				})
 			})
 

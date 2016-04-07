@@ -40,6 +40,7 @@ var _ = Describe("Fetcher", func() {
 	var fakeImageFetchingDelegate *wfakes.FakeImageFetchingDelegate
 	var fakeWorker *wfakes.FakeClient
 	var customTypes atc.ResourceTypes
+	var privileged bool
 
 	var fetchedImage worker.Image
 	var fetchErr error
@@ -99,6 +100,7 @@ var _ = Describe("Fetcher", func() {
 			fakeWorker,
 			atc.Tags{"worker", "tags"},
 			customTypes,
+			privileged,
 		)
 	})
 
@@ -187,6 +189,54 @@ var _ = Describe("Fetcher", func() {
 
 										fakeVolume.PathReturns(volumePath)
 										fakeGetResource.CacheVolumeReturns(fakeVolume, true)
+
+										privileged = true
+									})
+
+									It("creates a cow volume with the resource's volume", func() {
+										Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(1))
+										_, actualVolumeSpec := fakeWorker.CreateVolumeArgsForCall(0)
+										Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
+											Strategy: worker.ContainerRootFSStrategy{
+												Parent: fakeVolume,
+											},
+											Privileged: true,
+											TTL:        worker.ContainerTTL,
+										}))
+									})
+
+									Context("when creating the cow volume fails", func() {
+										var err error
+										BeforeEach(func() {
+											err = errors.New("create-volume-err")
+											fakeWorker.CreateVolumeReturns(nil, err)
+										})
+
+										It("returns an error", func() {
+											Expect(fetchErr).To(Equal(err))
+										})
+									})
+
+									Context("when creating the cow volume succeeds", func() {
+										var fakeCOWVolume worker.Volume
+										BeforeEach(func() {
+											fakeCOWVolume = new(wfakes.FakeVolume)
+											fakeWorker.CreateVolumeReturns(fakeCOWVolume, nil)
+
+											fakeWorker.CreateVolumeStub = func(lager.Logger, worker.VolumeSpec) (worker.Volume, error) {
+												Expect(fakeVolume.ReleaseCallCount()).To(Equal(0))
+												return fakeCOWVolume, nil
+											}
+										})
+
+										It("releases the parent volume", func() {
+											Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
+											Expect(fakeVolume.ReleaseArgsForCall(0)).To(BeNil())
+										})
+
+										It("returns the COWVolume as the image volume", func() {
+											Expect(fetchedImage.Volume()).To(Equal(fakeCOWVolume))
+										})
 									})
 
 									It("succeeds", func() {

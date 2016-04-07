@@ -54,11 +54,12 @@ func (fetcher Fetcher) FetchImage(
 	identifier worker.Identifier,
 	metadata worker.Metadata,
 	delegate worker.ImageFetchingDelegate,
-	worker worker.Client,
+	workerClient worker.Client,
 	workerTags atc.Tags,
 	customTypes atc.ResourceTypes,
+	privileged bool,
 ) (worker.Image, error) {
-	tracker := fetcher.trackerFactory.TrackerFor(worker)
+	tracker := fetcher.trackerFactory.TrackerFor(workerClient)
 	resourceType := resource.ResourceType(imageResource.Type)
 
 	checkSess := resource.Session{
@@ -167,13 +168,27 @@ func (fetcher Fetcher) FetchImage(
 		return nil, ErrImageGetDidNotProduceVolume
 	}
 
+	volumeSpec := worker.VolumeSpec{
+		Strategy: worker.ContainerRootFSStrategy{
+			Parent: volume,
+		},
+		Privileged: privileged,
+		TTL:        worker.ContainerTTL,
+	}
+	cowVolume, err := workerClient.CreateVolume(logger.Session("create-cow-volume"), volumeSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	volume.Release(nil)
+
 	imageMetadata, err := loadMetadata(versionedSource)
 	if err != nil {
 		return nil, err
 	}
 
 	return resourceImage{
-		volume:   volume,
+		volume:   cowVolume,
 		metadata: imageMetadata,
 		resource: getResource,
 		version:  versions[0],
