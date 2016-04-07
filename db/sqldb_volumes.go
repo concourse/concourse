@@ -267,7 +267,7 @@ func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {
 			resource_version,
 			resource_hash,
 			id,
-			original_volume_handle
+			original_volume_handle,
 			output_name,
 			path
 		FROM volumes
