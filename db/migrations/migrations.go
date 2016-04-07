@@ -97,4 +97,5 @@ var Migrations = []migration.Migrator{
 	AddOutputNameToVolumes,
 	CreateResourceTypes,
 	AddLastCheckedAndCheckingToResourceTypes,
+	AddPathToVolumes,
 }

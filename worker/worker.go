@@ -296,7 +296,7 @@ dance:
 		if s.ImageResource == nil {
 			for _, t := range worker.resourceTypes {
 				if t.Type == s.Type {
-					importVolume, err := worker.CreateVolume(logger, VolumeSpec{
+					importVolumeSpec := VolumeSpec{
 						Strategy: HostRootFSStrategy{
 							Path:       t.Image,
 							WorkerName: worker.Name(),
@@ -304,9 +304,14 @@ dance:
 						Privileged: true,
 						Properties: VolumeProperties{},
 						TTL:        0,
-					})
-					if err != nil {
-						return nil, err
+					}
+
+					importVolume, found, err := worker.FindVolume(logger, importVolumeSpec)
+					if !found || err != nil {
+						importVolume, err = worker.CreateVolume(logger, importVolumeSpec)
+						if err != nil {
+							return nil, err
+						}
 					}
 					defer importVolume.Release(nil)
 
@@ -322,6 +327,7 @@ dance:
 						return nil, err
 					}
 					defer cowVolume.Release(nil)
+
 					volumeHandles = append(volumeHandles, cowVolume.Handle())
 					volumeMountPaths[cowVolume] = cowVolume.Path()
 

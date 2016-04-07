@@ -1613,87 +1613,75 @@ var _ = Describe("Worker", func() {
 
 			Context("when the spec specifies a resource type that a worker provides", func() {
 				var (
-					baggageclaimCOWVolume    *wfakes.FakeVolume
-					baggageclaimImportVolume *wfakes.FakeVolume
+					importBCVolume *bfakes.FakeVolume
+					importVolume   *wfakes.FakeVolume
+					cowBCVolume    *bfakes.FakeVolume
+					cowVolume      *wfakes.FakeVolume
 				)
 
 				BeforeEach(func() {
 					resourceTypeContainerSpec.Type = "some-resource"
 
-					baggageclaimImportVolume = new(wfakes.FakeVolume)
-					baggageclaimImportVolume.HandleReturns("import-vol-handle")
-					baggageclaimImportVolume.PathReturns("import-vol-path")
-
-					baggageclaimCOWVolume = new(wfakes.FakeVolume)
-					baggageclaimCOWVolume.HandleReturns("bc-cow-vol-handle")
-					baggageclaimCOWVolume.PathReturns("bc-cow-vol-path")
-
 					fakeBaggageclaimClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
 						switch volumeSpec.Strategy.(type) {
 						case baggageclaim.ImportStrategy:
-							return baggageclaimImportVolume, nil
+							return importBCVolume, nil
 						case baggageclaim.COWStrategy:
-							return baggageclaimCOWVolume, nil
+							return cowBCVolume, nil
 						default:
 							return nil, nil
 						}
 					}
 
+					importBCVolume = new(bfakes.FakeVolume)
+					importBCVolume.HandleReturns("import-bc-vol")
+
+					importVolume = new(wfakes.FakeVolume)
+					importVolume.HandleReturns("import-vol")
+
+					cowBCVolume = new(bfakes.FakeVolume)
+					cowBCVolume.HandleReturns("cow-bc-vol")
+
+					cowVolume = new(wfakes.FakeVolume)
+					cowVolume.HandleReturns("cow-vol")
+					cowVolume.PathReturns("cow-vol-path")
+
 					fakeVolumeFactory.BuildStub = func(logger lager.Logger, volume baggageclaim.Volume) (Volume, bool, error) {
 						switch volume.Handle() {
-						case "import-vol-handle":
-							return baggageclaimImportVolume, true, nil
-						case "bc-cow-vol-handle":
-							return baggageclaimCOWVolume, true, nil
+						case "import-bc-vol":
+							return importVolume, true, nil
+						case "cow-bc-vol":
+							return cowVolume, true, nil
 						default:
-							return nil, false, nil
+							return new(wfakes.FakeVolume), true, nil
 						}
 					}
 				})
 
-				It("creates import and COW volumes for resource image", func() {
-					Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(2))
-					_, volumeSpec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
-					Expect(volumeSpec).To(Equal(baggageclaim.VolumeSpec{
-						Strategy: baggageclaim.ImportStrategy{
-							Path: "some-resource-image",
+				It("tries to find an existing import volume", func() {
+					Expect(fakeGardenWorkerDB.GetVolumeByIdentifierCallCount()).To(Equal(1))
+					Expect(fakeGardenWorkerDB.GetVolumeByIdentifierArgsForCall(0)).To(Equal(db.VolumeIdentifier{
+						Import: &db.ImportIdentifier{
+							WorkerName: "some-worker",
+							Path:       "some-resource-image",
 						},
-						Privileged: true,
-						TTL:        0,
-						Properties: baggageclaim.VolumeProperties{},
-					}))
-
-					_, volumeSpec = fakeBaggageclaimClient.CreateVolumeArgsForCall(1)
-					Expect(volumeSpec).To(Equal(baggageclaim.VolumeSpec{
-						Strategy: baggageclaim.COWStrategy{
-							Parent: baggageclaimImportVolume,
-						},
-						Privileged: true,
-						TTL:        VolumeTTL,
-						Properties: baggageclaim.VolumeProperties{},
 					}))
 				})
 
-				Context("when creating an import volume fails", func() {
-					var disaster error
-					BeforeEach(func() {
-						disaster = errors.New("failed-to-create-volume")
-						fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
-					})
+				It("releases the import volume", func() {
+					Expect(importVolume.ReleaseCallCount()).To(Equal(1))
+					Expect(importVolume.ReleaseArgsForCall(0)).To(BeNil())
+				})
 
-					It("returns the error", func() {
-						Expect(createErr).To(Equal(disaster))
-					})
-
-					It("does not create a COW volume", func() {
-						Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
-					})
+				It("releases the cow volume after attempting to create the container", func() {
+					Expect(cowVolume.ReleaseCallCount()).To(Equal(1))
+					Expect(cowVolume.ReleaseArgsForCall(0)).To(BeNil())
 				})
 
 				It("inserts import and COW volumes into the db", func() {
 					Expect(fakeGardenWorkerDB.InsertVolumeCallCount()).To(Equal(2))
 					Expect(fakeGardenWorkerDB.InsertVolumeArgsForCall(0)).To(Equal(db.Volume{
-						Handle:     "import-vol-handle",
+						Handle:     "import-bc-vol",
 						WorkerName: "some-worker",
 						TTL:        0,
 						Identifier: db.VolumeIdentifier{
@@ -1705,15 +1693,129 @@ var _ = Describe("Worker", func() {
 					}))
 
 					Expect(fakeGardenWorkerDB.InsertVolumeArgsForCall(1)).To(Equal(db.Volume{
-						Handle:     "bc-cow-vol-handle",
+						Handle:     "cow-bc-vol",
 						WorkerName: "some-worker",
 						TTL:        VolumeTTL,
 						Identifier: db.VolumeIdentifier{
 							COW: &db.COWIdentifier{
-								ParentVolumeHandle: "import-vol-handle",
+								ParentVolumeHandle: "import-vol",
 							},
 						},
 					}))
+				})
+
+				It("adds the cow volume to the garden spec properties", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					concourseVolumes := []string{}
+					err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volumes"]), &concourseVolumes)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(concourseVolumes).To(ContainElement("cow-vol"))
+				})
+
+				It("adds the cow volume mount to the garden spec properties", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					volumeMountProperties := map[string]string{}
+					err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volume-mounts"]), &volumeMountProperties)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(volumeMountProperties["cow-vol"]).To(Equal("cow-vol-path"))
+				})
+
+				It("uses the path of the cow volume as the rootfs", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualGardenSpec.RootFSPath).To(Equal("cow-vol-path"))
+				})
+
+				It("tries to build an import and COW volume with the volume factory", func() {
+					Expect(fakeVolumeFactory.BuildCallCount()).To(Equal(2))
+					_, actualBCImportVolume := fakeVolumeFactory.BuildArgsForCall(0)
+					Expect(actualBCImportVolume).To(Equal(importBCVolume))
+					_, actualBCCOWVolume := fakeVolumeFactory.BuildArgsForCall(1)
+					Expect(actualBCCOWVolume).To(Equal(cowBCVolume))
+				})
+
+				Context("when the import volume can be retrieved", func() {
+					BeforeEach(func() {
+						fakeGardenWorkerDB.GetVolumeByIdentifierReturns(db.SavedVolume{
+							Volume: db.Volume{
+								Handle:     "imported-volume-handle",
+								WorkerName: "worker-name",
+								TTL:        1 * time.Millisecond,
+								Identifier: db.VolumeIdentifier{},
+							},
+							ID: 5,
+						}, true, nil)
+
+						fakeBaggageclaimClient.LookupVolumeReturns(importBCVolume, true, nil)
+					})
+
+					It("tries to find the volume in baggageclaim", func() {
+						Expect(fakeBaggageclaimClient.LookupVolumeCallCount()).To(Equal(1))
+						_, handle := fakeBaggageclaimClient.LookupVolumeArgsForCall(0)
+						Expect(handle).To(Equal("imported-volume-handle"))
+					})
+
+					It("builds a worker volume from the baggageclaim volume", func() {
+						Expect(fakeVolumeFactory.BuildCallCount()).To(Equal(2))
+						_, actualBCVolume := fakeVolumeFactory.BuildArgsForCall(0)
+						Expect(actualBCVolume).To(Equal(importBCVolume))
+					})
+
+					It("creates a COW volume with the import volume as its parent", func() {
+						Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
+						_, volumeSpec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
+						Expect(volumeSpec).To(Equal(baggageclaim.VolumeSpec{
+							Strategy: baggageclaim.COWStrategy{
+								Parent: importVolume,
+							},
+							Privileged: true,
+							TTL:        VolumeTTL,
+							Properties: baggageclaim.VolumeProperties{},
+						}))
+					})
+				})
+
+				Context("when the import volume cannot be retrieved", func() {
+					BeforeEach(func() {
+						fakeGardenWorkerDB.GetVolumeByIdentifierReturns(db.SavedVolume{}, false, nil)
+					})
+
+					It("creates import and COW volumes for resource image", func() {
+						Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(2))
+						_, volumeSpec := fakeBaggageclaimClient.CreateVolumeArgsForCall(0)
+						Expect(volumeSpec).To(Equal(baggageclaim.VolumeSpec{
+							Strategy: baggageclaim.ImportStrategy{
+								Path: "some-resource-image",
+							},
+							Privileged: true,
+							TTL:        0,
+							Properties: baggageclaim.VolumeProperties{},
+						}))
+
+						_, volumeSpec = fakeBaggageclaimClient.CreateVolumeArgsForCall(1)
+						Expect(volumeSpec).To(Equal(baggageclaim.VolumeSpec{
+							Strategy: baggageclaim.COWStrategy{
+								Parent: importVolume,
+							},
+							Privileged: true,
+							TTL:        VolumeTTL,
+							Properties: baggageclaim.VolumeProperties{},
+						}))
+					})
+
+					Context("when creating an import volume fails", func() {
+						var disaster error
+						BeforeEach(func() {
+							disaster = errors.New("failed-to-create-volume")
+							fakeBaggageclaimClient.CreateVolumeReturns(nil, disaster)
+						})
+
+						It("returns the error", func() {
+							Expect(createErr).To(Equal(disaster))
+						})
+					})
 				})
 
 				Context("when inserting the import volume into the db fails", func() {
@@ -1727,18 +1829,6 @@ var _ = Describe("Worker", func() {
 					It("returns the error", func() {
 						Expect(createErr).To(Equal(insertErr))
 					})
-
-					It("does not create a COW volume", func() {
-						Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
-					})
-				})
-
-				It("tries to build an import and COW volume with the volume factory", func() {
-					Expect(fakeVolumeFactory.BuildCallCount()).To(Equal(2))
-					_, actualBCImportVolume := fakeVolumeFactory.BuildArgsForCall(0)
-					Expect(actualBCImportVolume).To(Equal(baggageclaimImportVolume))
-					_, actualBCCOWVolume := fakeVolumeFactory.BuildArgsForCall(1)
-					Expect(actualBCCOWVolume).To(Equal(baggageclaimCOWVolume))
 				})
 
 				Context("when building the import volume fails", func() {
@@ -1752,58 +1842,6 @@ var _ = Describe("Worker", func() {
 					It("returns the error", func() {
 						Expect(createErr).To(Equal(buildErr))
 					})
-
-					It("does not create a COW volume", func() {
-						Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
-					})
-				})
-
-				Context("when the import volume cannot be found", func() {
-					BeforeEach(func() {
-						fakeVolumeFactory.BuildReturns(nil, false, nil)
-					})
-
-					It("returns an error", func() {
-						Expect(createErr).To(Equal(ErrMissingVolume))
-					})
-
-					It("does not create a COW volume", func() {
-						Expect(fakeBaggageclaimClient.CreateVolumeCallCount()).To(Equal(1))
-					})
-				})
-
-				It("releases the import volume", func() {
-					Expect(baggageclaimImportVolume.ReleaseCallCount()).To(Equal(1))
-					Expect(baggageclaimImportVolume.ReleaseArgsForCall(0)).To(BeNil())
-				})
-
-				It("releases the cow volume after attempting to create the container", func() {
-					Expect(baggageclaimCOWVolume.ReleaseCallCount()).To(Equal(1))
-					Expect(baggageclaimCOWVolume.ReleaseArgsForCall(0)).To(BeNil())
-				})
-
-				It("adds the cow volume to the garden spec properties", func() {
-					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-					concourseVolumes := []string{}
-					err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volumes"]), &concourseVolumes)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(concourseVolumes).To(ContainElement("bc-cow-vol-handle"))
-				})
-
-				It("adds the cow volume mount to the garden spec properties", func() {
-					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-					volumeMountProperties := map[string]string{}
-					err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volume-mounts"]), &volumeMountProperties)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(volumeMountProperties["bc-cow-vol-handle"]).To(Equal("bc-cow-vol-path"))
-				})
-
-				It("uses the path of the cow volume as the rootfs", func() {
-					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-					Expect(actualGardenSpec.RootFSPath).To(Equal("bc-cow-vol-path"))
 				})
 
 				Context("when creating the COW volume fails", func() {
@@ -1813,7 +1851,7 @@ var _ = Describe("Worker", func() {
 						fakeBaggageclaimClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
 							switch volumeSpec.Strategy.(type) {
 							case baggageclaim.ImportStrategy:
-								return baggageclaimImportVolume, nil
+								return importBCVolume, nil
 							case baggageclaim.COWStrategy:
 								return nil, disaster
 							default:
@@ -1834,7 +1872,7 @@ var _ = Describe("Worker", func() {
 						insertErr = errors.New("an-error")
 						fakeGardenWorkerDB.InsertVolumeStub = func(volume db.Volume) error {
 							switch volume.Handle {
-							case "bc-cow-vol-handle":
+							case "cow-bc-vol":
 								return insertErr
 							default:
 								return nil
@@ -1854,9 +1892,9 @@ var _ = Describe("Worker", func() {
 						buildErr = errors.New("an-error")
 						fakeVolumeFactory.BuildStub = func(logger lager.Logger, volume baggageclaim.Volume) (Volume, bool, error) {
 							switch volume.Handle() {
-							case "import-vol-handle":
-								return baggageclaimImportVolume, true, nil
-							case "bc-cow-vol-handle":
+							case "import-bc-vol":
+								return importVolume, true, nil
+							case "cow-bc-vol":
 								return nil, false, buildErr
 							default:
 								return nil, false, nil
@@ -1873,8 +1911,8 @@ var _ = Describe("Worker", func() {
 					BeforeEach(func() {
 						fakeVolumeFactory.BuildStub = func(logger lager.Logger, volume baggageclaim.Volume) (Volume, bool, error) {
 							switch volume.Handle() {
-							case "import-vol-handle":
-								return baggageclaimImportVolume, true, nil
+							case "import-bc-vol":
+								return importVolume, true, nil
 							default:
 								return nil, false, nil
 							}

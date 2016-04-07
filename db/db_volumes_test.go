@@ -370,6 +370,41 @@ var _ = Describe("Keeping track of volumes", func() {
 				Expect(savedOutputVolume.ExpiresIn).To(BeNumerically("~", outputVolume.TTL, time.Second))
 			})
 		})
+
+		Describe("import volumes", func() {
+			var importVolume db.Volume
+			var importIdentifier db.VolumeIdentifier
+
+			BeforeEach(func() {
+				importIdentifier = db.VolumeIdentifier{
+					Import: &db.ImportIdentifier{
+						WorkerName: insertedWorker.Name,
+						Path:       "/some/path",
+					},
+				}
+				importVolume = db.Volume{
+					WorkerName: insertedWorker.Name,
+					TTL:        5 * time.Minute,
+					Handle:     "my-import-handle",
+					Identifier: importIdentifier,
+				}
+
+				err := database.InsertVolume(importVolume)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("can be retrieved", func() {
+				savedImportVolume, found, err := database.GetVolumeByIdentifier(importIdentifier)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(savedImportVolume.WorkerName).To(Equal(importVolume.WorkerName))
+				Expect(savedImportVolume.TTL).To(Equal(importVolume.TTL))
+				Expect(savedImportVolume.Handle).To(Equal(importVolume.Handle))
+				Expect(savedImportVolume.Volume.Identifier.Import.WorkerName).To(Equal(insertedWorker.Name))
+				Expect(savedImportVolume.Volume.Identifier.Import.Path).To(Equal("/some/path"))
+				Expect(savedImportVolume.ExpiresIn).To(BeNumerically("~", importVolume.TTL, time.Second))
+			})
+		})
 	})
 
 	Describe("GetVolumesForOneOffBuildImageResources", func() {

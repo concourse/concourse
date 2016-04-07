@@ -51,6 +51,10 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 		columns = append(columns, "output_name")
 		params = append(params, data.Identifier.Output.Name)
 		values = append(values, fmt.Sprintf("$%d", len(params)))
+	} else if data.Identifier.Import != nil {
+		columns = append(columns, "path")
+		params = append(params, data.Identifier.Import.Path)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
 	}
 
 	defer tx.Rollback()
@@ -102,7 +106,8 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 			resource_hash,
 			id,
 			original_volume_handle,
-			output_name
+			output_name,
+			path
 		FROM volumes
 	`)
 	if err != nil {
@@ -139,6 +144,9 @@ func (db *SQLDB) GetVolumeByIdentifier(id VolumeIdentifier) (SavedVolume, bool, 
 		addParam("original_volume_handle", id.COW.ParentVolumeHandle)
 	case id.Output != nil:
 		addParam("output_name", id.Output.Name)
+	case id.Import != nil:
+		addParam("path", id.Import.Path)
+		addParam("worker_name", id.Import.WorkerName)
 	}
 
 	statement := `
@@ -151,7 +159,8 @@ func (db *SQLDB) GetVolumeByIdentifier(id VolumeIdentifier) (SavedVolume, bool, 
 			resource_hash,
 			id,
 			original_volume_handle,
-			output_name
+			output_name,
+			path
 		FROM volumes
 		`
 
@@ -184,7 +193,8 @@ func (db *SQLDB) GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 			v.resource_hash,
 			v.id,
 			v.original_volume_handle,
-			v.output_name
+			v.output_name,
+			v.path
 		FROM volumes v
 			INNER JOIN image_resource_versions i
 				ON i.version = v.resource_version
@@ -257,7 +267,8 @@ func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {
 			resource_hash,
 			id,
 			original_volume_handle
-			output_name
+			output_name,
+			path
 		FROM volumes
 		WHERE handle = $1
 	`, originalVolumeHandle)
@@ -296,8 +307,9 @@ func scanVolume(row scannable) (SavedVolume, error) {
 	var resourceHash sql.NullString
 	var originalVolumeHandle sql.NullString
 	var outputName sql.NullString
+	var path sql.NullString
 
-	err := row.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &resourceHash, &volume.ID, &originalVolumeHandle, &outputName)
+	err := row.Scan(&volume.WorkerName, &volume.TTL, &ttlSeconds, &volume.Handle, &versionJSON, &resourceHash, &volume.ID, &originalVolumeHandle, &outputName, &path)
 	if err != nil {
 		return SavedVolume{}, err
 	}
@@ -324,6 +336,11 @@ func scanVolume(row scannable) (SavedVolume, error) {
 	} else if outputName.Valid {
 		volume.Volume.Identifier.Output = &OutputIdentifier{
 			Name: outputName.String,
+		}
+	} else if path.Valid {
+		volume.Volume.Identifier.Import = &ImportIdentifier{
+			Path:       path.String,
+			WorkerName: volume.WorkerName,
 		}
 	}
 
