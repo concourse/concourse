@@ -30,7 +30,8 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 		values = append(values, fmt.Sprintf("NOW() + $%d::INTERVAL", len(params)))
 	}
 
-	if data.Identifier.ResourceCache != nil {
+	switch {
+	case data.Identifier.ResourceCache != nil:
 		resourceVersion, err = json.Marshal(data.Identifier.ResourceCache.ResourceVersion)
 		if err != nil {
 			return err
@@ -43,15 +44,15 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 		columns = append(columns, "resource_hash")
 		params = append(params, data.Identifier.ResourceCache.ResourceHash)
 		values = append(values, fmt.Sprintf("$%d", len(params)))
-	} else if data.Identifier.COW != nil {
+	case data.Identifier.COW != nil:
 		columns = append(columns, "original_volume_handle")
 		params = append(params, data.Identifier.COW.ParentVolumeHandle)
 		values = append(values, fmt.Sprintf("$%d", len(params)))
-	} else if data.Identifier.Output != nil {
+	case data.Identifier.Output != nil:
 		columns = append(columns, "output_name")
 		params = append(params, data.Identifier.Output.Name)
 		values = append(values, fmt.Sprintf("$%d", len(params)))
-	} else if data.Identifier.Import != nil {
+	case data.Identifier.Import != nil:
 		columns = append(columns, "path")
 		params = append(params, data.Identifier.Import.Path)
 		values = append(values, fmt.Sprintf("$%d", len(params)))
@@ -318,7 +319,8 @@ func scanVolume(row scannable) (SavedVolume, error) {
 		volume.ExpiresIn = time.Duration(*ttlSeconds) * time.Second
 	}
 
-	if versionJSON.Valid && resourceHash.Valid {
+	switch {
+	case versionJSON.Valid && resourceHash.Valid:
 		var cacheID ResourceCacheIdentifier
 
 		err = json.Unmarshal([]byte(versionJSON.String), &cacheID.ResourceVersion)
@@ -329,15 +331,15 @@ func scanVolume(row scannable) (SavedVolume, error) {
 		cacheID.ResourceHash = resourceHash.String
 
 		volume.Volume.Identifier.ResourceCache = &cacheID
-	} else if originalVolumeHandle.Valid {
+	case originalVolumeHandle.Valid:
 		volume.Volume.Identifier.COW = &COWIdentifier{
 			ParentVolumeHandle: originalVolumeHandle.String,
 		}
-	} else if outputName.Valid {
+	case outputName.Valid:
 		volume.Volume.Identifier.Output = &OutputIdentifier{
 			Name: outputName.String,
 		}
-	} else if path.Valid {
+	case path.Valid:
 		volume.Volume.Identifier.Import = &ImportIdentifier{
 			Path:       path.String,
 			WorkerName: volume.WorkerName,
