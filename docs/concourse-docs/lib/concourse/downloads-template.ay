@@ -19,8 +19,6 @@ def(template-for(part, out)):
   part css-additions << File expand-path("../css/font-awesome.min.css", __FILE__)
   part css-additions << File expand-path("../css/normalize.css", __FILE__)
   part css-additions << File expand-path("../css/skeleton.css", __FILE__)
-  part css-additions << File expand-path("../css/bootstrap-theme.css", __FILE__)
-  part css-additions << File expand-path("../css/bootstrap.css", __FILE__)
   part css-additions << File expand-path("../css/main.css", __FILE__)
   part css-additions << File expand-path("../css/fonts.css", __FILE__)
   part css-additions << File expand-path("../css/highlight.css", __FILE__)
