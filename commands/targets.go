@@ -46,7 +46,7 @@ func (command *TargetsCommand) Execute([]string) error {
 }
 
 func GetExpirationFromString(token *rc.TargetToken) string {
-	if token == nil {
+	if token == nil || token.Type == "" || token.Value == "" {
 		return "n/a"
 	}
 
@@ -59,9 +59,21 @@ func GetExpirationFromString(token *rc.TargetToken) string {
 		return "n/a"
 	}
 
-	intSeconds, err := strconv.ParseInt(string(expClaim.(string)), 10, 64)
-	if err != nil {
-		return "n/a"
+	var intSeconds int64
+
+	floatSeconds, ok := expClaim.(float64)
+	if ok {
+		intSeconds = int64(floatSeconds)
+	} else {
+		stringSeconds, ok := expClaim.(string)
+		if !ok {
+			return "n/a"
+		}
+		var err error
+		intSeconds, err = strconv.ParseInt(stringSeconds, 10, 64)
+		if err != nil {
+			return "n/a"
+		}
 	}
 
 	unixSeconds := time.Unix(intSeconds, 0)
