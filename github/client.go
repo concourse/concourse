@@ -46,20 +46,26 @@ func (c *client) Teams(httpClient *http.Client) (OrganizationTeams, error) {
 		return nil, err
 	}
 
-	teams, _, err := client.Organizations.ListUserTeams(nil)
-	if err != nil {
-		return nil, err
-	}
-
+	nextPage := 1
 	organizationTeams := OrganizationTeams{}
-	for _, team := range teams {
-		organizationName := *team.Organization.Login
 
-		if _, ok := organizationTeams[organizationName]; !ok {
-			organizationTeams[organizationName] = []string{}
+	for nextPage != 0 {
+		teams, resp, err := client.Organizations.ListUserTeams(&gogithub.ListOptions{Page: nextPage})
+		if err != nil {
+			return nil, err
 		}
 
-		organizationTeams[organizationName] = append(organizationTeams[organizationName], *team.Name)
+		for _, team := range teams {
+			organizationName := *team.Organization.Login
+
+			if _, found := organizationTeams[organizationName]; !found {
+				organizationTeams[organizationName] = []string{}
+			}
+
+			organizationTeams[organizationName] = append(organizationTeams[organizationName], *team.Name)
+		}
+
+		nextPage = resp.NextPage
 	}
 
 	return organizationTeams, nil
