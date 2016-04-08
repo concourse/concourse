@@ -13,6 +13,7 @@ def(template-for(part, out)):
 
   part js-additions += html search-js-additions
   part js-additions << File expand-path("../js/bootstrap.min.js", __FILE__)
+  part js-additions << File expand-path("../js/single-page.js", __FILE__)
 
   part css-additions << File expand-path("../css/font-awesome.min.css", __FILE__)
   part css-additions << File expand-path("../css/normalize.css", __FILE__)
@@ -21,16 +22,12 @@ def(template-for(part, out)):
   part css-additions << File expand-path("../css/fonts.css", __FILE__)
   part css-additions << File expand-path("../css/highlight.css", __FILE__)
   part css-additions << File expand-path("../css/docs.css", __FILE__)
+  part css-additions << File expand-path("../css/single-page.css", __FILE__)
 
   part parts each [sub]:
     html render(sub, out)
 
   <div(#everything):
-    <div(#header, class = "u-full-width top-intro docs-header"):
-      <a(name = "page-top"){}
-
-      partials nav-bar(part)
-
     <div(#middle):
       <div(#page):
         <div(#sidebar):
@@ -46,9 +43,6 @@ def(template-for(part, out)):
 
                   <ul(.search-results) {}
 
-              <div(.single-page-link):
-                ["or ", <a(href = "single-page.html"): "view all docs on one page"]
-
               <ol(#toc, .toc):
                 part top parts collect [p]:
                   html toc-leaf(part, p)
@@ -56,5 +50,3 @@ def(template-for(part, out)):
         <div(#content):
           <div(class = "content-spacing"):
             html render-part(part, out)
-
-    partials bottom-nav(part)

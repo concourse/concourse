@@ -206,11 +206,10 @@ html, body, #everything {
 }
 
 .sidebar-spacing {
-  width: 230px;
-  padding: 16px;
-  padding-top: 60px;
+  width: 250px;
   float: right;
   position: relative;
+  padding: 58px 0 0 20px;
 }
 #sidebar .toc {
   margin: 0;
@@ -242,15 +241,19 @@ html, body, #everything {
 #sidebar .toc li ol {
   display: none;
 }
-#sidebar .toc li.active ol {
+#sidebar .toc li.active > ol {
   display: block;
 }
 #sidebar .toc li.current > a,
 #sidebar .section-header a.current {
   background: #FFFFFF;
 }
+#sidebar #toc > li.active > a {
+  border-left-color: transparent;
+}
 #sidebar .toc li.current > a,
 #sidebar .toc li.active > a,
+#sidebar #toc > li.current > a,
 #sidebar .section-header a.current {
   border-left-color: #379ADC;
 }
@@ -291,6 +294,12 @@ html, body, #everything {
 #sidebar .search input:focus {
   width: 400px;
 }
+#sidebar .single-page-link {
+  text-align: right;
+  font-size: 14px;
+  color: #B8B8B8;
+  margin-right: 20px;
+}
 #sidebar .search .search-results {
   margin: 0;
   padding: 0;
@@ -315,22 +324,28 @@ html, body, #everything {
   font-style: italic;
   color: #686868;
 }
-.sidebar-section {
-  margin-right: -16px;
+#sidebar #toc > li {
   margin-top: 20px;
   padding-bottom: 20px;
 }
-.sidebar-section .section-header {
+#sidebar #toc > li > a {
   font-family: 'Open Sans', "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 20px;
   font-weight: 600;
-  margin-bottom: 0;
-}
-.sidebar-section .section-header a {
   color: #686868;
   padding: 8px 16px;
+  border-left-width: 3px;
+}
+#sidebar #toc > li > ol {
   display: block;
-  border-left: 3px solid transparent; /* align with list below */
+  padding: 0;
+}
+#sidebar #toc > li > ol > li > a {
+  font-size: 16px;
+}
+#sidebar #toc > li > ol > li a {
+  font-size: 16px;
+  border-left-width: 2px;
 }
 .search-results code {
   padding: 0; /* SKELETOOOON */

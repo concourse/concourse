@@ -8,6 +8,7 @@ cd concourse/docs/
 
 bundle install
 bundle exec anatomy -i index.any -o $BUILT_DOCS
+bundle exec anatomy -i single-page.any -o $BUILT_DOCS
 
 cp Staticfile $BUILT_DOCS
 cp manifest.yml $BUILT_DOCS
