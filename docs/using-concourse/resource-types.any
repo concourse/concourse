@@ -74,7 +74,7 @@ before using it!
   }
 
   \list{
-    \hyperlink{https://github.com/Nopik/slack-notification-resource}{Slack notifications}
+    \hyperlink{https://github.com/cloudfoundry-community/slack-notification-resource}{Slack notifications}
   }{
     \hyperlink{https://github.com/jtarchie/pullrequest-resource}{Pull Requests}
   }{
