@@ -91,6 +91,8 @@ def(bottom-nav(part)):
               link-to(part, "setting-up", "Setting Up")
             <li(class = "navbar-link"):
               link-to(part, "using-concourse", "Using Concourse")
+            <li(class = "navbar-link"):
+              <a(href = "single-page.html"): "View on one page"
 
         <li(class = "bottom-nav-list-item"):
           <h5(class = "navbar-link"):
