@@ -71,14 +71,21 @@ func (c *client) Organizations(httpClient *http.Client) ([]string, error) {
 		return nil, err
 	}
 
-	orgs, _, err := client.Organizations.List("", nil)
-	if err != nil {
-		return nil, err
-	}
-
+	nextPage := 1
 	organizations := []string{}
-	for _, org := range orgs {
-		organizations = append(organizations, *org.Login)
+
+	for nextPage != 0 {
+		orgs, resp, err := client.Organizations.List("", &gogithub.ListOptions{Page: nextPage})
+
+		if err != nil {
+			return nil, err
+		}
+
+		for _, org := range orgs {
+			organizations = append(organizations, *org.Login)
+		}
+
+		nextPage = resp.NextPage
 	}
 
 	return organizations, nil
