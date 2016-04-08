@@ -82,8 +82,8 @@ var _ = Describe("Client", func() {
 							},
 							http.Header{
 								"Link": []string{
-									fmt.Sprintf(`<https://%s/user/orgs?page=2>; rel="next"`, githubServer.Addr()),
-									fmt.Sprintf(`<https://%s/user/orgs?page=2>; rel="last"`, githubServer.Addr()),
+									fmt.Sprintf(`<http://%s/user/orgs?page=2>; rel="next"`, githubServer.Addr()),
+									fmt.Sprintf(`<http://%s/user/orgs?page=2>; rel="last"`, githubServer.Addr()),
 								},
 							},
 						),
@@ -97,8 +97,8 @@ var _ = Describe("Client", func() {
 							},
 							http.Header{
 								"Link": []string{
-									fmt.Sprintf(`<https://%s/user/orgs?page=1>; rel="first"`, githubServer.Addr()),
-									fmt.Sprintf(`<https://%s/user/orgs?page=1>; rel="prev"`, githubServer.Addr()),
+									fmt.Sprintf(`<http://%s/user/orgs?page=1>; rel="first"`, githubServer.Addr()),
+									fmt.Sprintf(`<http://%s/user/orgs?page=1>; rel="prev"`, githubServer.Addr()),
 								},
 							},
 						),
@@ -135,15 +135,39 @@ var _ = Describe("Client", func() {
 			BeforeEach(func() {
 				githubServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/user/teams"),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, []gogithub.Team{
-							{Name: gogithub.String("Team 1"), Slug: gogithub.String("team-1"),
-								Organization: &gogithub.Organization{Login: gogithub.String("org-1")}},
-							{Name: gogithub.String("Team 2"), Slug: gogithub.String("team-2"),
-								Organization: &gogithub.Organization{Login: gogithub.String("org-1")}},
-							{Name: gogithub.String("Team 3"), Slug: gogithub.String("team-3"),
-								Organization: &gogithub.Organization{Login: gogithub.String("org-2")}},
-						}),
+						ghttp.VerifyRequest("GET", "/user/teams", "page=1"),
+						ghttp.RespondWithJSONEncoded(
+							http.StatusOK,
+							[]gogithub.Team{
+								{Name: gogithub.String("Team 1"), Slug: gogithub.String("team-1"),
+									Organization: &gogithub.Organization{Login: gogithub.String("org-1")}},
+								{Name: gogithub.String("Team 2"), Slug: gogithub.String("team-2"),
+									Organization: &gogithub.Organization{Login: gogithub.String("org-1")}},
+							},
+							http.Header{
+								"Link": []string{
+									fmt.Sprintf(`<http://%s/user/teams?page=2>; rel="next"`, githubServer.Addr()),
+									fmt.Sprintf(`<http://%s/user/teams?page=2>; rel="last"`, githubServer.Addr()),
+								},
+							},
+						),
+					),
+
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/user/teams", "page=2"),
+						ghttp.RespondWithJSONEncoded(
+							http.StatusOK,
+							[]gogithub.Team{
+								{Name: gogithub.String("Team 3"), Slug: gogithub.String("team-3"),
+									Organization: &gogithub.Organization{Login: gogithub.String("org-2")}},
+							},
+							http.Header{
+								"Link": []string{
+									fmt.Sprintf(`<http://%s/user/teams?page=1>; rel="first"`, githubServer.Addr()),
+									fmt.Sprintf(`<http://%s/user/teams?page=1>; rel="prev"`, githubServer.Addr()),
+								},
+							},
+						),
 					),
 				)
 			})
@@ -202,15 +226,39 @@ var _ = Describe("Client", func() {
 			BeforeEach(func() {
 				githubServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v3/user/teams"),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, []gogithub.Team{
-							{Name: gogithub.String("Team 1"), Slug: gogithub.String("team-1"),
-								Organization: &gogithub.Organization{Login: gogithub.String("org-1")}},
-							{Name: gogithub.String("Team 2"), Slug: gogithub.String("team-2"),
-								Organization: &gogithub.Organization{Login: gogithub.String("org-1")}},
-							{Name: gogithub.String("Team 3"), Slug: gogithub.String("team-3"),
-								Organization: &gogithub.Organization{Login: gogithub.String("org-2")}},
-						}),
+						ghttp.VerifyRequest("GET", "/api/v3/user/teams", "page=1"),
+						ghttp.RespondWithJSONEncoded(
+							http.StatusOK,
+							[]gogithub.Team{
+								{Name: gogithub.String("Team 1"), Slug: gogithub.String("team-1"),
+									Organization: &gogithub.Organization{Login: gogithub.String("org-1")}},
+								{Name: gogithub.String("Team 2"), Slug: gogithub.String("team-2"),
+									Organization: &gogithub.Organization{Login: gogithub.String("org-1")}},
+							},
+							http.Header{
+								"Link": []string{
+									`<https://github.example.com/api/v3/user/teams?page=2>; rel="next"`,
+									`<https://github.example.com/api/v3/user/teams?page=2>; rel="last"`,
+								},
+							},
+						),
+					),
+
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v3/user/teams", "page=2"),
+						ghttp.RespondWithJSONEncoded(
+							http.StatusOK,
+							[]gogithub.Team{
+								{Name: gogithub.String("Team 3"), Slug: gogithub.String("team-3"),
+									Organization: &gogithub.Organization{Login: gogithub.String("org-2")}},
+							},
+							http.Header{
+								"Link": []string{
+									`<https://github.example.com/api/v3/user/teams?page=1>; rel="first"`,
+									`<https://github.example.com/api/v3/user/teams?page=1>; rel="prev"`,
+								},
+							},
+						),
 					),
 				)
 			})
