@@ -54,10 +54,10 @@ var _ = Describe("Fly CLI", func() {
 						{Contents: "expiry", Color: color.New(color.Bold)},
 					},
 					Data: []ui.TableRow{
-						{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "Fri, 18 Mar 2016 18:54:30 PDT"}},
+						{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
 						{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "n/a"}},
-						{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "Sun, 20 Mar 2016 18:54:30 PDT"}},
-						{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "Fri, 25 Mar 2016 16:29:57 PDT"}},
+						{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "Mon, 21 Mar 2016 01:54:30 UTC"}},
+						{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
 					},
 				}))
 			})

@@ -76,7 +76,7 @@ func GetExpirationFromString(token *rc.TargetToken) string {
 		}
 	}
 
-	unixSeconds := time.Unix(intSeconds, 0)
+	unixSeconds := time.Unix(intSeconds, 0).UTC()
 
 	return unixSeconds.Format(time.RFC1123)
 }
