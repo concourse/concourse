@@ -39,6 +39,7 @@ type TaskConfig struct {
 type TaskRunConfig struct {
 	Path string   `json:"path"`
 	Args []string `json:"args"`
+	Dir  string   `json:"dir"`
 }
 
 type TaskInputConfig struct {
@@ -62,6 +63,7 @@ func ShadowTaskConfig(config atc.TaskConfig) TaskConfig {
 		Run: TaskRunConfig{
 			Path: config.Run.Path,
 			Args: config.Run.Args,
+			Dir:  config.Run.Dir,
 		},
 		Inputs: inputConfigs,
 	}

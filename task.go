@@ -330,6 +330,7 @@ func (config TaskConfig) validateInputContainsNames() []string {
 type TaskRunConfig struct {
 	Path string   `json:"path" yaml:"path"`
 	Args []string `json:"args,omitempty" yaml:"args"`
+	Dir  string   `json:"dir",omitempty" yaml:"dir"`
 }
 
 type TaskInputConfig struct {

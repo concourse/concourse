@@ -562,6 +562,7 @@ var _ = Describe("BuildDelegate", func() {
 				taskConfig = atc.TaskConfig{
 					Run: atc.TaskRunConfig{
 						Path: "ls",
+						Dir:  "some/dir",
 					},
 				}
 			})
@@ -580,6 +581,7 @@ var _ = Describe("BuildDelegate", func() {
 					TaskConfig: event.TaskConfig{
 						Run: event.TaskRunConfig{
 							Path: "ls",
+							Dir:  "some/dir",
 						},
 					},
 					Origin: event.Origin{
