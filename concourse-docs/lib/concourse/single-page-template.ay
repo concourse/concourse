@@ -24,9 +24,6 @@ def(template-for(part, out)):
   part css-additions << File expand-path("../css/docs.css", __FILE__)
   part css-additions << File expand-path("../css/single-page.css", __FILE__)
 
-  part parts each [sub]:
-    html render(sub, out)
-
   <div(#everything):
     <div(#middle):
       <div(#page):
