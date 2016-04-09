@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/concourse/fly/ui"
 	"github.com/fatih/color"
@@ -29,6 +30,7 @@ var _ = Describe("Fly CLI", func() {
 
 		if runtime.GOOS == "windows" {
 			os.Setenv("USERPROFILE", tmpDir)
+			os.Setenv("HOMEPATH", strings.TrimPrefix(tmpDir, os.Getenv("HOMEDRIVE")))
 		} else {
 			os.Setenv("HOME", tmpDir)
 		}
