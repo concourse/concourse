@@ -11,16 +11,12 @@ GEM
       atomy (~> 0.6.3)
       broomhlda (~> 0.2.0)
       json_pure (~> 1.8)
-    atomy (0.6.9)
+    atomy (0.6.10)
       kpeg (~> 1.0)
-      rubinius-ast (~> 3.0)
-      rubinius-compiler (~> 3.0)
     broomhlda (0.2.4)
       atomy (~> 0.6.3)
     json_pure (1.8.3)
     kpeg (1.1.0)
-    rubinius-ast (3.3)
-    rubinius-compiler (3.2)
 
 PLATFORMS
   ruby
