@@ -53,9 +53,6 @@
   width: @sidebarWidth;
   background: @base00;
 
-  position: fixed;
-  top: 40px;
-
   overflow: auto;
 }
 
@@ -65,18 +62,6 @@
   transform: translateX(0);
 
 
-}
-
-.pipelinesNav-enabled .pipelines::after {
-  /* menu dark cover layer - to enhance perspective effect */
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: @sidebarWidth;
-  opacity: 1;
-  visibility: visible;
 }
 
 .pipelinesNav-enabled .pipelines li {
@@ -117,6 +102,7 @@
   bottom: 0;
   left: 0;
 
+  margin-top: 40px;
 
   width: @sidebarWidth;
   background-color: @base00;

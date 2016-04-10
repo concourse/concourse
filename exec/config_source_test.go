@@ -36,6 +36,7 @@ var _ = Describe("ConfigSource", func() {
 			Run: atc.TaskRunConfig{
 				Path: "ls",
 				Args: []string{"-al"},
+				Dir:  "some/dir",
 			},
 			Inputs: []atc.TaskInputConfig{
 				{Name: "some-input", Path: "some-path"},

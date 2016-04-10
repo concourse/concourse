@@ -292,7 +292,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			Args: config.Run.Args,
 			Env:  step.envForParams(config.Params),
 
-			Dir: step.artifactsRoot,
+			Dir: path.Join(step.artifactsRoot, config.Run.Dir),
 			TTY: &garden.TTYSpec{},
 		}, processIO)
 		if err != nil {

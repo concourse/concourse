@@ -276,7 +276,7 @@ var _ = Describe("GardenFactory", func() {
 							Expect(err).To(Equal(io.EOF))
 						})
 
-						It("runs a process with the config's path and args, in the specified build directory", func() {
+						It("runs a process with the config's path and args, in the specified (default) build directory", func() {
 							Expect(fakeContainer.RunCallCount()).To(Equal(1))
 
 							spec, _ := fakeContainer.RunArgsForCall(0)
@@ -1182,6 +1182,18 @@ var _ = Describe("GardenFactory", func() {
 										Expect(handle).To(Equal("some-handle"))
 									})
 								})
+							})
+						})
+
+						Context("when a run dir is specified", func() {
+							BeforeEach(func() {
+								fetchedConfig.Run.Dir = "/some/dir"
+								configSource.FetchConfigReturns(fetchedConfig, nil)
+							})
+
+							It("runs a process in the specified (custom) directory", func() {
+								spec, _ := fakeContainer.RunArgsForCall(0)
+								Expect(spec.Dir).To(Equal("/tmp/build/a1f5c0c1/some/dir"))
 							})
 						})
 
