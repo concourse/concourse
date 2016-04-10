@@ -241,6 +241,8 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (SavedC
 		return SavedContainer{}, err
 	}
 
+	defer tx.Rollback()
+
 	checkSource, err := json.Marshal(container.CheckSource)
 	if err != nil {
 		return SavedContainer{}, err
@@ -318,8 +320,6 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (SavedC
 		imageResourceType.Valid = true
 	}
 
-	defer tx.Rollback()
-
 	_, err = tx.Exec(`
 		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, ttl, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage, image_resource_type, image_resource_source, process_user, resource_type_version)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
@@ -367,14 +367,13 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (SavedC
 
 func (db *SQLDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error {
 	tx, err := db.conn.Begin()
-
 	if err != nil {
 		return err
 	}
 
-	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
-
 	defer tx.Rollback()
+
+	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
 	_, err = tx.Exec(`
 		UPDATE containers SET expires_at = NOW() + $2::INTERVAL, ttl = $3

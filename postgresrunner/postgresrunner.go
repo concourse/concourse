@@ -99,6 +99,8 @@ func (runner *Runner) Open() *sql.DB {
 	)
 	Expect(err).NotTo(HaveOccurred())
 
+	dbConn.SetMaxOpenConns(1)
+
 	return dbConn
 }
 

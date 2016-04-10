@@ -15,6 +15,8 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 		return err
 	}
 
+	defer tx.Rollback()
+
 	var resourceVersion []byte
 
 	columns := []string{"worker_name", "ttl", "handle"}
@@ -52,8 +54,6 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 		params = append(params, data.Identifier.Output.Name)
 		values = append(values, fmt.Sprintf("$%d", len(params)))
 	}
-
-	defer tx.Rollback()
 
 	_, err = tx.Exec(
 		fmt.Sprintf(
