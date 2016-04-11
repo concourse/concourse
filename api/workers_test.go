@@ -127,6 +127,7 @@ var _ = Describe("Workers API", func() {
 
 		BeforeEach(func() {
 			worker = atc.Worker{
+				Name:             "worker-name",
 				GardenAddr:       "1.2.3.4:7777",
 				BaggageclaimURL:  "5.6.7.8:7788",
 				ActiveContainers: 2,
@@ -156,75 +157,66 @@ var _ = Describe("Workers API", func() {
 				authValidator.IsAuthenticatedReturns(true)
 			})
 
-			Context("when the worker is valid", func() {
+			It("tries to save the worker", func() {
+				Expect(workerDB.SaveWorkerCallCount()).To(Equal(1))
+				savedInfo, savedTTL := workerDB.SaveWorkerArgsForCall(0)
+				Expect(savedInfo).To(Equal(db.WorkerInfo{
+					GardenAddr:       "1.2.3.4:7777",
+					Name:             "worker-name",
+					BaggageclaimURL:  "5.6.7.8:7788",
+					ActiveContainers: 2,
+					ResourceTypes: []atc.WorkerResourceType{
+						{Type: "some-resource", Image: "some-resource-image"},
+					},
+					Platform: "haiku",
+					Tags:     []string{"not", "a", "limerick"},
+				}))
+
+				Expect(savedTTL.String()).To(Equal(ttl))
+			})
+
+			Context("when the worker has no name", func() {
+				BeforeEach(func() {
+					worker.Name = ""
+				})
+
+				It("tries to save the worker with the garden address as the name", func() {
+					Expect(workerDB.SaveWorkerCallCount()).To(Equal(1))
+
+					savedInfo, savedTTL := workerDB.SaveWorkerArgsForCall(0)
+					Expect(savedInfo).To(Equal(db.WorkerInfo{
+						GardenAddr:       "1.2.3.4:7777",
+						Name:             "1.2.3.4:7777",
+						BaggageclaimURL:  "5.6.7.8:7788",
+						ActiveContainers: 2,
+						ResourceTypes: []atc.WorkerResourceType{
+							{Type: "some-resource", Image: "some-resource-image"},
+						},
+						Platform: "haiku",
+						Tags:     []string{"not", "a", "limerick"},
+					}))
+
+					Expect(savedTTL.String()).To(Equal(ttl))
+				})
+			})
+
+			Context("when saving the worker succeeds", func() {
+				BeforeEach(func() {
+					workerDB.SaveWorkerReturns(db.SavedWorker{}, nil)
+				})
+
 				It("returns 200", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
+			})
 
-				Context("when the name is not provided", func() {
-					It("saves it", func() {
-						Expect(workerDB.SaveWorkerCallCount()).To(Equal(1))
-
-						savedInfo, savedTTL := workerDB.SaveWorkerArgsForCall(0)
-						Expect(savedInfo).To(Equal(db.WorkerInfo{
-							GardenAddr:       "1.2.3.4:7777",
-							Name:             "1.2.3.4:7777",
-							BaggageclaimURL:  "5.6.7.8:7788",
-							ActiveContainers: 2,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource", Image: "some-resource-image"},
-							},
-							Platform: "haiku",
-							Tags:     []string{"not", "a", "limerick"},
-						}))
-
-						Expect(savedTTL.String()).To(Equal(ttl))
-					})
+			Context("when saving the worker fails", func() {
+				BeforeEach(func() {
+					workerDB.SaveWorkerReturns(db.SavedWorker{}, errors.New("oh no!"))
 				})
 
-				Context("when the name is provided", func() {
-					BeforeEach(func() {
-						worker = atc.Worker{
-							GardenAddr:       "1.2.3.4:7777",
-							BaggageclaimURL:  "5.6.7.8:7788",
-							ActiveContainers: 2,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource", Image: "some-resource-image"},
-							},
-							Platform: "haiku",
-							Tags:     []string{"not", "a", "limerick"},
-							Name:     "poem",
-						}
-					})
-
-					It("saves it", func() {
-						Expect(workerDB.SaveWorkerCallCount()).To(Equal(1))
-
-						savedInfo, savedTTL := workerDB.SaveWorkerArgsForCall(0)
-						Expect(savedInfo).To(Equal(db.WorkerInfo{
-							GardenAddr:       "1.2.3.4:7777",
-							Name:             "poem",
-							BaggageclaimURL:  "5.6.7.8:7788",
-							ActiveContainers: 2,
-							ResourceTypes: []atc.WorkerResourceType{
-								{Type: "some-resource", Image: "some-resource-image"},
-							},
-							Platform: "haiku",
-							Tags:     []string{"not", "a", "limerick"},
-						}))
-
-						Expect(savedTTL.String()).To(Equal(ttl))
-					})
-				})
-
-				Context("and saving it fails", func() {
-					BeforeEach(func() {
-						workerDB.SaveWorkerReturns(db.SavedWorker{}, errors.New("oh no!"))
-					})
-
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 
