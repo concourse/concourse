@@ -113,7 +113,7 @@ func (runner *Runner) tick(
 	}
 
 	for _, resourceType := range config.ResourceTypes {
-		scopedName := runner.db.ScopedName(resourceType.Name)
+		scopedName := runner.db.ScopedName("resource-type:" + resourceType.Name)
 
 		if scanningResourceTypes[scopedName] {
 			continue
@@ -122,7 +122,7 @@ func (runner *Runner) tick(
 		scanningResourceTypes[scopedName] = true
 
 		logger := runner.logger.Session("scan", lager.Data{
-			"pipeline:resource-type": runner.db.ScopedName(resourceType.Name),
+			"pipeline-scoped-name": scopedName,
 		})
 		runner := runner.scannerFactory.ScanResourceTypeRunner(logger, resourceType.Name)
 
@@ -137,7 +137,7 @@ func (runner *Runner) tick(
 	}
 
 	for _, resource := range config.Resources {
-		scopedName := runner.db.ScopedName(resource.Name)
+		scopedName := runner.db.ScopedName("resource:" + resource.Name)
 
 		if scanning[scopedName] {
 			continue
@@ -146,7 +146,7 @@ func (runner *Runner) tick(
 		scanning[scopedName] = true
 
 		logger := runner.logger.Session("scan", lager.Data{
-			"pipeline:resource": runner.db.ScopedName(resource.Name),
+			"pipeline-scoped-name": scopedName,
 		})
 		runner := runner.scannerFactory.ScanResourceRunner(logger, resource.Name)
 
