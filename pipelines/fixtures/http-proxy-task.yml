@@ -1,0 +1,10 @@
+---
+platform: linux
+
+run:
+  path: sh
+  args:
+  - "-c"
+  - |
+    set -x
+    wget -Y on example.com

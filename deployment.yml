@@ -33,10 +33,6 @@ instance_groups:
         properties: {}
 
       - release: concourse
-        name: groundcrew
-        properties: {}
-
-      - release: concourse
         name: postgresql
         properties:
           databases:
@@ -44,8 +40,50 @@ instance_groups:
             role: atc
             password: dummy-password
 
+  - name: default_worker
+    instances: 1
+    networks: [name: concourse]
+    vm_type: concourse
+    stemcell: trusty
+    jobs:
+      - release: concourse
+        name: groundcrew
+        consumes:
+          baggageclaim: {from: default_worker_baggageclaim}
+        properties: {}
+
       - release: concourse
         name: baggageclaim
+        provides:
+          baggageclaim: {as: default_worker_baggageclaim}
+        properties: {}
+
+      - release: garden-linux
+        name: garden
+        properties:
+          garden:
+            listen_network: tcp
+            listen_address: 0.0.0.0:7777
+            allow_host_access: true
+
+  - name: proxy_worker
+    instances: 1
+    networks: [name: concourse]
+    vm_type: concourse
+    stemcell: trusty
+    jobs:
+      - release: concourse
+        name: groundcrew
+        consumes:
+          baggageclaim: {from: proxy_worker_baggageclaim}
+        properties:
+          tags: ["proxy"]
+          http_proxy_url: proxy.example.com
+
+      - release: concourse
+        name: baggageclaim
+        provides:
+          baggageclaim: {as: proxy_worker_baggageclaim}
         properties: {}
 
       - release: garden-linux
