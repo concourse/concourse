@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var workerColumns = "EXTRACT(epoch FROM expires - NOW()), addr, baggageclaim_url, active_containers, resource_types, platform, tags, name"
+var workerColumns = "EXTRACT(epoch FROM expires - NOW()), addr, baggageclaim_url, http_proxy_url, https_proxy_url, no_proxy, active_containers, resource_types, platform, tags, name"
 
 func (db *SQLDB) Workers() ([]SavedWorker, error) {
 	// reap expired workers
@@ -82,48 +82,29 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) (SavedWorker, er
 		return SavedWorker{}, err
 	}
 
-	if ttl == 0 {
-		row := db.conn.QueryRow(`
+	expires := "NULL"
+	if ttl != 0 {
+		expires = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(ttl.Seconds()))
+	}
+
+	row := db.conn.QueryRow(`
 			UPDATE workers
-			SET addr = $1, expires = NULL, active_containers = $2, resource_types = $3, platform = $4, tags = $5, baggageclaim_url = $6, name = $7
-			WHERE name = $7 OR addr = $1
+			SET addr = $1, expires = `+expires+`, active_containers = $2, resource_types = $3, platform = $4, tags = $5, baggageclaim_url = $6, http_proxy_url = $7, https_proxy_url = $8, no_proxy = $9, name = $10
+			WHERE name = $10 OR addr = $1
 			RETURNING  `+workerColumns,
-			info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.Name)
+		info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.HTTPProxyURL, info.HTTPSProxyURL, info.NoProxy, info.Name)
 
-		savedWorker, err = scanWorker(row)
-		if err == sql.ErrNoRows {
-			row = db.conn.QueryRow(`
-				INSERT INTO workers (addr, expires, active_containers, resource_types, platform, tags, baggageclaim_url, name)
-				VALUES ($1, NULL, $2, $3, $4, $5, $6, $7)
+	savedWorker, err = scanWorker(row)
+	if err == sql.ErrNoRows {
+		row = db.conn.QueryRow(`
+				INSERT INTO workers (addr, expires, active_containers, resource_types, platform, tags, baggageclaim_url, http_proxy_url, https_proxy_url, no_proxy, name)
+				VALUES ($1, `+expires+`, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 				RETURNING `+workerColumns,
-				info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.Name)
-			savedWorker, err = scanWorker(row)
-		}
-		if err != nil {
-			return SavedWorker{}, err
-		}
-	} else {
-		interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
-
-		row := db.conn.QueryRow(`
-			UPDATE workers
-			SET addr = $1, expires = NOW() + $2::INTERVAL, active_containers = $3, resource_types = $4, platform = $5, tags = $6, baggageclaim_url = $7, name = $8
-			WHERE name = $8 OR addr = $1
-			RETURNING `+workerColumns,
-			info.GardenAddr, interval, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.Name)
-
+			info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.HTTPProxyURL, info.HTTPSProxyURL, info.NoProxy, info.Name)
 		savedWorker, err = scanWorker(row)
-		if err == sql.ErrNoRows {
-			row := db.conn.QueryRow(`
-				INSERT INTO workers (addr, expires, active_containers, resource_types, platform, tags, baggageclaim_url, name)
-				VALUES ($1, NOW() + $2::INTERVAL, $3, $4, $5, $6, $7, $8)
-				RETURNING `+workerColumns,
-				info.GardenAddr, interval, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.Name)
-			savedWorker, err = scanWorker(row)
-		}
-		if err != nil {
-			return SavedWorker{}, err
-		}
+	}
+	if err != nil {
+		return SavedWorker{}, err
 	}
 
 	return savedWorker, nil
@@ -136,13 +117,29 @@ func scanWorker(row scannable) (SavedWorker, error) {
 	var resourceTypes []byte
 	var tags []byte
 
-	err := row.Scan(&ttlSeconds, &info.GardenAddr, &info.BaggageclaimURL, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.Name)
+	var httpProxyURL sql.NullString
+	var httpsProxyURL sql.NullString
+	var noProxy sql.NullString
+
+	err := row.Scan(&ttlSeconds, &info.GardenAddr, &info.BaggageclaimURL, &httpProxyURL, &httpsProxyURL, &noProxy, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.Name)
 	if err != nil {
 		return SavedWorker{}, err
 	}
 
 	if ttlSeconds != nil {
 		info.ExpiresIn = time.Duration(*ttlSeconds) * time.Second
+	}
+
+	if httpProxyURL.Valid {
+		info.HTTPProxyURL = httpProxyURL.String
+	}
+
+	if httpsProxyURL.Valid {
+		info.HTTPSProxyURL = httpsProxyURL.String
+	}
+
+	if noProxy.Valid {
+		info.NoProxy = noProxy.String
 	}
 
 	err = json.Unmarshal(resourceTypes, &info.ResourceTypes)

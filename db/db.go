@@ -218,6 +218,9 @@ type SavedWorker struct {
 type WorkerInfo struct {
 	GardenAddr      string
 	BaggageclaimURL string
+	HTTPProxyURL    string
+	HTTPSProxyURL   string
+	NoProxy         string
 
 	ActiveContainers int
 	ResourceTypes    []atc.WorkerResourceType

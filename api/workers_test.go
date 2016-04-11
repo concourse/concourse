@@ -130,6 +130,9 @@ var _ = Describe("Workers API", func() {
 				Name:             "worker-name",
 				GardenAddr:       "1.2.3.4:7777",
 				BaggageclaimURL:  "5.6.7.8:7788",
+				HTTPProxyURL:     "http://example.com",
+				HTTPSProxyURL:    "https://example.com",
+				NoProxy:          "example.com,127.0.0.1,localhost",
 				ActiveContainers: 2,
 				ResourceTypes: []atc.WorkerResourceType{
 					{Type: "some-resource", Image: "some-resource-image"},
@@ -164,6 +167,9 @@ var _ = Describe("Workers API", func() {
 					GardenAddr:       "1.2.3.4:7777",
 					Name:             "worker-name",
 					BaggageclaimURL:  "5.6.7.8:7788",
+					HTTPProxyURL:     "http://example.com",
+					HTTPSProxyURL:    "https://example.com",
+					NoProxy:          "example.com,127.0.0.1,localhost",
 					ActiveContainers: 2,
 					ResourceTypes: []atc.WorkerResourceType{
 						{Type: "some-resource", Image: "some-resource-image"},
@@ -188,6 +194,9 @@ var _ = Describe("Workers API", func() {
 						GardenAddr:       "1.2.3.4:7777",
 						Name:             "1.2.3.4:7777",
 						BaggageclaimURL:  "5.6.7.8:7788",
+						HTTPProxyURL:     "http://example.com",
+						HTTPSProxyURL:    "https://example.com",
+						NoProxy:          "example.com,127.0.0.1,localhost",
 						ActiveContainers: 2,
 						ResourceTypes: []atc.WorkerResourceType{
 							{Type: "some-resource", Image: "some-resource-image"},
