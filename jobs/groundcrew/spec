@@ -114,6 +114,19 @@ properties:
       An array of tags to advertise for each worker.
     default: []
 
+  http_proxy_url:
+    description: |
+      Proxy to use for outgoing http requests from containers.
+
+  https_proxy_url:
+    description: |
+      Proxy to use for outgoing https requests from containers.
+
+  no_proxy:
+    description: |
+      A list domains and IPs with optional port for which the proxy should be bypassed, e.g. [localhost, 127.0.0.1, example.com, domain.com:8080]
+    default: []
+
   resource_types:
     description: |
       Resource types supported by the workers, in `[{type: string, image: string}]` form.
