@@ -34,7 +34,7 @@ var _ = Describe("Resource Pausing", func() {
 		sqlDB = db.NewSQL(dbConn, bus)
 
 		atcProcess, atcPort = startATC(atcBin, 1, true, BASIC_AUTH)
-		_, err := dbConn.Query(`DELETE FROM teams WHERE name = 'main'`)
+		err := sqlDB.DeleteTeamByName("main")
 		Expect(err).NotTo(HaveOccurred())
 		team, err := sqlDB.SaveTeam(db.Team{
 			Name: atc.DefaultTeamName,
