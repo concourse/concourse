@@ -39,6 +39,12 @@ func main() {
 			fmt.Fprintln(os.Stderr, "    "+ui.Embolden("%s", netErr))
 			fmt.Fprintln(os.Stderr, "")
 			fmt.Fprintln(os.Stderr, "is the targeted Concourse running? better go catch it lol")
+		} else if err == commands.ErrShowHelpMessage {
+			helpParser := flags.NewParser(&commands.Fly, flags.HelpFlag)
+			helpParser.NamespaceDelimiter = "-"
+			helpParser.ParseArgs([]string{"-h"})
+			helpParser.WriteHelp(os.Stdout)
+			os.Exit(0)
 		} else {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		}
