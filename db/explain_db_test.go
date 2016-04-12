@@ -57,6 +57,7 @@ var _ = Describe("Explain", func() {
 			postgresRunner.Truncate()
 
 			realConn = postgresRunner.Open()
+			realConn.SetMaxOpenConns(2) // +1 for concurrent EXPLAIN
 			underlyingConn.QueryStub = func(query string, args ...interface{}) (*sql.Rows, error) {
 				return realConn.Query(query, args...)
 			}
@@ -89,6 +90,7 @@ var _ = Describe("Explain", func() {
 			postgresRunner.Truncate()
 
 			realConn = postgresRunner.Open()
+			realConn.SetMaxOpenConns(2) // +1 for concurrent EXPLAIN
 			underlyingConn.QueryStub = func(query string, args ...interface{}) (*sql.Rows, error) {
 				if !strings.HasPrefix(query, "EXPLAIN") {
 					fakeClock.Increment(120 * time.Millisecond)

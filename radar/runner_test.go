@@ -45,6 +45,14 @@ var _ = Describe("Runner", func() {
 					Name: "some-other-resource",
 				},
 			},
+			ResourceTypes: atc.ResourceTypes{
+				{
+					Name: "some-resource",
+				},
+				{
+					Name: "some-other-resource",
+				},
+			},
 		}
 
 		pipelineDB.ScopedNameStub = func(thing string) string {
@@ -53,6 +61,14 @@ var _ = Describe("Runner", func() {
 		pipelineDB.GetConfigReturns(initialConfig, 1, true, nil)
 
 		scannerFactory.ScanResourceRunnerStub = func(lager.Logger, string) ifrit.Runner {
+			return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+				close(ready)
+				<-signals
+				return nil
+			})
+		}
+
+		scannerFactory.ScanResourceTypeRunnerStub = func(lager.Logger, string) ifrit.Runner {
 			return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 				close(ready)
 				<-signals

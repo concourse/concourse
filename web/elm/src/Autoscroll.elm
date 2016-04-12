@@ -9,8 +9,13 @@ import Scroll
 type alias Model subModel =
   { subModel : subModel
   , shouldScroll : Bool
-  , shouldAutoscroll : subModel -> Bool
+  , scrollBehaviorFunc : subModel -> ScrollBehavior
   }
+
+type ScrollBehavior
+  = Autoscroll
+  | ScrollUntilCancelled
+  | NoScroll
 
 type Action subAction
   = SubAction subAction
@@ -18,7 +23,7 @@ type Action subAction
   | ScrolledDown
   | FromBottom Int
 
-init : (subModel -> Bool) -> (subModel, Effects subAction) -> (Model subModel, Effects (Action subAction))
+init : (subModel -> ScrollBehavior) -> (subModel, Effects subAction) -> (Model subModel, Effects (Action subAction))
 init toScrollAction (subModel, subEffects) =
   (Model subModel True toScrollAction, Effects.map SubAction subEffects)
 
@@ -33,7 +38,7 @@ update subUpdate action model =
 
     ScrollDown ->
       ( model
-      , if model.shouldScroll && model.shouldAutoscroll model.subModel then
+      , if model.shouldScroll && model.scrollBehaviorFunc model.subModel /= NoScroll then
           scrollToBottom
         else
           Effects.none
@@ -43,7 +48,14 @@ update subUpdate action model =
       (model, Effects.none)
 
     FromBottom num ->
-      ({ model | shouldScroll = (num < 16) }, Effects.none)
+      ( { model
+        | shouldScroll =
+            case model.scrollBehaviorFunc model.subModel of
+              Autoscroll -> (num < 16)
+              _ -> False
+        }
+      , Effects.none
+      )
 
 
 view : (Signal.Address subAction -> subModel -> Html) -> Signal.Address (Action subAction) -> Model subModel -> Html

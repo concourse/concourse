@@ -71,6 +71,9 @@ type gardenWorker struct {
 	platform         string
 	tags             atc.Tags
 	name             string
+	httpProxyURL     string
+	httpsProxyURL    string
+	noProxy          string
 }
 
 func NewGardenWorker(
@@ -86,6 +89,9 @@ func NewGardenWorker(
 	platform string,
 	tags atc.Tags,
 	name string,
+	httpProxyURL string,
+	httpsProxyURL string,
+	noProxy string,
 ) Worker {
 	return &gardenWorker{
 		gardenClient:       gardenClient,
@@ -101,6 +107,9 @@ func NewGardenWorker(
 		platform:         platform,
 		tags:             tags,
 		name:             name,
+		httpProxyURL:     httpProxyURL,
+		httpsProxyURL:    httpsProxyURL,
+		noProxy:          noProxy,
 	}
 }
 
@@ -434,6 +443,18 @@ dance:
 		}
 
 		gardenSpec.Properties[volumeMountsPropertyName] = string(mountsJSON)
+	}
+
+	if worker.httpProxyURL != "" {
+		gardenSpec.Env = append(gardenSpec.Env, fmt.Sprintf("http_proxy=%s", worker.httpProxyURL))
+	}
+
+	if worker.httpsProxyURL != "" {
+		gardenSpec.Env = append(gardenSpec.Env, fmt.Sprintf("https_proxy=%s", worker.httpsProxyURL))
+	}
+
+	if worker.noProxy != "" {
+		gardenSpec.Env = append(gardenSpec.Env, fmt.Sprintf("no_proxy=%s", worker.noProxy))
 	}
 
 	gardenContainer, err := worker.gardenClient.Create(gardenSpec)

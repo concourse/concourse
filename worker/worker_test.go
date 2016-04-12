@@ -37,6 +37,9 @@ var _ = Describe("Worker", func() {
 		platform               string
 		tags                   atc.Tags
 		workerName             string
+		httpProxyURL           string
+		httpsProxyURL          string
+		noProxy                string
 
 		gardenWorker Worker
 	)
@@ -57,9 +60,7 @@ var _ = Describe("Worker", func() {
 		platform = "some-platform"
 		tags = atc.Tags{"some", "tags"}
 		workerName = "some-worker"
-	})
 
-	BeforeEach(func() {
 		gardenWorker = NewGardenWorker(
 			fakeGardenClient,
 			fakeBaggageclaimClient,
@@ -73,6 +74,9 @@ var _ = Describe("Worker", func() {
 			platform,
 			tags,
 			workerName,
+			httpProxyURL,
+			httpsProxyURL,
+			noProxy,
 		)
 	})
 
@@ -108,6 +112,9 @@ var _ = Describe("Worker", func() {
 				platform,
 				tags,
 				workerName,
+				httpProxyURL,
+				httpsProxyURL,
+				noProxy,
 			).CreateVolume(logger, volumeSpec)
 		})
 
@@ -455,6 +462,9 @@ var _ = Describe("Worker", func() {
 				platform,
 				tags,
 				workerName,
+				httpProxyURL,
+				httpsProxyURL,
+				noProxy,
 			).LookupVolume(logger, handle)
 		})
 
@@ -586,6 +596,9 @@ var _ = Describe("Worker", func() {
 				platform,
 				tags,
 				workerName,
+				httpProxyURL,
+				httpsProxyURL,
+				noProxy,
 			).ListVolumes(logger, properties)
 		})
 
@@ -1384,6 +1397,90 @@ var _ = Describe("Worker", func() {
 				Expect(actualGardenSpec.Properties["user"]).To(Equal("image-volume-user"))
 				Expect(actualGardenSpec.Privileged).To(BeTrue())
 				Expect(actualGardenSpec.RootFSPath).To(Equal("raw:///some/image/path/rootfs"))
+			})
+
+			Context("when the worker has a HTTPProxyURL", func() {
+				BeforeEach(func() {
+					gardenWorker = NewGardenWorker(
+						fakeGardenClient,
+						fakeBaggageclaimClient,
+						fakeVolumeFactory,
+						fakeImageFetcher,
+						fakeGardenWorkerDB,
+						fakeWorkerProvider,
+						fakeClock,
+						activeContainers,
+						resourceTypes,
+						platform,
+						tags,
+						workerName,
+						"http://example.com",
+						httpsProxyURL,
+						noProxy,
+					)
+				})
+
+				It("adds the proxy url to the garden spec env", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualGardenSpec.Env).To(ContainElement("http_proxy=http://example.com"))
+				})
+			})
+
+			Context("when the worker has NoProxy", func() {
+				BeforeEach(func() {
+					gardenWorker = NewGardenWorker(
+						fakeGardenClient,
+						fakeBaggageclaimClient,
+						fakeVolumeFactory,
+						fakeImageFetcher,
+						fakeGardenWorkerDB,
+						fakeWorkerProvider,
+						fakeClock,
+						activeContainers,
+						resourceTypes,
+						platform,
+						tags,
+						workerName,
+						httpProxyURL,
+						httpsProxyURL,
+						"localhost",
+					)
+				})
+
+				It("adds the proxy url to the garden spec env", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualGardenSpec.Env).To(ContainElement("no_proxy=localhost"))
+				})
+			})
+
+			Context("when the worker has a HTTPSProxyURL", func() {
+				BeforeEach(func() {
+					gardenWorker = NewGardenWorker(
+						fakeGardenClient,
+						fakeBaggageclaimClient,
+						fakeVolumeFactory,
+						fakeImageFetcher,
+						fakeGardenWorkerDB,
+						fakeWorkerProvider,
+						fakeClock,
+						activeContainers,
+						resourceTypes,
+						platform,
+						tags,
+						workerName,
+						httpProxyURL,
+						"https://example.com",
+						noProxy,
+					)
+				})
+
+				It("adds the proxy url to the garden spec env", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualGardenSpec.Env).To(ContainElement("https_proxy=https://example.com"))
+				})
 			})
 
 			Context("when the spec specifies Ephemeral", func() {
@@ -2258,6 +2355,9 @@ var _ = Describe("Worker", func() {
 									platform,
 									tags,
 									workerName,
+									httpProxyURL,
+									httpsProxyURL,
+									noProxy,
 								)
 							})
 
@@ -2314,6 +2414,9 @@ var _ = Describe("Worker", func() {
 									platform,
 									tags,
 									workerName,
+									httpProxyURL,
+									httpsProxyURL,
+									noProxy,
 								)
 							})
 
@@ -2718,6 +2821,9 @@ var _ = Describe("Worker", func() {
 				platform,
 				tags,
 				workerName,
+				httpProxyURL,
+				httpsProxyURL,
+				noProxy,
 			)
 
 			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(spec, customTypes)

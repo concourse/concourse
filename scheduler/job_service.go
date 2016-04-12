@@ -128,9 +128,18 @@ func (s jobService) getBuildInputs(logger lager.Logger, build db.Build, buildPre
 		return nil, buildPrep, "failed-to-update-build-prep-with-discovered-inputs", err
 	}
 
-	inputs, message, err := s.determineInputs(versions, buildInputs, build)
-	if err != nil || message != "" {
-		return nil, buildPrep, message, err
+	inputs, found, err := s.DB.GetLatestInputVersions(versions, s.DBJob.Name, buildInputs)
+	if err != nil {
+		return nil, buildPrep, "failed-to-get-latest-input-versions", err
+	}
+
+	if !found {
+		return nil, buildPrep, "no-input-versions-available", nil
+	}
+
+	err = s.DB.UseInputsForBuild(build.ID, inputs)
+	if err != nil {
+		return nil, buildPrep, "failed-to-use-inputs-for-build", err
 	}
 
 	buildPrep.InputsSatisfied = db.BuildPreparationStatusNotBlocking
@@ -140,24 +149,6 @@ func (s jobService) getBuildInputs(logger lager.Logger, build db.Build, buildPre
 	}
 
 	return inputs, buildPrep, "", nil
-}
-
-func (s jobService) determineInputs(versions *algorithm.VersionsDB, buildInputs []config.JobInput, build db.Build) ([]db.BuildInput, string, error) {
-	inputs, found, err := s.DB.GetLatestInputVersions(versions, s.DBJob.Name, buildInputs)
-	if err != nil {
-		return nil, "failed-to-get-latest-input-versions", err
-	}
-
-	if !found {
-		return nil, "no-input-versions-available", nil
-	}
-
-	err = s.DB.UseInputsForBuild(build.ID, inputs)
-	if err != nil {
-		return nil, "failed-to-use-inputs-for-build", err
-	}
-
-	return inputs, "", nil
 }
 
 func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error) {

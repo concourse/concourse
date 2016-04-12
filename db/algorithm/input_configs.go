@@ -14,21 +14,26 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 	jobs := JobSet{}
 	inputCandidates := InputCandidates{}
 	for _, inputConfig := range configs {
-		jobs = jobs.Union(inputConfig.Passed)
+		candidateSet := VersionCandidates{}
 
-		candidateSet := db.VersionsOfResourcePassedJobs(
-			inputConfig.ResourceID,
-			inputConfig.Passed,
-		)
+		if len(inputConfig.Passed) == 0 {
+			candidateSet = db.AllVersionsForResource(inputConfig.ResourceID)
+		} else {
+			jobs = jobs.Union(inputConfig.Passed)
+
+			candidateSet = db.VersionsOfResourcePassedJobs(
+				inputConfig.ResourceID,
+				inputConfig.Passed,
+			)
+		}
 
 		if len(candidateSet) == 0 {
 			return nil, false
 		}
 
 		inputCandidates = append(inputCandidates, InputVersionCandidates{
-			Input:  inputConfig.Name,
-			Passed: inputConfig.Passed,
-
+			Input:             inputConfig.Name,
+			Passed:            inputConfig.Passed,
 			VersionCandidates: candidateSet,
 		})
 	}

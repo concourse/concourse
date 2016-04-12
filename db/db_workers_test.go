@@ -44,6 +44,9 @@ var _ = Describe("Keeping track of workers", func() {
 			Name:             "workerName1",
 			GardenAddr:       "1.2.3.4:7777",
 			BaggageclaimURL:  "5.6.7.8:7788",
+			HTTPProxyURL:     "http://example.com",
+			HTTPSProxyURL:    "https://example.com",
+			NoProxy:          "example.com,127.0.0.1,localhost",
 			ActiveContainers: 42,
 			ResourceTypes: []atc.WorkerResourceType{
 				{Type: "some-resource-a", Image: "some-image-a"},
@@ -154,6 +157,8 @@ var _ = Describe("Keeping track of workers", func() {
 		infoB := db.WorkerInfo{
 			GardenAddr:       "1.2.3.4:8888",
 			BaggageclaimURL:  "http://5.6.7.8:8899",
+			HTTPProxyURL:     "http://example.com",
+			HTTPSProxyURL:    "https://example.com",
 			ActiveContainers: 42,
 			ResourceTypes: []atc.WorkerResourceType{
 				{Type: "some-resource-b", Image: "some-image-b"},
@@ -189,6 +194,8 @@ var _ = Describe("Keeping track of workers", func() {
 		Expect(found).To(BeTrue())
 		Expect(savedWorker.GardenAddr).To(Equal(infoB.GardenAddr))
 		Expect(savedWorker.BaggageclaimURL).To(Equal(infoB.BaggageclaimURL))
+		Expect(savedWorker.HTTPProxyURL).To(Equal(infoB.HTTPProxyURL))
+		Expect(savedWorker.HTTPSProxyURL).To(Equal(infoB.HTTPSProxyURL))
 		Expect(savedWorker.ActiveContainers).To(Equal(infoB.ActiveContainers))
 		Expect(savedWorker.ResourceTypes).To(Equal(infoB.ResourceTypes))
 		Expect(savedWorker.Platform).To(Equal(infoB.Platform))

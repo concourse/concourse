@@ -5,6 +5,9 @@ type Worker struct {
 	GardenAddr string `json:"addr"`
 
 	BaggageclaimURL string `json:"baggageclaim_url"`
+	HTTPProxyURL    string `json:"http_proxy_url"`
+	HTTPSProxyURL   string `json:"https_proxy_url"`
+	NoProxy         string `json:"no_proxy"`
 
 	ActiveContainers int `json:"active_containers"`
 

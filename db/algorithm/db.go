@@ -22,57 +22,45 @@ type BuildOutput struct {
 	JobID   int
 }
 
-func (db VersionsDB) VersionsOfResourcePassedJobs(resourceID int, passed JobSet) VersionCandidates {
-	if len(passed) == 0 {
-		return db.versionsOfResource(resourceID)
-	}
-
-	firstTick := true
-
-	var candidates VersionCandidates
-
-	for jobID, _ := range passed {
-		passedJob := db.versionsOfResourcePassedJob(resourceID, jobID)
-		if firstTick {
-			candidates = passedJob
-		} else {
-			candidates = candidates.IntersectByVersion(passedJob)
+func (db VersionsDB) AllVersionsForResource(resourceID int) VersionCandidates {
+	candidates := VersionCandidates{}
+	for _, output := range db.ResourceVersions {
+		if output.ResourceID == resourceID {
+			candidates[VersionCandidate{
+				VersionID:  output.VersionID,
+				CheckOrder: output.CheckOrder,
+			}] = struct{}{}
 		}
-
-		firstTick = false
 	}
 
 	return candidates
 }
 
-func (db VersionsDB) versionsOfResourcePassedJob(resourceID int, job int) VersionCandidates {
-	versions := VersionCandidates{}
+func (db VersionsDB) VersionsOfResourcePassedJobs(resourceID int, passed JobSet) VersionCandidates {
+	candidates := VersionCandidates{}
 
-	for _, output := range db.BuildOutputs {
-		if output.ResourceID == resourceID && output.JobID == job {
-			versions[VersionCandidate{
-				VersionID:  output.VersionID,
-				BuildID:    output.BuildID,
-				JobID:      output.JobID,
-				CheckOrder: output.CheckOrder,
-			}] = struct{}{}
+	firstTick := true
+	for jobID, _ := range passed {
+		versions := VersionCandidates{}
+
+		for _, output := range db.BuildOutputs {
+			if output.ResourceID == resourceID && output.JobID == jobID {
+				versions[VersionCandidate{
+					VersionID:  output.VersionID,
+					BuildID:    output.BuildID,
+					JobID:      output.JobID,
+					CheckOrder: output.CheckOrder,
+				}] = struct{}{}
+			}
+		}
+
+		if firstTick {
+			candidates = versions
+			firstTick = false
+		} else {
+			candidates = candidates.IntersectByVersion(versions)
 		}
 	}
 
-	return versions
-}
-
-func (db VersionsDB) versionsOfResource(resourceID int) VersionCandidates {
-	versions := VersionCandidates{}
-
-	for _, output := range db.ResourceVersions {
-		if output.ResourceID == resourceID {
-			versions[VersionCandidate{
-				VersionID:  output.VersionID,
-				CheckOrder: output.CheckOrder,
-			}] = struct{}{}
-		}
-	}
-
-	return versions
+	return candidates
 }

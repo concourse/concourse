@@ -57,6 +57,9 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	_, err = s.db.SaveWorker(db.WorkerInfo{
 		GardenAddr:       registration.GardenAddr,
 		BaggageclaimURL:  registration.BaggageclaimURL,
+		HTTPProxyURL:     registration.HTTPProxyURL,
+		HTTPSProxyURL:    registration.HTTPSProxyURL,
+		NoProxy:          registration.NoProxy,
 		ActiveContainers: registration.ActiveContainers,
 		ResourceTypes:    registration.ResourceTypes,
 		Platform:         registration.Platform,

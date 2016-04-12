@@ -326,37 +326,55 @@ var _ = Describe("PipelineDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resourceRows.Next()).To(BeFalse())
 
+			resourceRows.Close()
+
 			versionRows, err := dbConn.Query(`select id from versioned_resources where resource_id = $1`, savedResource.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(versionRows.Next()).To(BeFalse())
+
+			versionRows.Close()
 
 			buildRows, err := dbConn.Query(`select id from builds where id = $1`, build.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(buildRows.Next()).To(BeFalse())
 
+			buildRows.Close()
+
 			jobRows, err := dbConn.Query(`select id from jobs where pipeline_id = $1`, fetchedPipeline.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(jobRows.Next()).To(BeFalse())
+
+			jobRows.Close()
 
 			eventRows, err := dbConn.Query(`select build_id from build_events where build_id = $1`, build.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(eventRows.Next()).To(BeFalse())
 
+			eventRows.Close()
+
 			inputRows, err := dbConn.Query(`select build_id from build_inputs where build_id = $1`, build.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(inputRows.Next()).To(BeFalse())
+
+			inputRows.Close()
 
 			oneOffInputRows, err := dbConn.Query(`select build_id from build_inputs where build_id = $1`, oneOffBuild.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(oneOffInputRows.Next()).To(BeFalse())
 
+			oneOffInputRows.Close()
+
 			outputRows, err := dbConn.Query(`select build_id from build_outputs where build_id = $1`, build.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(outputRows.Next()).To(BeFalse())
 
+			outputRows.Close()
+
 			oneOffOutputRows, err := dbConn.Query(`select build_id from build_outputs where build_id = $1`, oneOffBuild.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(oneOffOutputRows.Next()).To(BeFalse())
+
+			oneOffOutputRows.Close()
 
 			foundImageVolumeIdentifiers, err := sqlDB.GetImageResourceCacheIdentifiersByBuildID(build.ID)
 			Expect(err).NotTo(HaveOccurred())
@@ -2459,7 +2477,7 @@ var _ = Describe("PipelineDB", func() {
 
 					actualBuild, err = pipelineDB.CreateJobBuild(jobOneTwoConfig.Name)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = dbConn.Query(`
+					_, err = dbConn.Exec(`
 						UPDATE builds
 						SET inputs_determined = true
 						WHERE id = $1
@@ -2485,11 +2503,11 @@ var _ = Describe("PipelineDB", func() {
 				buildThree, err := pipelineDB.CreateJobBuild(jobOneTwoConfig.Name)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = dbConn.Query(`
-				UPDATE builds
-				SET inputs_determined = true
-				WHERE id in ($1, $2, $3)
-			`, buildOne.ID, buildTwo.ID, buildThree.ID)
+				_, err = dbConn.Exec(`
+					UPDATE builds
+					SET inputs_determined = true
+					WHERE id in ($1, $2, $3)
+				`, buildOne.ID, buildTwo.ID, buildThree.ID)
 
 				Expect(err).NotTo(HaveOccurred())
 

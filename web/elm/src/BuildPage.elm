@@ -25,7 +25,7 @@ app =
     StartApp.start
       { init =
           Autoscroll.init
-            Build.shouldAutoscroll <|
+            Build.getScrollBehavior <|
             Build.init redirects.address pageDrivenActions.address buildId
       , update = Autoscroll.update Build.update
       , view = Autoscroll.view Build.view
