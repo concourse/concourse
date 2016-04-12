@@ -1825,7 +1825,7 @@ var _ = Describe("Worker", func() {
 				It("uses the path of the cow volume as the rootfs", func() {
 					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-					Expect(actualGardenSpec.RootFSPath).To(Equal("cow-vol-path"))
+					Expect(actualGardenSpec.RootFSPath).To(Equal("raw://cow-vol-path"))
 				})
 
 				It("tries to build an import and COW volume with the volume factory", func() {
