@@ -22,21 +22,22 @@ type BuildOutput struct {
 	JobID   int
 }
 
+func (db VersionsDB) AllVersionsForResource(resourceID int) VersionCandidates {
+	candidates := VersionCandidates{}
+	for _, output := range db.ResourceVersions {
+		if output.ResourceID == resourceID {
+			candidates[VersionCandidate{
+				VersionID:  output.VersionID,
+				CheckOrder: output.CheckOrder,
+			}] = struct{}{}
+		}
+	}
+
+	return candidates
+}
+
 func (db VersionsDB) VersionsOfResourcePassedJobs(resourceID int, passed JobSet) VersionCandidates {
 	candidates := VersionCandidates{}
-
-	if len(passed) == 0 {
-		for _, output := range db.ResourceVersions {
-			if output.ResourceID == resourceID {
-				candidates[VersionCandidate{
-					VersionID:  output.VersionID,
-					CheckOrder: output.CheckOrder,
-				}] = struct{}{}
-			}
-		}
-
-		return candidates
-	}
 
 	firstTick := true
 	for jobID, _ := range passed {
