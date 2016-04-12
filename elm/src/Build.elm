@@ -14,6 +14,7 @@ import Json.Decode exposing ((:=))
 import Task exposing (Task)
 import Time exposing (Time)
 
+import Autoscroll exposing (ScrollBehavior (..))
 import BuildOutput
 import Concourse.Build exposing (Build, BuildDuration)
 import Concourse.BuildPrep exposing (BuildPrep, BuildPrepStatus)
@@ -34,7 +35,6 @@ type alias Model =
   , history : List Build
   , job : Maybe Job
   , status : BuildStatus
-  , autoScroll : Bool
   , now : Time.Time
   , duration : BuildDuration
   , output : Maybe BuildOutput.Model
@@ -72,7 +72,6 @@ init redirect actions buildId =
       , buildPrep = Nothing
       , history = []
       , job = Nothing
-      , autoScroll = True
       , status = Concourse.BuildStatus.Pending
       , now = 0
       , duration = BuildDuration Nothing Nothing
@@ -497,9 +496,15 @@ scrollToCurrentBuildInHistory =
     |> Task.map (always Noop)
     |> Effects.task
 
-shouldAutoscroll : Model -> Bool
-shouldAutoscroll model =
-  model.status /= Concourse.BuildStatus.Succeeded
+getScrollBehavior : Model -> Autoscroll.ScrollBehavior
+getScrollBehavior model =
+  case model.status of
+    Concourse.BuildStatus.Failed -> ScrollUntilCancelled
+    Concourse.BuildStatus.Errored -> ScrollUntilCancelled
+    Concourse.BuildStatus.Aborted -> ScrollUntilCancelled
+    Concourse.BuildStatus.Started -> Autoscroll
+    Concourse.BuildStatus.Pending -> NoScroll
+    Concourse.BuildStatus.Succeeded -> NoScroll
 
 redirectToLogin : Model -> Effects Action
 redirectToLogin model =
