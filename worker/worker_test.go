@@ -746,6 +746,9 @@ var _ = Describe("Worker", func() {
 					platform,
 					tags,
 					workerName,
+					httpProxyURL,
+					httpsProxyURL,
+					noProxy,
 				)
 			})
 
