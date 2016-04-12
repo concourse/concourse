@@ -11,6 +11,24 @@ import (
 
 var _ = Describe("A pipeline containing a job that hits a url behind a proxy", func() {
 	It("uses the proxy server", func() {
+		workers, err := client.ListWorkers()
+		Expect(err).NotTo(HaveOccurred())
+
+		var hasProxyWorker bool
+	dance:
+		for _, worker := range workers {
+			for _, tag := range worker.Tags {
+				if tag == "proxy" {
+					hasProxyWorker = true
+					break dance
+				}
+			}
+		}
+
+		if !hasProxyWorker {
+			Skip("this only runs when a worker with the 'proxy' tag is available")
+		}
+
 		cmd := exec.Command(flyBin, []string{
 			"-t", targetedConcourse,
 			"execute",
