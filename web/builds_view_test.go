@@ -101,6 +101,10 @@ var _ = Describe("BuildsView", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		AfterEach(func() {
+			originGitServer.Stop()
+		})
+
 		It("can view resource information of a job build", func() {
 			url := atcRoute(fmt.Sprintf("/pipelines/%s/jobs/some-job", pipelineName))
 
@@ -143,7 +147,7 @@ var _ = Describe("BuildsView", func() {
 			It("displays a blue header", func() {
 				Expect(page.Navigate(atcRoute(build.URL))).To(Succeed())
 
-				Expect(page.Navigate(atcRoute(fmt.Sprintf("/pipelines/%s/jobs/job-name/builds/%d", pipelineName, build.ID)))).To(Succeed())
+				Expect(page.Navigate(atcRoute(fmt.Sprintf("/pipelines/%s/jobs/some-job/builds/%s", pipelineName, build.Name)))).To(Succeed())
 
 				// top bar should show the pipeline is paused
 				Eventually(page.Find(".js-groups.paused"), 10*time.Second).Should(BeFound())
