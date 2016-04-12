@@ -217,7 +217,7 @@ var _ = Describe("BuildsView", func() {
 				pipelineName,
 			))))
 
-			Expect(page.Find("button.build-action")).ToNot(BeNil())
+			Eventually(page.Find("button.build-action")).Should(BeFound())
 			Expect(page.Find("button.build-action")).To(HaveAttribute("disabled", "true"))
 		})
 	})

@@ -48,55 +48,59 @@ var _ = Describe("PipelinePausing", func() {
 		})
 
 		homeLink := ".js-groups li:nth-of-type(2) a"
-		defaultPipelineLink := ".js-pipelinesNav-list li:nth-of-type(1) a"
-		anotherPipelineLink := ".js-pipelinesNav-list li:nth-of-type(2) a"
-		anotherPipelineItem := ".js-pipelinesNav-list li:nth-of-type(2)"
+		navList := ".js-pipelinesNav-list"
 
 		It("can pause the pipelines", func() {
 			Expect(page.Navigate(atcURL)).To(Succeed())
 			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute("/")))
 
+			By("toggling the nav")
 			Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())
 
-			Expect(page.Find(defaultPipelineLink)).To(HaveText(pipelineName))
-			Expect(page.Find(anotherPipelineLink)).To(HaveText("another-pipeline"))
-
-			Expect(page.Find(anotherPipelineLink).Click()).To(Succeed())
-
+			By("clicking another-pipeline")
+			Eventually(page.All(navList).FindByLink("another-pipeline")).Should(BeFound())
+			Expect(page.All(navList).FindByLink("another-pipeline").Click()).To(Succeed())
 			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute("/pipelines/another-pipeline")))
+
+			By("clicking home button")
 			Expect(page.Find(homeLink).Click()).To(Succeed())
 			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute("/pipelines/another-pipeline")))
 
+			By("toggling the nav")
 			Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())
-			Eventually(page.Find(defaultPipelineLink), loadingTimeout).Should(HaveText(pipelineName))
 			Eventually(page.Find("#pipeline").Text, loadingTimeout).Should(ContainSubstring("another-job-name"))
 
-			Eventually(page.Find(anotherPipelineItem+" .js-pauseUnpause"), loadingTimeout).Should(BeVisible())
-			Eventually(page.Find(anotherPipelineItem+" .js-pauseUnpause.disabled"), loadingTimeout).Should(BeFound())
-
-			Expect(page.Find(anotherPipelineItem + " .js-pauseUnpause").Click()).To(Succeed())
-			Eventually(page.Find(anotherPipelineItem+" .js-pauseUnpause.enabled"), loadingTimeout).Should(BeFound())
+			By("pausing another-pipeline")
+			spanXPath := "//a[@href='/pipelines/another-pipeline']/parent::li/span"
+			Eventually(page.All(navList).FindByXPath(spanXPath), loadingTimeout).Should(BeVisible())
+			Expect(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'disabled')]")).To(BeFound())
+			Expect(page.FindByXPath(spanXPath).Click()).To(Succeed())
 
 			// top bar should show the pipeline is paused
 			Eventually(page.Find(".js-groups.paused"), loadingTimeout).Should(BeFound())
 
+			By("refreshing the page")
 			page.Refresh()
 
 			Eventually(page.Find(".js-groups.paused"), loadingTimeout).Should(BeFound())
 			Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())
-			Eventually(page.Find(anotherPipelineItem+" .js-pauseUnpause"), loadingTimeout).Should(BeVisible())
-			Eventually(page.Find(anotherPipelineItem+" .js-pauseUnpause.enabled"), loadingTimeout).Should(BeFound())
 
-			Expect(page.Find(anotherPipelineItem + " .js-pauseUnpause").Click()).To(Succeed())
-			Eventually(page.Find(anotherPipelineItem+" .js-pauseUnpause.disabled"), loadingTimeout).Should(BeFound())
+			Eventually(page.All(navList).FindByXPath(spanXPath), loadingTimeout).Should(BeVisible())
+			Expect(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'enabled')]")).To(BeFound())
+
+			By("unpausing the pipeline")
+			Expect(page.FindByXPath(spanXPath).Click()).To(Succeed())
+			Expect(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'disabled')]")).To(BeFound())
 
 			Consistently(page.Find(".js-groups.paused")).ShouldNot(BeFound())
 
+			By("refreshing the page")
 			page.Refresh()
 
+			By("pausing the pipeline")
 			Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())
-			Eventually(page.Find(anotherPipelineItem+" .js-pauseUnpause"), loadingTimeout).Should(BeVisible())
-			Eventually(page.Find(anotherPipelineItem+" .js-pauseUnpause.disabled"), loadingTimeout).Should(BeFound())
+			Expect(page.FindByXPath(spanXPath).Click()).To(Succeed())
+			Eventually(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'enabled')]")).Should(BeFound())
 		})
 	})
 })
