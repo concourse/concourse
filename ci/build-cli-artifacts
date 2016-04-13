@@ -4,7 +4,7 @@ set -e -u -x
 
 export GOPATH=$PWD/concourse
 
-FINAL_VERSION="$(cat final-version/number)"
+FINAL_VERSION="$(cat final-version/version)"
 
 for platform in linux darwin windows; do
   mkdir -p cli-artifacts/$platform/amd64

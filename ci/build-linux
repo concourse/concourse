@@ -5,7 +5,7 @@ set -e -x
 export GOPATH=$PWD/gopath:$PWD/concourse:$PWD/guardian-release
 export PATH=$PWD/gopath/bin:$PWD/concourse/bin:$PWD/guardian-release:$PATH
 
-FINAL_VERSION="$(cat $PWD/final-version/number)"
+FINAL_VERSION="$(cat $PWD/final-version/version)"
 
 go get github.com/jteeuwen/go-bindata/go-bindata
 
