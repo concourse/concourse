@@ -10,12 +10,17 @@ import (
 )
 
 var _ = Describe("Renaming a pipeline", func() {
-	var guidServer *guidserver.Server
-	var originGitServer *gitserver.Server
+	var (
+		guidServer      *guidserver.Server
+		originGitServer *gitserver.Server
+		newPipelineName string
+	)
 
 	BeforeEach(func() {
 		guidServer = guidserver.Start(guidServerRootfs, gardenClient)
 		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		newPipelineName = fmt.Sprintf("renamed-test-pipeline-%d", GinkgoParallelNode())
+		destroyPipeline(newPipelineName)
 	})
 
 	AfterEach(func() {
@@ -34,7 +39,6 @@ var _ = Describe("Renaming a pipeline", func() {
 		guid1 := originGitServer.Commit()
 		Eventually(guidServer.ReportingGuids).Should(ContainElement(guid1))
 
-		newPipelineName := fmt.Sprintf("renamed-test-pipeline-%d", GinkgoParallelNode())
 		renamePipeline(newPipelineName)
 
 		guid2 := originGitServer.Commit()

@@ -98,19 +98,21 @@ var _ = SynchronizedAfterSuite(func() {
 	os.RemoveAll(tmpHome)
 })
 
-var _ = AfterEach(destroyPipeline)
+var _ = AfterEach(func() {
+	destroyPipeline(pipelineName)
+})
 
 func TestGitPipeline(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Pipelines Suite")
 }
 
-func destroyPipeline() {
+func destroyPipeline(name string) {
 	destroyCmd := exec.Command(
 		flyBin,
 		"-t", targetedConcourse,
 		"destroy-pipeline",
-		"-p", pipelineName,
+		"-p", name,
 		"-n",
 	)
 
@@ -147,7 +149,7 @@ func renamePipeline(newName string) {
 }
 
 func configurePipeline(argv ...string) {
-	destroyPipeline()
+	destroyPipeline(pipelineName)
 
 	reconfigurePipeline(argv...)
 }
