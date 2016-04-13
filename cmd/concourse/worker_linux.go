@@ -68,8 +68,14 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
+	containerStateDir := filepath.Join(linux, "container-state")
+	err = os.MkdirAll(containerStateDir, 0700)
+	if err != nil {
+		return atc.Worker{}, nil, err
+	}
+
 	cmd.Garden.Server.BindIP = guardiancmd.IPFlag(cmd.BindIP)
-	cmd.Garden.Server.PropertiesPath = filepath.Join(linux, "container-state")
+	cmd.Garden.Server.PropertiesPath = containerStateDir
 
 	cmd.Garden.Containers.Dir = guardiancmd.DirFlag(depotDir)
 	cmd.Garden.Containers.DefaultRootFSDir = guardiancmd.DirFlag(busyboxDir)
