@@ -68,6 +68,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	gLog := logger.Session("garden-connection")
 
 	for _, w := range workers {
+		if len(w.Tags) > 0 {
+			continue
+		}
 		gitServerRootfs = ""
 		guidServerRootfs = ""
 
