@@ -1,5 +1,3 @@
-// +build windows darwin
-
 package main
 
 import (
@@ -20,7 +18,7 @@ func (cmd *WorkerCommand) naiveBaggageclaimRunner(logger lager.Logger) (ifrit.Ru
 	}
 
 	bc := &baggageclaimcmd.BaggageclaimCommand{
-		BindIP:   baggageclaimcmd.IPFlag(cmd.Baggageclaim.BindIP),
+		BindIP:   baggageclaimcmd.IPFlag(cmd.Baggageclaim.BindIP.IP().String()),
 		BindPort: cmd.Baggageclaim.BindPort,
 
 		VolumesDir: baggageclaimcmd.DirFlag(volumesDir),

@@ -86,10 +86,17 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	return worker, cmdRunner{gardenCmd}, nil
+	return worker, &cmd.Guardian, nil
 }
 
 func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
+	if output, err := exec.Command("modprobe", "btrfs").CombinedOutput(); err != nil {
+		logger.Error("btrfs-unavailable-falling-back-to-naive", err, lager.Data{
+			"modprobe-log": string(output),
+		})
+		return cmd.naiveBaggageclaimRunner(logger)
+	}
+
 	volumesImage := filepath.Join(cmd.WorkDir, "volumes.img")
 	volumesDir := filepath.Join(cmd.WorkDir, "volumes")
 
