@@ -13,6 +13,8 @@ cp /opt/static-assets/tar $LINUX_ASSETS/bin/tar
 mkdir -p $LINUX_ASSETS/btrfs
 cp /opt/static-assets/btrfs /opt/static-assets/mkfs.btrfs $LINUX_ASSETS/btrfs
 
+cp -a /opt/static-assets/iptables $LINUX_ASSETS/iptables
+
 pushd guardian-release/
   # workaround 'mv /root/.tmp/... /tmp/...: invalid cross-device link'
   HOME=$PWD bosh sync-blobs

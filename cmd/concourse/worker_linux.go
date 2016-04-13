@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/cloudfoundry-incubator/guardian/guardiancmd"
@@ -48,7 +49,20 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 	linux := filepath.Join(cmd.WorkDir, "linux")
 
 	btrfsToolsDir := filepath.Join(linux, "btrfs")
-	err = os.Setenv("PATH", btrfsToolsDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	iptablesDir := filepath.Join(linux, "iptables")
+
+	err = os.Setenv(
+		"PATH",
+		strings.Join(
+			[]string{
+				btrfsToolsDir,
+				filepath.Join(iptablesDir, "sbin"),
+				filepath.Join(iptablesDir, "bin"),
+				os.Getenv("PATH"),
+			},
+			string(os.PathListSeparator),
+		),
+	)
 	if err != nil {
 		return atc.Worker{}, nil, err
 	}
