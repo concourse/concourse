@@ -16,6 +16,8 @@ import (
 	"github.com/concourse/bin/bindata"
 )
 
+const btrfsFSType = 0x9123683e
+
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.Worker, ifrit.Runner, error) {
 	err := cmd.checkRoot()
 	if err != nil {
@@ -111,11 +113,13 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 		return nil, fmt.Errorf("failed to stat volumes filesystem: %s", err)
 	}
 
-	filesystem := fs.New(logger.Session("fs"), volumesImage, volumesDir)
+	if fsStat.Type != btrfsFSType {
+		filesystem := fs.New(logger.Session("fs"), volumesImage, volumesDir)
 
-	err = filesystem.Create(fsStat.Blocks * uint64(fsStat.Bsize))
-	if err != nil {
-		return nil, fmt.Errorf("failed to set up volumes filesystem: %s", err)
+		err = filesystem.Create(fsStat.Blocks * uint64(fsStat.Bsize))
+		if err != nil {
+			return nil, fmt.Errorf("failed to set up volumes filesystem: %s", err)
+		}
 	}
 
 	bc := &baggageclaimcmd.BaggageclaimCommand{
