@@ -311,18 +311,13 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	close(ready)
 
-	waitExitStatus := make(chan int, 1)
-	waitErr := make(chan error, 1)
-	processExited := make(chan struct{})
+	exited := make(chan struct{})
+	var processStatus int
+	var processErr error
 
 	go func() {
-		status, err := step.process.Wait()
-		close(processExited)
-		if err != nil {
-			waitErr <- err
-		} else {
-			waitExitStatus <- status
-		}
+		processStatus, processErr = step.process.Wait()
+		close(exited)
 	}()
 
 	select {
@@ -338,31 +333,32 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			select {
 			case <-timer.C():
 				step.process.Signal(garden.SignalKill)
-			case <-processExited:
+			case <-exited:
 				break OUT
 			}
 		}
 
 		return ErrInterrupted
 
-	case status := <-waitExitStatus:
+	case <-exited:
+		if processErr != nil {
+			return processErr
+		}
+
 		step.registerSource(config)
 
-		step.exitStatus = status
+		step.exitStatus = processStatus
 
-		statusValue := fmt.Sprintf("%d", status)
+		statusValue := fmt.Sprintf("%d", processStatus)
 
 		err := step.container.SetProperty(taskExitStatusPropertyName, statusValue)
 		if err != nil {
 			return err
 		}
 
-		step.delegate.Finished(ExitStatus(status))
+		step.delegate.Finished(ExitStatus(processStatus))
 
 		return nil
-
-	case err := <-waitErr:
-		return err
 	}
 }
 
