@@ -44,3 +44,7 @@ func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger, platform string) (a
 
 	return worker, gardenServerRunner{logger, server}, nil
 }
+
+func (cmd *WorkerCommand) bindAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.BindIP.IP(), cmd.BindPort)
+}
