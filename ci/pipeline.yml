@@ -44,14 +44,11 @@ jobs:
   - task: make-up-final-version
     config:
       platform: linux
-
       image_resource:
         type: docker-image
         source: {repository: busybox}
-
       outputs:
       - name: final-version
-
       run:
         path: sh
         args: [-c, 'date +%s > final-version/version']
@@ -76,3 +73,23 @@ jobs:
       tag: release/tag
       body: release/body
       globs: [release/artifacts/*]
+
+- name: bin-testflight
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: bin
+      passed: [build]
+      trigger: true
+    - get: concourse
+      passed: [build]
+      trigger: true
+    - get: linux-binary
+      resource: bin-releases
+      passed: [build]
+      trigger: true
+  - task: no-auth
+    file: bin/ci/testflight.yml
+    privileged: true
+    timeout: 1h
