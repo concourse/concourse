@@ -33,6 +33,7 @@ resources:
 
 jobs:
 - name: build
+  public: true
   serial: true
   plan:
   - aggregate:
