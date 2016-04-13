@@ -338,13 +338,14 @@ dance:
 					defer cowVolume.Release(nil)
 
 					volumeHandles = append(volumeHandles, cowVolume.Handle())
-					volumeMountPaths[cowVolume] = cowVolume.Path()
 
 					rootFSURL := url.URL{
 						Scheme: RawRootFSScheme,
 						Path:   cowVolume.Path(),
 					}
+
 					gardenSpec.RootFSPath = rootFSURL.String()
+
 					break dance
 				}
 			}

@@ -1813,13 +1813,13 @@ var _ = Describe("Worker", func() {
 					Expect(concourseVolumes).To(ContainElement("cow-vol"))
 				})
 
-				It("adds the cow volume mount to the garden spec properties", func() {
+				It("does not add the cow volume mount to the garden spec properties", func() {
 					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
 					volumeMountProperties := map[string]string{}
 					err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volume-mounts"]), &volumeMountProperties)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(volumeMountProperties["cow-vol"]).To(Equal("cow-vol-path"))
+					Expect(volumeMountProperties).NotTo(HaveKey("cow-vol"))
 				})
 
 				It("uses the path of the cow volume as the rootfs", func() {
