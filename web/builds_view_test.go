@@ -37,7 +37,10 @@ var _ = Describe("BuildsView", func() {
 				}
 			}
 
-			originGitServer = gitserver.Start(gitServerRootfs, gclient.New(gconn.NewWithLogger("tcp", worker.GardenAddr, gLog)))
+			gardenClient := gclient.New(gconn.NewWithLogger("tcp", worker.GardenAddr, gLog))
+			Eventually(gardenClient.Ping).Should(Succeed())
+
+			originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
 			originGitServer.CommitResource()
 
 			_, _, _, err = client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
