@@ -4,7 +4,7 @@ resources:
   type: git
   source:
     uri: https://github.com/concourse/concourse
-    branch: develop
+    branch: guardian
 
 - name: guardian-release
   type: git
@@ -27,7 +27,7 @@ resources:
 - name: bin-releases
   type: github-release
   source:
-    user: concourse
+    user: vito
     repository: bin
     access_token: {{release-token}}
 
