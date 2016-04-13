@@ -16,8 +16,8 @@ cp /opt/static-assets/btrfs /opt/static-assets/mkfs.btrfs $LINUX_ASSETS/btrfs
 cp -a /opt/static-assets/iptables $LINUX_ASSETS/iptables
 
 # go-bindata does weird stuff with symlinks. we only care about iptables anyway
-rm /opt/static-assets/iptables/sbin/*
-rm -r /opt/static-assets/iptables/bin
+rm $LINUX_ASSETS/iptables/sbin/*
+rm -r $LINUX_ASSETS/iptables/bin
 cp -aL /opt/static-assets/iptables/sbin/iptables $LINUX_ASSETS/iptables/sbin/iptables
 
 pushd guardian-release/
