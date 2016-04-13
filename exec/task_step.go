@@ -15,11 +15,13 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
 
 const taskProcessPropertyName = "concourse:task-process"
 const taskExitStatusPropertyName = "concourse:exit-status"
+const sigTermWaitTime = 10 * time.Second
 
 // MissingInputsError is returned when any of the task's required inputs are
 // missing.
@@ -50,8 +52,8 @@ type TaskStep struct {
 	containerFailureTTL time.Duration
 	inputMapping        map[string]string
 	outputMapping       map[string]string
-
-	repo *SourceRepository
+	clock               clock.Clock
+	repo                *SourceRepository
 
 	container worker.Container
 	process   garden.Process
@@ -75,6 +77,7 @@ func newTaskStep(
 	containerFailureTTL time.Duration,
 	inputMapping map[string]string,
 	outputMapping map[string]string,
+	clock clock.Clock,
 ) TaskStep {
 	return TaskStep{
 		logger:              logger,
@@ -92,6 +95,7 @@ func newTaskStep(
 		containerFailureTTL: containerFailureTTL,
 		inputMapping:        inputMapping,
 		outputMapping:       outputMapping,
+		clock:               clock,
 	}
 }
 
@@ -309,8 +313,11 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	waitExitStatus := make(chan int, 1)
 	waitErr := make(chan error, 1)
+	processExited := make(chan struct{})
+
 	go func() {
 		status, err := step.process.Wait()
+		close(processExited)
 		if err != nil {
 			waitErr <- err
 		} else {
@@ -322,7 +329,20 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	case <-signals:
 		step.registerSource(config)
 
-		step.container.Stop(false)
+		go step.process.Signal(garden.SignalTerminate)
+
+		timer := step.clock.NewTimer(sigTermWaitTime)
+
+	OUT:
+		for {
+			select {
+			case <-timer.C():
+				step.process.Signal(garden.SignalKill)
+			case <-processExited:
+				break OUT
+			}
+		}
+
 		return ErrInterrupted
 
 	case status := <-waitExitStatus:

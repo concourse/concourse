@@ -105,6 +105,8 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		"task",
 	)
 
+	clock := clock.NewClock()
+
 	return build.factory.Task(
 		logger,
 		exec.SourceName(plan.Task.Name),
@@ -117,6 +119,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		plan.Task.ResourceTypes,
 		plan.Task.InputMapping,
 		plan.Task.OutputMapping,
+		clock,
 	)
 }
 
