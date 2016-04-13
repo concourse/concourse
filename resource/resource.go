@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
+	"github.com/pivotal-golang/clock"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -65,15 +66,17 @@ func ResourcesDir(suffix string) string {
 type resource struct {
 	container worker.Container
 	typ       ResourceType
+	clock     clock.Clock
 
 	releaseOnce sync.Once
 
 	ScriptFailure bool
 }
 
-func NewResource(container worker.Container) Resource {
+func NewResource(container worker.Container, clock clock.Clock) Resource {
 	return &resource{
 		container: container,
+		clock:     clock,
 	}
 }
 

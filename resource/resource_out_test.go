@@ -162,15 +162,49 @@ var _ = Describe("Resource Out", func() {
 				}
 			})
 
-			It("stops the container", func() {
+			It("sends garden terminate signal to process", func() {
 				outProcess.Signal(os.Interrupt)
 
-				Eventually(fakeContainer.StopCallCount).Should(Equal(1))
-
-				kill := fakeContainer.StopArgsForCall(0)
-				Expect(kill).To(BeFalse())
+				Eventually(outScriptProcess.SignalCallCount).Should(Equal(1))
+				Expect(outScriptProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
 
 				close(waited)
+			})
+
+			Context("when the process terminates before the timeout", func() {
+				BeforeEach(func() {
+					outScriptProcess.SignalStub = func(garden.Signal) error {
+						fakeClock.IncrementBySeconds(8)
+						close(waited)
+						return nil
+					}
+				})
+
+				It("does not send garden.SignalKill", func() {
+					outProcess.Signal(os.Interrupt)
+					Eventually(outScriptProcess.SignalCallCount).Should(Equal(1))
+					Consistently(outScriptProcess.SignalCallCount).Should(Equal(1))
+				})
+			})
+
+			Context("when the process does not terminate before the timeout", func() {
+				BeforeEach(func() {
+					outScriptProcess.SignalStub = func(sig garden.Signal) error {
+						if sig == garden.SignalTerminate {
+							fakeClock.IncrementBySeconds(12)
+						}
+						return nil
+					}
+				})
+
+				It("sends garden.SignalKill", func() {
+					outProcess.Signal(os.Interrupt)
+
+					Eventually(outScriptProcess.SignalCallCount, "6s").Should(Equal(2))
+					Expect(outScriptProcess.SignalArgsForCall(1)).To(Equal(garden.SignalKill))
+
+					close(waited)
+				})
 			})
 		})
 	}

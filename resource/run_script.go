@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/tedsuo/ifrit"
@@ -121,8 +122,12 @@ func (resource *resource) runScript(
 		statusCh := make(chan int, 1)
 		errCh := make(chan error, 1)
 
+		processExited := make(chan struct{})
+
 		go func() {
 			status, err := process.Wait()
+			close(processExited)
+
 			if err != nil {
 				errCh <- err
 			} else {
@@ -155,7 +160,20 @@ func (resource *resource) runScript(
 			return err
 
 		case <-signals:
-			resource.container.Stop(false)
+			go process.Signal(garden.SignalTerminate)
+
+			timer := resource.clock.NewTimer(10 * time.Second)
+
+		OUT:
+			for {
+				select {
+				case <-timer.C():
+					process.Signal(garden.SignalKill)
+				case <-processExited:
+					break OUT
+				}
+			}
+
 			return ErrAborted
 		}
 	})
