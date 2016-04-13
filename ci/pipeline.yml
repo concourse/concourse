@@ -68,6 +68,7 @@ jobs:
       output_mapping: {binary: windows-binary}
   - task: build-release
     file: bin/ci/build-release.yml
+    input_mapping: {version: final-version}
   - put: bin-releases
     params:
       name: release/name
