@@ -90,7 +90,7 @@ var _ = Describe("PipelinePausing", func() {
 
 			By("unpausing the pipeline")
 			Expect(page.FindByXPath(spanXPath).Click()).To(Succeed())
-			Expect(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'disabled')]")).To(BeFound())
+			Eventually(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'disabled')]")).Should(BeFound())
 
 			Consistently(page.Find(".js-groups.paused")).ShouldNot(BeFound())
 
