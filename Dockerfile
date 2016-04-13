@@ -16,6 +16,16 @@ RUN cd /tmp && curl https://ftp.gnu.org/gnu/tar/tar-1.28.tar.gz | tar zxf - && \
       cd .. && \
       rm -rf tar-1.28
 
+# pre-build `iptables`
+RUN cd /tmp && curl http://www.netfilter.org/projects/iptables/files/iptables-1.4.21.tar.bz2 | tar jxf - && \
+      cd iptables-1.4.21 && \
+        mkdir /opt/static-assets/iptables && \
+        ./configure --prefix=/opt/static-assets/iptables --enable-static --disable-shared && \
+        make && \
+        make install && \
+      cd .. && \
+      rm -rf iptables-1.4.21
+
 # pre-build btrfs-progs
 RUN apt-get update && \
       apt-get -y install liblzo2-dev libblkid-dev e2fslibs-dev pkg-config libz-dev && \
