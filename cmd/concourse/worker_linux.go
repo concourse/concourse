@@ -8,15 +8,32 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/cloudfoundry-incubator/guardian/guardiancmd"
 	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/concourse/baggageclaim/fs"
+	"github.com/concourse/bin/bindata"
+	"github.com/jessevdk/go-flags"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
-	"github.com/concourse/bin/bindata"
 )
 
 const btrfsFSType = 0x9123683e
+
+type GardenBackend guardiancmd.GuardianCommand
+
+func (cmd WorkerCommand) lessenRequirements(command *flags.Command) {
+	command.FindOptionByLongName("garden-properties").Required = false
+	command.FindOptionByLongName("garden-depot").Required = false
+	command.FindOptionByLongName("garden-graph").Required = false
+	command.FindOptionByLongName("garden-runc-bin").Required = false
+	command.FindOptionByLongName("garden-dadoo-bin").Required = false
+	command.FindOptionByLongName("garden-init-bin").Required = false
+	command.FindOptionByLongName("garden-iodaemon-bin").Required = false
+	command.FindOptionByLongName("garden-kawasaki-bin").Required = false
+	command.FindOptionByLongName("garden-nstar-bin").Required = false
+	command.FindOptionByLongName("garden-tar-bin").Required = false
+}
 
 func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.Worker, ifrit.Runner, error) {
 	err := cmd.checkRoot()
@@ -37,12 +54,12 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	gardenBin := filepath.Join(linux, "garden-linux")
-	binDir := filepath.Join(linux, "bin")
+	busyboxDir, err := cmd.extractBusybox(linux)
+	if err != nil {
+		return atc.Worker{}, nil, err
+	}
+
 	depotDir := filepath.Join(linux, "depot")
-	graphDir := filepath.Join(linux, "graph")
-	snapshotsDir := filepath.Join(linux, "snapshots")
-	stateDir := filepath.Join(linux, "state")
 
 	// must be readable by other users so unprivileged containers can run their
 	// own `initc' process
@@ -51,30 +68,21 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	err = os.MkdirAll(graphDir, 0700)
-	if err != nil {
-		return atc.Worker{}, nil, err
-	}
+	cmd.Garden.Server.BindIP = guardiancmd.IPFlag(cmd.BindIP)
+	cmd.Garden.Server.PropertiesPath = filepath.Join(linux, "container-state")
 
-	busyboxDir, err := cmd.extractBusybox(linux)
+	cmd.Garden.Containers.Dir = guardiancmd.DirFlag(depotDir)
+	cmd.Garden.Containers.DefaultRootFSDir = guardiancmd.DirFlag(busyboxDir)
 
-	gardenArgs := []string{
-		"-listenNetwork", "tcp",
-		"-listenAddr", cmd.bindAddr(),
-		"-bin", binDir,
-		"-depot", depotDir,
-		"-graph", graphDir,
-		"-snapshots", snapshotsDir,
-		"-stateDir", stateDir,
-		"-rootfs", busyboxDir,
-		"-allowHostAccess",
-	}
+	cmd.Garden.Bin.Runc = filepath.Join(linux, "bin", "runc")
+	cmd.Garden.Bin.Dadoo = guardiancmd.FileFlag(filepath.Join(linux, "bin", "dadoo"))
+	cmd.Garden.Bin.Init = guardiancmd.FileFlag(filepath.Join(linux, "bin", "init"))
+	cmd.Garden.Bin.IODaemon = guardiancmd.FileFlag(filepath.Join(linux, "bin", "iodaemon"))
+	cmd.Garden.Bin.Kawasaki = guardiancmd.FileFlag(filepath.Join(linux, "bin", "kawasaki"))
+	cmd.Garden.Bin.NSTar = guardiancmd.FileFlag(filepath.Join(linux, "bin", "nstar"))
+	cmd.Garden.Bin.Tar = guardiancmd.FileFlag(filepath.Join(linux, "bin", "tar"))
 
-	gardenArgs = append(gardenArgs, args...)
-
-	gardenCmd := exec.Command(gardenBin, gardenArgs...)
-	gardenCmd.Stdout = os.Stdout
-	gardenCmd.Stderr = os.Stderr
+	cmd.Garden.Network.AllowHostAccess = true
 
 	worker := atc.Worker{
 		Platform: "linux",
@@ -88,7 +96,8 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	return worker, &cmd.Guardian, nil
+	runner := guardiancmd.GuardianCommand(cmd.Garden)
+	return worker, &runner, nil
 }
 
 func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
@@ -123,7 +132,7 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 	}
 
 	bc := &baggageclaimcmd.BaggageclaimCommand{
-		BindIP:   baggageclaimcmd.IPFlag(cmd.Baggageclaim.BindIP),
+		BindIP:   baggageclaimcmd.IPFlag(cmd.Baggageclaim.BindIP.IP().String()),
 		BindPort: cmd.Baggageclaim.BindPort,
 
 		VolumesDir: baggageclaimcmd.DirFlag(volumesDir),

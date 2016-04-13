@@ -26,6 +26,8 @@ type WorkerCommand struct {
 
 	PeerIP IPFlag `long:"peer-ip" description:"IP used to reach this worker from the ATC nodes. If omitted, the worker will be forwarded through the SSH connection to the TSA."`
 
+	Garden GardenBackend `group:"Garden Configuration" namespace:"garden"`
+
 	TSA BeaconConfig `group:"TSA Configuration" namespace:"tsa"`
 
 	Baggageclaim struct {
@@ -78,10 +80,6 @@ func (cmd *WorkerCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(runner).Wait()
 }
 
-func (cmd *WorkerCommand) bindAddr() string {
-	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
-}
-
 func (cmd *WorkerCommand) workerName() (string, error) {
 	if cmd.Name != "" {
 		return cmd.Name, nil
@@ -97,13 +95,13 @@ func (cmd *WorkerCommand) beaconRunner(logger lager.Logger, worker atc.Worker) i
 	}
 
 	var beaconRunner ifrit.RunFunc
-	if cmd.PeerIP != "" {
-		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP, cmd.BindPort)
-		worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP, cmd.Baggageclaim.BindPort)
+	if cmd.PeerIP != nil {
+		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.PeerIP.IP(), cmd.BindPort)
+		worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.PeerIP.IP(), cmd.Baggageclaim.BindPort)
 		beaconRunner = beacon.Register
 	} else {
-		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
-		worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.Baggageclaim.BindIP, cmd.Baggageclaim.BindPort)
+		worker.GardenAddr = fmt.Sprintf("%s:%d", cmd.BindIP.IP(), cmd.BindPort)
+		worker.BaggageclaimURL = fmt.Sprintf("http://%s:%d", cmd.Baggageclaim.BindIP.IP(), cmd.Baggageclaim.BindPort)
 		beaconRunner = beacon.Forward
 	}
 

@@ -13,7 +13,7 @@ cp /opt/static-assets/tar $LINUX_ASSETS/bin/tar
 mkdir -p $LINUX_ASSETS/btrfs
 cp /opt/static-assets/btrfs /opt/static-assets/mkfs.btrfs $LINUX_ASSETS/btrfs
 
-pushd garden-linux-release/
+pushd guardian-release/
   # workaround 'mv /root/.tmp/... /tmp/...: invalid cross-device link'
   HOME=$PWD bosh sync-blobs
 
@@ -24,11 +24,20 @@ pushd garden-linux-release/
 
     export GOPATH=$PWD
 
-    cd ./src/github.com/cloudfoundry-incubator/garden-linux
-    make
-    cp -a out/garden-linux $LINUX_ASSETS/garden-linux
-    cp -a linux_backend/bin/* $LINUX_ASSETS/bin/
-    cp -a linux_backend/skeleton $LINUX_ASSETS/skeleton
+    go install github.com/cloudfoundry-incubator/guardian/cmd/dadoo
+    go install github.com/cloudfoundry-incubator/guardian/cmd/init
+    go install github.com/cloudfoundry-incubator/guardian/cmd/kawasaki
+    go install github.com/cloudfoundry-incubator/guardian/rundmc/iodaemon/cmd/iodaemon
+
+    GOPATH=$PWD/src/github.com/opencontainers/runc/Godeps/_workspace:$GOPATH \
+      go install github.com/opencontainers/runc
+
+    pushd src/github.com/cloudfoundry-incubator/guardian/rundmc/nstar
+      make
+      mv nstar $LINUX_ASSETS/bin
+    popd
+
+    cp bin/{iodaemon,kawasaki,init,runc,dadoo} $LINUX_ASSETS/bin
   )
 popd
 

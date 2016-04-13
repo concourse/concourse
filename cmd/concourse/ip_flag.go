@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-type IPFlag string
+type IPFlag net.IP
 
 func (f *IPFlag) UnmarshalFlag(value string) error {
 	parsedIP := net.ParseIP(value)
@@ -13,7 +13,11 @@ func (f *IPFlag) UnmarshalFlag(value string) error {
 		return fmt.Errorf("invalid IP: '%s'", value)
 	}
 
-	*f = IPFlag(parsedIP.String())
+	*f = IPFlag(parsedIP)
 
 	return nil
+}
+
+func (f IPFlag) IP() net.IP {
+	return net.IP(f)
 }

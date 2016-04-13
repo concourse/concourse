@@ -6,11 +6,11 @@ resources:
     uri: https://github.com/concourse/concourse
     branch: develop
 
-- name: garden-linux-release
+- name: guardian-release
   type: git
   source:
-    uri: https://github.com/cloudfoundry-incubator/garden-linux-release
-    branch: bump-and-force-aufs
+    uri: https://github.com/vito/guardian-release
+    branch: concourse
 
 - name: bin
   type: git
@@ -37,7 +37,7 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-    - get: garden-linux-release
+    - get: guardian-release
     - get: bin
     - get: houdini
   - aggregate:

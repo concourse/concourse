@@ -13,6 +13,8 @@ func main() {
 	parser := flags.NewParser(&cmd, flags.HelpFlag|flags.PassDoubleDash)
 	parser.NamespaceDelimiter = "-"
 
+	cmd.lessenRequirements(parser)
+
 	_, err := parser.Parse()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

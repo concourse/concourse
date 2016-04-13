@@ -9,7 +9,7 @@ inputs:
 - name: bin
   path: gopath/src/github.com/concourse/bin
 - name: concourse
-- name: garden-linux-release
+- name: guardian-release
 - name: cli-artifacts
 - name: final-version
 
