@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -708,6 +709,23 @@ var _ = Describe("Containers API", func() {
 
 							_, io := fakeContainer.RunArgsForCall(0)
 							Expect(bufio.NewReader(io.Stdin).ReadBytes('\n')).To(Equal([]byte("some stdin\n")))
+						})
+					})
+
+					Context("when stdin is closed via the API", func() {
+						JustBeforeEach(func() {
+							err := conn.WriteJSON(atc.HijackInput{
+								Closed: true,
+							})
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("closes the process's stdin", func() {
+							Eventually(fakeContainer.RunCallCount).Should(Equal(1))
+
+							_, ioConfig := fakeContainer.RunArgsForCall(0)
+							_, err := ioConfig.Stdin.Read(make([]byte, 10))
+							Expect(err).To(Equal(io.EOF))
 						})
 					})
 

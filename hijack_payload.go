@@ -22,6 +22,7 @@ type HijackWindowSize struct {
 }
 
 type HijackInput struct {
+	Closed  bool           `json:"closed,omitempty"`
 	Stdin   []byte         `json:"stdin,omitempty"`
 	TTYSpec *HijackTTYSpec `json:"tty,omitempty"`
 }

@@ -180,7 +180,9 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 	for {
 		select {
 		case input := <-inputs:
-			if input.TTYSpec != nil {
+			if input.Closed {
+				stdinW.Close()
+			} else if input.TTYSpec != nil {
 				err := process.SetTTY(garden.TTYSpec{
 					WindowSize: &garden.WindowSize{
 						Columns: input.TTYSpec.WindowSize.Columns,
