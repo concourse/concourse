@@ -69,7 +69,10 @@ func (h *Hijacker) Hijack(handle string, spec atc.HijackProcessSpec, pio Process
 	finished := make(chan struct{}, 1)
 
 	go h.monitorTTYSize(inputs, finished)
-	go io.Copy(&stdinWriter{inputs}, pio.In)
+	go func() {
+		io.Copy(&stdinWriter{inputs}, pio.In)
+		inputs <- atc.HijackInput{Closed: true}
+	}()
 	go h.handleInput(conn, inputs, finished)
 
 	exitStatus := h.handleOutput(conn, pio)

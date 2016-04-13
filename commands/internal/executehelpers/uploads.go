@@ -30,7 +30,7 @@ func Upload(client concourse.Client, input Input, excludeIgnored bool) {
 
 	archive, err := tarStreamFrom(path, files)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "could create tar stream:", err)
+		fmt.Fprintln(os.Stderr, "could not create tar stream:", err)
 		return
 	}
 

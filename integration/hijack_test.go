@@ -83,6 +83,15 @@ var _ = Describe("Hijacking", func() {
 					return
 				}
 
+				var closePayload atc.HijackInput
+
+				err = conn.ReadJSON(&closePayload)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(closePayload).To(Equal(atc.HijackInput{
+					Closed: true,
+				}))
+
 				exitStatus := 123
 				err = conn.WriteJSON(atc.HijackOutput{
 					ExitStatus: &exitStatus,
