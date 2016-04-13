@@ -349,9 +349,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 		step.exitStatus = processStatus
 
-		statusValue := fmt.Sprintf("%d", processStatus)
-
-		err := step.container.SetProperty(taskExitStatusPropertyName, statusValue)
+		err := step.container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", processStatus))
 		if err != nil {
 			return err
 		}
