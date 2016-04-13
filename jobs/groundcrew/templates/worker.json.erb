@@ -53,7 +53,7 @@
     end
   end
 
-  {
+  payload = {
     "name" => "HOSTNAME_REPLACE_ME",
 
     "platform" => p("platform"),
@@ -66,5 +66,19 @@
       p("resource_types"),
       p("additional_resource_types")
     ),
-  }.to_json
+  }
+
+  if_p("http_proxy_url") do |http_proxy_url|
+    payload["http_proxy_url"] = http_proxy_url
+  end
+
+  if_p("https_proxy_url") do |https_proxy_url|
+    payload["https_proxy_url"] = https_proxy_url
+  end
+
+  if_p("no_proxy") do |no_proxy|
+    payload["no_proxy"] = no_proxy.join(",")
+  end
+
+  payload.to_json
 %>

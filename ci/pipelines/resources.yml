@@ -716,7 +716,7 @@ resources:
   type: s3
   source:
     bucket: go-cli
-    regexp: releases/v(.*)/cf-linux-amd64.tgz
+    regexp: releases/v([\d\.]+)/cf-cli_.*_linux_x86-64.tgz
 
 - name: concourse
   type: git
