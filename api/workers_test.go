@@ -39,6 +39,9 @@ var _ = Describe("Workers API", func() {
 							WorkerInfo: db.WorkerInfo{
 								GardenAddr:       "1.2.3.4:7777",
 								BaggageclaimURL:  "5.6.7.8:7788",
+								HTTPProxyURL:     "http://some-proxy.com",
+								HTTPSProxyURL:    "https://some-proxy.com",
+								NoProxy:          "no,proxy",
 								ActiveContainers: 1,
 								ResourceTypes: []atc.WorkerResourceType{
 									{Type: "some-resource", Image: "some-resource-image"},
@@ -74,6 +77,9 @@ var _ = Describe("Workers API", func() {
 						{
 							GardenAddr:       "1.2.3.4:7777",
 							BaggageclaimURL:  "5.6.7.8:7788",
+							HTTPProxyURL:     "http://some-proxy.com",
+							HTTPSProxyURL:    "https://some-proxy.com",
+							NoProxy:          "no,proxy",
 							ActiveContainers: 1,
 							ResourceTypes: []atc.WorkerResourceType{
 								{Type: "some-resource", Image: "some-resource-image"},
