@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-golang/clock/fakeclock"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
@@ -36,6 +37,7 @@ var _ = Describe("GardenFactory", func() {
 
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
+		fakeClock *fakeclock.FakeClock
 
 		sourceName SourceName = "some-source-name"
 
@@ -102,6 +104,7 @@ var _ = Describe("GardenFactory", func() {
 
 			inputMapping = nil
 			outputMapping = nil
+			fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 		})
 
 		JustBeforeEach(func() {
@@ -117,6 +120,7 @@ var _ = Describe("GardenFactory", func() {
 				resourceTypes,
 				inputMapping,
 				outputMapping,
+				fakeClock,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -1054,8 +1058,9 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							Context("when the process is interrupted", func() {
+								var stopped chan struct{}
 								BeforeEach(func() {
-									stopped := make(chan struct{})
+									stopped = make(chan struct{})
 
 									fakeProcess.WaitStub = func() (int, error) {
 										defer GinkgoRecover()
@@ -1064,18 +1069,49 @@ var _ = Describe("GardenFactory", func() {
 										return 128 + 15, nil
 									}
 
-									fakeContainer.StopStub = func(bool) error {
-										defer GinkgoRecover()
-
-										close(stopped)
+									fakeProcess.SignalStub = func(signal garden.Signal) error {
+										switch {
+										case signal == garden.SignalTerminate:
+											fakeClock.IncrementBySeconds(8)
+											close(stopped)
+										}
 										return nil
 									}
 								})
 
-								It("stops the container", func() {
+								It("signals the process in the container with garden.SignalTerminate", func() {
 									process.Signal(os.Interrupt)
 									Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
-									Expect(fakeContainer.StopCallCount()).To(Equal(1))
+									Expect(fakeProcess.SignalCallCount()).To(Equal(1))
+									Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
+								})
+
+								It("will not signal the process in the container with garden.SignalKill", func() {
+									process.Signal(os.Interrupt)
+									Eventually(process.Wait(), 12*time.Second).Should(Receive(Equal(ErrInterrupted)))
+									Eventually(fakeProcess.SignalCallCount()).Should(Equal(1))
+									Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
+								})
+
+								Context("when the process doesn't exit after being signaled", func() {
+									BeforeEach(func() {
+										fakeProcess.SignalStub = func(signal garden.Signal) error {
+											switch {
+											case signal == garden.SignalTerminate:
+												fakeClock.IncrementBySeconds(12)
+											case signal == garden.SignalKill:
+												close(stopped)
+											}
+											return nil
+										}
+									})
+
+									It("signals the process in the container with garden.SignalKill after 10 seconds", func() {
+										process.Signal(os.Interrupt)
+										Eventually(process.Wait(), 12*time.Second).Should(Receive(Equal(ErrInterrupted)))
+										Eventually(fakeProcess.SignalCallCount()).Should(Equal(2))
+										Expect(fakeProcess.SignalArgsForCall(1)).To(Equal(garden.SignalKill))
+									})
 								})
 
 								It("registers the outputs as sources", func() {
@@ -1422,8 +1458,9 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						Context("when the process is interrupted", func() {
+							var stopped chan struct{}
 							BeforeEach(func() {
-								stopped := make(chan struct{})
+								stopped = make(chan struct{})
 
 								fakeProcess.WaitStub = func() (int, error) {
 									defer GinkgoRecover()
@@ -1432,18 +1469,49 @@ var _ = Describe("GardenFactory", func() {
 									return 128 + 15, nil
 								}
 
-								fakeContainer.StopStub = func(bool) error {
-									defer GinkgoRecover()
-
-									close(stopped)
+								fakeProcess.SignalStub = func(signal garden.Signal) error {
+									switch {
+									case signal == garden.SignalTerminate:
+										fakeClock.IncrementBySeconds(8)
+										close(stopped)
+									}
 									return nil
 								}
 							})
 
-							It("stops the container", func() {
+							It("signals the process in the container with garden.SignalTerminate", func() {
 								process.Signal(os.Interrupt)
 								Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
-								Expect(fakeContainer.StopCallCount()).To(Equal(1))
+								Expect(fakeProcess.SignalCallCount()).To(Equal(1))
+								Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
+							})
+
+							It("will not signal the process in the container with garden.SignalKill", func() {
+								process.Signal(os.Interrupt)
+								Eventually(process.Wait(), 12*time.Second).Should(Receive(Equal(ErrInterrupted)))
+								Eventually(fakeProcess.SignalCallCount()).Should(Equal(1))
+								Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
+							})
+
+							Context("when the process doesn't exit after being signaled", func() {
+								BeforeEach(func() {
+									fakeProcess.SignalStub = func(signal garden.Signal) error {
+										switch {
+										case signal == garden.SignalTerminate:
+											fakeClock.IncrementBySeconds(12)
+										case signal == garden.SignalKill:
+											close(stopped)
+										}
+										return nil
+									}
+								})
+
+								It("signals the process in the container with garden.SignalKill after 10 seconds", func() {
+									process.Signal(os.Interrupt)
+									Eventually(process.Wait(), 12*time.Second).Should(Receive(Equal(ErrInterrupted)))
+									Eventually(fakeProcess.SignalCallCount()).Should(Equal(2))
+									Expect(fakeProcess.SignalArgsForCall(1)).To(Equal(garden.SignalKill))
+								})
 							})
 
 							It("doesn't register a source", func() {

@@ -15,11 +15,13 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
 
 const taskProcessPropertyName = "concourse:task-process"
 const taskExitStatusPropertyName = "concourse:exit-status"
+const sigTermWaitTime = 10 * time.Second
 
 // MissingInputsError is returned when any of the task's required inputs are
 // missing.
@@ -50,8 +52,8 @@ type TaskStep struct {
 	containerFailureTTL time.Duration
 	inputMapping        map[string]string
 	outputMapping       map[string]string
-
-	repo *SourceRepository
+	clock               clock.Clock
+	repo                *SourceRepository
 
 	container worker.Container
 	process   garden.Process
@@ -75,6 +77,7 @@ func newTaskStep(
 	containerFailureTTL time.Duration,
 	inputMapping map[string]string,
 	outputMapping map[string]string,
+	clock clock.Clock,
 ) TaskStep {
 	return TaskStep{
 		logger:              logger,
@@ -92,6 +95,7 @@ func newTaskStep(
 		containerFailureTTL: containerFailureTTL,
 		inputMapping:        inputMapping,
 		outputMapping:       outputMapping,
+		clock:               clock,
 	}
 }
 
@@ -201,70 +205,8 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return err
 		}
 
-		chosenWorker, inputMounts, inputsToStream, err := step.chooseWorkerWithMostVolumes(compatibleWorkers, config.Inputs)
-		if err != nil {
-			return err
-		}
-
-		outputMounts := []worker.VolumeMount{}
-		for _, output := range config.Outputs {
-			path := artifactsPath(output, step.artifactsRoot)
-
-			outVolume, err := chosenWorker.CreateVolume(
-				step.logger,
-				worker.VolumeSpec{
-					Strategy:   worker.OutputStrategy{Name: output.Name},
-					Privileged: bool(step.privileged),
-					TTL:        worker.VolumeTTL,
-				},
-			)
-			if err == worker.ErrNoVolumeManager {
-				break
-			}
-
-			if err != nil {
-				return err
-			}
-
-			outputMounts = append(outputMounts, worker.VolumeMount{
-				Volume:    outVolume,
-				MountPath: path,
-			})
-
-			step.logger.Debug("created-output-volume", lager.Data{"volume-Handle": outVolume.Handle()})
-		}
-
-		containerSpec := worker.TaskContainerSpec{
-			Platform:      config.Platform,
-			Tags:          step.tags,
-			Privileged:    bool(step.privileged),
-			Inputs:        inputMounts,
-			Outputs:       outputMounts,
-			ImageResource: config.ImageResource,
-			Image:         config.Image,
-		}
-
-		step.container, err = chosenWorker.CreateContainer(
-			step.logger.Session("create-container"),
-			signals,
-			step.delegate,
-			runContainerID,
-			step.metadata,
-			containerSpec,
-			step.resourceTypes,
-		)
-
-		for _, mount := range inputMounts {
-			// stop heartbeating ourselves now that container has picked up the
-			// volumes
-			mount.Volume.Release(nil)
-		}
-
-		for _, mount := range outputMounts {
-			// stop heartbeating ourselves now that container has picked up the
-			// volumes
-			mount.Volume.Release(nil)
-		}
+		var inputsToStream []inputPair
+		step.container, inputsToStream, err = step.createContainer(compatibleWorkers, config, signals)
 
 		if err != nil {
 			return err
@@ -307,43 +249,124 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	close(ready)
 
-	waitExitStatus := make(chan int, 1)
-	waitErr := make(chan error, 1)
+	exited := make(chan struct{})
+	var processStatus int
+	var processErr error
+
 	go func() {
-		status, err := step.process.Wait()
-		if err != nil {
-			waitErr <- err
-		} else {
-			waitExitStatus <- status
-		}
+		processStatus, processErr = step.process.Wait()
+		close(exited)
 	}()
 
 	select {
 	case <-signals:
 		step.registerSource(config)
 
-		step.container.Stop(false)
+		go step.process.Signal(garden.SignalTerminate)
+
+		timer := step.clock.NewTimer(sigTermWaitTime)
+
+	OUT:
+		for {
+			select {
+			case <-timer.C():
+				step.process.Signal(garden.SignalKill)
+			case <-exited:
+				break OUT
+			}
+		}
+
 		return ErrInterrupted
 
-	case status := <-waitExitStatus:
+	case <-exited:
+		if processErr != nil {
+			return processErr
+		}
+
 		step.registerSource(config)
 
-		step.exitStatus = status
+		step.exitStatus = processStatus
 
-		statusValue := fmt.Sprintf("%d", status)
-
-		err := step.container.SetProperty(taskExitStatusPropertyName, statusValue)
+		err := step.container.SetProperty(taskExitStatusPropertyName, fmt.Sprintf("%d", processStatus))
 		if err != nil {
 			return err
 		}
 
-		step.delegate.Finished(ExitStatus(status))
+		step.delegate.Finished(ExitStatus(processStatus))
 
 		return nil
-
-	case err := <-waitErr:
-		return err
 	}
+}
+
+func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config atc.TaskConfig, signals <-chan os.Signal) (worker.Container, []inputPair, error) {
+	chosenWorker, inputMounts, inputsToStream, err := step.chooseWorkerWithMostVolumes(compatibleWorkers, config.Inputs)
+	if err != nil {
+		return nil, []inputPair{}, err
+	}
+
+	outputMounts := []worker.VolumeMount{}
+	for _, output := range config.Outputs {
+		path := artifactsPath(output, step.artifactsRoot)
+
+		outVolume, err := chosenWorker.CreateVolume(
+			step.logger,
+			worker.VolumeSpec{
+				Strategy:   worker.OutputStrategy{Name: output.Name},
+				Privileged: bool(step.privileged),
+				TTL:        worker.VolumeTTL,
+			},
+		)
+		if err == worker.ErrNoVolumeManager {
+			break
+		}
+
+		if err != nil {
+			return nil, []inputPair{}, err
+		}
+
+		outputMounts = append(outputMounts, worker.VolumeMount{
+			Volume:    outVolume,
+			MountPath: path,
+		})
+
+		step.logger.Debug("created-output-volume", lager.Data{"volume-Handle": outVolume.Handle()})
+	}
+
+	containerSpec := worker.TaskContainerSpec{
+		Platform:      config.Platform,
+		Tags:          step.tags,
+		Privileged:    bool(step.privileged),
+		Inputs:        inputMounts,
+		Outputs:       outputMounts,
+		ImageResource: config.ImageResource,
+		Image:         config.Image,
+	}
+
+	runContainerID := step.containerID
+	runContainerID.Stage = db.ContainerStageRun
+	container, err := chosenWorker.CreateContainer(
+		step.logger.Session("create-container"),
+		signals,
+		step.delegate,
+		runContainerID,
+		step.metadata,
+		containerSpec,
+		step.resourceTypes,
+	)
+
+	for _, mount := range inputMounts {
+		// stop heartbeating ourselves now that container has picked up the
+		// volumes
+		mount.Volume.Release(nil)
+	}
+
+	for _, mount := range outputMounts {
+		// stop heartbeating ourselves now that container has picked up the
+		// volumes
+		mount.Volume.Release(nil)
+	}
+
+	return container, inputsToStream, err
 }
 
 func (step *TaskStep) registerSource(config atc.TaskConfig) {

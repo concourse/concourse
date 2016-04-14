@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -68,6 +69,7 @@ type Factory interface {
 		atc.ResourceTypes,
 		map[string]string,
 		map[string]string,
+		clock.Clock,
 	) StepFactory
 }
 

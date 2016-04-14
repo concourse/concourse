@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -62,7 +63,7 @@ type FakeFactory struct {
 	dependentGetReturns struct {
 		result1 exec.StepFactory
 	}
-	TaskStub        func(lager.Logger, exec.SourceName, worker.Identifier, worker.Metadata, exec.TaskDelegate, exec.Privileged, atc.Tags, exec.TaskConfigSource, atc.ResourceTypes, map[string]string, map[string]string) exec.StepFactory
+	TaskStub        func(lager.Logger, exec.SourceName, worker.Identifier, worker.Metadata, exec.TaskDelegate, exec.Privileged, atc.Tags, exec.TaskConfigSource, atc.ResourceTypes, map[string]string, map[string]string, clock.Clock) exec.StepFactory
 	taskMutex       sync.RWMutex
 	taskArgsForCall []struct {
 		arg1  lager.Logger
@@ -76,6 +77,7 @@ type FakeFactory struct {
 		arg9  atc.ResourceTypes
 		arg10 map[string]string
 		arg11 map[string]string
+		arg12 clock.Clock
 	}
 	taskReturns struct {
 		result1 exec.StepFactory
@@ -205,7 +207,7 @@ func (fake *FakeFactory) DependentGetReturns(result1 exec.StepFactory) {
 	}{result1}
 }
 
-func (fake *FakeFactory) Task(arg1 lager.Logger, arg2 exec.SourceName, arg3 worker.Identifier, arg4 worker.Metadata, arg5 exec.TaskDelegate, arg6 exec.Privileged, arg7 atc.Tags, arg8 exec.TaskConfigSource, arg9 atc.ResourceTypes, arg10 map[string]string, arg11 map[string]string) exec.StepFactory {
+func (fake *FakeFactory) Task(arg1 lager.Logger, arg2 exec.SourceName, arg3 worker.Identifier, arg4 worker.Metadata, arg5 exec.TaskDelegate, arg6 exec.Privileged, arg7 atc.Tags, arg8 exec.TaskConfigSource, arg9 atc.ResourceTypes, arg10 map[string]string, arg11 map[string]string, arg12 clock.Clock) exec.StepFactory {
 	fake.taskMutex.Lock()
 	fake.taskArgsForCall = append(fake.taskArgsForCall, struct {
 		arg1  lager.Logger
@@ -219,10 +221,11 @@ func (fake *FakeFactory) Task(arg1 lager.Logger, arg2 exec.SourceName, arg3 work
 		arg9  atc.ResourceTypes
 		arg10 map[string]string
 		arg11 map[string]string
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11})
+		arg12 clock.Clock
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12})
 	fake.taskMutex.Unlock()
 	if fake.TaskStub != nil {
-		return fake.TaskStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)
+		return fake.TaskStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12)
 	} else {
 		return fake.taskReturns.result1
 	}
@@ -234,10 +237,10 @@ func (fake *FakeFactory) TaskCallCount() int {
 	return len(fake.taskArgsForCall)
 }
 
-func (fake *FakeFactory) TaskArgsForCall(i int) (lager.Logger, exec.SourceName, worker.Identifier, worker.Metadata, exec.TaskDelegate, exec.Privileged, atc.Tags, exec.TaskConfigSource, atc.ResourceTypes, map[string]string, map[string]string) {
+func (fake *FakeFactory) TaskArgsForCall(i int) (lager.Logger, exec.SourceName, worker.Identifier, worker.Metadata, exec.TaskDelegate, exec.Privileged, atc.Tags, exec.TaskConfigSource, atc.ResourceTypes, map[string]string, map[string]string, clock.Clock) {
 	fake.taskMutex.RLock()
 	defer fake.taskMutex.RUnlock()
-	return fake.taskArgsForCall[i].arg1, fake.taskArgsForCall[i].arg2, fake.taskArgsForCall[i].arg3, fake.taskArgsForCall[i].arg4, fake.taskArgsForCall[i].arg5, fake.taskArgsForCall[i].arg6, fake.taskArgsForCall[i].arg7, fake.taskArgsForCall[i].arg8, fake.taskArgsForCall[i].arg9, fake.taskArgsForCall[i].arg10, fake.taskArgsForCall[i].arg11
+	return fake.taskArgsForCall[i].arg1, fake.taskArgsForCall[i].arg2, fake.taskArgsForCall[i].arg3, fake.taskArgsForCall[i].arg4, fake.taskArgsForCall[i].arg5, fake.taskArgsForCall[i].arg6, fake.taskArgsForCall[i].arg7, fake.taskArgsForCall[i].arg8, fake.taskArgsForCall[i].arg9, fake.taskArgsForCall[i].arg10, fake.taskArgsForCall[i].arg11, fake.taskArgsForCall[i].arg12
 }
 
 func (fake *FakeFactory) TaskReturns(result1 exec.StepFactory) {

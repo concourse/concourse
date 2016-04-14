@@ -9,6 +9,9 @@ func Worker(workerInfo db.WorkerInfo) atc.Worker {
 	return atc.Worker{
 		GardenAddr:       workerInfo.GardenAddr,
 		BaggageclaimURL:  workerInfo.BaggageclaimURL,
+		HTTPProxyURL:     workerInfo.HTTPProxyURL,
+		HTTPSProxyURL:    workerInfo.HTTPSProxyURL,
+		NoProxy:          workerInfo.NoProxy,
 		ActiveContainers: workerInfo.ActiveContainers,
 		ResourceTypes:    workerInfo.ResourceTypes,
 		Platform:         workerInfo.Platform,

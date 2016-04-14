@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc"
@@ -155,6 +156,7 @@ func (factory *gardenFactory) Task(
 	resourceTypes atc.ResourceTypes,
 	inputMapping map[string]string,
 	outputMapping map[string]string,
+	clock clock.Clock,
 ) StepFactory {
 	workingDirectory := factory.taskWorkingDirectory(sourceName)
 	workerMetadata.WorkingDirectory = workingDirectory
@@ -174,6 +176,7 @@ func (factory *gardenFactory) Task(
 		factory.containerFailureTTL,
 		inputMapping,
 		outputMapping,
+		clock,
 	)
 }
 
