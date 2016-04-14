@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/baggageclaim/baggageclaimcmd"
 	"github.com/concourse/baggageclaim/fs"
-	"github.com/concourse/bin/bindata"
 	"github.com/jessevdk/go-flags"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
