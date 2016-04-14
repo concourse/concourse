@@ -176,6 +176,18 @@ func reconfigurePipeline(argv ...string) {
 	unpausePipeline()
 }
 
+func pausePipeline() {
+	pauseCmd := exec.Command(flyBin, "-t", targetedConcourse, "pause-pipeline", "-p", pipelineName)
+
+	configure, err := gexec.Start(pauseCmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred())
+
+	<-configure.Exited
+	Expect(configure.ExitCode()).To(Equal(0))
+
+	Expect(configure).To(gbytes.Say("paused '%s'", pipelineName))
+}
+
 func unpausePipeline() {
 	unpauseCmd := exec.Command(flyBin, "-t", targetedConcourse, "unpause-pipeline", "-p", pipelineName)
 
