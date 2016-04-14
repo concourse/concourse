@@ -104,7 +104,10 @@ before using it!
   }{
     \hyperlink{https://github.com/seadowg/hockey-resource}{Hockey App}
   }
-
+  }{
+    \hyperlink{https://github.com/robdimsdale/concourse-pipeline-resource}{Concourse Pipelines}
+  }
+  
   \section{Adding to this list}{
     Fork the
     \hyperlink{https://github.com/concourse/concourse}{\code{concourse/concourse}}
