@@ -99,6 +99,10 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 	worker := atc.Worker{
 		Platform: "linux",
 		Tags:     cmd.Tags,
+
+		HTTPProxyURL:  cmd.HTTPProxy.String(),
+		HTTPSProxyURL: cmd.HTTPSProxy.String(),
+		NoProxy:       strings.Join(cmd.NoProxy, ","),
 	}
 
 	worker.ResourceTypes, err = cmd.extractResources(linux)
