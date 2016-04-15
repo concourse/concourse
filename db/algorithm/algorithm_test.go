@@ -246,12 +246,6 @@ var _ = DescribeTable("Input resolving",
 				{Job: CurrentJobName, BuildID: 4, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
 			},
 
-			BuildOutputs: []DBRow{
-				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Job: "simple-a", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
-				{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-			},
-
 			Resources: []DBRow{
 				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
 				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
@@ -302,10 +296,10 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
-	Entry("finds the previous version when the latest version already ran for resource with every version", Example{
+	Entry("returns current version if there is no version after it that satisifies constraints", Example{
 		DB: DB{
 			BuildInputs: []DBRow{
-				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv2", CheckOrder: 1},
+				{Job: CurrentJobName, BuildID: 1, Resource: "resource-x", Version: "rxv2", CheckOrder: 1},
 			},
 
 			BuildOutputs: []DBRow{
@@ -329,7 +323,7 @@ var _ = DescribeTable("Input resolving",
 		},
 
 		Result: Result{
-			"resource-x": "rxv1",
+			"resource-x": "rxv2",
 		},
 	}),
 
@@ -462,41 +456,6 @@ var _ = DescribeTable("Input resolving",
 		Result: Result{
 			"resource-x": "rxv3",
 			"resource-y": "ryv1",
-		},
-	}),
-
-	Entry("something", Example{
-		DB: DB{
-			BuildOutputs: []DBRow{
-				{Job: "shared-job", BuildID: 1, Resource: "resource-1", Version: "r1-common-to-shared-and-j1", CheckOrder: 1},
-				{Job: "shared-job", BuildID: 1, Resource: "resource-2", Version: "r2-common-to-shared-and-j2", CheckOrder: 1},
-				{Job: "job-1", BuildID: 2, Resource: "resource-1", Version: "r1-common-to-shared-and-j1", CheckOrder: 1},
-				{Job: "job-2", BuildID: 3, Resource: "resource-2", Version: "r2-common-to-shared-and-j2", CheckOrder: 1},
-
-				{Job: "shared-job", BuildID: 4, Resource: "resource-1", Version: "new-r1-common-to-shared-and-j1", CheckOrder: 2},
-				{Job: "shared-job", BuildID: 4, Resource: "resource-2", Version: "new-r2-common-to-shared-and-j2", CheckOrder: 2},
-				{Job: "job-1", BuildID: 5, Resource: "resource-1", Version: "new-r1-common-to-shared-and-j1", CheckOrder: 2},
-			},
-		},
-
-		Inputs: Inputs{
-			{
-				Name:     "input-1",
-				Resource: "resource-1",
-				Version:  "every",
-				Passed:   []string{"shared-job", "job-1"},
-			},
-			{
-				Name:     "input-2",
-				Resource: "resource-2",
-				Version:  "every",
-				Passed:   []string{"shared-job", "job-2"},
-			},
-		},
-
-		Result: Result{
-			"input-1": "r1-common-to-shared-and-j1",
-			"input-2": "r2-common-to-shared-and-j2",
 		},
 	}),
 

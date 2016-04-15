@@ -55,8 +55,9 @@ func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping Input
 		usingEveryVersion := versionCandidates.UseEveryVersion()
 
 		for i, id := range versionIDs {
-			buildForPreviousVersionExists := func() bool {
-				return i == len(versionIDs)-1 ||
+			buildForPreviousOrCurrentVersionExists := func() bool {
+				return versionCandidates.ExistingBuildResolver.ExistsForVersion(id) ||
+					i == len(versionIDs)-1 ||
 					versionCandidates.ExistingBuildResolver.ExistsForVersion(versionIDs[i+1])
 			}
 
@@ -69,11 +70,11 @@ func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping Input
 			mapping, ok := newCandidates.reduce(jobs, lastSatisfiedMapping)
 			if ok {
 				lastSatisfiedMapping = mapping
-				if !usingEveryVersion || buildForPreviousVersionExists() {
+				if !usingEveryVersion || buildForPreviousOrCurrentVersionExists() {
 					return mapping, true
 				}
 			} else {
-				if usingEveryVersion && (lastSatisfiedMapping != nil || buildForPreviousVersionExists()) {
+				if usingEveryVersion && (lastSatisfiedMapping != nil || buildForPreviousOrCurrentVersionExists()) {
 					return lastSatisfiedMapping, true
 				}
 			}

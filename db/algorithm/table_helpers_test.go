@@ -110,7 +110,7 @@ func (example Example) Run() {
 			db.BuildInputs = append(db.BuildInputs, algorithm.BuildInput{
 				ResourceVersion: version,
 				BuildID:         row.BuildID,
-				JobID:           jobIDs.ID(CurrentJobName),
+				JobID:           jobIDs.ID(row.Job),
 			})
 		}
 		for _, row := range example.DB.BuildOutputs {
