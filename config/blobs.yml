@@ -11,10 +11,6 @@ consul_0.5/consul:
   size: 17734417
   object_id: 97b99488-7553-47f0-8294-ad1f8533b164
   sha: f461a632165ce878045afaaf04de699510e53374
-golang_1.6/go1.6.linux-amd64.tar.gz:
-  size: 84799480
-  object_id: 3cba6446-fad9-45a9-6755-bfc4157076ba
-  sha: 01a6a28dbe31a53103b600979bbbbd63a8104456
 postgresql/postgresql-9.3.4.tar.gz:
   size: 21865589
   object_id: a62f2cda-80fa-4daf-a59c-5acc9a6a3c2e
@@ -75,3 +71,7 @@ resources/vagrant-cloud-resource.tar.gz:
   object_id: 476c4d19-3941-48e1-9006-9bcc67f841b3
   sha: 2fd7e01902d316cbea5254e36398c5d264d17df9
   size: 9174450
+golang_1.6/go1.6.1.linux-amd64.tar.gz:
+  object_id: 980f2086-2872-4159-a73f-77ea2905d21b
+  sha: c73492474dcc7a233772d27e948b74468d9f1849
+  size: 84824395
