@@ -119,29 +119,27 @@ func (resource *resource) runScript(
 
 		close(ready)
 
-		statusCh := make(chan int, 1)
-		errCh := make(chan error, 1)
-
 		processExited := make(chan struct{})
 
-		go func() {
-			status, err := process.Wait()
-			close(processExited)
+		var processStatus int
+		var processErr error
 
-			if err != nil {
-				errCh <- err
-			} else {
-				statusCh <- status
-			}
+		go func() {
+			processStatus, processErr = process.Wait()
+			close(processExited)
 		}()
 
 		select {
-		case status := <-statusCh:
-			if status != 0 {
+		case <-processExited:
+			if processErr != nil {
+				return processErr
+			}
+
+			if processStatus != 0 {
 				return ErrResourceScriptFailed{
 					Path:       path,
 					Args:       args,
-					ExitStatus: status,
+					ExitStatus: processStatus,
 
 					Stderr: stderr.String(),
 				}
@@ -155,9 +153,6 @@ func (resource *resource) runScript(
 			}
 
 			return json.Unmarshal(stdout.Bytes(), output)
-
-		case err := <-errCh:
-			return err
 
 		case <-signals:
 			go process.Signal(garden.SignalTerminate)
