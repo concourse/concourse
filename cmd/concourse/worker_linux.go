@@ -117,10 +117,8 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 }
 
 func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
-	if output, err := exec.Command("modprobe", "btrfs").CombinedOutput(); err != nil {
-		logger.Error("btrfs-unavailable-falling-back-to-naive", err, lager.Data{
-			"modprobe-log": string(output),
-		})
+	if _, err := exec.LookPath("mkfs.btrfs"); err != nil {
+		logger.Error("btrfs-unavailable-falling-back-to-naive", err)
 		return cmd.naiveBaggageclaimRunner(logger)
 	}
 
