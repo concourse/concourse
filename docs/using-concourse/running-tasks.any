@@ -224,6 +224,11 @@ Once you've figured out your tasks's configuration, you can reuse it for a
         executed with Fly, any arguments passed to Fly are appended to this
         array.
       }
+
+      \define-attribute{dir: string}{
+        \italic{Optional.} A directory, relative to the initial working
+        directory, to set as the working directory when running the script.
+      }
     }
 
     Note that this is \italic{not} provided as a script blob, but explicit
