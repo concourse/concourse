@@ -9,7 +9,11 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type DB []DBRow
+type DB struct {
+	BuildInputs  []DBRow
+	BuildOutputs []DBRow
+	Resources    []DBRow
+}
 
 type DBRow struct {
 	Job        string
@@ -33,6 +37,7 @@ type Input struct {
 	Name     string
 	Resource string
 	Passed   []string
+	Version  string
 }
 
 type Result map[string]string
@@ -58,6 +63,8 @@ func (mapping StringMapping) Name(id int) string {
 
 	panic(fmt.Sprintf("no name found for %d", id))
 }
+
+const CurrentJobName = "current"
 
 func (example Example) Run() {
 	db := &algorithm.VersionsDB{}
@@ -86,22 +93,37 @@ func (example Example) Run() {
 			versionIDs[importedName] = v.VersionID
 		}
 	} else {
-		for _, row := range example.DB {
+		for _, row := range example.DB.Resources {
 			version := algorithm.ResourceVersion{
 				VersionID:  versionIDs.ID(row.Version),
 				ResourceID: resourceIDs.ID(row.Resource),
 				CheckOrder: row.CheckOrder,
 			}
-
-			if row.Job != "" {
-				db.BuildOutputs = append(db.BuildOutputs, algorithm.BuildOutput{
-					ResourceVersion: version,
-					BuildID:         row.BuildID,
-					JobID:           jobIDs.ID(row.Job),
-				})
-			} else {
-				db.ResourceVersions = append(db.ResourceVersions, version)
+			db.ResourceVersions = append(db.ResourceVersions, version)
+		}
+		for _, row := range example.DB.BuildInputs {
+			version := algorithm.ResourceVersion{
+				VersionID:  versionIDs.ID(row.Version),
+				ResourceID: resourceIDs.ID(row.Resource),
+				CheckOrder: row.CheckOrder,
 			}
+			db.BuildInputs = append(db.BuildInputs, algorithm.BuildInput{
+				ResourceVersion: version,
+				BuildID:         row.BuildID,
+				JobID:           jobIDs.ID(CurrentJobName),
+			})
+		}
+		for _, row := range example.DB.BuildOutputs {
+			version := algorithm.ResourceVersion{
+				VersionID:  versionIDs.ID(row.Version),
+				ResourceID: resourceIDs.ID(row.Resource),
+				CheckOrder: row.CheckOrder,
+			}
+			db.BuildOutputs = append(db.BuildOutputs, algorithm.BuildOutput{
+				ResourceVersion: version,
+				BuildID:         row.BuildID,
+				JobID:           jobIDs.ID(row.Job),
+			})
 		}
 	}
 
@@ -116,6 +138,8 @@ func (example Example) Run() {
 			Name:       input.Name,
 			Passed:     passed,
 			ResourceID: resourceIDs.ID(input.Resource),
+			Version:    input.Version,
+			JobID:      jobIDs.ID(CurrentJobName),
 		}
 	}
 

@@ -5,6 +5,7 @@ import "time"
 type VersionsDB struct {
 	ResourceVersions []ResourceVersion
 	BuildOutputs     []BuildOutput
+	BuildInputs      []BuildInput
 	JobIDs           map[string]int
 	ResourceIDs      map[string]int
 	CachedAt         time.Time
@@ -17,6 +18,12 @@ type ResourceVersion struct {
 }
 
 type BuildOutput struct {
+	ResourceVersion
+	BuildID int
+	JobID   int
+}
+
+type BuildInput struct {
 	ResourceVersion
 	BuildID int
 	JobID   int

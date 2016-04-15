@@ -219,13 +219,13 @@ var _ = Describe("PipelineDB", func() {
 		otherPipelineDB = pipelineDBFactory.Build(otherSavedPipeline)
 	})
 
-	loadAndGetLatestInputVersions := func(jobName string, inputs []config.JobInput) ([]db.BuildInput, bool, error) {
+	loadAndGetNextInputVersions := func(jobName string, inputs []config.JobInput) ([]db.BuildInput, bool, error) {
 		versions, err := pipelineDB.LoadVersionsDB()
 		if err != nil {
 			return nil, false, err
 		}
 
-		return pipelineDB.GetLatestInputVersions(versions, jobName, inputs)
+		return pipelineDB.GetNextInputVersions(versions, jobName, inputs)
 	}
 
 	Describe("destroying a pipeline", func() {
@@ -886,6 +886,35 @@ var _ = Describe("PipelineDB", func() {
 				"other-serial-group-job":     otherSerialGroupJob.ID,
 				"different-serial-group-job": differentSerialGroupJob.ID,
 			}))
+
+			By("including build inputs")
+			build1, err = pipelineDB.CreateJobBuild("a-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			savedVR1, err = pipelineDB.SaveBuildInput(build1.ID, db.BuildInput{
+				Name:              "some-input-name",
+				VersionedResource: savedVR1.VersionedResource,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = sqlDB.FinishBuild(build1.ID, build1.PipelineID, db.StatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			versions, err = pipelineDB.LoadVersionsDB()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(versions.BuildInputs).To(ConsistOf([]algorithm.BuildInput{
+				{
+					ResourceVersion: algorithm.ResourceVersion{
+						VersionID:  savedVR1.ID,
+						ResourceID: resource.ID,
+						CheckOrder: savedVR1.CheckOrder,
+					},
+					JobID:   build1.JobID,
+					BuildID: build1.ID,
+				},
+			}))
+
 		})
 
 		It("can load up the latest enabled versioned resource", func() {
@@ -1137,7 +1166,7 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.DisableVersionedResource(savedVR2.ID)
 				Expect(err).NotTo(HaveOccurred())
 
-				versions, found, err := loadAndGetLatestInputVersions("some-job", jobBuildInputs)
+				versions, found, err := loadAndGetNextInputVersions("some-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(len(versions)).To(Equal(2))
@@ -1306,7 +1335,7 @@ var _ = Describe("PipelineDB", func() {
 					},
 				}
 
-				versions, found, err := loadAndGetLatestInputVersions("a-job", jobBuildInputs)
+				versions, found, err := loadAndGetNextInputVersions("a-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1321,7 +1350,7 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.DisableVersionedResource(savedVR2.ID)
 				Expect(err).NotTo(HaveOccurred())
 
-				versions, found, err = loadAndGetLatestInputVersions("a-job", jobBuildInputs)
+				versions, found, err = loadAndGetNextInputVersions("a-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1336,14 +1365,14 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.DisableVersionedResource(savedVR1.ID)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, found, err = loadAndGetLatestInputVersions("a-job", jobBuildInputs)
+				_, found, err = loadAndGetNextInputVersions("a-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 
 				err = pipelineDB.EnableVersionedResource(savedVR1.ID)
 				Expect(err).NotTo(HaveOccurred())
 
-				versions, found, err = loadAndGetLatestInputVersions("a-job", jobBuildInputs)
+				versions, found, err = loadAndGetNextInputVersions("a-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1358,7 +1387,7 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.EnableVersionedResource(savedVR2.ID)
 				Expect(err).NotTo(HaveOccurred())
 
-				versions, found, err = loadAndGetLatestInputVersions("a-job", jobBuildInputs)
+				versions, found, err = loadAndGetNextInputVersions("a-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2848,7 +2877,7 @@ var _ = Describe("PipelineDB", func() {
 
 		Describe("determining the inputs for a job", func() {
 			It("can still be scheduled with no inputs", func() {
-				buildInputs, found, err := loadAndGetLatestInputVersions("third-job", []config.JobInput{})
+				buildInputs, found, err := loadAndGetNextInputVersions("third-job", []config.JobInput{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -3004,7 +3033,7 @@ var _ = Describe("PipelineDB", func() {
 					},
 				}
 
-				versions, found, err := loadAndGetLatestInputVersions("third-job", jobBuildInputs)
+				versions, found, err := loadAndGetNextInputVersions("third-job", jobBuildInputs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(len(versions)).To(Equal(2))
@@ -3052,7 +3081,7 @@ var _ = Describe("PipelineDB", func() {
 				_, err = otherPipelineDB.CreateJobBuild("shared-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, found, err := loadAndGetLatestInputVersions("a-job", []config.JobInput{
+				_, found, err := loadAndGetNextInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "some-resource",
@@ -3130,7 +3159,7 @@ var _ = Describe("PipelineDB", func() {
 				err = sqlDB.FinishBuild(j2b1.ID, j2b1.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
-				versions, found, err := loadAndGetLatestInputVersions("a-job", []config.JobInput{
+				versions, found, err := loadAndGetNextInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "some-resource",
@@ -3186,7 +3215,7 @@ var _ = Describe("PipelineDB", func() {
 
 				// do NOT save some-other-resource as an output of job-2
 
-				versions, found, err = loadAndGetLatestInputVersions("a-job", []config.JobInput{
+				versions, found, err = loadAndGetNextInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "some-resource",
@@ -3226,7 +3255,7 @@ var _ = Describe("PipelineDB", func() {
 				err = sqlDB.FinishBuild(j2b2.ID, j2b2.PipelineID, db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
-				versions, found, err = loadAndGetLatestInputVersions("a-job", []config.JobInput{
+				versions, found, err = loadAndGetNextInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-1",
 						Resource: "some-resource",
@@ -3266,7 +3295,7 @@ var _ = Describe("PipelineDB", func() {
 				err = sqlDB.FinishBuild(j2b3.ID, j2b3.PipelineID, db.StatusFailed)
 				Expect(err).NotTo(HaveOccurred())
 
-				versions, found, err = loadAndGetLatestInputVersions("a-job", []config.JobInput{
+				versions, found, err = loadAndGetNextInputVersions("a-job", []config.JobInput{
 					{
 						Name:     "input-2",
 						Resource: "some-other-resource",
@@ -3314,7 +3343,7 @@ var _ = Describe("PipelineDB", func() {
 					}, false)
 					Expect(err).NotTo(HaveOccurred())
 
-					versions, found, err := loadAndGetLatestInputVersions("a-job", []config.JobInput{
+					versions, found, err := loadAndGetNextInputVersions("a-job", []config.JobInput{
 						{
 							Name:     "input-1",
 							Resource: "some-resource",

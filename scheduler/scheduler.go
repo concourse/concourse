@@ -71,7 +71,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 		return nil
 	}
 
-	latestInputs, found, err := s.PipelineDB.GetLatestInputVersions(versions, job.Name, inputs)
+	latestInputs, found, err := s.PipelineDB.GetNextInputVersions(versions, job.Name, inputs)
 	if err != nil {
 		logger.Error("failed-to-get-latest-input-versions", err)
 		return err

@@ -8,11 +8,26 @@ import (
 type InputCandidates []InputVersionCandidates
 
 type InputVersionCandidates struct {
-	Input  string
-	Passed JobSet
+	Input                 string
+	Passed                JobSet
+	Version               string
+	ExistingBuildResolver *ExistingBuildResolver
+	usingEveryVersion     *bool
 
 	VersionCandidates
 }
+
+func (inputVersionCandidates InputVersionCandidates) UseEveryVersion() bool {
+	if inputVersionCandidates.usingEveryVersion == nil {
+		usingEveryVersion := inputVersionCandidates.Version == VersionEvery &&
+			inputVersionCandidates.ExistingBuildResolver.Exists()
+		inputVersionCandidates.usingEveryVersion = &usingEveryVersion
+	}
+
+	return *inputVersionCandidates.usingEveryVersion
+}
+
+const VersionEvery = "every"
 
 func (candidates InputCandidates) String() string {
 	lens := []string{}
@@ -24,6 +39,10 @@ func (candidates InputCandidates) String() string {
 }
 
 func (candidates InputCandidates) Reduce(jobs JobSet) (InputMapping, bool) {
+	return candidates.reduce(jobs, nil)
+}
+
+func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping InputMapping) (InputMapping, bool) {
 	newCandidates := candidates.pruneToCommonBuilds(jobs)
 
 	for input, versionCandidates := range newCandidates {
@@ -33,17 +52,30 @@ func (candidates InputCandidates) Reduce(jobs JobSet) (InputMapping, bool) {
 			continue
 		}
 
-		for _, id := range versionIDs {
+		usingEveryVersion := versionCandidates.UseEveryVersion()
+
+		for i, id := range versionIDs {
+			buildForPreviousVersionExists := func() bool {
+				return i == len(versionIDs)-1 ||
+					versionCandidates.ExistingBuildResolver.ExistsForVersion(versionIDs[i+1])
+			}
+
 			limitedToVersion := versionCandidates.ForVersion(id)
 
 			inputCandidates := newCandidates[input]
 			inputCandidates.VersionCandidates = limitedToVersion
 			newCandidates[input] = inputCandidates
 
-			mapping, ok := newCandidates.Reduce(jobs)
+			mapping, ok := newCandidates.reduce(jobs, lastSatisfiedMapping)
 			if ok {
-				// reduced via recursion, done
-				return mapping, true
+				lastSatisfiedMapping = mapping
+				if !usingEveryVersion || buildForPreviousVersionExists() {
+					return mapping, true
+				}
+			} else {
+				if usingEveryVersion && (lastSatisfiedMapping != nil || buildForPreviousVersionExists()) {
+					return lastSatisfiedMapping, true
+				}
 			}
 
 			newCandidates[input] = versionCandidates

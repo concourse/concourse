@@ -6,8 +6,11 @@ type InputConfigs []InputConfig
 
 type InputConfig struct {
 	Name       string
+	JobName    string
 	Passed     JobSet
+	Version    string
 	ResourceID int
+	JobID      int
 }
 
 func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
@@ -31,10 +34,18 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 			return nil, false
 		}
 
+		existingBuildResolver := &ExistingBuildResolver{
+			BuildInputs: db.BuildInputs,
+			JobID:       inputConfig.JobID,
+			ResourceID:  inputConfig.ResourceID,
+		}
+
 		inputCandidates = append(inputCandidates, InputVersionCandidates{
-			Input:             inputConfig.Name,
-			Passed:            inputConfig.Passed,
-			VersionCandidates: candidateSet,
+			Input:                 inputConfig.Name,
+			Passed:                inputConfig.Passed,
+			Version:               inputConfig.Version,
+			VersionCandidates:     candidateSet,
+			ExistingBuildResolver: existingBuildResolver,
 		})
 	}
 
