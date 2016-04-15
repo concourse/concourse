@@ -450,12 +450,14 @@ jobs:
     - get: binaries
       resource: bin-rc
       passed: [shipit]
+      trigger: true
     - get: concourse
       params: {submodules: none}
       passed: [shipit]
       trigger: true
     - get: version
       passed: [shipit]
+      trigger: true
     - get: concourse-lite
   - task: build-box
     privileged: true
