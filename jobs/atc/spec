@@ -38,10 +38,11 @@ properties:
 
   external_url:
     description: |
-      Externally reachable URL of the ATCs, e.g. `https://ci.concourse.ci`. Required for OAuth.
+      Externally reachable URL of the ATCs. Required for OAuth.
 
       Typically this is the URL that you as a user would use to reach your CI.
       For multiple ATCs it would go to some sort of load balancer.
+    example: https://ci.concourse.ci
 
   peer_url:
     description: |
