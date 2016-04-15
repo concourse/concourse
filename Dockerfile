@@ -6,7 +6,7 @@ USER root
 RUN apt-get update && apt-get -y install curl
 
 # Go
-RUN curl https://storage.googleapis.com/golang/go1.6.linux-amd64.tar.gz | tar -C /usr/local -xzf -
+RUN curl https://storage.googleapis.com/golang/go1.6.1.linux-amd64.tar.gz | tar -C /usr/local -xzf -
 ENV PATH $PATH:/usr/local/go/bin
 
 # PostgreSQL
