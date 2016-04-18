@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
@@ -34,13 +35,18 @@ func (command *ChecklistCommand) Execute([]string) error {
 }
 
 func printCheckfile(pipelineName string, config atc.Config, url string) {
+	orphanHeaderName := "misc"
+	if len(config.Groups) == 0 {
+		orphanHeaderName = pipelineName
+	}
+
 	for _, group := range config.Groups {
 		printGroup(pipelineName, group, url)
 	}
 
 	miscJobs := orphanedJobs(config)
 	if len(miscJobs) > 0 {
-		printGroup(pipelineName, atc.GroupConfig{Name: "misc", Jobs: miscJobs}, url)
+		printGroup(pipelineName, atc.GroupConfig{Name: orphanHeaderName, Jobs: miscJobs}, url)
 	}
 }
 
@@ -69,5 +75,6 @@ func orphanedJobs(config atc.Config) []string {
 		result = append(result, job)
 	}
 
+	sort.Sort(sort.StringSlice(result))
 	return result
 }
