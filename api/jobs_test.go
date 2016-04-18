@@ -913,7 +913,7 @@ var _ = Describe("Jobs API", func() {
 
 						Context("when the input versions for the job can be determined", func() {
 							BeforeEach(func() {
-								pipelineDB.GetLatestInputVersionsReturns([]db.BuildInput{
+								pipelineDB.GetNextInputVersionsReturns([]db.BuildInput{
 									{
 										Name: "some-input",
 										VersionedResource: db.VersionedResource{
@@ -940,7 +940,7 @@ var _ = Describe("Jobs API", func() {
 							})
 
 							It("determined the inputs with the correct versions DB, job name, and inputs", func() {
-								receivedVersionsDB, receivedJob, receivedInputs := pipelineDB.GetLatestInputVersionsArgsForCall(0)
+								receivedVersionsDB, receivedJob, receivedInputs := pipelineDB.GetNextInputVersionsArgsForCall(0)
 								Expect(receivedVersionsDB).To(Equal(versionsDB))
 								Expect(receivedJob).To(Equal("some-job"))
 								Expect(receivedInputs).To(Equal(config.JobInputs(someJob)))
@@ -975,7 +975,7 @@ var _ = Describe("Jobs API", func() {
 
 						Context("when the job has no input versions available", func() {
 							BeforeEach(func() {
-								pipelineDB.GetLatestInputVersionsReturns(nil, false, nil)
+								pipelineDB.GetNextInputVersionsReturns(nil, false, nil)
 							})
 
 							It("returns 404", func() {
@@ -985,7 +985,7 @@ var _ = Describe("Jobs API", func() {
 
 						Context("when the input versions for the job can not be determined", func() {
 							BeforeEach(func() {
-								pipelineDB.GetLatestInputVersionsReturns(nil, false, errors.New("oh no!"))
+								pipelineDB.GetNextInputVersionsReturns(nil, false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {

@@ -562,6 +562,17 @@ var _ = Describe("Pipelines API", func() {
 								JobID:   13,
 							},
 						},
+						BuildInputs: []algorithm.BuildInput{
+							{
+								ResourceVersion: algorithm.ResourceVersion{
+									VersionID:  66,
+									ResourceID: 77,
+									CheckOrder: 88,
+								},
+								BuildID: 66,
+								JobID:   13,
+							},
+						},
 						JobIDs: map[string]int{
 							"bad-luck-job": 13,
 						},
@@ -601,6 +612,15 @@ var _ = Describe("Pipelines API", func() {
 						"BuildID": 66,
 						"JobID": 13,
 						"CheckOrder": 123
+					}
+				],
+				"BuildInputs": [
+					{
+						"VersionID": 66,
+						"ResourceID": 77,
+						"BuildID": 66,
+						"JobID": 13,
+						"CheckOrder": 88
 					}
 				],
 				"JobIDs": {

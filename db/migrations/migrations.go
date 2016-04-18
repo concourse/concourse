@@ -98,5 +98,6 @@ var Migrations = []migration.Migrator{
 	CreateResourceTypes,
 	AddLastCheckedAndCheckingToResourceTypes,
 	AddHttpProxyHttpsProxyNoProxyToWorkers,
+	AddModifiedTimeToBuildInputs,
 	AddPathToVolumes,
 }

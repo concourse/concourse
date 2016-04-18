@@ -161,7 +161,7 @@ var _ = Describe("Scheduler", func() {
 	Describe("BuildLatestInputs", func() {
 		Context("when no inputs are available", func() {
 			BeforeEach(func() {
-				fakePipelineDB.GetLatestInputVersionsReturns(nil, false, nil)
+				fakePipelineDB.GetNextInputVersionsReturns(nil, false, nil)
 			})
 
 			It("returns no error", func() {
@@ -180,7 +180,7 @@ var _ = Describe("Scheduler", func() {
 			var err error
 
 			BeforeEach(func() {
-				fakePipelineDB.GetLatestInputVersionsReturns(nil, false, disaster)
+				fakePipelineDB.GetNextInputVersionsReturns(nil, false, disaster)
 				err = scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 			})
 
@@ -224,7 +224,7 @@ var _ = Describe("Scheduler", func() {
 						},
 					},
 				}
-				fakePipelineDB.GetLatestInputVersionsReturns(newInputs, true, nil)
+				fakePipelineDB.GetNextInputVersionsReturns(newInputs, true, nil)
 			})
 
 			JustBeforeEach(func() {
@@ -255,8 +255,8 @@ var _ = Describe("Scheduler", func() {
 			It("checks if they are already used for a build", func() {
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakePipelineDB.GetLatestInputVersionsCallCount()).To(Equal(1))
-				versions, jobName, inputs := fakePipelineDB.GetLatestInputVersionsArgsForCall(0)
+				Expect(fakePipelineDB.GetNextInputVersionsCallCount()).To(Equal(1))
+				versions, jobName, inputs := fakePipelineDB.GetNextInputVersionsArgsForCall(0)
 				Expect(versions).To(Equal(someVersions))
 				Expect(jobName).To(Equal(job.Name))
 				Expect(inputs).To(Equal([]config.JobInput{
@@ -299,7 +299,7 @@ var _ = Describe("Scheduler", func() {
 						},
 					)
 
-					fakePipelineDB.GetLatestInputVersionsReturns(foundInputsWithCheck, true, nil)
+					fakePipelineDB.GetNextInputVersionsReturns(foundInputsWithCheck, true, nil)
 				})
 
 				It("excludes them from the inputs when checking for a build", func() {

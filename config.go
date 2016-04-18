@@ -195,6 +195,8 @@ type PlanConfig struct {
 
 	// repeat the step up to N times, until it works
 	Attempts int `yaml:"attempts,omitempty" json:"attempts,omitempty" mapstructure:"attempts"`
+
+	Version string `yaml:"version,omitempty" json:"version,omitempty" mapstructure:"version"`
 }
 
 func (config PlanConfig) Name() string {

@@ -65,7 +65,7 @@ type PipelineDB interface {
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
-	GetLatestInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]BuildInput, bool, error)
+	GetNextInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]BuildInput, bool, error)
 	GetJobBuildForInputs(job string, inputs []BuildInput) (Build, bool, error)
 	GetNextPendingBuild(job string) (Build, bool, error)
 
@@ -1633,13 +1633,14 @@ func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, bool, error) {
 	return Build{}, false, nil
 }
 
-func (pdb *pipelineDB) getLastestModifiedTime() (time.Time, error) {
+func (pdb *pipelineDB) getLatestModifiedTime() (time.Time, error) {
 	var max_modified_time time.Time
 
 	err := pdb.conn.QueryRow(`
 	SELECT
 		CASE
-			WHEN bo_max > vr_max THEN bo_max
+			WHEN bo_max > vr_max AND bo_max > bi_max THEN bo_max
+			WHEN bi_max > vr_max THEN bi_max
 			ELSE vr_max
 		END
 	FROM
@@ -1650,6 +1651,13 @@ func (pdb *pipelineDB) getLastestModifiedTime() (time.Time, error) {
 			LEFT OUTER JOIN resources r ON r.id = v.resource_id
 			WHERE r.pipeline_id = $1
 		) bo,
+		(
+			SELECT COALESCE(MAX(bi.modified_time), 'epoch') as bi_max
+			FROM build_inputs bi
+			LEFT OUTER JOIN versioned_resources v ON v.id = bi.versioned_resource_id
+			LEFT OUTER JOIN resources r ON r.id = v.resource_id
+			WHERE r.pipeline_id = $1
+		) bi,
 		(
 			SELECT COALESCE(MAX(vr.modified_time), 'epoch') as vr_max
 			FROM versioned_resources vr
@@ -1662,7 +1670,7 @@ func (pdb *pipelineDB) getLastestModifiedTime() (time.Time, error) {
 }
 
 func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
-	latestModifiedTime, err := pdb.getLastestModifiedTime()
+	latestModifiedTime, err := pdb.getLatestModifiedTime()
 	if err != nil {
 		return nil, err
 	}
@@ -1673,6 +1681,7 @@ func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 
 	db := &algorithm.VersionsDB{
 		BuildOutputs:     []algorithm.BuildOutput{},
+		BuildInputs:      []algorithm.BuildInput{},
 		ResourceVersions: []algorithm.ResourceVersion{},
 		JobIDs:           map[string]int{},
 		ResourceIDs:      map[string]int{},
@@ -1704,6 +1713,32 @@ func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 		output.ResourceVersion.CheckOrder = output.CheckOrder
 
 		db.BuildOutputs = append(db.BuildOutputs, output)
+	}
+
+	rows, err = pdb.conn.Query(`
+    SELECT v.id, v.check_order, r.id, i.build_id, j.id
+    FROM build_inputs i, builds b, versioned_resources v, jobs j, resources r
+    WHERE v.id = i.versioned_resource_id
+    AND b.id = i.build_id
+    AND j.id = b.job_id
+    AND r.id = v.resource_id
+    AND v.enabled
+		AND r.pipeline_id = $1
+  `, pdb.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var input algorithm.BuildInput
+		err := rows.Scan(&input.VersionID, &input.CheckOrder, &input.ResourceID, &input.BuildID, &input.JobID)
+		if err != nil {
+			return nil, err
+		}
+
+		input.ResourceVersion.CheckOrder = input.CheckOrder
+
+		db.BuildInputs = append(db.BuildInputs, input)
 	}
 
 	rows, err = pdb.conn.Query(`
@@ -1772,7 +1807,7 @@ func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	return db, nil
 }
 
-func (pdb *pipelineDB) GetLatestInputVersions(db *algorithm.VersionsDB, jobName string, inputs []config.JobInput) ([]BuildInput, bool, error) {
+func (pdb *pipelineDB) GetNextInputVersions(db *algorithm.VersionsDB, jobName string, inputs []config.JobInput) ([]BuildInput, bool, error) {
 	if len(inputs) == 0 {
 		return []BuildInput{}, true, nil
 	}
@@ -1787,8 +1822,10 @@ func (pdb *pipelineDB) GetLatestInputVersions(db *algorithm.VersionsDB, jobName 
 
 		inputConfigs = append(inputConfigs, algorithm.InputConfig{
 			Name:       input.Name,
+			Version:    input.Version,
 			ResourceID: db.ResourceIDs[input.Resource],
 			Passed:     jobs,
+			JobID:      db.JobIDs[jobName],
 		})
 	}
 

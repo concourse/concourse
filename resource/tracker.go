@@ -3,6 +3,7 @@ package resource
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -36,6 +37,7 @@ type Metadata interface {
 
 type tracker struct {
 	workerClient worker.Client
+	clock        clock.Clock
 }
 
 type TrackerFactory struct{}
@@ -47,6 +49,7 @@ func (factory TrackerFactory) TrackerFor(client worker.Client) Tracker {
 func NewTracker(workerClient worker.Client) Tracker {
 	return &tracker{
 		workerClient: workerClient,
+		clock:        clock.NewClock(),
 	}
 }
 
@@ -85,7 +88,7 @@ func (tracker *tracker) InitWithSources(
 			missingNames = append(missingNames, name)
 		}
 
-		return NewResource(container), missingNames, nil
+		return NewResource(container, tracker.clock), missingNames, nil
 	}
 
 	resourceSpec := worker.ResourceTypeContainerSpec{
@@ -162,7 +165,7 @@ func (tracker *tracker) InitWithSources(
 		mount.Volume.Release(nil)
 	}
 
-	return NewResource(container), missingSources, nil
+	return NewResource(container, tracker.clock), missingSources, nil
 }
 
 func (tracker *tracker) Init(
@@ -187,7 +190,7 @@ func (tracker *tracker) Init(
 
 	if found {
 		logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
-		return NewResource(container), nil
+		return NewResource(container, tracker.clock), nil
 	}
 
 	logger.Debug("creating-container")
@@ -212,7 +215,7 @@ func (tracker *tracker) Init(
 
 	logger.Info("created", lager.Data{"container": container.Handle()})
 
-	return NewResource(container), nil
+	return NewResource(container, tracker.clock), nil
 }
 
 func (tracker *tracker) InitWithCache(
@@ -239,7 +242,7 @@ func (tracker *tracker) InitWithCache(
 	if found {
 		logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
 
-		resource := NewResource(container)
+		resource := NewResource(container, tracker.clock)
 
 		var cache Cache
 		cacheVolume, found := resource.CacheVolume()
@@ -327,5 +330,5 @@ func (tracker *tracker) InitWithCache(
 
 	logger.Info("created", lager.Data{"container": container.Handle()})
 
-	return NewResource(container), volumeCache{cachedVolume}, nil
+	return NewResource(container, tracker.clock), volumeCache{cachedVolume}, nil
 }

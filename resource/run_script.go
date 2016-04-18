@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/tedsuo/ifrit"
@@ -118,25 +119,27 @@ func (resource *resource) runScript(
 
 		close(ready)
 
-		statusCh := make(chan int, 1)
-		errCh := make(chan error, 1)
+		processExited := make(chan struct{})
+
+		var processStatus int
+		var processErr error
 
 		go func() {
-			status, err := process.Wait()
-			if err != nil {
-				errCh <- err
-			} else {
-				statusCh <- status
-			}
+			processStatus, processErr = process.Wait()
+			close(processExited)
 		}()
 
 		select {
-		case status := <-statusCh:
-			if status != 0 {
+		case <-processExited:
+			if processErr != nil {
+				return processErr
+			}
+
+			if processStatus != 0 {
 				return ErrResourceScriptFailed{
 					Path:       path,
 					Args:       args,
-					ExitStatus: status,
+					ExitStatus: processStatus,
 
 					Stderr: stderr.String(),
 				}
@@ -151,11 +154,21 @@ func (resource *resource) runScript(
 
 			return json.Unmarshal(stdout.Bytes(), output)
 
-		case err := <-errCh:
-			return err
-
 		case <-signals:
-			resource.container.Stop(false)
+			go process.Signal(garden.SignalTerminate)
+
+			timer := resource.clock.NewTimer(10 * time.Second)
+
+		OUT:
+			for {
+				select {
+				case <-timer.C():
+					process.Signal(garden.SignalKill)
+				case <-processExited:
+					break OUT
+				}
+			}
+
 			return ErrAborted
 		}
 	})

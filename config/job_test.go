@@ -66,6 +66,29 @@ var _ = Describe("Job config", func() {
 				})
 			})
 
+			Context("when a plan has a version on a get", func() {
+				BeforeEach(func() {
+					jobConfig.Plan = atc.PlanSequence{
+						{
+							Get:     "a",
+							Version: "every",
+						},
+					}
+				})
+
+				It("returns an input config with the version", func() {
+					Expect(inputs).To(Equal(
+						[]config.JobInput{
+							{
+								Name:     "a",
+								Resource: "a",
+								Version:  "every",
+							},
+						},
+					))
+				})
+			})
+
 			Context("when a plan has an ensure hook on a get", func() {
 				BeforeEach(func() {
 					jobConfig.Plan = atc.PlanSequence{

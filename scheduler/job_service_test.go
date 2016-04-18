@@ -341,7 +341,7 @@ var _ = Describe("JobService", func() {
 									},
 								}
 
-								fakeDB.GetLatestInputVersionsReturns(newInputs, true, nil)
+								fakeDB.GetNextInputVersionsReturns(newInputs, true, nil)
 							})
 
 							It("can be scheduled", func() {
@@ -352,9 +352,9 @@ var _ = Describe("JobService", func() {
 							})
 
 							It("gets latest input versions", func() {
-								Expect(fakeDB.GetLatestInputVersionsCallCount()).To(Equal(1))
+								Expect(fakeDB.GetNextInputVersionsCallCount()).To(Equal(1))
 
-								versions, jobName, inputConfigs := fakeDB.GetLatestInputVersionsArgsForCall(0)
+								versions, jobName, inputConfigs := fakeDB.GetNextInputVersionsArgsForCall(0)
 								Expect(versions).To(Equal(someVersions))
 								Expect(jobName).To(Equal(dbSavedJob.Name))
 								Expect(inputConfigs).To(Equal([]config.JobInput{
@@ -718,7 +718,7 @@ var _ = Describe("JobService", func() {
 
 						Context("when getting latest input versions is not successful", func() {
 							BeforeEach(func() {
-								fakeDB.GetLatestInputVersionsReturns(nil, false, nil)
+								fakeDB.GetNextInputVersionsReturns(nil, false, nil)
 							})
 
 							It("logs and returns nil", func() {
@@ -728,7 +728,7 @@ var _ = Describe("JobService", func() {
 
 							Context("due to an error", func() {
 								BeforeEach(func() {
-									fakeDB.GetLatestInputVersionsReturns(nil, false, errors.New("banana"))
+									fakeDB.GetNextInputVersionsReturns(nil, false, errors.New("banana"))
 								})
 
 								It("logs and returns nil", func() {

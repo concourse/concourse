@@ -42,7 +42,7 @@ func (s *Server) ListJobInputs(pipelineDB db.PipelineDB) http.Handler {
 
 		jobInputs := config.JobInputs(jobConfig)
 
-		inputVersions, found, err := pipelineDB.GetLatestInputVersions(versionsDB, jobName, jobInputs)
+		inputVersions, found, err := pipelineDB.GetNextInputVersions(versionsDB, jobName, jobInputs)
 		if err != nil {
 			logger.Error("failed-to-get-latest-input-versions", err)
 			w.WriteHeader(http.StatusInternalServerError)

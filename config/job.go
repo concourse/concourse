@@ -10,6 +10,7 @@ type JobInput struct {
 	Resource string
 	Passed   []string
 	Trigger  bool
+	Version  string
 	Params   atc.Params
 	Tags     atc.Tags
 }
@@ -70,6 +71,7 @@ func collectInputs(plan atc.PlanConfig) []JobInput {
 			Name:     get,
 			Resource: resource,
 			Passed:   plan.Passed,
+			Version:  plan.Version,
 			Trigger:  plan.Trigger,
 			Params:   plan.Params,
 			Tags:     plan.Tags,

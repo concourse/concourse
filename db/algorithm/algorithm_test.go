@@ -9,12 +9,14 @@ var _ = DescribeTable("Input resolving",
 
 	Entry("can fan-in", Example{
 		DB: DB{
-			// pass a and b
-			{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-			{Job: "simple-b", BuildID: 2, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+			BuildOutputs: []DBRow{
+				// pass a and b
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 2, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
 
-			// pass a but not b
-			{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				// pass a but not b
+				{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+			},
 		},
 
 		Inputs: Inputs{
@@ -31,8 +33,10 @@ var _ = DescribeTable("Input resolving",
 
 	Entry("propagates resources together", Example{
 		DB: DB{
-			{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-			{Job: "simple-a", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+			},
 		},
 
 		Inputs: Inputs{
@@ -48,13 +52,15 @@ var _ = DescribeTable("Input resolving",
 
 	Entry("correlates inputs by build, allowing resources to skip jobs", Example{
 		DB: DB{
-			{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-			{Job: "simple-a", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
 
-			{Job: "fan-in", BuildID: 3, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "fan-in", BuildID: 3, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
 
-			{Job: "simple-a", BuildID: 4, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
-			{Job: "simple-a", BuildID: 4, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 4, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 4, Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
+			},
 		},
 
 		Inputs: Inputs{
@@ -72,24 +78,26 @@ var _ = DescribeTable("Input resolving",
 
 	Entry("finds only versions that passed through together", Example{
 		DB: DB{
-			{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-			{Job: "simple-a", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
-			{Job: "simple-b", BuildID: 2, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-			{Job: "simple-b", BuildID: 2, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 2, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 2, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
 
-			{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 2},
-			{Job: "simple-a", BuildID: 3, Resource: "resource-y", Version: "ryv3", CheckOrder: 2},
-			{Job: "simple-b", BuildID: 4, Resource: "resource-x", Version: "rxv3", CheckOrder: 2},
-			{Job: "simple-b", BuildID: 4, Resource: "resource-y", Version: "ryv3", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 2},
+				{Job: "simple-a", BuildID: 3, Resource: "resource-y", Version: "ryv3", CheckOrder: 2},
+				{Job: "simple-b", BuildID: 4, Resource: "resource-x", Version: "rxv3", CheckOrder: 2},
+				{Job: "simple-b", BuildID: 4, Resource: "resource-y", Version: "ryv3", CheckOrder: 2},
 
-			{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv2", CheckOrder: 1},
-			{Job: "simple-a", BuildID: 3, Resource: "resource-y", Version: "ryv4", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 3, Resource: "resource-x", Version: "rxv2", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 3, Resource: "resource-y", Version: "ryv4", CheckOrder: 1},
 
-			{Job: "simple-b", BuildID: 4, Resource: "resource-x", Version: "rxv4", CheckOrder: 1},
-			{Job: "simple-b", BuildID: 4, Resource: "resource-y", Version: "rxv4", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 4, Resource: "resource-x", Version: "rxv4", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 4, Resource: "resource-y", Version: "rxv4", CheckOrder: 1},
 
-			{Job: "simple-b", BuildID: 5, Resource: "resource-x", Version: "rxv4", CheckOrder: 1},
-			{Job: "simple-b", BuildID: 5, Resource: "resource-y", Version: "rxv2", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 5, Resource: "resource-x", Version: "rxv4", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 5, Resource: "resource-y", Version: "rxv2", CheckOrder: 1},
+			},
 		},
 
 		Inputs: Inputs{
@@ -105,9 +113,11 @@ var _ = DescribeTable("Input resolving",
 
 	Entry("can collect distinct versions of resources without correlating by job", Example{
 		DB: DB{
-			{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-			{Job: "simple-b", BuildID: 2, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-			{Job: "simple-b", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 2, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-b", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+			},
 		},
 
 		Inputs: Inputs{
@@ -123,10 +133,12 @@ var _ = DescribeTable("Input resolving",
 
 	Entry("resolves passed constraints with common jobs", Example{
 		DB: DB{
-			{Job: "shared-job", BuildID: 1, Resource: "resource-1", Version: "r1-common-to-shared-and-j1", CheckOrder: 1},
-			{Job: "shared-job", BuildID: 1, Resource: "resource-2", Version: "r2-common-to-shared-and-j2", CheckOrder: 1},
-			{Job: "job-1", BuildID: 2, Resource: "resource-1", Version: "r1-common-to-shared-and-j1", CheckOrder: 1},
-			{Job: "job-2", BuildID: 3, Resource: "resource-2", Version: "r2-common-to-shared-and-j2", CheckOrder: 1},
+			BuildOutputs: []DBRow{
+				{Job: "shared-job", BuildID: 1, Resource: "resource-1", Version: "r1-common-to-shared-and-j1", CheckOrder: 1},
+				{Job: "shared-job", BuildID: 1, Resource: "resource-2", Version: "r2-common-to-shared-and-j2", CheckOrder: 1},
+				{Job: "job-1", BuildID: 2, Resource: "resource-1", Version: "r1-common-to-shared-and-j1", CheckOrder: 1},
+				{Job: "job-2", BuildID: 3, Resource: "resource-2", Version: "r2-common-to-shared-and-j2", CheckOrder: 1},
+			},
 		},
 
 		Inputs: Inputs{
@@ -150,14 +162,16 @@ var _ = DescribeTable("Input resolving",
 
 	Entry("resolves passed constraints with common jobs, skipping versions that are not common to builds of all jobs", Example{
 		DB: DB{
-			{Job: "shared-job", BuildID: 1, Resource: "resource-1", Version: "r1-common-to-shared-and-j1", CheckOrder: 1},
-			{Job: "shared-job", BuildID: 1, Resource: "resource-2", Version: "r2-common-to-shared-and-j2", CheckOrder: 1},
-			{Job: "job-1", BuildID: 2, Resource: "resource-1", Version: "r1-common-to-shared-and-j1", CheckOrder: 1},
-			{Job: "job-2", BuildID: 3, Resource: "resource-2", Version: "r2-common-to-shared-and-j2", CheckOrder: 1},
+			BuildOutputs: []DBRow{
+				{Job: "shared-job", BuildID: 1, Resource: "resource-1", Version: "r1-common-to-shared-and-j1", CheckOrder: 1},
+				{Job: "shared-job", BuildID: 1, Resource: "resource-2", Version: "r2-common-to-shared-and-j2", CheckOrder: 1},
+				{Job: "job-1", BuildID: 2, Resource: "resource-1", Version: "r1-common-to-shared-and-j1", CheckOrder: 1},
+				{Job: "job-2", BuildID: 3, Resource: "resource-2", Version: "r2-common-to-shared-and-j2", CheckOrder: 1},
 
-			{Job: "shared-job", BuildID: 4, Resource: "resource-1", Version: "new-r1-common-to-shared-and-j1", CheckOrder: 2},
-			{Job: "shared-job", BuildID: 4, Resource: "resource-2", Version: "new-r2-common-to-shared-and-j2", CheckOrder: 2},
-			{Job: "job-1", BuildID: 5, Resource: "resource-1", Version: "new-r1-common-to-shared-and-j1", CheckOrder: 2},
+				{Job: "shared-job", BuildID: 4, Resource: "resource-1", Version: "new-r1-common-to-shared-and-j1", CheckOrder: 2},
+				{Job: "shared-job", BuildID: 4, Resource: "resource-2", Version: "new-r2-common-to-shared-and-j2", CheckOrder: 2},
+				{Job: "job-1", BuildID: 5, Resource: "resource-1", Version: "new-r1-common-to-shared-and-j1", CheckOrder: 2},
+			},
 		},
 
 		Inputs: Inputs{
@@ -181,22 +195,26 @@ var _ = DescribeTable("Input resolving",
 
 	Entry("finds the latest version for inputs with no passed constraints", Example{
 		DB: DB{
-			// build outputs
-			{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-			{Job: "simple-a", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+			BuildOutputs: []DBRow{
+				// build outputs
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+			},
 
-			// the versions themselves
-			// note: normally there's one of these for each version, including ones
-			// that appear as outputs
-			{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-			{Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
-			{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
-			{Resource: "resource-y", Version: "ryv3", CheckOrder: 3},
-			{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-			{Resource: "resource-y", Version: "ryv4", CheckOrder: 4},
-			{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
-			{Resource: "resource-y", Version: "ryv5", CheckOrder: 5},
-			{Resource: "resource-x", Version: "rxv5", CheckOrder: 5},
+			Resources: []DBRow{
+				// the versions themselves
+				// note: normally there's one of these for each version, including ones
+				// that appear as outputs
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-y", Version: "ryv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-y", Version: "ryv4", CheckOrder: 4},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+				{Resource: "resource-y", Version: "ryv5", CheckOrder: 5},
+				{Resource: "resource-x", Version: "rxv5", CheckOrder: 5},
+			},
 		},
 
 		Inputs: Inputs{
@@ -222,10 +240,231 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
+	Entry("finds next version for inputs that use every version when there is a build for that resource", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 4, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  "every",
+			},
+		},
+
+		Result: Result{
+			"resource-x": "rxv2",
+		},
+	}),
+
+	Entry("finds last version for inputs that use every version when there is no builds for that resource", Example{
+		DB: DB{
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+
+				{Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  "every",
+			},
+			{
+				Name:     "resource-y",
+				Resource: "resource-y",
+				Version:  "every",
+			},
+		},
+
+		Result: Result{
+			"resource-x": "rxv2",
+			"resource-y": "ryv1",
+		},
+	}),
+
+	Entry("returns current version if there is no version after it that satisifies constraints", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 1, Resource: "resource-x", Version: "rxv2", CheckOrder: 1},
+			},
+
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  "every",
+				Passed:   []string{"simple-a"},
+			},
+		},
+
+		Result: Result{
+			"resource-x": "rxv2",
+		},
+	}),
+
+	Entry("returns the first version that satisfies constraints when using every version", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 1, Resource: "resource-x", Version: "rxv2", CheckOrder: 3},
+			},
+
+			BuildOutputs: []DBRow{
+				// only ran for resource-x, not any version of resource-y
+				{Job: "shared-job", BuildID: 2, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+
+				// ran for resource-x and resource-y
+				{Job: "shared-job", BuildID: 3, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Job: "shared-job", BuildID: 3, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+
+				{Job: "simple-a", BuildID: 4, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 5, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+
+				{Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  "every",
+				Passed:   []string{"shared-job", "simple-a"},
+			},
+			{
+				Name:     "resource-y",
+				Resource: "resource-y",
+				Version:  "every",
+				Passed:   []string{"shared-job"},
+			},
+		},
+
+		Result: Result{
+			"resource-x": "rxv2",
+			"resource-y": "ryv1",
+		},
+	}),
+
+	Entry("finds next version that passed constraints for inputs that use every version", Example{
+		DB: DB{
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  "every",
+				Passed:   []string{"simple-a"},
+			},
+		},
+
+		Result: Result{
+			"resource-x": "rxv3",
+		},
+	}),
+
+	Entry("finds next version that satisfies common constraints when using every version", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1}, // 1
+			},
+
+			BuildOutputs: []DBRow{
+				{Job: "shared-job", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1}, // 1
+				{Job: "shared-job", BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1}, // 2
+
+				{Job: "shared-job", BuildID: 2, Resource: "resource-x", Version: "rxv2", CheckOrder: 2}, // 3
+
+				{Job: "shared-job", BuildID: 3, Resource: "resource-x", Version: "rxv3", CheckOrder: 3}, // 4
+				{Job: "shared-job", BuildID: 3, Resource: "resource-y", Version: "ryv1", CheckOrder: 1}, // 2
+
+				{Job: "simple-a", BuildID: 4, Resource: "resource-x", Version: "rxv1", CheckOrder: 1}, // 1
+				{Job: "simple-a", BuildID: 5, Resource: "resource-x", Version: "rxv2", CheckOrder: 2}, // 3
+				{Job: "simple-a", BuildID: 6, Resource: "resource-x", Version: "rxv3", CheckOrder: 3}, // 4
+
+				{Job: "simple-b", BuildID: 7, Resource: "resource-y", Version: "ryv1", CheckOrder: 1}, // 2
+				{Job: "simple-b", BuildID: 8, Resource: "resource-y", Version: "ryv2", CheckOrder: 2}, // 5
+				{Job: "simple-b", BuildID: 9, Resource: "resource-y", Version: "ryv3", CheckOrder: 3}, // 6
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
+
+				{Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+				{Resource: "resource-y", Version: "ryv2", CheckOrder: 2},
+				{Resource: "resource-y", Version: "ryv3", CheckOrder: 3},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  "every",
+				Passed:   []string{"shared-job", "simple-a"},
+			},
+			{
+				Name:     "resource-y",
+				Resource: "resource-y",
+				Version:  "every",
+				Passed:   []string{"shared-job", "simple-b"},
+			},
+		},
+
+		Result: Result{
+			"resource-x": "rxv3",
+			"resource-y": "ryv1",
+		},
+	}),
+
 	Entry("check orders take precedence over version ID", Example{
 		DB: DB{
-			{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
-			{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+			},
 		},
 
 		Inputs: Inputs{
