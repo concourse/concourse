@@ -769,6 +769,215 @@ var _ = Describe("Worker", func() {
 			}))
 		})
 
+		Context("when many matching volumes are found in the db", func() {
+			var bcVol2, bcVol3 *bfakes.FakeVolume
+			var wVol2, wVol3 *wfakes.FakeVolume
+
+			BeforeEach(func() {
+				identifier := db.VolumeIdentifier{
+					Import: &db.ImportIdentifier{
+						WorkerName: "some-worker",
+						Path:       "some/path",
+					},
+				}
+				fakeGardenWorkerDB.GetVolumesByIdentifierReturns([]db.SavedVolume{
+					{
+						Volume: db.Volume{
+							Handle:     "vol-1-handle",
+							Identifier: identifier,
+						},
+					},
+					{
+						Volume: db.Volume{
+							Handle:     "vol-2-handle",
+							Identifier: identifier,
+						},
+					},
+					{
+						Volume: db.Volume{
+							Handle:     "vol-3-handle",
+							Identifier: identifier,
+						},
+					},
+				}, nil)
+
+				fakeGardenWorkerDB.GetVolumeTTLStub = func(handle string) (time.Duration, bool, error) {
+					return 0, true, nil
+				}
+
+				bcVol2 = new(bfakes.FakeVolume)
+				bcVol3 = new(bfakes.FakeVolume)
+
+				fakeBaggageclaimClient.LookupVolumeStub = func(logger lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
+					switch {
+					case handle == "vol-2-handle":
+						return bcVol2, true, nil
+					case handle == "vol-3-handle":
+						return bcVol3, true, nil
+					}
+					return new(bfakes.FakeVolume), true, nil
+				}
+
+				wVol2 = new(wfakes.FakeVolume)
+				wVol3 = new(wfakes.FakeVolume)
+
+				fakeVolumeFactory.BuildStub = func(logger lager.Logger, volume baggageclaim.Volume) (Volume, bool, error) {
+
+					switch {
+					case volume == bcVol2:
+						return wVol2, true, nil
+					case volume == bcVol3:
+						return wVol3, true, nil
+					}
+
+					return new(wfakes.FakeVolume), true, nil
+				}
+			})
+
+			It("expires all of the volumes except the oldest one in the db", func() {
+				Expect(fakeGardenWorkerDB.SetVolumeTTLCallCount()).To(Equal(2))
+				actualHandle, actualTTL := fakeGardenWorkerDB.SetVolumeTTLArgsForCall(0)
+				Expect(actualHandle).To(Equal("vol-2-handle"))
+				Expect(actualTTL).To(Equal(5 * time.Minute))
+
+				actualHandle, actualTTL = fakeGardenWorkerDB.SetVolumeTTLArgsForCall(1)
+				Expect(actualHandle).To(Equal("vol-3-handle"))
+				Expect(actualTTL).To(Equal(5 * time.Minute))
+			})
+
+			It("expires all of the volumes except the oldest one in baggageclaim", func() {
+				Expect(wVol2.SetTTLCallCount()).To(Equal(1))
+				Expect(wVol2.SetTTLArgsForCall(0)).To(Equal(5 * time.Minute))
+
+				Expect(wVol3.SetTTLCallCount()).To(Equal(1))
+				Expect(wVol3.SetTTLArgsForCall(0)).To(Equal(5 * time.Minute))
+			})
+
+			It("does not return an error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when looking up any of the extra volumes fails", func() {
+				BeforeEach(func() {
+					fakeBaggageclaimClient.LookupVolumeStub = func(logger lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
+						switch {
+						case handle == "vol-2-handle":
+							return nil, false, errors.New("some-error")
+						case handle == "vol-3-handle":
+							return bcVol3, true, nil
+						}
+						return new(bfakes.FakeVolume), true, nil
+					}
+				})
+
+				It("should continue to the next volume", func() {
+					Expect(wVol3.SetTTLCallCount()).To(Equal(1))
+					Expect(wVol3.SetTTLArgsForCall(0)).To(Equal(5 * time.Minute))
+				})
+			})
+
+			Context("when setting the ttl of any database volume fails", func() {
+				BeforeEach(func() {
+					fakeGardenWorkerDB.SetVolumeTTLStub = func(handle string, ttl time.Duration) error {
+						switch {
+						case handle == "vol-2-handle":
+							return errors.New("some-error")
+						case handle == "vol-1-handle":
+							return nil
+						}
+						return nil
+					}
+				})
+
+				It("should continue to the next volume", func() {
+					Expect(wVol3.SetTTLCallCount()).To(Equal(1))
+					Expect(wVol3.SetTTLArgsForCall(0)).To(Equal(5 * time.Minute))
+				})
+			})
+
+			Context("when setting the ttl of any baggageclaim volume fails", func() {
+				BeforeEach(func() {
+					wVol2.SetTTLReturns(errors.New("an-error"))
+				})
+
+				It("should continue to the next volume", func() {
+					Expect(wVol3.SetTTLCallCount()).To(Equal(1))
+					Expect(wVol3.SetTTLArgsForCall(0)).To(Equal(5 * time.Minute))
+				})
+			})
+
+			Context("when any volume that will be expired already has a TTL of 5 minutes", func() {
+				BeforeEach(func() {
+					fakeGardenWorkerDB.GetVolumeTTLStub = func(handle string) (time.Duration, bool, error) {
+						switch {
+						case handle == "vol-2-handle":
+							return 5 * time.Minute, true, nil
+						default:
+							return 0, true, nil
+						}
+					}
+				})
+
+				It("should not update the TTL", func() {
+					Expect(wVol2.SetTTLCallCount()).To(BeZero())
+				})
+			})
+
+			Context("when any volume that will be expired cannot be found", func() {
+				BeforeEach(func() {
+					fakeGardenWorkerDB.GetVolumeTTLStub = func(handle string) (time.Duration, bool, error) {
+						switch {
+						case handle == "vol-2-handle":
+							return 0, false, nil
+						default:
+							return 0, true, nil
+						}
+					}
+				})
+
+				It("should not try to set the VolumeTTL", func() {
+					Expect(fakeGardenWorkerDB.SetVolumeTTLCallCount()).To(Equal(1))
+					actualHandle, _ := fakeGardenWorkerDB.SetVolumeTTLArgsForCall(0)
+					Expect(actualHandle).To(Equal("vol-3-handle"))
+				})
+
+				It("expires all of the volumes except the oldest one in baggageclaim", func() {
+					Expect(wVol2.SetTTLCallCount()).To(Equal(1))
+					Expect(wVol2.SetTTLArgsForCall(0)).To(Equal(5 * time.Minute))
+
+					Expect(wVol3.SetTTLCallCount()).To(Equal(1))
+					Expect(wVol3.SetTTLArgsForCall(0)).To(Equal(5 * time.Minute))
+				})
+			})
+
+			Context("when any volume that will be expired cannot be found", func() {
+				BeforeEach(func() {
+					fakeGardenWorkerDB.GetVolumeTTLStub = func(handle string) (time.Duration, bool, error) {
+						switch {
+						case handle == "vol-2-handle":
+							return 0, false, errors.New("an-error")
+						default:
+							return 0, true, nil
+						}
+					}
+				})
+
+				It("should not try to set the VolumeTTL", func() {
+					Expect(fakeGardenWorkerDB.SetVolumeTTLCallCount()).To(Equal(1))
+					actualHandle, _ := fakeGardenWorkerDB.SetVolumeTTLArgsForCall(0)
+					Expect(actualHandle).To(Equal("vol-3-handle"))
+				})
+
+				It("expires all of the volumes except the oldest one in baggageclaim", func() {
+					Expect(wVol2.SetTTLCallCount()).To(Equal(1))
+					Expect(wVol2.SetTTLArgsForCall(0)).To(Equal(5 * time.Minute))
+
+					Expect(wVol3.SetTTLCallCount()).To(Equal(1))
+					Expect(wVol3.SetTTLArgsForCall(0)).To(Equal(5 * time.Minute))
+				})
+			})
+		})
+
 		Context("when the volume is found in the db", func() {
 			BeforeEach(func() {
 				fakeGardenWorkerDB.GetVolumesByIdentifierReturns([]db.SavedVolume{
@@ -892,7 +1101,6 @@ var _ = Describe("Worker", func() {
 				Expect(found).To(BeFalse())
 			})
 		})
-
 	})
 
 	Describe("CreateContainer", func() {

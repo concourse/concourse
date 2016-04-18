@@ -94,6 +94,67 @@ var _ = Describe("Keeping track of volumes", func() {
 			}
 		})
 
+		Describe("GetVolumesByIdentifier", func() {
+			var identifier db.VolumeIdentifier
+
+			BeforeEach(func() {
+				identifier = db.VolumeIdentifier{
+					COW: &db.COWIdentifier{
+						ParentVolumeHandle: "parent-volume-handle",
+					},
+				}
+
+				err := database.InsertVolume(db.Volume{
+					Handle:     "volume-1-handle",
+					WorkerName: "some-worker-name",
+					TTL:        5 * time.Minute,
+					Identifier: identifier,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				err = database.InsertVolume(db.Volume{
+					Handle:     "volume-2-handle",
+					WorkerName: "some-worker-name",
+					TTL:        5 * time.Minute,
+					Identifier: identifier,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				err = database.InsertVolume(db.Volume{
+					Handle:     "volume-3-handle",
+					WorkerName: "some-worker-name",
+					TTL:        5 * time.Minute,
+					Identifier: identifier,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				result, err := dbConn.Exec("UPDATE volumes SET id = 11 WHERE handle = 'volume-2-handle'")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+				result, err = dbConn.Exec("UPDATE volumes SET id = 12 WHERE handle = 'volume-1-handle'")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+				result, err = dbConn.Exec("UPDATE volumes SET id = 13 WHERE handle = 'volume-3-handle'")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.RowsAffected()).To(Equal(int64(1)))
+			})
+
+			It("returns volumes sorted by ID", func() {
+				volumes, err := database.GetVolumesByIdentifier(identifier)
+				Expect(err).NotTo(HaveOccurred())
+				for i, volume := range volumes {
+					switch i {
+					case 0:
+						Expect(volume.Handle).To(Equal("volume-2-handle"))
+					case 1:
+						Expect(volume.Handle).To(Equal("volume-1-handle"))
+					case 2:
+						Expect(volume.Handle).To(Equal("volume-3-handle"))
+					}
+				}
+			})
+		})
+
 		Describe("cow volumes", func() {
 			var cowIdentifier db.VolumeIdentifier
 

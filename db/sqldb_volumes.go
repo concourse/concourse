@@ -166,6 +166,7 @@ func (db *SQLDB) GetVolumesByIdentifier(id VolumeIdentifier) ([]SavedVolume, err
 		`
 
 	statement += "WHERE " + strings.Join(conditions, " AND ")
+	statement += "ORDER BY id ASC"
 	rows, err := db.conn.Query(statement, params...)
 	if err != nil {
 		return nil, err

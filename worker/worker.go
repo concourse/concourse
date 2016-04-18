@@ -51,6 +51,8 @@ type GardenWorkerDB interface {
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 
 	InsertVolume(db.Volume) error
+	SetVolumeTTL(string, time.Duration) error
+	GetVolumeTTL(string) (time.Duration, bool, error)
 	GetVolumesByIdentifier(db.VolumeIdentifier) ([]db.SavedVolume, error)
 }
 
@@ -127,10 +129,51 @@ func (worker *gardenWorker) FindVolume(
 		return nil, false, err
 	}
 
-	if len(savedVolumes) != 1 {
+	if len(savedVolumes) == 0 {
 		err = ErrMissingVolume
 		logger.Error("failed-to-find-volume-in-db", err)
 		return nil, false, err
+	}
+
+	if len(savedVolumes) > 1 {
+		for i := 1; i < len(savedVolumes); i++ {
+			handle := savedVolumes[i].Volume.Handle
+
+			ttl, found, err := worker.db.GetVolumeTTL(handle)
+			if ttl == VolumeTTL {
+				continue
+			}
+
+			if err != nil {
+				logger.Debug("failed-to-get-volume-ttl-from-db", lager.Data{
+					"handle": handle,
+				})
+			}
+
+			if found {
+				err := worker.db.SetVolumeTTL(handle, VolumeTTL)
+				if err != nil {
+					logger.Debug("failed-to-set-volume-ttl-in-db", lager.Data{
+						"handle": handle,
+					})
+				}
+			}
+
+			wVol, found, err := worker.LookupVolume(logger, handle)
+			if !found || err != nil {
+				logger.Debug("failed-to-look-up-volume", lager.Data{
+					"handle": handle,
+				})
+				continue
+			}
+
+			err = wVol.SetTTL(VolumeTTL)
+			if err != nil {
+				logger.Debug("failed-to-set-volume-ttl-in-baggageclaim", lager.Data{
+					"handle": handle,
+				})
+			}
+		}
 	}
 
 	savedVolume := savedVolumes[0]
