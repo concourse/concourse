@@ -132,7 +132,7 @@ type DB interface {
 
 	InsertVolume(data Volume) error
 	GetVolumes() ([]SavedVolume, error)
-	GetVolumeByIdentifier(VolumeIdentifier) (SavedVolume, bool, error)
+	GetVolumesByIdentifier(VolumeIdentifier) ([]SavedVolume, error)
 	ReapVolume(string) error
 	SetVolumeTTL(string, time.Duration) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)

@@ -82,15 +82,14 @@ type FakeWorkerDB struct {
 	insertVolumeReturns struct {
 		result1 error
 	}
-	GetVolumeByIdentifierStub        func(db.VolumeIdentifier) (db.SavedVolume, bool, error)
-	getVolumeByIdentifierMutex       sync.RWMutex
-	getVolumeByIdentifierArgsForCall []struct {
+	GetVolumesByIdentifierStub        func(db.VolumeIdentifier) ([]db.SavedVolume, error)
+	getVolumesByIdentifierMutex       sync.RWMutex
+	getVolumesByIdentifierArgsForCall []struct {
 		arg1 db.VolumeIdentifier
 	}
-	getVolumeByIdentifierReturns struct {
-		result1 db.SavedVolume
-		result2 bool
-		result3 error
+	getVolumesByIdentifierReturns struct {
+		result1 []db.SavedVolume
+		result2 error
 	}
 	GetVolumeTTLStub        func(volumeHandle string) (time.Duration, bool, error)
 	getVolumeTTLMutex       sync.RWMutex
@@ -379,38 +378,37 @@ func (fake *FakeWorkerDB) InsertVolumeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeWorkerDB) GetVolumeByIdentifier(arg1 db.VolumeIdentifier) (db.SavedVolume, bool, error) {
-	fake.getVolumeByIdentifierMutex.Lock()
-	fake.getVolumeByIdentifierArgsForCall = append(fake.getVolumeByIdentifierArgsForCall, struct {
+func (fake *FakeWorkerDB) GetVolumesByIdentifier(arg1 db.VolumeIdentifier) ([]db.SavedVolume, error) {
+	fake.getVolumesByIdentifierMutex.Lock()
+	fake.getVolumesByIdentifierArgsForCall = append(fake.getVolumesByIdentifierArgsForCall, struct {
 		arg1 db.VolumeIdentifier
 	}{arg1})
-	fake.getVolumeByIdentifierMutex.Unlock()
-	if fake.GetVolumeByIdentifierStub != nil {
-		return fake.GetVolumeByIdentifierStub(arg1)
+	fake.getVolumesByIdentifierMutex.Unlock()
+	if fake.GetVolumesByIdentifierStub != nil {
+		return fake.GetVolumesByIdentifierStub(arg1)
 	} else {
-		return fake.getVolumeByIdentifierReturns.result1, fake.getVolumeByIdentifierReturns.result2, fake.getVolumeByIdentifierReturns.result3
+		return fake.getVolumesByIdentifierReturns.result1, fake.getVolumesByIdentifierReturns.result2
 	}
 }
 
-func (fake *FakeWorkerDB) GetVolumeByIdentifierCallCount() int {
-	fake.getVolumeByIdentifierMutex.RLock()
-	defer fake.getVolumeByIdentifierMutex.RUnlock()
-	return len(fake.getVolumeByIdentifierArgsForCall)
+func (fake *FakeWorkerDB) GetVolumesByIdentifierCallCount() int {
+	fake.getVolumesByIdentifierMutex.RLock()
+	defer fake.getVolumesByIdentifierMutex.RUnlock()
+	return len(fake.getVolumesByIdentifierArgsForCall)
 }
 
-func (fake *FakeWorkerDB) GetVolumeByIdentifierArgsForCall(i int) db.VolumeIdentifier {
-	fake.getVolumeByIdentifierMutex.RLock()
-	defer fake.getVolumeByIdentifierMutex.RUnlock()
-	return fake.getVolumeByIdentifierArgsForCall[i].arg1
+func (fake *FakeWorkerDB) GetVolumesByIdentifierArgsForCall(i int) db.VolumeIdentifier {
+	fake.getVolumesByIdentifierMutex.RLock()
+	defer fake.getVolumesByIdentifierMutex.RUnlock()
+	return fake.getVolumesByIdentifierArgsForCall[i].arg1
 }
 
-func (fake *FakeWorkerDB) GetVolumeByIdentifierReturns(result1 db.SavedVolume, result2 bool, result3 error) {
-	fake.GetVolumeByIdentifierStub = nil
-	fake.getVolumeByIdentifierReturns = struct {
-		result1 db.SavedVolume
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+func (fake *FakeWorkerDB) GetVolumesByIdentifierReturns(result1 []db.SavedVolume, result2 error) {
+	fake.GetVolumesByIdentifierStub = nil
+	fake.getVolumesByIdentifierReturns = struct {
+		result1 []db.SavedVolume
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeWorkerDB) GetVolumeTTL(volumeHandle string) (time.Duration, bool, error) {

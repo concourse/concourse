@@ -114,9 +114,10 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 
 			It("can be retrieved", func() {
-				cowVolume, found, err := database.GetVolumeByIdentifier(cowIdentifier)
+				cowVolumes, err := database.GetVolumesByIdentifier(cowIdentifier)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
+				Expect(len(cowVolumes)).To(Equal(1))
+				cowVolume := cowVolumes[0]
 				Expect(cowVolume.Handle).To(Equal("cow-volume-handle"))
 				Expect(cowVolume.Volume.Identifier.COW.ParentVolumeHandle).To(Equal("parent-volume-handle"))
 				Expect(cowVolume.TTL).To(Equal(5 * time.Minute))
@@ -141,7 +142,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 
 			It("can be retrieved", func() {
-				actualVolume, found, err := database.GetVolumeByIdentifier(
+				actualVolumes, err := database.GetVolumesByIdentifier(
 					db.VolumeIdentifier{
 						ResourceCache: &db.ResourceCacheIdentifier{
 							ResourceVersion: atc.Version{"some": "version"},
@@ -149,7 +150,8 @@ var _ = Describe("Keeping track of volumes", func() {
 						},
 					})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
+				Expect(len(actualVolumes)).To(Equal(1))
+				actualVolume := actualVolumes[0]
 				Expect(actualVolume.WorkerName).To(Equal(volumeToInsert.WorkerName))
 				Expect(actualVolume.TTL).To(Equal(volumeToInsert.TTL))
 				Expect(actualVolume.ExpiresIn).To(BeNumerically("~", volumeToInsert.TTL, time.Second))
@@ -162,26 +164,26 @@ var _ = Describe("Keeping track of volumes", func() {
 				err := database.InsertVolume(volumeToInsert)
 				Expect(err).NotTo(HaveOccurred())
 
-				volume, found, err := database.GetVolumeByIdentifier(db.VolumeIdentifier{
+				volumes, err := database.GetVolumesByIdentifier(db.VolumeIdentifier{
 					ResourceCache: &db.ResourceCacheIdentifier{
 						ResourceVersion: atc.Version{"some": "version"},
 						ResourceHash:    "some-hash",
 					},
 				})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
+				Expect(len(volumes)).To(Equal(1))
 
-				err = database.ReapVolume(volume.Handle)
+				err = database.ReapVolume(volumes[0].Handle)
 				Expect(err).NotTo(HaveOccurred())
 
-				volume, found, err = database.GetVolumeByIdentifier(db.VolumeIdentifier{
+				volumes, err = database.GetVolumesByIdentifier(db.VolumeIdentifier{
 					ResourceCache: &db.ResourceCacheIdentifier{
 						ResourceVersion: atc.Version{"some": "version"},
 						ResourceHash:    "some-hash",
 					},
 				})
 				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeFalse())
+				Expect(len(volumes)).To(BeZero())
 			})
 
 			It("can insert the same data twice, without erroring or data duplication", func() {
@@ -208,21 +210,21 @@ var _ = Describe("Keeping track of volumes", func() {
 					volumeToInsert.TTL = -time.Hour
 				})
 
-				It("does not return them", func() {
+				It("does not return them from GetVolumes", func() {
 					volumes, err := database.GetVolumes()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(volumes).To(HaveLen(0))
 				})
 
-				It("does not return it", func() {
-					_, found, err := database.GetVolumeByIdentifier(db.VolumeIdentifier{
+				It("does not return it from GetVolumesByIdentifier", func() {
+					volumes, err := database.GetVolumesByIdentifier(db.VolumeIdentifier{
 						ResourceCache: &db.ResourceCacheIdentifier{
 							ResourceVersion: atc.Version{"some": "version"},
 							ResourceHash:    "some-hash",
 						},
 					})
 					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeFalse())
+					Expect(len(volumes)).To(BeZero())
 				})
 			})
 
@@ -286,14 +288,13 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 		})
 
-		It("does not return an error if the volume does not exist", func() {
-			_, found, err := database.GetVolumeByIdentifier(db.VolumeIdentifier{
+		It("does not return an error if no volume exists with that identifier", func() {
+			_, err := database.GetVolumesByIdentifier(db.VolumeIdentifier{
 				Output: &db.OutputIdentifier{
 					Name: "some-output",
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeFalse())
 		})
 
 		Describe("output volumes", func() {
@@ -318,9 +319,11 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 
 			It("can be retrieved", func() {
-				savedOutputVolume, found, err := database.GetVolumeByIdentifier(outputIdentifier)
+				savedOutputVolumes, err := database.GetVolumesByIdentifier(outputIdentifier)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
+				Expect(len(savedOutputVolumes)).To(Equal(1))
+
+				savedOutputVolume := savedOutputVolumes[0]
 				Expect(savedOutputVolume.WorkerName).To(Equal(outputVolume.WorkerName))
 				Expect(savedOutputVolume.TTL).To(Equal(outputVolume.TTL))
 				Expect(savedOutputVolume.Handle).To(Equal(outputVolume.Handle))
@@ -352,9 +355,10 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 
 			It("can be retrieved", func() {
-				savedImportVolume, found, err := database.GetVolumeByIdentifier(importIdentifier)
+				savedImportVolumes, err := database.GetVolumesByIdentifier(importIdentifier)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
+				Expect(len(savedImportVolumes)).To(Equal(1))
+				savedImportVolume := savedImportVolumes[0]
 				Expect(savedImportVolume.WorkerName).To(Equal(importVolume.WorkerName))
 				Expect(savedImportVolume.TTL).To(Equal(importVolume.TTL))
 				Expect(savedImportVolume.Handle).To(Equal(importVolume.Handle))

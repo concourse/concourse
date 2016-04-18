@@ -51,7 +51,7 @@ type GardenWorkerDB interface {
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 
 	InsertVolume(db.Volume) error
-	GetVolumeByIdentifier(db.VolumeIdentifier) (db.SavedVolume, bool, error)
+	GetVolumesByIdentifier(db.VolumeIdentifier) ([]db.SavedVolume, error)
 }
 
 type gardenWorker struct {
@@ -122,16 +122,18 @@ func (worker *gardenWorker) FindVolume(
 	}
 
 	volumeIdentifier := volumeSpec.Strategy.dbIdentifier()
-	savedVolume, found, err := worker.db.GetVolumeByIdentifier(volumeIdentifier)
+	savedVolumes, err := worker.db.GetVolumesByIdentifier(volumeIdentifier)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !found {
+	if len(savedVolumes) != 1 {
 		err = ErrMissingVolume
 		logger.Error("failed-to-find-volume-in-db", err)
 		return nil, false, err
 	}
+
+	savedVolume := savedVolumes[0]
 
 	return worker.LookupVolume(logger, savedVolume.Handle)
 }

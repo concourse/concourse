@@ -37,15 +37,14 @@ type FakeGardenWorkerDB struct {
 	insertVolumeReturns struct {
 		result1 error
 	}
-	GetVolumeByIdentifierStub        func(db.VolumeIdentifier) (db.SavedVolume, bool, error)
-	getVolumeByIdentifierMutex       sync.RWMutex
-	getVolumeByIdentifierArgsForCall []struct {
+	GetVolumesByIdentifierStub        func(db.VolumeIdentifier) ([]db.SavedVolume, error)
+	getVolumesByIdentifierMutex       sync.RWMutex
+	getVolumesByIdentifierArgsForCall []struct {
 		arg1 db.VolumeIdentifier
 	}
-	getVolumeByIdentifierReturns struct {
-		result1 db.SavedVolume
-		result2 bool
-		result3 error
+	getVolumesByIdentifierReturns struct {
+		result1 []db.SavedVolume
+		result2 error
 	}
 }
 
@@ -148,38 +147,37 @@ func (fake *FakeGardenWorkerDB) InsertVolumeReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeGardenWorkerDB) GetVolumeByIdentifier(arg1 db.VolumeIdentifier) (db.SavedVolume, bool, error) {
-	fake.getVolumeByIdentifierMutex.Lock()
-	fake.getVolumeByIdentifierArgsForCall = append(fake.getVolumeByIdentifierArgsForCall, struct {
+func (fake *FakeGardenWorkerDB) GetVolumesByIdentifier(arg1 db.VolumeIdentifier) ([]db.SavedVolume, error) {
+	fake.getVolumesByIdentifierMutex.Lock()
+	fake.getVolumesByIdentifierArgsForCall = append(fake.getVolumesByIdentifierArgsForCall, struct {
 		arg1 db.VolumeIdentifier
 	}{arg1})
-	fake.getVolumeByIdentifierMutex.Unlock()
-	if fake.GetVolumeByIdentifierStub != nil {
-		return fake.GetVolumeByIdentifierStub(arg1)
+	fake.getVolumesByIdentifierMutex.Unlock()
+	if fake.GetVolumesByIdentifierStub != nil {
+		return fake.GetVolumesByIdentifierStub(arg1)
 	} else {
-		return fake.getVolumeByIdentifierReturns.result1, fake.getVolumeByIdentifierReturns.result2, fake.getVolumeByIdentifierReturns.result3
+		return fake.getVolumesByIdentifierReturns.result1, fake.getVolumesByIdentifierReturns.result2
 	}
 }
 
-func (fake *FakeGardenWorkerDB) GetVolumeByIdentifierCallCount() int {
-	fake.getVolumeByIdentifierMutex.RLock()
-	defer fake.getVolumeByIdentifierMutex.RUnlock()
-	return len(fake.getVolumeByIdentifierArgsForCall)
+func (fake *FakeGardenWorkerDB) GetVolumesByIdentifierCallCount() int {
+	fake.getVolumesByIdentifierMutex.RLock()
+	defer fake.getVolumesByIdentifierMutex.RUnlock()
+	return len(fake.getVolumesByIdentifierArgsForCall)
 }
 
-func (fake *FakeGardenWorkerDB) GetVolumeByIdentifierArgsForCall(i int) db.VolumeIdentifier {
-	fake.getVolumeByIdentifierMutex.RLock()
-	defer fake.getVolumeByIdentifierMutex.RUnlock()
-	return fake.getVolumeByIdentifierArgsForCall[i].arg1
+func (fake *FakeGardenWorkerDB) GetVolumesByIdentifierArgsForCall(i int) db.VolumeIdentifier {
+	fake.getVolumesByIdentifierMutex.RLock()
+	defer fake.getVolumesByIdentifierMutex.RUnlock()
+	return fake.getVolumesByIdentifierArgsForCall[i].arg1
 }
 
-func (fake *FakeGardenWorkerDB) GetVolumeByIdentifierReturns(result1 db.SavedVolume, result2 bool, result3 error) {
-	fake.GetVolumeByIdentifierStub = nil
-	fake.getVolumeByIdentifierReturns = struct {
-		result1 db.SavedVolume
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+func (fake *FakeGardenWorkerDB) GetVolumesByIdentifierReturns(result1 []db.SavedVolume, result2 error) {
+	fake.GetVolumesByIdentifierStub = nil
+	fake.getVolumesByIdentifierReturns = struct {
+		result1 []db.SavedVolume
+		result2 error
+	}{result1, result2}
 }
 
 var _ worker.GardenWorkerDB = new(FakeGardenWorkerDB)

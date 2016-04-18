@@ -760,8 +760,8 @@ var _ = Describe("Worker", func() {
 		})
 
 		It("tries to find the volume in the db", func() {
-			Expect(fakeGardenWorkerDB.GetVolumeByIdentifierCallCount()).To(Equal(1))
-			Expect(fakeGardenWorkerDB.GetVolumeByIdentifierArgsForCall(0)).To(Equal(db.VolumeIdentifier{
+			Expect(fakeGardenWorkerDB.GetVolumesByIdentifierCallCount()).To(Equal(1))
+			Expect(fakeGardenWorkerDB.GetVolumesByIdentifierArgsForCall(0)).To(Equal(db.VolumeIdentifier{
 				Import: &db.ImportIdentifier{
 					Path:       "/some/path",
 					WorkerName: "worker-name",
@@ -771,11 +771,13 @@ var _ = Describe("Worker", func() {
 
 		Context("when the volume is found in the db", func() {
 			BeforeEach(func() {
-				fakeGardenWorkerDB.GetVolumeByIdentifierReturns(db.SavedVolume{
-					Volume: db.Volume{
-						Handle: "db-vol-handle",
+				fakeGardenWorkerDB.GetVolumesByIdentifierReturns([]db.SavedVolume{
+					{
+						Volume: db.Volume{
+							Handle: "db-vol-handle",
+						},
 					},
-				}, true, nil)
+				}, nil)
 			})
 
 			It("tries to find the db volume in baggageclaim", func() {
@@ -868,7 +870,7 @@ var _ = Describe("Worker", func() {
 
 		Context("when the volume is not found in the db", func() {
 			BeforeEach(func() {
-				fakeGardenWorkerDB.GetVolumeByIdentifierReturns(db.SavedVolume{}, false, nil)
+				fakeGardenWorkerDB.GetVolumesByIdentifierReturns(nil, nil)
 			})
 
 			It("returns an error", func() {
@@ -882,7 +884,7 @@ var _ = Describe("Worker", func() {
 
 			BeforeEach(func() {
 				dbErr = errors.New("an-error")
-				fakeGardenWorkerDB.GetVolumeByIdentifierReturns(db.SavedVolume{}, false, dbErr)
+				fakeGardenWorkerDB.GetVolumesByIdentifierReturns(nil, dbErr)
 			})
 
 			It("returns an error", func() {
@@ -1759,8 +1761,8 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("tries to find an existing import volume", func() {
-					Expect(fakeGardenWorkerDB.GetVolumeByIdentifierCallCount()).To(Equal(1))
-					Expect(fakeGardenWorkerDB.GetVolumeByIdentifierArgsForCall(0)).To(Equal(db.VolumeIdentifier{
+					Expect(fakeGardenWorkerDB.GetVolumesByIdentifierCallCount()).To(Equal(1))
+					Expect(fakeGardenWorkerDB.GetVolumesByIdentifierArgsForCall(0)).To(Equal(db.VolumeIdentifier{
 						Import: &db.ImportIdentifier{
 							WorkerName: "some-worker",
 							Path:       "some-resource-image",
@@ -1838,15 +1840,17 @@ var _ = Describe("Worker", func() {
 
 				Context("when the import volume can be retrieved", func() {
 					BeforeEach(func() {
-						fakeGardenWorkerDB.GetVolumeByIdentifierReturns(db.SavedVolume{
-							Volume: db.Volume{
-								Handle:     "imported-volume-handle",
-								WorkerName: "worker-name",
-								TTL:        1 * time.Millisecond,
-								Identifier: db.VolumeIdentifier{},
+						fakeGardenWorkerDB.GetVolumesByIdentifierReturns([]db.SavedVolume{
+							{
+								Volume: db.Volume{
+									Handle:     "imported-volume-handle",
+									WorkerName: "worker-name",
+									TTL:        1 * time.Millisecond,
+									Identifier: db.VolumeIdentifier{},
+								},
+								ID: 5,
 							},
-							ID: 5,
-						}, true, nil)
+						}, nil)
 
 						fakeBaggageclaimClient.LookupVolumeReturns(importBCVolume, true, nil)
 					})
@@ -1879,7 +1883,7 @@ var _ = Describe("Worker", func() {
 
 				Context("when the import volume cannot be retrieved", func() {
 					BeforeEach(func() {
-						fakeGardenWorkerDB.GetVolumeByIdentifierReturns(db.SavedVolume{}, false, nil)
+						fakeGardenWorkerDB.GetVolumesByIdentifierReturns(nil, nil)
 					})
 
 					It("creates import and COW volumes for resource image", func() {
