@@ -25,4 +25,11 @@ var _ = Describe("URLFlag", func() {
 		Expect(flag.String()).To(Equal("https://example.com"))
 	})
 
+	It("returns an error when a scheme is not specified", func() {
+		flag := atccmd.URLFlag{}
+
+		err := flag.UnmarshalFlag("example.com/")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("missing scheme in 'example.com'"))
+	})
 })

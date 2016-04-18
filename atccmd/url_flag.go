@@ -1,6 +1,7 @@
 package atccmd
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 )
@@ -12,8 +13,13 @@ type URLFlag struct {
 func (u *URLFlag) UnmarshalFlag(value string) error {
 	value = normalizeURL(value)
 	parsedURL, err := url.Parse(value)
+
 	if err != nil {
 		return err
+	}
+
+	if parsedURL.Scheme == "" {
+		return fmt.Errorf("missing scheme in '%s'", value)
 	}
 
 	u.url = parsedURL
