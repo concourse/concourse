@@ -132,7 +132,7 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 	volumesImage := filepath.Join(cmd.WorkDir, "volumes.img")
 	volumesDir := filepath.Join(cmd.WorkDir, "volumes")
 
-	err := os.MkdirAll(volumesDir, 0755)
+	err = os.MkdirAll(volumesDir, 0755)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (cmd *WorkerCommand) supportsBtrfs() (bool, error) {
 	scanner := bufio.NewScanner(fs)
 
 	for scanner.Scan() {
-		if strings.Contains(s.Text(), "btrfs") {
+		if strings.Contains(scanner.Text(), "btrfs") {
 			return true, nil
 		}
 	}
