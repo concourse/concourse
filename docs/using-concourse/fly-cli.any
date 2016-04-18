@@ -67,6 +67,16 @@ flag. Once you've learned what the commands do, you may want to consult
   token. You can then use the alias like normal.
 }
 
+\section{\code{targets}\aux{: List the current targets}}{fly-targets}{
+  To see what targets are currently known to \code{fly}, run:
+
+  \codeblock{bash}{
+  $ fly targets
+  }
+
+  This will show each target's name, URL, and when its token expires.
+}
+
 \section{\code{sync}\aux{: Update your local copy of \code{fly}}}{fly-sync}{
   Occasionally we add additional features to \code{fly} or make changes to the
   communiction between it and Concourse's API server. To make sure you're
