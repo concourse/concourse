@@ -125,7 +125,7 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 	}
 
 	if !supportsBtrfs {
-		logger.Info("using-native-volume-driver", nil)
+		logger.Info("using-naive-volume-driver", nil)
 		return cmd.naiveBaggageclaimRunner(logger)
 	}
 
