@@ -15,8 +15,8 @@
   }
 }
 
-.build-step.first-occurrence .header { background: @base03; }
-.groups li.active a { background: @base03; }
+.build-step.first-occurrence .header { background: @base0G; }
+.groups li.active a { background: @base0G; }
 
 .legend dt.pending { background: @base04; }
 .legend dt.started { background: @base0A; }
@@ -48,6 +48,13 @@
 .aborted { background: @base0F; }
 .started { background: @base0A; }
 .paused { background: @base0D; }
+
+.build-step .header i.pending { color: @base04; background: transparent; }
+.build-step .header i.started { color: @base0A; background: transparent; }
+.build-step .header i.succeeded { color: @base0B; background: transparent; }
+.build-step .header i.failed { color: @base08; background: transparent; }
+.build-step .header i.errored { color: @base09; background: transparent; }
+.build-step .header i.aborted { color: @base0F; background: transparent; }
 
 .fail-triangle {
   stroke: @base01;
