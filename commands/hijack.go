@@ -124,8 +124,12 @@ func (command *HijackCommand) Execute(args []string) error {
 	result, err := func() (int, error) { // so the term.Restore() can run before the os.Exit()
 		var in io.Reader
 
-		term, err := pty.OpenRawTerm()
-		if err == nil {
+		if pty.IsTerminal() {
+			term, err := pty.OpenRawTerm()
+			if err != nil {
+				return -1, err
+			}
+
 			defer term.Restore()
 
 			in = term

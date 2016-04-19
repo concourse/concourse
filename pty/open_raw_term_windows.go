@@ -7,6 +7,10 @@ import (
 	"os"
 )
 
+func IsTerminal() bool {
+	return true
+}
+
 func OpenRawTerm() (Term, error) {
 	return noopRestoreTerm{
 		Reader: os.Stdin,
