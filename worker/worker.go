@@ -353,6 +353,7 @@ dance:
 					importVolumeSpec := VolumeSpec{
 						Strategy: HostRootFSStrategy{
 							Path:       t.Image,
+							Version:    t.Version,
 							WorkerName: worker.Name(),
 						},
 						Privileged: true,

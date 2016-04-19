@@ -55,7 +55,11 @@ var _ = Describe("Worker", func() {
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		activeContainers = 42
 		resourceTypes = []atc.WorkerResourceType{
-			{Type: "some-resource", Image: "some-resource-image"},
+			{
+				Type:    "some-resource",
+				Image:   "some-resource-image",
+				Version: "some-version",
+			},
 		}
 		platform = "some-platform"
 		tags = atc.Tags{"some", "tags"}
@@ -1974,6 +1978,7 @@ var _ = Describe("Worker", func() {
 						Import: &db.ImportIdentifier{
 							WorkerName: "some-worker",
 							Path:       "some-resource-image",
+							Version:    "some-version",
 						},
 					}))
 				})
@@ -1998,6 +2003,7 @@ var _ = Describe("Worker", func() {
 							Import: &db.ImportIdentifier{
 								WorkerName: "some-worker",
 								Path:       "some-resource-image",
+								Version:    "some-version",
 							},
 						},
 					}))

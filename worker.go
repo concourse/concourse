@@ -19,6 +19,7 @@ type Worker struct {
 }
 
 type WorkerResourceType struct {
-	Type  string `json:"type"`
-	Image string `json:"image"`
+	Type    string `json:"type"`
+	Image   string `json:"image"`
+	Version string `json:"version"`
 }

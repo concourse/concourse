@@ -37,6 +37,7 @@ type OutputIdentifier struct {
 type ImportIdentifier struct {
 	WorkerName string
 	Path       string
+	Version    string
 }
 
 type SavedVolume struct {

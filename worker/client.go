@@ -115,6 +115,7 @@ func (strategy ContainerRootFSStrategy) dbIdentifier() db.VolumeIdentifier {
 type HostRootFSStrategy struct {
 	Path       string
 	WorkerName string
+	Version    string
 }
 
 func (strategy HostRootFSStrategy) baggageclaimStrategy() baggageclaim.Strategy {
@@ -128,6 +129,7 @@ func (strategy HostRootFSStrategy) dbIdentifier() db.VolumeIdentifier {
 		Import: &db.ImportIdentifier{
 			Path:       strategy.Path,
 			WorkerName: strategy.WorkerName,
+			Version:    strategy.Version,
 		},
 	}
 }
