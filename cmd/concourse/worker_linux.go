@@ -136,7 +136,7 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 
 		err = filesystem.Create(fsStat.Blocks * uint64(fsStat.Bsize))
 		if err != nil {
-			logger.Error("falling-back-on-naive-driver", error)
+			logger.Error("falling-back-on-naive-driver", err)
 			return cmd.naiveBaggageclaimRunner(logger)
 		}
 	}
