@@ -10,14 +10,14 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 )
 
-//go:generate counterfeiter . ScannerFactory
+//go:generate counterfeiter . ScanRunnerFactory
 
 type Runner struct {
 	logger lager.Logger
 
 	noop bool
 
-	scannerFactory    ScannerFactory
+	scanRunnerFactory ScanRunnerFactory
 	db                db.PipelineDB
 	pipelineDBFactory db.PipelineDBFactory
 	syncInterval      time.Duration
@@ -26,16 +26,16 @@ type Runner struct {
 func NewRunner(
 	logger lager.Logger,
 	noop bool,
-	scannerFactory ScannerFactory,
+	scanRunnerFactory ScanRunnerFactory,
 	db db.PipelineDB,
 	syncInterval time.Duration,
 ) *Runner {
 	return &Runner{
-		logger:         logger,
-		noop:           noop,
-		scannerFactory: scannerFactory,
-		db:             db,
-		syncInterval:   syncInterval,
+		logger:            logger,
+		noop:              noop,
+		scanRunnerFactory: scanRunnerFactory,
+		db:                db,
+		syncInterval:      syncInterval,
 	}
 }
 
@@ -124,7 +124,7 @@ func (runner *Runner) tick(
 		logger := runner.logger.Session("scan", lager.Data{
 			"pipeline-scoped-name": scopedName,
 		})
-		runner := runner.scannerFactory.ScanResourceTypeRunner(logger, resourceType.Name)
+		runner := runner.scanRunnerFactory.ScanResourceTypeRunner(logger, resourceType.Name)
 
 		// avoid deadlock if exit event is blocked; inserting in this case
 		// will block on the event being consumed (which is in this select)
@@ -148,7 +148,7 @@ func (runner *Runner) tick(
 		logger := runner.logger.Session("scan", lager.Data{
 			"pipeline-scoped-name": scopedName,
 		})
-		runner := runner.scannerFactory.ScanResourceRunner(logger, resource.Name)
+		runner := runner.scanRunnerFactory.ScanResourceRunner(logger, resource.Name)
 
 		// avoid deadlock if exit event is blocked; inserting in this case
 		// will block on the event being consumed (which is in this select)
