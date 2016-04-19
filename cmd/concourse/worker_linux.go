@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -118,21 +117,10 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 }
 
 func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
-	supportsBtrfs, err := cmd.supportsBtrfs()
-	if err != nil {
-		logger.Error("failed-to-check-for-btrfs-support", err)
-		return nil, err
-	}
-
-	if !supportsBtrfs {
-		logger.Info("using-naive-volume-driver", nil)
-		return cmd.naiveBaggageclaimRunner(logger)
-	}
-
 	volumesImage := filepath.Join(cmd.WorkDir, "volumes.img")
 	volumesDir := filepath.Join(cmd.WorkDir, "volumes")
 
-	err = os.MkdirAll(volumesDir, 0755)
+	err := os.MkdirAll(volumesDir, 0755)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +136,8 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 
 		err = filesystem.Create(fsStat.Blocks * uint64(fsStat.Bsize))
 		if err != nil {
-			return nil, fmt.Errorf("failed to set up volumes filesystem: %s", err)
+			logger.Error("falling-back-on-naive-driver", error)
+			return cmd.naiveBaggageclaimRunner(logger)
 		}
 	}
 
@@ -166,25 +155,6 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 	}
 
 	return bc.Runner(nil)
-}
-
-func (cmd *WorkerCommand) supportsBtrfs() (bool, error) {
-	fs, err := os.Open("/proc/filesystems")
-	if err != nil {
-		return false, err
-	}
-
-	defer fs.Close()
-
-	scanner := bufio.NewScanner(fs)
-
-	for scanner.Scan() {
-		if strings.Contains(scanner.Text(), "btrfs") {
-			return true, nil
-		}
-	}
-
-	return false, nil
 }
 
 func (cmd *WorkerCommand) extractBusybox(linux string) (string, error) {
