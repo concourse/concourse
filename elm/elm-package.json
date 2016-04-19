@@ -18,7 +18,7 @@
         "evancz/elm-http": "3.0.0 <= v < 4.0.0",
         "laszlopandy/elm-console": "1.0.2 <= v < 2.0.0",
         "mgold/elm-date-format": "1.0.3 <= v < 2.0.0",
-        "vito/elm-ansi": "6.0.1 <= v < 7.0.0"
+        "vito/elm-ansi": "7.0.1 <= v < 8.0.0"
     },
     "elm-version": "0.16.0 <= v < 0.17.0"
 }
