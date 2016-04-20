@@ -59,45 +59,24 @@ func (c *volumeClient) FindVolume(
 	if len(savedVolumes) > 1 {
 		for i := 1; i < len(savedVolumes); i++ {
 			handle := savedVolumes[i].Volume.Handle
-
-			ttl, found, err := c.db.GetVolumeTTL(handle)
-			if ttl == VolumeTTL {
-				continue
-			}
-
-			if err != nil {
-				logger.Debug("failed-to-get-volume-ttl-from-db", lager.Data{
-					"handle": handle,
-				})
-			}
-
-			if found {
-				err := c.db.SetVolumeTTL(handle, VolumeTTL)
-				if err != nil {
-					logger.Debug("failed-to-set-volume-ttl-in-db", lager.Data{
-						"handle": handle,
-					})
-				}
-			}
-
-			wVol, found, err := c.LookupVolume(logger, handle)
-			if !found || err != nil {
-				logger.Debug("failed-to-look-up-volume", lager.Data{
-					"handle": handle,
-				})
-				continue
-			}
-
-			err = wVol.SetTTL(VolumeTTL)
-			if err != nil {
-				logger.Debug("failed-to-set-volume-ttl-in-baggageclaim", lager.Data{
-					"handle": handle,
-				})
-			}
+			c.expireVolume(logger, handle, false)
 		}
 	}
 
 	savedVolume := savedVolumes[0]
+
+	volumeIdentifier = volumeSpec.Strategy.fuzzyIdentifier()
+	savedVolumes, err = c.db.GetVolumesByIdentifier(volumeIdentifier)
+	if err != nil {
+		return nil, false, err
+	}
+
+	for _, sv := range savedVolumes {
+		handle := sv.Volume.Handle
+		if handle != savedVolume.Volume.Handle {
+			c.expireVolume(logger, handle, false)
+		}
+	}
 
 	return c.LookupVolume(logger, savedVolume.Handle)
 }
@@ -192,4 +171,55 @@ func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume,
 	}
 
 	return c.volumeFactory.Build(logger, bcVolume)
+}
+
+func (c *volumeClient) expireVolume(logger lager.Logger, handle string, bailOnError bool) error {
+	ttl, found, err := c.db.GetVolumeTTL(handle)
+	if ttl == VolumeTTL {
+		return nil
+	}
+
+	if err != nil {
+		logger.Debug("failed-to-get-volume-ttl-from-db", lager.Data{
+			"handle": handle,
+		})
+		if bailOnError {
+			return err
+		}
+	}
+
+	if found {
+		err := c.db.SetVolumeTTL(handle, VolumeTTL)
+		if err != nil {
+			logger.Debug("failed-to-set-volume-ttl-in-db", lager.Data{
+				"handle": handle,
+			})
+			if bailOnError {
+				return err
+			}
+		}
+	}
+
+	wVol, found, err := c.LookupVolume(logger, handle)
+	if !found || err != nil {
+		logger.Debug("failed-to-look-up-volume", lager.Data{
+			"handle": handle,
+		})
+	}
+
+	if err != nil {
+		return err
+	}
+
+	err = wVol.SetTTL(VolumeTTL)
+	if err != nil {
+		logger.Debug("failed-to-set-volume-ttl-in-baggageclaim", lager.Data{
+			"handle": handle,
+		})
+		if bailOnError {
+			return err
+		}
+	}
+
+	return nil
 }

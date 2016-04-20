@@ -751,15 +751,18 @@ var _ = Describe("Worker", func() {
 							return new(wfakes.FakeVolume), nil
 						}
 					}
+
+					fakeVolumeClient.FindVolumeReturns(importVolume, true, nil)
 				})
 
 				It("tries to find an existing import volume", func() {
 					Expect(fakeVolumeClient.FindVolumeCallCount()).To(Equal(1))
 					_, actualVolumeSpec := fakeVolumeClient.FindVolumeArgsForCall(0)
+					version := "some-version"
 					Expect(actualVolumeSpec).To(Equal(VolumeSpec{
 						Strategy: HostRootFSStrategy{
 							Path:       "some-resource-image",
-							Version:    "some-version",
+							Version:    &version,
 							WorkerName: "some-worker",
 						},
 						Privileged: true,
@@ -768,23 +771,17 @@ var _ = Describe("Worker", func() {
 					}))
 				})
 
-				Context("when the import volume can be retrieved", func() {
-					BeforeEach(func() {
-						fakeVolumeClient.FindVolumeReturns(importVolume, true, nil)
-					})
-
-					It("tries to create a COW volume with the import volume as its parent", func() {
-						Expect(fakeVolumeClient.CreateVolumeCallCount()).To(Equal(1))
-						_, actualVolumeSpec := fakeVolumeClient.CreateVolumeArgsForCall(0)
-						Expect(actualVolumeSpec).To(Equal(VolumeSpec{
-							Strategy: ContainerRootFSStrategy{
-								Parent: importVolume,
-							},
-							Privileged: true,
-							Properties: VolumeProperties{},
-							TTL:        5 * time.Minute,
-						}))
-					})
+				It("tries to create a COW volume with the import volume as its parent", func() {
+					Expect(fakeVolumeClient.CreateVolumeCallCount()).To(Equal(1))
+					_, actualVolumeSpec := fakeVolumeClient.CreateVolumeArgsForCall(0)
+					Expect(actualVolumeSpec).To(Equal(VolumeSpec{
+						Strategy: ContainerRootFSStrategy{
+							Parent: importVolume,
+						},
+						Privileged: true,
+						Properties: VolumeProperties{},
+						TTL:        5 * time.Minute,
+					}))
 				})
 
 				Context("when the import volume cannot be retrieved", func() {
@@ -795,10 +792,11 @@ var _ = Describe("Worker", func() {
 					It("creates import and COW volumes for the resource image", func() {
 						Expect(fakeVolumeClient.CreateVolumeCallCount()).To(Equal(2))
 						_, actualVolumeSpec := fakeVolumeClient.CreateVolumeArgsForCall(0)
+						version := "some-version"
 						Expect(actualVolumeSpec).To(Equal(VolumeSpec{
 							Strategy: HostRootFSStrategy{
 								Path:       "some-resource-image",
-								Version:    "some-version",
+								Version:    &version,
 								WorkerName: "some-worker",
 							},
 							Privileged: true,

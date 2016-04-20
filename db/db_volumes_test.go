@@ -396,12 +396,15 @@ var _ = Describe("Keeping track of volumes", func() {
 		Describe("import volumes", func() {
 			var importVolume db.Volume
 			var importIdentifier db.VolumeIdentifier
+			var importIdentifierVersion string
 
 			BeforeEach(func() {
+				importIdentifierVersion = "some-version"
 				importIdentifier = db.VolumeIdentifier{
 					Import: &db.ImportIdentifier{
 						WorkerName: insertedWorker.Name,
 						Path:       "/some/path",
+						Version:    &importIdentifierVersion,
 					},
 				}
 				importVolume = db.Volume{
@@ -425,7 +428,32 @@ var _ = Describe("Keeping track of volumes", func() {
 				Expect(savedImportVolume.Handle).To(Equal(importVolume.Handle))
 				Expect(savedImportVolume.Volume.Identifier.Import.WorkerName).To(Equal(insertedWorker.Name))
 				Expect(savedImportVolume.Volume.Identifier.Import.Path).To(Equal("/some/path"))
+				Expect(savedImportVolume.Volume.Identifier.Import.Version).To(Equal(&importIdentifierVersion))
 				Expect(savedImportVolume.ExpiresIn).To(BeNumerically("~", importVolume.TTL, time.Second))
+			})
+
+			It("doesn't try to filter by version when the Version is nil", func() {
+				identifierMissingVersion := db.VolumeIdentifier{
+					Import: &db.ImportIdentifier{
+						WorkerName: insertedWorker.Name,
+						Path:       "/some/path",
+					},
+				}
+				err := database.InsertVolume(db.Volume{
+					WorkerName: insertedWorker.Name,
+					TTL:        5 * time.Minute,
+					Handle:     "my-other-import-handle",
+					Identifier: identifierMissingVersion,
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				volumes, err := database.GetVolumesByIdentifier(identifierMissingVersion)
+				Expect(err).NotTo(HaveOccurred())
+				handles := []string{}
+				for i := range volumes {
+					handles = append(handles, volumes[i].Handle)
+				}
+				Expect(handles).To(ConsistOf([]string{"my-import-handle", "my-other-import-handle"}))
 			})
 		})
 	})

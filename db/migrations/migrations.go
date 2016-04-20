@@ -100,4 +100,5 @@ var Migrations = []migration.Migrator{
 	AddHttpProxyHttpsProxyNoProxyToWorkers,
 	AddModifiedTimeToBuildInputs,
 	AddPathToVolumes,
+	AddHostPathVersionToVolumes,
 }

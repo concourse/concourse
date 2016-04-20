@@ -58,6 +58,10 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 		columns = append(columns, "path")
 		params = append(params, data.Identifier.Import.Path)
 		values = append(values, fmt.Sprintf("$%d", len(params)))
+
+		columns = append(columns, "host_path_version")
+		params = append(params, data.Identifier.Import.Version)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
 	}
 
 	_, err = tx.Exec(
@@ -108,7 +112,8 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 			id,
 			original_volume_handle,
 			output_name,
-			path
+			path,
+			host_path_version
 		FROM volumes
 	`)
 	if err != nil {
@@ -148,6 +153,9 @@ func (db *SQLDB) GetVolumesByIdentifier(id VolumeIdentifier) ([]SavedVolume, err
 	case id.Import != nil:
 		addParam("path", id.Import.Path)
 		addParam("worker_name", id.Import.WorkerName)
+		if id.Import.Version != nil {
+			addParam("host_path_version", id.Import.Version)
+		}
 	}
 
 	statement := `
@@ -161,7 +169,8 @@ func (db *SQLDB) GetVolumesByIdentifier(id VolumeIdentifier) ([]SavedVolume, err
 			id,
 			original_volume_handle,
 			output_name,
-			path
+			path,
+			host_path_version
 		FROM volumes
 		`
 
@@ -200,7 +209,8 @@ func (db *SQLDB) GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 			v.id,
 			v.original_volume_handle,
 			v.output_name,
-			v.path
+			v.path,
+			v.host_path_version
 		FROM volumes v
 			INNER JOIN image_resource_versions i
 				ON i.version = v.resource_version
@@ -274,7 +284,8 @@ func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {
 			id,
 			original_volume_handle,
 			output_name,
-			path
+			path,
+			host_path_version
 		FROM volumes
 		WHERE handle = $1
 	`, originalVolumeHandle)
@@ -317,6 +328,7 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 		originalVolumeHandle sql.NullString
 		outputName           sql.NullString
 		path                 sql.NullString
+		hostPathVersion      sql.NullString
 	)
 
 	volumes := []SavedVolume{}
@@ -333,6 +345,7 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 			&originalVolumeHandle,
 			&outputName,
 			&path,
+			&hostPathVersion,
 		)
 		if err != nil {
 			return []SavedVolume{}, err
@@ -366,6 +379,7 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 			volume.Volume.Identifier.Import = &ImportIdentifier{
 				Path:       path.String,
 				WorkerName: volume.WorkerName,
+				Version:    &hostPathVersion.String,
 			}
 		}
 
