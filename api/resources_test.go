@@ -1,6 +1,8 @@
 package api_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -10,8 +12,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/api/resourceserver"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
+	radarfakes "github.com/concourse/atc/radar/fakes"
 )
 
 var _ = Describe("Resources API", func() {
@@ -450,6 +454,101 @@ var _ = Describe("Resources API", func() {
 			Context("when unpausing the resource fails", func() {
 				BeforeEach(func() {
 					fakePipelineDB.UnpauseResourceReturns(errors.New("welp"))
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns Unauthorized", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
+	Describe("GET /api/v1/pipelines/:pipeline_name/resources/:resource_name/check", func() {
+		var fakeScanner *radarfakes.FakeScanner
+		var checkRequestBody resourceserver.CheckRequestBody
+		var response *http.Response
+
+		BeforeEach(func() {
+			fakeScanner = new(radarfakes.FakeScanner)
+			fakeScannerFactory.NewResourceScannerReturns(fakeScanner)
+
+			checkRequestBody = resourceserver.CheckRequestBody{}
+		})
+
+		JustBeforeEach(func() {
+			reqPayload, err := json.Marshal(checkRequestBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			request, err := http.NewRequest("POST", server.URL+"/api/v1/pipelines/a-pipeline/resources/resource-name/check", bytes.NewBuffer(reqPayload))
+			Expect(err).NotTo(HaveOccurred())
+
+			request.Header.Set("Content-Type", "application/json")
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			It("injects the proper pipelineDB", func() {
+				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
+				Expect(pipelineName).To(Equal("a-pipeline"))
+				Expect(teamName).To(Equal(atc.DefaultTeamName))
+			})
+
+			Context("when checking succeeds", func() {
+				BeforeEach(func() {
+					fakeScanner.ScanFromVersionReturns(nil)
+				})
+
+				Context("when checking no version specified", func() {
+					It("called Scan with no version specified", func() {
+						Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+						_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+						Expect(actualResourceName).To(Equal("resource-name"))
+						Expect(actualFromVersion).To(BeNil())
+					})
+
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
+
+				Context("when checking with a version specified", func() {
+					BeforeEach(func() {
+						checkRequestBody = resourceserver.CheckRequestBody{
+							From: atc.Version{
+								"some-version-key": "some-version-value",
+							},
+						}
+					})
+
+					It("called Scan with a fromVersion specified", func() {
+						Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+						_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+						Expect(actualResourceName).To(Equal("resource-name"))
+						Expect(actualFromVersion).To(Equal(checkRequestBody.From))
+					})
+				})
+			})
+
+			Context("when checking the resource fails", func() {
+				BeforeEach(func() {
+					fakeScanner.ScanFromVersionReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {

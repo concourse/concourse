@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
 	"github.com/tedsuo/ifrit"
 
@@ -24,6 +25,7 @@ func (err ResourceNotConfiguredError) Error() string {
 type Scanner interface {
 	Run(lager.Logger, string) (time.Duration, error)
 	Scan(lager.Logger, string) error
+	ScanFromVersion(lager.Logger, string, atc.Version) error
 }
 
 type ScanRunnerFactory interface {

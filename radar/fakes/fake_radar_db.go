@@ -48,10 +48,10 @@ type FakeRadarDB struct {
 		result3 bool
 		result4 error
 	}
-	GetLatestVersionedResourceStub        func(resource db.SavedResource) (db.SavedVersionedResource, bool, error)
+	GetLatestVersionedResourceStub        func(resourceName string) (db.SavedVersionedResource, bool, error)
 	getLatestVersionedResourceMutex       sync.RWMutex
 	getLatestVersionedResourceArgsForCall []struct {
-		resource db.SavedResource
+		resourceName string
 	}
 	getLatestVersionedResourceReturns struct {
 		result1 db.SavedVersionedResource
@@ -280,14 +280,14 @@ func (fake *FakeRadarDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigV
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeRadarDB) GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, bool, error) {
+func (fake *FakeRadarDB) GetLatestVersionedResource(resourceName string) (db.SavedVersionedResource, bool, error) {
 	fake.getLatestVersionedResourceMutex.Lock()
 	fake.getLatestVersionedResourceArgsForCall = append(fake.getLatestVersionedResourceArgsForCall, struct {
-		resource db.SavedResource
-	}{resource})
+		resourceName string
+	}{resourceName})
 	fake.getLatestVersionedResourceMutex.Unlock()
 	if fake.GetLatestVersionedResourceStub != nil {
-		return fake.GetLatestVersionedResourceStub(resource)
+		return fake.GetLatestVersionedResourceStub(resourceName)
 	} else {
 		return fake.getLatestVersionedResourceReturns.result1, fake.getLatestVersionedResourceReturns.result2, fake.getLatestVersionedResourceReturns.result3
 	}
@@ -299,10 +299,10 @@ func (fake *FakeRadarDB) GetLatestVersionedResourceCallCount() int {
 	return len(fake.getLatestVersionedResourceArgsForCall)
 }
 
-func (fake *FakeRadarDB) GetLatestVersionedResourceArgsForCall(i int) db.SavedResource {
+func (fake *FakeRadarDB) GetLatestVersionedResourceArgsForCall(i int) string {
 	fake.getLatestVersionedResourceMutex.RLock()
 	defer fake.getLatestVersionedResourceMutex.RUnlock()
-	return fake.getLatestVersionedResourceArgsForCall[i].resource
+	return fake.getLatestVersionedResourceArgsForCall[i].resourceName
 }
 
 func (fake *FakeRadarDB) GetLatestVersionedResourceReturns(result1 db.SavedVersionedResource, result2 bool, result3 error) {

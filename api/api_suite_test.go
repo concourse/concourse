@@ -19,6 +19,7 @@ import (
 	containerserverfakes "github.com/concourse/atc/api/containerserver/fakes"
 	jobserverfakes "github.com/concourse/atc/api/jobserver/fakes"
 	pipeserverfakes "github.com/concourse/atc/api/pipes/fakes"
+	resourceserverfakes "github.com/concourse/atc/api/resourceserver/fakes"
 	teamserverfakes "github.com/concourse/atc/api/teamserver/fakes"
 	volumeserverfakes "github.com/concourse/atc/api/volumeserver/fakes"
 	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
@@ -53,6 +54,7 @@ var (
 	pipelinesDB                   *dbfakes.FakePipelinesDB
 	teamDB                        *teamserverfakes.FakeTeamDB
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
+	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
 	configValidationErrorMessages []string
 	configValidationWarnings      []config.Warning
 	peerAddr                      string
@@ -114,6 +116,7 @@ var _ = BeforeEach(func() {
 	fakeWorkerClient = new(workerfakes.FakeClient)
 
 	fakeSchedulerFactory = new(jobserverfakes.FakeSchedulerFactory)
+	fakeScannerFactory = new(resourceserverfakes.FakeScannerFactory)
 
 	var err error
 
@@ -161,6 +164,7 @@ var _ = BeforeEach(func() {
 		fakeWorkerClient,
 
 		fakeSchedulerFactory,
+		fakeScannerFactory,
 
 		sink,
 

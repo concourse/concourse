@@ -81,6 +81,10 @@ func (scanner *resourceTypeScanner) Scan(logger lager.Logger, resourceTypeName s
 	return nil
 }
 
+func (scanner *resourceTypeScanner) ScanFromVersion(logger lager.Logger, resourceTypeName string, fromVersion atc.Version) error {
+	return nil
+}
+
 func (scanner *resourceTypeScanner) resourceTypeScan(logger lager.Logger, resourceType atc.ResourceType) error {
 	vr, found, err := scanner.db.GetResourceType(resourceType.Name)
 	if err != nil {
