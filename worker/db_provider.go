@@ -133,9 +133,17 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		tikTok,
 	)
 
+	volumeClient := NewVolumeClient(
+		bClient,
+		provider.db,
+		volumeFactory,
+		savedWorker.Name,
+	)
+
 	return NewGardenWorker(
 		gclient.New(gardenConn),
 		bClient,
+		volumeClient,
 		volumeFactory,
 		provider.imageFetcher,
 		provider.db,

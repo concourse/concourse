@@ -59,6 +59,7 @@ type GardenWorkerDB interface {
 type gardenWorker struct {
 	gardenClient       garden.Client
 	baggageclaimClient baggageclaim.Client
+	volumeClient       VolumeClient
 	volumeFactory      VolumeFactory
 
 	imageFetcher ImageFetcher
@@ -81,6 +82,7 @@ type gardenWorker struct {
 func NewGardenWorker(
 	gardenClient garden.Client,
 	baggageclaimClient baggageclaim.Client,
+	volumeClient VolumeClient,
 	volumeFactory VolumeFactory,
 	imageFetcher ImageFetcher,
 	db GardenWorkerDB,
@@ -98,6 +100,7 @@ func NewGardenWorker(
 	return &gardenWorker{
 		gardenClient:       gardenClient,
 		baggageclaimClient: baggageclaimClient,
+		volumeClient:       volumeClient,
 		volumeFactory:      volumeFactory,
 		imageFetcher:       imageFetcher,
 		db:                 db,
@@ -115,162 +118,20 @@ func NewGardenWorker(
 	}
 }
 
-func (worker *gardenWorker) FindVolume(
-	logger lager.Logger,
-	volumeSpec VolumeSpec,
-) (Volume, bool, error) {
-	if worker.baggageclaimClient == nil {
-		return nil, false, ErrNoVolumeManager
-	}
-
-	volumeIdentifier := volumeSpec.Strategy.dbIdentifier()
-	savedVolumes, err := worker.db.GetVolumesByIdentifier(volumeIdentifier)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if len(savedVolumes) == 0 {
-		err = ErrMissingVolume
-		logger.Error("failed-to-find-volume-in-db", err)
-		return nil, false, err
-	}
-
-	if len(savedVolumes) > 1 {
-		for i := 1; i < len(savedVolumes); i++ {
-			handle := savedVolumes[i].Volume.Handle
-
-			ttl, found, err := worker.db.GetVolumeTTL(handle)
-			if ttl == VolumeTTL {
-				continue
-			}
-
-			if err != nil {
-				logger.Debug("failed-to-get-volume-ttl-from-db", lager.Data{
-					"handle": handle,
-				})
-			}
-
-			if found {
-				err := worker.db.SetVolumeTTL(handle, VolumeTTL)
-				if err != nil {
-					logger.Debug("failed-to-set-volume-ttl-in-db", lager.Data{
-						"handle": handle,
-					})
-				}
-			}
-
-			wVol, found, err := worker.LookupVolume(logger, handle)
-			if !found || err != nil {
-				logger.Debug("failed-to-look-up-volume", lager.Data{
-					"handle": handle,
-				})
-				continue
-			}
-
-			err = wVol.SetTTL(VolumeTTL)
-			if err != nil {
-				logger.Debug("failed-to-set-volume-ttl-in-baggageclaim", lager.Data{
-					"handle": handle,
-				})
-			}
-		}
-	}
-
-	savedVolume := savedVolumes[0]
-
-	return worker.LookupVolume(logger, savedVolume.Handle)
+func (worker *gardenWorker) FindVolume(logger lager.Logger, volumeSpec VolumeSpec) (Volume, bool, error) {
+	return worker.volumeClient.FindVolume(logger, volumeSpec)
 }
 
-func (worker *gardenWorker) CreateVolume(
-	logger lager.Logger,
-	volumeSpec VolumeSpec,
-) (Volume, error) {
-	if worker.baggageclaimClient == nil {
-		return nil, ErrNoVolumeManager
-	}
-
-	bcVolume, err := worker.baggageclaimClient.CreateVolume(
-		logger.Session("create-volume"),
-		volumeSpec.baggageclaimVolumeSpec(),
-	)
-	if err != nil {
-		logger.Error("failed-to-create-volume", err)
-		return nil, err
-	}
-
-	err = worker.db.InsertVolume(db.Volume{
-		Handle:     bcVolume.Handle(),
-		WorkerName: worker.Name(),
-		TTL:        volumeSpec.TTL,
-		Identifier: volumeSpec.Strategy.dbIdentifier(),
-	})
-	if err != nil {
-		logger.Error("failed-to-save-volume-to-db", err)
-		return nil, err
-	}
-
-	volume, found, err := worker.volumeFactory.Build(logger, bcVolume)
-	if err != nil {
-		logger.Error("failed-build-volume", err)
-		return nil, err
-	}
-
-	if !found {
-		err = ErrMissingVolume
-		logger.Error("volume-expired-immediately", err)
-		return nil, err
-	}
-
-	return volume, nil
+func (worker *gardenWorker) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
+	return worker.volumeClient.CreateVolume(logger, volumeSpec)
 }
 
 func (worker *gardenWorker) ListVolumes(logger lager.Logger, properties VolumeProperties) ([]Volume, error) {
-	if worker.baggageclaimClient == nil {
-		return []Volume{}, nil
-	}
-
-	bcVolumes, err := worker.baggageclaimClient.ListVolumes(
-		logger,
-		baggageclaim.VolumeProperties(properties),
-	)
-	if err != nil {
-		logger.Error("failed-to-list-volumes", err)
-		return nil, err
-	}
-
-	volumes := []Volume{}
-	for _, bcVolume := range bcVolumes {
-		volume, found, err := worker.volumeFactory.Build(logger, bcVolume)
-		if err != nil {
-			return []Volume{}, err
-		}
-
-		if !found {
-			continue
-		}
-
-		volumes = append(volumes, volume)
-	}
-
-	return volumes, nil
+	return worker.volumeClient.ListVolumes(logger, properties)
 }
 
 func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {
-	if worker.baggageclaimClient == nil {
-		return nil, false, nil
-	}
-
-	bcVolume, found, err := worker.baggageclaimClient.LookupVolume(logger, handle)
-	if err != nil {
-		logger.Error("failed-to-lookup-volume", err)
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	return worker.volumeFactory.Build(logger, bcVolume)
+	return worker.volumeClient.LookupVolume(logger, handle)
 }
 
 func (worker *gardenWorker) CreateContainer(
