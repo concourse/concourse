@@ -34,25 +34,6 @@
     end
   end
 
-  def merge_resource_types(base_resource_types, additional_resource_types)
-    merged_resource_types = {}
-
-    base_resource_types.each do |resource_type|
-      merged_resource_types[resource_type.fetch("type")] = resource_type.fetch("image")
-    end
-
-    additional_resource_types.each do |resource_type|
-      merged_resource_types[resource_type.fetch("type")] = resource_type.fetch("image")
-    end
-
-    merged_resource_types.map do |type, image|
-      {
-        "type" => type,
-        "image" => image,
-      }
-    end
-  end
-
   payload = {
     "name" => "HOSTNAME_REPLACE_ME",
 
@@ -62,10 +43,7 @@
     "addr" => garden_addr,
     "baggageclaim_url" => baggageclaim_url,
 
-    "resource_types" => merge_resource_types(
-      p("resource_types"),
-      p("additional_resource_types")
-    ),
+    "resource_types" => p("additional_resource_types"),
   }
 
   if_p("http_proxy_url") do |http_proxy_url|
