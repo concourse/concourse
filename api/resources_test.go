@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/api/resourceserver"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	radarfakes "github.com/concourse/atc/radar/fakes"
@@ -475,14 +474,14 @@ var _ = Describe("Resources API", func() {
 
 	Describe("GET /api/v1/pipelines/:pipeline_name/resources/:resource_name/check", func() {
 		var fakeScanner *radarfakes.FakeScanner
-		var checkRequestBody resourceserver.CheckRequestBody
+		var checkRequestBody atc.CheckRequestBody
 		var response *http.Response
 
 		BeforeEach(func() {
 			fakeScanner = new(radarfakes.FakeScanner)
 			fakeScannerFactory.NewResourceScannerReturns(fakeScanner)
 
-			checkRequestBody = resourceserver.CheckRequestBody{}
+			checkRequestBody = atc.CheckRequestBody{}
 		})
 
 		JustBeforeEach(func() {
@@ -530,7 +529,7 @@ var _ = Describe("Resources API", func() {
 
 				Context("when checking with a version specified", func() {
 					BeforeEach(func() {
-						checkRequestBody = resourceserver.CheckRequestBody{
+						checkRequestBody = atc.CheckRequestBody{
 							From: atc.Version{
 								"some-version-key": "some-version-value",
 							},

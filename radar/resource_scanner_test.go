@@ -676,4 +676,50 @@ var _ = Describe("ResourceScanner", func() {
 			})
 		})
 	})
+
+	Describe("ScanFromVersion", func() {
+		var (
+			fakeResource *rfakes.FakeResource
+			fromVersion  atc.Version
+
+			scanErr error
+		)
+
+		BeforeEach(func() {
+			fakeResource = new(rfakes.FakeResource)
+			fakeTracker.InitReturns(fakeResource, nil)
+
+			fromVersion = nil
+		})
+
+		JustBeforeEach(func() {
+			scanErr = scanner.ScanFromVersion(lagertest.NewTestLogger("test"), "some-resource", fromVersion)
+		})
+
+		Context("if the lease can be acquired", func() {
+			BeforeEach(func() {
+				fakeRadarDB.LeaseResourceCheckingReturns(fakeLease, true, nil)
+			})
+
+			Context("when fromVersion is nil", func() {
+				It("checks from nil", func() {
+					_, version := fakeResource.CheckArgsForCall(0)
+					Expect(version).To(BeNil())
+				})
+			})
+
+			Context("when fromVersion is specified", func() {
+				BeforeEach(func() {
+					fromVersion = atc.Version{
+						"version": "1",
+					}
+				})
+
+				It("checks from it", func() {
+					_, version := fakeResource.CheckArgsForCall(0)
+					Expect(version).To(Equal(atc.Version{"version": "1"}))
+				})
+			})
+		})
+	})
 })

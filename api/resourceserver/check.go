@@ -10,17 +10,13 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-type CheckRequestBody struct {
-	From atc.Version `json:"from"`
-}
-
 func (s *Server) CheckResource(pipelineDB db.PipelineDB) http.Handler {
 	logger := s.logger.Session("check-resource")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := rata.Param(r, "resource_name")
 
-		var reqBody CheckRequestBody
+		var reqBody atc.CheckRequestBody
 		err := json.NewDecoder(r.Body).Decode(&reqBody)
 		if err != nil {
 			logger.Info("malformed-request", lager.Data{"error": err.Error()})
