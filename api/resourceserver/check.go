@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/resource"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 )
@@ -27,12 +28,20 @@ func (s *Server) CheckResource(pipelineDB db.PipelineDB) http.Handler {
 		scanner := s.scannerFactory.NewResourceScanner(pipelineDB)
 
 		err = scanner.ScanFromVersion(logger, resourceName, reqBody.From)
-		if err != nil {
-			logger.Error("failed-to-check-resource", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		switch scanErr := err.(type) {
+		case resource.ErrResourceScriptFailed:
+			checkResponseBody := atc.CheckResponseBody{
+				ExitStatus: scanErr.ExitStatus,
+				Stderr:     scanErr.Stderr,
+			}
 
-		w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(checkResponseBody)
+		case error:
+			w.WriteHeader(http.StatusInternalServerError)
+		default:
+			w.WriteHeader(http.StatusOK)
+		}
 	})
 }

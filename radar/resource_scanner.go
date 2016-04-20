@@ -83,7 +83,9 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		return interval, err
 	}
 
-	err = scanner.scan(logger.Session("tick"), resourceConfig, resourceTypes, savedResource, atc.Version(vr.Version))
+	err = swallowErrResourceScriptFailed(
+		scanner.scan(logger.Session("tick"), resourceConfig, resourceTypes, savedResource, atc.Version(vr.Version)),
+	)
 
 	lease.Break()
 
@@ -152,10 +154,18 @@ func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) e
 		return err
 	}
 
-	return scanner.ScanFromVersion(logger, resourceName, atc.Version(vr.Version))
+	return swallowErrResourceScriptFailed(
+		scanner.ScanFromVersion(logger, resourceName, atc.Version(vr.Version)),
+	)
 }
 
-func (scanner *resourceScanner) scan(logger lager.Logger, resourceConfig atc.ResourceConfig, resourceTypes atc.ResourceTypes, savedResource db.SavedResource, fromVersion atc.Version) error {
+func (scanner *resourceScanner) scan(
+	logger lager.Logger,
+	resourceConfig atc.ResourceConfig,
+	resourceTypes atc.ResourceTypes,
+	savedResource db.SavedResource,
+	fromVersion atc.Version,
+) error {
 	pipelinePaused, err := scanner.db.IsPaused()
 	if err != nil {
 		logger.Error("failed-to-check-if-pipeline-paused", err)
@@ -236,7 +246,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceConfig atc.Res
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
-			return nil
+			return rErr
 		}
 
 		logger.Error("failed-to-check", err)
@@ -261,6 +271,13 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceConfig atc.Res
 	}
 
 	return nil
+}
+
+func swallowErrResourceScriptFailed(err error) error {
+	if _, ok := err.(resource.ErrResourceScriptFailed); ok {
+		return nil
+	}
+	return err
 }
 
 func (scanner *resourceScanner) checkInterval(resourceConfig atc.ResourceConfig) (time.Duration, error) {

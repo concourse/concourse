@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	radarfakes "github.com/concourse/atc/radar/fakes"
+	"github.com/concourse/atc/resource"
 )
 
 var _ = Describe("Resources API", func() {
@@ -545,13 +546,42 @@ var _ = Describe("Resources API", func() {
 				})
 			})
 
-			Context("when checking the resource fails", func() {
+			Context("when checking the resource fails internally", func() {
 				BeforeEach(func() {
 					fakeScanner.ScanFromVersionReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when checking the resource fails with ErrResourceScriptFailed", func() {
+				BeforeEach(func() {
+					fakeScanner.ScanFromVersionReturns(
+						resource.ErrResourceScriptFailed{
+							ExitStatus: 42,
+							Stderr:     "my tooth",
+						},
+					)
+				})
+
+				It("returns 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("returns the script's exit status and stderr", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`{
+						"exit_status": 42,
+						"stderr": "my tooth"
+					}`))
+				})
+
+				It("returns application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 				})
 			})
 		})
