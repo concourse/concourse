@@ -537,6 +537,7 @@ viewStep actions model {id, name, log, state, error, expanded, version, metadata
         , typeIcon icon
         , viewVersion version
         , Html.h3 [] [Html.text name]
+        , Html.div [class "clearfix"] []
         ]
     , Html.div
         [ classList
