@@ -41,7 +41,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	assetsDir, err := cmd.restoreVersionedAssets(logger.Session("restore-assets"))
+	assetsDir, err := cmd.restoreVersionedAssets(logger.Session("unpack-assets"))
 	if err != nil {
 		return atc.Worker{}, nil, err
 	}
@@ -123,13 +123,15 @@ func (cmd *WorkerCommand) restoreVersionedAssets(logger lager.Logger) (string, e
 
 	_, err := os.Stat(okMarker)
 	if err == nil {
-		logger.Info("assets-already-restored")
+		logger.Info("already-done")
 		return restoredDir, nil
 	}
 
+	logger.Info("unpacking")
+
 	err = bindata.RestoreAssets(assetsDir, "linux")
 	if err != nil {
-		logger.Error("failed-to-restore-assets", err)
+		logger.Error("failed-to-unpack", err)
 		return "", err
 	}
 
