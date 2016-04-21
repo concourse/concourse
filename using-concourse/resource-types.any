@@ -107,6 +107,8 @@ before using it!
     \hyperlink{https://github.com/robdimsdale/concourse-pipeline-resource}{Concourse Pipelines}
   }{
     \hyperlink{https://github.com/hpcloud/hipchat-notification-resource}{HipChat Notifications}
+  }{
+    \hyperlink{https://github.com/redfactorlabs/concourse-smuggler-resource}{Smuggler: generic resource framework}
   }
 
   \section{Adding to this list}{
