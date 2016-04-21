@@ -1,0 +1,14 @@
+---
+name: resource_discovery
+
+dependencies:
+  - golang
+
+files:
+  - bosh_utils/resource_discovery/*.go # gosub
+  - github.com/bmizerany/pat/*.go # gosub
+  - github.com/concourse/atc/*.go # gosub
+  - github.com/jessevdk/go-flags/*.go # gosub
+  - github.com/mitchellh/mapstructure/*.go # gosub
+  - github.com/tedsuo/rata/*.go # gosub
+  - gopkg.in/yaml.v2/*.go # gosub

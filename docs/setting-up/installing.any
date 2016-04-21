@@ -136,13 +136,17 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
         --basic-auth-password mypass \\
         --session-signing-key session_signing_key \\
         --tsa-host-key host_key \\
-        --tsa-authorized-keys authorized_worker_keys
+        --tsa-authorized-keys authorized_worker_keys \\
+        --external-url http://my-ci.example.com
       }
 
       This assumes you have a local Postgres server running on the default port
       (\code{5432}) with an \code{atc} database, accessible by the current
       user. If your database lives elsewhere, just specify the
       \code{--postgres-data-source} flag, which is also demonstrated below.
+
+      Be sure to replace the \code{--external-url} flag with the URI you expect
+      to use to reach your Concourse server.
     }
 
     \section{Cluster with remote Postgres}{
@@ -215,14 +219,13 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
     doesn't really make sense, as each worker runs as many containers as
     Concourse requests of it.
 
-    To spin up a worker and register it with your Concourse cluster at
-    \code{ci.example.com}, run:
+    To spin up a worker and register it with your Concourse cluster running
+    locally, run:
 
     \codeblock{bash}{
     sudo concourse worker \\
       --work-dir /opt/concourse/worker \\
-      --peer-ip 10.0.48.0 \\
-      --tsa-host ci.example.com \\
+      --tsa-host 127.0.0.1 \\
       --tsa-public-key host_key.pub \\
       --tsa-worker-private-key worker_key
     }
@@ -234,16 +237,11 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
     make sure it has plenty of disk space available, as it's where all the disk
     usage across your builds and resources will end up.
 
-    The \code{--peer-ip} flag specifies the IP of this worker reachable by
-    other \code{web} nodes in your cluster. If your worker is in a private
-    network, this flag can be omitted, and the TSA will forward connections to
-    the worker via a SSH tunnel instead.
-
     The \code{--tsa-host} refers to wherever your TSA node is listening, by
     default on port \code{2222} (pass \code{--tsa-port} if you've configured it
     differently). This may be an address to a load balancer if you're running
     multiple \code{web} nodes, or just an IP, perhaps \code{127.0.0.1} if
-    you're tinkering.
+    you're running everything on one box.
 
     The \code{--tsa-public-key} flag is used to ensure we're connecting to the
     TSA we should be connecting to, and is used like \code{known_hosts} with
@@ -253,9 +251,6 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
     The \code{--tsa-worker-private-key} flag specifies the key to use when
     authenticating to the TSA. Refer to \reference{generating-keys} if you're
     not sure what this means.
-
-    If you are starting a windows worker you will likely need \code{--bind-ip
-    127.0.0.1} as well.
   }
 }
 
