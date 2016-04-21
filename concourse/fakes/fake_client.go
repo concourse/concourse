@@ -330,6 +330,17 @@ type FakeClient struct {
 		result3 bool
 		result4 error
 	}
+	CheckResourceStub        func(pipelineName string, resourceName string, version atc.Version) (bool, error)
+	checkResourceMutex       sync.RWMutex
+	checkResourceArgsForCall []struct {
+		pipelineName string
+		resourceName string
+		version      atc.Version
+	}
+	checkResourceReturns struct {
+		result1 bool
+		result2 error
+	}
 	BuildsWithVersionAsInputStub        func(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error)
 	buildsWithVersionAsInputMutex       sync.RWMutex
 	buildsWithVersionAsInputArgsForCall []struct {
@@ -1447,6 +1458,41 @@ func (fake *FakeClient) ResourceVersionsReturns(result1 []atc.VersionedResource,
 		result3 bool
 		result4 error
 	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeClient) CheckResource(pipelineName string, resourceName string, version atc.Version) (bool, error) {
+	fake.checkResourceMutex.Lock()
+	fake.checkResourceArgsForCall = append(fake.checkResourceArgsForCall, struct {
+		pipelineName string
+		resourceName string
+		version      atc.Version
+	}{pipelineName, resourceName, version})
+	fake.checkResourceMutex.Unlock()
+	if fake.CheckResourceStub != nil {
+		return fake.CheckResourceStub(pipelineName, resourceName, version)
+	} else {
+		return fake.checkResourceReturns.result1, fake.checkResourceReturns.result2
+	}
+}
+
+func (fake *FakeClient) CheckResourceCallCount() int {
+	fake.checkResourceMutex.RLock()
+	defer fake.checkResourceMutex.RUnlock()
+	return len(fake.checkResourceArgsForCall)
+}
+
+func (fake *FakeClient) CheckResourceArgsForCall(i int) (string, string, atc.Version) {
+	fake.checkResourceMutex.RLock()
+	defer fake.checkResourceMutex.RUnlock()
+	return fake.checkResourceArgsForCall[i].pipelineName, fake.checkResourceArgsForCall[i].resourceName, fake.checkResourceArgsForCall[i].version
+}
+
+func (fake *FakeClient) CheckResourceReturns(result1 bool, result2 error) {
+	fake.CheckResourceStub = nil
+	fake.checkResourceReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeClient) BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
