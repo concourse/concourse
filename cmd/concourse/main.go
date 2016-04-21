@@ -7,8 +7,16 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
+// overridden via linker flags
+var Version = "0.0.0-dev"
+
 func main() {
 	var cmd ConcourseCommand
+
+	cmd.Version = func() {
+		fmt.Println(Version)
+		os.Exit(0)
+	}
 
 	parser := flags.NewParser(&cmd, flags.HelpFlag|flags.PassDoubleDash)
 	parser.NamespaceDelimiter = "-"
