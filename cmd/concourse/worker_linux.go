@@ -194,7 +194,6 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 func (cmd *WorkerCommand) extractResources(logger lager.Logger, assetsDir string) ([]atc.WorkerResourceType, error) {
 	var resourceTypes []atc.WorkerResourceType
 
-	binDir := filepath.Join(assetsDir, "bin")
 	resourcesDir := filepath.Join(assetsDir, "resources")
 
 	infos, err := ioutil.ReadDir(resourcesDir)
