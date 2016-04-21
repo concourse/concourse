@@ -114,11 +114,13 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 func (cmd *WorkerCommand) restoreVersionedAssets() (string, error) {
 	assetsDir := filepath.Join(cmd.WorkDir, Version)
 
+	restoredDir := filepath.Join(assetsDir, "linux")
+
 	okMarker := filepath.Join(assetsDir, "ok")
 
 	_, err := os.Stat(okMarker)
 	if err == nil {
-		return assetsDir, nil
+		return restoredDir, nil
 	}
 
 	err = bindata.RestoreAssets(assetsDir, "linux")
@@ -136,7 +138,7 @@ func (cmd *WorkerCommand) restoreVersionedAssets() (string, error) {
 		return "", err
 	}
 
-	return assetsDir, nil
+	return restoredDir, nil
 }
 
 func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
