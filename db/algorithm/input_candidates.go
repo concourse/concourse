@@ -43,31 +43,31 @@ func (candidates InputCandidates) Reduce(jobs JobSet) (InputMapping, bool) {
 }
 
 func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping InputMapping) (InputMapping, bool) {
-	newCandidates := candidates.pruneToCommonBuilds(jobs)
+	newInputCandidates := candidates.pruneToCommonBuilds(jobs)
 
-	for input, versionCandidates := range newCandidates {
-		versionIDs := versionCandidates.VersionIDs()
+	for i, inputVersionCandidates := range newInputCandidates {
+		versionIDs := inputVersionCandidates.VersionIDs()
 		if len(versionIDs) == 1 {
 			// already reduced
 			continue
 		}
 
-		usingEveryVersion := versionCandidates.UseEveryVersion()
+		usingEveryVersion := inputVersionCandidates.UsingEveryVersion()
 
-		for i, id := range versionIDs {
+		for j, id := range versionIDs {
 			buildForPreviousOrCurrentVersionExists := func() bool {
-				return versionCandidates.ExistingBuildResolver.ExistsForVersion(id) ||
-					i == len(versionIDs)-1 ||
-					versionCandidates.ExistingBuildResolver.ExistsForVersion(versionIDs[i+1])
+				return inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(id) ||
+					j == len(versionIDs)-1 ||
+					inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(versionIDs[j+1])
 			}
 
-			limitedToVersion := versionCandidates.ForVersion(id)
+			limitedToVersion := inputVersionCandidates.ForVersion(id)
 
-			inputCandidates := newCandidates[input]
+			inputCandidates := newInputCandidates[i]
 			inputCandidates.VersionCandidates = limitedToVersion
-			newCandidates[input] = inputCandidates
+			newInputCandidates[i] = inputCandidates
 
-			mapping, ok := newCandidates.reduce(jobs, lastSatisfiedMapping)
+			mapping, ok := newInputCandidates.reduce(jobs, lastSatisfiedMapping)
 			if ok {
 				lastSatisfiedMapping = mapping
 				if !usingEveryVersion || buildForPreviousOrCurrentVersionExists() {
@@ -79,25 +79,25 @@ func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping Input
 				}
 			}
 
-			newCandidates[input] = versionCandidates
+			newInputCandidates[i] = inputVersionCandidates
 		}
 	}
 
 	mapping := InputMapping{}
-	for _, versionCandidates := range newCandidates {
-		versionIDs := versionCandidates.VersionIDs()
+	for _, inputVersionCandidates := range newInputCandidates {
+		versionIDs := inputVersionCandidates.VersionIDs()
 		if len(versionIDs) != 1 {
 			// could not reduce
 			return nil, false
 		}
 
-		jobIDs := versionCandidates.JobIDs()
-		if !jobIDs.Equal(versionCandidates.Passed) {
+		jobIDs := inputVersionCandidates.JobIDs()
+		if !jobIDs.Equal(inputVersionCandidates.Passed) {
 			// did not satisfy all passed constraints
 			return nil, false
 		}
 
-		mapping[versionCandidates.Input] = versionIDs[0]
+		mapping[inputVersionCandidates.Input] = versionIDs[0]
 	}
 
 	return mapping, true
