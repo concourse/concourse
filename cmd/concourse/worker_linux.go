@@ -249,7 +249,7 @@ func (cmd *WorkerCommand) extractResource(
 	_, err = fmt.Fscanf(versionFile, "%s", &version)
 	if err != nil {
 		logger.Error("failed-to-parse-version", err)
-		return natc.WorkerResourceType{}, err
+		return atc.WorkerResourceType{}, err
 	}
 
 	defer versionFile.Close()
