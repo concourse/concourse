@@ -41,7 +41,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	assetsDir, err := cmd.restoreVersionedAssets()
+	assetsDir, err := cmd.restoreVersionedAssets(logger.Session("restore-assets"))
 	if err != nil {
 		return atc.Worker{}, nil, err
 	}
@@ -97,7 +97,10 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		NoProxy:       strings.Join(cmd.NoProxy, ","),
 	}
 
-	worker.ResourceTypes, err = cmd.extractResources(assetsDir)
+	worker.ResourceTypes, err = cmd.extractResources(
+		logger.Session("extract-resources"),
+		assetsDir,
+	)
 	if err != nil {
 		return atc.Worker{}, nil, err
 	}
@@ -111,7 +114,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 	return worker, &runner, nil
 }
 
-func (cmd *WorkerCommand) restoreVersionedAssets() (string, error) {
+func (cmd *WorkerCommand) restoreVersionedAssets(logger lager.Logger) (string, error) {
 	assetsDir := filepath.Join(cmd.WorkDir, Version)
 
 	restoredDir := filepath.Join(assetsDir, "linux")
@@ -120,23 +123,29 @@ func (cmd *WorkerCommand) restoreVersionedAssets() (string, error) {
 
 	_, err := os.Stat(okMarker)
 	if err == nil {
+		logger.Info("assets-already-restored")
 		return restoredDir, nil
 	}
 
 	err = bindata.RestoreAssets(assetsDir, "linux")
 	if err != nil {
+		logger.Error("failed-to-restore-assets", err)
 		return "", err
 	}
 
 	ok, err := os.Create(okMarker)
 	if err != nil {
+		logger.Error("failed-to-create-ok-marker", err)
 		return "", err
 	}
 
 	err = ok.Close()
 	if err != nil {
+		logger.Error("failed-to-close-ok-marker", err)
 		return "", err
 	}
+
+	logger.Info("done")
 
 	return restoredDir, nil
 }
@@ -182,83 +191,114 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 	return bc.Runner(nil)
 }
 
-func (cmd *WorkerCommand) extractResources(assetsDir string) ([]atc.WorkerResourceType, error) {
+func (cmd *WorkerCommand) extractResources(logger lager.Logger, assetsDir string) ([]atc.WorkerResourceType, error) {
 	var resourceTypes []atc.WorkerResourceType
 
 	binDir := filepath.Join(assetsDir, "bin")
 	resourcesDir := filepath.Join(assetsDir, "resources")
-	resourceImagesDir := filepath.Join(assetsDir, "resource-images")
-
-	tarBin := filepath.Join(binDir, "tar")
 
 	infos, err := ioutil.ReadDir(resourcesDir)
 	if err != nil {
+		logger.Error("failed-to-list-resource-assets", err)
 		return nil, err
 	}
 
 	for _, info := range infos {
 		resourceType := info.Name()
 
-		archive := filepath.Join(resourcesDir, resourceType, "rootfs.tar.gz")
-
-		extractedDir := filepath.Join(resourceImagesDir, resourceType)
-
-		imageDir := filepath.Join(extractedDir, "rootfs")
-		okMarker := filepath.Join(extractedDir, "ok")
-
-		var version string
-		versionFile, err := os.Open(filepath.Join(resourcesDir, resourceType, "version"))
+		workerResourceType, err := cmd.extractResource(
+			logger.Session("extract", lager.Data{"resource-type": resourceType}),
+			assetsDir,
+			resourcesDir,
+			resourceType,
+		)
 		if err != nil {
+			logger.Error("failed-to-extract-resource", err)
 			return nil, err
 		}
 
-		_, err = fmt.Fscanf(versionFile, "%s", &version)
-		if err != nil {
-			return nil, err
-		}
-
-		defer versionFile.Close()
-
-		_, err = os.Stat(okMarker)
-		if err == os.ErrNotExist {
-			err := os.RemoveAll(imageDir)
-			if err != nil {
-				return nil, err
-			}
-
-			err = os.MkdirAll(imageDir, 0755)
-			if err != nil {
-				return nil, err
-			}
-
-			tar := exec.Command(tarBin, "-zxf", archive, "-C", imageDir)
-			tar.Stdout = os.Stdout
-			tar.Stderr = os.Stderr
-
-			err = tar.Run()
-			if err != nil {
-				return nil, err
-			}
-
-			ok, err := os.Create(okMarker)
-			if err != nil {
-				return nil, err
-			}
-
-			err = ok.Close()
-			if err != nil {
-				return nil, err
-			}
-		} else if err != nil {
-			return nil, err
-		}
-
-		resourceTypes = append(resourceTypes, atc.WorkerResourceType{
-			Type:    resourceType,
-			Image:   imageDir,
-			Version: version,
-		})
+		resourceTypes = append(resourceTypes, workerResourceType)
 	}
 
 	return resourceTypes, nil
+}
+
+func (cmd *WorkerCommand) extractResource(
+	logger lager.Logger,
+	assetsDir string,
+	resourcesDir string,
+	resourceType string,
+) (atc.WorkerResourceType, error) {
+	resourceImagesDir := filepath.Join(assetsDir, "resource-images")
+	tarBin := filepath.Join(assetsDir, "bin", "tar")
+
+	archive := filepath.Join(resourcesDir, resourceType, "rootfs.tar.gz")
+
+	extractedDir := filepath.Join(resourceImagesDir, resourceType)
+
+	rootfsDir := filepath.Join(extractedDir, "rootfs")
+	okMarker := filepath.Join(extractedDir, "ok")
+
+	var version string
+	versionFile, err := os.Open(filepath.Join(resourcesDir, resourceType, "version"))
+	if err != nil {
+		logger.Error("failed-to-read-version", err)
+		return atc.WorkerResourceType{}, err
+	}
+
+	_, err = fmt.Fscanf(versionFile, "%s", &version)
+	if err != nil {
+		logger.Error("failed-to-parse-version", err)
+		return natc.WorkerResourceType{}, err
+	}
+
+	defer versionFile.Close()
+
+	_, err = os.Stat(okMarker)
+	if err != nil && err != os.ErrNotExist {
+		logger.Error("failed-to-check-for-ok-marker", err)
+		return atc.WorkerResourceType{}, err
+	}
+
+	if err == os.ErrNotExist {
+		err := os.RemoveAll(rootfsDir)
+		if err != nil {
+			logger.Error("failed-to-clear-out-existing-rootfs", err)
+			return atc.WorkerResourceType{}, err
+		}
+
+		err = os.MkdirAll(rootfsDir, 0755)
+		if err != nil {
+			logger.Error("failed-to-create-rootfs-dir", err)
+			return atc.WorkerResourceType{}, err
+		}
+
+		tar := exec.Command(tarBin, "-zxf", archive, "-C", rootfsDir)
+
+		output, err := tar.CombinedOutput()
+		if err != nil {
+			logger.Error("failed-to-extract-resource", err, lager.Data{
+				"output": string(output),
+			})
+			return atc.WorkerResourceType{}, err
+		}
+
+		ok, err := os.Create(okMarker)
+		if err != nil {
+			logger.Error("failed-to-create-ok-marker", err)
+			return atc.WorkerResourceType{}, err
+		}
+
+		err = ok.Close()
+		if err != nil {
+			logger.Error("failed-to-close-ok-marker", err)
+			return atc.WorkerResourceType{}, err
+		}
+	}
+
+	return atc.WorkerResourceType{
+		Type:    resourceType,
+		Image:   rootfsDir,
+		Version: version,
+	}, nil
 }
