@@ -255,12 +255,11 @@ func (cmd *WorkerCommand) extractResource(
 	defer versionFile.Close()
 
 	_, err = os.Stat(okMarker)
-	if err != nil && err != os.ErrNotExist {
-		logger.Error("failed-to-check-for-ok-marker", err)
-		return atc.WorkerResourceType{}, err
-	}
+	if err == nil {
+		logger.Info("already-extracted")
+	} else {
+		logger.Info("extracting")
 
-	if err == os.ErrNotExist {
 		err := os.RemoveAll(rootfsDir)
 		if err != nil {
 			logger.Error("failed-to-clear-out-existing-rootfs", err)
