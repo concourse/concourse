@@ -1,13 +1,24 @@
 package resourceserver
 
-import "github.com/pivotal-golang/lager"
+import (
+	"github.com/concourse/atc/radar"
+	"github.com/pivotal-golang/lager"
+)
 
-type Server struct {
-	logger lager.Logger
+//go:generate counterfeiter . ScannerFactory
+
+type ScannerFactory interface {
+	NewResourceScanner(db radar.RadarDB) radar.Scanner
 }
 
-func NewServer(logger lager.Logger) *Server {
+type Server struct {
+	logger         lager.Logger
+	scannerFactory ScannerFactory
+}
+
+func NewServer(logger lager.Logger, scannerFactory ScannerFactory) *Server {
 	return &Server{
-		logger: logger,
+		logger:         logger,
+		scannerFactory: scannerFactory,
 	}
 }

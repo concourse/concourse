@@ -9,7 +9,7 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-type FakeScannerFactory struct {
+type FakeScanRunnerFactory struct {
 	ScanResourceRunnerStub        func(lager.Logger, string) ifrit.Runner
 	scanResourceRunnerMutex       sync.RWMutex
 	scanResourceRunnerArgsForCall []struct {
@@ -30,7 +30,7 @@ type FakeScannerFactory struct {
 	}
 }
 
-func (fake *FakeScannerFactory) ScanResourceRunner(arg1 lager.Logger, arg2 string) ifrit.Runner {
+func (fake *FakeScanRunnerFactory) ScanResourceRunner(arg1 lager.Logger, arg2 string) ifrit.Runner {
 	fake.scanResourceRunnerMutex.Lock()
 	fake.scanResourceRunnerArgsForCall = append(fake.scanResourceRunnerArgsForCall, struct {
 		arg1 lager.Logger
@@ -44,26 +44,26 @@ func (fake *FakeScannerFactory) ScanResourceRunner(arg1 lager.Logger, arg2 strin
 	}
 }
 
-func (fake *FakeScannerFactory) ScanResourceRunnerCallCount() int {
+func (fake *FakeScanRunnerFactory) ScanResourceRunnerCallCount() int {
 	fake.scanResourceRunnerMutex.RLock()
 	defer fake.scanResourceRunnerMutex.RUnlock()
 	return len(fake.scanResourceRunnerArgsForCall)
 }
 
-func (fake *FakeScannerFactory) ScanResourceRunnerArgsForCall(i int) (lager.Logger, string) {
+func (fake *FakeScanRunnerFactory) ScanResourceRunnerArgsForCall(i int) (lager.Logger, string) {
 	fake.scanResourceRunnerMutex.RLock()
 	defer fake.scanResourceRunnerMutex.RUnlock()
 	return fake.scanResourceRunnerArgsForCall[i].arg1, fake.scanResourceRunnerArgsForCall[i].arg2
 }
 
-func (fake *FakeScannerFactory) ScanResourceRunnerReturns(result1 ifrit.Runner) {
+func (fake *FakeScanRunnerFactory) ScanResourceRunnerReturns(result1 ifrit.Runner) {
 	fake.ScanResourceRunnerStub = nil
 	fake.scanResourceRunnerReturns = struct {
 		result1 ifrit.Runner
 	}{result1}
 }
 
-func (fake *FakeScannerFactory) ScanResourceTypeRunner(arg1 lager.Logger, arg2 string) ifrit.Runner {
+func (fake *FakeScanRunnerFactory) ScanResourceTypeRunner(arg1 lager.Logger, arg2 string) ifrit.Runner {
 	fake.scanResourceTypeRunnerMutex.Lock()
 	fake.scanResourceTypeRunnerArgsForCall = append(fake.scanResourceTypeRunnerArgsForCall, struct {
 		arg1 lager.Logger
@@ -77,23 +77,23 @@ func (fake *FakeScannerFactory) ScanResourceTypeRunner(arg1 lager.Logger, arg2 s
 	}
 }
 
-func (fake *FakeScannerFactory) ScanResourceTypeRunnerCallCount() int {
+func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerCallCount() int {
 	fake.scanResourceTypeRunnerMutex.RLock()
 	defer fake.scanResourceTypeRunnerMutex.RUnlock()
 	return len(fake.scanResourceTypeRunnerArgsForCall)
 }
 
-func (fake *FakeScannerFactory) ScanResourceTypeRunnerArgsForCall(i int) (lager.Logger, string) {
+func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerArgsForCall(i int) (lager.Logger, string) {
 	fake.scanResourceTypeRunnerMutex.RLock()
 	defer fake.scanResourceTypeRunnerMutex.RUnlock()
 	return fake.scanResourceTypeRunnerArgsForCall[i].arg1, fake.scanResourceTypeRunnerArgsForCall[i].arg2
 }
 
-func (fake *FakeScannerFactory) ScanResourceTypeRunnerReturns(result1 ifrit.Runner) {
+func (fake *FakeScanRunnerFactory) ScanResourceTypeRunnerReturns(result1 ifrit.Runner) {
 	fake.ScanResourceTypeRunnerStub = nil
 	fake.scanResourceTypeRunnerReturns = struct {
 		result1 ifrit.Runner
 	}{result1}
 }
 
-var _ radar.ScannerFactory = new(FakeScannerFactory)
+var _ radar.ScanRunnerFactory = new(FakeScanRunnerFactory)

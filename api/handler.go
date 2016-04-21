@@ -63,6 +63,7 @@ func NewHandler(
 	workerClient worker.Client,
 
 	schedulerFactory jobserver.SchedulerFactory,
+	scannerFactory resourceserver.ScannerFactory,
 
 	sink *lager.ReconfigurableSink,
 
@@ -97,7 +98,7 @@ func NewHandler(
 	)
 
 	jobServer := jobserver.NewServer(logger, schedulerFactory, externalURL)
-	resourceServer := resourceserver.NewServer(logger)
+	resourceServer := resourceserver.NewServer(logger, scannerFactory)
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipeServer := pipes.NewServer(logger, peerURL, externalURL, pipeDB)
 
@@ -157,6 +158,7 @@ func NewHandler(
 		atc.GetResource:     pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
 		atc.PauseResource:   pipelineHandlerFactory.HandlerFor(resourceServer.PauseResource),
 		atc.UnpauseResource: pipelineHandlerFactory.HandlerFor(resourceServer.UnpauseResource),
+		atc.CheckResource:   pipelineHandlerFactory.HandlerFor(resourceServer.CheckResource),
 
 		atc.ListResourceVersions:          pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions),
 		atc.EnableResourceVersion:         pipelineHandlerFactory.HandlerFor(versionServer.EnableResourceVersion),

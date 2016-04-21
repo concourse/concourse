@@ -77,7 +77,15 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		return interval, ErrFailedToAcquireLease
 	}
 
-	err = scanner.scan(logger.Session("tick"), resourceConfig, resourceTypes, savedResource)
+	vr, _, err := scanner.db.GetLatestVersionedResource(resourceName)
+	if err != nil {
+		logger.Error("failed-to-get-current-version", err)
+		return interval, err
+	}
+
+	err = swallowErrResourceScriptFailed(
+		scanner.scan(logger.Session("tick"), resourceConfig, resourceTypes, savedResource, atc.Version(vr.Version)),
+	)
 
 	lease.Break()
 
@@ -88,7 +96,9 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 	return interval, nil
 }
 
-func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) error {
+func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceName string, fromVersion atc.Version) error {
+	// if fromVersion is nil then force a check without specifying a version
+	// otherwise specify fromVersion to underlying call to resource.Check()
 	leaseLogger := logger.Session("lease", lager.Data{
 		"resource": resourceName,
 	})
@@ -134,10 +144,28 @@ func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) e
 		break
 	}
 
-	return scanner.scan(logger, resourceConfig, resourceTypes, savedResource)
+	return scanner.scan(logger, resourceConfig, resourceTypes, savedResource, fromVersion)
 }
 
-func (scanner *resourceScanner) scan(logger lager.Logger, resourceConfig atc.ResourceConfig, resourceTypes atc.ResourceTypes, savedResource db.SavedResource) error {
+func (scanner *resourceScanner) Scan(logger lager.Logger, resourceName string) error {
+	vr, _, err := scanner.db.GetLatestVersionedResource(resourceName)
+	if err != nil {
+		logger.Error("failed-to-get-current-version", err)
+		return err
+	}
+
+	return swallowErrResourceScriptFailed(
+		scanner.ScanFromVersion(logger, resourceName, atc.Version(vr.Version)),
+	)
+}
+
+func (scanner *resourceScanner) scan(
+	logger lager.Logger,
+	resourceConfig atc.ResourceConfig,
+	resourceTypes atc.ResourceTypes,
+	savedResource db.SavedResource,
+	fromVersion atc.Version,
+) error {
 	pipelinePaused, err := scanner.db.IsPaused()
 	if err != nil {
 		logger.Error("failed-to-check-if-pipeline-paused", err)
@@ -154,21 +182,10 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceConfig atc.Res
 		return nil
 	}
 
-	vr, found, err := scanner.db.GetLatestVersionedResource(savedResource)
-	if err != nil {
-		logger.Error("failed-to-get-current-version", err)
-		return err
-	}
-
-	var from db.Version
-	if found {
-		from = vr.Version
-	}
-
 	pipelineID := scanner.db.GetPipelineID()
 
 	var resourceTypeVersion atc.Version
-	_, found = resourceTypes.Lookup(resourceConfig.Type)
+	_, found := resourceTypes.Lookup(resourceConfig.Type)
 	if found {
 		savedResourceType, resourceTypeFound, err := scanner.db.GetResourceType(resourceConfig.Type)
 		if err != nil {
@@ -216,10 +233,10 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceConfig atc.Res
 	defer res.Release(nil)
 
 	logger.Debug("checking", lager.Data{
-		"from": from,
+		"from": fromVersion,
 	})
 
-	newVersions, err := res.Check(resourceConfig.Source, atc.Version(from))
+	newVersions, err := res.Check(resourceConfig.Source, fromVersion)
 
 	setErr := scanner.db.SetResourceCheckError(savedResource, err)
 	if setErr != nil {
@@ -229,7 +246,7 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceConfig atc.Res
 	if err != nil {
 		if rErr, ok := err.(resource.ErrResourceScriptFailed); ok {
 			logger.Info("check-failed", lager.Data{"exit-status": rErr.ExitStatus})
-			return nil
+			return rErr
 		}
 
 		logger.Error("failed-to-check", err)
@@ -254,6 +271,13 @@ func (scanner *resourceScanner) scan(logger lager.Logger, resourceConfig atc.Res
 	}
 
 	return nil
+}
+
+func swallowErrResourceScriptFailed(err error) error {
+	if _, ok := err.(resource.ErrResourceScriptFailed); ok {
+		return nil
+	}
+	return err
 }
 
 func (scanner *resourceScanner) checkInterval(resourceConfig atc.ResourceConfig) (time.Duration, error) {

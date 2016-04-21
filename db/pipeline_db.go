@@ -41,7 +41,7 @@ type PipelineDB interface {
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 	SaveResourceTypeVersion(atc.ResourceType, atc.Version) error
-	GetLatestVersionedResource(resource SavedResource) (SavedVersionedResource, bool, error)
+	GetLatestVersionedResource(resourceName string) (SavedVersionedResource, bool, error)
 	GetLatestEnabledVersionedResource(resourceName string) (SavedVersionedResource, bool, error)
 	EnableVersionedResource(versionedResourceID int) error
 	DisableVersionedResource(versionedResourceID int) error
@@ -768,22 +768,24 @@ func (pdb *pipelineDB) GetLatestEnabledVersionedResource(resourceName string) (S
 	return svr, true, nil
 }
 
-func (pdb *pipelineDB) GetLatestVersionedResource(resource SavedResource) (SavedVersionedResource, bool, error) {
+func (pdb *pipelineDB) GetLatestVersionedResource(resourceName string) (SavedVersionedResource, bool, error) {
 	var versionBytes, metadataBytes string
 
 	svr := SavedVersionedResource{
 		VersionedResource: VersionedResource{
-			Resource: resource.Name,
+			Resource: resourceName,
 		},
 	}
 
 	err := pdb.conn.QueryRow(`
-		SELECT id, enabled, type, version, metadata, modified_time, check_order
-		FROM versioned_resources
-		WHERE resource_id = $1
+		SELECT v.id, v.enabled, v.type, v.version, v.metadata, v.modified_time, v.check_order
+		FROM versioned_resources v, resources r
+		WHERE v.resource_id = r.id
+			AND r.name = $1
+			AND r.pipeline_id = $2
 		ORDER BY check_order DESC
 		LIMIT 1
-	`, resource.ID).Scan(
+	`, resourceName, pdb.ID).Scan(
 		&svr.ID,
 		&svr.Enabled,
 		&svr.Type,

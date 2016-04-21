@@ -316,7 +316,7 @@ var _ = Describe("ResourceScanner", func() {
 				})
 			})
 
-			Context("when checking fails", func() {
+			Context("when checking fails internally", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
@@ -326,6 +326,18 @@ var _ = Describe("ResourceScanner", func() {
 				It("exits with the failure", func() {
 					Expect(runErr).To(HaveOccurred())
 					Expect(runErr).To(Equal(disaster))
+				})
+			})
+
+			Context("when checking fails with ErrResourceScriptFailed", func() {
+				scriptFail := resource.ErrResourceScriptFailed{}
+
+				BeforeEach(func() {
+					fakeResource.CheckReturns(nil, scriptFail)
+				})
+
+				It("returns no error", func() {
+					Expect(runErr).NotTo(HaveOccurred())
 				})
 			})
 
@@ -655,7 +667,7 @@ var _ = Describe("ResourceScanner", func() {
 				})
 			})
 
-			Context("when checking fails", func() {
+			Context("when checking fails internally", func() {
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
@@ -672,6 +684,84 @@ var _ = Describe("ResourceScanner", func() {
 					savedResourceArg, err := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
 					Expect(savedResourceArg).To(Equal(savedResource))
 					Expect(err).To(Equal(disaster))
+				})
+			})
+
+			Context("when checking fails with ErrResourceScriptFailed", func() {
+				scriptFail := resource.ErrResourceScriptFailed{}
+
+				BeforeEach(func() {
+					fakeResource.CheckReturns(nil, scriptFail)
+				})
+
+				It("returns no error", func() {
+					Expect(scanErr).NotTo(HaveOccurred())
+				})
+
+				It("sets the resource's check error", func() {
+					Expect(fakeRadarDB.SetResourceCheckErrorCallCount()).To(Equal(1))
+
+					savedResourceArg, err := fakeRadarDB.SetResourceCheckErrorArgsForCall(0)
+					Expect(savedResourceArg).To(Equal(savedResource))
+					Expect(err).To(Equal(scriptFail))
+				})
+			})
+		})
+	})
+
+	Describe("ScanFromVersion", func() {
+		var (
+			fakeResource *rfakes.FakeResource
+			fromVersion  atc.Version
+
+			scanErr error
+		)
+
+		BeforeEach(func() {
+			fakeResource = new(rfakes.FakeResource)
+			fakeTracker.InitReturns(fakeResource, nil)
+
+			fromVersion = nil
+		})
+
+		JustBeforeEach(func() {
+			scanErr = scanner.ScanFromVersion(lagertest.NewTestLogger("test"), "some-resource", fromVersion)
+		})
+
+		Context("if the lease can be acquired", func() {
+			BeforeEach(func() {
+				fakeRadarDB.LeaseResourceCheckingReturns(fakeLease, true, nil)
+			})
+
+			Context("when fromVersion is nil", func() {
+				It("checks from nil", func() {
+					_, version := fakeResource.CheckArgsForCall(0)
+					Expect(version).To(BeNil())
+				})
+			})
+
+			Context("when fromVersion is specified", func() {
+				BeforeEach(func() {
+					fromVersion = atc.Version{
+						"version": "1",
+					}
+				})
+
+				It("checks from it", func() {
+					_, version := fakeResource.CheckArgsForCall(0)
+					Expect(version).To(Equal(atc.Version{"version": "1"}))
+				})
+			})
+
+			Context("when checking fails with ErrResourceScriptFailed", func() {
+				scriptFail := resource.ErrResourceScriptFailed{}
+
+				BeforeEach(func() {
+					fakeResource.CheckReturns(nil, scriptFail)
+				})
+
+				It("returns the error", func() {
+					Expect(scanErr).To(Equal(scriptFail))
 				})
 			})
 		})

@@ -152,6 +152,12 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		sqlDB,
 	)
 
+	radarScannerFactory := radar.NewScannerFactory(
+		tracker,
+		cmd.ResourceCheckingInterval,
+		cmd.ExternalURL.String(),
+	)
+
 	signingKey, err := cmd.loadOrGenerateSigningKey()
 	if err != nil {
 		return nil, err
@@ -203,6 +209,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		workerClient,
 		drain,
 		radarSchedulerFactory,
+		radarScannerFactory,
 	)
 	if err != nil {
 		return nil, err
@@ -628,6 +635,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	workerClient worker.Client,
 	drain <-chan struct{},
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
+	radarScannerFactory radar.ScannerFactory,
 ) (http.Handler, error) {
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIAuthWrappa(cmd.PubliclyViewable, authValidator, userContextReader),
@@ -664,6 +672,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		engine,
 		workerClient,
 		radarSchedulerFactory,
+		radarScannerFactory,
 
 		reconfigurableSink,
 
@@ -711,7 +720,7 @@ func (cmd *ATCCommand) constructPipelineSyncer(
 					radar.NewRunner(
 						logger.Session(pipelineDB.ScopedName("radar")),
 						cmd.Developer.Noop,
-						radarSchedulerFactory.BuildScannerFactory(pipelineDB, cmd.ExternalURL.String()),
+						radarSchedulerFactory.BuildScanRunnerFactory(pipelineDB, cmd.ExternalURL.String()),
 						pipelineDB,
 						1*time.Minute,
 					),

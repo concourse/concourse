@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/radar"
 	"github.com/pivotal-golang/lager"
 )
@@ -27,6 +28,16 @@ type FakeScanner struct {
 		arg2 string
 	}
 	scanReturns struct {
+		result1 error
+	}
+	ScanFromVersionStub        func(lager.Logger, string, atc.Version) error
+	scanFromVersionMutex       sync.RWMutex
+	scanFromVersionArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 atc.Version
+	}
+	scanFromVersionReturns struct {
 		result1 error
 	}
 }
@@ -94,6 +105,40 @@ func (fake *FakeScanner) ScanArgsForCall(i int) (lager.Logger, string) {
 func (fake *FakeScanner) ScanReturns(result1 error) {
 	fake.ScanStub = nil
 	fake.scanReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeScanner) ScanFromVersion(arg1 lager.Logger, arg2 string, arg3 atc.Version) error {
+	fake.scanFromVersionMutex.Lock()
+	fake.scanFromVersionArgsForCall = append(fake.scanFromVersionArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 atc.Version
+	}{arg1, arg2, arg3})
+	fake.scanFromVersionMutex.Unlock()
+	if fake.ScanFromVersionStub != nil {
+		return fake.ScanFromVersionStub(arg1, arg2, arg3)
+	} else {
+		return fake.scanFromVersionReturns.result1
+	}
+}
+
+func (fake *FakeScanner) ScanFromVersionCallCount() int {
+	fake.scanFromVersionMutex.RLock()
+	defer fake.scanFromVersionMutex.RUnlock()
+	return len(fake.scanFromVersionArgsForCall)
+}
+
+func (fake *FakeScanner) ScanFromVersionArgsForCall(i int) (lager.Logger, string, atc.Version) {
+	fake.scanFromVersionMutex.RLock()
+	defer fake.scanFromVersionMutex.RUnlock()
+	return fake.scanFromVersionArgsForCall[i].arg1, fake.scanFromVersionArgsForCall[i].arg2, fake.scanFromVersionArgsForCall[i].arg3
+}
+
+func (fake *FakeScanner) ScanFromVersionReturns(result1 error) {
+	fake.ScanFromVersionStub = nil
+	fake.scanFromVersionReturns = struct {
 		result1 error
 	}{result1}
 }

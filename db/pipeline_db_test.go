@@ -593,7 +593,7 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			It("ensures versioned resources have the correct check_order", func() {
-				latestVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				latestVR, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -608,7 +608,7 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.SaveResourceVersions(resourceConfig, pretendCheckResults)
 				Expect(err).NotTo(HaveOccurred())
 
-				latestVR, found, err = pipelineDB.GetLatestVersionedResource(resource)
+				latestVR, found, err = pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -660,7 +660,7 @@ var _ = Describe("PipelineDB", func() {
 			}))
 
 			By("initially having no latest versioned resource")
-			_, found, err := pipelineDB.GetLatestVersionedResource(resource)
+			_, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 
@@ -672,7 +672,7 @@ var _ = Describe("PipelineDB", func() {
 			}, []atc.Version{{"version": "1"}})
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource)
+			savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(savedVR1.ModifiedTime).NotTo(BeNil())
@@ -685,7 +685,7 @@ var _ = Describe("PipelineDB", func() {
 			}, []atc.Version{{"version": "2"}})
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource)
+			savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -724,7 +724,7 @@ var _ = Describe("PipelineDB", func() {
 			}, []atc.Version{{"version": "1"}})
 			Expect(err).NotTo(HaveOccurred())
 
-			otherPipelineSavedVR, found, err := otherPipelineDB.GetLatestVersionedResource(otherPipelineResource)
+			otherPipelineSavedVR, found, err := otherPipelineDB.GetLatestVersionedResource(otherPipelineResource.Name)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -957,7 +957,7 @@ var _ = Describe("PipelineDB", func() {
 				Name:   resource.Name,
 				Type:   "some-type",
 				Source: atc.Source{"some": "source"},
-			}, []atc.Version{{"version": "3"}})
+			}, []atc.Version{{"version": "1"}, {"version": "2"}, {"version": "3"}})
 			Expect(err).NotTo(HaveOccurred())
 
 			otherPipelineSavedVR, found, err := pipelineDB.GetLatestEnabledVersionedResource(resource.Name)
@@ -966,6 +966,7 @@ var _ = Describe("PipelineDB", func() {
 
 			Expect(otherPipelineSavedVR.Version).To(Equal(db.Version{"version": "2"}))
 
+			By("not including disabled versions")
 			err = pipelineDB.DisableVersionedResource(savedVR2.ID)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -974,6 +975,66 @@ var _ = Describe("PipelineDB", func() {
 			Expect(found).To(BeTrue())
 
 			Expect(savedVR3.Version).To(Equal(db.Version{"version": "1"}))
+		})
+
+		It("can load up the latest versioned resource, enabled or not", func() {
+			By("initially having no latest versioned resource")
+			_, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+
+			By("including saved versioned resources of the current pipeline")
+			err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+				Name:   resource.Name,
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
+			}, []atc.Version{{"version": "1"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+				Name:   resource.Name,
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
+			}, []atc.Version{{"version": "2"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(savedVR1.Version).To(Equal(db.Version{"version": "1"}))
+			Expect(savedVR2.Version).To(Equal(db.Version{"version": "2"}))
+
+			By("not including saved versioned resources of other pipelines")
+			_, err = otherPipelineDB.GetResource("some-other-resource")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = otherPipelineDB.SaveResourceVersions(atc.ResourceConfig{
+				Name:   resource.Name,
+				Type:   "some-type",
+				Source: atc.Source{"some": "source"},
+			}, []atc.Version{{"version": "1"}, {"version": "2"}, {"version": "3"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			otherPipelineSavedVR, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(otherPipelineSavedVR.Version).To(Equal(db.Version{"version": "2"}))
+
+			By("including disabled versions")
+			err = pipelineDB.DisableVersionedResource(savedVR2.ID)
+			Expect(err).NotTo(HaveOccurred())
+
+			latestVR, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(latestVR.Version).To(Equal(db.Version{"version": "2"}))
 		})
 
 		Describe("pausing and unpausing resources", func() {
@@ -1034,7 +1095,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "1"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				savedVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1049,7 +1110,7 @@ var _ = Describe("PipelineDB", func() {
 				disabledVR := savedVR
 				disabledVR.Enabled = false
 
-				latestVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				latestVR, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(found).To(BeTrue())
 				Expect(latestVR.Resource).To(Equal(disabledVR.Resource))
 				Expect(latestVR.Type).To(Equal(disabledVR.Type))
@@ -1065,7 +1126,7 @@ var _ = Describe("PipelineDB", func() {
 				enabledVR := savedVR
 				enabledVR.Enabled = true
 
-				latestVR, found, err = pipelineDB.GetLatestVersionedResource(resource)
+				latestVR, found, err = pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(found).To(BeTrue())
 				Expect(latestVR.Resource).To(Equal(enabledVR.Resource))
 				Expect(latestVR.Type).To(Equal(enabledVR.Type))
@@ -1082,7 +1143,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "1"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1096,7 +1157,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "1"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				otherSavedVR1, found, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				otherSavedVR1, found, err := pipelineDB.GetLatestVersionedResource(otherResource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1107,7 +1168,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "2"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1118,7 +1179,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "2"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				otherSavedVR2, found, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				otherSavedVR2, found, err := pipelineDB.GetLatestVersionedResource(otherResource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1210,7 +1271,7 @@ var _ = Describe("PipelineDB", func() {
 				build, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				beforeVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				beforeVR, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1250,7 +1311,7 @@ var _ = Describe("PipelineDB", func() {
 				build, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				beforeVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				beforeVR, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1285,7 +1346,7 @@ var _ = Describe("PipelineDB", func() {
 				build, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				beforeVR, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				beforeVR, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1313,7 +1374,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "1"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1324,7 +1385,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "2"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1422,7 +1483,7 @@ var _ = Describe("PipelineDB", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					var found bool
-					savedVR, found, err = pipelineDB.GetLatestVersionedResource(savedResource)
+					savedVR, found, err = pipelineDB.GetLatestVersionedResource(savedResource.Name)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 				})
@@ -1465,7 +1526,7 @@ var _ = Describe("PipelineDB", func() {
 						otherSavedResource, err := otherPipelineDB.GetResource("some-other-resource")
 						Expect(err).NotTo(HaveOccurred())
 
-						otherSavedVR, found, err := otherPipelineDB.GetLatestVersionedResource(otherSavedResource)
+						otherSavedVR, found, err := otherPipelineDB.GetLatestVersionedResource(otherSavedResource.Name)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
 
@@ -1564,7 +1625,7 @@ var _ = Describe("PipelineDB", func() {
 				savedResource, err := pipelineDB.GetResource("some-resource")
 				Expect(err).NotTo(HaveOccurred())
 
-				savedVR, found, err := pipelineDB.GetLatestVersionedResource(savedResource)
+				savedVR, found, err := pipelineDB.GetLatestVersionedResource(savedResource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -1579,7 +1640,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "2"}, {"version": "3"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				savedVR, found, err = pipelineDB.GetLatestVersionedResource(savedResource)
+				savedVR, found, err = pipelineDB.GetLatestVersionedResource(savedResource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2895,7 +2956,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "1"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR1, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2909,7 +2970,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "1"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				otherSavedVR1, found, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				otherSavedVR1, found, err := pipelineDB.GetLatestVersionedResource(otherResource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2920,7 +2981,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "2"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR2, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2931,7 +2992,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "2"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				otherSavedVR2, found, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				otherSavedVR2, found, err := pipelineDB.GetLatestVersionedResource(otherResource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2942,7 +3003,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "3"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				savedVR3, found, err := pipelineDB.GetLatestVersionedResource(resource)
+				savedVR3, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2953,7 +3014,7 @@ var _ = Describe("PipelineDB", func() {
 				}, []atc.Version{{"version": "3"}})
 				Expect(err).NotTo(HaveOccurred())
 
-				otherSavedVR3, found, err := pipelineDB.GetLatestVersionedResource(otherResource)
+				otherSavedVR3, found, err := pipelineDB.GetLatestVersionedResource(otherResource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 

@@ -16,7 +16,7 @@ import (
 //go:generate counterfeiter . RadarSchedulerFactory
 
 type RadarSchedulerFactory interface {
-	BuildScannerFactory(pipelineDB db.PipelineDB, externalURL string) radar.ScannerFactory
+	BuildScanRunnerFactory(pipelineDB db.PipelineDB, externalURL string) radar.ScanRunnerFactory
 	BuildScheduler(pipelineDB db.PipelineDB, externalURL string) scheduler.BuildScheduler
 }
 
@@ -41,8 +41,8 @@ func NewRadarSchedulerFactory(
 	}
 }
 
-func (rsf *radarSchedulerFactory) BuildScannerFactory(pipelineDB db.PipelineDB, externalURL string) radar.ScannerFactory {
-	return radar.NewScannerFactory(rsf.tracker, rsf.interval, pipelineDB, clock.NewClock(), externalURL)
+func (rsf *radarSchedulerFactory) BuildScanRunnerFactory(pipelineDB db.PipelineDB, externalURL string) radar.ScanRunnerFactory {
+	return radar.NewScanRunnerFactory(rsf.tracker, rsf.interval, pipelineDB, clock.NewClock(), externalURL)
 }
 
 func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, externalURL string) scheduler.BuildScheduler {

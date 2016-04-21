@@ -151,10 +151,10 @@ type FakePipelineDB struct {
 	saveResourceTypeVersionReturns struct {
 		result1 error
 	}
-	GetLatestVersionedResourceStub        func(resource db.SavedResource) (db.SavedVersionedResource, bool, error)
+	GetLatestVersionedResourceStub        func(resourceName string) (db.SavedVersionedResource, bool, error)
 	getLatestVersionedResourceMutex       sync.RWMutex
 	getLatestVersionedResourceArgsForCall []struct {
-		resource db.SavedResource
+		resourceName string
 	}
 	getLatestVersionedResourceReturns struct {
 		result1 db.SavedVersionedResource
@@ -967,14 +967,14 @@ func (fake *FakePipelineDB) SaveResourceTypeVersionReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) GetLatestVersionedResource(resource db.SavedResource) (db.SavedVersionedResource, bool, error) {
+func (fake *FakePipelineDB) GetLatestVersionedResource(resourceName string) (db.SavedVersionedResource, bool, error) {
 	fake.getLatestVersionedResourceMutex.Lock()
 	fake.getLatestVersionedResourceArgsForCall = append(fake.getLatestVersionedResourceArgsForCall, struct {
-		resource db.SavedResource
-	}{resource})
+		resourceName string
+	}{resourceName})
 	fake.getLatestVersionedResourceMutex.Unlock()
 	if fake.GetLatestVersionedResourceStub != nil {
-		return fake.GetLatestVersionedResourceStub(resource)
+		return fake.GetLatestVersionedResourceStub(resourceName)
 	} else {
 		return fake.getLatestVersionedResourceReturns.result1, fake.getLatestVersionedResourceReturns.result2, fake.getLatestVersionedResourceReturns.result3
 	}
@@ -986,10 +986,10 @@ func (fake *FakePipelineDB) GetLatestVersionedResourceCallCount() int {
 	return len(fake.getLatestVersionedResourceArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetLatestVersionedResourceArgsForCall(i int) db.SavedResource {
+func (fake *FakePipelineDB) GetLatestVersionedResourceArgsForCall(i int) string {
 	fake.getLatestVersionedResourceMutex.RLock()
 	defer fake.getLatestVersionedResourceMutex.RUnlock()
-	return fake.getLatestVersionedResourceArgsForCall[i].resource
+	return fake.getLatestVersionedResourceArgsForCall[i].resourceName
 }
 
 func (fake *FakePipelineDB) GetLatestVersionedResourceReturns(result1 db.SavedVersionedResource, result2 bool, result3 error) {
