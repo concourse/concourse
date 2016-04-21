@@ -217,7 +217,7 @@ func (cmd *WorkerCommand) extractResources(assetsDir string) ([]atc.WorkerResour
 
 		defer versionFile.Close()
 
-		_, err := os.Stat(okMarker)
+		_, err = os.Stat(okMarker)
 		if err == os.ErrNotExist {
 			err := os.RemoveAll(imageDir)
 			if err != nil {
