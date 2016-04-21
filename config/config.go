@@ -21,7 +21,7 @@ func LoadTaskConfig(configPath string, args []string) (atc.TaskConfig, error) {
 
 	config.Run.Args = append(config.Run.Args, args...)
 
-	for k, _ := range config.Params {
+	for k := range config.Params {
 		env, found := syscall.Getenv(k)
 		if found {
 			config.Params[k] = env
