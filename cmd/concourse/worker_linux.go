@@ -41,15 +41,13 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	err = bindata.RestoreAssets(cmd.WorkDir, "linux")
+	assetsDir, err := cmd.restoreVersionedAssets()
 	if err != nil {
 		return atc.Worker{}, nil, err
 	}
 
-	linux := filepath.Join(cmd.WorkDir, "linux")
-
-	btrfsToolsDir := filepath.Join(linux, "btrfs")
-	iptablesDir := filepath.Join(linux, "iptables")
+	btrfsToolsDir := filepath.Join(assetsDir, "btrfs")
+	iptablesDir := filepath.Join(assetsDir, "iptables")
 
 	err = os.Setenv(
 		"PATH",
@@ -67,7 +65,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	depotDir := filepath.Join(linux, "depot")
+	depotDir := filepath.Join(cmd.WorkDir, "depot")
 
 	// must be readable by other users so unprivileged containers can run their
 	// own `initc' process
@@ -80,13 +78,13 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 
 	cmd.Garden.Containers.Dir = guardiancmd.DirFlag(depotDir)
 
-	cmd.Garden.Bin.Runc = filepath.Join(linux, "bin", "runc")
-	cmd.Garden.Bin.Dadoo = guardiancmd.FileFlag(filepath.Join(linux, "bin", "dadoo"))
-	cmd.Garden.Bin.Init = guardiancmd.FileFlag(filepath.Join(linux, "bin", "init"))
-	cmd.Garden.Bin.IODaemon = guardiancmd.FileFlag(filepath.Join(linux, "bin", "iodaemon"))
-	cmd.Garden.Bin.Kawasaki = guardiancmd.FileFlag(filepath.Join(linux, "bin", "kawasaki"))
-	cmd.Garden.Bin.NSTar = guardiancmd.FileFlag(filepath.Join(linux, "bin", "nstar"))
-	cmd.Garden.Bin.Tar = guardiancmd.FileFlag(filepath.Join(linux, "bin", "tar"))
+	cmd.Garden.Bin.Runc = filepath.Join(assetsDir, "bin", "runc")
+	cmd.Garden.Bin.Dadoo = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "dadoo"))
+	cmd.Garden.Bin.Init = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "init"))
+	cmd.Garden.Bin.IODaemon = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "iodaemon"))
+	cmd.Garden.Bin.Kawasaki = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "kawasaki"))
+	cmd.Garden.Bin.NSTar = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "nstar"))
+	cmd.Garden.Bin.Tar = guardiancmd.FileFlag(filepath.Join(assetsDir, "bin", "tar"))
 
 	cmd.Garden.Network.AllowHostAccess = true
 
@@ -99,7 +97,10 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		NoProxy:       strings.Join(cmd.NoProxy, ","),
 	}
 
-	worker.ResourceTypes, err = cmd.extractResources(linux)
+	worker.ResourceTypes, err = cmd.extractResources(assetsDir)
+	if err != nil {
+		return atc.Worker{}, nil, err
+	}
 
 	worker.Name, err = cmd.workerName()
 	if err != nil {
@@ -108,6 +109,34 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 
 	runner := guardiancmd.GuardianCommand(cmd.Garden)
 	return worker, &runner, nil
+}
+
+func (cmd *WorkerCommand) restoreVersionedAssets() (string, error) {
+	assetsDir := filepath.Join(cmd.WorkDir, Version)
+
+	okMarker := filepath.Join(assetsDir, "ok")
+
+	_, err := os.Stat(okMarker)
+	if err == nil {
+		return assetsDir, nil
+	}
+
+	err = bindata.RestoreAssets(assetsDir, "linux")
+	if err != nil {
+		return "", err
+	}
+
+	ok, err := os.Create(okMarker)
+	if err != nil {
+		return "", err
+	}
+
+	err = ok.Close()
+	if err != nil {
+		return "", err
+	}
+
+	return assetsDir, nil
 }
 
 func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
@@ -151,24 +180,45 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 	return bc.Runner(nil)
 }
 
-
-func (cmd *WorkerCommand) extractResources(linux string) ([]atc.WorkerResourceType, error) {
+func (cmd *WorkerCommand) extractResources(assetsDir string) ([]atc.WorkerResourceType, error) {
 	var resourceTypes []atc.WorkerResourceType
 
-	binDir := filepath.Join(linux, "bin")
-	resourcesDir := filepath.Join(linux, "resources")
-	resourceImagesDir := filepath.Join(linux, "resource-images")
+	binDir := filepath.Join(assetsDir, "bin")
+	resourcesDir := filepath.Join(assetsDir, "resources")
+	resourceImagesDir := filepath.Join(assetsDir, "resource-images")
 
 	tarBin := filepath.Join(binDir, "tar")
 
 	infos, err := ioutil.ReadDir(resourcesDir)
-	if err == nil {
-		for _, info := range infos {
-			archive := filepath.Join(resourcesDir, info.Name())
-			resourceType := info.Name()
+	if err != nil {
+		return nil, err
+	}
 
-			imageDir := filepath.Join(resourceImagesDir, resourceType)
+	for _, info := range infos {
+		resourceType := info.Name()
 
+		archive := filepath.Join(resourcesDir, resourceType, "rootfs.tar.gz")
+
+		extractedDir := filepath.Join(resourceImagesDir, resourceType)
+
+		imageDir := filepath.Join(extractedDir, "rootfs")
+		okMarker := filepath.Join(extractedDir, "ok")
+
+		var version string
+		versionFile, err := os.Open(filepath.Join(resourcesDir, resourceType, "version"))
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = fmt.Fscanf(versionFile, "%s", &version)
+		if err != nil {
+			return nil, err
+		}
+
+		defer versionFile.Close()
+
+		_, err := os.Stat(okMarker)
+		if err == os.ErrNotExist {
 			err := os.RemoveAll(imageDir)
 			if err != nil {
 				return nil, err
@@ -188,11 +238,24 @@ func (cmd *WorkerCommand) extractResources(linux string) ([]atc.WorkerResourceTy
 				return nil, err
 			}
 
-			resourceTypes = append(resourceTypes, atc.WorkerResourceType{
-				Type:  resourceType,
-				Image: imageDir,
-			})
+			ok, err := os.Create(okMarker)
+			if err != nil {
+				return nil, err
+			}
+
+			err = ok.Close()
+			if err != nil {
+				return nil, err
+			}
+		} else if err != nil {
+			return nil, err
 		}
+
+		resourceTypes = append(resourceTypes, atc.WorkerResourceType{
+			Type:    resourceType,
+			Image:   imageDir,
+			Version: version,
+		})
 	}
 
 	return resourceTypes, nil

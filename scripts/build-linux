@@ -54,6 +54,12 @@ pushd concourse/
 
   for resource in blobs/resources/*-resource.tar.gz; do
     resource_name="$(basename $resource | sed -e 's/-resource.tar.gz//')"
-    cp -L "$resource" $LINUX_ASSETS/resources/$resource_name
+    resource_version="$(basename $(readlink -f $resource))"
+
+    resource_dir=$LINUX_ASSETS/resources/$resource_name
+
+    mkdir -p $resource_dir
+    cp -L "$resource" $resource_dir/rootfs.tar.gz
+    echo $resource_version > $resource_dir/version
   done
 popd
