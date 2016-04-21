@@ -24,8 +24,6 @@ pushd guardian-release/
   # workaround 'mv /root/.tmp/... /tmp/...: invalid cross-device link'
   HOME=$PWD bosh sync-blobs
 
-  cp -L blobs/busybox/busybox.tar.gz $LINUX_ASSETS/busybox.tar.gz
-
   (
     set -e -u -x
 

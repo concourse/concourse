@@ -67,11 +67,6 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		return atc.Worker{}, nil, err
 	}
 
-	busyboxDir, err := cmd.extractBusybox(linux)
-	if err != nil {
-		return atc.Worker{}, nil, err
-	}
-
 	depotDir := filepath.Join(linux, "depot")
 
 	// must be readable by other users so unprivileged containers can run their
@@ -84,7 +79,6 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 	cmd.Garden.Server.BindIP = guardiancmd.IPFlag(cmd.BindIP)
 
 	cmd.Garden.Containers.Dir = guardiancmd.DirFlag(depotDir)
-	cmd.Garden.Containers.DefaultRootFSDir = guardiancmd.DirFlag(busyboxDir)
 
 	cmd.Garden.Bin.Runc = filepath.Join(linux, "bin", "runc")
 	cmd.Garden.Bin.Dadoo = guardiancmd.FileFlag(filepath.Join(linux, "bin", "dadoo"))
@@ -157,27 +151,6 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 	return bc.Runner(nil)
 }
 
-func (cmd *WorkerCommand) extractBusybox(linux string) (string, error) {
-	archive := filepath.Join(linux, "busybox.tar.gz")
-
-	busyboxDir := filepath.Join(linux, "busybox")
-	err := os.MkdirAll(busyboxDir, 0755)
-	if err != nil {
-		return "", err
-	}
-
-	tarBin := filepath.Join(linux, "bin", "tar")
-	tar := exec.Command(tarBin, "-zxf", archive, "-C", busyboxDir)
-	tar.Stdout = os.Stdout
-	tar.Stderr = os.Stderr
-
-	err = tar.Run()
-	if err != nil {
-		return "", err
-	}
-
-	return busyboxDir, nil
-}
 
 func (cmd *WorkerCommand) extractResources(linux string) ([]atc.WorkerResourceType, error) {
 	var resourceTypes []atc.WorkerResourceType
