@@ -237,7 +237,7 @@
 	path = src/github.com/gorilla/websocket
 	url = https://github.com/gorilla/websocket
 	branch = master
-[submodule "src/github.com/concourse/pester"]
-	path = src/github.com/concourse/pester
-	url = https://github.com/concourse/pester
+[submodule "src/github.com/sethgrid/pester"]
+	path = src/github.com/sethgrid/pester
+	url = https://github.com/sethgrid/pester
 	branch = master
