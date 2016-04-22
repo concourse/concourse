@@ -320,20 +320,20 @@ func (db *SQLDB) expireVolumes() error {
 func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 	defer rows.Close()
 
-	var (
-		volume               SavedVolume
-		ttlSeconds           *float64
-		versionJSON          sql.NullString
-		resourceHash         sql.NullString
-		originalVolumeHandle sql.NullString
-		outputName           sql.NullString
-		path                 sql.NullString
-		hostPathVersion      sql.NullString
-	)
-
 	volumes := []SavedVolume{}
 
 	for rows.Next() {
+		var (
+			volume               SavedVolume
+			ttlSeconds           *float64
+			versionJSON          sql.NullString
+			resourceHash         sql.NullString
+			originalVolumeHandle sql.NullString
+			outputName           sql.NullString
+			path                 sql.NullString
+			hostPathVersion      sql.NullString
+		)
+
 		err := rows.Scan(
 			&volume.WorkerName,
 			&volume.TTL,
