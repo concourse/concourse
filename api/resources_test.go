@@ -381,6 +381,14 @@ var _ = Describe("Resources API", func() {
 	Describe("PUT /api/v1/pipelines/:pipeline_name/resources/:resource_name/pause", func() {
 		var response *http.Response
 
+		BeforeEach(func() {
+			fakePipelineDB.GetResourceReturns(db.SavedResource{
+				Resource: db.Resource{
+					Name: "resource-name",
+				},
+			}, true, nil)
+		})
+
 		JustBeforeEach(func() {
 			var err error
 
@@ -417,6 +425,16 @@ var _ = Describe("Resources API", func() {
 				})
 			})
 
+			Context("when resource can not be found", func() {
+				BeforeEach(func() {
+					fakePipelineDB.GetResourceReturns(db.SavedResource{}, false, nil)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
 			Context("when pausing the resource fails", func() {
 				BeforeEach(func() {
 					fakePipelineDB.PauseResourceReturns(errors.New("welp"))
@@ -441,6 +459,14 @@ var _ = Describe("Resources API", func() {
 
 	Describe("PUT /api/v1/pipelines/:pipeline_name/resources/:resource_name/unpause", func() {
 		var response *http.Response
+
+		BeforeEach(func() {
+			fakePipelineDB.GetResourceReturns(db.SavedResource{
+				Resource: db.Resource{
+					Name: "resource-name",
+				},
+			}, true, nil)
+		})
 
 		JustBeforeEach(func() {
 			var err error
@@ -475,6 +501,16 @@ var _ = Describe("Resources API", func() {
 
 				It("returns 200", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+
+			Context("when resource can not be found", func() {
+				BeforeEach(func() {
+					fakePipelineDB.GetResourceReturns(db.SavedResource{}, false, nil)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
@@ -570,6 +606,16 @@ var _ = Describe("Resources API", func() {
 						Expect(actualResourceName).To(Equal("resource-name"))
 						Expect(actualFromVersion).To(Equal(checkRequestBody.From))
 					})
+				})
+			})
+
+			Context("when checking fails with ResourceNotFoundError", func() {
+				BeforeEach(func() {
+					fakeScanner.ScanFromVersionReturns(db.ResourceNotFoundError{})
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 

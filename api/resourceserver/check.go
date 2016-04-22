@@ -38,6 +38,8 @@ func (s *Server) CheckResource(pipelineDB db.PipelineDB) http.Handler {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(checkResponseBody)
+		case db.ResourceNotFoundError:
+			w.WriteHeader(http.StatusNotFound)
 		case error:
 			w.WriteHeader(http.StatusInternalServerError)
 		default:
