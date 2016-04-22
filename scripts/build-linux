@@ -54,7 +54,11 @@ pushd concourse/
 
   for resource in blobs/resources/*-resource.tar.gz; do
     resource_name="$(basename $resource | sed -e 's/-resource.tar.gz//')"
-    resource_version="$(basename $(readlink -f $resource))"
+    resource_version="$(sha1sum $resource | awk '{print $1}')"
+    if [ -z "$resource_version" ]; then
+      echo "could not compute resource version" >&2
+      exit 1
+    fi
 
     resource_dir=$LINUX_ASSETS/resources/$resource_name
 
