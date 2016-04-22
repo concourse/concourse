@@ -205,7 +205,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 			pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(team.Name, pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = pipelineDB.GetResource("some-resource")
+			_, _, err = pipelineDB.GetResource("some-resource")
 			Expect(err).NotTo(HaveOccurred())
 		})
 

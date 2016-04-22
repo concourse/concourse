@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/atc/api/present"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
+	"github.com/pivotal-golang/lager"
 )
 
 func (s *Server) ListResources(pipelineDB db.PipelineDB) http.Handler {
@@ -30,10 +31,16 @@ func (s *Server) ListResources(pipelineDB db.PipelineDB) http.Handler {
 		showCheckErr := auth.IsAuthenticated(r)
 
 		for _, resource := range config.Resources {
-			dbResource, err := pipelineDB.GetResource(resource.Name)
+			dbResource, found, err := pipelineDB.GetResource(resource.Name)
 			if err != nil {
 				logger.Error("failed-to-get-resource", err)
 				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if !found {
+				logger.Debug("resource-not-found", lager.Data{"resource": resource})
+				w.WriteHeader(http.StatusNotFound)
 				return
 			}
 

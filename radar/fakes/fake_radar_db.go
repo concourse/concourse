@@ -58,14 +58,15 @@ type FakeRadarDB struct {
 		result2 bool
 		result3 error
 	}
-	GetResourceStub        func(resourceName string) (db.SavedResource, error)
+	GetResourceStub        func(resourceName string) (db.SavedResource, bool, error)
 	getResourceMutex       sync.RWMutex
 	getResourceArgsForCall []struct {
 		resourceName string
 	}
 	getResourceReturns struct {
 		result1 db.SavedResource
-		result2 error
+		result2 bool
+		result3 error
 	}
 	GetResourceTypeStub        func(resourceTypeName string) (db.SavedResourceType, bool, error)
 	getResourceTypeMutex       sync.RWMutex
@@ -314,7 +315,7 @@ func (fake *FakeRadarDB) GetLatestVersionedResourceReturns(result1 db.SavedVersi
 	}{result1, result2, result3}
 }
 
-func (fake *FakeRadarDB) GetResource(resourceName string) (db.SavedResource, error) {
+func (fake *FakeRadarDB) GetResource(resourceName string) (db.SavedResource, bool, error) {
 	fake.getResourceMutex.Lock()
 	fake.getResourceArgsForCall = append(fake.getResourceArgsForCall, struct {
 		resourceName string
@@ -323,7 +324,7 @@ func (fake *FakeRadarDB) GetResource(resourceName string) (db.SavedResource, err
 	if fake.GetResourceStub != nil {
 		return fake.GetResourceStub(resourceName)
 	} else {
-		return fake.getResourceReturns.result1, fake.getResourceReturns.result2
+		return fake.getResourceReturns.result1, fake.getResourceReturns.result2, fake.getResourceReturns.result3
 	}
 }
 
@@ -339,12 +340,13 @@ func (fake *FakeRadarDB) GetResourceArgsForCall(i int) string {
 	return fake.getResourceArgsForCall[i].resourceName
 }
 
-func (fake *FakeRadarDB) GetResourceReturns(result1 db.SavedResource, result2 error) {
+func (fake *FakeRadarDB) GetResourceReturns(result1 db.SavedResource, result2 bool, result3 error) {
 	fake.GetResourceStub = nil
 	fake.getResourceReturns = struct {
 		result1 db.SavedResource
-		result2 error
-	}{result1, result2}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeRadarDB) GetResourceType(resourceTypeName string) (db.SavedResourceType, bool, error) {
