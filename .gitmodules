@@ -16,7 +16,7 @@
 	branch = master
 [submodule "src/github.com/cloudfoundry-incubator/garden"]
 	path = src/github.com/cloudfoundry-incubator/garden
-	url = https://github.com/cloudfoundry-incubator/garden
+	url = https://github.com/concourse/garden
 	branch = close-response-body
 [submodule "src/github.com/onsi/ginkgo"]
 	path = src/github.com/onsi/ginkgo
@@ -240,8 +240,4 @@
 [submodule "src/github.com/concourse/pester"]
 	path = src/github.com/concourse/pester
 	url = https://github.com/concourse/pester
-	branch = master
-[submodule "src/github.com/sethgrid/pester"]
-	path = src/github.com/sethgrid/pester
-	url = https://github.com/sethgrid/pester
 	branch = master
