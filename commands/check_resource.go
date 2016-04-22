@@ -9,8 +9,8 @@ import (
 )
 
 type CheckResourceCommand struct {
-	Resource flaghelpers.ResourceFlag  `short:"r" long:"resource" required:"true" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to check version for"`
-	Versions []flaghelpers.VersionFlag `short:"f" long:"from" value-name:"VERSION" description:"Version of a resource to check from"`
+	Resource flaghelpers.ResourceFlag `short:"r" long:"resource" required:"true" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to check version for"`
+	Versions atc.Version              `short:"f" long:"from" value-name:"VERSION" description:"Version of a resource to check from"`
 }
 
 func (command *CheckResourceCommand) Execute(args []string) error {
@@ -23,12 +23,7 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 		return err
 	}
 
-	version := atc.Version{}
-	for _, v := range command.Versions {
-		version[v.Key] = v.Value
-	}
-
-	found, err := client.CheckResource(command.Resource.PipelineName, command.Resource.ResourceName, version)
+	found, err := client.CheckResource(command.Resource.PipelineName, command.Resource.ResourceName, command.Versions)
 	if err != nil {
 		return err
 	}
