@@ -9,8 +9,8 @@ resources:
 - name: guardian-release
   type: git
   source:
-    uri: https://github.com/vito/guardian-release
-    branch: concourse
+    uri: https://github.com/cloudfoundry-incubator/garden-runc-release
+    branch: develop
 
 - name: bin
   type: git
