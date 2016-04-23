@@ -65,8 +65,10 @@ var _ = Describe("Resources API", func() {
 
 			Context("when getting the check error succeeds", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetResourceStub = func(name string) (db.SavedResource, error) {
-						if name == "resource-2" {
+					fakePipelineDB.GetResourceStub = func(name string) (db.SavedResource, bool, error) {
+						if name == "resource-in-config-but-not-db" {
+							return db.SavedResource{}, false, nil
+						} else if name == "resource-2" {
 							return db.SavedResource{
 								ID:           1,
 								CheckError:   errors.New("sup"),
@@ -74,7 +76,7 @@ var _ = Describe("Resources API", func() {
 								Resource: db.Resource{
 									Name: name,
 								},
-							}, nil
+							}, true, nil
 						} else {
 							return db.SavedResource{
 								ID:           2,
@@ -83,7 +85,7 @@ var _ = Describe("Resources API", func() {
 								Resource: db.Resource{
 									Name: name,
 								},
-							}, nil
+							}, true, nil
 						}
 					}
 				})
@@ -128,6 +130,20 @@ var _ = Describe("Resources API", func() {
 					})
 				})
 
+				Context("when one of resources is missing in database", func() {
+					BeforeEach(func() {
+						fakePipelineDB.GetConfigReturns(atc.Config{
+							Resources: []atc.ResourceConfig{
+								{Name: "resource-in-config-but-not-db", Type: "type-1"},
+							},
+						}, 1, true, nil)
+					})
+
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
 				Context("when not authenticated", func() {
 					BeforeEach(func() {
 						authValidator.IsAuthenticatedReturns(false)
@@ -167,8 +183,8 @@ var _ = Describe("Resources API", func() {
 
 			Context("when getting the resource check error", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetResourceStub = func(name string) (db.SavedResource, error) {
-						return db.SavedResource{}, errors.New("oh no!")
+					fakePipelineDB.GetResourceStub = func(name string) (db.SavedResource, bool, error) {
+						return db.SavedResource{}, false, errors.New("oh no!")
 					}
 				})
 
@@ -260,6 +276,7 @@ var _ = Describe("Resources API", func() {
 						{Name: "resource-1", Type: "type-1"},
 						{Name: "resource-2", Type: "type-2"},
 						{Name: "resource-3", Type: "type-3"},
+						{Name: "resource-in-config-but-not-db", Type: "type-1"},
 					},
 				}, 1, true, nil)
 			})
@@ -280,9 +297,19 @@ var _ = Describe("Resources API", func() {
 					Expect(fakePipelineDB.GetResourceArgsForCall(0)).To(Equal("resource-1"))
 				})
 
+				Context("when the resource cannot be found in the database", func() {
+					BeforeEach(func() {
+						resourceName = "resource-in-config-but-not-db"
+					})
+
+					It("returns a 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
 				Context("when the call to the db returns an error", func() {
 					BeforeEach(func() {
-						fakePipelineDB.GetResourceReturns(db.SavedResource{}, errors.New("Oh no!"))
+						fakePipelineDB.GetResourceReturns(db.SavedResource{}, false, errors.New("Oh no!"))
 					})
 
 					It("returns a 500 error", func() {
@@ -300,7 +327,7 @@ var _ = Describe("Resources API", func() {
 							Resource: db.Resource{
 								Name: "resource-1",
 							},
-						}, nil)
+						}, true, nil)
 					})
 
 					It("returns 200 ok", func() {
@@ -354,6 +381,14 @@ var _ = Describe("Resources API", func() {
 	Describe("PUT /api/v1/pipelines/:pipeline_name/resources/:resource_name/pause", func() {
 		var response *http.Response
 
+		BeforeEach(func() {
+			fakePipelineDB.GetResourceReturns(db.SavedResource{
+				Resource: db.Resource{
+					Name: "resource-name",
+				},
+			}, true, nil)
+		})
+
 		JustBeforeEach(func() {
 			var err error
 
@@ -390,6 +425,16 @@ var _ = Describe("Resources API", func() {
 				})
 			})
 
+			Context("when resource can not be found", func() {
+				BeforeEach(func() {
+					fakePipelineDB.GetResourceReturns(db.SavedResource{}, false, nil)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
 			Context("when pausing the resource fails", func() {
 				BeforeEach(func() {
 					fakePipelineDB.PauseResourceReturns(errors.New("welp"))
@@ -414,6 +459,14 @@ var _ = Describe("Resources API", func() {
 
 	Describe("PUT /api/v1/pipelines/:pipeline_name/resources/:resource_name/unpause", func() {
 		var response *http.Response
+
+		BeforeEach(func() {
+			fakePipelineDB.GetResourceReturns(db.SavedResource{
+				Resource: db.Resource{
+					Name: "resource-name",
+				},
+			}, true, nil)
+		})
 
 		JustBeforeEach(func() {
 			var err error
@@ -448,6 +501,16 @@ var _ = Describe("Resources API", func() {
 
 				It("returns 200", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+
+			Context("when resource can not be found", func() {
+				BeforeEach(func() {
+					fakePipelineDB.GetResourceReturns(db.SavedResource{}, false, nil)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 
@@ -543,6 +606,16 @@ var _ = Describe("Resources API", func() {
 						Expect(actualResourceName).To(Equal("resource-name"))
 						Expect(actualFromVersion).To(Equal(checkRequestBody.From))
 					})
+				})
+			})
+
+			Context("when checking fails with ResourceNotFoundError", func() {
+				BeforeEach(func() {
+					fakeScanner.ScanFromVersionReturns(db.ResourceNotFoundError{})
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 

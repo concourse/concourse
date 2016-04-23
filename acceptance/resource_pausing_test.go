@@ -118,7 +118,7 @@ var _ = Describe("Resource Pausing", func() {
 
 			Eventually(page.Find(".header i.fa-play")).Should(BeFound())
 
-			resource, err := pipelineDB.GetResource("resource-name")
+			resource, _, err := pipelineDB.GetResource("resource-name")
 			Expect(err).NotTo(HaveOccurred())
 
 			err = pipelineDB.SetResourceCheckError(resource, errors.New("failed to foo the bar"))

@@ -44,9 +44,13 @@ func (scanner *resourceScanner) Run(logger lager.Logger, resourceName string) (t
 		return 0, err
 	}
 
-	savedResource, err := scanner.db.GetResource(resourceConfig.Name)
+	savedResource, found, err := scanner.db.GetResource(resourceConfig.Name)
 	if err != nil {
 		return 0, err
+	}
+
+	if !found {
+		return 0, db.ResourceNotFoundError{Name: resourceConfig.Name}
 	}
 
 	interval, err := scanner.checkInterval(resourceConfig)
@@ -103,12 +107,17 @@ func (scanner *resourceScanner) ScanFromVersion(logger lager.Logger, resourceNam
 		"resource": resourceName,
 	})
 
-	resourceConfig, resourceTypes, err := scanner.getResourceConfig(logger, resourceName)
+	savedResource, found, err := scanner.db.GetResource(resourceName)
 	if err != nil {
 		return err
 	}
 
-	savedResource, err := scanner.db.GetResource(resourceConfig.Name)
+	if !found {
+		logger.Debug("resource-not-found")
+		return db.ResourceNotFoundError{Name: resourceName}
+	}
+
+	resourceConfig, resourceTypes, err := scanner.getResourceConfig(logger, resourceName)
 	if err != nil {
 		return err
 	}

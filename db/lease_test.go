@@ -123,7 +123,7 @@ var _ = Describe("Leases", func() {
 
 	Describe("LeaseResourceChecking", func() {
 		BeforeEach(func() {
-			_, err := pipelineDB.GetResource("some-resource")
+			_, _, err := pipelineDB.GetResource("some-resource")
 			Expect(err).NotTo(HaveOccurred())
 		})
 

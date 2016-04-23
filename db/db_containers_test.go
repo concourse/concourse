@@ -80,7 +80,7 @@ var _ = Describe("Keeping track of containers", func() {
 	})
 
 	getResourceID := func(name string) int {
-		savedResource, err := pipelineDB.GetResource(name)
+		savedResource, _, err := pipelineDB.GetResource(name)
 		Expect(err).NotTo(HaveOccurred())
 		return savedResource.ID
 	}

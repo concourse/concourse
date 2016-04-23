@@ -20,7 +20,7 @@ type RadarDB interface {
 	GetConfig() (atc.Config, db.ConfigVersion, bool, error)
 
 	GetLatestVersionedResource(resourceName string) (db.SavedVersionedResource, bool, error)
-	GetResource(resourceName string) (db.SavedResource, error)
+	GetResource(resourceName string) (db.SavedResource, bool, error)
 	GetResourceType(resourceTypeName string) (db.SavedResourceType, bool, error)
 	PauseResource(resourceName string) error
 	UnpauseResource(resourceName string) error

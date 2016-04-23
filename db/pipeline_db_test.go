@@ -241,7 +241,7 @@ var _ = Describe("PipelineDB", func() {
 
 			// populate resources table and versioned_resources table
 
-			savedResource, err := fetchedPipelineDB.GetResource("some-resource")
+			savedResource, _, err := fetchedPipelineDB.GetResource("some-resource")
 			Expect(err).NotTo(HaveOccurred())
 
 			resourceConfig, found := pipelineConfig.Resources.Lookup("some-resource")
@@ -546,13 +546,13 @@ var _ = Describe("PipelineDB", func() {
 
 		BeforeEach(func() {
 			var err error
-			resource, err = pipelineDB.GetResource(resourceName)
+			resource, _, err = pipelineDB.GetResource(resourceName)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherResource, err = pipelineDB.GetResource(otherResourceName)
+			otherResource, _, err = pipelineDB.GetResource(otherResourceName)
 			Expect(err).NotTo(HaveOccurred())
 
-			reallyOtherResource, err = pipelineDB.GetResource(reallyOtherResourceName)
+			reallyOtherResource, _, err = pipelineDB.GetResource(reallyOtherResourceName)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -587,12 +587,10 @@ var _ = Describe("PipelineDB", func() {
 				}
 			})
 
-			JustBeforeEach(func() {
+			It("ensures versioned resources have the correct check_order", func() {
 				err := pipelineDB.SaveResourceVersions(resourceConfig, originalVersionSlice)
 				Expect(err).NotTo(HaveOccurred())
-			})
 
-			It("ensures versioned resources have the correct check_order", func() {
 				latestVR, found, err := pipelineDB.GetLatestVersionedResource(resource.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
@@ -614,6 +612,24 @@ var _ = Describe("PipelineDB", func() {
 
 				Expect(latestVR.Version).To(Equal(db.Version{"ref": "v3"}))
 				Expect(latestVR.CheckOrder).To(Equal(4))
+			})
+
+			Context("resource not found in db", func() {
+				BeforeEach(func() {
+					resourceConfig = atc.ResourceConfig{
+						Name:   "unknown-resource",
+						Type:   "some-type",
+						Source: atc.Source{"some": "source"},
+					}
+
+					originalVersionSlice = []atc.Version{{"ref": "v1"}}
+				})
+
+				It("returns an error", func() {
+					err := pipelineDB.SaveResourceVersions(resourceConfig, originalVersionSlice)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("resource 'unknown-resource' not found"))
+				})
 			})
 		})
 
@@ -714,7 +730,7 @@ var _ = Describe("PipelineDB", func() {
 			}))
 
 			By("not including saved versioned resources of other pipelines")
-			otherPipelineResource, err := otherPipelineDB.GetResource("some-other-resource")
+			otherPipelineResource, _, err := otherPipelineDB.GetResource("some-other-resource")
 			Expect(err).NotTo(HaveOccurred())
 
 			err = otherPipelineDB.SaveResourceVersions(atc.ResourceConfig{
@@ -950,7 +966,7 @@ var _ = Describe("PipelineDB", func() {
 			Expect(savedVR2.Version).To(Equal(db.Version{"version": "2"}))
 
 			By("not including saved versioned resources of other pipelines")
-			_, err = otherPipelineDB.GetResource("some-other-resource")
+			_, _, err = otherPipelineDB.GetResource("some-other-resource")
 			Expect(err).NotTo(HaveOccurred())
 
 			err = otherPipelineDB.SaveResourceVersions(atc.ResourceConfig{
@@ -1010,7 +1026,7 @@ var _ = Describe("PipelineDB", func() {
 			Expect(savedVR2.Version).To(Equal(db.Version{"version": "2"}))
 
 			By("not including saved versioned resources of other pipelines")
-			_, err = otherPipelineDB.GetResource("some-other-resource")
+			_, _, err = otherPipelineDB.GetResource("some-other-resource")
 			Expect(err).NotTo(HaveOccurred())
 
 			err = otherPipelineDB.SaveResourceVersions(atc.ResourceConfig{
@@ -1039,7 +1055,7 @@ var _ = Describe("PipelineDB", func() {
 
 		Describe("pausing and unpausing resources", func() {
 			It("starts out as unpaused", func() {
-				resource, err := pipelineDB.GetResource(resourceName)
+				resource, _, err := pipelineDB.GetResource(resourceName)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(resource.Paused).To(BeFalse())
@@ -1049,11 +1065,11 @@ var _ = Describe("PipelineDB", func() {
 				err := pipelineDB.PauseResource(resourceName)
 				Expect(err).NotTo(HaveOccurred())
 
-				pausedResource, err := pipelineDB.GetResource(resourceName)
+				pausedResource, _, err := pipelineDB.GetResource(resourceName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pausedResource.Paused).To(BeTrue())
 
-				resource, err := otherPipelineDB.GetResource(resourceName)
+				resource, _, err := otherPipelineDB.GetResource(resourceName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(resource.Paused).To(BeFalse())
 			})
@@ -1068,11 +1084,11 @@ var _ = Describe("PipelineDB", func() {
 				err = pipelineDB.UnpauseResource(resourceName)
 				Expect(err).NotTo(HaveOccurred())
 
-				unpausedResource, err := pipelineDB.GetResource(resourceName)
+				unpausedResource, _, err := pipelineDB.GetResource(resourceName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(unpausedResource.Paused).To(BeFalse())
 
-				resource, err := otherPipelineDB.GetResource(resourceName)
+				resource, _, err := otherPipelineDB.GetResource(resourceName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(resource.Paused).To(BeTrue())
 			})
@@ -1147,7 +1163,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				otherResource, err := pipelineDB.GetResource("some-other-resource")
+				otherResource, _, err := pipelineDB.GetResource("some-other-resource")
 				Expect(err).NotTo(HaveOccurred())
 
 				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
@@ -1479,7 +1495,7 @@ var _ = Describe("PipelineDB", func() {
 					}, []atc.Version{{"version": "1"}})
 					Expect(err).NotTo(HaveOccurred())
 
-					savedResource, err := pipelineDB.GetResource("some-resource")
+					savedResource, _, err := pipelineDB.GetResource("some-resource")
 					Expect(err).NotTo(HaveOccurred())
 
 					var found bool
@@ -1523,7 +1539,7 @@ var _ = Describe("PipelineDB", func() {
 						}, []atc.Version{{"version": "1"}})
 						Expect(err).NotTo(HaveOccurred())
 
-						otherSavedResource, err := otherPipelineDB.GetResource("some-other-resource")
+						otherSavedResource, _, err := otherPipelineDB.GetResource("some-other-resource")
 						Expect(err).NotTo(HaveOccurred())
 
 						otherSavedVR, found, err := otherPipelineDB.GetLatestVersionedResource(otherSavedResource.Name)
@@ -1622,7 +1638,7 @@ var _ = Describe("PipelineDB", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				savedResource, err := pipelineDB.GetResource("some-resource")
+				savedResource, _, err := pipelineDB.GetResource("some-resource")
 				Expect(err).NotTo(HaveOccurred())
 
 				savedVR, found, err := pipelineDB.GetLatestVersionedResource(savedResource.Name)
@@ -1673,7 +1689,7 @@ var _ = Describe("PipelineDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				resource, err = pipelineDB.GetResource("some-resource")
+				resource, _, err = pipelineDB.GetResource("some-resource")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -1690,7 +1706,7 @@ var _ = Describe("PipelineDB", func() {
 					err := pipelineDB.SetResourceCheckError(resource, originalCause)
 					Expect(err).NotTo(HaveOccurred())
 
-					returnedResource, err := pipelineDB.GetResource("some-resource")
+					returnedResource, _, err := pipelineDB.GetResource("some-resource")
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(returnedResource.CheckError).To(Equal(originalCause))
@@ -1707,7 +1723,7 @@ var _ = Describe("PipelineDB", func() {
 					err = pipelineDB.SetResourceCheckError(resource, nil)
 					Expect(err).NotTo(HaveOccurred())
 
-					returnedResource, err := pipelineDB.GetResource("some-resource")
+					returnedResource, _, err := pipelineDB.GetResource("some-resource")
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(returnedResource.CheckError).To(BeNil())
@@ -1756,6 +1772,34 @@ var _ = Describe("PipelineDB", func() {
 			_, found, err := pipelineDB.GetResourceType("nonexistent-resource-type")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+	})
+
+	Describe("GetResource", func() {
+		It("returns not found when the resource type cannot be found", func() {
+			_, found, err := pipelineDB.GetResource("nonexistent-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+
+		Context("when resource exists", func() {
+			BeforeEach(func() {
+				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   "some-resource",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns SavedResource when it exists", func() {
+				savedResource, found, err := pipelineDB.GetResource("some-resource")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(savedResource.Resource.Name).To(Equal("some-resource"))
+				Expect(savedResource.PipelineName).To(Equal("a-pipeline-name"))
+			})
 		})
 	})
 
@@ -2335,6 +2379,27 @@ var _ = Describe("PipelineDB", func() {
 
 			})
 
+			It("fails to save build input if resource does not exist", func() {
+				build, err := pipelineDB.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				vr := db.VersionedResource{
+					PipelineID: savedPipeline.ID,
+					Resource:   "unknown-resource",
+					Type:       "some-type",
+					Version:    db.Version{"ver": "2"},
+				}
+
+				input := db.BuildInput{
+					Name:              "some-input",
+					VersionedResource: vr,
+				}
+
+				_, err = sqlDB.SaveBuildInput(build.ID, input)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("resource 'unknown-resource' not found"))
+			})
+
 			It("updates metadata of existing versioned resources", func() {
 				build, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
@@ -2484,6 +2549,22 @@ var _ = Describe("PipelineDB", func() {
 					{VersionedResource: vr2},
 				}))
 
+			})
+
+			It("fails to save build output if resource does not exist", func() {
+				build, err := pipelineDB.CreateJobBuild("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				vr := db.VersionedResource{
+					PipelineID: savedPipeline.ID,
+					Resource:   "unknown-resource",
+					Type:       "some-type",
+					Version:    db.Version{"ver": "2"},
+				}
+
+				_, err = sqlDB.SaveBuildOutput(build.ID, vr, false)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("resource 'unknown-resource' not found"))
 			})
 		})
 
@@ -2946,7 +3027,7 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			It("ensures that when scanning for previous inputs versions it only considers those from the same job", func() {
-				resource, err := pipelineDB.GetResource("some-resource")
+				resource, _, err := pipelineDB.GetResource("some-resource")
 				Expect(err).NotTo(HaveOccurred())
 
 				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{
@@ -2960,7 +3041,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				otherResource, err := pipelineDB.GetResource("some-other-resource")
+				otherResource, _, err := pipelineDB.GetResource("some-other-resource")
 				Expect(err).NotTo(HaveOccurred())
 
 				err = pipelineDB.SaveResourceVersions(atc.ResourceConfig{

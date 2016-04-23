@@ -32,7 +32,7 @@ type PipelineDB interface {
 
 	LeaseScheduling(lager.Logger, time.Duration) (Lease, bool, error)
 
-	GetResource(resourceName string) (SavedResource, error)
+	GetResource(resourceName string) (SavedResource, bool, error)
 	GetResourceType(resourceTypeName string) (SavedResourceType, bool, error)
 	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
 
@@ -94,6 +94,14 @@ type pipelineDB struct {
 	versionsDB *algorithm.VersionsDB
 
 	buildPrepHelper buildPreparationHelper
+}
+
+type ResourceNotFoundError struct {
+	Name string
+}
+
+func (e ResourceNotFoundError) Error() string {
+	return fmt.Sprintf("resource '%s' not found", e.Name)
 }
 
 func (pdb *pipelineDB) GetPipelineName() string {
@@ -202,25 +210,25 @@ func (pdb *pipelineDB) GetConfig() (atc.Config, ConfigVersion, bool, error) {
 	return config, ConfigVersion(version), true, nil
 }
 
-func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, error) {
+func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
-		return SavedResource{}, err
+		return SavedResource{}, false, err
 	}
 
 	defer tx.Rollback()
 
-	resource, err := pdb.getResource(tx, resourceName)
+	resource, found, err := pdb.getResource(tx, resourceName)
 	if err != nil {
-		return SavedResource{}, err
+		return SavedResource{}, false, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return SavedResource{}, err
+		return SavedResource{}, false, err
 	}
 
-	return resource, nil
+	return resource, found, nil
 }
 
 func (pdb *pipelineDB) LeaseResourceChecking(logger lager.Logger, resourceName string, interval time.Duration, immediate bool) (Lease, bool, error) {
@@ -383,12 +391,13 @@ func (pdb *pipelineDB) LeaseScheduling(logger lager.Logger, interval time.Durati
 }
 
 func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error) {
-	dbResource, err := pdb.GetResource(resourceName)
+	dbResource, found, err := pdb.GetResource(resourceName)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return []SavedVersionedResource{}, Pagination{}, false, nil
-		}
 		return []SavedVersionedResource{}, Pagination{}, false, err
+	}
+
+	if !found {
+		return []SavedVersionedResource{}, Pagination{}, false, nil
 	}
 
 	query := `
@@ -509,7 +518,7 @@ func (pdb *pipelineDB) GetResourceVersions(resourceName string, page Page) ([]Sa
 	return savedVersionedResources, pagination, true, nil
 }
 
-func (pdb *pipelineDB) getResource(tx Tx, name string) (SavedResource, error) {
+func (pdb *pipelineDB) getResource(tx Tx, name string) (SavedResource, bool, error) {
 	var checkErr sql.NullString
 	var resource SavedResource
 
@@ -520,7 +529,11 @@ func (pdb *pipelineDB) getResource(tx Tx, name string) (SavedResource, error) {
 				AND pipeline_id = $2
 		`, name, pdb.ID).Scan(&resource.ID, &resource.Name, &checkErr, &resource.Paused)
 	if err != nil {
-		return SavedResource{}, err
+		if err == sql.ErrNoRows {
+			return SavedResource{}, false, nil
+		}
+
+		return SavedResource{}, false, err
 	}
 
 	resource.PipelineName = pdb.GetPipelineName()
@@ -529,7 +542,7 @@ func (pdb *pipelineDB) getResource(tx Tx, name string) (SavedResource, error) {
 		resource.CheckError = errors.New(checkErr.String)
 	}
 
-	return resource, nil
+	return resource, true, nil
 }
 
 func (pdb *pipelineDB) GetResourceType(name string) (SavedResourceType, bool, error) {
@@ -639,9 +652,13 @@ func (pdb *pipelineDB) SaveResourceVersions(config atc.ResourceConfig, versions 
 			return err
 		}
 
-		savedResource, err := pdb.getResource(tx, vr.Resource)
+		savedResource, found, err := pdb.getResource(tx, vr.Resource)
 		if err != nil {
 			return err
+		}
+
+		if !found {
+			return ResourceNotFoundError{Name: vr.Resource}
 		}
 
 		_, _, err = pdb.saveVersionedResource(tx, savedResource, vr)
@@ -1240,9 +1257,13 @@ func (pdb *pipelineDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersi
 }
 
 func (pdb *pipelineDB) saveBuildInput(tx Tx, buildID int, input BuildInput) (SavedVersionedResource, error) {
-	savedResource, err := pdb.getResource(tx, input.VersionedResource.Resource)
+	savedResource, found, err := pdb.getResource(tx, input.VersionedResource.Resource)
 	if err != nil {
 		return SavedVersionedResource{}, err
+	}
+
+	if !found {
+		return SavedVersionedResource{}, ResourceNotFoundError{Name: input.VersionedResource.Resource}
 	}
 
 	svr, _, err := pdb.saveVersionedResource(tx, savedResource, input.VersionedResource)
@@ -1279,9 +1300,13 @@ func (pdb *pipelineDB) SaveBuildOutput(buildID int, vr VersionedResource, explic
 
 	defer tx.Rollback()
 
-	savedResource, err := pdb.getResource(tx, vr.Resource)
+	savedResource, found, err := pdb.getResource(tx, vr.Resource)
 	if err != nil {
 		return SavedVersionedResource{}, err
+	}
+
+	if !found {
+		return SavedVersionedResource{}, ResourceNotFoundError{Name: vr.Resource}
 	}
 
 	svr, created, err := pdb.saveVersionedResource(tx, savedResource, vr)
@@ -1345,9 +1370,13 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 
 	for i, input := range inputs {
 		vr := input.VersionedResource
-		dbResource, err := pdb.GetResource(vr.Resource)
+		dbResource, found, err := pdb.GetResource(vr.Resource)
 		if err != nil {
 			return Build{}, false, err
+		}
+
+		if !found {
+			return Build{}, false, ResourceNotFoundError{Name: vr.Resource}
 		}
 
 		versionBytes, err := json.Marshal(vr.Version)

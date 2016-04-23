@@ -87,7 +87,7 @@ var _ = Describe("ResourceScanner", func() {
 
 		fakeLease = &dbfakes.FakeLease{}
 
-		fakeRadarDB.GetResourceReturns(savedResource, nil)
+		fakeRadarDB.GetResourceReturns(savedResource, true, nil)
 	})
 
 	Describe("Run", func() {
@@ -366,7 +366,7 @@ var _ = Describe("ResourceScanner", func() {
 							Name: "some-resource",
 						},
 						Paused: true,
-					}, nil)
+					}, true, nil)
 				})
 
 				It("does not check", func() {
@@ -399,12 +399,23 @@ var _ = Describe("ResourceScanner", func() {
 				disaster := errors.New("disaster")
 
 				BeforeEach(func() {
-					fakeRadarDB.GetResourceReturns(db.SavedResource{}, disaster)
+					fakeRadarDB.GetResourceReturns(db.SavedResource{}, false, disaster)
 				})
 
 				It("returns an error", func() {
 					Expect(runErr).To(HaveOccurred())
 					Expect(runErr).To(Equal(disaster))
+				})
+			})
+
+			Context("when the resource is not in the database", func() {
+				BeforeEach(func() {
+					fakeRadarDB.GetResourceReturns(db.SavedResource{}, false, nil)
+				})
+
+				It("returns an error", func() {
+					Expect(runErr).To(HaveOccurred())
+					Expect(runErr.Error()).To(ContainSubstring("resource 'some-resource' not found"))
 				})
 			})
 		})
@@ -762,6 +773,17 @@ var _ = Describe("ResourceScanner", func() {
 
 				It("returns the error", func() {
 					Expect(scanErr).To(Equal(scriptFail))
+				})
+			})
+
+			Context("when the resource is not in the database", func() {
+				BeforeEach(func() {
+					fakeRadarDB.GetResourceReturns(db.SavedResource{}, false, nil)
+				})
+
+				It("returns an error", func() {
+					Expect(scanErr).To(HaveOccurred())
+					Expect(scanErr.Error()).To(ContainSubstring("resource 'some-resource' not found"))
 				})
 			})
 		})

@@ -81,9 +81,9 @@ type ATCCommand struct {
 	} `group:"Developer Options"`
 
 	Worker struct {
-		GardenURL       URLFlag            `long:"garden-url"       description:"A Garden API endpoint to register as a worker."`
-		BaggageclaimURL URLFlag            `long:"baggageclaim-url" description:"A Baggageclaim API endpoint to register with the worker."`
-		ResourceTypes   map[string]DirFlag `long:"resource"         description:"A resource type to advertise for the worker. Can be specified multiple times." value-name:"TYPE:IMAGE"`
+		GardenURL       URLFlag           `long:"garden-url"       description:"A Garden API endpoint to register as a worker."`
+		BaggageclaimURL URLFlag           `long:"baggageclaim-url" description:"A Baggageclaim API endpoint to register with the worker."`
+		ResourceTypes   map[string]string `long:"resource"         description:"A resource type to advertise for the worker. Can be specified multiple times." value-name:"TYPE:IMAGE"`
 	} `group:"Static Worker (optional)" namespace:"worker"`
 
 	BasicAuth struct {
@@ -754,10 +754,10 @@ func (cmd *ATCCommand) appendStaticWorker(
 	}
 
 	var resourceTypes []atc.WorkerResourceType
-	for t, dir := range cmd.Worker.ResourceTypes {
+	for t, resourcePath := range cmd.Worker.ResourceTypes {
 		resourceTypes = append(resourceTypes, atc.WorkerResourceType{
 			Type:  t,
-			Image: dir.Path(),
+			Image: resourcePath,
 		})
 	}
 
