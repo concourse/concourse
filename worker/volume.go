@@ -67,6 +67,8 @@ type VolumeMount struct {
 }
 
 func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock, db VolumeFactoryDB) (Volume, bool, error) {
+	logger = logger.WithData(lager.Data{"volume": bcVol.Handle()})
+
 	vol := &volume{
 		Volume: bcVol,
 		db:     db,

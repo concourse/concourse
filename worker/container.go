@@ -43,6 +43,8 @@ func newGardenWorkerContainer(
 	clock clock.Clock,
 	volumeFactory VolumeFactory,
 ) (Container, error) {
+	logger = logger.WithData(lager.Data{"container": container.Handle()})
+
 	workerContainer := &gardenWorkerContainer{
 		Container: container,
 
