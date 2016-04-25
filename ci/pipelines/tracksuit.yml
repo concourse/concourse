@@ -1,0 +1,26 @@
+jobs:
+- name: tracksuit
+  serial: true
+  plan:
+  - get: periodic-tracksuit
+    trigger: true
+  - get: tracksuit
+  - task: tracksuit
+    file: tracksuit/run.yml
+    params:
+      GITHUB_TOKEN: {{tracksuit-github-token}}
+      TRACKER_TOKEN: {{tracksuit-tracker-token}}
+      PROJECT_ID: 1059262
+      ORGANIZATION: concourse
+
+resources:
+- name: tracksuit
+  type: git
+  source:
+    uri: https://github.com/vito/tracksuit.git
+
+- name: periodic-tracksuit
+  type: time
+  source:
+    interval: 10m
+
