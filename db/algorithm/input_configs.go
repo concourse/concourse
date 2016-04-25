@@ -4,13 +4,19 @@ import "sort"
 
 type InputConfigs []InputConfig
 
+type Version struct {
+	Every  bool
+	Pinned map[string]string
+}
+
 type InputConfig struct {
-	Name       string
-	JobName    string
-	Passed     JobSet
-	Version    string
-	ResourceID int
-	JobID      int
+	Name            string
+	JobName         string
+	Passed          JobSet
+	UseEveryVersion bool
+	PinnedVersionID int
+	ResourceID      int
+	JobID           int
 }
 
 func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
@@ -43,7 +49,8 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 		inputCandidates = append(inputCandidates, InputVersionCandidates{
 			Input:                 inputConfig.Name,
 			Passed:                inputConfig.Passed,
-			Version:               inputConfig.Version,
+			UseEveryVersion:       inputConfig.UseEveryVersion,
+			PinnedVersionID:       inputConfig.PinnedVersionID,
 			VersionCandidates:     versionCandidates,
 			ExistingBuildResolver: existingBuildResolver,
 		})

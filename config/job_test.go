@@ -70,8 +70,10 @@ var _ = Describe("Job config", func() {
 				BeforeEach(func() {
 					jobConfig.Plan = atc.PlanSequence{
 						{
-							Get:     "a",
-							Version: "every",
+							Get: "a",
+							Version: &atc.VersionConfig{
+								Every: true,
+							},
 						},
 					}
 				})
@@ -82,7 +84,9 @@ var _ = Describe("Job config", func() {
 							{
 								Name:     "a",
 								Resource: "a",
-								Version:  "every",
+								Version: &atc.VersionConfig{
+									Every: true,
+								},
 							},
 						},
 					))

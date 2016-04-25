@@ -10,16 +10,17 @@ type InputCandidates []InputVersionCandidates
 type InputVersionCandidates struct {
 	Input                 string
 	Passed                JobSet
-	Version               string
+	UseEveryVersion       bool
+	PinnedVersionID       int
 	ExistingBuildResolver *ExistingBuildResolver
 	usingEveryVersion     *bool
 
 	VersionCandidates
 }
 
-func (inputVersionCandidates InputVersionCandidates) UseEveryVersion() bool {
+func (inputVersionCandidates InputVersionCandidates) UsingEveryVersion() bool {
 	if inputVersionCandidates.usingEveryVersion == nil {
-		usingEveryVersion := inputVersionCandidates.Version == VersionEvery &&
+		usingEveryVersion := inputVersionCandidates.UseEveryVersion &&
 			inputVersionCandidates.ExistingBuildResolver.Exists()
 		inputVersionCandidates.usingEveryVersion = &usingEveryVersion
 	}
@@ -47,40 +48,49 @@ func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping Input
 
 	for i, inputVersionCandidates := range newInputCandidates {
 		versionIDs := inputVersionCandidates.VersionIDs()
-		if len(versionIDs) == 1 {
+
+		switch {
+		case len(versionIDs) == 1:
 			// already reduced
 			continue
-		}
-
-		usingEveryVersion := inputVersionCandidates.UsingEveryVersion()
-
-		for j, id := range versionIDs {
-			buildForPreviousOrCurrentVersionExists := func() bool {
-				return inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(id) ||
-					j == len(versionIDs)-1 ||
-					inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(versionIDs[j+1])
-			}
-
-			limitedToVersion := inputVersionCandidates.ForVersion(id)
+		case inputVersionCandidates.PinnedVersionID != 0:
+			limitedToVersion := inputVersionCandidates.ForVersion(inputVersionCandidates.PinnedVersionID)
 
 			inputCandidates := newInputCandidates[i]
 			inputCandidates.VersionCandidates = limitedToVersion
 			newInputCandidates[i] = inputCandidates
+		default:
+			usingEveryVersion := inputVersionCandidates.UsingEveryVersion()
 
-			mapping, ok := newInputCandidates.reduce(jobs, lastSatisfiedMapping)
-			if ok {
-				lastSatisfiedMapping = mapping
-				if !usingEveryVersion || buildForPreviousOrCurrentVersionExists() {
-					return mapping, true
+			for j, id := range versionIDs {
+				buildForPreviousOrCurrentVersionExists := func() bool {
+					return inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(id) ||
+						j == len(versionIDs)-1 ||
+						inputVersionCandidates.ExistingBuildResolver.ExistsForVersion(versionIDs[j+1])
 				}
-			} else {
-				if usingEveryVersion && (lastSatisfiedMapping != nil || buildForPreviousOrCurrentVersionExists()) {
-					return lastSatisfiedMapping, true
+
+				limitedToVersion := inputVersionCandidates.ForVersion(id)
+
+				inputCandidates := newInputCandidates[i]
+				inputCandidates.VersionCandidates = limitedToVersion
+				newInputCandidates[i] = inputCandidates
+
+				mapping, ok := newInputCandidates.reduce(jobs, lastSatisfiedMapping)
+				if ok {
+					lastSatisfiedMapping = mapping
+					if !usingEveryVersion || buildForPreviousOrCurrentVersionExists() {
+						return mapping, true
+					}
+				} else {
+					if usingEveryVersion && (lastSatisfiedMapping != nil || buildForPreviousOrCurrentVersionExists()) {
+						return lastSatisfiedMapping, true
+					}
 				}
+
+				newInputCandidates[i] = inputVersionCandidates
 			}
-
-			newInputCandidates[i] = inputVersionCandidates
 		}
+
 	}
 
 	mapping := InputMapping{}

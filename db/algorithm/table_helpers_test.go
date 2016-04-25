@@ -37,10 +37,19 @@ type Input struct {
 	Name     string
 	Resource string
 	Passed   []string
-	Version  string
+	Version  Version
 }
 
-type Result map[string]string
+type Version struct {
+	Every  bool
+	Latest bool
+	Pinned string
+}
+
+type Result struct {
+	OK     bool
+	Values map[string]string
+}
 
 type StringMapping map[string]int
 
@@ -134,22 +143,29 @@ func (example Example) Run() {
 			passed[jobIDs.ID(jobName)] = struct{}{}
 		}
 
+		var versionID int
+		if input.Version.Pinned != "" {
+			versionID = versionIDs.ID(input.Version.Pinned)
+		}
+
 		inputConfigs[i] = algorithm.InputConfig{
-			Name:       input.Name,
-			Passed:     passed,
-			ResourceID: resourceIDs.ID(input.Resource),
-			Version:    input.Version,
-			JobID:      jobIDs.ID(CurrentJobName),
+			Name:            input.Name,
+			Passed:          passed,
+			ResourceID:      resourceIDs.ID(input.Resource),
+			UseEveryVersion: input.Version.Every,
+			PinnedVersionID: versionID,
+			JobID:           jobIDs.ID(CurrentJobName),
 		}
 	}
 
-	result, ok := inputConfigs.Resolve(db)
-	Expect(ok).To(BeTrue())
+	resolved, ok := inputConfigs.Resolve(db)
 
-	prettyResult := Result{}
-	for name, versionID := range result {
-		prettyResult[name] = versionIDs.Name(versionID)
+	prettyValues := map[string]string{}
+	for name, versionID := range resolved {
+		prettyValues[name] = versionIDs.Name(versionID)
 	}
 
-	Expect(prettyResult).To(Equal(example.Result))
+	actualResult := Result{OK: ok, Values: prettyValues}
+
+	Expect(actualResult).To(Equal(example.Result))
 }

@@ -933,6 +933,44 @@ var _ = Describe("PipelineDB", func() {
 
 		})
 
+		Describe("GetNextInputVersions", func() {
+			It("returns matching build inputs when the pinned version can be found", func() {
+				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   resource.Name,
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}, {"version": "2"}, {"version": "3"}})
+				Expect(err).NotTo(HaveOccurred())
+
+				jobBuildInputs := []config.JobInput{
+					{
+						Name:     "some-input-name",
+						Resource: resource.Name,
+						Version:  &atc.VersionConfig{Pinned: atc.Version{"version": "2"}},
+					},
+				}
+
+				buildInputs, found, err := loadAndGetNextInputVersions("some-job", jobBuildInputs)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(buildInputs[0].VersionedResource.Version).To(Equal(db.Version{"version": "2"}))
+			})
+
+			It("returns not found when the pinned version cannot be found", func() {
+				jobBuildInputs := []config.JobInput{
+					{
+						Name:     "some-input-name",
+						Resource: resource.Name,
+						Version:  &atc.VersionConfig{Pinned: atc.Version{"version": "2"}},
+					},
+				}
+
+				_, found, err := loadAndGetNextInputVersions("some-job", jobBuildInputs)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+
 		It("can load up the latest enabled versioned resource", func() {
 			By("initially having no latest versioned resource")
 			_, found, err := pipelineDB.GetLatestEnabledVersionedResource(resource.Name)

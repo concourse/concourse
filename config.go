@@ -1,6 +1,11 @@
 package atc
 
-import "fmt"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+)
 
 const ConfigVersionHeader = "X-Concourse-Config-Version"
 const DefaultPipelineName = "main"
@@ -122,6 +127,104 @@ func (config JobConfig) GetSerialGroups() []string {
 // `on: [success]` after every Task plan.
 type PlanSequence []PlanConfig
 
+// A VersionConfig represents the choice to include every version of a
+// resource, the latest version of a resource, or a pinned (specific) one.
+type VersionConfig struct {
+	Every  bool    `yaml:"every,omitempty" json:"every,omitempty"`
+	Latest bool    `yaml:"latest,omitempty" json:"latest,omitempty"`
+	Pinned Version `yaml:"pinned,omitempty" json:"pinned,omitempty"`
+}
+
+func (c *VersionConfig) UnmarshalJSON(version []byte) error {
+	var data interface{}
+
+	err := json.Unmarshal(version, &data)
+	if err != nil {
+		return err
+	}
+
+	switch actual := data.(type) {
+	case string:
+		c.Every = actual == "every"
+		c.Latest = actual == "latest"
+	case map[string]interface{}:
+		version := Version{}
+
+		for k, v := range actual {
+			if s, ok := v.(string); ok {
+				version[k] = strings.TrimSpace(s)
+			}
+		}
+
+		c.Pinned = version
+	default:
+		return errors.New("unknown type for version")
+	}
+
+	return nil
+}
+
+func (c *VersionConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var data interface{}
+
+	err := unmarshal(&data)
+	if err != nil {
+		return err
+	}
+
+	switch actual := data.(type) {
+	case string:
+		c.Every = actual == "every"
+		c.Latest = actual == "latest"
+	case map[string]interface{}:
+		version := Version{}
+
+		for k, v := range actual {
+			if s, ok := v.(string); ok {
+				version[k] = strings.TrimSpace(s)
+			}
+		}
+
+		c.Pinned = version
+	default:
+		return errors.New("unknown type for version")
+	}
+
+	return nil
+}
+
+func (c *VersionConfig) MarshalYAML() (interface{}, error) {
+	if c.Latest {
+		return VersionLatest, nil
+	}
+
+	if c.Every {
+		return VersionEvery, nil
+	}
+
+	if c.Pinned != nil {
+		return c.Pinned, nil
+	}
+
+	return nil, nil
+}
+
+func (c *VersionConfig) MarshalJSON() ([]byte, error) {
+	if c.Latest {
+		return json.Marshal(VersionLatest)
+	}
+
+	if c.Every {
+		return json.Marshal(VersionEvery)
+	}
+
+	if c.Pinned != nil {
+		return json.Marshal(c.Pinned)
+	}
+
+	return json.Marshal("")
+}
+
 // A PlanConfig is a flattened set of configuration corresponding to
 // a particular Plan, where Source and Version are populated lazily.
 type PlanConfig struct {
@@ -196,7 +299,7 @@ type PlanConfig struct {
 	// repeat the step up to N times, until it works
 	Attempts int `yaml:"attempts,omitempty" json:"attempts,omitempty" mapstructure:"attempts"`
 
-	Version string `yaml:"version,omitempty" json:"version,omitempty" mapstructure:"version"`
+	Version *VersionConfig `yaml:"version,omitempty" json:"version,omitempty" mapstructure:"version"`
 }
 
 func (config PlanConfig) Name() string {

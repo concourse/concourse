@@ -1851,12 +1851,39 @@ func (pdb *pipelineDB) GetNextInputVersions(db *algorithm.VersionsDB, jobName st
 			jobs[db.JobIDs[jobName]] = struct{}{}
 		}
 
+		var pinnedVersionID int
+		var useEveryVersion bool
+		if input.Version != nil {
+			useEveryVersion = input.Version.Every
+
+			if input.Version.Pinned != nil {
+				versionJSON, err := json.Marshal(input.Version.Pinned)
+				if err != nil {
+					return []BuildInput{}, false, nil
+				}
+
+				resourceID := db.ResourceIDs[input.Resource]
+				err = pdb.conn.QueryRow(`
+			SELECT id
+			  FROM versioned_resources
+			 WHERE version = $1 AND resource_id = $2
+		`, string(versionJSON), resourceID).Scan(&pinnedVersionID)
+				if err != nil {
+					if err == sql.ErrNoRows {
+						return []BuildInput{}, false, nil
+					}
+					return []BuildInput{}, false, err
+				}
+			}
+		}
+
 		inputConfigs = append(inputConfigs, algorithm.InputConfig{
-			Name:       input.Name,
-			Version:    input.Version,
-			ResourceID: db.ResourceIDs[input.Resource],
-			Passed:     jobs,
-			JobID:      db.JobIDs[jobName],
+			Name:            input.Name,
+			UseEveryVersion: useEveryVersion,
+			PinnedVersionID: pinnedVersionID,
+			ResourceID:      db.ResourceIDs[input.Resource],
+			Passed:          jobs,
+			JobID:           db.JobIDs[jobName],
 		})
 	}
 

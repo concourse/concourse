@@ -5,7 +5,49 @@ import (
 	"errors"
 	"reflect"
 	"strconv"
+	"strings"
 )
+
+const VersionLatest = "latest"
+const VersionEvery = "every"
+const VersionPinned = "pinned"
+
+var VersionConfigDecodeHook = func(
+	srcType reflect.Type,
+	dstType reflect.Type,
+	data interface{},
+) (interface{}, error) {
+	if dstType != reflect.TypeOf(VersionConfig{}) {
+		return data, nil
+	}
+
+	switch {
+	case srcType.Kind() == reflect.String:
+		if s, ok := data.(string); ok {
+			return VersionConfig{
+				Every:  s == VersionEvery,
+				Latest: s == VersionLatest,
+			}, nil
+		}
+	case srcType.Kind() == reflect.Map:
+		version := Version{}
+		if versionConfig, ok := data.(map[interface{}]interface{}); ok {
+			for key, val := range versionConfig {
+				if sKey, ok := key.(string); ok {
+					if sVal, ok := val.(string); ok {
+						version[sKey] = strings.TrimSpace(sVal)
+					}
+				}
+			}
+
+			return VersionConfig{
+				Pinned: version,
+			}, nil
+		}
+	}
+
+	return data, nil
+}
 
 var SanitizeDecodeHook = func(
 	dataKind reflect.Kind,
