@@ -4,33 +4,39 @@ import "sort"
 
 type InputConfigs []InputConfig
 
+type Version struct {
+	Every  bool
+	Pinned map[string]string
+}
+
 type InputConfig struct {
-	Name       string
-	JobName    string
-	Passed     JobSet
-	Version    string
-	ResourceID int
-	JobID      int
+	Name            string
+	JobName         string
+	Passed          JobSet
+	UseEveryVersion bool
+	PinnedVersionID int
+	ResourceID      int
+	JobID           int
 }
 
 func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 	jobs := JobSet{}
 	inputCandidates := InputCandidates{}
 	for _, inputConfig := range configs {
-		candidateSet := VersionCandidates{}
+		versionCandidates := VersionCandidates{}
 
 		if len(inputConfig.Passed) == 0 {
-			candidateSet = db.AllVersionsForResource(inputConfig.ResourceID)
+			versionCandidates = db.AllVersionsForResource(inputConfig.ResourceID)
 		} else {
 			jobs = jobs.Union(inputConfig.Passed)
 
-			candidateSet = db.VersionsOfResourcePassedJobs(
+			versionCandidates = db.VersionsOfResourcePassedJobs(
 				inputConfig.ResourceID,
 				inputConfig.Passed,
 			)
 		}
 
-		if len(candidateSet) == 0 {
+		if len(versionCandidates) == 0 {
 			return nil, false
 		}
 
@@ -43,8 +49,9 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 		inputCandidates = append(inputCandidates, InputVersionCandidates{
 			Input:                 inputConfig.Name,
 			Passed:                inputConfig.Passed,
-			Version:               inputConfig.Version,
-			VersionCandidates:     candidateSet,
+			UseEveryVersion:       inputConfig.UseEveryVersion,
+			PinnedVersionID:       inputConfig.PinnedVersionID,
+			VersionCandidates:     versionCandidates,
 			ExistingBuildResolver: existingBuildResolver,
 		})
 	}

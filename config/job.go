@@ -10,7 +10,7 @@ type JobInput struct {
 	Resource string
 	Passed   []string
 	Trigger  bool
-	Version  string
+	Version  *atc.VersionConfig
 	Params   atc.Params
 	Tags     atc.Tags
 }

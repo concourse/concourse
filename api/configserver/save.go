@@ -231,8 +231,12 @@ func saveConfigRequestUnmarshaler(r *http.Request) (atc.Config, db.PipelinePause
 		Metadata:         &md,
 		Result:           &config,
 		WeaklyTypedInput: true,
-		DecodeHook:       atc.SanitizeDecodeHook,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			atc.SanitizeDecodeHook,
+			atc.VersionConfigDecodeHook,
+		),
 	}
+
 	decoder, err := mapstructure.NewDecoder(msConfig)
 	if err != nil {
 		return atc.Config{}, db.PipelineNoChange, ErrFailedToConstructDecoder
