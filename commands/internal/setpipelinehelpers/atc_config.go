@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/fly/template"
 	"github.com/concourse/go-concourse/concourse"
+	"github.com/mitchellh/mapstructure"
 	"github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-interact/interact"
@@ -101,10 +102,29 @@ func (atcConfig ATCConfig) newConfig(configPath flaghelpers.PathFlag, templateVa
 		displayhelpers.FailWithErrorf("failed to evaluate variables into template", err)
 	}
 
-	var newConfig atc.Config
-	err = yaml.Unmarshal(configFile, &newConfig)
+	var configStructure interface{}
+	err = yaml.Unmarshal(configFile, &configStructure)
 	if err != nil {
-		displayhelpers.FailWithErrorf("failed to parse configuration file", err)
+		displayhelpers.FailWithErrorf("failed to unmarshal configStructure", err)
+	}
+
+	var newConfig atc.Config
+	msConfig := &mapstructure.DecoderConfig{
+		Result:           &newConfig,
+		WeaklyTypedInput: true,
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			atc.SanitizeDecodeHook,
+			atc.VersionConfigDecodeHook,
+		),
+	}
+
+	decoder, err := mapstructure.NewDecoder(msConfig)
+	if err != nil {
+		displayhelpers.FailWithErrorf("failed to construct decoder", err)
+	}
+
+	if err := decoder.Decode(configStructure); err != nil {
+		displayhelpers.FailWithErrorf("failed to decode config", err)
 	}
 
 	return newConfig

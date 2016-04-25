@@ -106,6 +106,19 @@ var _ = Describe("Fly CLI", func() {
 					{
 						Name: "some-other-job",
 					},
+					{
+						Name: "pinned-resource-job",
+						Plan: atc.PlanSequence{
+							{
+								Get: "some-resource",
+								Version: &atc.VersionConfig{
+									Pinned: atc.Version{
+										"ref": "some-ref",
+									},
+								},
+							},
+						},
+					},
 				},
 			}
 		})
