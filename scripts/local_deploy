@@ -11,5 +11,5 @@ if [ -z "$(bosh -v)" ]; then
   bosh -d concourse-testflight deploy scripts/manifests/deployment.yml "$@"
 else
   bosh update cloud-config cloud_config.yml
-  bosh -d scripts/manifests/deployment.yml deploy "$@"
+  bosh -d scripts/manifests/deployment.yml -n deploy "$@"
 fi
