@@ -75,4 +75,41 @@ var _ = Describe("Resource version", func() {
 			Eventually(guidServer.ReportingGuids).Should(ContainElement(guid4))
 		})
 	})
+
+	Describe("version: pinned", func() {
+		It("only runs builds with the pinned version", func() {
+			guid1 := originGitServer.Commit()
+
+			configurePipeline(
+				"-c", "fixtures/resource-version-every.yml",
+				"-v", "testflight-helper-image="+guidServerRootfs,
+				"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
+				"-v", "origin-git-server="+originGitServer.URI(),
+			)
+
+			Eventually(guidServer.ReportingGuids).Should(ContainElement(guid1))
+
+			pausePipeline()
+
+			guid2 := originGitServer.Commit()
+			guid3 := originGitServer.Commit()
+			rev := originGitServer.RevParse("master")
+			guid4 := originGitServer.Commit()
+
+			reconfigurePipeline(
+				"-c", "fixtures/pinned-version.yml",
+				"-v", "testflight-helper-image="+guidServerRootfs,
+				"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
+				"-v", "origin-git-server="+originGitServer.URI(),
+				"-v", "git-resource-version="+rev,
+			)
+
+			unpausePipeline()
+
+			Eventually(guidServer.ReportingGuids).Should(ContainElement(guid3))
+
+			Expect(guidServer.ReportingGuids()).NotTo(ContainElement(guid2))
+			Expect(guidServer.ReportingGuids()).NotTo(ContainElement(guid4))
+		})
+	})
 })
