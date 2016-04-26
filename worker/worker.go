@@ -118,6 +118,16 @@ func NewGardenWorker(
 	}
 }
 
+func (worker *gardenWorker) FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool) {
+	for _, rt := range worker.resourceTypes {
+		if path == rt.Image {
+			return rt, true
+		}
+	}
+
+	return atc.WorkerResourceType{}, false
+}
+
 func (worker *gardenWorker) FindVolume(logger lager.Logger, volumeSpec VolumeSpec) (Volume, bool, error) {
 	return worker.volumeClient.FindVolume(logger, volumeSpec)
 }

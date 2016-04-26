@@ -224,6 +224,10 @@ func (pool *pool) LookupContainer(logger lager.Logger, handle string) (Container
 	return container, true, nil
 }
 
+func (*pool) FindResourceTypeByPath(string) (atc.WorkerResourceType, bool) {
+	return atc.WorkerResourceType{}, false
+}
+
 func (*pool) FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error) {
 	return nil, false, errors.New("FindVolume not implemented for pool")
 }

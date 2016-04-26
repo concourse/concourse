@@ -18,6 +18,10 @@ import (
 	wfakes "github.com/concourse/atc/worker/fakes"
 )
 
+func strptr(s string) *string {
+	return &s
+}
+
 var _ = Describe("Baggage Collector", func() {
 	var (
 		fakeWorkerClient *wfakes.FakeClient
@@ -45,130 +49,147 @@ var _ = Describe("Baggage Collector", func() {
 		expectedTTLs map[string]time.Duration
 	}
 
-	DescribeTable("baggage collection",
-		func(examples ...baggageCollectionExample) {
-			var err error
+	DescribeTable("baggage collection", func(examples ...baggageCollectionExample) {
+		var err error
 
-			for _, example := range examples {
-				fakeWorkerClient = new(wfakes.FakeClient)
-				fakeWorker = new(wfakes.FakeWorker)
-				fakeWorkerClient.GetWorkerReturns(fakeWorker, nil)
-				baggageCollectorLogger := lagertest.NewTestLogger("test")
+		for _, example := range examples {
+			fakeWorkerClient = new(wfakes.FakeClient)
+			fakeWorker = new(wfakes.FakeWorker)
+			fakeWorkerClient.GetWorkerReturns(fakeWorker, nil)
+			baggageCollectorLogger := lagertest.NewTestLogger("test")
 
-				fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
-				fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
+			fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
+			fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 
-				baggageCollector = lostandfound.NewBaggageCollector(
-					baggageCollectorLogger,
-					fakeWorkerClient,
-					fakeBaggageCollectorDB,
-					fakePipelineDBFactory,
-					expectedOldResourceGracePeriod,
-					expectedOneOffTTL,
-				)
+			baggageCollector = lostandfound.NewBaggageCollector(
+				baggageCollectorLogger,
+				fakeWorkerClient,
+				fakeBaggageCollectorDB,
+				fakePipelineDBFactory,
+				expectedOldResourceGracePeriod,
+				expectedOneOffTTL,
+			)
 
-				var savedPipelines []db.SavedPipeline
-				fakePipelineDBs := make(map[string]*dbfakes.FakePipelineDB)
+			fakeWorker.FindResourceTypeByPathStub = func(path string) (atc.WorkerResourceType, bool) {
+				workerResourceTypes := []atc.WorkerResourceType{
+					{
+						Image:   "fake-image",
+						Type:    "fake-type",
+						Version: "latest",
+					},
+				}
 
-				for name, data := range example.pipelineData {
-					config := atc.Config{}
-
-					for _, resourceData := range data {
-						config.Resources = append(config.Resources, resourceData.config)
+				for _, resourceType := range workerResourceTypes {
+					if resourceType.Image == path {
+						return resourceType, true
 					}
-
-					savedPipelines = append(savedPipelines, db.SavedPipeline{
-						Pipeline: db.Pipeline{
-							Name:   name,
-							Config: config,
-						},
-					})
-
-					fakePipelineDB := new(dbfakes.FakePipelineDB)
-
-					savedVersionsForEachResource := make(map[string][]db.SavedVersionedResource)
-
-					for _, resourceInfo := range data {
-						var savedVersions []db.SavedVersionedResource
-
-						for i, version := range resourceInfo.versions {
-							disabled := false
-							for _, j := range resourceInfo.versionsToDisable {
-								if i == j {
-									disabled = true
-								}
-							}
-
-							if !disabled {
-								savedVersions = append(savedVersions, db.SavedVersionedResource{
-									Enabled: true,
-									VersionedResource: db.VersionedResource{
-										Version: db.Version(version),
-									},
-								})
-							}
-						}
-						savedVersionsForEachResource[resourceInfo.config.Name] = savedVersions
-					}
-
-					fakePipelineDB.GetLatestEnabledVersionedResourceStub = func(resourceName string) (db.SavedVersionedResource, bool, error) {
-						savedVersions := savedVersionsForEachResource[resourceName]
-
-						if len(savedVersions) == 0 {
-							return db.SavedVersionedResource{}, false, nil
-						}
-
-						return savedVersions[len(savedVersions)-1], true, nil
-					}
-
-					fakePipelineDBs[name] = fakePipelineDB
 				}
 
-				fakeBaggageCollectorDB.GetAllPipelinesReturns(savedPipelines, nil)
-
-				fakePipelineDBFactory.BuildStub = func(savedPipeline db.SavedPipeline) db.PipelineDB {
-					return fakePipelineDBs[savedPipeline.Name]
-				}
-
-				fakeVolumes := map[string]*wfakes.FakeVolume{}
-
-				var savedVolumes []db.SavedVolume
-				for _, volume := range example.volumeData {
-					savedVolumes = append(savedVolumes, db.SavedVolume{
-						Volume: volume,
-					})
-					fakeVolumes[volume.Handle] = new(wfakes.FakeVolume)
-				}
-
-				fakeBaggageCollectorDB.GetVolumesReturns(savedVolumes, nil)
-
-				fakeWorker.LookupVolumeStub = func(_ lager.Logger, handle string) (worker.Volume, bool, error) {
-					vol, ok := fakeVolumes[handle]
-					Expect(ok).To(BeTrue())
-					return vol, true, nil
-				}
-
-				err = baggageCollector.Collect()
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(fakeWorker.LookupVolumeCallCount()).To(Equal(len(example.expectedTTLs)))
-				var actualHandles []string
-				for i := 0; i < fakeWorker.LookupVolumeCallCount(); i++ {
-					_, actualHandle := fakeWorker.LookupVolumeArgsForCall(i)
-					actualHandles = append(actualHandles, actualHandle)
-				}
-
-				var expectedHandles []string
-				for handle, expectedTTL := range example.expectedTTLs {
-					Expect(fakeVolumes[handle].ReleaseCallCount()).To(Equal(1))
-					actualTTL := fakeVolumes[handle].ReleaseArgsForCall(0)
-					Expect(actualTTL).To(Equal(worker.FinalTTL(expectedTTL)))
-					expectedHandles = append(expectedHandles, handle)
-				}
-
-				Expect(actualHandles).To(ConsistOf(expectedHandles))
+				return atc.WorkerResourceType{}, false
 			}
-		},
+
+			var savedPipelines []db.SavedPipeline
+			fakePipelineDBs := make(map[string]*dbfakes.FakePipelineDB)
+
+			for name, data := range example.pipelineData {
+				config := atc.Config{}
+
+				for _, resourceData := range data {
+					config.Resources = append(config.Resources, resourceData.config)
+				}
+
+				savedPipelines = append(savedPipelines, db.SavedPipeline{
+					Pipeline: db.Pipeline{
+						Name:   name,
+						Config: config,
+					},
+				})
+
+				fakePipelineDB := new(dbfakes.FakePipelineDB)
+
+				savedVersionsForEachResource := make(map[string][]db.SavedVersionedResource)
+
+				for _, resourceInfo := range data {
+					var savedVersions []db.SavedVersionedResource
+
+					for i, version := range resourceInfo.versions {
+						disabled := false
+						for _, j := range resourceInfo.versionsToDisable {
+							if i == j {
+								disabled = true
+							}
+						}
+
+						if !disabled {
+							savedVersions = append(savedVersions, db.SavedVersionedResource{
+								Enabled: true,
+								VersionedResource: db.VersionedResource{
+									Version: db.Version(version),
+								},
+							})
+						}
+					}
+					savedVersionsForEachResource[resourceInfo.config.Name] = savedVersions
+				}
+
+				fakePipelineDB.GetLatestEnabledVersionedResourceStub = func(resourceName string) (db.SavedVersionedResource, bool, error) {
+					savedVersions := savedVersionsForEachResource[resourceName]
+
+					if len(savedVersions) == 0 {
+						return db.SavedVersionedResource{}, false, nil
+					}
+
+					return savedVersions[len(savedVersions)-1], true, nil
+				}
+
+				fakePipelineDBs[name] = fakePipelineDB
+			}
+
+			fakeBaggageCollectorDB.GetAllPipelinesReturns(savedPipelines, nil)
+
+			fakePipelineDBFactory.BuildStub = func(savedPipeline db.SavedPipeline) db.PipelineDB {
+				return fakePipelineDBs[savedPipeline.Name]
+			}
+
+			fakeVolumes := map[string]*wfakes.FakeVolume{}
+
+			var savedVolumes []db.SavedVolume
+			for _, volume := range example.volumeData {
+				savedVolumes = append(savedVolumes, db.SavedVolume{
+					Volume: volume,
+				})
+				fakeVolumes[volume.Handle] = new(wfakes.FakeVolume)
+			}
+
+			fakeBaggageCollectorDB.GetVolumesReturns(savedVolumes, nil)
+
+			fakeWorker.LookupVolumeStub = func(_ lager.Logger, handle string) (worker.Volume, bool, error) {
+				vol, ok := fakeVolumes[handle]
+				Expect(ok).To(BeTrue())
+				return vol, true, nil
+			}
+
+			err = baggageCollector.Collect()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakeWorker.LookupVolumeCallCount()).To(Equal(len(example.expectedTTLs)))
+			var actualHandles []string
+			for i := 0; i < fakeWorker.LookupVolumeCallCount(); i++ {
+				_, actualHandle := fakeWorker.LookupVolumeArgsForCall(i)
+				actualHandles = append(actualHandles, actualHandle)
+			}
+
+			var expectedHandles []string
+			for handle, expectedTTL := range example.expectedTTLs {
+				Expect(fakeVolumes[handle].ReleaseCallCount()).To(Equal(1))
+				actualTTL := fakeVolumes[handle].ReleaseArgsForCall(0)
+				Expect(actualTTL).To(Equal(worker.FinalTTL(expectedTTL)))
+				expectedHandles = append(expectedHandles, handle)
+			}
+
+			Expect(actualHandles).To(ConsistOf(expectedHandles))
+		}
+	},
 		Entry("when there are non-resource cache volumes present", baggageCollectionExample{
 			pipelineData: map[string][]resourceConfigAndVersions{
 				"pipeline-a": []resourceConfigAndVersions{
@@ -692,6 +713,56 @@ var _ = Describe("Baggage Collector", func() {
 				},
 			},
 			expectedTTLs: map[string]time.Duration{},
+		}),
+		Entry("when there are import volumes present", baggageCollectionExample{
+			volumeData: []db.Volume{
+				{
+					WorkerName: "some-worker",
+					TTL:        expectedLatestVersionTTL,
+					Handle:     "some-volume-handle-1",
+					Identifier: db.VolumeIdentifier{
+						Import: &db.ImportIdentifier{
+							WorkerName: "some-worker",
+							Path:       "fake-image",
+							Version:    strptr("older"),
+						},
+					},
+				},
+				{
+					WorkerName: "some-worker",
+					TTL:        expectedLatestVersionTTL,
+					Handle:     "some-volume-handle-2",
+					Identifier: db.VolumeIdentifier{
+						Import: &db.ImportIdentifier{
+							WorkerName: "some-worker",
+							Path:       "fake-image",
+							Version:    strptr("latest"),
+						},
+					},
+				},
+			},
+			expectedTTLs: map[string]time.Duration{
+				"some-volume-handle-1": expectedOldResourceGracePeriod,
+			},
+		}),
+		Entry("when there are import volumes present that are not found on worker", baggageCollectionExample{
+			volumeData: []db.Volume{
+				{
+					WorkerName: "some-worker",
+					TTL:        expectedLatestVersionTTL,
+					Handle:     "some-volume-handle",
+					Identifier: db.VolumeIdentifier{
+						Import: &db.ImportIdentifier{
+							WorkerName: "some-worker",
+							Path:       "unknown-image",
+							Version:    strptr("latest"),
+						},
+					},
+				},
+			},
+			expectedTTLs: map[string]time.Duration{
+				"some-volume-handle": expectedOldResourceGracePeriod,
+			},
 		}),
 	)
 })

@@ -186,15 +186,25 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 			continue
 		}
 
-		if volumeToExpire.Volume.Identifier.ResourceCache == nil {
+		var hashKey string
+		switch {
+		case volumeToExpire.Volume.Identifier.ResourceCache != nil:
+			version, err := json.Marshal(volumeToExpire.Volume.Identifier.ResourceCache.ResourceVersion)
+			if err != nil {
+				return err
+			}
+			hashKey = string(version) + volumeToExpire.Volume.Identifier.ResourceCache.ResourceHash
+		case volumeToExpire.Volume.Identifier.Import != nil:
+			identifier := volumeToExpire.Volume.Identifier.Import
+			workerResourceType, found := volumeWorker.FindResourceTypeByPath(identifier.Path)
+			if found && workerResourceType.Version == *identifier.Version {
+				continue
+			}
+
+			hashKey = identifier.WorkerName + identifier.Path + *identifier.Version
+		default:
 			continue
 		}
-
-		version, err := json.Marshal(volumeToExpire.Volume.Identifier.ResourceCache.ResourceVersion)
-		if err != nil {
-			return err
-		}
-		hashKey := string(version) + volumeToExpire.Volume.Identifier.ResourceCache.ResourceHash
 
 		identifier := hashKey + volumeToExpire.WorkerName
 

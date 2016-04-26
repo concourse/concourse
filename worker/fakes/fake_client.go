@@ -48,6 +48,15 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
+	FindResourceTypeByPathStub        func(path string) (atc.WorkerResourceType, bool)
+	findResourceTypeByPathMutex       sync.RWMutex
+	findResourceTypeByPathArgsForCall []struct {
+		path string
+	}
+	findResourceTypeByPathReturns struct {
+		result1 atc.WorkerResourceType
+		result2 bool
+	}
 	FindVolumeStub        func(lager.Logger, worker.VolumeSpec) (worker.Volume, bool, error)
 	findVolumeMutex       sync.RWMutex
 	findVolumeArgsForCall []struct {
@@ -228,6 +237,39 @@ func (fake *FakeClient) LookupContainerReturns(result1 worker.Container, result2
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeClient) FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool) {
+	fake.findResourceTypeByPathMutex.Lock()
+	fake.findResourceTypeByPathArgsForCall = append(fake.findResourceTypeByPathArgsForCall, struct {
+		path string
+	}{path})
+	fake.findResourceTypeByPathMutex.Unlock()
+	if fake.FindResourceTypeByPathStub != nil {
+		return fake.FindResourceTypeByPathStub(path)
+	} else {
+		return fake.findResourceTypeByPathReturns.result1, fake.findResourceTypeByPathReturns.result2
+	}
+}
+
+func (fake *FakeClient) FindResourceTypeByPathCallCount() int {
+	fake.findResourceTypeByPathMutex.RLock()
+	defer fake.findResourceTypeByPathMutex.RUnlock()
+	return len(fake.findResourceTypeByPathArgsForCall)
+}
+
+func (fake *FakeClient) FindResourceTypeByPathArgsForCall(i int) string {
+	fake.findResourceTypeByPathMutex.RLock()
+	defer fake.findResourceTypeByPathMutex.RUnlock()
+	return fake.findResourceTypeByPathArgsForCall[i].path
+}
+
+func (fake *FakeClient) FindResourceTypeByPathReturns(result1 atc.WorkerResourceType, result2 bool) {
+	fake.FindResourceTypeByPathStub = nil
+	fake.findResourceTypeByPathReturns = struct {
+		result1 atc.WorkerResourceType
+		result2 bool
+	}{result1, result2}
 }
 
 func (fake *FakeClient) FindVolume(arg1 lager.Logger, arg2 worker.VolumeSpec) (worker.Volume, bool, error) {

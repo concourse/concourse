@@ -29,6 +29,7 @@ type Client interface {
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 
+	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 	FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error)
 	CreateVolume(lager.Logger, VolumeSpec) (Volume, error)
 	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
