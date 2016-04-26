@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/concourse/atc"
@@ -36,7 +35,8 @@ func (command *VolumesCommand) Execute([]string) error {
 			{Contents: "ttl", Color: color.New(color.Bold)},
 			{Contents: "validity", Color: color.New(color.Bold)},
 			{Contents: "worker", Color: color.New(color.Bold)},
-			{Contents: "version", Color: color.New(color.Bold)},
+			{Contents: "type", Color: color.New(color.Bold)},
+			{Contents: "identifier", Color: color.New(color.Bold)},
 		},
 	}
 
@@ -48,7 +48,8 @@ func (command *VolumesCommand) Execute([]string) error {
 			{Contents: formatTTL(c.TTLInSeconds)},
 			{Contents: formatTTL(c.ValidityInSeconds)},
 			{Contents: c.WorkerName},
-			versionCell(c.ResourceVersion),
+			{Contents: c.Type},
+			{Contents: c.Identifier},
 		}
 
 		table.Data = append(table.Data, row)
@@ -82,19 +83,4 @@ func formatTTL(ttlInSeconds int64) string {
 		int64(duration.Minutes())%60,
 		ttlInSeconds%60,
 	)
-}
-
-func versionCell(version atc.Version) ui.TableCell {
-	if version == nil {
-		return ui.TableCell{Contents: "n/a", Color: color.New(color.Faint)}
-	}
-
-	pairs := []string{}
-	for k, v := range version {
-		pairs = append(pairs, fmt.Sprintf("%s: %s", k, v))
-	}
-
-	sort.Sort(sort.StringSlice(pairs))
-
-	return ui.TableCell{Contents: strings.Join(pairs, ", ")}
 }
