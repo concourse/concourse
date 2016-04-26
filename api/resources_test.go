@@ -573,39 +573,76 @@ var _ = Describe("Resources API", func() {
 				Expect(teamName).To(Equal(atc.DefaultTeamName))
 			})
 
-			Context("when checking succeeds", func() {
+			It("tries to scan with no version specified", func() {
+				Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+				_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+				Expect(actualResourceName).To(Equal("resource-name"))
+				Expect(actualFromVersion).To(BeNil())
+			})
+
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			Context("when checking with a version specified", func() {
 				BeforeEach(func() {
-					fakeScanner.ScanFromVersionReturns(nil)
+					checkRequestBody = atc.CheckRequestBody{
+						From: atc.Version{
+							"some-version-key": "some-version-value",
+						},
+					}
 				})
 
-				Context("when checking no version specified", func() {
-					It("called Scan with no version specified", func() {
-						Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
-						_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
-						Expect(actualResourceName).To(Equal("resource-name"))
-						Expect(actualFromVersion).To(BeNil())
-					})
-
-					It("returns 200", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
+				It("tries to scan with the version specified", func() {
+					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+					_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+					Expect(actualResourceName).To(Equal("resource-name"))
+					Expect(actualFromVersion).To(Equal(checkRequestBody.From))
 				})
+			})
 
-				Context("when checking with a version specified", func() {
-					BeforeEach(func() {
-						checkRequestBody = atc.CheckRequestBody{
-							From: atc.Version{
-								"some-version-key": "some-version-value",
+			Context("when the resource already has versions", func() {
+				BeforeEach(func() {
+					returnedVersion := db.SavedVersionedResource{
+						ID:      4,
+						Enabled: true,
+						VersionedResource: db.VersionedResource{
+							Resource: "some-resource",
+							Type:     "some-type",
+							Version: db.Version{
+								"some": "version",
 							},
-						}
-					})
+							Metadata: []db.MetadataField{
+								{
+									Name:  "some",
+									Value: "metadata",
+								},
+							},
+							PipelineID: 42,
+						},
+					}
+					fakePipelineDB.GetLatestVersionedResourceReturns(returnedVersion, true, nil)
+				})
 
-					It("called Scan with a fromVersion specified", func() {
-						Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
-						_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
-						Expect(actualResourceName).To(Equal("resource-name"))
-						Expect(actualFromVersion).To(Equal(checkRequestBody.From))
-					})
+				It("tries to scan with the latest version when no version is passed", func() {
+					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(1))
+					_, actualResourceName, actualFromVersion := fakeScanner.ScanFromVersionArgsForCall(0)
+					Expect(actualResourceName).To(Equal("resource-name"))
+					Expect(actualFromVersion).To(Equal(atc.Version{"some": "version"}))
+				})
+			})
+
+			Context("when failing to get latest version for resource", func() {
+				BeforeEach(func() {
+					fakePipelineDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{}, false, errors.New("disaster"))
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+
+				It("does not scan from version", func() {
+					Expect(fakeScanner.ScanFromVersionCallCount()).To(Equal(0))
 				})
 			})
 

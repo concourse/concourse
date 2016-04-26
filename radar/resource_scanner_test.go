@@ -609,14 +609,14 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			Context("when there is a current version", func() {
+				var latestVersion db.Version
 				BeforeEach(func() {
+					latestVersion = db.Version{"version": "1"}
 					fakeRadarDB.GetLatestVersionedResourceReturns(
 						db.SavedVersionedResource{
 							ID: 1,
 							VersionedResource: db.VersionedResource{
-								Version: db.Version{
-									"version": "1",
-								},
+								Version: latestVersion,
 							},
 						}, true, nil)
 				})
@@ -624,6 +624,16 @@ var _ = Describe("ResourceScanner", func() {
 				It("checks from it", func() {
 					_, version := fakeResource.CheckArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"version": "1"}))
+				})
+
+				Context("when the check returns only the latest version", func() {
+					BeforeEach(func() {
+						fakeResource.CheckReturns([]atc.Version{atc.Version(latestVersion)}, nil)
+					})
+
+					It("does not save it", func() {
+						Expect(fakeRadarDB.SaveResourceVersionsCallCount()).To(Equal(0))
+					})
 				})
 			})
 

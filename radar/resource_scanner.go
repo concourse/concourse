@@ -2,6 +2,7 @@ package radar
 
 import (
 	"errors"
+	"reflect"
 	"time"
 
 	"github.com/concourse/atc"
@@ -262,7 +263,7 @@ func (scanner *resourceScanner) scan(
 		return err
 	}
 
-	if len(newVersions) == 0 {
+	if len(newVersions) == 0 || reflect.DeepEqual(newVersions, []atc.Version{fromVersion}) {
 		logger.Debug("no-new-versions")
 		return nil
 	}
