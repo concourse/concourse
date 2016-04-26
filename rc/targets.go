@@ -123,6 +123,7 @@ func NewUnauthenticatedClient(atcURL string, insecure bool) concourse.Client {
 		Dial: (&net.Dialer{
 			Timeout: 10 * time.Second,
 		}).Dial,
+		Proxy: http.ProxyFromEnvironment,
 	}
 
 	client := concourse.NewClient(atcURL, &http.Client{
@@ -171,6 +172,7 @@ func CommandTargetClient(selectedTarget TargetName, commandInsecure *bool) (conc
 		Dial: (&net.Dialer{
 			Timeout: 10 * time.Second,
 		}).Dial,
+		Proxy: http.ProxyFromEnvironment,
 	}
 
 	if token != nil {
