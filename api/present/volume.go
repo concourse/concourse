@@ -6,16 +6,12 @@ import (
 )
 
 func Volume(volume db.SavedVolume) atc.Volume {
-	var resourceVersion atc.Version
-	if volume.Volume.Identifier.ResourceCache != nil {
-		resourceVersion = volume.Volume.Identifier.ResourceCache.ResourceVersion
-	}
-
 	return atc.Volume{
 		ID:                volume.Handle,
 		TTLInSeconds:      int64(volume.ExpiresIn.Seconds()),
 		ValidityInSeconds: int64(volume.TTL.Seconds()),
-		ResourceVersion:   resourceVersion,
+		Type:              volume.Volume.Identifier.Type(),
+		Identifier:        volume.Volume.Identifier.String(),
 		WorkerName:        volume.WorkerName,
 	}
 }

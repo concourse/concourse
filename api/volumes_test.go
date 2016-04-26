@@ -40,6 +40,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when getting all volumes succeeds", func() {
 				BeforeEach(func() {
+					someVersion := "some-version"
 					volumesDB.GetVolumesReturns([]db.SavedVolume{
 						{
 							ID:        3,
@@ -47,11 +48,27 @@ var _ = Describe("Pipelines API", func() {
 							Volume: db.Volume{
 								WorkerName: "some-worker",
 								TTL:        10 * time.Minute,
-								Handle:     "some-handle",
+								Handle:     "some-resource-cache-handle",
 								Identifier: db.VolumeIdentifier{
 									ResourceCache: &db.ResourceCacheIdentifier{
-										ResourceVersion: atc.Version{"some": "version"},
+										ResourceVersion: atc.Version{"a": "b", "c": "d"},
 										ResourceHash:    "some-hash",
+									},
+								},
+							},
+						},
+						{
+							ID:        1,
+							ExpiresIn: 23 * time.Hour,
+							Volume: db.Volume{
+								WorkerName: "some-worker",
+								TTL:        24 * time.Hour,
+								Handle:     "some-import-handle",
+								Identifier: db.VolumeIdentifier{
+									Import: &db.ImportIdentifier{
+										WorkerName: "some-worker",
+										Path:       "some-path",
+										Version:    &someVersion,
 									},
 								},
 							},
@@ -62,11 +79,10 @@ var _ = Describe("Pipelines API", func() {
 							Volume: db.Volume{
 								WorkerName: "some-other-worker",
 								TTL:        24 * time.Hour,
-								Handle:     "some-other-handle",
+								Handle:     "some-output-handle",
 								Identifier: db.VolumeIdentifier{
-									ResourceCache: &db.ResourceCacheIdentifier{
-										ResourceVersion: atc.Version{"some": "other-version"},
-										ResourceHash:    "some-other-hash",
+									Output: &db.OutputIdentifier{
+										Name: "some-output",
 									},
 								},
 							},
@@ -77,11 +93,10 @@ var _ = Describe("Pipelines API", func() {
 							Volume: db.Volume{
 								WorkerName: "some-worker",
 								TTL:        time.Duration(0),
-								Handle:     "some-immortal-handle",
+								Handle:     "some-cow-handle",
 								Identifier: db.VolumeIdentifier{
-									ResourceCache: &db.ResourceCacheIdentifier{
-										ResourceVersion: atc.Version{"some": "other-version"},
-										ResourceHash:    "some-hash",
+									COW: &db.COWIdentifier{
+										ParentVolumeHandle: "some-parent-volume-handle",
 									},
 								},
 							},
@@ -99,25 +114,36 @@ var _ = Describe("Pipelines API", func() {
 
 					Expect(body).To(MatchJSON(`[
 						{
-							"id": "some-handle",
+							"id": "some-resource-cache-handle",
 							"ttl_in_seconds": 120,
 							"validity_in_seconds": 600,
-							"resource_version": {"some": "version"},
-							"worker_name": "some-worker"
+							"worker_name": "some-worker",
+							"type": "cache",
+							"identifier": "a:b,c:d"
 						},
 						{
-							"id": "some-other-handle",
+							"id": "some-import-handle",
 							"ttl_in_seconds": 82800,
 							"validity_in_seconds": 86400,
-							"resource_version": {"some": "other-version"},
-							"worker_name": "some-other-worker"
+							"worker_name": "some-worker",
+							"type": "import",
+							"identifier": "some-path@some-version"
 						},
 						{
-							"id": "some-immortal-handle",
+							"id": "some-output-handle",
+							"ttl_in_seconds": 82800,
+							"validity_in_seconds": 86400,
+							"worker_name": "some-other-worker",
+							"type": "output",
+							"identifier": "some-output"
+						},
+						{
+							"id": "some-cow-handle",
 							"ttl_in_seconds": 0,
 							"validity_in_seconds": 0,
-							"resource_version": {"some": "other-version"},
-							"worker_name": "some-worker"
+							"worker_name": "some-worker",
+							"type": "copy",
+							"identifier": "some-parent-volume-handle"
 						}
 					]`))
 				})
