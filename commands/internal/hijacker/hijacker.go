@@ -27,7 +27,7 @@ type Hijacker struct {
 	requestGenerator *rata.RequestGenerator
 	token            *rc.TargetToken
 
-	interval         time.Duration
+	interval time.Duration
 }
 
 func New(tlsConfig *tls.Config, requestGenerator *rata.RequestGenerator, token *rc.TargetToken) *Hijacker {
@@ -51,7 +51,7 @@ func (h *Hijacker) Hijack(handle string, spec atc.HijackProcessSpec, pio Process
 
 	dialer := websocket.Dialer{
 		TLSClientConfig: h.tlsConfig,
-		Proxy: http.ProxyFromEnvironment,
+		Proxy:           http.ProxyFromEnvironment,
 	}
 	conn, _, err := dialer.Dial(url, header)
 	if err != nil {
@@ -90,7 +90,7 @@ func (h *Hijacker) hijackRequestParts(handle string) (string, http.Header, error
 	)
 
 	if h.token != nil {
-		hijackReq.Header.Add("Authorization", h.token.Type + " " + h.token.Value)
+		hijackReq.Header.Add("Authorization", h.token.Type+" "+h.token.Value)
 	}
 
 	wsUrl := hijackReq.URL
@@ -154,7 +154,7 @@ func (h *Hijacker) handleInput(conn *websocket.Conn, inputs <-chan atc.HijackInp
 	}
 }
 
-func (h *Hijacker) monitorTTYSize(inputs chan <- atc.HijackInput, finished chan struct{}) {
+func (h *Hijacker) monitorTTYSize(inputs chan<- atc.HijackInput, finished chan struct{}) {
 	resized := pty.ResizeNotifier()
 
 	for {
@@ -178,7 +178,7 @@ func (h *Hijacker) monitorTTYSize(inputs chan <- atc.HijackInput, finished chan 
 }
 
 type stdinWriter struct {
-	inputs chan <- atc.HijackInput
+	inputs chan<- atc.HijackInput
 }
 
 func (w *stdinWriter) Write(d []byte) (int, error) {
