@@ -37,6 +37,7 @@ type ImageFetchingDelegate interface {
 //go:generate counterfeiter . Image
 
 type Image interface {
+	URL() string
 	Volume() Volume
 	Metadata() ImageMetadata
 	Release(*time.Duration)

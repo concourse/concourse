@@ -324,7 +324,7 @@ var _ = Describe("Pool", func() {
 			id = Identifier{
 				ResourceID: 1234,
 			}
-			spec = ResourceTypeContainerSpec{Type: "some-type"}
+			spec = ContainerSpec{ImageSpec: ImageSpec{ResourceType: "some-type"}}
 			resourceTypes = atc.ResourceTypes{
 				{
 					Name:   "custom-type-b",

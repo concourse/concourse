@@ -136,15 +136,17 @@ var _ = Describe("DBProvider", func() {
 
 			Context("creating the connection to garden", func() {
 				var id Identifier
-				var spec ResourceTypeContainerSpec
+				var spec ContainerSpec
 
 				JustBeforeEach(func() {
 					id = Identifier{
 						ResourceID: 1234,
 					}
 
-					spec = ResourceTypeContainerSpec{
-						Type: "some-resource-a",
+					spec = ContainerSpec{
+						ImageSpec: ImageSpec{
+							ResourceType: "some-resource-a",
+						},
 					}
 
 					fakeContainer := new(gfakes.FakeContainer)
@@ -213,8 +215,10 @@ var _ = Describe("DBProvider", func() {
 						ResourceID: 1234,
 					}
 
-					spec := ResourceTypeContainerSpec{
-						Type: "some-resource-a",
+					spec := ContainerSpec{
+						ImageSpec: ImageSpec{
+							ResourceType: "some-resource-a",
+						},
 					}
 
 					fakeContainer := new(gfakes.FakeContainer)

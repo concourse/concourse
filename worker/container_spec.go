@@ -7,15 +7,39 @@ import (
 	"github.com/concourse/atc"
 )
 
-type ContainerSpec interface {
-	WorkerSpec() WorkerSpec
-	IsPrivileged() bool
-}
-
 type WorkerSpec struct {
 	Platform     string
 	ResourceType string
 	Tags         []string
+}
+
+type ContainerSpec struct {
+	Platform  string
+	Tags      []string
+	ImageSpec ImageSpec
+	Ephemeral bool
+	Env       []string
+
+	// Not Copy-on-Write. Used for a single mount in Get containers.
+	Inputs []VolumeMount
+
+	// Copy-on-Write. Used for mounting multiple resources into a Put container.
+	Outputs []VolumeMount
+}
+
+type ImageSpec struct {
+	ResourceType  string
+	ImageURL      string
+	ImageResource *atc.ImageResource
+	Privileged    bool
+}
+
+func (spec ContainerSpec) WorkerSpec() WorkerSpec {
+	return WorkerSpec{
+		ResourceType: spec.ImageSpec.ResourceType,
+		Platform:     spec.Platform,
+		Tags:         spec.Tags,
+	}
 }
 
 func (spec WorkerSpec) Description() string {
@@ -34,50 +58,4 @@ func (spec WorkerSpec) Description() string {
 	}
 
 	return strings.Join(attrs, ", ")
-}
-
-type ResourceTypeContainerSpec struct {
-	Type          string
-	ImageResource *atc.ImageResource
-	Ephemeral     bool
-	Tags          []string
-	Env           []string
-
-	// Not Copy-on-Write. Used for a single mount in Get containers.
-	Cache VolumeMount
-
-	// Copy-on-Write. Used for mounting multiple resources into a Put container.
-	Mounts []VolumeMount
-}
-
-func (spec ResourceTypeContainerSpec) WorkerSpec() WorkerSpec {
-	return WorkerSpec{
-		ResourceType: spec.Type,
-		Tags:         spec.Tags,
-	}
-}
-
-func (spec ResourceTypeContainerSpec) IsPrivileged() bool {
-	return true
-}
-
-type TaskContainerSpec struct {
-	Platform      string
-	Image         string
-	ImageResource *atc.ImageResource
-	Privileged    bool
-	Tags          []string
-	Inputs        []VolumeMount
-	Outputs       []VolumeMount
-}
-
-func (spec TaskContainerSpec) WorkerSpec() WorkerSpec {
-	return WorkerSpec{
-		Platform: spec.Platform,
-		Tags:     spec.Tags,
-	}
-}
-
-func (spec TaskContainerSpec) IsPrivileged() bool {
-	return spec.Privileged
 }

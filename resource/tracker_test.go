@@ -92,13 +92,17 @@ var _ = Describe("Tracker", func() {
 
 				Expect(id).To(Equal(session.ID))
 				Expect(containerMetadata).To(Equal(session.Metadata))
-				resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
-				Expect(resourceSpec.Type).To(Equal(string(initType)))
-				Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
-				Expect(resourceSpec.Ephemeral).To(Equal(true))
-				Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-				Expect(resourceSpec.Cache).To(BeZero())
+				Expect(spec.Platform).To(BeEmpty())
+				Expect(spec.Tags).To(ConsistOf("resource", "tags"))
+				Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
+					ResourceType: string(initType),
+					Privileged:   true,
+				}))
+				Expect(spec.Ephemeral).To(BeTrue())
+				Expect(spec.Env).To(Equal([]string{"a=1", "b=2"}))
+				Expect(spec.Inputs).To(BeEmpty())
+				Expect(spec.Outputs).To(BeEmpty())
 
 				Expect(actualCustomTypes).To(Equal(customTypes))
 			})
@@ -247,13 +251,17 @@ var _ = Describe("Tracker", func() {
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))
-						resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
-						Expect(resourceSpec.Type).To(Equal(string(initType)))
-						Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
-						Expect(resourceSpec.Ephemeral).To(Equal(true))
-						Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-						Expect(resourceSpec.Cache).To(Equal(worker.VolumeMount{
+						Expect(spec.Platform).To(BeEmpty())
+						Expect(spec.Tags).To(ConsistOf("resource", "tags"))
+						Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
+							ResourceType: string(initType),
+							Privileged:   true,
+						}))
+						Expect(spec.Ephemeral).To(BeTrue())
+						Expect(spec.Env).To(Equal([]string{"a=1", "b=2"}))
+						Expect(spec.Inputs).To(BeEmpty())
+						Expect(spec.Outputs).To(ConsistOf(worker.VolumeMount{
 							Volume:    foundVolume,
 							MountPath: "/tmp/build/get",
 						}))
@@ -373,13 +381,17 @@ var _ = Describe("Tracker", func() {
 
 							Expect(id).To(Equal(session.ID))
 							Expect(containerMetadata).To(Equal(session.Metadata))
-							resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
-							Expect(resourceSpec.Type).To(Equal(string(initType)))
-							Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
-							Expect(resourceSpec.Ephemeral).To(Equal(true))
-							Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-							Expect(resourceSpec.Cache).To(Equal(worker.VolumeMount{
+							Expect(spec.Platform).To(BeEmpty())
+							Expect(spec.Tags).To(ConsistOf("resource", "tags"))
+							Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
+								ResourceType: string(initType),
+								Privileged:   true,
+							}))
+							Expect(spec.Ephemeral).To(BeTrue())
+							Expect(spec.Env).To(Equal([]string{"a=1", "b=2"}))
+							Expect(spec.Inputs).To(BeEmpty())
+							Expect(spec.Outputs).To(ConsistOf(worker.VolumeMount{
 								Volume:    createdVolume,
 								MountPath: "/tmp/build/get",
 							}))
@@ -467,13 +479,17 @@ var _ = Describe("Tracker", func() {
 
 							Expect(id).To(Equal(session.ID))
 							Expect(containerMetadata).To(Equal(session.Metadata))
-							resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
-							Expect(resourceSpec.Type).To(Equal(string(initType)))
-							Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
-							Expect(resourceSpec.Ephemeral).To(Equal(true))
-							Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-							Expect(resourceSpec.Cache).To(BeZero())
+							Expect(spec.Platform).To(BeEmpty())
+							Expect(spec.Tags).To(ConsistOf("resource", "tags"))
+							Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
+								ResourceType: string(initType),
+								Privileged:   true,
+							}))
+							Expect(spec.Ephemeral).To(BeTrue())
+							Expect(spec.Env).To(Equal([]string{"a=1", "b=2"}))
+							Expect(spec.Inputs).To(BeEmpty())
+							Expect(spec.Outputs).To(BeEmpty())
 
 							Expect(actualCustomTypes).To(Equal(customTypes))
 						})
@@ -791,13 +807,16 @@ var _ = Describe("Tracker", func() {
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))
-						resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
-						Expect(resourceSpec.Type).To(Equal(string(initType)))
-						Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
-						Expect(resourceSpec.Ephemeral).To(BeTrue())
-						Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-						Expect(resourceSpec.Mounts).To(ConsistOf([]worker.VolumeMount{
+						Expect(spec.Platform).To(BeEmpty())
+						Expect(spec.Tags).To(ConsistOf("resource", "tags"))
+						Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
+							ResourceType: string(initType),
+							Privileged:   true,
+						}))
+						Expect(spec.Ephemeral).To(BeTrue())
+						Expect(spec.Env).To(Equal([]string{"a=1", "b=2"}))
+						Expect(spec.Inputs).To(ConsistOf([]worker.VolumeMount{
 							{
 								Volume:    inputVolume1,
 								MountPath: "/tmp/build/put/source-1-name",
@@ -807,6 +826,7 @@ var _ = Describe("Tracker", func() {
 								MountPath: "/tmp/build/put/source-3-name",
 							},
 						}))
+						Expect(spec.Outputs).To(BeEmpty())
 
 						Expect(actualCustomTypes).To(Equal(customTypes))
 					})
@@ -848,13 +868,17 @@ var _ = Describe("Tracker", func() {
 
 						Expect(id).To(Equal(session.ID))
 						Expect(containerMetadata).To(Equal(session.Metadata))
-						resourceSpec := spec.(worker.ResourceTypeContainerSpec)
 
-						Expect(resourceSpec.Type).To(Equal(string(initType)))
-						Expect(resourceSpec.Env).To(Equal([]string{"a=1", "b=2"}))
-						Expect(resourceSpec.Ephemeral).To(Equal(true))
-						Expect(resourceSpec.Tags).To(ConsistOf("resource", "tags"))
-						Expect(resourceSpec.Cache).To(BeZero())
+						Expect(spec.Platform).To(BeEmpty())
+						Expect(spec.Tags).To(ConsistOf("resource", "tags"))
+						Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
+							ResourceType: string(initType),
+							Privileged:   true,
+						}))
+						Expect(spec.Ephemeral).To(BeTrue())
+						Expect(spec.Env).To(Equal([]string{"a=1", "b=2"}))
+						Expect(spec.Inputs).To(BeEmpty())
+						Expect(spec.Outputs).To(BeEmpty())
 
 						Expect(actualCustomTypes).To(Equal(customTypes))
 					})

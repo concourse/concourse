@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"path"
 	"time"
 
 	"github.com/concourse/atc"
@@ -200,6 +202,14 @@ type resourceImage struct {
 	metadata worker.ImageMetadata
 	resource resource.Resource
 	version  atc.Version
+}
+
+func (image resourceImage) URL() string {
+	imageURL := url.URL{
+		Scheme: worker.RawRootFSScheme,
+		Path:   path.Join(image.volume.Path(), "rootfs"),
+	}
+	return imageURL.String()
 }
 
 func (image resourceImage) Volume() worker.Volume {

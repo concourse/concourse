@@ -249,14 +249,15 @@ var _ = Describe("GardenFactory", func() {
 
 							Expect(delegate).To(Equal(taskDelegate))
 
-							taskSpec := spec.(worker.TaskContainerSpec)
-							Expect(taskSpec.Platform).To(Equal("some-platform"))
-							Expect(taskSpec.Image).To(Equal("some-image"))
-							Expect(taskSpec.ImageResource).To(Equal(&atc.ImageResource{
-								Type:   "docker",
-								Source: atc.Source{"some": "source"},
+							Expect(spec.Platform).To(Equal("some-platform"))
+							Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
+								ImageURL: "some-image",
+								ImageResource: &atc.ImageResource{
+									Type:   "docker",
+									Source: atc.Source{"some": "source"},
+								},
+								Privileged: false,
 							}))
-							Expect(taskSpec.Privileged).To(BeFalse())
 
 							Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{
 								{
@@ -332,10 +333,15 @@ var _ = Describe("GardenFactory", func() {
 									EnvironmentVariables: []string{"SOME=params"},
 								}))
 
-								taskSpec := spec.(worker.TaskContainerSpec)
-								Expect(taskSpec.Platform).To(Equal("some-platform"))
-								Expect(taskSpec.Image).To(Equal("some-image"))
-								Expect(taskSpec.Privileged).To(BeTrue())
+								Expect(spec.Platform).To(Equal("some-platform"))
+								Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
+									ImageURL: "some-image",
+									ImageResource: &atc.ImageResource{
+										Type:   "docker",
+										Source: atc.Source{"some": "source"},
+									},
+									Privileged: true,
+								}))
 							})
 
 							It("runs the process as the specified user", func() {
@@ -436,8 +442,7 @@ var _ = Describe("GardenFactory", func() {
 
 									It("bind-mounts copy-on-write volumes to their destinations in the container", func() {
 										_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
-										taskSpec := spec.(worker.TaskContainerSpec)
-										Expect(taskSpec.Inputs).To(Equal([]worker.VolumeMount{
+										Expect(spec.Inputs).To(Equal([]worker.VolumeMount{
 											{
 												Volume:    inputVolume,
 												MountPath: "/tmp/build/a1f5c0c1/some-input-configured-path",
@@ -565,8 +570,7 @@ var _ = Describe("GardenFactory", func() {
 
 									It("bind-mounts copy-on-write volumes to their destinations in the container", func() {
 										_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
-										taskSpec := spec.(worker.TaskContainerSpec)
-										Expect(taskSpec.Inputs).To(Equal([]worker.VolumeMount{
+										Expect(spec.Inputs).To(Equal([]worker.VolumeMount{
 											{
 												Volume:    remappedInputVolume,
 												MountPath: "/tmp/build/a1f5c0c1/remapped-input",
@@ -791,11 +795,9 @@ var _ = Describe("GardenFactory", func() {
 
 												It("passes the created output volumes to the worker", func() {
 													_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
-													taskSpec, ok := spec.(worker.TaskContainerSpec)
-													Expect(ok).To(BeTrue())
 													var actualVolumes []worker.Volume
 													var actualPaths []string
-													for _, v := range taskSpec.Outputs {
+													for _, v := range spec.Outputs {
 														actualVolume, ok := v.Volume.(worker.Volume)
 														Expect(ok).To(BeTrue())
 														actualVolumes = append(actualVolumes, actualVolume)

@@ -91,8 +91,11 @@ func (tracker *tracker) InitWithSources(
 		return NewResource(container, tracker.clock), missingNames, nil
 	}
 
-	resourceSpec := worker.ResourceTypeContainerSpec{
-		Type:      string(typ),
+	resourceSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: string(typ),
+			Privileged:   true,
+		},
 		Ephemeral: session.Ephemeral,
 		Tags:      tags,
 		Env:       metadata.Env(),
@@ -143,7 +146,7 @@ func (tracker *tracker) InitWithSources(
 		}
 	}
 
-	resourceSpec.Mounts = mounts
+	resourceSpec.Inputs = mounts
 
 	container, err = chosenWorker.CreateContainer(
 		logger,
@@ -201,8 +204,11 @@ func (tracker *tracker) Init(
 		imageFetchingDelegate,
 		session.ID,
 		session.Metadata,
-		worker.ResourceTypeContainerSpec{
-			Type:      string(typ),
+		worker.ContainerSpec{
+			ImageSpec: worker.ImageSpec{
+				ResourceType: string(typ),
+				Privileged:   true,
+			},
 			Ephemeral: session.Ephemeral,
 			Tags:      tags,
 			Env:       metadata.Env(),
@@ -272,8 +278,11 @@ func (tracker *tracker) InitWithCache(
 		return nil, nil, err
 	}
 
-	containerSpec := worker.ResourceTypeContainerSpec{
-		Type:      string(typ),
+	containerSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: string(typ),
+			Privileged:   true,
+		},
 		Ephemeral: session.Ephemeral,
 		Tags:      tags,
 		Env:       metadata.Env(),
@@ -308,9 +317,11 @@ func (tracker *tracker) InitWithCache(
 
 		defer cachedVolume.Release(nil)
 
-		containerSpec.Cache = worker.VolumeMount{
-			Volume:    cachedVolume,
-			MountPath: ResourcesDir("get"),
+		containerSpec.Outputs = []worker.VolumeMount{
+			{
+				Volume:    cachedVolume,
+				MountPath: ResourcesDir("get"),
+			},
 		}
 	}
 

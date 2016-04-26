@@ -95,8 +95,7 @@ var _ = Describe("Worker", func() {
 			containerID               Identifier
 			containerMetadata         Metadata
 			customTypes               atc.ResourceTypes
-			resourceTypeContainerSpec *ResourceTypeContainerSpec
-			taskContainerSpec         *TaskContainerSpec
+			containerSpec             ContainerSpec
 
 			createdContainer Container
 			createErr        error
@@ -146,24 +145,38 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
-			var spec ContainerSpec
-			if resourceTypeContainerSpec != nil {
-				spec = *resourceTypeContainerSpec
-			} else if taskContainerSpec != nil {
-				spec = *taskContainerSpec
-			}
-			createdContainer, createErr = gardenWorker.CreateContainer(logger, signals, fakeImageFetchingDelegate, containerID, containerMetadata, spec, customTypes)
+			createdContainer, createErr = gardenWorker.CreateContainer(logger, signals, fakeImageFetchingDelegate, containerID, containerMetadata, containerSpec, customTypes)
 		})
 
 		Context("when the spec is a TaskContainerSpec", func() {
 			BeforeEach(func() {
-				taskContainerSpec = &TaskContainerSpec{
-					Privileged: true,
-					Image:      "some-image",
+				containerSpec = ContainerSpec{
+					ImageSpec: ImageSpec{
+						ImageURL:   "some-image",
+						Privileged: true,
+					},
 				}
 				fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
 					return new(gfakes.FakeContainer), nil
 				}
+			})
+
+			Context("when ImageURL is empty", func() {
+				BeforeEach(func() {
+					containerSpec = ContainerSpec{
+						ImageSpec: ImageSpec{
+							ImageURL:   "",
+							Privileged: true,
+						},
+					}
+				})
+
+				It("Image is empty string", func() {
+					Expect(createErr).NotTo(HaveOccurred())
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualGardenSpec.RootFSPath).To(BeEmpty())
+				})
 			})
 
 			Context("when the spec specifies Inputs", func() {
@@ -180,7 +193,7 @@ var _ = Describe("Worker", func() {
 					volume2 = new(wfakes.FakeVolume)
 					volume2.HandleReturns("vol-2-handle")
 
-					taskContainerSpec.Inputs = []VolumeMount{
+					containerSpec.Inputs = []VolumeMount{
 						{
 							volume1,
 							"vol-1-mount-path",
@@ -300,7 +313,7 @@ var _ = Describe("Worker", func() {
 					volume2.HandleReturns("vol-2-handle")
 					volume2.PathReturns("vol-2-path")
 
-					taskContainerSpec.Outputs = []VolumeMount{
+					containerSpec.Outputs = []VolumeMount{
 						{
 							volume1,
 							"vol-1-mount-path",
@@ -349,9 +362,9 @@ var _ = Describe("Worker", func() {
 
 			Context("when the spec specifies ImageResource", func() {
 				var image *wfakes.FakeImage
-
+				var imageURL string
 				BeforeEach(func() {
-					taskContainerSpec.ImageResource = &atc.ImageResource{
+					containerSpec.ImageSpec.ImageResource = &atc.ImageResource{
 						Type:   "some-resource",
 						Source: atc.Source{"some": "source"},
 					}
@@ -361,6 +374,9 @@ var _ = Describe("Worker", func() {
 					imageVolume := new(wfakes.FakeVolume)
 					imageVolume.HandleReturns("image-volume")
 					imageVolume.PathReturns("/some/image/path")
+
+					imageURL = "some-url"
+					image.URLReturns(imageURL)
 					image.VolumeReturns(imageVolume)
 					image.MetadataReturns(ImageMetadata{
 						Env:  []string{"A=1", "B=2"},
@@ -386,10 +402,10 @@ var _ = Describe("Worker", func() {
 					Expect(image.ReleaseCallCount()).To(Equal(1))
 				})
 
-				It("creates the container with raw://volume/path/rootfs as the rootfs", func() {
+				It("creates the container with the correct imageURL as the rootfs", func() {
 					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-					Expect(actualGardenSpec.RootFSPath).To(Equal("raw:///some/image/path/rootfs"))
+					Expect(actualGardenSpec.RootFSPath).To(Equal(imageURL))
 				})
 
 				It("adds the image volume to the garden spec properties", func() {
@@ -423,9 +439,12 @@ var _ = Describe("Worker", func() {
 		Context("when the spec is a ResourceTypeContainerSpec", func() {
 			var image *wfakes.FakeImage
 			BeforeEach(func() {
-				resourceTypeContainerSpec = &ResourceTypeContainerSpec{
-					Type: "custom-type-a",
-					Env:  []string{"env-1", "env-2"},
+				containerSpec = ContainerSpec{
+					ImageSpec: ImageSpec{
+						ResourceType: "custom-type-a",
+						Privileged:   true,
+					},
+					Env: []string{"env-1", "env-2"},
 				}
 
 				image = new(wfakes.FakeImage)
@@ -433,6 +452,7 @@ var _ = Describe("Worker", func() {
 				imageVolume := new(wfakes.FakeVolume)
 				imageVolume.HandleReturns("image-volume")
 				imageVolume.PathReturns("/some/image/path")
+				image.URLReturns("some-url")
 				image.VolumeReturns(imageVolume)
 				image.MetadataReturns(ImageMetadata{
 					Env:  []string{"A=1", "B=2"},
@@ -500,12 +520,12 @@ var _ = Describe("Worker", func() {
 				Expect(createErr).NotTo(HaveOccurred())
 				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 				actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-				expectedEnv := resourceTypeContainerSpec.Env
+				expectedEnv := containerSpec.Env
 				expectedEnv = append([]string{"A=1", "B=2"}, expectedEnv...)
 				Expect(actualGardenSpec.Env).To(Equal(expectedEnv))
 				Expect(actualGardenSpec.Properties["user"]).To(Equal("image-volume-user"))
 				Expect(actualGardenSpec.Privileged).To(BeTrue())
-				Expect(actualGardenSpec.RootFSPath).To(Equal("raw:///some/image/path/rootfs"))
+				Expect(actualGardenSpec.RootFSPath).To(Equal("some-url"))
 			})
 
 			Context("when the worker has a HTTPProxyURL", func() {
@@ -597,7 +617,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when the spec specifies Ephemeral", func() {
 				BeforeEach(func() {
-					resourceTypeContainerSpec.Ephemeral = true
+					containerSpec.Ephemeral = true
 				})
 
 				It("creates the container with ephemeral = true", func() {
@@ -621,7 +641,7 @@ var _ = Describe("Worker", func() {
 					volume2 = new(wfakes.FakeVolume)
 					volume2.HandleReturns("vol-2-handle")
 
-					resourceTypeContainerSpec.Mounts = []VolumeMount{
+					containerSpec.Inputs = []VolumeMount{
 						{
 							volume1,
 							"vol-1-mount-path",
@@ -732,7 +752,7 @@ var _ = Describe("Worker", func() {
 				var cowVolume *wfakes.FakeVolume
 
 				BeforeEach(func() {
-					resourceTypeContainerSpec.Type = "some-resource"
+					containerSpec.ImageSpec.ResourceType = "some-resource"
 
 					importVolume = new(wfakes.FakeVolume)
 					importVolume.HandleReturns("import-vol")
@@ -897,7 +917,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when the spec specifies a resource type that is unknown", func() {
 				BeforeEach(func() {
-					resourceTypeContainerSpec.Type = "some-bogus-resource"
+					containerSpec.ImageSpec.ResourceType = "some-bogus-resource"
 				})
 
 				It("returns ErrUnsupportedResourceType", func() {
@@ -1039,48 +1059,31 @@ var _ = Describe("Worker", func() {
 					v := new(wfakes.FakeVolume)
 					v.PathReturns("cache-volume-src-path")
 					v.HandleReturns("cache-volume-handle")
-					resourceTypeContainerSpec.Cache.Volume = v
+					containerSpec.Outputs = []VolumeMount{
+						{
+							v,
+							"cache-volume-mount-path",
+						},
+					}
 				})
 
-				Context("when the spec defines a cache mount path", func() {
-					BeforeEach(func() {
-						resourceTypeContainerSpec.Cache.MountPath = "cache-volume-mount-path"
-					})
-
-					It("creates a bind mount for the cache volume", func() {
-						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-						actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-						Expect(actualGardenSpec.BindMounts).To(ContainElement(garden.BindMount{
-							SrcPath: "cache-volume-src-path",
-							DstPath: "cache-volume-mount-path",
-							Mode:    garden.BindMountModeRW,
-						}))
-					})
-
-					It("adds the cache volume to the garden spec properties", func() {
-						Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
-						actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-						volumeMountProperties := map[string]string{}
-						err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volume-mounts"]), &volumeMountProperties)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(volumeMountProperties["cache-volume-handle"]).To(Equal("cache-volume-mount-path"))
-					})
+				It("creates a bind mount for the cache volume", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					Expect(actualGardenSpec.BindMounts).To(ContainElement(garden.BindMount{
+						SrcPath: "cache-volume-src-path",
+						DstPath: "cache-volume-mount-path",
+						Mode:    garden.BindMountModeRW,
+					}))
 				})
 
-				Context("when the spec also defines mounts", func() {
-					BeforeEach(func() {
-						resourceTypeContainerSpec.Mounts = []VolumeMount{
-							{
-								new(wfakes.FakeVolume),
-								"mount-path",
-							},
-						}
-					})
-
-					It("returns an error", func() {
-						Expect(createErr).To(HaveOccurred())
-						Expect(createErr.Error()).To(Equal("a container may not have mounts and a cache"))
-					})
+				It("adds the cache volume to the garden spec properties", func() {
+					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+					volumeMountProperties := map[string]string{}
+					err := json.Unmarshal([]byte(actualGardenSpec.Properties["concourse:volume-mounts"]), &volumeMountProperties)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(volumeMountProperties["cache-volume-handle"]).To(Equal("cache-volume-mount-path"))
 				})
 			})
 		})

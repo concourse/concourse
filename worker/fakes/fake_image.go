@@ -10,6 +10,12 @@ import (
 )
 
 type FakeImage struct {
+	URLStub        func() string
+	uRLMutex       sync.RWMutex
+	uRLArgsForCall []struct{}
+	uRLReturns     struct {
+		result1 string
+	}
 	VolumeStub        func() worker.Volume
 	volumeMutex       sync.RWMutex
 	volumeArgsForCall []struct{}
@@ -33,6 +39,30 @@ type FakeImage struct {
 	versionReturns     struct {
 		result1 atc.Version
 	}
+}
+
+func (fake *FakeImage) URL() string {
+	fake.uRLMutex.Lock()
+	fake.uRLArgsForCall = append(fake.uRLArgsForCall, struct{}{})
+	fake.uRLMutex.Unlock()
+	if fake.URLStub != nil {
+		return fake.URLStub()
+	} else {
+		return fake.uRLReturns.result1
+	}
+}
+
+func (fake *FakeImage) URLCallCount() int {
+	fake.uRLMutex.RLock()
+	defer fake.uRLMutex.RUnlock()
+	return len(fake.uRLArgsForCall)
+}
+
+func (fake *FakeImage) URLReturns(result1 string) {
+	fake.URLStub = nil
+	fake.uRLReturns = struct {
+		result1 string
+	}{result1}
 }
 
 func (fake *FakeImage) Volume() worker.Volume {

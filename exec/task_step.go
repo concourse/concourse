@@ -332,14 +332,17 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 		step.logger.Debug("created-output-volume", lager.Data{"volume-Handle": outVolume.Handle()})
 	}
 
-	containerSpec := worker.TaskContainerSpec{
-		Platform:      config.Platform,
-		Tags:          step.tags,
-		Privileged:    bool(step.privileged),
-		Inputs:        inputMounts,
-		Outputs:       outputMounts,
-		ImageResource: config.ImageResource,
-		Image:         config.Image,
+	containerSpec := worker.ContainerSpec{
+		Platform: config.Platform,
+		Tags:     step.tags,
+		Inputs:   inputMounts,
+		Outputs:  outputMounts,
+		ImageSpec: worker.ImageSpec{
+			ResourceType:  "",
+			ImageURL:      config.Image,
+			ImageResource: config.ImageResource,
+			Privileged:    bool(step.privileged),
+		},
 	}
 
 	runContainerID := step.containerID

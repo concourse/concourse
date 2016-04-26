@@ -218,9 +218,10 @@ var _ = Describe("Fetcher", func() {
 									})
 
 									Context("when creating the cow volume succeeds", func() {
-										var fakeCOWVolume worker.Volume
+										var fakeCOWVolume *wfakes.FakeVolume
 										BeforeEach(func() {
 											fakeCOWVolume = new(wfakes.FakeVolume)
+											fakeCOWVolume.PathReturns("/some/cow/volume/path")
 											fakeWorker.CreateVolumeReturns(fakeCOWVolume, nil)
 
 											fakeWorker.CreateVolumeStub = func(lager.Logger, worker.VolumeSpec) (worker.Volume, error) {
@@ -236,6 +237,10 @@ var _ = Describe("Fetcher", func() {
 
 										It("returns the COWVolume as the image volume", func() {
 											Expect(fetchedImage.Volume()).To(Equal(fakeCOWVolume))
+										})
+
+										It("can generate a raw:// URL pointing to the volume's rootfs folder", func() {
+											Expect(fetchedImage.URL()).To(Equal("raw:///some/cow/volume/path/rootfs"))
 										})
 									})
 

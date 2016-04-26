@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -144,6 +143,131 @@ func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Vo
 	return worker.volumeClient.LookupVolume(logger, handle)
 }
 
+func (worker *gardenWorker) getImage(
+	logger lager.Logger,
+	imageSpec ImageSpec,
+	cancel <-chan os.Signal,
+	delegate ImageFetchingDelegate,
+	id Identifier,
+	metadata Metadata,
+	resourceTypes atc.ResourceTypes,
+) (Image, error) {
+	updatedResourceTypes := resourceTypes
+	imageResource := imageSpec.ImageResource
+	for _, resourceType := range resourceTypes {
+		if resourceType.Name == imageSpec.ResourceType {
+			updatedResourceTypes = resourceTypes.Without(imageSpec.ResourceType)
+			imageResource = &atc.ImageResource{
+				Source: resourceType.Source,
+				Type:   resourceType.Type,
+			}
+		}
+	}
+
+	if imageResource != nil {
+		return worker.imageFetcher.FetchImage(
+			logger,
+			*imageResource,
+			cancel,
+			id,
+			metadata,
+			delegate,
+			worker,
+			worker.tags,
+			updatedResourceTypes,
+			imageSpec.Privileged,
+		)
+	}
+
+	if imageSpec.ResourceType != "" {
+		rootFSURL, volume, err := worker.getBuiltInResourceTypeImage(logger, imageSpec.ResourceType)
+		if err != nil {
+			return nil, err
+		}
+
+		return &dummyImage{url: rootFSURL, volume: volume}, nil
+	}
+
+	return &dummyImage{url: imageSpec.ImageURL, volume: nil}, nil
+}
+
+type dummyImage struct {
+	url    string
+	volume Volume
+}
+
+func (im *dummyImage) URL() string {
+	return im.url
+}
+
+func (im *dummyImage) Volume() Volume {
+	return im.volume
+}
+
+func (im *dummyImage) Release(ttl *time.Duration) {
+	if im.volume != nil {
+		im.volume.Release(ttl)
+	}
+}
+
+func (im *dummyImage) Metadata() ImageMetadata {
+	return ImageMetadata{}
+}
+
+func (im *dummyImage) Version() atc.Version {
+	return nil
+}
+
+func (worker *gardenWorker) getBuiltInResourceTypeImage(
+	logger lager.Logger,
+	resourceTypeName string,
+) (string, Volume, error) {
+	for _, t := range worker.resourceTypes {
+		if t.Type == resourceTypeName {
+			importVolumeSpec := VolumeSpec{
+				Strategy: HostRootFSStrategy{
+					Path:       t.Image,
+					Version:    &t.Version,
+					WorkerName: worker.Name(),
+				},
+				Privileged: true,
+				Properties: VolumeProperties{},
+				TTL:        0,
+			}
+
+			importVolume, found, err := worker.FindVolume(logger, importVolumeSpec)
+			if !found || err != nil {
+				importVolume, err = worker.CreateVolume(logger, importVolumeSpec)
+				if err != nil {
+					return "", nil, err
+				}
+			}
+			defer importVolume.Release(nil)
+
+			cowVolume, err := worker.CreateVolume(logger, VolumeSpec{
+				Strategy: ContainerRootFSStrategy{
+					Parent: importVolume,
+				},
+				Privileged: true,
+				Properties: VolumeProperties{},
+				TTL:        VolumeTTL,
+			})
+			if err != nil {
+				return "", nil, err
+			}
+
+			rootFSURL := url.URL{
+				Scheme: RawRootFSScheme,
+				Path:   cowVolume.Path(),
+			}
+
+			return rootFSURL.String(), cowVolume, nil
+		}
+	}
+
+	return "", nil, ErrUnsupportedResourceType
+}
+
 func (worker *gardenWorker) CreateContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
@@ -153,174 +277,30 @@ func (worker *gardenWorker) CreateContainer(
 	spec ContainerSpec,
 	resourceTypes atc.ResourceTypes,
 ) (Container, error) {
-	var (
-		volumeHandles []string
-		volumeMounts  []VolumeMount
-		gardenSpec    garden.ContainerSpec
-		imageFetched  bool
-		image         Image
+	image, err := worker.getImage(
+		logger,
+		spec.ImageSpec,
+		cancel,
+		delegate,
+		id,
+		metadata,
+		resourceTypes,
 	)
-	volumeMountPaths := map[baggageclaim.Volume]string{}
-
-dance:
-	switch s := spec.(type) {
-	case ResourceTypeContainerSpec:
-		if s.Cache.Volume != nil {
-			defer s.Cache.Volume.Release(nil)
-
-			if len(s.Mounts) > 0 {
-				return nil, errors.New("a container may not have mounts and a cache")
-			}
-
-			if s.Cache.MountPath != "" {
-				volumeHandles = append(volumeHandles, s.Cache.Volume.Handle())
-				volumeMountPaths[s.Cache.Volume] = s.Cache.MountPath
-			}
-		}
-
-		volumeMounts = s.Mounts
-
-		for _, resourceType := range resourceTypes {
-			if resourceType.Name == s.Type {
-				resourceTypes = resourceTypes.Without(s.Type)
-				s.ImageResource = &atc.ImageResource{
-					Source: resourceType.Source,
-					Type:   resourceType.Type,
-				}
-			}
-		}
-
-		var err error
-		gardenSpec, imageFetched, image, err = worker.baseGardenSpec(
-			logger,
-			s.ImageResource,
-			worker.tags,
-			cancel,
-			delegate,
-			id,
-			metadata,
-			worker,
-			resourceTypes,
-			true,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if imageFetched {
-			// ensure the image is released even if the resourceType is invalid
-			defer image.Release(nil)
-		}
-
-		gardenSpec.Env = append(gardenSpec.Env, s.Env...)
-
-		if s.Ephemeral {
-			gardenSpec.Properties[ephemeralPropertyName] = "true"
-		}
-
-		if s.ImageResource == nil {
-			for _, t := range worker.resourceTypes {
-				if t.Type == s.Type {
-					importVolumeSpec := VolumeSpec{
-						Strategy: HostRootFSStrategy{
-							Path:       t.Image,
-							Version:    &t.Version,
-							WorkerName: worker.Name(),
-						},
-						Privileged: true,
-						Properties: VolumeProperties{},
-						TTL:        0,
-					}
-
-					importVolume, found, err := worker.FindVolume(logger, importVolumeSpec)
-					if !found || err != nil {
-						importVolume, err = worker.CreateVolume(logger, importVolumeSpec)
-						if err != nil {
-							return nil, err
-						}
-					}
-					defer importVolume.Release(nil)
-
-					cowVolume, err := worker.CreateVolume(logger, VolumeSpec{
-						Strategy: ContainerRootFSStrategy{
-							Parent: importVolume,
-						},
-						Privileged: true,
-						Properties: VolumeProperties{},
-						TTL:        VolumeTTL,
-					})
-					if err != nil {
-						return nil, err
-					}
-					defer cowVolume.Release(nil)
-
-					volumeHandles = append(volumeHandles, cowVolume.Handle())
-
-					rootFSURL := url.URL{
-						Scheme: RawRootFSScheme,
-						Path:   cowVolume.Path(),
-					}
-
-					gardenSpec.RootFSPath = rootFSURL.String()
-
-					break dance
-				}
-			}
-
-			return nil, ErrUnsupportedResourceType
-		}
-	case TaskContainerSpec:
-		volumeMounts = s.Inputs
-
-		for _, mount := range s.Outputs {
-			volume := mount.Volume
-			volumeHandles = append(volumeHandles, volume.Handle())
-			volumeMountPaths[volume] = mount.MountPath
-		}
-
-		var err error
-		gardenSpec, imageFetched, image, err = worker.baseGardenSpec(
-			logger,
-			s.ImageResource,
-			worker.tags,
-			cancel,
-			delegate,
-			id,
-			metadata,
-			worker,
-			resourceTypes,
-			s.IsPrivileged(),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if imageFetched {
-			defer image.Release(nil)
-		}
-
-		if s.ImageResource == nil {
-			gardenSpec.RootFSPath = s.Image
-		}
-	default:
-		return nil, fmt.Errorf("unknown container spec type: %T (%#v)", s, s)
+	if err != nil {
+		return nil, err
 	}
 
-	gardenSpec.Privileged = spec.IsPrivileged()
+	defer image.Release(nil)
 
-	if imageFetched {
-		volumeHandles = append(volumeHandles, image.Volume().Handle())
-		gardenSpec.Properties[userPropertyName] = image.Metadata().User
-	} else {
-		gardenSpec.Properties[userPropertyName] = ""
-	}
+	id.ResourceTypeVersion = image.Version()
 
-	for _, mount := range volumeMounts {
+	volumeMounts := spec.Outputs
+	for _, mount := range spec.Inputs {
 		cowVolume, err := worker.CreateVolume(logger, VolumeSpec{
 			Strategy: ContainerRootFSStrategy{
 				Parent: mount.Volume,
 			},
-			Privileged: gardenSpec.Privileged,
+			Privileged: spec.ImageSpec.Privileged,
 			TTL:        VolumeTTL,
 		})
 		if err != nil {
@@ -329,8 +309,10 @@ dance:
 		// release *after* container creation
 		defer cowVolume.Release(nil)
 
-		volumeHandles = append(volumeHandles, cowVolume.Handle())
-		volumeMountPaths[cowVolume] = mount.MountPath
+		volumeMounts = append(volumeMounts, VolumeMount{
+			Volume:    cowVolume,
+			MountPath: mount.MountPath,
+		})
 
 		logger.Debug("created-cow-volume", lager.Data{
 			"original-volume-handle": mount.Volume.Handle(),
@@ -338,13 +320,24 @@ dance:
 		})
 	}
 
-	for volume, mount := range volumeMountPaths {
-		gardenSpec.BindMounts = append(gardenSpec.BindMounts, garden.BindMount{
-			SrcPath: volume.Path(),
-			DstPath: mount,
+	bindMounts := []garden.BindMount{}
+	volumeHandles := []string{}
+	volumeHandleMounts := map[string]string{}
+	for _, mount := range volumeMounts {
+		volumeHandles = append(volumeHandles, mount.Volume.Handle())
+		bindMounts = append(bindMounts, garden.BindMount{
+			SrcPath: mount.Volume.Path(),
+			DstPath: mount.MountPath,
 			Mode:    garden.BindMountModeRW,
 		})
+		volumeHandleMounts[mount.Volume.Handle()] = mount.MountPath
 	}
+
+	if image.Volume() != nil {
+		volumeHandles = append(volumeHandles, image.Volume().Handle())
+	}
+
+	gardenProperties := garden.Properties{userPropertyName: image.Metadata().User}
 
 	if len(volumeHandles) > 0 {
 		volumesJSON, err := json.Marshal(volumeHandles)
@@ -352,31 +345,40 @@ dance:
 			return nil, err
 		}
 
-		gardenSpec.Properties[volumePropertyName] = string(volumesJSON)
-
-		volumeHandleMounts := map[string]string{}
-		for k, v := range volumeMountPaths {
-			volumeHandleMounts[k.Handle()] = v
-		}
+		gardenProperties[volumePropertyName] = string(volumesJSON)
 
 		mountsJSON, err := json.Marshal(volumeHandleMounts)
 		if err != nil {
 			return nil, err
 		}
 
-		gardenSpec.Properties[volumeMountsPropertyName] = string(mountsJSON)
+		gardenProperties[volumeMountsPropertyName] = string(mountsJSON)
 	}
 
+	if spec.Ephemeral {
+		gardenProperties[ephemeralPropertyName] = "true"
+	}
+
+	env := append(image.Metadata().Env, spec.Env...)
+
 	if worker.httpProxyURL != "" {
-		gardenSpec.Env = append(gardenSpec.Env, fmt.Sprintf("http_proxy=%s", worker.httpProxyURL))
+		env = append(env, fmt.Sprintf("http_proxy=%s", worker.httpProxyURL))
 	}
 
 	if worker.httpsProxyURL != "" {
-		gardenSpec.Env = append(gardenSpec.Env, fmt.Sprintf("https_proxy=%s", worker.httpsProxyURL))
+		env = append(env, fmt.Sprintf("https_proxy=%s", worker.httpsProxyURL))
 	}
 
 	if worker.noProxy != "" {
-		gardenSpec.Env = append(gardenSpec.Env, fmt.Sprintf("no_proxy=%s", worker.noProxy))
+		env = append(env, fmt.Sprintf("no_proxy=%s", worker.noProxy))
+	}
+
+	gardenSpec := garden.ContainerSpec{
+		BindMounts: bindMounts,
+		Privileged: spec.ImageSpec.Privileged,
+		Properties: gardenProperties,
+		RootFSPath: image.URL(),
+		Env:        env,
 	}
 
 	gardenContainer, err := worker.gardenClient.Create(gardenSpec)
@@ -388,9 +390,8 @@ dance:
 	metadata.Handle = gardenContainer.Handle()
 	metadata.User = gardenSpec.Properties["user"]
 
-	if imageFetched {
-		id.ResourceTypeVersion = image.Version()
-	}
+	id.ResourceTypeVersion = image.Version()
+
 	_, err = worker.db.CreateContainer(
 		db.Container{
 			ContainerIdentifier: db.ContainerIdentifier(id),
@@ -411,55 +412,6 @@ dance:
 		worker.clock,
 		worker.volumeFactory,
 	)
-}
-
-func (worker *gardenWorker) baseGardenSpec(
-	logger lager.Logger,
-	taskImageConfig *atc.ImageResource,
-	workerTags atc.Tags,
-	cancel <-chan os.Signal,
-	delegate ImageFetchingDelegate,
-	id Identifier,
-	metadata Metadata,
-	workerClient Client,
-	resourceTypes atc.ResourceTypes,
-	privileged bool,
-) (garden.ContainerSpec, bool, Image, error) {
-	if taskImageConfig != nil {
-		image, err := worker.imageFetcher.FetchImage(
-			logger,
-			*taskImageConfig,
-			cancel,
-			id,
-			metadata,
-			delegate,
-			workerClient,
-			workerTags,
-			resourceTypes,
-			privileged,
-		)
-		if err != nil {
-			return garden.ContainerSpec{}, false, nil, err
-		}
-
-		rootFSURL := url.URL{
-			Scheme: RawRootFSScheme,
-			Path:   path.Join(image.Volume().Path(), "rootfs"),
-		}
-		gardenSpec := garden.ContainerSpec{
-			Properties: garden.Properties{},
-			RootFSPath: rootFSURL.String(),
-			Env:        image.Metadata().Env,
-		}
-
-		return gardenSpec, true, image, nil
-	}
-
-	gardenSpec := garden.ContainerSpec{
-		Properties: garden.Properties{},
-	}
-
-	return gardenSpec, false, nil, nil
 }
 
 func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
