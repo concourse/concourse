@@ -65,19 +65,6 @@ func (c *volumeClient) FindVolume(
 
 	savedVolume := savedVolumes[0]
 
-	volumeIdentifier = volumeSpec.Strategy.fuzzyIdentifier()
-	savedVolumes, err = c.db.GetVolumesByIdentifier(volumeIdentifier)
-	if err != nil {
-		return nil, false, err
-	}
-
-	for _, sv := range savedVolumes {
-		handle := sv.Volume.Handle
-		if handle != savedVolume.Volume.Handle {
-			c.expireVolume(logger, handle)
-		}
-	}
-
 	return c.LookupVolume(logger, savedVolume.Handle)
 }
 

@@ -59,7 +59,6 @@ func (spec VolumeSpec) baggageclaimVolumeSpec() baggageclaim.VolumeSpec {
 type Strategy interface {
 	baggageclaimStrategy() baggageclaim.Strategy
 	dbIdentifier() db.VolumeIdentifier
-	fuzzyIdentifier() db.VolumeIdentifier
 }
 
 type ResourceCacheStrategy struct {
@@ -80,10 +79,6 @@ func (strategy ResourceCacheStrategy) dbIdentifier() db.VolumeIdentifier {
 	}
 }
 
-func (strategy ResourceCacheStrategy) fuzzyIdentifier() db.VolumeIdentifier {
-	return strategy.dbIdentifier()
-}
-
 type OutputStrategy struct {
 	Name string
 }
@@ -98,10 +93,6 @@ func (strategy OutputStrategy) dbIdentifier() db.VolumeIdentifier {
 			Name: strategy.Name,
 		},
 	}
-}
-
-func (strategy OutputStrategy) fuzzyIdentifier() db.VolumeIdentifier {
-	return strategy.dbIdentifier()
 }
 
 type ContainerRootFSStrategy struct {
@@ -122,10 +113,6 @@ func (strategy ContainerRootFSStrategy) dbIdentifier() db.VolumeIdentifier {
 	}
 }
 
-func (strategy ContainerRootFSStrategy) fuzzyIdentifier() db.VolumeIdentifier {
-	return strategy.dbIdentifier()
-}
-
 type HostRootFSStrategy struct {
 	Path       string
 	WorkerName string
@@ -144,15 +131,6 @@ func (strategy HostRootFSStrategy) dbIdentifier() db.VolumeIdentifier {
 			Path:       strategy.Path,
 			WorkerName: strategy.WorkerName,
 			Version:    strategy.Version,
-		},
-	}
-}
-
-func (strategy HostRootFSStrategy) fuzzyIdentifier() db.VolumeIdentifier {
-	return db.VolumeIdentifier{
-		Import: &db.ImportIdentifier{
-			Path:       strategy.Path,
-			WorkerName: strategy.WorkerName,
 		},
 	}
 }
