@@ -6,7 +6,7 @@ director_uuid: ~
 releases:
   - name: concourse
     version: latest
-  - name: garden-linux
+  - name: garden-runc
     version: latest
 
 instance_groups:
@@ -58,7 +58,7 @@ instance_groups:
           baggageclaim: {as: default_worker_baggageclaim}
         properties: {}
 
-      - release: garden-linux
+      - release: garden-runc
         name: garden
         properties:
           garden:
@@ -86,7 +86,7 @@ instance_groups:
           baggageclaim: {as: proxy_worker_baggageclaim}
         properties: {}
 
-      - release: garden-linux
+      - release: garden-runc
         name: garden
         properties:
           garden:
