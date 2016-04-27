@@ -338,7 +338,6 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 		Inputs:   inputMounts,
 		Outputs:  outputMounts,
 		ImageSpec: worker.ImageSpec{
-			ResourceType:  "",
 			ImageURL:      config.Image,
 			ImageResource: config.ImageResource,
 			Privileged:    bool(step.privileged),
