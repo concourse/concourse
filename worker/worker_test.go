@@ -156,7 +156,9 @@ var _ = Describe("Worker", func() {
 				},
 			}
 			fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
-				return new(gfakes.FakeContainer), nil
+				fakeContainer := new(gfakes.FakeContainer)
+				fakeContainer.HandleReturns("some-container-handle")
+				return fakeContainer, nil
 			}
 		})
 
@@ -171,12 +173,30 @@ var _ = Describe("Worker", func() {
 			Expect(actualGardenSpec.RootFSPath).To(Equal("some-image"))
 		})
 
+		It("tries to create the container in the db", func() {
+			Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
+			c, ttl := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+
+			Expect(c).To(Equal(db.Container{
+				ContainerIdentifier: db.ContainerIdentifier(Identifier{
+					BuildID: 42,
+				}),
+				ContainerMetadata: db.ContainerMetadata(Metadata{
+					BuildName:  "lol",
+					Handle:     "some-container-handle",
+					WorkerName: "some-worker",
+				}),
+			}))
+
+			Expect(ttl).To(Equal(ContainerTTL))
+		})
+
 		Context("when the spec does not specify ImageURL", func() {
 			BeforeEach(func() {
 				containerSpec.ImageSpec.ImageURL = ""
 			})
 
-			It("the creates a container in garden with an empty RootFSPath", func() {
+			It("tries to create a container in garden with an empty RootFSPath", func() {
 				Expect(createErr).NotTo(HaveOccurred())
 				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 				actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
