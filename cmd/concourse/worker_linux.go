@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/cloudfoundry-incubator/guardian/guardiancmd"
 	"github.com/concourse/atc"
@@ -95,6 +96,7 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger, args []string) (atc.
 		HTTPProxyURL:  cmd.HTTPProxy.String(),
 		HTTPSProxyURL: cmd.HTTPSProxy.String(),
 		NoProxy:       strings.Join(cmd.NoProxy, ","),
+		StartTime:     time.Now().Unix(),
 	}
 
 	worker.ResourceTypes, err = cmd.extractResources(

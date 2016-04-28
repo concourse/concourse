@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cloudfoundry-incubator/garden/server"
 	"github.com/concourse/atc"
@@ -40,6 +41,7 @@ func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger, platform string) (a
 		HTTPProxyURL:  cmd.HTTPProxy.String(),
 		HTTPSProxyURL: cmd.HTTPSProxy.String(),
 		NoProxy:       strings.Join(cmd.NoProxy, ","),
+		StartTime:     time.Now().Unix(),
 	}
 
 	worker.Name, err = cmd.workerName()
