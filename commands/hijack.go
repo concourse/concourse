@@ -23,14 +23,17 @@ import (
 )
 
 type HijackCommand struct {
-	Job      flaghelpers.JobFlag      `short:"j" long:"job"   value-name:"PIPELINE/JOB"   description:"Name of a job to hijack"`
-	Check    flaghelpers.ResourceFlag `short:"c" long:"check" value-name:"PIPELINE/CHECK" description:"Name of a resource's checking container to hijack"`
-	Build    string                   `short:"b" long:"build"                             description:"Build number within the job, or global build ID"`
-	StepName string                   `short:"s" long:"step"                              description:"Name of step to hijack (e.g. build, unit, resource name)"`
-	Attempt  []int                    `short:"a" long:"attempt" description:"Attempt number of step to hijack. Can be specified multiple times for nested retries"`
+	Job            flaghelpers.JobFlag      `short:"j" long:"job"   value-name:"PIPELINE/JOB"   description:"Name of a job to hijack"`
+	Check          flaghelpers.ResourceFlag `short:"c" long:"check" value-name:"PIPELINE/CHECK" description:"Name of a resource's checking container to hijack"`
+	Build          string                   `short:"b" long:"build"                             description:"Build number within the job, or global build ID"`
+	StepName       string                   `short:"s" long:"step"                              description:"Name of step to hijack (e.g. build, unit, resource name)"`
+	Attempt        []int                    `short:"a" long:"attempt" description:"Attempt number of step to hijack. Can be specified multiple times for nested retries"`
+	PositionalArgs struct {
+		Command []string `positional-arg-name:"command" description:"The command to run in the container (default: bash)"`
+	} `positional-args:"yes"`
 }
 
-func (command *HijackCommand) Execute(args []string) error {
+func (command *HijackCommand) Execute([]string) error {
 	target, err := rc.SelectTarget(Fly.Target)
 	if err != nil {
 		return err
@@ -91,7 +94,6 @@ func (command *HijackCommand) Execute(args []string) error {
 		chosenContainer = containers[0]
 	}
 
-	path, args := remoteCommand(args)
 	privileged := true
 
 	reqGenerator := rata.NewRequestGenerator(target.API, atc.Routes)
@@ -109,6 +111,8 @@ func (command *HijackCommand) Execute(args []string) error {
 	}
 
 	envVariables := append(chosenContainer.EnvironmentVariables, "TERM="+os.Getenv("TERM"))
+
+	path, args := remoteCommand(command.PositionalArgs.Command)
 
 	spec := atc.HijackProcessSpec{
 		Path: path,
