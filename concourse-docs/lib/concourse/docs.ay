@@ -23,6 +23,12 @@ fn(download-link(label, url, *extra)):
 fn(version(number)):
  data Element new(i"v#{number}", .class("version-number"))
 
+def(resource(repo, name = repo split("-") collect &.capitalize join(" "))):
+  hyperlink(i"https://github.com/concourse/#{repo}-resource", i"#{name} resource")
+
+def(ghuser(username)):
+  hyperlink(i"https://github.com/#{username}", bold(i"@#{username}"))
+
 def(release(date = nil, concourse-version, garden-linux-version, notes)):
   release-date = nil
   when(date):
