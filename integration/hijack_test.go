@@ -20,12 +20,16 @@ var _ = Describe("Hijacking", func() {
 	var workingDirectory string
 	var envVariables []string
 	var user string
+	var path string
+	var args []string
 
 	BeforeEach(func() {
 		hijacked = nil
 		workingDirectory = ""
 		envVariables = nil
 		user = "root"
+		path = "bash"
+		args = nil
 	})
 
 	upgrader := websocket.Upgrader{}
@@ -52,6 +56,8 @@ var _ = Describe("Hijacking", func() {
 				for _, envVariable := range envVariables {
 					Expect(processSpec.Env).To(ContainElement(envVariable))
 				}
+				Expect(processSpec.Path).To(Equal(path))
+				Expect(processSpec.Args).To(Equal(args))
 
 				var payload atc.HijackInput
 
@@ -512,6 +518,22 @@ var _ = Describe("Hijacking", func() {
 
 			It("hijacks the job's next build", func() {
 				hijack("--job", "some-pipeline/some-job", "--step", "some-step", "--attempt", "2", "--attempt", "4")
+			})
+		})
+
+		Context("when called with a specific path and args", func() {
+			BeforeEach(func() {
+				path = "sh"
+				args = []string{"echo hello"}
+
+				containerArguments = "build-id=2&step_name=some-step"
+				stepType = "task"
+				stepName = "some-step"
+				buildID = 2
+			})
+
+			It("hijacks and runs the provided path with args", func() {
+				hijack("-b", "2", "-s", "some-step", "sh", "echo hello")
 			})
 		})
 
