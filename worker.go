@@ -13,9 +13,10 @@ type Worker struct {
 
 	ResourceTypes []WorkerResourceType `json:"resource_types"`
 
-	Platform string   `json:"platform"`
-	Tags     []string `json:"tags"`
-	Name     string   `json:"name"`
+	Platform  string   `json:"platform"`
+	Tags      []string `json:"tags"`
+	Name      string   `json:"name"`
+	StartTime int64    `json:"start_time"`
 }
 
 type WorkerResourceType struct {

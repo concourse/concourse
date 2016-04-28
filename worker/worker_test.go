@@ -38,6 +38,7 @@ var _ = Describe("Worker", func() {
 		platform               string
 		tags                   atc.Tags
 		workerName             string
+		workerStartTime        int64
 		httpProxyURL           string
 		httpsProxyURL          string
 		noProxy                string
@@ -66,6 +67,7 @@ var _ = Describe("Worker", func() {
 		platform = "some-platform"
 		tags = atc.Tags{"some", "tags"}
 		workerName = "some-worker"
+		workerStartTime = fakeClock.Now().Unix()
 
 		gardenWorker = NewGardenWorker(
 			fakeGardenClient,
@@ -81,6 +83,7 @@ var _ = Describe("Worker", func() {
 			platform,
 			tags,
 			workerName,
+			workerStartTime,
 			httpProxyURL,
 			httpsProxyURL,
 			noProxy,
@@ -175,7 +178,7 @@ var _ = Describe("Worker", func() {
 
 		It("tries to create the container in the db", func() {
 			Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
-			c, ttl := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+			c, ttl, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
 
 			Expect(c).To(Equal(db.Container{
 				ContainerIdentifier: db.ContainerIdentifier(Identifier{
@@ -189,6 +192,7 @@ var _ = Describe("Worker", func() {
 			}))
 
 			Expect(ttl).To(Equal(ContainerTTL))
+			Expect(maxContainerLifetime).To(Equal(time.Duration(0)))
 		})
 
 		Context("when the spec does not specify ImageURL", func() {
@@ -490,6 +494,7 @@ var _ = Describe("Worker", func() {
 			var image *wfakes.FakeImage
 			var imageURL string
 			BeforeEach(func() {
+				containerMetadata.Type = db.ContainerTypeTask
 				containerSpec.ImageSpec.ImageResource = &atc.ImageResource{
 					Type:   "some-resource",
 					Source: atc.Source{"some": "source"},
@@ -522,7 +527,7 @@ var _ = Describe("Worker", func() {
 
 			It("tries to create the container in the db", func() {
 				Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
-				c, ttl := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+				c, ttl, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
 
 				expectedContainerID := Identifier{
 					BuildID:             42,
@@ -534,6 +539,7 @@ var _ = Describe("Worker", func() {
 					Handle:     "some-container-handle",
 					User:       "image-volume-user",
 					WorkerName: "some-worker",
+					Type:       "task",
 				}
 
 				Expect(c).To(Equal(db.Container{
@@ -542,6 +548,7 @@ var _ = Describe("Worker", func() {
 				}))
 
 				Expect(ttl).To(Equal(ContainerTTL))
+				Expect(maxContainerLifetime).To(Equal(time.Duration(0)))
 			})
 
 			It("tries to fetch the image for the resource type", func() {
@@ -609,6 +616,7 @@ var _ = Describe("Worker", func() {
 		Context("when the spec specifies ResourceType", func() {
 			var image *wfakes.FakeImage
 			BeforeEach(func() {
+				containerMetadata.Type = db.ContainerTypeGet
 				containerSpec = ContainerSpec{
 					ImageSpec: ImageSpec{
 						ResourceType: "custom-type-a",
@@ -641,7 +649,7 @@ var _ = Describe("Worker", func() {
 
 			It("tries to create the container in the db", func() {
 				Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
-				c, ttl := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+				c, ttl, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
 
 				expectedContainerID := Identifier{
 					BuildID:             42,
@@ -653,6 +661,7 @@ var _ = Describe("Worker", func() {
 					Handle:     "some-container-handle",
 					User:       "image-volume-user",
 					WorkerName: "some-worker",
+					Type:       "get",
 				}
 
 				Expect(c).To(Equal(db.Container{
@@ -661,6 +670,7 @@ var _ = Describe("Worker", func() {
 				}))
 
 				Expect(ttl).To(Equal(ContainerTTL))
+				Expect(maxContainerLifetime).To(Equal(time.Duration(0)))
 			})
 
 			It("tries to fetch the image for the resource type", func() {
@@ -922,6 +932,50 @@ var _ = Describe("Worker", func() {
 			})
 		})
 
+		Context("when the spec is for a check container", func() {
+			BeforeEach(func() {
+				containerMetadata.Type = db.ContainerTypeCheck
+			})
+
+			Context("when the worker has been up for less than 5 minutes", func() {
+				BeforeEach(func() {
+					fakeClock.IncrementBySeconds(299)
+				})
+
+				It("creates the container with a max lifetime of 5 minutes", func() {
+					Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
+					_, _, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+					Expect(maxContainerLifetime).To(Equal(5 * time.Minute))
+				})
+			})
+
+			Context("when the worker has been up for greater than 5 minutes, and less than an hour", func() {
+				var origUptime time.Duration
+				BeforeEach(func() {
+					origUptime = gardenWorker.Uptime()
+					fakeClock.IncrementBySeconds(301)
+				})
+
+				It("creates the container with a max lifetime equivalent to the worker uptime", func() {
+					Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
+					_, _, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+					Expect(maxContainerLifetime).To(Equal(origUptime + (301 * time.Second)))
+				})
+			})
+
+			Context("when the worker has been up for greater than an hour", func() {
+				BeforeEach(func() {
+					fakeClock.IncrementBySeconds(3601)
+				})
+
+				It("creates the container with a max lifetime of 1 hour", func() {
+					Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
+					_, _, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+					Expect(maxContainerLifetime).To(Equal(1 * time.Hour))
+				})
+			})
+		})
+
 		Context("when the worker has a HTTPProxyURL", func() {
 			BeforeEach(func() {
 				gardenWorker = NewGardenWorker(
@@ -938,6 +992,7 @@ var _ = Describe("Worker", func() {
 					platform,
 					tags,
 					workerName,
+					workerStartTime,
 					"http://example.com",
 					httpsProxyURL,
 					noProxy,
@@ -967,6 +1022,7 @@ var _ = Describe("Worker", func() {
 					platform,
 					tags,
 					workerName,
+					workerStartTime,
 					httpProxyURL,
 					httpsProxyURL,
 					"localhost",
@@ -996,6 +1052,7 @@ var _ = Describe("Worker", func() {
 					platform,
 					tags,
 					workerName,
+					workerStartTime,
 					httpProxyURL,
 					"https://example.com",
 					noProxy,
@@ -1153,6 +1210,7 @@ var _ = Describe("Worker", func() {
 									platform,
 									tags,
 									workerName,
+									workerStartTime,
 									httpProxyURL,
 									httpsProxyURL,
 									noProxy,
@@ -1213,6 +1271,7 @@ var _ = Describe("Worker", func() {
 									platform,
 									tags,
 									workerName,
+									workerStartTime,
 									httpProxyURL,
 									httpsProxyURL,
 									noProxy,
@@ -1621,6 +1680,7 @@ var _ = Describe("Worker", func() {
 				platform,
 				tags,
 				workerName,
+				workerStartTime,
 				httpProxyURL,
 				httpsProxyURL,
 				noProxy,

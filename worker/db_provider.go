@@ -19,7 +19,7 @@ import (
 type WorkerDB interface {
 	Workers() ([]db.SavedWorker, error)
 	GetWorker(string) (db.SavedWorker, bool, error)
-	CreateContainer(db.Container, time.Duration) (db.SavedContainer, error)
+	CreateContainer(db.Container, time.Duration, time.Duration) (db.SavedContainer, error)
 	GetContainer(string) (db.SavedContainer, bool, error)
 	FindContainerByIdentifier(db.ContainerIdentifier) (db.SavedContainer, bool, error)
 
@@ -154,6 +154,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		savedWorker.Platform,
 		savedWorker.Tags,
 		savedWorker.Name,
+		savedWorker.StartTime,
 		savedWorker.HTTPProxyURL,
 		savedWorker.HTTPSProxyURL,
 		savedWorker.NoProxy,

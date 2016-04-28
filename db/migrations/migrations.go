@@ -101,4 +101,6 @@ var Migrations = []migration.Migrator{
 	AddModifiedTimeToBuildInputs,
 	AddPathToVolumes,
 	AddHostPathVersionToVolumes,
+	AddBestIfUsedByToContainers,
+	AddStartTimeToWorkers,
 }

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var workerColumns = "EXTRACT(epoch FROM expires - NOW()), addr, baggageclaim_url, http_proxy_url, https_proxy_url, no_proxy, active_containers, resource_types, platform, tags, name"
+var workerColumns = "EXTRACT(epoch FROM expires - NOW()), addr, baggageclaim_url, http_proxy_url, https_proxy_url, no_proxy, active_containers, resource_types, platform, tags, name, start_time"
 
 func (db *SQLDB) Workers() ([]SavedWorker, error) {
 	// reap expired workers
@@ -89,18 +89,18 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) (SavedWorker, er
 
 	row := db.conn.QueryRow(`
 			UPDATE workers
-			SET addr = $1, expires = `+expires+`, active_containers = $2, resource_types = $3, platform = $4, tags = $5, baggageclaim_url = $6, http_proxy_url = $7, https_proxy_url = $8, no_proxy = $9, name = $10
+			SET addr = $1, expires = `+expires+`, active_containers = $2, resource_types = $3, platform = $4, tags = $5, baggageclaim_url = $6, http_proxy_url = $7, https_proxy_url = $8, no_proxy = $9, name = $10, start_time = $11
 			WHERE name = $10 OR addr = $1
 			RETURNING  `+workerColumns,
-		info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.HTTPProxyURL, info.HTTPSProxyURL, info.NoProxy, info.Name)
+		info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.HTTPProxyURL, info.HTTPSProxyURL, info.NoProxy, info.Name, info.StartTime)
 
 	savedWorker, err = scanWorker(row)
 	if err == sql.ErrNoRows {
 		row = db.conn.QueryRow(`
-				INSERT INTO workers (addr, expires, active_containers, resource_types, platform, tags, baggageclaim_url, http_proxy_url, https_proxy_url, no_proxy, name)
-				VALUES ($1, `+expires+`, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+				INSERT INTO workers (addr, expires, active_containers, resource_types, platform, tags, baggageclaim_url, http_proxy_url, https_proxy_url, no_proxy, name, start_time)
+				VALUES ($1, `+expires+`, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 				RETURNING `+workerColumns,
-			info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.HTTPProxyURL, info.HTTPSProxyURL, info.NoProxy, info.Name)
+			info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.HTTPProxyURL, info.HTTPSProxyURL, info.NoProxy, info.Name, info.StartTime)
 		savedWorker, err = scanWorker(row)
 	}
 	if err != nil {
@@ -121,7 +121,7 @@ func scanWorker(row scannable) (SavedWorker, error) {
 	var httpsProxyURL sql.NullString
 	var noProxy sql.NullString
 
-	err := row.Scan(&ttlSeconds, &info.GardenAddr, &info.BaggageclaimURL, &httpProxyURL, &httpsProxyURL, &noProxy, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.Name)
+	err := row.Scan(&ttlSeconds, &info.GardenAddr, &info.BaggageclaimURL, &httpProxyURL, &httpsProxyURL, &noProxy, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.Name, &info.StartTime)
 	if err != nil {
 		return SavedWorker{}, err
 	}

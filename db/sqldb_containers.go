@@ -155,6 +155,7 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		addParam("check_type", id.CheckType)
 		addParam("check_source", checkSourceBlob)
 		addParam("stage", string(id.Stage))
+		conditions = append(conditions, "(best_if_used_by IS NULL OR best_if_used_by > NOW())")
 	case isValidStepID(id):
 		addParam("build_id", id.BuildID)
 		addParam("plan_id", string(id.PlanID))
@@ -231,7 +232,11 @@ func (db *SQLDB) GetContainer(handle string) (SavedContainer, bool, error) {
 	return container, true, nil
 }
 
-func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (SavedContainer, error) {
+func (db *SQLDB) CreateContainer(
+	container Container,
+	ttl time.Duration,
+	maxLifetime time.Duration,
+) (SavedContainer, error) {
 	if !(isValidCheckID(container.ContainerIdentifier) || isValidStepID(container.ContainerIdentifier)) {
 		return SavedContainer{}, ErrInvalidIdentifier
 	}
@@ -320,9 +325,14 @@ func (db *SQLDB) CreateContainer(container Container, ttl time.Duration) (SavedC
 		imageResourceType.Valid = true
 	}
 
+	maxLifetimeValue := "NULL"
+	if maxLifetime > 0 {
+		maxLifetimeValue = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(maxLifetime.Seconds()))
+	}
+
 	_, err = tx.Exec(`
-		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, ttl, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage, image_resource_type, image_resource_source, process_user, resource_type_version)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
+		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, ttl, best_if_used_by, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage, image_resource_type, image_resource_source, process_user, resource_type_version)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9,`+maxLifetimeValue+`, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
 		container.Handle,
 		resourceID,
 		container.StepName,

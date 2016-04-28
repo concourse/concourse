@@ -41,12 +41,13 @@ type Worker interface {
 
 	Description() string
 	Name() string
+	Uptime() time.Duration
 }
 
 //go:generate counterfeiter . GardenWorkerDB
 
 type GardenWorkerDB interface {
-	CreateContainer(db.Container, time.Duration) (db.SavedContainer, error)
+	CreateContainer(db.Container, time.Duration, time.Duration) (db.SavedContainer, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 
 	InsertVolume(db.Volume) error
@@ -73,6 +74,7 @@ type gardenWorker struct {
 	platform         string
 	tags             atc.Tags
 	name             string
+	startTime        int64
 	httpProxyURL     string
 	httpsProxyURL    string
 	noProxy          string
@@ -92,6 +94,7 @@ func NewGardenWorker(
 	platform string,
 	tags atc.Tags,
 	name string,
+	startTime int64,
 	httpProxyURL string,
 	httpsProxyURL string,
 	noProxy string,
@@ -111,6 +114,7 @@ func NewGardenWorker(
 		platform:         platform,
 		tags:             tags,
 		name:             name,
+		startTime:        startTime,
 		httpProxyURL:     httpProxyURL,
 		httpsProxyURL:    httpsProxyURL,
 		noProxy:          noProxy,
@@ -398,6 +402,7 @@ func (worker *gardenWorker) CreateContainer(
 			ContainerMetadata:   db.ContainerMetadata(metadata),
 		},
 		ContainerTTL,
+		worker.maxContainerLifetime(metadata),
 	)
 	if err != nil {
 		return nil, err
@@ -412,6 +417,22 @@ func (worker *gardenWorker) CreateContainer(
 		worker.clock,
 		worker.volumeFactory,
 	)
+}
+
+func (worker *gardenWorker) maxContainerLifetime(metadata Metadata) time.Duration {
+	if metadata.Type == db.ContainerTypeCheck {
+		uptime := worker.Uptime()
+		switch {
+		case uptime < 5*time.Minute:
+			return 5 * time.Minute
+		case uptime > 1*time.Hour:
+			return 1 * time.Hour
+		default:
+			return uptime
+		}
+	}
+
+	return time.Duration(0)
 }
 
 func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
@@ -546,6 +567,10 @@ func (worker *gardenWorker) Description() string {
 
 func (worker *gardenWorker) Name() string {
 	return worker.name
+}
+
+func (worker *gardenWorker) Uptime() time.Duration {
+	return worker.clock.Since(time.Unix(worker.startTime, 0))
 }
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {

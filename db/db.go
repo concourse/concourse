@@ -121,7 +121,7 @@ type DB interface {
 
 	FindContainersByDescriptors(Container) ([]SavedContainer, error)
 	GetContainer(string) (SavedContainer, bool, error)
-	CreateContainer(Container, time.Duration) (SavedContainer, error)
+	CreateContainer(Container, time.Duration, time.Duration) (SavedContainer, error)
 	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
@@ -228,4 +228,5 @@ type WorkerInfo struct {
 	Platform         string
 	Tags             []string
 	Name             string
+	StartTime        int64
 }

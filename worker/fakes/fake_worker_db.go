@@ -27,11 +27,12 @@ type FakeWorkerDB struct {
 		result2 bool
 		result3 error
 	}
-	CreateContainerStub        func(db.Container, time.Duration) (db.SavedContainer, error)
+	CreateContainerStub        func(db.Container, time.Duration, time.Duration) (db.SavedContainer, error)
 	createContainerMutex       sync.RWMutex
 	createContainerArgsForCall []struct {
 		arg1 db.Container
 		arg2 time.Duration
+		arg3 time.Duration
 	}
 	createContainerReturns struct {
 		result1 db.SavedContainer
@@ -179,15 +180,16 @@ func (fake *FakeWorkerDB) GetWorkerReturns(result1 db.SavedWorker, result2 bool,
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerDB) CreateContainer(arg1 db.Container, arg2 time.Duration) (db.SavedContainer, error) {
+func (fake *FakeWorkerDB) CreateContainer(arg1 db.Container, arg2 time.Duration, arg3 time.Duration) (db.SavedContainer, error) {
 	fake.createContainerMutex.Lock()
 	fake.createContainerArgsForCall = append(fake.createContainerArgsForCall, struct {
 		arg1 db.Container
 		arg2 time.Duration
-	}{arg1, arg2})
+		arg3 time.Duration
+	}{arg1, arg2, arg3})
 	fake.createContainerMutex.Unlock()
 	if fake.CreateContainerStub != nil {
-		return fake.CreateContainerStub(arg1, arg2)
+		return fake.CreateContainerStub(arg1, arg2, arg3)
 	} else {
 		return fake.createContainerReturns.result1, fake.createContainerReturns.result2
 	}
@@ -199,10 +201,10 @@ func (fake *FakeWorkerDB) CreateContainerCallCount() int {
 	return len(fake.createContainerArgsForCall)
 }
 
-func (fake *FakeWorkerDB) CreateContainerArgsForCall(i int) (db.Container, time.Duration) {
+func (fake *FakeWorkerDB) CreateContainerArgsForCall(i int) (db.Container, time.Duration, time.Duration) {
 	fake.createContainerMutex.RLock()
 	defer fake.createContainerMutex.RUnlock()
-	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2
+	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2, fake.createContainerArgsForCall[i].arg3
 }
 
 func (fake *FakeWorkerDB) CreateContainerReturns(result1 db.SavedContainer, result2 error) {

@@ -4,6 +4,7 @@ package fakes
 import (
 	"os"
 	"sync"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
@@ -145,6 +146,12 @@ type FakeWorker struct {
 	nameArgsForCall []struct{}
 	nameReturns     struct {
 		result1 string
+	}
+	UptimeStub        func() time.Duration
+	uptimeMutex       sync.RWMutex
+	uptimeArgsForCall []struct{}
+	uptimeReturns     struct {
+		result1 time.Duration
 	}
 }
 
@@ -598,6 +605,30 @@ func (fake *FakeWorker) NameReturns(result1 string) {
 	fake.NameStub = nil
 	fake.nameReturns = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeWorker) Uptime() time.Duration {
+	fake.uptimeMutex.Lock()
+	fake.uptimeArgsForCall = append(fake.uptimeArgsForCall, struct{}{})
+	fake.uptimeMutex.Unlock()
+	if fake.UptimeStub != nil {
+		return fake.UptimeStub()
+	} else {
+		return fake.uptimeReturns.result1
+	}
+}
+
+func (fake *FakeWorker) UptimeCallCount() int {
+	fake.uptimeMutex.RLock()
+	defer fake.uptimeMutex.RUnlock()
+	return len(fake.uptimeArgsForCall)
+}
+
+func (fake *FakeWorker) UptimeReturns(result1 time.Duration) {
+	fake.UptimeStub = nil
+	fake.uptimeReturns = struct {
+		result1 time.Duration
 	}{result1}
 }
 

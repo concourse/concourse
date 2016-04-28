@@ -51,8 +51,9 @@ var _ = Describe("Keeping track of workers", func() {
 			ResourceTypes: []atc.WorkerResourceType{
 				{Type: "some-resource-a", Image: "some-image-a"},
 			},
-			Platform: "webos",
-			Tags:     []string{"palm", "was", "great"},
+			Platform:  "webos",
+			Tags:      []string{"palm", "was", "great"},
+			StartTime: 1461864115,
 		}
 
 		infoB := db.WorkerInfo{
@@ -62,8 +63,9 @@ var _ = Describe("Keeping track of workers", func() {
 			ResourceTypes: []atc.WorkerResourceType{
 				{Type: "some-resource-b", Image: "some-image-b"},
 			},
-			Platform: "plan9",
-			Tags:     []string{"russ", "cox", "was", "here"},
+			Platform:  "plan9",
+			Tags:      []string{"russ", "cox", "was", "here"},
+			StartTime: 1461864110,
 		}
 		expectedSavedWorkerA := db.SavedWorker{
 			WorkerInfo: infoA,
