@@ -70,6 +70,10 @@ time. The mechanics of this are described below.
       \reference{disabling-resource-versions}{manually disabled} if you know
       that a version is "bad" (i.e. backwards-incompatible) in a way that your
       pipeline itself did not discover.
+    }{
+      The version to fetch may be pinned to a specific version or instructed to
+      pick the next available one by configuring \reference{get-version} on the
+      step.
     }
 
     Putting these constraints together, the following illustration shows how
