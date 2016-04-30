@@ -45,6 +45,34 @@ var _ = Describe("CheckResource", func() {
 		})
 	})
 
+	Context("when version is omitted", func() {
+		BeforeEach(func() {
+			expectedURL := "/api/v1/pipelines/mypipeline/resources/myresource/check"
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyJSON(`{"from":null}`),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, ""),
+				),
+			)
+		})
+
+		It("sends check resource request to ATC", func() {
+			Expect(func() {
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource", "-r", "mypipeline/myresource")
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(0))
+
+				Expect(sess.Out).To(gbytes.Say("checked 'myresource'"))
+
+			}).To(Change(func() int {
+				return len(atcServer.ReceivedRequests())
+			}).By(2))
+		})
+	})
+
 	Context("when specifying multiple versions", func() {
 		BeforeEach(func() {
 			expectedURL := "/api/v1/pipelines/mypipeline/resources/myresource/check"
@@ -79,7 +107,6 @@ var _ = Describe("CheckResource", func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
-					ghttp.VerifyJSON(`{"from":{}}`),
 					ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
 				),
 			)
