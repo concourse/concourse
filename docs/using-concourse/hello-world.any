@@ -68,13 +68,13 @@ sidebar via the \font-awesome{fa-bars} button in the top left and press
 \font-awesome{fa-play}, or run:
 
 \codeblock{bash}{
-$ fly -t lite unpause-pipeline -p really-cool-pipeline
+$ fly -t lite unpause-pipeline -p hello-world
 }
 
 You can always fetch the current configuration of a pipeline by running:
 
 \codeblock{bash}{
-$ fly -t lite get-pipeline -p really-cool-pipeline
+$ fly -t lite get-pipeline -p hello-world
 }
 
 This pipeline configuration so far describes a single \reference{jobs}{job},
@@ -116,7 +116,7 @@ jobs:
 Run the following to reconfigure the existing pipeline:
 
 \codeblock{bash}{
-$ fly -t lite set-pipeline -p really-cool-pipeline -c navi-pipeline.yml
+$ fly -t lite set-pipeline -p hello-world -c navi-pipeline.yml
 }
 
 Your pipeline should now look like this:
