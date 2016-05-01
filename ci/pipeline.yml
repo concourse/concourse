@@ -51,7 +51,7 @@ jobs:
       - name: final-version
       run:
         path: sh
-        args: [-c, 'date +%s > final-version/version']
+        args: [-c, 'date +%m.%d.%s > final-version/version']
   - task: build-cli-artifacts
     file: bin/ci/build-cli-artifacts.yml
   - aggregate:
