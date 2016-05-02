@@ -1,0 +1,24 @@
+---
+resources:
+  - name: a-docker-resource-with-bash
+    type: docker-image
+    source:
+      repository: ubuntu
+
+jobs:
+- name: artifact-test
+  plan:
+  - get: a-docker-resource-with-bash
+    trigger: true
+  - task: artifact-dependent-task
+    image: a-docker-resource-with-bash  # this should override images specified below
+    tags: ["tagged"]
+    config:
+      platform: linux
+      image: docker:///alpine           # this should be overriden
+      image_resource:                   # this should also be overriden
+        type: docker-image
+        source: {repository: alpine}
+      run:
+          path: which
+          args: ["bash"]

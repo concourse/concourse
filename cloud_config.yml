@@ -17,6 +17,10 @@ networks:
         gateway: 10.244.15.17
       - range: 10.244.15.20/30
         gateway: 10.244.15.21
+      - range: 10.244.15.24/30
+        gateway: 10.244.15.25
+      - range: 10.244.15.28/30
+        gateway: 10.244.15.29
 
 vm_types:
   - name: concourse
