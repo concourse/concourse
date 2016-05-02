@@ -416,7 +416,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(sourceName).To(Equal(exec.SourceName("some-task")))
 				Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -436,7 +436,7 @@ var _ = Describe("ExecEngine", func() {
 				Expect(tags).To(Equal(atc.Tags{"some", "task", "tags"}))
 				Expect(configSource).To(Equal(exec.ValidatingConfigSource{exec.FileConfigSource{"some-config-path"}}))
 
-				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
 				Expect(sourceName).To(Equal(exec.SourceName("some-task")))
 				Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -502,13 +502,13 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				_, _, _, workerMetadata, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				_, _, _, workerMetadata, _, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
-				_, _, _, workerMetadata, _, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				_, _, _, workerMetadata, _, _, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
-				_, _, _, workerMetadata, _, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(2)
+				_, _, _, workerMetadata, _, _, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(2)
 				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
-				_, _, _, workerMetadata, _, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(3)
+				_, _, _, workerMetadata, _, _, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(3)
 				Expect(workerMetadata.Attempts).To(Equal([]int{1}))
 			})
 		})
@@ -614,7 +614,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-					logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, actualInputMapping, actualOutputMapping, _ := fakeFactory.TaskArgsForCall(0)
+					logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, actualInputMapping, actualOutputMapping, _, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -641,6 +641,24 @@ var _ = Describe("ExecEngine", func() {
 					Expect(actualOutputMapping).To(Equal(outputMapping))
 				})
 
+				Context("when the plan's image references the output of a previous step", func() {
+					BeforeEach(func() {
+						taskPlan.ImageArtifactName = "some-image-artifact-name"
+					})
+
+					It("constructs the task with the referenced image", func() {
+						var err error
+						build, err = execEngine.CreateBuild(logger, buildModel, plan)
+						Expect(err).NotTo(HaveOccurred())
+
+						build.Resume(logger)
+						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
+
+						_, _, _, _, _, _, _, _, _, _, _, actualImageArtifactName, _ := fakeFactory.TaskArgsForCall(0)
+						Expect(actualImageArtifactName).To(Equal("some-image-artifact-name"))
+					})
+				})
+
 				Context("when the plan contains params and config path", func() {
 					BeforeEach(func() {
 						taskPlan.Params = map[string]interface{}{
@@ -656,7 +674,7 @@ var _ = Describe("ExecEngine", func() {
 						build.Resume(logger)
 						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-						_, _, _, _, _, _, _, configSource, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+						_, _, _, _, _, _, _, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 						vcs, ok := configSource.(exec.ValidatingConfigSource)
 						Expect(ok).To(BeTrue())
 						_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
@@ -681,7 +699,7 @@ var _ = Describe("ExecEngine", func() {
 						build.Resume(logger)
 						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-						_, _, _, _, _, _, _, configSource, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+						_, _, _, _, _, _, _, configSource, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 						vcs, ok := configSource.(exec.ValidatingConfigSource)
 						Expect(ok).To(BeTrue())
 						_, ok = vcs.ConfigSource.(exec.MergedConfigSource)

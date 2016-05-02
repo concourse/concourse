@@ -224,16 +224,17 @@ func (factory *buildFactory) constructUnhookedPlan(
 
 	case planConfig.Task != "":
 		plan = factory.planFactory.NewPlan(atc.TaskPlan{
-			Name:          planConfig.Task,
-			PipelineID:    factory.PipelineID,
-			Privileged:    planConfig.Privileged,
-			Config:        planConfig.TaskConfig,
-			ConfigPath:    planConfig.TaskConfigPath,
-			Tags:          planConfig.Tags,
-			ResourceTypes: resourceTypes,
-			Params:        planConfig.Params,
-			InputMapping:  planConfig.InputMapping,
-			OutputMapping: planConfig.OutputMapping,
+			Name:              planConfig.Task,
+			PipelineID:        factory.PipelineID,
+			Privileged:        planConfig.Privileged,
+			Config:            planConfig.TaskConfig,
+			ConfigPath:        planConfig.TaskConfigPath,
+			Tags:              planConfig.Tags,
+			ResourceTypes:     resourceTypes,
+			Params:            planConfig.Params,
+			InputMapping:      planConfig.InputMapping,
+			OutputMapping:     planConfig.OutputMapping,
+			ImageArtifactName: planConfig.ImageArtifactName,
 		})
 	case planConfig.Try != nil:
 		nextStep, err := factory.constructPlanFromConfig(

@@ -3,8 +3,10 @@ package exec
 import (
 	"archive/tar"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -52,6 +54,7 @@ type TaskStep struct {
 	containerFailureTTL time.Duration
 	inputMapping        map[string]string
 	outputMapping       map[string]string
+	imageArtifactName   string
 	clock               clock.Clock
 	repo                *SourceRepository
 
@@ -77,6 +80,7 @@ func newTaskStep(
 	containerFailureTTL time.Duration,
 	inputMapping map[string]string,
 	outputMapping map[string]string,
+	imageArtifactName string,
 	clock clock.Clock,
 ) TaskStep {
 	return TaskStep{
@@ -95,6 +99,7 @@ func newTaskStep(
 		containerFailureTTL: containerFailureTTL,
 		inputMapping:        inputMapping,
 		outputMapping:       outputMapping,
+		imageArtifactName:   imageArtifactName,
 		clock:               clock,
 	}
 }
@@ -332,16 +337,79 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 		step.logger.Debug("created-output-volume", lager.Data{"volume-Handle": outVolume.Handle()})
 	}
 
-	containerSpec := worker.ContainerSpec{
-		Platform: config.Platform,
-		Tags:     step.tags,
-		Inputs:   inputMounts,
-		Outputs:  outputMounts,
-		ImageSpec: worker.ImageSpec{
+	var imageSpec worker.ImageSpec
+	if step.imageArtifactName != "" {
+		source, found := step.repo.SourceFor(SourceName(step.imageArtifactName))
+		if !found {
+			return nil, nil, errors.New("failed-to-lookup-source-for-image-artifact")
+		}
+
+		volume, existsOnWorker, err := source.VolumeOn(chosenWorker)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if existsOnWorker {
+			volume, err = chosenWorker.CreateVolume(step.logger, worker.VolumeSpec{
+				Strategy: worker.ContainerRootFSStrategy{
+					Parent: volume,
+				},
+				Privileged: true,
+				TTL:        worker.VolumeTTL,
+			})
+
+			if err != nil {
+				return nil, nil, err
+			}
+		} else {
+			volume, err = chosenWorker.CreateVolume(
+				step.logger,
+				worker.VolumeSpec{
+					Strategy: worker.ImageArtifactReplicationStrategy{
+						Name: step.imageArtifactName,
+					},
+					Privileged: true,
+					TTL:        worker.VolumeTTL,
+				},
+			)
+
+			if err != nil {
+				return nil, nil, err
+			}
+
+			dest := workerArtifactDestination{
+				destination: volume,
+			}
+
+			err = source.StreamTo(&dest)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
+		imageURL := url.URL{
+			Scheme: worker.RawRootFSScheme,
+			Path:   path.Join(volume.Path(), "rootfs"),
+		}
+
+		imageSpec = worker.ImageSpec{
+			ImageURL:   imageURL.String(),
+			Privileged: bool(step.privileged),
+		}
+	} else {
+		imageSpec = worker.ImageSpec{
 			ImageURL:      config.Image,
 			ImageResource: config.ImageResource,
 			Privileged:    bool(step.privileged),
-		},
+		}
+	}
+
+	containerSpec := worker.ContainerSpec{
+		Platform:  config.Platform,
+		Tags:      step.tags,
+		Inputs:    inputMounts,
+		Outputs:   outputMounts,
+		ImageSpec: imageSpec,
 	}
 
 	runContainerID := step.containerID
@@ -740,4 +808,12 @@ func createContainerDir(container garden.Container, dir string) error {
 	}
 
 	return nil
+}
+
+type workerArtifactDestination struct {
+	destination worker.Volume
+}
+
+func (wad *workerArtifactDestination) StreamIn(path string, tarStream io.Reader) error {
+	return wad.destination.StreamIn(path, tarStream)
 }

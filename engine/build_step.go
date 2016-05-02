@@ -119,6 +119,7 @@ func (build *execBuild) buildTaskStep(logger lager.Logger, plan atc.Plan) exec.S
 		plan.Task.ResourceTypes,
 		plan.Task.InputMapping,
 		plan.Task.OutputMapping,
+		plan.Task.ImageArtifactName,
 		clock,
 	)
 }

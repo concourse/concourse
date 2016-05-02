@@ -22,6 +22,7 @@ type VolumeIdentifier struct {
 	COW           *COWIdentifier
 	Output        *OutputIdentifier
 	Import        *ImportIdentifier
+	Replication   *ReplicationIdentifier
 }
 
 func (i VolumeIdentifier) Type() string {
@@ -34,6 +35,8 @@ func (i VolumeIdentifier) Type() string {
 		return "output"
 	case i.Import != nil:
 		return "import"
+	case i.Replication != nil:
+		return "replication"
 	default:
 		return ""
 	}
@@ -49,6 +52,8 @@ func (i VolumeIdentifier) String() string {
 		return i.Output.String()
 	case i.Import != nil:
 		return i.Import.String()
+	case i.Replication != nil:
+		return i.Replication.String()
 	default:
 		return ""
 	}
@@ -83,6 +88,14 @@ type OutputIdentifier struct {
 }
 
 func (i OutputIdentifier) String() string {
+	return i.Name
+}
+
+type ReplicationIdentifier struct {
+	Name string
+}
+
+func (i ReplicationIdentifier) String() string {
 	return i.Name
 }
 

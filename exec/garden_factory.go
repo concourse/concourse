@@ -156,6 +156,7 @@ func (factory *gardenFactory) Task(
 	resourceTypes atc.ResourceTypes,
 	inputMapping map[string]string,
 	outputMapping map[string]string,
+	imageArtifactName string,
 	clock clock.Clock,
 ) StepFactory {
 	workingDirectory := factory.taskWorkingDirectory(sourceName)
@@ -176,6 +177,7 @@ func (factory *gardenFactory) Task(
 		factory.containerFailureTTL,
 		inputMapping,
 		outputMapping,
+		imageArtifactName,
 		clock,
 	)
 }

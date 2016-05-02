@@ -95,6 +95,22 @@ func (strategy OutputStrategy) dbIdentifier() db.VolumeIdentifier {
 	}
 }
 
+type ImageArtifactReplicationStrategy struct {
+	Name string
+}
+
+func (ImageArtifactReplicationStrategy) baggageclaimStrategy() baggageclaim.Strategy {
+	return baggageclaim.EmptyStrategy{}
+}
+
+func (strategy ImageArtifactReplicationStrategy) dbIdentifier() db.VolumeIdentifier {
+	return db.VolumeIdentifier{
+		Replication: &db.ReplicationIdentifier{
+			Name: strategy.Name,
+		},
+	}
+}
+
 type ContainerRootFSStrategy struct {
 	Parent Volume
 }

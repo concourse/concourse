@@ -187,7 +187,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 		})
 
-		Describe("output volumes", func() {
+		Describe("resource cache", func() {
 			JustBeforeEach(func() {
 				var err error
 
@@ -390,6 +390,41 @@ var _ = Describe("Keeping track of volumes", func() {
 				Expect(savedOutputVolume.Handle).To(Equal(outputVolume.Handle))
 				Expect(savedOutputVolume.Volume.Identifier.Output.Name).To(Equal("some-output"))
 				Expect(savedOutputVolume.ExpiresIn).To(BeNumerically("~", outputVolume.TTL, time.Second))
+			})
+		})
+
+		Describe("replication volumes", func() {
+			var replicationVolume db.Volume
+			var replicationIdentifier db.VolumeIdentifier
+
+			BeforeEach(func() {
+				replicationIdentifier = db.VolumeIdentifier{
+					Replication: &db.ReplicationIdentifier{
+						Name: "some-replication-identifier",
+					},
+				}
+				replicationVolume = db.Volume{
+					WorkerName: insertedWorker.Name,
+					TTL:        5 * time.Minute,
+					Handle:     "my-replication-handle",
+					Identifier: replicationIdentifier,
+				}
+
+				err := database.InsertVolume(replicationVolume)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("can be retrieved", func() {
+				savedReplicationVolumes, err := database.GetVolumesByIdentifier(replicationIdentifier)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(savedReplicationVolumes)).To(Equal(1))
+
+				savedReplicationVolume := savedReplicationVolumes[0]
+				Expect(savedReplicationVolume.WorkerName).To(Equal(replicationVolume.WorkerName))
+				Expect(savedReplicationVolume.TTL).To(Equal(replicationVolume.TTL))
+				Expect(savedReplicationVolume.Handle).To(Equal(replicationVolume.Handle))
+				Expect(savedReplicationVolume.Volume.Identifier.Replication.Name).To(Equal("some-replication-identifier"))
+				Expect(savedReplicationVolume.ExpiresIn).To(BeNumerically("~", replicationVolume.TTL, time.Second))
 			})
 		})
 

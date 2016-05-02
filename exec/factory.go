@@ -69,6 +69,7 @@ type Factory interface {
 		atc.ResourceTypes,
 		map[string]string,
 		map[string]string,
+		string,
 		clock.Clock,
 	) StepFactory
 }

@@ -201,7 +201,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the completion hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(2)
+					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(2)
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-completion-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -222,7 +222,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the failure hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-failure-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -243,7 +243,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the success hook correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(1)
+					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-success-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -264,7 +264,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 				It("constructs the next step correctly", func() {
 					Expect(fakeFactory.TaskCallCount()).To(Equal(4))
-					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(3)
+					logger, sourceName, workerID, workerMetadata, delegate, _, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(3)
 					Expect(logger).NotTo(BeNil())
 					Expect(sourceName).To(Equal(exec.SourceName("some-next-task")))
 					Expect(workerMetadata).To(Equal(worker.Metadata{

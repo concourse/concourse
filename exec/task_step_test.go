@@ -19,6 +19,7 @@ import (
 	rfakes "github.com/concourse/atc/resource/fakes"
 	"github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/fakes"
+	bfakes "github.com/concourse/baggageclaim/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -39,9 +40,9 @@ var _ = Describe("GardenFactory", func() {
 		stderrBuf *gbytes.Buffer
 		fakeClock *fakeclock.FakeClock
 
-		sourceName SourceName = "some-source-name"
-
-		identifier = worker.Identifier{
+		sourceName        SourceName = "some-source-name"
+		imageArtifactName string
+		identifier        = worker.Identifier{
 			BuildID: 1234,
 			PlanID:  atc.PlanID("some-plan-id"),
 		}
@@ -104,6 +105,7 @@ var _ = Describe("GardenFactory", func() {
 
 			inputMapping = nil
 			outputMapping = nil
+			imageArtifactName = ""
 			fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
 		})
 
@@ -120,6 +122,7 @@ var _ = Describe("GardenFactory", func() {
 				resourceTypes,
 				inputMapping,
 				outputMapping,
+				imageArtifactName,
 				fakeClock,
 			).Using(inStep, repo)
 
@@ -1200,24 +1203,200 @@ var _ = Describe("GardenFactory", func() {
 										},
 									})
 								})
+							})
+						})
 
-								Context("when the output volume can be found on the worker", func() {
+						Context("when an image artifact name is specified", func() {
+							BeforeEach(func() {
+								imageArtifactName = "some-image-artifact"
+
+								fakeProcess.WaitReturns(0, nil)
+							})
+
+							JustBeforeEach(func() {
+								Eventually(process.Wait()).Should(Receive(BeNil()))
+							})
+
+							Context("when the image artifact is registered in the source repo", func() {
+								var imageArtifactSource *fakes.FakeArtifactSource
+
+								BeforeEach(func() {
+									imageArtifactSource = new(fakes.FakeArtifactSource)
+									repo.RegisterSource("some-image-artifact", imageArtifactSource)
+								})
+
+								Context("when the image artifact is not found in a volume on the worker", func() {
+									var imageVolume *wfakes.FakeVolume
+									var fakeBaggageClaimClient *bfakes.FakeClient
+									dummyReader := tar.NewReader(nil)
+
 									BeforeEach(func() {
-										fakeWorker.LookupVolumeReturns(fakeVolume, true, nil)
+										fakeBaggageClaimClient = new(bfakes.FakeClient)
+
+										imageVolume = new(wfakes.FakeVolume)
+										imageVolume.PathReturns("/var/vcap/some-path")
+										imageVolume.HandleReturns("some-handle")
+
+										imageArtifactSource.VolumeOnReturns(nil, false, nil)
+
+										fakeWorker.CreateVolumeStub = func(lager.Logger, worker.VolumeSpec) (worker.Volume, error) {
+											return imageVolume, nil
+										}
 									})
 
-									It("stores an artifact source in the repo that can be used to mount the volume", func() {
-										artifactSource, found := repo.SourceFor("specific-remapped-output")
-										Expect(found).To(BeTrue())
+									It("Creates a volume to stream the image into", func() {
+										Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(1))
+										_, actualVolumeSpec := fakeWorker.CreateVolumeArgsForCall(0)
+										Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
+											Strategy: worker.ImageArtifactReplicationStrategy{
+												Name: imageArtifactName,
+											},
+											Privileged: true,
+											TTL:        worker.VolumeTTL,
+										}))
+									})
 
-										actualVolume, found, err := artifactSource.VolumeOn(fakeWorker)
-										Expect(err).ToNot(HaveOccurred())
-										Expect(found).To(BeTrue())
-										Expect(actualVolume).To(Equal(fakeVolume))
+									It("Streams the artifact source to the target volume", func() {
+										Expect(imageArtifactSource.StreamToCallCount()).To(Equal(1))
+										actualDest := imageArtifactSource.StreamToArgsForCall(0)
+										actualDest.StreamIn(imageVolume.Handle(), dummyReader)
+										Expect(imageVolume.StreamInCallCount()).To(Equal(1))
+										actualHandle, actualReader := imageVolume.StreamInArgsForCall(0)
+										Expect(actualHandle).To(Equal(imageVolume.Handle()))
+										Expect(actualReader).To(Equal(dummyReader))
+									})
+								})
 
-										Expect(fakeWorker.LookupVolumeCallCount()).To(Equal(1))
-										_, handle := fakeWorker.LookupVolumeArgsForCall(0)
-										Expect(handle).To(Equal("some-handle"))
+								Context("when the image artifact is in a volume on the worker", func() {
+									var imageVolume *wfakes.FakeVolume
+									var cowVolume *wfakes.FakeVolume
+
+									BeforeEach(func() {
+										imageVolume = new(wfakes.FakeVolume)
+										imageVolume.PathReturns("/var/vcap/some-path")
+										cowVolume = new(wfakes.FakeVolume)
+										cowVolume.PathReturns("/var/vcap/some-cow-path")
+										cowVolume.HandleReturns("cow-handle")
+
+										fakeWorker.CreateVolumeReturns(cowVolume, nil)
+										imageArtifactSource.VolumeOnReturns(imageVolume, true, nil)
+									})
+
+									It("checks whether the artifact is in a volume on the worker", func() {
+										Expect(imageArtifactSource.VolumeOnCallCount()).To(Equal(1))
+										Expect(imageArtifactSource.VolumeOnArgsForCall(0)).To(Equal(fakeWorker))
+									})
+
+									It("creates a COW volume from the output volume", func() {
+										Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(1))
+										_, actualVolumeSpec := fakeWorker.CreateVolumeArgsForCall(0)
+										Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
+											Strategy: worker.ContainerRootFSStrategy{
+												Parent: imageVolume,
+											},
+											Privileged: true,
+											TTL:        worker.VolumeTTL,
+										}))
+									})
+
+									It("creates the container with the volume's path as ImageURL", func() {
+										_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+										Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
+											ImageURL: "raw:///var/vcap/some-cow-path/rootfs",
+										}))
+									})
+								})
+
+								Describe("when task config specifies image and/or image resource as well as image artifact", func() {
+									var imageVolume *wfakes.FakeVolume
+									var cowVolume *wfakes.FakeVolume
+
+									BeforeEach(func() {
+										imageVolume = new(wfakes.FakeVolume)
+										imageVolume.PathReturns("/var/vcap/some-path")
+										imageArtifactSource.VolumeOnReturns(imageVolume, true, nil)
+
+										cowVolume = new(wfakes.FakeVolume)
+										cowVolume.PathReturns("/var/vcap/some-cow-path")
+										cowVolume.HandleReturns("cow-handle")
+
+										fakeWorker.CreateVolumeReturns(cowVolume, nil)
+									})
+
+									Context("when the task config also specifies image", func() {
+										BeforeEach(func() {
+											configWithImage := atc.TaskConfig{
+												Platform: "some-platform",
+												Image:    "some-image",
+												Params:   map[string]string{"SOME": "params"},
+												Run: atc.TaskRunConfig{
+													Path: "ls",
+													Args: []string{"some", "args"},
+												},
+											}
+
+											configSource.FetchConfigReturns(configWithImage, nil)
+										})
+
+										It("still creates the container with the volume's path as ImageURL", func() {
+											_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+											Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
+												ImageURL: "raw:///var/vcap/some-cow-path/rootfs",
+											}))
+										})
+									})
+
+									Context("when the task config also specifies image_resource", func() {
+										BeforeEach(func() {
+											configWithImageResource := atc.TaskConfig{
+												Platform: "some-platform",
+												ImageResource: &atc.ImageResource{
+													Type:   "docker",
+													Source: atc.Source{"some": "source"},
+												},
+												Params: map[string]string{"SOME": "params"},
+												Run: atc.TaskRunConfig{
+													Path: "ls",
+													Args: []string{"some", "args"},
+												},
+											}
+
+											configSource.FetchConfigReturns(configWithImageResource, nil)
+										})
+
+										It("still creates the container with the volume's path as ImageURL", func() {
+											_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+											Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
+												ImageURL: "raw:///var/vcap/some-cow-path/rootfs",
+											}))
+										})
+									})
+
+									Context("when the task config also specifies image and image_resource", func() {
+										BeforeEach(func() {
+											configWithImageAndImageResource := atc.TaskConfig{
+												Platform: "some-platform",
+												Image:    "some-image",
+												ImageResource: &atc.ImageResource{
+													Type:   "docker",
+													Source: atc.Source{"some": "source"},
+												},
+												Params: map[string]string{"SOME": "params"},
+												Run: atc.TaskRunConfig{
+													Path: "ls",
+													Args: []string{"some", "args"},
+												},
+											}
+
+											configSource.FetchConfigReturns(configWithImageAndImageResource, nil)
+										})
+
+										It("still creates the container with the volume's path as ImageURL", func() {
+											_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+											Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
+												ImageURL: "raw:///var/vcap/some-cow-path/rootfs",
+											}))
+										})
 									})
 								})
 							})

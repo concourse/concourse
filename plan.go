@@ -108,9 +108,10 @@ type TaskPlan struct {
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`
 
-	Params        Params            `json:"params,omitempty"`
-	InputMapping  map[string]string `json:"input_mapping,omitempty"`
-	OutputMapping map[string]string `json:"output_mapping,omitempty"`
+	Params            Params            `json:"params,omitempty"`
+	InputMapping      map[string]string `json:"input_mapping,omitempty"`
+	OutputMapping     map[string]string `json:"output_mapping,omitempty"`
+	ImageArtifactName string            `json:"image,omitempty"`
 
 	Pipeline      string        `json:"pipeline"`
 	PipelineID    int           `json:"pipeline_id"`

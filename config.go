@@ -272,6 +272,9 @@ type PlanConfig struct {
 	InputMapping  map[string]string `yaml:"input_mapping,omitempty" json:"input_mapping,omitempty" mapstructure:"input_mapping"`
 	OutputMapping map[string]string `yaml:"output_mapping,omitempty" json:"output_mapping,omitempty" mapstructure:"output_mapping"`
 
+	// used to specify an image artifact from a previous build to be used as the image for a subsequent task container
+	ImageArtifactName string `yaml:"image,omitempty" json:"image,omitempty" mapstructure:"image"`
+
 	// used by Put to specify params for the subsequent Get
 	GetParams Params `yaml:"get_params,omitempty" json:"get_params,omitempty" mapstructure:"get_params"`
 

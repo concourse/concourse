@@ -62,6 +62,11 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 		columns = append(columns, "host_path_version")
 		params = append(params, data.Identifier.Import.Version)
 		values = append(values, fmt.Sprintf("$%d", len(params)))
+
+	case data.Identifier.Replication != nil:
+		columns = append(columns, "replicated_from")
+		params = append(params, data.Identifier.Replication.Name)
+		values = append(values, fmt.Sprintf("$%d", len(params)))
 	}
 
 	_, err = tx.Exec(
@@ -112,6 +117,7 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 			id,
 			original_volume_handle,
 			output_name,
+			replicated_from,
 			path,
 			host_path_version
 		FROM volumes
@@ -156,6 +162,8 @@ func (db *SQLDB) GetVolumesByIdentifier(id VolumeIdentifier) ([]SavedVolume, err
 		if id.Import.Version != nil {
 			addParam("host_path_version", id.Import.Version)
 		}
+	case id.Replication != nil:
+		addParam("replicated_from", id.Replication.Name)
 	}
 
 	statement := `
@@ -169,6 +177,7 @@ func (db *SQLDB) GetVolumesByIdentifier(id VolumeIdentifier) ([]SavedVolume, err
 			id,
 			original_volume_handle,
 			output_name,
+			replicated_from,
 			path,
 			host_path_version
 		FROM volumes
@@ -209,6 +218,7 @@ func (db *SQLDB) GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 			v.id,
 			v.original_volume_handle,
 			v.output_name,
+			v.replicated_from,
 			v.path,
 			v.host_path_version
 		FROM volumes v
@@ -284,6 +294,7 @@ func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {
 			id,
 			original_volume_handle,
 			output_name,
+			replicated_from,
 			path,
 			host_path_version
 		FROM volumes
@@ -330,6 +341,7 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 			resourceHash         sql.NullString
 			originalVolumeHandle sql.NullString
 			outputName           sql.NullString
+			replicationName      sql.NullString
 			path                 sql.NullString
 			hostPathVersion      sql.NullString
 		)
@@ -344,6 +356,7 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 			&volume.ID,
 			&originalVolumeHandle,
 			&outputName,
+			&replicationName,
 			&path,
 			&hostPathVersion,
 		)
@@ -374,6 +387,10 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 		case outputName.Valid:
 			volume.Volume.Identifier.Output = &OutputIdentifier{
 				Name: outputName.String,
+			}
+		case replicationName.Valid:
+			volume.Volume.Identifier.Replication = &ReplicationIdentifier{
+				Name: replicationName.String,
 			}
 		case path.Valid:
 			volume.Volume.Identifier.Import = &ImportIdentifier{
