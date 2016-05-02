@@ -37,6 +37,7 @@ func (command *VolumesCommand) Execute([]string) error {
 			{Contents: "worker", Color: color.New(color.Bold)},
 			{Contents: "type", Color: color.New(color.Bold)},
 			{Contents: "identifier", Color: color.New(color.Bold)},
+			{Contents: "size", Color: color.New(color.Bold)},
 		},
 	}
 
@@ -50,6 +51,7 @@ func (command *VolumesCommand) Execute([]string) error {
 			{Contents: c.WorkerName},
 			{Contents: c.Type},
 			{Contents: c.Identifier},
+			{Contents: fmt.Sprintf("%.1fM", float64(c.Size)/float64(1024))},
 		}
 
 		table.Data = append(table.Data, row)
