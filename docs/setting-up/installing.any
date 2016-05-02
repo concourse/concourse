@@ -46,6 +46,19 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
   project's needs. Given that Concourse is stateless, you can always hoist your
   pipeline onto a bigger installation when you're ready, so there's little risk
   in sticking with the Vagrant boxes while you figure things out.
+
+  \section{Upgrading}{
+    Note that upgrading Concourse in Vagrant unfortunately requires re-creating
+    the machine, which will wipe out all of your submitted pipelines, build
+    history, etc. If Vagrant gives a warning of \code{A newer version of the box 'concourse/lite' is available!},
+    run the following:
+
+    \codeblock{bash}{
+    vagrant box update --box concourse/lite # gets the newest Vagrant box
+    vagrant destroy                         # remove the old Vagrant box
+    vagrant up                              # re-create the machine with the newer box
+    }
+  }
 }
 
 \section{Standalone Binaries}{binaries}{
