@@ -20,7 +20,7 @@ rm $LINUX_ASSETS/iptables/sbin/*
 rm -r $LINUX_ASSETS/iptables/bin
 cp -aL /opt/static-assets/iptables/sbin/iptables $LINUX_ASSETS/iptables/sbin/iptables
 
-pushd guardian-release/
+pushd garden-runc-release/
   # workaround 'mv /root/.tmp/... /tmp/...: invalid cross-device link'
   HOME=$PWD bosh sync-blobs
 

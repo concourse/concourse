@@ -4,9 +4,9 @@ resources:
   type: git
   source:
     uri: https://github.com/concourse/concourse
-    branch: guardian
+    branch: develop
 
-- name: guardian-release
+- name: garden-runc-release
   type: git
   source:
     uri: https://github.com/cloudfoundry-incubator/garden-runc-release
@@ -16,7 +16,7 @@ resources:
   type: git
   source:
     uri: https://github.com/concourse/bin
-    branch: guardian
+    branch: master
 
 - name: houdini
   type: git
@@ -38,7 +38,7 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-    - get: guardian-release
+    - get: garden-runc-release
     - get: bin
     - get: houdini
   - task: make-up-final-version
