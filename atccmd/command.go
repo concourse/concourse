@@ -16,12 +16,14 @@ import (
 	"github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/buildreaper"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/exec"
+	"github.com/concourse/atc/leaserunner"
 	"github.com/concourse/atc/lostandfound"
 	"github.com/concourse/atc/metric"
 	"github.com/concourse/atc/pipelines"
@@ -273,7 +275,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			Clock:    clock.NewClock(),
 		}},
 
-		{"lostandfound", lostandfound.NewRunner(
+		{"lostandfound", leaserunner.NewRunner(
 			logger.Session("lost-and-found"),
 			lostandfound.NewBaggageCollector(
 				logger.Session("baggage-collector"),
@@ -283,9 +285,24 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				cmd.OldResourceGracePeriod,
 				24*time.Hour,
 			),
+			"baggage-collector",
 			sqlDB,
 			clock.NewClock(),
 			cmd.ResourceCacheCleanupInterval,
+		)},
+
+		{"buildreaper", leaserunner.NewRunner(
+			logger.Session("build-reaper-runner"),
+			buildreaper.NewBuildReaper(
+				logger.Session("build-reaper"),
+				sqlDB,
+				pipelineDBFactory,
+				500,
+			),
+			"build-reaper",
+			sqlDB,
+			clock.NewClock(),
+			30*time.Second,
 		)},
 	}
 

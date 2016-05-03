@@ -64,6 +64,7 @@ func Job(dbJob db.SavedJob, job atc.JobConfig, groups atc.GroupConfigs, finished
 		URL:                  req.URL.String(),
 		DisableManualTrigger: job.DisableManualTrigger,
 		Paused:               dbJob.Paused,
+		FirstLoggedBuildID:   dbJob.FirstLoggedBuildID,
 		FinishedBuild:        presentedFinishedBuild,
 		NextBuild:            presentedNextBuild,
 

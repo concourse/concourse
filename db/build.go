@@ -30,6 +30,7 @@ type Build struct {
 
 	StartTime time.Time
 	EndTime   time.Time
+	ReapTime  time.Time
 }
 
 func (b Build) OneOff() bool {

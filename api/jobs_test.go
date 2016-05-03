@@ -119,9 +119,10 @@ var _ = Describe("Jobs API", func() {
 				Context("when getting the job succeeds", func() {
 					BeforeEach(func() {
 						pipelineDB.GetJobReturns(db.SavedJob{
-							ID:           1,
-							Paused:       true,
-							PipelineName: "some-pipeline",
+							ID:                 1,
+							Paused:             true,
+							FirstLoggedBuildID: 99,
+							PipelineName:       "some-pipeline",
 							Job: db.Job{
 								Name: "job-1",
 							},
@@ -146,6 +147,7 @@ var _ = Describe("Jobs API", func() {
 						Expect(body).To(MatchJSON(`{
 							"name": "some-job",
 							"paused": true,
+							"first_logged_build_id": 99,
 							"url": "/pipelines/some-pipeline/jobs/some-job",
 							"next_build": {
 								"id": 3,

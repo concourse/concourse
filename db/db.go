@@ -98,7 +98,7 @@ type DB interface {
 
 	LeaseBuildTracking(logger lager.Logger, buildID int, interval time.Duration) (Lease, bool, error)
 	LeaseBuildScheduling(logger lager.Logger, buildID int, interval time.Duration) (Lease, bool, error)
-	LeaseCacheInvalidation(logger lager.Logger, interval time.Duration) (Lease, bool, error)
+	GetLease(logger lager.Logger, taskName string, interval time.Duration) (Lease, bool, error)
 
 	StartBuild(buildID int, pipelineID int, engineName, engineMetadata string) (bool, error)
 	FinishBuild(buildID int, pipelineID int, status Status) error
@@ -109,6 +109,7 @@ type DB interface {
 
 	GetBuildEvents(buildID int, from uint) (EventSource, error)
 	SaveBuildEvent(buildID int, pipelineID int, event atc.Event) error
+	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
 	SaveBuildEngineMetadata(buildID int, engineMetadata string) error
 

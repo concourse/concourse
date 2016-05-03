@@ -50,5 +50,9 @@ func Build(build db.Build) atc.Build {
 		atcBuild.EndTime = build.EndTime.Unix()
 	}
 
+	if !build.ReapTime.IsZero() {
+		atcBuild.ReapTime = build.ReapTime.Unix()
+	}
+
 	return atcBuild
 }

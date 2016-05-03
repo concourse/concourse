@@ -4,10 +4,10 @@ package fakes
 import (
 	"sync"
 
-	"github.com/concourse/atc/lostandfound"
+	"github.com/concourse/atc/leaserunner"
 )
 
-type FakeBaggageCollector struct {
+type FakeTask struct {
 	RunStub        func() error
 	runMutex       sync.RWMutex
 	runArgsForCall []struct{}
@@ -16,7 +16,7 @@ type FakeBaggageCollector struct {
 	}
 }
 
-func (fake *FakeBaggageCollector) Run() error {
+func (fake *FakeTask) Run() error {
 	fake.runMutex.Lock()
 	fake.runArgsForCall = append(fake.runArgsForCall, struct{}{})
 	fake.runMutex.Unlock()
@@ -27,17 +27,17 @@ func (fake *FakeBaggageCollector) Run() error {
 	}
 }
 
-func (fake *FakeBaggageCollector) RunCallCount() int {
+func (fake *FakeTask) RunCallCount() int {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
 	return len(fake.runArgsForCall)
 }
 
-func (fake *FakeBaggageCollector) RunReturns(result1 error) {
+func (fake *FakeTask) RunReturns(result1 error) {
 	fake.RunStub = nil
 	fake.runReturns = struct {
 		result1 error
 	}{result1}
 }
 
-var _ lostandfound.BaggageCollector = new(FakeBaggageCollector)
+var _ leaserunner.Task = new(FakeTask)

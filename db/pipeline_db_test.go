@@ -1887,6 +1887,8 @@ var _ = Describe("PipelineDB", func() {
 	Describe("Jobs", func() {
 		Describe("GetDashboard", func() {
 			It("returns a Dashboard object with a DashboardJob corresponding to each configured job", func() {
+				pipelineDB.UpdateFirstLoggedBuildID("some-job", 57)
+
 				job, err := pipelineDB.GetJob("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
@@ -2643,6 +2645,37 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(unpausedJob.Paused).To(BeFalse())
+			})
+		})
+
+		Describe("UpdateFirstLoggedBuildID", func() {
+			It("updates FirstLoggedBuildID on a job", func() {
+				By("starting out as 0")
+				job, err := pipelineDB.GetJob("some-job")
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(job.FirstLoggedBuildID).To(BeZero())
+
+				By("increasing it to 57")
+
+				err = pipelineDB.UpdateFirstLoggedBuildID("some-job", 57)
+				Expect(err).NotTo(HaveOccurred())
+
+				updatedJob, err := pipelineDB.GetJob("some-job")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(updatedJob.FirstLoggedBuildID).To(Equal(57))
+
+				By("not erroring when it's called with the same number")
+				err = pipelineDB.UpdateFirstLoggedBuildID("some-job", 57)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("erroring when the number decreases")
+				err = pipelineDB.UpdateFirstLoggedBuildID("some-job", 56)
+				Expect(err).To(Equal(db.FirstLoggedBuildIDDecreasedError{
+					Job:   "some-job",
+					OldID: 57,
+					NewID: 56,
+				}))
 			})
 		})
 

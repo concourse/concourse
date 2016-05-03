@@ -263,6 +263,19 @@ var _ = Describe("ValidateConfig", func() {
 			})
 		})
 
+		Context("when a job has a negative build_logs_to_retain", func() {
+			BeforeEach(func() {
+				job.BuildLogsToRetain = -1
+				config.Jobs = append(config.Jobs, job)
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job has negative build_logs_to_retain: -1"))
+			})
+		})
+
 		Describe("plans", func() {
 			Context("when multiple actions are specified in the same plan", func() {
 				Context("when it's not just Get and Put", func() {

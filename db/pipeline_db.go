@@ -52,6 +52,7 @@ type PipelineDB interface {
 	GetJob(job string) (SavedJob, error)
 	PauseJob(job string) error
 	UnpauseJob(job string) error
+	UpdateFirstLoggedBuildID(job string, newFirstLoggedBuildID int) error
 
 	GetJobFinishedAndNextBuild(job string) (*Build, *Build, error)
 
@@ -102,6 +103,16 @@ type ResourceNotFoundError struct {
 
 func (e ResourceNotFoundError) Error() string {
 	return fmt.Sprintf("resource '%s' not found", e.Name)
+}
+
+type FirstLoggedBuildIDDecreasedError struct {
+	Job   string
+	OldID int
+	NewID int
+}
+
+func (e FirstLoggedBuildIDDecreasedError) Error() string {
+	return fmt.Sprintf("first logged build id for job '%s' decreased from %d to %d", e.Job, e.OldID, e.NewID)
 }
 
 func (pdb *pipelineDB) GetPipelineName() string {
@@ -1939,6 +1950,48 @@ func (pdb *pipelineDB) UnpauseJob(job string) error {
 	return pdb.updatePausedJob(job, false)
 }
 
+func (pdb *pipelineDB) UpdateFirstLoggedBuildID(job string, newFirstLoggedBuildID int) error {
+	tx, err := pdb.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	dbJob, err := pdb.getJob(tx, job)
+	if err != nil {
+		return err
+	}
+
+	if dbJob.FirstLoggedBuildID > newFirstLoggedBuildID {
+		return FirstLoggedBuildIDDecreasedError{
+			Job:   job,
+			OldID: dbJob.FirstLoggedBuildID,
+			NewID: newFirstLoggedBuildID,
+		}
+	}
+
+	result, err := tx.Exec(`
+		UPDATE jobs
+		SET first_logged_build_id = $1
+		WHERE id = $2
+	`, newFirstLoggedBuildID, dbJob.ID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected != 1 {
+		return nonOneRowAffectedError{rowsAffected}
+	}
+
+	return tx.Commit()
+}
+
 func (pdb *pipelineDB) updatePausedJob(job string, pause bool) error {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
@@ -2209,7 +2262,7 @@ func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
 
 func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
 	rows, err := pdb.conn.Query(`
-  	SELECT id, name, paused
+	SELECT id, name, paused, first_logged_build_id
   	FROM jobs
   	WHERE pipeline_id = $1
   `, pdb.ID)
@@ -2224,7 +2277,7 @@ func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
 	for rows.Next() {
 		var savedJob SavedJob
 
-		err := rows.Scan(&savedJob.ID, &savedJob.Name, &savedJob.Paused)
+		err := rows.Scan(&savedJob.ID, &savedJob.Name, &savedJob.Paused, &savedJob.FirstLoggedBuildID)
 		if err != nil {
 			return nil, err
 		}
@@ -2284,28 +2337,11 @@ func (pdb *pipelineDB) getJob(tx Tx, name string) (SavedJob, error) {
 	var job SavedJob
 
 	err := tx.QueryRow(`
-  	SELECT id, name, paused
+ 	SELECT id, name, paused, first_logged_build_id
   	FROM jobs
   	WHERE name = $1
   		AND pipeline_id = $2
-  `, name, pdb.ID).Scan(&job.ID, &job.Name, &job.Paused)
-	if err != nil {
-		return SavedJob{}, err
-	}
-
-	job.PipelineName = pdb.Name
-
-	return job, nil
-}
-
-func (pdb *pipelineDB) getJobByID(id int) (SavedJob, error) {
-	var job SavedJob
-
-	err := pdb.conn.QueryRow(`
-		SELECT id, name, paused
-		FROM jobs
-		WHERE id = $1
-  `, id).Scan(&job.ID, &job.Name, &job.Paused)
+  `, name, pdb.ID).Scan(&job.ID, &job.Name, &job.Paused, &job.FirstLoggedBuildID)
 	if err != nil {
 		return SavedJob{}, err
 	}

@@ -169,7 +169,7 @@ var _ = Describe("Baggage Collector", func() {
 				return vol, true, nil
 			}
 
-			err = baggageCollector.Collect()
+			err = baggageCollector.Run()
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeWorker.LookupVolumeCallCount()).To(Equal(len(example.expectedTTLs)))

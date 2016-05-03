@@ -143,7 +143,7 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 	})
 
 	It("sets the ttl of each volume used in a one-off build to at least 24 hours", func() {
-		err := baggageCollector.Collect()
+		err := baggageCollector.Run()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(fakeBaggageCollectorDB.GetAllPipelinesCallCount()).To(Equal(1))
 		Expect(fakePipelineDBFactory.BuildCallCount()).To(Equal(1))

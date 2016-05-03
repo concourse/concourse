@@ -101,4 +101,5 @@ var Migrations = []migration.Migrator{
 	AddModifiedTimeToBuildInputs,
 	AddPathToVolumes,
 	AddHostPathVersionToVolumes,
+	AddFirstLoggedBuildIDToJobsAndReapTimeToBuildsAndLeases,
 }

@@ -4,6 +4,7 @@ type Job struct {
 	Name                 string `json:"name"`
 	URL                  string `json:"url"`
 	Paused               bool   `json:"paused,omitempty"`
+	FirstLoggedBuildID   int    `json:"first_logged_build_id,omitempty"`
 	DisableManualTrigger bool   `json:"disable_manual_trigger,omitempty"`
 	NextBuild            *Build `json:"next_build"`
 	FinishedBuild        *Build `json:"finished_build"`

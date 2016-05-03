@@ -13,6 +13,7 @@ import Http
 import Json.Decode exposing ((:=))
 import Task exposing (Task)
 import Time exposing (Time)
+import String
 
 import Autoscroll exposing (ScrollBehavior (..))
 import BuildOutput
@@ -184,7 +185,7 @@ handleBuildFetched build model =
     (newModel, effects) =
       if build.status == Concourse.BuildStatus.Pending then
         pollUntilStarted withBuild
-      else
+      else if build.reapTime == Nothing then
         case model.buildPrep of
           Nothing -> initBuildOutput build withBuild
           Just _ ->
@@ -192,6 +193,7 @@ handleBuildFetched build model =
               ( newModel
               , Effects.batch [effects, fetchBuildPrep Time.second model.buildId]
               )
+      else (withBuild, Effects.none)
   in
     (newModel, Effects.batch [effects, fetchHistory, fetchJobDetails])
 
@@ -282,14 +284,63 @@ view actions model =
     Just build ->
       Html.div []
         [ viewBuildHeader actions build model
-        , Html.div (id "build-body" :: paddingClass build)
+        , Html.div (id "build-body" :: paddingClass build) <|
           [ viewBuildPrep model.buildPrep
           , Html.Lazy.lazy (viewBuildOutput actions) model.output
-          ]
+          ] ++
+            case (build.duration.startedAt, build.reapTime) of
+              (Just startedAt, Just reapTime) ->
+                [ Html.div
+                    [ class "tombstone" ]
+                    [ Html.div [ class "heading" ] [ Html.text "RIP" ]
+                    , Html.div
+                        [ class "job-name" ]
+                        [ Html.text <|
+                            Maybe.withDefault
+                              "one-off build" <|
+                              Maybe.map .name build.job
+                        ]
+                    , Html.div
+                        [ class "build-name" ]
+                        [ Html.text <|
+                            "build #" ++
+                              case build.job of
+                                Nothing -> toString build.id
+                                Just _ -> build.name
+                        ]
+                    , Html.div
+                        [ class "date" ]
+                        [ Html.text <|
+                            mmDDYY startedAt ++ "-" ++ mmDDYY reapTime
+                        ]
+                    , Html.div
+                        [ class "epitaph" ]
+                        [ Html.text <|
+                            case build.status of
+                              Concourse.BuildStatus.Succeeded -> "It passed, and now it has passed on."
+                              Concourse.BuildStatus.Failed -> "It failed, and now has been forgotten."
+                              Concourse.BuildStatus.Errored -> "It errored, but has found forgiveness."
+                              Concourse.BuildStatus.Aborted -> "It was never given a chance."
+                              _ -> "I'm not dead yet."
+                        ]
+                    ]
+                , Html.div
+                    [ class "explanation" ]
+                    [ Html.text "This log has been "
+                    , Html.a
+                        [ Html.Attributes.href "http://concourse.ci/configuring-jobs.html#build_logs_to_retain" ]
+                        [ Html.text "reaped." ]
+                    ]
+                ]
+              _ -> []
         ]
 
     _ ->
       LoadingIndicator.view
+
+mmDDYY : Date -> String
+mmDDYY d =
+  Date.Format.format "%m/%d/" d ++ String.left 2 (Date.Format.format "%Y" d)
 
 paddingClass : Build -> List Html.Attribute
 paddingClass build =
