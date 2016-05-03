@@ -142,7 +142,7 @@ jobs:
   - get: concourse
     trigger: true
     passed: [atc, fly, go-concourse, blackbox, tsa, jettison, baggageclaim]
-  - get: garden-linux
+  - get: garden-runc
   - get: version
     params: {pre: rc}
   - put: version
@@ -154,7 +154,7 @@ jobs:
   - get: concourse
     passed: [rc]
     trigger: true
-  - get: garden-linux
+  - get: garden-runc
     passed: [rc]
     trigger: true
   - get: version
@@ -186,16 +186,16 @@ jobs:
       passed: [rc]
       params: {bump: final}
       trigger: true
-    - get: garden-linux
+    - get: garden-runc
       passed: [rc]
       trigger: true
     - get: bin
       trigger: true
     - get: houdini
       trigger: true
-    - get: garden-linux-src
+    - get: garden-runc-src
   - task: checkout-release-tag
-    file: concourse/ci/checkout-garden-linux.yml
+    file: concourse/ci/checkout-garden-runc.yml
   - task: build-cli-artifacts
     file: bin/ci/build-cli-artifacts.yml
   - aggregate:
@@ -264,10 +264,10 @@ jobs:
       - get: version
         passed: [bosh-rc]
         trigger: true
-      - get: garden-linux-release
+      - get: garden-runc-release
         passed: [bosh-rc]
         trigger: true
-        resource: garden-linux
+        resource: garden-runc
       - get: lite-stemcell
       - get: deployments
     - put: lite-deployment
@@ -276,7 +276,7 @@ jobs:
         target_file: bosh-lites/metadata
         stemcells: [lite-stemcell/*.tgz]
         releases:
-          - garden-linux-release/*.tgz
+          - garden-runc-release/*.tgz
           - candidate-release/concourse-*.tgz
     - task: no-auth-build
       file: concourse/ci/testflight.yml
@@ -371,8 +371,8 @@ jobs:
     - get: candidate-release
       passed: [testflight]
       trigger: true
-    - get: garden-linux-release
-      resource: garden-linux
+    - get: garden-runc-release
+      resource: garden-runc
       passed: [testflight]
       trigger: true
     - get: bin-rc
@@ -388,7 +388,7 @@ jobs:
       manifest: deployments/ci/deployments/concourse.yml
       stemcells: [bosh-stemcell/*.tgz]
       releases:
-        - garden-linux-release/*.tgz
+        - garden-runc-release/*.tgz
         - candidate-release/concourse-*.tgz
   - task: emit-yeller-deploy
     file: concourse/ci/emit-yeller-deploy.yml
@@ -417,9 +417,9 @@ jobs:
     - get: version
       passed: [deploy]
       params: {bump: final}
-    - get: garden-linux-release
+    - get: garden-runc-release
       passed: [deploy]
-      resource: garden-linux
+      resource: garden-runc
     - get: bin-rc
       passed: [deploy]
     - get: deployments
@@ -474,7 +474,7 @@ jobs:
       - get: concourse
         passed: [virtualbox-box]
       - get: concourse-lite
-        passed: [virtualbox-box]
+        # passed: [virtualbox-box]
       - get: version
         passed: [virtualbox-box]
     - task: testflight
@@ -547,7 +547,7 @@ jobs:
     - get: final-release
       passed: [shipit]
       trigger: true
-    - get: garden-linux
+    - get: garden-runc
       passed: [shipit]
       trigger: true
     - get: bin-rc
@@ -597,7 +597,7 @@ jobs:
       commitish: generated-commitish/commitish
       globs:
       - final-release/*.tgz
-      - renamed-release/garden-linux-*.tgz
+      - renamed-release/garden-runc-*.tgz
       - bin-rc/concourse_*
 
 - name: master-merge
@@ -693,10 +693,10 @@ resources:
     provider: virtualbox
     access_token: {{atlas-access-token}}
 
-- name: garden-linux
+- name: garden-runc
   type: bosh-io-release
   source:
-    repository: cloudfoundry-incubator/garden-linux-release
+    repository: cloudfoundry-incubator/garden-runc-release
 
 - name: tracker
   type: tracker
@@ -822,10 +822,10 @@ resources:
     uri: https://github.com/concourse/bin
     branch: master
 
-- name: garden-linux-src
+- name: garden-runc-src
   type: git
   source:
-    uri: https://github.com/cloudfoundry-incubator/garden-linux-release
+    uri: https://github.com/cloudfoundry-incubator/garden-runc-release
     branch: master
 
 - name: bin-rc
