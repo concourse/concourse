@@ -31,7 +31,43 @@ func (b *badge) statusTextWidth() string {
 	return fmt.Sprintf("%.1f", float64(b.width)/2+17.5)
 }
 
-const svgTemplate = `<?xml version="1.0" encoding="UTF-8"?>
+func (b *badge) String() string {
+	tmpl, err := template.New("badge").Parse(badgeTemplate)
+	if err != nil {
+		panic(err)
+	}
+
+	buffer := &bytes.Buffer{}
+
+	err = tmpl.Execute(buffer, badgeTemplateConfig{
+		Width:           b.width,
+		FillColor:       b.fillColor,
+		Status:          b.status,
+		StatusWidth:     b.statusWidth(),
+		StatusTextWidth: b.statusTextWidth(),
+	})
+
+	return buffer.String()
+}
+
+func badgeForBuild(build *db.Build) *badge {
+	switch {
+	case build == nil:
+		return &badgeUnknown
+	case build.Status == db.StatusSucceeded:
+		return &badgePassing
+	case build.Status == db.StatusFailed:
+		return &badgeFailing
+	case build.Status == db.StatusAborted:
+		return &badgeAborted
+	case build.Status == db.StatusErrored:
+		return &badgeErrored
+	default:
+		return &badgeUnknown
+	}
+}
+
+const badgeTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="{{ .Width }}" height="20">
    <linearGradient id="b" x2="0" y2="100%">
       <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
@@ -53,47 +89,12 @@ const svgTemplate = `<?xml version="1.0" encoding="UTF-8"?>
    </g>
 </svg>`
 
-type svgConfig struct {
+type badgeTemplateConfig struct {
 	Width           int
 	StatusWidth     int
 	StatusTextWidth string
 	Status          string
 	FillColor       string
-}
-
-func (b *badge) getSvg() string {
-	tmpl, err := template.New("badge").Parse(svgTemplate)
-	if err != nil {
-		panic(err)
-	}
-
-	buffer := &bytes.Buffer{}
-
-	err = tmpl.Execute(buffer, svgConfig{
-		Width:           b.width,
-		FillColor:       b.fillColor,
-		Status:          b.status,
-		StatusWidth:     b.statusWidth(),
-		StatusTextWidth: b.statusTextWidth(),
-	})
-
-	return buffer.String()
-}
-
-func statusSvg(finished *db.Build) string {
-	switch {
-	case finished == nil:
-		return badgeUnknown.getSvg()
-	case finished.Status == db.StatusSucceeded:
-		return badgePassing.getSvg()
-	case finished.Status == db.StatusFailed:
-		return badgeFailing.getSvg()
-	case finished.Status == db.StatusAborted:
-		return badgeAborted.getSvg()
-	case finished.Status == db.StatusErrored:
-		return badgeErrored.getSvg()
-	}
-	return badgeUnknown.getSvg()
 }
 
 func (s *Server) JobBadge(pipelineDB db.PipelineDB) http.Handler {
@@ -119,7 +120,7 @@ func (s *Server) JobBadge(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
-		finished, _, err := pipelineDB.GetJobFinishedAndNextBuild(jobName)
+		build, _, err := pipelineDB.GetJobFinishedAndNextBuild(jobName)
 		if err != nil {
 			logger.Error("could-not-get-job-finished-and-next-build", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -130,6 +131,6 @@ func (s *Server) JobBadge(pipelineDB db.PipelineDB) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		fmt.Fprint(w, statusSvg(finished))
+		fmt.Fprint(w, badgeForBuild(build))
 	})
 }
