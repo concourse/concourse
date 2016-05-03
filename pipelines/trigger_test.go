@@ -12,12 +12,11 @@ var _ = Describe("A job with a git input with trigger: true", func() {
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		guidServer = guidserver.Start(guidServerRootfs, gardenClient)
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		guidServer = guidserver.Start(client)
+		originGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/simple-trigger.yml",
-			"-v", "testflight-helper-image="+guidServerRootfs,
 			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)

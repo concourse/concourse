@@ -25,7 +25,7 @@ var _ = Describe("Flying with an image_resource", func() {
 	BeforeEach(func() {
 		var err error
 
-		rootfsGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		rootfsGitServer = gitserver.Start(concourseClient)
 
 		rootfsGitServer.CommitRootfs()
 

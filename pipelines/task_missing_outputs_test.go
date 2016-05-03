@@ -12,11 +12,10 @@ var _ = Describe("A task with no outputs declared", func() {
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		originGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/task-missing-outputs.yml",
-			"-v", "testflight-helper-image="+guidServerRootfs,
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
 

@@ -11,13 +11,12 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		originGitServer = gitserver.Start(client)
 		originGitServer.CommitResource()
 		originGitServer.CommitFileToBranch("initial", "initial", "trigger")
 
 		configurePipeline(
 			"-c", "fixtures/resource-types.yml",
-			"-v", "testflight-helper-image="+guidServerRootfs,
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
 	})

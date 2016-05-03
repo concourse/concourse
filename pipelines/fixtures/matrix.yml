@@ -33,7 +33,9 @@ jobs:
       - task: curl-server
         config:
           platform: linux
-          image: {{testflight-helper-image}}
+          image_resource:
+            type: docker-image
+            source: {repository: concourse/bosh-deployment-resource}
           inputs:
             - name: passing-unit-1
             - name: passing-unit-2
@@ -60,7 +62,9 @@ jobs:
           task: curl-server-failure
           config:
             platform: linux
-            image: {{testflight-helper-image}}
+            image_resource:
+              type: docker-image
+              source: {repository: concourse/bosh-deployment-resource}
             inputs:
               - name: some-git-resource
             params:

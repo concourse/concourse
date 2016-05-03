@@ -14,8 +14,8 @@ var _ = Describe("A job with a task that produces outputs", func() {
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		guidServer = guidserver.Start(guidServerRootfs, gardenClient)
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		guidServer = guidserver.Start(client)
+		originGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/task-outputs.yml",

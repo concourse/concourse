@@ -18,16 +18,15 @@ var _ = Describe("A pipeline containing a job with a timeout and hooks", func() 
 	)
 
 	BeforeEach(func() {
-		guidServer = guidserver.Start(guidServerRootfs, gardenClient)
+		guidServer = guidserver.Start(client)
 
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-		successGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-		failureGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-		ensureGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		originGitServer = gitserver.Start(client)
+		successGitServer = gitserver.Start(client)
+		failureGitServer = gitserver.Start(client)
+		ensureGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/timeout_hooks.yml",
-			"-v", "testflight-helper-image="+guidServerRootfs,
 			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 			"-v", "success-git-server="+successGitServer.URI(),

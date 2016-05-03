@@ -4,13 +4,20 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
+	gclient "github.com/cloudfoundry-incubator/garden/client"
+	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
+	"github.com/concourse/baggageclaim"
+	bclient "github.com/concourse/baggageclaim/client"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pivotal-golang/lager/lagertest"
 )
 
 const amazingRubyServer = `
@@ -42,12 +49,58 @@ type Server struct {
 	gardenClient garden.Client
 
 	container garden.Container
-	addr      string
+	rootfsVol baggageclaim.Volume
+
+	addr string
 }
 
-func Start(helperRootfs string, gardenClient garden.Client) *Server {
+func Start(client concourse.Client) *Server {
+	logger := lagertest.NewTestLogger("guid-server")
+
+	gLog := logger.Session("garden-connection")
+
+	workers, err := client.ListWorkers()
+	Expect(err).NotTo(HaveOccurred())
+
+	var rootfsPath string
+	var gardenClient garden.Client
+	var baggageclaimClient baggageclaim.Client
+
+	for _, w := range workers {
+		if len(w.Tags) > 0 {
+			continue
+		}
+
+		rootfsPath = ""
+
+		for _, r := range w.ResourceTypes {
+			if r.Type == "bosh-deployment" {
+				rootfsPath = r.Image
+			}
+		}
+
+		if rootfsPath != "" {
+			gardenClient = gclient.New(gconn.NewWithLogger("tcp", w.GardenAddr, gLog))
+			baggageclaimClient = bclient.New(w.BaggageclaimURL)
+		}
+	}
+
+	if rootfsPath == "" {
+		ginkgo.Fail("must have at least one worker that supports bosh-deployment resource type")
+	}
+
+	Eventually(gardenClient.Ping).Should(Succeed())
+
+	rootfsVol, err := baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
+		Strategy: baggageclaim.ImportStrategy{
+			Path: rootfsPath,
+		},
+		Privileged: true,
+	})
+	Expect(err).NotTo(HaveOccurred())
+
 	container, err := gardenClient.Create(garden.ContainerSpec{
-		RootFSPath: helperRootfs,
+		RootFSPath: (&url.URL{Scheme: "raw", Path: rootfsVol.Path()}).String(),
 		GraceTime:  time.Hour,
 	})
 	Expect(err).NotTo(HaveOccurred())
@@ -95,14 +148,17 @@ func Start(helperRootfs string, gardenClient garden.Client) *Server {
 
 	return &Server{
 		gardenClient: gardenClient,
-
-		container: container,
-		addr:      addr,
+		container:    container,
+		rootfsVol:    rootfsVol,
+		addr:         addr,
 	}
 }
 
 func (server *Server) Stop() {
-	server.gardenClient.Destroy(server.container.Handle())
+	err := server.gardenClient.Destroy(server.container.Handle())
+	Expect(err).NotTo(HaveOccurred())
+
+	server.rootfsVol.Release(baggageclaim.FinalTTL(time.Second))
 }
 
 func (server *Server) RegisterCommand() string {

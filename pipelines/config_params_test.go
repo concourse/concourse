@@ -11,7 +11,7 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 	var gitServer *gitserver.Server
 
 	BeforeEach(func() {
-		gitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		gitServer = gitserver.Start(client)
 		gitServer.CommitResource()
 
 		configurePipeline(

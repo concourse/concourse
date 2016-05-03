@@ -12,7 +12,7 @@ var _ = Describe("A job with a task with a timeout", func() {
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		originGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/timeout.yml",

@@ -3,11 +3,18 @@ package gitserver
 import (
 	"bytes"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
+	gclient "github.com/cloudfoundry-incubator/garden/client"
+	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
+	"github.com/concourse/baggageclaim"
+	bclient "github.com/concourse/baggageclaim/client"
+	"github.com/concourse/go-concourse/concourse"
 	"github.com/mgutz/ansi"
 	"github.com/nu7hatch/gouuid"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,16 +23,62 @@ import (
 
 type Server struct {
 	gardenClient garden.Client
-	container    garden.Container
+
+	container garden.Container
+	rootfsVol baggageclaim.Volume
 
 	addr string
 
 	committedGuids []string
 }
 
-func Start(helperRootfs string, gardenClient garden.Client) *Server {
+func Start(client concourse.Client) *Server {
+	logger := lagertest.NewTestLogger("git-server")
+
+	gLog := logger.Session("garden-connection")
+
+	workers, err := client.ListWorkers()
+	Expect(err).NotTo(HaveOccurred())
+
+	var gitServerRootfs string
+	var gardenClient garden.Client
+	var baggageclaimClient baggageclaim.Client
+
+	for _, w := range workers {
+		if len(w.Tags) > 0 {
+			continue
+		}
+
+		gitServerRootfs = ""
+
+		for _, r := range w.ResourceTypes {
+			if r.Type == "git" {
+				gitServerRootfs = r.Image
+			}
+		}
+
+		if gitServerRootfs != "" {
+			gardenClient = gclient.New(gconn.NewWithLogger("tcp", w.GardenAddr, gLog))
+			baggageclaimClient = bclient.New(w.BaggageclaimURL)
+		}
+	}
+
+	if gitServerRootfs == "" {
+		ginkgo.Fail("must have at least one worker that supports git resource type")
+	}
+
+	Eventually(gardenClient.Ping).Should(Succeed())
+
+	rootfsVol, err := baggageclaimClient.CreateVolume(logger, baggageclaim.VolumeSpec{
+		Strategy: baggageclaim.ImportStrategy{
+			Path: gitServerRootfs,
+		},
+		Privileged: true,
+	})
+	Expect(err).NotTo(HaveOccurred())
+
 	container, err := gardenClient.Create(garden.ContainerSpec{
-		RootFSPath: helperRootfs,
+		RootFSPath: (&url.URL{Scheme: "raw", Path: rootfsVol.Path()}).String(),
 		GraceTime:  time.Hour,
 	})
 	Expect(err).NotTo(HaveOccurred())
@@ -86,12 +139,16 @@ touch .git/git-daemon-export-ok
 	return &Server{
 		gardenClient: gardenClient,
 		container:    container,
+		rootfsVol:    rootfsVol,
 		addr:         fmt.Sprintf("%s:%d", info.ContainerIP, 9418),
 	}
 }
 
 func (server *Server) Stop() {
-	server.gardenClient.Destroy(server.container.Handle())
+	err := server.gardenClient.Destroy(server.container.Handle())
+	Expect(err).NotTo(HaveOccurred())
+
+	server.rootfsVol.Release(baggageclaim.FinalTTL(time.Second))
 }
 
 func (server *Server) URI() string {

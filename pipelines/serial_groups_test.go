@@ -16,12 +16,11 @@ var _ = Describe("serial groups", func() {
 
 	Context("when no inputs are available for one resource", func() {
 		BeforeEach(func() {
-			guidServer = guidserver.Start(guidServerRootfs, gardenClient)
-			originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+			guidServer = guidserver.Start(client)
+			originGitServer = gitserver.Start(client)
 
 			configurePipeline(
 				"-c", "fixtures/serial-groups.yml",
-				"-v", "testflight-helper-image="+guidServerRootfs,
 				"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 				"-v", "origin-git-server="+originGitServer.URI(),
 			)
@@ -48,12 +47,11 @@ var _ = Describe("serial groups", func() {
 
 	Context("when inputs eventually become available for one resource", func() {
 		BeforeEach(func() {
-			guidServer = guidserver.Start(guidServerRootfs, gardenClient)
-			originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+			guidServer = guidserver.Start(client)
+			originGitServer = gitserver.Start(client)
 
 			configurePipeline(
 				"-c", "fixtures/serial-groups-inputs-updated.yml",
-				"-v", "testflight-helper-image="+guidServerRootfs,
 				"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 				"-v", "origin-git-server="+originGitServer.URI(),
 			)

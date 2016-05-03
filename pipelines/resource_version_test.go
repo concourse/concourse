@@ -14,8 +14,8 @@ var _ = Describe("Resource version", func() {
 	)
 
 	BeforeEach(func() {
-		guidServer = guidserver.Start(guidServerRootfs, gardenClient)
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		guidServer = guidserver.Start(client)
+		originGitServer = gitserver.Start(client)
 	})
 
 	AfterEach(func() {
@@ -27,7 +27,6 @@ var _ = Describe("Resource version", func() {
 		It("only runs builds with latest version", func() {
 			configurePipeline(
 				"-c", "fixtures/simple-trigger.yml",
-				"-v", "testflight-helper-image="+guidServerRootfs,
 				"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 				"-v", "origin-git-server="+originGitServer.URI(),
 			)
@@ -54,7 +53,6 @@ var _ = Describe("Resource version", func() {
 		It("runs builds with every version", func() {
 			configurePipeline(
 				"-c", "fixtures/resource-version-every.yml",
-				"-v", "testflight-helper-image="+guidServerRootfs,
 				"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 				"-v", "origin-git-server="+originGitServer.URI(),
 			)
@@ -82,7 +80,6 @@ var _ = Describe("Resource version", func() {
 
 			configurePipeline(
 				"-c", "fixtures/resource-version-every.yml",
-				"-v", "testflight-helper-image="+guidServerRootfs,
 				"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 				"-v", "origin-git-server="+originGitServer.URI(),
 			)
@@ -98,7 +95,6 @@ var _ = Describe("Resource version", func() {
 
 			reconfigurePipeline(
 				"-c", "fixtures/pinned-version.yml",
-				"-v", "testflight-helper-image="+guidServerRootfs,
 				"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 				"-v", "origin-git-server="+originGitServer.URI(),
 				"-v", "git-resource-version="+rev,

@@ -13,8 +13,8 @@ var _ = Describe("We shouldn't reclone cached resources", func() {
 	var cachedGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-		cachedGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		originGitServer = gitserver.Start(client)
+		cachedGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/caching.yml",

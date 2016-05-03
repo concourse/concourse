@@ -14,13 +14,12 @@ var _ = Describe("Updating resource types", func() {
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		originGitServer = gitserver.Start(client)
 		originGitServer.CommitResource()
 		originGitServer.CommitFileToBranch("initial", "initial", "trigger")
 
 		configurePipeline(
 			"-c", "fixtures/resource-types.yml",
-			"-v", "testflight-helper-image="+guidServerRootfs,
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
 	})

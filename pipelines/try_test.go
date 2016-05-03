@@ -12,7 +12,7 @@ var _ = Describe("A job with a try step", func() {
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		originGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/try.yml",

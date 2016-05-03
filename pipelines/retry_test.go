@@ -17,12 +17,11 @@ var _ = Describe("A job with a step that retries", func() {
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		guidServer = guidserver.Start(guidServerRootfs, gardenClient)
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		guidServer = guidserver.Start(client)
+		originGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/retry.yml",
-			"-v", "testflight-helper-image="+guidServerRootfs,
 			"-v", "guid-server-register-command="+guidServer.RegisterCommand(),
 			"-v", "guid-server-registrations-command="+guidServer.RegistrationsCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),

@@ -12,8 +12,8 @@ var _ = Describe("Reconfiguring a resource", func() {
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		guidServer = guidserver.Start(guidServerRootfs, gardenClient)
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		guidServer = guidserver.Start(client)
+		originGitServer = gitserver.Start(client)
 	})
 
 	AfterEach(func() {
@@ -24,7 +24,6 @@ var _ = Describe("Reconfiguring a resource", func() {
 	It("creates a new check container with the updated configuration", func() {
 		configurePipeline(
 			"-c", "fixtures/simple-trigger.yml",
-			"-v", "testflight-helper-image="+guidServerRootfs,
 			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
@@ -34,7 +33,6 @@ var _ = Describe("Reconfiguring a resource", func() {
 
 		reconfigurePipeline(
 			"-c", "fixtures/simple-trigger-reconfigured.yml",
-			"-v", "testflight-helper-image="+guidServerRootfs,
 			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)

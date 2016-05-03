@@ -21,19 +21,18 @@ var _ = Describe("A pipeline containing jobs with hooks", func() {
 	)
 
 	BeforeEach(func() {
-		guidServer = guidserver.Start(guidServerRootfs, gardenClient)
+		guidServer = guidserver.Start(client)
 
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-		successGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-		failureGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-		noUpdateGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-		ensureSuccessGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-		ensureFailureGitServer = gitserver.Start(gitServerRootfs, gardenClient)
-		ensureAbortGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		originGitServer = gitserver.Start(client)
+		successGitServer = gitserver.Start(client)
+		failureGitServer = gitserver.Start(client)
+		noUpdateGitServer = gitserver.Start(client)
+		ensureSuccessGitServer = gitserver.Start(client)
+		ensureFailureGitServer = gitserver.Start(client)
+		ensureAbortGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/hooks.yml",
-			"-v", "testflight-helper-image="+guidServerRootfs,
 			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 			"-v", "success-git-server="+successGitServer.URI(),

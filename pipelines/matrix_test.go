@@ -12,12 +12,11 @@ var _ = Describe("A job with a complicated build plan", func() {
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		guidServer = guidserver.Start(guidServerRootfs, gardenClient)
-		originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+		guidServer = guidserver.Start(client)
+		originGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/matrix.yml",
-			"-v", "testflight-helper-image="+guidServerRootfs,
 			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)

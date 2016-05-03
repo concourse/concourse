@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/testflight/helpers"
 	"github.com/mgutz/ansi"
@@ -15,10 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pivotal-golang/lager/lagertest"
-
-	gclient "github.com/cloudfoundry-incubator/garden/client"
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 
 	"testing"
 	"time"
@@ -27,19 +22,11 @@ import (
 var (
 	client concourse.Client
 
-	gardenClient garden.Client
-
 	flyBin string
 
 	pipelineName string
 
 	tmpHome string
-
-	// needs ruby, curl
-	guidServerRootfs string
-
-	// needss git, curl
-	gitServerRootfs string
 )
 
 var atcURL = helpers.AtcURL()
@@ -59,39 +46,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	client, err = helpers.AllNodeClientSetup(data)
 	Expect(err).NotTo(HaveOccurred())
-
-	logger := lagertest.NewTestLogger("testflight")
-
-	workers, err := client.ListWorkers()
-	Expect(err).NotTo(HaveOccurred())
-
-	gLog := logger.Session("garden-connection")
-
-	for _, w := range workers {
-		if len(w.Tags) > 0 {
-			continue
-		}
-		gitServerRootfs = ""
-		guidServerRootfs = ""
-
-		for _, r := range w.ResourceTypes {
-			if r.Type == "git" {
-				gitServerRootfs = r.Image
-			} else if r.Type == "bosh-deployment" {
-				guidServerRootfs = r.Image
-			}
-		}
-
-		if gitServerRootfs != "" && guidServerRootfs != "" {
-			gardenClient = gclient.New(gconn.NewWithLogger("tcp", w.GardenAddr, gLog))
-		}
-	}
-
-	if gitServerRootfs == "" || guidServerRootfs == "" {
-		Fail("must have at least one worker that supports git and bosh-deployment resource types")
-	}
-
-	Eventually(gardenClient.Ping).Should(Succeed())
 
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
 })

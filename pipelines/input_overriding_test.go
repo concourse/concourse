@@ -28,8 +28,8 @@ var _ = Describe("A job with multiple inputs", func() {
 	)
 
 	BeforeEach(func() {
-		gitServerA = gitserver.Start(gitServerRootfs, gardenClient)
-		gitServerB = gitserver.Start(gitServerRootfs, gardenClient)
+		gitServerA = gitserver.Start(client)
+		gitServerB = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/many-inputs.yml",
