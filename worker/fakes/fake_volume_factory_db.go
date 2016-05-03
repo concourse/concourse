@@ -36,6 +36,15 @@ type FakeVolumeFactoryDB struct {
 	setVolumeTTLReturns struct {
 		result1 error
 	}
+	SetVolumeSizeStub        func(string, uint) error
+	setVolumeSizeMutex       sync.RWMutex
+	setVolumeSizeArgsForCall []struct {
+		arg1 string
+		arg2 uint
+	}
+	setVolumeSizeReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeVolumeFactoryDB) GetVolumeTTL(volumeHandle string) (time.Duration, bool, error) {
@@ -133,6 +142,39 @@ func (fake *FakeVolumeFactoryDB) SetVolumeTTLArgsForCall(i int) (string, time.Du
 func (fake *FakeVolumeFactoryDB) SetVolumeTTLReturns(result1 error) {
 	fake.SetVolumeTTLStub = nil
 	fake.setVolumeTTLReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeVolumeFactoryDB) SetVolumeSize(arg1 string, arg2 uint) error {
+	fake.setVolumeSizeMutex.Lock()
+	fake.setVolumeSizeArgsForCall = append(fake.setVolumeSizeArgsForCall, struct {
+		arg1 string
+		arg2 uint
+	}{arg1, arg2})
+	fake.setVolumeSizeMutex.Unlock()
+	if fake.SetVolumeSizeStub != nil {
+		return fake.SetVolumeSizeStub(arg1, arg2)
+	} else {
+		return fake.setVolumeSizeReturns.result1
+	}
+}
+
+func (fake *FakeVolumeFactoryDB) SetVolumeSizeCallCount() int {
+	fake.setVolumeSizeMutex.RLock()
+	defer fake.setVolumeSizeMutex.RUnlock()
+	return len(fake.setVolumeSizeArgsForCall)
+}
+
+func (fake *FakeVolumeFactoryDB) SetVolumeSizeArgsForCall(i int) (string, uint) {
+	fake.setVolumeSizeMutex.RLock()
+	defer fake.setVolumeSizeMutex.RUnlock()
+	return fake.setVolumeSizeArgsForCall[i].arg1, fake.setVolumeSizeArgsForCall[i].arg2
+}
+
+func (fake *FakeVolumeFactoryDB) SetVolumeSizeReturns(result1 error) {
+	fake.SetVolumeSizeStub = nil
+	fake.setVolumeSizeReturns = struct {
 		result1 error
 	}{result1}
 }

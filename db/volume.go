@@ -13,6 +13,7 @@ type Volume struct {
 	Handle     string
 	WorkerName string
 	TTL        time.Duration
+	Size       uint
 	Identifier VolumeIdentifier
 }
 

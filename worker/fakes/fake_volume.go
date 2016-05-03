@@ -69,6 +69,13 @@ type FakeVolume struct {
 	releaseArgsForCall []struct {
 		arg1 *time.Duration
 	}
+	SizeStub        func() (uint, error)
+	sizeMutex       sync.RWMutex
+	sizeArgsForCall []struct{}
+	sizeReturns     struct {
+		result1 uint
+		result2 error
+	}
 	HeartbeatingToDBStub        func()
 	heartbeatingToDBMutex       sync.RWMutex
 	heartbeatingToDBArgsForCall []struct{}
@@ -292,6 +299,31 @@ func (fake *FakeVolume) ReleaseArgsForCall(i int) *time.Duration {
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
 	return fake.releaseArgsForCall[i].arg1
+}
+
+func (fake *FakeVolume) Size() (uint, error) {
+	fake.sizeMutex.Lock()
+	fake.sizeArgsForCall = append(fake.sizeArgsForCall, struct{}{})
+	fake.sizeMutex.Unlock()
+	if fake.SizeStub != nil {
+		return fake.SizeStub()
+	} else {
+		return fake.sizeReturns.result1, fake.sizeReturns.result2
+	}
+}
+
+func (fake *FakeVolume) SizeCallCount() int {
+	fake.sizeMutex.RLock()
+	defer fake.sizeMutex.RUnlock()
+	return len(fake.sizeArgsForCall)
+}
+
+func (fake *FakeVolume) SizeReturns(result1 uint, result2 error) {
+	fake.SizeStub = nil
+	fake.sizeReturns = struct {
+		result1 uint
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeVolume) HeartbeatingToDB() {

@@ -155,6 +155,35 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 		})
 
+		Describe("SetVolumeSize", func() {
+			var identifier db.VolumeIdentifier
+
+			BeforeEach(func() {
+				identifier = db.VolumeIdentifier{
+					COW: &db.COWIdentifier{
+						ParentVolumeHandle: "parent-volume-handle",
+					},
+				}
+
+				err := database.InsertVolume(db.Volume{
+					Handle:     "volume-1-handle",
+					WorkerName: "some-worker-name",
+					TTL:        5 * time.Minute,
+					Identifier: identifier,
+				})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("sets volume size", func() {
+				err := database.SetVolumeSize("volume-1-handle", uint(1024))
+				Expect(err).NotTo(HaveOccurred())
+				volumes, err := database.GetVolumesByIdentifier(identifier)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(volumes).To(HaveLen(1))
+				Expect(volumes[0].Size).To(Equal(uint(1024)))
+			})
+		})
+
 		Describe("cow volumes", func() {
 			var cowIdentifier db.VolumeIdentifier
 

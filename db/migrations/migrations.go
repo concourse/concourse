@@ -104,4 +104,5 @@ var Migrations = []migration.Migrator{
 	AddBestIfUsedByToContainers,
 	AddStartTimeToWorkers,
 	AddReplicatedFromToVolumes,
+	AddSizeToVolumes,
 }

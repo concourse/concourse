@@ -119,7 +119,8 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 			output_name,
 			replicated_from,
 			path,
-			host_path_version
+			host_path_version,
+			size
 		FROM volumes
 	`)
 	if err != nil {
@@ -179,7 +180,8 @@ func (db *SQLDB) GetVolumesByIdentifier(id VolumeIdentifier) ([]SavedVolume, err
 			output_name,
 			replicated_from,
 			path,
-			host_path_version
+			host_path_version,
+			size
 		FROM volumes
 		`
 
@@ -220,7 +222,8 @@ func (db *SQLDB) GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 			v.output_name,
 			v.replicated_from,
 			v.path,
-			v.host_path_version
+			v.host_path_version,
+			v.size
 		FROM volumes v
 			INNER JOIN image_resource_versions i
 				ON i.version = v.resource_version
@@ -277,6 +280,16 @@ func (db *SQLDB) GetVolumeTTL(handle string) (time.Duration, bool, error) {
 	return ttl, true, nil
 }
 
+func (db *SQLDB) SetVolumeSize(handle string, size uint) error {
+	_, err := db.conn.Exec(`
+		UPDATE volumes
+		SET size = $1
+		WHERE handle = $2
+	`, size, handle)
+
+	return err
+}
+
 func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {
 	err := db.expireVolumes()
 	if err != nil {
@@ -296,7 +309,8 @@ func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {
 			output_name,
 			replicated_from,
 			path,
-			host_path_version
+			host_path_version,
+			size
 		FROM volumes
 		WHERE handle = $1
 	`, originalVolumeHandle)
@@ -359,6 +373,7 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 			&replicationName,
 			&path,
 			&hostPathVersion,
+			&volume.Size,
 		)
 		if err != nil {
 			return []SavedVolume{}, err

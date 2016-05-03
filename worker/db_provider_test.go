@@ -62,6 +62,10 @@ var _ = Describe("DBProvider", func() {
 			http.StatusOK,
 			baggageclaim.VolumeResponse{Handle: "vol-handle"},
 		))
+		baggageclaimServer.RouteToHandler("GET", "/volumes/vol-handle/stats", ghttp.RespondWithJSONEncoded(
+			http.StatusOK,
+			baggageclaim.VolumeStatsResponse{Size: 1024},
+		))
 
 		fakeDB = new(fakes.FakeWorkerDB)
 		fakeDB.GetVolumeTTLReturns(1*time.Millisecond, true, nil)

@@ -7,4 +7,5 @@ type Volume struct {
 	WorkerName        string `json:"worker_name"`
 	Type              string `json:"type"`
 	Identifier        string `json:"identifier"`
+	Size              uint   `json:"size"`
 }

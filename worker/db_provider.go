@@ -31,6 +31,7 @@ type WorkerDB interface {
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	ReapVolume(handle string) error
 	SetVolumeTTL(string, time.Duration) error
+	SetVolumeSize(string, uint) error
 }
 
 var ErrMultipleWorkersWithName = errors.New("More than one worker has given worker name")
