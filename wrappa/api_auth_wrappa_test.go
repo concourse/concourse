@@ -111,6 +111,7 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.BuildResources:                unauthed(inputHandlers[atc.BuildResources]),
 					atc.DownloadCLI:                   unauthed(inputHandlers[atc.DownloadCLI]),
 					atc.GetBuild:                      unauthed(inputHandlers[atc.GetBuild]),
+					atc.GetBuildPlan:                  unauthed(inputHandlers[atc.GetBuildPlan]),
 					atc.GetBuildPreparation:           unauthed(inputHandlers[atc.GetBuildPreparation]),
 					atc.GetInfo:                       unauthed(inputHandlers[atc.GetInfo]),
 					atc.GetJob:                        unauthed(inputHandlers[atc.GetJob]),
@@ -118,6 +119,7 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.GetLogLevel:                   unauthed(inputHandlers[atc.GetLogLevel]),
 					atc.GetPipeline:                   unauthed(inputHandlers[atc.GetPipeline]),
 					atc.GetResource:                   unauthed(inputHandlers[atc.GetResource]),
+					atc.JobBadge:                      unauthed(inputHandlers[atc.JobBadge]),
 					atc.ListAuthMethods:               unauthed(inputHandlers[atc.ListAuthMethods]),
 					atc.ListBuilds:                    unauthed(inputHandlers[atc.ListBuilds]),
 					atc.ListBuildsWithVersionAsInput:  unauthed(inputHandlers[atc.ListBuildsWithVersionAsInput]),
@@ -127,7 +129,6 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.ListPipelines:                 unauthed(inputHandlers[atc.ListPipelines]),
 					atc.ListResourceVersions:          unauthed(inputHandlers[atc.ListResourceVersions]),
 					atc.ListResources:                 unauthed(inputHandlers[atc.ListResources]),
-					atc.GetBuildPlan:                  unauthed(inputHandlers[atc.GetBuildPlan]),
 				}
 			})
 
@@ -196,6 +197,7 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.GetLogLevel:                   authed(inputHandlers[atc.GetLogLevel]),
 					atc.GetPipeline:                   authed(inputHandlers[atc.GetPipeline]),
 					atc.GetResource:                   authed(inputHandlers[atc.GetResource]),
+					atc.JobBadge:                      authed(inputHandlers[atc.JobBadge]),
 					atc.ListBuilds:                    authed(inputHandlers[atc.ListBuilds]),
 					atc.ListBuildsWithVersionAsInput:  authed(inputHandlers[atc.ListBuildsWithVersionAsInput]),
 					atc.ListBuildsWithVersionAsOutput: authed(inputHandlers[atc.ListBuildsWithVersionAsOutput]),

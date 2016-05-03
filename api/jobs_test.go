@@ -262,6 +262,367 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
+	Describe("GET /api/v1/pipelines/:pipeline_name/jobs/:job_name/badge", func() {
+		var response *http.Response
+
+		JustBeforeEach(func() {
+			var err error
+
+			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/badge")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
+			teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
+			Expect(pipelineName).To(Equal("some-pipeline"))
+			Expect(teamName).To(Equal(atc.DefaultTeamName))
+		})
+
+		Context("when getting the job config succeeds", func() {
+			BeforeEach(func() {
+				pipelineDB.GetConfigReturns(atc.Config{
+					Groups: []atc.GroupConfig{
+						{
+							Name: "group-1",
+							Jobs: []string{"some-job"},
+						},
+						{
+							Name: "group-2",
+							Jobs: []string{"some-job"},
+						},
+					},
+
+					Jobs: []atc.JobConfig{
+						{
+							Name: "some-job",
+							Plan: atc.PlanSequence{
+								{
+									Get: "some-input",
+								},
+								{
+									Get:      "some-name",
+									Resource: "some-other-input",
+									Params:   atc.Params{"secret": "params"},
+									Passed:   []string{"a", "b"},
+									Trigger:  true,
+								},
+								{
+									Put: "some-output",
+								},
+								{
+									Put:    "some-other-output",
+									Params: atc.Params{"secret": "params"},
+								},
+							},
+						},
+					},
+				}, 1, true, nil)
+			})
+
+			It("fetches by job", func() {
+				Expect(pipelineDB.GetJobFinishedAndNextBuildCallCount()).To(Equal(1))
+
+				jobName := pipelineDB.GetJobFinishedAndNextBuildArgsForCall(0)
+				Expect(jobName).To(Equal("some-job"))
+			})
+
+			Context("when the finished build is successful", func() {
+				BeforeEach(func() {
+					pipelineDB.GetJobFinishedAndNextBuildReturns(
+						&db.Build{
+							ID:           1,
+							Name:         "1",
+							JobName:      "some-job",
+							PipelineName: "some-pipeline",
+							Status:       db.StatusSucceeded,
+							StartTime:    time.Unix(1, 0),
+							EndTime:      time.Unix(100, 0),
+						},
+						&db.Build{
+							ID:           3,
+							Name:         "2",
+							JobName:      "some-job",
+							PipelineName: "some-pipeline",
+							Status:       db.StatusStarted,
+						},
+						nil,
+					)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns some SVG showing that the job is successful", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="20">
+   <linearGradient id="b" x2="0" y2="100%">
+      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
+      <stop offset="1" stop-opacity=".1" />
+   </linearGradient>
+   <mask id="a">
+      <rect width="88" height="20" rx="3" fill="#fff" />
+   </mask>
+   <g mask="url(#a)">
+      <path fill="#555" d="M0 0h37v20H0z" />
+      <path fill="#44cc11" d="M37 0h51v20H37z" />
+      <path fill="url(#b)" d="M0 0h88v20H0z" />
+   </g>
+   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+      <text x="61.5" y="15" fill="#010101" fill-opacity=".3">passing</text>
+      <text x="61.5" y="14">passing</text>
+   </g>
+</svg>`))
+				})
+			})
+
+			Context("when the finished build is failed", func() {
+				BeforeEach(func() {
+					pipelineDB.GetJobFinishedAndNextBuildReturns(
+						&db.Build{
+							ID:           1,
+							Name:         "1",
+							JobName:      "some-job",
+							PipelineName: "some-pipeline",
+							Status:       db.StatusFailed,
+							StartTime:    time.Unix(1, 0),
+							EndTime:      time.Unix(100, 0),
+						},
+						&db.Build{
+							ID:           3,
+							Name:         "2",
+							JobName:      "some-job",
+							PipelineName: "some-pipeline",
+							Status:       db.StatusStarted,
+						},
+						nil,
+					)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns some SVG showing that the job has failed", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="20">
+   <linearGradient id="b" x2="0" y2="100%">
+      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
+      <stop offset="1" stop-opacity=".1" />
+   </linearGradient>
+   <mask id="a">
+      <rect width="80" height="20" rx="3" fill="#fff" />
+   </mask>
+   <g mask="url(#a)">
+      <path fill="#555" d="M0 0h37v20H0z" />
+      <path fill="#e05d44" d="M37 0h43v20H37z" />
+      <path fill="url(#b)" d="M0 0h80v20H0z" />
+   </g>
+   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+      <text x="57.5" y="15" fill="#010101" fill-opacity=".3">failing</text>
+      <text x="57.5" y="14">failing</text>
+   </g>
+</svg>`))
+				})
+			})
+
+			Context("when the finished build was aborted", func() {
+				BeforeEach(func() {
+					pipelineDB.GetJobFinishedAndNextBuildReturns(
+						&db.Build{
+							ID:           1,
+							Name:         "1",
+							JobName:      "some-job",
+							PipelineName: "some-pipeline",
+							Status:       db.StatusAborted,
+							StartTime:    time.Unix(1, 0),
+							EndTime:      time.Unix(100, 0),
+						},
+						&db.Build{
+							ID:           3,
+							Name:         "2",
+							JobName:      "some-job",
+							PipelineName: "some-pipeline",
+							Status:       db.StatusStarted,
+						},
+						nil,
+					)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns some SVG showing that the job was aborted", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="90" height="20">
+   <linearGradient id="b" x2="0" y2="100%">
+      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
+      <stop offset="1" stop-opacity=".1" />
+   </linearGradient>
+   <mask id="a">
+      <rect width="90" height="20" rx="3" fill="#fff" />
+   </mask>
+   <g mask="url(#a)">
+      <path fill="#555" d="M0 0h37v20H0z" />
+      <path fill="#8f4b2d" d="M37 0h53v20H37z" />
+      <path fill="url(#b)" d="M0 0h90v20H0z" />
+   </g>
+   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+      <text x="62.5" y="15" fill="#010101" fill-opacity=".3">aborted</text>
+      <text x="62.5" y="14">aborted</text>
+   </g>
+</svg>`))
+				})
+			})
+
+			Context("when the finished build errored", func() {
+				BeforeEach(func() {
+					pipelineDB.GetJobFinishedAndNextBuildReturns(
+						&db.Build{
+							ID:           1,
+							Name:         "1",
+							JobName:      "some-job",
+							PipelineName: "some-pipeline",
+							Status:       db.StatusErrored,
+							StartTime:    time.Unix(1, 0),
+							EndTime:      time.Unix(100, 0),
+						},
+						&db.Build{
+							ID:           3,
+							Name:         "2",
+							JobName:      "some-job",
+							PipelineName: "some-pipeline",
+							Status:       db.StatusStarted,
+						},
+						nil,
+					)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns some SVG showing that the job has errored", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="20">
+   <linearGradient id="b" x2="0" y2="100%">
+      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
+      <stop offset="1" stop-opacity=".1" />
+   </linearGradient>
+   <mask id="a">
+      <rect width="88" height="20" rx="3" fill="#fff" />
+   </mask>
+   <g mask="url(#a)">
+      <path fill="#555" d="M0 0h37v20H0z" />
+      <path fill="#fe7d37" d="M37 0h51v20H37z" />
+      <path fill="url(#b)" d="M0 0h88v20H0z" />
+   </g>
+   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+      <text x="61.5" y="15" fill="#010101" fill-opacity=".3">errored</text>
+      <text x="61.5" y="14">errored</text>
+   </g>
+</svg>`))
+				})
+			})
+
+			Context("when there are no running or finished builds", func() {
+				BeforeEach(func() {
+					pipelineDB.GetJobFinishedAndNextBuildReturns(nil, nil, nil)
+				})
+
+				It("returns an unknown badge", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="98" height="20">
+   <linearGradient id="b" x2="0" y2="100%">
+      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
+      <stop offset="1" stop-opacity=".1" />
+   </linearGradient>
+   <mask id="a">
+      <rect width="98" height="20" rx="3" fill="#fff" />
+   </mask>
+   <g mask="url(#a)">
+      <path fill="#555" d="M0 0h37v20H0z" />
+      <path fill="#9f9f9f" d="M37 0h61v20H37z" />
+      <path fill="url(#b)" d="M0 0h98v20H0z" />
+   </g>
+   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+      <text x="66.5" y="15" fill="#010101" fill-opacity=".3">unknown</text>
+      <text x="66.5" y="14">unknown</text>
+   </g>
+</svg>`))
+				})
+			})
+
+			Context("when getting the job's builds fails", func() {
+				BeforeEach(func() {
+					pipelineDB.GetJobFinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the job is not present in the config", func() {
+				BeforeEach(func() {
+					pipelineDB.GetConfigReturns(atc.Config{
+						Jobs: []atc.JobConfig{
+							{Name: "other-job"},
+						},
+					}, 1, true, nil)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+		})
+
+		Context("when the pipeline is not found", func() {
+			BeforeEach(func() {
+				pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
+			})
+
+			It("returns 404", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+		})
+
+		Context("when getting the job config fails with an unknown error", func() {
+			BeforeEach(func() {
+				pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
+			})
+
+			It("returns 500", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+	})
+
 	Describe("GET /api/v1/pipelines/:pipeline_name/jobs", func() {
 		var response *http.Response
 		var jobs []atc.JobConfig

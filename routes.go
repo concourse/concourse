@@ -24,6 +24,7 @@ const (
 	PauseJob       = "PauseJob"
 	UnpauseJob     = "UnpauseJob"
 	GetVersionsDB  = "GetVersionsDB"
+	JobBadge       = "JobBadge"
 
 	ListResources   = "ListResources"
 	GetResource     = "GetResource"
@@ -91,6 +92,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name/builds/:build_name", Method: "GET", Name: GetJobBuild},
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name/pause", Method: "PUT", Name: PauseJob},
 	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name/unpause", Method: "PUT", Name: UnpauseJob},
+	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name/badge", Method: "GET", Name: JobBadge},
 
 	{Path: "/api/v1/pipelines", Method: "GET", Name: ListPipelines},
 	{Path: "/api/v1/pipelines/:pipeline_name", Method: "GET", Name: GetPipeline},

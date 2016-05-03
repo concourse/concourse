@@ -77,6 +77,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.GetJobBuild,
 			atc.BuildResources,
 			atc.GetJob,
+			atc.JobBadge,
 			atc.GetLogLevel,
 			atc.GetResource,
 			atc.ListResourceVersions,

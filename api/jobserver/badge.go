@@ -1,0 +1,135 @@
+package jobserver
+
+import (
+	"bytes"
+	"fmt"
+	"net/http"
+	"text/template"
+
+	"github.com/concourse/atc/db"
+)
+
+var (
+	badgePassing = badge{width: 88, fillColor: `#44cc11`, status: `passing`}
+	badgeFailing = badge{width: 80, fillColor: `#e05d44`, status: `failing`}
+	badgeUnknown = badge{width: 98, fillColor: `#9f9f9f`, status: `unknown`}
+	badgeAborted = badge{width: 90, fillColor: `#8f4b2d`, status: `aborted`}
+	badgeErrored = badge{width: 88, fillColor: `#fe7d37`, status: `errored`}
+)
+
+type badge struct {
+	width     int
+	fillColor string
+	status    string
+}
+
+func (b *badge) statusWidth() int {
+	return b.width - 37
+}
+
+func (b *badge) statusTextWidth() string {
+	return fmt.Sprintf("%.1f", float64(b.width)/2+17.5)
+}
+
+const svgTemplate = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="{{ .Width }}" height="20">
+   <linearGradient id="b" x2="0" y2="100%">
+      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
+      <stop offset="1" stop-opacity=".1" />
+   </linearGradient>
+   <mask id="a">
+      <rect width="{{ .Width }}" height="20" rx="3" fill="#fff" />
+   </mask>
+   <g mask="url(#a)">
+      <path fill="#555" d="M0 0h37v20H0z" />
+      <path fill="{{ .FillColor }}" d="M37 0h{{ .StatusWidth }}v20H37z" />
+      <path fill="url(#b)" d="M0 0h{{ .Width }}v20H0z" />
+   </g>
+   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+      <text x="18.5" y="14">build</text>
+      <text x="{{ .StatusTextWidth }}" y="15" fill="#010101" fill-opacity=".3">{{ .Status }}</text>
+      <text x="{{ .StatusTextWidth }}" y="14">{{ .Status }}</text>
+   </g>
+</svg>`
+
+type svgConfig struct {
+	Width           int
+	StatusWidth     int
+	StatusTextWidth string
+	Status          string
+	FillColor       string
+}
+
+func (b *badge) getSvg() string {
+	tmpl, err := template.New("badge").Parse(svgTemplate)
+	if err != nil {
+		panic(err)
+	}
+
+	buffer := &bytes.Buffer{}
+
+	err = tmpl.Execute(buffer, svgConfig{
+		Width:           b.width,
+		FillColor:       b.fillColor,
+		Status:          b.status,
+		StatusWidth:     b.statusWidth(),
+		StatusTextWidth: b.statusTextWidth(),
+	})
+
+	return buffer.String()
+}
+
+func statusSvg(finished *db.Build) string {
+	switch {
+	case finished == nil:
+		return badgeUnknown.getSvg()
+	case finished.Status == db.StatusSucceeded:
+		return badgePassing.getSvg()
+	case finished.Status == db.StatusFailed:
+		return badgeFailing.getSvg()
+	case finished.Status == db.StatusAborted:
+		return badgeAborted.getSvg()
+	case finished.Status == db.StatusErrored:
+		return badgeErrored.getSvg()
+	}
+	return badgeUnknown.getSvg()
+}
+
+func (s *Server) JobBadge(pipelineDB db.PipelineDB) http.Handler {
+	logger := s.logger.Session("job-badge")
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		jobName := r.FormValue(":job_name")
+
+		config, _, found, err := pipelineDB.GetConfig()
+		if err != nil {
+			logger.Error("could-not-get-pipeline-config", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		_, found = config.Jobs.Lookup(jobName)
+		if !found {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		finished, _, err := pipelineDB.GetJobFinishedAndNextBuild(jobName)
+		if err != nil {
+			logger.Error("could-not-get-job-finished-and-next-build", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-type", "image/svg+xml")
+
+		w.WriteHeader(http.StatusOK)
+
+		fmt.Fprint(w, statusSvg(finished))
+	})
+}

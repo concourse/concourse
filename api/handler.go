@@ -144,6 +144,7 @@ func NewHandler(
 		atc.CreateJobBuild: pipelineHandlerFactory.HandlerFor(jobServer.CreateJobBuild),
 		atc.PauseJob:       pipelineHandlerFactory.HandlerFor(jobServer.PauseJob),
 		atc.UnpauseJob:     pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob),
+		atc.JobBadge:       pipelineHandlerFactory.HandlerFor(jobServer.JobBadge),
 
 		atc.ListPipelines:   http.HandlerFunc(pipelineServer.ListPipelines),
 		atc.GetPipeline:     http.HandlerFunc(pipelineServer.GetPipeline),
