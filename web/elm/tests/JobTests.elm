@@ -30,6 +30,7 @@ all =
             { startedAt = Just (Date.fromTime 0)
             , finishedAt = Just (Date.fromTime 0)
             }
+          , reapTime = Just (Date.fromTime 0)
           }
         redirects = Signal.mailbox ""
       in let
