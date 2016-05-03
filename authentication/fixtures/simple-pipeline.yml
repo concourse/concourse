@@ -5,6 +5,9 @@ jobs:
     - task: say-simple
       config:
         platform: linux
+        image_resource:
+          type: docker-image
+          source: {repository: busybox}
         run:
           path: echo
           args: ["simple"]
