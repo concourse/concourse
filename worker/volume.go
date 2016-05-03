@@ -39,7 +39,37 @@ func NewVolumeFactory(db VolumeFactoryDB, clock clock.Clock) VolumeFactory {
 
 func (vf *volumeFactory) Build(logger lager.Logger, bcVol baggageclaim.Volume) (Volume, bool, error) {
 	bcVol.Release(nil)
-	return newVolume(logger, bcVol, vf.clock, vf.db)
+
+	logger = logger.WithData(lager.Data{"volume": bcVol.Handle()})
+
+	vol := &volume{
+		Volume: bcVol,
+		db:     vf.db,
+
+		heartbeating: new(sync.WaitGroup),
+		release:      make(chan *time.Duration, 1),
+	}
+
+	ttl, found, err := vf.db.GetVolumeTTL(vol.Handle())
+	if err != nil {
+		logger.Error("failed-to-lookup-expiration-of-volume", err)
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	vol.heartbeat(logger.Session("initial-heartbeat"), ttl)
+
+	vol.heartbeating.Add(1)
+	go vol.heartbeatContinuously(
+		logger.Session("continuous-heartbeat"),
+		vf.clock.NewTicker(volumeKeepalive),
+		ttl,
+	)
+
+	return vol, true, nil
 }
 
 //go:generate counterfeiter . Volume
@@ -64,39 +94,6 @@ type volume struct {
 type VolumeMount struct {
 	Volume    Volume
 	MountPath string
-}
-
-func newVolume(logger lager.Logger, bcVol baggageclaim.Volume, clock clock.Clock, db VolumeFactoryDB) (Volume, bool, error) {
-	logger = logger.WithData(lager.Data{"volume": bcVol.Handle()})
-
-	vol := &volume{
-		Volume: bcVol,
-		db:     db,
-
-		heartbeating: new(sync.WaitGroup),
-		release:      make(chan *time.Duration, 1),
-	}
-
-	ttl, found, err := vol.db.GetVolumeTTL(vol.Handle())
-	if err != nil {
-		logger.Error("failed-to-lookup-expiration-of-volume", err)
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	vol.heartbeat(logger.Session("initial-heartbeat"), ttl)
-
-	vol.heartbeating.Add(1)
-	go vol.heartbeatContinuously(
-		logger.Session("continuous-heartbeat"),
-		clock.NewTicker(volumeKeepalive),
-		ttl,
-	)
-
-	return vol, true, nil
 }
 
 func (*volume) HeartbeatingToDB() {}
