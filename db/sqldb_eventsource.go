@@ -86,6 +86,19 @@ func (source *sqldbBuildEventSource) collectEvents(cursor uint) {
 		default:
 		}
 
+		completed := false
+
+		err := source.conn.QueryRow(`
+			SELECT builds.completed
+			FROM builds
+			WHERE builds.id = $1
+		`, source.buildID).Scan(&completed)
+		if err != nil {
+			source.err = err
+			close(source.events)
+			return
+		}
+
 		rows, err := source.conn.Query(`
 			SELECT type, version, payload
 			FROM `+source.table+`
@@ -142,23 +155,7 @@ func (source *sqldbBuildEventSource) collectEvents(cursor uint) {
 			continue
 		}
 
-		var completed bool
-		var lastEventID uint
-		err = source.conn.QueryRow(`
-			SELECT builds.completed, coalesce(max(`+source.table+`.event_id), 0)
-			FROM builds
-			LEFT JOIN `+source.table+`
-			ON `+source.table+`.build_id = builds.id
-			WHERE builds.id = $1
-			GROUP BY builds.id
-		`, source.buildID).Scan(&completed, &lastEventID)
-		if err != nil {
-			source.err = err
-			close(source.events)
-			return
-		}
-
-		if completed && cursor > lastEventID {
+		if completed {
 			source.err = ErrEndOfBuildEventStream
 			close(source.events)
 			return

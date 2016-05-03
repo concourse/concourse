@@ -1,4 +1,4 @@
-package lostandfound
+package leaserunner
 
 import (
 	"os"
@@ -13,12 +13,19 @@ import (
 //go:generate counterfeiter . RunnerDB
 
 type RunnerDB interface {
-	LeaseCacheInvalidation(logger lager.Logger, interval time.Duration) (db.Lease, bool, error)
+	GetLease(logger lager.Logger, leaseName string, interval time.Duration) (db.Lease, bool, error)
+}
+
+//go:generate counterfeiter . Task
+
+type Task interface {
+	Run() error
 }
 
 func NewRunner(
 	logger lager.Logger,
-	baggageCollector BaggageCollector,
+	task Task,
+	taskName string,
 	db RunnerDB,
 	clock clock.Clock,
 	interval time.Duration,
@@ -33,10 +40,10 @@ func NewRunner(
 		for {
 			select {
 			case <-ticker.C():
-				leaseLogger := logger.Session("lease-invalidate-cache")
+				leaseLogger := logger.Session("lease-task", lager.Data{"task-name": taskName})
 				leaseLogger.Info("tick")
 
-				lease, leased, err := db.LeaseCacheInvalidation(leaseLogger, interval)
+				lease, leased, err := db.GetLease(leaseLogger, taskName, interval)
 
 				if err != nil {
 					leaseLogger.Error("failed-to-get-lease", err)
@@ -48,10 +55,10 @@ func NewRunner(
 					break
 				}
 
-				leaseLogger.Info("collecting-baggage")
-				err = baggageCollector.Collect()
+				leaseLogger.Info("run-task", lager.Data{"task-name": taskName})
+				err = task.Run()
 				if err != nil {
-					leaseLogger.Error("failed-to-collect-baggage", err)
+					leaseLogger.Error("failed-to-run-task", err, lager.Data{"task-name": taskName})
 				}
 
 				lease.Break()

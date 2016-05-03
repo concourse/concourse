@@ -95,6 +95,7 @@ type JobConfig struct {
 	Serial               bool     `yaml:"serial,omitempty" json:"serial,omitempty" mapstructure:"serial"`
 	SerialGroups         []string `yaml:"serial_groups,omitempty" json:"serial_groups,omitempty" mapstructure:"serial_groups"`
 	RawMaxInFlight       int      `yaml:"max_in_flight,omitempty" json:"max_in_flight,omitempty" mapstructure:"max_in_flight"`
+	BuildLogsToRetain    int      `yaml:"build_logs_to_retain,omitempty" json:"build_logs_to_retain,omitempty" mapstructure:"build_logs_to_retain"`
 
 	Plan PlanSequence `yaml:"plan,omitempty" json:"plan,omitempty" mapstructure:"plan"`
 }

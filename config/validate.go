@@ -179,6 +179,14 @@ func validateJobs(c atc.Config) ([]Warning, error) {
 		if job.Name == "" {
 			errorMessages = append(errorMessages, identifier+" has no name")
 		}
+
+		if job.BuildLogsToRetain < 0 {
+			errorMessages = append(
+				errorMessages,
+				identifier+fmt.Sprintf(" has negative build_logs_to_retain: %d", job.BuildLogsToRetain),
+			)
+		}
+
 		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", atc.PlanConfig{Do: &job.Plan})
 		warnings = append(warnings, planWarnings...)
 		errorMessages = append(errorMessages, planErrMessages...)

@@ -25,7 +25,7 @@ type BaggageCollectorDB interface {
 //go:generate counterfeiter . BaggageCollector
 
 type BaggageCollector interface {
-	Collect() error
+	Run() error
 }
 
 type baggageCollector struct {
@@ -37,7 +37,7 @@ type baggageCollector struct {
 	oneOffBuildImageResourceGracePeriod time.Duration
 }
 
-func (bc *baggageCollector) Collect() error {
+func (bc *baggageCollector) Run() error {
 	bc.logger.Info("collect")
 
 	latestVersions, err := bc.getLatestVersionSet()

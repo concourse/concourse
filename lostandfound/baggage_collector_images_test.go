@@ -169,7 +169,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 		})
 
 		It("preserves only the image versions used by the latest finished build of each job", func() {
-			err := baggageCollector.Collect()
+			err := baggageCollector.Run()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeBaggageCollectorDB.GetAllPipelinesCallCount()).To(Equal(1))
 			Expect(fakePipelineDBFactory.BuildCallCount()).To(Equal(1))
@@ -207,7 +207,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			})
 
 			It("keeps its cool", func() {
-				err := baggageCollector.Collect()
+				err := baggageCollector.Run()
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDCallCount()).To(Equal(0))
@@ -336,7 +336,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			func(savedVolumes []db.SavedVolume) {
 				fakeBaggageCollectorDB.GetVolumesReturns(savedVolumes, nil)
 
-				err := baggageCollector.Collect()
+				err := baggageCollector.Run()
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(volumeA1.ReleaseCallCount()).To(Equal(1))

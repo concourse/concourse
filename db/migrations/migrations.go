@@ -105,4 +105,5 @@ var Migrations = []migration.Migrator{
 	AddStartTimeToWorkers,
 	AddReplicatedFromToVolumes,
 	AddSizeToVolumes,
+	AddFirstLoggedBuildIDToJobsAndReapTimeToBuildsAndLeases,
 }

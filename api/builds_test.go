@@ -66,6 +66,7 @@ var _ = Describe("Builds API", func() {
 						Status:       db.StatusStarted,
 						StartTime:    time.Unix(1, 0),
 						EndTime:      time.Unix(100, 0),
+						ReapTime:     time.Unix(200, 0),
 					}, nil)
 				})
 
@@ -111,7 +112,8 @@ var _ = Describe("Builds API", func() {
 							"url": "/builds/42",
 							"api_url": "/api/v1/builds/42",
 							"start_time": 1,
-							"end_time": 100
+							"end_time": 100,
+							"reap_time": 200
 						}`))
 
 					})
@@ -129,6 +131,7 @@ var _ = Describe("Builds API", func() {
 							Status:       db.StatusStarted,
 							StartTime:    time.Unix(1, 0),
 							EndTime:      time.Unix(100, 0),
+							ReapTime:     time.Unix(200, 0),
 						}))
 
 						Expect(builtPlan).To(Equal(plan))
@@ -229,6 +232,7 @@ var _ = Describe("Builds API", func() {
 						Status:       db.StatusSucceeded,
 						StartTime:    time.Unix(1, 0),
 						EndTime:      time.Unix(100, 0),
+						ReapTime:     time.Unix(200, 0),
 					}, true, nil)
 				})
 
@@ -253,7 +257,8 @@ var _ = Describe("Builds API", func() {
 						"url": "/pipelines/pipeline1/jobs/job1/builds/1",
 						"api_url": "/api/v1/builds/1",
 						"start_time": 1,
-						"end_time": 100
+						"end_time": 100,
+						"reap_time": 200
 					}`))
 				})
 			})
@@ -448,6 +453,7 @@ var _ = Describe("Builds API", func() {
 				Status:       db.StatusStarted,
 				StartTime:    time.Unix(1, 0),
 				EndTime:      time.Unix(100, 0),
+				ReapTime:     time.Unix(300, 0),
 			},
 			{
 				ID:           3,
@@ -457,6 +463,7 @@ var _ = Describe("Builds API", func() {
 				Status:       db.StatusSucceeded,
 				StartTime:    time.Unix(101, 0),
 				EndTime:      time.Unix(200, 0),
+				ReapTime:     time.Unix(400, 0),
 			},
 		}
 
@@ -528,7 +535,8 @@ var _ = Describe("Builds API", func() {
 						"url": "/pipelines/pipeline2/jobs/job2/builds/2",
 						"api_url": "/api/v1/builds/4",
 						"start_time": 1,
-						"end_time": 100
+						"end_time": 100,
+						"reap_time": 300
 					},
 					{
 						"id": 3,
@@ -539,7 +547,8 @@ var _ = Describe("Builds API", func() {
 						"url": "/pipelines/pipeline1/jobs/job1/builds/1",
 						"api_url": "/api/v1/builds/3",
 						"start_time": 101,
-						"end_time": 200
+						"end_time": 200,
+						"reap_time": 400
 					}
 				]`))
 			})

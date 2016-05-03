@@ -7,9 +7,10 @@ type Job struct {
 }
 
 type SavedJob struct {
-	ID           int
-	Paused       bool
-	PipelineName string
+	ID                 int
+	Paused             bool
+	PipelineName       string
+	FirstLoggedBuildID int
 	Job
 }
 

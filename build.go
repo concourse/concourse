@@ -21,6 +21,7 @@ type Build struct {
 	PipelineName string `json:"pipeline_name,omitempty"`
 	StartTime    int64  `json:"start_time,omitempty"`
 	EndTime      int64  `json:"end_time,omitempty"`
+	ReapTime     int64  `json:"reap_time,omitempty"`
 }
 
 func (b Build) IsRunning() bool {

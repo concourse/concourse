@@ -142,7 +142,7 @@ var _ = Describe("Volumes are reaped", func() {
 		})
 
 		It("should remove the volume from the database", func() {
-			err := baggageCollector.Collect()
+			err := baggageCollector.Run()
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeBaggageCollectorDB.ReapVolumeCallCount()).To(Equal(2))
@@ -158,7 +158,7 @@ var _ = Describe("Volumes are reaped", func() {
 			})
 
 			It("removes the volume from the database", func() {
-				err := baggageCollector.Collect()
+				err := baggageCollector.Run()
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeBaggageCollectorDB.ReapVolumeCallCount()).To(Equal(1))
@@ -173,7 +173,7 @@ var _ = Describe("Volumes are reaped", func() {
 			})
 
 			It("removes the volume from the database", func() {
-				err := baggageCollector.Collect()
+				err := baggageCollector.Run()
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeBaggageCollectorDB.ReapVolumeCallCount()).To(Equal(1))

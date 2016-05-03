@@ -248,6 +248,15 @@ type FakePipelineDB struct {
 	unpauseJobReturns struct {
 		result1 error
 	}
+	UpdateFirstLoggedBuildIDStub        func(job string, newFirstLoggedBuildID int) error
+	updateFirstLoggedBuildIDMutex       sync.RWMutex
+	updateFirstLoggedBuildIDArgsForCall []struct {
+		job                   string
+		newFirstLoggedBuildID int
+	}
+	updateFirstLoggedBuildIDReturns struct {
+		result1 error
+	}
 	GetJobFinishedAndNextBuildStub        func(job string) (*db.Build, *db.Build, error)
 	getJobFinishedAndNextBuildMutex       sync.RWMutex
 	getJobFinishedAndNextBuildArgsForCall []struct {
@@ -1301,6 +1310,39 @@ func (fake *FakePipelineDB) UnpauseJobArgsForCall(i int) string {
 func (fake *FakePipelineDB) UnpauseJobReturns(result1 error) {
 	fake.UnpauseJobStub = nil
 	fake.unpauseJobReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipelineDB) UpdateFirstLoggedBuildID(job string, newFirstLoggedBuildID int) error {
+	fake.updateFirstLoggedBuildIDMutex.Lock()
+	fake.updateFirstLoggedBuildIDArgsForCall = append(fake.updateFirstLoggedBuildIDArgsForCall, struct {
+		job                   string
+		newFirstLoggedBuildID int
+	}{job, newFirstLoggedBuildID})
+	fake.updateFirstLoggedBuildIDMutex.Unlock()
+	if fake.UpdateFirstLoggedBuildIDStub != nil {
+		return fake.UpdateFirstLoggedBuildIDStub(job, newFirstLoggedBuildID)
+	} else {
+		return fake.updateFirstLoggedBuildIDReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) UpdateFirstLoggedBuildIDCallCount() int {
+	fake.updateFirstLoggedBuildIDMutex.RLock()
+	defer fake.updateFirstLoggedBuildIDMutex.RUnlock()
+	return len(fake.updateFirstLoggedBuildIDArgsForCall)
+}
+
+func (fake *FakePipelineDB) UpdateFirstLoggedBuildIDArgsForCall(i int) (string, int) {
+	fake.updateFirstLoggedBuildIDMutex.RLock()
+	defer fake.updateFirstLoggedBuildIDMutex.RUnlock()
+	return fake.updateFirstLoggedBuildIDArgsForCall[i].job, fake.updateFirstLoggedBuildIDArgsForCall[i].newFirstLoggedBuildID
+}
+
+func (fake *FakePipelineDB) UpdateFirstLoggedBuildIDReturns(result1 error) {
+	fake.UpdateFirstLoggedBuildIDStub = nil
+	fake.updateFirstLoggedBuildIDReturns = struct {
 		result1 error
 	}{result1}
 }
