@@ -14,6 +14,7 @@ type alias Build =
   , job : Maybe BuildJob
   , status : BuildStatus
   , duration : BuildDuration
+  , reapTime : Maybe Date
   }
 
 type alias BuildId =
@@ -64,7 +65,7 @@ url build =
 
 decode : Json.Decode.Decoder Build
 decode =
-  Json.Decode.object5 Build
+  Json.Decode.object6 Build
     ("id" := Json.Decode.int)
     ("name" := Json.Decode.string)
     (Json.Decode.maybe (Json.Decode.object2 BuildJob
@@ -74,6 +75,7 @@ decode =
     (Json.Decode.object2 BuildDuration
       (Json.Decode.maybe ("start_time" := (Json.Decode.map dateFromSeconds Json.Decode.float)))
       (Json.Decode.maybe ("end_time" := (Json.Decode.map dateFromSeconds Json.Decode.float))))
+    (Json.Decode.maybe ("reap_time" := (Json.Decode.map dateFromSeconds Json.Decode.float)))
 
 handleResponse : Http.Response -> Task Http.Error ()
 handleResponse response =
