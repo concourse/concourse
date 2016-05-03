@@ -11,6 +11,21 @@ var _ = Describe("A job with a task using an image within the plan", func() {
 		configurePipeline(
 			"-c", "fixtures/image-artifact.yml",
 		)
+
+		var hasTaggedWorker bool
+	dance:
+		for _, worker := range workers {
+			for _, tag := range worker.Tags {
+				if tag == "tagged" {
+					hasTaggedWorker = true
+					break dance
+				}
+			}
+		}
+
+		if !hasTaggedWorker {
+			Skip("this only runs when a worker with the 'tagged' tag is available")
+		}
 	})
 
 	It("uses the specified image artifact to run the task", func() {
