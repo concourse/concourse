@@ -9,14 +9,14 @@
 [submodule "src/github.com/concourse/atc"]
 	path = src/github.com/concourse/atc
 	url = https://github.com/concourse/atc
-	branch = guardian
+	branch = master
 [submodule "src/github.com/lib/pq"]
 	path = src/github.com/lib/pq
 	url = https://github.com/lib/pq
 	branch = master
 [submodule "src/github.com/cloudfoundry-incubator/garden"]
 	path = src/github.com/cloudfoundry-incubator/garden
-	url = https://github.com/concourse/garden
+	url = https://github.com/cloudfoundry-incubator/garden
 	branch = close-response-body
 [submodule "src/github.com/onsi/ginkgo"]
 	path = src/github.com/onsi/ginkgo
@@ -33,7 +33,7 @@
 [submodule "src/github.com/concourse/testflight"]
 	path = src/github.com/concourse/testflight
 	url = https://github.com/concourse/testflight
-	branch = guardian
+	branch = master
 [submodule "src/github.com/vito/go-sse"]
 	path = src/github.com/vito/go-sse
 	url = https://github.com/vito/go-sse
@@ -140,7 +140,7 @@
 [submodule "src/github.com/concourse/fly"]
 	path = src/github.com/concourse/fly
 	url = https://github.com/concourse/fly
-	branch = guardian
+	branch = master
 [submodule "src/github.com/tedsuo/rata"]
 	path = src/github.com/tedsuo/rata
 	url = https://github.com/tedsuo/rata
@@ -212,7 +212,7 @@
 [submodule "src/github.com/concourse/go-concourse"]
 	path = src/github.com/concourse/go-concourse
 	url = https://github.com/concourse/go-concourse
-	branch = guardian
+	branch = master
 [submodule "src/github.com/kr/tarutil"]
 	path = src/github.com/kr/tarutil
 	url = https://github.com/kr/tarutil
