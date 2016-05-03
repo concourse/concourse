@@ -106,7 +106,7 @@ func (ImageArtifactReplicationStrategy) baggageclaimStrategy() baggageclaim.Stra
 func (strategy ImageArtifactReplicationStrategy) dbIdentifier() db.VolumeIdentifier {
 	return db.VolumeIdentifier{
 		Replication: &db.ReplicationIdentifier{
-			Name: strategy.Name,
+			ReplicatedVolumeHandle: strategy.Name,
 		},
 	}
 }

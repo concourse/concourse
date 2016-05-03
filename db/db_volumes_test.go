@@ -400,7 +400,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			BeforeEach(func() {
 				replicationIdentifier = db.VolumeIdentifier{
 					Replication: &db.ReplicationIdentifier{
-						Name: "some-replication-identifier",
+						ReplicatedVolumeHandle: "some-replication-identifier",
 					},
 				}
 				replicationVolume = db.Volume{
@@ -423,7 +423,7 @@ var _ = Describe("Keeping track of volumes", func() {
 				Expect(savedReplicationVolume.WorkerName).To(Equal(replicationVolume.WorkerName))
 				Expect(savedReplicationVolume.TTL).To(Equal(replicationVolume.TTL))
 				Expect(savedReplicationVolume.Handle).To(Equal(replicationVolume.Handle))
-				Expect(savedReplicationVolume.Volume.Identifier.Replication.Name).To(Equal("some-replication-identifier"))
+				Expect(savedReplicationVolume.Volume.Identifier.Replication.ReplicatedVolumeHandle).To(Equal("some-replication-identifier"))
 				Expect(savedReplicationVolume.ExpiresIn).To(BeNumerically("~", replicationVolume.TTL, time.Second))
 			})
 		})

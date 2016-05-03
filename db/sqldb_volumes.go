@@ -65,7 +65,7 @@ func (db *SQLDB) InsertVolume(data Volume) error {
 
 	case data.Identifier.Replication != nil:
 		columns = append(columns, "replicated_from")
-		params = append(params, data.Identifier.Replication.Name)
+		params = append(params, data.Identifier.Replication.ReplicatedVolumeHandle)
 		values = append(values, fmt.Sprintf("$%d", len(params)))
 	}
 
@@ -163,7 +163,7 @@ func (db *SQLDB) GetVolumesByIdentifier(id VolumeIdentifier) ([]SavedVolume, err
 			addParam("host_path_version", id.Import.Version)
 		}
 	case id.Replication != nil:
-		addParam("replicated_from", id.Replication.Name)
+		addParam("replicated_from", id.Replication.ReplicatedVolumeHandle)
 	}
 
 	statement := `
@@ -390,7 +390,7 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 			}
 		case replicationName.Valid:
 			volume.Volume.Identifier.Replication = &ReplicationIdentifier{
-				Name: replicationName.String,
+				ReplicatedVolumeHandle: replicationName.String,
 			}
 		case path.Valid:
 			volume.Volume.Identifier.Import = &ImportIdentifier{

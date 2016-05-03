@@ -92,11 +92,11 @@ func (i OutputIdentifier) String() string {
 }
 
 type ReplicationIdentifier struct {
-	Name string
+	ReplicatedVolumeHandle string
 }
 
 func (i ReplicationIdentifier) String() string {
-	return i.Name
+	return i.ReplicatedVolumeHandle
 }
 
 type ImportIdentifier struct {
