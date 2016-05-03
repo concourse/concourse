@@ -103,8 +103,6 @@ func (v *volume) Release(finalTTL *time.Duration) {
 		v.release <- finalTTL
 		v.heartbeating.Wait()
 	})
-
-	return
 }
 
 func (v *volume) heartbeatContinuously(logger lager.Logger, pacemaker clock.Ticker, initialTTL time.Duration) {
