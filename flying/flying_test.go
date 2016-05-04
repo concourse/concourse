@@ -120,7 +120,7 @@ cat < /tmp/fifo
 
 			hijackS := helpers.StartFly(hijack)
 
-			Eventually(flyS).Should(gbytes.Say("3: .+ type: task"))
+			Eventually(hijackS).Should(gbytes.Say("3: .+ type: task"))
 			fmt.Fprintln(hijackIn, "3")
 
 			Eventually(flyS).Should(gbytes.Say("marco"))
