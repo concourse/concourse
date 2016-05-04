@@ -34,14 +34,17 @@ function permit_device_control() {
     mkdir ${cgroup_dir}
   fi
 
-  if ! mountpoint -q ${cgroup_dir}; then
-    mount -t cgroup -o $devices_subsytems none ${cgroup_dir}
-  fi
+  # run in separate mount namespace so runc doesn't get confused
+  unshare -m bash <<EOF
+    if ! mountpoint -q ${cgroup_dir}; then
+      mount -t cgroup -o $devices_subsytems none ${cgroup_dir}
+    fi
 
-  # permit our cgroup to do everything with all devices
-  # ignore failure in case something has already done this; echo appears to
-  # return EINVAL, possibly because devices this affects are already in use
-  echo a > ${cgroup_dir}${devices_subdir}/devices.allow || true
+    # permit our cgroup to do everything with all devices
+    # ignore failure in case something has already done this; echo appears to
+    # return EINVAL, possibly because devices this affects are already in use
+    echo a > ${cgroup_dir}${devices_subdir}/devices.allow || true
+EOF
 }
 
 function wait_for_proc_port() {
