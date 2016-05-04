@@ -35,7 +35,7 @@ function permit_device_control() {
   fi
 
   # run in separate mount namespace so runc doesn't get confused
-  unshare -m bash <<EOF
+  unshare -m bash -ex <<EOF
     if ! mountpoint -q ${cgroup_dir}; then
       mount -t cgroup -o $devices_subsytems none ${cgroup_dir}
     fi
