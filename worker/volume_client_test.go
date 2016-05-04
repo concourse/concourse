@@ -296,6 +296,11 @@ var _ = Describe("VolumeClient", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeFalse())
 				})
+
+				It("reaps the volume from the db", func() {
+					Expect(fakeGardenWorkerDB.ReapVolumeCallCount()).To(Equal(1))
+					Expect(fakeGardenWorkerDB.ReapVolumeArgsForCall(0)).To(Equal("db-vol-handle"))
+				})
 			})
 
 			Context("when looking up the volume in baggageclaim fails", func() {

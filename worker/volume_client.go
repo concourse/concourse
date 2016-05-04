@@ -65,7 +65,12 @@ func (c *volumeClient) FindVolume(
 
 	savedVolume := savedVolumes[0]
 
-	return c.LookupVolume(logger, savedVolume.Handle)
+	volume, found, err := c.LookupVolume(logger, savedVolume.Handle)
+	if !found {
+		c.db.ReapVolume(savedVolume.Handle)
+	}
+
+	return volume, found, err
 }
 
 func (c *volumeClient) CreateVolume(
