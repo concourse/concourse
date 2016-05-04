@@ -1295,7 +1295,7 @@ var _ = Describe("Jobs API", func() {
 											PipelineID: 42,
 										},
 									},
-								}, true, nil)
+								}, true, nil, nil)
 							})
 
 							It("returns 200 OK", func() {
@@ -1338,7 +1338,7 @@ var _ = Describe("Jobs API", func() {
 
 						Context("when the job has no input versions available", func() {
 							BeforeEach(func() {
-								pipelineDB.GetNextInputVersionsReturns(nil, false, nil)
+								pipelineDB.GetNextInputVersionsReturns(nil, false, nil, nil)
 							})
 
 							It("returns 404", func() {
@@ -1348,7 +1348,7 @@ var _ = Describe("Jobs API", func() {
 
 						Context("when the input versions for the job can not be determined", func() {
 							BeforeEach(func() {
-								pipelineDB.GetNextInputVersionsReturns(nil, false, errors.New("oh no!"))
+								pipelineDB.GetNextInputVersionsReturns(nil, false, nil, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {

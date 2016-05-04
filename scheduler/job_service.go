@@ -21,7 +21,7 @@ type JobServiceDB interface {
 	IsPaused() (bool, error)
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
-	GetNextInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, error)
+	GetNextInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, db.MissingInputReasons, error)
 	UseInputsForBuild(buildID int, inputs []db.BuildInput) error
 }
 
@@ -128,12 +128,18 @@ func (s jobService) getBuildInputs(logger lager.Logger, build db.Build, buildPre
 		return nil, buildPrep, "failed-to-update-build-prep-with-discovered-inputs", err
 	}
 
-	inputs, found, err := s.DB.GetNextInputVersions(versions, s.DBJob.Name, buildInputs)
+	inputs, found, missingInputReasons, err := s.DB.GetNextInputVersions(versions, s.DBJob.Name, buildInputs)
 	if err != nil {
 		return nil, buildPrep, "failed-to-get-latest-input-versions", err
 	}
 
 	if !found {
+		buildPrep.MissingInputReasons = missingInputReasons
+		err = s.DB.UpdateBuildPreparation(buildPrep)
+		if err != nil {
+			return nil, buildPrep, "failed-to-update-build-prep-with-inputs-satisfied", err
+		}
+
 		return nil, buildPrep, "no-input-versions-available", nil
 	}
 

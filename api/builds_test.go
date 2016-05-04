@@ -874,7 +874,8 @@ var _ = Describe("Builds API", func() {
 						"foo": db.BuildPreparationStatusUnknown,
 						"bar": db.BuildPreparationStatusBlocking,
 					},
-					InputsSatisfied: db.BuildPreparationStatusBlocking,
+					InputsSatisfied:     db.BuildPreparationStatusBlocking,
+					MissingInputReasons: db.MissingInputReasons{"some-input": "some-reason"},
 				}
 				buildsDB.GetBuildPreparationReturns(buildPrep, true, nil)
 			})
@@ -901,7 +902,10 @@ var _ = Describe("Builds API", func() {
 						"foo": "unknown",
 						"bar": "blocking"
 					},
-					"inputs_satisfied": "blocking"
+					"inputs_satisfied": "blocking",
+					"missing_input_reasons": {
+						"some-input": "some-reason"
+					}
 				}`))
 			})
 		})

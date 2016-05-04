@@ -66,7 +66,7 @@ type PipelineDB interface {
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
-	GetNextInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]BuildInput, bool, error)
+	GetNextInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]BuildInput, bool, MissingInputReasons, error)
 	GetJobBuildForInputs(job string, inputs []BuildInput) (Build, bool, error)
 	GetNextPendingBuild(job string) (Build, bool, error)
 
@@ -1849,12 +1849,13 @@ func (pdb *pipelineDB) LoadVersionsDB() (*algorithm.VersionsDB, error) {
 	return db, nil
 }
 
-func (pdb *pipelineDB) GetNextInputVersions(db *algorithm.VersionsDB, jobName string, inputs []config.JobInput) ([]BuildInput, bool, error) {
+func (pdb *pipelineDB) GetNextInputVersions(db *algorithm.VersionsDB, jobName string, inputs []config.JobInput) ([]BuildInput, bool, MissingInputReasons, error) {
 	if len(inputs) == 0 {
-		return []BuildInput{}, true, nil
+		return []BuildInput{}, true, MissingInputReasons{}, nil
 	}
 
 	var inputConfigs algorithm.InputConfigs
+	missingInputReasons := MissingInputReasons{}
 
 	for _, input := range inputs {
 		jobs := algorithm.JobSet{}
@@ -1870,7 +1871,7 @@ func (pdb *pipelineDB) GetNextInputVersions(db *algorithm.VersionsDB, jobName st
 			if input.Version.Pinned != nil {
 				versionJSON, err := json.Marshal(input.Version.Pinned)
 				if err != nil {
-					return []BuildInput{}, false, nil
+					return []BuildInput{}, false, missingInputReasons, err
 				}
 
 				resourceID := db.ResourceIDs[input.Resource]
@@ -1881,9 +1882,10 @@ func (pdb *pipelineDB) GetNextInputVersions(db *algorithm.VersionsDB, jobName st
 		`, string(versionJSON), resourceID).Scan(&pinnedVersionID)
 				if err != nil {
 					if err == sql.ErrNoRows {
-						return []BuildInput{}, false, nil
+						missingInputReasons[input.Name] = fmt.Sprintf("pinned version %s is not available", string(versionJSON))
+						return []BuildInput{}, false, missingInputReasons, nil
 					}
-					return []BuildInput{}, false, err
+					return []BuildInput{}, false, missingInputReasons, err
 				}
 			}
 		}
@@ -1900,7 +1902,7 @@ func (pdb *pipelineDB) GetNextInputVersions(db *algorithm.VersionsDB, jobName st
 
 	resolved, ok := inputConfigs.Resolve(db)
 	if !ok {
-		return nil, false, nil
+		return nil, false, missingInputReasons, nil
 	}
 
 	var buildInputs []BuildInput
@@ -1920,17 +1922,17 @@ func (pdb *pipelineDB) GetNextInputVersions(db *algorithm.VersionsDB, jobName st
 				AND vr.resource_id = r.id
 		`, id).Scan(&svr.Resource, &svr.Type, &version, &metadata)
 		if err != nil {
-			return nil, false, err
+			return nil, false, missingInputReasons, err
 		}
 
 		err = json.Unmarshal([]byte(version), &svr.Version)
 		if err != nil {
-			return nil, false, err
+			return nil, false, missingInputReasons, err
 		}
 
 		err = json.Unmarshal([]byte(metadata), &svr.Metadata)
 		if err != nil {
-			return nil, false, err
+			return nil, false, missingInputReasons, err
 		}
 
 		buildInputs = append(buildInputs, BuildInput{
@@ -1939,7 +1941,7 @@ func (pdb *pipelineDB) GetNextInputVersions(db *algorithm.VersionsDB, jobName st
 		})
 	}
 
-	return buildInputs, true, nil
+	return buildInputs, true, missingInputReasons, nil
 }
 
 func (pdb *pipelineDB) PauseJob(job string) error {

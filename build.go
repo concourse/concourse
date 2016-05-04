@@ -50,10 +50,11 @@ const (
 )
 
 type BuildPreparation struct {
-	BuildID          int                               `json:"build_id"`
-	PausedPipeline   BuildPreparationStatus            `json:"paused_pipeline"`
-	PausedJob        BuildPreparationStatus            `json:"paused_job"`
-	MaxRunningBuilds BuildPreparationStatus            `json:"max_running_builds"`
-	Inputs           map[string]BuildPreparationStatus `json:"inputs"`
-	InputsSatisfied  BuildPreparationStatus            `json:"inputs_satisfied"`
+	BuildID             int                               `json:"build_id"`
+	PausedPipeline      BuildPreparationStatus            `json:"paused_pipeline"`
+	PausedJob           BuildPreparationStatus            `json:"paused_job"`
+	MaxRunningBuilds    BuildPreparationStatus            `json:"max_running_builds"`
+	Inputs              map[string]BuildPreparationStatus `json:"inputs"`
+	InputsSatisfied     BuildPreparationStatus            `json:"inputs_satisfied"`
+	MissingInputReasons MissingInputReasons               `json:"missing_input_reasons"`
 }

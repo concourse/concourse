@@ -17,6 +17,7 @@ type alias BuildPrep =
   , maxRunningBuilds : BuildPrepStatus
   , inputs : Dict String BuildPrepStatus
   , inputsSatisfied : BuildPrepStatus
+  , missingInputReasons : Dict String String
   }
 
 fetch : BuildId -> Task Http.Error BuildPrep
@@ -34,9 +35,10 @@ decodeStatus =
 
 decode : Json.Decode.Decoder BuildPrep
 decode =
-  Json.Decode.object5 BuildPrep
+  Json.Decode.object6 BuildPrep
     ("paused_pipeline" := decodeStatus)
     ("paused_job" := decodeStatus)
     ("max_running_builds" := decodeStatus)
     ("inputs" := Json.Decode.dict decodeStatus)
     ("inputs_satisfied" := decodeStatus)
+    ("missing_input_reasons" := Json.Decode.dict Json.Decode.string)

@@ -341,7 +341,7 @@ var _ = Describe("JobService", func() {
 									},
 								}
 
-								fakeDB.GetNextInputVersionsReturns(newInputs, true, nil)
+								fakeDB.GetNextInputVersionsReturns(newInputs, true, nil, nil)
 							})
 
 							It("can be scheduled", func() {
@@ -717,8 +717,13 @@ var _ = Describe("JobService", func() {
 						})
 
 						Context("when getting latest input versions is not successful", func() {
+							var missingInputReasons db.MissingInputReasons
+
 							BeforeEach(func() {
-								fakeDB.GetNextInputVersionsReturns(nil, false, nil)
+								missingInputReasons = db.MissingInputReasons{
+									"some-input": "some-reason",
+								}
+								fakeDB.GetNextInputVersionsReturns(nil, false, missingInputReasons, nil)
 							})
 
 							It("logs and returns nil", func() {
@@ -726,9 +731,15 @@ var _ = Describe("JobService", func() {
 								Expect(reason).To(Equal("no-input-versions-available"))
 							})
 
+							It("updates build preparation with missing input reasons", func() {
+								latestUpdateCount := fakeDB.UpdateBuildPreparationCallCount() - 1
+								buildPrep = fakeDB.UpdateBuildPreparationArgsForCall(latestUpdateCount)
+								Expect(buildPrep.MissingInputReasons).To(Equal(missingInputReasons))
+							})
+
 							Context("due to an error", func() {
 								BeforeEach(func() {
-									fakeDB.GetNextInputVersionsReturns(nil, false, errors.New("banana"))
+									fakeDB.GetNextInputVersionsReturns(nil, false, nil, errors.New("banana"))
 								})
 
 								It("logs and returns nil", func() {

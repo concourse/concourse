@@ -161,7 +161,7 @@ var _ = Describe("Scheduler", func() {
 	Describe("BuildLatestInputs", func() {
 		Context("when no inputs are available", func() {
 			BeforeEach(func() {
-				fakePipelineDB.GetNextInputVersionsReturns(nil, false, nil)
+				fakePipelineDB.GetNextInputVersionsReturns(nil, false, nil, nil)
 			})
 
 			It("returns no error", func() {
@@ -180,7 +180,7 @@ var _ = Describe("Scheduler", func() {
 			var err error
 
 			BeforeEach(func() {
-				fakePipelineDB.GetNextInputVersionsReturns(nil, false, disaster)
+				fakePipelineDB.GetNextInputVersionsReturns(nil, false, nil, disaster)
 				err = scheduler.BuildLatestInputs(logger, someVersions, job, resources, resourceTypes)
 			})
 
@@ -224,7 +224,7 @@ var _ = Describe("Scheduler", func() {
 						},
 					},
 				}
-				fakePipelineDB.GetNextInputVersionsReturns(newInputs, true, nil)
+				fakePipelineDB.GetNextInputVersionsReturns(newInputs, true, nil, nil)
 			})
 
 			JustBeforeEach(func() {
@@ -299,7 +299,7 @@ var _ = Describe("Scheduler", func() {
 						},
 					)
 
-					fakePipelineDB.GetNextInputVersionsReturns(foundInputsWithCheck, true, nil)
+					fakePipelineDB.GetNextInputVersionsReturns(foundInputsWithCheck, true, nil, nil)
 				})
 
 				It("excludes them from the inputs when checking for a build", func() {

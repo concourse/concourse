@@ -13,11 +13,12 @@ func BuildPreparation(preparation db.BuildPreparation) atc.BuildPreparation {
 	}
 
 	return atc.BuildPreparation{
-		BuildID:          preparation.BuildID,
-		PausedPipeline:   atc.BuildPreparationStatus(preparation.PausedPipeline),
-		PausedJob:        atc.BuildPreparationStatus(preparation.PausedJob),
-		MaxRunningBuilds: atc.BuildPreparationStatus(preparation.MaxRunningBuilds),
-		Inputs:           inputs,
-		InputsSatisfied:  atc.BuildPreparationStatus(preparation.InputsSatisfied),
+		BuildID:             preparation.BuildID,
+		PausedPipeline:      atc.BuildPreparationStatus(preparation.PausedPipeline),
+		PausedJob:           atc.BuildPreparationStatus(preparation.PausedJob),
+		MaxRunningBuilds:    atc.BuildPreparationStatus(preparation.MaxRunningBuilds),
+		Inputs:              inputs,
+		InputsSatisfied:     atc.BuildPreparationStatus(preparation.InputsSatisfied),
+		MissingInputReasons: preparation.MissingInputReasons,
 	}
 }

@@ -235,6 +235,7 @@ var _ = Describe("Keeping track of builds", func() {
 			buildPrep.PausedPipeline = db.BuildPreparationStatusBlocking
 			buildPrep.Inputs["banana"] = "doesnt matter"
 			buildPrep.InputsSatisfied = db.BuildPreparationStatusNotBlocking
+			buildPrep.MissingInputReasons = map[string]string{"some-input": "some missing reason"}
 
 			err = database.UpdateBuildPreparation(buildPrep)
 			Expect(err).NotTo(HaveOccurred())
@@ -265,7 +266,8 @@ var _ = Describe("Keeping track of builds", func() {
 					"banana": db.BuildPreparationStatusNotBlocking,
 					"potato": db.BuildPreparationStatusNotBlocking,
 				},
-				InputsSatisfied: db.BuildPreparationStatusBlocking,
+				InputsSatisfied:     db.BuildPreparationStatusBlocking,
+				MissingInputReasons: map[string]string{},
 			}
 
 			err = pipelineDB.UpdateBuildPreparation(originalBuildPrep)

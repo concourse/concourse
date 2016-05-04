@@ -15,29 +15,33 @@ const (
 	BuildPreparationStatusNotBlocking BuildPreparationStatus = "not_blocking"
 )
 
+type MissingInputReasons map[string]string
+
 type BuildPreparation struct {
-	BuildID          int
-	PausedPipeline   BuildPreparationStatus
-	PausedJob        BuildPreparationStatus
-	MaxRunningBuilds BuildPreparationStatus
-	Inputs           map[string]BuildPreparationStatus
-	InputsSatisfied  BuildPreparationStatus
+	BuildID             int
+	PausedPipeline      BuildPreparationStatus
+	PausedJob           BuildPreparationStatus
+	MaxRunningBuilds    BuildPreparationStatus
+	Inputs              map[string]BuildPreparationStatus
+	InputsSatisfied     BuildPreparationStatus
+	MissingInputReasons MissingInputReasons
 }
 
 func NewBuildPreparation(buildID int) BuildPreparation {
 	return BuildPreparation{
-		BuildID:          buildID,
-		PausedPipeline:   BuildPreparationStatusUnknown,
-		PausedJob:        BuildPreparationStatusUnknown,
-		MaxRunningBuilds: BuildPreparationStatusUnknown,
-		Inputs:           map[string]BuildPreparationStatus{},
-		InputsSatisfied:  BuildPreparationStatusUnknown,
+		BuildID:             buildID,
+		PausedPipeline:      BuildPreparationStatusUnknown,
+		PausedJob:           BuildPreparationStatusUnknown,
+		MaxRunningBuilds:    BuildPreparationStatusUnknown,
+		Inputs:              map[string]BuildPreparationStatus{},
+		InputsSatisfied:     BuildPreparationStatusUnknown,
+		MissingInputReasons: MissingInputReasons{},
 	}
 }
 
 type buildPreparationHelper struct{}
 
-const BuildPreparationColumns string = "build_id, paused_pipeline, paused_job, max_running_builds, inputs, inputs_satisfied"
+const BuildPreparationColumns string = "build_id, paused_pipeline, paused_job, max_running_builds, inputs, inputs_satisfied, missing_input_reasons"
 
 func (b buildPreparationHelper) CreateBuildPreparation(tx Tx, buildID int) error {
 	_, err := tx.Exec(`
@@ -52,9 +56,15 @@ func (b buildPreparationHelper) UpdateBuildPreparation(tx Tx, buildPrep BuildPre
 	if err != nil {
 		return err
 	}
+
+	missingInputReasonsJSON, err := json.Marshal(buildPrep.MissingInputReasons)
+	if err != nil {
+		return err
+	}
+
 	_, err = tx.Exec(`
 	UPDATE build_preparation
-	SET paused_pipeline = $2, paused_job = $3, max_running_builds = $4, inputs = $5, inputs_satisfied = $6
+	SET paused_pipeline = $2, paused_job = $3, max_running_builds = $4, inputs = $5, inputs_satisfied = $6, missing_input_reasons = $7
 	WHERE build_id = $1
 	`,
 		buildPrep.BuildID,
@@ -63,6 +73,7 @@ func (b buildPreparationHelper) UpdateBuildPreparation(tx Tx, buildPrep BuildPre
 		string(buildPrep.MaxRunningBuilds),
 		string(inputsJSON),
 		string(buildPrep.InputsSatisfied),
+		string(missingInputReasonsJSON),
 	)
 	return err
 }
@@ -99,9 +110,9 @@ func (b buildPreparationHelper) constructBuildPreparations(rows *sql.Rows) ([]Bu
 	for rows.Next() {
 		var buildID int
 		var pausedPipeline, pausedJob, maxRunningBuilds, inputsSatisfied string
-		var inputsBlob []byte
+		var inputsBlob, missingInputReasonsBlob []byte
 
-		err := rows.Scan(&buildID, &pausedPipeline, &pausedJob, &maxRunningBuilds, &inputsBlob, &inputsSatisfied)
+		err := rows.Scan(&buildID, &pausedPipeline, &pausedJob, &maxRunningBuilds, &inputsBlob, &inputsSatisfied, &missingInputReasonsBlob)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return []BuildPreparation{}, nil
@@ -115,13 +126,20 @@ func (b buildPreparationHelper) constructBuildPreparations(rows *sql.Rows) ([]Bu
 			return []BuildPreparation{}, err
 		}
 
+		var missingInputReasons map[string]string
+		err = json.Unmarshal(missingInputReasonsBlob, &missingInputReasons)
+		if err != nil {
+			return []BuildPreparation{}, err
+		}
+
 		buildPreps = append(buildPreps, BuildPreparation{
-			BuildID:          buildID,
-			PausedPipeline:   BuildPreparationStatus(pausedPipeline),
-			PausedJob:        BuildPreparationStatus(pausedJob),
-			MaxRunningBuilds: BuildPreparationStatus(maxRunningBuilds),
-			Inputs:           inputs,
-			InputsSatisfied:  BuildPreparationStatus(inputsSatisfied),
+			BuildID:             buildID,
+			PausedPipeline:      BuildPreparationStatus(pausedPipeline),
+			PausedJob:           BuildPreparationStatus(pausedJob),
+			MaxRunningBuilds:    BuildPreparationStatus(maxRunningBuilds),
+			Inputs:              inputs,
+			InputsSatisfied:     BuildPreparationStatus(inputsSatisfied),
+			MissingInputReasons: missingInputReasons,
 		})
 	}
 

@@ -64,7 +64,7 @@ type FakePipelineDB struct {
 		result1 *algorithm.VersionsDB
 		result2 error
 	}
-	GetNextInputVersionsStub        func(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, error)
+	GetNextInputVersionsStub        func(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, db.MissingInputReasons, error)
 	getNextInputVersionsMutex       sync.RWMutex
 	getNextInputVersionsArgsForCall []struct {
 		versions *algorithm.VersionsDB
@@ -74,7 +74,8 @@ type FakePipelineDB struct {
 	getNextInputVersionsReturns struct {
 		result1 []db.BuildInput
 		result2 bool
-		result3 error
+		result3 db.MissingInputReasons
+		result4 error
 	}
 	UseInputsForBuildStub        func(buildID int, inputs []db.BuildInput) error
 	useInputsForBuildMutex       sync.RWMutex
@@ -329,7 +330,7 @@ func (fake *FakePipelineDB) LoadVersionsDBReturns(result1 *algorithm.VersionsDB,
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetNextInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, error) {
+func (fake *FakePipelineDB) GetNextInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]db.BuildInput, bool, db.MissingInputReasons, error) {
 	fake.getNextInputVersionsMutex.Lock()
 	fake.getNextInputVersionsArgsForCall = append(fake.getNextInputVersionsArgsForCall, struct {
 		versions *algorithm.VersionsDB
@@ -340,7 +341,7 @@ func (fake *FakePipelineDB) GetNextInputVersions(versions *algorithm.VersionsDB,
 	if fake.GetNextInputVersionsStub != nil {
 		return fake.GetNextInputVersionsStub(versions, job, inputs)
 	} else {
-		return fake.getNextInputVersionsReturns.result1, fake.getNextInputVersionsReturns.result2, fake.getNextInputVersionsReturns.result3
+		return fake.getNextInputVersionsReturns.result1, fake.getNextInputVersionsReturns.result2, fake.getNextInputVersionsReturns.result3, fake.getNextInputVersionsReturns.result4
 	}
 }
 
@@ -356,13 +357,14 @@ func (fake *FakePipelineDB) GetNextInputVersionsArgsForCall(i int) (*algorithm.V
 	return fake.getNextInputVersionsArgsForCall[i].versions, fake.getNextInputVersionsArgsForCall[i].job, fake.getNextInputVersionsArgsForCall[i].inputs
 }
 
-func (fake *FakePipelineDB) GetNextInputVersionsReturns(result1 []db.BuildInput, result2 bool, result3 error) {
+func (fake *FakePipelineDB) GetNextInputVersionsReturns(result1 []db.BuildInput, result2 bool, result3 db.MissingInputReasons, result4 error) {
 	fake.GetNextInputVersionsStub = nil
 	fake.getNextInputVersionsReturns = struct {
 		result1 []db.BuildInput
 		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result3 db.MissingInputReasons
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
 func (fake *FakePipelineDB) UseInputsForBuild(buildID int, inputs []db.BuildInput) error {

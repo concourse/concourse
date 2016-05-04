@@ -40,10 +40,10 @@ type FakeVolume struct {
 	setPropertyReturns struct {
 		result1 error
 	}
-	StreamInStub        func(handle string, tarStream io.Reader) error
+	StreamInStub        func(path string, tarStream io.Reader) error
 	streamInMutex       sync.RWMutex
 	streamInArgsForCall []struct {
-		handle    string
+		path      string
 		tarStream io.Reader
 	}
 	streamInReturns struct {
@@ -194,15 +194,15 @@ func (fake *FakeVolume) SetPropertyReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeVolume) StreamIn(handle string, tarStream io.Reader) error {
+func (fake *FakeVolume) StreamIn(path string, tarStream io.Reader) error {
 	fake.streamInMutex.Lock()
 	fake.streamInArgsForCall = append(fake.streamInArgsForCall, struct {
-		handle    string
+		path      string
 		tarStream io.Reader
-	}{handle, tarStream})
+	}{path, tarStream})
 	fake.streamInMutex.Unlock()
 	if fake.StreamInStub != nil {
-		return fake.StreamInStub(handle, tarStream)
+		return fake.StreamInStub(path, tarStream)
 	} else {
 		return fake.streamInReturns.result1
 	}
@@ -217,7 +217,7 @@ func (fake *FakeVolume) StreamInCallCount() int {
 func (fake *FakeVolume) StreamInArgsForCall(i int) (string, io.Reader) {
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
-	return fake.streamInArgsForCall[i].handle, fake.streamInArgsForCall[i].tarStream
+	return fake.streamInArgsForCall[i].path, fake.streamInArgsForCall[i].tarStream
 }
 
 func (fake *FakeVolume) StreamInReturns(result1 error) {

@@ -372,12 +372,12 @@ viewBuildPrep prep =
         , Html.div []
             [ Html.ul [class "prep-status-list"]
                 (
-                    [ viewBuildPrepLi "checking pipeline is not paused" prep.pausedPipeline
-                    , viewBuildPrepLi "checking job is not paused" prep.pausedJob
+                    [ viewBuildPrepLi "checking pipeline is not paused" prep.pausedPipeline Dict.empty
+                    , viewBuildPrepLi "checking job is not paused" prep.pausedJob Dict.empty
                     ] ++
                     (viewBuildPrepInputs prep.inputs) ++
-                    [ viewBuildPrepLi "waiting for a suitable set of input versions" prep.inputsSatisfied
-                    , viewBuildPrepLi "checking max-in-flight is not reached" prep.maxRunningBuilds
+                    [ viewBuildPrepLi "waiting for a suitable set of input versions" prep.inputsSatisfied prep.missingInputReasons
+                    , viewBuildPrepLi "checking max-in-flight is not reached" prep.maxRunningBuilds Dict.empty
                     ]
                 )
             ]
@@ -391,10 +391,20 @@ viewBuildPrepInputs inputs =
 
 viewBuildPrepInput : (String, BuildPrepStatus) -> Html
 viewBuildPrepInput (name, status) =
-  viewBuildPrepLi ("discovering any new versions of " ++ name) status
+  viewBuildPrepLi ("discovering any new versions of " ++ name) status Dict.empty
 
-viewBuildPrepLi : String -> BuildPrepStatus -> Html
-viewBuildPrepLi text status =
+viewBuildPrepDetails : Dict String String -> Html
+viewBuildPrepDetails details =
+  Html.ul [class "details"]
+    (List.map (viewDetailItem) (Dict.toList details))
+
+viewDetailItem : (String, String) -> Html
+viewDetailItem (name, status) =
+    Html.li []
+      [Html.text (name ++ " - " ++ status)]
+
+viewBuildPrepLi : String -> BuildPrepStatus -> Dict String String -> Html
+viewBuildPrepLi text status details =
   Html.li
     [ classList [
         ("prep-status", True),
@@ -405,6 +415,8 @@ viewBuildPrepLi text status =
         [ viewBuildPrepStatus status ]
     , Html.span []
         [ Html.text text ]
+    ,
+      (viewBuildPrepDetails details)
     ]
 
 viewBuildPrepStatus : BuildPrepStatus -> Html
@@ -418,7 +430,7 @@ viewBuildHeader : Signal.Address Action -> Build -> Model -> Html
 viewBuildHeader actions build {status, now, duration, history, job} =
   let
     triggerButton =
-      case build.job of
+      case job of
         Just {name, pipelineName} ->
           let
             actionUrl = "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name ++ "/builds"
