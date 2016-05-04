@@ -1,6 +1,7 @@
 package flying_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -114,7 +115,13 @@ cat < /tmp/fifo
 
 			hijack := exec.Command(flyBin, "-t", targetedConcourse, "hijack", "-b", buildID, "-s", "one-off", "--", "sh", "-c", "echo marco > /tmp/fifo")
 
+			hijackIn, err := hijack.StdinPipe()
+			Expect(err).NotTo(HaveOccurred())
+
 			hijackS := helpers.StartFly(hijack)
+
+			Eventually(flyS).Should(gbytes.Say("3: .+ type: task"))
+			fmt.Fprintln(hijackIn, "3")
 
 			Eventually(flyS).Should(gbytes.Say("marco"))
 
