@@ -47,6 +47,10 @@ exit 0
 			[]byte(`---
 platform: linux
 
+image_resource:
+  type: docker-image
+  source: {repository: busybox}
+
 inputs:
 - name: fixture
 
