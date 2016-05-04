@@ -115,7 +115,7 @@ $CONCOURSE worker \
   --work-dir /etc/concourse \
   --tsa-worker-private-key /etc/concourse/worker \
   --tsa-public-key /etc/concourse/tsa-host.pub \
-  -- -networkPool 10.255.0.0/22 \
+  --garden-network-pool 10.255.0.0/22 \
   > /tmp/worker.log \
   &
 
