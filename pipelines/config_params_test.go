@@ -28,6 +28,9 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 		BeforeEach(func() {
 			taskFileContents := `---
 platform: linux
+image_resource:
+  type: docker-image
+  source: {repository: busybox}
 run:
   path: sh
   args: ["-c", "printenv SOURCE_PARAM"]

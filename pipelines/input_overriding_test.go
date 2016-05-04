@@ -48,6 +48,9 @@ var _ = Describe("A job with multiple inputs", func() {
 			filepath.Join(tmpdir, "task.yml"),
 			[]byte(`---
 platform: linux
+image_resource:
+  type: docker-image
+  source: {repository: busybox}
 inputs:
 - name: git-repo-a
 - name: git-repo-b
