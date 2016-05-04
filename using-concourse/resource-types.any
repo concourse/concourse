@@ -115,6 +115,8 @@ before using it!
     \hyperlink{https://github.com/redfactorlabs/concourse-smuggler-resource}{Smuggler: generic resource framework}
   }{
     \hyperlink{https://github.com/dpb587/github-status-resource}{GitHub Commit Status}
+  }{
+    \hyperlink{https://github.com/Orange-OpenSource/travis-resource}{Travis-ci}
   }
 
   \section{Adding to this list}{
