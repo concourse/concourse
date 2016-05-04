@@ -78,6 +78,10 @@ func pushMainPipeline() {
 						Task: "some-task",
 						TaskConfig: &atc.TaskConfig{
 							Platform: "linux",
+							ImageResource: &atc.ImageResource{
+								Type:   "docker-image",
+								Source: atc.Source{"repository": "busybox"},
+							},
 							Run: atc.TaskRunConfig{
 								Path: "sh",
 								Args: []string{"-c", "sleep 30 && echo public job info"},
@@ -94,6 +98,10 @@ func pushMainPipeline() {
 						Task: "some-task",
 						TaskConfig: &atc.TaskConfig{
 							Platform: "linux",
+							ImageResource: &atc.ImageResource{
+								Type:   "docker-image",
+								Source: atc.Source{"repository": "busybox"},
+							},
 							Run: atc.TaskRunConfig{
 								Path: "echo",
 								Args: []string{"private job info"},
