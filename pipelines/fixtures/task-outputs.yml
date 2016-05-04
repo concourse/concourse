@@ -14,6 +14,9 @@ jobs:
   - task: output-producer
     config:
       platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
       inputs:
       - name: git-repo
       outputs:
@@ -31,6 +34,9 @@ jobs:
   - task: find-files
     config:
       platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
       inputs:
       - name: git-repo
       - name: output-1

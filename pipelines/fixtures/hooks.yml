@@ -82,6 +82,9 @@ jobs:
       - task: fail
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           inputs:
             - name: some-git-resource
           run:
@@ -109,6 +112,9 @@ jobs:
       - task: ensure
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           inputs:
             - name: some-git-resource
           run:

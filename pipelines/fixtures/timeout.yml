@@ -15,6 +15,9 @@ jobs:
         timeout: 10s
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           run:
             path: sh
             args: ["-c", "echo passing-task succeeded"]
@@ -27,6 +30,9 @@ jobs:
         timeout: 5s
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           run:
             path: sh
             args: ["-c", "sleep 10"]

@@ -22,6 +22,9 @@ jobs:
       - task: cat-files
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           inputs:
             - name: git-repo-a
             - name: git-repo-b
