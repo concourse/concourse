@@ -95,7 +95,6 @@ func Start(client concourse.Client) *Server {
 		Strategy: baggageclaim.ImportStrategy{
 			Path: rootfsPath,
 		},
-		Privileged: true,
 	})
 	Expect(err).NotTo(HaveOccurred())
 

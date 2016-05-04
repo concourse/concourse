@@ -73,7 +73,6 @@ func Start(client concourse.Client) *Server {
 		Strategy: baggageclaim.ImportStrategy{
 			Path: gitServerRootfs,
 		},
-		Privileged: true,
 	})
 	Expect(err).NotTo(HaveOccurred())
 

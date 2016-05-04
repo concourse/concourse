@@ -11,6 +11,9 @@ var _ = Describe("A job with a task using an image within the plan", func() {
 		configurePipeline(
 			"-c", "fixtures/image-artifact.yml",
 		)
+		
+		workers, err := client.ListWorkers()
+		Expect(err).NotTo(HaveOccurred())
 
 		var hasTaggedWorker bool
 	dance:

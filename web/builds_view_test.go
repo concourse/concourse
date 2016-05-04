@@ -6,11 +6,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/testflight/gitserver"
-	"github.com/pivotal-golang/lager/lagertest"
-
-	"github.com/cloudfoundry-incubator/garden"
-	gclient "github.com/cloudfoundry-incubator/garden/client"
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,43 +19,10 @@ var _ = Describe("BuildsView", func() {
 		var originGitServer *gitserver.Server
 
 		BeforeEach(func() {
-			workers, err := client.ListWorkers()
-			Expect(err).NotTo(HaveOccurred())
-
-			logger := lagertest.NewTestLogger("testflight")
-			gLog := logger.Session("garden-connection")
-
-			var gitServerRootfs string
-			var gardenClient garden.Client
-
-			for _, w := range workers {
-				if len(w.Tags) > 0 {
-					continue
-				}
-
-				for _, r := range w.ResourceTypes {
-					if r.Type == "git" {
-						gitServerRootfs = r.Image
-						gardenClient = gclient.New(gconn.NewWithLogger("tcp", w.GardenAddr, gLog))
-						break
-					}
-				}
-
-				if gardenClient != nil {
-					break
-				}
-			}
-
-			if gitServerRootfs == "" {
-				Fail("must have at least one worker with git resource")
-			}
-
-			Eventually(gardenClient.Ping).Should(Succeed())
-
-			originGitServer = gitserver.Start(gitServerRootfs, gardenClient)
+			originGitServer = gitserver.Start(client)
 			originGitServer.CommitResource()
 
-			_, _, _, err = client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
