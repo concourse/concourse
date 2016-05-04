@@ -63,6 +63,7 @@ var _ = Describe("the quality of being authenticated", func() {
 		defer stdin.Close()
 
 		session := helpers.StartFly(fly)
+		fmt.Fprint(stdin, "1\n")
 
 		fmt.Fprint(stdin, "exit\n")
 
