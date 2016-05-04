@@ -32,7 +32,9 @@ var _ = DescribeTable("Input resolving",
 			OK: true,
 			Values: map[string]string{
 				"resource-x": "rxv1",
-			}},
+			},
+			MissingInputReasons: map[string]string{},
+		},
 	}),
 
 	Entry("propagates resources together", Example{
@@ -54,6 +56,7 @@ var _ = DescribeTable("Input resolving",
 				"resource-x": "rxv1",
 				"resource-y": "ryv1",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -83,6 +86,23 @@ var _ = DescribeTable("Input resolving",
 				// not ryv2, as it didn't make it through build relating simple-a to fan-in
 				"resource-y": "ryv1",
 			},
+			MissingInputReasons: map[string]string{},
+		},
+	}),
+
+	Entry("does not resolve a resource when it does not have any versions", Example{
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Version:  Version{Pinned: "rxv2"},
+			},
+		},
+
+		Result: Result{
+			OK:                  false,
+			Values:              map[string]string{},
+			MissingInputReasons: map[string]string{"resource-x": "no versions available"},
 		},
 	}),
 
@@ -121,6 +141,7 @@ var _ = DescribeTable("Input resolving",
 				"resource-x": "rxv3",
 				"resource-y": "ryv3",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -144,6 +165,7 @@ var _ = DescribeTable("Input resolving",
 				"simple-a-resource-x": "rxv1",
 				"simple-b-resource-x": "rxv2",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -176,6 +198,7 @@ var _ = DescribeTable("Input resolving",
 				"input-1": "r1-common-to-shared-and-j1",
 				"input-2": "r2-common-to-shared-and-j2",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -212,6 +235,7 @@ var _ = DescribeTable("Input resolving",
 				"input-1": "r1-common-to-shared-and-j1",
 				"input-2": "r2-common-to-shared-and-j2",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -262,6 +286,48 @@ var _ = DescribeTable("Input resolving",
 				"resource-x-unconstrained": "rxv5",
 				"resource-y-unconstrained": "ryv5",
 			},
+			MissingInputReasons: map[string]string{},
+		},
+	}),
+
+	Entry("returns a missing input reason when no input version satisfies the passed constraint", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: CurrentJobName, BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: CurrentJobName, BuildID: 1, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+			},
+
+			BuildOutputs: []DBRow{
+				{Job: "simple-a", BuildID: 1, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "simple-a", BuildID: 2, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Passed:   []string{"simple-a", "simple-b"},
+			},
+			{
+				Name:     "resource-y",
+				Resource: "resource-y",
+				Passed:   []string{"simple-a", "simple-b"},
+			},
+		},
+
+		// only one reason since skipping algorithm if resource does not satisfy passed constraints by itself
+		Result: Result{
+			OK:     false,
+			Values: map[string]string{},
+			MissingInputReasons: map[string]string{
+				"resource-x": "no versions satisfy passed constraints",
+			},
 		},
 	}),
 
@@ -292,6 +358,7 @@ var _ = DescribeTable("Input resolving",
 			Values: map[string]string{
 				"resource-x": "rxv2",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -324,6 +391,7 @@ var _ = DescribeTable("Input resolving",
 				"resource-x": "rxv2",
 				"resource-y": "ryv1",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -358,6 +426,7 @@ var _ = DescribeTable("Input resolving",
 			Values: map[string]string{
 				"resource-x": "rxv2",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -408,6 +477,7 @@ var _ = DescribeTable("Input resolving",
 				"resource-x": "rxv2",
 				"resource-y": "ryv1",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -440,6 +510,7 @@ var _ = DescribeTable("Input resolving",
 			Values: map[string]string{
 				"resource-x": "rxv3",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -499,6 +570,47 @@ var _ = DescribeTable("Input resolving",
 				"resource-x": "rxv3",
 				"resource-y": "ryv1",
 			},
+			MissingInputReasons: map[string]string{},
+		},
+	}),
+
+	Entry("returns a missing input reason when no input version satisfies the shared passed constraints", Example{
+		DB: DB{
+			BuildOutputs: []DBRow{
+				{Job: "shared-job", BuildID: 1, Resource: "resource-1", Version: "r1-common-to-shared-and-j1", CheckOrder: 1},
+				{Job: "shared-job", BuildID: 1, Resource: "resource-2", Version: "r2-common-to-shared-and-j2", CheckOrder: 1},
+
+				// resource-1 did not pass job-2 with r1-common-to-shared-and-j1
+				{Job: "job-2", BuildID: 3, Resource: "resource-2", Version: "r2-common-to-shared-and-j2", CheckOrder: 1},
+
+				{Job: "shared-job", BuildID: 4, Resource: "resource-1", Version: "new-r1-common-to-shared-and-j1", CheckOrder: 2},
+				{Job: "shared-job", BuildID: 4, Resource: "resource-2", Version: "new-r2-common-to-shared-and-j2", CheckOrder: 2},
+
+				// resource-2 did not pass job-1 with new-r2-common-to-shared-and-j2
+				{Job: "job-1", BuildID: 5, Resource: "resource-1", Version: "new-r1-common-to-shared-and-j1", CheckOrder: 2},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "input-1",
+				Resource: "resource-1",
+				Passed:   []string{"shared-job", "job-1"},
+			},
+			{
+				Name:     "input-2",
+				Resource: "resource-2",
+				Passed:   []string{"shared-job", "job-2"},
+			},
+		},
+
+		Result: Result{
+			OK:     false,
+			Values: map[string]string{},
+			MissingInputReasons: map[string]string{
+				"input-1": "no versions satisfy passed constraints",
+				"input-2": "no versions satisfy passed constraints",
+			},
 		},
 	}),
 
@@ -525,10 +637,11 @@ var _ = DescribeTable("Input resolving",
 			Values: map[string]string{
 				"resource-x": "rxv2",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
-	Entry("does not resolve a version when the pinned version does not exist", Example{
+	Entry("does not resolve a version when the pinned version is not in Versions DB (version is disabled or no builds succeeded)", Example{
 		DB: DB{
 			Resources: []DBRow{
 				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
@@ -547,8 +660,9 @@ var _ = DescribeTable("Input resolving",
 		},
 
 		Result: Result{
-			OK:     false,
-			Values: map[string]string{},
+			OK:                  false,
+			Values:              map[string]string{},
+			MissingInputReasons: map[string]string{"resource-x": "no versions satisfy passed constraints"},
 		},
 	}),
 
@@ -572,8 +686,9 @@ var _ = DescribeTable("Input resolving",
 		},
 
 		Result: Result{
-			OK:     false,
-			Values: map[string]string{},
+			OK:                  false,
+			Values:              map[string]string{},
+			MissingInputReasons: map[string]string{"resource-x": "no versions satisfy passed constraints"},
 		},
 	}),
 
@@ -594,6 +709,7 @@ var _ = DescribeTable("Input resolving",
 			Values: map[string]string{
 				"resource-x": "rxv2",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -624,6 +740,7 @@ var _ = DescribeTable("Input resolving",
 				"bosh-src":        "imported-r88v9814",
 				"bosh-load-tests": "imported-r89v7204",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 
@@ -689,6 +806,7 @@ var _ = DescribeTable("Input resolving",
 				"version":              "imported-r12v448884",
 				"concourse":            "imported-r62v448881",
 			},
+			MissingInputReasons: map[string]string{},
 		},
 	}),
 )

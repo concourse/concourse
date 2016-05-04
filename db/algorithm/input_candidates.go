@@ -75,40 +75,39 @@ func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping Input
 				inputCandidates.VersionCandidates = limitedToVersion
 				newInputCandidates[i] = inputCandidates
 
-				mapping, ok, missingInputReasons := newInputCandidates.reduce(jobs, lastSatisfiedMapping)
+				// as we reduce we only care about final missing input reasons
+				mapping, ok, _ := newInputCandidates.reduce(jobs, lastSatisfiedMapping)
 				if ok {
 					lastSatisfiedMapping = mapping
 					if !usingEveryVersion || buildForPreviousOrCurrentVersionExists() {
-						return mapping, true, missingInputReasons
+						return mapping, true, MissingInputReasons{}
 					}
 				} else {
 					if usingEveryVersion && (lastSatisfiedMapping != nil || buildForPreviousOrCurrentVersionExists()) {
-						return lastSatisfiedMapping, true, missingInputReasons
+						return lastSatisfiedMapping, true, MissingInputReasons{}
 					}
 				}
 
 				newInputCandidates[i] = inputVersionCandidates
 			}
 		}
-
 	}
 
 	mapping := InputMapping{}
 	missingInputReasons := MissingInputReasons{}
+
 	for _, inputVersionCandidates := range newInputCandidates {
 		versionIDs := inputVersionCandidates.VersionIDs()
-		if len(versionIDs) != 1 {
-			// could not reduce
-			return nil, false, missingInputReasons
-		}
 
-		jobIDs := inputVersionCandidates.JobIDs()
-		if !jobIDs.Equal(inputVersionCandidates.Passed) {
-			// did not satisfy all passed constraints
-			return nil, false, missingInputReasons
+		if len(versionIDs) != 1 || !inputVersionCandidates.JobIDs().Equal(inputVersionCandidates.Passed) {
+			missingInputReasons.RegisterPassedConstraint(inputVersionCandidates.Input)
+		} else {
+			mapping[inputVersionCandidates.Input] = versionIDs[0]
 		}
+	}
 
-		mapping[inputVersionCandidates.Input] = versionIDs[0]
+	if len(missingInputReasons) > 0 {
+		return nil, false, missingInputReasons
 	}
 
 	return mapping, true, missingInputReasons

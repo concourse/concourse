@@ -19,8 +19,6 @@ type InputConfig struct {
 	JobID           int
 }
 
-type MissingInputReasons map[string]string
-
 func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool, MissingInputReasons) {
 	jobs := JobSet{}
 	inputCandidates := InputCandidates{}
@@ -31,6 +29,11 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool, Missing
 
 		if len(inputConfig.Passed) == 0 {
 			versionCandidates = db.AllVersionsForResource(inputConfig.ResourceID)
+
+			if len(versionCandidates) == 0 {
+				missingInputReasons.RegisterNoVersions(inputConfig.Name)
+				return nil, false, missingInputReasons
+			}
 		} else {
 			jobs = jobs.Union(inputConfig.Passed)
 
@@ -38,11 +41,11 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool, Missing
 				inputConfig.ResourceID,
 				inputConfig.Passed,
 			)
-		}
 
-		if len(versionCandidates) == 0 {
-			missingInputReasons[inputConfig.Name] = "no versions available"
-			return nil, false, missingInputReasons
+			if len(versionCandidates) == 0 {
+				missingInputReasons.RegisterPassedConstraint(inputConfig.Name)
+				return nil, false, missingInputReasons
+			}
 		}
 
 		existingBuildResolver := &ExistingBuildResolver{

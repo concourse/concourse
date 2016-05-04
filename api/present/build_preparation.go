@@ -19,6 +19,6 @@ func BuildPreparation(preparation db.BuildPreparation) atc.BuildPreparation {
 		MaxRunningBuilds:    atc.BuildPreparationStatus(preparation.MaxRunningBuilds),
 		Inputs:              inputs,
 		InputsSatisfied:     atc.BuildPreparationStatus(preparation.InputsSatisfied),
-		MissingInputReasons: preparation.MissingInputReasons,
+		MissingInputReasons: atc.MissingInputReasons(preparation.MissingInputReasons),
 	}
 }

@@ -959,7 +959,12 @@ var _ = Describe("PipelineDB", func() {
 			It("returns not found when the pinned version cannot be found", func() {
 				jobBuildInputs := []config.JobInput{
 					{
-						Name:     "some-input-name",
+						Name:     "some-input-1",
+						Resource: resource.Name,
+						Version:  &atc.VersionConfig{Pinned: atc.Version{"version": "1"}},
+					},
+					{
+						Name:     "some-input-2",
 						Resource: resource.Name,
 						Version:  &atc.VersionConfig{Pinned: atc.Version{"version": "2"}},
 					},
@@ -969,7 +974,8 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(reasons).To(Equal(db.MissingInputReasons{
-					"some-input-name": `pinned version {"version":"2"} is not available`,
+					"some-input-1": `pinned version {"version":"1"} is not available`,
+					"some-input-2": `pinned version {"version":"2"} is not available`,
 				}))
 			})
 
