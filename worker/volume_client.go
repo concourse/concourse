@@ -59,18 +59,13 @@ func (c *volumeClient) FindVolume(
 	if len(savedVolumes) > 1 {
 		for i := 1; i < len(savedVolumes); i++ {
 			handle := savedVolumes[i].Volume.Handle
-			c.expireVolume(logger, handle)
+			c.expireVolume(logger, handle) // note that we are ignoring the error here
 		}
 	}
 
 	savedVolume := savedVolumes[0]
 
-	volume, found, err := c.LookupVolume(logger, savedVolume.Handle)
-	if !found {
-		c.db.ReapVolume(savedVolume.Handle)
-	}
-
-	return volume, found, err
+	return c.LookupVolume(logger, savedVolume.Handle)
 }
 
 func (c *volumeClient) CreateVolume(
@@ -159,6 +154,12 @@ func (c *volumeClient) LookupVolume(logger lager.Logger, handle string) (Volume,
 	}
 
 	if !found {
+		err = c.db.ReapVolume(handle)
+		if err != nil {
+			logger.Error("failed-to-reap-volume", err)
+			return nil, false, err
+		}
+
 		return nil, false, nil
 	}
 
