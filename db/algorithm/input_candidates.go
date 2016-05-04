@@ -39,11 +39,11 @@ func (candidates InputCandidates) String() string {
 	return fmt.Sprintf("[%s]", strings.Join(lens, "; "))
 }
 
-func (candidates InputCandidates) Reduce(jobs JobSet) (InputMapping, bool) {
+func (candidates InputCandidates) Reduce(jobs JobSet) (InputMapping, bool, MissingInputReasons) {
 	return candidates.reduce(jobs, nil)
 }
 
-func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping InputMapping) (InputMapping, bool) {
+func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping InputMapping) (InputMapping, bool, MissingInputReasons) {
 	newInputCandidates := candidates.pruneToCommonBuilds(jobs)
 
 	for i, inputVersionCandidates := range newInputCandidates {
@@ -75,15 +75,15 @@ func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping Input
 				inputCandidates.VersionCandidates = limitedToVersion
 				newInputCandidates[i] = inputCandidates
 
-				mapping, ok := newInputCandidates.reduce(jobs, lastSatisfiedMapping)
+				mapping, ok, missingInputReasons := newInputCandidates.reduce(jobs, lastSatisfiedMapping)
 				if ok {
 					lastSatisfiedMapping = mapping
 					if !usingEveryVersion || buildForPreviousOrCurrentVersionExists() {
-						return mapping, true
+						return mapping, true, missingInputReasons
 					}
 				} else {
 					if usingEveryVersion && (lastSatisfiedMapping != nil || buildForPreviousOrCurrentVersionExists()) {
-						return lastSatisfiedMapping, true
+						return lastSatisfiedMapping, true, missingInputReasons
 					}
 				}
 
@@ -94,23 +94,24 @@ func (candidates InputCandidates) reduce(jobs JobSet, lastSatisfiedMapping Input
 	}
 
 	mapping := InputMapping{}
+	missingInputReasons := MissingInputReasons{}
 	for _, inputVersionCandidates := range newInputCandidates {
 		versionIDs := inputVersionCandidates.VersionIDs()
 		if len(versionIDs) != 1 {
 			// could not reduce
-			return nil, false
+			return nil, false, missingInputReasons
 		}
 
 		jobIDs := inputVersionCandidates.JobIDs()
 		if !jobIDs.Equal(inputVersionCandidates.Passed) {
 			// did not satisfy all passed constraints
-			return nil, false
+			return nil, false, missingInputReasons
 		}
 
 		mapping[inputVersionCandidates.Input] = versionIDs[0]
 	}
 
-	return mapping, true
+	return mapping, true, missingInputReasons
 }
 
 func (candidates InputCandidates) pruneToCommonBuilds(jobs JobSet) InputCandidates {

@@ -972,6 +972,35 @@ var _ = Describe("PipelineDB", func() {
 					"some-input-name": `pinned version {"version":"2"} is not available`,
 				}))
 			})
+
+			It("returns a missing reason when resolving inputs fails due to no versions available for input", func() {
+				err := pipelineDB.SaveResourceVersions(atc.ResourceConfig{
+					Name:   resource.Name,
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				}, []atc.Version{{"version": "1"}})
+				Expect(err).NotTo(HaveOccurred())
+
+				savedVR, found, err := pipelineDB.GetLatestEnabledVersionedResource(resource.Name)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				pipelineDB.DisableVersionedResource(savedVR.ID)
+
+				jobBuildInputs := []config.JobInput{
+					{
+						Name:     "some-input-name",
+						Resource: resource.Name,
+					},
+				}
+
+				_, found, reasons, err := loadAndGetNextInputVersions("some-job", jobBuildInputs)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(reasons).To(Equal(db.MissingInputReasons{
+					"some-input-name": "no versions available",
+				}))
+			})
 		})
 
 		It("can load up the latest enabled versioned resource", func() {

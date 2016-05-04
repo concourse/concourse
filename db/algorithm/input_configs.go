@@ -19,9 +19,13 @@ type InputConfig struct {
 	JobID           int
 }
 
-func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
+type MissingInputReasons map[string]string
+
+func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool, MissingInputReasons) {
 	jobs := JobSet{}
 	inputCandidates := InputCandidates{}
+	missingInputReasons := MissingInputReasons{}
+
 	for _, inputConfig := range configs {
 		versionCandidates := VersionCandidates{}
 
@@ -37,7 +41,8 @@ func (configs InputConfigs) Resolve(db *VersionsDB) (InputMapping, bool) {
 		}
 
 		if len(versionCandidates) == 0 {
-			return nil, false
+			missingInputReasons[inputConfig.Name] = "no versions available"
+			return nil, false, missingInputReasons
 		}
 
 		existingBuildResolver := &ExistingBuildResolver{

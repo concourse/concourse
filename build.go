@@ -49,6 +49,8 @@ const (
 	BuildPreparationStatusNotBlocking BuildPreparationStatus = "not_blocking"
 )
 
+type MissingInputReasons map[string]string
+
 type BuildPreparation struct {
 	BuildID             int                               `json:"build_id"`
 	PausedPipeline      BuildPreparationStatus            `json:"paused_pipeline"`

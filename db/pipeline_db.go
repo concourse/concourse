@@ -1900,8 +1900,11 @@ func (pdb *pipelineDB) GetNextInputVersions(db *algorithm.VersionsDB, jobName st
 		})
 	}
 
-	resolved, ok := inputConfigs.Resolve(db)
+	resolved, ok, reasons := inputConfigs.Resolve(db)
 	if !ok {
+		for k, v := range reasons {
+			missingInputReasons[k] = v
+		}
 		return nil, false, missingInputReasons, nil
 	}
 
