@@ -33,6 +33,12 @@ decodeStatus =
       "not_blocking" -> Ok NotBlocking
       unknown -> Err ("unknown build preparation status: " ++ unknown)
 
+replaceMaybeWithEmptyDict : Maybe (Dict a b) -> Dict a b
+replaceMaybeWithEmptyDict maybeDict =
+    case maybeDict of
+      Just dict -> dict
+      Nothing -> Dict.empty
+
 decode : Json.Decode.Decoder BuildPrep
 decode =
   Json.Decode.object6 BuildPrep
@@ -41,4 +47,4 @@ decode =
     ("max_running_builds" := decodeStatus)
     ("inputs" := Json.Decode.dict decodeStatus)
     ("inputs_satisfied" := decodeStatus)
-    ("missing_input_reasons" := Json.Decode.dict Json.Decode.string)
+    (Json.Decode.map replaceMaybeWithEmptyDict (Json.Decode.maybe ("missing_input_reasons" := Json.Decode.dict Json.Decode.string)))
