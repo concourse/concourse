@@ -1,11 +1,14 @@
 package worker
 
 import (
+	"archive/tar"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -21,6 +24,14 @@ var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 var ErrIncompatiblePlatform = errors.New("incompatible platform")
 var ErrMismatchedTags = errors.New("mismatched tags")
 var ErrNoVolumeManager = errors.New("worker does not support volume management")
+
+type MalformedMetadataError struct {
+	UnmarshalError error
+}
+
+func (err MalformedMetadataError) Error() string {
+	return fmt.Sprintf("malformed image metadata: %s", err.UnmarshalError)
+}
 
 const containerKeepalive = 30 * time.Second
 const ContainerTTL = 5 * time.Minute
@@ -156,7 +167,8 @@ func (worker *gardenWorker) getImage(
 	id Identifier,
 	metadata Metadata,
 	resourceTypes atc.ResourceTypes,
-) (Image, error) {
+) (Volume, ImageMetadata, atc.Version, string, error) {
+	// convert custom resource type from pipeline config into image_resource
 	updatedResourceTypes := resourceTypes
 	imageResource := imageSpec.ImageResource
 	for _, resourceType := range resourceTypes {
@@ -169,8 +181,9 @@ func (worker *gardenWorker) getImage(
 		}
 	}
 
+	// 'image_resource:' in task
 	if imageResource != nil {
-		return worker.imageFetcher.FetchImage(
+		volume, reader, version, err := worker.imageFetcher.FetchImage(
 			logger,
 			*imageResource,
 			cancel,
@@ -182,45 +195,35 @@ func (worker *gardenWorker) getImage(
 			updatedResourceTypes,
 			imageSpec.Privileged,
 		)
+		if err != nil {
+			return nil, ImageMetadata{}, nil, "", err
+		}
+
+		metadata, err := loadMetadata(reader)
+		if err != nil {
+			return nil, ImageMetadata{}, nil, "", err
+		}
+
+		imageURL := url.URL{
+			Scheme: RawRootFSScheme,
+			Path:   path.Join(volume.Path(), "rootfs"),
+		}
+
+		return volume, metadata, version, imageURL.String(), nil
 	}
 
+	// built-in resource type specified in step
 	if imageSpec.ResourceType != "" {
 		rootFSURL, volume, err := worker.getBuiltInResourceTypeImage(logger, imageSpec.ResourceType)
 		if err != nil {
-			return nil, err
+			return nil, ImageMetadata{}, nil, "", err
 		}
 
-		return &dummyImage{url: rootFSURL, volume: volume}, nil
+		return volume, ImageMetadata{}, nil, rootFSURL, nil
 	}
 
-	return &dummyImage{url: imageSpec.ImageURL, volume: nil}, nil
-}
-
-type dummyImage struct {
-	url    string
-	volume Volume
-}
-
-func (im *dummyImage) URL() string {
-	return im.url
-}
-
-func (im *dummyImage) Volume() Volume {
-	return im.volume
-}
-
-func (im *dummyImage) Release(ttl *time.Duration) {
-	if im.volume != nil {
-		im.volume.Release(ttl)
-	}
-}
-
-func (im *dummyImage) Metadata() ImageMetadata {
-	return ImageMetadata{}
-}
-
-func (im *dummyImage) Version() atc.Version {
-	return nil
+	// 'image:' in task
+	return nil, ImageMetadata{}, nil, imageSpec.ImageURL, nil
 }
 
 func (worker *gardenWorker) getBuiltInResourceTypeImage(
@@ -273,6 +276,26 @@ func (worker *gardenWorker) getBuiltInResourceTypeImage(
 	return "", nil, ErrUnsupportedResourceType
 }
 
+func loadMetadata(reader io.ReadCloser) (ImageMetadata, error) {
+	defer reader.Close()
+
+	tarReader := tar.NewReader(reader)
+
+	_, err := tarReader.Next()
+	if err != nil {
+		return ImageMetadata{}, errors.New("could not read file from tar")
+	}
+
+	var imageMetadata ImageMetadata
+	if err = json.NewDecoder(tarReader).Decode(&imageMetadata); err != nil {
+		return ImageMetadata{}, MalformedMetadataError{
+			UnmarshalError: err,
+		}
+	}
+
+	return imageMetadata, nil
+}
+
 func (worker *gardenWorker) CreateContainer(
 	logger lager.Logger,
 	cancel <-chan os.Signal,
@@ -282,7 +305,7 @@ func (worker *gardenWorker) CreateContainer(
 	spec ContainerSpec,
 	resourceTypes atc.ResourceTypes,
 ) (Container, error) {
-	image, err := worker.getImage(
+	imageVolume, imageMetadata, imageVersion, imageURL, err := worker.getImage(
 		logger,
 		spec.ImageSpec,
 		cancel,
@@ -294,10 +317,9 @@ func (worker *gardenWorker) CreateContainer(
 	if err != nil {
 		return nil, err
 	}
-
-	defer image.Release(nil)
-
-	id.ResourceTypeVersion = image.Version()
+	if imageVolume != nil {
+		defer imageVolume.Release(nil)
+	}
 
 	volumeMounts := spec.Outputs
 	for _, mount := range spec.Inputs {
@@ -338,11 +360,11 @@ func (worker *gardenWorker) CreateContainer(
 		volumeHandleMounts[mount.Volume.Handle()] = mount.MountPath
 	}
 
-	if image.Volume() != nil {
-		volumeHandles = append(volumeHandles, image.Volume().Handle())
+	if imageVolume != nil {
+		volumeHandles = append(volumeHandles, imageVolume.Handle())
 	}
 
-	gardenProperties := garden.Properties{userPropertyName: image.Metadata().User}
+	gardenProperties := garden.Properties{userPropertyName: imageMetadata.User}
 
 	if len(volumeHandles) > 0 {
 		volumesJSON, err := json.Marshal(volumeHandles)
@@ -364,7 +386,7 @@ func (worker *gardenWorker) CreateContainer(
 		gardenProperties[ephemeralPropertyName] = "true"
 	}
 
-	env := append(image.Metadata().Env, spec.Env...)
+	env := append(imageMetadata.Env, spec.Env...)
 
 	if worker.httpProxyURL != "" {
 		env = append(env, fmt.Sprintf("http_proxy=%s", worker.httpProxyURL))
@@ -382,7 +404,7 @@ func (worker *gardenWorker) CreateContainer(
 		BindMounts: bindMounts,
 		Privileged: spec.ImageSpec.Privileged,
 		Properties: gardenProperties,
-		RootFSPath: image.URL(),
+		RootFSPath: imageURL,
 		Env:        env,
 	}
 
@@ -395,7 +417,7 @@ func (worker *gardenWorker) CreateContainer(
 	metadata.Handle = gardenContainer.Handle()
 	metadata.User = gardenSpec.Properties["user"]
 
-	id.ResourceTypeVersion = image.Version()
+	id.ResourceTypeVersion = imageVersion
 
 	_, err = worker.db.CreateContainer(
 		db.Container{

@@ -1,9 +1,11 @@
 package worker_test
 
 import (
+	"archive/tar"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -17,6 +19,7 @@ import (
 	bfakes "github.com/concourse/baggageclaim/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-golang/clock/fakeclock"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -491,8 +494,11 @@ var _ = Describe("Worker", func() {
 		})
 
 		Context("when the spec specifies ImageResource", func() {
-			var image *wfakes.FakeImage
-			var imageURL string
+			var (
+				imageVolume  *wfakes.FakeVolume
+				imageVersion atc.Version
+			)
+
 			BeforeEach(func() {
 				containerMetadata.Type = db.ContainerTypeTask
 				containerSpec.ImageSpec.ImageResource = &atc.ImageResource{
@@ -500,25 +506,19 @@ var _ = Describe("Worker", func() {
 					Source: atc.Source{"some": "source"},
 				}
 
-				image = new(wfakes.FakeImage)
-
-				imageVolume := new(wfakes.FakeVolume)
+				imageVolume = new(wfakes.FakeVolume)
 				imageVolume.HandleReturns("image-volume")
 				imageVolume.PathReturns("/some/image/path")
 
-				imageURL = "some-url"
-				image.URLReturns(imageURL)
-				image.VolumeReturns(imageVolume)
-				image.MetadataReturns(ImageMetadata{
-					Env:  []string{"A=1", "B=2"},
-					User: "image-volume-user",
-				})
-				image.VersionReturns(atc.Version{"image": "version"})
+				metadataReader := tarStreamWith(
+					`{"env": ["A=1", "B=2"], "user":"image-volume-user"}`,
+				)
 
-				fakeImageFetcher.FetchImageReturns(image, nil)
+				imageVersion = atc.Version{"image": "version"}
+
+				fakeImageFetcher.FetchImageReturns(imageVolume, metadataReader, imageVersion, nil)
 
 				fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
-					Expect(image.ReleaseCallCount()).To(Equal(0))
 					fakeContainer := new(gfakes.FakeContainer)
 					fakeContainer.HandleReturns("some-container-handle")
 					return fakeContainer, nil
@@ -568,15 +568,10 @@ var _ = Describe("Worker", func() {
 				Expect(fetchPrivileged).To(Equal(true))
 			})
 
-			It("releases the image after creating the container", func() {
-				// see fakeGardenClient.CreateStub for the rest of this assertion
-				Expect(image.ReleaseCallCount()).To(Equal(1))
-			})
-
 			It("creates the container with the fetched image's URL as the rootfs", func() {
 				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 				actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-				Expect(actualGardenSpec.RootFSPath).To(Equal(imageURL))
+				Expect(actualGardenSpec.RootFSPath).To(Equal("raw:///some/image/path/rootfs"))
 			})
 
 			It("adds the image env to the garden spec", func() {
@@ -603,7 +598,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when fetching the image fails", func() {
 				BeforeEach(func() {
-					fakeImageFetcher.FetchImageReturns(nil, errors.New("fetch-err"))
+					fakeImageFetcher.FetchImageReturns(nil, nil, nil, errors.New("fetch-err"))
 				})
 
 				It("returns an error", func() {
@@ -611,10 +606,30 @@ var _ = Describe("Worker", func() {
 					Expect(createErr.Error()).To(Equal("fetch-err"))
 				})
 			})
+
+			It("releases the cow volume after attempting to create the container", func() {
+				Expect(imageVolume.ReleaseCallCount()).To(Equal(1))
+				Expect(imageVolume.ReleaseArgsForCall(0)).To(BeNil())
+			})
+
+			Context("when the metadata.json is bogus", func() {
+				BeforeEach(func() {
+					fakeImageFetcher.FetchImageReturns(imageVolume, tarStreamWith(`{"env": 42}`), imageVersion, nil)
+				})
+
+				It("returns ErrMalformedMetadata", func() {
+					Expect(createErr).To(BeAssignableToTypeOf(MalformedMetadataError{}))
+					Expect(createErr.Error()).To(Equal(fmt.Sprintf("malformed image metadata: json: cannot unmarshal number into Go value of type []string")))
+				})
+			})
 		})
 
 		Context("when the spec specifies ResourceType", func() {
-			var image *wfakes.FakeImage
+			var (
+				imageVolume  *wfakes.FakeVolume
+				imageVersion atc.Version
+			)
+
 			BeforeEach(func() {
 				containerMetadata.Type = db.ContainerTypeGet
 				containerSpec = ContainerSpec{
@@ -625,22 +640,18 @@ var _ = Describe("Worker", func() {
 					Env: []string{"env-1", "env-2"},
 				}
 
-				image = new(wfakes.FakeImage)
-
-				imageVolume := new(wfakes.FakeVolume)
+				imageVolume = new(wfakes.FakeVolume)
 				imageVolume.HandleReturns("image-volume")
 				imageVolume.PathReturns("/some/image/path")
-				image.URLReturns("some-url")
-				image.VolumeReturns(imageVolume)
-				image.MetadataReturns(ImageMetadata{
-					Env:  []string{"A=1", "B=2"},
-					User: "image-volume-user",
-				})
-				image.VersionReturns(atc.Version{"image": "version"})
 
-				fakeImageFetcher.FetchImageReturns(image, nil)
+				metadataReader := tarStreamWith(
+					`{"env": ["A=1", "B=2"], "user":"image-volume-user"}`,
+				)
+
+				imageVersion := atc.Version{"image": "version"}
+
+				fakeImageFetcher.FetchImageReturns(imageVolume, metadataReader, imageVersion, nil)
 				fakeGardenClient.CreateStub = func(garden.ContainerSpec) (garden.Container, error) {
-					Expect(image.ReleaseCallCount()).To(Equal(0))
 					fakeContainer := new(gfakes.FakeContainer)
 					fakeContainer.HandleReturns("some-container-handle")
 					return fakeContainer, nil
@@ -690,15 +701,10 @@ var _ = Describe("Worker", func() {
 				Expect(fetchPrivileged).To(Equal(true))
 			})
 
-			It("releases the image after creating the container", func() {
-				// see fakeGardenClient.CreateStub for the rest of this assertion
-				Expect(image.ReleaseCallCount()).To(Equal(1))
-			})
-
 			It("creates the container with the fetched image's URL as the rootfs", func() {
 				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 				actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
-				Expect(actualGardenSpec.RootFSPath).To(Equal("some-url"))
+				Expect(actualGardenSpec.RootFSPath).To(Equal("raw:///some/image/path/rootfs"))
 			})
 
 			It("adds the image env to the garden spec", func() {
@@ -725,7 +731,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when fetching the image fails", func() {
 				BeforeEach(func() {
-					fakeImageFetcher.FetchImageReturns(nil, errors.New("fetch-err"))
+					fakeImageFetcher.FetchImageReturns(nil, nil, nil, errors.New("fetch-err"))
 				})
 
 				It("returns an error", func() {
@@ -750,6 +756,22 @@ var _ = Describe("Worker", func() {
 					Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
 					actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
 					Expect(actualGardenSpec.Properties["concourse:ephemeral"]).To(Equal("true"))
+				})
+			})
+
+			It("releases the cow volume after attempting to create the container", func() {
+				Expect(imageVolume.ReleaseCallCount()).To(Equal(1))
+				Expect(imageVolume.ReleaseArgsForCall(0)).To(BeNil())
+			})
+
+			Context("when the metadata.json is bogus", func() {
+				BeforeEach(func() {
+					fakeImageFetcher.FetchImageReturns(imageVolume, tarStreamWith(`{"env": 42}`), imageVersion, nil)
+				})
+
+				It("returns ErrMalformedMetadata", func() {
+					Expect(createErr).To(BeAssignableToTypeOf(MalformedMetadataError{}))
+					Expect(createErr.Error()).To(Equal(fmt.Sprintf("malformed image metadata: json: cannot unmarshal number into Go value of type []string")))
 				})
 			})
 
@@ -1920,3 +1942,23 @@ var _ = Describe("Worker", func() {
 		})
 	})
 })
+
+func tarStreamWith(metadata string) io.ReadCloser {
+	buffer := gbytes.NewBuffer()
+
+	tarWriter := tar.NewWriter(buffer)
+	err := tarWriter.WriteHeader(&tar.Header{
+		Name: "metadata.json",
+		Mode: 0600,
+		Size: int64(len(metadata)),
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = tarWriter.Write([]byte(metadata))
+	Expect(err).NotTo(HaveOccurred())
+
+	err = tarWriter.Close()
+	Expect(err).NotTo(HaveOccurred())
+
+	return buffer
+}

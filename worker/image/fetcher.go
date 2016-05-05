@@ -1,14 +1,9 @@
 package image
 
 import (
-	"archive/tar"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"net/url"
+	"io"
 	"os"
-	"path"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -31,14 +26,6 @@ var ErrImageUnavailable = errors.New("no versions of image available")
 
 var ErrImageGetDidNotProduceVolume = errors.New("fetching the image did not produce a volume")
 
-type MalformedMetadataError struct {
-	UnmarshalError error
-}
-
-func (err MalformedMetadataError) Error() string {
-	return fmt.Sprintf("malformed image metadata: %s", err.UnmarshalError)
-}
-
 type Fetcher struct {
 	trackerFactory TrackerFactory
 }
@@ -60,7 +47,7 @@ func (fetcher Fetcher) FetchImage(
 	workerTags atc.Tags,
 	customTypes atc.ResourceTypes,
 	privileged bool,
-) (worker.Image, error) {
+) (worker.Volume, io.ReadCloser, atc.Version, error) {
 	tracker := fetcher.trackerFactory.TrackerFor(workerClient)
 	resourceType := resource.ResourceType(imageResource.Type)
 
@@ -86,18 +73,18 @@ func (fetcher Fetcher) FetchImage(
 		delegate,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	defer checkingResource.Release(nil)
 
 	versions, err := checkingResource.Check(imageResource.Source, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	if len(versions) == 0 {
-		return nil, ErrImageUnavailable
+		return nil, nil, nil, ErrImageUnavailable
 	}
 
 	cacheID := resource.ResourceCacheIdentifier{
@@ -110,7 +97,7 @@ func (fetcher Fetcher) FetchImage(
 
 	err = delegate.ImageVersionDetermined(volumeID)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	getSess := resource.Session{
@@ -136,12 +123,12 @@ func (fetcher Fetcher) FetchImage(
 		delegate,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	isInitialized, err := cache.IsInitialized()
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	versionedSource := getResource.Get(
@@ -156,18 +143,18 @@ func (fetcher Fetcher) FetchImage(
 	if !isInitialized {
 		err := versionedSource.Run(signals, make(chan struct{}))
 		if err != nil {
-			return nil, err
+			return nil, nil, nil, err
 		}
 
 		err = cache.Initialize()
 		if err != nil {
-			return nil, err
+			return nil, nil, nil, err
 		}
 	}
 
 	volume, found := getResource.CacheVolume()
 	if !found {
-		return nil, ErrImageGetDidNotProduceVolume
+		return nil, nil, nil, ErrImageGetDidNotProduceVolume
 	}
 
 	volumeSpec := worker.VolumeSpec{
@@ -179,76 +166,30 @@ func (fetcher Fetcher) FetchImage(
 	}
 	cowVolume, err := workerClient.CreateVolume(logger.Session("create-cow-volume"), volumeSpec)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	volume.Release(nil)
 
-	imageMetadata, err := loadMetadata(versionedSource)
+	reader, err := versionedSource.StreamOut(imageMetadataFile)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
-	return resourceImage{
-		volume:   cowVolume,
-		metadata: imageMetadata,
-		resource: getResource,
-		version:  versions[0],
-	}, nil
-}
-
-type resourceImage struct {
-	volume   worker.Volume
-	metadata worker.ImageMetadata
-	resource resource.Resource
-	version  atc.Version
-}
-
-func (image resourceImage) URL() string {
-	imageURL := url.URL{
-		Scheme: worker.RawRootFSScheme,
-		Path:   path.Join(image.volume.Path(), "rootfs"),
-	}
-	return imageURL.String()
-}
-
-func (image resourceImage) Volume() worker.Volume {
-	return image.volume
-}
-
-func (image resourceImage) Metadata() worker.ImageMetadata {
-	return image.metadata
-}
-
-func (image resourceImage) Release(finalTTL *time.Duration) {
-	image.resource.Release(finalTTL)
-}
-
-func (image resourceImage) Version() atc.Version {
-	return image.version
-}
-
-func loadMetadata(source resource.VersionedSource) (worker.ImageMetadata, error) {
-	reader, err := source.StreamOut(imageMetadataFile)
-	if err != nil {
-		return worker.ImageMetadata{}, err
+	releasingReader := &releasingReadCloser{
+		reader,
+		func() { getResource.Release(nil) },
 	}
 
-	defer reader.Close()
+	return cowVolume, releasingReader, versions[0], nil
+}
 
-	tarReader := tar.NewReader(reader)
+type releasingReadCloser struct {
+	io.ReadCloser
+	releaseFunc func()
+}
 
-	_, err = tarReader.Next()
-	if err != nil {
-		return worker.ImageMetadata{}, errors.New("could not read file from tar")
-	}
-
-	var imageMetadata worker.ImageMetadata
-	if err = json.NewDecoder(tarReader).Decode(&imageMetadata); err != nil {
-		return worker.ImageMetadata{}, MalformedMetadataError{
-			UnmarshalError: err,
-		}
-	}
-
-	return imageMetadata, nil
+func (r *releasingReadCloser) Close() error {
+	r.releaseFunc()
+	return r.ReadCloser.Close()
 }

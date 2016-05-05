@@ -1,12 +1,11 @@
 package image_test
 
 import (
-	"archive/tar"
 	"errors"
-	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
-	"time"
+	"strings"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -42,7 +41,9 @@ var _ = Describe("Fetcher", func() {
 	var customTypes atc.ResourceTypes
 	var privileged bool
 
-	var fetchedImage worker.Image
+	var fetchedVolume worker.Volume
+	var fetchedMetadataReader io.ReadCloser
+	var fetchedVersion atc.Version
 	var fetchErr error
 
 	BeforeEach(func() {
@@ -90,7 +91,7 @@ var _ = Describe("Fetcher", func() {
 	})
 
 	JustBeforeEach(func() {
-		fetchedImage, fetchErr = fetcher.FetchImage(
+		fetchedVolume, fetchedMetadataReader, fetchedVersion, fetchErr = fetcher.FetchImage(
 			logger,
 			imageResource,
 			signals,
@@ -145,7 +146,10 @@ var _ = Describe("Fetcher", func() {
 
 					Context("when the 'get' source provides a metadata.json", func() {
 						BeforeEach(func() {
-							fakeVersionedSource.StreamOutReturns(tarStreamWith(`{"env": ["why=does", "this=package", "dot=import", "everything=why?"], "user":"pilot"}`), nil)
+							fakeVersionedSource.StreamOutReturns(
+								ioutil.NopCloser(strings.NewReader("some-tar-contents")),
+								nil,
+							)
 						})
 
 						Context("when the cache is not initialized", func() {
@@ -171,7 +175,9 @@ var _ = Describe("Fetcher", func() {
 									})
 
 									It("returns an error when cache initialization fails", func() {
-										Expect(fetchedImage).To(BeNil())
+										Expect(fetchedVolume).To(BeNil())
+										Expect(fetchedMetadataReader).To(BeNil())
+										Expect(fetchedVersion).To(BeNil())
 										Expect(fetchErr).To(Equal(cacheFail))
 										Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(0))
 									})
@@ -221,7 +227,6 @@ var _ = Describe("Fetcher", func() {
 										var fakeCOWVolume *wfakes.FakeVolume
 										BeforeEach(func() {
 											fakeCOWVolume = new(wfakes.FakeVolume)
-											fakeCOWVolume.PathReturns("/some/cow/volume/path")
 											fakeWorker.CreateVolumeReturns(fakeCOWVolume, nil)
 
 											fakeWorker.CreateVolumeStub = func(lager.Logger, worker.VolumeSpec) (worker.Volume, error) {
@@ -236,11 +241,7 @@ var _ = Describe("Fetcher", func() {
 										})
 
 										It("returns the COWVolume as the image volume", func() {
-											Expect(fetchedImage.Volume()).To(Equal(fakeCOWVolume))
-										})
-
-										It("can generate a raw:// URL pointing to the volume's rootfs folder", func() {
-											Expect(fetchedImage.URL()).To(Equal("raw:///some/cow/volume/path/rootfs"))
+											Expect(fetchedVolume).To(Equal(fakeCOWVolume))
 										})
 									})
 
@@ -248,15 +249,23 @@ var _ = Describe("Fetcher", func() {
 										Expect(fetchErr).To(BeNil())
 									})
 
-									It("has the correct env on the image", func() {
-										Expect(fetchedImage.Metadata()).To(Equal(worker.ImageMetadata{
-											Env:  []string{"why=does", "this=package", "dot=import", "everything=why?"},
-											User: "pilot",
-										}))
+									It("calls StreamOut on the versioned source with the right metadata path", func() {
+										Expect(fakeVersionedSource.StreamOutCallCount()).To(Equal(1))
+										Expect(fakeVersionedSource.StreamOutArgsForCall(0)).To(Equal("metadata.json"))
+									})
+
+									It("returns a tar stream containing the contents of metadata.json", func() {
+										Expect(ioutil.ReadAll(fetchedMetadataReader)).To(Equal([]byte("some-tar-contents")))
+									})
+
+									It("closing the tar stream releases the get resource", func() {
+										Expect(fakeGetResource.ReleaseCallCount()).To(Equal(0))
+										fetchedMetadataReader.Close()
+										Expect(fakeGetResource.ReleaseCallCount()).To(Equal(1))
 									})
 
 									It("has the version on the image", func() {
-										Expect(fetchedImage.Version()).To(Equal(atc.Version{"v": "1"}))
+										Expect(fetchedVersion).To(Equal(atc.Version{"v": "1"}))
 									})
 
 									It("creates a tracker for checking and getting the image resource", func() {
@@ -375,27 +384,6 @@ var _ = Describe("Fetcher", func() {
 
 									It("creates the container with the volume's path as the rootFS", func() {
 										Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(1))
-									})
-
-									Describe("releasing the image", func() {
-										It("releases the get resource", func() {
-											finalTTL := 5 * time.Second
-											fetchedImage.Release(&finalTTL)
-
-											Expect(fakeGetResource.ReleaseCallCount()).To(Equal(1))
-											Expect(fakeGetResource.ReleaseArgsForCall(0)).To(Equal(&finalTTL))
-										})
-									})
-
-									Context("when the metadata.json is bogus", func() {
-										BeforeEach(func() {
-											fakeVersionedSource.StreamOutReturns(tarStreamWith(`{"env": 42}`), nil)
-										})
-
-										It("returns ErrMalformedMetadata", func() {
-											Expect(fetchErr).To(BeAssignableToTypeOf(image.MalformedMetadataError{}))
-											Expect(fetchErr.Error()).To(Equal(fmt.Sprintf("malformed image metadata: json: cannot unmarshal number into Go value of type []string")))
-										})
 									})
 
 									Context("when streaming the metadata out fails", func() {
@@ -570,23 +558,3 @@ var _ = Describe("Fetcher", func() {
 		})
 	})
 })
-
-func tarStreamWith(metadata string) io.ReadCloser {
-	buffer := gbytes.NewBuffer()
-
-	tarWriter := tar.NewWriter(buffer)
-	err := tarWriter.WriteHeader(&tar.Header{
-		Name: "metadata.json",
-		Mode: 0600,
-		Size: int64(len(metadata)),
-	})
-	Expect(err).NotTo(HaveOccurred())
-
-	_, err = tarWriter.Write([]byte(metadata))
-	Expect(err).NotTo(HaveOccurred())
-
-	err = tarWriter.Close()
-	Expect(err).NotTo(HaveOccurred())
-
-	return buffer
-}

@@ -4,7 +4,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/pivotal-golang/lager"
@@ -14,17 +13,17 @@ import (
 
 type ImageFetcher interface {
 	FetchImage(
-		lager.Logger,
-		atc.ImageResource,
-		<-chan os.Signal,
-		Identifier,
-		Metadata,
-		ImageFetchingDelegate,
-		Client,
-		atc.Tags,
-		atc.ResourceTypes,
-		bool,
-	) (Image, error)
+		logger lager.Logger,
+		imageResource atc.ImageResource,
+		cancel <-chan os.Signal,
+		containerID Identifier,
+		containerMetadata Metadata,
+		delegate ImageFetchingDelegate,
+		workerClient Client,
+		tags atc.Tags,
+		resourceTypes atc.ResourceTypes,
+		privileged bool,
+	) (Volume, io.ReadCloser, atc.Version, error)
 }
 
 //go:generate counterfeiter . ImageFetchingDelegate
@@ -32,16 +31,6 @@ type ImageFetcher interface {
 type ImageFetchingDelegate interface {
 	Stderr() io.Writer
 	ImageVersionDetermined(VolumeIdentifier) error
-}
-
-//go:generate counterfeiter . Image
-
-type Image interface {
-	URL() string
-	Volume() Volume
-	Metadata() ImageMetadata
-	Release(*time.Duration)
-	Version() atc.Version
 }
 
 type ImageMetadata struct {
