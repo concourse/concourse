@@ -31,8 +31,21 @@ var _ = Describe("A job with a task using an image within the plan", func() {
 		}
 	})
 
-	It("uses the specified image artifact to run the task", func() {
-		watch := flyWatch("artifact-test")
-		Expect(watch).To(gbytes.Say("/bin/bash"))
+	Context("when the artifact is found on the worker", func() {
+		jobFixture := "artifact-test-found-locally"
+
+		It("uses the specified image artifact to run the task", func() {
+			watch := flyWatch(jobFixture)
+			Expect(watch).To(gbytes.Say("/bin/bash"))
+		})
+	})
+
+	Context("when the artifact is found on another worker", func() {
+		jobFixture := "artifact-test-stream-in"
+
+		It("uses the specified image artifact to run the task", func() {
+			watch := flyWatch(jobFixture)
+			Expect(watch).To(gbytes.Say("/bin/bash"))
+		})
 	})
 })
