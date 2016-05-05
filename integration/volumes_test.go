@@ -36,7 +36,7 @@ var _ = Describe("Fly CLI", func() {
 								ValidityInSeconds: 600,
 								Type:              "copy",
 								Identifier:        "some-parent-handle",
-								Size:              1024,
+								Size:              1024 * 1024,
 							},
 							{
 								ID:                "aaaaaa",
@@ -45,7 +45,7 @@ var _ = Describe("Fly CLI", func() {
 								ValidityInSeconds: 86400,
 								Type:              "import",
 								Identifier:        "path:version",
-								Size:              1741,
+								Size:              1741 * 1024,
 							},
 							{
 								ID:                "aaabbb",
@@ -54,7 +54,7 @@ var _ = Describe("Fly CLI", func() {
 								ValidityInSeconds: 6000,
 								Type:              "output",
 								Identifier:        "some-output",
-								Size:              4096,
+								Size:              4096 * 1024,
 							},
 							{
 								ID:                "eeeeee",
@@ -63,7 +63,7 @@ var _ = Describe("Fly CLI", func() {
 								WorkerName:        "ffffff",
 								Type:              "cow",
 								Identifier:        "some-version",
-								Size:              8294,
+								Size:              8294 * 1024,
 							},
 						}),
 					),
