@@ -22,6 +22,10 @@ dependencies. For example, the Git resource comes with \code{git} installed.
 All resources must implement all three actions, though the actions can just be
 no-ops (which still must be correctly implemented as detailed below).
 
+Resources can emit logs to the user by writing to \code{stderr}. ANSI escape
+codes (coloring, cursor movement, etc.) will be interpreted properly by the web
+UI, so you should make your output pretty.
+
 \section{\code{check}\aux{: Check for new versions.}}{resource-check}{
   A resource type's \code{check} script is invoked to detect new versions of
   the resource. It is given the configured source and current version on stdin,
