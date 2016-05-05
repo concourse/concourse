@@ -51,7 +51,7 @@ func (command *VolumesCommand) Execute([]string) error {
 			{Contents: c.WorkerName},
 			{Contents: c.Type},
 			{Contents: c.Identifier},
-			{Contents: fmt.Sprintf("%.1fM", float64(c.Size)/float64(1024))},
+			{Contents: fmt.Sprintf("%.1fM", float64(c.Size)/float64(1024*1024))},
 		}
 
 		table.Data = append(table.Data, row)
