@@ -53,3 +53,12 @@ h3, .h3 {
 .ansi-bright-magenta-bg { background-color: @base0E; font-weight: bold; }
 .ansi-bright-cyan-bg { background-color: @base0C; font-weight: bold; }
 .ansi-bright-white-bg { background-color: @base07; font-weight: bold; }
+
+.ansi-blink {
+  animation: 1s blinker step-end infinite;
+}
+
+@keyframes blinker {
+  from, to { opacity: 0; }
+  50%      { opacity: 1; }
+}
