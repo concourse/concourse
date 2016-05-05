@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -17,6 +16,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/atc/worker/image"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
@@ -387,14 +387,19 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 			}
 		}
 
-		imageURL := url.URL{
-			Scheme: worker.RawRootFSScheme,
-			Path:   path.Join(volume.Path(), "rootfs"),
+		reader, err := source.StreamFile(image.ImageMetadataFile)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		imageMetadata := worker.ImageVolumeAndMetadata{
+			Volume:         volume,
+			MetadataReader: reader,
 		}
 
 		imageSpec = worker.ImageSpec{
-			ImageURL:   imageURL.String(),
-			Privileged: bool(step.privileged),
+			ImageVolumeAndMetadata: imageMetadata,
+			Privileged:             bool(step.privileged),
 		}
 	} else {
 		imageSpec = worker.ImageSpec{

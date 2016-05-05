@@ -2,6 +2,7 @@ package worker
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/concourse/atc"
@@ -28,10 +29,16 @@ type ContainerSpec struct {
 }
 
 type ImageSpec struct {
-	ResourceType  string
-	ImageURL      string
-	ImageResource *atc.ImageResource
-	Privileged    bool
+	ResourceType           string
+	ImageURL               string
+	ImageResource          *atc.ImageResource
+	ImageVolumeAndMetadata ImageVolumeAndMetadata
+	Privileged             bool
+}
+
+type ImageVolumeAndMetadata struct {
+	Volume         Volume
+	MetadataReader io.ReadCloser
 }
 
 func (spec ContainerSpec) WorkerSpec() WorkerSpec {

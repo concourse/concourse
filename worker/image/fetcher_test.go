@@ -1,11 +1,11 @@
 package image_test
 
 import (
+	"archive/tar"
 	"errors"
 	"io"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -147,7 +147,7 @@ var _ = Describe("Fetcher", func() {
 					Context("when the 'get' source provides a metadata.json", func() {
 						BeforeEach(func() {
 							fakeVersionedSource.StreamOutReturns(
-								ioutil.NopCloser(strings.NewReader("some-tar-contents")),
+								tarStreamWith("some-tar-contents"),
 								nil,
 							)
 						})
@@ -431,7 +431,7 @@ var _ = Describe("Fetcher", func() {
 								fakeCache.IsInitializedReturns(true, nil)
 							})
 
-							Context("when the resource has a volume", func() { // TODO: corresponding negative case(s)?
+							Context("when the resource has a volume", func() {
 								var (
 									fakeVolume *wfakes.FakeVolume
 									volumePath string
@@ -558,3 +558,23 @@ var _ = Describe("Fetcher", func() {
 		})
 	})
 })
+
+func tarStreamWith(metadata string) io.ReadCloser {
+	buffer := gbytes.NewBuffer()
+
+	tarWriter := tar.NewWriter(buffer)
+	err := tarWriter.WriteHeader(&tar.Header{
+		Name: "metadata.json",
+		Mode: 0600,
+		Size: int64(len(metadata)),
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = tarWriter.Write([]byte(metadata))
+	Expect(err).NotTo(HaveOccurred())
+
+	err = tarWriter.Close()
+	Expect(err).NotTo(HaveOccurred())
+
+	return buffer
+}

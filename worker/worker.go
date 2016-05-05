@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"archive/tar"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -181,9 +180,14 @@ func (worker *gardenWorker) getImage(
 		}
 	}
 
+	imageVolume := imageSpec.ImageVolumeAndMetadata.Volume
+	imageMetadataReader := imageSpec.ImageVolumeAndMetadata.MetadataReader
+	var version atc.Version
+
 	// 'image_resource:' in task
 	if imageResource != nil {
-		volume, reader, version, err := worker.imageFetcher.FetchImage(
+		var err error
+		imageVolume, imageMetadataReader, version, err = worker.imageFetcher.FetchImage(
 			logger,
 			*imageResource,
 			cancel,
@@ -198,18 +202,21 @@ func (worker *gardenWorker) getImage(
 		if err != nil {
 			return nil, ImageMetadata{}, nil, "", err
 		}
+	}
 
-		metadata, err := loadMetadata(reader)
+	// use image artifact from previous step in subsequent task within the same job
+	if imageVolume != nil {
+		metadata, err := loadMetadata(imageMetadataReader)
 		if err != nil {
 			return nil, ImageMetadata{}, nil, "", err
 		}
 
 		imageURL := url.URL{
 			Scheme: RawRootFSScheme,
-			Path:   path.Join(volume.Path(), "rootfs"),
+			Path:   path.Join(imageVolume.Path(), "rootfs"),
 		}
 
-		return volume, metadata, version, imageURL.String(), nil
+		return imageVolume, metadata, version, imageURL.String(), nil
 	}
 
 	// built-in resource type specified in step
@@ -276,18 +283,11 @@ func (worker *gardenWorker) getBuiltInResourceTypeImage(
 	return "", nil, ErrUnsupportedResourceType
 }
 
-func loadMetadata(reader io.ReadCloser) (ImageMetadata, error) {
-	defer reader.Close()
-
-	tarReader := tar.NewReader(reader)
-
-	_, err := tarReader.Next()
-	if err != nil {
-		return ImageMetadata{}, errors.New("could not read file from tar")
-	}
+func loadMetadata(tarReader io.ReadCloser) (ImageMetadata, error) {
+	defer tarReader.Close()
 
 	var imageMetadata ImageMetadata
-	if err = json.NewDecoder(tarReader).Decode(&imageMetadata); err != nil {
+	if err := json.NewDecoder(tarReader).Decode(&imageMetadata); err != nil {
 		return ImageMetadata{}, MalformedMetadataError{
 			UnmarshalError: err,
 		}

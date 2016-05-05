@@ -1,7 +1,9 @@
 package image
 
 import (
+	"archive/tar"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -12,7 +14,7 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-const imageMetadataFile = "metadata.json"
+const ImageMetadataFile = "metadata.json"
 
 //go:generate counterfeiter . TrackerFactory
 
@@ -171,25 +173,34 @@ func (fetcher Fetcher) FetchImage(
 
 	volume.Release(nil)
 
-	reader, err := versionedSource.StreamOut(imageMetadataFile)
+	reader, err := versionedSource.StreamOut(ImageMetadataFile)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	tarReader := tar.NewReader(reader)
+
+	_, err = tarReader.Next()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("could not read file \"%s\" from tar", ImageMetadataFile)
+	}
+
 	releasingReader := &releasingReadCloser{
-		reader,
-		func() { getResource.Release(nil) },
+		Reader:      tarReader,
+		Closer:      reader,
+		releaseFunc: func() { getResource.Release(nil) },
 	}
 
 	return cowVolume, releasingReader, versions[0], nil
 }
 
 type releasingReadCloser struct {
-	io.ReadCloser
+	io.Reader
+	io.Closer
 	releaseFunc func()
 }
 
 func (r *releasingReadCloser) Close() error {
 	r.releaseFunc()
-	return r.ReadCloser.Close()
+	return r.Closer.Close()
 }
