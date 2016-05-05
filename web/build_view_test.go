@@ -24,6 +24,10 @@ var _ = Describe("Viewing builds", func() {
 								Task: "some-task",
 								TaskConfig: &atc.TaskConfig{
 									Platform: "linux",
+									ImageResource: &atc.ImageResource{
+										Type:   "docker-image",
+										Source: atc.Source{"repository": "busybox"},
+									},
 									Run: atc.TaskRunConfig{
 										Path: "sh",
 										Args: []string{"-c", "echo hello from some-job"},
@@ -70,6 +74,10 @@ var _ = Describe("Viewing builds", func() {
 				Name: "some-task",
 				Config: &atc.TaskConfig{
 					Platform: "linux",
+					ImageResource: &atc.ImageResource{
+						Type:   "docker-image",
+						Source: atc.Source{"repository": "busybox"},
+					},
 					Run: atc.TaskRunConfig{
 						Path: "sh",
 						Args: []string{"-c", "echo hello from one-off"},

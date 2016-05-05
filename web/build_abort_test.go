@@ -24,6 +24,10 @@ var _ = Describe("Aborting a build", func() {
 								Task: "some-task",
 								TaskConfig: &atc.TaskConfig{
 									Platform: "linux",
+									ImageResource: &atc.ImageResource{
+										Type:   "docker-image",
+										Source: atc.Source{"repository": "busybox"},
+									},
 									Run: atc.TaskRunConfig{
 										Path: "sleep",
 										Args: []string{"1000"},
@@ -68,6 +72,10 @@ var _ = Describe("Aborting a build", func() {
 				Name: "some-task",
 				Config: &atc.TaskConfig{
 					Platform: "linux",
+					ImageResource: &atc.ImageResource{
+						Type:   "docker-image",
+						Source: atc.Source{"repository": "busybox"},
+					},
 					Run: atc.TaskRunConfig{
 						Path: "sleep",
 						Args: []string{"1000"},
