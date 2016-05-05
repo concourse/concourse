@@ -119,6 +119,8 @@ before using it!
     \hyperlink{https://github.com/jdub/ami-resource}{AMI Updates}
   }{
     \hyperlink{https://github.com/jdub/debian-sources-resource}{Debian/Ubuntu Sources Updates}
+  }{
+    \hyperlink{https://github.com/Orange-OpenSource/travis-resource}{Travis-ci}
   }
 
   \section{Adding to this list}{
