@@ -11,6 +11,7 @@ templates:
 packages:
   - pid_utils
   - tsa
+  - generated_signing_key
   - generated_tsa_host_key
   - generated_worker_key
 
