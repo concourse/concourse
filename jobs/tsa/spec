@@ -78,3 +78,9 @@ properties:
     description: |
       Environment name to specify for errors emitted to Yeller.
     default: ""
+
+  atc.url:
+    description: |
+      ATC API endpoint to which workers will be advertised.
+      If not specified, it will be autodiscovered via BOSH links.
+    default: "http://127.0.0.1:8080"
