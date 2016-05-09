@@ -1271,7 +1271,7 @@ var _ = Describe("GardenFactory", func() {
 												Strategy: worker.ImageArtifactReplicationStrategy{
 													Name: imageArtifactName,
 												},
-												Privileged: true,
+												Privileged: false,
 												TTL:        worker.VolumeTTL,
 											}))
 										})
@@ -1299,6 +1299,24 @@ var _ = Describe("GardenFactory", func() {
 													MetadataReader: metadataReader,
 												},
 											}))
+										})
+
+										Context("when the task specifies privileged", func() {
+											BeforeEach(func() {
+												privileged = true
+											})
+
+											It("Creates a privileged volume to stream the image into", func() {
+												Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(1))
+												_, actualVolumeSpec := fakeWorker.CreateVolumeArgsForCall(0)
+												Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
+													Strategy: worker.ImageArtifactReplicationStrategy{
+														Name: imageArtifactName,
+													},
+													Privileged: true,
+													TTL:        worker.VolumeTTL,
+												}))
+											})
 										})
 									})
 
@@ -1329,7 +1347,7 @@ var _ = Describe("GardenFactory", func() {
 												Strategy: worker.ContainerRootFSStrategy{
 													Parent: imageVolume,
 												},
-												Privileged: true,
+												Privileged: false,
 												TTL:        worker.VolumeTTL,
 											}))
 										})
@@ -1347,6 +1365,24 @@ var _ = Describe("GardenFactory", func() {
 													MetadataReader: metadataReader,
 												},
 											}))
+										})
+
+										Context("when the task specifies privileged", func() {
+											BeforeEach(func() {
+												privileged = true
+											})
+
+											It("creates a privileged COW volume from the output volume", func() {
+												Expect(fakeWorker.CreateVolumeCallCount()).To(Equal(1))
+												_, actualVolumeSpec := fakeWorker.CreateVolumeArgsForCall(0)
+												Expect(actualVolumeSpec).To(Equal(worker.VolumeSpec{
+													Strategy: worker.ContainerRootFSStrategy{
+														Parent: imageVolume,
+													},
+													Privileged: true,
+													TTL:        worker.VolumeTTL,
+												}))
+											})
 										})
 									})
 

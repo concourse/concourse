@@ -354,7 +354,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 				Strategy: worker.ContainerRootFSStrategy{
 					Parent: volume,
 				},
-				Privileged: true,
+				Privileged: bool(step.privileged),
 				TTL:        worker.VolumeTTL,
 			})
 
@@ -368,7 +368,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 					Strategy: worker.ImageArtifactReplicationStrategy{
 						Name: step.imageArtifactName,
 					},
-					Privileged: true,
+					Privileged: bool(step.privileged),
 					TTL:        worker.VolumeTTL,
 				},
 			)
