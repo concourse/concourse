@@ -1,0 +1,1006 @@
+resources:
+- name: bin-rc
+  type: github-release
+  source:
+    user: concourse
+    repository: bin
+    access_token: {{bin-release-token}}
+
+jobs:
+- name: digitalocean-ubuntu-xenial
+  serial: true
+  plan:
+  - get: bin-rc
+    params:
+      globs:
+      - concourse_linux_amd64
+
+  - task: setup-config
+    params:
+      ACCESS_TOKEN: {{digitalocean-access-token}}
+
+      SSH_USER: {{digitalocean-ssh-user}}
+      SSH_KEY: {{digitalocean-ssh-key}}
+
+      REGION: sfo1
+      IMAGE: ubuntu-16-04-x64
+      SIZE: 1gb
+      PRIVATE_NETWORKING: 'false'
+      BACKUPS_ENABLED: 'false'
+      IP6: 'false'
+      OS: 'ubuntu'
+
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source:
+          repository: ruby
+          tag: '2.1'
+
+      outputs:
+      - name: keys-ubuntu
+      - name: config-ubuntu
+
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          set -e
+
+          echo "writing ssh key"
+          cat <<EOF > keys-$OS/id_rsa
+          $SSH_KEY
+          EOF
+
+          echo "chmodding ssh key"
+          chmod 0600 keys-$OS/id_rsa
+
+          echo "creating pub key"
+          ssh-keygen -y -f keys-$OS/id_rsa > keys-$OS/id_rsa.pub
+
+          fingerprint=$(ssh-keygen -lf keys-$OS/id_rsa.pub | cut -d' ' -f2)
+
+          echo "writing .tugboat"
+          cat << EOF > config-$OS/.tugboat
+          ---
+          authentication:
+            access_token: $ACCESS_TOKEN
+          ssh:
+            ssh_user: $SSH_USER
+            ssh_key_path: keys-$OS/id_rsa
+            ssh_port: '22'
+          defaults:
+            region: $REGION
+            image: $IMAGE
+            size: $SIZE
+            ssh_key: ["$fingerprint"]
+            private_networking: $PRIVATE_NETWORKING
+            backups_enabled: $BACKUPS_ENABLED
+            ip6: $IP6
+          EOF
+
+  - task: create-instance
+    params:
+      OS: 'ubuntu'
+
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source:
+          repository: ruby
+          tag: '2.1'
+
+      inputs:
+      - name: config-ubuntu
+      - name: keys-ubuntu
+
+      outputs:
+      - name: instance-ubuntu
+
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          set -ex
+
+          cp config-$OS/.tugboat .
+
+          gem install tugboat
+
+          tugboat create smoke-test-ubuntu
+          trap "tugboat destroy --confirm smoke-test-ubuntu" ERR TERM INT
+
+          tugboat wait smoke-test-ubuntu
+
+          tugboat info smoke-test-ubuntu | grep IP | awk '{print $NF}' > instance-$OS/ip
+
+          ip=$(cat instance-$OS/ip)
+
+          until ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "exit 0"; do
+            echo "waiting for ssh to become available..."
+            sleep 1
+          done
+
+  - ensure:
+      task: teardown
+      params:
+        OS: 'ubuntu'
+
+      config:
+        platform: linux
+
+        image_resource:
+          type: docker-image
+          source:
+            repository: ruby
+            tag: '2.1'
+
+        inputs:
+        - name: config-ubuntu
+
+        run:
+          path: bash
+          args:
+          - -c
+          - |
+            gem install tugboat
+
+            cp config-$OS/.tugboat .
+
+            tugboat destroy --confirm smoke-test-ubuntu
+    do:
+    - task: install-postgres
+      params:
+        OS: 'ubuntu'
+
+      config:
+        platform: linux
+
+        image_resource:
+          type: docker-image
+          source:
+            repository: ruby
+            tag: '2.1'
+
+        inputs:
+        - name: keys-ubuntu
+        - name: instance-ubuntu
+
+        run:
+          path: bash
+          args:
+          - -c
+          - |
+            cat <<"EOC" > install_postgres
+            set -ex
+
+            until apt-get update; do
+              echo "waiting for apt lock"
+              sleep 1
+            done
+
+            until apt-get -y install postgresql; do
+              echo "waiting for apt lock"
+              sleep 1
+            done
+
+            sudo -Hiu postgres psql -U postgres postgres <<EOF
+              CREATE USER root SUPERUSER PASSWORD '' ;
+            EOF
+
+            createdb atc
+            EOC
+
+            ip=$(cat instance-ubuntu/ip)
+
+            scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no install_postgres root@${ip}:
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "chmod +x install_postgres && ./install_postgres"
+
+    - task: test-binary
+      params:
+        OS: 'ubuntu'
+
+      config:
+        platform: linux
+
+        image_resource:
+          type: docker-image
+          source:
+            repository: ruby
+            tag: '2.1'
+
+        inputs:
+        - name: bin-rc
+        - name: keys-ubuntu
+        - name: instance-ubuntu
+
+        run:
+          path: bash
+          args:
+          - -c
+          - |
+            set -ex
+
+            ip=$(cat instance-ubuntu/ip)
+
+            until scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no bin-rc/concourse_linux_amd64 root@${ip}:concourse; do
+              echo "waiting for ssh to become available..."
+              sleep 1
+            done
+
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "chmod +x concourse"
+
+            cat <<"EOC" > smoke_test
+            set -ex
+
+            # ssh
+            ssh-keygen -t rsa -f host_key -N ''
+            ssh-keygen -t rsa -f worker_key -N ''
+            ssh-keygen -t rsa -f session_signing_key -N ''
+
+            cp worker_key.pub authorized_worker_keys
+
+            # bin
+            set +x
+            echo "starting web"
+            ./concourse web \
+              --development-mode \
+              --session-signing-key session_signing_key \
+              --tsa-host-key host_key \
+              --tsa-authorized-keys authorized_worker_keys > web.stdout.log 2> web.stderr.log &
+
+            until nc -w 1 -v 127.0.0.1 8080; do
+              echo "waiting for atc to become available..."
+              sleep 1
+            done
+
+            wget -q -O fly "http://127.0.0.1:8080/api/v1/cli?arch=amd64&platform=linux"
+
+            echo "starting worker"
+            ./concourse worker \
+              --work-dir /tmp/worker \
+              --tsa-host 127.0.0.1 \
+              --tsa-public-key host_key.pub \
+              --tsa-worker-private-key worker_key \
+              --garden-network-pool 10.255.0.0/22 > worker.stdout.log 2> worker.stderr.log &
+
+            until [ $(curl -s http://127.0.0.1:8080/api/v1/workers | wc -c) -gt 3 ]; do
+              echo "waiting for worker to become available..."
+              sleep 1
+            done
+
+            set -x
+
+            chmod +x fly
+            ./fly -t local login -c http://127.0.0.1:8080
+
+            # task
+            cat << EOF > task.yml
+            platform: linux
+
+            image_resource:
+              type: docker-image
+              source:
+                repository: busybox
+
+            run:
+              path: sh
+              args:
+              - -c
+              - "echo hi"
+            EOF
+
+            ./fly -t local execute -c task.yml
+            status=$?
+
+            if [ $status = 0 ]; then
+              killall concourse
+            fi
+
+            exit $status
+            EOC
+
+            echo "copying smoke_test to target"
+            scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no smoke_test root@${ip}:
+
+            echo "invoking smoke_test"
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "chmod +x smoke_test; ./smoke_test"
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "tar cvfz worker-web-logs.tgz *.log"
+            scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip}:worker-web-logs.tgz .
+
+- name: digitalocean-fedora-23
+  serial: true
+  plan:
+  - get: bin-rc
+    params:
+      globs:
+      - concourse_linux_amd64
+
+  - task: setup-config
+    params:
+      ACCESS_TOKEN: {{digitalocean-access-token}}
+
+      SSH_USER: {{digitalocean-ssh-user}}
+      SSH_KEY: {{digitalocean-ssh-key}}
+
+      REGION: sfo1
+      IMAGE: fedora-23-x64
+      SIZE: 1gb
+      PRIVATE_NETWORKING: 'false'
+      BACKUPS_ENABLED: 'false'
+      IP6: 'false'
+      OS: 'fedora'
+
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source:
+          repository: ruby
+          tag: '2.1'
+
+      outputs:
+      - name: keys-fedora
+      - name: config-fedora
+
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          set -e
+
+          echo "writing ssh key"
+          cat <<EOF > keys-$OS/id_rsa
+          $SSH_KEY
+          EOF
+
+          echo "chmodding ssh key"
+          chmod 0600 keys-$OS/id_rsa
+
+          echo "creating pub key"
+          ssh-keygen -y -f keys-$OS/id_rsa > keys-$OS/id_rsa.pub
+
+          fingerprint=$(ssh-keygen -lf keys-$OS/id_rsa.pub | cut -d' ' -f2)
+
+          echo "writing .tugboat"
+          cat << EOF > config-$OS/.tugboat
+          ---
+          authentication:
+            access_token: $ACCESS_TOKEN
+          ssh:
+            ssh_user: $SSH_USER
+            ssh_key_path: keys-$OS/id_rsa
+            ssh_port: '22'
+          defaults:
+            region: $REGION
+            image: $IMAGE
+            size: $SIZE
+            ssh_key: ["$fingerprint"]
+            private_networking: $PRIVATE_NETWORKING
+            backups_enabled: $BACKUPS_ENABLED
+            ip6: $IP6
+          EOF
+
+  - task: create-instance
+    params:
+      OS: 'fedora'
+
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source:
+          repository: ruby
+          tag: '2.1'
+
+      inputs:
+      - name: config-fedora
+      - name: keys-fedora
+
+      outputs:
+      - name: instance-fedora
+
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          set -ex
+
+          cp config-$OS/.tugboat .
+
+          gem install tugboat
+
+          tugboat create smoke-test-fedora
+          trap "tugboat destroy --confirm smoke-test-fedora" ERR TERM INT
+
+          tugboat wait smoke-test-fedora
+
+          tugboat info smoke-test-fedora | grep IP | awk '{print $NF}' > instance-fedora/ip
+
+          ip=$(cat instance-fedora/ip)
+
+          until ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "exit 0"; do
+            echo "waiting for ssh to become available..."
+            sleep 1
+          done
+
+  - ensure:
+      task: teardown
+      params:
+        OS: 'fedora'
+
+      config:
+        platform: linux
+
+        image_resource:
+          type: docker-image
+          source:
+            repository: ruby
+            tag: '2.1'
+
+        inputs:
+        - name: config-fedora
+
+        run:
+          path: bash
+          args:
+          - -c
+          - |
+            gem install tugboat
+
+            cp config-$OS/.tugboat .
+
+            tugboat destroy --confirm smoke-test-fedora
+    do:
+    - task: fedora-dependencies
+      params:
+        OS: 'fedora'
+
+      config:
+        platform: linux
+
+        image_resource:
+          type: docker-image
+          source:
+            repository: ruby
+            tag: '2.1'
+
+        inputs:
+        - name: keys-fedora
+        - name: instance-fedora
+
+        run:
+          path: bash
+          args:
+          - -c
+          - |
+            cat <<"EOC" > install_deps
+            set -ex
+
+            export LANG=en_US.UTF-8
+            export LC_ALL=en_US.UTF-8
+
+            echo "%_install_langs all" > /etc/rpm/macros.image-language-conf
+            dnf reinstall -y glibc-common
+            dnf upgrade -y glibc glibc-common
+
+            dnf install -y tcping wget psmisc
+            EOC
+
+            ip=$(cat instance-$OS/ip)
+
+            scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no install_deps root@${ip}:
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "chmod +x install_deps && ./install_deps"
+
+    - task: install-postgres
+      params:
+        OS: 'fedora'
+
+      config:
+        platform: linux
+
+        image_resource:
+          type: docker-image
+          source:
+            repository: ruby
+            tag: '2.1'
+
+        inputs:
+        - name: keys-fedora
+        - name: instance-fedora
+
+        run:
+          path: bash
+          args:
+          - -c
+          - |
+            cat <<"EOC" > install_postgres
+            set -ex
+
+            dnf install -y postgresql-server postgresql
+            postgresql-setup --initdb --unit postgresql
+
+            echo "local all all peer" > /var/lib/pgsql/data/pg_hba.conf
+            echo "host all all 127.0.0.1/32 trust" >> /var/lib/pgsql/data/pg_hba.conf
+
+            systemctl start postgresql
+
+            sudo -Hiu postgres psql -U postgres postgres <<EOF
+              CREATE USER root SUPERUSER PASSWORD '' ;
+            EOF
+
+            createdb atc
+            EOC
+
+            ip=$(cat instance-$OS/ip)
+
+            scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no install_postgres root@${ip}:
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "chmod +x install_postgres && ./install_postgres"
+
+    - task: test-binary
+      params:
+        OS: 'fedora'
+
+      config:
+        platform: linux
+
+        image_resource:
+          type: docker-image
+          source:
+            repository: ruby
+            tag: '2.1'
+
+        inputs:
+        - name: bin-rc
+        - name: keys-fedora
+        - name: instance-fedora
+
+        run:
+          path: bash
+          args:
+          - -c
+          - |
+            set -ex
+
+            ip=$(cat instance-$OS/ip)
+
+            until scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no bin-rc/concourse_linux_amd64 root@${ip}:concourse; do
+              echo "waiting for ssh to become available..."
+              sleep 1
+            done
+
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "chmod +x concourse"
+
+            cat <<"EOC" > smoke_test
+            set -ex
+
+            # ssh
+            ssh-keygen -t rsa -f host_key -N ''
+            ssh-keygen -t rsa -f worker_key -N ''
+            ssh-keygen -t rsa -f session_signing_key -N ''
+
+            cp worker_key.pub authorized_worker_keys
+
+            # bin
+            set +x
+            echo "starting web"
+            ./concourse web \
+              --development-mode \
+              --session-signing-key session_signing_key \
+              --tsa-host-key host_key \
+              --tsa-authorized-keys authorized_worker_keys > web.stdout.log 2> web.stderr.log &
+
+            until tcping -t 1 127.0.0.1 8080; do
+              echo "waiting for atc to become available..."
+              sleep 1
+            done
+
+            wget -q -O fly "http://127.0.0.1:8080/api/v1/cli?arch=amd64&platform=linux"
+
+            echo "starting worker"
+            ./concourse worker \
+              --work-dir /tmp/worker \
+              --tsa-host 127.0.0.1 \
+              --tsa-public-key host_key.pub \
+              --tsa-worker-private-key worker_key \
+              --garden-network-pool 10.255.0.0/22 > worker.stdout.log 2> worker.stderr.log &
+
+            until [ $(curl -s http://127.0.0.1:8080/api/v1/workers | wc -c) -gt 3 ]; do
+              echo "waiting for worker to become available..."
+              sleep 1
+            done
+
+            set -x
+
+            chmod +x fly
+            ./fly -t local login -c http://127.0.0.1:8080
+
+            # task
+            cat << EOF > task.yml
+            platform: linux
+
+            image_resource:
+              type: docker-image
+              source:
+                repository: busybox
+
+            run:
+              path: sh
+              args:
+              - -c
+              - "echo hi"
+            EOF
+
+            ./fly -t local execute -c task.yml
+            status=$?
+
+            if [ $status = 0 ]; then
+              killall concourse
+            fi
+
+            exit $status
+            EOC
+
+            echo "copying smoke_test to target"
+            scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no smoke_test root@${ip}:
+
+            echo "invoking smoke_test"
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "chmod +x smoke_test; ./smoke_test"
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "tar cvfz worker-web-logs.tgz *.log"
+            scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip}:worker-web-logs.tgz .
+
+- name: digitalocean-centos-7
+  serial: true
+  plan:
+  - get: bin-rc
+    params:
+      globs:
+      - concourse_linux_amd64
+
+  - task: setup-config
+    params:
+      ACCESS_TOKEN: {{digitalocean-access-token}}
+
+      SSH_USER: {{digitalocean-ssh-user}}
+      SSH_KEY: {{digitalocean-ssh-key}}
+
+      REGION: sfo1
+      IMAGE: centos-7-2-x64
+      SIZE: 1gb
+      PRIVATE_NETWORKING: 'false'
+      BACKUPS_ENABLED: 'false'
+      IP6: 'false'
+      OS: 'centos'
+
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source:
+          repository: ruby
+          tag: '2.1'
+
+      outputs:
+      - name: keys-centos
+      - name: config-centos
+
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          set -e
+
+          echo "writing ssh key"
+          cat <<EOF > keys-$OS/id_rsa
+          $SSH_KEY
+          EOF
+
+          echo "chmodding ssh key"
+          chmod 0600 keys-$OS/id_rsa
+
+          echo "creating pub key"
+          ssh-keygen -y -f keys-$OS/id_rsa > keys-$OS/id_rsa.pub
+
+          fingerprint=$(ssh-keygen -lf keys-$OS/id_rsa.pub | cut -d' ' -f2)
+
+          echo "writing .tugboat"
+          cat << EOF > config-$OS/.tugboat
+          ---
+          authentication:
+            access_token: $ACCESS_TOKEN
+          ssh:
+            ssh_user: $SSH_USER
+            ssh_key_path: keys-$OS/id_rsa
+            ssh_port: '22'
+          defaults:
+            region: $REGION
+            image: $IMAGE
+            size: $SIZE
+            ssh_key: ["$fingerprint"]
+            private_networking: $PRIVATE_NETWORKING
+            backups_enabled: $BACKUPS_ENABLED
+            ip6: $IP6
+          EOF
+
+  - task: create-instance
+    params:
+      OS: 'centos'
+
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source:
+          repository: ruby
+          tag: '2.1'
+
+      inputs:
+      - name: config-centos
+      - name: keys-centos
+
+      outputs:
+      - name: instance-centos
+
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          set -ex
+
+          cp config-$OS/.tugboat .
+
+          gem install tugboat
+
+          tugboat create smoke-test-centos
+          trap "tugboat destroy --confirm smoke-test-centos" ERR TERM INT
+
+          tugboat wait smoke-test-centos
+
+          tugboat info smoke-test-centos | grep IP | awk '{print $NF}' > instance-centos/ip
+
+          ip=$(cat instance-centos/ip)
+
+          until ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "exit 0"; do
+            echo "waiting for ssh to become available..."
+            sleep 1
+          done
+
+  - ensure:
+      task: teardown
+      params:
+        OS: 'centos'
+
+      config:
+        platform: linux
+
+        image_resource:
+          type: docker-image
+          source:
+            repository: ruby
+            tag: '2.1'
+
+        inputs:
+        - name: config-centos
+
+        run:
+          path: bash
+          args:
+          - -c
+          - |
+            gem install tugboat
+
+            cp config-$OS/.tugboat .
+
+            #tugboat destroy --confirm smoke-test-centos
+    do:
+    - task: centos-dependencies
+      params:
+        OS: 'centos'
+
+      config:
+        platform: linux
+
+        image_resource:
+          type: docker-image
+          source:
+            repository: ruby
+            tag: '2.1'
+
+        inputs:
+        - name: keys-centos
+        - name: instance-centos
+
+        run:
+          path: bash
+          args:
+          - -c
+          - |
+            cat <<"EOC" > install_deps
+            set -ex
+
+            #export LANG=en_US.UTF-8
+            #export LC_ALL=en_US.UTF-8
+
+            #echo "%_install_langs all" > /etc/rpm/macros.image-language-conf
+            #yum reinstall -y glibc-common
+            yum install -y epel-release
+            yum update -y
+
+            yum install -y tcping wget psmisc
+            EOC
+
+            ip=$(cat instance-$OS/ip)
+
+            scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no install_deps root@${ip}:
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "chmod +x install_deps && ./install_deps"
+
+    - task: install-postgres
+      params:
+        OS: 'centos'
+
+      config:
+        platform: linux
+
+        image_resource:
+          type: docker-image
+          source:
+            repository: ruby
+            tag: '2.1'
+
+        inputs:
+        - name: keys-centos
+        - name: instance-centos
+
+        run:
+          path: bash
+          args:
+          - -c
+          - |
+            cat <<"EOC" > install_postgres
+            set -ex
+
+            yum install -y postgresql-server postgresql
+            postgresql-setup initdb
+
+            echo "local all all peer" > /var/lib/pgsql/data/pg_hba.conf
+            echo "host all all 127.0.0.1/32 trust" >> /var/lib/pgsql/data/pg_hba.conf
+
+            systemctl start postgresql
+
+            sudo -Hiu postgres psql -U postgres postgres <<EOF
+              CREATE USER root SUPERUSER PASSWORD '' ;
+            EOF
+
+            createdb atc
+            EOC
+
+            ip=$(cat instance-$OS/ip)
+
+            scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no install_postgres root@${ip}:
+            ssh -t -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "chmod +x install_postgres && ./install_postgres"
+
+    - task: test-binary
+      params:
+        OS: 'centos'
+
+      config:
+        platform: linux
+
+        image_resource:
+          type: docker-image
+          source:
+            repository: ruby
+            tag: '2.1'
+
+        inputs:
+        - name: bin-rc
+        - name: keys-centos
+        - name: instance-centos
+
+        run:
+          path: bash
+          args:
+          - -c
+          - |
+            set -ex
+
+            ip=$(cat instance-$OS/ip)
+
+            until scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no bin-rc/concourse_linux_amd64 root@${ip}:concourse; do
+              echo "waiting for ssh to become available..."
+              sleep 1
+            done
+
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "chmod +x concourse"
+
+            cat <<"EOC" > smoke_test
+            set -ex
+
+            # ssh
+            ssh-keygen -t rsa -f host_key -N ''
+            ssh-keygen -t rsa -f worker_key -N ''
+            ssh-keygen -t rsa -f session_signing_key -N ''
+
+            cp worker_key.pub authorized_worker_keys
+
+            # bin
+            set +x
+            echo "starting web"
+            ./concourse web \
+              --development-mode \
+              --session-signing-key session_signing_key \
+              --tsa-host-key host_key \
+              --tsa-authorized-keys authorized_worker_keys > web.stdout.log 2> web.stderr.log &
+
+            until tcping -t 1 127.0.0.1 8080; do
+              echo "waiting for atc to become available..."
+              sleep 1
+            done
+
+            wget -q -O fly "http://127.0.0.1:8080/api/v1/cli?arch=amd64&platform=linux"
+
+            echo "starting worker"
+            ./concourse worker \
+              --work-dir /tmp/worker \
+              --tsa-host 127.0.0.1 \
+              --tsa-public-key host_key.pub \
+              --tsa-worker-private-key worker_key \
+              --garden-network-pool 10.255.0.0/22 > worker.stdout.log 2> worker.stderr.log &
+
+            until [ $(curl -s http://127.0.0.1:8080/api/v1/workers | wc -c) -gt 3 ]; do
+              echo "waiting for worker to become available..."
+              sleep 1
+            done
+
+            set -x
+
+            chmod +x fly
+            ./fly -t local login -c http://127.0.0.1:8080
+
+            # task
+            cat << EOF > task.yml
+            platform: linux
+
+            image_resource:
+              type: docker-image
+              source:
+                repository: busybox
+
+            run:
+              path: sh
+              args:
+              - -c
+              - "echo hi"
+            EOF
+
+            ./fly -t local execute -c task.yml
+            status=$?
+
+            if [ $status = 0 ]; then
+              killall concourse
+            fi
+
+            exit $status
+            EOC
+
+            echo "copying smoke_test to target"
+            scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no smoke_test root@${ip}:
+
+            echo "invoking smoke_test"
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "chmod +x smoke_test; ./smoke_test"
+            ssh -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip} "tar cvfz worker-web-logs.tgz *.log"
+            scp -q -i keys-$OS/id_rsa -o StrictHostKeyChecking=no root@${ip}:worker-web-logs.tgz .
