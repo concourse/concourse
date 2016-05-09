@@ -13,11 +13,14 @@ view : BuildDuration -> Time.Time -> Html
 view duration now =
   Html.table [class "dictionary build-duration"] <|
     case (duration.startedAt, duration.finishedAt) of
-      (Nothing, _) ->
+      (Nothing, Nothing) ->
         [ pendingLabel "pending" ]
 
       (Just startedAt, Nothing) ->
         [ labeledRelativeDate "started" now startedAt ]
+
+      (Nothing, Just finishedAt) ->
+        [ labeledRelativeDate "finished" now finishedAt ]
 
       (Just startedAt, Just finishedAt) ->
         let
