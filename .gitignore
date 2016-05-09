@@ -43,3 +43,6 @@ src/github.com/maxbrunsfeld/counterfeiter/
 
 # ctags
 tags
+
+# IaaS Configs
+.tugboat
