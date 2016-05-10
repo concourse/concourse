@@ -5,6 +5,9 @@ jobs:
       - task: pass
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           run:
             path: echo
             args: ["pass"]
@@ -12,6 +15,9 @@ jobs:
           task: passing-job-ensure
           config:
             platform: linux
+            image_resource:
+              type: docker-image
+              source: {repository: busybox}
             run:
               path: echo
               args: ["passing job ensure"]
@@ -19,6 +25,9 @@ jobs:
           task: passing-job-on-success
           config:
             platform: linux
+            image_resource:
+              type: docker-image
+              source: {repository: busybox}
             run:
               path: echo
               args: ["passing job on success"]
@@ -26,6 +35,9 @@ jobs:
           task: passing-job-on-failure
           config:
             platform: linux
+            image_resource:
+              type: docker-image
+              source: {repository: busybox}
             run:
               path: echo
               args: ["passing job on failure"]
@@ -35,6 +47,9 @@ jobs:
       - task: fail
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           run:
             path: exit
             args: ["1"]
@@ -42,6 +57,9 @@ jobs:
           task: failing-job-ensure
           config:
             platform: linux
+            image_resource:
+              type: docker-image
+              source: {repository: busybox}
             run:
               path: echo
               args: ["failing job ensure"]
@@ -49,6 +67,9 @@ jobs:
           task: failing-job-on-success
           config:
             platform: linux
+            image_resource:
+              type: docker-image
+              source: {repository: busybox}
             run:
               path: echo
               args: ["failing job on success"]
@@ -56,6 +77,9 @@ jobs:
           task: failing-job-on-failure
           config:
             platform: linux
+            image_resource:
+              type: docker-image
+              source: {repository: busybox}
             run:
               path: echo
               args: ["failing job on failure"]
@@ -72,6 +96,9 @@ jobs:
           task: aborted-job-ensure
           config:
             platform: linux
+            image_resource:
+              type: docker-image
+              source: {repository: busybox}
             run:
               path: echo
               args: ["aborted job ensure"]

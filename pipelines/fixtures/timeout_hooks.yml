@@ -6,6 +6,9 @@ jobs:
         timeout: 5s
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           run:
             path: sleep
             args: ["10"]
@@ -13,6 +16,9 @@ jobs:
           task: duration-fail-job-ensure
           config:
             platform: linux
+            image_resource:
+              type: docker-image
+              source: {repository: busybox}
             run:
               path: echo
               args: ["duration fail job ensure"]
@@ -20,6 +26,9 @@ jobs:
           task: duration-fail-job-on-success
           config:
             platform: linux
+            image_resource:
+              type: docker-image
+              source: {repository: busybox}
             run:
               path: echo
               args: ["duration fail job on success"]
@@ -27,6 +36,9 @@ jobs:
           task: duration-fail-job-on-failure
           config:
             platform: linux
+            image_resource:
+              type: docker-image
+              source: {repository: busybox}
             run:
               path: echo
               args: ["duration fail job on failure"]

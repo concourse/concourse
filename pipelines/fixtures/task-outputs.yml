@@ -5,6 +5,9 @@ jobs:
   - task: output-producer
     config:
       platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
       outputs:
       - name: output-1
         path: output-1-src/
@@ -20,6 +23,9 @@ jobs:
   - task: find-files
     config:
       platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
       inputs:
       - name: output-1
       - name: output-2

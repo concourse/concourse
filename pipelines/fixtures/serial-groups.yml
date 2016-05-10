@@ -21,6 +21,9 @@ jobs:
       - task: curl-server
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           inputs:
             - name: some-git-resource
               path: .
@@ -36,6 +39,9 @@ jobs:
       - task: say-hello
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           run:
             path: echo
             args: ["Hello, world!"]

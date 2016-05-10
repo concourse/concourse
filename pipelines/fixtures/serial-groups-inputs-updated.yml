@@ -22,6 +22,9 @@ jobs:
       - task: curl-server
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           inputs:
             - name: some-git-resource
               path: .
@@ -39,6 +42,9 @@ jobs:
       - task: curl-server-other-git-resource
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           inputs:
             - name: other-git-resource
               path: .
@@ -48,6 +54,9 @@ jobs:
       - task: curl-server-some-git-resource
         config:
           platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: busybox}
           inputs:
             - name: some-git-resource
               path: .

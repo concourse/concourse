@@ -5,6 +5,9 @@ jobs:
   - task: simple-task
     config:
       platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
       run:
         path: echo
         args: ["Hello, world!"]

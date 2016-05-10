@@ -6,18 +6,27 @@ jobs:
     - task: do-1
       config:
         platform: linux
+        image_resource:
+          type: docker-image
+          source: {repository: busybox}
         run:
           path: echo
           args: ["running do step 1"]
     - task: do-2
       config:
         platform: linux
+        image_resource:
+          type: docker-image
+          source: {repository: busybox}
         run:
           path: echo
           args: ["running do step 2"]
     - task: some-git-resource-do-3
       config:
         platform: linux
+        image_resource:
+          type: docker-image
+          source: {repository: busybox}
         run:
           path: echo
           args: ["running do step 3"]
