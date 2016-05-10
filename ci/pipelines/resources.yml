@@ -90,6 +90,9 @@ jobs:
       load_base: busybox-git-image
       build: git-resource
     get_params: {rootfs: true}
+  - task: unit
+    image: git-resource-image
+    file: git-resource/ci/tests.yml
   - aggregate:
     - get: deployments
     - get: concourse
