@@ -119,14 +119,14 @@ func (event SchedulingJobDuration) Emit(logger lager.Logger) {
 }
 
 type WorkerContainers struct {
-	WorkerAddr string
+	WorkerName string
 	Containers int
 }
 
 func (event WorkerContainers) Emit(logger lager.Logger) {
 	emit(
 		logger.Session("worker-containers", lager.Data{
-			"worker":     event.WorkerAddr,
+			"worker":     event.WorkerName,
 			"containers": event.Containers,
 		}),
 		goryman.Event{
@@ -134,7 +134,7 @@ func (event WorkerContainers) Emit(logger lager.Logger) {
 			Metric:  event.Containers,
 			State:   "ok",
 			Attributes: map[string]string{
-				"worker": event.WorkerAddr,
+				"worker": event.WorkerName,
 			},
 		},
 	)
