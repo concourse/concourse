@@ -22,6 +22,12 @@ func periodicallyEmit(logger lager.Logger, interval time.Duration) {
 		})
 
 		emit(tLog, goryman.Event{
+			Service: "tracked volumes",
+			Metric:  TrackedVolumes.Max(),
+			State:   "ok",
+		})
+
+		emit(tLog, goryman.Event{
 			Service: "database queries",
 			Metric:  DatabaseQueries.Max(),
 			State:   "ok",

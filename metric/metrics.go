@@ -15,6 +15,7 @@ type Event interface {
 }
 
 var TrackedContainers = &Gauge{}
+var TrackedVolumes = &Gauge{}
 var DatabaseQueries = &Gauge{}
 var DatabaseConnections = &Gauge{}
 

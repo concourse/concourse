@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/concourse/atc/metric"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
@@ -70,6 +71,8 @@ func (vf *volumeFactory) Build(logger lager.Logger, bcVol baggageclaim.Volume) (
 		ttl,
 	)
 
+	metric.TrackedVolumes.Inc()
+
 	return vol, true, nil
 }
 
@@ -103,6 +106,7 @@ func (v *volume) Release(finalTTL *time.Duration) {
 	v.releaseOnce.Do(func() {
 		v.release <- finalTTL
 		v.heartbeating.Wait()
+		metric.TrackedVolumes.Dec()
 	})
 }
 
