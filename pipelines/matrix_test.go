@@ -2,28 +2,24 @@ package pipelines_test
 
 import (
 	"github.com/concourse/testflight/gitserver"
-	"github.com/concourse/testflight/guidserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("A job with a complicated build plan", func() {
-	var guidServer *guidserver.Server
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		guidServer = guidserver.Start(client)
 		originGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/matrix.yml",
-			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
 	})
 
 	AfterEach(func() {
-		guidServer.Stop()
 		originGitServer.Stop()
 	})
 
@@ -32,9 +28,10 @@ var _ = Describe("A job with a complicated build plan", func() {
 		committedGuid := originGitServer.Commit()
 
 		By("propagating data between steps")
-		Eventually(guidServer.ReportingGuids).Should(ContainElement("passing-unit-1/file passing-unit-2/file " + committedGuid))
+		watch := flyWatch("fancy-build-matrix")
+		Eventually(watch).Should(gbytes.Say("passing-unit-1/file passing-unit-2/file " + committedGuid))
 
 		By("failing on aggregates if any branch failed")
-		Eventually(guidServer.ReportingGuids).Should(ContainElement("failed " + committedGuid))
+		Eventually(watch).Should(gbytes.Say("failed " + committedGuid))
 	})
 })

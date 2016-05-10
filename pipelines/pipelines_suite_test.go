@@ -184,6 +184,28 @@ func flyWatch(jobName string, buildName ...string) *gexec.Session {
 	}
 }
 
+func triggerJob(jobName string) {
+	start(exec.Command(
+		flyBin,
+		"-t",
+		targetedConcourse,
+		"trigger-job",
+		"-j",
+		pipelineName+"/"+jobName,
+	))
+}
+
+func triggerPipelineJob(pipeline string, jobName string) {
+	start(exec.Command(
+		flyBin,
+		"-t",
+		targetedConcourse,
+		"trigger-job",
+		"-j",
+		pipeline+"/"+jobName,
+	))
+}
+
 func start(cmd *exec.Cmd) *gexec.Session {
 	session, err := gexec.Start(
 		cmd,

@@ -2,38 +2,36 @@ package pipelines_test
 
 import (
 	"github.com/concourse/testflight/gitserver"
-	"github.com/concourse/testflight/guidserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("A job with a git input with trigger: true", func() {
-	var guidServer *guidserver.Server
 	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
-		guidServer = guidserver.Start(client)
 		originGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/simple-trigger.yml",
-			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
 			"-v", "origin-git-server="+originGitServer.URI(),
 		)
 	})
 
 	AfterEach(func() {
-		guidServer.Stop()
 		originGitServer.Stop()
 	})
 
 	It("triggers when the repo changes", func() {
 		By("building the initial commit")
 		guid1 := originGitServer.Commit()
-		Eventually(guidServer.ReportingGuids).Should(ContainElement(guid1))
+		watch := flyWatch("some-passing-job")
+		Eventually(watch).Should(gbytes.Say(guid1))
 
 		By("building another commit")
 		guid2 := originGitServer.Commit()
-		Eventually(guidServer.ReportingGuids).Should(ContainElement(guid2))
+		watch = flyWatch("some-passing-job", "2")
+		Eventually(watch).Should(gbytes.Say(guid2))
 	})
 })

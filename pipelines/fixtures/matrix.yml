@@ -15,9 +15,6 @@ jobs:
           - task: passing-unit-1
             config:
               platform: linux
-              image_resource:
-                type: docker-image
-                source: {repository: busybox}
               run:
                 path: touch
                 args: [file]
@@ -27,9 +24,6 @@ jobs:
           - task: passing-unit-2
             config:
               platform: linux
-              image_resource:
-                type: docker-image
-                source: {repository: busybox}
               run:
                 path: touch
                 args: [file]
@@ -39,34 +33,23 @@ jobs:
       - task: curl-server
         config:
           platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: concourse/bosh-deployment-resource}
           inputs:
             - name: passing-unit-1
             - name: passing-unit-2
             - name: some-git-resource
-          params:
-            CURL_COMMAND: {{guid-server-curl-command}}
           run:
             path: sh
-            args: ["-c", '{ echo $(ls passing-unit-*/file) $(tail -1 some-git-resource/guids); } | $CURL_COMMAND']
+            args: ["-c", "echo $(ls passing-unit-*/file) $(tail -1 some-git-resource/guids)"]
       - aggregate:
           - task: second-passing-unit-1
             config:
               platform: linux
-              image_resource:
-                type: docker-image
-                source: {repository: busybox}
               run:
                 path: sh
                 args: [-c, exit 0]
           - task: second-failing-unit-2
             config:
               platform: linux
-              image_resource:
-                type: docker-image
-                source: {repository: busybox}
               run:
                 path: sh
                 args: [-c, exit 1]
@@ -74,13 +57,8 @@ jobs:
           task: curl-server-failure
           config:
             platform: linux
-            image_resource:
-              type: docker-image
-              source: {repository: concourse/bosh-deployment-resource}
             inputs:
               - name: some-git-resource
-            params:
-              CURL_COMMAND: {{guid-server-curl-command}}
             run:
               path: sh
-              args: ["-c", '{ echo failed $(tail -1 some-git-resource/guids); } | $CURL_COMMAND']
+              args: ["-c", "echo failed $(tail -1 some-git-resource/guids)"]

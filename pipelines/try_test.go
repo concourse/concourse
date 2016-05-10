@@ -1,7 +1,6 @@
 package pipelines_test
 
 import (
-	"github.com/concourse/testflight/gitserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -9,24 +8,14 @@ import (
 )
 
 var _ = Describe("A job with a try step", func() {
-	var originGitServer *gitserver.Server
-
 	BeforeEach(func() {
-		originGitServer = gitserver.Start(client)
-
 		configurePipeline(
 			"-c", "fixtures/try.yml",
-			"-v", "origin-git-server="+originGitServer.URI(),
 		)
-
-		originGitServer.Commit()
-	})
-
-	AfterEach(func() {
-		originGitServer.Stop()
 	})
 
 	It("proceeds through the plan even if the step fails", func() {
+		triggerJob("try-job")
 		watch := flyWatch("try-job")
 		Expect(watch).To(gbytes.Say("initializing"))
 		Expect(watch).To(gbytes.Say("passing-task succeeded"))

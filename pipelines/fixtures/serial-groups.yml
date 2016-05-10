@@ -21,17 +21,12 @@ jobs:
       - task: curl-server
         config:
           platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: concourse/bosh-deployment-resource}
           inputs:
             - name: some-git-resource
               path: .
-          params:
-            CURL_COMMAND: {{guid-server-curl-command}}
           run:
-            path: sh
-            args: ["-c", "tail -1 guids | $CURL_COMMAND"]
+            path: tail
+            args: ["-1", "guids"]
 
   - name: some-pending-job
     serial_groups:
@@ -41,9 +36,6 @@ jobs:
       - task: say-hello
         config:
           platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: busybox}
           run:
             path: echo
             args: ["Hello, world!"]

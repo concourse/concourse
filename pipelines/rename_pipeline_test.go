@@ -3,44 +3,33 @@ package pipelines_test
 import (
 	"fmt"
 
-	"github.com/concourse/testflight/gitserver"
-	"github.com/concourse/testflight/guidserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("Renaming a pipeline", func() {
 	var (
-		guidServer      *guidserver.Server
-		originGitServer *gitserver.Server
 		newPipelineName string
 	)
 
 	BeforeEach(func() {
-		guidServer = guidserver.Start(client)
-		originGitServer = gitserver.Start(client)
 		newPipelineName = fmt.Sprintf("renamed-test-pipeline-%d", GinkgoParallelNode())
 		destroyPipeline(newPipelineName)
 	})
 
-	AfterEach(func() {
-		guidServer.Stop()
-		originGitServer.Stop()
-	})
-
 	It("runs scheduled after pipeline is renamed", func() {
 		configurePipeline(
-			"-c", "fixtures/simple-trigger.yml",
-			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
-			"-v", "origin-git-server="+originGitServer.URI(),
+			"-c", "fixtures/simple.yml",
 		)
-
-		guid1 := originGitServer.Commit()
-		Eventually(guidServer.ReportingGuids).Should(ContainElement(guid1))
+		triggerJob("simple")
+		watch := flyWatch("simple")
+		Eventually(watch).Should(gbytes.Say("Hello, world!"))
 
 		renamePipeline(newPipelineName)
 
-		guid2 := originGitServer.Commit()
-		Eventually(guidServer.ReportingGuids).Should(ContainElement(guid2))
+		triggerPipelineJob(newPipelineName, "simple")
+		watch = flyWatch("simple")
+		Eventually(watch).Should(gbytes.Say("Hello, world!"))
 	})
 })

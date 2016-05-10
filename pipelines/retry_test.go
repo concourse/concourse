@@ -3,7 +3,6 @@ package pipelines_test
 import (
 	"os/exec"
 
-	"github.com/concourse/testflight/gitserver"
 	"github.com/concourse/testflight/guidserver"
 	"github.com/concourse/testflight/helpers"
 	. "github.com/onsi/ginkgo"
@@ -14,28 +13,23 @@ import (
 
 var _ = Describe("A job with a step that retries", func() {
 	var guidServer *guidserver.Server
-	var originGitServer *gitserver.Server
 
 	BeforeEach(func() {
 		guidServer = guidserver.Start(client)
-		originGitServer = gitserver.Start(client)
 
 		configurePipeline(
 			"-c", "fixtures/retry.yml",
 			"-v", "guid-server-register-command="+guidServer.RegisterCommand(),
 			"-v", "guid-server-registrations-command="+guidServer.RegistrationsCommand(),
-			"-v", "origin-git-server="+originGitServer.URI(),
 		)
-
-		originGitServer.Commit()
 	})
 
 	AfterEach(func() {
-		originGitServer.Stop()
 		guidServer.Stop()
 	})
 
 	It("retries until the step succeeds", func() {
+		triggerJob("retry-job")
 		watch := flyWatch("retry-job")
 		Expect(watch).To(gexec.Exit(0))
 
@@ -52,6 +46,7 @@ var _ = Describe("A job with a step that retries", func() {
 		var hijack *exec.Cmd
 
 		BeforeEach(func() {
+			triggerJob("retry-job")
 			// wait until job finishes before trying to hijack
 			watch := flyWatch("retry-job")
 			Expect(watch).To(gexec.Exit(0))

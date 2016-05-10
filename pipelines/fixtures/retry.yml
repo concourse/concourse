@@ -1,16 +1,7 @@
 ---
-resources:
-- name: some-git-resource
-  type: git
-  source:
-    uri: {{origin-git-server}}
-    branch: master
-
 jobs:
 - name: retry-job
   plan:
-  - get: some-git-resource
-    trigger: true
   - task: curl-server-until-3-curls
     attempts: 5
     config:

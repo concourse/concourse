@@ -1,0 +1,10 @@
+---
+jobs:
+- name: simple
+  plan:
+  - task: simple-task
+    config:
+      platform: linux
+      run:
+        path: echo
+        args: ["Hello, world!"]

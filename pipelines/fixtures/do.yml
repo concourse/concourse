@@ -1,52 +1,23 @@
 ---
-resources:
-- name: some-git-resource
-  type: git
-  source:
-    uri: {{origin-git-server}}
-    branch: master
-- name: some-git-resource-do-1
-  type: git
-  source:
-    uri: {{do-git-server}}
-    branch: do-1
-- name: some-git-resource-do-2
-  type: git
-  source:
-    uri: {{do-git-server}}
-    branch: do-2
-- name: some-git-resource-do-3
-  type: git
-  source:
-    uri: {{do-git-server}}
-    branch: do-3
 jobs:
 - name: do-job
   plan:
-  - get: some-git-resource
-    trigger: true
-  - task: curl-server
-    config:
-      platform: linux
-      image_resource:
-        type: docker-image
-        source: {repository: concourse/bosh-deployment-resource}
-      inputs:
-        - name: some-git-resource
-      params:
-        CURL_COMMAND: {{guid-server-curl-command}}
-      run:
-        path: sh
-        args: ["-c", "tail -1 some-git-resource/guids | $CURL_COMMAND && cp -r some-git-resource/. curl-server-output"]
-      outputs:
-        - name: curl-server-output
   - do:
-    - put: some-git-resource-do-1
-      params:
-        repository: curl-server-output
-    - put: some-git-resource-do-2
-      params:
-        repository: curl-server-output
-    - put: some-git-resource-do-3
-      params:
-        repository: curl-server-output
+    - task: do-1
+      config:
+        platform: linux
+        run:
+          path: echo
+          args: ["running do step 1"]
+    - task: do-2
+      config:
+        platform: linux
+        run:
+          path: echo
+          args: ["running do step 2"]
+    - task: some-git-resource-do-3
+      config:
+        platform: linux
+        run:
+          path: echo
+          args: ["running do step 3"]

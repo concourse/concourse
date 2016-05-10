@@ -1,66 +1,25 @@
 package pipelines_test
 
 import (
-	"github.com/concourse/testflight/gitserver"
-	"github.com/concourse/testflight/guidserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("A pipeline containing a job with a timeout and hooks", func() {
-	var (
-		guidServer *guidserver.Server
-
-		originGitServer  *gitserver.Server
-		successGitServer *gitserver.Server
-		failureGitServer *gitserver.Server
-		ensureGitServer  *gitserver.Server
-	)
-
 	BeforeEach(func() {
-		guidServer = guidserver.Start(client)
-
-		originGitServer = gitserver.Start(client)
-		successGitServer = gitserver.Start(client)
-		failureGitServer = gitserver.Start(client)
-		ensureGitServer = gitserver.Start(client)
-
 		configurePipeline(
 			"-c", "fixtures/timeout_hooks.yml",
-			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
-			"-v", "origin-git-server="+originGitServer.URI(),
-			"-v", "success-git-server="+successGitServer.URI(),
-			"-v", "failure-git-server="+failureGitServer.URI(),
-			"-v", "ensure-git-server="+ensureGitServer.URI(),
 		)
 	})
 
-	AfterEach(func() {
-		guidServer.Stop()
-
-		originGitServer.Stop()
-		successGitServer.Stop()
-		failureGitServer.Stop()
-		ensureGitServer.Stop()
-	})
-
 	It("runs the failure and ensure hooks", func() {
-		committedGuid := originGitServer.Commit()
-		Eventually(guidServer.ReportingGuids).Should(ContainElement(committedGuid))
-
-		masterSHA := originGitServer.RevParse("master")
-		Expect(masterSHA).NotTo(BeEmpty())
-
-		Eventually(func() string {
-			return ensureGitServer.RevParse("ensure")
-		}).Should(Equal(masterSHA))
-
-		Eventually(func() string {
-			return successGitServer.RevParse("success")
-		}).Should(BeEmpty())
-
-		Eventually(func() string {
-			return failureGitServer.RevParse("failure")
-		}).Should(Equal(masterSHA))
+		triggerJob("duration-fail-job")
+		watch := flyWatch("duration-fail-job")
+		Eventually(watch).Should(gbytes.Say("duration fail job on failure"))
+		Eventually(watch).Should(gbytes.Say("duration fail job ensure"))
+		Eventually(watch).Should(gexec.Exit(1))
+		Expect(watch.Out.Contents()).NotTo(ContainSubstring("duration fail job on success"))
 	})
 })

@@ -1,128 +1,77 @@
 ---
-resources:
-  - name: some-git-resource
-    type: git
-    source:
-      uri: {{origin-git-server}}
-      branch: master
-
-  - name: some-git-resource-success
-    type: git
-    source:
-      uri: {{success-git-server}}
-      branch: success
-
-  - name: some-git-resource-failure
-    type: git
-    source:
-      uri: {{failure-git-server}}
-      branch: failure
-
-  - name: some-git-resource-no-update
-    type: git
-    source:
-      uri: {{no-update-git-server}}
-      branch: no-update
-
-  - name: some-git-resource-ensure-success
-    type: git
-    source:
-      uri: {{ensure-success-git-server}}
-      branch: ensure-success
-
-  - name: some-git-resource-ensure-failure
-    type: git
-    source:
-      uri: {{ensure-failure-git-server}}
-      branch: ensure-failure
-  
-  - name: some-git-resource-ensure-abort
-    type: git
-    source:
-        uri: {{ensure-abort-git-server}}
-        branch: ensure-abort
-
 jobs:
   - name: some-passing-job
     plan:
-      - get: some-git-resource
-        trigger: true
-      - task: curl-server
+      - task: pass
         config:
           platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: concourse/bosh-deployment-resource}
-          inputs:
-            - name: some-git-resource
-          params:
-            CURL_COMMAND: {{guid-server-curl-command}}
           run:
-            path: sh
-            args: ["-c", "tail -1 some-git-resource/guids | $CURL_COMMAND && cp -r some-git-resource/. curl-server-output"]
-          outputs:
-          - name: curl-server-output
+            path: echo
+            args: ["pass"]
         ensure:
-          put: some-git-resource-ensure-success
-          params:
-            repository: curl-server-output
+          task: passing-job-ensure
+          config:
+            platform: linux
+            run:
+              path: echo
+              args: ["passing job ensure"]
         on_success:
-          put: some-git-resource-success
-          params:
-            repository: curl-server-output
+          task: passing-job-on-success
+          config:
+            platform: linux
+            run:
+              path: echo
+              args: ["passing job on success"]
         on_failure:
-          put: some-git-resource-no-update
-          params:
-            repository: curl-server-output
+          task: passing-job-on-failure
+          config:
+            platform: linux
+            run:
+              path: echo
+              args: ["passing job on failure"]
 
   - name: some-failing-job
     plan:
-      - get: some-git-resource
-        trigger: true
       - task: fail
         config:
           platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: busybox}
-          inputs:
-            - name: some-git-resource
           run:
-            path: sh
-            args: ["-c", "cp -r some-git-resource/. fail-output && exit 1"]
-          outputs:
-            - name: fail-output
+            path: exit
+            args: ["1"]
         ensure:
-          put: some-git-resource-ensure-failure
-          params:
-            repository: fail-output
+          task: failing-job-ensure
+          config:
+            platform: linux
+            run:
+              path: echo
+              args: ["failing job ensure"]
         on_success:
-          put: some-git-resource-no-update
-          params:
-            repository: fail-output
+          task: failing-job-on-success
+          config:
+            platform: linux
+            run:
+              path: echo
+              args: ["failing job on success"]
         on_failure:
-          put: some-git-resource-failure
-          params:
-            repository: fail-output
+          task: failing-job-on-failure
+          config:
+            platform: linux
+            run:
+              path: echo
+              args: ["failing job on failure"]
 
   - name: some-aborted-job
     plan:
-      - get: some-git-resource
-        trigger: true
-      - task: ensure
+      - task: abort
         config:
           platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: busybox}
-          inputs:
-            - name: some-git-resource
           run:
-            path: sh
-            args: ["-c", "cp -r some-git-resource/. ensure-output && sleep 5"]
-          outputs:
-            - name: ensure-output
+            path: sleep
+            args: ["5"]
         ensure:
-          put: some-git-resource-ensure-abort
-          params:
-            repository: ensure-output
+          task: aborted-job-ensure
+          config:
+            platform: linux
+            run:
+              path: echo
+              args: ["aborted job ensure"]

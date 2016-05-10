@@ -65,6 +65,8 @@ instance_groups:
             listen_network: tcp
             listen_address: 0.0.0.0:7777
             allow_host_access: true
+            max_containers: 1000
+            network_pool: 10.254.0.0/24
 
   - name: tagged_worker
     instances: 1
@@ -120,6 +122,8 @@ instance_groups:
             listen_network: tcp
             listen_address: 0.0.0.0:7777
             allow_host_access: true
+            max_containers: 1000
+            network_pool: 10.254.0.0/24
 
 stemcells:
   - alias: trusty

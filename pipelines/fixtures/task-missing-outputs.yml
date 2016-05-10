@@ -1,31 +1,16 @@
 ---
-resources:
-  - name: some-git-resource
-    type: git
-    source:
-      uri: {{origin-git-server}}
-      branch: master
-
 jobs:
   - name: missing-outputs-job
     plan:
-      - get: some-git-resource
-        trigger: true
       - task: missing-outputs
         config:
           platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: concourse/bosh-deployment-resource}
           run:
-            path: sh
-            args: ["-c", "touch abandonedfile"]
+            path: touch
+            args: ["abandonedfile"]
       - task: input-deprived
         config:
           platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: concourse/bosh-deployment-resource}
           inputs:
             - name: missing-outputs
               path: .

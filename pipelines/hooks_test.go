@@ -1,99 +1,40 @@
 package pipelines_test
 
 import (
-	"github.com/concourse/testflight/gitserver"
-	"github.com/concourse/testflight/guidserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("A pipeline containing jobs with hooks", func() {
-	var (
-		guidServer *guidserver.Server
-
-		originGitServer        *gitserver.Server
-		successGitServer       *gitserver.Server
-		failureGitServer       *gitserver.Server
-		noUpdateGitServer      *gitserver.Server
-		ensureSuccessGitServer *gitserver.Server
-		ensureFailureGitServer *gitserver.Server
-		ensureAbortGitServer   *gitserver.Server
-	)
-
 	BeforeEach(func() {
-		guidServer = guidserver.Start(client)
-
-		originGitServer = gitserver.Start(client)
-		successGitServer = gitserver.Start(client)
-		failureGitServer = gitserver.Start(client)
-		noUpdateGitServer = gitserver.Start(client)
-		ensureSuccessGitServer = gitserver.Start(client)
-		ensureFailureGitServer = gitserver.Start(client)
-		ensureAbortGitServer = gitserver.Start(client)
-
 		configurePipeline(
 			"-c", "fixtures/hooks.yml",
-			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
-			"-v", "origin-git-server="+originGitServer.URI(),
-			"-v", "success-git-server="+successGitServer.URI(),
-			"-v", "failure-git-server="+failureGitServer.URI(),
-			"-v", "no-update-git-server="+noUpdateGitServer.URI(),
-			"-v", "ensure-success-git-server="+ensureSuccessGitServer.URI(),
-			"-v", "ensure-failure-git-server="+ensureFailureGitServer.URI(),
-			"-v", "ensure-abort-git-server="+ensureAbortGitServer.URI(),
 		)
 	})
 
-	AfterEach(func() {
-		guidServer.Stop()
-
-		originGitServer.Stop()
-		successGitServer.Stop()
-		failureGitServer.Stop()
-		noUpdateGitServer.Stop()
-		ensureSuccessGitServer.Stop()
-		ensureFailureGitServer.Stop()
-		ensureAbortGitServer.Stop()
-	})
-
 	It("performs hooks under the right conditions", func() {
-		By("executing the build when a commit is made")
-		committedGuid := originGitServer.Commit()
-		Eventually(guidServer.ReportingGuids).Should(ContainElement(committedGuid))
+		By("performing ensure and on_success outputs on success")
+		triggerJob("some-passing-job")
+		watch := flyWatch("some-passing-job")
+		Eventually(watch).Should(gbytes.Say("passing job on success"))
+		Eventually(watch).Should(gbytes.Say("passing job ensure"))
+		Expect(watch).To(gexec.Exit(0))
+		Expect(watch.Out.Contents()).NotTo(ContainSubstring("passing job on failure"))
 
-		masterSHA := originGitServer.RevParse("master")
-		Expect(masterSHA).NotTo(BeEmpty())
+		By("performing ensure and on_failure steps on failure")
+		triggerJob("some-failing-job")
+		watch = flyWatch("some-failing-job")
+		Eventually(watch).Should(gbytes.Say("failing job on failure"))
+		Eventually(watch).Should(gbytes.Say("failing job ensure"))
+		Expect(watch).To(gexec.Exit(1))
+		Expect(watch.Out.Contents()).NotTo(ContainSubstring("failing job on success"))
 
-		By("performing on_success outputs on success")
-		Eventually(func() string {
-			return successGitServer.RevParse("success")
-		}).Should(Equal(masterSHA))
-
-		By("performing on_failure steps on failure")
-		Eventually(func() string {
-			return failureGitServer.RevParse("failure")
-		}).Should(Equal(masterSHA))
-
-		By("not performing on_success steps on failure or on_failure steps on success")
-		Consistently(func() string {
-			return noUpdateGitServer.RevParse("no-update")
-		}).Should(BeEmpty())
-
-		By("performing ensure steps on success")
-		Eventually(func() string {
-			return ensureSuccessGitServer.RevParse("ensure-success")
-		}).Should(Equal(masterSHA))
-
-		By("peforming ensure steps on failure")
-		Eventually(func() string {
-			return ensureFailureGitServer.RevParse("ensure-failure")
-		}).Should(Equal(masterSHA))
-
-		By("performing ensure steps on abort")
-		watch := flyWatch("some-aborted-job")
+		By("performing ensure and on_failure steps on failure")
+		triggerJob("some-aborted-job")
+		watch = flyWatch("some-aborted-job")
 		watch.Kill()
-		Eventually(func() string {
-			return ensureAbortGitServer.RevParse("ensure-abort")
-		}).Should(Equal(masterSHA))
+		Eventually(watch).Should(gbytes.Say("aborted job ensure"))
 	})
 })

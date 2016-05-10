@@ -22,17 +22,12 @@ jobs:
       - task: curl-server
         config:
           platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: concourse/bosh-deployment-resource}
           inputs:
             - name: some-git-resource
               path: .
-          params:
-            CURL_COMMAND: {{guid-server-curl-command}}
           run:
-            path: sh
-            args: ["-c", "tail -1 guids | $CURL_COMMAND"]
+            path: tail
+            args: ["-1", "guids"]
 
   - name: some-pending-job
     serial_groups:
@@ -44,28 +39,18 @@ jobs:
       - task: curl-server-other-git-resource
         config:
           platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: concourse/bosh-deployment-resource}
           inputs:
             - name: other-git-resource
               path: .
-          params:
-            CURL_COMMAND: {{guid-server-curl-command}}
           run:
-            path: sh
-            args: ["-c", "tail -1 guids | $CURL_COMMAND"]
+            path: tail
+            args: ["-1", "guids"]
       - task: curl-server-some-git-resource
         config:
           platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: concourse/bosh-deployment-resource}
           inputs:
             - name: some-git-resource
               path: .
-          params:
-            CURL_COMMAND: {{guid-server-curl-command}}
           run:
-            path: sh
-            args: ["-c", "tail -1 guids | $CURL_COMMAND"]
+            path: tail
+            args: ["-1", "guids"]

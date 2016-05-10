@@ -1,62 +1,29 @@
 package pipelines_test
 
 import (
-	"github.com/concourse/testflight/gitserver"
-	"github.com/concourse/testflight/guidserver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("A pipeline containing a do", func() {
-	var (
-		guidServer *guidserver.Server
-
-		originGitServer *gitserver.Server
-		doGitServer     *gitserver.Server
-	)
-
 	BeforeEach(func() {
-		guidServer = guidserver.Start(client)
-
-		originGitServer = gitserver.Start(client)
-		doGitServer = gitserver.Start(client)
-
 		configurePipeline(
 			"-c", "fixtures/do.yml",
-			"-v", "guid-server-curl-command="+guidServer.RegisterCommand(),
-			"-v", "origin-git-server="+originGitServer.URI(),
-			"-v", "do-git-server="+doGitServer.URI(),
 		)
 	})
 
-	AfterEach(func() {
-		guidServer.Stop()
-
-		originGitServer.Stop()
-		doGitServer.Stop()
-	})
-
 	It("performs the do steps", func() {
-		By("executing the build when a commit is made")
-		committedGuid := originGitServer.Commit()
-		Eventually(guidServer.ReportingGuids).Should(ContainElement(committedGuid))
-
-		masterSHA := originGitServer.RevParse("master")
-		Expect(masterSHA).NotTo(BeEmpty())
+		triggerJob("do-job")
+		watch := flyWatch("do-job")
 
 		By("running the first step")
-		Eventually(func() string {
-			return doGitServer.RevParse("do-1")
-		}).Should(Equal(masterSHA))
+		Eventually(watch).Should(gbytes.Say("running do step 1"))
 
 		By("running the second step")
-		Eventually(func() string {
-			return doGitServer.RevParse("do-2")
-		}).Should(Equal(masterSHA))
+		Eventually(watch).Should(gbytes.Say("running do step 2"))
 
 		By("running the third step")
-		Eventually(func() string {
-			return doGitServer.RevParse("do-3")
-		}).Should(Equal(masterSHA))
+		Eventually(watch).Should(gbytes.Say("running do step 3"))
 	})
 })
