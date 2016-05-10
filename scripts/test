@@ -29,4 +29,3 @@ echo "make sure you have run ./testflight/scripts/local_deploy"
 
 cd $testflight_dir
 ATC_URL=http://10.244.15.2:8080 ginkgo -r -nodes=3 "$@"
-
