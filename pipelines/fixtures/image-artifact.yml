@@ -20,8 +20,8 @@ jobs:
         type: docker-image
         source: {repository: alpine}
       run:
-          path: which
-          args: ["bash"]
+          path: ls
+          args: ["-a", "/root"]
 
 - name: artifact-test-found-locally
   plan:
@@ -36,5 +36,5 @@ jobs:
         type: docker-image
         source: {repository: alpine}
       run:
-          path: which
-          args: ["bash"]
+          path: ls
+          args: ["-a", "/root"]

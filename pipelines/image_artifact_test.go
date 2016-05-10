@@ -36,7 +36,13 @@ var _ = Describe("A job with a task using an image within the plan", func() {
 
 		It("uses the specified image artifact to run the task", func() {
 			watch := flyWatch(jobFixture)
-			Expect(watch).To(gbytes.Say("/bin/bash"))
+			// Simultaneously test that it's using the image artifact instead of the
+			// image resource, and also that the files are mounted with the right
+			// permissions for a non-privileged task. If it's using the image
+			// resource, bash won't be installed and .bashrc won't exist. If the
+			// file permissions are set up for a privileged task, the contents of
+			// /root won't be accessible to the task's "fake root" user
+			Expect(watch).To(gbytes.Say(".bashrc"))
 		})
 	})
 
@@ -45,7 +51,8 @@ var _ = Describe("A job with a task using an image within the plan", func() {
 
 		It("uses the specified image artifact to run the task", func() {
 			watch := flyWatch(jobFixture)
-			Expect(watch).To(gbytes.Say("/bin/bash"))
+			// See comment in previous test
+			Expect(watch).To(gbytes.Say(".bashrc"))
 		})
 	})
 })
