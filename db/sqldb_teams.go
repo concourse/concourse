@@ -111,7 +111,7 @@ func (db *SQLDB) GetTeamByName(teamName string) (SavedTeam, bool, error) {
 		return savedTeam, false, err
 	}
 
-	return savedTeam, true, err
+	return savedTeam, true, nil
 }
 
 func (db *SQLDB) jsonEncodeTeamGitHubAuth(team Team) (string, error) {
