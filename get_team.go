@@ -7,19 +7,13 @@ import (
 )
 
 func GetTeam(r *http.Request) (string, int, bool, bool) {
-	storedTeamName, namePresent := context.GetOk(r, teamNameKey)
-	storedTeamID, idPresent := context.GetOk(r, teamIDKey)
-	storedIsAdmin, adminPresent := context.GetOk(r, isAdminKey)
+	teamName, namePresent := context.GetOk(r, teamNameKey)
+	teamID, idPresent := context.GetOk(r, teamIDKey)
+	isAdmin, adminPresent := context.GetOk(r, isAdminKey)
 
-	var teamName string
-	var teamID int
-	var isAdmin bool
-	found := namePresent && idPresent && adminPresent
-	if found {
-		teamName = storedTeamName.(string)
-		teamID = storedTeamID.(int)
-		isAdmin = storedIsAdmin.(bool)
+	if !(namePresent && idPresent && adminPresent) {
+		return "", 0, false, false
 	}
 
-	return teamName, teamID, isAdmin, found
+	return teamName.(string), teamID.(int), isAdmin.(bool), true
 }
