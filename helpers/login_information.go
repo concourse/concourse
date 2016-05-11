@@ -34,7 +34,7 @@ type oauthAuthCredentials struct {
 	Password string
 }
 
-func SetupLoginInforamtion(atcURL string) (LoginInformation, error) {
+func SetupLoginInformation(atcURL string) (LoginInformation, error) {
 	dev, basicAuth, oauth, err := GetAuthMethods(atcURL)
 	if err != nil {
 		return LoginInformation{}, err

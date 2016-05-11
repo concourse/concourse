@@ -21,7 +21,7 @@ func FirstNodeFlySetup(atcURL, targetedConcourse string) ([]byte, error) {
 		return nil, err
 	}
 
-	loginInfo, err := SetupLoginInforamtion(atcURL)
+	loginInfo, err := SetupLoginInformation(atcURL)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func AllNodeFlySetup(data []byte) (string, string, error) {
 }
 
 func FirstNodeClientSetup(atcURL string) ([]byte, error) {
-	loginInfo, err := SetupLoginInforamtion(atcURL)
+	loginInfo, err := SetupLoginInformation(atcURL)
 	if err != nil {
 		return nil, err
 	}
