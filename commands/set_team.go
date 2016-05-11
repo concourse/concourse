@@ -57,7 +57,26 @@ func (command *SetTeamCommand) Execute([]string) error {
 		displayhelpers.Failf("bailing out")
 	}
 
-	team := command.GetTeam(hasBasicAuth, hasGitHubAuth)
+	team := atc.Team{}
+
+	if hasBasicAuth {
+		team.BasicAuth.BasicAuthUsername = command.BasicAuth.Username
+		team.BasicAuth.BasicAuthPassword = command.BasicAuth.Password
+	}
+
+	if hasGitHubAuth {
+		team.GitHubAuth.ClientID = command.GitHubAuth.ClientID
+		team.GitHubAuth.ClientSecret = command.GitHubAuth.ClientSecret
+		team.GitHubAuth.Organizations = command.GitHubAuth.Organizations
+		team.GitHubAuth.Users = command.GitHubAuth.Users
+
+		for _, ghTeam := range command.GitHubAuth.Teams {
+			team.GitHubAuth.Teams = append(team.GitHubAuth.Teams, atc.GitHubTeam{
+				OrganizationName: ghTeam.OrganizationName,
+				TeamName:         ghTeam.TeamName,
+			})
+		}
+	}
 
 	_, _, _, err = client.SetTeam(command.TeamName, team)
 	if err != nil {
@@ -94,29 +113,4 @@ func authMethodStatusDescription(enabled bool) string {
 		return "enabled"
 	}
 	return "disabled"
-}
-
-func (command *SetTeamCommand) GetTeam(basicAuthEnabled, gitHubAuthEnabled bool) atc.Team {
-	team := atc.Team{}
-
-	if basicAuthEnabled {
-		team.BasicAuth.BasicAuthUsername = command.BasicAuth.Username
-		team.BasicAuth.BasicAuthPassword = command.BasicAuth.Password
-	}
-
-	if gitHubAuthEnabled {
-		team.GitHubAuth.ClientID = command.GitHubAuth.ClientID
-		team.GitHubAuth.ClientSecret = command.GitHubAuth.ClientSecret
-		team.GitHubAuth.Organizations = command.GitHubAuth.Organizations
-		team.GitHubAuth.Users = command.GitHubAuth.Users
-
-		for _, ghTeam := range command.GitHubAuth.Teams {
-			team.GitHubAuth.Teams = append(team.GitHubAuth.Teams, atc.GitHubTeam{
-				OrganizationName: ghTeam.OrganizationName,
-				TeamName:         ghTeam.TeamName,
-			})
-		}
-	}
-
-	return team
 }
