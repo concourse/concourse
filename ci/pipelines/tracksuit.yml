@@ -1,6 +1,7 @@
 jobs:
 - name: tracksuit
   serial: true
+  build_logs_to_retain: 10
   plan:
   - get: periodic-tracksuit
     trigger: true
