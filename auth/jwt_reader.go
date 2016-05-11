@@ -10,26 +10,22 @@ type JWTReader struct {
 }
 
 func (jr JWTReader) GetTeam(r *http.Request) (string, int, bool, bool) {
-	var teamName string
-	var teamID int
-	var isAdmin bool
-
 	token, err := getJWT(r, jr.PublicKey)
 	if err != nil {
-		return teamName, teamID, isAdmin, false
+		return "", 0, false, false
 	}
 
 	teamNameInterface, teamNameOK := token.Claims[teamNameClaimKey]
 	teamIDInterface, teamIDOK := token.Claims[teamIDClaimKey]
 	isAdminInterface, isAdminOK := token.Claims[isAdminClaimKey]
 
-	found := teamNameOK && teamIDOK && isAdminOK
-
-	if found {
-		teamName = teamNameInterface.(string)
-		teamID = int(teamIDInterface.(float64))
-		isAdmin = isAdminInterface.(bool)
+	if !(teamNameOK && teamIDOK && isAdminOK) {
+		return "", 0, false, false
 	}
 
-	return teamName, teamID, isAdmin, found
+	teamName := teamNameInterface.(string)
+	teamID := int(teamIDInterface.(float64))
+	isAdmin := isAdminInterface.(bool)
+
+	return teamName, teamID, isAdmin, true
 }
