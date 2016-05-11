@@ -99,7 +99,7 @@ func (db *SQLDB) GetTeamByName(teamName string) (SavedTeam, bool, error) {
 	query := fmt.Sprintf(`
 		SELECT id, name, admin, basic_auth, github_auth
 		FROM teams
-		WHERE name = '%s'
+		WHERE name ILIKE '%s'
 	`, teamName,
 	)
 	savedTeam, err := db.queryTeam(query)
@@ -132,7 +132,7 @@ func (db *SQLDB) UpdateTeamGitHubAuth(team Team) (SavedTeam, error) {
 	query := fmt.Sprintf(`
 		UPDATE teams
 		SET github_auth = '%s'
-		WHERE name = '%s'
+		WHERE name ILIKE '%s'
 		RETURNING id, name, admin, basic_auth, github_auth
 	`, gitHubAuth, team.Name,
 	)
@@ -163,7 +163,7 @@ func (db *SQLDB) UpdateTeamBasicAuth(team Team) (SavedTeam, error) {
 	query := fmt.Sprintf(`
 		UPDATE teams
 		SET basic_auth = '%s'
-		WHERE name = '%s'
+		WHERE name ILIKE '%s'
 		RETURNING id, name, admin, basic_auth, github_auth
 	`, basicAuth, team.Name)
 	return db.queryTeam(query)
@@ -172,7 +172,7 @@ func (db *SQLDB) UpdateTeamBasicAuth(team Team) (SavedTeam, error) {
 func (db *SQLDB) DeleteTeamByName(teamName string) error {
 	_, err := db.conn.Exec(`
     DELETE FROM teams
-		WHERE name = $1
+		WHERE name ILIKE $1
 	`, teamName)
 	return err
 }
