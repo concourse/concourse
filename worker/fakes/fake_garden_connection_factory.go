@@ -2,6 +2,7 @@
 package fakes
 
 import (
+	"net/http"
 	"sync"
 
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
@@ -9,27 +10,30 @@ import (
 )
 
 type FakeGardenConnectionFactory struct {
-	BuildConnectionStub        func() gconn.Connection
+	BuildConnectionStub        func(worker.HijackStreamer) gconn.Connection
 	buildConnectionMutex       sync.RWMutex
-	buildConnectionArgsForCall []struct{}
-	buildConnectionReturns     struct {
+	buildConnectionArgsForCall []struct {
+		arg1 worker.HijackStreamer
+	}
+	buildConnectionReturns struct {
 		result1 gconn.Connection
 	}
-	BuildConnectionFromDBStub        func() (gconn.Connection, error)
-	buildConnectionFromDBMutex       sync.RWMutex
-	buildConnectionFromDBArgsForCall []struct{}
-	buildConnectionFromDBReturns     struct {
-		result1 gconn.Connection
-		result2 error
+	CreateRetryableHttpClientStub        func() http.Client
+	createRetryableHttpClientMutex       sync.RWMutex
+	createRetryableHttpClientArgsForCall []struct{}
+	createRetryableHttpClientReturns     struct {
+		result1 http.Client
 	}
 }
 
-func (fake *FakeGardenConnectionFactory) BuildConnection() gconn.Connection {
+func (fake *FakeGardenConnectionFactory) BuildConnection(arg1 worker.HijackStreamer) gconn.Connection {
 	fake.buildConnectionMutex.Lock()
-	fake.buildConnectionArgsForCall = append(fake.buildConnectionArgsForCall, struct{}{})
+	fake.buildConnectionArgsForCall = append(fake.buildConnectionArgsForCall, struct {
+		arg1 worker.HijackStreamer
+	}{arg1})
 	fake.buildConnectionMutex.Unlock()
 	if fake.BuildConnectionStub != nil {
-		return fake.BuildConnectionStub()
+		return fake.BuildConnectionStub(arg1)
 	} else {
 		return fake.buildConnectionReturns.result1
 	}
@@ -41,6 +45,12 @@ func (fake *FakeGardenConnectionFactory) BuildConnectionCallCount() int {
 	return len(fake.buildConnectionArgsForCall)
 }
 
+func (fake *FakeGardenConnectionFactory) BuildConnectionArgsForCall(i int) worker.HijackStreamer {
+	fake.buildConnectionMutex.RLock()
+	defer fake.buildConnectionMutex.RUnlock()
+	return fake.buildConnectionArgsForCall[i].arg1
+}
+
 func (fake *FakeGardenConnectionFactory) BuildConnectionReturns(result1 gconn.Connection) {
 	fake.BuildConnectionStub = nil
 	fake.buildConnectionReturns = struct {
@@ -48,29 +58,28 @@ func (fake *FakeGardenConnectionFactory) BuildConnectionReturns(result1 gconn.Co
 	}{result1}
 }
 
-func (fake *FakeGardenConnectionFactory) BuildConnectionFromDB() (gconn.Connection, error) {
-	fake.buildConnectionFromDBMutex.Lock()
-	fake.buildConnectionFromDBArgsForCall = append(fake.buildConnectionFromDBArgsForCall, struct{}{})
-	fake.buildConnectionFromDBMutex.Unlock()
-	if fake.BuildConnectionFromDBStub != nil {
-		return fake.BuildConnectionFromDBStub()
+func (fake *FakeGardenConnectionFactory) CreateRetryableHttpClient() http.Client {
+	fake.createRetryableHttpClientMutex.Lock()
+	fake.createRetryableHttpClientArgsForCall = append(fake.createRetryableHttpClientArgsForCall, struct{}{})
+	fake.createRetryableHttpClientMutex.Unlock()
+	if fake.CreateRetryableHttpClientStub != nil {
+		return fake.CreateRetryableHttpClientStub()
 	} else {
-		return fake.buildConnectionFromDBReturns.result1, fake.buildConnectionFromDBReturns.result2
+		return fake.createRetryableHttpClientReturns.result1
 	}
 }
 
-func (fake *FakeGardenConnectionFactory) BuildConnectionFromDBCallCount() int {
-	fake.buildConnectionFromDBMutex.RLock()
-	defer fake.buildConnectionFromDBMutex.RUnlock()
-	return len(fake.buildConnectionFromDBArgsForCall)
+func (fake *FakeGardenConnectionFactory) CreateRetryableHttpClientCallCount() int {
+	fake.createRetryableHttpClientMutex.RLock()
+	defer fake.createRetryableHttpClientMutex.RUnlock()
+	return len(fake.createRetryableHttpClientArgsForCall)
 }
 
-func (fake *FakeGardenConnectionFactory) BuildConnectionFromDBReturns(result1 gconn.Connection, result2 error) {
-	fake.BuildConnectionFromDBStub = nil
-	fake.buildConnectionFromDBReturns = struct {
-		result1 gconn.Connection
-		result2 error
-	}{result1, result2}
+func (fake *FakeGardenConnectionFactory) CreateRetryableHttpClientReturns(result1 http.Client) {
+	fake.CreateRetryableHttpClientStub = nil
+	fake.createRetryableHttpClientReturns = struct {
+		result1 http.Client
+	}{result1}
 }
 
 var _ worker.GardenConnectionFactory = new(FakeGardenConnectionFactory)

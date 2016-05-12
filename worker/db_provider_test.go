@@ -160,6 +160,7 @@ var _ = Describe("DBProvider", func() {
 					fakeGardenBackend.LookupReturns(fakeContainer, nil)
 
 					By("connecting to the worker")
+					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
 					container, err := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -187,7 +188,6 @@ var _ = Describe("DBProvider", func() {
 
 				It("can continue to connect after the worker address changes", func() {
 					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
-
 					container, err := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -199,8 +199,9 @@ var _ = Describe("DBProvider", func() {
 					fakeDB.GetWorkerReturns(db.SavedWorker{}, false, nil)
 
 					_, err := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil)
+
 					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(ErrMissingWorker))
+					Expect(err.Error()).To(ContainSubstring(ErrMissingWorker.Error()))
 				})
 
 				It("throws an error if the lookup of the worker in the db errors", func() {
@@ -209,11 +210,15 @@ var _ = Describe("DBProvider", func() {
 
 					_, actualErr := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil)
 					Expect(actualErr).To(HaveOccurred())
-					Expect(actualErr).To(Equal(expectedErr))
+					Expect(actualErr.Error()).To(ContainSubstring(expectedErr.Error()))
 				})
 			})
 
 			Describe("a created container", func() {
+				BeforeEach(func() {
+					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
+				})
+
 				It("calls through to garden", func() {
 					id := Identifier{
 						ResourceID: 1234,
@@ -251,6 +256,10 @@ var _ = Describe("DBProvider", func() {
 			})
 
 			Describe("a looked-up container", func() {
+				BeforeEach(func() {
+					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
+				})
+
 				It("calls through to garden", func() {
 					fakeContainer := new(gfakes.FakeContainer)
 					fakeContainer.HandleReturns("some-handle")
