@@ -48,9 +48,9 @@ resources/github-release-resource.tar.gz:
   sha: dec23b316d21c458ba13a4924493cad7baf69107
   size: 19352468
 resources/pool-resource.tar.gz:
-  object_id: 82d9e6c7-8c76-4aa5-9aa1-4f545c69f3a5
-  sha: 8b57ac1d94940481812e63784dff01a8ad2798e5
-  size: 10049195
+  object_id: 456c2a38-b993-440f-8379-b34eb3c26b51
+  sha: 62c66a5615a62751144cad6b12ae50166df9ddf7
+  size: 10049176
 resources/s3-resource.tar.gz:
   object_id: 0edbfb90-8930-47be-8eef-31933f4d8054
   sha: c8e862c52b08efc1f5249ae0cce51f779d39a4fd
