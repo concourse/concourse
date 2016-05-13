@@ -185,33 +185,6 @@ var _ = Describe("DBProvider", func() {
 					err = gardenServer.Start()
 					Expect(err).NotTo(HaveOccurred())
 				})
-
-				It("can continue to connect after the worker address changes", func() {
-					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
-					container, err := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = container.Destroy()
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				It("throws an error if the worker cannot be found", func() {
-					fakeDB.GetWorkerReturns(db.SavedWorker{}, false, nil)
-
-					_, err := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil)
-
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(ErrMissingWorker.Error()))
-				})
-
-				It("throws an error if the lookup of the worker in the db errors", func() {
-					expectedErr := errors.New("some-db-error")
-					fakeDB.GetWorkerReturns(db.SavedWorker{}, true, expectedErr)
-
-					_, actualErr := workers[0].CreateContainer(logger, nil, fakeImageFetchingDelegate, id, Metadata{}, spec, nil)
-					Expect(actualErr).To(HaveOccurred())
-					Expect(actualErr.Error()).To(ContainSubstring(expectedErr.Error()))
-				})
 			})
 
 			Describe("a created container", func() {

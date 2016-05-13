@@ -48,6 +48,7 @@ type WorkerLookupRoundTripper struct {
 	db               GardenConnectionFactoryDB
 	workerName       string
 	httpRoundTripper retryhttp.RoundTripper
+	cachedHost       string
 }
 
 func NewGardenConnectionFactory(
@@ -90,22 +91,29 @@ func CreateWorkerLookupRoundTripper(workerName string, db GardenConnectionFactor
 		httpRoundTripper: innerRoundTripper,
 		workerName:       workerName,
 		db:               db,
+		cachedHost:       "",
 	}
 }
 
 func (roundTripper *WorkerLookupRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
-	savedWorker, found, err := roundTripper.db.GetWorker(roundTripper.workerName)
+	if roundTripper.cachedHost == "" {
+		savedWorker, found, err := roundTripper.db.GetWorker(roundTripper.workerName)
+		if err != nil {
+			return nil, err
+		}
 
+		if !found {
+			return nil, ErrMissingWorker
+		}
+		roundTripper.cachedHost = savedWorker.GardenAddr
+	}
+
+	request.URL.Host = roundTripper.cachedHost
+	response, err := roundTripper.httpRoundTripper.RoundTrip(request)
 	if err != nil {
-		return nil, err
+		roundTripper.cachedHost = ""
 	}
-
-	if !found {
-		return nil, ErrMissingWorker
-	}
-	request.URL.Host = savedWorker.GardenAddr
-
-	return roundTripper.httpRoundTripper.RoundTrip(request)
+	return response, err
 }
 
 // WorkerHijackStreamer implements Stream that is using our httpClient,

@@ -3,7 +3,6 @@ package worker_test
 import (
 	"fmt"
 	"io"
-	"net/http"
 
 	"github.com/cloudfoundry-incubator/garden"
 	fconn "github.com/cloudfoundry-incubator/garden/client/connection/fakes"
@@ -13,14 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 )
-
-type fakeRoundTripper struct{}
-
-func (roundTripper *fakeRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
-	return &http.Response{
-		Request: request,
-	}, nil
-}
 
 var _ = Describe("Retryable Garden Connection", func() {
 	var innerConnection *fconn.FakeConnection
