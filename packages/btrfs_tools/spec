@@ -2,5 +2,4 @@
 name: btrfs_tools
 
 files:
-  - btrfs_tools_3.12/btrfs
-  - btrfs_tools_3.12/mkfs.btrfs
+- btrfs/btrfs-tools.tar.gz

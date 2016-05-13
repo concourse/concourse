@@ -1,0 +1,34 @@
+jobs:
+- name: btrfs-tools
+  serial: true
+  public: true
+  plan:
+  - get: concourse
+  - task: build
+    file: concourse/ci/build-btrfs-tools.yml
+  - get: deployments
+  - task: bump-blob
+    input_mapping:
+      blob-dir: btrfs-tools
+    file: concourse/ci/bump-blob.yml
+    params:
+      BLOB_NAME: btrfs-tools
+      BLOB_VERSION: 4.4
+      BLOB_DESTINATION: btrfs
+  - put: concourse
+    params: {repository: bumped-concourse, rebase: true}
+
+resources:
+- name: deployments
+  type: git
+  source:
+    uri: git@github.com:concourse/deployments.git
+    branch: master
+    private_key: {{deployments-repo-private-key}}
+
+- name: concourse
+  type: git
+  source:
+    uri: git@github.com:concourse/concourse.git
+    branch: develop
+    private_key: {{concourse-repo-private-key}}

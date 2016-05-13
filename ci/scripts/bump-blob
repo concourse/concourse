@@ -1,0 +1,35 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e -x
+
+if [ -z "$BLOB_NAME" ]; then
+  echo "must specify \$BLOB_NAME" >&2
+  exit 1
+fi
+
+if [ -z "$BLOB_DESTINATION" ]; then
+  echo "must specify \$BLOB_DESTINATION" >&2
+  exit 1
+fi
+
+if [ -z "$BLOB_VERSION" ]; then
+  echo "must specify \$BLOB_VERSION" >&2
+  exit 1
+fi
+
+blob_dir=$PWD/blob-dir
+
+git config --global user.email "ci@localhost"
+git config --global user.name "CI Bot"
+
+git clone concourse bumped-concourse
+cp deployments/ci/config/private.yml bumped-concourse/config/private.yml
+
+cd bumped-concourse/
+
+bosh -n add blob $blob_dir/${BLOB_NAME}.tar.gz ${BLOB_DESTINATION}
+bosh -n upload blobs
+
+git add -A
+git commit -m "update ${BLOB_NAME} blob to ${BLOB_VERSION}"
