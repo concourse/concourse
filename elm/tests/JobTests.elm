@@ -19,6 +19,7 @@ all =
         someJobInfo =
           { name = "some-job"
           , pipelineName = "some-pipeline"
+          , teamName = "some-team"
           }
       in let
         someBuild =
@@ -37,6 +38,7 @@ all =
         someJob =
           { name = "some-job"
           , pipelineName = "some-pipeline"
+          , teamName = "some-team"
           , finishedBuild = Just someBuild
           , paused = False
           , disableManualTrigger = False

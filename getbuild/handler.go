@@ -16,6 +16,7 @@ type TemplateData struct {
 	GroupStates []group.State
 
 	PipelineName string
+	TeamName     string
 	Job          atc.Job
 	Build        atc.Build
 }
@@ -53,7 +54,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 
 	client := handler.clientFactory.Build(r)
 
-	pipelineName, jobName, buildName, err := getNames(r)
+	teamName, pipelineName, jobName, buildName, err := getNames(r)
 	if err != nil {
 		logger.Error("failed-to-get-names", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -108,6 +109,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 
 		Build:        requestedBuild,
 		PipelineName: pipelineName,
+		TeamName:     teamName,
 	}
 
 	buildPlan, found, err := client.BuildPlan(requestedBuild.ID)
@@ -175,14 +177,15 @@ func getAllJobBuilds(client concourse.Client, pipelineName string, jobName strin
 	return builds, nil
 }
 
-func getNames(r *http.Request) (string, string, string, error) {
+func getNames(r *http.Request) (string, string, string, string, error) {
 	pipelineName := r.FormValue(":pipeline_name")
+	teamName := r.FormValue(":team_name")
 	jobName := r.FormValue(":job")
 	buildName := r.FormValue(":build")
 
-	if len(pipelineName) == 0 || len(jobName) == 0 || len(buildName) == 0 {
-		return "", "", "", errors.New("Missing required parameters")
+	if len(pipelineName) == 0 || len(jobName) == 0 || len(buildName) == 0 || len(teamName) == 0 {
+		return "", "", "", "", errors.New("Missing required parameters")
 	}
 
-	return pipelineName, jobName, buildName, nil
+	return teamName, pipelineName, jobName, buildName, nil
 }

@@ -436,9 +436,9 @@ viewBuildHeader actions build {status, now, duration, history, job} =
   let
     triggerButton =
       case job of
-        Just {name, pipelineName} ->
+        Just {name, teamName, pipelineName} ->
           let
-            actionUrl = "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name ++ "/builds"
+            actionUrl = "/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name ++ "/builds"
             buttonDisabled = case job of
               Nothing -> True
               Just job -> job.disableManualTrigger
@@ -459,8 +459,8 @@ viewBuildHeader actions build {status, now, duration, history, job} =
         Html.span [] []
 
     buildTitle = case build.job of
-      Just {name, pipelineName} ->
-        Html.a [href ("/pipelines/" ++ pipelineName ++ "/jobs/" ++ name)]
+      Just {name, teamName, pipelineName} ->
+        Html.a [href ("/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name)]
           [Html.text (name ++ " #" ++ build.name)]
 
       _ ->
