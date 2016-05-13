@@ -41,7 +41,7 @@ var _ = Describe("Viewing resources", func() {
 		})
 
 		It("correctly displays logs", func() {
-			url := atcRoute(fmt.Sprintf("/pipelines/%s/resources/%s", pipelineName, brokenResource.Name))
+			url := atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/resources/%s", teamName, pipelineName, brokenResource.Name))
 
 			counter := 0
 			for {

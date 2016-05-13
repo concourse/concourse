@@ -60,11 +60,11 @@ var _ = Describe("PipelinePausing", func() {
 			By("clicking another-pipeline")
 			Eventually(page.All(navList).FindByLink("another-pipeline")).Should(BeFound())
 			Expect(page.All(navList).FindByLink("another-pipeline").Click()).To(Succeed())
-			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute("/pipelines/another-pipeline")))
+			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute("/teams/%s/pipelines/another-pipeline")))
 
 			By("clicking home button")
 			Expect(page.Find(homeLink).Click()).To(Succeed())
-			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute("/pipelines/another-pipeline")))
+			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute("/teams/%s/pipelines/another-pipeline")))
 
 			By("toggling the nav")
 			Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())

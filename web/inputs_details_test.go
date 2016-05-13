@@ -59,7 +59,7 @@ var _ = Describe("InputDetails", func() {
 		})
 
 		It("displays input details", func() {
-			url := atcRoute(fmt.Sprintf("/pipelines/%s/jobs/some-job/builds/%s", pipelineName, build.Name))
+			url := atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/some-job/builds/%s", teamName, pipelineName, build.Name))
 
 			Expect(page.Navigate(url)).To(Succeed())
 			Eventually(page.All(".details li"), 60*time.Second).Should(HaveCount(1))
@@ -100,7 +100,7 @@ var _ = Describe("InputDetails", func() {
 		})
 
 		It("displays input details", func() {
-			url := atcRoute(fmt.Sprintf("/pipelines/%s/jobs/some-job/builds/%s", pipelineName, build.Name))
+			url := atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/some-job/builds/%s", teamName, pipelineName, build.Name))
 
 			Expect(page.Navigate(url)).To(Succeed())
 			Eventually(page.All(".details li"), 60*time.Second).Should(HaveCount(1))
@@ -150,7 +150,7 @@ var _ = Describe("InputDetails", func() {
 		})
 
 		It("displays input details", func() {
-			url := atcRoute(fmt.Sprintf("/pipelines/%s/jobs/second-job/builds/%s", pipelineName, build.Name))
+			url := atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/second-job/builds/%s", teamName, pipelineName, build.Name))
 
 			Expect(page.Navigate(url)).To(Succeed())
 			Eventually(page.All(".details li"), 60*time.Second).Should(HaveCount(1))

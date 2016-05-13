@@ -36,7 +36,7 @@ var _ = Describe("JobPausing", func() {
 		})
 
 		It("can view the resource", func() {
-			pipelineURL := atcRoute(fmt.Sprintf("/pipelines/%s", pipelineName))
+			pipelineURL := atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s", teamName, pipelineName))
 			// pipeline url -> job detail w/build info
 			Expect(page.Navigate(pipelineURL)).To(Succeed())
 
@@ -45,14 +45,15 @@ var _ = Describe("JobPausing", func() {
 
 			// job detail w/build info -> job detail
 			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute(fmt.Sprintf(
-				"/pipelines/%s/jobs/some-job/builds/%s",
+				"/teams/%s/pipelines/%s/jobs/some-job/builds/%s",
+				teamName,
 				pipelineName,
 				build.Name,
 			))))
 
 			Eventually(page.Find("h1"), loadingTimeout).Should(HaveText(fmt.Sprintf("some-job #%s", build.Name)))
 			Expect(page.Find("h1 a").Click()).To(Succeed())
-			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute(fmt.Sprintf("/pipelines/%s/jobs/some-job", pipelineName))))
+			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/some-job", teamName, pipelineName))))
 
 			// job-detail pausing
 			Eventually(page.Find("#job-state.btn-pause"), loadingTimeout).Should(BeFound())
@@ -69,7 +70,7 @@ var _ = Describe("JobPausing", func() {
 			Eventually(page.Find(".job.paused"), loadingTimeout).Should(BeFound())
 
 			// job-detail unpausing
-			Expect(page.Navigate(atcRoute(fmt.Sprintf("/pipelines/%s/jobs/some-job", pipelineName)))).To(Succeed())
+			Expect(page.Navigate(atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/some-job", teamName, pipelineName)))).To(Succeed())
 			Eventually(page.Find("#job-state.btn-pause"), loadingTimeout).Should(BeFound())
 			Expect(page.Find("#job-state.btn-pause").Click()).To(Succeed())
 			Eventually(page.Find("#job-state.btn-pause.disabled"), loadingTimeout).Should(BeFound())
@@ -84,7 +85,7 @@ var _ = Describe("JobPausing", func() {
 
 			It("displays a blue header", func() {
 				// pipeline URL -> job detail w/build info
-				jobURL := atcRoute(fmt.Sprintf("/pipelines/%s/jobs/some-job", pipelineName))
+				jobURL := atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/some-job", teamName, pipelineName))
 				Expect(page.Navigate(jobURL)).To(Succeed())
 				Eventually(page, loadingTimeout).Should(HaveURL(jobURL))
 

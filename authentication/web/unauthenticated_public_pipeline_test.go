@@ -50,12 +50,12 @@ var _ = Describe("the quality of being unauthenticated for public pipelines", fu
 		Entry("index", func() (string, []string) { return "/", []string{} }),
 
 		Entry("job page (publicly viewable)", func() (string, []string) {
-			return fmt.Sprintf("/pipelines/%s/jobs/%s", pipelineName, publicBuild.JobName),
+			return fmt.Sprintf("/teams/%s/pipelines/%s/jobs/%s", teamName, pipelineName, publicBuild.JobName),
 				[]string{"#page-header .build-header button.btn-pause"}
 		}),
 
 		Entry("build page (publicly viewable)", func() (string, []string) {
-			return fmt.Sprintf("/pipelines/%s/jobs/%s/builds/%s", pipelineName, publicBuild.JobName, publicBuild.Name),
+			return fmt.Sprintf("/teams/%s/pipelines/%s/jobs/%s/builds/%s", teamName, pipelineName, publicBuild.JobName, publicBuild.Name),
 				[]string{
 					"#page-header .build-header button.build-action",   //New Build
 					"#page-header .build-header .build-action-abort i", //Abort Build
@@ -63,11 +63,11 @@ var _ = Describe("the quality of being unauthenticated for public pipelines", fu
 		}),
 
 		Entry("job page (private)", func() (string, []string) {
-			return fmt.Sprintf("/pipelines/%s/jobs/%s", pipelineName, privateBuild.JobName), []string{}
+			return fmt.Sprintf("/teams/%s/pipelines/%s/jobs/%s", pipelineName, privateBuild.JobName), []string{}
 		}),
 
 		Entry("resource page", func() (string, []string) {
-			return fmt.Sprintf("/pipelines/%s/resources/%s", pipelineName, brokenResource.Name),
+			return fmt.Sprintf("/teams/%s/pipelines/%s/resources/%s", pipelineName, brokenResource.Name),
 				[]string{".build-step .header span.btn-pause"}
 		}),
 	)
@@ -81,7 +81,7 @@ var _ = Describe("the quality of being unauthenticated for public pipelines", fu
 		},
 
 		Entry("build page (private)", func() string {
-			return fmt.Sprintf("/pipelines/%s/jobs/%s/builds/%s", pipelineName, privateBuild.JobName, privateBuild.Name)
+			return fmt.Sprintf("/teams/%s/pipelines/%s/jobs/%s/builds/%s", pipelineName, privateBuild.JobName, privateBuild.Name)
 		}),
 	)
 })

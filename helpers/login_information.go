@@ -58,7 +58,7 @@ func SetupLoginInformation(atcURL string) (LoginInformation, error) {
 }
 
 func GetAuthMethods(atcURL string) (bool, *basicAuthCredentials, *oauthAuthCredentials, error) {
-	endpoint := fmt.Sprintf("%s/api/v1/auth/methods", atcURL)
+	endpoint := fmt.Sprintf("%s/api/v1/teams/main/auth/methods", atcURL)
 	response, err := http.Get(endpoint)
 	if err != nil {
 		return false, nil, nil, err

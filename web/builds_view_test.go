@@ -92,7 +92,7 @@ var _ = Describe("BuildsView", func() {
 		})
 
 		It("can view resource information of a job build", func() {
-			url := atcRoute(fmt.Sprintf("/pipelines/%s/jobs/some-job", pipelineName))
+			url := atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/some-job", teamName, pipelineName))
 
 			Expect(page.Navigate(url)).To(Succeed())
 			Eventually(page.Find("#page-header.succeeded")).Should(BeFound())
@@ -133,7 +133,7 @@ var _ = Describe("BuildsView", func() {
 			It("displays a blue header", func() {
 				Expect(page.Navigate(atcRoute(build.URL))).To(Succeed())
 
-				Expect(page.Navigate(atcRoute(fmt.Sprintf("/pipelines/%s/jobs/some-job/builds/%s", pipelineName, build.Name)))).To(Succeed())
+				Expect(page.Navigate(atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/some-job/builds/%s", pipelineName, build.Name)))).To(Succeed())
 
 				// top bar should show the pipeline is paused
 				Eventually(page.Find(".js-groups.paused"), 10*time.Second).Should(BeFound())
@@ -179,7 +179,7 @@ var _ = Describe("BuildsView", func() {
 
 			// job detail w/build info -> job detail
 			Eventually(page, 10*time.Second).Should(HaveURL(atcRoute(fmt.Sprintf(
-				"/pipelines/%s/jobs/job-manual-trigger-disabled/builds/%s",
+				"/teams/%s/pipelines/%s/jobs/job-manual-trigger-disabled/builds/%s",
 				pipelineName,
 				manualTriggerDisabledBuild.Name,
 			))))
@@ -191,7 +191,7 @@ var _ = Describe("BuildsView", func() {
 
 			// job detail w/build info -> job detail
 			Eventually(page, 10*time.Second).Should(HaveURL(atcRoute(fmt.Sprintf(
-				"/pipelines/%s/jobs/job-manual-trigger-disabled/builds/%s",
+				"/teams/%s/pipelines/%s/jobs/job-manual-trigger-disabled/builds/%s",
 				pipelineName,
 				manualTriggerDisabledBuild.Name,
 			))))
@@ -199,7 +199,7 @@ var _ = Describe("BuildsView", func() {
 			Eventually(page.Find("h1 a"), 10*time.Second).Should(BeFound())
 			Expect(page.Find("h1 a").Click()).To(Succeed())
 			Eventually(page, 10*time.Second).Should(HaveURL(atcRoute(fmt.Sprintf(
-				"/pipelines/%s/jobs/job-manual-trigger-disabled",
+				"/teams/%s/pipelines/%s/jobs/job-manual-trigger-disabled",
 				pipelineName,
 			))))
 

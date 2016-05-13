@@ -17,6 +17,7 @@ import (
 var atcURL = helpers.AtcURL()
 
 var pipelineName string
+var teamName string
 
 var client concourse.Client
 
@@ -41,6 +42,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(err).NotTo(HaveOccurred())
 
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
+	teamName = "main"
 
 	agoutiDriver = helpers.AgoutiDriver()
 	Expect(agoutiDriver.Start()).To(Succeed())
