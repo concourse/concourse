@@ -81,7 +81,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild",
 				APIURL:  "api/v1/builds/123",
 			}
-			expectedURL := "/api/v1/pipelines/mypipeline/jobs/myjob/builds"
+			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds"
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -115,7 +115,7 @@ var _ = Describe("ATC Handler Builds", func() {
 					APIURL:  "api/v1/builds/123",
 				}
 
-				expectedURL = "/api/v1/pipelines/mypipeline/jobs/myjob/builds/mybuild"
+				expectedURL = "/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds/mybuild"
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -135,7 +135,7 @@ var _ = Describe("ATC Handler Builds", func() {
 
 		Context("when build does not exist", func() {
 			BeforeEach(func() {
-				expectedURL = "/api/v1/pipelines/mypipeline/jobs/myjob/builds/mybuild"
+				expectedURL = "/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds/mybuild"
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(

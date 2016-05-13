@@ -13,7 +13,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	Describe("PausePipeline", func() {
 		Context("when the pipeline exists", func() {
 			BeforeEach(func() {
-				expectedURL := "/api/v1/pipelines/mypipeline/pause"
+				expectedURL := "/api/v1/teams/main/pipelines/mypipeline/pause"
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
@@ -30,7 +30,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 		Context("when the pipeline doesn't exist", func() {
 			BeforeEach(func() {
-				expectedURL := "/api/v1/pipelines/mypipeline/pause"
+				expectedURL := "/api/v1/teams/main/pipelines/mypipeline/pause"
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
@@ -50,7 +50,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	Describe("Pipeline", func() {
 		var expectedPipeline atc.Pipeline
 		pipelineName := "mypipeline"
-		expectedURL := "/api/v1/pipelines/mypipeline"
+		expectedURL := "/api/v1/teams/main/pipelines/mypipeline"
 
 		BeforeEach(func() {
 			expectedPipeline = atc.Pipeline{
@@ -106,7 +106,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 		var expectedPipelines []atc.Pipeline
 
 		BeforeEach(func() {
-			expectedURL := "/api/v1/pipelines"
+			expectedURL := "/api/v1/teams/main/pipelines"
 
 			expectedPipelines = []atc.Pipeline{
 				{
@@ -149,7 +149,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	})
 
 	Describe("DeletePipeline", func() {
-		expectedURL := "/api/v1/pipelines/mypipeline"
+		expectedURL := "/api/v1/teams/main/pipelines/mypipeline"
 
 		Context("when the pipeline exists", func() {
 			BeforeEach(func() {
@@ -191,7 +191,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	})
 
 	Describe("RenamePipeline", func() {
-		expectedURL := "/api/v1/pipelines/mypipeline/rename"
+		expectedURL := "/api/v1/teams/main/pipelines/mypipeline/rename"
 
 		Context("when the pipeline exists", func() {
 			BeforeEach(func() {

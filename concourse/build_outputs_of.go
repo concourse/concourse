@@ -10,6 +10,7 @@ import (
 
 func (client *client) BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
 	params := rata.Params{
+		"team_name":           atc.DefaultTeamName,
 		"pipeline_name":       pipelineName,
 		"resource_name":       resourceName,
 		"resource_version_id": strconv.Itoa(resourceVersionID),

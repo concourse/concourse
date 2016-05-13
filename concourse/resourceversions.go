@@ -9,7 +9,12 @@ import (
 )
 
 func (client *client) ResourceVersions(pipelineName string, resourceName string, page Page) ([]atc.VersionedResource, Pagination, bool, error) {
-	params := rata.Params{"pipeline_name": pipelineName, "resource_name": resourceName}
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"resource_name": resourceName,
+		"team_name":     atc.DefaultTeamName,
+	}
+
 	var versionedResources []atc.VersionedResource
 	headers := http.Header{}
 

@@ -14,7 +14,7 @@ var _ = Describe("ATC Handler Auth Token", func() {
 		var expectedAuthToken atc.AuthToken
 
 		BeforeEach(func() {
-			expectedURL := "/api/v1/auth/token"
+			expectedURL := "/api/v1/teams/main/auth/token"
 
 			expectedAuthToken = atc.AuthToken{
 				Type:  "Bearer",

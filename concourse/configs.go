@@ -19,7 +19,10 @@ import (
 )
 
 func (client *client) PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error) {
-	params := rata.Params{"pipeline_name": pipelineName}
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"team_name":     atc.DefaultTeamName,
+	}
 
 	var configResponse atc.ConfigResponse
 
@@ -73,7 +76,11 @@ type setConfigResponse struct {
 }
 
 func (client *client) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config) (bool, bool, []ConfigWarning, error) {
-	params := rata.Params{"pipeline_name": pipelineName}
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"team_name":     atc.DefaultTeamName,
+	}
+
 	response := internal.Response{}
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)

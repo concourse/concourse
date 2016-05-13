@@ -21,7 +21,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			)
 
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob")
+				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob")
 
 				expectedJob = atc.Job{
 					Name:      "myjob",
@@ -33,7 +33,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 						Status:  "succeeded",
 						JobName: "myjob",
 						URL:     fmt.Sprint("/pipelines/mypipeline/jobs/myjob/builds/mybuild"),
-						APIURL:  "api/v1/builds/123",
+						APIURL:  "api/v1/teams/main/builds/123",
 					},
 					Inputs: []atc.JobInput{
 						{
@@ -80,7 +80,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when job does not exist", func() {
 			BeforeEach(func() {
-				expectedURL := "/api/v1/pipelines/mypipeline/jobs/myjob"
+				expectedURL := "/api/v1/teams/main/pipelines/mypipeline/jobs/myjob"
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -125,7 +125,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when since, until, and limit are 0", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
 			})
 
 			It("calls to get all builds", func() {
@@ -138,7 +138,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when since is specified", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
 				expectedQuery = fmt.Sprint("since=24")
 			})
 
@@ -165,7 +165,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when until is specified", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
 				expectedQuery = fmt.Sprint("until=26")
 			})
 
@@ -192,7 +192,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when since and until are both specified", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
 				expectedQuery = fmt.Sprint("until=26")
 			})
 
@@ -206,7 +206,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when the server returns an error", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -225,7 +225,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when the server returns not found", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -245,15 +245,15 @@ var _ = Describe("ATC Handler Jobs", func() {
 		Context("pagination data", func() {
 			Context("with a link header", func() {
 				BeforeEach(func() {
-					expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob/builds")
+					expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", expectedURL),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{
 								"Link": []string{
-									`<http://some-url.com/api/v1/pipelines/some-pipeline/jobs/some-job/builds?since=452&limit=123>; rel="previous"`,
-									`<http://some-url.com/api/v1/pipelines/some-pipeline/jobs/some-job/builds?until=254&limit=456>; rel="next"`,
+									`<http://some-url.com/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/builds?since=452&limit=123>; rel="previous"`,
+									`<http://some-url.com/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/builds?until=254&limit=456>; rel="next"`,
 								},
 							}),
 						),
@@ -272,7 +272,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("without a link header", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -297,7 +297,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			expectedStatus int
 			pipelineName   = "banana"
 			jobName        = "disjob"
-			expectedURL    = fmt.Sprintf("/api/v1/pipelines/%s/jobs/%s/pause", pipelineName, jobName)
+			expectedURL    = fmt.Sprintf("/api/v1/teams/main/pipelines/%s/jobs/%s/pause", pipelineName, jobName)
 		)
 
 		JustBeforeEach(func() {
@@ -363,7 +363,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			expectedStatus int
 			pipelineName   = "banana"
 			jobName        = "disjob"
-			expectedURL    = fmt.Sprintf("/api/v1/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
+			expectedURL    = fmt.Sprintf("/api/v1/teams/main/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
 		)
 
 		JustBeforeEach(func() {

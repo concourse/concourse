@@ -59,7 +59,7 @@ func getConfigAndPausedState(r *http.Request) ([]byte, *bool) {
 
 var _ = Describe("ATC Handler Configs", func() {
 	Describe("PipelineConfig", func() {
-		expectedURL := "/api/v1/pipelines/mypipeline/config"
+		expectedURL := "/api/v1/teams/main/pipelines/mypipeline/config"
 
 		Context("ATC returns the correct response when it exists", func() {
 			var (
@@ -231,7 +231,7 @@ var _ = Describe("ATC Handler Configs", func() {
 				ResourceTypes: atc.ResourceTypes{},
 			}
 
-			expectedPath := "/api/v1/pipelines/mypipeline/config"
+			expectedPath := "/api/v1/teams/main/pipelines/mypipeline/config"
 
 			atcServer.RouteToHandler("PUT", expectedPath,
 				ghttp.CombineHandlers(

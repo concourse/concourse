@@ -20,7 +20,11 @@ func (checkResourceError CheckResourceError) Error() string {
 }
 
 func (client *client) CheckResource(pipelineName string, resourceName string, version atc.Version) (bool, error) {
-	params := rata.Params{"pipeline_name": pipelineName, "resource_name": resourceName}
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"resource_name": resourceName,
+		"team_name":     atc.DefaultTeamName,
+	}
 
 	jsonBytes, err := json.Marshal(atc.CheckRequestBody{From: version})
 	if err != nil {

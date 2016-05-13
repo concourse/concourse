@@ -11,7 +11,7 @@ import (
 
 var _ = Describe("ATC Handler Build Outputs", func() {
 	Describe("BuildsWithVersionAsOutput", func() {
-		expectedURL := "/api/v1/pipelines/some-pipeline/resources/myresource/versions/2/output_of"
+		expectedURL := "/api/v1/teams/main/pipelines/some-pipeline/resources/myresource/versions/2/output_of"
 
 		var expectedBuilds []atc.Build
 

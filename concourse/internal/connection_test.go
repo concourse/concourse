@@ -280,7 +280,7 @@ var _ = Describe("ATC Connection", func() {
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/foo"),
+							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/foo"),
 							ghttp.RespondWith(http.StatusNoContent, ""),
 						),
 					)
@@ -289,7 +289,10 @@ var _ = Describe("ATC Connection", func() {
 				It("sets the username and password if given", func() {
 					err := connection.Send(Request{
 						RequestName: atc.DeletePipeline,
-						Params:      rata.Params{"pipeline_name": "foo"},
+						Params: rata.Params{
+							"pipeline_name": "foo",
+							"team_name":     atc.DefaultTeamName,
+						},
 					}, nil)
 
 					Expect(err).NotTo(HaveOccurred())
@@ -304,7 +307,7 @@ var _ = Describe("ATC Connection", func() {
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/foo"),
+							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/foo"),
 							ghttp.RespondWith(http.StatusInternalServerError, "problem"),
 						),
 					)
@@ -313,7 +316,10 @@ var _ = Describe("ATC Connection", func() {
 				It("returns back UnexpectedResponseError", func() {
 					err := connection.Send(Request{
 						RequestName: atc.DeletePipeline,
-						Params:      rata.Params{"pipeline_name": "foo"},
+						Params: rata.Params{
+							"pipeline_name": "foo",
+							"team_name":     atc.DefaultTeamName,
+						},
 					}, nil)
 
 					Expect(err).To(HaveOccurred())
@@ -332,7 +338,7 @@ var _ = Describe("ATC Connection", func() {
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/foo"),
+							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/foo"),
 							ghttp.RespondWith(http.StatusUnauthorized, "problem"),
 						),
 					)
@@ -341,7 +347,10 @@ var _ = Describe("ATC Connection", func() {
 				It("returns back ErrUnauthorized", func() {
 					err := connection.Send(Request{
 						RequestName: atc.DeletePipeline,
-						Params:      rata.Params{"pipeline_name": "foo"},
+						Params: rata.Params{
+							"pipeline_name": "foo",
+							"team_name":     atc.DefaultTeamName,
+						},
 					}, nil)
 
 					Expect(err).To(Equal(ErrUnauthorized))
@@ -356,7 +365,7 @@ var _ = Describe("ATC Connection", func() {
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/foo"),
+							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/foo"),
 							ghttp.RespondWith(http.StatusNotFound, "problem"),
 						),
 					)
@@ -365,7 +374,10 @@ var _ = Describe("ATC Connection", func() {
 				It("returns back ResourceNotFoundError", func() {
 					err := connection.Send(Request{
 						RequestName: atc.DeletePipeline,
-						Params:      rata.Params{"pipeline_name": "foo"},
+						Params: rata.Params{
+							"pipeline_name": "foo",
+							"team_name":     atc.DefaultTeamName,
+						},
 					}, nil)
 
 					Expect(err).To(HaveOccurred())

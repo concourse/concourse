@@ -15,7 +15,7 @@ import (
 var _ = Describe("CheckResource", func() {
 	Context("when ATC request succeeds", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/pipelines/mypipeline/resources/myresource/check"
+			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resources/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
@@ -36,7 +36,7 @@ var _ = Describe("CheckResource", func() {
 
 	Context("when pipeline or resource does not exist", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/pipelines/mypipeline/resources/myresource/check"
+			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resources/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
@@ -55,7 +55,7 @@ var _ = Describe("CheckResource", func() {
 
 	Context("when ATC responds with an error", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/pipelines/mypipeline/resources/myresource/check"
+			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resources/myresource/check"
 
 			atcResponse := atc.CheckResponseBody{
 				ExitStatus: 1,

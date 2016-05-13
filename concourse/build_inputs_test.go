@@ -12,7 +12,7 @@ import (
 
 var _ = Describe("ATC Handler Build Inputs", func() {
 	Describe("BuildInputsForJob", func() {
-		expectedURL := "/api/v1/pipelines/mypipeline/jobs/myjob/inputs"
+		expectedURL := "/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/inputs"
 
 		Context("when pipeline/job exists", func() {
 			var expectedBuildInputs []atc.BuildInput
@@ -64,7 +64,7 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 	})
 
 	Describe("BuildsWithVersionAsInput", func() {
-		expectedURL := "/api/v1/pipelines/some-pipeline/resources/myresource/versions/2/input_to"
+		expectedURL := "/api/v1/teams/main/pipelines/some-pipeline/resources/myresource/versions/2/input_to"
 
 		var expectedBuilds []atc.Build
 

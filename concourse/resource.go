@@ -10,6 +10,7 @@ func (client *client) Resource(pipelineName string, resourceName string) (atc.Re
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceName,
+		"team_name":     atc.DefaultTeamName,
 	}
 
 	var resource atc.Resource

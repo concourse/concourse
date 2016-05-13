@@ -9,7 +9,10 @@ import (
 )
 
 func (client *client) BuildResources(buildID int) (atc.BuildInputsOutputs, bool, error) {
-	params := rata.Params{"build_id": strconv.Itoa(buildID)}
+	params := rata.Params{
+		"build_id":  strconv.Itoa(buildID),
+		"team_name": atc.DefaultTeamName,
+	}
 
 	var buildInputsOutputs atc.BuildInputsOutputs
 	err := client.connection.Send(internal.Request{

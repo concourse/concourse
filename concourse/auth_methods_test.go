@@ -14,7 +14,7 @@ var _ = Describe("ATC Handler Auth Methods", func() {
 		var expectedAuthMethods []atc.AuthMethod
 
 		BeforeEach(func() {
-			expectedURL := "/api/v1/auth/methods"
+			expectedURL := "/api/v1/teams/main/auth/methods"
 
 			expectedAuthMethods = []atc.AuthMethod{
 				{

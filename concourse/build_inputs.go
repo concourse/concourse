@@ -9,7 +9,11 @@ import (
 )
 
 func (client *client) BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error) {
-	params := rata.Params{"pipeline_name": pipelineName, "job_name": jobName}
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"job_name":      jobName,
+		"team_name":     atc.DefaultTeamName,
+	}
 
 	var buildInputs []atc.BuildInput
 	err := client.connection.Send(internal.Request{
@@ -34,6 +38,7 @@ func (client *client) BuildsWithVersionAsInput(pipelineName string, resourceName
 		"pipeline_name":       pipelineName,
 		"resource_name":       resourceName,
 		"resource_version_id": strconv.Itoa(resourceVersionID),
+		"team_name":           atc.DefaultTeamName,
 	}
 
 	var builds []atc.Build

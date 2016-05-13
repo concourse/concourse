@@ -11,7 +11,10 @@ import (
 )
 
 func (client *client) Pipeline(pipelineName string) (atc.Pipeline, bool, error) {
-	params := rata.Params{"pipeline_name": pipelineName}
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"team_name":     atc.DefaultTeamName,
+	}
 
 	var pipeline atc.Pipeline
 	err := client.connection.Send(internal.Request{
@@ -32,9 +35,14 @@ func (client *client) Pipeline(pipelineName string) (atc.Pipeline, bool, error) 
 }
 
 func (client *client) ListPipelines() ([]atc.Pipeline, error) {
+	params := rata.Params{
+		"team_name": atc.DefaultTeamName,
+	}
+
 	var pipelines []atc.Pipeline
 	err := client.connection.Send(internal.Request{
 		RequestName: atc.ListPipelines,
+		Params:      params,
 	}, &internal.Response{
 		Result: &pipelines,
 	})
@@ -43,7 +51,11 @@ func (client *client) ListPipelines() ([]atc.Pipeline, error) {
 }
 
 func (client *client) DeletePipeline(pipelineName string) (bool, error) {
-	params := rata.Params{"pipeline_name": pipelineName}
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"team_name":     atc.DefaultTeamName,
+	}
+
 	err := client.connection.Send(internal.Request{
 		RequestName: atc.DeletePipeline,
 		Params:      params,
@@ -60,7 +72,10 @@ func (client *client) DeletePipeline(pipelineName string) (bool, error) {
 }
 
 func (client *client) PausePipeline(pipelineName string) (bool, error) {
-	params := rata.Params{"pipeline_name": pipelineName}
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"team_name":     atc.DefaultTeamName,
+	}
 	err := client.connection.Send(internal.Request{
 		RequestName: atc.PausePipeline,
 		Params:      params,
@@ -77,7 +92,11 @@ func (client *client) PausePipeline(pipelineName string) (bool, error) {
 }
 
 func (client *client) UnpausePipeline(pipelineName string) (bool, error) {
-	params := rata.Params{"pipeline_name": pipelineName}
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"team_name":     atc.DefaultTeamName,
+	}
+
 	err := client.connection.Send(internal.Request{
 		RequestName: atc.UnpausePipeline,
 		Params:      params,
@@ -94,7 +113,11 @@ func (client *client) UnpausePipeline(pipelineName string) (bool, error) {
 }
 
 func (client *client) RenamePipeline(pipelineName, name string) (bool, error) {
-	params := rata.Params{"pipeline_name": pipelineName}
+	params := rata.Params{
+		"pipeline_name": pipelineName,
+		"team_name":     atc.DefaultTeamName,
+	}
+
 	jsonBytes, err := json.Marshal(struct {
 		Name string `json:"name"`
 	}{Name: name})

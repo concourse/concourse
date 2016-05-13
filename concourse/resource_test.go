@@ -31,7 +31,7 @@ var _ = Describe("ATC Handler Resource", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/resources/myresource"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/resources/myresource"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResource),
 					),
 				)
@@ -48,7 +48,7 @@ var _ = Describe("ATC Handler Resource", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/resources/myresource"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/resources/myresource"),
 						ghttp.RespondWith(http.StatusNotFound, ""),
 					),
 				)
@@ -64,7 +64,7 @@ var _ = Describe("ATC Handler Resource", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/resources/myresource"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/resources/myresource"),
 						ghttp.RespondWith(http.StatusInternalServerError, ""),
 					),
 				)
