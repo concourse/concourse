@@ -26,13 +26,13 @@ var _ = Describe("Resources API", func() {
 		pipelineDBFactory.BuildWithTeamNameAndNameReturns(fakePipelineDB, nil)
 	})
 
-	Describe("GET /api/v1/pipelines/:pipeline_name/resources", func() {
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			response, err = client.Get(server.URL + "/api/v1/pipelines/a-pipeline/resources")
+			response, err = client.Get(server.URL + "/api/v1/teams/a-team/pipelines/a-pipeline/resources")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
@@ -109,13 +109,13 @@ var _ = Describe("Resources API", func() {
 								"type": "type-1",
 								"groups": ["group-1", "group-2"],
 								"paused": true,
-								"url": "/pipelines/a-pipeline/resources/resource-1"
+								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-1"
 							},
 							{
 								"name": "resource-2",
 								"type": "type-2",
 								"groups": ["group-2"],
-								"url": "/pipelines/a-pipeline/resources/resource-2",
+								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-2",
 								"failing_to_check": true,
 								"check_error": "sup"
 							},
@@ -124,7 +124,7 @@ var _ = Describe("Resources API", func() {
 								"type": "type-3",
 								"groups": [],
 								"paused": true,
-								"url": "/pipelines/a-pipeline/resources/resource-3"
+								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-3"
 							}
 						]`))
 					})
@@ -159,13 +159,13 @@ var _ = Describe("Resources API", func() {
 								"type": "type-1",
 								"groups": ["group-1", "group-2"],
 								"paused": true,
-								"url": "/pipelines/a-pipeline/resources/resource-1"
+								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-1"
 							},
 							{
 								"name": "resource-2",
 								"type": "type-2",
 								"groups": ["group-2"],
-								"url": "/pipelines/a-pipeline/resources/resource-2",
+								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-2",
 								"failing_to_check": true
 							},
 							{
@@ -173,7 +173,7 @@ var _ = Describe("Resources API", func() {
 								"type": "type-3",
 								"groups": [],
 								"paused": true,
-								"url": "/pipelines/a-pipeline/resources/resource-3"
+								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-3"
 							}
 						]`))
 
@@ -217,7 +217,7 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/pipelines/:pipeline_name/resources/:resource_name", func() {
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name", func() {
 		var response *http.Response
 		var resourceName string
 		BeforeEach(func() {
@@ -227,7 +227,7 @@ var _ = Describe("Resources API", func() {
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/pipelines/a-pipeline/resources/%s", server.URL, resourceName), nil)
+			request, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/teams/a-team/pipelines/a-pipeline/resources/%s", server.URL, resourceName), nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -344,7 +344,7 @@ var _ = Describe("Resources API", func() {
 								"name": "resource-1",
 								"type": "type-1",
 								"groups": ["group-1", "group-2"],
-								"url": "/pipelines/a-pipeline/resources/resource-1",
+								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-1",
 								"paused": true,
 								"failing_to_check": true
 							}`))
@@ -365,7 +365,7 @@ var _ = Describe("Resources API", func() {
 								"name": "resource-1",
 								"type": "type-1",
 								"groups": ["group-1", "group-2"],
-								"url": "/pipelines/a-pipeline/resources/resource-1",
+								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-1",
 								"paused": true,
 								"failing_to_check": true,
 								"check_error": "sup"
@@ -378,7 +378,7 @@ var _ = Describe("Resources API", func() {
 
 	})
 
-	Describe("PUT /api/v1/pipelines/:pipeline_name/resources/:resource_name/pause", func() {
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/pause", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
@@ -392,7 +392,7 @@ var _ = Describe("Resources API", func() {
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/resources/resource-name/pause", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/pause", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -457,7 +457,7 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/pipelines/:pipeline_name/resources/:resource_name/unpause", func() {
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/unpause", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
@@ -471,7 +471,7 @@ var _ = Describe("Resources API", func() {
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/a-pipeline/resources/resource-name/unpause", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/unpause", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -536,7 +536,7 @@ var _ = Describe("Resources API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/pipelines/:pipeline_name/resources/:resource_name/check", func() {
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check", func() {
 		var fakeScanner *radarfakes.FakeScanner
 		var checkRequestBody atc.CheckRequestBody
 		var response *http.Response
@@ -552,7 +552,7 @@ var _ = Describe("Resources API", func() {
 			reqPayload, err := json.Marshal(checkRequestBody)
 			Expect(err).NotTo(HaveOccurred())
 
-			request, err := http.NewRequest("POST", server.URL+"/api/v1/pipelines/a-pipeline/resources/resource-name/check", bytes.NewBuffer(reqPayload))
+			request, err := http.NewRequest("POST", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/check", bytes.NewBuffer(reqPayload))
 			Expect(err).NotTo(HaveOccurred())
 
 			request.Header.Set("Content-Type", "application/json")

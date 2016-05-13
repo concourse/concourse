@@ -22,6 +22,7 @@ func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB) http.Handler {
 		)
 
 		resourceName := r.FormValue(":resource_name")
+		teamName := r.FormValue(":team_name")
 
 		urlUntil := r.FormValue(atc.PaginationQueryUntil)
 		until, _ = strconv.Atoi(urlUntil)
@@ -49,11 +50,11 @@ func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB) http.Handler {
 		}
 
 		if pagination.Next != nil {
-			s.addNextLink(w, pipelineDB.GetPipelineName(), resourceName, *pagination.Next)
+			s.addNextLink(w, teamName, pipelineDB.GetPipelineName(), resourceName, *pagination.Next)
 		}
 
 		if pagination.Previous != nil {
-			s.addPreviousLink(w, pipelineDB.GetPipelineName(), resourceName, *pagination.Previous)
+			s.addPreviousLink(w, teamName, pipelineDB.GetPipelineName(), resourceName, *pagination.Previous)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -68,10 +69,11 @@ func (s *Server) ListResourceVersions(pipelineDB db.PipelineDB) http.Handler {
 	})
 }
 
-func (s *Server) addNextLink(w http.ResponseWriter, pipelineName string, resourceName string, page db.Page) {
+func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, resourceName string, page db.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
-		`<%s/api/v1/pipelines/%s/resources/%s/versions?%s=%d&%s=%d>; rel="%s"`,
+		`<%s/api/v1/teams/%s/pipelines/%s/resources/%s/versions?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
+		teamName,
 		pipelineName,
 		resourceName,
 		atc.PaginationQuerySince,
@@ -82,10 +84,11 @@ func (s *Server) addNextLink(w http.ResponseWriter, pipelineName string, resourc
 	))
 }
 
-func (s *Server) addPreviousLink(w http.ResponseWriter, pipelineName string, resourceName string, page db.Page) {
+func (s *Server) addPreviousLink(w http.ResponseWriter, teamName, pipelineName, resourceName string, page db.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
-		`<%s/api/v1/pipelines/%s/resources/%s/versions?%s=%d&%s=%d>; rel="%s"`,
+		`<%s/api/v1/teams/%s/pipelines/%s/resources/%s/versions?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
+		teamName,
 		pipelineName,
 		resourceName,
 		atc.PaginationQueryUntil,

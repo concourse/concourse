@@ -27,13 +27,13 @@ var _ = Describe("Jobs API", func() {
 		pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
 	})
 
-	Describe("GET /api/v1/pipelines/:pipeline_name/jobs/:job_name", func() {
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job")
+			response, err = client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
@@ -148,24 +148,26 @@ var _ = Describe("Jobs API", func() {
 							"name": "some-job",
 							"paused": true,
 							"first_logged_build_id": 99,
-							"url": "/pipelines/some-pipeline/jobs/some-job",
+							"url": "/teams/some-team/pipelines/some-pipeline/jobs/some-job",
 							"next_build": {
 								"id": 3,
 								"name": "2",
 								"job_name": "some-job",
 								"status": "started",
-								"url": "/pipelines/some-pipeline/jobs/some-job/builds/2",
+								"url": "/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds/2",
 								"api_url": "/api/v1/builds/3",
-								"pipeline_name":"some-pipeline"
+								"pipeline_name": "some-pipeline",
+								"team_name": "some-team"
 							},
 							"finished_build": {
 								"id": 1,
 								"name": "1",
 								"job_name": "some-job",
 								"status": "succeeded",
-								"url": "/pipelines/some-pipeline/jobs/some-job/builds/1",
+								"url": "/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds/1",
 								"api_url": "/api/v1/builds/1",
-								"pipeline_name":"some-pipeline",
+								"pipeline_name": "some-pipeline",
+								"team_name": "some-team",
 								"start_time": 1,
 								"end_time": 100
 							},
@@ -262,13 +264,13 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/pipelines/:pipeline_name/jobs/:job_name/badge", func() {
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/badge", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/badge")
+			response, err = client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
@@ -623,7 +625,7 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/pipelines/:pipeline_name/jobs", func() {
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs", func() {
 		var response *http.Response
 		var jobs []atc.JobConfig
 		var dashboardResponse db.Dashboard
@@ -632,7 +634,7 @@ var _ = Describe("Jobs API", func() {
 		JustBeforeEach(func() {
 			var err error
 
-			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs")
+			response, err = client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -730,24 +732,26 @@ var _ = Describe("Jobs API", func() {
 							{
 								"name": "job-1",
 								"paused": true,
-								"url": "/pipelines/another-pipeline/jobs/job-1",
+								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1",
 								"next_build": {
 									"id": 3,
 									"name": "2",
 									"job_name": "job-1",
 									"status": "started",
-									"url": "/pipelines/another-pipeline/jobs/job-1/builds/2",
+									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1/builds/2",
 									"api_url": "/api/v1/builds/3",
-									"pipeline_name":"another-pipeline"
+									"pipeline_name": "another-pipeline",
+									"team_name": "some-team"
 								},
 								"finished_build": {
 									"id": 1,
 									"name": "1",
 									"job_name": "job-1",
 									"status": "succeeded",
-									"url": "/pipelines/another-pipeline/jobs/job-1/builds/1",
+									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1/builds/1",
 									"api_url": "/api/v1/builds/1",
 									"pipeline_name":"another-pipeline",
+									"team_name": "some-team",
 									"start_time": 1,
 									"end_time": 100
 								},
@@ -758,16 +762,17 @@ var _ = Describe("Jobs API", func() {
 							{
 								"name": "job-2",
 								"paused": true,
-								"url": "/pipelines/another-pipeline/jobs/job-2",
+								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-2",
 								"next_build": null,
 								"finished_build": {
 									"id": 4,
 									"name": "1",
 									"job_name": "job-2",
 									"status": "succeeded",
-									"url": "/pipelines/another-pipeline/jobs/job-2/builds/1",
+									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-2/builds/1",
 									"api_url": "/api/v1/builds/4",
-									"pipeline_name":"another-pipeline",
+									"pipeline_name": "another-pipeline",
+									"team_name": "some-team",
 									"start_time": 101,
 									"end_time": 200
 								},
@@ -778,7 +783,7 @@ var _ = Describe("Jobs API", func() {
 							{
 								"name": "job-3",
 								"paused": true,
-								"url": "/pipelines/another-pipeline/jobs/job-3",
+								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-3",
 								"next_build": null,
 								"finished_build": null,
 								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": false}],
@@ -802,25 +807,27 @@ var _ = Describe("Jobs API", func() {
 							{
 								"name": "job-1",
 								"paused": true,
-								"url": "/pipelines/another-pipeline/jobs/job-1",
+								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1",
 								"disable_manual_trigger": true,
 								"next_build": {
 									"id": 3,
 									"name": "2",
 									"job_name": "job-1",
 									"status": "started",
-									"url": "/pipelines/another-pipeline/jobs/job-1/builds/2",
+									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1/builds/2",
 									"api_url": "/api/v1/builds/3",
-									"pipeline_name":"another-pipeline"
+									"pipeline_name":"another-pipeline",
+									"team_name": "some-team"
 								},
 								"finished_build": {
 									"id": 1,
 									"name": "1",
 									"job_name": "job-1",
 									"status": "succeeded",
-									"url": "/pipelines/another-pipeline/jobs/job-1/builds/1",
+									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-1/builds/1",
 									"api_url": "/api/v1/builds/1",
 									"pipeline_name":"another-pipeline",
+									"team_name": "some-team",
 									"start_time": 1,
 									"end_time": 100
 								},
@@ -831,16 +838,17 @@ var _ = Describe("Jobs API", func() {
 							{
 								"name": "job-2",
 								"paused": true,
-								"url": "/pipelines/another-pipeline/jobs/job-2",
+								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-2",
 								"next_build": null,
 								"finished_build": {
 									"id": 4,
 									"name": "1",
 									"job_name": "job-2",
 									"status": "succeeded",
-									"url": "/pipelines/another-pipeline/jobs/job-2/builds/1",
+									"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-2/builds/1",
 									"api_url": "/api/v1/builds/4",
-									"pipeline_name":"another-pipeline",
+									"pipeline_name": "another-pipeline",
+									"team_name": "some-team",
 									"start_time": 101,
 									"end_time": 200
 								},
@@ -851,7 +859,7 @@ var _ = Describe("Jobs API", func() {
 							{
 								"name": "job-3",
 								"paused": true,
-								"url": "/pipelines/another-pipeline/jobs/job-3",
+								"url": "/teams/some-team/pipelines/another-pipeline/jobs/job-3",
 								"next_build": null,
 								"finished_build": null,
 								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": false}],
@@ -876,7 +884,7 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/pipelines/:pipeline_name/jobs/:job_name/builds", func() {
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/builds", func() {
 		var response *http.Response
 		var queryParams string
 
@@ -884,7 +892,7 @@ var _ = Describe("Jobs API", func() {
 			var err error
 
 			pipelineDB.GetPipelineNameReturns("some-pipeline")
-			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/builds" + queryParams)
+			response, err = client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds" + queryParams)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -964,9 +972,10 @@ var _ = Describe("Jobs API", func() {
 						"name": "2",
 						"job_name": "some-job",
 						"status": "started",
-						"url": "/pipelines/some-pipeline/jobs/some-job/builds/2",
+						"url": "/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds/2",
 						"api_url": "/api/v1/builds/4",
 						"pipeline_name":"some-pipeline",
+						"team_name": "some-team",
 						"start_time": 1,
 						"end_time": 100
 					},
@@ -975,9 +984,10 @@ var _ = Describe("Jobs API", func() {
 						"name": "1",
 						"job_name": "some-job",
 						"status": "succeeded",
-						"url": "/pipelines/some-pipeline/jobs/some-job/builds/1",
+						"url": "/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds/1",
 						"api_url": "/api/v1/builds/2",
-						"pipeline_name":"some-pipeline",
+						"pipeline_name": "some-pipeline",
+						"team_name": "some-team",
 						"start_time": 101,
 						"end_time": 200
 					}
@@ -994,8 +1004,8 @@ var _ = Describe("Jobs API", func() {
 
 				It("returns Link headers per rfc5988", func() {
 					Expect(response.Header["Link"]).To(ConsistOf([]string{
-						fmt.Sprintf(`<%s/api/v1/pipelines/some-pipeline/jobs/some-job/builds?until=4&limit=2>; rel="previous"`, externalURL),
-						fmt.Sprintf(`<%s/api/v1/pipelines/some-pipeline/jobs/some-job/builds?since=2&limit=2>; rel="next"`, externalURL),
+						fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?until=4&limit=2>; rel="previous"`, externalURL),
+						fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?since=2&limit=2>; rel="next"`, externalURL),
 					}))
 				})
 			})
@@ -1012,7 +1022,7 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("POST /api/v1/pipelines/:pipeline_name/jobs/:job_name/builds", func() {
+	Describe("POST /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/builds", func() {
 		var request *http.Request
 		var response *http.Response
 
@@ -1021,7 +1031,7 @@ var _ = Describe("Jobs API", func() {
 		BeforeEach(func() {
 			var err error
 
-			request, err = http.NewRequest("POST", server.URL+"/api/v1/pipelines/some-pipeline/jobs/some-job/builds", nil)
+			request, err = http.NewRequest("POST", server.URL+"/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			fakeScheduler = new(schedulerfakes.FakeBuildScheduler)
@@ -1147,9 +1157,10 @@ var _ = Describe("Jobs API", func() {
 							"name": "1",
 							"job_name": "some-job",
 							"status": "started",
-							"url": "/pipelines/a-pipeline/jobs/some-job/builds/1",
+							"url": "/teams/some-team/pipelines/a-pipeline/jobs/some-job/builds/1",
 							"api_url": "/api/v1/builds/42",
 							"pipeline_name": "a-pipeline",
+							"team_name": "some-team",
 							"start_time": 1,
 							"end_time": 100
 						}`))
@@ -1205,13 +1216,13 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/pipelines/:pipeline_name/jobs/:job_name/inputs", func() {
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/inputs", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/inputs")
+			response, err = client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/inputs")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -1420,13 +1431,13 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/pipelines/:pipeline_name/jobs/:job_name/builds/:build_name", func() {
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/builds/:build_name", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			response, err = client.Get(server.URL + "/api/v1/pipelines/some-pipeline/jobs/some-job/builds/some-build")
+			response, err = client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds/some-build")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
@@ -1469,9 +1480,10 @@ var _ = Describe("Jobs API", func() {
 					"name": "1",
 					"job_name": "some-job",
 					"status": "succeeded",
-					"url": "/pipelines/a-pipeline/jobs/some-job/builds/1",
+					"url": "/teams/some-team/pipelines/a-pipeline/jobs/some-job/builds/1",
 					"api_url": "/api/v1/builds/1",
 					"pipeline_name": "a-pipeline",
+					"team_name": "some-team",
 					"start_time": 1,
 					"end_time": 100
 				}`))
@@ -1500,13 +1512,13 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/pipelines/:pipeline_name/jobs/:job_name/pause", func() {
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/pause", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/some-pipeline/jobs/job-name/pause", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/some-team/pipelines/some-pipeline/jobs/job-name/pause", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -1561,13 +1573,13 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/pipelines/:pipeline_name/jobs/:job_name/unpause", func() {
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/unpause", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/pipelines/some-pipeline/jobs/job-name/unpause", nil)
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/some-team/pipelines/some-pipeline/jobs/job-name/unpause", nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)

@@ -3,7 +3,7 @@
     this.$el = $($el);
     this.$toggle = $el.find($('.js-pipelinesNav-toggle'));
     this.$list = $el.find($('.js-pipelinesNav-list'));
-    this.pipelinesEndpoint = '/api/v1/pipelines';
+    this.pipelinesEndpoint = $el.data('endpoint');
   };
 
 
@@ -56,7 +56,7 @@
         var icon = pipeline.paused ? 'play' : 'pause';
 
         $pipelineListItem.html('<span class="btn-pause fl ' + ed + ' js-pauseUnpause"><i class="fa fa-fw fa-' + icon +  '"></i></span><a href="' + pipeline.url + '">' + pipeline.name + '</a>');
-        $pipelineListItem.data('endpoint', 'pipelines/' + pipeline.name);
+        $pipelineListItem.data('endpoint', _this.pipelinesEndpoint + '/' + pipeline.name);
         $pipelineListItem.data('pipelineName', pipeline.name);
         $pipelineListItem.addClass('clearfix');
 

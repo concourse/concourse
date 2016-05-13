@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
-	. "github.com/concourse/atc/web/getbuilds"
+	"github.com/concourse/atc/web/getbuilds"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,6 +19,7 @@ var _ = Describe("Present", func() {
 				ID:           1,
 				JobName:      "hello",
 				PipelineName: "a-pipeline",
+				TeamName:     "a-team",
 				StartTime:    date.Unix(),
 				EndTime:      date.Add(1 * time.Minute).Unix(),
 				Status:       "pending",
@@ -31,13 +32,14 @@ var _ = Describe("Present", func() {
 				EndTime:   0,
 				Status:    "pending",
 				Name:      "12",
+				TeamName:  "a-team",
 			},
 		}
 
-		presentedBuilds := PresentBuilds(builds)
+		presentedBuilds := getbuilds.PresentBuilds(builds)
 
 		Expect(presentedBuilds).To(HaveLen(2))
-		Expect(presentedBuilds[0]).To(Equal(PresentedBuild{
+		Expect(presentedBuilds[0]).To(Equal(getbuilds.PresentedBuild{
 			ID:           1,
 			JobName:      "hello",
 			StartTime:    "2004-04-03 13:45:33 (UTC)",
@@ -45,10 +47,11 @@ var _ = Describe("Present", func() {
 			CSSClass:     "",
 			Status:       "pending",
 			PipelineName: "a-pipeline",
-			Path:         "/pipelines/a-pipeline/jobs/hello/builds/23",
+			TeamName:     "a-team",
+			Path:         "/teams/a-team/pipelines/a-pipeline/jobs/hello/builds/23",
 		}))
 
-		Expect(presentedBuilds[1]).To(Equal(PresentedBuild{
+		Expect(presentedBuilds[1]).To(Equal(getbuilds.PresentedBuild{
 			ID:           2,
 			JobName:      "[one off]",
 			StartTime:    "n/a",
@@ -56,8 +59,8 @@ var _ = Describe("Present", func() {
 			CSSClass:     "build-one-off",
 			Status:       "pending",
 			PipelineName: "[one off]",
+			TeamName:     "a-team",
 			Path:         "/builds/2",
 		}))
-
 	})
 })

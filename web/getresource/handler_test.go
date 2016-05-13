@@ -24,7 +24,7 @@ var _ = Describe("FetchTemplateData", func() {
 	})
 
 	JustBeforeEach(func() {
-		templateData, fetchErr = FetchTemplateData("some-pipeline", "some-resource", fakeClient, concourse.Page{
+		templateData, fetchErr = FetchTemplateData("some-team", "some-pipeline", "some-resource", fakeClient, concourse.Page{
 			Since: 398,
 			Until: 2,
 		})
@@ -325,6 +325,7 @@ var _ = Describe("FetchTemplateData", func() {
 									OutputsOf:         map[string][]atc.Build{"some-job": expectedBuildsForOutput},
 								},
 							}))
+							Expect(templateData.TeamName).To(Equal("some-team"))
 							Expect(templateData.PipelineName).To(Equal("some-pipeline"))
 							Expect(templateData.GroupStates).To(ConsistOf([]group.State{
 								{

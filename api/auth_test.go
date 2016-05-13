@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/provider/fakes"
 	"github.com/concourse/atc/db"
@@ -15,7 +14,7 @@ import (
 )
 
 var _ = Describe("Auth API", func() {
-	Describe("GET /api/v1/auth/token", func() {
+	Describe("GET /api/v1/teams/:team_name/auth/token", func() {
 		var request *http.Request
 		var response *http.Response
 
@@ -25,7 +24,7 @@ var _ = Describe("Auth API", func() {
 			savedTeam = db.SavedTeam{
 				ID: 0,
 				Team: db.Team{
-					Name:  atc.DefaultTeamName,
+					Name:  "some-team",
 					Admin: true,
 				},
 			}
@@ -33,7 +32,7 @@ var _ = Describe("Auth API", func() {
 			authDB.GetTeamByNameReturns(savedTeam, true, nil)
 
 			var err error
-			request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/token", nil)
+			request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/token", nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -145,7 +144,7 @@ var _ = Describe("Auth API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/auth/methods", func() {
+	Describe("GET /api/v1/teams/some-team/auth/methods", func() {
 		Context("when providers are present", func() {
 			var request *http.Request
 			var response *http.Response
@@ -169,7 +168,7 @@ var _ = Describe("Auth API", func() {
 				savedTeam = db.SavedTeam{
 					ID: 0,
 					Team: db.Team{
-						Name: atc.DefaultTeamName,
+						Name: "some-team",
 						BasicAuth: db.BasicAuth{
 							BasicAuthUsername: "user",
 							BasicAuthPassword: "password",
@@ -180,7 +179,7 @@ var _ = Describe("Auth API", func() {
 				authDB.GetTeamByNameReturns(savedTeam, true, nil)
 
 				var err error
-				request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
+				request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/methods", nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -232,14 +231,14 @@ var _ = Describe("Auth API", func() {
 				savedTeam = db.SavedTeam{
 					ID: 0,
 					Team: db.Team{
-						Name: atc.DefaultTeamName,
+						Name: "some-team",
 					},
 				}
 
 				authDB.GetTeamByNameReturns(savedTeam, true, nil)
 
 				var err error
-				request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
+				request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/methods", nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -273,7 +272,7 @@ var _ = Describe("Auth API", func() {
 				authDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
 
 				var err error
-				request, err = http.NewRequest("GET", server.URL+"/api/v1/auth/methods", nil)
+				request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/methods", nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

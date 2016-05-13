@@ -9,6 +9,7 @@ import Time
 import Job
 
 port jobName : String
+port teamName : String
 port pipelineName : String
 port pageSince : Int
 port pageUntil : Int
@@ -20,7 +21,7 @@ main =
 app : StartApp.App Job.Model
 app =
   StartApp.start
-    { init = Job.init redirects.address jobName pipelineName pageSince pageUntil
+    { init = Job.init redirects.address jobName teamName pipelineName pageSince pageUntil
     , update = Job.update
     , view = Job.view
     , inputs = []

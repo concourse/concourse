@@ -58,7 +58,7 @@ var _ = Describe("Job Builds", func() {
 		})
 
 		homepage := func() string {
-			return fmt.Sprintf("http://127.0.0.1:%d/pipelines/%s", atcPort, atc.DefaultPipelineName)
+			return fmt.Sprintf("http://127.0.0.1:%d", atcPort)
 		}
 
 		withPath := func(path string) string {
@@ -110,7 +110,7 @@ var _ = Describe("Job Builds", func() {
 					// job detail w/build info -> job detail
 					Eventually(page.Find("h1 a")).Should(BeFound())
 					Expect(page.Find("h1 a").Click()).To(Succeed())
-					Eventually(page).Should(HaveURL(withPath("jobs/job-name")))
+					Eventually(page).Should(HaveURL(withPath("/teams/main/pipelines/main/jobs/job-name")))
 					Eventually(page.All(".js-build").Count).Should(Equal(100))
 
 					Expect(page.First(".pagination .disabled .fa-arrow-left")).Should(BeFound())

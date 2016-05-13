@@ -21,8 +21,10 @@ func (s *Server) ListBuildsWithVersionAsOutput(pipelineDB db.PipelineDB) http.Ha
 			return
 		}
 
+		teamName := r.FormValue(":team_name")
 		presentedBuilds := []atc.Build{}
 		for _, build := range builds {
+			build.TeamName = teamName
 			presentedBuilds = append(presentedBuilds, present.Build(build))
 		}
 

@@ -106,7 +106,7 @@ var _ = Describe("Resource Pausing", func() {
 			Expect(page.FindByLink("resource-name").Click()).To(Succeed())
 
 			// resource detail -> paused resource detail
-			Eventually(page).Should(HaveURL(withPath("/pipelines/some-pipeline/resources/resource-name")))
+			Eventually(page).Should(HaveURL(withPath("/teams/main/pipelines/some-pipeline/resources/resource-name")))
 			Expect(page.Find("h1")).To(HaveText("resource-name"))
 
 			Authenticate(page, "admin", "password")

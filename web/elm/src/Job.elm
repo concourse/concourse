@@ -74,12 +74,12 @@ addNextBuildFromArray newBuilds i lubwr =
 initLiveUpdatingBuildWithResources : Build -> LiveUpdatingBuildWithResources
 initLiveUpdatingBuildWithResources nextBuild = {buildWithResources = Nothing, nextBuild = nextBuild}
 
-init : Signal.Address String -> String -> String -> Int -> Int -> (Model, Effects Action)
-init redirect jobName pipelineName pageSince pageUntil =
+init : Signal.Address String -> String -> String -> String -> Int -> Int -> (Model, Effects Action)
+init redirect jobName teamName pipelineName pageSince pageUntil =
   let
     model =
       { redirect = redirect
-      , jobInfo = {name = jobName, pipelineName = pipelineName}
+      , jobInfo = {name = jobName, teamName = teamName, pipelineName = pipelineName}
       , job = Nothing
       , pausedChanging = False
       , buildsWithResources = Nothing
@@ -217,7 +217,7 @@ view actions model = Html.div[]
         , Html.form
           [class "trigger-build"
           , Html.Attributes.method "post"
-          , Html.Attributes.action <| "/pipelines/" ++ model.jobInfo.pipelineName
+          , Html.Attributes.action <| "/teams/" ++ model.jobInfo.teamName ++ "/pipelines/" ++ model.jobInfo.pipelineName
             ++ "/jobs/" ++ model.jobInfo.name ++ "/builds"
           ]
           [ Html.button [ class "build-action fr", disabled job.disableManualTrigger, attribute "aria-label" "Trigger Build" ]
@@ -289,7 +289,7 @@ viewPaginationBar model =
           Html.div [ class "btn-page-link"]
           [ Html.a
             [ class "arrow"
-            , href <| "/pipelines/" ++ model.jobInfo.pipelineName ++ "/jobs/"
+            , href <| "/teams/" ++ model.jobInfo.teamName ++ "/pipelines/" ++ model.jobInfo.pipelineName ++ "/jobs/"
               ++ model.jobInfo.name ++ "?" ++ paginationParam page
             , attribute "aria-label" "Previous Page"
             ]
@@ -307,7 +307,7 @@ viewPaginationBar model =
           Html.div [ class "btn-page-link"]
           [ Html.a
             [ class "arrow"
-            , href <| "/pipelines/" ++ model.jobInfo.pipelineName ++ "/jobs/"
+            , href <| "/teams/" ++ model.jobInfo.teamName ++ "/pipelines/" ++ model.jobInfo.pipelineName ++ "/jobs/"
               ++ model.jobInfo.name ++ "?" ++ paginationParam page
             , attribute "aria-label" "Next Page"
             ]

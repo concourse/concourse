@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/pivotal-golang/lager"
 )
@@ -32,6 +33,7 @@ func (s *Server) GetBuild(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 
+	dbBuild.TeamName = atc.DefaultTeamName
 	build := present.Build(dbBuild)
 
 	json.NewEncoder(w).Encode(build)

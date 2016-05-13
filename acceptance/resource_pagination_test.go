@@ -87,7 +87,7 @@ var _ = Describe("Resource Pagination", func() {
 		})
 
 		homepage := func() string {
-			return fmt.Sprintf("http://127.0.0.1:%d/pipelines/%s", atcPort, atc.DefaultPipelineName)
+			return fmt.Sprintf("http://127.0.0.1:%d", atcPort)
 		}
 
 		withPath := func(path string) string {
@@ -118,7 +118,7 @@ var _ = Describe("Resource Pagination", func() {
 				Expect(page.FindByLink("resource-name").Click()).To(Succeed())
 
 				// resource detail -> paused resource detail
-				Eventually(page).Should(HaveURL(withPath("/resources/resource-name")))
+				Eventually(page).Should(HaveURL(withPath("/teams/main/pipelines/main/resources/resource-name")))
 				Expect(page.Find("h1")).To(HaveText("resource-name"))
 				Expect(page.All(".pagination").Count()).Should(Equal(2))
 				Expect(page.Find(".resource-versions")).Should(BeFound())
@@ -158,7 +158,7 @@ var _ = Describe("Resource Pagination", func() {
 				Expect(page.FindByLink("resource-name").Click()).To(Succeed())
 
 				// resource detail -> paused resource detail
-				Eventually(page).Should(HaveURL(withPath("/resources/resource-name")))
+				Eventually(page).Should(HaveURL(withPath("/teams/main/pipelines/main/resources/resource-name")))
 				Expect(page.Find("h1")).To(HaveText("resource-name"))
 				Expect(page.First(".pagination .disabled .fa-arrow-left")).Should(BeFound())
 				Expect(page.First(".pagination .disabled .fa-arrow-right")).Should(BeFound())

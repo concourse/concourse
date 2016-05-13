@@ -29,6 +29,7 @@ func (s *Server) ListResources(pipelineDB db.PipelineDB) http.Handler {
 		}
 
 		showCheckErr := auth.IsAuthenticated(r)
+		teamName := r.FormValue(":team_name")
 
 		for _, resource := range config.Resources {
 			dbResource, found, err := pipelineDB.GetResource(resource.Name)
@@ -51,6 +52,7 @@ func (s *Server) ListResources(pipelineDB db.PipelineDB) http.Handler {
 					config.Groups,
 					dbResource,
 					showCheckErr,
+					teamName,
 				),
 			)
 		}

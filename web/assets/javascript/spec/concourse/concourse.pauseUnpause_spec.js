@@ -5,7 +5,7 @@ describe("Resource", function () {
 
   beforeEach(function () {
     setFixtures(
-      '<div class="js-something" data-endpoint="something/other"><span class="js-pauseUnpause disabled"><i class="fa-pause"></i></span></div>'
+      '<div class="js-something" data-endpoint="/something/other"><span class="js-pauseUnpause disabled"><i class="fa-pause"></i></span></div>'
     );
 
     pauseCallbackSpy = jasmine.createSpy('pauseCallback');
@@ -172,7 +172,7 @@ describe("Resource", function () {
 
         var request = jasmine.Ajax.requests.mostRecent();
 
-        expect(request.url).toBe('/api/v1/something/other/pause');
+        expect(request.url).toBe('/something/other/pause');
         expect(request.method).toBe('PUT');
 
         respondWithSuccess(request);
@@ -181,7 +181,7 @@ describe("Resource", function () {
 
         request = jasmine.Ajax.requests.mostRecent();
 
-        expect(request.url).toBe('/api/v1/something/other/unpause');
+        expect(request.url).toBe('/something/other/unpause');
         expect(request.method).toBe('PUT');
 
         respondWithSuccess(request);

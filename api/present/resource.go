@@ -7,12 +7,16 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func Resource(resource atc.ResourceConfig, groups atc.GroupConfigs, dbResource db.SavedResource, showCheckError bool) atc.Resource {
+func Resource(resource atc.ResourceConfig, groups atc.GroupConfigs, dbResource db.SavedResource, showCheckError bool, teamName string) atc.Resource {
 	generator := rata.NewRequestGenerator("", web.Routes)
 
 	req, err := generator.CreateRequest(
 		web.GetResource,
-		rata.Params{"resource": resource.Name, "pipeline_name": dbResource.PipelineName},
+		rata.Params{
+			"resource":      resource.Name,
+			"team_name":     teamName,
+			"pipeline_name": dbResource.PipelineName,
+		},
 		nil,
 	)
 	if err != nil {

@@ -34,6 +34,8 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 		limit = atc.PaginationAPIDefaultLimit
 	}
 
+	teamName := atc.DefaultTeamName
+
 	builds, pagination, err := s.db.GetBuilds(db.Page{Until: until, Since: since, Limit: limit})
 	if err != nil {
 		logger.Error("failed-to-get-all-builds", err)
@@ -53,7 +55,9 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 
 	atc := make([]atc.Build, len(builds))
 	for i := 0; i < len(builds); i++ {
-		atc[i] = present.Build(builds[i])
+		build := builds[i]
+		build.TeamName = teamName
+		atc[i] = present.Build(build)
 	}
 
 	json.NewEncoder(w).Encode(atc)

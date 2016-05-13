@@ -18,7 +18,9 @@ func (s *Server) GetPipeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config, _, _, err := s.configDB.GetConfig(atc.DefaultTeamName, pipelineName)
+	teamName := r.FormValue(":team_name")
+
+	config, _, _, err := s.configDB.GetConfig(teamName, pipelineName)
 	if err != nil {
 		s.logger.Error("call-to-get-pipeline-config-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -28,7 +30,7 @@ func (s *Server) GetPipeline(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	presentedPipeline := present.Pipeline(pipeline, config)
+	presentedPipeline := present.Pipeline(teamName, pipeline, config)
 
 	json.NewEncoder(w).Encode(presentedPipeline)
 }

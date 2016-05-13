@@ -1,4 +1,5 @@
 function draw(groups, renderFn, completeFn) {
+<<<<<<< ee945561cae855375ab9bf4a95b464713d1f3ce0
   $.when(
     $.ajax({
       url: "/api/v1/pipelines/" + concourse.pipelineName + "/jobs",
@@ -14,6 +15,22 @@ function draw(groups, renderFn, completeFn) {
     var request = a2[2];
     renderFn(jobs, resources, request.getResponseHeader("X-Concourse-Version"));
   }).always(completeFn);
+=======
+  $.ajax({
+    url: "/api/v1/teams/" + concourse.teamName + "/pipelines/" + concourse.pipelineName + "/jobs",
+    dataType: "json",
+    complete: completeFn,
+    success: function(jobs) {
+      $.ajax({
+        url: "/api/v1/teams/" + concourse.teamName + "/pipelines/" + concourse.pipelineName + "/resources",
+        dataType: "json",
+        success: function(resources, httpStatus, request) {
+          renderFn(jobs, resources, request.getResponseHeader("X-Concourse-Version"));
+        }
+      });
+    }
+  });
+>>>>>>> prefix /pipelines routes with /teams/:team_name
 }
 
 var currentHighlight;

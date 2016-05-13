@@ -13,6 +13,7 @@ const (
 
 type Build struct {
 	ID           int    `json:"id"`
+	TeamName     string `json:"team_name"`
 	Name         string `json:"name"`
 	Status       string `json:"status"`
 	JobName      string `json:"job_name,omitempty"`

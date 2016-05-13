@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/atc"
 
 	. "github.com/concourse/atc/web/getjob"
+	"github.com/concourse/atc/web/group"
 
 	"github.com/concourse/go-concourse/concourse"
 	cfakes "github.com/concourse/go-concourse/concourse/fakes"
@@ -25,7 +26,7 @@ var _ = Describe("FetchTemplateData", func() {
 	})
 
 	JustBeforeEach(func() {
-		templateData, fetchErr = FetchTemplateData("some-pipeline", fakeClient, "some-job", concourse.Page{
+		templateData, fetchErr = FetchTemplateData("some-team", "some-pipeline", fakeClient, "some-job", concourse.Page{
 			Since: 398,
 			Until: 2,
 		})
@@ -79,6 +80,31 @@ var _ = Describe("FetchTemplateData", func() {
 			actualPipelineName, actualJobName := fakeClient.JobArgsForCall(0)
 			Expect(actualPipelineName).To(Equal("some-pipeline"))
 			Expect(actualJobName).To(Equal("some-job"))
+		})
+
+		Context("when the client returns a job", func() {
+			BeforeEach(func() {
+				fakeClient.JobReturns(atc.Job{}, true, nil)
+			})
+
+			It("returns the correct TemplateData", func() {
+				Expect(templateData.TeamName).To(Equal("some-team"))
+				Expect(templateData.PipelineName).To(Equal("some-pipeline"))
+				Expect(templateData.JobName).To(Equal("some-job"))
+				Expect(templateData.Since).To(Equal(398))
+				Expect(templateData.Until).To(Equal(2))
+
+				Expect(templateData.GroupStates).To(ConsistOf([]group.State{
+					{
+						Name:    "group-with-job",
+						Enabled: true,
+					},
+					{
+						Name:    "group-without-job",
+						Enabled: false,
+					},
+				}))
+			})
 		})
 
 		Context("when the client returns an error", func() {

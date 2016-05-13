@@ -4,7 +4,7 @@
 <div id="page-header" class="{{.Build.Status}}">
   <div class="build-header js-build" data-build-id="{{.Build.ID}}">
     <div class="build-actions fr">
-      <form class="trigger-build" method="post" action="{{url "TriggerBuild" .PipelineName .Job}}">
+      <form class="trigger-build" method="post" action="{{url "TriggerBuild" .TeamName .PipelineName .Job}}">
         <button class="build-action fr" aria-label="Trigger Build"><i class="fa fa-plus-circle"></i></button>
       </form>
 
@@ -14,7 +14,7 @@
       {{end}}
     </div>
 
-    <h1><a href="{{url "GetJob" .PipelineName .Job}}">{{.Job.Name}} #{{.Build.Name}}</a></h1>
+    <h1><a href="{{url "GetJob" .TeamName .PipelineName .Job}}">{{.Job.Name}} #{{.Build.Name}}</a></h1>
 
     <dl class="build-times"></dl>
   </div>

@@ -13,6 +13,7 @@ type PresentedBuild struct {
 	ID           int
 	JobName      string
 	PipelineName string
+	TeamName     string
 	Status       string
 	BuildName    string
 
@@ -53,6 +54,7 @@ func PresentBuilds(builds []atc.Build) []PresentedBuild {
 			ID:           build.ID,
 			JobName:      jobName,
 			PipelineName: pipelineName,
+			TeamName:     build.TeamName,
 			StartTime:    formatTime(build.StartTime),
 			EndTime:      formatTime(build.EndTime),
 			CSSClass:     cssClass,

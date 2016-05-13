@@ -39,5 +39,7 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 
+	build.TeamName = atc.DefaultTeamName
+
 	json.NewEncoder(w).Encode(present.Build(build))
 }

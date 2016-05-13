@@ -120,13 +120,14 @@ var _ = Describe("Config API", func() {
 		}
 	})
 
-	Describe("GET /api/v1/pipelines/:name/config", func() {
+	Describe("GET /api/v1/teams/:team_name/pipelines/:name/config", func() {
 		var (
 			response *http.Response
 		)
 
 		JustBeforeEach(func() {
 			req, err := requestGenerator.CreateRequest(atc.GetConfig, rata.Params{
+				"team_name":     "a-team",
 				"pipeline_name": "something-else",
 			}, nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -166,7 +167,7 @@ var _ = Describe("Config API", func() {
 
 				It("calls get config with the correct arguments", func() {
 					teamName, name := configDB.GetConfigArgsForCall(0)
-					Expect(teamName).To(Equal(atc.DefaultTeamName))
+					Expect(teamName).To(Equal("a-team"))
 					Expect(name).To(Equal("something-else"))
 				})
 			})
@@ -218,7 +219,7 @@ var _ = Describe("Config API", func() {
 		})
 	})
 
-	Describe("PUT /api/v1/pipelines/:name/config", func() {
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:name/config", func() {
 		var (
 			request  *http.Request
 			response *http.Response
@@ -227,6 +228,7 @@ var _ = Describe("Config API", func() {
 		BeforeEach(func() {
 			var err error
 			request, err = requestGenerator.CreateRequest(atc.SaveConfig, rata.Params{
+				"team_name":     "a-team",
 				"pipeline_name": "a-pipeline",
 			}, nil)
 			Expect(err).NotTo(HaveOccurred())
