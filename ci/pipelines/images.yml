@@ -1,5 +1,10 @@
 ---
 resources:
+- name: 10m
+  type: time
+  source:
+    interval: 10m
+
 - name: rubinius
   type: docker-image
   source:
@@ -256,6 +261,8 @@ jobs:
   serial: true
   plan:
   - aggregate:
+    - get: 10m
+      trigger: true
     - get: concourse-docs-ci
       trigger: true
       params: {submodules: none}
