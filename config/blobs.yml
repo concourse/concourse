@@ -75,3 +75,7 @@ golang_1.6/go1.6.1.linux-amd64.tar.gz:
   object_id: 980f2086-2872-4159-a73f-77ea2905d21b
   sha: c73492474dcc7a233772d27e948b74468d9f1849
   size: 84824395
+btrfs/btrfs-tools.tar.gz:
+  object_id: b201ed45-7a52-4c32-b213-d666b60b1954
+  sha: abdf982cee43881659adc24c3e347b37b65f8530
+  size: 3016424
