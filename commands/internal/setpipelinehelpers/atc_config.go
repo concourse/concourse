@@ -159,7 +159,10 @@ func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool) {
 	} else if created {
 		pipelineWebReq, _ := atcConfig.WebRequestGenerator.CreateRequest(
 			web.Pipeline,
-			rata.Params{"pipeline": atcConfig.PipelineName},
+			rata.Params{
+				"pipeline":  atcConfig.PipelineName,
+				"team_name": atc.DefaultTeamName,
+			},
 			nil,
 		)
 
