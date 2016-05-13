@@ -16,7 +16,7 @@
 	branch = master
 [submodule "src/github.com/cloudfoundry-incubator/garden"]
 	path = src/github.com/cloudfoundry-incubator/garden
-	url = https://github.com/concourse/garden
+	url = https://github.com/cloudfoundry-incubator/garden
 	branch = close-response-body
 [submodule "src/github.com/onsi/ginkgo"]
 	path = src/github.com/onsi/ginkgo
@@ -236,4 +236,8 @@
 [submodule "src/github.com/gorilla/websocket"]
 	path = src/github.com/gorilla/websocket
 	url = https://github.com/gorilla/websocket
+	branch = master
+[submodule "src/github.com/concourse/retryhttp"]
+	path = src/github.com/concourse/retryhttp
+	url = https://github.com/concourse/retryhttp
 	branch = master
