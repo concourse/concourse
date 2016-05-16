@@ -14,13 +14,11 @@ var _ = Describe("ATC Handler Auth Methods", func() {
 		var expectedAuthMethods []atc.AuthMethod
 
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/auth/methods"
-
 			expectedAuthMethods = []atc.AuthMethod{
 				{
 					Type:        atc.AuthTypeBasic,
 					DisplayName: "Basic",
-					AuthURL:     "/login/basic",
+					AuthURL:     "/teams/some-team/login/basic",
 				},
 				{
 					Type:        atc.AuthTypeOAuth,
@@ -31,14 +29,14 @@ var _ = Describe("ATC Handler Auth Methods", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedAuthMethods),
 				),
 			)
 		})
 
 		It("returns all the auth methods", func() {
-			pipelines, err := client.ListAuthMethods()
+			pipelines, err := client.ListAuthMethods("some-team")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipelines).To(Equal(expectedAuthMethods))
 		})

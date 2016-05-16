@@ -282,10 +282,12 @@ type FakeClient struct {
 		result1 io.ReadCloser
 		result2 error
 	}
-	ListAuthMethodsStub        func() ([]atc.AuthMethod, error)
+	ListAuthMethodsStub        func(teamName string) ([]atc.AuthMethod, error)
 	listAuthMethodsMutex       sync.RWMutex
-	listAuthMethodsArgsForCall []struct{}
-	listAuthMethodsReturns     struct {
+	listAuthMethodsArgsForCall []struct {
+		teamName string
+	}
+	listAuthMethodsReturns struct {
 		result1 []atc.AuthMethod
 		result2 error
 	}
@@ -1304,12 +1306,14 @@ func (fake *FakeClient) GetCLIReaderReturns(result1 io.ReadCloser, result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeClient) ListAuthMethods() ([]atc.AuthMethod, error) {
+func (fake *FakeClient) ListAuthMethods(teamName string) ([]atc.AuthMethod, error) {
 	fake.listAuthMethodsMutex.Lock()
-	fake.listAuthMethodsArgsForCall = append(fake.listAuthMethodsArgsForCall, struct{}{})
+	fake.listAuthMethodsArgsForCall = append(fake.listAuthMethodsArgsForCall, struct {
+		teamName string
+	}{teamName})
 	fake.listAuthMethodsMutex.Unlock()
 	if fake.ListAuthMethodsStub != nil {
-		return fake.ListAuthMethodsStub()
+		return fake.ListAuthMethodsStub(teamName)
 	} else {
 		return fake.listAuthMethodsReturns.result1, fake.listAuthMethodsReturns.result2
 	}
@@ -1319,6 +1323,12 @@ func (fake *FakeClient) ListAuthMethodsCallCount() int {
 	fake.listAuthMethodsMutex.RLock()
 	defer fake.listAuthMethodsMutex.RUnlock()
 	return len(fake.listAuthMethodsArgsForCall)
+}
+
+func (fake *FakeClient) ListAuthMethodsArgsForCall(i int) string {
+	fake.listAuthMethodsMutex.RLock()
+	defer fake.listAuthMethodsMutex.RUnlock()
+	return fake.listAuthMethodsArgsForCall[i].teamName
 }
 
 func (fake *FakeClient) ListAuthMethodsReturns(result1 []atc.AuthMethod, result2 error) {

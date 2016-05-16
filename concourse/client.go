@@ -41,7 +41,7 @@ type Client interface {
 	GetInfo() (atc.Info, error)
 	PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error)
 	GetCLIReader(arch, platform string) (io.ReadCloser, error)
-	ListAuthMethods() ([]atc.AuthMethod, error)
+	ListAuthMethods(teamName string) ([]atc.AuthMethod, error)
 	AuthToken() (atc.AuthToken, error)
 	Pipeline(name string) (atc.Pipeline, bool, error)
 	Resource(pipelineName string, resourceName string) (atc.Resource, bool, error)
