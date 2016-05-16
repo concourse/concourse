@@ -18,6 +18,7 @@ type LoginCommand struct {
 	Insecure bool   `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
 	Username string `short:"u" long:"username" description:"Username for basic auth"`
 	Password string `short:"p" long:"password" description:"Password for basic auth"`
+	TeamName string `short:"n" long:"team-name" description:"Team to authenticate with" default:"main"`
 }
 
 func (command *LoginCommand) Execute(args []string) error {
@@ -41,7 +42,7 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
-	authMethods, err := client.ListAuthMethods(atc.DefaultTeamName)
+	authMethods, err := client.ListAuthMethods(command.TeamName)
 	if err != nil {
 		return err
 	}
@@ -153,7 +154,7 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client concourse.C
 		)
 
 		var err error
-		token, err = basicAuthClient.AuthToken()
+		token, err = basicAuthClient.AuthToken(command.TeamName)
 		if err != nil {
 			return err
 		}

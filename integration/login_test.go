@@ -48,6 +48,54 @@ var _ = Describe("login Command", func() {
 		})
 	})
 
+	Context("with no team name", func() {
+		BeforeEach(func() {
+			atcServer = ghttp.NewServer()
+		})
+
+		It("falls back to atc.DefaultTeamName team", func() {
+			atcServer.AppendHandlers(
+				infoHandler(),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
+					ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
+				),
+			)
+
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL())
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+		})
+	})
+
+	Context("with a team name", func() {
+		BeforeEach(func() {
+			atcServer = ghttp.NewServer()
+		})
+
+		It("uses specified team", func() {
+			atcServer.AppendHandlers(
+				infoHandler(),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
+					ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
+				),
+			)
+
+			flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "-n", "some-team")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+		})
+	})
+
 	Describe("login", func() {
 		var (
 			flyCmd *exec.Cmd
