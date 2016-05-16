@@ -106,6 +106,7 @@ func NewHandler(
 		web.GetJoblessBuild: authredirect.Handler{getjoblessbuild.NewHandler(logger, clientFactory, joblessBuildTemplate, oldJoblessBuildTemplate)},
 		web.TriggerBuild:    authredirect.Handler{triggerbuild.NewHandler(logger, clientFactory)},
 		web.LogIn:           login.NewHandler(logger, clientFactory, logInTemplate),
+		web.TeamLogIn:       login.NewHandler(logger, clientFactory, logInTemplate),
 		web.BasicAuth:       login.NewBasicAuthHandler(logger),
 	}
 

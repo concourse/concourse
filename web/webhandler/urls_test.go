@@ -99,10 +99,10 @@ var _ = Describe("URLs", func() {
 
 	Describe("Basic Auth", func() {
 		It("links to the provider with a redirect to the index", func() {
-			path, err := webhandler.PathFor(web.BasicAuth, "/some/path")
+			path, err := webhandler.PathFor(web.BasicAuth, "some-team", "/some/path")
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(path).To(Equal("/login/basic?redirect=%2Fsome%2Fpath"))
+			Expect(path).To(Equal("/teams/some-team/login/basic?redirect=%2Fsome%2Fpath"))
 		})
 	})
 })

@@ -48,6 +48,7 @@ var _ = Describe("WebAuthWrappa", func() {
 				web.GetResource:     inputHandlers[web.GetResource],
 				web.GetJob:          inputHandlers[web.GetJob],
 				web.LogIn:           inputHandlers[web.LogIn],
+				web.TeamLogIn:       inputHandlers[web.TeamLogIn],
 				web.BasicAuth: auth.WrapHandler(
 					auth.CheckAuthHandler(
 						inputHandlers[web.BasicAuth],

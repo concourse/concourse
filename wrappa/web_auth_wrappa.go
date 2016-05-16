@@ -38,6 +38,7 @@ func (wrappa *WebAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		case web.GetResource:
 		case web.GetJob:
 		case web.LogIn:
+		case web.TeamLogIn:
 		case web.BasicAuth:
 			newHandler = auth.WrapHandler(
 				auth.CheckAuthHandler(

@@ -14,7 +14,11 @@ import (
 const BasicAuthDisplayName = "Basic Auth"
 
 func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
-	team, found, err := s.db.GetTeamByName(atc.DefaultTeamName)
+	teamName := r.FormValue(":team_name")
+	if teamName == "" {
+		teamName = atc.DefaultTeamName
+	}
+	team, found, err := s.db.GetTeamByName(teamName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -25,7 +29,7 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	}
 
 	methods := []atc.AuthMethod{}
-	providers, err := s.providerFactory.GetProviders(atc.DefaultTeamName)
+	providers, err := s.providerFactory.GetProviders(teamName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -50,7 +54,7 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	if team.BasicAuth.BasicAuthPassword != "" {
 		path, err := web.Routes.CreatePathForRoute(
 			web.BasicAuth,
-			rata.Params{},
+			rata.Params{"team_name": teamName},
 		)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)

@@ -22,7 +22,11 @@ func (validator BasicAuthValidator) IsAuthenticated(r *http.Request) bool {
 		return false
 	}
 
-	team, found, err := validator.DB.GetTeamByName(atc.DefaultTeamName)
+	teamName := r.FormValue(":team_name")
+	if teamName == "" {
+		teamName = atc.DefaultTeamName
+	}
+	team, found, err := validator.DB.GetTeamByName(teamName)
 	if err != nil || !found {
 		return false
 	}
