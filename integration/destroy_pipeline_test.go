@@ -78,7 +78,7 @@ var _ = Describe("Fly CLI", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/some-pipeline"),
+							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline"),
 							ghttp.RespondWith(204, ""),
 						),
 					)
@@ -106,7 +106,7 @@ var _ = Describe("Fly CLI", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/some-pipeline"),
+							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline"),
 							ghttp.RespondWith(404, ""),
 						),
 					)
@@ -123,7 +123,7 @@ var _ = Describe("Fly CLI", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/pipelines/some-pipeline"),
+							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline"),
 							ghttp.RespondWith(402, ""),
 						),
 					)

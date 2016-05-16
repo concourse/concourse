@@ -63,7 +63,7 @@ var _ = Describe("login -k Command", func() {
 				atcServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
 							{
 								Type:        atc.AuthTypeBasic,
@@ -73,7 +73,7 @@ var _ = Describe("login -k Command", func() {
 						}),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 						ghttp.VerifyBasicAuth("some username", "some password"),
 						ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
 							Type:  "Bearer",
@@ -120,7 +120,7 @@ var _ = Describe("login -k Command", func() {
 					atcServer.AppendHandlers(
 						infoHandler(),
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 							ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
 								{
 									Type:        atc.AuthTypeBasic,
@@ -130,7 +130,7 @@ var _ = Describe("login -k Command", func() {
 							}),
 						),
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 							ghttp.VerifyBasicAuth("some username", "some password"),
 							ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
 								Type:  "Bearer",
@@ -249,7 +249,7 @@ var _ = Describe("login -k Command", func() {
 						atcServer.AppendHandlers(
 							infoHandler(),
 							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+								ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 								ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
 									{
 										Type:        atc.AuthTypeBasic,
@@ -259,7 +259,7 @@ var _ = Describe("login -k Command", func() {
 								}),
 							),
 							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
+								ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 								ghttp.VerifyBasicAuth("some username", "some password"),
 								ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
 									Type:  "Bearer",

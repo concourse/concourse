@@ -150,7 +150,7 @@ var _ = Describe("Fly CLI", func() {
 					Jobs: atc.JobConfigs{},
 				}
 
-				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.AppendHandlers(
@@ -163,7 +163,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when configuring with templated keys succeeds", func() {
 				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -258,7 +258,7 @@ var _ = Describe("Fly CLI", func() {
 
 				changedConfig = config
 
-				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.RouteToHandler("GET", path,
@@ -345,7 +345,7 @@ var _ = Describe("Fly CLI", func() {
 					changedConfig.Jobs[0].Serial = false
 					changedConfig.Jobs = append(changedConfig.Jobs[:2], newJob)
 
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -448,7 +448,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when configuring fails", func() {
 				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -479,7 +479,7 @@ var _ = Describe("Fly CLI", func() {
 			Context("when the server says this is the first time it's creating the pipeline", func() {
 				Context("when the user doesn't mention paused", func() {
 					BeforeEach(func() {
-						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 						Expect(err).NotTo(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
@@ -505,7 +505,7 @@ var _ = Describe("Fly CLI", func() {
 							Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 							yes(stdin)
 
-							pipelineURL := urljoiner.Join(atcServer.URL(), "pipelines", "awesome-pipeline")
+							pipelineURL := urljoiner.Join(atcServer.URL(), "teams/main/pipelines", "awesome-pipeline")
 
 							Eventually(sess).Should(gbytes.Say("pipeline created!"))
 							Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))
@@ -525,7 +525,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when the server returns warnings", func() {
 				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
@@ -569,7 +569,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when the existing config is invalid", func() {
 				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					configResponse := atc.ConfigResponse{Errors: []string{"invalid-config"}}
@@ -616,7 +616,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when the server rejects the request", func() {
 				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline"})
+					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path, func(w http.ResponseWriter, r *http.Request) {

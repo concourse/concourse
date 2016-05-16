@@ -104,7 +104,7 @@ var _ = Describe("Fly CLI", func() {
 				var path string
 				BeforeEach(func() {
 					var err error
-					path, err = atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "some-pipeline"})
+					path, err = atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "some-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 				})
 

@@ -27,7 +27,7 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 							{Name: "pipeline-1-longer", URL: "/pipelines/pipeline-1", Paused: false},
 							{Name: "pipeline-2", URL: "/pipelines/pipeline-2", Paused: true},
@@ -60,7 +60,7 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 						ghttp.RespondWith(500, ""),
 					),
 				)

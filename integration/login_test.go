@@ -30,7 +30,7 @@ var _ = Describe("login Command", func() {
 			atcServer.AppendHandlers(
 				infoHandler(),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 					ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 				),
 			)
@@ -83,7 +83,7 @@ var _ = Describe("login Command", func() {
 				atcServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 					),
 				)
@@ -104,7 +104,7 @@ var _ = Describe("login Command", func() {
 				atcServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
 							{
 								Type:        atc.AuthTypeBasic,
@@ -192,7 +192,7 @@ var _ = Describe("login Command", func() {
 							atcServer.AppendHandlers(
 								infoHandler(),
 								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
+									ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 									ghttp.VerifyHeaderKV("Authorization", "Bearer some-entered-token"),
 									ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 										{Name: "pipeline-1"},
@@ -221,7 +221,7 @@ var _ = Describe("login Command", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 							ghttp.VerifyBasicAuth("some_username", "some_password"),
 							ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
 								Type:  "Bearer",
@@ -330,7 +330,7 @@ var _ = Describe("login Command", func() {
 							atcServer.AppendHandlers(
 								infoHandler(),
 								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
+									ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 									ghttp.VerifyHeaderKV("Authorization", "Bearer some-token"),
 									ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 										{Name: "pipeline-1"},
@@ -358,7 +358,7 @@ var _ = Describe("login Command", func() {
 							atcServer.AppendHandlers(
 								infoHandler(),
 								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+									ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 									ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
 										{
 											Type:        atc.AuthTypeBasic,
@@ -368,7 +368,7 @@ var _ = Describe("login Command", func() {
 									}),
 								),
 								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
+									ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 									ghttp.VerifyBasicAuth("some_username", "some_password"),
 									ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
 										Type:  "Bearer",
@@ -377,7 +377,7 @@ var _ = Describe("login Command", func() {
 								),
 								infoHandler(),
 								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
+									ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 									ghttp.VerifyHeaderKV("Authorization", "Bearer some-new-token"),
 									ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 										{Name: "pipeline-1"},
@@ -436,7 +436,7 @@ var _ = Describe("login Command", func() {
 				atcServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
 							{
 								Type:        atc.AuthTypeOAuth,
@@ -477,7 +477,7 @@ var _ = Describe("login Command", func() {
 				atcServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
 							{
 								Type:        atc.AuthTypeBasic,
@@ -487,7 +487,7 @@ var _ = Describe("login Command", func() {
 						}),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 						ghttp.VerifyBasicAuth("some username", "some password"),
 						ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
 							Type:  "Bearer",
@@ -528,7 +528,7 @@ var _ = Describe("login Command", func() {
 				atcServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
 					),
 				)
@@ -549,7 +549,7 @@ var _ = Describe("login Command", func() {
 					atcServer.AppendHandlers(
 						infoHandler(),
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 								{Name: "pipeline-1"},
 							}),
@@ -581,7 +581,7 @@ var _ = Describe("login Command", func() {
 				atcServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWith(500, ""),
 					),
 				)

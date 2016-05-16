@@ -31,7 +31,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when a job is unpaused using the API", func() {
 				BeforeEach(func() {
-					apiPath := fmt.Sprintf("/api/v1/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
+					apiPath := fmt.Sprintf("/api/v1/teams/main/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("PUT", apiPath),
@@ -56,7 +56,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when a job is unpaused using the API", func() {
 				BeforeEach(func() {
-					apiPath := fmt.Sprintf("/api/v1/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
+					apiPath := fmt.Sprintf("/api/v1/teams/main/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("PUT", apiPath),

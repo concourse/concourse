@@ -116,7 +116,7 @@ var _ = Describe("Watching", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job"),
 						ghttp.RespondWithJSONEncoded(200, atc.Job{}),
 					),
 					eventsHandler(),
@@ -141,7 +141,7 @@ var _ = Describe("Watching", func() {
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines/some-pipeline/jobs/some-job"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job"),
 						ghttp.RespondWithJSONEncoded(200, atc.Job{
 							NextBuild: &atc.Build{
 								ID:      3,
@@ -170,7 +170,7 @@ var _ = Describe("Watching", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines/main/jobs/some-job"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/main/jobs/some-job"),
 						ghttp.RespondWithJSONEncoded(200, atc.Job{
 							NextBuild: nil,
 							FinishedBuild: &atc.Build{
@@ -194,7 +194,7 @@ var _ = Describe("Watching", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/pipelines/main/jobs/some-job/builds/3"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/main/jobs/some-job/builds/3"),
 						ghttp.RespondWithJSONEncoded(200, atc.Build{
 							ID:      3,
 							Name:    "3",

@@ -25,7 +25,7 @@ var _ = Describe("AbortBuild", func() {
 			APIURL:  "api/v1/builds/123",
 		}
 
-		expectedJobBuildURL := "/api/v1/pipelines/my-pipeline/jobs/my-job/builds/42"
+		expectedJobBuildURL := "/api/v1/teams/main/pipelines/my-pipeline/jobs/my-job/builds/42"
 		expectedAbortURL := "/api/v1/builds/23/abort"
 
 		atcServer.AppendHandlers(
@@ -85,7 +85,7 @@ var _ = Describe("AbortBuild", func() {
 
 	Context("when getting the job build fails", func() {
 		BeforeEach(func() {
-			expectedJobBuildURL := "/api/v1/pipelines/my-pipeline/jobs/my-job/builds/42"
+			expectedJobBuildURL := "/api/v1/teams/main/pipelines/my-pipeline/jobs/my-job/builds/42"
 
 			atcServer.SetHandler(3, ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", expectedJobBuildURL),
@@ -111,7 +111,7 @@ var _ = Describe("AbortBuild", func() {
 
 	Context("when the build or pipeline does not exist", func() {
 		BeforeEach(func() {
-			expectedJobBuildURL := "/api/v1/pipelines/my-pipeline/jobs/my-job/builds/42"
+			expectedJobBuildURL := "/api/v1/teams/main/pipelines/my-pipeline/jobs/my-job/builds/42"
 
 			atcServer.SetHandler(3, ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", expectedJobBuildURL),
