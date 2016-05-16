@@ -291,10 +291,12 @@ type FakeClient struct {
 		result1 []atc.AuthMethod
 		result2 error
 	}
-	AuthTokenStub        func() (atc.AuthToken, error)
+	AuthTokenStub        func(teamName string) (atc.AuthToken, error)
 	authTokenMutex       sync.RWMutex
-	authTokenArgsForCall []struct{}
-	authTokenReturns     struct {
+	authTokenArgsForCall []struct {
+		teamName string
+	}
+	authTokenReturns struct {
 		result1 atc.AuthToken
 		result2 error
 	}
@@ -1339,12 +1341,14 @@ func (fake *FakeClient) ListAuthMethodsReturns(result1 []atc.AuthMethod, result2
 	}{result1, result2}
 }
 
-func (fake *FakeClient) AuthToken() (atc.AuthToken, error) {
+func (fake *FakeClient) AuthToken(teamName string) (atc.AuthToken, error) {
 	fake.authTokenMutex.Lock()
-	fake.authTokenArgsForCall = append(fake.authTokenArgsForCall, struct{}{})
+	fake.authTokenArgsForCall = append(fake.authTokenArgsForCall, struct {
+		teamName string
+	}{teamName})
 	fake.authTokenMutex.Unlock()
 	if fake.AuthTokenStub != nil {
-		return fake.AuthTokenStub()
+		return fake.AuthTokenStub(teamName)
 	} else {
 		return fake.authTokenReturns.result1, fake.authTokenReturns.result2
 	}
@@ -1354,6 +1358,12 @@ func (fake *FakeClient) AuthTokenCallCount() int {
 	fake.authTokenMutex.RLock()
 	defer fake.authTokenMutex.RUnlock()
 	return len(fake.authTokenArgsForCall)
+}
+
+func (fake *FakeClient) AuthTokenArgsForCall(i int) string {
+	fake.authTokenMutex.RLock()
+	defer fake.authTokenMutex.RUnlock()
+	return fake.authTokenArgsForCall[i].teamName
 }
 
 func (fake *FakeClient) AuthTokenReturns(result1 atc.AuthToken, result2 error) {

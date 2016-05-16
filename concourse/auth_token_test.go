@@ -14,7 +14,7 @@ var _ = Describe("ATC Handler Auth Token", func() {
 		var expectedAuthToken atc.AuthToken
 
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/auth/token"
+			expectedURL := "/api/v1/teams/some-team/auth/token"
 
 			expectedAuthToken = atc.AuthToken{
 				Type:  "Bearer",
@@ -30,7 +30,7 @@ var _ = Describe("ATC Handler Auth Token", func() {
 		})
 
 		It("returns the user's auth token", func() {
-			token, err := client.AuthToken()
+			token, err := client.AuthToken("some-team")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(token).To(Equal(expectedAuthToken))
 		})
