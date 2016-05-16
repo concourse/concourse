@@ -219,13 +219,15 @@ func PathFor(route string, args ...interface{}) (string, error) {
 		}.Encode(), nil
 
 	case web.BasicAuth:
-		authPath, err := web.Routes.CreatePathForRoute(route, rata.Params{})
+		authPath, err := web.Routes.CreatePathForRoute(route, rata.Params{
+			"team_name": args[0].(string),
+		})
 		if err != nil {
 			return "", err
 		}
 
 		return authPath + "?" + url.Values{
-			"redirect": {args[0].(string)},
+			"redirect": {args[1].(string)},
 		}.Encode(), nil
 	}
 
