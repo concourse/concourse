@@ -41,7 +41,7 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
-	authMethods, err := client.ListAuthMethods()
+	authMethods, err := client.ListAuthMethods(atc.DefaultTeamName)
 	if err != nil {
 		return err
 	}
