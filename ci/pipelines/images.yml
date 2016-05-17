@@ -2,8 +2,7 @@
 resources:
 - name: 10m
   type: time
-  source:
-    interval: 10m
+  source: {interval: 10m}
 
 - name: rubinius
   type: docker-image
