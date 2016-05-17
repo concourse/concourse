@@ -178,6 +178,21 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		It("looks up the pipeline in the db via the url param", func() {
+			Expect(pipelinesDB.GetPipelineByTeamNameAndNameCallCount()).To(Equal(1))
+
+			teamName, actualPipelineName := pipelinesDB.GetPipelineByTeamNameAndNameArgsForCall(0)
+			Expect(actualPipelineName).To(Equal("some-specific-pipeline"))
+			Expect(teamName).To(Equal("a-team"))
+		})
+
+		It("tries to get the config scoped to team and pipeline", func() {
+			Expect(configDB.GetConfigCallCount()).To(Equal(1))
+			teamName, pipelineName := configDB.GetConfigArgsForCall(0)
+			Expect(teamName).To(Equal("a-team"))
+			Expect(pipelineName).To(Equal("some-specific-pipeline"))
+		})
+
 		It("returns 200 ok", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 		})
@@ -229,14 +244,6 @@ var _ = Describe("Pipelines API", func() {
 			It("returns 500 error", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
-		})
-
-		It("looks up the pipeline in the db via the url param", func() {
-			Expect(pipelinesDB.GetPipelineByTeamNameAndNameCallCount()).To(Equal(1))
-
-			teamName, actualPipelineName := pipelinesDB.GetPipelineByTeamNameAndNameArgsForCall(0)
-			Expect(actualPipelineName).To(Equal("some-specific-pipeline"))
-			Expect(teamName).To(Equal(atc.DefaultTeamName))
 		})
 	})
 
