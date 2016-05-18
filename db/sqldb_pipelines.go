@@ -9,16 +9,6 @@ import (
 
 const pipelineColumns = "id, name, config, version, paused, team_id"
 
-func (db *SQLDB) GetPipelineByID(pipelineID int) (SavedPipeline, error) {
-	row := db.conn.QueryRow(`
-		SELECT `+pipelineColumns+`
-		FROM pipelines
-		WHERE id = $1
-	`, pipelineID)
-
-	return scanPipeline(row)
-}
-
 func (db *SQLDB) GetAllPipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
 		SELECT ` + pipelineColumns + `

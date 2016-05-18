@@ -514,7 +514,13 @@ func (db *SQLDB) ErrorBuild(buildID int, pipelineID int, cause error) error {
 }
 
 func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error) {
-	savedPipeline, err := db.GetPipelineByID(input.VersionedResource.PipelineID)
+	row := db.conn.QueryRow(`
+		SELECT `+pipelineColumns+`
+		FROM pipelines
+		WHERE id = $1
+	`, input.VersionedResource.PipelineID)
+
+	savedPipeline, err := scanPipeline(row)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
@@ -525,7 +531,13 @@ func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedRe
 }
 
 func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
-	savedPipeline, err := db.GetPipelineByID(vr.PipelineID)
+	row := db.conn.QueryRow(`
+		SELECT `+pipelineColumns+`
+		FROM pipelines
+		WHERE id = $1
+	`, vr.PipelineID)
+
+	savedPipeline, err := scanPipeline(row)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
