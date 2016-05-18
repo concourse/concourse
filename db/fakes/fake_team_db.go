@@ -41,15 +41,6 @@ type FakeTeamDB struct {
 		result2 bool
 		result3 error
 	}
-	SaveTeamStub        func(team db.Team) (db.SavedTeam, error)
-	saveTeamMutex       sync.RWMutex
-	saveTeamArgsForCall []struct {
-		team db.Team
-	}
-	saveTeamReturns struct {
-		result1 db.SavedTeam
-		result2 error
-	}
 	UpdateTeamBasicAuthStub        func(team db.Team) (db.SavedTeam, error)
 	updateTeamBasicAuthMutex       sync.RWMutex
 	updateTeamBasicAuthArgsForCall []struct {
@@ -208,39 +199,6 @@ func (fake *FakeTeamDB) GetTeamReturns(result1 db.SavedTeam, result2 bool, resul
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeTeamDB) SaveTeam(team db.Team) (db.SavedTeam, error) {
-	fake.saveTeamMutex.Lock()
-	fake.saveTeamArgsForCall = append(fake.saveTeamArgsForCall, struct {
-		team db.Team
-	}{team})
-	fake.saveTeamMutex.Unlock()
-	if fake.SaveTeamStub != nil {
-		return fake.SaveTeamStub(team)
-	} else {
-		return fake.saveTeamReturns.result1, fake.saveTeamReturns.result2
-	}
-}
-
-func (fake *FakeTeamDB) SaveTeamCallCount() int {
-	fake.saveTeamMutex.RLock()
-	defer fake.saveTeamMutex.RUnlock()
-	return len(fake.saveTeamArgsForCall)
-}
-
-func (fake *FakeTeamDB) SaveTeamArgsForCall(i int) db.Team {
-	fake.saveTeamMutex.RLock()
-	defer fake.saveTeamMutex.RUnlock()
-	return fake.saveTeamArgsForCall[i].team
-}
-
-func (fake *FakeTeamDB) SaveTeamReturns(result1 db.SavedTeam, result2 error) {
-	fake.SaveTeamStub = nil
-	fake.saveTeamReturns = struct {
-		result1 db.SavedTeam
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeTeamDB) UpdateTeamBasicAuth(team db.Team) (db.SavedTeam, error) {

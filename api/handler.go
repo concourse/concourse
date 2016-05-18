@@ -45,6 +45,7 @@ func NewHandler(
 	pipelineDBFactory db.PipelineDBFactory,
 	teamDBFactory db.TeamDBFactory,
 
+	teamsDB teamserver.TeamsDB,
 	buildsDB buildserver.BuildsDB,
 	workerDB workerserver.WorkerDB,
 	containerDB containerserver.ContainerDB,
@@ -113,7 +114,7 @@ func NewHandler(
 
 	volumesServer := volumeserver.NewServer(logger, volumesDB)
 
-	teamServer := teamserver.NewServer(logger, teamDBFactory)
+	teamServer := teamserver.NewServer(logger, teamDBFactory, teamsDB)
 
 	infoServer := infoserver.NewServer(logger, version)
 

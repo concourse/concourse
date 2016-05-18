@@ -19,7 +19,6 @@ type TeamDB interface {
 	OrderPipelines([]string) error
 
 	GetTeam() (SavedTeam, bool, error)
-	SaveTeam(team Team) (SavedTeam, error)
 	UpdateTeamBasicAuth(team Team) (SavedTeam, error)
 	UpdateTeamGitHubAuth(team Team) (SavedTeam, error)
 
@@ -370,27 +369,6 @@ func (db *teamDB) GetTeam() (SavedTeam, bool, error) {
 	}
 
 	return savedTeam, true, nil
-}
-
-func (db *teamDB) SaveTeam(data Team) (SavedTeam, error) {
-	jsonEncodedBasicAuth, err := db.jsonEncodeTeamBasicAuth(data)
-	if err != nil {
-		return SavedTeam{}, err
-	}
-	jsonEncodedGitHubAuth, err := db.jsonEncodeTeamGitHubAuth(data)
-	if err != nil {
-		return SavedTeam{}, err
-	}
-
-	return db.queryTeam(fmt.Sprintf(`
-	INSERT INTO teams (
-    name, basic_auth, github_auth
-	) VALUES (
-		'%s', '%s', '%s'
-	)
-	RETURNING id, name, admin, basic_auth, github_auth
-	`, data.Name, jsonEncodedBasicAuth, jsonEncodedGitHubAuth,
-	))
 }
 
 func (db *teamDB) queryTeam(query string) (SavedTeam, error) {
