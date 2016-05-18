@@ -29,7 +29,7 @@ var _ = Describe("Auth API", func() {
 				},
 			}
 
-			authDB.GetTeamByNameReturns(savedTeam, true, nil)
+			teamDB.GetTeamReturns(savedTeam, true, nil)
 
 			var err error
 			request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/token", nil)
@@ -119,7 +119,7 @@ var _ = Describe("Auth API", func() {
 				Context("when the team can't be found", func() {
 					BeforeEach(func() {
 						fakeTokenGenerator.GenerateTokenReturns("", "", errors.New("nope"))
-						authDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
+						teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 					})
 
 					It("returns unauthorized", func() {
@@ -176,7 +176,7 @@ var _ = Describe("Auth API", func() {
 					},
 				}
 
-				authDB.GetTeamByNameReturns(savedTeam, true, nil)
+				teamDB.GetTeamReturns(savedTeam, true, nil)
 
 				var err error
 				request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/methods", nil)
@@ -235,7 +235,7 @@ var _ = Describe("Auth API", func() {
 					},
 				}
 
-				authDB.GetTeamByNameReturns(savedTeam, true, nil)
+				teamDB.GetTeamReturns(savedTeam, true, nil)
 
 				var err error
 				request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/methods", nil)
@@ -269,7 +269,7 @@ var _ = Describe("Auth API", func() {
 			var response *http.Response
 
 			BeforeEach(func() {
-				authDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
+				teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 
 				var err error
 				request, err = http.NewRequest("GET", server.URL+"/api/v1/teams/some-team/auth/methods", nil)

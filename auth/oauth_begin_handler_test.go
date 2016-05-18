@@ -20,6 +20,7 @@ import (
 	"github.com/concourse/atc/auth/fakes"
 	"github.com/concourse/atc/auth/provider"
 	providerFakes "github.com/concourse/atc/auth/provider/fakes"
+	dbfakes "github.com/concourse/atc/db/fakes"
 )
 
 var _ = Describe("OAuthBeginHandler", func() {
@@ -29,7 +30,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		fakeProviderFactory *fakes.FakeProviderFactory
 
-		fakeAuthDB *fakes.FakeAuthDB
+		fakeTeamDB *dbfakes.FakeTeamDB
 
 		signingKey *rsa.PrivateKey
 
@@ -45,7 +46,7 @@ var _ = Describe("OAuthBeginHandler", func() {
 
 		fakeProviderFactory = new(fakes.FakeProviderFactory)
 
-		fakeAuthDB = new(fakes.FakeAuthDB)
+		fakeTeamDB = new(dbfakes.FakeTeamDB)
 
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
@@ -59,11 +60,13 @@ var _ = Describe("OAuthBeginHandler", func() {
 			nil,
 		)
 
+		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
 		handler, err := auth.NewOAuthHandler(
 			lagertest.NewTestLogger("test"),
 			fakeProviderFactory,
+			fakeTeamDBFactory,
 			signingKey,
-			fakeAuthDB,
 		)
 		Expect(err).ToNot(HaveOccurred())
 

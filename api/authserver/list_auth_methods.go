@@ -18,7 +18,8 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	if teamName == "" {
 		teamName = atc.DefaultTeamName
 	}
-	team, found, err := s.db.GetTeamByName(teamName)
+	teamDB := s.teamDBFactory.GetTeamDB(teamName)
+	team, found, err := teamDB.GetTeam()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

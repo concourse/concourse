@@ -23,6 +23,7 @@ var _ = Describe("Auth", func() {
 	var atcProcess ifrit.Process
 	var dbListener *pq.Listener
 	var atcPort uint16
+	var teamDB db.TeamDB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -37,7 +38,7 @@ var _ = Describe("Auth", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		teamDBFactory := db.NewTeamDBFactory(dbConn)
-		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 		_, _, err = teamDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
@@ -62,7 +63,7 @@ var _ = Describe("Auth", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 			Expect(resp.Request.URL.Path).To(Equal("/login"))
 
-			team, _, err := sqlDB.GetTeamByName(atc.DefaultTeamName)
+			team, _, err := teamDB.GetTeam()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(team.ClientID).To(Equal("admin"))
 			Expect(team.ClientSecret).To(Equal("password"))

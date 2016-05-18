@@ -215,7 +215,7 @@ var _ = Describe("Auth API", func() {
 
 			Context("when there's a problem finding teams", func() {
 				BeforeEach(func() {
-					teamDB.GetTeamByNameReturns(db.SavedTeam{}, false, errors.New("a dingo ate my baby!"))
+					teamDB.GetTeamReturns(db.SavedTeam{}, false, errors.New("a dingo ate my baby!"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
@@ -225,10 +225,7 @@ var _ = Describe("Auth API", func() {
 
 			Context("when team exists", func() {
 				BeforeEach(func() {
-					teamDB.GetTeamByNameStub = func(submittedName string) (db.SavedTeam, bool, error) {
-						Expect(submittedName).To(Equal(teamName))
-						return savedTeam, true, nil
-					}
+					teamDB.GetTeamReturns(savedTeam, true, nil)
 				})
 
 				It("returns 200 OK", func() {
@@ -304,10 +301,7 @@ var _ = Describe("Auth API", func() {
 
 			Context("when team does not exist", func() {
 				BeforeEach(func() {
-					teamDB.GetTeamByNameStub = func(submittedName string) (db.SavedTeam, bool, error) {
-						Expect(submittedName).To(Equal(teamName))
-						return db.SavedTeam{}, false, nil
-					}
+					teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 
 					teamDB.SaveTeamStub = func(submittedTeam db.Team) (db.SavedTeam, error) {
 						team.Name = teamName

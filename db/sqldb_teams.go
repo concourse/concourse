@@ -95,25 +95,6 @@ func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
 	return savedTeam, nil
 }
 
-func (db *SQLDB) GetTeamByName(teamName string) (SavedTeam, bool, error) {
-	query := fmt.Sprintf(`
-		SELECT id, name, admin, basic_auth, github_auth
-		FROM teams
-		WHERE name ILIKE '%s'
-	`, teamName,
-	)
-	savedTeam, err := db.queryTeam(query)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return savedTeam, false, nil
-		}
-
-		return savedTeam, false, err
-	}
-
-	return savedTeam, true, nil
-}
-
 func (db *SQLDB) jsonEncodeTeamGitHubAuth(team Team) (string, error) {
 	if team.ClientID == "" || team.ClientSecret == "" {
 		team.GitHubAuth = GitHubAuth{}

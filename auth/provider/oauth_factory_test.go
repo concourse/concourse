@@ -4,22 +4,25 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/github"
-	. "github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/provider/fakes"
+	"github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/db"
+
+	dbfakes "github.com/concourse/atc/db/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("OAuthFactory", func() {
-	var fakeFactoryDB *fakes.FakeFactoryDB
-	var oauthFactory OAuthFactory
+	var fakeTeamDB *dbfakes.FakeTeamDB
+	var oauthFactory provider.OAuthFactory
 
 	BeforeEach(func() {
-		fakeFactoryDB = new(fakes.FakeFactoryDB)
-		oauthFactory = NewOAuthFactory(
-			fakeFactoryDB,
+		fakeTeamDB = new(dbfakes.FakeTeamDB)
+		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
+		oauthFactory = provider.NewOAuthFactory(
+			fakeTeamDBFactory,
 			"http://foo.bar",
 			auth.OAuthRoutes,
 			auth.OAuthCallback,
@@ -40,7 +43,7 @@ var _ = Describe("OAuthFactory", func() {
 							},
 						},
 					}
-					fakeFactoryDB.GetTeamByNameReturns(savedTeam, true, nil)
+					fakeTeamDB.GetTeamReturns(savedTeam, true, nil)
 				})
 
 				It("returns back GitHub's auth provider", func() {
@@ -58,7 +61,7 @@ var _ = Describe("OAuthFactory", func() {
 							Name: atc.DefaultTeamName,
 						},
 					}
-					fakeFactoryDB.GetTeamByNameReturns(savedTeam, true, nil)
+					fakeTeamDB.GetTeamReturns(savedTeam, true, nil)
 				})
 
 				It("returns an empty map", func() {
@@ -71,7 +74,7 @@ var _ = Describe("OAuthFactory", func() {
 
 		Context("when team does not exist", func() {
 			BeforeEach(func() {
-				fakeFactoryDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
+				fakeTeamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 			})
 
 			It("returns an error", func() {

@@ -45,7 +45,6 @@ func NewHandler(
 	pipelineDBFactory db.PipelineDBFactory,
 	teamDBFactory db.TeamDBFactory,
 
-	authDB authserver.AuthDB,
 	buildsDB buildserver.BuildsDB,
 	workerDB workerserver.WorkerDB,
 	containerDB containerserver.ContainerDB,
@@ -81,7 +80,7 @@ func NewHandler(
 		oAuthBaseURL,
 		tokenGenerator,
 		providerFactory,
-		authDB,
+		teamDBFactory,
 	)
 
 	buildServer := buildserver.NewServer(

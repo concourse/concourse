@@ -180,7 +180,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	authValidator := cmd.constructValidator(signingKey, sqlDB)
+	authValidator := cmd.constructValidator(signingKey, teamDBFactory)
 
 	err = cmd.updateBasicAuthCredentials(sqlDB)
 	if err != nil {
@@ -197,7 +197,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	providerFactory := provider.NewOAuthFactory(
-		sqlDB,
+		teamDBFactory,
 		cmd.oauthBaseURL(),
 		auth.OAuthRoutes,
 		auth.OAuthCallback,
@@ -233,8 +233,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	oauthHandler, err := auth.NewOAuthHandler(
 		logger,
 		providerFactory,
+		teamDBFactory,
 		signingKey,
-		sqlDB,
 	)
 	if err != nil {
 		return nil, err
@@ -596,7 +596,7 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB)
 	return nil
 }
 
-func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.DB) auth.Validator {
+func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, teamDBFactory db.TeamDBFactory) auth.Validator {
 	if !cmd.authConfigured() {
 		return auth.NoopValidator{}
 	}
@@ -609,7 +609,7 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, sqlDB db.D
 	if cmd.BasicAuth.Username != "" && cmd.BasicAuth.Password != "" {
 		validator = auth.ValidatorBasket{
 			auth.BasicAuthValidator{
-				DB: sqlDB,
+				TeamDBFactory: teamDBFactory,
 			},
 			jwtValidator,
 		}
@@ -724,7 +724,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		pipelineDBFactory,
 		teamDBFactory,
 
-		sqlDB, // authserver.AuthDB
 		sqlDB, // buildserver.BuildsDB
 		sqlDB, // workerserver.WorkerDB
 		sqlDB, // containerserver.ContainerDB

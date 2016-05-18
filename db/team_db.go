@@ -18,7 +18,7 @@ type TeamDB interface {
 
 	OrderPipelines([]string) error
 
-	GetTeamByName(teamName string) (SavedTeam, bool, error)
+	GetTeam() (SavedTeam, bool, error)
 	SaveTeam(team Team) (SavedTeam, error)
 	UpdateTeamBasicAuth(team Team) (SavedTeam, error)
 	UpdateTeamGitHubAuth(team Team) (SavedTeam, error)
@@ -353,12 +353,12 @@ func (db *teamDB) registerResourceType(tx Tx, resourceType atc.ResourceType, pip
 	return swallowUniqueViolation(err)
 }
 
-func (db *teamDB) GetTeamByName(teamName string) (SavedTeam, bool, error) {
+func (db *teamDB) GetTeam() (SavedTeam, bool, error) {
 	query := fmt.Sprintf(`
 		SELECT id, name, admin, basic_auth, github_auth
 		FROM teams
 		WHERE name ILIKE '%s'
-	`, teamName,
+	`, db.teamName,
 	)
 	savedTeam, err := db.queryTeam(query)
 	if err != nil {

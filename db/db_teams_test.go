@@ -20,6 +20,7 @@ var _ = Describe("SQL DB Teams", func() {
 	var listener *pq.Listener
 
 	var database db.DB
+	var teamDBFactory db.TeamDBFactory
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -30,6 +31,7 @@ var _ = Describe("SQL DB Teams", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
+		teamDBFactory = db.NewTeamDBFactory(dbConn)
 		database = db.NewSQL(dbConn, bus)
 
 		database.DeleteTeamByName(atc.DefaultTeamName)
@@ -54,7 +56,7 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(count.Valid).To(BeTrue())
 			Expect(count.Int64).To(Equal(int64(1)))
 
-			team, _, err := database.GetTeamByName(atc.DefaultTeamName)
+			team, _, err := teamDBFactory.GetTeamDB(atc.DefaultTeamName).GetTeam()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(team.Admin).To(BeTrue())
 		})
@@ -87,38 +89,6 @@ var _ = Describe("SQL DB Teams", func() {
 				dbConn.QueryRow(fmt.Sprintf(`select admin from teams where name = '%s'`, atc.DefaultTeamName)).Scan(&admin)
 
 				Expect(admin).To(BeTrue())
-			})
-		})
-	})
-
-	Describe("GetTeamByName", func() {
-		It("returns false with no error when the team does not exist", func() {
-			_, found, err := database.GetTeamByName("nonexistent-team")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeFalse())
-		})
-
-		Context("when the team exists", func() {
-			BeforeEach(func() {
-				team := db.Team{
-					Name: "team-name",
-				}
-				_, err := database.SaveTeam(team)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns the saved team when finding by an exact match", func() {
-				actualTeam, found, err := database.GetTeamByName("team-name")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(actualTeam.Name).To(Equal("team-name"))
-			})
-
-			It("returns the saved team when finding by a case-insensitive match", func() {
-				actualTeam, found, err := database.GetTeamByName("TEAM-name")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(actualTeam.Name).To(Equal("team-name"))
 			})
 		})
 	})
@@ -336,7 +306,7 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
 
-			savedTeam, found, err := database.GetTeamByName("avengers")
+			savedTeam, found, err := teamDBFactory.GetTeamDB("avengers").GetTeam()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(savedTeam).To(Equal(expectedSavedTeam))
@@ -354,7 +324,7 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(expectedSavedTeam.Team.Name).To(Equal(expectedTeam.Name))
 
-			savedTeam, found, err := database.GetTeamByName("avengers")
+			savedTeam, found, err := teamDBFactory.GetTeamDB("avengers").GetTeam()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(savedTeam).To(Equal(expectedSavedTeam))
@@ -388,7 +358,7 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
 
-			savedTeam, found, err := database.GetTeamByName("avengers")
+			savedTeam, found, err := teamDBFactory.GetTeamDB("avengers").GetTeam()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(savedTeam).To(Equal(expectedSavedTeam))

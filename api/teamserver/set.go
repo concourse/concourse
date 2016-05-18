@@ -44,7 +44,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	savedTeam, found, err := teamDB.GetTeamByName(team.Name)
+	savedTeam, found, err := teamDB.GetTeam()
 	if err != nil {
 		hLog.Error("failed-to-get-team", err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -42,7 +42,6 @@ var (
 	providerFactory               *authfakes.FakeProviderFactory
 	fakeEngine                    *enginefakes.FakeEngine
 	fakeWorkerClient              *workerfakes.FakeClient
-	authDB                        *authfakes.FakeAuthDB
 	buildsDB                      *buildfakes.FakeBuildsDB
 	volumesDB                     *volumeserverfakes.FakeVolumesDB
 	workerDB                      *workerserverfakes.FakeWorkerDB
@@ -88,7 +87,6 @@ func (f *fakeEventHandlerFactory) Construct(
 }
 
 var _ = BeforeEach(func() {
-	authDB = new(authfakes.FakeAuthDB)
 	buildsDB = new(buildfakes.FakeBuildsDB)
 	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 	teamDBFactory := new(dbfakes.FakeTeamDBFactory)
@@ -141,7 +139,6 @@ var _ = BeforeEach(func() {
 		pipelineDBFactory,
 		teamDBFactory,
 
-		authDB,
 		buildsDB,
 		workerDB,
 		containerDB,

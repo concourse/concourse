@@ -33,12 +33,10 @@ type FakeTeamDB struct {
 	orderPipelinesReturns struct {
 		result1 error
 	}
-	GetTeamByNameStub        func(teamName string) (db.SavedTeam, bool, error)
-	getTeamByNameMutex       sync.RWMutex
-	getTeamByNameArgsForCall []struct {
-		teamName string
-	}
-	getTeamByNameReturns struct {
+	GetTeamStub        func() (db.SavedTeam, bool, error)
+	getTeamMutex       sync.RWMutex
+	getTeamArgsForCall []struct{}
+	getTeamReturns     struct {
 		result1 db.SavedTeam
 		result2 bool
 		result3 error
@@ -186,34 +184,26 @@ func (fake *FakeTeamDB) OrderPipelinesReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeamDB) GetTeamByName(teamName string) (db.SavedTeam, bool, error) {
-	fake.getTeamByNameMutex.Lock()
-	fake.getTeamByNameArgsForCall = append(fake.getTeamByNameArgsForCall, struct {
-		teamName string
-	}{teamName})
-	fake.getTeamByNameMutex.Unlock()
-	if fake.GetTeamByNameStub != nil {
-		return fake.GetTeamByNameStub(teamName)
+func (fake *FakeTeamDB) GetTeam() (db.SavedTeam, bool, error) {
+	fake.getTeamMutex.Lock()
+	fake.getTeamArgsForCall = append(fake.getTeamArgsForCall, struct{}{})
+	fake.getTeamMutex.Unlock()
+	if fake.GetTeamStub != nil {
+		return fake.GetTeamStub()
 	} else {
-		return fake.getTeamByNameReturns.result1, fake.getTeamByNameReturns.result2, fake.getTeamByNameReturns.result3
+		return fake.getTeamReturns.result1, fake.getTeamReturns.result2, fake.getTeamReturns.result3
 	}
 }
 
-func (fake *FakeTeamDB) GetTeamByNameCallCount() int {
-	fake.getTeamByNameMutex.RLock()
-	defer fake.getTeamByNameMutex.RUnlock()
-	return len(fake.getTeamByNameArgsForCall)
+func (fake *FakeTeamDB) GetTeamCallCount() int {
+	fake.getTeamMutex.RLock()
+	defer fake.getTeamMutex.RUnlock()
+	return len(fake.getTeamArgsForCall)
 }
 
-func (fake *FakeTeamDB) GetTeamByNameArgsForCall(i int) string {
-	fake.getTeamByNameMutex.RLock()
-	defer fake.getTeamByNameMutex.RUnlock()
-	return fake.getTeamByNameArgsForCall[i].teamName
-}
-
-func (fake *FakeTeamDB) GetTeamByNameReturns(result1 db.SavedTeam, result2 bool, result3 error) {
-	fake.GetTeamByNameStub = nil
-	fake.getTeamByNameReturns = struct {
+func (fake *FakeTeamDB) GetTeamReturns(result1 db.SavedTeam, result2 bool, result3 error) {
+	fake.GetTeamStub = nil
+	fake.getTeamReturns = struct {
 		result1 db.SavedTeam
 		result2 bool
 		result3 error
