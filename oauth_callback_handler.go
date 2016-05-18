@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 
 	"golang.org/x/net/context"
@@ -20,21 +21,21 @@ type OAuthCallbackHandler struct {
 	providerFactory ProviderFactory
 	privateKey      *rsa.PrivateKey
 	tokenGenerator  TokenGenerator
-	db              AuthDB
+	teamDBFactory   db.TeamDBFactory
 }
 
 func NewOAuthCallbackHandler(
 	logger lager.Logger,
 	providerFactory ProviderFactory,
 	privateKey *rsa.PrivateKey,
-	db AuthDB,
+	teamDBFactory db.TeamDBFactory,
 ) http.Handler {
 	return &OAuthCallbackHandler{
 		logger:          logger,
 		providerFactory: providerFactory,
 		privateKey:      privateKey,
 		tokenGenerator:  NewTokenGenerator(privateKey),
-		db:              db,
+		teamDBFactory:   teamDBFactory,
 	}
 }
 
@@ -43,7 +44,8 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	providerName := r.FormValue(":provider")
 	teamName := atc.DefaultTeamName
 
-	team, found, err := handler.db.GetTeamByName(atc.DefaultTeamName)
+	teamDB := handler.teamDBFactory.GetTeamDB(teamName)
+	team, found, err := teamDB.GetTeam()
 	if err != nil {
 		hLog.Error("failed-to-get-team", err)
 		http.Error(w, "failed to get team", http.StatusInternalServerError)

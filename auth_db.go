@@ -5,5 +5,5 @@ import "github.com/concourse/atc/db"
 //go:generate counterfeiter . AuthDB
 
 type AuthDB interface {
-	GetTeamByName(teamName string) (db.SavedTeam, bool, error)
+	GetTeam() (db.SavedTeam, bool, error)
 }

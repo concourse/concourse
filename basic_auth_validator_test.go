@@ -11,8 +11,9 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/fakes"
 	"github.com/concourse/atc/db"
+
+	dbfakes "github.com/concourse/atc/db/fakes"
 )
 
 var _ = Describe("BasicAuthValidator", func() {
@@ -22,10 +23,10 @@ var _ = Describe("BasicAuthValidator", func() {
 
 	var validator auth.Validator
 
-	var fakeAuthDB *fakes.FakeAuthDB
+	var fakeTeamDB *dbfakes.FakeTeamDB
 
 	BeforeEach(func() {
-		fakeAuthDB = new(fakes.FakeAuthDB)
+		fakeTeamDB = new(dbfakes.FakeTeamDB)
 		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 4)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -39,10 +40,13 @@ var _ = Describe("BasicAuthValidator", func() {
 			},
 		}
 
-		fakeAuthDB.GetTeamByNameReturns(team, true, nil)
+		fakeTeamDB.GetTeamReturns(team, true, nil)
+
+		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
 
 		validator = auth.BasicAuthValidator{
-			DB: fakeAuthDB,
+			TeamDBFactory: fakeTeamDBFactory,
 		}
 	})
 
@@ -107,7 +111,7 @@ var _ = Describe("BasicAuthValidator", func() {
 			BeforeEach(func() {
 				request.Header.Set("Authorization", "Basic "+b64(username+":"+password))
 
-				fakeAuthDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
+				fakeTeamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 			})
 
 			It("returns false", func() {

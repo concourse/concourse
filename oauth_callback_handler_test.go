@@ -28,6 +28,7 @@ import (
 	"github.com/concourse/atc/auth/provider"
 	providerFakes "github.com/concourse/atc/auth/provider/fakes"
 	"github.com/concourse/atc/db"
+	dbfakes "github.com/concourse/atc/db/fakes"
 )
 
 var _ = Describe("OAuthCallbackHandler", func() {
@@ -37,7 +38,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 		fakeProviderFactory *fakes.FakeProviderFactory
 
-		fakeAuthDB *fakes.FakeAuthDB
+		fakeTeamDB *dbfakes.FakeTeamDB
 
 		signingKey *rsa.PrivateKey
 
@@ -53,8 +54,6 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 		fakeProviderFactory = new(fakes.FakeProviderFactory)
 
-		fakeAuthDB = new(fakes.FakeAuthDB)
-
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)
 		Expect(err).ToNot(HaveOccurred())
@@ -67,11 +66,23 @@ var _ = Describe("OAuthCallbackHandler", func() {
 			nil,
 		)
 
+		team = db.SavedTeam{
+			ID: 0,
+			Team: db.Team{
+				Name: atc.DefaultTeamName,
+			},
+		}
+
+		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		fakeTeamDB = new(dbfakes.FakeTeamDB)
+		fakeTeamDB.GetTeamReturns(team, true, nil)
+		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
+
 		handler, err := auth.NewOAuthHandler(
 			lagertest.NewTestLogger("test"),
 			fakeProviderFactory,
+			fakeTeamDBFactory,
 			signingKey,
-			fakeAuthDB,
 		)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -86,15 +97,6 @@ var _ = Describe("OAuthCallbackHandler", func() {
 		client = &http.Client{
 			Transport: &http.Transport{},
 		}
-
-		team = db.SavedTeam{
-			ID: 0,
-			Team: db.Team{
-				Name: atc.DefaultTeamName,
-			},
-		}
-
-		fakeAuthDB.GetTeamByNameReturns(team, true, nil)
 	})
 
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
@@ -355,7 +357,7 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 			Context("when the team cannot be found", func() {
 				BeforeEach(func() {
-					fakeAuthDB.GetTeamByNameReturns(db.SavedTeam{}, false, nil)
+					fakeTeamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 				})
 
 				It("returns Not Found", func() {

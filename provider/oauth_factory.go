@@ -9,22 +9,16 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-//go:generate counterfeiter . FactoryDB
-
-type FactoryDB interface {
-	GetTeamByName(teamName string) (db.SavedTeam, bool, error)
-}
-
 type OAuthFactory struct {
-	db             FactoryDB
+	teamDBFactory  db.TeamDBFactory
 	atcExternalURL string
 	routes         rata.Routes
 	callback       string
 }
 
-func NewOAuthFactory(db FactoryDB, atcExternalURL string, routes rata.Routes, callback string) OAuthFactory {
+func NewOAuthFactory(teamDBFactory db.TeamDBFactory, atcExternalURL string, routes rata.Routes, callback string) OAuthFactory {
 	return OAuthFactory{
-		db:             db,
+		teamDBFactory:  teamDBFactory,
 		atcExternalURL: atcExternalURL,
 		routes:         routes,
 		callback:       callback,
@@ -32,7 +26,8 @@ func NewOAuthFactory(db FactoryDB, atcExternalURL string, routes rata.Routes, ca
 }
 
 func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
-	team, found, err := of.db.GetTeamByName(teamName)
+	teamDB := of.teamDBFactory.GetTeamDB(teamName)
+	team, found, err := teamDB.GetTeam()
 	if err != nil {
 		return Providers{}, err
 	}
