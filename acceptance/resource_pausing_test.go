@@ -33,7 +33,7 @@ var _ = Describe("Resource Pausing", func() {
 
 		sqlDB = db.NewSQL(dbConn, bus)
 
-		atcProcess, atcPort, _ = startATC(atcBin, 1, true, false, BASIC_AUTH)
+		atcProcess, atcPort, _ = startATC(atcBin, 1, true, []string{}, BASIC_AUTH)
 		err := sqlDB.DeleteTeamByName("main")
 		Expect(err).NotTo(HaveOccurred())
 		team, err := sqlDB.SaveTeam(db.Team{

@@ -41,7 +41,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("making an HTTPS request", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, tlsPort = startATC(atcBin, 1, true, []string{"--tls-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
+			atcProcess, atcPort, tlsPort = startATC(atcBin, 1, true, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
 		})
 
 		It("accepts the HTTPS connection", func() {

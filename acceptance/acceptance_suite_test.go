@@ -109,8 +109,8 @@ const GITHUB_ENTERPRISE_AUTH = "github-enterprise"
 const DEVELOPMENT_MODE = "dev"
 const NO_AUTH = DEVELOPMENT_MODE
 
-func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, useTLS bool, authTypes ...string) (ifrit.Process, uint16, uint16) {
-	atcCommand, atcPort, tlsPort := getATCCommand(atcBin, atcServerNumber, publiclyViewable, useTLS, authTypes...)
+func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, tlsFlags []string, authTypes ...string) (ifrit.Process, uint16, uint16) {
+	atcCommand, atcPort, tlsPort := getATCCommand(atcBin, atcServerNumber, publiclyViewable, tlsFlags, authTypes...)
 	atcRunner := ginkgomon.New(ginkgomon.Config{
 		Command:       atcCommand,
 		Name:          "atc",
@@ -120,7 +120,7 @@ func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, useT
 	return ginkgomon.Invoke(atcRunner), atcPort, tlsPort
 }
 
-func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool, useTLS bool, authTypes ...string) (*exec.Cmd, uint16, uint16) {
+func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool, tlsFlags []string, authTypes ...string) (*exec.Cmd, uint16, uint16) {
 	atcPort := 5697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 	debugPort := 6697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 
@@ -138,14 +138,20 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 	}
 
 	var tlsPort uint16
-	if useTLS {
-		tlsPort = 7697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
+	tlsPort = 7697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
+	if len(tlsFlags) > 0 {
+		Expect(tlsFlags[0]).To(Equal("--tls-bind-port"))
+		params = append(params, "--tls-bind-port", fmt.Sprintf("%d", tlsPort))
+	}
 
-		params = append(params,
-			"--tls-bind-port", fmt.Sprintf("%d", tlsPort),
-			"--tls-key", filepath.Join(certTmpDir, "server.key"),
-			"--tls-cert", filepath.Join(certTmpDir, "server.pem"),
-		)
+	if len(tlsFlags) > 1 {
+		Expect(tlsFlags[1]).To(Equal("--tls-cert"))
+		params = append(params, "--tls-cert", filepath.Join(certTmpDir, "server.pem"))
+	}
+
+	if len(tlsFlags) > 2 {
+		Expect(tlsFlags[2]).To(Equal("--tls-key"))
+		params = append(params, "--tls-key", filepath.Join(certTmpDir, "server.key"))
 	}
 
 	for _, authType := range authTypes {

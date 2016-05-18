@@ -49,7 +49,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("GitHub Auth", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, false, false, GITHUB_AUTH)
+			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, GITHUB_AUTH)
 		})
 
 		It("forces a redirect to /login", func() {
@@ -69,7 +69,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("GitHub Enterprise Auth", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, false, false, GITHUB_ENTERPRISE_AUTH)
+			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, GITHUB_ENTERPRISE_AUTH)
 		})
 
 		It("forces a redirect to override github", func() {
@@ -87,7 +87,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("Basic Auth", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, false, false, BASIC_AUTH)
+			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, BASIC_AUTH)
 		})
 
 		It("forces a redirect to /login", func() {
@@ -110,7 +110,7 @@ var _ = Describe("Auth", func() {
 
 	Context("when basic auth is misconfigured", func() {
 		It("errors when only username is specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, false, false, BASIC_AUTH_NO_PASSWORD)
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, BASIC_AUTH_NO_PASSWORD)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -118,7 +118,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("errors when only password is specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, false, false, BASIC_AUTH_NO_USERNAME)
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, BASIC_AUTH_NO_USERNAME)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -128,7 +128,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("No authentication via development mode", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, false, false, DEVELOPMENT_MODE)
+			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, DEVELOPMENT_MODE)
 		})
 
 		It("logs in without authentication", func() {
