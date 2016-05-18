@@ -66,6 +66,15 @@ case $1 in
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
       --bind-ip <%= p("bind_ip") %> \
       --bind-port <%= p("bind_port") %> \
+      <% if_p("tls-bind-port") do |port| %> \
+      --tls-bind-port <%= port %> \
+      <% end %> \
+      <% if_p("tls-cert") do |path| %> \
+      --tls-cert <%= esc(path) %> \
+      <% end %> \
+      <% if_p("tls-key") do |path| %> \
+      --tls-key <%= esc(path) %> \
+      <% end %> \
       --peer-url <%= p("peer_url", "http://#{spec.address}:#{p("bind_port")}") %> \
       --external-url <%= esc(p("external_url")) %> \
       --postgres-data-source <%= esc("postgres://#{postgres_role_name}:#{postgres_role_password}@#{postgres_addr}/#{postgres_database}?sslmode=disable") %> \
