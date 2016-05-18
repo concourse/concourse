@@ -514,21 +514,23 @@ func (db *SQLDB) ErrorBuild(buildID int, pipelineID int, cause error) error {
 }
 
 func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error) {
-	pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus, db)
-	pipelineDB, err := pipelineDBFactory.BuildWithID(input.VersionedResource.PipelineID)
+	savedPipeline, err := db.GetPipelineByID(input.VersionedResource.PipelineID)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
+	pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus)
+	pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
 	return pipelineDB.SaveBuildInput(buildID, input)
 }
 
 func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
-	pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus, db)
-	pipelineDB, err := pipelineDBFactory.BuildWithID(vr.PipelineID)
+	savedPipeline, err := db.GetPipelineByID(vr.PipelineID)
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
+	pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus)
+	pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
 	return pipelineDB.SaveBuildOutput(buildID, vr, explicit)
 }

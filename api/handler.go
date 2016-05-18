@@ -74,7 +74,7 @@ func NewHandler(
 		return nil, err
 	}
 
-	pipelineHandlerFactory := pipelines.NewHandlerFactory(pipelineDBFactory)
+	pipelineHandlerFactory := pipelines.NewHandlerFactory(pipelineDBFactory, teamDBFactory)
 
 	authServer := authserver.NewServer(
 		logger,

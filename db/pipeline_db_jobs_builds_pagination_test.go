@@ -30,7 +30,7 @@ var _ = Describe("Jobs Builds", func() {
 		bus := db.NewNotificationsBus(listener, dbConn)
 
 		sqlDB = db.NewSQL(dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, sqlDB)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
 
 		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
@@ -42,16 +42,16 @@ var _ = Describe("Jobs Builds", func() {
 			},
 		}
 
-		_, _, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", config, 0, db.PipelineUnpaused)
+		savedPipeline, _, err := sqlDB.SaveConfig(team.Name, "a-pipeline-name", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "a-pipeline-name")
+		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = sqlDB.SaveConfig(team.Name, "another-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
+		otherSavedPipeline, _, err := sqlDB.SaveConfig(team.Name, "another-pipeline", atc.Config{}, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		otherPipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "another-pipeline")
+		otherPipelineDB = pipelineDBFactory.Build(otherSavedPipeline)
 		Expect(err).NotTo(HaveOccurred())
 	})
 

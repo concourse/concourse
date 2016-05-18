@@ -10,12 +10,24 @@ import (
 
 type PipelineHandlerFactory struct {
 	pipelineDBFactory db.PipelineDBFactory
+	teamDBFactory     db.TeamDBFactory
+}
+
+func NewHandlerFactory(
+	pipelineDBFactory db.PipelineDBFactory,
+	teamDBFactory db.TeamDBFactory,
+) *PipelineHandlerFactory {
+	return &PipelineHandlerFactory{
+		pipelineDBFactory: pipelineDBFactory,
+		teamDBFactory:     teamDBFactory,
+	}
 }
 
 func (pdbh *PipelineHandlerFactory) HandlerFor(pipelineScopedHandler func(db.PipelineDB) http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		pipelineName := r.FormValue(":pipeline_name")
-		pipelineDB, err := pdbh.pipelineDBFactory.BuildWithTeamNameAndName(atc.DefaultTeamName, pipelineName)
+		teamDB := pdbh.teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+		savedPipeline, err := teamDB.GetPipelineByTeamNameAndName(atc.DefaultTeamName, pipelineName)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusNotFound)
@@ -24,11 +36,8 @@ func (pdbh *PipelineHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pip
 			}
 			return
 		}
+		pipelineDB := pdbh.pipelineDBFactory.Build(savedPipeline)
 
 		pipelineScopedHandler(pipelineDB).ServeHTTP(w, r)
 	}
-}
-
-func NewHandlerFactory(pipelineDBFactory db.PipelineDBFactory) *PipelineHandlerFactory {
-	return &PipelineHandlerFactory{pipelineDBFactory: pipelineDBFactory}
 }

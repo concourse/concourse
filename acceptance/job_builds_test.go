@@ -31,7 +31,7 @@ var _ = Describe("Job Builds", func() {
 		dbListener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 		sqlDB = db.NewSQL(dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, sqlDB)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
 		atcProcess, atcPort, _ = startATC(atcBin, 1, true, []string{}, BASIC_AUTH)
 		err := sqlDB.DeleteTeamByName("main")
 		Expect(err).NotTo(HaveOccurred())
@@ -82,8 +82,13 @@ var _ = Describe("Job Builds", func() {
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
-				pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, atc.DefaultPipelineName)
+				teamDBFactory := db.NewTeamDBFactory(dbConn)
+				teamDB := teamDBFactory.GetTeamDB(team.Name)
+
+				savedPipeline, err := teamDB.GetPipelineByTeamNameAndName(teamName, atc.DefaultPipelineName)
 				Expect(err).NotTo(HaveOccurred())
+
+				pipelineDB = pipelineDBFactory.Build(savedPipeline)
 			})
 
 			Context("with more then 100 job builds", func() {

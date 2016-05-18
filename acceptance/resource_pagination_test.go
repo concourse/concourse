@@ -58,12 +58,14 @@ var _ = Describe("Resource Pagination", func() {
 		}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, sqlDB)
+		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
-		var found bool
-		pipelineDB, found, err = pipelineDBFactory.BuildDefault()
+		savedPipeline, err := teamDB.GetPipelineByTeamNameAndName(atc.DefaultTeamName, atc.DefaultPipelineName)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
+
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 
 	AfterEach(func() {

@@ -148,11 +148,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(listener, dbConn)
+
 	sqlDB := db.NewSQL(dbConn, bus)
-	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, sqlDB)
-
-	teamDBFactory := db.NewTeamDBFactory(dbConn)
-
 	trackerFactory := resource.TrackerFactory{}
 	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory)
 
@@ -209,6 +206,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	drain := make(chan struct{})
+
+	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+	teamDBFactory := db.NewTeamDBFactory(dbConn)
 
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,

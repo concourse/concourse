@@ -17,10 +17,13 @@ import (
 
 var _ = Describe("Versions API", func() {
 	var pipelineDB *dbfakes.FakePipelineDB
+	var expectedSavedPipeline db.SavedPipeline
 
 	BeforeEach(func() {
 		pipelineDB = new(dbfakes.FakePipelineDB)
-		pipelineDBFactory.BuildWithTeamNameAndNameReturns(pipelineDB, nil)
+		pipelineDBFactory.BuildReturns(pipelineDB)
+		expectedSavedPipeline = db.SavedPipeline{}
+		teamDB.GetPipelineByTeamNameAndNameReturns(expectedSavedPipeline, nil)
 	})
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions", func() {
@@ -223,10 +226,12 @@ var _ = Describe("Versions API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
-				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
-				Expect(pipelineName).To(Equal("a-pipeline"))
+				teamName, pipelineName := teamDB.GetPipelineByTeamNameAndNameArgsForCall(0)
 				Expect(teamName).To(Equal(atc.DefaultTeamName))
+				Expect(pipelineName).To(Equal("a-pipeline"))
+				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
+				actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
+				Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
 			})
 
 			Context("when enabling the resource succeeds", func() {
@@ -284,10 +289,12 @@ var _ = Describe("Versions API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				Expect(pipelineDBFactory.BuildWithTeamNameAndNameCallCount()).To(Equal(1))
-				teamName, pipelineName := pipelineDBFactory.BuildWithTeamNameAndNameArgsForCall(0)
-				Expect(pipelineName).To(Equal("a-pipeline"))
+				teamName, pipelineName := teamDB.GetPipelineByTeamNameAndNameArgsForCall(0)
 				Expect(teamName).To(Equal(atc.DefaultTeamName))
+				Expect(pipelineName).To(Equal("a-pipeline"))
+				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
+				actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
+				Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
 			})
 
 			Context("when enabling the resource succeeds", func() {

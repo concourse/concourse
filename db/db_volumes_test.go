@@ -30,7 +30,7 @@ var _ = Describe("Keeping track of volumes", func() {
 		sqlDB := db.NewSQL(dbConn, bus)
 		database = sqlDB
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, sqlDB)
+		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
 		_, err := database.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 		config := atc.Config{
@@ -40,9 +40,10 @@ var _ = Describe("Keeping track of volumes", func() {
 				},
 			},
 		}
-		sqlDB.SaveConfig("some-team", "some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
-		pipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName("some-team", "some-pipeline")
+		savedPipeline, _, err := sqlDB.SaveConfig("some-team", "some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
+
+		pipelineDB = pipelineDBFactory.Build(savedPipeline)
 	})
 
 	AfterEach(func() {

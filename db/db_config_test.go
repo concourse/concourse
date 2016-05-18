@@ -39,7 +39,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		bus := db.NewNotificationsBus(listener, dbConn)
 
 		database = db.NewSQL(dbConn, bus)
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, database)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
 
 		var err error
 		team, err = database.SaveTeam(db.Team{Name: "some-team"})
@@ -199,22 +199,20 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		})
 
 		It("creates all of the resources from the pipeline in the database", func() {
-			_, _, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
+			savedPipeline, _, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
-			pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(team.Name, pipelineName)
-			Expect(err).NotTo(HaveOccurred())
+			pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
 			_, _, err = pipelineDB.GetResource("some-resource")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("creates all of the resource types from the pipeline in the database", func() {
-			_, _, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
+			savedPipeline, _, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
-			pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(team.Name, pipelineName)
-			Expect(err).NotTo(HaveOccurred())
+			pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
 			_, found, err := pipelineDB.GetResourceType("some-resource-type")
 			Expect(err).NotTo(HaveOccurred())
@@ -222,18 +220,17 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		})
 
 		It("creates all of the jobs from the pipeline in the database", func() {
-			_, _, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
+			savedPipeline, _, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
-			pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(team.Name, pipelineName)
-			Expect(err).NotTo(HaveOccurred())
+			pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
 			_, err = pipelineDB.GetJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("creates all of the serial groups from the jobs in the database", func() {
-			_, _, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
+			savedPipeline, _, err := database.SaveConfig(team.Name, pipelineName, config, 0, db.PipelineNoChange)
 			Expect(err).NotTo(HaveOccurred())
 
 			serialGroups := []SerialGroup{}
@@ -247,8 +244,8 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 				serialGroups = append(serialGroups, serialGroup)
 			}
 
-			pipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(team.Name, pipelineName)
-			Expect(err).NotTo(HaveOccurred())
+			pipelineDB := pipelineDBFactory.Build(savedPipeline)
+
 			job, err := pipelineDB.GetJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -542,10 +539,9 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 	})
 
 	It("can lookup configs by build id", func() {
-		_, _, err := database.SaveConfig(team.Name, "my-pipeline", config, 0, db.PipelineUnpaused)
+		savedPipeline, _, err := database.SaveConfig(team.Name, "my-pipeline", config, 0, db.PipelineUnpaused)
 
-		myPipelineDB, err := pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "my-pipeline")
-		Expect(err).NotTo(HaveOccurred())
+		myPipelineDB := pipelineDBFactory.Build(savedPipeline)
 
 		build, err := myPipelineDB.CreateJobBuild("some-job")
 		Expect(err).NotTo(HaveOccurred())
