@@ -3,6 +3,7 @@ package atccmd
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -49,11 +50,15 @@ import (
 )
 
 type ATCCommand struct {
-	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
-	BindPort uint16 `long:"bind-port" default:"8080"    description:"Port on which to listen for web traffic."`
+	BindIP      IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
+	BindPort    uint16 `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
+	TLSBindPort uint16 `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
 
 	ExternalURL URLFlag `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
 	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
+
+	TLSCert FileFlag `long:"tls-cert" description:"File containing an SSL certificate."`
+	TLSKey  FileFlag `long:"tls-key" description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
 	OAuthBaseURL URLFlag `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
 
@@ -308,6 +313,27 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	members = cmd.appendStaticWorker(logger, sqlDB, members)
 
+	if cmd.TLSCert != "" {
+		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
+
+		if err != nil {
+			return nil, err
+		}
+
+		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+
+		members = append(members,
+			grouper.Member{"web-tls", http_server.NewTLSServer(
+				cmd.tlsBindAddr(),
+				cmd.constructHTTPHandler(
+					webHandler,
+					apiHandler,
+					oauthHandler,
+				),
+				tlsConfig,
+			)})
+	}
+
 	return onReady(grouper.NewParallel(os.Interrupt, members), func() {
 		logger.Info("listening", lager.Data{
 			"web":   cmd.bindAddr(),
@@ -400,6 +426,23 @@ func (cmd *ATCCommand) validate() error {
 		}
 	}
 
+	tlsFlagCount := 0
+	if cmd.TLSBindPort != 0 {
+		tlsFlagCount++
+	}
+	if cmd.TLSCert != "" {
+		tlsFlagCount++
+	}
+	if cmd.TLSKey != "" {
+		tlsFlagCount++
+	}
+	if tlsFlagCount != 0 && tlsFlagCount != 3 {
+		errs = multierror.Append(
+			errs,
+			errors.New("must specify --tls-bind-port, --tls-cert, --tls-key to use TLS"),
+		)
+	}
+
 	return errs.ErrorOrNil()
 }
 
@@ -409,6 +452,10 @@ func (cmd *ATCCommand) bindAddr() string {
 
 func (cmd *ATCCommand) debugBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
+}
+
+func (cmd *ATCCommand) tlsBindAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.TLSBindPort)
 }
 
 func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {

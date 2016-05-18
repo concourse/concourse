@@ -3,9 +3,11 @@ package acceptance_test
 import (
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -27,15 +29,19 @@ func TestAcceptance(t *testing.T) {
 	RunSpecs(t, "Acceptance Suite")
 }
 
-var atcBin string
+var (
+	atcBin string
 
-var postgresRunner postgresrunner.Runner
-var dbConn db.Conn
-var dbProcess ifrit.Process
+	certTmpDir string
 
-var sqlDB *db.SQLDB
+	postgresRunner postgresrunner.Runner
+	dbConn         db.Conn
+	dbProcess      ifrit.Process
 
-var agoutiDriver *agouti.WebDriver
+	sqlDB *db.SQLDB
+
+	agoutiDriver *agouti.WebDriver
+)
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	atcBin, err := gexec.Build("github.com/concourse/atc/cmd/atc")
@@ -47,6 +53,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	SetDefaultEventuallyTimeout(10 * time.Second)
 	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
+
+	certTmpDir = createCertTmpDir()
 
 	postgresRunner = postgresrunner.Runner{
 		Port: 5432 + GinkgoParallelNode(),
@@ -66,11 +74,14 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(agoutiDriver.Start()).To(Succeed())
 })
 
-var _ = AfterSuite(func() {
+var _ = SynchronizedAfterSuite(func() {
 	Expect(agoutiDriver.Stop()).To(Succeed())
 
 	dbProcess.Signal(os.Interrupt)
 	Eventually(dbProcess.Wait(), 10*time.Second).Should(Receive())
+}, func() {
+	err := os.RemoveAll(certTmpDir)
+	Expect(err).NotTo(HaveOccurred())
 })
 
 func Screenshot(page *agouti.Page) {
@@ -98,18 +109,18 @@ const GITHUB_ENTERPRISE_AUTH = "github-enterprise"
 const DEVELOPMENT_MODE = "dev"
 const NO_AUTH = DEVELOPMENT_MODE
 
-func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, authTypes ...string) (ifrit.Process, uint16) {
-	atcCommand, atcPort := getATCCommand(atcBin, atcServerNumber, publiclyViewable, authTypes...)
+func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, useTLS bool, authTypes ...string) (ifrit.Process, uint16, uint16) {
+	atcCommand, atcPort, tlsPort := getATCCommand(atcBin, atcServerNumber, publiclyViewable, useTLS, authTypes...)
 	atcRunner := ginkgomon.New(ginkgomon.Config{
 		Command:       atcCommand,
 		Name:          "atc",
 		StartCheck:    "atc.listening",
 		AnsiColorCode: "32m",
 	})
-	return ginkgomon.Invoke(atcRunner), atcPort
+	return ginkgomon.Invoke(atcRunner), atcPort, tlsPort
 }
 
-func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool, authTypes ...string) (*exec.Cmd, uint16) {
+func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool, useTLS bool, authTypes ...string) (*exec.Cmd, uint16, uint16) {
 	atcPort := 5697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 	debugPort := 6697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 
@@ -123,6 +134,17 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 	if publiclyViewable {
 		params = append(params,
 			"--publicly-viewable",
+		)
+	}
+
+	var tlsPort uint16
+	if useTLS {
+		tlsPort = 7697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
+
+		params = append(params,
+			"--tls-bind-port", fmt.Sprintf("%d", tlsPort),
+			"--tls-key", filepath.Join(certTmpDir, "server.key"),
+			"--tls-cert", filepath.Join(certTmpDir, "server.pem"),
 		)
 	}
 
@@ -171,5 +193,32 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 
 	atcCommand := exec.Command(atcBin, params...)
 
-	return atcCommand, atcPort
+	return atcCommand, atcPort, tlsPort
+}
+
+func createCertTmpDir() string {
+	certTmpDir, err := ioutil.TempDir("", "")
+	Expect(err).NotTo(HaveOccurred())
+
+	generateCertAndKey := exec.Command(
+		"openssl",
+		"req",
+		"-x509",
+		"-subj",
+		"/CN=localhost",
+		"-nodes",
+		"-newkey",
+		"rsa:2048",
+		"-keyout",
+		filepath.Join(certTmpDir, "server.key"),
+		"-out",
+		filepath.Join(certTmpDir, "server.pem"),
+		"-days", "1")
+	generateRun, err := gexec.Start(generateCertAndKey, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred())
+
+	<-generateRun.Exited
+	Expect(generateRun.ExitCode()).To(BeZero())
+
+	return certTmpDir
 }
