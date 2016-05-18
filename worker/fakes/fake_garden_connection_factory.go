@@ -7,15 +7,14 @@ import (
 
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	"github.com/concourse/atc/worker"
+	"github.com/concourse/retryhttp"
 )
 
 type FakeGardenConnectionFactory struct {
-	BuildConnectionStub        func(worker.HijackStreamer) gconn.Connection
+	BuildConnectionStub        func() gconn.Connection
 	buildConnectionMutex       sync.RWMutex
-	buildConnectionArgsForCall []struct {
-		arg1 worker.HijackStreamer
-	}
-	buildConnectionReturns struct {
+	buildConnectionArgsForCall []struct{}
+	buildConnectionReturns     struct {
 		result1 gconn.Connection
 	}
 	CreateRetryableHttpClientStub        func() http.Client
@@ -24,16 +23,20 @@ type FakeGardenConnectionFactory struct {
 	createRetryableHttpClientReturns     struct {
 		result1 http.Client
 	}
+	CreateRetryHijackableClientStub        func() retryhttp.HijackableClient
+	createRetryHijackableClientMutex       sync.RWMutex
+	createRetryHijackableClientArgsForCall []struct{}
+	createRetryHijackableClientReturns     struct {
+		result1 retryhttp.HijackableClient
+	}
 }
 
-func (fake *FakeGardenConnectionFactory) BuildConnection(arg1 worker.HijackStreamer) gconn.Connection {
+func (fake *FakeGardenConnectionFactory) BuildConnection() gconn.Connection {
 	fake.buildConnectionMutex.Lock()
-	fake.buildConnectionArgsForCall = append(fake.buildConnectionArgsForCall, struct {
-		arg1 worker.HijackStreamer
-	}{arg1})
+	fake.buildConnectionArgsForCall = append(fake.buildConnectionArgsForCall, struct{}{})
 	fake.buildConnectionMutex.Unlock()
 	if fake.BuildConnectionStub != nil {
-		return fake.BuildConnectionStub(arg1)
+		return fake.BuildConnectionStub()
 	} else {
 		return fake.buildConnectionReturns.result1
 	}
@@ -43,12 +46,6 @@ func (fake *FakeGardenConnectionFactory) BuildConnectionCallCount() int {
 	fake.buildConnectionMutex.RLock()
 	defer fake.buildConnectionMutex.RUnlock()
 	return len(fake.buildConnectionArgsForCall)
-}
-
-func (fake *FakeGardenConnectionFactory) BuildConnectionArgsForCall(i int) worker.HijackStreamer {
-	fake.buildConnectionMutex.RLock()
-	defer fake.buildConnectionMutex.RUnlock()
-	return fake.buildConnectionArgsForCall[i].arg1
 }
 
 func (fake *FakeGardenConnectionFactory) BuildConnectionReturns(result1 gconn.Connection) {
@@ -79,6 +76,30 @@ func (fake *FakeGardenConnectionFactory) CreateRetryableHttpClientReturns(result
 	fake.CreateRetryableHttpClientStub = nil
 	fake.createRetryableHttpClientReturns = struct {
 		result1 http.Client
+	}{result1}
+}
+
+func (fake *FakeGardenConnectionFactory) CreateRetryHijackableClient() retryhttp.HijackableClient {
+	fake.createRetryHijackableClientMutex.Lock()
+	fake.createRetryHijackableClientArgsForCall = append(fake.createRetryHijackableClientArgsForCall, struct{}{})
+	fake.createRetryHijackableClientMutex.Unlock()
+	if fake.CreateRetryHijackableClientStub != nil {
+		return fake.CreateRetryHijackableClientStub()
+	} else {
+		return fake.createRetryHijackableClientReturns.result1
+	}
+}
+
+func (fake *FakeGardenConnectionFactory) CreateRetryHijackableClientCallCount() int {
+	fake.createRetryHijackableClientMutex.RLock()
+	defer fake.createRetryHijackableClientMutex.RUnlock()
+	return len(fake.createRetryHijackableClientArgsForCall)
+}
+
+func (fake *FakeGardenConnectionFactory) CreateRetryHijackableClientReturns(result1 retryhttp.HijackableClient) {
+	fake.CreateRetryHijackableClientStub = nil
+	fake.createRetryHijackableClientReturns = struct {
+		result1 retryhttp.HijackableClient
 	}{result1}
 }
 

@@ -6,12 +6,10 @@ import (
 
 	gclient "github.com/cloudfoundry-incubator/garden/client"
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
-	"github.com/cloudfoundry-incubator/garden/routes"
 	"github.com/concourse/baggageclaim"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
-	"github.com/tedsuo/rata"
 
 	"github.com/concourse/atc/db"
 )
@@ -113,17 +111,9 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		provider.db,
 		provider.logger.Session("garden-connection"),
 		savedWorker.Name,
-		savedWorker.GardenAddr,
 	)
 
-	hijackStreamer := WorkerHijackStreamer{
-		delegate:   gconn.NewHijackStreamer("tcp", savedWorker.GardenAddr),
-		httpClient: gcf.CreateRetryableHttpClient(),
-		req:        rata.NewRequestGenerator("http://"+savedWorker.GardenAddr, routes.Routes),
-	}
-	gardenConnection := gcf.BuildConnection(hijackStreamer)
-
-	connection := NewRetryableConnection(gardenConnection)
+	connection := NewRetryableConnection(gcf.BuildConnection())
 
 	var bClient baggageclaim.Client
 	if savedWorker.BaggageclaimURL != "" {
