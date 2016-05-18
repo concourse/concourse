@@ -11,7 +11,9 @@ func (s *Server) GetPipeline(w http.ResponseWriter, r *http.Request) {
 	pipelineName := r.FormValue(":pipeline_name")
 	teamName := r.FormValue(":team_name")
 
-	pipeline, err := s.pipelinesDB.GetPipelineByTeamNameAndName(teamName, pipelineName)
+	teamDB := s.teamDBFactory.GetTeamDB(teamName)
+
+	pipeline, err := teamDB.GetPipelineByTeamNameAndName(teamName, pipelineName)
 	if err != nil {
 		s.logger.Error("call-to-get-pipeline-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)

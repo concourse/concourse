@@ -26,6 +26,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamName := r.FormValue(":team_name")
+	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 
 	var team db.Team
 	err := json.NewDecoder(r.Body).Decode(&team)
@@ -43,7 +44,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	savedTeam, found, err := s.db.GetTeamByName(team.Name)
+	savedTeam, found, err := teamDB.GetTeamByName(team.Name)
 	if err != nil {
 		hLog.Error("failed-to-get-team", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -51,7 +52,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if found {
-		err = s.updateCredentials(team)
+		err = s.updateCredentials(team, teamDB)
 		if err != nil {
 			hLog.Error("failed-to-update-team", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -60,7 +61,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(http.StatusOK)
 	} else {
-		savedTeam, err = s.db.SaveTeam(team)
+		savedTeam, err = teamDB.SaveTeam(team)
 		if err != nil {
 			hLog.Error("failed-to-save-team", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -73,13 +74,13 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(present.Team(savedTeam))
 }
 
-func (s *Server) updateCredentials(team db.Team) error {
-	_, err := s.db.UpdateTeamBasicAuth(team)
+func (s *Server) updateCredentials(team db.Team, teamDB db.TeamDB) error {
+	_, err := teamDB.UpdateTeamBasicAuth(team)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.db.UpdateTeamGitHubAuth(team)
+	_, err = teamDB.UpdateTeamGitHubAuth(team)
 	return err
 }
 

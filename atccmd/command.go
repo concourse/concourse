@@ -142,10 +142,16 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	cmd.configureMetrics(logger)
 
-	sqlDB, pipelineDBFactory, err := cmd.constructDB(logger)
+	dbConn, err := cmd.constructDBConn(logger)
 	if err != nil {
 		return nil, err
 	}
+	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
+	bus := db.NewNotificationsBus(listener, dbConn)
+	sqlDB := db.NewSQL(dbConn, bus)
+	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, sqlDB)
+
+	teamDBFactory := db.NewTeamDBFactory(dbConn)
 
 	trackerFactory := resource.TrackerFactory{}
 	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory)
@@ -208,6 +214,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		logger,
 		reconfigurableSink,
 		sqlDB,
+		teamDBFactory,
 		authValidator,
 		jwtReader,
 		providerFactory,
@@ -495,25 +502,19 @@ func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
 	}
 }
 
-func (cmd *ATCCommand) constructDB(logger lager.Logger) (*db.SQLDB, db.PipelineDBFactory, error) {
+func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, error) {
 	driverName := "connection-counting"
 	metric.SetupConnectionCountingDriver("postgres", cmd.PostgresDataSource, driverName)
 
 	dbConn, err := migrations.LockDBAndMigrate(logger.Session("db.migrations"), driverName, cmd.PostgresDataSource)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to migrate database: %s", err)
+		return nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
-
-	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
-	bus := db.NewNotificationsBus(listener, dbConn)
 
 	explainDBConn := db.Explain(logger, dbConn, clock.NewClock(), 500*time.Millisecond)
 	countingDBConn := metric.CountQueries(explainDBConn)
-	sqlDB := db.NewSQL(countingDBConn, bus)
 
-	pipelineDBFactory := db.NewPipelineDBFactory(explainDBConn, bus, sqlDB)
-
-	return sqlDB, pipelineDBFactory, err
+	return countingDBConn, nil
 }
 
 func (cmd *ATCCommand) constructWorkerPool(logger lager.Logger, sqlDB *db.SQLDB, trackerFactory resource.TrackerFactory) worker.Client {
@@ -691,6 +692,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	sqlDB *db.SQLDB,
+	teamDBFactory db.TeamDBFactory,
 	authValidator auth.Validator,
 	userContextReader auth.UserContextReader,
 	providerFactory provider.OAuthFactory,
@@ -718,6 +720,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 		cmd.oauthBaseURL(),
 
 		pipelineDBFactory,
+		teamDBFactory,
 
 		sqlDB, // authserver.AuthDB
 		sqlDB, // db.ConfigDB
@@ -726,8 +729,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		sqlDB, // containerserver.ContainerDB
 		sqlDB, // volumeserver.VolumesDB
 		sqlDB, // pipes.PipeDB
-		sqlDB, // db.PipelinesDB
-		sqlDB, // teamserver.TeamDB
 
 		config.ValidateConfig,
 		cmd.PeerURL.String(),

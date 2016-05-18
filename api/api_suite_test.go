@@ -20,7 +20,6 @@ import (
 	jobserverfakes "github.com/concourse/atc/api/jobserver/fakes"
 	pipeserverfakes "github.com/concourse/atc/api/pipes/fakes"
 	resourceserverfakes "github.com/concourse/atc/api/resourceserver/fakes"
-	teamserverfakes "github.com/concourse/atc/api/teamserver/fakes"
 	volumeserverfakes "github.com/concourse/atc/api/volumeserver/fakes"
 	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
 	authfakes "github.com/concourse/atc/auth/fakes"
@@ -51,8 +50,7 @@ var (
 	containerDB                   *containerserverfakes.FakeContainerDB
 	pipeDB                        *pipeserverfakes.FakePipeDB
 	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
-	pipelinesDB                   *dbfakes.FakePipelinesDB
-	teamDB                        *teamserverfakes.FakeTeamDB
+	teamDB                        *dbfakes.FakeTeamDB
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
 	configValidationErrorMessages []string
@@ -95,12 +93,13 @@ var _ = BeforeEach(func() {
 	buildsDB = new(buildfakes.FakeBuildsDB)
 	configDB = new(dbfakes.FakeConfigDB)
 	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
+	teamDBFactory := new(dbfakes.FakeTeamDBFactory)
+	teamDB = new(dbfakes.FakeTeamDB)
+	teamDBFactory.GetTeamDBReturns(teamDB)
 	workerDB = new(workerserverfakes.FakeWorkerDB)
 	containerDB = new(containerserverfakes.FakeContainerDB)
 	volumesDB = new(volumeserverfakes.FakeVolumesDB)
 	pipeDB = new(pipeserverfakes.FakePipeDB)
-	pipelinesDB = new(dbfakes.FakePipelinesDB)
-	teamDB = new(teamserverfakes.FakeTeamDB)
 
 	authValidator = new(authfakes.FakeValidator)
 	userContextReader = new(authfakes.FakeUserContextReader)
@@ -142,6 +141,7 @@ var _ = BeforeEach(func() {
 		oAuthBaseURL,
 
 		pipelineDBFactory,
+		teamDBFactory,
 		configDB,
 
 		authDB,
@@ -150,8 +150,6 @@ var _ = BeforeEach(func() {
 		containerDB,
 		volumesDB,
 		pipeDB,
-		pipelinesDB,
-		teamDB,
 
 		func(atc.Config) ([]config.Warning, []string) {
 			return configValidationWarnings, configValidationErrorMessages

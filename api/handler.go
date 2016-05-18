@@ -43,6 +43,7 @@ func NewHandler(
 	oAuthBaseURL string,
 
 	pipelineDBFactory db.PipelineDBFactory,
+	teamDBFactory db.TeamDBFactory,
 	configDB db.ConfigDB,
 
 	authDB authserver.AuthDB,
@@ -51,8 +52,6 @@ func NewHandler(
 	containerDB containerserver.ContainerDB,
 	volumesDB volumeserver.VolumesDB,
 	pipeDB pipes.PipeDB,
-	pipelinesDB db.PipelinesDB,
-	teamDB teamserver.TeamDB,
 
 	configValidator configserver.ConfigValidator,
 	peerURL string,
@@ -102,7 +101,7 @@ func NewHandler(
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipeServer := pipes.NewServer(logger, peerURL, externalURL, pipeDB)
 
-	pipelineServer := pipelineserver.NewServer(logger, pipelinesDB, configDB)
+	pipelineServer := pipelineserver.NewServer(logger, teamDBFactory, configDB)
 
 	configServer := configserver.NewServer(logger, configDB, configValidator)
 
@@ -116,7 +115,7 @@ func NewHandler(
 
 	volumesServer := volumeserver.NewServer(logger, volumesDB)
 
-	teamServer := teamserver.NewServer(logger, teamDB)
+	teamServer := teamserver.NewServer(logger, teamDBFactory)
 
 	infoServer := infoserver.NewServer(logger, version)
 

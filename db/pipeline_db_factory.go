@@ -12,13 +12,13 @@ type PipelineDBFactory interface {
 type pipelineDBFactory struct {
 	conn        Conn
 	bus         *notificationsBus
-	pipelinesDB PipelinesDB
+	pipelinesDB TeamDB
 }
 
 func NewPipelineDBFactory(
 	sqldbConnection Conn,
 	bus *notificationsBus,
-	pipelinesDB PipelinesDB,
+	pipelinesDB TeamDB,
 ) *pipelineDBFactory {
 	return &pipelineDBFactory{
 		conn:        sqldbConnection,

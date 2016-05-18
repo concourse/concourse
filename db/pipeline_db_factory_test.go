@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/fakes"
+	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -17,7 +17,7 @@ var _ = Describe("PipelineDBFactory", func() {
 
 	var pipelineDBFactory db.PipelineDBFactory
 
-	var pipelinesDB *fakes.FakePipelinesDB
+	var teamDB *dbfakes.FakeTeamDB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -28,9 +28,9 @@ var _ = Describe("PipelineDBFactory", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		pipelinesDB = new(fakes.FakePipelinesDB)
+		teamDB = new(dbfakes.FakeTeamDB)
 
-		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, pipelinesDB)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, teamDB)
 	})
 
 	AfterEach(func() {
@@ -57,7 +57,7 @@ var _ = Describe("PipelineDBFactory", func() {
 				},
 			}
 
-			pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
+			teamDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				savedPipelineOne,
 				savedPipelineTwo,
 			}, nil)
@@ -71,7 +71,7 @@ var _ = Describe("PipelineDBFactory", func() {
 
 		Context("when there are no pipelines", func() {
 			BeforeEach(func() {
-				pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{}, nil)
+				teamDB.GetAllPipelinesReturns([]db.SavedPipeline{}, nil)
 			})
 
 			It("returns a useful error if there are no pipelines", func() {

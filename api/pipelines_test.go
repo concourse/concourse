@@ -23,7 +23,7 @@ var _ = Describe("Pipelines API", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
-			pipelinesDB.GetAllPipelinesReturns([]db.SavedPipeline{
+			teamDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				{
 					ID:     1,
 					Paused: false,
@@ -121,7 +121,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when the call to get active pipelines fails", func() {
 			BeforeEach(func() {
-				pipelinesDB.GetAllPipelinesReturns(nil, errors.New("disaster"))
+				teamDB.GetAllPipelinesReturns(nil, errors.New("disaster"))
 			})
 
 			It("returns 500 internal server error", func() {
@@ -144,7 +144,7 @@ var _ = Describe("Pipelines API", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
-			pipelinesDB.GetPipelineByTeamNameAndNameReturns(db.SavedPipeline{
+			teamDB.GetPipelineByTeamNameAndNameReturns(db.SavedPipeline{
 				ID:     1,
 				Paused: false,
 				Pipeline: db.Pipeline{
@@ -179,9 +179,9 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		It("looks up the pipeline in the db via the url param", func() {
-			Expect(pipelinesDB.GetPipelineByTeamNameAndNameCallCount()).To(Equal(1))
+			Expect(teamDB.GetPipelineByTeamNameAndNameCallCount()).To(Equal(1))
 
-			teamName, actualPipelineName := pipelinesDB.GetPipelineByTeamNameAndNameArgsForCall(0)
+			teamName, actualPipelineName := teamDB.GetPipelineByTeamNameAndNameArgsForCall(0)
 			Expect(actualPipelineName).To(Equal("some-specific-pipeline"))
 			Expect(teamName).To(Equal("a-team"))
 		})
@@ -228,7 +228,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when the call to get pipeline fails", func() {
 			BeforeEach(func() {
-				pipelinesDB.GetPipelineByTeamNameAndNameReturns(db.SavedPipeline{}, errors.New("disaster"))
+				teamDB.GetPipelineByTeamNameAndNameReturns(db.SavedPipeline{}, errors.New("disaster"))
 			})
 
 			It("returns 500 error", func() {
@@ -482,12 +482,12 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when ordering the pipelines succeeds", func() {
 				BeforeEach(func() {
-					pipelinesDB.OrderPipelinesReturns(nil)
+					teamDB.OrderPipelinesReturns(nil)
 				})
 
 				It("orders the pipelines", func() {
-					Expect(pipelinesDB.OrderPipelinesCallCount()).To(Equal(1))
-					pipelineNames := pipelinesDB.OrderPipelinesArgsForCall(0)
+					Expect(teamDB.OrderPipelinesCallCount()).To(Equal(1))
+					pipelineNames := teamDB.OrderPipelinesArgsForCall(0)
 					Expect(pipelineNames).To(Equal(
 						[]string{
 							"a-pipeline",
@@ -507,7 +507,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when ordering the pipelines fails", func() {
 				BeforeEach(func() {
-					pipelinesDB.OrderPipelinesReturns(errors.New("welp"))
+					teamDB.OrderPipelinesReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {

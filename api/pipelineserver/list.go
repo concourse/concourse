@@ -10,15 +10,15 @@ import (
 
 func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-pipelines")
+	teamName := r.FormValue(":team_name")
+	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 
-	pipelines, err := s.pipelinesDB.GetAllPipelines()
+	pipelines, err := teamDB.GetAllPipelines()
 	if err != nil {
 		logger.Error("failed-to-get-all-active-pipelines", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	teamName := r.FormValue(":team_name")
 
 	presentedPipelines := make([]atc.Pipeline, len(pipelines))
 	for i := 0; i < len(pipelines); i++ {

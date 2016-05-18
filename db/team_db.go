@@ -1,0 +1,508 @@
+package db
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/concourse/atc"
+)
+
+type teamDB struct {
+	teamName string
+	conn     Conn
+}
+
+func (db *teamDB) GetPipelineByID(pipelineID int) (SavedPipeline, error) {
+	row := db.conn.QueryRow(`
+		SELECT `+pipelineColumns+`
+		FROM pipelines
+		WHERE id = $1
+	`, pipelineID)
+
+	return scanPipeline(row)
+}
+
+func (db *teamDB) GetPipelineByTeamNameAndName(teamName string, pipelineName string) (SavedPipeline, error) {
+	row := db.conn.QueryRow(`
+		SELECT `+pipelineColumns+`
+		FROM pipelines
+		WHERE name = $1
+		AND team_id = (
+				SELECT id FROM teams WHERE name = $2
+			)
+	`, pipelineName, teamName)
+
+	return scanPipeline(row)
+}
+
+func (db *teamDB) GetAllPipelines() ([]SavedPipeline, error) {
+	rows, err := db.conn.Query(`
+		SELECT ` + pipelineColumns + `
+		FROM pipelines
+		ORDER BY ordering
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	pipelines := []SavedPipeline{}
+
+	for rows.Next() {
+		pipeline, err := scanPipeline(rows)
+
+		if err != nil {
+			return nil, err
+		}
+
+		pipelines = append(pipelines, pipeline)
+	}
+
+	return pipelines, nil
+}
+
+func (db *teamDB) OrderPipelines(pipelineNames []string) error {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	var pipelineCount int
+
+	err = tx.QueryRow(`
+			SELECT COUNT(1)
+			FROM pipelines
+	`).Scan(&pipelineCount)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		UPDATE pipelines
+		SET ordering = $1
+	`, pipelineCount+1)
+
+	if err != nil {
+		return err
+	}
+
+	for i, name := range pipelineNames {
+		_, err = tx.Exec(`
+			UPDATE pipelines
+			SET ordering = $1
+			WHERE name = $2
+		`, i, name)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (db *teamDB) GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, error) {
+	var configBlob []byte
+	var version int
+	err := db.conn.QueryRow(`
+			SELECT p.config, p.version
+			FROM builds b
+			INNER JOIN jobs j ON b.job_id = j.id
+			INNER JOIN pipelines p ON j.pipeline_id = p.id
+			WHERE b.ID = $1
+		`, buildID).Scan(&configBlob, &version)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return atc.Config{}, 0, nil
+		} else {
+			return atc.Config{}, 0, err
+		}
+	}
+
+	var config atc.Config
+	err = json.Unmarshal(configBlob, &config)
+	if err != nil {
+		return atc.Config{}, 0, err
+	}
+
+	return config, ConfigVersion(version), nil
+}
+
+func (db *teamDB) GetConfig(teamName, pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error) {
+	var configBlob []byte
+	var version int
+	err := db.conn.QueryRow(`
+		SELECT config, version
+		FROM pipelines
+		WHERE name = $1 AND team_id = (
+			SELECT id
+			FROM teams
+			WHERE name = $2
+		)
+	`, pipelineName, teamName).Scan(&configBlob, &version)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return atc.Config{}, atc.RawConfig(""), 0, nil
+		}
+		return atc.Config{}, atc.RawConfig(""), 0, err
+	}
+
+	var config atc.Config
+	err = json.Unmarshal(configBlob, &config)
+	if err != nil {
+		return atc.Config{}, atc.RawConfig(string(configBlob)), ConfigVersion(version), atc.MalformedConfigError{err}
+	}
+
+	return config, atc.RawConfig(string(configBlob)), ConfigVersion(version), nil
+}
+
+func (db *teamDB) SaveConfig(
+	teamName string, pipelineName string, config atc.Config, from ConfigVersion, pausedState PipelinePausedState,
+) (SavedPipeline, bool, error) {
+	payload, err := json.Marshal(config)
+	if err != nil {
+		return SavedPipeline{}, false, err
+	}
+
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return SavedPipeline{}, false, err
+	}
+
+	defer tx.Rollback()
+
+	var created bool
+	var savedPipeline SavedPipeline
+
+	var existingConfig int
+	err = tx.QueryRow(`
+		SELECT COUNT(1)
+		FROM pipelines
+		WHERE name = $1
+		  AND team_id = (
+				SELECT id FROM teams WHERE name = $2
+		  )
+	`, pipelineName, teamName).Scan(&existingConfig)
+	if err != nil {
+		return SavedPipeline{}, false, err
+	}
+
+	if existingConfig == 0 {
+		if pausedState == PipelineNoChange {
+			pausedState = PipelinePaused
+		}
+
+		savedPipeline, err = scanPipeline(tx.QueryRow(`
+		INSERT INTO pipelines (name, config, version, ordering, paused, team_id)
+		VALUES (
+			$1,
+			$2,
+			nextval('config_version_seq'),
+			(SELECT COUNT(1) + 1 FROM pipelines),
+			$3,
+			(SELECT id FROM teams WHERE name = $4)
+		)
+		RETURNING `+pipelineColumns+`
+		`, pipelineName, payload, pausedState.Bool(), teamName))
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
+
+		created = true
+
+		_, err = tx.Exec(fmt.Sprintf(`
+		CREATE TABLE pipeline_build_events_%[1]d ()
+		INHERITS (build_events);
+		`, savedPipeline.ID))
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
+
+		_, err = tx.Exec(fmt.Sprintf(`
+		CREATE INDEX pipeline_build_events_%[1]d_build_id ON pipeline_build_events_%[1]d (build_id);
+		`, savedPipeline.ID))
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
+
+		_, err = tx.Exec(fmt.Sprintf(`
+		CREATE UNIQUE INDEX pipeline_build_events_%[1]d_build_id_event_id ON pipeline_build_events_%[1]d (build_id, event_id);
+		`, savedPipeline.ID))
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
+	} else {
+		if pausedState == PipelineNoChange {
+			savedPipeline, err = scanPipeline(tx.QueryRow(`
+			UPDATE pipelines
+			SET config = $1, version = nextval('config_version_seq')
+			WHERE name = $2
+			AND version = $3
+			AND team_id = (
+				SELECT id FROM teams WHERE name = $4
+			)
+			RETURNING `+pipelineColumns+`
+			`, payload, pipelineName, from, teamName))
+		} else {
+			savedPipeline, err = scanPipeline(tx.QueryRow(`
+			UPDATE pipelines
+			SET config = $1, version = nextval('config_version_seq'), paused = $2
+			WHERE name = $3
+			AND version = $4
+			AND team_id = (
+				SELECT id FROM teams WHERE name = $5
+			)
+			RETURNING `+pipelineColumns+`
+			`, payload, pausedState.Bool(), pipelineName, from, teamName))
+		}
+
+		if err != nil && err != sql.ErrNoRows {
+			return SavedPipeline{}, false, err
+		}
+
+		if savedPipeline.ID == 0 {
+			return SavedPipeline{}, false, ErrConfigComparisonFailed
+		}
+
+		_, err = tx.Exec(`
+      DELETE FROM jobs_serial_groups
+      WHERE job_id in (
+        SELECT j.id
+        FROM jobs j
+        WHERE j.pipeline_id = $1
+      )
+		`, savedPipeline.ID)
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
+	}
+
+	for _, resource := range config.Resources {
+		err = db.registerResource(tx, resource.Name, savedPipeline.ID)
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
+	}
+
+	for _, resourceType := range config.ResourceTypes {
+		err = db.registerResourceType(tx, resourceType, savedPipeline.ID)
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
+	}
+
+	for _, job := range config.Jobs {
+		err = db.registerJob(tx, job.Name, savedPipeline.ID)
+		if err != nil {
+			return SavedPipeline{}, false, err
+		}
+
+		for _, sg := range job.SerialGroups {
+			err = db.registerSerialGroup(tx, job.Name, sg, savedPipeline.ID)
+			if err != nil {
+				return SavedPipeline{}, false, err
+			}
+		}
+	}
+
+	return savedPipeline, created, tx.Commit()
+}
+
+func (db *teamDB) registerJob(tx Tx, name string, pipelineID int) error {
+	_, err := tx.Exec(`
+		INSERT INTO jobs (name, pipeline_id)
+		SELECT $1, $2
+		WHERE NOT EXISTS (
+			SELECT 1 FROM jobs WHERE name = $1 AND pipeline_id = $2
+		)
+	`, name, pipelineID)
+
+	return swallowUniqueViolation(err)
+}
+
+func (db *teamDB) registerSerialGroup(tx Tx, jobName, serialGroup string, pipelineID int) error {
+	_, err := tx.Exec(`
+    INSERT INTO jobs_serial_groups (serial_group, job_id) VALUES
+    ($1, (SELECT j.id
+                  FROM jobs j
+                       JOIN pipelines p
+                         ON j.pipeline_id = p.id
+                  WHERE j.name = $2
+                    AND j.pipeline_id = $3
+                 LIMIT  1));`,
+		serialGroup, jobName, pipelineID,
+	)
+
+	return swallowUniqueViolation(err)
+}
+
+func (db *teamDB) registerResource(tx Tx, name string, pipelineID int) error {
+	_, err := tx.Exec(`
+		INSERT INTO resources (name, pipeline_id)
+		SELECT $1, $2
+		WHERE NOT EXISTS (
+			SELECT 1 FROM resources WHERE name = $1 AND pipeline_id = $2
+		)
+	`, name, pipelineID)
+
+	return swallowUniqueViolation(err)
+}
+
+func (db *teamDB) registerResourceType(tx Tx, resourceType atc.ResourceType, pipelineID int) error {
+	_, err := tx.Exec(`
+		INSERT INTO resource_types (name, type, pipeline_id)
+		SELECT $1, $2, $3
+		WHERE NOT EXISTS (
+			SELECT 1 FROM resource_types
+				WHERE name = $1
+				AND type = $2
+				AND pipeline_id = $3
+		)
+	`, resourceType.Name, resourceType.Type, pipelineID)
+
+	return swallowUniqueViolation(err)
+}
+
+func (db *teamDB) GetTeamByName(teamName string) (SavedTeam, bool, error) {
+	query := fmt.Sprintf(`
+		SELECT id, name, admin, basic_auth, github_auth
+		FROM teams
+		WHERE name ILIKE '%s'
+	`, teamName,
+	)
+	savedTeam, err := db.queryTeam(query)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return savedTeam, false, nil
+		}
+
+		return savedTeam, false, err
+	}
+
+	return savedTeam, true, nil
+}
+
+func (db *teamDB) SaveTeam(data Team) (SavedTeam, error) {
+	jsonEncodedBasicAuth, err := db.jsonEncodeTeamBasicAuth(data)
+	if err != nil {
+		return SavedTeam{}, err
+	}
+	jsonEncodedGitHubAuth, err := db.jsonEncodeTeamGitHubAuth(data)
+	if err != nil {
+		return SavedTeam{}, err
+	}
+
+	return db.queryTeam(fmt.Sprintf(`
+	INSERT INTO teams (
+    name, basic_auth, github_auth
+	) VALUES (
+		'%s', '%s', '%s'
+	)
+	RETURNING id, name, admin, basic_auth, github_auth
+	`, data.Name, jsonEncodedBasicAuth, jsonEncodedGitHubAuth,
+	))
+}
+
+func (db *teamDB) queryTeam(query string) (SavedTeam, error) {
+	var basicAuth, gitHubAuth sql.NullString
+	var savedTeam SavedTeam
+
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return SavedTeam{}, err
+	}
+	defer tx.Rollback()
+
+	err = tx.QueryRow(query).Scan(
+		&savedTeam.ID,
+		&savedTeam.Name,
+		&savedTeam.Admin,
+		&basicAuth,
+		&gitHubAuth,
+	)
+	if err != nil {
+		return savedTeam, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return savedTeam, err
+	}
+
+	if basicAuth.Valid {
+		err = json.Unmarshal([]byte(basicAuth.String), &savedTeam.BasicAuth)
+		if err != nil {
+			return savedTeam, err
+		}
+	}
+
+	if gitHubAuth.Valid {
+		err = json.Unmarshal([]byte(gitHubAuth.String), &savedTeam.GitHubAuth)
+		if err != nil {
+			return savedTeam, err
+		}
+	}
+
+	return savedTeam, nil
+}
+
+func (db *teamDB) jsonEncodeTeamBasicAuth(team Team) (string, error) {
+	if team.BasicAuthUsername == "" || team.BasicAuthPassword == "" {
+		team.BasicAuth = BasicAuth{}
+	} else {
+		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(team.BasicAuthPassword), 4)
+		if err != nil {
+			return "", err
+		}
+		team.BasicAuthPassword = string(encryptedPw)
+	}
+
+	json, err := json.Marshal(team.BasicAuth)
+	return string(json), err
+}
+
+func (db *teamDB) jsonEncodeTeamGitHubAuth(team Team) (string, error) {
+	if team.ClientID == "" || team.ClientSecret == "" {
+		team.GitHubAuth = GitHubAuth{}
+	}
+
+	json, err := json.Marshal(team.GitHubAuth)
+	return string(json), err
+}
+
+func (db *teamDB) UpdateTeamBasicAuth(team Team) (SavedTeam, error) {
+	basicAuth, err := db.jsonEncodeTeamBasicAuth(team)
+	if err != nil {
+		return SavedTeam{}, err
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE teams
+		SET basic_auth = '%s'
+		WHERE name ILIKE '%s'
+		RETURNING id, name, admin, basic_auth, github_auth
+	`, basicAuth, team.Name)
+	return db.queryTeam(query)
+}
+
+func (db *teamDB) UpdateTeamGitHubAuth(team Team) (SavedTeam, error) {
+	gitHubAuth, err := db.jsonEncodeTeamGitHubAuth(team)
+	if err != nil {
+		return SavedTeam{}, err
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE teams
+		SET github_auth = '%s'
+		WHERE name ILIKE '%s'
+		RETURNING id, name, admin, basic_auth, github_auth
+	`, gitHubAuth, team.Name,
+	)
+	return db.queryTeam(query)
+}
