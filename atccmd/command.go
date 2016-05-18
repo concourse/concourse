@@ -182,7 +182,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	authValidator := cmd.constructValidator(signingKey, teamDBFactory)
 
-	err = cmd.updateBasicAuthCredentials(sqlDB)
+	err = cmd.updateBasicAuthCredentials(teamDBFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -620,21 +620,12 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, teamDBFact
 	return validator
 }
 
-func (cmd *ATCCommand) updateBasicAuthCredentials(sqlDB db.DB) error {
-	var team db.Team
-	if cmd.BasicAuth.Username != "" && cmd.BasicAuth.Password != "" {
-		team = db.Team{
-			Name: atc.DefaultTeamName,
-			BasicAuth: db.BasicAuth{
-				BasicAuthUsername: cmd.BasicAuth.Username,
-				BasicAuthPassword: cmd.BasicAuth.Password,
-			},
-		}
-	} else {
-		team = db.Team{Name: atc.DefaultTeamName}
-	}
-
-	_, err := sqlDB.UpdateTeamBasicAuth(team)
+func (cmd *ATCCommand) updateBasicAuthCredentials(teamDBFactory db.TeamDBFactory) error {
+	teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+	_, err := teamDB.UpdateBasicAuth(db.BasicAuth{
+		BasicAuthUsername: cmd.BasicAuth.Username,
+		BasicAuthPassword: cmd.BasicAuth.Password,
+	})
 	return err
 }
 

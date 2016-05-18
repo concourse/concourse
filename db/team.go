@@ -1,5 +1,11 @@
 package db
 
+import (
+	"encoding/json"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
 type Team struct {
 	Name  string
 	Admin bool
@@ -10,6 +16,21 @@ type Team struct {
 type BasicAuth struct {
 	BasicAuthUsername string `json:"basic_auth_username"`
 	BasicAuthPassword string `json:"basic_auth_password"`
+}
+
+func (auth *BasicAuth) EncryptedJSON() (string, error) {
+	result := BasicAuth{}
+	if auth.BasicAuthUsername != "" && auth.BasicAuthPassword != "" {
+		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(auth.BasicAuthPassword), 4)
+		if err != nil {
+			return "", err
+		}
+		result.BasicAuthPassword = string(encryptedPw)
+		result.BasicAuthUsername = auth.BasicAuthUsername
+	}
+
+	json, err := json.Marshal(result)
+	return string(json), err
 }
 
 type GitHubAuth struct {

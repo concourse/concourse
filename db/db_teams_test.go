@@ -190,7 +190,8 @@ var _ = Describe("SQL DB Teams", func() {
 			})
 
 			It("saves github auth team info without over writing the basic auth", func() {
-				_, err := database.UpdateTeamBasicAuth(basicAuthTeam)
+				teamDB := teamDBFactory.GetTeamDB(basicAuthTeam.Name)
+				_, err := teamDB.UpdateBasicAuth(basicAuthTeam.BasicAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				savedTeam, err := database.UpdateTeamGitHubAuth(gitHubAuthTeam)
@@ -207,7 +208,7 @@ var _ = Describe("SQL DB Teams", func() {
 		var basicAuthTeam, gitHubAuthTeam db.Team
 		BeforeEach(func() {
 			basicAuthTeam = db.Team{
-				Name: "avengers",
+				Name: "some-team",
 				BasicAuth: db.BasicAuth{
 					BasicAuthUsername: "fake user",
 					BasicAuthPassword: "no, bad",
@@ -215,7 +216,7 @@ var _ = Describe("SQL DB Teams", func() {
 			}
 
 			gitHubAuthTeam = db.Team{
-				Name: "avengers",
+				Name: "some-team",
 				GitHubAuth: db.GitHubAuth{
 					ClientID:      "fake id",
 					ClientSecret:  "some secret",
@@ -236,19 +237,17 @@ var _ = Describe("SQL DB Teams", func() {
 		})
 
 		Context("when the team exists", func() {
+			var teamDB db.TeamDB
 			BeforeEach(func() {
-				expectedTeam := db.Team{
-					Name: "avengers",
-				}
-				_, err := database.CreateTeam(expectedTeam)
-				Expect(err).NotTo(HaveOccurred())
+				database.CreateTeam(db.Team{Name: "some-team"})
+				teamDB = teamDBFactory.GetTeamDB(basicAuthTeam.Name)
 			})
 
 			It("saves basic auth team info without over writing the github auth", func() {
 				_, err := database.UpdateTeamGitHubAuth(gitHubAuthTeam)
 				Expect(err).NotTo(HaveOccurred())
 
-				savedTeam, err := database.UpdateTeamBasicAuth(basicAuthTeam)
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuthTeam.BasicAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.ClientID).To(Equal(gitHubAuthTeam.ClientID))
@@ -259,7 +258,7 @@ var _ = Describe("SQL DB Teams", func() {
 			})
 
 			It("saves basic auth team info to the existing team", func() {
-				savedTeam, err := database.UpdateTeamBasicAuth(basicAuthTeam)
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuthTeam.BasicAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.BasicAuthUsername).To(Equal(basicAuthTeam.BasicAuthUsername))
@@ -268,8 +267,8 @@ var _ = Describe("SQL DB Teams", func() {
 			})
 
 			It("saves basic auth team info to the existing team when the team name matches case-insensitively", func() {
-				basicAuthTeam.Name = "AVENgers"
-				savedTeam, err := database.UpdateTeamBasicAuth(basicAuthTeam)
+				teamDB = teamDBFactory.GetTeamDB("SOME-team")
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuthTeam.BasicAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.BasicAuthUsername).To(Equal(basicAuthTeam.BasicAuthUsername))
@@ -279,7 +278,7 @@ var _ = Describe("SQL DB Teams", func() {
 
 			It("nulls basic auth when has a blank username", func() {
 				basicAuthTeam.BasicAuthUsername = ""
-				savedTeam, err := database.UpdateTeamBasicAuth(basicAuthTeam)
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuthTeam.BasicAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.BasicAuth.BasicAuthUsername).To(BeEmpty())
@@ -288,7 +287,7 @@ var _ = Describe("SQL DB Teams", func() {
 
 			It("nulls basic auth when has a blank password", func() {
 				basicAuthTeam.BasicAuthPassword = ""
-				savedTeam, err := database.UpdateTeamBasicAuth(basicAuthTeam)
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuthTeam.BasicAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.BasicAuth.BasicAuthUsername).To(BeEmpty())

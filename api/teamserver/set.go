@@ -75,7 +75,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) updateCredentials(team db.Team, teamDB db.TeamDB) error {
-	_, err := teamDB.UpdateTeamBasicAuth(team)
+	_, err := teamDB.UpdateBasicAuth(team.BasicAuth)
 	if err != nil {
 		return err
 	}

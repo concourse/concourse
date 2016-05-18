@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/concourse/atc"
 )
 
@@ -19,7 +17,7 @@ type TeamDB interface {
 	OrderPipelines([]string) error
 
 	GetTeam() (SavedTeam, bool, error)
-	UpdateTeamBasicAuth(team Team) (SavedTeam, error)
+	UpdateBasicAuth(basicAuth BasicAuth) (SavedTeam, error)
 	UpdateTeamGitHubAuth(team Team) (SavedTeam, error)
 
 	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
@@ -413,21 +411,6 @@ func (db *teamDB) queryTeam(query string) (SavedTeam, error) {
 	return savedTeam, nil
 }
 
-func (db *teamDB) jsonEncodeTeamBasicAuth(team Team) (string, error) {
-	if team.BasicAuthUsername == "" || team.BasicAuthPassword == "" {
-		team.BasicAuth = BasicAuth{}
-	} else {
-		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(team.BasicAuthPassword), 4)
-		if err != nil {
-			return "", err
-		}
-		team.BasicAuthPassword = string(encryptedPw)
-	}
-
-	json, err := json.Marshal(team.BasicAuth)
-	return string(json), err
-}
-
 func (db *teamDB) jsonEncodeTeamGitHubAuth(team Team) (string, error) {
 	if team.ClientID == "" || team.ClientSecret == "" {
 		team.GitHubAuth = GitHubAuth{}
@@ -437,8 +420,8 @@ func (db *teamDB) jsonEncodeTeamGitHubAuth(team Team) (string, error) {
 	return string(json), err
 }
 
-func (db *teamDB) UpdateTeamBasicAuth(team Team) (SavedTeam, error) {
-	basicAuth, err := db.jsonEncodeTeamBasicAuth(team)
+func (db *teamDB) UpdateBasicAuth(basicAuth BasicAuth) (SavedTeam, error) {
+	encryptedBasicAuth, err := basicAuth.EncryptedJSON()
 	if err != nil {
 		return SavedTeam{}, err
 	}
@@ -448,7 +431,7 @@ func (db *teamDB) UpdateTeamBasicAuth(team Team) (SavedTeam, error) {
 		SET basic_auth = '%s'
 		WHERE name ILIKE '%s'
 		RETURNING id, name, admin, basic_auth, github_auth
-	`, basicAuth, team.Name)
+	`, encryptedBasicAuth, db.teamName)
 	return db.queryTeam(query)
 }
 

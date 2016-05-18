@@ -263,10 +263,11 @@ var _ = Describe("Auth API", func() {
 
 					Context("when passed basic auth credentials", func() {
 						BeforeEach(func() {
-							teamDB.UpdateTeamBasicAuthStub = func(submittedTeam db.Team) (db.SavedTeam, error) {
+							teamDB.UpdateBasicAuthStub = func(basicAuth db.BasicAuth) (db.SavedTeam, error) {
 								team.Name = teamName
-								atcDBTeamEquality(team, submittedTeam)
-								savedTeam.Team = submittedTeam
+								Expect(basicAuth.BasicAuthUsername).To(Equal(team.BasicAuthUsername))
+								Expect(basicAuth.BasicAuthPassword).To(Equal(team.BasicAuthPassword))
+								savedTeam.BasicAuth = basicAuth
 								return savedTeam, nil
 							}
 
@@ -275,7 +276,7 @@ var _ = Describe("Auth API", func() {
 
 						It("updates the basic auth for that team", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
-							Expect(teamDB.UpdateTeamBasicAuthCallCount()).To(Equal(1))
+							Expect(teamDB.UpdateBasicAuthCallCount()).To(Equal(1))
 						})
 					})
 

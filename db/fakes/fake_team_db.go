@@ -41,12 +41,12 @@ type FakeTeamDB struct {
 		result2 bool
 		result3 error
 	}
-	UpdateTeamBasicAuthStub        func(team db.Team) (db.SavedTeam, error)
-	updateTeamBasicAuthMutex       sync.RWMutex
-	updateTeamBasicAuthArgsForCall []struct {
-		team db.Team
+	UpdateBasicAuthStub        func(basicAuth db.BasicAuth) (db.SavedTeam, error)
+	updateBasicAuthMutex       sync.RWMutex
+	updateBasicAuthArgsForCall []struct {
+		basicAuth db.BasicAuth
 	}
-	updateTeamBasicAuthReturns struct {
+	updateBasicAuthReturns struct {
 		result1 db.SavedTeam
 		result2 error
 	}
@@ -201,34 +201,34 @@ func (fake *FakeTeamDB) GetTeamReturns(result1 db.SavedTeam, result2 bool, resul
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeamDB) UpdateTeamBasicAuth(team db.Team) (db.SavedTeam, error) {
-	fake.updateTeamBasicAuthMutex.Lock()
-	fake.updateTeamBasicAuthArgsForCall = append(fake.updateTeamBasicAuthArgsForCall, struct {
-		team db.Team
-	}{team})
-	fake.updateTeamBasicAuthMutex.Unlock()
-	if fake.UpdateTeamBasicAuthStub != nil {
-		return fake.UpdateTeamBasicAuthStub(team)
+func (fake *FakeTeamDB) UpdateBasicAuth(basicAuth db.BasicAuth) (db.SavedTeam, error) {
+	fake.updateBasicAuthMutex.Lock()
+	fake.updateBasicAuthArgsForCall = append(fake.updateBasicAuthArgsForCall, struct {
+		basicAuth db.BasicAuth
+	}{basicAuth})
+	fake.updateBasicAuthMutex.Unlock()
+	if fake.UpdateBasicAuthStub != nil {
+		return fake.UpdateBasicAuthStub(basicAuth)
 	} else {
-		return fake.updateTeamBasicAuthReturns.result1, fake.updateTeamBasicAuthReturns.result2
+		return fake.updateBasicAuthReturns.result1, fake.updateBasicAuthReturns.result2
 	}
 }
 
-func (fake *FakeTeamDB) UpdateTeamBasicAuthCallCount() int {
-	fake.updateTeamBasicAuthMutex.RLock()
-	defer fake.updateTeamBasicAuthMutex.RUnlock()
-	return len(fake.updateTeamBasicAuthArgsForCall)
+func (fake *FakeTeamDB) UpdateBasicAuthCallCount() int {
+	fake.updateBasicAuthMutex.RLock()
+	defer fake.updateBasicAuthMutex.RUnlock()
+	return len(fake.updateBasicAuthArgsForCall)
 }
 
-func (fake *FakeTeamDB) UpdateTeamBasicAuthArgsForCall(i int) db.Team {
-	fake.updateTeamBasicAuthMutex.RLock()
-	defer fake.updateTeamBasicAuthMutex.RUnlock()
-	return fake.updateTeamBasicAuthArgsForCall[i].team
+func (fake *FakeTeamDB) UpdateBasicAuthArgsForCall(i int) db.BasicAuth {
+	fake.updateBasicAuthMutex.RLock()
+	defer fake.updateBasicAuthMutex.RUnlock()
+	return fake.updateBasicAuthArgsForCall[i].basicAuth
 }
 
-func (fake *FakeTeamDB) UpdateTeamBasicAuthReturns(result1 db.SavedTeam, result2 error) {
-	fake.UpdateTeamBasicAuthStub = nil
-	fake.updateTeamBasicAuthReturns = struct {
+func (fake *FakeTeamDB) UpdateBasicAuthReturns(result1 db.SavedTeam, result2 error) {
+	fake.UpdateBasicAuthStub = nil
+	fake.updateBasicAuthReturns = struct {
 		result1 db.SavedTeam
 		result2 error
 	}{result1, result2}

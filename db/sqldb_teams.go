@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/concourse/atc"
 )
 
@@ -32,12 +30,12 @@ func (db *SQLDB) CreateDefaultTeamIfNotExists() error {
 	return err
 }
 
-func (db *SQLDB) CreateTeam(data Team) (SavedTeam, error) {
-	jsonEncodedBasicAuth, err := db.jsonEncodeTeamBasicAuth(data)
+func (db *SQLDB) CreateTeam(team Team) (SavedTeam, error) {
+	jsonEncodedBasicAuth, err := team.BasicAuth.EncryptedJSON()
 	if err != nil {
 		return SavedTeam{}, err
 	}
-	jsonEncodedGitHubAuth, err := db.jsonEncodeTeamGitHubAuth(data)
+	jsonEncodedGitHubAuth, err := db.jsonEncodeTeamGitHubAuth(team)
 	if err != nil {
 		return SavedTeam{}, err
 	}
@@ -49,7 +47,7 @@ func (db *SQLDB) CreateTeam(data Team) (SavedTeam, error) {
 		'%s', '%s', '%s'
 	)
 	RETURNING id, name, admin, basic_auth, github_auth
-	`, data.Name, jsonEncodedBasicAuth, jsonEncodedGitHubAuth,
+	`, team.Name, jsonEncodedBasicAuth, jsonEncodedGitHubAuth,
 	))
 }
 
@@ -117,36 +115,6 @@ func (db *SQLDB) UpdateTeamGitHubAuth(team Team) (SavedTeam, error) {
 		RETURNING id, name, admin, basic_auth, github_auth
 	`, gitHubAuth, team.Name,
 	)
-	return db.queryTeam(query)
-}
-
-func (db *SQLDB) jsonEncodeTeamBasicAuth(team Team) (string, error) {
-	if team.BasicAuthUsername == "" || team.BasicAuthPassword == "" {
-		team.BasicAuth = BasicAuth{}
-	} else {
-		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(team.BasicAuthPassword), 4)
-		if err != nil {
-			return "", err
-		}
-		team.BasicAuthPassword = string(encryptedPw)
-	}
-
-	json, err := json.Marshal(team.BasicAuth)
-	return string(json), err
-}
-
-func (db *SQLDB) UpdateTeamBasicAuth(team Team) (SavedTeam, error) {
-	basicAuth, err := db.jsonEncodeTeamBasicAuth(team)
-	if err != nil {
-		return SavedTeam{}, err
-	}
-
-	query := fmt.Sprintf(`
-		UPDATE teams
-		SET basic_auth = '%s'
-		WHERE name ILIKE '%s'
-		RETURNING id, name, admin, basic_auth, github_auth
-	`, basicAuth, team.Name)
 	return db.queryTeam(query)
 }
 
