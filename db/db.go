@@ -166,16 +166,6 @@ type TeamDB interface {
 	UpdateTeamGitHubAuth(team Team) (SavedTeam, error)
 }
 
-//go:generate counterfeiter . PipelinesDB
-
-type PipelinesDB interface {
-	GetAllPipelines() ([]SavedPipeline, error)
-	GetPipelineByID(pipelineID int) (SavedPipeline, error)
-	GetPipelineByTeamNameAndName(teamName string, pipelineName string) (SavedPipeline, error)
-
-	OrderPipelines([]string) error
-}
-
 //go:generate counterfeiter . ConfigDB
 
 type ConfigDB interface {

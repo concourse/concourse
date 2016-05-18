@@ -12,12 +12,15 @@ import (
 	"github.com/concourse/atc/engine/fakes"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
-	execfakes "github.com/concourse/atc/exec/fakes"
 	"github.com/concourse/atc/worker"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
+
+	dbfakes "github.com/concourse/atc/db/fakes"
+	execfakes "github.com/concourse/atc/exec/fakes"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("ExecEngine", func() {
@@ -25,6 +28,7 @@ var _ = Describe("ExecEngine", func() {
 		fakeFactory         *execfakes.FakeFactory
 		fakeDelegateFactory *fakes.FakeBuildDelegateFactory
 		fakeDB              *fakes.FakeEngineDB
+		fakeTeamDB          *dbfakes.FakeTeamDB
 		logger              *lagertest.TestLogger
 
 		execEngine engine.Engine
@@ -36,7 +40,16 @@ var _ = Describe("ExecEngine", func() {
 		fakeDB = new(fakes.FakeEngineDB)
 		logger = lagertest.NewTestLogger("test")
 
-		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB, "http://example.com")
+		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		fakeTeamDB = new(dbfakes.FakeTeamDB)
+		fakeTeamDBFactory.GetTeamDBReturns(fakeTeamDB)
+		execEngine = engine.NewExecEngine(
+			fakeFactory,
+			fakeDelegateFactory,
+			fakeTeamDBFactory,
+			fakeDB,
+			"http://example.com",
+		)
 	})
 
 	Describe("Resume", func() {
@@ -922,7 +935,7 @@ var _ = Describe("ExecEngine", func() {
 						}
 					}`,
 				}
-				fakeDB.GetPipelineByTeamNameAndNameStub = func(teamName string, pipelineName string) (db.SavedPipeline, error) {
+				fakeTeamDB.GetPipelineByTeamNameAndNameStub = func(teamName string, pipelineName string) (db.SavedPipeline, error) {
 					Expect(teamName).To(Equal("main"))
 					switch pipelineName {
 					case "some-pipeline-1":
@@ -990,7 +1003,7 @@ var _ = Describe("ExecEngine", func() {
 					}`,
 					}
 					disaster = errors.New("oh dear")
-					fakeDB.GetPipelineByTeamNameAndNameReturns(db.SavedPipeline{}, disaster)
+					fakeTeamDB.GetPipelineByTeamNameAndNameReturns(db.SavedPipeline{}, disaster)
 				})
 
 				It("returns an error", func() {

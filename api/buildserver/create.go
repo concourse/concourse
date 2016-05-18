@@ -28,6 +28,8 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	build.TeamName = atc.DefaultTeamName
+
 	engineBuild, err := s.engine.CreateBuild(hLog, build, plan)
 	if err != nil {
 		hLog.Error("failed-to-start-build", err)
@@ -38,8 +40,6 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 	go engineBuild.Resume(hLog)
 
 	w.WriteHeader(http.StatusCreated)
-
-	build.TeamName = atc.DefaultTeamName
 
 	json.NewEncoder(w).Encode(present.Build(build))
 }

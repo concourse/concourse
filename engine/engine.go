@@ -28,8 +28,6 @@ type EngineDB interface {
 	SaveBuildOutput(buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error)
 
 	SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier db.ResourceCacheIdentifier) error
-
-	GetPipelineByTeamNameAndName(teamName string, pipelineName string) (db.SavedPipeline, error)
 }
 
 //go:generate counterfeiter . Build

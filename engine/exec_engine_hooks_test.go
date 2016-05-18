@@ -3,6 +3,7 @@ package engine_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/concourse/atc/engine"
 	"github.com/concourse/atc/engine/fakes"
 	"github.com/concourse/atc/exec"
@@ -36,7 +37,14 @@ var _ = Describe("Exec Engine With Hooks", func() {
 		fakeDelegateFactory = new(fakes.FakeBuildDelegateFactory)
 		fakeDB = new(fakes.FakeEngineDB)
 
-		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB, "http://example.com")
+		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		execEngine = engine.NewExecEngine(
+			fakeFactory,
+			fakeDelegateFactory,
+			fakeTeamDBFactory,
+			fakeDB,
+			"http://example.com",
+		)
 
 		fakeDelegate = new(fakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)

@@ -20,19 +20,6 @@ func (db *SQLDB) GetPipelineByID(pipelineID int) (SavedPipeline, error) {
 	return scanPipeline(row)
 }
 
-func (db *SQLDB) GetPipelineByTeamNameAndName(teamName string, pipelineName string) (SavedPipeline, error) {
-	row := db.conn.QueryRow(`
-		SELECT `+pipelineColumns+`
-		FROM pipelines
-		WHERE name = $1
-		AND team_id = (
-				SELECT id FROM teams WHERE name = $2
-			)
-	`, pipelineName, teamName)
-
-	return scanPipeline(row)
-}
-
 func (db *SQLDB) GetAllPipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
 		SELECT ` + pipelineColumns + `

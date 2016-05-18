@@ -24,14 +24,22 @@ const execEngineName = "exec.v2"
 type execEngine struct {
 	factory         exec.Factory
 	delegateFactory BuildDelegateFactory
+	teamDBFactory   db.TeamDBFactory
 	db              EngineDB
 	externalURL     string
 }
 
-func NewExecEngine(factory exec.Factory, delegateFactory BuildDelegateFactory, db EngineDB, externalURL string) Engine {
+func NewExecEngine(
+	factory exec.Factory,
+	delegateFactory BuildDelegateFactory,
+	teamDBFactory db.TeamDBFactory,
+	db EngineDB,
+	externalURL string,
+) Engine {
 	return &execEngine{
 		factory:         factory,
 		delegateFactory: delegateFactory,
+		teamDBFactory:   teamDBFactory,
 		db:              db,
 		externalURL:     externalURL,
 	}
@@ -65,7 +73,7 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, model db.Build) (Buil
 		return nil, err
 	}
 
-	err = atc.NewPlanTraversal(engine.convertPipelineNameToID).Traverse(&metadata.Plan)
+	err = atc.NewPlanTraversal(engine.convertPipelineNameToID(model.TeamName)).Traverse(&metadata.Plan)
 	if err != nil {
 		return nil, err
 	}
@@ -83,46 +91,49 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, model db.Build) (Buil
 	}, nil
 }
 
-func (engine *execEngine) convertPipelineNameToID(plan *atc.Plan) error {
-	var pipelineName *string
-	var pipelineID *int
+func (engine *execEngine) convertPipelineNameToID(teamName string) func(plan *atc.Plan) error {
+	teamDB := engine.teamDBFactory.GetTeamDB(teamName)
+	return func(plan *atc.Plan) error {
+		var pipelineName *string
+		var pipelineID *int
 
-	switch {
-	case plan.Get != nil:
-		pipelineName = &plan.Get.Pipeline
-		pipelineID = &plan.Get.PipelineID
-	case plan.Put != nil:
-		pipelineName = &plan.Put.Pipeline
-		pipelineID = &plan.Put.PipelineID
-	case plan.Task != nil:
-		pipelineName = &plan.Task.Pipeline
-		pipelineID = &plan.Task.PipelineID
-	case plan.DependentGet != nil:
-		pipelineName = &plan.DependentGet.Pipeline
-		pipelineID = &plan.DependentGet.PipelineID
-	}
-
-	if pipelineName != nil && *pipelineName != "" {
-		if *pipelineID != 0 {
-			return fmt.Errorf(
-				"build plan with ID %s has both pipeline name (%s) and ID (%d)",
-				plan.ID,
-				*pipelineName,
-				*pipelineID,
-			)
+		switch {
+		case plan.Get != nil:
+			pipelineName = &plan.Get.Pipeline
+			pipelineID = &plan.Get.PipelineID
+		case plan.Put != nil:
+			pipelineName = &plan.Put.Pipeline
+			pipelineID = &plan.Put.PipelineID
+		case plan.Task != nil:
+			pipelineName = &plan.Task.Pipeline
+			pipelineID = &plan.Task.PipelineID
+		case plan.DependentGet != nil:
+			pipelineName = &plan.DependentGet.Pipeline
+			pipelineID = &plan.DependentGet.PipelineID
 		}
 
-		savedPipeline, err := engine.db.GetPipelineByTeamNameAndName(atc.DefaultTeamName, *pipelineName)
+		if pipelineName != nil && *pipelineName != "" {
+			if *pipelineID != 0 {
+				return fmt.Errorf(
+					"build plan with ID %s has both pipeline name (%s) and ID (%d)",
+					plan.ID,
+					*pipelineName,
+					*pipelineID,
+				)
+			}
 
-		if err != nil {
-			return err
+			savedPipeline, err := teamDB.GetPipelineByTeamNameAndName(atc.DefaultTeamName, *pipelineName)
+
+			if err != nil {
+				return err
+			}
+
+			*pipelineID = savedPipeline.ID
+			*pipelineName = ""
 		}
 
-		*pipelineID = savedPipeline.ID
-		*pipelineName = ""
+		return nil
 	}
-
-	return nil
 }
 
 func buildMetadata(model db.Build, externalURL string) StepMetadata {

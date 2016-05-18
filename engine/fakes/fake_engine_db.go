@@ -70,16 +70,6 @@ type FakeEngineDB struct {
 	saveImageResourceVersionReturns struct {
 		result1 error
 	}
-	GetPipelineByTeamNameAndNameStub        func(teamName string, pipelineName string) (db.SavedPipeline, error)
-	getPipelineByTeamNameAndNameMutex       sync.RWMutex
-	getPipelineByTeamNameAndNameArgsForCall []struct {
-		teamName     string
-		pipelineName string
-	}
-	getPipelineByTeamNameAndNameReturns struct {
-		result1 db.SavedPipeline
-		result2 error
-	}
 }
 
 func (fake *FakeEngineDB) SaveBuildEvent(buildID int, pipelineID int, event atc.Event) error {
@@ -284,40 +274,6 @@ func (fake *FakeEngineDB) SaveImageResourceVersionReturns(result1 error) {
 	fake.saveImageResourceVersionReturns = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakeEngineDB) GetPipelineByTeamNameAndName(teamName string, pipelineName string) (db.SavedPipeline, error) {
-	fake.getPipelineByTeamNameAndNameMutex.Lock()
-	fake.getPipelineByTeamNameAndNameArgsForCall = append(fake.getPipelineByTeamNameAndNameArgsForCall, struct {
-		teamName     string
-		pipelineName string
-	}{teamName, pipelineName})
-	fake.getPipelineByTeamNameAndNameMutex.Unlock()
-	if fake.GetPipelineByTeamNameAndNameStub != nil {
-		return fake.GetPipelineByTeamNameAndNameStub(teamName, pipelineName)
-	} else {
-		return fake.getPipelineByTeamNameAndNameReturns.result1, fake.getPipelineByTeamNameAndNameReturns.result2
-	}
-}
-
-func (fake *FakeEngineDB) GetPipelineByTeamNameAndNameCallCount() int {
-	fake.getPipelineByTeamNameAndNameMutex.RLock()
-	defer fake.getPipelineByTeamNameAndNameMutex.RUnlock()
-	return len(fake.getPipelineByTeamNameAndNameArgsForCall)
-}
-
-func (fake *FakeEngineDB) GetPipelineByTeamNameAndNameArgsForCall(i int) (string, string) {
-	fake.getPipelineByTeamNameAndNameMutex.RLock()
-	defer fake.getPipelineByTeamNameAndNameMutex.RUnlock()
-	return fake.getPipelineByTeamNameAndNameArgsForCall[i].teamName, fake.getPipelineByTeamNameAndNameArgsForCall[i].pipelineName
-}
-
-func (fake *FakeEngineDB) GetPipelineByTeamNameAndNameReturns(result1 db.SavedPipeline, result2 error) {
-	fake.GetPipelineByTeamNameAndNameStub = nil
-	fake.getPipelineByTeamNameAndNameReturns = struct {
-		result1 db.SavedPipeline
-		result2 error
-	}{result1, result2}
 }
 
 var _ engine.EngineDB = new(FakeEngineDB)

@@ -126,6 +126,7 @@ var _ = Describe("Builds API", func() {
 						Expect(oneOff).To(Equal(db.Build{
 							ID:           42,
 							Name:         "1",
+							TeamName:     "main",
 							JobName:      "",
 							PipelineName: "",
 							Status:       db.StatusStarted,

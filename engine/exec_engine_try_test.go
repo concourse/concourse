@@ -7,11 +7,13 @@ import (
 	"github.com/concourse/atc/engine/fakes"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
 
+	dbfakes "github.com/concourse/atc/db/fakes"
 	execfakes "github.com/concourse/atc/exec/fakes"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Exec Engine with Try", func() {
@@ -36,7 +38,14 @@ var _ = Describe("Exec Engine with Try", func() {
 		fakeDelegateFactory = new(fakes.FakeBuildDelegateFactory)
 		fakeDB = new(fakes.FakeEngineDB)
 
-		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB, "http://example.com")
+		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
+		execEngine = engine.NewExecEngine(
+			fakeFactory,
+			fakeDelegateFactory,
+			fakeTeamDBFactory,
+			fakeDB,
+			"http://example.com",
+		)
 
 		fakeDelegate = new(fakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
