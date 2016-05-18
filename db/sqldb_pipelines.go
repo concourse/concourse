@@ -46,49 +46,6 @@ func (db *SQLDB) GetAllPipelines() ([]SavedPipeline, error) {
 	return pipelines, nil
 }
 
-func (db *SQLDB) OrderPipelines(pipelineNames []string) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	var pipelineCount int
-
-	err = tx.QueryRow(`
-			SELECT COUNT(1)
-			FROM pipelines
-	`).Scan(&pipelineCount)
-
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
-		UPDATE pipelines
-		SET ordering = $1
-	`, pipelineCount+1)
-
-	if err != nil {
-		return err
-	}
-
-	for i, name := range pipelineNames {
-		_, err = tx.Exec(`
-			UPDATE pipelines
-			SET ordering = $1
-			WHERE name = $2
-		`, i, name)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
-}
-
 func (db *SQLDB) GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, error) {
 	var configBlob []byte
 	var version int

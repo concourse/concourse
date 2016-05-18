@@ -406,7 +406,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		_, _, err = teamDB.SaveConfig("pipeline-5", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = database.OrderPipelines([]string{
+		err = teamDB.OrderPipelines([]string{
 			"pipeline-4",
 			"pipeline-3",
 			"pipeline-5",
@@ -503,7 +503,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		_, _, err = teamDB.SaveConfig(otherPipelineName, otherConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = database.OrderPipelines([]string{
+		err = teamDB.OrderPipelines([]string{
 			"some-pipeline",
 			pipelineName,
 			otherPipelineName,
