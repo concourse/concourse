@@ -204,7 +204,7 @@ var _ = Describe("SQL DB Teams", func() {
 		})
 	})
 
-	Describe("UpdateTeamBasicAuth", func() {
+	Describe("UpdateBasicAuth", func() {
 		var basicAuthTeam, gitHubAuthTeam db.Team
 		BeforeEach(func() {
 			basicAuthTeam = db.Team{

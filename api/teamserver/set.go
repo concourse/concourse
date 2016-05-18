@@ -80,7 +80,7 @@ func (s *Server) updateCredentials(team db.Team, teamDB db.TeamDB) error {
 		return err
 	}
 
-	_, err = teamDB.UpdateTeamGitHubAuth(team)
+	_, err = teamDB.UpdateGitHubAuth(team.GitHubAuth)
 	return err
 }
 

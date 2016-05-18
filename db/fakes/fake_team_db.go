@@ -50,12 +50,12 @@ type FakeTeamDB struct {
 		result1 db.SavedTeam
 		result2 error
 	}
-	UpdateTeamGitHubAuthStub        func(team db.Team) (db.SavedTeam, error)
-	updateTeamGitHubAuthMutex       sync.RWMutex
-	updateTeamGitHubAuthArgsForCall []struct {
-		team db.Team
+	UpdateGitHubAuthStub        func(gitHubAuth db.GitHubAuth) (db.SavedTeam, error)
+	updateGitHubAuthMutex       sync.RWMutex
+	updateGitHubAuthArgsForCall []struct {
+		gitHubAuth db.GitHubAuth
 	}
-	updateTeamGitHubAuthReturns struct {
+	updateGitHubAuthReturns struct {
 		result1 db.SavedTeam
 		result2 error
 	}
@@ -234,34 +234,34 @@ func (fake *FakeTeamDB) UpdateBasicAuthReturns(result1 db.SavedTeam, result2 err
 	}{result1, result2}
 }
 
-func (fake *FakeTeamDB) UpdateTeamGitHubAuth(team db.Team) (db.SavedTeam, error) {
-	fake.updateTeamGitHubAuthMutex.Lock()
-	fake.updateTeamGitHubAuthArgsForCall = append(fake.updateTeamGitHubAuthArgsForCall, struct {
-		team db.Team
-	}{team})
-	fake.updateTeamGitHubAuthMutex.Unlock()
-	if fake.UpdateTeamGitHubAuthStub != nil {
-		return fake.UpdateTeamGitHubAuthStub(team)
+func (fake *FakeTeamDB) UpdateGitHubAuth(gitHubAuth db.GitHubAuth) (db.SavedTeam, error) {
+	fake.updateGitHubAuthMutex.Lock()
+	fake.updateGitHubAuthArgsForCall = append(fake.updateGitHubAuthArgsForCall, struct {
+		gitHubAuth db.GitHubAuth
+	}{gitHubAuth})
+	fake.updateGitHubAuthMutex.Unlock()
+	if fake.UpdateGitHubAuthStub != nil {
+		return fake.UpdateGitHubAuthStub(gitHubAuth)
 	} else {
-		return fake.updateTeamGitHubAuthReturns.result1, fake.updateTeamGitHubAuthReturns.result2
+		return fake.updateGitHubAuthReturns.result1, fake.updateGitHubAuthReturns.result2
 	}
 }
 
-func (fake *FakeTeamDB) UpdateTeamGitHubAuthCallCount() int {
-	fake.updateTeamGitHubAuthMutex.RLock()
-	defer fake.updateTeamGitHubAuthMutex.RUnlock()
-	return len(fake.updateTeamGitHubAuthArgsForCall)
+func (fake *FakeTeamDB) UpdateGitHubAuthCallCount() int {
+	fake.updateGitHubAuthMutex.RLock()
+	defer fake.updateGitHubAuthMutex.RUnlock()
+	return len(fake.updateGitHubAuthArgsForCall)
 }
 
-func (fake *FakeTeamDB) UpdateTeamGitHubAuthArgsForCall(i int) db.Team {
-	fake.updateTeamGitHubAuthMutex.RLock()
-	defer fake.updateTeamGitHubAuthMutex.RUnlock()
-	return fake.updateTeamGitHubAuthArgsForCall[i].team
+func (fake *FakeTeamDB) UpdateGitHubAuthArgsForCall(i int) db.GitHubAuth {
+	fake.updateGitHubAuthMutex.RLock()
+	defer fake.updateGitHubAuthMutex.RUnlock()
+	return fake.updateGitHubAuthArgsForCall[i].gitHubAuth
 }
 
-func (fake *FakeTeamDB) UpdateTeamGitHubAuthReturns(result1 db.SavedTeam, result2 error) {
-	fake.UpdateTeamGitHubAuthStub = nil
-	fake.updateTeamGitHubAuthReturns = struct {
+func (fake *FakeTeamDB) UpdateGitHubAuthReturns(result1 db.SavedTeam, result2 error) {
+	fake.UpdateGitHubAuthStub = nil
+	fake.updateGitHubAuthReturns = struct {
 		result1 db.SavedTeam
 		result2 error
 	}{result1, result2}

@@ -3,7 +3,8 @@ package db_test
 import (
 	"time"
 
-	"github.com/concourse/atc"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/concourse/atc/db"
 	"github.com/lib/pq"
 
@@ -30,7 +31,9 @@ var _ = Describe("TeamDB", func() {
 		teamDBFactory = db.NewTeamDBFactory(dbConn)
 		database = db.NewSQL(dbConn, bus)
 
-		database.DeleteTeamByName(atc.DefaultTeamName)
+		team := db.Team{Name: "team-name"}
+		_, err := database.CreateTeam(team)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -41,35 +44,135 @@ var _ = Describe("TeamDB", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Context("when the team exists", func() {
+	Context("when constructed with a team name that exactly matches a saved team", func() {
+		var teamDB db.TeamDB
 		BeforeEach(func() {
-			team := db.Team{
-				Name: "team-name",
-			}
-			_, err := database.CreateTeam(team)
-			Expect(err).NotTo(HaveOccurred())
+			teamDB = teamDBFactory.GetTeamDB("team-name")
 		})
 
 		Describe("GetTeam", func() {
-			It("returns the saved team when finding by an exact match", func() {
-				teamDB := teamDBFactory.GetTeamDB("team-name")
+			It("returns the saved team", func() {
 				actualTeam, found, err := teamDB.GetTeam()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(actualTeam.Name).To(Equal("team-name"))
 			})
+		})
 
-			It("returns the saved team when finding by a case-insensitive match", func() {
-				teamDB := teamDBFactory.GetTeamDB("TEAM-name")
-				actualTeam, found, err := teamDB.GetTeam()
+		Describe("UpdateBasicAuth", func() {
+			var basicAuthTeam, gitHubAuthTeam db.Team
+			BeforeEach(func() {
+				basicAuthTeam = db.Team{
+					Name: "team-name",
+					BasicAuth: db.BasicAuth{
+						BasicAuthUsername: "fake user",
+						BasicAuthPassword: "no, bad",
+					},
+				}
+
+				gitHubAuthTeam = db.Team{
+					Name: "team-name",
+					GitHubAuth: db.GitHubAuth{
+						ClientID:      "fake id",
+						ClientSecret:  "some secret",
+						Organizations: []string{"a", "b", "c"},
+						Teams: []db.GitHubTeam{
+							{
+								OrganizationName: "org1",
+								TeamName:         "teama",
+							},
+							{
+								OrganizationName: "org2",
+								TeamName:         "teamb",
+							},
+						},
+						Users: []string{"user1", "user2", "user3"},
+					},
+				}
+			})
+
+			It("saves basic auth team info without over writing the github auth", func() {
+				_, err := database.UpdateTeamGitHubAuth(gitHubAuthTeam)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(actualTeam.Name).To(Equal("team-name"))
+
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuthTeam.BasicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.ClientID).To(Equal(gitHubAuthTeam.ClientID))
+				Expect(savedTeam.ClientSecret).To(Equal(gitHubAuthTeam.ClientSecret))
+				Expect(savedTeam.Organizations).To(Equal(gitHubAuthTeam.Organizations))
+				Expect(savedTeam.Teams).To(Equal(gitHubAuthTeam.Teams))
+				Expect(savedTeam.Users).To(Equal(gitHubAuthTeam.Users))
+			})
+
+			It("saves basic auth team info to the existing team", func() {
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuthTeam.BasicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.BasicAuthUsername).To(Equal(basicAuthTeam.BasicAuthUsername))
+				Expect(bcrypt.CompareHashAndPassword([]byte(savedTeam.BasicAuthPassword),
+					[]byte(basicAuthTeam.BasicAuthPassword))).To(BeNil())
+			})
+
+			It("nulls basic auth when has a blank username", func() {
+				basicAuthTeam.BasicAuthUsername = ""
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuthTeam.BasicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.BasicAuth.BasicAuthUsername).To(BeEmpty())
+				Expect(savedTeam.BasicAuth.BasicAuthPassword).To(BeEmpty())
+			})
+
+			It("nulls basic auth when has a blank password", func() {
+				basicAuthTeam.BasicAuthPassword = ""
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuthTeam.BasicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.BasicAuth.BasicAuthUsername).To(BeEmpty())
+				Expect(savedTeam.BasicAuth.BasicAuthPassword).To(BeEmpty())
 			})
 		})
 	})
 
-	Context("when the team does not exist", func() {
+	Context("when constructed with a team name that matches a saved team case-insensitively", func() {
+		var teamDB db.TeamDB
+		BeforeEach(func() {
+			teamDB = teamDBFactory.GetTeamDB("TEAM-name")
+		})
+
+		Describe("GetTeam", func() {
+			It("returns the saved team", func() {
+				actualTeam, found, err := teamDB.GetTeam()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(actualTeam.Name).To(Equal("team-name"))
+			})
+		})
+
+		Describe("UpdateBasicAuth", func() {
+			var basicAuthTeam db.Team
+			BeforeEach(func() {
+				basicAuthTeam = db.Team{
+					Name: "team-name",
+					BasicAuth: db.BasicAuth{
+						BasicAuthUsername: "fake user",
+						BasicAuthPassword: "no, bad",
+					},
+				}
+			})
+
+			It("saves basic auth team info to the existing team", func() {
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuthTeam.BasicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.BasicAuthUsername).To(Equal(basicAuthTeam.BasicAuthUsername))
+				Expect(bcrypt.CompareHashAndPassword([]byte(savedTeam.BasicAuthPassword),
+					[]byte(basicAuthTeam.BasicAuthPassword))).To(BeNil())
+			})
+		})
+	})
+
+	Context("when constructed with a team name that does not match any team", func() {
 		var teamDB db.TeamDB
 
 		BeforeEach(func() {

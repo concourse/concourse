@@ -18,7 +18,7 @@ type TeamDB interface {
 
 	GetTeam() (SavedTeam, bool, error)
 	UpdateBasicAuth(basicAuth BasicAuth) (SavedTeam, error)
-	UpdateTeamGitHubAuth(team Team) (SavedTeam, error)
+	UpdateGitHubAuth(gitHubAuth GitHubAuth) (SavedTeam, error)
 
 	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
 	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
@@ -411,15 +411,6 @@ func (db *teamDB) queryTeam(query string) (SavedTeam, error) {
 	return savedTeam, nil
 }
 
-func (db *teamDB) jsonEncodeTeamGitHubAuth(team Team) (string, error) {
-	if team.ClientID == "" || team.ClientSecret == "" {
-		team.GitHubAuth = GitHubAuth{}
-	}
-
-	json, err := json.Marshal(team.GitHubAuth)
-	return string(json), err
-}
-
 func (db *teamDB) UpdateBasicAuth(basicAuth BasicAuth) (SavedTeam, error) {
 	encryptedBasicAuth, err := basicAuth.EncryptedJSON()
 	if err != nil {
@@ -435,20 +426,19 @@ func (db *teamDB) UpdateBasicAuth(basicAuth BasicAuth) (SavedTeam, error) {
 	return db.queryTeam(query)
 }
 
-func (db *teamDB) UpdateTeamGitHubAuth(team Team) (SavedTeam, error) {
-	gitHubAuth, err := db.jsonEncodeTeamGitHubAuth(team)
+func (db *teamDB) UpdateGitHubAuth(gitHubAuth GitHubAuth) (SavedTeam, error) {
+	gitHubAuthJSON, err := json.Marshal(gitHubAuth)
 	if err != nil {
 		return SavedTeam{}, err
 	}
 
-	query := fmt.Sprintf(`
+	return db.queryTeam(fmt.Sprintf(`
 		UPDATE teams
 		SET github_auth = '%s'
 		WHERE name ILIKE '%s'
 		RETURNING id, name, admin, basic_auth, github_auth
-	`, gitHubAuth, team.Name,
-	)
-	return db.queryTeam(query)
+	`, gitHubAuthJSON, db.teamName,
+	))
 }
 
 func scanPipeline(rows scannable) (SavedPipeline, error) {
