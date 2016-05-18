@@ -44,7 +44,6 @@ func NewHandler(
 
 	pipelineDBFactory db.PipelineDBFactory,
 	teamDBFactory db.TeamDBFactory,
-	configDB db.ConfigDB,
 
 	authDB authserver.AuthDB,
 	buildsDB buildserver.BuildsDB,
@@ -91,7 +90,7 @@ func NewHandler(
 		engine,
 		workerClient,
 		buildsDB,
-		configDB,
+		teamDBFactory,
 		eventHandlerFactory,
 		drain,
 	)
@@ -101,9 +100,9 @@ func NewHandler(
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipeServer := pipes.NewServer(logger, peerURL, externalURL, pipeDB)
 
-	pipelineServer := pipelineserver.NewServer(logger, teamDBFactory, configDB)
+	pipelineServer := pipelineserver.NewServer(logger, teamDBFactory)
 
-	configServer := configserver.NewServer(logger, configDB, configValidator)
+	configServer := configserver.NewServer(logger, teamDBFactory, configValidator)
 
 	workerServer := workerserver.NewServer(logger, workerDB)
 

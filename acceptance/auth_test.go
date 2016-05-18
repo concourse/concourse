@@ -33,10 +33,13 @@ var _ = Describe("Auth", func() {
 
 		err := sqlDB.DeleteTeamByName(atc.DefaultPipelineName)
 		Expect(err).NotTo(HaveOccurred())
-		team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
+		_, err = sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, _, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
+		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+
+		_, _, err = teamDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 	})
 

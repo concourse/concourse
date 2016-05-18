@@ -151,13 +151,6 @@ type Notifier interface {
 	Close() error
 }
 
-//go:generate counterfeiter . ConfigDB
-
-type ConfigDB interface {
-	GetConfig(teamName, pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
-	SaveConfig(string, string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
-}
-
 //ConfigVersion is a sequence identifier used for compare-and-swap
 type ConfigVersion int
 

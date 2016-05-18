@@ -4,6 +4,7 @@ package fakes
 import (
 	"sync"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )
 
@@ -77,6 +78,30 @@ type FakeTeamDB struct {
 	updateTeamGitHubAuthReturns struct {
 		result1 db.SavedTeam
 		result2 error
+	}
+	GetConfigStub        func(pipelineName string) (atc.Config, atc.RawConfig, db.ConfigVersion, error)
+	getConfigMutex       sync.RWMutex
+	getConfigArgsForCall []struct {
+		pipelineName string
+	}
+	getConfigReturns struct {
+		result1 atc.Config
+		result2 atc.RawConfig
+		result3 db.ConfigVersion
+		result4 error
+	}
+	SaveConfigStub        func(string, atc.Config, db.ConfigVersion, db.PipelinePausedState) (db.SavedPipeline, bool, error)
+	saveConfigMutex       sync.RWMutex
+	saveConfigArgsForCall []struct {
+		arg1 string
+		arg2 atc.Config
+		arg3 db.ConfigVersion
+		arg4 db.PipelinePausedState
+	}
+	saveConfigReturns struct {
+		result1 db.SavedPipeline
+		result2 bool
+		result3 error
 	}
 }
 
@@ -334,6 +359,78 @@ func (fake *FakeTeamDB) UpdateTeamGitHubAuthReturns(result1 db.SavedTeam, result
 		result1 db.SavedTeam
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeTeamDB) GetConfig(pipelineName string) (atc.Config, atc.RawConfig, db.ConfigVersion, error) {
+	fake.getConfigMutex.Lock()
+	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct {
+		pipelineName string
+	}{pipelineName})
+	fake.getConfigMutex.Unlock()
+	if fake.GetConfigStub != nil {
+		return fake.GetConfigStub(pipelineName)
+	} else {
+		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3, fake.getConfigReturns.result4
+	}
+}
+
+func (fake *FakeTeamDB) GetConfigCallCount() int {
+	fake.getConfigMutex.RLock()
+	defer fake.getConfigMutex.RUnlock()
+	return len(fake.getConfigArgsForCall)
+}
+
+func (fake *FakeTeamDB) GetConfigArgsForCall(i int) string {
+	fake.getConfigMutex.RLock()
+	defer fake.getConfigMutex.RUnlock()
+	return fake.getConfigArgsForCall[i].pipelineName
+}
+
+func (fake *FakeTeamDB) GetConfigReturns(result1 atc.Config, result2 atc.RawConfig, result3 db.ConfigVersion, result4 error) {
+	fake.GetConfigStub = nil
+	fake.getConfigReturns = struct {
+		result1 atc.Config
+		result2 atc.RawConfig
+		result3 db.ConfigVersion
+		result4 error
+	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeTeamDB) SaveConfig(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 db.PipelinePausedState) (db.SavedPipeline, bool, error) {
+	fake.saveConfigMutex.Lock()
+	fake.saveConfigArgsForCall = append(fake.saveConfigArgsForCall, struct {
+		arg1 string
+		arg2 atc.Config
+		arg3 db.ConfigVersion
+		arg4 db.PipelinePausedState
+	}{arg1, arg2, arg3, arg4})
+	fake.saveConfigMutex.Unlock()
+	if fake.SaveConfigStub != nil {
+		return fake.SaveConfigStub(arg1, arg2, arg3, arg4)
+	} else {
+		return fake.saveConfigReturns.result1, fake.saveConfigReturns.result2, fake.saveConfigReturns.result3
+	}
+}
+
+func (fake *FakeTeamDB) SaveConfigCallCount() int {
+	fake.saveConfigMutex.RLock()
+	defer fake.saveConfigMutex.RUnlock()
+	return len(fake.saveConfigArgsForCall)
+}
+
+func (fake *FakeTeamDB) SaveConfigArgsForCall(i int) (string, atc.Config, db.ConfigVersion, db.PipelinePausedState) {
+	fake.saveConfigMutex.RLock()
+	defer fake.saveConfigMutex.RUnlock()
+	return fake.saveConfigArgsForCall[i].arg1, fake.saveConfigArgsForCall[i].arg2, fake.saveConfigArgsForCall[i].arg3, fake.saveConfigArgsForCall[i].arg4
+}
+
+func (fake *FakeTeamDB) SaveConfigReturns(result1 db.SavedPipeline, result2 bool, result3 error) {
+	fake.SaveConfigStub = nil
+	fake.saveConfigReturns = struct {
+		result1 db.SavedPipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ db.TeamDB = new(FakeTeamDB)

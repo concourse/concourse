@@ -73,17 +73,16 @@ var _ = Describe("Job Builds", func() {
 				var err error
 				team, err = sqlDB.SaveTeam(db.Team{Name: teamName})
 				Expect(err).NotTo(HaveOccurred())
+				teamDBFactory := db.NewTeamDBFactory(dbConn)
+				teamDB := teamDBFactory.GetTeamDB(teamName)
 
 				// job build data
-				_, _, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
+				_, _, err = teamDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
 				}, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
-
-				teamDBFactory := db.NewTeamDBFactory(dbConn)
-				teamDB := teamDBFactory.GetTeamDB(team.Name)
 
 				savedPipeline, err := teamDB.GetPipelineByName(atc.DefaultPipelineName)
 				Expect(err).NotTo(HaveOccurred())

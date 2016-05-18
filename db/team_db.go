@@ -23,6 +23,9 @@ type TeamDB interface {
 	SaveTeam(team Team) (SavedTeam, error)
 	UpdateTeamBasicAuth(team Team) (SavedTeam, error)
 	UpdateTeamGitHubAuth(team Team) (SavedTeam, error)
+
+	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
+	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
 }
 
 type teamDB struct {
@@ -150,7 +153,7 @@ func (db *teamDB) GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, er
 	return config, ConfigVersion(version), nil
 }
 
-func (db *teamDB) GetConfig(teamName, pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error) {
+func (db *teamDB) GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error) {
 	var configBlob []byte
 	var version int
 	err := db.conn.QueryRow(`
@@ -161,7 +164,7 @@ func (db *teamDB) GetConfig(teamName, pipelineName string) (atc.Config, atc.RawC
 			FROM teams
 			WHERE name = $2
 		)
-	`, pipelineName, teamName).Scan(&configBlob, &version)
+	`, pipelineName, db.teamName).Scan(&configBlob, &version)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return atc.Config{}, atc.RawConfig(""), 0, nil
@@ -179,7 +182,10 @@ func (db *teamDB) GetConfig(teamName, pipelineName string) (atc.Config, atc.RawC
 }
 
 func (db *teamDB) SaveConfig(
-	teamName string, pipelineName string, config atc.Config, from ConfigVersion, pausedState PipelinePausedState,
+	pipelineName string,
+	config atc.Config,
+	from ConfigVersion,
+	pausedState PipelinePausedState,
 ) (SavedPipeline, bool, error) {
 	payload, err := json.Marshal(config)
 	if err != nil {
@@ -204,7 +210,7 @@ func (db *teamDB) SaveConfig(
 		  AND team_id = (
 				SELECT id FROM teams WHERE name = $2
 		  )
-	`, pipelineName, teamName).Scan(&existingConfig)
+	`, pipelineName, db.teamName).Scan(&existingConfig)
 	if err != nil {
 		return SavedPipeline{}, false, err
 	}
@@ -225,7 +231,7 @@ func (db *teamDB) SaveConfig(
 			(SELECT id FROM teams WHERE name = $4)
 		)
 		RETURNING `+pipelineColumns+`
-		`, pipelineName, payload, pausedState.Bool(), teamName))
+		`, pipelineName, payload, pausedState.Bool(), db.teamName))
 		if err != nil {
 			return SavedPipeline{}, false, err
 		}
@@ -264,7 +270,7 @@ func (db *teamDB) SaveConfig(
 				SELECT id FROM teams WHERE name = $4
 			)
 			RETURNING `+pipelineColumns+`
-			`, payload, pipelineName, from, teamName))
+			`, payload, pipelineName, from, db.teamName))
 		} else {
 			savedPipeline, err = scanPipeline(tx.QueryRow(`
 			UPDATE pipelines
@@ -275,7 +281,7 @@ func (db *teamDB) SaveConfig(
 				SELECT id FROM teams WHERE name = $5
 			)
 			RETURNING `+pipelineColumns+`
-			`, payload, pausedState.Bool(), pipelineName, from, teamName))
+			`, payload, pausedState.Bool(), pipelineName, from, db.teamName))
 		}
 
 		if err != nil && err != sql.ErrNoRows {
@@ -520,4 +526,59 @@ func (db *teamDB) UpdateTeamGitHubAuth(team Team) (SavedTeam, error) {
 	`, gitHubAuth, team.Name,
 	)
 	return db.queryTeam(query)
+}
+
+func scanPipeline(rows scannable) (SavedPipeline, error) {
+	var id int
+	var name string
+	var configBlob []byte
+	var version int
+	var paused bool
+	var teamID int
+
+	err := rows.Scan(&id, &name, &configBlob, &version, &paused, &teamID)
+	if err != nil {
+		return SavedPipeline{}, err
+	}
+
+	var config atc.Config
+	err = json.Unmarshal(configBlob, &config)
+	if err != nil {
+		return SavedPipeline{}, err
+	}
+
+	return SavedPipeline{
+		ID:     id,
+		Paused: paused,
+		TeamID: teamID,
+		Pipeline: Pipeline{
+			Name:    name,
+			Config:  config,
+			Version: ConfigVersion(version),
+		},
+	}, nil
+}
+
+type PipelinePausedState string
+
+const (
+	PipelinePaused   PipelinePausedState = "paused"
+	PipelineUnpaused PipelinePausedState = "unpaused"
+	PipelineNoChange PipelinePausedState = "nochange"
+)
+
+func (state PipelinePausedState) Bool() *bool {
+	yes := true
+	no := false
+
+	switch state {
+	case PipelinePaused:
+		return &yes
+	case PipelineUnpaused:
+		return &no
+	case PipelineNoChange:
+		return nil
+	default:
+		panic("unknown pipeline state")
+	}
 }

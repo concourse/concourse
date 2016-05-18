@@ -193,7 +193,7 @@ var _ = Describe("PipelineDB", func() {
 	}
 
 	var (
-		team               db.SavedTeam
+		teamDB             db.TeamDB
 		pipelineDB         db.PipelineDB
 		otherPipelineDB    db.PipelineDB
 		savedPipeline      db.SavedPipeline
@@ -202,13 +202,16 @@ var _ = Describe("PipelineDB", func() {
 
 	BeforeEach(func() {
 		var err error
-		team, err = sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		_, err = sqlDB.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		savedPipeline, _, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
+		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		teamDB = teamDBFactory.GetTeamDB("some-team")
+
+		savedPipeline, _, err = teamDB.SaveConfig("a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
-		otherSavedPipeline, _, err = sqlDB.SaveConfig(team.Name, "other-pipeline-name", otherPipelineConfig, 0, db.PipelineUnpaused)
+		otherSavedPipeline, _, err = teamDB.SaveConfig("other-pipeline-name", otherPipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
@@ -225,16 +228,9 @@ var _ = Describe("PipelineDB", func() {
 	}
 
 	Describe("destroying a pipeline", func() {
-		var teamDB db.TeamDB
-
-		BeforeEach(func() {
-			teamDBFactory := db.NewTeamDBFactory(dbConn)
-			teamDB = teamDBFactory.GetTeamDB(team.Name)
-		})
-
 		It("can be deleted", func() {
 			// populate pipelines table
-			pipelineThatWillBeDeleted, _, err := sqlDB.SaveConfig(team.Name, "a-pipeline-that-will-be-deleted", pipelineConfig, 0, db.PipelineUnpaused)
+			pipelineThatWillBeDeleted, _, err := teamDB.SaveConfig("a-pipeline-that-will-be-deleted", pipelineConfig, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			fetchedPipeline, err := teamDB.GetPipelineByName("a-pipeline-that-will-be-deleted")
@@ -429,7 +425,7 @@ var _ = Describe("PipelineDB", func() {
 
 		BeforeEach(func() {
 			teamDBFactory = db.NewTeamDBFactory(dbConn)
-			teamDB = teamDBFactory.GetTeamDB(team.Name)
+			teamDB = teamDBFactory.GetTeamDB("some-team")
 		})
 
 		It("can update the name of a given pipeline", func() {
@@ -451,9 +447,9 @@ var _ = Describe("PipelineDB", func() {
 				team2, err = sqlDB.SaveTeam(db.Team{Name: "some-other-team"})
 				Expect(err).NotTo(HaveOccurred())
 
-				_, _, err = sqlDB.SaveConfig(team2.Name, "a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
 				team2DB = teamDBFactory.GetTeamDB(team2.Name)
+				_, _, err = team2DB.SaveConfig("a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("doesn't rename the other pipeline", func() {
@@ -525,9 +521,9 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			By("being able to update the config with a valid config")
-			_, _, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", updatedConfig, configVersion, db.PipelineUnpaused)
+			_, _, err = teamDB.SaveConfig("a-pipeline-name", updatedConfig, configVersion, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
-			_, _, err = sqlDB.SaveConfig(team.Name, "other-pipeline-name", updatedConfig, otherConfigVersion, db.PipelineUnpaused)
+			_, _, err = teamDB.SaveConfig("other-pipeline-name", updatedConfig, otherConfigVersion, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("returning the updated config")

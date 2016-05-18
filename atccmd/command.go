@@ -725,7 +725,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		teamDBFactory,
 
 		sqlDB, // authserver.AuthDB
-		sqlDB, // db.ConfigDB
 		sqlDB, // buildserver.BuildsDB
 		sqlDB, // workerserver.WorkerDB
 		sqlDB, // containerserver.ContainerDB

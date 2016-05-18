@@ -22,7 +22,7 @@ type Server struct {
 	engine              engine.Engine
 	workerClient        worker.Client
 	db                  BuildsDB
-	configDB            db.ConfigDB
+	teamDBFactory       db.TeamDBFactory
 	eventHandlerFactory EventHandlerFactory
 	drain               <-chan struct{}
 	rejector            auth.Rejector
@@ -50,7 +50,7 @@ func NewServer(
 	engine engine.Engine,
 	workerClient worker.Client,
 	db BuildsDB,
-	configDB db.ConfigDB,
+	teamDBFactory db.TeamDBFactory,
 	eventHandlerFactory EventHandlerFactory,
 	drain <-chan struct{},
 ) *Server {
@@ -62,7 +62,7 @@ func NewServer(
 		engine:              engine,
 		workerClient:        workerClient,
 		db:                  db,
-		configDB:            configDB,
+		teamDBFactory:       teamDBFactory,
 		eventHandlerFactory: eventHandlerFactory,
 		drain:               drain,
 

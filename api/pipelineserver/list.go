@@ -24,7 +24,7 @@ func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < len(pipelines); i++ {
 		pipeline := pipelines[i]
 
-		config, _, _, err := s.configDB.GetConfig(teamName, pipeline.Name)
+		config, _, _, err := teamDB.GetConfig(pipeline.Name)
 		if err != nil {
 			logger.Error("call-to-get-pipeline-config-failed", err)
 			w.WriteHeader(http.StatusInternalServerError)

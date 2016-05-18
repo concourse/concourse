@@ -40,7 +40,9 @@ var _ = Describe("Keeping track of volumes", func() {
 				},
 			},
 		}
-		savedPipeline, _, err := sqlDB.SaveConfig("some-team", "some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		teamDB := teamDBFactory.GetTeamDB("some-team")
+		savedPipeline, _, err := teamDB.SaveConfig("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)

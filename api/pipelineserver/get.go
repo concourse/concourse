@@ -20,7 +20,7 @@ func (s *Server) GetPipeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config, _, _, err := s.configDB.GetConfig(teamName, pipelineName)
+	config, _, _, err := teamDB.GetConfig(pipelineName)
 	if err != nil {
 		s.logger.Error("call-to-get-pipeline-config-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)

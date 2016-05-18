@@ -30,8 +30,10 @@ var _ = Describe("Keeping track of builds", func() {
 
 		sqlDB := db.NewSQL(dbConn, bus)
 
-		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		_, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
+		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		teamDB := teamDBFactory.GetTeamDB("some-team")
 
 		config := atc.Config{
 			Jobs: atc.JobConfigs{
@@ -58,7 +60,7 @@ var _ = Describe("Keeping track of builds", func() {
 			},
 		}
 
-		pipeline, _, err = sqlDB.SaveConfig(team.Name, "some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+		pipeline, _, err = teamDB.SaveConfig("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)

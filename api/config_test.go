@@ -143,7 +143,7 @@ var _ = Describe("Config API", func() {
 
 			Context("when the config can be loaded", func() {
 				BeforeEach(func() {
-					configDB.GetConfigReturns(pipelineConfig, atc.RawConfig("raw-config"), 1, nil)
+					teamDB.GetConfigReturns(pipelineConfig, atc.RawConfig("raw-config"), 1, nil)
 				})
 
 				It("returns 200", func() {
@@ -166,15 +166,13 @@ var _ = Describe("Config API", func() {
 				})
 
 				It("calls get config with the correct arguments", func() {
-					teamName, name := configDB.GetConfigArgsForCall(0)
-					Expect(teamName).To(Equal("a-team"))
-					Expect(name).To(Equal("something-else"))
+					Expect(teamDB.GetConfigArgsForCall(0)).To(Equal("something-else"))
 				})
 			})
 
 			Context("when getting the config fails", func() {
 				BeforeEach(func() {
-					configDB.GetConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("oh no!"))
+					teamDB.GetConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("oh no!"))
 				})
 
 				It("returns 500", func() {
@@ -184,7 +182,7 @@ var _ = Describe("Config API", func() {
 
 			Context("when getting the config fails because it is malformed", func() {
 				BeforeEach(func() {
-					configDB.GetConfigReturns(atc.Config{}, atc.RawConfig("raw-config"), 42, atc.MalformedConfigError{errors.New("invalid character")})
+					teamDB.GetConfigReturns(atc.Config{}, atc.RawConfig("raw-config"), 42, atc.MalformedConfigError{errors.New("invalid character")})
 				})
 
 				It("returns 200", func() {
@@ -271,7 +269,7 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("does not save anything", func() {
-							Expect(configDB.SaveConfigCallCount()).To(Equal(0))
+							Expect(teamDB.SaveConfigCallCount()).To(Equal(0))
 						})
 					})
 
@@ -295,7 +293,7 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("does not save anything", func() {
-							Expect(configDB.SaveConfigCallCount()).To(Equal(0))
+							Expect(teamDB.SaveConfigCallCount()).To(Equal(0))
 						})
 					})
 				})
@@ -316,9 +314,9 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("saves it", func() {
-							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
+							Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
 
-							_, name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+							name, savedConfig, id, pipelineState := teamDB.SaveConfigArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
 							Expect(savedConfig).To(Equal(pipelineConfig))
 							Expect(id).To(Equal(db.ConfigVersion(42)))
@@ -327,7 +325,7 @@ var _ = Describe("Config API", func() {
 
 						Context("and saving it fails", func() {
 							BeforeEach(func() {
-								configDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
+								teamDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {
@@ -351,7 +349,7 @@ var _ = Describe("Config API", func() {
 										Version: db.ConfigVersion(42),
 									},
 								}
-								configDB.SaveConfigReturns(returnedPipeline, true, nil)
+								teamDB.SaveConfigReturns(returnedPipeline, true, nil)
 							})
 
 							It("returns 201", func() {
@@ -378,7 +376,7 @@ var _ = Describe("Config API", func() {
 							})
 
 							It("does not save it", func() {
-								Expect(configDB.SaveConfigCallCount()).To(BeZero())
+								Expect(teamDB.SaveConfigCallCount()).To(BeZero())
 							})
 						})
 					})
@@ -398,9 +396,9 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("saves it", func() {
-							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
+							Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
 
-							_, name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+							name, savedConfig, id, pipelineState := teamDB.SaveConfigArgsForCall(0)
 							Expect(name).To(Equal("a-pipeline"))
 							Expect(savedConfig).To(Equal(pipelineConfig))
 							Expect(id).To(Equal(db.ConfigVersion(42)))
@@ -408,9 +406,9 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("does not give the DB a map of empty interfaces to empty interfaces", func() {
-							Expect(configDB.SaveConfigCallCount()).To(Equal(1))
+							Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
 
-							_, _, savedConfig, _, _ := configDB.SaveConfigArgsForCall(0)
+							_, savedConfig, _, _ := teamDB.SaveConfigArgsForCall(0)
 							Expect(savedConfig).To(Equal(pipelineConfig))
 
 							_, err := json.Marshal(pipelineConfig)
@@ -445,9 +443,9 @@ jobs:
 							})
 
 							It("saves it", func() {
-								Expect(configDB.SaveConfigCallCount()).To(Equal(1))
+								Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
 
-								_, name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+								name, savedConfig, id, pipelineState := teamDB.SaveConfigArgsForCall(0)
 								Expect(name).To(Equal("a-pipeline"))
 								Expect(savedConfig).To(Equal(atc.Config{
 									Resources: []atc.ResourceConfig{
@@ -498,7 +496,7 @@ jobs:
 										Version: db.ConfigVersion(42),
 									},
 								}
-								configDB.SaveConfigReturns(returnedPipeline, true, nil)
+								teamDB.SaveConfigReturns(returnedPipeline, true, nil)
 							})
 
 							It("returns 201", func() {
@@ -508,7 +506,7 @@ jobs:
 
 						Context("and saving it fails", func() {
 							BeforeEach(func() {
-								configDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
+								teamDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
 							})
 
 							It("returns 500", func() {
@@ -539,7 +537,7 @@ jobs:
 							})
 
 							It("does not save it", func() {
-								Expect(configDB.SaveConfigCallCount()).To(BeZero())
+								Expect(teamDB.SaveConfigCallCount()).To(BeZero())
 							})
 						})
 					})
@@ -583,9 +581,9 @@ jobs:
 							})
 
 							It("saves it", func() {
-								Expect(configDB.SaveConfigCallCount()).To(Equal(1))
+								Expect(teamDB.SaveConfigCallCount()).To(Equal(1))
 
-								_, name, savedConfig, id, pipelineState := configDB.SaveConfigArgsForCall(0)
+								name, savedConfig, id, pipelineState := teamDB.SaveConfigArgsForCall(0)
 								Expect(name).To(Equal("a-pipeline"))
 								Expect(savedConfig).To(Equal(pipelineConfig))
 								Expect(id).To(Equal(db.ConfigVersion(42)))
@@ -604,7 +602,7 @@ jobs:
 											Version: db.ConfigVersion(42),
 										},
 									}
-									configDB.SaveConfigReturns(returnedPipeline, true, nil)
+									teamDB.SaveConfigReturns(returnedPipeline, true, nil)
 								})
 
 								It("returns 201", func() {
@@ -614,7 +612,7 @@ jobs:
 
 							Context("and saving it fails", func() {
 								BeforeEach(func() {
-									configDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
+									teamDB.SaveConfigReturns(db.SavedPipeline{}, false, errors.New("oh no!"))
 								})
 
 								It("returns 500", func() {
@@ -644,7 +642,7 @@ jobs:
 								})
 
 								It("does not save it", func() {
-									Expect(configDB.SaveConfigCallCount()).To(BeZero())
+									Expect(teamDB.SaveConfigCallCount()).To(BeZero())
 								})
 							})
 
@@ -774,7 +772,7 @@ jobs:
 								})
 
 								It("does not save anything", func() {
-									Expect(configDB.SaveConfigCallCount()).To(Equal(0))
+									Expect(teamDB.SaveConfigCallCount()).To(Equal(0))
 								})
 							})
 
@@ -813,7 +811,7 @@ jobs:
 								})
 
 								It("does not save anything", func() {
-									Expect(configDB.SaveConfigCallCount()).To(Equal(0))
+									Expect(teamDB.SaveConfigCallCount()).To(Equal(0))
 								})
 							})
 						})
@@ -835,7 +833,7 @@ jobs:
 					})
 
 					It("does not save it", func() {
-						Expect(configDB.SaveConfigCallCount()).To(BeZero())
+						Expect(teamDB.SaveConfigCallCount()).To(BeZero())
 					})
 				})
 
@@ -866,7 +864,7 @@ jobs:
 					})
 
 					It("does not save it", func() {
-						Expect(configDB.SaveConfigCallCount()).To(BeZero())
+						Expect(teamDB.SaveConfigCallCount()).To(BeZero())
 					})
 				})
 			})
@@ -890,7 +888,7 @@ jobs:
 				})
 
 				It("does not save it", func() {
-					Expect(configDB.SaveConfigCallCount()).To(BeZero())
+					Expect(teamDB.SaveConfigCallCount()).To(BeZero())
 				})
 			})
 
@@ -913,7 +911,7 @@ jobs:
 				})
 
 				It("does not save it", func() {
-					Expect(configDB.SaveConfigCallCount()).To(BeZero())
+					Expect(teamDB.SaveConfigCallCount()).To(BeZero())
 				})
 			})
 		})
@@ -928,7 +926,7 @@ jobs:
 			})
 
 			It("does not save the config", func() {
-				Expect(configDB.SaveConfigCallCount()).To(BeZero())
+				Expect(teamDB.SaveConfigCallCount()).To(BeZero())
 			})
 		})
 	})

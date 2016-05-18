@@ -50,9 +50,7 @@ var _ = Describe("Pipelines API", func() {
 				},
 			}, nil)
 
-			configDB.GetConfigStub = func(teamName, pipelineName string) (atc.Config, atc.RawConfig, db.ConfigVersion, error) {
-				Expect(teamName).To(Equal("a-team"))
-
+			teamDB.GetConfigStub = func(pipelineName string) (atc.Config, atc.RawConfig, db.ConfigVersion, error) {
 				if pipelineName == "a-pipeline" {
 					return atc.Config{
 						Groups: atc.GroupConfigs{
@@ -141,7 +139,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when the call to get a pipeline's config fails", func() {
 			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("disaster"))
+				teamDB.GetConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("disaster"))
 			})
 
 			It("returns 500 internal server error", func() {
@@ -162,7 +160,7 @@ var _ = Describe("Pipelines API", func() {
 				},
 			}, nil)
 
-			configDB.GetConfigReturns(atc.Config{
+			teamDB.GetConfigReturns(atc.Config{
 				Groups: atc.GroupConfigs{
 					{
 						Name:      "group1",
@@ -194,10 +192,8 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		It("tries to get the config scoped to team and pipeline", func() {
-			Expect(configDB.GetConfigCallCount()).To(Equal(1))
-			teamName, pipelineName := configDB.GetConfigArgsForCall(0)
-			Expect(teamName).To(Equal("a-team"))
-			Expect(pipelineName).To(Equal("some-specific-pipeline"))
+			Expect(teamDB.GetConfigCallCount()).To(Equal(1))
+			Expect(teamDB.GetConfigArgsForCall(0)).To(Equal("some-specific-pipeline"))
 		})
 
 		It("returns 200 ok", func() {
@@ -245,7 +241,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when the call to get the pipeline config fails", func() {
 			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("disaster"))
+				teamDB.GetConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("disaster"))
 			})
 
 			It("returns 500 error", func() {

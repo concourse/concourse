@@ -35,13 +35,15 @@ var _ = Describe("Resource Pagination", func() {
 
 		atcProcess, atcPort, _ = startATC(atcBin, 1, true, []string{}, BASIC_AUTH)
 
-		err := sqlDB.DeleteTeamByName("main")
+		err := sqlDB.DeleteTeamByName(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
-		team, err := sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
+		_, err = sqlDB.SaveTeam(db.Team{Name: atc.DefaultTeamName})
 		Expect(err).NotTo(HaveOccurred())
 
+		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 		// job build data
-		_, _, err = sqlDB.SaveConfig(team.Name, atc.DefaultPipelineName, atc.Config{
+		_, _, err = teamDB.SaveConfig(atc.DefaultPipelineName, atc.Config{
 			Jobs: atc.JobConfigs{
 				{
 					Name: "job-name",
@@ -57,9 +59,6 @@ var _ = Describe("Resource Pagination", func() {
 			},
 		}, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
-
-		teamDBFactory := db.NewTeamDBFactory(dbConn)
-		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 		savedPipeline, err := teamDB.GetPipelineByName(atc.DefaultPipelineName)
 		Expect(err).NotTo(HaveOccurred())

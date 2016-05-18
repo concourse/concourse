@@ -33,7 +33,7 @@ var _ = Describe("Resource History", func() {
 		sqlDB = db.NewSQL(dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
 
-		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		_, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
 		config := atc.Config{
@@ -53,7 +53,9 @@ var _ = Describe("Resource History", func() {
 			},
 		}
 
-		savedPipeline, _, err = sqlDB.SaveConfig(team.Name, "a-pipeline-name", config, 0, db.PipelineUnpaused)
+		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		teamDB := teamDBFactory.GetTeamDB("some-team")
+		savedPipeline, _, err = teamDB.SaveConfig("a-pipeline-name", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
