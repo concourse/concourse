@@ -30,7 +30,7 @@ var _ = Describe("Keeping track of builds", func() {
 
 		sqlDB := db.NewSQL(dbConn, bus)
 
-		_, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 		teamDBFactory := db.NewTeamDBFactory(dbConn)
 		teamDB := teamDBFactory.GetTeamDB("some-team")

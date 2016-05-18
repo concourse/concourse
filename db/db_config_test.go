@@ -44,7 +44,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
 
 		var err error
-		team, err = database.SaveTeam(db.Team{Name: "some-team"})
+		team, err = database.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
 		teamDBFactory = db.NewTeamDBFactory(dbConn)
@@ -680,7 +680,7 @@ var _ = Describe("Keeping track of pipeline configs", func() {
 
 		BeforeEach(func() {
 			var err error
-			otherTeam, err = database.SaveTeam(db.Team{Name: "some-other-team"})
+			otherTeam, err = database.CreateTeam(db.Team{Name: "some-other-team"})
 			Expect(err).NotTo(HaveOccurred())
 			otherTeamDB = teamDBFactory.GetTeamDB("some-other-team")
 		})

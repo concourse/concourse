@@ -46,7 +46,7 @@ var _ = Describe("TeamDB", func() {
 			team := db.Team{
 				Name: "team-name",
 			}
-			_, err := database.SaveTeam(team)
+			_, err := database.CreateTeam(team)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

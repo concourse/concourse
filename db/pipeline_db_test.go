@@ -202,7 +202,7 @@ var _ = Describe("PipelineDB", func() {
 
 	BeforeEach(func() {
 		var err error
-		_, err = sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		_, err = sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
 		teamDBFactory := db.NewTeamDBFactory(dbConn)
@@ -444,7 +444,7 @@ var _ = Describe("PipelineDB", func() {
 
 			BeforeEach(func() {
 				var err error
-				team2, err = sqlDB.SaveTeam(db.Team{Name: "some-other-team"})
+				team2, err = sqlDB.CreateTeam(db.Team{Name: "some-other-team"})
 				Expect(err).NotTo(HaveOccurred())
 
 				team2DB = teamDBFactory.GetTeamDB(team2.Name)

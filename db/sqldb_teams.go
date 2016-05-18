@@ -32,7 +32,7 @@ func (db *SQLDB) CreateDefaultTeamIfNotExists() error {
 	return err
 }
 
-func (db *SQLDB) SaveTeam(data Team) (SavedTeam, error) {
+func (db *SQLDB) CreateTeam(data Team) (SavedTeam, error) {
 	jsonEncodedBasicAuth, err := db.jsonEncodeTeamBasicAuth(data)
 	if err != nil {
 		return SavedTeam{}, err

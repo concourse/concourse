@@ -9,45 +9,45 @@ import (
 )
 
 type FakeTeamsDB struct {
-	SaveTeamStub        func(data db.Team) (db.SavedTeam, error)
-	saveTeamMutex       sync.RWMutex
-	saveTeamArgsForCall []struct {
+	CreateTeamStub        func(data db.Team) (db.SavedTeam, error)
+	createTeamMutex       sync.RWMutex
+	createTeamArgsForCall []struct {
 		data db.Team
 	}
-	saveTeamReturns struct {
+	createTeamReturns struct {
 		result1 db.SavedTeam
 		result2 error
 	}
 }
 
-func (fake *FakeTeamsDB) SaveTeam(data db.Team) (db.SavedTeam, error) {
-	fake.saveTeamMutex.Lock()
-	fake.saveTeamArgsForCall = append(fake.saveTeamArgsForCall, struct {
+func (fake *FakeTeamsDB) CreateTeam(data db.Team) (db.SavedTeam, error) {
+	fake.createTeamMutex.Lock()
+	fake.createTeamArgsForCall = append(fake.createTeamArgsForCall, struct {
 		data db.Team
 	}{data})
-	fake.saveTeamMutex.Unlock()
-	if fake.SaveTeamStub != nil {
-		return fake.SaveTeamStub(data)
+	fake.createTeamMutex.Unlock()
+	if fake.CreateTeamStub != nil {
+		return fake.CreateTeamStub(data)
 	} else {
-		return fake.saveTeamReturns.result1, fake.saveTeamReturns.result2
+		return fake.createTeamReturns.result1, fake.createTeamReturns.result2
 	}
 }
 
-func (fake *FakeTeamsDB) SaveTeamCallCount() int {
-	fake.saveTeamMutex.RLock()
-	defer fake.saveTeamMutex.RUnlock()
-	return len(fake.saveTeamArgsForCall)
+func (fake *FakeTeamsDB) CreateTeamCallCount() int {
+	fake.createTeamMutex.RLock()
+	defer fake.createTeamMutex.RUnlock()
+	return len(fake.createTeamArgsForCall)
 }
 
-func (fake *FakeTeamsDB) SaveTeamArgsForCall(i int) db.Team {
-	fake.saveTeamMutex.RLock()
-	defer fake.saveTeamMutex.RUnlock()
-	return fake.saveTeamArgsForCall[i].data
+func (fake *FakeTeamsDB) CreateTeamArgsForCall(i int) db.Team {
+	fake.createTeamMutex.RLock()
+	defer fake.createTeamMutex.RUnlock()
+	return fake.createTeamArgsForCall[i].data
 }
 
-func (fake *FakeTeamsDB) SaveTeamReturns(result1 db.SavedTeam, result2 error) {
-	fake.SaveTeamStub = nil
-	fake.saveTeamReturns = struct {
+func (fake *FakeTeamsDB) CreateTeamReturns(result1 db.SavedTeam, result2 error) {
+	fake.CreateTeamStub = nil
+	fake.createTeamReturns = struct {
 		result1 db.SavedTeam
 		result2 error
 	}{result1, result2}

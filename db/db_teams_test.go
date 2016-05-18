@@ -66,7 +66,7 @@ var _ = Describe("SQL DB Teams", func() {
 				defaultTeam := db.Team{
 					Name: atc.DefaultTeamName,
 				}
-				_, err := database.SaveTeam(defaultTeam)
+				_, err := database.CreateTeam(defaultTeam)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -134,7 +134,7 @@ var _ = Describe("SQL DB Teams", func() {
 				expectedTeam := db.Team{
 					Name: "avengers",
 				}
-				_, err := database.SaveTeam(expectedTeam)
+				_, err := database.CreateTeam(expectedTeam)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -240,7 +240,7 @@ var _ = Describe("SQL DB Teams", func() {
 				expectedTeam := db.Team{
 					Name: "avengers",
 				}
-				_, err := database.SaveTeam(expectedTeam)
+				_, err := database.CreateTeam(expectedTeam)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -297,12 +297,12 @@ var _ = Describe("SQL DB Teams", func() {
 		})
 	})
 
-	Describe("SaveTeam", func() {
+	Describe("CreateTeam", func() {
 		It("saves a team to the db", func() {
 			expectedTeam := db.Team{
 				Name: "avengers",
 			}
-			expectedSavedTeam, err := database.SaveTeam(expectedTeam)
+			expectedSavedTeam, err := database.CreateTeam(expectedTeam)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
 
@@ -320,7 +320,7 @@ var _ = Describe("SQL DB Teams", func() {
 					BasicAuthPassword: "no, bad",
 				},
 			}
-			expectedSavedTeam, err := database.SaveTeam(expectedTeam)
+			expectedSavedTeam, err := database.CreateTeam(expectedTeam)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(expectedSavedTeam.Team.Name).To(Equal(expectedTeam.Name))
 
@@ -354,7 +354,7 @@ var _ = Describe("SQL DB Teams", func() {
 					Users: []string{"user1", "user2", "user3"},
 				},
 			}
-			expectedSavedTeam, err := database.SaveTeam(expectedTeam)
+			expectedSavedTeam, err := database.CreateTeam(expectedTeam)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
 
@@ -374,7 +374,7 @@ var _ = Describe("SQL DB Teams", func() {
 	Describe("DeleteTeamByName", func() {
 		Context("when the team exists", func() {
 			BeforeEach(func() {
-				_, err := database.SaveTeam(db.Team{
+				_, err := database.CreateTeam(db.Team{
 					Name: "team-name",
 				})
 				Expect(err).NotTo(HaveOccurred())

@@ -61,7 +61,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(http.StatusOK)
 	} else {
-		savedTeam, err = s.teamsDB.SaveTeam(team)
+		savedTeam, err = s.teamsDB.CreateTeam(team)
 		if err != nil {
 			hLog.Error("failed-to-save-team", err)
 			w.WriteHeader(http.StatusInternalServerError)

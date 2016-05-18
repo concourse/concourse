@@ -71,7 +71,7 @@ var _ = Describe("Job Builds", func() {
 
 			BeforeEach(func() {
 				var err error
-				team, err = sqlDB.SaveTeam(db.Team{Name: teamName})
+				team, err = sqlDB.CreateTeam(db.Team{Name: teamName})
 				Expect(err).NotTo(HaveOccurred())
 				teamDBFactory := db.NewTeamDBFactory(dbConn)
 				teamDB := teamDBFactory.GetTeamDB(teamName)

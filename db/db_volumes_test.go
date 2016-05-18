@@ -31,7 +31,7 @@ var _ = Describe("Keeping track of volumes", func() {
 		database = sqlDB
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
-		_, err := database.SaveTeam(db.Team{Name: "some-team"})
+		_, err := database.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 		config := atc.Config{
 			Jobs: atc.JobConfigs{

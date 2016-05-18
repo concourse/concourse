@@ -75,7 +75,7 @@ func HashResourceConfig(checkType string, source atc.Source) string {
 }
 
 type DB interface {
-	SaveTeam(team Team) (SavedTeam, error)
+	CreateTeam(team Team) (SavedTeam, error)
 	UpdateTeamBasicAuth(team Team) (SavedTeam, error)
 	UpdateTeamGitHubAuth(team Team) (SavedTeam, error)
 	CreateDefaultTeamIfNotExists() error
