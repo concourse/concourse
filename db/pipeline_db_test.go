@@ -237,7 +237,7 @@ var _ = Describe("PipelineDB", func() {
 			pipelineThatWillBeDeleted, _, err := sqlDB.SaveConfig(team.Name, "a-pipeline-that-will-be-deleted", pipelineConfig, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			fetchedPipeline, err := teamDB.GetPipelineByTeamNameAndName(team.Name, "a-pipeline-that-will-be-deleted")
+			fetchedPipeline, err := teamDB.GetPipelineByName("a-pipeline-that-will-be-deleted")
 			Expect(err).NotTo(HaveOccurred())
 
 			fetchedPipelineDB := pipelineDBFactory.Build(fetchedPipeline)
@@ -425,9 +425,10 @@ var _ = Describe("PipelineDB", func() {
 
 	Describe("UpdateName", func() {
 		var teamDB db.TeamDB
+		var teamDBFactory db.TeamDBFactory
 
 		BeforeEach(func() {
-			teamDBFactory := db.NewTeamDBFactory(dbConn)
+			teamDBFactory = db.NewTeamDBFactory(dbConn)
 			teamDB = teamDBFactory.GetTeamDB(team.Name)
 		})
 
@@ -435,7 +436,7 @@ var _ = Describe("PipelineDB", func() {
 			err := pipelineDB.UpdateName("some-other-weird-name")
 			Expect(err).NotTo(HaveOccurred())
 
-			pipeline, err := teamDB.GetPipelineByTeamNameAndName(team.Name, "some-other-weird-name")
+			pipeline, err := teamDB.GetPipelineByName("some-other-weird-name")
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(pipeline.Name).To(Equal("some-other-weird-name"))
@@ -443,6 +444,7 @@ var _ = Describe("PipelineDB", func() {
 
 		Context("when there is a pipeline with the same name in another team", func() {
 			var team2 db.SavedTeam
+			var team2DB db.TeamDB
 
 			BeforeEach(func() {
 				var err error
@@ -451,13 +453,14 @@ var _ = Describe("PipelineDB", func() {
 
 				_, _, err = sqlDB.SaveConfig(team2.Name, "a-pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
+				team2DB = teamDBFactory.GetTeamDB(team2.Name)
 			})
 
 			It("doesn't rename the other pipeline", func() {
 				err := pipelineDB.UpdateName("some-other-weird-name")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = teamDB.GetPipelineByTeamNameAndName(team2.Name, "a-pipeline-name")
+				_, err = team2DB.GetPipelineByName("a-pipeline-name")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})

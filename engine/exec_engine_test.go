@@ -935,8 +935,7 @@ var _ = Describe("ExecEngine", func() {
 						}
 					}`,
 				}
-				fakeTeamDB.GetPipelineByTeamNameAndNameStub = func(teamName string, pipelineName string) (db.SavedPipeline, error) {
-					Expect(teamName).To(Equal("main"))
+				fakeTeamDB.GetPipelineByNameStub = func(pipelineName string) (db.SavedPipeline, error) {
 					switch pipelineName {
 					case "some-pipeline-1":
 						return db.SavedPipeline{ID: 1}, nil
@@ -1003,7 +1002,7 @@ var _ = Describe("ExecEngine", func() {
 					}`,
 					}
 					disaster = errors.New("oh dear")
-					fakeTeamDB.GetPipelineByTeamNameAndNameReturns(db.SavedPipeline{}, disaster)
+					fakeTeamDB.GetPipelineByNameReturns(db.SavedPipeline{}, disaster)
 				})
 
 				It("returns an error", func() {

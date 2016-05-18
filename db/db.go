@@ -151,21 +151,6 @@ type Notifier interface {
 	Close() error
 }
 
-//go:generate counterfeiter . TeamDB
-
-type TeamDB interface {
-	GetAllPipelines() ([]SavedPipeline, error)
-	GetPipelineByID(pipelineID int) (SavedPipeline, error)
-	GetPipelineByTeamNameAndName(teamName string, pipelineName string) (SavedPipeline, error)
-
-	OrderPipelines([]string) error
-
-	GetTeamByName(teamName string) (SavedTeam, bool, error)
-	SaveTeam(team Team) (SavedTeam, error)
-	UpdateTeamBasicAuth(team Team) (SavedTeam, error)
-	UpdateTeamGitHubAuth(team Team) (SavedTeam, error)
-}
-
 //go:generate counterfeiter . ConfigDB
 
 type ConfigDB interface {

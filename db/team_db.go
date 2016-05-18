@@ -10,6 +10,21 @@ import (
 	"github.com/concourse/atc"
 )
 
+//go:generate counterfeiter . TeamDB
+
+type TeamDB interface {
+	GetAllPipelines() ([]SavedPipeline, error)
+	GetPipelineByID(pipelineID int) (SavedPipeline, error)
+	GetPipelineByName(pipelineName string) (SavedPipeline, error)
+
+	OrderPipelines([]string) error
+
+	GetTeamByName(teamName string) (SavedTeam, bool, error)
+	SaveTeam(team Team) (SavedTeam, error)
+	UpdateTeamBasicAuth(team Team) (SavedTeam, error)
+	UpdateTeamGitHubAuth(team Team) (SavedTeam, error)
+}
+
 type teamDB struct {
 	teamName string
 	conn     Conn
@@ -25,7 +40,7 @@ func (db *teamDB) GetPipelineByID(pipelineID int) (SavedPipeline, error) {
 	return scanPipeline(row)
 }
 
-func (db *teamDB) GetPipelineByTeamNameAndName(teamName string, pipelineName string) (SavedPipeline, error) {
+func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
 	row := db.conn.QueryRow(`
 		SELECT `+pipelineColumns+`
 		FROM pipelines
@@ -33,7 +48,7 @@ func (db *teamDB) GetPipelineByTeamNameAndName(teamName string, pipelineName str
 		AND team_id = (
 				SELECT id FROM teams WHERE name = $2
 			)
-	`, pipelineName, teamName)
+	`, pipelineName, db.teamName)
 
 	return scanPipeline(row)
 }

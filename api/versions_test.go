@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
 )
@@ -23,7 +22,7 @@ var _ = Describe("Versions API", func() {
 		pipelineDB = new(dbfakes.FakePipelineDB)
 		pipelineDBFactory.BuildReturns(pipelineDB)
 		expectedSavedPipeline = db.SavedPipeline{}
-		teamDB.GetPipelineByTeamNameAndNameReturns(expectedSavedPipeline, nil)
+		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, nil)
 	})
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions", func() {
@@ -226,9 +225,7 @@ var _ = Describe("Versions API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				teamName, pipelineName := teamDB.GetPipelineByTeamNameAndNameArgsForCall(0)
-				Expect(teamName).To(Equal(atc.DefaultTeamName))
-				Expect(pipelineName).To(Equal("a-pipeline"))
+				Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("a-pipeline"))
 				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
 				actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
 				Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))
@@ -289,9 +286,8 @@ var _ = Describe("Versions API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				teamName, pipelineName := teamDB.GetPipelineByTeamNameAndNameArgsForCall(0)
-				Expect(teamName).To(Equal(atc.DefaultTeamName))
-				Expect(pipelineName).To(Equal("a-pipeline"))
+				Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
+				Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("a-pipeline"))
 				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
 				actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
 				Expect(actualSavedPipeline).To(Equal(expectedSavedPipeline))

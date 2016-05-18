@@ -27,7 +27,7 @@ func (pdbh *PipelineHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pip
 	return func(w http.ResponseWriter, r *http.Request) {
 		pipelineName := r.FormValue(":pipeline_name")
 		teamDB := pdbh.teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-		savedPipeline, err := teamDB.GetPipelineByTeamNameAndName(atc.DefaultTeamName, pipelineName)
+		savedPipeline, err := teamDB.GetPipelineByName(pipelineName)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusNotFound)

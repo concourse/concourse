@@ -61,7 +61,7 @@ var _ = Describe("Resource Pagination", func() {
 		teamDBFactory := db.NewTeamDBFactory(dbConn)
 		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
-		savedPipeline, err := teamDB.GetPipelineByTeamNameAndName(atc.DefaultTeamName, atc.DefaultPipelineName)
+		savedPipeline, err := teamDB.GetPipelineByName(atc.DefaultPipelineName)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)

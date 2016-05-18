@@ -85,7 +85,7 @@ var _ = Describe("Job Builds", func() {
 				teamDBFactory := db.NewTeamDBFactory(dbConn)
 				teamDB := teamDBFactory.GetTeamDB(team.Name)
 
-				savedPipeline, err := teamDB.GetPipelineByTeamNameAndName(teamName, atc.DefaultPipelineName)
+				savedPipeline, err := teamDB.GetPipelineByName(atc.DefaultPipelineName)
 				Expect(err).NotTo(HaveOccurred())
 
 				pipelineDB = pipelineDBFactory.Build(savedPipeline)

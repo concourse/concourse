@@ -26,7 +26,7 @@ var _ = Describe("Resources API", func() {
 		pipelineDB = new(dbfakes.FakePipelineDB)
 		pipelineDBFactory.BuildReturns(pipelineDB)
 		expectedSavedPipeline = db.SavedPipeline{}
-		teamDB.GetPipelineByTeamNameAndNameReturns(expectedSavedPipeline, nil)
+		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, nil)
 	})
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources", func() {
@@ -403,8 +403,7 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				teamName, pipelineName := teamDB.GetPipelineByTeamNameAndNameArgsForCall(0)
-				Expect(teamName).To(Equal(atc.DefaultTeamName))
+				pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
 				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
 				actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
@@ -484,8 +483,7 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				teamName, pipelineName := teamDB.GetPipelineByTeamNameAndNameArgsForCall(0)
-				Expect(teamName).To(Equal(atc.DefaultTeamName))
+				pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
 				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
 				actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)
@@ -569,8 +567,7 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("injects the proper pipelineDB", func() {
-				teamName, pipelineName := teamDB.GetPipelineByTeamNameAndNameArgsForCall(0)
-				Expect(teamName).To(Equal(atc.DefaultTeamName))
+				pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
 				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
 				actualSavedPipeline := pipelineDBFactory.BuildArgsForCall(0)

@@ -122,7 +122,7 @@ func (engine *execEngine) convertPipelineNameToID(teamName string) func(plan *at
 				)
 			}
 
-			savedPipeline, err := teamDB.GetPipelineByTeamNameAndName(atc.DefaultTeamName, *pipelineName)
+			savedPipeline, err := teamDB.GetPipelineByName(*pipelineName)
 
 			if err != nil {
 				return err
