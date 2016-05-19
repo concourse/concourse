@@ -35,6 +35,7 @@ import (
 	"github.com/concourse/atc/web/webhandler"
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/image"
+	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/wrappa"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/context"
@@ -521,7 +522,7 @@ func (cmd *ATCCommand) constructWorkerPool(logger lager.Logger, sqlDB *db.SQLDB,
 			logger,
 			sqlDB,
 			keepaliveDialer,
-			worker.ExponentialRetryPolicy{
+			transport.ExponentialRetryPolicy{
 				Timeout: 5 * time.Minute,
 			},
 			image.NewFetcher(trackerFactory),

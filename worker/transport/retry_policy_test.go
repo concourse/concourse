@@ -1,10 +1,10 @@
-package worker_test
+package transport_test
 
 import (
 	"fmt"
 	"time"
 
-	. "github.com/concourse/atc/worker"
+	. "github.com/concourse/atc/worker/transport"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,7 +14,7 @@ var _ = Describe("ExponentialRetryPolicy", func() {
 	var (
 		attempts uint
 
-		policy RetryPolicy
+		policy ExponentialRetryPolicy
 
 		delay        time.Duration
 		keepRetrying bool

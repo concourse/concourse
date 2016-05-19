@@ -1,0 +1,45 @@
+package transport
+
+import "net/http"
+
+type roundTripper struct {
+	db                TransportDB
+	workerName        string
+	innerRoundTripper http.RoundTripper
+	cachedHost        string
+}
+
+func NewRoundTripper(workerName string, db TransportDB, innerRoundTripper http.RoundTripper) http.RoundTripper {
+	return &roundTripper{
+		innerRoundTripper: innerRoundTripper,
+		workerName:        workerName,
+		db:                db,
+		cachedHost:        "",
+	}
+}
+
+func (c *roundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	if c.cachedHost == "" {
+		savedWorker, found, err := c.db.GetWorker(c.workerName)
+		if err != nil {
+			return nil, err
+		}
+
+		if !found {
+			return nil, ErrMissingWorker{WorkerName: c.workerName}
+		}
+		c.cachedHost = savedWorker.GardenAddr
+	}
+
+	updatedURL := *request.URL
+	updatedURL.Host = c.cachedHost
+
+	updatedRequest := *request
+	updatedRequest.URL = &updatedURL
+
+	response, err := c.innerRoundTripper.RoundTrip(&updatedRequest)
+	if err != nil {
+		c.cachedHost = ""
+	}
+	return response, err
+}
