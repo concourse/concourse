@@ -15,7 +15,7 @@ import (
 	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
-var _ = Describe("Auth", func() {
+var _ = Describe("TLS", func() {
 	var (
 		atcProcess ifrit.Process
 		dbListener *pq.Listener
@@ -55,6 +55,57 @@ var _ = Describe("Auth", func() {
 			resp, err := client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		})
+	})
+
+	Describe("making an HTTP request", func() {
+		BeforeEach(func() {
+			atcProcess, atcPort, tlsPort = startATC(atcBin, 1, true, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
+		})
+
+		It("API handler redirects HTTP request to HTTPS external-url", func() {
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/api/v1/workers", atcPort), nil)
+
+			transport := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			client := &http.Client{Transport: transport}
+
+			resp, err := client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.Request.URL.String()).To(Equal("https://example.com"))
+		})
+
+		It("Web handler redirects HTTP request to HTTPS external-url", func() {
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d", atcPort), nil)
+
+			transport := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			client := &http.Client{Transport: transport}
+
+			resp, err := client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.Request.URL.String()).To(Equal("https://example.com"))
+		})
+
+		It("OAuth handler redirects HTTP request to HTTPS external-url", func() {
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/api/v1/auth/token", atcPort), nil)
+
+			transport := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			client := &http.Client{Transport: transport}
+
+			resp, err := client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			Expect(resp.Request.URL.String()).To(Equal("https://example.com"))
 		})
 	})
 })

@@ -204,43 +204,58 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	drain := make(chan struct{})
 
-	apiHandler, err := cmd.constructAPIHandler(
-		logger,
-		reconfigurableSink,
-		sqlDB,
-		authValidator,
-		jwtReader,
-		providerFactory,
-		signingKey,
-		pipelineDBFactory,
-		engine,
-		workerClient,
-		drain,
-		radarSchedulerFactory,
-		radarScannerFactory,
+	var (
+		httpRedirectHandler http.Handler
+		apiHandler          http.Handler
+		oauthHandler        http.Handler
+		webHandler          http.Handler
 	)
-	if err != nil {
-		return nil, err
-	}
 
-	oauthHandler, err := auth.NewOAuthHandler(
-		logger,
-		providerFactory,
-		signingKey,
-		sqlDB,
-	)
-	if err != nil {
-		return nil, err
-	}
+	if cmd.TLSBindPort != 0 {
+		httpRedirectHandler = cmd.constructRedirectingHandler()
 
-	webHandler, err := cmd.constructWebHandler(
-		logger,
-		authValidator,
-		jwtReader,
-		pipelineDBFactory,
-	)
-	if err != nil {
-		return nil, err
+		apiHandler = httpRedirectHandler
+		oauthHandler = httpRedirectHandler
+		webHandler = httpRedirectHandler
+	} else {
+		apiHandler, err = cmd.constructAPIHandler(
+			logger,
+			reconfigurableSink,
+			sqlDB,
+			authValidator,
+			jwtReader,
+			providerFactory,
+			signingKey,
+			pipelineDBFactory,
+			engine,
+			workerClient,
+			drain,
+			radarSchedulerFactory,
+			radarScannerFactory,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		oauthHandler, err = auth.NewOAuthHandler(
+			logger,
+			providerFactory,
+			signingKey,
+			sqlDB,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		webHandler, err = cmd.constructWebHandler(
+			logger,
+			authValidator,
+			jwtReader,
+			pipelineDBFactory,
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	members := []grouper.Member{
@@ -314,7 +329,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	members = cmd.appendStaticWorker(logger, sqlDB, members)
 
-	if cmd.TLSCert != "" {
+	if cmd.TLSBindPort != 0 {
 		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
 
 		if err != nil {
@@ -437,7 +452,15 @@ func (cmd *ATCCommand) validate() error {
 	if cmd.TLSKey != "" {
 		tlsFlagCount++
 	}
-	if tlsFlagCount != 0 && tlsFlagCount != 3 {
+
+	if tlsFlagCount == 3 {
+		if cmd.ExternalURL.URL().Scheme != "https" {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify HTTPS external-url to use TLS"),
+			)
+		}
+	} else if tlsFlagCount != 0 {
 		errs = multierror.Append(
 			errs,
 			errors.New("must specify --tls-bind-port, --tls-cert, --tls-key to use TLS"),
@@ -744,6 +767,26 @@ func (cmd *ATCCommand) constructAPIHandler(
 		cmd.CLIArtifactsDir.Path(),
 		Version,
 	)
+}
+
+type APIHandler struct {
+	externalURL string
+}
+
+func CreateRedirectingAPIHandler(externalURL string) http.Handler {
+	return APIHandler{
+		externalURL: externalURL,
+	}
+}
+
+func (h APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, h.externalURL, http.StatusMovedPermanently)
+}
+
+func (cmd *ATCCommand) constructRedirectingHandler() http.Handler {
+	return APIHandler{
+		externalURL: cmd.ExternalURL.String(),
+	}
 }
 
 func (cmd *ATCCommand) constructWebHandler(
