@@ -120,7 +120,6 @@ func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, tlsF
 	return ginkgomon.Invoke(atcRunner), atcPort, tlsPort
 }
 
-// tlsFlags should be zero or more of the following, in this order: --tls-bind-port, --tls-cert, --tls-key (0 or all 3 are considered valid)
 func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool, tlsFlags []string, authTypes ...string) (*exec.Cmd, uint16, uint16) {
 	atcPort := 5697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 	debugPort := 6697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
@@ -152,9 +151,7 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 
 	if len(tlsFlags) > 2 {
 		Expect(tlsFlags[2]).To(Equal("--tls-key"))
-		params = append(params, "--tls-key", filepath.Join(certTmpDir, "server.key"),
-			"--external-url", "https://example.com",
-		)
+		params = append(params, "--tls-key", filepath.Join(certTmpDir, "server.key"))
 	}
 
 	for _, authType := range authTypes {
