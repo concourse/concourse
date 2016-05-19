@@ -1,18 +1,19 @@
 function draw(groups, renderFn, completeFn) {
-  $.ajax({
-    url: "/api/v1/pipelines/" + concourse.pipelineName + "/jobs",
-    dataType: "json",
-    complete: completeFn,
-    success: function(jobs) {
-      $.ajax({
-        url: "/api/v1/pipelines/" + concourse.pipelineName + "/resources",
-        dataType: "json",
-        success: function(resources, httpStatus, request) {
-          renderFn(jobs, resources, request.getResponseHeader("X-Concourse-Version"));
-        }
-      });
-    }
-  });
+  $.when(
+    $.ajax({
+      url: "/api/v1/pipelines/" + concourse.pipelineName + "/jobs",
+      dataType: "json"
+    }),
+    $.ajax({
+      url: "/api/v1/pipelines/" + concourse.pipelineName + "/resources",
+      dataType: "json"
+    })
+  ).done(function(a1, a2) {
+    var jobs = a1[0];
+    var resources = a2[0];
+    var request = a2[2];
+    renderFn(jobs, resources, request.getResponseHeader("X-Concourse-Version"));
+  }).always(completeFn);
 }
 
 var currentHighlight;
