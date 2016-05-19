@@ -73,6 +73,7 @@ files:
   - github.com/concourse/atc/web/webhandler/*.go # gosub
   - github.com/concourse/atc/worker/*.go # gosub
   - github.com/concourse/atc/worker/image/*.go # gosub
+  - github.com/concourse/atc/worker/transport/*.go # gosub
   - github.com/concourse/atc/wrappa/*.go # gosub
   - github.com/concourse/baggageclaim/*.go # gosub
   - github.com/concourse/baggageclaim/client/*.go # gosub
