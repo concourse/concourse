@@ -1,4 +1,4 @@
-module Focus (Focus, get, set, update, (=>), create) where
+module Focus exposing (Focus, get, set, update, (=>), create)
 {-| Our goal is to update a field deep inside some nested records. For example,
 if we want to add one to `object.physics.velocity.x` or set it to zero, we would
 be writing code like this:
@@ -13,6 +13,8 @@ to messier architecture *and* some extra conceptual complexity. It may also
 make your code slower by encouraging you to take many passes over data,
 creating lots of intermediate data structures for no particular reason.
 *Use with these risk in mind!*
+# Focus
+@docs Focus
 # Get, Set, Update
 @docs get, set, update
 # Compose Foci
@@ -21,10 +23,18 @@ creating lots of intermediate data structures for no particular reason.
 @docs create
 -}
 
-type alias Focus big small =
+
+{-| A `Focus` lets you focus on a small part of some larger data structure.
+Maybe this means a certain field in a record or a certain element in an array.
+The focus then lets you `get`, `set`, and `update` this small part of a big
+value.
+-}
+type Focus big small =
+  Focus
     { get : big -> small
     , update : (small -> small) -> big -> big
     }
+
 
 {-| A `Focus` is a value. It describes a strategy for getting and updating
 things. This function lets you define a `Focus` yourself by providing a `get`
@@ -32,7 +42,8 @@ function and an `update` function.
 -}
 create : (big -> small) -> ((small -> small) -> big -> big) -> Focus big small
 create get update =
-    { get=get, update=update }
+  Focus { get = get, update = update }
+
 
 {-| Get a small part of a big thing.
     x : Focus { record | x:a } a
@@ -41,16 +52,18 @@ Seems sort of silly given that you can just say `.x` to do the same thing. It
 will become much more useful when we can begin to compose foci, so keep reading!
 -}
 get : Focus big small -> big -> small
-get focus big =
-    focus.get big
+get (Focus focus) big =
+  focus.get big
+
 
 {-| Set a small part of a big thing.
     x : Focus { record | x:a } a
     set x 42 { x=3, y=4 } == { x=42, y=4 }
 -}
 set : Focus big small -> small -> big -> big
-set focus small big =
-    focus.update (always small) big
+set (Focus focus) small big =
+  focus.update (always small) big
+
 
 {-| Update a small part of a big thing.
     x : Focus { record | x:a } a
@@ -66,10 +79,13 @@ record, whereas normal record syntax would only have required one. It may be
 best to use a mix `Focus` and typical record updates to minimize traversals.
 -}
 update : Focus big small -> (small -> small) -> big -> big
-update focus f big =
-    focus.update f big
+update (Focus focus) f big =
+  focus.update f big
+
+
 
 -- COMPOSING FOCI
+
 
 {-| The power of this library comes from the fact that you can compose many
 foci. This means we can update a field deep inside some nested records. For
@@ -92,7 +108,12 @@ over `object` instead of one. It may be best to do the last step with typical
 record updates so that this can be done in one pass.
 -}
 (=>) : Focus big medium -> Focus medium small -> Focus big small
-(=>) largerFocus smallerFocus =
-    { get = \ big -> smallerFocus.get (largerFocus.get big)
-    , update = \ f big -> largerFocus.update (smallerFocus.update f) big
-    }
+(=>) (Focus largerFocus) (Focus smallerFocus) =
+  let
+    get big =
+      smallerFocus.get (largerFocus.get big)
+
+    update f big =
+      largerFocus.update (smallerFocus.update f) big
+  in
+    Focus { get = get, update = update }

@@ -1,4 +1,4 @@
-module StepTreeTests where
+module StepTreeTests exposing (..)
 
 import Array
 import Dict

@@ -1,4 +1,4 @@
-module PaginationTests where
+module PaginationTests exposing (..)
 
 import Array
 import Dict exposing (Dict)
