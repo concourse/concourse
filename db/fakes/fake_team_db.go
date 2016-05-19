@@ -9,10 +9,10 @@ import (
 )
 
 type FakeTeamDB struct {
-	GetAllPipelinesStub        func() ([]db.SavedPipeline, error)
-	getAllPipelinesMutex       sync.RWMutex
-	getAllPipelinesArgsForCall []struct{}
-	getAllPipelinesReturns     struct {
+	GetPipelinesStub        func() ([]db.SavedPipeline, error)
+	getPipelinesMutex       sync.RWMutex
+	getPipelinesArgsForCall []struct{}
+	getPipelinesReturns     struct {
 		result1 []db.SavedPipeline
 		result2 error
 	}
@@ -85,26 +85,26 @@ type FakeTeamDB struct {
 	}
 }
 
-func (fake *FakeTeamDB) GetAllPipelines() ([]db.SavedPipeline, error) {
-	fake.getAllPipelinesMutex.Lock()
-	fake.getAllPipelinesArgsForCall = append(fake.getAllPipelinesArgsForCall, struct{}{})
-	fake.getAllPipelinesMutex.Unlock()
-	if fake.GetAllPipelinesStub != nil {
-		return fake.GetAllPipelinesStub()
+func (fake *FakeTeamDB) GetPipelines() ([]db.SavedPipeline, error) {
+	fake.getPipelinesMutex.Lock()
+	fake.getPipelinesArgsForCall = append(fake.getPipelinesArgsForCall, struct{}{})
+	fake.getPipelinesMutex.Unlock()
+	if fake.GetPipelinesStub != nil {
+		return fake.GetPipelinesStub()
 	} else {
-		return fake.getAllPipelinesReturns.result1, fake.getAllPipelinesReturns.result2
+		return fake.getPipelinesReturns.result1, fake.getPipelinesReturns.result2
 	}
 }
 
-func (fake *FakeTeamDB) GetAllPipelinesCallCount() int {
-	fake.getAllPipelinesMutex.RLock()
-	defer fake.getAllPipelinesMutex.RUnlock()
-	return len(fake.getAllPipelinesArgsForCall)
+func (fake *FakeTeamDB) GetPipelinesCallCount() int {
+	fake.getPipelinesMutex.RLock()
+	defer fake.getPipelinesMutex.RUnlock()
+	return len(fake.getPipelinesArgsForCall)
 }
 
-func (fake *FakeTeamDB) GetAllPipelinesReturns(result1 []db.SavedPipeline, result2 error) {
-	fake.GetAllPipelinesStub = nil
-	fake.getAllPipelinesReturns = struct {
+func (fake *FakeTeamDB) GetPipelinesReturns(result1 []db.SavedPipeline, result2 error) {
+	fake.GetPipelinesStub = nil
+	fake.getPipelinesReturns = struct {
 		result1 []db.SavedPipeline
 		result2 error
 	}{result1, result2}

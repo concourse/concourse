@@ -13,7 +13,7 @@ func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
 	teamName := r.FormValue(":team_name")
 	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 
-	pipelines, err := teamDB.GetAllPipelines()
+	pipelines, err := teamDB.GetPipelines()
 	if err != nil {
 		logger.Error("failed-to-get-all-active-pipelines", err)
 		w.WriteHeader(http.StatusInternalServerError)

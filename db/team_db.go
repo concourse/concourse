@@ -11,7 +11,7 @@ import (
 //go:generate counterfeiter . TeamDB
 
 type TeamDB interface {
-	GetAllPipelines() ([]SavedPipeline, error)
+	GetPipelines() ([]SavedPipeline, error)
 	GetPipelineByName(pipelineName string) (SavedPipeline, error)
 
 	OrderPipelines([]string) error
@@ -42,7 +42,7 @@ func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) 
 	return scanPipeline(row)
 }
 
-func (db *teamDB) GetAllPipelines() ([]SavedPipeline, error) {
+func (db *teamDB) GetPipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
 		SELECT ` + pipelineColumns + `
 		FROM pipelines
