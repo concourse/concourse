@@ -35,8 +35,8 @@ func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) 
 		FROM pipelines
 		WHERE name = $1
 		AND team_id = (
-				SELECT id FROM teams WHERE name = $2
-			)
+			SELECT id FROM teams WHERE name = $2
+		)
 	`, pipelineName, db.teamName)
 
 	return scanPipeline(row)
@@ -47,8 +47,8 @@ func (db *teamDB) GetPipelines() ([]SavedPipeline, error) {
 		SELECT `+pipelineColumns+`
 		FROM pipelines
 		WHERE team_id = (
-				SELECT id FROM teams WHERE name = $1
-			)
+			SELECT id FROM teams WHERE name = $1
+		)
 		ORDER BY ordering
 	`, db.teamName)
 	if err != nil {
@@ -82,10 +82,17 @@ func (db *teamDB) OrderPipelines(pipelineNames []string) error {
 
 	var pipelineCount int
 
+	var teamID int
+	err = tx.QueryRow(`SELECT id FROM teams WHERE name = $1`, db.teamName).Scan(&teamID)
+	if err != nil {
+		return err
+	}
+
 	err = tx.QueryRow(`
-			SELECT COUNT(1)
-			FROM pipelines
-	`).Scan(&pipelineCount)
+		SELECT COUNT(1)
+		FROM pipelines
+		WHERE team_id = $1
+	`, teamID).Scan(&pipelineCount)
 
 	if err != nil {
 		return err
@@ -94,7 +101,8 @@ func (db *teamDB) OrderPipelines(pipelineNames []string) error {
 	_, err = tx.Exec(`
 		UPDATE pipelines
 		SET ordering = $1
-	`, pipelineCount+1)
+		WHERE team_id = $2
+	`, pipelineCount+1, teamID)
 
 	if err != nil {
 		return err
@@ -105,7 +113,8 @@ func (db *teamDB) OrderPipelines(pipelineNames []string) error {
 			UPDATE pipelines
 			SET ordering = $1
 			WHERE name = $2
-		`, i, name)
+			AND team_id = $3
+		`, i, name, teamID)
 
 		if err != nil {
 			return err
@@ -161,6 +170,12 @@ func (db *teamDB) SaveConfig(
 
 	defer tx.Rollback()
 
+	var teamID int
+	err = tx.QueryRow(`SELECT id FROM teams WHERE name = $1`, db.teamName).Scan(&teamID)
+	if err != nil {
+		return SavedPipeline{}, false, err
+	}
+
 	var created bool
 	var savedPipeline SavedPipeline
 
@@ -169,10 +184,8 @@ func (db *teamDB) SaveConfig(
 		SELECT COUNT(1)
 		FROM pipelines
 		WHERE name = $1
-		  AND team_id = (
-				SELECT id FROM teams WHERE name = $2
-		  )
-	`, pipelineName, db.teamName).Scan(&existingConfig)
+	  AND team_id = $2
+	`, pipelineName, teamID).Scan(&existingConfig)
 	if err != nil {
 		return SavedPipeline{}, false, err
 	}
@@ -190,10 +203,10 @@ func (db *teamDB) SaveConfig(
 			nextval('config_version_seq'),
 			(SELECT COUNT(1) + 1 FROM pipelines),
 			$3,
-			(SELECT id FROM teams WHERE name = $4)
+			$4
 		)
 		RETURNING `+pipelineColumns+`
-		`, pipelineName, payload, pausedState.Bool(), db.teamName))
+		`, pipelineName, payload, pausedState.Bool(), teamID))
 		if err != nil {
 			return SavedPipeline{}, false, err
 		}
@@ -228,22 +241,18 @@ func (db *teamDB) SaveConfig(
 			SET config = $1, version = nextval('config_version_seq')
 			WHERE name = $2
 			AND version = $3
-			AND team_id = (
-				SELECT id FROM teams WHERE name = $4
-			)
+			AND team_id = $4
 			RETURNING `+pipelineColumns+`
-			`, payload, pipelineName, from, db.teamName))
+			`, payload, pipelineName, from, teamID))
 		} else {
 			savedPipeline, err = scanPipeline(tx.QueryRow(`
 			UPDATE pipelines
 			SET config = $1, version = nextval('config_version_seq'), paused = $2
 			WHERE name = $3
 			AND version = $4
-			AND team_id = (
-				SELECT id FROM teams WHERE name = $5
-			)
+			AND team_id = $5
 			RETURNING `+pipelineColumns+`
-			`, payload, pausedState.Bool(), pipelineName, from, db.teamName))
+			`, payload, pausedState.Bool(), pipelineName, from, teamID))
 		}
 
 		if err != nil && err != sql.ErrNoRows {

@@ -60,6 +60,28 @@ var _ = Describe("TeamDB", func() {
 			})
 		})
 
+		Describe("GetPipielineByName", func() {
+			var savedPipeline db.SavedPipeline
+			BeforeEach(func() {
+				var err error
+				savedPipeline, _, err = teamDB.SaveConfig("pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+
+				team := db.Team{Name: "other-team-name"}
+				_, err = database.CreateTeam(team)
+				Expect(err).NotTo(HaveOccurred())
+				otherTeamDB := teamDBFactory.GetTeamDB("other-team-name")
+				_, _, err = otherTeamDB.SaveConfig("pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns the pipeline with the name that belongs to the team", func() {
+				actualPipeline, err := teamDB.GetPipelineByName("pipeline-name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(actualPipeline).To(Equal(savedPipeline))
+			})
+		})
+
 		Describe("GetPipelines", func() {
 			var savedPipeline1 db.SavedPipeline
 			var savedPipeline2 db.SavedPipeline
@@ -89,6 +111,52 @@ var _ = Describe("TeamDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(savedPipelines).To(HaveLen(2))
 				Expect(savedPipelines).To(ConsistOf(savedPipeline1, savedPipeline2))
+			})
+		})
+
+		Describe("OrderPipelines", func() {
+			var otherTeamDB db.TeamDB
+			var savedPipeline1 db.SavedPipeline
+			var savedPipeline2 db.SavedPipeline
+			var otherTeamSavedPipeline1 db.SavedPipeline
+			var otherTeamSavedPipeline2 db.SavedPipeline
+
+			BeforeEach(func() {
+				var err error
+				savedPipeline1, _, err = teamDB.SaveConfig("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+				savedPipeline2, _, err = teamDB.SaveConfig("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+
+				team := db.Team{Name: "other-team-name"}
+				_, err = database.CreateTeam(team)
+				Expect(err).NotTo(HaveOccurred())
+				otherTeamDB = teamDBFactory.GetTeamDB("other-team-name")
+
+				otherTeamSavedPipeline1, _, err = otherTeamDB.SaveConfig("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+				otherTeamSavedPipeline2, _, err = otherTeamDB.SaveConfig("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("orders pipelines that belong to team", func() {
+				err := teamDB.OrderPipelines([]string{"pipeline-name-b", "pipeline-name-a"})
+				Expect(err).NotTo(HaveOccurred())
+
+				err = otherTeamDB.OrderPipelines([]string{"pipeline-name-a", "pipeline-name-b"})
+				Expect(err).NotTo(HaveOccurred())
+
+				orderedPipelines, err := teamDB.GetPipelines()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(orderedPipelines).To(HaveLen(2))
+				Expect(orderedPipelines[0].ID).To(Equal(savedPipeline2.ID))
+				Expect(orderedPipelines[1].ID).To(Equal(savedPipeline1.ID))
+
+				otherTeamOrderedPipelines, err := otherTeamDB.GetPipelines()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(otherTeamOrderedPipelines).To(HaveLen(2))
+				Expect(otherTeamOrderedPipelines[0].ID).To(Equal(otherTeamSavedPipeline1.ID))
+				Expect(otherTeamOrderedPipelines[1].ID).To(Equal(otherTeamSavedPipeline2.ID))
 			})
 		})
 

@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/atc/db"
 )
 
-var _ = Describe("Keeping track of pipeline configs", func() {
+var _ = Describe("Updating pipeline config for specific team", func() {
 	type SerialGroup struct {
 		JobID int
 		Name  string
