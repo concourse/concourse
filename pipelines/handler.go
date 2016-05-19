@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 )
 
@@ -26,7 +25,8 @@ func NewHandlerFactory(
 func (pdbh *PipelineHandlerFactory) HandlerFor(pipelineScopedHandler func(db.PipelineDB) http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		pipelineName := r.FormValue(":pipeline_name")
-		teamDB := pdbh.teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+		teamName := r.FormValue(":team_name")
+		teamDB := pdbh.teamDBFactory.GetTeamDB(teamName)
 		savedPipeline, err := teamDB.GetPipelineByName(pipelineName)
 		if err != nil {
 			if err == sql.ErrNoRows {

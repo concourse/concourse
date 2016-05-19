@@ -50,6 +50,7 @@ var (
 	containerDB                   *containerserverfakes.FakeContainerDB
 	pipeDB                        *pipeserverfakes.FakePipeDB
 	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
+	teamDBFactory                 *dbfakes.FakeTeamDBFactory
 	teamDB                        *dbfakes.FakeTeamDB
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
@@ -91,7 +92,7 @@ func (f *fakeEventHandlerFactory) Construct(
 var _ = BeforeEach(func() {
 	buildsDB = new(buildfakes.FakeBuildsDB)
 	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
-	teamDBFactory := new(dbfakes.FakeTeamDBFactory)
+	teamDBFactory = new(dbfakes.FakeTeamDBFactory)
 	teamDB = new(dbfakes.FakeTeamDB)
 	teamsDB = new(teamserverfakes.FakeTeamsDB)
 	teamDBFactory.GetTeamDBReturns(teamDB)

@@ -95,6 +95,11 @@ var _ = Describe("Pipelines API", func() {
 			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 		})
 
+		It("constructs teamDB with provided team name", func() {
+			Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+			Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+		})
+
 		It("returns all active pipelines", func() {
 			body, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
@@ -204,6 +209,11 @@ var _ = Describe("Pipelines API", func() {
 			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
 		})
 
+		It("constructs teamDB with provided team name", func() {
+			Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+			Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+		})
+
 		It("returns a pipeline JSON", func() {
 			body, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
@@ -273,6 +283,11 @@ var _ = Describe("Pipelines API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusNoContent))
 			})
 
+			It("constructs teamDB with provided team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+			})
+
 			It("injects the proper pipelineDB", func() {
 				pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline-name"))
@@ -324,6 +339,11 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			It("constructs teamDB with provided team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
 			})
 
 			It("injects the proper pipelineDB", func() {
@@ -382,6 +402,11 @@ var _ = Describe("Pipelines API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			It("constructs teamDB with provided team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
 			})
 
 			It("injects the proper pipelineDB", func() {
@@ -463,6 +488,11 @@ var _ = Describe("Pipelines API", func() {
 				It("returns 400", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
+			})
+
+			It("constructs teamDB with provided team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
 			})
 
 			Context("when ordering the pipelines succeeds", func() {
@@ -573,6 +603,11 @@ var _ = Describe("Pipelines API", func() {
 				)
 			})
 
+			It("constructs teamDB with provided team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+			})
+
 			It("returns 200", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
@@ -651,6 +686,11 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		Context("when authenticated", func() {
+			It("constructs teamDB with provided team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+			})
+
 			It("injects the proper pipelineDB", func() {
 				pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
