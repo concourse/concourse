@@ -1,4 +1,4 @@
-module Concourse.Job where
+module Concourse.Job exposing (..)
 
 import Http
 import Json.Decode exposing ((:=))

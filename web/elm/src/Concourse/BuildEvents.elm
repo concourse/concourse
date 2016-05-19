@@ -1,14 +1,13 @@
-module Concourse.BuildEvents where
+module Concourse.BuildEvents exposing (..)
 
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Json.Decode exposing ((:=))
-import Task exposing (Task)
+import WebSocket
 
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Metadata exposing (Metadata)
 import Concourse.Version exposing (Version)
-import EventSource exposing (EventSource)
 
 type BuildEvent
   = BuildStatus BuildStatus Date
@@ -40,30 +39,36 @@ type alias Origin =
   , id : String
   }
 
-subscribe : Int -> Signal.Address Action -> Task x EventSource
-subscribe build actions =
-  let
-    settings =
-      EventSource.Settings
-        (Just <| Signal.forwardTo actions (always Opened))
-        (Just <| Signal.forwardTo actions (always Errored))
+subscribe : Int -> Sub Action
+subscribe build =
+  WebSocket.listen ("/api/v1/builds/" ++ toString build ++ "/events") parseAction
 
-    connect =
-      EventSource.connect ("/api/v1/builds/" ++ toString build ++ "/events") settings
+parseAction : String -> Action
+parseAction msg =
+  case Json.Decode.decodeString decodeMessage msg of
+    Err err ->
+      Event (Err err)
 
-    eventsSub =
-      EventSource.on "event" <|
-        Signal.forwardTo actions (Event << parseEvent)
+    Ok (EventMessage "end" _) ->
+      End
 
-    endSub =
-      EventSource.on "end" <|
-        Signal.forwardTo actions (always End)
-  in
-    connect `Task.andThen` eventsSub `Task.andThen` endSub
+    Ok (EventMessage "event" (Just payload)) ->
+      Event (parseEvent payload)
 
-parseEvent : EventSource.Event -> Result String BuildEvent
-parseEvent e =
-  Json.Decode.decodeString decode e.data
+    Ok msg ->
+      Event (Err ("unknown message type: " ++ toString msg))
+
+type EventMessage = EventMessage String (Maybe String)
+
+decodeMessage : Json.Decode.Decoder EventMessage
+decodeMessage =
+  Json.Decode.object2 EventMessage
+    ("type" := Json.Decode.string)
+    (Json.Decode.maybe ("payload" := Json.Decode.string))
+
+parseEvent : String -> Result String BuildEvent
+parseEvent data =
+  Json.Decode.decodeString decode data
 
 decode : Json.Decode.Decoder BuildEvent
 decode =
