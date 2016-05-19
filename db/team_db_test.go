@@ -5,6 +5,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/lib/pq"
 
@@ -56,6 +57,38 @@ var _ = Describe("TeamDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(actualTeam.Name).To(Equal("team-name"))
+			})
+		})
+
+		Describe("GetPipelines", func() {
+			var savedPipeline1 db.SavedPipeline
+			var savedPipeline2 db.SavedPipeline
+
+			BeforeEach(func() {
+				var err error
+				savedPipeline1, _, err = teamDB.SaveConfig("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+
+				savedPipeline2, _, err = teamDB.SaveConfig("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+
+				team := db.Team{Name: "other-team-name"}
+				_, err = database.CreateTeam(team)
+				Expect(err).NotTo(HaveOccurred())
+				otherTeamDB := teamDBFactory.GetTeamDB("other-team-name")
+
+				_, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+
+				_, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns pipelines that belong to team", func() {
+				savedPipelines, err := teamDB.GetPipelines()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(savedPipelines).To(HaveLen(2))
+				Expect(savedPipelines).To(ConsistOf(savedPipeline1, savedPipeline2))
 			})
 		})
 
@@ -229,7 +262,6 @@ var _ = Describe("TeamDB", func() {
 				})
 			})
 		})
-
 	})
 
 	Context("when constructed with a team name that matches a saved team case-insensitively", func() {

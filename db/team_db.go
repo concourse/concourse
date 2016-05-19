@@ -44,10 +44,13 @@ func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) 
 
 func (db *teamDB) GetPipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
-		SELECT ` + pipelineColumns + `
+		SELECT `+pipelineColumns+`
 		FROM pipelines
+		WHERE team_id = (
+				SELECT id FROM teams WHERE name = $1
+			)
 		ORDER BY ordering
-	`)
+	`, db.teamName)
 	if err != nil {
 		return nil, err
 	}
