@@ -66,14 +66,10 @@ case $1 in
     exec chpst -u vcap:vcap /var/vcap/packages/atc/bin/atc \
       --bind-ip <%= p("bind_ip") %> \
       --bind-port <%= p("bind_port") %> \
-      <% if_p("tls-bind-port") do |port| %> \
+      <% if_p("tls_bind_port", "tls_cert", "tls_key") do |port, _, _| %> \
       --tls-bind-port <%= port %> \
-      <% end %> \
-      <% if_p("tls-cert") do |path| %> \
-      --tls-cert <%= esc(path) %> \
-      <% end %> \
-      <% if_p("tls-key") do |path| %> \
-      --tls-key <%= esc(path) %> \
+      --tls-cert /var/vcap/jobs/atc/config/tls_cert \
+      --tls-key /var/vcap/jobs/atc/config/tls_key \
       <% end %> \
       --peer-url <%= p("peer_url", "http://#{spec.address}:#{p("bind_port")}") %> \
       --external-url <%= esc(p("external_url")) %> \

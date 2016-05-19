@@ -7,6 +7,8 @@ description: |
 
 templates:
   atc_ctl.erb: bin/atc_ctl
+  tls_cert.erb: config/tls_cert
+  tls_key.erb: config/tls_key
 
 packages:
   - pid_utils
@@ -24,6 +26,7 @@ provides:
   type: atc
   properties:
   - bind_port
+  - tls_bind_port
 
 properties:
   bind_ip:
@@ -35,6 +38,23 @@ properties:
     description: |
       Port on which the ATC should listen for HTTP traffic.
     default: 8080
+
+  tls_bind_port:
+    description: |
+      Port on which the ATC should listen for HTTPS traffic.
+    default: 4443
+
+  tls_cert:
+    description: |
+      SSL cert to use for HTTPS.
+
+      If not specified, only HTTP will be enabled.
+
+  tls_key:
+    description: |
+      SSL private key to use for encrypting HTTPS traffic.
+
+      If not specified, only HTTP will be enabled.
 
   external_url:
     description: |
