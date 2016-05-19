@@ -427,7 +427,11 @@ func (db *teamDB) UpdateBasicAuth(basicAuth BasicAuth) (SavedTeam, error) {
 }
 
 func (db *teamDB) UpdateGitHubAuth(gitHubAuth GitHubAuth) (SavedTeam, error) {
-	gitHubAuthJSON, err := json.Marshal(gitHubAuth)
+	auth := GitHubAuth{}
+	if gitHubAuth.ClientID != "" && gitHubAuth.ClientSecret != "" {
+		auth = gitHubAuth
+	}
+	jsonEncodedGitHubAuth, err := json.Marshal(auth)
 	if err != nil {
 		return SavedTeam{}, err
 	}
@@ -437,7 +441,7 @@ func (db *teamDB) UpdateGitHubAuth(gitHubAuth GitHubAuth) (SavedTeam, error) {
 		SET github_auth = '%s'
 		WHERE name ILIKE '%s'
 		RETURNING id, name, admin, basic_auth, github_auth
-	`, gitHubAuthJSON, db.teamName,
+	`, string(jsonEncodedGitHubAuth), db.teamName,
 	))
 }
 

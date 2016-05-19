@@ -282,10 +282,20 @@ var _ = Describe("Auth API", func() {
 
 					Context("when passed GitHub auth credentials", func() {
 						BeforeEach(func() {
-							teamDB.UpdateTeamGitHubAuthStub = func(submittedTeam db.Team) (db.SavedTeam, error) {
+							teamDB.UpdateGitHubAuthStub = func(gitHubAuth db.GitHubAuth) (db.SavedTeam, error) {
 								team.Name = teamName
-								atcDBTeamEquality(team, submittedTeam)
-								savedTeam.Team = submittedTeam
+								Expect(gitHubAuth.ClientID).To(Equal(team.GitHubAuth.ClientID))
+								Expect(gitHubAuth.ClientSecret).To(Equal(team.GitHubAuth.ClientSecret))
+								Expect(gitHubAuth.Organizations).To(Equal(team.GitHubAuth.Organizations))
+								Expect(gitHubAuth.Teams).To(HaveLen(len(team.GitHubAuth.Teams)))
+								for _, t := range gitHubAuth.Teams {
+									Expect(team.GitHubAuth.Teams).To(ContainElement(db.GitHubTeam{
+										OrganizationName: t.OrganizationName,
+										TeamName:         t.TeamName,
+									}))
+								}
+								Expect(gitHubAuth.Users).To(Equal(team.GitHubAuth.Users))
+								savedTeam.GitHubAuth = gitHubAuth
 								return savedTeam, nil
 							}
 
@@ -294,7 +304,7 @@ var _ = Describe("Auth API", func() {
 
 						It("updates the GitHub auth for that team", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
-							Expect(teamDB.UpdateTeamGitHubAuthCallCount()).To(Equal(1))
+							Expect(teamDB.UpdateGitHubAuthCallCount()).To(Equal(1))
 						})
 					})
 				})

@@ -35,7 +35,12 @@ func (db *SQLDB) CreateTeam(team Team) (SavedTeam, error) {
 	if err != nil {
 		return SavedTeam{}, err
 	}
-	jsonEncodedGitHubAuth, err := db.jsonEncodeTeamGitHubAuth(team)
+
+	gitHubAuth := GitHubAuth{}
+	if team.ClientID != "" && team.ClientSecret != "" {
+		gitHubAuth = team.GitHubAuth
+	}
+	jsonEncodedGitHubAuth, err := json.Marshal(gitHubAuth)
 	if err != nil {
 		return SavedTeam{}, err
 	}
@@ -47,7 +52,7 @@ func (db *SQLDB) CreateTeam(team Team) (SavedTeam, error) {
 		'%s', '%s', '%s'
 	)
 	RETURNING id, name, admin, basic_auth, github_auth
-	`, team.Name, jsonEncodedBasicAuth, jsonEncodedGitHubAuth,
+	`, team.Name, jsonEncodedBasicAuth, string(jsonEncodedGitHubAuth),
 	))
 }
 
@@ -91,31 +96,6 @@ func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
 	}
 
 	return savedTeam, nil
-}
-
-func (db *SQLDB) jsonEncodeTeamGitHubAuth(team Team) (string, error) {
-	if team.ClientID == "" || team.ClientSecret == "" {
-		team.GitHubAuth = GitHubAuth{}
-	}
-
-	json, err := json.Marshal(team.GitHubAuth)
-	return string(json), err
-}
-
-func (db *SQLDB) UpdateTeamGitHubAuth(team Team) (SavedTeam, error) {
-	gitHubAuth, err := db.jsonEncodeTeamGitHubAuth(team)
-	if err != nil {
-		return SavedTeam{}, err
-	}
-
-	query := fmt.Sprintf(`
-		UPDATE teams
-		SET github_auth = '%s'
-		WHERE name ILIKE '%s'
-		RETURNING id, name, admin, basic_auth, github_auth
-	`, gitHubAuth, team.Name,
-	)
-	return db.queryTeam(query)
 }
 
 func (db *SQLDB) DeleteTeamByName(teamName string) error {

@@ -191,7 +191,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		PublicKey: &signingKey.PublicKey,
 	}
 
-	err = cmd.configureOAuthProviders(logger, sqlDB)
+	err = cmd.configureOAuthProviders(logger, teamDBFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -556,24 +556,27 @@ func (cmd *ATCCommand) loadOrGenerateSigningKey() (*rsa.PrivateKey, error) {
 	return signingKey, nil
 }
 
-func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB) error {
+func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, teamDBFactory db.TeamDBFactory) error {
 	var err error
 	team := db.Team{
 		Name: atc.DefaultTeamName,
 	}
 
-	gitHubTeams := []db.GitHubTeam{}
-	for _, gitHubTeam := range cmd.GitHubAuth.Teams {
-		gitHubTeams = append(gitHubTeams, db.GitHubTeam{
-			TeamName:         gitHubTeam.TeamName,
-			OrganizationName: gitHubTeam.OrganizationName,
-		})
-	}
+	gitHubAuth := db.GitHubAuth{}
 
 	if len(cmd.GitHubAuth.Organizations) > 0 ||
-		len(gitHubTeams) > 0 ||
+		len(cmd.GitHubAuth.Teams) > 0 ||
 		len(cmd.GitHubAuth.Users) > 0 {
-		gitHubAuth := db.GitHubAuth{
+
+		gitHubTeams := []db.GitHubTeam{}
+		for _, gitHubTeam := range cmd.GitHubAuth.Teams {
+			gitHubTeams = append(gitHubTeams, db.GitHubTeam{
+				TeamName:         gitHubTeam.TeamName,
+				OrganizationName: gitHubTeam.OrganizationName,
+			})
+		}
+
+		gitHubAuth = db.GitHubAuth{
 			ClientID:      cmd.GitHubAuth.ClientID,
 			ClientSecret:  cmd.GitHubAuth.ClientSecret,
 			Organizations: cmd.GitHubAuth.Organizations,
@@ -583,12 +586,10 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, sqlDB db.DB)
 			TokenURL:      cmd.GitHubAuth.TokenURL,
 			APIURL:        cmd.GitHubAuth.APIURL,
 		}
-		team.GitHubAuth = gitHubAuth
-	} else {
-		team.GitHubAuth = db.GitHubAuth{}
 	}
 
-	_, err = sqlDB.UpdateTeamGitHubAuth(team)
+	teamDB := teamDBFactory.GetTeamDB(team.Name)
+	_, err = teamDB.UpdateGitHubAuth(gitHubAuth)
 	if err != nil {
 		return err
 	}
