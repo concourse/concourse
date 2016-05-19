@@ -1,7 +1,6 @@
 package triggerbuild
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/pivotal-golang/lager"
@@ -28,6 +27,7 @@ func NewHandler(
 func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	client := handler.clientFactory.Build(r)
 
+	teamName := r.FormValue(":team_name")
 	pipelineName := r.FormValue(":pipeline_name")
 	jobName := r.FormValue(":job")
 
@@ -38,16 +38,19 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 	}
 
 	redirectPath, err := web.Routes.CreatePathForRoute(web.GetBuild, rata.Params{
+		"team_name":     teamName,
 		"pipeline_name": pipelineName,
 		"job":           jobName,
 		"build":         build.Name,
 	})
 	if err != nil {
-		log.Fatal("failed-to-construct-redirect-uri", err, lager.Data{
+		handler.logger.Error("failed-to-construct-redirect-uri", err, lager.Data{
+			"team":     teamName,
 			"pipeline": pipelineName,
 			"job":      jobName,
 			"build":    build.Name,
 		})
+		return err
 	}
 
 	http.Redirect(w, r, redirectPath, http.StatusFound)
