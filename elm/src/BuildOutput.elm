@@ -247,7 +247,8 @@ fetchBuildPlan buildId =
 
 subscribeToEvents : Int -> Sub Action
 subscribeToEvents build =
-  Sub.map BuildEventsAction (Concourse.BuildEvents.subscribe build)
+  Sub.none
+  --Sub.map BuildEventsAction (Concourse.BuildEvents.subscribe build)
 
 view : Model -> Html Action
 view {build, steps, errors, state} =
