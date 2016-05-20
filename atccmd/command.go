@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
+	"net/url"
 	"os"
 	"time"
 
@@ -243,16 +244,31 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
+	var httpHandler http.Handler
+	if cmd.TLSBindPort != 0 {
+		httpRedirectHandler := redirectingAPIHandler{
+			externalHost: cmd.ExternalURL.URL().Host,
+		}
+
+		httpHandler = cmd.constructHTTPHandler(
+			httpRedirectHandler,
+			httpRedirectHandler,
+			httpRedirectHandler,
+		)
+	} else {
+		httpHandler = cmd.constructHTTPHandler(
+			webHandler,
+			apiHandler,
+			oauthHandler,
+		)
+	}
+
 	members := []grouper.Member{
 		{"drainer", drainer(drain)},
 
 		{"web", http_server.New(
-			cmd.bindAddr(),
-			cmd.constructHTTPHandler(
-				webHandler,
-				apiHandler,
-				oauthHandler,
-			),
+			cmd.nonTLSBindAddr(),
+			httpHandler,
 		)},
 
 		{"debug", http_server.New(
@@ -314,7 +330,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	members = cmd.appendStaticWorker(logger, sqlDB, members)
 
-	if cmd.TLSCert != "" {
+	if cmd.TLSBindPort != 0 {
 		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
 
 		if err != nil {
@@ -437,7 +453,15 @@ func (cmd *ATCCommand) validate() error {
 	if cmd.TLSKey != "" {
 		tlsFlagCount++
 	}
-	if tlsFlagCount != 0 && tlsFlagCount != 3 {
+
+	if tlsFlagCount == 3 {
+		if cmd.ExternalURL.URL().Scheme != "https" {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify HTTPS external-url to use TLS"),
+			)
+		}
+	} else if tlsFlagCount != 0 {
 		errs = multierror.Append(
 			errs,
 			errors.New("must specify --tls-bind-port, --tls-cert, --tls-key to use TLS"),
@@ -447,16 +471,30 @@ func (cmd *ATCCommand) validate() error {
 	return errs.ErrorOrNil()
 }
 
-func (cmd *ATCCommand) bindAddr() string {
+func (cmd *ATCCommand) nonTLSBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
-}
-
-func (cmd *ATCCommand) debugBindAddr() string {
-	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
 }
 
 func (cmd *ATCCommand) tlsBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.TLSBindPort)
+}
+
+func (cmd *ATCCommand) bindProtocol() string {
+	if cmd.TLSBindPort != 0 {
+		return "https://"
+	}
+	return "http://"
+}
+
+func (cmd *ATCCommand) bindAddr() string {
+	if cmd.TLSBindPort != 0 {
+		return cmd.tlsBindAddr()
+	}
+	return cmd.nonTLSBindAddr()
+}
+
+func (cmd *ATCCommand) debugBindAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
 }
 
 func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
@@ -746,6 +784,21 @@ func (cmd *ATCCommand) constructAPIHandler(
 	)
 }
 
+type redirectingAPIHandler struct {
+	externalHost string
+}
+
+func (h redirectingAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	u := url.URL{
+		Scheme:   "https",
+		Host:     h.externalHost,
+		Path:     r.URL.Path,
+		RawQuery: r.URL.RawQuery,
+	}
+
+	http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
+}
+
 func (cmd *ATCCommand) constructWebHandler(
 	logger lager.Logger,
 	authValidator auth.Validator,
@@ -757,9 +810,7 @@ func (cmd *ATCCommand) constructWebHandler(
 		wrappa.NewWebMetricsWrappa(logger),
 	}
 
-	clientFactory := web.NewClientFactory(
-		fmt.Sprintf("http://127.0.0.1:%d", cmd.BindPort),
-	)
+	clientFactory := web.NewClientFactory(cmd.bindProtocol() + cmd.bindAddr())
 
 	return webhandler.NewHandler(
 		logger,
