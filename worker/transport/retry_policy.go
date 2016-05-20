@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+//go:generate counterfeiter . RetryPolicy
+
+type RetryPolicy interface {
+	DelayFor(attempts uint) (time.Duration, bool)
+}
+
 type ExponentialRetryPolicy struct {
 	Timeout time.Duration
 }

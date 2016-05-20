@@ -10,15 +10,10 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
-	"github.com/cloudfoundry-incubator/garden/routes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/retryhttp"
-	"github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 )
 
@@ -35,43 +30,26 @@ type TransportDB interface {
 	GetWorker(string) (db.SavedWorker, bool, error)
 }
 
+//go:generate counterfeiter . ReadCloser
+type ReadCloser interface {
+	Read(p []byte) (n int, err error)
+	Close() error
+}
+
+//go:generate counterfeiter . RequestGenerator
+type RequestGenerator interface {
+	CreateRequest(name string, params rata.Params, body io.Reader) (*http.Request, error)
+}
+
 // instead of httpClient defined in default Garden HijackStreamer
-type hijackStreamer struct {
-	httpClient       http.Client
-	hijackableClient retryhttp.HijackableClient
-	req              *rata.RequestGenerator
+type WorkerHijackStreamer struct {
+	HttpClient       *http.Client
+	HijackableClient retryhttp.HijackableClient
+	Req              RequestGenerator
 }
 
-func NewHijackStreamer(logger lager.Logger, workerName string, db TransportDB) gconn.HijackStreamer {
-	retryPolicy := ExponentialRetryPolicy{
-		Timeout: 60 * time.Minute,
-	}
-
-	httpClient := http.Client{
-		Transport: &retryhttp.RetryRoundTripper{
-			Logger:       logger.Session("retryable-http-client"),
-			Sleeper:      clock.NewClock(),
-			RetryPolicy:  retryPolicy,
-			RoundTripper: NewRoundTripper(workerName, db, &http.Transport{DisableKeepAlives: true}),
-		},
-	}
-
-	hijackableClient := &retryhttp.RetryHijackableClient{
-		Logger:           logger.Session("retry-hijackable-client"),
-		Sleeper:          clock.NewClock(),
-		RetryPolicy:      retryPolicy,
-		HijackableClient: NewHijackableClient(workerName, db, retryhttp.DefaultHijackableClient),
-	}
-
-	return hijackStreamer{
-		httpClient:       httpClient,
-		hijackableClient: hijackableClient,
-		req:              rata.NewRequestGenerator("http://127.0.0.1:8080", routes.Routes),
-	}
-}
-
-func (h hijackStreamer) Stream(handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (io.ReadCloser, error) {
-	request, err := h.req.CreateRequest(handler, params, body)
+func (h *WorkerHijackStreamer) Stream(handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (io.ReadCloser, error) {
+	request, err := h.Req.CreateRequest(handler, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +62,7 @@ func (h hijackStreamer) Stream(handler string, body io.Reader, params rata.Param
 		request.URL.RawQuery = query.Encode()
 	}
 
-	httpResp, err := h.httpClient.Do(request)
+	httpResp, err := h.HttpClient.Do(request)
 	if err != nil {
 		return nil, err
 	}
@@ -104,8 +82,8 @@ func (h hijackStreamer) Stream(handler string, body io.Reader, params rata.Param
 	return httpResp.Body, nil
 }
 
-func (h hijackStreamer) Hijack(handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (net.Conn, *bufio.Reader, error) {
-	request, err := h.req.CreateRequest(handler, params, body)
+func (h *WorkerHijackStreamer) Hijack(handler string, body io.Reader, params rata.Params, query url.Values, contentType string) (net.Conn, *bufio.Reader, error) {
+	request, err := h.Req.CreateRequest(handler, params, body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -118,7 +96,7 @@ func (h hijackStreamer) Hijack(handler string, body io.Reader, params rata.Param
 		request.URL.RawQuery = query.Encode()
 	}
 
-	httpResp, hijackCloser, err := h.hijackableClient.Do(request)
+	httpResp, hijackCloser, err := h.HijackableClient.Do(request)
 	if err != nil {
 		return nil, nil, err
 	}

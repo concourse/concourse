@@ -12,6 +12,7 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/worker/transport"
 )
 
 //go:generate counterfeiter . WorkerDB
@@ -40,7 +41,7 @@ type dbProvider struct {
 	logger       lager.Logger
 	db           WorkerDB
 	dialer       gconn.DialerFunc
-	retryPolicy  RetryPolicy
+	retryPolicy  transport.RetryPolicy
 	imageFetcher ImageFetcher
 }
 
@@ -48,7 +49,7 @@ func NewDBWorkerProvider(
 	logger lager.Logger,
 	db WorkerDB,
 	dialer gconn.DialerFunc,
-	retryPolicy RetryPolicy,
+	retryPolicy transport.RetryPolicy,
 	imageFetcher ImageFetcher,
 ) WorkerProvider {
 	return &dbProvider{
@@ -111,6 +112,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		provider.db,
 		provider.logger.Session("garden-connection"),
 		savedWorker.Name,
+		provider.retryPolicy,
 	)
 
 	connection := NewRetryableConnection(gcf.BuildConnection())
