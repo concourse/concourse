@@ -30,7 +30,7 @@ main =
             [ tick
             , scrolledUp
             , pushDown
-            , case model.subModel.output of
+            , case model.subModel.currentBuild `Maybe.andThen` .output of
                 Nothing ->
                   Sub.none
                 Just buildOutput ->
