@@ -20,17 +20,17 @@ type TriggerJobCommand struct {
 func (command *TriggerJobCommand) Execute(args []string) error {
 	pipelineName, jobName := command.Job.PipelineName, command.Job.JobName
 
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	err = rc.ValidateClient(client, Fly.Target, false)
+	err = target.Validate()
 	if err != nil {
 		return err
 	}
 
-	build, err := client.CreateJobBuild(pipelineName, jobName)
+	build, err := target.Team().CreateJobBuild(pipelineName, jobName)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 		signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
 		fmt.Println("")
-		eventSource, err := client.BuildEvents(fmt.Sprintf("%d", build.ID))
+		eventSource, err := target.Client().BuildEvents(fmt.Sprintf("%d", build.ID))
 		if err != nil {
 			return err
 		}

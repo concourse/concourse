@@ -13,11 +13,12 @@ import (
 type SyncCommand struct{}
 
 func (command *SyncCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
+	client := target.Client()
 	body, err := client.GetCLIReader(runtime.GOARCH, runtime.GOOS)
 	if err != nil {
 		return err

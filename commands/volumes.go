@@ -15,16 +15,17 @@ import (
 type VolumesCommand struct{}
 
 func (command *VolumesCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	volumes, err := client.ListVolumes()
+	err = target.Validate()
+	if err != nil {
+		return err
+	}
+
+	volumes, err := target.Client().ListVolumes()
 	if err != nil {
 		return err
 	}

@@ -198,7 +198,7 @@ func (locator stepContainerLocator) locate(fingerprint containerFingerprint) (ma
 	} else if fingerprint.buildNameOrID != "" {
 		reqValues["build-id"] = fingerprint.buildNameOrID
 	} else {
-		build, err := GetBuild(locator.client, "", "", "")
+		build, err := GetBuild(locator.client, nil, "", "", "")
 		if err != nil {
 			return reqValues, err
 		}
@@ -283,14 +283,17 @@ func getContainerIDs(c *HijackCommand) ([]atc.Container, error) {
 		attempt:       attempt,
 	}
 
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return nil, err
 	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+
+	err = target.Validate()
 	if err != nil {
 		return nil, err
 	}
+
+	client := target.Client()
 
 	reqValues, err := locateContainer(client, fingerprint)
 	if err != nil {

@@ -23,21 +23,25 @@ type BuildsCommand struct {
 }
 
 func (command *BuildsCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+
+	err = target.Validate()
 	if err != nil {
 		return err
 	}
 
 	page := concourse.Page{Limit: command.Count}
 
+	team := target.Team()
+	client := target.Client()
+
 	var builds []atc.Build
 	if command.Job.PipelineName != "" && command.Job.JobName != "" {
 		var found bool
-		builds, _, found, err = client.JobBuilds(
+		builds, _, found, err = team.JobBuilds(
 			command.Job.PipelineName,
 			command.Job.JobName,
 			page,

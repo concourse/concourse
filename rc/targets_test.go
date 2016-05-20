@@ -43,6 +43,7 @@ var _ = Describe("Targets", func() {
 					targetName,
 					"some api url",
 					false,
+					"main",
 					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())
@@ -64,6 +65,7 @@ var _ = Describe("Targets", func() {
 					targetName,
 					"some api url",
 					true,
+					"main",
 					nil,
 				)
 				Expect(err).ToNot(HaveOccurred())

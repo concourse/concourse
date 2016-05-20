@@ -12,16 +12,17 @@ type UnpauseJobCommand struct {
 }
 
 func (command *UnpauseJobCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	_, err = client.UnpauseJob(command.Job.PipelineName, command.Job.JobName)
+	err = target.Validate()
+	if err != nil {
+		return err
+	}
+
+	_, err = target.Team().UnpauseJob(command.Job.PipelineName, command.Job.JobName)
 	if err != nil {
 		return err
 	}

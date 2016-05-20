@@ -14,11 +14,12 @@ type CheckResourceCommand struct {
 }
 
 func (command *CheckResourceCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+
+	err = target.Validate()
 	if err != nil {
 		return err
 	}
@@ -28,7 +29,7 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 		version = *command.Version
 	}
 
-	found, err := client.CheckResource(command.Resource.PipelineName, command.Resource.ResourceName, version)
+	found, err := target.Team().CheckResource(command.Resource.PipelineName, command.Resource.ResourceName, version)
 	if err != nil {
 		return err
 	}

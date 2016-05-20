@@ -14,16 +14,17 @@ type AbortBuildCommand struct {
 }
 
 func (command *AbortBuildCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	build, exists, err := client.JobBuild(command.Job.PipelineName, command.Job.JobName, command.Build)
+	err = target.Validate()
+	if err != nil {
+		return err
+	}
+
+	build, exists, err := target.Team().JobBuild(command.Job.PipelineName, command.Job.JobName, command.Build)
 	if err != nil {
 		return fmt.Errorf("failed to get job build")
 	}
@@ -32,7 +33,7 @@ func (command *AbortBuildCommand) Execute([]string) error {
 		return fmt.Errorf("job build does not exist")
 	}
 
-	if err := client.AbortBuild(strconv.Itoa(build.ID)); err != nil {
+	if err := target.Client().AbortBuild(strconv.Itoa(build.ID)); err != nil {
 		return fmt.Errorf("failed to abort build")
 	}
 

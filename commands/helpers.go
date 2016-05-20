@@ -9,14 +9,14 @@ import (
 	"github.com/concourse/go-concourse/concourse"
 )
 
-func GetBuild(client concourse.Client, jobName string, buildNameOrID string, pipelineName string) (atc.Build, error) {
+func GetBuild(client concourse.Client, team concourse.Team, jobName string, buildNameOrID string, pipelineName string) (atc.Build, error) {
 	if buildNameOrID != "" {
 		var build atc.Build
 		var err error
 		var found bool
 
-		if jobName != "" {
-			build, found, err = client.JobBuild(pipelineName, jobName, buildNameOrID)
+		if team != nil {
+			build, found, err = team.JobBuild(pipelineName, jobName, buildNameOrID)
 		} else {
 			build, found, err = client.Build(buildNameOrID)
 		}
@@ -31,7 +31,7 @@ func GetBuild(client concourse.Client, jobName string, buildNameOrID string, pip
 
 		return build, nil
 	} else if jobName != "" {
-		job, found, err := client.Job(pipelineName, jobName)
+		job, found, err := team.Job(pipelineName, jobName)
 
 		if err != nil {
 			return atc.Build{}, fmt.Errorf("failed to get job %s", err)

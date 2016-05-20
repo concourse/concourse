@@ -13,17 +13,17 @@ type RenamePipelineCommand struct {
 }
 
 func (rp *RenamePipelineCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	err = rc.ValidateClient(client, Fly.Target, false)
+	err = target.Validate()
 	if err != nil {
 		return err
 	}
 
-	found, err := client.RenamePipeline(rp.Pipeline, rp.Name)
+	found, err := target.Team().RenamePipeline(rp.Pipeline, rp.Name)
 	if err != nil {
 		return err
 	}

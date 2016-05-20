@@ -17,16 +17,17 @@ type WorkersCommand struct {
 }
 
 func (command *WorkersCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	workers, err := client.ListWorkers()
+	err = target.Validate()
+	if err != nil {
+		return err
+	}
+
+	workers, err := target.Client().ListWorkers()
 	if err != nil {
 		return err
 	}

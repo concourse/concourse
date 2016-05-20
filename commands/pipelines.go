@@ -11,16 +11,17 @@ import (
 type PipelinesCommand struct{}
 
 func (command *PipelinesCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	pipelines, err := client.ListPipelines()
+	err = target.Validate()
+	if err != nil {
+		return err
+	}
+
+	pipelines, err := target.Team().ListPipelines()
 	if err != nil {
 		return err
 	}

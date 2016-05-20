@@ -27,21 +27,22 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		templateVariables[v.Name] = v.Value
 	}
 
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	webRequestGenerator := rata.NewRequestGenerator(client.URL(), web.Routes)
+	err = target.Validate()
+	if err != nil {
+		return err
+	}
+
+	webRequestGenerator := rata.NewRequestGenerator(target.Client().URL(), web.Routes)
 
 	atcConfig := setpipelinehelpers.ATCConfig{
+		Team:                target.Team(),
 		PipelineName:        pipelineName,
 		WebRequestGenerator: webRequestGenerator,
-		Client:              client,
 		SkipInteraction:     command.SkipInteractive,
 	}
 

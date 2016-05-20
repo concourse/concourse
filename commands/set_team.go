@@ -29,11 +29,12 @@ type SetTeamCommand struct {
 }
 
 func (command *SetTeamCommand) Execute([]string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+
+	err = target.Validate()
 	if err != nil {
 		return err
 	}
@@ -78,7 +79,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 		}
 	}
 
-	_, _, _, err = client.SetTeam(command.TeamName, team)
+	_, _, _, err = target.Client().Team(command.TeamName).CreateOrUpdate(team)
 	if err != nil {
 		return err
 	}
