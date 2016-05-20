@@ -12,7 +12,7 @@ import (
 
 var _ = Describe("ATC Handler Build Inputs", func() {
 	Describe("BuildInputsForJob", func() {
-		expectedURL := "/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/inputs"
+		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/inputs"
 
 		Context("when pipeline/job exists", func() {
 			var expectedBuildInputs []atc.BuildInput
@@ -38,7 +38,7 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 			})
 
 			It("returns the input configuration for the given job", func() {
-				buildInputs, found, err := client.BuildInputsForJob("mypipeline", "myjob")
+				buildInputs, found, err := team.BuildInputsForJob("mypipeline", "myjob")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(buildInputs).To(Equal(expectedBuildInputs))
 				Expect(found).To(BeTrue())
@@ -56,7 +56,7 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 			})
 
 			It("returns false in the found value and no error", func() {
-				_, found, err := client.BuildInputsForJob("mypipeline", "myjob")
+				_, found, err := team.BuildInputsForJob("mypipeline", "myjob")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -64,7 +64,7 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 	})
 
 	Describe("BuildsWithVersionAsInput", func() {
-		expectedURL := "/api/v1/teams/main/pipelines/some-pipeline/resources/myresource/versions/2/input_to"
+		expectedURL := "/api/v1/teams/some-team/pipelines/some-pipeline/resources/myresource/versions/2/input_to"
 
 		var expectedBuilds []atc.Build
 
@@ -88,7 +88,7 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 		})
 
 		JustBeforeEach(func() {
-			actualBuilds, found, clientErr = client.BuildsWithVersionAsInput("some-pipeline", "myresource", 2)
+			actualBuilds, found, clientErr = team.BuildsWithVersionAsInput("some-pipeline", "myresource", 2)
 		})
 
 		Context("when the server returns builds", func() {

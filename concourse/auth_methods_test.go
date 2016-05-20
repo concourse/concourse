@@ -36,7 +36,7 @@ var _ = Describe("ATC Handler Auth Methods", func() {
 		})
 
 		It("returns all the auth methods", func() {
-			pipelines, err := client.ListAuthMethods("some-team")
+			pipelines, err := team.ListAuthMethods()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipelines).To(Equal(expectedAuthMethods))
 		})

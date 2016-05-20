@@ -26,7 +26,6 @@ func (client *client) CreateBuild(plan atc.Plan) (atc.Build, error) {
 		Header: http.Header{
 			"Content-Type": {"application/json"},
 		},
-		Params: rata.Params{"team_name": atc.DefaultTeamName},
 	}, &internal.Response{
 		Result: &build,
 	})
@@ -34,15 +33,15 @@ func (client *client) CreateBuild(plan atc.Plan) (atc.Build, error) {
 	return build, err
 }
 
-func (client *client) CreateJobBuild(pipelineName string, jobName string) (atc.Build, error) {
+func (team *team) CreateJobBuild(pipelineName string, jobName string) (atc.Build, error) {
 	params := rata.Params{
 		"job_name":      jobName,
 		"pipeline_name": pipelineName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
 	var build atc.Build
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.CreateJobBuild,
 		Params:      params,
 	}, &internal.Response{
@@ -52,7 +51,7 @@ func (client *client) CreateJobBuild(pipelineName string, jobName string) (atc.B
 	return build, err
 }
 
-func (client *client) JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error) {
+func (team *team) JobBuild(pipelineName, jobName, buildName string) (atc.Build, bool, error) {
 	if pipelineName == "" {
 		return atc.Build{}, false, NameRequiredError("pipeline")
 	}
@@ -61,11 +60,11 @@ func (client *client) JobBuild(pipelineName, jobName, buildName string) (atc.Bui
 		"job_name":      jobName,
 		"build_name":    buildName,
 		"pipeline_name": pipelineName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
 	var build atc.Build
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.GetJobBuild,
 		Params:      params,
 	}, &internal.Response{
@@ -84,8 +83,7 @@ func (client *client) JobBuild(pipelineName, jobName, buildName string) (atc.Bui
 
 func (client *client) Build(buildID string) (atc.Build, bool, error) {
 	params := rata.Params{
-		"build_id":  buildID,
-		"team_name": atc.DefaultTeamName,
+		"build_id": buildID,
 	}
 
 	var build atc.Build
@@ -113,7 +111,6 @@ func (client *client) Builds(page Page) ([]atc.Build, Pagination, error) {
 	err := client.connection.Send(internal.Request{
 		RequestName: atc.ListBuilds,
 		Query:       page.QueryParams(),
-		Params:      rata.Params{"team_name": atc.DefaultTeamName},
 	}, &internal.Response{
 		Result:  &builds,
 		Headers: &headers,
@@ -134,8 +131,7 @@ func (client *client) Builds(page Page) ([]atc.Build, Pagination, error) {
 
 func (client *client) AbortBuild(buildID string) error {
 	params := rata.Params{
-		"build_id":  buildID,
-		"team_name": atc.DefaultTeamName,
+		"build_id": buildID,
 	}
 
 	return client.connection.Send(internal.Request{

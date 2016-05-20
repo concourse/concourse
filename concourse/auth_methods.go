@@ -6,11 +6,11 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (client *client) ListAuthMethods(teamName string) ([]atc.AuthMethod, error) {
+func (team *team) ListAuthMethods() ([]atc.AuthMethod, error) {
 	var authMethods []atc.AuthMethod
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListAuthMethods,
-		Params:      rata.Params{"team_name": teamName},
+		Params:      rata.Params{"team_name": team.name},
 	}, &internal.Response{
 		Result: &authMethods,
 	})

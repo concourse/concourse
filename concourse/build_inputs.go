@@ -8,15 +8,15 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (client *client) BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error) {
+func (team *team) BuildInputsForJob(pipelineName string, jobName string) ([]atc.BuildInput, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
 	var buildInputs []atc.BuildInput
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListJobInputs,
 		Params:      params,
 	}, &internal.Response{
@@ -33,16 +33,16 @@ func (client *client) BuildInputsForJob(pipelineName string, jobName string) ([]
 	}
 }
 
-func (client *client) BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
+func (team *team) BuildsWithVersionAsInput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
 	params := rata.Params{
 		"pipeline_name":       pipelineName,
 		"resource_name":       resourceName,
 		"resource_version_id": strconv.Itoa(resourceVersionID),
-		"team_name":           atc.DefaultTeamName,
+		"team_name":           team.name,
 	}
 
 	var builds []atc.Build
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListBuildsWithVersionAsInput,
 		Params:      params,
 	}, &internal.Response{

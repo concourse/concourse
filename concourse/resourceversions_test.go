@@ -14,7 +14,7 @@ import (
 
 var _ = Describe("ATC Handler Resource Versions", func() {
 	Describe("ResourceVersions", func() {
-		expectedURL := fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/resources/myresource/versions")
+		expectedURL := fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/versions")
 
 		var expectedVersions []atc.VersionedResource
 
@@ -39,7 +39,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		})
 
 		JustBeforeEach(func() {
-			versions, pagination, found, clientErr = client.ResourceVersions("mypipeline", "myresource", page)
+			versions, pagination, found, clientErr = team.ResourceVersions("mypipeline", "myresource", page)
 		})
 
 		Context("when since, until, and limit are 0", func() {
@@ -194,8 +194,8 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 							ghttp.VerifyRequest("GET", expectedURL),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions, http.Header{
 								"Link": []string{
-									`<http://some-url.com/api/v1/teams/main/pipelines/mypipeline/resources/myresource/versions?since=452&limit=123>; rel="previous"`,
-									`<http://some-url.com/api/v1/teams/main/pipelines/mypipeline/resources/myresource/versions?until=254&limit=456>; rel="next"`,
+									`<http://some-url.com/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/versions?since=452&limit=123>; rel="previous"`,
+									`<http://some-url.com/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/versions?until=254&limit=456>; rel="next"`,
 								},
 							}),
 						),

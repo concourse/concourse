@@ -10,8 +10,7 @@ import (
 
 func (client *client) BuildPlan(buildID int) (atc.PublicBuildPlan, bool, error) {
 	params := rata.Params{
-		"build_id":  strconv.Itoa(buildID),
-		"team_name": atc.DefaultTeamName,
+		"build_id": strconv.Itoa(buildID),
 	}
 
 	var buildPlan atc.PublicBuildPlan

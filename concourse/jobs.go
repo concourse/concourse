@@ -8,7 +8,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (client *client) Job(pipelineName, jobName string) (atc.Job, bool, error) {
+func (team *team) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 	if pipelineName == "" {
 		return atc.Job{}, false, NameRequiredError("pipeline")
 	}
@@ -16,11 +16,11 @@ func (client *client) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
 	var job atc.Job
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.GetJob,
 		Params:      params,
 	}, &internal.Response{
@@ -36,17 +36,17 @@ func (client *client) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 	}
 }
 
-func (client *client) JobBuilds(pipelineName string, jobName string, page Page) ([]atc.Build, Pagination, bool, error) {
+func (team *team) JobBuilds(pipelineName string, jobName string, page Page) ([]atc.Build, Pagination, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
 	var builds []atc.Build
 
 	headers := http.Header{}
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListJobBuilds,
 		Params:      params,
 		Query:       page.QueryParams(),
@@ -69,14 +69,14 @@ func (client *client) JobBuilds(pipelineName string, jobName string, page Page) 
 	}
 }
 
-func (client *client) PauseJob(pipelineName string, jobName string) (bool, error) {
+func (team *team) PauseJob(pipelineName string, jobName string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.PauseJob,
 		Params:      params,
 	}, &internal.Response{})
@@ -91,14 +91,14 @@ func (client *client) PauseJob(pipelineName string, jobName string) (bool, error
 	}
 }
 
-func (client *client) UnpauseJob(pipelineName string, jobName string) (bool, error) {
+func (team *team) UnpauseJob(pipelineName string, jobName string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.UnpauseJob,
 		Params:      params,
 	}, &internal.Response{})

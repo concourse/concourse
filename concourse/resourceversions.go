@@ -8,17 +8,17 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (client *client) ResourceVersions(pipelineName string, resourceName string, page Page) ([]atc.VersionedResource, Pagination, bool, error) {
+func (team *team) ResourceVersions(pipelineName string, resourceName string, page Page) ([]atc.VersionedResource, Pagination, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
 	var versionedResources []atc.VersionedResource
 	headers := http.Header{}
 
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListResourceVersions,
 		Params:      params,
 		Query:       page.QueryParams(),

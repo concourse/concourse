@@ -21,7 +21,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			)
 
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob")
+				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob")
 
 				expectedJob = atc.Job{
 					Name:      "myjob",
@@ -33,7 +33,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 						Status:  "succeeded",
 						JobName: "myjob",
 						URL:     fmt.Sprint("/pipelines/mypipeline/jobs/myjob/builds/mybuild"),
-						APIURL:  "api/v1/teams/main/builds/123",
+						APIURL:  "api/v1/teams/some-team/builds/123",
 					},
 					Inputs: []atc.JobInput{
 						{
@@ -71,7 +71,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("returns the given job for that pipeline", func() {
-				job, found, err := client.Job("mypipeline", "myjob")
+				job, found, err := team.Job("mypipeline", "myjob")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(job).To(Equal(expectedJob))
 				Expect(found).To(BeTrue())
@@ -80,7 +80,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when job does not exist", func() {
 			BeforeEach(func() {
-				expectedURL := "/api/v1/teams/main/pipelines/mypipeline/jobs/myjob"
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob"
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -91,7 +91,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("returns false and no error", func() {
-				_, found, err := client.Job("mypipeline", "myjob")
+				_, found, err := team.Job("mypipeline", "myjob")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -125,11 +125,11 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when since, until, and limit are 0", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
 			})
 
 			It("calls to get all builds", func() {
-				builds, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{})
+				builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -138,12 +138,12 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when since is specified", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
 				expectedQuery = fmt.Sprint("since=24")
 			})
 
 			It("calls to get all builds since that id", func() {
-				builds, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24})
+				builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -155,7 +155,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 				})
 
 				It("appends limit to the url", func() {
-					builds, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24, Limit: 5})
+					builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24, Limit: 5})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(builds).To(Equal(expectedBuilds))
@@ -165,12 +165,12 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when until is specified", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
 				expectedQuery = fmt.Sprint("until=26")
 			})
 
 			It("calls to get all builds until that id", func() {
-				builds, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{Until: 26})
+				builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{Until: 26})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -182,7 +182,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 				})
 
 				It("appends limit to the url", func() {
-					builds, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{Until: 26, Limit: 15})
+					builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{Until: 26, Limit: 15})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(builds).To(Equal(expectedBuilds))
@@ -192,12 +192,12 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when since and until are both specified", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
 				expectedQuery = fmt.Sprint("until=26")
 			})
 
 			It("only sends the until", func() {
-				builds, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24, Until: 26})
+				builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24, Until: 26})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -206,7 +206,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when the server returns an error", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -217,7 +217,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("returns false and an error", func() {
-				_, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{})
+				_, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{})
 				Expect(err).To(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -225,7 +225,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when the server returns not found", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -236,7 +236,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("returns false and no error", func() {
-				_, _, found, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{})
+				_, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -245,15 +245,15 @@ var _ = Describe("ATC Handler Jobs", func() {
 		Context("pagination data", func() {
 			Context("with a link header", func() {
 				BeforeEach(func() {
-					expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
+					expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", expectedURL),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{
 								"Link": []string{
-									`<http://some-url.com/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/builds?since=452&limit=123>; rel="previous"`,
-									`<http://some-url.com/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/builds?until=254&limit=456>; rel="next"`,
+									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?since=452&limit=123>; rel="previous"`,
+									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?until=254&limit=456>; rel="next"`,
 								},
 							}),
 						),
@@ -261,7 +261,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 				})
 
 				It("returns the pagination data from the header", func() {
-					_, pagination, _, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{})
+					_, pagination, _, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{})
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(pagination.Previous).To(Equal(&concourse.Page{Since: 452, Limit: 123}))
@@ -272,7 +272,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("without a link header", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds")
+				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -283,7 +283,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 
 			It("returns pagination data with nil pages", func() {
-				_, pagination, _, err := client.JobBuilds("mypipeline", "myjob", concourse.Page{})
+				_, pagination, _, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{})
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(pagination.Previous).To(BeNil())
@@ -297,7 +297,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			expectedStatus int
 			pipelineName   = "banana"
 			jobName        = "disjob"
-			expectedURL    = fmt.Sprintf("/api/v1/teams/main/pipelines/%s/jobs/%s/pause", pipelineName, jobName)
+			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/jobs/%s/pause", pipelineName, jobName)
 		)
 
 		JustBeforeEach(func() {
@@ -316,7 +316,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 			It("calls the pause job and returns no error", func() {
 				Expect(func() {
-					paused, err := client.PauseJob(pipelineName, jobName)
+					paused, err := team.PauseJob(pipelineName, jobName)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(paused).To(BeTrue())
 				}).To(Change(func() int {
@@ -332,7 +332,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 			It("calls the pause job and returns an error", func() {
 				Expect(func() {
-					paused, err := client.PauseJob(pipelineName, jobName)
+					paused, err := team.PauseJob(pipelineName, jobName)
 					Expect(err).To(HaveOccurred())
 					Expect(paused).To(BeFalse())
 				}).To(Change(func() int {
@@ -348,7 +348,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 			It("calls the pause job and returns an error", func() {
 				Expect(func() {
-					paused, err := client.PauseJob(pipelineName, jobName)
+					paused, err := team.PauseJob(pipelineName, jobName)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(paused).To(BeFalse())
 				}).To(Change(func() int {
@@ -363,7 +363,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			expectedStatus int
 			pipelineName   = "banana"
 			jobName        = "disjob"
-			expectedURL    = fmt.Sprintf("/api/v1/teams/main/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
+			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
 		)
 
 		JustBeforeEach(func() {
@@ -382,7 +382,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 			It("calls the pause job and returns no error", func() {
 				Expect(func() {
-					paused, err := client.UnpauseJob(pipelineName, jobName)
+					paused, err := team.UnpauseJob(pipelineName, jobName)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(paused).To(BeTrue())
 				}).To(Change(func() int {
@@ -398,7 +398,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 			It("calls the pause job and returns an error", func() {
 				Expect(func() {
-					paused, err := client.UnpauseJob(pipelineName, jobName)
+					paused, err := team.UnpauseJob(pipelineName, jobName)
 					Expect(err).To(HaveOccurred())
 					Expect(paused).To(BeFalse())
 				}).To(Change(func() int {
@@ -414,7 +414,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 			It("calls the pause job and returns an error", func() {
 				Expect(func() {
-					paused, err := client.UnpauseJob(pipelineName, jobName)
+					paused, err := team.UnpauseJob(pipelineName, jobName)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(paused).To(BeFalse())
 				}).To(Change(func() int {

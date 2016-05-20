@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("ATC Handler Teams", func() {
-	Describe("SetTeam", func() {
+	Describe("CreateOrUpdate", func() {
 		var expectedURL = "/api/v1/teams/team venture"
 		var expectedTeam, desiredTeam atc.Team
 
@@ -26,6 +26,8 @@ var _ = Describe("ATC Handler Teams", func() {
 				ID:   1,
 				Name: "team venture",
 			}
+
+			team = client.Team("team venture")
 		})
 
 		Context("when passed a properly constructed team", func() {
@@ -40,7 +42,7 @@ var _ = Describe("ATC Handler Teams", func() {
 			})
 
 			It("returns back the team", func() {
-				team, _, _, err := client.SetTeam("team venture", desiredTeam)
+				team, _, _, err := team.CreateOrUpdate(desiredTeam)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(team).To(Equal(expectedTeam))
 			})
@@ -58,7 +60,7 @@ var _ = Describe("ATC Handler Teams", func() {
 			})
 
 			It("returns back true for created, and false for updated", func() {
-				_, found, updated, err := client.SetTeam("team venture", desiredTeam)
+				_, found, updated, err := team.CreateOrUpdate(desiredTeam)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(updated).To(BeFalse())
@@ -77,7 +79,7 @@ var _ = Describe("ATC Handler Teams", func() {
 			})
 
 			It("returns back false for created, and true for updated", func() {
-				_, found, updated, err := client.SetTeam("team venture", desiredTeam)
+				_, found, updated, err := team.CreateOrUpdate(desiredTeam)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(updated).To(BeTrue())

@@ -18,10 +18,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func (client *client) PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error) {
+func (team *team) PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
 	var configResponse atc.ConfigResponse
@@ -31,7 +31,7 @@ func (client *client) PipelineConfig(pipelineName string) (atc.Config, atc.RawCo
 		Headers: &responseHeaders,
 		Result:  &configResponse,
 	}
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.GetConfig,
 		Params:      params,
 	}, &response)
@@ -75,10 +75,10 @@ type setConfigResponse struct {
 	Warnings []ConfigWarning `json:"warnings"`
 }
 
-func (client *client) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config) (bool, bool, []ConfigWarning, error) {
+func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig atc.Config) (bool, bool, []ConfigWarning, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
 	response := internal.Response{}
@@ -106,7 +106,7 @@ func (client *client) CreateOrUpdatePipelineConfig(pipelineName string, configVe
 
 	writer.Close()
 
-	err = client.connection.Send(internal.Request{
+	err = team.connection.Send(internal.Request{
 		ReturnResponseBody: true,
 		RequestName:        atc.SaveConfig,
 		Params:             params,

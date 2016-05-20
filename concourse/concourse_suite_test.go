@@ -21,6 +21,7 @@ func TestApi(t *testing.T) {
 var (
 	atcServer *ghttp.Server
 	client    concourse.Client
+	team      concourse.Team
 )
 
 var _ = BeforeEach(func() {
@@ -30,6 +31,8 @@ var _ = BeforeEach(func() {
 		atcServer.URL(),
 		&http.Client{},
 	)
+
+	team = client.Team("some-team")
 })
 
 var _ = AfterEach(func() {

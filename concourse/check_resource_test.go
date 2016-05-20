@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
-	. "github.com/concourse/go-concourse/concourse"
+	"github.com/concourse/go-concourse/concourse"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,7 +15,7 @@ import (
 var _ = Describe("CheckResource", func() {
 	Context("when ATC request succeeds", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resources/myresource/check"
+			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
@@ -26,7 +26,7 @@ var _ = Describe("CheckResource", func() {
 		})
 
 		It("sends check resource request to ATC", func() {
-			found, err := client.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			found, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -36,7 +36,7 @@ var _ = Describe("CheckResource", func() {
 
 	Context("when pipeline or resource does not exist", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resources/myresource/check"
+			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
@@ -47,7 +47,7 @@ var _ = Describe("CheckResource", func() {
 		})
 
 		It("returns a ResourceNotFoundError", func() {
-			found, err := client.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			found, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -55,7 +55,7 @@ var _ = Describe("CheckResource", func() {
 
 	Context("when ATC responds with an error", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resources/myresource/check"
+			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
 
 			atcResponse := atc.CheckResponseBody{
 				ExitStatus: 1,
@@ -72,10 +72,10 @@ var _ = Describe("CheckResource", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := client.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			_, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).To(HaveOccurred())
 
-			cre, ok := err.(CheckResourceError)
+			cre, ok := err.(concourse.CheckResourceError)
 			Expect(ok).To(BeTrue())
 			Expect(cre.Error()).To(Equal("check failed with exit status '1':\nbad version\n"))
 		})

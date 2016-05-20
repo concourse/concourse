@@ -13,7 +13,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	Describe("PausePipeline", func() {
 		Context("when the pipeline exists", func() {
 			BeforeEach(func() {
-				expectedURL := "/api/v1/teams/main/pipelines/mypipeline/pause"
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/pause"
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
@@ -21,8 +21,9 @@ var _ = Describe("ATC Handler Pipelines", func() {
 					),
 				)
 			})
+
 			It("return true and no error", func() {
-				found, err := client.PausePipeline("mypipeline")
+				found, err := team.PausePipeline("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 			})
@@ -30,7 +31,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 		Context("when the pipeline doesn't exist", func() {
 			BeforeEach(func() {
-				expectedURL := "/api/v1/teams/main/pipelines/mypipeline/pause"
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/pause"
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
@@ -39,18 +40,54 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				)
 			})
 			It("returns false and no error", func() {
-				found, err := client.PausePipeline("mypipeline")
+				found, err := team.PausePipeline("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
 		})
+	})
 
+	Describe("UnpausePipeline", func() {
+		Context("when the pipeline exists", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/unpause"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, ""),
+					),
+				)
+			})
+
+			It("return true and no error", func() {
+				found, err := team.UnpausePipeline("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+		})
+
+		Context("when the pipeline doesn't exist", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/unpause"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
+					),
+				)
+			})
+			It("returns false and no error", func() {
+				found, err := team.UnpausePipeline("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
 	})
 
 	Describe("Pipeline", func() {
 		var expectedPipeline atc.Pipeline
 		pipelineName := "mypipeline"
-		expectedURL := "/api/v1/teams/main/pipelines/mypipeline"
+		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline"
 
 		BeforeEach(func() {
 			expectedPipeline = atc.Pipeline{
@@ -77,7 +114,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("returns the requested pipeline", func() {
-				pipeline, found, err := client.Pipeline(pipelineName)
+				pipeline, found, err := team.Pipeline(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(pipeline).To(Equal(expectedPipeline))
@@ -95,7 +132,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("returns false", func() {
-				_, found, err := client.Pipeline(pipelineName)
+				_, found, err := team.Pipeline(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -106,7 +143,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 		var expectedPipelines []atc.Pipeline
 
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/pipelines"
+			expectedURL := "/api/v1/teams/some-team/pipelines"
 
 			expectedPipelines = []atc.Pipeline{
 				{
@@ -142,14 +179,14 @@ var _ = Describe("ATC Handler Pipelines", func() {
 		})
 
 		It("returns all the pipelines", func() {
-			pipelines, err := client.ListPipelines()
+			pipelines, err := team.ListPipelines()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipelines).To(Equal(expectedPipelines))
 		})
 	})
 
 	Describe("DeletePipeline", func() {
-		expectedURL := "/api/v1/teams/main/pipelines/mypipeline"
+		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline"
 
 		Context("when the pipeline exists", func() {
 			BeforeEach(func() {
@@ -163,7 +200,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 			It("deletes the pipeline when called", func() {
 				Expect(func() {
-					found, err := client.DeletePipeline("mypipeline")
+					found, err := team.DeletePipeline("mypipeline")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 				}).To(Change(func() int {
@@ -183,7 +220,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("returns false and no error", func() {
-				found, err := client.DeletePipeline("mypipeline")
+				found, err := team.DeletePipeline("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -191,7 +228,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	})
 
 	Describe("RenamePipeline", func() {
-		expectedURL := "/api/v1/teams/main/pipelines/mypipeline/rename"
+		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/rename"
 
 		Context("when the pipeline exists", func() {
 			BeforeEach(func() {
@@ -205,7 +242,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("renames the pipeline when called", func() {
-				renamed, err := client.RenamePipeline("mypipeline", "newpipelinename")
+				renamed, err := team.RenamePipeline("mypipeline", "newpipelinename")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(renamed).To(BeTrue())
 			})
@@ -219,7 +256,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("returns false and no error", func() {
-				renamed, err := client.RenamePipeline("mypipeline", "newpipelinename")
+				renamed, err := team.RenamePipeline("mypipeline", "newpipelinename")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(renamed).To(BeFalse())
 			})
@@ -233,7 +270,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("returns an error", func() {
-				renamed, err := client.RenamePipeline("mypipeline", "newpipelinename")
+				renamed, err := team.RenamePipeline("mypipeline", "newpipelinename")
 				Expect(err).To(MatchError(ContainSubstring("418 I'm a teapot")))
 				Expect(renamed).To(BeFalse())
 			})

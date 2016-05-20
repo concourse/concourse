@@ -11,10 +11,10 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-// SetTeam creates or updates team teamName with the settings provided in passedTeam.
+// CreateOrUpdate creates or updates team teamName with the settings provided in passedTeam.
 // passedTeam should reflect the desired state of team's configuration.
-func (client *client) SetTeam(teamName string, passedTeam atc.Team) (atc.Team, bool, bool, error) {
-	params := rata.Params{"team_name": teamName}
+func (team *team) CreateOrUpdate(passedTeam atc.Team) (atc.Team, bool, bool, error) {
+	params := rata.Params{"team_name": team.name}
 
 	buffer := &bytes.Buffer{}
 	err := json.NewEncoder(buffer).Encode(passedTeam)
@@ -22,11 +22,11 @@ func (client *client) SetTeam(teamName string, passedTeam atc.Team) (atc.Team, b
 		return atc.Team{}, false, false, fmt.Errorf("Unable to marshal plan: %s", err)
 	}
 
-	var team atc.Team
+	var savedTeam atc.Team
 	response := internal.Response{
-		Result: &team,
+		Result: &savedTeam,
 	}
-	err = client.connection.Send(internal.Request{
+	err = team.connection.Send(internal.Request{
 		RequestName: atc.SetTeam,
 		Params:      params,
 		Body:        buffer,
@@ -36,7 +36,7 @@ func (client *client) SetTeam(teamName string, passedTeam atc.Team) (atc.Team, b
 	}, &response)
 
 	if err != nil {
-		return team, false, false, err
+		return savedTeam, false, false, err
 	}
 
 	var created, updated bool
@@ -46,5 +46,5 @@ func (client *client) SetTeam(teamName string, passedTeam atc.Team) (atc.Team, b
 		updated = true
 	}
 
-	return team, created, updated, nil
+	return savedTeam, created, updated, nil
 }

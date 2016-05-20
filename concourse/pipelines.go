@@ -10,14 +10,14 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (client *client) Pipeline(pipelineName string) (atc.Pipeline, bool, error) {
+func (team *team) Pipeline(pipelineName string) (atc.Pipeline, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
 	var pipeline atc.Pipeline
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.GetPipeline,
 		Params:      params,
 	}, &internal.Response{
@@ -34,13 +34,13 @@ func (client *client) Pipeline(pipelineName string) (atc.Pipeline, bool, error) 
 	}
 }
 
-func (client *client) ListPipelines() ([]atc.Pipeline, error) {
+func (team *team) ListPipelines() ([]atc.Pipeline, error) {
 	params := rata.Params{
-		"team_name": atc.DefaultTeamName,
+		"team_name": team.name,
 	}
 
 	var pipelines []atc.Pipeline
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListPipelines,
 		Params:      params,
 	}, &internal.Response{
@@ -50,13 +50,13 @@ func (client *client) ListPipelines() ([]atc.Pipeline, error) {
 	return pipelines, err
 }
 
-func (client *client) DeletePipeline(pipelineName string) (bool, error) {
+func (team *team) DeletePipeline(pipelineName string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.DeletePipeline,
 		Params:      params,
 	}, nil)
@@ -71,12 +71,12 @@ func (client *client) DeletePipeline(pipelineName string) (bool, error) {
 	}
 }
 
-func (client *client) PausePipeline(pipelineName string) (bool, error) {
+func (team *team) PausePipeline(pipelineName string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.PausePipeline,
 		Params:      params,
 	}, nil)
@@ -91,13 +91,13 @@ func (client *client) PausePipeline(pipelineName string) (bool, error) {
 	}
 }
 
-func (client *client) UnpausePipeline(pipelineName string) (bool, error) {
+func (team *team) UnpausePipeline(pipelineName string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.UnpausePipeline,
 		Params:      params,
 	}, nil)
@@ -112,10 +112,10 @@ func (client *client) UnpausePipeline(pipelineName string) (bool, error) {
 	}
 }
 
-func (client *client) RenamePipeline(pipelineName, name string) (bool, error) {
+func (team *team) RenamePipeline(pipelineName, name string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
 	jsonBytes, err := json.Marshal(struct {
@@ -125,7 +125,7 @@ func (client *client) RenamePipeline(pipelineName, name string) (bool, error) {
 		return false, err
 	}
 
-	err = client.connection.Send(internal.Request{
+	err = team.connection.Send(internal.Request{
 		RequestName: atc.RenamePipeline,
 		Params:      params,
 		Body:        bytes.NewBuffer(jsonBytes),

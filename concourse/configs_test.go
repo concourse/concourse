@@ -59,7 +59,7 @@ func getConfigAndPausedState(r *http.Request) ([]byte, *bool) {
 
 var _ = Describe("ATC Handler Configs", func() {
 	Describe("PipelineConfig", func() {
-		expectedURL := "/api/v1/teams/main/pipelines/mypipeline/config"
+		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/config"
 
 		Context("ATC returns the correct response when it exists", func() {
 			var (
@@ -130,7 +130,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns the given config and version for that pipeline", func() {
-				pipelineConfig, rawConfig, version, found, err := client.PipelineConfig("mypipeline")
+				pipelineConfig, rawConfig, version, found, err := team.PipelineConfig("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pipelineConfig).To(Equal(expectedConfig))
 				Expect(rawConfig).To(Equal(expectedRawConfig))
@@ -152,7 +152,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns an error", func() {
-				_, actualRawConfig, actualConfigVersion, found, err := client.PipelineConfig("mypipeline")
+				_, actualRawConfig, actualConfigVersion, found, err := team.PipelineConfig("mypipeline")
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("config-error"))
 				Expect(actualRawConfig).To(Equal(atc.RawConfig("raw-config")))
@@ -172,7 +172,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns false and no error", func() {
-				_, _, _, found, err := client.PipelineConfig("mypipeline")
+				_, _, _, found, err := team.PipelineConfig("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -189,7 +189,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns the error", func() {
-				_, _, _, _, err := client.PipelineConfig("mypipeline")
+				_, _, _, _, err := team.PipelineConfig("mypipeline")
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -205,7 +205,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns an error", func() {
-				_, _, _, _, err := client.PipelineConfig("mypipeline")
+				_, _, _, _, err := team.PipelineConfig("mypipeline")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -231,7 +231,7 @@ var _ = Describe("ATC Handler Configs", func() {
 				ResourceTypes: atc.ResourceTypes{},
 			}
 
-			expectedPath := "/api/v1/teams/main/pipelines/mypipeline/config"
+			expectedPath := "/api/v1/teams/some-team/pipelines/mypipeline/config"
 
 			atcServer.RouteToHandler("PUT", expectedPath,
 				ghttp.CombineHandlers(
@@ -264,7 +264,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns true for created and false for updated", func() {
-				created, updated, warnings, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+				created, updated, warnings, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 				Expect(updated).To(BeFalse())
@@ -286,7 +286,7 @@ var _ = Describe("ATC Handler Configs", func() {
 				})
 
 				It("returns an error", func() {
-					_, _, _, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
 					Expect(err).To(HaveOccurred())
 				})
 			})
@@ -302,7 +302,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns false for created and true for updated", func() {
-				created, updated, warnings, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+				created, updated, warnings, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeFalse())
 				Expect(updated).To(BeTrue())
@@ -324,7 +324,7 @@ var _ = Describe("ATC Handler Configs", func() {
 				})
 
 				It("returns an error", func() {
-					_, _, _, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
 					Expect(err).To(HaveOccurred())
 				})
 			})
@@ -337,7 +337,7 @@ var _ = Describe("ATC Handler Configs", func() {
 			})
 
 			It("returns config validation error", func() {
-				_, _, _, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+				_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("invalid configuration:\n"))
 				Expect(err.Error()).To(ContainSubstring("fake-error1\nfake-error2"))
@@ -349,7 +349,7 @@ var _ = Describe("ATC Handler Configs", func() {
 				})
 
 				It("returns an error", func() {
-					_, _, _, err := client.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(expectedPipelineName, expectedVersion, expectedConfig)
 					Expect(err).To(HaveOccurred())
 				})
 			})

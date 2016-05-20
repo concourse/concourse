@@ -24,14 +24,14 @@ var _ = Describe("ATC Handler Resource", func() {
 		})
 
 		JustBeforeEach(func() {
-			resource, found, clientErr = client.Resource("some-pipeline", "myresource")
+			resource, found, clientErr = team.Resource("some-pipeline", "myresource")
 		})
 
 		Context("when the server returns the resource", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/resources/myresource"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/pipelines/some-pipeline/resources/myresource"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResource),
 					),
 				)
@@ -48,7 +48,7 @@ var _ = Describe("ATC Handler Resource", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/resources/myresource"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/pipelines/some-pipeline/resources/myresource"),
 						ghttp.RespondWith(http.StatusNotFound, ""),
 					),
 				)
@@ -64,7 +64,7 @@ var _ = Describe("ATC Handler Resource", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/resources/myresource"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/pipelines/some-pipeline/resources/myresource"),
 						ghttp.RespondWith(http.StatusInternalServerError, ""),
 					),
 				)

@@ -30,7 +30,7 @@ var _ = Describe("ATC Handler Auth Token", func() {
 		})
 
 		It("returns the user's auth token", func() {
-			token, err := client.AuthToken("some-team")
+			token, err := team.AuthToken()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(token).To(Equal(expectedAuthToken))
 		})

@@ -6,15 +6,15 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (client *client) Resource(pipelineName string, resourceName string) (atc.Resource, bool, error) {
+func (team *team) Resource(pipelineName string, resourceName string) (atc.Resource, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
 	var resource atc.Resource
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.GetResource,
 		Params:      params,
 	}, &internal.Response{

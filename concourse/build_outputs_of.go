@@ -8,16 +8,16 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (client *client) BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
+func (team *team) BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
 	params := rata.Params{
-		"team_name":           atc.DefaultTeamName,
+		"team_name":           team.name,
 		"pipeline_name":       pipelineName,
 		"resource_name":       resourceName,
 		"resource_version_id": strconv.Itoa(resourceVersionID),
 	}
 
 	var builds []atc.Build
-	err := client.connection.Send(internal.Request{
+	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListBuildsWithVersionAsOutput,
 		Params:      params,
 	}, &internal.Response{

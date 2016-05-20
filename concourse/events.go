@@ -16,8 +16,7 @@ func (client *client) BuildEvents(buildID string) (Events, error) {
 	sseEvents, err := client.connection.ConnectToEventStream(internal.Request{
 		RequestName: atc.BuildEvents,
 		Params: rata.Params{
-			"build_id":  buildID,
-			"team_name": atc.DefaultTeamName,
+			"build_id": buildID,
 		},
 	})
 	if err != nil {

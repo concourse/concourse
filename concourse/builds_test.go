@@ -81,7 +81,7 @@ var _ = Describe("ATC Handler Builds", func() {
 				URL:     "/pipelines/mypipeline/jobs/myjob/builds/mybuild",
 				APIURL:  "api/v1/builds/123",
 			}
-			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds"
+			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds"
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -92,7 +92,7 @@ var _ = Describe("ATC Handler Builds", func() {
 		})
 
 		It("takes a pipeline and a job and creates the build", func() {
-			build, err := client.CreateJobBuild(pipelineName, jobName)
+			build, err := team.CreateJobBuild(pipelineName, jobName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(build).To(Equal(expectedBuild))
 		})
@@ -115,7 +115,7 @@ var _ = Describe("ATC Handler Builds", func() {
 					APIURL:  "api/v1/builds/123",
 				}
 
-				expectedURL = "/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds/mybuild"
+				expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds/mybuild"
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -126,7 +126,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			})
 
 			It("returns the given build", func() {
-				build, found, err := client.JobBuild("mypipeline", "myjob", "mybuild")
+				build, found, err := team.JobBuild("mypipeline", "myjob", "mybuild")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(build).To(Equal(expectedBuild))
@@ -135,7 +135,7 @@ var _ = Describe("ATC Handler Builds", func() {
 
 		Context("when build does not exist", func() {
 			BeforeEach(func() {
-				expectedURL = "/api/v1/teams/main/pipelines/mypipeline/jobs/myjob/builds/mybuild"
+				expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds/mybuild"
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -146,7 +146,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			})
 
 			It("return false and no error", func() {
-				_, found, err := client.JobBuild("mypipeline", "myjob", "mybuild")
+				_, found, err := team.JobBuild("mypipeline", "myjob", "mybuild")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})

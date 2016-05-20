@@ -19,11 +19,11 @@ func (checkResourceError CheckResourceError) Error() string {
 	return fmt.Sprintf("check failed with exit status '%d':\n%s\n", checkResourceError.ExitStatus, checkResourceError.Stderr)
 }
 
-func (client *client) CheckResource(pipelineName string, resourceName string, version atc.Version) (bool, error) {
+func (team *team) CheckResource(pipelineName string, resourceName string, version atc.Version) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceName,
-		"team_name":     atc.DefaultTeamName,
+		"team_name":     team.name,
 	}
 
 	jsonBytes, err := json.Marshal(atc.CheckRequestBody{From: version})
@@ -32,7 +32,7 @@ func (client *client) CheckResource(pipelineName string, resourceName string, ve
 	}
 
 	response := internal.Response{}
-	err = client.connection.Send(internal.Request{
+	err = team.connection.Send(internal.Request{
 		ReturnResponseBody: true,
 		RequestName:        atc.CheckResource,
 		Params:             params,
