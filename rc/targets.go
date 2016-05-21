@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/concourse/atc"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -104,6 +106,12 @@ func LoadTargets() (*targetDetailsYAML, error) {
 
 	if flyTargets == nil {
 		return &targetDetailsYAML{Targets: map[TargetName]TargetProps{}}, nil
+	}
+	for name, targetProps := range flyTargets.Targets {
+		if targetProps.TeamName == "" {
+			targetProps.TeamName = atc.DefaultTeamName
+			flyTargets.Targets[name] = targetProps
+		}
 	}
 	return flyTargets, nil
 }
