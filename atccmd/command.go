@@ -53,15 +53,15 @@ import (
 )
 
 type ATCCommand struct {
-	BindIP      IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
-	BindPort    uint16 `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
-	TLSBindPort uint16 `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
+	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
+	BindPort uint16 `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
+
+	TLSBindPort uint16   `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
+	TLSCert     FileFlag `long:"tls-cert"      description:"File containing an SSL certificate."`
+	TLSKey      FileFlag `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
 	ExternalURL URLFlag `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
 	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
-
-	TLSCert FileFlag `long:"tls-cert" description:"File containing an SSL certificate."`
-	TLSKey  FileFlag `long:"tls-key" description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
 	OAuthBaseURL URLFlag `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
 
@@ -353,10 +353,16 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	return onReady(grouper.NewParallel(os.Interrupt, members), func() {
-		logger.Info("listening", lager.Data{
-			"web":   cmd.bindAddr(),
+		logData := lager.Data{
+			"http":  cmd.nonTLSBindAddr(),
 			"debug": cmd.debugBindAddr(),
-		})
+		}
+
+		if cmd.TLSBindPort != 0 {
+			logData["https"] = cmd.tlsBindAddr()
+		}
+
+		logger.Info("listening", logData)
 	}), nil
 }
 
