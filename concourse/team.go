@@ -8,6 +8,8 @@ import (
 //go:generate counterfeiter . Team
 
 type Team interface {
+	Name() string
+
 	ListAuthMethods() ([]atc.AuthMethod, error)
 	AuthToken() (atc.AuthToken, error)
 
@@ -44,6 +46,10 @@ type Team interface {
 type team struct {
 	name       string
 	connection internal.Connection
+}
+
+func (team *team) Name() string {
+	return team.name
 }
 
 func (client *client) Team(name string) Team {

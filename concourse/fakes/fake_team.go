@@ -9,6 +9,12 @@ import (
 )
 
 type FakeTeam struct {
+	NameStub        func() string
+	nameMutex       sync.RWMutex
+	nameArgsForCall []struct{}
+	nameReturns     struct {
+		result1 string
+	}
 	ListAuthMethodsStub        func() ([]atc.AuthMethod, error)
 	listAuthMethodsMutex       sync.RWMutex
 	listAuthMethodsArgsForCall []struct{}
@@ -249,6 +255,30 @@ type FakeTeam struct {
 		result2 bool
 		result3 error
 	}
+}
+
+func (fake *FakeTeam) Name() string {
+	fake.nameMutex.Lock()
+	fake.nameArgsForCall = append(fake.nameArgsForCall, struct{}{})
+	fake.nameMutex.Unlock()
+	if fake.NameStub != nil {
+		return fake.NameStub()
+	} else {
+		return fake.nameReturns.result1
+	}
+}
+
+func (fake *FakeTeam) NameCallCount() int {
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	return len(fake.nameArgsForCall)
+}
+
+func (fake *FakeTeam) NameReturns(result1 string) {
+	fake.NameStub = nil
+	fake.nameReturns = struct {
+		result1 string
+	}{result1}
 }
 
 func (fake *FakeTeam) ListAuthMethods() ([]atc.AuthMethod, error) {
