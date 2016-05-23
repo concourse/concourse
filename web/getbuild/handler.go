@@ -61,7 +61,8 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		return nil
 	}
 
-	job, found, err := client.Job(pipelineName, jobName)
+	team := client.Team(teamName)
+	job, found, err := team.Job(pipelineName, jobName)
 	if err != nil {
 		logger.Error("failed-to-load-job", err)
 		return err
@@ -77,7 +78,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		"build": buildName,
 	})
 
-	requestedBuild, found, err := client.JobBuild(pipelineName, jobName, buildName)
+	requestedBuild, found, err := team.JobBuild(pipelineName, jobName, buildName)
 	if err != nil {
 		log.Error("failed-to-get-build", err)
 		return err
@@ -88,7 +89,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 		return nil
 	}
 
-	pipeline, _, err := client.Pipeline(pipelineName)
+	pipeline, _, err := team.Pipeline(pipelineName)
 	if err != nil {
 		log.Error("failed-to-get-pipeline", err)
 		return err
@@ -136,7 +137,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 			return err
 		}
 
-		builds, err := getAllJobBuilds(client, pipelineName, jobName)
+		builds, err := getAllJobBuilds(team, pipelineName, jobName)
 		if err != nil {
 			log.Error("get-all-builds-failed", err)
 			return err
@@ -160,12 +161,12 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 	return nil
 }
 
-func getAllJobBuilds(client concourse.Client, pipelineName string, jobName string) ([]atc.Build, error) {
+func getAllJobBuilds(team concourse.Team, pipelineName string, jobName string) ([]atc.Build, error) {
 	builds := []atc.Build{}
 	page := &concourse.Page{}
 
 	for page != nil {
-		bs, pagination, _, err := client.JobBuilds(pipelineName, jobName, *page)
+		bs, pagination, _, err := team.JobBuilds(pipelineName, jobName, *page)
 		if err != nil {
 			return nil, err
 		}
