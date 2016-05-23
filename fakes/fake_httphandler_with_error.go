@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/concourse/atc/web/authredirect"
+	"github.com/concourse/atc/web"
 )
 
-type FakeErrHandler struct {
+type FakeHTTPHandlerWithError struct {
 	ServeHTTPStub        func(w http.ResponseWriter, r *http.Request) error
 	serveHTTPMutex       sync.RWMutex
 	serveHTTPArgsForCall []struct {
@@ -20,7 +20,7 @@ type FakeErrHandler struct {
 	}
 }
 
-func (fake *FakeErrHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+func (fake *FakeHTTPHandlerWithError) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
 	fake.serveHTTPMutex.Lock()
 	fake.serveHTTPArgsForCall = append(fake.serveHTTPArgsForCall, struct {
 		w http.ResponseWriter
@@ -34,23 +34,23 @@ func (fake *FakeErrHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) er
 	}
 }
 
-func (fake *FakeErrHandler) ServeHTTPCallCount() int {
+func (fake *FakeHTTPHandlerWithError) ServeHTTPCallCount() int {
 	fake.serveHTTPMutex.RLock()
 	defer fake.serveHTTPMutex.RUnlock()
 	return len(fake.serveHTTPArgsForCall)
 }
 
-func (fake *FakeErrHandler) ServeHTTPArgsForCall(i int) (http.ResponseWriter, *http.Request) {
+func (fake *FakeHTTPHandlerWithError) ServeHTTPArgsForCall(i int) (http.ResponseWriter, *http.Request) {
 	fake.serveHTTPMutex.RLock()
 	defer fake.serveHTTPMutex.RUnlock()
 	return fake.serveHTTPArgsForCall[i].w, fake.serveHTTPArgsForCall[i].r
 }
 
-func (fake *FakeErrHandler) ServeHTTPReturns(result1 error) {
+func (fake *FakeHTTPHandlerWithError) ServeHTTPReturns(result1 error) {
 	fake.ServeHTTPStub = nil
 	fake.serveHTTPReturns = struct {
 		result1 error
 	}{result1}
 }
 
-var _ authredirect.ErrHandler = new(FakeErrHandler)
+var _ web.HTTPHandlerWithError = new(FakeHTTPHandlerWithError)

@@ -7,15 +7,16 @@ import (
 	"net/url"
 
 	"github.com/concourse/atc/web/authredirect"
-	"github.com/concourse/atc/web/authredirect/fakes"
 	"github.com/concourse/go-concourse/concourse"
+
+	webfakes "github.com/concourse/atc/web/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Handler", func() {
-	var fakeErrHandler *fakes.FakeErrHandler
+	var fakeHTTPHandlerWithError *webfakes.FakeHTTPHandlerWithError
 
 	var handler http.Handler
 	var server *httptest.Server
@@ -26,8 +27,8 @@ var _ = Describe("Handler", func() {
 	var requestErr error
 
 	BeforeEach(func() {
-		fakeErrHandler = new(fakes.FakeErrHandler)
-		handler = authredirect.Tracker{authredirect.Handler{fakeErrHandler}}
+		fakeHTTPHandlerWithError = new(webfakes.FakeHTTPHandlerWithError)
+		handler = authredirect.Tracker{authredirect.Handler{fakeHTTPHandlerWithError}}
 
 		server = httptest.NewServer(handler)
 
@@ -46,9 +47,9 @@ var _ = Describe("Handler", func() {
 		response, requestErr = transport.RoundTrip(request)
 	})
 
-	Context("when the ErrHandler returns nil", func() {
+	Context("when the HTTPHandlerWithError returns nil", func() {
 		BeforeEach(func() {
-			fakeErrHandler.ServeHTTPReturns(nil)
+			fakeHTTPHandlerWithError.ServeHTTPReturns(nil)
 		})
 
 		It("does nothing with the response writer", func() {
@@ -56,9 +57,9 @@ var _ = Describe("Handler", func() {
 		})
 	})
 
-	Context("when the ErrHandler returns concourse.ErrUnauthorized", func() {
+	Context("when the HTTPHandlerWithError returns concourse.ErrUnauthorized", func() {
 		BeforeEach(func() {
-			fakeErrHandler.ServeHTTPReturns(concourse.ErrUnauthorized)
+			fakeHTTPHandlerWithError.ServeHTTPReturns(concourse.ErrUnauthorized)
 		})
 
 		Context("when the request was a GET", func() {
@@ -103,11 +104,11 @@ var _ = Describe("Handler", func() {
 		}
 	})
 
-	Context("when the ErrHandler returns some other error", func() {
+	Context("when the HTTPHandlerWithError returns some other error", func() {
 		disaster := errors.New("nope")
 
 		BeforeEach(func() {
-			fakeErrHandler.ServeHTTPReturns(disaster)
+			fakeHTTPHandlerWithError.ServeHTTPReturns(disaster)
 		})
 
 		It("returns Internal Server Error", func() {

@@ -9,18 +9,12 @@ import (
 	"github.com/gorilla/context"
 )
 
-//go:generate counterfeiter . ErrHandler
-
-type ErrHandler interface {
-	ServeHTTP(w http.ResponseWriter, r *http.Request) error
-}
-
 type Handler struct {
-	ErrHandler
+	web.HTTPHandlerWithError
 }
 
 func (handler Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	err := handler.ErrHandler.ServeHTTP(w, r)
+	err := handler.HTTPHandlerWithError.ServeHTTP(w, r)
 	if err == concourse.ErrUnauthorized {
 		path, err := web.Routes.CreatePathForRoute(web.LogIn, nil)
 		if err != nil {
