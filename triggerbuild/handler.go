@@ -31,7 +31,8 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 	pipelineName := r.FormValue(":pipeline_name")
 	jobName := r.FormValue(":job")
 
-	build, err := client.CreateJobBuild(pipelineName, jobName)
+	team := client.Team(teamName)
+	build, err := team.CreateJobBuild(pipelineName, jobName)
 	if err != nil {
 		handler.logger.Error("failed-to-create-build", err)
 		return err
