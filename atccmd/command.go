@@ -247,14 +247,25 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	var httpHandler http.Handler
 	if cmd.TLSBindPort != 0 {
-		httpRedirectHandler := redirectingAPIHandler{
+		apiRedirectHandler := redirectingAPIHandler{
 			externalHost: cmd.ExternalURL.URL().Host,
+			baseHandler:  apiHandler,
+		}
+
+		oauthRedirectHandler := redirectingAPIHandler{
+			externalHost: cmd.ExternalURL.URL().Host,
+			baseHandler:  oauthHandler,
+		}
+
+		webRedirectHandler := redirectingAPIHandler{
+			externalHost: cmd.ExternalURL.URL().Host,
+			baseHandler:  webHandler,
 		}
 
 		httpHandler = cmd.constructHTTPHandler(
-			httpRedirectHandler,
-			httpRedirectHandler,
-			httpRedirectHandler,
+			webRedirectHandler,
+			apiRedirectHandler,
+			oauthRedirectHandler,
 		)
 	} else {
 		httpHandler = cmd.constructHTTPHandler(
@@ -798,17 +809,22 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 type redirectingAPIHandler struct {
 	externalHost string
+	baseHandler  http.Handler
 }
 
 func (h redirectingAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	u := url.URL{
-		Scheme:   "https",
-		Host:     h.externalHost,
-		Path:     r.URL.Path,
-		RawQuery: r.URL.RawQuery,
-	}
+	if r.Method == "GET" || r.Method == "HEAD" {
+		u := url.URL{
+			Scheme:   "https",
+			Host:     h.externalHost,
+			Path:     r.URL.Path,
+			RawQuery: r.URL.RawQuery,
+		}
 
-	http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
+		http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
+	} else {
+		h.baseHandler.ServeHTTP(w, r)
+	}
 }
 
 func (cmd *ATCCommand) constructWebHandler(
