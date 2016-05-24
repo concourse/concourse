@@ -54,6 +54,7 @@ var _ = Describe("TLS", func() {
 
 		resp, err := client.Do(request)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 		Expect(resp.TLS).NotTo(BeNil())
 		Expect(resp.TLS.PeerCertificates).To(HaveLen(1))
 		Expect(resp.TLS.PeerCertificates[0].Issuer.Organization).To(ContainElement(tlsCertificateOrganization))
@@ -93,8 +94,10 @@ var _ = Describe("TLS", func() {
 			},
 		}
 
-		_, err = client.Do(request)
+		resp, err := client.Do(request)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		Expect(len(redirectURLs)).To(Equal(1))
 		Expect(redirectURLs).To(ContainElement(fmt.Sprintf("https://127.0.0.1:%d/", tlsPort)))
 	})
 
@@ -118,8 +121,24 @@ var _ = Describe("TLS", func() {
 
 		resp, err := client.Do(request)
 		Expect(err).NotTo(HaveOccurred())
-
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		Expect(redirectURLs).To(ContainElement(fmt.Sprintf("https://127.0.0.1:%d/auth/github", tlsPort)))
+		Expect(redirectURLs[0]).To(Equal(fmt.Sprintf("https://127.0.0.1:%d/auth/github", tlsPort)))
+	})
+
+	It("validates certs on client side when not started in development mode", func() {
+		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, true, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, BASIC_AUTH_NO_USERNAME, BASIC_AUTH_NO_PASSWORD)
+		request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d", atcPort), nil)
+
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+
+		client := &http.Client{
+			Transport: transport,
+		}
+
+		resp, err := client.Do(request)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 	})
 })

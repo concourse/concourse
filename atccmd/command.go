@@ -11,6 +11,7 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/concourse/atc"
@@ -471,6 +472,13 @@ func (cmd *ATCCommand) validate() error {
 	return errs.ErrorOrNil()
 }
 
+func (cmd *ATCCommand) bindProtocol() string {
+	if cmd.TLSBindPort != 0 {
+		return "https://"
+	}
+	return "http://"
+}
+
 func (cmd *ATCCommand) nonTLSBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 }
@@ -479,18 +487,16 @@ func (cmd *ATCCommand) tlsBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.TLSBindPort)
 }
 
-func (cmd *ATCCommand) bindProtocol() string {
+func (cmd *ATCCommand) internalURL() string {
 	if cmd.TLSBindPort != 0 {
-		return "https://"
+		if strings.Contains(cmd.ExternalURL.String(), ":") {
+			return cmd.ExternalURL.String()
+		} else {
+			return fmt.Sprintf("%s:%d", cmd.ExternalURL, cmd.TLSBindPort)
+		}
+	} else {
+		return fmt.Sprintf("http://127.0.0.1:%d", cmd.BindPort)
 	}
-	return "http://"
-}
-
-func (cmd *ATCCommand) bindAddr() string {
-	if cmd.TLSBindPort != 0 {
-		return cmd.tlsBindAddr()
-	}
-	return cmd.nonTLSBindAddr()
 }
 
 func (cmd *ATCCommand) debugBindAddr() string {
@@ -810,7 +816,7 @@ func (cmd *ATCCommand) constructWebHandler(
 		wrappa.NewWebMetricsWrappa(logger),
 	}
 
-	clientFactory := web.NewClientFactory(cmd.bindProtocol() + cmd.bindAddr())
+	clientFactory := web.NewClientFactory(cmd.internalURL(), cmd.Developer.DevelopmentMode)
 
 	return webhandler.NewHandler(
 		logger,
