@@ -158,7 +158,7 @@ templates:
       image_resource:
         type: docker-image
         source:
-          repository: concourse/bin-test-ec2
+          repository: concourse/bin-test-ec2-ci
 
       inputs:
       - name: cloudformation-template
@@ -197,7 +197,7 @@ templates:
 
           aws cloudformation create-stack \
             --stack-name $STACK_NAME \
-            --template-body "$(cat cloudformation-template/smoke-test.json)" \
+            --template-body "$(cat cloudformation-template/ci/cloudformation/smoke-test.json)" \
             --parameters ParameterKey=EC2KeyPairParameter,ParameterValue=${KEY_NAME} \
                          ParameterKey=ImageIDParameter,ParameterValue=${IMAGE_ID}
 
@@ -251,7 +251,7 @@ templates:
       image_resource:
         type: docker-image
         source:
-          repository: concourse/bin-test-ec2
+          repository: concourse/bin-test-ec2-ci
 
       inputs:
       - name: instance
@@ -409,7 +409,7 @@ templates:
       image_resource:
         type: docker-image
         source:
-          repository: concourse/bin-test-ec2
+          repository: concourse/bin-test-ec2-ci
 
       inputs:
       - name: bin-rc

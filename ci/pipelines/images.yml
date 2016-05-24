@@ -398,6 +398,7 @@ jobs:
     params:
       load_base: alpine-3.3
       build: concourse-bin-test-ec2-ci
+      dockerfile: concourse-bin-test-ec2-ci/Dockerfile.test-ec2
 
 - name: build-bin-testflight-ci
   public: true
