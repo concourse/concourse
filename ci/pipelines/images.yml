@@ -235,6 +235,12 @@ resources:
     repository: golang
     tag: "1.6"
 
+- name: alpine-3.3
+  type: docker-image
+  source:
+    repository: alpine
+    tag: "3.3"
+
 jobs:
 - name: build-buildbox-ci
   public: true
@@ -377,6 +383,21 @@ jobs:
     params:
       load_base: golang-1.6
       build: concourse-bin-ci
+
+- name: build-bin-test-ec2-ci
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse-bin-test-ec2-ci
+      trigger: true
+    - get: alpine-3.3
+      trigger: true
+      params: {save: true}
+  - put: concourse-bin-test-ec2-ci-image
+    params:
+      load_base: alpine-3.3
+      build: concourse-bin-test-ec2-ci
 
 - name: build-bin-testflight-ci
   public: true
