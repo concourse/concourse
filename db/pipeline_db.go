@@ -33,6 +33,7 @@ type PipelineDB interface {
 	LeaseScheduling(lager.Logger, time.Duration) (Lease, bool, error)
 
 	GetResource(resourceName string) (SavedResource, bool, error)
+	GetResources() ([]DashboardResource, atc.GroupConfigs, bool, error)
 	GetResourceType(resourceTypeName string) (SavedResourceType, bool, error)
 	GetResourceVersions(resourceName string, page Page) ([]SavedVersionedResource, Pagination, bool, error)
 
@@ -240,6 +241,60 @@ func (pdb *pipelineDB) GetResource(resourceName string) (SavedResource, bool, er
 	}
 
 	return resource, found, nil
+}
+
+func (pdb *pipelineDB) GetResources() ([]DashboardResource, atc.GroupConfigs, bool, error) {
+	rows, err := pdb.conn.Query(`
+			SELECT id, name, check_error, paused
+			FROM resources
+			WHERE pipeline_id = $1
+		`, pdb.ID)
+
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	defer rows.Close()
+
+	savedResources := map[string]SavedResource{}
+
+	for rows.Next() {
+		savedResource := SavedResource{PipelineName: pdb.Name}
+		var checkErr sql.NullString
+		err := rows.Scan(&savedResource.ID, &savedResource.Name, &checkErr, &savedResource.Paused)
+		if err != nil {
+			return nil, nil, false, err
+		}
+
+		if checkErr.Valid {
+			savedResource.CheckError = errors.New(checkErr.String)
+		}
+		savedResources[savedResource.Name] = savedResource
+	}
+
+	pipelineConfig, _, found, err := pdb.GetConfig()
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	if !found {
+		return nil, nil, false, nil
+	}
+	resourceConfigs := pipelineConfig.Resources
+	var dashboardResources []DashboardResource
+
+	for _, resourceConfig := range resourceConfigs {
+		savedResource, found := savedResources[resourceConfig.Name]
+		if !found {
+			return nil, nil, false, fmt.Errorf("found resource in pipeline configuration but not in database: %s", resourceConfig.Name)
+		}
+		dashboardResources = append(dashboardResources, DashboardResource{
+			Resource:       savedResource,
+			ResourceConfig: resourceConfig,
+		})
+	}
+
+	return dashboardResources, pipelineConfig.Groups, true, nil
 }
 
 func (pdb *pipelineDB) LeaseResourceChecking(logger lager.Logger, resourceName string, interval time.Duration, immediate bool) (Lease, bool, error) {
