@@ -3,7 +3,7 @@
 
 set -e
 
-OUTPUT="$PWD/candidate-release"
+OUTPUT="$PWD/bosh-rc"
 VERSION="$(cat version/version)"
 FINAL_VERSION="$(cat final-version/version)"
 
