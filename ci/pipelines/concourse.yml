@@ -3,17 +3,18 @@ groups:
   jobs:
   - atc
   - blackbox
-  - deploy
   - fly
   - go-concourse
   - baggageclaim
   - jettison
   - tsa
   - rc
-  - bosh-rc
   - bin-rc
-  - testflight
+  - bosh-rc
   - bin-testflight
+  - bosh-testflight
+  - bin-smoke
+  - bosh-deploy
 
 - name: publish
   jobs:
@@ -165,10 +166,10 @@ jobs:
     passed: [rc]
     params: {bump: final}
     trigger: true
-  - task: create-candidate-release
-    file: concourse/ci/create-candidate-release.yml
-  - put: candidate-release
-    params: {file: candidate-release/concourse-*.tgz}
+  - task: create-bosh-rc
+    file: concourse/ci/create-bosh-rc.yml
+  - put: bosh-rc
+    params: {file: bosh-rc/concourse-*.tgz}
 
 - name: bin-rc
   public: true
@@ -244,7 +245,7 @@ jobs:
       put: bosh-lites
       params: {release: bosh-lites}
 
-- name: testflight
+- name: bosh-testflight
   public: true
   serial: true
   plan:
@@ -258,7 +259,7 @@ jobs:
       - get: concourse
         passed: [bosh-rc]
         trigger: true
-      - get: candidate-release
+      - get: bosh-rc
         passed: [bosh-rc]
         trigger: true
       - get: version
@@ -277,7 +278,7 @@ jobs:
         stemcells: [lite-stemcell/*.tgz]
         releases:
           - garden-runc-release/*.tgz
-          - candidate-release/concourse-*.tgz
+          - bosh-rc/concourse-*.tgz
     - task: no-auth-build
       file: concourse/ci/testflight.yml
       params:
@@ -357,26 +358,23 @@ jobs:
   #     privileged: true
   #     timeout: 1h
 
-- name: deploy
+- name: bosh-deploy
   serial: true
   plan:
   - aggregate:
     - get: concourse
       params: {submodules: none}
-      passed: [testflight, bin-testflight]
+      passed: [bosh-testflight]
       trigger: true
     - get: version
-      passed: [testflight, bin-testflight]
+      passed: [bosh-testflight]
       trigger: true
-    - get: candidate-release
-      passed: [testflight]
+    - get: bosh-rc
+      passed: [bosh-testflight]
       trigger: true
     - get: garden-runc-release
       resource: garden-runc
-      passed: [testflight]
-      trigger: true
-    - get: bin-rc
-      passed: [bin-testflight]
+      passed: [bosh-testflight]
       trigger: true
     - get: bosh-stemcell
       resource: aws-stemcell
@@ -389,7 +387,7 @@ jobs:
       stemcells: [bosh-stemcell/*.tgz]
       releases:
         - garden-runc-release/*.tgz
-        - candidate-release/concourse-*.tgz
+        - bosh-rc/concourse-*.tgz
   - task: emit-yeller-deploy
     file: concourse/ci/emit-yeller-deploy.yml
     params:
@@ -398,6 +396,49 @@ jobs:
       YELLER_ENVIRONMENT: {{yeller-environment-name}}
   - put: tracker
     params: {repos: [concourse]}
+
+- name: bin-smoke
+  serial: true
+  plan:
+  - aggregate:
+    - get: bin
+      passed: [bin-testflight]
+      trigger: true
+    - get: bin-rc
+      passed: [bin-testflight]
+      params: {globs: [concourse_linux_amd64]}
+      trigger: true
+    - get: concourse
+      params: {submodules: none}
+      passed: [bin-testflight]
+      trigger: true
+    - get: version
+      passed: [bin-testflight]
+      trigger: true
+  - task: setup-tugboat
+    file: bin/ci/smoke-tests/setup-tugboat.yml
+    params:
+      OS: ubuntu
+      USER_NAME: root
+      ACCESS_TOKEN: {{digitalocean-access-token}}
+      SSH_USER: {{digitalocean-ssh-user}}
+      SSH_KEY: {{digitalocean-ssh-key}}
+      IMAGE: ubuntu-16-04-x64
+  - task: create-droplet
+    file: bin/ci/smoke-tests/create-droplet.yml
+    params: {OS: ubuntu, USER_NAME: root}
+  - ensure:
+      task: teardown
+      file: bin/ci/smoke-tests/teardown-droplet.yml
+      params: {OS: ubuntu}
+    do:
+    - task: install-postgres
+      file: bin/ci/smoke-tests/install-postgres-xenial.yml
+      params: {USER_NAME: root}
+
+    - task: test-bin
+      file: bin/ci/smoke-tests/smoke-test.yml
+      params: {USER_NAME: root}
 
 - name: unfudge
   plan:
@@ -410,18 +451,18 @@ jobs:
   plan:
   - aggregate:
     - get: concourse
-      passed: [deploy]
+      passed: [bosh-deploy, bin-smoke]
       params: {submodules: none}
-    - get: candidate-release
-      passed: [deploy]
     - get: version
-      passed: [deploy]
+      passed: [bosh-deploy, bin-smoke]
       params: {bump: final}
     - get: garden-runc-release
-      passed: [deploy]
+      passed: [bosh-deploy]
       resource: garden-runc
+    - get: bosh-rc
+      passed: [bosh-deploy]
     - get: bin-rc
-      passed: [deploy]
+      passed: [bin-smoke]
     - get: deployments
   - task: finalize-release
     file: concourse/ci/finalize-release.yml
@@ -630,7 +671,7 @@ resources:
     access_key_id: {{pipeline-bucket-access-key}}
     secret_access_key: {{pipeline-bucket-secret-key}}
 
-- name: candidate-release
+- name: bosh-rc
   type: s3
   source:
     bucket: concourse-release-candidates
