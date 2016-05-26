@@ -2,6 +2,7 @@ package buildserver_test
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/concourse/atc/api/buildserver/fakes"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/gorilla/websocket"
+	"github.com/pivotal-golang/lager"
 	"github.com/vito/go-sse/sse"
 
 	. "github.com/onsi/ginkgo"
@@ -28,17 +31,12 @@ var _ = Describe("Handler", func() {
 		buildsDB *fakes.FakeBuildsDB
 
 		server *httptest.Server
-		client *http.Client
 	)
 
 	BeforeEach(func() {
 		buildsDB = new(fakes.FakeBuildsDB)
 
-		server = httptest.NewServer(NewEventHandler(buildsDB, 128))
-
-		client = &http.Client{
-			Transport: &http.Transport{},
-		}
+		server = httptest.NewServer(NewEventHandler(lager.NewLogger("test"), buildsDB, 128))
 	})
 
 	Describe("GET", func() {
@@ -54,18 +52,12 @@ var _ = Describe("Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		JustBeforeEach(func() {
-			var err error
-
-			response, err = client.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
 		Context("when subscribing to the build succeeds", func() {
 			var fakeEventSource *dbfakes.FakeEventSource
+			var returnedEvents []atc.Event
 
 			BeforeEach(func() {
-				returnedEvents := []atc.Event{
+				returnedEvents = []atc.Event{
 					fakeEvent{"e1"},
 					fakeEvent{"e2"},
 					fakeEvent{"e3"},
@@ -74,8 +66,6 @@ var _ = Describe("Handler", func() {
 				fakeEventSource = new(dbfakes.FakeEventSource)
 
 				buildsDB.GetBuildEventsStub = func(buildID int, from uint) (db.EventSource, error) {
-					Expect(buildID).To(Equal(128))
-
 					fakeEventSource.NextStub = func() (atc.Event, error) {
 						defer GinkgoRecover()
 
@@ -98,56 +88,290 @@ var _ = Describe("Handler", func() {
 				Eventually(fakeEventSource.CloseCallCount).Should(Equal(1))
 			})
 
-			It("returns 200", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
+			Context("when the request asks for websockets upgrade", func() {
+				var conn *websocket.Conn
+				var header http.Header
 
-			It("returns Content-Type as text/event-stream", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("text/event-stream; charset=utf-8"))
-				Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
-				Expect(response.Header.Get("Connection")).To(Equal("keep-alive"))
-			})
-
-			It("returns the protocol version as X-ATC-Stream-Version", func() {
-				Expect(response.Header.Get("X-ATC-Stream-Version")).To(Equal("2.0"))
-			})
-
-			It("emits them, followed by an end event", func() {
-				reader := sse.NewReadCloser(response.Body)
-
-				Expect(reader.Next()).To(Equal(sse.Event{
-					ID:   "0",
-					Name: "event",
-					Data: []byte(`{"data":{"value":"e1"},"event":"fake","version":"42.0"}`),
-				}))
-
-				Expect(reader.Next()).To(Equal(sse.Event{
-					ID:   "1",
-					Name: "event",
-					Data: []byte(`{"data":{"value":"e2"},"event":"fake","version":"42.0"}`),
-				}))
-
-				Expect(reader.Next()).To(Equal(sse.Event{
-					ID:   "2",
-					Name: "event",
-					Data: []byte(`{"data":{"value":"e3"},"event":"fake","version":"42.0"}`),
-				}))
-
-				Expect(reader.Next()).To(Equal(sse.Event{
-					Name: "end",
-					Data: []byte{},
-				}))
-
-			})
-
-			Context("when the Last-Event-ID header is given", func() {
 				BeforeEach(func() {
-					request.Header.Set("Last-Event-ID", "1")
+					request.URL.Scheme = "ws"
+					header = nil
 				})
 
-				It("starts subscribing from after the id", func() {
-					_, from := buildsDB.GetBuildEventsArgsForCall(0)
-					Expect(from).To(Equal(uint(2)))
+				JustBeforeEach(func() {
+					var err error
+					dialer := websocket.Dialer{}
+					conn, response, err = dialer.Dial(request.URL.String(), header)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				AfterEach(func() {
+					if conn != nil {
+						conn.Close()
+					}
+				})
+
+				It("gets the events from the right build, starting at 0", func() {
+					Expect(buildsDB.GetBuildEventsCallCount()).To(Equal(1))
+					actualBuildID, actualFrom := buildsDB.GetBuildEventsArgsForCall(0)
+					Expect(actualBuildID).To(Equal(128))
+					Expect(actualFrom).To(BeZero())
+				})
+
+				It("returns the protocol version as X-ATC-Stream-Version", func() {
+					Expect(response.Header.Get("X-ATC-Stream-Version")).To(Equal("2.0"))
+				})
+
+				It("emits all the events", func() {
+					messageType, message, err := conn.ReadMessage()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(messageType).To(Equal(websocket.TextMessage))
+					Expect(message).To(MatchJSON(`
+						{
+							"type": "event",
+							"payload": {
+								"id": 0,
+								"message": {
+									"data": {"value": "e1"},
+									"event":"fake",
+									"version":"42.0"
+								}
+							}
+						}`))
+
+					messageType, message, err = conn.ReadMessage()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(messageType).To(Equal(websocket.TextMessage))
+					Expect(message).To(MatchJSON(`
+						{
+							"type": "event",
+							"payload": {
+								"id": 1,
+								"message": {
+									"data": {"value": "e2"},
+									"event":"fake",
+									"version":"42.0"
+								}
+							}
+						}`))
+
+					messageType, message, err = conn.ReadMessage()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(messageType).To(Equal(websocket.TextMessage))
+					Expect(message).To(MatchJSON(`
+						{
+							"type": "event",
+							"payload": {
+								"id": 2,
+								"message": {
+									"data": {"value": "e3"},
+									"event":"fake",
+									"version":"42.0"
+								}
+							}
+						}`))
+
+					messageType, message, err = conn.ReadMessage()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(messageType).To(Equal(websocket.TextMessage))
+					Expect(message).To(MatchJSON(`{"type": "end"}`))
+
+					_, _, err = conn.ReadMessage()
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(Equal(&websocket.CloseError{Code: websocket.CloseNormalClosure, Text: "end"}))
+				})
+
+				Context("when the Last-Event-ID header is given", func() {
+					BeforeEach(func() {
+						header = http.Header{}
+						header.Set("Last-Event-ID", "1")
+					})
+
+					It("starts subscribing from after the id", func() {
+						Expect(buildsDB.GetBuildEventsCallCount()).To(Equal(1))
+						actualBuildID, actualFrom := buildsDB.GetBuildEventsArgsForCall(0)
+						Expect(actualBuildID).To(Equal(128))
+						Expect(actualFrom).To(Equal(uint(2)))
+					})
+				})
+			})
+
+			Context("when the request doesn't use websockets", func() {
+				JustBeforeEach(func() {
+					var err error
+
+					client := &http.Client{
+						Transport: &http.Transport{},
+					}
+					response, err = client.Do(request)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("gets the events from the right build, starting at 0", func() {
+					Expect(buildsDB.GetBuildEventsCallCount()).To(Equal(1))
+					actualBuildID, actualFrom := buildsDB.GetBuildEventsArgsForCall(0)
+					Expect(actualBuildID).To(Equal(128))
+					Expect(actualFrom).To(BeZero())
+				})
+
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns Content-Type as text/event-stream", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("text/event-stream; charset=utf-8"))
+					Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
+					Expect(response.Header.Get("Connection")).To(Equal("keep-alive"))
+				})
+
+				It("returns the protocol version as X-ATC-Stream-Version", func() {
+					Expect(response.Header.Get("X-ATC-Stream-Version")).To(Equal("2.0"))
+				})
+
+				It("emits them, followed by an end event", func() {
+					reader := sse.NewReadCloser(response.Body)
+
+					Expect(reader.Next()).To(Equal(sse.Event{
+						ID:   "0",
+						Name: "event",
+						Data: []byte(`{"data":{"value":"e1"},"event":"fake","version":"42.0"}`),
+					}))
+
+					Expect(reader.Next()).To(Equal(sse.Event{
+						ID:   "1",
+						Name: "event",
+						Data: []byte(`{"data":{"value":"e2"},"event":"fake","version":"42.0"}`),
+					}))
+
+					Expect(reader.Next()).To(Equal(sse.Event{
+						ID:   "2",
+						Name: "event",
+						Data: []byte(`{"data":{"value":"e3"},"event":"fake","version":"42.0"}`),
+					}))
+
+					Expect(reader.Next()).To(Equal(sse.Event{
+						Name: "end",
+						Data: []byte{},
+					}))
+
+					_, err := reader.Next()
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(Equal(io.EOF))
+				})
+
+				Context("when the Last-Event-ID header is given", func() {
+					BeforeEach(func() {
+						request.Header.Set("Last-Event-ID", "1")
+					})
+
+					It("starts subscribing from after the id", func() {
+						Expect(buildsDB.GetBuildEventsCallCount()).To(Equal(1))
+						actualBuildID, actualFrom := buildsDB.GetBuildEventsArgsForCall(0)
+						Expect(actualBuildID).To(Equal(128))
+						Expect(actualFrom).To(Equal(uint(2)))
+					})
+				})
+			})
+		})
+
+		Context("when the eventsource returns an error", func() {
+			var fakeEventSource *dbfakes.FakeEventSource
+			var disaster error
+
+			BeforeEach(func() {
+				disaster = errors.New("a coffee machine")
+
+				fakeEventSource = new(dbfakes.FakeEventSource)
+
+				from := 0
+				fakeEventSource.NextStub = func() (atc.Event, error) {
+					defer GinkgoRecover()
+
+					Expect(fakeEventSource.CloseCallCount()).To(Equal(0))
+
+					from++
+
+					if from == 1 {
+						return fakeEvent{"e1"}, nil
+					} else {
+						return nil, disaster
+					}
+				}
+
+				buildsDB.GetBuildEventsReturns(fakeEventSource, nil)
+			})
+
+			AfterEach(func() {
+				Eventually(fakeEventSource.CloseCallCount).Should(Equal(1))
+			})
+
+			Context("when the request asks for websockets upgrade", func() {
+				var conn *websocket.Conn
+				var header http.Header
+
+				BeforeEach(func() {
+					request.URL.Scheme = "ws"
+					header = nil
+				})
+
+				JustBeforeEach(func() {
+					var err error
+					dialer := websocket.Dialer{}
+					conn, response, err = dialer.Dial(request.URL.String(), header)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				AfterEach(func() {
+					if conn != nil {
+						conn.Close()
+					}
+				})
+
+				It("indicates internal server error", func() {
+					messageType, message, err := conn.ReadMessage()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(messageType).To(Equal(websocket.TextMessage))
+					Expect(message).To(MatchJSON(`
+					{
+						"type": "event",
+						"payload": {
+							"id": 0,
+							"message": {
+								"data": {"value": "e1"},
+								"event":"fake",
+								"version":"42.0"
+							}
+						}
+					}`))
+
+					_, _, err = conn.ReadMessage()
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(Equal(&websocket.CloseError{Code: websocket.CloseInternalServerErr, Text: "failed-to-get-next-build-event"}))
+				})
+			})
+
+			Context("when the request doesn't use websockets", func() {
+				JustBeforeEach(func() {
+					var err error
+
+					client := &http.Client{
+						Transport: &http.Transport{},
+					}
+					response, err = client.Do(request)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("just stops sending events", func() {
+					reader := sse.NewReadCloser(response.Body)
+
+					Expect(reader.Next()).To(Equal(sse.Event{
+						ID:   "0",
+						Name: "event",
+						Data: []byte(`{"data":{"value":"e1"},"event":"fake","version":"42.0"}`),
+					}))
+
+					_, err := reader.Next()
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(Equal(io.EOF))
 				})
 			})
 		})
@@ -157,8 +381,50 @@ var _ = Describe("Handler", func() {
 				buildsDB.GetBuildEventsReturns(nil, errors.New("nope"))
 			})
 
-			It("returns 404", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			Context("when the request doesn't use websockets", func() {
+				JustBeforeEach(func() {
+					var err error
+
+					client := &http.Client{
+						Transport: &http.Transport{},
+					}
+					response, err = client.Do(request)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the request asks for websockets upgrade", func() {
+				var conn *websocket.Conn
+
+				BeforeEach(func() {
+					request.URL.Scheme = "ws"
+				})
+
+				JustBeforeEach(func() {
+					var err error
+					dialer := websocket.Dialer{}
+					conn, response, err = dialer.Dial(request.URL.String(), nil)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				AfterEach(func() {
+					if conn != nil {
+						conn.Close()
+					}
+				})
+
+				It("indicates internal server error", func() {
+					_, _, err := conn.ReadMessage()
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(Equal(&websocket.CloseError{
+						Code: websocket.CloseInternalServerErr,
+						Text: "failed-to-get-build-events",
+					}))
+				})
 			})
 		})
 	})

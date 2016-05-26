@@ -76,6 +76,7 @@ type fakeEventHandlerFactory struct {
 }
 
 func (f *fakeEventHandlerFactory) Construct(
+	logger lager.Logger,
 	db buildserver.BuildsDB,
 	buildID int,
 ) http.Handler {
