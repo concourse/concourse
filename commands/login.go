@@ -3,7 +3,6 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/concourse/atc"
@@ -179,9 +178,4 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken) error
 	fmt.Println("target saved")
 
 	return nil
-}
-
-func isURL(passedURL string) bool {
-	matched, _ := regexp.MatchString("^http[s]?://", passedURL)
-	return matched
 }
