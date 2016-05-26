@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{2016-02-18}{0.73.0}{0.332.0}{
+\release{2016-02-18}{0.73.0}{}{0.332.0}{
   \note{feature}{breaking}{
     The \reference{fly-destroy-pipeline} command now runs much quicker.
     Unfortunately to implement this there's a massive database migration.

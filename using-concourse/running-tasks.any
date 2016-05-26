@@ -96,7 +96,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     please use that as a reference implementation for now.
   }
 
-  \define-attribute{image: string}{
+  \define-attribute{image: string}{task-config-image}{
     \italic{Optional.} A string specifying the rootfs of the container, as
     interpreted by your worker's Garden backend.
 
