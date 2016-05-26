@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/api/buildserver"
@@ -85,7 +86,7 @@ var _ = Describe("Handler", func() {
 			})
 
 			AfterEach(func() {
-				Eventually(fakeEventSource.CloseCallCount).Should(Equal(1))
+				Eventually(fakeEventSource.CloseCallCount, 30*time.Second).Should(Equal(1))
 			})
 
 			Context("when the request asks for websockets upgrade", func() {
@@ -301,7 +302,7 @@ var _ = Describe("Handler", func() {
 			})
 
 			AfterEach(func() {
-				Eventually(fakeEventSource.CloseCallCount).Should(Equal(1))
+				Eventually(fakeEventSource.CloseCallCount, 30*time.Second).Should(Equal(1))
 			})
 
 			Context("when the request asks for websockets upgrade", func() {
