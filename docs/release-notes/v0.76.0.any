@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{2016-03-23}{0.76.0}{0.335.0}{
+\release{2016-03-23}{0.76.0}{}{0.335.0}{
   \note{fix}{
     \reference{v0.75.0} introduced a client-side limit of 64 connections to the
     database, which no one would ever hit so we didn't bother putting it in the

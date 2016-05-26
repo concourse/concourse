@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{2016-04-27}{1.2.0}{0.337.0}{
+\release{2016-04-27}{1.2.0}{}{0.337.0}{
   \note{feature}{
     \reference{fly-cli}{\code{fly}} learned the \reference{fly-check-resource}
     command, which allows you to force detection of versions, notably those in
