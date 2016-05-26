@@ -1,0 +1,109 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: concourse/bin-test-ec2-ci
+
+inputs:
+- name: bin-rc
+- name: keys
+- name: instance
+
+params:
+  USER_NAME:
+
+run:
+  path: bash
+  args:
+  - -c
+  - |
+    set -ex
+
+    ip=$(cat instance/ip)
+
+    until scp -q -i keys/id_rsa -o StrictHostKeyChecking=no bin-rc/concourse_linux_amd64 ${USER_NAME}@${ip}:concourse; do
+      echo "waiting for ssh to become available..."
+      sleep 1
+    done
+
+    ssh -q -i keys/id_rsa -o StrictHostKeyChecking=no ${USER_NAME}@${ip} "chmod +x concourse"
+
+    cat <<"EOC" > smoke_test
+    set -ex
+
+    # ssh
+    ssh-keygen -t rsa -f host_key -N ''
+    ssh-keygen -t rsa -f worker_key -N ''
+    ssh-keygen -t rsa -f session_signing_key -N ''
+
+    cp worker_key.pub authorized_worker_keys
+
+    # bin
+    set +x
+    echo "starting web"
+    ./concourse web \
+      --development-mode \
+      --session-signing-key session_signing_key \
+      --tsa-host-key host_key \
+      --tsa-authorized-keys authorized_worker_keys > web.stdout.log 2> web.stderr.log &
+
+    # try to connect to 127.0.0.1:8080 and send nothing
+    until [ $(2>/dev/null >/dev/tcp/127.0.0.1/8080 && echo 0 || echo 42) -eq 0 ]; do
+      echo "waiting for atc to become available..."
+      sleep 1
+    done
+
+    wget -q -O fly "http://127.0.0.1:8080/api/v1/cli?arch=amd64&platform=linux"
+
+    echo "starting worker"
+    sudo ./concourse worker \
+      --work-dir /tmp/worker \
+      --tsa-host 127.0.0.1 \
+      --tsa-public-key host_key.pub \
+      --tsa-worker-private-key worker_key \
+      --garden-network-pool 10.255.0.0/22 > worker.stdout.log 2> worker.stderr.log &
+
+    until [ $(curl -s http://127.0.0.1:8080/api/v1/workers | wc -c) -gt 3 ]; do
+      echo "waiting for worker to become available..."
+      sleep 1
+    done
+
+    chmod +x fly
+    ./fly -t local login -c http://127.0.0.1:8080
+
+    # task
+    cat << EOF > task.yml
+    ---
+    platform: linux
+
+    image_resource:
+      type: docker-image
+      source:
+        repository: busybox
+
+    run:
+      path: sh
+      args:
+      - -c
+      - "echo hi"
+    EOF
+
+    # Unprivileged
+    ./fly -t local execute -c task.yml
+
+    # Privileged
+    ./fly -t local execute -p -c task.yml
+
+    # Cleanup; we won't get here unless executes succeed due to set -e
+    killall concourse
+    EOC
+
+    echo "copying smoke_test to target"
+    scp -q -i keys/id_rsa -o StrictHostKeyChecking=no smoke_test ${USER_NAME}@${ip}:
+
+    echo "invoking smoke_test"
+    ssh -q -i keys/id_rsa -o StrictHostKeyChecking=no ${USER_NAME}@${ip} "chmod +x smoke_test; ./smoke_test"
+    ssh -q -i keys/id_rsa -o StrictHostKeyChecking=no ${USER_NAME}@${ip} "tar cvfz worker-web-logs.tgz *.log"
+    scp -q -i keys/id_rsa -o StrictHostKeyChecking=no ${USER_NAME}@${ip}:worker-web-logs.tgz .

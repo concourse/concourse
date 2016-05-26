@@ -2,147 +2,25 @@
 templates:
   - &setup-tugboat
     task: setup-tugboat
+    file: bin/ci/smoke-tests/setup-tugboat.yml
     params: &setup-tugboat-params
       ACCESS_TOKEN: {{digitalocean-access-token}}
 
       SSH_USER: {{digitalocean-ssh-user}}
       SSH_KEY: {{digitalocean-ssh-key}}
 
-      REGION: sfo1
-      IMAGE: ""
-      SIZE: 1gb
-      PRIVATE_NETWORKING: 'false'
-      BACKUPS_ENABLED: 'false'
-      IP6: 'false'
-      OS: ""
-      USER_NAME: 'root'
-
-    config:
-      platform: linux
-
-      image_resource:
-        type: docker-image
-        source:
-          repository: ruby
-          tag: '2.1'
-
-      outputs:
-      - name: keys
-      - name: config
-
-      run:
-        path: bash
-        args:
-        - -c
-        - |
-          set -e
-
-          echo "writing ssh key"
-          cat <<EOF > keys/id_rsa
-          $SSH_KEY
-          EOF
-
-          echo "chmodding ssh key"
-          chmod 0600 keys/id_rsa
-
-          echo "creating pub key"
-          ssh-keygen -y -f keys/id_rsa > keys/id_rsa.pub
-
-          fingerprint=$(ssh-keygen -lf keys/id_rsa.pub | cut -d' ' -f2)
-
-          echo "writing .tugboat"
-          cat << EOF > config/.tugboat
-          ---
-          authentication:
-            access_token: $ACCESS_TOKEN
-          ssh:
-            ssh_user: $SSH_USER
-            ssh_key_path: keys/id_rsa
-            ssh_port: '22'
-          defaults:
-            region: $REGION
-            image: $IMAGE
-            size: $SIZE
-            ssh_key: ["$fingerprint"]
-            private_networking: $PRIVATE_NETWORKING
-            backups_enabled: $BACKUPS_ENABLED
-            ip6: $IP6
-          EOF
-
   - &create-droplet
     task: create-droplet
+    file: bin/ci/smoke-tests/create-droplet.yml
     params: &create-droplet-params
       OS: ""
       USER_NAME: ""
 
-    config:
-      platform: linux
-
-      image_resource:
-        type: docker-image
-        source:
-          repository: ruby
-          tag: '2.1'
-
-      inputs:
-      - name: config
-      - name: keys
-
-      outputs:
-      - name: instance
-
-      run:
-        path: bash
-        args:
-        - -c
-        - |
-          set -ex
-
-          cp config/.tugboat .
-
-          gem install tugboat
-
-          tugboat create smoke-test-$OS
-          trap "tugboat destroy --confirm smoke-test-$OS" ERR TERM INT
-
-          tugboat wait smoke-test-$OS
-
-          tugboat info smoke-test-$OS | grep IP | awk '{print $NF}' > instance/ip
-
-          ip=$(cat instance/ip)
-
-          until ssh -q -i keys/id_rsa -o StrictHostKeyChecking=no $USER_NAME@${ip} "exit 0"; do
-            echo "waiting for ssh to become available..."
-            sleep 1
-          done
-
   - &teardown-droplet
     task: teardown
+    file: bin/ci/smoke-tests/teardown-droplet.yml
     params: &teardown-droplet-params
       OS: ""
-
-    config:
-      platform: linux
-
-      image_resource:
-        type: docker-image
-        source:
-          repository: ruby
-          tag: '2.1'
-
-      inputs:
-      - name: config
-
-      run:
-        path: bash
-        args:
-        - -c
-        - |
-          gem install tugboat
-
-          cp config/.tugboat .
-
-          tugboat destroy --confirm smoke-test-$OS
 
   - &launch-ec2-instance
     task: launch-ec2-instance
@@ -265,51 +143,9 @@ templates:
 
   - &install-postgres-xenial
     task: install-postgres
+    file: bin/ci/smoke-tests/install-postgres-xenial.yml
     params: &install-postgres-xenial-params
       USER_NAME: ""
-
-    config:
-      platform: linux
-
-      image_resource:
-        type: docker-image
-        source:
-          repository: ruby
-          tag: "2.1"
-
-      inputs:
-      - name: keys
-      - name: instance
-
-      run:
-        path: bash
-        args:
-        - -c
-        - |
-          cat <<EOC > install_postgres
-          set -ex
-
-          until sudo apt-get update; do
-            echo "waiting for apt lock"
-            sleep 1
-          done
-
-          until sudo apt-get -y install postgresql; do
-            echo "waiting for apt lock"
-            sleep 1
-          done
-
-          sudo -Hiu postgres psql -U postgres postgres <<EOF
-            CREATE USER $USER_NAME SUPERUSER PASSWORD '' ;
-          EOF
-
-          createdb atc
-          EOC
-
-          ip=$(cat instance/ip)
-
-          scp -q -i keys/id_rsa -o StrictHostKeyChecking=no install_postgres $USER_NAME@${ip}:
-          ssh -q -i keys/id_rsa -o StrictHostKeyChecking=no $USER_NAME@${ip} "chmod +x install_postgres && ./install_postgres"
 
   - &install-postgres-fedora
     task: install-postgres
@@ -400,123 +236,23 @@ templates:
 
   - &test-bin
     task: test-bin
+    file: bin/ci/smoke-tests/smoke-test.yml
     params: &test-bin-params
       USER_NAME: ""
 
-    config:
-      platform: linux
-
-      image_resource:
-        type: docker-image
-        source:
-          repository: concourse/bin-test-ec2-ci
-
-      inputs:
-      - name: bin-rc
-      - name: keys
-      - name: instance
-
-      run:
-        path: bash
-        args:
-        - -c
-        - |
-          set -ex
-
-          ip=$(cat instance/ip)
-
-          until scp -q -i keys/id_rsa -o StrictHostKeyChecking=no bin-rc/concourse_linux_amd64 $USER_NAME@${ip}:concourse; do
-            echo "waiting for ssh to become available..."
-            sleep 1
-          done
-
-          ssh -q -i keys/id_rsa -o StrictHostKeyChecking=no $USER_NAME@${ip} "chmod +x concourse"
-
-          cat <<"EOC" > smoke_test
-          set -ex
-
-          # ssh
-          ssh-keygen -t rsa -f host_key -N ''
-          ssh-keygen -t rsa -f worker_key -N ''
-          ssh-keygen -t rsa -f session_signing_key -N ''
-
-          cp worker_key.pub authorized_worker_keys
-
-          # bin
-          set +x
-          echo "starting web"
-          ./concourse web \
-            --development-mode \
-            --session-signing-key session_signing_key \
-            --tsa-host-key host_key \
-            --tsa-authorized-keys authorized_worker_keys > web.stdout.log 2> web.stderr.log &
-
-          # try to connect to 127.0.0.1:8080 and send nothing
-          until [ $(2>/dev/null >/dev/tcp/127.0.0.1/8080 && echo 0 || echo 42) -eq 0 ]; do
-            echo "waiting for atc to become available..."
-            sleep 1
-          done
-
-          wget -q -O fly "http://127.0.0.1:8080/api/v1/cli?arch=amd64&platform=linux"
-
-          echo "starting worker"
-          sudo ./concourse worker \
-            --work-dir /tmp/worker \
-            --tsa-host 127.0.0.1 \
-            --tsa-public-key host_key.pub \
-            --tsa-worker-private-key worker_key \
-            --garden-network-pool 10.255.0.0/22 > worker.stdout.log 2> worker.stderr.log &
-
-          until [ $(curl -s http://127.0.0.1:8080/api/v1/workers | wc -c) -gt 3 ]; do
-            echo "waiting for worker to become available..."
-            sleep 1
-          done
-
-          chmod +x fly
-          ./fly -t local login -c http://127.0.0.1:8080
-
-          # task
-          cat << EOF > task.yml
-          ---
-          platform: linux
-
-          image_resource:
-            type: docker-image
-            source:
-              repository: busybox
-
-          run:
-            path: sh
-            args:
-            - -c
-            - "echo hi"
-          EOF
-
-          # Unprivileged
-          ./fly -t local execute -c task.yml
-
-          # Privileged
-          ./fly -t local execute -p -c task.yml
-
-          # Cleanup; we won't get here unless executes succeed due to set -e
-          killall concourse
-          EOC
-
-          echo "copying smoke_test to target"
-          scp -q -i keys/id_rsa -o StrictHostKeyChecking=no smoke_test $USER_NAME@${ip}:
-
-          echo "invoking smoke_test"
-          ssh -q -i keys/id_rsa -o StrictHostKeyChecking=no $USER_NAME@${ip} "chmod +x smoke_test; ./smoke_test"
-          ssh -q -i keys/id_rsa -o StrictHostKeyChecking=no $USER_NAME@${ip} "tar cvfz worker-web-logs.tgz *.log"
-          scp -q -i keys/id_rsa -o StrictHostKeyChecking=no $USER_NAME@${ip}:worker-web-logs.tgz .
-
 resources:
+- name: bin
+  type: git
+  source:
+    uri: https://github.com/concourse/bin.git
+
 - name: bin-rc
   type: github-release
   source:
     user: concourse
     repository: bin
     access_token: {{bin-release-token}}
+
 - name: cloudformation-template
   type: git
   source:
@@ -524,12 +260,11 @@ resources:
     paths: [ci/cloudformation/smoke-test.json]
 
 jobs:
-  # empty job included for garden team debugging
-- name: digitalocean-centos-7
-
 - name: digitalocean-ubuntu-xenial
   serial: true
   plan:
+  - get: bin
+
   - get: bin-rc
     params:
       globs:
@@ -571,6 +306,8 @@ jobs:
 - name: digitalocean-fedora-23
   serial: true
   plan:
+  - get: bin
+
   - get: bin-rc
     params:
       globs:
@@ -618,6 +355,8 @@ jobs:
   serial: true
   plan:
   - aggregate:
+    - get: bin
+
     - get: bin-rc
       params:
         globs:
@@ -650,6 +389,8 @@ jobs:
   serial: true
   plan:
   - aggregate:
+    - get: bin
+
     - get: bin-rc
       params:
         globs:
