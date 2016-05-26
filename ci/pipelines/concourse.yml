@@ -1,5 +1,5 @@
 groups:
-- name: concourse
+- name: develop
   jobs:
   - atc
   - blackbox
@@ -9,24 +9,24 @@ groups:
   - baggageclaim
   - jettison
   - tsa
-  - major
-  - minor
-  - patch
   - rc
   - bosh-rc
   - bin-rc
-  - shipit
   - testflight
   - bin-testflight
-  - master-merge
 
 - name: publish
   jobs:
+  - major
+  - minor
+  - patch
+  - shipit
   - github-release
   - push-docs
   - virtualbox-box
   - virtualbox-testflight
   - release-virtualbox-box
+  - master-merge
 
 - name: bosh-lite
   jobs:
