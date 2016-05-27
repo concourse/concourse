@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,24 +15,17 @@ import (
 
 var _ = Describe("CookieSetHandler", func() {
 	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "auth: %s", r.Header.Get("Authorization"))
+		if auth := r.Header.Get("Authorization"); auth != "" {
+			fmt.Fprintf(w, "auth: %s", auth)
+		}
 	})
 
 	var server *httptest.Server
-	var client *http.Client
-	username := "username"
-	password := "password"
 
 	BeforeEach(func() {
-		authHandler := auth.CookieSetHandler{
+		server = httptest.NewServer(auth.CookieSetHandler{
 			Handler: simpleHandler,
-		}
-
-		server = httptest.NewServer(authHandler)
-
-		client = &http.Client{
-			Transport: &http.Transport{},
-		}
+		})
 	})
 
 	AfterEach(func() {
@@ -46,53 +38,31 @@ var _ = Describe("CookieSetHandler", func() {
 
 		BeforeEach(func() {
 			var err error
-
 			request, err = http.NewRequest("GET", server.URL, bytes.NewBufferString("hello"))
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		JustBeforeEach(func() {
 			var err error
-
-			response, err = client.Do(request)
+			response, err = http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		itSetsAuthCookie := func() {
-			It("sets a ATC-Authorization cookie with the auth as the value", func() {
-				cookies := response.Cookies()
-				Expect(cookies).To(HaveLen(1))
+		It("does not set ATC-Authorization", func() {
+			Expect(response.Cookies()).To(HaveLen(0))
+		})
 
-				Expect(cookies[0].Name).To(Equal("ATC-Authorization"))
-				Expect(cookies[0].Value).To(Equal(header(username, password)))
-				Expect(cookies[0].Path).To(Equal("/"))
-				Expect(cookies[0].Expires).To(BeTemporally("~", time.Now().Add(auth.CookieAge), time.Second))
-			})
-		}
-
-		Context("with standard basic auth", func() {
-			BeforeEach(func() {
-				request.SetBasicAuth(username, password)
-			})
-
-			It("returns 200", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("proxies to the handler", func() {
-				responseBody, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(string(responseBody)).To(Equal("auth: " + header(username, password)))
-			})
-
-			itSetsAuthCookie()
+		It("proxies to the handler without setting the Authorization header", func() {
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(responseBody)).To(Equal(""))
 		})
 
 		Context("with the ATC-Authorization cookie", func() {
 			BeforeEach(func() {
 				request.AddCookie(&http.Cookie{
 					Name:  auth.CookieName,
-					Value: header(username, password),
+					Value: header("username", "password"),
 				})
 			})
 
@@ -103,15 +73,13 @@ var _ = Describe("CookieSetHandler", func() {
 			It("proxies to the handler with the Authorization header set", func() {
 				responseBody, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(string(responseBody)).To(Equal("auth: " + header(username, password)))
+				Expect(string(responseBody)).To(Equal("auth: " + header("username", "password")))
 			})
 
-			itSetsAuthCookie()
-		})
-
-		Context("with no credentials", func() {
-			It("does not set ATC-Authorization", func() {
-				Expect(response.Cookies()).To(HaveLen(0))
+			It("sets the Authorization header with the value from the cookie", func() {
+				responseBody, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(responseBody)).To(Equal("auth: " + header("username", "password")))
 			})
 		})
 	})

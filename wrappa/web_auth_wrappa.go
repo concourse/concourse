@@ -39,15 +39,8 @@ func (wrappa *WebAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		case web.GetJob:
 		case web.LogIn:
 		case web.TeamLogIn:
-		case web.BasicAuth:
-			newHandler = auth.WrapHandler(
-				auth.CheckAuthHandler(
-					handler,
-					auth.BasicAuthRejector{},
-				),
-				wrappa.Validator,
-				wrappa.UserContextReader,
-			)
+		case web.GetBasicAuthLogIn:
+		case web.ProcessBasicAuthLogIn:
 
 		default:
 			panic("you missed a spot")

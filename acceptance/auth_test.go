@@ -56,12 +56,12 @@ var _ = Describe("Auth", func() {
 			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, GITHUB_AUTH)
 		})
 
-		It("forces a redirect to /login", func() {
+		It("forces a redirect to /teams/main/login", func() {
 			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
 			resp, err := http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			Expect(resp.Request.URL.Path).To(Equal("/login"))
+			Expect(resp.Request.URL.Path).To(Equal("/teams/main/login"))
 
 			team, _, err := teamDB.GetTeam()
 			Expect(err).NotTo(HaveOccurred())
@@ -99,7 +99,7 @@ var _ = Describe("Auth", func() {
 			resp, err := http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			Expect(resp.Request.URL.Path).To(Equal("/login"))
+			Expect(resp.Request.URL.Path).To(Equal("/teams/main/login"))
 		})
 
 		It("logs in with Basic Auth and allows access", func() {

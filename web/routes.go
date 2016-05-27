@@ -3,18 +3,19 @@ package web
 import "github.com/tedsuo/rata"
 
 const (
-	Index           = "Index"
-	Pipeline        = "Pipeline"
-	TriggerBuild    = "TriggerBuild"
-	GetBuild        = "GetBuild"
-	GetBuilds       = "GetBuilds"
-	GetJoblessBuild = "GetJoblessBuild"
-	Public          = "Public"
-	GetResource     = "GetResource"
-	GetJob          = "GetJob"
-	LogIn           = "LogIn"
-	TeamLogIn       = "TeamLogIn"
-	BasicAuth       = "BasicAuth"
+	Index                 = "Index"
+	Pipeline              = "Pipeline"
+	TriggerBuild          = "TriggerBuild"
+	GetBuild              = "GetBuild"
+	GetBuilds             = "GetBuilds"
+	GetJoblessBuild       = "GetJoblessBuild"
+	Public                = "Public"
+	GetResource           = "GetResource"
+	GetJob                = "GetJob"
+	LogIn                 = "LogIn"
+	TeamLogIn             = "TeamLogIn"
+	GetBasicAuthLogIn     = "GetBasicAuthLogIn"
+	ProcessBasicAuthLogIn = "ProcessBasicAuthLogIn"
 )
 
 var Routes = rata.Routes{
@@ -38,5 +39,6 @@ var Routes = rata.Routes{
 	// auth
 	{Path: "/login", Method: "GET", Name: LogIn},
 	{Path: "/teams/:team_name/login", Method: "GET", Name: TeamLogIn},
-	{Path: "/teams/:team_name/login/basic", Method: "GET", Name: BasicAuth},
+	{Path: "/teams/:team_name/login/basic", Method: "GET", Name: GetBasicAuthLogIn},
+	{Path: "/teams/:team_name/login/basic", Method: "POST", Name: ProcessBasicAuthLogIn},
 }

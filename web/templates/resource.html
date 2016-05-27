@@ -27,7 +27,7 @@
     <h1 class="h1">{{.Resource.Name}}</h1>
   </div>
 
-  <div class="js-resource" data-endpoint="/api/v1/teams/{{.TeamName}}/pipelines/{{.PipelineName}}/resources/{{.Resource.Name}}">
+  <div class="js-resource" data-teamname="{{.TeamName}}" data-endpoint="/api/v1/teams/{{.TeamName}}/pipelines/{{.PipelineName}}/resources/{{.Resource.Name}}">
   <div class="resource-check-status">
     <div class="build-step">
       <div class="header">

@@ -58,7 +58,7 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 
 	if team.BasicAuth.BasicAuthPassword != "" {
 		path, err := web.Routes.CreatePathForRoute(
-			web.BasicAuth,
+			web.GetBasicAuthLogIn,
 			rata.Params{"team_name": teamName},
 		)
 		if err != nil {
