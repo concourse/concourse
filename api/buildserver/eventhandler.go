@@ -69,7 +69,6 @@ func NewEventHandler(logger lager.Logger, buildsDB BuildsDB, buildID int) http.H
 
 			w.Header().Add("Content-Type", "text/event-stream; charset=utf-8")
 			w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
-			w.Header().Add("Connection", "keep-alive")
 			w.Header().Add(ProtocolVersionHeader, CurrentProtocolVersion)
 
 			var responseWriter io.Writer = w

@@ -221,7 +221,7 @@ var _ = Describe("Handler", func() {
 				It("returns Content-Type as text/event-stream", func() {
 					Expect(response.Header.Get("Content-Type")).To(Equal("text/event-stream; charset=utf-8"))
 					Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
-					Expect(response.Header.Get("Connection")).To(Equal("keep-alive"))
+					Expect(response.Header.Get("Connection")).NotTo(Equal("keep-alive"))
 				})
 
 				It("returns the protocol version as X-ATC-Stream-Version", func() {
