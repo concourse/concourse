@@ -129,6 +129,7 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 		"--debug-bind-port", fmt.Sprintf("%d", debugPort),
 		"--peer-url", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
 		"--postgres-data-source", postgresRunner.DataSourceName(),
+		"--external-url", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
 	}
 
 	if publiclyViewable {
@@ -176,7 +177,6 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 				"--github-auth-organization", "myorg",
 				"--github-auth-team", "myorg/all",
 				"--github-auth-user", "myuser",
-				"--external-url", "http://example.com",
 			)
 		case GITHUB_ENTERPRISE_AUTH:
 			params = append(params,
@@ -188,7 +188,6 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 				"--github-auth-auth-url", "https://github.example.com/login/oauth/authorize",
 				"--github-auth-token-url", "https://github.example.com/login/oauth/access_token",
 				"--github-auth-api-url", "https://github.example.com/api/v3/",
-				"--external-url", "http://example.com",
 			)
 		case DEVELOPMENT_MODE:
 			params = append(params, "--development-mode")
