@@ -21,10 +21,12 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 	team, found, err := teamDB.GetTeam()
 	if err != nil {
+		s.logger.Error("failed-to-get-team", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	if !found {
+		s.logger.Info("team-not-found")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -32,6 +34,7 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 	methods := []atc.AuthMethod{}
 	providers, err := s.providerFactory.GetProviders(teamName)
 	if err != nil {
+		s.logger.Error("failed-to-get-providers", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -41,6 +44,7 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 			rata.Params{"provider": name},
 		)
 		if err != nil {
+			s.logger.Error("failed-to-create-path-for-route", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -58,6 +62,7 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 			rata.Params{"team_name": teamName},
 		)
 		if err != nil {
+			s.logger.Error("failed-to-create-path-for-route", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
