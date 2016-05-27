@@ -29,6 +29,15 @@ var _ = Describe("Pipelines API", func() {
 					Paused: false,
 					Pipeline: db.Pipeline{
 						Name: "a-pipeline",
+						Config: atc.Config{
+							Groups: atc.GroupConfigs{
+								{
+									Name:      "group1",
+									Jobs:      []string{"job1", "job2"},
+									Resources: []string{"resource1", "resource2"},
+								},
+							},
+						},
 					},
 				},
 				{
@@ -36,37 +45,18 @@ var _ = Describe("Pipelines API", func() {
 					Paused: true,
 					Pipeline: db.Pipeline{
 						Name: "another-pipeline",
+						Config: atc.Config{
+							Groups: atc.GroupConfigs{
+								{
+									Name:      "group2",
+									Jobs:      []string{"job3", "job4"},
+									Resources: []string{"resource3", "resource4"},
+								},
+							},
+						},
 					},
 				},
 			}, nil)
-
-			configDB.GetConfigStub = func(teamName, pipelineName string) (atc.Config, atc.RawConfig, db.ConfigVersion, error) {
-				Expect(teamName).To(Equal(atc.DefaultTeamName))
-
-				if pipelineName == "a-pipeline" {
-					return atc.Config{
-						Groups: atc.GroupConfigs{
-							{
-								Name:      "group1",
-								Jobs:      []string{"job1", "job2"},
-								Resources: []string{"resource1", "resource2"},
-							},
-						},
-					}, atc.RawConfig(""), 42, nil
-				} else if pipelineName == "another-pipeline" {
-					return atc.Config{
-						Groups: atc.GroupConfigs{
-							{
-								Name:      "group2",
-								Jobs:      []string{"job3", "job4"},
-								Resources: []string{"resource3", "resource4"},
-							},
-						},
-					}, atc.RawConfig(""), 42, nil
-				}
-
-				panic("don't know what's going on")
-			}
 		})
 
 		JustBeforeEach(func() {
@@ -120,16 +110,6 @@ var _ = Describe("Pipelines API", func() {
 		Context("when the call to get active pipelines fails", func() {
 			BeforeEach(func() {
 				pipelinesDB.GetAllPipelinesReturns(nil, errors.New("disaster"))
-			})
-
-			It("returns 500 internal server error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-		})
-
-		Context("when the call to get a pipeline's config fails", func() {
-			BeforeEach(func() {
-				configDB.GetConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("disaster"))
 			})
 
 			It("returns 500 internal server error", func() {
