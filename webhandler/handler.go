@@ -52,22 +52,12 @@ func NewHandler(
 		return nil, err
 	}
 
-	oldBuildTemplate, err := loadTemplateWithPipeline("old-build.html", funcs)
-	if err != nil {
-		return nil, err
-	}
-
 	buildsTemplate, err := loadTemplateWithoutPipeline("builds/index.html", funcs)
 	if err != nil {
 		return nil, err
 	}
 
 	joblessBuildTemplate, err := loadTemplateWithoutPipeline("builds/show.html", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	oldJoblessBuildTemplate, err := loadTemplateWithoutPipeline("builds/old-show.html", funcs)
 	if err != nil {
 		return nil, err
 	}
@@ -101,9 +91,9 @@ func NewHandler(
 		web.Public:          CacheNearlyForever(http.FileServer(publicFS)),
 		web.GetJob:          authredirect.Handler{getjob.NewHandler(logger, clientFactory, jobTemplate)},
 		web.GetResource:     authredirect.Handler{getresource.NewHandler(logger, clientFactory, resourceTemplate)},
-		web.GetBuild:        authredirect.Handler{getbuild.NewHandler(logger, clientFactory, buildTemplate, oldBuildTemplate)},
+		web.GetBuild:        authredirect.Handler{getbuild.NewHandler(logger, clientFactory, buildTemplate)},
 		web.GetBuilds:       authredirect.Handler{getbuilds.NewHandler(logger, clientFactory, buildsTemplate)},
-		web.GetJoblessBuild: authredirect.Handler{getjoblessbuild.NewHandler(logger, clientFactory, joblessBuildTemplate, oldJoblessBuildTemplate)},
+		web.GetJoblessBuild: authredirect.Handler{getjoblessbuild.NewHandler(logger, clientFactory, joblessBuildTemplate)},
 		web.TriggerBuild:    authredirect.Handler{triggerbuild.NewHandler(logger, clientFactory)},
 		web.LogIn:           login.NewHandler(logger, clientFactory, logInTemplate),
 		web.BasicAuth:       login.NewBasicAuthHandler(logger),
