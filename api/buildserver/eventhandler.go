@@ -99,6 +99,7 @@ func NewEventHandler(logger lager.Logger, buildsDB BuildsDB, buildID int) http.H
 		es := make(chan atc.Event)
 		errs := make(chan error, 1)
 		closed := make(chan struct{})
+		defer close(closed)
 
 		go func() {
 			defer events.Close()
@@ -128,7 +129,6 @@ func NewEventHandler(logger lager.Logger, buildsDB BuildsDB, buildID int) http.H
 					},
 				})
 				if err != nil {
-					close(closed)
 					return
 				}
 

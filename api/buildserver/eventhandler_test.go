@@ -377,6 +377,39 @@ var _ = Describe("Handler", func() {
 			})
 		})
 
+		Context("when the event stream never ends", func() {
+			var fakeEventSource *dbfakes.FakeEventSource
+			BeforeEach(func() {
+				fakeEventSource = new(dbfakes.FakeEventSource)
+				fakeEventSource.NextReturns(fakeEvent{"e1"}, nil)
+				buildsDB.GetBuildEventsReturns(fakeEventSource, nil)
+			})
+
+			Context("when the request doesn't use websockets", func() {
+				JustBeforeEach(func() {
+					var err error
+
+					client := &http.Client{
+						Transport: &http.Transport{},
+					}
+					response, err = client.Do(request)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				Context("when request accepts gzip", func() {
+					BeforeEach(func() {
+						request.Header.Set("Accept-Encoding", "gzip")
+					})
+
+					It("closes the event stream when connection is closed", func() {
+						err := response.Body.Close()
+						Expect(err).NotTo(HaveOccurred())
+						Eventually(fakeEventSource.CloseCallCount, 30*time.Second).Should(Equal(1))
+					})
+				})
+			})
+		})
+
 		Context("when subscribing to it fails", func() {
 			BeforeEach(func() {
 				buildsDB.GetBuildEventsReturns(nil, errors.New("nope"))
