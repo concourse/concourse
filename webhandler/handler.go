@@ -10,6 +10,7 @@ import (
 
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/authredirect"
+	"github.com/concourse/atc/web/basicauth"
 	"github.com/concourse/atc/web/getbuild"
 	"github.com/concourse/atc/web/getbuilds"
 	"github.com/concourse/atc/web/getjob"
@@ -87,6 +88,11 @@ func NewHandler(
 		return nil, err
 	}
 
+	basicAuthTemplate, err := loadTemplateWithoutPipeline("basic-auth.html", funcs)
+	if err != nil {
+		return nil, err
+	}
+
 	publicFS := &assetfs.AssetFS{
 		Asset:     web.Asset,
 		AssetDir:  web.AssetDir,
@@ -96,18 +102,19 @@ func NewHandler(
 	pipelineHandler := pipeline.NewHandler(logger, clientFactory, pipelineTemplate)
 
 	handlers := map[string]http.Handler{
-		web.Index:           authredirect.Handler{index.NewHandler(logger, clientFactory, pipelineHandler, indexTemplate)},
-		web.Pipeline:        authredirect.Handler{pipelineHandler},
-		web.Public:          CacheNearlyForever(http.FileServer(publicFS)),
-		web.GetJob:          authredirect.Handler{getjob.NewHandler(logger, clientFactory, jobTemplate)},
-		web.GetResource:     authredirect.Handler{getresource.NewHandler(logger, clientFactory, resourceTemplate)},
-		web.GetBuild:        authredirect.Handler{getbuild.NewHandler(logger, clientFactory, buildTemplate, oldBuildTemplate)},
-		web.GetBuilds:       authredirect.Handler{getbuilds.NewHandler(logger, clientFactory, buildsTemplate)},
-		web.GetJoblessBuild: authredirect.Handler{getjoblessbuild.NewHandler(logger, clientFactory, joblessBuildTemplate, oldJoblessBuildTemplate)},
-		web.TriggerBuild:    authredirect.Handler{triggerbuild.NewHandler(logger, clientFactory)},
-		web.LogIn:           login.NewHandler(logger, clientFactory, logInTemplate),
-		web.TeamLogIn:       login.NewHandler(logger, clientFactory, logInTemplate),
-		web.BasicAuth:       login.NewBasicAuthHandler(logger),
+		web.Index:                 authredirect.Handler{index.NewHandler(logger, clientFactory, pipelineHandler, indexTemplate)},
+		web.Pipeline:              authredirect.Handler{pipelineHandler},
+		web.Public:                CacheNearlyForever(http.FileServer(publicFS)),
+		web.GetJob:                authredirect.Handler{getjob.NewHandler(logger, clientFactory, jobTemplate)},
+		web.GetResource:           authredirect.Handler{getresource.NewHandler(logger, clientFactory, resourceTemplate)},
+		web.GetBuild:              authredirect.Handler{getbuild.NewHandler(logger, clientFactory, buildTemplate, oldBuildTemplate)},
+		web.GetBuilds:             authredirect.Handler{getbuilds.NewHandler(logger, clientFactory, buildsTemplate)},
+		web.GetJoblessBuild:       authredirect.Handler{getjoblessbuild.NewHandler(logger, clientFactory, joblessBuildTemplate, oldJoblessBuildTemplate)},
+		web.TriggerBuild:          authredirect.Handler{triggerbuild.NewHandler(logger, clientFactory)},
+		web.LogIn:                 login.NewHandler(logger, clientFactory, logInTemplate),
+		web.TeamLogIn:             login.NewHandler(logger, clientFactory, logInTemplate),
+		web.GetBasicAuthLogIn:     basicauth.NewGetBasicAuthHandler(logger, basicAuthTemplate),
+		web.ProcessBasicAuthLogIn: basicauth.NewProcessBasicAuthHandler(logger, clientFactory),
 	}
 
 	handler, err := rata.NewRouter(web.Routes, wrapper.Wrap(handlers))

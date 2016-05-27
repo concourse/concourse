@@ -5,6 +5,7 @@ concourse.PauseUnpause = function ($el, pauseCallback, unpauseCallback) {
   this.pauseBtn = this.$el.find('.js-pauseUnpause').pausePlayBtn();
   this.pauseEndpoint = this.$el.data('endpoint') + "/pause";
   this.unPauseEndpoint = this.$el.data('endpoint') + "/unpause";
+  this.teamName = this.$el.data('teamname');
 };
 
 concourse.PauseUnpause.prototype.bindEvents = function () {
@@ -54,6 +55,6 @@ concourse.PauseUnpause.prototype.requestError = function (resp) {
   this.pauseBtn.error();
 
   if (resp.status == 401) {
-    concourse.redirect("/login");
+    concourse.redirect("/teams/" + this.teamName + "/login");
   }
 };

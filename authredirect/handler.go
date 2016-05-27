@@ -4,9 +4,11 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/gorilla/context"
+	"github.com/tedsuo/rata"
 )
 
 type Handler struct {
@@ -16,7 +18,13 @@ type Handler struct {
 func (handler Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := handler.HTTPHandlerWithError.ServeHTTP(w, r)
 	if err == concourse.ErrUnauthorized {
-		path, err := web.Routes.CreatePathForRoute(web.LogIn, nil)
+		teamName := r.FormValue(":team_name")
+		if teamName == "" {
+			teamName = atc.DefaultTeamName
+		}
+		path, err := web.Routes.CreatePathForRoute(web.TeamLogIn, rata.Params{
+			"team_name": teamName,
+		})
 		if err != nil {
 			return
 		}
