@@ -15,7 +15,7 @@ var _ = Describe("Viewing builds", func() {
 		var build atc.Build
 
 		BeforeEach(func() {
-			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -40,10 +40,10 @@ var _ = Describe("Viewing builds", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = client.UnpausePipeline(pipelineName)
+			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			build, err = client.CreateJobBuild(pipelineName, "some-job")
+			build, err = team.CreateJobBuild(pipelineName, "some-job")
 			Expect(err).NotTo(HaveOccurred())
 		})
 

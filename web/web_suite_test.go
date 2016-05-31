@@ -20,6 +20,7 @@ var pipelineName string
 var teamName string
 
 var client concourse.Client
+var team concourse.Team
 
 func TestWeb(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -43,6 +44,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
 	teamName = "main"
+	team = client.Team(teamName)
 
 	agoutiDriver = helpers.AgoutiDriver()
 	Expect(agoutiDriver.Start()).To(Succeed())
@@ -53,7 +55,7 @@ var _ = AfterSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	_, err := client.DeletePipeline(pipelineName)
+	_, err := team.DeletePipeline(pipelineName)
 	Expect(err).ToNot(HaveOccurred())
 
 	page, err = agoutiDriver.NewPage()
@@ -65,7 +67,7 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	Expect(page.Destroy()).To(Succeed())
 
-	_, err := client.DeletePipeline(pipelineName)
+	_, err := team.DeletePipeline(pipelineName)
 	Expect(err).ToNot(HaveOccurred())
 })
 

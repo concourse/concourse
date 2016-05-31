@@ -27,7 +27,7 @@ var _ = Describe("InputDetails", func() {
 
 	Context("when pinned version is unavailable", func() {
 		BeforeEach(func() {
-			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -51,10 +51,10 @@ var _ = Describe("InputDetails", func() {
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			_, err = client.UnpausePipeline(pipelineName)
+			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			build, err = client.CreateJobBuild(pipelineName, "some-job")
+			build, err = team.CreateJobBuild(pipelineName, "some-job")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -69,7 +69,7 @@ var _ = Describe("InputDetails", func() {
 
 	Context("when no versions are available", func() {
 		BeforeEach(func() {
-			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -92,10 +92,10 @@ var _ = Describe("InputDetails", func() {
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			_, err = client.UnpausePipeline(pipelineName)
+			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			build, err = client.CreateJobBuild(pipelineName, "some-job")
+			build, err = team.CreateJobBuild(pipelineName, "some-job")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -110,7 +110,7 @@ var _ = Describe("InputDetails", func() {
 
 	Context("when no versions have passed constraints", func() {
 		BeforeEach(func() {
-			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -142,10 +142,10 @@ var _ = Describe("InputDetails", func() {
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			_, err = client.UnpausePipeline(pipelineName)
+			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			build, err = client.CreateJobBuild(pipelineName, "second-job")
+			build, err = team.CreateJobBuild(pipelineName, "second-job")
 			Expect(err).NotTo(HaveOccurred())
 		})
 

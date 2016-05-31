@@ -19,17 +19,17 @@ var _ = Describe("JobPausing", func() {
 
 	Context("with a job in the configuration", func() {
 		BeforeEach(func() {
-			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{Name: "some-job"},
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = client.UnpausePipeline(pipelineName)
+			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			build, err = client.CreateJobBuild(pipelineName, "some-job")
+			build, err = team.CreateJobBuild(pipelineName, "some-job")
 			Expect(err).NotTo(HaveOccurred())
 
 			loadingTimeout = 10 * time.Second
@@ -79,7 +79,7 @@ var _ = Describe("JobPausing", func() {
 
 		Describe("paused pipeline", func() {
 			BeforeEach(func() {
-				_, err := client.PausePipeline(pipelineName)
+				_, err := team.PausePipeline(pipelineName)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

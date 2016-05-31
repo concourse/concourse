@@ -18,33 +18,33 @@ var _ = Describe("PipelinePausing", func() {
 
 	Context("with a job in the configuration", func() {
 		BeforeEach(func() {
-			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{Name: "some-job-name"},
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			_, err = client.UnpausePipeline(pipelineName)
+			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = client.DeletePipeline("another-pipeline")
+			_, err = team.DeletePipeline("another-pipeline")
 			Expect(err).NotTo(HaveOccurred())
 
-			_, _, _, err = client.CreateOrUpdatePipelineConfig("another-pipeline", "0", atc.Config{
+			_, _, _, err = team.CreateOrUpdatePipelineConfig("another-pipeline", "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{Name: "another-job-name"},
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = client.UnpausePipeline("another-pipeline")
+			_, err = team.UnpausePipeline("another-pipeline")
 			Expect(err).NotTo(HaveOccurred())
 
 			loadingTimeout = 10 * time.Second
 		})
 
 		AfterEach(func() {
-			_, err := client.DeletePipeline("another-pipeline")
+			_, err := team.DeletePipeline("another-pipeline")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
