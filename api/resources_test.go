@@ -19,12 +19,12 @@ import (
 )
 
 var _ = Describe("Resources API", func() {
-	var pipelineDB *dbfakes.FakePipelineDB
+	var fakePipelineDB *dbfakes.FakePipelineDB
 	var expectedSavedPipeline db.SavedPipeline
 
 	BeforeEach(func() {
-		pipelineDB = new(dbfakes.FakePipelineDB)
-		pipelineDBFactory.BuildReturns(pipelineDB)
+		fakePipelineDB = new(dbfakes.FakePipelineDB)
+		pipelineDBFactory.BuildReturns(fakePipelineDB)
 		expectedSavedPipeline = db.SavedPipeline{}
 		teamDB.GetPipelineByNameReturns(expectedSavedPipeline, nil)
 	})
@@ -39,155 +39,138 @@ var _ = Describe("Resources API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when getting the resource config succeeds", func() {
+		Context("when getting the dashboard resources succeeds", func() {
 			BeforeEach(func() {
-				pipelineDB.GetConfigReturns(atc.Config{
-					Groups: []atc.GroupConfig{
-						{
-							Name:      "group-1",
-							Resources: []string{"resource-1"},
-						},
-						{
-							Name:      "group-2",
-							Resources: []string{"resource-1", "resource-2"},
-						},
+				groupConfigs := []atc.GroupConfig{
+					{
+						Name:      "group-1",
+						Resources: []string{"resource-1"},
 					},
+					{
+						Name:      "group-2",
+						Resources: []string{"resource-1", "resource-2"},
+					},
+				}
 
-					Resources: []atc.ResourceConfig{
-						{Name: "resource-1", Type: "type-1"},
-						{Name: "resource-2", Type: "type-2"},
-						{Name: "resource-3", Type: "type-3"},
+				dashboardResource1 := db.DashboardResource{
+					Resource: db.SavedResource{
+						ID:           1,
+						CheckError:   nil,
+						Paused:       true,
+						PipelineName: "a-pipeline",
+						Resource:     db.Resource{Name: "resource-1"},
 					},
-				}, 1, true, nil)
+					ResourceConfig: atc.ResourceConfig{
+						Name: "resource-1",
+						Type: "type-1",
+					},
+				}
+
+				dashboardResource2 := db.DashboardResource{
+					Resource: db.SavedResource{
+						ID:           2,
+						CheckError:   errors.New("sup"),
+						Paused:       false,
+						PipelineName: "a-pipeline",
+						Resource:     db.Resource{Name: "resource-2"},
+					},
+					ResourceConfig: atc.ResourceConfig{
+						Name: "resource-2",
+						Type: "type-2",
+					},
+				}
+
+				dashboardResource3 := db.DashboardResource{
+					Resource: db.SavedResource{
+						ID:           3,
+						CheckError:   nil,
+						Paused:       true,
+						PipelineName: "a-pipeline",
+						Resource:     db.Resource{Name: "resource-3"},
+					},
+					ResourceConfig: atc.ResourceConfig{
+						Name: "resource-3",
+						Type: "type-3",
+					},
+				}
+
+				fakePipelineDB.GetResourcesReturns([]db.DashboardResource{
+					dashboardResource1, dashboardResource2, dashboardResource3,
+				}, groupConfigs, true, nil)
 			})
 
-			Context("when getting the check error succeeds", func() {
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			Context("when authenticated", func() {
 				BeforeEach(func() {
-					pipelineDB.GetResourceStub = func(name string) (db.SavedResource, bool, error) {
-						if name == "resource-in-config-but-not-db" {
-							return db.SavedResource{}, false, nil
-						} else if name == "resource-2" {
-							return db.SavedResource{
-								ID:           1,
-								CheckError:   errors.New("sup"),
-								PipelineName: "a-pipeline",
-								Resource: db.Resource{
-									Name: name,
-								},
-							}, true, nil
-						} else {
-							return db.SavedResource{
-								ID:           2,
-								Paused:       true,
-								PipelineName: "a-pipeline",
-								Resource: db.Resource{
-									Name: name,
-								},
-							}, true, nil
+					authValidator.IsAuthenticatedReturns(true)
+				})
+
+				It("returns each resource, including their check failure", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
+						{
+							"name": "resource-1",
+							"type": "type-1",
+							"groups": ["group-1", "group-2"],
+							"paused": true,
+							"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-1"
+						},
+						{
+							"name": "resource-2",
+							"type": "type-2",
+							"groups": ["group-2"],
+							"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-2",
+							"failing_to_check": true,
+							"check_error": "sup"
+						},
+						{
+							"name": "resource-3",
+							"type": "type-3",
+							"groups": [],
+							"paused": true,
+							"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-3"
 						}
-					}
-				})
-
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				Context("when authenticated", func() {
-					BeforeEach(func() {
-						authValidator.IsAuthenticatedReturns(true)
-					})
-
-					It("returns each resource, including their check failure", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(body).To(MatchJSON(`[
-							{
-								"name": "resource-1",
-								"type": "type-1",
-								"groups": ["group-1", "group-2"],
-								"paused": true,
-								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-1"
-							},
-							{
-								"name": "resource-2",
-								"type": "type-2",
-								"groups": ["group-2"],
-								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-2",
-								"failing_to_check": true,
-								"check_error": "sup"
-							},
-							{
-								"name": "resource-3",
-								"type": "type-3",
-								"groups": [],
-								"paused": true,
-								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-3"
-							}
-						]`))
-					})
-				})
-
-				Context("when one of resources is missing in database", func() {
-					BeforeEach(func() {
-						pipelineDB.GetConfigReturns(atc.Config{
-							Resources: []atc.ResourceConfig{
-								{Name: "resource-in-config-but-not-db", Type: "type-1"},
-							},
-						}, 1, true, nil)
-					})
-
-					It("returns 404", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					})
-				})
-
-				Context("when not authenticated", func() {
-					BeforeEach(func() {
-						authValidator.IsAuthenticatedReturns(false)
-					})
-
-					It("returns each resource, excluding their check failure", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(body).To(MatchJSON(`[
-							{
-								"name": "resource-1",
-								"type": "type-1",
-								"groups": ["group-1", "group-2"],
-								"paused": true,
-								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-1"
-							},
-							{
-								"name": "resource-2",
-								"type": "type-2",
-								"groups": ["group-2"],
-								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-2",
-								"failing_to_check": true
-							},
-							{
-								"name": "resource-3",
-								"type": "type-3",
-								"groups": [],
-								"paused": true,
-								"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-3"
-							}
-						]`))
-
-					})
+					]`))
 				})
 			})
 
-			Context("when getting the resource check error", func() {
+			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					pipelineDB.GetResourceStub = func(name string) (db.SavedResource, bool, error) {
-						return db.SavedResource{}, false, errors.New("oh no!")
-					}
+					authValidator.IsAuthenticatedReturns(false)
 				})
 
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				It("returns each resource, excluding their check failure", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
+						{
+							"name": "resource-1",
+							"type": "type-1",
+							"groups": ["group-1", "group-2"],
+							"paused": true,
+							"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-1"
+						},
+						{
+							"name": "resource-2",
+							"type": "type-2",
+							"groups": ["group-2"],
+							"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-2",
+							"failing_to_check": true
+						},
+						{
+							"name": "resource-3",
+							"type": "type-3",
+							"groups": [],
+							"paused": true,
+							"url": "/teams/a-team/pipelines/a-pipeline/resources/resource-3"
+						}
+					]`))
 				})
 			})
 		})
@@ -195,7 +178,7 @@ var _ = Describe("Resources API", func() {
 		Context("when getting the resource config fails", func() {
 			Context("when the pipeline is no longer configured", func() {
 				BeforeEach(func() {
-					pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
+					fakePipelineDB.GetResourcesReturns(nil, nil, false, nil)
 				})
 
 				It("returns 404", func() {
@@ -205,7 +188,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("with an unknown error", func() {
 				BeforeEach(func() {
-					pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
+					fakePipelineDB.GetResourcesReturns(nil, nil, false, errors.New("oh no!"))
 				})
 
 				It("returns 500", func() {
@@ -233,12 +216,12 @@ var _ = Describe("Resources API", func() {
 		})
 
 		It("calls to get the config from the pipelineDB", func() {
-			Expect(pipelineDB.GetConfigCallCount()).To(Equal(1))
+			Expect(fakePipelineDB.GetConfigCallCount()).To(Equal(1))
 		})
 
 		Context("when the call to get config returns an error", func() {
 			BeforeEach(func() {
-				pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("disaster"))
+				fakePipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("disaster"))
 			})
 
 			It("returns a 500", func() {
@@ -248,7 +231,7 @@ var _ = Describe("Resources API", func() {
 
 		Context("when the config in the database can't be found", func() {
 			BeforeEach(func() {
-				pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
+				fakePipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
 			})
 
 			It("returns a 404", func() {
@@ -258,7 +241,7 @@ var _ = Describe("Resources API", func() {
 
 		Context("when getting the config is successful", func() {
 			BeforeEach(func() {
-				pipelineDB.GetConfigReturns(atc.Config{
+				fakePipelineDB.GetConfigReturns(atc.Config{
 					Groups: []atc.GroupConfig{
 						{
 							Name:      "group-1",
@@ -291,8 +274,8 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("looks it up in the database", func() {
-					Expect(pipelineDB.GetResourceCallCount()).To(Equal(1))
-					Expect(pipelineDB.GetResourceArgsForCall(0)).To(Equal("resource-1"))
+					Expect(fakePipelineDB.GetResourceCallCount()).To(Equal(1))
+					Expect(fakePipelineDB.GetResourceArgsForCall(0)).To(Equal("resource-1"))
 				})
 
 				Context("when the resource cannot be found in the database", func() {
@@ -307,7 +290,7 @@ var _ = Describe("Resources API", func() {
 
 				Context("when the call to the db returns an error", func() {
 					BeforeEach(func() {
-						pipelineDB.GetResourceReturns(db.SavedResource{}, false, errors.New("Oh no!"))
+						fakePipelineDB.GetResourceReturns(db.SavedResource{}, false, errors.New("Oh no!"))
 					})
 
 					It("returns a 500 error", func() {
@@ -317,7 +300,7 @@ var _ = Describe("Resources API", func() {
 
 				Context("when the call to get a resource succeeds", func() {
 					BeforeEach(func() {
-						pipelineDB.GetResourceReturns(db.SavedResource{
+						fakePipelineDB.GetResourceReturns(db.SavedResource{
 							ID:           1,
 							CheckError:   errors.New("sup"),
 							Paused:       true,
@@ -380,7 +363,7 @@ var _ = Describe("Resources API", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
-			pipelineDB.GetResourceReturns(db.SavedResource{
+			fakePipelineDB.GetResourceReturns(db.SavedResource{
 				Resource: db.Resource{
 					Name: "resource-name",
 				},
@@ -412,11 +395,11 @@ var _ = Describe("Resources API", func() {
 
 			Context("when pausing the resource succeeds", func() {
 				BeforeEach(func() {
-					pipelineDB.PauseResourceReturns(nil)
+					fakePipelineDB.PauseResourceReturns(nil)
 				})
 
 				It("paused the right resource", func() {
-					Expect(pipelineDB.PauseResourceArgsForCall(0)).To(Equal("resource-name"))
+					Expect(fakePipelineDB.PauseResourceArgsForCall(0)).To(Equal("resource-name"))
 				})
 
 				It("returns 200", func() {
@@ -426,7 +409,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when resource can not be found", func() {
 				BeforeEach(func() {
-					pipelineDB.GetResourceReturns(db.SavedResource{}, false, nil)
+					fakePipelineDB.GetResourceReturns(db.SavedResource{}, false, nil)
 				})
 
 				It("returns 404", func() {
@@ -436,7 +419,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when pausing the resource fails", func() {
 				BeforeEach(func() {
-					pipelineDB.PauseResourceReturns(errors.New("welp"))
+					fakePipelineDB.PauseResourceReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {
@@ -460,7 +443,7 @@ var _ = Describe("Resources API", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
-			pipelineDB.GetResourceReturns(db.SavedResource{
+			fakePipelineDB.GetResourceReturns(db.SavedResource{
 				Resource: db.Resource{
 					Name: "resource-name",
 				},
@@ -492,11 +475,11 @@ var _ = Describe("Resources API", func() {
 
 			Context("when unpausing the resource succeeds", func() {
 				BeforeEach(func() {
-					pipelineDB.UnpauseResourceReturns(nil)
+					fakePipelineDB.UnpauseResourceReturns(nil)
 				})
 
 				It("unpaused the right resource", func() {
-					Expect(pipelineDB.UnpauseResourceArgsForCall(0)).To(Equal("resource-name"))
+					Expect(fakePipelineDB.UnpauseResourceArgsForCall(0)).To(Equal("resource-name"))
 				})
 
 				It("returns 200", func() {
@@ -506,7 +489,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when resource can not be found", func() {
 				BeforeEach(func() {
-					pipelineDB.GetResourceReturns(db.SavedResource{}, false, nil)
+					fakePipelineDB.GetResourceReturns(db.SavedResource{}, false, nil)
 				})
 
 				It("returns 404", func() {
@@ -516,7 +499,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when unpausing the resource fails", func() {
 				BeforeEach(func() {
-					pipelineDB.UnpauseResourceReturns(errors.New("welp"))
+					fakePipelineDB.UnpauseResourceReturns(errors.New("welp"))
 				})
 
 				It("returns 500", func() {
@@ -622,7 +605,7 @@ var _ = Describe("Resources API", func() {
 							PipelineID: 42,
 						},
 					}
-					pipelineDB.GetLatestVersionedResourceReturns(returnedVersion, true, nil)
+					fakePipelineDB.GetLatestVersionedResourceReturns(returnedVersion, true, nil)
 				})
 
 				It("tries to scan with the latest version when no version is passed", func() {
@@ -635,7 +618,7 @@ var _ = Describe("Resources API", func() {
 
 			Context("when failing to get latest version for resource", func() {
 				BeforeEach(func() {
-					pipelineDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{}, false, errors.New("disaster"))
+					fakePipelineDB.GetLatestVersionedResourceReturns(db.SavedVersionedResource{}, false, errors.New("disaster"))
 				})
 
 				It("returns 500", func() {

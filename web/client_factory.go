@@ -1,6 +1,7 @@
 package web
 
 import (
+	"crypto/tls"
 	"net/http"
 
 	"github.com/concourse/go-concourse/concourse"
@@ -11,12 +12,14 @@ type ClientFactory interface {
 }
 
 type clientFactory struct {
-	apiEndpoint string
+	apiEndpoint                 string
+	allowSelfSignedCertificates bool
 }
 
-func NewClientFactory(apiEndpoint string) ClientFactory {
+func NewClientFactory(apiEndpoint string, allowSelfSignedCertificates bool) ClientFactory {
 	return &clientFactory{
-		apiEndpoint: apiEndpoint,
+		apiEndpoint:                 apiEndpoint,
+		allowSelfSignedCertificates: allowSelfSignedCertificates,
 	}
 }
 
@@ -25,8 +28,11 @@ func (cf *clientFactory) Build(r *http.Request) concourse.Client {
 		Authorization: r.Header.Get("Authorization"),
 
 		Base: &http.Transport{
-			// disable connection pooling
-			DisableKeepAlives: true,
+
+			DisableKeepAlives: true, // disable connection pooling
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: cf.allowSelfSignedCertificates,
+			},
 		},
 	}
 

@@ -2,6 +2,11 @@ package transport
 
 import "net/http"
 
+//go:generate counterfeiter . RoundTripper
+type RoundTripper interface {
+	RoundTrip(*http.Request) (*http.Response, error)
+}
+
 type roundTripper struct {
 	db                TransportDB
 	workerName        string
@@ -41,5 +46,6 @@ func (c *roundTripper) RoundTrip(request *http.Request) (*http.Response, error) 
 	if err != nil {
 		c.cachedHost = ""
 	}
+
 	return response, err
 }

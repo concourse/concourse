@@ -9,7 +9,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/concourse/atc"
@@ -51,15 +53,15 @@ import (
 )
 
 type ATCCommand struct {
-	BindIP      IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
-	BindPort    uint16 `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
-	TLSBindPort uint16 `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
+	BindIP   IPFlag `long:"bind-ip"   default:"0.0.0.0" description:"IP address on which to listen for web traffic."`
+	BindPort uint16 `long:"bind-port" default:"8080"    description:"Port on which to listen for HTTP traffic."`
+
+	TLSBindPort uint16   `long:"tls-bind-port" description:"Port on which to listen for HTTPS traffic."`
+	TLSCert     FileFlag `long:"tls-cert"      description:"File containing an SSL certificate."`
+	TLSKey      FileFlag `long:"tls-key"       description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
 	ExternalURL URLFlag `long:"external-url" default:"http://127.0.0.1:8080" description:"URL used to reach any ATC from the outside world."`
 	PeerURL     URLFlag `long:"peer-url"     default:"http://127.0.0.1:8080" description:"URL used to reach this ATC from other ATCs in the cluster."`
-
-	TLSCert FileFlag `long:"tls-cert" description:"File containing an SSL certificate."`
-	TLSKey  FileFlag `long:"tls-key" description:"File containing an RSA private key, used to encrypt HTTPS traffic."`
 
 	OAuthBaseURL URLFlag `long:"oauth-base-url" description:"URL used as the base of OAuth redirect URIs. If not specified, the external URL is used."`
 
@@ -250,16 +252,42 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
+	var httpHandler http.Handler
+	if cmd.TLSBindPort != 0 {
+		apiRedirectHandler := redirectingAPIHandler{
+			externalHost: cmd.ExternalURL.URL().Host,
+			baseHandler:  apiHandler,
+		}
+
+		oauthRedirectHandler := redirectingAPIHandler{
+			externalHost: cmd.ExternalURL.URL().Host,
+			baseHandler:  oauthHandler,
+		}
+
+		webRedirectHandler := redirectingAPIHandler{
+			externalHost: cmd.ExternalURL.URL().Host,
+			baseHandler:  webHandler,
+		}
+
+		httpHandler = cmd.constructHTTPHandler(
+			webRedirectHandler,
+			apiRedirectHandler,
+			oauthRedirectHandler,
+		)
+	} else {
+		httpHandler = cmd.constructHTTPHandler(
+			webHandler,
+			apiHandler,
+			oauthHandler,
+		)
+	}
+
 	members := []grouper.Member{
 		{"drainer", drainer(drain)},
 
 		{"web", http_server.New(
-			cmd.bindAddr(),
-			cmd.constructHTTPHandler(
-				webHandler,
-				apiHandler,
-				oauthHandler,
-			),
+			cmd.nonTLSBindAddr(),
+			httpHandler,
 		)},
 
 		{"debug", http_server.New(
@@ -321,7 +349,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	members = cmd.appendStaticWorker(logger, sqlDB, members)
 
-	if cmd.TLSCert != "" {
+	if cmd.TLSBindPort != 0 {
 		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
 
 		if err != nil {
@@ -343,10 +371,16 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 
 	return onReady(grouper.NewParallel(os.Interrupt, members), func() {
-		logger.Info("listening", lager.Data{
-			"web":   cmd.bindAddr(),
+		logData := lager.Data{
+			"http":  cmd.nonTLSBindAddr(),
 			"debug": cmd.debugBindAddr(),
-		})
+		}
+
+		if cmd.TLSBindPort != 0 {
+			logData["https"] = cmd.tlsBindAddr()
+		}
+
+		logger.Info("listening", logData)
 	}), nil
 }
 
@@ -444,7 +478,15 @@ func (cmd *ATCCommand) validate() error {
 	if cmd.TLSKey != "" {
 		tlsFlagCount++
 	}
-	if tlsFlagCount != 0 && tlsFlagCount != 3 {
+
+	if tlsFlagCount == 3 {
+		if cmd.ExternalURL.URL().Scheme != "https" {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify HTTPS external-url to use TLS"),
+			)
+		}
+	} else if tlsFlagCount != 0 {
 		errs = multierror.Append(
 			errs,
 			errors.New("must specify --tls-bind-port, --tls-cert, --tls-key to use TLS"),
@@ -454,16 +496,35 @@ func (cmd *ATCCommand) validate() error {
 	return errs.ErrorOrNil()
 }
 
-func (cmd *ATCCommand) bindAddr() string {
-	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
+func (cmd *ATCCommand) bindProtocol() string {
+	if cmd.TLSBindPort != 0 {
+		return "https://"
+	}
+	return "http://"
 }
 
-func (cmd *ATCCommand) debugBindAddr() string {
-	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
+func (cmd *ATCCommand) nonTLSBindAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 }
 
 func (cmd *ATCCommand) tlsBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.TLSBindPort)
+}
+
+func (cmd *ATCCommand) internalURL() string {
+	if cmd.TLSBindPort != 0 {
+		if strings.Contains(cmd.ExternalURL.String(), ":") {
+			return cmd.ExternalURL.String()
+		} else {
+			return fmt.Sprintf("%s:%d", cmd.ExternalURL, cmd.TLSBindPort)
+		}
+	} else {
+		return fmt.Sprintf("http://127.0.0.1:%d", cmd.BindPort)
+	}
+}
+
+func (cmd *ATCCommand) debugBindAddr() string {
+	return fmt.Sprintf("%s:%d", cmd.DebugBindIP, cmd.DebugBindPort)
 }
 
 func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
@@ -740,6 +801,26 @@ func (cmd *ATCCommand) constructAPIHandler(
 	)
 }
 
+type redirectingAPIHandler struct {
+	externalHost string
+	baseHandler  http.Handler
+}
+
+func (h redirectingAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" || r.Method == "HEAD" {
+		u := url.URL{
+			Scheme:   "https",
+			Host:     h.externalHost,
+			Path:     r.URL.Path,
+			RawQuery: r.URL.RawQuery,
+		}
+
+		http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
+	} else {
+		h.baseHandler.ServeHTTP(w, r)
+	}
+}
+
 func (cmd *ATCCommand) constructWebHandler(
 	logger lager.Logger,
 	authValidator auth.Validator,
@@ -751,9 +832,7 @@ func (cmd *ATCCommand) constructWebHandler(
 		wrappa.NewWebMetricsWrappa(logger),
 	}
 
-	clientFactory := web.NewClientFactory(
-		fmt.Sprintf("http://127.0.0.1:%d", cmd.BindPort),
-	)
+	clientFactory := web.NewClientFactory(cmd.internalURL(), cmd.Developer.DevelopmentMode)
 
 	return webhandler.NewHandler(
 		logger,

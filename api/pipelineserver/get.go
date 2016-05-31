@@ -19,17 +19,10 @@ func (s *Server) GetPipeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config, _, _, err := teamDB.GetConfig(pipelineName)
-	if err != nil {
-		s.logger.Error("call-to-get-pipeline-config-failed", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	presentedPipeline := present.Pipeline(teamName, pipeline, config)
+	presentedPipeline := present.Pipeline(teamName, pipeline, pipeline.Config)
 
 	json.NewEncoder(w).Encode(presentedPipeline)
 }
