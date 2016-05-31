@@ -180,6 +180,7 @@ var _ = Describe("BuildsView", func() {
 			// job detail w/build info -> job detail
 			Eventually(page, 10*time.Second).Should(HaveURL(atcRoute(fmt.Sprintf(
 				"/teams/%s/pipelines/%s/jobs/job-manual-trigger-disabled/builds/%s",
+				teamName,
 				pipelineName,
 				manualTriggerDisabledBuild.Name,
 			))))
@@ -192,6 +193,7 @@ var _ = Describe("BuildsView", func() {
 			// job detail w/build info -> job detail
 			Eventually(page, 10*time.Second).Should(HaveURL(atcRoute(fmt.Sprintf(
 				"/teams/%s/pipelines/%s/jobs/job-manual-trigger-disabled/builds/%s",
+				teamName,
 				pipelineName,
 				manualTriggerDisabledBuild.Name,
 			))))
@@ -200,6 +202,7 @@ var _ = Describe("BuildsView", func() {
 			Expect(page.Find("h1 a").Click()).To(Succeed())
 			Eventually(page, 10*time.Second).Should(HaveURL(atcRoute(fmt.Sprintf(
 				"/teams/%s/pipelines/%s/jobs/job-manual-trigger-disabled",
+				teamName,
 				pipelineName,
 			))))
 

@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/concourse/atc"
@@ -60,18 +61,18 @@ var _ = Describe("PipelinePausing", func() {
 			By("clicking another-pipeline")
 			Eventually(page.All(navList).FindByLink("another-pipeline")).Should(BeFound())
 			Expect(page.All(navList).FindByLink("another-pipeline").Click()).To(Succeed())
-			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute("/teams/%s/pipelines/another-pipeline")))
+			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute(fmt.Sprintf("/teams/%s/pipelines/another-pipeline", teamName))))
 
 			By("clicking home button")
 			Expect(page.Find(homeLink).Click()).To(Succeed())
-			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute("/teams/%s/pipelines/another-pipeline")))
+			Eventually(page, loadingTimeout).Should(HaveURL(atcRoute(fmt.Sprintf("/teams/%s/pipelines/another-pipeline", teamName))))
 
 			By("toggling the nav")
 			Expect(page.Find(".js-pipelinesNav-toggle").Click()).To(Succeed())
 			Eventually(page.Find("#pipeline").Text, loadingTimeout).Should(ContainSubstring("another-job-name"))
 
 			By("pausing another-pipeline")
-			spanXPath := "//a[@href='/pipelines/another-pipeline']/parent::li/span"
+			spanXPath := fmt.Sprintf("//a[@href='/teams/%s/pipelines/another-pipeline']/parent::li/span", teamName)
 			Eventually(page.All(navList).FindByXPath(spanXPath), loadingTimeout).Should(BeVisible())
 			Expect(page.All(navList).FindByXPath(spanXPath + "[contains(@class, 'disabled')]")).To(BeFound())
 			Expect(page.FindByXPath(spanXPath).Click()).To(Succeed())

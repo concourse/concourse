@@ -49,7 +49,7 @@ var _ = Describe("Viewing builds", func() {
 
 		It("can view the build", func() {
 			Expect(page.Navigate(atcRoute(build.URL))).To(Succeed())
-			Eventually(page).Should(HaveURL(atcRoute(fmt.Sprintf("pipelines/%s/jobs/some-job/builds/%s", pipelineName, build.Name))))
+			Eventually(page).Should(HaveURL(atcRoute(fmt.Sprintf("teams/%s/pipelines/%s/jobs/some-job/builds/%s", teamName, pipelineName, build.Name))))
 			Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("some-job #%s", build.Name)))
 			Eventually(page.Find("#builds")).Should(HaveText(build.Name))
 
