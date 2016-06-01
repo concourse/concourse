@@ -59,6 +59,15 @@ type FakeTeamDB struct {
 		result1 db.SavedTeam
 		result2 error
 	}
+	UpdateCFAuthStub        func(cfAuth *db.CFAuth) (db.SavedTeam, error)
+	updateCFAuthMutex       sync.RWMutex
+	updateCFAuthArgsForCall []struct {
+		cfAuth *db.CFAuth
+	}
+	updateCFAuthReturns struct {
+		result1 db.SavedTeam
+		result2 error
+	}
 	GetConfigStub        func(pipelineName string) (atc.Config, atc.RawConfig, db.ConfigVersion, error)
 	getConfigMutex       sync.RWMutex
 	getConfigArgsForCall []struct {
@@ -262,6 +271,39 @@ func (fake *FakeTeamDB) UpdateGitHubAuthArgsForCall(i int) *db.GitHubAuth {
 func (fake *FakeTeamDB) UpdateGitHubAuthReturns(result1 db.SavedTeam, result2 error) {
 	fake.UpdateGitHubAuthStub = nil
 	fake.updateGitHubAuthReturns = struct {
+		result1 db.SavedTeam
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeamDB) UpdateCFAuth(cfAuth *db.CFAuth) (db.SavedTeam, error) {
+	fake.updateCFAuthMutex.Lock()
+	fake.updateCFAuthArgsForCall = append(fake.updateCFAuthArgsForCall, struct {
+		cfAuth *db.CFAuth
+	}{cfAuth})
+	fake.updateCFAuthMutex.Unlock()
+	if fake.UpdateCFAuthStub != nil {
+		return fake.UpdateCFAuthStub(cfAuth)
+	} else {
+		return fake.updateCFAuthReturns.result1, fake.updateCFAuthReturns.result2
+	}
+}
+
+func (fake *FakeTeamDB) UpdateCFAuthCallCount() int {
+	fake.updateCFAuthMutex.RLock()
+	defer fake.updateCFAuthMutex.RUnlock()
+	return len(fake.updateCFAuthArgsForCall)
+}
+
+func (fake *FakeTeamDB) UpdateCFAuthArgsForCall(i int) *db.CFAuth {
+	fake.updateCFAuthMutex.RLock()
+	defer fake.updateCFAuthMutex.RUnlock()
+	return fake.updateCFAuthArgsForCall[i].cfAuth
+}
+
+func (fake *FakeTeamDB) UpdateCFAuthReturns(result1 db.SavedTeam, result2 error) {
+	fake.UpdateCFAuthStub = nil
+	fake.updateCFAuthReturns = struct {
 		result1 db.SavedTeam
 		result2 error
 	}{result1, result2}

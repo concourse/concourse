@@ -12,6 +12,7 @@ type Team struct {
 
 	BasicAuth  *BasicAuth  `json:"basic_auth"`
 	GitHubAuth *GitHubAuth `json:"github_auth"`
+	CFAuth     *CFAuth     `json:"cf_auth"`
 }
 
 type BasicAuth struct {

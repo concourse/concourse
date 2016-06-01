@@ -19,6 +19,7 @@ type TeamDB interface {
 	GetTeam() (SavedTeam, bool, error)
 	UpdateBasicAuth(basicAuth *BasicAuth) (SavedTeam, error)
 	UpdateGitHubAuth(gitHubAuth *GitHubAuth) (SavedTeam, error)
+	UpdateCFAuth(cfAuth *CFAuth) (SavedTeam, error)
 
 	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
 	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
@@ -364,7 +365,7 @@ func (db *teamDB) registerResourceType(tx Tx, resourceType atc.ResourceType, pip
 
 func (db *teamDB) GetTeam() (SavedTeam, bool, error) {
 	query := fmt.Sprintf(`
-		SELECT id, name, admin, basic_auth, github_auth
+		SELECT id, name, admin, basic_auth, github_auth, cf_auth
 		FROM teams
 		WHERE name ILIKE '%s'
 	`, db.teamName,
@@ -382,7 +383,7 @@ func (db *teamDB) GetTeam() (SavedTeam, bool, error) {
 }
 
 func (db *teamDB) queryTeam(query string) (SavedTeam, error) {
-	var basicAuth, gitHubAuth sql.NullString
+	var basicAuth, gitHubAuth, cfAuth sql.NullString
 	var savedTeam SavedTeam
 
 	tx, err := db.conn.Begin()
@@ -397,6 +398,7 @@ func (db *teamDB) queryTeam(query string) (SavedTeam, error) {
 		&savedTeam.Admin,
 		&basicAuth,
 		&gitHubAuth,
+		&cfAuth,
 	)
 	if err != nil {
 		return savedTeam, err
@@ -420,6 +422,13 @@ func (db *teamDB) queryTeam(query string) (SavedTeam, error) {
 		}
 	}
 
+	if cfAuth.Valid {
+		err = json.Unmarshal([]byte(cfAuth.String), &savedTeam.CFAuth)
+		if err != nil {
+			return savedTeam, err
+		}
+	}
+
 	return savedTeam, nil
 }
 
@@ -433,7 +442,7 @@ func (db *teamDB) UpdateBasicAuth(basicAuth *BasicAuth) (SavedTeam, error) {
 		UPDATE teams
 		SET basic_auth = '%s'
 		WHERE name ILIKE '%s'
-		RETURNING id, name, admin, basic_auth, github_auth
+		RETURNING id, name, admin, basic_auth, github_auth, cf_auth
 	`, encryptedBasicAuth, db.teamName)
 	return db.queryTeam(query)
 }
@@ -452,9 +461,25 @@ func (db *teamDB) UpdateGitHubAuth(gitHubAuth *GitHubAuth) (SavedTeam, error) {
 		UPDATE teams
 		SET github_auth = '%s'
 		WHERE name ILIKE '%s'
-		RETURNING id, name, admin, basic_auth, github_auth
+		RETURNING id, name, admin, basic_auth, github_auth, cf_auth
 	`, string(jsonEncodedGitHubAuth), db.teamName,
 	))
+}
+
+func (db *teamDB) UpdateCFAuth(cfAuth *CFAuth) (SavedTeam, error) {
+	jsonEncodedCFAuth, err := json.Marshal(cfAuth)
+	if err != nil {
+		return SavedTeam{}, err
+	}
+
+	return db.queryTeam(fmt.Sprintf(`
+		UPDATE teams
+		SET cf_auth = '%s'
+		WHERE name ILIKE '%s'
+		RETURNING id, name, admin, basic_auth, github_auth, cf_auth
+	`, string(jsonEncodedCFAuth), db.teamName,
+	))
+	return SavedTeam{}, nil
 }
 
 func scanPipeline(rows scannable) (SavedPipeline, error) {

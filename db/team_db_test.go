@@ -156,6 +156,7 @@ var _ = Describe("TeamDB", func() {
 	Describe("Updating Auth", func() {
 		var basicAuth *db.BasicAuth
 		var gitHubAuth *db.GitHubAuth
+		var cfAuth *db.CFAuth
 
 		BeforeEach(func() {
 			basicAuth = &db.BasicAuth{
@@ -179,6 +180,15 @@ var _ = Describe("TeamDB", func() {
 				},
 				Users: []string{"user1", "user2", "user3"},
 			}
+
+			cfAuth = &db.CFAuth{
+				ClientID:     "fake id",
+				ClientSecret: "some secret",
+				Spaces:       []string{"a", "b", "c"},
+				AuthURL:      "https://some.auth.url",
+				TokenURL:     "https://some.token.url",
+				APIURL:       "https://some.api.url",
+			}
 		})
 
 		Describe("UpdateBasicAuth", func() {
@@ -190,6 +200,16 @@ var _ = Describe("TeamDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.GitHubAuth).To(Equal(gitHubAuth))
+			})
+
+			It("saves basic auth team info without overwriting the cf auth", func() {
+				_, err := teamDB.UpdateCFAuth(cfAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				savedTeam, err := teamDB.UpdateBasicAuth(basicAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.CFAuth).To(Equal(cfAuth))
 			})
 
 			It("saves basic auth team info to the existing team", func() {
@@ -263,11 +283,37 @@ var _ = Describe("TeamDB", func() {
 					[]byte(basicAuth.BasicAuthPassword))).To(BeNil())
 			})
 
+			It("saves github auth team info without over writing the cf auth", func() {
+				_, err := teamDB.UpdateCFAuth(cfAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				savedTeam, err := teamDB.UpdateGitHubAuth(gitHubAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.CFAuth).To(Equal(cfAuth))
+			})
+
 			It("saves github auth team info to the existing team when team name is case-insensitive", func() {
 				savedTeam, err := caseInsensitiveTeamDB.UpdateGitHubAuth(gitHubAuth)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(savedTeam.GitHubAuth).To(Equal(gitHubAuth))
+			})
+		})
+
+		Describe("UpdateCFAuth", func() {
+			It("saves cf auth team info to the existing team", func() {
+				savedTeam, err := teamDB.UpdateCFAuth(cfAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.CFAuth).To(Equal(cfAuth))
+			})
+
+			It("saves cf auth team info to the existing team when team name is caseinsensitive", func() {
+				savedTeam, err := caseInsensitiveTeamDB.UpdateCFAuth(cfAuth)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(savedTeam.CFAuth).To(Equal(cfAuth))
 			})
 		})
 	})

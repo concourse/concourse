@@ -107,10 +107,12 @@ type ATCCommand struct {
 		Organizations []string         `long:"organization"  description:"GitHub organization whose members will have access." value-name:"ORG"`
 		Teams         []GitHubTeamFlag `long:"team"          description:"GitHub team whose members will have access." value-name:"ORG/TEAM"`
 		Users         []string         `long:"user"          description:"GitHub user to permit access." value-name:"LOGIN"`
-		AuthURL       string           `long:"auth-url"      description:"Override default endpoint AuthURL for Github Enterprise"`
-		TokenURL      string           `long:"token-url"     description:"Override default endpoint TokenURL for Github Enterprise"`
-		APIURL        string           `long:"api-url"       description:"Override default API endpoint URL for Github Enterprise"`
+		AuthURL       string           `long:"auth-url"      description:"Override default endpoint AuthURL for Github Enterprise."`
+		TokenURL      string           `long:"token-url"     description:"Override default endpoint TokenURL for Github Enterprise."`
+		APIURL        string           `long:"api-url"       description:"Override default API endpoint URL for Github Enterprise."`
 	} `group:"GitHub Authentication" namespace:"github-auth"`
+
+	CFAuth CFAuth `group:"UAA Authentication" namespace:"cf-auth"`
 
 	Metrics struct {
 		HostName   string            `long:"metrics-host-name"   description:"Host string to attach to emitted metrics."`
@@ -123,6 +125,24 @@ type ATCCommand struct {
 		RiemannHost string `long:"riemann-host"                description:"Riemann server address to emit metrics to."`
 		RiemannPort uint16 `long:"riemann-port" default:"5555" description:"Port of the Riemann server to emit metrics to."`
 	} `group:"Metrics & Diagnostics"`
+}
+
+type CFAuth struct {
+	ClientID     string   `long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
+	ClientSecret string   `long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
+	Spaces       []string `long:"space"         description:"Space GUID for a CF space whose developers will have access."`
+	AuthURL      string   `long:"auth-url"      description:"UAA AuthURL endpoint."`
+	TokenURL     string   `long:"token-url"     description:"UAA TokenURL endpoint."`
+	APIURL       string   `long:"api-url"       description:"CF API endpoint."`
+}
+
+func (auth *CFAuth) IsConfigured() bool {
+	return auth.ClientID != "" ||
+		auth.ClientSecret != "" ||
+		len(auth.Spaces) > 0 ||
+		auth.AuthURL != "" ||
+		auth.TokenURL != "" ||
+		auth.APIURL != ""
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
@@ -414,7 +434,7 @@ func (cmd *ATCCommand) oauthBaseURL() string {
 }
 
 func (cmd *ATCCommand) authConfigured() bool {
-	return cmd.basicAuthConfigured() || cmd.gitHubAuthConfigured()
+	return cmd.basicAuthConfigured() || cmd.gitHubAuthConfigured() || cmd.CFAuth.IsConfigured()
 }
 
 func (cmd *ATCCommand) basicAuthConfigured() bool {
@@ -464,6 +484,27 @@ func (cmd *ATCCommand) validate() error {
 			errs = multierror.Append(
 				errs,
 				errors.New("must specify --basic-auth-password to use basic auth"),
+			)
+		}
+	}
+
+	if cmd.CFAuth.IsConfigured() {
+		if cmd.CFAuth.ClientID == "" || cmd.CFAuth.ClientSecret == "" {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify --cf-auth-client-id and --cf-auth-client-secret to use CF OAuth"),
+			)
+		}
+		if len(cmd.CFAuth.Spaces) == 0 {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify --cf-auth-space to use CF OAuth"),
+			)
+		}
+		if cmd.CFAuth.AuthURL == "" || cmd.CFAuth.TokenURL == "" || cmd.CFAuth.APIURL == "" {
+			errs = multierror.Append(
+				errs,
+				errors.New("must specify --cf-auth-auth-url, --cf-auth-token-url and --cf-auth-api-url to use CF OAuth"),
 			)
 		}
 	}
@@ -622,9 +663,9 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, teamDBFactor
 	team := db.Team{
 		Name: atc.DefaultTeamName,
 	}
+	teamDB := teamDBFactory.GetTeamDB(team.Name)
 
 	var gitHubAuth *db.GitHubAuth
-
 	if len(cmd.GitHubAuth.Organizations) > 0 ||
 		len(cmd.GitHubAuth.Teams) > 0 ||
 		len(cmd.GitHubAuth.Users) > 0 {
@@ -649,8 +690,24 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, teamDBFactor
 		}
 	}
 
-	teamDB := teamDBFactory.GetTeamDB(team.Name)
 	_, err = teamDB.UpdateGitHubAuth(gitHubAuth)
+	if err != nil {
+		return err
+	}
+
+	var cfAuth *db.CFAuth
+	if cmd.CFAuth.IsConfigured() {
+		cfAuth = &db.CFAuth{
+			ClientID:     cmd.CFAuth.ClientID,
+			ClientSecret: cmd.CFAuth.ClientSecret,
+			Spaces:       cmd.CFAuth.Spaces,
+			AuthURL:      cmd.CFAuth.AuthURL,
+			TokenURL:     cmd.CFAuth.TokenURL,
+			APIURL:       cmd.CFAuth.APIURL,
+		}
+	}
+
+	_, err = teamDB.UpdateCFAuth(cfAuth)
 	if err != nil {
 		return err
 	}
@@ -683,7 +740,6 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, teamDBFact
 }
 
 func (cmd *ATCCommand) updateBasicAuthCredentials(teamDBFactory db.TeamDBFactory) error {
-	teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 	var basicAuth *db.BasicAuth
 	if cmd.BasicAuth.Username != "" || cmd.BasicAuth.Password != "" {
 		basicAuth = &db.BasicAuth{
@@ -691,6 +747,7 @@ func (cmd *ATCCommand) updateBasicAuthCredentials(teamDBFactory db.TeamDBFactory
 			BasicAuthPassword: cmd.BasicAuth.Password,
 		}
 	}
+	teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 	_, err := teamDB.UpdateBasicAuth(basicAuth)
 	return err
 }

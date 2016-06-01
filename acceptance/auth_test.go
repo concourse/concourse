@@ -143,4 +143,57 @@ var _ = Describe("Auth", func() {
 			Expect(resp.Request.URL.Path).To(Equal("/"))
 		})
 	})
+
+	Describe("when auth is not configured", func() {
+		It("returns an error", func() {
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, NOT_CONFIGURED_AUTH)
+			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must configure basic auth, OAuth, or turn on development mode"))
+		})
+	})
+
+	Describe("CF Auth", func() {
+		BeforeEach(func() {
+			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, CF_AUTH)
+		})
+
+		It("forces a redirect to CF auth URL", func() {
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/cf?redirect=%2F", atcPort), nil)
+
+			client := new(http.Client)
+			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return errors.New("error")
+			}
+			resp, err := client.Do(request)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("https://uaa.example.com/oauth/authorize"))
+			Expect(resp.StatusCode).To(Equal(http.StatusTemporaryRedirect))
+		})
+
+		It("requires client id and client secret to be specified", func() {
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, CF_AUTH_NO_CLIENT_SECRET)
+			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must specify --cf-auth-client-id and --cf-auth-client-secret to use CF OAuth"))
+		})
+
+		It("requires space guid to be specified", func() {
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, CF_AUTH_NO_SPACE)
+			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must specify --cf-auth-space to use CF OAuth"))
+		})
+
+		It("requires auth, token and api url to be specified", func() {
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, CF_AUTH_NO_TOKEN_URL)
+			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must specify --cf-auth-auth-url, --cf-auth-token-url and --cf-auth-api-url to use CF OAuth"))
+		})
+	})
 })

@@ -121,6 +121,11 @@ const BASIC_AUTH_NO_PASSWORD = "basic-no-password"
 const BASIC_AUTH_NO_USERNAME = "basic-no-username"
 const GITHUB_AUTH = "github"
 const GITHUB_ENTERPRISE_AUTH = "github-enterprise"
+const CF_AUTH = "cf"
+const CF_AUTH_NO_CLIENT_SECRET = "cf-no-secret"
+const CF_AUTH_NO_TOKEN_URL = "cf-no-token-url"
+const CF_AUTH_NO_SPACE = "cf-no-space"
+const NOT_CONFIGURED_AUTH = "not-configured"
 const DEVELOPMENT_MODE = "dev"
 const NO_AUTH = DEVELOPMENT_MODE
 
@@ -187,8 +192,35 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 				"--github-auth-token-url", "https://github.example.com/login/oauth/access_token",
 				"--github-auth-api-url", "https://github.example.com/api/v3/",
 			)
+		case CF_AUTH:
+			params = append(params,
+				"--cf-auth-client-id", "admin",
+				"--cf-auth-client-secret", "password",
+				"--cf-auth-space", "myspace",
+				"--cf-auth-auth-url", "https://uaa.example.com/oauth/authorize",
+				"--cf-auth-token-url", "https://uaa.example.com/oauth/token",
+				"--cf-auth-api-url", "https://cf.example.com/api",
+			)
+		case CF_AUTH_NO_CLIENT_SECRET:
+			params = append(params,
+				"--cf-auth-client-id", "admin",
+			)
+		case CF_AUTH_NO_SPACE:
+			params = append(params,
+				"--cf-auth-client-id", "admin",
+				"--cf-auth-client-secret", "password",
+			)
+		case CF_AUTH_NO_TOKEN_URL:
+			params = append(params,
+				"--cf-auth-client-id", "admin",
+				"--cf-auth-client-secret", "password",
+				"--cf-auth-space", "myspace",
+				"--cf-auth-auth-url", "https://uaa.example.com/oauth/authorize",
+				"--cf-auth-api-url", "https://cf.example.com/api",
+			)
 		case DEVELOPMENT_MODE:
 			params = append(params, "--development-mode")
+		case NOT_CONFIGURED_AUTH:
 		default:
 			panic("unknown auth type")
 		}
