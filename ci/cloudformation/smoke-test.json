@@ -19,13 +19,6 @@
         "EC2VPC2H8ZY"
       ]
     },
-    "EC2EIP4JZS6": {
-      "Type": "AWS::EC2::EIP",
-      "Properties": {},
-      "DependsOn": [
-        "EC2VPC2H8ZY"
-      ]
-    },
     "EC2EIP12N3S": {
       "Type": "AWS::EC2::EIP",
       "Properties": {
