@@ -16,13 +16,6 @@ type BasicAuthValidator struct {
 // IsAuthenticated
 // basic authentication for login
 func (validator BasicAuthValidator) IsAuthenticated(r *http.Request) bool {
-	auth := r.Header.Get("Authorization")
-
-	username, password, err := extractUsernameAndPassword(auth)
-	if err != nil {
-		return false
-	}
-
 	teamName := r.FormValue(":team_name")
 	if teamName == "" {
 		teamName = atc.DefaultTeamName
@@ -33,8 +26,18 @@ func (validator BasicAuthValidator) IsAuthenticated(r *http.Request) bool {
 		return false
 	}
 
+	if team.BasicAuth == nil {
+		return true
+	}
+
+	auth := r.Header.Get("Authorization")
+	username, password, err := extractUsernameAndPassword(auth)
+	if err != nil {
+		return false
+	}
+
 	return validator.correctCredentials(
-		team.BasicAuthUsername, team.BasicAuthPassword,
+		team.BasicAuth.BasicAuthUsername, team.BasicAuth.BasicAuthPassword,
 		username, password,
 	)
 }
