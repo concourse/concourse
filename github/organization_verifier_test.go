@@ -6,6 +6,7 @@ import (
 
 	. "github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/github/fakes"
+	"github.com/concourse/atc/auth/verifier"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -17,7 +18,7 @@ var _ = Describe("OrganizationVerifier", func() {
 		organizations []string
 		fakeClient    *fakes.FakeClient
 
-		verifier Verifier
+		verifier verifier.Verifier
 	)
 
 	BeforeEach(func() {

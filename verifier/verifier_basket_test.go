@@ -1,4 +1,4 @@
-package github_test
+package verifier_test
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 
 	afakes "github.com/concourse/atc/auth/fakes"
 
-	. "github.com/concourse/atc/auth/github"
+	. "github.com/concourse/atc/auth/verifier"
 )
 
 var _ = Describe("VerifierBasket", func() {
