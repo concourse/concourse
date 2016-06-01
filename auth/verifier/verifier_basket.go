@@ -1,4 +1,4 @@
-package github
+package verifier
 
 import (
 	"net/http"
@@ -6,10 +6,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/pivotal-golang/lager"
 )
-
-type Verifier interface {
-	Verify(lager.Logger, *http.Client) (bool, error)
-}
 
 type VerifierBasket struct {
 	verifiers []Verifier

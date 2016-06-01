@@ -3,6 +3,7 @@ package cf
 import (
 	"net/http"
 
+	"github.com/concourse/atc/auth/verifier"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 	"golang.org/x/oauth2"
@@ -11,10 +12,6 @@ import (
 const ProviderName = "cf"
 
 var Scopes = []string{"cloud_controller.read"}
-
-type Verifier interface {
-	Verify(lager.Logger, *http.Client) (bool, error)
-}
 
 type NoopVerifier struct{}
 
@@ -51,7 +48,7 @@ type Provider struct {
 	// Exchange(context.Context, string) (*oauth2.Token, error)
 	// Client(context.Context, *oauth2.Token) *http.Client
 
-	Verifier
+	verifier.Verifier
 }
 
 func (Provider) DisplayName() string {
