@@ -17,7 +17,7 @@ var _ = Describe("ATC Handler Teams", func() {
 
 		BeforeEach(func() {
 			desiredTeam = atc.Team{
-				BasicAuth: atc.BasicAuth{
+				BasicAuth: &atc.BasicAuth{
 					BasicAuthUsername: "Brock Samson",
 					BasicAuthPassword: "John. Bonham. Rocks.",
 				},
