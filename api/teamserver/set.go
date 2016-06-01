@@ -103,5 +103,19 @@ func (s *Server) validate(team db.Team) error {
 		}
 	}
 
+	if team.CFAuth != nil {
+		if team.CFAuth.ClientID == "" || team.CFAuth.ClientSecret == "" {
+			return errors.New("CF auth missing ClientID or ClientSecret")
+		}
+
+		if len(team.CFAuth.Spaces) == 0 {
+			return errors.New("CF auth requires at least one Space")
+		}
+
+		if team.CFAuth.AuthURL == "" || team.CFAuth.TokenURL == "" || team.CFAuth.APIURL == "" {
+			return errors.New("CF auth requires AuthURL, TokenURL and APIURL")
+		}
+	}
+
 	return nil
 }

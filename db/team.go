@@ -43,9 +43,9 @@ type GitHubAuth struct {
 	Organizations []string     `json:"organizations"`
 	Teams         []GitHubTeam `json:"teams"`
 	Users         []string     `json:"users"`
-	AuthURL       string       `json:"authurl"`
-	TokenURL      string       `json:"tokenurl"`
-	APIURL        string       `json:"apiurl"`
+	AuthURL       string       `json:"auth_url"`
+	TokenURL      string       `json:"token_url"`
+	APIURL        string       `json:"api_url"`
 }
 
 type GitHubTeam struct {
@@ -62,7 +62,7 @@ type CFAuth struct {
 	ClientID     string   `json:"client_id"`
 	ClientSecret string   `json:"client_secret"`
 	Spaces       []string `json:"spaces"`
-	AuthURL      string   `json:"authurl"`
-	TokenURL     string   `json:"tokenurl"`
-	APIURL       string   `json:"apiurl"`
+	AuthURL      string   `json:"auth_url"`
+	TokenURL     string   `json:"token_url"`
+	APIURL       string   `json:"api_url"`
 }

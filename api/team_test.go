@@ -221,6 +221,72 @@ var _ = Describe("Auth API", func() {
 						})
 					})
 				})
+
+				Describe("CF authentication", func() {
+					Context("when passed a valid team with CF Auth", func() {
+						BeforeEach(func() {
+							team = atc.Team{
+								CFAuth: &atc.CFAuth{
+									ClientID:     "Brock Samson",
+									ClientSecret: "09262-8765-001",
+									Spaces:       []string{"myspace"},
+									AuthURL:      "http://auth.url",
+									TokenURL:     "http://token.url",
+									APIURL:       "http://api.url",
+								},
+							}
+						})
+
+						It("responds with 201", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusCreated))
+						})
+					})
+
+					Context("ClientID is not filled in", func() {
+						BeforeEach(func() {
+							team = atc.Team{
+								CFAuth: &atc.CFAuth{
+									ClientSecret: "09262-8765-001",
+								},
+							}
+						})
+
+						It("returns a 400 Bad Request", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+					})
+
+					Context("Spaces are not provided", func() {
+						BeforeEach(func() {
+							team = atc.Team{
+								CFAuth: &atc.CFAuth{
+									ClientID:     "S.P.H.I.N.X.",
+									ClientSecret: "09262-8765-001",
+								},
+							}
+						})
+
+						It("returns a 400 Bad Request", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+					})
+
+					Context("AuthURL is not provided", func() {
+						BeforeEach(func() {
+							team = atc.Team{
+								CFAuth: &atc.CFAuth{
+									ClientID:     "S.P.H.I.N.X.",
+									ClientSecret: "09262-8765-001",
+									Spaces:       []string{"myspace"},
+								},
+							}
+						})
+
+						It("returns a 400 Bad Request", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+					})
+				})
 			})
 
 			Context("when there's a problem finding teams", func() {

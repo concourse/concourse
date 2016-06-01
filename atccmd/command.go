@@ -112,7 +112,7 @@ type ATCCommand struct {
 		APIURL        string           `long:"api-url"       description:"Override default API endpoint URL for Github Enterprise."`
 	} `group:"GitHub Authentication" namespace:"github-auth"`
 
-	CFAuth CFAuth `group:"UAA Authentication" namespace:"cf-auth"`
+	CFAuth CFAuth `group:"CF Authentication" namespace:"cf-auth"`
 
 	Metrics struct {
 		HostName   string            `long:"metrics-host-name"   description:"Host string to attach to emitted metrics."`

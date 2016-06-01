@@ -10,6 +10,7 @@ type Team struct {
 
 	BasicAuth  *BasicAuth  `json:"basic_auth,omitempty"`
 	GitHubAuth *GitHubAuth `json:"github_auth,omitempty"`
+	CFAuth     *CFAuth     `json:"cf_auth,omitempty"`
 }
 
 type BasicAuth struct {
@@ -23,12 +24,21 @@ type GitHubAuth struct {
 	Organizations []string     `json:"organizations,omitempty"`
 	Teams         []GitHubTeam `json:"teams,omitempty"`
 	Users         []string     `json:"users,omitempty"`
-	AuthURL       string       `json:"authurl,omitempty"`
-	TokenURL      string       `json:"tokenurl,omitempty"`
-	APIURL        string       `json:"apiurl,omitempty"`
+	AuthURL       string       `json:"auth_url,omitempty"`
+	TokenURL      string       `json:"token_url,omitempty"`
+	APIURL        string       `json:"api_url,omitempty"`
 }
 
 type GitHubTeam struct {
 	OrganizationName string `json:"organization_name,omitempty"`
 	TeamName         string `json:"team_name,omitempty"`
+}
+
+type CFAuth struct {
+	ClientID     string   `json:"client_id"`
+	ClientSecret string   `json:"client_secret"`
+	Spaces       []string `json:"spaces"`
+	AuthURL      string   `json:"auth_url"`
+	TokenURL     string   `json:"token_url"`
+	APIURL       string   `json:"api_url"`
 }

@@ -161,6 +161,30 @@ var _ = Describe("SQL DB Teams", func() {
 
 			Expect(savedTeam.GitHubAuth).To(Equal(expectedTeam.GitHubAuth))
 		})
+
+		It("saves a team to the db with CF auth", func() {
+			expectedTeam := db.Team{
+				Name: "avengers",
+				CFAuth: &db.CFAuth{
+					ClientID:     "fake id",
+					ClientSecret: "some secret",
+					Spaces:       []string{"myspace"},
+					AuthURL:      "http://auth.url",
+					TokenURL:     "http://token.url",
+					APIURL:       "http://api.url",
+				},
+			}
+			expectedSavedTeam, err := database.CreateTeam(expectedTeam)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
+
+			savedTeam, found, err := teamDBFactory.GetTeamDB("avengers").GetTeam()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(savedTeam).To(Equal(expectedSavedTeam))
+
+			Expect(savedTeam.CFAuth).To(Equal(expectedTeam.CFAuth))
+		})
 	})
 
 	Describe("DeleteTeamByName", func() {
