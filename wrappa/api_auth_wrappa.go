@@ -33,67 +33,75 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		newHandler := handler
 
 		switch name {
-		// authenticated
-		case atc.GetAuthToken,
-			atc.AbortBuild,
-			atc.CreateBuild,
-			atc.CreatePipe,
-			atc.DeletePipeline,
-			atc.DisableResourceVersion,
-			atc.EnableResourceVersion,
-			atc.GetConfig,
-			atc.GetContainer,
-			atc.HijackContainer,
-			atc.ListContainers,
-			atc.ListJobInputs,
-			atc.ListWorkers,
-			atc.OrderPipelines,
-			atc.PauseJob,
-			atc.PausePipeline,
-			atc.PauseResource,
-			atc.ReadPipe,
-			atc.RegisterWorker,
-			atc.SaveConfig,
-			atc.SetLogLevel,
-			atc.SetTeam,
-			atc.UnpauseJob,
-			atc.UnpausePipeline,
-			atc.UnpauseResource,
-			atc.CheckResource,
-			atc.WritePipe,
-			atc.ListVolumes,
-			atc.GetVersionsDB,
-			atc.CreateJobBuild,
-			atc.RenamePipeline:
-			newHandler = auth.CheckAuthHandler(handler, rejector)
-
 		// unauthenticated
 		case atc.ListAuthMethods, atc.GetInfo:
 
-		// unauthenticated if publicly viewable
+		// authenticated if not publicly viewable
 		case atc.BuildEvents,
 			atc.DownloadCLI,
 			atc.GetBuild,
-			atc.GetJobBuild,
 			atc.BuildResources,
-			atc.GetJob,
-			atc.JobBadge,
 			atc.GetLogLevel,
-			atc.GetResource,
-			atc.ListResourceVersions,
 			atc.ListBuilds,
-			atc.ListBuildsWithVersionAsInput,
-			atc.ListBuildsWithVersionAsOutput,
-			atc.ListJobBuilds,
-			atc.ListJobs,
-			atc.ListPipelines,
-			atc.GetPipeline,
-			atc.ListResources,
 			atc.GetBuildPlan,
 			atc.GetBuildPreparation:
 			if !wrappa.PubliclyViewable {
 				newHandler = auth.CheckAuthHandler(handler, rejector)
 			}
+
+		// authenticated
+		case atc.GetAuthToken,
+			atc.AbortBuild,
+			atc.CreateBuild,
+			atc.CreatePipe,
+			atc.GetContainer,
+			atc.HijackContainer,
+			atc.ListContainers,
+			atc.ListWorkers,
+			atc.ReadPipe,
+			atc.RegisterWorker,
+			atc.SetLogLevel,
+			atc.SetTeam,
+			atc.WritePipe,
+			atc.ListVolumes:
+			newHandler = auth.CheckAuthHandler(handler, rejector)
+
+		// authorized if not publicly viewable
+		case atc.GetJobBuild,
+			atc.JobBadge,
+			atc.ListJobBuilds,
+			atc.GetResource,
+			atc.ListBuildsWithVersionAsInput,
+			atc.ListBuildsWithVersionAsOutput,
+			atc.ListResources,
+			atc.ListResourceVersions,
+			atc.ListPipelines,
+			atc.GetPipeline,
+			atc.GetJob,
+			atc.ListJobs:
+			if !wrappa.PubliclyViewable {
+				newHandler = auth.CheckAuthorizationHandler(handler, rejector)
+			}
+
+		// authorized
+		case atc.CheckResource,
+			atc.CreateJobBuild,
+			atc.DeletePipeline,
+			atc.DisableResourceVersion,
+			atc.EnableResourceVersion,
+			atc.GetConfig,
+			atc.GetVersionsDB,
+			atc.ListJobInputs,
+			atc.OrderPipelines,
+			atc.PauseJob,
+			atc.PausePipeline,
+			atc.PauseResource,
+			atc.RenamePipeline,
+			atc.UnpauseJob,
+			atc.UnpausePipeline,
+			atc.UnpauseResource,
+			atc.SaveConfig:
+			newHandler = auth.CheckAuthorizationHandler(handler, rejector)
 
 		// think about it!
 		default:

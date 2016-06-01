@@ -380,12 +380,14 @@ var _ = Describe("Resources API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			It("injects the proper pipelineDB", func() {
+				Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
 				pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
 				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
@@ -460,12 +462,14 @@ var _ = Describe("Resources API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			It("injects the proper pipelineDB", func() {
+				Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
 				pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
 				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
@@ -537,19 +541,20 @@ var _ = Describe("Resources API", func() {
 
 			request, err := http.NewRequest("POST", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/resource-name/check", bytes.NewBuffer(reqPayload))
 			Expect(err).NotTo(HaveOccurred())
-
 			request.Header.Set("Content-Type", "application/json")
 
 			response, err = client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			It("injects the proper pipelineDB", func() {
+				Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
 				pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("a-pipeline"))
 				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))

@@ -1038,9 +1038,10 @@ var _ = Describe("Jobs API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("some-team", 42, true, true)
 			})
 
 			Context("when manual triggering is disabled", func() {
@@ -1214,12 +1215,14 @@ var _ = Describe("Jobs API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("some-team", 42, true, true)
 			})
 
 			It("looked up the proper pipeline", func() {
+				Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
 				pipelineName := teamDB.GetPipelineByNameArgsForCall(0)
 				Expect(pipelineName).To(Equal("some-pipeline"))
 				Expect(pipelineDBFactory.BuildCallCount()).To(Equal(1))
@@ -1409,7 +1412,7 @@ var _ = Describe("Jobs API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
@@ -1509,9 +1512,10 @@ var _ = Describe("Jobs API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("some-team", 42, true, true)
 			})
 
 			It("injects the PipelineDB", func() {
@@ -1547,7 +1551,7 @@ var _ = Describe("Jobs API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
@@ -1571,9 +1575,10 @@ var _ = Describe("Jobs API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("some-team", 42, true, true)
 			})
 
 			It("injects the PipelineDB", func() {
@@ -1609,7 +1614,7 @@ var _ = Describe("Jobs API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})

@@ -219,9 +219,10 @@ var _ = Describe("Versions API", func() {
 
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			It("injects the proper pipelineDB", func() {
@@ -256,7 +257,7 @@ var _ = Describe("Versions API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
@@ -280,9 +281,10 @@ var _ = Describe("Versions API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			It("injects the proper pipelineDB", func() {
@@ -318,7 +320,7 @@ var _ = Describe("Versions API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})

@@ -240,9 +240,10 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when the user is logged in", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			It("returns 204 No Content", func() {
@@ -302,9 +303,10 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			It("constructs teamDB with provided team name", func() {
@@ -341,7 +343,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
@@ -365,9 +367,10 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			It("constructs teamDB with provided team name", func() {
@@ -404,7 +407,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
@@ -441,9 +444,10 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			Context("with invalid json", func() {
@@ -497,7 +501,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
@@ -521,9 +525,10 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 				//construct Version db
 
 				pipelineDB.LoadVersionsDBReturns(
@@ -623,7 +628,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
@@ -637,10 +642,6 @@ var _ = Describe("Pipelines API", func() {
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/rename", func() {
 		var response *http.Response
 
-		BeforeEach(func() {
-			authValidator.IsAuthenticatedReturns(true)
-		})
-
 		JustBeforeEach(func() {
 			var err error
 
@@ -651,7 +652,12 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
+			})
+
 			It("constructs teamDB with provided team name", func() {
 				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
 				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
@@ -686,7 +692,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})

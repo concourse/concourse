@@ -90,29 +90,44 @@ var _ = Describe("Auth", func() {
 	})
 
 	Describe("Basic Auth", func() {
+		var response *http.Response
+		var responseErr error
+
 		BeforeEach(func() {
 			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, BASIC_AUTH)
 		})
 
-		It("forces a redirect to /login", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
-			resp, err := http.DefaultClient.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			Expect(resp.Request.URL.Path).To(Equal("/teams/main/login"))
+		Context("when requesting /", func() {
+			BeforeEach(func() {
+				request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
+				Expect(err).NotTo(HaveOccurred())
+				response, responseErr = http.DefaultClient.Do(request)
+			})
+
+			It("forces a redirect to /teams/main/login", func() {
+				Expect(responseErr).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+				Expect(response.Request.URL.Path).To(Equal("/teams/main/login"))
+			})
 		})
 
-		It("logs in with Basic Auth and allows access", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
-			request.SetBasicAuth("admin", "password")
-			resp, err := http.DefaultClient.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			Expect(resp.Request.URL.Path).To(Equal("/"))
-		})
-	})
+		Context("when requesting a team-specific route", func() {
+			BeforeEach(func() {
+				_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
+				Expect(err).NotTo(HaveOccurred())
 
-	Context("when basic auth is misconfigured", func() {
+				request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/teams/some-team/pipelines/some-pipeline", atcPort), nil)
+				Expect(err).NotTo(HaveOccurred())
+				response, responseErr = http.DefaultClient.Do(request)
+			})
+
+			It("forces a redirect to /teams/:team_name/login", func() {
+				Expect(responseErr).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+				Expect(response.Request.URL.Path).To(Equal("/teams/some-team/login"))
+			})
+		})
+
 		It("errors when only username is specified", func() {
 			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, BASIC_AUTH_NO_PASSWORD)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
@@ -140,7 +155,7 @@ var _ = Describe("Auth", func() {
 			resp, err := http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			Expect(resp.Request.URL.Path).To(Equal("/"))
+			Expect(resp.Request.URL.Path).To(Equal("/teams/main/login"))
 		})
 	})
 
