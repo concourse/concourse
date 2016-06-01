@@ -61,15 +61,19 @@ func (command *SetTeamCommand) Execute([]string) error {
 	team := atc.Team{}
 
 	if hasBasicAuth {
-		team.BasicAuth.BasicAuthUsername = command.BasicAuth.Username
-		team.BasicAuth.BasicAuthPassword = command.BasicAuth.Password
+		team.BasicAuth = &atc.BasicAuth{
+			BasicAuthUsername: command.BasicAuth.Username,
+			BasicAuthPassword: command.BasicAuth.Password,
+		}
 	}
 
 	if hasGitHubAuth {
-		team.GitHubAuth.ClientID = command.GitHubAuth.ClientID
-		team.GitHubAuth.ClientSecret = command.GitHubAuth.ClientSecret
-		team.GitHubAuth.Organizations = command.GitHubAuth.Organizations
-		team.GitHubAuth.Users = command.GitHubAuth.Users
+		team.GitHubAuth = &atc.GitHubAuth{
+			ClientID:      command.GitHubAuth.ClientID,
+			ClientSecret:  command.GitHubAuth.ClientSecret,
+			Organizations: command.GitHubAuth.Organizations,
+			Users:         command.GitHubAuth.Users,
+		}
 
 		for _, ghTeam := range command.GitHubAuth.Teams {
 			team.GitHubAuth.Teams = append(team.GitHubAuth.Teams, atc.GitHubTeam{
