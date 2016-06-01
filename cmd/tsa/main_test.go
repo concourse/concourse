@@ -662,7 +662,7 @@ var _ = Describe("TSA SSH Registrar", func() {
 								),
 							)
 
-							volumes, err := client.ListVolumes(nil, nil)
+							volumes, err := client.ListVolumes(lagertest.NewTestLogger("test"), nil)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(volumes).To(BeEmpty())
