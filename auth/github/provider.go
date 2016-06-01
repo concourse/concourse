@@ -10,15 +10,8 @@ const ProviderName = "github"
 
 var Scopes = []string{"read:org"}
 
-type AuthorizationMethod struct {
-	Organization string
-	Team         string
-
-	User string
-}
-
 func NewProvider(
-	gitHubAuth db.GitHubAuth,
+	gitHubAuth *db.GitHubAuth,
 	redirectURL string,
 ) Provider {
 	client := NewClient(gitHubAuth.APIURL)

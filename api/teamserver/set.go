@@ -85,22 +85,22 @@ func (s *Server) updateCredentials(team db.Team, teamDB db.TeamDB) error {
 }
 
 func (s *Server) validate(team db.Team) error {
-	if team.BasicAuthUsername != "" && team.BasicAuthPassword == "" ||
-		team.BasicAuthUsername == "" && team.BasicAuthPassword != "" {
-		return errors.New("basic auth missing BasicAuthUsername or BasicAuthPassword")
+	if team.BasicAuth != nil {
+		if team.BasicAuth.BasicAuthUsername == "" || team.BasicAuth.BasicAuthPassword == "" {
+			return errors.New("basic auth missing BasicAuthUsername or BasicAuthPassword")
+		}
 	}
 
-	if team.GitHubAuth.ClientID != "" && team.GitHubAuth.ClientSecret == "" ||
-		team.GitHubAuth.ClientID == "" && team.GitHubAuth.ClientSecret != "" {
-		return errors.New("GitHub auth missing ClientID or ClientSecret")
-	}
+	if team.GitHubAuth != nil {
+		if team.GitHubAuth.ClientID == "" || team.GitHubAuth.ClientSecret == "" {
+			return errors.New("GitHub auth missing ClientID or ClientSecret")
+		}
 
-	if team.GitHubAuth.ClientID != "" &&
-		team.GitHubAuth.ClientSecret != "" &&
-		len(team.GitHubAuth.Organizations) == 0 &&
-		len(team.GitHubAuth.Teams) == 0 &&
-		len(team.GitHubAuth.Users) == 0 {
-		return errors.New("GitHub auth requires at least one Organization, Team, or User")
+		if len(team.GitHubAuth.Organizations) == 0 &&
+			len(team.GitHubAuth.Teams) == 0 &&
+			len(team.GitHubAuth.Users) == 0 {
+			return errors.New("GitHub auth requires at least one Organization, Team, or User")
+		}
 	}
 
 	return nil

@@ -65,9 +65,9 @@ var _ = Describe("Auth", func() {
 
 			team, _, err := teamDB.GetTeam()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(team.ClientID).To(Equal("admin"))
-			Expect(team.ClientSecret).To(Equal("password"))
-			Expect(team.Organizations).To(Equal([]string{"myorg"}))
+			Expect(team.GitHubAuth.ClientID).To(Equal("admin"))
+			Expect(team.GitHubAuth.ClientSecret).To(Equal("password"))
+			Expect(team.GitHubAuth.Organizations).To(Equal([]string{"myorg"}))
 		})
 	})
 

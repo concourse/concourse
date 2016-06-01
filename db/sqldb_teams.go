@@ -36,8 +36,8 @@ func (db *SQLDB) CreateTeam(team Team) (SavedTeam, error) {
 		return SavedTeam{}, err
 	}
 
-	gitHubAuth := GitHubAuth{}
-	if team.ClientID != "" && team.ClientSecret != "" {
+	var gitHubAuth *GitHubAuth
+	if team.GitHubAuth != nil && team.GitHubAuth.ClientID != "" && team.GitHubAuth.ClientSecret != "" {
 		gitHubAuth = team.GitHubAuth
 	}
 	jsonEncodedGitHubAuth, err := json.Marshal(gitHubAuth)

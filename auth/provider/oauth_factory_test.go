@@ -36,7 +36,7 @@ var _ = Describe("OAuthFactory", func() {
 					savedTeam := db.SavedTeam{
 						Team: db.Team{
 							Name: atc.DefaultTeamName,
-							GitHubAuth: db.GitHubAuth{
+							GitHubAuth: &db.GitHubAuth{
 								ClientID:     "user1",
 								ClientSecret: "password1",
 								Users:        []string{"thecandyman"},

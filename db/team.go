@@ -9,8 +9,9 @@ import (
 type Team struct {
 	Name  string
 	Admin bool
-	BasicAuth
-	GitHubAuth
+
+	BasicAuth  *BasicAuth  `json:"basic_auth"`
+	GitHubAuth *GitHubAuth `json:"github_auth"`
 }
 
 type BasicAuth struct {
@@ -19,14 +20,16 @@ type BasicAuth struct {
 }
 
 func (auth *BasicAuth) EncryptedJSON() (string, error) {
-	result := BasicAuth{}
-	if auth.BasicAuthUsername != "" && auth.BasicAuthPassword != "" {
+	var result *BasicAuth
+	if auth != nil && auth.BasicAuthUsername != "" && auth.BasicAuthPassword != "" {
 		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(auth.BasicAuthPassword), 4)
 		if err != nil {
 			return "", err
 		}
-		result.BasicAuthPassword = string(encryptedPw)
-		result.BasicAuthUsername = auth.BasicAuthUsername
+		result = &BasicAuth{
+			BasicAuthPassword: string(encryptedPw),
+			BasicAuthUsername: auth.BasicAuthUsername,
+		}
 	}
 
 	json, err := json.Marshal(result)
@@ -52,4 +55,13 @@ type GitHubTeam struct {
 type SavedTeam struct {
 	ID int
 	Team
+}
+
+type CFAuth struct {
+	ClientID     string   `json:"client_id"`
+	ClientSecret string   `json:"client_secret"`
+	Spaces       []string `json:"spaces"`
+	AuthURL      string   `json:"authurl"`
+	TokenURL     string   `json:"tokenurl"`
+	APIURL       string   `json:"apiurl"`
 }

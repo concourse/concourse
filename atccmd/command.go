@@ -623,7 +623,7 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, teamDBFactor
 		Name: atc.DefaultTeamName,
 	}
 
-	gitHubAuth := db.GitHubAuth{}
+	var gitHubAuth *db.GitHubAuth
 
 	if len(cmd.GitHubAuth.Organizations) > 0 ||
 		len(cmd.GitHubAuth.Teams) > 0 ||
@@ -637,7 +637,7 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, teamDBFactor
 			})
 		}
 
-		gitHubAuth = db.GitHubAuth{
+		gitHubAuth = &db.GitHubAuth{
 			ClientID:      cmd.GitHubAuth.ClientID,
 			ClientSecret:  cmd.GitHubAuth.ClientSecret,
 			Organizations: cmd.GitHubAuth.Organizations,
@@ -684,10 +684,14 @@ func (cmd *ATCCommand) constructValidator(signingKey *rsa.PrivateKey, teamDBFact
 
 func (cmd *ATCCommand) updateBasicAuthCredentials(teamDBFactory db.TeamDBFactory) error {
 	teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-	_, err := teamDB.UpdateBasicAuth(db.BasicAuth{
-		BasicAuthUsername: cmd.BasicAuth.Username,
-		BasicAuthPassword: cmd.BasicAuth.Password,
-	})
+	var basicAuth *db.BasicAuth
+	if cmd.BasicAuth.Username != "" || cmd.BasicAuth.Password != "" {
+		basicAuth = &db.BasicAuth{
+			BasicAuthUsername: cmd.BasicAuth.Username,
+			BasicAuthPassword: cmd.BasicAuth.Password,
+		}
+	}
+	_, err := teamDB.UpdateBasicAuth(basicAuth)
 	return err
 }
 

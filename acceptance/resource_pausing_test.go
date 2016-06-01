@@ -38,7 +38,7 @@ var _ = Describe("Resource Pausing", func() {
 		Expect(err).NotTo(HaveOccurred())
 		_, err = sqlDB.CreateTeam(db.Team{
 			Name: atc.DefaultTeamName,
-			BasicAuth: db.BasicAuth{
+			BasicAuth: &db.BasicAuth{
 				BasicAuthUsername: "admin",
 				BasicAuthPassword: "password",
 			},

@@ -37,10 +37,7 @@ func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
 
 	providers := Providers{}
 
-	if len(team.GitHubAuth.Organizations) > 0 ||
-		len(team.GitHubAuth.Teams) > 0 ||
-		len(team.GitHubAuth.Users) > 0 {
-
+	if team.GitHubAuth != nil {
 		redirectURL, err := of.routes.CreatePathForRoute(of.callback, rata.Params{
 			"provider": github.ProviderName,
 		})

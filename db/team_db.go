@@ -17,8 +17,8 @@ type TeamDB interface {
 	OrderPipelines([]string) error
 
 	GetTeam() (SavedTeam, bool, error)
-	UpdateBasicAuth(basicAuth BasicAuth) (SavedTeam, error)
-	UpdateGitHubAuth(gitHubAuth GitHubAuth) (SavedTeam, error)
+	UpdateBasicAuth(basicAuth *BasicAuth) (SavedTeam, error)
+	UpdateGitHubAuth(gitHubAuth *GitHubAuth) (SavedTeam, error)
 
 	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
 	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
@@ -423,7 +423,7 @@ func (db *teamDB) queryTeam(query string) (SavedTeam, error) {
 	return savedTeam, nil
 }
 
-func (db *teamDB) UpdateBasicAuth(basicAuth BasicAuth) (SavedTeam, error) {
+func (db *teamDB) UpdateBasicAuth(basicAuth *BasicAuth) (SavedTeam, error) {
 	encryptedBasicAuth, err := basicAuth.EncryptedJSON()
 	if err != nil {
 		return SavedTeam{}, err
@@ -438,9 +438,9 @@ func (db *teamDB) UpdateBasicAuth(basicAuth BasicAuth) (SavedTeam, error) {
 	return db.queryTeam(query)
 }
 
-func (db *teamDB) UpdateGitHubAuth(gitHubAuth GitHubAuth) (SavedTeam, error) {
-	auth := GitHubAuth{}
-	if gitHubAuth.ClientID != "" && gitHubAuth.ClientSecret != "" {
+func (db *teamDB) UpdateGitHubAuth(gitHubAuth *GitHubAuth) (SavedTeam, error) {
+	var auth *GitHubAuth
+	if gitHubAuth != nil && gitHubAuth.ClientID != "" && gitHubAuth.ClientSecret != "" {
 		auth = gitHubAuth
 	}
 	jsonEncodedGitHubAuth, err := json.Marshal(auth)

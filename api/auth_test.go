@@ -169,7 +169,7 @@ var _ = Describe("Auth API", func() {
 					ID: 0,
 					Team: db.Team{
 						Name: "some-team",
-						BasicAuth: db.BasicAuth{
+						BasicAuth: &db.BasicAuth{
 							BasicAuthUsername: "user",
 							BasicAuthPassword: "password",
 						},

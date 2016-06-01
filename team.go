@@ -8,8 +8,8 @@ type Team struct {
 	// Name is the team's name
 	Name string `json:"name,omitempty"`
 
-	BasicAuth
-	GitHubAuth
+	BasicAuth  *BasicAuth  `json:"basic_auth,omitempty"`
+	GitHubAuth *GitHubAuth `json:"github_auth,omitempty"`
 }
 
 type BasicAuth struct {
