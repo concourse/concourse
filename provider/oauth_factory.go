@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/cloudfoundry/gunk/urljoiner"
+	"github.com/concourse/atc/auth/cf"
 	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/db"
 	"github.com/tedsuo/rata"
@@ -47,6 +48,18 @@ func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
 		gitHubAuthProvider := github.NewProvider(team.GitHubAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
 
 		providers[github.ProviderName] = gitHubAuthProvider
+	}
+
+	if team.CFAuth != nil {
+		redirectURL, err := of.routes.CreatePathForRoute(of.callback, rata.Params{
+			"provider": cf.ProviderName,
+		})
+		if err != nil {
+			return Providers{}, err
+		}
+		cfAuthProvider := cf.NewProvider(team.CFAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
+
+		providers[cf.ProviderName] = cfAuthProvider
 	}
 
 	return providers, err
