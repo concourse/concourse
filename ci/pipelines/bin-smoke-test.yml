@@ -337,7 +337,7 @@ jobs:
     - <<: *fedora-dependencies
       params:
         <<: *fedora-dependencies-params
-        USER_NAME: fedora
+        USER_NAME: root
 
     - <<: *install-postgres-fedora
       params:
