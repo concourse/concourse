@@ -155,7 +155,7 @@ var _ = Describe("Auth", func() {
 			resp, err := http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			Expect(resp.Request.URL.Path).To(Equal("/teams/main/login"))
+			Expect(resp.Request.URL.Path).To(Equal("/"))
 		})
 	})
 
