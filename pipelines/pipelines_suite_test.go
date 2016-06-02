@@ -7,8 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	gclient "github.com/cloudfoundry-incubator/garden/client"
-	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	"github.com/concourse/go-concourse/concourse"
 	"github.com/concourse/testflight/helpers"
 	"github.com/mgutz/ansi"
@@ -69,20 +67,8 @@ func TestGitPipeline(t *testing.T) {
 }
 
 func destroyPipeline(name string) {
-	workers, err := client.ListWorkers()
+	err := helpers.DeleteAllContainers(client, name)
 	Expect(err).NotTo(HaveOccurred())
-	containers, err := client.ListContainers(map[string]string{"pipeline_name": name})
-	Expect(err).NotTo(HaveOccurred())
-	for _, worker := range workers {
-		connection := gconn.New("tcp", worker.GardenAddr)
-		gardenClient := gclient.New(connection)
-		for _, container := range containers {
-			if container.WorkerName == worker.Name {
-				err = gardenClient.Destroy(container.ID)
-				Expect(err).NotTo(HaveOccurred())
-			}
-		}
-	}
 
 	destroyCmd := exec.Command(
 		flyBin,
