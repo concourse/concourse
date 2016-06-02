@@ -26,6 +26,39 @@ type SetTeamCommand struct {
 		Teams         []flaghelpers.GitHubTeamFlag `long:"team"          description:"GitHub team whose members will have access." value-name:"ORG/TEAM"`
 		Users         []string                     `long:"user"          description:"GitHub user to permit access." value-name:"LOGIN"`
 	} `group:"GitHub Authentication" namespace:"github-auth"`
+
+	UAAAuth UAAAuth `group:"UAA Authentication" namespace:"uaa-auth"`
+}
+
+type UAAAuth struct {
+	ClientID     string   `long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
+	ClientSecret string   `long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
+	AuthURL      string   `long:"auth-url"      description:"UAA AuthURL endpoint."`
+	TokenURL     string   `long:"token-url"     description:"UAA TokenURL endpoint."`
+	CFSpaces     []string `long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
+	CFURL        string   `long:"cf-url"        description:"CF API endpoint."`
+}
+
+func (auth *UAAAuth) IsConfigured() bool {
+	return auth.ClientID != "" ||
+		auth.ClientSecret != "" ||
+		len(auth.CFSpaces) > 0 ||
+		auth.AuthURL != "" ||
+		auth.TokenURL != "" ||
+		auth.CFURL != ""
+}
+
+func (auth *UAAAuth) Validate() error {
+	if auth.ClientID == "" || auth.ClientSecret == "" {
+		return errors.New("Both client-id and client-secret are required for uaa-auth.")
+	}
+	if len(auth.CFSpaces) == 0 {
+		return errors.New("cf-space is required for uaa-auth.")
+	}
+	if auth.AuthURL == "" || auth.TokenURL == "" || auth.CFURL == "" {
+		return errors.New("auth-url, token-url and cf-url are required for uaa-auth.")
+	}
+	return nil
 }
 
 func (command *SetTeamCommand) Execute([]string) error {
@@ -47,6 +80,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 	fmt.Println("Team Name:", command.TeamName)
 	fmt.Println("Basic Auth:", authMethodStatusDescription(hasBasicAuth))
 	fmt.Println("GitHub Auth:", authMethodStatusDescription(hasGitHubAuth))
+	fmt.Println("UAA Auth:", authMethodStatusDescription(command.UAAAuth.IsConfigured()))
 
 	confirm := false
 	err = interact.NewInteraction("apply configuration?").Resolve(&confirm)
@@ -83,6 +117,17 @@ func (command *SetTeamCommand) Execute([]string) error {
 		}
 	}
 
+	if command.UAAAuth.IsConfigured() {
+		team.UAAAuth = &atc.UAAAuth{
+			ClientID:     command.UAAAuth.ClientID,
+			ClientSecret: command.UAAAuth.ClientSecret,
+			AuthURL:      command.UAAAuth.AuthURL,
+			TokenURL:     command.UAAAuth.TokenURL,
+			CFSpaces:     command.UAAAuth.CFSpaces,
+			CFURL:        command.UAAAuth.CFURL,
+		}
+	}
+
 	_, _, _, err = target.Client().Team(command.TeamName).CreateOrUpdate(team)
 	if err != nil {
 		return err
@@ -107,6 +152,13 @@ func (command *SetTeamCommand) ValidateFlags() (bool, bool, error) {
 			len(command.GitHubAuth.Teams) == 0 &&
 			len(command.GitHubAuth.Users) == 0 {
 			return false, false, errors.New("At least one of the following is required for github-auth: organizations, teams, users")
+		}
+	}
+
+	if command.UAAAuth.IsConfigured() {
+		err := command.UAAAuth.Validate()
+		if err != nil {
+			return false, false, err
 		}
 	}
 
