@@ -162,7 +162,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	logger, reconfigurableSink := cmd.constructLogger()
 
-	cmd.configureMetrics(logger)
+	if cmd.Metrics.RiemannHost != "" {
+		cmd.configureMetrics(logger)
+	}
 
 	dbConn, err := cmd.constructDBConn(logger)
 	if err != nil {
@@ -338,7 +340,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		)},
 	}
 
-	members = cmd.appendStaticWorker(logger, sqlDB, members)
+	if cmd.Worker.GardenURL.URL() != nil {
+		members = cmd.appendStaticWorker(logger, sqlDB, members)
+	}
 
 	if cmd.TLSBindPort != 0 {
 		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
@@ -577,20 +581,18 @@ func (cmd *ATCCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSin
 }
 
 func (cmd *ATCCommand) configureMetrics(logger lager.Logger) {
-	if cmd.Metrics.RiemannHost != "" {
-		host := cmd.Metrics.HostName
-		if host == "" {
-			host, _ = os.Hostname()
-		}
-
-		metric.Initialize(
-			logger.Session("metrics"),
-			fmt.Sprintf("%s:%d", cmd.Metrics.RiemannHost, cmd.Metrics.RiemannPort),
-			host,
-			cmd.Metrics.Tags,
-			cmd.Metrics.Attributes,
-		)
+	host := cmd.Metrics.HostName
+	if host == "" {
+		host, _ = os.Hostname()
 	}
+
+	metric.Initialize(
+		logger.Session("metrics"),
+		fmt.Sprintf("%s:%d", cmd.Metrics.RiemannHost, cmd.Metrics.RiemannPort),
+		host,
+		cmd.Metrics.Tags,
+		cmd.Metrics.Attributes,
+	)
 }
 
 func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, error) {
@@ -899,10 +901,6 @@ func (cmd *ATCCommand) appendStaticWorker(
 	sqlDB *db.SQLDB,
 	members []grouper.Member,
 ) []grouper.Member {
-	if cmd.Worker.GardenURL.URL() == nil {
-		return members
-	}
-
 	var resourceTypes []atc.WorkerResourceType
 	for t, resourcePath := range cmd.Worker.ResourceTypes {
 		resourceTypes = append(resourceTypes, atc.WorkerResourceType{
