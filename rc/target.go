@@ -61,7 +61,7 @@ func LoadTarget(selectedTarget TargetName) (Target, error) {
 	}, nil
 }
 
-func LoadTargetWithInsecure(selectedTarget TargetName, commandInsecure *bool) (Target, error) {
+func LoadTargetWithInsecure(selectedTarget TargetName, teamName string, commandInsecure *bool) (Target, error) {
 	targetProps, err := SelectTarget(selectedTarget)
 	if err != nil {
 		return nil, err
@@ -70,9 +70,13 @@ func LoadTargetWithInsecure(selectedTarget TargetName, commandInsecure *bool) (T
 	httpClient := defaultHttpClient(targetProps, commandInsecure)
 	client := concourse.NewClient(targetProps.API, httpClient)
 
+	if teamName == "" {
+		teamName = targetProps.TeamName
+	}
+
 	return &target{
 		name:     selectedTarget,
-		teamName: targetProps.TeamName,
+		teamName: teamName,
 		client:   client,
 	}, nil
 }

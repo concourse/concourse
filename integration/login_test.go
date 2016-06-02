@@ -94,6 +94,40 @@ var _ = Describe("login Command", func() {
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 		})
+
+		Context("when already logged in as different team", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					infoHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/auth/methods"),
+						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
+					),
+				)
+
+				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", atcServer.URL(), "-n", "some-team")
+				err := setupFlyCmd.Run()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("passes provided team name", func() {
+				atcServer.AppendHandlers(
+					infoHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/some-other-team/auth/methods"),
+						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{}),
+					),
+				)
+
+				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-n", "some-other-team")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+			})
+		})
 	})
 
 	Describe("login", func() {

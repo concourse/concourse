@@ -30,7 +30,7 @@ func (command *LoginCommand) Execute(args []string) error {
 	if command.ATCURL != "" {
 		target = rc.NewUnauthenticatedTarget(Fly.Target, command.ATCURL, command.TeamName, command.Insecure)
 	} else {
-		target, err = rc.LoadTargetWithInsecure(Fly.Target, &command.Insecure)
+		target, err = rc.LoadTargetWithInsecure(Fly.Target, command.TeamName, &command.Insecure)
 		if err != nil {
 			return err
 		}
