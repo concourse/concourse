@@ -112,7 +112,7 @@ var _ = Describe("Handler", func() {
 				})
 
 				It("gets the events from the right build, starting at 0", func() {
-					Expect(buildsDB.GetBuildEventsCallCount()).To(Equal(1))
+					Eventually(buildsDB.GetBuildEventsCallCount).Should(Equal(1))
 					actualBuildID, actualFrom := buildsDB.GetBuildEventsArgsForCall(0)
 					Expect(actualBuildID).To(Equal(128))
 					Expect(actualFrom).To(BeZero())
