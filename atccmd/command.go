@@ -214,74 +214,12 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	providerFactory := provider.NewOAuthFactory(
-		teamDBFactory,
-		cmd.oauthBaseURL(),
-		auth.OAuthRoutes,
-		auth.OAuthCallback,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	drain := make(chan struct{})
 
 	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
 
-	apiHandler, err := cmd.constructAPIHandler(
-		logger,
-		reconfigurableSink,
-		sqlDB,
-		teamDBFactory,
-		providerFactory,
-		signingKey,
-		pipelineDBFactory,
-		engine,
-		workerClient,
-		drain,
-		radarSchedulerFactory,
-		radarScannerFactory,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	oauthHandler, err := auth.NewOAuthHandler(
-		logger,
-		providerFactory,
-		teamDBFactory,
-		signingKey,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	webHandler, err := webhandler.NewHandler(
-		logger,
-		wrappa.NewWebMetricsWrappa(logger),
-		web.NewClientFactory(cmd.internalURL(), cmd.Developer.DevelopmentMode),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	httpHandler := cmd.constructHTTPHandler(
-		webHandler,
-		apiHandler,
-		oauthHandler,
-	)
-
-	if cmd.TLSBindPort != 0 {
-		httpHandler = cmd.httpsRedirectingHandler(httpHandler)
-	}
-
 	members := []grouper.Member{
 		{"drainer", drainer(drain)},
-
-		{"web", http_server.New(
-			cmd.nonTLSBindAddr(),
-			httpHandler,
-		)},
 
 		{"debug", http_server.New(
 			cmd.debugBindAddr(),
@@ -344,26 +282,73 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		members = cmd.appendStaticWorker(logger, sqlDB, members)
 	}
 
-	if cmd.TLSBindPort != 0 {
-		cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
+	providerFactory := provider.NewOAuthFactory(
+		teamDBFactory,
+		cmd.oauthBaseURL(),
+		auth.OAuthRoutes,
+		auth.OAuthCallback,
+	)
+	if err != nil {
+		return nil, err
+	}
 
+	apiHandler, err := cmd.constructAPIHandler(
+		logger,
+		reconfigurableSink,
+		sqlDB,
+		teamDBFactory,
+		providerFactory,
+		signingKey,
+		pipelineDBFactory,
+		engine,
+		workerClient,
+		drain,
+		radarSchedulerFactory,
+		radarScannerFactory,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	oauthHandler, err := auth.NewOAuthHandler(
+		logger,
+		providerFactory,
+		teamDBFactory,
+		signingKey,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	webHandler, err := webhandler.NewHandler(
+		logger,
+		wrappa.NewWebMetricsWrappa(logger),
+		web.NewClientFactory(cmd.internalURL(), cmd.Developer.DevelopmentMode),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	httpHandler := cmd.constructHTTPHandler(
+		webHandler,
+		apiHandler,
+		oauthHandler,
+	)
+
+	if cmd.TLSBindPort != 0 {
+		httpHandler = cmd.httpsRedirectingHandler(httpHandler)
+
+		var err error
+		members, err = cmd.appendTLSMember(webHandler, apiHandler, oauthHandler, members)
 		if err != nil {
 			return nil, err
 		}
-
-		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
-
-		members = append(members,
-			grouper.Member{"web-tls", http_server.NewTLSServer(
-				cmd.tlsBindAddr(),
-				cmd.constructHTTPHandler(
-					webHandler,
-					apiHandler,
-					oauthHandler,
-				),
-				tlsConfig,
-			)})
 	}
+
+	members = append(members, grouper.Member{"web", http_server.New(
+		cmd.nonTLSBindAddr(),
+		httpHandler,
+	)})
 
 	return onReady(grouper.NewParallel(os.Interrupt, members), func() {
 		logData := lager.Data{
@@ -922,4 +907,29 @@ func (cmd *ATCCommand) appendStaticWorker(
 			),
 		},
 	)
+}
+
+func (cmd *ATCCommand) appendTLSMember(
+	webHandler http.Handler,
+	apiHandler http.Handler,
+	oauthHandler http.Handler,
+	members []grouper.Member,
+) ([]grouper.Member, error) {
+	cert, err := tls.LoadX509KeyPair(string(cmd.TLSCert), string(cmd.TLSKey))
+	if err != nil {
+		return []grouper.Member{}, err
+	}
+
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+	members = append(members, grouper.Member{"web-tls", http_server.NewTLSServer(
+		cmd.tlsBindAddr(),
+		cmd.constructHTTPHandler(
+			webHandler,
+			apiHandler,
+			oauthHandler,
+		),
+		tlsConfig,
+	)})
+
+	return members, nil
 }
