@@ -271,34 +271,14 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	var httpHandler http.Handler
+	httpHandler := cmd.constructHTTPHandler(
+		webHandler,
+		apiHandler,
+		oauthHandler,
+	)
+
 	if cmd.TLSBindPort != 0 {
-		apiRedirectHandler := redirectingAPIHandler{
-			externalHost: cmd.ExternalURL.URL().Host,
-			baseHandler:  apiHandler,
-		}
-
-		oauthRedirectHandler := redirectingAPIHandler{
-			externalHost: cmd.ExternalURL.URL().Host,
-			baseHandler:  oauthHandler,
-		}
-
-		webRedirectHandler := redirectingAPIHandler{
-			externalHost: cmd.ExternalURL.URL().Host,
-			baseHandler:  webHandler,
-		}
-
-		httpHandler = cmd.constructHTTPHandler(
-			webRedirectHandler,
-			apiRedirectHandler,
-			oauthRedirectHandler,
-		)
-	} else {
-		httpHandler = cmd.constructHTTPHandler(
-			webHandler,
-			apiHandler,
-			oauthHandler,
-		)
+		httpHandler = cmd.httpsRedirectingHandler(httpHandler)
 	}
 
 	members := []grouper.Member{
@@ -401,6 +381,24 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 		logger.Info("listening", logData)
 	}), nil
+}
+
+func (cmd *ATCCommand) httpsRedirectingHandler(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET", "HEAD":
+			u := url.URL{
+				Scheme:   "https",
+				Host:     cmd.ExternalURL.URL().Host,
+				Path:     r.URL.Path,
+				RawQuery: r.URL.RawQuery,
+			}
+
+			http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
+		default:
+			handler.ServeHTTP(w, r)
+		}
+	})
 }
 
 func onReady(runner ifrit.Runner, cb func()) ifrit.Runner {
@@ -859,26 +857,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 		cmd.CLIArtifactsDir.Path(),
 		Version,
 	)
-}
-
-type redirectingAPIHandler struct {
-	externalHost string
-	baseHandler  http.Handler
-}
-
-func (h redirectingAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" || r.Method == "HEAD" {
-		u := url.URL{
-			Scheme:   "https",
-			Host:     h.externalHost,
-			Path:     r.URL.Path,
-			RawQuery: r.URL.RawQuery,
-		}
-
-		http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
-	} else {
-		h.baseHandler.ServeHTTP(w, r)
-	}
 }
 
 func (cmd *ATCCommand) constructPipelineSyncer(
