@@ -63,7 +63,10 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	Expect(page.Destroy()).To(Succeed())
 
-	_, err := client.DeletePipeline(pipelineName)
+	err := helpers.DeleteAllContainers(client, pipelineName)
+	Expect(err).ToNot(HaveOccurred())
+
+	_, err = client.DeletePipeline(pipelineName)
 	Expect(err).ToNot(HaveOccurred())
 })
 

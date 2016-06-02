@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/testflight/helpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -43,7 +44,10 @@ var _ = Describe("PipelinePausing", func() {
 		})
 
 		AfterEach(func() {
-			_, err := client.DeletePipeline("another-pipeline")
+			err := helpers.DeleteAllContainers(client, "another-pipeline")
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = client.DeletePipeline("another-pipeline")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
