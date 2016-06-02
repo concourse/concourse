@@ -165,13 +165,13 @@ var _ = Describe("SQL DB Teams", func() {
 		It("saves a team to the db with CF auth", func() {
 			expectedTeam := db.Team{
 				Name: "avengers",
-				CFAuth: &db.CFAuth{
+				UAAAuth: &db.UAAAuth{
 					ClientID:     "fake id",
 					ClientSecret: "some secret",
-					Spaces:       []string{"myspace"},
+					CFSpaces:     []string{"myspace"},
 					AuthURL:      "http://auth.url",
 					TokenURL:     "http://token.url",
-					APIURL:       "http://api.url",
+					CFURL:        "http://api.url",
 				},
 			}
 			expectedSavedTeam, err := database.CreateTeam(expectedTeam)
@@ -183,7 +183,7 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(found).To(BeTrue())
 			Expect(savedTeam).To(Equal(expectedSavedTeam))
 
-			Expect(savedTeam.CFAuth).To(Equal(expectedTeam.CFAuth))
+			Expect(savedTeam.UAAAuth).To(Equal(expectedTeam.UAAAuth))
 		})
 	})
 

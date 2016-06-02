@@ -50,16 +50,16 @@ func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
 		providers[github.ProviderName] = gitHubAuthProvider
 	}
 
-	if team.CFAuth != nil {
+	if team.UAAAuth != nil {
 		redirectURL, err := of.routes.CreatePathForRoute(of.callback, rata.Params{
 			"provider": cf.ProviderName,
 		})
 		if err != nil {
 			return Providers{}, err
 		}
-		cfAuthProvider := cf.NewProvider(team.CFAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
+		uaaAuthProvider := cf.NewProvider(team.UAAAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
 
-		providers[cf.ProviderName] = cfAuthProvider
+		providers[cf.ProviderName] = uaaAuthProvider
 	}
 
 	return providers, err

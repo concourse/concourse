@@ -112,7 +112,7 @@ type ATCCommand struct {
 		APIURL        string           `long:"api-url"       description:"Override default API endpoint URL for Github Enterprise."`
 	} `group:"GitHub Authentication" namespace:"github-auth"`
 
-	CFAuth CFAuth `group:"CF Authentication" namespace:"cf-auth"`
+	UAAAuth UAAAuth `group:"UAA Authentication" namespace:"uaa-auth"`
 
 	Metrics struct {
 		HostName   string            `long:"metrics-host-name"   description:"Host string to attach to emitted metrics."`
@@ -127,22 +127,22 @@ type ATCCommand struct {
 	} `group:"Metrics & Diagnostics"`
 }
 
-type CFAuth struct {
+type UAAAuth struct {
 	ClientID     string   `long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
 	ClientSecret string   `long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
-	Spaces       []string `long:"space"         description:"Space GUID for a CF space whose developers will have access."`
 	AuthURL      string   `long:"auth-url"      description:"UAA AuthURL endpoint."`
 	TokenURL     string   `long:"token-url"     description:"UAA TokenURL endpoint."`
-	APIURL       string   `long:"api-url"       description:"CF API endpoint."`
+	CFSpaces     []string `long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
+	CFURL        string   `long:"cf-url"        description:"CF API endpoint."`
 }
 
-func (auth *CFAuth) IsConfigured() bool {
+func (auth *UAAAuth) IsConfigured() bool {
 	return auth.ClientID != "" ||
 		auth.ClientSecret != "" ||
-		len(auth.Spaces) > 0 ||
+		len(auth.CFSpaces) > 0 ||
 		auth.AuthURL != "" ||
 		auth.TokenURL != "" ||
-		auth.APIURL != ""
+		auth.CFURL != ""
 }
 
 func (cmd *ATCCommand) Execute(args []string) error {
@@ -434,7 +434,7 @@ func (cmd *ATCCommand) oauthBaseURL() string {
 }
 
 func (cmd *ATCCommand) authConfigured() bool {
-	return cmd.basicAuthConfigured() || cmd.gitHubAuthConfigured() || cmd.CFAuth.IsConfigured()
+	return cmd.basicAuthConfigured() || cmd.gitHubAuthConfigured() || cmd.UAAAuth.IsConfigured()
 }
 
 func (cmd *ATCCommand) basicAuthConfigured() bool {
@@ -488,23 +488,23 @@ func (cmd *ATCCommand) validate() error {
 		}
 	}
 
-	if cmd.CFAuth.IsConfigured() {
-		if cmd.CFAuth.ClientID == "" || cmd.CFAuth.ClientSecret == "" {
+	if cmd.UAAAuth.IsConfigured() {
+		if cmd.UAAAuth.ClientID == "" || cmd.UAAAuth.ClientSecret == "" {
 			errs = multierror.Append(
 				errs,
-				errors.New("must specify --cf-auth-client-id and --cf-auth-client-secret to use CF OAuth"),
+				errors.New("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use CF OAuth"),
 			)
 		}
-		if len(cmd.CFAuth.Spaces) == 0 {
+		if len(cmd.UAAAuth.CFSpaces) == 0 {
 			errs = multierror.Append(
 				errs,
-				errors.New("must specify --cf-auth-space to use CF OAuth"),
+				errors.New("must specify --uaa-auth-cf-space to use CF OAuth"),
 			)
 		}
-		if cmd.CFAuth.AuthURL == "" || cmd.CFAuth.TokenURL == "" || cmd.CFAuth.APIURL == "" {
+		if cmd.UAAAuth.AuthURL == "" || cmd.UAAAuth.TokenURL == "" || cmd.UAAAuth.CFURL == "" {
 			errs = multierror.Append(
 				errs,
-				errors.New("must specify --cf-auth-auth-url, --cf-auth-token-url and --cf-auth-api-url to use CF OAuth"),
+				errors.New("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use CF OAuth"),
 			)
 		}
 	}
@@ -695,19 +695,19 @@ func (cmd *ATCCommand) configureOAuthProviders(logger lager.Logger, teamDBFactor
 		return err
 	}
 
-	var cfAuth *db.CFAuth
-	if cmd.CFAuth.IsConfigured() {
-		cfAuth = &db.CFAuth{
-			ClientID:     cmd.CFAuth.ClientID,
-			ClientSecret: cmd.CFAuth.ClientSecret,
-			Spaces:       cmd.CFAuth.Spaces,
-			AuthURL:      cmd.CFAuth.AuthURL,
-			TokenURL:     cmd.CFAuth.TokenURL,
-			APIURL:       cmd.CFAuth.APIURL,
+	var uaaAuth *db.UAAAuth
+	if cmd.UAAAuth.IsConfigured() {
+		uaaAuth = &db.UAAAuth{
+			ClientID:     cmd.UAAAuth.ClientID,
+			ClientSecret: cmd.UAAAuth.ClientSecret,
+			CFSpaces:     cmd.UAAAuth.CFSpaces,
+			AuthURL:      cmd.UAAAuth.AuthURL,
+			TokenURL:     cmd.UAAAuth.TokenURL,
+			CFURL:        cmd.UAAAuth.CFURL,
 		}
 	}
 
-	_, err = teamDB.UpdateCFAuth(cfAuth)
+	_, err = teamDB.UpdateUAAAuth(uaaAuth)
 	if err != nil {
 		return err
 	}

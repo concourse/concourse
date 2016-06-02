@@ -226,13 +226,13 @@ var _ = Describe("Auth API", func() {
 					Context("when passed a valid team with CF Auth", func() {
 						BeforeEach(func() {
 							team = atc.Team{
-								CFAuth: &atc.CFAuth{
+								UAAAuth: &atc.UAAAuth{
 									ClientID:     "Brock Samson",
 									ClientSecret: "09262-8765-001",
-									Spaces:       []string{"myspace"},
+									CFSpaces:     []string{"myspace"},
 									AuthURL:      "http://auth.url",
 									TokenURL:     "http://token.url",
-									APIURL:       "http://api.url",
+									CFURL:        "http://api.url",
 								},
 							}
 						})
@@ -245,7 +245,7 @@ var _ = Describe("Auth API", func() {
 					Context("ClientID is not filled in", func() {
 						BeforeEach(func() {
 							team = atc.Team{
-								CFAuth: &atc.CFAuth{
+								UAAAuth: &atc.UAAAuth{
 									ClientSecret: "09262-8765-001",
 								},
 							}
@@ -259,7 +259,7 @@ var _ = Describe("Auth API", func() {
 					Context("Spaces are not provided", func() {
 						BeforeEach(func() {
 							team = atc.Team{
-								CFAuth: &atc.CFAuth{
+								UAAAuth: &atc.UAAAuth{
 									ClientID:     "S.P.H.I.N.X.",
 									ClientSecret: "09262-8765-001",
 								},
@@ -274,10 +274,10 @@ var _ = Describe("Auth API", func() {
 					Context("AuthURL is not provided", func() {
 						BeforeEach(func() {
 							team = atc.Team{
-								CFAuth: &atc.CFAuth{
+								UAAAuth: &atc.UAAAuth{
 									ClientID:     "S.P.H.I.N.X.",
 									ClientSecret: "09262-8765-001",
-									Spaces:       []string{"myspace"},
+									CFSpaces:     []string{"myspace"},
 								},
 							}
 						})

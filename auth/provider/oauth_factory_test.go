@@ -59,10 +59,10 @@ var _ = Describe("OAuthFactory", func() {
 				savedTeam := db.SavedTeam{
 					Team: db.Team{
 						Name: atc.DefaultTeamName,
-						CFAuth: &db.CFAuth{
+						UAAAuth: &db.UAAAuth{
 							ClientID:     "user1",
 							ClientSecret: "password1",
-							Spaces:       []string{"myspace"},
+							CFSpaces:     []string{"myspace"},
 						},
 					},
 				}

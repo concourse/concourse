@@ -45,24 +45,24 @@ func (db *SQLDB) CreateTeam(team Team) (SavedTeam, error) {
 		return SavedTeam{}, err
 	}
 
-	jsonEncodedCFAuth, err := json.Marshal(team.CFAuth)
+	jsonEncodedUAAAuth, err := json.Marshal(team.UAAAuth)
 	if err != nil {
 		return SavedTeam{}, err
 	}
 
 	return db.queryTeam(fmt.Sprintf(`
 	INSERT INTO teams (
-    name, basic_auth, github_auth, cf_auth
+    name, basic_auth, github_auth, uaa_auth
 	) VALUES (
 		'%s', '%s', '%s', '%s'
 	)
-	RETURNING id, name, admin, basic_auth, github_auth, cf_auth
-	`, team.Name, jsonEncodedBasicAuth, string(jsonEncodedGitHubAuth), string(jsonEncodedCFAuth),
+	RETURNING id, name, admin, basic_auth, github_auth, uaa_auth
+	`, team.Name, jsonEncodedBasicAuth, string(jsonEncodedGitHubAuth), string(jsonEncodedUAAAuth),
 	))
 }
 
 func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
-	var basicAuth, gitHubAuth, cfAuth sql.NullString
+	var basicAuth, gitHubAuth, uaaAuth sql.NullString
 	var savedTeam SavedTeam
 
 	tx, err := db.conn.Begin()
@@ -77,7 +77,7 @@ func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
 		&savedTeam.Admin,
 		&basicAuth,
 		&gitHubAuth,
-		&cfAuth,
+		&uaaAuth,
 	)
 	if err != nil {
 		return savedTeam, err
@@ -101,8 +101,8 @@ func (db *SQLDB) queryTeam(query string) (SavedTeam, error) {
 		}
 	}
 
-	if cfAuth.Valid {
-		err = json.Unmarshal([]byte(cfAuth.String), &savedTeam.CFAuth)
+	if uaaAuth.Valid {
+		err = json.Unmarshal([]byte(uaaAuth.String), &savedTeam.UAAAuth)
 		if err != nil {
 			return savedTeam, err
 		}

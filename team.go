@@ -10,7 +10,7 @@ type Team struct {
 
 	BasicAuth  *BasicAuth  `json:"basic_auth,omitempty"`
 	GitHubAuth *GitHubAuth `json:"github_auth,omitempty"`
-	CFAuth     *CFAuth     `json:"cf_auth,omitempty"`
+	UAAAuth    *UAAAuth    `json:"uaa_auth,omitempty"`
 }
 
 type BasicAuth struct {
@@ -34,11 +34,11 @@ type GitHubTeam struct {
 	TeamName         string `json:"team_name,omitempty"`
 }
 
-type CFAuth struct {
+type UAAAuth struct {
 	ClientID     string   `json:"client_id"`
 	ClientSecret string   `json:"client_secret"`
-	Spaces       []string `json:"spaces"`
 	AuthURL      string   `json:"auth_url"`
 	TokenURL     string   `json:"token_url"`
-	APIURL       string   `json:"api_url"`
+	CFSpaces     []string `json:"cf_spaces"`
+	CFURL        string   `json:"cf_url"`
 }

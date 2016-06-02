@@ -20,20 +20,20 @@ func (v NoopVerifier) Verify(logger lager.Logger, client *http.Client) (bool, er
 }
 
 func NewProvider(
-	cfAuth *db.CFAuth,
+	uaaAuth *db.UAAAuth,
 	redirectURL string,
 ) Provider {
 	endpoint := oauth2.Endpoint{}
-	if cfAuth.AuthURL != "" && cfAuth.TokenURL != "" {
-		endpoint.AuthURL = cfAuth.AuthURL
-		endpoint.TokenURL = cfAuth.TokenURL
+	if uaaAuth.AuthURL != "" && uaaAuth.TokenURL != "" {
+		endpoint.AuthURL = uaaAuth.AuthURL
+		endpoint.TokenURL = uaaAuth.TokenURL
 	}
 
 	return Provider{
 		Verifier: NoopVerifier{},
 		Config: &oauth2.Config{
-			ClientID:     cfAuth.ClientID,
-			ClientSecret: cfAuth.ClientSecret,
+			ClientID:     uaaAuth.ClientID,
+			ClientSecret: uaaAuth.ClientSecret,
 			Endpoint:     endpoint,
 			Scopes:       Scopes,
 			RedirectURL:  redirectURL,

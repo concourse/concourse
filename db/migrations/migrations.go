@@ -107,5 +107,5 @@ var Migrations = []migration.Migrator{
 	AddSizeToVolumes,
 	AddFirstLoggedBuildIDToJobsAndReapTimeToBuildsAndLeases,
 	AddMissingInputReasonsToBuildPreparation,
-	AddCFAuthToTeams,
+	AddUAAAuthToTeams,
 }

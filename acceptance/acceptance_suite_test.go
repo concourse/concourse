@@ -194,29 +194,29 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 			)
 		case CF_AUTH:
 			params = append(params,
-				"--cf-auth-client-id", "admin",
-				"--cf-auth-client-secret", "password",
-				"--cf-auth-space", "myspace",
-				"--cf-auth-auth-url", "https://uaa.example.com/oauth/authorize",
-				"--cf-auth-token-url", "https://uaa.example.com/oauth/token",
-				"--cf-auth-api-url", "https://cf.example.com/api",
+				"--uaa-auth-client-id", "admin",
+				"--uaa-auth-client-secret", "password",
+				"--uaa-auth-cf-space", "myspace",
+				"--uaa-auth-auth-url", "https://uaa.example.com/oauth/authorize",
+				"--uaa-auth-token-url", "https://uaa.example.com/oauth/token",
+				"--uaa-auth-cf-url", "https://cf.example.com/api",
 			)
 		case CF_AUTH_NO_CLIENT_SECRET:
 			params = append(params,
-				"--cf-auth-client-id", "admin",
+				"--uaa-auth-client-id", "admin",
 			)
 		case CF_AUTH_NO_SPACE:
 			params = append(params,
-				"--cf-auth-client-id", "admin",
-				"--cf-auth-client-secret", "password",
+				"--uaa-auth-client-id", "admin",
+				"--uaa-auth-client-secret", "password",
 			)
 		case CF_AUTH_NO_TOKEN_URL:
 			params = append(params,
-				"--cf-auth-client-id", "admin",
-				"--cf-auth-client-secret", "password",
-				"--cf-auth-space", "myspace",
-				"--cf-auth-auth-url", "https://uaa.example.com/oauth/authorize",
-				"--cf-auth-api-url", "https://cf.example.com/api",
+				"--uaa-auth-client-id", "admin",
+				"--uaa-auth-client-secret", "password",
+				"--uaa-auth-cf-space", "myspace",
+				"--uaa-auth-auth-url", "https://uaa.example.com/oauth/authorize",
+				"--uaa-auth-cf-url", "https://cf.example.com/api",
 			)
 		case DEVELOPMENT_MODE:
 			params = append(params, "--development-mode")

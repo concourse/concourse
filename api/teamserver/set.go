@@ -103,16 +103,16 @@ func (s *Server) validate(team db.Team) error {
 		}
 	}
 
-	if team.CFAuth != nil {
-		if team.CFAuth.ClientID == "" || team.CFAuth.ClientSecret == "" {
+	if team.UAAAuth != nil {
+		if team.UAAAuth.ClientID == "" || team.UAAAuth.ClientSecret == "" {
 			return errors.New("CF auth missing ClientID or ClientSecret")
 		}
 
-		if len(team.CFAuth.Spaces) == 0 {
+		if len(team.UAAAuth.CFSpaces) == 0 {
 			return errors.New("CF auth requires at least one Space")
 		}
 
-		if team.CFAuth.AuthURL == "" || team.CFAuth.TokenURL == "" || team.CFAuth.APIURL == "" {
+		if team.UAAAuth.AuthURL == "" || team.UAAAuth.TokenURL == "" || team.UAAAuth.CFURL == "" {
 			return errors.New("CF auth requires AuthURL, TokenURL and APIURL")
 		}
 	}

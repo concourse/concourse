@@ -12,7 +12,7 @@ type Team struct {
 
 	BasicAuth  *BasicAuth  `json:"basic_auth"`
 	GitHubAuth *GitHubAuth `json:"github_auth"`
-	CFAuth     *CFAuth     `json:"cf_auth"`
+	UAAAuth    *UAAAuth    `json:"uaa_auth"`
 }
 
 type BasicAuth struct {
@@ -58,11 +58,11 @@ type SavedTeam struct {
 	Team
 }
 
-type CFAuth struct {
+type UAAAuth struct {
 	ClientID     string   `json:"client_id"`
 	ClientSecret string   `json:"client_secret"`
-	Spaces       []string `json:"spaces"`
 	AuthURL      string   `json:"auth_url"`
 	TokenURL     string   `json:"token_url"`
-	APIURL       string   `json:"api_url"`
+	CFSpaces     []string `json:"cf_spaces"`
+	CFURL        string   `json:"cf_url"`
 }

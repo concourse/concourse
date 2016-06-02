@@ -192,7 +192,7 @@ var _ = Describe("Auth", func() {
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
-			Expect(session.Err).To(gbytes.Say("must specify --cf-auth-client-id and --cf-auth-client-secret to use CF OAuth"))
+			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use CF OAuth"))
 		})
 
 		It("requires space guid to be specified", func() {
@@ -200,7 +200,7 @@ var _ = Describe("Auth", func() {
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
-			Expect(session.Err).To(gbytes.Say("must specify --cf-auth-space to use CF OAuth"))
+			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-cf-space to use CF OAuth"))
 		})
 
 		It("requires auth, token and api url to be specified", func() {
@@ -208,7 +208,7 @@ var _ = Describe("Auth", func() {
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
-			Expect(session.Err).To(gbytes.Say("must specify --cf-auth-auth-url, --cf-auth-token-url and --cf-auth-api-url to use CF OAuth"))
+			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use CF OAuth"))
 		})
 	})
 })

@@ -59,12 +59,12 @@ type FakeTeamDB struct {
 		result1 db.SavedTeam
 		result2 error
 	}
-	UpdateCFAuthStub        func(cfAuth *db.CFAuth) (db.SavedTeam, error)
-	updateCFAuthMutex       sync.RWMutex
-	updateCFAuthArgsForCall []struct {
-		cfAuth *db.CFAuth
+	UpdateUAAAuthStub        func(uaaAuth *db.UAAAuth) (db.SavedTeam, error)
+	updateUAAAuthMutex       sync.RWMutex
+	updateUAAAuthArgsForCall []struct {
+		uaaAuth *db.UAAAuth
 	}
-	updateCFAuthReturns struct {
+	updateUAAAuthReturns struct {
 		result1 db.SavedTeam
 		result2 error
 	}
@@ -276,34 +276,34 @@ func (fake *FakeTeamDB) UpdateGitHubAuthReturns(result1 db.SavedTeam, result2 er
 	}{result1, result2}
 }
 
-func (fake *FakeTeamDB) UpdateCFAuth(cfAuth *db.CFAuth) (db.SavedTeam, error) {
-	fake.updateCFAuthMutex.Lock()
-	fake.updateCFAuthArgsForCall = append(fake.updateCFAuthArgsForCall, struct {
-		cfAuth *db.CFAuth
-	}{cfAuth})
-	fake.updateCFAuthMutex.Unlock()
-	if fake.UpdateCFAuthStub != nil {
-		return fake.UpdateCFAuthStub(cfAuth)
+func (fake *FakeTeamDB) UpdateUAAAuth(uaaAuth *db.UAAAuth) (db.SavedTeam, error) {
+	fake.updateUAAAuthMutex.Lock()
+	fake.updateUAAAuthArgsForCall = append(fake.updateUAAAuthArgsForCall, struct {
+		uaaAuth *db.UAAAuth
+	}{uaaAuth})
+	fake.updateUAAAuthMutex.Unlock()
+	if fake.UpdateUAAAuthStub != nil {
+		return fake.UpdateUAAAuthStub(uaaAuth)
 	} else {
-		return fake.updateCFAuthReturns.result1, fake.updateCFAuthReturns.result2
+		return fake.updateUAAAuthReturns.result1, fake.updateUAAAuthReturns.result2
 	}
 }
 
-func (fake *FakeTeamDB) UpdateCFAuthCallCount() int {
-	fake.updateCFAuthMutex.RLock()
-	defer fake.updateCFAuthMutex.RUnlock()
-	return len(fake.updateCFAuthArgsForCall)
+func (fake *FakeTeamDB) UpdateUAAAuthCallCount() int {
+	fake.updateUAAAuthMutex.RLock()
+	defer fake.updateUAAAuthMutex.RUnlock()
+	return len(fake.updateUAAAuthArgsForCall)
 }
 
-func (fake *FakeTeamDB) UpdateCFAuthArgsForCall(i int) *db.CFAuth {
-	fake.updateCFAuthMutex.RLock()
-	defer fake.updateCFAuthMutex.RUnlock()
-	return fake.updateCFAuthArgsForCall[i].cfAuth
+func (fake *FakeTeamDB) UpdateUAAAuthArgsForCall(i int) *db.UAAAuth {
+	fake.updateUAAAuthMutex.RLock()
+	defer fake.updateUAAAuthMutex.RUnlock()
+	return fake.updateUAAAuthArgsForCall[i].uaaAuth
 }
 
-func (fake *FakeTeamDB) UpdateCFAuthReturns(result1 db.SavedTeam, result2 error) {
-	fake.UpdateCFAuthStub = nil
-	fake.updateCFAuthReturns = struct {
+func (fake *FakeTeamDB) UpdateUAAAuthReturns(result1 db.SavedTeam, result2 error) {
+	fake.UpdateUAAAuthStub = nil
+	fake.updateUAAAuthReturns = struct {
 		result1 db.SavedTeam
 		result2 error
 	}{result1, result2}
