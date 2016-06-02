@@ -1,4 +1,4 @@
-package cf_test
+package uaa_test
 
 import (
 	"net/http"
@@ -8,7 +8,7 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 	"golang.org/x/oauth2"
 
-	. "github.com/concourse/atc/auth/cf"
+	. "github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/auth/verifier"
 
 	"github.com/onsi/gomega/ghttp"

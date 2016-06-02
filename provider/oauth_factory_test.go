@@ -3,9 +3,9 @@ package provider_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/cf"
 	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/db"
 
 	dbfakes "github.com/concourse/atc/db/fakes"
@@ -73,7 +73,7 @@ var _ = Describe("OAuthFactory", func() {
 				providers, err := oauthFactory.GetProviders(atc.DefaultTeamName)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(providers).To(HaveLen(1))
-				Expect(providers[cf.ProviderName]).NotTo(BeNil())
+				Expect(providers[uaa.ProviderName]).NotTo(BeNil())
 			})
 		})
 
