@@ -222,8 +222,8 @@ var _ = Describe("Auth API", func() {
 					})
 				})
 
-				Describe("CF authentication", func() {
-					Context("when passed a valid team with CF Auth", func() {
+				Describe("UAA authentication", func() {
+					Context("when passed a valid team with UAA Auth", func() {
 						BeforeEach(func() {
 							team = atc.Team{
 								UAAAuth: &atc.UAAAuth{
@@ -323,6 +323,7 @@ var _ = Describe("Auth API", func() {
 				Context("updating authentication", func() {
 					var basicAuth *atc.BasicAuth
 					var gitHubAuth *atc.GitHubAuth
+					var uaaAuth *atc.UAAAuth
 
 					BeforeEach(func() {
 						basicAuth = &atc.BasicAuth{
@@ -334,6 +335,15 @@ var _ = Describe("Auth API", func() {
 							ClientID:     "Dean Venture",
 							ClientSecret: "Giant Boy Detective",
 							Users:        []string{"Dean Venture"},
+						}
+
+						uaaAuth = &atc.UAAAuth{
+							ClientID:     "Dean Venture",
+							ClientSecret: "Giant Boy Detective",
+							CFSpaces:     []string{"CSI"},
+							AuthURL:      "http://uaa.auth.url",
+							TokenURL:     "http://uaa.token.url",
+							CFURL:        "http://api.cf.url",
 						}
 					})
 
@@ -383,6 +393,30 @@ var _ = Describe("Auth API", func() {
 						It("updates the GitHub auth for that team", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 							Expect(teamDB.UpdateGitHubAuthCallCount()).To(Equal(1))
+						})
+					})
+
+					Context("when passed UAA auth credentials", func() {
+						BeforeEach(func() {
+							teamDB.UpdateUAAAuthStub = func(uaaAuth *db.UAAAuth) (db.SavedTeam, error) {
+								team.Name = teamName
+								Expect(uaaAuth.ClientID).To(Equal(team.UAAAuth.ClientID))
+								Expect(uaaAuth.ClientSecret).To(Equal(team.UAAAuth.ClientSecret))
+								Expect(uaaAuth.AuthURL).To(Equal(team.UAAAuth.AuthURL))
+								Expect(uaaAuth.TokenURL).To(Equal(team.UAAAuth.TokenURL))
+								Expect(uaaAuth.CFSpaces).To(Equal(team.UAAAuth.CFSpaces))
+								Expect(uaaAuth.CFURL).To(Equal(team.UAAAuth.CFURL))
+
+								savedTeam.UAAAuth = uaaAuth
+								return savedTeam, nil
+							}
+
+							team.UAAAuth = uaaAuth
+						})
+
+						It("updates the GitHub auth for that team", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+							Expect(teamDB.UpdateUAAAuthCallCount()).To(Equal(1))
 						})
 					})
 				})

@@ -81,7 +81,16 @@ func (s *Server) updateCredentials(team db.Team, teamDB db.TeamDB) error {
 	}
 
 	_, err = teamDB.UpdateGitHubAuth(team.GitHubAuth)
-	return err
+	if err != nil {
+		return err
+	}
+
+	_, err = teamDB.UpdateUAAAuth(team.UAAAuth)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Server) validate(team db.Team) error {
