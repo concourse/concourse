@@ -17,7 +17,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("SpaceVerifier", func() {
+var _ = Describe("SpaceVerifier", func() {
 	var verifier verifier.Verifier
 	var cfAPIServer *ghttp.Server
 	var httpClient *http.Client
