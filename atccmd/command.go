@@ -202,15 +202,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	authValidator := cmd.constructValidator(signingKey, teamDBFactory)
-
 	err = cmd.updateBasicAuthCredentials(teamDBFactory)
 	if err != nil {
 		return nil, err
-	}
-
-	jwtReader := auth.JWTReader{
-		PublicKey: &signingKey.PublicKey,
 	}
 
 	err = cmd.configureOAuthProviders(logger, teamDBFactory)
@@ -237,8 +231,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		reconfigurableSink,
 		sqlDB,
 		teamDBFactory,
-		authValidator,
-		jwtReader,
 		providerFactory,
 		signingKey,
 		pipelineDBFactory,
@@ -806,8 +798,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 	reconfigurableSink *lager.ReconfigurableSink,
 	sqlDB *db.SQLDB,
 	teamDBFactory db.TeamDBFactory,
-	authValidator auth.Validator,
-	userContextReader auth.UserContextReader,
 	providerFactory provider.OAuthFactory,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
@@ -818,7 +808,11 @@ func (cmd *ATCCommand) constructAPIHandler(
 	radarScannerFactory radar.ScannerFactory,
 ) (http.Handler, error) {
 	apiWrapper := wrappa.MultiWrappa{
-		wrappa.NewAPIAuthWrappa(cmd.PubliclyViewable, authValidator, userContextReader),
+		wrappa.NewAPIAuthWrappa(
+			cmd.PubliclyViewable,
+			cmd.constructValidator(signingKey, teamDBFactory),
+			auth.JWTReader{PublicKey: &signingKey.PublicKey},
+		),
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewConcourseVersionWrappa(Version),
 	}
