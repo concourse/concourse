@@ -1,4 +1,4 @@
-package cf_test
+package uaa_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestCf(t *testing.T) {
+func TestUaa(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Cf Suite")
+	RunSpecs(t, "Uaa Suite")
 }

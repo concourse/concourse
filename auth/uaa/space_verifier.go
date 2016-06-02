@@ -1,4 +1,4 @@
-package cf
+package uaa
 
 import (
 	"encoding/json"

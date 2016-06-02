@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/cloudfoundry/gunk/urljoiner"
-	"github.com/concourse/atc/auth/cf"
 	"github.com/concourse/atc/auth/github"
+	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
@@ -52,14 +52,14 @@ func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
 
 	if team.UAAAuth != nil {
 		redirectURL, err := of.routes.CreatePathForRoute(of.callback, rata.Params{
-			"provider": cf.ProviderName,
+			"provider": uaa.ProviderName,
 		})
 		if err != nil {
 			return Providers{}, err
 		}
-		uaaAuthProvider := cf.NewProvider(team.UAAAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
+		uaaAuthProvider := uaa.NewProvider(team.UAAAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
 
-		providers[cf.ProviderName] = uaaAuthProvider
+		providers[uaa.ProviderName] = uaaAuthProvider
 	}
 
 	return providers, err

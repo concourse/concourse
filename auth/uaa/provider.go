@@ -1,4 +1,4 @@
-package cf
+package uaa
 
 import (
 	"net/http"
@@ -9,7 +9,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const ProviderName = "cf"
+const ProviderName = "uaa"
 
 var Scopes = []string{"cloud_controller.read"}
 
@@ -52,5 +52,5 @@ type Provider struct {
 }
 
 func (Provider) DisplayName() string {
-	return "CF"
+	return "UAA"
 }

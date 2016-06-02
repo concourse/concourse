@@ -470,19 +470,19 @@ func (cmd *ATCCommand) validate() error {
 		if cmd.UAAAuth.ClientID == "" || cmd.UAAAuth.ClientSecret == "" {
 			errs = multierror.Append(
 				errs,
-				errors.New("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use CF OAuth"),
+				errors.New("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use UAA OAuth"),
 			)
 		}
 		if len(cmd.UAAAuth.CFSpaces) == 0 {
 			errs = multierror.Append(
 				errs,
-				errors.New("must specify --uaa-auth-cf-space to use CF OAuth"),
+				errors.New("must specify --uaa-auth-cf-space to use UAA OAuth"),
 			)
 		}
 		if cmd.UAAAuth.AuthURL == "" || cmd.UAAAuth.TokenURL == "" || cmd.UAAAuth.CFURL == "" {
 			errs = multierror.Append(
 				errs,
-				errors.New("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use CF OAuth"),
+				errors.New("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use UAA OAuth"),
 			)
 		}
 	}

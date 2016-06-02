@@ -121,10 +121,10 @@ const BASIC_AUTH_NO_PASSWORD = "basic-no-password"
 const BASIC_AUTH_NO_USERNAME = "basic-no-username"
 const GITHUB_AUTH = "github"
 const GITHUB_ENTERPRISE_AUTH = "github-enterprise"
-const CF_AUTH = "cf"
-const CF_AUTH_NO_CLIENT_SECRET = "cf-no-secret"
-const CF_AUTH_NO_TOKEN_URL = "cf-no-token-url"
-const CF_AUTH_NO_SPACE = "cf-no-space"
+const UAA_AUTH = "cf"
+const UAA_AUTH_NO_CLIENT_SECRET = "cf-no-secret"
+const UAA_AUTH_NO_TOKEN_URL = "cf-no-token-url"
+const UAA_AUTH_NO_SPACE = "cf-no-space"
 const NOT_CONFIGURED_AUTH = "not-configured"
 const DEVELOPMENT_MODE = "dev"
 const NO_AUTH = DEVELOPMENT_MODE
@@ -192,7 +192,7 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 				"--github-auth-token-url", "https://github.example.com/login/oauth/access_token",
 				"--github-auth-api-url", "https://github.example.com/api/v3/",
 			)
-		case CF_AUTH:
+		case UAA_AUTH:
 			params = append(params,
 				"--uaa-auth-client-id", "admin",
 				"--uaa-auth-client-secret", "password",
@@ -201,16 +201,16 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 				"--uaa-auth-token-url", "https://uaa.example.com/oauth/token",
 				"--uaa-auth-cf-url", "https://cf.example.com/api",
 			)
-		case CF_AUTH_NO_CLIENT_SECRET:
+		case UAA_AUTH_NO_CLIENT_SECRET:
 			params = append(params,
 				"--uaa-auth-client-id", "admin",
 			)
-		case CF_AUTH_NO_SPACE:
+		case UAA_AUTH_NO_SPACE:
 			params = append(params,
 				"--uaa-auth-client-id", "admin",
 				"--uaa-auth-client-secret", "password",
 			)
-		case CF_AUTH_NO_TOKEN_URL:
+		case UAA_AUTH_NO_TOKEN_URL:
 			params = append(params,
 				"--uaa-auth-client-id", "admin",
 				"--uaa-auth-client-secret", "password",

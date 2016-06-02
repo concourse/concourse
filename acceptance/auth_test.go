@@ -169,13 +169,13 @@ var _ = Describe("Auth", func() {
 		})
 	})
 
-	Describe("CF Auth", func() {
+	Describe("UAA Auth", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, CF_AUTH)
+			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, UAA_AUTH)
 		})
 
-		It("forces a redirect to CF auth URL", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/cf?redirect=%2F", atcPort), nil)
+		It("forces a redirect to UAA auth URL", func() {
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/uaa?redirect=%2F", atcPort), nil)
 
 			client := new(http.Client)
 			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -188,27 +188,27 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires client id and client secret to be specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, CF_AUTH_NO_CLIENT_SECRET)
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, UAA_AUTH_NO_CLIENT_SECRET)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
-			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use CF OAuth"))
+			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use UAA OAuth"))
 		})
 
 		It("requires space guid to be specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, CF_AUTH_NO_SPACE)
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, UAA_AUTH_NO_SPACE)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
-			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-cf-space to use CF OAuth"))
+			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-cf-space to use UAA OAuth"))
 		})
 
 		It("requires auth, token and api url to be specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, CF_AUTH_NO_TOKEN_URL)
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, UAA_AUTH_NO_TOKEN_URL)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
-			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use CF OAuth"))
+			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use UAA OAuth"))
 		})
 	})
 })
