@@ -262,11 +262,10 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	webHandler, err := cmd.constructWebHandler(
+	webHandler, err := webhandler.NewHandler(
 		logger,
-		authValidator,
-		jwtReader,
-		pipelineDBFactory,
+		wrappa.NewWebMetricsWrappa(logger),
+		web.NewClientFactory(cmd.internalURL(), cmd.Developer.DevelopmentMode),
 	)
 	if err != nil {
 		return nil, err
@@ -880,26 +879,6 @@ func (h redirectingAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	} else {
 		h.baseHandler.ServeHTTP(w, r)
 	}
-}
-
-func (cmd *ATCCommand) constructWebHandler(
-	logger lager.Logger,
-	authValidator auth.Validator,
-	userContextReader auth.UserContextReader,
-	pipelineDBFactory db.PipelineDBFactory,
-) (http.Handler, error) {
-	webWrapper := wrappa.MultiWrappa{
-		wrappa.NewWebAuthWrappa(authValidator, userContextReader),
-		wrappa.NewWebMetricsWrappa(logger),
-	}
-
-	clientFactory := web.NewClientFactory(cmd.internalURL(), cmd.Developer.DevelopmentMode)
-
-	return webhandler.NewHandler(
-		logger,
-		webWrapper,
-		clientFactory,
-	)
 }
 
 func (cmd *ATCCommand) constructPipelineSyncer(
