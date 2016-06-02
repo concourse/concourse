@@ -515,13 +515,6 @@ func (cmd *ATCCommand) validate() error {
 	return errs.ErrorOrNil()
 }
 
-func (cmd *ATCCommand) bindProtocol() string {
-	if cmd.TLSBindPort != 0 {
-		return "https://"
-	}
-	return "http://"
-}
-
 func (cmd *ATCCommand) nonTLSBindAddr() string {
 	return fmt.Sprintf("%s:%d", cmd.BindIP, cmd.BindPort)
 }
