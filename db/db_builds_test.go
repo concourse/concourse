@@ -14,6 +14,7 @@ import (
 var _ = Describe("Keeping track of builds", func() {
 	var dbConn db.Conn
 	var listener *pq.Listener
+	var sqlDB db.DB
 
 	var database db.DB
 	var pipelineDB db.PipelineDB
@@ -29,7 +30,7 @@ var _ = Describe("Keeping track of builds", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		sqlDB := db.NewSQL(dbConn, bus)
+		sqlDB = db.NewSQL(dbConn, bus)
 
 		var err error
 		team, err = sqlDB.CreateTeam(db.Team{Name: "some-team"})
@@ -210,7 +211,7 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(nextOneOff.TeamName).To(Equal(team.Name))
 			Expect(nextOneOff.Status).To(Equal(db.StatusPending))
 
-			allBuilds, _, err := database.GetBuilds(db.Page{Limit: 100})
+			allBuilds, _, err := database.GetBuilds("some-team", db.Page{Limit: 100})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(allBuilds).To(Equal([]db.Build{nextOneOff, jobBuild, oneOff}))
 		})
@@ -358,7 +359,7 @@ var _ = Describe("Keeping track of builds", func() {
 	Describe("GetBuilds", func() {
 		Context("when there are no builds", func() {
 			It("returns an empty list of builds", func() {
-				builds, pagination, err := database.GetBuilds(db.Page{Limit: 2})
+				builds, pagination, err := database.GetBuilds("some-team", db.Page{Limit: 2})
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(pagination.Next).To(BeNil())
@@ -385,7 +386,7 @@ var _ = Describe("Keeping track of builds", func() {
 			})
 
 			It("returns all builds that have been started, regardless of pipeline", func() {
-				builds, pagination, err := database.GetBuilds(db.Page{Limit: 2})
+				builds, pagination, err := database.GetBuilds("some-team", db.Page{Limit: 2})
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(2))
@@ -395,7 +396,7 @@ var _ = Describe("Keeping track of builds", func() {
 				Expect(pagination.Previous).To(BeNil())
 				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[3].ID, Limit: 2}))
 
-				builds, pagination, err = database.GetBuilds(*pagination.Next)
+				builds, pagination, err = database.GetBuilds("some-team", *pagination.Next)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(2))
@@ -405,7 +406,7 @@ var _ = Describe("Keeping track of builds", func() {
 				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID, Limit: 2}))
 				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID, Limit: 2}))
 
-				builds, pagination, err = database.GetBuilds(*pagination.Next)
+				builds, pagination, err = database.GetBuilds("some-team", *pagination.Next)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(1))
@@ -414,7 +415,7 @@ var _ = Describe("Keeping track of builds", func() {
 				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[0].ID, Limit: 2}))
 				Expect(pagination.Next).To(BeNil())
 
-				builds, pagination, err = database.GetBuilds(*pagination.Previous)
+				builds, pagination, err = database.GetBuilds("some-team", *pagination.Previous)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(2))
@@ -423,6 +424,41 @@ var _ = Describe("Keeping track of builds", func() {
 
 				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID, Limit: 2}))
 				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID, Limit: 2}))
+			})
+
+			Context("when there are builds that belong to different teams", func() {
+				var teamABuilds [3]db.Build
+				var teamBBuilds [3]db.Build
+
+				BeforeEach(func() {
+					_, err := sqlDB.CreateTeam(db.Team{Name: "team-a"})
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = sqlDB.CreateTeam(db.Team{Name: "team-b"})
+					Expect(err).NotTo(HaveOccurred())
+
+					for i := 0; i < 3; i++ {
+						teamABuilds[i], err = database.CreateOneOffBuild("team-a")
+						Expect(err).NotTo(HaveOccurred())
+
+						teamBBuilds[i], err = database.CreateOneOffBuild("team-b")
+						Expect(err).NotTo(HaveOccurred())
+					}
+				})
+
+				It("returns only builds for requested team", func() {
+					builds, _, err := database.GetBuilds("team-a", db.Page{Limit: 10})
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(len(builds)).To(Equal(3))
+					Expect(builds).To(ConsistOf(teamABuilds))
+
+					builds, _, err = database.GetBuilds("team-b", db.Page{Limit: 10})
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(len(builds)).To(Equal(3))
+					Expect(builds).To(ConsistOf(teamBBuilds))
+				})
 			})
 		})
 	})

@@ -16,13 +16,14 @@ import (
 const buildColumns = "id, name, job_id, team_id, status, scheduled, inputs_determined, engine, engine_metadata, start_time, end_time, reap_time"
 const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.scheduled, b.inputs_determined, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name"
 
-func (db *SQLDB) GetBuilds(page Page) ([]Build, Pagination, error) {
+func (db *SQLDB) GetBuilds(teamName string, page Page) ([]Build, Pagination, error) {
 	query := `
 		SELECT ` + qualifiedBuildColumns + `
 		FROM builds b
 		LEFT OUTER JOIN jobs j ON b.job_id = j.id
 		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
 		LEFT OUTER JOIN teams t ON b.team_id = t.id
+		WHERE t.name = $1
 	`
 
 	var rows *sql.Rows
@@ -32,26 +33,26 @@ func (db *SQLDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 		rows, err = db.conn.Query(fmt.Sprintf(`
 			%s
 			ORDER BY b.id DESC
-			LIMIT $1
-		`, query), page.Limit)
+			LIMIT $2
+		`, query), teamName, page.Limit)
 	} else if page.Until != 0 {
 		rows, err = db.conn.Query(fmt.Sprintf(`
 			SELECT sub.*
 				FROM (
 						%s
-				WHERE b.id > $1
+				AND b.id > $2
 				ORDER BY b.id ASC
-				LIMIT $2
+				LIMIT $3
 			) sub
 			ORDER BY sub.id DESC
-		`, query), page.Until, page.Limit)
+		`, query), teamName, page.Until, page.Limit)
 	} else {
 		rows, err = db.conn.Query(fmt.Sprintf(`
 			%s
-			WHERE b.id < $1
+			AND b.id < $2
 			ORDER BY b.id DESC
-			LIMIT $2
-		`, query), page.Since, page.Limit)
+			LIMIT $3
+		`, query), teamName, page.Since, page.Limit)
 	}
 
 	if err != nil {

@@ -38,7 +38,7 @@ type BuildsDB interface {
 	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
 	GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error)
 
-	GetBuilds(db.Page) ([]db.Build, db.Pagination, error)
+	GetBuilds(teamName string, page db.Page) ([]db.Build, db.Pagination, error)
 
 	CreateOneOffBuild(teamName string) (db.Build, error)
 	GetConfigByBuildID(buildID int) (atc.Config, db.ConfigVersion, error)

@@ -50,10 +50,11 @@ type FakeBuildsDB struct {
 		result2 bool
 		result3 error
 	}
-	GetBuildsStub        func(db.Page) ([]db.Build, db.Pagination, error)
+	GetBuildsStub        func(teamName string, page db.Page) ([]db.Build, db.Pagination, error)
 	getBuildsMutex       sync.RWMutex
 	getBuildsArgsForCall []struct {
-		arg1 db.Page
+		teamName string
+		page     db.Page
 	}
 	getBuildsReturns struct {
 		result1 []db.Build
@@ -217,14 +218,15 @@ func (fake *FakeBuildsDB) GetBuildPreparationReturns(result1 db.BuildPreparation
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuildsDB) GetBuilds(arg1 db.Page) ([]db.Build, db.Pagination, error) {
+func (fake *FakeBuildsDB) GetBuilds(teamName string, page db.Page) ([]db.Build, db.Pagination, error) {
 	fake.getBuildsMutex.Lock()
 	fake.getBuildsArgsForCall = append(fake.getBuildsArgsForCall, struct {
-		arg1 db.Page
-	}{arg1})
+		teamName string
+		page     db.Page
+	}{teamName, page})
 	fake.getBuildsMutex.Unlock()
 	if fake.GetBuildsStub != nil {
-		return fake.GetBuildsStub(arg1)
+		return fake.GetBuildsStub(teamName, page)
 	} else {
 		return fake.getBuildsReturns.result1, fake.getBuildsReturns.result2, fake.getBuildsReturns.result3
 	}
@@ -236,10 +238,10 @@ func (fake *FakeBuildsDB) GetBuildsCallCount() int {
 	return len(fake.getBuildsArgsForCall)
 }
 
-func (fake *FakeBuildsDB) GetBuildsArgsForCall(i int) db.Page {
+func (fake *FakeBuildsDB) GetBuildsArgsForCall(i int) (string, db.Page) {
 	fake.getBuildsMutex.RLock()
 	defer fake.getBuildsMutex.RUnlock()
-	return fake.getBuildsArgsForCall[i].arg1
+	return fake.getBuildsArgsForCall[i].teamName, fake.getBuildsArgsForCall[i].page
 }
 
 func (fake *FakeBuildsDB) GetBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {

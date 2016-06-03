@@ -515,7 +515,7 @@ var _ = Describe("Builds API", func() {
 			It("does not set defaults for since and until", func() {
 				Expect(buildsDB.GetBuildsCallCount()).To(Equal(1))
 
-				page := buildsDB.GetBuildsArgsForCall(0)
+				_, page := buildsDB.GetBuildsArgsForCall(0)
 				Expect(page).To(Equal(db.Page{
 					Since: 0,
 					Until: 0,
@@ -532,7 +532,7 @@ var _ = Describe("Builds API", func() {
 			It("passes them through", func() {
 				Expect(buildsDB.GetBuildsCallCount()).To(Equal(1))
 
-				page := buildsDB.GetBuildsArgsForCall(0)
+				_, page := buildsDB.GetBuildsArgsForCall(0)
 				Expect(page).To(Equal(db.Page{
 					Since: 2,
 					Until: 3,
@@ -582,6 +582,26 @@ var _ = Describe("Builds API", func() {
 						"reap_time": 400
 					}
 				]`))
+			})
+
+			Context("when team is not in user context", func() {
+				It("returns builds for default team", func() {
+					Expect(buildsDB.GetBuildsCallCount()).To(Equal(1))
+					teamName, _ := buildsDB.GetBuildsArgsForCall(0)
+					Expect(teamName).To(Equal(atc.DefaultTeamName))
+				})
+			})
+
+			Context("when team is set in user context", func() {
+				BeforeEach(func() {
+					userContextReader.GetTeamReturns("some-team", 5, false, true)
+				})
+
+				It("returns builds for team in the context", func() {
+					Expect(buildsDB.GetBuildsCallCount()).To(Equal(1))
+					teamName, _ := buildsDB.GetBuildsArgsForCall(0)
+					Expect(teamName).To(Equal("some-team"))
+				})
 			})
 		})
 
