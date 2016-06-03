@@ -40,7 +40,7 @@ type BuildsDB interface {
 
 	GetBuilds(db.Page) ([]db.Build, db.Pagination, error)
 
-	CreateOneOffBuild() (db.Build, error)
+	CreateOneOffBuild(teamName string) (db.Build, error)
 	GetConfigByBuildID(buildID int) (atc.Config, db.ConfigVersion, error)
 }
 

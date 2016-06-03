@@ -118,6 +118,29 @@ var _ = Describe("Builds API", func() {
 						}`))
 					})
 
+					Context("when team is set in user context", func() {
+						BeforeEach(func() {
+							userContextReader.GetTeamReturns("some-team", 5, false, true)
+						})
+
+						It("creates build for specified team", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{
+								"id": 42,
+								"name": "1",
+								"team_name": "some-team",
+								"status": "started",
+								"url": "/builds/42",
+								"api_url": "/api/v1/builds/42",
+								"start_time": 1,
+								"end_time": 100,
+								"reap_time": 200
+							}`))
+						})
+					})
+
 					It("creates a one-off build and runs it asynchronously", func() {
 						Expect(buildsDB.CreateOneOffBuildCallCount()).To(Equal(1))
 

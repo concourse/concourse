@@ -95,7 +95,7 @@ var _ = Describe("Keeping track of containers", func() {
 	}
 
 	getOneOffBuildID := func() int {
-		savedBuild, err := database.CreateOneOffBuild()
+		savedBuild, err := database.CreateOneOffBuild(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())
 		return savedBuild.ID
 	}
@@ -384,7 +384,7 @@ var _ = Describe("Keeping track of containers", func() {
 	})
 
 	It("differentiates between a single step's containers with different stages", func() {
-		someBuild, err := database.CreateOneOffBuild()
+		someBuild, err := database.CreateOneOffBuild(atc.DefaultTeamName)
 		Expect(err).ToNot(HaveOccurred())
 
 		checkStageAContainerID := db.ContainerIdentifier{

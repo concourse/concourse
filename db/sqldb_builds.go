@@ -13,8 +13,8 @@ import (
 	"github.com/lib/pq"
 )
 
-const buildColumns = "id, name, job_id, status, scheduled, inputs_determined, engine, engine_metadata, start_time, end_time, reap_time"
-const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.status, b.scheduled, b.inputs_determined, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name"
+const buildColumns = "id, name, job_id, team_id, status, scheduled, inputs_determined, engine, engine_metadata, start_time, end_time, reap_time"
+const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.scheduled, b.inputs_determined, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name"
 
 func (db *SQLDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 	query := `
@@ -336,7 +336,7 @@ func (db *SQLDB) GetBuildVersionedResources(buildID int) (SavedVersionedResource
 		WHERE b.id = $1 AND bo.explicit`)
 }
 
-func (db *SQLDB) CreateOneOffBuild() (Build, error) {
+func (db *SQLDB) CreateOneOffBuild(teamName string) (Build, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return Build{}, err
@@ -344,11 +344,17 @@ func (db *SQLDB) CreateOneOffBuild() (Build, error) {
 
 	defer tx.Rollback()
 
+	var teamID int
+	err = tx.QueryRow(`SELECT id FROM teams WHERE name = $1`, teamName).Scan(&teamID)
+	if err != nil {
+		return Build{}, err
+	}
+
 	build, _, err := scanBuild(tx.QueryRow(`
-		INSERT INTO builds (name, status)
-		VALUES (nextval('one_off_name'), 'pending')
-		RETURNING ` + buildColumns + `, null, null, null
-	`))
+		INSERT INTO builds (name, team_id, status)
+		VALUES (nextval('one_off_name'), $1, 'pending')
+		RETURNING `+buildColumns+`, null, null, null
+	`, teamID))
 	if err != nil {
 		return Build{}, err
 	}
@@ -720,8 +726,9 @@ func scanBuild(row scannable) (Build, bool, error) {
 	var startTime pq.NullTime
 	var endTime pq.NullTime
 	var reapTime pq.NullTime
+	var teamID int
 
-	err := row.Scan(&id, &name, &jobID, &status, &scheduled, &inputsDetermined, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName)
+	err := row.Scan(&id, &name, &jobID, &teamID, &status, &scheduled, &inputsDetermined, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return Build{}, false, nil
@@ -743,6 +750,8 @@ func scanBuild(row scannable) (Build, bool, error) {
 		StartTime: startTime.Time,
 		EndTime:   endTime.Time,
 		ReapTime:  reapTime.Time,
+
+		TeamID: teamID,
 	}
 
 	if jobID.Valid {

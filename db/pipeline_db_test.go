@@ -256,7 +256,7 @@ var _ = Describe("PipelineDB", func() {
 			build, err := fetchedPipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			oneOffBuild, err := sqlDB.CreateOneOffBuild()
+			oneOffBuild, err := sqlDB.CreateOneOffBuild(atc.DefaultTeamName)
 			Expect(err).NotTo(HaveOccurred())
 
 			// populate jobs_serial_groups table
@@ -2245,6 +2245,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(build.Name).To(Equal("1"))
 				Expect(build.Status).To(Equal(db.StatusPending))
 				Expect(build.Scheduled).To(BeFalse())
+				Expect(build.TeamID).To(Equal(savedPipeline.TeamID))
 			})
 
 			It("creates an entry in build_preparation", func() {
@@ -2305,6 +2306,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(build.Name).To(Equal("1"))
 				Expect(build.Status).To(Equal(db.StatusPending))
 				Expect(build.Scheduled).To(BeFalse())
+				Expect(build.TeamID).To(Equal(savedPipeline.TeamID))
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Expect(err).NotTo(HaveOccurred())

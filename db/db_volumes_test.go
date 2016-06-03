@@ -527,9 +527,9 @@ var _ = Describe("Keeping track of volumes", func() {
 
 	Describe("GetVolumesForOneOffBuildImageResources", func() {
 		It("returns all volumes containing image resource versions which were used in one-off builds", func() {
-			oneOffBuildA, err := database.CreateOneOffBuild()
+			oneOffBuildA, err := database.CreateOneOffBuild(atc.DefaultTeamName)
 			Expect(err).NotTo(HaveOccurred())
-			oneOffBuildB, err := database.CreateOneOffBuild()
+			oneOffBuildB, err := database.CreateOneOffBuild(atc.DefaultTeamName)
 			Expect(err).NotTo(HaveOccurred())
 			jobBuild, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())

@@ -399,7 +399,7 @@ var _ = Describe("Leases", func() {
 		var buildID int
 
 		BeforeEach(func() {
-			build, err := sqlDB.CreateOneOffBuild()
+			build, err := sqlDB.CreateOneOffBuild(atc.DefaultTeamName)
 			Expect(err).NotTo(HaveOccurred())
 
 			buildID = build.ID
@@ -449,7 +449,7 @@ var _ = Describe("Leases", func() {
 		var buildID int
 
 		BeforeEach(func() {
-			build, err := sqlDB.CreateOneOffBuild()
+			build, err := sqlDB.CreateOneOffBuild(atc.DefaultTeamName)
 			Expect(err).NotTo(HaveOccurred())
 
 			buildID = build.ID

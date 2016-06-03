@@ -1208,8 +1208,8 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
 	// RETURNING statement in lib/pq... sorry
 
 	build, _, err := scanBuild(tx.QueryRow(`
-		INSERT INTO builds (name, job_id, status)
-		VALUES ($1, $2, 'pending')
+		INSERT INTO builds (name, job_id, team_id, status)
+		VALUES ($1, $2, $3, 'pending')
 		RETURNING `+buildColumns+`,
 			(
 				SELECT j.name
@@ -1227,7 +1227,7 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
 				INNER JOIN pipelines p ON j.pipeline_id = p.id
 				WHERE j.id = job_id
 			)
-	`, name, dbJob.ID))
+	`, name, dbJob.ID, dbJob.TeamID))
 	if err != nil {
 		return Build{}, err
 	}
@@ -2321,9 +2321,10 @@ func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
 
 func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
 	rows, err := pdb.conn.Query(`
-	SELECT id, name, paused, first_logged_build_id
-  	FROM jobs
-  	WHERE pipeline_id = $1
+	SELECT j.id, j.name, j.paused, j.first_logged_build_id, p.team_id
+  	FROM jobs j, pipelines p
+		WHERE j.pipeline_id = p.id
+  		AND pipeline_id = $1
   `, pdb.ID)
 	if err != nil {
 		return nil, err
@@ -2336,7 +2337,7 @@ func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
 	for rows.Next() {
 		var savedJob SavedJob
 
-		err := rows.Scan(&savedJob.ID, &savedJob.Name, &savedJob.Paused, &savedJob.FirstLoggedBuildID)
+		err := rows.Scan(&savedJob.ID, &savedJob.Name, &savedJob.Paused, &savedJob.FirstLoggedBuildID, &savedJob.TeamID)
 		if err != nil {
 			return nil, err
 		}
@@ -2396,11 +2397,12 @@ func (pdb *pipelineDB) getJob(tx Tx, name string) (SavedJob, error) {
 	var job SavedJob
 
 	err := tx.QueryRow(`
- 	SELECT id, name, paused, first_logged_build_id
-  	FROM jobs
-  	WHERE name = $1
-  		AND pipeline_id = $2
-  `, name, pdb.ID).Scan(&job.ID, &job.Name, &job.Paused, &job.FirstLoggedBuildID)
+ 	SELECT j.id, j.name, j.paused, j.first_logged_build_id, p.team_id
+  	FROM jobs j, pipelines p
+  	WHERE j.pipeline_id = p.id
+			AND j.name = $1
+  		AND j.pipeline_id = $2
+  `, name, pdb.ID).Scan(&job.ID, &job.Name, &job.Paused, &job.FirstLoggedBuildID, &job.TeamID)
 	if err != nil {
 		return SavedJob{}, err
 	}

@@ -11,6 +11,7 @@ type SavedJob struct {
 	Paused             bool
 	PipelineName       string
 	FirstLoggedBuildID int
+	TeamID             int
 	Job
 }
 
