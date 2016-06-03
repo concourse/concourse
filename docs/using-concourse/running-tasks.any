@@ -107,7 +107,7 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     image and caching it. It can also be an absolute path to an extracted
     rootfs on the worker.
 
-    This kind of leaks through the Concourse abstration layer, however:
+    This kind of leaks through the Concourse abstraction layer, however:
     Concourse doesn't know the version of the image that was fetched, making it
     impossible for builds to be truly reproducible. Other downsides are that
     there's no way to emit progress while it's downloading, and the cache grows
