@@ -108,7 +108,7 @@ var _ = Describe("TLS", func() {
 	It("redirects HTTP oauth traffic to HTTPS", func() {
 		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, true, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, GITHUB_AUTH)
 
-		request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/github", atcPort), nil)
+		request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/github?team_name=main", atcPort), nil)
 
 		transport := &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -126,7 +126,7 @@ var _ = Describe("TLS", func() {
 		resp, err := client.Do(request)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		Expect(redirectURLs[0]).To(Equal(fmt.Sprintf("https://127.0.0.1:%d/auth/github", tlsPort)))
+		Expect(redirectURLs[0]).To(Equal(fmt.Sprintf("https://127.0.0.1:%d/auth/github?team_name=main", tlsPort)))
 	})
 
 	It("uses original handler for HTTP traffic that is not a GET or HEAD request when TLS is enabled", func() {

@@ -2,6 +2,7 @@ package authserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sort"
 
@@ -49,6 +50,7 @@ func (s *Server) ListAuthMethods(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		path = path + fmt.Sprintf("?team_name=%s", teamName)
 		methods = append(methods, atc.AuthMethod{
 			Type:        atc.AuthTypeOAuth,
 			DisplayName: provider.DisplayName(),

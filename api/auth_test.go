@@ -205,12 +205,12 @@ var _ = Describe("Auth API", func() {
 				{
 					"type": "oauth",
 					"display_name": "OAuth Provider 1",
-					"auth_url": "https://oauth.example.com/auth/oauth-provider-1"
+					"auth_url": "https://oauth.example.com/auth/oauth-provider-1?team_name=some-team"
 				},
 				{
 					"type": "oauth",
 					"display_name": "OAuth Provider 2",
-					"auth_url": "https://oauth.example.com/auth/oauth-provider-2"
+					"auth_url": "https://oauth.example.com/auth/oauth-provider-2?team_name=some-team"
 				},
 				{
 					"type": "basic",

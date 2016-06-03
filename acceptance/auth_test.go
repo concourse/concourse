@@ -77,7 +77,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("forces a redirect to override github", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/github?redirect=%2F", atcPort), nil)
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/github?redirect=%2F&team_name=main", atcPort), nil)
 
 			client := new(http.Client)
 			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -175,7 +175,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("forces a redirect to UAA auth URL", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/uaa?redirect=%2F", atcPort), nil)
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/uaa?redirect=%2F&team_name=main", atcPort), nil)
 
 			client := new(http.Client)
 			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
