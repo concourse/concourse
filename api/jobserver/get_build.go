@@ -13,7 +13,6 @@ func (s *Server) GetJobBuild(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jobName := r.FormValue(":job_name")
 		buildName := r.FormValue(":build_name")
-		teamName := r.FormValue(":team_name")
 
 		build, found, err := pipelineDB.GetJobBuild(jobName, buildName)
 		if err != nil {
@@ -29,7 +28,6 @@ func (s *Server) GetJobBuild(pipelineDB db.PipelineDB) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		build.TeamName = teamName
 		json.NewEncoder(w).Encode(present.Build(build))
 	})
 }

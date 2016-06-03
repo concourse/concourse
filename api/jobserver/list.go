@@ -25,14 +25,6 @@ func (s *Server) ListJobs(pipelineDB db.PipelineDB) http.Handler {
 		teamName := r.FormValue(":team_name")
 
 		for _, job := range dashboard {
-			if job.FinishedBuild != nil {
-				job.FinishedBuild.TeamName = teamName
-			}
-
-			if job.NextBuild != nil {
-				job.NextBuild.TeamName = teamName
-			}
-
 			jobs = append(
 				jobs,
 				present.Job(

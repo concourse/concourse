@@ -188,6 +188,7 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(oneOff.JobName).To(BeZero())
 			Expect(oneOff.Name).To(Equal("1"))
 			Expect(oneOff.TeamID).To(Equal(team.ID))
+			Expect(oneOff.TeamName).To(Equal(team.Name))
 			Expect(oneOff.Status).To(Equal(db.StatusPending))
 
 			oneOffGot, found, err := database.GetBuild(oneOff.ID)
@@ -206,6 +207,7 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(nextOneOff.JobName).To(BeZero())
 			Expect(nextOneOff.Name).To(Equal("2"))
 			Expect(nextOneOff.TeamID).To(Equal(team.ID))
+			Expect(nextOneOff.TeamName).To(Equal(team.Name))
 			Expect(nextOneOff.Status).To(Equal(db.StatusPending))
 
 			allBuilds, _, err := database.GetBuilds(db.Page{Limit: 100})

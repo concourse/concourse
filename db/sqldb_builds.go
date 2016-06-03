@@ -14,7 +14,7 @@ import (
 )
 
 const buildColumns = "id, name, job_id, team_id, status, scheduled, inputs_determined, engine, engine_metadata, start_time, end_time, reap_time"
-const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.scheduled, b.inputs_determined, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name"
+const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.scheduled, b.inputs_determined, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name"
 
 func (db *SQLDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 	query := `
@@ -22,6 +22,7 @@ func (db *SQLDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 		FROM builds b
 		LEFT OUTER JOIN jobs j ON b.job_id = j.id
 		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
+		LEFT OUTER JOIN teams t ON b.team_id = t.id
 	`
 
 	var rows *sql.Rows
@@ -114,6 +115,7 @@ func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 		FROM builds b
 		LEFT OUTER JOIN jobs j ON b.job_id = j.id
 		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
+		LEFT OUTER JOIN teams t ON b.team_id = t.id
 		WHERE b.status = 'started'
 	`)
 	if err != nil {
@@ -142,6 +144,7 @@ func (db *SQLDB) GetBuild(buildID int) (Build, bool, error) {
 		FROM builds b
 		LEFT OUTER JOIN jobs j ON b.job_id = j.id
 		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
+		LEFT OUTER JOIN teams t ON b.team_id = t.id
 		WHERE b.id = $1
 	`, buildID))
 }
@@ -353,11 +356,12 @@ func (db *SQLDB) CreateOneOffBuild(teamName string) (Build, error) {
 	build, _, err := scanBuild(tx.QueryRow(`
 		INSERT INTO builds (name, team_id, status)
 		VALUES (nextval('one_off_name'), $1, 'pending')
-		RETURNING `+buildColumns+`, null, null, null
+		RETURNING `+buildColumns+`, null, null, null, ''
 	`, teamID))
 	if err != nil {
 		return Build{}, err
 	}
+	build.TeamName = teamName
 
 	_, err = tx.Exec(fmt.Sprintf(`
 		CREATE SEQUENCE %s MINVALUE 0
@@ -727,8 +731,9 @@ func scanBuild(row scannable) (Build, bool, error) {
 	var endTime pq.NullTime
 	var reapTime pq.NullTime
 	var teamID int
+	var teamName string
 
-	err := row.Scan(&id, &name, &jobID, &teamID, &status, &scheduled, &inputsDetermined, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName)
+	err := row.Scan(&id, &name, &jobID, &teamID, &status, &scheduled, &inputsDetermined, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &teamName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return Build{}, false, nil
@@ -751,7 +756,8 @@ func scanBuild(row scannable) (Build, bool, error) {
 		EndTime:   endTime.Time,
 		ReapTime:  reapTime.Time,
 
-		TeamID: teamID,
+		TeamID:   teamID,
+		TeamName: teamName,
 	}
 
 	if jobID.Valid {

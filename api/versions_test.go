@@ -364,6 +364,7 @@ var _ = Describe("Versions API", func() {
 
 						JobName:      "some-job",
 						PipelineName: "a-pipeline",
+						TeamName:     "a-team",
 
 						StartTime: time.Unix(1, 0),
 						EndTime:   time.Unix(100, 0),
@@ -375,6 +376,7 @@ var _ = Describe("Versions API", func() {
 
 						JobName:      "some-job",
 						PipelineName: "a-pipeline",
+						TeamName:     "a-team",
 
 						StartTime: time.Unix(200, 0),
 						EndTime:   time.Unix(300, 0),
@@ -480,6 +482,7 @@ var _ = Describe("Versions API", func() {
 
 						JobName:      "some-job",
 						PipelineName: "a-pipeline",
+						TeamName:     "a-team",
 
 						StartTime: time.Unix(1, 0),
 						EndTime:   time.Unix(100, 0),
@@ -491,6 +494,7 @@ var _ = Describe("Versions API", func() {
 
 						JobName:      "some-job",
 						PipelineName: "a-pipeline",
+						TeamName:     "a-team",
 
 						StartTime: time.Unix(200, 0),
 						EndTime:   time.Unix(300, 0),

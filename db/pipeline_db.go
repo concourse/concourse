@@ -1062,6 +1062,7 @@ func (pdb *pipelineDB) GetJobBuild(job string, name string) (Build, bool, error)
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
 		WHERE b.job_id = $1
 		AND b.name = $2
 	`, dbJob.ID, name))
@@ -1226,6 +1227,11 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
 				FROM jobs j
 				INNER JOIN pipelines p ON j.pipeline_id = p.id
 				WHERE j.id = job_id
+			),
+			(
+				SELECT t.name
+				FROM teams t
+				WHERE t.id = team_id
 			)
 	`, name, dbJob.ID, dbJob.TeamID))
 	if err != nil {
@@ -1253,6 +1259,7 @@ func (pdb *pipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]B
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
 		INNER JOIN build_inputs bi ON bi.build_id = b.id
 		WHERE bi.versioned_resource_id = $1
 	`, versionedResourceID)
@@ -1267,7 +1274,6 @@ func (pdb *pipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]B
 		if err != nil {
 			return nil, err
 		}
-
 		builds = append(builds, build)
 	}
 
@@ -1280,6 +1286,7 @@ func (pdb *pipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
 		INNER JOIN build_outputs bo ON bo.build_id = b.id
 		WHERE bo.versioned_resource_id = $1
 	`, versionedResourceID)
@@ -1429,9 +1436,12 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 	from := []string{"builds b"}
 	from = append(from, "jobs j")
 	from = append(from, "pipelines p")
+	from = append(from, "teams t")
 	conditions := []string{"job_id = $1"}
 	conditions = append(conditions, "b.job_id = j.id")
 	conditions = append(conditions, "j.pipeline_id = p.id")
+	conditions = append(conditions, "b.team_id = t.id")
+
 	params := []interface{}{dbJob.ID}
 
 	for i, input := range inputs {
@@ -1511,6 +1521,7 @@ func (pdb *pipelineDB) GetNextPendingBuild(job string) (Build, bool, error) {
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
 		WHERE b.job_id = $1
 		AND b.status = 'pending'
 		ORDER BY b.id ASC
@@ -1568,6 +1579,7 @@ func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGr
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
 		INNER JOIN jobs_serial_groups jsg ON j.id = jsg.job_id
 				AND jsg.serial_group IN (`+strings.Join(refs, ",")+`)
 		WHERE b.status = 'pending'
@@ -1594,6 +1606,7 @@ func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroup
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
 		INNER JOIN jobs_serial_groups jsg ON j.id = jsg.job_id
 				AND jsg.serial_group IN (`+strings.Join(refs, ",")+`)
 		WHERE (
@@ -1630,6 +1643,7 @@ func (pdb *pipelineDB) GetBuild(buildID int) (Build, bool, error) {
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
 		WHERE b.id = $1
 	`, buildID))
 }
@@ -1690,6 +1704,7 @@ func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, bool, error) {
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
 		WHERE j.name = $1
 		AND j.pipeline_id = $2
 		AND b.status != 'pending'
@@ -1711,6 +1726,7 @@ func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, bool, error) {
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
 		WHERE j.name = $1
 		AND j.pipeline_id = $2
 		AND b.status = 'pending'
@@ -2102,6 +2118,7 @@ func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]Build, Paginat
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
 		WHERE j.name = $1
 			AND j.pipeline_id = $2
 	`)
@@ -2195,6 +2212,7 @@ func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]Build, error) {
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
 		INNER JOIN pipelines p ON j.pipeline_id = p.id
+		INNER JOIN teams t ON b.team_id = t.id
 		WHERE j.name = $1
 			AND j.pipeline_id = $2
 		ORDER BY b.id DESC
@@ -2228,6 +2246,7 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 		FROM builds b
 			INNER JOIN jobs j ON b.job_id = j.id
 			INNER JOIN pipelines p ON j.pipeline_id = p.id
+			INNER JOIN teams t ON b.team_id = t.id
  		WHERE j.name = $1
 			AND j.pipeline_id = $2
 			AND b.status NOT IN ('pending', 'started')
@@ -2247,6 +2266,7 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 		FROM builds b
 			INNER JOIN jobs j ON b.job_id = j.id
 			INNER JOIN pipelines p ON j.pipeline_id = p.id
+			INNER JOIN teams t ON b.team_id = t.id
  		WHERE j.name = $1
 			AND j.pipeline_id = $2
 			AND status IN ('pending', 'started')
@@ -2353,7 +2373,7 @@ func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
 func (pdb *pipelineDB) getLastJobBuildsSatisfying(bRequirement string) (map[string]Build, error) {
 	rows, err := pdb.conn.Query(`
 		 SELECT `+qualifiedBuildColumns+`
-		 FROM builds b, jobs j, pipelines p,
+		 FROM builds b, jobs j, pipelines p, teams t,
 			 (
 				 SELECT b.job_id AS job_id, MAX(b.id) AS id
 				 FROM builds b, jobs j
@@ -2366,6 +2386,7 @@ func (pdb *pipelineDB) getLastJobBuildsSatisfying(bRequirement string) (map[stri
 			 AND b.id = max.id
 			 AND p.id = $1
 			 AND j.pipeline_id = p.id
+			 AND b.team_id = t.id
   `, pdb.ID)
 	if err != nil {
 		return nil, err

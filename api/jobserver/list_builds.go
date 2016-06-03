@@ -59,7 +59,6 @@ func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
 		jobBuilds := make([]atc.Build, len(builds))
 		for i := 0; i < len(builds); i++ {
 			build := builds[i]
-			build.TeamName = teamName
 			jobBuilds[i] = present.Build(build)
 		}
 		json.NewEncoder(w).Encode(jobBuilds)
