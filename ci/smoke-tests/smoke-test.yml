@@ -97,7 +97,7 @@ run:
     ./fly -t local execute -p -c task.yml
 
     # Cleanup; we won't get here unless executes succeed due to set -e
-    killall concourse
+    sudo killall concourse
     EOC
 
     echo "copying smoke_test to target"
