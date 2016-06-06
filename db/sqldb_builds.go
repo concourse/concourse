@@ -45,17 +45,6 @@ func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 	return bs, nil
 }
 
-func (db *SQLDB) GetBuild(buildID int) (Build, bool, error) {
-	return scanBuild(db.conn.QueryRow(`
-		SELECT `+qualifiedBuildColumns+`
-		FROM builds b
-		LEFT OUTER JOIN jobs j ON b.job_id = j.id
-		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
-		LEFT OUTER JOIN teams t ON b.team_id = t.id
-		WHERE b.id = $1
-	`, buildID))
-}
-
 func (db *SQLDB) getPipelineName(buildID int) (string, error) {
 	var pipelineName string
 	err := db.conn.QueryRow(`
@@ -433,33 +422,6 @@ func (db *SQLDB) SaveBuildEngineMetadata(buildID int, engineMetadata string) err
 	return nil
 }
 
-func (db *SQLDB) GetBuildEvents(buildID int, from uint) (EventSource, error) {
-	notifier, err := newConditionNotifier(db.bus, buildEventsChannel(buildID), func() (bool, error) {
-		return true, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	build, _, err := db.GetBuild(buildID)
-	if err != nil {
-		return nil, err
-	}
-
-	table := "build_events"
-	if build.PipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", build.PipelineID)
-	}
-
-	return newSQLDBBuildEventSource(
-		buildID,
-		table,
-		db.conn,
-		notifier,
-		from,
-	), nil
-}
-
 func (db *SQLDB) AbortBuild(buildID int) error {
 	_, err := db.conn.Exec(`
    UPDATE builds
@@ -476,19 +438,6 @@ func (db *SQLDB) AbortBuild(buildID int) error {
 	}
 
 	return nil
-}
-
-func (db *SQLDB) AbortNotifier(buildID int) (Notifier, error) {
-	return newConditionNotifier(db.bus, buildAbortChannel(buildID), func() (bool, error) {
-		var aborted bool
-		err := db.conn.QueryRow(`
-			SELECT status = 'aborted'
-			FROM builds
-			WHERE id = $1
-		`, buildID).Scan(&aborted)
-
-		return aborted, err
-	})
 }
 
 func (db *SQLDB) DeleteBuildEventsByBuildIDs(buildIDs []int) error {

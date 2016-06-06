@@ -34,28 +34,6 @@ type scannable interface {
 	Scan(destinations ...interface{}) error
 }
 
-func newConditionNotifier(bus *notificationsBus, channel string, cond func() (bool, error)) (Notifier, error) {
-	notified, err := bus.Listen(channel)
-	if err != nil {
-		return nil, err
-	}
-
-	notifier := &conditionNotifier{
-		cond:    cond,
-		bus:     bus,
-		channel: channel,
-
-		notified: notified,
-		notify:   make(chan struct{}, 1),
-
-		stop: make(chan struct{}),
-	}
-
-	go notifier.watch()
-
-	return notifier, nil
-}
-
 type conditionNotifier struct {
 	cond func() (bool, error)
 

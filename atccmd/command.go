@@ -179,7 +179,8 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	tracker := resource.NewTracker(workerClient)
 	teamDBFactory := db.NewTeamDBFactory(dbConn)
-	engine := cmd.constructEngine(sqlDB, workerClient, tracker, teamDBFactory)
+	buildDBFactory := db.NewBuildDBFactory(dbConn, bus)
+	engine := cmd.constructEngine(sqlDB, workerClient, tracker, teamDBFactory, buildDBFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		tracker,
@@ -297,6 +298,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		reconfigurableSink,
 		sqlDB,
 		teamDBFactory,
+		buildDBFactory,
 		providerFactory,
 		signingKey,
 		pipelineDBFactory,
@@ -726,6 +728,7 @@ func (cmd *ATCCommand) constructEngine(
 	workerClient worker.Client,
 	tracker resource.Tracker,
 	teamDBFactory db.TeamDBFactory,
+	buildDBFactory db.BuildDBFactory,
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
 		workerClient,
@@ -744,7 +747,7 @@ func (cmd *ATCCommand) constructEngine(
 
 	execV1Engine := engine.NewExecV1DummyEngine()
 
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, sqlDB)
+	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, sqlDB, buildDBFactory)
 }
 
 func (cmd *ATCCommand) constructHTTPHandler(
@@ -778,6 +781,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	reconfigurableSink *lager.ReconfigurableSink,
 	sqlDB *db.SQLDB,
 	teamDBFactory db.TeamDBFactory,
+	buildDBFactory db.BuildDBFactory,
 	providerFactory provider.OAuthFactory,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
@@ -808,6 +812,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		pipelineDBFactory,
 		teamDBFactory,
+		buildDBFactory,
 
 		sqlDB, // teamserver.TeamsDB
 		sqlDB, // buildserver.BuildsDB

@@ -11,16 +11,6 @@ import (
 )
 
 type FakeBuildDB struct {
-	GetBuildStub        func(int) (db.Build, bool, error)
-	getBuildMutex       sync.RWMutex
-	getBuildArgsForCall []struct {
-		arg1 int
-	}
-	getBuildReturns struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}
 	StartBuildStub        func(int, int, string, string) (bool, error)
 	startBuildMutex       sync.RWMutex
 	startBuildArgsForCall []struct {
@@ -40,15 +30,6 @@ type FakeBuildDB struct {
 	}
 	abortBuildReturns struct {
 		result1 error
-	}
-	AbortNotifierStub        func(int) (db.Notifier, error)
-	abortNotifierMutex       sync.RWMutex
-	abortNotifierArgsForCall []struct {
-		arg1 int
-	}
-	abortNotifierReturns struct {
-		result1 db.Notifier
-		result2 error
 	}
 	LeaseBuildTrackingStub        func(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error)
 	leaseBuildTrackingMutex       sync.RWMutex
@@ -72,40 +53,6 @@ type FakeBuildDB struct {
 	finishBuildReturns struct {
 		result1 error
 	}
-}
-
-func (fake *FakeBuildDB) GetBuild(arg1 int) (db.Build, bool, error) {
-	fake.getBuildMutex.Lock()
-	fake.getBuildArgsForCall = append(fake.getBuildArgsForCall, struct {
-		arg1 int
-	}{arg1})
-	fake.getBuildMutex.Unlock()
-	if fake.GetBuildStub != nil {
-		return fake.GetBuildStub(arg1)
-	} else {
-		return fake.getBuildReturns.result1, fake.getBuildReturns.result2, fake.getBuildReturns.result3
-	}
-}
-
-func (fake *FakeBuildDB) GetBuildCallCount() int {
-	fake.getBuildMutex.RLock()
-	defer fake.getBuildMutex.RUnlock()
-	return len(fake.getBuildArgsForCall)
-}
-
-func (fake *FakeBuildDB) GetBuildArgsForCall(i int) int {
-	fake.getBuildMutex.RLock()
-	defer fake.getBuildMutex.RUnlock()
-	return fake.getBuildArgsForCall[i].arg1
-}
-
-func (fake *FakeBuildDB) GetBuildReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.GetBuildStub = nil
-	fake.getBuildReturns = struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 func (fake *FakeBuildDB) StartBuild(arg1 int, arg2 int, arg3 string, arg4 string) (bool, error) {
@@ -174,39 +121,6 @@ func (fake *FakeBuildDB) AbortBuildReturns(result1 error) {
 	fake.abortBuildReturns = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakeBuildDB) AbortNotifier(arg1 int) (db.Notifier, error) {
-	fake.abortNotifierMutex.Lock()
-	fake.abortNotifierArgsForCall = append(fake.abortNotifierArgsForCall, struct {
-		arg1 int
-	}{arg1})
-	fake.abortNotifierMutex.Unlock()
-	if fake.AbortNotifierStub != nil {
-		return fake.AbortNotifierStub(arg1)
-	} else {
-		return fake.abortNotifierReturns.result1, fake.abortNotifierReturns.result2
-	}
-}
-
-func (fake *FakeBuildDB) AbortNotifierCallCount() int {
-	fake.abortNotifierMutex.RLock()
-	defer fake.abortNotifierMutex.RUnlock()
-	return len(fake.abortNotifierArgsForCall)
-}
-
-func (fake *FakeBuildDB) AbortNotifierArgsForCall(i int) int {
-	fake.abortNotifierMutex.RLock()
-	defer fake.abortNotifierMutex.RUnlock()
-	return fake.abortNotifierArgsForCall[i].arg1
-}
-
-func (fake *FakeBuildDB) AbortNotifierReturns(result1 db.Notifier, result2 error) {
-	fake.AbortNotifierStub = nil
-	fake.abortNotifierReturns = struct {
-		result1 db.Notifier
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeBuildDB) LeaseBuildTracking(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error) {

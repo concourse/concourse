@@ -26,6 +26,8 @@ type TeamDB interface {
 
 	CreateOneOffBuild() (Build, error)
 	GetBuilds(page Page) ([]Build, Pagination, error)
+
+	GetBuild(int) (Build, bool, error)
 }
 
 type teamDB struct {
@@ -623,6 +625,17 @@ func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 	}
 
 	return builds, pagination, nil
+}
+
+func (db *teamDB) GetBuild(buildID int) (Build, bool, error) {
+	return scanBuild(db.conn.QueryRow(`
+		SELECT `+qualifiedBuildColumns+`
+		FROM builds b
+		LEFT OUTER JOIN jobs j ON b.job_id = j.id
+		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
+		LEFT OUTER JOIN teams t ON b.team_id = t.id
+		WHERE b.id = $1
+	`, buildID))
 }
 
 func scanPipeline(rows scannable) (SavedPipeline, error) {

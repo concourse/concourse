@@ -12,7 +12,7 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type EventHandlerFactory func(lager.Logger, BuildsDB, int) http.Handler
+type EventHandlerFactory func(lager.Logger, db.BuildDB) http.Handler
 
 type Server struct {
 	logger lager.Logger
@@ -23,6 +23,7 @@ type Server struct {
 	workerClient        worker.Client
 	db                  BuildsDB
 	teamDBFactory       db.TeamDBFactory
+	buildDBFactory      db.BuildDBFactory
 	eventHandlerFactory EventHandlerFactory
 	drain               <-chan struct{}
 	rejector            auth.Rejector
@@ -33,8 +34,6 @@ type Server struct {
 //go:generate counterfeiter . BuildsDB
 
 type BuildsDB interface {
-	GetBuild(buildID int) (db.Build, bool, error)
-	GetBuildEvents(buildID int, from uint) (db.EventSource, error)
 	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
 	GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error)
 
@@ -48,6 +47,7 @@ func NewServer(
 	workerClient worker.Client,
 	db BuildsDB,
 	teamDBFactory db.TeamDBFactory,
+	buildDBFactory db.BuildDBFactory,
 	eventHandlerFactory EventHandlerFactory,
 	drain <-chan struct{},
 ) *Server {
@@ -60,6 +60,7 @@ func NewServer(
 		workerClient:        workerClient,
 		db:                  db,
 		teamDBFactory:       teamDBFactory,
+		buildDBFactory:      buildDBFactory,
 		eventHandlerFactory: eventHandlerFactory,
 		drain:               drain,
 

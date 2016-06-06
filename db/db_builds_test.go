@@ -194,7 +194,7 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(oneOff.TeamName).To(Equal(team.Name))
 			Expect(oneOff.Status).To(Equal(db.StatusPending))
 
-			oneOffGot, found, err := database.GetBuild(oneOff.ID)
+			oneOffGot, found, err := teamDB.GetBuild(oneOff.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(oneOffGot).To(Equal(oneOff))
@@ -341,10 +341,10 @@ var _ = Describe("Keeping track of builds", func() {
 
 			Expect(len(builds)).To(Equal(2))
 
-			build1, found, err := database.GetBuild(build1.ID)
+			build1, found, err := teamDB.GetBuild(build1.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			build2, found, err := database.GetBuild(build2.ID)
+			build2, found, err := teamDB.GetBuild(build2.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 

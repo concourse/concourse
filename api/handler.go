@@ -44,6 +44,7 @@ func NewHandler(
 
 	pipelineDBFactory db.PipelineDBFactory,
 	teamDBFactory db.TeamDBFactory,
+	buildDBFactory db.BuildDBFactory,
 
 	teamsDB teamserver.TeamsDB,
 	buildsDB buildserver.BuildsDB,
@@ -91,6 +92,7 @@ func NewHandler(
 		workerClient,
 		buildsDB,
 		teamDBFactory,
+		buildDBFactory,
 		eventHandlerFactory,
 		drain,
 	)

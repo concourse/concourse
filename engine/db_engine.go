@@ -19,22 +19,21 @@ const trackingInterval = 10 * time.Second
 //go:generate counterfeiter . BuildDB
 
 type BuildDB interface {
-	GetBuild(int) (db.Build, bool, error)
 	StartBuild(int, int, string, string) (bool, error)
 
 	AbortBuild(int) error
-	AbortNotifier(int) (db.Notifier, error)
 
 	LeaseBuildTracking(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error)
 
 	FinishBuild(int, int, db.Status) error
 }
 
-func NewDBEngine(engines Engines, buildDB BuildDB) Engine {
+func NewDBEngine(engines Engines, buildDB BuildDB, buildDBFactory db.BuildDBFactory) Engine {
 	return &dbEngine{
 		engines: engines,
 
-		db: buildDB,
+		db:             buildDB,
+		buildDBFactory: buildDBFactory,
 	}
 }
 
@@ -50,6 +49,8 @@ type dbEngine struct {
 	engines Engines
 
 	db BuildDB
+
+	buildDBFactory db.BuildDBFactory
 }
 
 func (*dbEngine) Name() string {
@@ -73,24 +74,28 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan at
 		createdBuild.Abort(logger.Session("aborted-immediately"))
 	}
 
+	buildDB := engine.buildDBFactory.GetBuildDB(build)
 	return &dbBuild{
 		id:         build.ID,
 		pipelineID: build.PipelineID,
 
 		engines: engine.engines,
 
-		db: engine.db,
+		db:      engine.db,
+		buildDB: buildDB,
 	}, nil
 }
 
 func (engine *dbEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
+	buildDB := engine.buildDBFactory.GetBuildDB(build)
 	return &dbBuild{
 		id:         build.ID,
 		pipelineID: build.PipelineID,
 
 		engines: engine.engines,
 
-		db: engine.db,
+		db:      engine.db,
+		buildDB: buildDB,
 	}, nil
 }
 
@@ -101,6 +106,8 @@ type dbBuild struct {
 	engines Engines
 
 	db BuildDB
+
+	buildDB db.BuildDB
 }
 
 func (build *dbBuild) Metadata() string {
@@ -108,7 +115,7 @@ func (build *dbBuild) Metadata() string {
 }
 
 func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, bool, error) {
-	model, found, err := build.db.GetBuild(build.id)
+	model, found, err := build.buildDB.Get()
 	if err != nil {
 		logger.Error("failed-to-get-build-from-database", err)
 		return atc.PublicBuildPlan{}, false, err
@@ -161,7 +168,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 
 	// reload the model *after* saving the status for the following check to see
 	// if it was already started
-	model, found, err := build.db.GetBuild(build.id)
+	model, found, err := build.buildDB.Get()
 	if err != nil {
 		logger.Error("failed-to-get-build-from-database", err)
 		return err
@@ -214,7 +221,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 
 	defer lease.Break()
 
-	model, found, err := build.db.GetBuild(build.id)
+	model, found, err := build.buildDB.Get()
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
 		return
@@ -253,7 +260,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	aborts, err := build.db.AbortNotifier(build.id)
+	aborts, err := build.buildDB.AbortNotifier()
 	if err != nil {
 		logger.Error("failed-to-listen-for-aborts", err)
 		return
@@ -288,7 +295,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 
 	engineBuild.Resume(logger)
 
-	doneModel, found, err := build.db.GetBuild(build.id)
+	doneModel, found, err := build.buildDB.Get()
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
 		return

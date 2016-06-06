@@ -19,6 +19,7 @@ var _ = Describe("SQL DB", func() {
 
 	var database db.DB
 	var teamDB db.TeamDB
+	var buildDBFactory db.BuildDBFactory
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -33,6 +34,8 @@ var _ = Describe("SQL DB", func() {
 
 		teamDBFactory := db.NewTeamDBFactory(dbConn)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+
+		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
 	})
 
 	AfterEach(func() {
@@ -64,7 +67,8 @@ var _ = Describe("SQL DB", func() {
 		Expect(build.Name).To(Equal("1"))
 
 		By("allowing you to subscribe when no events have yet occurred")
-		events, err := database.GetBuildEvents(build.ID, 0)
+		buildDB := buildDBFactory.GetBuildDB(build)
+		events, err := buildDB.Events(0)
 		Expect(err).NotTo(HaveOccurred())
 
 		defer events.Close()
@@ -89,7 +93,7 @@ var _ = Describe("SQL DB", func() {
 		}))
 
 		By("allowing you to subscribe from an offset")
-		eventsFrom1, err := database.GetBuildEvents(build.ID, 1)
+		eventsFrom1, err := buildDB.Events(1)
 		Expect(err).NotTo(HaveOccurred())
 
 		defer eventsFrom1.Close()
@@ -124,7 +128,7 @@ var _ = Describe("SQL DB", func() {
 		})))
 
 		By("returning ErrBuildEventStreamClosed for Next calls after Close")
-		events3, err := database.GetBuildEvents(build.ID, 0)
+		events3, err := buildDB.Events(0)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = events3.Close()
@@ -142,7 +146,8 @@ var _ = Describe("SQL DB", func() {
 		Expect(build.Name).To(Equal("1"))
 
 		By("allowing you to subscribe when no events have yet occurred")
-		events, err := database.GetBuildEvents(build.ID, 0)
+		buildDB := buildDBFactory.GetBuildDB(build)
+		events, err := buildDB.Events(0)
 		Expect(err).NotTo(HaveOccurred())
 
 		defer events.Close()
@@ -152,7 +157,7 @@ var _ = Describe("SQL DB", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(started).To(BeTrue())
 
-		startedBuild, found, err := database.GetBuild(build.ID)
+		startedBuild, found, err := teamDB.GetBuild(build.ID)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
@@ -165,7 +170,7 @@ var _ = Describe("SQL DB", func() {
 		err = database.FinishBuild(build.ID, build.PipelineID, db.StatusSucceeded)
 		Expect(err).NotTo(HaveOccurred())
 
-		finishedBuild, found, err := database.GetBuild(build.ID)
+		finishedBuild, found, err := teamDB.GetBuild(build.ID)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
@@ -224,8 +229,7 @@ var _ = Describe("SQL DB", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("deleting events for build 1")
-
-			events1, err := database.GetBuildEvents(build1.ID, 0)
+			events1, err := buildDBFactory.GetBuildDB(build1).Events(0)
 			Expect(err).NotTo(HaveOccurred())
 			defer events1.Close()
 
@@ -233,8 +237,7 @@ var _ = Describe("SQL DB", func() {
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 
 			By("preserving events for build 2")
-
-			events2, err := database.GetBuildEvents(build2.ID, 0)
+			events2, err := buildDBFactory.GetBuildDB(build2).Events(0)
 			Expect(err).NotTo(HaveOccurred())
 			defer events2.Close()
 
@@ -251,8 +254,7 @@ var _ = Describe("SQL DB", func() {
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 
 			By("deleting events for build 3")
-
-			events3, err := database.GetBuildEvents(build3.ID, 0)
+			events3, err := buildDBFactory.GetBuildDB(build3).Events(0)
 			Expect(err).NotTo(HaveOccurred())
 			defer events3.Close()
 
@@ -260,8 +262,7 @@ var _ = Describe("SQL DB", func() {
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 
 			By("being unflapped by build 4, which had no events at the time")
-
-			events4, err := database.GetBuildEvents(build4.ID, 0)
+			events4, err := buildDBFactory.GetBuildDB(build4).Events(0)
 			Expect(err).NotTo(HaveOccurred())
 			defer events4.Close()
 
@@ -273,25 +274,25 @@ var _ = Describe("SQL DB", func() {
 
 			By("updating ReapTime for the affected builds")
 
-			reapedBuild1, found, err := database.GetBuild(build1.ID)
+			reapedBuild1, found, err := teamDB.GetBuild(build1.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			Expect(reapedBuild1.ReapTime).To(BeTemporally(">", reapedBuild1.EndTime))
 
-			reapedBuild2, found, err := database.GetBuild(build2.ID)
+			reapedBuild2, found, err := teamDB.GetBuild(build2.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			Expect(reapedBuild2.ReapTime).To(BeZero())
 
-			reapedBuild3, found, err := database.GetBuild(build3.ID)
+			reapedBuild3, found, err := teamDB.GetBuild(build3.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			Expect(reapedBuild3.ReapTime).To(Equal(reapedBuild1.ReapTime))
 
-			reapedBuild4, found, err := database.GetBuild(build4.ID)
+			reapedBuild4, found, err := teamDB.GetBuild(build4.ID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 

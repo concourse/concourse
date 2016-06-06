@@ -14,7 +14,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
-	"github.com/concourse/atc/api/buildserver"
 	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
 	containerserverfakes "github.com/concourse/atc/api/containerserver/fakes"
 	jobserverfakes "github.com/concourse/atc/api/jobserver/fakes"
@@ -25,6 +24,7 @@ import (
 	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
 	authfakes "github.com/concourse/atc/auth/fakes"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 	workerfakes "github.com/concourse/atc/worker/fakes"
@@ -52,6 +52,8 @@ var (
 	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
 	teamDBFactory                 *dbfakes.FakeTeamDBFactory
 	teamDB                        *dbfakes.FakeTeamDB
+	buildDBFactory                *dbfakes.FakeBuildDBFactory
+	buildDB                       *dbfakes.FakeBuildDB
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
 	configValidationErrorMessages []string
@@ -68,20 +70,17 @@ var (
 )
 
 type fakeEventHandlerFactory struct {
-	db      buildserver.BuildsDB
-	buildID int
+	buildDB db.BuildDB
 
 	lock sync.Mutex
 }
 
 func (f *fakeEventHandlerFactory) Construct(
 	logger lager.Logger,
-	db buildserver.BuildsDB,
-	buildID int,
+	buildDB db.BuildDB,
 ) http.Handler {
 	f.lock.Lock()
-	f.db = db
-	f.buildID = buildID
+	f.buildDB = buildDB
 	f.lock.Unlock()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -130,6 +129,10 @@ var _ = BeforeEach(func() {
 	sink = lager.NewReconfigurableSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG), lager.DEBUG)
 	logger.RegisterSink(sink)
 
+	buildDB = new(dbfakes.FakeBuildDB)
+	buildDBFactory = new(dbfakes.FakeBuildDBFactory)
+	buildDBFactory.GetBuildDBReturns(buildDB)
+
 	handler, err := api.NewHandler(
 		logger,
 
@@ -143,6 +146,7 @@ var _ = BeforeEach(func() {
 
 		pipelineDBFactory,
 		teamDBFactory,
+		buildDBFactory,
 
 		teamsDB,
 		buildsDB,

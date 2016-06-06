@@ -234,7 +234,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when calling the database fails", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{}, false, errors.New("disaster"))
+					teamDB.GetBuildReturns(db.Build{}, false, errors.New("disaster"))
 				})
 
 				It("returns 500 Internal Server Error", func() {
@@ -244,7 +244,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build cannot be found", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{}, false, nil)
+					teamDB.GetBuildReturns(db.Build{}, false, nil)
 				})
 
 				It("returns Not Found", func() {
@@ -254,7 +254,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build can be found", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{
+					teamDB.GetBuildReturns(db.Build{
 						ID:           1,
 						Name:         "1",
 						JobName:      "job1",
@@ -272,8 +272,8 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns the build with the given build_id", func() {
-					Expect(buildsDB.GetBuildCallCount()).To(Equal(1))
-					buildID := buildsDB.GetBuildArgsForCall(0)
+					Expect(teamDB.GetBuildCallCount()).To(Equal(1))
+					buildID := teamDB.GetBuildArgsForCall(0)
 					Expect(buildID).To(Equal(1))
 
 					body, err := ioutil.ReadAll(response.Body)
@@ -302,7 +302,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when the build is found", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildReturns(db.Build{}, true, nil)
+				teamDB.GetBuildReturns(db.Build{}, true, nil)
 			})
 
 			JustBeforeEach(func() {
@@ -438,7 +438,7 @@ var _ = Describe("Builds API", func() {
 			Context("with an invalid build", func() {
 				Context("when the lookup errors", func() {
 					BeforeEach(func() {
-						buildsDB.GetBuildReturns(db.Build{}, false, errors.New("Freakin' out man, I'm freakin' out!"))
+						teamDB.GetBuildReturns(db.Build{}, false, errors.New("Freakin' out man, I'm freakin' out!"))
 					})
 
 					It("returns internal server error", func() {
@@ -448,7 +448,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("when the build does not exist", func() {
 					BeforeEach(func() {
-						buildsDB.GetBuildReturns(db.Build{}, false, nil)
+						teamDB.GetBuildReturns(db.Build{}, false, nil)
 					})
 
 					It("returns internal server error", func() {
@@ -664,7 +664,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build can be found", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{
+					teamDB.GetBuildReturns(db.Build{
 						ID:      128,
 						JobName: "some-job",
 					}, true, nil)
@@ -680,14 +680,16 @@ var _ = Describe("Builds API", func() {
 
 					Expect(string(body)).To(Equal("fake event handler factory was here"))
 
-					Expect(constructedEventHandler.db).To(Equal(buildsDB))
-					Expect(constructedEventHandler.buildID).To(Equal(128))
+					Expect(constructedEventHandler.buildDB).To(Equal(buildDB))
+					Expect(buildDBFactory.GetBuildDBCallCount()).To(Equal(1))
+					build := buildDBFactory.GetBuildDBArgsForCall(0)
+					Expect(build.ID).To(Equal(128))
 				})
 			})
 
 			Context("when the build can not be found", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{}, false, nil)
+					teamDB.GetBuildReturns(db.Build{}, false, nil)
 				})
 
 				It("returns Not Found", func() {
@@ -697,7 +699,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when calling the database fails", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{}, false, errors.New("nope"))
+					teamDB.GetBuildReturns(db.Build{}, false, errors.New("nope"))
 				})
 
 				It("returns Internal Server Error", func() {
@@ -713,7 +715,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build can be found", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{
+					teamDB.GetBuildReturns(db.Build{
 						ID:      128,
 						JobName: "some-job",
 					}, true, nil)
@@ -758,15 +760,17 @@ var _ = Describe("Builds API", func() {
 
 						Expect(string(body)).To(Equal("fake event handler factory was here"))
 
-						Expect(constructedEventHandler.db).To(Equal(buildsDB))
-						Expect(constructedEventHandler.buildID).To(Equal(128))
+						Expect(constructedEventHandler.buildDB).To(Equal(buildDB))
+						Expect(buildDBFactory.GetBuildDBCallCount()).To(Equal(1))
+						build := buildDBFactory.GetBuildDBArgsForCall(0)
+						Expect(build.ID).To(Equal(128))
 					})
 				})
 			})
 
 			Context("when the build can not be found", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{}, false, nil)
+					teamDB.GetBuildReturns(db.Build{}, false, nil)
 				})
 
 				It("returns Not Found", func() {
@@ -776,7 +780,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when calling the database fails", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{}, false, errors.New("nope"))
+					teamDB.GetBuildReturns(db.Build{}, false, errors.New("nope"))
 				})
 
 				It("returns Internal Server Error", func() {
@@ -822,7 +826,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build can be found", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{
+					teamDB.GetBuildReturns(db.Build{
 						ID:     128,
 						Status: db.StatusStarted,
 					}, true, nil)
@@ -874,7 +878,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build can not be found", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{}, false, nil)
+					teamDB.GetBuildReturns(db.Build{}, false, nil)
 				})
 
 				It("returns Not Found", func() {
@@ -884,7 +888,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when calling the database fails", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildReturns(db.Build{}, false, errors.New("nope"))
+					teamDB.GetBuildReturns(db.Build{}, false, errors.New("nope"))
 				})
 
 				It("returns Internal Server Error", func() {
@@ -1011,7 +1015,7 @@ var _ = Describe("Builds API", func() {
 			var engineBuild *enginefakes.FakeBuild
 
 			BeforeEach(func() {
-				buildsDB.GetBuildReturns(db.Build{
+				teamDB.GetBuildReturns(db.Build{
 					ID: 42,
 				}, true, nil)
 
@@ -1062,7 +1066,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when the build is not found", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildReturns(db.Build{}, false, nil)
+				teamDB.GetBuildReturns(db.Build{}, false, nil)
 			})
 
 			It("returns Not Found", func() {
@@ -1072,7 +1076,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when looking up the build fails", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildReturns(db.Build{}, false, errors.New("oh no!"))
+				teamDB.GetBuildReturns(db.Build{}, false, errors.New("oh no!"))
 			})
 
 			It("returns 500 Internal Server Error", func() {

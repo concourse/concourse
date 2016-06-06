@@ -4,7 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
+	"github.com/pivotal-golang/lager"
 )
 
 func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +18,8 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	build, found, err := s.db.GetBuild(buildID)
+	teamDB := s.teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+	build, found, err := teamDB.GetBuild(buildID)
 	if err != nil {
 		s.logger.Error("failed-to-get-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -58,7 +61,22 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		defer close(streamDone)
-		s.eventHandlerFactory(s.logger, s.db, buildID).ServeHTTP(w, r)
+
+		build, found, err := teamDB.GetBuild(build.ID)
+		if err != nil {
+			s.logger.Error("failed-to-get-build", err, lager.Data{"build-id": build.ID})
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if !found {
+			s.logger.Info("build-not-found", lager.Data{"build-id": build.ID})
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		buildDB := s.buildDBFactory.GetBuildDB(build)
+
+		s.eventHandlerFactory(s.logger, buildDB).ServeHTTP(w, r)
 	}()
 
 	select {

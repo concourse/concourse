@@ -52,7 +52,8 @@ func (s *Server) BuildResources(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getMeAllTheThings(buildID int) ([]db.BuildInput, []db.BuildOutput, bool, error) {
-	_, found, err := s.db.GetBuild(buildID)
+	teamDB := s.teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+	_, found, err := teamDB.GetBuild(buildID)
 	if err != nil {
 		return []db.BuildInput{}, []db.BuildOutput{}, false, err
 	}

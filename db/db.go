@@ -79,7 +79,6 @@ type DB interface {
 	CreateDefaultTeamIfNotExists() error
 	DeleteTeamByName(teamName string) error
 
-	GetBuild(buildID int) (Build, bool, error)
 	GetBuildVersionedResources(buildID int) (SavedVersionedResources, error)
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 	GetAllStartedBuilds() ([]Build, error)
@@ -102,14 +101,12 @@ type DB interface {
 	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
 	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 
-	GetBuildEvents(buildID int, from uint) (EventSource, error)
 	SaveBuildEvent(buildID int, pipelineID int, event atc.Event) error
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
 	SaveBuildEngineMetadata(buildID int, engineMetadata string) error
 
 	AbortBuild(buildID int) error
-	AbortNotifier(buildID int) (Notifier, error)
 
 	Workers() ([]SavedWorker, error) // auto-expires workers based on ttl
 	GetWorker(workerName string) (SavedWorker, bool, error)

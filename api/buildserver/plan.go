@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+
+	"github.com/concourse/atc"
 )
 
 func (s *Server) GetBuildPlan(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +19,8 @@ func (s *Server) GetBuildPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	build, found, err := s.db.GetBuild(buildID)
+	teamDB := s.teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+	build, found, err := teamDB.GetBuild(buildID)
 	if err != nil {
 		s.logger.Error("failed-to-get-build", err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -9,7 +9,6 @@ import (
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/api/buildserver"
-	"github.com/concourse/atc/api/buildserver/fakes"
 	"github.com/concourse/atc/db"
 	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/gorilla/websocket"
@@ -29,15 +28,15 @@ func (fakeEvent) Version() atc.EventVersion  { return "42.0" }
 
 var _ = Describe("Handler", func() {
 	var (
-		buildsDB *fakes.FakeBuildsDB
+		buildDB *dbfakes.FakeBuildDB
 
 		server *httptest.Server
 	)
 
 	BeforeEach(func() {
-		buildsDB = new(fakes.FakeBuildsDB)
+		buildDB = new(dbfakes.FakeBuildDB)
 
-		server = httptest.NewServer(NewEventHandler(lager.NewLogger("test"), buildsDB, 128))
+		server = httptest.NewServer(NewEventHandler(lager.NewLogger("test"), buildDB))
 	})
 
 	Describe("GET", func() {
@@ -66,7 +65,7 @@ var _ = Describe("Handler", func() {
 
 				fakeEventSource = new(dbfakes.FakeEventSource)
 
-				buildsDB.GetBuildEventsStub = func(buildID int, from uint) (db.EventSource, error) {
+				buildDB.EventsStub = func(from uint) (db.EventSource, error) {
 					fakeEventSource.NextStub = func() (atc.Event, error) {
 						defer GinkgoRecover()
 
@@ -111,10 +110,9 @@ var _ = Describe("Handler", func() {
 					}
 				})
 
-				It("gets the events from the right build, starting at 0", func() {
-					Eventually(buildsDB.GetBuildEventsCallCount).Should(Equal(1))
-					actualBuildID, actualFrom := buildsDB.GetBuildEventsArgsForCall(0)
-					Expect(actualBuildID).To(Equal(128))
+				It("gets the events starting at 0", func() {
+					Eventually(buildDB.EventsCallCount).Should(Equal(1))
+					actualFrom := buildDB.EventsArgsForCall(0)
 					Expect(actualFrom).To(BeZero())
 				})
 
@@ -188,9 +186,8 @@ var _ = Describe("Handler", func() {
 					})
 
 					It("starts subscribing from after the id", func() {
-						Expect(buildsDB.GetBuildEventsCallCount()).To(Equal(1))
-						actualBuildID, actualFrom := buildsDB.GetBuildEventsArgsForCall(0)
-						Expect(actualBuildID).To(Equal(128))
+						Eventually(buildDB.EventsCallCount).Should(Equal(1))
+						actualFrom := buildDB.EventsArgsForCall(0)
 						Expect(actualFrom).To(Equal(uint(2)))
 					})
 				})
@@ -207,10 +204,9 @@ var _ = Describe("Handler", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("gets the events from the right build, starting at 0", func() {
-					Expect(buildsDB.GetBuildEventsCallCount()).To(Equal(1))
-					actualBuildID, actualFrom := buildsDB.GetBuildEventsArgsForCall(0)
-					Expect(actualBuildID).To(Equal(128))
+				It("gets the events from starting at 0", func() {
+					Eventually(buildDB.EventsCallCount).Should(Equal(1))
+					actualFrom := buildDB.EventsArgsForCall(0)
 					Expect(actualFrom).To(BeZero())
 				})
 
@@ -265,9 +261,8 @@ var _ = Describe("Handler", func() {
 					})
 
 					It("starts subscribing from after the id", func() {
-						Expect(buildsDB.GetBuildEventsCallCount()).To(Equal(1))
-						actualBuildID, actualFrom := buildsDB.GetBuildEventsArgsForCall(0)
-						Expect(actualBuildID).To(Equal(128))
+						Eventually(buildDB.EventsCallCount).Should(Equal(1))
+						actualFrom := buildDB.EventsArgsForCall(0)
 						Expect(actualFrom).To(Equal(uint(2)))
 					})
 				})
@@ -298,7 +293,7 @@ var _ = Describe("Handler", func() {
 					}
 				}
 
-				buildsDB.GetBuildEventsReturns(fakeEventSource, nil)
+				buildDB.EventsReturns(fakeEventSource, nil)
 			})
 
 			AfterEach(func() {
@@ -382,7 +377,7 @@ var _ = Describe("Handler", func() {
 			BeforeEach(func() {
 				fakeEventSource = new(dbfakes.FakeEventSource)
 				fakeEventSource.NextReturns(fakeEvent{"e1"}, nil)
-				buildsDB.GetBuildEventsReturns(fakeEventSource, nil)
+				buildDB.EventsReturns(fakeEventSource, nil)
 			})
 
 			Context("when the request doesn't use websockets", func() {
@@ -412,7 +407,7 @@ var _ = Describe("Handler", func() {
 
 		Context("when subscribing to it fails", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildEventsReturns(nil, errors.New("nope"))
+				buildDB.EventsReturns(nil, errors.New("nope"))
 			})
 
 			Context("when the request doesn't use websockets", func() {
