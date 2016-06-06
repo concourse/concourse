@@ -72,7 +72,6 @@ type PipelineDB interface {
 	GetNextPendingBuild(job string) (Build, bool, error)
 
 	GetBuild(buildID int) (Build, bool, error)
-	GetCurrentBuild(job string) (Build, bool, error)
 	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error)
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error)
 
@@ -1696,54 +1695,6 @@ func (pdb *pipelineDB) UpdateBuildToScheduled(buildID int) (bool, error) {
 	}
 
 	return rows == 1, nil
-}
-
-func (pdb *pipelineDB) GetCurrentBuild(job string) (Build, bool, error) {
-	rows, err := pdb.conn.Query(`
-		SELECT `+qualifiedBuildColumns+`
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
-		INNER JOIN teams t ON b.team_id = t.id
-		WHERE j.name = $1
-		AND j.pipeline_id = $2
-		AND b.status != 'pending'
-		ORDER BY b.id DESC
-		LIMIT 1
-	`, job, pdb.ID)
-	if err != nil {
-		return Build{}, false, err
-	}
-
-	defer rows.Close()
-
-	if rows.Next() {
-		return scanBuild(rows)
-	}
-
-	pendingRows, err := pdb.conn.Query(`
-		SELECT `+qualifiedBuildColumns+`
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
-		INNER JOIN teams t ON b.team_id = t.id
-		WHERE j.name = $1
-		AND j.pipeline_id = $2
-		AND b.status = 'pending'
-		ORDER BY b.id ASC
-		LIMIT 1
-		`, job, pdb.ID)
-	if err != nil {
-		return Build{}, false, err
-	}
-
-	defer pendingRows.Close()
-
-	if pendingRows.Next() {
-		return scanBuild(pendingRows)
-	}
-
-	return Build{}, false, nil
 }
 
 func (pdb *pipelineDB) getLatestModifiedTime() (time.Time, error) {

@@ -386,16 +386,6 @@ type FakePipelineDB struct {
 		result2 bool
 		result3 error
 	}
-	GetCurrentBuildStub        func(job string) (db.Build, bool, error)
-	getCurrentBuildMutex       sync.RWMutex
-	getCurrentBuildArgsForCall []struct {
-		job string
-	}
-	getCurrentBuildReturns struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}
 	GetRunningBuildsBySerialGroupStub        func(jobName string, serialGroups []string) ([]db.Build, error)
 	getRunningBuildsBySerialGroupMutex       sync.RWMutex
 	getRunningBuildsBySerialGroupArgsForCall []struct {
@@ -1780,40 +1770,6 @@ func (fake *FakePipelineDB) GetBuildArgsForCall(i int) int {
 func (fake *FakePipelineDB) GetBuildReturns(result1 db.Build, result2 bool, result3 error) {
 	fake.GetBuildStub = nil
 	fake.getBuildReturns = struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakePipelineDB) GetCurrentBuild(job string) (db.Build, bool, error) {
-	fake.getCurrentBuildMutex.Lock()
-	fake.getCurrentBuildArgsForCall = append(fake.getCurrentBuildArgsForCall, struct {
-		job string
-	}{job})
-	fake.getCurrentBuildMutex.Unlock()
-	if fake.GetCurrentBuildStub != nil {
-		return fake.GetCurrentBuildStub(job)
-	} else {
-		return fake.getCurrentBuildReturns.result1, fake.getCurrentBuildReturns.result2, fake.getCurrentBuildReturns.result3
-	}
-}
-
-func (fake *FakePipelineDB) GetCurrentBuildCallCount() int {
-	fake.getCurrentBuildMutex.RLock()
-	defer fake.getCurrentBuildMutex.RUnlock()
-	return len(fake.getCurrentBuildArgsForCall)
-}
-
-func (fake *FakePipelineDB) GetCurrentBuildArgsForCall(i int) string {
-	fake.getCurrentBuildMutex.RLock()
-	defer fake.getCurrentBuildMutex.RUnlock()
-	return fake.getCurrentBuildArgsForCall[i].job
-}
-
-func (fake *FakePipelineDB) GetCurrentBuildReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.GetCurrentBuildStub = nil
-	fake.getCurrentBuildReturns = struct {
 		result1 db.Build
 		result2 bool
 		result3 error
