@@ -23,11 +23,15 @@ type TeamDB interface {
 
 	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
 	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
+
+	CreateOneOffBuild() (Build, error)
 }
 
 type teamDB struct {
 	teamName string
-	conn     Conn
+
+	buildPrepHelper buildPreparationHelper
+	conn            Conn
 }
 
 func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
@@ -480,6 +484,50 @@ func (db *teamDB) UpdateUAAAuth(uaaAuth *UAAAuth) (SavedTeam, error) {
 	`, string(jsonEncodedUAAAuth), db.teamName,
 	))
 	return SavedTeam{}, nil
+}
+
+func (db *teamDB) CreateOneOffBuild() (Build, error) {
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return Build{}, err
+	}
+
+	defer tx.Rollback()
+
+	var teamID int
+	err = tx.QueryRow(`SELECT id FROM teams WHERE name = $1`, db.teamName).Scan(&teamID)
+	if err != nil {
+		return Build{}, err
+	}
+
+	build, _, err := scanBuild(tx.QueryRow(`
+		INSERT INTO builds (name, team_id, status)
+		VALUES (nextval('one_off_name'), $1, 'pending')
+		RETURNING `+buildColumns+`, null, null, null, ''
+	`, teamID))
+	if err != nil {
+		return Build{}, err
+	}
+	build.TeamName = db.teamName
+
+	_, err = tx.Exec(fmt.Sprintf(`
+		CREATE SEQUENCE %s MINVALUE 0
+	`, buildEventSeq(build.ID)))
+	if err != nil {
+		return Build{}, err
+	}
+
+	err = db.buildPrepHelper.CreateBuildPreparation(tx, build.ID)
+	if err != nil {
+		return Build{}, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return Build{}, err
+	}
+
+	return build, nil
 }
 
 func scanPipeline(rows scannable) (SavedPipeline, error) {

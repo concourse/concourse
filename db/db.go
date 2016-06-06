@@ -88,7 +88,6 @@ type DB interface {
 	CreatePipe(pipeGUID string, url string) error
 	GetPipe(pipeGUID string) (Pipe, error)
 
-	CreateOneOffBuild(teamName string) (Build, error)
 	GetBuildPreparation(buildID int) (BuildPreparation, bool, error)
 	UpdateBuildPreparation(buildPreparation BuildPreparation) error
 	ResetBuildPreparationsWithPipelinePaused(pipelineID int) error

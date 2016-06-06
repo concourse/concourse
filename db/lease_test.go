@@ -21,6 +21,7 @@ var _ = Describe("Leases", func() {
 		sqlDB             *db.SQLDB
 
 		pipelineDB db.PipelineDB
+		teamDB     db.TeamDB
 
 		logger *lagertest.TestLogger
 	)
@@ -37,6 +38,9 @@ var _ = Describe("Leases", func() {
 		logger = lagertest.NewTestLogger("test")
 		sqlDB = db.NewSQL(dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
+
+		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 	})
 
 	AfterEach(func() {
@@ -399,7 +403,7 @@ var _ = Describe("Leases", func() {
 		var buildID int
 
 		BeforeEach(func() {
-			build, err := sqlDB.CreateOneOffBuild(atc.DefaultTeamName)
+			build, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			buildID = build.ID
@@ -449,7 +453,7 @@ var _ = Describe("Leases", func() {
 		var buildID int
 
 		BeforeEach(func() {
-			build, err := sqlDB.CreateOneOffBuild(atc.DefaultTeamName)
+			build, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			buildID = build.ID

@@ -17,6 +17,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 	var database db.DB
 	var pipelineDB db.PipelineDB
+	var teamDB db.TeamDB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -41,7 +42,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			},
 		}
 		teamDBFactory := db.NewTeamDBFactory(dbConn)
-		teamDB := teamDBFactory.GetTeamDB("some-team")
+		teamDB = teamDBFactory.GetTeamDB("some-team")
 		savedPipeline, _, err := teamDB.SaveConfig("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -527,9 +528,9 @@ var _ = Describe("Keeping track of volumes", func() {
 
 	Describe("GetVolumesForOneOffBuildImageResources", func() {
 		It("returns all volumes containing image resource versions which were used in one-off builds", func() {
-			oneOffBuildA, err := database.CreateOneOffBuild(atc.DefaultTeamName)
+			oneOffBuildA, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			oneOffBuildB, err := database.CreateOneOffBuild(atc.DefaultTeamName)
+			oneOffBuildB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 			jobBuild, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())

@@ -340,50 +340,6 @@ func (db *SQLDB) GetBuildVersionedResources(buildID int) (SavedVersionedResource
 		WHERE b.id = $1 AND bo.explicit`)
 }
 
-func (db *SQLDB) CreateOneOffBuild(teamName string) (Build, error) {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return Build{}, err
-	}
-
-	defer tx.Rollback()
-
-	var teamID int
-	err = tx.QueryRow(`SELECT id FROM teams WHERE name = $1`, teamName).Scan(&teamID)
-	if err != nil {
-		return Build{}, err
-	}
-
-	build, _, err := scanBuild(tx.QueryRow(`
-		INSERT INTO builds (name, team_id, status)
-		VALUES (nextval('one_off_name'), $1, 'pending')
-		RETURNING `+buildColumns+`, null, null, null, ''
-	`, teamID))
-	if err != nil {
-		return Build{}, err
-	}
-	build.TeamName = teamName
-
-	_, err = tx.Exec(fmt.Sprintf(`
-		CREATE SEQUENCE %s MINVALUE 0
-	`, buildEventSeq(build.ID)))
-	if err != nil {
-		return Build{}, err
-	}
-
-	err = db.buildPrepHelper.CreateBuildPreparation(tx, build.ID)
-	if err != nil {
-		return Build{}, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return Build{}, err
-	}
-
-	return build, nil
-}
-
 func (db *SQLDB) GetBuildPreparation(passedBuildID int) (BuildPreparation, bool, error) {
 	return db.buildPrepHelper.GetBuildPreparation(db.conn, passedBuildID)
 }

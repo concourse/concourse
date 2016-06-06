@@ -256,7 +256,7 @@ var _ = Describe("PipelineDB", func() {
 			build, err := fetchedPipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			oneOffBuild, err := sqlDB.CreateOneOffBuild(atc.DefaultTeamName)
+			oneOffBuild, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			// populate jobs_serial_groups table

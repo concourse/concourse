@@ -21,6 +21,7 @@ var _ = Describe("Keeping track of containers", func() {
 		savedPipeline      db.SavedPipeline
 		savedOtherPipeline db.SavedPipeline
 		pipelineDB         db.PipelineDB
+		teamDB             db.TeamDB
 	)
 
 	BeforeEach(func() {
@@ -62,7 +63,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		teamDBFactory := db.NewTeamDBFactory(dbConn)
-		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 		savedPipeline, _, err = teamDB.SaveConfig("some-pipeline", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
@@ -95,7 +96,7 @@ var _ = Describe("Keeping track of containers", func() {
 	}
 
 	getOneOffBuildID := func() int {
-		savedBuild, err := database.CreateOneOffBuild(atc.DefaultTeamName)
+		savedBuild, err := teamDB.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
 		return savedBuild.ID
 	}
@@ -384,7 +385,7 @@ var _ = Describe("Keeping track of containers", func() {
 	})
 
 	It("differentiates between a single step's containers with different stages", func() {
-		someBuild, err := database.CreateOneOffBuild(atc.DefaultTeamName)
+		someBuild, err := teamDB.CreateOneOffBuild()
 		Expect(err).ToNot(HaveOccurred())
 
 		checkStageAContainerID := db.ContainerIdentifier{

@@ -24,6 +24,8 @@ var _ = Describe("TeamDB", func() {
 	var caseInsensitiveTeamDB db.TeamDB
 	var nonExistentTeamDB db.TeamDB
 
+	var savedTeam db.SavedTeam
+
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
@@ -37,7 +39,8 @@ var _ = Describe("TeamDB", func() {
 		database = db.NewSQL(dbConn, bus)
 
 		team := db.Team{Name: "team-name"}
-		_, err := database.CreateTeam(team)
+		var err error
+		savedTeam, err = database.CreateTeam(team)
 		Expect(err).NotTo(HaveOccurred())
 
 		teamDB = teamDBFactory.GetTeamDB("team-name")
@@ -337,6 +340,38 @@ var _ = Describe("TeamDB", func() {
 			_, found, err := nonExistentTeamDB.GetTeam()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+	})
+
+	Describe("CreateOneOffBuild", func() {
+		var (
+			oneOff db.Build
+			err    error
+		)
+
+		BeforeEach(func() {
+			oneOff, err = teamDB.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("can create one-off builds with increasing names", func() {
+			nextOneOff, err := teamDB.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(nextOneOff.ID).NotTo(BeZero())
+			Expect(nextOneOff.ID).NotTo(Equal(oneOff.ID))
+			Expect(nextOneOff.JobName).To(BeZero())
+			Expect(nextOneOff.Name).To(Equal("2"))
+			Expect(nextOneOff.TeamID).To(Equal(savedTeam.ID))
+			Expect(nextOneOff.TeamName).To(Equal(savedTeam.Name))
+			Expect(nextOneOff.Status).To(Equal(db.StatusPending))
+		})
+
+		It("also creates buildpreparation", func() {
+			buildPrep, found, err := database.GetBuildPreparation(oneOff.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(buildPrep.BuildID).To(Equal(oneOff.ID))
 		})
 	})
 })

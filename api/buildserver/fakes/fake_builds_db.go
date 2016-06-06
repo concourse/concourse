@@ -61,15 +61,6 @@ type FakeBuildsDB struct {
 		result2 db.Pagination
 		result3 error
 	}
-	CreateOneOffBuildStub        func(teamName string) (db.Build, error)
-	createOneOffBuildMutex       sync.RWMutex
-	createOneOffBuildArgsForCall []struct {
-		teamName string
-	}
-	createOneOffBuildReturns struct {
-		result1 db.Build
-		result2 error
-	}
 	GetConfigByBuildIDStub        func(buildID int) (atc.Config, db.ConfigVersion, error)
 	getConfigByBuildIDMutex       sync.RWMutex
 	getConfigByBuildIDArgsForCall []struct {
@@ -251,39 +242,6 @@ func (fake *FakeBuildsDB) GetBuildsReturns(result1 []db.Build, result2 db.Pagina
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeBuildsDB) CreateOneOffBuild(teamName string) (db.Build, error) {
-	fake.createOneOffBuildMutex.Lock()
-	fake.createOneOffBuildArgsForCall = append(fake.createOneOffBuildArgsForCall, struct {
-		teamName string
-	}{teamName})
-	fake.createOneOffBuildMutex.Unlock()
-	if fake.CreateOneOffBuildStub != nil {
-		return fake.CreateOneOffBuildStub(teamName)
-	} else {
-		return fake.createOneOffBuildReturns.result1, fake.createOneOffBuildReturns.result2
-	}
-}
-
-func (fake *FakeBuildsDB) CreateOneOffBuildCallCount() int {
-	fake.createOneOffBuildMutex.RLock()
-	defer fake.createOneOffBuildMutex.RUnlock()
-	return len(fake.createOneOffBuildArgsForCall)
-}
-
-func (fake *FakeBuildsDB) CreateOneOffBuildArgsForCall(i int) string {
-	fake.createOneOffBuildMutex.RLock()
-	defer fake.createOneOffBuildMutex.RUnlock()
-	return fake.createOneOffBuildArgsForCall[i].teamName
-}
-
-func (fake *FakeBuildsDB) CreateOneOffBuildReturns(result1 db.Build, result2 error) {
-	fake.CreateOneOffBuildStub = nil
-	fake.createOneOffBuildReturns = struct {
-		result1 db.Build
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeBuildsDB) GetConfigByBuildID(buildID int) (atc.Config, db.ConfigVersion, error) {

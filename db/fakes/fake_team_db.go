@@ -92,6 +92,13 @@ type FakeTeamDB struct {
 		result2 bool
 		result3 error
 	}
+	CreateOneOffBuildStub        func() (db.Build, error)
+	createOneOffBuildMutex       sync.RWMutex
+	createOneOffBuildArgsForCall []struct{}
+	createOneOffBuildReturns     struct {
+		result1 db.Build
+		result2 error
+	}
 }
 
 func (fake *FakeTeamDB) GetPipelines() ([]db.SavedPipeline, error) {
@@ -379,6 +386,31 @@ func (fake *FakeTeamDB) SaveConfigReturns(result1 db.SavedPipeline, result2 bool
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeTeamDB) CreateOneOffBuild() (db.Build, error) {
+	fake.createOneOffBuildMutex.Lock()
+	fake.createOneOffBuildArgsForCall = append(fake.createOneOffBuildArgsForCall, struct{}{})
+	fake.createOneOffBuildMutex.Unlock()
+	if fake.CreateOneOffBuildStub != nil {
+		return fake.CreateOneOffBuildStub()
+	} else {
+		return fake.createOneOffBuildReturns.result1, fake.createOneOffBuildReturns.result2
+	}
+}
+
+func (fake *FakeTeamDB) CreateOneOffBuildCallCount() int {
+	fake.createOneOffBuildMutex.RLock()
+	defer fake.createOneOffBuildMutex.RUnlock()
+	return len(fake.createOneOffBuildArgsForCall)
+}
+
+func (fake *FakeTeamDB) CreateOneOffBuildReturns(result1 db.Build, result2 error) {
+	fake.CreateOneOffBuildStub = nil
+	fake.createOneOffBuildReturns = struct {
+		result1 db.Build
+		result2 error
+	}{result1, result2}
 }
 
 var _ db.TeamDB = new(FakeTeamDB)

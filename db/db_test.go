@@ -18,6 +18,7 @@ var _ = Describe("SQL DB", func() {
 	var listener *pq.Listener
 
 	var database db.DB
+	var teamDB db.TeamDB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -29,6 +30,9 @@ var _ = Describe("SQL DB", func() {
 		bus := db.NewNotificationsBus(listener, dbConn)
 
 		database = db.NewSQL(dbConn, bus)
+
+		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 	})
 
 	AfterEach(func() {
@@ -55,7 +59,7 @@ var _ = Describe("SQL DB", func() {
 	})
 
 	It("saves and propagates events correctly", func() {
-		build, err := database.CreateOneOffBuild(atc.DefaultTeamName)
+		build, err := teamDB.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(build.Name).To(Equal("1"))
 
@@ -133,7 +137,7 @@ var _ = Describe("SQL DB", func() {
 	})
 
 	It("saves and emits status events", func() {
-		build, err := database.CreateOneOffBuild(atc.DefaultTeamName)
+		build, err := teamDB.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(build.Name).To(Equal("1"))
 
@@ -177,7 +181,7 @@ var _ = Describe("SQL DB", func() {
 
 	Describe("DeleteBuildEventsByBuildIDs", func() {
 		It("deletes all build logs corresponding to the given build ids", func() {
-			build1, err := database.CreateOneOffBuild(atc.DefaultTeamName)
+			build1, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = database.SaveBuildEvent(build1.ID, 0, event.Log{
@@ -185,7 +189,7 @@ var _ = Describe("SQL DB", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			build2, err := database.CreateOneOffBuild(atc.DefaultTeamName)
+			build2, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = database.SaveBuildEvent(build2.ID, 0, event.Log{
@@ -193,7 +197,7 @@ var _ = Describe("SQL DB", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			build3, err := database.CreateOneOffBuild(atc.DefaultTeamName)
+			build3, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = database.FinishBuild(build3.ID, 0, db.StatusSucceeded)
@@ -205,7 +209,7 @@ var _ = Describe("SQL DB", func() {
 			err = database.FinishBuild(build2.ID, 0, db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
-			build4, err := database.CreateOneOffBuild(atc.DefaultTeamName)
+			build4, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			By("doing nothing if the list is empty")
