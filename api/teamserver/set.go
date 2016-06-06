@@ -81,26 +81,49 @@ func (s *Server) updateCredentials(team db.Team, teamDB db.TeamDB) error {
 	}
 
 	_, err = teamDB.UpdateGitHubAuth(team.GitHubAuth)
-	return err
+	if err != nil {
+		return err
+	}
+
+	_, err = teamDB.UpdateUAAAuth(team.UAAAuth)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Server) validate(team db.Team) error {
-	if team.BasicAuthUsername != "" && team.BasicAuthPassword == "" ||
-		team.BasicAuthUsername == "" && team.BasicAuthPassword != "" {
-		return errors.New("basic auth missing BasicAuthUsername or BasicAuthPassword")
+	if team.BasicAuth != nil {
+		if team.BasicAuth.BasicAuthUsername == "" || team.BasicAuth.BasicAuthPassword == "" {
+			return errors.New("basic auth missing BasicAuthUsername or BasicAuthPassword")
+		}
 	}
 
-	if team.GitHubAuth.ClientID != "" && team.GitHubAuth.ClientSecret == "" ||
-		team.GitHubAuth.ClientID == "" && team.GitHubAuth.ClientSecret != "" {
-		return errors.New("GitHub auth missing ClientID or ClientSecret")
+	if team.GitHubAuth != nil {
+		if team.GitHubAuth.ClientID == "" || team.GitHubAuth.ClientSecret == "" {
+			return errors.New("GitHub auth missing ClientID or ClientSecret")
+		}
+
+		if len(team.GitHubAuth.Organizations) == 0 &&
+			len(team.GitHubAuth.Teams) == 0 &&
+			len(team.GitHubAuth.Users) == 0 {
+			return errors.New("GitHub auth requires at least one Organization, Team, or User")
+		}
 	}
 
-	if team.GitHubAuth.ClientID != "" &&
-		team.GitHubAuth.ClientSecret != "" &&
-		len(team.GitHubAuth.Organizations) == 0 &&
-		len(team.GitHubAuth.Teams) == 0 &&
-		len(team.GitHubAuth.Users) == 0 {
-		return errors.New("GitHub auth requires at least one Organization, Team, or User")
+	if team.UAAAuth != nil {
+		if team.UAAAuth.ClientID == "" || team.UAAAuth.ClientSecret == "" {
+			return errors.New("CF auth missing ClientID or ClientSecret")
+		}
+
+		if len(team.UAAAuth.CFSpaces) == 0 {
+			return errors.New("CF auth requires at least one Space")
+		}
+
+		if team.UAAAuth.AuthURL == "" || team.UAAAuth.TokenURL == "" || team.UAAAuth.CFURL == "" {
+			return errors.New("CF auth requires AuthURL, TokenURL and APIURL")
+		}
 	}
 
 	return nil

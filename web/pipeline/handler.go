@@ -38,7 +38,8 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 	pipelineName := r.FormValue(":pipeline")
 	teamName := r.FormValue(":team_name")
 
-	pipeline, found, err := client.Pipeline(pipelineName)
+	team := client.Team(teamName)
+	pipeline, found, err := team.Pipeline(pipelineName)
 	if err != nil {
 		handler.logger.Error("failed-to-load-config", err)
 		return err

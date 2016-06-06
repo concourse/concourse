@@ -23,17 +23,27 @@ func jsonEncode(object interface{}) *bytes.Buffer {
 
 func atcDBTeamEquality(atcTeam atc.Team, dbTeam db.Team) {
 	Expect(dbTeam.Name).To(Equal(atcTeam.Name))
-	Expect(dbTeam.BasicAuth.BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
-	Expect(dbTeam.BasicAuth.BasicAuthPassword).To(Equal(atcTeam.BasicAuth.BasicAuthPassword))
-	Expect(dbTeam.GitHubAuth.ClientID).To(Equal(atcTeam.GitHubAuth.ClientID))
-	Expect(dbTeam.GitHubAuth.ClientSecret).To(Equal(atcTeam.GitHubAuth.ClientSecret))
-	Expect(dbTeam.GitHubAuth.Organizations).To(Equal(atcTeam.GitHubAuth.Organizations))
-	Expect(dbTeam.GitHubAuth.Users).To(Equal(atcTeam.GitHubAuth.Users))
-	Expect(len(dbTeam.GitHubAuth.Teams)).To(Equal(len(atcTeam.GitHubAuth.Teams)))
-	for i, atcGitHubTeam := range atcTeam.GitHubAuth.Teams {
-		dbGitHubTeam := dbTeam.GitHubAuth.Teams[i]
-		Expect(dbGitHubTeam.OrganizationName).To(Equal(atcGitHubTeam.OrganizationName))
-		Expect(dbGitHubTeam.TeamName).To(Equal(atcGitHubTeam.TeamName))
+	if atcTeam.BasicAuth == nil {
+		Expect(dbTeam.BasicAuth).To(BeNil())
+	} else {
+		Expect(dbTeam.BasicAuth).NotTo(BeNil())
+		Expect(dbTeam.BasicAuth.BasicAuthUsername).To(Equal(atcTeam.BasicAuth.BasicAuthUsername))
+		Expect(dbTeam.BasicAuth.BasicAuthPassword).To(Equal(atcTeam.BasicAuth.BasicAuthPassword))
+	}
+	if atcTeam.GitHubAuth == nil {
+		Expect(dbTeam.GitHubAuth).To(BeNil())
+	} else {
+		Expect(dbTeam.GitHubAuth).NotTo(BeNil())
+		Expect(dbTeam.GitHubAuth.ClientID).To(Equal(atcTeam.GitHubAuth.ClientID))
+		Expect(dbTeam.GitHubAuth.ClientSecret).To(Equal(atcTeam.GitHubAuth.ClientSecret))
+		Expect(dbTeam.GitHubAuth.Organizations).To(Equal(atcTeam.GitHubAuth.Organizations))
+		Expect(dbTeam.GitHubAuth.Users).To(Equal(atcTeam.GitHubAuth.Users))
+		Expect(len(dbTeam.GitHubAuth.Teams)).To(Equal(len(atcTeam.GitHubAuth.Teams)))
+		for i, atcGitHubTeam := range atcTeam.GitHubAuth.Teams {
+			dbGitHubTeam := dbTeam.GitHubAuth.Teams[i]
+			Expect(dbGitHubTeam.OrganizationName).To(Equal(atcGitHubTeam.OrganizationName))
+			Expect(dbGitHubTeam.TeamName).To(Equal(atcGitHubTeam.TeamName))
+		}
 	}
 }
 
@@ -80,7 +90,7 @@ var _ = Describe("Auth API", func() {
 					Context("BasicAuthUsername not filled in", func() {
 						BeforeEach(func() {
 							team = atc.Team{
-								BasicAuth: atc.BasicAuth{
+								BasicAuth: &atc.BasicAuth{
 									BasicAuthPassword: "Batman",
 								},
 							}
@@ -94,7 +104,7 @@ var _ = Describe("Auth API", func() {
 					Context("BasicAuthPassword not filled in", func() {
 						BeforeEach(func() {
 							team = atc.Team{
-								BasicAuth: atc.BasicAuth{
+								BasicAuth: &atc.BasicAuth{
 									BasicAuthUsername: "Hank Venture",
 								},
 							}
@@ -110,7 +120,7 @@ var _ = Describe("Auth API", func() {
 					Context("ClientID not filled in", func() {
 						BeforeEach(func() {
 							team = atc.Team{
-								GitHubAuth: atc.GitHubAuth{
+								GitHubAuth: &atc.GitHubAuth{
 									ClientSecret: "09262-8765-001",
 								},
 							}
@@ -124,7 +134,7 @@ var _ = Describe("Auth API", func() {
 					Context("ClientSecret not filled in", func() {
 						BeforeEach(func() {
 							team = atc.Team{
-								GitHubAuth: atc.GitHubAuth{
+								GitHubAuth: &atc.GitHubAuth{
 									ClientID: "Brock Samson",
 								},
 							}
@@ -139,7 +149,7 @@ var _ = Describe("Auth API", func() {
 						Context("when all are missing", func() {
 							BeforeEach(func() {
 								team = atc.Team{
-									GitHubAuth: atc.GitHubAuth{
+									GitHubAuth: &atc.GitHubAuth{
 										ClientID:     "Brock Samson",
 										ClientSecret: "09262-8765-001",
 									},
@@ -154,7 +164,7 @@ var _ = Describe("Auth API", func() {
 						Context("when passed organizations", func() {
 							BeforeEach(func() {
 								team = atc.Team{
-									GitHubAuth: atc.GitHubAuth{
+									GitHubAuth: &atc.GitHubAuth{
 										ClientID:      "Brock Samson",
 										ClientSecret:  "09262-8765-001",
 										Organizations: []string{"United States Armed Forces", "Office of Secret Intelligence", "Team Venture", "S.P.H.I.N.X."},
@@ -170,7 +180,7 @@ var _ = Describe("Auth API", func() {
 						Context("when passed a team", func() {
 							BeforeEach(func() {
 								team = atc.Team{
-									GitHubAuth: atc.GitHubAuth{
+									GitHubAuth: &atc.GitHubAuth{
 										ClientID:     "Brock Samson",
 										ClientSecret: "09262-8765-001",
 										Teams: []atc.GitHubTeam{
@@ -191,7 +201,7 @@ var _ = Describe("Auth API", func() {
 						Context("when passed users", func() {
 							BeforeEach(func() {
 								team = atc.Team{
-									GitHubAuth: atc.GitHubAuth{
+									GitHubAuth: &atc.GitHubAuth{
 										ClientID:     "S.P.H.I.N.X.",
 										ClientSecret: "SPHINX Rising",
 										Users: []string{
@@ -208,6 +218,72 @@ var _ = Describe("Auth API", func() {
 							It("does not error", func() {
 								Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							})
+						})
+					})
+				})
+
+				Describe("UAA authentication", func() {
+					Context("when passed a valid team with UAA Auth", func() {
+						BeforeEach(func() {
+							team = atc.Team{
+								UAAAuth: &atc.UAAAuth{
+									ClientID:     "Brock Samson",
+									ClientSecret: "09262-8765-001",
+									CFSpaces:     []string{"myspace"},
+									AuthURL:      "http://auth.url",
+									TokenURL:     "http://token.url",
+									CFURL:        "http://api.url",
+								},
+							}
+						})
+
+						It("responds with 201", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusCreated))
+						})
+					})
+
+					Context("ClientID is not filled in", func() {
+						BeforeEach(func() {
+							team = atc.Team{
+								UAAAuth: &atc.UAAAuth{
+									ClientSecret: "09262-8765-001",
+								},
+							}
+						})
+
+						It("returns a 400 Bad Request", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+					})
+
+					Context("Spaces are not provided", func() {
+						BeforeEach(func() {
+							team = atc.Team{
+								UAAAuth: &atc.UAAAuth{
+									ClientID:     "S.P.H.I.N.X.",
+									ClientSecret: "09262-8765-001",
+								},
+							}
+						})
+
+						It("returns a 400 Bad Request", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+					})
+
+					Context("AuthURL is not provided", func() {
+						BeforeEach(func() {
+							team = atc.Team{
+								UAAAuth: &atc.UAAAuth{
+									ClientID:     "S.P.H.I.N.X.",
+									ClientSecret: "09262-8765-001",
+									CFSpaces:     []string{"myspace"},
+								},
+							}
+						})
+
+						It("returns a 400 Bad Request", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 						})
 					})
 				})
@@ -245,28 +321,40 @@ var _ = Describe("Auth API", func() {
 				})
 
 				Context("updating authentication", func() {
-					var basicAuth atc.BasicAuth
-					var gitHubAuth atc.GitHubAuth
+					var basicAuth *atc.BasicAuth
+					var gitHubAuth *atc.GitHubAuth
+					var uaaAuth *atc.UAAAuth
 
 					BeforeEach(func() {
-						basicAuth = atc.BasicAuth{
+						basicAuth = &atc.BasicAuth{
 							BasicAuthUsername: "Dean Venture",
 							BasicAuthPassword: "Giant Boy Detective",
 						}
 
-						gitHubAuth = atc.GitHubAuth{
+						gitHubAuth = &atc.GitHubAuth{
 							ClientID:     "Dean Venture",
 							ClientSecret: "Giant Boy Detective",
 							Users:        []string{"Dean Venture"},
+						}
+
+						uaaAuth = &atc.UAAAuth{
+							ClientID:     "Dean Venture",
+							ClientSecret: "Giant Boy Detective",
+							CFSpaces:     []string{"CSI"},
+							AuthURL:      "http://uaa.auth.url",
+							TokenURL:     "http://uaa.token.url",
+							CFURL:        "http://api.cf.url",
 						}
 					})
 
 					Context("when passed basic auth credentials", func() {
 						BeforeEach(func() {
-							teamDB.UpdateBasicAuthStub = func(basicAuth db.BasicAuth) (db.SavedTeam, error) {
+							teamDB.UpdateBasicAuthStub = func(basicAuth *db.BasicAuth) (db.SavedTeam, error) {
 								team.Name = teamName
-								Expect(basicAuth.BasicAuthUsername).To(Equal(team.BasicAuthUsername))
-								Expect(basicAuth.BasicAuthPassword).To(Equal(team.BasicAuthPassword))
+								Expect(basicAuth).NotTo(BeNil())
+								Expect(team.BasicAuth).NotTo(BeNil())
+								Expect(basicAuth.BasicAuthUsername).To(Equal(team.BasicAuth.BasicAuthUsername))
+								Expect(basicAuth.BasicAuthPassword).To(Equal(team.BasicAuth.BasicAuthPassword))
 								savedTeam.BasicAuth = basicAuth
 								return savedTeam, nil
 							}
@@ -282,7 +370,7 @@ var _ = Describe("Auth API", func() {
 
 					Context("when passed GitHub auth credentials", func() {
 						BeforeEach(func() {
-							teamDB.UpdateGitHubAuthStub = func(gitHubAuth db.GitHubAuth) (db.SavedTeam, error) {
+							teamDB.UpdateGitHubAuthStub = func(gitHubAuth *db.GitHubAuth) (db.SavedTeam, error) {
 								team.Name = teamName
 								Expect(gitHubAuth.ClientID).To(Equal(team.GitHubAuth.ClientID))
 								Expect(gitHubAuth.ClientSecret).To(Equal(team.GitHubAuth.ClientSecret))
@@ -305,6 +393,30 @@ var _ = Describe("Auth API", func() {
 						It("updates the GitHub auth for that team", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 							Expect(teamDB.UpdateGitHubAuthCallCount()).To(Equal(1))
+						})
+					})
+
+					Context("when passed UAA auth credentials", func() {
+						BeforeEach(func() {
+							teamDB.UpdateUAAAuthStub = func(uaaAuth *db.UAAAuth) (db.SavedTeam, error) {
+								team.Name = teamName
+								Expect(uaaAuth.ClientID).To(Equal(team.UAAAuth.ClientID))
+								Expect(uaaAuth.ClientSecret).To(Equal(team.UAAAuth.ClientSecret))
+								Expect(uaaAuth.AuthURL).To(Equal(team.UAAAuth.AuthURL))
+								Expect(uaaAuth.TokenURL).To(Equal(team.UAAAuth.TokenURL))
+								Expect(uaaAuth.CFSpaces).To(Equal(team.UAAAuth.CFSpaces))
+								Expect(uaaAuth.CFURL).To(Equal(team.UAAAuth.CFURL))
+
+								savedTeam.UAAAuth = uaaAuth
+								return savedTeam, nil
+							}
+
+							team.UAAAuth = uaaAuth
+						})
+
+						It("updates the GitHub auth for that team", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+							Expect(teamDB.UpdateUAAAuthCallCount()).To(Equal(1))
 						})
 					})
 				})
@@ -366,7 +478,7 @@ var _ = Describe("Auth API", func() {
 
 					Context("when passed basic auth credentials", func() {
 						BeforeEach(func() {
-							team.BasicAuth = basicAuth
+							team.BasicAuth = &basicAuth
 						})
 
 						It("updates the basic auth for that team", func() {
@@ -377,7 +489,7 @@ var _ = Describe("Auth API", func() {
 
 					Context("when passed GitHub auth credentials", func() {
 						BeforeEach(func() {
-							team.GitHubAuth = gitHubAuth
+							team.GitHubAuth = &gitHubAuth
 						})
 
 						It("updates the GitHub auth for that team", func() {

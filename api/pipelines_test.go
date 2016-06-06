@@ -39,6 +39,15 @@ var _ = Describe("Pipelines API", func() {
 					Paused: false,
 					Pipeline: db.Pipeline{
 						Name: "a-pipeline",
+						Config: atc.Config{
+							Groups: atc.GroupConfigs{
+								{
+									Name:      "group1",
+									Jobs:      []string{"job1", "job2"},
+									Resources: []string{"resource1", "resource2"},
+								},
+							},
+						},
 					},
 				},
 				{
@@ -46,35 +55,18 @@ var _ = Describe("Pipelines API", func() {
 					Paused: true,
 					Pipeline: db.Pipeline{
 						Name: "another-pipeline",
+						Config: atc.Config{
+							Groups: atc.GroupConfigs{
+								{
+									Name:      "group2",
+									Jobs:      []string{"job3", "job4"},
+									Resources: []string{"resource3", "resource4"},
+								},
+							},
+						},
 					},
 				},
 			}, nil)
-
-			teamDB.GetConfigStub = func(pipelineName string) (atc.Config, atc.RawConfig, db.ConfigVersion, error) {
-				if pipelineName == "a-pipeline" {
-					return atc.Config{
-						Groups: atc.GroupConfigs{
-							{
-								Name:      "group1",
-								Jobs:      []string{"job1", "job2"},
-								Resources: []string{"resource1", "resource2"},
-							},
-						},
-					}, atc.RawConfig(""), 42, nil
-				} else if pipelineName == "another-pipeline" {
-					return atc.Config{
-						Groups: atc.GroupConfigs{
-							{
-								Name:      "group2",
-								Jobs:      []string{"job3", "job4"},
-								Resources: []string{"resource3", "resource4"},
-							},
-						},
-					}, atc.RawConfig(""), 42, nil
-				}
-
-				panic("don't know what's going on")
-			}
 		})
 
 		JustBeforeEach(func() {
@@ -141,16 +133,6 @@ var _ = Describe("Pipelines API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
-
-		Context("when the call to get a pipeline's config fails", func() {
-			BeforeEach(func() {
-				teamDB.GetConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("disaster"))
-			})
-
-			It("returns 500 internal server error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-		})
 	})
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name", func() {
@@ -162,23 +144,22 @@ var _ = Describe("Pipelines API", func() {
 				Paused: false,
 				Pipeline: db.Pipeline{
 					Name: "some-specific-pipeline",
+					Config: atc.Config{
+						Groups: atc.GroupConfigs{
+							{
+								Name:      "group1",
+								Jobs:      []string{"job1", "job2"},
+								Resources: []string{"resource1", "resource2"},
+							},
+							{
+								Name:      "group2",
+								Jobs:      []string{"job3", "job4"},
+								Resources: []string{"resource3", "resource4"},
+							},
+						},
+					},
 				},
 			}, nil)
-
-			teamDB.GetConfigReturns(atc.Config{
-				Groups: atc.GroupConfigs{
-					{
-						Name:      "group1",
-						Jobs:      []string{"job1", "job2"},
-						Resources: []string{"resource1", "resource2"},
-					},
-					{
-						Name:      "group2",
-						Jobs:      []string{"job3", "job4"},
-						Resources: []string{"resource3", "resource4"},
-					},
-				},
-			}, atc.RawConfig(""), 42, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -194,11 +175,6 @@ var _ = Describe("Pipelines API", func() {
 		It("looks up the pipeline in the db via the url param", func() {
 			Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
 			Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("some-specific-pipeline"))
-		})
-
-		It("tries to get the config scoped to team and pipeline", func() {
-			Expect(teamDB.GetConfigCallCount()).To(Equal(1))
-			Expect(teamDB.GetConfigArgsForCall(0)).To(Equal("some-specific-pipeline"))
 		})
 
 		It("returns 200 ok", func() {
@@ -248,16 +224,6 @@ var _ = Describe("Pipelines API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
-
-		Context("when the call to get the pipeline config fails", func() {
-			BeforeEach(func() {
-				teamDB.GetConfigReturns(atc.Config{}, atc.RawConfig(""), 0, errors.New("disaster"))
-			})
-
-			It("returns 500 error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-		})
 	})
 
 	Describe("DELETE /api/v1/teams/:team_name/pipelines/:pipeline_name", func() {
@@ -274,9 +240,10 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when the user is logged in", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			It("returns 204 No Content", func() {
@@ -336,9 +303,10 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			It("constructs teamDB with provided team name", func() {
@@ -375,7 +343,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
@@ -399,9 +367,10 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			It("constructs teamDB with provided team name", func() {
@@ -438,7 +407,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
@@ -475,9 +444,10 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 			})
 
 			Context("with invalid json", func() {
@@ -531,7 +501,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
@@ -555,9 +525,10 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
 				//construct Version db
 
 				pipelineDB.LoadVersionsDBReturns(
@@ -657,7 +628,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})
@@ -671,10 +642,6 @@ var _ = Describe("Pipelines API", func() {
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/rename", func() {
 		var response *http.Response
 
-		BeforeEach(func() {
-			authValidator.IsAuthenticatedReturns(true)
-		})
-
 		JustBeforeEach(func() {
 			var err error
 
@@ -685,7 +652,12 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when authenticated", func() {
+		Context("when authorized", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 42, true, true)
+			})
+
 			It("constructs teamDB with provided team name", func() {
 				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
 				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
@@ -720,7 +692,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when not authenticated", func() {
+		Context("when not authorized", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 			})

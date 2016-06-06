@@ -17,8 +17,9 @@ type TeamDB interface {
 	OrderPipelines([]string) error
 
 	GetTeam() (SavedTeam, bool, error)
-	UpdateBasicAuth(basicAuth BasicAuth) (SavedTeam, error)
-	UpdateGitHubAuth(gitHubAuth GitHubAuth) (SavedTeam, error)
+	UpdateBasicAuth(basicAuth *BasicAuth) (SavedTeam, error)
+	UpdateGitHubAuth(gitHubAuth *GitHubAuth) (SavedTeam, error)
+	UpdateUAAAuth(uaaAuth *UAAAuth) (SavedTeam, error)
 
 	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
 	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
@@ -364,7 +365,7 @@ func (db *teamDB) registerResourceType(tx Tx, resourceType atc.ResourceType, pip
 
 func (db *teamDB) GetTeam() (SavedTeam, bool, error) {
 	query := fmt.Sprintf(`
-		SELECT id, name, admin, basic_auth, github_auth
+		SELECT id, name, admin, basic_auth, github_auth, uaa_auth
 		FROM teams
 		WHERE name ILIKE '%s'
 	`, db.teamName,
@@ -382,7 +383,7 @@ func (db *teamDB) GetTeam() (SavedTeam, bool, error) {
 }
 
 func (db *teamDB) queryTeam(query string) (SavedTeam, error) {
-	var basicAuth, gitHubAuth sql.NullString
+	var basicAuth, gitHubAuth, uaaAuth sql.NullString
 	var savedTeam SavedTeam
 
 	tx, err := db.conn.Begin()
@@ -397,6 +398,7 @@ func (db *teamDB) queryTeam(query string) (SavedTeam, error) {
 		&savedTeam.Admin,
 		&basicAuth,
 		&gitHubAuth,
+		&uaaAuth,
 	)
 	if err != nil {
 		return savedTeam, err
@@ -420,10 +422,17 @@ func (db *teamDB) queryTeam(query string) (SavedTeam, error) {
 		}
 	}
 
+	if uaaAuth.Valid {
+		err = json.Unmarshal([]byte(uaaAuth.String), &savedTeam.UAAAuth)
+		if err != nil {
+			return savedTeam, err
+		}
+	}
+
 	return savedTeam, nil
 }
 
-func (db *teamDB) UpdateBasicAuth(basicAuth BasicAuth) (SavedTeam, error) {
+func (db *teamDB) UpdateBasicAuth(basicAuth *BasicAuth) (SavedTeam, error) {
 	encryptedBasicAuth, err := basicAuth.EncryptedJSON()
 	if err != nil {
 		return SavedTeam{}, err
@@ -433,14 +442,14 @@ func (db *teamDB) UpdateBasicAuth(basicAuth BasicAuth) (SavedTeam, error) {
 		UPDATE teams
 		SET basic_auth = '%s'
 		WHERE name ILIKE '%s'
-		RETURNING id, name, admin, basic_auth, github_auth
+		RETURNING id, name, admin, basic_auth, github_auth, uaa_auth
 	`, encryptedBasicAuth, db.teamName)
 	return db.queryTeam(query)
 }
 
-func (db *teamDB) UpdateGitHubAuth(gitHubAuth GitHubAuth) (SavedTeam, error) {
-	auth := GitHubAuth{}
-	if gitHubAuth.ClientID != "" && gitHubAuth.ClientSecret != "" {
+func (db *teamDB) UpdateGitHubAuth(gitHubAuth *GitHubAuth) (SavedTeam, error) {
+	var auth *GitHubAuth
+	if gitHubAuth != nil && gitHubAuth.ClientID != "" && gitHubAuth.ClientSecret != "" {
 		auth = gitHubAuth
 	}
 	jsonEncodedGitHubAuth, err := json.Marshal(auth)
@@ -452,9 +461,25 @@ func (db *teamDB) UpdateGitHubAuth(gitHubAuth GitHubAuth) (SavedTeam, error) {
 		UPDATE teams
 		SET github_auth = '%s'
 		WHERE name ILIKE '%s'
-		RETURNING id, name, admin, basic_auth, github_auth
+		RETURNING id, name, admin, basic_auth, github_auth, uaa_auth
 	`, string(jsonEncodedGitHubAuth), db.teamName,
 	))
+}
+
+func (db *teamDB) UpdateUAAAuth(uaaAuth *UAAAuth) (SavedTeam, error) {
+	jsonEncodedUAAAuth, err := json.Marshal(uaaAuth)
+	if err != nil {
+		return SavedTeam{}, err
+	}
+
+	return db.queryTeam(fmt.Sprintf(`
+		UPDATE teams
+		SET uaa_auth = '%s'
+		WHERE name ILIKE '%s'
+		RETURNING id, name, admin, basic_auth, github_auth, uaa_auth
+	`, string(jsonEncodedUAAAuth), db.teamName,
+	))
+	return SavedTeam{}, nil
 }
 
 func scanPipeline(rows scannable) (SavedPipeline, error) {

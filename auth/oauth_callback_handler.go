@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 
@@ -42,39 +41,6 @@ func NewOAuthCallbackHandler(
 func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hLog := handler.logger.Session("callback")
 	providerName := r.FormValue(":provider")
-	teamName := atc.DefaultTeamName
-
-	teamDB := handler.teamDBFactory.GetTeamDB(teamName)
-	team, found, err := teamDB.GetTeam()
-	if err != nil {
-		hLog.Error("failed-to-get-team", err)
-		http.Error(w, "failed to get team", http.StatusInternalServerError)
-		return
-	}
-	if !found {
-		hLog.Info("failed-to-find-team", lager.Data{
-			"teamName": teamName,
-		})
-		http.Error(w, "failed to find team", http.StatusNotFound)
-		return
-	}
-
-	providers, err := handler.providerFactory.GetProviders(teamName)
-	if err != nil {
-		handler.logger.Error("unknown-provider", err, lager.Data{
-			"provider": providerName,
-			"teamName": teamName,
-		})
-
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	provider, found := providers[providerName]
-	if !found {
-		http.Error(w, "unknown provider", http.StatusNotFound)
-		return
-	}
 
 	paramState := r.FormValue("state")
 
@@ -113,6 +79,39 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 			"error": err.Error(),
 		})
 		http.Error(w, "state value invalid JSON", http.StatusUnauthorized)
+		return
+	}
+
+	teamName := oauthState.TeamName
+	teamDB := handler.teamDBFactory.GetTeamDB(teamName)
+	team, found, err := teamDB.GetTeam()
+	if err != nil {
+		hLog.Error("failed-to-get-team", err)
+		http.Error(w, "failed to get team", http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		hLog.Info("failed-to-find-team", lager.Data{
+			"teamName": teamName,
+		})
+		http.Error(w, "failed to find team", http.StatusNotFound)
+		return
+	}
+
+	providers, err := handler.providerFactory.GetProviders(teamName)
+	if err != nil {
+		handler.logger.Error("unknown-provider", err, lager.Data{
+			"provider": providerName,
+			"teamName": teamName,
+		})
+
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	provider, found := providers[providerName]
+	if !found {
+		http.Error(w, "unknown provider", http.StatusNotFound)
 		return
 	}
 

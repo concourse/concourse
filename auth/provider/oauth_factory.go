@@ -5,6 +5,7 @@ import (
 
 	"github.com/cloudfoundry/gunk/urljoiner"
 	"github.com/concourse/atc/auth/github"
+	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
@@ -37,10 +38,7 @@ func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
 
 	providers := Providers{}
 
-	if len(team.GitHubAuth.Organizations) > 0 ||
-		len(team.GitHubAuth.Teams) > 0 ||
-		len(team.GitHubAuth.Users) > 0 {
-
+	if team.GitHubAuth != nil {
 		redirectURL, err := of.routes.CreatePathForRoute(of.callback, rata.Params{
 			"provider": github.ProviderName,
 		})
@@ -50,6 +48,18 @@ func (of OAuthFactory) GetProviders(teamName string) (Providers, error) {
 		gitHubAuthProvider := github.NewProvider(team.GitHubAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
 
 		providers[github.ProviderName] = gitHubAuthProvider
+	}
+
+	if team.UAAAuth != nil {
+		redirectURL, err := of.routes.CreatePathForRoute(of.callback, rata.Params{
+			"provider": uaa.ProviderName,
+		})
+		if err != nil {
+			return Providers{}, err
+		}
+		uaaAuthProvider := uaa.NewProvider(team.UAAAuth, urljoiner.Join(of.atcExternalURL, redirectURL))
+
+		providers[uaa.ProviderName] = uaaAuthProvider
 	}
 
 	return providers, err

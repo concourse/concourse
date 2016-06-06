@@ -5,6 +5,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/provider"
+	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/db"
 
 	dbfakes "github.com/concourse/atc/db/fakes"
@@ -30,45 +31,66 @@ var _ = Describe("OAuthFactory", func() {
 	})
 
 	Describe("Get Providers", func() {
-		Describe("GitHub Provider", func() {
-			Context("when the provider is setup", func() {
-				BeforeEach(func() {
-					savedTeam := db.SavedTeam{
-						Team: db.Team{
-							Name: atc.DefaultTeamName,
-							GitHubAuth: db.GitHubAuth{
-								ClientID:     "user1",
-								ClientSecret: "password1",
-								Users:        []string{"thecandyman"},
-							},
+		Context("when GitHub provider is setup", func() {
+			BeforeEach(func() {
+				savedTeam := db.SavedTeam{
+					Team: db.Team{
+						Name: atc.DefaultTeamName,
+						GitHubAuth: &db.GitHubAuth{
+							ClientID:     "user1",
+							ClientSecret: "password1",
+							Users:        []string{"thecandyman"},
 						},
-					}
-					fakeTeamDB.GetTeamReturns(savedTeam, true, nil)
-				})
-
-				It("returns back GitHub's auth provider", func() {
-					providers, err := oauthFactory.GetProviders(atc.DefaultTeamName)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(providers).To(HaveLen(1))
-					Expect(providers[github.ProviderName]).NotTo(BeNil())
-				})
+					},
+				}
+				fakeTeamDB.GetTeamReturns(savedTeam, true, nil)
 			})
 
-			Context("when no provider is setup", func() {
-				BeforeEach(func() {
-					savedTeam := db.SavedTeam{
-						Team: db.Team{
-							Name: atc.DefaultTeamName,
-						},
-					}
-					fakeTeamDB.GetTeamReturns(savedTeam, true, nil)
-				})
+			It("returns back GitHub's auth provider", func() {
+				providers, err := oauthFactory.GetProviders(atc.DefaultTeamName)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(providers).To(HaveLen(1))
+				Expect(providers[github.ProviderName]).NotTo(BeNil())
+			})
+		})
 
-				It("returns an empty map", func() {
-					providers, err := oauthFactory.GetProviders(atc.DefaultTeamName)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(providers).To(BeEmpty())
-				})
+		Context("when CF provider is setup", func() {
+			BeforeEach(func() {
+				savedTeam := db.SavedTeam{
+					Team: db.Team{
+						Name: atc.DefaultTeamName,
+						UAAAuth: &db.UAAAuth{
+							ClientID:     "user1",
+							ClientSecret: "password1",
+							CFSpaces:     []string{"myspace"},
+						},
+					},
+				}
+				fakeTeamDB.GetTeamReturns(savedTeam, true, nil)
+			})
+
+			It("returns back CF's auth provider", func() {
+				providers, err := oauthFactory.GetProviders(atc.DefaultTeamName)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(providers).To(HaveLen(1))
+				Expect(providers[uaa.ProviderName]).NotTo(BeNil())
+			})
+		})
+
+		Context("when no provider is setup", func() {
+			BeforeEach(func() {
+				savedTeam := db.SavedTeam{
+					Team: db.Team{
+						Name: atc.DefaultTeamName,
+					},
+				}
+				fakeTeamDB.GetTeamReturns(savedTeam, true, nil)
+			})
+
+			It("returns an empty map", func() {
+				providers, err := oauthFactory.GetProviders(atc.DefaultTeamName)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(providers).To(BeEmpty())
 			})
 		})
 

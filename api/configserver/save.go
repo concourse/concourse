@@ -113,7 +113,9 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	session.Info("saving")
 
 	pipelineName := rata.Param(r, "pipeline_name")
-	teamDB := s.teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+	teamName := rata.Param(r, "team_name")
+
+	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 	_, created, err := teamDB.SaveConfig(pipelineName, config, version, pausedState)
 	if err != nil {
 		session.Error("failed-to-save-config", err)

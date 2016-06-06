@@ -136,7 +136,9 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 			Context("when the request's state is valid", func() {
 				BeforeEach(func() {
-					state, err := json.Marshal(auth.OAuthState{})
+					state, err := json.Marshal(auth.OAuthState{
+						TeamName: "some-team",
+					})
 					Expect(err).ToNot(HaveOccurred())
 
 					encodedState := base64.RawURLEncoding.EncodeToString(state)
@@ -177,6 +179,11 @@ var _ = Describe("OAuthCallbackHandler", func() {
 						httpClient, ok := ctx.Value(oauth2.HTTPClient).(http.Client)
 						Expect(ok).To(BeTrue())
 						Expect(httpClient.Transport.(*http.Transport).DisableKeepAlives).To(BeTrue())
+					})
+
+					It("looks up the verifier for the team from the 'state' query param", func() {
+						Expect(fakeProviderFactory.GetProvidersCallCount()).To(Equal(1))
+						Expect(fakeProviderFactory.GetProvidersArgsForCall(0)).To(Equal("some-team"))
 					})
 
 					Context("when the token is verified", func() {
@@ -272,6 +279,24 @@ var _ = Describe("OAuthCallbackHandler", func() {
 						})
 					})
 				})
+
+				Context("when the team cannot be found", func() {
+					BeforeEach(func() {
+						fakeTeamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+					})
+
+					It("returns Not Found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+
+					It("does not set a cookie", func() {
+						Expect(response.Cookies()).To(BeEmpty())
+					})
+
+					It("does not set exchange the token", func() {
+						Expect(fakeProviderB.ExchangeCallCount()).To(Equal(0))
+					})
+				})
 			})
 
 			Context("when a redirect URI is in the state", func() {
@@ -355,24 +380,6 @@ var _ = Describe("OAuthCallbackHandler", func() {
 				})
 			})
 
-			Context("when the team cannot be found", func() {
-				BeforeEach(func() {
-					fakeTeamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
-				})
-
-				It("returns Not Found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-
-				It("does not set a cookie", func() {
-					Expect(response.Cookies()).To(BeEmpty())
-				})
-
-				It("does not set exchange the token", func() {
-					Expect(fakeProviderB.ExchangeCallCount()).To(Equal(0))
-				})
-			})
-
 			Context("when the request has no state", func() {
 				BeforeEach(func() {
 					request.URL.RawQuery = url.Values{
@@ -446,8 +453,31 @@ var _ = Describe("OAuthCallbackHandler", func() {
 				request.URL.Path = "/auth/bogus/callback"
 			})
 
-			It("returns Not Found", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			Context("when the request's state is valid", func() {
+				BeforeEach(func() {
+					state, err := json.Marshal(auth.OAuthState{
+						TeamName: "some-team",
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					encodedState := base64.RawURLEncoding.EncodeToString(state)
+
+					request.AddCookie(&http.Cookie{
+						Name:    auth.OAuthStateCookie,
+						Value:   encodedState,
+						Path:    "/",
+						Expires: time.Now().Add(time.Hour),
+					})
+
+					request.URL.RawQuery = url.Values{
+						"code":  {"some-code"},
+						"state": {encodedState},
+					}.Encode()
+				})
+
+				It("returns Not Found", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
 			})
 		})
 	})

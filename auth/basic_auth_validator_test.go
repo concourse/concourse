@@ -33,7 +33,7 @@ var _ = Describe("BasicAuthValidator", func() {
 		team := db.SavedTeam{
 			Team: db.Team{
 				Name: atc.DefaultTeamName,
-				BasicAuth: db.BasicAuth{
+				BasicAuth: &db.BasicAuth{
 					BasicAuthUsername: username,
 					BasicAuthPassword: string(encryptedPassword),
 				},
@@ -116,6 +116,22 @@ var _ = Describe("BasicAuthValidator", func() {
 
 			It("returns false", func() {
 				Expect(isAuthenticated).To(BeFalse())
+			})
+		})
+
+		Context("when basic auth is not set for team", func() {
+			BeforeEach(func() {
+				team := db.SavedTeam{
+					Team: db.Team{
+						Name: atc.DefaultTeamName,
+					},
+				}
+
+				fakeTeamDB.GetTeamReturns(team, true, nil)
+			})
+
+			It("returns true", func() {
+				Expect(isAuthenticated).To(BeTrue())
 			})
 		})
 	})

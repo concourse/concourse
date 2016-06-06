@@ -111,7 +111,7 @@ var _ = Describe("SQL DB Teams", func() {
 		It("saves a team to the db with basic auth", func() {
 			expectedTeam := db.Team{
 				Name: "avengers",
-				BasicAuth: db.BasicAuth{
+				BasicAuth: &db.BasicAuth{
 					BasicAuthUsername: "fake user",
 					BasicAuthPassword: "no, bad",
 				},
@@ -125,15 +125,15 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(found).To(BeTrue())
 			Expect(savedTeam).To(Equal(expectedSavedTeam))
 
-			Expect(savedTeam.BasicAuthUsername).To(Equal(expectedTeam.BasicAuthUsername))
-			Expect(bcrypt.CompareHashAndPassword([]byte(savedTeam.BasicAuthPassword),
-				[]byte(expectedTeam.BasicAuthPassword))).To(BeNil())
+			Expect(savedTeam.BasicAuth.BasicAuthUsername).To(Equal(expectedTeam.BasicAuth.BasicAuthUsername))
+			Expect(bcrypt.CompareHashAndPassword([]byte(savedTeam.BasicAuth.BasicAuthPassword),
+				[]byte(expectedTeam.BasicAuth.BasicAuthPassword))).To(BeNil())
 		})
 
 		It("saves a team to the db with GitHub auth", func() {
 			expectedTeam := db.Team{
 				Name: "avengers",
-				GitHubAuth: db.GitHubAuth{
+				GitHubAuth: &db.GitHubAuth{
 					ClientID:      "fake id",
 					ClientSecret:  "some secret",
 					Organizations: []string{"a", "b", "c"},
@@ -159,11 +159,31 @@ var _ = Describe("SQL DB Teams", func() {
 			Expect(found).To(BeTrue())
 			Expect(savedTeam).To(Equal(expectedSavedTeam))
 
-			Expect(savedTeam.ClientID).To(Equal(expectedTeam.ClientID))
-			Expect(savedTeam.ClientSecret).To(Equal(expectedTeam.ClientSecret))
-			Expect(savedTeam.Organizations).To(Equal(expectedTeam.Organizations))
-			Expect(savedTeam.Teams).To(Equal(expectedTeam.Teams))
-			Expect(savedTeam.Users).To(Equal(expectedTeam.Users))
+			Expect(savedTeam.GitHubAuth).To(Equal(expectedTeam.GitHubAuth))
+		})
+
+		It("saves a team to the db with CF auth", func() {
+			expectedTeam := db.Team{
+				Name: "avengers",
+				UAAAuth: &db.UAAAuth{
+					ClientID:     "fake id",
+					ClientSecret: "some secret",
+					CFSpaces:     []string{"myspace"},
+					AuthURL:      "http://auth.url",
+					TokenURL:     "http://token.url",
+					CFURL:        "http://api.url",
+				},
+			}
+			expectedSavedTeam, err := database.CreateTeam(expectedTeam)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(expectedSavedTeam.Team).To(Equal(expectedTeam))
+
+			savedTeam, found, err := teamDBFactory.GetTeamDB("avengers").GetTeam()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(savedTeam).To(Equal(expectedSavedTeam))
+
+			Expect(savedTeam.UAAAuth).To(Equal(expectedTeam.UAAAuth))
 		})
 	})
 

@@ -96,6 +96,15 @@ type FakePipelineDB struct {
 		result2 bool
 		result3 error
 	}
+	GetResourcesStub        func() ([]db.DashboardResource, atc.GroupConfigs, bool, error)
+	getResourcesMutex       sync.RWMutex
+	getResourcesArgsForCall []struct{}
+	getResourcesReturns     struct {
+		result1 []db.DashboardResource
+		result2 atc.GroupConfigs
+		result3 bool
+		result4 error
+	}
 	GetResourceTypeStub        func(resourceTypeName string) (db.SavedResourceType, bool, error)
 	getResourceTypeMutex       sync.RWMutex
 	getResourceTypeArgsForCall []struct {
@@ -777,6 +786,33 @@ func (fake *FakePipelineDB) GetResourceReturns(result1 db.SavedResource, result2
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakePipelineDB) GetResources() ([]db.DashboardResource, atc.GroupConfigs, bool, error) {
+	fake.getResourcesMutex.Lock()
+	fake.getResourcesArgsForCall = append(fake.getResourcesArgsForCall, struct{}{})
+	fake.getResourcesMutex.Unlock()
+	if fake.GetResourcesStub != nil {
+		return fake.GetResourcesStub()
+	} else {
+		return fake.getResourcesReturns.result1, fake.getResourcesReturns.result2, fake.getResourcesReturns.result3, fake.getResourcesReturns.result4
+	}
+}
+
+func (fake *FakePipelineDB) GetResourcesCallCount() int {
+	fake.getResourcesMutex.RLock()
+	defer fake.getResourcesMutex.RUnlock()
+	return len(fake.getResourcesArgsForCall)
+}
+
+func (fake *FakePipelineDB) GetResourcesReturns(result1 []db.DashboardResource, result2 atc.GroupConfigs, result3 bool, result4 error) {
+	fake.GetResourcesStub = nil
+	fake.getResourcesReturns = struct {
+		result1 []db.DashboardResource
+		result2 atc.GroupConfigs
+		result3 bool
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
 func (fake *FakePipelineDB) GetResourceType(resourceTypeName string) (db.SavedResourceType, bool, error) {

@@ -41,21 +41,30 @@ type FakeTeamDB struct {
 		result2 bool
 		result3 error
 	}
-	UpdateBasicAuthStub        func(basicAuth db.BasicAuth) (db.SavedTeam, error)
+	UpdateBasicAuthStub        func(basicAuth *db.BasicAuth) (db.SavedTeam, error)
 	updateBasicAuthMutex       sync.RWMutex
 	updateBasicAuthArgsForCall []struct {
-		basicAuth db.BasicAuth
+		basicAuth *db.BasicAuth
 	}
 	updateBasicAuthReturns struct {
 		result1 db.SavedTeam
 		result2 error
 	}
-	UpdateGitHubAuthStub        func(gitHubAuth db.GitHubAuth) (db.SavedTeam, error)
+	UpdateGitHubAuthStub        func(gitHubAuth *db.GitHubAuth) (db.SavedTeam, error)
 	updateGitHubAuthMutex       sync.RWMutex
 	updateGitHubAuthArgsForCall []struct {
-		gitHubAuth db.GitHubAuth
+		gitHubAuth *db.GitHubAuth
 	}
 	updateGitHubAuthReturns struct {
+		result1 db.SavedTeam
+		result2 error
+	}
+	UpdateUAAAuthStub        func(uaaAuth *db.UAAAuth) (db.SavedTeam, error)
+	updateUAAAuthMutex       sync.RWMutex
+	updateUAAAuthArgsForCall []struct {
+		uaaAuth *db.UAAAuth
+	}
+	updateUAAAuthReturns struct {
 		result1 db.SavedTeam
 		result2 error
 	}
@@ -201,10 +210,10 @@ func (fake *FakeTeamDB) GetTeamReturns(result1 db.SavedTeam, result2 bool, resul
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTeamDB) UpdateBasicAuth(basicAuth db.BasicAuth) (db.SavedTeam, error) {
+func (fake *FakeTeamDB) UpdateBasicAuth(basicAuth *db.BasicAuth) (db.SavedTeam, error) {
 	fake.updateBasicAuthMutex.Lock()
 	fake.updateBasicAuthArgsForCall = append(fake.updateBasicAuthArgsForCall, struct {
-		basicAuth db.BasicAuth
+		basicAuth *db.BasicAuth
 	}{basicAuth})
 	fake.updateBasicAuthMutex.Unlock()
 	if fake.UpdateBasicAuthStub != nil {
@@ -220,7 +229,7 @@ func (fake *FakeTeamDB) UpdateBasicAuthCallCount() int {
 	return len(fake.updateBasicAuthArgsForCall)
 }
 
-func (fake *FakeTeamDB) UpdateBasicAuthArgsForCall(i int) db.BasicAuth {
+func (fake *FakeTeamDB) UpdateBasicAuthArgsForCall(i int) *db.BasicAuth {
 	fake.updateBasicAuthMutex.RLock()
 	defer fake.updateBasicAuthMutex.RUnlock()
 	return fake.updateBasicAuthArgsForCall[i].basicAuth
@@ -234,10 +243,10 @@ func (fake *FakeTeamDB) UpdateBasicAuthReturns(result1 db.SavedTeam, result2 err
 	}{result1, result2}
 }
 
-func (fake *FakeTeamDB) UpdateGitHubAuth(gitHubAuth db.GitHubAuth) (db.SavedTeam, error) {
+func (fake *FakeTeamDB) UpdateGitHubAuth(gitHubAuth *db.GitHubAuth) (db.SavedTeam, error) {
 	fake.updateGitHubAuthMutex.Lock()
 	fake.updateGitHubAuthArgsForCall = append(fake.updateGitHubAuthArgsForCall, struct {
-		gitHubAuth db.GitHubAuth
+		gitHubAuth *db.GitHubAuth
 	}{gitHubAuth})
 	fake.updateGitHubAuthMutex.Unlock()
 	if fake.UpdateGitHubAuthStub != nil {
@@ -253,7 +262,7 @@ func (fake *FakeTeamDB) UpdateGitHubAuthCallCount() int {
 	return len(fake.updateGitHubAuthArgsForCall)
 }
 
-func (fake *FakeTeamDB) UpdateGitHubAuthArgsForCall(i int) db.GitHubAuth {
+func (fake *FakeTeamDB) UpdateGitHubAuthArgsForCall(i int) *db.GitHubAuth {
 	fake.updateGitHubAuthMutex.RLock()
 	defer fake.updateGitHubAuthMutex.RUnlock()
 	return fake.updateGitHubAuthArgsForCall[i].gitHubAuth
@@ -262,6 +271,39 @@ func (fake *FakeTeamDB) UpdateGitHubAuthArgsForCall(i int) db.GitHubAuth {
 func (fake *FakeTeamDB) UpdateGitHubAuthReturns(result1 db.SavedTeam, result2 error) {
 	fake.UpdateGitHubAuthStub = nil
 	fake.updateGitHubAuthReturns = struct {
+		result1 db.SavedTeam
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeamDB) UpdateUAAAuth(uaaAuth *db.UAAAuth) (db.SavedTeam, error) {
+	fake.updateUAAAuthMutex.Lock()
+	fake.updateUAAAuthArgsForCall = append(fake.updateUAAAuthArgsForCall, struct {
+		uaaAuth *db.UAAAuth
+	}{uaaAuth})
+	fake.updateUAAAuthMutex.Unlock()
+	if fake.UpdateUAAAuthStub != nil {
+		return fake.UpdateUAAAuthStub(uaaAuth)
+	} else {
+		return fake.updateUAAAuthReturns.result1, fake.updateUAAAuthReturns.result2
+	}
+}
+
+func (fake *FakeTeamDB) UpdateUAAAuthCallCount() int {
+	fake.updateUAAAuthMutex.RLock()
+	defer fake.updateUAAAuthMutex.RUnlock()
+	return len(fake.updateUAAAuthArgsForCall)
+}
+
+func (fake *FakeTeamDB) UpdateUAAAuthArgsForCall(i int) *db.UAAAuth {
+	fake.updateUAAAuthMutex.RLock()
+	defer fake.updateUAAAuthMutex.RUnlock()
+	return fake.updateUAAAuthArgsForCall[i].uaaAuth
+}
+
+func (fake *FakeTeamDB) UpdateUAAAuthReturns(result1 db.SavedTeam, result2 error) {
+	fake.UpdateUAAAuthStub = nil
+	fake.updateUAAAuthReturns = struct {
 		result1 db.SavedTeam
 		result2 error
 	}{result1, result2}

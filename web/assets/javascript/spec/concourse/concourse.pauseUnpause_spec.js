@@ -5,7 +5,7 @@ describe("Resource", function () {
 
   beforeEach(function () {
     setFixtures(
-      '<div class="js-something" data-endpoint="/something/other"><span class="js-pauseUnpause disabled"><i class="fa-pause"></i></span></div>'
+      '<div class="js-something" data-teamname="some-team" data-endpoint="/something/other"><span class="js-pauseUnpause disabled"><i class="fa-pause"></i></span></div>'
     );
 
     pauseCallbackSpy = jasmine.createSpy('pauseCallback');
@@ -119,7 +119,7 @@ describe("Resource", function () {
         expect($pauseUnpause.pauseBtn()).not.toHaveClass('loading');
         expect($pauseUnpause.pauseBtn()).toHaveClass('errored');
 
-        expect(concourse.redirect).toHaveBeenCalledWith("/login");
+        expect(concourse.redirect).toHaveBeenCalledWith("/teams/some-team/login");
       });
 
       it('sets the button as errored when the request fails', function () {
@@ -164,7 +164,7 @@ describe("Resource", function () {
         expect($pauseUnpause.pauseBtn()).not.toHaveClass('loading');
         expect($pauseUnpause.pauseBtn()).toHaveClass('errored');
 
-        expect(concourse.redirect).toHaveBeenCalledWith("/login");
+        expect(concourse.redirect).toHaveBeenCalledWith("/teams/some-team/login");
       });
 
       it("makes a request", function () {

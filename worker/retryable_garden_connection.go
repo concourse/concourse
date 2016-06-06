@@ -16,12 +16,6 @@ type Sleeper interface {
 	Sleep(time.Duration)
 }
 
-//go:generate counterfeiter . RetryPolicy
-
-type RetryPolicy interface {
-	DelayFor(uint) (time.Duration, bool)
-}
-
 type RetryableConnection struct {
 	gconn.Connection
 }

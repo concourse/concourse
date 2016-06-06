@@ -3,6 +3,7 @@ package github
 import (
 	"net/http"
 
+	"github.com/concourse/atc/auth/verifier"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -19,7 +20,7 @@ type TeamVerifier struct {
 func NewTeamVerifier(
 	teams []Team,
 	gitHubClient Client,
-) Verifier {
+) verifier.Verifier {
 	return TeamVerifier{
 		teams:        teams,
 		gitHubClient: gitHubClient,

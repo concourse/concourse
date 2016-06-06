@@ -9,8 +9,10 @@ import (
 type Team struct {
 	Name  string
 	Admin bool
-	BasicAuth
-	GitHubAuth
+
+	BasicAuth  *BasicAuth  `json:"basic_auth"`
+	GitHubAuth *GitHubAuth `json:"github_auth"`
+	UAAAuth    *UAAAuth    `json:"uaa_auth"`
 }
 
 type BasicAuth struct {
@@ -19,14 +21,16 @@ type BasicAuth struct {
 }
 
 func (auth *BasicAuth) EncryptedJSON() (string, error) {
-	result := BasicAuth{}
-	if auth.BasicAuthUsername != "" && auth.BasicAuthPassword != "" {
+	var result *BasicAuth
+	if auth != nil && auth.BasicAuthUsername != "" && auth.BasicAuthPassword != "" {
 		encryptedPw, err := bcrypt.GenerateFromPassword([]byte(auth.BasicAuthPassword), 4)
 		if err != nil {
 			return "", err
 		}
-		result.BasicAuthPassword = string(encryptedPw)
-		result.BasicAuthUsername = auth.BasicAuthUsername
+		result = &BasicAuth{
+			BasicAuthPassword: string(encryptedPw),
+			BasicAuthUsername: auth.BasicAuthUsername,
+		}
 	}
 
 	json, err := json.Marshal(result)
@@ -39,9 +43,9 @@ type GitHubAuth struct {
 	Organizations []string     `json:"organizations"`
 	Teams         []GitHubTeam `json:"teams"`
 	Users         []string     `json:"users"`
-	AuthURL       string       `json:"authurl"`
-	TokenURL      string       `json:"tokenurl"`
-	APIURL        string       `json:"apiurl"`
+	AuthURL       string       `json:"auth_url"`
+	TokenURL      string       `json:"token_url"`
+	APIURL        string       `json:"api_url"`
 }
 
 type GitHubTeam struct {
@@ -52,4 +56,13 @@ type GitHubTeam struct {
 type SavedTeam struct {
 	ID int
 	Team
+}
+
+type UAAAuth struct {
+	ClientID     string   `json:"client_id"`
+	ClientSecret string   `json:"client_secret"`
+	AuthURL      string   `json:"auth_url"`
+	TokenURL     string   `json:"token_url"`
+	CFSpaces     []string `json:"cf_spaces"`
+	CFURL        string   `json:"cf_url"`
 }

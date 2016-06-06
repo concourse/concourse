@@ -1,6 +1,10 @@
 package db
 
-import "time"
+import (
+	"time"
+
+	"github.com/concourse/atc"
+)
 
 type Status string
 
@@ -62,6 +66,11 @@ type SavedResource struct {
 	Paused       bool
 	PipelineName string
 	Resource
+}
+
+type DashboardResource struct {
+	Resource       SavedResource
+	ResourceConfig atc.ResourceConfig
 }
 
 type SavedResourceType struct {

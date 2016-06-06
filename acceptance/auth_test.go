@@ -56,18 +56,18 @@ var _ = Describe("Auth", func() {
 			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, GITHUB_AUTH)
 		})
 
-		It("forces a redirect to /login", func() {
+		It("forces a redirect to /teams/main/login", func() {
 			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
 			resp, err := http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			Expect(resp.Request.URL.Path).To(Equal("/login"))
+			Expect(resp.Request.URL.Path).To(Equal("/teams/main/login"))
 
 			team, _, err := teamDB.GetTeam()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(team.ClientID).To(Equal("admin"))
-			Expect(team.ClientSecret).To(Equal("password"))
-			Expect(team.Organizations).To(Equal([]string{"myorg"}))
+			Expect(team.GitHubAuth.ClientID).To(Equal("admin"))
+			Expect(team.GitHubAuth.ClientSecret).To(Equal("password"))
+			Expect(team.GitHubAuth.Organizations).To(Equal([]string{"myorg"}))
 		})
 	})
 
@@ -77,7 +77,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("forces a redirect to override github", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/github?redirect=%2F", atcPort), nil)
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/github?redirect=%2F&team_name=main", atcPort), nil)
 
 			client := new(http.Client)
 			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -90,29 +90,44 @@ var _ = Describe("Auth", func() {
 	})
 
 	Describe("Basic Auth", func() {
+		var response *http.Response
+		var responseErr error
+
 		BeforeEach(func() {
 			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, BASIC_AUTH)
 		})
 
-		It("forces a redirect to /login", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
-			resp, err := http.DefaultClient.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			Expect(resp.Request.URL.Path).To(Equal("/login"))
+		Context("when requesting /", func() {
+			BeforeEach(func() {
+				request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
+				Expect(err).NotTo(HaveOccurred())
+				response, responseErr = http.DefaultClient.Do(request)
+			})
+
+			It("forces a redirect to /teams/main/login", func() {
+				Expect(responseErr).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+				Expect(response.Request.URL.Path).To(Equal("/teams/main/login"))
+			})
 		})
 
-		It("logs in with Basic Auth and allows access", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
-			request.SetBasicAuth("admin", "password")
-			resp, err := http.DefaultClient.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			Expect(resp.Request.URL.Path).To(Equal("/"))
-		})
-	})
+		Context("when requesting a team-specific route", func() {
+			BeforeEach(func() {
+				_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
+				Expect(err).NotTo(HaveOccurred())
 
-	Context("when basic auth is misconfigured", func() {
+				request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/teams/some-team/pipelines/some-pipeline", atcPort), nil)
+				Expect(err).NotTo(HaveOccurred())
+				response, responseErr = http.DefaultClient.Do(request)
+			})
+
+			It("forces a redirect to /teams/:team_name/login", func() {
+				Expect(responseErr).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+				Expect(response.Request.URL.Path).To(Equal("/teams/some-team/login"))
+			})
+		})
+
 		It("errors when only username is specified", func() {
 			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, BASIC_AUTH_NO_PASSWORD)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
@@ -141,6 +156,59 @@ var _ = Describe("Auth", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 			Expect(resp.Request.URL.Path).To(Equal("/"))
+		})
+	})
+
+	Describe("when auth is not configured", func() {
+		It("returns an error", func() {
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, NOT_CONFIGURED_AUTH)
+			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must configure basic auth, OAuth, or turn on development mode"))
+		})
+	})
+
+	Describe("UAA Auth", func() {
+		BeforeEach(func() {
+			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, UAA_AUTH)
+		})
+
+		It("forces a redirect to UAA auth URL", func() {
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/uaa?redirect=%2F&team_name=main", atcPort), nil)
+
+			client := new(http.Client)
+			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return errors.New("error")
+			}
+			resp, err := client.Do(request)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("https://uaa.example.com/oauth/authorize"))
+			Expect(resp.StatusCode).To(Equal(http.StatusTemporaryRedirect))
+		})
+
+		It("requires client id and client secret to be specified", func() {
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, UAA_AUTH_NO_CLIENT_SECRET)
+			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-client-id and --uaa-auth-client-secret to use UAA OAuth"))
+		})
+
+		It("requires space guid to be specified", func() {
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, UAA_AUTH_NO_SPACE)
+			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-cf-space to use UAA OAuth"))
+		})
+
+		It("requires auth, token and api url to be specified", func() {
+			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, UAA_AUTH_NO_TOKEN_URL)
+			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("must specify --uaa-auth-auth-url, --uaa-auth-token-url and --uaa-auth-cf-url to use UAA OAuth"))
 		})
 	})
 })
