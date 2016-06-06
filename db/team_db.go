@@ -25,6 +25,7 @@ type TeamDB interface {
 	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
 
 	CreateOneOffBuild() (Build, error)
+	GetBuilds(page Page) ([]Build, Pagination, error)
 }
 
 type teamDB struct {
@@ -528,6 +529,100 @@ func (db *teamDB) CreateOneOffBuild() (Build, error) {
 	}
 
 	return build, nil
+}
+
+func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {
+	query := `
+		SELECT ` + qualifiedBuildColumns + `
+		FROM builds b
+		LEFT OUTER JOIN jobs j ON b.job_id = j.id
+		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
+		LEFT OUTER JOIN teams t ON b.team_id = t.id
+		WHERE t.name = $1
+	`
+
+	var rows *sql.Rows
+	var err error
+
+	if page.Since == 0 && page.Until == 0 {
+		rows, err = db.conn.Query(fmt.Sprintf(`
+			%s
+			ORDER BY b.id DESC
+			LIMIT $2
+		`, query), db.teamName, page.Limit)
+	} else if page.Until != 0 {
+		rows, err = db.conn.Query(fmt.Sprintf(`
+			SELECT sub.*
+				FROM (
+						%s
+				AND b.id > $2
+				ORDER BY b.id ASC
+				LIMIT $3
+			) sub
+			ORDER BY sub.id DESC
+		`, query), db.teamName, page.Until, page.Limit)
+	} else {
+		rows, err = db.conn.Query(fmt.Sprintf(`
+			%s
+			AND b.id < $2
+			ORDER BY b.id DESC
+			LIMIT $3
+		`, query), db.teamName, page.Since, page.Limit)
+	}
+
+	if err != nil {
+		return nil, Pagination{}, err
+	}
+
+	defer rows.Close()
+
+	builds := []Build{}
+
+	for rows.Next() {
+		build, _, err := scanBuild(rows)
+		if err != nil {
+			return nil, Pagination{}, err
+		}
+
+		builds = append(builds, build)
+	}
+
+	if len(builds) == 0 {
+		return builds, Pagination{}, nil
+	}
+
+	var minID int
+	var maxID int
+
+	err = db.conn.QueryRow(`
+		SELECT COALESCE(MAX(b.id), 0) as maxID,
+			COALESCE(MIN(b.id), 0) as minID
+		FROM builds b
+	`).Scan(&maxID, &minID)
+	if err != nil {
+		return nil, Pagination{}, err
+	}
+
+	first := builds[0]
+	last := builds[len(builds)-1]
+
+	var pagination Pagination
+
+	if first.ID < maxID {
+		pagination.Previous = &Page{
+			Until: first.ID,
+			Limit: page.Limit,
+		}
+	}
+
+	if last.ID > minID {
+		pagination.Next = &Page{
+			Since: last.ID,
+			Limit: page.Limit,
+		}
+	}
+
+	return builds, pagination, nil
 }
 
 func scanPipeline(rows scannable) (SavedPipeline, error) {

@@ -38,8 +38,6 @@ type BuildsDB interface {
 	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
 	GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error)
 
-	GetBuilds(teamName string, page db.Page) ([]db.Build, db.Pagination, error)
-
 	GetConfigByBuildID(buildID int) (atc.Config, db.ConfigVersion, error)
 }
 

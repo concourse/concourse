@@ -82,7 +82,6 @@ type DB interface {
 	GetBuild(buildID int) (Build, bool, error)
 	GetBuildVersionedResources(buildID int) (SavedVersionedResources, error)
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
-	GetBuilds(teamName string, page Page) ([]Build, Pagination, error)
 	GetAllStartedBuilds() ([]Build, error)
 
 	CreatePipe(pipeGUID string, url string) error

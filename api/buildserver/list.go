@@ -40,7 +40,8 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 		teamName = atc.DefaultTeamName
 	}
 
-	builds, pagination, err := s.db.GetBuilds(teamName, db.Page{Until: until, Since: since, Limit: limit})
+	teamDB := s.teamDBFactory.GetTeamDB(teamName)
+	builds, pagination, err := teamDB.GetBuilds(db.Page{Until: until, Since: since, Limit: limit})
 	if err != nil {
 		logger.Error("failed-to-get-all-builds", err)
 		w.WriteHeader(http.StatusInternalServerError)

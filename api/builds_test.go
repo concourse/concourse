@@ -516,9 +516,9 @@ var _ = Describe("Builds API", func() {
 			})
 
 			It("does not set defaults for since and until", func() {
-				Expect(buildsDB.GetBuildsCallCount()).To(Equal(1))
+				Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
 
-				_, page := buildsDB.GetBuildsArgsForCall(0)
+				page := teamDB.GetBuildsArgsForCall(0)
 				Expect(page).To(Equal(db.Page{
 					Since: 0,
 					Until: 0,
@@ -533,9 +533,9 @@ var _ = Describe("Builds API", func() {
 			})
 
 			It("passes them through", func() {
-				Expect(buildsDB.GetBuildsCallCount()).To(Equal(1))
+				Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
 
-				_, page := buildsDB.GetBuildsArgsForCall(0)
+				page := teamDB.GetBuildsArgsForCall(0)
 				Expect(page).To(Equal(db.Page{
 					Since: 2,
 					Until: 3,
@@ -546,7 +546,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when getting the builds succeeds", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildsReturns(returnedBuilds, db.Pagination{}, nil)
+				teamDB.GetBuildsReturns(returnedBuilds, db.Pagination{}, nil)
 			})
 
 			It("returns 200 OK", func() {
@@ -589,8 +589,9 @@ var _ = Describe("Builds API", func() {
 
 			Context("when team is not in user context", func() {
 				It("returns builds for default team", func() {
-					Expect(buildsDB.GetBuildsCallCount()).To(Equal(1))
-					teamName, _ := buildsDB.GetBuildsArgsForCall(0)
+					Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
 					Expect(teamName).To(Equal(atc.DefaultTeamName))
 				})
 			})
@@ -601,8 +602,9 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns builds for team in the context", func() {
-					Expect(buildsDB.GetBuildsCallCount()).To(Equal(1))
-					teamName, _ := buildsDB.GetBuildsArgsForCall(0)
+					Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
 					Expect(teamName).To(Equal("some-team"))
 				})
 			})
@@ -610,7 +612,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when next/previous pages are available", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildsReturns(returnedBuilds, db.Pagination{
+				teamDB.GetBuildsReturns(returnedBuilds, db.Pagination{
 					Previous: &db.Page{Until: 4, Limit: 2},
 					Next:     &db.Page{Since: 3, Limit: 2},
 				}, nil)
@@ -626,7 +628,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when getting all builds fails", func() {
 			BeforeEach(func() {
-				buildsDB.GetBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
+				teamDB.GetBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
 			})
 
 			It("returns 500 Internal Server Error", func() {
