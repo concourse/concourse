@@ -79,8 +79,6 @@ type DB interface {
 	CreateDefaultTeamIfNotExists() error
 	DeleteTeamByName(teamName string) error
 
-	GetBuildVersionedResources(buildID int) (SavedVersionedResources, error)
-	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 	GetAllStartedBuilds() ([]Build, error)
 
 	CreatePipe(pipeGUID string, url string) error

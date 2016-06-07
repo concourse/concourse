@@ -321,7 +321,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build inputs/ouputs are not empty", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildResourcesReturns([]db.BuildInput{
+					buildDB.GetResourcesReturns([]db.BuildInput{
 						{
 							Name: "input1",
 							VersionedResource: db.VersionedResource{
@@ -430,7 +430,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build resources error", func() {
 				BeforeEach(func() {
-					buildsDB.GetBuildResourcesReturns([]db.BuildInput{}, []db.BuildOutput{}, errors.New("where are my feedback?"))
+					buildDB.GetResourcesReturns([]db.BuildInput{}, []db.BuildOutput{}, errors.New("where are my feedback?"))
 				})
 
 				It("returns internal server error", func() {

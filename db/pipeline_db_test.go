@@ -2568,7 +2568,7 @@ var _ = Describe("PipelineDB", func() {
 				modifiedVR2 := vr2
 				modifiedVR2.Version = db.Version{"ver": "3"}
 
-				inputs, _, err := sqlDB.GetBuildResources(build.ID)
+				inputs, _, err := buildDB.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
 					{Name: "some-input", VersionedResource: vr1, FirstOccurrence: true},
@@ -2592,7 +2592,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				inputs, _, err = sqlDB.GetBuildResources(duplicateBuild.ID)
+				inputs, _, err = duplicateBuildDB.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
 					{Name: "other-build-input", VersionedResource: vr1, FirstOccurrence: false},
@@ -2615,7 +2615,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				inputs, _, err = sqlDB.GetBuildResources(newBuildInOtherJob.ID)
+				inputs, _, err = newBuildInOtherJobDB.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
 					{Name: "other-job-input", VersionedResource: vr1, FirstOccurrence: true},
@@ -2656,7 +2656,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				inputs, _, err := sqlDB.GetBuildResources(build.ID)
+				inputs, _, err := buildDB.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
 					{Name: "some-input", VersionedResource: vr2, FirstOccurrence: true},
@@ -2671,7 +2671,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				inputs, _, err = sqlDB.GetBuildResources(build.ID)
+				inputs, _, err = buildDB.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
 					{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
@@ -2684,7 +2684,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				inputs, _, err = sqlDB.GetBuildResources(build.ID)
+				inputs, _, err = buildDB.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
 					{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
@@ -2711,7 +2711,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(savedVR.Metadata).To(Equal(buildMetadata))
 
-				inputs, _, err := sqlDB.GetBuildResources(build.ID)
+				inputs, _, err := buildDB.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
 					{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
@@ -2724,7 +2724,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(savedVR.Metadata).To(Equal(buildMetadata))
 
-				inputs, _, err = sqlDB.GetBuildResources(build.ID)
+				inputs, _, err = buildDB.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
 					{Name: "some-input", VersionedResource: withMetadata, FirstOccurrence: true},
@@ -2787,7 +2787,7 @@ var _ = Describe("PipelineDB", func() {
 				_, err = buildDB.SaveOutput(vr2, false)
 				Expect(err).NotTo(HaveOccurred())
 
-				inputs, outputs, err := sqlDB.GetBuildResources(build.ID)
+				inputs, outputs, err := buildDB.GetResources()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
 					{Name: "some-input", VersionedResource: vr1, FirstOccurrence: true},

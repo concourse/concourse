@@ -51,13 +51,16 @@ type BuildDB interface {
 	GetEngineMetadata() string
 
 	Events(from uint) (EventSource, error)
+	SaveEvent(event atc.Event) error
+
+	GetVersionedResources() (SavedVersionedResources, error)
+	GetResources() ([]BuildInput, []BuildOutput, error)
 
 	Start(string, string) (bool, error)
 	Finish(status Status) error
 	MarkAsFailed(cause error) error
 	Abort() error
 	AbortNotifier() (Notifier, error)
-	SaveEvent(event atc.Event) error
 
 	LeaseScheduling(logger lager.Logger, interval time.Duration) (Lease, bool, error)
 	LeaseTracking(logger lager.Logger, interval time.Duration) (Lease, bool, error)
@@ -300,6 +303,178 @@ func (db *buildDB) SaveEvent(event atc.Event) error {
 	}
 
 	return nil
+}
+
+func (db *buildDB) GetResources() ([]BuildInput, []BuildOutput, error) {
+	inputs := []BuildInput{}
+	outputs := []BuildOutput{}
+
+	rows, err := db.conn.Query(`
+		SELECT i.name, r.name, v.type, v.version, v.metadata, r.pipeline_id,
+		NOT EXISTS (
+			SELECT 1
+			FROM build_inputs ci, builds cb
+			WHERE versioned_resource_id = v.id
+			AND cb.job_id = b.job_id
+			AND ci.build_id = cb.id
+			AND ci.build_id < b.id
+		)
+		FROM versioned_resources v, build_inputs i, builds b, resources r
+		WHERE b.id = $1
+		AND i.build_id = b.id
+		AND i.versioned_resource_id = v.id
+    AND r.id = v.resource_id
+		AND NOT EXISTS (
+			SELECT 1
+			FROM build_outputs o
+			WHERE o.versioned_resource_id = v.id
+			AND o.build_id = i.build_id
+			AND o.explicit
+		)
+	`, db.buildID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var inputName string
+		var vr VersionedResource
+		var firstOccurrence bool
+
+		var version, metadata string
+		err := rows.Scan(&inputName, &vr.Resource, &vr.Type, &version, &metadata, &vr.PipelineID, &firstOccurrence)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(version), &vr.Version)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(metadata), &vr.Metadata)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		inputs = append(inputs, BuildInput{
+			Name:              inputName,
+			VersionedResource: vr,
+			FirstOccurrence:   firstOccurrence,
+		})
+	}
+
+	rows, err = db.conn.Query(`
+		SELECT r.name, v.type, v.version, v.metadata, r.pipeline_id
+		FROM versioned_resources v, build_outputs o, builds b, resources r
+		WHERE b.id = $1
+		AND o.build_id = b.id
+		AND o.versioned_resource_id = v.id
+    AND r.id = v.resource_id
+		AND o.explicit
+	`, db.buildID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var vr VersionedResource
+
+		var version, metadata string
+		err := rows.Scan(&vr.Resource, &vr.Type, &version, &metadata, &vr.PipelineID)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(version), &vr.Version)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = json.Unmarshal([]byte(metadata), &vr.Metadata)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		outputs = append(outputs, BuildOutput{
+			VersionedResource: vr,
+		})
+	}
+
+	return inputs, outputs, nil
+}
+
+func (db *buildDB) getVersionedResources(resourceRequest string) (SavedVersionedResources, error) {
+
+	rows, err := db.conn.Query(resourceRequest, db.buildID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	savedVersionedResources := SavedVersionedResources{}
+
+	for rows.Next() {
+		var versionedResource SavedVersionedResource
+		var versionJSON []byte
+		var metadataJSON []byte
+		err = rows.Scan(&versionedResource.ID, &versionedResource.Enabled, &versionJSON, &metadataJSON, &versionedResource.Type, &versionedResource.Resource, &versionedResource.PipelineID, &versionedResource.ModifiedTime)
+
+		err = json.Unmarshal(versionJSON, &versionedResource.Version)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal(metadataJSON, &versionedResource.Metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		savedVersionedResources = append(savedVersionedResources, versionedResource)
+	}
+
+	return savedVersionedResources, nil
+
+}
+
+func (db *buildDB) GetVersionedResources() (SavedVersionedResources, error) {
+	return db.getVersionedResources(`
+		SELECT vr.id,
+			vr.enabled,
+			vr.version,
+			vr.metadata,
+			vr.type,
+			r.name,
+			r.pipeline_id,
+			vr.modified_time
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		INNER JOIN build_inputs bi ON bi.build_id = b.id
+		INNER JOIN versioned_resources vr ON bi.versioned_resource_id = vr.id
+		INNER JOIN resources r ON vr.resource_id = r.id
+		WHERE b.id = $1
+
+		UNION ALL
+
+		SELECT vr.id,
+			vr.enabled,
+			vr.version,
+			vr.metadata,
+			vr.type,
+			r.name,
+			r.pipeline_id,
+			vr.modified_time
+		FROM builds b
+		INNER JOIN jobs j ON b.job_id = j.id
+		INNER JOIN build_outputs bo ON bo.build_id = b.id
+		INNER JOIN versioned_resources vr ON bo.versioned_resource_id = vr.id
+		INNER JOIN resources r ON vr.resource_id = r.id
+		WHERE b.id = $1 AND bo.explicit`)
 }
 
 func (db *buildDB) LeaseScheduling(logger lager.Logger, interval time.Duration) (Lease, bool, error) {

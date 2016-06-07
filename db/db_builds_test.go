@@ -112,7 +112,7 @@ var _ = Describe("Keeping track of builds", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		actualBuildInput, err := database.GetBuildVersionedResources(build.ID)
+		actualBuildInput, err := buildDBFactory.GetBuildDB(build).GetVersionedResources()
 		expectedBuildInput.CheckOrder = 0
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(actualBuildInput)).To(Equal(1))
@@ -163,7 +163,7 @@ var _ = Describe("Keeping track of builds", func() {
 		}, false)
 		Expect(err).ToNot(HaveOccurred())
 
-		actualBuildOutput, err := database.GetBuildVersionedResources(build.ID)
+		actualBuildOutput, err := buildDBFactory.GetBuildDB(build).GetVersionedResources()
 		expectedBuildOutput.CheckOrder = 0
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(actualBuildOutput)).To(Equal(1))
@@ -182,7 +182,7 @@ var _ = Describe("Keeping track of builds", func() {
 		})
 
 		It("can get (no) resources from a one-off build", func() {
-			inputs, outputs, err := database.GetBuildResources(oneOff.ID)
+			inputs, outputs, err := buildDBFactory.GetBuildDB(oneOff).GetResources()
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(inputs).To(BeEmpty())

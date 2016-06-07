@@ -53,7 +53,7 @@ func (s *Server) BuildResources(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) getMeAllTheThings(buildID int) ([]db.BuildInput, []db.BuildOutput, bool, error) {
 	teamDB := s.teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-	_, found, err := teamDB.GetBuild(buildID)
+	build, found, err := teamDB.GetBuild(buildID)
 	if err != nil {
 		return []db.BuildInput{}, []db.BuildOutput{}, false, err
 	}
@@ -62,6 +62,7 @@ func (s *Server) getMeAllTheThings(buildID int) ([]db.BuildInput, []db.BuildOutp
 		return []db.BuildInput{}, []db.BuildOutput{}, false, nil
 	}
 
-	inputs, outputs, err := s.db.GetBuildResources(buildID)
+	buildDB := s.buildDBFactory.GetBuildDB(build)
+	inputs, outputs, err := buildDB.GetResources()
 	return inputs, outputs, found, err
 }

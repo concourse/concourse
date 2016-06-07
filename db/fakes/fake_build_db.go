@@ -64,6 +64,29 @@ type FakeBuildDB struct {
 		result1 db.EventSource
 		result2 error
 	}
+	SaveEventStub        func(event atc.Event) error
+	saveEventMutex       sync.RWMutex
+	saveEventArgsForCall []struct {
+		event atc.Event
+	}
+	saveEventReturns struct {
+		result1 error
+	}
+	GetVersionedResourcesStub        func() (db.SavedVersionedResources, error)
+	getVersionedResourcesMutex       sync.RWMutex
+	getVersionedResourcesArgsForCall []struct{}
+	getVersionedResourcesReturns     struct {
+		result1 db.SavedVersionedResources
+		result2 error
+	}
+	GetResourcesStub        func() ([]db.BuildInput, []db.BuildOutput, error)
+	getResourcesMutex       sync.RWMutex
+	getResourcesArgsForCall []struct{}
+	getResourcesReturns     struct {
+		result1 []db.BuildInput
+		result2 []db.BuildOutput
+		result3 error
+	}
 	StartStub        func(string, string) (bool, error)
 	startMutex       sync.RWMutex
 	startArgsForCall []struct {
@@ -102,14 +125,6 @@ type FakeBuildDB struct {
 	abortNotifierReturns     struct {
 		result1 db.Notifier
 		result2 error
-	}
-	SaveEventStub        func(event atc.Event) error
-	saveEventMutex       sync.RWMutex
-	saveEventArgsForCall []struct {
-		event atc.Event
-	}
-	saveEventReturns struct {
-		result1 error
 	}
 	LeaseSchedulingStub        func(logger lager.Logger, interval time.Duration) (db.Lease, bool, error)
 	leaseSchedulingMutex       sync.RWMutex
@@ -389,6 +404,89 @@ func (fake *FakeBuildDB) EventsReturns(result1 db.EventSource, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeBuildDB) SaveEvent(event atc.Event) error {
+	fake.saveEventMutex.Lock()
+	fake.saveEventArgsForCall = append(fake.saveEventArgsForCall, struct {
+		event atc.Event
+	}{event})
+	fake.saveEventMutex.Unlock()
+	if fake.SaveEventStub != nil {
+		return fake.SaveEventStub(event)
+	} else {
+		return fake.saveEventReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) SaveEventCallCount() int {
+	fake.saveEventMutex.RLock()
+	defer fake.saveEventMutex.RUnlock()
+	return len(fake.saveEventArgsForCall)
+}
+
+func (fake *FakeBuildDB) SaveEventArgsForCall(i int) atc.Event {
+	fake.saveEventMutex.RLock()
+	defer fake.saveEventMutex.RUnlock()
+	return fake.saveEventArgsForCall[i].event
+}
+
+func (fake *FakeBuildDB) SaveEventReturns(result1 error) {
+	fake.SaveEventStub = nil
+	fake.saveEventReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildDB) GetVersionedResources() (db.SavedVersionedResources, error) {
+	fake.getVersionedResourcesMutex.Lock()
+	fake.getVersionedResourcesArgsForCall = append(fake.getVersionedResourcesArgsForCall, struct{}{})
+	fake.getVersionedResourcesMutex.Unlock()
+	if fake.GetVersionedResourcesStub != nil {
+		return fake.GetVersionedResourcesStub()
+	} else {
+		return fake.getVersionedResourcesReturns.result1, fake.getVersionedResourcesReturns.result2
+	}
+}
+
+func (fake *FakeBuildDB) GetVersionedResourcesCallCount() int {
+	fake.getVersionedResourcesMutex.RLock()
+	defer fake.getVersionedResourcesMutex.RUnlock()
+	return len(fake.getVersionedResourcesArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetVersionedResourcesReturns(result1 db.SavedVersionedResources, result2 error) {
+	fake.GetVersionedResourcesStub = nil
+	fake.getVersionedResourcesReturns = struct {
+		result1 db.SavedVersionedResources
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuildDB) GetResources() ([]db.BuildInput, []db.BuildOutput, error) {
+	fake.getResourcesMutex.Lock()
+	fake.getResourcesArgsForCall = append(fake.getResourcesArgsForCall, struct{}{})
+	fake.getResourcesMutex.Unlock()
+	if fake.GetResourcesStub != nil {
+		return fake.GetResourcesStub()
+	} else {
+		return fake.getResourcesReturns.result1, fake.getResourcesReturns.result2, fake.getResourcesReturns.result3
+	}
+}
+
+func (fake *FakeBuildDB) GetResourcesCallCount() int {
+	fake.getResourcesMutex.RLock()
+	defer fake.getResourcesMutex.RUnlock()
+	return len(fake.getResourcesArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetResourcesReturns(result1 []db.BuildInput, result2 []db.BuildOutput, result3 error) {
+	fake.GetResourcesStub = nil
+	fake.getResourcesReturns = struct {
+		result1 []db.BuildInput
+		result2 []db.BuildOutput
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeBuildDB) Start(arg1 string, arg2 string) (bool, error) {
 	fake.startMutex.Lock()
 	fake.startArgsForCall = append(fake.startArgsForCall, struct {
@@ -534,38 +632,6 @@ func (fake *FakeBuildDB) AbortNotifierReturns(result1 db.Notifier, result2 error
 		result1 db.Notifier
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeBuildDB) SaveEvent(event atc.Event) error {
-	fake.saveEventMutex.Lock()
-	fake.saveEventArgsForCall = append(fake.saveEventArgsForCall, struct {
-		event atc.Event
-	}{event})
-	fake.saveEventMutex.Unlock()
-	if fake.SaveEventStub != nil {
-		return fake.SaveEventStub(event)
-	} else {
-		return fake.saveEventReturns.result1
-	}
-}
-
-func (fake *FakeBuildDB) SaveEventCallCount() int {
-	fake.saveEventMutex.RLock()
-	defer fake.saveEventMutex.RUnlock()
-	return len(fake.saveEventArgsForCall)
-}
-
-func (fake *FakeBuildDB) SaveEventArgsForCall(i int) atc.Event {
-	fake.saveEventMutex.RLock()
-	defer fake.saveEventMutex.RUnlock()
-	return fake.saveEventArgsForCall[i].event
-}
-
-func (fake *FakeBuildDB) SaveEventReturns(result1 error) {
-	fake.SaveEventStub = nil
-	fake.saveEventReturns = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeBuildDB) LeaseScheduling(logger lager.Logger, interval time.Duration) (db.Lease, bool, error) {

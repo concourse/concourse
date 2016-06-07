@@ -34,7 +34,6 @@ type Server struct {
 //go:generate counterfeiter . BuildsDB
 
 type BuildsDB interface {
-	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
 	GetConfigByBuildID(buildID int) (atc.Config, db.ConfigVersion, error)
 }
 
