@@ -725,14 +725,12 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("looks up the config from the buildsDB", func() {
-					Expect(buildsDB.GetConfigByBuildIDCallCount()).To(Equal(1))
-					buildID := buildsDB.GetConfigByBuildIDArgsForCall(0)
-					Expect(buildID).To(Equal(128))
+					Expect(buildDB.GetConfigCallCount()).To(Equal(1))
 				})
 
 				Context("and the build is private", func() {
 					BeforeEach(func() {
-						buildsDB.GetConfigByBuildIDReturns(atc.Config{
+						buildDB.GetConfigReturns(atc.Config{
 							Jobs: atc.JobConfigs{
 								{Name: "some-job", Public: false},
 							},
@@ -746,7 +744,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("and the build is public", func() {
 					BeforeEach(func() {
-						buildsDB.GetConfigByBuildIDReturns(atc.Config{
+						buildDB.GetConfigReturns(atc.Config{
 							Jobs: atc.JobConfigs{
 								{Name: "some-job", Public: true},
 							},

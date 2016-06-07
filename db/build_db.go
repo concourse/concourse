@@ -74,6 +74,8 @@ type BuildDB interface {
 
 	SaveImageResourceVersion(planID atc.PlanID, identifier ResourceCacheIdentifier) error
 	GetImageResourceCacheIdentifiers() ([]ResourceCacheIdentifier, error)
+
+	GetConfig() (atc.Config, ConfigVersion, error)
 }
 
 type buildDB struct {
@@ -667,6 +669,33 @@ func (db *buildDB) LeaseTracking(logger lager.Logger, interval time.Duration) (L
 	lease.KeepSigned(interval)
 
 	return lease, true, nil
+}
+
+func (db *buildDB) GetConfig() (atc.Config, ConfigVersion, error) {
+	var configBlob []byte
+	var version int
+	err := db.conn.QueryRow(`
+			SELECT p.config, p.version
+			FROM builds b
+			INNER JOIN jobs j ON b.job_id = j.id
+			INNER JOIN pipelines p ON j.pipeline_id = p.id
+			WHERE b.ID = $1
+		`, db.buildID).Scan(&configBlob, &version)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return atc.Config{}, 0, nil
+		} else {
+			return atc.Config{}, 0, err
+		}
+	}
+
+	var config atc.Config
+	err = json.Unmarshal(configBlob, &config)
+	if err != nil {
+		return atc.Config{}, 0, err
+	}
+
+	return config, ConfigVersion(version), nil
 }
 
 func newConditionNotifier(bus *notificationsBus, channel string, cond func() (bool, error)) (Notifier, error) {

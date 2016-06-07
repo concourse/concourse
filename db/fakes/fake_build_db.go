@@ -199,6 +199,14 @@ type FakeBuildDB struct {
 		result1 []db.ResourceCacheIdentifier
 		result2 error
 	}
+	GetConfigStub        func() (atc.Config, db.ConfigVersion, error)
+	getConfigMutex       sync.RWMutex
+	getConfigArgsForCall []struct{}
+	getConfigReturns     struct {
+		result1 atc.Config
+		result2 db.ConfigVersion
+		result3 error
+	}
 }
 
 func (fake *FakeBuildDB) Get() (db.Build, bool, error) {
@@ -885,6 +893,32 @@ func (fake *FakeBuildDB) GetImageResourceCacheIdentifiersReturns(result1 []db.Re
 		result1 []db.ResourceCacheIdentifier
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuildDB) GetConfig() (atc.Config, db.ConfigVersion, error) {
+	fake.getConfigMutex.Lock()
+	fake.getConfigArgsForCall = append(fake.getConfigArgsForCall, struct{}{})
+	fake.getConfigMutex.Unlock()
+	if fake.GetConfigStub != nil {
+		return fake.GetConfigStub()
+	} else {
+		return fake.getConfigReturns.result1, fake.getConfigReturns.result2, fake.getConfigReturns.result3
+	}
+}
+
+func (fake *FakeBuildDB) GetConfigCallCount() int {
+	fake.getConfigMutex.RLock()
+	defer fake.getConfigMutex.RUnlock()
+	return len(fake.getConfigArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetConfigReturns(result1 atc.Config, result2 db.ConfigVersion, result3 error) {
+	fake.GetConfigStub = nil
+	fake.getConfigReturns = struct {
+		result1 atc.Config
+		result2 db.ConfigVersion
+		result3 error
+	}{result1, result2, result3}
 }
 
 var _ db.BuildDB = new(FakeBuildDB)

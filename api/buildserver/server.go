@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
@@ -21,7 +20,6 @@ type Server struct {
 
 	engine              engine.Engine
 	workerClient        worker.Client
-	db                  BuildsDB
 	teamDBFactory       db.TeamDBFactory
 	buildDBFactory      db.BuildDBFactory
 	eventHandlerFactory EventHandlerFactory
@@ -31,18 +29,11 @@ type Server struct {
 	httpClient *http.Client
 }
 
-//go:generate counterfeiter . BuildsDB
-
-type BuildsDB interface {
-	GetConfigByBuildID(buildID int) (atc.Config, db.ConfigVersion, error)
-}
-
 func NewServer(
 	logger lager.Logger,
 	externalURL string,
 	engine engine.Engine,
 	workerClient worker.Client,
-	db BuildsDB,
 	teamDBFactory db.TeamDBFactory,
 	buildDBFactory db.BuildDBFactory,
 	eventHandlerFactory EventHandlerFactory,
@@ -55,7 +46,6 @@ func NewServer(
 
 		engine:              engine,
 		workerClient:        workerClient,
-		db:                  db,
 		teamDBFactory:       teamDBFactory,
 		buildDBFactory:      buildDBFactory,
 		eventHandlerFactory: eventHandlerFactory,

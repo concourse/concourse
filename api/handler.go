@@ -47,7 +47,6 @@ func NewHandler(
 	buildDBFactory db.BuildDBFactory,
 
 	teamsDB teamserver.TeamsDB,
-	buildsDB buildserver.BuildsDB,
 	workerDB workerserver.WorkerDB,
 	containerDB containerserver.ContainerDB,
 	volumesDB volumeserver.VolumesDB,
@@ -90,7 +89,6 @@ func NewHandler(
 		externalURL,
 		engine,
 		workerClient,
-		buildsDB,
 		teamDBFactory,
 		buildDBFactory,
 		eventHandlerFactory,

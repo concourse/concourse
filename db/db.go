@@ -104,8 +104,6 @@ type DB interface {
 
 	DeleteContainer(string) error
 
-	GetConfigByBuildID(buildID int) (atc.Config, ConfigVersion, error)
-
 	InsertVolume(data Volume) error
 	GetVolumes() ([]SavedVolume, error)
 	GetVolumesByIdentifier(VolumeIdentifier) ([]SavedVolume, error)

@@ -14,7 +14,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
-	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
 	containerserverfakes "github.com/concourse/atc/api/containerserver/fakes"
 	jobserverfakes "github.com/concourse/atc/api/jobserver/fakes"
 	pipeserverfakes "github.com/concourse/atc/api/pipes/fakes"
@@ -44,7 +43,6 @@ var (
 	fakeEngine                    *enginefakes.FakeEngine
 	fakeWorkerClient              *workerfakes.FakeClient
 	teamsDB                       *teamserverfakes.FakeTeamsDB
-	buildsDB                      *buildfakes.FakeBuildsDB
 	volumesDB                     *volumeserverfakes.FakeVolumesDB
 	workerDB                      *workerserverfakes.FakeWorkerDB
 	containerDB                   *containerserverfakes.FakeContainerDB
@@ -90,7 +88,6 @@ func (f *fakeEventHandlerFactory) Construct(
 }
 
 var _ = BeforeEach(func() {
-	buildsDB = new(buildfakes.FakeBuildsDB)
 	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 	teamDBFactory = new(dbfakes.FakeTeamDBFactory)
 	teamDB = new(dbfakes.FakeTeamDB)
@@ -149,7 +146,6 @@ var _ = BeforeEach(func() {
 		buildDBFactory,
 
 		teamsDB,
-		buildsDB,
 		workerDB,
 		containerDB,
 		volumesDB,

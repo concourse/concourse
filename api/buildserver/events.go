@@ -30,13 +30,15 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	buildDB := s.buildDBFactory.GetBuildDB(build)
+
 	if !auth.IsAuthenticated(r) {
 		if build.OneOff() {
 			s.rejector.Unauthorized(w, r)
 			return
 		}
 
-		config, _, err := s.db.GetConfigByBuildID(build.ID)
+		config, _, err := buildDB.GetConfig()
 		if err != nil {
 			s.logger.Error("failed-to-get-config", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -60,7 +62,6 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		defer close(streamDone)
-		buildDB := s.buildDBFactory.GetBuildDB(build)
 
 		s.eventHandlerFactory(s.logger, buildDB).ServeHTTP(w, r)
 	}()
