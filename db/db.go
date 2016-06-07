@@ -89,7 +89,6 @@ type DB interface {
 	UpdateBuildPreparation(buildPreparation BuildPreparation) error
 	ResetBuildPreparationsWithPipelinePaused(pipelineID int) error
 
-	LeaseBuildTracking(logger lager.Logger, buildID int, interval time.Duration) (Lease, bool, error)
 	GetLease(logger lager.Logger, taskName string, interval time.Duration) (Lease, bool, error)
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error

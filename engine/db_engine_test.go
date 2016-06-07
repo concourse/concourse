@@ -181,7 +181,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseBuildTrackingReturns(fakeLease, true, nil)
+					fakeBuildDB2.LeaseTrackingReturns(fakeLease, true, nil)
 				})
 
 				It("succeeds", func() {
@@ -199,7 +199,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseBuildTrackingReturns(nil, false, nil)
+					fakeBuildDB2.LeaseTrackingReturns(nil, false, nil)
 				})
 
 				It("succeeds", func() {
@@ -217,7 +217,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseBuildTrackingReturns(nil, false, errors.New("bad bad bad"))
+					fakeBuildDB2.LeaseTrackingReturns(nil, false, errors.New("bad bad bad"))
 				})
 
 				It("fails", func() {
@@ -263,7 +263,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseBuildTrackingReturns(fakeLease, true, nil)
+					fakeBuildDB2.LeaseTrackingReturns(fakeLease, true, nil)
 				})
 
 				Context("when the build is active", func() {
@@ -273,10 +273,9 @@ var _ = Describe("DBEngine", func() {
 						fakeBuildDB2.GetReturns(model, true, nil)
 
 						fakeBuildDB.AbortBuildStub = func(int) error {
-							Expect(fakeBuildDB.LeaseBuildTrackingCallCount()).To(Equal(1))
+							Expect(fakeBuildDB2.LeaseTrackingCallCount()).To(Equal(1))
 
-							_, lockedBuild, interval := fakeBuildDB.LeaseBuildTrackingArgsForCall(0)
-							Expect(lockedBuild).To(Equal(model.ID))
+							_, interval := fakeBuildDB2.LeaseTrackingArgsForCall(0)
 							Expect(interval).To(Equal(10 * time.Second))
 
 							Expect(fakeLease.BreakCallCount()).To(BeZero())
@@ -432,7 +431,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when acquiring the lock errors", func() {
 				BeforeEach(func() {
-					fakeBuildDB.LeaseBuildTrackingReturns(nil, false, errors.New("bad bad bad"))
+					fakeBuildDB2.LeaseTrackingReturns(nil, false, errors.New("bad bad bad"))
 				})
 
 				It("errors", func() {
@@ -446,7 +445,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when acquiring the lock fails", func() {
 				BeforeEach(func() {
-					fakeBuildDB.LeaseBuildTrackingReturns(nil, false, nil)
+					fakeBuildDB2.LeaseTrackingReturns(nil, false, nil)
 				})
 
 				Context("when aborting the build in the db succeeds", func() {
@@ -499,7 +498,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseBuildTrackingReturns(fakeLease, true, nil)
+					fakeBuildDB2.LeaseTrackingReturns(fakeLease, true, nil)
 				})
 
 				Context("when the build is active", func() {
@@ -518,10 +517,9 @@ var _ = Describe("DBEngine", func() {
 							fakeEngineB.LookupBuildReturns(realBuild, nil)
 
 							realBuild.ResumeStub = func(lager.Logger) {
-								Expect(fakeBuildDB.LeaseBuildTrackingCallCount()).To(Equal(1))
+								Expect(fakeBuildDB2.LeaseTrackingCallCount()).To(Equal(1))
 
-								_, lockedBuild, interval := fakeBuildDB.LeaseBuildTrackingArgsForCall(0)
-								Expect(lockedBuild).To(Equal(model.ID))
+								_, interval := fakeBuildDB2.LeaseTrackingArgsForCall(0)
 								Expect(interval).To(Equal(10 * time.Second))
 
 								Expect(fakeLease.BreakCallCount()).To(BeZero())
@@ -690,7 +688,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when acquiring the lock fails", func() {
 				BeforeEach(func() {
-					fakeBuildDB.LeaseBuildTrackingReturns(nil, false, errors.New("no lease for you"))
+					fakeBuildDB2.LeaseTrackingReturns(nil, false, errors.New("no lease for you"))
 				})
 
 				It("does not look up the build", func() {
@@ -719,7 +717,7 @@ var _ = Describe("DBEngine", func() {
 
 			BeforeEach(func() {
 				fakeLease = new(dbfakes.FakeLease)
-				fakeBuildDB.LeaseBuildTrackingReturns(fakeLease, true, nil)
+				fakeBuildDB2.LeaseTrackingReturns(fakeLease, true, nil)
 			})
 
 			Context("when the build is active", func() {

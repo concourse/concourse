@@ -3,11 +3,8 @@ package fakes
 
 import (
 	"sync"
-	"time"
 
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/pivotal-golang/lager"
 )
 
 type FakeBuildDB struct {
@@ -18,18 +15,6 @@ type FakeBuildDB struct {
 	}
 	abortBuildReturns struct {
 		result1 error
-	}
-	LeaseBuildTrackingStub        func(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error)
-	leaseBuildTrackingMutex       sync.RWMutex
-	leaseBuildTrackingArgsForCall []struct {
-		logger   lager.Logger
-		buildID  int
-		interval time.Duration
-	}
-	leaseBuildTrackingReturns struct {
-		result1 db.Lease
-		result2 bool
-		result3 error
 	}
 }
 
@@ -63,42 +48,6 @@ func (fake *FakeBuildDB) AbortBuildReturns(result1 error) {
 	fake.abortBuildReturns = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakeBuildDB) LeaseBuildTracking(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error) {
-	fake.leaseBuildTrackingMutex.Lock()
-	fake.leaseBuildTrackingArgsForCall = append(fake.leaseBuildTrackingArgsForCall, struct {
-		logger   lager.Logger
-		buildID  int
-		interval time.Duration
-	}{logger, buildID, interval})
-	fake.leaseBuildTrackingMutex.Unlock()
-	if fake.LeaseBuildTrackingStub != nil {
-		return fake.LeaseBuildTrackingStub(logger, buildID, interval)
-	} else {
-		return fake.leaseBuildTrackingReturns.result1, fake.leaseBuildTrackingReturns.result2, fake.leaseBuildTrackingReturns.result3
-	}
-}
-
-func (fake *FakeBuildDB) LeaseBuildTrackingCallCount() int {
-	fake.leaseBuildTrackingMutex.RLock()
-	defer fake.leaseBuildTrackingMutex.RUnlock()
-	return len(fake.leaseBuildTrackingArgsForCall)
-}
-
-func (fake *FakeBuildDB) LeaseBuildTrackingArgsForCall(i int) (lager.Logger, int, time.Duration) {
-	fake.leaseBuildTrackingMutex.RLock()
-	defer fake.leaseBuildTrackingMutex.RUnlock()
-	return fake.leaseBuildTrackingArgsForCall[i].logger, fake.leaseBuildTrackingArgsForCall[i].buildID, fake.leaseBuildTrackingArgsForCall[i].interval
-}
-
-func (fake *FakeBuildDB) LeaseBuildTrackingReturns(result1 db.Lease, result2 bool, result3 error) {
-	fake.LeaseBuildTrackingStub = nil
-	fake.leaseBuildTrackingReturns = struct {
-		result1 db.Lease
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 var _ engine.BuildDB = new(FakeBuildDB)

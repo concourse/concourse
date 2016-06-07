@@ -20,8 +20,6 @@ const trackingInterval = 10 * time.Second
 
 type BuildDB interface {
 	AbortBuild(int) error
-
-	LeaseBuildTracking(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error)
 }
 
 func NewDBEngine(engines Engines, buildDB BuildDB, buildDBFactory db.BuildDBFactory) Engine {
@@ -127,7 +125,7 @@ func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, bool
 func (build *dbBuild) Abort(logger lager.Logger) error {
 	// the order below is very important to avoid races with build creation.
 
-	lease, leased, err := build.db.LeaseBuildTracking(logger, build.buildDB.GetID(), trackingInterval)
+	lease, leased, err := build.buildDB.LeaseTracking(logger, trackingInterval)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return err
@@ -193,7 +191,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 }
 
 func (build *dbBuild) Resume(logger lager.Logger) {
-	lease, leased, err := build.db.LeaseBuildTracking(logger, build.buildDB.GetID(), trackingInterval)
+	lease, leased, err := build.buildDB.LeaseTracking(logger, trackingInterval)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return

@@ -59,6 +59,7 @@ type BuildDB interface {
 	SaveEvent(event atc.Event) error
 
 	LeaseScheduling(logger lager.Logger, interval time.Duration) (Lease, bool, error)
+	LeaseTracking(logger lager.Logger, interval time.Duration) (Lease, bool, error)
 
 	GetPreparation() (BuildPreparation, bool, error)
 
@@ -400,6 +401,43 @@ func (db *buildDB) SaveImageResourceVersion(planID atc.PlanID, identifier Resour
 	}
 
 	return nil
+}
+
+func (db *buildDB) LeaseTracking(logger lager.Logger, interval time.Duration) (Lease, bool, error) {
+	lease := &lease{
+		conn: db.conn,
+		logger: logger.Session("lease", lager.Data{
+			"build_id": db.buildID,
+		}),
+		attemptSignFunc: func(tx Tx) (sql.Result, error) {
+			return tx.Exec(`
+				UPDATE builds
+				SET last_tracked = now()
+				WHERE id = $1
+					AND now() - last_tracked > ($2 || ' SECONDS')::INTERVAL
+			`, db.buildID, interval.Seconds())
+		},
+		heartbeatFunc: func(tx Tx) (sql.Result, error) {
+			return tx.Exec(`
+				UPDATE builds
+				SET last_tracked = now()
+				WHERE id = $1
+			`, db.buildID)
+		},
+	}
+
+	renewed, err := lease.AttemptSign(interval)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !renewed {
+		return nil, renewed, nil
+	}
+
+	lease.KeepSigned(interval)
+
+	return lease, true, nil
 }
 
 func newConditionNotifier(bus *notificationsBus, channel string, cond func() (bool, error)) (Notifier, error) {

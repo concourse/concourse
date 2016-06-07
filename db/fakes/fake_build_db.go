@@ -116,6 +116,17 @@ type FakeBuildDB struct {
 		result2 bool
 		result3 error
 	}
+	LeaseTrackingStub        func(logger lager.Logger, interval time.Duration) (db.Lease, bool, error)
+	leaseTrackingMutex       sync.RWMutex
+	leaseTrackingArgsForCall []struct {
+		logger   lager.Logger
+		interval time.Duration
+	}
+	leaseTrackingReturns struct {
+		result1 db.Lease
+		result2 bool
+		result3 error
+	}
 	GetPreparationStub        func() (db.BuildPreparation, bool, error)
 	getPreparationMutex       sync.RWMutex
 	getPreparationArgsForCall []struct{}
@@ -549,6 +560,41 @@ func (fake *FakeBuildDB) LeaseSchedulingArgsForCall(i int) (lager.Logger, time.D
 func (fake *FakeBuildDB) LeaseSchedulingReturns(result1 db.Lease, result2 bool, result3 error) {
 	fake.LeaseSchedulingStub = nil
 	fake.leaseSchedulingReturns = struct {
+		result1 db.Lease
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildDB) LeaseTracking(logger lager.Logger, interval time.Duration) (db.Lease, bool, error) {
+	fake.leaseTrackingMutex.Lock()
+	fake.leaseTrackingArgsForCall = append(fake.leaseTrackingArgsForCall, struct {
+		logger   lager.Logger
+		interval time.Duration
+	}{logger, interval})
+	fake.leaseTrackingMutex.Unlock()
+	if fake.LeaseTrackingStub != nil {
+		return fake.LeaseTrackingStub(logger, interval)
+	} else {
+		return fake.leaseTrackingReturns.result1, fake.leaseTrackingReturns.result2, fake.leaseTrackingReturns.result3
+	}
+}
+
+func (fake *FakeBuildDB) LeaseTrackingCallCount() int {
+	fake.leaseTrackingMutex.RLock()
+	defer fake.leaseTrackingMutex.RUnlock()
+	return len(fake.leaseTrackingArgsForCall)
+}
+
+func (fake *FakeBuildDB) LeaseTrackingArgsForCall(i int) (lager.Logger, time.Duration) {
+	fake.leaseTrackingMutex.RLock()
+	defer fake.leaseTrackingMutex.RUnlock()
+	return fake.leaseTrackingArgsForCall[i].logger, fake.leaseTrackingArgsForCall[i].interval
+}
+
+func (fake *FakeBuildDB) LeaseTrackingReturns(result1 db.Lease, result2 bool, result3 error) {
+	fake.LeaseTrackingStub = nil
+	fake.leaseTrackingReturns = struct {
 		result1 db.Lease
 		result2 bool
 		result3 error
