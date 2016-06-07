@@ -31,15 +31,6 @@ type FakeBaggageCollectorDB struct {
 		result1 []db.SavedVolume
 		result2 error
 	}
-	GetImageResourceCacheIdentifiersByBuildIDStub        func(buildID int) ([]db.ResourceCacheIdentifier, error)
-	getImageResourceCacheIdentifiersByBuildIDMutex       sync.RWMutex
-	getImageResourceCacheIdentifiersByBuildIDArgsForCall []struct {
-		buildID int
-	}
-	getImageResourceCacheIdentifiersByBuildIDReturns struct {
-		result1 []db.ResourceCacheIdentifier
-		result2 error
-	}
 	GetVolumesForOneOffBuildImageResourcesStub        func() ([]db.SavedVolume, error)
 	getVolumesForOneOffBuildImageResourcesMutex       sync.RWMutex
 	getVolumesForOneOffBuildImageResourcesArgsForCall []struct{}
@@ -127,39 +118,6 @@ func (fake *FakeBaggageCollectorDB) GetVolumesReturns(result1 []db.SavedVolume, 
 	fake.GetVolumesStub = nil
 	fake.getVolumesReturns = struct {
 		result1 []db.SavedVolume
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBaggageCollectorDB) GetImageResourceCacheIdentifiersByBuildID(buildID int) ([]db.ResourceCacheIdentifier, error) {
-	fake.getImageResourceCacheIdentifiersByBuildIDMutex.Lock()
-	fake.getImageResourceCacheIdentifiersByBuildIDArgsForCall = append(fake.getImageResourceCacheIdentifiersByBuildIDArgsForCall, struct {
-		buildID int
-	}{buildID})
-	fake.getImageResourceCacheIdentifiersByBuildIDMutex.Unlock()
-	if fake.GetImageResourceCacheIdentifiersByBuildIDStub != nil {
-		return fake.GetImageResourceCacheIdentifiersByBuildIDStub(buildID)
-	} else {
-		return fake.getImageResourceCacheIdentifiersByBuildIDReturns.result1, fake.getImageResourceCacheIdentifiersByBuildIDReturns.result2
-	}
-}
-
-func (fake *FakeBaggageCollectorDB) GetImageResourceCacheIdentifiersByBuildIDCallCount() int {
-	fake.getImageResourceCacheIdentifiersByBuildIDMutex.RLock()
-	defer fake.getImageResourceCacheIdentifiersByBuildIDMutex.RUnlock()
-	return len(fake.getImageResourceCacheIdentifiersByBuildIDArgsForCall)
-}
-
-func (fake *FakeBaggageCollectorDB) GetImageResourceCacheIdentifiersByBuildIDArgsForCall(i int) int {
-	fake.getImageResourceCacheIdentifiersByBuildIDMutex.RLock()
-	defer fake.getImageResourceCacheIdentifiersByBuildIDMutex.RUnlock()
-	return fake.getImageResourceCacheIdentifiersByBuildIDArgsForCall[i].buildID
-}
-
-func (fake *FakeBaggageCollectorDB) GetImageResourceCacheIdentifiersByBuildIDReturns(result1 []db.ResourceCacheIdentifier, result2 error) {
-	fake.GetImageResourceCacheIdentifiersByBuildIDStub = nil
-	fake.getImageResourceCacheIdentifiersByBuildIDReturns = struct {
-		result1 []db.ResourceCacheIdentifier
 		result2 error
 	}{result1, result2}
 }

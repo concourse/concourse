@@ -378,7 +378,7 @@ var _ = Describe("PipelineDB", func() {
 
 			oneOffOutputRows.Close()
 
-			foundImageVolumeIdentifiers, err := sqlDB.GetImageResourceCacheIdentifiersByBuildID(build.ID)
+			foundImageVolumeIdentifiers, err := buildDB.GetImageResourceCacheIdentifiers()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(foundImageVolumeIdentifiers).To(BeEmpty())
 		})

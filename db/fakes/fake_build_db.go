@@ -177,6 +177,13 @@ type FakeBuildDB struct {
 	saveImageResourceVersionReturns struct {
 		result1 error
 	}
+	GetImageResourceCacheIdentifiersStub        func() ([]db.ResourceCacheIdentifier, error)
+	getImageResourceCacheIdentifiersMutex       sync.RWMutex
+	getImageResourceCacheIdentifiersArgsForCall []struct{}
+	getImageResourceCacheIdentifiersReturns     struct {
+		result1 []db.ResourceCacheIdentifier
+		result2 error
+	}
 }
 
 func (fake *FakeBuildDB) Get() (db.Build, bool, error) {
@@ -787,6 +794,31 @@ func (fake *FakeBuildDB) SaveImageResourceVersionReturns(result1 error) {
 	fake.saveImageResourceVersionReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeBuildDB) GetImageResourceCacheIdentifiers() ([]db.ResourceCacheIdentifier, error) {
+	fake.getImageResourceCacheIdentifiersMutex.Lock()
+	fake.getImageResourceCacheIdentifiersArgsForCall = append(fake.getImageResourceCacheIdentifiersArgsForCall, struct{}{})
+	fake.getImageResourceCacheIdentifiersMutex.Unlock()
+	if fake.GetImageResourceCacheIdentifiersStub != nil {
+		return fake.GetImageResourceCacheIdentifiersStub()
+	} else {
+		return fake.getImageResourceCacheIdentifiersReturns.result1, fake.getImageResourceCacheIdentifiersReturns.result2
+	}
+}
+
+func (fake *FakeBuildDB) GetImageResourceCacheIdentifiersCallCount() int {
+	fake.getImageResourceCacheIdentifiersMutex.RLock()
+	defer fake.getImageResourceCacheIdentifiersMutex.RUnlock()
+	return len(fake.getImageResourceCacheIdentifiersArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetImageResourceCacheIdentifiersReturns(result1 []db.ResourceCacheIdentifier, result2 error) {
+	fake.GetImageResourceCacheIdentifiersStub = nil
+	fake.getImageResourceCacheIdentifiersReturns = struct {
+		result1 []db.ResourceCacheIdentifier
+		result2 error
+	}{result1, result2}
 }
 
 var _ db.BuildDB = new(FakeBuildDB)

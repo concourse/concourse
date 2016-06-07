@@ -18,7 +18,6 @@ type BaggageCollectorDB interface {
 	ReapVolume(string) error
 	GetAllPipelines() ([]db.SavedPipeline, error)
 	GetVolumes() ([]db.SavedVolume, error)
-	GetImageResourceCacheIdentifiersByBuildID(buildID int) ([]db.ResourceCacheIdentifier, error)
 	GetVolumesForOneOffBuildImageResources() ([]db.SavedVolume, error)
 }
 
@@ -33,6 +32,7 @@ type baggageCollector struct {
 	workerClient                        worker.Client
 	db                                  BaggageCollectorDB
 	pipelineDBFactory                   db.PipelineDBFactory
+	buildDBFactory                      db.BuildDBFactory
 	oldResourceGracePeriod              time.Duration
 	oneOffBuildImageResourceGracePeriod time.Duration
 }
@@ -121,7 +121,8 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 			}
 
 			if finished != nil {
-				resourceCacheIdentifiers, err := bc.db.GetImageResourceCacheIdentifiersByBuildID(finished.ID)
+				finishedBuildDB := bc.buildDBFactory.GetBuildDB(*finished)
+				resourceCacheIdentifiers, err := finishedBuildDB.GetImageResourceCacheIdentifiers()
 				if err != nil {
 					logger.Error("could-not-acquire-volume-identifiers-for-build", err)
 					return nil, err
@@ -255,6 +256,7 @@ func NewBaggageCollector(
 	workerClient worker.Client,
 	db BaggageCollectorDB,
 	pipelineDBFactory db.PipelineDBFactory,
+	buildDBFactory db.BuildDBFactory,
 	oldResourceGracePeriod time.Duration,
 	oneOffBuildImageResourceGracePeriod time.Duration,
 ) BaggageCollector {
@@ -263,6 +265,7 @@ func NewBaggageCollector(
 		workerClient:                        workerClient,
 		db:                                  db,
 		pipelineDBFactory:                   pipelineDBFactory,
+		buildDBFactory:                      buildDBFactory,
 		oldResourceGracePeriod:              oldResourceGracePeriod,
 		oneOffBuildImageResourceGracePeriod: oneOffBuildImageResourceGracePeriod,
 	}

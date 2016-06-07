@@ -116,8 +116,6 @@ type DB interface {
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	SetVolumeSize(string, uint) error
 	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
-
-	GetImageResourceCacheIdentifiersByBuildID(buildID int) ([]ResourceCacheIdentifier, error)
 }
 
 //go:generate counterfeiter . Notifier

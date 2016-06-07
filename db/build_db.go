@@ -70,6 +70,7 @@ type BuildDB interface {
 	SaveOutput(vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 
 	SaveImageResourceVersion(planID atc.PlanID, identifier ResourceCacheIdentifier) error
+	GetImageResourceCacheIdentifiers() ([]ResourceCacheIdentifier, error)
 }
 
 type buildDB struct {
@@ -420,6 +421,40 @@ func (db *buildDB) SaveImageResourceVersion(planID atc.PlanID, identifier Resour
 	}
 
 	return nil
+}
+
+func (db *buildDB) GetImageResourceCacheIdentifiers() ([]ResourceCacheIdentifier, error) {
+	rows, err := db.conn.Query(`
+  	SELECT version, resource_hash
+  	FROM image_resource_versions
+  	WHERE build_id = $1
+  `, db.buildID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var identifiers []ResourceCacheIdentifier
+
+	for rows.Next() {
+		var identifier ResourceCacheIdentifier
+		var marshalledVersion []byte
+
+		err := rows.Scan(&marshalledVersion, &identifier.ResourceHash)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal(marshalledVersion, &identifier.ResourceVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		identifiers = append(identifiers, identifier)
+	}
+
+	return identifiers, nil
 }
 
 func (db *buildDB) LeaseTracking(logger lager.Logger, interval time.Duration) (Lease, bool, error) {

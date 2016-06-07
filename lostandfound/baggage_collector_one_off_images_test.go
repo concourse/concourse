@@ -27,6 +27,10 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 
 		fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
 		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
+		fakeBuildDB1           *dbfakes.FakeBuildDB
+		fakeBuildDB2           *dbfakes.FakeBuildDB
+		fakeBuildDB4           *dbfakes.FakeBuildDB
+		fakeBuildDB5           *dbfakes.FakeBuildDB
 
 		expectedOldVersionTTL    = 4 * time.Minute
 		expectedLatestVersionTTL = time.Duration(0)
@@ -59,12 +63,14 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 
 		fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
+		fakeBuildDBFactory := new(dbfakes.FakeBuildDBFactory)
 
 		baggageCollector = lostandfound.NewBaggageCollector(
 			baggageCollectorLogger,
 			fakeWorkerClient,
 			fakeBaggageCollectorDB,
 			fakePipelineDBFactory,
+			fakeBuildDBFactory,
 			expectedOldVersionTTL,
 			expectedOneOffTTL,
 		)
@@ -125,15 +131,30 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 			ResourceVersion: atc.Version{"digest": "digest2"},
 			ResourceHash:    `docker:{"repository":"repository2"}`,
 		}
-		imageVersionMap := map[int][]db.ResourceCacheIdentifier{
-			1: {identifier1},
-			2: {identifier2},
-			4: {identifier1},
-			5: {identifier2},
-		}
 
-		fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDStub = func(buildID int) ([]db.ResourceCacheIdentifier, error) {
-			return imageVersionMap[buildID], nil
+		fakeBuildDB1 = new(dbfakes.FakeBuildDB)
+		fakeBuildDB1.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{identifier1}, nil)
+		fakeBuildDB2 = new(dbfakes.FakeBuildDB)
+		fakeBuildDB2.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{identifier2}, nil)
+		fakeBuildDB4 = new(dbfakes.FakeBuildDB)
+		fakeBuildDB4.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{identifier1}, nil)
+		fakeBuildDB5 = new(dbfakes.FakeBuildDB)
+		fakeBuildDB5.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{identifier2}, nil)
+
+		fakeBuildDBFactory.GetBuildDBStub = func(build db.Build) db.BuildDB {
+			switch build.ID {
+			case 1:
+				return fakeBuildDB1
+			case 2:
+				return fakeBuildDB2
+			case 4:
+				return fakeBuildDB4
+			case 5:
+				return fakeBuildDB5
+			default:
+				Fail("unknown build ID", build.ID)
+			}
+			return nil
 		}
 
 		fakePipelineDB = new(dbfakes.FakePipelineDB)
@@ -150,8 +171,7 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		Expect(fakePipelineDBFactory.BuildArgsForCall(0)).To(Equal(savedPipeline))
 		Expect(fakePipelineDB.GetJobFinishedAndNextBuildCallCount()).To(Equal(1))
 		Expect(fakePipelineDB.GetJobFinishedAndNextBuildArgsForCall(0)).To(Equal("my-precious-job"))
-		Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDCallCount()).To(Equal(1))
-		Expect(fakeBaggageCollectorDB.GetImageResourceCacheIdentifiersByBuildIDArgsForCall(0)).To(Equal(2))
+		Expect(fakeBuildDB2.GetImageResourceCacheIdentifiersCallCount()).To(Equal(1))
 		Expect(fakeBaggageCollectorDB.GetVolumesForOneOffBuildImageResourcesCallCount()).To(Equal(1))
 		Expect(fakeBaggageCollectorDB.GetVolumesCallCount()).To(Equal(1))
 		Expect(fakeWorkerClient.GetWorkerCallCount()).To(Equal(2))

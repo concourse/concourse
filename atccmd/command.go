@@ -256,6 +256,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				workerClient,
 				sqlDB,
 				pipelineDBFactory,
+				buildDBFactory,
 				cmd.OldResourceGracePeriod,
 				24*time.Hour,
 			),

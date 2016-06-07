@@ -51,7 +51,6 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, buildDB db.BuildDB, p
 		buildID:      buildDB.GetID(),
 		stepMetadata: buildMetadata(buildDB, engine.externalURL),
 
-		buildDB:  buildDB,
 		factory:  engine.factory,
 		delegate: engine.delegateFactory.Delegate(buildDB),
 		metadata: execMetadata{
@@ -79,7 +78,6 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, buildDB db.BuildDB) (
 		buildID:      buildDB.GetID(),
 		stepMetadata: buildMetadata(buildDB, engine.externalURL),
 
-		buildDB:  buildDB,
 		factory:  engine.factory,
 		delegate: engine.delegateFactory.Delegate(buildDB),
 		metadata: metadata,
@@ -146,8 +144,6 @@ func buildMetadata(buildDB db.BuildDB, externalURL string) StepMetadata {
 type execBuild struct {
 	buildID      int
 	stepMetadata StepMetadata
-
-	buildDB db.BuildDB
 
 	factory  exec.Factory
 	delegate BuildDelegate
