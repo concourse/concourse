@@ -74,7 +74,7 @@ var _ = Describe("SQL DB", func() {
 		defer events.Close()
 
 		By("saving them in order")
-		err = database.SaveBuildEvent(build.ID, 0, event.Log{
+		err = buildDB.SaveEvent(event.Log{
 			Payload: "some ",
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -83,7 +83,7 @@ var _ = Describe("SQL DB", func() {
 			Payload: "some ",
 		}))
 
-		err = database.SaveBuildEvent(build.ID, 0, event.Log{
+		err = buildDB.SaveEvent(event.Log{
 			Payload: "log",
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -118,7 +118,7 @@ var _ = Describe("SQL DB", func() {
 		Consistently(nextEvent).ShouldNot(Receive())
 		Consistently(nextErr).ShouldNot(Receive())
 
-		err = database.SaveBuildEvent(build.ID, 0, event.Log{
+		err = buildDB.SaveEvent(event.Log{
 			Payload: "log 2",
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -153,7 +153,7 @@ var _ = Describe("SQL DB", func() {
 		defer events.Close()
 
 		By("emitting a status event when started")
-		started, err := database.StartBuild(build.ID, build.PipelineID, "engine", "metadata")
+		started, err := buildDB.Start("engine", "metadata")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(started).To(BeTrue())
 
@@ -167,7 +167,7 @@ var _ = Describe("SQL DB", func() {
 		}))
 
 		By("emitting a status event when finished")
-		err = database.FinishBuild(build.ID, build.PipelineID, db.StatusSucceeded)
+		err = buildDB.Finish(db.StatusSucceeded)
 		Expect(err).NotTo(HaveOccurred())
 
 		finishedBuild, found, err := teamDB.GetBuild(build.ID)
@@ -189,7 +189,8 @@ var _ = Describe("SQL DB", func() {
 			build1, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			err = database.SaveBuildEvent(build1.ID, 0, event.Log{
+			build1DB := buildDBFactory.GetBuildDB(build1)
+			err = build1DB.SaveEvent(event.Log{
 				Payload: "log 1",
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -197,7 +198,8 @@ var _ = Describe("SQL DB", func() {
 			build2, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			err = database.SaveBuildEvent(build2.ID, 0, event.Log{
+			build2DB := buildDBFactory.GetBuildDB(build2)
+			err = build2DB.SaveEvent(event.Log{
 				Payload: "log 2",
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -205,13 +207,14 @@ var _ = Describe("SQL DB", func() {
 			build3, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			err = database.FinishBuild(build3.ID, 0, db.StatusSucceeded)
+			build3DB := buildDBFactory.GetBuildDB(build3)
+			err = build3DB.Finish(db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = database.FinishBuild(build1.ID, 0, db.StatusSucceeded)
+			err = build1DB.Finish(db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = database.FinishBuild(build2.ID, 0, db.StatusSucceeded)
+			err = build2DB.Finish(db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
 			build4, err := teamDB.CreateOneOffBuild()
@@ -225,7 +228,8 @@ var _ = Describe("SQL DB", func() {
 			database.DeleteBuildEventsByBuildIDs([]int{build3.ID, build4.ID, build1.ID})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = database.FinishBuild(build4.ID, 0, db.StatusSucceeded)
+			build4DB := buildDBFactory.GetBuildDB(build4)
+			err = build4DB.Finish(db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("deleting events for build 1")

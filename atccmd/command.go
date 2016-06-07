@@ -186,7 +186,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		tracker,
 		cmd.ResourceCheckingInterval,
 		engine,
-		sqlDB,
+		buildDBFactory,
 	)
 
 	radarScannerFactory := radar.NewScannerFactory(
@@ -242,6 +242,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			Tracker: builds.NewTracker(
 				logger.Session("build-tracker"),
 				sqlDB,
+				buildDBFactory,
 				engine,
 			),
 			Interval: 10 * time.Second,
@@ -739,9 +740,8 @@ func (cmd *ATCCommand) constructEngine(
 
 	execV2Engine := engine.NewExecEngine(
 		gardenFactory,
-		engine.NewBuildDelegateFactory(sqlDB),
+		engine.NewBuildDelegateFactory(),
 		teamDBFactory,
-		sqlDB,
 		cmd.ExternalURL.String(),
 	)
 

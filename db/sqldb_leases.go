@@ -44,43 +44,6 @@ func (db *SQLDB) LeaseBuildTracking(logger lager.Logger, buildID int, interval t
 	return lease, true, nil
 }
 
-func (db *SQLDB) LeaseBuildScheduling(logger lager.Logger, buildID int, interval time.Duration) (Lease, bool, error) {
-	lease := &lease{
-		conn: db.conn,
-		logger: logger.Session("lease", lager.Data{
-			"build_id": buildID,
-		}),
-		attemptSignFunc: func(tx Tx) (sql.Result, error) {
-			return tx.Exec(`
-				UPDATE builds
-				SET last_scheduled = now()
-				WHERE id = $1
-					AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
-			`, buildID, interval.Seconds())
-		},
-		heartbeatFunc: func(tx Tx) (sql.Result, error) {
-			return tx.Exec(`
-				UPDATE builds
-				SET last_scheduled = now()
-				WHERE id = $1
-			`, buildID)
-		},
-	}
-
-	renewed, err := lease.AttemptSign(interval)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !renewed {
-		return nil, renewed, nil
-	}
-
-	lease.KeepSigned(interval)
-
-	return lease, true, nil
-}
-
 func (db *SQLDB) GetLease(logger lager.Logger, taskName string, interval time.Duration) (Lease, bool, error) {
 	lease := &lease{
 		conn: db.conn,

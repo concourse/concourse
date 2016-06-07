@@ -25,7 +25,6 @@ type execEngine struct {
 	factory         exec.Factory
 	delegateFactory BuildDelegateFactory
 	teamDBFactory   db.TeamDBFactory
-	db              EngineDB
 	externalURL     string
 }
 
@@ -33,14 +32,12 @@ func NewExecEngine(
 	factory exec.Factory,
 	delegateFactory BuildDelegateFactory,
 	teamDBFactory db.TeamDBFactory,
-	db EngineDB,
 	externalURL string,
 ) Engine {
 	return &execEngine{
 		factory:         factory,
 		delegateFactory: delegateFactory,
 		teamDBFactory:   teamDBFactory,
-		db:              db,
 		externalURL:     externalURL,
 	}
 }
@@ -49,14 +46,14 @@ func (engine *execEngine) Name() string {
 	return execEngineName
 }
 
-func (engine *execEngine) CreateBuild(logger lager.Logger, model db.Build, plan atc.Plan) (Build, error) {
+func (engine *execEngine) CreateBuild(logger lager.Logger, buildDB db.BuildDB, plan atc.Plan) (Build, error) {
 	return &execBuild{
-		buildID:      model.ID,
-		stepMetadata: buildMetadata(model, engine.externalURL),
+		buildID:      buildDB.GetID(),
+		stepMetadata: buildMetadata(buildDB, engine.externalURL),
 
-		db:       engine.db,
+		buildDB:  buildDB,
 		factory:  engine.factory,
-		delegate: engine.delegateFactory.Delegate(model.ID, model.PipelineID),
+		delegate: engine.delegateFactory.Delegate(buildDB),
 		metadata: execMetadata{
 			Plan: plan,
 		},
@@ -65,26 +62,26 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, model db.Build, plan 
 	}, nil
 }
 
-func (engine *execEngine) LookupBuild(logger lager.Logger, model db.Build) (Build, error) {
+func (engine *execEngine) LookupBuild(logger lager.Logger, buildDB db.BuildDB) (Build, error) {
 	var metadata execMetadata
-	err := json.Unmarshal([]byte(model.EngineMetadata), &metadata)
+	err := json.Unmarshal([]byte(buildDB.GetEngineMetadata()), &metadata)
 	if err != nil {
 		logger.Error("invalid-metadata", err)
 		return nil, err
 	}
 
-	err = atc.NewPlanTraversal(engine.convertPipelineNameToID(model.TeamName)).Traverse(&metadata.Plan)
+	err = atc.NewPlanTraversal(engine.convertPipelineNameToID(buildDB.GetTeamName())).Traverse(&metadata.Plan)
 	if err != nil {
 		return nil, err
 	}
 
 	return &execBuild{
-		buildID:      model.ID,
-		stepMetadata: buildMetadata(model, engine.externalURL),
+		buildID:      buildDB.GetID(),
+		stepMetadata: buildMetadata(buildDB, engine.externalURL),
 
-		db:       engine.db,
+		buildDB:  buildDB,
 		factory:  engine.factory,
-		delegate: engine.delegateFactory.Delegate(model.ID, model.PipelineID),
+		delegate: engine.delegateFactory.Delegate(buildDB),
 		metadata: metadata,
 
 		signals: make(chan os.Signal, 1),
@@ -136,12 +133,12 @@ func (engine *execEngine) convertPipelineNameToID(teamName string) func(plan *at
 	}
 }
 
-func buildMetadata(model db.Build, externalURL string) StepMetadata {
+func buildMetadata(buildDB db.BuildDB, externalURL string) StepMetadata {
 	return StepMetadata{
-		BuildID:      model.ID,
-		BuildName:    model.Name,
-		JobName:      model.JobName,
-		PipelineName: model.PipelineName,
+		BuildID:      buildDB.GetID(),
+		BuildName:    buildDB.GetName(),
+		JobName:      buildDB.GetJobName(),
+		PipelineName: buildDB.GetPipelineName(),
 		ExternalURL:  externalURL,
 	}
 }
@@ -150,7 +147,7 @@ type execBuild struct {
 	buildID      int
 	stepMetadata StepMetadata
 
-	db EngineDB
+	buildDB db.BuildDB
 
 	factory  exec.Factory
 	delegate BuildDelegate

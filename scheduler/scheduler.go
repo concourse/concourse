@@ -27,16 +27,6 @@ type PipelineDB interface {
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 }
 
-//go:generate counterfeiter . BuildsDB
-
-type BuildsDB interface {
-	LeaseBuildScheduling(logger lager.Logger, buildID int, interval time.Duration) (db.Lease, bool, error)
-	ErrorBuild(buildID int, pipelineID int, err error) error
-	FinishBuild(int, int, db.Status) error
-
-	GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error)
-}
-
 //go:generate counterfeiter . BuildFactory
 
 type BuildFactory interface {
@@ -54,11 +44,11 @@ type Scanner interface {
 }
 
 type Scheduler struct {
-	PipelineDB PipelineDB
-	BuildsDB   BuildsDB
-	Factory    BuildFactory
-	Engine     engine.Engine
-	Scanner    Scanner
+	PipelineDB     PipelineDB
+	BuildDBFactory db.BuildDBFactory
+	Factory        BuildFactory
+	Engine         engine.Engine
+	Scanner        Scanner
 }
 
 func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs, resourceTypes atc.ResourceTypes) error {
@@ -244,7 +234,8 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 ) engine.Build {
 	logger = logger.Session("scheduling")
 
-	lease, acquired, err := s.BuildsDB.LeaseBuildScheduling(logger, build.ID, 10*time.Second)
+	buildDB := s.BuildDBFactory.GetBuildDB(build)
+	lease, acquired, err := buildDB.LeaseScheduling(logger, 10*time.Second)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return nil
@@ -256,7 +247,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 
 	defer lease.Break()
 
-	buildPrep, found, err := s.BuildsDB.GetBuildPreparation(build.ID)
+	buildPrep, found, err := buildDB.GetPreparation()
 	if err != nil {
 		logger.Error("failed-to-get-build-prep", err)
 		return nil
@@ -274,7 +265,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 		})
 
 		if reason == "failed-to-scan" {
-			err = s.BuildsDB.ErrorBuild(build.ID, build.PipelineID, err)
+			err = buildDB.MarkAsFailed(err)
 			if err != nil {
 				logger.Error("failed-to-mark-build-as-errored", err)
 			}
@@ -288,15 +279,15 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 
 	plan, err := s.Factory.Create(job, resources, resourceTypes, inputs)
 	if err != nil {
-		// Don't use ErrorBuild because it logs a build event, and this build hasn't started
-		err := s.BuildsDB.FinishBuild(build.ID, build.PipelineID, db.StatusErrored)
+		// Don't use MarkAsFailed because it logs a build event, and this build hasn't started
+		err := buildDB.Finish(db.StatusErrored)
 		if err != nil {
 			logger.Error("failed-to-mark-build-as-errored", err)
 		}
 		return nil
 	}
 
-	createdBuild, err := s.Engine.CreateBuild(logger, build, plan)
+	createdBuild, err := s.Engine.CreateBuild(logger, buildDB, plan)
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
 		return nil

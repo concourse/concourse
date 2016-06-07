@@ -86,25 +86,13 @@ type DB interface {
 	CreatePipe(pipeGUID string, url string) error
 	GetPipe(pipeGUID string) (Pipe, error)
 
-	GetBuildPreparation(buildID int) (BuildPreparation, bool, error)
 	UpdateBuildPreparation(buildPreparation BuildPreparation) error
 	ResetBuildPreparationsWithPipelinePaused(pipelineID int) error
 
 	LeaseBuildTracking(logger lager.Logger, buildID int, interval time.Duration) (Lease, bool, error)
-	LeaseBuildScheduling(logger lager.Logger, buildID int, interval time.Duration) (Lease, bool, error)
 	GetLease(logger lager.Logger, taskName string, interval time.Duration) (Lease, bool, error)
 
-	StartBuild(buildID int, pipelineID int, engineName, engineMetadata string) (bool, error)
-	FinishBuild(buildID int, pipelineID int, status Status) error
-	ErrorBuild(buildID int, pipelineID int, cause error) error
-
-	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
-	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
-
-	SaveBuildEvent(buildID int, pipelineID int, event atc.Event) error
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
-
-	SaveBuildEngineMetadata(buildID int, engineMetadata string) error
 
 	AbortBuild(buildID int) error
 
@@ -132,7 +120,6 @@ type DB interface {
 	SetVolumeSize(string, uint) error
 	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 
-	SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier ResourceCacheIdentifier) error
 	GetImageResourceCacheIdentifiersByBuildID(buildID int) ([]ResourceCacheIdentifier, error)
 }
 

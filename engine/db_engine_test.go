@@ -40,6 +40,7 @@ var _ = Describe("DBEngine", func() {
 
 		fakeBuildDB = new(fakes.FakeBuildDB)
 		fakeBuildDB2 = new(dbfakes.FakeBuildDB)
+		fakeBuildDB2.GetIDReturns(128)
 
 		fakeBuildDBFactory := new(dbfakes.FakeBuildDBFactory)
 		fakeBuildDBFactory.GetBuildDBReturns(fakeBuildDB2)
@@ -49,8 +50,7 @@ var _ = Describe("DBEngine", func() {
 
 	Describe("CreateBuild", func() {
 		var (
-			build db.Build
-			plan  atc.Plan
+			plan atc.Plan
 
 			createdBuild Build
 			buildErr     error
@@ -60,12 +60,6 @@ var _ = Describe("DBEngine", func() {
 
 		BeforeEach(func() {
 			planFactory = atc.NewPlanFactory(123)
-
-			build = db.Build{
-				ID:         128,
-				PipelineID: 256,
-				Name:       "some-build",
-			}
 
 			plan = planFactory.NewPlan(atc.TaskPlan{
 				Config: &atc.TaskConfig{
@@ -83,11 +77,11 @@ var _ = Describe("DBEngine", func() {
 				},
 			})
 
-			fakeBuildDB.StartBuildReturns(true, nil)
+			fakeBuildDB2.StartReturns(true, nil)
 		})
 
 		JustBeforeEach(func() {
-			createdBuild, buildErr = dbEngine.CreateBuild(logger, build, plan)
+			createdBuild, buildErr = dbEngine.CreateBuild(logger, fakeBuildDB2, plan)
 		})
 
 		Context("when creating the build succeeds", func() {
@@ -109,18 +103,16 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			It("starts the build in the database", func() {
-				Expect(fakeBuildDB.StartBuildCallCount()).To(Equal(1))
+				Expect(fakeBuildDB2.StartCallCount()).To(Equal(1))
 
-				buildID, pipelineID, engine, metadata := fakeBuildDB.StartBuildArgsForCall(0)
-				Expect(buildID).To(Equal(128))
-				Expect(pipelineID).To(Equal(256))
+				engine, metadata := fakeBuildDB2.StartArgsForCall(0)
 				Expect(engine).To(Equal("fake-engine-a"))
 				Expect(metadata).To(Equal("some-metadata"))
 			})
 
 			Context("when the build fails to transition to started", func() {
 				BeforeEach(func() {
-					fakeBuildDB.StartBuildReturns(false, nil)
+					fakeBuildDB2.StartReturns(false, nil)
 				})
 
 				It("aborts the build", func() {
@@ -141,7 +133,7 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			It("does not start the build", func() {
-				Expect(fakeBuildDB.StartBuildCallCount()).To(Equal(0))
+				Expect(fakeBuildDB2.StartCallCount()).To(Equal(0))
 			})
 		})
 	})
@@ -162,7 +154,7 @@ var _ = Describe("DBEngine", func() {
 		})
 
 		JustBeforeEach(func() {
-			foundBuild, lookupErr = dbEngine.LookupBuild(logger, build)
+			foundBuild, lookupErr = dbEngine.LookupBuild(logger, fakeBuildDB2)
 		})
 
 		It("succeeds", func() {
@@ -255,7 +247,7 @@ var _ = Describe("DBEngine", func() {
 			}
 
 			var err error
-			build, err = dbEngine.LookupBuild(logger, model)
+			build, err = dbEngine.LookupBuild(logger, fakeBuildDB2)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -401,11 +393,9 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("finishes the build in the db so that the aborted event is emitted", func() {
-						Expect(fakeBuildDB.FinishBuildCallCount()).To(Equal(1))
+						Expect(fakeBuildDB2.FinishCallCount()).To(Equal(1))
 
-						buildID, pipelineID, status := fakeBuildDB.FinishBuildArgsForCall(0)
-						Expect(buildID).To(Equal(model.ID))
-						Expect(pipelineID).To(Equal(model.PipelineID))
+						status := fakeBuildDB2.FinishArgsForCall(0)
 						Expect(status).To(Equal(db.StatusAborted))
 					})
 
@@ -431,7 +421,7 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("does not finish the build", func() {
-						Expect(fakeBuildDB.FinishBuildCallCount()).To(Equal(0))
+						Expect(fakeBuildDB2.FinishCallCount()).To(Equal(0))
 					})
 
 					It("breaks the lease", func() {
@@ -632,10 +622,8 @@ var _ = Describe("DBEngine", func() {
 						})
 
 						It("marks the build as errored", func() {
-							Expect(fakeBuildDB.FinishBuildCallCount()).To(Equal(1))
-							buildID, pipelineID, buildStatus := fakeBuildDB.FinishBuildArgsForCall(0)
-							Expect(buildID).To(Equal(model.ID))
-							Expect(pipelineID).To(Equal(model.PipelineID))
+							Expect(fakeBuildDB2.FinishCallCount()).To(Equal(1))
+							buildStatus := fakeBuildDB2.FinishArgsForCall(0)
 							Expect(buildStatus).To(Equal(db.StatusErrored))
 						})
 					})
@@ -648,10 +636,8 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("marks the build as errored", func() {
-						Expect(fakeBuildDB.FinishBuildCallCount()).To(Equal(1))
-						buildID, pipelineID, buildStatus := fakeBuildDB.FinishBuildArgsForCall(0)
-						Expect(buildID).To(Equal(model.ID))
-						Expect(pipelineID).To(Equal(model.PipelineID))
+						Expect(fakeBuildDB2.FinishCallCount()).To(Equal(1))
+						buildStatus := fakeBuildDB2.FinishArgsForCall(0)
 						Expect(buildStatus).To(Equal(db.StatusErrored))
 					})
 				})

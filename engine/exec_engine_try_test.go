@@ -20,11 +20,10 @@ var _ = Describe("Exec Engine with Try", func() {
 	var (
 		fakeFactory         *execfakes.FakeFactory
 		fakeDelegateFactory *fakes.FakeBuildDelegateFactory
-		fakeDB              *fakes.FakeEngineDB
 
 		execEngine engine.Engine
 
-		buildModel       db.Build
+		buildDB          *dbfakes.FakeBuildDB
 		expectedMetadata engine.StepMetadata
 		logger           *lagertest.TestLogger
 
@@ -36,26 +35,23 @@ var _ = Describe("Exec Engine with Try", func() {
 
 		fakeFactory = new(execfakes.FakeFactory)
 		fakeDelegateFactory = new(fakes.FakeBuildDelegateFactory)
-		fakeDB = new(fakes.FakeEngineDB)
 
 		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
 		execEngine = engine.NewExecEngine(
 			fakeFactory,
 			fakeDelegateFactory,
 			fakeTeamDBFactory,
-			fakeDB,
 			"http://example.com",
 		)
 
 		fakeDelegate = new(fakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-		buildModel = db.Build{
-			ID:           84,
-			Name:         "42",
-			JobName:      "some-job",
-			PipelineName: "some-pipeline",
-		}
+		buildDB = new(dbfakes.FakeBuildDB)
+		buildDB.GetIDReturns(84)
+		buildDB.GetNameReturns("42")
+		buildDB.GetJobNameReturns("some-job")
+		buildDB.GetPipelineNameReturns("some-pipeline")
 
 		expectedMetadata = engine.StepMetadata{
 			BuildID:      84,
@@ -118,7 +114,7 @@ var _ = Describe("Exec Engine with Try", func() {
 					Step: inputPlan,
 				})
 
-				build, err := execEngine.CreateBuild(logger, buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, buildDB, plan)
 				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
 			})
@@ -166,7 +162,7 @@ var _ = Describe("Exec Engine with Try", func() {
 					}),
 				})
 
-				build, err := execEngine.CreateBuild(logger, buildModel, plan)
+				build, err := execEngine.CreateBuild(logger, buildDB, plan)
 
 				Expect(err).NotTo(HaveOccurred())
 

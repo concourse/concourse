@@ -6,10 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/concourse/atc"
-	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
 )
 
@@ -235,10 +232,6 @@ func (db *SQLDB) GetBuildVersionedResources(buildID int) (SavedVersionedResource
 		WHERE b.id = $1 AND bo.explicit`)
 }
 
-func (db *SQLDB) GetBuildPreparation(passedBuildID int) (BuildPreparation, bool, error) {
-	return db.buildPrepHelper.GetBuildPreparation(db.conn, passedBuildID)
-}
-
 func (db *SQLDB) UpdateBuildPreparation(buildPrep BuildPreparation) error {
 	tx, err := db.conn.Begin()
 	if err != nil {
@@ -268,158 +261,6 @@ func (db *SQLDB) ResetBuildPreparationsWithPipelinePaused(pipelineID int) error 
 				AND j.pipeline_id = $1 AND b.status = 'pending' AND b.scheduled = false
 		`, pipelineID)
 	return err
-}
-
-func (db *SQLDB) StartBuild(buildID int, pipelineID int, engine, metadata string) (bool, error) {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer tx.Rollback()
-
-	var startTime time.Time
-
-	err = tx.QueryRow(`
-		UPDATE builds
-		SET status = 'started', start_time = now(), engine = $2, engine_metadata = $3
-		WHERE id = $1
-		AND status = 'pending'
-		RETURNING start_time
-	`, buildID, engine, metadata).Scan(&startTime)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil
-		}
-
-		return false, err
-	}
-
-	err = db.saveBuildEvent(tx, buildID, pipelineID, event.Status{
-		Status: atc.StatusStarted,
-		Time:   startTime.Unix(),
-	})
-	if err != nil {
-		return false, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return false, err
-	}
-
-	err = db.bus.Notify(buildEventsChannel(buildID))
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-func (db *SQLDB) FinishBuild(buildID int, pipelineID int, status Status) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	var endTime time.Time
-
-	err = tx.QueryRow(`
-		UPDATE builds
-		SET status = $2, end_time = now(), completed = true
-		WHERE id = $1
-		RETURNING end_time
-	`, buildID, string(status)).Scan(&endTime)
-	if err != nil {
-		return err
-	}
-
-	err = db.saveBuildEvent(tx, buildID, pipelineID, event.Status{
-		Status: atc.BuildStatus(status),
-		Time:   endTime.Unix(),
-	})
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(fmt.Sprintf(`
-		DROP SEQUENCE %s
-	`, buildEventSeq(buildID)))
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	err = db.bus.Notify(buildEventsChannel(buildID))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (db *SQLDB) ErrorBuild(buildID int, pipelineID int, cause error) error {
-	err := db.SaveBuildEvent(buildID, pipelineID, event.Error{
-		Message: cause.Error(),
-	})
-	if err != nil {
-		return err
-	}
-
-	return db.FinishBuild(buildID, pipelineID, StatusErrored)
-}
-
-func (db *SQLDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error) {
-	row := db.conn.QueryRow(`
-		SELECT `+pipelineColumns+`
-		FROM pipelines
-		WHERE id = $1
-	`, input.VersionedResource.PipelineID)
-
-	savedPipeline, err := scanPipeline(row)
-	if err != nil {
-		return SavedVersionedResource{}, err
-	}
-	pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus)
-	pipelineDB := pipelineDBFactory.Build(savedPipeline)
-
-	return pipelineDB.SaveBuildInput(buildID, input)
-}
-
-func (db *SQLDB) SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
-	row := db.conn.QueryRow(`
-		SELECT `+pipelineColumns+`
-		FROM pipelines
-		WHERE id = $1
-	`, vr.PipelineID)
-
-	savedPipeline, err := scanPipeline(row)
-	if err != nil {
-		return SavedVersionedResource{}, err
-	}
-	pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus)
-	pipelineDB := pipelineDBFactory.Build(savedPipeline)
-
-	return pipelineDB.SaveBuildOutput(buildID, vr, explicit)
-}
-
-func (db *SQLDB) SaveBuildEngineMetadata(buildID int, engineMetadata string) error {
-	_, err := db.conn.Exec(`
-		UPDATE builds
-		SET engine_metadata = $2
-		WHERE id = $1
-	`, buildID, engineMetadata)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (db *SQLDB) AbortBuild(buildID int) error {
@@ -483,54 +324,6 @@ func (db *SQLDB) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 	return err
 }
 
-func (db *SQLDB) SaveBuildEvent(buildID int, pipelineID int, event atc.Event) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	err = db.saveBuildEvent(tx, buildID, pipelineID, event)
-	if err != nil {
-		return err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	err = db.bus.Notify(buildEventsChannel(buildID))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (db *SQLDB) saveBuildEvent(tx Tx, buildID int, pipelineID int, event atc.Event) error {
-	payload, err := json.Marshal(event)
-	if err != nil {
-		return err
-	}
-
-	table := "build_events"
-	if pipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", pipelineID)
-	}
-
-	_, err = tx.Exec(fmt.Sprintf(`
-		INSERT INTO %s (event_id, build_id, type, version, payload)
-		VALUES (nextval('%s'), $1, $2, $3, $4)
-	`, table, buildEventSeq(buildID)), buildID, string(event.EventType()), string(event.Version()), payload)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func scanBuild(row scannable) (Build, bool, error) {
 	var id int
 	var name string
@@ -582,14 +375,6 @@ func scanBuild(row scannable) (Build, bool, error) {
 	return build, true, nil
 }
 
-func buildEventsChannel(buildID int) string {
-	return fmt.Sprintf("build_events_%d", buildID)
-}
-
 func buildAbortChannel(buildID int) string {
 	return fmt.Sprintf("build_abort_%d", buildID)
-}
-
-func buildEventSeq(buildID int) string {
-	return fmt.Sprintf("build_event_id_seq_%d", buildID)
 }

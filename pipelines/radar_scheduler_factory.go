@@ -21,23 +21,23 @@ type RadarSchedulerFactory interface {
 }
 
 type radarSchedulerFactory struct {
-	tracker  resource.Tracker
-	interval time.Duration
-	engine   engine.Engine
-	db       db.DB
+	tracker        resource.Tracker
+	interval       time.Duration
+	engine         engine.Engine
+	buildDBFactory db.BuildDBFactory
 }
 
 func NewRadarSchedulerFactory(
 	tracker resource.Tracker,
 	interval time.Duration,
 	engine engine.Engine,
-	db db.DB,
+	buildDBFactory db.BuildDBFactory,
 ) RadarSchedulerFactory {
 	return &radarSchedulerFactory{
-		tracker:  tracker,
-		interval: interval,
-		engine:   engine,
-		db:       db,
+		tracker:        tracker,
+		interval:       interval,
+		engine:         engine,
+		buildDBFactory: buildDBFactory,
 	}
 }
 
@@ -54,8 +54,8 @@ func (rsf *radarSchedulerFactory) BuildScheduler(pipelineDB db.PipelineDB, exter
 		externalURL,
 	)
 	return &scheduler.Scheduler{
-		PipelineDB: pipelineDB,
-		BuildsDB:   rsf.db,
+		PipelineDB:     pipelineDB,
+		BuildDBFactory: rsf.buildDBFactory,
 		Factory: factory.NewBuildFactory(
 			pipelineDB.GetPipelineID(),
 			atc.NewPlanFactory(time.Now().Unix()),

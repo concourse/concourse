@@ -27,6 +27,7 @@ var _ = Describe("TeamDB", func() {
 		savedTeam             db.SavedTeam
 
 		pipelineDBFactory db.PipelineDBFactory
+		buildDBFactory    db.BuildDBFactory
 	)
 
 	BeforeEach(func() {
@@ -51,6 +52,7 @@ var _ = Describe("TeamDB", func() {
 		nonExistentTeamDB = teamDBFactory.GetTeamDB("non-existent-name")
 
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
+		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
 	})
 
 	AfterEach(func() {
@@ -350,13 +352,16 @@ var _ = Describe("TeamDB", func() {
 
 	Describe("CreateOneOffBuild", func() {
 		var (
-			oneOff db.Build
-			err    error
+			oneOff        db.Build
+			oneOffBuildDB db.BuildDB
+			err           error
 		)
 
 		BeforeEach(func() {
 			oneOff, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
+
+			oneOffBuildDB = buildDBFactory.GetBuildDB(oneOff)
 		})
 
 		It("can create one-off builds with increasing names", func() {
@@ -372,7 +377,7 @@ var _ = Describe("TeamDB", func() {
 		})
 
 		It("also creates buildpreparation", func() {
-			buildPrep, found, err := database.GetBuildPreparation(oneOff.ID)
+			buildPrep, found, err := oneOffBuildDB.GetPreparation()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 

@@ -35,7 +35,8 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	engineBuild, err := s.engine.CreateBuild(hLog, build, plan)
+	buildDB := s.buildDBFactory.GetBuildDB(build)
+	engineBuild, err := s.engine.CreateBuild(hLog, buildDB, plan)
 	if err != nil {
 		hLog.Error("failed-to-start-build", err)
 		w.WriteHeader(http.StatusInternalServerError)

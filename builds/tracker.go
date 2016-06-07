@@ -10,27 +10,29 @@ import (
 
 type TrackerDB interface {
 	GetAllStartedBuilds() ([]db.Build, error)
-	ErrorBuild(buildID int, pipelineID int, err error) error
 }
 
 func NewTracker(
 	logger lager.Logger,
 
 	trackerDB TrackerDB,
+	buildDBFactory db.BuildDBFactory,
 	engine engine.Engine,
 ) *Tracker {
 	return &Tracker{
-		logger:    logger,
-		trackerDB: trackerDB,
-		engine:    engine,
+		logger:         logger,
+		trackerDB:      trackerDB,
+		buildDBFactory: buildDBFactory,
+		engine:         engine,
 	}
 }
 
 type Tracker struct {
 	logger lager.Logger
 
-	trackerDB TrackerDB
-	engine    engine.Engine
+	trackerDB      TrackerDB
+	buildDBFactory db.BuildDBFactory
+	engine         engine.Engine
 }
 
 func (bt *Tracker) Track() {
@@ -46,11 +48,12 @@ func (bt *Tracker) Track() {
 			"build": b.ID,
 		})
 
-		engineBuild, err := bt.engine.LookupBuild(tLog, b)
+		buildDB := bt.buildDBFactory.GetBuildDB(b)
+		engineBuild, err := bt.engine.LookupBuild(tLog, buildDB)
 		if err != nil {
 			tLog.Error("failed-to-lookup-build", err)
 
-			err := bt.trackerDB.ErrorBuild(b.ID, b.PipelineID, err)
+			err := buildDB.MarkAsFailed(err)
 			if err != nil {
 				tLog.Error("failed-to-mark-build-as-errored", err)
 			}

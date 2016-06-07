@@ -20,16 +20,6 @@ type FakeBuildsDB struct {
 		result2 []db.BuildOutput
 		result3 error
 	}
-	GetBuildPreparationStub        func(buildID int) (db.BuildPreparation, bool, error)
-	getBuildPreparationMutex       sync.RWMutex
-	getBuildPreparationArgsForCall []struct {
-		buildID int
-	}
-	getBuildPreparationReturns struct {
-		result1 db.BuildPreparation
-		result2 bool
-		result3 error
-	}
 	GetConfigByBuildIDStub        func(buildID int) (atc.Config, db.ConfigVersion, error)
 	getConfigByBuildIDMutex       sync.RWMutex
 	getConfigByBuildIDArgsForCall []struct {
@@ -72,40 +62,6 @@ func (fake *FakeBuildsDB) GetBuildResourcesReturns(result1 []db.BuildInput, resu
 	fake.getBuildResourcesReturns = struct {
 		result1 []db.BuildInput
 		result2 []db.BuildOutput
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeBuildsDB) GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error) {
-	fake.getBuildPreparationMutex.Lock()
-	fake.getBuildPreparationArgsForCall = append(fake.getBuildPreparationArgsForCall, struct {
-		buildID int
-	}{buildID})
-	fake.getBuildPreparationMutex.Unlock()
-	if fake.GetBuildPreparationStub != nil {
-		return fake.GetBuildPreparationStub(buildID)
-	} else {
-		return fake.getBuildPreparationReturns.result1, fake.getBuildPreparationReturns.result2, fake.getBuildPreparationReturns.result3
-	}
-}
-
-func (fake *FakeBuildsDB) GetBuildPreparationCallCount() int {
-	fake.getBuildPreparationMutex.RLock()
-	defer fake.getBuildPreparationMutex.RUnlock()
-	return len(fake.getBuildPreparationArgsForCall)
-}
-
-func (fake *FakeBuildsDB) GetBuildPreparationArgsForCall(i int) int {
-	fake.getBuildPreparationMutex.RLock()
-	defer fake.getBuildPreparationMutex.RUnlock()
-	return fake.getBuildPreparationArgsForCall[i].buildID
-}
-
-func (fake *FakeBuildsDB) GetBuildPreparationReturns(result1 db.BuildPreparation, result2 bool, result3 error) {
-	fake.GetBuildPreparationStub = nil
-	fake.getBuildPreparationReturns = struct {
-		result1 db.BuildPreparation
-		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }

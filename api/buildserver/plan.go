@@ -32,7 +32,8 @@ func (s *Server) GetBuildPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	engineBuild, err := s.engine.LookupBuild(hLog, build)
+	buildDB := s.buildDBFactory.GetBuildDB(build)
+	engineBuild, err := s.engine.LookupBuild(hLog, buildDB)
 	if err != nil {
 		hLog.Error("failed-to-lookup-build", err)
 		w.WriteHeader(http.StatusInternalServerError)

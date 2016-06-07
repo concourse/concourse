@@ -35,8 +35,6 @@ type Server struct {
 
 type BuildsDB interface {
 	GetBuildResources(buildID int) ([]db.BuildInput, []db.BuildOutput, error)
-	GetBuildPreparation(buildID int) (db.BuildPreparation, bool, error)
-
 	GetConfigByBuildID(buildID int) (atc.Config, db.ConfigVersion, error)
 }
 

@@ -18,6 +18,7 @@ var _ = Describe("Leases", func() {
 		listener *pq.Listener
 
 		pipelineDBFactory db.PipelineDBFactory
+		buildDBFactory    db.BuildDBFactory
 		sqlDB             *db.SQLDB
 
 		pipelineDB db.PipelineDB
@@ -38,6 +39,7 @@ var _ = Describe("Leases", func() {
 		logger = lagertest.NewTestLogger("test")
 		sqlDB = db.NewSQL(dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
+		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
 
 		teamDBFactory := db.NewTeamDBFactory(dbConn)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
@@ -401,23 +403,26 @@ var _ = Describe("Leases", func() {
 
 	Describe("taking out a lease on build scheduling", func() {
 		var buildID int
+		var buildDB db.BuildDB
 
 		BeforeEach(func() {
 			build, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			buildID = build.ID
+
+			buildDB = buildDBFactory.GetBuildDB(build)
 		})
 
 		Context("when something has been scheduling it recently", func() {
 			It("does not get the lease", func() {
-				lease, leased, err := sqlDB.LeaseBuildScheduling(logger, buildID, 1*time.Second)
+				lease, leased, err := buildDB.LeaseScheduling(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeTrue())
 
 				lease.Break()
 
-				_, leased, err = sqlDB.LeaseBuildScheduling(logger, buildID, 1*time.Second)
+				_, leased, err = buildDB.LeaseScheduling(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeFalse())
 			})
@@ -425,12 +430,12 @@ var _ = Describe("Leases", func() {
 
 		Context("when there has not been any scheduling recently", func() {
 			It("gets and keeps the lease and stops others from getting it", func() {
-				lease, leased, err := sqlDB.LeaseBuildScheduling(logger, buildID, 1*time.Second)
+				lease, leased, err := buildDB.LeaseScheduling(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeTrue())
 
 				Consistently(func() bool {
-					_, leased, err = sqlDB.LeaseBuildScheduling(logger, buildID, 1*time.Second)
+					_, leased, err = buildDB.LeaseScheduling(logger, 1*time.Second)
 					Expect(err).NotTo(HaveOccurred())
 
 					return leased
@@ -440,7 +445,7 @@ var _ = Describe("Leases", func() {
 
 				time.Sleep(time.Second)
 
-				newLease, leased, err := sqlDB.LeaseBuildScheduling(logger, buildID, 1*time.Second)
+				newLease, leased, err := buildDB.LeaseScheduling(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeTrue())
 

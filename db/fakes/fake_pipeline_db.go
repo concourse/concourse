@@ -416,24 +416,24 @@ type FakePipelineDB struct {
 		result1 bool
 		result2 error
 	}
-	SaveBuildInputStub        func(buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
-	saveBuildInputMutex       sync.RWMutex
-	saveBuildInputArgsForCall []struct {
+	SaveInputStub        func(buildID int, input db.BuildInput) (db.SavedVersionedResource, error)
+	saveInputMutex       sync.RWMutex
+	saveInputArgsForCall []struct {
 		buildID int
 		input   db.BuildInput
 	}
-	saveBuildInputReturns struct {
+	saveInputReturns struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}
-	SaveBuildOutputStub        func(buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error)
-	saveBuildOutputMutex       sync.RWMutex
-	saveBuildOutputArgsForCall []struct {
+	SaveOutputStub        func(buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error)
+	saveOutputMutex       sync.RWMutex
+	saveOutputArgsForCall []struct {
 		buildID  int
 		vr       db.VersionedResource
 		explicit bool
 	}
-	saveBuildOutputReturns struct {
+	saveOutputReturns struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}
@@ -1878,70 +1878,70 @@ func (fake *FakePipelineDB) UpdateBuildToScheduledReturns(result1 bool, result2 
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) SaveBuildInput(buildID int, input db.BuildInput) (db.SavedVersionedResource, error) {
-	fake.saveBuildInputMutex.Lock()
-	fake.saveBuildInputArgsForCall = append(fake.saveBuildInputArgsForCall, struct {
+func (fake *FakePipelineDB) SaveInput(buildID int, input db.BuildInput) (db.SavedVersionedResource, error) {
+	fake.saveInputMutex.Lock()
+	fake.saveInputArgsForCall = append(fake.saveInputArgsForCall, struct {
 		buildID int
 		input   db.BuildInput
 	}{buildID, input})
-	fake.saveBuildInputMutex.Unlock()
-	if fake.SaveBuildInputStub != nil {
-		return fake.SaveBuildInputStub(buildID, input)
+	fake.saveInputMutex.Unlock()
+	if fake.SaveInputStub != nil {
+		return fake.SaveInputStub(buildID, input)
 	} else {
-		return fake.saveBuildInputReturns.result1, fake.saveBuildInputReturns.result2
+		return fake.saveInputReturns.result1, fake.saveInputReturns.result2
 	}
 }
 
-func (fake *FakePipelineDB) SaveBuildInputCallCount() int {
-	fake.saveBuildInputMutex.RLock()
-	defer fake.saveBuildInputMutex.RUnlock()
-	return len(fake.saveBuildInputArgsForCall)
+func (fake *FakePipelineDB) SaveInputCallCount() int {
+	fake.saveInputMutex.RLock()
+	defer fake.saveInputMutex.RUnlock()
+	return len(fake.saveInputArgsForCall)
 }
 
-func (fake *FakePipelineDB) SaveBuildInputArgsForCall(i int) (int, db.BuildInput) {
-	fake.saveBuildInputMutex.RLock()
-	defer fake.saveBuildInputMutex.RUnlock()
-	return fake.saveBuildInputArgsForCall[i].buildID, fake.saveBuildInputArgsForCall[i].input
+func (fake *FakePipelineDB) SaveInputArgsForCall(i int) (int, db.BuildInput) {
+	fake.saveInputMutex.RLock()
+	defer fake.saveInputMutex.RUnlock()
+	return fake.saveInputArgsForCall[i].buildID, fake.saveInputArgsForCall[i].input
 }
 
-func (fake *FakePipelineDB) SaveBuildInputReturns(result1 db.SavedVersionedResource, result2 error) {
-	fake.SaveBuildInputStub = nil
-	fake.saveBuildInputReturns = struct {
+func (fake *FakePipelineDB) SaveInputReturns(result1 db.SavedVersionedResource, result2 error) {
+	fake.SaveInputStub = nil
+	fake.saveInputReturns = struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) SaveBuildOutput(buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error) {
-	fake.saveBuildOutputMutex.Lock()
-	fake.saveBuildOutputArgsForCall = append(fake.saveBuildOutputArgsForCall, struct {
+func (fake *FakePipelineDB) SaveOutput(buildID int, vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error) {
+	fake.saveOutputMutex.Lock()
+	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
 		buildID  int
 		vr       db.VersionedResource
 		explicit bool
 	}{buildID, vr, explicit})
-	fake.saveBuildOutputMutex.Unlock()
-	if fake.SaveBuildOutputStub != nil {
-		return fake.SaveBuildOutputStub(buildID, vr, explicit)
+	fake.saveOutputMutex.Unlock()
+	if fake.SaveOutputStub != nil {
+		return fake.SaveOutputStub(buildID, vr, explicit)
 	} else {
-		return fake.saveBuildOutputReturns.result1, fake.saveBuildOutputReturns.result2
+		return fake.saveOutputReturns.result1, fake.saveOutputReturns.result2
 	}
 }
 
-func (fake *FakePipelineDB) SaveBuildOutputCallCount() int {
-	fake.saveBuildOutputMutex.RLock()
-	defer fake.saveBuildOutputMutex.RUnlock()
-	return len(fake.saveBuildOutputArgsForCall)
+func (fake *FakePipelineDB) SaveOutputCallCount() int {
+	fake.saveOutputMutex.RLock()
+	defer fake.saveOutputMutex.RUnlock()
+	return len(fake.saveOutputArgsForCall)
 }
 
-func (fake *FakePipelineDB) SaveBuildOutputArgsForCall(i int) (int, db.VersionedResource, bool) {
-	fake.saveBuildOutputMutex.RLock()
-	defer fake.saveBuildOutputMutex.RUnlock()
-	return fake.saveBuildOutputArgsForCall[i].buildID, fake.saveBuildOutputArgsForCall[i].vr, fake.saveBuildOutputArgsForCall[i].explicit
+func (fake *FakePipelineDB) SaveOutputArgsForCall(i int) (int, db.VersionedResource, bool) {
+	fake.saveOutputMutex.RLock()
+	defer fake.saveOutputMutex.RUnlock()
+	return fake.saveOutputArgsForCall[i].buildID, fake.saveOutputArgsForCall[i].vr, fake.saveOutputArgsForCall[i].explicit
 }
 
-func (fake *FakePipelineDB) SaveBuildOutputReturns(result1 db.SavedVersionedResource, result2 error) {
-	fake.SaveBuildOutputStub = nil
-	fake.saveBuildOutputReturns = struct {
+func (fake *FakePipelineDB) SaveOutputReturns(result1 db.SavedVersionedResource, result2 error) {
+	fake.SaveOutputStub = nil
+	fake.saveOutputReturns = struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}{result1, result2}

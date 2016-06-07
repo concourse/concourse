@@ -76,8 +76,8 @@ type PipelineDB interface {
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error)
 
 	UpdateBuildToScheduled(buildID int) (bool, error)
-	SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error)
-	SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
+	SaveInput(buildID int, input BuildInput) (SavedVersionedResource, error)
+	SaveOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
 	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
 
@@ -1307,7 +1307,7 @@ func (pdb *pipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]
 	return builds, err
 }
 
-func (pdb *pipelineDB) SaveBuildInput(buildID int, input BuildInput) (SavedVersionedResource, error) {
+func (pdb *pipelineDB) SaveInput(buildID int, input BuildInput) (SavedVersionedResource, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return SavedVersionedResource{}, err
@@ -1364,7 +1364,7 @@ func (pdb *pipelineDB) saveBuildInput(tx Tx, buildID int, input BuildInput) (Sav
 	return svr, nil
 }
 
-func (pdb *pipelineDB) SaveBuildOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
+func (pdb *pipelineDB) SaveOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return SavedVersionedResource{}, err

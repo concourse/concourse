@@ -4,30 +4,29 @@ package fakes
 import (
 	"sync"
 
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
 )
 
 type FakeBuildDelegateFactory struct {
-	DelegateStub        func(buildID int, pipelineID int) engine.BuildDelegate
+	DelegateStub        func(db.BuildDB) engine.BuildDelegate
 	delegateMutex       sync.RWMutex
 	delegateArgsForCall []struct {
-		buildID    int
-		pipelineID int
+		arg1 db.BuildDB
 	}
 	delegateReturns struct {
 		result1 engine.BuildDelegate
 	}
 }
 
-func (fake *FakeBuildDelegateFactory) Delegate(buildID int, pipelineID int) engine.BuildDelegate {
+func (fake *FakeBuildDelegateFactory) Delegate(arg1 db.BuildDB) engine.BuildDelegate {
 	fake.delegateMutex.Lock()
 	fake.delegateArgsForCall = append(fake.delegateArgsForCall, struct {
-		buildID    int
-		pipelineID int
-	}{buildID, pipelineID})
+		arg1 db.BuildDB
+	}{arg1})
 	fake.delegateMutex.Unlock()
 	if fake.DelegateStub != nil {
-		return fake.DelegateStub(buildID, pipelineID)
+		return fake.DelegateStub(arg1)
 	} else {
 		return fake.delegateReturns.result1
 	}
@@ -39,10 +38,10 @@ func (fake *FakeBuildDelegateFactory) DelegateCallCount() int {
 	return len(fake.delegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegateFactory) DelegateArgsForCall(i int) (int, int) {
+func (fake *FakeBuildDelegateFactory) DelegateArgsForCall(i int) db.BuildDB {
 	fake.delegateMutex.RLock()
 	defer fake.delegateMutex.RUnlock()
-	return fake.delegateArgsForCall[i].buildID, fake.delegateArgsForCall[i].pipelineID
+	return fake.delegateArgsForCall[i].arg1
 }
 
 func (fake *FakeBuildDelegateFactory) DelegateReturns(result1 engine.BuildDelegate) {

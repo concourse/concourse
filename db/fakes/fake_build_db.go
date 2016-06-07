@@ -3,8 +3,11 @@ package fakes
 
 import (
 	"sync"
+	"time"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/pivotal-golang/lager"
 )
 
 type FakeBuildDB struct {
@@ -22,6 +25,36 @@ type FakeBuildDB struct {
 	getIDReturns     struct {
 		result1 int
 	}
+	GetNameStub        func() string
+	getNameMutex       sync.RWMutex
+	getNameArgsForCall []struct{}
+	getNameReturns     struct {
+		result1 string
+	}
+	GetJobNameStub        func() string
+	getJobNameMutex       sync.RWMutex
+	getJobNameArgsForCall []struct{}
+	getJobNameReturns     struct {
+		result1 string
+	}
+	GetPipelineNameStub        func() string
+	getPipelineNameMutex       sync.RWMutex
+	getPipelineNameArgsForCall []struct{}
+	getPipelineNameReturns     struct {
+		result1 string
+	}
+	GetTeamNameStub        func() string
+	getTeamNameMutex       sync.RWMutex
+	getTeamNameArgsForCall []struct{}
+	getTeamNameReturns     struct {
+		result1 string
+	}
+	GetEngineMetadataStub        func() string
+	getEngineMetadataMutex       sync.RWMutex
+	getEngineMetadataArgsForCall []struct{}
+	getEngineMetadataReturns     struct {
+		result1 string
+	}
 	EventsStub        func(from uint) (db.EventSource, error)
 	eventsMutex       sync.RWMutex
 	eventsArgsForCall []struct {
@@ -31,12 +64,101 @@ type FakeBuildDB struct {
 		result1 db.EventSource
 		result2 error
 	}
+	StartStub        func(string, string) (bool, error)
+	startMutex       sync.RWMutex
+	startArgsForCall []struct {
+		arg1 string
+		arg2 string
+	}
+	startReturns struct {
+		result1 bool
+		result2 error
+	}
+	FinishStub        func(status db.Status) error
+	finishMutex       sync.RWMutex
+	finishArgsForCall []struct {
+		status db.Status
+	}
+	finishReturns struct {
+		result1 error
+	}
+	MarkAsFailedStub        func(cause error) error
+	markAsFailedMutex       sync.RWMutex
+	markAsFailedArgsForCall []struct {
+		cause error
+	}
+	markAsFailedReturns struct {
+		result1 error
+	}
 	AbortNotifierStub        func() (db.Notifier, error)
 	abortNotifierMutex       sync.RWMutex
 	abortNotifierArgsForCall []struct{}
 	abortNotifierReturns     struct {
 		result1 db.Notifier
 		result2 error
+	}
+	SaveEventStub        func(event atc.Event) error
+	saveEventMutex       sync.RWMutex
+	saveEventArgsForCall []struct {
+		event atc.Event
+	}
+	saveEventReturns struct {
+		result1 error
+	}
+	LeaseSchedulingStub        func(logger lager.Logger, interval time.Duration) (db.Lease, bool, error)
+	leaseSchedulingMutex       sync.RWMutex
+	leaseSchedulingArgsForCall []struct {
+		logger   lager.Logger
+		interval time.Duration
+	}
+	leaseSchedulingReturns struct {
+		result1 db.Lease
+		result2 bool
+		result3 error
+	}
+	GetPreparationStub        func() (db.BuildPreparation, bool, error)
+	getPreparationMutex       sync.RWMutex
+	getPreparationArgsForCall []struct{}
+	getPreparationReturns     struct {
+		result1 db.BuildPreparation
+		result2 bool
+		result3 error
+	}
+	SaveEngineMetadataStub        func(engineMetadata string) error
+	saveEngineMetadataMutex       sync.RWMutex
+	saveEngineMetadataArgsForCall []struct {
+		engineMetadata string
+	}
+	saveEngineMetadataReturns struct {
+		result1 error
+	}
+	SaveInputStub        func(input db.BuildInput) (db.SavedVersionedResource, error)
+	saveInputMutex       sync.RWMutex
+	saveInputArgsForCall []struct {
+		input db.BuildInput
+	}
+	saveInputReturns struct {
+		result1 db.SavedVersionedResource
+		result2 error
+	}
+	SaveOutputStub        func(vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error)
+	saveOutputMutex       sync.RWMutex
+	saveOutputArgsForCall []struct {
+		vr       db.VersionedResource
+		explicit bool
+	}
+	saveOutputReturns struct {
+		result1 db.SavedVersionedResource
+		result2 error
+	}
+	SaveImageResourceVersionStub        func(planID atc.PlanID, identifier db.ResourceCacheIdentifier) error
+	saveImageResourceVersionMutex       sync.RWMutex
+	saveImageResourceVersionArgsForCall []struct {
+		planID     atc.PlanID
+		identifier db.ResourceCacheIdentifier
+	}
+	saveImageResourceVersionReturns struct {
+		result1 error
 	}
 }
 
@@ -90,6 +212,126 @@ func (fake *FakeBuildDB) GetIDReturns(result1 int) {
 	}{result1}
 }
 
+func (fake *FakeBuildDB) GetName() string {
+	fake.getNameMutex.Lock()
+	fake.getNameArgsForCall = append(fake.getNameArgsForCall, struct{}{})
+	fake.getNameMutex.Unlock()
+	if fake.GetNameStub != nil {
+		return fake.GetNameStub()
+	} else {
+		return fake.getNameReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) GetNameCallCount() int {
+	fake.getNameMutex.RLock()
+	defer fake.getNameMutex.RUnlock()
+	return len(fake.getNameArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetNameReturns(result1 string) {
+	fake.GetNameStub = nil
+	fake.getNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuildDB) GetJobName() string {
+	fake.getJobNameMutex.Lock()
+	fake.getJobNameArgsForCall = append(fake.getJobNameArgsForCall, struct{}{})
+	fake.getJobNameMutex.Unlock()
+	if fake.GetJobNameStub != nil {
+		return fake.GetJobNameStub()
+	} else {
+		return fake.getJobNameReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) GetJobNameCallCount() int {
+	fake.getJobNameMutex.RLock()
+	defer fake.getJobNameMutex.RUnlock()
+	return len(fake.getJobNameArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetJobNameReturns(result1 string) {
+	fake.GetJobNameStub = nil
+	fake.getJobNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuildDB) GetPipelineName() string {
+	fake.getPipelineNameMutex.Lock()
+	fake.getPipelineNameArgsForCall = append(fake.getPipelineNameArgsForCall, struct{}{})
+	fake.getPipelineNameMutex.Unlock()
+	if fake.GetPipelineNameStub != nil {
+		return fake.GetPipelineNameStub()
+	} else {
+		return fake.getPipelineNameReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) GetPipelineNameCallCount() int {
+	fake.getPipelineNameMutex.RLock()
+	defer fake.getPipelineNameMutex.RUnlock()
+	return len(fake.getPipelineNameArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetPipelineNameReturns(result1 string) {
+	fake.GetPipelineNameStub = nil
+	fake.getPipelineNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuildDB) GetTeamName() string {
+	fake.getTeamNameMutex.Lock()
+	fake.getTeamNameArgsForCall = append(fake.getTeamNameArgsForCall, struct{}{})
+	fake.getTeamNameMutex.Unlock()
+	if fake.GetTeamNameStub != nil {
+		return fake.GetTeamNameStub()
+	} else {
+		return fake.getTeamNameReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) GetTeamNameCallCount() int {
+	fake.getTeamNameMutex.RLock()
+	defer fake.getTeamNameMutex.RUnlock()
+	return len(fake.getTeamNameArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetTeamNameReturns(result1 string) {
+	fake.GetTeamNameStub = nil
+	fake.getTeamNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuildDB) GetEngineMetadata() string {
+	fake.getEngineMetadataMutex.Lock()
+	fake.getEngineMetadataArgsForCall = append(fake.getEngineMetadataArgsForCall, struct{}{})
+	fake.getEngineMetadataMutex.Unlock()
+	if fake.GetEngineMetadataStub != nil {
+		return fake.GetEngineMetadataStub()
+	} else {
+		return fake.getEngineMetadataReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) GetEngineMetadataCallCount() int {
+	fake.getEngineMetadataMutex.RLock()
+	defer fake.getEngineMetadataMutex.RUnlock()
+	return len(fake.getEngineMetadataArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetEngineMetadataReturns(result1 string) {
+	fake.GetEngineMetadataStub = nil
+	fake.getEngineMetadataReturns = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeBuildDB) Events(from uint) (db.EventSource, error) {
 	fake.eventsMutex.Lock()
 	fake.eventsArgsForCall = append(fake.eventsArgsForCall, struct {
@@ -123,6 +365,104 @@ func (fake *FakeBuildDB) EventsReturns(result1 db.EventSource, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeBuildDB) Start(arg1 string, arg2 string) (bool, error) {
+	fake.startMutex.Lock()
+	fake.startArgsForCall = append(fake.startArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
+	fake.startMutex.Unlock()
+	if fake.StartStub != nil {
+		return fake.StartStub(arg1, arg2)
+	} else {
+		return fake.startReturns.result1, fake.startReturns.result2
+	}
+}
+
+func (fake *FakeBuildDB) StartCallCount() int {
+	fake.startMutex.RLock()
+	defer fake.startMutex.RUnlock()
+	return len(fake.startArgsForCall)
+}
+
+func (fake *FakeBuildDB) StartArgsForCall(i int) (string, string) {
+	fake.startMutex.RLock()
+	defer fake.startMutex.RUnlock()
+	return fake.startArgsForCall[i].arg1, fake.startArgsForCall[i].arg2
+}
+
+func (fake *FakeBuildDB) StartReturns(result1 bool, result2 error) {
+	fake.StartStub = nil
+	fake.startReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuildDB) Finish(status db.Status) error {
+	fake.finishMutex.Lock()
+	fake.finishArgsForCall = append(fake.finishArgsForCall, struct {
+		status db.Status
+	}{status})
+	fake.finishMutex.Unlock()
+	if fake.FinishStub != nil {
+		return fake.FinishStub(status)
+	} else {
+		return fake.finishReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) FinishCallCount() int {
+	fake.finishMutex.RLock()
+	defer fake.finishMutex.RUnlock()
+	return len(fake.finishArgsForCall)
+}
+
+func (fake *FakeBuildDB) FinishArgsForCall(i int) db.Status {
+	fake.finishMutex.RLock()
+	defer fake.finishMutex.RUnlock()
+	return fake.finishArgsForCall[i].status
+}
+
+func (fake *FakeBuildDB) FinishReturns(result1 error) {
+	fake.FinishStub = nil
+	fake.finishReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildDB) MarkAsFailed(cause error) error {
+	fake.markAsFailedMutex.Lock()
+	fake.markAsFailedArgsForCall = append(fake.markAsFailedArgsForCall, struct {
+		cause error
+	}{cause})
+	fake.markAsFailedMutex.Unlock()
+	if fake.MarkAsFailedStub != nil {
+		return fake.MarkAsFailedStub(cause)
+	} else {
+		return fake.markAsFailedReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) MarkAsFailedCallCount() int {
+	fake.markAsFailedMutex.RLock()
+	defer fake.markAsFailedMutex.RUnlock()
+	return len(fake.markAsFailedArgsForCall)
+}
+
+func (fake *FakeBuildDB) MarkAsFailedArgsForCall(i int) error {
+	fake.markAsFailedMutex.RLock()
+	defer fake.markAsFailedMutex.RUnlock()
+	return fake.markAsFailedArgsForCall[i].cause
+}
+
+func (fake *FakeBuildDB) MarkAsFailedReturns(result1 error) {
+	fake.MarkAsFailedStub = nil
+	fake.markAsFailedReturns = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeBuildDB) AbortNotifier() (db.Notifier, error) {
 	fake.abortNotifierMutex.Lock()
 	fake.abortNotifierArgsForCall = append(fake.abortNotifierArgsForCall, struct{}{})
@@ -146,6 +486,231 @@ func (fake *FakeBuildDB) AbortNotifierReturns(result1 db.Notifier, result2 error
 		result1 db.Notifier
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuildDB) SaveEvent(event atc.Event) error {
+	fake.saveEventMutex.Lock()
+	fake.saveEventArgsForCall = append(fake.saveEventArgsForCall, struct {
+		event atc.Event
+	}{event})
+	fake.saveEventMutex.Unlock()
+	if fake.SaveEventStub != nil {
+		return fake.SaveEventStub(event)
+	} else {
+		return fake.saveEventReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) SaveEventCallCount() int {
+	fake.saveEventMutex.RLock()
+	defer fake.saveEventMutex.RUnlock()
+	return len(fake.saveEventArgsForCall)
+}
+
+func (fake *FakeBuildDB) SaveEventArgsForCall(i int) atc.Event {
+	fake.saveEventMutex.RLock()
+	defer fake.saveEventMutex.RUnlock()
+	return fake.saveEventArgsForCall[i].event
+}
+
+func (fake *FakeBuildDB) SaveEventReturns(result1 error) {
+	fake.SaveEventStub = nil
+	fake.saveEventReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildDB) LeaseScheduling(logger lager.Logger, interval time.Duration) (db.Lease, bool, error) {
+	fake.leaseSchedulingMutex.Lock()
+	fake.leaseSchedulingArgsForCall = append(fake.leaseSchedulingArgsForCall, struct {
+		logger   lager.Logger
+		interval time.Duration
+	}{logger, interval})
+	fake.leaseSchedulingMutex.Unlock()
+	if fake.LeaseSchedulingStub != nil {
+		return fake.LeaseSchedulingStub(logger, interval)
+	} else {
+		return fake.leaseSchedulingReturns.result1, fake.leaseSchedulingReturns.result2, fake.leaseSchedulingReturns.result3
+	}
+}
+
+func (fake *FakeBuildDB) LeaseSchedulingCallCount() int {
+	fake.leaseSchedulingMutex.RLock()
+	defer fake.leaseSchedulingMutex.RUnlock()
+	return len(fake.leaseSchedulingArgsForCall)
+}
+
+func (fake *FakeBuildDB) LeaseSchedulingArgsForCall(i int) (lager.Logger, time.Duration) {
+	fake.leaseSchedulingMutex.RLock()
+	defer fake.leaseSchedulingMutex.RUnlock()
+	return fake.leaseSchedulingArgsForCall[i].logger, fake.leaseSchedulingArgsForCall[i].interval
+}
+
+func (fake *FakeBuildDB) LeaseSchedulingReturns(result1 db.Lease, result2 bool, result3 error) {
+	fake.LeaseSchedulingStub = nil
+	fake.leaseSchedulingReturns = struct {
+		result1 db.Lease
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildDB) GetPreparation() (db.BuildPreparation, bool, error) {
+	fake.getPreparationMutex.Lock()
+	fake.getPreparationArgsForCall = append(fake.getPreparationArgsForCall, struct{}{})
+	fake.getPreparationMutex.Unlock()
+	if fake.GetPreparationStub != nil {
+		return fake.GetPreparationStub()
+	} else {
+		return fake.getPreparationReturns.result1, fake.getPreparationReturns.result2, fake.getPreparationReturns.result3
+	}
+}
+
+func (fake *FakeBuildDB) GetPreparationCallCount() int {
+	fake.getPreparationMutex.RLock()
+	defer fake.getPreparationMutex.RUnlock()
+	return len(fake.getPreparationArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetPreparationReturns(result1 db.BuildPreparation, result2 bool, result3 error) {
+	fake.GetPreparationStub = nil
+	fake.getPreparationReturns = struct {
+		result1 db.BuildPreparation
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuildDB) SaveEngineMetadata(engineMetadata string) error {
+	fake.saveEngineMetadataMutex.Lock()
+	fake.saveEngineMetadataArgsForCall = append(fake.saveEngineMetadataArgsForCall, struct {
+		engineMetadata string
+	}{engineMetadata})
+	fake.saveEngineMetadataMutex.Unlock()
+	if fake.SaveEngineMetadataStub != nil {
+		return fake.SaveEngineMetadataStub(engineMetadata)
+	} else {
+		return fake.saveEngineMetadataReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) SaveEngineMetadataCallCount() int {
+	fake.saveEngineMetadataMutex.RLock()
+	defer fake.saveEngineMetadataMutex.RUnlock()
+	return len(fake.saveEngineMetadataArgsForCall)
+}
+
+func (fake *FakeBuildDB) SaveEngineMetadataArgsForCall(i int) string {
+	fake.saveEngineMetadataMutex.RLock()
+	defer fake.saveEngineMetadataMutex.RUnlock()
+	return fake.saveEngineMetadataArgsForCall[i].engineMetadata
+}
+
+func (fake *FakeBuildDB) SaveEngineMetadataReturns(result1 error) {
+	fake.SaveEngineMetadataStub = nil
+	fake.saveEngineMetadataReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildDB) SaveInput(input db.BuildInput) (db.SavedVersionedResource, error) {
+	fake.saveInputMutex.Lock()
+	fake.saveInputArgsForCall = append(fake.saveInputArgsForCall, struct {
+		input db.BuildInput
+	}{input})
+	fake.saveInputMutex.Unlock()
+	if fake.SaveInputStub != nil {
+		return fake.SaveInputStub(input)
+	} else {
+		return fake.saveInputReturns.result1, fake.saveInputReturns.result2
+	}
+}
+
+func (fake *FakeBuildDB) SaveInputCallCount() int {
+	fake.saveInputMutex.RLock()
+	defer fake.saveInputMutex.RUnlock()
+	return len(fake.saveInputArgsForCall)
+}
+
+func (fake *FakeBuildDB) SaveInputArgsForCall(i int) db.BuildInput {
+	fake.saveInputMutex.RLock()
+	defer fake.saveInputMutex.RUnlock()
+	return fake.saveInputArgsForCall[i].input
+}
+
+func (fake *FakeBuildDB) SaveInputReturns(result1 db.SavedVersionedResource, result2 error) {
+	fake.SaveInputStub = nil
+	fake.saveInputReturns = struct {
+		result1 db.SavedVersionedResource
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuildDB) SaveOutput(vr db.VersionedResource, explicit bool) (db.SavedVersionedResource, error) {
+	fake.saveOutputMutex.Lock()
+	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
+		vr       db.VersionedResource
+		explicit bool
+	}{vr, explicit})
+	fake.saveOutputMutex.Unlock()
+	if fake.SaveOutputStub != nil {
+		return fake.SaveOutputStub(vr, explicit)
+	} else {
+		return fake.saveOutputReturns.result1, fake.saveOutputReturns.result2
+	}
+}
+
+func (fake *FakeBuildDB) SaveOutputCallCount() int {
+	fake.saveOutputMutex.RLock()
+	defer fake.saveOutputMutex.RUnlock()
+	return len(fake.saveOutputArgsForCall)
+}
+
+func (fake *FakeBuildDB) SaveOutputArgsForCall(i int) (db.VersionedResource, bool) {
+	fake.saveOutputMutex.RLock()
+	defer fake.saveOutputMutex.RUnlock()
+	return fake.saveOutputArgsForCall[i].vr, fake.saveOutputArgsForCall[i].explicit
+}
+
+func (fake *FakeBuildDB) SaveOutputReturns(result1 db.SavedVersionedResource, result2 error) {
+	fake.SaveOutputStub = nil
+	fake.saveOutputReturns = struct {
+		result1 db.SavedVersionedResource
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuildDB) SaveImageResourceVersion(planID atc.PlanID, identifier db.ResourceCacheIdentifier) error {
+	fake.saveImageResourceVersionMutex.Lock()
+	fake.saveImageResourceVersionArgsForCall = append(fake.saveImageResourceVersionArgsForCall, struct {
+		planID     atc.PlanID
+		identifier db.ResourceCacheIdentifier
+	}{planID, identifier})
+	fake.saveImageResourceVersionMutex.Unlock()
+	if fake.SaveImageResourceVersionStub != nil {
+		return fake.SaveImageResourceVersionStub(planID, identifier)
+	} else {
+		return fake.saveImageResourceVersionReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) SaveImageResourceVersionCallCount() int {
+	fake.saveImageResourceVersionMutex.RLock()
+	defer fake.saveImageResourceVersionMutex.RUnlock()
+	return len(fake.saveImageResourceVersionArgsForCall)
+}
+
+func (fake *FakeBuildDB) SaveImageResourceVersionArgsForCall(i int) (atc.PlanID, db.ResourceCacheIdentifier) {
+	fake.saveImageResourceVersionMutex.RLock()
+	defer fake.saveImageResourceVersionMutex.RUnlock()
+	return fake.saveImageResourceVersionArgsForCall[i].planID, fake.saveImageResourceVersionArgsForCall[i].identifier
+}
+
+func (fake *FakeBuildDB) SaveImageResourceVersionReturns(result1 error) {
+	fake.SaveImageResourceVersionStub = nil
+	fake.saveImageResourceVersionReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ db.BuildDB = new(FakeBuildDB)
