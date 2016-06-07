@@ -1,16 +1,9 @@
 package db
 
 import (
-	"database/sql"
-	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/lib/pq"
 )
-
-const buildColumns = "id, name, job_id, team_id, status, scheduled, inputs_determined, engine, engine_metadata, start_time, end_time, reap_time"
-const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.scheduled, b.inputs_determined, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name"
 
 func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 	rows, err := db.conn.Query(`
@@ -39,24 +32,6 @@ func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 	}
 
 	return bs, nil
-}
-
-func (db *SQLDB) getPipelineName(buildID int) (string, error) {
-	var pipelineName string
-	err := db.conn.QueryRow(`
-		SELECT p.name
-		FROM builds b, jobs j, pipelines p
-		WHERE b.id = $1
-		AND b.job_id = j.id
-		AND j.pipeline_id = p.id
-		LIMIT 1
-	`, buildID).Scan(&pipelineName)
-
-	if err != nil {
-		return "", err
-	}
-
-	return pipelineName, nil
 }
 
 func (db *SQLDB) UpdateBuildPreparation(buildPrep BuildPreparation) error {
@@ -131,59 +106,4 @@ func (db *SQLDB) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 
 	err = tx.Commit()
 	return err
-}
-
-func scanBuild(row scannable) (Build, bool, error) {
-	var id int
-	var name string
-	var jobID, pipelineID sql.NullInt64
-	var status string
-	var scheduled bool
-	var inputsDetermined bool
-	var engine, engineMetadata, jobName, pipelineName sql.NullString
-	var startTime pq.NullTime
-	var endTime pq.NullTime
-	var reapTime pq.NullTime
-	var teamID int
-	var teamName string
-
-	err := row.Scan(&id, &name, &jobID, &teamID, &status, &scheduled, &inputsDetermined, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &teamName)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return Build{}, false, nil
-		}
-
-		return Build{}, false, err
-	}
-
-	build := Build{
-		ID:               id,
-		Name:             name,
-		Status:           Status(status),
-		Scheduled:        scheduled,
-		InputsDetermined: inputsDetermined,
-
-		Engine:         engine.String,
-		EngineMetadata: engineMetadata.String,
-
-		StartTime: startTime.Time,
-		EndTime:   endTime.Time,
-		ReapTime:  reapTime.Time,
-
-		TeamID:   teamID,
-		TeamName: teamName,
-	}
-
-	if jobID.Valid {
-		build.JobID = int(jobID.Int64)
-		build.JobName = jobName.String
-		build.PipelineName = pipelineName.String
-		build.PipelineID = int(pipelineID.Int64)
-	}
-
-	return build, true, nil
-}
-
-func buildAbortChannel(buildID int) string {
-	return fmt.Sprintf("build_abort_%d", buildID)
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
+	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -16,6 +17,9 @@ import (
 type BuildDBFactory interface {
 	GetBuildDB(build Build) BuildDB
 }
+
+const buildColumns = "id, name, job_id, team_id, status, scheduled, inputs_determined, engine, engine_metadata, start_time, end_time, reap_time"
+const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.scheduled, b.inputs_determined, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name"
 
 func NewBuildDBFactory(conn Conn, bus *notificationsBus) BuildDBFactory {
 	return &buildDBFactory{
@@ -411,7 +415,6 @@ func (db *buildDB) GetResources() ([]BuildInput, []BuildOutput, error) {
 }
 
 func (db *buildDB) getVersionedResources(resourceRequest string) (SavedVersionedResources, error) {
-
 	rows, err := db.conn.Query(resourceRequest, db.buildID)
 	if err != nil {
 		return nil, err
@@ -441,7 +444,6 @@ func (db *buildDB) getVersionedResources(resourceRequest string) (SavedVersioned
 	}
 
 	return savedVersionedResources, nil
-
 }
 
 func (db *buildDB) GetVersionedResources() (SavedVersionedResources, error) {
@@ -740,6 +742,61 @@ func (db *buildDB) saveEvent(tx Tx, event atc.Event) error {
 	}
 
 	return nil
+}
+
+func scanBuild(row scannable) (Build, bool, error) {
+	var id int
+	var name string
+	var jobID, pipelineID sql.NullInt64
+	var status string
+	var scheduled bool
+	var inputsDetermined bool
+	var engine, engineMetadata, jobName, pipelineName sql.NullString
+	var startTime pq.NullTime
+	var endTime pq.NullTime
+	var reapTime pq.NullTime
+	var teamID int
+	var teamName string
+
+	err := row.Scan(&id, &name, &jobID, &teamID, &status, &scheduled, &inputsDetermined, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &teamName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return Build{}, false, nil
+		}
+
+		return Build{}, false, err
+	}
+
+	build := Build{
+		ID:               id,
+		Name:             name,
+		Status:           Status(status),
+		Scheduled:        scheduled,
+		InputsDetermined: inputsDetermined,
+
+		Engine:         engine.String,
+		EngineMetadata: engineMetadata.String,
+
+		StartTime: startTime.Time,
+		EndTime:   endTime.Time,
+		ReapTime:  reapTime.Time,
+
+		TeamID:   teamID,
+		TeamName: teamName,
+	}
+
+	if jobID.Valid {
+		build.JobID = int(jobID.Int64)
+		build.JobName = jobName.String
+		build.PipelineName = pipelineName.String
+		build.PipelineID = int(pipelineID.Int64)
+	}
+
+	return build, true, nil
+}
+
+func buildAbortChannel(buildID int) string {
+	return fmt.Sprintf("build_abort_%d", buildID)
 }
 
 func buildEventsChannel(buildID int) string {

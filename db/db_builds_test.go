@@ -9,6 +9,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/event"
 )
 
 var _ = Describe("Keeping track of builds", func() {
@@ -85,150 +86,12 @@ var _ = Describe("Keeping track of builds", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("can get a build's inputs", func() {
-		build, err := pipelineDB.CreateJobBuild("some-job")
-		Expect(err).ToNot(HaveOccurred())
-
-		expectedBuildInput, err := pipelineDB.SaveInput(build.ID, db.BuildInput{
-			Name: "some-input",
-			VersionedResource: db.VersionedResource{
-				Resource: "some-resource",
-				Type:     "some-type",
-				Version: db.Version{
-					"some": "version",
-				},
-				Metadata: []db.MetadataField{
-					{
-						Name:  "meta1",
-						Value: "data1",
-					},
-					{
-						Name:  "meta2",
-						Value: "data2",
-					},
-				},
-				PipelineID: pipeline.ID,
-			},
-		})
-		Expect(err).ToNot(HaveOccurred())
-
-		actualBuildInput, err := buildDBFactory.GetBuildDB(build).GetVersionedResources()
-		expectedBuildInput.CheckOrder = 0
-		Expect(err).ToNot(HaveOccurred())
-		Expect(len(actualBuildInput)).To(Equal(1))
-		Expect(actualBuildInput[0]).To(Equal(expectedBuildInput))
-	})
-
-	It("can get a build's output", func() {
-		build, err := pipelineDB.CreateJobBuild("some-job")
-		Expect(err).ToNot(HaveOccurred())
-
-		expectedBuildOutput, err := pipelineDB.SaveOutput(build.ID, db.VersionedResource{
-			Resource: "some-explicit-resource",
-			Type:     "some-type",
-			Version: db.Version{
-				"some": "version",
-			},
-			Metadata: []db.MetadataField{
-				{
-					Name:  "meta1",
-					Value: "data1",
-				},
-				{
-					Name:  "meta2",
-					Value: "data2",
-				},
-			},
-			PipelineID: pipeline.ID,
-		}, true)
-		Expect(err).ToNot(HaveOccurred())
-
-		_, err = pipelineDB.SaveOutput(build.ID, db.VersionedResource{
-			Resource: "some-implicit-resource",
-			Type:     "some-type",
-			Version: db.Version{
-				"some": "version",
-			},
-			Metadata: []db.MetadataField{
-				{
-					Name:  "meta1",
-					Value: "data1",
-				},
-				{
-					Name:  "meta2",
-					Value: "data2",
-				},
-			},
-			PipelineID: pipeline.ID,
-		}, false)
-		Expect(err).ToNot(HaveOccurred())
-
-		actualBuildOutput, err := buildDBFactory.GetBuildDB(build).GetVersionedResources()
-		expectedBuildOutput.CheckOrder = 0
-		Expect(err).ToNot(HaveOccurred())
-		Expect(len(actualBuildOutput)).To(Equal(1))
-		Expect(actualBuildOutput[0]).To(Equal(expectedBuildOutput))
-	})
-
-	Context("build creation", func() {
+	Describe("UpdateBuildPreparation", func() {
 		var (
 			oneOff db.Build
 			err    error
 		)
 
-		BeforeEach(func() {
-			oneOff, err = teamDB.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("can get (no) resources from a one-off build", func() {
-			inputs, outputs, err := buildDBFactory.GetBuildDB(oneOff).GetResources()
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(inputs).To(BeEmpty())
-			Expect(outputs).To(BeEmpty())
-		})
-
-		It("can create one-off builds with increasing names", func() {
-			Expect(oneOff.ID).NotTo(BeZero())
-			Expect(oneOff.JobName).To(BeZero())
-			Expect(oneOff.Name).To(Equal("1"))
-			Expect(oneOff.TeamID).To(Equal(team.ID))
-			Expect(oneOff.TeamName).To(Equal(team.Name))
-			Expect(oneOff.Status).To(Equal(db.StatusPending))
-
-			oneOffGot, found, err := teamDB.GetBuild(oneOff.ID)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-			Expect(oneOffGot).To(Equal(oneOff))
-
-			jobBuild, err := pipelineDB.CreateJobBuild("some-other-job")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(jobBuild.Name).To(Equal("1"))
-
-			nextOneOff, err := teamDB.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(nextOneOff.Name).To(Equal("2"))
-
-			allBuilds, _, err := teamDB.GetBuilds(db.Page{Limit: 100})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(allBuilds).To(Equal([]db.Build{nextOneOff, jobBuild, oneOff}))
-		})
-
-		It("also creates buildpreparation", func() {
-			buildPrep, found, err := buildDBFactory.GetBuildDB(oneOff).GetPreparation()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			Expect(buildPrep.BuildID).To(Equal(oneOff.ID))
-		})
-	})
-
-	Describe("build preparation update", func() {
-		var (
-			oneOff db.Build
-			err    error
-		)
 		BeforeEach(func() {
 			oneOff, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
@@ -356,6 +219,127 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(found).To(BeTrue())
 
 			Expect(builds).To(ConsistOf(build1, build2))
+		})
+	})
+
+	Describe("DeleteBuildEventsByBuildIDs", func() {
+		It("deletes all build logs corresponding to the given build ids", func() {
+			build1, err := teamDB.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			build1DB := buildDBFactory.GetBuildDB(build1)
+			err = build1DB.SaveEvent(event.Log{
+				Payload: "log 1",
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			build2, err := teamDB.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			build2DB := buildDBFactory.GetBuildDB(build2)
+			err = build2DB.SaveEvent(event.Log{
+				Payload: "log 2",
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			build3, err := teamDB.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			build3DB := buildDBFactory.GetBuildDB(build3)
+			err = build3DB.Finish(db.StatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build1DB.Finish(db.StatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = build2DB.Finish(db.StatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			build4, err := teamDB.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			By("doing nothing if the list is empty")
+			err = database.DeleteBuildEventsByBuildIDs([]int{})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("not returning an error")
+			database.DeleteBuildEventsByBuildIDs([]int{build3.ID, build4.ID, build1.ID})
+			Expect(err).NotTo(HaveOccurred())
+
+			build4DB := buildDBFactory.GetBuildDB(build4)
+			err = build4DB.Finish(db.StatusSucceeded)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("deleting events for build 1")
+			events1, err := buildDBFactory.GetBuildDB(build1).Events(0)
+			Expect(err).NotTo(HaveOccurred())
+			defer events1.Close()
+
+			_, err = events1.Next()
+			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
+
+			By("preserving events for build 2")
+			events2, err := buildDBFactory.GetBuildDB(build2).Events(0)
+			Expect(err).NotTo(HaveOccurred())
+			defer events2.Close()
+
+			build2Event1, err := events2.Next()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(build2Event1).To(Equal(event.Log{
+				Payload: "log 2",
+			}))
+
+			_, err = events2.Next() // finish event
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = events2.Next()
+			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
+
+			By("deleting events for build 3")
+			events3, err := buildDBFactory.GetBuildDB(build3).Events(0)
+			Expect(err).NotTo(HaveOccurred())
+			defer events3.Close()
+
+			_, err = events3.Next()
+			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
+
+			By("being unflapped by build 4, which had no events at the time")
+			events4, err := buildDBFactory.GetBuildDB(build4).Events(0)
+			Expect(err).NotTo(HaveOccurred())
+			defer events4.Close()
+
+			_, err = events4.Next() // finish event
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = events4.Next()
+			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
+
+			By("updating ReapTime for the affected builds")
+
+			reapedBuild1, found, err := teamDB.GetBuild(build1.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(reapedBuild1.ReapTime).To(BeTemporally(">", reapedBuild1.EndTime))
+
+			reapedBuild2, found, err := teamDB.GetBuild(build2.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(reapedBuild2.ReapTime).To(BeZero())
+
+			reapedBuild3, found, err := teamDB.GetBuild(build3.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(reapedBuild3.ReapTime).To(Equal(reapedBuild1.ReapTime))
+
+			reapedBuild4, found, err := teamDB.GetBuild(build4.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			// Not required behavior, just a sanity check for what I think will happen
+			Expect(reapedBuild4.ReapTime).To(Equal(reapedBuild1.ReapTime))
 		})
 	})
 })
