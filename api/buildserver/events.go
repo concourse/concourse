@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/pivotal-golang/lager"
 )
 
 func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
@@ -61,19 +60,6 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		defer close(streamDone)
-
-		build, found, err := teamDB.GetBuild(build.ID)
-		if err != nil {
-			s.logger.Error("failed-to-get-build", err, lager.Data{"build-id": build.ID})
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		if !found {
-			s.logger.Info("build-not-found", lager.Data{"build-id": build.ID})
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
 		buildDB := s.buildDBFactory.GetBuildDB(build)
 
 		s.eventHandlerFactory(s.logger, buildDB).ServeHTTP(w, r)

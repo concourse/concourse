@@ -180,7 +180,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	tracker := resource.NewTracker(workerClient)
 	teamDBFactory := db.NewTeamDBFactory(dbConn)
 	buildDBFactory := db.NewBuildDBFactory(dbConn, bus)
-	engine := cmd.constructEngine(sqlDB, workerClient, tracker, teamDBFactory, buildDBFactory)
+	engine := cmd.constructEngine(workerClient, tracker, teamDBFactory, buildDBFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		tracker,
@@ -725,7 +725,6 @@ func (cmd *ATCCommand) updateBasicAuthCredentials(teamDBFactory db.TeamDBFactory
 }
 
 func (cmd *ATCCommand) constructEngine(
-	sqlDB *db.SQLDB,
 	workerClient worker.Client,
 	tracker resource.Tracker,
 	teamDBFactory db.TeamDBFactory,
@@ -747,7 +746,7 @@ func (cmd *ATCCommand) constructEngine(
 
 	execV1Engine := engine.NewExecV1DummyEngine()
 
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, sqlDB, buildDBFactory)
+	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, buildDBFactory)
 }
 
 func (cmd *ATCCommand) constructHTTPHandler(

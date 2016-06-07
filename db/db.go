@@ -93,8 +93,6 @@ type DB interface {
 
 	DeleteBuildEventsByBuildIDs(buildIDs []int) error
 
-	AbortBuild(buildID int) error
-
 	Workers() ([]SavedWorker, error) // auto-expires workers based on ttl
 	GetWorker(workerName string) (SavedWorker, bool, error)
 	SaveWorker(WorkerInfo, time.Duration) (SavedWorker, error)

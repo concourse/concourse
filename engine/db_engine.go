@@ -16,17 +16,9 @@ var ErrBuildNotActive = errors.New("build not yet active")
 
 const trackingInterval = 10 * time.Second
 
-//go:generate counterfeiter . BuildDB
-
-type BuildDB interface {
-	AbortBuild(int) error
-}
-
-func NewDBEngine(engines Engines, buildDB BuildDB, buildDBFactory db.BuildDBFactory) Engine {
+func NewDBEngine(engines Engines, buildDBFactory db.BuildDBFactory) Engine {
 	return &dbEngine{
-		engines: engines,
-
-		db:             buildDB,
+		engines:        engines,
 		buildDBFactory: buildDBFactory,
 	}
 }
@@ -40,10 +32,7 @@ func (err UnknownEngineError) Error() string {
 }
 
 type dbEngine struct {
-	engines Engines
-
-	db BuildDB
-
+	engines        Engines
 	buildDBFactory db.BuildDBFactory
 }
 
@@ -70,8 +59,6 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, buildDB db.BuildDB, pla
 
 	return &dbBuild{
 		engines: engine.engines,
-
-		db:      engine.db,
 		buildDB: buildDB,
 	}, nil
 }
@@ -79,17 +66,12 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, buildDB db.BuildDB, pla
 func (engine *dbEngine) LookupBuild(logger lager.Logger, buildDB db.BuildDB) (Build, error) {
 	return &dbBuild{
 		engines: engine.engines,
-
-		db:      engine.db,
 		buildDB: buildDB,
 	}, nil
 }
 
 type dbBuild struct {
 	engines Engines
-
-	db BuildDB
-
 	buildDB db.BuildDB
 }
 
@@ -134,7 +116,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 	if !leased {
 		// someone else is tracking the build; abort it, which will notify them
 		logger.Info("notifying-other-tracker")
-		return build.db.AbortBuild(build.buildDB.GetID())
+		return build.buildDB.Abort()
 	}
 
 	defer lease.Break()
@@ -143,7 +125,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 
 	// first save the status so that CreateBuild will see a conflict when it
 	// tries to mark the build as started.
-	err = build.db.AbortBuild(build.buildDB.GetID())
+	err = build.buildDB.Abort()
 	if err != nil {
 		logger.Error("failed-to-abort-in-database", err)
 		return err

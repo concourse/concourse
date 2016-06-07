@@ -90,6 +90,12 @@ type FakeBuildDB struct {
 	markAsFailedReturns struct {
 		result1 error
 	}
+	AbortStub        func() error
+	abortMutex       sync.RWMutex
+	abortArgsForCall []struct{}
+	abortReturns     struct {
+		result1 error
+	}
 	AbortNotifierStub        func() (db.Notifier, error)
 	abortNotifierMutex       sync.RWMutex
 	abortNotifierArgsForCall []struct{}
@@ -470,6 +476,30 @@ func (fake *FakeBuildDB) MarkAsFailedArgsForCall(i int) error {
 func (fake *FakeBuildDB) MarkAsFailedReturns(result1 error) {
 	fake.MarkAsFailedStub = nil
 	fake.markAsFailedReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildDB) Abort() error {
+	fake.abortMutex.Lock()
+	fake.abortArgsForCall = append(fake.abortArgsForCall, struct{}{})
+	fake.abortMutex.Unlock()
+	if fake.AbortStub != nil {
+		return fake.AbortStub()
+	} else {
+		return fake.abortReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) AbortCallCount() int {
+	fake.abortMutex.RLock()
+	defer fake.abortMutex.RUnlock()
+	return len(fake.abortArgsForCall)
+}
+
+func (fake *FakeBuildDB) AbortReturns(result1 error) {
+	fake.AbortStub = nil
+	fake.abortReturns = struct {
 		result1 error
 	}{result1}
 }

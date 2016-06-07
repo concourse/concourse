@@ -55,6 +55,7 @@ type BuildDB interface {
 	Start(string, string) (bool, error)
 	Finish(status Status) error
 	MarkAsFailed(cause error) error
+	Abort() error
 	AbortNotifier() (Notifier, error)
 	SaveEvent(event atc.Event) error
 
@@ -182,6 +183,24 @@ func (db *buildDB) Start(engine, metadata string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (db *buildDB) Abort() error {
+	_, err := db.conn.Exec(`
+   UPDATE builds
+   SET status = 'aborted'
+   WHERE id = $1
+ `, db.buildID)
+	if err != nil {
+		return err
+	}
+
+	err = db.bus.Notify(buildAbortChannel(db.buildID))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (db *buildDB) AbortNotifier() (Notifier, error) {

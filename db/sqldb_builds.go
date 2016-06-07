@@ -263,24 +263,6 @@ func (db *SQLDB) ResetBuildPreparationsWithPipelinePaused(pipelineID int) error 
 	return err
 }
 
-func (db *SQLDB) AbortBuild(buildID int) error {
-	_, err := db.conn.Exec(`
-   UPDATE builds
-   SET status = 'aborted'
-   WHERE id = $1
- `, buildID)
-	if err != nil {
-		return err
-	}
-
-	err = db.bus.Notify(buildAbortChannel(buildID))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (db *SQLDB) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 	if len(buildIDs) == 0 {
 		return nil

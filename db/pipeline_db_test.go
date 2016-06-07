@@ -2370,7 +2370,8 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				err = sqlDB.AbortBuild(build.ID)
+				buildDB := buildDBFactory.GetBuildDB(build)
+				err = buildDB.Abort()
 				Expect(err).NotTo(HaveOccurred())
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
