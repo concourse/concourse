@@ -201,7 +201,6 @@ var _ = Describe("OAuthCallbackHandler", func() {
 
 							JustBeforeEach(func() {
 								cookies := response.Cookies()
-								Expect(cookies).To(HaveLen(1))
 								cookie = cookies[0]
 							})
 
@@ -232,13 +231,17 @@ var _ = Describe("OAuthCallbackHandler", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusOK))
 						})
 
-						It("responds with the token", func() {
+						It("responds with the token and deletes oauth state cookie", func() {
 							cookies := response.Cookies()
-							Expect(cookies).To(HaveLen(1))
+							Expect(cookies).To(HaveLen(2))
 
 							cookie := cookies[0]
 							Expect(cookie.Value).To(MatchRegexp(`^Bearer .*`))
 							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte(cookie.Value + "\n")))
+
+							deletedCookie := cookies[1]
+							Expect(deletedCookie.Name).To(Equal(auth.OAuthStateCookie))
+							Expect(deletedCookie.MaxAge).To(Equal(-1))
 						})
 					})
 
