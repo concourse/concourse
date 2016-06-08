@@ -35,18 +35,18 @@ type buildDBFactory struct {
 
 func (f *buildDBFactory) GetBuildDB(build Build) BuildDB {
 	return &buildDB{
-		build:      build,
-		buildID:    build.ID,
-		pipelineID: build.PipelineID,
-		conn:       f.conn,
-		bus:        f.bus,
+		build: build,
+		conn:  f.conn,
+		bus:   f.bus,
 	}
 }
 
 //go:generate counterfeiter . BuildDB
 
 type BuildDB interface {
-	Get() (Build, bool, error)
+	GetModel() Build
+	Reload() (Build, bool, error)
+
 	GetID() int
 	GetName() string
 	GetJobName() string
@@ -84,28 +84,34 @@ type BuildDB interface {
 }
 
 type buildDB struct {
-	buildID    int
-	pipelineID int
-	build      Build
-	conn       Conn
-	bus        *notificationsBus
+	build Build
+	conn  Conn
+	bus   *notificationsBus
 
 	buildPrepHelper buildPreparationHelper
 }
 
-func (db *buildDB) Get() (Build, bool, error) {
-	return scanBuild(db.conn.QueryRow(`
+func (db *buildDB) GetModel() Build {
+	return db.build
+}
+
+func (db *buildDB) Reload() (Build, bool, error) {
+	build, found, err := scanBuild(db.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
 		LEFT OUTER JOIN jobs j ON b.job_id = j.id
 		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
 		LEFT OUTER JOIN teams t ON b.team_id = t.id
 		WHERE b.id = $1
-	`, db.buildID))
+	`, db.build.ID))
+
+	db.build = build
+
+	return db.build, found, err
 }
 
 func (db *buildDB) GetID() int {
-	return db.buildID
+	return db.build.ID
 }
 
 func (db *buildDB) GetName() string {
@@ -133,7 +139,7 @@ func (db *buildDB) IsOneOff() bool {
 }
 
 func (db *buildDB) Events(from uint) (EventSource, error) {
-	notifier, err := newConditionNotifier(db.bus, buildEventsChannel(db.buildID), func() (bool, error) {
+	notifier, err := newConditionNotifier(db.bus, buildEventsChannel(db.build.ID), func() (bool, error) {
 		return true, nil
 	})
 	if err != nil {
@@ -141,12 +147,12 @@ func (db *buildDB) Events(from uint) (EventSource, error) {
 	}
 
 	table := "build_events"
-	if db.pipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", db.pipelineID)
+	if db.build.PipelineID != 0 {
+		table = fmt.Sprintf("pipeline_build_events_%d", db.build.PipelineID)
 	}
 
 	return newSQLDBBuildEventSource(
-		db.buildID,
+		db.build.ID,
 		table,
 		db.conn,
 		notifier,
@@ -170,7 +176,7 @@ func (db *buildDB) Start(engine, metadata string) (bool, error) {
 		WHERE id = $1
 		AND status = 'pending'
 		RETURNING start_time
-	`, db.buildID, engine, metadata).Scan(&startTime)
+	`, db.build.ID, engine, metadata).Scan(&startTime)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
@@ -192,7 +198,7 @@ func (db *buildDB) Start(engine, metadata string) (bool, error) {
 		return false, err
 	}
 
-	err = db.bus.Notify(buildEventsChannel(db.buildID))
+	err = db.bus.Notify(buildEventsChannel(db.build.ID))
 	if err != nil {
 		return false, err
 	}
@@ -205,12 +211,12 @@ func (db *buildDB) Abort() error {
    UPDATE builds
    SET status = 'aborted'
    WHERE id = $1
- `, db.buildID)
+ `, db.build.ID)
 	if err != nil {
 		return err
 	}
 
-	err = db.bus.Notify(buildAbortChannel(db.buildID))
+	err = db.bus.Notify(buildAbortChannel(db.build.ID))
 	if err != nil {
 		return err
 	}
@@ -219,13 +225,13 @@ func (db *buildDB) Abort() error {
 }
 
 func (db *buildDB) AbortNotifier() (Notifier, error) {
-	return newConditionNotifier(db.bus, buildAbortChannel(db.buildID), func() (bool, error) {
+	return newConditionNotifier(db.bus, buildAbortChannel(db.build.ID), func() (bool, error) {
 		var aborted bool
 		err := db.conn.QueryRow(`
 			SELECT status = 'aborted'
 			FROM builds
 			WHERE id = $1
-		`, db.buildID).Scan(&aborted)
+		`, db.build.ID).Scan(&aborted)
 
 		return aborted, err
 	})
@@ -246,7 +252,7 @@ func (db *buildDB) Finish(status Status) error {
 		SET status = $2, end_time = now(), completed = true
 		WHERE id = $1
 		RETURNING end_time
-	`, db.buildID, string(status)).Scan(&endTime)
+	`, db.build.ID, string(status)).Scan(&endTime)
 	if err != nil {
 		return err
 	}
@@ -261,7 +267,7 @@ func (db *buildDB) Finish(status Status) error {
 
 	_, err = tx.Exec(fmt.Sprintf(`
 		DROP SEQUENCE %s
-	`, buildEventSeq(db.buildID)))
+	`, buildEventSeq(db.build.ID)))
 	if err != nil {
 		return err
 	}
@@ -271,7 +277,7 @@ func (db *buildDB) Finish(status Status) error {
 		return err
 	}
 
-	err = db.bus.Notify(buildEventsChannel(db.buildID))
+	err = db.bus.Notify(buildEventsChannel(db.build.ID))
 	if err != nil {
 		return err
 	}
@@ -308,7 +314,7 @@ func (db *buildDB) SaveEvent(event atc.Event) error {
 		return err
 	}
 
-	err = db.bus.Notify(buildEventsChannel(db.buildID))
+	err = db.bus.Notify(buildEventsChannel(db.build.ID))
 	if err != nil {
 		return err
 	}
@@ -342,7 +348,7 @@ func (db *buildDB) GetResources() ([]BuildInput, []BuildOutput, error) {
 			AND o.build_id = i.build_id
 			AND o.explicit
 		)
-	`, db.buildID)
+	`, db.build.ID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -385,7 +391,7 @@ func (db *buildDB) GetResources() ([]BuildInput, []BuildOutput, error) {
 		AND o.versioned_resource_id = v.id
     AND r.id = v.resource_id
 		AND o.explicit
-	`, db.buildID)
+	`, db.build.ID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -420,7 +426,7 @@ func (db *buildDB) GetResources() ([]BuildInput, []BuildOutput, error) {
 }
 
 func (db *buildDB) getVersionedResources(resourceRequest string) (SavedVersionedResources, error) {
-	rows, err := db.conn.Query(resourceRequest, db.buildID)
+	rows, err := db.conn.Query(resourceRequest, db.build.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -490,7 +496,7 @@ func (db *buildDB) LeaseScheduling(logger lager.Logger, interval time.Duration) 
 	lease := &lease{
 		conn: db.conn,
 		logger: logger.Session("lease", lager.Data{
-			"build_id": db.buildID,
+			"build_id": db.build.ID,
 		}),
 		attemptSignFunc: func(tx Tx) (sql.Result, error) {
 			return tx.Exec(`
@@ -498,14 +504,14 @@ func (db *buildDB) LeaseScheduling(logger lager.Logger, interval time.Duration) 
 				SET last_scheduled = now()
 				WHERE id = $1
 					AND now() - last_scheduled > ($2 || ' SECONDS')::INTERVAL
-			`, db.buildID, interval.Seconds())
+			`, db.build.ID, interval.Seconds())
 		},
 		heartbeatFunc: func(tx Tx) (sql.Result, error) {
 			return tx.Exec(`
 				UPDATE builds
 				SET last_scheduled = now()
 				WHERE id = $1
-			`, db.buildID)
+			`, db.build.ID)
 		},
 	}
 
@@ -524,7 +530,7 @@ func (db *buildDB) LeaseScheduling(logger lager.Logger, interval time.Duration) 
 }
 
 func (db *buildDB) GetPreparation() (BuildPreparation, bool, error) {
-	return db.buildPrepHelper.GetBuildPreparation(db.conn, db.buildID)
+	return db.buildPrepHelper.GetBuildPreparation(db.conn, db.build.ID)
 }
 
 func (db *buildDB) SaveInput(input BuildInput) (SavedVersionedResource, error) {
@@ -541,7 +547,7 @@ func (db *buildDB) SaveInput(input BuildInput) (SavedVersionedResource, error) {
 	pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus)
 	pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
-	return pipelineDB.SaveInput(db.buildID, input)
+	return pipelineDB.SaveInput(db.build.ID, input)
 }
 
 func (db *buildDB) SaveOutput(vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
@@ -558,7 +564,7 @@ func (db *buildDB) SaveOutput(vr VersionedResource, explicit bool) (SavedVersion
 	pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus)
 	pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
-	return pipelineDB.SaveOutput(db.buildID, vr, explicit)
+	return pipelineDB.SaveOutput(db.build.ID, vr, explicit)
 }
 
 func (db *buildDB) SaveEngineMetadata(engineMetadata string) error {
@@ -566,7 +572,7 @@ func (db *buildDB) SaveEngineMetadata(engineMetadata string) error {
 		UPDATE builds
 		SET engine_metadata = $2
 		WHERE id = $1
-	`, db.buildID, engineMetadata)
+	`, db.build.ID, engineMetadata)
 	if err != nil {
 		return err
 	}
@@ -584,7 +590,7 @@ func (db *buildDB) SaveImageResourceVersion(planID atc.PlanID, identifier Resour
 		UPDATE image_resource_versions
 		SET version = $1, resource_hash = $4
 		WHERE build_id = $2 AND plan_id = $3
-	`, version, db.buildID, string(planID), identifier.ResourceHash)
+	`, version, db.build.ID, string(planID), identifier.ResourceHash)
 	if err != nil {
 		return err
 	}
@@ -598,7 +604,7 @@ func (db *buildDB) SaveImageResourceVersion(planID atc.PlanID, identifier Resour
 		_, err := db.conn.Exec(`
 			INSERT INTO image_resource_versions(version, build_id, plan_id, resource_hash)
 			VALUES ($1, $2, $3, $4)
-		`, version, db.buildID, string(planID), identifier.ResourceHash)
+		`, version, db.build.ID, string(planID), identifier.ResourceHash)
 		if err != nil {
 			return err
 		}
@@ -612,7 +618,7 @@ func (db *buildDB) GetImageResourceCacheIdentifiers() ([]ResourceCacheIdentifier
   	SELECT version, resource_hash
   	FROM image_resource_versions
   	WHERE build_id = $1
-  `, db.buildID)
+  `, db.build.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -645,7 +651,7 @@ func (db *buildDB) LeaseTracking(logger lager.Logger, interval time.Duration) (L
 	lease := &lease{
 		conn: db.conn,
 		logger: logger.Session("lease", lager.Data{
-			"build_id": db.buildID,
+			"build_id": db.build.ID,
 		}),
 		attemptSignFunc: func(tx Tx) (sql.Result, error) {
 			return tx.Exec(`
@@ -653,14 +659,14 @@ func (db *buildDB) LeaseTracking(logger lager.Logger, interval time.Duration) (L
 				SET last_tracked = now()
 				WHERE id = $1
 					AND now() - last_tracked > ($2 || ' SECONDS')::INTERVAL
-			`, db.buildID, interval.Seconds())
+			`, db.build.ID, interval.Seconds())
 		},
 		heartbeatFunc: func(tx Tx) (sql.Result, error) {
 			return tx.Exec(`
 				UPDATE builds
 				SET last_tracked = now()
 				WHERE id = $1
-			`, db.buildID)
+			`, db.build.ID)
 		},
 	}
 
@@ -687,7 +693,7 @@ func (db *buildDB) GetConfig() (atc.Config, ConfigVersion, error) {
 			INNER JOIN jobs j ON b.job_id = j.id
 			INNER JOIN pipelines p ON j.pipeline_id = p.id
 			WHERE b.ID = $1
-		`, db.buildID).Scan(&configBlob, &version)
+		`, db.build.ID).Scan(&configBlob, &version)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return atc.Config{}, 0, nil
@@ -734,14 +740,14 @@ func (db *buildDB) saveEvent(tx Tx, event atc.Event) error {
 	}
 
 	table := "build_events"
-	if db.pipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", db.pipelineID)
+	if db.build.PipelineID != 0 {
+		table = fmt.Sprintf("pipeline_build_events_%d", db.build.PipelineID)
 	}
 
 	_, err = tx.Exec(fmt.Sprintf(`
 		INSERT INTO %s (event_id, build_id, type, version, payload)
 		VALUES (nextval('%s'), $1, $2, $3, $4)
-	`, table, buildEventSeq(db.buildID)), db.buildID, string(event.EventType()), string(event.Version()), payload)
+	`, table, buildEventSeq(db.build.ID)), db.build.ID, string(event.EventType()), string(event.Version()), payload)
 	if err != nil {
 		return err
 	}

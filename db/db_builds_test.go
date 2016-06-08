@@ -210,11 +210,11 @@ var _ = Describe("Keeping track of builds", func() {
 
 			Expect(len(builds)).To(Equal(2))
 
-			build1, found, err := build1DB.Get()
+			build1, found, err := build1DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build2, found, err := build2DB.Get()
+			build2, found, err := build2DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -316,25 +316,25 @@ var _ = Describe("Keeping track of builds", func() {
 
 			By("updating ReapTime for the affected builds")
 
-			reapedBuild1, found, err := build1DB.Get()
+			reapedBuild1, found, err := build1DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			Expect(reapedBuild1.ReapTime).To(BeTemporally(">", reapedBuild1.EndTime))
 
-			reapedBuild2, found, err := build2DB.Get()
+			reapedBuild2, found, err := build2DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			Expect(reapedBuild2.ReapTime).To(BeZero())
 
-			reapedBuild3, found, err := build3DB.Get()
+			reapedBuild3, found, err := build3DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			Expect(reapedBuild3.ReapTime).To(Equal(reapedBuild1.ReapTime))
 
-			reapedBuild4, found, err := build4DB.Get()
+			reapedBuild4, found, err := build4DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 

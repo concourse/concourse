@@ -162,11 +162,11 @@ func (build *execBuild) Metadata() string {
 	return string(payload)
 }
 
-func (build *execBuild) PublicPlan(lager.Logger) (atc.PublicBuildPlan, bool, error) {
+func (build *execBuild) PublicPlan(lager.Logger) (atc.PublicBuildPlan, error) {
 	return atc.PublicBuildPlan{
 		Schema: execEngineName,
 		Plan:   build.metadata.Plan.Public(),
-	}, true, nil
+	}, nil
 }
 
 func (build *execBuild) Abort(lager.Logger) error {

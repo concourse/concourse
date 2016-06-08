@@ -852,7 +852,6 @@ var _ = Describe("ExecEngine", func() {
 		var plan atc.Plan
 
 		var publicPlan atc.PublicBuildPlan
-		var planFound bool
 		var publicPlanErr error
 
 		BeforeEach(func() {
@@ -887,12 +886,11 @@ var _ = Describe("ExecEngine", func() {
 		})
 
 		JustBeforeEach(func() {
-			publicPlan, planFound, publicPlanErr = build.PublicPlan(logger)
+			publicPlan, publicPlanErr = build.PublicPlan(logger)
 		})
 
 		It("returns the plan successfully", func() {
 			Expect(publicPlanErr).ToNot(HaveOccurred())
-			Expect(planFound).To(BeTrue())
 		})
 
 		It("has the engine name as the schema", func() {

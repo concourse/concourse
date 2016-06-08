@@ -79,26 +79,17 @@ func (build *dbBuild) Metadata() string {
 	return strconv.Itoa(build.buildDB.GetID())
 }
 
-func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, bool, error) {
-	model, found, err := build.buildDB.Get()
-	if err != nil {
-		logger.Error("failed-to-get-build-from-database", err)
-		return atc.PublicBuildPlan{}, false, err
-	}
-
-	if !found || model.Engine == "" {
-		return atc.PublicBuildPlan{}, false, nil
-	}
-
+func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, error) {
+	model := build.buildDB.GetModel()
 	buildEngine, found := build.engines.Lookup(model.Engine)
 	if !found {
 		logger.Error("unknown-engine", nil, lager.Data{"engine": model.Engine})
-		return atc.PublicBuildPlan{}, false, UnknownEngineError{model.Engine}
+		return atc.PublicBuildPlan{}, UnknownEngineError{model.Engine}
 	}
 
 	engineBuild, err := buildEngine.LookupBuild(logger, build.buildDB)
 	if err != nil {
-		return atc.PublicBuildPlan{}, false, err
+		return atc.PublicBuildPlan{}, err
 	}
 
 	return engineBuild.PublicPlan(logger)
@@ -133,7 +124,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 
 	// reload the model *after* saving the status for the following check to see
 	// if it was already started
-	model, found, err := build.buildDB.Get()
+	model, found, err := build.buildDB.Reload()
 	if err != nil {
 		logger.Error("failed-to-get-build-from-database", err)
 		return err
@@ -186,7 +177,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 
 	defer lease.Break()
 
-	model, found, err := build.buildDB.Get()
+	model, found, err := build.buildDB.Reload()
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
 		return
@@ -260,7 +251,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 
 	engineBuild.Resume(logger)
 
-	doneModel, found, err := build.buildDB.Get()
+	doneModel, found, err := build.buildDB.Reload()
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
 		return

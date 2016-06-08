@@ -2174,7 +2174,7 @@ var _ = Describe("PipelineDB", func() {
 				jobBuildOldDB.Start("engine", "metadata")
 
 				var found bool
-				jobBuildOld, found, err = jobBuildOldDB.Get()
+				jobBuildOld, found, err = jobBuildOldDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2201,7 +2201,7 @@ var _ = Describe("PipelineDB", func() {
 				err = jobBuildDB.Finish(db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
-				jobBuild, found, err = jobBuildDB.Get()
+				jobBuild, found, err = jobBuildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2218,7 +2218,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				jobBuildNewDB := buildDBFactory.GetBuildDB(jobBuildNew)
 				jobBuildNewDB.Start("engine", "metadata")
-				jobBuildNew, found, err = jobBuildNewDB.Get()
+				jobBuildNew, found, err = jobBuildNewDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -3112,7 +3112,7 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			It("can be read back as the same object", func() {
-				gotBuild, found, err := build1DB.Get()
+				gotBuild, found, err := build1DB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(gotBuild).To(Equal(build1))
@@ -3227,7 +3227,7 @@ var _ = Describe("PipelineDB", func() {
 
 				It("can also be read back as the same object", func() {
 					build2DB := buildDBFactory.GetBuildDB(build2)
-					gotBuild, found, err := build2DB.Get()
+					gotBuild, found, err := build2DB.Reload()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(gotBuild).To(Equal(build2))

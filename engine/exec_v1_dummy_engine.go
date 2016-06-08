@@ -35,11 +35,11 @@ func (execV1DummyBuild) Metadata() string {
 	return ""
 }
 
-func (execV1DummyBuild) PublicPlan(lager.Logger) (atc.PublicBuildPlan, bool, error) {
+func (execV1DummyBuild) PublicPlan(lager.Logger) (atc.PublicBuildPlan, error) {
 	return atc.PublicBuildPlan{
 		Schema: execV1DummyEngineName,
 		Plan:   nil,
-	}, true, nil
+	}, nil
 }
 
 func (execV1DummyBuild) Abort(lager.Logger) error {

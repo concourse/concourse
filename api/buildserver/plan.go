@@ -39,15 +39,10 @@ func (s *Server) GetBuildPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	plan, found, err := engineBuild.PublicPlan(hLog)
+	plan, err := engineBuild.PublicPlan(hLog)
 	if err != nil {
 		hLog.Error("failed-to-generate-plan", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if !found {
-		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 

@@ -268,7 +268,7 @@ var _ = Describe("Builds API", func() {
 						EndTime:      time.Unix(100, 0),
 						ReapTime:     time.Unix(200, 0),
 					}
-					buildDB.GetReturns(build, true, nil)
+					buildDB.GetModelReturns(build)
 					teamDB.GetBuildDBReturns(buildDB, true, nil)
 				})
 
@@ -673,7 +673,7 @@ var _ = Describe("Builds API", func() {
 						ID:      128,
 						JobName: "some-job",
 					}
-					buildDB.GetReturns(build, true, nil)
+					buildDB.GetModelReturns(build)
 					teamDB.GetBuildDBReturns(buildDB, true, nil)
 				})
 
@@ -833,7 +833,7 @@ var _ = Describe("Builds API", func() {
 						ID:      128,
 						JobName: "some-job",
 					}
-					buildDB.GetReturns(build, true, nil)
+					buildDB.GetModelReturns(build)
 					teamDB.GetBuildDBReturns(buildDB, true, nil)
 				})
 
@@ -1045,7 +1045,7 @@ var _ = Describe("Builds API", func() {
 				build := db.Build{
 					ID: 42,
 				}
-				buildDB.GetReturns(build, true, nil)
+				buildDB.GetModelReturns(build)
 				teamDB.GetBuildDBReturns(buildDB, true, nil)
 
 				engineBuild = new(enginefakes.FakeBuild)
@@ -1054,7 +1054,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build returns a plan", func() {
 				BeforeEach(func() {
-					engineBuild.PublicPlanReturns(publicPlan, true, nil)
+					engineBuild.PublicPlanReturns(publicPlan, nil)
 				})
 
 				It("returns OK", func() {
@@ -1072,19 +1072,9 @@ var _ = Describe("Builds API", func() {
 				})
 			})
 
-			Context("when the build has no plan", func() {
-				BeforeEach(func() {
-					engineBuild.PublicPlanReturns(atc.PublicBuildPlan{}, false, nil)
-				})
-
-				It("returns Not Found", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
 			Context("when the build fails to return a plan", func() {
 				BeforeEach(func() {
-					engineBuild.PublicPlanReturns(atc.PublicBuildPlan{}, false, errors.New("nope"))
+					engineBuild.PublicPlanReturns(atc.PublicBuildPlan{}, errors.New("nope"))
 				})
 
 				It("returns 500 Internal Server Error", func() {

@@ -77,7 +77,7 @@ var _ = Describe("BuildDB", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Describe("OneOff", func() {
+	Describe("IsOneOff", func() {
 		It("returns true for one off build", func() {
 			build, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
@@ -90,6 +90,26 @@ var _ = Describe("BuildDB", func() {
 			Expect(err).ToNot(HaveOccurred())
 			pipelineBuildDB := buildDBFactory.GetBuildDB(build)
 			Expect(pipelineBuildDB.IsOneOff()).To(BeFalse())
+		})
+	})
+
+	Describe("Reload", func() {
+		It("updates the model", func() {
+			build, err := teamDB.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+			buildDB := buildDBFactory.GetBuildDB(build)
+			started, err := buildDB.Start("engine", "metadata")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started).To(BeTrue())
+
+			Expect(buildDB.GetModel().Status).To(Equal(db.StatusPending))
+
+			reloadedModel, found, err := buildDB.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(reloadedModel.Status).To(Equal(db.StatusStarted))
+
+			Expect(buildDB.GetModel().Status).To(Equal(db.StatusStarted))
 		})
 	})
 
@@ -319,7 +339,7 @@ var _ = Describe("BuildDB", func() {
 			})
 
 			It("creates Start event", func() {
-				startedBuild, found, err := buildDB.Get()
+				startedBuild, found, err := buildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(startedBuild.Status).To(Equal(db.StatusStarted))
@@ -343,7 +363,7 @@ var _ = Describe("BuildDB", func() {
 			})
 
 			It("updates build status", func() {
-				abortedBuild, found, err := buildDB.Get()
+				abortedBuild, found, err := buildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(abortedBuild.Status).To(Equal(db.StatusAborted))
@@ -357,7 +377,7 @@ var _ = Describe("BuildDB", func() {
 			})
 
 			It("creates Finish event", func() {
-				finishedBuild, found, err := buildDB.Get()
+				finishedBuild, found, err := buildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(finishedBuild.Status).To(Equal(db.StatusSucceeded))
@@ -384,7 +404,7 @@ var _ = Describe("BuildDB", func() {
 			})
 
 			It("creates Error event", func() {
-				failedBuild, found, err := buildDB.Get()
+				failedBuild, found, err := buildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(failedBuild.Status).To(Equal(db.StatusErrored))

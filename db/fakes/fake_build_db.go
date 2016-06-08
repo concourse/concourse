@@ -11,10 +11,16 @@ import (
 )
 
 type FakeBuildDB struct {
-	GetStub        func() (db.Build, bool, error)
-	getMutex       sync.RWMutex
-	getArgsForCall []struct{}
-	getReturns     struct {
+	GetModelStub        func() db.Build
+	getModelMutex       sync.RWMutex
+	getModelArgsForCall []struct{}
+	getModelReturns     struct {
+		result1 db.Build
+	}
+	ReloadStub        func() (db.Build, bool, error)
+	reloadMutex       sync.RWMutex
+	reloadArgsForCall []struct{}
+	reloadReturns     struct {
 		result1 db.Build
 		result2 bool
 		result3 error
@@ -215,26 +221,50 @@ type FakeBuildDB struct {
 	}
 }
 
-func (fake *FakeBuildDB) Get() (db.Build, bool, error) {
-	fake.getMutex.Lock()
-	fake.getArgsForCall = append(fake.getArgsForCall, struct{}{})
-	fake.getMutex.Unlock()
-	if fake.GetStub != nil {
-		return fake.GetStub()
+func (fake *FakeBuildDB) GetModel() db.Build {
+	fake.getModelMutex.Lock()
+	fake.getModelArgsForCall = append(fake.getModelArgsForCall, struct{}{})
+	fake.getModelMutex.Unlock()
+	if fake.GetModelStub != nil {
+		return fake.GetModelStub()
 	} else {
-		return fake.getReturns.result1, fake.getReturns.result2, fake.getReturns.result3
+		return fake.getModelReturns.result1
 	}
 }
 
-func (fake *FakeBuildDB) GetCallCount() int {
-	fake.getMutex.RLock()
-	defer fake.getMutex.RUnlock()
-	return len(fake.getArgsForCall)
+func (fake *FakeBuildDB) GetModelCallCount() int {
+	fake.getModelMutex.RLock()
+	defer fake.getModelMutex.RUnlock()
+	return len(fake.getModelArgsForCall)
 }
 
-func (fake *FakeBuildDB) GetReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.GetStub = nil
-	fake.getReturns = struct {
+func (fake *FakeBuildDB) GetModelReturns(result1 db.Build) {
+	fake.GetModelStub = nil
+	fake.getModelReturns = struct {
+		result1 db.Build
+	}{result1}
+}
+
+func (fake *FakeBuildDB) Reload() (db.Build, bool, error) {
+	fake.reloadMutex.Lock()
+	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct{}{})
+	fake.reloadMutex.Unlock()
+	if fake.ReloadStub != nil {
+		return fake.ReloadStub()
+	} else {
+		return fake.reloadReturns.result1, fake.reloadReturns.result2, fake.reloadReturns.result3
+	}
+}
+
+func (fake *FakeBuildDB) ReloadCallCount() int {
+	fake.reloadMutex.RLock()
+	defer fake.reloadMutex.RUnlock()
+	return len(fake.reloadArgsForCall)
+}
+
+func (fake *FakeBuildDB) ReloadReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.ReloadStub = nil
+	fake.reloadReturns = struct {
 		result1 db.Build
 		result2 bool
 		result3 error
