@@ -1,4 +1,4 @@
-module Duration where
+module Duration exposing (..)
 
 import Time exposing (Time)
 

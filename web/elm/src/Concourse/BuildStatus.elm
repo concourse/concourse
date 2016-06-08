@@ -1,4 +1,4 @@
-module Concourse.BuildStatus where
+module Concourse.BuildStatus exposing (..)
 
 import Json.Decode
 

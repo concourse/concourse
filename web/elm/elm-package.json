@@ -10,15 +10,14 @@
     "exposed-modules": [],
     "native-modules": true,
     "dependencies": {
-        "Apanatshka/elm-signal-extra": "5.7.0 <= v < 6.0.0",
-        "deadfoxygrandpa/elm-test": "3.0.0 <= v < 4.0.0",
-        "elm-lang/core": "3.0.0 <= v < 4.0.0",
-        "evancz/elm-effects": "2.0.1 <= v < 3.0.0",
-        "evancz/elm-html": "4.0.2 <= v < 5.0.0",
+        "elm-community/elm-test": "1.0.0 <= v < 2.0.0",
+        "elm-lang/core": "4.0.0 <= v < 5.0.0",
+        "elm-lang/dom": "1.0.0 <= v < 2.0.0",
+        "elm-lang/html": "1.0.0 <= v < 2.0.0",
+        "elm-lang/websocket": "1.0.0 <= v < 2.0.0",
         "evancz/elm-http": "3.0.0 <= v < 4.0.0",
-        "laszlopandy/elm-console": "1.0.2 <= v < 2.0.0",
-        "mgold/elm-date-format": "1.0.3 <= v < 2.0.0",
-        "vito/elm-ansi": "7.0.1 <= v < 8.0.0"
+        "vito/elm-ansi": "8.0.0 <= v < 9.0.0",
+        "mgold/elm-date-format": "1.1.4 <= v < 2.0.0"
     },
-    "elm-version": "0.16.0 <= v < 0.17.0"
+    "elm-version": "0.17.0 <= v < 0.18.0"
 }
