@@ -16,61 +16,61 @@ postgresql/postgresql-9.3.4.tar.gz:
   object_id: a62f2cda-80fa-4daf-a59c-5acc9a6a3c2e
   sha: 9f80b3cfebc434ca0860fc8489923cea73456081
 resources/archive-resource.tar.gz:
-  object_id: c299d300-9543-480a-825f-14b937559f58
-  sha: fea88d74c54e1f4b5f94027ba2105fe285d45236
-  size: 11795252
+  object_id: 35de3931-76f6-497d-8253-194218129dd9
+  sha: ab504f82cd1b615f714b20ec9f1f86aa4bae6783
+  size: 11788376
 resources/bosh-deployment-resource.tar.gz:
-  object_id: ea135d3c-dd37-4f8a-9259-f8c1754ba7ef
-  sha: 2881437a714c76ce9a01a2ffeea9f04e7cd8b980
-  size: 12891919
+  object_id: adf82988-f311-4329-936b-10903b50ed82
+  sha: 7e207b558e223f4cddee455228938322272ca8e0
+  size: 12890921
 resources/bosh-io-release-resource.tar.gz:
-  object_id: 0fcaa7e2-b3dc-4132-b19b-bebc8c2d9d62
-  sha: 41e246d82832e94a7d49fc00d91027503395d915
-  size: 9177578
+  object_id: 86a62c37-c099-4d81-b159-ca336775e874
+  sha: 02dd0a11f2ccc676796f2a67d8f5199ac9f00937
+  size: 9172013
 resources/bosh-io-stemcell-resource.tar.gz:
-  object_id: d5ce98be-d2bb-4d44-86e8-37270701509c
-  sha: 87e60d7c14bc088104fca4e8aba3753d34e49fab
-  size: 9174668
+  object_id: e3d187e8-8407-4e8b-8117-7188bb6c5992
+  sha: 3185fd095ca7c979e705d7d0d8959bbc618d2435
+  size: 9169113
 resources/cf-resource.tar.gz:
-  object_id: bc9eb451-0f95-4e8a-9eb0-dea27e211dae
-  sha: b0180ceed38c6b43e4a5b026d4048b49f32a1027
-  size: 26513629
+  object_id: a1ac0dab-e6ba-4840-a318-f2be1eaf2eef
+  sha: be2a549d56fd2a766c89d566d38bb6550d0cbecf
+  size: 26544616
 resources/docker-image-resource.tar.gz:
-  object_id: fe425687-5da5-43ee-80f2-4fa61c9fe065
-  sha: 40b855f69814de130e891d6ccb6b15d20b2001b8
-  size: 33790962
+  object_id: 0e24921f-c624-437d-bcaa-8ba907b6d4b4
+  sha: 3106acc8460c50bdf25e5bfbf538cf383dbdf73d
+  size: 33785966
 resources/git-resource.tar.gz:
-  object_id: 633a22af-98fd-4478-86d6-8ef3cc8659a8
-  sha: 53d52d0a1928fb3a8e3fa757e29cccd12758e693
-  size: 12676495
+  object_id: c2978707-3494-4cbe-bcfa-4700fac5382a
+  sha: d6022d5c4e5531a5eb0de278d26dde8249bcf09e
+  size: 12671824
 resources/github-release-resource.tar.gz:
-  object_id: 8e672f6f-32b6-45cc-89ca-09215b5fcbaa
-  sha: dec23b316d21c458ba13a4924493cad7baf69107
-  size: 19352468
+  object_id: b6a410f8-59ab-4ee8-8264-498c8aece827
+  sha: c091f8f44ab96ca13ef54871b9149bfc4c2ce524
+  size: 19350938
 resources/pool-resource.tar.gz:
-  object_id: 456c2a38-b993-440f-8379-b34eb3c26b51
-  sha: 62c66a5615a62751144cad6b12ae50166df9ddf7
-  size: 10049176
+  object_id: ffe72798-a80a-4084-80f6-e2d9eff25fe2
+  sha: f469214f31865a7802d3501fece78764c69d77dc
+  size: 10043695
 resources/s3-resource.tar.gz:
-  object_id: 0edbfb90-8930-47be-8eef-31933f4d8054
-  sha: c8e862c52b08efc1f5249ae0cce51f779d39a4fd
-  size: 20670076
+  object_id: ed16c961-1626-4693-bd17-6f31e115ae99
+  sha: 814e44e9ccffda374398176c77a9d4030fa9e54b
+  size: 20674288
 resources/semver-resource.tar.gz:
-  object_id: b3a71a06-4823-48bb-8b8e-add0cc3a7c1d
-  sha: 499c19daf79dddb8979881586434fdafc75e325a
-  size: 16856473
+  object_id: cd132b66-25a7-491d-89f6-0bfe441a43dd
+  sha: 1c8cb9ac0c946b94986a146d41f64658dab3b8ce
+  size: 16854889
 resources/time-resource.tar.gz:
-  object_id: 022ad5e1-3590-4967-a334-666ba6d7cc44
-  sha: ed57a8185c2ef1686de2152cabe2159a630995fa
-  size: 13695955
+  object_id: e163f147-ed9b-46df-8648-da90d9ec2cfc
+  sha: f3e706603fff3bc88473fcaefece330d99db263c
+  size: 13696160
 resources/tracker-resource.tar.gz:
-  object_id: 6e55abb0-5e41-4e83-b238-f9880f6839e0
-  sha: a88cec8e7ac6f19e3f01d24902953139d35b94f1
-  size: 13175112
+  object_id: 93a826fe-f20b-4f9c-8afd-611a30ea71e2
+  sha: d1cc1ae82152a8c535de49ba0423d5d76a6c63f8
+  size: 13175104
 resources/vagrant-cloud-resource.tar.gz:
-  object_id: 322024c4-16e2-4c8f-8b16-0605d5bdb572
-  sha: 9011cc95d0b81e89fec1a4e5e09724fc431ccf92
-  size: 9174659
+  object_id: 5d8e83c2-3c0a-4dda-976e-cc88c74da26c
+  sha: d23bbce1d735b798d08b71cbf77d603869a1b9a9
+  size: 9169508
 golang_1.6/go1.6.1.linux-amd64.tar.gz:
   object_id: 980f2086-2872-4159-a73f-77ea2905d21b
   sha: c73492474dcc7a233772d27e948b74468d9f1849

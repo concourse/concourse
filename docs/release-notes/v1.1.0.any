@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{2016-04-14}{1.1.0}{0.337.0}{
+\release{2016-04-14}{1.1.0}{}{0.337.0}{
   \note{feature}{
     Workers can now configure proxies to use for containers that are spun up on
     them.

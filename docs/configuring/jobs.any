@@ -34,6 +34,25 @@ Each configured job consists of the following attributes:
   queue up and execute one-by-one, rather than executing in parallel.
 }
 
+\define-attribute{build_logs_to_retain: number}{
+  \italic{Optional.} If configured, only the last specified number of builds
+  will have their build logs persisted. This is useful if you have a job that
+  runs periodically but after some amount of time the logs aren't worth keeping
+  around.
+
+  Example:
+
+  \codeblock{yaml}{
+  jobs:
+  - name: smoke-tests
+    build_logs_to_retain: 100
+    plan:
+    - get: 10m
+    - task: smoke-tests
+      # ...
+  }
+}
+
 \define-attribute{serial_groups: [string]}{
   \italic{Optional. Default \code{[]}.} When set to an array of arbitrary
   tag-like strings, builds of this job and other jobs referencing the same

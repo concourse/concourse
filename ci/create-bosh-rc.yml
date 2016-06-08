@@ -12,7 +12,7 @@ inputs:
 - name: final-version
 
 outputs:
-- name: candidate-release
+- name: bosh-rc
 
 run:
-  path: concourse/ci/scripts/create-candidate-release
+  path: concourse/ci/scripts/create-bosh-rc

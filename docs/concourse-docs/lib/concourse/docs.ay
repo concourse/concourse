@@ -29,15 +29,28 @@ def(resource(repo, name = repo split("-") collect &.capitalize join(" "))):
 def(ghuser(username)):
   hyperlink(i"https://github.com/#{username}", bold(i"@#{username}"))
 
-def(release(date = nil, concourse-version, garden-linux-version, notes)):
-  release-date = nil
-  when(date):
-    release-date =
-      data Element new(
-        Time parse(date) strftime("%B %e, %Y")
-        .class("release-date"))
+def(release(date, concourse-version, garden-runc-version, garden-linux-version = nil, notes)):
+  release-date =
+    data Element new(
+      Time parse(date) strftime("%B %e, %Y")
+      .class("release-date"))
 
   version-title = i"v#{concourse-version}"
+
+  garden-release-asset =
+    if(garden-linux-version)
+      then:
+        download-link(
+          "Garden Linux"
+          release-asset(concourse-version, i"garden-linux-#{garden-linux-version}.tgz")
+          version(garden-linux-version)
+        )
+      else:
+        download-link(
+          "Garden runC"
+          release-asset(concourse-version, i"garden-runc-#{garden-runc-version}.tgz")
+          version(garden-runc-version)
+        )
 
   data Block new(
     [ set-title(version-title)
@@ -68,8 +81,12 @@ def(release(date = nil, concourse-version, garden-linux-version, notes)):
               data Block new(
                 [ data Block new("BOSH Releases", .header(3))
                   data Block new(
-                    [ download-link("Concourse", release-asset(concourse-version, i"concourse-#{concourse-version}.tgz"), version(concourse-version))
-                      download-link("Garden Linux", release-asset(concourse-version, i"garden-linux-#{garden-linux-version}.tgz"), version(garden-linux-version))
+                    [ download-link(
+                        "Concourse"
+                        release-asset(concourse-version, i"concourse-#{concourse-version}.tgz")
+                        version(concourse-version)
+                      )
+                      garden-release-asset
                     ]
                     .unordered-list)
                 ]

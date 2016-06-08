@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{2016-03-29}{1.0.0}{0.335.0}{
+\release{2016-03-29}{1.0.0}{}{0.335.0}{
   We made it!
 
   This release, although relatively small on its own, is built on years of
