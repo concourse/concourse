@@ -7,9 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"mime/multipart"
 	"net/http"
-	"net/textproto"
 	"strings"
 
 	"github.com/concourse/atc"
@@ -82,37 +80,19 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersio
 	}
 
 	response := internal.Response{}
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
 
-	yamlWriter, err := writer.CreatePart(
-		textproto.MIMEHeader{
-			"Content-type": {"application/x-yaml"},
-		},
-	)
+	yamlConfig, err := yaml.Marshal(passedConfig)
 	if err != nil {
 		return false, false, []ConfigWarning{}, err
 	}
-
-	rawConfig, err := yaml.Marshal(passedConfig)
-	if err != nil {
-		return false, false, []ConfigWarning{}, err
-	}
-
-	_, err = yamlWriter.Write(rawConfig)
-	if err != nil {
-		return false, false, []ConfigWarning{}, err
-	}
-
-	writer.Close()
 
 	err = team.connection.Send(internal.Request{
 		ReturnResponseBody: true,
 		RequestName:        atc.SaveConfig,
 		Params:             params,
-		Body:               body,
+		Body:               bytes.NewBuffer(yamlConfig),
 		Header: http.Header{
-			"Content-Type":          {writer.FormDataContentType()},
+			"Content-Type":          {"application/x-yaml"},
 			atc.ConfigVersionHeader: {configVersion},
 		},
 	},
