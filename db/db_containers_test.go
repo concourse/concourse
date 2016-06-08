@@ -97,9 +97,9 @@ var _ = Describe("Keeping track of containers", func() {
 	}
 
 	getOneOffBuildID := func() int {
-		savedBuild, err := teamDB.CreateOneOffBuild()
+		savedBuildDB, err := teamDB.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
-		return savedBuild.ID
+		return savedBuildDB.GetID()
 	}
 
 	It("can create and get a resource container object", func() {
@@ -386,11 +386,11 @@ var _ = Describe("Keeping track of containers", func() {
 	})
 
 	It("differentiates between a single step's containers with different stages", func() {
-		someBuild, err := teamDB.CreateOneOffBuild()
+		someBuildDB, err := teamDB.CreateOneOffBuild()
 		Expect(err).ToNot(HaveOccurred())
 
 		checkStageAContainerID := db.ContainerIdentifier{
-			BuildID:             someBuild.ID,
+			BuildID:             someBuildDB.GetID(),
 			PlanID:              atc.PlanID("some-task"),
 			ImageResourceSource: atc.Source{"some": "source"},
 			ImageResourceType:   "some-type-a",
@@ -398,7 +398,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		getStageAContainerID := db.ContainerIdentifier{
-			BuildID:             someBuild.ID,
+			BuildID:             someBuildDB.GetID(),
 			PlanID:              atc.PlanID("some-task"),
 			ImageResourceSource: atc.Source{"some": "source"},
 			ImageResourceType:   "some-type-a",
@@ -406,7 +406,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		checkStageBContainerID := db.ContainerIdentifier{
-			BuildID:             someBuild.ID,
+			BuildID:             someBuildDB.GetID(),
 			PlanID:              atc.PlanID("some-task"),
 			ImageResourceSource: atc.Source{"some": "source"},
 			ImageResourceType:   "some-type-b",
@@ -414,7 +414,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		getStageBContainerID := db.ContainerIdentifier{
-			BuildID:             someBuild.ID,
+			BuildID:             someBuildDB.GetID(),
 			PlanID:              atc.PlanID("some-task"),
 			ImageResourceSource: atc.Source{"some": "source"},
 			ImageResourceType:   "some-type-b",
@@ -422,7 +422,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		runStageContainerID := db.ContainerIdentifier{
-			BuildID: someBuild.ID,
+			BuildID: someBuildDB.GetID(),
 			PlanID:  atc.PlanID("some-task"),
 			Stage:   db.ContainerStageRun,
 		}

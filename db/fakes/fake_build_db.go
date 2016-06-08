@@ -61,6 +61,12 @@ type FakeBuildDB struct {
 	getEngineMetadataReturns     struct {
 		result1 string
 	}
+	GetStatusStub        func() db.Status
+	getStatusMutex       sync.RWMutex
+	getStatusArgsForCall []struct{}
+	getStatusReturns     struct {
+		result1 db.Status
+	}
 	IsOneOffStub        func() bool
 	isOneOffMutex       sync.RWMutex
 	isOneOffArgsForCall []struct{}
@@ -412,6 +418,30 @@ func (fake *FakeBuildDB) GetEngineMetadataReturns(result1 string) {
 	fake.GetEngineMetadataStub = nil
 	fake.getEngineMetadataReturns = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuildDB) GetStatus() db.Status {
+	fake.getStatusMutex.Lock()
+	fake.getStatusArgsForCall = append(fake.getStatusArgsForCall, struct{}{})
+	fake.getStatusMutex.Unlock()
+	if fake.GetStatusStub != nil {
+		return fake.GetStatusStub()
+	} else {
+		return fake.getStatusReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) GetStatusCallCount() int {
+	fake.getStatusMutex.RLock()
+	defer fake.getStatusMutex.RUnlock()
+	return len(fake.getStatusArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetStatusReturns(result1 db.Status) {
+	fake.GetStatusStub = nil
+	fake.getStatusReturns = struct {
+		result1 db.Status
 	}{result1}
 }
 

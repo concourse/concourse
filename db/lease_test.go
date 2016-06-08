@@ -405,10 +405,9 @@ var _ = Describe("Leases", func() {
 		var buildDB db.BuildDB
 
 		BeforeEach(func() {
-			build, err := teamDB.CreateOneOffBuild()
+			var err error
+			buildDB, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-
-			buildDB = buildDBFactory.GetBuildDB(build)
 		})
 
 		Context("when something has been scheduling it recently", func() {
@@ -455,10 +454,9 @@ var _ = Describe("Leases", func() {
 		var buildDB db.BuildDB
 
 		BeforeEach(func() {
-			build, err := teamDB.CreateOneOffBuild()
+			var err error
+			buildDB, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-
-			buildDB = buildDBFactory.GetBuildDB(build)
 		})
 
 		Context("when something has been tracking it recently", func() {

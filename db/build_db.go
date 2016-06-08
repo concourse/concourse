@@ -53,6 +53,7 @@ type BuildDB interface {
 	GetPipelineName() string
 	GetTeamName() string
 	GetEngineMetadata() string
+	GetStatus() Status
 	IsOneOff() bool
 
 	Events(from uint) (EventSource, error)
@@ -132,6 +133,10 @@ func (db *buildDB) GetTeamName() string {
 
 func (db *buildDB) GetEngineMetadata() string {
 	return db.build.EngineMetadata
+}
+
+func (db *buildDB) GetStatus() Status {
+	return db.build.Status
 }
 
 func (db *buildDB) IsOneOff() bool {

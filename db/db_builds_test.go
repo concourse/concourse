@@ -88,17 +88,16 @@ var _ = Describe("Keeping track of builds", func() {
 
 	Describe("UpdateBuildPreparation", func() {
 		var (
-			oneOff db.Build
-			err    error
+			oneOffBuildDB db.BuildDB
+			err           error
 		)
 
 		BeforeEach(func() {
-			oneOff, err = teamDB.CreateOneOffBuild()
+			oneOffBuildDB, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("can update a builds build preparation", func() {
-			oneOffBuildDB := buildDBFactory.GetBuildDB(oneOff)
 			buildPrep, found, err := oneOffBuildDB.GetPreparation()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
@@ -184,7 +183,8 @@ var _ = Describe("Keeping track of builds", func() {
 		var build2DB db.BuildDB
 
 		BeforeEach(func() {
-			build1, err := teamDB.CreateOneOffBuild()
+			var err error
+			build1DB, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			build2, err := pipelineDB.CreateJobBuild("some-job")
@@ -193,7 +193,6 @@ var _ = Describe("Keeping track of builds", func() {
 			_, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build1DB = buildDBFactory.GetBuildDB(build1)
 			started, err := build1DB.Start("some-engine", "so-meta")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
@@ -224,28 +223,25 @@ var _ = Describe("Keeping track of builds", func() {
 
 	Describe("DeleteBuildEventsByBuildIDs", func() {
 		It("deletes all build logs corresponding to the given build ids", func() {
-			build1, err := teamDB.CreateOneOffBuild()
+			build1DB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build1DB := buildDBFactory.GetBuildDB(build1)
 			err = build1DB.SaveEvent(event.Log{
 				Payload: "log 1",
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			build2, err := teamDB.CreateOneOffBuild()
+			build2DB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build2DB := buildDBFactory.GetBuildDB(build2)
 			err = build2DB.SaveEvent(event.Log{
 				Payload: "log 2",
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			build3, err := teamDB.CreateOneOffBuild()
+			build3DB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build3DB := buildDBFactory.GetBuildDB(build3)
 			err = build3DB.Finish(db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -255,7 +251,7 @@ var _ = Describe("Keeping track of builds", func() {
 			err = build2DB.Finish(db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
-			build4, err := teamDB.CreateOneOffBuild()
+			build4DB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			By("doing nothing if the list is empty")
@@ -263,15 +259,14 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("not returning an error")
-			database.DeleteBuildEventsByBuildIDs([]int{build3.ID, build4.ID, build1.ID})
+			database.DeleteBuildEventsByBuildIDs([]int{build3DB.GetID(), build4DB.GetID(), build1DB.GetID()})
 			Expect(err).NotTo(HaveOccurred())
 
-			build4DB := buildDBFactory.GetBuildDB(build4)
 			err = build4DB.Finish(db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("deleting events for build 1")
-			events1, err := buildDBFactory.GetBuildDB(build1).Events(0)
+			events1, err := build1DB.Events(0)
 			Expect(err).NotTo(HaveOccurred())
 			defer events1.Close()
 
@@ -279,7 +274,7 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 
 			By("preserving events for build 2")
-			events2, err := buildDBFactory.GetBuildDB(build2).Events(0)
+			events2, err := build2DB.Events(0)
 			Expect(err).NotTo(HaveOccurred())
 			defer events2.Close()
 
@@ -296,7 +291,7 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 
 			By("deleting events for build 3")
-			events3, err := buildDBFactory.GetBuildDB(build3).Events(0)
+			events3, err := build3DB.Events(0)
 			Expect(err).NotTo(HaveOccurred())
 			defer events3.Close()
 
@@ -304,7 +299,7 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 
 			By("being unflapped by build 4, which had no events at the time")
-			events4, err := buildDBFactory.GetBuildDB(build4).Events(0)
+			events4, err := build4DB.Events(0)
 			Expect(err).NotTo(HaveOccurred())
 			defer events4.Close()
 

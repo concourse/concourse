@@ -530,9 +530,9 @@ var _ = Describe("Keeping track of volumes", func() {
 
 	Describe("GetVolumesForOneOffBuildImageResources", func() {
 		It("returns all volumes containing image resource versions which were used in one-off builds", func() {
-			oneOffBuildA, err := teamDB.CreateOneOffBuild()
+			oneOffBuildADB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			oneOffBuildB, err := teamDB.CreateOneOffBuild()
+			oneOffBuildBDB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 			jobBuild, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
@@ -551,7 +551,6 @@ var _ = Describe("Keeping track of volumes", func() {
 			}
 			err = database.InsertVolume(volume1)
 			Expect(err).NotTo(HaveOccurred())
-			oneOffBuildADB := buildDBFactory.GetBuildDB(oneOffBuildA)
 			err = oneOffBuildADB.SaveImageResourceVersion("plan-id-1", *volume1.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 			jobBuildDB := buildDBFactory.GetBuildDB(jobBuild)
@@ -606,7 +605,6 @@ var _ = Describe("Keeping track of volumes", func() {
 			}
 			err = database.InsertVolume(volume4)
 			Expect(err).NotTo(HaveOccurred())
-			oneOffBuildBDB := buildDBFactory.GetBuildDB(oneOffBuildB)
 			err = oneOffBuildBDB.SaveImageResourceVersion("plan-id-4", *volume4.Identifier.ResourceCache)
 			Expect(err).NotTo(HaveOccurred())
 

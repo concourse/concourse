@@ -259,7 +259,7 @@ var _ = Describe("PipelineDB", func() {
 			build, err := fetchedPipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			oneOffBuild, err := teamDB.CreateOneOffBuild()
+			oneOffBuildDB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			// populate jobs_serial_groups table
@@ -279,7 +279,7 @@ var _ = Describe("PipelineDB", func() {
 			// In very old concourse deployments, build inputs and outputs seem to
 			// have been created for one-off builds. This test makes sure they get
 			// deleted. See story #109558152
-			_, err = fetchedPipelineDB.SaveInput(oneOffBuild.ID, db.BuildInput{
+			_, err = fetchedPipelineDB.SaveInput(oneOffBuildDB.GetID(), db.BuildInput{
 				Name: "one-off-build-input",
 				VersionedResource: db.VersionedResource{
 					Resource:   "some-resource",
@@ -296,7 +296,7 @@ var _ = Describe("PipelineDB", func() {
 			}, false)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = fetchedPipelineDB.SaveOutput(oneOffBuild.ID, db.VersionedResource{
+			_, err = fetchedPipelineDB.SaveOutput(oneOffBuildDB.GetID(), db.VersionedResource{
 				Resource:   "some-resource",
 				PipelineID: pipelineThatWillBeDeleted.ID,
 			}, false)
@@ -361,7 +361,7 @@ var _ = Describe("PipelineDB", func() {
 
 			inputRows.Close()
 
-			oneOffInputRows, err := dbConn.Query(`select build_id from build_inputs where build_id = $1`, oneOffBuild.ID)
+			oneOffInputRows, err := dbConn.Query(`select build_id from build_inputs where build_id = $1`, oneOffBuildDB.GetID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(oneOffInputRows.Next()).To(BeFalse())
 
@@ -373,7 +373,7 @@ var _ = Describe("PipelineDB", func() {
 
 			outputRows.Close()
 
-			oneOffOutputRows, err := dbConn.Query(`select build_id from build_outputs where build_id = $1`, oneOffBuild.ID)
+			oneOffOutputRows, err := dbConn.Query(`select build_id from build_outputs where build_id = $1`, oneOffBuildDB.GetID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(oneOffOutputRows.Next()).To(BeFalse())
 

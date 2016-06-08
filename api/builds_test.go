@@ -58,11 +58,10 @@ var _ = Describe("Builds API", func() {
 
 			Context("when creating a one-off build succeeds", func() {
 				BeforeEach(func() {
-					teamDB.CreateOneOffBuildStub = func() (db.Build, error) {
+					teamDB.CreateOneOffBuildStub = func() (db.BuildDB, error) {
 						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
 						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-
-						return db.Build{
+						buildModel := db.Build{
 							ID:           42,
 							Name:         "1",
 							JobName:      "",
@@ -72,7 +71,9 @@ var _ = Describe("Builds API", func() {
 							StartTime:    time.Unix(1, 0),
 							EndTime:      time.Unix(100, 0),
 							ReapTime:     time.Unix(200, 0),
-						}, nil
+						}
+						buildDB.GetModelReturns(buildModel)
+						return buildDB, nil
 					}
 				})
 
@@ -154,19 +155,6 @@ var _ = Describe("Builds API", func() {
 						_, oneOffBuildDB, builtPlan := fakeEngine.CreateBuildArgsForCall(0)
 						Expect(oneOffBuildDB).To(Equal(buildDB))
 
-						Expect(buildDBFactory.GetBuildDBCallCount()).To(Equal(1))
-						Expect(buildDBFactory.GetBuildDBArgsForCall(0)).To(Equal(db.Build{
-							ID:           42,
-							Name:         "1",
-							JobName:      "",
-							PipelineName: "",
-							TeamName:     "main",
-							Status:       db.StatusStarted,
-							StartTime:    time.Unix(1, 0),
-							EndTime:      time.Unix(100, 0),
-							ReapTime:     time.Unix(200, 0),
-						}))
-
 						Expect(builtPlan).To(Equal(plan))
 
 						<-resumed
@@ -186,7 +174,7 @@ var _ = Describe("Builds API", func() {
 
 			Context("when creating a one-off build fails", func() {
 				BeforeEach(func() {
-					teamDB.CreateOneOffBuildReturns(db.Build{}, errors.New("oh no!"))
+					teamDB.CreateOneOffBuildReturns(nil, errors.New("oh no!"))
 				})
 
 				It("returns 500 Internal Server Error", func() {

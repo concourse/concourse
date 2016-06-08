@@ -24,7 +24,7 @@ type TeamDB interface {
 	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
 	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
 
-	CreateOneOffBuild() (Build, error)
+	CreateOneOffBuild() (BuildDB, error)
 	GetBuilds(page Page) ([]Build, Pagination, error)
 
 	GetBuildDB(buildID int) (BuildDB, bool, error)
@@ -489,10 +489,10 @@ func (db *teamDB) UpdateUAAAuth(uaaAuth *UAAAuth) (SavedTeam, error) {
 	))
 }
 
-func (db *teamDB) CreateOneOffBuild() (Build, error) {
+func (db *teamDB) CreateOneOffBuild() (BuildDB, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
-		return Build{}, err
+		return nil, err
 	}
 
 	defer tx.Rollback()
@@ -500,7 +500,7 @@ func (db *teamDB) CreateOneOffBuild() (Build, error) {
 	var teamID int
 	err = tx.QueryRow(`SELECT id FROM teams WHERE name = $1`, db.teamName).Scan(&teamID)
 	if err != nil {
-		return Build{}, err
+		return nil, err
 	}
 
 	build, _, err := scanBuild(tx.QueryRow(`
@@ -509,7 +509,7 @@ func (db *teamDB) CreateOneOffBuild() (Build, error) {
 		RETURNING `+buildColumns+`, null, null, null, ''
 	`, teamID))
 	if err != nil {
-		return Build{}, err
+		return nil, err
 	}
 	build.TeamName = db.teamName
 
@@ -517,20 +517,20 @@ func (db *teamDB) CreateOneOffBuild() (Build, error) {
 		CREATE SEQUENCE %s MINVALUE 0
 	`, buildEventSeq(build.ID)))
 	if err != nil {
-		return Build{}, err
+		return nil, err
 	}
 
 	err = db.buildPrepHelper.CreateBuildPreparation(tx, build.ID)
 	if err != nil {
-		return Build{}, err
+		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return Build{}, err
+		return nil, err
 	}
 
-	return build, nil
+	return db.buildDBFactory.GetBuildDB(build), nil
 }
 
 func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {

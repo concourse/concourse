@@ -79,9 +79,8 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("IsOneOff", func() {
 		It("returns true for one off build", func() {
-			build, err := teamDB.CreateOneOffBuild()
+			oneOffBuildDB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			oneOffBuildDB := buildDBFactory.GetBuildDB(build)
 			Expect(oneOffBuildDB.IsOneOff()).To(BeTrue())
 		})
 
@@ -95,9 +94,8 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("Reload", func() {
 		It("updates the model", func() {
-			build, err := teamDB.CreateOneOffBuild()
+			buildDB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			buildDB := buildDBFactory.GetBuildDB(build)
 			started, err := buildDB.Start("engine", "metadata")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
@@ -115,12 +113,10 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("SaveEvent", func() {
 		It("saves and propagates events correctly", func() {
-			build, err := teamDB.CreateOneOffBuild()
+			buildDB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(build.Name).To(Equal("1"))
 
 			By("allowing you to subscribe when no events have yet occurred")
-			buildDB := buildDBFactory.GetBuildDB(build)
 			events, err := buildDB.Events(0)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -196,12 +192,10 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("Events", func() {
 		It("saves and emits status events", func() {
-			build, err := teamDB.CreateOneOffBuild()
+			buildDB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(build.Name).To(Equal("1"))
 
 			By("allowing you to subscribe when no events have yet occurred")
-			buildDB := buildDBFactory.GetBuildDB(build)
 			events, err := buildDB.Events(0)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -310,10 +304,10 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("GetResources", func() {
 		It("can get (no) resources from a one-off build", func() {
-			oneOff, err := teamDB.CreateOneOffBuild()
+			oneOffBuildDB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			inputs, outputs, err := buildDBFactory.GetBuildDB(oneOff).GetResources()
+			inputs, outputs, err := oneOffBuildDB.GetResources()
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(inputs).To(BeEmpty())
@@ -325,10 +319,9 @@ var _ = Describe("BuildDB", func() {
 		var buildDB db.BuildDB
 
 		BeforeEach(func() {
-			build, err := teamDB.CreateOneOffBuild()
+			var err error
+			buildDB, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-
-			buildDB = buildDBFactory.GetBuildDB(build)
 		})
 
 		Describe("Start", func() {
