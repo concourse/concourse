@@ -40,7 +40,8 @@ var _ = Describe("Resource Pagination", func() {
 		_, err = sqlDB.CreateTeam(db.Team{Name: atc.DefaultTeamName})
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		buildDBFactory := db.NewBuildDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
 		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 		// job build data
 		_, _, err = teamDB.SaveConfig(atc.DefaultPipelineName, atc.Config{

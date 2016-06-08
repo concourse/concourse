@@ -31,10 +31,9 @@ var _ = Describe("Pipes", func() {
 
 		database = db.NewSQL(dbConn, bus)
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn)
-		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-
 		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 	})
 
 	AfterEach(func() {

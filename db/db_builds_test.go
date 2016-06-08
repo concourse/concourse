@@ -39,7 +39,9 @@ var _ = Describe("Keeping track of builds", func() {
 		var err error
 		team, err = sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
-		teamDBFactory = db.NewTeamDBFactory(dbConn)
+
+		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, buildDBFactory)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 
 		config := atc.Config{
@@ -72,8 +74,6 @@ var _ = Describe("Keeping track of builds", func() {
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
 		pipelineDB = pipelineDBFactory.Build(pipeline)
-
-		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
 
 		database = sqlDB
 	})
@@ -180,26 +180,25 @@ var _ = Describe("Keeping track of builds", func() {
 	})
 
 	Describe("GetAllStartedBuilds", func() {
-		var build1 db.Build
-		var build2 db.Build
+		var build1DB db.BuildDB
+		var build2DB db.BuildDB
 
 		BeforeEach(func() {
-			var err error
-
-			build1, err = teamDB.CreateOneOffBuild()
+			build1, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build2, err = pipelineDB.CreateJobBuild("some-job")
+			build2, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			started, err := buildDBFactory.GetBuildDB(build1).Start("some-engine", "so-meta")
+			build1DB = buildDBFactory.GetBuildDB(build1)
+			started, err := build1DB.Start("some-engine", "so-meta")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
-			build2DB := buildDBFactory.GetBuildDB(build2)
+			build2DB = buildDBFactory.GetBuildDB(build2)
 			started, err = build2DB.Start("some-engine", "so-meta")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
@@ -211,10 +210,11 @@ var _ = Describe("Keeping track of builds", func() {
 
 			Expect(len(builds)).To(Equal(2))
 
-			build1, found, err := teamDB.GetBuild(build1.ID)
+			build1, found, err := build1DB.Get()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			build2, found, err := teamDB.GetBuild(build2.ID)
+
+			build2, found, err := build2DB.Get()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -316,25 +316,25 @@ var _ = Describe("Keeping track of builds", func() {
 
 			By("updating ReapTime for the affected builds")
 
-			reapedBuild1, found, err := teamDB.GetBuild(build1.ID)
+			reapedBuild1, found, err := build1DB.Get()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			Expect(reapedBuild1.ReapTime).To(BeTemporally(">", reapedBuild1.EndTime))
 
-			reapedBuild2, found, err := teamDB.GetBuild(build2.ID)
+			reapedBuild2, found, err := build2DB.Get()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			Expect(reapedBuild2.ReapTime).To(BeZero())
 
-			reapedBuild3, found, err := teamDB.GetBuild(build3.ID)
+			reapedBuild3, found, err := build3DB.Get()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			Expect(reapedBuild3.ReapTime).To(Equal(reapedBuild1.ReapTime))
 
-			reapedBuild4, found, err := teamDB.GetBuild(build4.ID)
+			reapedBuild4, found, err := build4DB.Get()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 

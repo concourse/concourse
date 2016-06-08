@@ -24,6 +24,7 @@ var _ = Describe("Job Builds", func() {
 	var atcPort uint16
 	var pipelineDBFactory db.PipelineDBFactory
 	var pipelineDB db.PipelineDB
+	var teamDBFactory db.TeamDBFactory
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -35,6 +36,8 @@ var _ = Describe("Job Builds", func() {
 		atcProcess, atcPort, _ = startATC(atcBin, 1, true, []string{}, BASIC_AUTH)
 		err := sqlDB.DeleteTeamByName("main")
 		Expect(err).NotTo(HaveOccurred())
+		buildDBFactory := db.NewBuildDBFactory(dbConn, bus)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, buildDBFactory)
 	})
 
 	AfterEach(func() {
@@ -73,7 +76,6 @@ var _ = Describe("Job Builds", func() {
 				var err error
 				team, err = sqlDB.CreateTeam(db.Team{Name: teamName})
 				Expect(err).NotTo(HaveOccurred())
-				teamDBFactory := db.NewTeamDBFactory(dbConn)
 				teamDB := teamDBFactory.GetTeamDB(teamName)
 
 				// job build data

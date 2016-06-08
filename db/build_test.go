@@ -10,22 +10,6 @@ import (
 )
 
 var _ = Describe("Build", func() {
-	Describe("OneOff", func() {
-		It("returns true if there is no JobName", func() {
-			build := db.Build{
-				JobName: "",
-			}
-			Expect(build.OneOff()).To(BeTrue())
-		})
-
-		It("returns false if there is a JobName", func() {
-			build := db.Build{
-				JobName: "something",
-			}
-			Expect(build.OneOff()).To(BeFalse())
-		})
-	})
-
 	Describe("IsRunning", func() {
 		It("returns true if the build is pending", func() {
 			build := db.Build{

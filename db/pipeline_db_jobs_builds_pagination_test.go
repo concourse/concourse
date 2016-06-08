@@ -34,7 +34,9 @@ var _ = Describe("Jobs Builds", func() {
 
 		_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
-		teamDBFactory := db.NewTeamDBFactory(dbConn)
+
+		buildDBFactory := db.NewBuildDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
 		teamDB := teamDBFactory.GetTeamDB("some-team")
 
 		config := atc.Config{

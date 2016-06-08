@@ -45,7 +45,8 @@ var _ = Describe("Resource Pausing", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		buildDBFactory := db.NewBuildDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
 		teamDB := teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 		// job build data
 		_, _, err = teamDB.SaveConfig("some-pipeline", atc.Config{

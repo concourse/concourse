@@ -20,7 +20,7 @@ func (s *Server) GetBuildPlan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamDB := s.teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-	build, found, err := teamDB.GetBuild(buildID)
+	buildDB, found, err := teamDB.GetBuildDB(buildID)
 	if err != nil {
 		s.logger.Error("failed-to-get-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -32,7 +32,6 @@ func (s *Server) GetBuildPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	buildDB := s.buildDBFactory.GetBuildDB(build)
 	engineBuild, err := s.engine.LookupBuild(hLog, buildDB)
 	if err != nil {
 		hLog.Error("failed-to-lookup-build", err)

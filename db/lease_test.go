@@ -19,6 +19,7 @@ var _ = Describe("Leases", func() {
 
 		pipelineDBFactory db.PipelineDBFactory
 		buildDBFactory    db.BuildDBFactory
+		teamDBFactory     db.TeamDBFactory
 		sqlDB             *db.SQLDB
 
 		pipelineDB db.PipelineDB
@@ -41,7 +42,7 @@ var _ = Describe("Leases", func() {
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
 		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, buildDBFactory)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 	})
 
@@ -77,7 +78,6 @@ var _ = Describe("Leases", func() {
 	BeforeEach(func() {
 		_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
-		teamDBFactory := db.NewTeamDBFactory(dbConn)
 		teamDB := teamDBFactory.GetTeamDB("some-team")
 		savedPipeline, _, err := teamDB.SaveConfig("pipeline-name", pipelineConfig, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())

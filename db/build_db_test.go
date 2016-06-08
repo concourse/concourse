@@ -32,10 +32,9 @@ var _ = Describe("BuildDB", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn)
-		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-
 		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 		pipelineConfig = atc.Config{
 			Jobs: atc.JobConfigs{
@@ -76,6 +75,22 @@ var _ = Describe("BuildDB", func() {
 
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Describe("OneOff", func() {
+		It("returns true for one off build", func() {
+			build, err := teamDB.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+			oneOffBuildDB := buildDBFactory.GetBuildDB(build)
+			Expect(oneOffBuildDB.IsOneOff()).To(BeTrue())
+		})
+
+		It("returns false for builds that belong to pipeline", func() {
+			build, err := pipelineDB.CreateJobBuild("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			pipelineBuildDB := buildDBFactory.GetBuildDB(build)
+			Expect(pipelineBuildDB.IsOneOff()).To(BeFalse())
+		})
 	})
 
 	Describe("SaveEvent", func() {
@@ -172,20 +187,13 @@ var _ = Describe("BuildDB", func() {
 
 			defer events.Close()
 
-			By("emitting a status event when finished")
+			By("ending the stream when finished")
 			err = buildDB.Finish(db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
-			finishedBuild, found, err := teamDB.GetBuild(build.ID)
+			_, err = events.Next()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
 
-			Expect(events.Next()).To(Equal(event.Status{
-				Status: atc.StatusSucceeded,
-				Time:   finishedBuild.EndTime.Unix(),
-			}))
-
-			By("ending the stream when finished")
 			_, err = events.Next()
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 		})

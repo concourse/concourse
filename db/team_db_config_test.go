@@ -49,7 +49,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		team, err = database.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, buildDBFactory)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 
 		config = atc.Config{

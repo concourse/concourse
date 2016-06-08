@@ -27,7 +27,7 @@ type TeamDB interface {
 	CreateOneOffBuild() (Build, error)
 	GetBuilds(page Page) ([]Build, Pagination, error)
 
-	GetBuild(int) (Build, bool, error)
+	GetBuildDB(buildID int) (BuildDB, bool, error)
 }
 
 type teamDB struct {
@@ -35,6 +35,7 @@ type teamDB struct {
 
 	buildPrepHelper buildPreparationHelper
 	conn            Conn
+	buildDBFactory  BuildDBFactory
 }
 
 func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
@@ -486,7 +487,6 @@ func (db *teamDB) UpdateUAAAuth(uaaAuth *UAAAuth) (SavedTeam, error) {
 		RETURNING id, name, admin, basic_auth, github_auth, uaa_auth
 	`, string(jsonEncodedUAAAuth), db.teamName,
 	))
-	return SavedTeam{}, nil
 }
 
 func (db *teamDB) CreateOneOffBuild() (Build, error) {
@@ -627,8 +627,8 @@ func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 	return builds, pagination, nil
 }
 
-func (db *teamDB) GetBuild(buildID int) (Build, bool, error) {
-	return scanBuild(db.conn.QueryRow(`
+func (db *teamDB) GetBuildDB(buildID int) (BuildDB, bool, error) {
+	build, found, err := scanBuild(db.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
 		LEFT OUTER JOIN jobs j ON b.job_id = j.id
@@ -636,6 +636,15 @@ func (db *teamDB) GetBuild(buildID int) (Build, bool, error) {
 		LEFT OUTER JOIN teams t ON b.team_id = t.id
 		WHERE b.id = $1
 	`, buildID))
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return db.buildDBFactory.GetBuildDB(build), true, nil
 }
 
 func scanPipeline(rows scannable) (SavedPipeline, error) {

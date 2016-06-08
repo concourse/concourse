@@ -42,14 +42,13 @@ var _ = Describe("Keeping track of volumes", func() {
 				},
 			},
 		}
-		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 		savedPipeline, _, err := teamDB.SaveConfig("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
-
-		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
 	})
 
 	AfterEach(func() {

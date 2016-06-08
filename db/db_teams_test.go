@@ -31,7 +31,8 @@ var _ = Describe("SQL DB Teams", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn)
+		buildDBFactory := db.NewBuildDBFactory(dbConn, bus)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, buildDBFactory)
 		database = db.NewSQL(dbConn, bus)
 
 		database.DeleteTeamByName(atc.DefaultTeamName)

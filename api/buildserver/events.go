@@ -18,7 +18,7 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamDB := s.teamDBFactory.GetTeamDB(atc.DefaultTeamName)
-	build, found, err := teamDB.GetBuild(buildID)
+	buildDB, found, err := teamDB.GetBuildDB(buildID)
 	if err != nil {
 		s.logger.Error("failed-to-get-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -30,10 +30,8 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	buildDB := s.buildDBFactory.GetBuildDB(build)
-
 	if !auth.IsAuthenticated(r) {
-		if build.OneOff() {
+		if buildDB.IsOneOff() {
 			s.rejector.Unauthorized(w, r)
 			return
 		}
@@ -45,7 +43,7 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		public, err := config.JobIsPublic(build.JobName)
+		public, err := config.JobIsPublic(buildDB.GetJobName())
 		if err != nil {
 			s.logger.Error("failed-to-see-job-is-public", err)
 			w.WriteHeader(http.StatusInternalServerError)

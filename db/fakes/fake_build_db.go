@@ -55,6 +55,12 @@ type FakeBuildDB struct {
 	getEngineMetadataReturns     struct {
 		result1 string
 	}
+	IsOneOffStub        func() bool
+	isOneOffMutex       sync.RWMutex
+	isOneOffArgsForCall []struct{}
+	isOneOffReturns     struct {
+		result1 bool
+	}
 	EventsStub        func(from uint) (db.EventSource, error)
 	eventsMutex       sync.RWMutex
 	eventsArgsForCall []struct {
@@ -376,6 +382,30 @@ func (fake *FakeBuildDB) GetEngineMetadataReturns(result1 string) {
 	fake.GetEngineMetadataStub = nil
 	fake.getEngineMetadataReturns = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuildDB) IsOneOff() bool {
+	fake.isOneOffMutex.Lock()
+	fake.isOneOffArgsForCall = append(fake.isOneOffArgsForCall, struct{}{})
+	fake.isOneOffMutex.Unlock()
+	if fake.IsOneOffStub != nil {
+		return fake.IsOneOffStub()
+	} else {
+		return fake.isOneOffReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) IsOneOffCallCount() int {
+	fake.isOneOffMutex.RLock()
+	defer fake.isOneOffMutex.RUnlock()
+	return len(fake.isOneOffArgsForCall)
+}
+
+func (fake *FakeBuildDB) IsOneOffReturns(result1 bool) {
+	fake.IsOneOffStub = nil
+	fake.isOneOffReturns = struct {
+		result1 bool
 	}{result1}
 }
 

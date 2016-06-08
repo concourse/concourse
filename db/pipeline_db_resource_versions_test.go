@@ -53,7 +53,8 @@ var _ = Describe("Resource History", func() {
 			},
 		}
 
-		teamDBFactory := db.NewTeamDBFactory(dbConn)
+		buildDBFactory := db.NewBuildDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
 		teamDB := teamDBFactory.GetTeamDB("some-team")
 		savedPipeline, _, err = teamDB.SaveConfig("a-pipeline-name", config, 0, db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())

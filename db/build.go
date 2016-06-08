@@ -39,10 +39,6 @@ type Build struct {
 	ReapTime  time.Time
 }
 
-func (b Build) OneOff() bool {
-	return b.JobName == ""
-}
-
 func (b Build) IsRunning() bool {
 	switch b.Status {
 	case StatusPending, StatusStarted:

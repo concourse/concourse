@@ -34,7 +34,9 @@ var _ = Describe("Image Versions", func() {
 
 		_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
-		teamDBFactory := db.NewTeamDBFactory(dbConn)
+
+		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
 		teamDB := teamDBFactory.GetTeamDB("some-team")
 
 		config := atc.Config{
@@ -49,8 +51,6 @@ var _ = Describe("Image Versions", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
-
-		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
 	})
 
 	AfterEach(func() {

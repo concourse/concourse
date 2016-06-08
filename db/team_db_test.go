@@ -39,7 +39,8 @@ var _ = Describe("TeamDB", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn)
+		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, buildDBFactory)
 		database = db.NewSQL(dbConn, bus)
 
 		team := db.Team{Name: "team-name"}
@@ -52,7 +53,6 @@ var _ = Describe("TeamDB", func() {
 		nonExistentTeamDB = teamDBFactory.GetTeamDB("non-existent-name")
 
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
-		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
 	})
 
 	AfterEach(func() {

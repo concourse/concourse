@@ -53,6 +53,7 @@ type BuildDB interface {
 	GetPipelineName() string
 	GetTeamName() string
 	GetEngineMetadata() string
+	IsOneOff() bool
 
 	Events(from uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
@@ -125,6 +126,10 @@ func (db *buildDB) GetTeamName() string {
 
 func (db *buildDB) GetEngineMetadata() string {
 	return db.build.EngineMetadata
+}
+
+func (db *buildDB) IsOneOff() bool {
+	return db.build.JobName == ""
 }
 
 func (db *buildDB) Events(from uint) (EventSource, error) {
