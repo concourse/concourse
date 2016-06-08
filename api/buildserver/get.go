@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
 	"github.com/pivotal-golang/lager"
 )
@@ -19,7 +18,7 @@ func (s *Server) GetBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teamDB := s.teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+	teamDB := s.teamDBFactory.GetTeamDB(getTeamName(r))
 	buildDB, found, err := teamDB.GetBuildDB(buildID)
 	if err != nil {
 		log.Error("cannot-find-build", err, lager.Data{"buildID": r.FormValue(":build_id")})

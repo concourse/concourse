@@ -635,7 +635,8 @@ func (db *teamDB) GetBuildDB(buildID int) (BuildDB, bool, error) {
 		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
 		LEFT OUTER JOIN teams t ON b.team_id = t.id
 		WHERE b.id = $1
-	`, buildID))
+		AND t.name = $2
+	`, buildID, db.teamName))
 	if err != nil {
 		return nil, false, err
 	}

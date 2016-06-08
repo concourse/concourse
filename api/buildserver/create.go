@@ -6,17 +6,11 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
-	"github.com/concourse/atc/auth"
 	"github.com/pivotal-golang/lager"
 )
 
 func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 	hLog := s.logger.Session("create-build")
-
-	teamName, _, _, found := auth.GetTeam(r)
-	if !found {
-		teamName = atc.DefaultTeamName
-	}
 
 	var plan atc.Plan
 	err := json.NewDecoder(r.Body).Decode(&plan)
@@ -26,7 +20,7 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teamDB := s.teamDBFactory.GetTeamDB(teamName)
+	teamDB := s.teamDBFactory.GetTeamDB(getTeamName(r))
 	build, err := teamDB.CreateOneOffBuild()
 
 	if err != nil {

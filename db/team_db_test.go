@@ -509,4 +509,30 @@ var _ = Describe("TeamDB", func() {
 			})
 		})
 	})
+
+	Describe("GetBuildDB", func() {
+		It("returns build that belong to current team", func() {
+			build, err := teamDB.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			buildDB, found, err := teamDB.GetBuildDB(build.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(buildDB.GetModel()).To(Equal(build))
+		})
+
+		It("does not return build that belongs to another team", func() {
+			team := db.Team{Name: "another-team-name"}
+			_, err := database.CreateTeam(team)
+			Expect(err).NotTo(HaveOccurred())
+			anotherTeamDB := teamDBFactory.GetTeamDB("another-team-name")
+			build, err := anotherTeamDB.CreateOneOffBuild()
+			Expect(err).NotTo(HaveOccurred())
+
+			buildDB, found, err := teamDB.GetBuildDB(build.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeFalse())
+			Expect(buildDB).To(BeNil())
+		})
+	})
 })

@@ -298,6 +298,26 @@ var _ = Describe("Builds API", func() {
 						"reap_time": 200
 					}`))
 				})
+
+				Context("when team is not in user context", func() {
+					It("returns builds for default team", func() {
+						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+						Expect(teamName).To(Equal(atc.DefaultTeamName))
+					})
+				})
+
+				Context("when team is set in user context", func() {
+					BeforeEach(func() {
+						userContextReader.GetTeamReturns("some-team", 5, false, true)
+					})
+
+					It("returns builds for team in the context", func() {
+						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+						Expect(teamName).To(Equal("some-team"))
+					})
+				})
 			})
 		})
 	})
@@ -319,6 +339,26 @@ var _ = Describe("Builds API", func() {
 
 			It("returns 200 OK", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			Context("when team is not in user context", func() {
+				It("returns builds for default team", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+					Expect(teamName).To(Equal(atc.DefaultTeamName))
+				})
+			})
+
+			Context("when team is set in user context", func() {
+				BeforeEach(func() {
+					userContextReader.GetTeamReturns("some-team", 5, false, true)
+				})
+
+				It("returns builds for team in the context", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+					Expect(teamName).To(Equal("some-team"))
+				})
 			})
 
 			Context("when the build inputs/ouputs are not empty", func() {
@@ -487,6 +527,7 @@ var _ = Describe("Builds API", func() {
 				Name:         "2",
 				JobName:      "job2",
 				PipelineName: "pipeline2",
+				TeamName:     "some-team",
 				Status:       db.StatusStarted,
 				StartTime:    time.Unix(1, 0),
 				EndTime:      time.Unix(100, 0),
@@ -497,6 +538,7 @@ var _ = Describe("Builds API", func() {
 				Name:         "1",
 				JobName:      "job1",
 				PipelineName: "pipeline1",
+				TeamName:     "some-team",
 				Status:       db.StatusSucceeded,
 				StartTime:    time.Unix(101, 0),
 				EndTime:      time.Unix(200, 0),
@@ -568,9 +610,9 @@ var _ = Describe("Builds API", func() {
 						"name": "2",
 						"job_name": "job2",
 						"pipeline_name": "pipeline2",
-						"team_name": "main",
+						"team_name": "some-team",
 						"status": "started",
-						"url": "/teams/main/pipelines/pipeline2/jobs/job2/builds/2",
+						"url": "/teams/some-team/pipelines/pipeline2/jobs/job2/builds/2",
 						"api_url": "/api/v1/builds/4",
 						"start_time": 1,
 						"end_time": 100,
@@ -581,9 +623,9 @@ var _ = Describe("Builds API", func() {
 						"name": "1",
 						"job_name": "job1",
 						"pipeline_name": "pipeline1",
-						"team_name": "main",
+						"team_name": "some-team",
 						"status": "succeeded",
-						"url": "/teams/main/pipelines/pipeline1/jobs/job1/builds/1",
+						"url": "/teams/some-team/pipelines/pipeline1/jobs/job1/builds/1",
 						"api_url": "/api/v1/builds/3",
 						"start_time": 101,
 						"end_time": 200,
@@ -679,6 +721,26 @@ var _ = Describe("Builds API", func() {
 
 				It("returns 200", func() {
 					Expect(response.StatusCode).To(Equal(200))
+				})
+
+				Context("when team is not in user context", func() {
+					It("returns builds for default team", func() {
+						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+						Expect(teamName).To(Equal(atc.DefaultTeamName))
+					})
+				})
+
+				Context("when team is set in user context", func() {
+					BeforeEach(func() {
+						userContextReader.GetTeamReturns("some-team", 5, false, true)
+					})
+
+					It("returns builds for team in the context", func() {
+						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+						Expect(teamName).To(Equal("some-team"))
+					})
 				})
 
 				It("serves the request via the event handler", func() {
@@ -849,6 +911,26 @@ var _ = Describe("Builds API", func() {
 						Expect(fakeBuild.AbortCallCount()).To(Equal(1))
 					})
 
+					Context("when team is not in user context", func() {
+						It("returns builds for default team", func() {
+							Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+							teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+							Expect(teamName).To(Equal(atc.DefaultTeamName))
+						})
+					})
+
+					Context("when team is set in user context", func() {
+						BeforeEach(func() {
+							userContextReader.GetTeamReturns("some-team", 5, false, true)
+						})
+
+						It("returns builds for team in the context", func() {
+							Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+							teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+							Expect(teamName).To(Equal("some-team"))
+						})
+					})
+
 					Context("when aborting succeeds", func() {
 						BeforeEach(func() {
 							fakeBuild.AbortReturns(nil)
@@ -952,6 +1034,26 @@ var _ = Describe("Builds API", func() {
 
 			It("returns OK", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			Context("when team is not in user context", func() {
+				It("returns builds for default team", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+					Expect(teamName).To(Equal(atc.DefaultTeamName))
+				})
+			})
+
+			Context("when team is set in user context", func() {
+				BeforeEach(func() {
+					userContextReader.GetTeamReturns("some-team", 5, false, true)
+				})
+
+				It("returns builds for team in the context", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+					Expect(teamName).To(Equal("some-team"))
+				})
 			})
 
 			It("returns the build preparation", func() {
@@ -1059,6 +1161,26 @@ var _ = Describe("Builds API", func() {
 
 				It("returns OK", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				Context("when team is not in user context", func() {
+					It("returns builds for default team", func() {
+						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+						Expect(teamName).To(Equal(atc.DefaultTeamName))
+					})
+				})
+
+				Context("when team is set in user context", func() {
+					BeforeEach(func() {
+						userContextReader.GetTeamReturns("some-team", 5, false, true)
+					})
+
+					It("returns builds for team in the context", func() {
+						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+						Expect(teamName).To(Equal("some-team"))
+					})
 				})
 
 				It("returns the plan", func() {

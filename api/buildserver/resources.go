@@ -20,7 +20,7 @@ func (s *Server) BuildResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inputs, outputs, found, err := s.getMeAllTheThings(buildID)
+	inputs, outputs, found, err := s.getMeAllTheThings(buildID, getTeamName(r))
 	if err != nil {
 		log.Error("cannot-find-build", err, lager.Data{"buildID": r.FormValue(":build_id")})
 		w.WriteHeader(http.StatusInternalServerError)
@@ -51,8 +51,8 @@ func (s *Server) BuildResources(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(output)
 }
 
-func (s *Server) getMeAllTheThings(buildID int) ([]db.BuildInput, []db.BuildOutput, bool, error) {
-	teamDB := s.teamDBFactory.GetTeamDB(atc.DefaultTeamName)
+func (s *Server) getMeAllTheThings(buildID int, teamName string) ([]db.BuildInput, []db.BuildOutput, bool, error) {
+	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 	buildDB, found, err := teamDB.GetBuildDB(buildID)
 	if err != nil {
 		return []db.BuildInput{}, []db.BuildOutput{}, false, err
