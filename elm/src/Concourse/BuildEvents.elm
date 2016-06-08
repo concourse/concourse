@@ -3,11 +3,12 @@ module Concourse.BuildEvents exposing (..)
 import Date exposing (Date)
 import Dict exposing (Dict)
 import Json.Decode exposing ((:=))
-import WebSocket
 
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Metadata exposing (Metadata)
 import Concourse.Version exposing (Version)
+
+import EventSource
 
 type BuildEvent
   = BuildStatus BuildStatus Date
@@ -41,30 +42,27 @@ type alias Origin =
 
 subscribe : Int -> Sub Action
 subscribe build =
-  WebSocket.listen ("/api/v1/builds/" ++ toString build ++ "/events") parseAction
+  EventSource.listen ("/api/v1/builds/" ++ toString build ++ "/events", ["end", "event"]) parseAction
 
-parseAction : String -> Action
+parseAction : EventSource.Msg -> Action
 parseAction msg =
-  case Json.Decode.decodeString decodeMessage msg of
-    Err err ->
-      Event (Err err)
+  case msg of
+    EventSource.Event {name, data} ->
+      case name of
+        Just "end" ->
+          End
 
-    Ok (EventMessage "end" _) ->
-      End
+        Just "event" ->
+          Event (parseEvent data)
 
-    Ok (EventMessage "event" (Just payload)) ->
-      Event (parseEvent payload)
+        _ ->
+          Event (Err ("unknown event type: " ++ toString name ++ " (data: " ++ toString data ++ ")"))
 
-    Ok msg ->
-      Event (Err ("unknown message type: " ++ toString msg))
+    EventSource.Opened ->
+      Opened
 
-type EventMessage = EventMessage String (Maybe String)
-
-decodeMessage : Json.Decode.Decoder EventMessage
-decodeMessage =
-  Json.Decode.object2 EventMessage
-    ("type" := Json.Decode.string)
-    (Json.Decode.maybe ("payload" := Json.Decode.string))
+    EventSource.Errored ->
+      Errored
 
 parseEvent : String -> Result String BuildEvent
 parseEvent data =

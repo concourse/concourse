@@ -38,7 +38,6 @@ type Action
   = Noop
   | PlanAndResourcesFetched (Result Http.Error (BuildPlan, BuildResources))
   | BuildEventsAction Concourse.BuildEvents.Action
-  | BuildEventsClosed
   | StepTreeAction StepTree.Action
 
 init : Build -> (Model, Cmd Action)
@@ -91,9 +90,6 @@ update action model =
 
     BuildEventsAction action ->
       handleEventsAction action model
-
-    BuildEventsClosed ->
-      ({ model | events = Sub.none }, Cmd.none)
 
     StepTreeAction action ->
       ( { model | steps = Maybe.map (StepTree.update action) model.steps }
