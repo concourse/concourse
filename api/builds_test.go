@@ -17,6 +17,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	dbfakes "github.com/concourse/atc/db/fakes"
 	enginefakes "github.com/concourse/atc/engine/fakes"
 )
 
@@ -508,9 +509,12 @@ var _ = Describe("Builds API", func() {
 	Describe("GET /api/v1/builds", func() {
 		var response *http.Response
 		var queryParams string
+		var returnedBuildDBs []db.BuildDB
 
-		returnedBuilds := []db.Build{
-			{
+		BeforeEach(func() {
+			queryParams = ""
+			buildDB1 := new(dbfakes.FakeBuildDB)
+			buildDB1.GetModelReturns(db.Build{
 				ID:           4,
 				Name:         "2",
 				JobName:      "job2",
@@ -520,8 +524,9 @@ var _ = Describe("Builds API", func() {
 				StartTime:    time.Unix(1, 0),
 				EndTime:      time.Unix(100, 0),
 				ReapTime:     time.Unix(300, 0),
-			},
-			{
+			})
+			buildDB2 := new(dbfakes.FakeBuildDB)
+			buildDB2.GetModelReturns(db.Build{
 				ID:           3,
 				Name:         "1",
 				JobName:      "job1",
@@ -531,11 +536,8 @@ var _ = Describe("Builds API", func() {
 				StartTime:    time.Unix(101, 0),
 				EndTime:      time.Unix(200, 0),
 				ReapTime:     time.Unix(400, 0),
-			},
-		}
-
-		BeforeEach(func() {
-			queryParams = ""
+			})
+			returnedBuildDBs = []db.BuildDB{buildDB1, buildDB2}
 		})
 
 		JustBeforeEach(func() {
@@ -581,7 +583,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when getting the builds succeeds", func() {
 			BeforeEach(func() {
-				teamDB.GetBuildsReturns(returnedBuilds, db.Pagination{}, nil)
+				teamDB.GetBuildsReturns(returnedBuildDBs, db.Pagination{}, nil)
 			})
 
 			It("returns 200 OK", func() {
@@ -647,7 +649,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when next/previous pages are available", func() {
 			BeforeEach(func() {
-				teamDB.GetBuildsReturns(returnedBuilds, db.Pagination{
+				teamDB.GetBuildsReturns(returnedBuildDBs, db.Pagination{
 					Previous: &db.Page{Until: 4, Limit: 2},
 					Next:     &db.Page{Since: 3, Limit: 2},
 				}, nil)

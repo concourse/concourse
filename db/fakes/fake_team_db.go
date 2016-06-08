@@ -99,13 +99,13 @@ type FakeTeamDB struct {
 		result1 db.BuildDB
 		result2 error
 	}
-	GetBuildsStub        func(page db.Page) ([]db.Build, db.Pagination, error)
+	GetBuildsStub        func(page db.Page) ([]db.BuildDB, db.Pagination, error)
 	getBuildsMutex       sync.RWMutex
 	getBuildsArgsForCall []struct {
 		page db.Page
 	}
 	getBuildsReturns struct {
-		result1 []db.Build
+		result1 []db.BuildDB
 		result2 db.Pagination
 		result3 error
 	}
@@ -433,7 +433,7 @@ func (fake *FakeTeamDB) CreateOneOffBuildReturns(result1 db.BuildDB, result2 err
 	}{result1, result2}
 }
 
-func (fake *FakeTeamDB) GetBuilds(page db.Page) ([]db.Build, db.Pagination, error) {
+func (fake *FakeTeamDB) GetBuilds(page db.Page) ([]db.BuildDB, db.Pagination, error) {
 	fake.getBuildsMutex.Lock()
 	fake.getBuildsArgsForCall = append(fake.getBuildsArgsForCall, struct {
 		page db.Page
@@ -458,10 +458,10 @@ func (fake *FakeTeamDB) GetBuildsArgsForCall(i int) db.Page {
 	return fake.getBuildsArgsForCall[i].page
 }
 
-func (fake *FakeTeamDB) GetBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakeTeamDB) GetBuildsReturns(result1 []db.BuildDB, result2 db.Pagination, result3 error) {
 	fake.GetBuildsStub = nil
 	fake.getBuildsReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildDB
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}

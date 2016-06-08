@@ -394,13 +394,13 @@ var _ = Describe("TeamDB", func() {
 		})
 
 		Context("when there are builds", func() {
-			var allBuilds [5]db.Build
+			var allBuilds [5]db.BuildDB
 
 			BeforeEach(func() {
 				for i := 0; i < 3; i++ {
 					buildDB, err := teamDB.CreateOneOffBuild()
 					Expect(err).NotTo(HaveOccurred())
-					allBuilds[i] = buildDB.GetModel()
+					allBuilds[i] = buildDB
 				}
 
 				config := atc.Config{
@@ -416,9 +416,9 @@ var _ = Describe("TeamDB", func() {
 				pipelineDB := pipelineDBFactory.Build(pipeline)
 
 				for i := 3; i < 5; i++ {
-					var err error
-					allBuilds[i], err = pipelineDB.CreateJobBuild("some-job")
+					build, err := pipelineDB.CreateJobBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
+					allBuilds[i] = buildDBFactory.GetBuildDB(build)
 				}
 			})
 
@@ -431,7 +431,7 @@ var _ = Describe("TeamDB", func() {
 				Expect(builds[1]).To(Equal(allBuilds[3]))
 
 				Expect(pagination.Previous).To(BeNil())
-				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[3].ID, Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[3].GetID(), Limit: 2}))
 
 				builds, pagination, err = teamDB.GetBuilds(*pagination.Next)
 				Expect(err).NotTo(HaveOccurred())
@@ -440,8 +440,8 @@ var _ = Describe("TeamDB", func() {
 				Expect(builds[0]).To(Equal(allBuilds[2]))
 				Expect(builds[1]).To(Equal(allBuilds[1]))
 
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID, Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID, Limit: 2}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].GetID(), Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].GetID(), Limit: 2}))
 
 				builds, pagination, err = teamDB.GetBuilds(*pagination.Next)
 				Expect(err).NotTo(HaveOccurred())
@@ -449,7 +449,7 @@ var _ = Describe("TeamDB", func() {
 				Expect(len(builds)).To(Equal(1))
 				Expect(builds[0]).To(Equal(allBuilds[0]))
 
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[0].ID, Limit: 2}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[0].GetID(), Limit: 2}))
 				Expect(pagination.Next).To(BeNil())
 
 				builds, pagination, err = teamDB.GetBuilds(*pagination.Previous)
@@ -459,13 +459,13 @@ var _ = Describe("TeamDB", func() {
 				Expect(builds[0]).To(Equal(allBuilds[2]))
 				Expect(builds[1]).To(Equal(allBuilds[1]))
 
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID, Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID, Limit: 2}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].GetID(), Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].GetID(), Limit: 2}))
 			})
 
 			Context("when there are builds that belong to different teams", func() {
-				var teamABuilds [3]db.Build
-				var teamBBuilds [3]db.Build
+				var teamABuilds [3]db.BuildDB
+				var teamBBuilds [3]db.BuildDB
 
 				var teamADB db.TeamDB
 				var teamBDB db.TeamDB
@@ -481,13 +481,11 @@ var _ = Describe("TeamDB", func() {
 					teamBDB = teamDBFactory.GetTeamDB("team-b")
 
 					for i := 0; i < 3; i++ {
-						buildDB, err := teamADB.CreateOneOffBuild()
+						teamABuilds[i], err = teamADB.CreateOneOffBuild()
 						Expect(err).NotTo(HaveOccurred())
-						teamABuilds[i] = buildDB.GetModel()
 
-						buildDB, err = teamBDB.CreateOneOffBuild()
+						teamBBuilds[i], err = teamBDB.CreateOneOffBuild()
 						Expect(err).NotTo(HaveOccurred())
-						teamBBuilds[i] = buildDB.GetModel()
 					}
 				})
 

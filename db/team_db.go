@@ -25,8 +25,7 @@ type TeamDB interface {
 	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
 
 	CreateOneOffBuild() (BuildDB, error)
-	GetBuilds(page Page) ([]Build, Pagination, error)
-
+	GetBuilds(page Page) ([]BuildDB, Pagination, error)
 	GetBuildDB(buildID int) (BuildDB, bool, error)
 }
 
@@ -533,7 +532,7 @@ func (db *teamDB) CreateOneOffBuild() (BuildDB, error) {
 	return db.buildDBFactory.GetBuildDB(build), nil
 }
 
-func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {
+func (db *teamDB) GetBuilds(page Page) ([]BuildDB, Pagination, error) {
 	query := `
 		SELECT ` + qualifiedBuildColumns + `
 		FROM builds b
@@ -578,7 +577,7 @@ func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 
 	defer rows.Close()
 
-	builds := []Build{}
+	builds := []BuildDB{}
 
 	for rows.Next() {
 		build, _, err := scanBuild(rows)
@@ -586,7 +585,7 @@ func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 			return nil, Pagination{}, err
 		}
 
-		builds = append(builds, build)
+		builds = append(builds, db.buildDBFactory.GetBuildDB(build))
 	}
 
 	if len(builds) == 0 {
@@ -610,16 +609,16 @@ func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 
 	var pagination Pagination
 
-	if first.ID < maxID {
+	if first.GetID() < maxID {
 		pagination.Previous = &Page{
-			Until: first.ID,
+			Until: first.GetID(),
 			Limit: page.Limit,
 		}
 	}
 
-	if last.ID > minID {
+	if last.GetID() > minID {
 		pagination.Next = &Page{
-			Since: last.ID,
+			Since: last.GetID(),
 			Limit: page.Limit,
 		}
 	}

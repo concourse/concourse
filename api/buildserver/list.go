@@ -35,7 +35,7 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamDB := s.teamDBFactory.GetTeamDB(getTeamName(r))
-	builds, pagination, err := teamDB.GetBuilds(db.Page{Until: until, Since: since, Limit: limit})
+	buildDBs, pagination, err := teamDB.GetBuilds(db.Page{Until: until, Since: since, Limit: limit})
 	if err != nil {
 		logger.Error("failed-to-get-all-builds", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -52,10 +52,10 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 
-	atc := make([]atc.Build, len(builds))
-	for i := 0; i < len(builds); i++ {
-		build := builds[i]
-		atc[i] = present.Build(build)
+	atc := make([]atc.Build, len(buildDBs))
+	for i := 0; i < len(buildDBs); i++ {
+		buildDB := buildDBs[i]
+		atc[i] = present.Build(buildDB.GetModel())
 	}
 
 	json.NewEncoder(w).Encode(atc)
