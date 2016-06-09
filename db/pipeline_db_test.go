@@ -2297,12 +2297,12 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				Expect(build.ID).NotTo(BeZero())
-				Expect(build.JobID).NotTo(BeZero())
-				Expect(build.Name).To(Equal("1"))
-				Expect(build.Status).To(Equal(db.StatusPending))
-				Expect(build.Scheduled).To(BeFalse())
-				Expect(build.TeamID).To(Equal(savedPipeline.TeamID))
+				Expect(build.GetModel().ID).NotTo(BeZero())
+				Expect(build.GetModel().JobID).NotTo(BeZero())
+				Expect(build.GetModel().Name).To(Equal("1"))
+				Expect(build.GetModel().Status).To(Equal(db.StatusPending))
+				Expect(build.GetModel().Scheduled).To(BeFalse())
+				Expect(build.GetModel().TeamID).To(Equal(savedPipeline.TeamID))
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Expect(err).NotTo(HaveOccurred())
@@ -2333,7 +2333,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				err = pipelineDB.UseInputsForBuild(build.ID, inputs)
+				err = pipelineDB.UseInputsForBuild(build.GetID(), inputs)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
@@ -2346,8 +2346,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				buildDB := buildDBFactory.GetBuildDB(build)
-				err = buildDB.MarkAsFailed(errors.New("disaster"))
+				err = build.MarkAsFailed(errors.New("disaster"))
 				Expect(err).NotTo(HaveOccurred())
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
@@ -2360,8 +2359,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				buildDB := buildDBFactory.GetBuildDB(build)
-				err = buildDB.Abort()
+				err = build.Abort()
 				Expect(err).NotTo(HaveOccurred())
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
@@ -2374,8 +2372,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				buildDB := buildDBFactory.GetBuildDB(build)
-				err = buildDB.Finish(db.StatusSucceeded)
+				err = build.Finish(db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
@@ -2388,8 +2385,7 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				buildDB := buildDBFactory.GetBuildDB(build)
-				err = buildDB.Finish(db.StatusFailed)
+				err = build.Finish(db.StatusFailed)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
@@ -2401,10 +2397,8 @@ var _ = Describe("PipelineDB", func() {
 				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
-				expectedBuild := build
-				expectedBuild.InputsDetermined = true
 
-				err = pipelineDB.UseInputsForBuild(build.ID, inputs)
+				err = pipelineDB.UseInputsForBuild(build.GetID(), inputs)
 				Expect(err).NotTo(HaveOccurred())
 
 				foundBuild, found, err := pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
@@ -2413,7 +2407,8 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(foundBuild).To(Equal(expectedBuild))
+				Expect(foundBuild.ID).To(Equal(build.GetID()))
+				Expect(foundBuild.InputsDetermined).To(BeTrue())
 			})
 
 			It("removes old build inputs", func() {
@@ -2431,14 +2426,12 @@ var _ = Describe("PipelineDB", func() {
 				build, created, err := pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
-				expectedBuild := build
-				expectedBuild.InputsDetermined = true
 
-				err = pipelineDB.UseInputsForBuild(build.ID, inputs)
+				err = pipelineDB.UseInputsForBuild(build.GetID(), inputs)
 				Expect(err).NotTo(HaveOccurred())
 
 				updatedInputs := []db.BuildInput{input3}
-				err = pipelineDB.UseInputsForBuild(build.ID, updatedInputs)
+				err = pipelineDB.UseInputsForBuild(build.GetID(), updatedInputs)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, found, err := pipelineDB.GetJobBuildForInputs("some-job", []db.BuildInput{
@@ -2453,7 +2446,8 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(foundBuild).To(Equal(expectedBuild))
+				Expect(foundBuild.ID).To(Equal(build.GetID()))
+				Expect(foundBuild.InputsDetermined).To(BeTrue())
 			})
 
 			It("creates an entry in build_preparation", func() {
@@ -2461,11 +2455,11 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				buildPrep, found, err := buildDBFactory.GetBuildDB(build).GetPreparation()
+				buildPrep, found, err := build.GetPreparation()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(buildPrep.BuildID).To(Equal(build.ID))
+				Expect(buildPrep.BuildID).To(Equal(build.GetID()))
 			})
 		})
 

@@ -62,7 +62,7 @@ type PipelineDB interface {
 
 	GetJobBuild(job string, build string) (BuildDB, bool, error)
 	CreateJobBuild(job string) (BuildDB, error)
-	CreateJobBuildForCandidateInputs(job string) (Build, bool, error)
+	CreateJobBuildForCandidateInputs(job string) (BuildDB, bool, error)
 
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
 
@@ -1079,10 +1079,10 @@ func (pdb *pipelineDB) GetJobBuild(job string, name string) (BuildDB, bool, erro
 	return pdb.buildDBFactory.GetBuildDB(build), found, nil
 }
 
-func (pdb *pipelineDB) CreateJobBuildForCandidateInputs(jobName string) (Build, bool, error) {
+func (pdb *pipelineDB) CreateJobBuildForCandidateInputs(jobName string) (BuildDB, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
 	defer tx.Rollback()
@@ -1102,25 +1102,25 @@ func (pdb *pipelineDB) CreateJobBuildForCandidateInputs(jobName string) (Build, 
 	if err == sql.ErrNoRows {
 		build, err := pdb.createJobBuild(jobName, tx)
 		if err != nil {
-			return Build{}, false, err
+			return nil, false, err
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			return Build{}, false, err
+			return nil, false, err
 		}
 
-		return build, true, nil
+		return pdb.buildDBFactory.GetBuildDB(build), true, nil
 	} else if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
-	return Build{}, false, nil
+	return nil, false, nil
 }
 
 func (pdb *pipelineDB) UseInputsForBuild(buildID int, inputs []BuildInput) error {

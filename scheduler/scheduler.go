@@ -18,7 +18,7 @@ import (
 type PipelineDB interface {
 	JobServiceDB
 	CreateJobBuild(job string) (db.BuildDB, error)
-	CreateJobBuildForCandidateInputs(job string) (db.Build, bool, error)
+	CreateJobBuildForCandidateInputs(job string) (db.BuildDB, bool, error)
 	UpdateBuildToScheduled(buildID int) (bool, error)
 
 	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, bool, error)
@@ -104,7 +104,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 		return nil
 	}
 
-	build, created, err := s.PipelineDB.CreateJobBuildForCandidateInputs(job.Name)
+	buildDB, created, err := s.PipelineDB.CreateJobBuildForCandidateInputs(job.Name)
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
 		return err
@@ -112,12 +112,12 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 
 	if !created {
 		logger.Debug("waiting-for-existing-build-to-determine-inputs", lager.Data{
-			"existing-build": build.ID,
+			"existing-build": buildDB.GetID(),
 		})
 		return nil
 	}
 
-	logger = logger.WithData(lager.Data{"build-id": build.ID, "build-name": build.Name})
+	logger = logger.WithData(lager.Data{"build-id": buildDB.GetID(), "build-name": buildDB.GetName()})
 
 	logger.Info("created-build")
 
@@ -130,7 +130,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 	// NOTE: this is intentionally serial within a scheduler tick, so that
 	// multiple ATCs don't do redundant work to determine a build's inputs.
 
-	s.ScheduleAndResumePendingBuild(logger, versions, build, job, resources, resourceTypes, jobService)
+	s.ScheduleAndResumePendingBuild(logger, versions, buildDB.GetModel(), job, resources, resourceTypes, jobService)
 
 	return nil
 }
