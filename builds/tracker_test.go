@@ -42,38 +42,28 @@ var _ = Describe("Tracker", func() {
 	})
 
 	Describe("Track", func() {
-		var (
-			inFlightBuildDBs []*dbfakes.FakeBuildDB
-
-			engineBuilds []*enginefakes.FakeBuild
-		)
+		var inFlightBuildDBs []*dbfakes.FakeBuildDB
+		var engineBuilds []*enginefakes.FakeBuild
 
 		BeforeEach(func() {
-			inFlightBuilds := []db.Build{
-				{ID: 1, PipelineID: 57},
-				{ID: 2, PipelineID: 57},
-				{ID: 3, PipelineID: 57},
+			inFlightBuildDBs = []*dbfakes.FakeBuildDB{
+				new(dbfakes.FakeBuildDB),
+				new(dbfakes.FakeBuildDB),
+				new(dbfakes.FakeBuildDB),
+			}
+			returnedBuildDBs := []db.BuildDB{
+				inFlightBuildDBs[0],
+				inFlightBuildDBs[1],
+				inFlightBuildDBs[2],
 			}
 
-			inFlightBuildDBs = []*dbfakes.FakeBuildDB{}
+			fakeTrackerDB.GetAllStartedBuildsReturns(returnedBuildDBs, nil)
 
-			fakeBuildDBFactory.GetBuildDBStub = func(build db.Build) db.BuildDB {
-				fakeBuildDB := new(dbfakes.FakeBuildDB)
-				fakeBuildDB.GetIDReturns(build.ID)
-				inFlightBuildDBs = append(inFlightBuildDBs, fakeBuildDB)
-				return fakeBuildDB
-			}
-
-			engineBuilds = []*enginefakes.FakeBuild{
-				new(enginefakes.FakeBuild),
-				new(enginefakes.FakeBuild),
-				new(enginefakes.FakeBuild),
-			}
-
-			fakeTrackerDB.GetAllStartedBuildsReturns(inFlightBuilds, nil)
-
+			engineBuilds = []*enginefakes.FakeBuild{}
 			fakeEngine.LookupBuildStub = func(logger lager.Logger, buildDB db.BuildDB) (engine.Build, error) {
-				return engineBuilds[buildDB.GetID()-1], nil
+				engineBuild := new(enginefakes.FakeBuild)
+				engineBuilds = append(engineBuilds, engineBuild)
+				return engineBuild, nil
 			}
 		})
 

@@ -204,20 +204,12 @@ var _ = Describe("Keeping track of builds", func() {
 		})
 
 		It("returns all builds that have been started, regardless of pipeline", func() {
-			builds, err := database.GetAllStartedBuilds()
+			buildDBs, err := database.GetAllStartedBuilds()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(len(builds)).To(Equal(2))
-
-			build1, found, err := build1DB.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			build2, found, err := build2DB.Reload()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			Expect(builds).To(ConsistOf(build1, build2))
+			build1DB.Reload()
+			build2DB.Reload()
+			Expect(buildDBs).To(ConsistOf(build1DB, build2DB))
 		})
 	})
 
