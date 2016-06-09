@@ -34,6 +34,13 @@ run:
       echo $droplets | xargs -n 1 tugboat destroy -y -i
     fi
 
+    sleep 2
+
+    until [ -z "$(tugboat droplets | grep "^smoke-test-$OS")" ]; do
+      echo "waiting for droplets to be destroyed..."
+      sleep 2
+    done
+
     tugboat create smoke-test-$OS
     trap "tugboat destroy --confirm smoke-test-$OS" ERR TERM INT
 
