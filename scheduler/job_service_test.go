@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
+	dbfakes "github.com/concourse/atc/db/fakes"
 	"github.com/concourse/atc/scheduler"
 	"github.com/concourse/atc/scheduler/fakes"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -429,7 +430,7 @@ var _ = Describe("JobService", func() {
 
 								Context("when the call to get running builds throws an error", func() {
 									BeforeEach(func() {
-										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{}, errors.New("disaster"))
+										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.BuildDB{}, errors.New("disaster"))
 									})
 
 									It("returns the error", func() {
@@ -441,10 +442,8 @@ var _ = Describe("JobService", func() {
 
 								Context("when another build with the same job is running", func() {
 									BeforeEach(func() {
-										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{
-											{
-												Name: "Some-build",
-											},
+										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.BuildDB{
+											new(dbfakes.FakeBuildDB),
 										}, nil)
 									})
 
@@ -465,7 +464,7 @@ var _ = Describe("JobService", func() {
 
 								Context("when no other builds are running", func() {
 									BeforeEach(func() {
-										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{}, nil)
+										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.BuildDB{}, nil)
 									})
 
 									Context("when the call to get next pending build fails", func() {
@@ -533,7 +532,7 @@ var _ = Describe("JobService", func() {
 
 								Context("when the call to get running builds throws an error", func() {
 									BeforeEach(func() {
-										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{}, errors.New("disaster"))
+										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.BuildDB{}, errors.New("disaster"))
 									})
 
 									It("returns the error", func() {
@@ -545,10 +544,8 @@ var _ = Describe("JobService", func() {
 
 								Context("when 1 build is running", func() {
 									BeforeEach(func() {
-										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{
-											{
-												Name: "Some-build",
-											},
+										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.BuildDB{
+											new(dbfakes.FakeBuildDB),
 										}, nil)
 									})
 
@@ -591,13 +588,9 @@ var _ = Describe("JobService", func() {
 
 								Context("when 2 builds are running", func() {
 									BeforeEach(func() {
-										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{
-											{
-												Name: "Some-build",
-											},
-											{
-												Name: "Some-other-build",
-											},
+										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.BuildDB{
+											new(dbfakes.FakeBuildDB),
+											new(dbfakes.FakeBuildDB),
 										}, nil)
 									})
 
@@ -640,16 +633,10 @@ var _ = Describe("JobService", func() {
 
 								Context("when the max-in-flight is already reached", func() {
 									BeforeEach(func() {
-										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{
-											{
-												Name: "Some-build",
-											},
-											{
-												Name: "Some-other-build",
-											},
-											{
-												Name: "Some-other-other-build",
-											},
+										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.BuildDB{
+											new(dbfakes.FakeBuildDB),
+											new(dbfakes.FakeBuildDB),
+											new(dbfakes.FakeBuildDB),
 										}, nil)
 									})
 
@@ -662,7 +649,7 @@ var _ = Describe("JobService", func() {
 
 								Context("when no other builds are running", func() {
 									BeforeEach(func() {
-										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.Build{}, nil)
+										fakeDB.GetRunningBuildsBySerialGroupReturns([]db.BuildDB{}, nil)
 									})
 
 									Context("when the call to get next pending build fails", func() {

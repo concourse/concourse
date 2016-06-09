@@ -15,7 +15,7 @@ import (
 
 type JobServiceDB interface {
 	GetJob(job string) (db.SavedJob, error)
-	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.Build, error)
+	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.BuildDB, error)
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (db.Build, bool, error)
 	UpdateBuildPreparation(prep db.BuildPreparation) error
 	IsPaused() (bool, error)
@@ -212,12 +212,12 @@ func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, bui
 	maxInFlight := s.JobConfig.MaxInFlight()
 
 	if maxInFlight > 0 {
-		builds, err := s.DB.GetRunningBuildsBySerialGroup(s.DBJob.Name, s.JobConfig.GetSerialGroups())
+		buildDBs, err := s.DB.GetRunningBuildsBySerialGroup(s.DBJob.Name, s.JobConfig.GetSerialGroups())
 		if err != nil {
 			return []db.BuildInput{}, false, "db-failed", err
 		}
 
-		if len(builds) >= maxInFlight {
+		if len(buildDBs) >= maxInFlight {
 			buildPrep.MaxRunningBuilds = db.BuildPreparationStatusBlocking
 			return s.updateBuildPrepAndReturn(buildPrep, false, "max-in-flight-reached")
 		}

@@ -72,7 +72,7 @@ type PipelineDB interface {
 	GetNextPendingBuild(job string) (BuildDB, bool, error)
 
 	GetBuild(buildID int) (Build, bool, error)
-	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error)
+	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]BuildDB, error)
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error)
 
 	UpdateBuildToScheduled(buildID int) (bool, error)
@@ -1611,7 +1611,7 @@ func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGr
 	`, args...))
 }
 
-func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error) {
+func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]BuildDB, error) {
 	pdb.updateSerialGroupsForJob(jobName, serialGroups)
 
 	args := []interface{}{pdb.ID}
@@ -1644,7 +1644,7 @@ func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroup
 
 	defer rows.Close()
 
-	bs := []Build{}
+	bs := []BuildDB{}
 
 	for rows.Next() {
 		build, _, err := scanBuild(rows)
@@ -1652,7 +1652,7 @@ func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroup
 			return nil, err
 		}
 
-		bs = append(bs, build)
+		bs = append(bs, pdb.buildDBFactory.GetBuildDB(build))
 	}
 
 	return bs, nil

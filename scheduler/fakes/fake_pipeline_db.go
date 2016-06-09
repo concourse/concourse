@@ -21,14 +21,14 @@ type FakePipelineDB struct {
 		result1 db.SavedJob
 		result2 error
 	}
-	GetRunningBuildsBySerialGroupStub        func(jobName string, serialGroups []string) ([]db.Build, error)
+	GetRunningBuildsBySerialGroupStub        func(jobName string, serialGroups []string) ([]db.BuildDB, error)
 	getRunningBuildsBySerialGroupMutex       sync.RWMutex
 	getRunningBuildsBySerialGroupArgsForCall []struct {
 		jobName      string
 		serialGroups []string
 	}
 	getRunningBuildsBySerialGroupReturns struct {
-		result1 []db.Build
+		result1 []db.BuildDB
 		result2 error
 	}
 	GetNextPendingBuildBySerialGroupStub        func(jobName string, serialGroups []string) (db.Build, bool, error)
@@ -179,7 +179,7 @@ func (fake *FakePipelineDB) GetJobReturns(result1 db.SavedJob, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.Build, error) {
+func (fake *FakePipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.BuildDB, error) {
 	fake.getRunningBuildsBySerialGroupMutex.Lock()
 	fake.getRunningBuildsBySerialGroupArgsForCall = append(fake.getRunningBuildsBySerialGroupArgsForCall, struct {
 		jobName      string
@@ -205,10 +205,10 @@ func (fake *FakePipelineDB) GetRunningBuildsBySerialGroupArgsForCall(i int) (str
 	return fake.getRunningBuildsBySerialGroupArgsForCall[i].jobName, fake.getRunningBuildsBySerialGroupArgsForCall[i].serialGroups
 }
 
-func (fake *FakePipelineDB) GetRunningBuildsBySerialGroupReturns(result1 []db.Build, result2 error) {
+func (fake *FakePipelineDB) GetRunningBuildsBySerialGroupReturns(result1 []db.BuildDB, result2 error) {
 	fake.GetRunningBuildsBySerialGroupStub = nil
 	fake.getRunningBuildsBySerialGroupReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildDB
 		result2 error
 	}{result1, result2}
 }

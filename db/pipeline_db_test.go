@@ -3020,7 +3020,7 @@ var _ = Describe("PipelineDB", func() {
 					Expect(len(builds)).To(Equal(2))
 					ids := []int{}
 					for _, build := range builds {
-						ids = append(ids, build.ID)
+						ids = append(ids, build.GetID())
 					}
 					Expect(ids).To(ConsistOf([]int{startedBuildDB.GetID(), scheduledBuildDB.GetID()}))
 				})
@@ -3054,7 +3054,7 @@ var _ = Describe("PipelineDB", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(len(builds)).To(Equal(1))
-					Expect(builds[0].ID).To(Equal(serialGroupBuild.GetID()))
+					Expect(builds[0].GetID()).To(Equal(serialGroupBuild.GetID()))
 				})
 			})
 		})
