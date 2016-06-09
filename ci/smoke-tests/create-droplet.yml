@@ -29,6 +29,8 @@ run:
 
     gem install tugboat
 
+    tugboat droplets | grep -Eo 'id: [0-9]+' | cut -c 5- | xargs -n 1 tugboat destroy -y -i
+
     tugboat create smoke-test-$OS
     trap "tugboat destroy --confirm smoke-test-$OS" ERR TERM INT
 
