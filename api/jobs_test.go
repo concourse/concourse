@@ -1440,7 +1440,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the build succeeds", func() {
 			BeforeEach(func() {
-				pipelineDB.GetJobBuildReturns(db.Build{
+				buildDB.GetModelReturns(db.Build{
 					ID:           1,
 					Name:         "1",
 					JobName:      "some-job",
@@ -1449,7 +1449,8 @@ var _ = Describe("Jobs API", func() {
 					Status:       db.StatusSucceeded,
 					StartTime:    time.Unix(1, 0),
 					EndTime:      time.Unix(100, 0),
-				}, true, nil)
+				})
+				pipelineDB.GetJobBuildReturns(buildDB, true, nil)
 			})
 
 			It("fetches by job and build name", func() {
@@ -1486,7 +1487,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when the build is not found", func() {
 			BeforeEach(func() {
-				pipelineDB.GetJobBuildReturns(db.Build{}, false, nil)
+				pipelineDB.GetJobBuildReturns(nil, false, nil)
 			})
 
 			It("returns Not Found", func() {
@@ -1496,7 +1497,7 @@ var _ = Describe("Jobs API", func() {
 
 		Context("when getting the build fails", func() {
 			BeforeEach(func() {
-				pipelineDB.GetJobBuildReturns(db.Build{}, false, errors.New("oh no!"))
+				pipelineDB.GetJobBuildReturns(nil, false, errors.New("oh no!"))
 			})
 
 			It("returns Internal Server Error", func() {

@@ -2900,11 +2900,11 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			It("finds the build", func() {
-				build, found, err := pipelineDB.GetJobBuild(job.Name, firstBuild.Name)
+				buildDB, found, err := pipelineDB.GetJobBuild(job.Name, firstBuild.Name)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(firstBuild.ID))
-				Expect(build.Status).To(Equal(firstBuild.Status))
+				Expect(buildDB.GetID()).To(Equal(firstBuild.ID))
+				Expect(buildDB.GetStatus()).To(Equal(firstBuild.Status))
 			})
 		})
 

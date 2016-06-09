@@ -60,7 +60,7 @@ type PipelineDB interface {
 	GetJobBuilds(job string, page Page) ([]Build, Pagination, error)
 	GetAllJobBuilds(job string) ([]Build, error)
 
-	GetJobBuild(job string, build string) (Build, bool, error)
+	GetJobBuild(job string, build string) (BuildDB, bool, error)
 	CreateJobBuild(job string) (Build, error)
 	CreateJobBuildForCandidateInputs(job string) (Build, bool, error)
 
@@ -93,6 +93,8 @@ type pipelineDB struct {
 	SavedPipeline
 
 	versionsDB *algorithm.VersionsDB
+
+	buildDBFactory BuildDBFactory
 
 	buildPrepHelper buildPreparationHelper
 }
@@ -1043,17 +1045,17 @@ func (pdb *pipelineDB) GetJob(jobName string) (SavedJob, error) {
 	return dbJob, nil
 }
 
-func (pdb *pipelineDB) GetJobBuild(job string, name string) (Build, bool, error) {
+func (pdb *pipelineDB) GetJobBuild(job string, name string) (BuildDB, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
 	defer tx.Rollback()
 
 	dbJob, err := pdb.getJob(tx, job)
 	if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
 	build, found, err := scanBuild(tx.QueryRow(`
@@ -1066,15 +1068,15 @@ func (pdb *pipelineDB) GetJobBuild(job string, name string) (Build, bool, error)
 		AND b.name = $2
 	`, dbJob.ID, name))
 	if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
-	return build, found, nil
+	return pdb.buildDBFactory.GetBuildDB(build), found, nil
 }
 
 func (pdb *pipelineDB) CreateJobBuildForCandidateInputs(jobName string) (Build, bool, error) {
