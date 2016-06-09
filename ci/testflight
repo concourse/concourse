@@ -10,42 +10,11 @@ chmod +x $CONCOURSE
 yes "" | sudo su postgres -c "createuser -s -P $(whoami)"
 createdb atc
 
-# break out of bosh-lite device limitations
-function permit_device_control() {
-  local devices_mount_info=$(cat /proc/self/cgroup | grep devices)
-
-  if [ -z "$devices_mount_info" ]; then
-    # cgroups not set up; must not be in a container
-    return
-  fi
-
-  local devices_subsytems=$(echo $devices_mount_info | cut -d: -f2)
-  local devices_subdir=$(echo $devices_mount_info | cut -d: -f3)
-
-  if [ "$devices_subdir" = "/" ]; then
-    # we're in the root devices cgroup; must not be in a container
-    return
-  fi
-
-  cgroup_dir=/tmp/devices-cgroup
-
-  if [ ! -e ${cgroup_dir} ]; then
-    # mount our container's devices subsystem somewhere
-    mkdir ${cgroup_dir}
-  fi
-
-  # run in separate mount namespace so runc doesn't get confused
-  unshare -m bash -ex <<EOF
-    if ! mountpoint -q ${cgroup_dir}; then
-      mount -t cgroup -o $devices_subsytems none ${cgroup_dir}
-    fi
-
-    # permit our cgroup to do everything with all devices
-    # ignore failure in case something has already done this; echo appears to
-    # return EINVAL, possibly because devices this affects are already in use
-    echo a > ${cgroup_dir}${devices_subdir}/devices.allow || true
-EOF
-}
+# set up keys
+mkdir /etc/concourse
+ssh-keygen -f /etc/concourse/tsa-host -N ''
+ssh-keygen -f /etc/concourse/worker -N ''
+ssh-keygen -f /etc/concourse/session-signing-key -N ''
 
 function wait_for_proc_port() {
   name=$1
@@ -62,18 +31,6 @@ function wait_for_proc_port() {
     sleep 1
   done
 }
-
-# set up loopbacks for baggageclaim
-permit_device_control
-for i in $(seq 64); do
-  mknod -m 0660 /dev/loop$i b 7 $i
-done
-
-# set up keys
-mkdir /etc/concourse
-ssh-keygen -f /etc/concourse/tsa-host -N ''
-ssh-keygen -f /etc/concourse/worker -N ''
-ssh-keygen -f /etc/concourse/session-signing-key -N ''
 
 # don't leak client id/secret
 set +x
