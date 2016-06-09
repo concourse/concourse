@@ -73,7 +73,7 @@ type PipelineDB interface {
 
 	GetBuild(buildID int) (Build, bool, error)
 	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]BuildDB, error)
-	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error)
+	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (BuildDB, bool, error)
 
 	UpdateBuildToScheduled(buildID int) (bool, error)
 	SaveInput(buildID int, input BuildInput) (SavedVersionedResource, error)
@@ -1584,7 +1584,7 @@ func (pdb *pipelineDB) updateSerialGroupsForJob(jobName string, serialGroups []s
 	return tx.Commit()
 }
 
-func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error) {
+func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (BuildDB, bool, error) {
 	pdb.updateSerialGroupsForJob(jobName, serialGroups)
 
 	args := []interface{}{pdb.ID}
@@ -1595,7 +1595,7 @@ func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGr
 		refs[i] = fmt.Sprintf("$%d", i+2)
 	}
 
-	return scanBuild(pdb.conn.QueryRow(`
+	build, found, err := scanBuild(pdb.conn.QueryRow(`
 		SELECT DISTINCT `+qualifiedBuildColumns+`
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
@@ -1609,6 +1609,16 @@ func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGr
 		ORDER BY b.id ASC
 		LIMIT 1
 	`, args...))
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return pdb.buildDBFactory.GetBuildDB(build), true, nil
 }
 
 func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]BuildDB, error) {

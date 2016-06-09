@@ -30,14 +30,14 @@ type FakeJobServiceDB struct {
 		result1 []db.BuildDB
 		result2 error
 	}
-	GetNextPendingBuildBySerialGroupStub        func(jobName string, serialGroups []string) (db.Build, bool, error)
+	GetNextPendingBuildBySerialGroupStub        func(jobName string, serialGroups []string) (db.BuildDB, bool, error)
 	getNextPendingBuildBySerialGroupMutex       sync.RWMutex
 	getNextPendingBuildBySerialGroupArgsForCall []struct {
 		jobName      string
 		serialGroups []string
 	}
 	getNextPendingBuildBySerialGroupReturns struct {
-		result1 db.Build
+		result1 db.BuildDB
 		result2 bool
 		result3 error
 	}
@@ -154,7 +154,7 @@ func (fake *FakeJobServiceDB) GetRunningBuildsBySerialGroupReturns(result1 []db.
 	}{result1, result2}
 }
 
-func (fake *FakeJobServiceDB) GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (db.Build, bool, error) {
+func (fake *FakeJobServiceDB) GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (db.BuildDB, bool, error) {
 	fake.getNextPendingBuildBySerialGroupMutex.Lock()
 	fake.getNextPendingBuildBySerialGroupArgsForCall = append(fake.getNextPendingBuildBySerialGroupArgsForCall, struct {
 		jobName      string
@@ -180,10 +180,10 @@ func (fake *FakeJobServiceDB) GetNextPendingBuildBySerialGroupArgsForCall(i int)
 	return fake.getNextPendingBuildBySerialGroupArgsForCall[i].jobName, fake.getNextPendingBuildBySerialGroupArgsForCall[i].serialGroups
 }
 
-func (fake *FakeJobServiceDB) GetNextPendingBuildBySerialGroupReturns(result1 db.Build, result2 bool, result3 error) {
+func (fake *FakeJobServiceDB) GetNextPendingBuildBySerialGroupReturns(result1 db.BuildDB, result2 bool, result3 error) {
 	fake.GetNextPendingBuildBySerialGroupStub = nil
 	fake.getNextPendingBuildBySerialGroupReturns = struct {
-		result1 db.Build
+		result1 db.BuildDB
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

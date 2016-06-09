@@ -16,7 +16,7 @@ import (
 type JobServiceDB interface {
 	GetJob(job string) (db.SavedJob, error)
 	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.BuildDB, error)
-	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (db.Build, bool, error)
+	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (db.BuildDB, bool, error)
 	UpdateBuildPreparation(prep db.BuildPreparation) error
 	IsPaused() (bool, error)
 
@@ -231,7 +231,7 @@ func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, bui
 			return []db.BuildInput{}, false, "no-pending-build", nil
 		}
 
-		if nextMostPendingBuild.ID != build.ID {
+		if nextMostPendingBuild.GetID() != build.ID {
 			return []db.BuildInput{}, false, "not-next-most-pending", nil
 		}
 	}

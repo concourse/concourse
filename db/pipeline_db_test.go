@@ -2917,7 +2917,7 @@ var _ = Describe("PipelineDB", func() {
 					build, found, err := pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"serial-group"})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
-					Expect(build.ID).To(Equal(actualBuildDB.GetID()))
+					Expect(build.GetID()).To(Equal(actualBuildDB.GetID()))
 				})
 			})
 
@@ -2942,24 +2942,24 @@ var _ = Describe("PipelineDB", func() {
 				build, found, err := pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"serial-group"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(buildOne.GetID()))
+				Expect(build.GetID()).To(Equal(buildOne.GetID()))
 
 				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"serial-group", "really-different-group"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(buildOne.GetID()))
+				Expect(build.GetID()).To(Equal(buildOne.GetID()))
 
 				Expect(buildOne.Finish(db.StatusSucceeded)).To(Succeed())
 
 				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"serial-group"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(buildTwo.GetID()))
+				Expect(build.GetID()).To(Equal(buildTwo.GetID()))
 
 				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"serial-group", "really-different-group"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(buildTwo.GetID()))
+				Expect(build.GetID()).To(Equal(buildTwo.GetID()))
 
 				scheduled, err := pipelineDB.UpdateBuildToScheduled(buildTwo.GetID())
 				Expect(err).NotTo(HaveOccurred())
@@ -2969,12 +2969,12 @@ var _ = Describe("PipelineDB", func() {
 				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneConfig.Name, []string{"serial-group"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(buildThree.GetID()))
+				Expect(build.GetID()).To(Equal(buildThree.GetID()))
 
 				build, found, err = pipelineDB.GetNextPendingBuildBySerialGroup(jobOneTwoConfig.Name, []string{"serial-group", "really-different-group"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(build.ID).To(Equal(buildThree.GetID()))
+				Expect(build.GetID()).To(Equal(buildThree.GetID()))
 			})
 		})
 
