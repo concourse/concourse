@@ -60,8 +60,9 @@ templates:
           region = us-east-1
           EOF
 
-          KEY_NAME="bin-test-$(date +%s)"
-          STACK_NAME="bin-test-${IMAGE_ID}-$(date +%s)"
+          UUID=$(cat /proc/sys/kernel/random/uuid)
+          KEY_NAME="bin-test-${UUID}"
+          STACK_NAME="bin-test-${IMAGE_ID}-${UUID}"
 
           aws ec2 wait image-exists --image-ids $IMAGE_ID
 
