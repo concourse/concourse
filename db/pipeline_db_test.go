@@ -3095,7 +3095,7 @@ var _ = Describe("PipelineDB", func() {
 				nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(nextPending).To(Equal(build1DB.GetModel()))
+				Expect(nextPending).To(Equal(build1DB))
 			})
 
 			It("is returned in the job's builds", func() {
@@ -3121,7 +3121,7 @@ var _ = Describe("PipelineDB", func() {
 					nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
-					Expect(nextPending).To(Equal(build1DB.GetModel()))
+					Expect(nextPending).To(Equal(build1DB))
 				})
 
 				It("is not returned in the job's builds", func() {
@@ -3141,7 +3141,7 @@ var _ = Describe("PipelineDB", func() {
 					nextPending, found, err := pipelineDB.GetNextPendingBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
-					Expect(nextPending).To(Equal(build1DB.GetModel()))
+					Expect(nextPending).To(Equal(build1DB))
 				})
 			})
 

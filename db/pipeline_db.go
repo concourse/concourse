@@ -69,7 +69,7 @@ type PipelineDB interface {
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 	GetNextInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]BuildInput, bool, MissingInputReasons, error)
 	GetJobBuildForInputs(job string, inputs []BuildInput) (BuildDB, bool, error)
-	GetNextPendingBuild(job string) (Build, bool, error)
+	GetNextPendingBuild(job string) (BuildDB, bool, error)
 
 	GetBuild(buildID int) (Build, bool, error)
 	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error)
@@ -1509,25 +1509,25 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 	return pdb.buildDBFactory.GetBuildDB(build), true, nil
 }
 
-func (pdb *pipelineDB) GetNextPendingBuild(job string) (Build, bool, error) {
+func (pdb *pipelineDB) GetNextPendingBuild(job string) (BuildDB, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
 	defer tx.Rollback()
 
 	dbJob, err := pdb.getJob(tx, job)
 	if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
-	return scanBuild(pdb.conn.QueryRow(`
+	build, found, err := scanBuild(pdb.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
 		INNER JOIN jobs j ON b.job_id = j.id
@@ -1538,6 +1538,16 @@ func (pdb *pipelineDB) GetNextPendingBuild(job string) (Build, bool, error) {
 		ORDER BY b.id ASC
 		LIMIT 1
 	`, dbJob.ID))
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return pdb.buildDBFactory.GetBuildDB(build), true, nil
 }
 
 func (pdb *pipelineDB) updateSerialGroupsForJob(jobName string, serialGroups []string) error {

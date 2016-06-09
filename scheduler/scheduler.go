@@ -22,7 +22,7 @@ type PipelineDB interface {
 	UpdateBuildToScheduled(buildID int) (bool, error)
 
 	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.BuildDB, bool, error)
-	GetNextPendingBuild(job string) (db.Build, bool, error)
+	GetNextPendingBuild(job string) (db.BuildDB, bool, error)
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 }
@@ -154,7 +154,7 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm
 			return
 		}
 
-		logger = logger.WithData(lager.Data{"build-id": build.ID, "build-name": build.Name})
+		logger = logger.WithData(lager.Data{"build-id": build.GetID(), "build-name": build.GetName()})
 
 		jobService, err := NewJobService(job, s.PipelineDB, s.Scanner)
 		if err != nil {
@@ -162,7 +162,7 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm
 			return
 		}
 
-		s.ScheduleAndResumePendingBuild(logger, versions, build, job, resources, resourceTypes, jobService)
+		s.ScheduleAndResumePendingBuild(logger, versions, build.GetModel(), job, resources, resourceTypes, jobService)
 	}()
 
 	return wg
