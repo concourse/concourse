@@ -29,7 +29,7 @@ run:
 
     gem install tugboat
 
-    local droplets=$(tugboat droplets | grep "^smoke-test-$OS" | grep -Eo 'id: [0-9]+' | cut -c 5-)
+    droplets=$(tugboat droplets | grep "^smoke-test-$OS" | grep -Eo 'id: [0-9]+' | cut -c 5-)
     if [ -n "$droplets" ]; then
       echo $droplets | xargs -n 1 tugboat destroy -y -i
     fi
