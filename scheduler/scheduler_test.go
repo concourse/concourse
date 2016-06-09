@@ -348,7 +348,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when latest inputs are not already used for a build", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{}, false, nil)
+					fakePipelineDB.GetJobBuildForInputsReturns(new(dbfakes.FakeBuildDB), false, nil)
 				})
 
 				It("creates a build with the found inputs", func() {
@@ -394,7 +394,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when they are already used for a build", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{ID: 128, Name: "42"}, true, nil)
+					fakePipelineDB.GetJobBuildForInputsReturns(new(dbfakes.FakeBuildDB), true, nil)
 				})
 
 				It("does not enqueue or trigger a build", func() {
@@ -409,7 +409,7 @@ var _ = Describe("Scheduler", func() {
 				disaster := errors.New("db fell over")
 
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildForInputsReturns(db.Build{}, false, disaster)
+					fakePipelineDB.GetJobBuildForInputsReturns(nil, false, disaster)
 				})
 
 				It("does not enqueue or a build", func() {

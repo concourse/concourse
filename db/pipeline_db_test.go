@@ -2407,8 +2407,8 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(foundBuild.ID).To(Equal(build.GetID()))
-				Expect(foundBuild.InputsDetermined).To(BeTrue())
+				Expect(foundBuild.GetID()).To(Equal(build.GetID()))
+				Expect(foundBuild.GetModel().InputsDetermined).To(BeTrue())
 			})
 
 			It("removes old build inputs", func() {
@@ -2446,8 +2446,8 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(foundBuild.ID).To(Equal(build.GetID()))
-				Expect(foundBuild.InputsDetermined).To(BeTrue())
+				Expect(foundBuild.GetID()).To(Equal(build.GetID()))
+				Expect(foundBuild.GetModel().InputsDetermined).To(BeTrue())
 			})
 
 			It("creates an entry in build_preparation", func() {
@@ -2546,7 +2546,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(foundBuild).To(Equal(buildDB.GetModel()))
+				Expect(foundBuild.GetModel()).To(Equal(buildDB.GetModel()))
 
 				modifiedVR2 := vr2
 				modifiedVR2.Version = db.Version{"ver": "3"}

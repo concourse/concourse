@@ -21,7 +21,7 @@ type PipelineDB interface {
 	CreateJobBuildForCandidateInputs(job string) (db.BuildDB, bool, error)
 	UpdateBuildToScheduled(buildID int) (bool, error)
 
-	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, bool, error)
+	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.BuildDB, bool, error)
 	GetNextPendingBuild(job string) (db.Build, bool, error)
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
@@ -90,7 +90,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 		return nil
 	}
 
-	existingBuild, found, err := s.PipelineDB.GetJobBuildForInputs(job.Name, checkInputs)
+	existingBuildDB, found, err := s.PipelineDB.GetJobBuildForInputs(job.Name, checkInputs)
 	if err != nil {
 		logger.Error("could-not-determine-if-inputs-are-already-used", err)
 		return err
@@ -98,7 +98,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 
 	if found {
 		logger.Debug("build-already-exists-for-inputs", lager.Data{
-			"existing-build": existingBuild.ID,
+			"existing-build": existingBuildDB.GetID(),
 		})
 
 		return nil

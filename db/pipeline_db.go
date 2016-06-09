@@ -68,7 +68,7 @@ type PipelineDB interface {
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 	GetNextInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]BuildInput, bool, MissingInputReasons, error)
-	GetJobBuildForInputs(job string, inputs []BuildInput) (Build, bool, error)
+	GetJobBuildForInputs(job string, inputs []BuildInput) (BuildDB, bool, error)
 	GetNextPendingBuild(job string) (Build, bool, error)
 
 	GetBuild(buildID int) (Build, bool, error)
@@ -1416,22 +1416,22 @@ func (pdb *pipelineDB) SaveOutput(buildID int, vr VersionedResource, explicit bo
 	return svr, nil
 }
 
-func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Build, bool, error) {
+func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (BuildDB, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
 	defer tx.Rollback()
 
 	dbJob, err := pdb.getJob(tx, job)
 	if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return Build{}, false, err
+		return nil, false, err
 	}
 
 	from := []string{"builds b"}
@@ -1449,16 +1449,16 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 		vr := input.VersionedResource
 		dbResource, found, err := pdb.GetResource(vr.Resource)
 		if err != nil {
-			return Build{}, false, err
+			return nil, false, err
 		}
 
 		if !found {
-			return Build{}, false, ResourceNotFoundError{Name: vr.Resource}
+			return nil, false, ResourceNotFoundError{Name: vr.Resource}
 		}
 
 		versionBytes, err := json.Marshal(vr.Version)
 		if err != nil {
-			return Build{}, false, err
+			return nil, false, err
 		}
 
 		var id int
@@ -1471,11 +1471,11 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 			AND version = $3
 		`, dbResource.ID, vr.Type, string(versionBytes)).Scan(&id)
 		if err == sql.ErrNoRows {
-			return Build{}, false, nil
+			return nil, false, nil
 		}
 
 		if err != nil {
-			return Build{}, false, err
+			return nil, false, err
 		}
 
 		from = append(from, fmt.Sprintf("build_inputs i%d", i+1))
@@ -1488,7 +1488,7 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 		)
 	}
 
-	return scanBuild(pdb.conn.QueryRow(fmt.Sprintf(`
+	build, found, err := scanBuild(pdb.conn.QueryRow(fmt.Sprintf(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM %s
 		WHERE %s
@@ -1497,6 +1497,16 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 		strings.Join(conditions, "\nAND ")),
 		params...,
 	))
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return pdb.buildDBFactory.GetBuildDB(build), true, nil
 }
 
 func (pdb *pipelineDB) GetNextPendingBuild(job string) (Build, bool, error) {
