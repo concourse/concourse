@@ -91,9 +91,9 @@ var _ = Describe("Keeping track of containers", func() {
 	}
 
 	getJobBuildID := func(jobName string) int {
-		savedBuild, err := pipelineDB.CreateJobBuild(jobName)
+		savedBuildDB, err := pipelineDB.CreateJobBuild(jobName)
 		Expect(err).NotTo(HaveOccurred())
-		return savedBuild.ID
+		return savedBuildDB.GetID()
 	}
 
 	getOneOffBuildID := func() int {
@@ -270,12 +270,12 @@ var _ = Describe("Keeping track of containers", func() {
 	})
 
 	It("can populate metadata that was omitted when creating the container", func() {
-		savedBuild, err := pipelineDB.CreateJobBuild("some-job")
+		savedBuildDB, err := pipelineDB.CreateJobBuild("some-job")
 		Expect(err).NotTo(HaveOccurred())
 
 		containerToCreate := db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild.ID,
+				BuildID: savedBuildDB.GetID(),
 				PlanID:  "some-plan-id",
 				Stage:   db.ContainerStageRun,
 			},
@@ -300,7 +300,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		Expect(actualContainer.BuildName).To(Equal(savedBuild.Name))
+		Expect(actualContainer.BuildName).To(Equal(savedBuildDB.GetName()))
 		Expect(actualContainer.PipelineID).To(Equal(savedPipeline.ID))
 		Expect(actualContainer.PipelineName).To(Equal(savedPipeline.Name))
 		Expect(actualContainer.JobName).To(Equal("some-job"))
@@ -1171,18 +1171,18 @@ var _ = Describe("Keeping track of containers", func() {
 		}),
 
 		Entry("returns containers where the build name matches", func() findContainersByDescriptorsExample {
-			savedBuild1, err := pipelineDB.CreateJobBuild("some-job")
+			savedBuild1DB, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			savedBuild2, err := pipelineDB.CreateJobBuild("some-job")
+			savedBuild2DB, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			savedBuild3, err := pipelineDB.CreateJobBuild("some-other-job")
+			savedBuild3DB, err := pipelineDB.CreateJobBuild("some-other-job")
 			Expect(err).NotTo(HaveOccurred())
 			return findContainersByDescriptorsExample{
 				containersToCreate: []db.Container{
 					{
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
-							BuildID: savedBuild1.ID,
+							BuildID: savedBuild1DB.GetID(),
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
@@ -1196,7 +1196,7 @@ var _ = Describe("Keeping track of containers", func() {
 					{
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
-							BuildID: savedBuild2.ID,
+							BuildID: savedBuild2DB.GetID(),
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
@@ -1204,14 +1204,14 @@ var _ = Describe("Keeping track of containers", func() {
 							WorkerName: "some-worker",
 							PipelineID: savedPipeline.ID,
 							JobName:    "some-job",
-							BuildName:  savedBuild2.Name,
+							BuildName:  savedBuild2DB.GetName(),
 							Handle:     "b",
 						},
 					},
 					{
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
-							BuildID: savedBuild3.ID,
+							BuildID: savedBuild3DB.GetID(),
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
@@ -1221,14 +1221,14 @@ var _ = Describe("Keeping track of containers", func() {
 							JobName:    "some-other-job",
 							// purposefully re-use the original build name to test that it
 							// can return multiple containers
-							BuildName: savedBuild1.Name,
+							BuildName: savedBuild1DB.GetName(),
 							Handle:    "c",
 						},
 					},
 				},
 				descriptorsToFilterFor: db.Container{
 					ContainerMetadata: db.ContainerMetadata{
-						BuildName: savedBuild1.Name,
+						BuildName: savedBuild1DB.GetName(),
 					},
 				},
 				expectedHandles: []string{"a", "c"},

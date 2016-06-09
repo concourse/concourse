@@ -176,10 +176,10 @@ var _ = Describe("Resource History", func() {
 
 				expectedVersions[9].Metadata = metadata
 
-				build, err := pipelineDB.CreateJobBuild("some-job")
+				buildDB, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).ToNot(HaveOccurred())
 
-				pipelineDB.SaveInput(build.ID, db.BuildInput{
+				pipelineDB.SaveInput(buildDB.GetID(), db.BuildInput{
 					Name:              "some-input",
 					VersionedResource: expectedVersions[9].VersionedResource,
 					FirstOccurrence:   true,
@@ -219,18 +219,18 @@ var _ = Describe("Resource History", func() {
 		var expectedBuilds []db.Build
 
 		BeforeEach(func() {
-			build, err := pipelineDB.CreateJobBuild("some-job")
+			buildDB, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			expectedBuilds = append(expectedBuilds, build)
+			expectedBuilds = append(expectedBuilds, buildDB.GetModel())
 
-			secondBuild, err := pipelineDB.CreateJobBuild("some-job")
+			secondBuildDB, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			expectedBuilds = append(expectedBuilds, secondBuild)
+			expectedBuilds = append(expectedBuilds, secondBuildDB.GetModel())
 
 			_, err = pipelineDB.CreateJobBuild("some-other-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveInput(build.ID, db.BuildInput{
+			savedVersionedResource, err = pipelineDB.SaveInput(buildDB.GetID(), db.BuildInput{
 				Name: "some-input",
 				VersionedResource: db.VersionedResource{
 					Resource: "some-resource",
@@ -250,7 +250,7 @@ var _ = Describe("Resource History", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveInput(secondBuild.ID, db.BuildInput{
+			savedVersionedResource, err = pipelineDB.SaveInput(secondBuildDB.GetID(), db.BuildInput{
 				Name: "some-input",
 				VersionedResource: db.VersionedResource{
 					Resource: "some-resource",
@@ -290,18 +290,18 @@ var _ = Describe("Resource History", func() {
 		var expectedBuilds []db.Build
 
 		BeforeEach(func() {
-			build, err := pipelineDB.CreateJobBuild("some-job")
+			buildDB, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			expectedBuilds = append(expectedBuilds, build)
+			expectedBuilds = append(expectedBuilds, buildDB.GetModel())
 
-			secondBuild, err := pipelineDB.CreateJobBuild("some-job")
+			secondBuildDB, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			expectedBuilds = append(expectedBuilds, secondBuild)
+			expectedBuilds = append(expectedBuilds, secondBuildDB.GetModel())
 
 			_, err = pipelineDB.CreateJobBuild("some-other-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveOutput(build.ID, db.VersionedResource{
+			savedVersionedResource, err = pipelineDB.SaveOutput(buildDB.GetID(), db.VersionedResource{
 				Resource: "some-resource",
 				Type:     "some-type",
 				Version: db.Version{
@@ -317,7 +317,7 @@ var _ = Describe("Resource History", func() {
 			}, false)
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveOutput(secondBuild.ID, db.VersionedResource{
+			savedVersionedResource, err = pipelineDB.SaveOutput(secondBuildDB.GetID(), db.VersionedResource{
 				Resource: "some-resource",
 				Type:     "some-type",
 				Version: db.Version{

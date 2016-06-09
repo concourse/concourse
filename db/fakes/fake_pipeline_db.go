@@ -307,13 +307,13 @@ type FakePipelineDB struct {
 		result2 bool
 		result3 error
 	}
-	CreateJobBuildStub        func(job string) (db.Build, error)
+	CreateJobBuildStub        func(job string) (db.BuildDB, error)
 	createJobBuildMutex       sync.RWMutex
 	createJobBuildArgsForCall []struct {
 		job string
 	}
 	createJobBuildReturns struct {
-		result1 db.Build
+		result1 db.BuildDB
 		result2 error
 	}
 	CreateJobBuildForCandidateInputsStub        func(job string) (db.Build, bool, error)
@@ -1511,7 +1511,7 @@ func (fake *FakePipelineDB) GetJobBuildReturns(result1 db.BuildDB, result2 bool,
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) CreateJobBuild(job string) (db.Build, error) {
+func (fake *FakePipelineDB) CreateJobBuild(job string) (db.BuildDB, error) {
 	fake.createJobBuildMutex.Lock()
 	fake.createJobBuildArgsForCall = append(fake.createJobBuildArgsForCall, struct {
 		job string
@@ -1536,10 +1536,10 @@ func (fake *FakePipelineDB) CreateJobBuildArgsForCall(i int) string {
 	return fake.createJobBuildArgsForCall[i].job
 }
 
-func (fake *FakePipelineDB) CreateJobBuildReturns(result1 db.Build, result2 error) {
+func (fake *FakePipelineDB) CreateJobBuildReturns(result1 db.BuildDB, result2 error) {
 	fake.CreateJobBuildStub = nil
 	fake.createJobBuildReturns = struct {
-		result1 db.Build
+		result1 db.BuildDB
 		result2 error
 	}{result1, result2}
 }

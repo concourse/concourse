@@ -553,7 +553,7 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 		build, err := myPipelineDB.CreateJobBuild("some-job")
 		Expect(err).NotTo(HaveOccurred())
 
-		gottenConfig, _, err := buildDBFactory.GetBuildDB(build).GetConfig()
+		gottenConfig, _, err := build.GetConfig()
 		Expect(gottenConfig).To(Equal(config))
 	})
 

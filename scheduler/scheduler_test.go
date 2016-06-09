@@ -432,6 +432,8 @@ var _ = Describe("Scheduler", func() {
 					Name:   "42",
 					Status: db.StatusPending,
 				}
+				pendingBuildDB := new(dbfakes.FakeBuildDB)
+				pendingBuildDB.GetModelReturns(pendingBuild)
 
 				fakePipelineDB.GetNextPendingBuildReturns(pendingBuild, true, nil)
 				buildPrep := db.BuildPreparation{
@@ -439,7 +441,7 @@ var _ = Describe("Scheduler", func() {
 				}
 
 				fakeBuildDB.GetPreparationReturns(buildPrep, true, nil)
-				fakePipelineDB.CreateJobBuildReturns(pendingBuild, nil)
+				fakePipelineDB.CreateJobBuildReturns(pendingBuildDB, nil)
 				fakePipelineDB.GetNextPendingBuildBySerialGroupReturns(pendingBuild, true, nil)
 				fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
 			})
@@ -488,7 +490,10 @@ var _ = Describe("Scheduler", func() {
 			}
 
 			fakeBuildDB.GetPreparationReturns(buildPrep, true, nil)
-			fakePipelineDB.CreateJobBuildReturns(dbBuild, nil)
+			buildDB := new(dbfakes.FakeBuildDB)
+			buildDB.GetModelReturns(dbBuild)
+
+			fakePipelineDB.CreateJobBuildReturns(buildDB, nil)
 			fakePipelineDB.GetNextPendingBuildBySerialGroupReturns(dbBuild, true, nil)
 			fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
 		})
@@ -511,7 +516,7 @@ var _ = Describe("Scheduler", func() {
 			disaster := errors.New("oh no!")
 
 			BeforeEach(func() {
-				fakePipelineDB.CreateJobBuildReturns(db.Build{}, disaster)
+				fakePipelineDB.CreateJobBuildReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {

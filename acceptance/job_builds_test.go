@@ -93,13 +93,10 @@ var _ = Describe("Job Builds", func() {
 			})
 
 			Context("with more then 100 job builds", func() {
-				var testBuilds []db.Build
-
 				BeforeEach(func() {
 					for i := 1; i < 104; i++ {
-						build, err := pipelineDB.CreateJobBuild("job-name")
+						_, err := pipelineDB.CreateJobBuild("job-name")
 						Expect(err).NotTo(HaveOccurred())
-						testBuilds = append(testBuilds, build)
 					}
 				})
 

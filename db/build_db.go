@@ -50,6 +50,7 @@ type BuildDB interface {
 	GetID() int
 	GetName() string
 	GetJobName() string
+	GetJobID() int
 	GetPipelineName() string
 	GetTeamName() string
 	GetEngineMetadata() string
@@ -121,6 +122,10 @@ func (db *buildDB) GetName() string {
 
 func (db *buildDB) GetJobName() string {
 	return db.build.JobName
+}
+
+func (db *buildDB) GetJobID() int {
+	return db.build.JobID
 }
 
 func (db *buildDB) GetPipelineName() string {

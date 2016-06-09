@@ -61,7 +61,7 @@ type PipelineDB interface {
 	GetAllJobBuilds(job string) ([]Build, error)
 
 	GetJobBuild(job string, build string) (BuildDB, bool, error)
-	CreateJobBuild(job string) (Build, error)
+	CreateJobBuild(job string) (BuildDB, error)
 	CreateJobBuildForCandidateInputs(job string) (Build, bool, error)
 
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
@@ -1167,25 +1167,25 @@ func (pdb *pipelineDB) UseInputsForBuild(buildID int, inputs []BuildInput) error
 	return tx.Commit()
 }
 
-func (pdb *pipelineDB) CreateJobBuild(jobName string) (Build, error) {
+func (pdb *pipelineDB) CreateJobBuild(jobName string) (BuildDB, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
-		return Build{}, err
+		return nil, err
 	}
 
 	defer tx.Rollback()
 
 	build, err := pdb.createJobBuild(jobName, tx)
 	if err != nil {
-		return Build{}, err
+		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return Build{}, err
+		return nil, err
 	}
 
-	return build, nil
+	return pdb.buildDBFactory.GetBuildDB(build), nil
 }
 
 func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {

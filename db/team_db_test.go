@@ -418,7 +418,7 @@ var _ = Describe("TeamDB", func() {
 				for i := 3; i < 5; i++ {
 					build, err := pipelineDB.CreateJobBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
-					allBuilds[i] = buildDBFactory.GetBuildDB(build)
+					allBuilds[i] = build
 				}
 			})
 

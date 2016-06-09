@@ -17,7 +17,7 @@ import (
 
 type PipelineDB interface {
 	JobServiceDB
-	CreateJobBuild(job string) (db.Build, error)
+	CreateJobBuild(job string) (db.BuildDB, error)
 	CreateJobBuildForCandidateInputs(job string) (db.Build, bool, error)
 	UpdateBuildToScheduled(buildID int) (bool, error)
 
@@ -179,7 +179,7 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 		return db.Build{}, nil, err
 	}
 
-	logger = logger.WithData(lager.Data{"build-id": build.ID, "build-name": build.Name})
+	logger = logger.WithData(lager.Data{"build-id": build.GetID(), "build-name": build.GetName()})
 
 	jobService, err := NewJobService(job, s.PipelineDB, s.Scanner)
 	if err != nil {
@@ -192,10 +192,10 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 	// do not block request on scanning input versions
 	go func() {
 		defer wg.Done()
-		s.ScheduleAndResumePendingBuild(logger, nil, build, job, resources, resourceTypes, jobService)
+		s.ScheduleAndResumePendingBuild(logger, nil, build.GetModel(), job, resources, resourceTypes, jobService)
 	}()
 
-	return build, wg, nil
+	return build.GetModel(), wg, nil
 }
 
 func (s *Scheduler) updateBuildToScheduled(logger lager.Logger, canBuildBeScheduled bool, buildID int, reason string) bool {

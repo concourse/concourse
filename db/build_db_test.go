@@ -85,9 +85,8 @@ var _ = Describe("BuildDB", func() {
 		})
 
 		It("returns false for builds that belong to pipeline", func() {
-			build, err := pipelineDB.CreateJobBuild("some-job")
+			pipelineBuildDB, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).ToNot(HaveOccurred())
-			pipelineBuildDB := buildDBFactory.GetBuildDB(build)
 			Expect(pipelineBuildDB.IsOneOff()).To(BeFalse())
 		})
 	})
@@ -215,10 +214,10 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("SaveInput", func() {
 		It("can get a build's input", func() {
-			build, err := pipelineDB.CreateJobBuild("some-job")
+			buildDB, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedBuildInput, err := pipelineDB.SaveInput(build.ID, db.BuildInput{
+			expectedBuildInput, err := pipelineDB.SaveInput(buildDB.GetID(), db.BuildInput{
 				Name: "some-input",
 				VersionedResource: db.VersionedResource{
 					Resource: "some-resource",
@@ -241,7 +240,7 @@ var _ = Describe("BuildDB", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			actualBuildInput, err := buildDBFactory.GetBuildDB(build).GetVersionedResources()
+			actualBuildInput, err := buildDB.GetVersionedResources()
 			expectedBuildInput.CheckOrder = 0
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(actualBuildInput)).To(Equal(1))
@@ -251,10 +250,10 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("SaveOutput", func() {
 		It("can get a build's output", func() {
-			build, err := pipelineDB.CreateJobBuild("some-job")
+			buildDB, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedBuildOutput, err := pipelineDB.SaveOutput(build.ID, db.VersionedResource{
+			expectedBuildOutput, err := pipelineDB.SaveOutput(buildDB.GetID(), db.VersionedResource{
 				Resource: "some-explicit-resource",
 				Type:     "some-type",
 				Version: db.Version{
@@ -274,7 +273,7 @@ var _ = Describe("BuildDB", func() {
 			}, true)
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = pipelineDB.SaveOutput(build.ID, db.VersionedResource{
+			_, err = pipelineDB.SaveOutput(buildDB.GetID(), db.VersionedResource{
 				Resource: "some-implicit-resource",
 				Type:     "some-type",
 				Version: db.Version{
@@ -294,7 +293,7 @@ var _ = Describe("BuildDB", func() {
 			}, false)
 			Expect(err).ToNot(HaveOccurred())
 
-			actualBuildOutput, err := buildDBFactory.GetBuildDB(build).GetVersionedResources()
+			actualBuildOutput, err := buildDB.GetVersionedResources()
 			expectedBuildOutput.CheckOrder = 0
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(actualBuildOutput)).To(Equal(1))
@@ -416,10 +415,9 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("GetConfig", func() {
 		It("returns config of build pipeline", func() {
-			build, err := pipelineDB.CreateJobBuild("some-job")
+			buildDB, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).ToNot(HaveOccurred())
 
-			buildDB := buildDBFactory.GetBuildDB(build)
 			actualConfig, actualConfigVersion, err := buildDB.GetConfig()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actualConfig).To(Equal(pipelineConfig))

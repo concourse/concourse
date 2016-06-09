@@ -62,10 +62,10 @@ var _ = Describe("Image Versions", func() {
 	})
 
 	It("can retrieve saved image_resource_versions from the database", func() {
-		build, err := pipelineDB.CreateJobBuild("some-job")
+		buildDB, err := pipelineDB.CreateJobBuild("some-job")
 		Expect(err).ToNot(HaveOccurred())
 
-		otherBuild, err := pipelineDB.CreateJobBuild("some-job")
+		otherBuildDB, err := pipelineDB.CreateJobBuild("some-job")
 		Expect(err).ToNot(HaveOccurred())
 
 		identifier := db.ResourceCacheIdentifier{
@@ -83,14 +83,12 @@ var _ = Describe("Image Versions", func() {
 			ResourceHash:    "our even badder resource hash",
 		}
 
-		buildDB := buildDBFactory.GetBuildDB(build)
 		err = buildDB.SaveImageResourceVersion("our-super-sweet-plan", identifier)
 		Expect(err).ToNot(HaveOccurred())
 
 		err = buildDB.SaveImageResourceVersion("our-other-super-sweet-plan", otherIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		otherBuildDB := buildDBFactory.GetBuildDB(otherBuild)
 		err = otherBuildDB.SaveImageResourceVersion("our-super-bad-plan", badIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
