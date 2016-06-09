@@ -251,7 +251,6 @@ var _ = Describe("Scheduler", func() {
 					fakeBuildDB.GetPreparationReturns(buildPrep, true, nil)
 					fakePipelineDB.CreateJobBuildForCandidateInputsReturns(pendingBuildDB, true, nil)
 					fakePipelineDB.GetNextPendingBuildReturns(pendingBuildDB, true, nil)
-					fakePipelineDB.GetNextPendingBuildBySerialGroupReturns(pendingBuild, true, nil)
 					fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
 				})
 
@@ -447,7 +446,6 @@ var _ = Describe("Scheduler", func() {
 
 				fakeBuildDB.GetPreparationReturns(buildPrep, true, nil)
 				fakePipelineDB.CreateJobBuildReturns(pendingBuildDB, nil)
-				fakePipelineDB.GetNextPendingBuildBySerialGroupReturns(pendingBuild, true, nil)
 				fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
 			})
 
@@ -499,7 +497,6 @@ var _ = Describe("Scheduler", func() {
 			buildDB.GetModelReturns(dbBuild)
 
 			fakePipelineDB.CreateJobBuildReturns(buildDB, nil)
-			fakePipelineDB.GetNextPendingBuildBySerialGroupReturns(dbBuild, true, nil)
 			fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
 		})
 
