@@ -356,31 +356,35 @@ var _ = Describe("Versions API", func() {
 
 		Context("when getting the builds succeeds", func() {
 			BeforeEach(func() {
-				pipelineDB.GetBuildsWithVersionAsInputReturns([]db.Build{
-					{
-						ID:     1024,
-						Name:   "5",
-						Status: db.StatusSucceeded,
+				buildDB1 := new(dbfakes.FakeBuildDB)
+				buildDB1.GetModelReturns(db.Build{
+					ID:     1024,
+					Name:   "5",
+					Status: db.StatusSucceeded,
 
-						JobName:      "some-job",
-						PipelineName: "a-pipeline",
-						TeamName:     "a-team",
+					JobName:      "some-job",
+					PipelineName: "a-pipeline",
+					TeamName:     "a-team",
 
-						StartTime: time.Unix(1, 0),
-						EndTime:   time.Unix(100, 0),
-					},
-					{
-						ID:     1025,
-						Name:   "6",
-						Status: db.StatusSucceeded,
+					StartTime: time.Unix(1, 0),
+					EndTime:   time.Unix(100, 0),
+				})
+				buildDB2 := new(dbfakes.FakeBuildDB)
+				buildDB2.GetModelReturns(db.Build{
+					ID:     1025,
+					Name:   "6",
+					Status: db.StatusSucceeded,
 
-						JobName:      "some-job",
-						PipelineName: "a-pipeline",
-						TeamName:     "a-team",
+					JobName:      "some-job",
+					PipelineName: "a-pipeline",
+					TeamName:     "a-team",
 
-						StartTime: time.Unix(200, 0),
-						EndTime:   time.Unix(300, 0),
-					},
+					StartTime: time.Unix(200, 0),
+					EndTime:   time.Unix(300, 0),
+				})
+				pipelineDB.GetBuildsWithVersionAsInputReturns([]db.BuildDB{
+					buildDB1,
+					buildDB2,
 				}, nil)
 			})
 
@@ -474,31 +478,35 @@ var _ = Describe("Versions API", func() {
 
 		Context("when getting the builds succeeds", func() {
 			BeforeEach(func() {
-				pipelineDB.GetBuildsWithVersionAsOutputReturns([]db.Build{
-					{
-						ID:     1024,
-						Name:   "5",
-						Status: db.StatusSucceeded,
+				buildDB1 := new(dbfakes.FakeBuildDB)
+				buildDB1.GetModelReturns(db.Build{
+					ID:     1024,
+					Name:   "5",
+					Status: db.StatusSucceeded,
 
-						JobName:      "some-job",
-						PipelineName: "a-pipeline",
-						TeamName:     "a-team",
+					JobName:      "some-job",
+					PipelineName: "a-pipeline",
+					TeamName:     "a-team",
 
-						StartTime: time.Unix(1, 0),
-						EndTime:   time.Unix(100, 0),
-					},
-					{
-						ID:     1025,
-						Name:   "6",
-						Status: db.StatusSucceeded,
+					StartTime: time.Unix(1, 0),
+					EndTime:   time.Unix(100, 0),
+				})
+				buildDB2 := new(dbfakes.FakeBuildDB)
+				buildDB2.GetModelReturns(db.Build{
+					ID:     1025,
+					Name:   "6",
+					Status: db.StatusSucceeded,
 
-						JobName:      "some-job",
-						PipelineName: "a-pipeline",
-						TeamName:     "a-team",
+					JobName:      "some-job",
+					PipelineName: "a-pipeline",
+					TeamName:     "a-team",
 
-						StartTime: time.Unix(200, 0),
-						EndTime:   time.Unix(300, 0),
-					},
+					StartTime: time.Unix(200, 0),
+					EndTime:   time.Unix(300, 0),
+				})
+				pipelineDB.GetBuildsWithVersionAsOutputReturns([]db.BuildDB{
+					buildDB1,
+					buildDB2,
 				}, nil)
 			})
 

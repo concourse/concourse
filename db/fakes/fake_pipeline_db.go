@@ -437,22 +437,22 @@ type FakePipelineDB struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}
-	GetBuildsWithVersionAsInputStub        func(versionedResourceID int) ([]db.Build, error)
+	GetBuildsWithVersionAsInputStub        func(versionedResourceID int) ([]db.BuildDB, error)
 	getBuildsWithVersionAsInputMutex       sync.RWMutex
 	getBuildsWithVersionAsInputArgsForCall []struct {
 		versionedResourceID int
 	}
 	getBuildsWithVersionAsInputReturns struct {
-		result1 []db.Build
+		result1 []db.BuildDB
 		result2 error
 	}
-	GetBuildsWithVersionAsOutputStub        func(versionedResourceID int) ([]db.Build, error)
+	GetBuildsWithVersionAsOutputStub        func(versionedResourceID int) ([]db.BuildDB, error)
 	getBuildsWithVersionAsOutputMutex       sync.RWMutex
 	getBuildsWithVersionAsOutputArgsForCall []struct {
 		versionedResourceID int
 	}
 	getBuildsWithVersionAsOutputReturns struct {
-		result1 []db.Build
+		result1 []db.BuildDB
 		result2 error
 	}
 	UpdateBuildPreparationStub        func(prep db.BuildPreparation) error
@@ -1947,7 +1947,7 @@ func (fake *FakePipelineDB) SaveOutputReturns(result1 db.SavedVersionedResource,
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]db.Build, error) {
+func (fake *FakePipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]db.BuildDB, error) {
 	fake.getBuildsWithVersionAsInputMutex.Lock()
 	fake.getBuildsWithVersionAsInputArgsForCall = append(fake.getBuildsWithVersionAsInputArgsForCall, struct {
 		versionedResourceID int
@@ -1972,15 +1972,15 @@ func (fake *FakePipelineDB) GetBuildsWithVersionAsInputArgsForCall(i int) int {
 	return fake.getBuildsWithVersionAsInputArgsForCall[i].versionedResourceID
 }
 
-func (fake *FakePipelineDB) GetBuildsWithVersionAsInputReturns(result1 []db.Build, result2 error) {
+func (fake *FakePipelineDB) GetBuildsWithVersionAsInputReturns(result1 []db.BuildDB, result2 error) {
 	fake.GetBuildsWithVersionAsInputStub = nil
 	fake.getBuildsWithVersionAsInputReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildDB
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]db.Build, error) {
+func (fake *FakePipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]db.BuildDB, error) {
 	fake.getBuildsWithVersionAsOutputMutex.Lock()
 	fake.getBuildsWithVersionAsOutputArgsForCall = append(fake.getBuildsWithVersionAsOutputArgsForCall, struct {
 		versionedResourceID int
@@ -2005,10 +2005,10 @@ func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputArgsForCall(i int) int {
 	return fake.getBuildsWithVersionAsOutputArgsForCall[i].versionedResourceID
 }
 
-func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputReturns(result1 []db.Build, result2 error) {
+func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputReturns(result1 []db.BuildDB, result2 error) {
 	fake.GetBuildsWithVersionAsOutputStub = nil
 	fake.getBuildsWithVersionAsOutputReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildDB
 		result2 error
 	}{result1, result2}
 }

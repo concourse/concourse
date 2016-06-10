@@ -78,8 +78,8 @@ type PipelineDB interface {
 	UpdateBuildToScheduled(buildID int) (bool, error)
 	SaveInput(buildID int, input BuildInput) (SavedVersionedResource, error)
 	SaveOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
-	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
-	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
+	GetBuildsWithVersionAsInput(versionedResourceID int) ([]BuildDB, error)
+	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]BuildDB, error)
 
 	UpdateBuildPreparation(prep BuildPreparation) error
 
@@ -1254,7 +1254,7 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
 	return build, nil
 }
 
-func (pdb *pipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error) {
+func (pdb *pipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]BuildDB, error) {
 	rows, err := pdb.conn.Query(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
@@ -1269,19 +1269,19 @@ func (pdb *pipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]B
 	}
 	defer rows.Close()
 
-	builds := []Build{}
+	builds := []BuildDB{}
 	for rows.Next() {
 		build, _, err := scanBuild(rows)
 		if err != nil {
 			return nil, err
 		}
-		builds = append(builds, build)
+		builds = append(builds, pdb.buildDBFactory.GetBuildDB(build))
 	}
 
 	return builds, err
 }
 
-func (pdb *pipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error) {
+func (pdb *pipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]BuildDB, error) {
 	rows, err := pdb.conn.Query(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
@@ -1296,14 +1296,14 @@ func (pdb *pipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]
 	}
 	defer rows.Close()
 
-	builds := []Build{}
+	builds := []BuildDB{}
 	for rows.Next() {
 		build, _, err := scanBuild(rows)
 		if err != nil {
 			return nil, err
 		}
 
-		builds = append(builds, build)
+		builds = append(builds, pdb.buildDBFactory.GetBuildDB(build))
 	}
 
 	return builds, err
