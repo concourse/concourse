@@ -71,7 +71,6 @@ type PipelineDB interface {
 	GetJobBuildForInputs(job string, inputs []BuildInput) (BuildDB, bool, error)
 	GetNextPendingBuild(job string) (BuildDB, bool, error)
 
-	GetBuild(buildID int) (Build, bool, error)
 	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]BuildDB, error)
 	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (BuildDB, bool, error)
 
@@ -1666,17 +1665,6 @@ func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroup
 	}
 
 	return bs, nil
-}
-
-func (pdb *pipelineDB) GetBuild(buildID int) (Build, bool, error) {
-	return scanBuild(pdb.conn.QueryRow(`
-		SELECT `+qualifiedBuildColumns+`
-		FROM builds b
-		INNER JOIN jobs j ON b.job_id = j.id
-		INNER JOIN pipelines p ON j.pipeline_id = p.id
-		INNER JOIN teams t ON b.team_id = t.id
-		WHERE b.id = $1
-	`, buildID))
 }
 
 func (pdb *pipelineDB) UpdateBuildPreparation(prep BuildPreparation) error {

@@ -53,8 +53,11 @@ type BuildDB interface {
 	GetJobID() int
 	GetPipelineName() string
 	GetTeamName() string
+	GetEngine() string
 	GetEngineMetadata() string
 	GetStatus() Status
+	GetStartTime() time.Time
+	GetEndTime() time.Time
 	IsOneOff() bool
 
 	Events(from uint) (EventSource, error)
@@ -136,8 +139,20 @@ func (db *buildDB) GetTeamName() string {
 	return db.build.TeamName
 }
 
+func (db *buildDB) GetEngine() string {
+	return db.build.Engine
+}
+
 func (db *buildDB) GetEngineMetadata() string {
 	return db.build.EngineMetadata
+}
+
+func (db *buildDB) GetStartTime() time.Time {
+	return db.build.StartTime
+}
+
+func (db *buildDB) GetEndTime() time.Time {
+	return db.build.EndTime
 }
 
 func (db *buildDB) GetStatus() Status {
