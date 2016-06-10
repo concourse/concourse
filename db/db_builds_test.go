@@ -23,7 +23,6 @@ var _ = Describe("Keeping track of builds", func() {
 	var teamDBFactory db.TeamDBFactory
 	var team db.SavedTeam
 	var teamDB db.TeamDB
-	var buildDBFactory db.BuildDBFactory
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -40,8 +39,7 @@ var _ = Describe("Keeping track of builds", func() {
 		team, err = sqlDB.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
-		teamDBFactory = db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 
 		config := atc.Config{

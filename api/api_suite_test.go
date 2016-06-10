@@ -50,7 +50,6 @@ var (
 	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
 	teamDBFactory                 *dbfakes.FakeTeamDBFactory
 	teamDB                        *dbfakes.FakeTeamDB
-	buildDBFactory                *dbfakes.FakeBuildDBFactory
 	buildDB                       *dbfakes.FakeBuildDB
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
@@ -127,8 +126,6 @@ var _ = BeforeEach(func() {
 	logger.RegisterSink(sink)
 
 	buildDB = new(dbfakes.FakeBuildDB)
-	buildDBFactory = new(dbfakes.FakeBuildDBFactory)
-	buildDBFactory.GetBuildDBReturns(buildDB)
 
 	handler, err := api.NewHandler(
 		logger,
@@ -143,7 +140,6 @@ var _ = BeforeEach(func() {
 
 		pipelineDBFactory,
 		teamDBFactory,
-		buildDBFactory,
 
 		teamsDB,
 		workerDB,

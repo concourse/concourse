@@ -17,7 +17,6 @@ var _ = Describe("Keeping track of volumes", func() {
 
 	var database db.DB
 	var pipelineDB db.PipelineDB
-	var buildDBFactory db.BuildDBFactory
 	var teamDB db.TeamDB
 
 	BeforeEach(func() {
@@ -42,8 +41,7 @@ var _ = Describe("Keeping track of volumes", func() {
 				},
 			},
 		}
-		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
-		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 		savedPipeline, _, err := teamDB.SaveConfig("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 		Expect(err).NotTo(HaveOccurred())

@@ -36,8 +36,7 @@ var _ = Describe("Job Builds", func() {
 		atcProcess, atcPort, _ = startATC(atcBin, 1, true, []string{}, BASIC_AUTH)
 		err := sqlDB.DeleteTeamByName("main")
 		Expect(err).NotTo(HaveOccurred())
-		buildDBFactory := db.NewBuildDBFactory(dbConn, bus)
-		teamDBFactory = db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
 	})
 
 	AfterEach(func() {

@@ -40,10 +40,7 @@ var _ = Describe("DBEngine", func() {
 		fakeBuildDB = new(dbfakes.FakeBuildDB)
 		fakeBuildDB.GetIDReturns(128)
 
-		fakeBuildDBFactory := new(dbfakes.FakeBuildDBFactory)
-		fakeBuildDBFactory.GetBuildDBReturns(fakeBuildDB)
-
-		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB}, fakeBuildDBFactory)
+		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB})
 	})
 
 	Describe("CreateBuild", func() {

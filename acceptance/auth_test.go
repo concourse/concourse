@@ -37,8 +37,7 @@ var _ = Describe("Auth", func() {
 		_, err = sqlDB.CreateTeam(db.Team{Name: atc.DefaultTeamName})
 		Expect(err).NotTo(HaveOccurred())
 
-		buildDBFactory := db.NewBuildDBFactory(dbConn, bus)
-		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 		_, _, err = teamDB.SaveConfig(atc.DefaultPipelineName, atc.Config{}, db.ConfigVersion(1), db.PipelineUnpaused)

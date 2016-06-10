@@ -34,7 +34,7 @@ type teamDB struct {
 
 	buildPrepHelper buildPreparationHelper
 	conn            Conn
-	buildDBFactory  BuildDBFactory
+	buildFactory    *buildFactory
 }
 
 func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
@@ -502,24 +502,24 @@ func (db *teamDB) CreateOneOffBuild() (BuildDB, error) {
 		return nil, err
 	}
 
-	build, _, err := scanBuild(tx.QueryRow(`
+	build, _, err := db.buildFactory.ScanBuild(tx.QueryRow(`
 		INSERT INTO builds (name, team_id, status)
 		VALUES (nextval('one_off_name'), $1, 'pending')
-		RETURNING `+buildColumns+`, null, null, null, ''
-	`, teamID))
+		RETURNING `+buildColumns+`, null, null, null, $2::text
+	`, teamID, string(db.teamName)))
+
 	if err != nil {
 		return nil, err
 	}
-	build.TeamName = db.teamName
 
 	_, err = tx.Exec(fmt.Sprintf(`
 		CREATE SEQUENCE %s MINVALUE 0
-	`, buildEventSeq(build.id)))
+	`, buildEventSeq(build.GetID())))
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.buildPrepHelper.CreateBuildPreparation(tx, build.id)
+	err = db.buildPrepHelper.CreateBuildPreparation(tx, build.GetID())
 	if err != nil {
 		return nil, err
 	}
@@ -529,7 +529,7 @@ func (db *teamDB) CreateOneOffBuild() (BuildDB, error) {
 		return nil, err
 	}
 
-	return db.buildDBFactory.GetBuildDB(build), nil
+	return build, nil
 }
 
 func (db *teamDB) GetBuilds(page Page) ([]BuildDB, Pagination, error) {
@@ -580,12 +580,12 @@ func (db *teamDB) GetBuilds(page Page) ([]BuildDB, Pagination, error) {
 	builds := []BuildDB{}
 
 	for rows.Next() {
-		build, _, err := scanBuild(rows)
+		build, _, err := db.buildFactory.ScanBuild(rows)
 		if err != nil {
 			return nil, Pagination{}, err
 		}
 
-		builds = append(builds, db.buildDBFactory.GetBuildDB(build))
+		builds = append(builds, build)
 	}
 
 	if len(builds) == 0 {
@@ -627,7 +627,7 @@ func (db *teamDB) GetBuilds(page Page) ([]BuildDB, Pagination, error) {
 }
 
 func (db *teamDB) GetBuildDB(buildID int) (BuildDB, bool, error) {
-	build, found, err := scanBuild(db.conn.QueryRow(`
+	return db.buildFactory.ScanBuild(db.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
 		LEFT OUTER JOIN jobs j ON b.job_id = j.id
@@ -636,15 +636,6 @@ func (db *teamDB) GetBuildDB(buildID int) (BuildDB, bool, error) {
 		WHERE b.id = $1
 		AND t.name = $2
 	`, buildID, db.teamName))
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !found {
-		return nil, false, nil
-	}
-
-	return db.buildDBFactory.GetBuildDB(build), true, nil
 }
 
 func scanPipeline(rows scannable) (SavedPipeline, error) {

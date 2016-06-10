@@ -23,12 +23,12 @@ func (db *SQLDB) GetAllStartedBuilds() ([]BuildDB, error) {
 	bs := []BuildDB{}
 
 	for rows.Next() {
-		build, _, err := scanBuild(rows)
+		build, _, err := db.buildFactory.ScanBuild(rows)
 		if err != nil {
 			return nil, err
 		}
 
-		bs = append(bs, db.buildDBFactory.GetBuildDB(build))
+		bs = append(bs, build)
 	}
 
 	return bs, nil

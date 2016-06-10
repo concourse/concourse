@@ -22,7 +22,6 @@ var _ = Describe("PipelineDB", func() {
 
 	var pipelineDBFactory db.PipelineDBFactory
 	var sqlDB *db.SQLDB
-	var buildDBFactory db.BuildDBFactory
 	var teamDBFactory db.TeamDBFactory
 
 	BeforeEach(func() {
@@ -36,8 +35,7 @@ var _ = Describe("PipelineDB", func() {
 
 		sqlDB = db.NewSQL(dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
-		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
-		teamDBFactory = db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
 	})
 
 	AfterEach(func() {

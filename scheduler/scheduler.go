@@ -44,11 +44,10 @@ type Scanner interface {
 }
 
 type Scheduler struct {
-	PipelineDB     PipelineDB
-	BuildDBFactory db.BuildDBFactory
-	Factory        BuildFactory
-	Engine         engine.Engine
-	Scanner        Scanner
+	PipelineDB PipelineDB
+	Factory    BuildFactory
+	Engine     engine.Engine
+	Scanner    Scanner
 }
 
 func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.VersionsDB, job atc.JobConfig, resources atc.ResourceConfigs, resourceTypes atc.ResourceTypes) error {

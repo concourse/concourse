@@ -23,7 +23,6 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 
 	var database *db.SQLDB
 	var pipelineDBFactory db.PipelineDBFactory
-	var buildDBFactory db.BuildDBFactory
 
 	var team db.SavedTeam
 	var teamDB db.TeamDB
@@ -43,13 +42,12 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 
 		database = db.NewSQL(dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
-		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
 
 		var err error
 		team, err = database.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 
 		config = atc.Config{

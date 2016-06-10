@@ -18,7 +18,6 @@ var _ = Describe("Leases", func() {
 		listener *pq.Listener
 
 		pipelineDBFactory db.PipelineDBFactory
-		buildDBFactory    db.BuildDBFactory
 		teamDBFactory     db.TeamDBFactory
 		sqlDB             *db.SQLDB
 
@@ -40,9 +39,8 @@ var _ = Describe("Leases", func() {
 		logger = lagertest.NewTestLogger("test")
 		sqlDB = db.NewSQL(dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
-		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 	})
 

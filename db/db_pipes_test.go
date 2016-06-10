@@ -18,7 +18,6 @@ var _ = Describe("Pipes", func() {
 
 	var database db.DB
 	var teamDB db.TeamDB
-	var buildDBFactory db.BuildDBFactory
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -31,8 +30,7 @@ var _ = Describe("Pipes", func() {
 
 		database = db.NewSQL(dbConn, bus)
 
-		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
-		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 	})
 

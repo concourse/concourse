@@ -26,7 +26,7 @@ func (pdbf *pipelineDBFactory) Build(pipeline SavedPipeline) PipelineDB {
 		conn: pdbf.conn,
 		bus:  pdbf.bus,
 
-		buildDBFactory: NewBuildDBFactory(pdbf.conn, pdbf.bus),
+		buildFactory: newBuildFactory(pdbf.conn, pdbf.bus),
 
 		SavedPipeline: pipeline,
 	}

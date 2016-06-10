@@ -16,23 +16,20 @@ func NewTracker(
 	logger lager.Logger,
 
 	trackerDB TrackerDB,
-	buildDBFactory db.BuildDBFactory,
 	engine engine.Engine,
 ) *Tracker {
 	return &Tracker{
-		logger:         logger,
-		trackerDB:      trackerDB,
-		buildDBFactory: buildDBFactory,
-		engine:         engine,
+		logger:    logger,
+		trackerDB: trackerDB,
+		engine:    engine,
 	}
 }
 
 type Tracker struct {
 	logger lager.Logger
 
-	trackerDB      TrackerDB
-	buildDBFactory db.BuildDBFactory
-	engine         engine.Engine
+	trackerDB TrackerDB
+	engine    engine.Engine
 }
 
 func (bt *Tracker) Track() {

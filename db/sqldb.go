@@ -9,7 +9,7 @@ type SQLDB struct {
 	conn Conn
 	bus  *notificationsBus
 
-	buildDBFactory  BuildDBFactory
+	buildFactory    *buildFactory
 	buildPrepHelper buildPreparationHelper
 }
 
@@ -18,9 +18,9 @@ func NewSQL(
 	bus *notificationsBus,
 ) *SQLDB {
 	return &SQLDB{
-		conn:           sqldbConnection,
-		bus:            bus,
-		buildDBFactory: NewBuildDBFactory(sqldbConnection, bus),
+		conn:         sqldbConnection,
+		bus:          bus,
+		buildFactory: newBuildFactory(sqldbConnection, bus),
 	}
 }
 

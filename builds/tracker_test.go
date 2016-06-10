@@ -18,9 +18,8 @@ import (
 
 var _ = Describe("Tracker", func() {
 	var (
-		fakeTrackerDB      *fakes.FakeTrackerDB
-		fakeBuildDBFactory *dbfakes.FakeBuildDBFactory
-		fakeEngine         *enginefakes.FakeEngine
+		fakeTrackerDB *fakes.FakeTrackerDB
+		fakeEngine    *enginefakes.FakeEngine
 
 		tracker *builds.Tracker
 		logger  *lagertest.TestLogger
@@ -29,14 +28,12 @@ var _ = Describe("Tracker", func() {
 	BeforeEach(func() {
 		fakeTrackerDB = new(fakes.FakeTrackerDB)
 		fakeEngine = new(enginefakes.FakeEngine)
-		fakeBuildDBFactory = new(dbfakes.FakeBuildDBFactory)
 
 		logger = lagertest.NewTestLogger("test")
 
 		tracker = builds.NewTracker(
 			logger,
 			fakeTrackerDB,
-			fakeBuildDBFactory,
 			fakeEngine,
 		)
 	})

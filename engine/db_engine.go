@@ -16,10 +16,9 @@ var ErrBuildNotActive = errors.New("build not yet active")
 
 const trackingInterval = 10 * time.Second
 
-func NewDBEngine(engines Engines, buildDBFactory db.BuildDBFactory) Engine {
+func NewDBEngine(engines Engines) Engine {
 	return &dbEngine{
-		engines:        engines,
-		buildDBFactory: buildDBFactory,
+		engines: engines,
 	}
 }
 
@@ -32,8 +31,7 @@ func (err UnknownEngineError) Error() string {
 }
 
 type dbEngine struct {
-	engines        Engines
-	buildDBFactory db.BuildDBFactory
+	engines Engines
 }
 
 func (*dbEngine) Name() string {

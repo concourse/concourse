@@ -62,8 +62,7 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 		}
 
-		buildDBFactory := db.NewBuildDBFactory(dbConn, bus)
-		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 		savedPipeline, _, err = teamDB.SaveConfig("some-pipeline", config, 0, db.PipelineUnpaused)

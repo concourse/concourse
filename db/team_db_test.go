@@ -27,7 +27,6 @@ var _ = Describe("TeamDB", func() {
 		savedTeam             db.SavedTeam
 
 		pipelineDBFactory db.PipelineDBFactory
-		buildDBFactory    db.BuildDBFactory
 	)
 
 	BeforeEach(func() {
@@ -39,8 +38,7 @@ var _ = Describe("TeamDB", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
-		teamDBFactory = db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
 		database = db.NewSQL(dbConn, bus)
 
 		team := db.Team{Name: "team-name"}

@@ -7,21 +7,21 @@ type TeamDBFactory interface {
 }
 
 type teamDBFactory struct {
-	conn           Conn
-	buildDBFactory BuildDBFactory
+	conn Conn
+	bus  *notificationsBus
 }
 
-func NewTeamDBFactory(conn Conn, buildDBFactory BuildDBFactory) TeamDBFactory {
+func NewTeamDBFactory(conn Conn, bus *notificationsBus) TeamDBFactory {
 	return &teamDBFactory{
-		conn:           conn,
-		buildDBFactory: buildDBFactory,
+		conn: conn,
+		bus:  bus,
 	}
 }
 
 func (f *teamDBFactory) GetTeamDB(teamName string) TeamDB {
 	return &teamDB{
-		teamName:       teamName,
-		conn:           f.conn,
-		buildDBFactory: f.buildDBFactory,
+		teamName:     teamName,
+		conn:         f.conn,
+		buildFactory: newBuildFactory(f.conn, f.bus),
 	}
 }

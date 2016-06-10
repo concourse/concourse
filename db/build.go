@@ -8,7 +8,6 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/event"
-	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -42,40 +41,12 @@ type SavedBuild struct {
 	ReapTime  time.Time
 }
 
-//go:generate counterfeiter . BuildDBFactory
-
-type BuildDBFactory interface {
-	GetBuildDB(build SavedBuild) BuildDB
-}
-
 const buildColumns = "id, name, job_id, status, scheduled, engine, engine_metadata, start_time, end_time, reap_time"
 const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.status, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name"
-
-func NewBuildDBFactory(conn Conn, bus *notificationsBus) BuildDBFactory {
-	return &buildDBFactory{
-		conn: conn,
-		bus:  bus,
-	}
-}
-
-type buildDBFactory struct {
-	conn Conn
-	bus  *notificationsBus
-}
-
-func (f *buildDBFactory) GetBuildDB(build SavedBuild) BuildDB {
-	return &buildDB{
-		build: build,
-		conn:  f.conn,
-		bus:   f.bus,
-	}
-}
 
 //go:generate counterfeiter . BuildDB
 
 type BuildDB interface {
-	Reload() (bool, error)
-
 	GetID() int
 	GetName() string
 	GetJobName() string
@@ -90,6 +61,8 @@ type BuildDB interface {
 	IsOneOff() bool
 	IsScheduled() bool
 	IsRunning() bool
+
+	Reload() (bool, error)
 
 	Events(from uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
@@ -125,21 +98,6 @@ type buildDB struct {
 	bus   *notificationsBus
 
 	buildPrepHelper buildPreparationHelper
-}
-
-func (db *buildDB) Reload() (bool, error) {
-	build, found, err := scanBuild(db.conn.QueryRow(`
-		SELECT `+qualifiedBuildColumns+`
-		FROM builds b
-		LEFT OUTER JOIN jobs j ON b.job_id = j.id
-		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
-		LEFT OUTER JOIN teams t ON b.team_id = t.id
-		WHERE b.id = $1
-	`, db.build.id))
-
-	db.build = build
-
-	return found, err
 }
 
 func (db *buildDB) GetID() int {
@@ -201,6 +159,40 @@ func (db *buildDB) IsRunning() bool {
 	default:
 		return false
 	}
+}
+
+func (db *buildDB) Reload() (bool, error) {
+	buildFactory := newBuildFactory(db.conn, db.bus)
+	newBuild, found, err := buildFactory.ScanBuild(db.conn.QueryRow(`
+		SELECT `+qualifiedBuildColumns+`
+		FROM builds b
+		LEFT OUTER JOIN jobs j ON b.job_id = j.id
+		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
+		LEFT OUTER JOIN teams t ON b.team_id = t.id
+		WHERE b.id = $1
+	`, db.build.id))
+	if err != nil {
+		return false, err
+	}
+
+	if !found {
+		return found, nil
+	}
+
+	db.build.id = newBuild.GetID()
+	db.build.Name = newBuild.GetName()
+	db.build.Status = newBuild.GetStatus()
+	db.build.Scheduled = newBuild.IsScheduled()
+	db.build.Engine = newBuild.GetEngine()
+	db.build.EngineMetadata = newBuild.GetEngineMetadata()
+	db.build.StartTime = newBuild.GetStartTime()
+	db.build.EndTime = newBuild.GetEndTime()
+	db.build.ReapTime = newBuild.GetReapTime()
+	db.build.TeamName = newBuild.GetTeamName()
+	db.build.JobName = newBuild.GetJobName()
+	db.build.PipelineName = newBuild.GetPipelineName()
+
+	return found, err
 }
 
 func (db *buildDB) Events(from uint) (EventSource, error) {
@@ -818,52 +810,6 @@ func (db *buildDB) saveEvent(tx Tx, event atc.Event) error {
 	}
 
 	return nil
-}
-
-func scanBuild(row scannable) (SavedBuild, bool, error) {
-	var id int
-	var name string
-	var jobID, pipelineID sql.NullInt64
-	var status string
-	var scheduled bool
-	var engine, engineMetadata, jobName, pipelineName sql.NullString
-	var startTime pq.NullTime
-	var endTime pq.NullTime
-	var reapTime pq.NullTime
-	var teamName string
-
-	err := row.Scan(&id, &name, &jobID, &status, &scheduled, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &teamName)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return SavedBuild{}, false, nil
-		}
-
-		return SavedBuild{}, false, err
-	}
-
-	build := SavedBuild{
-		id:        id,
-		Name:      name,
-		Status:    Status(status),
-		Scheduled: scheduled,
-
-		Engine:         engine.String,
-		EngineMetadata: engineMetadata.String,
-
-		StartTime: startTime.Time,
-		EndTime:   endTime.Time,
-		ReapTime:  reapTime.Time,
-
-		TeamName: teamName,
-	}
-
-	if jobID.Valid {
-		build.JobName = jobName.String
-		build.PipelineName = pipelineName.String
-		build.PipelineID = int(pipelineID.Int64)
-	}
-
-	return build, true, nil
 }
 
 func buildAbortChannel(buildID int) string {

@@ -36,12 +36,6 @@ type FakeBuildDB struct {
 	getJobNameReturns     struct {
 		result1 string
 	}
-	GetJobIDStub        func() int
-	getJobIDMutex       sync.RWMutex
-	getJobIDArgsForCall []struct{}
-	getJobIDReturns     struct {
-		result1 int
-	}
 	GetPipelineNameStub        func() string
 	getPipelineNameMutex       sync.RWMutex
 	getPipelineNameArgsForCall []struct{}
@@ -356,30 +350,6 @@ func (fake *FakeBuildDB) GetJobNameReturns(result1 string) {
 	fake.GetJobNameStub = nil
 	fake.getJobNameReturns = struct {
 		result1 string
-	}{result1}
-}
-
-func (fake *FakeBuildDB) GetJobID() int {
-	fake.getJobIDMutex.Lock()
-	fake.getJobIDArgsForCall = append(fake.getJobIDArgsForCall, struct{}{})
-	fake.getJobIDMutex.Unlock()
-	if fake.GetJobIDStub != nil {
-		return fake.GetJobIDStub()
-	} else {
-		return fake.getJobIDReturns.result1
-	}
-}
-
-func (fake *FakeBuildDB) GetJobIDCallCount() int {
-	fake.getJobIDMutex.RLock()
-	defer fake.getJobIDMutex.RUnlock()
-	return len(fake.getJobIDArgsForCall)
-}
-
-func (fake *FakeBuildDB) GetJobIDReturns(result1 int) {
-	fake.GetJobIDStub = nil
-	fake.getJobIDReturns = struct {
-		result1 int
 	}{result1}
 }
 

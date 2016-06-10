@@ -178,15 +178,13 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory)
 
 	tracker := resource.NewTracker(workerClient)
-	buildDBFactory := db.NewBuildDBFactory(dbConn, bus)
-	teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
-	engine := cmd.constructEngine(workerClient, tracker, teamDBFactory, buildDBFactory)
+	teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
+	engine := cmd.constructEngine(workerClient, tracker, teamDBFactory)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		tracker,
 		cmd.ResourceCheckingInterval,
 		engine,
-		buildDBFactory,
 	)
 
 	radarScannerFactory := radar.NewScannerFactory(
@@ -242,7 +240,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			Tracker: builds.NewTracker(
 				logger.Session("build-tracker"),
 				sqlDB,
-				buildDBFactory,
 				engine,
 			),
 			Interval: 10 * time.Second,
@@ -299,7 +296,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		reconfigurableSink,
 		sqlDB,
 		teamDBFactory,
-		buildDBFactory,
 		providerFactory,
 		signingKey,
 		pipelineDBFactory,
@@ -728,7 +724,6 @@ func (cmd *ATCCommand) constructEngine(
 	workerClient worker.Client,
 	tracker resource.Tracker,
 	teamDBFactory db.TeamDBFactory,
-	buildDBFactory db.BuildDBFactory,
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
 		workerClient,
@@ -746,7 +741,7 @@ func (cmd *ATCCommand) constructEngine(
 
 	execV1Engine := engine.NewExecV1DummyEngine()
 
-	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine}, buildDBFactory)
+	return engine.NewDBEngine(engine.Engines{execV2Engine, execV1Engine})
 }
 
 func (cmd *ATCCommand) constructHTTPHandler(
@@ -780,7 +775,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 	reconfigurableSink *lager.ReconfigurableSink,
 	sqlDB *db.SQLDB,
 	teamDBFactory db.TeamDBFactory,
-	buildDBFactory db.BuildDBFactory,
 	providerFactory provider.OAuthFactory,
 	signingKey *rsa.PrivateKey,
 	pipelineDBFactory db.PipelineDBFactory,
@@ -811,7 +805,6 @@ func (cmd *ATCCommand) constructAPIHandler(
 
 		pipelineDBFactory,
 		teamDBFactory,
-		buildDBFactory,
 
 		sqlDB, // teamserver.TeamsDB
 		sqlDB, // workerserver.WorkerDB

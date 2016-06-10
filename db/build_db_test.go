@@ -18,7 +18,6 @@ var _ = Describe("BuildDB", func() {
 	var listener *pq.Listener
 
 	var teamDB db.TeamDB
-	var buildDBFactory db.BuildDBFactory
 	var pipelineDB db.PipelineDB
 	var pipeline db.SavedPipeline
 	var pipelineConfig atc.Config
@@ -32,8 +31,7 @@ var _ = Describe("BuildDB", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		buildDBFactory = db.NewBuildDBFactory(dbConn, bus)
-		teamDBFactory := db.NewTeamDBFactory(dbConn, buildDBFactory)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
 		teamDB = teamDBFactory.GetTeamDB(atc.DefaultTeamName)
 
 		pipelineConfig = atc.Config{

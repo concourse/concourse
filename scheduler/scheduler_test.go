@@ -21,12 +21,11 @@ import (
 
 var _ = Describe("Scheduler", func() {
 	var (
-		fakePipelineDB     *fakes.FakePipelineDB
-		fakeBuildDB        *dbfakes.FakeBuildDB
-		fakeBuildDBFactory *dbfakes.FakeBuildDBFactory
-		factory            *fakes.FakeBuildFactory
-		fakeEngine         *enginefakes.FakeEngine
-		fakeScanner        *fakes.FakeScanner
+		fakePipelineDB *fakes.FakePipelineDB
+		fakeBuildDB    *dbfakes.FakeBuildDB
+		factory        *fakes.FakeBuildFactory
+		fakeEngine     *enginefakes.FakeEngine
+		fakeScanner    *fakes.FakeScanner
 
 		lease *dbfakes.FakeLease
 
@@ -46,8 +45,6 @@ var _ = Describe("Scheduler", func() {
 	BeforeEach(func() {
 		fakePipelineDB = new(fakes.FakePipelineDB)
 		fakeBuildDB = new(dbfakes.FakeBuildDB)
-		fakeBuildDBFactory = new(dbfakes.FakeBuildDBFactory)
-		fakeBuildDBFactory.GetBuildDBReturns(fakeBuildDB)
 		factory = new(fakes.FakeBuildFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
 		fakeScanner = new(fakes.FakeScanner)
@@ -86,11 +83,10 @@ var _ = Describe("Scheduler", func() {
 		factory.CreateReturns(createdPlan, nil)
 
 		scheduler = &Scheduler{
-			PipelineDB:     fakePipelineDB,
-			BuildDBFactory: fakeBuildDBFactory,
-			Factory:        factory,
-			Engine:         fakeEngine,
-			Scanner:        fakeScanner,
+			PipelineDB: fakePipelineDB,
+			Factory:    factory,
+			Engine:     fakeEngine,
+			Scanner:    fakeScanner,
 		}
 
 		logger = lagertest.NewTestLogger("test")
