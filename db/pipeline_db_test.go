@@ -3097,7 +3097,7 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			It("is returned in the job's builds", func() {
-				Expect(pipelineDB.GetAllJobBuilds("some-job")).To(ConsistOf([]db.Build{build1DB.GetModel()}))
+				Expect(pipelineDB.GetAllJobBuilds("some-job")).To(ConsistOf([]db.BuildDB{build1DB}))
 			})
 
 			Context("and another build for a different pipeline is created with the same job name", func() {
@@ -3123,7 +3123,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("is not returned in the job's builds", func() {
-					Expect(pipelineDB.GetAllJobBuilds("some-job")).To(ConsistOf([]db.Build{build1DB.GetModel()}))
+					Expect(pipelineDB.GetAllJobBuilds("some-job")).To(ConsistOf([]db.BuildDB{build1DB}))
 				})
 			})
 
@@ -3204,9 +3204,9 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("is returned in the job's builds, before the rest", func() {
-					Expect(pipelineDB.GetAllJobBuilds("some-job")).To(Equal([]db.Build{
-						build2DB.GetModel(),
-						build1DB.GetModel(),
+					Expect(pipelineDB.GetAllJobBuilds("some-job")).To(Equal([]db.BuildDB{
+						build2DB,
+						build1DB,
 					}))
 				})
 
@@ -3235,11 +3235,11 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("shows up in its job's builds", func() {
-					Expect(pipelineDB.GetAllJobBuilds("some-other-job")).To(Equal([]db.Build{otherJobBuild.GetModel()}))
+					Expect(pipelineDB.GetAllJobBuilds("some-other-job")).To(Equal([]db.BuildDB{otherJobBuild}))
 				})
 
 				It("does not show up in the first build's job's builds", func() {
-					Expect(pipelineDB.GetAllJobBuilds("some-job")).To(Equal([]db.Build{build1DB.GetModel()}))
+					Expect(pipelineDB.GetAllJobBuilds("some-job")).To(Equal([]db.BuildDB{build1DB}))
 				})
 			})
 		})

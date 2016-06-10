@@ -59,6 +59,7 @@ type BuildDB interface {
 	GetStartTime() time.Time
 	GetEndTime() time.Time
 	IsOneOff() bool
+	IsRunning() bool
 
 	Events(from uint) (EventSource, error)
 	SaveEvent(event atc.Event) error
@@ -161,6 +162,15 @@ func (db *buildDB) GetStatus() Status {
 
 func (db *buildDB) IsOneOff() bool {
 	return db.build.JobName == ""
+}
+
+func (db *buildDB) IsRunning() bool {
+	switch db.build.Status {
+	case StatusPending, StatusStarted:
+		return true
+	default:
+		return false
+	}
 }
 
 func (db *buildDB) Events(from uint) (EventSource, error) {

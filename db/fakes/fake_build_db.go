@@ -97,6 +97,12 @@ type FakeBuildDB struct {
 	isOneOffReturns     struct {
 		result1 bool
 	}
+	IsRunningStub        func() bool
+	isRunningMutex       sync.RWMutex
+	isRunningArgsForCall []struct{}
+	isRunningReturns     struct {
+		result1 bool
+	}
 	EventsStub        func(from uint) (db.EventSource, error)
 	eventsMutex       sync.RWMutex
 	eventsArgsForCall []struct {
@@ -585,6 +591,30 @@ func (fake *FakeBuildDB) IsOneOffCallCount() int {
 func (fake *FakeBuildDB) IsOneOffReturns(result1 bool) {
 	fake.IsOneOffStub = nil
 	fake.isOneOffReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuildDB) IsRunning() bool {
+	fake.isRunningMutex.Lock()
+	fake.isRunningArgsForCall = append(fake.isRunningArgsForCall, struct{}{})
+	fake.isRunningMutex.Unlock()
+	if fake.IsRunningStub != nil {
+		return fake.IsRunningStub()
+	} else {
+		return fake.isRunningReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) IsRunningCallCount() int {
+	fake.isRunningMutex.RLock()
+	defer fake.isRunningMutex.RUnlock()
+	return len(fake.isRunningArgsForCall)
+}
+
+func (fake *FakeBuildDB) IsRunningReturns(result1 bool) {
+	fake.IsRunningStub = nil
+	fake.isRunningReturns = struct {
 		result1 bool
 	}{result1}
 }

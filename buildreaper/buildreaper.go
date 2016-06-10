@@ -62,7 +62,7 @@ func (br *buildReaper) Run() error {
 				continue
 			}
 
-			buildsToConsiderDeleting := []db.Build{}
+			buildsToConsiderDeleting := []db.BuildDB{}
 			until := job.Job.FirstLoggedBuildID - 1
 			limit := br.batchSize
 
@@ -99,7 +99,7 @@ func (br *buildReaper) Run() error {
 
 			buildIDsToConsiderDeleting := []int{}
 			for _, build := range buildsToConsiderDeleting {
-				buildIDsToConsiderDeleting = append(buildIDsToConsiderDeleting, build.ID)
+				buildIDsToConsiderDeleting = append(buildIDsToConsiderDeleting, build.GetID())
 			}
 
 			buildsToRetain, _, err := pipelineDB.GetJobBuilds(
@@ -113,24 +113,24 @@ func (br *buildReaper) Run() error {
 
 			buildIDsToRetain := []int{}
 			for _, build := range buildsToRetain {
-				buildIDsToRetain = append(buildIDsToRetain, build.ID)
+				buildIDsToRetain = append(buildIDsToRetain, build.GetID())
 			}
 
 			if len(buildsToRetain) == 0 {
 				continue
 			}
 
-			firstBuildToRetain := buildsToRetain[len(buildsToRetain)-1].ID
+			firstBuildToRetain := buildsToRetain[len(buildsToRetain)-1].GetID()
 
 			buildIDsToDelete := []int{}
 			for i := len(buildsToConsiderDeleting) - 1; i >= 0; i-- {
 				build := buildsToConsiderDeleting[i]
 
-				if build.ID >= firstBuildToRetain || build.IsRunning() {
+				if build.GetID() >= firstBuildToRetain || build.IsRunning() {
 					break
 				}
 
-				buildIDsToDelete = append(buildIDsToDelete, build.ID)
+				buildIDsToDelete = append(buildIDsToDelete, build.GetID())
 			}
 
 			if len(buildIDsToDelete) == 0 {

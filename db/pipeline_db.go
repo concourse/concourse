@@ -57,8 +57,8 @@ type PipelineDB interface {
 
 	GetJobFinishedAndNextBuild(job string) (BuildDB, BuildDB, error)
 
-	GetJobBuilds(job string, page Page) ([]Build, Pagination, error)
-	GetAllJobBuilds(job string) ([]Build, error)
+	GetJobBuilds(job string, page Page) ([]BuildDB, Pagination, error)
+	GetAllJobBuilds(job string) ([]BuildDB, error)
 
 	GetJobBuild(job string, build string) (BuildDB, bool, error)
 	CreateJobBuild(job string) (BuildDB, error)
@@ -2072,14 +2072,14 @@ func (pdb *pipelineDB) updatePausedJob(job string, pause bool) error {
 	return tx.Commit()
 }
 
-func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]Build, Pagination, error) {
+func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]BuildDB, Pagination, error) {
 	var (
-		err        error
-		maxID      int
-		minID      int
-		firstBuild Build
-		lastBuild  Build
-		pagination Pagination
+		err          error
+		maxID        int
+		minID        int
+		firstBuildDB BuildDB
+		lastBuildDB  BuildDB
+		pagination   Pagination
 
 		rows *sql.Rows
 	)
@@ -2130,7 +2130,7 @@ func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]Build, Paginat
 
 	defer rows.Close()
 
-	builds := []Build{}
+	buildDBs := []BuildDB{}
 
 	for rows.Next() {
 		build, _, err := scanBuild(rows)
@@ -2138,11 +2138,11 @@ func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]Build, Paginat
 			return nil, Pagination{}, err
 		}
 
-		builds = append(builds, build)
+		buildDBs = append(buildDBs, pdb.buildDBFactory.GetBuildDB(build))
 	}
 
-	if len(builds) == 0 {
-		return []Build{}, Pagination{}, nil
+	if len(buildDBs) == 0 {
+		return []BuildDB{}, Pagination{}, nil
 	}
 
 	err = pdb.conn.QueryRow(`
@@ -2157,27 +2157,27 @@ func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]Build, Paginat
 		return nil, Pagination{}, err
 	}
 
-	firstBuild = builds[0]
-	lastBuild = builds[len(builds)-1]
+	firstBuildDB = buildDBs[0]
+	lastBuildDB = buildDBs[len(buildDBs)-1]
 
-	if firstBuild.ID < maxID {
+	if firstBuildDB.GetID() < maxID {
 		pagination.Previous = &Page{
-			Until: firstBuild.ID,
+			Until: firstBuildDB.GetID(),
 			Limit: page.Limit,
 		}
 	}
 
-	if lastBuild.ID > minID {
+	if lastBuildDB.GetID() > minID {
 		pagination.Next = &Page{
-			Since: lastBuild.ID,
+			Since: lastBuildDB.GetID(),
 			Limit: page.Limit,
 		}
 	}
 
-	return builds, pagination, nil
+	return buildDBs, pagination, nil
 }
 
-func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]Build, error) {
+func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]BuildDB, error) {
 	rows, err := pdb.conn.Query(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
@@ -2194,7 +2194,7 @@ func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]Build, error) {
 
 	defer rows.Close()
 
-	bs := []Build{}
+	bs := []BuildDB{}
 
 	for rows.Next() {
 		build, _, err := scanBuild(rows)
@@ -2202,7 +2202,7 @@ func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]Build, error) {
 			return nil, err
 		}
 
-		bs = append(bs, build)
+		bs = append(bs, pdb.buildDBFactory.GetBuildDB(build))
 	}
 
 	return bs, nil

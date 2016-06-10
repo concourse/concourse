@@ -14,7 +14,7 @@ import (
 func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			builds []db.Build
+			builds []db.BuildDB
 			err    error
 			until  int
 			since  int
@@ -58,7 +58,7 @@ func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
 
 		jobBuilds := make([]atc.Build, len(builds))
 		for i := 0; i < len(builds); i++ {
-			build := builds[i]
+			build := builds[i].GetModel()
 			jobBuilds[i] = present.Build(build)
 		}
 		json.NewEncoder(w).Encode(jobBuilds)

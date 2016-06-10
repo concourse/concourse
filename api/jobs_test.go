@@ -941,34 +941,34 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		Context("when getting the builds succeeds", func() {
-			var returnedBuilds []db.Build
+			var returnedBuilds []db.BuildDB
 
 			BeforeEach(func() {
 				queryParams = "?since=5&limit=2"
 
-				returnedBuilds = []db.Build{
-					{
-						ID:           4,
-						Name:         "2",
-						JobName:      "some-job",
-						PipelineName: "some-pipeline",
-						TeamName:     "some-team",
-						Status:       db.StatusStarted,
-						StartTime:    time.Unix(1, 0),
-						EndTime:      time.Unix(100, 0),
-					},
-					{
-						ID:           2,
-						Name:         "1",
-						JobName:      "some-job",
-						PipelineName: "some-pipeline",
-						TeamName:     "some-team",
-						Status:       db.StatusSucceeded,
-						StartTime:    time.Unix(101, 0),
-						EndTime:      time.Unix(200, 0),
-					},
-				}
-
+				buildDB1 := new(dbfakes.FakeBuildDB)
+				buildDB1.GetModelReturns(db.Build{
+					ID:           4,
+					Name:         "2",
+					JobName:      "some-job",
+					PipelineName: "some-pipeline",
+					TeamName:     "some-team",
+					Status:       db.StatusStarted,
+					StartTime:    time.Unix(1, 0),
+					EndTime:      time.Unix(100, 0),
+				})
+				buildDB2 := new(dbfakes.FakeBuildDB)
+				buildDB2.GetModelReturns(db.Build{
+					ID:           2,
+					Name:         "1",
+					JobName:      "some-job",
+					PipelineName: "some-pipeline",
+					TeamName:     "some-team",
+					Status:       db.StatusSucceeded,
+					StartTime:    time.Unix(101, 0),
+					EndTime:      time.Unix(200, 0),
+				})
+				returnedBuilds = []db.BuildDB{buildDB1, buildDB2}
 				pipelineDB.GetJobBuildsReturns(returnedBuilds, db.Pagination{}, nil)
 			})
 

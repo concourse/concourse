@@ -276,24 +276,24 @@ type FakePipelineDB struct {
 		result2 db.BuildDB
 		result3 error
 	}
-	GetJobBuildsStub        func(job string, page db.Page) ([]db.Build, db.Pagination, error)
+	GetJobBuildsStub        func(job string, page db.Page) ([]db.BuildDB, db.Pagination, error)
 	getJobBuildsMutex       sync.RWMutex
 	getJobBuildsArgsForCall []struct {
 		job  string
 		page db.Page
 	}
 	getJobBuildsReturns struct {
-		result1 []db.Build
+		result1 []db.BuildDB
 		result2 db.Pagination
 		result3 error
 	}
-	GetAllJobBuildsStub        func(job string) ([]db.Build, error)
+	GetAllJobBuildsStub        func(job string) ([]db.BuildDB, error)
 	getAllJobBuildsMutex       sync.RWMutex
 	getAllJobBuildsArgsForCall []struct {
 		job string
 	}
 	getAllJobBuildsReturns struct {
-		result1 []db.Build
+		result1 []db.BuildDB
 		result2 error
 	}
 	GetJobBuildStub        func(job string, build string) (db.BuildDB, bool, error)
@@ -1398,7 +1398,7 @@ func (fake *FakePipelineDB) GetJobFinishedAndNextBuildReturns(result1 db.BuildDB
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) GetJobBuilds(job string, page db.Page) ([]db.Build, db.Pagination, error) {
+func (fake *FakePipelineDB) GetJobBuilds(job string, page db.Page) ([]db.BuildDB, db.Pagination, error) {
 	fake.getJobBuildsMutex.Lock()
 	fake.getJobBuildsArgsForCall = append(fake.getJobBuildsArgsForCall, struct {
 		job  string
@@ -1424,16 +1424,16 @@ func (fake *FakePipelineDB) GetJobBuildsArgsForCall(i int) (string, db.Page) {
 	return fake.getJobBuildsArgsForCall[i].job, fake.getJobBuildsArgsForCall[i].page
 }
 
-func (fake *FakePipelineDB) GetJobBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
+func (fake *FakePipelineDB) GetJobBuildsReturns(result1 []db.BuildDB, result2 db.Pagination, result3 error) {
 	fake.GetJobBuildsStub = nil
 	fake.getJobBuildsReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildDB
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) GetAllJobBuilds(job string) ([]db.Build, error) {
+func (fake *FakePipelineDB) GetAllJobBuilds(job string) ([]db.BuildDB, error) {
 	fake.getAllJobBuildsMutex.Lock()
 	fake.getAllJobBuildsArgsForCall = append(fake.getAllJobBuildsArgsForCall, struct {
 		job string
@@ -1458,10 +1458,10 @@ func (fake *FakePipelineDB) GetAllJobBuildsArgsForCall(i int) string {
 	return fake.getAllJobBuildsArgsForCall[i].job
 }
 
-func (fake *FakePipelineDB) GetAllJobBuildsReturns(result1 []db.Build, result2 error) {
+func (fake *FakePipelineDB) GetAllJobBuildsReturns(result1 []db.BuildDB, result2 error) {
 	fake.GetAllJobBuildsStub = nil
 	fake.getAllJobBuildsReturns = struct {
-		result1 []db.Build
+		result1 []db.BuildDB
 		result2 error
 	}{result1, result2}
 }
