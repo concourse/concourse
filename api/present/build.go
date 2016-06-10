@@ -12,22 +12,22 @@ import (
 func Build(build db.BuildDB) atc.Build {
 	var err error
 	var reqURL string
-	if build.GetJobName() == "" && build.GetPipelineName() == "" {
+	if build.JobName() == "" && build.PipelineName() == "" {
 		reqURL, err = web.Routes.CreatePathForRoute(
 			web.GetJoblessBuild,
 			rata.Params{
-				"build_id":  strconv.Itoa(build.GetID()),
-				"team_name": build.GetTeamName(),
+				"build_id":  strconv.Itoa(build.ID()),
+				"team_name": build.TeamName(),
 			},
 		)
 	} else {
 		reqURL, err = web.Routes.CreatePathForRoute(
 			web.GetBuild,
 			rata.Params{
-				"job":           build.GetJobName(),
-				"build":         build.GetName(),
-				"pipeline_name": build.GetPipelineName(),
-				"team_name":     build.GetTeamName(),
+				"job":           build.JobName(),
+				"build":         build.Name(),
+				"pipeline_name": build.PipelineName(),
+				"team_name":     build.TeamName(),
 			},
 		)
 	}
@@ -36,34 +36,34 @@ func Build(build db.BuildDB) atc.Build {
 	}
 
 	apiURL, err := atc.Routes.CreatePathForRoute(atc.GetBuild, rata.Params{
-		"build_id":  strconv.Itoa(build.GetID()),
-		"team_name": build.GetTeamName(),
+		"build_id":  strconv.Itoa(build.ID()),
+		"team_name": build.TeamName(),
 	})
 	if err != nil {
 		panic("failed to generate url: " + err.Error())
 	}
 
 	atcBuild := atc.Build{
-		ID:           build.GetID(),
-		Name:         build.GetName(),
-		Status:       string(build.GetStatus()),
-		JobName:      build.GetJobName(),
-		PipelineName: build.GetPipelineName(),
-		TeamName:     build.GetTeamName(),
+		ID:           build.ID(),
+		Name:         build.Name(),
+		Status:       string(build.Status()),
+		JobName:      build.JobName(),
+		PipelineName: build.PipelineName(),
+		TeamName:     build.TeamName(),
 		URL:          reqURL,
 		APIURL:       apiURL,
 	}
 
-	if !build.GetStartTime().IsZero() {
-		atcBuild.StartTime = build.GetStartTime().Unix()
+	if !build.StartTime().IsZero() {
+		atcBuild.StartTime = build.StartTime().Unix()
 	}
 
-	if !build.GetEndTime().IsZero() {
-		atcBuild.EndTime = build.GetEndTime().Unix()
+	if !build.EndTime().IsZero() {
+		atcBuild.EndTime = build.EndTime().Unix()
 	}
 
-	if !build.GetReapTime().IsZero() {
-		atcBuild.ReapTime = build.GetReapTime().Unix()
+	if !build.ReapTime().IsZero() {
+		atcBuild.ReapTime = build.ReapTime().Unix()
 	}
 
 	return atcBuild

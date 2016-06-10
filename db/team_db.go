@@ -514,12 +514,12 @@ func (db *teamDB) CreateOneOffBuild() (BuildDB, error) {
 
 	_, err = tx.Exec(fmt.Sprintf(`
 		CREATE SEQUENCE %s MINVALUE 0
-	`, buildEventSeq(build.GetID())))
+	`, buildEventSeq(build.ID())))
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.buildPrepHelper.CreateBuildPreparation(tx, build.GetID())
+	err = db.buildPrepHelper.CreateBuildPreparation(tx, build.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -609,16 +609,16 @@ func (db *teamDB) GetBuilds(page Page) ([]BuildDB, Pagination, error) {
 
 	var pagination Pagination
 
-	if first.GetID() < maxID {
+	if first.ID() < maxID {
 		pagination.Previous = &Page{
-			Until: first.GetID(),
+			Until: first.ID(),
 			Limit: page.Limit,
 		}
 	}
 
-	if last.GetID() > minID {
+	if last.ID() > minID {
 		pagination.Next = &Page{
-			Since: last.GetID(),
+			Since: last.ID(),
 			Limit: page.Limit,
 		}
 	}

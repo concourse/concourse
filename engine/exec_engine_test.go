@@ -82,10 +82,10 @@ var _ = Describe("ExecEngine", func() {
 			planFactory = atc.NewPlanFactory(123)
 
 			buildDB = new(dbfakes.FakeBuildDB)
-			buildDB.GetIDReturns(42)
-			buildDB.GetNameReturns("21")
-			buildDB.GetJobNameReturns("some-job")
-			buildDB.GetPipelineNameReturns("some-pipeline")
+			buildDB.IDReturns(42)
+			buildDB.NameReturns("21")
+			buildDB.JobNameReturns("some-job")
+			buildDB.PipelineNameReturns("some-pipeline")
 
 			expectedMetadata = engine.StepMetadata{
 				BuildID:      42,
@@ -910,7 +910,7 @@ var _ = Describe("ExecEngine", func() {
 
 		Context("when pipeline name is specified and pipeline ID is not", func() {
 			BeforeEach(func() {
-				buildDB.GetEngineMetadataReturns(`{
+				buildDB.EngineMetadataReturns(`{
 						"Plan": {
 							"id": "1",
 							"do": [
@@ -989,7 +989,7 @@ var _ = Describe("ExecEngine", func() {
 			Context("when pipeline can not be found", func() {
 				var disaster error
 				BeforeEach(func() {
-					buildDB.GetEngineMetadataReturns(`{
+					buildDB.EngineMetadataReturns(`{
 						"Plan": {
 							"id": "1",
 							"task": {"pipeline": "unknown-pipeline"}
@@ -1009,7 +1009,7 @@ var _ = Describe("ExecEngine", func() {
 
 			Context("when build plan has pipeline name and pipeline ID", func() {
 				BeforeEach(func() {
-					buildDB.GetEngineMetadataReturns(`{
+					buildDB.EngineMetadataReturns(`{
 						"Plan": {
 							"id": "1",
 							"task": {"pipeline": "some-pipeline","pipeline_id": 42}

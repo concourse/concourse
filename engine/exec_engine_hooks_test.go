@@ -47,10 +47,10 @@ var _ = Describe("Exec Engine With Hooks", func() {
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
 		buildDB = new(dbfakes.FakeBuildDB)
-		buildDB.GetIDReturns(84)
-		buildDB.GetNameReturns("42")
-		buildDB.GetJobNameReturns("some-job")
-		buildDB.GetPipelineNameReturns("some-pipeline")
+		buildDB.IDReturns(84)
+		buildDB.NameReturns("42")
+		buildDB.JobNameReturns("some-job")
+		buildDB.PipelineNameReturns("some-pipeline")
 
 		expectedMetadata = engine.StepMetadata{
 			BuildID:      84,

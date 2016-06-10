@@ -1240,12 +1240,12 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (BuildDB, error) {
 
 	_, err = tx.Exec(fmt.Sprintf(`
 		CREATE SEQUENCE %s MINVALUE 0
-	`, buildEventSeq(build.GetID())))
+	`, buildEventSeq(build.ID())))
 	if err != nil {
 		return nil, err
 	}
 
-	err = pdb.buildPrepHelper.CreateBuildPreparation(tx, build.GetID())
+	err = pdb.buildPrepHelper.CreateBuildPreparation(tx, build.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -2130,16 +2130,16 @@ func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]BuildDB, Pagin
 	firstBuildDB = buildDBs[0]
 	lastBuildDB = buildDBs[len(buildDBs)-1]
 
-	if firstBuildDB.GetID() < maxID {
+	if firstBuildDB.ID() < maxID {
 		pagination.Previous = &Page{
-			Until: firstBuildDB.GetID(),
+			Until: firstBuildDB.ID(),
 			Limit: page.Limit,
 		}
 	}
 
-	if lastBuildDB.GetID() > minID {
+	if lastBuildDB.ID() > minID {
 		pagination.Next = &Page{
-			Since: lastBuildDB.GetID(),
+			Since: lastBuildDB.ID(),
 			Limit: page.Limit,
 		}
 	}
@@ -2336,7 +2336,7 @@ func (pdb *pipelineDB) getLastJobBuildsSatisfying(bRequirement string) (map[stri
 			return nil, errors.New("row could not be scanned")
 		}
 
-		nextBuilds[build.GetJobName()] = build
+		nextBuilds[build.JobName()] = build
 	}
 
 	return nextBuilds, nil

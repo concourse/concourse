@@ -74,11 +74,11 @@ type dbBuild struct {
 }
 
 func (build *dbBuild) Metadata() string {
-	return strconv.Itoa(build.buildDB.GetID())
+	return strconv.Itoa(build.buildDB.ID())
 }
 
 func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, error) {
-	buildEngineName := build.buildDB.GetEngine()
+	buildEngineName := build.buildDB.Engine()
 	buildEngine, found := build.engines.Lookup(buildEngineName)
 	if !found {
 		logger.Error("unknown-engine", nil, lager.Data{"engine": buildEngineName})
@@ -133,7 +133,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 		return nil
 	}
 
-	buildEngineName := build.buildDB.GetEngine()
+	buildEngineName := build.buildDB.Engine()
 	// if there's an engine, there's a real build to abort
 	if buildEngineName == "" {
 		// otherwise, CreateBuild had not yet tried to start the build, and so it
@@ -187,7 +187,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	buildEngineName := build.buildDB.GetEngine()
+	buildEngineName := build.buildDB.Engine()
 	if buildEngineName == "" {
 		logger.Error("build-has-no-engine", err)
 		return
@@ -195,7 +195,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 
 	if !build.buildDB.IsRunning() {
 		logger.Info("build-already-finished", lager.Data{
-			"build-id": build.buildDB.GetID(),
+			"build-id": build.buildDB.ID(),
 		})
 		return
 	}
@@ -241,10 +241,10 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	}()
 
 	metric.BuildStarted{
-		PipelineName: build.buildDB.GetPipelineName(),
-		JobName:      build.buildDB.GetJobName(),
-		BuildName:    build.buildDB.GetName(),
-		BuildID:      build.buildDB.GetID(),
+		PipelineName: build.buildDB.PipelineName(),
+		JobName:      build.buildDB.JobName(),
+		BuildName:    build.buildDB.Name(),
+		BuildID:      build.buildDB.ID(),
 	}.Emit(logger)
 
 	logger.Info("running")
@@ -262,12 +262,12 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	}
 
 	metric.BuildFinished{
-		PipelineName:  build.buildDB.GetPipelineName(),
-		JobName:       build.buildDB.GetJobName(),
-		BuildName:     build.buildDB.GetName(),
-		BuildID:       build.buildDB.GetID(),
-		BuildStatus:   build.buildDB.GetStatus(),
-		BuildDuration: build.buildDB.GetEndTime().Sub(build.buildDB.GetStartTime()),
+		PipelineName:  build.buildDB.PipelineName(),
+		JobName:       build.buildDB.JobName(),
+		BuildName:     build.buildDB.Name(),
+		BuildID:       build.buildDB.ID(),
+		BuildStatus:   build.buildDB.Status(),
+		BuildDuration: build.buildDB.EndTime().Sub(build.buildDB.StartTime()),
 	}.Emit(logger)
 }
 

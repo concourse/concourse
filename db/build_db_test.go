@@ -97,12 +97,12 @@ var _ = Describe("BuildDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
-			Expect(buildDB.GetStatus()).To(Equal(db.StatusPending))
+			Expect(buildDB.Status()).To(Equal(db.StatusPending))
 
 			found, err := buildDB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(buildDB.GetStatus()).To(Equal(db.StatusStarted))
+			Expect(buildDB.Status()).To(Equal(db.StatusStarted))
 		})
 	})
 
@@ -213,7 +213,7 @@ var _ = Describe("BuildDB", func() {
 			buildDB, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedBuildInput, err := pipelineDB.SaveInput(buildDB.GetID(), db.BuildInput{
+			expectedBuildInput, err := pipelineDB.SaveInput(buildDB.ID(), db.BuildInput{
 				Name: "some-input",
 				VersionedResource: db.VersionedResource{
 					Resource: "some-resource",
@@ -249,7 +249,7 @@ var _ = Describe("BuildDB", func() {
 			buildDB, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedBuildOutput, err := pipelineDB.SaveOutput(buildDB.GetID(), db.VersionedResource{
+			expectedBuildOutput, err := pipelineDB.SaveOutput(buildDB.ID(), db.VersionedResource{
 				Resource: "some-explicit-resource",
 				Type:     "some-type",
 				Version: db.Version{
@@ -269,7 +269,7 @@ var _ = Describe("BuildDB", func() {
 			}, true)
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = pipelineDB.SaveOutput(buildDB.GetID(), db.VersionedResource{
+			_, err = pipelineDB.SaveOutput(buildDB.ID(), db.VersionedResource{
 				Resource: "some-implicit-resource",
 				Type:     "some-type",
 				Version: db.Version{
@@ -330,7 +330,7 @@ var _ = Describe("BuildDB", func() {
 				found, err := buildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(buildDB.GetStatus()).To(Equal(db.StatusStarted))
+				Expect(buildDB.Status()).To(Equal(db.StatusStarted))
 
 				events, err := buildDB.Events(0)
 				Expect(err).NotTo(HaveOccurred())
@@ -339,7 +339,7 @@ var _ = Describe("BuildDB", func() {
 
 				Expect(events.Next()).To(Equal(event.Status{
 					Status: atc.StatusStarted,
-					Time:   buildDB.GetStartTime().Unix(),
+					Time:   buildDB.StartTime().Unix(),
 				}))
 			})
 		})
@@ -354,7 +354,7 @@ var _ = Describe("BuildDB", func() {
 				found, err := buildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(buildDB.GetStatus()).To(Equal(db.StatusAborted))
+				Expect(buildDB.Status()).To(Equal(db.StatusAborted))
 			})
 		})
 
@@ -368,7 +368,7 @@ var _ = Describe("BuildDB", func() {
 				found, err := buildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(buildDB.GetStatus()).To(Equal(db.StatusSucceeded))
+				Expect(buildDB.Status()).To(Equal(db.StatusSucceeded))
 
 				events, err := buildDB.Events(0)
 				Expect(err).NotTo(HaveOccurred())
@@ -377,7 +377,7 @@ var _ = Describe("BuildDB", func() {
 
 				Expect(events.Next()).To(Equal(event.Status{
 					Status: atc.StatusSucceeded,
-					Time:   buildDB.GetEndTime().Unix(),
+					Time:   buildDB.EndTime().Unix(),
 				}))
 			})
 		})
@@ -395,7 +395,7 @@ var _ = Describe("BuildDB", func() {
 				found, err := buildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(buildDB.GetStatus()).To(Equal(db.StatusErrored))
+				Expect(buildDB.Status()).To(Equal(db.StatusErrored))
 
 				events, err := buildDB.Events(0)
 				Expect(err).NotTo(HaveOccurred())

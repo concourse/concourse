@@ -235,8 +235,8 @@ var _ = Describe("Scheduler", func() {
 			Context("loading versions db", func() {
 				BeforeEach(func() {
 					pendingBuildDB := new(dbfakes.FakeBuildDB)
-					pendingBuildDB.GetStatusReturns(db.StatusPending)
-					pendingBuildDB.GetIDReturns(42)
+					pendingBuildDB.StatusReturns(db.StatusPending)
+					pendingBuildDB.IDReturns(42)
 					buildPrep := db.BuildPreparation{
 						Inputs: map[string]db.BuildPreparationStatus{},
 					}
@@ -423,7 +423,7 @@ var _ = Describe("Scheduler", func() {
 		Context("when a pending build is found", func() {
 			BeforeEach(func() {
 				pendingBuildDB := new(dbfakes.FakeBuildDB)
-				pendingBuildDB.GetStatusReturns(db.StatusPending)
+				pendingBuildDB.StatusReturns(db.StatusPending)
 
 				fakePipelineDB.GetNextPendingBuildReturns(pendingBuildDB, true, nil)
 				buildPrep := db.BuildPreparation{
@@ -476,7 +476,7 @@ var _ = Describe("Scheduler", func() {
 			}
 
 			fakeBuildDB.GetPreparationReturns(buildPrep, true, nil)
-			fakeBuildDB.GetStatusReturns(db.StatusPending)
+			fakeBuildDB.StatusReturns(db.StatusPending)
 			fakePipelineDB.CreateJobBuildReturns(fakeBuildDB, nil)
 			fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
 		})
@@ -542,7 +542,7 @@ var _ = Describe("Scheduler", func() {
 
 				BeforeEach(func() {
 					buildPrep = db.BuildPreparation{
-						BuildID: fakeBuildDB.GetID(),
+						BuildID: fakeBuildDB.ID(),
 						Inputs:  map[string]db.BuildPreparationStatus{},
 					}
 

@@ -11,77 +11,70 @@ import (
 )
 
 type FakeBuildDB struct {
-	ReloadStub        func() (bool, error)
-	reloadMutex       sync.RWMutex
-	reloadArgsForCall []struct{}
-	reloadReturns     struct {
-		result1 bool
-		result2 error
-	}
-	GetIDStub        func() int
-	getIDMutex       sync.RWMutex
-	getIDArgsForCall []struct{}
-	getIDReturns     struct {
+	IDStub        func() int
+	iDMutex       sync.RWMutex
+	iDArgsForCall []struct{}
+	iDReturns     struct {
 		result1 int
 	}
-	GetNameStub        func() string
-	getNameMutex       sync.RWMutex
-	getNameArgsForCall []struct{}
-	getNameReturns     struct {
+	NameStub        func() string
+	nameMutex       sync.RWMutex
+	nameArgsForCall []struct{}
+	nameReturns     struct {
 		result1 string
 	}
-	GetJobNameStub        func() string
-	getJobNameMutex       sync.RWMutex
-	getJobNameArgsForCall []struct{}
-	getJobNameReturns     struct {
+	JobNameStub        func() string
+	jobNameMutex       sync.RWMutex
+	jobNameArgsForCall []struct{}
+	jobNameReturns     struct {
 		result1 string
 	}
-	GetPipelineNameStub        func() string
-	getPipelineNameMutex       sync.RWMutex
-	getPipelineNameArgsForCall []struct{}
-	getPipelineNameReturns     struct {
+	PipelineNameStub        func() string
+	pipelineNameMutex       sync.RWMutex
+	pipelineNameArgsForCall []struct{}
+	pipelineNameReturns     struct {
 		result1 string
 	}
-	GetTeamNameStub        func() string
-	getTeamNameMutex       sync.RWMutex
-	getTeamNameArgsForCall []struct{}
-	getTeamNameReturns     struct {
+	TeamNameStub        func() string
+	teamNameMutex       sync.RWMutex
+	teamNameArgsForCall []struct{}
+	teamNameReturns     struct {
 		result1 string
 	}
-	GetEngineStub        func() string
-	getEngineMutex       sync.RWMutex
-	getEngineArgsForCall []struct{}
-	getEngineReturns     struct {
+	EngineStub        func() string
+	engineMutex       sync.RWMutex
+	engineArgsForCall []struct{}
+	engineReturns     struct {
 		result1 string
 	}
-	GetEngineMetadataStub        func() string
-	getEngineMetadataMutex       sync.RWMutex
-	getEngineMetadataArgsForCall []struct{}
-	getEngineMetadataReturns     struct {
+	EngineMetadataStub        func() string
+	engineMetadataMutex       sync.RWMutex
+	engineMetadataArgsForCall []struct{}
+	engineMetadataReturns     struct {
 		result1 string
 	}
-	GetStatusStub        func() db.Status
-	getStatusMutex       sync.RWMutex
-	getStatusArgsForCall []struct{}
-	getStatusReturns     struct {
+	StatusStub        func() db.Status
+	statusMutex       sync.RWMutex
+	statusArgsForCall []struct{}
+	statusReturns     struct {
 		result1 db.Status
 	}
-	GetStartTimeStub        func() time.Time
-	getStartTimeMutex       sync.RWMutex
-	getStartTimeArgsForCall []struct{}
-	getStartTimeReturns     struct {
+	StartTimeStub        func() time.Time
+	startTimeMutex       sync.RWMutex
+	startTimeArgsForCall []struct{}
+	startTimeReturns     struct {
 		result1 time.Time
 	}
-	GetEndTimeStub        func() time.Time
-	getEndTimeMutex       sync.RWMutex
-	getEndTimeArgsForCall []struct{}
-	getEndTimeReturns     struct {
+	EndTimeStub        func() time.Time
+	endTimeMutex       sync.RWMutex
+	endTimeArgsForCall []struct{}
+	endTimeReturns     struct {
 		result1 time.Time
 	}
-	GetReapTimeStub        func() time.Time
-	getReapTimeMutex       sync.RWMutex
-	getReapTimeArgsForCall []struct{}
-	getReapTimeReturns     struct {
+	ReapTimeStub        func() time.Time
+	reapTimeMutex       sync.RWMutex
+	reapTimeArgsForCall []struct{}
+	reapTimeReturns     struct {
 		result1 time.Time
 	}
 	IsOneOffStub        func() bool
@@ -101,6 +94,13 @@ type FakeBuildDB struct {
 	isRunningArgsForCall []struct{}
 	isRunningReturns     struct {
 		result1 bool
+	}
+	ReloadStub        func() (bool, error)
+	reloadMutex       sync.RWMutex
+	reloadArgsForCall []struct{}
+	reloadReturns     struct {
+		result1 bool
+		result2 error
 	}
 	EventsStub        func(from uint) (db.EventSource, error)
 	eventsMutex       sync.RWMutex
@@ -256,291 +256,266 @@ type FakeBuildDB struct {
 	}
 }
 
-func (fake *FakeBuildDB) Reload() (bool, error) {
-	fake.reloadMutex.Lock()
-	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct{}{})
-	fake.reloadMutex.Unlock()
-	if fake.ReloadStub != nil {
-		return fake.ReloadStub()
+func (fake *FakeBuildDB) ID() int {
+	fake.iDMutex.Lock()
+	fake.iDArgsForCall = append(fake.iDArgsForCall, struct{}{})
+	fake.iDMutex.Unlock()
+	if fake.IDStub != nil {
+		return fake.IDStub()
 	} else {
-		return fake.reloadReturns.result1, fake.reloadReturns.result2
+		return fake.iDReturns.result1
 	}
 }
 
-func (fake *FakeBuildDB) ReloadCallCount() int {
-	fake.reloadMutex.RLock()
-	defer fake.reloadMutex.RUnlock()
-	return len(fake.reloadArgsForCall)
+func (fake *FakeBuildDB) IDCallCount() int {
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
+	return len(fake.iDArgsForCall)
 }
 
-func (fake *FakeBuildDB) ReloadReturns(result1 bool, result2 error) {
-	fake.ReloadStub = nil
-	fake.reloadReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuildDB) GetID() int {
-	fake.getIDMutex.Lock()
-	fake.getIDArgsForCall = append(fake.getIDArgsForCall, struct{}{})
-	fake.getIDMutex.Unlock()
-	if fake.GetIDStub != nil {
-		return fake.GetIDStub()
-	} else {
-		return fake.getIDReturns.result1
-	}
-}
-
-func (fake *FakeBuildDB) GetIDCallCount() int {
-	fake.getIDMutex.RLock()
-	defer fake.getIDMutex.RUnlock()
-	return len(fake.getIDArgsForCall)
-}
-
-func (fake *FakeBuildDB) GetIDReturns(result1 int) {
-	fake.GetIDStub = nil
-	fake.getIDReturns = struct {
+func (fake *FakeBuildDB) IDReturns(result1 int) {
+	fake.IDStub = nil
+	fake.iDReturns = struct {
 		result1 int
 	}{result1}
 }
 
-func (fake *FakeBuildDB) GetName() string {
-	fake.getNameMutex.Lock()
-	fake.getNameArgsForCall = append(fake.getNameArgsForCall, struct{}{})
-	fake.getNameMutex.Unlock()
-	if fake.GetNameStub != nil {
-		return fake.GetNameStub()
+func (fake *FakeBuildDB) Name() string {
+	fake.nameMutex.Lock()
+	fake.nameArgsForCall = append(fake.nameArgsForCall, struct{}{})
+	fake.nameMutex.Unlock()
+	if fake.NameStub != nil {
+		return fake.NameStub()
 	} else {
-		return fake.getNameReturns.result1
+		return fake.nameReturns.result1
 	}
 }
 
-func (fake *FakeBuildDB) GetNameCallCount() int {
-	fake.getNameMutex.RLock()
-	defer fake.getNameMutex.RUnlock()
-	return len(fake.getNameArgsForCall)
+func (fake *FakeBuildDB) NameCallCount() int {
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	return len(fake.nameArgsForCall)
 }
 
-func (fake *FakeBuildDB) GetNameReturns(result1 string) {
-	fake.GetNameStub = nil
-	fake.getNameReturns = struct {
+func (fake *FakeBuildDB) NameReturns(result1 string) {
+	fake.NameStub = nil
+	fake.nameReturns = struct {
 		result1 string
 	}{result1}
 }
 
-func (fake *FakeBuildDB) GetJobName() string {
-	fake.getJobNameMutex.Lock()
-	fake.getJobNameArgsForCall = append(fake.getJobNameArgsForCall, struct{}{})
-	fake.getJobNameMutex.Unlock()
-	if fake.GetJobNameStub != nil {
-		return fake.GetJobNameStub()
+func (fake *FakeBuildDB) JobName() string {
+	fake.jobNameMutex.Lock()
+	fake.jobNameArgsForCall = append(fake.jobNameArgsForCall, struct{}{})
+	fake.jobNameMutex.Unlock()
+	if fake.JobNameStub != nil {
+		return fake.JobNameStub()
 	} else {
-		return fake.getJobNameReturns.result1
+		return fake.jobNameReturns.result1
 	}
 }
 
-func (fake *FakeBuildDB) GetJobNameCallCount() int {
-	fake.getJobNameMutex.RLock()
-	defer fake.getJobNameMutex.RUnlock()
-	return len(fake.getJobNameArgsForCall)
+func (fake *FakeBuildDB) JobNameCallCount() int {
+	fake.jobNameMutex.RLock()
+	defer fake.jobNameMutex.RUnlock()
+	return len(fake.jobNameArgsForCall)
 }
 
-func (fake *FakeBuildDB) GetJobNameReturns(result1 string) {
-	fake.GetJobNameStub = nil
-	fake.getJobNameReturns = struct {
+func (fake *FakeBuildDB) JobNameReturns(result1 string) {
+	fake.JobNameStub = nil
+	fake.jobNameReturns = struct {
 		result1 string
 	}{result1}
 }
 
-func (fake *FakeBuildDB) GetPipelineName() string {
-	fake.getPipelineNameMutex.Lock()
-	fake.getPipelineNameArgsForCall = append(fake.getPipelineNameArgsForCall, struct{}{})
-	fake.getPipelineNameMutex.Unlock()
-	if fake.GetPipelineNameStub != nil {
-		return fake.GetPipelineNameStub()
+func (fake *FakeBuildDB) PipelineName() string {
+	fake.pipelineNameMutex.Lock()
+	fake.pipelineNameArgsForCall = append(fake.pipelineNameArgsForCall, struct{}{})
+	fake.pipelineNameMutex.Unlock()
+	if fake.PipelineNameStub != nil {
+		return fake.PipelineNameStub()
 	} else {
-		return fake.getPipelineNameReturns.result1
+		return fake.pipelineNameReturns.result1
 	}
 }
 
-func (fake *FakeBuildDB) GetPipelineNameCallCount() int {
-	fake.getPipelineNameMutex.RLock()
-	defer fake.getPipelineNameMutex.RUnlock()
-	return len(fake.getPipelineNameArgsForCall)
+func (fake *FakeBuildDB) PipelineNameCallCount() int {
+	fake.pipelineNameMutex.RLock()
+	defer fake.pipelineNameMutex.RUnlock()
+	return len(fake.pipelineNameArgsForCall)
 }
 
-func (fake *FakeBuildDB) GetPipelineNameReturns(result1 string) {
-	fake.GetPipelineNameStub = nil
-	fake.getPipelineNameReturns = struct {
+func (fake *FakeBuildDB) PipelineNameReturns(result1 string) {
+	fake.PipelineNameStub = nil
+	fake.pipelineNameReturns = struct {
 		result1 string
 	}{result1}
 }
 
-func (fake *FakeBuildDB) GetTeamName() string {
-	fake.getTeamNameMutex.Lock()
-	fake.getTeamNameArgsForCall = append(fake.getTeamNameArgsForCall, struct{}{})
-	fake.getTeamNameMutex.Unlock()
-	if fake.GetTeamNameStub != nil {
-		return fake.GetTeamNameStub()
+func (fake *FakeBuildDB) TeamName() string {
+	fake.teamNameMutex.Lock()
+	fake.teamNameArgsForCall = append(fake.teamNameArgsForCall, struct{}{})
+	fake.teamNameMutex.Unlock()
+	if fake.TeamNameStub != nil {
+		return fake.TeamNameStub()
 	} else {
-		return fake.getTeamNameReturns.result1
+		return fake.teamNameReturns.result1
 	}
 }
 
-func (fake *FakeBuildDB) GetTeamNameCallCount() int {
-	fake.getTeamNameMutex.RLock()
-	defer fake.getTeamNameMutex.RUnlock()
-	return len(fake.getTeamNameArgsForCall)
+func (fake *FakeBuildDB) TeamNameCallCount() int {
+	fake.teamNameMutex.RLock()
+	defer fake.teamNameMutex.RUnlock()
+	return len(fake.teamNameArgsForCall)
 }
 
-func (fake *FakeBuildDB) GetTeamNameReturns(result1 string) {
-	fake.GetTeamNameStub = nil
-	fake.getTeamNameReturns = struct {
+func (fake *FakeBuildDB) TeamNameReturns(result1 string) {
+	fake.TeamNameStub = nil
+	fake.teamNameReturns = struct {
 		result1 string
 	}{result1}
 }
 
-func (fake *FakeBuildDB) GetEngine() string {
-	fake.getEngineMutex.Lock()
-	fake.getEngineArgsForCall = append(fake.getEngineArgsForCall, struct{}{})
-	fake.getEngineMutex.Unlock()
-	if fake.GetEngineStub != nil {
-		return fake.GetEngineStub()
+func (fake *FakeBuildDB) Engine() string {
+	fake.engineMutex.Lock()
+	fake.engineArgsForCall = append(fake.engineArgsForCall, struct{}{})
+	fake.engineMutex.Unlock()
+	if fake.EngineStub != nil {
+		return fake.EngineStub()
 	} else {
-		return fake.getEngineReturns.result1
+		return fake.engineReturns.result1
 	}
 }
 
-func (fake *FakeBuildDB) GetEngineCallCount() int {
-	fake.getEngineMutex.RLock()
-	defer fake.getEngineMutex.RUnlock()
-	return len(fake.getEngineArgsForCall)
+func (fake *FakeBuildDB) EngineCallCount() int {
+	fake.engineMutex.RLock()
+	defer fake.engineMutex.RUnlock()
+	return len(fake.engineArgsForCall)
 }
 
-func (fake *FakeBuildDB) GetEngineReturns(result1 string) {
-	fake.GetEngineStub = nil
-	fake.getEngineReturns = struct {
+func (fake *FakeBuildDB) EngineReturns(result1 string) {
+	fake.EngineStub = nil
+	fake.engineReturns = struct {
 		result1 string
 	}{result1}
 }
 
-func (fake *FakeBuildDB) GetEngineMetadata() string {
-	fake.getEngineMetadataMutex.Lock()
-	fake.getEngineMetadataArgsForCall = append(fake.getEngineMetadataArgsForCall, struct{}{})
-	fake.getEngineMetadataMutex.Unlock()
-	if fake.GetEngineMetadataStub != nil {
-		return fake.GetEngineMetadataStub()
+func (fake *FakeBuildDB) EngineMetadata() string {
+	fake.engineMetadataMutex.Lock()
+	fake.engineMetadataArgsForCall = append(fake.engineMetadataArgsForCall, struct{}{})
+	fake.engineMetadataMutex.Unlock()
+	if fake.EngineMetadataStub != nil {
+		return fake.EngineMetadataStub()
 	} else {
-		return fake.getEngineMetadataReturns.result1
+		return fake.engineMetadataReturns.result1
 	}
 }
 
-func (fake *FakeBuildDB) GetEngineMetadataCallCount() int {
-	fake.getEngineMetadataMutex.RLock()
-	defer fake.getEngineMetadataMutex.RUnlock()
-	return len(fake.getEngineMetadataArgsForCall)
+func (fake *FakeBuildDB) EngineMetadataCallCount() int {
+	fake.engineMetadataMutex.RLock()
+	defer fake.engineMetadataMutex.RUnlock()
+	return len(fake.engineMetadataArgsForCall)
 }
 
-func (fake *FakeBuildDB) GetEngineMetadataReturns(result1 string) {
-	fake.GetEngineMetadataStub = nil
-	fake.getEngineMetadataReturns = struct {
+func (fake *FakeBuildDB) EngineMetadataReturns(result1 string) {
+	fake.EngineMetadataStub = nil
+	fake.engineMetadataReturns = struct {
 		result1 string
 	}{result1}
 }
 
-func (fake *FakeBuildDB) GetStatus() db.Status {
-	fake.getStatusMutex.Lock()
-	fake.getStatusArgsForCall = append(fake.getStatusArgsForCall, struct{}{})
-	fake.getStatusMutex.Unlock()
-	if fake.GetStatusStub != nil {
-		return fake.GetStatusStub()
+func (fake *FakeBuildDB) Status() db.Status {
+	fake.statusMutex.Lock()
+	fake.statusArgsForCall = append(fake.statusArgsForCall, struct{}{})
+	fake.statusMutex.Unlock()
+	if fake.StatusStub != nil {
+		return fake.StatusStub()
 	} else {
-		return fake.getStatusReturns.result1
+		return fake.statusReturns.result1
 	}
 }
 
-func (fake *FakeBuildDB) GetStatusCallCount() int {
-	fake.getStatusMutex.RLock()
-	defer fake.getStatusMutex.RUnlock()
-	return len(fake.getStatusArgsForCall)
+func (fake *FakeBuildDB) StatusCallCount() int {
+	fake.statusMutex.RLock()
+	defer fake.statusMutex.RUnlock()
+	return len(fake.statusArgsForCall)
 }
 
-func (fake *FakeBuildDB) GetStatusReturns(result1 db.Status) {
-	fake.GetStatusStub = nil
-	fake.getStatusReturns = struct {
+func (fake *FakeBuildDB) StatusReturns(result1 db.Status) {
+	fake.StatusStub = nil
+	fake.statusReturns = struct {
 		result1 db.Status
 	}{result1}
 }
 
-func (fake *FakeBuildDB) GetStartTime() time.Time {
-	fake.getStartTimeMutex.Lock()
-	fake.getStartTimeArgsForCall = append(fake.getStartTimeArgsForCall, struct{}{})
-	fake.getStartTimeMutex.Unlock()
-	if fake.GetStartTimeStub != nil {
-		return fake.GetStartTimeStub()
+func (fake *FakeBuildDB) StartTime() time.Time {
+	fake.startTimeMutex.Lock()
+	fake.startTimeArgsForCall = append(fake.startTimeArgsForCall, struct{}{})
+	fake.startTimeMutex.Unlock()
+	if fake.StartTimeStub != nil {
+		return fake.StartTimeStub()
 	} else {
-		return fake.getStartTimeReturns.result1
+		return fake.startTimeReturns.result1
 	}
 }
 
-func (fake *FakeBuildDB) GetStartTimeCallCount() int {
-	fake.getStartTimeMutex.RLock()
-	defer fake.getStartTimeMutex.RUnlock()
-	return len(fake.getStartTimeArgsForCall)
+func (fake *FakeBuildDB) StartTimeCallCount() int {
+	fake.startTimeMutex.RLock()
+	defer fake.startTimeMutex.RUnlock()
+	return len(fake.startTimeArgsForCall)
 }
 
-func (fake *FakeBuildDB) GetStartTimeReturns(result1 time.Time) {
-	fake.GetStartTimeStub = nil
-	fake.getStartTimeReturns = struct {
+func (fake *FakeBuildDB) StartTimeReturns(result1 time.Time) {
+	fake.StartTimeStub = nil
+	fake.startTimeReturns = struct {
 		result1 time.Time
 	}{result1}
 }
 
-func (fake *FakeBuildDB) GetEndTime() time.Time {
-	fake.getEndTimeMutex.Lock()
-	fake.getEndTimeArgsForCall = append(fake.getEndTimeArgsForCall, struct{}{})
-	fake.getEndTimeMutex.Unlock()
-	if fake.GetEndTimeStub != nil {
-		return fake.GetEndTimeStub()
+func (fake *FakeBuildDB) EndTime() time.Time {
+	fake.endTimeMutex.Lock()
+	fake.endTimeArgsForCall = append(fake.endTimeArgsForCall, struct{}{})
+	fake.endTimeMutex.Unlock()
+	if fake.EndTimeStub != nil {
+		return fake.EndTimeStub()
 	} else {
-		return fake.getEndTimeReturns.result1
+		return fake.endTimeReturns.result1
 	}
 }
 
-func (fake *FakeBuildDB) GetEndTimeCallCount() int {
-	fake.getEndTimeMutex.RLock()
-	defer fake.getEndTimeMutex.RUnlock()
-	return len(fake.getEndTimeArgsForCall)
+func (fake *FakeBuildDB) EndTimeCallCount() int {
+	fake.endTimeMutex.RLock()
+	defer fake.endTimeMutex.RUnlock()
+	return len(fake.endTimeArgsForCall)
 }
 
-func (fake *FakeBuildDB) GetEndTimeReturns(result1 time.Time) {
-	fake.GetEndTimeStub = nil
-	fake.getEndTimeReturns = struct {
+func (fake *FakeBuildDB) EndTimeReturns(result1 time.Time) {
+	fake.EndTimeStub = nil
+	fake.endTimeReturns = struct {
 		result1 time.Time
 	}{result1}
 }
 
-func (fake *FakeBuildDB) GetReapTime() time.Time {
-	fake.getReapTimeMutex.Lock()
-	fake.getReapTimeArgsForCall = append(fake.getReapTimeArgsForCall, struct{}{})
-	fake.getReapTimeMutex.Unlock()
-	if fake.GetReapTimeStub != nil {
-		return fake.GetReapTimeStub()
+func (fake *FakeBuildDB) ReapTime() time.Time {
+	fake.reapTimeMutex.Lock()
+	fake.reapTimeArgsForCall = append(fake.reapTimeArgsForCall, struct{}{})
+	fake.reapTimeMutex.Unlock()
+	if fake.ReapTimeStub != nil {
+		return fake.ReapTimeStub()
 	} else {
-		return fake.getReapTimeReturns.result1
+		return fake.reapTimeReturns.result1
 	}
 }
 
-func (fake *FakeBuildDB) GetReapTimeCallCount() int {
-	fake.getReapTimeMutex.RLock()
-	defer fake.getReapTimeMutex.RUnlock()
-	return len(fake.getReapTimeArgsForCall)
+func (fake *FakeBuildDB) ReapTimeCallCount() int {
+	fake.reapTimeMutex.RLock()
+	defer fake.reapTimeMutex.RUnlock()
+	return len(fake.reapTimeArgsForCall)
 }
 
-func (fake *FakeBuildDB) GetReapTimeReturns(result1 time.Time) {
-	fake.GetReapTimeStub = nil
-	fake.getReapTimeReturns = struct {
+func (fake *FakeBuildDB) ReapTimeReturns(result1 time.Time) {
+	fake.ReapTimeStub = nil
+	fake.reapTimeReturns = struct {
 		result1 time.Time
 	}{result1}
 }
@@ -615,6 +590,31 @@ func (fake *FakeBuildDB) IsRunningReturns(result1 bool) {
 	fake.isRunningReturns = struct {
 		result1 bool
 	}{result1}
+}
+
+func (fake *FakeBuildDB) Reload() (bool, error) {
+	fake.reloadMutex.Lock()
+	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct{}{})
+	fake.reloadMutex.Unlock()
+	if fake.ReloadStub != nil {
+		return fake.ReloadStub()
+	} else {
+		return fake.reloadReturns.result1, fake.reloadReturns.result2
+	}
+}
+
+func (fake *FakeBuildDB) ReloadCallCount() int {
+	fake.reloadMutex.RLock()
+	defer fake.reloadMutex.RUnlock()
+	return len(fake.reloadArgsForCall)
+}
+
+func (fake *FakeBuildDB) ReloadReturns(result1 bool, result2 error) {
+	fake.ReloadStub = nil
+	fake.reloadReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuildDB) Events(from uint) (db.EventSource, error) {

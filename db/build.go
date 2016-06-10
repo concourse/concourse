@@ -28,17 +28,17 @@ const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.status, b.scheduled, b.
 //go:generate counterfeiter . BuildDB
 
 type BuildDB interface {
-	GetID() int
-	GetName() string
-	GetJobName() string
-	GetPipelineName() string
-	GetTeamName() string
-	GetEngine() string
-	GetEngineMetadata() string
-	GetStatus() Status
-	GetStartTime() time.Time
-	GetEndTime() time.Time
-	GetReapTime() time.Time
+	ID() int
+	Name() string
+	JobName() string
+	PipelineName() string
+	TeamName() string
+	Engine() string
+	EngineMetadata() string
+	Status() Status
+	StartTime() time.Time
+	EndTime() time.Time
+	ReapTime() time.Time
 	IsOneOff() bool
 	IsScheduled() bool
 	IsRunning() bool
@@ -75,21 +75,21 @@ type BuildDB interface {
 
 type buildDB struct {
 	id        int
-	Name      string
-	Status    Status
-	Scheduled bool
+	name      string
+	status    Status
+	scheduled bool
 
-	JobName      string
-	PipelineName string
-	PipelineID   int
-	TeamName     string
+	jobName      string
+	pipelineName string
+	pipelineID   int
+	teamName     string
 
-	Engine         string
-	EngineMetadata string
+	engine         string
+	engineMetadata string
 
-	StartTime time.Time
-	EndTime   time.Time
-	ReapTime  time.Time
+	startTime time.Time
+	endTime   time.Time
+	reapTime  time.Time
 
 	conn Conn
 	bus  *notificationsBus
@@ -97,60 +97,60 @@ type buildDB struct {
 	buildPrepHelper buildPreparationHelper
 }
 
-func (db *buildDB) GetID() int {
+func (db *buildDB) ID() int {
 	return db.id
 }
 
-func (db *buildDB) GetName() string {
-	return db.Name
+func (db *buildDB) Name() string {
+	return db.name
 }
 
-func (db *buildDB) GetJobName() string {
-	return db.JobName
+func (db *buildDB) JobName() string {
+	return db.jobName
 }
 
-func (db *buildDB) GetPipelineName() string {
-	return db.PipelineName
+func (db *buildDB) PipelineName() string {
+	return db.pipelineName
 }
 
-func (db *buildDB) GetTeamName() string {
-	return db.TeamName
+func (db *buildDB) TeamName() string {
+	return db.teamName
 }
 
-func (db *buildDB) GetEngine() string {
-	return db.Engine
+func (db *buildDB) Engine() string {
+	return db.engine
 }
 
-func (db *buildDB) GetEngineMetadata() string {
-	return db.EngineMetadata
+func (db *buildDB) EngineMetadata() string {
+	return db.engineMetadata
 }
 
-func (db *buildDB) GetStartTime() time.Time {
-	return db.StartTime
+func (db *buildDB) StartTime() time.Time {
+	return db.startTime
 }
 
-func (db *buildDB) GetEndTime() time.Time {
-	return db.EndTime
+func (db *buildDB) EndTime() time.Time {
+	return db.endTime
 }
 
-func (db *buildDB) GetReapTime() time.Time {
-	return db.ReapTime
+func (db *buildDB) ReapTime() time.Time {
+	return db.reapTime
 }
 
-func (db *buildDB) GetStatus() Status {
-	return db.Status
+func (db *buildDB) Status() Status {
+	return db.status
 }
 
 func (db *buildDB) IsOneOff() bool {
-	return db.JobName == ""
+	return db.jobName == ""
 }
 
 func (db *buildDB) IsScheduled() bool {
-	return db.Scheduled
+	return db.scheduled
 }
 
 func (db *buildDB) IsRunning() bool {
-	switch db.Status {
+	switch db.status {
 	case StatusPending, StatusStarted:
 		return true
 	default:
@@ -176,18 +176,18 @@ func (db *buildDB) Reload() (bool, error) {
 		return found, nil
 	}
 
-	db.id = newBuild.GetID()
-	db.Name = newBuild.GetName()
-	db.Status = newBuild.GetStatus()
-	db.Scheduled = newBuild.IsScheduled()
-	db.Engine = newBuild.GetEngine()
-	db.EngineMetadata = newBuild.GetEngineMetadata()
-	db.StartTime = newBuild.GetStartTime()
-	db.EndTime = newBuild.GetEndTime()
-	db.ReapTime = newBuild.GetReapTime()
-	db.TeamName = newBuild.GetTeamName()
-	db.JobName = newBuild.GetJobName()
-	db.PipelineName = newBuild.GetPipelineName()
+	db.id = newBuild.ID()
+	db.name = newBuild.Name()
+	db.status = newBuild.Status()
+	db.scheduled = newBuild.IsScheduled()
+	db.engine = newBuild.Engine()
+	db.engineMetadata = newBuild.EngineMetadata()
+	db.startTime = newBuild.StartTime()
+	db.endTime = newBuild.EndTime()
+	db.reapTime = newBuild.ReapTime()
+	db.teamName = newBuild.TeamName()
+	db.jobName = newBuild.JobName()
+	db.pipelineName = newBuild.PipelineName()
 
 	return found, err
 }
@@ -201,8 +201,8 @@ func (db *buildDB) Events(from uint) (EventSource, error) {
 	}
 
 	table := "build_events"
-	if db.PipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", db.PipelineID)
+	if db.pipelineID != 0 {
+		table = fmt.Sprintf("pipeline_build_events_%d", db.pipelineID)
 	}
 
 	return newSQLDBBuildEventSource(
@@ -794,8 +794,8 @@ func (db *buildDB) saveEvent(tx Tx, event atc.Event) error {
 	}
 
 	table := "build_events"
-	if db.PipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", db.PipelineID)
+	if db.pipelineID != 0 {
+		table = fmt.Sprintf("pipeline_build_events_%d", db.pipelineID)
 	}
 
 	_, err = tx.Exec(fmt.Sprintf(`

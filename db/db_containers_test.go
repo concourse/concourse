@@ -92,13 +92,13 @@ var _ = Describe("Keeping track of containers", func() {
 	getJobBuildID := func(jobName string) int {
 		savedBuildDB, err := pipelineDB.CreateJobBuild(jobName)
 		Expect(err).NotTo(HaveOccurred())
-		return savedBuildDB.GetID()
+		return savedBuildDB.ID()
 	}
 
 	getOneOffBuildID := func() int {
 		savedBuildDB, err := teamDB.CreateOneOffBuild()
 		Expect(err).NotTo(HaveOccurred())
-		return savedBuildDB.GetID()
+		return savedBuildDB.ID()
 	}
 
 	It("can create and get a resource container object", func() {
@@ -274,7 +274,7 @@ var _ = Describe("Keeping track of containers", func() {
 
 		containerToCreate := db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuildDB.GetID(),
+				BuildID: savedBuildDB.ID(),
 				PlanID:  "some-plan-id",
 				Stage:   db.ContainerStageRun,
 			},
@@ -299,7 +299,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		Expect(actualContainer.BuildName).To(Equal(savedBuildDB.GetName()))
+		Expect(actualContainer.BuildName).To(Equal(savedBuildDB.Name()))
 		Expect(actualContainer.PipelineID).To(Equal(savedPipeline.ID))
 		Expect(actualContainer.PipelineName).To(Equal(savedPipeline.Name))
 		Expect(actualContainer.JobName).To(Equal("some-job"))
@@ -389,7 +389,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		checkStageAContainerID := db.ContainerIdentifier{
-			BuildID:             someBuildDB.GetID(),
+			BuildID:             someBuildDB.ID(),
 			PlanID:              atc.PlanID("some-task"),
 			ImageResourceSource: atc.Source{"some": "source"},
 			ImageResourceType:   "some-type-a",
@@ -397,7 +397,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		getStageAContainerID := db.ContainerIdentifier{
-			BuildID:             someBuildDB.GetID(),
+			BuildID:             someBuildDB.ID(),
 			PlanID:              atc.PlanID("some-task"),
 			ImageResourceSource: atc.Source{"some": "source"},
 			ImageResourceType:   "some-type-a",
@@ -405,7 +405,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		checkStageBContainerID := db.ContainerIdentifier{
-			BuildID:             someBuildDB.GetID(),
+			BuildID:             someBuildDB.ID(),
 			PlanID:              atc.PlanID("some-task"),
 			ImageResourceSource: atc.Source{"some": "source"},
 			ImageResourceType:   "some-type-b",
@@ -413,7 +413,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		getStageBContainerID := db.ContainerIdentifier{
-			BuildID:             someBuildDB.GetID(),
+			BuildID:             someBuildDB.ID(),
 			PlanID:              atc.PlanID("some-task"),
 			ImageResourceSource: atc.Source{"some": "source"},
 			ImageResourceType:   "some-type-b",
@@ -421,7 +421,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		runStageContainerID := db.ContainerIdentifier{
-			BuildID: someBuildDB.GetID(),
+			BuildID: someBuildDB.ID(),
 			PlanID:  atc.PlanID("some-task"),
 			Stage:   db.ContainerStageRun,
 		}
@@ -1181,7 +1181,7 @@ var _ = Describe("Keeping track of containers", func() {
 					{
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
-							BuildID: savedBuild1DB.GetID(),
+							BuildID: savedBuild1DB.ID(),
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
@@ -1195,7 +1195,7 @@ var _ = Describe("Keeping track of containers", func() {
 					{
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
-							BuildID: savedBuild2DB.GetID(),
+							BuildID: savedBuild2DB.ID(),
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
@@ -1203,14 +1203,14 @@ var _ = Describe("Keeping track of containers", func() {
 							WorkerName: "some-worker",
 							PipelineID: savedPipeline.ID,
 							JobName:    "some-job",
-							BuildName:  savedBuild2DB.GetName(),
+							BuildName:  savedBuild2DB.Name(),
 							Handle:     "b",
 						},
 					},
 					{
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
-							BuildID: savedBuild3DB.GetID(),
+							BuildID: savedBuild3DB.ID(),
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
@@ -1220,14 +1220,14 @@ var _ = Describe("Keeping track of containers", func() {
 							JobName:    "some-other-job",
 							// purposefully re-use the original build name to test that it
 							// can return multiple containers
-							BuildName: savedBuild1DB.GetName(),
+							BuildName: savedBuild1DB.Name(),
 							Handle:    "c",
 						},
 					},
 				},
 				descriptorsToFilterFor: db.Container{
 					ContainerMetadata: db.ContainerMetadata{
-						BuildName: savedBuild1DB.GetName(),
+						BuildName: savedBuild1DB.Name(),
 					},
 				},
 				expectedHandles: []string{"a", "c"},

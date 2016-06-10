@@ -54,13 +54,13 @@ func badgeForBuild(build db.BuildDB) *badge {
 	switch {
 	case build == nil:
 		return &badgeUnknown
-	case build.GetStatus() == db.StatusSucceeded:
+	case build.Status() == db.StatusSucceeded:
 		return &badgePassing
-	case build.GetStatus() == db.StatusFailed:
+	case build.Status() == db.StatusFailed:
 		return &badgeFailing
-	case build.GetStatus() == db.StatusAborted:
+	case build.Status() == db.StatusAborted:
 		return &badgeAborted
-	case build.GetStatus() == db.StatusErrored:
+	case build.Status() == db.StatusErrored:
 		return &badgeErrored
 	default:
 		return &badgeUnknown

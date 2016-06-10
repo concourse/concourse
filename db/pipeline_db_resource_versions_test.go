@@ -178,7 +178,7 @@ var _ = Describe("Resource History", func() {
 				buildDB, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).ToNot(HaveOccurred())
 
-				pipelineDB.SaveInput(buildDB.GetID(), db.BuildInput{
+				pipelineDB.SaveInput(buildDB.ID(), db.BuildInput{
 					Name:              "some-input",
 					VersionedResource: expectedVersions[9].VersionedResource,
 					FirstOccurrence:   true,
@@ -229,7 +229,7 @@ var _ = Describe("Resource History", func() {
 			_, err = pipelineDB.CreateJobBuild("some-other-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveInput(buildDB.GetID(), db.BuildInput{
+			savedVersionedResource, err = pipelineDB.SaveInput(buildDB.ID(), db.BuildInput{
 				Name: "some-input",
 				VersionedResource: db.VersionedResource{
 					Resource: "some-resource",
@@ -249,7 +249,7 @@ var _ = Describe("Resource History", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveInput(secondBuildDB.GetID(), db.BuildInput{
+			savedVersionedResource, err = pipelineDB.SaveInput(secondBuildDB.ID(), db.BuildInput{
 				Name: "some-input",
 				VersionedResource: db.VersionedResource{
 					Resource: "some-resource",
@@ -300,7 +300,7 @@ var _ = Describe("Resource History", func() {
 			_, err = pipelineDB.CreateJobBuild("some-other-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveOutput(buildDB.GetID(), db.VersionedResource{
+			savedVersionedResource, err = pipelineDB.SaveOutput(buildDB.ID(), db.VersionedResource{
 				Resource: "some-resource",
 				Type:     "some-type",
 				Version: db.Version{
@@ -316,7 +316,7 @@ var _ = Describe("Resource History", func() {
 			}, false)
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveOutput(secondBuildDB.GetID(), db.VersionedResource{
+			savedVersionedResource, err = pipelineDB.SaveOutput(secondBuildDB.ID(), db.VersionedResource{
 				Resource: "some-resource",
 				Type:     "some-type",
 				Version: db.Version{

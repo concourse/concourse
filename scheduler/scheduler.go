@@ -97,7 +97,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 
 	if found {
 		logger.Debug("build-already-exists-for-inputs", lager.Data{
-			"existing-build": existingBuildDB.GetID(),
+			"existing-build": existingBuildDB.ID(),
 		})
 
 		return nil
@@ -111,12 +111,12 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 
 	if !created {
 		logger.Debug("waiting-for-existing-build-to-determine-inputs", lager.Data{
-			"existing-build": buildDB.GetID(),
+			"existing-build": buildDB.ID(),
 		})
 		return nil
 	}
 
-	logger = logger.WithData(lager.Data{"build-id": buildDB.GetID(), "build-name": buildDB.GetName()})
+	logger = logger.WithData(lager.Data{"build-id": buildDB.ID(), "build-name": buildDB.Name()})
 
 	logger.Info("created-build")
 
@@ -153,7 +153,7 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm
 			return
 		}
 
-		logger = logger.WithData(lager.Data{"build-id": build.GetID(), "build-name": build.GetName()})
+		logger = logger.WithData(lager.Data{"build-id": build.ID(), "build-name": build.Name()})
 
 		jobService, err := NewJobService(job, s.PipelineDB, s.Scanner)
 		if err != nil {
@@ -183,7 +183,7 @@ func (s *Scheduler) TriggerImmediately(
 		return nil, nil, err
 	}
 
-	logger = logger.WithData(lager.Data{"build-id": build.GetID(), "build-name": build.GetName()})
+	logger = logger.WithData(lager.Data{"build-id": build.ID(), "build-name": build.Name()})
 
 	jobService, err := NewJobService(job, s.PipelineDB, s.Scanner)
 	if err != nil {
@@ -276,7 +276,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 		return nil
 	}
 
-	if !s.updateBuildToScheduled(logger, canBuildBeScheduled, buildDB.GetID(), reason) {
+	if !s.updateBuildToScheduled(logger, canBuildBeScheduled, buildDB.ID(), reason) {
 		return nil
 	}
 

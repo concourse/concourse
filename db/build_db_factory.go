@@ -45,24 +45,24 @@ func (f *buildFactory) ScanBuild(row scannable) (BuildDB, bool, error) {
 		bus:  f.bus,
 
 		id:        id,
-		Name:      name,
-		Status:    Status(status),
-		Scheduled: scheduled,
+		name:      name,
+		status:    Status(status),
+		scheduled: scheduled,
 
-		Engine:         engine.String,
-		EngineMetadata: engineMetadata.String,
+		engine:         engine.String,
+		engineMetadata: engineMetadata.String,
 
-		StartTime: startTime.Time,
-		EndTime:   endTime.Time,
-		ReapTime:  reapTime.Time,
+		startTime: startTime.Time,
+		endTime:   endTime.Time,
+		reapTime:  reapTime.Time,
 
-		TeamName: teamName,
+		teamName: teamName,
 	}
 
 	if jobID.Valid {
-		build.JobName = jobName.String
-		build.PipelineName = pipelineName.String
-		build.PipelineID = int(pipelineID.Int64)
+		build.jobName = jobName.String
+		build.pipelineName = pipelineName.String
+		build.pipelineID = int(pipelineID.Int64)
 	}
 
 	return build, true, nil

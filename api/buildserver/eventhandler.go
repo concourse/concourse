@@ -56,7 +56,7 @@ func NewEventHandler(logger lager.Logger, buildDB db.BuildDB) http.Handler {
 
 			events, err = buildDB.Events(start)
 			if err != nil {
-				logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": buildDB.GetID(), "start": start})
+				logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": buildDB.ID(), "start": start})
 				endMessage := websocket.FormatCloseMessage(
 					websocket.CloseInternalServerErr,
 					"failed-to-get-build-events",
@@ -89,7 +89,7 @@ func NewEventHandler(logger lager.Logger, buildDB db.BuildDB) http.Handler {
 			var err error
 			events, err = buildDB.Events(start)
 			if err != nil {
-				logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": buildDB.GetID(), "start": start})
+				logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": buildDB.ID(), "start": start})
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -148,7 +148,7 @@ func NewEventHandler(logger lager.Logger, buildDB db.BuildDB) http.Handler {
 					writer.WriteJSON(WebsocketMessage{Type: "end"})
 					writer.Close()
 				} else {
-					logger.Error("failed-to-get-next-build-event", err, lager.Data{"build-id": buildDB.GetID(), "start": start})
+					logger.Error("failed-to-get-next-build-event", err, lager.Data{"build-id": buildDB.ID(), "start": start})
 					writer.WriteError("failed-to-get-next-build-event")
 				}
 

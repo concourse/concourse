@@ -48,7 +48,7 @@ func (engine *execEngine) Name() string {
 
 func (engine *execEngine) CreateBuild(logger lager.Logger, buildDB db.BuildDB, plan atc.Plan) (Build, error) {
 	return &execBuild{
-		buildID:      buildDB.GetID(),
+		buildID:      buildDB.ID(),
 		stepMetadata: buildMetadata(buildDB, engine.externalURL),
 
 		factory:  engine.factory,
@@ -63,19 +63,19 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, buildDB db.BuildDB, p
 
 func (engine *execEngine) LookupBuild(logger lager.Logger, buildDB db.BuildDB) (Build, error) {
 	var metadata execMetadata
-	err := json.Unmarshal([]byte(buildDB.GetEngineMetadata()), &metadata)
+	err := json.Unmarshal([]byte(buildDB.EngineMetadata()), &metadata)
 	if err != nil {
 		logger.Error("invalid-metadata", err)
 		return nil, err
 	}
 
-	err = atc.NewPlanTraversal(engine.convertPipelineNameToID(buildDB.GetTeamName())).Traverse(&metadata.Plan)
+	err = atc.NewPlanTraversal(engine.convertPipelineNameToID(buildDB.TeamName())).Traverse(&metadata.Plan)
 	if err != nil {
 		return nil, err
 	}
 
 	return &execBuild{
-		buildID:      buildDB.GetID(),
+		buildID:      buildDB.ID(),
 		stepMetadata: buildMetadata(buildDB, engine.externalURL),
 
 		factory:  engine.factory,
@@ -133,10 +133,10 @@ func (engine *execEngine) convertPipelineNameToID(teamName string) func(plan *at
 
 func buildMetadata(buildDB db.BuildDB, externalURL string) StepMetadata {
 	return StepMetadata{
-		BuildID:      buildDB.GetID(),
-		BuildName:    buildDB.GetName(),
-		JobName:      buildDB.GetJobName(),
-		PipelineName: buildDB.GetPipelineName(),
+		BuildID:      buildDB.ID(),
+		BuildName:    buildDB.Name(),
+		JobName:      buildDB.JobName(),
+		PipelineName: buildDB.PipelineName(),
 		ExternalURL:  externalURL,
 	}
 }

@@ -362,12 +362,12 @@ var _ = Describe("TeamDB", func() {
 		It("can create one-off builds with increasing names", func() {
 			nextOneOffBuildDB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(nextOneOffBuildDB.GetID()).NotTo(BeZero())
-			Expect(nextOneOffBuildDB.GetID()).NotTo(Equal(oneOffBuildDB.GetID()))
-			Expect(nextOneOffBuildDB.GetJobName()).To(BeZero())
-			Expect(nextOneOffBuildDB.GetName()).To(Equal("2"))
-			Expect(nextOneOffBuildDB.GetTeamName()).To(Equal(savedTeam.Name))
-			Expect(nextOneOffBuildDB.GetStatus()).To(Equal(db.StatusPending))
+			Expect(nextOneOffBuildDB.ID()).NotTo(BeZero())
+			Expect(nextOneOffBuildDB.ID()).NotTo(Equal(oneOffBuildDB.ID()))
+			Expect(nextOneOffBuildDB.JobName()).To(BeZero())
+			Expect(nextOneOffBuildDB.Name()).To(Equal("2"))
+			Expect(nextOneOffBuildDB.TeamName()).To(Equal(savedTeam.Name))
+			Expect(nextOneOffBuildDB.Status()).To(Equal(db.StatusPending))
 		})
 
 		It("also creates buildpreparation", func() {
@@ -375,7 +375,7 @@ var _ = Describe("TeamDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			Expect(buildPrep.BuildID).To(Equal(oneOffBuildDB.GetID()))
+			Expect(buildPrep.BuildID).To(Equal(oneOffBuildDB.ID()))
 		})
 	})
 
@@ -429,7 +429,7 @@ var _ = Describe("TeamDB", func() {
 				Expect(builds[1]).To(Equal(allBuilds[3]))
 
 				Expect(pagination.Previous).To(BeNil())
-				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[3].GetID(), Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[3].ID(), Limit: 2}))
 
 				builds, pagination, err = teamDB.GetBuilds(*pagination.Next)
 				Expect(err).NotTo(HaveOccurred())
@@ -438,8 +438,8 @@ var _ = Describe("TeamDB", func() {
 				Expect(builds[0]).To(Equal(allBuilds[2]))
 				Expect(builds[1]).To(Equal(allBuilds[1]))
 
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].GetID(), Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].GetID(), Limit: 2}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID(), Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID(), Limit: 2}))
 
 				builds, pagination, err = teamDB.GetBuilds(*pagination.Next)
 				Expect(err).NotTo(HaveOccurred())
@@ -447,7 +447,7 @@ var _ = Describe("TeamDB", func() {
 				Expect(len(builds)).To(Equal(1))
 				Expect(builds[0]).To(Equal(allBuilds[0]))
 
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[0].GetID(), Limit: 2}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[0].ID(), Limit: 2}))
 				Expect(pagination.Next).To(BeNil())
 
 				builds, pagination, err = teamDB.GetBuilds(*pagination.Previous)
@@ -457,8 +457,8 @@ var _ = Describe("TeamDB", func() {
 				Expect(builds[0]).To(Equal(allBuilds[2]))
 				Expect(builds[1]).To(Equal(allBuilds[1]))
 
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].GetID(), Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].GetID(), Limit: 2}))
+				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID(), Limit: 2}))
+				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID(), Limit: 2}))
 			})
 
 			Context("when there are builds that belong to different teams", func() {
@@ -509,10 +509,10 @@ var _ = Describe("TeamDB", func() {
 			originalBuildDB, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			buildDB, found, err := teamDB.GetBuildDB(originalBuildDB.GetID())
+			buildDB, found, err := teamDB.GetBuildDB(originalBuildDB.ID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(buildDB.GetID()).To(Equal(originalBuildDB.GetID()))
+			Expect(buildDB.ID()).To(Equal(originalBuildDB.ID()))
 		})
 
 		It("does not return build that belongs to another team", func() {
@@ -523,7 +523,7 @@ var _ = Describe("TeamDB", func() {
 			anotherTeamBuildDB, err := anotherTeamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			buildDB, found, err := teamDB.GetBuildDB(anotherTeamBuildDB.GetID())
+			buildDB, found, err := teamDB.GetBuildDB(anotherTeamBuildDB.ID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 			Expect(buildDB).To(BeNil())

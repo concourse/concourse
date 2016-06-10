@@ -38,7 +38,7 @@ var _ = Describe("DBEngine", func() {
 		fakeEngineB.NameReturns("fake-engine-b")
 
 		fakeBuildDB = new(dbfakes.FakeBuildDB)
-		fakeBuildDB.GetIDReturns(128)
+		fakeBuildDB.IDReturns(128)
 
 		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB})
 	})
@@ -242,7 +242,7 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build is active", func() {
 					BeforeEach(func() {
 						fakeBuildDB.ReloadReturns(true, nil)
-						fakeBuildDB.GetEngineReturns("fake-engine-b")
+						fakeBuildDB.EngineReturns("fake-engine-b")
 
 						fakeBuildDB.AbortStub = func() error {
 							Expect(fakeBuildDB.LeaseTrackingCallCount()).To(Equal(1))
@@ -346,7 +346,7 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build is not yet active", func() {
 					BeforeEach(func() {
 						fakeBuildDB.ReloadReturns(true, nil)
-						fakeBuildDB.GetEngineReturns("")
+						fakeBuildDB.EngineReturns("")
 					})
 
 					It("succeeds", func() {
@@ -465,7 +465,7 @@ var _ = Describe("DBEngine", func() {
 
 				Context("when the build is active", func() {
 					BeforeEach(func() {
-						fakeBuildDB.GetEngineReturns("fake-engine-b")
+						fakeBuildDB.EngineReturns("fake-engine-b")
 						fakeBuildDB.IsRunningReturns(true)
 						fakeBuildDB.ReloadReturns(true, nil)
 					})
@@ -594,7 +594,7 @@ var _ = Describe("DBEngine", func() {
 					BeforeEach(func() {
 						fakeBuildDB.ReloadReturns(true, nil)
 						fakeBuildDB.IsRunningReturns(true)
-						fakeBuildDB.GetEngineReturns("bogus")
+						fakeBuildDB.EngineReturns("bogus")
 					})
 
 					It("marks the build as errored", func() {
@@ -607,7 +607,7 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build is not yet active", func() {
 					BeforeEach(func() {
 						fakeBuildDB.ReloadReturns(true, nil)
-						fakeBuildDB.GetEngineReturns("")
+						fakeBuildDB.EngineReturns("")
 					})
 
 					It("does not look up the build in the engine", func() {
@@ -622,8 +622,8 @@ var _ = Describe("DBEngine", func() {
 				Context("when the build has already finished", func() {
 					BeforeEach(func() {
 						fakeBuildDB.ReloadReturns(true, nil)
-						fakeBuildDB.GetEngineReturns("fake-engine-b")
-						fakeBuildDB.GetStatusReturns(db.StatusSucceeded)
+						fakeBuildDB.EngineReturns("fake-engine-b")
+						fakeBuildDB.StatusReturns(db.StatusSucceeded)
 					})
 
 					It("does not look up the build in the engine", func() {
@@ -685,7 +685,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when the build is active", func() {
 				BeforeEach(func() {
-					fakeBuildDB.GetEngineReturns("fake-engine-b")
+					fakeBuildDB.EngineReturns("fake-engine-b")
 					fakeBuildDB.ReloadReturns(true, nil)
 				})
 
@@ -749,7 +749,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when the build's engine is unknown", func() {
 				BeforeEach(func() {
-					fakeBuildDB.GetEngineReturns("bogus")
+					fakeBuildDB.EngineReturns("bogus")
 				})
 
 				It("returns an UnknownEngineError", func() {
@@ -760,7 +760,7 @@ var _ = Describe("DBEngine", func() {
 			Context("when the build is not yet active", func() {
 				BeforeEach(func() {
 					fakeBuildDB.ReloadReturns(true, nil)
-					fakeBuildDB.GetEngineReturns("")
+					fakeBuildDB.EngineReturns("")
 				})
 
 				It("does not look up the build in the engine", func() {

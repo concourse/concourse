@@ -42,7 +42,7 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		public, err := config.JobIsPublic(buildDB.GetJobName())
+		public, err := config.JobIsPublic(buildDB.JobName())
 		if err != nil {
 			s.logger.Error("failed-to-see-job-is-public", err)
 			w.WriteHeader(http.StatusInternalServerError)

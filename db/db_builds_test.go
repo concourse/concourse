@@ -126,7 +126,7 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			originalBuildPrep = db.BuildPreparation{
-				BuildID:          buildDB.GetID(),
+				BuildID:          buildDB.ID(),
 				PausedPipeline:   db.BuildPreparationStatusNotBlocking,
 				PausedJob:        db.BuildPreparationStatusNotBlocking,
 				MaxRunningBuilds: db.BuildPreparationStatusNotBlocking,
@@ -152,14 +152,14 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			expectedBuildPrep := db.NewBuildPreparation(buildDB.GetID())
+			expectedBuildPrep := db.NewBuildPreparation(buildDB.ID())
 			expectedBuildPrep.PausedPipeline = db.BuildPreparationStatusBlocking
 			Expect(buildPrep).To(Equal(expectedBuildPrep))
 		})
 
 		Context("where the build is scheduled", func() {
 			BeforeEach(func() {
-				scheduled, err := pipelineDB.UpdateBuildToScheduled(buildDB.GetID())
+				scheduled, err := pipelineDB.UpdateBuildToScheduled(buildDB.ID())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(scheduled).To(BeTrue())
 			})
@@ -246,7 +246,7 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("not returning an error")
-			database.DeleteBuildEventsByBuildIDs([]int{build3DB.GetID(), build4DB.GetID(), build1DB.GetID()})
+			database.DeleteBuildEventsByBuildIDs([]int{build3DB.ID(), build4DB.ID(), build1DB.ID()})
 			Expect(err).NotTo(HaveOccurred())
 
 			err = build4DB.Finish(db.StatusSucceeded)
@@ -301,26 +301,26 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			Expect(build1DB.GetReapTime()).To(BeTemporally(">", build1DB.GetEndTime()))
+			Expect(build1DB.ReapTime()).To(BeTemporally(">", build1DB.EndTime()))
 
 			found, err = build2DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			Expect(build2DB.GetReapTime()).To(BeZero())
+			Expect(build2DB.ReapTime()).To(BeZero())
 
 			found, err = build3DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			Expect(build3DB.GetReapTime()).To(Equal(build1DB.GetReapTime()))
+			Expect(build3DB.ReapTime()).To(Equal(build1DB.ReapTime()))
 
 			found, err = build4DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			// Not required behavior, just a sanity check for what I think will happen
-			Expect(build4DB.GetReapTime()).To(Equal(build1DB.GetReapTime()))
+			Expect(build4DB.ReapTime()).To(Equal(build1DB.ReapTime()))
 		})
 	})
 })

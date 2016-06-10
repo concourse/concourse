@@ -551,14 +551,14 @@ var _ = Describe("BuildReaper", func() {
 
 func sb(id int) db.BuildDB {
 	buildDB := new(dbfakes.FakeBuildDB)
-	buildDB.GetIDReturns(id)
+	buildDB.IDReturns(id)
 	buildDB.IsRunningReturns(false)
 	return buildDB
 }
 
 func runningBuild(id int) db.BuildDB {
 	buildDB := new(dbfakes.FakeBuildDB)
-	buildDB.GetIDReturns(id)
+	buildDB.IDReturns(id)
 	buildDB.IsRunningReturns(true)
 	return buildDB
 }
