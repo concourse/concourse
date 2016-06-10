@@ -11,13 +11,12 @@ import (
 )
 
 type FakeBuildDB struct {
-	ReloadStub        func() (db.Build, bool, error)
+	ReloadStub        func() (bool, error)
 	reloadMutex       sync.RWMutex
 	reloadArgsForCall []struct{}
 	reloadReturns     struct {
-		result1 db.Build
-		result2 bool
-		result3 error
+		result1 bool
+		result2 error
 	}
 	GetIDStub        func() int
 	getIDMutex       sync.RWMutex
@@ -263,14 +262,14 @@ type FakeBuildDB struct {
 	}
 }
 
-func (fake *FakeBuildDB) Reload() (db.Build, bool, error) {
+func (fake *FakeBuildDB) Reload() (bool, error) {
 	fake.reloadMutex.Lock()
 	fake.reloadArgsForCall = append(fake.reloadArgsForCall, struct{}{})
 	fake.reloadMutex.Unlock()
 	if fake.ReloadStub != nil {
 		return fake.ReloadStub()
 	} else {
-		return fake.reloadReturns.result1, fake.reloadReturns.result2, fake.reloadReturns.result3
+		return fake.reloadReturns.result1, fake.reloadReturns.result2
 	}
 }
 
@@ -280,13 +279,12 @@ func (fake *FakeBuildDB) ReloadCallCount() int {
 	return len(fake.reloadArgsForCall)
 }
 
-func (fake *FakeBuildDB) ReloadReturns(result1 db.Build, result2 bool, result3 error) {
+func (fake *FakeBuildDB) ReloadReturns(result1 bool, result2 error) {
 	fake.ReloadStub = nil
 	fake.reloadReturns = struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuildDB) GetID() int {

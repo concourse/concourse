@@ -101,11 +101,9 @@ var _ = Describe("BuildDB", func() {
 
 			Expect(buildDB.GetStatus()).To(Equal(db.StatusPending))
 
-			reloadedModel, found, err := buildDB.Reload()
+			found, err := buildDB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(reloadedModel.Status).To(Equal(db.StatusStarted))
-
 			Expect(buildDB.GetStatus()).To(Equal(db.StatusStarted))
 		})
 	})
@@ -331,10 +329,10 @@ var _ = Describe("BuildDB", func() {
 			})
 
 			It("creates Start event", func() {
-				startedBuild, found, err := buildDB.Reload()
+				found, err := buildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(startedBuild.Status).To(Equal(db.StatusStarted))
+				Expect(buildDB.GetStatus()).To(Equal(db.StatusStarted))
 
 				events, err := buildDB.Events(0)
 				Expect(err).NotTo(HaveOccurred())
@@ -343,7 +341,7 @@ var _ = Describe("BuildDB", func() {
 
 				Expect(events.Next()).To(Equal(event.Status{
 					Status: atc.StatusStarted,
-					Time:   startedBuild.StartTime.Unix(),
+					Time:   buildDB.GetStartTime().Unix(),
 				}))
 			})
 		})
@@ -355,10 +353,10 @@ var _ = Describe("BuildDB", func() {
 			})
 
 			It("updates build status", func() {
-				abortedBuild, found, err := buildDB.Reload()
+				found, err := buildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(abortedBuild.Status).To(Equal(db.StatusAborted))
+				Expect(buildDB.GetStatus()).To(Equal(db.StatusAborted))
 			})
 		})
 
@@ -369,10 +367,10 @@ var _ = Describe("BuildDB", func() {
 			})
 
 			It("creates Finish event", func() {
-				finishedBuild, found, err := buildDB.Reload()
+				found, err := buildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(finishedBuild.Status).To(Equal(db.StatusSucceeded))
+				Expect(buildDB.GetStatus()).To(Equal(db.StatusSucceeded))
 
 				events, err := buildDB.Events(0)
 				Expect(err).NotTo(HaveOccurred())
@@ -381,7 +379,7 @@ var _ = Describe("BuildDB", func() {
 
 				Expect(events.Next()).To(Equal(event.Status{
 					Status: atc.StatusSucceeded,
-					Time:   finishedBuild.EndTime.Unix(),
+					Time:   buildDB.GetEndTime().Unix(),
 				}))
 			})
 		})
@@ -396,10 +394,10 @@ var _ = Describe("BuildDB", func() {
 			})
 
 			It("creates Error event", func() {
-				failedBuild, found, err := buildDB.Reload()
+				found, err := buildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(failedBuild.Status).To(Equal(db.StatusErrored))
+				Expect(buildDB.GetStatus()).To(Equal(db.StatusErrored))
 
 				events, err := buildDB.Events(0)
 				Expect(err).NotTo(HaveOccurred())

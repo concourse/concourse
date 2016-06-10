@@ -299,31 +299,30 @@ var _ = Describe("Keeping track of builds", func() {
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 
 			By("updating ReapTime for the affected builds")
-
-			reapedBuild1, found, err := build1DB.Reload()
+			found, err := build1DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			Expect(reapedBuild1.ReapTime).To(BeTemporally(">", reapedBuild1.EndTime))
+			Expect(build1DB.GetReapTime()).To(BeTemporally(">", build1DB.GetEndTime()))
 
-			reapedBuild2, found, err := build2DB.Reload()
+			found, err = build2DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			Expect(reapedBuild2.ReapTime).To(BeZero())
+			Expect(build2DB.GetReapTime()).To(BeZero())
 
-			reapedBuild3, found, err := build3DB.Reload()
+			found, err = build3DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			Expect(reapedBuild3.ReapTime).To(Equal(reapedBuild1.ReapTime))
+			Expect(build3DB.GetReapTime()).To(Equal(build1DB.GetReapTime()))
 
-			reapedBuild4, found, err := build4DB.Reload()
+			found, err = build4DB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			// Not required behavior, just a sanity check for what I think will happen
-			Expect(reapedBuild4.ReapTime).To(Equal(reapedBuild1.ReapTime))
+			Expect(build4DB.GetReapTime()).To(Equal(build1DB.GetReapTime()))
 		})
 	})
 })

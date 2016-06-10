@@ -2168,7 +2168,7 @@ var _ = Describe("PipelineDB", func() {
 				By("returning a job's most recent started build")
 				jobBuildOldDB.Start("engine", "metadata")
 
-				_, found, err := jobBuildOldDB.Reload()
+				found, err := jobBuildOldDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2194,7 +2194,7 @@ var _ = Describe("PipelineDB", func() {
 				err = jobBuildDB.Finish(db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, found, err = jobBuildDB.Reload()
+				found, err = jobBuildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -2210,7 +2210,7 @@ var _ = Describe("PipelineDB", func() {
 				jobBuildNewDB, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				jobBuildNewDB.Start("engine", "metadata")
-				_, found, err = jobBuildNewDB.Reload()
+				found, err = jobBuildNewDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -3135,7 +3135,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("saves the updated status, and the engine and engine metadata", func() {
-					_, found, err := build1DB.Reload()
+					found, err := build1DB.Reload()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(build1DB.GetStatus()).To(Equal(db.StatusStarted))
@@ -3144,7 +3144,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("saves the build's start time", func() {
-					_, found, err := build1DB.Reload()
+					found, err := build1DB.Reload()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(build1DB.GetStartTime().Unix()).To(BeNumerically("~", time.Now().Unix(), 3))
@@ -3158,7 +3158,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 
 				It("sets the build's status and end time", func() {
-					_, found, err := build1DB.Reload()
+					found, err := build1DB.Reload()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(build1DB.GetStatus()).To(Equal(db.StatusSucceeded))

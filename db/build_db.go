@@ -44,7 +44,7 @@ func (f *buildDBFactory) GetBuildDB(build Build) BuildDB {
 //go:generate counterfeiter . BuildDB
 
 type BuildDB interface {
-	Reload() (Build, bool, error)
+	Reload() (bool, error)
 
 	GetID() int
 	GetName() string
@@ -98,7 +98,7 @@ type buildDB struct {
 	buildPrepHelper buildPreparationHelper
 }
 
-func (db *buildDB) Reload() (Build, bool, error) {
+func (db *buildDB) Reload() (bool, error) {
 	build, found, err := scanBuild(db.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
@@ -110,7 +110,7 @@ func (db *buildDB) Reload() (Build, bool, error) {
 
 	db.build = build
 
-	return db.build, found, err
+	return found, err
 }
 
 func (db *buildDB) GetID() int {

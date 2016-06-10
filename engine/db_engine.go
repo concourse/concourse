@@ -124,7 +124,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 
 	// reload the model *after* saving the status for the following check to see
 	// if it was already started
-	model, found, err := build.buildDB.Reload()
+	found, err := build.buildDB.Reload()
 	if err != nil {
 		logger.Error("failed-to-get-build-from-database", err)
 		return err
@@ -135,8 +135,9 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 		return nil
 	}
 
+	buildEngineName := build.buildDB.GetEngine()
 	// if there's an engine, there's a real build to abort
-	if model.Engine == "" {
+	if buildEngineName == "" {
 		// otherwise, CreateBuild had not yet tried to start the build, and so it
 		// will see the conflict when it tries to transition, and abort itself.
 		//
@@ -146,10 +147,10 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 		return build.buildDB.Finish(db.StatusAborted)
 	}
 
-	buildEngine, found := build.engines.Lookup(model.Engine)
+	buildEngine, found := build.engines.Lookup(buildEngineName)
 	if !found {
-		logger.Error("unknown-engine", nil, lager.Data{"engine": model.Engine})
-		return UnknownEngineError{model.Engine}
+		logger.Error("unknown-engine", nil, lager.Data{"engine": buildEngineName})
+		return UnknownEngineError{buildEngineName}
 	}
 
 	// find the real build to abort...
@@ -177,7 +178,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 
 	defer lease.Break()
 
-	model, found, err := build.buildDB.Reload()
+	found, err := build.buildDB.Reload()
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
 		return
@@ -188,22 +189,23 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	if model.Engine == "" {
+	buildEngineName := build.buildDB.GetEngine()
+	if buildEngineName == "" {
 		logger.Error("build-has-no-engine", err)
 		return
 	}
 
-	if !model.IsRunning() {
+	if !build.buildDB.IsRunning() {
 		logger.Info("build-already-finished", lager.Data{
 			"build-id": build.buildDB.GetID(),
 		})
 		return
 	}
 
-	buildEngine, found := build.engines.Lookup(model.Engine)
+	buildEngine, found := build.engines.Lookup(buildEngineName)
 	if !found {
 		logger.Error("unknown-build-engine", nil, lager.Data{
-			"engine": model.Engine,
+			"engine": buildEngineName,
 		})
 		build.finishWithError(logger)
 		return
@@ -241,17 +243,16 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	}()
 
 	metric.BuildStarted{
-		PipelineName: model.PipelineName,
-		JobName:      model.JobName,
-		BuildName:    model.Name,
-		BuildID:      model.ID,
+		PipelineName: build.buildDB.GetPipelineName(),
+		JobName:      build.buildDB.GetJobName(),
+		BuildName:    build.buildDB.GetName(),
+		BuildID:      build.buildDB.GetID(),
 	}.Emit(logger)
 
 	logger.Info("running")
-
 	engineBuild.Resume(logger)
 
-	doneModel, found, err := build.buildDB.Reload()
+	found, err = build.buildDB.Reload()
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
 		return
@@ -263,12 +264,12 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	}
 
 	metric.BuildFinished{
-		PipelineName:  model.PipelineName,
-		JobName:       model.JobName,
-		BuildName:     model.Name,
-		BuildID:       model.ID,
-		BuildStatus:   doneModel.Status,
-		BuildDuration: doneModel.EndTime.Sub(doneModel.StartTime),
+		PipelineName:  build.buildDB.GetPipelineName(),
+		JobName:       build.buildDB.GetJobName(),
+		BuildName:     build.buildDB.GetName(),
+		BuildID:       build.buildDB.GetID(),
+		BuildStatus:   build.buildDB.GetStatus(),
+		BuildDuration: build.buildDB.GetEndTime().Sub(build.buildDB.GetStartTime()),
 	}.Emit(logger)
 }
 
