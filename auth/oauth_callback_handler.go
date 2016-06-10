@@ -157,6 +157,13 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		Expires: exp,
 	})
 
+	// Deletes the oauth state cookie to avoid CSRF attacks
+	http.SetCookie(w, &http.Cookie{
+		Name:   cookieState.Name,
+		Path:   "/",
+		MaxAge: -1,
+	})
+
 	if oauthState.Redirect != "" {
 		http.Redirect(w, r, oauthState.Redirect, http.StatusTemporaryRedirect)
 		return
