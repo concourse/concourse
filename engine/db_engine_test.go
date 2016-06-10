@@ -23,7 +23,7 @@ var _ = Describe("DBEngine", func() {
 
 		fakeEngineA *fakes.FakeEngine
 		fakeEngineB *fakes.FakeEngine
-		fakeBuildDB *dbfakes.FakeBuildDB
+		dbBuild     *dbfakes.FakeBuild
 
 		dbEngine Engine
 	)
@@ -37,8 +37,8 @@ var _ = Describe("DBEngine", func() {
 		fakeEngineB = new(fakes.FakeEngine)
 		fakeEngineB.NameReturns("fake-engine-b")
 
-		fakeBuildDB = new(dbfakes.FakeBuildDB)
-		fakeBuildDB.IDReturns(128)
+		dbBuild = new(dbfakes.FakeBuild)
+		dbBuild.IDReturns(128)
 
 		dbEngine = NewDBEngine(Engines{fakeEngineA, fakeEngineB})
 	})
@@ -72,11 +72,11 @@ var _ = Describe("DBEngine", func() {
 				},
 			})
 
-			fakeBuildDB.StartReturns(true, nil)
+			dbBuild.StartReturns(true, nil)
 		})
 
 		JustBeforeEach(func() {
-			createdBuild, buildErr = dbEngine.CreateBuild(logger, fakeBuildDB, plan)
+			createdBuild, buildErr = dbEngine.CreateBuild(logger, dbBuild, plan)
 		})
 
 		Context("when creating the build succeeds", func() {
@@ -98,16 +98,16 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			It("starts the build in the database", func() {
-				Expect(fakeBuildDB.StartCallCount()).To(Equal(1))
+				Expect(dbBuild.StartCallCount()).To(Equal(1))
 
-				engine, metadata := fakeBuildDB.StartArgsForCall(0)
+				engine, metadata := dbBuild.StartArgsForCall(0)
 				Expect(engine).To(Equal("fake-engine-a"))
 				Expect(metadata).To(Equal("some-metadata"))
 			})
 
 			Context("when the build fails to transition to started", func() {
 				BeforeEach(func() {
-					fakeBuildDB.StartReturns(false, nil)
+					dbBuild.StartReturns(false, nil)
 				})
 
 				It("aborts the build", func() {
@@ -128,7 +128,7 @@ var _ = Describe("DBEngine", func() {
 			})
 
 			It("does not start the build", func() {
-				Expect(fakeBuildDB.StartCallCount()).To(Equal(0))
+				Expect(dbBuild.StartCallCount()).To(Equal(0))
 			})
 		})
 	})
@@ -140,7 +140,7 @@ var _ = Describe("DBEngine", func() {
 		)
 
 		JustBeforeEach(func() {
-			foundBuild, lookupErr = dbEngine.LookupBuild(logger, fakeBuildDB)
+			foundBuild, lookupErr = dbEngine.LookupBuild(logger, dbBuild)
 		})
 
 		It("succeeds", func() {
@@ -155,7 +155,7 @@ var _ = Describe("DBEngine", func() {
 			var abortErr error
 
 			BeforeEach(func() {
-				fakeBuildDB.ReloadReturns(true, nil)
+				dbBuild.ReloadReturns(true, nil)
 			})
 
 			JustBeforeEach(func() {
@@ -167,7 +167,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseTrackingReturns(fakeLease, true, nil)
+					dbBuild.LeaseTrackingReturns(fakeLease, true, nil)
 				})
 
 				It("succeeds", func() {
@@ -175,7 +175,7 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("marks the build as aborted", func() {
-					Expect(fakeBuildDB.AbortCallCount()).To(Equal(1))
+					Expect(dbBuild.AbortCallCount()).To(Equal(1))
 				})
 			})
 
@@ -184,7 +184,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseTrackingReturns(nil, false, nil)
+					dbBuild.LeaseTrackingReturns(nil, false, nil)
 				})
 
 				It("succeeds", func() {
@@ -192,7 +192,7 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("marks the build as aborted", func() {
-					Expect(fakeBuildDB.AbortCallCount()).To(Equal(1))
+					Expect(dbBuild.AbortCallCount()).To(Equal(1))
 				})
 			})
 
@@ -201,7 +201,7 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseTrackingReturns(nil, false, errors.New("bad bad bad"))
+					dbBuild.LeaseTrackingReturns(nil, false, errors.New("bad bad bad"))
 				})
 
 				It("fails", func() {
@@ -209,7 +209,7 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("does not mark the build as aborted", func() {
-					Expect(fakeBuildDB.AbortCallCount()).To(Equal(0))
+					Expect(dbBuild.AbortCallCount()).To(Equal(0))
 				})
 			})
 		})
@@ -220,7 +220,7 @@ var _ = Describe("DBEngine", func() {
 
 		BeforeEach(func() {
 			var err error
-			build, err = dbEngine.LookupBuild(logger, fakeBuildDB)
+			build, err = dbEngine.LookupBuild(logger, dbBuild)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -236,18 +236,18 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseTrackingReturns(fakeLease, true, nil)
+					dbBuild.LeaseTrackingReturns(fakeLease, true, nil)
 				})
 
 				Context("when the build is active", func() {
 					BeforeEach(func() {
-						fakeBuildDB.ReloadReturns(true, nil)
-						fakeBuildDB.EngineReturns("fake-engine-b")
+						dbBuild.ReloadReturns(true, nil)
+						dbBuild.EngineReturns("fake-engine-b")
 
-						fakeBuildDB.AbortStub = func() error {
-							Expect(fakeBuildDB.LeaseTrackingCallCount()).To(Equal(1))
+						dbBuild.AbortStub = func() error {
+							Expect(dbBuild.LeaseTrackingCallCount()).To(Equal(1))
 
-							_, interval := fakeBuildDB.LeaseTrackingArgsForCall(0)
+							_, interval := dbBuild.LeaseTrackingArgsForCall(0)
 							Expect(interval).To(Equal(10 * time.Second))
 
 							Expect(fakeLease.BreakCallCount()).To(BeZero())
@@ -260,7 +260,7 @@ var _ = Describe("DBEngine", func() {
 						var realBuild *fakes.FakeBuild
 
 						BeforeEach(func() {
-							fakeBuildDB.ReloadReturns(true, nil)
+							dbBuild.ReloadReturns(true, nil)
 
 							realBuild = new(fakes.FakeBuild)
 							fakeEngineB.LookupBuildReturns(realBuild, nil)
@@ -268,7 +268,7 @@ var _ = Describe("DBEngine", func() {
 
 						Context("when aborting the db build succeeds", func() {
 							BeforeEach(func() {
-								fakeBuildDB.AbortReturns(nil)
+								dbBuild.AbortReturns(nil)
 							})
 
 							It("succeeds", func() {
@@ -280,7 +280,7 @@ var _ = Describe("DBEngine", func() {
 							})
 
 							It("aborts the build via the db", func() {
-								Expect(fakeBuildDB.AbortCallCount()).To(Equal(1))
+								Expect(dbBuild.AbortCallCount()).To(Equal(1))
 							})
 
 							It("aborts the real build", func() {
@@ -292,7 +292,7 @@ var _ = Describe("DBEngine", func() {
 							disaster := errors.New("oh no!")
 
 							BeforeEach(func() {
-								fakeBuildDB.AbortReturns(disaster)
+								dbBuild.AbortReturns(disaster)
 							})
 
 							It("returns the error", func() {
@@ -329,7 +329,7 @@ var _ = Describe("DBEngine", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeBuildDB.ReloadReturns(true, nil)
+							dbBuild.ReloadReturns(true, nil)
 							fakeEngineB.LookupBuildReturns(nil, disaster)
 						})
 
@@ -345,8 +345,8 @@ var _ = Describe("DBEngine", func() {
 
 				Context("when the build is not yet active", func() {
 					BeforeEach(func() {
-						fakeBuildDB.ReloadReturns(true, nil)
-						fakeBuildDB.EngineReturns("")
+						dbBuild.ReloadReturns(true, nil)
+						dbBuild.EngineReturns("")
 					})
 
 					It("succeeds", func() {
@@ -354,13 +354,13 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("aborts the build in the db", func() {
-						Expect(fakeBuildDB.AbortCallCount()).To(Equal(1))
+						Expect(dbBuild.AbortCallCount()).To(Equal(1))
 					})
 
 					It("finishes the build in the db so that the aborted event is emitted", func() {
-						Expect(fakeBuildDB.FinishCallCount()).To(Equal(1))
+						Expect(dbBuild.FinishCallCount()).To(Equal(1))
 
-						status := fakeBuildDB.FinishArgsForCall(0)
+						status := dbBuild.FinishArgsForCall(0)
 						Expect(status).To(Equal(db.StatusAborted))
 					})
 
@@ -371,7 +371,7 @@ var _ = Describe("DBEngine", func() {
 
 				Context("when the build is no longer in the database", func() {
 					BeforeEach(func() {
-						fakeBuildDB.ReloadReturns(false, nil)
+						dbBuild.ReloadReturns(false, nil)
 					})
 
 					It("succeeds", func() {
@@ -379,11 +379,11 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("aborts the build in the db", func() {
-						Expect(fakeBuildDB.AbortCallCount()).To(Equal(1))
+						Expect(dbBuild.AbortCallCount()).To(Equal(1))
 					})
 
 					It("does not finish the build", func() {
-						Expect(fakeBuildDB.FinishCallCount()).To(Equal(0))
+						Expect(dbBuild.FinishCallCount()).To(Equal(0))
 					})
 
 					It("breaks the lease", func() {
@@ -394,7 +394,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when acquiring the lock errors", func() {
 				BeforeEach(func() {
-					fakeBuildDB.LeaseTrackingReturns(nil, false, errors.New("bad bad bad"))
+					dbBuild.LeaseTrackingReturns(nil, false, errors.New("bad bad bad"))
 				})
 
 				It("errors", func() {
@@ -402,18 +402,18 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				It("does not abort the build in the db", func() {
-					Expect(fakeBuildDB.AbortCallCount()).To(Equal(0))
+					Expect(dbBuild.AbortCallCount()).To(Equal(0))
 				})
 			})
 
 			Context("when acquiring the lock fails", func() {
 				BeforeEach(func() {
-					fakeBuildDB.LeaseTrackingReturns(nil, false, nil)
+					dbBuild.LeaseTrackingReturns(nil, false, nil)
 				})
 
 				Context("when aborting the build in the db succeeds", func() {
 					BeforeEach(func() {
-						fakeBuildDB.AbortReturns(nil)
+						dbBuild.AbortReturns(nil)
 					})
 
 					It("succeeds", func() {
@@ -421,11 +421,11 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					It("aborts the build in the db", func() {
-						Expect(fakeBuildDB.AbortCallCount()).To(Equal(1))
+						Expect(dbBuild.AbortCallCount()).To(Equal(1))
 					})
 
 					It("does not abort the real build", func() {
-						Expect(fakeBuildDB.ReloadCallCount()).To(BeZero())
+						Expect(dbBuild.ReloadCallCount()).To(BeZero())
 						Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 					})
 				})
@@ -434,7 +434,7 @@ var _ = Describe("DBEngine", func() {
 					disaster := errors.New("oh no!")
 
 					BeforeEach(func() {
-						fakeBuildDB.AbortReturns(disaster)
+						dbBuild.AbortReturns(disaster)
 					})
 
 					It("fails", func() {
@@ -460,29 +460,29 @@ var _ = Describe("DBEngine", func() {
 
 				BeforeEach(func() {
 					fakeLease = new(dbfakes.FakeLease)
-					fakeBuildDB.LeaseTrackingReturns(fakeLease, true, nil)
+					dbBuild.LeaseTrackingReturns(fakeLease, true, nil)
 				})
 
 				Context("when the build is active", func() {
 					BeforeEach(func() {
-						fakeBuildDB.EngineReturns("fake-engine-b")
-						fakeBuildDB.IsRunningReturns(true)
-						fakeBuildDB.ReloadReturns(true, nil)
+						dbBuild.EngineReturns("fake-engine-b")
+						dbBuild.IsRunningReturns(true)
+						dbBuild.ReloadReturns(true, nil)
 					})
 
 					Context("when the engine build exists", func() {
 						var realBuild *fakes.FakeBuild
 
 						BeforeEach(func() {
-							fakeBuildDB.ReloadReturns(true, nil)
+							dbBuild.ReloadReturns(true, nil)
 
 							realBuild = new(fakes.FakeBuild)
 							fakeEngineB.LookupBuildReturns(realBuild, nil)
 
 							realBuild.ResumeStub = func(lager.Logger) {
-								Expect(fakeBuildDB.LeaseTrackingCallCount()).To(Equal(1))
+								Expect(dbBuild.LeaseTrackingCallCount()).To(Equal(1))
 
-								_, interval := fakeBuildDB.LeaseTrackingArgsForCall(0)
+								_, interval := dbBuild.LeaseTrackingArgsForCall(0)
 								Expect(interval).To(Equal(10 * time.Second))
 
 								Expect(fakeLease.BreakCallCount()).To(BeZero())
@@ -502,11 +502,11 @@ var _ = Describe("DBEngine", func() {
 								notifier = new(dbfakes.FakeNotifier)
 								notifier.NotifyReturns(aborts)
 
-								fakeBuildDB.AbortNotifierReturns(notifier, nil)
+								dbBuild.AbortNotifierReturns(notifier, nil)
 							})
 
 							It("listens for aborts", func() {
-								Expect(fakeBuildDB.AbortNotifierCallCount()).To(Equal(1))
+								Expect(dbBuild.AbortNotifierCallCount()).To(Equal(1))
 							})
 
 							It("resumes the build", func() {
@@ -557,7 +557,7 @@ var _ = Describe("DBEngine", func() {
 							disaster := errors.New("oh no!")
 
 							BeforeEach(func() {
-								fakeBuildDB.AbortNotifierReturns(nil, disaster)
+								dbBuild.AbortNotifierReturns(nil, disaster)
 							})
 
 							It("does not resume the build", func() {
@@ -574,7 +574,7 @@ var _ = Describe("DBEngine", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeBuildDB.ReloadReturns(true, nil)
+							dbBuild.ReloadReturns(true, nil)
 							fakeEngineB.LookupBuildReturns(nil, disaster)
 						})
 
@@ -583,8 +583,8 @@ var _ = Describe("DBEngine", func() {
 						})
 
 						It("marks the build as errored", func() {
-							Expect(fakeBuildDB.FinishCallCount()).To(Equal(1))
-							buildStatus := fakeBuildDB.FinishArgsForCall(0)
+							Expect(dbBuild.FinishCallCount()).To(Equal(1))
+							buildStatus := dbBuild.FinishArgsForCall(0)
 							Expect(buildStatus).To(Equal(db.StatusErrored))
 						})
 					})
@@ -592,22 +592,22 @@ var _ = Describe("DBEngine", func() {
 
 				Context("when the build's engine is unknown", func() {
 					BeforeEach(func() {
-						fakeBuildDB.ReloadReturns(true, nil)
-						fakeBuildDB.IsRunningReturns(true)
-						fakeBuildDB.EngineReturns("bogus")
+						dbBuild.ReloadReturns(true, nil)
+						dbBuild.IsRunningReturns(true)
+						dbBuild.EngineReturns("bogus")
 					})
 
 					It("marks the build as errored", func() {
-						Expect(fakeBuildDB.FinishCallCount()).To(Equal(1))
-						buildStatus := fakeBuildDB.FinishArgsForCall(0)
+						Expect(dbBuild.FinishCallCount()).To(Equal(1))
+						buildStatus := dbBuild.FinishArgsForCall(0)
 						Expect(buildStatus).To(Equal(db.StatusErrored))
 					})
 				})
 
 				Context("when the build is not yet active", func() {
 					BeforeEach(func() {
-						fakeBuildDB.ReloadReturns(true, nil)
-						fakeBuildDB.EngineReturns("")
+						dbBuild.ReloadReturns(true, nil)
+						dbBuild.EngineReturns("")
 					})
 
 					It("does not look up the build in the engine", func() {
@@ -621,9 +621,9 @@ var _ = Describe("DBEngine", func() {
 
 				Context("when the build has already finished", func() {
 					BeforeEach(func() {
-						fakeBuildDB.ReloadReturns(true, nil)
-						fakeBuildDB.EngineReturns("fake-engine-b")
-						fakeBuildDB.StatusReturns(db.StatusSucceeded)
+						dbBuild.ReloadReturns(true, nil)
+						dbBuild.EngineReturns("fake-engine-b")
+						dbBuild.StatusReturns(db.StatusSucceeded)
 					})
 
 					It("does not look up the build in the engine", func() {
@@ -637,7 +637,7 @@ var _ = Describe("DBEngine", func() {
 
 				Context("when the build is no longer in the database", func() {
 					BeforeEach(func() {
-						fakeBuildDB.ReloadReturns(false, nil)
+						dbBuild.ReloadReturns(false, nil)
 					})
 
 					It("does not look up the build in the engine", func() {
@@ -652,11 +652,11 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when acquiring the lock fails", func() {
 				BeforeEach(func() {
-					fakeBuildDB.LeaseTrackingReturns(nil, false, errors.New("no lease for you"))
+					dbBuild.LeaseTrackingReturns(nil, false, errors.New("no lease for you"))
 				})
 
 				It("does not look up the build", func() {
-					Expect(fakeBuildDB.ReloadCallCount()).To(BeZero())
+					Expect(dbBuild.ReloadCallCount()).To(BeZero())
 					Expect(fakeEngineB.LookupBuildCallCount()).To(BeZero())
 				})
 			})
@@ -680,13 +680,13 @@ var _ = Describe("DBEngine", func() {
 
 			BeforeEach(func() {
 				fakeLease = new(dbfakes.FakeLease)
-				fakeBuildDB.LeaseTrackingReturns(fakeLease, true, nil)
+				dbBuild.LeaseTrackingReturns(fakeLease, true, nil)
 			})
 
 			Context("when the build is active", func() {
 				BeforeEach(func() {
-					fakeBuildDB.EngineReturns("fake-engine-b")
-					fakeBuildDB.ReloadReturns(true, nil)
+					dbBuild.EngineReturns("fake-engine-b")
+					dbBuild.ReloadReturns(true, nil)
 				})
 
 				Context("when the engine build exists", func() {
@@ -749,7 +749,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when the build's engine is unknown", func() {
 				BeforeEach(func() {
-					fakeBuildDB.EngineReturns("bogus")
+					dbBuild.EngineReturns("bogus")
 				})
 
 				It("returns an UnknownEngineError", func() {
@@ -759,8 +759,8 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when the build is not yet active", func() {
 				BeforeEach(func() {
-					fakeBuildDB.ReloadReturns(true, nil)
-					fakeBuildDB.EngineReturns("")
+					dbBuild.ReloadReturns(true, nil)
+					dbBuild.EngineReturns("")
 				})
 
 				It("does not look up the build in the engine", func() {
@@ -770,7 +770,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when the build is no longer in the database", func() {
 				BeforeEach(func() {
-					fakeBuildDB.ReloadReturns(false, nil)
+					dbBuild.ReloadReturns(false, nil)
 				})
 
 				It("does not look up the build in the engine", func() {

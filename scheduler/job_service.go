@@ -15,8 +15,8 @@ import (
 
 type JobServiceDB interface {
 	GetJob(job string) (db.SavedJob, error)
-	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.BuildDB, error)
-	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (db.BuildDB, bool, error)
+	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.Build, error)
+	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (db.Build, bool, error)
 	UpdateBuildPreparation(prep db.BuildPreparation) error
 	IsPaused() (bool, error)
 
@@ -28,7 +28,7 @@ type JobServiceDB interface {
 //go:generate counterfeiter . JobService
 
 type JobService interface {
-	CanBuildBeScheduled(logger lager.Logger, build db.BuildDB, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error)
+	CanBuildBeScheduled(logger lager.Logger, build db.Build, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error)
 }
 
 type jobService struct {
@@ -60,7 +60,7 @@ func (s jobService) updateBuildPrepAndReturn(buildPrep db.BuildPreparation, sche
 	return []db.BuildInput{}, scheduled, message, nil
 }
 
-func (s jobService) getBuildInputs(logger lager.Logger, build db.BuildDB, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, db.BuildPreparation, string, error) {
+func (s jobService) getBuildInputs(logger lager.Logger, build db.Build, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, db.BuildPreparation, string, error) {
 	buildInputs := config.JobInputs(s.JobConfig)
 	if versions == nil {
 		for _, input := range buildInputs {
@@ -157,7 +157,7 @@ func (s jobService) getBuildInputs(logger lager.Logger, build db.BuildDB, buildP
 	return inputs, buildPrep, "", nil
 }
 
-func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.BuildDB, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error) {
+func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error) {
 	if build.IsScheduled() {
 		return s.updateBuildPrepAndReturn(buildPrep, true, "build-scheduled")
 	}
@@ -212,12 +212,12 @@ func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.BuildDB, b
 	maxInFlight := s.JobConfig.MaxInFlight()
 
 	if maxInFlight > 0 {
-		buildDBs, err := s.DB.GetRunningBuildsBySerialGroup(s.DBJob.Name, s.JobConfig.GetSerialGroups())
+		builds, err := s.DB.GetRunningBuildsBySerialGroup(s.DBJob.Name, s.JobConfig.GetSerialGroups())
 		if err != nil {
 			return []db.BuildInput{}, false, "db-failed", err
 		}
 
-		if len(buildDBs) >= maxInFlight {
+		if len(builds) >= maxInFlight {
 			buildPrep.MaxRunningBuilds = db.BuildPreparationStatusBlocking
 			return s.updateBuildPrepAndReturn(buildPrep, false, "max-in-flight-reached")
 		}

@@ -46,13 +46,13 @@ func (engine *execEngine) Name() string {
 	return execEngineName
 }
 
-func (engine *execEngine) CreateBuild(logger lager.Logger, buildDB db.BuildDB, plan atc.Plan) (Build, error) {
+func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
 	return &execBuild{
-		buildID:      buildDB.ID(),
-		stepMetadata: buildMetadata(buildDB, engine.externalURL),
+		buildID:      build.ID(),
+		stepMetadata: buildMetadata(build, engine.externalURL),
 
 		factory:  engine.factory,
-		delegate: engine.delegateFactory.Delegate(buildDB),
+		delegate: engine.delegateFactory.Delegate(build),
 		metadata: execMetadata{
 			Plan: plan,
 		},
@@ -61,25 +61,25 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, buildDB db.BuildDB, p
 	}, nil
 }
 
-func (engine *execEngine) LookupBuild(logger lager.Logger, buildDB db.BuildDB) (Build, error) {
+func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
 	var metadata execMetadata
-	err := json.Unmarshal([]byte(buildDB.EngineMetadata()), &metadata)
+	err := json.Unmarshal([]byte(build.EngineMetadata()), &metadata)
 	if err != nil {
 		logger.Error("invalid-metadata", err)
 		return nil, err
 	}
 
-	err = atc.NewPlanTraversal(engine.convertPipelineNameToID(buildDB.TeamName())).Traverse(&metadata.Plan)
+	err = atc.NewPlanTraversal(engine.convertPipelineNameToID(build.TeamName())).Traverse(&metadata.Plan)
 	if err != nil {
 		return nil, err
 	}
 
 	return &execBuild{
-		buildID:      buildDB.ID(),
-		stepMetadata: buildMetadata(buildDB, engine.externalURL),
+		buildID:      build.ID(),
+		stepMetadata: buildMetadata(build, engine.externalURL),
 
 		factory:  engine.factory,
-		delegate: engine.delegateFactory.Delegate(buildDB),
+		delegate: engine.delegateFactory.Delegate(build),
 		metadata: metadata,
 
 		signals: make(chan os.Signal, 1),
@@ -131,12 +131,12 @@ func (engine *execEngine) convertPipelineNameToID(teamName string) func(plan *at
 	}
 }
 
-func buildMetadata(buildDB db.BuildDB, externalURL string) StepMetadata {
+func buildMetadata(build db.Build, externalURL string) StepMetadata {
 	return StepMetadata{
-		BuildID:      buildDB.ID(),
-		BuildName:    buildDB.Name(),
-		JobName:      buildDB.JobName(),
-		PipelineName: buildDB.PipelineName(),
+		BuildID:      build.ID(),
+		BuildName:    build.Name(),
+		JobName:      build.JobName(),
+		PipelineName: build.PipelineName(),
 		ExternalURL:  externalURL,
 	}
 }

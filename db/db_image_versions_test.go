@@ -60,10 +60,10 @@ var _ = Describe("Image Versions", func() {
 	})
 
 	It("can retrieve saved image_resource_versions from the database", func() {
-		buildDB, err := pipelineDB.CreateJobBuild("some-job")
+		build, err := pipelineDB.CreateJobBuild("some-job")
 		Expect(err).ToNot(HaveOccurred())
 
-		otherBuildDB, err := pipelineDB.CreateJobBuild("some-job")
+		otherBuild, err := pipelineDB.CreateJobBuild("some-job")
 		Expect(err).ToNot(HaveOccurred())
 
 		identifier := db.ResourceCacheIdentifier{
@@ -81,36 +81,36 @@ var _ = Describe("Image Versions", func() {
 			ResourceHash:    "our even badder resource hash",
 		}
 
-		err = buildDB.SaveImageResourceVersion("our-super-sweet-plan", identifier)
+		err = build.SaveImageResourceVersion("our-super-sweet-plan", identifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = buildDB.SaveImageResourceVersion("our-other-super-sweet-plan", otherIdentifier)
+		err = build.SaveImageResourceVersion("our-other-super-sweet-plan", otherIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = otherBuildDB.SaveImageResourceVersion("our-super-bad-plan", badIdentifier)
+		err = otherBuild.SaveImageResourceVersion("our-super-bad-plan", badIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		recoveredIdentifiers, err := buildDB.GetImageResourceCacheIdentifiers()
+		recoveredIdentifiers, err := build.GetImageResourceCacheIdentifiers()
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(recoveredIdentifiers).To(ConsistOf(identifier, otherIdentifier))
 
 		By("replacing the version if the id combination already exists")
 
-		err = buildDB.SaveImageResourceVersion("our-super-sweet-plan", badIdentifier)
+		err = build.SaveImageResourceVersion("our-super-sweet-plan", badIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		recoveredIdentifiers, err = buildDB.GetImageResourceCacheIdentifiers()
+		recoveredIdentifiers, err = build.GetImageResourceCacheIdentifiers()
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(recoveredIdentifiers).To(ConsistOf(badIdentifier, otherIdentifier))
 
 		By("not not enforcing global uniqueness of plan IDs")
 
-		err = otherBuildDB.SaveImageResourceVersion("our-super-sweet-plan", badIdentifier)
+		err = otherBuild.SaveImageResourceVersion("our-super-sweet-plan", badIdentifier)
 		Expect(err).ToNot(HaveOccurred())
 
-		otherRecoveredIdentifiers, err := otherBuildDB.GetImageResourceCacheIdentifiers()
+		otherRecoveredIdentifiers, err := otherBuild.GetImageResourceCacheIdentifiers()
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(otherRecoveredIdentifiers).To(ConsistOf(badIdentifier, badIdentifier))

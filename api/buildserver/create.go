@@ -21,7 +21,7 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamDB := s.teamDBFactory.GetTeamDB(getTeamName(r))
-	buildDB, err := teamDB.CreateOneOffBuild()
+	build, err := teamDB.CreateOneOffBuild()
 
 	if err != nil {
 		hLog.Error("failed-to-create-one-off-build", err)
@@ -29,7 +29,7 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	engineBuild, err := s.engine.CreateBuild(hLog, buildDB, plan)
+	engineBuild, err := s.engine.CreateBuild(hLog, build, plan)
 	if err != nil {
 		hLog.Error("failed-to-start-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -40,5 +40,5 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 
-	json.NewEncoder(w).Encode(present.Build(buildDB))
+	json.NewEncoder(w).Encode(present.Build(build))
 }

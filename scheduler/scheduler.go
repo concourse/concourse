@@ -17,12 +17,12 @@ import (
 
 type PipelineDB interface {
 	JobServiceDB
-	CreateJobBuild(job string) (db.BuildDB, error)
-	CreateJobBuildForCandidateInputs(job string) (db.BuildDB, bool, error)
+	CreateJobBuild(job string) (db.Build, error)
+	CreateJobBuildForCandidateInputs(job string) (db.Build, bool, error)
 	UpdateBuildToScheduled(buildID int) (bool, error)
 
-	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.BuildDB, bool, error)
-	GetNextPendingBuild(job string) (db.BuildDB, bool, error)
+	GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, bool, error)
+	GetNextPendingBuild(job string) (db.Build, bool, error)
 
 	SaveResourceVersions(atc.ResourceConfig, []atc.Version) error
 }
@@ -89,7 +89,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 		return nil
 	}
 
-	existingBuildDB, found, err := s.PipelineDB.GetJobBuildForInputs(job.Name, checkInputs)
+	existingBuild, found, err := s.PipelineDB.GetJobBuildForInputs(job.Name, checkInputs)
 	if err != nil {
 		logger.Error("could-not-determine-if-inputs-are-already-used", err)
 		return err
@@ -97,13 +97,13 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 
 	if found {
 		logger.Debug("build-already-exists-for-inputs", lager.Data{
-			"existing-build": existingBuildDB.ID(),
+			"existing-build": existingBuild.ID(),
 		})
 
 		return nil
 	}
 
-	buildDB, created, err := s.PipelineDB.CreateJobBuildForCandidateInputs(job.Name)
+	build, created, err := s.PipelineDB.CreateJobBuildForCandidateInputs(job.Name)
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
 		return err
@@ -111,12 +111,12 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 
 	if !created {
 		logger.Debug("waiting-for-existing-build-to-determine-inputs", lager.Data{
-			"existing-build": buildDB.ID(),
+			"existing-build": build.ID(),
 		})
 		return nil
 	}
 
-	logger = logger.WithData(lager.Data{"build-id": buildDB.ID(), "build-name": buildDB.Name()})
+	logger = logger.WithData(lager.Data{"build-id": build.ID(), "build-name": build.Name()})
 
 	logger.Info("created-build")
 
@@ -129,7 +129,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 	// NOTE: this is intentionally serial within a scheduler tick, so that
 	// multiple ATCs don't do redundant work to determine a build's inputs.
 
-	s.ScheduleAndResumePendingBuild(logger, versions, buildDB, job, resources, resourceTypes, jobService)
+	s.ScheduleAndResumePendingBuild(logger, versions, build, job, resources, resourceTypes, jobService)
 
 	return nil
 }
@@ -172,7 +172,7 @@ func (s *Scheduler) TriggerImmediately(
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.ResourceTypes,
-) (db.BuildDB, Waiter, error) {
+) (db.Build, Waiter, error) {
 	logger = logger.Session("trigger-immediately", lager.Data{
 		"job": job.Name,
 	})
@@ -230,7 +230,7 @@ func (s *Scheduler) updateBuildToScheduled(logger lager.Logger, canBuildBeSchedu
 func (s *Scheduler) ScheduleAndResumePendingBuild(
 	logger lager.Logger,
 	versions *algorithm.VersionsDB,
-	buildDB db.BuildDB,
+	build db.Build,
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.ResourceTypes,
@@ -238,7 +238,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 ) engine.Build {
 	logger = logger.Session("scheduling")
 
-	lease, acquired, err := buildDB.LeaseScheduling(logger, 10*time.Second)
+	lease, acquired, err := build.LeaseScheduling(logger, 10*time.Second)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return nil
@@ -250,7 +250,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 
 	defer lease.Break()
 
-	buildPrep, found, err := buildDB.GetPreparation()
+	buildPrep, found, err := build.GetPreparation()
 	if err != nil {
 		logger.Error("failed-to-get-build-prep", err)
 		return nil
@@ -261,14 +261,14 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 		return nil
 	}
 
-	inputs, canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(logger, buildDB, buildPrep, versions)
+	inputs, canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(logger, build, buildPrep, versions)
 	if err != nil {
 		logger.Error("failed-to-schedule-build", err, lager.Data{
 			"reason": reason,
 		})
 
 		if reason == "failed-to-scan" {
-			err = buildDB.MarkAsFailed(err)
+			err = build.MarkAsFailed(err)
 			if err != nil {
 				logger.Error("failed-to-mark-build-as-errored", err)
 			}
@@ -276,21 +276,21 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 		return nil
 	}
 
-	if !s.updateBuildToScheduled(logger, canBuildBeScheduled, buildDB.ID(), reason) {
+	if !s.updateBuildToScheduled(logger, canBuildBeScheduled, build.ID(), reason) {
 		return nil
 	}
 
 	plan, err := s.Factory.Create(job, resources, resourceTypes, inputs)
 	if err != nil {
 		// Don't use MarkAsFailed because it logs a build event, and this build hasn't started
-		err := buildDB.Finish(db.StatusErrored)
+		err := build.Finish(db.StatusErrored)
 		if err != nil {
 			logger.Error("failed-to-mark-build-as-errored", err)
 		}
 		return nil
 	}
 
-	createdBuild, err := s.Engine.CreateBuild(logger, buildDB, plan)
+	createdBuild, err := s.Engine.CreateBuild(logger, build, plan)
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
 		return nil

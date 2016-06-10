@@ -18,8 +18,7 @@ type buildFactory struct {
 	bus  *notificationsBus
 }
 
-func (f *buildFactory) ScanBuild(row scannable) (BuildDB, bool, error) {
-
+func (f *buildFactory) ScanBuild(row scannable) (Build, bool, error) {
 	var id int
 	var name string
 	var jobID, pipelineID sql.NullInt64
@@ -40,7 +39,7 @@ func (f *buildFactory) ScanBuild(row scannable) (BuildDB, bool, error) {
 		return nil, false, err
 	}
 
-	build := &buildDB{
+	build := &build{
 		conn: f.conn,
 		bus:  f.bus,
 

@@ -19,7 +19,7 @@ func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
 	})
 
 	teamDB := s.teamDBFactory.GetTeamDB(getTeamName(r))
-	buildDB, found, err := teamDB.GetBuildDB(buildID)
+	build, found, err := teamDB.GetBuild(buildID)
 	if err != nil {
 		aLog.Error("failed-to-get-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -31,7 +31,7 @@ func (s *Server) AbortBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	engineBuild, err := s.engine.LookupBuild(aLog, buildDB)
+	engineBuild, err := s.engine.LookupBuild(aLog, build)
 	if err != nil {
 		aLog.Error("failed-to-lookup-build", err)
 		w.WriteHeader(http.StatusInternalServerError)

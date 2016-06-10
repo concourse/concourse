@@ -350,32 +350,32 @@ var _ = Describe("TeamDB", func() {
 
 	Describe("CreateOneOffBuild", func() {
 		var (
-			oneOffBuildDB db.BuildDB
-			err           error
+			oneOffBuild db.Build
+			err         error
 		)
 
 		BeforeEach(func() {
-			oneOffBuildDB, err = teamDB.CreateOneOffBuild()
+			oneOffBuild, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("can create one-off builds with increasing names", func() {
-			nextOneOffBuildDB, err := teamDB.CreateOneOffBuild()
+			nextOneOffBuild, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(nextOneOffBuildDB.ID()).NotTo(BeZero())
-			Expect(nextOneOffBuildDB.ID()).NotTo(Equal(oneOffBuildDB.ID()))
-			Expect(nextOneOffBuildDB.JobName()).To(BeZero())
-			Expect(nextOneOffBuildDB.Name()).To(Equal("2"))
-			Expect(nextOneOffBuildDB.TeamName()).To(Equal(savedTeam.Name))
-			Expect(nextOneOffBuildDB.Status()).To(Equal(db.StatusPending))
+			Expect(nextOneOffBuild.ID()).NotTo(BeZero())
+			Expect(nextOneOffBuild.ID()).NotTo(Equal(oneOffBuild.ID()))
+			Expect(nextOneOffBuild.JobName()).To(BeZero())
+			Expect(nextOneOffBuild.Name()).To(Equal("2"))
+			Expect(nextOneOffBuild.TeamName()).To(Equal(savedTeam.Name))
+			Expect(nextOneOffBuild.Status()).To(Equal(db.StatusPending))
 		})
 
 		It("also creates buildpreparation", func() {
-			buildPrep, found, err := oneOffBuildDB.GetPreparation()
+			buildPrep, found, err := oneOffBuild.GetPreparation()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			Expect(buildPrep.BuildID).To(Equal(oneOffBuildDB.ID()))
+			Expect(buildPrep.BuildID).To(Equal(oneOffBuild.ID()))
 		})
 	})
 
@@ -392,13 +392,13 @@ var _ = Describe("TeamDB", func() {
 		})
 
 		Context("when there are builds", func() {
-			var allBuilds [5]db.BuildDB
+			var allBuilds [5]db.Build
 
 			BeforeEach(func() {
 				for i := 0; i < 3; i++ {
-					buildDB, err := teamDB.CreateOneOffBuild()
+					build, err := teamDB.CreateOneOffBuild()
 					Expect(err).NotTo(HaveOccurred())
-					allBuilds[i] = buildDB
+					allBuilds[i] = build
 				}
 
 				config := atc.Config{
@@ -462,8 +462,8 @@ var _ = Describe("TeamDB", func() {
 			})
 
 			Context("when there are builds that belong to different teams", func() {
-				var teamABuilds [3]db.BuildDB
-				var teamBBuilds [3]db.BuildDB
+				var teamABuilds [3]db.Build
+				var teamBBuilds [3]db.Build
 
 				var teamADB db.TeamDB
 				var teamBDB db.TeamDB
@@ -504,15 +504,15 @@ var _ = Describe("TeamDB", func() {
 		})
 	})
 
-	Describe("GetBuildDB", func() {
+	Describe("GetBuild", func() {
 		It("returns build that belong to current team", func() {
-			originalBuildDB, err := teamDB.CreateOneOffBuild()
+			originalBuild, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			buildDB, found, err := teamDB.GetBuildDB(originalBuildDB.ID())
+			build, found, err := teamDB.GetBuild(originalBuild.ID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(buildDB.ID()).To(Equal(originalBuildDB.ID()))
+			Expect(build.ID()).To(Equal(originalBuild.ID()))
 		})
 
 		It("does not return build that belongs to another team", func() {
@@ -520,13 +520,13 @@ var _ = Describe("TeamDB", func() {
 			_, err := database.CreateTeam(team)
 			Expect(err).NotTo(HaveOccurred())
 			anotherTeamDB := teamDBFactory.GetTeamDB("another-team-name")
-			anotherTeamBuildDB, err := anotherTeamDB.CreateOneOffBuild()
+			anotherTeamBuild, err := anotherTeamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			buildDB, found, err := teamDB.GetBuildDB(anotherTeamBuildDB.ID())
+			build, found, err := teamDB.GetBuild(anotherTeamBuild.ID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
-			Expect(buildDB).To(BeNil())
+			Expect(build).To(BeNil())
 		})
 	})
 })

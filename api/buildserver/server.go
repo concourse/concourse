@@ -11,7 +11,7 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type EventHandlerFactory func(lager.Logger, db.BuildDB) http.Handler
+type EventHandlerFactory func(lager.Logger, db.Build) http.Handler
 
 type Server struct {
 	logger lager.Logger

@@ -86,17 +86,17 @@ var _ = Describe("Keeping track of builds", func() {
 
 	Describe("UpdateBuildPreparation", func() {
 		var (
-			oneOffBuildDB db.BuildDB
-			err           error
+			oneOffBuild db.Build
+			err         error
 		)
 
 		BeforeEach(func() {
-			oneOffBuildDB, err = teamDB.CreateOneOffBuild()
+			oneOffBuild, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("can update a builds build preparation", func() {
-			buildPrep, found, err := oneOffBuildDB.GetPreparation()
+			buildPrep, found, err := oneOffBuild.GetPreparation()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -108,7 +108,7 @@ var _ = Describe("Keeping track of builds", func() {
 			err = database.UpdateBuildPreparation(buildPrep)
 			Expect(err).NotTo(HaveOccurred())
 
-			newBuildPrep, found, err := oneOffBuildDB.GetPreparation()
+			newBuildPrep, found, err := oneOffBuild.GetPreparation()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -117,16 +117,16 @@ var _ = Describe("Keeping track of builds", func() {
 	})
 
 	Describe("ResetBuildPreparationWithPipelinePaused", func() {
-		var buildDB db.BuildDB
+		var build db.Build
 		var originalBuildPrep db.BuildPreparation
 
 		BeforeEach(func() {
 			var err error
-			buildDB, err = pipelineDB.CreateJobBuild("some-job")
+			build, err = pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
 			originalBuildPrep = db.BuildPreparation{
-				BuildID:          buildDB.ID(),
+				BuildID:          build.ID(),
 				PausedPipeline:   db.BuildPreparationStatusNotBlocking,
 				PausedJob:        db.BuildPreparationStatusNotBlocking,
 				MaxRunningBuilds: db.BuildPreparationStatusNotBlocking,
@@ -148,24 +148,24 @@ var _ = Describe("Keeping track of builds", func() {
 		})
 
 		It("resets the build prep and marks the pipeline as blocking", func() {
-			buildPrep, found, err := buildDB.GetPreparation()
+			buildPrep, found, err := build.GetPreparation()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			expectedBuildPrep := db.NewBuildPreparation(buildDB.ID())
+			expectedBuildPrep := db.NewBuildPreparation(build.ID())
 			expectedBuildPrep.PausedPipeline = db.BuildPreparationStatusBlocking
 			Expect(buildPrep).To(Equal(expectedBuildPrep))
 		})
 
 		Context("where the build is scheduled", func() {
 			BeforeEach(func() {
-				scheduled, err := pipelineDB.UpdateBuildToScheduled(buildDB.ID())
+				scheduled, err := pipelineDB.UpdateBuildToScheduled(build.ID())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(scheduled).To(BeTrue())
 			})
 
 			It("does not update scheduled build's build prep", func() {
-				buildPrep, found, err := buildDB.GetPreparation()
+				buildPrep, found, err := build.GetPreparation()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -175,8 +175,8 @@ var _ = Describe("Keeping track of builds", func() {
 	})
 
 	Describe("GetAllStartedBuilds", func() {
-		var build1DB db.BuildDB
-		var build2DB db.BuildDB
+		var build1DB db.Build
+		var build2DB db.Build
 
 		BeforeEach(func() {
 			var err error
@@ -199,12 +199,12 @@ var _ = Describe("Keeping track of builds", func() {
 		})
 
 		It("returns all builds that have been started, regardless of pipeline", func() {
-			buildDBs, err := database.GetAllStartedBuilds()
+			builds, err := database.GetAllStartedBuilds()
 			Expect(err).NotTo(HaveOccurred())
 
 			build1DB.Reload()
 			build2DB.Reload()
-			Expect(buildDBs).To(ConsistOf(build1DB, build2DB))
+			Expect(builds).To(ConsistOf(build1DB, build2DB))
 		})
 	})
 

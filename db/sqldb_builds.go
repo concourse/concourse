@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func (db *SQLDB) GetAllStartedBuilds() ([]BuildDB, error) {
+func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 	rows, err := db.conn.Query(`
 		SELECT ` + qualifiedBuildColumns + `
 		FROM builds b
@@ -20,7 +20,7 @@ func (db *SQLDB) GetAllStartedBuilds() ([]BuildDB, error) {
 
 	defer rows.Close()
 
-	bs := []BuildDB{}
+	bs := []Build{}
 
 	for rows.Next() {
 		build, _, err := db.buildFactory.ScanBuild(rows)

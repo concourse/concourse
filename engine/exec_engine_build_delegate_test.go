@@ -22,7 +22,7 @@ var _ = Describe("BuildDelegate", func() {
 	var (
 		factory BuildDelegateFactory
 
-		fakeBuildDB *dbfakes.FakeBuildDB
+		fakeBuild *dbfakes.FakeBuild
 
 		delegate BuildDelegate
 
@@ -34,8 +34,8 @@ var _ = Describe("BuildDelegate", func() {
 	BeforeEach(func() {
 		factory = NewBuildDelegateFactory()
 
-		fakeBuildDB = new(dbfakes.FakeBuildDB)
-		delegate = factory.Delegate(fakeBuildDB)
+		fakeBuild = new(dbfakes.FakeBuild)
+		delegate = factory.Delegate(fakeBuild)
 
 		logger = lagertest.NewTestLogger("test")
 
@@ -69,9 +69,9 @@ var _ = Describe("BuildDelegate", func() {
 			})
 
 			It("saves an initializing event", func() {
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(Equal(event.InitializeGet{
 					Origin: event.Origin{
 						ID: originID,
@@ -96,13 +96,13 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				It("does not save the build's input", func() {
-					Expect(fakeBuildDB.SaveInputCallCount()).To(Equal(0))
+					Expect(fakeBuild.SaveInputCallCount()).To(Equal(0))
 				})
 
 				It("saves a finish-get event", func() {
-					Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-					savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+					savedEvent := fakeBuild.SaveEventArgsForCall(0)
 					Expect(savedEvent).To(Equal(event.FinishGet{
 						Origin: event.Origin{
 							ID: originID,
@@ -124,13 +124,13 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				It("does not save the build's input", func() {
-					Expect(fakeBuildDB.SaveInputCallCount()).To(Equal(0))
+					Expect(fakeBuild.SaveInputCallCount()).To(Equal(0))
 				})
 
 				It("saves a finish-get event", func() {
-					Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-					savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+					savedEvent := fakeBuild.SaveEventArgsForCall(0)
 					Expect(savedEvent).To(Equal(event.FinishGet{
 						Origin: event.Origin{
 							ID: originID,
@@ -160,13 +160,13 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				It("does not save the build's input", func() {
-					Expect(fakeBuildDB.SaveInputCallCount()).To(Equal(0))
+					Expect(fakeBuild.SaveInputCallCount()).To(Equal(0))
 				})
 
 				It("saves a finish-get event", func() {
-					Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-					savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+					savedEvent := fakeBuild.SaveEventArgsForCall(0)
 					Expect(savedEvent).To(Equal(event.FinishGet{
 						Origin: event.Origin{
 							ID: originID,
@@ -205,9 +205,9 @@ var _ = Describe("BuildDelegate", func() {
 						It("finishes with status 'failed'", func() {
 							delegate.Finish(logger, finishErr, succeeded, aborted)
 
-							Expect(fakeBuildDB.FinishCallCount()).To(Equal(1))
+							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
-							savedStatus := fakeBuildDB.FinishArgsForCall(0)
+							savedStatus := fakeBuild.FinishArgsForCall(0)
 							Expect(savedStatus).To(Equal(db.StatusFailed))
 						})
 					})
@@ -220,9 +220,9 @@ var _ = Describe("BuildDelegate", func() {
 						It("finishes with status 'succeeded'", func() {
 							delegate.Finish(logger, finishErr, succeeded, aborted)
 
-							Expect(fakeBuildDB.FinishCallCount()).To(Equal(1))
+							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
-							savedStatus := fakeBuildDB.FinishArgsForCall(0)
+							savedStatus := fakeBuild.FinishArgsForCall(0)
 							Expect(savedStatus).To(Equal(db.StatusSucceeded))
 						})
 					})
@@ -230,7 +230,7 @@ var _ = Describe("BuildDelegate", func() {
 
 				Context("when exit status is 0", func() {
 					BeforeEach(func() {
-						fakeBuildDB.SaveInputReturns(db.SavedVersionedResource{
+						fakeBuild.SaveInputReturns(db.SavedVersionedResource{
 							ID: 42,
 							VersionedResource: db.VersionedResource{
 								PipelineID: 57,
@@ -247,9 +247,9 @@ var _ = Describe("BuildDelegate", func() {
 					})
 
 					It("saves the build's input", func() {
-						Expect(fakeBuildDB.SaveInputCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveInputCallCount()).To(Equal(1))
 
-						savedInput := fakeBuildDB.SaveInputArgsForCall(0)
+						savedInput := fakeBuild.SaveInputArgsForCall(0)
 						Expect(savedInput).To(Equal(db.BuildInput{
 							Name: "some-input",
 							VersionedResource: db.VersionedResource{
@@ -263,9 +263,9 @@ var _ = Describe("BuildDelegate", func() {
 					})
 
 					It("saves a finish-get event", func() {
-						Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-						savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+						savedEvent := fakeBuild.SaveEventArgsForCall(0)
 						Expect(savedEvent).To(Equal(event.FinishGet{
 							Origin: event.Origin{
 								ID: originID,
@@ -299,9 +299,9 @@ var _ = Describe("BuildDelegate", func() {
 								It("saves the input as an implicit output", func() {
 									delegate.Finish(logger, finishErr, succeeded, aborted)
 
-									Expect(fakeBuildDB.SaveOutputCallCount()).To(Equal(1))
+									Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
-									savedOutput, explicit := fakeBuildDB.SaveOutputArgsForCall(0)
+									savedOutput, explicit := fakeBuild.SaveOutputArgsForCall(0)
 									Expect(savedOutput).To(Equal(db.VersionedResource{
 										PipelineID: 57,
 										Resource:   "some-input-resource",
@@ -325,7 +325,7 @@ var _ = Describe("BuildDelegate", func() {
 								It("does not save the input as an implicit output", func() {
 									delegate.Finish(logger, finishErr, succeeded, aborted)
 
-									Expect(fakeBuildDB.SaveOutputCallCount()).To(BeZero())
+									Expect(fakeBuild.SaveOutputCallCount()).To(BeZero())
 								})
 							})
 						})
@@ -371,9 +371,9 @@ var _ = Describe("BuildDelegate", func() {
 							It("only saves the explicit output", func() {
 								delegate.Finish(logger, finishErr, succeeded, aborted)
 
-								Expect(fakeBuildDB.SaveOutputCallCount()).To(Equal(1))
+								Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
-								savedOutput, explicit := fakeBuildDB.SaveOutputArgsForCall(0)
+								savedOutput, explicit := fakeBuild.SaveOutputArgsForCall(0)
 								Expect(savedOutput).To(Equal(db.VersionedResource{
 									PipelineID: 57,
 									Resource:   "some-input-resource",
@@ -395,7 +395,7 @@ var _ = Describe("BuildDelegate", func() {
 								It("does not save it as an output", func() {
 									delegate.Finish(logger, finishErr, succeeded, aborted)
 
-									Expect(fakeBuildDB.SaveOutputCallCount()).To(BeZero())
+									Expect(fakeBuild.SaveOutputCallCount()).To(BeZero())
 								})
 							})
 						})
@@ -410,13 +410,13 @@ var _ = Describe("BuildDelegate", func() {
 			})
 
 			It("does not save the build's input", func() {
-				Expect(fakeBuildDB.SaveInputCallCount()).To(BeZero())
+				Expect(fakeBuild.SaveInputCallCount()).To(BeZero())
 			})
 
 			It("saves an error event", func() {
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(Equal(event.Error{
 					Origin: event.Origin{
 						ID: originID,
@@ -439,13 +439,13 @@ var _ = Describe("BuildDelegate", func() {
 			})
 
 			It("calls through to the database", func() {
-				fakeBuildDB.SaveImageResourceVersionReturns(nil)
+				fakeBuild.SaveImageResourceVersionReturns(nil)
 
 				err := inputDelegate.ImageVersionDetermined(identifier)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(fakeBuildDB.SaveImageResourceVersionCallCount()).To(Equal(1))
-				actualPlanID, actualIdentifier := fakeBuildDB.SaveImageResourceVersionArgsForCall(0)
+				Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
+				actualPlanID, actualIdentifier := fakeBuild.SaveImageResourceVersionArgsForCall(0)
 				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
 				Expect(actualIdentifier).To(Equal(db.ResourceCacheIdentifier{
 					ResourceVersion: atc.Version{"ref": "asdf"},
@@ -455,7 +455,7 @@ var _ = Describe("BuildDelegate", func() {
 
 			It("propagates errors", func() {
 				distaster := errors.New("sorry mate")
-				fakeBuildDB.SaveImageResourceVersionReturns(distaster)
+				fakeBuild.SaveImageResourceVersionReturns(distaster)
 
 				err := inputDelegate.ImageVersionDetermined(identifier)
 				Expect(err).To(Equal(distaster))
@@ -473,9 +473,9 @@ var _ = Describe("BuildDelegate", func() {
 				_, err := writer.Write([]byte("some stdout"))
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(Equal(event.Log{
 					Origin: event.Origin{
 						Source: event.OriginSourceStdout,
@@ -498,9 +498,9 @@ var _ = Describe("BuildDelegate", func() {
 				_, err := writer.Write([]byte("some stderr"))
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(Equal(event.Log{
 					Origin: event.Origin{
 						Source: event.OriginSourceStderr,
@@ -546,9 +546,9 @@ var _ = Describe("BuildDelegate", func() {
 			})
 
 			It("saves an initialize event", func() {
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(Equal(event.InitializeTask{
 					TaskConfig: event.TaskConfig{
 						Run: event.TaskRunConfig{
@@ -570,9 +570,9 @@ var _ = Describe("BuildDelegate", func() {
 			})
 
 			It("saves a start event", func() {
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(BeAssignableToTypeOf(event.StartTask{}))
 				Expect(savedEvent.(event.StartTask).Time).To(BeNumerically("~", time.Now().Unix(), 1))
 				Expect(savedEvent.(event.StartTask).Origin).To(Equal(event.Origin{
@@ -595,9 +595,9 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				It("saves a finish event", func() {
-					Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-					savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+					savedEvent := fakeBuild.SaveEventArgsForCall(0)
 					Expect(savedEvent).To(BeAssignableToTypeOf(event.FinishTask{}))
 					Expect(savedEvent.(event.FinishTask).ExitStatus).To(Equal(0))
 					Expect(savedEvent.(event.FinishTask).Time).To(BeNumerically("<=", time.Now().Unix(), 1))
@@ -624,9 +624,9 @@ var _ = Describe("BuildDelegate", func() {
 						It("finishes with status 'succeeded'", func() {
 							delegate.Finish(logger, finishErr, succeeded, aborted)
 
-							Expect(fakeBuildDB.FinishCallCount()).To(Equal(1))
+							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
-							savedStatus := fakeBuildDB.FinishArgsForCall(0)
+							savedStatus := fakeBuild.FinishArgsForCall(0)
 							Expect(savedStatus).To(Equal(db.StatusSucceeded))
 						})
 					})
@@ -642,9 +642,9 @@ var _ = Describe("BuildDelegate", func() {
 						It("finishes with status 'errored'", func() {
 							delegate.Finish(logger, finishErr, succeeded, aborted)
 
-							Expect(fakeBuildDB.FinishCallCount()).To(Equal(1))
+							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
-							savedStatus := fakeBuildDB.FinishArgsForCall(0)
+							savedStatus := fakeBuild.FinishArgsForCall(0)
 							Expect(savedStatus).To(Equal(db.StatusErrored))
 						})
 					})
@@ -657,9 +657,9 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				It("saves a finish event", func() {
-					Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-					savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+					savedEvent := fakeBuild.SaveEventArgsForCall(0)
 					Expect(savedEvent).To(BeAssignableToTypeOf(event.FinishTask{}))
 					Expect(savedEvent.(event.FinishTask).ExitStatus).To(Equal(1))
 					Expect(savedEvent.(event.FinishTask).Time).To(BeNumerically("<=", time.Now().Unix(), 1))
@@ -677,13 +677,13 @@ var _ = Describe("BuildDelegate", func() {
 			})
 
 			It("does not save the build's input", func() {
-				Expect(fakeBuildDB.SaveInputCallCount()).To(BeZero())
+				Expect(fakeBuild.SaveInputCallCount()).To(BeZero())
 			})
 
 			It("saves an error event", func() {
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(Equal(event.Error{
 					Message: "nope",
 					Origin: event.Origin{
@@ -707,13 +707,13 @@ var _ = Describe("BuildDelegate", func() {
 			})
 
 			It("Calls through to the database", func() {
-				fakeBuildDB.SaveImageResourceVersionReturns(nil)
+				fakeBuild.SaveImageResourceVersionReturns(nil)
 
 				err := executionDelegate.ImageVersionDetermined(identifier)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(fakeBuildDB.SaveImageResourceVersionCallCount()).To(Equal(1))
-				actualPlanID, actualIdentifier := fakeBuildDB.SaveImageResourceVersionArgsForCall(0)
+				Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
+				actualPlanID, actualIdentifier := fakeBuild.SaveImageResourceVersionArgsForCall(0)
 				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
 				Expect(actualIdentifier).To(Equal(db.ResourceCacheIdentifier{
 					ResourceVersion: atc.Version{"ref": "asdf"},
@@ -723,7 +723,7 @@ var _ = Describe("BuildDelegate", func() {
 
 			It("Propagates errors", func() {
 				distaster := errors.New("sorry mate")
-				fakeBuildDB.SaveImageResourceVersionReturns(distaster)
+				fakeBuild.SaveImageResourceVersionReturns(distaster)
 
 				err := executionDelegate.ImageVersionDetermined(identifier)
 				Expect(err).To(Equal(distaster))
@@ -741,9 +741,9 @@ var _ = Describe("BuildDelegate", func() {
 				_, err := writer.Write([]byte("some stdout"))
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(Equal(event.Log{
 					Origin: event.Origin{
 						Source: event.OriginSourceStdout,
@@ -766,9 +766,9 @@ var _ = Describe("BuildDelegate", func() {
 				_, err := writer.Write([]byte("some stderr"))
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(Equal(event.Log{
 					Origin: event.Origin{
 						Source: event.OriginSourceStderr,
@@ -807,9 +807,9 @@ var _ = Describe("BuildDelegate", func() {
 			})
 
 			It("saves an initializing event", func() {
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(Equal(event.InitializePut{
 					Origin: event.Origin{
 						ID: originID,
@@ -834,13 +834,13 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				It("does not save the build's output", func() {
-					Expect(fakeBuildDB.SaveOutputCallCount()).To(Equal(0))
+					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(0))
 				})
 
 				It("saves an output event", func() {
-					Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-					savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+					savedEvent := fakeBuild.SaveEventArgsForCall(0)
 					Expect(savedEvent).To(Equal(event.FinishPut{
 						Origin: event.Origin{
 							ID: originID,
@@ -864,9 +864,9 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				It("saves the build's output", func() {
-					Expect(fakeBuildDB.SaveOutputCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
-					savedOutput, explicit := fakeBuildDB.SaveOutputArgsForCall(0)
+					savedOutput, explicit := fakeBuild.SaveOutputArgsForCall(0)
 					Expect(savedOutput).To(Equal(db.VersionedResource{
 						PipelineID: 86,
 						Resource:   "some-output-resource",
@@ -879,9 +879,9 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				It("saves an output event", func() {
-					Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-					savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+					savedEvent := fakeBuild.SaveEventArgsForCall(0)
 					Expect(savedEvent).To(Equal(event.FinishPut{
 						Origin: event.Origin{
 							ID: originID,
@@ -905,9 +905,9 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				It("saves the build's output", func() {
-					Expect(fakeBuildDB.SaveOutputCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 
-					savedOutput, explicit := fakeBuildDB.SaveOutputArgsForCall(0)
+					savedOutput, explicit := fakeBuild.SaveOutputArgsForCall(0)
 					Expect(savedOutput).To(Equal(db.VersionedResource{
 						PipelineID: 86,
 						Resource:   "some-output-resource",
@@ -920,9 +920,9 @@ var _ = Describe("BuildDelegate", func() {
 				})
 
 				It("saves an output event", func() {
-					Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-					savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+					savedEvent := fakeBuild.SaveEventArgsForCall(0)
 					Expect(savedEvent).To(Equal(event.FinishPut{
 						Origin: event.Origin{
 							ID: originID,
@@ -962,9 +962,9 @@ var _ = Describe("BuildDelegate", func() {
 						It("finishes with status 'failed'", func() {
 							delegate.Finish(logger, finishErr, succeeded, aborted)
 
-							Expect(fakeBuildDB.FinishCallCount()).To(Equal(1))
+							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
-							savedStatus := fakeBuildDB.FinishArgsForCall(0)
+							savedStatus := fakeBuild.FinishArgsForCall(0)
 							Expect(savedStatus).To(Equal(db.StatusSucceeded))
 						})
 					})
@@ -977,9 +977,9 @@ var _ = Describe("BuildDelegate", func() {
 						It("finishes with status 'failed'", func() {
 							delegate.Finish(logger, finishErr, succeeded, aborted)
 
-							Expect(fakeBuildDB.FinishCallCount()).To(Equal(1))
+							Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
-							savedStatus := fakeBuildDB.FinishArgsForCall(0)
+							savedStatus := fakeBuild.FinishArgsForCall(0)
 							Expect(savedStatus).To(Equal(db.StatusFailed))
 						})
 					})
@@ -993,13 +993,13 @@ var _ = Describe("BuildDelegate", func() {
 			})
 
 			It("does not save the build's input", func() {
-				Expect(fakeBuildDB.SaveInputCallCount()).To(BeZero())
+				Expect(fakeBuild.SaveInputCallCount()).To(BeZero())
 			})
 
 			It("saves an error event", func() {
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(Equal(event.Error{
 					Origin: event.Origin{
 						ID: originID,
@@ -1023,13 +1023,13 @@ var _ = Describe("BuildDelegate", func() {
 			})
 
 			It("calls through to the database", func() {
-				fakeBuildDB.SaveImageResourceVersionReturns(nil)
+				fakeBuild.SaveImageResourceVersionReturns(nil)
 
 				err := outputDelegate.ImageVersionDetermined(identifier)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(fakeBuildDB.SaveImageResourceVersionCallCount()).To(Equal(1))
-				actualPlanID, actualIdentifier := fakeBuildDB.SaveImageResourceVersionArgsForCall(0)
+				Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
+				actualPlanID, actualIdentifier := fakeBuild.SaveImageResourceVersionArgsForCall(0)
 				Expect(actualPlanID).To(Equal(atc.PlanID("some-origin-id")))
 				Expect(actualIdentifier).To(Equal(db.ResourceCacheIdentifier{
 					ResourceVersion: atc.Version{"ref": "asdf"},
@@ -1039,7 +1039,7 @@ var _ = Describe("BuildDelegate", func() {
 
 			It("propagates errors", func() {
 				distaster := errors.New("sorry mate")
-				fakeBuildDB.SaveImageResourceVersionReturns(distaster)
+				fakeBuild.SaveImageResourceVersionReturns(distaster)
 
 				err := outputDelegate.ImageVersionDetermined(identifier)
 				Expect(err).To(Equal(distaster))
@@ -1057,9 +1057,9 @@ var _ = Describe("BuildDelegate", func() {
 				_, err := writer.Write([]byte("some stdout"))
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(Equal(event.Log{
 					Origin: event.Origin{
 						Source: event.OriginSourceStdout,
@@ -1082,9 +1082,9 @@ var _ = Describe("BuildDelegate", func() {
 				_, err := writer.Write([]byte("some stderr"))
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeBuildDB.SaveEventCallCount()).To(Equal(1))
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 
-				savedEvent := fakeBuildDB.SaveEventArgsForCall(0)
+				savedEvent := fakeBuild.SaveEventArgsForCall(0)
 				Expect(savedEvent).To(Equal(event.Log{
 					Origin: event.Origin{
 						Source: event.OriginSourceStderr,
@@ -1121,9 +1121,9 @@ var _ = Describe("BuildDelegate", func() {
 				It("finishes with status 'aborted'", func() {
 					delegate.Finish(logger, finishErr, succeeded, aborted)
 
-					Expect(fakeBuildDB.FinishCallCount()).To(Equal(1))
+					Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
-					savedStatus := fakeBuildDB.FinishArgsForCall(0)
+					savedStatus := fakeBuild.FinishArgsForCall(0)
 					Expect(savedStatus).To(Equal(db.StatusAborted))
 				})
 			})
@@ -1139,9 +1139,9 @@ var _ = Describe("BuildDelegate", func() {
 				It("finishes with status 'aborted'", func() {
 					delegate.Finish(logger, finishErr, succeeded, aborted)
 
-					Expect(fakeBuildDB.FinishCallCount()).To(Equal(1))
+					Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
-					savedStatus := fakeBuildDB.FinishArgsForCall(0)
+					savedStatus := fakeBuild.FinishArgsForCall(0)
 					Expect(savedStatus).To(Equal(db.StatusAborted))
 				})
 			})

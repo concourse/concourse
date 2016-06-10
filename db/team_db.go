@@ -24,9 +24,9 @@ type TeamDB interface {
 	GetConfig(pipelineName string) (atc.Config, atc.RawConfig, ConfigVersion, error)
 	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
 
-	CreateOneOffBuild() (BuildDB, error)
-	GetBuilds(page Page) ([]BuildDB, Pagination, error)
-	GetBuildDB(buildID int) (BuildDB, bool, error)
+	CreateOneOffBuild() (Build, error)
+	GetBuilds(page Page) ([]Build, Pagination, error)
+	GetBuild(buildID int) (Build, bool, error)
 }
 
 type teamDB struct {
@@ -488,7 +488,7 @@ func (db *teamDB) UpdateUAAAuth(uaaAuth *UAAAuth) (SavedTeam, error) {
 	))
 }
 
-func (db *teamDB) CreateOneOffBuild() (BuildDB, error) {
+func (db *teamDB) CreateOneOffBuild() (Build, error) {
 	tx, err := db.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -532,7 +532,7 @@ func (db *teamDB) CreateOneOffBuild() (BuildDB, error) {
 	return build, nil
 }
 
-func (db *teamDB) GetBuilds(page Page) ([]BuildDB, Pagination, error) {
+func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 	query := `
 		SELECT ` + qualifiedBuildColumns + `
 		FROM builds b
@@ -577,7 +577,7 @@ func (db *teamDB) GetBuilds(page Page) ([]BuildDB, Pagination, error) {
 
 	defer rows.Close()
 
-	builds := []BuildDB{}
+	builds := []Build{}
 
 	for rows.Next() {
 		build, _, err := db.buildFactory.ScanBuild(rows)
@@ -626,7 +626,7 @@ func (db *teamDB) GetBuilds(page Page) ([]BuildDB, Pagination, error) {
 	return builds, pagination, nil
 }
 
-func (db *teamDB) GetBuildDB(buildID int) (BuildDB, bool, error) {
+func (db *teamDB) GetBuild(buildID int) (Build, bool, error) {
 	return db.buildFactory.ScanBuild(db.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b

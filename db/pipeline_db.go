@@ -55,30 +55,30 @@ type PipelineDB interface {
 	UnpauseJob(job string) error
 	UpdateFirstLoggedBuildID(job string, newFirstLoggedBuildID int) error
 
-	GetJobFinishedAndNextBuild(job string) (BuildDB, BuildDB, error)
+	GetJobFinishedAndNextBuild(job string) (Build, Build, error)
 
-	GetJobBuilds(job string, page Page) ([]BuildDB, Pagination, error)
-	GetAllJobBuilds(job string) ([]BuildDB, error)
+	GetJobBuilds(job string, page Page) ([]Build, Pagination, error)
+	GetAllJobBuilds(job string) ([]Build, error)
 
-	GetJobBuild(job string, build string) (BuildDB, bool, error)
-	CreateJobBuild(job string) (BuildDB, error)
-	CreateJobBuildForCandidateInputs(job string) (BuildDB, bool, error)
+	GetJobBuild(job string, build string) (Build, bool, error)
+	CreateJobBuild(job string) (Build, error)
+	CreateJobBuildForCandidateInputs(job string) (Build, bool, error)
 
 	UseInputsForBuild(buildID int, inputs []BuildInput) error
 
 	LoadVersionsDB() (*algorithm.VersionsDB, error)
 	GetNextInputVersions(versions *algorithm.VersionsDB, job string, inputs []config.JobInput) ([]BuildInput, bool, MissingInputReasons, error)
-	GetJobBuildForInputs(job string, inputs []BuildInput) (BuildDB, bool, error)
-	GetNextPendingBuild(job string) (BuildDB, bool, error)
+	GetJobBuildForInputs(job string, inputs []BuildInput) (Build, bool, error)
+	GetNextPendingBuild(job string) (Build, bool, error)
 
-	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]BuildDB, error)
-	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (BuildDB, bool, error)
+	GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error)
+	GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error)
 
 	UpdateBuildToScheduled(buildID int) (bool, error)
 	SaveInput(buildID int, input BuildInput) (SavedVersionedResource, error)
 	SaveOutput(buildID int, vr VersionedResource, explicit bool) (SavedVersionedResource, error)
-	GetBuildsWithVersionAsInput(versionedResourceID int) ([]BuildDB, error)
-	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]BuildDB, error)
+	GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error)
+	GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error)
 
 	UpdateBuildPreparation(prep BuildPreparation) error
 
@@ -1044,7 +1044,7 @@ func (pdb *pipelineDB) GetJob(jobName string) (SavedJob, error) {
 	return dbJob, nil
 }
 
-func (pdb *pipelineDB) GetJobBuild(job string, name string) (BuildDB, bool, error) {
+func (pdb *pipelineDB) GetJobBuild(job string, name string) (Build, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -1078,7 +1078,7 @@ func (pdb *pipelineDB) GetJobBuild(job string, name string) (BuildDB, bool, erro
 	return build, found, nil
 }
 
-func (pdb *pipelineDB) CreateJobBuildForCandidateInputs(jobName string) (BuildDB, bool, error) {
+func (pdb *pipelineDB) CreateJobBuildForCandidateInputs(jobName string) (Build, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -1166,7 +1166,7 @@ func (pdb *pipelineDB) UseInputsForBuild(buildID int, inputs []BuildInput) error
 	return tx.Commit()
 }
 
-func (pdb *pipelineDB) CreateJobBuild(jobName string) (BuildDB, error) {
+func (pdb *pipelineDB) CreateJobBuild(jobName string) (Build, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -1187,7 +1187,7 @@ func (pdb *pipelineDB) CreateJobBuild(jobName string) (BuildDB, error) {
 	return build, nil
 }
 
-func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (BuildDB, error) {
+func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
 	dbJob, err := pdb.getJob(tx, jobName)
 	if err != nil {
 		return nil, err
@@ -1253,7 +1253,7 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (BuildDB, error) {
 	return build, nil
 }
 
-func (pdb *pipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]BuildDB, error) {
+func (pdb *pipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]Build, error) {
 	rows, err := pdb.conn.Query(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
@@ -1268,7 +1268,7 @@ func (pdb *pipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]B
 	}
 	defer rows.Close()
 
-	builds := []BuildDB{}
+	builds := []Build{}
 	for rows.Next() {
 		build, _, err := pdb.buildFactory.ScanBuild(rows)
 		if err != nil {
@@ -1280,7 +1280,7 @@ func (pdb *pipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]B
 	return builds, err
 }
 
-func (pdb *pipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]BuildDB, error) {
+func (pdb *pipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]Build, error) {
 	rows, err := pdb.conn.Query(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
@@ -1295,7 +1295,7 @@ func (pdb *pipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]
 	}
 	defer rows.Close()
 
-	builds := []BuildDB{}
+	builds := []Build{}
 	for rows.Next() {
 		build, _, err := pdb.buildFactory.ScanBuild(rows)
 		if err != nil {
@@ -1415,7 +1415,7 @@ func (pdb *pipelineDB) SaveOutput(buildID int, vr VersionedResource, explicit bo
 	return svr, nil
 }
 
-func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (BuildDB, bool, error) {
+func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Build, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -1498,7 +1498,7 @@ func (pdb *pipelineDB) GetJobBuildForInputs(job string, inputs []BuildInput) (Bu
 	))
 }
 
-func (pdb *pipelineDB) GetNextPendingBuild(job string) (BuildDB, bool, error) {
+func (pdb *pipelineDB) GetNextPendingBuild(job string) (Build, bool, error) {
 	tx, err := pdb.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -1563,7 +1563,7 @@ func (pdb *pipelineDB) updateSerialGroupsForJob(jobName string, serialGroups []s
 	return tx.Commit()
 }
 
-func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (BuildDB, bool, error) {
+func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (Build, bool, error) {
 	pdb.updateSerialGroupsForJob(jobName, serialGroups)
 
 	args := []interface{}{pdb.ID}
@@ -1590,7 +1590,7 @@ func (pdb *pipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGr
 	`, args...))
 }
 
-func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]BuildDB, error) {
+func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]Build, error) {
 	pdb.updateSerialGroupsForJob(jobName, serialGroups)
 
 	args := []interface{}{pdb.ID}
@@ -1623,7 +1623,7 @@ func (pdb *pipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroup
 
 	defer rows.Close()
 
-	bs := []BuildDB{}
+	bs := []Build{}
 
 	for rows.Next() {
 		build, _, err := pdb.buildFactory.ScanBuild(rows)
@@ -2042,14 +2042,14 @@ func (pdb *pipelineDB) updatePausedJob(job string, pause bool) error {
 	return tx.Commit()
 }
 
-func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]BuildDB, Pagination, error) {
+func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]Build, Pagination, error) {
 	var (
-		err          error
-		maxID        int
-		minID        int
-		firstBuildDB BuildDB
-		lastBuildDB  BuildDB
-		pagination   Pagination
+		err        error
+		maxID      int
+		minID      int
+		firstBuild Build
+		lastBuild  Build
+		pagination Pagination
 
 		rows *sql.Rows
 	)
@@ -2100,7 +2100,7 @@ func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]BuildDB, Pagin
 
 	defer rows.Close()
 
-	buildDBs := []BuildDB{}
+	builds := []Build{}
 
 	for rows.Next() {
 		build, _, err := pdb.buildFactory.ScanBuild(rows)
@@ -2108,11 +2108,11 @@ func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]BuildDB, Pagin
 			return nil, Pagination{}, err
 		}
 
-		buildDBs = append(buildDBs, build)
+		builds = append(builds, build)
 	}
 
-	if len(buildDBs) == 0 {
-		return []BuildDB{}, Pagination{}, nil
+	if len(builds) == 0 {
+		return []Build{}, Pagination{}, nil
 	}
 
 	err = pdb.conn.QueryRow(`
@@ -2127,27 +2127,27 @@ func (pdb *pipelineDB) GetJobBuilds(jobName string, page Page) ([]BuildDB, Pagin
 		return nil, Pagination{}, err
 	}
 
-	firstBuildDB = buildDBs[0]
-	lastBuildDB = buildDBs[len(buildDBs)-1]
+	firstBuild = builds[0]
+	lastBuild = builds[len(builds)-1]
 
-	if firstBuildDB.ID() < maxID {
+	if firstBuild.ID() < maxID {
 		pagination.Previous = &Page{
-			Until: firstBuildDB.ID(),
+			Until: firstBuild.ID(),
 			Limit: page.Limit,
 		}
 	}
 
-	if lastBuildDB.ID() > minID {
+	if lastBuild.ID() > minID {
 		pagination.Next = &Page{
-			Since: lastBuildDB.ID(),
+			Since: lastBuild.ID(),
 			Limit: page.Limit,
 		}
 	}
 
-	return buildDBs, pagination, nil
+	return builds, pagination, nil
 }
 
-func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]BuildDB, error) {
+func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]Build, error) {
 	rows, err := pdb.conn.Query(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
@@ -2164,7 +2164,7 @@ func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]BuildDB, error) {
 
 	defer rows.Close()
 
-	bs := []BuildDB{}
+	bs := []Build{}
 
 	for rows.Next() {
 		build, _, err := pdb.buildFactory.ScanBuild(rows)
@@ -2178,7 +2178,7 @@ func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]BuildDB, error) {
 	return bs, nil
 }
 
-func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (BuildDB, BuildDB, error) {
+func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (Build, Build, error) {
 	finished, _, err := pdb.buildFactory.ScanBuild(pdb.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
@@ -2300,7 +2300,7 @@ func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
 	return savedJobs, nil
 }
 
-func (pdb *pipelineDB) getLastJobBuildsSatisfying(bRequirement string) (map[string]BuildDB, error) {
+func (pdb *pipelineDB) getLastJobBuildsSatisfying(bRequirement string) (map[string]Build, error) {
 	rows, err := pdb.conn.Query(`
 		 SELECT `+qualifiedBuildColumns+`
 		 FROM builds b, jobs j, pipelines p, teams t,
@@ -2324,7 +2324,7 @@ func (pdb *pipelineDB) getLastJobBuildsSatisfying(bRequirement string) (map[stri
 
 	defer rows.Close()
 
-	nextBuilds := make(map[string]BuildDB)
+	nextBuilds := make(map[string]Build)
 
 	for rows.Next() {
 		build, scanned, err := pdb.buildFactory.ScanBuild(rows)

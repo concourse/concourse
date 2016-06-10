@@ -20,11 +20,11 @@ func (execV1DummyEngine) Name() string {
 	return execV1DummyEngineName
 }
 
-func (execV1DummyEngine) CreateBuild(logger lager.Logger, buildDB db.BuildDB, plan atc.Plan) (Build, error) {
+func (execV1DummyEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
 	return nil, errors.New("dummy engine does not support new builds")
 }
 
-func (execV1DummyEngine) LookupBuild(logger lager.Logger, buildDB db.BuildDB) (Build, error) {
+func (execV1DummyEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
 	return execV1DummyBuild{}, nil
 }
 

@@ -9,16 +9,16 @@ import (
 )
 
 type FakeTrackerDB struct {
-	GetAllStartedBuildsStub        func() ([]db.BuildDB, error)
+	GetAllStartedBuildsStub        func() ([]db.Build, error)
 	getAllStartedBuildsMutex       sync.RWMutex
 	getAllStartedBuildsArgsForCall []struct{}
 	getAllStartedBuildsReturns     struct {
-		result1 []db.BuildDB
+		result1 []db.Build
 		result2 error
 	}
 }
 
-func (fake *FakeTrackerDB) GetAllStartedBuilds() ([]db.BuildDB, error) {
+func (fake *FakeTrackerDB) GetAllStartedBuilds() ([]db.Build, error) {
 	fake.getAllStartedBuildsMutex.Lock()
 	fake.getAllStartedBuildsArgsForCall = append(fake.getAllStartedBuildsArgsForCall, struct{}{})
 	fake.getAllStartedBuildsMutex.Unlock()
@@ -35,10 +35,10 @@ func (fake *FakeTrackerDB) GetAllStartedBuildsCallCount() int {
 	return len(fake.getAllStartedBuildsArgsForCall)
 }
 
-func (fake *FakeTrackerDB) GetAllStartedBuildsReturns(result1 []db.BuildDB, result2 error) {
+func (fake *FakeTrackerDB) GetAllStartedBuildsReturns(result1 []db.Build, result2 error) {
 	fake.GetAllStartedBuildsStub = nil
 	fake.getAllStartedBuildsReturns = struct {
-		result1 []db.BuildDB
+		result1 []db.Build
 		result2 error
 	}{result1, result2}
 }

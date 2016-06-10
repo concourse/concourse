@@ -9,7 +9,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func Build(build db.BuildDB) atc.Build {
+func Build(build db.Build) atc.Build {
 	var err error
 	var reqURL string
 	if build.JobName() == "" && build.PipelineName() == "" {

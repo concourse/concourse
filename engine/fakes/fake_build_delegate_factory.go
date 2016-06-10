@@ -9,20 +9,20 @@ import (
 )
 
 type FakeBuildDelegateFactory struct {
-	DelegateStub        func(db.BuildDB) engine.BuildDelegate
+	DelegateStub        func(db.Build) engine.BuildDelegate
 	delegateMutex       sync.RWMutex
 	delegateArgsForCall []struct {
-		arg1 db.BuildDB
+		arg1 db.Build
 	}
 	delegateReturns struct {
 		result1 engine.BuildDelegate
 	}
 }
 
-func (fake *FakeBuildDelegateFactory) Delegate(arg1 db.BuildDB) engine.BuildDelegate {
+func (fake *FakeBuildDelegateFactory) Delegate(arg1 db.Build) engine.BuildDelegate {
 	fake.delegateMutex.Lock()
 	fake.delegateArgsForCall = append(fake.delegateArgsForCall, struct {
-		arg1 db.BuildDB
+		arg1 db.Build
 	}{arg1})
 	fake.delegateMutex.Unlock()
 	if fake.DelegateStub != nil {
@@ -38,7 +38,7 @@ func (fake *FakeBuildDelegateFactory) DelegateCallCount() int {
 	return len(fake.delegateArgsForCall)
 }
 
-func (fake *FakeBuildDelegateFactory) DelegateArgsForCall(i int) db.BuildDB {
+func (fake *FakeBuildDelegateFactory) DelegateArgsForCall(i int) db.Build {
 	fake.delegateMutex.RLock()
 	defer fake.delegateMutex.RUnlock()
 	return fake.delegateArgsForCall[i].arg1

@@ -50,7 +50,7 @@ func (b *badge) String() string {
 	return buffer.String()
 }
 
-func badgeForBuild(build db.BuildDB) *badge {
+func badgeForBuild(build db.Build) *badge {
 	switch {
 	case build == nil:
 		return &badgeUnknown

@@ -23,7 +23,7 @@ var _ = Describe("Exec Engine with Try", func() {
 
 		execEngine engine.Engine
 
-		buildDB          *dbfakes.FakeBuildDB
+		build            *dbfakes.FakeBuild
 		expectedMetadata engine.StepMetadata
 		logger           *lagertest.TestLogger
 
@@ -47,11 +47,11 @@ var _ = Describe("Exec Engine with Try", func() {
 		fakeDelegate = new(fakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
-		buildDB = new(dbfakes.FakeBuildDB)
-		buildDB.IDReturns(84)
-		buildDB.NameReturns("42")
-		buildDB.JobNameReturns("some-job")
-		buildDB.PipelineNameReturns("some-pipeline")
+		build = new(dbfakes.FakeBuild)
+		build.IDReturns(84)
+		build.NameReturns("42")
+		build.JobNameReturns("some-job")
+		build.PipelineNameReturns("some-pipeline")
 
 		expectedMetadata = engine.StepMetadata{
 			BuildID:      84,
@@ -114,7 +114,7 @@ var _ = Describe("Exec Engine with Try", func() {
 					Step: inputPlan,
 				})
 
-				build, err := execEngine.CreateBuild(logger, buildDB, plan)
+				build, err := execEngine.CreateBuild(logger, build, plan)
 				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
 			})
@@ -162,7 +162,7 @@ var _ = Describe("Exec Engine with Try", func() {
 					}),
 				})
 
-				build, err := execEngine.CreateBuild(logger, buildDB, plan)
+				build, err := execEngine.CreateBuild(logger, build, plan)
 
 				Expect(err).NotTo(HaveOccurred())
 

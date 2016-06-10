@@ -50,7 +50,7 @@ var (
 	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
 	teamDBFactory                 *dbfakes.FakeTeamDBFactory
 	teamDB                        *dbfakes.FakeTeamDB
-	buildDB                       *dbfakes.FakeBuildDB
+	build                         *dbfakes.FakeBuild
 	fakeSchedulerFactory          *jobserverfakes.FakeSchedulerFactory
 	fakeScannerFactory            *resourceserverfakes.FakeScannerFactory
 	configValidationErrorMessages []string
@@ -67,17 +67,17 @@ var (
 )
 
 type fakeEventHandlerFactory struct {
-	buildDB db.BuildDB
+	build db.Build
 
 	lock sync.Mutex
 }
 
 func (f *fakeEventHandlerFactory) Construct(
 	logger lager.Logger,
-	buildDB db.BuildDB,
+	build db.Build,
 ) http.Handler {
 	f.lock.Lock()
-	f.buildDB = buildDB
+	f.build = build
 	f.lock.Unlock()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +125,7 @@ var _ = BeforeEach(func() {
 	sink = lager.NewReconfigurableSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG), lager.DEBUG)
 	logger.RegisterSink(sink)
 
-	buildDB = new(dbfakes.FakeBuildDB)
+	build = new(dbfakes.FakeBuild)
 
 	handler, err := api.NewHandler(
 		logger,

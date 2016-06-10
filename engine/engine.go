@@ -11,8 +11,8 @@ import (
 type Engine interface {
 	Name() string
 
-	CreateBuild(lager.Logger, db.BuildDB, atc.Plan) (Build, error)
-	LookupBuild(lager.Logger, db.BuildDB) (Build, error)
+	CreateBuild(lager.Logger, db.Build, atc.Plan) (Build, error)
+	LookupBuild(lager.Logger, db.Build) (Build, error)
 }
 
 //go:generate counterfeiter . Build

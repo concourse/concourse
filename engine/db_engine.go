@@ -38,15 +38,15 @@ func (*dbEngine) Name() string {
 	return "db"
 }
 
-func (engine *dbEngine) CreateBuild(logger lager.Logger, buildDB db.BuildDB, plan atc.Plan) (Build, error) {
+func (engine *dbEngine) CreateBuild(logger lager.Logger, build db.Build, plan atc.Plan) (Build, error) {
 	buildEngine := engine.engines[0]
 
-	createdBuild, err := buildEngine.CreateBuild(logger, buildDB, plan)
+	createdBuild, err := buildEngine.CreateBuild(logger, build, plan)
 	if err != nil {
 		return nil, err
 	}
 
-	started, err := buildDB.Start(buildEngine.Name(), createdBuild.Metadata())
+	started, err := build.Start(buildEngine.Name(), createdBuild.Metadata())
 	if err != nil {
 		return nil, err
 	}
@@ -57,35 +57,35 @@ func (engine *dbEngine) CreateBuild(logger lager.Logger, buildDB db.BuildDB, pla
 
 	return &dbBuild{
 		engines: engine.engines,
-		buildDB: buildDB,
+		build:   build,
 	}, nil
 }
 
-func (engine *dbEngine) LookupBuild(logger lager.Logger, buildDB db.BuildDB) (Build, error) {
+func (engine *dbEngine) LookupBuild(logger lager.Logger, build db.Build) (Build, error) {
 	return &dbBuild{
 		engines: engine.engines,
-		buildDB: buildDB,
+		build:   build,
 	}, nil
 }
 
 type dbBuild struct {
 	engines Engines
-	buildDB db.BuildDB
+	build   db.Build
 }
 
 func (build *dbBuild) Metadata() string {
-	return strconv.Itoa(build.buildDB.ID())
+	return strconv.Itoa(build.build.ID())
 }
 
 func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, error) {
-	buildEngineName := build.buildDB.Engine()
+	buildEngineName := build.build.Engine()
 	buildEngine, found := build.engines.Lookup(buildEngineName)
 	if !found {
 		logger.Error("unknown-engine", nil, lager.Data{"engine": buildEngineName})
 		return atc.PublicBuildPlan{}, UnknownEngineError{buildEngineName}
 	}
 
-	engineBuild, err := buildEngine.LookupBuild(logger, build.buildDB)
+	engineBuild, err := buildEngine.LookupBuild(logger, build.build)
 	if err != nil {
 		return atc.PublicBuildPlan{}, err
 	}
@@ -96,7 +96,7 @@ func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, erro
 func (build *dbBuild) Abort(logger lager.Logger) error {
 	// the order below is very important to avoid races with build creation.
 
-	lease, leased, err := build.buildDB.LeaseTracking(logger, trackingInterval)
+	lease, leased, err := build.build.LeaseTracking(logger, trackingInterval)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return err
@@ -105,7 +105,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 	if !leased {
 		// someone else is tracking the build; abort it, which will notify them
 		logger.Info("notifying-other-tracker")
-		return build.buildDB.Abort()
+		return build.build.Abort()
 	}
 
 	defer lease.Break()
@@ -114,7 +114,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 
 	// first save the status so that CreateBuild will see a conflict when it
 	// tries to mark the build as started.
-	err = build.buildDB.Abort()
+	err = build.build.Abort()
 	if err != nil {
 		logger.Error("failed-to-abort-in-database", err)
 		return err
@@ -122,7 +122,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 
 	// reload the model *after* saving the status for the following check to see
 	// if it was already started
-	found, err := build.buildDB.Reload()
+	found, err := build.build.Reload()
 	if err != nil {
 		logger.Error("failed-to-get-build-from-database", err)
 		return err
@@ -133,7 +133,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 		return nil
 	}
 
-	buildEngineName := build.buildDB.Engine()
+	buildEngineName := build.build.Engine()
 	// if there's an engine, there's a real build to abort
 	if buildEngineName == "" {
 		// otherwise, CreateBuild had not yet tried to start the build, and so it
@@ -142,7 +142,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 		// finish the build so that the aborted event is put into the event stream
 		// even if the build has not started yet
 		logger.Info("finishing-build-with-no-engine")
-		return build.buildDB.Finish(db.StatusAborted)
+		return build.build.Finish(db.StatusAborted)
 	}
 
 	buildEngine, found := build.engines.Lookup(buildEngineName)
@@ -152,7 +152,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 	}
 
 	// find the real build to abort...
-	engineBuild, err := buildEngine.LookupBuild(logger, build.buildDB)
+	engineBuild, err := buildEngine.LookupBuild(logger, build.build)
 	if err != nil {
 		logger.Error("failed-to-lookup-build-in-engine", err)
 		return err
@@ -163,7 +163,7 @@ func (build *dbBuild) Abort(logger lager.Logger) error {
 }
 
 func (build *dbBuild) Resume(logger lager.Logger) {
-	lease, leased, err := build.buildDB.LeaseTracking(logger, trackingInterval)
+	lease, leased, err := build.build.LeaseTracking(logger, trackingInterval)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
 		return
@@ -176,7 +176,7 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 
 	defer lease.Break()
 
-	found, err := build.buildDB.Reload()
+	found, err := build.build.Reload()
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
 		return
@@ -187,15 +187,15 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	buildEngineName := build.buildDB.Engine()
+	buildEngineName := build.build.Engine()
 	if buildEngineName == "" {
 		logger.Error("build-has-no-engine", err)
 		return
 	}
 
-	if !build.buildDB.IsRunning() {
+	if !build.build.IsRunning() {
 		logger.Info("build-already-finished", lager.Data{
-			"build-id": build.buildDB.ID(),
+			"build-id": build.build.ID(),
 		})
 		return
 	}
@@ -209,14 +209,14 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 		return
 	}
 
-	engineBuild, err := buildEngine.LookupBuild(logger, build.buildDB)
+	engineBuild, err := buildEngine.LookupBuild(logger, build.build)
 	if err != nil {
 		logger.Error("failed-to-lookup-build-from-engine", err)
 		build.finishWithError(logger)
 		return
 	}
 
-	aborts, err := build.buildDB.AbortNotifier()
+	aborts, err := build.build.AbortNotifier()
 	if err != nil {
 		logger.Error("failed-to-listen-for-aborts", err)
 		return
@@ -241,16 +241,16 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	}()
 
 	metric.BuildStarted{
-		PipelineName: build.buildDB.PipelineName(),
-		JobName:      build.buildDB.JobName(),
-		BuildName:    build.buildDB.Name(),
-		BuildID:      build.buildDB.ID(),
+		PipelineName: build.build.PipelineName(),
+		JobName:      build.build.JobName(),
+		BuildName:    build.build.Name(),
+		BuildID:      build.build.ID(),
 	}.Emit(logger)
 
 	logger.Info("running")
 	engineBuild.Resume(logger)
 
-	found, err = build.buildDB.Reload()
+	found, err = build.build.Reload()
 	if err != nil {
 		logger.Error("failed-to-load-build-from-db", err)
 		return
@@ -262,17 +262,17 @@ func (build *dbBuild) Resume(logger lager.Logger) {
 	}
 
 	metric.BuildFinished{
-		PipelineName:  build.buildDB.PipelineName(),
-		JobName:       build.buildDB.JobName(),
-		BuildName:     build.buildDB.Name(),
-		BuildID:       build.buildDB.ID(),
-		BuildStatus:   build.buildDB.Status(),
-		BuildDuration: build.buildDB.EndTime().Sub(build.buildDB.StartTime()),
+		PipelineName:  build.build.PipelineName(),
+		JobName:       build.build.JobName(),
+		BuildName:     build.build.Name(),
+		BuildID:       build.build.ID(),
+		BuildStatus:   build.build.Status(),
+		BuildDuration: build.build.EndTime().Sub(build.build.StartTime()),
 	}.Emit(logger)
 }
 
 func (build *dbBuild) finishWithError(logger lager.Logger) {
-	err := build.buildDB.Finish(db.StatusErrored)
+	err := build.build.Finish(db.StatusErrored)
 	if err != nil {
 		logger.Error("failed-to-mark-build-as-errored", err)
 	}

@@ -20,7 +20,7 @@ import (
 const ProtocolVersionHeader = "X-ATC-Stream-Version"
 const CurrentProtocolVersion = "2.0"
 
-func NewEventHandler(logger lager.Logger, buildDB db.BuildDB) http.Handler {
+func NewEventHandler(logger lager.Logger, build db.Build) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var flusher http.Flusher
 		var responseFlusher *gzip.Writer
@@ -54,9 +54,9 @@ func NewEventHandler(logger lager.Logger, buildDB db.BuildDB) http.Handler {
 			defer conn.Close()
 			writer = WebsocketJSONWriter{conn}
 
-			events, err = buildDB.Events(start)
+			events, err = build.Events(start)
 			if err != nil {
-				logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": buildDB.ID(), "start": start})
+				logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": build.ID(), "start": start})
 				endMessage := websocket.FormatCloseMessage(
 					websocket.CloseInternalServerErr,
 					"failed-to-get-build-events",
@@ -87,9 +87,9 @@ func NewEventHandler(logger lager.Logger, buildDB db.BuildDB) http.Handler {
 			writer = EventSourceJSONWriter{responseWriter}
 
 			var err error
-			events, err = buildDB.Events(start)
+			events, err = build.Events(start)
 			if err != nil {
-				logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": buildDB.ID(), "start": start})
+				logger.Error("failed-to-get-build-events", err, lager.Data{"build-id": build.ID(), "start": start})
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -148,7 +148,7 @@ func NewEventHandler(logger lager.Logger, buildDB db.BuildDB) http.Handler {
 					writer.WriteJSON(WebsocketMessage{Type: "end"})
 					writer.Close()
 				} else {
-					logger.Error("failed-to-get-next-build-event", err, lager.Data{"build-id": buildDB.ID(), "start": start})
+					logger.Error("failed-to-get-next-build-event", err, lager.Data{"build-id": build.ID(), "start": start})
 					writer.WriteError("failed-to-get-next-build-event")
 				}
 

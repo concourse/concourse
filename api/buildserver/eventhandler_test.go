@@ -28,15 +28,15 @@ func (fakeEvent) Version() atc.EventVersion  { return "42.0" }
 
 var _ = Describe("Handler", func() {
 	var (
-		buildDB *dbfakes.FakeBuildDB
+		build *dbfakes.FakeBuild
 
 		server *httptest.Server
 	)
 
 	BeforeEach(func() {
-		buildDB = new(dbfakes.FakeBuildDB)
+		build = new(dbfakes.FakeBuild)
 
-		server = httptest.NewServer(NewEventHandler(lager.NewLogger("test"), buildDB))
+		server = httptest.NewServer(NewEventHandler(lager.NewLogger("test"), build))
 	})
 
 	Describe("GET", func() {
@@ -65,7 +65,7 @@ var _ = Describe("Handler", func() {
 
 				fakeEventSource = new(dbfakes.FakeEventSource)
 
-				buildDB.EventsStub = func(from uint) (db.EventSource, error) {
+				build.EventsStub = func(from uint) (db.EventSource, error) {
 					fakeEventSource.NextStub = func() (atc.Event, error) {
 						defer GinkgoRecover()
 
@@ -111,8 +111,8 @@ var _ = Describe("Handler", func() {
 				})
 
 				It("gets the events starting at 0", func() {
-					Eventually(buildDB.EventsCallCount).Should(Equal(1))
-					actualFrom := buildDB.EventsArgsForCall(0)
+					Eventually(build.EventsCallCount).Should(Equal(1))
+					actualFrom := build.EventsArgsForCall(0)
 					Expect(actualFrom).To(BeZero())
 				})
 
@@ -186,8 +186,8 @@ var _ = Describe("Handler", func() {
 					})
 
 					It("starts subscribing from after the id", func() {
-						Eventually(buildDB.EventsCallCount).Should(Equal(1))
-						actualFrom := buildDB.EventsArgsForCall(0)
+						Eventually(build.EventsCallCount).Should(Equal(1))
+						actualFrom := build.EventsArgsForCall(0)
 						Expect(actualFrom).To(Equal(uint(2)))
 					})
 				})
@@ -205,8 +205,8 @@ var _ = Describe("Handler", func() {
 				})
 
 				It("gets the events from starting at 0", func() {
-					Eventually(buildDB.EventsCallCount).Should(Equal(1))
-					actualFrom := buildDB.EventsArgsForCall(0)
+					Eventually(build.EventsCallCount).Should(Equal(1))
+					actualFrom := build.EventsArgsForCall(0)
 					Expect(actualFrom).To(BeZero())
 				})
 
@@ -261,8 +261,8 @@ var _ = Describe("Handler", func() {
 					})
 
 					It("starts subscribing from after the id", func() {
-						Eventually(buildDB.EventsCallCount).Should(Equal(1))
-						actualFrom := buildDB.EventsArgsForCall(0)
+						Eventually(build.EventsCallCount).Should(Equal(1))
+						actualFrom := build.EventsArgsForCall(0)
 						Expect(actualFrom).To(Equal(uint(2)))
 					})
 				})
@@ -293,7 +293,7 @@ var _ = Describe("Handler", func() {
 					}
 				}
 
-				buildDB.EventsReturns(fakeEventSource, nil)
+				build.EventsReturns(fakeEventSource, nil)
 			})
 
 			AfterEach(func() {
@@ -377,7 +377,7 @@ var _ = Describe("Handler", func() {
 			BeforeEach(func() {
 				fakeEventSource = new(dbfakes.FakeEventSource)
 				fakeEventSource.NextReturns(fakeEvent{"e1"}, nil)
-				buildDB.EventsReturns(fakeEventSource, nil)
+				build.EventsReturns(fakeEventSource, nil)
 			})
 
 			Context("when the request doesn't use websockets", func() {
@@ -407,7 +407,7 @@ var _ = Describe("Handler", func() {
 
 		Context("when subscribing to it fails", func() {
 			BeforeEach(func() {
-				buildDB.EventsReturns(nil, errors.New("nope"))
+				build.EventsReturns(nil, errors.New("nope"))
 			})
 
 			Context("when the request doesn't use websockets", func() {

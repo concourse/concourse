@@ -32,7 +32,7 @@ type BuildDelegate interface {
 //go:generate counterfeiter . BuildDelegateFactory
 
 type BuildDelegateFactory interface {
-	Delegate(db.BuildDB) BuildDelegate
+	Delegate(db.Build) BuildDelegate
 }
 
 type buildDelegateFactory struct{}
@@ -41,21 +41,21 @@ func NewBuildDelegateFactory() BuildDelegateFactory {
 	return buildDelegateFactory{}
 }
 
-func (factory buildDelegateFactory) Delegate(buildDB db.BuildDB) BuildDelegate {
-	return newBuildDelegate(buildDB)
+func (factory buildDelegateFactory) Delegate(build db.Build) BuildDelegate {
+	return newBuildDelegate(build)
 }
 
 type delegate struct {
-	buildDB db.BuildDB
+	build db.Build
 
 	implicitOutputs map[string]implicitOutput
 
 	lock sync.Mutex
 }
 
-func newBuildDelegate(buildDB db.BuildDB) BuildDelegate {
+func newBuildDelegate(build db.Build) BuildDelegate {
 	return &delegate{
-		buildDB: buildDB,
+		build: build,
 
 		implicitOutputs: make(map[string]implicitOutput),
 	}
@@ -130,7 +130,7 @@ func (delegate *delegate) unregisterImplicitOutput(resource string) {
 }
 
 func (delegate *delegate) saveInitializeTask(logger lager.Logger, taskConfig atc.TaskConfig, origin event.Origin) {
-	err := delegate.buildDB.SaveEvent(event.InitializeTask{
+	err := delegate.build.SaveEvent(event.InitializeTask{
 		TaskConfig: event.ShadowTaskConfig(taskConfig),
 		Origin:     origin,
 	})
@@ -140,7 +140,7 @@ func (delegate *delegate) saveInitializeTask(logger lager.Logger, taskConfig atc
 }
 
 func (delegate *delegate) saveInitializeGet(logger lager.Logger, origin event.Origin) {
-	err := delegate.buildDB.SaveEvent(event.InitializeGet{
+	err := delegate.build.SaveEvent(event.InitializeGet{
 		Origin: origin,
 	})
 	if err != nil {
@@ -149,7 +149,7 @@ func (delegate *delegate) saveInitializeGet(logger lager.Logger, origin event.Or
 }
 
 func (delegate *delegate) saveInitializePut(logger lager.Logger, origin event.Origin) {
-	err := delegate.buildDB.SaveEvent(event.InitializePut{
+	err := delegate.build.SaveEvent(event.InitializePut{
 		Origin: origin,
 	})
 	if err != nil {
@@ -158,7 +158,7 @@ func (delegate *delegate) saveInitializePut(logger lager.Logger, origin event.Or
 }
 
 func (delegate *delegate) saveStart(logger lager.Logger, origin event.Origin) {
-	err := delegate.buildDB.SaveEvent(event.StartTask{
+	err := delegate.build.SaveEvent(event.StartTask{
 		Time:   time.Now().Unix(),
 		Origin: origin,
 	})
@@ -168,7 +168,7 @@ func (delegate *delegate) saveStart(logger lager.Logger, origin event.Origin) {
 }
 
 func (delegate *delegate) saveFinish(logger lager.Logger, status exec.ExitStatus, origin event.Origin) {
-	err := delegate.buildDB.SaveEvent(event.FinishTask{
+	err := delegate.build.SaveEvent(event.FinishTask{
 		ExitStatus: int(status),
 		Time:       time.Now().Unix(),
 		Origin:     origin,
@@ -179,14 +179,14 @@ func (delegate *delegate) saveFinish(logger lager.Logger, status exec.ExitStatus
 }
 
 func (delegate *delegate) saveStatus(logger lager.Logger, status atc.BuildStatus) {
-	err := delegate.buildDB.Finish(db.Status(status))
+	err := delegate.build.Finish(db.Status(status))
 	if err != nil {
 		logger.Error("failed-to-finish-build", err)
 	}
 }
 
 func (delegate *delegate) saveErr(logger lager.Logger, errVal error, origin event.Origin) {
-	err := delegate.buildDB.SaveEvent(event.Error{
+	err := delegate.build.SaveEvent(event.Error{
 		Message: errVal.Error(),
 		Origin:  origin,
 	})
@@ -200,7 +200,7 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 	var metadata []atc.MetadataField
 
 	if info != nil && plan.PipelineID != 0 {
-		savedVR, err := delegate.buildDB.SaveInput(db.BuildInput{
+		savedVR, err := delegate.build.SaveInput(db.BuildInput{
 			Name:              plan.Name,
 			VersionedResource: vrFromInput(plan, *info),
 		})
@@ -225,7 +225,7 @@ func (delegate *delegate) saveInput(logger lager.Logger, status exec.ExitStatus,
 		FetchedMetadata: metadata,
 	}
 
-	err := delegate.buildDB.SaveEvent(ev)
+	err := delegate.build.SaveEvent(ev)
 	if err != nil {
 		logger.Error("failed-to-save-input-event", err)
 	}
@@ -252,13 +252,13 @@ func (delegate *delegate) saveOutput(logger lager.Logger, status exec.ExitStatus
 		CreatedMetadata: metadata,
 	}
 
-	err := delegate.buildDB.SaveEvent(ev)
+	err := delegate.build.SaveEvent(ev)
 	if err != nil {
 		logger.Error("failed-to-save-output-event", err)
 	}
 
 	if info != nil && plan.PipelineID != 0 {
-		_, err = delegate.buildDB.SaveOutput(vrFromOutput(plan.PipelineID, ev), true)
+		_, err = delegate.build.SaveOutput(vrFromOutput(plan.PipelineID, ev), true)
 		if err != nil {
 			logger.Error("failed-to-save-output", err)
 		}
@@ -278,7 +278,7 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPl
 		}
 	}
 
-	_, err := delegate.buildDB.SaveOutput(db.VersionedResource{
+	_, err := delegate.build.SaveOutput(db.VersionedResource{
 		PipelineID: plan.PipelineID,
 		Resource:   plan.Resource,
 		Type:       plan.Type,
@@ -295,8 +295,8 @@ func (delegate *delegate) saveImplicitOutput(logger lager.Logger, plan atc.GetPl
 
 func (delegate *delegate) eventWriter(origin event.Origin) io.Writer {
 	return &dbEventWriter{
-		buildDB: delegate.buildDB,
-		origin:  origin,
+		build:  delegate.build,
+		origin: origin,
 	}
 }
 
@@ -333,7 +333,7 @@ func (input *inputDelegate) Failed(err error) {
 }
 
 func (input *inputDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
-	return input.delegate.buildDB.SaveImageResourceVersion(atc.PlanID(input.id), *identifier.ResourceCache)
+	return input.delegate.build.SaveImageResourceVersion(atc.PlanID(input.id), *identifier.ResourceCache)
 }
 
 func (input *inputDelegate) Stdout() io.Writer {
@@ -382,7 +382,7 @@ func (output *outputDelegate) Failed(err error) {
 }
 
 func (output *outputDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
-	return output.delegate.buildDB.SaveImageResourceVersion(atc.PlanID(output.id), *identifier.ResourceCache)
+	return output.delegate.build.SaveImageResourceVersion(atc.PlanID(output.id), *identifier.ResourceCache)
 }
 
 func (output *outputDelegate) Stdout() io.Writer {
@@ -442,7 +442,7 @@ func (execution *executionDelegate) Failed(err error) {
 }
 
 func (execution *executionDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
-	return execution.delegate.buildDB.SaveImageResourceVersion(atc.PlanID(execution.id), *identifier.ResourceCache)
+	return execution.delegate.build.SaveImageResourceVersion(atc.PlanID(execution.id), *identifier.ResourceCache)
 }
 
 func (execution *executionDelegate) Stdout() io.Writer {
@@ -463,7 +463,7 @@ type dbEventWriter struct {
 	buildID    int
 	pipelineID int
 
-	buildDB db.BuildDB
+	build db.Build
 
 	origin event.Origin
 
@@ -481,7 +481,7 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 
 	writer.dangling = nil
 
-	writer.buildDB.SaveEvent(event.Log{
+	writer.build.SaveEvent(event.Log{
 		Payload: string(text),
 		Origin:  writer.origin,
 	})

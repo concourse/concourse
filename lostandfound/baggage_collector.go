@@ -113,14 +113,14 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 				"job":      pipelineJob.Name,
 			})
 
-			finishedBuildDB, _, err := pipelineDB.GetJobFinishedAndNextBuild(pipelineJob.Name)
+			finishedBuild, _, err := pipelineDB.GetJobFinishedAndNextBuild(pipelineJob.Name)
 			if err != nil {
 				logger.Error("could-not-acquire-finished-and-next-builds-for-job", err)
 				return nil, err
 			}
 
-			if finishedBuildDB != nil {
-				resourceCacheIdentifiers, err := finishedBuildDB.GetImageResourceCacheIdentifiers()
+			if finishedBuild != nil {
+				resourceCacheIdentifiers, err := finishedBuild.GetImageResourceCacheIdentifiers()
 				if err != nil {
 					logger.Error("could-not-acquire-volume-identifiers-for-build", err)
 					return nil, err

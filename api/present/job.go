@@ -13,8 +13,8 @@ func Job(
 	dbJob db.SavedJob,
 	job atc.JobConfig,
 	groups atc.GroupConfigs,
-	finishedBuild db.BuildDB,
-	nextBuild db.BuildDB,
+	finishedBuild db.Build,
+	nextBuild db.Build,
 ) atc.Job {
 	generator := rata.NewRequestGenerator("", web.Routes)
 

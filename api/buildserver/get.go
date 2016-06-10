@@ -19,7 +19,7 @@ func (s *Server) GetBuild(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamDB := s.teamDBFactory.GetTeamDB(getTeamName(r))
-	buildDB, found, err := teamDB.GetBuildDB(buildID)
+	build, found, err := teamDB.GetBuild(buildID)
 	if err != nil {
 		log.Error("cannot-find-build", err, lager.Data{"buildID": r.FormValue(":build_id")})
 		w.WriteHeader(http.StatusInternalServerError)
@@ -33,7 +33,5 @@ func (s *Server) GetBuild(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 
-	build := present.Build(buildDB)
-
-	json.NewEncoder(w).Encode(build)
+	json.NewEncoder(w).Encode(present.Build(build))
 }

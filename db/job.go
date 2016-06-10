@@ -19,8 +19,8 @@ type DashboardJob struct {
 	Job       SavedJob
 	JobConfig atc.JobConfig
 
-	FinishedBuild BuildDB
-	NextBuild     BuildDB
+	FinishedBuild Build
+	NextBuild     Build
 }
 
 type Dashboard []DashboardJob

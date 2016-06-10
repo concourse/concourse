@@ -21,7 +21,7 @@ func (s *Server) GetBuildPreparation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamDB := s.teamDBFactory.GetTeamDB(getTeamName(r))
-	buildDB, found, err := teamDB.GetBuildDB(buildID)
+	build, found, err := teamDB.GetBuild(buildID)
 	if err != nil {
 		s.logger.Error("failed-to-get-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -33,7 +33,7 @@ func (s *Server) GetBuildPreparation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prep, found, err := buildDB.GetPreparation()
+	prep, found, err := build.GetPreparation()
 	if err != nil {
 		log.Error("cannot-find-build-preparation", err)
 		w.WriteHeader(http.StatusInternalServerError)

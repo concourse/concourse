@@ -9,7 +9,7 @@ import (
 //go:generate counterfeiter . TrackerDB
 
 type TrackerDB interface {
-	GetAllStartedBuilds() ([]db.BuildDB, error)
+	GetAllStartedBuilds() ([]db.Build, error)
 }
 
 func NewTracker(
@@ -35,21 +35,21 @@ type Tracker struct {
 func (bt *Tracker) Track() {
 	bt.logger.Debug("start")
 	defer bt.logger.Debug("done")
-	buildDBs, err := bt.trackerDB.GetAllStartedBuilds()
+	builds, err := bt.trackerDB.GetAllStartedBuilds()
 	if err != nil {
 		bt.logger.Error("failed-to-lookup-started-builds", err)
 	}
 
-	for _, buildDB := range buildDBs {
+	for _, build := range builds {
 		tLog := bt.logger.Session("track", lager.Data{
-			"build": buildDB.ID(),
+			"build": build.ID(),
 		})
 
-		engineBuild, err := bt.engine.LookupBuild(tLog, buildDB)
+		engineBuild, err := bt.engine.LookupBuild(tLog, build)
 		if err != nil {
 			tLog.Error("failed-to-lookup-build", err)
 
-			err := buildDB.MarkAsFailed(err)
+			err := build.MarkAsFailed(err)
 			if err != nil {
 				tLog.Error("failed-to-mark-build-as-errored", err)
 			}

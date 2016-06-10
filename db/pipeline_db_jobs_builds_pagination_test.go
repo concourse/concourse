@@ -67,17 +67,17 @@ var _ = Describe("Jobs Builds", func() {
 	})
 
 	Context("GetJobBuilds", func() {
-		var builds [10]db.BuildDB
+		var builds [10]db.Build
 
 		BeforeEach(func() {
 			for i := 0; i < 10; i++ {
-				buildDB, err := pipelineDB.CreateJobBuild("some-job")
+				build, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = pipelineDB.CreateJobBuild("some-other-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				builds[i] = buildDB
+				builds[i] = build
 			}
 		})
 
@@ -85,7 +85,7 @@ var _ = Describe("Jobs Builds", func() {
 			It("returns the builds, with previous/next pages", func() {
 				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-other-job", db.Page{})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(buildsPage).To(Equal([]db.BuildDB{}))
+				Expect(buildsPage).To(Equal([]db.Build{}))
 				Expect(pagination).To(Equal(db.Pagination{}))
 			})
 		})
@@ -94,7 +94,7 @@ var _ = Describe("Jobs Builds", func() {
 			It("returns the first page, with the given limit, and a next page", func() {
 				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(buildsPage).To(Equal([]db.BuildDB{builds[9], builds[8]}))
+				Expect(buildsPage).To(Equal([]db.Build{builds[9], builds[8]}))
 				Expect(pagination.Previous).To(BeNil())
 				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID(), Limit: 2}))
 			})
@@ -104,7 +104,7 @@ var _ = Describe("Jobs Builds", func() {
 			It("returns the builds, with previous/next pages", func() {
 				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Since: builds[6].ID(), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(buildsPage).To(Equal([]db.BuildDB{builds[5], builds[4]}))
+				Expect(buildsPage).To(Equal([]db.Build{builds[5], builds[4]}))
 				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[5].ID(), Limit: 2}))
 				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[4].ID(), Limit: 2}))
 			})
@@ -114,7 +114,7 @@ var _ = Describe("Jobs Builds", func() {
 			It("returns the builds, with previous/next pages", func() {
 				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Since: builds[2].ID(), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(buildsPage).To(Equal([]db.BuildDB{builds[1], builds[0]}))
+				Expect(buildsPage).To(Equal([]db.Build{builds[1], builds[0]}))
 				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[1].ID(), Limit: 2}))
 				Expect(pagination.Next).To(BeNil())
 			})
@@ -124,7 +124,7 @@ var _ = Describe("Jobs Builds", func() {
 			It("returns the builds, with previous/next pages", func() {
 				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Until: builds[6].ID(), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(buildsPage).To(Equal([]db.BuildDB{builds[8], builds[7]}))
+				Expect(buildsPage).To(Equal([]db.Build{builds[8], builds[7]}))
 				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[8].ID(), Limit: 2}))
 				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[7].ID(), Limit: 2}))
 			})
@@ -134,7 +134,7 @@ var _ = Describe("Jobs Builds", func() {
 			It("returns the builds, with previous/next pages", func() {
 				buildsPage, pagination, err := pipelineDB.GetJobBuilds("some-job", db.Page{Until: builds[7].ID(), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(buildsPage).To(Equal([]db.BuildDB{builds[9], builds[8]}))
+				Expect(buildsPage).To(Equal([]db.Build{builds[9], builds[8]}))
 				Expect(pagination.Previous).To(BeNil())
 				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID(), Limit: 2}))
 			})

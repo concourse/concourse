@@ -266,63 +266,63 @@ type FakePipelineDB struct {
 	updateFirstLoggedBuildIDReturns struct {
 		result1 error
 	}
-	GetJobFinishedAndNextBuildStub        func(job string) (db.BuildDB, db.BuildDB, error)
+	GetJobFinishedAndNextBuildStub        func(job string) (db.Build, db.Build, error)
 	getJobFinishedAndNextBuildMutex       sync.RWMutex
 	getJobFinishedAndNextBuildArgsForCall []struct {
 		job string
 	}
 	getJobFinishedAndNextBuildReturns struct {
-		result1 db.BuildDB
-		result2 db.BuildDB
+		result1 db.Build
+		result2 db.Build
 		result3 error
 	}
-	GetJobBuildsStub        func(job string, page db.Page) ([]db.BuildDB, db.Pagination, error)
+	GetJobBuildsStub        func(job string, page db.Page) ([]db.Build, db.Pagination, error)
 	getJobBuildsMutex       sync.RWMutex
 	getJobBuildsArgsForCall []struct {
 		job  string
 		page db.Page
 	}
 	getJobBuildsReturns struct {
-		result1 []db.BuildDB
+		result1 []db.Build
 		result2 db.Pagination
 		result3 error
 	}
-	GetAllJobBuildsStub        func(job string) ([]db.BuildDB, error)
+	GetAllJobBuildsStub        func(job string) ([]db.Build, error)
 	getAllJobBuildsMutex       sync.RWMutex
 	getAllJobBuildsArgsForCall []struct {
 		job string
 	}
 	getAllJobBuildsReturns struct {
-		result1 []db.BuildDB
+		result1 []db.Build
 		result2 error
 	}
-	GetJobBuildStub        func(job string, build string) (db.BuildDB, bool, error)
+	GetJobBuildStub        func(job string, build string) (db.Build, bool, error)
 	getJobBuildMutex       sync.RWMutex
 	getJobBuildArgsForCall []struct {
 		job   string
 		build string
 	}
 	getJobBuildReturns struct {
-		result1 db.BuildDB
+		result1 db.Build
 		result2 bool
 		result3 error
 	}
-	CreateJobBuildStub        func(job string) (db.BuildDB, error)
+	CreateJobBuildStub        func(job string) (db.Build, error)
 	createJobBuildMutex       sync.RWMutex
 	createJobBuildArgsForCall []struct {
 		job string
 	}
 	createJobBuildReturns struct {
-		result1 db.BuildDB
+		result1 db.Build
 		result2 error
 	}
-	CreateJobBuildForCandidateInputsStub        func(job string) (db.BuildDB, bool, error)
+	CreateJobBuildForCandidateInputsStub        func(job string) (db.Build, bool, error)
 	createJobBuildForCandidateInputsMutex       sync.RWMutex
 	createJobBuildForCandidateInputsArgsForCall []struct {
 		job string
 	}
 	createJobBuildForCandidateInputsReturns struct {
-		result1 db.BuildDB
+		result1 db.Build
 		result2 bool
 		result3 error
 	}
@@ -355,45 +355,45 @@ type FakePipelineDB struct {
 		result3 db.MissingInputReasons
 		result4 error
 	}
-	GetJobBuildForInputsStub        func(job string, inputs []db.BuildInput) (db.BuildDB, bool, error)
+	GetJobBuildForInputsStub        func(job string, inputs []db.BuildInput) (db.Build, bool, error)
 	getJobBuildForInputsMutex       sync.RWMutex
 	getJobBuildForInputsArgsForCall []struct {
 		job    string
 		inputs []db.BuildInput
 	}
 	getJobBuildForInputsReturns struct {
-		result1 db.BuildDB
+		result1 db.Build
 		result2 bool
 		result3 error
 	}
-	GetNextPendingBuildStub        func(job string) (db.BuildDB, bool, error)
+	GetNextPendingBuildStub        func(job string) (db.Build, bool, error)
 	getNextPendingBuildMutex       sync.RWMutex
 	getNextPendingBuildArgsForCall []struct {
 		job string
 	}
 	getNextPendingBuildReturns struct {
-		result1 db.BuildDB
+		result1 db.Build
 		result2 bool
 		result3 error
 	}
-	GetRunningBuildsBySerialGroupStub        func(jobName string, serialGroups []string) ([]db.BuildDB, error)
+	GetRunningBuildsBySerialGroupStub        func(jobName string, serialGroups []string) ([]db.Build, error)
 	getRunningBuildsBySerialGroupMutex       sync.RWMutex
 	getRunningBuildsBySerialGroupArgsForCall []struct {
 		jobName      string
 		serialGroups []string
 	}
 	getRunningBuildsBySerialGroupReturns struct {
-		result1 []db.BuildDB
+		result1 []db.Build
 		result2 error
 	}
-	GetNextPendingBuildBySerialGroupStub        func(jobName string, serialGroups []string) (db.BuildDB, bool, error)
+	GetNextPendingBuildBySerialGroupStub        func(jobName string, serialGroups []string) (db.Build, bool, error)
 	getNextPendingBuildBySerialGroupMutex       sync.RWMutex
 	getNextPendingBuildBySerialGroupArgsForCall []struct {
 		jobName      string
 		serialGroups []string
 	}
 	getNextPendingBuildBySerialGroupReturns struct {
-		result1 db.BuildDB
+		result1 db.Build
 		result2 bool
 		result3 error
 	}
@@ -427,22 +427,22 @@ type FakePipelineDB struct {
 		result1 db.SavedVersionedResource
 		result2 error
 	}
-	GetBuildsWithVersionAsInputStub        func(versionedResourceID int) ([]db.BuildDB, error)
+	GetBuildsWithVersionAsInputStub        func(versionedResourceID int) ([]db.Build, error)
 	getBuildsWithVersionAsInputMutex       sync.RWMutex
 	getBuildsWithVersionAsInputArgsForCall []struct {
 		versionedResourceID int
 	}
 	getBuildsWithVersionAsInputReturns struct {
-		result1 []db.BuildDB
+		result1 []db.Build
 		result2 error
 	}
-	GetBuildsWithVersionAsOutputStub        func(versionedResourceID int) ([]db.BuildDB, error)
+	GetBuildsWithVersionAsOutputStub        func(versionedResourceID int) ([]db.Build, error)
 	getBuildsWithVersionAsOutputMutex       sync.RWMutex
 	getBuildsWithVersionAsOutputArgsForCall []struct {
 		versionedResourceID int
 	}
 	getBuildsWithVersionAsOutputReturns struct {
-		result1 []db.BuildDB
+		result1 []db.Build
 		result2 error
 	}
 	UpdateBuildPreparationStub        func(prep db.BuildPreparation) error
@@ -1364,7 +1364,7 @@ func (fake *FakePipelineDB) UpdateFirstLoggedBuildIDReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) GetJobFinishedAndNextBuild(job string) (db.BuildDB, db.BuildDB, error) {
+func (fake *FakePipelineDB) GetJobFinishedAndNextBuild(job string) (db.Build, db.Build, error) {
 	fake.getJobFinishedAndNextBuildMutex.Lock()
 	fake.getJobFinishedAndNextBuildArgsForCall = append(fake.getJobFinishedAndNextBuildArgsForCall, struct {
 		job string
@@ -1389,16 +1389,16 @@ func (fake *FakePipelineDB) GetJobFinishedAndNextBuildArgsForCall(i int) string 
 	return fake.getJobFinishedAndNextBuildArgsForCall[i].job
 }
 
-func (fake *FakePipelineDB) GetJobFinishedAndNextBuildReturns(result1 db.BuildDB, result2 db.BuildDB, result3 error) {
+func (fake *FakePipelineDB) GetJobFinishedAndNextBuildReturns(result1 db.Build, result2 db.Build, result3 error) {
 	fake.GetJobFinishedAndNextBuildStub = nil
 	fake.getJobFinishedAndNextBuildReturns = struct {
-		result1 db.BuildDB
-		result2 db.BuildDB
+		result1 db.Build
+		result2 db.Build
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) GetJobBuilds(job string, page db.Page) ([]db.BuildDB, db.Pagination, error) {
+func (fake *FakePipelineDB) GetJobBuilds(job string, page db.Page) ([]db.Build, db.Pagination, error) {
 	fake.getJobBuildsMutex.Lock()
 	fake.getJobBuildsArgsForCall = append(fake.getJobBuildsArgsForCall, struct {
 		job  string
@@ -1424,16 +1424,16 @@ func (fake *FakePipelineDB) GetJobBuildsArgsForCall(i int) (string, db.Page) {
 	return fake.getJobBuildsArgsForCall[i].job, fake.getJobBuildsArgsForCall[i].page
 }
 
-func (fake *FakePipelineDB) GetJobBuildsReturns(result1 []db.BuildDB, result2 db.Pagination, result3 error) {
+func (fake *FakePipelineDB) GetJobBuildsReturns(result1 []db.Build, result2 db.Pagination, result3 error) {
 	fake.GetJobBuildsStub = nil
 	fake.getJobBuildsReturns = struct {
-		result1 []db.BuildDB
+		result1 []db.Build
 		result2 db.Pagination
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) GetAllJobBuilds(job string) ([]db.BuildDB, error) {
+func (fake *FakePipelineDB) GetAllJobBuilds(job string) ([]db.Build, error) {
 	fake.getAllJobBuildsMutex.Lock()
 	fake.getAllJobBuildsArgsForCall = append(fake.getAllJobBuildsArgsForCall, struct {
 		job string
@@ -1458,15 +1458,15 @@ func (fake *FakePipelineDB) GetAllJobBuildsArgsForCall(i int) string {
 	return fake.getAllJobBuildsArgsForCall[i].job
 }
 
-func (fake *FakePipelineDB) GetAllJobBuildsReturns(result1 []db.BuildDB, result2 error) {
+func (fake *FakePipelineDB) GetAllJobBuildsReturns(result1 []db.Build, result2 error) {
 	fake.GetAllJobBuildsStub = nil
 	fake.getAllJobBuildsReturns = struct {
-		result1 []db.BuildDB
+		result1 []db.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetJobBuild(job string, build string) (db.BuildDB, bool, error) {
+func (fake *FakePipelineDB) GetJobBuild(job string, build string) (db.Build, bool, error) {
 	fake.getJobBuildMutex.Lock()
 	fake.getJobBuildArgsForCall = append(fake.getJobBuildArgsForCall, struct {
 		job   string
@@ -1492,16 +1492,16 @@ func (fake *FakePipelineDB) GetJobBuildArgsForCall(i int) (string, string) {
 	return fake.getJobBuildArgsForCall[i].job, fake.getJobBuildArgsForCall[i].build
 }
 
-func (fake *FakePipelineDB) GetJobBuildReturns(result1 db.BuildDB, result2 bool, result3 error) {
+func (fake *FakePipelineDB) GetJobBuildReturns(result1 db.Build, result2 bool, result3 error) {
 	fake.GetJobBuildStub = nil
 	fake.getJobBuildReturns = struct {
-		result1 db.BuildDB
+		result1 db.Build
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) CreateJobBuild(job string) (db.BuildDB, error) {
+func (fake *FakePipelineDB) CreateJobBuild(job string) (db.Build, error) {
 	fake.createJobBuildMutex.Lock()
 	fake.createJobBuildArgsForCall = append(fake.createJobBuildArgsForCall, struct {
 		job string
@@ -1526,15 +1526,15 @@ func (fake *FakePipelineDB) CreateJobBuildArgsForCall(i int) string {
 	return fake.createJobBuildArgsForCall[i].job
 }
 
-func (fake *FakePipelineDB) CreateJobBuildReturns(result1 db.BuildDB, result2 error) {
+func (fake *FakePipelineDB) CreateJobBuildReturns(result1 db.Build, result2 error) {
 	fake.CreateJobBuildStub = nil
 	fake.createJobBuildReturns = struct {
-		result1 db.BuildDB
+		result1 db.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) CreateJobBuildForCandidateInputs(job string) (db.BuildDB, bool, error) {
+func (fake *FakePipelineDB) CreateJobBuildForCandidateInputs(job string) (db.Build, bool, error) {
 	fake.createJobBuildForCandidateInputsMutex.Lock()
 	fake.createJobBuildForCandidateInputsArgsForCall = append(fake.createJobBuildForCandidateInputsArgsForCall, struct {
 		job string
@@ -1559,10 +1559,10 @@ func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsArgsForCall(i int) s
 	return fake.createJobBuildForCandidateInputsArgsForCall[i].job
 }
 
-func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsReturns(result1 db.BuildDB, result2 bool, result3 error) {
+func (fake *FakePipelineDB) CreateJobBuildForCandidateInputsReturns(result1 db.Build, result2 bool, result3 error) {
 	fake.CreateJobBuildForCandidateInputsStub = nil
 	fake.createJobBuildForCandidateInputsReturns = struct {
-		result1 db.BuildDB
+		result1 db.Build
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -1663,7 +1663,7 @@ func (fake *FakePipelineDB) GetNextInputVersionsReturns(result1 []db.BuildInput,
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakePipelineDB) GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.BuildDB, bool, error) {
+func (fake *FakePipelineDB) GetJobBuildForInputs(job string, inputs []db.BuildInput) (db.Build, bool, error) {
 	fake.getJobBuildForInputsMutex.Lock()
 	fake.getJobBuildForInputsArgsForCall = append(fake.getJobBuildForInputsArgsForCall, struct {
 		job    string
@@ -1689,16 +1689,16 @@ func (fake *FakePipelineDB) GetJobBuildForInputsArgsForCall(i int) (string, []db
 	return fake.getJobBuildForInputsArgsForCall[i].job, fake.getJobBuildForInputsArgsForCall[i].inputs
 }
 
-func (fake *FakePipelineDB) GetJobBuildForInputsReturns(result1 db.BuildDB, result2 bool, result3 error) {
+func (fake *FakePipelineDB) GetJobBuildForInputsReturns(result1 db.Build, result2 bool, result3 error) {
 	fake.GetJobBuildForInputsStub = nil
 	fake.getJobBuildForInputsReturns = struct {
-		result1 db.BuildDB
+		result1 db.Build
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) GetNextPendingBuild(job string) (db.BuildDB, bool, error) {
+func (fake *FakePipelineDB) GetNextPendingBuild(job string) (db.Build, bool, error) {
 	fake.getNextPendingBuildMutex.Lock()
 	fake.getNextPendingBuildArgsForCall = append(fake.getNextPendingBuildArgsForCall, struct {
 		job string
@@ -1723,16 +1723,16 @@ func (fake *FakePipelineDB) GetNextPendingBuildArgsForCall(i int) string {
 	return fake.getNextPendingBuildArgsForCall[i].job
 }
 
-func (fake *FakePipelineDB) GetNextPendingBuildReturns(result1 db.BuildDB, result2 bool, result3 error) {
+func (fake *FakePipelineDB) GetNextPendingBuildReturns(result1 db.Build, result2 bool, result3 error) {
 	fake.GetNextPendingBuildStub = nil
 	fake.getNextPendingBuildReturns = struct {
-		result1 db.BuildDB
+		result1 db.Build
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.BuildDB, error) {
+func (fake *FakePipelineDB) GetRunningBuildsBySerialGroup(jobName string, serialGroups []string) ([]db.Build, error) {
 	fake.getRunningBuildsBySerialGroupMutex.Lock()
 	fake.getRunningBuildsBySerialGroupArgsForCall = append(fake.getRunningBuildsBySerialGroupArgsForCall, struct {
 		jobName      string
@@ -1758,15 +1758,15 @@ func (fake *FakePipelineDB) GetRunningBuildsBySerialGroupArgsForCall(i int) (str
 	return fake.getRunningBuildsBySerialGroupArgsForCall[i].jobName, fake.getRunningBuildsBySerialGroupArgsForCall[i].serialGroups
 }
 
-func (fake *FakePipelineDB) GetRunningBuildsBySerialGroupReturns(result1 []db.BuildDB, result2 error) {
+func (fake *FakePipelineDB) GetRunningBuildsBySerialGroupReturns(result1 []db.Build, result2 error) {
 	fake.GetRunningBuildsBySerialGroupStub = nil
 	fake.getRunningBuildsBySerialGroupReturns = struct {
-		result1 []db.BuildDB
+		result1 []db.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (db.BuildDB, bool, error) {
+func (fake *FakePipelineDB) GetNextPendingBuildBySerialGroup(jobName string, serialGroups []string) (db.Build, bool, error) {
 	fake.getNextPendingBuildBySerialGroupMutex.Lock()
 	fake.getNextPendingBuildBySerialGroupArgsForCall = append(fake.getNextPendingBuildBySerialGroupArgsForCall, struct {
 		jobName      string
@@ -1792,10 +1792,10 @@ func (fake *FakePipelineDB) GetNextPendingBuildBySerialGroupArgsForCall(i int) (
 	return fake.getNextPendingBuildBySerialGroupArgsForCall[i].jobName, fake.getNextPendingBuildBySerialGroupArgsForCall[i].serialGroups
 }
 
-func (fake *FakePipelineDB) GetNextPendingBuildBySerialGroupReturns(result1 db.BuildDB, result2 bool, result3 error) {
+func (fake *FakePipelineDB) GetNextPendingBuildBySerialGroupReturns(result1 db.Build, result2 bool, result3 error) {
 	fake.GetNextPendingBuildBySerialGroupStub = nil
 	fake.getNextPendingBuildBySerialGroupReturns = struct {
-		result1 db.BuildDB
+		result1 db.Build
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -1903,7 +1903,7 @@ func (fake *FakePipelineDB) SaveOutputReturns(result1 db.SavedVersionedResource,
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]db.BuildDB, error) {
+func (fake *FakePipelineDB) GetBuildsWithVersionAsInput(versionedResourceID int) ([]db.Build, error) {
 	fake.getBuildsWithVersionAsInputMutex.Lock()
 	fake.getBuildsWithVersionAsInputArgsForCall = append(fake.getBuildsWithVersionAsInputArgsForCall, struct {
 		versionedResourceID int
@@ -1928,15 +1928,15 @@ func (fake *FakePipelineDB) GetBuildsWithVersionAsInputArgsForCall(i int) int {
 	return fake.getBuildsWithVersionAsInputArgsForCall[i].versionedResourceID
 }
 
-func (fake *FakePipelineDB) GetBuildsWithVersionAsInputReturns(result1 []db.BuildDB, result2 error) {
+func (fake *FakePipelineDB) GetBuildsWithVersionAsInputReturns(result1 []db.Build, result2 error) {
 	fake.GetBuildsWithVersionAsInputStub = nil
 	fake.getBuildsWithVersionAsInputReturns = struct {
-		result1 []db.BuildDB
+		result1 []db.Build
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]db.BuildDB, error) {
+func (fake *FakePipelineDB) GetBuildsWithVersionAsOutput(versionedResourceID int) ([]db.Build, error) {
 	fake.getBuildsWithVersionAsOutputMutex.Lock()
 	fake.getBuildsWithVersionAsOutputArgsForCall = append(fake.getBuildsWithVersionAsOutputArgsForCall, struct {
 		versionedResourceID int
@@ -1961,10 +1961,10 @@ func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputArgsForCall(i int) int {
 	return fake.getBuildsWithVersionAsOutputArgsForCall[i].versionedResourceID
 }
 
-func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputReturns(result1 []db.BuildDB, result2 error) {
+func (fake *FakePipelineDB) GetBuildsWithVersionAsOutputReturns(result1 []db.Build, result2 error) {
 	fake.GetBuildsWithVersionAsOutputStub = nil
 	fake.getBuildsWithVersionAsOutputReturns = struct {
-		result1 []db.BuildDB
+		result1 []db.Build
 		result2 error
 	}{result1, result2}
 }

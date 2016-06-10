@@ -17,22 +17,22 @@ type FakeEngine struct {
 	nameReturns     struct {
 		result1 string
 	}
-	CreateBuildStub        func(lager.Logger, db.BuildDB, atc.Plan) (engine.Build, error)
+	CreateBuildStub        func(lager.Logger, db.Build, atc.Plan) (engine.Build, error)
 	createBuildMutex       sync.RWMutex
 	createBuildArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 db.BuildDB
+		arg2 db.Build
 		arg3 atc.Plan
 	}
 	createBuildReturns struct {
 		result1 engine.Build
 		result2 error
 	}
-	LookupBuildStub        func(lager.Logger, db.BuildDB) (engine.Build, error)
+	LookupBuildStub        func(lager.Logger, db.Build) (engine.Build, error)
 	lookupBuildMutex       sync.RWMutex
 	lookupBuildArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 db.BuildDB
+		arg2 db.Build
 	}
 	lookupBuildReturns struct {
 		result1 engine.Build
@@ -64,11 +64,11 @@ func (fake *FakeEngine) NameReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeEngine) CreateBuild(arg1 lager.Logger, arg2 db.BuildDB, arg3 atc.Plan) (engine.Build, error) {
+func (fake *FakeEngine) CreateBuild(arg1 lager.Logger, arg2 db.Build, arg3 atc.Plan) (engine.Build, error) {
 	fake.createBuildMutex.Lock()
 	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 db.BuildDB
+		arg2 db.Build
 		arg3 atc.Plan
 	}{arg1, arg2, arg3})
 	fake.createBuildMutex.Unlock()
@@ -85,7 +85,7 @@ func (fake *FakeEngine) CreateBuildCallCount() int {
 	return len(fake.createBuildArgsForCall)
 }
 
-func (fake *FakeEngine) CreateBuildArgsForCall(i int) (lager.Logger, db.BuildDB, atc.Plan) {
+func (fake *FakeEngine) CreateBuildArgsForCall(i int) (lager.Logger, db.Build, atc.Plan) {
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
 	return fake.createBuildArgsForCall[i].arg1, fake.createBuildArgsForCall[i].arg2, fake.createBuildArgsForCall[i].arg3
@@ -99,11 +99,11 @@ func (fake *FakeEngine) CreateBuildReturns(result1 engine.Build, result2 error) 
 	}{result1, result2}
 }
 
-func (fake *FakeEngine) LookupBuild(arg1 lager.Logger, arg2 db.BuildDB) (engine.Build, error) {
+func (fake *FakeEngine) LookupBuild(arg1 lager.Logger, arg2 db.Build) (engine.Build, error) {
 	fake.lookupBuildMutex.Lock()
 	fake.lookupBuildArgsForCall = append(fake.lookupBuildArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 db.BuildDB
+		arg2 db.Build
 	}{arg1, arg2})
 	fake.lookupBuildMutex.Unlock()
 	if fake.LookupBuildStub != nil {
@@ -119,7 +119,7 @@ func (fake *FakeEngine) LookupBuildCallCount() int {
 	return len(fake.lookupBuildArgsForCall)
 }
 
-func (fake *FakeEngine) LookupBuildArgsForCall(i int) (lager.Logger, db.BuildDB) {
+func (fake *FakeEngine) LookupBuildArgsForCall(i int) (lager.Logger, db.Build) {
 	fake.lookupBuildMutex.RLock()
 	defer fake.lookupBuildMutex.RUnlock()
 	return fake.lookupBuildArgsForCall[i].arg1, fake.lookupBuildArgsForCall[i].arg2

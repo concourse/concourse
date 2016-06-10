@@ -88,11 +88,11 @@ var _ = Describe("BuildReaper", func() {
 
 			Context("when there are more build logs than we can reap in this run", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.BuildDB, db.Pagination, error) {
+					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.Build, db.Pagination, error) {
 						if job == "job-1" && page == (db.Page{Limit: 10}) {
-							return []db.BuildDB{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
+							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
 						} else if job == "job-1" && page == (db.Page{Until: 5, Limit: 5}) {
-							return []db.BuildDB{sb(10), sb(9), sb(8), sb(7), sb(6)}, db.Pagination{}, nil
+							return []db.Build{sb(10), sb(9), sb(8), sb(7), sb(6)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("GetJobBuilds called with unexpected arguments: job=%s, page=%#v", job, page))
 						}
@@ -165,11 +165,11 @@ var _ = Describe("BuildReaper", func() {
 
 			Context("when there are fewer build logs than we can reap in this run", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.BuildDB, db.Pagination, error) {
+					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.Build, db.Pagination, error) {
 						if job == "job-1" && page == (db.Page{Limit: 10}) {
-							return []db.BuildDB{sb(18), sb(17), sb(16), sb(15), sb(14), sb(13), sb(12), sb(11), sb(10), sb(9)}, db.Pagination{}, nil
+							return []db.Build{sb(18), sb(17), sb(16), sb(15), sb(14), sb(13), sb(12), sb(11), sb(10), sb(9)}, db.Pagination{}, nil
 						} else if job == "job-1" && page == (db.Page{Until: 5, Limit: 5}) {
-							return []db.BuildDB{sb(10), sb(9), sb(8), sb(7), sb(6)}, db.Pagination{}, nil
+							return []db.Build{sb(10), sb(9), sb(8), sb(7), sb(6)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("GetJobBuilds called with unexpected arguments: job=%s, page=%#v", job, page))
 						}
@@ -203,11 +203,11 @@ var _ = Describe("BuildReaper", func() {
 
 			Context("when the builds we want to reap are still running", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.BuildDB, db.Pagination, error) {
+					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.Build, db.Pagination, error) {
 						if job == "job-1" && page == (db.Page{Limit: 10}) {
-							return []db.BuildDB{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
+							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
 						} else if job == "job-1" && page == (db.Page{Until: 5, Limit: 5}) {
-							return []db.BuildDB{
+							return []db.Build{
 								sb(10),
 								runningBuild(9),
 								runningBuild(8),
@@ -247,11 +247,11 @@ var _ = Describe("BuildReaper", func() {
 
 			Context("when no builds need to be reaped", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.BuildDB, db.Pagination, error) {
+					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.Build, db.Pagination, error) {
 						if job == "job-1" && page == (db.Page{Limit: 10}) {
-							return []db.BuildDB{sb(12), sb(11), sb(10), sb(9), sb(8), sb(7), sb(6), sb(5), sb(4), sb(3)}, db.Pagination{}, nil
+							return []db.Build{sb(12), sb(11), sb(10), sb(9), sb(8), sb(7), sb(6), sb(5), sb(4), sb(3)}, db.Pagination{}, nil
 						} else if job == "job-1" && page == (db.Page{Until: 5, Limit: 5}) {
-							return []db.BuildDB{sb(10), sb(9), sb(8), sb(7), sb(6)}, db.Pagination{}, nil
+							return []db.Build{sb(10), sb(9), sb(8), sb(7), sb(6)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("GetJobBuilds called with unexpected arguments: job=%s, page=%#v", job, page))
 						}
@@ -329,13 +329,13 @@ var _ = Describe("BuildReaper", func() {
 
 			Context("when a build of this job has build id 1", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.BuildDB, db.Pagination, error) {
+					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.Build, db.Pagination, error) {
 						if job == "job-1" && page == (db.Page{Limit: 10}) {
-							return []db.BuildDB{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
+							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
 						} else if job == "job-1" && page == (db.Page{Until: 1, Limit: 4}) {
-							return []db.BuildDB{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
+							return []db.Build{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
 						} else if job == "job-1" && page == (db.Page{Since: 2, Limit: 1}) {
-							return []db.BuildDB{sb(1)}, db.Pagination{}, nil
+							return []db.Build{sb(1)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("GetJobBuilds called with unexpected arguments: job=%s, page=%#v", job, page))
 						}
@@ -393,13 +393,13 @@ var _ = Describe("BuildReaper", func() {
 
 			Context("when no build of this job has build id 1", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.BuildDB, db.Pagination, error) {
+					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.Build, db.Pagination, error) {
 						if job == "job-1" && page == (db.Page{Limit: 10}) {
-							return []db.BuildDB{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
+							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
 						} else if job == "job-1" && page == (db.Page{Until: 1, Limit: 5}) {
-							return []db.BuildDB{sb(6), sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
+							return []db.Build{sb(6), sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
 						} else if job == "job-1" && page == (db.Page{Since: 2, Limit: 1}) {
-							return []db.BuildDB{}, db.Pagination{}, nil
+							return []db.Build{}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("GetJobBuilds called with unexpected arguments: job=%s, page=%#v", job, page))
 						}
@@ -453,13 +453,13 @@ var _ = Describe("BuildReaper", func() {
 
 			Context("when a build of this job has build id 1", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.BuildDB, db.Pagination, error) {
+					fakePipelineDB.GetJobBuildsStub = func(job string, page db.Page) ([]db.Build, db.Pagination, error) {
 						if job == "job-1" && page == (db.Page{Limit: 10}) {
-							return []db.BuildDB{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
+							return []db.Build{sb(25), sb(24), sb(23), sb(22), sb(21), sb(20), sb(19), sb(18), sb(17), sb(16)}, db.Pagination{}, nil
 						} else if job == "job-1" && page == (db.Page{Until: 1, Limit: 4}) {
-							return []db.BuildDB{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
+							return []db.Build{sb(5), sb(4), sb(3), sb(2)}, db.Pagination{}, nil
 						} else if job == "job-1" && page == (db.Page{Since: 2, Limit: 1}) {
-							return []db.BuildDB{sb(1)}, db.Pagination{}, nil
+							return []db.Build{sb(1)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("GetJobBuilds called with unexpected arguments: job=%s, page=%#v", job, page))
 						}
@@ -549,16 +549,16 @@ var _ = Describe("BuildReaper", func() {
 	})
 })
 
-func sb(id int) db.BuildDB {
-	buildDB := new(dbfakes.FakeBuildDB)
-	buildDB.IDReturns(id)
-	buildDB.IsRunningReturns(false)
-	return buildDB
+func sb(id int) db.Build {
+	build := new(dbfakes.FakeBuild)
+	build.IDReturns(id)
+	build.IsRunningReturns(false)
+	return build
 }
 
-func runningBuild(id int) db.BuildDB {
-	buildDB := new(dbfakes.FakeBuildDB)
-	buildDB.IDReturns(id)
-	buildDB.IsRunningReturns(true)
-	return buildDB
+func runningBuild(id int) db.Build {
+	build := new(dbfakes.FakeBuild)
+	build.IDReturns(id)
+	build.IsRunningReturns(true)
+	return build
 }

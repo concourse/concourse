@@ -32,8 +32,8 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 			fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
 			fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
-			fakeBuildDB2           *dbfakes.FakeBuildDB
-			fakeBuildDB3           *dbfakes.FakeBuildDB
+			fakeBuild2             *dbfakes.FakeBuild
+			fakeBuild3             *dbfakes.FakeBuild
 
 			expectedOldVersionTTL    = 4 * time.Minute
 			expectedLatestVersionTTL = time.Duration(0)
@@ -98,9 +98,9 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
 
-			fakeBuildDB2 = new(dbfakes.FakeBuildDB)
-			fakeBuildDB3 = new(dbfakes.FakeBuildDB)
-			fakeBuildDB2.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{
+			fakeBuild2 = new(dbfakes.FakeBuild)
+			fakeBuild3 = new(dbfakes.FakeBuild)
+			fakeBuild2.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{
 				{
 					ResourceVersion: atc.Version{"ref": "rence"},
 					ResourceHash:    "git:zxcvbnm",
@@ -110,7 +110,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 					ResourceHash:    "docker:qwertyuiop",
 				},
 			}, nil)
-			fakeBuildDB3.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{
+			fakeBuild3.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{
 				{
 					ResourceVersion: atc.Version{"ref": "rence"},
 					ResourceHash:    "docker:qwertyuiop",
@@ -119,7 +119,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 			fakePipelineDB = new(dbfakes.FakePipelineDB)
 
-			fakePipelineDB.GetJobFinishedAndNextBuildReturns(fakeBuildDB2, fakeBuildDB3, nil)
+			fakePipelineDB.GetJobFinishedAndNextBuildReturns(fakeBuild2, fakeBuild3, nil)
 
 			fakePipelineDBFactory.BuildReturns(fakePipelineDB)
 
@@ -175,7 +175,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			Expect(fakePipelineDBFactory.BuildArgsForCall(0)).To(Equal(savedPipeline))
 			Expect(fakePipelineDB.GetJobFinishedAndNextBuildCallCount()).To(Equal(1))
 			Expect(fakePipelineDB.GetJobFinishedAndNextBuildArgsForCall(0)).To(Equal("my-precious-job"))
-			Expect(fakeBuildDB2.GetImageResourceCacheIdentifiersCallCount()).To(Equal(1))
+			Expect(fakeBuild2.GetImageResourceCacheIdentifiersCallCount()).To(Equal(1))
 			Expect(fakeBaggageCollectorDB.GetVolumesCallCount()).To(Equal(1))
 			Expect(fakeWorkerClient.GetWorkerCallCount()).To(Equal(3))
 
@@ -208,7 +208,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 				err := baggageCollector.Run()
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeBuildDB2.GetImageResourceCacheIdentifiersCallCount()).To(Equal(0))
+				Expect(fakeBuild2.GetImageResourceCacheIdentifiersCallCount()).To(Equal(0))
 			})
 		})
 	})
@@ -225,7 +225,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 			fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
 			fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
-			fakeBuildDB            *dbfakes.FakeBuildDB
+			fakeBuild              *dbfakes.FakeBuild
 
 			expectedOldVersionTTL    = 4 * time.Minute
 			expectedLatestVersionTTL = time.Duration(0)
@@ -305,8 +305,8 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			}
 			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
 
-			fakeBuildDB = new(dbfakes.FakeBuildDB)
-			fakeBuildDB.GetImageResourceCacheIdentifiersReturns(
+			fakeBuild = new(dbfakes.FakeBuild)
+			fakeBuild.GetImageResourceCacheIdentifiersReturns(
 				[]db.ResourceCacheIdentifier{
 					{
 						ResourceVersion: atc.Version{"ref": "rence"},
@@ -317,14 +317,14 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			)
 
 			fakePipelineDB = new(dbfakes.FakePipelineDB)
-			fakePipelineDB.GetJobFinishedAndNextBuildStub = func(jobName string) (db.BuildDB, db.BuildDB, error) {
+			fakePipelineDB.GetJobFinishedAndNextBuildStub = func(jobName string) (db.Build, db.Build, error) {
 				switch jobName {
 				case "job-a1":
-					return fakeBuildDB, nil, nil
+					return fakeBuild, nil, nil
 				case "job-a2":
-					return fakeBuildDB, nil, nil
+					return fakeBuild, nil, nil
 				case "job-b1":
-					return fakeBuildDB, nil, nil
+					return fakeBuild, nil, nil
 				default:
 					panic("unknown job name")
 				}

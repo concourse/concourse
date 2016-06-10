@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("BuildDB", func() {
+var _ = Describe("Build", func() {
 	var dbConn db.Conn
 	var listener *pq.Listener
 
@@ -77,48 +77,48 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("IsOneOff", func() {
 		It("returns true for one off build", func() {
-			oneOffBuildDB, err := teamDB.CreateOneOffBuild()
+			oneOffBuild, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(oneOffBuildDB.IsOneOff()).To(BeTrue())
+			Expect(oneOffBuild.IsOneOff()).To(BeTrue())
 		})
 
 		It("returns false for builds that belong to pipeline", func() {
-			pipelineBuildDB, err := pipelineDB.CreateJobBuild("some-job")
+			pipelineBuild, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(pipelineBuildDB.IsOneOff()).To(BeFalse())
+			Expect(pipelineBuild.IsOneOff()).To(BeFalse())
 		})
 	})
 
 	Describe("Reload", func() {
 		It("updates the model", func() {
-			buildDB, err := teamDB.CreateOneOffBuild()
+			build, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
-			started, err := buildDB.Start("engine", "metadata")
+			started, err := build.Start("engine", "metadata")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
-			Expect(buildDB.Status()).To(Equal(db.StatusPending))
+			Expect(build.Status()).To(Equal(db.StatusPending))
 
-			found, err := buildDB.Reload()
+			found, err := build.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(buildDB.Status()).To(Equal(db.StatusStarted))
+			Expect(build.Status()).To(Equal(db.StatusStarted))
 		})
 	})
 
 	Describe("SaveEvent", func() {
 		It("saves and propagates events correctly", func() {
-			buildDB, err := teamDB.CreateOneOffBuild()
+			build, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			By("allowing you to subscribe when no events have yet occurred")
-			events, err := buildDB.Events(0)
+			events, err := build.Events(0)
 			Expect(err).NotTo(HaveOccurred())
 
 			defer events.Close()
 
 			By("saving them in order")
-			err = buildDB.SaveEvent(event.Log{
+			err = build.SaveEvent(event.Log{
 				Payload: "some ",
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -127,7 +127,7 @@ var _ = Describe("BuildDB", func() {
 				Payload: "some ",
 			}))
 
-			err = buildDB.SaveEvent(event.Log{
+			err = build.SaveEvent(event.Log{
 				Payload: "log",
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -137,7 +137,7 @@ var _ = Describe("BuildDB", func() {
 			}))
 
 			By("allowing you to subscribe from an offset")
-			eventsFrom1, err := buildDB.Events(1)
+			eventsFrom1, err := build.Events(1)
 			Expect(err).NotTo(HaveOccurred())
 
 			defer eventsFrom1.Close()
@@ -162,7 +162,7 @@ var _ = Describe("BuildDB", func() {
 			Consistently(nextEvent).ShouldNot(Receive())
 			Consistently(nextErr).ShouldNot(Receive())
 
-			err = buildDB.SaveEvent(event.Log{
+			err = build.SaveEvent(event.Log{
 				Payload: "log 2",
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -172,7 +172,7 @@ var _ = Describe("BuildDB", func() {
 			})))
 
 			By("returning ErrBuildEventStreamClosed for Next calls after Close")
-			events3, err := buildDB.Events(0)
+			events3, err := build.Events(0)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = events3.Close()
@@ -187,17 +187,17 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("Events", func() {
 		It("saves and emits status events", func() {
-			buildDB, err := teamDB.CreateOneOffBuild()
+			build, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
 			By("allowing you to subscribe when no events have yet occurred")
-			events, err := buildDB.Events(0)
+			events, err := build.Events(0)
 			Expect(err).NotTo(HaveOccurred())
 
 			defer events.Close()
 
 			By("ending the stream when finished")
-			err = buildDB.Finish(db.StatusSucceeded)
+			err = build.Finish(db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = events.Next()
@@ -210,10 +210,10 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("SaveInput", func() {
 		It("can get a build's input", func() {
-			buildDB, err := pipelineDB.CreateJobBuild("some-job")
+			build, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedBuildInput, err := pipelineDB.SaveInput(buildDB.ID(), db.BuildInput{
+			expectedBuildInput, err := pipelineDB.SaveInput(build.ID(), db.BuildInput{
 				Name: "some-input",
 				VersionedResource: db.VersionedResource{
 					Resource: "some-resource",
@@ -236,7 +236,7 @@ var _ = Describe("BuildDB", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			actualBuildInput, err := buildDB.GetVersionedResources()
+			actualBuildInput, err := build.GetVersionedResources()
 			expectedBuildInput.CheckOrder = 0
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(actualBuildInput)).To(Equal(1))
@@ -246,10 +246,10 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("SaveOutput", func() {
 		It("can get a build's output", func() {
-			buildDB, err := pipelineDB.CreateJobBuild("some-job")
+			build, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedBuildOutput, err := pipelineDB.SaveOutput(buildDB.ID(), db.VersionedResource{
+			expectedBuildOutput, err := pipelineDB.SaveOutput(build.ID(), db.VersionedResource{
 				Resource: "some-explicit-resource",
 				Type:     "some-type",
 				Version: db.Version{
@@ -269,7 +269,7 @@ var _ = Describe("BuildDB", func() {
 			}, true)
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = pipelineDB.SaveOutput(buildDB.ID(), db.VersionedResource{
+			_, err = pipelineDB.SaveOutput(build.ID(), db.VersionedResource{
 				Resource: "some-implicit-resource",
 				Type:     "some-type",
 				Version: db.Version{
@@ -289,7 +289,7 @@ var _ = Describe("BuildDB", func() {
 			}, false)
 			Expect(err).ToNot(HaveOccurred())
 
-			actualBuildOutput, err := buildDB.GetVersionedResources()
+			actualBuildOutput, err := build.GetVersionedResources()
 			expectedBuildOutput.CheckOrder = 0
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(actualBuildOutput)).To(Equal(1))
@@ -299,10 +299,10 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("GetResources", func() {
 		It("can get (no) resources from a one-off build", func() {
-			oneOffBuildDB, err := teamDB.CreateOneOffBuild()
+			oneOffBuild, err := teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			inputs, outputs, err := oneOffBuildDB.GetResources()
+			inputs, outputs, err := oneOffBuild.GetResources()
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(inputs).To(BeEmpty())
@@ -311,73 +311,73 @@ var _ = Describe("BuildDB", func() {
 	})
 
 	Describe("build operations", func() {
-		var buildDB db.BuildDB
+		var build db.Build
 
 		BeforeEach(func() {
 			var err error
-			buildDB, err = teamDB.CreateOneOffBuild()
+			build, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Describe("Start", func() {
 			JustBeforeEach(func() {
-				started, err := buildDB.Start("engine", "metadata")
+				started, err := build.Start("engine", "metadata")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(started).To(BeTrue())
 			})
 
 			It("creates Start event", func() {
-				found, err := buildDB.Reload()
+				found, err := build.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(buildDB.Status()).To(Equal(db.StatusStarted))
+				Expect(build.Status()).To(Equal(db.StatusStarted))
 
-				events, err := buildDB.Events(0)
+				events, err := build.Events(0)
 				Expect(err).NotTo(HaveOccurred())
 
 				defer events.Close()
 
 				Expect(events.Next()).To(Equal(event.Status{
 					Status: atc.StatusStarted,
-					Time:   buildDB.StartTime().Unix(),
+					Time:   build.StartTime().Unix(),
 				}))
 			})
 		})
 
 		Describe("Abort", func() {
 			JustBeforeEach(func() {
-				err := buildDB.Abort()
+				err := build.Abort()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("updates build status", func() {
-				found, err := buildDB.Reload()
+				found, err := build.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(buildDB.Status()).To(Equal(db.StatusAborted))
+				Expect(build.Status()).To(Equal(db.StatusAborted))
 			})
 		})
 
 		Describe("Finish", func() {
 			JustBeforeEach(func() {
-				err := buildDB.Finish(db.StatusSucceeded)
+				err := build.Finish(db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("creates Finish event", func() {
-				found, err := buildDB.Reload()
+				found, err := build.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(buildDB.Status()).To(Equal(db.StatusSucceeded))
+				Expect(build.Status()).To(Equal(db.StatusSucceeded))
 
-				events, err := buildDB.Events(0)
+				events, err := build.Events(0)
 				Expect(err).NotTo(HaveOccurred())
 
 				defer events.Close()
 
 				Expect(events.Next()).To(Equal(event.Status{
 					Status: atc.StatusSucceeded,
-					Time:   buildDB.EndTime().Unix(),
+					Time:   build.EndTime().Unix(),
 				}))
 			})
 		})
@@ -387,17 +387,17 @@ var _ = Describe("BuildDB", func() {
 
 			JustBeforeEach(func() {
 				cause = errors.New("disaster")
-				err := buildDB.MarkAsFailed(cause)
+				err := build.MarkAsFailed(cause)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("creates Error event", func() {
-				found, err := buildDB.Reload()
+				found, err := build.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(buildDB.Status()).To(Equal(db.StatusErrored))
+				Expect(build.Status()).To(Equal(db.StatusErrored))
 
-				events, err := buildDB.Events(0)
+				events, err := build.Events(0)
 				Expect(err).NotTo(HaveOccurred())
 
 				defer events.Close()
@@ -411,10 +411,10 @@ var _ = Describe("BuildDB", func() {
 
 	Describe("GetConfig", func() {
 		It("returns config of build pipeline", func() {
-			buildDB, err := pipelineDB.CreateJobBuild("some-job")
+			build, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).ToNot(HaveOccurred())
 
-			actualConfig, actualConfigVersion, err := buildDB.GetConfig()
+			actualConfig, actualConfigVersion, err := build.GetConfig()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actualConfig).To(Equal(pipelineConfig))
 			Expect(actualConfigVersion).To(Equal(db.ConfigVersion(1)))

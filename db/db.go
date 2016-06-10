@@ -79,7 +79,7 @@ type DB interface {
 	CreateDefaultTeamIfNotExists() error
 	DeleteTeamByName(teamName string) error
 
-	GetAllStartedBuilds() ([]BuildDB, error)
+	GetAllStartedBuilds() ([]Build, error)
 
 	CreatePipe(pipeGUID string, url string) error
 	GetPipe(pipeGUID string) (Pipe, error)

@@ -62,7 +62,7 @@ func (br *buildReaper) Run() error {
 				continue
 			}
 
-			buildsToConsiderDeleting := []db.BuildDB{}
+			buildsToConsiderDeleting := []db.Build{}
 			until := job.Job.FirstLoggedBuildID - 1
 			limit := br.batchSize
 

@@ -14,7 +14,7 @@ import (
 func (s *Server) ListJobBuilds(pipelineDB db.PipelineDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			builds []db.BuildDB
+			builds []db.Build
 			err    error
 			until  int
 			since  int

@@ -400,23 +400,23 @@ var _ = Describe("Leases", func() {
 	})
 
 	Describe("taking out a lease on build scheduling", func() {
-		var buildDB db.BuildDB
+		var build db.Build
 
 		BeforeEach(func() {
 			var err error
-			buildDB, err = teamDB.CreateOneOffBuild()
+			build, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when something has been scheduling it recently", func() {
 			It("does not get the lease", func() {
-				lease, leased, err := buildDB.LeaseScheduling(logger, 1*time.Second)
+				lease, leased, err := build.LeaseScheduling(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeTrue())
 
 				lease.Break()
 
-				_, leased, err = buildDB.LeaseScheduling(logger, 1*time.Second)
+				_, leased, err = build.LeaseScheduling(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeFalse())
 			})
@@ -424,12 +424,12 @@ var _ = Describe("Leases", func() {
 
 		Context("when there has not been any scheduling recently", func() {
 			It("gets and keeps the lease and stops others from getting it", func() {
-				lease, leased, err := buildDB.LeaseScheduling(logger, 1*time.Second)
+				lease, leased, err := build.LeaseScheduling(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeTrue())
 
 				Consistently(func() bool {
-					_, leased, err = buildDB.LeaseScheduling(logger, 1*time.Second)
+					_, leased, err = build.LeaseScheduling(logger, 1*time.Second)
 					Expect(err).NotTo(HaveOccurred())
 
 					return leased
@@ -439,7 +439,7 @@ var _ = Describe("Leases", func() {
 
 				time.Sleep(time.Second)
 
-				newLease, leased, err := buildDB.LeaseScheduling(logger, 1*time.Second)
+				newLease, leased, err := build.LeaseScheduling(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeTrue())
 
@@ -449,23 +449,23 @@ var _ = Describe("Leases", func() {
 	})
 
 	Describe("taking out a lease on build tracking", func() {
-		var buildDB db.BuildDB
+		var build db.Build
 
 		BeforeEach(func() {
 			var err error
-			buildDB, err = teamDB.CreateOneOffBuild()
+			build, err = teamDB.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when something has been tracking it recently", func() {
 			It("does not get the lease", func() {
-				lease, leased, err := buildDB.LeaseTracking(logger, 1*time.Second)
+				lease, leased, err := build.LeaseTracking(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeTrue())
 
 				lease.Break()
 
-				_, leased, err = buildDB.LeaseTracking(logger, 1*time.Second)
+				_, leased, err = build.LeaseTracking(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeFalse())
 			})
@@ -473,12 +473,12 @@ var _ = Describe("Leases", func() {
 
 		Context("when there has not been any tracking recently", func() {
 			It("gets and keeps the lease and stops others from getting it", func() {
-				lease, leased, err := buildDB.LeaseTracking(logger, 1*time.Second)
+				lease, leased, err := build.LeaseTracking(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeTrue())
 
 				Consistently(func() bool {
-					_, leased, err = buildDB.LeaseTracking(logger, 1*time.Second)
+					_, leased, err = build.LeaseTracking(logger, 1*time.Second)
 					Expect(err).NotTo(HaveOccurred())
 
 					return leased
@@ -488,7 +488,7 @@ var _ = Describe("Leases", func() {
 
 				time.Sleep(time.Second)
 
-				newLease, leased, err := buildDB.LeaseTracking(logger, 1*time.Second)
+				newLease, leased, err := build.LeaseTracking(logger, 1*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(leased).To(BeTrue())
 

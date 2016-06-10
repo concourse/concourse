@@ -39,25 +39,25 @@ var _ = Describe("Tracker", func() {
 	})
 
 	Describe("Track", func() {
-		var inFlightBuildDBs []*dbfakes.FakeBuildDB
+		var inFlightBuilds []*dbfakes.FakeBuild
 		var engineBuilds []*enginefakes.FakeBuild
 
 		BeforeEach(func() {
-			inFlightBuildDBs = []*dbfakes.FakeBuildDB{
-				new(dbfakes.FakeBuildDB),
-				new(dbfakes.FakeBuildDB),
-				new(dbfakes.FakeBuildDB),
+			inFlightBuilds = []*dbfakes.FakeBuild{
+				new(dbfakes.FakeBuild),
+				new(dbfakes.FakeBuild),
+				new(dbfakes.FakeBuild),
 			}
-			returnedBuildDBs := []db.BuildDB{
-				inFlightBuildDBs[0],
-				inFlightBuildDBs[1],
-				inFlightBuildDBs[2],
+			returnedBuilds := []db.Build{
+				inFlightBuilds[0],
+				inFlightBuilds[1],
+				inFlightBuilds[2],
 			}
 
-			fakeTrackerDB.GetAllStartedBuildsReturns(returnedBuildDBs, nil)
+			fakeTrackerDB.GetAllStartedBuildsReturns(returnedBuilds, nil)
 
 			engineBuilds = []*enginefakes.FakeBuild{}
-			fakeEngine.LookupBuildStub = func(logger lager.Logger, buildDB db.BuildDB) (engine.Build, error) {
+			fakeEngine.LookupBuildStub = func(logger lager.Logger, build db.Build) (engine.Build, error) {
 				engineBuild := new(enginefakes.FakeBuild)
 				engineBuilds = append(engineBuilds, engineBuild)
 				return engineBuild, nil
@@ -80,16 +80,16 @@ var _ = Describe("Tracker", func() {
 			It("saves its status as errored", func() {
 				tracker.Track()
 
-				Expect(inFlightBuildDBs[0].MarkAsFailedCallCount()).To(Equal(1))
-				savedErr1 := inFlightBuildDBs[0].MarkAsFailedArgsForCall(0)
+				Expect(inFlightBuilds[0].MarkAsFailedCallCount()).To(Equal(1))
+				savedErr1 := inFlightBuilds[0].MarkAsFailedArgsForCall(0)
 				Expect(savedErr1).To(Equal(errors.New("nope")))
 
-				Expect(inFlightBuildDBs[1].MarkAsFailedCallCount()).To(Equal(1))
-				savedErr2 := inFlightBuildDBs[1].MarkAsFailedArgsForCall(0)
+				Expect(inFlightBuilds[1].MarkAsFailedCallCount()).To(Equal(1))
+				savedErr2 := inFlightBuilds[1].MarkAsFailedArgsForCall(0)
 				Expect(savedErr2).To(Equal(errors.New("nope")))
 
-				Expect(inFlightBuildDBs[2].MarkAsFailedCallCount()).To(Equal(1))
-				savedErr3 := inFlightBuildDBs[2].MarkAsFailedArgsForCall(0)
+				Expect(inFlightBuilds[2].MarkAsFailedCallCount()).To(Equal(1))
+				savedErr3 := inFlightBuilds[2].MarkAsFailedArgsForCall(0)
 				Expect(savedErr3).To(Equal(errors.New("nope")))
 			})
 		})

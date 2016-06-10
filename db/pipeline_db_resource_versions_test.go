@@ -175,10 +175,10 @@ var _ = Describe("Resource History", func() {
 
 				expectedVersions[9].Metadata = metadata
 
-				buildDB, err := pipelineDB.CreateJobBuild("some-job")
+				build, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).ToNot(HaveOccurred())
 
-				pipelineDB.SaveInput(buildDB.ID(), db.BuildInput{
+				pipelineDB.SaveInput(build.ID(), db.BuildInput{
 					Name:              "some-input",
 					VersionedResource: expectedVersions[9].VersionedResource,
 					FirstOccurrence:   true,
@@ -215,21 +215,21 @@ var _ = Describe("Resource History", func() {
 
 	Context("GetBuildsWithVersionAsInput", func() {
 		var savedVersionedResource db.SavedVersionedResource
-		var expectedBuilds []db.BuildDB
+		var expectedBuilds []db.Build
 
 		BeforeEach(func() {
-			buildDB, err := pipelineDB.CreateJobBuild("some-job")
+			build, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			expectedBuilds = append(expectedBuilds, buildDB)
+			expectedBuilds = append(expectedBuilds, build)
 
-			secondBuildDB, err := pipelineDB.CreateJobBuild("some-job")
+			secondBuild, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			expectedBuilds = append(expectedBuilds, secondBuildDB)
+			expectedBuilds = append(expectedBuilds, secondBuild)
 
 			_, err = pipelineDB.CreateJobBuild("some-other-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveInput(buildDB.ID(), db.BuildInput{
+			savedVersionedResource, err = pipelineDB.SaveInput(build.ID(), db.BuildInput{
 				Name: "some-input",
 				VersionedResource: db.VersionedResource{
 					Resource: "some-resource",
@@ -249,7 +249,7 @@ var _ = Describe("Resource History", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveInput(secondBuildDB.ID(), db.BuildInput{
+			savedVersionedResource, err = pipelineDB.SaveInput(secondBuild.ID(), db.BuildInput{
 				Name: "some-input",
 				VersionedResource: db.VersionedResource{
 					Resource: "some-resource",
@@ -280,27 +280,27 @@ var _ = Describe("Resource History", func() {
 		It("returns an empty slice of builds when the provided version id doesn't exist", func() {
 			builds, err := pipelineDB.GetBuildsWithVersionAsInput(savedVersionedResource.ID + 100)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(builds).To(Equal([]db.BuildDB{}))
+			Expect(builds).To(Equal([]db.Build{}))
 		})
 	})
 
 	Context("GetBuildsWithVersionAsOutput", func() {
 		var savedVersionedResource db.SavedVersionedResource
-		var expectedBuilds []db.BuildDB
+		var expectedBuilds []db.Build
 
 		BeforeEach(func() {
-			buildDB, err := pipelineDB.CreateJobBuild("some-job")
+			build, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			expectedBuilds = append(expectedBuilds, buildDB)
+			expectedBuilds = append(expectedBuilds, build)
 
-			secondBuildDB, err := pipelineDB.CreateJobBuild("some-job")
+			secondBuild, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			expectedBuilds = append(expectedBuilds, secondBuildDB)
+			expectedBuilds = append(expectedBuilds, secondBuild)
 
 			_, err = pipelineDB.CreateJobBuild("some-other-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveOutput(buildDB.ID(), db.VersionedResource{
+			savedVersionedResource, err = pipelineDB.SaveOutput(build.ID(), db.VersionedResource{
 				Resource: "some-resource",
 				Type:     "some-type",
 				Version: db.Version{
@@ -316,7 +316,7 @@ var _ = Describe("Resource History", func() {
 			}, false)
 			Expect(err).NotTo(HaveOccurred())
 
-			savedVersionedResource, err = pipelineDB.SaveOutput(secondBuildDB.ID(), db.VersionedResource{
+			savedVersionedResource, err = pipelineDB.SaveOutput(secondBuild.ID(), db.VersionedResource{
 				Resource: "some-resource",
 				Type:     "some-type",
 				Version: db.Version{
@@ -343,7 +343,7 @@ var _ = Describe("Resource History", func() {
 		It("returns an empty slice of builds when the provided version id doesn't exist", func() {
 			builds, err := pipelineDB.GetBuildsWithVersionAsOutput(savedVersionedResource.ID + 100)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(builds).To(Equal([]db.BuildDB{}))
+			Expect(builds).To(Equal([]db.Build{}))
 		})
 	})
 })

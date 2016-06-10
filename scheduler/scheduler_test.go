@@ -22,7 +22,7 @@ import (
 var _ = Describe("Scheduler", func() {
 	var (
 		fakePipelineDB *fakes.FakePipelineDB
-		fakeBuildDB    *dbfakes.FakeBuildDB
+		fakeBuild      *dbfakes.FakeBuild
 		factory        *fakes.FakeBuildFactory
 		fakeEngine     *enginefakes.FakeEngine
 		fakeScanner    *fakes.FakeScanner
@@ -44,7 +44,7 @@ var _ = Describe("Scheduler", func() {
 
 	BeforeEach(func() {
 		fakePipelineDB = new(fakes.FakePipelineDB)
-		fakeBuildDB = new(dbfakes.FakeBuildDB)
+		fakeBuild = new(dbfakes.FakeBuild)
 		factory = new(fakes.FakeBuildFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
 		fakeScanner = new(fakes.FakeScanner)
@@ -154,7 +154,7 @@ var _ = Describe("Scheduler", func() {
 		}
 
 		lease = new(dbfakes.FakeLease)
-		fakeBuildDB.LeaseSchedulingReturns(lease, true, nil)
+		fakeBuild.LeaseSchedulingReturns(lease, true, nil)
 	})
 
 	Describe("BuildLatestInputs", func() {
@@ -224,8 +224,8 @@ var _ = Describe("Scheduler", func() {
 					},
 				}
 				fakePipelineDB.GetNextInputVersionsReturns(newInputs, true, nil, nil)
-				fakePipelineDB.GetNextPendingBuildReturns(new(dbfakes.FakeBuildDB), true, nil)
-				fakePipelineDB.CreateJobBuildForCandidateInputsReturns(new(dbfakes.FakeBuildDB), true, nil)
+				fakePipelineDB.GetNextPendingBuildReturns(new(dbfakes.FakeBuild), true, nil)
+				fakePipelineDB.CreateJobBuildForCandidateInputsReturns(new(dbfakes.FakeBuild), true, nil)
 			})
 
 			JustBeforeEach(func() {
@@ -234,16 +234,16 @@ var _ = Describe("Scheduler", func() {
 
 			Context("loading versions db", func() {
 				BeforeEach(func() {
-					pendingBuildDB := new(dbfakes.FakeBuildDB)
-					pendingBuildDB.StatusReturns(db.StatusPending)
-					pendingBuildDB.IDReturns(42)
+					pendingBuild := new(dbfakes.FakeBuild)
+					pendingBuild.StatusReturns(db.StatusPending)
+					pendingBuild.IDReturns(42)
 					buildPrep := db.BuildPreparation{
 						Inputs: map[string]db.BuildPreparationStatus{},
 					}
 
-					fakeBuildDB.GetPreparationReturns(buildPrep, true, nil)
-					fakePipelineDB.CreateJobBuildForCandidateInputsReturns(pendingBuildDB, true, nil)
-					fakePipelineDB.GetNextPendingBuildReturns(pendingBuildDB, true, nil)
+					fakeBuild.GetPreparationReturns(buildPrep, true, nil)
+					fakePipelineDB.CreateJobBuildForCandidateInputsReturns(pendingBuild, true, nil)
+					fakePipelineDB.GetNextPendingBuildReturns(pendingBuild, true, nil)
 					fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
 				})
 
@@ -341,7 +341,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when latest inputs are not already used for a build", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildForInputsReturns(new(dbfakes.FakeBuildDB), false, nil)
+					fakePipelineDB.GetJobBuildForInputsReturns(new(dbfakes.FakeBuild), false, nil)
 				})
 
 				It("creates a build with the found inputs", func() {
@@ -371,7 +371,7 @@ var _ = Describe("Scheduler", func() {
 
 				Context("when we do not create the build because one is already pending", func() {
 					BeforeEach(func() {
-						fakePipelineDB.CreateJobBuildForCandidateInputsReturns(new(dbfakes.FakeBuildDB), false, nil)
+						fakePipelineDB.CreateJobBuildForCandidateInputsReturns(new(dbfakes.FakeBuild), false, nil)
 					})
 
 					It("exits without error", func() {
@@ -387,7 +387,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when they are already used for a build", func() {
 				BeforeEach(func() {
-					fakePipelineDB.GetJobBuildForInputsReturns(new(dbfakes.FakeBuildDB), true, nil)
+					fakePipelineDB.GetJobBuildForInputsReturns(new(dbfakes.FakeBuild), true, nil)
 				})
 
 				It("does not enqueue or trigger a build", func() {
@@ -422,16 +422,16 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when a pending build is found", func() {
 			BeforeEach(func() {
-				pendingBuildDB := new(dbfakes.FakeBuildDB)
-				pendingBuildDB.StatusReturns(db.StatusPending)
+				pendingBuild := new(dbfakes.FakeBuild)
+				pendingBuild.StatusReturns(db.StatusPending)
 
-				fakePipelineDB.GetNextPendingBuildReturns(pendingBuildDB, true, nil)
+				fakePipelineDB.GetNextPendingBuildReturns(pendingBuild, true, nil)
 				buildPrep := db.BuildPreparation{
 					Inputs: map[string]db.BuildPreparationStatus{},
 				}
 
-				fakeBuildDB.GetPreparationReturns(buildPrep, true, nil)
-				fakePipelineDB.CreateJobBuildReturns(pendingBuildDB, nil)
+				fakeBuild.GetPreparationReturns(buildPrep, true, nil)
+				fakePipelineDB.CreateJobBuildReturns(pendingBuild, nil)
 				fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
 			})
 
@@ -475,9 +475,9 @@ var _ = Describe("Scheduler", func() {
 				Inputs: map[string]db.BuildPreparationStatus{},
 			}
 
-			fakeBuildDB.GetPreparationReturns(buildPrep, true, nil)
-			fakeBuildDB.StatusReturns(db.StatusPending)
-			fakePipelineDB.CreateJobBuildReturns(fakeBuildDB, nil)
+			fakeBuild.GetPreparationReturns(buildPrep, true, nil)
+			fakeBuild.StatusReturns(db.StatusPending)
+			fakePipelineDB.CreateJobBuildReturns(fakeBuild, nil)
 			fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
 		})
 
@@ -525,12 +525,12 @@ var _ = Describe("Scheduler", func() {
 		})
 
 		JustBeforeEach(func() {
-			engineBuild = scheduler.ScheduleAndResumePendingBuild(logger, someVersions, fakeBuildDB, job, resources, resourceTypes, fakeJobService)
+			engineBuild = scheduler.ScheduleAndResumePendingBuild(logger, someVersions, fakeBuild, job, resources, resourceTypes, fakeJobService)
 		})
 
 		Context("when the lease is aquired", func() {
 			BeforeEach(func() {
-				fakeBuildDB.LeaseSchedulingReturns(lease, true, nil)
+				fakeBuild.LeaseSchedulingReturns(lease, true, nil)
 			})
 
 			AfterEach(func() {
@@ -542,11 +542,11 @@ var _ = Describe("Scheduler", func() {
 
 				BeforeEach(func() {
 					buildPrep = db.BuildPreparation{
-						BuildID: fakeBuildDB.ID(),
+						BuildID: fakeBuild.ID(),
 						Inputs:  map[string]db.BuildPreparationStatus{},
 					}
 
-					fakeBuildDB.GetPreparationReturns(buildPrep, true, nil)
+					fakeBuild.GetPreparationReturns(buildPrep, true, nil)
 				})
 
 				Context("when build can be scheduled", func() {
@@ -597,15 +597,15 @@ var _ = Describe("Scheduler", func() {
 							})
 
 							It("marks the build as finished with an errored status and returns nil", func() {
-								Expect(fakeBuildDB.FinishCallCount()).To(Equal(1))
+								Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 
-								status := fakeBuildDB.FinishArgsForCall(0)
+								status := fakeBuild.FinishArgsForCall(0)
 								Expect(status).To(Equal(db.StatusErrored))
 							})
 
 							Context("when updating the builds status errors", func() {
 								BeforeEach(func() {
-									fakeBuildDB.FinishReturns(errors.New("but to really foul up requires a computer"))
+									fakeBuild.FinishReturns(errors.New("but to really foul up requires a computer"))
 								})
 
 								It("logs and returns nil", func() {
@@ -631,8 +631,8 @@ var _ = Describe("Scheduler", func() {
 							It("tells the engine to create the build", func() {
 								Expect(fakeEngine.CreateBuildCallCount()).To(Equal(1))
 
-								_, passedBuildDB, passedPlan := fakeEngine.CreateBuildArgsForCall(0)
-								Expect(passedBuildDB).To(Equal(fakeBuildDB))
+								_, passedBuild, passedPlan := fakeEngine.CreateBuildArgsForCall(0)
+								Expect(passedBuild).To(Equal(fakeBuild))
 								Expect(passedPlan).To(Equal(plan))
 							})
 
@@ -692,14 +692,14 @@ var _ = Describe("Scheduler", func() {
 							Expect(engineBuild).To(BeNil())
 							Expect(logger).To(gbytes.Say("failed-to-schedule-build"))
 
-							Expect(fakeBuildDB.MarkAsFailedCallCount()).To(Equal(1))
-							scanningError := fakeBuildDB.MarkAsFailedArgsForCall(0)
+							Expect(fakeBuild.MarkAsFailedCallCount()).To(Equal(1))
+							scanningError := fakeBuild.MarkAsFailedArgsForCall(0)
 							Expect(scanningError).To(Equal(problemz))
 						})
 
 						Context("when MarkAsFailed errors", func() {
 							BeforeEach(func() {
-								fakeBuildDB.MarkAsFailedReturns(errors.New("freak out!?"))
+								fakeBuild.MarkAsFailedReturns(errors.New("freak out!?"))
 							})
 
 							It("logs and returns nil", func() {
@@ -714,7 +714,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("when build prep cannot be acquired", func() {
 				BeforeEach(func() {
-					fakeBuildDB.GetPreparationReturns(db.BuildPreparation{}, false, nil)
+					fakeBuild.GetPreparationReturns(db.BuildPreparation{}, false, nil)
 				})
 
 				It("logs and returns nil", func() {
@@ -724,7 +724,7 @@ var _ = Describe("Scheduler", func() {
 
 				Context("due to an error", func() {
 					BeforeEach(func() {
-						fakeBuildDB.GetPreparationReturns(db.BuildPreparation{}, false, errors.New("ermagersh an error"))
+						fakeBuild.GetPreparationReturns(db.BuildPreparation{}, false, errors.New("ermagersh an error"))
 					})
 
 					It("logs and returns nil", func() {
@@ -737,7 +737,7 @@ var _ = Describe("Scheduler", func() {
 
 		Context("when the lease is not aquired", func() {
 			BeforeEach(func() {
-				fakeBuildDB.LeaseSchedulingReturns(nil, false, nil)
+				fakeBuild.LeaseSchedulingReturns(nil, false, nil)
 			})
 
 			It("returns nil", func() {
@@ -746,7 +746,7 @@ var _ = Describe("Scheduler", func() {
 
 			Context("due to an error", func() {
 				BeforeEach(func() {
-					fakeBuildDB.LeaseSchedulingReturns(nil, false, errors.New("i screwed up boss"))
+					fakeBuild.LeaseSchedulingReturns(nil, false, errors.New("i screwed up boss"))
 				})
 
 				It("logs and returns nil", func() {

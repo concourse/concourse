@@ -29,7 +29,7 @@ var _ = Describe("Baggage Collector", func() {
 
 		fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
 		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
-		fakeBuildDB            *dbfakes.FakeBuildDB
+		fakeBuild              *dbfakes.FakeBuild
 
 		expectedOldResourceGracePeriod = 4 * time.Minute
 		expectedLatestVersionTTL       = time.Duration(0)
@@ -61,7 +61,7 @@ var _ = Describe("Baggage Collector", func() {
 
 			fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
 			fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
-			fakeBuildDB = new(dbfakes.FakeBuildDB)
+			fakeBuild = new(dbfakes.FakeBuild)
 
 			baggageCollector = lostandfound.NewBaggageCollector(
 				baggageCollectorLogger,

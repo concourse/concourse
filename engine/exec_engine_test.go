@@ -56,7 +56,7 @@ var _ = Describe("ExecEngine", func() {
 			fakeExecutionDelegate *execfakes.FakeTaskDelegate
 			fakeOutputDelegate    *execfakes.FakePutDelegate
 
-			buildDB          *dbfakes.FakeBuildDB
+			dbBuild          *dbfakes.FakeBuild
 			expectedMetadata engine.StepMetadata
 
 			outputPlan atc.Plan
@@ -81,11 +81,11 @@ var _ = Describe("ExecEngine", func() {
 		BeforeEach(func() {
 			planFactory = atc.NewPlanFactory(123)
 
-			buildDB = new(dbfakes.FakeBuildDB)
-			buildDB.IDReturns(42)
-			buildDB.NameReturns("21")
-			buildDB.JobNameReturns("some-job")
-			buildDB.PipelineNameReturns("some-pipeline")
+			dbBuild = new(dbfakes.FakeBuild)
+			dbBuild.IDReturns(42)
+			dbBuild.NameReturns("21")
+			dbBuild.JobNameReturns("some-job")
+			dbBuild.PipelineNameReturns("some-pipeline")
 
 			expectedMetadata = engine.StepMetadata{
 				BuildID:      42,
@@ -190,7 +190,7 @@ var _ = Describe("ExecEngine", func() {
 			Context("constructing outputs", func() {
 				It("constructs the put correctly", func() {
 					var err error
-					build, err = execEngine.CreateBuild(logger, buildDB, outputPlan)
+					build, err = execEngine.CreateBuild(logger, dbBuild, outputPlan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -241,7 +241,7 @@ var _ = Describe("ExecEngine", func() {
 
 				It("constructs the dependent get correctly", func() {
 					var err error
-					build, err = execEngine.CreateBuild(logger, buildDB, outputPlan)
+					build, err = execEngine.CreateBuild(logger, dbBuild, outputPlan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -356,7 +356,7 @@ var _ = Describe("ExecEngine", func() {
 					getPlan,
 				})
 
-				build, err = execEngine.CreateBuild(logger, buildDB, retryPlan)
+				build, err = execEngine.CreateBuild(logger, dbBuild, retryPlan)
 				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
 				Expect(fakeFactory.GetCallCount()).To(Equal(2))
@@ -503,7 +503,7 @@ var _ = Describe("ExecEngine", func() {
 					ensurePlan,
 				})
 
-				build, err = execEngine.CreateBuild(logger, buildDB, retryPlan)
+				build, err = execEngine.CreateBuild(logger, dbBuild, retryPlan)
 				Expect(err).NotTo(HaveOccurred())
 				build.Resume(logger)
 				Expect(fakeFactory.TaskCallCount()).To(Equal(4))
@@ -541,7 +541,7 @@ var _ = Describe("ExecEngine", func() {
 
 				It("constructs inputs correctly", func() {
 					var err error
-					build, err := execEngine.CreateBuild(logger, buildDB, plan)
+					build, err := execEngine.CreateBuild(logger, dbBuild, plan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -582,7 +582,7 @@ var _ = Describe("ExecEngine", func() {
 						return nil
 					}
 					var err error
-					build, err = execEngine.CreateBuild(logger, buildDB, plan)
+					build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
 
@@ -616,7 +616,7 @@ var _ = Describe("ExecEngine", func() {
 
 				It("constructs tasks correctly", func() {
 					var err error
-					build, err = execEngine.CreateBuild(logger, buildDB, plan)
+					build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -656,7 +656,7 @@ var _ = Describe("ExecEngine", func() {
 
 					It("constructs the task with the referenced image", func() {
 						var err error
-						build, err = execEngine.CreateBuild(logger, buildDB, plan)
+						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 						Expect(err).NotTo(HaveOccurred())
 
 						build.Resume(logger)
@@ -676,7 +676,7 @@ var _ = Describe("ExecEngine", func() {
 
 					It("creates the task with a MergedConfigSource wrapped in a ValidatingConfigSource", func() {
 						var err error
-						build, err = execEngine.CreateBuild(logger, buildDB, plan)
+						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 						Expect(err).NotTo(HaveOccurred())
 
 						build.Resume(logger)
@@ -701,7 +701,7 @@ var _ = Describe("ExecEngine", func() {
 
 					It("creates the task with a MergedConfigSource wrapped in a ValidatingConfigSource", func() {
 						var err error
-						build, err = execEngine.CreateBuild(logger, buildDB, plan)
+						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 						Expect(err).NotTo(HaveOccurred())
 
 						build.Resume(logger)
@@ -722,7 +722,7 @@ var _ = Describe("ExecEngine", func() {
 						return nil
 					}
 					var err error
-					build, err = execEngine.CreateBuild(logger, buildDB, plan)
+					build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 					Expect(err).NotTo(HaveOccurred())
 					build.Resume(logger)
 
@@ -765,7 +765,7 @@ var _ = Describe("ExecEngine", func() {
 
 				It("constructs the put correctly", func() {
 					var err error
-					build, err = execEngine.CreateBuild(logger, buildDB, plan)
+					build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -799,7 +799,7 @@ var _ = Describe("ExecEngine", func() {
 
 				It("constructs the dependent get correctly", func() {
 					var err error
-					build, err = execEngine.CreateBuild(logger, buildDB, plan)
+					build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -834,7 +834,7 @@ var _ = Describe("ExecEngine", func() {
 
 				It("releases all sources", func() {
 					var err error
-					build, err = execEngine.CreateBuild(logger, buildDB, plan)
+					build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
@@ -880,8 +880,8 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			var err error
-			buildDB := new(dbfakes.FakeBuildDB)
-			build, err = execEngine.CreateBuild(logger, buildDB, plan)
+			dbBuild := new(dbfakes.FakeBuild)
+			build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -903,14 +903,14 @@ var _ = Describe("ExecEngine", func() {
 	})
 
 	Describe("LookupBuild", func() {
-		var buildDB *dbfakes.FakeBuildDB
+		var dbBuild *dbfakes.FakeBuild
 		BeforeEach(func() {
-			buildDB = new(dbfakes.FakeBuildDB)
+			dbBuild = new(dbfakes.FakeBuild)
 		})
 
 		Context("when pipeline name is specified and pipeline ID is not", func() {
 			BeforeEach(func() {
-				buildDB.EngineMetadataReturns(`{
+				dbBuild.EngineMetadataReturns(`{
 						"Plan": {
 							"id": "1",
 							"do": [
@@ -946,7 +946,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("sets pipeline ID for each plan", func() {
-				foundBuild, err := execEngine.LookupBuild(logger, buildDB)
+				foundBuild, err := execEngine.LookupBuild(logger, dbBuild)
 				Expect(err).NotTo(HaveOccurred())
 				type metadata struct {
 					Plan atc.Plan
@@ -989,7 +989,7 @@ var _ = Describe("ExecEngine", func() {
 			Context("when pipeline can not be found", func() {
 				var disaster error
 				BeforeEach(func() {
-					buildDB.EngineMetadataReturns(`{
+					dbBuild.EngineMetadataReturns(`{
 						"Plan": {
 							"id": "1",
 							"task": {"pipeline": "unknown-pipeline"}
@@ -1001,7 +1001,7 @@ var _ = Describe("ExecEngine", func() {
 				})
 
 				It("returns an error", func() {
-					foundBuild, err := execEngine.LookupBuild(logger, buildDB)
+					foundBuild, err := execEngine.LookupBuild(logger, dbBuild)
 					Expect(err).To(Equal(disaster))
 					Expect(foundBuild).To(BeNil())
 				})
@@ -1009,7 +1009,7 @@ var _ = Describe("ExecEngine", func() {
 
 			Context("when build plan has pipeline name and pipeline ID", func() {
 				BeforeEach(func() {
-					buildDB.EngineMetadataReturns(`{
+					dbBuild.EngineMetadataReturns(`{
 						"Plan": {
 							"id": "1",
 							"task": {"pipeline": "some-pipeline","pipeline_id": 42}
@@ -1019,7 +1019,7 @@ var _ = Describe("ExecEngine", func() {
 				})
 
 				It("returns an error", func() {
-					foundBuild, err := execEngine.LookupBuild(logger, buildDB)
+					foundBuild, err := execEngine.LookupBuild(logger, dbBuild)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring(
 						"build plan with ID 1 has both pipeline name (some-pipeline) and ID (42)",

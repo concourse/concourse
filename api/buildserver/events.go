@@ -17,7 +17,7 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamDB := s.teamDBFactory.GetTeamDB(getTeamName(r))
-	buildDB, found, err := teamDB.GetBuildDB(buildID)
+	build, found, err := teamDB.GetBuild(buildID)
 	if err != nil {
 		s.logger.Error("failed-to-get-build", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -30,19 +30,19 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !auth.IsAuthenticated(r) {
-		if buildDB.IsOneOff() {
+		if build.IsOneOff() {
 			s.rejector.Unauthorized(w, r)
 			return
 		}
 
-		config, _, err := buildDB.GetConfig()
+		config, _, err := build.GetConfig()
 		if err != nil {
 			s.logger.Error("failed-to-get-config", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		public, err := config.JobIsPublic(buildDB.JobName())
+		public, err := config.JobIsPublic(build.JobName())
 		if err != nil {
 			s.logger.Error("failed-to-see-job-is-public", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -60,7 +60,7 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer close(streamDone)
 
-		s.eventHandlerFactory(s.logger, buildDB).ServeHTTP(w, r)
+		s.eventHandlerFactory(s.logger, build).ServeHTTP(w, r)
 	}()
 
 	select {
