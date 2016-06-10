@@ -39,19 +39,6 @@ type Build struct {
 	ReapTime  time.Time
 }
 
-func (b Build) IsRunning() bool {
-	switch b.Status {
-	case StatusPending, StatusStarted:
-		return true
-	default:
-		return false
-	}
-}
-
-func (b Build) Abortable() bool {
-	return b.IsRunning()
-}
-
 type Resource struct {
 	Name string
 }

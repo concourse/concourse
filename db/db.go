@@ -154,17 +154,6 @@ type BuildOutput struct {
 	VersionedResource
 }
 
-type VersionHistory struct {
-	VersionedResource SavedVersionedResource
-	InputsTo          []*JobHistory
-	OutputsOf         []*JobHistory
-}
-
-type JobHistory struct {
-	JobName string
-	Builds  []Build
-}
-
 type SavedWorker struct {
 	WorkerInfo
 
