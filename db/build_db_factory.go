@@ -19,6 +19,7 @@ type buildFactory struct {
 }
 
 func (f *buildFactory) ScanBuild(row scannable) (BuildDB, bool, error) {
+
 	var id int
 	var name string
 	var jobID, pipelineID sql.NullInt64
@@ -39,7 +40,10 @@ func (f *buildFactory) ScanBuild(row scannable) (BuildDB, bool, error) {
 		return nil, false, err
 	}
 
-	build := SavedBuild{
+	build := &buildDB{
+		conn: f.conn,
+		bus:  f.bus,
+
 		id:        id,
 		Name:      name,
 		Status:    Status(status),
@@ -61,9 +65,5 @@ func (f *buildFactory) ScanBuild(row scannable) (BuildDB, bool, error) {
 		build.PipelineID = int(pipelineID.Int64)
 	}
 
-	return &buildDB{
-		build: build,
-		conn:  f.conn,
-		bus:   f.bus,
-	}, true, nil
+	return build, true, nil
 }
