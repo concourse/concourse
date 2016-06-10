@@ -799,7 +799,7 @@ var _ = Describe("PipelineDB", func() {
 						ResourceID: resource.ID,
 						CheckOrder: savedVR1.CheckOrder,
 					},
-					JobID:   build1DB.GetJobID(),
+					JobID:   aJob.ID,
 					BuildID: build1DB.GetID(),
 				},
 			}))
@@ -812,7 +812,7 @@ var _ = Describe("PipelineDB", func() {
 
 			Expect(versions.JobIDs).To(Equal(map[string]int{
 				"some-job":                   job.ID,
-				"a-job":                      build1DB.GetJobID(),
+				"a-job":                      aJob.ID,
 				"some-other-job":             otherJob.ID,
 				"shared-job":                 sharedJob.ID,
 				"random-job":                 randomJob.ID,
@@ -844,7 +844,7 @@ var _ = Describe("PipelineDB", func() {
 						ResourceID: resource.ID,
 						CheckOrder: savedVR1.CheckOrder,
 					},
-					JobID:   build1DB.GetJobID(),
+					JobID:   aJob.ID,
 					BuildID: build1DB.GetID(),
 				},
 			}))
@@ -857,7 +857,7 @@ var _ = Describe("PipelineDB", func() {
 
 			Expect(versions.JobIDs).To(Equal(map[string]int{
 				"some-job":                   job.ID,
-				"a-job":                      build1DB.GetJobID(),
+				"a-job":                      aJob.ID,
 				"some-other-job":             otherJob.ID,
 				"shared-job":                 sharedJob.ID,
 				"random-job":                 randomJob.ID,
@@ -889,7 +889,7 @@ var _ = Describe("PipelineDB", func() {
 						ResourceID: resource.ID,
 						CheckOrder: savedVR1.CheckOrder,
 					},
-					JobID:   build1DB.GetJobID(),
+					JobID:   aJob.ID,
 					BuildID: build1DB.GetID(),
 				},
 			}))
@@ -902,7 +902,7 @@ var _ = Describe("PipelineDB", func() {
 
 			Expect(versions.JobIDs).To(Equal(map[string]int{
 				"some-job":                   job.ID,
-				"a-job":                      build1DB.GetJobID(),
+				"a-job":                      aJob.ID,
 				"some-other-job":             otherJob.ID,
 				"shared-job":                 sharedJob.ID,
 				"random-job":                 randomJob.ID,
@@ -933,11 +933,10 @@ var _ = Describe("PipelineDB", func() {
 						ResourceID: resource.ID,
 						CheckOrder: savedVR1.CheckOrder,
 					},
-					JobID:   build1DB.GetJobID(),
+					JobID:   aJob.ID,
 					BuildID: build1DB.GetID(),
 				},
 			}))
-
 		})
 
 		Describe("GetNextInputVersions", func() {

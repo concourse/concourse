@@ -1187,10 +1187,10 @@ func (pdb *pipelineDB) CreateJobBuild(jobName string) (BuildDB, error) {
 	return pdb.buildDBFactory.GetBuildDB(build), nil
 }
 
-func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
+func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (SavedBuild, error) {
 	dbJob, err := pdb.getJob(tx, jobName)
 	if err != nil {
-		return Build{}, err
+		return SavedBuild{}, err
 	}
 
 	var name string
@@ -1202,7 +1202,7 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
 		RETURNING build_number_seq
 	`, dbJob.ID).Scan(&name)
 	if err != nil {
-		return Build{}, err
+		return SavedBuild{}, err
 	}
 
 	// We had to resort to sub-selects here because you can't paramaterize a
@@ -1235,19 +1235,19 @@ func (pdb *pipelineDB) createJobBuild(jobName string, tx Tx) (Build, error) {
 			)
 	`, name, dbJob.ID, dbJob.TeamID))
 	if err != nil {
-		return Build{}, err
+		return SavedBuild{}, err
 	}
 
 	_, err = tx.Exec(fmt.Sprintf(`
 		CREATE SEQUENCE %s MINVALUE 0
-	`, buildEventSeq(build.ID)))
+	`, buildEventSeq(build.id)))
 	if err != nil {
-		return Build{}, err
+		return SavedBuild{}, err
 	}
 
-	err = pdb.buildPrepHelper.CreateBuildPreparation(tx, build.ID)
+	err = pdb.buildPrepHelper.CreateBuildPreparation(tx, build.id)
 	if err != nil {
-		return Build{}, err
+		return SavedBuild{}, err
 	}
 
 	return build, nil

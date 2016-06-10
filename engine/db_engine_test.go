@@ -219,20 +219,9 @@ var _ = Describe("DBEngine", func() {
 	})
 
 	Describe("Builds", func() {
-		var (
-			build Build
-			model db.Build
-		)
+		var build Build
 
 		BeforeEach(func() {
-			model = db.Build{
-				ID:         128,
-				PipelineID: 256,
-
-				Status: db.StatusStarted,
-				Engine: "fake-engine-b",
-			}
-
 			var err error
 			build, err = dbEngine.LookupBuild(logger, fakeBuildDB)
 			Expect(err).NotTo(HaveOccurred())
@@ -479,7 +468,6 @@ var _ = Describe("DBEngine", func() {
 
 				Context("when the build is active", func() {
 					BeforeEach(func() {
-						model.Engine = "fake-engine-b"
 						fakeBuildDB.GetEngineReturns("fake-engine-b")
 						fakeBuildDB.IsRunningReturns(true)
 						fakeBuildDB.ReloadReturns(true, nil)

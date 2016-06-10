@@ -8,20 +8,20 @@ import (
 )
 
 type FakeBuildDBFactory struct {
-	GetBuildDBStub        func(build db.Build) db.BuildDB
+	GetBuildDBStub        func(build db.SavedBuild) db.BuildDB
 	getBuildDBMutex       sync.RWMutex
 	getBuildDBArgsForCall []struct {
-		build db.Build
+		build db.SavedBuild
 	}
 	getBuildDBReturns struct {
 		result1 db.BuildDB
 	}
 }
 
-func (fake *FakeBuildDBFactory) GetBuildDB(build db.Build) db.BuildDB {
+func (fake *FakeBuildDBFactory) GetBuildDB(build db.SavedBuild) db.BuildDB {
 	fake.getBuildDBMutex.Lock()
 	fake.getBuildDBArgsForCall = append(fake.getBuildDBArgsForCall, struct {
-		build db.Build
+		build db.SavedBuild
 	}{build})
 	fake.getBuildDBMutex.Unlock()
 	if fake.GetBuildDBStub != nil {
@@ -37,7 +37,7 @@ func (fake *FakeBuildDBFactory) GetBuildDBCallCount() int {
 	return len(fake.getBuildDBArgsForCall)
 }
 
-func (fake *FakeBuildDBFactory) GetBuildDBArgsForCall(i int) db.Build {
+func (fake *FakeBuildDBFactory) GetBuildDBArgsForCall(i int) db.SavedBuild {
 	fake.getBuildDBMutex.RLock()
 	defer fake.getBuildDBMutex.RUnlock()
 	return fake.getBuildDBArgsForCall[i].build

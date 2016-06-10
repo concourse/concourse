@@ -514,12 +514,12 @@ func (db *teamDB) CreateOneOffBuild() (BuildDB, error) {
 
 	_, err = tx.Exec(fmt.Sprintf(`
 		CREATE SEQUENCE %s MINVALUE 0
-	`, buildEventSeq(build.ID)))
+	`, buildEventSeq(build.id)))
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.buildPrepHelper.CreateBuildPreparation(tx, build.ID)
+	err = db.buildPrepHelper.CreateBuildPreparation(tx, build.id)
 	if err != nil {
 		return nil, err
 	}
