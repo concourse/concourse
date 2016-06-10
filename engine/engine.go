@@ -22,6 +22,12 @@ type EngineDB interface {
 
 	FinishBuild(buildID int, pipelineID int, status db.Status) error
 
+	GetBuild(buildID int) (db.Build, bool, error)
+	GetLatestFinishedBuild(jobID int) (db.Build, bool, error)
+	GetPreviousFailedBuilds(buildID int) ([]db.Build, error)
+
+	UpdateContainersTTL(buildID int) error
+
 	SaveBuildEngineMetadata(buildID int, metadata string) error
 
 	SaveBuildInput(buildID int, input db.BuildInput) (db.SavedVersionedResource, error)

@@ -30,6 +30,43 @@ type FakeEngineDB struct {
 	finishBuildReturns struct {
 		result1 error
 	}
+	GetBuildStub        func(buildID int) (db.Build, bool, error)
+	getBuildMutex       sync.RWMutex
+	getBuildArgsForCall []struct {
+		buildID int
+	}
+	getBuildReturns struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}
+	GetLatestFinishedBuildStub        func(jobID int) (db.Build, bool, error)
+	getLatestFinishedBuildMutex       sync.RWMutex
+	getLatestFinishedBuildArgsForCall []struct {
+		jobID int
+	}
+	getLatestFinishedBuildReturns struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}
+	GetPreviousFailedBuildsStub        func(buildID int) ([]db.Build, error)
+	getPreviousFailedBuildsMutex       sync.RWMutex
+	getPreviousFailedBuildsArgsForCall []struct {
+		buildID int
+	}
+	getPreviousFailedBuildsReturns struct {
+		result1 []db.Build
+		result2 error
+	}
+	UpdateContainersTTLStub        func(buildID int) error
+	updateContainersTTLMutex       sync.RWMutex
+	updateContainersTTLArgsForCall []struct {
+		buildID int
+	}
+	updateContainersTTLReturns struct {
+		result1 error
+	}
 	SaveBuildEngineMetadataStub        func(buildID int, metadata string) error
 	saveBuildEngineMetadataMutex       sync.RWMutex
 	saveBuildEngineMetadataArgsForCall []struct {
@@ -146,6 +183,139 @@ func (fake *FakeEngineDB) FinishBuildArgsForCall(i int) (int, int, db.Status) {
 func (fake *FakeEngineDB) FinishBuildReturns(result1 error) {
 	fake.FinishBuildStub = nil
 	fake.finishBuildReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeEngineDB) GetBuild(buildID int) (db.Build, bool, error) {
+	fake.getBuildMutex.Lock()
+	fake.getBuildArgsForCall = append(fake.getBuildArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.getBuildMutex.Unlock()
+	if fake.GetBuildStub != nil {
+		return fake.GetBuildStub(buildID)
+	} else {
+		return fake.getBuildReturns.result1, fake.getBuildReturns.result2, fake.getBuildReturns.result3
+	}
+}
+
+func (fake *FakeEngineDB) GetBuildCallCount() int {
+	fake.getBuildMutex.RLock()
+	defer fake.getBuildMutex.RUnlock()
+	return len(fake.getBuildArgsForCall)
+}
+
+func (fake *FakeEngineDB) GetBuildArgsForCall(i int) int {
+	fake.getBuildMutex.RLock()
+	defer fake.getBuildMutex.RUnlock()
+	return fake.getBuildArgsForCall[i].buildID
+}
+
+func (fake *FakeEngineDB) GetBuildReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.GetBuildStub = nil
+	fake.getBuildReturns = struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeEngineDB) GetLatestFinishedBuild(jobID int) (db.Build, bool, error) {
+	fake.getLatestFinishedBuildMutex.Lock()
+	fake.getLatestFinishedBuildArgsForCall = append(fake.getLatestFinishedBuildArgsForCall, struct {
+		jobID int
+	}{jobID})
+	fake.getLatestFinishedBuildMutex.Unlock()
+	if fake.GetLatestFinishedBuildStub != nil {
+		return fake.GetLatestFinishedBuildStub(jobID)
+	} else {
+		return fake.getLatestFinishedBuildReturns.result1, fake.getLatestFinishedBuildReturns.result2, fake.getLatestFinishedBuildReturns.result3
+	}
+}
+
+func (fake *FakeEngineDB) GetLatestFinishedBuildCallCount() int {
+	fake.getLatestFinishedBuildMutex.RLock()
+	defer fake.getLatestFinishedBuildMutex.RUnlock()
+	return len(fake.getLatestFinishedBuildArgsForCall)
+}
+
+func (fake *FakeEngineDB) GetLatestFinishedBuildArgsForCall(i int) int {
+	fake.getLatestFinishedBuildMutex.RLock()
+	defer fake.getLatestFinishedBuildMutex.RUnlock()
+	return fake.getLatestFinishedBuildArgsForCall[i].jobID
+}
+
+func (fake *FakeEngineDB) GetLatestFinishedBuildReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.GetLatestFinishedBuildStub = nil
+	fake.getLatestFinishedBuildReturns = struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeEngineDB) GetPreviousFailedBuilds(buildID int) ([]db.Build, error) {
+	fake.getPreviousFailedBuildsMutex.Lock()
+	fake.getPreviousFailedBuildsArgsForCall = append(fake.getPreviousFailedBuildsArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.getPreviousFailedBuildsMutex.Unlock()
+	if fake.GetPreviousFailedBuildsStub != nil {
+		return fake.GetPreviousFailedBuildsStub(buildID)
+	} else {
+		return fake.getPreviousFailedBuildsReturns.result1, fake.getPreviousFailedBuildsReturns.result2
+	}
+}
+
+func (fake *FakeEngineDB) GetPreviousFailedBuildsCallCount() int {
+	fake.getPreviousFailedBuildsMutex.RLock()
+	defer fake.getPreviousFailedBuildsMutex.RUnlock()
+	return len(fake.getPreviousFailedBuildsArgsForCall)
+}
+
+func (fake *FakeEngineDB) GetPreviousFailedBuildsArgsForCall(i int) int {
+	fake.getPreviousFailedBuildsMutex.RLock()
+	defer fake.getPreviousFailedBuildsMutex.RUnlock()
+	return fake.getPreviousFailedBuildsArgsForCall[i].buildID
+}
+
+func (fake *FakeEngineDB) GetPreviousFailedBuildsReturns(result1 []db.Build, result2 error) {
+	fake.GetPreviousFailedBuildsStub = nil
+	fake.getPreviousFailedBuildsReturns = struct {
+		result1 []db.Build
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeEngineDB) UpdateContainersTTL(buildID int) error {
+	fake.updateContainersTTLMutex.Lock()
+	fake.updateContainersTTLArgsForCall = append(fake.updateContainersTTLArgsForCall, struct {
+		buildID int
+	}{buildID})
+	fake.updateContainersTTLMutex.Unlock()
+	if fake.UpdateContainersTTLStub != nil {
+		return fake.UpdateContainersTTLStub(buildID)
+	} else {
+		return fake.updateContainersTTLReturns.result1
+	}
+}
+
+func (fake *FakeEngineDB) UpdateContainersTTLCallCount() int {
+	fake.updateContainersTTLMutex.RLock()
+	defer fake.updateContainersTTLMutex.RUnlock()
+	return len(fake.updateContainersTTLArgsForCall)
+}
+
+func (fake *FakeEngineDB) UpdateContainersTTLArgsForCall(i int) int {
+	fake.updateContainersTTLMutex.RLock()
+	defer fake.updateContainersTTLMutex.RUnlock()
+	return fake.updateContainersTTLArgsForCall[i].buildID
+}
+
+func (fake *FakeEngineDB) UpdateContainersTTLReturns(result1 error) {
+	fake.UpdateContainersTTLStub = nil
+	fake.updateContainersTTLReturns = struct {
 		result1 error
 	}{result1}
 }

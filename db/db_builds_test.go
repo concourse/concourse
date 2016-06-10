@@ -11,6 +11,27 @@ import (
 	"github.com/concourse/atc/db"
 )
 
+func createAndFinishBuild(database db.DB, pipelineDB db.PipelineDB, jobName string, status db.Status) db.Build {
+	build, err := pipelineDB.CreateJobBuild(jobName)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = database.FinishBuild(build.ID, build.PipelineID, status)
+	Expect(err).NotTo(HaveOccurred())
+
+	return build
+}
+
+func createAndStartBuild(database db.DB, pipelineDB db.PipelineDB, jobName string, engineName string) db.Build {
+	build, err := pipelineDB.CreateJobBuild(jobName)
+	Expect(err).NotTo(HaveOccurred())
+
+	started, err := database.StartBuild(build.ID, build.PipelineID, engineName, "so-meta")
+	Expect(started).To(BeTrue())
+	Expect(err).NotTo(HaveOccurred())
+
+	return build
+}
+
 var _ = Describe("Keeping track of builds", func() {
 	var dbConn db.Conn
 	var listener *pq.Listener
@@ -303,6 +324,50 @@ var _ = Describe("Keeping track of builds", func() {
 
 				Expect(buildPrep).To(Equal(originalBuildPrep))
 			})
+		})
+	})
+
+	Describe("GetPreviousFailedBuilds", func() {
+		var latestFinishedBuild db.Build
+
+		BeforeEach(func() {
+			createAndFinishBuild(database, pipelineDB, "some-job", db.StatusFailed)
+			createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
+			createAndFinishBuild(database, pipelineDB, "some-job", db.StatusFailed)
+			createAndStartBuild(database, pipelineDB, "some-job", "some-engine")
+			createAndFinishBuild(database, pipelineDB, "some-other-job", db.StatusFailed)
+			latestFinishedBuild = createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
+		})
+
+		FIt("returns previous failed builds of the job", func() {
+			failedBuilds, err := database.GetPreviousFailedBuilds(latestFinishedBuild.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(failedBuilds).To(HaveLen(2))
+		})
+	})
+
+	Describe("GetLatestFinishedBuild", func() {
+		var finishedBuild2 db.Build
+
+		BeforeEach(func() {
+			createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
+			createAndStartBuild(database, pipelineDB, "some-job", "some-engine")
+			finishedBuild2 = createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
+			createAndFinishBuild(database, pipelineDB, "some-other-job", db.StatusSucceeded)
+		})
+
+		FIt("returns the latest finished build of the job", func() {
+			job, err := pipelineDB.GetJob("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			latestFinishedBuild, found, err := database.GetLatestFinishedBuild(job.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			expectedBuild, found, err := database.GetBuild(finishedBuild2.ID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(latestFinishedBuild).To(Equal(expectedBuild))
 		})
 	})
 

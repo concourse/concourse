@@ -83,6 +83,9 @@ type DB interface {
 	DeleteTeamByName(teamName string) error
 
 	GetBuild(buildID int) (Build, bool, error)
+	GetLatestFinishedBuild(jobID int) (Build, bool, error)
+	GetPreviousFailedBuilds(buildID int) ([]Build, error)
+
 	GetBuildVersionedResources(buildID int) (SavedVersionedResources, error)
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 	GetBuilds(Page) ([]Build, Pagination, error)

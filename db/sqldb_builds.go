@@ -136,6 +136,59 @@ func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 	return bs, nil
 }
 
+func (db *SQLDB) GetPreviousFailedBuilds(buildID int) ([]Build, error) {
+	build, found, err := db.GetBuild(buildID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !found {
+		return nil, nil
+	}
+
+	rows, err := db.conn.Query(`
+		SELECT `+qualifiedBuildColumns+`
+		FROM builds b
+		LEFT OUTER JOIN jobs j ON b.job_id = j.id
+		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
+		WHERE b.status = 'failed'
+		AND b.job_id = $1
+		AND b.end_time < $2
+	`, build.JobID, build.EndTime)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	failedBuilds := []Build{}
+
+	for rows.Next() {
+		build, _, err := scanBuild(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		failedBuilds = append(failedBuilds, build)
+	}
+
+	return failedBuilds, nil
+}
+
+func (db *SQLDB) GetLatestFinishedBuild(jobID int) (Build, bool, error) {
+	return scanBuild(db.conn.QueryRow(`
+		SELECT `+qualifiedBuildColumns+`
+		FROM builds b
+		LEFT OUTER JOIN jobs j ON b.job_id = j.id
+		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
+		WHERE b.completed = true
+		AND b.job_id = $1
+		ORDER BY b.end_time DESC
+		LIMIT 1
+		`, jobID))
+}
+
 func (db *SQLDB) GetBuild(buildID int) (Build, bool, error) {
 	return scanBuild(db.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
@@ -645,6 +698,14 @@ func (db *SQLDB) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 
 	err = tx.Commit()
 	return err
+}
+
+func (db *SQLDB) UpdateContainersTTL(buildID int) error {
+	//get job by jobID
+	//if job[build_number_seq] is the largest among those with the same name
+	//get containers by buildID, and set ttl
+
+	return nil
 }
 
 func (db *SQLDB) SaveBuildEvent(buildID int, pipelineID int, event atc.Event) error {
