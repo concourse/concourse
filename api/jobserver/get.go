@@ -39,13 +39,6 @@ func (s *Server) GetJob(pipelineDB db.PipelineDB) http.Handler {
 		}
 
 		teamName := r.FormValue(":team_name")
-		if finished != nil {
-			finished.TeamName = teamName
-		}
-
-		if next != nil {
-			next.TeamName = teamName
-		}
 
 		dbJob, err := pipelineDB.GetJob(job.Name)
 		if err != nil {

@@ -2158,8 +2158,7 @@ var _ = Describe("PipelineDB", func() {
 				jobBuildOldDB, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				buildModel := jobBuildOldDB.GetModel()
-				expectedDashboard[0].NextBuild = &buildModel
+				expectedDashboard[0].NextBuild = jobBuildOldDB
 
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
@@ -2169,11 +2168,11 @@ var _ = Describe("PipelineDB", func() {
 				By("returning a job's most recent started build")
 				jobBuildOldDB.Start("engine", "metadata")
 
-				jobBuildOld, found, err := jobBuildOldDB.Reload()
+				_, found, err := jobBuildOldDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				expectedDashboard[0].NextBuild = &jobBuildOld
+				expectedDashboard[0].NextBuild = jobBuildOldDB
 
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
@@ -2184,8 +2183,7 @@ var _ = Describe("PipelineDB", func() {
 				jobBuildDB, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 
-				buildModel = jobBuildOldDB.GetModel()
-				expectedDashboard[0].NextBuild = &buildModel
+				expectedDashboard[0].NextBuild = jobBuildOldDB
 
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
@@ -2196,12 +2194,12 @@ var _ = Describe("PipelineDB", func() {
 				err = jobBuildDB.Finish(db.StatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
-				jobBuild, found, err := jobBuildDB.Reload()
+				_, found, err = jobBuildDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				expectedDashboard[0].FinishedBuild = &jobBuild
-				expectedDashboard[0].NextBuild = &jobBuildOld
+				expectedDashboard[0].FinishedBuild = jobBuildDB
+				expectedDashboard[0].NextBuild = jobBuildOldDB
 
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
@@ -2212,12 +2210,12 @@ var _ = Describe("PipelineDB", func() {
 				jobBuildNewDB, err := pipelineDB.CreateJobBuild("some-job")
 				Expect(err).NotTo(HaveOccurred())
 				jobBuildNewDB.Start("engine", "metadata")
-				jobBuildNew, found, err := jobBuildNewDB.Reload()
+				_, found, err = jobBuildNewDB.Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				expectedDashboard[0].FinishedBuild = &jobBuild
-				expectedDashboard[0].NextBuild = &jobBuildNew
+				expectedDashboard[0].FinishedBuild = jobBuildDB
+				expectedDashboard[0].NextBuild = jobBuildNewDB
 
 				actualDashboard, _, err = pipelineDB.GetDashboard()
 				Expect(err).NotTo(HaveOccurred())
@@ -3772,7 +3770,7 @@ var _ = Describe("PipelineDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(next).To(BeNil())
-			Expect(finished.ID).To(Equal(finishedBuild.GetID()))
+			Expect(finished.GetID()).To(Equal(finishedBuild.GetID()))
 
 			nextBuild, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
@@ -3791,8 +3789,8 @@ var _ = Describe("PipelineDB", func() {
 			finished, next, err = pipelineDB.GetJobFinishedAndNextBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(next.ID).To(Equal(nextBuild.GetID()))
-			Expect(finished.ID).To(Equal(finishedBuild.GetID()))
+			Expect(next.GetID()).To(Equal(nextBuild.GetID()))
+			Expect(finished.GetID()).To(Equal(finishedBuild.GetID()))
 
 			anotherRunningBuild, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
@@ -3800,8 +3798,8 @@ var _ = Describe("PipelineDB", func() {
 			finished, next, err = pipelineDB.GetJobFinishedAndNextBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(next.ID).To(Equal(nextBuild.GetID())) // not anotherRunningBuild
-			Expect(finished.ID).To(Equal(finishedBuild.GetID()))
+			Expect(next.GetID()).To(Equal(nextBuild.GetID())) // not anotherRunningBuild
+			Expect(finished.GetID()).To(Equal(finishedBuild.GetID()))
 
 			started, err = anotherRunningBuild.Start("some-engine", "meta")
 			Expect(err).NotTo(HaveOccurred())
@@ -3810,8 +3808,8 @@ var _ = Describe("PipelineDB", func() {
 			finished, next, err = pipelineDB.GetJobFinishedAndNextBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(next.ID).To(Equal(nextBuild.GetID())) // not anotherRunningBuild
-			Expect(finished.ID).To(Equal(finishedBuild.GetID()))
+			Expect(next.GetID()).To(Equal(nextBuild.GetID())) // not anotherRunningBuild
+			Expect(finished.GetID()).To(Equal(finishedBuild.GetID()))
 
 			err = nextBuild.Finish(db.StatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
@@ -3819,8 +3817,8 @@ var _ = Describe("PipelineDB", func() {
 			finished, next, err = pipelineDB.GetJobFinishedAndNextBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(next.ID).To(Equal(anotherRunningBuild.GetID()))
-			Expect(finished.ID).To(Equal(nextBuild.GetID()))
+			Expect(next.GetID()).To(Equal(anotherRunningBuild.GetID()))
+			Expect(finished.GetID()).To(Equal(nextBuild.GetID()))
 		})
 	})
 })

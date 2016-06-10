@@ -266,14 +266,14 @@ type FakePipelineDB struct {
 	updateFirstLoggedBuildIDReturns struct {
 		result1 error
 	}
-	GetJobFinishedAndNextBuildStub        func(job string) (*db.Build, *db.Build, error)
+	GetJobFinishedAndNextBuildStub        func(job string) (db.BuildDB, db.BuildDB, error)
 	getJobFinishedAndNextBuildMutex       sync.RWMutex
 	getJobFinishedAndNextBuildArgsForCall []struct {
 		job string
 	}
 	getJobFinishedAndNextBuildReturns struct {
-		result1 *db.Build
-		result2 *db.Build
+		result1 db.BuildDB
+		result2 db.BuildDB
 		result3 error
 	}
 	GetJobBuildsStub        func(job string, page db.Page) ([]db.Build, db.Pagination, error)
@@ -1374,7 +1374,7 @@ func (fake *FakePipelineDB) UpdateFirstLoggedBuildIDReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakePipelineDB) GetJobFinishedAndNextBuild(job string) (*db.Build, *db.Build, error) {
+func (fake *FakePipelineDB) GetJobFinishedAndNextBuild(job string) (db.BuildDB, db.BuildDB, error) {
 	fake.getJobFinishedAndNextBuildMutex.Lock()
 	fake.getJobFinishedAndNextBuildArgsForCall = append(fake.getJobFinishedAndNextBuildArgsForCall, struct {
 		job string
@@ -1399,11 +1399,11 @@ func (fake *FakePipelineDB) GetJobFinishedAndNextBuildArgsForCall(i int) string 
 	return fake.getJobFinishedAndNextBuildArgsForCall[i].job
 }
 
-func (fake *FakePipelineDB) GetJobFinishedAndNextBuildReturns(result1 *db.Build, result2 *db.Build, result3 error) {
+func (fake *FakePipelineDB) GetJobFinishedAndNextBuildReturns(result1 db.BuildDB, result2 db.BuildDB, result3 error) {
 	fake.GetJobFinishedAndNextBuildStub = nil
 	fake.getJobFinishedAndNextBuildReturns = struct {
-		result1 *db.Build
-		result2 *db.Build
+		result1 db.BuildDB
+		result2 db.BuildDB
 		result3 error
 	}{result1, result2, result3}
 }

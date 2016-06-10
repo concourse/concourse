@@ -13,8 +13,8 @@ func Job(
 	dbJob db.SavedJob,
 	job atc.JobConfig,
 	groups atc.GroupConfigs,
-	finishedBuild,
-	nextBuild *db.Build,
+	finishedBuild db.BuildDB,
+	nextBuild db.BuildDB,
 ) atc.Job {
 	generator := rata.NewRequestGenerator("", web.Routes)
 
@@ -34,12 +34,12 @@ func Job(
 	var presentedNextBuild, presentedFinishedBuild *atc.Build
 
 	if nextBuild != nil {
-		presented := Build(*nextBuild)
+		presented := Build(nextBuild.GetModel())
 		presentedNextBuild = &presented
 	}
 
 	if finishedBuild != nil {
-		presented := Build(*finishedBuild)
+		presented := Build(finishedBuild.GetModel())
 		presentedFinishedBuild = &presented
 	}
 

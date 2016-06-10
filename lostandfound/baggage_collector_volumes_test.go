@@ -25,7 +25,6 @@ var _ = Describe("Volumes are reaped", func() {
 
 		fakePipelineDBFactory          *dbfakes.FakePipelineDBFactory
 		fakeBaggageCollectorDB         *fakes.FakeBaggageCollectorDB
-		fakeBuildDB                    *dbfakes.FakeBuildDB
 		expectedOldResourceGracePeriod = 4 * time.Minute
 		expectedOneOffTTL              = 5 * time.Hour
 
@@ -41,16 +40,12 @@ var _ = Describe("Volumes are reaped", func() {
 		baggageCollectorLogger := lagertest.NewTestLogger("test")
 		fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
-		fakeBuildDBFactory := new(dbfakes.FakeBuildDBFactory)
-		fakeBuildDB = new(dbfakes.FakeBuildDB)
-		fakeBuildDBFactory.GetBuildDBReturns(fakeBuildDB)
 
 		baggageCollector = lostandfound.NewBaggageCollector(
 			baggageCollectorLogger,
 			fakeWorkerClient,
 			fakeBaggageCollectorDB,
 			fakePipelineDBFactory,
-			fakeBuildDBFactory,
 			expectedOldResourceGracePeriod,
 			expectedOneOffTTL,
 		)

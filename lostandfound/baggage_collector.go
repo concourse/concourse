@@ -32,7 +32,6 @@ type baggageCollector struct {
 	workerClient                        worker.Client
 	db                                  BaggageCollectorDB
 	pipelineDBFactory                   db.PipelineDBFactory
-	buildDBFactory                      db.BuildDBFactory
 	oldResourceGracePeriod              time.Duration
 	oneOffBuildImageResourceGracePeriod time.Duration
 }
@@ -114,14 +113,13 @@ func (bc *baggageCollector) getLatestVersionSet() (hashedVersionSet, error) {
 				"job":      pipelineJob.Name,
 			})
 
-			finished, _, err := pipelineDB.GetJobFinishedAndNextBuild(pipelineJob.Name)
+			finishedBuildDB, _, err := pipelineDB.GetJobFinishedAndNextBuild(pipelineJob.Name)
 			if err != nil {
 				logger.Error("could-not-acquire-finished-and-next-builds-for-job", err)
 				return nil, err
 			}
 
-			if finished != nil {
-				finishedBuildDB := bc.buildDBFactory.GetBuildDB(*finished)
+			if finishedBuildDB != nil {
 				resourceCacheIdentifiers, err := finishedBuildDB.GetImageResourceCacheIdentifiers()
 				if err != nil {
 					logger.Error("could-not-acquire-volume-identifiers-for-build", err)
@@ -256,7 +254,6 @@ func NewBaggageCollector(
 	workerClient worker.Client,
 	db BaggageCollectorDB,
 	pipelineDBFactory db.PipelineDBFactory,
-	buildDBFactory db.BuildDBFactory,
 	oldResourceGracePeriod time.Duration,
 	oneOffBuildImageResourceGracePeriod time.Duration,
 ) BaggageCollector {
@@ -265,7 +262,6 @@ func NewBaggageCollector(
 		workerClient:                        workerClient,
 		db:                                  db,
 		pipelineDBFactory:                   pipelineDBFactory,
-		buildDBFactory:                      buildDBFactory,
 		oldResourceGracePeriod:              oldResourceGracePeriod,
 		oneOffBuildImageResourceGracePeriod: oneOffBuildImageResourceGracePeriod,
 	}

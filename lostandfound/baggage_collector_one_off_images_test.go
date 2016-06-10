@@ -63,14 +63,12 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 
 		fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
-		fakeBuildDBFactory := new(dbfakes.FakeBuildDBFactory)
 
 		baggageCollector = lostandfound.NewBaggageCollector(
 			baggageCollectorLogger,
 			fakeWorkerClient,
 			fakeBaggageCollectorDB,
 			fakePipelineDBFactory,
-			fakeBuildDBFactory,
 			expectedOldVersionTTL,
 			expectedOneOffTTL,
 		)
@@ -136,29 +134,15 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		fakeBuildDB1.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{identifier1}, nil)
 		fakeBuildDB2 = new(dbfakes.FakeBuildDB)
 		fakeBuildDB2.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{identifier2}, nil)
+		fakeBuildDB3 := new(dbfakes.FakeBuildDB)
+		fakeBuildDB3.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{}, nil)
 		fakeBuildDB4 = new(dbfakes.FakeBuildDB)
 		fakeBuildDB4.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{identifier1}, nil)
 		fakeBuildDB5 = new(dbfakes.FakeBuildDB)
 		fakeBuildDB5.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{identifier2}, nil)
 
-		fakeBuildDBFactory.GetBuildDBStub = func(build db.Build) db.BuildDB {
-			switch build.ID {
-			case 1:
-				return fakeBuildDB1
-			case 2:
-				return fakeBuildDB2
-			case 4:
-				return fakeBuildDB4
-			case 5:
-				return fakeBuildDB5
-			default:
-				Fail("unknown build ID", build.ID)
-			}
-			return nil
-		}
-
 		fakePipelineDB = new(dbfakes.FakePipelineDB)
-		fakePipelineDB.GetJobFinishedAndNextBuildReturns(&db.Build{ID: 2}, &db.Build{ID: 3}, nil)
+		fakePipelineDB.GetJobFinishedAndNextBuildReturns(fakeBuildDB2, fakeBuildDB3, nil)
 
 		fakePipelineDBFactory.BuildReturns(fakePipelineDB)
 	})

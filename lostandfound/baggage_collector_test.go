@@ -61,16 +61,13 @@ var _ = Describe("Baggage Collector", func() {
 
 			fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
 			fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
-			fakeBuildDBFactory := new(dbfakes.FakeBuildDBFactory)
 			fakeBuildDB = new(dbfakes.FakeBuildDB)
-			fakeBuildDBFactory.GetBuildDBReturns(fakeBuildDB)
 
 			baggageCollector = lostandfound.NewBaggageCollector(
 				baggageCollectorLogger,
 				fakeWorkerClient,
 				fakeBaggageCollectorDB,
 				fakePipelineDBFactory,
-				fakeBuildDBFactory,
 				expectedOldResourceGracePeriod,
 				expectedOneOffTTL,
 			)

@@ -55,7 +55,7 @@ type PipelineDB interface {
 	UnpauseJob(job string) error
 	UpdateFirstLoggedBuildID(job string, newFirstLoggedBuildID int) error
 
-	GetJobFinishedAndNextBuild(job string) (*Build, *Build, error)
+	GetJobFinishedAndNextBuild(job string) (BuildDB, BuildDB, error)
 
 	GetJobBuilds(job string, page Page) ([]Build, Pagination, error)
 	GetAllJobBuilds(job string) ([]Build, error)
@@ -2220,9 +2220,9 @@ func (pdb *pipelineDB) GetAllJobBuilds(job string) ([]Build, error) {
 	return bs, nil
 }
 
-func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, error) {
-	var finished *Build
-	var next *Build
+func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (BuildDB, BuildDB, error) {
+	var finished BuildDB
+	var next BuildDB
 
 	finishedBuild, foundFinished, err := scanBuild(pdb.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
@@ -2241,7 +2241,7 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 	}
 
 	if foundFinished {
-		finished = &finishedBuild
+		finished = pdb.buildDBFactory.GetBuildDB(finishedBuild)
 	}
 
 	nextBuild, foundNext, err := scanBuild(pdb.conn.QueryRow(`
@@ -2261,7 +2261,7 @@ func (pdb *pipelineDB) GetJobFinishedAndNextBuild(job string) (*Build, *Build, e
 	}
 
 	if foundNext {
-		next = &nextBuild
+		next = pdb.buildDBFactory.GetBuildDB(nextBuild)
 	}
 
 	return finished, next, nil
@@ -2307,13 +2307,13 @@ func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
 		}
 
 		if startedBuild, found := startedBuilds[job.Name]; found {
-			dashboardJob.NextBuild = &startedBuild
+			dashboardJob.NextBuild = startedBuild
 		} else if pendingBuild, found := pendingBuilds[job.Name]; found {
-			dashboardJob.NextBuild = &pendingBuild
+			dashboardJob.NextBuild = pendingBuild
 		}
 
 		if finishedBuild, found := finishedBuilds[job.Name]; found {
-			dashboardJob.FinishedBuild = &finishedBuild
+			dashboardJob.FinishedBuild = finishedBuild
 		}
 
 		dashboard = append(dashboard, dashboardJob)
@@ -2353,7 +2353,7 @@ func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {
 	return savedJobs, nil
 }
 
-func (pdb *pipelineDB) getLastJobBuildsSatisfying(bRequirement string) (map[string]Build, error) {
+func (pdb *pipelineDB) getLastJobBuildsSatisfying(bRequirement string) (map[string]BuildDB, error) {
 	rows, err := pdb.conn.Query(`
 		 SELECT `+qualifiedBuildColumns+`
 		 FROM builds b, jobs j, pipelines p, teams t,
@@ -2377,11 +2377,9 @@ func (pdb *pipelineDB) getLastJobBuildsSatisfying(bRequirement string) (map[stri
 
 	defer rows.Close()
 
-	nextBuilds := make(map[string]Build)
+	nextBuilds := make(map[string]BuildDB)
 
 	for rows.Next() {
-		var build Build
-
 		build, scanned, err := scanBuild(rows)
 		if err != nil {
 			return nil, err
@@ -2391,7 +2389,7 @@ func (pdb *pipelineDB) getLastJobBuildsSatisfying(bRequirement string) (map[stri
 			return nil, errors.New("row could not be scanned")
 		}
 
-		nextBuilds[build.JobName] = build
+		nextBuilds[build.JobName] = pdb.buildDBFactory.GetBuildDB(build)
 	}
 
 	return nextBuilds, nil

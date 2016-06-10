@@ -71,27 +71,12 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 			fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
 			fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
-			fakeBuildDBFactory := new(dbfakes.FakeBuildDBFactory)
-			fakeBuildDB2 = new(dbfakes.FakeBuildDB)
-			fakeBuildDB3 = new(dbfakes.FakeBuildDB)
-			fakeBuildDBFactory.GetBuildDBStub = func(build db.Build) db.BuildDB {
-				switch build.ID {
-				case 2:
-					return fakeBuildDB2
-				case 3:
-					return fakeBuildDB3
-				default:
-					Fail("unknown build ID", build.ID)
-				}
-				return nil
-			}
 
 			baggageCollector = lostandfound.NewBaggageCollector(
 				baggageCollectorLogger,
 				fakeWorkerClient,
 				fakeBaggageCollectorDB,
 				fakePipelineDBFactory,
-				fakeBuildDBFactory,
 				expectedOldVersionTTL,
 				expectedOneOffTTL,
 			)
@@ -113,6 +98,8 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
 
+			fakeBuildDB2 = new(dbfakes.FakeBuildDB)
+			fakeBuildDB3 = new(dbfakes.FakeBuildDB)
 			fakeBuildDB2.GetImageResourceCacheIdentifiersReturns([]db.ResourceCacheIdentifier{
 				{
 					ResourceVersion: atc.Version{"ref": "rence"},
@@ -131,7 +118,8 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			}, nil)
 
 			fakePipelineDB = new(dbfakes.FakePipelineDB)
-			fakePipelineDB.GetJobFinishedAndNextBuildReturns(&db.Build{ID: 2}, &db.Build{ID: 3}, nil)
+
+			fakePipelineDB.GetJobFinishedAndNextBuildReturns(fakeBuildDB2, fakeBuildDB3, nil)
 
 			fakePipelineDBFactory.BuildReturns(fakePipelineDB)
 
@@ -285,16 +273,12 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 			fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
 			fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
-			fakeBuildDBFactory := new(dbfakes.FakeBuildDBFactory)
-			fakeBuildDB = new(dbfakes.FakeBuildDB)
-			fakeBuildDBFactory.GetBuildDBReturns(fakeBuildDB)
 
 			baggageCollector = lostandfound.NewBaggageCollector(
 				baggageCollectorLogger,
 				fakeWorkerClient,
 				fakeBaggageCollectorDB,
 				fakePipelineDBFactory,
-				fakeBuildDBFactory,
 				expectedOldVersionTTL,
 				expectedOneOffTTL,
 			)
@@ -321,6 +305,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			}
 			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{savedPipeline}, nil)
 
+			fakeBuildDB = new(dbfakes.FakeBuildDB)
 			fakeBuildDB.GetImageResourceCacheIdentifiersReturns(
 				[]db.ResourceCacheIdentifier{
 					{
@@ -332,14 +317,14 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			)
 
 			fakePipelineDB = new(dbfakes.FakePipelineDB)
-			fakePipelineDB.GetJobFinishedAndNextBuildStub = func(jobName string) (*db.Build, *db.Build, error) {
+			fakePipelineDB.GetJobFinishedAndNextBuildStub = func(jobName string) (db.BuildDB, db.BuildDB, error) {
 				switch jobName {
 				case "job-a1":
-					return &db.Build{ID: 1}, nil, nil
+					return fakeBuildDB, nil, nil
 				case "job-a2":
-					return &db.Build{ID: 2}, nil, nil
+					return fakeBuildDB, nil, nil
 				case "job-b1":
-					return &db.Build{ID: 3}, nil, nil
+					return fakeBuildDB, nil, nil
 				default:
 					panic("unknown job name")
 				}
