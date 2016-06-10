@@ -55,7 +55,7 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 	atc := make([]atc.Build, len(buildDBs))
 	for i := 0; i < len(buildDBs); i++ {
 		buildDB := buildDBs[i]
-		atc[i] = present.Build(buildDB.GetModel())
+		atc[i] = present.Build(buildDB)
 	}
 
 	json.NewEncoder(w).Encode(atc)

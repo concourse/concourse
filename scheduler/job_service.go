@@ -28,7 +28,7 @@ type JobServiceDB interface {
 //go:generate counterfeiter . JobService
 
 type JobService interface {
-	CanBuildBeScheduled(logger lager.Logger, build db.Build, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error)
+	CanBuildBeScheduled(logger lager.Logger, build db.BuildDB, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error)
 }
 
 type jobService struct {
@@ -60,7 +60,7 @@ func (s jobService) updateBuildPrepAndReturn(buildPrep db.BuildPreparation, sche
 	return []db.BuildInput{}, scheduled, message, nil
 }
 
-func (s jobService) getBuildInputs(logger lager.Logger, build db.Build, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, db.BuildPreparation, string, error) {
+func (s jobService) getBuildInputs(logger lager.Logger, build db.BuildDB, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, db.BuildPreparation, string, error) {
 	buildInputs := config.JobInputs(s.JobConfig)
 	if versions == nil {
 		for _, input := range buildInputs {
@@ -143,7 +143,7 @@ func (s jobService) getBuildInputs(logger lager.Logger, build db.Build, buildPre
 		return nil, buildPrep, "no-input-versions-available", nil
 	}
 
-	err = s.DB.UseInputsForBuild(build.ID, inputs)
+	err = s.DB.UseInputsForBuild(build.GetID(), inputs)
 	if err != nil {
 		return nil, buildPrep, "failed-to-use-inputs-for-build", err
 	}
@@ -157,8 +157,8 @@ func (s jobService) getBuildInputs(logger lager.Logger, build db.Build, buildPre
 	return inputs, buildPrep, "", nil
 }
 
-func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error) {
-	if build.Scheduled {
+func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.BuildDB, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error) {
+	if build.IsScheduled() {
 		return s.updateBuildPrepAndReturn(buildPrep, true, "build-scheduled")
 	}
 	buildPrep = db.NewBuildPreparation(buildPrep.BuildID)
@@ -194,7 +194,7 @@ func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, bui
 		return []db.BuildInput{}, false, "update-build-prep-db-failed-job-not-paused", err
 	}
 
-	if build.Status != db.StatusPending {
+	if build.GetStatus() != db.StatusPending {
 		return []db.BuildInput{}, false, "build-not-pending", nil
 	}
 
@@ -231,7 +231,7 @@ func (s jobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, bui
 			return []db.BuildInput{}, false, "no-pending-build", nil
 		}
 
-		if nextMostPendingBuild.GetID() != build.ID {
+		if nextMostPendingBuild.GetID() != build.GetID() {
 			return []db.BuildInput{}, false, "not-next-most-pending", nil
 		}
 	}

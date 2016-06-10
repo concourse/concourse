@@ -36,7 +36,7 @@ type FakeBuildScheduler struct {
 	buildLatestInputsReturns struct {
 		result1 error
 	}
-	TriggerImmediatelyStub        func(lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) (db.Build, scheduler.Waiter, error)
+	TriggerImmediatelyStub        func(lager.Logger, atc.JobConfig, atc.ResourceConfigs, atc.ResourceTypes) (db.BuildDB, scheduler.Waiter, error)
 	triggerImmediatelyMutex       sync.RWMutex
 	triggerImmediatelyArgsForCall []struct {
 		arg1 lager.Logger
@@ -45,7 +45,7 @@ type FakeBuildScheduler struct {
 		arg4 atc.ResourceTypes
 	}
 	triggerImmediatelyReturns struct {
-		result1 db.Build
+		result1 db.BuildDB
 		result2 scheduler.Waiter
 		result3 error
 	}
@@ -123,7 +123,7 @@ func (fake *FakeBuildScheduler) BuildLatestInputsReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuildScheduler) TriggerImmediately(arg1 lager.Logger, arg2 atc.JobConfig, arg3 atc.ResourceConfigs, arg4 atc.ResourceTypes) (db.Build, scheduler.Waiter, error) {
+func (fake *FakeBuildScheduler) TriggerImmediately(arg1 lager.Logger, arg2 atc.JobConfig, arg3 atc.ResourceConfigs, arg4 atc.ResourceTypes) (db.BuildDB, scheduler.Waiter, error) {
 	fake.triggerImmediatelyMutex.Lock()
 	fake.triggerImmediatelyArgsForCall = append(fake.triggerImmediatelyArgsForCall, struct {
 		arg1 lager.Logger
@@ -151,10 +151,10 @@ func (fake *FakeBuildScheduler) TriggerImmediatelyArgsForCall(i int) (lager.Logg
 	return fake.triggerImmediatelyArgsForCall[i].arg1, fake.triggerImmediatelyArgsForCall[i].arg2, fake.triggerImmediatelyArgsForCall[i].arg3, fake.triggerImmediatelyArgsForCall[i].arg4
 }
 
-func (fake *FakeBuildScheduler) TriggerImmediatelyReturns(result1 db.Build, result2 scheduler.Waiter, result3 error) {
+func (fake *FakeBuildScheduler) TriggerImmediatelyReturns(result1 db.BuildDB, result2 scheduler.Waiter, result3 error) {
 	fake.TriggerImmediatelyStub = nil
 	fake.triggerImmediatelyReturns = struct {
-		result1 db.Build
+		result1 db.BuildDB
 		result2 scheduler.Waiter
 		result3 error
 	}{result1, result2, result3}

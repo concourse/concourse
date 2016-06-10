@@ -34,12 +34,12 @@ func Job(
 	var presentedNextBuild, presentedFinishedBuild *atc.Build
 
 	if nextBuild != nil {
-		presented := Build(nextBuild.GetModel())
+		presented := Build(nextBuild)
 		presentedNextBuild = &presented
 	}
 
 	if finishedBuild != nil {
-		presented := Build(finishedBuild.GetModel())
+		presented := Build(finishedBuild)
 		presentedFinishedBuild = &presented
 	}
 

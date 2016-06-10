@@ -80,11 +80,11 @@ func (build *dbBuild) Metadata() string {
 }
 
 func (build *dbBuild) PublicPlan(logger lager.Logger) (atc.PublicBuildPlan, error) {
-	model := build.buildDB.GetModel()
-	buildEngine, found := build.engines.Lookup(model.Engine)
+	buildEngineName := build.buildDB.GetEngine()
+	buildEngine, found := build.engines.Lookup(buildEngineName)
 	if !found {
-		logger.Error("unknown-engine", nil, lager.Data{"engine": model.Engine})
-		return atc.PublicBuildPlan{}, UnknownEngineError{model.Engine}
+		logger.Error("unknown-engine", nil, lager.Data{"engine": buildEngineName})
+		return atc.PublicBuildPlan{}, UnknownEngineError{buildEngineName}
 	}
 
 	engineBuild, err := buildEngine.LookupBuild(logger, build.buildDB)

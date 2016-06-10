@@ -62,18 +62,13 @@ var _ = Describe("Builds API", func() {
 					teamDB.CreateOneOffBuildStub = func() (db.BuildDB, error) {
 						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
 						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-						buildModel := db.Build{
-							ID:           42,
-							Name:         "1",
-							JobName:      "",
-							PipelineName: "",
-							TeamName:     teamName,
-							Status:       db.StatusStarted,
-							StartTime:    time.Unix(1, 0),
-							EndTime:      time.Unix(100, 0),
-							ReapTime:     time.Unix(200, 0),
-						}
-						buildDB.GetModelReturns(buildModel)
+						buildDB.GetIDReturns(42)
+						buildDB.GetNameReturns("1")
+						buildDB.GetTeamNameReturns(teamName)
+						buildDB.GetStatusReturns(db.StatusStarted)
+						buildDB.GetStartTimeReturns(time.Unix(1, 0))
+						buildDB.GetEndTimeReturns(time.Unix(100, 0))
+						buildDB.GetReapTimeReturns(time.Unix(200, 0))
 						return buildDB, nil
 					}
 				})
@@ -246,18 +241,15 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build can be found", func() {
 				BeforeEach(func() {
-					build := db.Build{
-						ID:           1,
-						Name:         "1",
-						JobName:      "job1",
-						PipelineName: "pipeline1",
-						TeamName:     "some-team",
-						Status:       db.StatusSucceeded,
-						StartTime:    time.Unix(1, 0),
-						EndTime:      time.Unix(100, 0),
-						ReapTime:     time.Unix(200, 0),
-					}
-					buildDB.GetModelReturns(build)
+					buildDB.GetIDReturns(1)
+					buildDB.GetNameReturns("1")
+					buildDB.GetJobNameReturns("job1")
+					buildDB.GetPipelineNameReturns("pipeline1")
+					buildDB.GetTeamNameReturns("some-team")
+					buildDB.GetStatusReturns(db.StatusSucceeded)
+					buildDB.GetStartTimeReturns(time.Unix(1, 0))
+					buildDB.GetEndTimeReturns(time.Unix(100, 0))
+					buildDB.GetReapTimeReturns(time.Unix(200, 0))
 					teamDB.GetBuildDBReturns(buildDB, true, nil)
 				})
 
@@ -514,29 +506,27 @@ var _ = Describe("Builds API", func() {
 		BeforeEach(func() {
 			queryParams = ""
 			buildDB1 := new(dbfakes.FakeBuildDB)
-			buildDB1.GetModelReturns(db.Build{
-				ID:           4,
-				Name:         "2",
-				JobName:      "job2",
-				PipelineName: "pipeline2",
-				TeamName:     "some-team",
-				Status:       db.StatusStarted,
-				StartTime:    time.Unix(1, 0),
-				EndTime:      time.Unix(100, 0),
-				ReapTime:     time.Unix(300, 0),
-			})
+			buildDB1.GetIDReturns(4)
+			buildDB1.GetNameReturns("2")
+			buildDB1.GetJobNameReturns("job2")
+			buildDB1.GetPipelineNameReturns("pipeline2")
+			buildDB1.GetTeamNameReturns("some-team")
+			buildDB1.GetStatusReturns(db.StatusStarted)
+			buildDB1.GetStartTimeReturns(time.Unix(1, 0))
+			buildDB1.GetEndTimeReturns(time.Unix(100, 0))
+			buildDB1.GetReapTimeReturns(time.Unix(300, 0))
+
 			buildDB2 := new(dbfakes.FakeBuildDB)
-			buildDB2.GetModelReturns(db.Build{
-				ID:           3,
-				Name:         "1",
-				JobName:      "job1",
-				PipelineName: "pipeline1",
-				TeamName:     "some-team",
-				Status:       db.StatusSucceeded,
-				StartTime:    time.Unix(101, 0),
-				EndTime:      time.Unix(200, 0),
-				ReapTime:     time.Unix(400, 0),
-			})
+			buildDB2.GetIDReturns(3)
+			buildDB2.GetNameReturns("1")
+			buildDB2.GetJobNameReturns("job1")
+			buildDB2.GetPipelineNameReturns("pipeline1")
+			buildDB2.GetTeamNameReturns("some-team")
+			buildDB2.GetStatusReturns(db.StatusSucceeded)
+			buildDB2.GetStartTimeReturns(time.Unix(101, 0))
+			buildDB2.GetEndTimeReturns(time.Unix(200, 0))
+			buildDB2.GetReapTimeReturns(time.Unix(400, 0))
+
 			returnedBuildDBs = []db.BuildDB{buildDB1, buildDB2}
 		})
 
@@ -701,11 +691,6 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build can be found", func() {
 				BeforeEach(func() {
-					build := db.Build{
-						ID:      128,
-						JobName: "some-job",
-					}
-					buildDB.GetModelReturns(build)
 					teamDB.GetBuildDBReturns(buildDB, true, nil)
 				})
 
@@ -881,11 +866,6 @@ var _ = Describe("Builds API", func() {
 
 			Context("when the build can be found", func() {
 				BeforeEach(func() {
-					build := db.Build{
-						ID:      128,
-						JobName: "some-job",
-					}
-					buildDB.GetModelReturns(build)
 					teamDB.GetBuildDBReturns(buildDB, true, nil)
 				})
 
@@ -1134,10 +1114,6 @@ var _ = Describe("Builds API", func() {
 			var engineBuild *enginefakes.FakeBuild
 
 			BeforeEach(func() {
-				build := db.Build{
-					ID: 42,
-				}
-				buildDB.GetModelReturns(build)
 				teamDB.GetBuildDBReturns(buildDB, true, nil)
 
 				engineBuild = new(enginefakes.FakeBuild)

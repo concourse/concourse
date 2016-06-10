@@ -11,11 +11,11 @@ import (
 )
 
 type FakeJobService struct {
-	CanBuildBeScheduledStub        func(logger lager.Logger, build db.Build, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error)
+	CanBuildBeScheduledStub        func(logger lager.Logger, build db.BuildDB, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error)
 	canBuildBeScheduledMutex       sync.RWMutex
 	canBuildBeScheduledArgsForCall []struct {
 		logger    lager.Logger
-		build     db.Build
+		build     db.BuildDB
 		buildPrep db.BuildPreparation
 		versions  *algorithm.VersionsDB
 	}
@@ -27,11 +27,11 @@ type FakeJobService struct {
 	}
 }
 
-func (fake *FakeJobService) CanBuildBeScheduled(logger lager.Logger, build db.Build, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error) {
+func (fake *FakeJobService) CanBuildBeScheduled(logger lager.Logger, build db.BuildDB, buildPrep db.BuildPreparation, versions *algorithm.VersionsDB) ([]db.BuildInput, bool, string, error) {
 	fake.canBuildBeScheduledMutex.Lock()
 	fake.canBuildBeScheduledArgsForCall = append(fake.canBuildBeScheduledArgsForCall, struct {
 		logger    lager.Logger
-		build     db.Build
+		build     db.BuildDB
 		buildPrep db.BuildPreparation
 		versions  *algorithm.VersionsDB
 	}{logger, build, buildPrep, versions})
@@ -49,7 +49,7 @@ func (fake *FakeJobService) CanBuildBeScheduledCallCount() int {
 	return len(fake.canBuildBeScheduledArgsForCall)
 }
 
-func (fake *FakeJobService) CanBuildBeScheduledArgsForCall(i int) (lager.Logger, db.Build, db.BuildPreparation, *algorithm.VersionsDB) {
+func (fake *FakeJobService) CanBuildBeScheduledArgsForCall(i int) (lager.Logger, db.BuildDB, db.BuildPreparation, *algorithm.VersionsDB) {
 	fake.canBuildBeScheduledMutex.RLock()
 	defer fake.canBuildBeScheduledMutex.RUnlock()
 	return fake.canBuildBeScheduledArgsForCall[i].logger, fake.canBuildBeScheduledArgsForCall[i].build, fake.canBuildBeScheduledArgsForCall[i].buildPrep, fake.canBuildBeScheduledArgsForCall[i].versions

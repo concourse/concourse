@@ -99,14 +99,14 @@ var _ = Describe("BuildDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
-			Expect(buildDB.GetModel().Status).To(Equal(db.StatusPending))
+			Expect(buildDB.GetStatus()).To(Equal(db.StatusPending))
 
 			reloadedModel, found, err := buildDB.Reload()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(reloadedModel.Status).To(Equal(db.StatusStarted))
 
-			Expect(buildDB.GetModel().Status).To(Equal(db.StatusStarted))
+			Expect(buildDB.GetStatus()).To(Equal(db.StatusStarted))
 		})
 	})
 

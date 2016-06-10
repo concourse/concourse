@@ -11,12 +11,6 @@ import (
 )
 
 type FakeBuildDB struct {
-	GetModelStub        func() db.Build
-	getModelMutex       sync.RWMutex
-	getModelArgsForCall []struct{}
-	getModelReturns     struct {
-		result1 db.Build
-	}
 	ReloadStub        func() (db.Build, bool, error)
 	reloadMutex       sync.RWMutex
 	reloadArgsForCall []struct{}
@@ -91,10 +85,22 @@ type FakeBuildDB struct {
 	getEndTimeReturns     struct {
 		result1 time.Time
 	}
+	GetReapTimeStub        func() time.Time
+	getReapTimeMutex       sync.RWMutex
+	getReapTimeArgsForCall []struct{}
+	getReapTimeReturns     struct {
+		result1 time.Time
+	}
 	IsOneOffStub        func() bool
 	isOneOffMutex       sync.RWMutex
 	isOneOffArgsForCall []struct{}
 	isOneOffReturns     struct {
+		result1 bool
+	}
+	IsScheduledStub        func() bool
+	isScheduledMutex       sync.RWMutex
+	isScheduledArgsForCall []struct{}
+	isScheduledReturns     struct {
 		result1 bool
 	}
 	IsRunningStub        func() bool
@@ -255,30 +261,6 @@ type FakeBuildDB struct {
 		result2 db.ConfigVersion
 		result3 error
 	}
-}
-
-func (fake *FakeBuildDB) GetModel() db.Build {
-	fake.getModelMutex.Lock()
-	fake.getModelArgsForCall = append(fake.getModelArgsForCall, struct{}{})
-	fake.getModelMutex.Unlock()
-	if fake.GetModelStub != nil {
-		return fake.GetModelStub()
-	} else {
-		return fake.getModelReturns.result1
-	}
-}
-
-func (fake *FakeBuildDB) GetModelCallCount() int {
-	fake.getModelMutex.RLock()
-	defer fake.getModelMutex.RUnlock()
-	return len(fake.getModelArgsForCall)
-}
-
-func (fake *FakeBuildDB) GetModelReturns(result1 db.Build) {
-	fake.GetModelStub = nil
-	fake.getModelReturns = struct {
-		result1 db.Build
-	}{result1}
 }
 
 func (fake *FakeBuildDB) Reload() (db.Build, bool, error) {
@@ -571,6 +553,30 @@ func (fake *FakeBuildDB) GetEndTimeReturns(result1 time.Time) {
 	}{result1}
 }
 
+func (fake *FakeBuildDB) GetReapTime() time.Time {
+	fake.getReapTimeMutex.Lock()
+	fake.getReapTimeArgsForCall = append(fake.getReapTimeArgsForCall, struct{}{})
+	fake.getReapTimeMutex.Unlock()
+	if fake.GetReapTimeStub != nil {
+		return fake.GetReapTimeStub()
+	} else {
+		return fake.getReapTimeReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) GetReapTimeCallCount() int {
+	fake.getReapTimeMutex.RLock()
+	defer fake.getReapTimeMutex.RUnlock()
+	return len(fake.getReapTimeArgsForCall)
+}
+
+func (fake *FakeBuildDB) GetReapTimeReturns(result1 time.Time) {
+	fake.GetReapTimeStub = nil
+	fake.getReapTimeReturns = struct {
+		result1 time.Time
+	}{result1}
+}
+
 func (fake *FakeBuildDB) IsOneOff() bool {
 	fake.isOneOffMutex.Lock()
 	fake.isOneOffArgsForCall = append(fake.isOneOffArgsForCall, struct{}{})
@@ -591,6 +597,30 @@ func (fake *FakeBuildDB) IsOneOffCallCount() int {
 func (fake *FakeBuildDB) IsOneOffReturns(result1 bool) {
 	fake.IsOneOffStub = nil
 	fake.isOneOffReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuildDB) IsScheduled() bool {
+	fake.isScheduledMutex.Lock()
+	fake.isScheduledArgsForCall = append(fake.isScheduledArgsForCall, struct{}{})
+	fake.isScheduledMutex.Unlock()
+	if fake.IsScheduledStub != nil {
+		return fake.IsScheduledStub()
+	} else {
+		return fake.isScheduledReturns.result1
+	}
+}
+
+func (fake *FakeBuildDB) IsScheduledCallCount() int {
+	fake.isScheduledMutex.RLock()
+	defer fake.isScheduledMutex.RUnlock()
+	return len(fake.isScheduledArgsForCall)
+}
+
+func (fake *FakeBuildDB) IsScheduledReturns(result1 bool) {
+	fake.IsScheduledStub = nil
+	fake.isScheduledReturns = struct {
 		result1 bool
 	}{result1}
 }

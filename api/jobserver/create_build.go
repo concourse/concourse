@@ -48,7 +48,6 @@ func (s *Server) CreateJobBuild(pipelineDB db.PipelineDB) http.Handler {
 			return
 		}
 
-		build.TeamName = r.FormValue(":team_name")
 		json.NewEncoder(w).Encode(present.Build(build))
 	})
 }

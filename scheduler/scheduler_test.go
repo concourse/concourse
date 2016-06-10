@@ -239,10 +239,7 @@ var _ = Describe("Scheduler", func() {
 			Context("loading versions db", func() {
 				BeforeEach(func() {
 					pendingBuildDB := new(dbfakes.FakeBuildDB)
-					pendingBuild := db.Build{
-						Status: db.StatusPending,
-					}
-					pendingBuildDB.GetModelReturns(pendingBuild)
+					pendingBuildDB.GetStatusReturns(db.StatusPending)
 					pendingBuildDB.GetIDReturns(42)
 					buildPrep := db.BuildPreparation{
 						Inputs: map[string]db.BuildPreparationStatus{},
@@ -428,16 +425,9 @@ var _ = Describe("Scheduler", func() {
 		})
 
 		Context("when a pending build is found", func() {
-			var pendingBuild db.Build
-
 			BeforeEach(func() {
-				pendingBuild = db.Build{
-					ID:     128,
-					Name:   "42",
-					Status: db.StatusPending,
-				}
 				pendingBuildDB := new(dbfakes.FakeBuildDB)
-				pendingBuildDB.GetModelReturns(pendingBuild)
+				pendingBuildDB.GetStatusReturns(db.StatusPending)
 
 				fakePipelineDB.GetNextPendingBuildReturns(pendingBuildDB, true, nil)
 				buildPrep := db.BuildPreparation{
@@ -485,18 +475,13 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("TriggerImmediately", func() {
 		BeforeEach(func() {
-			dbBuild := db.Build{
-				Status: db.StatusPending,
-			}
 			buildPrep := db.BuildPreparation{
 				Inputs: map[string]db.BuildPreparationStatus{},
 			}
 
 			fakeBuildDB.GetPreparationReturns(buildPrep, true, nil)
-			buildDB := new(dbfakes.FakeBuildDB)
-			buildDB.GetModelReturns(dbBuild)
-
-			fakePipelineDB.CreateJobBuildReturns(buildDB, nil)
+			fakeBuildDB.GetStatusReturns(db.StatusPending)
+			fakePipelineDB.CreateJobBuildReturns(fakeBuildDB, nil)
 			fakePipelineDB.UpdateBuildToScheduledReturns(true, nil)
 		})
 
@@ -535,29 +520,23 @@ var _ = Describe("Scheduler", func() {
 
 	Describe("ScheduleAndResumePendingBuild", func() {
 		var (
-			build          db.Build
 			engineBuild    engine.Build
 			fakeJobService *fakes.FakeJobService
 		)
 
 		BeforeEach(func() {
 			fakeJobService = new(fakes.FakeJobService)
-
-			build = db.Build{
-				ID:         123,
-				PipelineID: 456,
-			}
 		})
 
 		JustBeforeEach(func() {
-			engineBuild = scheduler.ScheduleAndResumePendingBuild(logger, someVersions, build, job, resources, resourceTypes, fakeJobService)
+			engineBuild = scheduler.ScheduleAndResumePendingBuild(logger, someVersions, fakeBuildDB, job, resources, resourceTypes, fakeJobService)
 		})
 
 		Context("when the lease is aquired", func() {
 			BeforeEach(func() {
 				fakeBuildDB.LeaseSchedulingReturns(lease, true, nil)
-
 			})
+
 			AfterEach(func() {
 				Expect(lease.BreakCallCount()).To(Equal(1))
 			})
@@ -567,7 +546,7 @@ var _ = Describe("Scheduler", func() {
 
 				BeforeEach(func() {
 					buildPrep = db.BuildPreparation{
-						BuildID: build.ID,
+						BuildID: fakeBuildDB.GetID(),
 						Inputs:  map[string]db.BuildPreparationStatus{},
 					}
 

@@ -2234,12 +2234,12 @@ var _ = Describe("PipelineDB", func() {
 			})
 
 			It("sets the properties of a build for a given job", func() {
-				Expect(buildDB.GetModel().ID).NotTo(BeZero())
-				Expect(buildDB.GetModel().JobID).NotTo(BeZero())
-				Expect(buildDB.GetModel().Name).To(Equal("1"))
-				Expect(buildDB.GetModel().Status).To(Equal(db.StatusPending))
-				Expect(buildDB.GetModel().Scheduled).To(BeFalse())
-				Expect(buildDB.GetModel().TeamID).To(Equal(savedPipeline.TeamID))
+				Expect(buildDB.GetID()).NotTo(BeZero())
+				Expect(buildDB.GetJobName()).To(Equal("some-job"))
+				Expect(buildDB.GetName()).To(Equal("1"))
+				Expect(buildDB.GetStatus()).To(Equal(db.StatusPending))
+				Expect(buildDB.IsScheduled()).To(BeFalse())
+				Expect(buildDB.GetTeamName()).To(Equal("some-team"))
 			})
 
 			It("creates an entry in build_preparation", func() {
@@ -2295,12 +2295,12 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(created).To(BeTrue())
 
-				Expect(build.GetModel().ID).NotTo(BeZero())
-				Expect(build.GetModel().JobID).NotTo(BeZero())
-				Expect(build.GetModel().Name).To(Equal("1"))
-				Expect(build.GetModel().Status).To(Equal(db.StatusPending))
-				Expect(build.GetModel().Scheduled).To(BeFalse())
-				Expect(build.GetModel().TeamID).To(Equal(savedPipeline.TeamID))
+				Expect(build.GetID()).NotTo(BeZero())
+				Expect(build.GetJobName()).To(Equal("some-job"))
+				Expect(build.GetName()).To(Equal("1"))
+				Expect(build.GetStatus()).To(Equal(db.StatusPending))
+				Expect(build.IsScheduled()).To(BeFalse())
+				Expect(build.GetTeamName()).To(Equal("some-team"))
 
 				_, created, err = pipelineDB.CreateJobBuildForCandidateInputs("some-job")
 				Expect(err).NotTo(HaveOccurred())
@@ -2406,7 +2406,6 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(foundBuild.GetID()).To(Equal(build.GetID()))
-				Expect(foundBuild.GetModel().InputsDetermined).To(BeTrue())
 			})
 
 			It("removes old build inputs", func() {
@@ -2445,7 +2444,6 @@ var _ = Describe("PipelineDB", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(foundBuild.GetID()).To(Equal(build.GetID()))
-				Expect(foundBuild.GetModel().InputsDetermined).To(BeTrue())
 			})
 
 			It("creates an entry in build_preparation", func() {
@@ -2544,7 +2542,7 @@ var _ = Describe("PipelineDB", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
-				Expect(foundBuild.GetModel()).To(Equal(buildDB.GetModel()))
+				Expect(foundBuild.GetID()).To(Equal(buildDB.GetID()))
 
 				modifiedVR2 := vr2
 				modifiedVR2.Version = db.Version{"ver": "3"}
@@ -3071,22 +3069,11 @@ var _ = Describe("PipelineDB", func() {
 				}
 				Expect(err).NotTo(HaveOccurred())
 
-				dbJob, err := pipelineDB.GetJob("some-job")
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(build1DB.GetModel().ID).NotTo(BeZero())
-				Expect(build1DB.GetModel().JobID).To(Equal(dbJob.ID))
-				Expect(build1DB.GetModel().JobName).To(Equal("some-job"))
-				Expect(build1DB.GetModel().Name).To(Equal("1"))
-				Expect(build1DB.GetModel().Status).To(Equal(db.StatusPending))
-				Expect(build1DB.GetModel().Scheduled).To(BeFalse())
-			})
-
-			It("can be read back as the same object", func() {
-				gotBuild, found, err := build1DB.Reload()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(gotBuild).To(Equal(build1DB.GetModel()))
+				Expect(build1DB.GetID()).NotTo(BeZero())
+				Expect(build1DB.GetJobName()).To(Equal("some-job"))
+				Expect(build1DB.GetName()).To(Equal("1"))
+				Expect(build1DB.GetStatus()).To(Equal(db.StatusPending))
+				Expect(build1DB.IsScheduled()).To(BeFalse())
 			})
 
 			It("becomes the next pending build", func() {
@@ -3104,15 +3091,12 @@ var _ = Describe("PipelineDB", func() {
 				BeforeEach(func() {
 					otherBuildDB, err := otherPipelineDB.CreateJobBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
-					dbJob, err := otherPipelineDB.GetJob("some-job")
-					Expect(err).NotTo(HaveOccurred())
 
-					Expect(otherBuildDB.GetModel().ID).NotTo(BeZero())
-					Expect(otherBuildDB.GetModel().JobID).To(Equal(dbJob.ID))
-					Expect(otherBuildDB.GetModel().JobName).To(Equal("some-job"))
-					Expect(otherBuildDB.GetModel().Name).To(Equal("1"))
-					Expect(otherBuildDB.GetModel().Status).To(Equal(db.StatusPending))
-					Expect(otherBuildDB.GetModel().Scheduled).To(BeFalse())
+					Expect(otherBuildDB.GetID()).NotTo(BeZero())
+					Expect(otherBuildDB.GetJobName()).To(Equal("some-job"))
+					Expect(otherBuildDB.GetName()).To(Equal("1"))
+					Expect(otherBuildDB.GetStatus()).To(Equal(db.StatusPending))
+					Expect(otherBuildDB.IsScheduled()).To(BeFalse())
 				})
 
 				It("does not change the next pending build", func() {
@@ -3196,18 +3180,8 @@ var _ = Describe("PipelineDB", func() {
 					Expect(build2DB.GetStatus()).To(Equal(db.StatusPending))
 				})
 
-				It("can also be read back as the same object", func() {
-					gotBuild, found, err := build2DB.Reload()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(gotBuild).To(Equal(build2DB.GetModel()))
-				})
-
 				It("is returned in the job's builds, before the rest", func() {
-					Expect(pipelineDB.GetAllJobBuilds("some-job")).To(Equal([]db.BuildDB{
-						build2DB,
-						build1DB,
-					}))
+					Expect(pipelineDB.GetAllJobBuilds("some-job")).To(Equal([]db.BuildDB{build2DB, build1DB}))
 				})
 
 				Describe("the first build", func() {

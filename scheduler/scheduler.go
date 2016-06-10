@@ -130,7 +130,7 @@ func (s *Scheduler) BuildLatestInputs(logger lager.Logger, versions *algorithm.V
 	// NOTE: this is intentionally serial within a scheduler tick, so that
 	// multiple ATCs don't do redundant work to determine a build's inputs.
 
-	s.ScheduleAndResumePendingBuild(logger, versions, buildDB.GetModel(), job, resources, resourceTypes, jobService)
+	s.ScheduleAndResumePendingBuild(logger, versions, buildDB, job, resources, resourceTypes, jobService)
 
 	return nil
 }
@@ -162,13 +162,18 @@ func (s *Scheduler) TryNextPendingBuild(logger lager.Logger, versions *algorithm
 			return
 		}
 
-		s.ScheduleAndResumePendingBuild(logger, versions, build.GetModel(), job, resources, resourceTypes, jobService)
+		s.ScheduleAndResumePendingBuild(logger, versions, build, job, resources, resourceTypes, jobService)
 	}()
 
 	return wg
 }
 
-func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, resources atc.ResourceConfigs, resourceTypes atc.ResourceTypes) (db.Build, Waiter, error) {
+func (s *Scheduler) TriggerImmediately(
+	logger lager.Logger,
+	job atc.JobConfig,
+	resources atc.ResourceConfigs,
+	resourceTypes atc.ResourceTypes,
+) (db.BuildDB, Waiter, error) {
 	logger = logger.Session("trigger-immediately", lager.Data{
 		"job": job.Name,
 	})
@@ -176,14 +181,14 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 	build, err := s.PipelineDB.CreateJobBuild(job.Name)
 	if err != nil {
 		logger.Error("failed-to-create-build", err)
-		return db.Build{}, nil, err
+		return nil, nil, err
 	}
 
 	logger = logger.WithData(lager.Data{"build-id": build.GetID(), "build-name": build.GetName()})
 
 	jobService, err := NewJobService(job, s.PipelineDB, s.Scanner)
 	if err != nil {
-		return db.Build{}, nil, err
+		return nil, nil, err
 	}
 
 	wg := new(sync.WaitGroup)
@@ -192,10 +197,10 @@ func (s *Scheduler) TriggerImmediately(logger lager.Logger, job atc.JobConfig, r
 	// do not block request on scanning input versions
 	go func() {
 		defer wg.Done()
-		s.ScheduleAndResumePendingBuild(logger, nil, build.GetModel(), job, resources, resourceTypes, jobService)
+		s.ScheduleAndResumePendingBuild(logger, nil, build, job, resources, resourceTypes, jobService)
 	}()
 
-	return build.GetModel(), wg, nil
+	return build, wg, nil
 }
 
 func (s *Scheduler) updateBuildToScheduled(logger lager.Logger, canBuildBeScheduled bool, buildID int, reason string) bool {
@@ -226,7 +231,7 @@ func (s *Scheduler) updateBuildToScheduled(logger lager.Logger, canBuildBeSchedu
 func (s *Scheduler) ScheduleAndResumePendingBuild(
 	logger lager.Logger,
 	versions *algorithm.VersionsDB,
-	build db.Build,
+	buildDB db.BuildDB,
 	job atc.JobConfig,
 	resources atc.ResourceConfigs,
 	resourceTypes atc.ResourceTypes,
@@ -234,7 +239,6 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 ) engine.Build {
 	logger = logger.Session("scheduling")
 
-	buildDB := s.BuildDBFactory.GetBuildDB(build)
 	lease, acquired, err := buildDB.LeaseScheduling(logger, 10*time.Second)
 	if err != nil {
 		logger.Error("failed-to-get-lease", err)
@@ -258,7 +262,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 		return nil
 	}
 
-	inputs, canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(logger, build, buildPrep, versions)
+	inputs, canBuildBeScheduled, reason, err := jobService.CanBuildBeScheduled(logger, buildDB, buildPrep, versions)
 	if err != nil {
 		logger.Error("failed-to-schedule-build", err, lager.Data{
 			"reason": reason,
@@ -273,7 +277,7 @@ func (s *Scheduler) ScheduleAndResumePendingBuild(
 		return nil
 	}
 
-	if !s.updateBuildToScheduled(logger, canBuildBeScheduled, build.ID, reason) {
+	if !s.updateBuildToScheduled(logger, canBuildBeScheduled, buildDB.GetID(), reason) {
 		return nil
 	}
 

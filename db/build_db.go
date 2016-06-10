@@ -44,7 +44,6 @@ func (f *buildDBFactory) GetBuildDB(build Build) BuildDB {
 //go:generate counterfeiter . BuildDB
 
 type BuildDB interface {
-	GetModel() Build
 	Reload() (Build, bool, error)
 
 	GetID() int
@@ -58,7 +57,9 @@ type BuildDB interface {
 	GetStatus() Status
 	GetStartTime() time.Time
 	GetEndTime() time.Time
+	GetReapTime() time.Time
 	IsOneOff() bool
+	IsScheduled() bool
 	IsRunning() bool
 
 	Events(from uint) (EventSource, error)
@@ -95,10 +96,6 @@ type buildDB struct {
 	bus   *notificationsBus
 
 	buildPrepHelper buildPreparationHelper
-}
-
-func (db *buildDB) GetModel() Build {
-	return db.build
 }
 
 func (db *buildDB) Reload() (Build, bool, error) {
@@ -156,12 +153,20 @@ func (db *buildDB) GetEndTime() time.Time {
 	return db.build.EndTime
 }
 
+func (db *buildDB) GetReapTime() time.Time {
+	return db.build.ReapTime
+}
+
 func (db *buildDB) GetStatus() Status {
 	return db.build.Status
 }
 
 func (db *buildDB) IsOneOff() bool {
 	return db.build.JobName == ""
+}
+
+func (db *buildDB) IsScheduled() bool {
+	return db.build.Scheduled
 }
 
 func (db *buildDB) IsRunning() bool {

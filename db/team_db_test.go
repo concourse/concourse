@@ -514,7 +514,7 @@ var _ = Describe("TeamDB", func() {
 			buildDB, found, err := teamDB.GetBuildDB(originalBuildDB.GetID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
-			Expect(buildDB.GetModel()).To(Equal(originalBuildDB.GetModel()))
+			Expect(buildDB.GetID()).To(Equal(originalBuildDB.GetID()))
 		})
 
 		It("does not return build that belongs to another team", func() {

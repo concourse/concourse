@@ -23,7 +23,7 @@ func (s *Server) ListBuildsWithVersionAsInput(pipelineDB db.PipelineDB) http.Han
 
 		presentedBuilds := []atc.Build{}
 		for _, build := range builds {
-			presentedBuilds = append(presentedBuilds, present.Build(build.GetModel()))
+			presentedBuilds = append(presentedBuilds, present.Build(build))
 		}
 
 		w.Header().Set("Content-Type", "application/json")

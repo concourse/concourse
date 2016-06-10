@@ -40,5 +40,5 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 
-	json.NewEncoder(w).Encode(present.Build(buildDB.GetModel()))
+	json.NewEncoder(w).Encode(present.Build(buildDB))
 }

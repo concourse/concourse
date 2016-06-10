@@ -707,7 +707,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when the build is active", func() {
 				BeforeEach(func() {
-					model.Engine = "fake-engine-b"
+					fakeBuildDB.GetEngineReturns("fake-engine-b")
 					fakeBuildDB.ReloadReturns(model, true, nil)
 				})
 
@@ -715,8 +715,6 @@ var _ = Describe("DBEngine", func() {
 					var realBuild *fakes.FakeBuild
 
 					BeforeEach(func() {
-						fakeBuildDB.GetModelReturns(model)
-
 						realBuild = new(fakes.FakeBuild)
 						fakeEngineB.LookupBuildReturns(realBuild, nil)
 					})
@@ -762,7 +760,6 @@ var _ = Describe("DBEngine", func() {
 					disaster := errors.New("nope")
 
 					BeforeEach(func() {
-						fakeBuildDB.GetModelReturns(model)
 						fakeEngineB.LookupBuildReturns(nil, disaster)
 					})
 
@@ -774,8 +771,7 @@ var _ = Describe("DBEngine", func() {
 
 			Context("when the build's engine is unknown", func() {
 				BeforeEach(func() {
-					model.Engine = "bogus"
-					fakeBuildDB.GetModelReturns(model)
+					fakeBuildDB.GetEngineReturns("bogus")
 				})
 
 				It("returns an UnknownEngineError", func() {

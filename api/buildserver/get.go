@@ -33,7 +33,7 @@ func (s *Server) GetBuild(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 
-	build := present.Build(buildDB.GetModel())
+	build := present.Build(buildDB)
 
 	json.NewEncoder(w).Encode(build)
 }

@@ -28,6 +28,6 @@ func (s *Server) GetJobBuild(pipelineDB db.PipelineDB) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		json.NewEncoder(w).Encode(present.Build(buildDB.GetModel()))
+		json.NewEncoder(w).Encode(present.Build(buildDB))
 	})
 }

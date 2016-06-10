@@ -357,35 +357,26 @@ var _ = Describe("Versions API", func() {
 		Context("when getting the builds succeeds", func() {
 			BeforeEach(func() {
 				buildDB1 := new(dbfakes.FakeBuildDB)
-				buildDB1.GetModelReturns(db.Build{
-					ID:     1024,
-					Name:   "5",
-					Status: db.StatusSucceeded,
+				buildDB1.GetIDReturns(1024)
+				buildDB1.GetNameReturns("5")
+				buildDB1.GetJobNameReturns("some-job")
+				buildDB1.GetPipelineNameReturns("a-pipeline")
+				buildDB1.GetTeamNameReturns("a-team")
+				buildDB1.GetStatusReturns(db.StatusSucceeded)
+				buildDB1.GetStartTimeReturns(time.Unix(1, 0))
+				buildDB1.GetEndTimeReturns(time.Unix(100, 0))
 
-					JobName:      "some-job",
-					PipelineName: "a-pipeline",
-					TeamName:     "a-team",
-
-					StartTime: time.Unix(1, 0),
-					EndTime:   time.Unix(100, 0),
-				})
 				buildDB2 := new(dbfakes.FakeBuildDB)
-				buildDB2.GetModelReturns(db.Build{
-					ID:     1025,
-					Name:   "6",
-					Status: db.StatusSucceeded,
+				buildDB2.GetIDReturns(1025)
+				buildDB2.GetNameReturns("6")
+				buildDB2.GetJobNameReturns("some-job")
+				buildDB2.GetPipelineNameReturns("a-pipeline")
+				buildDB2.GetTeamNameReturns("a-team")
+				buildDB2.GetStatusReturns(db.StatusSucceeded)
+				buildDB2.GetStartTimeReturns(time.Unix(200, 0))
+				buildDB2.GetEndTimeReturns(time.Unix(300, 0))
 
-					JobName:      "some-job",
-					PipelineName: "a-pipeline",
-					TeamName:     "a-team",
-
-					StartTime: time.Unix(200, 0),
-					EndTime:   time.Unix(300, 0),
-				})
-				pipelineDB.GetBuildsWithVersionAsInputReturns([]db.BuildDB{
-					buildDB1,
-					buildDB2,
-				}, nil)
+				pipelineDB.GetBuildsWithVersionAsInputReturns([]db.BuildDB{buildDB1, buildDB2}, nil)
 			})
 
 			It("returns 200 OK", func() {
@@ -479,35 +470,26 @@ var _ = Describe("Versions API", func() {
 		Context("when getting the builds succeeds", func() {
 			BeforeEach(func() {
 				buildDB1 := new(dbfakes.FakeBuildDB)
-				buildDB1.GetModelReturns(db.Build{
-					ID:     1024,
-					Name:   "5",
-					Status: db.StatusSucceeded,
+				buildDB1.GetIDReturns(1024)
+				buildDB1.GetNameReturns("5")
+				buildDB1.GetJobNameReturns("some-job")
+				buildDB1.GetPipelineNameReturns("a-pipeline")
+				buildDB1.GetTeamNameReturns("a-team")
+				buildDB1.GetStatusReturns(db.StatusSucceeded)
+				buildDB1.GetStartTimeReturns(time.Unix(1, 0))
+				buildDB1.GetEndTimeReturns(time.Unix(100, 0))
 
-					JobName:      "some-job",
-					PipelineName: "a-pipeline",
-					TeamName:     "a-team",
-
-					StartTime: time.Unix(1, 0),
-					EndTime:   time.Unix(100, 0),
-				})
 				buildDB2 := new(dbfakes.FakeBuildDB)
-				buildDB2.GetModelReturns(db.Build{
-					ID:     1025,
-					Name:   "6",
-					Status: db.StatusSucceeded,
+				buildDB2.GetIDReturns(1025)
+				buildDB2.GetNameReturns("6")
+				buildDB2.GetJobNameReturns("some-job")
+				buildDB2.GetPipelineNameReturns("a-pipeline")
+				buildDB2.GetTeamNameReturns("a-team")
+				buildDB2.GetStatusReturns(db.StatusSucceeded)
+				buildDB2.GetStartTimeReturns(time.Unix(200, 0))
+				buildDB2.GetEndTimeReturns(time.Unix(300, 0))
 
-					JobName:      "some-job",
-					PipelineName: "a-pipeline",
-					TeamName:     "a-team",
-
-					StartTime: time.Unix(200, 0),
-					EndTime:   time.Unix(300, 0),
-				})
-				pipelineDB.GetBuildsWithVersionAsOutputReturns([]db.BuildDB{
-					buildDB1,
-					buildDB2,
-				}, nil)
+				pipelineDB.GetBuildsWithVersionAsOutputReturns([]db.BuildDB{buildDB1, buildDB2}, nil)
 			})
 
 			It("returns 200 OK", func() {
