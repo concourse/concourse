@@ -169,7 +169,7 @@ func (server *Server) RegisterCommand() string {
 }
 
 func (server *Server) RegistrationsCommand() string {
-	return fmt.Sprintf(`ruby -rnet/http -e 'puts Net::HTTP.get(URI("http://%s/registrations"))`, server.addr)
+	return fmt.Sprintf(`ruby -rnet/http -e 'puts Net::HTTP.get(URI("http://%s/registrations"))'`, server.addr)
 }
 
 func (server *Server) ReportingGuids() []string {
