@@ -20,9 +20,9 @@ resources/archive-resource.tar.gz:
   sha: 7ccf133afd62ddb8e95b1a841064cc0535f1bcd1
   size: 12306403
 resources/bosh-deployment-resource.tar.gz:
-  object_id: adf82988-f311-4329-936b-10903b50ed82
-  sha: 7e207b558e223f4cddee455228938322272ca8e0
-  size: 12890921
+  object_id: fcd9c7d8-722e-4f16-8074-967a777f59af
+  sha: 2b391541666e6357df64103456c80ba1a340499b
+  size: 13087414
 resources/bosh-io-release-resource.tar.gz:
   object_id: 38aabf61-49fa-4b5d-968f-39ab64f1a814
   sha: 1407c6572a7ce6f145b08be260686e6a25383273
