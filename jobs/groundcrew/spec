@@ -23,19 +23,20 @@ packages:
 
   # colocate base resources
   - archive_resource
+  - bosh_deployment_resource
+  - bosh_io_release_resource
+  - bosh_io_stemcell_resource
   - cf_resource
   - docker_image_resource
   - git_resource
   - github_release_resource
+  - hg_resource
   - pool_resource
   - s3_resource
   - semver_resource
   - time_resource
   - tracker_resource
   - vagrant_cloud_resource
-  - bosh_io_release_resource
-  - bosh_io_stemcell_resource
-  - bosh_deployment_resource
 
 consumes:
 - name: tsa
