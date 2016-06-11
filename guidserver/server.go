@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
 	"time"
 
@@ -161,7 +162,10 @@ func (server *Server) Stop() {
 }
 
 func (server *Server) RegisterCommand() string {
-	return fmt.Sprintf(`ruby -rnet/http -e 'Net::HTTP.start("%s") { |http| puts http.post("/register", STDIN.read).body }'`, server.addr)
+	host, port, err := net.SplitHostPort(server.addr)
+	Expect(err).ToNot(HaveOccurred())
+
+	return fmt.Sprintf(`ruby -rnet/http -e 'Net::HTTP.start("%s", %s) { |http| puts http.post("/register", STDIN.read).body }'`, host, port)
 }
 
 func (server *Server) RegistrationsCommand() string {
