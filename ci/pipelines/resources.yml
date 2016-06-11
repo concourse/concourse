@@ -105,6 +105,41 @@ jobs:
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
+- name: hg-resource
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: hg-resource
+      trigger: true
+    - get: busybox-hg-image
+      params: {save: true}
+      passed: [busybox-hg]
+      trigger: true
+  - task: unit
+    file: hg-resource/ci/unit.yml
+  - task: build
+    file: hg-resource/ci/build.yml
+  - put: hg-resource-image
+    params:
+      load_base: busybox-hg-image
+      build: built-resource
+    get_params: {rootfs: true}
+  - task: integration
+    image: hg-resource-image
+    file: hg-resource/ci/integration.yml
+  - aggregate:
+    - get: deployments
+    - get: concourse
+  - task: bump-package
+    input_mapping:
+      resource-image: hg-resource-image
+    file: concourse/ci/bump-resource-package.yml
+    params:
+      RESOURCE_NAME: hg-resource
+  - put: concourse
+    params: {repository: bumped-concourse, rebase: true}
+
 - name: pool-resource
   serial: true
   public: true
@@ -517,6 +552,12 @@ resources:
     uri: https://github.com/concourse/git-resource.git
     branch: master
 
+- name: hg-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/hg-resource.git
+    branch: master
+
 - name: pool-resource
   type: git
   source:
@@ -604,6 +645,14 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
     repository: concourse/git-resource
+
+- name: hg-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/hg-resource
 
 - name: pool-resource-image
   type: docker-image
