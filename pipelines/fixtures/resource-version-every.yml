@@ -12,7 +12,7 @@ jobs:
       - get: some-git-resource
         trigger: true
         version: every
-      - task: curl-server
+      - task: print-guid
         config:
           platform: linux
           image_resource:

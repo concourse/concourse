@@ -18,7 +18,7 @@ jobs:
     plan:
       - get: some-git-resource
         trigger: true
-      - task: curl-server
+      - task: print-guid
         config:
           platform: linux
           image_resource:

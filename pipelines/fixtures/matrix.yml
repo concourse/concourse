@@ -36,7 +36,7 @@ jobs:
               outputs:
               - name: passing-unit-2
                 path: .
-      - task: curl-server
+      - task: print-guid
         config:
           platform: linux
           image_resource:
@@ -69,7 +69,7 @@ jobs:
                 path: sh
                 args: [-c, exit 1]
         on_failure:
-          task: curl-server-failure
+          task: print-guid-failure
           config:
             platform: linux
             image_resource:
