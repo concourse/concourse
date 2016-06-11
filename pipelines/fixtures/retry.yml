@@ -2,7 +2,7 @@
 jobs:
 - name: retry-job
   plan:
-  - task: curl-server-until-3-curls
+  - task: register-server-until-3-registrations
     attempts: 5
     config:
       platform: linux

@@ -19,7 +19,7 @@ jobs:
     plan:
       - get: some-git-resource
         trigger: true
-      - task: curl-server
+      - task: print-guid
         config:
           platform: linux
           image_resource:
@@ -39,7 +39,7 @@ jobs:
       - get: other-git-resource
         trigger: true
       - get: some-git-resource
-      - task: curl-server-other-git-resource
+      - task: print-guid-other-git-resource
         config:
           platform: linux
           image_resource:
@@ -51,7 +51,7 @@ jobs:
           run:
             path: tail
             args: ["-1", "guids"]
-      - task: curl-server-some-git-resource
+      - task: print-guid-some-git-resource
         config:
           platform: linux
           image_resource:

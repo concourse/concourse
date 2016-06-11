@@ -126,9 +126,9 @@ func Start(client concourse.Client) *Server {
 	addr := fmt.Sprintf("%s:%d", info.ContainerIP, 8080)
 
 	Eventually(func() (int, error) {
-		curl, err := container.Run(garden.ProcessSpec{
-			Path: "curl",
-			Args: []string{"-s", "-f", "http://127.0.0.1:8080/registrations"},
+		get, err := container.Run(garden.ProcessSpec{
+			Path: "ruby",
+			Args: []string{"-rnet/http", "-e", `Net::HTTP.get(URI("http://127.0.0.1:8080/registrations"))`},
 			User: "root",
 		}, garden.ProcessIO{
 			Stdout: gexec.NewPrefixedWriter(
@@ -142,7 +142,7 @@ func Start(client concourse.Client) *Server {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		return curl.Wait()
+		return get.Wait()
 	}).Should(Equal(0))
 
 	return &Server{
@@ -161,19 +161,19 @@ func (server *Server) Stop() {
 }
 
 func (server *Server) RegisterCommand() string {
-	return fmt.Sprintf("curl -XPOST http://%s/register -d @-", server.addr)
+	return fmt.Sprintf(`ruby -rnet/http -e 'Net::HTTP.start("%s") { |http| puts http.post("/register", STDIN.read).body }'`, server.addr)
 }
 
 func (server *Server) RegistrationsCommand() string {
-	return fmt.Sprintf("curl -XPOST http://%s/registrations", server.addr)
+	return fmt.Sprintf(`ruby -rnet/http -e 'puts Net::HTTP.get(URI("http://%s/registrations"))`, server.addr)
 }
 
 func (server *Server) ReportingGuids() []string {
 	outBuf := new(bytes.Buffer)
 
-	curl, err := server.container.Run(garden.ProcessSpec{
-		Path: "curl",
-		Args: []string{"-s", "-f", "http://127.0.0.1:8080/registrations"},
+	get, err := server.container.Run(garden.ProcessSpec{
+		Path: "ruby",
+		Args: []string{"-rnet/http", "-e", `puts Net::HTTP.get(URI("http://127.0.0.1:8080/registrations"))`},
 		User: "root",
 	}, garden.ProcessIO{
 		Stdout: outBuf,
@@ -184,7 +184,7 @@ func (server *Server) ReportingGuids() []string {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	Expect(curl.Wait()).To(Equal(0))
+	Expect(get.Wait()).To(Equal(0))
 
 	var responses []string
 	err = json.NewDecoder(outBuf).Decode(&responses)
