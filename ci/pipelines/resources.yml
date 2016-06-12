@@ -140,10 +140,18 @@ jobs:
     params:
       load_base: busybox-git-image
       build: git-resource
-    get_params: {rootfs: true}
-  - task: unit
+  - task: integration
     image: git-resource-image
     file: git-resource/ci/tests.yml
+
+- name: bump-git-resource
+  serial: true
+  public: true
+  plan:
+  - get: git-resource-image
+    passed: [git-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -174,10 +182,18 @@ jobs:
     params:
       load_base: busybox-hg-image
       build: built-resource
-    get_params: {rootfs: true}
   - task: integration
     image: hg-resource-image
     file: hg-resource/ci/integration.yml
+
+- name: bump-hg-resource
+  serial: true
+  public: true
+  plan:
+  - get: hg-resource-image
+    passed: [hg-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -206,7 +222,15 @@ jobs:
     params:
       load_base: busybox-git-image
       build: built-resource
-    get_params: {rootfs: true}
+
+- name: bump-pool-resource
+  serial: true
+  public: true
+  plan:
+  - get: pool-resource-image
+    passed: [pool-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -235,7 +259,15 @@ jobs:
     params:
       load_base: busybox-iptables-image
       build: built-resource
-    get_params: {rootfs: true}
+
+- name: bump-docker-image-resource
+  serial: true
+  public: true
+  plan:
+  - get: docker-image-resource-image
+    passed: [docker-image-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -264,7 +296,15 @@ jobs:
     params:
       load_base: busybox-base-image
       build: built-resource
-    get_params: {rootfs: true}
+
+- name: bump-time-resource
+  serial: true
+  public: true
+  plan:
+  - get: time-resource-image
+    passed: [time-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -293,7 +333,15 @@ jobs:
     params:
       load_base: busybox-git-image
       build: built-resource
-    get_params: {rootfs: true}
+
+- name: bump-archive-resource
+  serial: true
+  public: true
+  plan:
+  - get: archive-resource-image
+    passed: [archive-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -322,7 +370,15 @@ jobs:
     params:
       load_base: busybox-ruby-image
       build: bosh-deployment-resource
-    get_params: {rootfs: true}
+
+- name: bump-bosh-deployment-resource
+  serial: true
+  public: true
+  plan:
+  - get: bosh-deployment-resource-image
+    passed: [bosh-deployment-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -356,7 +412,14 @@ jobs:
     params:
       load_base: busybox-base-image
       build: built-resource
-    get_params: {rootfs: true}
+
+- name: bump-s3-resource
+  serial: true
+  plan:
+  - get: s3-resource-image
+    passed: [s3-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -385,7 +448,15 @@ jobs:
     params:
       load_base: busybox-base-image
       build: built-resource
-    get_params: {rootfs: true}
+
+- name: bump-github-release-resource
+  serial: true
+  public: true
+  plan:
+  - get: github-release-resource-image
+    passed: [github-release-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -421,7 +492,15 @@ jobs:
     params:
       load_base: busybox-base-image
       build: built-resource
-    get_params: {rootfs: true}
+
+- name: bump-cf-resource
+  serial: true
+  public: true
+  plan:
+  - get: cf-resource-image
+    passed: [cf-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -455,7 +534,15 @@ jobs:
     params:
       load_base: busybox-git-image
       build: built-resource
-    get_params: {rootfs: true}
+
+- name: bump-semver-resource
+  serial: true
+  public: false # easy to leak bucket params
+  plan:
+  - get: semver-resource-image
+    passed: [semver-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -482,7 +569,15 @@ jobs:
     params:
       load_base: busybox-git-image
       build: bosh-io-release-resource
-    get_params: {rootfs: true}
+
+- name: bump-bosh-io-release-resource
+  serial: true
+  public: true
+  plan:
+  - get: bosh-io-release-resource-image
+    passed: [bosh-io-release-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -511,7 +606,15 @@ jobs:
     params:
       load_base: busybox-git-image
       build: bosh-io-stemcell-resource
-    get_params: {rootfs: true}
+
+- name: bump-bosh-io-stemcell-resource
+  serial: true
+  public: true
+  plan:
+  - get: bosh-io-stemcell-resource-image
+    passed: [bosh-io-stemcell-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -542,7 +645,15 @@ jobs:
     params:
       load_base: busybox-git-image
       build: built-resource
-    get_params: {rootfs: true}
+
+- name: bump-tracker-resource
+  serial: true
+  public: true
+  plan:
+  - get: tracker-resource-image
+    passed: [tracker-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:
@@ -569,7 +680,15 @@ jobs:
     params:
       load_base: busybox-git-image
       build: vagrant-cloud-resource
-    get_params: {rootfs: true}
+
+- name: bump-vagrant-cloud-resource
+  serial: true
+  public: true
+  plan:
+  - get: vagrant-cloud-resource-image
+    passed: [vagrant-cloud-resource]
+    params: {rootfs: true}
+    trigger: true
   - get: concourse
   - task: bump-package
     input_mapping:

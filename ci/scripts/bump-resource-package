@@ -22,5 +22,7 @@ cd bumped-concourse/
 bosh -n add blob ../${RESOURCE_NAME}.tar.gz resources
 bosh -n upload blobs
 
-git add -A
-git commit -m "update ${RESOURCE_NAME} blob"
+if ! git diff-index --quiet HEAD; then
+  git add -A
+  git commit -m "update ${RESOURCE_NAME} blob"
+fi
