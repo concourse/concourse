@@ -1,16 +1,4 @@
 ---
-btrfs_tools_3.12/btrfs:
-  size: 353424
-  object_id: 8a522cff-b202-43a6-8d10-7e68c473f66e
-  sha: 5d7afc7cff4e2d842dcc22129799b1329ed2e868
-btrfs_tools_3.12/mkfs.btrfs:
-  size: 171728
-  object_id: 25651d29-52e3-4441-afc0-b590ea64c410
-  sha: 80108e80d404d8fdd435703f8526ff8a44e4bbe2
-consul_0.5/consul:
-  size: 17734417
-  object_id: 97b99488-7553-47f0-8294-ad1f8533b164
-  sha: f461a632165ce878045afaaf04de699510e53374
 postgresql/postgresql-9.3.4.tar.gz:
   size: 21865589
   object_id: a62f2cda-80fa-4daf-a59c-5acc9a6a3c2e
