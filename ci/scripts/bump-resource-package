@@ -15,7 +15,9 @@ gzip -c resource-image/rootfs.tar > ${RESOURCE_NAME}.tar.gz
 
 git clone concourse bumped-concourse
 
+set +x
 echo "$BOSH_PRIVATE_CONFIG" > bumped-concourse/config/private.yml
+set -x
 
 cd bumped-concourse/
 
