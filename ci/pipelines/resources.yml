@@ -1,11 +1,34 @@
 jobs:
+- name: busybox-tarmaker
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: buildroot-tarmaker
+      trigger: true
+    - get: ubuntu-16.04
+      params: {save: true}
+      trigger: true
+  - put: buildroot-tarmaker-image
+    params:
+      build: buildroot-tarmaker
+      dockerfile: buildroot-tarmaker/Dockerfile.tarmaker
+      load_base: ubuntu-16.04
+
 - name: busybox-base
   serial: true
   public: true
   plan:
-  - get: core-busyboxplus
-    resource: busybox-base
-    trigger: true
+  - aggregate:
+    - get: core-busyboxplus
+      resource: busybox-base
+      trigger: true
+    - get: buildroot
+      trigger: true
+    - get: buildroot-tarmaker-image
+      params: {save: true}
+      passed: [busybox-tarmaker]
+      trigger: true
   - task: build-image
     privileged: true
     file: core-busyboxplus/ci/build.yml
@@ -18,9 +41,16 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: core-busyboxplus
-    resource: busybox-git
-    trigger: true
+  - aggregate:
+    - get: core-busyboxplus
+      resource: busybox-git
+      trigger: true
+    - get: buildroot
+      trigger: true
+    - get: buildroot-tarmaker-image
+      params: {save: true}
+      passed: [busybox-tarmaker]
+      trigger: true
   - task: build-image
     privileged: true
     file: core-busyboxplus/ci/build.yml
@@ -33,9 +63,16 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: core-busyboxplus
-    resource: busybox-hg
-    trigger: true
+  - aggregate:
+    - get: core-busyboxplus
+      resource: busybox-hg
+      trigger: true
+    - get: buildroot
+      trigger: true
+    - get: buildroot-tarmaker-image
+      params: {save: true}
+      passed: [busybox-tarmaker]
+      trigger: true
   - task: build-image
     privileged: true
     file: core-busyboxplus/ci/build.yml
@@ -48,9 +85,16 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: core-busyboxplus
-    resource: busybox-ruby
-    trigger: true
+  - aggregate:
+    - get: core-busyboxplus
+      resource: busybox-ruby
+      trigger: true
+    - get: buildroot
+      trigger: true
+    - get: buildroot-tarmaker-image
+      params: {save: true}
+      passed: [busybox-tarmaker]
+      trigger: true
   - task: build-image
     privileged: true
     file: core-busyboxplus/ci/build.yml
@@ -63,9 +107,16 @@ jobs:
   serial: true
   public: true
   plan:
-  - get: core-busyboxplus
-    resource: busybox-iptables
-    trigger: true
+  - aggregate:
+    - get: core-busyboxplus
+      resource: busybox-iptables
+      trigger: true
+    - get: buildroot
+      trigger: true
+    - get: buildroot-tarmaker-image
+      params: {save: true}
+      passed: [busybox-tarmaker]
+      trigger: true
   - task: build-image
     privileged: true
     file: core-busyboxplus/ci/build.yml
@@ -784,6 +835,27 @@ resources:
     branch: master
     private_key: {{deployments-repo-private-key}}
 
+- name: buildroot
+  type: git
+  source:
+    uri: git://git.buildroot.net/buildroot
+    tag_filter: '[0-9][0-9][0-9][0-9].[0-9][0-9]'
+
+- name: buildroot-tarmaker
+  type: git
+  source:
+    uri: https://github.com/concourse/core-busyboxplus.git
+    branch: master
+    paths: [Dockerfile.tarmaker]
+
+- name: buildroot-tarmaker-image
+  type: docker-image
+  source:
+    repository: concourse/busyboxplus-tarmaker
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
 - name: busybox-base
   type: git
   source:
@@ -863,3 +935,9 @@ resources:
     username: {{docker-username}}
     email: {{docker-email}}
     password: {{docker-password}}
+
+- name: ubuntu-16.04
+  type: docker-image
+  source:
+    repository: ubuntu
+    tag: "16.04"
