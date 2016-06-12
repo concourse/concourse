@@ -14,7 +14,8 @@ git config --global user.name "CI Bot"
 gzip -c resource-image/rootfs.tar > ${RESOURCE_NAME}.tar.gz
 
 git clone concourse bumped-concourse
-cp deployments/ci/config/private.yml bumped-concourse/config/private.yml
+
+echo "$BOSH_PRIVATE_CONFIG" > bumped-concourse/config/private.yml
 
 cd bumped-concourse/
 
