@@ -33,6 +33,12 @@ type registrarSSHServer struct {
 	httpClient        *http.Client
 }
 
+type forwardedTCPIP struct {
+	bindAddr  string
+	process   ifrit.Process
+	boundPort uint32
+}
+
 func (server *registrarSSHServer) Serve(listener net.Listener) {
 	for {
 		c, err := listener.Accept()
@@ -44,25 +50,21 @@ func (server *registrarSSHServer) Serve(listener net.Listener) {
 			return
 		}
 
-		logger := server.logger.Session("connection")
+		logger := server.logger.Session("connection", lager.Data{
+			"remote": c.RemoteAddr().String(),
+		})
 
-		conn, chans, reqs, err := ssh.NewServerConn(c, server.config)
-		if err != nil {
-			logger.Info("handshake-failed", lager.Data{"error": err.Error()})
-			continue
-		}
-
-		go server.handleConn(logger, conn, chans, reqs)
+		go server.handshake(logger, c)
 	}
 }
 
-type forwardedTCPIP struct {
-	bindAddr  string
-	process   ifrit.Process
-	boundPort uint32
-}
+func (server *registrarSSHServer) handshake(logger lager.Logger, netConn net.Conn) {
+	conn, chans, reqs, err := ssh.NewServerConn(netConn, server.config)
+	if err != nil {
+		logger.Info("handshake-failed", lager.Data{"error": err.Error()})
+		return
+	}
 
-func (server *registrarSSHServer) handleConn(logger lager.Logger, conn *ssh.ServerConn, chans <-chan ssh.NewChannel, reqs <-chan *ssh.Request) {
 	defer conn.Close()
 
 	forwardedTCPIPs := make(chan forwardedTCPIP, 2)
