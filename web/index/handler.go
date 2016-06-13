@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/web/pipeline"
 	"github.com/pivotal-golang/lager"
@@ -39,8 +38,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) error 
 
 	client := handler.clientFactory.Build(r)
 
-	team := client.Team(atc.DefaultTeamName)
-	pipelines, err := team.ListPipelines()
+	pipelines, err := client.ListPipelines()
 	if err != nil {
 		log.Error("failed-to-list-pipelines", err)
 		return err
