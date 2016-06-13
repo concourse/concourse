@@ -1298,9 +1298,8 @@ concourse.PauseUnpause.prototype.requestError = function (resp) {
     this.$el = $($el);
     this.$toggle = $el.find($('.js-pipelinesNav-toggle'));
     this.$list = $el.find($('.js-pipelinesNav-list'));
-    this.pipelinesEndpoint = $el.data('endpoint');
+    this.pipelinesEndpoint = '/api/v1/pipelines';
   };
-
 
   concourse.PipelinesNav.prototype.bindEvents = function () {
     var _this = this;
