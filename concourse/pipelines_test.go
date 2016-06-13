@@ -139,7 +139,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 		})
 	})
 
-	Describe("ListPipelines", func() {
+	Describe("team.ListPipelines", func() {
 		var expectedPipelines []atc.Pipeline
 
 		BeforeEach(func() {
@@ -178,8 +178,54 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			)
 		})
 
-		It("returns all the pipelines", func() {
+		It("returns pipelines that belong to team", func() {
 			pipelines, err := team.ListPipelines()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pipelines).To(Equal(expectedPipelines))
+		})
+	})
+
+	Describe("client.ListPipelines", func() {
+		var expectedPipelines []atc.Pipeline
+
+		BeforeEach(func() {
+			expectedURL := "/api/v1/pipelines"
+
+			expectedPipelines = []atc.Pipeline{
+				{
+					Name:   "mypipeline-1",
+					Paused: true,
+					Groups: []atc.GroupConfig{
+						{
+							Name:      "group1",
+							Jobs:      []string{"job1", "job2"},
+							Resources: []string{"resource1", "resource2"},
+						},
+					},
+				},
+				{
+					Name:   "mypipeline-2",
+					Paused: false,
+					Groups: []atc.GroupConfig{
+						{
+							Name:      "group2",
+							Jobs:      []string{"job3", "job4"},
+							Resources: []string{"resource3", "resource4"},
+						},
+					},
+				},
+			}
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedPipelines),
+				),
+			)
+		})
+
+		It("returns all the pipelines", func() {
+			pipelines, err := client.ListPipelines()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipelines).To(Equal(expectedPipelines))
 		})

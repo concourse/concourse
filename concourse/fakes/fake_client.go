@@ -136,6 +136,13 @@ type FakeClient struct {
 		result1 io.ReadCloser
 		result2 error
 	}
+	ListPipelinesStub        func() ([]atc.Pipeline, error)
+	listPipelinesMutex       sync.RWMutex
+	listPipelinesArgsForCall []struct{}
+	listPipelinesReturns     struct {
+		result1 []atc.Pipeline
+		result2 error
+	}
 	TeamStub        func(teamName string) concourse.Team
 	teamMutex       sync.RWMutex
 	teamArgsForCall []struct {
@@ -591,6 +598,31 @@ func (fake *FakeClient) GetCLIReaderReturns(result1 io.ReadCloser, result2 error
 	fake.GetCLIReaderStub = nil
 	fake.getCLIReaderReturns = struct {
 		result1 io.ReadCloser
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) ListPipelines() ([]atc.Pipeline, error) {
+	fake.listPipelinesMutex.Lock()
+	fake.listPipelinesArgsForCall = append(fake.listPipelinesArgsForCall, struct{}{})
+	fake.listPipelinesMutex.Unlock()
+	if fake.ListPipelinesStub != nil {
+		return fake.ListPipelinesStub()
+	} else {
+		return fake.listPipelinesReturns.result1, fake.listPipelinesReturns.result2
+	}
+}
+
+func (fake *FakeClient) ListPipelinesCallCount() int {
+	fake.listPipelinesMutex.RLock()
+	defer fake.listPipelinesMutex.RUnlock()
+	return len(fake.listPipelinesArgsForCall)
+}
+
+func (fake *FakeClient) ListPipelinesReturns(result1 []atc.Pipeline, result2 error) {
+	fake.ListPipelinesStub = nil
+	fake.listPipelinesReturns = struct {
+		result1 []atc.Pipeline
 		result2 error
 	}{result1, result2}
 }

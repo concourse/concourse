@@ -50,6 +50,17 @@ func (team *team) ListPipelines() ([]atc.Pipeline, error) {
 	return pipelines, err
 }
 
+func (client *client) ListPipelines() ([]atc.Pipeline, error) {
+	var pipelines []atc.Pipeline
+	err := client.connection.Send(internal.Request{
+		RequestName: atc.ListAllPipelines,
+	}, &internal.Response{
+		Result: &pipelines,
+	})
+
+	return pipelines, err
+}
+
 func (team *team) DeletePipeline(pipelineName string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,

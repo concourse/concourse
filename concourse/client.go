@@ -27,6 +27,7 @@ type Client interface {
 	ListWorkers() ([]atc.Worker, error)
 	GetInfo() (atc.Info, error)
 	GetCLIReader(arch, platform string) (io.ReadCloser, error)
+	ListPipelines() ([]atc.Pipeline, error)
 
 	Team(teamName string) Team
 }
