@@ -42,6 +42,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.GetBuild,
 			atc.BuildResources,
 			atc.GetLogLevel,
+			atc.ListAllPipelines,
 			atc.ListBuilds,
 			atc.GetBuildPlan,
 			atc.GetBuildPreparation:

@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/auth"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -20,7 +21,7 @@ func (s *Server) CreateBuild(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teamDB := s.teamDBFactory.GetTeamDB(getTeamName(r))
+	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthOrDefaultTeamName(r))
 	build, err := teamDB.CreateOneOffBuild()
 
 	if err != nil {

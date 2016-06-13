@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
@@ -20,7 +21,7 @@ func (s *Server) BuildResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inputs, outputs, found, err := s.getMeAllTheThings(buildID, getTeamName(r))
+	inputs, outputs, found, err := s.getMeAllTheThings(buildID, auth.GetAuthOrDefaultTeamName(r))
 	if err != nil {
 		log.Error("cannot-find-build", err, lager.Data{"buildID": r.FormValue(":build_id")})
 		w.WriteHeader(http.StatusInternalServerError)

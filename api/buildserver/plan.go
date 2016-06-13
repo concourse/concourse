@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+
+	"github.com/concourse/atc/auth"
 )
 
 func (s *Server) GetBuildPlan(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +19,7 @@ func (s *Server) GetBuildPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teamDB := s.teamDBFactory.GetTeamDB(getTeamName(r))
+	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthOrDefaultTeamName(r))
 	build, found, err := teamDB.GetBuild(buildID)
 	if err != nil {
 		s.logger.Error("failed-to-get-build", err)

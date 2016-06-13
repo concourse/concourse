@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 )
 
@@ -34,7 +35,7 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 		limit = atc.PaginationAPIDefaultLimit
 	}
 
-	teamDB := s.teamDBFactory.GetTeamDB(getTeamName(r))
+	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthOrDefaultTeamName(r))
 	builds, pagination, err := teamDB.GetBuilds(db.Page{Until: until, Since: since, Limit: limit})
 	if err != nil {
 		logger.Error("failed-to-get-all-builds", err)

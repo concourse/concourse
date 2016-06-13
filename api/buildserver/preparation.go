@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/auth"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -20,7 +21,7 @@ func (s *Server) GetBuildPreparation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teamDB := s.teamDBFactory.GetTeamDB(getTeamName(r))
+	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthOrDefaultTeamName(r))
 	build, found, err := teamDB.GetBuild(buildID)
 	if err != nil {
 		s.logger.Error("failed-to-get-build", err)

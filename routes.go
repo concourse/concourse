@@ -38,13 +38,14 @@ const (
 	ListBuildsWithVersionAsInput  = "ListBuildsWithVersionAsInput"
 	ListBuildsWithVersionAsOutput = "ListBuildsWithVersionAsOutput"
 
-	ListPipelines   = "ListPipelines"
-	GetPipeline     = "GetPipeline"
-	DeletePipeline  = "DeletePipeline"
-	OrderPipelines  = "OrderPipelines"
-	PausePipeline   = "PausePipeline"
-	UnpausePipeline = "UnpausePipeline"
-	RenamePipeline  = "RenamePipeline"
+	ListAllPipelines = "ListAllPipelines"
+	ListPipelines    = "ListPipelines"
+	GetPipeline      = "GetPipeline"
+	DeletePipeline   = "DeletePipeline"
+	OrderPipelines   = "OrderPipelines"
+	PausePipeline    = "PausePipeline"
+	UnpausePipeline  = "UnpausePipeline"
+	RenamePipeline   = "RenamePipeline"
 
 	CreatePipe = "CreatePipe"
 	WritePipe  = "WritePipe"
@@ -94,6 +95,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/unpause", Method: "PUT", Name: UnpauseJob},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/badge", Method: "GET", Name: JobBadge},
 
+	{Path: "/api/v1/pipelines", Method: "GET", Name: ListAllPipelines},
 	{Path: "/api/v1/teams/:team_name/pipelines", Method: "GET", Name: ListPipelines},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name", Method: "GET", Name: GetPipeline},
 	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name", Method: "DELETE", Name: DeletePipeline},
