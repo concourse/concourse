@@ -48,6 +48,10 @@
   }
 
   \note{feature}{
+    A \resource{hg} is now included as part of the core distribution.
+  }
+
+  \note{feature}{
     When a build is stuck "waiting for a suitable set of input versions", it
     will now show what input it cannot find versions for, and why.
   }
@@ -85,5 +89,47 @@
   \note{feature}{
     The \resource{git} now includes \code{branches} and
     \code{tags} in its metadata for each commit.
+  }
+
+  \note{feature}{
+    The \resource{docker-image} can now be configured with SSL CA certs to
+    trust when communicating with the registry. This allows you to use private
+    registries securely, rather than listing the address as insecure.
+  }
+
+  \note{fix}{
+    The \resource{git} will now detect the full history of tags when configured
+    with \code{tag_filter}, rather than just the latest one.
+  }
+
+  \note{feature}{
+    All core resources now include \code{bash} in their image, which should
+    make hijacking more pleasant. We also stripped out extra stuff from some
+    resources, so on the whole the resource images should be a bit smaller.
+  }
+
+  \note{feature}{
+    We've bumped all core images to
+    \hyperlink{https://buildroot.org}{Buildroot} v2016.05, and are now
+    continously integrating with Buildroot.
+  }
+
+  \note{feature}{
+    The \resource{git} can now be configured to \italic{NOT} skip commits with
+    \code{[ci skip]} in them, thanks to a PR from \ghuser{zachgersh} and
+    \ghuser{ryanmoran}. This is useful when you're pointing at commits of an
+    external repo with an
+    unrelated CI.
+  }
+
+  \note{feature}{
+    The \resource{git}, \resource{s3}, and \resource{semver} now support basic
+    auth when talking to Git repos, thanks to PRs from
+    \ghuser{MatthiasWinzeler} and \ghuser{JamesClonk}.
+  }
+
+  \note{feature}{
+    The \resource{docker-image} can now be configured with a registry mirror,
+    thanks to a PR from \ghuser{gregarcara}.
   }
 }
