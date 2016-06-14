@@ -62,54 +62,33 @@ func (client *client) ListPipelines() ([]atc.Pipeline, error) {
 }
 
 func (team *team) DeletePipeline(pipelineName string) (bool, error) {
-	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"team_name":     team.name,
-	}
-
-	err := team.connection.Send(internal.Request{
-		RequestName: atc.DeletePipeline,
-		Params:      params,
-	}, nil)
-
-	switch err.(type) {
-	case nil:
-		return true, nil
-	case internal.ResourceNotFoundError:
-		return false, nil
-	default:
-		return false, err
-	}
+	return team.managePipeline(pipelineName, atc.DeletePipeline)
 }
 
 func (team *team) PausePipeline(pipelineName string) (bool, error) {
-	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"team_name":     team.name,
-	}
-	err := team.connection.Send(internal.Request{
-		RequestName: atc.PausePipeline,
-		Params:      params,
-	}, nil)
 
-	switch err.(type) {
-	case nil:
-		return true, nil
-	case internal.ResourceNotFoundError:
-		return false, nil
-	default:
-		return false, err
-	}
+	return team.managePipeline(pipelineName, atc.PausePipeline)
 }
 
 func (team *team) UnpausePipeline(pipelineName string) (bool, error) {
+	return team.managePipeline(pipelineName, atc.UnpausePipeline)
+}
+
+func (team *team) RevealPipeline(pipelineName string) (bool, error) {
+	return team.managePipeline(pipelineName, atc.RevealPipeline)
+}
+
+func (team *team) ConcealPipeline(pipelineName string) (bool, error) {
+	return team.managePipeline(pipelineName, atc.ConcealPipeline)
+}
+
+func (team *team) managePipeline(pipelineName string, endpoint string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"team_name":     team.name,
 	}
-
 	err := team.connection.Send(internal.Request{
-		RequestName: atc.UnpausePipeline,
+		RequestName: endpoint,
 		Params:      params,
 	}, nil)
 

@@ -19,6 +19,8 @@ type Team interface {
 	DeletePipeline(pipelineName string) (bool, error)
 	PausePipeline(pipelineName string) (bool, error)
 	UnpausePipeline(pipelineName string) (bool, error)
+	RevealPipeline(pipelineName string) (bool, error)
+	ConcealPipeline(pipelineName string) (bool, error)
 	RenamePipeline(pipelineName, name string) (bool, error)
 	ListPipelines() ([]atc.Pipeline, error)
 

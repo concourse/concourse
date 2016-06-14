@@ -84,6 +84,80 @@ var _ = Describe("ATC Handler Pipelines", func() {
 		})
 	})
 
+	Describe("RevealPipeline", func() {
+		Context("when the pipeline exists", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/reveal"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, ""),
+					),
+				)
+			})
+
+			It("return true and no error", func() {
+				found, err := team.RevealPipeline("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+		})
+
+		Context("when the pipeline doesn't exist", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/reveal"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
+					),
+				)
+			})
+			It("returns false and no error", func() {
+				found, err := team.RevealPipeline("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("ConcealPipeline", func() {
+		Context("when the pipeline exists", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/conceal"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, ""),
+					),
+				)
+			})
+
+			It("return true and no error", func() {
+				found, err := team.ConcealPipeline("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+		})
+
+		Context("when the pipeline doesn't exist", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/conceal"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
+					),
+				)
+			})
+			It("returns false and no error", func() {
+				found, err := team.ConcealPipeline("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+
 	Describe("Pipeline", func() {
 		var expectedPipeline atc.Pipeline
 		pipelineName := "mypipeline"
