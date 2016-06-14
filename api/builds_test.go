@@ -313,7 +313,7 @@ var _ = Describe("Builds API", func() {
 					})
 				})
 
-				Context("when authneticated", func() {
+				Context("when authenticated", func() {
 					BeforeEach(func() {
 						authValidator.IsAuthenticatedReturns(true)
 					})
@@ -374,6 +374,7 @@ var _ = Describe("Builds API", func() {
 
 		Context("when the build is found", func() {
 			BeforeEach(func() {
+				build.JobNameReturns("job1")
 				teamDB.GetBuildReturns(build, true, nil)
 			})
 
@@ -384,86 +385,150 @@ var _ = Describe("Builds API", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("returns 200 OK", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			Context("when team is not in user context", func() {
-				It("returns builds for default team", func() {
-					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-					Expect(teamName).To(Equal(atc.DefaultTeamName))
-				})
-			})
-
-			Context("when team is set in user context", func() {
+			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					userContextReader.GetTeamReturns("some-team", 5, false, true)
+					authValidator.IsAuthenticatedReturns(false)
 				})
 
-				It("returns builds for team in the context", func() {
-					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-					teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-					Expect(teamName).To(Equal("some-team"))
+				Context("and build is one off", func() {
+					BeforeEach(func() {
+						build.IsOneOffReturns(true)
+					})
+
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+				})
+
+				Context("and the pipeline is private", func() {
+					BeforeEach(func() {
+						build.GetPipelineReturns(db.SavedPipeline{Public: false}, nil)
+					})
+
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+				})
+
+				Context("and the pipeline is public", func() {
+					BeforeEach(func() {
+						build.GetPipelineReturns(db.SavedPipeline{Public: true}, nil)
+					})
+
+					Context("when job is private", func() {
+						BeforeEach(func() {
+							build.GetConfigReturns(atc.Config{
+								Jobs: atc.JobConfigs{
+									{Name: "job1", Public: false},
+								},
+							}, 1, nil)
+						})
+
+						It("returns 401", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+						})
+					})
+
+					Context("when job is public", func() {
+						BeforeEach(func() {
+							build.GetConfigReturns(atc.Config{
+								Jobs: atc.JobConfigs{
+									{Name: "job1", Public: true},
+								},
+							}, 1, nil)
+						})
+
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+					})
 				})
 			})
 
-			Context("when the build inputs/ouputs are not empty", func() {
+			Context("when authenticated", func() {
 				BeforeEach(func() {
-					build.GetResourcesReturns([]db.BuildInput{
-						{
-							Name: "input1",
-							VersionedResource: db.VersionedResource{
-								Resource: "myresource1",
-								Type:     "git",
-								Version:  db.Version{"version": "value1"},
-								Metadata: []db.MetadataField{
-									{
-										Name:  "meta1",
-										Value: "value1",
-									},
-									{
-										Name:  "meta2",
-										Value: "value2",
-									},
-								},
-								PipelineID: 42,
-							},
-							FirstOccurrence: true,
-						},
-						{
-							Name: "input2",
-							VersionedResource: db.VersionedResource{
-								Resource:   "myresource2",
-								Type:       "git",
-								Version:    db.Version{"version": "value2"},
-								Metadata:   []db.MetadataField{},
-								PipelineID: 42,
-							},
-							FirstOccurrence: false,
-						},
-					},
-						[]db.BuildOutput{
-							{
-								VersionedResource: db.VersionedResource{
-									Resource: "myresource3",
-									Version:  db.Version{"version": "value3"},
-								},
-							},
-							{
-								VersionedResource: db.VersionedResource{
-									Resource: "myresource4",
-									Version:  db.Version{"version": "value4"},
-								},
-							},
-						}, nil)
+					authValidator.IsAuthenticatedReturns(true)
 				})
 
-				It("returns the build with it's input and output versioned resources", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+				Context("when team is not in user context", func() {
+					It("returns builds for default team", func() {
+						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+						Expect(teamName).To(Equal(atc.DefaultTeamName))
+					})
+				})
 
-					Expect(body).To(MatchJSON(`{
+				Context("when team is set in user context", func() {
+					BeforeEach(func() {
+						userContextReader.GetTeamReturns("some-team", 5, false, true)
+					})
+
+					It("returns builds for team in the context", func() {
+						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+						Expect(teamName).To(Equal("some-team"))
+					})
+				})
+
+				Context("when the build inputs/ouputs are not empty", func() {
+					BeforeEach(func() {
+						build.GetResourcesReturns([]db.BuildInput{
+							{
+								Name: "input1",
+								VersionedResource: db.VersionedResource{
+									Resource: "myresource1",
+									Type:     "git",
+									Version:  db.Version{"version": "value1"},
+									Metadata: []db.MetadataField{
+										{
+											Name:  "meta1",
+											Value: "value1",
+										},
+										{
+											Name:  "meta2",
+											Value: "value2",
+										},
+									},
+									PipelineID: 42,
+								},
+								FirstOccurrence: true,
+							},
+							{
+								Name: "input2",
+								VersionedResource: db.VersionedResource{
+									Resource:   "myresource2",
+									Type:       "git",
+									Version:    db.Version{"version": "value2"},
+									Metadata:   []db.MetadataField{},
+									PipelineID: 42,
+								},
+								FirstOccurrence: false,
+							},
+						},
+							[]db.BuildOutput{
+								{
+									VersionedResource: db.VersionedResource{
+										Resource: "myresource3",
+										Version:  db.Version{"version": "value3"},
+									},
+								},
+								{
+									VersionedResource: db.VersionedResource{
+										Resource: "myresource4",
+										Version:  db.Version{"version": "value4"},
+									},
+								},
+							}, nil)
+					})
+
+					It("returns the build with it's input and output versioned resources", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`{
 							"inputs": [
 								{
 									"name": "input1",
@@ -514,23 +579,12 @@ var _ = Describe("Builds API", func() {
 								}
 							]
 						}`))
-				})
-			})
-
-			Context("when the build resources error", func() {
-				BeforeEach(func() {
-					build.GetResourcesReturns([]db.BuildInput{}, []db.BuildOutput{}, errors.New("where are my feedback?"))
+					})
 				})
 
-				It("returns internal server error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-
-			Context("with an invalid build", func() {
-				Context("when the lookup errors", func() {
+				Context("when the build resources error", func() {
 					BeforeEach(func() {
-						teamDB.GetBuildReturns(build, false, errors.New("Freakin' out man, I'm freakin' out!"))
+						build.GetResourcesReturns([]db.BuildInput{}, []db.BuildOutput{}, errors.New("where are my feedback?"))
 					})
 
 					It("returns internal server error", func() {
@@ -538,13 +592,25 @@ var _ = Describe("Builds API", func() {
 					})
 				})
 
-				Context("when the build does not exist", func() {
-					BeforeEach(func() {
-						teamDB.GetBuildReturns(build, false, nil)
+				Context("with an invalid build", func() {
+					Context("when the lookup errors", func() {
+						BeforeEach(func() {
+							teamDB.GetBuildReturns(build, false, errors.New("Freakin' out man, I'm freakin' out!"))
+						})
+
+						It("returns internal server error", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
 					})
 
-					It("returns internal server error", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					Context("when the build does not exist", func() {
+						BeforeEach(func() {
+							teamDB.GetBuildReturns(build, false, nil)
+						})
+
+						It("returns internal server error", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+						})
 					})
 				})
 			})

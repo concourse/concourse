@@ -37,11 +37,11 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		case atc.ListAuthMethods,
 			atc.GetInfo,
 			atc.BuildEvents,
-			atc.GetBuild:
+			atc.GetBuild,
+			atc.BuildResources:
 
 		// authenticated if not publicly viewable
 		case atc.DownloadCLI,
-			atc.BuildResources,
 			atc.GetLogLevel,
 			atc.ListAllPipelines,
 			atc.ListBuilds,
