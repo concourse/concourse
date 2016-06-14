@@ -1,10 +1,7 @@
 package concourse_test
 
 import (
-	"io"
 	"io/ioutil"
-	"mime"
-	"mime/multipart"
 	"net/http"
 
 	"gopkg.in/yaml.v2"
@@ -16,46 +13,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 )
-
-func getConfigAndPausedState(r *http.Request) ([]byte, *bool) {
-	defer r.Body.Close()
-
-	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	Expect(err).NotTo(HaveOccurred())
-
-	reader := multipart.NewReader(r.Body, params["boundary"])
-
-	var payload []byte
-	var state *bool
-
-	yes := true
-	no := false
-
-	for {
-		part, err := reader.NextPart()
-		if err == io.EOF {
-			break
-		}
-		Expect(err).NotTo(HaveOccurred())
-
-		if part.FormName() == "paused" {
-			pausedValue, readErr := ioutil.ReadAll(part)
-			Expect(readErr).NotTo(HaveOccurred())
-
-			if string(pausedValue) == "true" {
-				state = &yes
-			} else {
-				state = &no
-			}
-		} else {
-			payload, err = ioutil.ReadAll(part)
-		}
-
-		part.Close()
-	}
-
-	return payload, state
-}
 
 var _ = Describe("ATC Handler Configs", func() {
 	Describe("PipelineConfig", func() {
@@ -237,12 +194,13 @@ var _ = Describe("ATC Handler Configs", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 					func(w http.ResponseWriter, r *http.Request) {
-						bodyConfig, state := getConfigAndPausedState(r)
-						Expect(state).To(BeNil())
+						defer r.Body.Close()
+						bodyConfig, err := ioutil.ReadAll(r.Body)
+						Expect(err).NotTo(HaveOccurred())
 
 						receivedConfig := atc.Config{}
 
-						err := yaml.Unmarshal(bodyConfig, &receivedConfig)
+						err = yaml.Unmarshal(bodyConfig, &receivedConfig)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(receivedConfig).To(Equal(expectedConfig))
