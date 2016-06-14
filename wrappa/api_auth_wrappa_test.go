@@ -118,6 +118,8 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.UnpauseJob:             authorized(inputHandlers[atc.UnpauseJob]),
 					atc.UnpauseResource:        authorized(inputHandlers[atc.UnpauseResource]),
 					atc.PausePipeline:          authorized(inputHandlers[atc.PausePipeline]),
+					atc.RevealPipeline:         authorized(inputHandlers[atc.RevealPipeline]),
+					atc.ConcealPipeline:        authorized(inputHandlers[atc.ConcealPipeline]),
 					atc.ListJobInputs:          authorized(inputHandlers[atc.ListJobInputs]),
 					atc.GetConfig:              authorized(inputHandlers[atc.GetConfig]),
 
@@ -227,6 +229,8 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.UnpauseJob:                    authorized(inputHandlers[atc.UnpauseJob]),
 					atc.UnpausePipeline:               authorized(inputHandlers[atc.UnpausePipeline]),
 					atc.UnpauseResource:               authorized(inputHandlers[atc.UnpauseResource]),
+					atc.RevealPipeline:                authorized(inputHandlers[atc.RevealPipeline]),
+					atc.ConcealPipeline:               authorized(inputHandlers[atc.ConcealPipeline]),
 				}
 			})
 
