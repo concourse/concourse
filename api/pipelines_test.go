@@ -111,38 +111,71 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		It("returns all active pipelines", func() {
-			body, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
 
-			Expect(body).To(MatchJSON(`[
-			{
-				"name": "a-pipeline",
-				"url": "/teams/main/pipelines/a-pipeline",
-				"paused": false,
-				"public": false,
-				"team_name": "main",
-				"groups": [
-					{
-						"name": "group1",
-						"jobs": ["job1", "job2"],
-						"resources": ["resource1", "resource2"]
-					}
-				]
-			},{
-				"name": "another-pipeline",
-				"url": "/teams/main/pipelines/another-pipeline",
-				"paused": true,
-				"public": true,
-				"team_name": "main",
-				"groups": [
-					{
-						"name": "group2",
-						"jobs": ["job3", "job4"],
-						"resources": ["resource3", "resource4"]
-					}
-				]
-			}]`))
+			It("returns only public pipelines", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+				{
+					"name": "another-pipeline",
+					"url": "/teams/main/pipelines/another-pipeline",
+					"paused": true,
+					"public": true,
+					"team_name": "main",
+					"groups": [
+						{
+							"name": "group2",
+							"jobs": ["job3", "job4"],
+							"resources": ["resource3", "resource4"]
+						}
+					]
+				}]`))
+			})
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			It("returns all pipelines", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+				{
+					"name": "a-pipeline",
+					"url": "/teams/main/pipelines/a-pipeline",
+					"paused": false,
+					"public": false,
+					"team_name": "main",
+					"groups": [
+						{
+							"name": "group1",
+							"jobs": ["job1", "job2"],
+							"resources": ["resource1", "resource2"]
+						}
+					]
+				},{
+					"name": "another-pipeline",
+					"url": "/teams/main/pipelines/another-pipeline",
+					"paused": true,
+					"public": true,
+					"team_name": "main",
+					"groups": [
+						{
+							"name": "group2",
+							"jobs": ["job3", "job4"],
+							"resources": ["resource3", "resource4"]
+						}
+					]
+				}]`))
+			})
 		})
 
 		Context("when the call to get active pipelines fails", func() {

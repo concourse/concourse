@@ -57,7 +57,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("forces a redirect to /teams/main/login", func() {
-			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
+			request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/teams/main/pipelines/main", atcPort), nil)
 			resp, err := http.DefaultClient.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -97,9 +97,9 @@ var _ = Describe("Auth", func() {
 			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, BASIC_AUTH)
 		})
 
-		Context("when requesting /", func() {
+		Context("when requesting protected endpoint", func() {
 			BeforeEach(func() {
-				request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/", atcPort), nil)
+				request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/teams/main/pipelines/main", atcPort), nil)
 				Expect(err).NotTo(HaveOccurred())
 				response, responseErr = http.DefaultClient.Do(request)
 			})

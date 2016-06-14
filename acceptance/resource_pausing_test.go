@@ -102,6 +102,12 @@ var _ = Describe("Resource Pausing", func() {
 
 		It("can view the resource", func() {
 			// homepage -> resource detail
+			Expect(page.Navigate(homepage() + "/login")).To(Succeed())
+			Expect(page.FindByLink("Log in with Basic Auth").Click()).To(Succeed())
+			Expect(page.FindByName("username").Fill("admin")).To(Succeed())
+			Expect(page.FindByName("password").Fill("password")).To(Succeed())
+			Expect(page.FindByButton("Log In").Click()).To(Succeed())
+
 			Expect(page.Navigate(homepage())).To(Succeed())
 			Eventually(page.FindByLink("resource-name")).Should(BeFound())
 			Expect(page.FindByLink("resource-name").Click()).To(Succeed())
@@ -112,17 +118,10 @@ var _ = Describe("Resource Pausing", func() {
 
 			Expect(page.Find(".js-resource .js-pauseUnpause").Click()).To(Succeed())
 
-			Expect(page.FindByLink("Log in with Basic Auth").Click()).To(Succeed())
-			Expect(page.FindByName("username").Fill("admin")).To(Succeed())
-			Expect(page.FindByName("password").Fill("password")).To(Succeed())
-			Expect(page.FindByButton("Log In").Click()).To(Succeed())
-
+			Expect(page.Navigate(homepage())).To(Succeed())
+			Eventually(page.FindByLink("resource-name")).Should(BeFound())
 			Expect(page.FindByLink("resource-name").Click()).To(Succeed())
 			Expect(page.Find(".js-resource .js-pauseUnpause").Click()).To(Succeed())
-
-			Eventually(page.Find(".header i.fa-play")).Should(BeFound())
-
-			page.Refresh()
 
 			Eventually(page.Find(".header i.fa-play")).Should(BeFound())
 

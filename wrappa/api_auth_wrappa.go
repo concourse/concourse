@@ -34,18 +34,18 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 
 		switch name {
 		// unauthenticated / delegating to handler
-		case atc.ListAuthMethods,
+		case atc.DownloadCLI,
+			atc.ListAuthMethods,
 			atc.GetInfo,
 			atc.BuildEvents,
 			atc.GetBuild,
 			atc.BuildResources,
 			atc.GetBuildPlan,
-			atc.GetBuildPreparation:
+			atc.GetBuildPreparation,
+			atc.ListAllPipelines:
 
 		// authenticated if not publicly viewable
-		case atc.DownloadCLI,
-			atc.GetLogLevel,
-			atc.ListAllPipelines,
+		case atc.GetLogLevel,
 			atc.ListBuilds:
 			if !wrappa.PubliclyViewable {
 				newHandler = auth.CheckAuthHandler(handler, rejector)
