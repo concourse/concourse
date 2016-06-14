@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/concourse/go-archive/tgzfs"
 	"github.com/concourse/go-concourse/concourse"
 )
 
@@ -24,12 +25,7 @@ func Download(client concourse.Client, output Output) {
 		panic("unexpected-response-code")
 	}
 
-	err = os.MkdirAll(path, 0755)
-	if err != nil {
-		panic(err)
-	}
-
-	err = tarStreamTo(path, response.Body)
+	err = tgzfs.Extract(response.Body, path)
 	if err != nil {
 		panic(err)
 	}
