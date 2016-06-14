@@ -24,46 +24,20 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !found {
+	if found {
+		hasAccess, err := s.verifyBuildAcccess(build, r)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !hasAccess {
+			s.rejector.Unauthorized(w, r)
+			return
+		}
+	} else {
 		w.WriteHeader(http.StatusNotFound)
 		return
-	}
-
-	if !auth.IsAuthenticated(r) {
-		if build.IsOneOff() {
-			s.rejector.Unauthorized(w, r)
-			return
-		}
-
-		pipeline, err := build.GetPipeline()
-		if err != nil {
-			s.logger.Error("failed-to-get-pipeline", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if !pipeline.Public {
-			s.rejector.Unauthorized(w, r)
-			return
-		}
-
-		config, _, err := build.GetConfig()
-		if err != nil {
-			s.logger.Error("failed-to-get-config", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		public, err := config.JobIsPublic(build.JobName())
-		if err != nil {
-			s.logger.Error("failed-to-see-job-is-public", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if !public {
-			s.rejector.Unauthorized(w, r)
-			return
-		}
 	}
 
 	streamDone := make(chan struct{})

@@ -253,19 +253,84 @@ var _ = Describe("Builds API", func() {
 					teamDB.GetBuildReturns(build, true, nil)
 				})
 
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				Context("when not authenticated", func() {
+					BeforeEach(func() {
+						authValidator.IsAuthenticatedReturns(false)
+					})
+
+					Context("and build is one off", func() {
+						BeforeEach(func() {
+							build.IsOneOffReturns(true)
+						})
+
+						It("returns 401", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+						})
+					})
+
+					Context("and the pipeline is private", func() {
+						BeforeEach(func() {
+							build.GetPipelineReturns(db.SavedPipeline{Public: false}, nil)
+						})
+
+						It("returns 401", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+						})
+					})
+
+					Context("and the pipeline is public", func() {
+						BeforeEach(func() {
+							build.GetPipelineReturns(db.SavedPipeline{Public: true}, nil)
+						})
+
+						Context("when job is private", func() {
+							BeforeEach(func() {
+								build.GetConfigReturns(atc.Config{
+									Jobs: atc.JobConfigs{
+										{Name: "job1", Public: false},
+									},
+								}, 1, nil)
+							})
+
+							It("returns 401", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+							})
+						})
+
+						Context("when job is public", func() {
+							BeforeEach(func() {
+								build.GetConfigReturns(atc.Config{
+									Jobs: atc.JobConfigs{
+										{Name: "job1", Public: true},
+									},
+								}, 1, nil)
+							})
+
+							It("returns 200", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusOK))
+							})
+						})
+					})
 				})
 
-				It("returns the build with the given build_id", func() {
-					Expect(teamDB.GetBuildCallCount()).To(Equal(1))
-					buildID := teamDB.GetBuildArgsForCall(0)
-					Expect(buildID).To(Equal(1))
+				Context("when authneticated", func() {
+					BeforeEach(func() {
+						authValidator.IsAuthenticatedReturns(true)
+					})
 
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
 
-					Expect(body).To(MatchJSON(`{
+					It("returns the build with the given build_id", func() {
+						Expect(teamDB.GetBuildCallCount()).To(Equal(1))
+						buildID := teamDB.GetBuildArgsForCall(0)
+						Expect(buildID).To(Equal(1))
+
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`{
 						"id": 1,
 						"name": "1",
 						"status": "succeeded",
@@ -278,25 +343,26 @@ var _ = Describe("Builds API", func() {
 						"end_time": 100,
 						"reap_time": 200
 					}`))
-				})
-
-				Context("when team is not in user context", func() {
-					It("returns builds for default team", func() {
-						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-						Expect(teamName).To(Equal(atc.DefaultTeamName))
-					})
-				})
-
-				Context("when team is set in user context", func() {
-					BeforeEach(func() {
-						userContextReader.GetTeamReturns("some-team", 5, false, true)
 					})
 
-					It("returns builds for team in the context", func() {
-						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-						Expect(teamName).To(Equal("some-team"))
+					Context("when team is not in user context", func() {
+						It("returns builds for default team", func() {
+							Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+							teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+							Expect(teamName).To(Equal(atc.DefaultTeamName))
+						})
+					})
+
+					Context("when team is set in user context", func() {
+						BeforeEach(func() {
+							userContextReader.GetTeamReturns("some-team", 5, false, true)
+						})
+
+						It("returns builds for team in the context", func() {
+							Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+							teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+							Expect(teamName).To(Equal("some-team"))
+						})
 					})
 				})
 			})
