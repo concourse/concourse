@@ -626,7 +626,7 @@ var _ = Describe("Builds API", func() {
 			})
 
 			It("returns internal server error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
 	})

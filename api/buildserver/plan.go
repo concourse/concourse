@@ -3,59 +3,28 @@ package buildserver
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
-	"github.com/concourse/atc/auth"
+	"github.com/concourse/atc/db"
 )
 
-func (s *Server) GetBuildPlan(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GetBuildPlan(build db.Build) http.Handler {
 	hLog := s.logger.Session("get-build-plan")
 
-	buildIDStr := r.FormValue(":build_id")
-
-	buildID, err := strconv.Atoi(buildIDStr)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthOrDefaultTeamName(r))
-	build, found, err := teamDB.GetBuild(buildID)
-	if err != nil {
-		s.logger.Error("failed-to-get-build", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if found {
-		hasAccess, err := s.verifyBuildAcccess(build, r)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		engineBuild, err := s.engine.LookupBuild(hLog, build)
 		if err != nil {
+			hLog.Error("failed-to-lookup-build", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		if !hasAccess {
-			s.rejector.Unauthorized(w, r)
+		plan, err := engineBuild.PublicPlan(hLog)
+		if err != nil {
+			hLog.Error("failed-to-generate-plan", err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 
-	engineBuild, err := s.engine.LookupBuild(hLog, build)
-	if err != nil {
-		hLog.Error("failed-to-lookup-build", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	plan, err := engineBuild.PublicPlan(hLog)
-	if err != nil {
-		hLog.Error("failed-to-generate-plan", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	json.NewEncoder(w).Encode(plan)
+		json.NewEncoder(w).Encode(plan)
+	})
 }

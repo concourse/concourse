@@ -73,6 +73,7 @@ func NewHandler(
 	}
 
 	pipelineHandlerFactory := pipelines.NewHandlerFactory(pipelineDBFactory, teamDBFactory)
+	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger, teamDBFactory)
 
 	authServer := authserver.NewServer(
 		logger,
@@ -123,14 +124,14 @@ func NewHandler(
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
 		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
 
-		atc.GetBuild:            http.HandlerFunc(buildServer.GetBuild),
+		atc.GetBuild:            buildHandlerFactory.HandlerFor(buildServer.GetBuild),
 		atc.ListBuilds:          http.HandlerFunc(buildServer.ListBuilds),
 		atc.CreateBuild:         http.HandlerFunc(buildServer.CreateBuild),
-		atc.BuildEvents:         http.HandlerFunc(buildServer.BuildEvents),
-		atc.BuildResources:      http.HandlerFunc(buildServer.BuildResources),
+		atc.BuildEvents:         buildHandlerFactory.HandlerFor(buildServer.BuildEvents),
+		atc.BuildResources:      buildHandlerFactory.HandlerFor(buildServer.BuildResources),
 		atc.AbortBuild:          http.HandlerFunc(buildServer.AbortBuild),
-		atc.GetBuildPlan:        http.HandlerFunc(buildServer.GetBuildPlan),
-		atc.GetBuildPreparation: http.HandlerFunc(buildServer.GetBuildPreparation),
+		atc.GetBuildPlan:        buildHandlerFactory.HandlerFor(buildServer.GetBuildPlan),
+		atc.GetBuildPreparation: buildHandlerFactory.HandlerFor(buildServer.GetBuildPreparation),
 
 		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
 		atc.GetJob:         pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
