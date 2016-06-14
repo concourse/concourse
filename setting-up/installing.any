@@ -395,11 +395,11 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
 
     You may also want to consult the property descriptions for your version of
     Concourse at
-    \hyperlink{http://bosh.io/releases/github.com/concourse/concourse}{bosh.io}
+    \hyperlink{https://bosh.io/releases/github.com/concourse/concourse}{bosh.io}
     to see what properties you can/should tweak.
 
     Once you've got a manifest, just
-    \hyperlink{http://bosh.io/docs/deploying.html}{deploy it}!
+    \hyperlink{https://bosh.io/docs/deploying.html}{deploy it}!
   }
 
   \section{Reaching the web UI}{
@@ -544,7 +544,7 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
       In AWS, the \code{web_lb} VM type would then configure
       \code{cloud_properties.elbs} to auto-register instances of \code{web}
       with an ELB. See
-      \hyperlink{http://bosh.io/docs/aws-cpi.html#resource-pools}{the AWS CPI
+      \hyperlink{https://bosh.io/docs/aws-cpi.html#resource-pools}{the AWS CPI
       docs} for more information.
     }
   }
