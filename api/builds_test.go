@@ -453,6 +453,7 @@ var _ = Describe("Builds API", func() {
 				It("returns 200 OK", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
+
 				Context("when team is not in user context", func() {
 					It("returns builds for default team", func() {
 						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
@@ -1262,59 +1263,126 @@ var _ = Describe("Builds API", func() {
 			var engineBuild *enginefakes.FakeBuild
 
 			BeforeEach(func() {
+				build.JobNameReturns("job1")
 				teamDB.GetBuildReturns(build, true, nil)
 
 				engineBuild = new(enginefakes.FakeBuild)
 				fakeEngine.LookupBuildReturns(engineBuild, nil)
 			})
 
-			Context("when the build returns a plan", func() {
+			Context("when not authenticated", func() {
 				BeforeEach(func() {
-					engineBuild.PublicPlanReturns(publicPlan, nil)
+					authValidator.IsAuthenticatedReturns(false)
 				})
 
-				It("returns OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				Context("when team is not in user context", func() {
-					It("returns builds for default team", func() {
-						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-						Expect(teamName).To(Equal(atc.DefaultTeamName))
-					})
-				})
-
-				Context("when team is set in user context", func() {
+				Context("and build is one off", func() {
 					BeforeEach(func() {
-						userContextReader.GetTeamReturns("some-team", 5, false, true)
+						build.IsOneOffReturns(true)
 					})
 
-					It("returns builds for team in the context", func() {
-						Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-						teamName := teamDBFactory.GetTeamDBArgsForCall(0)
-						Expect(teamName).To(Equal("some-team"))
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
 
-				It("returns the plan", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
+				Context("and the pipeline is private", func() {
+					BeforeEach(func() {
+						build.GetPipelineReturns(db.SavedPipeline{Public: false}, nil)
+					})
 
-					Expect(body).To(MatchJSON(`{
-						"schema": "some-schema",
-						"plan": "some-plan"
-					}`))
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+				})
+
+				Context("and the pipeline is public", func() {
+					BeforeEach(func() {
+						build.GetPipelineReturns(db.SavedPipeline{Public: true}, nil)
+					})
+
+					Context("when job is private", func() {
+						BeforeEach(func() {
+							build.GetConfigReturns(atc.Config{
+								Jobs: atc.JobConfigs{
+									{Name: "job1", Public: false},
+								},
+							}, 1, nil)
+						})
+
+						It("returns 401", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+						})
+					})
+
+					Context("when job is public", func() {
+						BeforeEach(func() {
+							build.GetConfigReturns(atc.Config{
+								Jobs: atc.JobConfigs{
+									{Name: "job1", Public: true},
+								},
+							}, 1, nil)
+						})
+
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+					})
 				})
 			})
 
-			Context("when the build fails to return a plan", func() {
+			Context("when authenticated", func() {
 				BeforeEach(func() {
-					engineBuild.PublicPlanReturns(atc.PublicBuildPlan{}, errors.New("nope"))
+					authValidator.IsAuthenticatedReturns(true)
 				})
 
-				It("returns 500 Internal Server Error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				Context("when the build returns a plan", func() {
+					BeforeEach(func() {
+						engineBuild.PublicPlanReturns(publicPlan, nil)
+					})
+
+					It("returns OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					Context("when team is not in user context", func() {
+						It("returns builds for default team", func() {
+							Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+							teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+							Expect(teamName).To(Equal(atc.DefaultTeamName))
+						})
+					})
+
+					Context("when team is set in user context", func() {
+						BeforeEach(func() {
+							userContextReader.GetTeamReturns("some-team", 5, false, true)
+						})
+
+						It("returns builds for team in the context", func() {
+							Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+							teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+							Expect(teamName).To(Equal("some-team"))
+						})
+					})
+
+					It("returns the plan", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`{
+						"schema": "some-schema",
+						"plan": "some-plan"
+					}`))
+					})
+				})
+
+				Context("when the build fails to return a plan", func() {
+					BeforeEach(func() {
+						engineBuild.PublicPlanReturns(atc.PublicBuildPlan{}, errors.New("nope"))
+					})
+
+					It("returns 500 Internal Server Error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
 				})
 			})
 		})

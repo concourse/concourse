@@ -176,6 +176,7 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.BuildEvents:     unauthenticated(inputHandlers[atc.BuildEvents]),
 					atc.GetBuild:        unauthenticated(inputHandlers[atc.GetBuild]),
 					atc.BuildResources:  unauthenticated(inputHandlers[atc.BuildResources]),
+					atc.GetBuildPlan:    unauthenticated(inputHandlers[atc.GetBuildPlan]),
 
 					// authenticated
 					atc.AbortBuild:          authenticated(inputHandlers[atc.AbortBuild]),
@@ -183,7 +184,6 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.CreatePipe:          authenticated(inputHandlers[atc.CreatePipe]),
 					atc.DownloadCLI:         authenticated(inputHandlers[atc.DownloadCLI]),
 					atc.GetAuthToken:        authenticated(inputHandlers[atc.GetAuthToken]),
-					atc.GetBuildPlan:        authenticated(inputHandlers[atc.GetBuildPlan]),
 					atc.GetBuildPreparation: authenticated(inputHandlers[atc.GetBuildPreparation]),
 					atc.GetContainer:        authenticated(inputHandlers[atc.GetContainer]),
 					atc.GetLogLevel:         authenticated(inputHandlers[atc.GetLogLevel]),

@@ -27,7 +27,18 @@ func (s *Server) GetBuildPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !found {
+	if found {
+		hasAccess, err := s.verifyBuildAcccess(build, r)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !hasAccess {
+			s.rejector.Unauthorized(w, r)
+			return
+		}
+	} else {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
