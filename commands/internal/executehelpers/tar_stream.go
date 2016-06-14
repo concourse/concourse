@@ -4,7 +4,6 @@ package executehelpers
 
 import (
 	"bytes"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -12,7 +11,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/kr/tarutil"
+	"github.com/concourse/go-archive/tgzfs"
 )
 
 func tarStreamFrom(workDir string, paths []string) (io.ReadCloser, error) {
@@ -46,24 +45,5 @@ func tarStreamFrom(workDir string, paths []string) (io.ReadCloser, error) {
 }
 
 func tarStreamTo(workDir string, stream io.Reader) error {
-	if tarPath, err := exec.LookPath("tar"); err == nil {
-		tarCmd := exec.Command(tarPath, "-xzf", "-")
-		tarCmd.Dir = workDir
-		tarCmd.Stderr = os.Stderr
-
-		tarCmd.Stdin = stream
-
-		tarCmd.SysProcAttr = &syscall.SysProcAttr{
-			Setpgid: true,
-		}
-
-		return tarCmd.Run()
-	}
-
-	gr, err := gzip.NewReader(stream)
-	if err != nil {
-		return err
-	}
-
-	return tarutil.ExtractAll(gr, workDir, tarutil.Chmod|tarutil.Chtimes|tarutil.Symlink)
+	return tgzfs.Extract(stream, workDir)
 }

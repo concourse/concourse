@@ -3,10 +3,9 @@
 package executehelpers
 
 import (
-	"compress/gzip"
 	"io"
 
-	"github.com/kr/tarutil"
+	"github.com/concourse/go-archive/tgzfs"
 )
 
 func tarStreamFrom(workDir string, paths []string) (io.ReadCloser, error) {
@@ -14,10 +13,5 @@ func tarStreamFrom(workDir string, paths []string) (io.ReadCloser, error) {
 }
 
 func tarStreamTo(workDir string, stream io.Reader) error {
-	gr, err := gzip.NewReader(stream)
-	if err != nil {
-		return err
-	}
-
-	return tarutil.ExtractAll(gr, workDir, tarutil.Chmod|tarutil.Chtimes|tarutil.Symlink)
+	return tgzfs.Extract(workDir, stream)
 }
