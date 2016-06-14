@@ -101,6 +101,7 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.SetLogLevel:     authenticated(inputHandlers[atc.SetLogLevel]),
 					atc.SetTeam:         authenticated(inputHandlers[atc.SetTeam]),
 					atc.WritePipe:       authenticated(inputHandlers[atc.WritePipe]),
+					atc.GetLogLevel:     authenticated(inputHandlers[atc.GetLogLevel]),
 
 					// authorized
 					atc.SaveConfig:             authorized(inputHandlers[atc.SaveConfig]),
@@ -133,7 +134,6 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.GetInfo:                       unauthenticated(inputHandlers[atc.GetInfo]),
 					atc.GetJob:                        unauthenticated(inputHandlers[atc.GetJob]),
 					atc.GetJobBuild:                   unauthenticated(inputHandlers[atc.GetJobBuild]),
-					atc.GetLogLevel:                   unauthenticated(inputHandlers[atc.GetLogLevel]),
 					atc.GetPipeline:                   unauthenticated(inputHandlers[atc.GetPipeline]),
 					atc.GetResource:                   unauthenticated(inputHandlers[atc.GetResource]),
 					atc.JobBadge:                      unauthenticated(inputHandlers[atc.JobBadge]),
@@ -180,6 +180,7 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.GetBuildPlan:        unauthenticated(inputHandlers[atc.GetBuildPlan]),
 					atc.GetBuildPreparation: unauthenticated(inputHandlers[atc.GetBuildPreparation]),
 					atc.ListAllPipelines:    unauthenticated(inputHandlers[atc.ListAllPipelines]),
+					atc.ListBuilds:          unauthenticated(inputHandlers[atc.ListBuilds]),
 
 					// authenticated
 					atc.AbortBuild:      authenticated(inputHandlers[atc.AbortBuild]),
@@ -189,7 +190,6 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.GetContainer:    authenticated(inputHandlers[atc.GetContainer]),
 					atc.GetLogLevel:     authenticated(inputHandlers[atc.GetLogLevel]),
 					atc.HijackContainer: authenticated(inputHandlers[atc.HijackContainer]),
-					atc.ListBuilds:      authenticated(inputHandlers[atc.ListBuilds]),
 					atc.ListContainers:  authenticated(inputHandlers[atc.ListContainers]),
 					atc.ListVolumes:     authenticated(inputHandlers[atc.ListVolumes]),
 					atc.ListWorkers:     authenticated(inputHandlers[atc.ListWorkers]),

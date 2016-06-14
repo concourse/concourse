@@ -420,7 +420,7 @@ var _ = Describe("TeamDB", func() {
 	Describe("GetBuilds", func() {
 		Context("when there are no builds", func() {
 			It("returns an empty list of builds", func() {
-				builds, pagination, err := teamDB.GetBuilds(db.Page{Limit: 2})
+				builds, pagination, err := teamDB.GetBuilds(db.Page{Limit: 2}, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(pagination.Next).To(BeNil())
@@ -459,7 +459,7 @@ var _ = Describe("TeamDB", func() {
 			})
 
 			It("returns all builds that have been started, regardless of pipeline", func() {
-				builds, pagination, err := teamDB.GetBuilds(db.Page{Limit: 2})
+				builds, pagination, err := teamDB.GetBuilds(db.Page{Limit: 2}, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(2))
@@ -469,7 +469,7 @@ var _ = Describe("TeamDB", func() {
 				Expect(pagination.Previous).To(BeNil())
 				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[3].ID(), Limit: 2}))
 
-				builds, pagination, err = teamDB.GetBuilds(*pagination.Next)
+				builds, pagination, err = teamDB.GetBuilds(*pagination.Next, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(2))
@@ -479,7 +479,7 @@ var _ = Describe("TeamDB", func() {
 				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID(), Limit: 2}))
 				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID(), Limit: 2}))
 
-				builds, pagination, err = teamDB.GetBuilds(*pagination.Next)
+				builds, pagination, err = teamDB.GetBuilds(*pagination.Next, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(1))
@@ -488,7 +488,7 @@ var _ = Describe("TeamDB", func() {
 				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[0].ID(), Limit: 2}))
 				Expect(pagination.Next).To(BeNil())
 
-				builds, pagination, err = teamDB.GetBuilds(*pagination.Previous)
+				builds, pagination, err = teamDB.GetBuilds(*pagination.Previous, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(2))
@@ -526,17 +526,63 @@ var _ = Describe("TeamDB", func() {
 				})
 
 				It("returns only builds for requested team", func() {
-					builds, _, err := teamADB.GetBuilds(db.Page{Limit: 10})
+					builds, _, err := teamADB.GetBuilds(db.Page{Limit: 10}, false)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(len(builds)).To(Equal(3))
 					Expect(builds).To(ConsistOf(teamABuilds))
 
-					builds, _, err = teamBDB.GetBuilds(db.Page{Limit: 10})
+					builds, _, err = teamBDB.GetBuilds(db.Page{Limit: 10}, false)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(len(builds)).To(Equal(3))
 					Expect(builds).To(ConsistOf(teamBBuilds))
+				})
+			})
+
+			Context("when requesting for only public builds", func() {
+				var publicBuilds [3]db.Build
+
+				BeforeEach(func() {
+					config := atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+							},
+						},
+					}
+					pipeline, _, err := teamDB.SaveConfig("public-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+					Expect(err).NotTo(HaveOccurred())
+
+					pipelineDB := pipelineDBFactory.Build(pipeline)
+					pipelineDB.Reveal()
+
+					for i := 0; i < 3; i++ {
+						build, err := pipelineDB.CreateJobBuild("some-job")
+						Expect(err).NotTo(HaveOccurred())
+						publicBuilds[i] = build
+					}
+				})
+
+				It("returns only public builds", func() {
+					builds, pagination, err := teamDB.GetBuilds(db.Page{Limit: 2}, true)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(len(builds)).To(Equal(2))
+					Expect(builds[0]).To(Equal(publicBuilds[2]))
+					Expect(builds[1]).To(Equal(publicBuilds[1]))
+
+					Expect(pagination.Previous).To(BeNil())
+					Expect(pagination.Next).To(Equal(&db.Page{Since: publicBuilds[1].ID(), Limit: 2}))
+
+					builds, pagination, err = teamDB.GetBuilds(*pagination.Next, true)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(len(builds)).To(Equal(1))
+					Expect(builds[0]).To(Equal(publicBuilds[0]))
+
+					Expect(pagination.Previous).To(Equal(&db.Page{Until: publicBuilds[0].ID(), Limit: 2}))
+					Expect(pagination.Next).To(BeNil())
 				})
 			})
 		})

@@ -661,6 +661,8 @@ var _ = Describe("Builds API", func() {
 			build2.ReapTimeReturns(time.Unix(400, 0))
 
 			returnedBuilds = []db.Build{build1, build2}
+
+			authValidator.IsAuthenticatedReturns(true)
 		})
 
 		JustBeforeEach(func() {
@@ -678,7 +680,7 @@ var _ = Describe("Builds API", func() {
 			It("does not set defaults for since and until", func() {
 				Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
 
-				page := teamDB.GetBuildsArgsForCall(0)
+				page, _ := teamDB.GetBuildsArgsForCall(0)
 				Expect(page).To(Equal(db.Page{
 					Since: 0,
 					Until: 0,
@@ -695,12 +697,30 @@ var _ = Describe("Builds API", func() {
 			It("passes them through", func() {
 				Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
 
-				page := teamDB.GetBuildsArgsForCall(0)
+				page, _ := teamDB.GetBuildsArgsForCall(0)
 				Expect(page).To(Equal(db.Page{
 					Since: 2,
 					Until: 3,
 					Limit: 8,
 				}))
+			})
+		})
+
+		It("requests all builds", func() {
+			Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
+			_, publicOnly := teamDB.GetBuildsArgsForCall(0)
+			Expect(publicOnly).To(BeFalse())
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("requests only public builds", func() {
+				Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
+				_, publicOnly := teamDB.GetBuildsArgsForCall(0)
+				Expect(publicOnly).To(BeTrue())
 			})
 		})
 

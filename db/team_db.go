@@ -25,7 +25,7 @@ type TeamDB interface {
 	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
 
 	CreateOneOffBuild() (Build, error)
-	GetBuilds(page Page) ([]Build, Pagination, error)
+	GetBuilds(page Page, publicOnly bool) ([]Build, Pagination, error)
 	GetBuild(buildID int) (Build, bool, error)
 }
 
@@ -532,7 +532,7 @@ func (db *teamDB) CreateOneOffBuild() (Build, error) {
 	return build, nil
 }
 
-func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {
+func (db *teamDB) GetBuilds(page Page, publicOnly bool) ([]Build, Pagination, error) {
 	query := `
 		SELECT ` + qualifiedBuildColumns + `
 		FROM builds b
@@ -541,6 +541,12 @@ func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 		LEFT OUTER JOIN teams t ON b.team_id = t.id
 		WHERE t.name = $1
 	`
+	if publicOnly {
+		query = fmt.Sprintf(`
+			%s
+			AND p.public = true
+		`, query)
+	}
 
 	var rows *sql.Rows
 	var err error
@@ -595,11 +601,22 @@ func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 	var minID int
 	var maxID int
 
-	err = db.conn.QueryRow(`
+	maxMinQuery := `
 		SELECT COALESCE(MAX(b.id), 0) as maxID,
-			COALESCE(MIN(b.id), 0) as minID
+		COALESCE(MIN(b.id), 0) as minID
 		FROM builds b
-	`).Scan(&maxID, &minID)
+	`
+
+	if publicOnly {
+		maxMinQuery = fmt.Sprintf(`
+			%s
+			LEFT OUTER JOIN jobs j ON b.job_id = j.id
+			LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
+			WHERE p.public = true
+		`, maxMinQuery)
+	}
+
+	err = db.conn.QueryRow(maxMinQuery).Scan(&maxID, &minID)
 	if err != nil {
 		return nil, Pagination{}, err
 	}
