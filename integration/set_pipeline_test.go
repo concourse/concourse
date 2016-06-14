@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"mime"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"os/exec"
@@ -648,25 +646,8 @@ var _ = Describe("Fly CLI", func() {
 
 func getConfig(r *http.Request) []byte {
 	defer r.Body.Close()
-
-	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	payload, err := ioutil.ReadAll(r.Body)
 	Expect(err).NotTo(HaveOccurred())
-
-	reader := multipart.NewReader(r.Body, params["boundary"])
-
-	var payload []byte
-
-	for {
-		part, err := reader.NextPart()
-		if err == io.EOF {
-			break
-		}
-		Expect(err).NotTo(HaveOccurred())
-
-		payload, err = ioutil.ReadAll(part)
-
-		part.Close()
-	}
 
 	return payload
 }
