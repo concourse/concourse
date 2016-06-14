@@ -22,6 +22,7 @@ var _ = Describe("TeamDB", func() {
 		teamDBFactory db.TeamDBFactory
 
 		teamDB                db.TeamDB
+		otherTeamDB           db.TeamDB
 		caseInsensitiveTeamDB db.TeamDB
 		nonExistentTeamDB     db.TeamDB
 		savedTeam             db.SavedTeam
@@ -51,6 +52,8 @@ var _ = Describe("TeamDB", func() {
 		nonExistentTeamDB = teamDBFactory.GetTeamDB("non-existent-name")
 
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
+
+		otherTeamDB = teamDBFactory.GetTeamDB("other-team-name")
 	})
 
 	AfterEach(func() {
@@ -61,7 +64,7 @@ var _ = Describe("TeamDB", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Describe("GetPipielineByName", func() {
+	Describe("GetPipelineByName", func() {
 		var savedPipeline db.SavedPipeline
 		BeforeEach(func() {
 			var err error
@@ -112,6 +115,38 @@ var _ = Describe("TeamDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(savedPipelines).To(HaveLen(2))
 			Expect(savedPipelines).To(ConsistOf(savedPipeline1, savedPipeline2))
+		})
+
+		Context("when other team has public pipelines", func() {
+			var otherPipeline db.SavedPipeline
+			var pipelineDB db.PipelineDB
+
+			BeforeEach(func() {
+				var err error
+				otherPipeline, _, err = otherTeamDB.SaveConfig("other-pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+				pipelineDB = pipelineDBFactory.Build(otherPipeline)
+				err = pipelineDB.Reveal()
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns them", func() {
+				savedPipelines, err := teamDB.GetPipelines()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(savedPipelines).To(HaveLen(3))
+				Expect(savedPipelines).To(ConsistOf(savedPipeline1, savedPipeline2, otherPipeline))
+			})
+
+			Context("when pipeline that belongs to other team is no longer public", func() {
+				It("does not return it", func() {
+					err := pipelineDB.Conceal()
+					Expect(err).NotTo(HaveOccurred())
+					savedPipelines, err := teamDB.GetPipelines()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(savedPipelines).To(HaveLen(2))
+					Expect(savedPipelines).To(ConsistOf(savedPipeline1, savedPipeline2))
+				})
+			})
 		})
 	})
 

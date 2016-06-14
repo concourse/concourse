@@ -83,6 +83,9 @@ type PipelineDB interface {
 	UpdateBuildPreparation(prep BuildPreparation) error
 
 	GetDashboard() (Dashboard, atc.GroupConfigs, error)
+
+	Reveal() error
+	Conceal() error
 }
 
 type pipelineDB struct {
@@ -2267,6 +2270,24 @@ func (pdb *pipelineDB) GetDashboard() (Dashboard, atc.GroupConfigs, error) {
 	}
 
 	return dashboard, pipelineConfig.Groups, nil
+}
+
+func (pdb *pipelineDB) Reveal() error {
+	_, err := pdb.conn.Exec(`
+		UPDATE pipelines
+		SET public = true
+		WHERE id = $1
+	`, pdb.ID)
+	return err
+}
+
+func (pdb *pipelineDB) Conceal() error {
+	_, err := pdb.conn.Exec(`
+		UPDATE pipelines
+		SET public = false
+		WHERE id = $1
+	`, pdb.ID)
+	return err
 }
 
 func (pdb *pipelineDB) getJobs() (map[string]SavedJob, error) {

@@ -56,7 +56,7 @@ func (db *teamDB) GetPipelines() ([]SavedPipeline, error) {
 		FROM pipelines
 		WHERE team_id = (
 			SELECT id FROM teams WHERE name = $1
-		)
+		) OR public = true
 		ORDER BY ordering
 	`, db.teamName)
 	if err != nil {

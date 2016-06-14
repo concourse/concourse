@@ -109,4 +109,5 @@ var Migrations = []migration.Migrator{
 	AddMissingInputReasonsToBuildPreparation,
 	AddUAAAuthToTeams,
 	AddTeamIDToBuilds,
+	AddPublicToPipelines,
 }
