@@ -317,7 +317,7 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
       releases:
       - name: concourse
         version: latest
-      - name: garden-linux
+      - name: garden-runc
         version: latest
 
       stemcells:
@@ -379,7 +379,7 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
           release: concourse
           properties: \{\}
         - name: garden
-          release: garden-linux
+          release: garden-runc
           properties:
             garden:
               listen_network: tcp
