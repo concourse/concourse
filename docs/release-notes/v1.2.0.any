@@ -68,8 +68,8 @@
 
   \note{fix}{
     The ATC now validates that its URL flags are valid URLs. Previously you
-    could configure an `--external-url` of `example.com`, which is missing the
-    scheme, so some things would break.
+    could configure an \code{--external-url} of \code{example.com}, which is
+    missing the scheme, so some things would break.
   }
 
   \note{feature}{
