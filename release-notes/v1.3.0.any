@@ -3,7 +3,7 @@
 \use{\load{concourse/docs}}
 
 \release{2016-05-27}{1.3.0}{0.3.0}{
-  \note{feature}{
+  \note{feature}{breaking}{
     We have switched Garden backends to
     \hyperlink{https://github.com/cloudfoundry-incubator/garden-runc-release}{Garden
     runC}. This new \hyperlink{https://runc.io/}{runC}-based backend has
@@ -11,18 +11,27 @@
     work on just about any stack that's using a recent enough Linux kernel
     (3.19+).
 
-    In addition, we now explicitly manage all aspects of task image rootfses.
+    \warn{
+      As part of this upgrade, your existing workers will need to
+      be recreated.
+
+      With BOSH, you can do this with \code{bosh deploy --recreate}
+      when deploying the new releases.
+
+      For the binaries, you'll need to stop the old worker, nuke
+      the \code{--work-dir}, and then start the new one.
+    }
+
+    In addition, we now explicitly manage all aspects of container images.
     This should dramatically reduce disk usage on your workers, as there's no
     longer a redundant copy from importing the image into Garden's graph, as
     long as you're using \reference{image_resource}. This also means we're now
     using \code{btrfs} for the whole stack, which makes running Docker in
-    Concourse tasks trivial.
+    Concourse tasks much easier.
 
-    \italic{
-      Note: As part of this upgrade, your existing BOSH deployed workers will
-      need to be recreated. You can do this with \code{bosh deploy --recreate}
-      when deploying the new Concourse + Garden-RunC releases.
-    }
+    As part of this, the binary distribution no longer supports
+    \reference{image}. Supporting it has always been a portability nightmare,
+    and we've been discouraging use of \reference{image} for some time now.
   }
 
   \note{feature}{
