@@ -71,6 +71,8 @@ type Build interface {
 	GetImageResourceCacheIdentifiers() ([]ResourceCacheIdentifier, error)
 
 	GetConfig() (atc.Config, ConfigVersion, error)
+
+	GetPipeline() (SavedPipeline, error)
 }
 
 type build struct {
@@ -763,6 +765,20 @@ func (b *build) GetConfig() (atc.Config, ConfigVersion, error) {
 	}
 
 	return config, ConfigVersion(version), nil
+}
+
+func (b *build) GetPipeline() (SavedPipeline, error) {
+	if b.IsOneOff() {
+		return SavedPipeline{}, nil
+	}
+
+	row := b.conn.QueryRow(`
+		SELECT `+pipelineColumns+`
+		FROM pipelines
+		WHERE id = $1
+	`, b.pipelineID)
+
+	return scanPipeline(row)
 }
 
 func newConditionNotifier(bus *notificationsBus, channel string, cond func() (bool, error)) (Notifier, error) {

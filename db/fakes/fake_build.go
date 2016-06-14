@@ -254,6 +254,13 @@ type FakeBuild struct {
 		result2 db.ConfigVersion
 		result3 error
 	}
+	GetPipelineStub        func() (db.SavedPipeline, error)
+	getPipelineMutex       sync.RWMutex
+	getPipelineArgsForCall []struct{}
+	getPipelineReturns     struct {
+		result1 db.SavedPipeline
+		result2 error
+	}
 }
 
 func (fake *FakeBuild) ID() int {
@@ -1157,6 +1164,31 @@ func (fake *FakeBuild) GetConfigReturns(result1 atc.Config, result2 db.ConfigVer
 		result2 db.ConfigVersion
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeBuild) GetPipeline() (db.SavedPipeline, error) {
+	fake.getPipelineMutex.Lock()
+	fake.getPipelineArgsForCall = append(fake.getPipelineArgsForCall, struct{}{})
+	fake.getPipelineMutex.Unlock()
+	if fake.GetPipelineStub != nil {
+		return fake.GetPipelineStub()
+	} else {
+		return fake.getPipelineReturns.result1, fake.getPipelineReturns.result2
+	}
+}
+
+func (fake *FakeBuild) GetPipelineCallCount() int {
+	fake.getPipelineMutex.RLock()
+	defer fake.getPipelineMutex.RUnlock()
+	return len(fake.getPipelineArgsForCall)
+}
+
+func (fake *FakeBuild) GetPipelineReturns(result1 db.SavedPipeline, result2 error) {
+	fake.GetPipelineStub = nil
+	fake.getPipelineReturns = struct {
+		result1 db.SavedPipeline
+		result2 error
+	}{result1, result2}
 }
 
 var _ db.Build = new(FakeBuild)

@@ -763,17 +763,9 @@ var _ = Describe("Builds API", func() {
 					teamDB.GetBuildReturns(build, true, nil)
 				})
 
-				It("looks up the config from the buildsDB", func() {
-					Expect(build.GetConfigCallCount()).To(Equal(1))
-				})
-
-				Context("and the build is private", func() {
+				Context("and the pipeline is private", func() {
 					BeforeEach(func() {
-						build.GetConfigReturns(atc.Config{
-							Jobs: atc.JobConfigs{
-								{Name: "some-job", Public: false},
-							},
-						}, 1, nil)
+						build.GetPipelineReturns(db.SavedPipeline{Public: false}, nil)
 					})
 
 					It("returns 401", func() {
@@ -781,29 +773,53 @@ var _ = Describe("Builds API", func() {
 					})
 				})
 
-				Context("and the build is public", func() {
+				Context("and the pipeline is public", func() {
 					BeforeEach(func() {
-						build.GetConfigReturns(atc.Config{
-							Jobs: atc.JobConfigs{
-								{Name: "some-job", Public: true},
-							},
-						}, 1, nil)
+						build.GetPipelineReturns(db.SavedPipeline{Public: true}, nil)
 					})
 
-					It("returns 200", func() {
-						Expect(response.StatusCode).To(Equal(200))
+					It("looks up the config from the buildsDB", func() {
+						Expect(build.GetConfigCallCount()).To(Equal(1))
 					})
 
-					It("serves the request via the event handler", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
+					Context("and the job is private", func() {
+						BeforeEach(func() {
+							build.GetConfigReturns(atc.Config{
+								Jobs: atc.JobConfigs{
+									{Name: "some-job", Public: false},
+								},
+							}, 1, nil)
+						})
 
-						Expect(string(body)).To(Equal("fake event handler factory was here"))
+						It("returns 401", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+						})
+					})
 
-						Expect(constructedEventHandler.build).To(Equal(build))
-						Expect(teamDB.GetBuildCallCount()).To(Equal(1))
-						buildID := teamDB.GetBuildArgsForCall(0)
-						Expect(buildID).To(Equal(128))
+					Context("and the job is public", func() {
+						BeforeEach(func() {
+							build.GetConfigReturns(atc.Config{
+								Jobs: atc.JobConfigs{
+									{Name: "some-job", Public: true},
+								},
+							}, 1, nil)
+						})
+
+						It("returns 200", func() {
+							Expect(response.StatusCode).To(Equal(200))
+						})
+
+						It("serves the request via the event handler", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(string(body)).To(Equal("fake event handler factory was here"))
+
+							Expect(constructedEventHandler.build).To(Equal(build))
+							Expect(teamDB.GetBuildCallCount()).To(Equal(1))
+							buildID := teamDB.GetBuildArgsForCall(0)
+							Expect(buildID).To(Equal(128))
+						})
 					})
 				})
 			})

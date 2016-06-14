@@ -35,6 +35,17 @@ func (s *Server) BuildEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		pipeline, err := build.GetPipeline()
+		if err != nil {
+			s.logger.Error("failed-to-get-pipeline", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !pipeline.Public {
+			s.rejector.Unauthorized(w, r)
+			return
+		}
+
 		config, _, err := build.GetConfig()
 		if err != nil {
 			s.logger.Error("failed-to-get-config", err)

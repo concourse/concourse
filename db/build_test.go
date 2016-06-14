@@ -420,4 +420,28 @@ var _ = Describe("Build", func() {
 			Expect(actualConfigVersion).To(Equal(db.ConfigVersion(1)))
 		})
 	})
+
+	Describe("GetPipeline", func() {
+		Context("when build belongs to pipeline", func() {
+			It("returns the pipeline", func() {
+				build, err := pipelineDB.CreateJobBuild("some-job")
+				Expect(err).ToNot(HaveOccurred())
+
+				buildPipeline, err := build.GetPipeline()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(buildPipeline).To(Equal(pipeline))
+			})
+		})
+
+		Context("when build is one off", func() {
+			It("returns empty pipeline", func() {
+				build, err := teamDB.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				buildPipeline, err := build.GetPipeline()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(buildPipeline).To(Equal(db.SavedPipeline{}))
+			})
+		})
+	})
 })
