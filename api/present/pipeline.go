@@ -22,6 +22,7 @@ func Pipeline(teamName string, savedPipeline db.SavedPipeline, config atc.Config
 		Name:     savedPipeline.Name,
 		URL:      pathForRoute,
 		Paused:   savedPipeline.Paused,
+		Public:   savedPipeline.Public,
 		Groups:   config.Groups,
 	}
 }

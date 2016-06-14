@@ -644,9 +644,10 @@ func scanPipeline(rows scannable) (SavedPipeline, error) {
 	var configBlob []byte
 	var version int
 	var paused bool
+	var public bool
 	var teamID int
 
-	err := rows.Scan(&id, &name, &configBlob, &version, &paused, &teamID)
+	err := rows.Scan(&id, &name, &configBlob, &version, &paused, &teamID, &public)
 	if err != nil {
 		return SavedPipeline{}, err
 	}
@@ -660,6 +661,7 @@ func scanPipeline(rows scannable) (SavedPipeline, error) {
 	return SavedPipeline{
 		ID:     id,
 		Paused: paused,
+		Public: public,
 		TeamID: teamID,
 		Pipeline: Pipeline{
 			Name:    name,

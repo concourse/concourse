@@ -37,6 +37,7 @@ var _ = Describe("Pipelines API", func() {
 				{
 					ID:     1,
 					Paused: false,
+					Public: false,
 					Pipeline: db.Pipeline{
 						Name: "a-pipeline",
 						Config: atc.Config{
@@ -53,6 +54,7 @@ var _ = Describe("Pipelines API", func() {
 				{
 					ID:     2,
 					Paused: true,
+					Public: true,
 					Pipeline: db.Pipeline{
 						Name: "another-pipeline",
 						Config: atc.Config{
@@ -118,6 +120,7 @@ var _ = Describe("Pipelines API", func() {
 				"name": "a-pipeline",
 				"url": "/teams/main/pipelines/a-pipeline",
 				"paused": false,
+				"public": false,
 				"team_name": "main",
 				"groups": [
 					{
@@ -130,6 +133,7 @@ var _ = Describe("Pipelines API", func() {
 				"name": "another-pipeline",
 				"url": "/teams/main/pipelines/another-pipeline",
 				"paused": true,
+				"public": true,
 				"team_name": "main",
 				"groups": [
 					{
@@ -160,6 +164,7 @@ var _ = Describe("Pipelines API", func() {
 				{
 					ID:     1,
 					Paused: false,
+					Public: false,
 					Pipeline: db.Pipeline{
 						Name: "a-pipeline",
 						Config: atc.Config{
@@ -176,6 +181,7 @@ var _ = Describe("Pipelines API", func() {
 				{
 					ID:     2,
 					Paused: true,
+					Public: true,
 					Pipeline: db.Pipeline{
 						Name: "another-pipeline",
 						Config: atc.Config{
@@ -224,6 +230,7 @@ var _ = Describe("Pipelines API", func() {
         "name": "a-pipeline",
         "url": "/teams/a-team/pipelines/a-pipeline",
 				"paused": false,
+				"public": false,
 				"team_name": "a-team",
 				"groups": [
 					{
@@ -236,6 +243,7 @@ var _ = Describe("Pipelines API", func() {
         "name": "another-pipeline",
         "url": "/teams/a-team/pipelines/another-pipeline",
 				"paused": true,
+				"public": true,
 				"team_name": "a-team",
 				"groups": [
 					{
@@ -265,6 +273,7 @@ var _ = Describe("Pipelines API", func() {
 			teamDB.GetPipelineByNameReturns(db.SavedPipeline{
 				ID:     1,
 				Paused: false,
+				Public: true,
 				Pipeline: db.Pipeline{
 					Name: "some-specific-pipeline",
 					Config: atc.Config{
@@ -322,6 +331,7 @@ var _ = Describe("Pipelines API", func() {
         "name": "some-specific-pipeline",
         "url": "/teams/a-team/pipelines/some-specific-pipeline",
 				"paused": false,
+				"public": true,
 				"team_name": "a-team",
 				"groups": [
 					{

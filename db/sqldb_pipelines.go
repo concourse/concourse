@@ -1,6 +1,6 @@
 package db
 
-const pipelineColumns = "id, name, config, version, paused, team_id"
+const pipelineColumns = "id, name, config, version, paused, team_id, public"
 
 func (db *SQLDB) GetAllPipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`

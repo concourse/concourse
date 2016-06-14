@@ -134,6 +134,9 @@ var _ = Describe("TeamDB", func() {
 				savedPipelines, err := teamDB.GetPipelines()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(savedPipelines).To(HaveLen(3))
+
+				otherPipeline, err = otherTeamDB.GetPipelineByName("other-pipeline-name")
+				Expect(err).NotTo(HaveOccurred())
 				Expect(savedPipelines).To(ConsistOf(savedPipeline1, savedPipeline2, otherPipeline))
 			})
 
