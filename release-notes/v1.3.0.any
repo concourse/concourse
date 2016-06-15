@@ -2,7 +2,7 @@
 
 \use{\load{concourse/docs}}
 
-\release{2016-05-27}{1.3.0}{0.3.0}{
+\release{2016-06-13}{1.3.0}{0.3.0}{
   \note{feature}{breaking}{
     We have switched Garden backends to
     \hyperlink{https://github.com/cloudfoundry-incubator/garden-runc-release}{Garden
