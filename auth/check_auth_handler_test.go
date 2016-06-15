@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("CheckAuthHandler", func() {
+var _ = Describe("CheckAuthenticationHandler", func() {
 	var (
 		fakeValidator         *fakes.FakeValidator
 		fakeUserContextReader *fakes.FakeUserContextReader
@@ -41,7 +41,7 @@ var _ = Describe("CheckAuthHandler", func() {
 		}
 
 		server = httptest.NewServer(auth.WrapHandler(
-			auth.CheckAuthHandler(
+			auth.CheckAuthenticationHandler(
 				simpleHandler,
 				fakeRejector,
 			),

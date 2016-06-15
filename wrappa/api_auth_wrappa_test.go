@@ -34,7 +34,7 @@ var _ = Describe("APIAuthWrappa", func() {
 
 	authenticated := func(handler http.Handler) http.Handler {
 		return auth.WrapHandler(
-			auth.CheckAuthHandler(
+			auth.CheckAuthenticationHandler(
 				handler,
 				auth.UnauthorizedRejector{},
 			),

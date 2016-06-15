@@ -7,7 +7,7 @@ type checkAuthHandler struct {
 	rejector Rejector
 }
 
-func CheckAuthHandler(
+func CheckAuthenticationHandler(
 	handler http.Handler,
 	rejector Rejector,
 ) http.Handler {
