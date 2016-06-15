@@ -29,9 +29,9 @@ var _ = Describe("Fly CLI", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-							{Name: "pipeline-1-longer", URL: "/pipelines/pipeline-1", Paused: false},
-							{Name: "pipeline-2", URL: "/pipelines/pipeline-2", Paused: true},
-							{Name: "pipeline-3", URL: "/pipelines/pipeline-3", Paused: false},
+							{Name: "pipeline-1-longer", URL: "/pipelines/pipeline-1", Paused: false, Public: false},
+							{Name: "pipeline-2", URL: "/pipelines/pipeline-2", Paused: true, Public: false},
+							{Name: "pipeline-3", URL: "/pipelines/pipeline-3", Paused: false, Public: true},
 						}),
 					),
 				)
@@ -46,11 +46,12 @@ var _ = Describe("Fly CLI", func() {
 					Headers: ui.TableRow{
 						{Contents: "name", Color: color.New(color.Bold)},
 						{Contents: "paused", Color: color.New(color.Bold)},
+						{Contents: "public", Color: color.New(color.Bold)},
 					},
 					Data: []ui.TableRow{
-						{{Contents: "pipeline-1-longer"}, {Contents: "no"}},
-						{{Contents: "pipeline-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
-						{{Contents: "pipeline-3"}, {Contents: "no"}},
+						{{Contents: "pipeline-1-longer"}, {Contents: "no"}, {Contents: "no"}},
+						{{Contents: "pipeline-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "no"}},
+						{{Contents: "pipeline-3"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
 					},
 				}))
 			})

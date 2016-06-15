@@ -30,6 +30,7 @@ func (command *PipelinesCommand) Execute([]string) error {
 		Headers: ui.TableRow{
 			{Contents: "name", Color: color.New(color.Bold)},
 			{Contents: "paused", Color: color.New(color.Bold)},
+			{Contents: "public", Color: color.New(color.Bold)},
 		},
 	}
 
@@ -42,9 +43,18 @@ func (command *PipelinesCommand) Execute([]string) error {
 			pausedColumn.Contents = "no"
 		}
 
+		var publicColumn ui.TableCell
+		if p.Public {
+			publicColumn.Contents = "yes"
+			publicColumn.Color = color.New(color.FgCyan)
+		} else {
+			publicColumn.Contents = "no"
+		}
+
 		table.Data = append(table.Data, []ui.TableCell{
 			{Contents: p.Name},
 			pausedColumn,
+			publicColumn,
 		})
 	}
 
