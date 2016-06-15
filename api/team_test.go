@@ -68,18 +68,18 @@ var _ = Describe("Auth API", func() {
 			}
 		})
 
-		JustBeforeEach(func() {
-			path := fmt.Sprintf("%s/api/v1/teams/%s", server.URL, teamName)
+		Context("when the requester is authenticated for the right team (admin team)", func() {
+			JustBeforeEach(func() {
+				path := fmt.Sprintf("%s/api/v1/teams/%s", server.URL, teamName)
 
-			var err error
-			request, err = http.NewRequest("PUT", path, jsonEncode(team))
-			Expect(err).NotTo(HaveOccurred())
+				var err error
+				request, err = http.NewRequest("PUT", path, jsonEncode(team))
+				Expect(err).NotTo(HaveOccurred())
 
-			response, err = client.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-		})
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
 
-		Context("when the requester is authenticated for the right team", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns(atc.DefaultTeamName, 1, true, true)
@@ -501,18 +501,98 @@ var _ = Describe("Auth API", func() {
 			})
 		})
 
-		Context("when the requester belongs to a non-admin team", func() {
-			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("non-admin-team", 5, false, true)
+		FContext("when the requester belongs to a non-admin team", func() {
+			JustBeforeEach(func() {
+				path := fmt.Sprintf("%s/api/v1/teams/%s", server.URL, "non-admin-team")
+
+				var err error
+				request, err = http.NewRequest("PUT", path, jsonEncode(team))
+				Expect(err).NotTo(HaveOccurred())
+
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("returns 403 forbidden", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			Context("when updating their own team", func() {
+				var savedTeam db.SavedTeam
+				BeforeEach(func() {
+					savedTeam = db.SavedTeam{
+						ID: 5,
+						Team: db.Team{
+							Name: "non-admin-team",
+						},
+					}
+					teamDB.GetTeamReturns(savedTeam, true, nil)
+					userContextReader.GetTeamReturns("non-admin-team", 5, false, true)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("always sets Admin property to false", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`{
+						"id": 5,
+						"name": "non-admin-team"
+					}`))
+
+					Expect(teamsDB.CreateTeamCallCount()).To(Equal(0))
+				})
+
+				It("returns the updated team", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`{
+						"id": 5,
+						"name": "non-admin-team"
+					}`))
+
+					Expect(teamsDB.CreateTeamCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when updating another team", func() {
+				BeforeEach(func() {
+					userContextReader.GetTeamReturns("another-non-admin-team", 5, false, true)
+				})
+
+				It("returns 403 forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+			})
+
+			Context("when team does not exist", func() {
+				BeforeEach(func() {
+					userContextReader.GetTeamReturns("non-admin-team", 5, false, true)
+					teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+				})
+
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
 			})
 		})
 
 		Context("when the requester's team cannot be determined", func() {
+			JustBeforeEach(func() {
+				path := fmt.Sprintf("%s/api/v1/teams/%s", server.URL, teamName)
+
+				var err error
+				request, err = http.NewRequest("PUT", path, jsonEncode(team))
+				Expect(err).NotTo(HaveOccurred())
+
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(true)
 				userContextReader.GetTeamReturns("", 0, false, false)

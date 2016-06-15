@@ -13,19 +13,15 @@ import (
 func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	hLog := s.logger.Session("create-team")
 
-	_, _, isAdmin, found := auth.GetTeam(r)
+	requesterTeamName, _, isAdmin, found := auth.GetTeam(r)
 
 	if !found {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if !isAdmin {
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
 	teamName := r.FormValue(":team_name")
+
 	teamDB := s.teamDBFactory.GetTeamDB(teamName)
 
 	var team db.Team
@@ -36,6 +32,12 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	team.Name = teamName
+	if !isAdmin {
+		if teamName != requesterTeamName {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+	}
 
 	err = s.validate(team)
 	if err != nil {
@@ -60,15 +62,17 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-	} else {
+	} else if isAdmin {
 		savedTeam, err = s.teamsDB.CreateTeam(team)
 		if err != nil {
 			hLog.Error("failed-to-save-team", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
 		w.WriteHeader(http.StatusCreated)
+	} else {
+		w.WriteHeader(http.StatusForbidden)
+		return
 	}
 
 	json.NewEncoder(w).Encode(present.Team(savedTeam))
