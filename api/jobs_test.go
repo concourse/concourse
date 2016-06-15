@@ -81,68 +81,101 @@ var _ = Describe("Jobs API", func() {
 				}, 1, true, nil)
 			})
 
-			Context("when getting the build succeeds", func() {
+			Context("when not authorized", func() {
 				BeforeEach(func() {
-					build1 := new(dbfakes.FakeBuild)
-					build1.IDReturns(1)
-					build1.NameReturns("1")
-					build1.JobNameReturns("some-job")
-					build1.PipelineNameReturns("some-pipeline")
-					build1.TeamNameReturns("some-team")
-					build1.StatusReturns(db.StatusSucceeded)
-					build1.StartTimeReturns(time.Unix(1, 0))
-					build1.EndTimeReturns(time.Unix(100, 0))
-
-					build2 := new(dbfakes.FakeBuild)
-					build2.IDReturns(3)
-					build2.NameReturns("2")
-					build2.JobNameReturns("some-job")
-					build2.PipelineNameReturns("some-pipeline")
-					build2.TeamNameReturns("some-team")
-					build2.StatusReturns(db.StatusStarted)
-
-					pipelineDB.GetJobFinishedAndNextBuildReturns(build1, build2, nil)
+					authValidator.IsAuthenticatedReturns(false)
+					userContextReader.GetTeamReturns("", 0, false, false)
 				})
 
-				Context("when getting the job fails", func() {
+				Context("and the pipeline is private", func() {
 					BeforeEach(func() {
-						pipelineDB.GetJobReturns(db.SavedJob{}, errors.New("nope"))
+						pipelineDB.IsPublicReturns(false)
 					})
 
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 					})
 				})
 
-				Context("when getting the job succeeds", func() {
+				Context("and the pipeline is public", func() {
 					BeforeEach(func() {
-						pipelineDB.GetJobReturns(db.SavedJob{
-							ID:                 1,
-							Paused:             true,
-							FirstLoggedBuildID: 99,
-							PipelineName:       "some-pipeline",
-							Job: db.Job{
-								Name: "job-1",
-							},
-						}, nil)
-					})
-
-					It("fetches by job", func() {
-						Expect(pipelineDB.GetJobFinishedAndNextBuildCallCount()).To(Equal(1))
-
-						jobName := pipelineDB.GetJobFinishedAndNextBuildArgsForCall(0)
-						Expect(jobName).To(Equal("some-job"))
+						pipelineDB.IsPublicReturns(true)
 					})
 
 					It("returns 200 OK", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
+				})
+			})
 
-					It("returns the job's name, url, if it's paused, and any running and finished builds", func() {
-						body, err := ioutil.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("some-team", 1, true, true)
+				})
 
-						Expect(body).To(MatchJSON(`{
+				Context("when getting the build succeeds", func() {
+					BeforeEach(func() {
+						build1 := new(dbfakes.FakeBuild)
+						build1.IDReturns(1)
+						build1.NameReturns("1")
+						build1.JobNameReturns("some-job")
+						build1.PipelineNameReturns("some-pipeline")
+						build1.TeamNameReturns("some-team")
+						build1.StatusReturns(db.StatusSucceeded)
+						build1.StartTimeReturns(time.Unix(1, 0))
+						build1.EndTimeReturns(time.Unix(100, 0))
+
+						build2 := new(dbfakes.FakeBuild)
+						build2.IDReturns(3)
+						build2.NameReturns("2")
+						build2.JobNameReturns("some-job")
+						build2.PipelineNameReturns("some-pipeline")
+						build2.TeamNameReturns("some-team")
+						build2.StatusReturns(db.StatusStarted)
+
+						pipelineDB.GetJobFinishedAndNextBuildReturns(build1, build2, nil)
+					})
+
+					Context("when getting the job fails", func() {
+						BeforeEach(func() {
+							pipelineDB.GetJobReturns(db.SavedJob{}, errors.New("nope"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
+
+					Context("when getting the job succeeds", func() {
+						BeforeEach(func() {
+							pipelineDB.GetJobReturns(db.SavedJob{
+								ID:                 1,
+								Paused:             true,
+								FirstLoggedBuildID: 99,
+								PipelineName:       "some-pipeline",
+								Job: db.Job{
+									Name: "job-1",
+								},
+							}, nil)
+						})
+
+						It("fetches by job", func() {
+							Expect(pipelineDB.GetJobFinishedAndNextBuildCallCount()).To(Equal(1))
+
+							jobName := pipelineDB.GetJobFinishedAndNextBuildArgsForCall(0)
+							Expect(jobName).To(Equal("some-job"))
+						})
+
+						It("returns 200 OK", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns the job's name, url, if it's paused, and any running and finished builds", func() {
+							body, err := ioutil.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`{
 							"name": "some-job",
 							"paused": true,
 							"first_logged_build_id": 99,
@@ -195,68 +228,69 @@ var _ = Describe("Jobs API", func() {
 							"groups": ["group-1", "group-2"]
 						}`))
 
+						})
+					})
+
+					Context("when there are no running or finished builds", func() {
+						BeforeEach(func() {
+							pipelineDB.GetJobFinishedAndNextBuildReturns(nil, nil, nil)
+						})
+
+						It("returns null as their entries", func() {
+							var job atc.Job
+							err := json.NewDecoder(response.Body).Decode(&job)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(job.NextBuild).To(BeNil())
+							Expect(job.FinishedBuild).To(BeNil())
+						})
 					})
 				})
 
-				Context("when there are no running or finished builds", func() {
+				Context("when getting the job's builds fails", func() {
 					BeforeEach(func() {
-						pipelineDB.GetJobFinishedAndNextBuildReturns(nil, nil, nil)
+						pipelineDB.GetJobFinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
 					})
 
-					It("returns null as their entries", func() {
-						var job atc.Job
-						err := json.NewDecoder(response.Body).Decode(&job)
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(job.NextBuild).To(BeNil())
-						Expect(job.FinishedBuild).To(BeNil())
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
-			})
 
-			Context("when getting the job's builds fails", func() {
-				BeforeEach(func() {
-					pipelineDB.GetJobFinishedAndNextBuildReturns(nil, nil, errors.New("oh no!"))
+				Context("when the job is not present in the config", func() {
+					BeforeEach(func() {
+						pipelineDB.GetConfigReturns(atc.Config{
+							Jobs: []atc.JobConfig{
+								{Name: "other-job"},
+							},
+						}, 1, true, nil)
+					})
+
+					It("returns 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
 				})
 
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
+				Context("when getting the job config fails", func() {
+					Context("when the pipeline is no longer configured", func() {
+						BeforeEach(func() {
+							pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
+						})
 
-			Context("when the job is not present in the config", func() {
-				BeforeEach(func() {
-					pipelineDB.GetConfigReturns(atc.Config{
-						Jobs: []atc.JobConfig{
-							{Name: "other-job"},
-						},
-					}, 1, true, nil)
-				})
+						It("returns 404", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+						})
+					})
 
-				It("returns 404", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-		})
+					Context("with an unknown error", func() {
+						BeforeEach(func() {
+							pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
+						})
 
-		Context("when getting the job config fails", func() {
-			Context("when the pipeline is no longer configured", func() {
-				BeforeEach(func() {
-					pipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
-				})
-
-				It("returns 404", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("with an unknown error", func() {
-				BeforeEach(func() {
-					pipelineDB.GetConfigReturns(atc.Config{}, 0, false, errors.New("oh no!"))
-				})
-
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
 				})
 			})
 		})
@@ -749,15 +783,48 @@ var _ = Describe("Jobs API", func() {
 				pipelineDB.GetDashboardReturns(dashboardResponse, groups, nil)
 			})
 
-			It("returns 200 OK", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			Context("when not authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(false)
+					userContextReader.GetTeamReturns("", 0, false, false)
+				})
+
+				Context("and the pipeline is private", func() {
+					BeforeEach(func() {
+						pipelineDB.IsPublicReturns(false)
+					})
+
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+				})
+
+				Context("and the pipeline is public", func() {
+					BeforeEach(func() {
+						pipelineDB.IsPublicReturns(true)
+					})
+
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
 			})
 
-			It("returns each job's name, url, and any running and finished builds", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("some-team", 1, true, true)
+				})
 
-				Expect(body).To(MatchJSON(`[
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns each job's name, url, and any running and finished builds", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
 							{
 								"name": "job-1",
 								"paused": true,
@@ -820,19 +887,19 @@ var _ = Describe("Jobs API", func() {
 								"groups": []
 							}
 						]`))
-			})
-
-			Context("when manual triggering of a job is disabled", func() {
-				BeforeEach(func() {
-					dashboardResponse[0].JobConfig.DisableManualTrigger = true
-					pipelineDB.GetDashboardReturns(dashboardResponse, groups, nil)
 				})
 
-				It("returns each job's name, url, manual trigger state and any running and finished builds", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
+				Context("when manual triggering of a job is disabled", func() {
+					BeforeEach(func() {
+						dashboardResponse[0].JobConfig.DisableManualTrigger = true
+						pipelineDB.GetDashboardReturns(dashboardResponse, groups, nil)
+					})
 
-					Expect(body).To(MatchJSON(`[
+					It("returns each job's name, url, manual trigger state and any running and finished builds", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`[
 							{
 								"name": "job-1",
 								"paused": true,
@@ -896,18 +963,19 @@ var _ = Describe("Jobs API", func() {
 								"groups": []
 							}
 						]`))
-				})
-			})
-		})
-
-		Context("when getting the dashboard fails", func() {
-			Context("with an unknown error", func() {
-				BeforeEach(func() {
-					pipelineDB.GetDashboardReturns(nil, nil, errors.New("oh no!"))
+					})
 				})
 
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				Context("when getting the dashboard fails", func() {
+					Context("with an unknown error", func() {
+						BeforeEach(func() {
+							pipelineDB.GetDashboardReturns(nil, nil, errors.New("oh no!"))
+						})
+
+						It("returns 500", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+						})
+					})
 				})
 			})
 		})
@@ -925,77 +993,110 @@ var _ = Describe("Jobs API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when no params are passed", func() {
-			It("does not set defaults for since and until", func() {
-				Expect(pipelineDB.GetJobBuildsCallCount()).To(Equal(1))
+		Context("when not authorized", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+				userContextReader.GetTeamReturns("", 0, false, false)
+			})
 
-				jobName, page := pipelineDB.GetJobBuildsArgsForCall(0)
-				Expect(jobName).To(Equal("some-job"))
-				Expect(page).To(Equal(db.Page{
-					Since: 0,
-					Until: 0,
-					Limit: 100,
-				}))
+			Context("and the pipeline is private", func() {
+				BeforeEach(func() {
+					pipelineDB.IsPublicReturns(false)
+				})
+
+				It("returns 401", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+			})
+
+			Context("and the pipeline is public", func() {
+				BeforeEach(func() {
+					pipelineDB.IsPublicReturns(true)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
 			})
 		})
 
-		Context("when all the params are passed", func() {
+		Context("when authorized", func() {
 			BeforeEach(func() {
-				queryParams = "?since=2&until=3&limit=8"
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("some-team", 1, true, true)
 			})
 
-			It("passes them through", func() {
-				Expect(pipelineDB.GetJobBuildsCallCount()).To(Equal(1))
+			Context("when no params are passed", func() {
+				It("does not set defaults for since and until", func() {
+					Expect(pipelineDB.GetJobBuildsCallCount()).To(Equal(1))
 
-				jobName, page := pipelineDB.GetJobBuildsArgsForCall(0)
-				Expect(jobName).To(Equal("some-job"))
-				Expect(page).To(Equal(db.Page{
-					Since: 2,
-					Until: 3,
-					Limit: 8,
-				}))
-			})
-		})
-
-		Context("when getting the builds succeeds", func() {
-			var returnedBuilds []db.Build
-
-			BeforeEach(func() {
-				queryParams = "?since=5&limit=2"
-
-				build1 := new(dbfakes.FakeBuild)
-				build1.IDReturns(4)
-				build1.NameReturns("2")
-				build1.JobNameReturns("some-job")
-				build1.PipelineNameReturns("some-pipeline")
-				build1.TeamNameReturns("some-team")
-				build1.StatusReturns(db.StatusStarted)
-				build1.StartTimeReturns(time.Unix(1, 0))
-				build1.EndTimeReturns(time.Unix(100, 0))
-
-				build2 := new(dbfakes.FakeBuild)
-				build2.IDReturns(2)
-				build2.NameReturns("1")
-				build2.JobNameReturns("some-job")
-				build2.PipelineNameReturns("some-pipeline")
-				build2.TeamNameReturns("some-team")
-				build2.StatusReturns(db.StatusSucceeded)
-				build2.StartTimeReturns(time.Unix(101, 0))
-				build2.EndTimeReturns(time.Unix(200, 0))
-
-				returnedBuilds = []db.Build{build1, build2}
-				pipelineDB.GetJobBuildsReturns(returnedBuilds, db.Pagination{}, nil)
+					jobName, page := pipelineDB.GetJobBuildsArgsForCall(0)
+					Expect(jobName).To(Equal("some-job"))
+					Expect(page).To(Equal(db.Page{
+						Since: 0,
+						Until: 0,
+						Limit: 100,
+					}))
+				})
 			})
 
-			It("returns 200 OK", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			Context("when all the params are passed", func() {
+				BeforeEach(func() {
+					queryParams = "?since=2&until=3&limit=8"
+				})
+
+				It("passes them through", func() {
+					Expect(pipelineDB.GetJobBuildsCallCount()).To(Equal(1))
+
+					jobName, page := pipelineDB.GetJobBuildsArgsForCall(0)
+					Expect(jobName).To(Equal("some-job"))
+					Expect(page).To(Equal(db.Page{
+						Since: 2,
+						Until: 3,
+						Limit: 8,
+					}))
+				})
 			})
 
-			It("returns the builds", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
+			Context("when getting the builds succeeds", func() {
+				var returnedBuilds []db.Build
 
-				Expect(body).To(MatchJSON(`[
+				BeforeEach(func() {
+					queryParams = "?since=5&limit=2"
+
+					build1 := new(dbfakes.FakeBuild)
+					build1.IDReturns(4)
+					build1.NameReturns("2")
+					build1.JobNameReturns("some-job")
+					build1.PipelineNameReturns("some-pipeline")
+					build1.TeamNameReturns("some-team")
+					build1.StatusReturns(db.StatusStarted)
+					build1.StartTimeReturns(time.Unix(1, 0))
+					build1.EndTimeReturns(time.Unix(100, 0))
+
+					build2 := new(dbfakes.FakeBuild)
+					build2.IDReturns(2)
+					build2.NameReturns("1")
+					build2.JobNameReturns("some-job")
+					build2.PipelineNameReturns("some-pipeline")
+					build2.TeamNameReturns("some-team")
+					build2.StatusReturns(db.StatusSucceeded)
+					build2.StartTimeReturns(time.Unix(101, 0))
+					build2.EndTimeReturns(time.Unix(200, 0))
+
+					returnedBuilds = []db.Build{build1, build2}
+					pipelineDB.GetJobBuildsReturns(returnedBuilds, db.Pagination{}, nil)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns the builds", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
 					{
 						"id": 4,
 						"name": "2",
@@ -1021,32 +1122,33 @@ var _ = Describe("Jobs API", func() {
 						"end_time": 200
 					}
 				]`))
+				})
+
+				Context("when next/previous pages are available", func() {
+					BeforeEach(func() {
+						pipelineDB.GetJobBuildsReturns(returnedBuilds, db.Pagination{
+							Previous: &db.Page{Until: 4, Limit: 2},
+							Next:     &db.Page{Since: 2, Limit: 2},
+						}, nil)
+					})
+
+					It("returns Link headers per rfc5988", func() {
+						Expect(response.Header["Link"]).To(ConsistOf([]string{
+							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?until=4&limit=2>; rel="previous"`, externalURL),
+							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?since=2&limit=2>; rel="next"`, externalURL),
+						}))
+					})
+				})
 			})
 
-			Context("when next/previous pages are available", func() {
+			Context("when getting the build fails", func() {
 				BeforeEach(func() {
-					pipelineDB.GetJobBuildsReturns(returnedBuilds, db.Pagination{
-						Previous: &db.Page{Until: 4, Limit: 2},
-						Next:     &db.Page{Since: 2, Limit: 2},
-					}, nil)
+					pipelineDB.GetJobBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
 				})
 
-				It("returns Link headers per rfc5988", func() {
-					Expect(response.Header["Link"]).To(ConsistOf([]string{
-						fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?until=4&limit=2>; rel="previous"`, externalURL),
-						fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?since=2&limit=2>; rel="next"`, externalURL),
-					}))
+				It("returns 404 Not Found", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
-			})
-		})
-
-		Context("when getting the build fails", func() {
-			BeforeEach(func() {
-				pipelineDB.GetJobBuildsReturns(nil, db.Pagination{}, errors.New("oh no!"))
-			})
-
-			It("returns 404 Not Found", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 			})
 		})
 	})

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 )
 
@@ -101,11 +100,6 @@ type badgeTemplateConfig struct {
 func (s *Server) JobBadge(pipelineDB db.PipelineDB) http.Handler {
 	logger := s.logger.Session("job-badge")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !auth.IsAuthorized(r) && !pipelineDB.IsPublic() {
-			s.rejector.Unauthorized(w, r)
-			return
-		}
-
 		jobName := r.FormValue(":job_name")
 
 		config, _, found, err := pipelineDB.GetConfig()
