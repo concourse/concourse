@@ -123,6 +123,8 @@ before using it!
     \hyperlink{https://github.com/Orange-OpenSource/travis-resource}{Travis-ci}
   }{
     \hyperlink{https://github.com/karunamon/concourse-resource-bitbucket}{Bitbucket Notifications}
+  }{
+    \hyperlink{https://github.com/ljfranklin/terraform-resource}{Terraform}
   }
 
   \section{Adding to this list}{
