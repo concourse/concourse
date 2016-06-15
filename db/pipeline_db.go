@@ -24,6 +24,7 @@ type PipelineDB interface {
 	Pause() error
 	Unpause() error
 	IsPaused() (bool, error)
+	IsPublic() bool
 	UpdateName(string) error
 
 	Destroy() error
@@ -129,6 +130,10 @@ func (pdb *pipelineDB) GetPipelineID() int {
 
 func (pdb *pipelineDB) ScopedName(name string) string {
 	return pdb.Name + ":" + name
+}
+
+func (pdb *pipelineDB) IsPublic() bool {
+	return pdb.Public
 }
 
 func (pdb *pipelineDB) Unpause() error {

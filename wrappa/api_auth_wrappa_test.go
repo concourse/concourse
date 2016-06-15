@@ -170,7 +170,7 @@ var _ = Describe("APIAuthWrappa", func() {
 				publiclyViewable = false
 
 				expectedHandlers = rata.Handlers{
-					// unauthenticated
+					// unauthenticated / delegating to handler
 					atc.GetInfo:             unauthenticated(inputHandlers[atc.GetInfo]),
 					atc.DownloadCLI:         unauthenticated(inputHandlers[atc.DownloadCLI]),
 					atc.ListAuthMethods:     unauthenticated(inputHandlers[atc.ListAuthMethods]),
@@ -182,6 +182,7 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.ListAllPipelines:    unauthenticated(inputHandlers[atc.ListAllPipelines]),
 					atc.ListBuilds:          unauthenticated(inputHandlers[atc.ListBuilds]),
 					atc.GetJobBuild:         unauthenticated(inputHandlers[atc.GetJobBuild]),
+					atc.JobBadge:            unauthenticated(inputHandlers[atc.JobBadge]),
 
 					// authenticated
 					atc.AbortBuild:      authenticated(inputHandlers[atc.AbortBuild]),
@@ -211,7 +212,6 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.GetPipeline:                   authorized(inputHandlers[atc.GetPipeline]),
 					atc.GetResource:                   authorized(inputHandlers[atc.GetResource]),
 					atc.GetVersionsDB:                 authorized(inputHandlers[atc.GetVersionsDB]),
-					atc.JobBadge:                      authorized(inputHandlers[atc.JobBadge]),
 					atc.ListBuildsWithVersionAsInput:  authorized(inputHandlers[atc.ListBuildsWithVersionAsInput]),
 					atc.ListBuildsWithVersionAsOutput: authorized(inputHandlers[atc.ListBuildsWithVersionAsOutput]),
 					atc.ListJobBuilds:                 authorized(inputHandlers[atc.ListJobBuilds]),

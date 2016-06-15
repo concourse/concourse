@@ -52,6 +52,12 @@ type FakePipelineDB struct {
 		result1 bool
 		result2 error
 	}
+	IsPublicStub        func() bool
+	isPublicMutex       sync.RWMutex
+	isPublicArgsForCall []struct{}
+	isPublicReturns     struct {
+		result1 bool
+	}
 	UpdateNameStub        func(string) error
 	updateNameMutex       sync.RWMutex
 	updateNameArgsForCall []struct {
@@ -626,6 +632,30 @@ func (fake *FakePipelineDB) IsPausedReturns(result1 bool, result2 error) {
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakePipelineDB) IsPublic() bool {
+	fake.isPublicMutex.Lock()
+	fake.isPublicArgsForCall = append(fake.isPublicArgsForCall, struct{}{})
+	fake.isPublicMutex.Unlock()
+	if fake.IsPublicStub != nil {
+		return fake.IsPublicStub()
+	} else {
+		return fake.isPublicReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) IsPublicCallCount() int {
+	fake.isPublicMutex.RLock()
+	defer fake.isPublicMutex.RUnlock()
+	return len(fake.isPublicArgsForCall)
+}
+
+func (fake *FakePipelineDB) IsPublicReturns(result1 bool) {
+	fake.IsPublicStub = nil
+	fake.isPublicReturns = struct {
+		result1 bool
+	}{result1}
 }
 
 func (fake *FakePipelineDB) UpdateName(arg1 string) error {

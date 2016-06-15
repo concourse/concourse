@@ -44,7 +44,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.GetBuildPreparation,
 			atc.ListAllPipelines,
 			atc.ListBuilds,
-			atc.GetJobBuild:
+			atc.GetJobBuild,
+			atc.JobBadge:
 
 		// authenticated
 		case atc.GetAuthToken,
@@ -65,8 +66,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			newHandler = auth.CheckAuthHandler(handler, rejector)
 
 		// authorized if not publicly viewable
-		case atc.JobBadge,
-			atc.ListJobBuilds,
+		case atc.ListJobBuilds,
 			atc.GetResource,
 			atc.ListBuildsWithVersionAsInput,
 			atc.ListBuildsWithVersionAsOutput,
