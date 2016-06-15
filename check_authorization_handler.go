@@ -1,11 +1,6 @@
 package auth
 
-import (
-	"net/http"
-
-	"github.com/concourse/atc"
-	"github.com/gorilla/context"
-)
+import "net/http"
 
 type checkAuthorizationHandler struct {
 	handler  http.Handler
@@ -23,16 +18,9 @@ func CheckAuthorizationHandler(
 }
 
 func (h checkAuthorizationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if IsAuthenticated(r) {
-		authTeamName, ok := context.GetOk(r, teamNameKey)
-		if !ok {
-			authTeamName = atc.DefaultTeamName
-		}
-
-		if r.URL.Query().Get(":team_name") == authTeamName {
-			h.handler.ServeHTTP(w, r)
-			return
-		}
+	if IsAuthorized(r) {
+		h.handler.ServeHTTP(w, r)
+		return
 	}
 
 	h.rejector.Unauthorized(w, r)
