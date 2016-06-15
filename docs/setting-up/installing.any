@@ -303,9 +303,10 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
     example manifest is below; you'll want to replace the \code{REPLACE_ME} bits
     with whatever values are appropriate.
 
-    Note that the VM types and network names used in this manifest must be
-    present in your Cloud Config. Consult \reference{prepping-bosh} if you
-    haven't set it up yet.
+    Note that the VM types, VM extensions, persistent disk type, and network names
+    must come from your Cloud Config. Consult \reference{prepping-bosh} if you
+    haven't set it up yet. You can retrieve your Cloud Config by running
+    \code{bosh cloud-config}.
 
     \codeblock{yaml}{
       ---
@@ -328,7 +329,12 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
       instance_groups:
       - name: web
         instances: 1
-        vm_type: web
+        # replace with a VM type from your BOSH Director's cloud config
+        vm_type: REPLACE_ME
+        vm_extensions:
+        # replace with a VM extension from your BOSH Director's cloud config that will attach
+        # this instance group to your ELB
+        - REPLACE_ME
         stemcell: trusty
         azs: [z1]
         networks: [\{name: private\}]
@@ -350,9 +356,11 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
 
       - name: db
         instances: 1
-        vm_type: database
+        # replace with a VM type from your BOSH Director's cloud config
+        vm_type: REPLACE_ME
         stemcell: trusty
-        persistent_disk_type: database
+        # replace with a disk type from your BOSH Director's cloud config
+        persistent_disk_type: REPLACE_ME
         azs: [z1]
         networks: [\{name: private\}]
         jobs:
@@ -367,7 +375,12 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
 
       - name: worker
         instances: 1
-        vm_type: worker
+        # replace with a VM type from your BOSH Director's cloud config
+        vm_type: REPLACE_ME
+        vm_extensions:
+        # replace with a VM extension from your BOSH Director's cloud config that will attach
+        # sufficient ephemeral storage to VMs in this instance group.
+        - REPLACE_ME
         stemcell: trusty
         azs: [z1]
         networks: [\{name: private\}]
