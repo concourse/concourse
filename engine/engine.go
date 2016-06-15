@@ -21,12 +21,12 @@ type EngineDB interface {
 	SaveBuildEvent(buildID int, pipelineID int, event atc.Event) error
 
 	FinishBuild(buildID int, pipelineID int, status db.Status) error
-
 	GetBuild(buildID int) (db.Build, bool, error)
-	GetLatestFinishedBuild(jobID int) (db.Build, bool, error)
-	GetPreviousFailedBuilds(buildID int) ([]db.Build, error)
 
-	UpdateContainersTTL(buildID int) error
+	FindContainersByDescriptors(db.Container) ([]db.SavedContainer, error)
+	FindLongLivedContainers(jobName string, pipelineID int) ([]db.SavedContainer, error)
+
+	GetLatestFinishedBuild(jobID int) (db.Build, bool, error)
 
 	SaveBuildEngineMetadata(buildID int, metadata string) error
 

@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
 )
@@ -31,6 +32,16 @@ type FakePutDelegate struct {
 	}
 	imageVersionDeterminedReturns struct {
 		result1 error
+	}
+	FindLongLivedContainersStub        func(jobName string, pipelineID int) ([]db.SavedContainer, error)
+	findLongLivedContainersMutex       sync.RWMutex
+	findLongLivedContainersArgsForCall []struct {
+		jobName    string
+		pipelineID int
+	}
+	findLongLivedContainersReturns struct {
+		result1 []db.SavedContainer
+		result2 error
 	}
 	StdoutStub        func() io.Writer
 	stdoutMutex       sync.RWMutex
@@ -138,6 +149,40 @@ func (fake *FakePutDelegate) ImageVersionDeterminedReturns(result1 error) {
 	fake.imageVersionDeterminedReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakePutDelegate) FindLongLivedContainers(jobName string, pipelineID int) ([]db.SavedContainer, error) {
+	fake.findLongLivedContainersMutex.Lock()
+	fake.findLongLivedContainersArgsForCall = append(fake.findLongLivedContainersArgsForCall, struct {
+		jobName    string
+		pipelineID int
+	}{jobName, pipelineID})
+	fake.findLongLivedContainersMutex.Unlock()
+	if fake.FindLongLivedContainersStub != nil {
+		return fake.FindLongLivedContainersStub(jobName, pipelineID)
+	} else {
+		return fake.findLongLivedContainersReturns.result1, fake.findLongLivedContainersReturns.result2
+	}
+}
+
+func (fake *FakePutDelegate) FindLongLivedContainersCallCount() int {
+	fake.findLongLivedContainersMutex.RLock()
+	defer fake.findLongLivedContainersMutex.RUnlock()
+	return len(fake.findLongLivedContainersArgsForCall)
+}
+
+func (fake *FakePutDelegate) FindLongLivedContainersArgsForCall(i int) (string, int) {
+	fake.findLongLivedContainersMutex.RLock()
+	defer fake.findLongLivedContainersMutex.RUnlock()
+	return fake.findLongLivedContainersArgsForCall[i].jobName, fake.findLongLivedContainersArgsForCall[i].pipelineID
+}
+
+func (fake *FakePutDelegate) FindLongLivedContainersReturns(result1 []db.SavedContainer, result2 error) {
+	fake.FindLongLivedContainersStub = nil
+	fake.findLongLivedContainersReturns = struct {
+		result1 []db.SavedContainer
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakePutDelegate) Stdout() io.Writer {

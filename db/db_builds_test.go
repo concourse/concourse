@@ -327,25 +327,6 @@ var _ = Describe("Keeping track of builds", func() {
 		})
 	})
 
-	Describe("GetPreviousFailedBuilds", func() {
-		var latestFinishedBuild db.Build
-
-		BeforeEach(func() {
-			createAndFinishBuild(database, pipelineDB, "some-job", db.StatusFailed)
-			createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
-			createAndFinishBuild(database, pipelineDB, "some-job", db.StatusFailed)
-			createAndStartBuild(database, pipelineDB, "some-job", "some-engine")
-			createAndFinishBuild(database, pipelineDB, "some-other-job", db.StatusFailed)
-			latestFinishedBuild = createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
-		})
-
-		FIt("returns previous failed builds of the job", func() {
-			failedBuilds, err := database.GetPreviousFailedBuilds(latestFinishedBuild.ID)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(failedBuilds).To(HaveLen(2))
-		})
-	})
-
 	Describe("GetLatestFinishedBuild", func() {
 		var finishedBuild2 db.Build
 
@@ -356,7 +337,7 @@ var _ = Describe("Keeping track of builds", func() {
 			createAndFinishBuild(database, pipelineDB, "some-other-job", db.StatusSucceeded)
 		})
 
-		FIt("returns the latest finished build of the job", func() {
+		It("returns the latest finished build of the job", func() {
 			job, err := pipelineDB.GetJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
 

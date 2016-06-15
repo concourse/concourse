@@ -84,7 +84,6 @@ type DB interface {
 
 	GetBuild(buildID int) (Build, bool, error)
 	GetLatestFinishedBuild(jobID int) (Build, bool, error)
-	GetPreviousFailedBuilds(buildID int) ([]Build, error)
 
 	GetBuildVersionedResources(buildID int) (SavedVersionedResources, error)
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
@@ -124,6 +123,7 @@ type DB interface {
 	SaveWorker(WorkerInfo, time.Duration) (SavedWorker, error)
 
 	FindContainersByDescriptors(Container) ([]SavedContainer, error)
+	FindLongLivedContainers(jobName string, pipelineID int) ([]SavedContainer, error)
 	GetContainer(string) (SavedContainer, bool, error)
 	CreateContainer(Container, time.Duration, time.Duration) (SavedContainer, error)
 	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)

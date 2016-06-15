@@ -53,6 +53,11 @@ func (db *SQLDB) FindContainersByDescriptors(id Container) ([]SavedContainer, er
 		params = append(params, id.PipelineName)
 	}
 
+	if id.PipelineID != 0 {
+		whereCriteria = append(whereCriteria, fmt.Sprintf("p.id = $%d", len(params)+1))
+		params = append(params, id.PipelineID)
+	}
+
 	if id.BuildID != 0 {
 		whereCriteria = append(whereCriteria, fmt.Sprintf("build_id = $%d", len(params)+1))
 		params = append(params, id.BuildID)
@@ -126,6 +131,37 @@ func (db *SQLDB) FindContainersByDescriptors(id Container) ([]SavedContainer, er
 	}
 
 	return infos, nil
+}
+
+func (db *SQLDB) FindLongLivedContainers(jobName string, pipelineID int) ([]SavedContainer, error) {
+	savedContainers, err := db.FindContainersByDescriptors(Container{
+		ContainerMetadata: ContainerMetadata{
+			JobName:    jobName,
+			PipelineID: pipelineID,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	longLivedContainers := []SavedContainer{}
+	for _, savedContainer := range savedContainers {
+		build, found, err := db.GetBuild(savedContainer.BuildID)
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			return nil, fmt.Errorf("missing-build-for-container %d", savedContainer.Handle)
+		}
+
+		buildDidNotSucceed := build.Status == StatusFailed ||
+			build.Status == StatusAborted ||
+			build.Status == StatusErrored
+		if savedContainer.TTL > 5*time.Minute && buildDidNotSucceed {
+			longLivedContainers = append(longLivedContainers, savedContainer)
+		}
+	}
+	return longLivedContainers, nil
 }
 
 func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContainer, bool, error) {

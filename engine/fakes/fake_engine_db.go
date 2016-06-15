@@ -40,6 +40,25 @@ type FakeEngineDB struct {
 		result2 bool
 		result3 error
 	}
+	FindContainersByDescriptorsStub        func(db.Container) ([]db.SavedContainer, error)
+	findContainersByDescriptorsMutex       sync.RWMutex
+	findContainersByDescriptorsArgsForCall []struct {
+		arg1 db.Container
+	}
+	findContainersByDescriptorsReturns struct {
+		result1 []db.SavedContainer
+		result2 error
+	}
+	FindLongLivedContainersStub        func(jobName string, pipelineID int) ([]db.SavedContainer, error)
+	findLongLivedContainersMutex       sync.RWMutex
+	findLongLivedContainersArgsForCall []struct {
+		jobName    string
+		pipelineID int
+	}
+	findLongLivedContainersReturns struct {
+		result1 []db.SavedContainer
+		result2 error
+	}
 	GetLatestFinishedBuildStub        func(jobID int) (db.Build, bool, error)
 	getLatestFinishedBuildMutex       sync.RWMutex
 	getLatestFinishedBuildArgsForCall []struct {
@@ -49,23 +68,6 @@ type FakeEngineDB struct {
 		result1 db.Build
 		result2 bool
 		result3 error
-	}
-	GetPreviousFailedBuildsStub        func(buildID int) ([]db.Build, error)
-	getPreviousFailedBuildsMutex       sync.RWMutex
-	getPreviousFailedBuildsArgsForCall []struct {
-		buildID int
-	}
-	getPreviousFailedBuildsReturns struct {
-		result1 []db.Build
-		result2 error
-	}
-	UpdateContainersTTLStub        func(buildID int) error
-	updateContainersTTLMutex       sync.RWMutex
-	updateContainersTTLArgsForCall []struct {
-		buildID int
-	}
-	updateContainersTTLReturns struct {
-		result1 error
 	}
 	SaveBuildEngineMetadataStub        func(buildID int, metadata string) error
 	saveBuildEngineMetadataMutex       sync.RWMutex
@@ -221,6 +223,73 @@ func (fake *FakeEngineDB) GetBuildReturns(result1 db.Build, result2 bool, result
 	}{result1, result2, result3}
 }
 
+func (fake *FakeEngineDB) FindContainersByDescriptors(arg1 db.Container) ([]db.SavedContainer, error) {
+	fake.findContainersByDescriptorsMutex.Lock()
+	fake.findContainersByDescriptorsArgsForCall = append(fake.findContainersByDescriptorsArgsForCall, struct {
+		arg1 db.Container
+	}{arg1})
+	fake.findContainersByDescriptorsMutex.Unlock()
+	if fake.FindContainersByDescriptorsStub != nil {
+		return fake.FindContainersByDescriptorsStub(arg1)
+	} else {
+		return fake.findContainersByDescriptorsReturns.result1, fake.findContainersByDescriptorsReturns.result2
+	}
+}
+
+func (fake *FakeEngineDB) FindContainersByDescriptorsCallCount() int {
+	fake.findContainersByDescriptorsMutex.RLock()
+	defer fake.findContainersByDescriptorsMutex.RUnlock()
+	return len(fake.findContainersByDescriptorsArgsForCall)
+}
+
+func (fake *FakeEngineDB) FindContainersByDescriptorsArgsForCall(i int) db.Container {
+	fake.findContainersByDescriptorsMutex.RLock()
+	defer fake.findContainersByDescriptorsMutex.RUnlock()
+	return fake.findContainersByDescriptorsArgsForCall[i].arg1
+}
+
+func (fake *FakeEngineDB) FindContainersByDescriptorsReturns(result1 []db.SavedContainer, result2 error) {
+	fake.FindContainersByDescriptorsStub = nil
+	fake.findContainersByDescriptorsReturns = struct {
+		result1 []db.SavedContainer
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeEngineDB) FindLongLivedContainers(jobName string, pipelineID int) ([]db.SavedContainer, error) {
+	fake.findLongLivedContainersMutex.Lock()
+	fake.findLongLivedContainersArgsForCall = append(fake.findLongLivedContainersArgsForCall, struct {
+		jobName    string
+		pipelineID int
+	}{jobName, pipelineID})
+	fake.findLongLivedContainersMutex.Unlock()
+	if fake.FindLongLivedContainersStub != nil {
+		return fake.FindLongLivedContainersStub(jobName, pipelineID)
+	} else {
+		return fake.findLongLivedContainersReturns.result1, fake.findLongLivedContainersReturns.result2
+	}
+}
+
+func (fake *FakeEngineDB) FindLongLivedContainersCallCount() int {
+	fake.findLongLivedContainersMutex.RLock()
+	defer fake.findLongLivedContainersMutex.RUnlock()
+	return len(fake.findLongLivedContainersArgsForCall)
+}
+
+func (fake *FakeEngineDB) FindLongLivedContainersArgsForCall(i int) (string, int) {
+	fake.findLongLivedContainersMutex.RLock()
+	defer fake.findLongLivedContainersMutex.RUnlock()
+	return fake.findLongLivedContainersArgsForCall[i].jobName, fake.findLongLivedContainersArgsForCall[i].pipelineID
+}
+
+func (fake *FakeEngineDB) FindLongLivedContainersReturns(result1 []db.SavedContainer, result2 error) {
+	fake.FindLongLivedContainersStub = nil
+	fake.findLongLivedContainersReturns = struct {
+		result1 []db.SavedContainer
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeEngineDB) GetLatestFinishedBuild(jobID int) (db.Build, bool, error) {
 	fake.getLatestFinishedBuildMutex.Lock()
 	fake.getLatestFinishedBuildArgsForCall = append(fake.getLatestFinishedBuildArgsForCall, struct {
@@ -253,71 +322,6 @@ func (fake *FakeEngineDB) GetLatestFinishedBuildReturns(result1 db.Build, result
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeEngineDB) GetPreviousFailedBuilds(buildID int) ([]db.Build, error) {
-	fake.getPreviousFailedBuildsMutex.Lock()
-	fake.getPreviousFailedBuildsArgsForCall = append(fake.getPreviousFailedBuildsArgsForCall, struct {
-		buildID int
-	}{buildID})
-	fake.getPreviousFailedBuildsMutex.Unlock()
-	if fake.GetPreviousFailedBuildsStub != nil {
-		return fake.GetPreviousFailedBuildsStub(buildID)
-	} else {
-		return fake.getPreviousFailedBuildsReturns.result1, fake.getPreviousFailedBuildsReturns.result2
-	}
-}
-
-func (fake *FakeEngineDB) GetPreviousFailedBuildsCallCount() int {
-	fake.getPreviousFailedBuildsMutex.RLock()
-	defer fake.getPreviousFailedBuildsMutex.RUnlock()
-	return len(fake.getPreviousFailedBuildsArgsForCall)
-}
-
-func (fake *FakeEngineDB) GetPreviousFailedBuildsArgsForCall(i int) int {
-	fake.getPreviousFailedBuildsMutex.RLock()
-	defer fake.getPreviousFailedBuildsMutex.RUnlock()
-	return fake.getPreviousFailedBuildsArgsForCall[i].buildID
-}
-
-func (fake *FakeEngineDB) GetPreviousFailedBuildsReturns(result1 []db.Build, result2 error) {
-	fake.GetPreviousFailedBuildsStub = nil
-	fake.getPreviousFailedBuildsReturns = struct {
-		result1 []db.Build
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeEngineDB) UpdateContainersTTL(buildID int) error {
-	fake.updateContainersTTLMutex.Lock()
-	fake.updateContainersTTLArgsForCall = append(fake.updateContainersTTLArgsForCall, struct {
-		buildID int
-	}{buildID})
-	fake.updateContainersTTLMutex.Unlock()
-	if fake.UpdateContainersTTLStub != nil {
-		return fake.UpdateContainersTTLStub(buildID)
-	} else {
-		return fake.updateContainersTTLReturns.result1
-	}
-}
-
-func (fake *FakeEngineDB) UpdateContainersTTLCallCount() int {
-	fake.updateContainersTTLMutex.RLock()
-	defer fake.updateContainersTTLMutex.RUnlock()
-	return len(fake.updateContainersTTLArgsForCall)
-}
-
-func (fake *FakeEngineDB) UpdateContainersTTLArgsForCall(i int) int {
-	fake.updateContainersTTLMutex.RLock()
-	defer fake.updateContainersTTLMutex.RUnlock()
-	return fake.updateContainersTTLArgsForCall[i].buildID
-}
-
-func (fake *FakeEngineDB) UpdateContainersTTLReturns(result1 error) {
-	fake.UpdateContainersTTLStub = nil
-	fake.updateContainersTTLReturns = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeEngineDB) SaveBuildEngineMetadata(buildID int, metadata string) error {

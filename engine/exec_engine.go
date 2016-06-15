@@ -205,31 +205,14 @@ func (build *execBuild) Resume(logger lager.Logger) {
 				logger.Error("build-not-found", errors.New("build not found"))
 			}
 
-			latestFinishedBuild, found, err := build.db.GetLatestFinishedBuild(dbBuild.JobID)
-			if err != nil {
-				logger.Error("get-latest-finished-build", err)
-			}
-
-			if !found {
-				logger.Error("latest-finished-build-not-found", errors.New("latest finished build not found"))
-			}
-
-			if latestFinishedBuild.ID == dbBuild.ID {
-				previousFailedBuilds, err := build.db.GetPreviousFailedBuilds(build.buildID)
-				if err != nil {
-					logger.Error("get-previous-failed-builds", err)
-				}
-
-				if previousFailedBuilds != nil {
-					//set ttl to 5 min
-				}
-			}
-			//if the build is the latest finished {
-			//	get all the previous failed builds and set their containers' ttl to 5 minutes
-			//  if !bool(succeeded) {
-			//		set its containers' ttl to infinite
-			//  }
-			//}
+			// latestFinishedBuild, found, err := build.db.GetLatestFinishedBuild(dbBuild.JobID)
+			// if err != nil {
+			// 	logger.Error("get-latest-finished-build", err)
+			// }
+			//
+			// if !found {
+			// 	logger.Error("latest-finished-build-not-found", errors.New("latest finished build not found"))
+			// }
 
 			return
 

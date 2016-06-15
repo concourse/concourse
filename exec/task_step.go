@@ -496,6 +496,7 @@ func (step *TaskStep) Result(x interface{}) bool {
 
 // Release releases the created container for either the configured
 // containerSuccessTTL or containerFailureTTL.
+// TODO: update this comment
 func (step *TaskStep) Release() {
 	if step.container == nil {
 		return
@@ -505,6 +506,15 @@ func (step *TaskStep) Release() {
 		step.container.Release(worker.FinalTTL(step.containerSuccessTTL))
 	} else {
 		step.container.Release(worker.FinalTTL(step.containerFailureTTL))
+		// savedContainers, err := step.delegate.FindLongLivedContainers(step.metadata.JobName, step.metadata.PipelineID)
+		// if err != nil {
+		// 	return
+		// }
+		//
+		// for _, container := range savedContainers {
+		// 	step.workerPool
+		//
+		// }
 	}
 }
 
