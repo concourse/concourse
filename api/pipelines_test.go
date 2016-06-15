@@ -241,24 +241,58 @@ var _ = Describe("Pipelines API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("returns 200 OK", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		Context("when not authorized", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+				userContextReader.GetTeamReturns("", 0, false, false)
+			})
+
+			It("returns only public pipelines", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
+				{
+					"name": "another-pipeline",
+					"url": "/teams/a-team/pipelines/another-pipeline",
+					"paused": true,
+					"public": true,
+					"team_name": "a-team",
+					"groups": [
+						{
+							"name": "group2",
+							"jobs": ["job3", "job4"],
+							"resources": ["resource3", "resource4"]
+						}
+					]
+				}]`))
+			})
 		})
 
-		It("returns application/json", func() {
-			Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-		})
+		Context("when authorized", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("a-team", 1, true, true)
+			})
 
-		It("constructs teamDB with provided team name", func() {
-			Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-			Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
-		})
+			It("returns 200 OK", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
 
-		It("returns all active pipelines", func() {
-			body, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
+			It("returns application/json", func() {
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+			})
 
-			Expect(body).To(MatchJSON(`[
+			It("constructs teamDB with provided team name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+			})
+
+			It("returns all pipelines", func() {
+				body, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(body).To(MatchJSON(`[
       {
         "name": "a-pipeline",
         "url": "/teams/a-team/pipelines/a-pipeline",
@@ -286,15 +320,16 @@ var _ = Describe("Pipelines API", func() {
 					}
 				]
       }]`))
-		})
-
-		Context("when the call to get active pipelines fails", func() {
-			BeforeEach(func() {
-				teamDB.GetPipelinesReturns(nil, errors.New("disaster"))
 			})
 
-			It("returns 500 internal server error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			Context("when the call to get active pipelines fails", func() {
+				BeforeEach(func() {
+					teamDB.GetPipelinesReturns(nil, errors.New("disaster"))
+				})
+
+				It("returns 500 internal server error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 	})
