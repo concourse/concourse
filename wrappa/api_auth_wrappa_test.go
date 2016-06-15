@@ -192,6 +192,7 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.ListResources:                 unauthenticated(inputHandlers[atc.ListResources]),
 					atc.ListResourceVersions:          unauthenticated(inputHandlers[atc.ListResourceVersions]),
 					atc.ListPipelines:                 unauthenticated(inputHandlers[atc.ListPipelines]),
+					atc.GetPipeline:                   unauthenticated(inputHandlers[atc.GetPipeline]),
 
 					// authenticated
 					atc.AbortBuild:      authenticated(inputHandlers[atc.AbortBuild]),
@@ -217,7 +218,6 @@ var _ = Describe("APIAuthWrappa", func() {
 					atc.DisableResourceVersion: authorized(inputHandlers[atc.DisableResourceVersion]),
 					atc.EnableResourceVersion:  authorized(inputHandlers[atc.EnableResourceVersion]),
 					atc.GetConfig:              authorized(inputHandlers[atc.GetConfig]),
-					atc.GetPipeline:            authorized(inputHandlers[atc.GetPipeline]),
 					atc.GetVersionsDB:          authorized(inputHandlers[atc.GetVersionsDB]),
 					atc.ListJobInputs:          authorized(inputHandlers[atc.ListJobInputs]),
 					atc.OrderPipelines:         authorized(inputHandlers[atc.OrderPipelines]),

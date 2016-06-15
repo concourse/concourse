@@ -116,7 +116,7 @@ var _ = Describe("Auth", func() {
 				_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
 				Expect(err).NotTo(HaveOccurred())
 
-				request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/teams/some-team/pipelines/some-pipeline", atcPort), nil)
+				request, err := http.NewRequest("POST", fmt.Sprintf("http://127.0.0.1:%d/teams/some-team/pipelines/some-pipeline/jobs/foo/builds", atcPort), nil)
 				Expect(err).NotTo(HaveOccurred())
 				response, responseErr = http.DefaultClient.Do(request)
 			})

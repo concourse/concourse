@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/auth"
 )
 
 func (s *Server) GetPipeline(w http.ResponseWriter, r *http.Request) {
@@ -16,6 +17,11 @@ func (s *Server) GetPipeline(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.logger.Error("call-to-get-pipeline-failed", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if !auth.IsAuthorized(r) && !pipeline.Public {
+		s.rejector.Unauthorized(w, r)
 		return
 	}
 
