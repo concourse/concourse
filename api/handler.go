@@ -124,14 +124,14 @@ func NewHandler(
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
 		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
 
-		atc.GetBuild:            buildHandlerFactory.HandlerFor(buildServer.GetBuild),
+		atc.GetBuild:            buildHandlerFactory.HandlerFor(buildServer.GetBuild, true),
 		atc.ListBuilds:          http.HandlerFunc(buildServer.ListBuilds),
 		atc.CreateBuild:         http.HandlerFunc(buildServer.CreateBuild),
-		atc.BuildEvents:         buildHandlerFactory.HandlerFor(buildServer.BuildEvents),
-		atc.BuildResources:      buildHandlerFactory.HandlerFor(buildServer.BuildResources),
+		atc.BuildResources:      buildHandlerFactory.HandlerFor(buildServer.BuildResources, true),
 		atc.AbortBuild:          http.HandlerFunc(buildServer.AbortBuild),
-		atc.GetBuildPlan:        buildHandlerFactory.HandlerFor(buildServer.GetBuildPlan),
-		atc.GetBuildPreparation: buildHandlerFactory.HandlerFor(buildServer.GetBuildPreparation),
+		atc.GetBuildPlan:        buildHandlerFactory.HandlerFor(buildServer.GetBuildPlan, true),
+		atc.GetBuildPreparation: buildHandlerFactory.HandlerFor(buildServer.GetBuildPreparation, false),
+		atc.BuildEvents:         buildHandlerFactory.HandlerFor(buildServer.BuildEvents, false),
 
 		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs, true),        // authorized or public
 		atc.GetJob:         pipelineHandlerFactory.HandlerFor(jobServer.GetJob, true),          // authorized or public

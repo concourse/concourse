@@ -26,7 +26,7 @@ func NewScopedHandlerFactory(
 	}
 }
 
-func (f *scopedHandlerFactory) HandlerFor(buildScopedHandler func(db.Build) http.Handler) http.HandlerFunc {
+func (f *scopedHandlerFactory) HandlerFor(buildScopedHandler func(db.Build) http.Handler, allowPrivateJob bool) http.HandlerFunc {
 	logger := f.logger.Session("scoped-build-factory")
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +47,7 @@ func (f *scopedHandlerFactory) HandlerFor(buildScopedHandler func(db.Build) http
 		}
 
 		if found {
-			hasAccess, err := f.verifyBuildAcccess(logger, build, r)
+			hasAccess, err := f.verifyBuildAcccess(logger, build, r, allowPrivateJob)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -66,7 +66,7 @@ func (f *scopedHandlerFactory) HandlerFor(buildScopedHandler func(db.Build) http
 	}
 }
 
-func (f *scopedHandlerFactory) verifyBuildAcccess(logger lager.Logger, build db.Build, r *http.Request) (bool, error) {
+func (f *scopedHandlerFactory) verifyBuildAcccess(logger lager.Logger, build db.Build, r *http.Request, allowPrivateJob bool) (bool, error) {
 	if !auth.IsAuthenticated(r) {
 		if build.IsOneOff() {
 			return false, nil
@@ -82,20 +82,22 @@ func (f *scopedHandlerFactory) verifyBuildAcccess(logger lager.Logger, build db.
 			return false, nil
 		}
 
-		config, _, err := build.GetConfig()
-		if err != nil {
-			f.logger.Error("failed-to-get-config", err)
-			return false, err
-		}
+		if !allowPrivateJob {
+			config, _, err := build.GetConfig()
+			if err != nil {
+				f.logger.Error("failed-to-get-config", err)
+				return false, err
+			}
 
-		public, err := config.JobIsPublic(build.JobName())
-		if err != nil {
-			f.logger.Error("failed-to-see-job-is-public", err)
-			return false, err
-		}
+			public, err := config.JobIsPublic(build.JobName())
+			if err != nil {
+				f.logger.Error("failed-to-see-job-is-public", err)
+				return false, err
+			}
 
-		if !public {
-			return false, nil
+			if !public {
+				return false, nil
+			}
 		}
 	}
 
