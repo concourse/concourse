@@ -166,9 +166,9 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
       state to synchronize (it just talks to the ATC).
 
       A typical configuration with multiple ATC+TSA nodes would have them
-      sitting behind a load balancer, forwarding port \code{80} to \code{8080}
-      and \code{2222} to \code{2222}. You may also want to configure SSL if
-      your load balancer supports it.
+      sitting behind a load balancer, forwarding port \code{80} to \code{8080},
+      \code{443} to \code{4443} (if you've enabled TLS), and \code{2222} to
+      \code{2222}.
 
       To run multiple \code{web} nodes, you'll need to pass the following
       flags:
@@ -349,6 +349,10 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
             basic_auth_username: REPLACE_ME
             basic_auth_password: REPLACE_ME
 
+            # replace with your SSL cert and key
+            tls_cert: REPLACE_ME
+            tls_key: REPLACE_ME
+
             postgresql_database: &atc_db atc
         - name: tsa
           release: concourse
@@ -418,9 +422,8 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
   \section{Reaching the web UI}{
     This really depends on your infrastructure. If you're deploying to AWS you
     may want to configure the \code{web} VM type to register with an ELB,
-    mapping port \code{80} to \code{8080} and \code{2222} to \code{2222}. You
-    may also want to configure SSL termination, which is currently not handled
-    by Concourse.
+    mapping port \code{80} to \code{8080}, \code{443} to \code{4443} (if you've
+    configured TLS), and \code{2222} to \code{2222}.
 
     Otherwise you may want to configure \code{static_ips} for the \code{web}
     instance group and just reach the web UI directly.
