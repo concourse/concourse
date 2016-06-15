@@ -20,9 +20,9 @@ instance_groups:
   instances: 1
   # replace with a VM type from your BOSH Director's cloud config
   vm_type: REPLACE_ME
-  vm_extensions:
   # replace with a VM extension from your BOSH Director's cloud config that will attach
   # this instance group to your ELB
+  vm_extensions:
   - REPLACE_ME
   stemcell: trusty
   azs: [z1]
@@ -66,9 +66,9 @@ instance_groups:
   instances: 1
   # replace with a VM type from your BOSH Director's cloud config
   vm_type: REPLACE_ME
-  vm_extensions:
   # replace with a VM extension from your BOSH Director's cloud config that will attach
   # sufficient ephemeral storage to VMs in this instance group.
+  vm_extensions:
   - REPLACE_ME
   stemcell: trusty
   azs: [z1]
