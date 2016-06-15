@@ -33,7 +33,7 @@ var _ = Describe("Resource Pagination", func() {
 
 		sqlDB = db.NewSQL(dbConn, bus)
 
-		atcProcess, atcPort, _ = startATC(atcBin, 1, true, []string{}, BASIC_AUTH)
+		atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, BASIC_AUTH)
 
 		err := sqlDB.DeleteTeamByName(atc.DefaultTeamName)
 		Expect(err).NotTo(HaveOccurred())

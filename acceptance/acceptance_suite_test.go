@@ -129,8 +129,8 @@ const NOT_CONFIGURED_AUTH = "not-configured"
 const DEVELOPMENT_MODE = "dev"
 const NO_AUTH = DEVELOPMENT_MODE
 
-func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, tlsFlags []string, authTypes ...string) (ifrit.Process, uint16, uint16) {
-	atcCommand, atcPort, tlsPort := getATCCommand(atcBin, atcServerNumber, publiclyViewable, tlsFlags, authTypes...)
+func startATC(atcBin string, atcServerNumber uint16, tlsFlags []string, authTypes ...string) (ifrit.Process, uint16, uint16) {
+	atcCommand, atcPort, tlsPort := getATCCommand(atcBin, atcServerNumber, tlsFlags, authTypes...)
 	atcRunner := ginkgomon.New(ginkgomon.Config{
 		Command:       atcCommand,
 		Name:          "atc",
@@ -140,7 +140,7 @@ func startATC(atcBin string, atcServerNumber uint16, publiclyViewable bool, tlsF
 	return ginkgomon.Invoke(atcRunner), atcPort, tlsPort
 }
 
-func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool, tlsFlags []string, authTypes ...string) (*exec.Cmd, uint16, uint16) {
+func getATCCommand(atcBin string, atcServerNumber uint16, tlsFlags []string, authTypes ...string) (*exec.Cmd, uint16, uint16) {
 	atcPort := 5697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 	debugPort := 6697 + uint16(GinkgoParallelNode()) + (atcServerNumber * 100)
 
@@ -150,12 +150,6 @@ func getATCCommand(atcBin string, atcServerNumber uint16, publiclyViewable bool,
 		"--peer-url", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
 		"--postgres-data-source", postgresRunner.DataSourceName(),
 		"--external-url", fmt.Sprintf("http://127.0.0.1:%d", atcPort),
-	}
-
-	if publiclyViewable {
-		params = append(params,
-			"--publicly-viewable",
-		)
 	}
 
 	for _, authType := range authTypes {

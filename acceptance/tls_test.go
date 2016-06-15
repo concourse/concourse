@@ -44,7 +44,7 @@ var _ = Describe("TLS", func() {
 	})
 
 	It("accepts HTTPS requests", func() {
-		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, true, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
+		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
 		request, err := http.NewRequest("GET", fmt.Sprintf("https://127.0.0.1:%d/", tlsPort), nil)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -65,7 +65,7 @@ var _ = Describe("TLS", func() {
 	})
 
 	It("redirects HTTP API traffic to HTTPS", func() {
-		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, true, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
+		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
 
 		request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/api/v1/workers", atcPort), nil)
 
@@ -82,7 +82,7 @@ var _ = Describe("TLS", func() {
 	})
 
 	It("redirects HTTP web traffic to HTTPS", func() {
-		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, true, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
+		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
 		request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d", atcPort), nil)
 
 		transport := &http.Transport{
@@ -106,7 +106,7 @@ var _ = Describe("TLS", func() {
 	})
 
 	It("redirects HTTP oauth traffic to HTTPS", func() {
-		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, true, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, GITHUB_AUTH)
+		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, GITHUB_AUTH)
 
 		request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/auth/github?team_name=main", atcPort), nil)
 
@@ -147,7 +147,7 @@ var _ = Describe("TLS", func() {
 		payload, err := json.Marshal(worker)
 		Expect(err).NotTo(HaveOccurred())
 
-		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, true, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
+		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, DEVELOPMENT_MODE)
 
 		request, err := http.NewRequest("POST",
 			fmt.Sprintf("http://127.0.0.1:%d/api/v1/workers", atcPort),
@@ -161,7 +161,7 @@ var _ = Describe("TLS", func() {
 	})
 
 	It("validates certs on client side when not started in development mode", func() {
-		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, true, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, BASIC_AUTH_NO_USERNAME, BASIC_AUTH_NO_PASSWORD)
+		atcProcess, atcPort, tlsPort = startATC(atcBin, 1, []string{"--tls-bind-port", "--tls-cert", "--tls-key"}, BASIC_AUTH_NO_USERNAME, BASIC_AUTH_NO_PASSWORD)
 		request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d", atcPort), nil)
 
 		transport := &http.Transport{

@@ -53,7 +53,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("GitHub Auth", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, GITHUB_AUTH)
+			atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, GITHUB_AUTH)
 		})
 
 		It("forces a redirect to /teams/main/login", func() {
@@ -73,7 +73,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("GitHub Enterprise Auth", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, GITHUB_ENTERPRISE_AUTH)
+			atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, GITHUB_ENTERPRISE_AUTH)
 		})
 
 		It("forces a redirect to override github", func() {
@@ -94,7 +94,7 @@ var _ = Describe("Auth", func() {
 		var responseErr error
 
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, BASIC_AUTH)
+			atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, BASIC_AUTH)
 		})
 
 		Context("when requesting protected endpoint", func() {
@@ -129,7 +129,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("errors when only username is specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, BASIC_AUTH_NO_PASSWORD)
+			atcCommand, _, _ := getATCCommand(atcBin, 1, []string{}, BASIC_AUTH_NO_PASSWORD)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -137,7 +137,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("errors when only password is specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, BASIC_AUTH_NO_USERNAME)
+			atcCommand, _, _ := getATCCommand(atcBin, 1, []string{}, BASIC_AUTH_NO_USERNAME)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -147,7 +147,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("No authentication via development mode", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, DEVELOPMENT_MODE)
+			atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, DEVELOPMENT_MODE)
 		})
 
 		It("logs in without authentication", func() {
@@ -161,7 +161,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("when auth is not configured", func() {
 		It("returns an error", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, NOT_CONFIGURED_AUTH)
+			atcCommand, _, _ := getATCCommand(atcBin, 1, []string{}, NOT_CONFIGURED_AUTH)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -171,7 +171,7 @@ var _ = Describe("Auth", func() {
 
 	Describe("UAA Auth", func() {
 		BeforeEach(func() {
-			atcProcess, atcPort, _ = startATC(atcBin, 1, false, []string{}, UAA_AUTH)
+			atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, UAA_AUTH)
 		})
 
 		It("forces a redirect to UAA auth URL", func() {
@@ -188,7 +188,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires client id and client secret to be specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, UAA_AUTH_NO_CLIENT_SECRET)
+			atcCommand, _, _ := getATCCommand(atcBin, 1, []string{}, UAA_AUTH_NO_CLIENT_SECRET)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -196,7 +196,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires space guid to be specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, UAA_AUTH_NO_SPACE)
+			atcCommand, _, _ := getATCCommand(atcBin, 1, []string{}, UAA_AUTH_NO_SPACE)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
@@ -204,7 +204,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("requires auth, token and api url to be specified", func() {
-			atcCommand, _, _ := getATCCommand(atcBin, 1, false, []string{}, UAA_AUTH_NO_TOKEN_URL)
+			atcCommand, _, _ := getATCCommand(atcBin, 1, []string{}, UAA_AUTH_NO_TOKEN_URL)
 			session, err := gexec.Start(atcCommand, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))

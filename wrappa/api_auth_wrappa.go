@@ -7,18 +7,15 @@ import (
 )
 
 type APIAuthWrappa struct {
-	PubliclyViewable  bool
 	Validator         auth.Validator
 	UserContextReader auth.UserContextReader
 }
 
 func NewAPIAuthWrappa(
-	publiclyViewable bool,
 	validator auth.Validator,
 	userContextReader auth.UserContextReader,
 ) *APIAuthWrappa {
 	return &APIAuthWrappa{
-		PubliclyViewable:  publiclyViewable,
 		Validator:         validator,
 		UserContextReader: userContextReader,
 	}

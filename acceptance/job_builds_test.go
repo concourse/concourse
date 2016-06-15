@@ -33,7 +33,7 @@ var _ = Describe("Job Builds", func() {
 		bus := db.NewNotificationsBus(dbListener, dbConn)
 		sqlDB = db.NewSQL(dbConn, bus)
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
-		atcProcess, atcPort, _ = startATC(atcBin, 1, true, []string{}, BASIC_AUTH)
+		atcProcess, atcPort, _ = startATC(atcBin, 1, []string{}, BASIC_AUTH)
 		err := sqlDB.DeleteTeamByName("main")
 		Expect(err).NotTo(HaveOccurred())
 		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
