@@ -5,12 +5,18 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 )
 
 func (s *Server) GetJobBuild(pipelineDB db.PipelineDB) http.Handler {
 	logger := s.logger.Session("get-job-build")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !auth.IsAuthorized(r) && !pipelineDB.IsPublic() {
+			s.rejector.Unauthorized(w, r)
+			return
+		}
+
 		jobName := r.FormValue(":job_name")
 		buildName := r.FormValue(":build_name")
 

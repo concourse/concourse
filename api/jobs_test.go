@@ -1445,23 +1445,56 @@ var _ = Describe("Jobs API", func() {
 				pipelineDB.GetJobBuildReturns(build, true, nil)
 			})
 
-			It("fetches by job and build name", func() {
-				Expect(pipelineDB.GetJobBuildCallCount()).To(Equal(1))
+			Context("when not authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(false)
+					userContextReader.GetTeamReturns("", 0, false, false)
+				})
 
-				jobName, buildName := pipelineDB.GetJobBuildArgsForCall(0)
-				Expect(jobName).To(Equal("some-job"))
-				Expect(buildName).To(Equal("some-build"))
+				Context("and the pipeline is private", func() {
+					BeforeEach(func() {
+						pipelineDB.IsPublicReturns(false)
+					})
+
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+				})
+
+				Context("and the pipeline is public", func() {
+					BeforeEach(func() {
+						pipelineDB.IsPublicReturns(true)
+					})
+
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
 			})
 
-			It("returns 200 OK", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("some-team", 1, true, true)
+				})
 
-			It("returns the build", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
 
-				Expect(body).To(MatchJSON(`{
+				It("fetches by job and build name", func() {
+					Expect(pipelineDB.GetJobBuildCallCount()).To(Equal(1))
+
+					jobName, buildName := pipelineDB.GetJobBuildArgsForCall(0)
+					Expect(jobName).To(Equal("some-job"))
+					Expect(buildName).To(Equal("some-build"))
+				})
+
+				It("returns the build", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`{
 					"id": 1,
 					"name": "1",
 					"job_name": "some-job",
@@ -1474,26 +1507,27 @@ var _ = Describe("Jobs API", func() {
 					"end_time": 100
 				}`))
 
-			})
-		})
+				})
 
-		Context("when the build is not found", func() {
-			BeforeEach(func() {
-				pipelineDB.GetJobBuildReturns(nil, false, nil)
-			})
+				Context("when the build is not found", func() {
+					BeforeEach(func() {
+						pipelineDB.GetJobBuildReturns(nil, false, nil)
+					})
 
-			It("returns Not Found", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-			})
-		})
+					It("returns Not Found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
 
-		Context("when getting the build fails", func() {
-			BeforeEach(func() {
-				pipelineDB.GetJobBuildReturns(nil, false, errors.New("oh no!"))
-			})
+				Context("when getting the build fails", func() {
+					BeforeEach(func() {
+						pipelineDB.GetJobBuildReturns(nil, false, errors.New("oh no!"))
+					})
 
-			It("returns Internal Server Error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					It("returns Internal Server Error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
 			})
 		})
 	})
