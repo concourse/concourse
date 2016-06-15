@@ -30,8 +30,9 @@
     Concourse tasks much easier.
 
     As part of this, the binary distribution no longer supports
-    \reference{image}. Supporting it has always been a portability nightmare,
-    and we've been discouraging use of \reference{image} for some time now.
+    \reference{task-config-image}. Supporting it has always been a portability
+    nightmare, and we've been discouraging use of \reference{task-config-image}
+    for some time now.
   }
 
   \note{feature}{
