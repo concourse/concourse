@@ -100,6 +100,12 @@
     \code{tags} in its metadata for each commit.
   }
 
+  \note{fix}{
+    Previously the \resource{time} would accidentally report two versions
+    within the boundary of a time range configured with \code{start} and
+    \code{stop}. This has been fixed.
+  }
+
   \note{feature}{
     The \resource{docker-image} can now be configured with SSL CA certs to
     trust when communicating with the registry. This allows you to use private
