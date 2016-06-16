@@ -25,7 +25,7 @@ type TeamDB interface {
 	SaveConfig(string, atc.Config, ConfigVersion, PipelinePausedState) (SavedPipeline, bool, error)
 
 	CreateOneOffBuild() (Build, error)
-	GetBuilds(page Page) ([]Build, Pagination, error)
+	GetBuilds(page Page, publicOnly bool) ([]Build, Pagination, error)
 	GetBuild(buildID int) (Build, bool, error)
 }
 
@@ -543,15 +543,20 @@ func (db *teamDB) CreateOneOffBuild() (Build, error) {
 	return build, nil
 }
 
-func (db *teamDB) GetBuilds(page Page) ([]Build, Pagination, error) {
+func (db *teamDB) GetBuilds(page Page, publicOnly bool) ([]Build, Pagination, error) {
 	query := `
 		SELECT ` + qualifiedBuildColumns + `
 		FROM builds b
 		LEFT OUTER JOIN jobs j ON b.job_id = j.id
 		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
 		LEFT OUTER JOIN teams t ON b.team_id = t.id
-		WHERE t.name = $1
+		WHERE p.public = true
 	`
+	if !publicOnly {
+		query = query + ` OR t.name = $1`
+	} else {
+		query = query + ` AND $1 = $1`
+	}
 
 	var rows *sql.Rows
 	var err error
@@ -647,7 +652,7 @@ func (db *teamDB) GetBuild(buildID int) (Build, bool, error) {
 		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
 		LEFT OUTER JOIN teams t ON b.team_id = t.id
 		WHERE b.id = $1
-		AND t.name = $2
+		AND (t.name = $2 OR p.public = true)
 	`, buildID, db.teamName))
 }
 

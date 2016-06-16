@@ -36,7 +36,13 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthOrDefaultTeamName(r))
-	builds, pagination, err := teamDB.GetBuilds(db.Page{Until: until, Since: since, Limit: limit})
+
+	var publicOnly bool
+	if !auth.IsAuthenticated(r) {
+		publicOnly = true
+	}
+
+	builds, pagination, err := teamDB.GetBuilds(db.Page{Until: until, Since: since, Limit: limit}, publicOnly)
 	if err != nil {
 		logger.Error("failed-to-get-all-builds", err)
 		w.WriteHeader(http.StatusInternalServerError)

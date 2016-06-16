@@ -680,7 +680,7 @@ var _ = Describe("Builds API", func() {
 			It("does not set defaults for since and until", func() {
 				Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
 
-				page := teamDB.GetBuildsArgsForCall(0)
+				page, _ := teamDB.GetBuildsArgsForCall(0)
 				Expect(page).To(Equal(db.Page{
 					Since: 0,
 					Until: 0,
@@ -697,7 +697,7 @@ var _ = Describe("Builds API", func() {
 			It("passes them through", func() {
 				Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
 
-				page := teamDB.GetBuildsArgsForCall(0)
+				page, _ := teamDB.GetBuildsArgsForCall(0)
 				Expect(page).To(Equal(db.Page{
 					Since: 2,
 					Until: 3,
@@ -709,6 +709,30 @@ var _ = Describe("Builds API", func() {
 		Context("when getting the builds succeeds", func() {
 			BeforeEach(func() {
 				teamDB.GetBuildsReturns(returnedBuilds, db.Pagination{}, nil)
+			})
+
+			Context("when not authenticated", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(false)
+				})
+
+				It("returns only public builds", func() {
+					Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
+					_, publicOnly := teamDB.GetBuildsArgsForCall(0)
+					Expect(publicOnly).To(Equal(true))
+				})
+			})
+
+			Context("when authenticated", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+				})
+
+				It("returns private builds", func() {
+					Expect(teamDB.GetBuildsCallCount()).To(Equal(1))
+					_, publicOnly := teamDB.GetBuildsArgsForCall(0)
+					Expect(publicOnly).To(Equal(false))
+				})
 			})
 
 			It("returns 200 OK", func() {

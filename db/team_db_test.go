@@ -434,7 +434,7 @@ var _ = Describe("TeamDB", func() {
 	Describe("GetBuilds", func() {
 		Context("when there are no builds", func() {
 			It("returns an empty list of builds", func() {
-				builds, pagination, err := teamDB.GetBuilds(db.Page{Limit: 2})
+				builds, pagination, err := teamDB.GetBuilds(db.Page{Limit: 2}, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(pagination.Next).To(BeNil())
@@ -445,6 +445,9 @@ var _ = Describe("TeamDB", func() {
 
 		Context("when there are builds", func() {
 			var allBuilds [5]db.Build
+			var publicOnly bool
+			var pipelineDB db.PipelineDB
+			var pipelineBuilds [2]db.Build
 
 			BeforeEach(func() {
 				for i := 0; i < 3; i++ {
@@ -463,94 +466,174 @@ var _ = Describe("TeamDB", func() {
 				pipeline, _, err := teamDB.SaveConfig("some-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 				Expect(err).NotTo(HaveOccurred())
 
-				pipelineDB := pipelineDBFactory.Build(pipeline)
+				pipelineDB = pipelineDBFactory.Build(pipeline)
 
 				for i := 3; i < 5; i++ {
 					build, err := pipelineDB.CreateJobBuild("some-job")
 					Expect(err).NotTo(HaveOccurred())
 					allBuilds[i] = build
+					pipelineBuilds[i-3] = build
 				}
 			})
 
-			It("returns all builds that have been started, regardless of pipeline", func() {
-				builds, pagination, err := teamDB.GetBuilds(db.Page{Limit: 2})
-				Expect(err).NotTo(HaveOccurred())
+			Context("when requesting private builds", func() {
+				BeforeEach(func() {
+					publicOnly = false
+				})
 
-				Expect(len(builds)).To(Equal(2))
-				Expect(builds[0]).To(Equal(allBuilds[4]))
-				Expect(builds[1]).To(Equal(allBuilds[3]))
+				It("returns all builds that have been started, regardless of pipeline", func() {
+					builds, pagination, err := teamDB.GetBuilds(db.Page{Limit: 2}, publicOnly)
+					Expect(err).NotTo(HaveOccurred())
 
-				Expect(pagination.Previous).To(BeNil())
-				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[3].ID(), Limit: 2}))
+					Expect(len(builds)).To(Equal(2))
+					Expect(builds[0]).To(Equal(allBuilds[4]))
+					Expect(builds[1]).To(Equal(allBuilds[3]))
 
-				builds, pagination, err = teamDB.GetBuilds(*pagination.Next)
-				Expect(err).NotTo(HaveOccurred())
+					Expect(pagination.Previous).To(BeNil())
+					Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[3].ID(), Limit: 2}))
 
-				Expect(len(builds)).To(Equal(2))
-				Expect(builds[0]).To(Equal(allBuilds[2]))
-				Expect(builds[1]).To(Equal(allBuilds[1]))
+					builds, pagination, err = teamDB.GetBuilds(*pagination.Next, publicOnly)
+					Expect(err).NotTo(HaveOccurred())
 
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID(), Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID(), Limit: 2}))
+					Expect(len(builds)).To(Equal(2))
+					Expect(builds[0]).To(Equal(allBuilds[2]))
+					Expect(builds[1]).To(Equal(allBuilds[1]))
 
-				builds, pagination, err = teamDB.GetBuilds(*pagination.Next)
-				Expect(err).NotTo(HaveOccurred())
+					Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID(), Limit: 2}))
+					Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID(), Limit: 2}))
 
-				Expect(len(builds)).To(Equal(1))
-				Expect(builds[0]).To(Equal(allBuilds[0]))
+					builds, pagination, err = teamDB.GetBuilds(*pagination.Next, publicOnly)
+					Expect(err).NotTo(HaveOccurred())
 
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[0].ID(), Limit: 2}))
-				Expect(pagination.Next).To(BeNil())
+					Expect(len(builds)).To(Equal(1))
+					Expect(builds[0]).To(Equal(allBuilds[0]))
 
-				builds, pagination, err = teamDB.GetBuilds(*pagination.Previous)
-				Expect(err).NotTo(HaveOccurred())
+					Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[0].ID(), Limit: 2}))
+					Expect(pagination.Next).To(BeNil())
 
-				Expect(len(builds)).To(Equal(2))
-				Expect(builds[0]).To(Equal(allBuilds[2]))
-				Expect(builds[1]).To(Equal(allBuilds[1]))
+					builds, pagination, err = teamDB.GetBuilds(*pagination.Previous, publicOnly)
+					Expect(err).NotTo(HaveOccurred())
 
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID(), Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID(), Limit: 2}))
+					Expect(len(builds)).To(Equal(2))
+					Expect(builds[0]).To(Equal(allBuilds[2]))
+					Expect(builds[1]).To(Equal(allBuilds[1]))
+
+					Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID(), Limit: 2}))
+					Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID(), Limit: 2}))
+				})
+
+				Context("when there are builds that belong to different teams", func() {
+					var teamABuilds [3]db.Build
+					var teamBBuilds [3]db.Build
+
+					var teamADB db.TeamDB
+					var teamBDB db.TeamDB
+
+					BeforeEach(func() {
+						_, err := database.CreateTeam(db.Team{Name: "team-a"})
+						Expect(err).NotTo(HaveOccurred())
+
+						_, err = database.CreateTeam(db.Team{Name: "team-b"})
+						Expect(err).NotTo(HaveOccurred())
+
+						teamADB = teamDBFactory.GetTeamDB("team-a")
+						teamBDB = teamDBFactory.GetTeamDB("team-b")
+
+						for i := 0; i < 3; i++ {
+							teamABuilds[i], err = teamADB.CreateOneOffBuild()
+							Expect(err).NotTo(HaveOccurred())
+
+							teamBBuilds[i], err = teamBDB.CreateOneOffBuild()
+							Expect(err).NotTo(HaveOccurred())
+						}
+					})
+
+					Context("when other team builds are private", func() {
+						It("returns only builds for requested team", func() {
+							builds, _, err := teamADB.GetBuilds(db.Page{Limit: 10}, publicOnly)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(len(builds)).To(Equal(3))
+							Expect(builds).To(ConsistOf(teamABuilds))
+
+							builds, _, err = teamBDB.GetBuilds(db.Page{Limit: 10}, publicOnly)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(len(builds)).To(Equal(3))
+							Expect(builds).To(ConsistOf(teamBBuilds))
+						})
+					})
+
+					Context("when other team builds are public", func() {
+						BeforeEach(func() {
+							pipelineDB.Reveal()
+						})
+
+						It("returns builds for requested team and public builds", func() {
+							builds, _, err := teamADB.GetBuilds(db.Page{Limit: 10}, publicOnly)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(builds).To(HaveLen(5))
+							expectedBuilds := []db.Build{}
+							for _, b := range teamABuilds {
+								expectedBuilds = append(expectedBuilds, b)
+							}
+							for _, b := range pipelineBuilds {
+								expectedBuilds = append(expectedBuilds, b)
+							}
+							Expect(builds).To(ConsistOf(expectedBuilds))
+						})
+					})
+				})
 			})
 
-			Context("when there are builds that belong to different teams", func() {
-				var teamABuilds [3]db.Build
-				var teamBBuilds [3]db.Build
-
-				var teamADB db.TeamDB
-				var teamBDB db.TeamDB
+			Context("when requesting public only builds", func() {
+				var otherTeamBuilds [3]db.Build
 
 				BeforeEach(func() {
-					_, err := database.CreateTeam(db.Team{Name: "team-a"})
-					Expect(err).NotTo(HaveOccurred())
+					publicOnly = true
+					pipelineDB.Reveal()
 
-					_, err = database.CreateTeam(db.Team{Name: "team-b"})
+					config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
+					privatePipeline, _, err := teamDB.SaveConfig("private-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
 					Expect(err).NotTo(HaveOccurred())
-
-					teamADB = teamDBFactory.GetTeamDB("team-a")
-					teamBDB = teamDBFactory.GetTeamDB("team-b")
+					privatePipelineDB := pipelineDBFactory.Build(privatePipeline)
 
 					for i := 0; i < 3; i++ {
-						teamABuilds[i], err = teamADB.CreateOneOffBuild()
+						_, err := privatePipelineDB.CreateJobBuild("some-job")
 						Expect(err).NotTo(HaveOccurred())
+					}
 
-						teamBBuilds[i], err = teamBDB.CreateOneOffBuild()
+					_, err = database.CreateTeam(db.Team{Name: "other"})
+					Expect(err).NotTo(HaveOccurred())
+
+					otherTeamDB := teamDBFactory.GetTeamDB("other")
+
+					otherTeamPublicPipeline, _, err := otherTeamDB.SaveConfig("other-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+					Expect(err).NotTo(HaveOccurred())
+					otherPipelineDB := pipelineDBFactory.Build(otherTeamPublicPipeline)
+					otherPipelineDB.Reveal()
+
+					for i := 0; i < 3; i++ {
+						build, err := otherPipelineDB.CreateJobBuild("some-job")
 						Expect(err).NotTo(HaveOccurred())
+						otherTeamBuilds[i] = build
 					}
 				})
 
-				It("returns only builds for requested team", func() {
-					builds, _, err := teamADB.GetBuilds(db.Page{Limit: 10})
+				It("returns public builds", func() {
+					builds, _, err := teamDB.GetBuilds(db.Page{Limit: 10}, publicOnly)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(len(builds)).To(Equal(3))
-					Expect(builds).To(ConsistOf(teamABuilds))
-
-					builds, _, err = teamBDB.GetBuilds(db.Page{Limit: 10})
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(len(builds)).To(Equal(3))
-					Expect(builds).To(ConsistOf(teamBBuilds))
+					Expect(builds).To(HaveLen(5))
+					expectedBuilds := []db.Build{}
+					for _, b := range pipelineBuilds {
+						expectedBuilds = append(expectedBuilds, b)
+					}
+					for _, b := range otherTeamBuilds {
+						expectedBuilds = append(expectedBuilds, b)
+					}
+					Expect(builds).To(ConsistOf(expectedBuilds))
 				})
 			})
 		})
@@ -567,18 +650,39 @@ var _ = Describe("TeamDB", func() {
 			Expect(build.ID()).To(Equal(originalBuild.ID()))
 		})
 
-		It("does not return build that belongs to another team", func() {
-			team := db.Team{Name: "another-team-name"}
-			_, err := database.CreateTeam(team)
-			Expect(err).NotTo(HaveOccurred())
-			anotherTeamDB := teamDBFactory.GetTeamDB("another-team-name")
-			anotherTeamBuild, err := anotherTeamDB.CreateOneOffBuild()
-			Expect(err).NotTo(HaveOccurred())
+		Context("when requesting build that belongs to other team", func() {
+			var otherTeamDB db.TeamDB
 
-			build, found, err := teamDB.GetBuild(anotherTeamBuild.ID())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeFalse())
-			Expect(build).To(BeNil())
+			BeforeEach(func() {
+				_, err := database.CreateTeam(db.Team{Name: "other"})
+				Expect(err).NotTo(HaveOccurred())
+
+				otherTeamDB = teamDBFactory.GetTeamDB("other")
+			})
+
+			It("returns it if it's public", func() {
+				config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
+				otherTeamPublicPipeline, _, err := otherTeamDB.SaveConfig("other-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+				Expect(err).NotTo(HaveOccurred())
+				otherPipelineDB := pipelineDBFactory.Build(otherTeamPublicPipeline)
+				otherPipelineDB.Reveal()
+				otherTeamBuild, err := otherPipelineDB.CreateJobBuild("some-job")
+
+				build, found, err := teamDB.GetBuild(otherTeamBuild.ID())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(build).To(Equal(otherTeamBuild))
+			})
+
+			It("does not return it if it's private", func() {
+				otherTeamBuild, err := otherTeamDB.CreateOneOffBuild()
+				Expect(err).NotTo(HaveOccurred())
+
+				build, found, err := teamDB.GetBuild(otherTeamBuild.ID())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(build).To(BeNil())
+			})
 		})
 	})
 })
