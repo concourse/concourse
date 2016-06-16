@@ -46,6 +46,7 @@ jobs:
       resource: buildroot-git
       trigger: true
     - get: buildroot
+      resource: buildroot-edge
       trigger: true
     - get: buildroot-tarmaker-image
       params: {save: true}
@@ -959,6 +960,12 @@ resources:
   source:
     uri: git://git.buildroot.net/buildroot
     tag_filter: '[0-9][0-9][0-9][0-9].[0-9][0-9]'
+
+- name: buildroot-edge
+  type: git
+  source:
+    uri: git://git.buildroot.net/buildroot
+    branch: master
 
 - name: buildroot-tarmaker
   type: git
