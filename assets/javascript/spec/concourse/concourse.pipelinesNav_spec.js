@@ -81,7 +81,7 @@ describe("Pipelines Nav", function () {
 
       var request = jasmine.Ajax.requests.mostRecent();
 
-      expect(request.url).toBe('/api/v1/teams/a-team/pipelines');
+      expect(request.url).toBe('/api/v1/pipelines');
       expect(request.method).toBe('GET');
 
       respondWithPipelines(request);
