@@ -180,4 +180,6 @@ builds:
     version: 1.2.0
   8492a1f0-0844-455f-9551-2f118aaf45f6:
     version: 1.3.0
+  db6b77fa-9fbc-4649-ab62-a364988e773a:
+    version: 1.3.1
 format-version: '2'
