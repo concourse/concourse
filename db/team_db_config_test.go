@@ -424,8 +424,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 
 		Expect(pipelines).To(Equal([]db.SavedPipeline{
 			{
-				ID:     5,
-				TeamID: team.ID,
+				ID:       5,
+				TeamID:   team.ID,
+				TeamName: "some-team",
 				Pipeline: db.Pipeline{
 					Name:    "pipeline-4",
 					Config:  config,
@@ -433,8 +434,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 				},
 			},
 			{
-				ID:     4,
-				TeamID: team.ID,
+				ID:       4,
+				TeamID:   team.ID,
+				TeamName: "some-team",
 				Pipeline: db.Pipeline{
 					Name:    "pipeline-3",
 					Config:  config,
@@ -442,8 +444,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 				},
 			},
 			{
-				ID:     6,
-				TeamID: team.ID,
+				ID:       6,
+				TeamID:   team.ID,
+				TeamName: "some-team",
 				Pipeline: db.Pipeline{
 					Name:    "pipeline-5",
 					Config:  config,
@@ -451,8 +454,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 				},
 			},
 			{
-				ID:     2,
-				TeamID: team.ID,
+				ID:       2,
+				TeamID:   team.ID,
+				TeamName: "some-team",
 				Pipeline: db.Pipeline{
 					Name:    "pipeline-1",
 					Config:  config,
@@ -460,8 +464,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 				},
 			},
 			{
-				ID:     3,
-				TeamID: team.ID,
+				ID:       3,
+				TeamID:   team.ID,
+				TeamName: "some-team",
 				Pipeline: db.Pipeline{
 					Name:    "pipeline-2",
 					Config:  config,
@@ -470,8 +475,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			},
 
 			{
-				ID:     1,
-				TeamID: team.ID,
+				ID:       1,
+				TeamID:   team.ID,
+				TeamName: "some-team",
 				Pipeline: db.Pipeline{
 					Name:    "some-pipeline",
 					Version: db.ConfigVersion(1),
@@ -479,8 +485,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 			},
 
 			{
-				ID:     7,
-				TeamID: team.ID,
+				ID:       7,
+				TeamID:   team.ID,
+				TeamName: "some-team",
 				Pipeline: db.Pipeline{
 					Name:    "pipeline-6",
 					Config:  config,
@@ -515,16 +522,18 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 
 		Expect(pipelines).To(Equal([]db.SavedPipeline{
 			{
-				ID:     1,
-				TeamID: team.ID,
+				ID:       1,
+				TeamID:   team.ID,
+				TeamName: "some-team",
 				Pipeline: db.Pipeline{
 					Name:    "some-pipeline",
 					Version: db.ConfigVersion(1),
 				},
 			},
 			{
-				ID:     2,
-				TeamID: team.ID,
+				ID:       2,
+				TeamID:   team.ID,
+				TeamName: "some-team",
 				Pipeline: db.Pipeline{
 					Name:    pipelineName,
 					Config:  config,
@@ -532,8 +541,9 @@ var _ = Describe("Updating pipeline config for specific team", func() {
 				},
 			},
 			{
-				ID:     3,
-				TeamID: team.ID,
+				ID:       3,
+				TeamID:   team.ID,
+				TeamName: "some-team",
 				Pipeline: db.Pipeline{
 					Name:    otherPipelineName,
 					Config:  otherConfig,

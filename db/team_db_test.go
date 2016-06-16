@@ -131,13 +131,27 @@ var _ = Describe("TeamDB", func() {
 			})
 
 			It("returns them", func() {
-				savedPipelines, err := teamDB.GetPipelines()
+				returnedPipelines, err := teamDB.GetPipelines()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(savedPipelines).To(HaveLen(3))
+				Expect(returnedPipelines).To(HaveLen(3))
 
 				otherPipeline, err = otherTeamDB.GetPipelineByName("other-pipeline-name")
 				Expect(err).NotTo(HaveOccurred())
-				Expect(savedPipelines).To(ConsistOf(savedPipeline1, savedPipeline2, otherPipeline))
+				Expect(returnedPipelines).To(ConsistOf(savedPipeline1, savedPipeline2, otherPipeline))
+
+				var otherPipeline db.SavedPipeline
+				var teamPipelines []db.SavedPipeline
+				for _, returnedPipeline := range returnedPipelines {
+					if returnedPipeline.Name == "other-pipeline-name" {
+						otherPipeline = returnedPipeline
+					} else {
+						teamPipelines = append(teamPipelines, returnedPipeline)
+					}
+				}
+
+				Expect(otherPipeline.TeamName).To(Equal("other-team-name"))
+				Expect(teamPipelines[0].TeamName).To(Equal("team-name"))
+				Expect(teamPipelines[1].TeamName).To(Equal("team-name"))
 			})
 
 			Context("when pipeline that belongs to other team is no longer public", func() {

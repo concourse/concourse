@@ -592,8 +592,9 @@ func (b *build) GetPreparation() (BuildPreparation, bool, error) {
 func (b *build) SaveInput(input BuildInput) (SavedVersionedResource, error) {
 	row := b.conn.QueryRow(`
 		SELECT `+pipelineColumns+`
-		FROM pipelines
-		WHERE id = $1
+		FROM pipelines p
+	 	INNER JOIN teams t ON t.id = p.team_id
+		WHERE p.id = $1
 	`, input.VersionedResource.PipelineID)
 
 	savedPipeline, err := scanPipeline(row)
@@ -609,8 +610,9 @@ func (b *build) SaveInput(input BuildInput) (SavedVersionedResource, error) {
 func (b *build) SaveOutput(vr VersionedResource, explicit bool) (SavedVersionedResource, error) {
 	row := b.conn.QueryRow(`
 		SELECT `+pipelineColumns+`
-		FROM pipelines
-		WHERE id = $1
+		FROM pipelines p
+	 	INNER JOIN teams t ON t.id = p.team_id
+		WHERE p.id = $1
 	`, vr.PipelineID)
 
 	savedPipeline, err := scanPipeline(row)
@@ -774,8 +776,9 @@ func (b *build) GetPipeline() (SavedPipeline, error) {
 
 	row := b.conn.QueryRow(`
 		SELECT `+pipelineColumns+`
-		FROM pipelines
-		WHERE id = $1
+		FROM pipelines p
+		INNER JOIN teams t ON t.id = p.team_id
+		WHERE p.id = $1
 	`, b.pipelineID)
 
 	return scanPipeline(row)

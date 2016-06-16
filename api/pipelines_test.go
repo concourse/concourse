@@ -35,9 +35,10 @@ var _ = Describe("Pipelines API", func() {
 		BeforeEach(func() {
 			teamDB.GetPipelinesReturns([]db.SavedPipeline{
 				{
-					ID:     1,
-					Paused: false,
-					Public: false,
+					ID:       1,
+					Paused:   false,
+					Public:   false,
+					TeamName: "main",
 					Pipeline: db.Pipeline{
 						Name: "a-pipeline",
 						Config: atc.Config{
@@ -52,9 +53,10 @@ var _ = Describe("Pipelines API", func() {
 					},
 				},
 				{
-					ID:     2,
-					Paused: true,
-					Public: true,
+					ID:       2,
+					Paused:   true,
+					Public:   true,
+					TeamName: "main",
 					Pipeline: db.Pipeline{
 						Name: "another-pipeline",
 						Config: atc.Config{
@@ -195,9 +197,10 @@ var _ = Describe("Pipelines API", func() {
 		BeforeEach(func() {
 			teamDB.GetPipelinesReturns([]db.SavedPipeline{
 				{
-					ID:     1,
-					Paused: false,
-					Public: false,
+					ID:       1,
+					Paused:   false,
+					Public:   false,
+					TeamName: "a-team",
 					Pipeline: db.Pipeline{
 						Name: "a-pipeline",
 						Config: atc.Config{
@@ -212,9 +215,10 @@ var _ = Describe("Pipelines API", func() {
 					},
 				},
 				{
-					ID:     2,
-					Paused: true,
-					Public: true,
+					ID:       2,
+					Paused:   true,
+					Public:   true,
+					TeamName: "a-team",
 					Pipeline: db.Pipeline{
 						Name: "another-pipeline",
 						Config: atc.Config{
@@ -340,9 +344,10 @@ var _ = Describe("Pipelines API", func() {
 
 		BeforeEach(func() {
 			savedPipeline = db.SavedPipeline{
-				ID:     1,
-				Paused: false,
-				Public: true,
+				ID:       1,
+				Paused:   false,
+				Public:   true,
+				TeamName: "a-team",
 				Pipeline: db.Pipeline{
 					Name: "some-specific-pipeline",
 					Config: atc.Config{

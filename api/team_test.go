@@ -501,7 +501,7 @@ var _ = Describe("Auth API", func() {
 			})
 		})
 
-		FContext("when the requester belongs to a non-admin team", func() {
+		Context("when the requester belongs to a non-admin team", func() {
 			JustBeforeEach(func() {
 				path := fmt.Sprintf("%s/api/v1/teams/%s", server.URL, "non-admin-team")
 

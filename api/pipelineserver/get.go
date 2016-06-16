@@ -28,7 +28,7 @@ func (s *Server) GetPipeline(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	presentedPipeline := present.Pipeline(teamName, pipeline, pipeline.Config)
+	presentedPipeline := present.Pipeline(pipeline, pipeline.Config)
 
 	json.NewEncoder(w).Encode(presentedPipeline)
 }

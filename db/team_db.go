@@ -40,9 +40,10 @@ type teamDB struct {
 func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) {
 	row := db.conn.QueryRow(`
 		SELECT `+pipelineColumns+`
-		FROM pipelines
-		WHERE name = $1
-		AND team_id = (
+		FROM pipelines p
+		INNER JOIN teams t ON t.id = p.team_id
+		WHERE p.name = $1
+		AND p.team_id = (
 			SELECT id FROM teams WHERE name = $2
 		)
 	`, pipelineName, db.teamName)
@@ -53,7 +54,8 @@ func (db *teamDB) GetPipelineByName(pipelineName string) (SavedPipeline, error) 
 func (db *teamDB) GetPipelines() ([]SavedPipeline, error) {
 	rows, err := db.conn.Query(`
 		SELECT `+pipelineColumns+`
-		FROM pipelines
+		FROM pipelines p
+		INNER JOIN teams t ON t.id = p.team_id
 		WHERE team_id = (
 			SELECT id FROM teams WHERE name = $1
 		) OR public = true
@@ -213,7 +215,10 @@ func (db *teamDB) SaveConfig(
 			$3,
 			$4
 		)
-		RETURNING `+pipelineColumns+`
+		RETURNING `+unqualifiedPipelineColumns+`,
+		(
+			SELECT t.name as team_name FROM teams t WHERE t.id = $4
+		)
 		`, pipelineName, payload, pausedState.Bool(), teamID))
 		if err != nil {
 			return SavedPipeline{}, false, err
@@ -250,7 +255,10 @@ func (db *teamDB) SaveConfig(
 			WHERE name = $2
 			AND version = $3
 			AND team_id = $4
-			RETURNING `+pipelineColumns+`
+			RETURNING `+unqualifiedPipelineColumns+`,
+			(
+				SELECT t.name as team_name FROM teams t WHERE t.id = $4
+			)
 			`, payload, pipelineName, from, teamID))
 		} else {
 			savedPipeline, err = scanPipeline(tx.QueryRow(`
@@ -259,7 +267,10 @@ func (db *teamDB) SaveConfig(
 			WHERE name = $3
 			AND version = $4
 			AND team_id = $5
-			RETURNING `+pipelineColumns+`
+			RETURNING `+unqualifiedPipelineColumns+`,
+			(
+				SELECT t.name as team_name FROM teams t WHERE t.id = $4
+			)
 			`, payload, pausedState.Bool(), pipelineName, from, teamID))
 		}
 
@@ -648,8 +659,9 @@ func scanPipeline(rows scannable) (SavedPipeline, error) {
 	var paused bool
 	var public bool
 	var teamID int
+	var teamName string
 
-	err := rows.Scan(&id, &name, &configBlob, &version, &paused, &teamID, &public)
+	err := rows.Scan(&id, &name, &configBlob, &version, &paused, &teamID, &public, &teamName)
 	if err != nil {
 		return SavedPipeline{}, err
 	}
@@ -661,10 +673,11 @@ func scanPipeline(rows scannable) (SavedPipeline, error) {
 	}
 
 	return SavedPipeline{
-		ID:     id,
-		Paused: paused,
-		Public: public,
-		TeamID: teamID,
+		ID:       id,
+		Paused:   paused,
+		Public:   public,
+		TeamID:   teamID,
+		TeamName: teamName,
 		Pipeline: Pipeline{
 			Name:    name,
 			Config:  config,

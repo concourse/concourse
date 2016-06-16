@@ -15,7 +15,7 @@ func (s *Server) getPipelinesForTeam(teamName string) ([]atc.Pipeline, error) {
 	presentedPipelines := make([]atc.Pipeline, len(pipelines))
 	for i := 0; i < len(pipelines); i++ {
 		pipeline := pipelines[i]
-		presentedPipelines[i] = present.Pipeline(teamName, pipeline, pipeline.Config)
+		presentedPipelines[i] = present.Pipeline(pipeline, pipeline.Config)
 	}
 
 	return presentedPipelines, nil
