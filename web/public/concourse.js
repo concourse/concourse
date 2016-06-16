@@ -1325,9 +1325,11 @@ concourse.PauseUnpause.prototype.requestError = function (resp) {
         return e.innerHTML;
       });
 
+    var teamName = $(_this.$list[0]).find('.js-pauseUnpause').parent().data('teamName');
+
     $.ajax({
       method: 'PUT',
-      url: _this.pipelinesEndpoint + '/ordering',
+      url: '/api/v1/teams/' + teamName + '/pipelines/ordering',
       contentType: "application/json",
       data: JSON.stringify(pipelineNames)
     });
@@ -1350,8 +1352,9 @@ concourse.PauseUnpause.prototype.requestError = function (resp) {
         var icon = pipeline.paused ? 'play' : 'pause';
 
         $pipelineListItem.html('<span class="btn-pause fl ' + ed + ' js-pauseUnpause"><i class="fa fa-fw fa-' + icon +  '"></i></span><a href="' + pipeline.url + '">' + pipeline.name + '</a>');
-        $pipelineListItem.data('endpoint', _this.pipelinesEndpoint + '/' + pipeline.name);
+        $pipelineListItem.data('endpoint', '/api/v1/teams/' +  pipeline.team_name + '/pipelines/' + pipeline.name);
         $pipelineListItem.data('pipelineName', pipeline.name);
+        $pipelineListItem.data('teamName', pipeline.team_name);
         $pipelineListItem.addClass('clearfix');
 
 
