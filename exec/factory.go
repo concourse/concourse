@@ -93,6 +93,7 @@ type TaskDelegate interface {
 	Failed(error)
 
 	GetBuild(buildID int) (db.Build, bool, error)
+	GetLatestFinishedBuildForJob(string) (db.Build, bool, error)
 	ImageVersionDetermined(worker.VolumeIdentifier) error
 
 	FindLongLivedContainers(jobName string, pipelineID int) ([]db.SavedContainer, error)

@@ -59,12 +59,13 @@ type FakeEngineDB struct {
 		result1 []db.SavedContainer
 		result2 error
 	}
-	GetLatestFinishedBuildStub        func(jobID int) (db.Build, bool, error)
-	getLatestFinishedBuildMutex       sync.RWMutex
-	getLatestFinishedBuildArgsForCall []struct {
-		jobID int
+	GetLatestFinishedBuildForJobStub        func(jobName string, pipelineID int) (db.Build, bool, error)
+	getLatestFinishedBuildForJobMutex       sync.RWMutex
+	getLatestFinishedBuildForJobArgsForCall []struct {
+		jobName    string
+		pipelineID int
 	}
-	getLatestFinishedBuildReturns struct {
+	getLatestFinishedBuildForJobReturns struct {
 		result1 db.Build
 		result2 bool
 		result3 error
@@ -290,34 +291,35 @@ func (fake *FakeEngineDB) FindLongLivedContainersReturns(result1 []db.SavedConta
 	}{result1, result2}
 }
 
-func (fake *FakeEngineDB) GetLatestFinishedBuild(jobID int) (db.Build, bool, error) {
-	fake.getLatestFinishedBuildMutex.Lock()
-	fake.getLatestFinishedBuildArgsForCall = append(fake.getLatestFinishedBuildArgsForCall, struct {
-		jobID int
-	}{jobID})
-	fake.getLatestFinishedBuildMutex.Unlock()
-	if fake.GetLatestFinishedBuildStub != nil {
-		return fake.GetLatestFinishedBuildStub(jobID)
+func (fake *FakeEngineDB) GetLatestFinishedBuildForJob(jobName string, pipelineID int) (db.Build, bool, error) {
+	fake.getLatestFinishedBuildForJobMutex.Lock()
+	fake.getLatestFinishedBuildForJobArgsForCall = append(fake.getLatestFinishedBuildForJobArgsForCall, struct {
+		jobName    string
+		pipelineID int
+	}{jobName, pipelineID})
+	fake.getLatestFinishedBuildForJobMutex.Unlock()
+	if fake.GetLatestFinishedBuildForJobStub != nil {
+		return fake.GetLatestFinishedBuildForJobStub(jobName, pipelineID)
 	} else {
-		return fake.getLatestFinishedBuildReturns.result1, fake.getLatestFinishedBuildReturns.result2, fake.getLatestFinishedBuildReturns.result3
+		return fake.getLatestFinishedBuildForJobReturns.result1, fake.getLatestFinishedBuildForJobReturns.result2, fake.getLatestFinishedBuildForJobReturns.result3
 	}
 }
 
-func (fake *FakeEngineDB) GetLatestFinishedBuildCallCount() int {
-	fake.getLatestFinishedBuildMutex.RLock()
-	defer fake.getLatestFinishedBuildMutex.RUnlock()
-	return len(fake.getLatestFinishedBuildArgsForCall)
+func (fake *FakeEngineDB) GetLatestFinishedBuildForJobCallCount() int {
+	fake.getLatestFinishedBuildForJobMutex.RLock()
+	defer fake.getLatestFinishedBuildForJobMutex.RUnlock()
+	return len(fake.getLatestFinishedBuildForJobArgsForCall)
 }
 
-func (fake *FakeEngineDB) GetLatestFinishedBuildArgsForCall(i int) int {
-	fake.getLatestFinishedBuildMutex.RLock()
-	defer fake.getLatestFinishedBuildMutex.RUnlock()
-	return fake.getLatestFinishedBuildArgsForCall[i].jobID
+func (fake *FakeEngineDB) GetLatestFinishedBuildForJobArgsForCall(i int) (string, int) {
+	fake.getLatestFinishedBuildForJobMutex.RLock()
+	defer fake.getLatestFinishedBuildForJobMutex.RUnlock()
+	return fake.getLatestFinishedBuildForJobArgsForCall[i].jobName, fake.getLatestFinishedBuildForJobArgsForCall[i].pipelineID
 }
 
-func (fake *FakeEngineDB) GetLatestFinishedBuildReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.GetLatestFinishedBuildStub = nil
-	fake.getLatestFinishedBuildReturns = struct {
+func (fake *FakeEngineDB) GetLatestFinishedBuildForJobReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.GetLatestFinishedBuildForJobStub = nil
+	fake.getLatestFinishedBuildForJobReturns = struct {
 		result1 db.Build
 		result2 bool
 		result3 error

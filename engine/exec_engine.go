@@ -194,26 +194,6 @@ func (build *execBuild) Resume(logger lager.Logger) {
 			}
 
 			build.delegate.Finish(logger.Session("finish"), err, succeeded, aborted)
-			//GetBuild
-			dbBuild, found, err := build.db.GetBuild(build.buildID)
-			println(dbBuild.ID)
-			if err != nil {
-				logger.Error("get-build", err)
-			}
-
-			if !found {
-				logger.Error("build-not-found", errors.New("build not found"))
-			}
-
-			// latestFinishedBuild, found, err := build.db.GetLatestFinishedBuild(dbBuild.JobID)
-			// if err != nil {
-			// 	logger.Error("get-latest-finished-build", err)
-			// }
-			//
-			// if !found {
-			// 	logger.Error("latest-finished-build-not-found", errors.New("latest finished build not found"))
-			// }
-
 			return
 
 		case sig := <-build.signals:

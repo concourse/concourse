@@ -83,12 +83,14 @@ type DB interface {
 	DeleteTeamByName(teamName string) error
 
 	GetBuild(buildID int) (Build, bool, error)
-	GetLatestFinishedBuild(jobID int) (Build, bool, error)
+	GetLatestFinishedBuildForJob(jobName string, pipelineID int) (Build, bool, error)
 
 	GetBuildVersionedResources(buildID int) (SavedVersionedResources, error)
 	GetBuildResources(buildID int) ([]BuildInput, []BuildOutput, error)
 	GetBuilds(Page) ([]Build, Pagination, error)
 	GetAllStartedBuilds() ([]Build, error)
+
+	FindJobIDForBuild(buildID int) (int, bool, error)
 
 	CreatePipe(pipeGUID string, url string) error
 	GetPipe(pipeGUID string) (Pipe, error)
@@ -127,7 +129,9 @@ type DB interface {
 	GetContainer(string) (SavedContainer, bool, error)
 	CreateContainer(Container, time.Duration, time.Duration) (SavedContainer, error)
 	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)
+	GetContainersWithInfiniteTTL() ([]SavedContainer, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
+	SetExpiringTTL(handle string) error
 	ReapContainer(handle string) error
 
 	DeleteContainer(string) error

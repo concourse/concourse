@@ -471,6 +471,10 @@ func (execution *executionDelegate) GetBuild(buildID int) (db.Build, bool, error
 	return execution.delegate.db.GetBuild(buildID)
 }
 
+func (execution *executionDelegate) GetLatestFinishedBuildForJob(jobName string) (db.Build, bool, error) {
+	return execution.delegate.db.GetLatestFinishedBuildForJob(jobName)
+}
+
 func (execution *executionDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
 	return execution.delegate.db.SaveImageResourceVersion(execution.delegate.buildID, atc.PlanID(execution.id), *identifier.ResourceCache)
 }

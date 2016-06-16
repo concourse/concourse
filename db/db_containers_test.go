@@ -216,6 +216,107 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(result[0].Handle).To(Equal("some-handle-0"))
 	})
 
+	It("can set expiring ttl", func() {
+		savedBuild0, err := pipelineDB.CreateJobBuild("some-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		infiniteContainerInfo := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				BuildID: savedBuild0.ID,
+				PlanID:  "some-plan-id",
+				Stage:   db.ContainerStageRun,
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "infinite-container-handle",
+				PipelineID: savedPipeline.ID,
+				JobName:    savedBuild0.JobName,
+				Type:       db.ContainerTypeTask,
+			},
+		}
+
+		infiniteContainer, err := database.CreateContainer(infiniteContainerInfo, 0, 0)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(infiniteContainer.TTL).To(BeZero())
+
+		err = database.SetExpiringTTL(infiniteContainer.Handle)
+		Expect(err).NotTo(HaveOccurred())
+
+		savedContainer, found, err := database.GetContainer(infiniteContainer.Handle)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+
+		Expect(savedContainer.TTL).To(Equal(5 * time.Minute))
+		Expect(savedContainer.ExpiresIn).To(BeNumerically("<=", 5*time.Minute, 5*time.Second))
+	})
+
+	It("can get all containers with infinite ttl", func() {
+		savedBuild0, err := pipelineDB.CreateJobBuild("some-job")
+		Expect(err).NotTo(HaveOccurred())
+		savedBuild1, err := pipelineDB.CreateJobBuild("some-other-job")
+		Expect(err).NotTo(HaveOccurred())
+		savedBuild2, err := pipelineDB.CreateJobBuild("some-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		infiniteContainerInfo := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				BuildID: savedBuild0.ID,
+				PlanID:  "some-plan-id",
+				Stage:   db.ContainerStageRun,
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "infinite-container-handle",
+				PipelineID: savedPipeline.ID,
+				JobName:    savedBuild0.JobName,
+				Type:       db.ContainerTypeTask,
+			},
+		}
+
+		infiniteContainerDifferentJobInfo := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				BuildID: savedBuild1.ID,
+				PlanID:  "some-plan-id",
+				Stage:   db.ContainerStageRun,
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "infinite-container-handle-different-job",
+				PipelineID: savedPipeline.ID,
+				JobName:    savedBuild1.JobName,
+				Type:       db.ContainerTypeTask,
+			},
+		}
+
+		finiteContainerInfo := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				BuildID: savedBuild2.ID,
+				PlanID:  "some-plan-id",
+				Stage:   db.ContainerStageRun,
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "finite-container-handle",
+				PipelineID: savedPipeline.ID,
+				JobName:    savedBuild2.JobName,
+				Type:       db.ContainerTypeTask,
+			},
+		}
+
+		infiniteContainer, err := database.CreateContainer(infiniteContainerInfo, 0, 0)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(infiniteContainer.TTL).To(BeZero())
+
+		infiniteContainerDifferentJob, err := database.CreateContainer(infiniteContainerDifferentJobInfo, 0, 0)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(infiniteContainerDifferentJob.TTL).To(BeZero())
+
+		finiteContainer, err := database.CreateContainer(finiteContainerInfo, 5*time.Minute, 0)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(finiteContainer.TTL).To(Equal(5 * time.Minute))
+
+		containers, err := database.GetContainersWithInfiniteTTL()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(containers)).To(Equal(2))
+		Expect(containers).To(ConsistOf(infiniteContainer, infiniteContainerDifferentJob))
+	})
+
 	It("can create and get a resource container object", func() {
 		containerToCreate := db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{

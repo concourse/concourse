@@ -33,12 +33,18 @@ func createAndStartBuild(database db.DB, pipelineDB db.PipelineDB, jobName strin
 }
 
 var _ = Describe("Keeping track of builds", func() {
-	var dbConn db.Conn
-	var listener *pq.Listener
-
-	var database db.DB
-	var pipelineDB db.PipelineDB
-	var pipeline db.SavedPipeline
+	var (
+		err               error
+		dbConn            db.Conn
+		listener          *pq.Listener
+		database          db.DB
+		sqlDB             *db.SQLDB
+		pipelineDBFactory db.PipelineDBFactory
+		pipelineDB        db.PipelineDB
+		pipeline          db.SavedPipeline
+		team              db.SavedTeam
+		config            atc.Config
+	)
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -49,14 +55,14 @@ var _ = Describe("Keeping track of builds", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		sqlDB := db.NewSQL(dbConn, bus)
+		sqlDB = db.NewSQL(dbConn, bus)
 
-		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus, sqlDB)
+		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, sqlDB)
 
-		team, err := sqlDB.SaveTeam(db.Team{Name: "some-team"})
+		team, err = sqlDB.SaveTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		config := atc.Config{
+		config = atc.Config{
 			Jobs: atc.JobConfigs{
 				{
 					Name: "some-job",
@@ -327,21 +333,52 @@ var _ = Describe("Keeping track of builds", func() {
 		})
 	})
 
-	Describe("GetLatestFinishedBuild", func() {
-		var finishedBuild2 db.Build
+	Describe("FindJobIDForBuild", func() {
+		var build db.Build
+		BeforeEach(func() {
+			build = createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
+			createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
+		})
+
+		It("finds the job id for the given build", func() {
+			jobID, found, err := database.FindJobIDForBuild(build.ID)
+			Expect(found).To(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+
+			job, err := pipelineDB.GetJob("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(jobID).To(Equal(job.ID))
+		})
+	})
+
+	Describe("GetLatestFinishedBuildForJob", func() {
+		var (
+			finishedBuild2  db.Build
+			otherPipeline   db.SavedPipeline
+			otherPipelineDB db.PipelineDB
+			err             error
+		)
 
 		BeforeEach(func() {
+			otherPipeline, _, err = sqlDB.SaveConfig(team.Name, "some-other-pipeline", config, db.ConfigVersion(1), db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
+
+			otherPipelineDB, err = pipelineDBFactory.BuildWithTeamNameAndName(team.Name, "some-other-pipeline")
+			Expect(err).NotTo(HaveOccurred())
+
 			createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
 			createAndStartBuild(database, pipelineDB, "some-job", "some-engine")
 			finishedBuild2 = createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
 			createAndFinishBuild(database, pipelineDB, "some-other-job", db.StatusSucceeded)
+			createAndFinishBuild(database, otherPipelineDB, "some-job", db.StatusSucceeded)
 		})
 
 		It("returns the latest finished build of the job", func() {
 			job, err := pipelineDB.GetJob("some-job")
 			Expect(err).NotTo(HaveOccurred())
 
-			latestFinishedBuild, found, err := database.GetLatestFinishedBuild(job.ID)
+			latestFinishedBuild, found, err := database.GetLatestFinishedBuildForJob(job.Name, pipelineDB.GetPipelineID())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 

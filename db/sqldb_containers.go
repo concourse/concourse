@@ -133,6 +133,40 @@ func (db *SQLDB) FindContainersByDescriptors(id Container) ([]SavedContainer, er
 	return infos, nil
 }
 
+func (db *SQLDB) GetContainersWithInfiniteTTL() ([]SavedContainer, error) {
+	rows, err := db.conn.Query(
+		`SELECT ` + containerColumns + `
+		FROM containers c ` + containerJoins + `
+		WHERE ttl = '0'`)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var containers []SavedContainer
+	for rows.Next() {
+		container, err := scanContainer(rows)
+		if err != nil {
+			return nil, nil
+		}
+		containers = append(containers, container)
+	}
+
+	return containers, nil
+}
+
+func (db *SQLDB) SetExpiringTTL(handle string) error {
+	timeout := 5 * time.Minute
+	interval := fmt.Sprintf("%d second", int(timeout.Seconds()))
+
+	_, err := db.conn.Exec(
+		`UPDATE containers
+		SET expires_at = NOW() + $1::INTERVAL, ttl = $2
+		WHERE handle = $3
+		`, interval, timeout, handle)
+	return err
+}
+
 func (db *SQLDB) FindLongLivedContainers(jobName string, pipelineID int) ([]SavedContainer, error) {
 	savedContainers, err := db.FindContainersByDescriptors(Container{
 		ContainerMetadata: ContainerMetadata{

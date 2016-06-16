@@ -494,9 +494,10 @@ func (step *TaskStep) Result(x interface{}) bool {
 	}
 }
 
-// Release releases the created container for either the configured
-// containerSuccessTTL or containerFailureTTL.
+// If step succeeded, release the created container for containerSuccessTTL
+// If the step did not succeed, containerFailureTTL.
 // TODO: update this comment
+// TODO: infinite container TTL constant if one does not already exist
 func (step *TaskStep) Release() {
 	if step.container == nil {
 		return
@@ -505,16 +506,44 @@ func (step *TaskStep) Release() {
 	if step.exitStatus == 0 {
 		step.container.Release(worker.FinalTTL(step.containerSuccessTTL))
 	} else {
-		step.container.Release(worker.FinalTTL(step.containerFailureTTL))
+		// [3, 2, 1] => finish [2, 3, 1]
+		// finish 1 => 3 => 2
+		_, found, err := step.delegate.GetLatestFinishedBuildForJob(step.metadata.JobName)
+		if err != nil {
+			step.logger.Error("get-latest-finished-build-for-job", err)
+		}
+		if !found {
+			step.logger.Error("latest-finished-build-for-job-not-found", errors.New("latest finished build for job not found"))
+		}
+
+		// matching := select all builds that match job name and pipeline id and did not succeed
+		// sort matching by start_time or incrementing ID or something
+		// for each build in matching, not including the newest build
+		//	skip builds where the container already has a non-infinite ttl
+		//	set ttl to expire on build's corresponding container soon
+		// newest build's corresponding container expiration is infinite
+
+		//current build started later
+
+		// if step.containerID.BuildID > latestFinishedBuild.ID {
+		// 	latestFinishedBuild.GetContainer().SetShortTTL()
+		// 	step.container.SetInfiniteTTL()
+		// } else {
+		// 	// current: 2, last: 3
+		// 	step.container.SetShortTTL()
+		// }
+
 		// savedContainers, err := step.delegate.FindLongLivedContainers(step.metadata.JobName, step.metadata.PipelineID)
 		// if err != nil {
 		// 	return
 		// }
 		//
 		// for _, container := range savedContainers {
-		// 	step.workerPool
-		//
+		// 	.....step.workerPool
+		//  // container.Release(worker.FinalTTL(step.containerFailureTTL))
 		// }
+
+		// TODO: maybe set latest build's container's TTL to infinite if it isn't already?
 	}
 }
 

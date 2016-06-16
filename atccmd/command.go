@@ -22,6 +22,7 @@ import (
 	"github.com/concourse/atc/buildreaper"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
+	"github.com/concourse/atc/containerreaper"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
@@ -323,6 +324,20 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			sqlDB,
 			clock.NewClock(),
 			cmd.ResourceCacheCleanupInterval,
+		)},
+
+		{"containerreaper", leaserunner.NewRunner(
+			logger.Session("container-reaper"),
+			containerreaper.NewContainerReaper(
+				logger.Session("container-reaper"),
+				sqlDB,
+				pipelineDBFactory,
+				500,
+			),
+			"container-reaper",
+			sqlDB,
+			clock.NewClock(),
+			30*time.Second,
 		)},
 
 		{"buildreaper", leaserunner.NewRunner(

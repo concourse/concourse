@@ -108,6 +108,25 @@ func (db *SQLDB) GetBuilds(page Page) ([]Build, Pagination, error) {
 	return builds, pagination, nil
 }
 
+func (db *SQLDB) FindJobIDForBuild(buildID int) (int, bool, error) {
+	row := db.conn.QueryRow(`
+		SELECT j.id
+		FROM jobs j
+		LEFT OUTER JOIN builds b ON j.id = b.job_id
+		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
+		WHERE b.id = $1
+		`, buildID)
+	var id int
+	err := row.Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, false, nil
+		}
+		return 0, false, err
+	}
+	return id, true, nil
+}
+
 func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 	rows, err := db.conn.Query(`
 		SELECT ` + qualifiedBuildColumns + `
@@ -136,17 +155,18 @@ func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 	return bs, nil
 }
 
-func (db *SQLDB) GetLatestFinishedBuild(jobID int) (Build, bool, error) {
+func (db *SQLDB) GetLatestFinishedBuildForJob(jobName string, pipelineID int) (Build, bool, error) {
 	return scanBuild(db.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`
 		FROM builds b
 		LEFT OUTER JOIN jobs j ON b.job_id = j.id
 		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
 		WHERE b.completed = true
-		AND b.job_id = $1
+		AND j.name = $1
+		AND p.id = $2
 		ORDER BY b.end_time DESC
 		LIMIT 1
-		`, jobID))
+		`, jobName, pipelineID))
 }
 
 func (db *SQLDB) GetBuild(buildID int) (Build, bool, error) {

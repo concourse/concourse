@@ -221,7 +221,7 @@ func (container *gardenWorkerContainer) heartbeatContinuously(logger lager.Logge
 	for {
 		select {
 		case <-pacemaker.C():
-			container.heartbeat(logger.Session("tick"), ContainerTTL)
+			container.heartbeat(logger.Session("tick"), ContainerTTL) // TODO: how will this not overwrite the infinite TTL we set?
 
 		case finalTTL := <-container.release:
 			if finalTTL != nil {

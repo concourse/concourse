@@ -40,6 +40,16 @@ type FakeTaskDelegate struct {
 		result2 bool
 		result3 error
 	}
+	GetLatestFinishedBuildForJobStub        func(string) (db.Build, bool, error)
+	getLatestFinishedBuildForJobMutex       sync.RWMutex
+	getLatestFinishedBuildForJobArgsForCall []struct {
+		arg1 string
+	}
+	getLatestFinishedBuildForJobReturns struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}
 	ImageVersionDeterminedStub        func(worker.VolumeIdentifier) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
@@ -193,6 +203,40 @@ func (fake *FakeTaskDelegate) GetBuildArgsForCall(i int) int {
 func (fake *FakeTaskDelegate) GetBuildReturns(result1 db.Build, result2 bool, result3 error) {
 	fake.GetBuildStub = nil
 	fake.getBuildReturns = struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJob(arg1 string) (db.Build, bool, error) {
+	fake.getLatestFinishedBuildForJobMutex.Lock()
+	fake.getLatestFinishedBuildForJobArgsForCall = append(fake.getLatestFinishedBuildForJobArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.getLatestFinishedBuildForJobMutex.Unlock()
+	if fake.GetLatestFinishedBuildForJobStub != nil {
+		return fake.GetLatestFinishedBuildForJobStub(arg1)
+	} else {
+		return fake.getLatestFinishedBuildForJobReturns.result1, fake.getLatestFinishedBuildForJobReturns.result2, fake.getLatestFinishedBuildForJobReturns.result3
+	}
+}
+
+func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJobCallCount() int {
+	fake.getLatestFinishedBuildForJobMutex.RLock()
+	defer fake.getLatestFinishedBuildForJobMutex.RUnlock()
+	return len(fake.getLatestFinishedBuildForJobArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJobArgsForCall(i int) string {
+	fake.getLatestFinishedBuildForJobMutex.RLock()
+	defer fake.getLatestFinishedBuildForJobMutex.RUnlock()
+	return fake.getLatestFinishedBuildForJobArgsForCall[i].arg1
+}
+
+func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJobReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.GetLatestFinishedBuildForJobStub = nil
+	fake.getLatestFinishedBuildForJobReturns = struct {
 		result1 db.Build
 		result2 bool
 		result3 error
