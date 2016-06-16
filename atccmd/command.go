@@ -81,7 +81,7 @@ type ATCCommand struct {
 
 	ContainerRetention struct {
 		SuccessDuration time.Duration `long:"success-duration" default:"5m" description:"The duration to keep a succeeded step's containers before expiring them."`
-		FailureDuration time.Duration `long:"failure-duration" default:"1h" description:"The duration to keep a failed step's containers before expiring them."`
+		FailureDuration time.Duration `long:"failure-duration" default:"0" description:"The duration to keep a failed step's containers before expiring them."`
 	} `group:"Container Retention" namespace:"container-retention"`
 
 	CLIArtifactsDir DirFlag `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`

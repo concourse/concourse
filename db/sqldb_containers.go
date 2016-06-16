@@ -155,18 +155,6 @@ func (db *SQLDB) GetContainersWithInfiniteTTL() ([]SavedContainer, error) {
 	return containers, nil
 }
 
-func (db *SQLDB) SetExpiringTTL(handle string) error {
-	timeout := 5 * time.Minute
-	interval := fmt.Sprintf("%d second", int(timeout.Seconds()))
-
-	_, err := db.conn.Exec(
-		`UPDATE containers
-		SET expires_at = NOW() + $1::INTERVAL, ttl = $2
-		WHERE handle = $3
-		`, interval, timeout, handle)
-	return err
-}
-
 func (db *SQLDB) FindLongLivedContainers(jobName string, pipelineID int) ([]SavedContainer, error) {
 	savedContainers, err := db.FindContainersByDescriptors(Container{
 		ContainerMetadata: ContainerMetadata{
@@ -453,19 +441,30 @@ func (db *SQLDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) er
 
 	defer tx.Rollback()
 
-	interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
+	if ttl == 0 {
+		_, err = tx.Exec(`
+			UPDATE containers SET expires_at = NULL, ttl = 0
+			WHERE handle = $1
+			`, handle)
 
-	_, err = tx.Exec(`
-		UPDATE containers SET expires_at = NOW() + $2::INTERVAL, ttl = $3
-		WHERE handle = $1
-		`,
-		handle,
-		interval,
-		ttl,
-	)
+		if err != nil {
+			return err
+		}
+	} else {
+		interval := fmt.Sprintf("%d second", int(ttl.Seconds()))
 
-	if err != nil {
-		return err
+		_, err = tx.Exec(`
+				UPDATE containers SET expires_at = NOW() + $2::INTERVAL, ttl = $3
+				WHERE handle = $1
+				`,
+			handle,
+			interval,
+			ttl,
+		)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()

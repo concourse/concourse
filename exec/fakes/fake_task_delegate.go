@@ -40,10 +40,11 @@ type FakeTaskDelegate struct {
 		result2 bool
 		result3 error
 	}
-	GetLatestFinishedBuildForJobStub        func(string) (db.Build, bool, error)
+	GetLatestFinishedBuildForJobStub        func(string, int) (db.Build, bool, error)
 	getLatestFinishedBuildForJobMutex       sync.RWMutex
 	getLatestFinishedBuildForJobArgsForCall []struct {
 		arg1 string
+		arg2 int
 	}
 	getLatestFinishedBuildForJobReturns struct {
 		result1 db.Build
@@ -209,14 +210,15 @@ func (fake *FakeTaskDelegate) GetBuildReturns(result1 db.Build, result2 bool, re
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJob(arg1 string) (db.Build, bool, error) {
+func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJob(arg1 string, arg2 int) (db.Build, bool, error) {
 	fake.getLatestFinishedBuildForJobMutex.Lock()
 	fake.getLatestFinishedBuildForJobArgsForCall = append(fake.getLatestFinishedBuildForJobArgsForCall, struct {
 		arg1 string
-	}{arg1})
+		arg2 int
+	}{arg1, arg2})
 	fake.getLatestFinishedBuildForJobMutex.Unlock()
 	if fake.GetLatestFinishedBuildForJobStub != nil {
-		return fake.GetLatestFinishedBuildForJobStub(arg1)
+		return fake.GetLatestFinishedBuildForJobStub(arg1, arg2)
 	} else {
 		return fake.getLatestFinishedBuildForJobReturns.result1, fake.getLatestFinishedBuildForJobReturns.result2, fake.getLatestFinishedBuildForJobReturns.result3
 	}
@@ -228,10 +230,10 @@ func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJobCallCount() int {
 	return len(fake.getLatestFinishedBuildForJobArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJobArgsForCall(i int) string {
+func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJobArgsForCall(i int) (string, int) {
 	fake.getLatestFinishedBuildForJobMutex.RLock()
 	defer fake.getLatestFinishedBuildForJobMutex.RUnlock()
-	return fake.getLatestFinishedBuildForJobArgsForCall[i].arg1
+	return fake.getLatestFinishedBuildForJobArgsForCall[i].arg1, fake.getLatestFinishedBuildForJobArgsForCall[i].arg2
 }
 
 func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJobReturns(result1 db.Build, result2 bool, result3 error) {

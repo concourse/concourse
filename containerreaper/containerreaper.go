@@ -1,7 +1,10 @@
 package containerreaper
 
 import (
+	"time"
+
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -9,10 +12,12 @@ type ContainerReaper interface {
 	Run() error
 }
 
+//go:generate counterfeiter . ContainerReaperDB
+
 type ContainerReaperDB interface {
 	FindJobIDForBuild(buildID int) (int, bool, error)
 	GetContainersWithInfiniteTTL() ([]db.SavedContainer, error)
-	SetExpiringTTL(handle string) error
+	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 }
 
 type containerReaper struct {
@@ -37,6 +42,13 @@ func NewContainerReaper(
 }
 
 func (cr *containerReaper) Run() error {
+	// for all the containers associated with builds that succeeded
+	//		set expiring TTL => 5 min
+	// update containers left join builds set c.ttl = 5 minutes where b.status is not success
+
+	// for all containers associated with builds that did fail
+	// 		set expiring TTL on pre-latest ones for each job
+
 	containers, err := cr.db.GetContainersWithInfiniteTTL()
 	if err != nil {
 		return err
@@ -49,7 +61,6 @@ func (cr *containerReaper) Run() error {
 		buildID := container.BuildID
 
 		// TODO: if the container's job no longer exists in the configuration, expire it
-
 		jobID, found, err := cr.db.FindJobIDForBuild(buildID)
 		if err != nil {
 			cr.logger.Error("find-job-id-for-build", err, lager.Data{"build-id": buildID})
@@ -78,7 +89,7 @@ func (cr *containerReaper) Run() error {
 		for _, jobContainer := range jobContainers {
 			if jobContainer.BuildID < maxBuildID {
 				handle := jobContainer.Container.Handle
-				err := cr.db.SetExpiringTTL(handle)
+				err := cr.db.UpdateExpiresAtOnContainer(handle, worker.ContainerTTL)
 				if err != nil {
 					cr.logger.Error("set-expiring-ttl", err, lager.Data{"container-handle": handle})
 				}

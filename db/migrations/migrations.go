@@ -108,4 +108,5 @@ var Migrations = []migration.Migrator{
 	AddFirstLoggedBuildIDToJobsAndReapTimeToBuildsAndLeases,
 	AddMissingInputReasonsToBuildPreparation,
 	MakeVolumeSizeBigint,
+	MakeContainersExpiresAtNullable,
 }

@@ -471,8 +471,8 @@ func (execution *executionDelegate) GetBuild(buildID int) (db.Build, bool, error
 	return execution.delegate.db.GetBuild(buildID)
 }
 
-func (execution *executionDelegate) GetLatestFinishedBuildForJob(jobName string) (db.Build, bool, error) {
-	return execution.delegate.db.GetLatestFinishedBuildForJob(jobName)
+func (execution *executionDelegate) GetLatestFinishedBuildForJob(jobName string, pipelineID int) (db.Build, bool, error) {
+	return execution.delegate.db.GetLatestFinishedBuildForJob(jobName, pipelineID)
 }
 
 func (execution *executionDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {

@@ -124,7 +124,7 @@ func (v *volume) heartbeatContinuously(logger lager.Logger, pacemaker clock.Tick
 		case <-pacemaker.C():
 			ttl, found, err := v.db.GetVolumeTTL(v.Handle())
 			if err != nil {
-				logger.Error("failed-to-lookup-ttl", err)
+				logger.Error("failed-to-lookup-volume-ttl", err)
 			} else {
 				if !found {
 					logger.Info("volume-expired-from-database")

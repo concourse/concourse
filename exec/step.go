@@ -50,7 +50,9 @@ type Step interface {
 	// Release is called when the build has completed and no more steps will be
 	// executed in the build plan. Steps with containers should release their
 	// containers, with a final TTL of either the configured containerSuccessTTL
-	// or containerFailureTTL.
+	// or containerFailureTTL. The TTL of containers associated with failed builds
+	// will be set to infinite until either they refer to a job that no longer
+	// exists or the job fails again.
 	Release()
 
 	// Result is used to collect metadata from the step. Usually this is

@@ -21,6 +21,16 @@ type FakeGardenWorkerDB struct {
 		result1 db.SavedContainer
 		result2 error
 	}
+	GetContainerStub        func(handle string) (db.SavedContainer, bool, error)
+	getContainerMutex       sync.RWMutex
+	getContainerArgsForCall []struct {
+		handle string
+	}
+	getContainerReturns struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}
 	UpdateExpiresAtOnContainerStub        func(handle string, ttl time.Duration) error
 	updateExpiresAtOnContainerMutex       sync.RWMutex
 	updateExpiresAtOnContainerArgsForCall []struct {
@@ -109,6 +119,40 @@ func (fake *FakeGardenWorkerDB) CreateContainerReturns(result1 db.SavedContainer
 		result1 db.SavedContainer
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeGardenWorkerDB) GetContainer(handle string) (db.SavedContainer, bool, error) {
+	fake.getContainerMutex.Lock()
+	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
+		handle string
+	}{handle})
+	fake.getContainerMutex.Unlock()
+	if fake.GetContainerStub != nil {
+		return fake.GetContainerStub(handle)
+	} else {
+		return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
+	}
+}
+
+func (fake *FakeGardenWorkerDB) GetContainerCallCount() int {
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
+	return len(fake.getContainerArgsForCall)
+}
+
+func (fake *FakeGardenWorkerDB) GetContainerArgsForCall(i int) string {
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
+	return fake.getContainerArgsForCall[i].handle
+}
+
+func (fake *FakeGardenWorkerDB) GetContainerReturns(result1 db.SavedContainer, result2 bool, result3 error) {
+	fake.GetContainerStub = nil
+	fake.getContainerReturns = struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error {

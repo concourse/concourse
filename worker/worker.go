@@ -58,6 +58,7 @@ type Worker interface {
 
 type GardenWorkerDB interface {
 	CreateContainer(db.Container, time.Duration, time.Duration) (db.SavedContainer, error)
+	GetContainer(handle string) (db.SavedContainer, bool, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 
 	InsertVolume(db.Volume) error

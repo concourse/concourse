@@ -57,12 +57,23 @@ func newGardenWorkerContainer(
 		release:      make(chan *time.Duration, 1),
 	}
 
-	workerContainer.heartbeat(logger.Session("initial-heartbeat"), ContainerTTL)
+	savedContainer, found, err := workerContainer.db.GetContainer(container.Handle())
+	if err != nil {
+		logger.Error("failed-to-lookup-container", err)
+		return nil, err
+	}
+
+	if !found {
+		return nil, nil
+	}
+
+	workerContainer.heartbeat(logger.Session("initial-heartbeat"), savedContainer.TTL)
 
 	workerContainer.heartbeating.Add(1)
 	go workerContainer.heartbeatContinuously(
 		logger.Session("continuous-heartbeat"),
 		clock.NewTicker(containerKeepalive),
+		savedContainer.TTL,
 	)
 
 	metric.TrackedContainers.Inc()
@@ -211,17 +222,30 @@ func (container *gardenWorkerContainer) setVolumes(
 	return volumesByHandle, nil
 }
 
-func (container *gardenWorkerContainer) heartbeatContinuously(logger lager.Logger, pacemaker clock.Ticker) {
+func (container *gardenWorkerContainer) heartbeatContinuously(logger lager.Logger, pacemaker clock.Ticker, initialTTL time.Duration) {
 	defer container.heartbeating.Done()
 	defer pacemaker.Stop()
 
 	logger.Debug("start")
 	defer logger.Debug("done")
 
+	ttlToSet := initialTTL
+
 	for {
 		select {
 		case <-pacemaker.C():
-			container.heartbeat(logger.Session("tick"), ContainerTTL) // TODO: how will this not overwrite the infinite TTL we set?
+			savedContainer, found, err := container.db.GetContainer(container.Handle())
+			if err != nil {
+				logger.Error("failed-to-lookup-container-ttl", err)
+			} else {
+				if !found {
+					logger.Info("container-expired-from-database")
+					return
+				}
+
+				ttlToSet = savedContainer.TTL
+			}
+			container.heartbeat(logger.Session("tick"), ttlToSet)
 
 		case finalTTL := <-container.release:
 			if finalTTL != nil {

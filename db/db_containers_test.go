@@ -216,39 +216,6 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(result[0].Handle).To(Equal("some-handle-0"))
 	})
 
-	It("can set expiring ttl", func() {
-		savedBuild0, err := pipelineDB.CreateJobBuild("some-job")
-		Expect(err).NotTo(HaveOccurred())
-
-		infiniteContainerInfo := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild0.ID,
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "infinite-container-handle",
-				PipelineID: savedPipeline.ID,
-				JobName:    savedBuild0.JobName,
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		infiniteContainer, err := database.CreateContainer(infiniteContainerInfo, 0, 0)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(infiniteContainer.TTL).To(BeZero())
-
-		err = database.SetExpiringTTL(infiniteContainer.Handle)
-		Expect(err).NotTo(HaveOccurred())
-
-		savedContainer, found, err := database.GetContainer(infiniteContainer.Handle)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
-
-		Expect(savedContainer.TTL).To(Equal(5 * time.Minute))
-		Expect(savedContainer.ExpiresIn).To(BeNumerically("<=", 5*time.Minute, 5*time.Second))
-	})
-
 	It("can get all containers with infinite ttl", func() {
 		savedBuild0, err := pipelineDB.CreateJobBuild("some-job")
 		Expect(err).NotTo(HaveOccurred())
@@ -336,7 +303,7 @@ var _ = Describe("Keeping track of containers", func() {
 		}
 
 		By("creating a container")
-		_, err := database.CreateContainer(containerToCreate, time.Minute, time.Duration(0))
+		_, err := database.CreateContainer(containerToCreate, 42*time.Minute, time.Duration(0))
 		Expect(err).NotTo(HaveOccurred())
 
 		By("trying to create a container with the same handle")
@@ -372,6 +339,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.CheckType).To(Equal(containerToCreate.CheckType))
 		Expect(actualContainer.CheckSource).To(Equal(containerToCreate.CheckSource))
 		Expect(actualContainer.EnvironmentVariables).To(Equal(containerToCreate.EnvironmentVariables))
+		Expect(actualContainer.TTL).To(Equal(42 * time.Minute))
 
 		By("returning found = false when getting by a handle that does not exist")
 		_, found, err = database.GetContainer("nope")
@@ -522,48 +490,63 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.User).To(Equal("root"))
 	})
 
-	It("can update the time to live for a container info object", func() {
-		containerToCreate := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				Stage:   db.ContainerStageRun,
-				PlanID:  "update-ttl-plan",
-				BuildID: 2000,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "some-handle",
-				Type:       db.ContainerTypeTask,
-				WorkerName: "some-worker",
-				PipelineID: savedPipeline.ID,
-			},
-		}
-
-		savedContainer, err := database.CreateContainer(containerToCreate, 5*time.Minute, time.Duration(0))
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(savedContainer.TTL).To(Equal(5 * time.Minute))
-		Expect(savedContainer.ExpiresIn).To(BeNumerically("<=", 5*time.Minute, 5*time.Second))
-
-		timeBefore := time.Now()
-
-		err = database.UpdateExpiresAtOnContainer("some-handle", 3*time.Second)
-		Expect(err).NotTo(HaveOccurred())
-
-		updatedContainer, found, err := database.GetContainer("some-handle")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(found).To(BeTrue())
-
-		Expect(updatedContainer.TTL).To(Equal(3 * time.Second))
-		Expect(updatedContainer.ExpiresIn).To(BeNumerically("<=", 3*time.Second, 2*time.Second))
-
-		Eventually(func() bool {
-			_, found, err := database.GetContainer("some-handle")
+	Describe("UpdateExpiresAtOnContainer", func() {
+		BeforeEach(func() {
+			containerToCreate := db.Container{
+				ContainerIdentifier: db.ContainerIdentifier{
+					Stage:   db.ContainerStageRun,
+					PlanID:  "update-ttl-plan",
+					BuildID: 2000,
+				},
+				ContainerMetadata: db.ContainerMetadata{
+					Handle:     "some-handle",
+					Type:       db.ContainerTypeTask,
+					WorkerName: "some-worker",
+					PipelineID: savedPipeline.ID,
+				},
+			}
+			savedContainer, err := database.CreateContainer(containerToCreate, 5*time.Minute, time.Duration(0))
 			Expect(err).NotTo(HaveOccurred())
-			return found
-		}, 10*time.Second).Should(BeFalse())
 
-		timeAfter := time.Now()
-		Expect(timeAfter.Sub(timeBefore)).To(BeNumerically("<=", 5*time.Second))
-		Expect(timeAfter.Sub(timeBefore)).To(BeNumerically("<", 10*time.Second))
+			Expect(savedContainer.TTL).To(Equal(5 * time.Minute))
+			Expect(savedContainer.ExpiresIn).To(BeNumerically("<=", 5*time.Minute, 5*time.Second))
+		})
+
+		It("can update the time to live for a container info object", func() {
+			timeBefore := time.Now()
+
+			err := database.UpdateExpiresAtOnContainer("some-handle", 3*time.Second)
+			Expect(err).NotTo(HaveOccurred())
+
+			updatedContainer, found, err := database.GetContainer("some-handle")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(updatedContainer.TTL).To(Equal(3 * time.Second))
+			Expect(updatedContainer.ExpiresIn).To(BeNumerically("<=", 3*time.Second, 2*time.Second))
+
+			Eventually(func() bool {
+				_, found, err := database.GetContainer("some-handle")
+				Expect(err).NotTo(HaveOccurred())
+				return found
+			}, 10*time.Second).Should(BeFalse())
+
+			timeAfter := time.Now()
+			Expect(timeAfter.Sub(timeBefore)).To(BeNumerically("<=", 5*time.Second))
+			Expect(timeAfter.Sub(timeBefore)).To(BeNumerically("<", 10*time.Second))
+		})
+
+		It("can set ttl to infinite", func() {
+			err := database.UpdateExpiresAtOnContainer("some-handle", 0)
+			Expect(err).NotTo(HaveOccurred())
+
+			updatedContainer, found, err := database.GetContainer("some-handle")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(updatedContainer.TTL).To(BeZero())
+			Expect(updatedContainer.ExpiresIn).To(BeZero())
+		})
 	})
 
 	It("can reap a container", func() {

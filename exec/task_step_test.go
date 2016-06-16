@@ -54,7 +54,7 @@ var _ = Describe("GardenFactory", func() {
 		}
 
 		containerSuccessTTL = 1 * time.Minute
-		containerFailureTTL = 2 * time.Minute
+		containerFailureTTL = time.Duration(0)
 	)
 
 	BeforeEach(func() {

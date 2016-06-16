@@ -131,7 +131,6 @@ type DB interface {
 	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)
 	GetContainersWithInfiniteTTL() ([]SavedContainer, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
-	SetExpiringTTL(handle string) error
 	ReapContainer(handle string) error
 
 	DeleteContainer(string) error
