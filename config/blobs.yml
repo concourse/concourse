@@ -52,9 +52,9 @@ resources/time-resource.tar.gz:
   sha: 2af0b9920c3999278e5506f007ad58688db1fd11
   size: 8131249
 resources/tracker-resource.tar.gz:
-  object_id: 276d67c0-b6d5-4f10-920a-e166d4290a86
-  sha: 57d17c70c484af00747b4ef5b4fcd42d1261e3f2
-  size: 14573247
+  object_id: 51f6af12-7c90-46dc-8c41-193f7770ce73
+  sha: 78a8daae5dd46edefb242b70ba0de8a664f4a13d
+  size: 14579995
 resources/vagrant-cloud-resource.tar.gz:
   object_id: 11c16a94-bbc1-47f8-a931-49cb42a8d81a
   sha: a58995c7b8ff020203199b0d5a9eccbe56b504ab
