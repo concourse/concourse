@@ -49,16 +49,6 @@ type FakeEngineDB struct {
 		result1 []db.SavedContainer
 		result2 error
 	}
-	FindLongLivedContainersStub        func(jobName string, pipelineID int) ([]db.SavedContainer, error)
-	findLongLivedContainersMutex       sync.RWMutex
-	findLongLivedContainersArgsForCall []struct {
-		jobName    string
-		pipelineID int
-	}
-	findLongLivedContainersReturns struct {
-		result1 []db.SavedContainer
-		result2 error
-	}
 	GetLatestFinishedBuildForJobStub        func(jobName string, pipelineID int) (db.Build, bool, error)
 	getLatestFinishedBuildForJobMutex       sync.RWMutex
 	getLatestFinishedBuildForJobArgsForCall []struct {
@@ -252,40 +242,6 @@ func (fake *FakeEngineDB) FindContainersByDescriptorsArgsForCall(i int) db.Conta
 func (fake *FakeEngineDB) FindContainersByDescriptorsReturns(result1 []db.SavedContainer, result2 error) {
 	fake.FindContainersByDescriptorsStub = nil
 	fake.findContainersByDescriptorsReturns = struct {
-		result1 []db.SavedContainer
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeEngineDB) FindLongLivedContainers(jobName string, pipelineID int) ([]db.SavedContainer, error) {
-	fake.findLongLivedContainersMutex.Lock()
-	fake.findLongLivedContainersArgsForCall = append(fake.findLongLivedContainersArgsForCall, struct {
-		jobName    string
-		pipelineID int
-	}{jobName, pipelineID})
-	fake.findLongLivedContainersMutex.Unlock()
-	if fake.FindLongLivedContainersStub != nil {
-		return fake.FindLongLivedContainersStub(jobName, pipelineID)
-	} else {
-		return fake.findLongLivedContainersReturns.result1, fake.findLongLivedContainersReturns.result2
-	}
-}
-
-func (fake *FakeEngineDB) FindLongLivedContainersCallCount() int {
-	fake.findLongLivedContainersMutex.RLock()
-	defer fake.findLongLivedContainersMutex.RUnlock()
-	return len(fake.findLongLivedContainersArgsForCall)
-}
-
-func (fake *FakeEngineDB) FindLongLivedContainersArgsForCall(i int) (string, int) {
-	fake.findLongLivedContainersMutex.RLock()
-	defer fake.findLongLivedContainersMutex.RUnlock()
-	return fake.findLongLivedContainersArgsForCall[i].jobName, fake.findLongLivedContainersArgsForCall[i].pipelineID
-}
-
-func (fake *FakeEngineDB) FindLongLivedContainersReturns(result1 []db.SavedContainer, result2 error) {
-	fake.FindLongLivedContainersStub = nil
-	fake.findLongLivedContainersReturns = struct {
 		result1 []db.SavedContainer
 		result2 error
 	}{result1, result2}

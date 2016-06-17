@@ -59,16 +59,6 @@ type FakeTaskDelegate struct {
 	imageVersionDeterminedReturns struct {
 		result1 error
 	}
-	FindLongLivedContainersStub        func(jobName string, pipelineID int) ([]db.SavedContainer, error)
-	findLongLivedContainersMutex       sync.RWMutex
-	findLongLivedContainersArgsForCall []struct {
-		jobName    string
-		pipelineID int
-	}
-	findLongLivedContainersReturns struct {
-		result1 []db.SavedContainer
-		result2 error
-	}
 	FindContainersByDescriptorsStub        func(db.Container) ([]db.SavedContainer, error)
 	findContainersByDescriptorsMutex       sync.RWMutex
 	findContainersByDescriptorsArgsForCall []struct {
@@ -275,40 +265,6 @@ func (fake *FakeTaskDelegate) ImageVersionDeterminedReturns(result1 error) {
 	fake.imageVersionDeterminedReturns = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakeTaskDelegate) FindLongLivedContainers(jobName string, pipelineID int) ([]db.SavedContainer, error) {
-	fake.findLongLivedContainersMutex.Lock()
-	fake.findLongLivedContainersArgsForCall = append(fake.findLongLivedContainersArgsForCall, struct {
-		jobName    string
-		pipelineID int
-	}{jobName, pipelineID})
-	fake.findLongLivedContainersMutex.Unlock()
-	if fake.FindLongLivedContainersStub != nil {
-		return fake.FindLongLivedContainersStub(jobName, pipelineID)
-	} else {
-		return fake.findLongLivedContainersReturns.result1, fake.findLongLivedContainersReturns.result2
-	}
-}
-
-func (fake *FakeTaskDelegate) FindLongLivedContainersCallCount() int {
-	fake.findLongLivedContainersMutex.RLock()
-	defer fake.findLongLivedContainersMutex.RUnlock()
-	return len(fake.findLongLivedContainersArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) FindLongLivedContainersArgsForCall(i int) (string, int) {
-	fake.findLongLivedContainersMutex.RLock()
-	defer fake.findLongLivedContainersMutex.RUnlock()
-	return fake.findLongLivedContainersArgsForCall[i].jobName, fake.findLongLivedContainersArgsForCall[i].pipelineID
-}
-
-func (fake *FakeTaskDelegate) FindLongLivedContainersReturns(result1 []db.SavedContainer, result2 error) {
-	fake.FindLongLivedContainersStub = nil
-	fake.findLongLivedContainersReturns = struct {
-		result1 []db.SavedContainer
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeTaskDelegate) FindContainersByDescriptors(arg1 db.Container) ([]db.SavedContainer, error) {

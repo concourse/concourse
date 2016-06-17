@@ -125,10 +125,11 @@ type DB interface {
 	SaveWorker(WorkerInfo, time.Duration) (SavedWorker, error)
 
 	FindContainersByDescriptors(Container) ([]SavedContainer, error)
-	FindLongLivedContainers(jobName string, pipelineID int) ([]SavedContainer, error)
 	GetContainer(string) (SavedContainer, bool, error)
 	CreateContainer(Container, time.Duration, time.Duration) (SavedContainer, error)
 	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)
+	FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error)
+	FindContainersFromUnsuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error)
 	GetContainersWithInfiniteTTL() ([]SavedContainer, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error

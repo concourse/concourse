@@ -24,7 +24,6 @@ type EngineDB interface {
 	GetBuild(buildID int) (db.Build, bool, error)
 
 	FindContainersByDescriptors(db.Container) ([]db.SavedContainer, error)
-	FindLongLivedContainers(jobName string, pipelineID int) ([]db.SavedContainer, error)
 
 	GetLatestFinishedBuildForJob(jobName string, pipelineID int) (db.Build, bool, error)
 

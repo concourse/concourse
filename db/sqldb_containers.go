@@ -155,35 +155,50 @@ func (db *SQLDB) GetContainersWithInfiniteTTL() ([]SavedContainer, error) {
 	return containers, nil
 }
 
-func (db *SQLDB) FindLongLivedContainers(jobName string, pipelineID int) ([]SavedContainer, error) {
-	savedContainers, err := db.FindContainersByDescriptors(Container{
-		ContainerMetadata: ContainerMetadata{
-			JobName:    jobName,
-			PipelineID: pipelineID,
-		},
-	})
+func (db *SQLDB) FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error) {
+	rows, err := db.conn.Query(
+		`SELECT ` + containerColumns + `
+		FROM containers c ` + containerJoins + `
+		WHERE b.status = 'succeeded'
+		AND c.ttl = '0'`)
+
 	if err != nil {
 		return nil, err
 	}
 
-	longLivedContainers := []SavedContainer{}
-	for _, savedContainer := range savedContainers {
-		build, found, err := db.GetBuild(savedContainer.BuildID)
+	var containers []SavedContainer
+	for rows.Next() {
+		container, err := scanContainer(rows)
 		if err != nil {
-			return nil, err
+			return nil, nil
 		}
-		if !found {
-			return nil, fmt.Errorf("missing-build-for-container %d", savedContainer.Handle)
-		}
-
-		buildDidNotSucceed := build.Status == StatusFailed ||
-			build.Status == StatusAborted ||
-			build.Status == StatusErrored
-		if savedContainer.TTL > 5*time.Minute && buildDidNotSucceed {
-			longLivedContainers = append(longLivedContainers, savedContainer)
-		}
+		containers = append(containers, container)
 	}
-	return longLivedContainers, nil
+
+	return containers, nil
+}
+
+func (db *SQLDB) FindContainersFromUnsuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error) {
+	rows, err := db.conn.Query(
+		`SELECT ` + containerColumns + `
+		FROM containers c ` + containerJoins + `
+		WHERE (b.status = 'failed' OR b.status = 'aborted' OR b.status = 'errored')
+		AND c.ttl = '0'`)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var containers []SavedContainer
+	for rows.Next() {
+		container, err := scanContainer(rows)
+		if err != nil {
+			return nil, nil
+		}
+		containers = append(containers, container)
+	}
+
+	return containers, nil
 }
 
 func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContainer, bool, error) {

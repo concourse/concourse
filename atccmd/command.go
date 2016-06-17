@@ -330,6 +330,7 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			logger.Session("container-reaper"),
 			containerreaper.NewContainerReaper(
 				logger.Session("container-reaper"),
+				workerClient,
 				sqlDB,
 				pipelineDBFactory,
 				500,

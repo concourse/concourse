@@ -96,7 +96,6 @@ type TaskDelegate interface {
 	GetLatestFinishedBuildForJob(string, int) (db.Build, bool, error)
 	ImageVersionDetermined(worker.VolumeIdentifier) error
 
-	FindLongLivedContainers(jobName string, pipelineID int) ([]db.SavedContainer, error)
 	FindContainersByDescriptors(db.Container) ([]db.SavedContainer, error)
 
 	Stdout() io.Writer
@@ -112,7 +111,6 @@ type ResourceDelegate interface {
 	Failed(error)
 
 	ImageVersionDetermined(worker.VolumeIdentifier) error
-	FindLongLivedContainers(jobName string, pipelineID int) ([]db.SavedContainer, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer

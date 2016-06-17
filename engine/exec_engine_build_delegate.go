@@ -350,10 +350,6 @@ func (input *inputDelegate) FindContainersByDescriptors(container db.Container) 
 	return input.delegate.db.FindContainersByDescriptors(container)
 }
 
-func (input *inputDelegate) FindLongLivedContainers(jobName string, pipelineID int) ([]db.SavedContainer, error) {
-	return input.delegate.db.FindLongLivedContainers(jobName, pipelineID)
-}
-
 func (input *inputDelegate) Stdout() io.Writer {
 	return input.delegate.eventWriter(event.Origin{
 		Source: event.OriginSourceStdout,
@@ -401,10 +397,6 @@ func (output *outputDelegate) Failed(err error) {
 
 func (output *outputDelegate) FindContainersByDescriptors(container db.Container) ([]db.SavedContainer, error) {
 	return output.delegate.db.FindContainersByDescriptors(container)
-}
-
-func (output *outputDelegate) FindLongLivedContainers(jobName string, pipelineID int) ([]db.SavedContainer, error) {
-	return output.delegate.db.FindLongLivedContainers(jobName, pipelineID)
 }
 
 func (output *outputDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
@@ -481,10 +473,6 @@ func (execution *executionDelegate) ImageVersionDetermined(identifier worker.Vol
 
 func (execution *executionDelegate) FindContainersByDescriptors(container db.Container) ([]db.SavedContainer, error) {
 	return execution.delegate.db.FindContainersByDescriptors(container)
-}
-
-func (execution *executionDelegate) FindLongLivedContainers(jobName string, pipelineID int) ([]db.SavedContainer, error) {
-	return execution.delegate.db.FindLongLivedContainers(jobName, pipelineID)
 }
 
 func (execution *executionDelegate) Stdout() io.Writer {

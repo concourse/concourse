@@ -27,6 +27,20 @@ type FakeContainerReaperDB struct {
 		result1 []db.SavedContainer
 		result2 error
 	}
+	FindContainersFromSuccessfulBuildsWithInfiniteTTLStub        func() ([]db.SavedContainer, error)
+	findContainersFromSuccessfulBuildsWithInfiniteTTLMutex       sync.RWMutex
+	findContainersFromSuccessfulBuildsWithInfiniteTTLArgsForCall []struct{}
+	findContainersFromSuccessfulBuildsWithInfiniteTTLReturns     struct {
+		result1 []db.SavedContainer
+		result2 error
+	}
+	FindContainersFromUnsuccessfulBuildsWithInfiniteTTLStub        func() ([]db.SavedContainer, error)
+	findContainersFromUnsuccessfulBuildsWithInfiniteTTLMutex       sync.RWMutex
+	findContainersFromUnsuccessfulBuildsWithInfiniteTTLArgsForCall []struct{}
+	findContainersFromUnsuccessfulBuildsWithInfiniteTTLReturns     struct {
+		result1 []db.SavedContainer
+		result2 error
+	}
 	UpdateExpiresAtOnContainerStub        func(handle string, ttl time.Duration) error
 	updateExpiresAtOnContainerMutex       sync.RWMutex
 	updateExpiresAtOnContainerArgsForCall []struct {
@@ -92,6 +106,56 @@ func (fake *FakeContainerReaperDB) GetContainersWithInfiniteTTLCallCount() int {
 func (fake *FakeContainerReaperDB) GetContainersWithInfiniteTTLReturns(result1 []db.SavedContainer, result2 error) {
 	fake.GetContainersWithInfiniteTTLStub = nil
 	fake.getContainersWithInfiniteTTLReturns = struct {
+		result1 []db.SavedContainer
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerReaperDB) FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]db.SavedContainer, error) {
+	fake.findContainersFromSuccessfulBuildsWithInfiniteTTLMutex.Lock()
+	fake.findContainersFromSuccessfulBuildsWithInfiniteTTLArgsForCall = append(fake.findContainersFromSuccessfulBuildsWithInfiniteTTLArgsForCall, struct{}{})
+	fake.findContainersFromSuccessfulBuildsWithInfiniteTTLMutex.Unlock()
+	if fake.FindContainersFromSuccessfulBuildsWithInfiniteTTLStub != nil {
+		return fake.FindContainersFromSuccessfulBuildsWithInfiniteTTLStub()
+	} else {
+		return fake.findContainersFromSuccessfulBuildsWithInfiniteTTLReturns.result1, fake.findContainersFromSuccessfulBuildsWithInfiniteTTLReturns.result2
+	}
+}
+
+func (fake *FakeContainerReaperDB) FindContainersFromSuccessfulBuildsWithInfiniteTTLCallCount() int {
+	fake.findContainersFromSuccessfulBuildsWithInfiniteTTLMutex.RLock()
+	defer fake.findContainersFromSuccessfulBuildsWithInfiniteTTLMutex.RUnlock()
+	return len(fake.findContainersFromSuccessfulBuildsWithInfiniteTTLArgsForCall)
+}
+
+func (fake *FakeContainerReaperDB) FindContainersFromSuccessfulBuildsWithInfiniteTTLReturns(result1 []db.SavedContainer, result2 error) {
+	fake.FindContainersFromSuccessfulBuildsWithInfiniteTTLStub = nil
+	fake.findContainersFromSuccessfulBuildsWithInfiniteTTLReturns = struct {
+		result1 []db.SavedContainer
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerReaperDB) FindContainersFromUnsuccessfulBuildsWithInfiniteTTL() ([]db.SavedContainer, error) {
+	fake.findContainersFromUnsuccessfulBuildsWithInfiniteTTLMutex.Lock()
+	fake.findContainersFromUnsuccessfulBuildsWithInfiniteTTLArgsForCall = append(fake.findContainersFromUnsuccessfulBuildsWithInfiniteTTLArgsForCall, struct{}{})
+	fake.findContainersFromUnsuccessfulBuildsWithInfiniteTTLMutex.Unlock()
+	if fake.FindContainersFromUnsuccessfulBuildsWithInfiniteTTLStub != nil {
+		return fake.FindContainersFromUnsuccessfulBuildsWithInfiniteTTLStub()
+	} else {
+		return fake.findContainersFromUnsuccessfulBuildsWithInfiniteTTLReturns.result1, fake.findContainersFromUnsuccessfulBuildsWithInfiniteTTLReturns.result2
+	}
+}
+
+func (fake *FakeContainerReaperDB) FindContainersFromUnsuccessfulBuildsWithInfiniteTTLCallCount() int {
+	fake.findContainersFromUnsuccessfulBuildsWithInfiniteTTLMutex.RLock()
+	defer fake.findContainersFromUnsuccessfulBuildsWithInfiniteTTLMutex.RUnlock()
+	return len(fake.findContainersFromUnsuccessfulBuildsWithInfiniteTTLArgsForCall)
+}
+
+func (fake *FakeContainerReaperDB) FindContainersFromUnsuccessfulBuildsWithInfiniteTTLReturns(result1 []db.SavedContainer, result2 error) {
+	fake.FindContainersFromUnsuccessfulBuildsWithInfiniteTTLStub = nil
+	fake.findContainersFromUnsuccessfulBuildsWithInfiniteTTLReturns = struct {
 		result1 []db.SavedContainer
 		result2 error
 	}{result1, result2}

@@ -506,13 +506,6 @@ func (step *TaskStep) Release() {
 	}
 
 	step.container.Release(worker.FinalTTL(0))
-	//
-	// if step.exitStatus == 0 {
-	// 	step.container.Release(worker.FinalTTL(step.containerSuccessTTL))
-	// } else {
-	// 	// set container and volume TTLs to zero (infinite TTL) and don't actually
-	// 	// "release" the container or its volumes
-	// }
 }
 
 // StreamFile streams the given file out of the task's container.
