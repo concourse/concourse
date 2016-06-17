@@ -1,7 +1,6 @@
 module BuildOutput exposing (..)
 
 import Ansi.Log
-import Date exposing (Date)
 import Html exposing (Html)
 import Html.App
 import Html.Attributes exposing (action, class, classList, href, id, method, title)
@@ -25,7 +24,6 @@ type alias Model =
   , state : OutputState
   , eventSourceOpened : Bool
   , events : Sub Action
-  , buildStatus : Maybe (BuildStatus, Date)
   }
 
 type OutputState
@@ -56,7 +54,6 @@ init build =
       , state = outputState
       , events = Sub.none
       , eventSourceOpened = False
-      , buildStatus = Nothing
       }
 
     fetch =
@@ -176,7 +173,15 @@ handleEvent event model =
               Maybe.map (StepTree.update StepTree.Finished) model.steps
             else
               model.steps
-        , buildStatus = Just (status, date)
+        , build =
+            case (status, model.build, model.build.duration) of
+              (Concourse.BuildStatus.Started, _, _) -> model.build
+              (Concourse.BuildStatus.Pending, _, _) -> model.build
+              (_, build, duration) ->
+                { build
+                | status = status
+                , duration = { duration | finishedAt = Just date }
+                }
         }
       , Cmd.none
       )
