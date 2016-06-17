@@ -155,20 +155,6 @@ func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 	return bs, nil
 }
 
-func (db *SQLDB) GetLatestFinishedBuildForJob(jobName string, pipelineID int) (Build, bool, error) {
-	return scanBuild(db.conn.QueryRow(`
-		SELECT `+qualifiedBuildColumns+`
-		FROM builds b
-		LEFT OUTER JOIN jobs j ON b.job_id = j.id
-		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
-		WHERE b.completed = true
-		AND j.name = $1
-		AND p.id = $2
-		ORDER BY b.end_time DESC
-		LIMIT 1
-		`, jobName, pipelineID))
-}
-
 func (db *SQLDB) GetBuild(buildID int) (Build, bool, error) {
 	return scanBuild(db.conn.QueryRow(`
 		SELECT `+qualifiedBuildColumns+`

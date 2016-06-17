@@ -346,10 +346,6 @@ func (input *inputDelegate) ImageVersionDetermined(identifier worker.VolumeIdent
 	return input.delegate.db.SaveImageResourceVersion(input.delegate.buildID, atc.PlanID(input.id), *identifier.ResourceCache)
 }
 
-func (input *inputDelegate) FindContainersByDescriptors(container db.Container) ([]db.SavedContainer, error) {
-	return input.delegate.db.FindContainersByDescriptors(container)
-}
-
 func (input *inputDelegate) Stdout() io.Writer {
 	return input.delegate.eventWriter(event.Origin{
 		Source: event.OriginSourceStdout,
@@ -393,10 +389,6 @@ func (output *outputDelegate) Failed(err error) {
 	})
 
 	output.logger.Info("errored", lager.Data{"error": err.Error()})
-}
-
-func (output *outputDelegate) FindContainersByDescriptors(container db.Container) ([]db.SavedContainer, error) {
-	return output.delegate.db.FindContainersByDescriptors(container)
 }
 
 func (output *outputDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
@@ -459,20 +451,8 @@ func (execution *executionDelegate) Failed(err error) {
 	execution.logger.Info("errored", lager.Data{"error": err.Error()})
 }
 
-func (execution *executionDelegate) GetBuild(buildID int) (db.Build, bool, error) {
-	return execution.delegate.db.GetBuild(buildID)
-}
-
-func (execution *executionDelegate) GetLatestFinishedBuildForJob(jobName string, pipelineID int) (db.Build, bool, error) {
-	return execution.delegate.db.GetLatestFinishedBuildForJob(jobName, pipelineID)
-}
-
 func (execution *executionDelegate) ImageVersionDetermined(identifier worker.VolumeIdentifier) error {
 	return execution.delegate.db.SaveImageResourceVersion(execution.delegate.buildID, atc.PlanID(execution.id), *identifier.ResourceCache)
-}
-
-func (execution *executionDelegate) FindContainersByDescriptors(container db.Container) ([]db.SavedContainer, error) {
-	return execution.delegate.db.FindContainersByDescriptors(container)
 }
 
 func (execution *executionDelegate) Stdout() io.Writer {

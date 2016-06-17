@@ -53,11 +53,6 @@ func (db *SQLDB) FindContainersByDescriptors(id Container) ([]SavedContainer, er
 		params = append(params, id.PipelineName)
 	}
 
-	if id.PipelineID != 0 {
-		whereCriteria = append(whereCriteria, fmt.Sprintf("p.id = $%d", len(params)+1))
-		params = append(params, id.PipelineID)
-	}
-
 	if id.BuildID != 0 {
 		whereCriteria = append(whereCriteria, fmt.Sprintf("build_id = $%d", len(params)+1))
 		params = append(params, id.BuildID)
@@ -131,28 +126,6 @@ func (db *SQLDB) FindContainersByDescriptors(id Container) ([]SavedContainer, er
 	}
 
 	return infos, nil
-}
-
-func (db *SQLDB) GetContainersWithInfiniteTTL() ([]SavedContainer, error) {
-	rows, err := db.conn.Query(
-		`SELECT ` + containerColumns + `
-		FROM containers c ` + containerJoins + `
-		WHERE ttl = '0'`)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var containers []SavedContainer
-	for rows.Next() {
-		container, err := scanContainer(rows)
-		if err != nil {
-			return nil, nil
-		}
-		containers = append(containers, container)
-	}
-
-	return containers, nil
 }
 
 func (db *SQLDB) FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error) {

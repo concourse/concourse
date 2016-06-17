@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
@@ -92,11 +91,7 @@ type TaskDelegate interface {
 	Finished(ExitStatus)
 	Failed(error)
 
-	GetBuild(buildID int) (db.Build, bool, error)
-	GetLatestFinishedBuildForJob(string, int) (db.Build, bool, error)
 	ImageVersionDetermined(worker.VolumeIdentifier) error
-
-	FindContainersByDescriptors(db.Container) ([]db.SavedContainer, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer

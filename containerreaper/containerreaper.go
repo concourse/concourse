@@ -17,7 +17,6 @@ type ContainerReaper interface {
 
 type ContainerReaperDB interface {
 	FindJobIDForBuild(buildID int) (int, bool, error)
-	GetContainersWithInfiniteTTL() ([]db.SavedContainer, error)
 	FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]db.SavedContainer, error)
 	FindContainersFromUnsuccessfulBuildsWithInfiniteTTL() ([]db.SavedContainer, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error

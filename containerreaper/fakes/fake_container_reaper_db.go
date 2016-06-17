@@ -20,13 +20,6 @@ type FakeContainerReaperDB struct {
 		result2 bool
 		result3 error
 	}
-	GetContainersWithInfiniteTTLStub        func() ([]db.SavedContainer, error)
-	getContainersWithInfiniteTTLMutex       sync.RWMutex
-	getContainersWithInfiniteTTLArgsForCall []struct{}
-	getContainersWithInfiniteTTLReturns     struct {
-		result1 []db.SavedContainer
-		result2 error
-	}
 	FindContainersFromSuccessfulBuildsWithInfiniteTTLStub        func() ([]db.SavedContainer, error)
 	findContainersFromSuccessfulBuildsWithInfiniteTTLMutex       sync.RWMutex
 	findContainersFromSuccessfulBuildsWithInfiniteTTLArgsForCall []struct{}
@@ -84,31 +77,6 @@ func (fake *FakeContainerReaperDB) FindJobIDForBuildReturns(result1 int, result2
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeContainerReaperDB) GetContainersWithInfiniteTTL() ([]db.SavedContainer, error) {
-	fake.getContainersWithInfiniteTTLMutex.Lock()
-	fake.getContainersWithInfiniteTTLArgsForCall = append(fake.getContainersWithInfiniteTTLArgsForCall, struct{}{})
-	fake.getContainersWithInfiniteTTLMutex.Unlock()
-	if fake.GetContainersWithInfiniteTTLStub != nil {
-		return fake.GetContainersWithInfiniteTTLStub()
-	} else {
-		return fake.getContainersWithInfiniteTTLReturns.result1, fake.getContainersWithInfiniteTTLReturns.result2
-	}
-}
-
-func (fake *FakeContainerReaperDB) GetContainersWithInfiniteTTLCallCount() int {
-	fake.getContainersWithInfiniteTTLMutex.RLock()
-	defer fake.getContainersWithInfiniteTTLMutex.RUnlock()
-	return len(fake.getContainersWithInfiniteTTLArgsForCall)
-}
-
-func (fake *FakeContainerReaperDB) GetContainersWithInfiniteTTLReturns(result1 []db.SavedContainer, result2 error) {
-	fake.GetContainersWithInfiniteTTLStub = nil
-	fake.getContainersWithInfiniteTTLReturns = struct {
-		result1 []db.SavedContainer
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeContainerReaperDB) FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]db.SavedContainer, error) {

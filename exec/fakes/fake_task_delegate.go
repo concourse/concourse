@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
 )
@@ -30,27 +29,6 @@ type FakeTaskDelegate struct {
 	failedArgsForCall []struct {
 		arg1 error
 	}
-	GetBuildStub        func(buildID int) (db.Build, bool, error)
-	getBuildMutex       sync.RWMutex
-	getBuildArgsForCall []struct {
-		buildID int
-	}
-	getBuildReturns struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}
-	GetLatestFinishedBuildForJobStub        func(string, int) (db.Build, bool, error)
-	getLatestFinishedBuildForJobMutex       sync.RWMutex
-	getLatestFinishedBuildForJobArgsForCall []struct {
-		arg1 string
-		arg2 int
-	}
-	getLatestFinishedBuildForJobReturns struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}
 	ImageVersionDeterminedStub        func(worker.VolumeIdentifier) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
@@ -58,15 +36,6 @@ type FakeTaskDelegate struct {
 	}
 	imageVersionDeterminedReturns struct {
 		result1 error
-	}
-	FindContainersByDescriptorsStub        func(db.Container) ([]db.SavedContainer, error)
-	findContainersByDescriptorsMutex       sync.RWMutex
-	findContainersByDescriptorsArgsForCall []struct {
-		arg1 db.Container
-	}
-	findContainersByDescriptorsReturns struct {
-		result1 []db.SavedContainer
-		result2 error
 	}
 	StdoutStub        func() io.Writer
 	stdoutMutex       sync.RWMutex
@@ -166,75 +135,6 @@ func (fake *FakeTaskDelegate) FailedArgsForCall(i int) error {
 	return fake.failedArgsForCall[i].arg1
 }
 
-func (fake *FakeTaskDelegate) GetBuild(buildID int) (db.Build, bool, error) {
-	fake.getBuildMutex.Lock()
-	fake.getBuildArgsForCall = append(fake.getBuildArgsForCall, struct {
-		buildID int
-	}{buildID})
-	fake.getBuildMutex.Unlock()
-	if fake.GetBuildStub != nil {
-		return fake.GetBuildStub(buildID)
-	} else {
-		return fake.getBuildReturns.result1, fake.getBuildReturns.result2, fake.getBuildReturns.result3
-	}
-}
-
-func (fake *FakeTaskDelegate) GetBuildCallCount() int {
-	fake.getBuildMutex.RLock()
-	defer fake.getBuildMutex.RUnlock()
-	return len(fake.getBuildArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) GetBuildArgsForCall(i int) int {
-	fake.getBuildMutex.RLock()
-	defer fake.getBuildMutex.RUnlock()
-	return fake.getBuildArgsForCall[i].buildID
-}
-
-func (fake *FakeTaskDelegate) GetBuildReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.GetBuildStub = nil
-	fake.getBuildReturns = struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJob(arg1 string, arg2 int) (db.Build, bool, error) {
-	fake.getLatestFinishedBuildForJobMutex.Lock()
-	fake.getLatestFinishedBuildForJobArgsForCall = append(fake.getLatestFinishedBuildForJobArgsForCall, struct {
-		arg1 string
-		arg2 int
-	}{arg1, arg2})
-	fake.getLatestFinishedBuildForJobMutex.Unlock()
-	if fake.GetLatestFinishedBuildForJobStub != nil {
-		return fake.GetLatestFinishedBuildForJobStub(arg1, arg2)
-	} else {
-		return fake.getLatestFinishedBuildForJobReturns.result1, fake.getLatestFinishedBuildForJobReturns.result2, fake.getLatestFinishedBuildForJobReturns.result3
-	}
-}
-
-func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJobCallCount() int {
-	fake.getLatestFinishedBuildForJobMutex.RLock()
-	defer fake.getLatestFinishedBuildForJobMutex.RUnlock()
-	return len(fake.getLatestFinishedBuildForJobArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJobArgsForCall(i int) (string, int) {
-	fake.getLatestFinishedBuildForJobMutex.RLock()
-	defer fake.getLatestFinishedBuildForJobMutex.RUnlock()
-	return fake.getLatestFinishedBuildForJobArgsForCall[i].arg1, fake.getLatestFinishedBuildForJobArgsForCall[i].arg2
-}
-
-func (fake *FakeTaskDelegate) GetLatestFinishedBuildForJobReturns(result1 db.Build, result2 bool, result3 error) {
-	fake.GetLatestFinishedBuildForJobStub = nil
-	fake.getLatestFinishedBuildForJobReturns = struct {
-		result1 db.Build
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
 func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 worker.VolumeIdentifier) error {
 	fake.imageVersionDeterminedMutex.Lock()
 	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
@@ -265,39 +165,6 @@ func (fake *FakeTaskDelegate) ImageVersionDeterminedReturns(result1 error) {
 	fake.imageVersionDeterminedReturns = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakeTaskDelegate) FindContainersByDescriptors(arg1 db.Container) ([]db.SavedContainer, error) {
-	fake.findContainersByDescriptorsMutex.Lock()
-	fake.findContainersByDescriptorsArgsForCall = append(fake.findContainersByDescriptorsArgsForCall, struct {
-		arg1 db.Container
-	}{arg1})
-	fake.findContainersByDescriptorsMutex.Unlock()
-	if fake.FindContainersByDescriptorsStub != nil {
-		return fake.FindContainersByDescriptorsStub(arg1)
-	} else {
-		return fake.findContainersByDescriptorsReturns.result1, fake.findContainersByDescriptorsReturns.result2
-	}
-}
-
-func (fake *FakeTaskDelegate) FindContainersByDescriptorsCallCount() int {
-	fake.findContainersByDescriptorsMutex.RLock()
-	defer fake.findContainersByDescriptorsMutex.RUnlock()
-	return len(fake.findContainersByDescriptorsArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) FindContainersByDescriptorsArgsForCall(i int) db.Container {
-	fake.findContainersByDescriptorsMutex.RLock()
-	defer fake.findContainersByDescriptorsMutex.RUnlock()
-	return fake.findContainersByDescriptorsArgsForCall[i].arg1
-}
-
-func (fake *FakeTaskDelegate) FindContainersByDescriptorsReturns(result1 []db.SavedContainer, result2 error) {
-	fake.FindContainersByDescriptorsStub = nil
-	fake.findContainersByDescriptorsReturns = struct {
-		result1 []db.SavedContainer
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeTaskDelegate) Stdout() io.Writer {
