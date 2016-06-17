@@ -1,8 +1,10 @@
 package containerreaper_test
 
 import (
+	"errors"
 	"time"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/atc/containerreaper"
 	"github.com/concourse/atc/containerreaper/fakes"
 	"github.com/concourse/atc/db"
@@ -21,8 +23,11 @@ var _ = Describe("ContainerReaper", func() {
 		fakePipelineDBFactory *dbfakes.FakePipelineDBFactory
 		fakeWorkerClient      *wfakes.FakeClient
 		fakeWorkerContainer   *wfakes.FakeContainer
-		failedContainers      []db.SavedContainer
-		successfulContainers  []db.SavedContainer
+		fakePipelineDB        *dbfakes.FakePipelineDB
+
+		failedContainers     []db.SavedContainer
+		successfulContainers []db.SavedContainer
+		jobIDMap             map[int]int
 	)
 
 	BeforeEach(func() {
@@ -31,24 +36,26 @@ var _ = Describe("ContainerReaper", func() {
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeWorkerContainer = new(wfakes.FakeContainer)
+		fakePipelineDB = new(dbfakes.FakePipelineDB)
+
 		containerReaper = containerreaper.NewContainerReaper(containerReaperLogger, fakeWorkerClient, fakeContainerReaperDB, fakePipelineDBFactory)
 
 		failedContainers = []db.SavedContainer{
-			createSavedContainer(1111, "some-job", "some-handle-0"),
-			createSavedContainer(1110, "some-job", "some-handle-1"),
-			createSavedContainer(1114, "another-other-job", "some-handle-4"),
-			createSavedContainer(1112, "some-job", "some-handle-2"),
-			createSavedContainer(1113, "some-other-job", "some-handle-3"),
-			createSavedContainer(1115, "another-other-job", "some-handle-5"),
+			createSavedContainer(1111, "some-job", "some-handle-0", 11),
+			createSavedContainer(1110, "some-job", "some-handle-1", 11),
+			createSavedContainer(1114, "another-other-job", "some-handle-4", 22),
+			createSavedContainer(1112, "some-job", "some-handle-2", 11),
+			createSavedContainer(1113, "some-other-job", "some-handle-3", 33),
+			createSavedContainer(1115, "another-other-job", "some-handle-5", 22),
 		}
 
 		successfulContainers = []db.SavedContainer{
-			createSavedContainer(2001, "some-job", "some-handle-6"),
-			createSavedContainer(2002, "some-job", "some-handle-7"),
-			createSavedContainer(999, "another-other-job", "some-handle-8"),
+			createSavedContainer(2001, "some-job", "some-handle-6", 11),
+			createSavedContainer(2002, "some-job", "some-handle-7", 11),
+			createSavedContainer(999, "another-other-job", "some-handle-8", 22),
 		}
 
-		jobIDMap := map[int]int{
+		jobIDMap = map[int]int{
 			1110: 1,
 			1111: 1,
 			2001: 1,
@@ -68,6 +75,20 @@ var _ = Describe("ContainerReaper", func() {
 		}
 
 		fakeWorkerClient.LookupContainerReturns(fakeWorkerContainer, true, nil)
+		fakePipelineDBFactory.BuildWithIDReturns(fakePipelineDB, nil)
+		fakePipelineDB.GetConfigReturns(atc.Config{
+			Jobs: atc.JobConfigs{
+				atc.JobConfig{
+					Name: "some-job",
+				},
+				atc.JobConfig{
+					Name: "some-other-job",
+				},
+				atc.JobConfig{
+					Name: "another-other-job",
+				},
+			},
+		}, 0, true, nil)
 	})
 
 	JustBeforeEach(func() {
@@ -87,6 +108,94 @@ var _ = Describe("ContainerReaper", func() {
 
 		Expect(fakeWorkerContainer.ReleaseCallCount()).To(Equal(6))
 	})
+
+	Context("when pipeline no longer exists", func() {
+		BeforeEach(func() {
+			fakeContainerReaperDB.FindContainersFromSuccessfulBuildsWithInfiniteTTLReturns(
+				[]db.SavedContainer{},
+				nil,
+			)
+			fakeContainerReaperDB.FindContainersFromUnsuccessfulBuildsWithInfiniteTTLReturns(
+				[]db.SavedContainer{failedContainers[0], failedContainers[1]},
+				nil,
+			)
+			fakePipelineDBFactory.BuildWithIDReturns(nil, errors.New("some-error"))
+		})
+
+		It("sets all of its containers' ttl to 5 minutes", func() {
+			Expect(fakeContainerReaperDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(2))
+			Expect(fakeWorkerClient.LookupContainerCallCount()).To(Equal(2))
+
+			expiredHandles := []string{"some-handle-0", "some-handle-1"}
+
+			for i := 0; i < 2; i++ {
+				verifyLookupContainerCalls(fakeWorkerClient, expiredHandles, i)
+				verifyTTLWasSet(fakeContainerReaperDB, expiredHandles, i)
+			}
+
+			Expect(fakeWorkerContainer.ReleaseCallCount()).To(Equal(2))
+		})
+	})
+
+	Context("when a pipeline config doesn't exist", func() {
+		BeforeEach(func() {
+			fakeContainerReaperDB.FindContainersFromSuccessfulBuildsWithInfiniteTTLReturns(
+				[]db.SavedContainer{},
+				nil,
+			)
+			fakeContainerReaperDB.FindContainersFromUnsuccessfulBuildsWithInfiniteTTLReturns(
+				[]db.SavedContainer{failedContainers[0], failedContainers[1]},
+				nil,
+			)
+			fakePipelineDB.GetConfigReturns(atc.Config{}, 0, false, nil)
+		})
+
+		It("sets the containers ttl to 5 minutes", func() {
+			Expect(fakeContainerReaperDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(2))
+			Expect(fakeWorkerClient.LookupContainerCallCount()).To(Equal(2))
+
+			expiredHandles := []string{"some-handle-0", "some-handle-1"}
+
+			for i := 0; i < 2; i++ {
+				verifyLookupContainerCalls(fakeWorkerClient, expiredHandles, i)
+				verifyTTLWasSet(fakeContainerReaperDB, expiredHandles, i)
+			}
+
+			Expect(fakeWorkerContainer.ReleaseCallCount()).To(Equal(2))
+		})
+	})
+
+	Context("when a job is no longer in the pipeline config", func() {
+		BeforeEach(func() {
+			fakeContainerReaperDB.FindContainersFromSuccessfulBuildsWithInfiniteTTLReturns(
+				[]db.SavedContainer{},
+				nil,
+			)
+			fakeContainerReaperDB.FindContainersFromUnsuccessfulBuildsWithInfiniteTTLReturns(
+				[]db.SavedContainer{failedContainers[0], failedContainers[1]},
+				nil,
+			)
+			fakePipelineDB.GetConfigReturns(atc.Config{
+				Jobs: atc.JobConfigs{
+					atc.JobConfig{Name: "another-other-job"},
+				},
+			}, 0, true, nil)
+		})
+
+		It("sets the jobs' containers' ttl to 5 minutes", func() {
+			Expect(fakeContainerReaperDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(2))
+			Expect(fakeWorkerClient.LookupContainerCallCount()).To(Equal(2))
+
+			expiredHandles := []string{"some-handle-0", "some-handle-1"}
+
+			for i := 0; i < 2; i++ {
+				verifyLookupContainerCalls(fakeWorkerClient, expiredHandles, i)
+				verifyTTLWasSet(fakeContainerReaperDB, expiredHandles, i)
+			}
+
+			Expect(fakeWorkerContainer.ReleaseCallCount()).To(Equal(2))
+		})
+	})
 })
 
 func verifyLookupContainerCalls(fakeWorkerClient *wfakes.FakeClient, expiredHandles []string, callIndex int) {
@@ -100,15 +209,16 @@ func verifyTTLWasSet(fakeContainerReaperDB *fakes.FakeContainerReaperDB, expired
 	Expect(ttl).To(Equal(worker.ContainerTTL))
 }
 
-func createSavedContainer(buildID int, jobName string, handle string) db.SavedContainer {
+func createSavedContainer(buildID int, jobName string, handle string, pipelineID int) db.SavedContainer {
 	return db.SavedContainer{
 		Container: db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{
 				BuildID: buildID,
 			},
 			ContainerMetadata: db.ContainerMetadata{
-				JobName: jobName,
-				Handle:  handle,
+				JobName:    jobName,
+				Handle:     handle,
+				PipelineID: pipelineID,
 			},
 		},
 		TTL: time.Duration(0),

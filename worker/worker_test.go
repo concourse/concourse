@@ -216,9 +216,6 @@ var _ = Describe("Worker", func() {
 				fakeContainer = new(gfakes.FakeContainer)
 				fakeContainer.HandleReturns("some-container-handle")
 				fakeGardenClient.CreateReturns(fakeContainer, nil)
-				fakeGardenWorkerDB.GetContainerReturns(db.SavedContainer{
-					TTL: 5 * time.Minute,
-				}, true, nil)
 			})
 
 			It("returns a container that be destroyed", func() {
@@ -1184,7 +1181,6 @@ var _ = Describe("Worker", func() {
 			BeforeEach(func() {
 				fakeContainer = new(gfakes.FakeContainer)
 				fakeContainer.HandleReturns("some-handle")
-				fakeGardenWorkerDB.GetContainerReturns(db.SavedContainer{}, true, nil)
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
 			})
 
@@ -1578,12 +1574,6 @@ var _ = Describe("Worker", func() {
 			})
 
 			Describe("the found container", func() {
-				BeforeEach(func() {
-					fakeGardenWorkerDB.GetContainerReturns(db.SavedContainer{
-						TTL: 5 * time.Minute,
-					}, true, nil)
-				})
-
 				It("can be destroyed", func() {
 					err := foundContainer.Destroy()
 					Expect(err).NotTo(HaveOccurred())

@@ -60,6 +60,19 @@ func (cr *containerReaper) updateWorkerContainerTTL(handle string) error {
 	return nil
 }
 
+func (cr *containerReaper) release(handle string) error {
+	err := cr.updateWorkerContainerTTL(handle)
+	if err != nil {
+		return err
+	}
+
+	err = cr.db.UpdateExpiresAtOnContainer(handle, worker.ContainerTTL)
+	if err != nil {
+		cr.logger.Error("error-updating-db-container-ttl", err)
+	}
+	return err
+}
+
 func (cr *containerReaper) Run() error {
 	successfulContainers, err := cr.db.FindContainersFromSuccessfulBuildsWithInfiniteTTL()
 	if err != nil {
@@ -67,14 +80,7 @@ func (cr *containerReaper) Run() error {
 	}
 
 	for _, container := range successfulContainers {
-		err := cr.updateWorkerContainerTTL(container.Handle)
-		if err != nil {
-			continue
-		}
-		err = cr.db.UpdateExpiresAtOnContainer(container.Handle, worker.ContainerTTL)
-		if err != nil {
-			cr.logger.Error("error-updating-db-container-ttl", err)
-		}
+		cr.release(container.Handle)
 	}
 
 	failedContainers, err := cr.db.FindContainersFromUnsuccessfulBuildsWithInfiniteTTL()
@@ -86,15 +92,37 @@ func (cr *containerReaper) Run() error {
 	jobContainerMap = make(map[int][]db.SavedContainer)
 
 	for _, container := range failedContainers {
-		buildID := container.BuildID
-
-		// TODO: if the container's job no longer exists in the configuration, expire it
-		jobID, found, err := cr.db.FindJobIDForBuild(buildID)
+		pipelineDB, err := cr.pipelineDBFactory.BuildWithID(container.PipelineID)
 		if err != nil {
-			cr.logger.Error("find-job-id-for-build", err, lager.Data{"build-id": buildID})
+			cr.release(container.Handle)
+			continue
 		}
-		if !found {
-			cr.logger.Error("unable-to-find-job-id-for-build", nil, lager.Data{"build-id": buildID})
+
+		pipelineConfig, _, found, err := pipelineDB.GetConfig()
+		if err != nil || !found {
+			cr.release(container.Handle)
+			continue
+		}
+
+		jobExpired := true
+		for _, jobConfig := range pipelineConfig.Jobs {
+			if jobConfig.Name == container.JobName {
+				jobExpired = false
+				break
+			}
+		}
+
+		if jobExpired {
+			cr.release(container.Handle)
+			continue
+		}
+
+		buildID := container.BuildID
+		jobID, found, err := cr.db.FindJobIDForBuild(buildID)
+		if err != nil || !found {
+			cr.logger.Error("find-job-id-for-build", err, lager.Data{"build-id": buildID, "found": found})
+			cr.release(container.Handle)
+			continue
 		}
 
 		jobContainers := jobContainerMap[jobID]

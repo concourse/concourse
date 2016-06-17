@@ -190,7 +190,6 @@ var _ = Describe("DBProvider", func() {
 			Describe("a created container", func() {
 				BeforeEach(func() {
 					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
-					fakeDB.GetContainerReturns(db.SavedContainer{}, true, nil)
 				})
 
 				It("calls through to garden", func() {
@@ -232,7 +231,6 @@ var _ = Describe("DBProvider", func() {
 			Describe("a looked-up container", func() {
 				BeforeEach(func() {
 					fakeDB.GetWorkerReturns(db.SavedWorker{WorkerInfo: db.WorkerInfo{GardenAddr: gardenAddr}}, true, nil)
-					fakeDB.GetContainerReturns(db.SavedContainer{}, true, nil)
 				})
 
 				It("calls through to garden", func() {

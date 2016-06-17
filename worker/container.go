@@ -57,23 +57,12 @@ func newGardenWorkerContainer(
 		release:      make(chan *time.Duration, 1),
 	}
 
-	savedContainer, found, err := workerContainer.db.GetContainer(container.Handle())
-	if err != nil {
-		logger.Error("failed-to-lookup-container", err)
-		return nil, err
-	}
-
-	if !found {
-		return nil, nil
-	}
-
-	workerContainer.heartbeat(logger.Session("initial-heartbeat"), savedContainer.TTL)
+	workerContainer.heartbeat(logger.Session("initial-heartbeat"), ContainerTTL)
 
 	workerContainer.heartbeating.Add(1)
 	go workerContainer.heartbeatContinuously(
 		logger.Session("continuous-heartbeat"),
 		clock.NewTicker(containerKeepalive),
-		savedContainer.TTL,
 	)
 
 	metric.TrackedContainers.Inc()
@@ -222,30 +211,17 @@ func (container *gardenWorkerContainer) setVolumes(
 	return volumesByHandle, nil
 }
 
-func (container *gardenWorkerContainer) heartbeatContinuously(logger lager.Logger, pacemaker clock.Ticker, initialTTL time.Duration) {
+func (container *gardenWorkerContainer) heartbeatContinuously(logger lager.Logger, pacemaker clock.Ticker) {
 	defer container.heartbeating.Done()
 	defer pacemaker.Stop()
 
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	ttlToSet := initialTTL
-
 	for {
 		select {
 		case <-pacemaker.C():
-			savedContainer, found, err := container.db.GetContainer(container.Handle())
-			if err != nil {
-				logger.Error("failed-to-lookup-container-ttl", err)
-			} else {
-				if !found {
-					logger.Info("container-expired-from-database")
-					return
-				}
-
-				ttlToSet = savedContainer.TTL
-			}
-			container.heartbeat(logger.Session("tick"), ttlToSet)
+			container.heartbeat(logger.Session("tick"), ContainerTTL)
 
 		case finalTTL := <-container.release:
 			if finalTTL != nil {
