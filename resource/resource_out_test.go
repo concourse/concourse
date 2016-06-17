@@ -200,8 +200,8 @@ var _ = Describe("Resource Out", func() {
 				It("sends garden.SignalKill", func() {
 					outProcess.Signal(os.Interrupt)
 
-					Eventually(outScriptProcess.SignalCallCount, "6s").Should(Equal(2))
-					Expect(outScriptProcess.SignalArgsForCall(1)).To(Equal(garden.SignalKill))
+					Eventually(fakeContainer.StopCallCount, "6s").Should(Equal(1))
+					Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
 
 					close(waited)
 				})

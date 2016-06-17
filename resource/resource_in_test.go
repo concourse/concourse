@@ -162,8 +162,8 @@ var _ = Describe("Resource In", func() {
 				It("sends garden.SignalKill", func() {
 					inProcess.Signal(os.Interrupt)
 
-					Eventually(inScriptProcess.SignalCallCount, "6s").Should(Equal(2))
-					Expect(inScriptProcess.SignalArgsForCall(1)).To(Equal(garden.SignalKill))
+					Eventually(fakeContainer.StopCallCount, "6s").Should(Equal(1))
+					Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
 
 					close(waited)
 				})
