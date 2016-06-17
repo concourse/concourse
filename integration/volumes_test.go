@@ -36,7 +36,7 @@ var _ = Describe("Fly CLI", func() {
 								ValidityInSeconds: 600,
 								Type:              "copy",
 								Identifier:        "some-parent-handle",
-								Size:              1024 * 1024,
+								SizeInBytes:       1024 * 1024,
 							},
 							{
 								ID:                "aaaaaa",
@@ -45,7 +45,7 @@ var _ = Describe("Fly CLI", func() {
 								ValidityInSeconds: 86400,
 								Type:              "import",
 								Identifier:        "path:version",
-								Size:              1741 * 1024,
+								SizeInBytes:       1741 * 1024,
 							},
 							{
 								ID:                "aaabbb",
@@ -54,7 +54,7 @@ var _ = Describe("Fly CLI", func() {
 								ValidityInSeconds: 6000,
 								Type:              "output",
 								Identifier:        "some-output",
-								Size:              4096 * 1024,
+								SizeInBytes:       4096 * 1024,
 							},
 							{
 								ID:                "eeeeee",
@@ -63,7 +63,15 @@ var _ = Describe("Fly CLI", func() {
 								WorkerName:        "ffffff",
 								Type:              "cow",
 								Identifier:        "some-version",
-								Size:              8294 * 1024,
+								SizeInBytes:       8294 * 1024,
+							},
+							{
+								ID:                "ihavenosize",
+								TTLInSeconds:      0,
+								ValidityInSeconds: 0,
+								WorkerName:        "ffffff",
+								Type:              "cow",
+								Identifier:        "some-version",
 							},
 						}),
 					),
@@ -87,10 +95,11 @@ var _ = Describe("Fly CLI", func() {
 						{Contents: "size", Color: color.New(color.Bold)},
 					},
 					Data: []ui.TableRow{
-						{{Contents: "aaabbb"}, {Contents: "01:23:20"}, {Contents: "01:40:00"}, {Contents: "cccccc"}, {Contents: "output"}, {Contents: "some-output"}, {Contents: "4.0M"}},
-						{{Contents: "bbbbbb"}, {Contents: "00:00:50"}, {Contents: "00:10:00"}, {Contents: "cccccc"}, {Contents: "copy"}, {Contents: "some-parent-handle"}, {Contents: "1.0M"}},
-						{{Contents: "aaaaaa"}, {Contents: "23:59:00"}, {Contents: "24:00:00"}, {Contents: "dddddd"}, {Contents: "import"}, {Contents: "path:version"}, {Contents: "1.7M"}},
-						{{Contents: "eeeeee"}, {Contents: "indefinite"}, {Contents: "indefinite"}, {Contents: "ffffff"}, {Contents: "cow"}, {Contents: "some-version"}, {Contents: "8.1M"}},
+						{{Contents: "aaabbb"}, {Contents: "01:23:20"}, {Contents: "01:40:00"}, {Contents: "cccccc"}, {Contents: "output"}, {Contents: "some-output"}, {Contents: "4.0 MiB"}},
+						{{Contents: "bbbbbb"}, {Contents: "00:00:50"}, {Contents: "00:10:00"}, {Contents: "cccccc"}, {Contents: "copy"}, {Contents: "some-parent-handle"}, {Contents: "1.0 MiB"}},
+						{{Contents: "aaaaaa"}, {Contents: "23:59:00"}, {Contents: "24:00:00"}, {Contents: "dddddd"}, {Contents: "import"}, {Contents: "path:version"}, {Contents: "1.7 MiB"}},
+						{{Contents: "eeeeee"}, {Contents: "indefinite"}, {Contents: "indefinite"}, {Contents: "ffffff"}, {Contents: "cow"}, {Contents: "some-version"}, {Contents: "8.1 MiB"}},
+						{{Contents: "ihavenosize"}, {Contents: "indefinite"}, {Contents: "indefinite"}, {Contents: "ffffff"}, {Contents: "cow"}, {Contents: "some-version"}, {Contents: "unknown"}},
 					},
 				}))
 			})
