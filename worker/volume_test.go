@@ -83,7 +83,7 @@ var _ = Describe("Volumes", func() {
 			expectedTTL = 10 * time.Second
 			expectedTTL2 = 5 * time.Second
 			fakeVolume.HandleReturns("some-handle")
-			fakeVolume.SizeReturns(1024, nil)
+			fakeVolume.SizeInBytesReturns(1024, nil)
 			fakeDB.GetVolumeTTLReturns(expectedTTL, true, nil)
 		})
 
@@ -108,12 +108,12 @@ var _ = Describe("Volumes", func() {
 			Expect(actualTTL).To(Equal(expectedTTL))
 
 			By("updating the volume's size in the db")
-			Expect(fakeVolume.SizeCallCount()).To(Equal(1))
+			Expect(fakeVolume.SizeInBytesCallCount()).To(Equal(1))
 
-			Expect(fakeDB.SetVolumeSizeCallCount()).To(Equal(1))
-			actualHandle, actualVolumeSize := fakeDB.SetVolumeSizeArgsForCall(0)
+			Expect(fakeDB.SetVolumeSizeInBytesCallCount()).To(Equal(1))
+			actualHandle, actualVolumeSize := fakeDB.SetVolumeSizeInBytesArgsForCall(0)
 			Expect(actualHandle).To(Equal("some-handle"))
-			Expect(actualVolumeSize).To(Equal(uint(1024)))
+			Expect(actualVolumeSize).To(Equal(int64(1024)))
 
 			By("using the ttl from the database each tick")
 			fakeDB.GetVolumeTTLReturns(expectedTTL2, true, nil)
@@ -130,7 +130,7 @@ var _ = Describe("Volumes", func() {
 
 			By("being resilient to db and volume client errors")
 			fakeDB.GetVolumeTTLReturns(0, false, errors.New("disaster"))
-			fakeVolume.SizeReturns(0, errors.New("an-error"))
+			fakeVolume.SizeInBytesReturns(0, errors.New("an-error"))
 
 			fakeClock.Increment(30 * time.Second)
 
@@ -138,7 +138,7 @@ var _ = Describe("Volumes", func() {
 			actualTTL = fakeVolume.SetTTLArgsForCall(2)
 			Expect(actualTTL).To(Equal(expectedTTL2))
 
-			Expect(fakeDB.SetVolumeSizeCallCount()).To(Equal(2))
+			Expect(fakeDB.SetVolumeSizeInBytesCallCount()).To(Equal(2))
 
 			By("releasing the volume with a final ttl")
 			vol.Release(worker.FinalTTL(2 * time.Second))

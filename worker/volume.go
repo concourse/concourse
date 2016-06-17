@@ -18,7 +18,7 @@ type VolumeFactoryDB interface {
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	ReapVolume(handle string) error
 	SetVolumeTTL(string, time.Duration) error
-	SetVolumeSize(string, uint) error
+	SetVolumeSizeInBytes(string, int64) error
 }
 
 //go:generate counterfeiter . VolumeFactory
@@ -163,11 +163,11 @@ func (v *volume) heartbeat(logger lager.Logger, ttl time.Duration) {
 		logger.Error("failed-to-heartbeat-to-database", err)
 	}
 
-	size, err := v.Size()
+	size, err := v.SizeInBytes()
 	if err != nil {
 		logger.Error("failed-to-get-volume-size", err)
 	} else {
-		err := v.db.SetVolumeSize(v.Handle(), size)
+		err := v.db.SetVolumeSizeInBytes(v.Handle(), size)
 		if err != nil {
 			logger.Error("failed-to-store-volume-size", err)
 		}

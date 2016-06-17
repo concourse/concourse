@@ -137,7 +137,7 @@ type DB interface {
 	ReapVolume(string) error
 	SetVolumeTTL(string, time.Duration) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
-	SetVolumeSize(string, uint) error
+	SetVolumeSizeInBytes(string, int64) error
 	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 
 	SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier ResourceCacheIdentifier) error

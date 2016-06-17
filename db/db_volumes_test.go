@@ -105,26 +105,29 @@ var _ = Describe("Keeping track of volumes", func() {
 				}
 
 				err := database.InsertVolume(db.Volume{
-					Handle:     "volume-1-handle",
-					WorkerName: "some-worker-name",
-					TTL:        5 * time.Minute,
-					Identifier: identifier,
+					Handle:      "volume-1-handle",
+					WorkerName:  "some-worker-name",
+					TTL:         5 * time.Minute,
+					Identifier:  identifier,
+					SizeInBytes: int64(1),
 				})
 				Expect(err).NotTo(HaveOccurred())
 
 				err = database.InsertVolume(db.Volume{
-					Handle:     "volume-2-handle",
-					WorkerName: "some-worker-name",
-					TTL:        5 * time.Minute,
-					Identifier: identifier,
+					Handle:      "volume-2-handle",
+					WorkerName:  "some-worker-name",
+					TTL:         5 * time.Minute,
+					Identifier:  identifier,
+					SizeInBytes: int64(1),
 				})
 				Expect(err).NotTo(HaveOccurred())
 
 				err = database.InsertVolume(db.Volume{
-					Handle:     "volume-3-handle",
-					WorkerName: "some-worker-name",
-					TTL:        5 * time.Minute,
-					Identifier: identifier,
+					Handle:      "volume-3-handle",
+					WorkerName:  "some-worker-name",
+					TTL:         5 * time.Minute,
+					Identifier:  identifier,
+					SizeInBytes: int64(1),
 				})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -155,7 +158,7 @@ var _ = Describe("Keeping track of volumes", func() {
 			})
 		})
 
-		Describe("SetVolumeSize", func() {
+		Describe("SetVolumeSizeInBytes", func() {
 			var identifier db.VolumeIdentifier
 
 			BeforeEach(func() {
@@ -166,21 +169,31 @@ var _ = Describe("Keeping track of volumes", func() {
 				}
 
 				err := database.InsertVolume(db.Volume{
-					Handle:     "volume-1-handle",
-					WorkerName: "some-worker-name",
-					TTL:        5 * time.Minute,
-					Identifier: identifier,
+					Handle:      "volume-1-handle",
+					WorkerName:  "some-worker-name",
+					TTL:         5 * time.Minute,
+					Identifier:  identifier,
+					SizeInBytes: int64(1),
 				})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("sets volume size", func() {
-				err := database.SetVolumeSize("volume-1-handle", uint(1024))
+				err := database.SetVolumeSizeInBytes("volume-1-handle", int64(1024))
 				Expect(err).NotTo(HaveOccurred())
 				volumes, err := database.GetVolumesByIdentifier(identifier)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(volumes).To(HaveLen(1))
-				Expect(volumes[0].Size).To(Equal(uint(1024)))
+				Expect(volumes[0].SizeInBytes).To(Equal(int64(1024)))
+			})
+
+			It("can set the volume size to 5000000000", func() {
+				err := database.SetVolumeSizeInBytes("volume-1-handle", int64(5000000000))
+				Expect(err).NotTo(HaveOccurred())
+				volumes, err := database.GetVolumesByIdentifier(identifier)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(volumes).To(HaveLen(1))
+				Expect(volumes[0].SizeInBytes).To(Equal(int64(5000000000)))
 			})
 		})
 
