@@ -29,13 +29,26 @@ import Scroll
 
 import Concourse.Job exposing (Job)
 
+type BuildOrOutput
+  = HasOutput BuildOutput.Model
+  | NoOutput Build
+
 type alias CurrentBuild =
-  { build : Build
+  { buildOrOutput : BuildOrOutput
   , prep : Maybe BuildPrep
-  , status : BuildStatus
-  , duration : BuildDuration
-  , output : Maybe BuildOutput.Model
   }
+
+currentBuildBuild : CurrentBuild -> Build
+currentBuildBuild cb =
+  case cb.buildOrOutput of
+    NoOutput build -> build
+    HasOutput output -> output.build
+
+currentBuildOutput : CurrentBuild -> Maybe BuildOutput.Model
+currentBuildOutput cb =
+  case cb.buildOrOutput of
+    NoOutput _ -> Nothing
+    HasOutput output -> Just output
 
 type alias Model =
   { now : Time.Time
@@ -59,7 +72,6 @@ type Action
   | BuildHistoryFetched (Result Http.Error (Paginated Build))
   | BuildJobDetailsFetched (Result Http.Error Job)
   | BuildOutputAction BuildOutput.Action
-  | BuildStatus BuildStatus Date
   | ScrollBuilds (Float, Float)
   | ClockTick Time.Time
   | BuildAborted (Result Http.Error ())
@@ -118,28 +130,18 @@ update action model =
         (model, Cmd.none)
 
     BuildOutputAction action ->
-      case (model.currentBuild, model.currentBuild `Maybe.andThen` .output) of
-        (Just currentBuild, Just output) ->
+      case (model.currentBuild, Maybe.map .buildOrOutput model.currentBuild) of
+        (Just currentBuild, Just (HasOutput output)) ->
           let
             (newOutput, cmd) = BuildOutput.update action output
           in
-            ({ model | currentBuild = Just { currentBuild | output = Just newOutput } }, Cmd.map BuildOutputAction cmd)
+            ( { model
+              | currentBuild = Just { currentBuild | buildOrOutput = HasOutput newOutput } }
+            , Cmd.map BuildOutputAction cmd
+            )
 
         _ ->
           Debug.crash "impossible (received action for missing BuildOutput)"
-
-    BuildStatus status date ->
-      ( { model |
-          currentBuild =
-            Maybe.map (\info ->
-              updateStartFinishAt status date <|
-                if Concourse.BuildStatus.isRunning info.status then
-                  { info | status = status }
-                else
-                  info) model.currentBuild
-        }
-      , Cmd.none
-      )
 
     BuildHistoryFetched (Err err) ->
       Debug.log ("failed to fetch build history: " ++ toString err) <|
@@ -171,11 +173,8 @@ handleBuildFetched : Build -> Model -> (Model, Cmd Action)
 handleBuildFetched build model =
   let
     currentBuild =
-      { build = build
-      , status = build.status
-      , duration = build.duration
+      { buildOrOutput = NoOutput build
       , prep = Nothing
-      , output = Nothing
       }
 
     withBuild =
@@ -219,7 +218,12 @@ initBuildOutput build model =
   let
     (output, outputCmd) = BuildOutput.init build
   in
-    ( { model | currentBuild = Maybe.map (\info -> { info | output = Just output }) model.currentBuild }
+    ( { model
+      | currentBuild =
+          Maybe.map
+            (\info -> { info | buildOrOutput = HasOutput output })
+            model.currentBuild
+      }
     , Cmd.map BuildOutputAction outputCmd
     )
 
@@ -237,7 +241,7 @@ handleHistoryFetched history model =
     withBuilds =
       { model | history = List.append model.history history.content }
   in
-    case (history.pagination.nextPage, model.currentBuild `Maybe.andThen` (\info -> info.build.job)) of
+    case (history.pagination.nextPage, model.currentBuild `Maybe.andThen` (.job << currentBuildBuild)) of
       (Nothing, _) ->
         (withBuilds, Cmd.none)
 
@@ -251,18 +255,6 @@ handleBuildPrepFetched : BuildPrep -> Model -> (Model, Cmd Action)
 handleBuildPrepFetched buildPrep model =
   ({ model | currentBuild = Maybe.map (\info -> { info | prep = Just buildPrep }) model.currentBuild }, Cmd.none)
 
-updateStartFinishAt : BuildStatus -> Date -> CurrentBuild -> CurrentBuild
-updateStartFinishAt status date info =
-  let
-    duration = info.duration
-  in
-    case status of
-      Concourse.BuildStatus.Started ->
-        { info | duration = { duration | startedAt = Just date } }
-
-      _ ->
-        { info | duration = { duration | finishedAt = Just date } }
-
 abortBuild : Int -> Cmd Action
 abortBuild buildId =
   Cmd.map BuildAborted << Task.perform Err Ok <|
@@ -273,17 +265,18 @@ view model =
   case model.currentBuild of
     Just currentBuild ->
       Html.div []
-        [ viewBuildHeader currentBuild model
-        , Html.div (id "build-body" :: paddingClass currentBuild.build) <|
+        [ viewBuildHeader (currentBuildBuild currentBuild) model
+        , Html.div (id "build-body" :: paddingClass (currentBuildBuild currentBuild)) <|
           [ viewBuildPrep currentBuild.prep
-          , Html.Lazy.lazy viewBuildOutput currentBuild.output
+          , Html.Lazy.lazy viewBuildOutput <| currentBuildOutput currentBuild
           ] ++
             let
+              build = currentBuildBuild currentBuild
+            in let
               maybeBirthDate =
-                Maybe.oneOf
-                  [currentBuild.duration.startedAt, currentBuild.duration.finishedAt]
+                Maybe.oneOf [build.duration.startedAt, build.duration.finishedAt]
             in
-              case (maybeBirthDate, currentBuild.build.reapTime) of
+              case (maybeBirthDate, build.reapTime) of
                 (Just birthDate, Just reapTime) ->
                   [ Html.div
                       [ class "tombstone" ]
@@ -293,15 +286,15 @@ view model =
                           [ Html.text <|
                               Maybe.withDefault
                                 "one-off build" <|
-                                Maybe.map .name currentBuild.build.job
+                                Maybe.map .name build.job
                           ]
                       , Html.div
                           [ class "build-name" ]
                           [ Html.text <|
                               "build #" ++
-                                case currentBuild.build.job of
-                                  Nothing -> toString currentBuild.build.id
-                                  Just _ -> currentBuild.build.name
+                                case build.job of
+                                  Nothing -> toString build.id
+                                  Just _ -> build.name
                           ]
                       , Html.div
                           [ class "date" ]
@@ -311,7 +304,7 @@ view model =
                       , Html.div
                           [ class "epitaph" ]
                           [ Html.text <|
-                              case currentBuild.build.status of
+                              case build.status of
                                 Concourse.BuildStatus.Succeeded -> "It passed, and now it has passed on."
                                 Concourse.BuildStatus.Failed -> "It failed, and now has been forgotten."
                                 Concourse.BuildStatus.Errored -> "It errored, but has found forgiveness."
@@ -421,8 +414,8 @@ viewBuildPrepStatus status =
     Concourse.BuildPrep.Blocking -> Html.i [class "fa fa-fw fa-spin fa-circle-o-notch inactive", title "blocking"] []
     Concourse.BuildPrep.NotBlocking -> Html.i [class "fa fa-fw fa-check", title "not blocking"] []
 
-viewBuildHeader : CurrentBuild -> Model -> Html Action
-viewBuildHeader currentBuild {now, job, history} =
+viewBuildHeader : Build -> Model -> Html Action
+viewBuildHeader build {now, job, history} =
   let
     triggerButton =
       case job of
@@ -441,26 +434,26 @@ viewBuildHeader currentBuild {now, job, history} =
           Html.div [] []
 
     abortButton =
-      if Concourse.BuildStatus.isRunning currentBuild.status then
+      if Concourse.BuildStatus.isRunning build.status then
         Html.span
-          [class "build-action build-action-abort fr", onClick (AbortBuild currentBuild.build.id), attribute "aria-label" "Abort Build"]
+          [class "build-action build-action-abort fr", onClick (AbortBuild build.id), attribute "aria-label" "Abort Build"]
           [Html.i [class "fa fa-times-circle"] []]
       else
         Html.span [] []
 
-    buildTitle = case currentBuild.build.job of
+    buildTitle = case build.job of
       Just {name, teamName, pipelineName} ->
         Html.a [href ("/teams/" ++ teamName ++ "/pipelines/" ++ pipelineName ++ "/jobs/" ++ name)]
-          [Html.text (name ++ " #" ++ currentBuild.build.name)]
+          [Html.text (name ++ " #" ++ build.name)]
 
       _ ->
-        Html.text ("build #" ++ toString currentBuild.build.id)
+        Html.text ("build #" ++ toString build.id)
   in
-    Html.div [id "page-header", class (Concourse.BuildStatus.show currentBuild.status)]
+    Html.div [id "page-header", class (Concourse.BuildStatus.show build.status)]
       [ Html.div [class "build-header"]
           [ Html.div [class "build-actions fr"] [triggerButton, abortButton]
           , Html.h1 [] [buildTitle]
-          , BuildDuration.view currentBuild.duration now
+          , BuildDuration.view build.duration now
           ]
       , Html.div
           [ onWithOptions
@@ -468,24 +461,24 @@ viewBuildHeader currentBuild {now, job, history} =
               { stopPropagation = True, preventDefault = True }
               (Json.Decode.map ScrollBuilds decodeScrollEvent)
           ]
-          [ lazyViewHistory currentBuild.build currentBuild.status history ]
+          [ lazyViewHistory build history ]
       ]
 
-lazyViewHistory : Build -> BuildStatus -> List Build -> Html Action
-lazyViewHistory currentBuild currentStatus builds =
-  Html.Lazy.lazy3 viewHistory currentBuild currentStatus builds
+lazyViewHistory : Build -> List Build -> Html Action
+lazyViewHistory currentBuild builds =
+  Html.Lazy.lazy2 viewHistory currentBuild builds
 
-viewHistory : Build -> BuildStatus -> List Build -> Html Action
-viewHistory currentBuild currentStatus builds =
+viewHistory : Build -> List Build -> Html Action
+viewHistory currentBuild builds =
   Html.ul [id "builds"]
-    (List.map (viewHistoryItem currentBuild currentStatus) builds)
+    (List.map (viewHistoryItem currentBuild) builds)
 
-viewHistoryItem : Build -> BuildStatus -> Build -> Html Action
-viewHistoryItem currentBuild currentStatus build =
+viewHistoryItem : Build -> Build -> Html Action
+viewHistoryItem currentBuild build =
   Html.li
     [ classList
         [ ( if build.name == currentBuild.name then
-              Concourse.BuildStatus.show currentStatus
+              Concourse.BuildStatus.show currentBuild.status
             else
               Concourse.BuildStatus.show build.status
           , True
@@ -543,7 +536,7 @@ scrollToCurrentBuildInHistory =
 
 getScrollBehavior : Model -> Autoscroll.ScrollBehavior
 getScrollBehavior model =
-  case Maybe.withDefault Concourse.BuildStatus.Pending (Maybe.map .status model.currentBuild) of
+  case Maybe.withDefault Concourse.BuildStatus.Pending (Maybe.map (.status << currentBuildBuild) model.currentBuild) of
     Concourse.BuildStatus.Failed -> ScrollUntilCancelled
     Concourse.BuildStatus.Errored -> ScrollUntilCancelled
     Concourse.BuildStatus.Aborted -> ScrollUntilCancelled
