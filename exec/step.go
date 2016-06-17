@@ -49,10 +49,10 @@ type Step interface {
 
 	// Release is called when the build has completed and no more steps will be
 	// executed in the build plan. Steps with containers should release their
-	// containers, with a final TTL of either the configured containerSuccessTTL
-	// or containerFailureTTL. The TTL of containers associated with failed builds
-	// will be set to infinite until either they refer to a job that no longer
-	// exists or the job fails again.
+	// containers with infinite ttl
+	// Container reaper will check for successful builds and set the containers' ttl to 5 minutes.
+	// Container reaper also checks for unsuccessful (failed, aborted, errored) builds
+	// that are not the latest builds of a job, and release their containers in 5 minutes
 	Release()
 
 	// Result is used to collect metadata from the step. Usually this is

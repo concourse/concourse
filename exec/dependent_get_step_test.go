@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -46,9 +45,6 @@ var _ = Describe("GardenFactory", func() {
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
-		containerSuccessTTL = 1 * time.Minute
-		containerFailureTTL = 2 * time.Minute
-
 		sourceName SourceName = "some-source-name"
 	)
 
@@ -58,7 +54,7 @@ var _ = Describe("GardenFactory", func() {
 
 		fakeWorkerClient = new(wfakes.FakeClient)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, containerSuccessTTL, containerFailureTTL)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -283,7 +279,7 @@ var _ = Describe("GardenFactory", func() {
 
 					step.Release()
 					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
+					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
 				})
 
 				It("invokes the delegate's Failed callback without completing", func() {
@@ -336,7 +332,7 @@ var _ = Describe("GardenFactory", func() {
 
 					step.Release()
 					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-					Expect(fakeResource.ReleaseArgsForCall(0)).To(BeNil())
+					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
 				})
 			})
 

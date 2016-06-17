@@ -39,24 +39,22 @@ func (err MissingInputsError) Error() string {
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
 // SourceRepository and outputs will be added to the SourceRepository.
 type TaskStep struct {
-	logger              lager.Logger
-	containerID         worker.Identifier
-	metadata            worker.Metadata
-	tags                atc.Tags
-	delegate            TaskDelegate
-	privileged          Privileged
-	configSource        TaskConfigSource
-	workerPool          worker.Client
-	artifactsRoot       string
-	trackerFactory      TrackerFactory
-	resourceTypes       atc.ResourceTypes
-	containerSuccessTTL time.Duration
-	containerFailureTTL time.Duration
-	inputMapping        map[string]string
-	outputMapping       map[string]string
-	imageArtifactName   string
-	clock               clock.Clock
-	repo                *SourceRepository
+	logger            lager.Logger
+	containerID       worker.Identifier
+	metadata          worker.Metadata
+	tags              atc.Tags
+	delegate          TaskDelegate
+	privileged        Privileged
+	configSource      TaskConfigSource
+	workerPool        worker.Client
+	artifactsRoot     string
+	trackerFactory    TrackerFactory
+	resourceTypes     atc.ResourceTypes
+	inputMapping      map[string]string
+	outputMapping     map[string]string
+	imageArtifactName string
+	clock             clock.Clock
+	repo              *SourceRepository
 
 	container worker.Container
 	process   garden.Process
@@ -76,31 +74,27 @@ func newTaskStep(
 	artifactsRoot string,
 	trackerFactory TrackerFactory,
 	resourceTypes atc.ResourceTypes,
-	containerSuccessTTL time.Duration,
-	containerFailureTTL time.Duration,
 	inputMapping map[string]string,
 	outputMapping map[string]string,
 	imageArtifactName string,
 	clock clock.Clock,
 ) TaskStep {
 	return TaskStep{
-		logger:              logger,
-		containerID:         containerID,
-		metadata:            metadata,
-		tags:                tags,
-		delegate:            delegate,
-		privileged:          privileged,
-		configSource:        configSource,
-		workerPool:          workerPool,
-		artifactsRoot:       artifactsRoot,
-		trackerFactory:      trackerFactory,
-		resourceTypes:       resourceTypes,
-		containerSuccessTTL: containerSuccessTTL,
-		containerFailureTTL: containerFailureTTL,
-		inputMapping:        inputMapping,
-		outputMapping:       outputMapping,
-		imageArtifactName:   imageArtifactName,
-		clock:               clock,
+		logger:            logger,
+		containerID:       containerID,
+		metadata:          metadata,
+		tags:              tags,
+		delegate:          delegate,
+		privileged:        privileged,
+		configSource:      configSource,
+		workerPool:        workerPool,
+		artifactsRoot:     artifactsRoot,
+		trackerFactory:    trackerFactory,
+		resourceTypes:     resourceTypes,
+		inputMapping:      inputMapping,
+		outputMapping:     outputMapping,
+		imageArtifactName: imageArtifactName,
+		clock:             clock,
 	}
 }
 
@@ -494,18 +488,16 @@ func (step *TaskStep) Result(x interface{}) bool {
 	}
 }
 
-// If step succeeded, release the created container for containerSuccessTTL
-//
-// If the step did not succeed, containerFailureTTL (infinite; container
-// reaper will expire containers of failed builds either when the builds
-// refers to a job that no longer exists or when a more recent failure for
-// the same job occurs).
+// Release releases the resource's container with default infinite TTL(and thus volumes).
+// Container reaper checks for successful builds and set the containers' ttl to 5 minutes.
+// Container reaper also checks for unsuccessful (failed, aborted, errored) builds
+// that are not the latest builds of a job, and release their containers in 5 minutes
 func (step *TaskStep) Release() {
 	if step.container == nil {
 		return
 	}
 
-	step.container.Release(worker.FinalTTL(0))
+	step.container.Release(worker.FinalTTL(worker.FinishedContainerTTL))
 }
 
 // StreamFile streams the given file out of the task's container.

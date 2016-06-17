@@ -52,16 +52,13 @@ var _ = Describe("GardenFactory", func() {
 			Type:         db.ContainerTypeTask,
 			StepName:     "some-step",
 		}
-
-		containerSuccessTTL = 1 * time.Minute
-		containerFailureTTL = time.Duration(0)
 	)
 
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeTracker = new(rfakes.FakeTracker)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, containerSuccessTTL, containerFailureTTL)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -1642,7 +1639,7 @@ var _ = Describe("GardenFactory", func() {
 
 									step.Release()
 									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerSuccessTTL)))
+									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
 								})
 							})
 
@@ -1739,7 +1736,7 @@ var _ = Describe("GardenFactory", func() {
 
 									step.Release()
 									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
+									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
 								})
 							})
 

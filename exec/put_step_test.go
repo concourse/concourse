@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -45,9 +44,6 @@ var _ = Describe("GardenFactory", func() {
 			Type:         db.ContainerTypePut,
 			StepName:     "some-step",
 		}
-
-		containerSuccessTTL = 1 * time.Minute
-		containerFailureTTL = 2 * time.Minute
 	)
 
 	BeforeEach(func() {
@@ -55,7 +51,7 @@ var _ = Describe("GardenFactory", func() {
 		fakeTracker = new(rfakes.FakeTracker)
 		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, containerSuccessTTL, containerFailureTTL)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -290,7 +286,7 @@ var _ = Describe("GardenFactory", func() {
 
 						step.Release()
 						Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-						Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerSuccessTTL)))
+						Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
 					})
 				})
 
@@ -344,7 +340,7 @@ var _ = Describe("GardenFactory", func() {
 
 								step.Release()
 								Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-								Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
+								Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
 							})
 						})
 					})
@@ -375,7 +371,7 @@ var _ = Describe("GardenFactory", func() {
 
 								step.Release()
 								Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-								Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
+								Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
 							})
 						})
 					})
@@ -420,7 +416,7 @@ var _ = Describe("GardenFactory", func() {
 
 								step.Release()
 								Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-								Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
+								Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
 							})
 						})
 					})

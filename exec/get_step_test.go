@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -46,9 +45,6 @@ var _ = Describe("GardenFactory", func() {
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
-		containerSuccessTTL = 1 * time.Minute
-		containerFailureTTL = 2 * time.Minute
-
 		sourceName SourceName = "some-source-name"
 	)
 
@@ -57,7 +53,7 @@ var _ = Describe("GardenFactory", func() {
 		fakeTracker = new(rfakes.FakeTracker)
 		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, containerSuccessTTL, containerFailureTTL)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -227,6 +223,18 @@ var _ = Describe("GardenFactory", func() {
 					Expect(fakeVersionedSource.RunCallCount()).To(Equal(1))
 				})
 
+				Describe("releasing", func() {
+					It("releases the resource with infinite TTL", func() {
+						<-process.Wait()
+
+						Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+						step.Release()
+						Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+						Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
+					})
+				})
+
 				Context("after the 'get' action completes", func() {
 					BeforeEach(func() {
 						fakeVersionedSource.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
@@ -274,18 +282,6 @@ var _ = Describe("GardenFactory", func() {
 						Expect(step.Result(&success)).To(BeTrue())
 						Expect(bool(success)).To(BeTrue())
 					})
-
-					Describe("releasing", func() {
-						It("releases the resource, preserving its original TTL", func() {
-							<-process.Wait()
-
-							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-							step.Release()
-							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(BeZero())
-						})
-					})
 				})
 
 				Context("when the 'get' action fails", func() {
@@ -322,18 +318,6 @@ var _ = Describe("GardenFactory", func() {
 						Expect(step.Result(&success)).To(BeTrue())
 						Expect(bool(success)).To(BeFalse())
 					})
-
-					Describe("releasing", func() {
-						It("releases the resource with the configured containerFailureTTL", func() {
-							<-process.Wait()
-
-							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-							step.Release()
-							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
-						})
-					})
 				})
 
 				Context("if the 'get' action is interrupted", func() {
@@ -365,7 +349,7 @@ var _ = Describe("GardenFactory", func() {
 
 							step.Release()
 							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
 						})
 					})
 				})
@@ -401,7 +385,7 @@ var _ = Describe("GardenFactory", func() {
 
 							step.Release()
 							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
 						})
 					})
 				})

@@ -34,6 +34,7 @@ func (err MalformedMetadataError) Error() string {
 
 const containerKeepalive = 30 * time.Second
 const ContainerTTL = 5 * time.Minute
+const FinishedContainerTTL = 0
 const VolumeTTL = 5 * time.Minute
 
 const ephemeralPropertyName = "concourse:ephemeral"

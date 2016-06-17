@@ -79,11 +79,6 @@ type ATCCommand struct {
 	OldResourceGracePeriod       time.Duration `long:"old-resource-grace-period" default:"5m" description:"How long to cache the result of a get step after a newer version of the resource is found."`
 	ResourceCacheCleanupInterval time.Duration `long:"resource-cache-cleanup-interval" default:"30s" description:"Interval on which to cleanup old caches of resources."`
 
-	ContainerRetention struct {
-		SuccessDuration time.Duration `long:"success-duration" default:"5m" description:"The duration to keep a succeeded step's containers before expiring them."`
-		FailureDuration time.Duration `long:"failure-duration" default:"0" description:"The duration to keep a failed step's containers before expiring them."`
-	} `group:"Container Retention" namespace:"container-retention"`
-
 	CLIArtifactsDir DirFlag `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
 
 	Developer struct {
@@ -333,7 +328,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 				workerClient,
 				sqlDB,
 				pipelineDBFactory,
-				500,
 			),
 			"container-reaper",
 			sqlDB,
@@ -722,8 +716,6 @@ func (cmd *ATCCommand) constructEngine(
 	gardenFactory := exec.NewGardenFactory(
 		workerClient,
 		tracker,
-		cmd.ContainerRetention.SuccessDuration,
-		cmd.ContainerRetention.FailureDuration,
 	)
 
 	execV2Engine := engine.NewExecEngine(
