@@ -29,7 +29,7 @@ Each component has its own repository:
   configuring Concourse pipelines
 * [TSA](https://github.com/concourse/tsa) is a SSH server used for authorizing
   worker registration
-* [Garden](https://github.com/cloudfoundry-incubator/garden) is a generic
+* [Guardian](https://github.com/cloudfoundry-incubator/guardian) is a generic
   interface for orchestrating containers remotely on a worker
 * [Baggageclaim](https://github.com/concourse/baggageclaim) is a server for
   managing caches and artifacts on the workers
