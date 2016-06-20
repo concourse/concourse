@@ -74,13 +74,20 @@ func (cr *containerReaper) release(handle string) error {
 }
 
 func (cr *containerReaper) Run() error {
+	orphanContainers, err := cr.db.FindOrphanContainersWithInfiniteTTL()
+	if err != nil {
+		cr.logger.Error("failed-to-find-orphan-containers", err)
+	} else {
+		for _, container := range orphanContainers {
+			cr.release(container.Handle)
+		}
+	}
+
 	successfulContainers, err := cr.db.FindContainersFromSuccessfulBuildsWithInfiniteTTL()
-	cr.logger.Error("running-container-reaper", nil)
 	if err != nil {
 		cr.logger.Error("failed-to-find-successful-containers", err)
 	} else {
 		for _, container := range successfulContainers {
-			cr.logger.Error("successful-container: ", nil, lager.Data{"pipeline": container.PipelineID})
 			cr.release(container.Handle)
 		}
 	}

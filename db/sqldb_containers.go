@@ -149,6 +149,9 @@ func (db *SQLDB) FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]SavedCon
 		AND c.ttl = '0'`)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return []SavedContainer{}, nil
+		}
 		return nil, err
 	}
 
@@ -163,6 +166,9 @@ func (db *SQLDB) FindContainersFromUnsuccessfulBuildsWithInfiniteTTL() ([]SavedC
 		AND c.ttl = '0'`)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return []SavedContainer{}, nil
+		}
 		return nil, err
 	}
 
@@ -177,6 +183,9 @@ func (db *SQLDB) FindOrphanContainersWithInfiniteTTL() ([]SavedContainer, error)
 		AND c.ttl = '0'`)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return []SavedContainer{}, nil
+		}
 		return nil, err
 	}
 

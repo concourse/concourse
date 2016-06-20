@@ -95,6 +95,30 @@ var _ = Describe("ContainerReaper", func() {
 		containerReaper.Run()
 	})
 
+	Context("for orphan containers", func() {
+		BeforeEach(func() {
+			orphanContainers := []db.SavedContainer{
+				createSavedContainer(3001, "some-job", "orphan-handle-0", 55),
+				createSavedContainer(3002, "some-job", "orphan-handle-1", 66),
+			}
+			fakeContainerReaperDB.FindOrphanContainersWithInfiniteTTLReturns(orphanContainers, nil)
+			fakeContainerReaperDB.FindContainersFromUnsuccessfulBuildsWithInfiniteTTLReturns([]db.SavedContainer{}, nil)
+			fakeContainerReaperDB.FindContainersFromSuccessfulBuildsWithInfiniteTTLReturns([]db.SavedContainer{}, nil)
+		})
+
+		It("releases orphan containers", func() {
+			Expect(fakeContainerReaperDB.FindOrphanContainersWithInfiniteTTLCallCount()).To(Equal(1))
+			expiredHandles := []string{"orphan-handle-0", "orphan-handle-1"}
+
+			for i := 0; i < 2; i++ {
+				verifyLookupContainerCalls(fakeWorkerClient, expiredHandles, i)
+				verifyTTLWasSet(fakeContainerReaperDB, expiredHandles, i)
+			}
+
+			Expect(fakeWorkerContainer.ReleaseCallCount()).To(Equal(2))
+		})
+	})
+
 	It("sets TTL to finite for finished builds for the same job that are not the latest build", func() {
 		Expect(fakeContainerReaperDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(7))
 		Expect(fakeWorkerClient.LookupContainerCallCount()).To(Equal(7))
@@ -109,7 +133,7 @@ var _ = Describe("ContainerReaper", func() {
 		Expect(fakeWorkerContainer.ReleaseCallCount()).To(Equal(7))
 	})
 
-	Context("when pipeline no longer exists", func() {
+	Context("when pipeline is not found", func() {
 		BeforeEach(func() {
 			fakeContainerReaperDB.FindContainersFromSuccessfulBuildsWithInfiniteTTLReturns(
 				[]db.SavedContainer{},
