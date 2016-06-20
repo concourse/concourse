@@ -20,6 +20,13 @@ type FakeContainerReaperDB struct {
 		result2 bool
 		result3 error
 	}
+	FindOrphanContainersWithInfiniteTTLStub        func() ([]db.SavedContainer, error)
+	findOrphanContainersWithInfiniteTTLMutex       sync.RWMutex
+	findOrphanContainersWithInfiniteTTLArgsForCall []struct{}
+	findOrphanContainersWithInfiniteTTLReturns     struct {
+		result1 []db.SavedContainer
+		result2 error
+	}
 	FindContainersFromSuccessfulBuildsWithInfiniteTTLStub        func() ([]db.SavedContainer, error)
 	findContainersFromSuccessfulBuildsWithInfiniteTTLMutex       sync.RWMutex
 	findContainersFromSuccessfulBuildsWithInfiniteTTLArgsForCall []struct{}
@@ -77,6 +84,31 @@ func (fake *FakeContainerReaperDB) FindJobIDForBuildReturns(result1 int, result2
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeContainerReaperDB) FindOrphanContainersWithInfiniteTTL() ([]db.SavedContainer, error) {
+	fake.findOrphanContainersWithInfiniteTTLMutex.Lock()
+	fake.findOrphanContainersWithInfiniteTTLArgsForCall = append(fake.findOrphanContainersWithInfiniteTTLArgsForCall, struct{}{})
+	fake.findOrphanContainersWithInfiniteTTLMutex.Unlock()
+	if fake.FindOrphanContainersWithInfiniteTTLStub != nil {
+		return fake.FindOrphanContainersWithInfiniteTTLStub()
+	} else {
+		return fake.findOrphanContainersWithInfiniteTTLReturns.result1, fake.findOrphanContainersWithInfiniteTTLReturns.result2
+	}
+}
+
+func (fake *FakeContainerReaperDB) FindOrphanContainersWithInfiniteTTLCallCount() int {
+	fake.findOrphanContainersWithInfiniteTTLMutex.RLock()
+	defer fake.findOrphanContainersWithInfiniteTTLMutex.RUnlock()
+	return len(fake.findOrphanContainersWithInfiniteTTLArgsForCall)
+}
+
+func (fake *FakeContainerReaperDB) FindOrphanContainersWithInfiniteTTLReturns(result1 []db.SavedContainer, result2 error) {
+	fake.FindOrphanContainersWithInfiniteTTLStub = nil
+	fake.findOrphanContainersWithInfiniteTTLReturns = struct {
+		result1 []db.SavedContainer
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeContainerReaperDB) FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]db.SavedContainer, error) {

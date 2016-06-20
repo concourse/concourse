@@ -96,17 +96,17 @@ var _ = Describe("ContainerReaper", func() {
 	})
 
 	It("sets TTL to finite for finished builds for the same job that are not the latest build", func() {
-		Expect(fakeContainerReaperDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(6))
-		Expect(fakeWorkerClient.LookupContainerCallCount()).To(Equal(6))
+		Expect(fakeContainerReaperDB.UpdateExpiresAtOnContainerCallCount()).To(Equal(7))
+		Expect(fakeWorkerClient.LookupContainerCallCount()).To(Equal(7))
 
-		expiredHandles := []string{"some-handle-0", "some-handle-1", "some-handle-4", "some-handle-6", "some-handle-7", "some-handle-8"}
+		expiredHandles := []string{"some-handle-0", "some-handle-1", "some-handle-2", "some-handle-4", "some-handle-6", "some-handle-7", "some-handle-8"}
 
-		for i := 0; i < 6; i++ {
+		for i := 0; i < 7; i++ {
 			verifyLookupContainerCalls(fakeWorkerClient, expiredHandles, i)
 			verifyTTLWasSet(fakeContainerReaperDB, expiredHandles, i)
 		}
 
-		Expect(fakeWorkerContainer.ReleaseCallCount()).To(Equal(6))
+		Expect(fakeWorkerContainer.ReleaseCallCount()).To(Equal(7))
 	})
 
 	Context("when pipeline no longer exists", func() {

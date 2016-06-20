@@ -128,6 +128,19 @@ func (db *SQLDB) FindContainersByDescriptors(id Container) ([]SavedContainer, er
 	return infos, nil
 }
 
+func scanRows(rows *sql.Rows) ([]SavedContainer, error) {
+	var containers []SavedContainer
+	for rows.Next() {
+		container, err := scanContainer(rows)
+		if err != nil {
+			return nil, nil
+		}
+		containers = append(containers, container)
+	}
+
+	return containers, nil
+}
+
 func (db *SQLDB) FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error) {
 	rows, err := db.conn.Query(
 		`SELECT ` + containerColumns + `
@@ -139,16 +152,7 @@ func (db *SQLDB) FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]SavedCon
 		return nil, err
 	}
 
-	var containers []SavedContainer
-	for rows.Next() {
-		container, err := scanContainer(rows)
-		if err != nil {
-			return nil, nil
-		}
-		containers = append(containers, container)
-	}
-
-	return containers, nil
+	return scanRows(rows)
 }
 
 func (db *SQLDB) FindContainersFromUnsuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error) {
@@ -162,16 +166,21 @@ func (db *SQLDB) FindContainersFromUnsuccessfulBuildsWithInfiniteTTL() ([]SavedC
 		return nil, err
 	}
 
-	var containers []SavedContainer
-	for rows.Next() {
-		container, err := scanContainer(rows)
-		if err != nil {
-			return nil, nil
-		}
-		containers = append(containers, container)
+	return scanRows(rows)
+}
+
+func (db *SQLDB) FindOrphanContainersWithInfiniteTTL() ([]SavedContainer, error) {
+	rows, err := db.conn.Query(
+		`SELECT ` + containerColumns + `
+		FROM containers c ` + containerJoins + `
+		WHERE b.status is null
+		AND c.ttl = '0'`)
+
+	if err != nil {
+		return nil, err
 	}
 
-	return containers, nil
+	return scanRows(rows)
 }
 
 func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContainer, bool, error) {
