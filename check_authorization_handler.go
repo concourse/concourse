@@ -18,10 +18,15 @@ func CheckAuthorizationHandler(
 }
 
 func (h checkAuthorizationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if IsAuthorized(r) {
+	authorized, response := IsAuthorized(r)
+	if authorized {
 		h.handler.ServeHTTP(w, r)
 		return
 	}
 
-	h.rejector.Unauthorized(w, r)
+	if response == Unauthorized {
+		h.rejector.Unauthorized(w, r)
+	} else if response == Forbidden {
+		h.rejector.Forbidden(w, r)
+	}
 }
