@@ -273,66 +273,96 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when authorized", func() {
-			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", 1, true, true)
-			})
-
-			It("returns 200 OK", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("returns application/json", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-			})
-
-			It("constructs teamDB with provided team name", func() {
-				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
-			})
-
-			It("returns all pipelines", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(body).To(MatchJSON(`[
-      {
-        "name": "a-pipeline",
-        "url": "/teams/a-team/pipelines/a-pipeline",
-				"paused": false,
-				"public": false,
-				"team_name": "a-team",
-				"groups": [
-					{
-						"name": "group1",
-						"jobs": ["job1", "job2"],
-						"resources": ["resource1", "resource2"]
-					}
-				]
-      },{
-        "name": "another-pipeline",
-        "url": "/teams/a-team/pipelines/another-pipeline",
-				"paused": true,
-				"public": true,
-				"team_name": "a-team",
-				"groups": [
-					{
-						"name": "group2",
-						"jobs": ["job3", "job4"],
-						"resources": ["resource3", "resource4"]
-					}
-				]
-      }]`))
-			})
-
-			Context("when the call to get active pipelines fails", func() {
+		Context("when authenticated", func() {
+			Context("and authorized", func() {
 				BeforeEach(func() {
-					teamDB.GetPipelinesReturns(nil, errors.New("disaster"))
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("a-team", 1, true, true)
 				})
 
-				It("returns 500 internal server error", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
+				It("constructs teamDB with provided team name", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("returns all pipelines", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
+	      {
+	        "name": "a-pipeline",
+	        "url": "/teams/a-team/pipelines/a-pipeline",
+					"paused": false,
+					"public": false,
+					"team_name": "a-team",
+					"groups": [
+						{
+							"name": "group1",
+							"jobs": ["job1", "job2"],
+							"resources": ["resource1", "resource2"]
+						}
+					]
+	      },{
+	        "name": "another-pipeline",
+	        "url": "/teams/a-team/pipelines/another-pipeline",
+					"paused": true,
+					"public": true,
+					"team_name": "a-team",
+					"groups": [
+						{
+							"name": "group2",
+							"jobs": ["job3", "job4"],
+							"resources": ["resource3", "resource4"]
+						}
+					]
+	      }]`))
+				})
+
+				Context("when the call to get active pipelines fails", func() {
+					BeforeEach(func() {
+						teamDB.GetPipelinesReturns(nil, errors.New("disaster"))
+					})
+
+					It("returns 500 internal server error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+
+			Context("but not authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("another-team", 1, true, true)
+				})
+
+				It("returns only public pipelines", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`[
+					{
+						"name": "another-pipeline",
+						"url": "/teams/a-team/pipelines/another-pipeline",
+						"paused": true,
+						"public": true,
+						"team_name": "a-team",
+						"groups": [
+							{
+								"name": "group2",
+								"jobs": ["job3", "job4"],
+								"resources": ["resource3", "resource4"]
+							}
+						]
+					}]`))
 				})
 			})
 		})
