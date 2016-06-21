@@ -384,7 +384,7 @@ var _ = Describe("Pipelines API", func() {
 			Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("some-specific-pipeline"))
 		})
 
-		Context("when not authorized", func() {
+		Context("when not authenticated", func() {
 			BeforeEach(func() {
 				authValidator.IsAuthenticatedReturns(false)
 				userContextReader.GetTeamReturns("", 0, false, false)
@@ -413,49 +413,80 @@ var _ = Describe("Pipelines API", func() {
 			})
 		})
 
-		Context("when authorized", func() {
-			BeforeEach(func() {
-				authValidator.IsAuthenticatedReturns(true)
-				userContextReader.GetTeamReturns("a-team", 1, true, true)
+		Context("when authenticated", func() {
+			Context("when authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("a-team", 1, true, true)
+				})
+
+				It("returns 200 ok", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns application/json", func() {
+					Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
+				})
+
+				It("constructs teamDB with provided team name", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
+				})
+
+				It("returns a pipeline JSON", func() {
+					body, err := ioutil.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchJSON(`
+				{
+					"name": "some-specific-pipeline",
+					"url": "/teams/a-team/pipelines/some-specific-pipeline",
+					"paused": false,
+					"public": true,
+					"team_name": "a-team",
+					"groups": [
+						{
+							"name": "group1",
+							"jobs": ["job1", "job2"],
+							"resources": ["resource1", "resource2"]
+						},
+						{
+							"name": "group2",
+							"jobs": ["job3", "job4"],
+							"resources": ["resource3", "resource4"]
+						}
+					]
+				}`))
+				})
 			})
 
-			It("returns 200 ok", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
+			Context("when not authorized", func() {
+				BeforeEach(func() {
+					authValidator.IsAuthenticatedReturns(true)
+					userContextReader.GetTeamReturns("another-team", 1, true, true)
+				})
 
-			It("returns application/json", func() {
-				Expect(response.Header.Get("Content-Type")).To(Equal("application/json"))
-			})
+				Context("and the pipeline is private", func() {
+					BeforeEach(func() {
+						savedPipeline.Public = false
+						teamDB.GetPipelineByNameReturns(savedPipeline, nil)
+					})
 
-			It("constructs teamDB with provided team name", func() {
-				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("a-team"))
-			})
+					It("returns 403 forbidden", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
+				})
 
-			It("returns a pipeline JSON", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
+				Context("and the pipeline is public", func() {
+					BeforeEach(func() {
+						savedPipeline.Public = true
+						teamDB.GetPipelineByNameReturns(savedPipeline, nil)
+					})
 
-				Expect(body).To(MatchJSON(`
-      {
-        "name": "some-specific-pipeline",
-        "url": "/teams/a-team/pipelines/some-specific-pipeline",
-				"paused": false,
-				"public": true,
-				"team_name": "a-team",
-				"groups": [
-					{
-						"name": "group1",
-						"jobs": ["job1", "job2"],
-						"resources": ["resource1", "resource2"]
-					},
-					{
-						"name": "group2",
-						"jobs": ["job3", "job4"],
-						"resources": ["resource3", "resource4"]
-					}
-				]
-      }`))
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
 			})
 		})
 
