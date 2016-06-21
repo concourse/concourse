@@ -116,5 +116,16 @@ var _ = Describe("ATC Handler Events", func() {
 				Expect(err).To(Equal(concourse.ErrUnauthorized))
 			})
 		})
+
+		Context("when the server returns 403", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(ghttp.RespondWith(http.StatusForbidden, ""))
+			})
+
+			It("returns ErrForbidden", func() {
+				_, err := client.BuildEvents(buildID)
+				Expect(err).To(Equal(concourse.ErrForbidden))
+			})
+		})
 	})
 })

@@ -101,6 +101,9 @@ func (connection *connection) ConnectToEventStream(passedRequest Request) (*sse.
 			if brErr.Response.StatusCode == http.StatusUnauthorized {
 				return nil, ErrUnauthorized
 			}
+			if brErr.Response.StatusCode == http.StatusForbidden {
+				return nil, ErrForbidden
+			}
 		}
 
 		return nil, err
@@ -150,6 +153,10 @@ func (connection *connection) populateResponse(response *http.Response, returnRe
 
 	if response.StatusCode == http.StatusUnauthorized {
 		return ErrUnauthorized
+	}
+
+	if response.StatusCode == http.StatusForbidden {
+		return ErrForbidden
 	}
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {

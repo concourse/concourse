@@ -8,6 +8,7 @@ import (
 )
 
 var ErrUnauthorized = internal.ErrUnauthorized
+var ErrForbidden = internal.ErrForbidden
 
 func NameRequiredError(thing string) error {
 	return errors.New(thing + " name required")

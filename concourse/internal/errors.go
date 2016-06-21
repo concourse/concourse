@@ -25,3 +25,4 @@ func (e ResourceNotFoundError) Error() string {
 }
 
 var ErrUnauthorized = errors.New("not authorized")
+var ErrForbidden = errors.New("forbidden")

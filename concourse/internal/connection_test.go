@@ -357,6 +357,33 @@ var _ = Describe("ATC Connection", func() {
 				})
 			})
 
+			Describe("403 response", func() {
+				BeforeEach(func() {
+					atcServer = ghttp.NewServer()
+
+					connection = NewConnection(atcServer.URL(), nil)
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/foo"),
+							ghttp.RespondWith(http.StatusForbidden, "problem"),
+						),
+					)
+				})
+
+				It("returns back ErrForbidden", func() {
+					err := connection.Send(Request{
+						RequestName: atc.DeletePipeline,
+						Params: rata.Params{
+							"pipeline_name": "foo",
+							"team_name":     atc.DefaultTeamName,
+						},
+					}, nil)
+
+					Expect(err).To(Equal(ErrForbidden))
+				})
+			})
+
 			Describe("404 response", func() {
 				BeforeEach(func() {
 					atcServer = ghttp.NewServer()
