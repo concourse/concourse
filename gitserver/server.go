@@ -273,18 +273,33 @@ func (server *Server) CommitRootfs() {
 	Expect(process.Wait()).To(Equal(0))
 }
 
-// produce a rootfs implementing a resource versioned via unix timestamps, which does:
-//
-//   /in: produce a rootfs so that this resource can be used as an
-//   image_resource
-//
-//   /out: print the stuff that we were told to push (doesn't actually do
-//   anything)
-//
-//   /check: emit one and only one version so that the pipeline only triggers once
-//
-// this is used to test `get`, `put`, and `task` steps with custom resource types
-func (server *Server) CommitResource() {
+func (server *Server) WriteFile(fileName string, fileContents string) {
+	process, err := server.container.Run(garden.ProcessSpec{
+		Path: "sh",
+		Args: []string{
+			"-exc",
+			`cat > ` + fileName + ` <<EOF
+` + fileContents + `
+EOF
+`,
+		},
+		User: "root",
+	}, garden.ProcessIO{
+		Stdout: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[o]", "green"), ansi.Color("[fly]", "blue")),
+			ginkgo.GinkgoWriter,
+		),
+		Stderr: gexec.NewPrefixedWriter(
+			fmt.Sprintf("%s%s ", ansi.Color("[e]", "red+bright"), ansi.Color("[fly]", "blue")),
+			ginkgo.GinkgoWriter,
+		),
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(process.Wait()).To(Equal(0))
+}
+
+func (server *Server) CommitResourceWithFile(fileName string) {
+
 	process, err := server.container.Run(garden.ProcessSpec{
 		Path: "sh",
 		Args: []string{
@@ -356,7 +371,7 @@ EOF
 				chmod +x rootfs/opt/resource/*
 
 				git checkout -B master
-				git add rootfs metadata.json
+				git add rootfs metadata.json ` + fileName + `
 				git commit -qm 'created resource rootfs'
 			`,
 		},
@@ -373,6 +388,21 @@ EOF
 	})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(process.Wait()).To(Equal(0))
+}
+
+// produce a rootfs implementing a resource versioned via unix timestamps, which does:
+//
+//   /in: produce a rootfs so that this resource can be used as an
+//   image_resource
+//
+//   /out: print the stuff that we were told to push (doesn't actually do
+//   anything)
+//
+//   /check: emit one and only one version so that the pipeline only triggers once
+//
+// this is used to test `get`, `put`, and `task` steps with custom resource types
+func (server *Server) CommitResource() {
+	server.CommitResourceWithFile("")
 }
 
 func (server *Server) RevParse(ref string) string {
