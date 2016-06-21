@@ -64,32 +64,103 @@ var _ = Describe("Handler", func() {
 		server.Close()
 	})
 
-	Context("when authorized", func() {
-		BeforeEach(func() {
-			authValidator.IsAuthenticatedReturns(true)
-			userContextReader.GetTeamReturns("some-team", 42, true, true)
+	Context("when authenticated", func() {
+		Context("and authorized", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("some-team", 42, true, true)
+			})
+
+			It("looks up the team by the right name", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("some-team"))
+			})
+
+			It("looks up the pipeline by the right name", func() {
+				Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
+				Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("some-pipeline"))
+			})
+
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("calls the scoped handler", func() {
+				Expect(delegate.IsCalled).To(BeTrue())
+			})
 		})
 
-		It("looks up the team by the right name", func() {
-			Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
-			Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("some-team"))
-		})
+		Context("but not authorized", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+				userContextReader.GetTeamReturns("", 42, true, true)
+			})
 
-		It("looks up the pipeline by the right name", func() {
-			Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
-			Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("some-pipeline"))
-		})
+			Context("and allows public", func() {
+				BeforeEach(func() {
+					allowsPublic = true
+				})
 
-		It("returns 200", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-		})
+				It("looks up the team by the right name", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+					Expect(teamDBFactory.GetTeamDBArgsForCall(0)).To(Equal("some-team"))
+				})
 
-		It("calls the scoped handler", func() {
-			Expect(delegate.IsCalled).To(BeTrue())
+				It("looks up the pipeline by the right name", func() {
+					Expect(teamDB.GetPipelineByNameCallCount()).To(Equal(1))
+					Expect(teamDB.GetPipelineByNameArgsForCall(0)).To(Equal("some-pipeline"))
+				})
+
+				Context("and pipeline is public", func() {
+					BeforeEach(func() {
+						pipelineDB.IsPublicReturns(true)
+					})
+
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("calls the scoped handler", func() {
+						Expect(delegate.IsCalled).To(BeTrue())
+					})
+				})
+
+				Context("and pipeline is not public", func() {
+					BeforeEach(func() {
+						pipelineDB.IsPublicReturns(false)
+					})
+
+					It("returns 403 forbidden", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
+
+					It("does not call the scoped handler", func() {
+						Expect(delegate.IsCalled).To(BeFalse())
+					})
+				})
+			})
+
+			Context("and does not allow public", func() {
+				BeforeEach(func() {
+					allowsPublic = false
+				})
+
+				It("doesn't bother looking up the team", func() {
+					Expect(teamDBFactory.GetTeamDBCallCount()).To(BeZero())
+				})
+
+				It("returns 403 forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+
+				It("does not call the scoped handler", func() {
+					Expect(delegate.IsCalled).To(BeFalse())
+				})
+			})
 		})
 	})
 
-	Context("when not authorized", func() {
+	Context("when not authenticated", func() {
 		BeforeEach(func() {
 			authValidator.IsAuthenticatedReturns(false)
 			userContextReader.GetTeamReturns("", 0, false, false)

@@ -27,9 +27,13 @@ func NewHandlerFactory(
 
 func (pdbh *PipelineHandlerFactory) HandlerFor(pipelineScopedHandler func(db.PipelineDB) http.Handler, allowPublic bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		authorized, _ := auth.IsAuthorized(r)
+		authorized, response := auth.IsAuthorized(r)
 		if !allowPublic && !authorized {
-			pdbh.rejector.Unauthorized(w, r)
+			if response == auth.Unauthorized {
+				pdbh.rejector.Unauthorized(w, r)
+			} else if response == auth.Forbidden {
+				pdbh.rejector.Forbidden(w, r)
+			}
 			return
 		}
 
@@ -48,7 +52,11 @@ func (pdbh *PipelineHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pip
 		pipelineDB := pdbh.pipelineDBFactory.Build(savedPipeline)
 
 		if !authorized && !pipelineDB.IsPublic() {
-			pdbh.rejector.Unauthorized(w, r)
+			if response == auth.Unauthorized {
+				pdbh.rejector.Unauthorized(w, r)
+			} else if response == auth.Forbidden {
+				pdbh.rejector.Forbidden(w, r)
+			}
 			return
 		}
 
