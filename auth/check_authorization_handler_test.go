@@ -41,6 +41,10 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 			http.Error(w, "nope", http.StatusUnauthorized)
 		}
 
+		fakeRejector.ForbiddenStub = func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "nope", http.StatusForbidden)
+		}
+
 		server = httptest.NewServer(
 			auth.WrapHandler( // for setting context on the request
 				auth.CheckAuthorizationHandler(
@@ -102,8 +106,8 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 					fakeUserContextReader.GetTeamReturns("another-team", 1, true, true)
 				})
 
-				It("returns 401", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 					responseBody, err := ioutil.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(responseBody)).To(Equal("nope\n"))

@@ -12,3 +12,8 @@ func (BasicAuthRejector) Unauthorized(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusUnauthorized)
 	fmt.Fprintf(w, "not authorized")
 }
+
+func (BasicAuthRejector) Forbidden(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusForbidden)
+	fmt.Fprintf(w, "forbidden")
+}

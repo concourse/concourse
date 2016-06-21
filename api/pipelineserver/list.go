@@ -19,7 +19,8 @@ func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !auth.IsAuthorized(r) {
+	authorized, _ := auth.IsAuthorized(r)
+	if !authorized {
 		publicPipelines := []atc.Pipeline{}
 		for _, pipeline := range pipelines {
 			if pipeline.Public {

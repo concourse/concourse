@@ -111,7 +111,30 @@ var _ = Describe("Auth", func() {
 			})
 		})
 
-		Context("when requesting a team-specific route", func() {
+		Context("when requesting a team-specific route as not authenticated", func() {
+			BeforeEach(func() {
+				_, err := sqlDB.CreateTeam(db.Team{
+					Name: "some-team",
+					BasicAuth: &db.BasicAuth{
+						BasicAuthUsername: "username",
+						BasicAuthPassword: "passord",
+					},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				request, err := http.NewRequest("POST", fmt.Sprintf("http://127.0.0.1:%d/teams/some-team/pipelines/some-pipeline/jobs/foo/builds", atcPort), nil)
+				Expect(err).NotTo(HaveOccurred())
+				response, responseErr = http.DefaultClient.Do(request)
+			})
+
+			It("forces a redirect to /teams/:team_name/login", func() {
+				Expect(responseErr).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+				Expect(response.Request.URL.Path).To(Equal("/teams/some-team/login"))
+			})
+		})
+
+		Context("when requesting another team-specific route but not authorized", func() {
 			BeforeEach(func() {
 				_, err := sqlDB.CreateTeam(db.Team{Name: "some-team"})
 				Expect(err).NotTo(HaveOccurred())

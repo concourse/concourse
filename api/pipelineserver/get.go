@@ -20,7 +20,8 @@ func (s *Server) GetPipeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !auth.IsAuthorized(r) && !pipeline.Public {
+	authorized, _ := auth.IsAuthorized(r)
+	if !authorized && !pipeline.Public {
 		s.rejector.Unauthorized(w, r)
 		return
 	}

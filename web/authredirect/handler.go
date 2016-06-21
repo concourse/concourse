@@ -17,7 +17,7 @@ type Handler struct {
 
 func (handler Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := handler.HTTPHandlerWithError.ServeHTTP(w, r)
-	if err == concourse.ErrUnauthorized {
+	if err == concourse.ErrUnauthorized || err == concourse.ErrForbidden {
 		teamName := r.FormValue(":team_name")
 		if teamName == "" {
 			teamName = atc.DefaultTeamName

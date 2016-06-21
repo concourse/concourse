@@ -7,15 +7,28 @@ import (
 	"github.com/gorilla/context"
 )
 
-func IsAuthorized(r *http.Request) bool {
-	if IsAuthenticated(r) {
-		authTeamName, ok := context.GetOk(r, teamNameKey)
-		if !ok {
-			authTeamName = atc.DefaultTeamName
-		}
+type AuthorizationResponse string
 
-		return r.URL.Query().Get(":team_name") == authTeamName
+const (
+	Authorized   AuthorizationResponse = "authorized"
+	Unauthorized AuthorizationResponse = "unauthorized"
+	Forbidden    AuthorizationResponse = "forbidden"
+)
+
+func IsAuthorized(r *http.Request) (bool, AuthorizationResponse) {
+	authenticated := IsAuthenticated(r)
+	if !authenticated {
+		return false, Unauthorized
 	}
 
-	return false
+	authTeamName, ok := context.GetOk(r, teamNameKey)
+	if !ok {
+		authTeamName = atc.DefaultTeamName
+	}
+
+	if r.URL.Query().Get(":team_name") != authTeamName {
+		return false, Forbidden
+	}
+
+	return true, Authorized
 }

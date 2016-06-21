@@ -15,6 +15,12 @@ type FakeRejector struct {
 		arg1 http.ResponseWriter
 		arg2 *http.Request
 	}
+	ForbiddenStub        func(http.ResponseWriter, *http.Request)
+	forbiddenMutex       sync.RWMutex
+	forbiddenArgsForCall []struct {
+		arg1 http.ResponseWriter
+		arg2 *http.Request
+	}
 }
 
 func (fake *FakeRejector) Unauthorized(arg1 http.ResponseWriter, arg2 *http.Request) {
@@ -39,6 +45,30 @@ func (fake *FakeRejector) UnauthorizedArgsForCall(i int) (http.ResponseWriter, *
 	fake.unauthorizedMutex.RLock()
 	defer fake.unauthorizedMutex.RUnlock()
 	return fake.unauthorizedArgsForCall[i].arg1, fake.unauthorizedArgsForCall[i].arg2
+}
+
+func (fake *FakeRejector) Forbidden(arg1 http.ResponseWriter, arg2 *http.Request) {
+	fake.forbiddenMutex.Lock()
+	fake.forbiddenArgsForCall = append(fake.forbiddenArgsForCall, struct {
+		arg1 http.ResponseWriter
+		arg2 *http.Request
+	}{arg1, arg2})
+	fake.forbiddenMutex.Unlock()
+	if fake.ForbiddenStub != nil {
+		fake.ForbiddenStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeRejector) ForbiddenCallCount() int {
+	fake.forbiddenMutex.RLock()
+	defer fake.forbiddenMutex.RUnlock()
+	return len(fake.forbiddenArgsForCall)
+}
+
+func (fake *FakeRejector) ForbiddenArgsForCall(i int) (http.ResponseWriter, *http.Request) {
+	fake.forbiddenMutex.RLock()
+	defer fake.forbiddenMutex.RUnlock()
+	return fake.forbiddenArgsForCall[i].arg1, fake.forbiddenArgsForCall[i].arg2
 }
 
 var _ auth.Rejector = new(FakeRejector)
