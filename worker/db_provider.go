@@ -20,7 +20,7 @@ import (
 type WorkerDB interface {
 	Workers() ([]db.SavedWorker, error)
 	GetWorker(string) (db.SavedWorker, bool, error)
-	CreateContainer(db.Container, time.Duration, time.Duration) (db.SavedContainer, error)
+	CreateContainer(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
 	GetContainer(string) (db.SavedContainer, bool, error)
 	FindContainerByIdentifier(db.ContainerIdentifier) (db.SavedContainer, bool, error)
 

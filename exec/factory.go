@@ -2,6 +2,7 @@ package exec
 
 import (
 	"io"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
@@ -26,6 +27,8 @@ type Factory interface {
 		atc.Params,
 		atc.Version,
 		atc.ResourceTypes,
+		time.Duration,
+		time.Duration,
 	) StepFactory
 
 	// Put constructs a PutStep factory.
@@ -39,6 +42,8 @@ type Factory interface {
 		atc.Tags,
 		atc.Params,
 		atc.ResourceTypes,
+		time.Duration,
+		time.Duration,
 	) StepFactory
 
 	// DependentGet constructs a GetStep factory whose version is determined by
@@ -54,6 +59,8 @@ type Factory interface {
 		atc.Tags,
 		atc.Params,
 		atc.ResourceTypes,
+		time.Duration,
+		time.Duration,
 	) StepFactory
 
 	// Task constructs a TaskStep factory.
@@ -71,6 +78,8 @@ type Factory interface {
 		map[string]string,
 		string,
 		clock.Clock,
+		time.Duration,
+		time.Duration,
 	) StepFactory
 }
 

@@ -109,4 +109,5 @@ var Migrations = []migration.Migrator{
 	AddMissingInputReasonsToBuildPreparation,
 	MakeVolumeSizeBigint,
 	MakeContainersExpiresAtNullable,
+	AddContainerIDToVolumes,
 }

@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -32,6 +33,9 @@ type PutStep struct {
 	versionedSource resource.VersionedSource
 
 	succeeded bool
+
+	containerSuccessTTL time.Duration
+	containerFailureTTL time.Duration
 }
 
 func newPutStep(
@@ -44,17 +48,21 @@ func newPutStep(
 	delegate PutDelegate,
 	tracker resource.Tracker,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) PutStep {
 	return PutStep{
-		logger:         logger,
-		resourceConfig: resourceConfig,
-		params:         params,
-		stepMetadata:   stepMetadata,
-		session:        session,
-		tags:           tags,
-		delegate:       delegate,
-		tracker:        tracker,
-		resourceTypes:  resourceTypes,
+		logger:              logger,
+		resourceConfig:      resourceConfig,
+		params:              params,
+		stepMetadata:        stepMetadata,
+		session:             session,
+		tags:                tags,
+		delegate:            delegate,
+		tracker:             tracker,
+		resourceTypes:       resourceTypes,
+		containerSuccessTTL: containerSuccessTTL,
+		containerFailureTTL: containerFailureTTL,
 	}
 }
 
@@ -163,7 +171,11 @@ func (step *PutStep) Release() {
 		return
 	}
 
-	step.resource.Release(worker.FinalTTL(worker.FinishedContainerTTL))
+	if step.succeeded {
+		step.resource.Release(worker.FinalTTL(step.containerSuccessTTL))
+	} else {
+		step.resource.Release(worker.FinalTTL(step.containerFailureTTL))
+	}
 }
 
 // Result indicates Success as true if the script completed with exit status 0.

@@ -43,15 +43,8 @@ var _ = Describe("GardenFactory", func() {
 
 		sourceName        SourceName = "some-source-name"
 		imageArtifactName string
-		identifier        = worker.Identifier{
-			BuildID: 1234,
-			PlanID:  atc.PlanID("some-plan-id"),
-		}
-		workerMetadata = worker.Metadata{
-			PipelineName: "some-pipeline",
-			Type:         db.ContainerTypeTask,
-			StepName:     "some-step",
-		}
+		identifier        worker.Identifier
+		workerMetadata    worker.Metadata
 	)
 
 	BeforeEach(func() {
@@ -79,6 +72,9 @@ var _ = Describe("GardenFactory", func() {
 
 			step    Step
 			process ifrit.Process
+
+			successTTL time.Duration
+			failureTTL time.Duration
 		)
 
 		BeforeEach(func() {
@@ -105,6 +101,20 @@ var _ = Describe("GardenFactory", func() {
 			outputMapping = nil
 			imageArtifactName = ""
 			fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
+
+			successTTL = 3 * time.Microsecond
+			failureTTL = 5 * time.Second
+
+			identifier = worker.Identifier{
+				BuildID: 1234,
+				PlanID:  atc.PlanID("some-plan-id"),
+			}
+			workerMetadata = worker.Metadata{
+				PipelineName: "some-pipeline",
+				Type:         db.ContainerTypeTask,
+				StepName:     "some-step",
+				JobName:      "some-job",
+			}
 		})
 
 		JustBeforeEach(func() {
@@ -122,6 +132,8 @@ var _ = Describe("GardenFactory", func() {
 				outputMapping,
 				imageArtifactName,
 				fakeClock,
+				successTTL,
+				failureTTL,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -246,6 +258,7 @@ var _ = Describe("GardenFactory", func() {
 								StepName:             "some-step",
 								WorkingDirectory:     "/tmp/build/a1f5c0c1",
 								EnvironmentVariables: []string{"SOME=params"},
+								JobName:              "some-job",
 							}))
 
 							Expect(delegate).To(Equal(taskDelegate))
@@ -332,6 +345,7 @@ var _ = Describe("GardenFactory", func() {
 									StepName:             "some-step",
 									WorkingDirectory:     "/tmp/build/a1f5c0c1",
 									EnvironmentVariables: []string{"SOME=params"},
+									JobName:              "some-job",
 								}))
 
 								Expect(spec.Platform).To(Equal("some-platform"))
@@ -1633,14 +1647,14 @@ var _ = Describe("GardenFactory", func() {
 								Expect(status).To(Equal(ExitStatus(0)))
 							})
 
-							Describe("release", func() {
-								It("releases with the configured container success TTL", func() {
-									<-process.Wait()
+							It("releases with success ttl", func() {
+								<-process.Wait()
 
-									step.Release()
-									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
-								})
+								Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
+
+								step.Release()
+								Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
+								Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(successTTL)))
 							})
 
 							It("doesn't register a source", func() {
@@ -1730,14 +1744,14 @@ var _ = Describe("GardenFactory", func() {
 								Expect(status).To(Equal(ExitStatus(1)))
 							})
 
-							Describe("release", func() {
-								It("releases with the configured container failure TTL", func() {
-									Eventually(process.Wait()).Should(Receive(BeNil()))
+							It("releases with failure ttl", func() {
+								<-process.Wait()
 
-									step.Release()
-									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
-								})
+								Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
+
+								step.Release()
+								Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
+								Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
 							})
 
 							Context("when saving the exit status succeeds", func() {
@@ -1889,17 +1903,6 @@ var _ = Describe("GardenFactory", func() {
 
 								sourceMap := repo.AsMap()
 								Expect(sourceMap).To(BeEmpty())
-							})
-						})
-
-						Describe("releasing", func() {
-							It("releases the container", func() {
-								<-process.Wait()
-
-								Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
-
-								step.Release()
-								Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
 							})
 						})
 
@@ -2129,6 +2132,16 @@ var _ = Describe("GardenFactory", func() {
 						Expect(bool(success)).To(BeFalse())
 					})
 
+					It("releases the container with failure TTL", func() {
+						<-process.Wait()
+
+						Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
+
+						step.Release()
+						Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
+						Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
+					})
+
 					It("reports its exit status", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
 
@@ -2202,6 +2215,16 @@ var _ = Describe("GardenFactory", func() {
 						It("does not invoke the delegate's Started callback", func() {
 							Expect(taskDelegate.StartedCallCount()).To(BeZero())
 						})
+
+						It("releases the container with success TTL", func() {
+							<-process.Wait()
+
+							Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
+
+							step.Release()
+							Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(successTTL)))
+						})
 					})
 
 					Context("when attaching to the process fails", func() {
@@ -2230,7 +2253,7 @@ var _ = Describe("GardenFactory", func() {
 						fakeContainer.PropertyReturns("", disaster)
 					})
 
-					It("exits with the failure", func() {
+					It("exits with the error", func() {
 						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 					})
 

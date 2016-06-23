@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -36,6 +37,9 @@ type GetStep struct {
 	versionedSource resource.VersionedSource
 
 	succeeded bool
+
+	containerSuccessTTL time.Duration
+	containerFailureTTL time.Duration
 }
 
 func newGetStep(
@@ -51,20 +55,24 @@ func newGetStep(
 	delegate GetDelegate,
 	tracker resource.Tracker,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) GetStep {
 	return GetStep{
-		logger:          logger,
-		sourceName:      sourceName,
-		resourceConfig:  resourceConfig,
-		version:         version,
-		params:          params,
-		cacheIdentifier: cacheIdentifier,
-		stepMetadata:    stepMetadata,
-		session:         session,
-		tags:            tags,
-		delegate:        delegate,
-		tracker:         tracker,
-		resourceTypes:   resourceTypes,
+		logger:              logger,
+		sourceName:          sourceName,
+		resourceConfig:      resourceConfig,
+		version:             version,
+		params:              params,
+		cacheIdentifier:     cacheIdentifier,
+		stepMetadata:        stepMetadata,
+		session:             session,
+		tags:                tags,
+		delegate:            delegate,
+		tracker:             tracker,
+		resourceTypes:       resourceTypes,
+		containerSuccessTTL: containerSuccessTTL,
+		containerFailureTTL: containerFailureTTL,
 	}
 }
 
@@ -182,16 +190,16 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return nil
 }
 
-// Release releases the resource's container with default infinite TTL(and thus volumes).
-// Container reaper checks for successful builds and set the containers' ttl to 5 minutes.
-// Container reaper also checks for unsuccessful (failed, aborted, errored) builds
-// that are not the latest builds of a job, and release their containers in 5 minutes
 func (step *GetStep) Release() {
 	if step.resource == nil {
 		return
 	}
 
-	step.resource.Release(worker.FinalTTL(worker.FinishedContainerTTL))
+	if step.succeeded {
+		step.resource.Release(worker.FinalTTL(step.containerSuccessTTL))
+	} else {
+		step.resource.Release(worker.FinalTTL(step.containerFailureTTL))
+	}
 }
 
 // Result indicates Success as true if the script completed successfully (or

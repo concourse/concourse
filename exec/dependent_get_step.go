@@ -1,6 +1,8 @@
 package exec
 
 import (
+	"time"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
 	"github.com/pivotal-golang/lager"
@@ -10,16 +12,18 @@ import (
 // previous step. It is used to fetch the resource version produced by a
 // PutStep.
 type DependentGetStep struct {
-	logger         lager.Logger
-	sourceName     SourceName
-	resourceConfig atc.ResourceConfig
-	params         atc.Params
-	stepMetadata   StepMetadata
-	session        resource.Session
-	tags           atc.Tags
-	delegate       ResourceDelegate
-	tracker        resource.Tracker
-	resourceTypes  atc.ResourceTypes
+	logger              lager.Logger
+	sourceName          SourceName
+	resourceConfig      atc.ResourceConfig
+	params              atc.Params
+	stepMetadata        StepMetadata
+	session             resource.Session
+	tags                atc.Tags
+	delegate            ResourceDelegate
+	tracker             resource.Tracker
+	resourceTypes       atc.ResourceTypes
+	containerSuccessTTL time.Duration
+	containerFailureTTL time.Duration
 }
 
 func newDependentGetStep(
@@ -33,18 +37,22 @@ func newDependentGetStep(
 	delegate ResourceDelegate,
 	tracker resource.Tracker,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) DependentGetStep {
 	return DependentGetStep{
-		logger:         logger,
-		sourceName:     sourceName,
-		resourceConfig: resourceConfig,
-		params:         params,
-		stepMetadata:   stepMetadata,
-		session:        session,
-		tags:           tags,
-		delegate:       delegate,
-		tracker:        tracker,
-		resourceTypes:  resourceTypes,
+		logger:              logger,
+		sourceName:          sourceName,
+		resourceConfig:      resourceConfig,
+		params:              params,
+		stepMetadata:        stepMetadata,
+		session:             session,
+		tags:                tags,
+		delegate:            delegate,
+		tracker:             tracker,
+		resourceTypes:       resourceTypes,
+		containerSuccessTTL: containerSuccessTTL,
+		containerFailureTTL: containerFailureTTL,
 	}
 }
 
@@ -72,5 +80,7 @@ func (step DependentGetStep) Using(prev Step, repo *SourceRepository) Step {
 		step.delegate,
 		step.tracker,
 		step.resourceTypes,
+		step.containerSuccessTTL,
+		step.containerFailureTTL,
 	).Using(prev, repo)
 }

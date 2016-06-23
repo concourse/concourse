@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
@@ -46,6 +47,8 @@ func (factory *gardenFactory) DependentGet(
 	tags atc.Tags,
 	params atc.Params,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) StepFactory {
 	return newDependentGetStep(
 		logger,
@@ -62,6 +65,8 @@ func (factory *gardenFactory) DependentGet(
 		delegate,
 		factory.tracker,
 		resourceTypes,
+		containerSuccessTTL,
+		containerFailureTTL,
 	)
 }
 
@@ -77,6 +82,8 @@ func (factory *gardenFactory) Get(
 	params atc.Params,
 	version atc.Version,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 	return newGetStep(
@@ -101,6 +108,9 @@ func (factory *gardenFactory) Get(
 		delegate,
 		factory.tracker,
 		resourceTypes,
+
+		containerSuccessTTL,
+		containerFailureTTL,
 	)
 }
 
@@ -114,6 +124,8 @@ func (factory *gardenFactory) Put(
 	tags atc.Tags,
 	params atc.Params,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 	return newPutStep(
@@ -130,6 +142,8 @@ func (factory *gardenFactory) Put(
 		delegate,
 		factory.tracker,
 		resourceTypes,
+		containerSuccessTTL,
+		containerFailureTTL,
 	)
 }
 
@@ -147,6 +161,8 @@ func (factory *gardenFactory) Task(
 	outputMapping map[string]string,
 	imageArtifactName string,
 	clock clock.Clock,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) StepFactory {
 	workingDirectory := factory.taskWorkingDirectory(sourceName)
 	workerMetadata.WorkingDirectory = workingDirectory
@@ -166,6 +182,8 @@ func (factory *gardenFactory) Task(
 		outputMapping,
 		imageArtifactName,
 		clock,
+		containerSuccessTTL,
+		containerFailureTTL,
 	)
 }
 

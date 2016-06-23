@@ -125,7 +125,7 @@ type DB interface {
 
 	FindContainersByDescriptors(Container) ([]SavedContainer, error)
 	GetContainer(string) (SavedContainer, bool, error)
-	CreateContainer(Container, time.Duration, time.Duration) (SavedContainer, error)
+	CreateContainer(container Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (SavedContainer, error)
 	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)
 	FindOrphanContainersWithInfiniteTTL() ([]SavedContainer, error)
 	FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error)

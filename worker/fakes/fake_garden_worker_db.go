@@ -10,12 +10,13 @@ import (
 )
 
 type FakeGardenWorkerDB struct {
-	CreateContainerStub        func(db.Container, time.Duration, time.Duration) (db.SavedContainer, error)
+	CreateContainerStub        func(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
 	createContainerMutex       sync.RWMutex
 	createContainerArgsForCall []struct {
-		arg1 db.Container
-		arg2 time.Duration
-		arg3 time.Duration
+		container     db.Container
+		ttl           time.Duration
+		maxLifetime   time.Duration
+		volumeHandles []string
 	}
 	createContainerReturns struct {
 		result1 db.SavedContainer
@@ -86,16 +87,17 @@ type FakeGardenWorkerDB struct {
 	}
 }
 
-func (fake *FakeGardenWorkerDB) CreateContainer(arg1 db.Container, arg2 time.Duration, arg3 time.Duration) (db.SavedContainer, error) {
+func (fake *FakeGardenWorkerDB) CreateContainer(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error) {
 	fake.createContainerMutex.Lock()
 	fake.createContainerArgsForCall = append(fake.createContainerArgsForCall, struct {
-		arg1 db.Container
-		arg2 time.Duration
-		arg3 time.Duration
-	}{arg1, arg2, arg3})
+		container     db.Container
+		ttl           time.Duration
+		maxLifetime   time.Duration
+		volumeHandles []string
+	}{container, ttl, maxLifetime, volumeHandles})
 	fake.createContainerMutex.Unlock()
 	if fake.CreateContainerStub != nil {
-		return fake.CreateContainerStub(arg1, arg2, arg3)
+		return fake.CreateContainerStub(container, ttl, maxLifetime, volumeHandles)
 	} else {
 		return fake.createContainerReturns.result1, fake.createContainerReturns.result2
 	}
@@ -107,10 +109,10 @@ func (fake *FakeGardenWorkerDB) CreateContainerCallCount() int {
 	return len(fake.createContainerArgsForCall)
 }
 
-func (fake *FakeGardenWorkerDB) CreateContainerArgsForCall(i int) (db.Container, time.Duration, time.Duration) {
+func (fake *FakeGardenWorkerDB) CreateContainerArgsForCall(i int) (db.Container, time.Duration, time.Duration, []string) {
 	fake.createContainerMutex.RLock()
 	defer fake.createContainerMutex.RUnlock()
-	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2, fake.createContainerArgsForCall[i].arg3
+	return fake.createContainerArgsForCall[i].container, fake.createContainerArgsForCall[i].ttl, fake.createContainerArgsForCall[i].maxLifetime, fake.createContainerArgsForCall[i].volumeHandles
 }
 
 func (fake *FakeGardenWorkerDB) CreateContainerReturns(result1 db.SavedContainer, result2 error) {

@@ -108,20 +108,23 @@ func (db *SQLDB) GetVolumes() ([]SavedVolume, error) {
 
 	rows, err := db.conn.Query(`
 		SELECT
-			worker_name,
-			ttl,
-			EXTRACT(epoch FROM expires_at - NOW()),
-			handle,
-			resource_version,
-			resource_hash,
-			id,
-			original_volume_handle,
-			output_name,
-			replicated_from,
-			path,
-			host_path_version,
-			size_in_bytes
-		FROM volumes
+			v.worker_name,
+			v.ttl,
+			EXTRACT(epoch FROM v.expires_at - NOW()),
+			v.handle,
+			v.resource_version,
+			v.resource_hash,
+			v.id,
+			v.original_volume_handle,
+			v.output_name,
+			v.replicated_from,
+			v.path,
+			v.host_path_version,
+			v.size_in_bytes,
+			c.ttl
+		FROM volumes v
+		LEFT JOIN containers c
+		ON v.container_id = c.id
 	`)
 	if err != nil {
 		return nil, err
@@ -141,7 +144,7 @@ func (db *SQLDB) GetVolumesByIdentifier(id VolumeIdentifier) ([]SavedVolume, err
 	params := []interface{}{}
 
 	addParam := func(column string, param interface{}) {
-		conditions = append(conditions, fmt.Sprintf("%s = $%d", column, len(params)+1))
+		conditions = append(conditions, fmt.Sprintf("v.%s = $%d", column, len(params)+1))
 		params = append(params, param)
 	}
 
@@ -169,20 +172,23 @@ func (db *SQLDB) GetVolumesByIdentifier(id VolumeIdentifier) ([]SavedVolume, err
 
 	statement := `
 		SELECT
-			worker_name,
-			ttl,
-			EXTRACT(epoch FROM expires_at - NOW()),
-			handle,
-			resource_version,
-			resource_hash,
-			id,
-			original_volume_handle,
-			output_name,
-			replicated_from,
-			path,
-			host_path_version,
-			size_in_bytes
-		FROM volumes
+			v.worker_name,
+			v.ttl,
+			EXTRACT(epoch FROM v.expires_at - NOW()),
+			v.handle,
+			v.resource_version,
+			v.resource_hash,
+			v.id,
+			v.original_volume_handle,
+			v.output_name,
+			v.replicated_from,
+			v.path,
+			v.host_path_version,
+			v.size_in_bytes,
+			c.ttl
+		FROM volumes v
+		LEFT JOIN containers c
+		ON v.container_id = c.id
 		`
 
 	statement += "WHERE " + strings.Join(conditions, " AND ")
@@ -223,8 +229,11 @@ func (db *SQLDB) GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 			v.replicated_from,
 			v.path,
 			v.host_path_version,
-			v.size_in_bytes
+			v.size_in_bytes,
+			c.ttl
 		FROM volumes v
+			LEFT JOIN containers c
+				ON v.container_id = c.id
 			INNER JOIN image_resource_versions i
 				ON i.version = v.resource_version
 				AND i.resource_hash = v.resource_hash
@@ -298,20 +307,23 @@ func (db *SQLDB) getVolume(originalVolumeHandle string) (SavedVolume, error) {
 
 	rows, err := db.conn.Query(`
 		SELECT
-			worker_name,
-			ttl,
-			EXTRACT(epoch FROM expires_at - NOW()),
-			handle,
-			resource_version,
-			resource_hash,
-			id,
-			original_volume_handle,
-			output_name,
-			replicated_from,
-			path,
-			host_path_version,
-			size_in_bytes
-		FROM volumes
+			v.worker_name,
+			v.ttl,
+			EXTRACT(epoch FROM v.expires_at - NOW()),
+			v.handle,
+			v.resource_version,
+			v.resource_hash,
+			v.id,
+			v.original_volume_handle,
+			v.output_name,
+			v.replicated_from,
+			v.path,
+			v.host_path_version,
+			v.size_in_bytes,
+			c.ttl
+		FROM volumes v
+		LEFT JOIN containers c
+		ON v.container_id = c.id
 		WHERE handle = $1
 	`, originalVolumeHandle)
 	if err != nil {
@@ -374,6 +386,7 @@ func scanVolumes(rows *sql.Rows) ([]SavedVolume, error) {
 			&path,
 			&hostPathVersion,
 			&volume.SizeInBytes,
+			&volume.ContainerTTL,
 		)
 		if err != nil {
 			return []SavedVolume{}, err

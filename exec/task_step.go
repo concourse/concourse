@@ -56,8 +56,11 @@ type TaskStep struct {
 	clock             clock.Clock
 	repo              *SourceRepository
 
-	container worker.Container
-	process   garden.Process
+	container           worker.Container
+	containerSuccessTTL time.Duration
+	containerFailureTTL time.Duration
+
+	process garden.Process
 
 	exitStatus int
 }
@@ -78,23 +81,27 @@ func newTaskStep(
 	outputMapping map[string]string,
 	imageArtifactName string,
 	clock clock.Clock,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) TaskStep {
 	return TaskStep{
-		logger:            logger,
-		containerID:       containerID,
-		metadata:          metadata,
-		tags:              tags,
-		delegate:          delegate,
-		privileged:        privileged,
-		configSource:      configSource,
-		workerPool:        workerPool,
-		artifactsRoot:     artifactsRoot,
-		trackerFactory:    trackerFactory,
-		resourceTypes:     resourceTypes,
-		inputMapping:      inputMapping,
-		outputMapping:     outputMapping,
-		imageArtifactName: imageArtifactName,
-		clock:             clock,
+		logger:              logger,
+		containerID:         containerID,
+		metadata:            metadata,
+		tags:                tags,
+		delegate:            delegate,
+		privileged:          privileged,
+		configSource:        configSource,
+		workerPool:          workerPool,
+		artifactsRoot:       artifactsRoot,
+		trackerFactory:      trackerFactory,
+		resourceTypes:       resourceTypes,
+		inputMapping:        inputMapping,
+		outputMapping:       outputMapping,
+		imageArtifactName:   imageArtifactName,
+		clock:               clock,
+		containerSuccessTTL: containerSuccessTTL,
+		containerFailureTTL: containerFailureTTL,
 	}
 }
 
@@ -488,16 +495,16 @@ func (step *TaskStep) Result(x interface{}) bool {
 	}
 }
 
-// Release releases the resource's container with default infinite TTL(and thus volumes).
-// Container reaper checks for successful builds and set the containers' ttl to 5 minutes.
-// Container reaper also checks for unsuccessful (failed, aborted, errored) builds
-// that are not the latest builds of a job, and release their containers in 5 minutes
 func (step *TaskStep) Release() {
 	if step.container == nil {
 		return
 	}
 
-	step.container.Release(worker.FinalTTL(worker.FinishedContainerTTL))
+	if step.exitStatus == 0 {
+		step.container.Release(worker.FinalTTL(step.containerSuccessTTL))
+	} else {
+		step.container.Release(worker.FinalTTL(step.containerFailureTTL))
+	}
 }
 
 // StreamFile streams the given file out of the task's container.

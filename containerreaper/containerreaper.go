@@ -52,7 +52,7 @@ func (cr *containerReaper) updateWorkerContainerTTL(handle string) error {
 	}
 
 	if !found {
-		cr.logger.Error("worker-containerr-not-found", nil)
+		cr.logger.Error("worker-container-not-found", nil)
 		return errors.New("worker-container-not-found")
 	}
 

@@ -180,7 +180,7 @@ var _ = Describe("Worker", func() {
 
 		It("tries to create the container in the db", func() {
 			Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
-			c, ttl, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+			c, ttl, maxContainerLifetime, volumeHandles := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
 
 			Expect(c).To(Equal(db.Container{
 				ContainerIdentifier: db.ContainerIdentifier(Identifier{
@@ -195,6 +195,7 @@ var _ = Describe("Worker", func() {
 
 			Expect(ttl).To(Equal(ContainerTTL))
 			Expect(maxContainerLifetime).To(Equal(time.Duration(0)))
+			Expect(volumeHandles).To(BeEmpty())
 		})
 
 		Context("when the spec does not specify ImageURL", func() {
@@ -437,6 +438,12 @@ var _ = Describe("Worker", func() {
 				Expect(volumeMountProperties["cow-vol-1-handle"]).To(Equal("vol-1-mount-path"))
 				Expect(volumeMountProperties["cow-vol-2-handle"]).To(Equal("vol-2-mount-path"))
 			})
+
+			It("creates the container in the database with the input volume handles", func() {
+				Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
+				_, _, _, volumeHandles := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+				Expect(volumeHandles).To(ConsistOf("cow-vol-1-handle", "cow-vol-2-handle"))
+			})
 		})
 
 		Context("when the spec specifies Outputs", func() {
@@ -490,6 +497,12 @@ var _ = Describe("Worker", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(concourseVolumes).To(ConsistOf([]string{"vol-1-handle", "vol-2-handle"}))
 			})
+
+			It("creates the container in the database with the output volume handles", func() {
+				Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
+				_, _, _, volumeHandles := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+				Expect(volumeHandles).To(ConsistOf("vol-1-handle", "vol-2-handle"))
+			})
 		})
 
 		Context("when the spec specifies ImageResource", func() {
@@ -520,7 +533,7 @@ var _ = Describe("Worker", func() {
 
 			It("tries to create the container in the db", func() {
 				Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
-				c, ttl, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+				c, ttl, maxContainerLifetime, volumeHandles := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
 
 				expectedContainerID := Identifier{
 					BuildID:             42,
@@ -542,6 +555,7 @@ var _ = Describe("Worker", func() {
 
 				Expect(ttl).To(Equal(ContainerTTL))
 				Expect(maxContainerLifetime).To(Equal(time.Duration(0)))
+				Expect(volumeHandles).To(ConsistOf("image-volume"))
 			})
 
 			It("tries to fetch the image for the resource type", func() {
@@ -648,7 +662,7 @@ var _ = Describe("Worker", func() {
 
 			It("tries to create the container in the db", func() {
 				Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
-				c, ttl, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+				c, ttl, maxContainerLifetime, volumeHandles := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
 
 				expectedContainerID := Identifier{
 					BuildID:             42,
@@ -670,6 +684,7 @@ var _ = Describe("Worker", func() {
 
 				Expect(ttl).To(Equal(ContainerTTL))
 				Expect(maxContainerLifetime).To(Equal(time.Duration(0)))
+				Expect(volumeHandles).To(ConsistOf("image-volume"))
 			})
 
 			It("tries to fetch the image for the resource type", func() {
@@ -963,7 +978,7 @@ var _ = Describe("Worker", func() {
 
 			It("tries to create the container in the db", func() {
 				Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
-				c, ttl, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+				c, ttl, maxContainerLifetime, volumeHandles := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
 
 				expectedContainerID := Identifier{
 					BuildID: 42,
@@ -984,6 +999,7 @@ var _ = Describe("Worker", func() {
 
 				Expect(ttl).To(Equal(ContainerTTL))
 				Expect(maxContainerLifetime).To(Equal(time.Duration(0)))
+				Expect(volumeHandles).To(ConsistOf("image-volume"))
 			})
 
 			It("creates the container with the fetched image's URL as the rootfs", func() {
@@ -1043,7 +1059,7 @@ var _ = Describe("Worker", func() {
 
 				It("creates the container with a max lifetime of 5 minutes", func() {
 					Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
-					_, _, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+					_, _, maxContainerLifetime, _ := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
 					Expect(maxContainerLifetime).To(Equal(5 * time.Minute))
 				})
 			})
@@ -1057,7 +1073,7 @@ var _ = Describe("Worker", func() {
 
 				It("creates the container with a max lifetime equivalent to the worker uptime", func() {
 					Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
-					_, _, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+					_, _, maxContainerLifetime, _ := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
 					Expect(maxContainerLifetime).To(Equal(origUptime + (301 * time.Second)))
 				})
 			})
@@ -1069,7 +1085,7 @@ var _ = Describe("Worker", func() {
 
 				It("creates the container with a max lifetime of 1 hour", func() {
 					Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
-					_, _, maxContainerLifetime := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+					_, _, maxContainerLifetime, _ := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
 					Expect(maxContainerLifetime).To(Equal(1 * time.Hour))
 				})
 			})

@@ -34,7 +34,7 @@ func (err MalformedMetadataError) Error() string {
 
 const containerKeepalive = 30 * time.Second
 const ContainerTTL = 5 * time.Minute
-const FinishedContainerTTL = 0
+
 const VolumeTTL = 5 * time.Minute
 
 const ephemeralPropertyName = "concourse:ephemeral"
@@ -58,7 +58,7 @@ type Worker interface {
 //go:generate counterfeiter . GardenWorkerDB
 
 type GardenWorkerDB interface {
-	CreateContainer(db.Container, time.Duration, time.Duration) (db.SavedContainer, error)
+	CreateContainer(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
 	GetContainer(handle string) (db.SavedContainer, bool, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 
@@ -428,6 +428,7 @@ func (worker *gardenWorker) CreateContainer(
 		},
 		ContainerTTL,
 		worker.maxContainerLifetime(metadata),
+		volumeHandles,
 	)
 	if err != nil {
 		return nil, err

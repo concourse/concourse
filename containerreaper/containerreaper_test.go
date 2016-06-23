@@ -220,6 +220,7 @@ var _ = Describe("ContainerReaper", func() {
 			Expect(fakeWorkerContainer.ReleaseCallCount()).To(Equal(2))
 		})
 	})
+
 })
 
 func verifyLookupContainerCalls(fakeWorkerClient *wfakes.FakeClient, expiredHandles []string, callIndex int) {

@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc"
 )
 
-const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user, ttl, EXTRACT(epoch FROM expires_at - NOW())"
+const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user, ttl, EXTRACT(epoch FROM expires_at - NOW()), c.id"
 const containerJoins = `
 		LEFT JOIN pipelines p
 		  ON p.id = c.pipeline_id
@@ -300,6 +300,7 @@ func (db *SQLDB) CreateContainer(
 	container Container,
 	ttl time.Duration,
 	maxLifetime time.Duration,
+	volumeHandles []string,
 ) (SavedContainer, error) {
 	if !(isValidCheckID(container.ContainerIdentifier) || isValidStepID(container.ContainerIdentifier)) {
 		return SavedContainer{}, ErrInvalidIdentifier
@@ -394,9 +395,11 @@ func (db *SQLDB) CreateContainer(
 		maxLifetimeValue = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(maxLifetime.Seconds()))
 	}
 
-	_, err = tx.Exec(`
+	var id int
+	err = tx.QueryRow(`
 		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name, expires_at, ttl, best_if_used_by, check_type, check_source, plan_id, working_directory, env_variables, attempts, stage, image_resource_type, image_resource_source, process_user, resource_type_version)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9,`+maxLifetimeValue+`, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9,`+maxLifetimeValue+`, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+		RETURNING id`,
 		container.Handle,
 		resourceID,
 		container.StepName,
@@ -417,7 +420,7 @@ func (db *SQLDB) CreateContainer(
 		imageResourceSource,
 		user,
 		resourceTypeVersion,
-	)
+	).Scan(&id)
 	if err != nil {
 		return SavedContainer{}, err
 	}
@@ -425,10 +428,21 @@ func (db *SQLDB) CreateContainer(
 	newContainer, err := scanContainer(tx.QueryRow(`
 		SELECT `+containerColumns+`
 	  FROM containers c `+containerJoins+`
-		WHERE c.handle = $1
-	`, container.Handle))
+		WHERE c.id = $1
+	`, id))
 	if err != nil {
 		return SavedContainer{}, err
+	}
+
+	for _, volumeHandle := range volumeHandles {
+		_, err = tx.Exec(`
+			UPDATE volumes
+			SET container_id = $1
+			WHERE handle = $2
+		`, id, volumeHandle)
+		if err != nil {
+			return SavedContainer{}, err
+		}
 	}
 
 	err = tx.Commit()
@@ -477,7 +491,28 @@ func (db *SQLDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) er
 }
 
 func (db *SQLDB) ReapContainer(handle string) error {
-	rows, err := db.conn.Exec(`
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
+		UPDATE volumes
+		SET container_id = null
+		WHERE container_id IN (
+			SELECT id
+			FROM containers
+			WHERE handle = $1
+		)
+	`, handle)
+
+	if err != nil {
+		return err
+	}
+
+	rows, err := tx.Exec(`
 		DELETE FROM containers WHERE handle = $1
 	`, handle)
 	if err != nil {
@@ -495,15 +530,39 @@ func (db *SQLDB) ReapContainer(handle string) error {
 		return nil
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 func (db *SQLDB) DeleteContainer(handle string) error {
-	_, err := db.conn.Exec(`
-		DELETE FROM containers
-		WHERE handle = $1
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
+		UPDATE volumes
+		SET container_id = null
+		WHERE container_id IN (
+			SELECT id
+			FROM containers
+			WHERE handle = $1
+		)
 	`, handle)
-	return err
+
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		DELETE FROM containers WHERE handle = $1
+	`, handle)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func isValidCheckID(id ContainerIdentifier) bool {
@@ -585,6 +644,7 @@ func scanContainer(row scannable) (SavedContainer, error) {
 		&container.User,
 		&container.TTL,
 		&ttlInSeconds,
+		&container.ID,
 	)
 	if err != nil {
 		return SavedContainer{}, err
@@ -660,10 +720,37 @@ func scanContainer(row scannable) (SavedContainer, error) {
 }
 
 func deleteExpired(db *SQLDB) error {
-	_, err := db.conn.Exec(`
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
+		UPDATE volumes
+		SET container_id = null
+		WHERE container_id IN (
+			SELECT id
+			FROM containers
+			WHERE expires_at IS NOT NULL
+			AND expires_at < NOW()
+		)
+	`)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
 		DELETE FROM containers
 		WHERE expires_at IS NOT NULL
 		AND expires_at < NOW()
 	`)
-	return err
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }

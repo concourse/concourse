@@ -62,6 +62,7 @@ type SavedContainer struct {
 
 	TTL       time.Duration
 	ExpiresIn time.Duration
+	ID        int
 }
 
 type ContainerType string

@@ -219,7 +219,8 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 
 		seenIdentifiers[identifier] = true
 
-		if volumeToExpire.TTL == ttlForVol {
+		if volumeToExpire.TTL == ttlForVol ||
+			(volumeToExpire.ContainerTTL != nil && ttlGreater(*volumeToExpire.ContainerTTL, ttlForVol)) {
 			continue
 		}
 

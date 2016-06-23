@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
@@ -70,6 +71,9 @@ var _ = Describe("GardenFactory", func() {
 
 			step    Step
 			process ifrit.Process
+
+			successTTL time.Duration
+			failureTTL time.Duration
 		)
 
 		BeforeEach(func() {
@@ -96,6 +100,9 @@ var _ = Describe("GardenFactory", func() {
 					Source: atc.Source{"some-custom": "source"},
 				},
 			}
+
+			successTTL = 3 * time.Second
+			failureTTL = 10 * time.Second
 		})
 
 		JustBeforeEach(func() {
@@ -109,6 +116,8 @@ var _ = Describe("GardenFactory", func() {
 				tags,
 				params,
 				resourceTypes,
+				successTTL,
+				failureTTL,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -250,6 +259,16 @@ var _ = Describe("GardenFactory", func() {
 					Expect(bool(success)).To(BeTrue())
 				})
 
+				It("releases the resource with success TTL", func() {
+					<-process.Wait()
+
+					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+					step.Release()
+					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(successTTL)))
+				})
+
 				It("completes via the delegate", func() {
 					Eventually(putDelegate.CompletedCallCount).Should(Equal(1))
 
@@ -275,18 +294,6 @@ var _ = Describe("GardenFactory", func() {
 
 					It("calls the Initializing method on the delegate", func() {
 						Expect(<-callCountDuringInit).To(Equal(1))
-					})
-				})
-
-				Describe("releasing", func() {
-					It("releases the resource with the configured containerSuccessTTL", func() {
-						<-process.Wait()
-
-						Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-						step.Release()
-						Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-						Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
 					})
 				})
 
@@ -332,16 +339,14 @@ var _ = Describe("GardenFactory", func() {
 							Expect(putDelegate.FailedArgsForCall(0)).To(Equal(disaster))
 						})
 
-						Describe("releasing", func() {
-							It("releases the resource with the configured containerFailureTTL", func() {
-								<-process.Wait()
+						It("releases the resource with the failre ttl", func() {
+							<-process.Wait()
 
-								Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
-								step.Release()
-								Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-								Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
-							})
+							step.Release()
+							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
 						})
 					})
 
@@ -363,16 +368,14 @@ var _ = Describe("GardenFactory", func() {
 							Expect(putDelegate.FailedArgsForCall(0)).To(Equal(ErrInterrupted))
 						})
 
-						Describe("releasing", func() {
-							It("releases the resource with the configured containerFailureTTL", func() {
-								<-process.Wait()
+						It("releases the resource with the failre ttl", func() {
+							<-process.Wait()
 
-								Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
-								step.Release()
-								Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-								Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
-							})
+							step.Release()
+							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
 						})
 					})
 
@@ -408,26 +411,15 @@ var _ = Describe("GardenFactory", func() {
 							Expect(bool(success)).To(BeFalse())
 						})
 
-						Describe("releasing", func() {
-							It("releases the resource with the configured containerFailureTTL", func() {
-								<-process.Wait()
+						It("releases the resource with the failure ttl", func() {
+							<-process.Wait()
 
-								Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+							Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
-								step.Release()
-								Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-								Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(worker.FinishedContainerTTL)))
-							})
+							step.Release()
+							Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
 						})
-					})
-				})
-
-				Describe("releasing", func() {
-					It("releases the resource", func() {
-						Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-						step.Release()
-						Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
 					})
 				})
 			})
