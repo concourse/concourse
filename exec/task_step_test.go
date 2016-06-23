@@ -1103,11 +1103,10 @@ var _ = Describe("GardenFactory", func() {
 									Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
 								})
 
-								It("will not signal the process in the container with garden.SignalKill", func() {
+								It("will not stop the container", func() {
 									process.Signal(os.Interrupt)
 									Eventually(process.Wait(), 12*time.Second).Should(Receive(Equal(ErrInterrupted)))
-									Eventually(fakeProcess.SignalCallCount()).Should(Equal(1))
-									Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
+									Expect(fakeContainer.StopCallCount()).To(BeZero())
 								})
 
 								Context("when the process doesn't exit after being signaled", func() {
@@ -1116,18 +1115,21 @@ var _ = Describe("GardenFactory", func() {
 											switch {
 											case signal == garden.SignalTerminate:
 												fakeClock.IncrementBySeconds(12)
-											case signal == garden.SignalKill:
-												close(stopped)
 											}
+											return nil
+										}
+
+										fakeContainer.StopStub = func(bool) error {
+											close(stopped)
 											return nil
 										}
 									})
 
-									It("signals the process in the container with garden.SignalKill after 10 seconds", func() {
+									It("stops the container after 10 seconds", func() {
 										process.Signal(os.Interrupt)
-										Eventually(process.Wait(), 12*time.Second).Should(Receive(Equal(ErrInterrupted)))
-										Eventually(fakeProcess.SignalCallCount()).Should(Equal(2))
-										Expect(fakeProcess.SignalArgsForCall(1)).To(Equal(garden.SignalKill))
+										Eventually(fakeContainer.StopCallCount, 12*time.Second).Should(Equal(1))
+										Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
+										Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
 									})
 								})
 
@@ -1869,11 +1871,10 @@ var _ = Describe("GardenFactory", func() {
 								Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
 							})
 
-							It("will not signal the process in the container with garden.SignalKill", func() {
+							It("will not stop the container", func() {
 								process.Signal(os.Interrupt)
 								Eventually(process.Wait(), 12*time.Second).Should(Receive(Equal(ErrInterrupted)))
-								Eventually(fakeProcess.SignalCallCount()).Should(Equal(1))
-								Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
+								Expect(fakeContainer.StopCallCount()).To(BeZero())
 							})
 
 							Context("when the process doesn't exit after being signaled", func() {
@@ -1882,18 +1883,21 @@ var _ = Describe("GardenFactory", func() {
 										switch {
 										case signal == garden.SignalTerminate:
 											fakeClock.IncrementBySeconds(12)
-										case signal == garden.SignalKill:
-											close(stopped)
 										}
+										return nil
+									}
+
+									fakeContainer.StopStub = func(bool) error {
+										close(stopped)
 										return nil
 									}
 								})
 
-								It("signals the process in the container with garden.SignalKill after 10 seconds", func() {
+								It("stops the container after 10 seconds", func() {
 									process.Signal(os.Interrupt)
-									Eventually(process.Wait(), 12*time.Second).Should(Receive(Equal(ErrInterrupted)))
-									Eventually(fakeProcess.SignalCallCount()).Should(Equal(2))
-									Expect(fakeProcess.SignalArgsForCall(1)).To(Equal(garden.SignalKill))
+									Eventually(fakeContainer.StopCallCount, 12*time.Second).Should(Equal(1))
+									Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
+									Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
 								})
 							})
 

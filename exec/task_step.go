@@ -276,7 +276,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		for {
 			select {
 			case <-timer.C():
-				step.process.Signal(garden.SignalKill)
+				step.container.Stop(true)
 			case <-exited:
 				break OUT
 			}
