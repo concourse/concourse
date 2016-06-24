@@ -307,12 +307,17 @@ var _ = Describe("Keeping track of containers", func() {
 	})
 
 	It("can create and get a resource container object", func() {
+		resourceTypeVersion := atc.Version{
+			"some-resource-type": "some-version",
+		}
+
 		containerToCreate := db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{
-				ResourceID:  getResourceID("some-resource"),
-				CheckType:   "some-resource-type",
-				CheckSource: atc.Source{"some": "source"},
-				Stage:       db.ContainerStageRun,
+				ResourceID:          getResourceID("some-resource"),
+				CheckType:           "some-resource-type",
+				CheckSource:         atc.Source{"some": "source"},
+				ResourceTypeVersion: resourceTypeVersion,
+				Stage:               db.ContainerStageRun,
 			},
 			ContainerMetadata: db.ContainerMetadata{
 				Handle:               "some-handle",
@@ -362,6 +367,7 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(actualContainer.CheckSource).To(Equal(containerToCreate.CheckSource))
 		Expect(actualContainer.EnvironmentVariables).To(Equal(containerToCreate.EnvironmentVariables))
 		Expect(actualContainer.TTL).To(Equal(42 * time.Minute))
+		Expect(actualContainer.ResourceTypeVersion).To(Equal(resourceTypeVersion))
 
 		By("returning found = false when getting by a handle that does not exist")
 		_, found, err = database.GetContainer("nope")

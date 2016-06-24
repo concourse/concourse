@@ -1191,29 +1191,62 @@ var _ = Describe("Worker", func() {
 
 		Context("when the gardenClient returns a container and no error", func() {
 			var (
-				fakeContainer *gfakes.FakeContainer
+				fakeContainer      *gfakes.FakeContainer
+				fakeSavedContainer db.SavedContainer
+
+				foundContainer Container
+				findErr        error
+				found          bool
 			)
 
 			BeforeEach(func() {
 				fakeContainer = new(gfakes.FakeContainer)
 				fakeContainer.HandleReturns("some-handle")
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
+				fakeSavedContainer = db.SavedContainer{
+					Container: db.Container{
+						ContainerIdentifier: db.ContainerIdentifier{
+							ResourceTypeVersion: atc.Version{
+								"custom-type": "some-version",
+							},
+							CheckType: "custom-type",
+						},
+					},
+				}
+				fakeGardenWorkerDB.GetContainerReturns(fakeSavedContainer, true, nil)
+				fakeGardenWorkerDB.FindWorkerResourceTypeVersionByContainerReturns("some-version", true, nil)
 			})
 
-			It("returns the container and no error", func() {
-				foundContainer, found, err := gardenWorker.LookupContainer(logger, handle)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				Expect(foundContainer.Handle()).To(Equal(fakeContainer.Handle()))
+			JustBeforeEach(func() {
+				foundContainer, found, findErr = gardenWorker.LookupContainer(logger, handle)
 			})
 
-			Describe("the container", func() {
-				var foundContainer Container
-				var findErr error
+			Context("when the container resource type version does not match worker's", func() {
+				BeforeEach(func() {
+					fakeGardenWorkerDB.FindWorkerResourceTypeVersionByContainerReturns("other-version", true, nil)
+				})
 
-				JustBeforeEach(func() {
-					foundContainer, _, findErr = gardenWorker.LookupContainer(logger, handle)
+				It("does not create a garden worker container", func() {
+					Expect(fakeGardenWorkerDB.FindWorkerResourceTypeVersionByContainerCallCount()).To(Equal(1))
+					Expect(fakeGardenWorkerDB.FindWorkerResourceTypeVersionByContainerArgsForCall(0)).To(Equal(fakeSavedContainer))
+					Expect(foundContainer).To(BeNil())
+					Expect(found).To(BeFalse())
+					Expect(findErr).NotTo(HaveOccurred())
+				})
+
+				It("reaps the container", func() {
+					Expect(fakeGardenWorkerDB.ReapContainerCallCount()).To(Equal(1))
+					Expect(fakeGardenWorkerDB.ReapContainerArgsForCall(0)).To(Equal(handle))
+				})
+			})
+
+			Context("when the container resource type version matches worker's", func() {
+				It("returns the container and no error", func() {
+					foundContainer, found, err := gardenWorker.LookupContainer(logger, handle)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					Expect(foundContainer.Handle()).To(Equal(fakeContainer.Handle()))
 				})
 
 				Context("when the concourse:volumes property is present", func() {
@@ -1557,22 +1590,26 @@ var _ = Describe("Worker", func() {
 
 		Context("when the container can be found", func() {
 			var (
-				fakeContainer *gfakes.FakeContainer
+				fakeContainer      *gfakes.FakeContainer
+				fakeSavedContainer db.SavedContainer
 			)
 
 			BeforeEach(func() {
 				fakeContainer = new(gfakes.FakeContainer)
 				fakeContainer.HandleReturns("provider-handle")
 
-				fakeWorkerProvider.FindContainerForIdentifierReturns(db.SavedContainer{
+				fakeSavedContainer = db.SavedContainer{
 					Container: db.Container{
 						ContainerMetadata: db.ContainerMetadata{
 							Handle: "provider-handle",
 						},
 					},
-				}, true, nil)
+				}
+				fakeWorkerProvider.FindContainerForIdentifierReturns(fakeSavedContainer, true, nil)
 
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
+				fakeGardenWorkerDB.GetContainerReturns(fakeSavedContainer, true, nil)
+				fakeGardenWorkerDB.FindWorkerResourceTypeVersionByContainerReturns("", false, nil)
 			})
 
 			It("succeeds", func() {
@@ -1585,8 +1622,14 @@ var _ = Describe("Worker", func() {
 
 				Expect(fakeGardenClient.LookupCallCount()).To(Equal(1))
 				lookupHandle := fakeGardenClient.LookupArgsForCall(0)
-
 				Expect(lookupHandle).To(Equal("provider-handle"))
+
+				Expect(fakeGardenWorkerDB.GetContainerCallCount()).To(Equal(1))
+				getContainerHandle := fakeGardenWorkerDB.GetContainerArgsForCall(0)
+				Expect(getContainerHandle).To(Equal("provider-handle"))
+
+				Expect(fakeGardenWorkerDB.FindWorkerResourceTypeVersionByContainerCallCount()).To(Equal(1))
+				Expect(fakeGardenWorkerDB.FindWorkerResourceTypeVersionByContainerArgsForCall(0)).To(Equal(fakeSavedContainer))
 			})
 
 			Describe("the found container", func() {

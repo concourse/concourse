@@ -146,6 +146,8 @@ type DB interface {
 	SetVolumeSizeInBytes(string, int64) error
 	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
 
+	FindWorkerResourceTypeVersionByContainer(SavedContainer) (string, bool, error)
+
 	SaveImageResourceVersion(buildID int, planID atc.PlanID, identifier ResourceCacheIdentifier) error
 	GetImageResourceCacheIdentifiersByBuildID(buildID int) ([]ResourceCacheIdentifier, error)
 }

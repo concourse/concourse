@@ -59,6 +59,16 @@ type FakeWorkerDB struct {
 		result2 bool
 		result3 error
 	}
+	FindWorkerResourceTypeVersionByContainerStub        func(db.SavedContainer) (string, bool, error)
+	findWorkerResourceTypeVersionByContainerMutex       sync.RWMutex
+	findWorkerResourceTypeVersionByContainerArgsForCall []struct {
+		arg1 db.SavedContainer
+	}
+	findWorkerResourceTypeVersionByContainerReturns struct {
+		result1 string
+		result2 bool
+		result3 error
+	}
 	UpdateExpiresAtOnContainerStub        func(handle string, ttl time.Duration) error
 	updateExpiresAtOnContainerMutex       sync.RWMutex
 	updateExpiresAtOnContainerArgsForCall []struct {
@@ -289,6 +299,40 @@ func (fake *FakeWorkerDB) FindContainerByIdentifierReturns(result1 db.SavedConta
 	fake.FindContainerByIdentifierStub = nil
 	fake.findContainerByIdentifierReturns = struct {
 		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeWorkerDB) FindWorkerResourceTypeVersionByContainer(arg1 db.SavedContainer) (string, bool, error) {
+	fake.findWorkerResourceTypeVersionByContainerMutex.Lock()
+	fake.findWorkerResourceTypeVersionByContainerArgsForCall = append(fake.findWorkerResourceTypeVersionByContainerArgsForCall, struct {
+		arg1 db.SavedContainer
+	}{arg1})
+	fake.findWorkerResourceTypeVersionByContainerMutex.Unlock()
+	if fake.FindWorkerResourceTypeVersionByContainerStub != nil {
+		return fake.FindWorkerResourceTypeVersionByContainerStub(arg1)
+	} else {
+		return fake.findWorkerResourceTypeVersionByContainerReturns.result1, fake.findWorkerResourceTypeVersionByContainerReturns.result2, fake.findWorkerResourceTypeVersionByContainerReturns.result3
+	}
+}
+
+func (fake *FakeWorkerDB) FindWorkerResourceTypeVersionByContainerCallCount() int {
+	fake.findWorkerResourceTypeVersionByContainerMutex.RLock()
+	defer fake.findWorkerResourceTypeVersionByContainerMutex.RUnlock()
+	return len(fake.findWorkerResourceTypeVersionByContainerArgsForCall)
+}
+
+func (fake *FakeWorkerDB) FindWorkerResourceTypeVersionByContainerArgsForCall(i int) db.SavedContainer {
+	fake.findWorkerResourceTypeVersionByContainerMutex.RLock()
+	defer fake.findWorkerResourceTypeVersionByContainerMutex.RUnlock()
+	return fake.findWorkerResourceTypeVersionByContainerArgsForCall[i].arg1
+}
+
+func (fake *FakeWorkerDB) FindWorkerResourceTypeVersionByContainerReturns(result1 string, result2 bool, result3 error) {
+	fake.FindWorkerResourceTypeVersionByContainerStub = nil
+	fake.findWorkerResourceTypeVersionByContainerReturns = struct {
+		result1 string
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

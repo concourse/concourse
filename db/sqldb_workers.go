@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -41,6 +42,29 @@ func (db *SQLDB) Workers() ([]SavedWorker, error) {
 	}
 
 	return savedWorkers, nil
+}
+
+func (db *SQLDB) FindWorkerResourceTypeVersionByContainer(container SavedContainer) (string, bool, error) {
+	savedWorker, found, err := db.GetWorker(container.WorkerName)
+
+	if err != nil {
+		return "", false, err
+	}
+
+	if !found {
+		return "", false, errors.New("worker-not-found")
+	}
+
+	if container.CheckType == "" {
+		return "", false, nil
+	}
+
+	for _, workerResourceType := range savedWorker.ResourceTypes {
+		if container.CheckType == workerResourceType.Type {
+			return workerResourceType.Version, true, nil
+		}
+	}
+	return "", false, nil
 }
 
 func (db *SQLDB) GetWorker(name string) (SavedWorker, bool, error) {
