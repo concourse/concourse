@@ -1131,6 +1131,24 @@ var _ = Describe("GardenFactory", func() {
 										Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
 										Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
 									})
+
+									Context("when container.stop returns an error", func() {
+										var disaster error
+
+										BeforeEach(func() {
+											disaster = errors.New("gotta get away")
+
+											fakeContainer.StopStub = func(bool) error {
+												close(stopped)
+												return disaster
+											}
+										})
+
+										It("doesn't return the error", func() {
+											process.Signal(os.Interrupt)
+											Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
+										})
+									})
 								})
 
 								It("registers the outputs as sources", func() {
@@ -1898,6 +1916,24 @@ var _ = Describe("GardenFactory", func() {
 									Eventually(fakeContainer.StopCallCount, 12*time.Second).Should(Equal(1))
 									Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
 									Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
+								})
+
+								Context("when container.stop returns an error", func() {
+									var disaster error
+
+									BeforeEach(func() {
+										disaster = errors.New("gotta get away")
+
+										fakeContainer.StopStub = func(bool) error {
+											close(stopped)
+											return disaster
+										}
+									})
+
+									It("doesn't return the error", func() {
+										process.Signal(os.Interrupt)
+										Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
+									})
 								})
 							})
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -124,15 +125,6 @@ var _ = Describe("Resource In", func() {
 				}
 			})
 
-			It("sends garden terminate signal to process", func() {
-				inProcess.Signal(os.Interrupt)
-
-				Eventually(inScriptProcess.SignalCallCount).Should(Equal(1))
-				Expect(inScriptProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
-
-				close(waited)
-			})
-
 			Context("when the process terminates before the timeout", func() {
 				BeforeEach(func() {
 					inScriptProcess.SignalStub = func(garden.Signal) error {
@@ -142,10 +134,17 @@ var _ = Describe("Resource In", func() {
 					}
 				})
 
-				It("does not send garden.SignalKill", func() {
+				It("sends garden terminate signal to process", func() {
 					inProcess.Signal(os.Interrupt)
-					Eventually(inScriptProcess.SignalCallCount).Should(Equal(1))
-					Consistently(inScriptProcess.SignalCallCount).Should(Equal(1))
+					Eventually(inProcess.Wait()).Should(Receive(Equal(ErrAborted)))
+					Expect(inScriptProcess.SignalCallCount()).Should(Equal(1))
+					Expect(inScriptProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
+				})
+
+				It("does not stop the container", func() {
+					inProcess.Signal(os.Interrupt)
+					Eventually(inProcess.Wait(), 12*time.Second).Should(Receive(Equal(ErrAborted)))
+					Expect(fakeContainer.StopCallCount()).To(BeZero())
 				})
 			})
 
@@ -157,15 +156,36 @@ var _ = Describe("Resource In", func() {
 						}
 						return nil
 					}
+
+					fakeContainer.StopStub = func(bool) error {
+						close(waited)
+						return nil
+					}
 				})
 
-				It("sends garden.SignalKill", func() {
+				It("stops the container after 10 seconds", func() {
 					inProcess.Signal(os.Interrupt)
-
-					Eventually(fakeContainer.StopCallCount, "6s").Should(Equal(1))
+					Eventually(fakeContainer.StopCallCount, 12*time.Second).Should(Equal(1))
 					Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
+					Eventually(inProcess.Wait()).Should(Receive(Equal(ErrAborted)))
+				})
 
-					close(waited)
+				Context("when container.stop returns an error", func() {
+					var disaster error
+
+					BeforeEach(func() {
+						disaster = errors.New("gotta get away")
+
+						fakeContainer.StopStub = func(bool) error {
+							close(waited)
+							return disaster
+						}
+					})
+
+					It("doesn't return the error", func() {
+						inProcess.Signal(os.Interrupt)
+						Eventually(inProcess.Wait()).Should(Receive(Equal(ErrAborted)))
+					})
 				})
 			})
 		})
