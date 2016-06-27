@@ -11,7 +11,7 @@ import (
 	. "github.com/concourse/atc/web/getjob"
 
 	"github.com/concourse/go-concourse/concourse"
-	cfakes "github.com/concourse/go-concourse/concourse/fakes"
+	cfakes "github.com/concourse/go-concourse/concourse/concoursefakes"
 )
 
 var _ = Describe("FetchTemplateData", func() {
