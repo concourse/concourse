@@ -9,7 +9,7 @@ import (
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
 	"github.com/concourse/atc"
 	. "github.com/concourse/tsa"
-	"github.com/concourse/tsa/fakes"
+	"github.com/concourse/tsa/tsafakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -38,7 +38,7 @@ var _ = Describe("Heartbeater", func() {
 		resourceTypes  []atc.WorkerResourceType
 
 		expectedWorker     atc.Worker
-		fakeTokenGenerator *fakes.FakeTokenGenerator
+		fakeTokenGenerator *tsafakes.FakeTokenGenerator
 		fakeGardenClient   *gfakes.FakeClient
 		fakeATC            *ghttp.Server
 
@@ -97,7 +97,7 @@ var _ = Describe("Heartbeater", func() {
 		)
 
 		fakeGardenClient = new(gfakes.FakeClient)
-		fakeTokenGenerator = new(fakes.FakeTokenGenerator)
+		fakeTokenGenerator = new(tsafakes.FakeTokenGenerator)
 
 		fakeTokenGenerator.GenerateTokenReturns("yo", nil)
 		clientWriter = gbytes.NewBuffer()
