@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	. "github.com/concourse/atc/auth/github"
-	"github.com/concourse/atc/auth/github/fakes"
+	"github.com/concourse/atc/auth/github/githubfakes"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -15,14 +15,14 @@ import (
 var _ = Describe("OrganizationVerifier", func() {
 	var (
 		organizations []string
-		fakeClient    *fakes.FakeClient
+		fakeClient    *githubfakes.FakeClient
 
 		verifier Verifier
 	)
 
 	BeforeEach(func() {
 		organizations = []string{"some-organization", "another-organization"}
-		fakeClient = new(fakes.FakeClient)
+		fakeClient = new(githubfakes.FakeClient)
 
 		verifier = NewOrganizationVerifier(organizations, fakeClient)
 	})

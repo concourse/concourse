@@ -17,19 +17,19 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/auth/provider"
-	providerFakes "github.com/concourse/atc/auth/provider/fakes"
+	"github.com/concourse/atc/auth/provider/providerfakes"
 )
 
 var _ = Describe("OAuthBeginHandler", func() {
 	var (
-		fakeProviderA *providerFakes.FakeProvider
-		fakeProviderB *providerFakes.FakeProvider
+		fakeProviderA *providerfakes.FakeProvider
+		fakeProviderB *providerfakes.FakeProvider
 
-		fakeProviderFactory *fakes.FakeProviderFactory
+		fakeProviderFactory *authfakes.FakeProviderFactory
 
-		fakeAuthDB *fakes.FakeAuthDB
+		fakeAuthDB *authfakes.FakeAuthDB
 
 		signingKey *rsa.PrivateKey
 
@@ -40,12 +40,12 @@ var _ = Describe("OAuthBeginHandler", func() {
 	)
 
 	BeforeEach(func() {
-		fakeProviderA = new(providerFakes.FakeProvider)
-		fakeProviderB = new(providerFakes.FakeProvider)
+		fakeProviderA = new(providerfakes.FakeProvider)
+		fakeProviderB = new(providerfakes.FakeProvider)
 
-		fakeProviderFactory = new(fakes.FakeProviderFactory)
+		fakeProviderFactory = new(authfakes.FakeProviderFactory)
 
-		fakeAuthDB = new(fakes.FakeAuthDB)
+		fakeAuthDB = new(authfakes.FakeAuthDB)
 
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)

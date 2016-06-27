@@ -7,19 +7,19 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/authfakes"
 )
 
 var _ = Describe("ValidatorBasket", func() {
 	var (
-		fakeValidator1  *fakes.FakeValidator
-		fakeValidator2  *fakes.FakeValidator
+		fakeValidator1  *authfakes.FakeValidator
+		fakeValidator2  *authfakes.FakeValidator
 		validatorBasket auth.ValidatorBasket
 	)
 
 	BeforeEach(func() {
-		fakeValidator1 = new(fakes.FakeValidator)
-		fakeValidator2 = new(fakes.FakeValidator)
+		fakeValidator1 = new(authfakes.FakeValidator)
+		fakeValidator2 = new(authfakes.FakeValidator)
 
 		validatorBasket = auth.ValidatorBasket{
 			fakeValidator1,

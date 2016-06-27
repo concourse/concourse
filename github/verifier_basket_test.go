@@ -8,15 +8,15 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
 
-	afakes "github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/provider/providerfakes"
 
 	. "github.com/concourse/atc/auth/github"
 )
 
 var _ = Describe("VerifierBasket", func() {
 	var (
-		fakeVerifier1 *afakes.FakeVerifier
-		fakeVerifier2 *afakes.FakeVerifier
+		fakeVerifier1 *providerfakes.FakeVerifier
+		fakeVerifier2 *providerfakes.FakeVerifier
 
 		httpClient     *http.Client
 		verifierBasket Verifier
@@ -24,8 +24,8 @@ var _ = Describe("VerifierBasket", func() {
 
 	BeforeEach(func() {
 
-		fakeVerifier1 = new(afakes.FakeVerifier)
-		fakeVerifier2 = new(afakes.FakeVerifier)
+		fakeVerifier1 = new(providerfakes.FakeVerifier)
+		fakeVerifier2 = new(providerfakes.FakeVerifier)
 
 		httpClient = &http.Client{}
 		verifierBasket = NewVerifierBasket(fakeVerifier1, fakeVerifier2)

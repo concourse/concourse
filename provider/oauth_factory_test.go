@@ -5,7 +5,7 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/github"
 	. "github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/provider/fakes"
+	"github.com/concourse/atc/auth/provider/providerfakes"
 	"github.com/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo"
@@ -13,11 +13,11 @@ import (
 )
 
 var _ = Describe("OAuthFactory", func() {
-	var fakeFactoryDB *fakes.FakeFactoryDB
+	var fakeFactoryDB *providerfakes.FakeFactoryDB
 	var oauthFactory OAuthFactory
 
 	BeforeEach(func() {
-		fakeFactoryDB = new(fakes.FakeFactoryDB)
+		fakeFactoryDB = new(providerfakes.FakeFactoryDB)
 		oauthFactory = NewOAuthFactory(
 			fakeFactoryDB,
 			"http://foo.bar",
