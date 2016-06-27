@@ -5,24 +5,24 @@ import (
 
 	. "github.com/concourse/atc/exec"
 
-	"github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Try Step", func() {
 	var (
-		fakeStepFactoryStep *fakes.FakeStepFactory
+		fakeStepFactoryStep *execfakes.FakeStepFactory
 
-		runStep *fakes.FakeStep
+		runStep *execfakes.FakeStep
 
 		try  StepFactory
 		step Step
 	)
 
 	BeforeEach(func() {
-		fakeStepFactoryStep = new(fakes.FakeStepFactory)
-		runStep = new(fakes.FakeStep)
+		fakeStepFactoryStep = new(execfakes.FakeStepFactory)
+		runStep = new(execfakes.FakeStep)
 		fakeStepFactoryStep.UsingReturns(runStep)
 
 		try = Try(fakeStepFactoryStep)

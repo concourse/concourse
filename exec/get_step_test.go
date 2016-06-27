@@ -11,11 +11,11 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/exec"
-	"github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
-	rfakes "github.com/concourse/atc/resource/fakes"
+	rfakes "github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/fakes"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -28,7 +28,7 @@ var _ = Describe("GardenFactory", func() {
 	var (
 		fakeWorkerClient   *wfakes.FakeClient
 		fakeTracker        *rfakes.FakeTracker
-		fakeTrackerFactory *fakes.FakeTrackerFactory
+		fakeTrackerFactory *execfakes.FakeTrackerFactory
 
 		factory Factory
 
@@ -52,7 +52,7 @@ var _ = Describe("GardenFactory", func() {
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeTracker = new(rfakes.FakeTracker)
-		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
+		fakeTrackerFactory = new(execfakes.FakeTrackerFactory)
 
 		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
 
@@ -62,7 +62,7 @@ var _ = Describe("GardenFactory", func() {
 
 	Describe("Get", func() {
 		var (
-			getDelegate    *fakes.FakeGetDelegate
+			getDelegate    *execfakes.FakeGetDelegate
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
 			version        atc.Version
@@ -82,7 +82,7 @@ var _ = Describe("GardenFactory", func() {
 		)
 
 		BeforeEach(func() {
-			getDelegate = new(fakes.FakeGetDelegate)
+			getDelegate = new(execfakes.FakeGetDelegate)
 			getDelegate.StdoutReturns(stdoutBuf)
 			getDelegate.StderrReturns(stderrBuf)
 
@@ -521,10 +521,10 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				Describe("streaming to a destination", func() {
-					var fakeDestination *fakes.FakeArtifactDestination
+					var fakeDestination *execfakes.FakeArtifactDestination
 
 					BeforeEach(func() {
-						fakeDestination = new(fakes.FakeArtifactDestination)
+						fakeDestination = new(execfakes.FakeArtifactDestination)
 					})
 
 					Context("when the resource can stream out", func() {

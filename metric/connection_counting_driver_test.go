@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	. "github.com/concourse/atc/metric"
-	"github.com/concourse/atc/metric/fakes"
+	"github.com/concourse/atc/metric/metricfakes"
 	"github.com/nu7hatch/gouuid"
 
 	. "github.com/onsi/ginkgo"
@@ -15,12 +15,12 @@ import (
 
 var _ = Describe("ConnectionCountingDriver", func() {
 	var (
-		delegateDriver           *fakes.FakeDriver
+		delegateDriver           *metricfakes.FakeDriver
 		connectionCountingDriver Driver
 	)
 
 	BeforeEach(func() {
-		delegateDriver = new(fakes.FakeDriver)
+		delegateDriver = new(metricfakes.FakeDriver)
 
 		uid, err := uuid.NewV4()
 		Expect(err).NotTo(HaveOccurred())
@@ -39,10 +39,10 @@ var _ = Describe("ConnectionCountingDriver", func() {
 	})
 
 	Describe("connection counting", func() {
-		var delegateConn *fakes.FakeConn
+		var delegateConn *metricfakes.FakeConn
 
 		BeforeEach(func() {
-			delegateConn = new(fakes.FakeConn)
+			delegateConn = new(metricfakes.FakeConn)
 			delegateDriver.OpenReturns(delegateConn, nil)
 		})
 

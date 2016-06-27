@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo"
@@ -17,7 +17,7 @@ var _ = Describe("PipelineDBFactory", func() {
 
 	var pipelineDBFactory db.PipelineDBFactory
 
-	var pipelinesDB *fakes.FakePipelinesDB
+	var pipelinesDB *dbfakes.FakePipelinesDB
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -28,7 +28,7 @@ var _ = Describe("PipelineDBFactory", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		pipelinesDB = new(fakes.FakePipelinesDB)
+		pipelinesDB = new(dbfakes.FakePipelinesDB)
 
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus, pipelinesDB)
 	})

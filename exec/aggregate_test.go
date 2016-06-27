@@ -7,7 +7,7 @@ import (
 
 	. "github.com/concourse/atc/exec"
 
-	"github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -15,37 +15,37 @@ import (
 
 var _ = Describe("Aggregate", func() {
 	var (
-		fakeStepA *fakes.FakeStepFactory
-		fakeStepB *fakes.FakeStepFactory
+		fakeStepA *execfakes.FakeStepFactory
+		fakeStepB *execfakes.FakeStepFactory
 
 		aggregate StepFactory
 
-		inStep *fakes.FakeStep
+		inStep *execfakes.FakeStep
 		repo   *SourceRepository
 
-		outStepA *fakes.FakeStep
-		outStepB *fakes.FakeStep
+		outStepA *execfakes.FakeStep
+		outStepB *execfakes.FakeStep
 
 		step    Step
 		process ifrit.Process
 	)
 
 	BeforeEach(func() {
-		fakeStepA = new(fakes.FakeStepFactory)
-		fakeStepB = new(fakes.FakeStepFactory)
+		fakeStepA = new(execfakes.FakeStepFactory)
+		fakeStepB = new(execfakes.FakeStepFactory)
 
 		aggregate = Aggregate{
 			fakeStepA,
 			fakeStepB,
 		}
 
-		inStep = new(fakes.FakeStep)
+		inStep = new(execfakes.FakeStep)
 		repo = NewSourceRepository()
 
-		outStepA = new(fakes.FakeStep)
+		outStepA = new(execfakes.FakeStep)
 		fakeStepA.UsingReturns(outStepA)
 
-		outStepB = new(fakes.FakeStep)
+		outStepB = new(execfakes.FakeStep)
 		fakeStepB.UsingReturns(outStepB)
 	})
 

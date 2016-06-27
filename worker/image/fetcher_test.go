@@ -10,11 +10,11 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
-	rfakes "github.com/concourse/atc/resource/fakes"
+	rfakes "github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/fakes"
 	"github.com/concourse/atc/worker/image"
-	"github.com/concourse/atc/worker/image/fakes"
+	"github.com/concourse/atc/worker/image/imagefakes"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -24,7 +24,7 @@ import (
 )
 
 var _ = Describe("Fetcher", func() {
-	var fakeTrackerFactory *fakes.FakeTrackerFactory
+	var fakeTrackerFactory *imagefakes.FakeTrackerFactory
 	var fakeImageTracker *rfakes.FakeTracker
 
 	var fetcher image.Fetcher
@@ -47,7 +47,7 @@ var _ = Describe("Fetcher", func() {
 	var fetchErr error
 
 	BeforeEach(func() {
-		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
+		fakeTrackerFactory = new(imagefakes.FakeTrackerFactory)
 
 		fakeImageTracker = new(rfakes.FakeTracker)
 		fakeTrackerFactory.TrackerForReturns(fakeImageTracker)

@@ -9,13 +9,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/authfakes"
 )
 
 var _ = Describe("WrapHandler", func() {
 	var (
-		fakeValidator         *fakes.FakeValidator
-		fakeUserContextReader *fakes.FakeUserContextReader
+		fakeValidator         *authfakes.FakeValidator
+		fakeUserContextReader *authfakes.FakeUserContextReader
 
 		server *httptest.Server
 		client *http.Client
@@ -28,8 +28,8 @@ var _ = Describe("WrapHandler", func() {
 	)
 
 	BeforeEach(func() {
-		fakeValidator = new(fakes.FakeValidator)
-		fakeUserContextReader = new(fakes.FakeUserContextReader)
+		fakeValidator = new(authfakes.FakeValidator)
+		fakeUserContextReader = new(authfakes.FakeUserContextReader)
 
 		a := make(chan bool, 1)
 		tn := make(chan string, 1)

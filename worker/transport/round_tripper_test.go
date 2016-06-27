@@ -7,7 +7,7 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker/transport"
-	"github.com/concourse/atc/worker/transport/fakes"
+	"github.com/concourse/atc/worker/transport/transportfakes"
 	retryhttpfakes "github.com/concourse/retryhttp/fakes"
 
 	. "github.com/onsi/ginkgo"
@@ -17,7 +17,7 @@ import (
 var _ = Describe("RoundTripper #RoundTrip", func() {
 	var (
 		request          http.Request
-		fakeDB           *fakes.FakeTransportDB
+		fakeDB           *transportfakes.FakeTransportDB
 		savedWorker      db.SavedWorker
 		fakeRoundTripper *retryhttpfakes.FakeRoundTripper
 		roundTripper     http.RoundTripper
@@ -26,7 +26,7 @@ var _ = Describe("RoundTripper #RoundTrip", func() {
 	)
 
 	BeforeEach(func() {
-		fakeDB = new(fakes.FakeTransportDB)
+		fakeDB = new(transportfakes.FakeTransportDB)
 		fakeRoundTripper = new(retryhttpfakes.FakeRoundTripper)
 		roundTripper = transport.NewRoundTripper("some-worker", fakeDB, fakeRoundTripper)
 		requestUrl, err := url.Parse("http://1.2.3.4/something")

@@ -16,13 +16,13 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/atc/worker/workerfakes"
 )
 
 var _ = Describe("Hardcoded", func() {
 	var (
 		logger           lager.Logger
-		workerDB         *fakes.FakeSaveWorkerDB
+		workerDB         *workerfakes.FakeSaveWorkerDB
 		gardenAddr       string
 		baggageClaimAddr string
 		resourceTypes    []atc.WorkerResourceType
@@ -33,7 +33,7 @@ var _ = Describe("Hardcoded", func() {
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("hardcoded-worker")
-		workerDB = &fakes.FakeSaveWorkerDB{}
+		workerDB = &workerfakes.FakeSaveWorkerDB{}
 		gardenAddr = "http://garden.example.com"
 		baggageClaimAddr = "http://volumes.example.com"
 		resourceTypes = []atc.WorkerResourceType{

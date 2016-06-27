@@ -16,7 +16,7 @@ import (
 	gconn "github.com/cloudfoundry-incubator/garden/client/connection"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker/transport"
-	"github.com/concourse/atc/worker/transport/fakes"
+	"github.com/concourse/atc/worker/transport/transportfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/rata"
@@ -27,11 +27,11 @@ import (
 var _ = Describe("hijackStreamer", func() {
 	var (
 		savedWorker          db.SavedWorker
-		fakeDB               *fakes.FakeTransportDB
-		fakeRoundTripper     *fakes.FakeRoundTripper
+		fakeDB               *transportfakes.FakeTransportDB
+		fakeRoundTripper     *transportfakes.FakeRoundTripper
 		fakeHijackableClient *retryhttpfakes.FakeHijackableClient
 		hijackStreamer       gconn.HijackStreamer
-		fakeRequestGenerator *fakes.FakeRequestGenerator
+		fakeRequestGenerator *transportfakes.FakeRequestGenerator
 		handler              string
 		params               rata.Params
 		query                url.Values
@@ -44,12 +44,12 @@ var _ = Describe("hijackStreamer", func() {
 			},
 			ExpiresIn: 123,
 		}
-		fakeDB = new(fakes.FakeTransportDB)
+		fakeDB = new(transportfakes.FakeTransportDB)
 		fakeDB.GetWorkerReturns(savedWorker, true, nil)
 
-		fakeRequestGenerator = new(fakes.FakeRequestGenerator)
+		fakeRequestGenerator = new(transportfakes.FakeRequestGenerator)
 
-		fakeRoundTripper = new(fakes.FakeRoundTripper)
+		fakeRoundTripper = new(transportfakes.FakeRoundTripper)
 		fakeHijackableClient = new(retryhttpfakes.FakeHijackableClient)
 
 		hijackStreamer = &transport.WorkerHijackStreamer{
@@ -101,10 +101,10 @@ var _ = Describe("hijackStreamer", func() {
 		})
 
 		Context("when httpResponse is not success", func() {
-			var fakeBody *fakes.FakeReadCloser
+			var fakeBody *transportfakes.FakeReadCloser
 
 			BeforeEach(func() {
-				fakeBody = new(fakes.FakeReadCloser)
+				fakeBody = new(transportfakes.FakeReadCloser)
 				httpResp = http.Response{StatusCode: http.StatusTeapot, Body: fakeBody}
 
 				bodyBuf, _ := json.Marshal(garden.Error{Err: errors.New("some-error")})
@@ -124,10 +124,10 @@ var _ = Describe("hijackStreamer", func() {
 		})
 
 		Context("when httpResponse is not success with bad response", func() {
-			var fakeBody *fakes.FakeReadCloser
+			var fakeBody *transportfakes.FakeReadCloser
 
 			BeforeEach(func() {
-				fakeBody = new(fakes.FakeReadCloser)
+				fakeBody = new(transportfakes.FakeReadCloser)
 				httpResp = http.Response{StatusCode: http.StatusTeapot, Body: fakeBody}
 
 				realBody := strings.NewReader("some-error")
@@ -217,11 +217,11 @@ var _ = Describe("hijackStreamer", func() {
 		})
 
 		Context("when httpResponse is not success", func() {
-			var fakeBody *fakes.FakeReadCloser
+			var fakeBody *transportfakes.FakeReadCloser
 
 			BeforeEach(func() {
 				fakeHijackableClient.DoReturns(&httpResp, fakeHijackCloser, nil)
-				fakeBody = new(fakes.FakeReadCloser)
+				fakeBody = new(transportfakes.FakeReadCloser)
 				httpResp = http.Response{StatusCode: http.StatusTeapot, Body: fakeBody}
 
 				realBody := strings.NewReader("some-error")
@@ -241,11 +241,11 @@ var _ = Describe("hijackStreamer", func() {
 		})
 
 		Context("when httpResponse is not success with bad response", func() {
-			var fakeBody *fakes.FakeReadCloser
+			var fakeBody *transportfakes.FakeReadCloser
 
 			BeforeEach(func() {
 				fakeHijackableClient.DoReturns(&httpResp, fakeHijackCloser, nil)
-				fakeBody = new(fakes.FakeReadCloser)
+				fakeBody = new(transportfakes.FakeReadCloser)
 				httpResp = http.Response{StatusCode: http.StatusTeapot, Body: fakeBody}
 
 				fakeBody.ReadStub = func(buf []byte) (int, error) {

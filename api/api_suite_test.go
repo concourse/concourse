@@ -15,19 +15,19 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/api/buildserver"
-	buildfakes "github.com/concourse/atc/api/buildserver/fakes"
-	containerserverfakes "github.com/concourse/atc/api/containerserver/fakes"
-	jobserverfakes "github.com/concourse/atc/api/jobserver/fakes"
-	pipeserverfakes "github.com/concourse/atc/api/pipes/fakes"
-	resourceserverfakes "github.com/concourse/atc/api/resourceserver/fakes"
-	teamserverfakes "github.com/concourse/atc/api/teamserver/fakes"
-	volumeserverfakes "github.com/concourse/atc/api/volumeserver/fakes"
-	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
-	authfakes "github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/api/buildserver/buildserverfakes"
+	"github.com/concourse/atc/api/containerserver/containerserverfakes"
+	"github.com/concourse/atc/api/jobserver/jobserverfakes"
+	"github.com/concourse/atc/api/pipes/pipesfakes"
+	"github.com/concourse/atc/api/resourceserver/resourceserverfakes"
+	"github.com/concourse/atc/api/teamserver/teamserverfakes"
+	"github.com/concourse/atc/api/volumeserver/volumeserverfakes"
+	"github.com/concourse/atc/api/workerserver/workerserverfakes"
+	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/config"
-	dbfakes "github.com/concourse/atc/db/fakes"
-	enginefakes "github.com/concourse/atc/engine/fakes"
-	workerfakes "github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/engine/enginefakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/atc/wrappa"
 )
 
@@ -44,12 +44,12 @@ var (
 	fakeEngine                    *enginefakes.FakeEngine
 	fakeWorkerClient              *workerfakes.FakeClient
 	authDB                        *authfakes.FakeAuthDB
-	buildsDB                      *buildfakes.FakeBuildsDB
+	buildsDB                      *buildserverfakes.FakeBuildsDB
 	volumesDB                     *volumeserverfakes.FakeVolumesDB
 	configDB                      *dbfakes.FakeConfigDB
 	workerDB                      *workerserverfakes.FakeWorkerDB
 	containerDB                   *containerserverfakes.FakeContainerDB
-	pipeDB                        *pipeserverfakes.FakePipeDB
+	pipeDB                        *pipesfakes.FakePipeDB
 	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
 	pipelinesDB                   *dbfakes.FakePipelinesDB
 	teamDB                        *teamserverfakes.FakeTeamDB
@@ -93,13 +93,13 @@ func (f *fakeEventHandlerFactory) Construct(
 
 var _ = BeforeEach(func() {
 	authDB = new(authfakes.FakeAuthDB)
-	buildsDB = new(buildfakes.FakeBuildsDB)
+	buildsDB = new(buildserverfakes.FakeBuildsDB)
 	configDB = new(dbfakes.FakeConfigDB)
 	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 	workerDB = new(workerserverfakes.FakeWorkerDB)
 	containerDB = new(containerserverfakes.FakeContainerDB)
 	volumesDB = new(volumeserverfakes.FakeVolumesDB)
-	pipeDB = new(pipeserverfakes.FakePipeDB)
+	pipeDB = new(pipesfakes.FakePipeDB)
 	pipelinesDB = new(dbfakes.FakePipelinesDB)
 	teamDB = new(teamserverfakes.FakeTeamDB)
 

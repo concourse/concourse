@@ -17,7 +17,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	enginefakes "github.com/concourse/atc/engine/fakes"
+	enginefakes "github.com/concourse/atc/engine/enginefakes"
 )
 
 var _ = Describe("Builds API", func() {

@@ -10,10 +10,10 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/engine/fakes"
+	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
-	execfakes "github.com/concourse/atc/exec/fakes"
+	execfakes "github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/worker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,8 +24,8 @@ import (
 var _ = Describe("ExecEngine", func() {
 	var (
 		fakeFactory         *execfakes.FakeFactory
-		fakeDelegateFactory *fakes.FakeBuildDelegateFactory
-		fakeDB              *fakes.FakeEngineDB
+		fakeDelegateFactory *enginefakes.FakeBuildDelegateFactory
+		fakeDB              *enginefakes.FakeEngineDB
 		logger              *lagertest.TestLogger
 
 		execEngine engine.Engine
@@ -33,8 +33,8 @@ var _ = Describe("ExecEngine", func() {
 
 	BeforeEach(func() {
 		fakeFactory = new(execfakes.FakeFactory)
-		fakeDelegateFactory = new(fakes.FakeBuildDelegateFactory)
-		fakeDB = new(fakes.FakeEngineDB)
+		fakeDelegateFactory = new(enginefakes.FakeBuildDelegateFactory)
+		fakeDB = new(enginefakes.FakeEngineDB)
 		logger = lagertest.NewTestLogger("test")
 
 		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB, "http://example.com")
@@ -42,7 +42,7 @@ var _ = Describe("ExecEngine", func() {
 
 	Describe("Resume", func() {
 		var (
-			fakeDelegate          *fakes.FakeBuildDelegate
+			fakeDelegate          *enginefakes.FakeBuildDelegate
 			fakeInputDelegate     *execfakes.FakeGetDelegate
 			fakeExecutionDelegate *execfakes.FakeTaskDelegate
 			fakeOutputDelegate    *execfakes.FakePutDelegate
@@ -88,7 +88,7 @@ var _ = Describe("ExecEngine", func() {
 				ExternalURL:  "http://example.com",
 			}
 
-			fakeDelegate = new(fakes.FakeBuildDelegate)
+			fakeDelegate = new(enginefakes.FakeBuildDelegate)
 			fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
 			fakeInputDelegate = new(execfakes.FakeGetDelegate)
@@ -1049,7 +1049,7 @@ var _ = Describe("ExecEngine", func() {
 						}`,
 				}
 
-				fakeDelegate := new(fakes.FakeBuildDelegate)
+				fakeDelegate := new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
 				inputStepFactory := new(execfakes.FakeStepFactory)

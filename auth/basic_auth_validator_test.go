@@ -11,7 +11,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/db"
 )
 
@@ -22,10 +22,10 @@ var _ = Describe("BasicAuthValidator", func() {
 
 	var validator auth.Validator
 
-	var fakeAuthDB *fakes.FakeAuthDB
+	var fakeAuthDB *authfakes.FakeAuthDB
 
 	BeforeEach(func() {
-		fakeAuthDB = new(fakes.FakeAuthDB)
+		fakeAuthDB = new(authfakes.FakeAuthDB)
 		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 4)
 		Expect(err).ToNot(HaveOccurred())
 

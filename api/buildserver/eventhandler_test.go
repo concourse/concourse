@@ -9,9 +9,9 @@ import (
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/api/buildserver"
-	"github.com/concourse/atc/api/buildserver/fakes"
+	"github.com/concourse/atc/api/buildserver/buildserverfakes"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/gorilla/websocket"
 	"github.com/pivotal-golang/lager"
 	"github.com/vito/go-sse/sse"
@@ -29,13 +29,13 @@ func (fakeEvent) Version() atc.EventVersion  { return "42.0" }
 
 var _ = Describe("Handler", func() {
 	var (
-		buildsDB *fakes.FakeBuildsDB
+		buildsDB *buildserverfakes.FakeBuildsDB
 
 		server *httptest.Server
 	)
 
 	BeforeEach(func() {
-		buildsDB = new(fakes.FakeBuildsDB)
+		buildsDB = new(buildserverfakes.FakeBuildsDB)
 
 		server = httptest.NewServer(NewEventHandler(lager.NewLogger("test"), buildsDB, 128))
 	})

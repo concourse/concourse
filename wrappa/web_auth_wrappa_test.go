@@ -2,7 +2,7 @@ package wrappa_test
 
 import (
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/atc/wrappa"
 	"github.com/tedsuo/rata"
@@ -13,14 +13,14 @@ import (
 
 var _ = Describe("WebAuthWrappa", func() {
 	var (
-		fakeValidator         *fakes.FakeValidator
-		fakeUserContextReader *fakes.FakeUserContextReader
+		fakeValidator         *authfakes.FakeValidator
+		fakeUserContextReader *authfakes.FakeUserContextReader
 
 		expectedHandlers rata.Handlers
 	)
 
 	BeforeEach(func() {
-		fakeValidator = new(fakes.FakeValidator)
+		fakeValidator = new(authfakes.FakeValidator)
 	})
 
 	Describe("Wrap", func() {

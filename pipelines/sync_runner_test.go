@@ -5,7 +5,7 @@ import (
 	"time"
 
 	. "github.com/concourse/atc/pipelines"
-	"github.com/concourse/atc/pipelines/fakes"
+	"github.com/concourse/atc/pipelines/pipelinesfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/clock/fakeclock"
@@ -13,7 +13,7 @@ import (
 )
 
 var _ = Describe("Pipelines Sync Runner", func() {
-	var fakeSyncer *fakes.FakePipelineSyncer
+	var fakeSyncer *pipelinesfakes.FakePipelineSyncer
 	var synced <-chan struct{}
 	var interval = 10 * time.Second
 	var fakeClock *fakeclock.FakeClock
@@ -21,7 +21,7 @@ var _ = Describe("Pipelines Sync Runner", func() {
 	var process ifrit.Process
 
 	BeforeEach(func() {
-		fakeSyncer = new(fakes.FakePipelineSyncer)
+		fakeSyncer = new(pipelinesfakes.FakePipelineSyncer)
 
 		s := make(chan struct{})
 		synced = s

@@ -8,7 +8,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth/provider"
-	"github.com/concourse/atc/auth/provider/fakes"
+	"github.com/concourse/atc/auth/provider/providerfakes"
 	"github.com/concourse/atc/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -153,10 +153,10 @@ var _ = Describe("Auth API", func() {
 			var savedTeam db.SavedTeam
 
 			BeforeEach(func() {
-				authProvider1 := new(fakes.FakeProvider)
+				authProvider1 := new(providerfakes.FakeProvider)
 				authProvider1.DisplayNameReturns("OAuth Provider 1")
 
-				authProvider2 := new(fakes.FakeProvider)
+				authProvider2 := new(providerfakes.FakeProvider)
 				authProvider2.DisplayNameReturns("OAuth Provider 2")
 				providerFactory.GetProvidersReturns(
 					provider.Providers{

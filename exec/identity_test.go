@@ -5,14 +5,14 @@ import (
 
 	. "github.com/concourse/atc/exec"
 
-	"github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Identity", func() {
 	var (
-		inStep *fakes.FakeStep
+		inStep *execfakes.FakeStep
 		repo   *SourceRepository
 
 		identity Identity
@@ -23,7 +23,7 @@ var _ = Describe("Identity", func() {
 	BeforeEach(func() {
 		identity = Identity{}
 
-		inStep = new(fakes.FakeStep)
+		inStep = new(execfakes.FakeStep)
 		repo = NewSourceRepository()
 	})
 

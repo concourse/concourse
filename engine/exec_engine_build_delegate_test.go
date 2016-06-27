@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/engine"
-	"github.com/concourse/atc/engine/fakes"
+	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
@@ -20,7 +20,7 @@ import (
 
 var _ = Describe("BuildDelegate", func() {
 	var (
-		fakeDB  *fakes.FakeEngineDB
+		fakeDB  *enginefakes.FakeEngineDB
 		factory BuildDelegateFactory
 
 		buildID int
@@ -33,7 +33,7 @@ var _ = Describe("BuildDelegate", func() {
 	)
 
 	BeforeEach(func() {
-		fakeDB = new(fakes.FakeEngineDB)
+		fakeDB = new(enginefakes.FakeEngineDB)
 		factory = NewBuildDelegateFactory(fakeDB)
 
 		buildID = 42

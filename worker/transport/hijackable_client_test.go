@@ -10,7 +10,7 @@ import (
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker/transport"
-	"github.com/concourse/atc/worker/transport/fakes"
+	"github.com/concourse/atc/worker/transport/transportfakes"
 	"github.com/concourse/retryhttp"
 	retryhttpfakes "github.com/concourse/retryhttp/fakes"
 )
@@ -18,7 +18,7 @@ import (
 var _ = Describe("HijackableClient #Do", func() {
 	var (
 		request              http.Request
-		fakeDB               *fakes.FakeTransportDB
+		fakeDB               *transportfakes.FakeTransportDB
 		savedWorker          db.SavedWorker
 		fakeHijackableClient *retryhttpfakes.FakeHijackableClient
 		hijackableClient     retryhttp.HijackableClient
@@ -29,7 +29,7 @@ var _ = Describe("HijackableClient #Do", func() {
 	)
 
 	BeforeEach(func() {
-		fakeDB = new(fakes.FakeTransportDB)
+		fakeDB = new(transportfakes.FakeTransportDB)
 		fakeHijackableClient = new(retryhttpfakes.FakeHijackableClient)
 		fakeHijackCloser = new(retryhttpfakes.FakeHijackCloser)
 		hijackableClient = transport.NewHijackableClient("some-worker", fakeDB, fakeHijackableClient)

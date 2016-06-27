@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/authfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,9 +16,9 @@ import (
 
 var _ = Describe("CheckAuthHandler", func() {
 	var (
-		fakeValidator         *fakes.FakeValidator
-		fakeUserContextReader *fakes.FakeUserContextReader
-		fakeRejector          *fakes.FakeRejector
+		fakeValidator         *authfakes.FakeValidator
+		fakeUserContextReader *authfakes.FakeUserContextReader
+		fakeRejector          *authfakes.FakeRejector
 
 		server *httptest.Server
 		client *http.Client
@@ -32,9 +32,9 @@ var _ = Describe("CheckAuthHandler", func() {
 	})
 
 	BeforeEach(func() {
-		fakeValidator = new(fakes.FakeValidator)
-		fakeUserContextReader = new(fakes.FakeUserContextReader)
-		fakeRejector = new(fakes.FakeRejector)
+		fakeValidator = new(authfakes.FakeValidator)
+		fakeUserContextReader = new(authfakes.FakeUserContextReader)
+		fakeRejector = new(authfakes.FakeRejector)
 
 		fakeRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "nope", http.StatusUnauthorized)

@@ -8,7 +8,7 @@ import (
 
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/fakes"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
 )
 
 var _ = Describe("Resource", func() {

@@ -7,7 +7,7 @@ import (
 	"net/url"
 
 	"github.com/concourse/atc/web/authredirect"
-	"github.com/concourse/atc/web/authredirect/fakes"
+	"github.com/concourse/atc/web/authredirect/authredirectfakes"
 	"github.com/concourse/go-concourse/concourse"
 
 	. "github.com/onsi/ginkgo"
@@ -15,7 +15,7 @@ import (
 )
 
 var _ = Describe("Handler", func() {
-	var fakeErrHandler *fakes.FakeErrHandler
+	var fakeErrHandler *authredirectfakes.FakeErrHandler
 
 	var handler http.Handler
 	var server *httptest.Server
@@ -26,7 +26,7 @@ var _ = Describe("Handler", func() {
 	var requestErr error
 
 	BeforeEach(func() {
-		fakeErrHandler = new(fakes.FakeErrHandler)
+		fakeErrHandler = new(authredirectfakes.FakeErrHandler)
 		handler = authredirect.Tracker{authredirect.Handler{fakeErrHandler}}
 
 		server = httptest.NewServer(handler)

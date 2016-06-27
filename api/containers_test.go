@@ -20,7 +20,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	workerfakes "github.com/concourse/atc/worker/fakes"
+	workerfakes "github.com/concourse/atc/worker/workerfakes"
 )
 
 var _ = Describe("Containers API", func() {

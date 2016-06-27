@@ -11,11 +11,11 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	dbfakes "github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/lostandfound"
-	"github.com/concourse/atc/lostandfound/fakes"
+	"github.com/concourse/atc/lostandfound/lostandfoundfakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/fakes"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
 )
 
 func strptr(s string) *string {
@@ -27,7 +27,7 @@ var _ = Describe("Baggage Collector", func() {
 		fakeWorkerClient *wfakes.FakeClient
 		fakeWorker       *wfakes.FakeWorker
 
-		fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
+		fakeBaggageCollectorDB *lostandfoundfakes.FakeBaggageCollectorDB
 		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
 
 		lessThanOldResource            = 3 * time.Minute
@@ -60,7 +60,7 @@ var _ = Describe("Baggage Collector", func() {
 			fakeWorkerClient.GetWorkerReturns(fakeWorker, nil)
 			baggageCollectorLogger := lagertest.NewTestLogger("test")
 
-			fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
+			fakeBaggageCollectorDB = new(lostandfoundfakes.FakeBaggageCollectorDB)
 			fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 
 			baggageCollector = lostandfound.NewBaggageCollector(

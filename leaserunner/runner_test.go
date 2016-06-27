@@ -12,15 +12,15 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
-	dbfakes "github.com/concourse/atc/db/fakes"
+	dbfakes "github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/leaserunner"
-	"github.com/concourse/atc/leaserunner/fakes"
+	"github.com/concourse/atc/leaserunner/leaserunnerfakes"
 )
 
 var _ = Describe("Runner", func() {
 	var (
-		fakeDB    *fakes.FakeRunnerDB
-		fakeTask  *fakes.FakeTask
+		fakeDB    *leaserunnerfakes.FakeRunnerDB
+		fakeTask  *leaserunnerfakes.FakeTask
 		fakeClock *fakeclock.FakeClock
 		fakeLease *dbfakes.FakeLease
 
@@ -30,8 +30,8 @@ var _ = Describe("Runner", func() {
 	)
 
 	BeforeEach(func() {
-		fakeDB = new(fakes.FakeRunnerDB)
-		fakeTask = new(fakes.FakeTask)
+		fakeDB = new(leaserunnerfakes.FakeRunnerDB)
+		fakeTask = new(leaserunnerfakes.FakeTask)
 		fakeLease = new(dbfakes.FakeLease)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 

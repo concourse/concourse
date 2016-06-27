@@ -5,7 +5,7 @@ import (
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/exec"
-	"github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 	"gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo"
@@ -246,10 +246,10 @@ var _ = Describe("ConfigSource", func() {
 		})
 
 		Context("when the file's artifact source can be found in the repository", func() {
-			var fakeArtifactSource *fakes.FakeArtifactSource
+			var fakeArtifactSource *execfakes.FakeArtifactSource
 
 			BeforeEach(func() {
-				fakeArtifactSource = new(fakes.FakeArtifactSource)
+				fakeArtifactSource = new(execfakes.FakeArtifactSource)
 				repo.RegisterSource("some", fakeArtifactSource)
 			})
 
@@ -363,8 +363,8 @@ run: {path: a/file}
 
 	Describe("MergedConfigSource", func() {
 		var (
-			fakeConfigSourceA *fakes.FakeTaskConfigSource
-			fakeConfigSourceB *fakes.FakeTaskConfigSource
+			fakeConfigSourceA *execfakes.FakeTaskConfigSource
+			fakeConfigSourceB *execfakes.FakeTaskConfigSource
 
 			configSource TaskConfigSource
 
@@ -376,8 +376,8 @@ run: {path: a/file}
 		)
 
 		BeforeEach(func() {
-			fakeConfigSourceA = new(fakes.FakeTaskConfigSource)
-			fakeConfigSourceB = new(fakes.FakeTaskConfigSource)
+			fakeConfigSourceA = new(execfakes.FakeTaskConfigSource)
+			fakeConfigSourceB = new(execfakes.FakeTaskConfigSource)
 
 			configSource = MergedConfigSource{
 				A: fakeConfigSourceA,
@@ -467,7 +467,7 @@ run: {path: a/file}
 
 	Describe("ValidatingConfigSource", func() {
 		var (
-			fakeConfigSource *fakes.FakeTaskConfigSource
+			fakeConfigSource *execfakes.FakeTaskConfigSource
 
 			configSource TaskConfigSource
 
@@ -476,7 +476,7 @@ run: {path: a/file}
 		)
 
 		BeforeEach(func() {
-			fakeConfigSource = new(fakes.FakeTaskConfigSource)
+			fakeConfigSource = new(execfakes.FakeTaskConfigSource)
 
 			configSource = ValidatingConfigSource{fakeConfigSource}
 		})

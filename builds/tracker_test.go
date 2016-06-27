@@ -9,15 +9,15 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/builds"
-	"github.com/concourse/atc/builds/fakes"
+	"github.com/concourse/atc/builds/buildsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	enginefakes "github.com/concourse/atc/engine/fakes"
+	enginefakes "github.com/concourse/atc/engine/enginefakes"
 )
 
 var _ = Describe("Tracker", func() {
 	var (
-		fakeTrackerDB *fakes.FakeTrackerDB
+		fakeTrackerDB *buildsfakes.FakeTrackerDB
 		fakeEngine    *enginefakes.FakeEngine
 
 		tracker *builds.Tracker
@@ -25,7 +25,7 @@ var _ = Describe("Tracker", func() {
 	)
 
 	BeforeEach(func() {
-		fakeTrackerDB = new(fakes.FakeTrackerDB)
+		fakeTrackerDB = new(buildsfakes.FakeTrackerDB)
 		fakeEngine = new(enginefakes.FakeEngine)
 		logger = lagertest.NewTestLogger("test")
 

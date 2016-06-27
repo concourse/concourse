@@ -7,13 +7,13 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/radar"
-	"github.com/concourse/atc/radar/fakes"
+	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager/lagertest"
 
-	dbfakes "github.com/concourse/atc/db/fakes"
-	rfakes "github.com/concourse/atc/resource/fakes"
+	dbfakes "github.com/concourse/atc/db/dbfakes"
+	rfakes "github.com/concourse/atc/resource/resourcefakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -23,7 +23,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		epoch time.Time
 
 		fakeTracker *rfakes.FakeTracker
-		fakeRadarDB *fakes.FakeRadarDB
+		fakeRadarDB *radarfakes.FakeRadarDB
 		interval    time.Duration
 
 		scanner Scanner
@@ -36,7 +36,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 	BeforeEach(func() {
 		epoch = time.Unix(123, 456).UTC()
 		fakeTracker = new(rfakes.FakeTracker)
-		fakeRadarDB = new(fakes.FakeRadarDB)
+		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		interval = 1 * time.Minute
 
 		fakeRadarDB.GetPipelineIDReturns(42)

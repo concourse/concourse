@@ -10,7 +10,7 @@ import (
 	"github.com/tedsuo/ifrit"
 
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 )
 
 var noError = BeNil
@@ -18,13 +18,13 @@ var errorMatching = MatchError
 
 var _ = Describe("On Success Step", func() {
 	var (
-		stepFactory    *fakes.FakeStepFactory
-		successFactory *fakes.FakeStepFactory
+		stepFactory    *execfakes.FakeStepFactory
+		successFactory *execfakes.FakeStepFactory
 
-		step *fakes.FakeStep
-		hook *fakes.FakeStep
+		step *execfakes.FakeStep
+		hook *execfakes.FakeStep
 
-		previousStep *fakes.FakeStep
+		previousStep *execfakes.FakeStep
 
 		repo *exec.SourceRepository
 
@@ -33,13 +33,13 @@ var _ = Describe("On Success Step", func() {
 	)
 
 	BeforeEach(func() {
-		stepFactory = &fakes.FakeStepFactory{}
-		successFactory = &fakes.FakeStepFactory{}
+		stepFactory = &execfakes.FakeStepFactory{}
+		successFactory = &execfakes.FakeStepFactory{}
 
-		step = &fakes.FakeStep{}
-		hook = &fakes.FakeStep{}
+		step = &execfakes.FakeStep{}
+		hook = &execfakes.FakeStep{}
 
-		previousStep = &fakes.FakeStep{}
+		previousStep = &execfakes.FakeStep{}
 
 		stepFactory.UsingReturns(step)
 		successFactory.UsingReturns(hook)

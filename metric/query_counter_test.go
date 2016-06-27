@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/metric"
 
 	. "github.com/onsi/ginkgo"
@@ -13,12 +13,12 @@ import (
 
 var _ = Describe("Counting Database Queries", func() {
 	var (
-		underlyingConn *fakes.FakeConn
+		underlyingConn *dbfakes.FakeConn
 		countingConn   db.Conn
 	)
 
 	BeforeEach(func() {
-		underlyingConn = new(fakes.FakeConn)
+		underlyingConn = new(dbfakes.FakeConn)
 		countingConn = metric.CountQueries(underlyingConn)
 	})
 
@@ -57,7 +57,7 @@ var _ = Describe("Counting Database Queries", func() {
 			Expect(metric.DatabaseQueries.Max()).To(Equal(3))
 
 			By("working in transactions")
-			underlyingTx := &fakes.FakeTx{}
+			underlyingTx := &dbfakes.FakeTx{}
 			underlyingConn.BeginReturns(underlyingTx, nil)
 
 			tx, err := countingConn.Begin()

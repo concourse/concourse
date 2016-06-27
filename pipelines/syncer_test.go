@@ -5,7 +5,7 @@ import (
 	"os"
 
 	. "github.com/concourse/atc/pipelines"
-	"github.com/concourse/atc/pipelines/fakes"
+	"github.com/concourse/atc/pipelines/pipelinesfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -13,12 +13,12 @@ import (
 	"github.com/tedsuo/ifrit/fake_runner"
 
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	dbfakes "github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Pipelines Syncer", func() {
 	var (
-		syncherDB             *fakes.FakeSyncherDB
+		syncherDB             *pipelinesfakes.FakeSyncherDB
 		pipelineDB            *dbfakes.FakePipelineDB
 		otherPipelineDB       *dbfakes.FakePipelineDB
 		pipelineDBFactory     *dbfakes.FakePipelineDBFactory
@@ -32,7 +32,7 @@ var _ = Describe("Pipelines Syncer", func() {
 	)
 
 	BeforeEach(func() {
-		syncherDB = new(fakes.FakeSyncherDB)
+		syncherDB = new(pipelinesfakes.FakeSyncherDB)
 		pipelineDB = new(dbfakes.FakePipelineDB)
 
 		pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)

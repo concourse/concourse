@@ -4,9 +4,9 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/engine/fakes"
+	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/exec"
-	execfakes "github.com/concourse/atc/exec/fakes"
+	execfakes "github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -17,8 +17,8 @@ import (
 var _ = Describe("Exec Engine With Hooks", func() {
 	var (
 		fakeFactory         *execfakes.FakeFactory
-		fakeDelegateFactory *fakes.FakeBuildDelegateFactory
-		fakeDB              *fakes.FakeEngineDB
+		fakeDelegateFactory *enginefakes.FakeBuildDelegateFactory
+		fakeDB              *enginefakes.FakeEngineDB
 
 		execEngine engine.Engine
 
@@ -26,19 +26,19 @@ var _ = Describe("Exec Engine With Hooks", func() {
 		expectedMetadata engine.StepMetadata
 		logger           *lagertest.TestLogger
 
-		fakeDelegate *fakes.FakeBuildDelegate
+		fakeDelegate *enginefakes.FakeBuildDelegate
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 
 		fakeFactory = new(execfakes.FakeFactory)
-		fakeDelegateFactory = new(fakes.FakeBuildDelegateFactory)
-		fakeDB = new(fakes.FakeEngineDB)
+		fakeDelegateFactory = new(enginefakes.FakeBuildDelegateFactory)
+		fakeDB = new(enginefakes.FakeEngineDB)
 
 		execEngine = engine.NewExecEngine(fakeFactory, fakeDelegateFactory, fakeDB, "http://example.com")
 
-		fakeDelegate = new(fakes.FakeBuildDelegate)
+		fakeDelegate = new(enginefakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
 		buildModel = db.Build{
@@ -105,13 +105,13 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 		Context("constructing steps", func() {
 			var (
-				fakeDelegate          *fakes.FakeBuildDelegate
+				fakeDelegate          *enginefakes.FakeBuildDelegate
 				fakeInputDelegate     *execfakes.FakeGetDelegate
 				fakeExecutionDelegate *execfakes.FakeTaskDelegate
 			)
 
 			BeforeEach(func() {
-				fakeDelegate = new(fakes.FakeBuildDelegate)
+				fakeDelegate = new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
 				fakeInputDelegate = new(execfakes.FakeGetDelegate)
