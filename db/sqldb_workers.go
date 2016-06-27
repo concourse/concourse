@@ -44,8 +44,12 @@ func (db *SQLDB) Workers() ([]SavedWorker, error) {
 	return savedWorkers, nil
 }
 
-func (db *SQLDB) FindWorkerResourceTypeVersionByContainer(container SavedContainer) (string, bool, error) {
-	savedWorker, found, err := db.GetWorker(container.WorkerName)
+func (db *SQLDB) FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error) {
+	if checkType == "" {
+		return "", false, nil
+	}
+
+	savedWorker, found, err := db.GetWorker(workerName)
 
 	if err != nil {
 		return "", false, err
@@ -55,12 +59,8 @@ func (db *SQLDB) FindWorkerResourceTypeVersionByContainer(container SavedContain
 		return "", false, errors.New("worker-not-found")
 	}
 
-	if container.CheckType == "" {
-		return "", false, nil
-	}
-
 	for _, workerResourceType := range savedWorker.ResourceTypes {
-		if container.CheckType == workerResourceType.Type {
+		if checkType == workerResourceType.Type {
 			return workerResourceType.Version, true, nil
 		}
 	}

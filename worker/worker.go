@@ -62,7 +62,7 @@ type GardenWorkerDB interface {
 	GetContainer(handle string) (db.SavedContainer, bool, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(string) error
-	FindWorkerResourceTypeVersionByContainer(db.SavedContainer) (string, bool, error)
+	FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error)
 
 	InsertVolume(db.Volume) error
 	SetVolumeTTL(string, time.Duration) error
@@ -532,7 +532,7 @@ func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) 
 		return nil, false, errors.New("failed-to-find-db-container")
 	}
 
-	workerResourceTypeVersion, found, err := worker.db.FindWorkerResourceTypeVersionByContainer(savedContainer)
+	workerResourceTypeVersion, found, err := worker.db.FindWorkerCheckResourceTypeVersion(savedContainer.WorkerName, savedContainer.CheckType)
 	if err != nil {
 		return nil, false, err
 	}
@@ -544,13 +544,6 @@ func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) 
 			"container-check-type": savedContainer.CheckType,
 		})
 
-		err = worker.db.ReapContainer(handle)
-		if err != nil {
-			logger.Error("failed-to-reap-container", err, lager.Data{"handle": handle})
-			return nil, false, nil
-		}
-
-		container.Release(nil)
 		return nil, false, nil
 	}
 

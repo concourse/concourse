@@ -219,7 +219,7 @@ var _ = Describe("Keeping track of workers", func() {
 		Eventually(workerFound, 2*ttl).Should(BeFalse())
 	})
 
-	Describe("FindWorkerResourceTypeVersionByContainer", func() {
+	Describe("FindWorkerCheckResourceTypeVersion", func() {
 		var container db.SavedContainer
 
 		BeforeEach(func() {
@@ -254,7 +254,7 @@ var _ = Describe("Keeping track of workers", func() {
 			})
 
 			It("returns true", func() {
-				workerVersion, found, err := database.FindWorkerResourceTypeVersionByContainer(container)
+				workerVersion, found, err := database.FindWorkerCheckResourceTypeVersion("some-worker", "custom-type")
 				Expect(found).To(BeTrue())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(workerVersion).To(Equal("some-version"))
@@ -278,7 +278,7 @@ var _ = Describe("Keeping track of workers", func() {
 			})
 
 			It("returns false", func() {
-				workerVersion, found, err := database.FindWorkerResourceTypeVersionByContainer(container)
+				workerVersion, found, err := database.FindWorkerCheckResourceTypeVersion("some-worker", "custom-type")
 				Expect(found).To(BeTrue())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(workerVersion).To(Equal("other-version"))
@@ -302,7 +302,7 @@ var _ = Describe("Keeping track of workers", func() {
 			})
 
 			It("returns true", func() {
-				workerVersion, found, err := database.FindWorkerResourceTypeVersionByContainer(container)
+				workerVersion, found, err := database.FindWorkerCheckResourceTypeVersion("some-worker", "custom-type")
 				Expect(found).To(BeFalse())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(workerVersion).To(Equal(""))
@@ -328,7 +328,7 @@ var _ = Describe("Keeping track of workers", func() {
 			})
 
 			It("returns true", func() {
-				workerVersion, found, err := database.FindWorkerResourceTypeVersionByContainer(container)
+				workerVersion, found, err := database.FindWorkerCheckResourceTypeVersion("some-worker", "custom-type")
 				Expect(found).To(BeFalse())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(workerVersion).To(Equal(""))

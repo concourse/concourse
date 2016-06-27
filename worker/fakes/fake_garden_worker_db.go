@@ -49,12 +49,13 @@ type FakeGardenWorkerDB struct {
 	reapContainerReturns struct {
 		result1 error
 	}
-	FindWorkerResourceTypeVersionByContainerStub        func(db.SavedContainer) (string, bool, error)
-	findWorkerResourceTypeVersionByContainerMutex       sync.RWMutex
-	findWorkerResourceTypeVersionByContainerArgsForCall []struct {
-		arg1 db.SavedContainer
+	FindWorkerCheckResourceTypeVersionStub        func(workerName string, checkType string) (string, bool, error)
+	findWorkerCheckResourceTypeVersionMutex       sync.RWMutex
+	findWorkerCheckResourceTypeVersionArgsForCall []struct {
+		workerName string
+		checkType  string
 	}
-	findWorkerResourceTypeVersionByContainerReturns struct {
+	findWorkerCheckResourceTypeVersionReturns struct {
 		result1 string
 		result2 bool
 		result3 error
@@ -240,34 +241,35 @@ func (fake *FakeGardenWorkerDB) ReapContainerReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeGardenWorkerDB) FindWorkerResourceTypeVersionByContainer(arg1 db.SavedContainer) (string, bool, error) {
-	fake.findWorkerResourceTypeVersionByContainerMutex.Lock()
-	fake.findWorkerResourceTypeVersionByContainerArgsForCall = append(fake.findWorkerResourceTypeVersionByContainerArgsForCall, struct {
-		arg1 db.SavedContainer
-	}{arg1})
-	fake.findWorkerResourceTypeVersionByContainerMutex.Unlock()
-	if fake.FindWorkerResourceTypeVersionByContainerStub != nil {
-		return fake.FindWorkerResourceTypeVersionByContainerStub(arg1)
+func (fake *FakeGardenWorkerDB) FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error) {
+	fake.findWorkerCheckResourceTypeVersionMutex.Lock()
+	fake.findWorkerCheckResourceTypeVersionArgsForCall = append(fake.findWorkerCheckResourceTypeVersionArgsForCall, struct {
+		workerName string
+		checkType  string
+	}{workerName, checkType})
+	fake.findWorkerCheckResourceTypeVersionMutex.Unlock()
+	if fake.FindWorkerCheckResourceTypeVersionStub != nil {
+		return fake.FindWorkerCheckResourceTypeVersionStub(workerName, checkType)
 	} else {
-		return fake.findWorkerResourceTypeVersionByContainerReturns.result1, fake.findWorkerResourceTypeVersionByContainerReturns.result2, fake.findWorkerResourceTypeVersionByContainerReturns.result3
+		return fake.findWorkerCheckResourceTypeVersionReturns.result1, fake.findWorkerCheckResourceTypeVersionReturns.result2, fake.findWorkerCheckResourceTypeVersionReturns.result3
 	}
 }
 
-func (fake *FakeGardenWorkerDB) FindWorkerResourceTypeVersionByContainerCallCount() int {
-	fake.findWorkerResourceTypeVersionByContainerMutex.RLock()
-	defer fake.findWorkerResourceTypeVersionByContainerMutex.RUnlock()
-	return len(fake.findWorkerResourceTypeVersionByContainerArgsForCall)
+func (fake *FakeGardenWorkerDB) FindWorkerCheckResourceTypeVersionCallCount() int {
+	fake.findWorkerCheckResourceTypeVersionMutex.RLock()
+	defer fake.findWorkerCheckResourceTypeVersionMutex.RUnlock()
+	return len(fake.findWorkerCheckResourceTypeVersionArgsForCall)
 }
 
-func (fake *FakeGardenWorkerDB) FindWorkerResourceTypeVersionByContainerArgsForCall(i int) db.SavedContainer {
-	fake.findWorkerResourceTypeVersionByContainerMutex.RLock()
-	defer fake.findWorkerResourceTypeVersionByContainerMutex.RUnlock()
-	return fake.findWorkerResourceTypeVersionByContainerArgsForCall[i].arg1
+func (fake *FakeGardenWorkerDB) FindWorkerCheckResourceTypeVersionArgsForCall(i int) (string, string) {
+	fake.findWorkerCheckResourceTypeVersionMutex.RLock()
+	defer fake.findWorkerCheckResourceTypeVersionMutex.RUnlock()
+	return fake.findWorkerCheckResourceTypeVersionArgsForCall[i].workerName, fake.findWorkerCheckResourceTypeVersionArgsForCall[i].checkType
 }
 
-func (fake *FakeGardenWorkerDB) FindWorkerResourceTypeVersionByContainerReturns(result1 string, result2 bool, result3 error) {
-	fake.FindWorkerResourceTypeVersionByContainerStub = nil
-	fake.findWorkerResourceTypeVersionByContainerReturns = struct {
+func (fake *FakeGardenWorkerDB) FindWorkerCheckResourceTypeVersionReturns(result1 string, result2 bool, result3 error) {
+	fake.FindWorkerCheckResourceTypeVersionStub = nil
+	fake.findWorkerCheckResourceTypeVersionReturns = struct {
 		result1 string
 		result2 bool
 		result3 error

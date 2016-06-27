@@ -24,7 +24,7 @@ type WorkerDB interface {
 	GetContainer(string) (db.SavedContainer, bool, error)
 	FindContainerByIdentifier(db.ContainerIdentifier) (db.SavedContainer, bool, error)
 
-	FindWorkerResourceTypeVersionByContainer(db.SavedContainer) (string, bool, error)
+	FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error)
 
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
