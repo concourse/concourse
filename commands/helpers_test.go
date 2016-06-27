@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/atc"
 	. "github.com/concourse/fly/commands"
 	"github.com/concourse/go-concourse/concourse"
-	fakes "github.com/concourse/go-concourse/concourse/fakes"
+	fakes "github.com/concourse/go-concourse/concourse/concoursefakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
