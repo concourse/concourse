@@ -13,7 +13,7 @@ import (
 	"github.com/tedsuo/ifrit/fake_runner"
 
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Pipelines Syncer", func() {

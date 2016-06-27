@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"
 	"github.com/concourse/retryhttp"
-	retryhttpfakes "github.com/concourse/retryhttp/fakes"
+	"github.com/concourse/retryhttp/retryhttpfakes"
 )
 
 var _ = Describe("HijackableClient #Do", func() {

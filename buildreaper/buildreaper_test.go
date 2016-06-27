@@ -8,7 +8,7 @@ import (
 	. "github.com/concourse/atc/buildreaper"
 	"github.com/concourse/atc/buildreaper/buildreaperfakes"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"

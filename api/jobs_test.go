@@ -15,8 +15,8 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	dbfakes "github.com/concourse/atc/db/dbfakes"
-	schedulerfakes "github.com/concourse/atc/scheduler/schedulerfakes"
+	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/scheduler/schedulerfakes"
 )
 
 var _ = Describe("Jobs API", func() {

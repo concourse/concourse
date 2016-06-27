@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/rata"
 
-	retryhttpfakes "github.com/concourse/retryhttp/fakes"
+	"github.com/concourse/retryhttp/retryhttpfakes"
 )
 
 var _ = Describe("hijackStreamer", func() {

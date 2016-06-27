@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc/resource"
 	"github.com/pivotal-golang/lager/lagertest"
 
-	dbfakes "github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"

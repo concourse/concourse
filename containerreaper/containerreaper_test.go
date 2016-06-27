@@ -8,9 +8,9 @@ import (
 	"github.com/concourse/atc/containerreaper"
 	"github.com/concourse/atc/containerreaper/containerreaperfakes"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/workerfakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -21,8 +21,8 @@ var _ = Describe("ContainerReaper", func() {
 		containerReaper       containerreaper.ContainerReaper
 		fakeContainerReaperDB *containerreaperfakes.FakeContainerReaperDB
 		fakePipelineDBFactory *dbfakes.FakePipelineDBFactory
-		fakeWorkerClient      *wfakes.FakeClient
-		fakeWorkerContainer   *wfakes.FakeContainer
+		fakeWorkerClient      *workerfakes.FakeClient
+		fakeWorkerContainer   *workerfakes.FakeContainer
 		fakePipelineDB        *dbfakes.FakePipelineDB
 
 		failedContainers     []db.SavedContainer
@@ -34,8 +34,8 @@ var _ = Describe("ContainerReaper", func() {
 		fakeContainerReaperDB = new(containerreaperfakes.FakeContainerReaperDB)
 		containerReaperLogger := lagertest.NewTestLogger("test")
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
-		fakeWorkerClient = new(wfakes.FakeClient)
-		fakeWorkerContainer = new(wfakes.FakeContainer)
+		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeWorkerContainer = new(workerfakes.FakeContainer)
 		fakePipelineDB = new(dbfakes.FakePipelineDB)
 
 		containerReaper = containerreaper.NewContainerReaper(containerReaperLogger, fakeWorkerClient, fakeContainerReaperDB, fakePipelineDBFactory)
@@ -223,7 +223,7 @@ var _ = Describe("ContainerReaper", func() {
 
 })
 
-func verifyLookupContainerCalls(fakeWorkerClient *wfakes.FakeClient, expiredHandles []string, callIndex int) {
+func verifyLookupContainerCalls(fakeWorkerClient *workerfakes.FakeClient, expiredHandles []string, callIndex int) {
 	_, handle := fakeWorkerClient.LookupContainerArgsForCall(callIndex)
 	Expect(expiredHandles).To(ContainElement(handle))
 }

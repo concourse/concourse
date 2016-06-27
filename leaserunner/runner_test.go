@@ -12,7 +12,7 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
-	dbfakes "github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/leaserunner"
 	"github.com/concourse/atc/leaserunner/leaserunnerfakes"
 )

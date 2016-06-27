@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/worker/transport/transportfakes"
-	retryhttpfakes "github.com/concourse/retryhttp/fakes"
+	"github.com/concourse/retryhttp/retryhttpfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

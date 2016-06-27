@@ -12,7 +12,7 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	wfakes "github.com/concourse/atc/worker/workerfakes"
-	bfakes "github.com/concourse/baggageclaim/fakes"
+	bfakes "github.com/concourse/baggageclaim/baggageclaimfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

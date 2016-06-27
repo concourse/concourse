@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
 
-	execfakes "github.com/concourse/atc/exec/execfakes"
+	"github.com/concourse/atc/exec/execfakes"
 )
 
 var _ = Describe("Exec Engine with Try", func() {

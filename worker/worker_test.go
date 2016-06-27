@@ -16,7 +16,7 @@ import (
 	. "github.com/concourse/atc/worker"
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
-	bfakes "github.com/concourse/baggageclaim/fakes"
+	bfakes "github.com/concourse/baggageclaim/baggageclaimfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/clock/fakeclock"

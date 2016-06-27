@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
-	bfakes "github.com/concourse/baggageclaim/fakes"
+	bfakes "github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/pivotal-golang/clock/fakeclock"
 	"github.com/pivotal-golang/lager/lagertest"
 )

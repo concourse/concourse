@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/event"
 	"github.com/concourse/atc/exec"
-	execfakes "github.com/concourse/atc/exec/execfakes"
+	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/worker"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

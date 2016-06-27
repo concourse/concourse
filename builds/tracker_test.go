@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/atc/builds/buildsfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	enginefakes "github.com/concourse/atc/engine/enginefakes"
+	"github.com/concourse/atc/engine/enginefakes"
 )
 
 var _ = Describe("Tracker", func() {
