@@ -14,12 +14,17 @@ git config --global user.name "CI Bot"
 gzip -c resource-image/rootfs.tar > ${RESOURCE_NAME}.tar.gz
 
 git clone concourse bumped-concourse
-cp deployments/ci/config/private.yml bumped-concourse/config/private.yml
+
+set +x
+echo "$BOSH_PRIVATE_CONFIG" > bumped-concourse/config/private.yml
+set -x
 
 cd bumped-concourse/
 
 bosh -n add blob ../${RESOURCE_NAME}.tar.gz resources
 bosh -n upload blobs
 
-git add -A
-git commit -m "update ${RESOURCE_NAME} blob"
+if ! git diff-index --quiet HEAD; then
+  git add -A
+  git commit -m "update ${RESOURCE_NAME} blob"
+fi

@@ -7,7 +7,7 @@ director_uuid: REPLACE_ME
 releases:
 - name: concourse
   version: latest
-- name: garden-linux
+- name: garden-runc
   version: latest
 
 stemcells:
@@ -18,7 +18,12 @@ stemcells:
 instance_groups:
 - name: web
   instances: 1
-  vm_type: web
+  # replace with a VM type from your BOSH Director's cloud config
+  vm_type: REPLACE_ME
+  vm_extensions:
+  # replace with a VM extension from your BOSH Director's cloud config that will attach
+  # this instance group to your ELB
+  - REPLACE_ME
   stemcell: trusty
   azs: [z1]
   networks: [{name: private}]
@@ -40,9 +45,11 @@ instance_groups:
 
 - name: db
   instances: 1
-  vm_type: database
+  # replace with a VM type from your BOSH Director's cloud config
+  vm_type: REPLACE_ME
   stemcell: trusty
-  persistent_disk_type: database
+  # replace with a disk type from your BOSH Director's cloud config
+  persistent_disk_type: REPLACE_ME
   azs: [z1]
   networks: [{name: private}]
   jobs:
@@ -57,7 +64,12 @@ instance_groups:
 
 - name: worker
   instances: 1
-  vm_type: worker
+  # replace with a VM type from your BOSH Director's cloud config
+  vm_type: REPLACE_ME
+  vm_extensions:
+  # replace with a VM extension from your BOSH Director's cloud config that will attach
+  # sufficient ephemeral storage to VMs in this instance group.
+  - REPLACE_ME
   stemcell: trusty
   azs: [z1]
   networks: [{name: private}]
@@ -69,7 +81,7 @@ instance_groups:
     release: concourse
     properties: {}
   - name: garden
-    release: garden-linux
+    release: garden-runc
     properties:
       garden:
         listen_network: tcp

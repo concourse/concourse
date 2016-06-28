@@ -6,7 +6,7 @@ set -e -x
 FINAL_RELEASE_TARBALL=$PWD/final-release-tarball
 FINAL_RELEASE_REPO=$PWD/final-release-repo
 
-CANDIDATE_DIR=$PWD/candidate-release
+CANDIDATE_DIR=$PWD/bosh-rc
 
 VERSION=$(cat ./version/version)
 if [ -z "$VERSION" ]; then

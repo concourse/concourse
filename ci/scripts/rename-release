@@ -2,4 +2,4 @@
 
 set -e
 
-mv garden-linux/release.tgz renamed-release/garden-linux-$(cat garden-linux/version).tgz
+mv garden-runc/release.tgz renamed-release/garden-runc-$(cat garden-runc/version).tgz

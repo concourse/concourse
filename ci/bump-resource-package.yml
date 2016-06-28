@@ -8,7 +8,6 @@ image_resource:
 
 inputs:
 - name: concourse
-- name: deployments
 - name: resource-image
 
 outputs:
@@ -16,6 +15,7 @@ outputs:
 
 params:
   RESOURCE_NAME:
+  BOSH_PRIVATE_CONFIG:
 
 run:
   path: concourse/ci/scripts/bump-resource-package

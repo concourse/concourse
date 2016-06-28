@@ -213,10 +213,6 @@
 	path = src/github.com/concourse/go-concourse
 	url = https://github.com/concourse/go-concourse
 	branch = teams
-[submodule "src/github.com/kr/tarutil"]
-	path = src/github.com/kr/tarutil
-	url = https://github.com/kr/tarutil
-	branch = master
 [submodule "src/github.com/contraband/holler"]
 	path = src/github.com/contraband/holler
 	url = https://github.com/contraband/holler
@@ -240,4 +236,8 @@
 [submodule "src/github.com/concourse/retryhttp"]
 	path = src/github.com/concourse/retryhttp
 	url = https://github.com/concourse/retryhttp
+	branch = master
+[submodule "src/github.com/concourse/go-archive"]
+	path = src/github.com/concourse/go-archive
+	url = https://github.com/concourse/go-archive
 	branch = master

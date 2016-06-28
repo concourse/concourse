@@ -48,6 +48,8 @@ jobs:
       file: concourse/ci/fly-darwin.yml
     - task: windows
       file: concourse/ci/fly-windows.yml
+      timeout: 15m
+      attempts: 2
 
 - name: go-concourse
   public: true

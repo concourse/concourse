@@ -10,7 +10,7 @@ inputs:
 - name: concourse
 - name: version
 - name: deployments
-- name: candidate-release
+- name: bosh-rc
 
 outputs:
 - name: final-release-repo

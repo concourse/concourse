@@ -183,20 +183,6 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
-- name: concourse-testflight
-  type: git
-  source:
-    uri: https://github.com/concourse/testflight.git
-    paths: [Dockerfile]
-
-- name: concourse-testflight-image
-  type: docker-image
-  source:
-    repository: concourse/testflight
-    username: {{docker-username}}
-    email: {{docker-email}}
-    password: {{docker-password}}
-
 - name: concourse-static-golang
   type: git
   source:
@@ -416,21 +402,6 @@ jobs:
       load_base: concourse-atc-ci-image
       build: concourse-bin-testflight-ci
       dockerfile: concourse-bin-testflight-ci/Dockerfile.testflight
-
-- name: build-testflight
-  public: true
-  serial: true
-  plan:
-  - aggregate:
-    - get: concourse-testflight
-      trigger: true
-    - get: golang-1.6
-      trigger: true
-      params: {save: true}
-  - put: concourse-testflight-image
-    params:
-      load_base: golang-1.6
-      build: concourse-testflight
 
 - name: build-vagrant
   public: false

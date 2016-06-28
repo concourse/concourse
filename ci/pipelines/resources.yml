@@ -1,77 +1,151 @@
 jobs:
-- name: busybox-base
+- name: buildroot-tarmaker
   serial: true
   public: true
   plan:
-  - get: core-busyboxplus
-    resource: busybox-base
-    trigger: true
+  - aggregate:
+    - get: buildroot-tarmaker
+      trigger: true
+    - get: ubuntu-16.04
+      params: {save: true}
+      trigger: true
+  - put: buildroot-tarmaker-image
+    params:
+      build: buildroot-tarmaker
+      dockerfile: buildroot-tarmaker/Dockerfile.tarmaker
+      load_base: ubuntu-16.04
+
+- name: buildroot-base
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: buildroot-images
+      resource: buildroot-base
+      trigger: true
+    - get: buildroot
+      trigger: true
+    - get: buildroot-tarmaker-image
+      params: {save: true}
+      passed: [buildroot-tarmaker]
+      trigger: true
   - task: build-image
     privileged: true
-    file: core-busyboxplus/ci/build.yml
+    file: buildroot-images/ci/build.yml
     params:
       FLAVOR: base
-  - put: busybox-base-image
+  - put: buildroot-base-image
     params: {build: image-root}
 
-- name: busybox-git
+- name: buildroot-git
   serial: true
   public: true
   plan:
-  - get: core-busyboxplus
-    resource: busybox-git
-    trigger: true
+  - aggregate:
+    - get: buildroot-images
+      resource: buildroot-git
+      trigger: true
+    - get: buildroot
+      resource: buildroot-edge
+      trigger: true
+    - get: buildroot-tarmaker-image
+      params: {save: true}
+      passed: [buildroot-tarmaker]
+      trigger: true
   - task: build-image
     privileged: true
-    file: core-busyboxplus/ci/build.yml
+    file: buildroot-images/ci/build.yml
     params:
       FLAVOR: git
-  - put: busybox-git-image
+  - put: buildroot-git-image
     params: {build: image-root}
 
-- name: busybox-hg
+- name: buildroot-curl
   serial: true
   public: true
   plan:
-  - get: core-busyboxplus
-    resource: busybox-hg
-    trigger: true
+  - aggregate:
+    - get: buildroot-images
+      resource: buildroot-curl
+      trigger: true
+    - get: buildroot
+      trigger: true
+    - get: buildroot-tarmaker-image
+      params: {save: true}
+      passed: [buildroot-tarmaker]
+      trigger: true
   - task: build-image
     privileged: true
-    file: core-busyboxplus/ci/build.yml
+    file: buildroot-images/ci/build.yml
+    params:
+      FLAVOR: curl
+  - put: buildroot-curl-image
+    params: {build: image-root}
+
+- name: buildroot-hg
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: buildroot-images
+      resource: buildroot-hg
+      trigger: true
+    - get: buildroot
+      trigger: true
+    - get: buildroot-tarmaker-image
+      params: {save: true}
+      passed: [buildroot-tarmaker]
+      trigger: true
+  - task: build-image
+    privileged: true
+    file: buildroot-images/ci/build.yml
     params:
       FLAVOR: hg
-  - put: busybox-hg-image
+  - put: buildroot-hg-image
     params: {build: image-root}
 
-- name: busybox-ruby
+- name: buildroot-ruby
   serial: true
   public: true
   plan:
-  - get: core-busyboxplus
-    resource: busybox-ruby
-    trigger: true
+  - aggregate:
+    - get: buildroot-images
+      resource: buildroot-ruby
+      trigger: true
+    - get: buildroot
+      trigger: true
+    - get: buildroot-tarmaker-image
+      params: {save: true}
+      passed: [buildroot-tarmaker]
+      trigger: true
   - task: build-image
     privileged: true
-    file: core-busyboxplus/ci/build.yml
+    file: buildroot-images/ci/build.yml
     params:
       FLAVOR: ruby
-  - put: busybox-ruby-image
+  - put: buildroot-ruby-image
     params: {build: image-root}
 
-- name: busybox-iptables
+- name: buildroot-iptables
   serial: true
   public: true
   plan:
-  - get: core-busyboxplus
-    resource: busybox-iptables
-    trigger: true
+  - aggregate:
+    - get: buildroot-images
+      resource: buildroot-iptables
+      trigger: true
+    - get: buildroot
+      trigger: true
+    - get: buildroot-tarmaker-image
+      params: {save: true}
+      passed: [buildroot-tarmaker]
+      trigger: true
   - task: build-image
     privileged: true
-    file: core-busyboxplus/ci/build.yml
+    file: buildroot-images/ci/build.yml
     params:
       FLAVOR: iptables
-  - put: busybox-iptables-image
+  - put: buildroot-iptables-image
     params: {build: image-root}
 
 - name: git-resource
@@ -81,27 +155,76 @@ jobs:
   - aggregate:
     - get: git-resource
       trigger: true
-    - get: busybox-git-image
+    - get: buildroot-git-image
       params: {save: true}
-      passed: [busybox-git]
+      passed: [buildroot-git]
       trigger: true
   - put: git-resource-image
     params:
-      load_base: busybox-git-image
+      load_base: buildroot-git-image
       build: git-resource
-    get_params: {rootfs: true}
-  - task: unit
+  - task: integration
     image: git-resource-image
     file: git-resource/ci/tests.yml
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-git-resource
+  serial: true
+  public: true
+  plan:
+  - get: git-resource-image
+    passed: [git-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: git-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: git-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
+  - put: concourse
+    params: {repository: bumped-concourse, rebase: true}
+
+- name: hg-resource
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: hg-resource
+      trigger: true
+    - get: buildroot-hg-image
+      params: {save: true}
+      passed: [buildroot-hg]
+      trigger: true
+  - task: unit
+    file: hg-resource/ci/unit.yml
+  - task: build
+    file: hg-resource/ci/build.yml
+  - put: hg-resource-image
+    params:
+      load_base: buildroot-hg-image
+      build: built-resource
+  - task: integration
+    image: hg-resource-image
+    file: hg-resource/ci/integration.yml
+
+- name: bump-hg-resource
+  serial: true
+  public: true
+  plan:
+  - get: hg-resource-image
+    passed: [hg-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
+  - task: bump-package
+    input_mapping:
+      resource-image: hg-resource-image
+    file: concourse/ci/bump-resource-package.yml
+    params:
+      RESOURCE_NAME: hg-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -112,26 +235,33 @@ jobs:
   - aggregate:
     - get: pool-resource
       trigger: true
-    - get: busybox-git-image
+    - get: buildroot-git-image
       params: {save: true}
-      passed: [busybox-git]
+      passed: [buildroot-git]
       trigger: true
   - task: unit
     file: pool-resource/build.yml
   - put: pool-resource-image
     params:
-      load_base: busybox-git-image
+      load_base: buildroot-git-image
       build: built-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-pool-resource
+  serial: true
+  public: true
+  plan:
+  - get: pool-resource-image
+    passed: [pool-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: pool-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: pool-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -142,26 +272,33 @@ jobs:
   - aggregate:
     - get: docker-image-resource
       trigger: true
-    - get: busybox-iptables-image
+    - get: buildroot-iptables-image
       params: {save: true}
-      passed: [busybox-iptables]
+      passed: [buildroot-iptables]
       trigger: true
   - task: build-resource
     file: docker-image-resource/ci/build.yml
   - put: docker-image-resource-image
     params:
-      load_base: busybox-iptables-image
+      load_base: buildroot-iptables-image
       build: built-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-docker-image-resource
+  serial: true
+  public: true
+  plan:
+  - get: docker-image-resource-image
+    passed: [docker-image-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: docker-image-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: docker-image-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -170,9 +307,9 @@ jobs:
   public: true
   plan:
   - aggregate:
-    - get: busybox-base-image
+    - get: buildroot-base-image
       params: {save: true}
-      passed: [busybox-base]
+      passed: [buildroot-base]
       trigger: true
     - get: time-resource
       trigger: true
@@ -180,18 +317,25 @@ jobs:
     file: time-resource/build.yml
   - put: time-resource-image
     params:
-      load_base: busybox-base-image
+      load_base: buildroot-base-image
       build: built-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-time-resource
+  serial: true
+  public: true
+  plan:
+  - get: time-resource-image
+    passed: [time-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: time-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: time-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -200,9 +344,9 @@ jobs:
   public: true
   plan:
   - aggregate:
-    - get: busybox-git-image
+    - get: buildroot-curl-image
       params: {save: true}
-      passed: [busybox-git]
+      passed: [buildroot-curl]
       trigger: true
     - get: archive-resource
       trigger: true
@@ -210,18 +354,25 @@ jobs:
     file: archive-resource/build.yml
   - put: archive-resource-image
     params:
-      load_base: busybox-git-image
+      load_base: buildroot-curl-image
       build: built-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-archive-resource
+  serial: true
+  public: true
+  plan:
+  - get: archive-resource-image
+    passed: [archive-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: archive-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: archive-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -230,9 +381,9 @@ jobs:
   public: true
   plan:
   - aggregate:
-    - get: busybox-ruby-image
+    - get: buildroot-ruby-image
       params: {save: true}
-      passed: [busybox-ruby]
+      passed: [buildroot-ruby]
       trigger: true
     - get: bosh-deployment-resource
       trigger: true
@@ -240,18 +391,25 @@ jobs:
     file: bosh-deployment-resource/build.yml
   - put: bosh-deployment-resource-image
     params:
-      load_base: busybox-ruby-image
+      load_base: buildroot-ruby-image
       build: bosh-deployment-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-bosh-deployment-resource
+  serial: true
+  public: true
+  plan:
+  - get: bosh-deployment-resource-image
+    passed: [bosh-deployment-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: bosh-deployment-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: bosh-deployment-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -259,9 +417,9 @@ jobs:
   serial: true
   plan:
   - aggregate:
-    - get: busybox-base-image
+    - get: buildroot-base-image
       params: {save: true}
-      passed: [busybox-base]
+      passed: [buildroot-base]
       trigger: true
     - get: s3-resource
       trigger: true
@@ -275,18 +433,24 @@ jobs:
       S3_TESTING_REGION: {{s3-resource-region}}
   - put: s3-resource-image
     params:
-      load_base: busybox-base-image
+      load_base: buildroot-base-image
       build: built-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-s3-resource
+  serial: true
+  plan:
+  - get: s3-resource-image
+    passed: [s3-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: s3-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: s3-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -295,9 +459,9 @@ jobs:
   public: true
   plan:
   - aggregate:
-    - get: busybox-base-image
+    - get: buildroot-base-image
       params: {save: true}
-      passed: [busybox-base]
+      passed: [buildroot-base]
       trigger: true
     - get: github-release-resource
       trigger: true
@@ -305,18 +469,25 @@ jobs:
     file: github-release-resource/build.yml
   - put: github-release-resource-image
     params:
-      load_base: busybox-base-image
+      load_base: buildroot-base-image
       build: built-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-github-release-resource
+  serial: true
+  public: true
+  plan:
+  - get: github-release-resource-image
+    passed: [github-release-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: github-release-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: github-release-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -325,9 +496,9 @@ jobs:
   public: true
   plan:
   - aggregate:
-    - get: busybox-base-image
+    - get: buildroot-base-image
       params: {save: true}
-      passed: [busybox-base]
+      passed: [buildroot-base]
       trigger: true
     - get: cf-resource
       trigger: true
@@ -342,18 +513,25 @@ jobs:
       file: cf-resource/build.yml
   - put: cf-resource-image
     params:
-      load_base: busybox-base-image
+      load_base: buildroot-base-image
       build: built-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-cf-resource
+  serial: true
+  public: true
+  plan:
+  - get: cf-resource-image
+    passed: [cf-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: cf-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: cf-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -362,9 +540,9 @@ jobs:
   public: false # easy to leak bucket params
   plan:
   - aggregate:
-    - get: busybox-git-image
+    - get: buildroot-git-image
       params: {save: true}
-      passed: [busybox-git]
+      passed: [buildroot-git]
       trigger: true
     - get: semver-resource
       trigger: true
@@ -377,18 +555,25 @@ jobs:
       SEMVER_TESTING_REGION: {{semver-region}}
   - put: semver-resource-image
     params:
-      load_base: busybox-git-image
+      load_base: buildroot-git-image
       build: built-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-semver-resource
+  serial: true
+  public: false # easy to leak bucket params
+  plan:
+  - get: semver-resource-image
+    passed: [semver-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: semver-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: semver-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -397,26 +582,33 @@ jobs:
   public: true
   plan:
   - aggregate:
-    - get: busybox-git-image
+    - get: buildroot-curl-image
       params: {save: true}
-      passed: [busybox-git]
+      passed: [buildroot-curl]
       trigger: true
     - get: bosh-io-release-resource
       trigger: true
   - put: bosh-io-release-resource-image
     params:
-      load_base: busybox-git-image
+      load_base: buildroot-curl-image
       build: bosh-io-release-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-bosh-io-release-resource
+  serial: true
+  public: true
+  plan:
+  - get: bosh-io-release-resource-image
+    passed: [bosh-io-release-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: bosh-io-release-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: bosh-io-release-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -425,9 +617,9 @@ jobs:
   public: true
   plan:
   - aggregate:
-    - get: busybox-git-image
+    - get: buildroot-curl-image
       params: {save: true}
-      passed: [busybox-git]
+      passed: [buildroot-curl]
       trigger: true
     - get: bosh-io-stemcell-resource
       trigger: true
@@ -435,18 +627,25 @@ jobs:
     file: bosh-io-stemcell-resource/build.yml
   - put: bosh-io-stemcell-resource-image
     params:
-      load_base: busybox-git-image
+      load_base: buildroot-curl-image
       build: bosh-io-stemcell-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-bosh-io-stemcell-resource
+  serial: true
+  public: true
+  plan:
+  - get: bosh-io-stemcell-resource-image
+    passed: [bosh-io-stemcell-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: bosh-io-stemcell-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: bosh-io-stemcell-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -455,9 +654,9 @@ jobs:
   public: true
   plan:
   - aggregate:
-    - get: busybox-git-image
+    - get: buildroot-git-image
       params: {save: true}
-      passed: [busybox-git]
+      passed: [buildroot-git]
       trigger: true
     - get: tracker-resource
       trigger: true
@@ -467,18 +666,25 @@ jobs:
       TRACKER_TOKEN: {{tracker-testing-token}}
   - put: tracker-resource-image
     params:
-      load_base: busybox-git-image
+      load_base: buildroot-git-image
       build: built-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-tracker-resource
+  serial: true
+  public: true
+  plan:
+  - get: tracker-resource-image
+    passed: [tracker-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: tracker-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: tracker-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -487,26 +693,33 @@ jobs:
   public: true
   plan:
   - aggregate:
-    - get: busybox-git-image
+    - get: buildroot-curl-image
       params: {save: true}
-      passed: [busybox-git]
+      passed: [buildroot-curl]
       trigger: true
     - get: vagrant-cloud-resource
       trigger: true
   - put: vagrant-cloud-resource-image
     params:
-      load_base: busybox-git-image
+      load_base: buildroot-curl-image
       build: vagrant-cloud-resource
-    get_params: {rootfs: true}
-  - aggregate:
-    - get: deployments
-    - get: concourse
+
+- name: bump-vagrant-cloud-resource
+  serial: true
+  public: true
+  plan:
+  - get: vagrant-cloud-resource-image
+    passed: [vagrant-cloud-resource]
+    params: {rootfs: true}
+    trigger: true
+  - get: concourse
   - task: bump-package
     input_mapping:
       resource-image: vagrant-cloud-resource-image
     file: concourse/ci/bump-resource-package.yml
     params:
       RESOURCE_NAME: vagrant-cloud-resource
+      BOSH_PRIVATE_CONFIG: {{bosh-private-config}}
   - put: concourse
     params: {repository: bumped-concourse, rebase: true}
 
@@ -515,6 +728,12 @@ resources:
   type: git
   source:
     uri: https://github.com/concourse/git-resource.git
+    branch: master
+
+- name: hg-resource
+  type: git
+  source:
+    uri: https://github.com/concourse/hg-resource.git
     branch: master
 
 - name: pool-resource
@@ -604,6 +823,14 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
     repository: concourse/git-resource
+
+- name: hg-resource-image
+  type: docker-image
+  source:
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+    repository: concourse/hg-resource
 
 - name: pool-resource-image
   type: docker-image
@@ -728,89 +955,131 @@ resources:
     branch: develop
     private_key: {{concourse-repo-private-key}}
 
-- name: deployments
+- name: buildroot
   type: git
   source:
-    uri: git@github.com:concourse/deployments.git
-    branch: master
-    private_key: {{deployments-repo-private-key}}
+    uri: git://git.buildroot.net/buildroot
+    tag_filter: '[0-9][0-9][0-9][0-9].[0-9][0-9]'
 
-- name: busybox-base
+- name: buildroot-edge
   type: git
   source:
-    uri: https://github.com/concourse/core-busyboxplus.git
+    uri: git://git.buildroot.net/buildroot
+    branch: master
+
+- name: buildroot-tarmaker
+  type: git
+  source:
+    uri: https://github.com/concourse/buildroot-images.git
+    branch: master
+    paths: [Dockerfile.tarmaker]
+
+- name: buildroot-tarmaker-image
+  type: docker-image
+  source:
+    repository: concourse/buildroot-tarmaker
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
+- name: buildroot-base
+  type: git
+  source:
+    uri: https://github.com/concourse/buildroot-images.git
     branch: master
     paths: [base, ci]
 
-- name: busybox-base-image
+- name: buildroot-base-image
   type: docker-image
   source:
-    repository: concourse/busyboxplus
+    repository: concourse/buildroot
     tag: base
     username: {{docker-username}}
     email: {{docker-email}}
     password: {{docker-password}}
 
-- name: busybox-git
+- name: buildroot-git
   type: git
   source:
-    uri: https://github.com/concourse/core-busyboxplus.git
+    uri: https://github.com/concourse/buildroot-images.git
     branch: master
     paths: [git, ci]
 
-- name: busybox-git-image
+- name: buildroot-git-image
   type: docker-image
   source:
-    repository: concourse/busyboxplus
+    repository: concourse/buildroot
     tag: git
     username: {{docker-username}}
     email: {{docker-email}}
     password: {{docker-password}}
 
-- name: busybox-hg
+- name: buildroot-curl
   type: git
   source:
-    uri: https://github.com/concourse/core-busyboxplus.git
+    uri: https://github.com/concourse/buildroot-images.git
+    branch: master
+    paths: [curl, ci]
+
+- name: buildroot-curl-image
+  type: docker-image
+  source:
+    repository: concourse/buildroot
+    tag: curl
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
+- name: buildroot-hg
+  type: git
+  source:
+    uri: https://github.com/concourse/buildroot-images.git
     branch: master
     paths: [hg, ci]
 
-- name: busybox-hg-image
+- name: buildroot-hg-image
   type: docker-image
   source:
-    repository: concourse/busyboxplus
+    repository: concourse/buildroot
     tag: hg
     username: {{docker-username}}
     email: {{docker-email}}
     password: {{docker-password}}
 
-- name: busybox-iptables
+- name: buildroot-iptables
   type: git
   source:
-    uri: https://github.com/concourse/core-busyboxplus.git
+    uri: https://github.com/concourse/buildroot-images.git
     branch: master
     paths: [iptables, ci]
 
-- name: busybox-iptables-image
+- name: buildroot-iptables-image
   type: docker-image
   source:
-    repository: concourse/busyboxplus
+    repository: concourse/buildroot
     tag: iptables
     username: {{docker-username}}
     email: {{docker-email}}
     password: {{docker-password}}
 
-- name: busybox-ruby
+- name: buildroot-ruby
   type: git
   source:
-    uri: https://github.com/concourse/core-busyboxplus.git
+    uri: https://github.com/concourse/buildroot-images.git
     branch: master
     paths: [ruby, ci]
 
-- name: busybox-ruby-image
+- name: buildroot-ruby-image
   type: docker-image
   source:
-    repository: concourse/busyboxplus
+    repository: concourse/buildroot
     tag: ruby
     username: {{docker-username}}
     email: {{docker-email}}
     password: {{docker-password}}
+
+- name: ubuntu-16.04
+  type: docker-image
+  source:
+    repository: ubuntu
+    tag: "16.04"

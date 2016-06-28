@@ -35,7 +35,7 @@ jobs:
       params:
         globs:
         - concourse-*.tgz
-        - garden-linux-*.tgz
+        - garden-runc-*.tgz
     - get: concourse-config
       trigger: true
     - get: stemcell
@@ -45,6 +45,6 @@ jobs:
       manifest: {{concourse-config-manifest-location}}
       releases:
         - concourse-release/concourse-*.tgz
-        - concourse-release/garden-linux-*.tgz
+        - concourse-release/garden-runc-*.tgz
       stemcells:
         - stemcell/*.tgz

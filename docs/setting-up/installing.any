@@ -76,12 +76,8 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
       Grab the appropriate binary for your platform from the
       \reference{downloads}{downloads} section.
     }{
-      Linux: Ubuntu 14.04 (LTS), kernel 3.19 (backported for security updates),
-      plus \code{iptables} and \code{ip} commands. We'll be switching to
-      \hyperlink{https://github.com/cloudfoundry-incubator/guardian}{Guardian}
-      soon which will make this much more flexible.
-
-      Windows and Darwin don't really need anything special.
+      For Linux you'll need kernel v3.19 or later. Windows and Darwin don't
+      really need anything special.
     }{
       PostgresSQL 9.3+
     }
@@ -170,9 +166,9 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
       state to synchronize (it just talks to the ATC).
 
       A typical configuration with multiple ATC+TSA nodes would have them
-      sitting behind a load balancer, forwarding port \code{80} to \code{8080}
-      and \code{2222} to \code{2222}. You may also want to configure SSL if
-      your load balancer supports it.
+      sitting behind a load balancer, forwarding port \code{80} to \code{8080},
+      \code{443} to \code{4443} (if you've enabled TLS), and \code{2222} to
+      \code{2222}.
 
       To run multiple \code{web} nodes, you'll need to pass the following
       flags:
@@ -307,9 +303,10 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
     example manifest is below; you'll want to replace the \code{REPLACE_ME} bits
     with whatever values are appropriate.
 
-    Note that the VM types and network names used in this manifest must be
-    present in your Cloud Config. Consult \reference{prepping-bosh} if you
-    haven't set it up yet.
+    Note that the VM types, VM extensions, persistent disk type, and network names
+    must come from your Cloud Config. Consult \reference{prepping-bosh} if you
+    haven't set it up yet. You can retrieve your Cloud Config by running
+    \code{bosh cloud-config}.
 
     \codeblock{yaml}{
       ---
@@ -321,7 +318,7 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
       releases:
       - name: concourse
         version: latest
-      - name: garden-linux
+      - name: garden-runc
         version: latest
 
       stemcells:
@@ -332,7 +329,12 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
       instance_groups:
       - name: web
         instances: 1
-        vm_type: web
+        # replace with a VM type from your BOSH Director's cloud config
+        vm_type: REPLACE_ME
+        vm_extensions:
+        # replace with a VM extension from your BOSH Director's cloud config that will attach
+        # this instance group to your ELB
+        - REPLACE_ME
         stemcell: trusty
         azs: [z1]
         networks: [\{name: private\}]
@@ -347,6 +349,10 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
             basic_auth_username: REPLACE_ME
             basic_auth_password: REPLACE_ME
 
+            # replace with your SSL cert and key
+            tls_cert: REPLACE_ME
+            tls_key: REPLACE_ME
+
             postgresql_database: &atc_db atc
         - name: tsa
           release: concourse
@@ -354,9 +360,11 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
 
       - name: db
         instances: 1
-        vm_type: database
+        # replace with a VM type from your BOSH Director's cloud config
+        vm_type: REPLACE_ME
         stemcell: trusty
-        persistent_disk_type: database
+        # replace with a disk type from your BOSH Director's cloud config
+        persistent_disk_type: REPLACE_ME
         azs: [z1]
         networks: [\{name: private\}]
         jobs:
@@ -371,7 +379,12 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
 
       - name: worker
         instances: 1
-        vm_type: worker
+        # replace with a VM type from your BOSH Director's cloud config
+        vm_type: REPLACE_ME
+        vm_extensions:
+        # replace with a VM extension from your BOSH Director's cloud config that will attach
+        # sufficient ephemeral storage to VMs in this instance group.
+        - REPLACE_ME
         stemcell: trusty
         azs: [z1]
         networks: [\{name: private\}]
@@ -383,7 +396,7 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
           release: concourse
           properties: \{\}
         - name: garden
-          release: garden-linux
+          release: garden-runc
           properties:
             garden:
               listen_network: tcp
@@ -399,19 +412,18 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
 
     You may also want to consult the property descriptions for your version of
     Concourse at
-    \hyperlink{http://bosh.io/releases/github.com/concourse/concourse}{bosh.io}
+    \hyperlink{https://bosh.io/releases/github.com/concourse/concourse}{bosh.io}
     to see what properties you can/should tweak.
 
     Once you've got a manifest, just
-    \hyperlink{http://bosh.io/docs/deploying.html}{deploy it}!
+    \hyperlink{https://bosh.io/docs/deploying.html}{deploy it}!
   }
 
   \section{Reaching the web UI}{
     This really depends on your infrastructure. If you're deploying to AWS you
     may want to configure the \code{web} VM type to register with an ELB,
-    mapping port \code{80} to \code{8080} and \code{2222} to \code{2222}. You
-    may also want to configure SSL termination, which is currently not handled
-    by Concourse.
+    mapping port \code{80} to \code{8080}, \code{443} to \code{4443} (if you've
+    configured TLS), and \code{2222} to \code{2222}.
 
     Otherwise you may want to configure \code{static_ips} for the \code{web}
     instance group and just reach the web UI directly.
@@ -548,7 +560,7 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
       In AWS, the \code{web_lb} VM type would then configure
       \code{cloud_properties.elbs} to auto-register instances of \code{web}
       with an ELB. See
-      \hyperlink{http://bosh.io/docs/aws-cpi.html#resource-pools}{the AWS CPI
+      \hyperlink{https://bosh.io/docs/aws-cpi.html#resource-pools}{the AWS CPI
       docs} for more information.
     }
   }
