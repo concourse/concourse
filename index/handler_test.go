@@ -7,10 +7,10 @@ import (
 	"net/http/httptest"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/web/fakes"
 	. "github.com/concourse/atc/web/index"
 	"github.com/concourse/atc/web/pipeline"
-	cfakes "github.com/concourse/go-concourse/concourse/fakes"
+	"github.com/concourse/atc/web/webfakes"
+	cfakes "github.com/concourse/go-concourse/concourse/concoursefakes"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -27,7 +27,7 @@ var _ = Describe("Handler", func() {
 	BeforeEach(func() {
 		logger := lagertest.NewTestLogger("index")
 
-		clientFactory := &fakes.FakeClientFactory{}
+		clientFactory := &webfakes.FakeClientFactory{}
 		fakeClient = new(cfakes.FakeClient)
 		clientFactory.BuildReturns(fakeClient)
 

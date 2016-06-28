@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/atc/web/group"
 
 	"github.com/concourse/go-concourse/concourse"
-	cfakes "github.com/concourse/go-concourse/concourse/fakes"
+	cfakes "github.com/concourse/go-concourse/concourse/concoursefakes"
 )
 
 var _ = Describe("FetchTemplateData", func() {

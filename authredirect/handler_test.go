@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc/web/authredirect"
 	"github.com/concourse/go-concourse/concourse"
 
-	webfakes "github.com/concourse/atc/web/fakes"
+	"github.com/concourse/atc/web/webfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
