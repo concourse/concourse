@@ -12,21 +12,13 @@ var _ = Describe("Configuring a resource in a pipeline config", func() {
 
 	BeforeEach(func() {
 		gitServer = gitserver.Start(client)
-		gitServer.CommitResource()
 
 		configurePipeline(
 			"-c", "fixtures/config_params.yml",
 			"-v", "git-server="+gitServer.URI(),
 		)
-	})
 
-	AfterEach(func() {
-		gitServer.Stop()
-	})
-
-	Context("when specifying file in task config", func() {
-		BeforeEach(func() {
-			taskFileContents := `---
+		taskFileContents := `---
 platform: linux
 image_resource:
   type: docker-image
@@ -37,9 +29,15 @@ run:
 params:
   SOURCE_PARAM: file_source
 `
-			gitServer.CommitFileToBranch(taskFileContents, "task.yml", "master")
-		})
+		gitServer.WriteFile("some-repo/task.yml", taskFileContents)
+		gitServer.CommitResourceWithFile("task.yml")
+	})
 
+	AfterEach(func() {
+		gitServer.Stop()
+	})
+
+	Context("when specifying file in task config", func() {
 		It("executes the file with params specified in file", func() {
 			watch := flyWatch("file-test")
 			Expect(watch).To(gbytes.Say("file_source"))
