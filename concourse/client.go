@@ -40,7 +40,7 @@ type Client interface {
 	ListWorkers() ([]atc.Worker, error)
 	GetInfo() (atc.Info, error)
 	PipelineConfig(pipelineName string) (atc.Config, atc.RawConfig, string, bool, error)
-	GetCLIReader(arch, platform string) (io.ReadCloser, error)
+	GetCLIReader(arch, platform string) (io.ReadCloser, http.Header, error)
 	ListAuthMethods() ([]atc.AuthMethod, error)
 	AuthToken() (atc.AuthToken, error)
 	Pipeline(name string) (atc.Pipeline, bool, error)

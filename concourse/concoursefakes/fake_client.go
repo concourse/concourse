@@ -272,7 +272,7 @@ type FakeClient struct {
 		result4 bool
 		result5 error
 	}
-	GetCLIReaderStub        func(arch, platform string) (io.ReadCloser, error)
+	GetCLIReaderStub        func(arch, platform string) (io.ReadCloser, http.Header, error)
 	getCLIReaderMutex       sync.RWMutex
 	getCLIReaderArgsForCall []struct {
 		arch     string
@@ -280,7 +280,8 @@ type FakeClient struct {
 	}
 	getCLIReaderReturns struct {
 		result1 io.ReadCloser
-		result2 error
+		result2 http.Header
+		result3 error
 	}
 	ListAuthMethodsStub        func() ([]atc.AuthMethod, error)
 	listAuthMethodsMutex       sync.RWMutex
@@ -1300,7 +1301,7 @@ func (fake *FakeClient) PipelineConfigReturns(result1 atc.Config, result2 atc.Ra
 	}{result1, result2, result3, result4, result5}
 }
 
-func (fake *FakeClient) GetCLIReader(arch string, platform string) (io.ReadCloser, error) {
+func (fake *FakeClient) GetCLIReader(arch string, platform string) (io.ReadCloser, http.Header, error) {
 	fake.getCLIReaderMutex.Lock()
 	fake.getCLIReaderArgsForCall = append(fake.getCLIReaderArgsForCall, struct {
 		arch     string
@@ -1311,7 +1312,7 @@ func (fake *FakeClient) GetCLIReader(arch string, platform string) (io.ReadClose
 	if fake.GetCLIReaderStub != nil {
 		return fake.GetCLIReaderStub(arch, platform)
 	} else {
-		return fake.getCLIReaderReturns.result1, fake.getCLIReaderReturns.result2
+		return fake.getCLIReaderReturns.result1, fake.getCLIReaderReturns.result2, fake.getCLIReaderReturns.result3
 	}
 }
 
@@ -1327,12 +1328,13 @@ func (fake *FakeClient) GetCLIReaderArgsForCall(i int) (string, string) {
 	return fake.getCLIReaderArgsForCall[i].arch, fake.getCLIReaderArgsForCall[i].platform
 }
 
-func (fake *FakeClient) GetCLIReaderReturns(result1 io.ReadCloser, result2 error) {
+func (fake *FakeClient) GetCLIReaderReturns(result1 io.ReadCloser, result2 http.Header, result3 error) {
 	fake.GetCLIReaderStub = nil
 	fake.getCLIReaderReturns = struct {
 		result1 io.ReadCloser
-		result2 error
-	}{result1, result2}
+		result2 http.Header
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeClient) ListAuthMethods() ([]atc.AuthMethod, error) {

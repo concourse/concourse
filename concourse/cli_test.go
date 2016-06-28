@@ -37,9 +37,15 @@ var _ = Describe("ATC Handler CLI", func() {
 		})
 
 		It("returns an unclosed io.ReaderCloser", func() {
-			readerCloser, err := client.GetCLIReader(expectedArch, expectedPlatform)
+			readerCloser, _, err := client.GetCLIReader(expectedArch, expectedPlatform)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(ioutil.ReadAll(readerCloser)).To(Equal([]byte("sup")))
+		})
+
+		It("returns response Headers", func() {
+			_, headers, err := client.GetCLIReader(expectedArch, expectedPlatform)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(headers.Get("Content-Length")).To(Equal("3"))
 		})
 	})
 })
