@@ -16,7 +16,7 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -24,19 +24,19 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/auth/provider"
-	providerFakes "github.com/concourse/atc/auth/provider/fakes"
+	"github.com/concourse/atc/auth/provider/providerfakes"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("OAuthCallbackHandler", func() {
 	var (
-		fakeProviderA *providerFakes.FakeProvider
-		fakeProviderB *providerFakes.FakeProvider
+		fakeProviderA *providerfakes.FakeProvider
+		fakeProviderB *providerfakes.FakeProvider
 
-		fakeProviderFactory *fakes.FakeProviderFactory
+		fakeProviderFactory *authfakes.FakeProviderFactory
 
 		fakeTeamDB *dbfakes.FakeTeamDB
 
@@ -49,10 +49,10 @@ var _ = Describe("OAuthCallbackHandler", func() {
 	)
 
 	BeforeEach(func() {
-		fakeProviderA = new(providerFakes.FakeProvider)
-		fakeProviderB = new(providerFakes.FakeProvider)
+		fakeProviderA = new(providerfakes.FakeProvider)
+		fakeProviderB = new(providerfakes.FakeProvider)
 
-		fakeProviderFactory = new(fakes.FakeProviderFactory)
+		fakeProviderFactory = new(authfakes.FakeProviderFactory)
 
 		var err error
 		signingKey, err = rsa.GenerateKey(rand.Reader, 1024)

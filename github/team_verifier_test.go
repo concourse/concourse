@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	. "github.com/concourse/atc/auth/github"
-	"github.com/concourse/atc/auth/github/fakes"
+	"github.com/concourse/atc/auth/github/githubfakes"
 	"github.com/concourse/atc/auth/verifier"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -16,7 +16,7 @@ import (
 var _ = Describe("TeamVerifier", func() {
 	var (
 		teams      []Team
-		fakeClient *fakes.FakeClient
+		fakeClient *githubfakes.FakeClient
 
 		verifier verifier.Verifier
 	)
@@ -26,7 +26,7 @@ var _ = Describe("TeamVerifier", func() {
 			{Name: "some-team", Organization: "some-org"},
 			{Name: "some-team-two", Organization: "some-org"},
 		}
-		fakeClient = new(fakes.FakeClient)
+		fakeClient = new(githubfakes.FakeClient)
 
 		verifier = NewTeamVerifier(teams, fakeClient)
 	})
