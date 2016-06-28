@@ -8,9 +8,9 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	dbfakes "github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/scheduler"
-	"github.com/concourse/atc/scheduler/fakes"
+	"github.com/concourse/atc/scheduler/schedulerfakes"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
@@ -23,7 +23,7 @@ import (
 var _ = Describe("Runner", func() {
 	var (
 		pipelineDB *dbfakes.FakePipelineDB
-		scheduler  *fakes.FakeBuildScheduler
+		scheduler  *schedulerfakes.FakeBuildScheduler
 		noop       bool
 
 		lease *dbfakes.FakeLease
@@ -38,7 +38,7 @@ var _ = Describe("Runner", func() {
 	BeforeEach(func() {
 		pipelineDB = new(dbfakes.FakePipelineDB)
 		pipelineDB.GetPipelineNameReturns("some-pipeline")
-		scheduler = new(fakes.FakeBuildScheduler)
+		scheduler = new(schedulerfakes.FakeBuildScheduler)
 		noop = false
 
 		someVersions = &algorithm.VersionsDB{

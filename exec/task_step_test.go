@@ -16,11 +16,11 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/exec"
-	"github.com/concourse/atc/exec/fakes"
-	rfakes "github.com/concourse/atc/resource/fakes"
+	"github.com/concourse/atc/exec/execfakes"
+	rfakes "github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/fakes"
-	bfakes "github.com/concourse/baggageclaim/fakes"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
+	bfakes "github.com/concourse/baggageclaim/baggageclaimfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -59,15 +59,15 @@ var _ = Describe("GardenFactory", func() {
 
 	Describe("Task", func() {
 		var (
-			taskDelegate  *fakes.FakeTaskDelegate
+			taskDelegate  *execfakes.FakeTaskDelegate
 			privileged    Privileged
 			tags          []string
-			configSource  *fakes.FakeTaskConfigSource
+			configSource  *execfakes.FakeTaskConfigSource
 			resourceTypes atc.ResourceTypes
 			inputMapping  map[string]string
 			outputMapping map[string]string
 
-			inStep *fakes.FakeStep
+			inStep *execfakes.FakeStep
 			repo   *SourceRepository
 
 			step    Step
@@ -78,15 +78,15 @@ var _ = Describe("GardenFactory", func() {
 		)
 
 		BeforeEach(func() {
-			taskDelegate = new(fakes.FakeTaskDelegate)
+			taskDelegate = new(execfakes.FakeTaskDelegate)
 			taskDelegate.StdoutReturns(stdoutBuf)
 			taskDelegate.StderrReturns(stderrBuf)
 
 			privileged = false
 			tags = []string{"step", "tags"}
-			configSource = new(fakes.FakeTaskConfigSource)
+			configSource = new(execfakes.FakeTaskConfigSource)
 
-			inStep = new(fakes.FakeStep)
+			inStep = new(execfakes.FakeStep)
 			repo = NewSourceRepository()
 
 			resourceTypes = atc.ResourceTypes{
@@ -375,12 +375,12 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						Context("when the configuration specifies paths for inputs", func() {
-							var inputSource *fakes.FakeArtifactSource
-							var otherInputSource *fakes.FakeArtifactSource
+							var inputSource *execfakes.FakeArtifactSource
+							var otherInputSource *execfakes.FakeArtifactSource
 
 							BeforeEach(func() {
-								inputSource = new(fakes.FakeArtifactSource)
-								otherInputSource = new(fakes.FakeArtifactSource)
+								inputSource = new(execfakes.FakeArtifactSource)
+								otherInputSource = new(execfakes.FakeArtifactSource)
 
 								configSource.FetchConfigReturns(atc.TaskConfig{
 									Platform: "some-platform",
@@ -530,10 +530,10 @@ var _ = Describe("GardenFactory", func() {
 						})
 
 						Context("when input is remapped", func() {
-							var remappedInputSource *fakes.FakeArtifactSource
+							var remappedInputSource *execfakes.FakeArtifactSource
 
 							BeforeEach(func() {
-								remappedInputSource = new(fakes.FakeArtifactSource)
+								remappedInputSource = new(execfakes.FakeArtifactSource)
 								inputMapping = map[string]string{"remapped-input": "remapped-input-src"}
 
 								configSource.FetchConfigReturns(atc.TaskConfig{
@@ -710,10 +710,10 @@ var _ = Describe("GardenFactory", func() {
 									})
 
 									Describe("streaming to a destination", func() {
-										var fakeDestination *fakes.FakeArtifactDestination
+										var fakeDestination *execfakes.FakeArtifactDestination
 
 										BeforeEach(func() {
-											fakeDestination = new(fakes.FakeArtifactDestination)
+											fakeDestination = new(execfakes.FakeArtifactDestination)
 										})
 
 										Context("when the resource can stream out", func() {
@@ -1246,10 +1246,10 @@ var _ = Describe("GardenFactory", func() {
 							})
 
 							Context("when the image artifact is registered in the source repo", func() {
-								var imageArtifactSource *fakes.FakeArtifactSource
+								var imageArtifactSource *execfakes.FakeArtifactSource
 
 								BeforeEach(func() {
-									imageArtifactSource = new(fakes.FakeArtifactSource)
+									imageArtifactSource = new(execfakes.FakeArtifactSource)
 									repo.RegisterSource("some-image-artifact", imageArtifactSource)
 								})
 
@@ -1998,12 +1998,12 @@ var _ = Describe("GardenFactory", func() {
 					})
 
 					Context("when the configuration has inputs", func() {
-						var inputSource *fakes.FakeArtifactSource
-						var otherInputSource *fakes.FakeArtifactSource
+						var inputSource *execfakes.FakeArtifactSource
+						var otherInputSource *execfakes.FakeArtifactSource
 
 						BeforeEach(func() {
-							inputSource = new(fakes.FakeArtifactSource)
-							otherInputSource = new(fakes.FakeArtifactSource)
+							inputSource = new(execfakes.FakeArtifactSource)
+							otherInputSource = new(execfakes.FakeArtifactSource)
 
 							configSource.FetchConfigReturns(atc.TaskConfig{
 								Platform: "some-platform",

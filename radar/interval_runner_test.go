@@ -10,7 +10,7 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/concourse/atc/radar"
-	"github.com/concourse/atc/radar/fakes"
+	"github.com/concourse/atc/radar/radarfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -24,7 +24,7 @@ var _ = Describe("IntervalRunner", func() {
 		times     chan time.Time
 
 		intervalRunner *IntervalRunner
-		fakeScanner    *fakes.FakeScanner
+		fakeScanner    *radarfakes.FakeScanner
 
 		signalCh chan os.Signal
 		readyCh  chan struct{}
@@ -39,7 +39,7 @@ var _ = Describe("IntervalRunner", func() {
 		epoch = time.Unix(123, 456).UTC()
 		fakeClock = fakeclock.NewFakeClock(epoch)
 
-		fakeScanner = &fakes.FakeScanner{}
+		fakeScanner = &radarfakes.FakeScanner{}
 		times = make(chan time.Time, 100)
 		interval = 1 * time.Minute
 		fakeScanner.RunStub = func(lager.Logger, string) (time.Duration, error) {

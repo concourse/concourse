@@ -11,11 +11,11 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/exec"
-	"github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
-	rfakes "github.com/concourse/atc/resource/fakes"
+	rfakes "github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/fakes"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -26,7 +26,7 @@ import (
 var _ = Describe("GardenFactory", func() {
 	var (
 		fakeTracker        *rfakes.FakeTracker
-		fakeTrackerFactory *fakes.FakeTrackerFactory
+		fakeTrackerFactory *execfakes.FakeTrackerFactory
 		fakeWorkerClient   *wfakes.FakeClient
 
 		factory Factory
@@ -54,7 +54,7 @@ var _ = Describe("GardenFactory", func() {
 
 	BeforeEach(func() {
 		fakeTracker = new(rfakes.FakeTracker)
-		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
+		fakeTrackerFactory = new(execfakes.FakeTrackerFactory)
 
 		fakeWorkerClient = new(wfakes.FakeClient)
 
@@ -69,7 +69,7 @@ var _ = Describe("GardenFactory", func() {
 
 	Describe("DependentGet", func() {
 		var (
-			getDelegate    *fakes.FakeGetDelegate
+			getDelegate    *execfakes.FakeGetDelegate
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
 			version        atc.Version
@@ -78,7 +78,7 @@ var _ = Describe("GardenFactory", func() {
 
 			satisfiedWorker *wfakes.FakeWorker
 
-			inStep *fakes.FakeStep
+			inStep *execfakes.FakeStep
 			repo   *SourceRepository
 
 			step    Step
@@ -86,7 +86,7 @@ var _ = Describe("GardenFactory", func() {
 		)
 
 		BeforeEach(func() {
-			getDelegate = new(fakes.FakeGetDelegate)
+			getDelegate = new(execfakes.FakeGetDelegate)
 			getDelegate.StdoutReturns(stdoutBuf)
 			getDelegate.StderrReturns(stderrBuf)
 
@@ -113,7 +113,7 @@ var _ = Describe("GardenFactory", func() {
 				},
 			}
 
-			inStep = new(fakes.FakeStep)
+			inStep = new(execfakes.FakeStep)
 			inStep.ResultStub = func(x interface{}) bool {
 				switch v := x.(type) {
 				case *VersionInfo:
@@ -357,10 +357,10 @@ var _ = Describe("GardenFactory", func() {
 				})
 
 				Describe("streaming to a destination", func() {
-					var fakeDestination *fakes.FakeArtifactDestination
+					var fakeDestination *execfakes.FakeArtifactDestination
 
 					BeforeEach(func() {
-						fakeDestination = new(fakes.FakeArtifactDestination)
+						fakeDestination = new(execfakes.FakeArtifactDestination)
 					})
 
 					Context("when the resource can stream out", func() {

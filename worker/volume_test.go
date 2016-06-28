@@ -8,9 +8,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc/worker"
-	"github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
-	bfakes "github.com/concourse/baggageclaim/fakes"
+	bfakes "github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/pivotal-golang/clock/fakeclock"
 	"github.com/pivotal-golang/lager/lagertest"
 )
@@ -19,14 +19,14 @@ var _ = Describe("Volumes", func() {
 	var (
 		volumeFactory worker.VolumeFactory
 		fakeVolume    *bfakes.FakeVolume
-		fakeDB        *fakes.FakeVolumeFactoryDB
+		fakeDB        *workerfakes.FakeVolumeFactoryDB
 		fakeClock     *fakeclock.FakeClock
 		logger        *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
 		fakeVolume = new(bfakes.FakeVolume)
-		fakeDB = new(fakes.FakeVolumeFactoryDB)
+		fakeDB = new(workerfakes.FakeVolumeFactoryDB)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 		logger = lagertest.NewTestLogger("test")
 

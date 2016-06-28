@@ -6,7 +6,7 @@ import (
 	"io"
 
 	. "github.com/concourse/atc/exec"
-	"github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,10 +29,10 @@ var _ = Describe("SourceRepository", func() {
 	})
 
 	Context("when a source is registered", func() {
-		var firstSource *fakes.FakeArtifactSource
+		var firstSource *execfakes.FakeArtifactSource
 
 		BeforeEach(func() {
-			firstSource = new(fakes.FakeArtifactSource)
+			firstSource = new(execfakes.FakeArtifactSource)
 			repo.RegisterSource("first-source", firstSource)
 		})
 
@@ -57,10 +57,10 @@ var _ = Describe("SourceRepository", func() {
 		})
 
 		Context("when a second source is registered", func() {
-			var secondSource *fakes.FakeArtifactSource
+			var secondSource *execfakes.FakeArtifactSource
 
 			BeforeEach(func() {
-				secondSource = new(fakes.FakeArtifactSource)
+				secondSource = new(execfakes.FakeArtifactSource)
 				repo.RegisterSource("second-source", secondSource)
 			})
 
@@ -92,11 +92,11 @@ var _ = Describe("SourceRepository", func() {
 			})
 
 			Describe("StreamTo", func() {
-				var fakeDestination *fakes.FakeArtifactDestination
+				var fakeDestination *execfakes.FakeArtifactDestination
 				var streamErr error
 
 				BeforeEach(func() {
-					fakeDestination = new(fakes.FakeArtifactDestination)
+					fakeDestination = new(execfakes.FakeArtifactDestination)
 				})
 
 				JustBeforeEach(func() {
@@ -195,10 +195,10 @@ var _ = Describe("SourceRepository", func() {
 			})
 
 			Context("when a third source is registered", func() {
-				var thirdSource *fakes.FakeArtifactSource
+				var thirdSource *execfakes.FakeArtifactSource
 
 				BeforeEach(func() {
-					secondSource = new(fakes.FakeArtifactSource)
+					secondSource = new(execfakes.FakeArtifactSource)
 					repo.RegisterSource("third-source", thirdSource)
 				})
 

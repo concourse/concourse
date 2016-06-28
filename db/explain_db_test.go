@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/pivotal-golang/clock/fakeclock"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -21,14 +21,14 @@ var _ = Describe("Explain", func() {
 	var (
 		logger         *lagertest.TestLogger
 		fakeClock      *fakeclock.FakeClock
-		underlyingConn *fakes.FakeConn
+		underlyingConn *dbfakes.FakeConn
 		explainConn    db.Conn
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("explain")
 		fakeClock = fakeclock.NewFakeClock(time.Now())
-		underlyingConn = new(fakes.FakeConn)
+		underlyingConn = new(dbfakes.FakeConn)
 		explainConn = db.Explain(logger, underlyingConn, fakeClock, 100*time.Millisecond)
 	})
 

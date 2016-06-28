@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"

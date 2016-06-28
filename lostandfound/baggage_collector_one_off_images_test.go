@@ -9,11 +9,11 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/lostandfound"
-	"github.com/concourse/atc/lostandfound/fakes"
+	"github.com/concourse/atc/lostandfound/lostandfoundfakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/fakes"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
 )
 
 var _ = Describe("Baggage-collecting image resource volumes created by one-off builds", func() {
@@ -25,7 +25,7 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		worker2 *wfakes.FakeWorker
 		volume2 *wfakes.FakeVolume
 
-		fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
+		fakeBaggageCollectorDB *lostandfoundfakes.FakeBaggageCollectorDB
 		fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
 		fakeBuild1             *dbfakes.FakeBuild
 		fakeBuild2             *dbfakes.FakeBuild
@@ -61,7 +61,7 @@ var _ = Describe("Baggage-collecting image resource volumes created by one-off b
 		}
 		baggageCollectorLogger := lagertest.NewTestLogger("test")
 
-		fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
+		fakeBaggageCollectorDB = new(lostandfoundfakes.FakeBaggageCollectorDB)
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 
 		baggageCollector = lostandfound.NewBaggageCollector(

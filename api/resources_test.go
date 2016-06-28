@@ -13,8 +13,8 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
-	radarfakes "github.com/concourse/atc/radar/fakes"
+	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/concourse/atc/resource"
 )
 

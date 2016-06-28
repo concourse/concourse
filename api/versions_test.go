@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("Versions API", func() {

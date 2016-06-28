@@ -8,7 +8,7 @@ import (
 	. "github.com/concourse/atc/exec"
 	"github.com/pivotal-golang/clock/fakeclock"
 
-	"github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -17,9 +17,9 @@ import (
 
 var _ = Describe("Timeout Step", func() {
 	var (
-		fakeStepFactoryStep *fakes.FakeStepFactory
+		fakeStepFactoryStep *execfakes.FakeStepFactory
 
-		runStep *fakes.FakeStep
+		runStep *execfakes.FakeStep
 
 		timeout StepFactory
 		step    Step
@@ -33,8 +33,8 @@ var _ = Describe("Timeout Step", func() {
 
 	BeforeEach(func() {
 		startStep = make(chan error, 1)
-		fakeStepFactoryStep = new(fakes.FakeStepFactory)
-		runStep = new(fakes.FakeStep)
+		fakeStepFactoryStep = new(execfakes.FakeStepFactory)
+		runStep = new(execfakes.FakeStep)
 		fakeStepFactoryStep.UsingReturns(runStep)
 
 		timeoutDuration = "1h"

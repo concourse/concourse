@@ -7,11 +7,11 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine"
-	enginefakes "github.com/concourse/atc/engine/fakes"
+	"github.com/concourse/atc/engine/enginefakes"
 	. "github.com/concourse/atc/scheduler"
-	"github.com/concourse/atc/scheduler/fakes"
+	"github.com/concourse/atc/scheduler/schedulerfakes"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -21,11 +21,11 @@ import (
 
 var _ = Describe("Scheduler", func() {
 	var (
-		fakePipelineDB *fakes.FakePipelineDB
+		fakePipelineDB *dbfakes.FakePipelineDB
 		fakeBuild      *dbfakes.FakeBuild
-		factory        *fakes.FakeBuildFactory
+		factory        *schedulerfakes.FakeBuildFactory
 		fakeEngine     *enginefakes.FakeEngine
-		fakeScanner    *fakes.FakeScanner
+		fakeScanner    *schedulerfakes.FakeScanner
 
 		lease *dbfakes.FakeLease
 
@@ -43,11 +43,11 @@ var _ = Describe("Scheduler", func() {
 	)
 
 	BeforeEach(func() {
-		fakePipelineDB = new(fakes.FakePipelineDB)
+		fakePipelineDB = new(dbfakes.FakePipelineDB)
 		fakeBuild = new(dbfakes.FakeBuild)
-		factory = new(fakes.FakeBuildFactory)
+		factory = new(schedulerfakes.FakeBuildFactory)
 		fakeEngine = new(enginefakes.FakeEngine)
-		fakeScanner = new(fakes.FakeScanner)
+		fakeScanner = new(schedulerfakes.FakeScanner)
 
 		fakeEngine.CreateBuildReturns(&enginefakes.FakeBuild{}, nil)
 
@@ -517,11 +517,11 @@ var _ = Describe("Scheduler", func() {
 	Describe("ScheduleAndResumePendingBuild", func() {
 		var (
 			engineBuild    engine.Build
-			fakeJobService *fakes.FakeJobService
+			fakeJobService *schedulerfakes.FakeJobService
 		)
 
 		BeforeEach(func() {
-			fakeJobService = new(fakes.FakeJobService)
+			fakeJobService = new(schedulerfakes.FakeJobService)
 		})
 
 		JustBeforeEach(func() {

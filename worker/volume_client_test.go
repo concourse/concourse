@@ -11,8 +11,8 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 
-	wfakes "github.com/concourse/atc/worker/fakes"
-	bfakes "github.com/concourse/baggageclaim/fakes"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
+	bfakes "github.com/concourse/baggageclaim/baggageclaimfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

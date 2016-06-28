@@ -9,9 +9,9 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/resource/fakes"
+	"github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/fakes"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -164,7 +164,7 @@ var _ = Describe("Tracker", func() {
 			delegate worker.ImageFetchingDelegate
 
 			initType        ResourceType
-			cacheIdentifier *fakes.FakeCacheIdentifier
+			cacheIdentifier *resourcefakes.FakeCacheIdentifier
 
 			initResource Resource
 			initCache    Cache
@@ -174,7 +174,7 @@ var _ = Describe("Tracker", func() {
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("test")
 			initType = "type1"
-			cacheIdentifier = new(fakes.FakeCacheIdentifier)
+			cacheIdentifier = new(resourcefakes.FakeCacheIdentifier)
 			delegate = new(wfakes.FakeImageFetchingDelegate)
 		})
 
@@ -700,9 +700,9 @@ var _ = Describe("Tracker", func() {
 			inputSources map[string]ArtifactSource
 			delegate     worker.ImageFetchingDelegate
 
-			inputSource1 *fakes.FakeArtifactSource
-			inputSource2 *fakes.FakeArtifactSource
-			inputSource3 *fakes.FakeArtifactSource
+			inputSource1 *resourcefakes.FakeArtifactSource
+			inputSource2 *resourcefakes.FakeArtifactSource
+			inputSource3 *resourcefakes.FakeArtifactSource
 
 			initType ResourceType
 
@@ -716,9 +716,9 @@ var _ = Describe("Tracker", func() {
 			initType = "type1"
 			delegate = new(wfakes.FakeImageFetchingDelegate)
 
-			inputSource1 = new(fakes.FakeArtifactSource)
-			inputSource2 = new(fakes.FakeArtifactSource)
-			inputSource3 = new(fakes.FakeArtifactSource)
+			inputSource1 = new(resourcefakes.FakeArtifactSource)
+			inputSource2 = new(resourcefakes.FakeArtifactSource)
+			inputSource3 = new(resourcefakes.FakeArtifactSource)
 
 			inputSources = map[string]ArtifactSource{
 				"source-1-name": inputSource1,

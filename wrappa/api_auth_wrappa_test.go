@@ -5,7 +5,7 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/wrappa"
 	"github.com/tedsuo/rata"
 
@@ -15,13 +15,15 @@ import (
 
 var _ = Describe("APIAuthWrappa", func() {
 	var (
-		fakeValidator         *fakes.FakeValidator
-		fakeUserContextReader *fakes.FakeUserContextReader
+		fakeValidator         *authfakes.FakeValidator
+		fakeUserContextReader *authfakes.FakeUserContextReader
+		publiclyViewable      bool
 	)
 
 	BeforeEach(func() {
-		fakeValidator = new(fakes.FakeValidator)
-		fakeUserContextReader = new(fakes.FakeUserContextReader)
+		publiclyViewable = true
+		fakeValidator = new(authfakes.FakeValidator)
+		fakeUserContextReader = new(authfakes.FakeUserContextReader)
 	})
 
 	unauthenticated := func(handler http.Handler) http.Handler {

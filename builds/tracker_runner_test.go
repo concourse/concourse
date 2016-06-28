@@ -10,11 +10,11 @@ import (
 	"github.com/tedsuo/ifrit"
 
 	. "github.com/concourse/atc/builds"
-	"github.com/concourse/atc/builds/fakes"
+	"github.com/concourse/atc/builds/buildsfakes"
 )
 
 var _ = Describe("TrackerRunner", func() {
-	var fakeTracker *fakes.FakeBuildTracker
+	var fakeTracker *buildsfakes.FakeBuildTracker
 	var fakeClock *fakeclock.FakeClock
 	var tracked <-chan struct{}
 	var trackerRunner TrackerRunner
@@ -22,7 +22,7 @@ var _ = Describe("TrackerRunner", func() {
 	var interval = 10 * time.Second
 
 	BeforeEach(func() {
-		fakeTracker = new(fakes.FakeBuildTracker)
+		fakeTracker = new(buildsfakes.FakeBuildTracker)
 
 		t := make(chan struct{})
 		tracked = t

@@ -12,17 +12,17 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/engine"
-	"github.com/concourse/atc/engine/fakes"
+	"github.com/concourse/atc/engine/enginefakes"
 )
 
 var _ = Describe("DBEngine", func() {
 	var (
 		logger lager.Logger
 
-		fakeEngineA *fakes.FakeEngine
-		fakeEngineB *fakes.FakeEngine
+		fakeEngineA *enginefakes.FakeEngine
+		fakeEngineB *enginefakes.FakeEngine
 		dbBuild     *dbfakes.FakeBuild
 
 		dbEngine Engine
@@ -31,10 +31,10 @@ var _ = Describe("DBEngine", func() {
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 
-		fakeEngineA = new(fakes.FakeEngine)
+		fakeEngineA = new(enginefakes.FakeEngine)
 		fakeEngineA.NameReturns("fake-engine-a")
 
-		fakeEngineB = new(fakes.FakeEngine)
+		fakeEngineB = new(enginefakes.FakeEngine)
 		fakeEngineB.NameReturns("fake-engine-b")
 
 		dbBuild = new(dbfakes.FakeBuild)
@@ -80,10 +80,10 @@ var _ = Describe("DBEngine", func() {
 		})
 
 		Context("when creating the build succeeds", func() {
-			var fakeBuild *fakes.FakeBuild
+			var fakeBuild *enginefakes.FakeBuild
 
 			BeforeEach(func() {
-				fakeBuild = new(fakes.FakeBuild)
+				fakeBuild = new(enginefakes.FakeBuild)
 				fakeBuild.MetadataReturns("some-metadata")
 
 				fakeEngineA.CreateBuildReturns(fakeBuild, nil)
@@ -257,12 +257,12 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					Context("when the engine build exists", func() {
-						var realBuild *fakes.FakeBuild
+						var realBuild *enginefakes.FakeBuild
 
 						BeforeEach(func() {
 							dbBuild.ReloadReturns(true, nil)
 
-							realBuild = new(fakes.FakeBuild)
+							realBuild = new(enginefakes.FakeBuild)
 							fakeEngineB.LookupBuildReturns(realBuild, nil)
 						})
 
@@ -471,12 +471,12 @@ var _ = Describe("DBEngine", func() {
 					})
 
 					Context("when the engine build exists", func() {
-						var realBuild *fakes.FakeBuild
+						var realBuild *enginefakes.FakeBuild
 
 						BeforeEach(func() {
 							dbBuild.ReloadReturns(true, nil)
 
-							realBuild = new(fakes.FakeBuild)
+							realBuild = new(enginefakes.FakeBuild)
 							fakeEngineB.LookupBuildReturns(realBuild, nil)
 
 							realBuild.ResumeStub = func(lager.Logger) {
@@ -690,10 +690,11 @@ var _ = Describe("DBEngine", func() {
 				})
 
 				Context("when the engine build exists", func() {
-					var realBuild *fakes.FakeBuild
+					var realBuild *enginefakes.FakeBuild
 
 					BeforeEach(func() {
-						realBuild = new(fakes.FakeBuild)
+						realBuild = new(enginefakes.FakeBuild)
+
 						fakeEngineB.LookupBuildReturns(realBuild, nil)
 					})
 

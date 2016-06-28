@@ -6,11 +6,11 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/containerreaper"
-	"github.com/concourse/atc/containerreaper/fakes"
+	"github.com/concourse/atc/containerreaper/containerreaperfakes"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -19,10 +19,10 @@ import (
 var _ = Describe("ContainerReaper", func() {
 	var (
 		containerReaper       containerreaper.ContainerReaper
-		fakeContainerReaperDB *fakes.FakeContainerReaperDB
+		fakeContainerReaperDB *containerreaperfakes.FakeContainerReaperDB
 		fakePipelineDBFactory *dbfakes.FakePipelineDBFactory
-		fakeWorkerClient      *wfakes.FakeClient
-		fakeWorkerContainer   *wfakes.FakeContainer
+		fakeWorkerClient      *workerfakes.FakeClient
+		fakeWorkerContainer   *workerfakes.FakeContainer
 		fakePipelineDB        *dbfakes.FakePipelineDB
 
 		failedContainers     []db.SavedContainer
@@ -31,11 +31,11 @@ var _ = Describe("ContainerReaper", func() {
 	)
 
 	BeforeEach(func() {
-		fakeContainerReaperDB = new(fakes.FakeContainerReaperDB)
+		fakeContainerReaperDB = new(containerreaperfakes.FakeContainerReaperDB)
 		containerReaperLogger := lagertest.NewTestLogger("test")
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
-		fakeWorkerClient = new(wfakes.FakeClient)
-		fakeWorkerContainer = new(wfakes.FakeContainer)
+		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeWorkerContainer = new(workerfakes.FakeContainer)
 		fakePipelineDB = new(dbfakes.FakePipelineDB)
 
 		containerReaper = containerreaper.NewContainerReaper(containerReaperLogger, fakeWorkerClient, fakeContainerReaperDB, fakePipelineDBFactory)
@@ -223,12 +223,12 @@ var _ = Describe("ContainerReaper", func() {
 
 })
 
-func verifyLookupContainerCalls(fakeWorkerClient *wfakes.FakeClient, expiredHandles []string, callIndex int) {
+func verifyLookupContainerCalls(fakeWorkerClient *workerfakes.FakeClient, expiredHandles []string, callIndex int) {
 	_, handle := fakeWorkerClient.LookupContainerArgsForCall(callIndex)
 	Expect(expiredHandles).To(ContainElement(handle))
 }
 
-func verifyTTLWasSet(fakeContainerReaperDB *fakes.FakeContainerReaperDB, expiredHandles []string, callIndex int) {
+func verifyTTLWasSet(fakeContainerReaperDB *containerreaperfakes.FakeContainerReaperDB, expiredHandles []string, callIndex int) {
 	handle, ttl := fakeContainerReaperDB.UpdateExpiresAtOnContainerArgsForCall(callIndex)
 	Expect(expiredHandles).To(ContainElement(handle))
 	Expect(ttl).To(Equal(worker.ContainerTTL))

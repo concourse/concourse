@@ -4,13 +4,13 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/engine/fakes"
+	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/exec"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager/lagertest"
 
-	dbfakes "github.com/concourse/atc/db/fakes"
-	execfakes "github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/exec/execfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,7 +19,7 @@ import (
 var _ = Describe("Exec Engine with Try", func() {
 	var (
 		fakeFactory         *execfakes.FakeFactory
-		fakeDelegateFactory *fakes.FakeBuildDelegateFactory
+		fakeDelegateFactory *enginefakes.FakeBuildDelegateFactory
 
 		execEngine engine.Engine
 
@@ -27,14 +27,14 @@ var _ = Describe("Exec Engine with Try", func() {
 		expectedMetadata engine.StepMetadata
 		logger           *lagertest.TestLogger
 
-		fakeDelegate *fakes.FakeBuildDelegate
+		fakeDelegate *enginefakes.FakeBuildDelegate
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 
 		fakeFactory = new(execfakes.FakeFactory)
-		fakeDelegateFactory = new(fakes.FakeBuildDelegateFactory)
+		fakeDelegateFactory = new(enginefakes.FakeBuildDelegateFactory)
 
 		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
 		execEngine = engine.NewExecEngine(
@@ -44,7 +44,7 @@ var _ = Describe("Exec Engine with Try", func() {
 			"http://example.com",
 		)
 
-		fakeDelegate = new(fakes.FakeBuildDelegate)
+		fakeDelegate = new(enginefakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
 		build = new(dbfakes.FakeBuild)
@@ -87,7 +87,7 @@ var _ = Describe("Exec Engine with Try", func() {
 
 		Context("constructing steps", func() {
 			var (
-				fakeDelegate          *fakes.FakeBuildDelegate
+				fakeDelegate          *enginefakes.FakeBuildDelegate
 				fakeInputDelegate     *execfakes.FakeGetDelegate
 				fakeExecutionDelegate *execfakes.FakeTaskDelegate
 				inputPlan             atc.Plan
@@ -96,7 +96,7 @@ var _ = Describe("Exec Engine with Try", func() {
 
 			BeforeEach(func() {
 				planFactory = atc.NewPlanFactory(123)
-				fakeDelegate = new(fakes.FakeBuildDelegate)
+				fakeDelegate = new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
 				fakeInputDelegate = new(execfakes.FakeGetDelegate)

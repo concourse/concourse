@@ -13,7 +13,7 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/db/migrations"
-	"github.com/concourse/atc/db/migrations/fakes"
+	"github.com/concourse/atc/db/migrations/migrationsfakes"
 )
 
 var _ = Describe("Logging migration progress", func() {
@@ -55,7 +55,7 @@ var _ = Describe("Logging migration progress", func() {
 			newMigrations := migrations.Translogrifier(logger, oldMigrations)
 			Expect(newMigrations).To(HaveLen(2))
 
-			tx := new(fakes.FakeLimitedTx)
+			tx := new(migrationsfakes.FakeLimitedTx)
 
 			newMigrations[0](tx)
 			Expect(logger).To(gbytes.Say("starting-migration"))
@@ -71,7 +71,7 @@ var _ = Describe("Logging migration progress", func() {
 
 	Describe("WithLogger", func() {
 		It("calls the original migration", func() {
-			tx := new(fakes.FakeLimitedTx)
+			tx := new(migrationsfakes.FakeLimitedTx)
 
 			originalMigration := func(otx migration.LimitedTx) error {
 				_, err := otx.Exec(`SELECT 1`)
@@ -91,7 +91,7 @@ var _ = Describe("Logging migration progress", func() {
 		})
 
 		It("bubbles errors from the original migrations back up", func() {
-			tx := new(fakes.FakeLimitedTx)
+			tx := new(migrationsfakes.FakeLimitedTx)
 
 			originalMigration := func(otx migration.LimitedTx) error {
 				return errors.New("disaster!")
@@ -104,7 +104,7 @@ var _ = Describe("Logging migration progress", func() {
 		})
 
 		It("logs before and after the migration", func() {
-			tx := new(fakes.FakeLimitedTx)
+			tx := new(migrationsfakes.FakeLimitedTx)
 
 			originalMigration := func(otx migration.LimitedTx) error {
 				_, err := otx.Exec(`SELECT 1`)
@@ -126,7 +126,7 @@ var _ = Describe("Logging migration progress", func() {
 		})
 
 		It("logs the time that the migration took to apply", func() {
-			tx := new(fakes.FakeLimitedTx)
+			tx := new(migrationsfakes.FakeLimitedTx)
 
 			originalMigration := func(otx migration.LimitedTx) error {
 				time.Sleep(1 * time.Millisecond)
@@ -144,7 +144,7 @@ var _ = Describe("Logging migration progress", func() {
 		})
 
 		It("puts the name of the migration in the log", func() {
-			tx := new(fakes.FakeLimitedTx)
+			tx := new(migrationsfakes.FakeLimitedTx)
 
 			newMigration := migrations.WithLogger(logger, HasAName)
 			newMigration(tx)

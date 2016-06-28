@@ -6,9 +6,9 @@ import (
 	"net/url"
 
 	"github.com/concourse/atc/auth"
-	authfakes "github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/pipelines"
 
 	. "github.com/onsi/ginkgo"

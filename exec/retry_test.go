@@ -7,37 +7,37 @@ import (
 	. "github.com/concourse/atc/exec"
 	"github.com/tedsuo/ifrit"
 
-	"github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Retry Step", func() {
 	var (
-		attempt1Factory *fakes.FakeStepFactory
-		attempt1Step    *fakes.FakeStep
+		attempt1Factory *execfakes.FakeStepFactory
+		attempt1Step    *execfakes.FakeStep
 
-		attempt2Factory *fakes.FakeStepFactory
-		attempt2Step    *fakes.FakeStep
+		attempt2Factory *execfakes.FakeStepFactory
+		attempt2Step    *execfakes.FakeStep
 
-		attempt3Factory *fakes.FakeStepFactory
-		attempt3Step    *fakes.FakeStep
+		attempt3Factory *execfakes.FakeStepFactory
+		attempt3Step    *execfakes.FakeStep
 
 		stepFactory StepFactory
 		step        Step
 	)
 
 	BeforeEach(func() {
-		attempt1Factory = new(fakes.FakeStepFactory)
-		attempt1Step = new(fakes.FakeStep)
+		attempt1Factory = new(execfakes.FakeStepFactory)
+		attempt1Step = new(execfakes.FakeStep)
 		attempt1Factory.UsingReturns(attempt1Step)
 
-		attempt2Factory = new(fakes.FakeStepFactory)
-		attempt2Step = new(fakes.FakeStep)
+		attempt2Factory = new(execfakes.FakeStepFactory)
+		attempt2Step = new(execfakes.FakeStep)
 		attempt2Factory.UsingReturns(attempt2Step)
 
-		attempt3Factory = new(fakes.FakeStepFactory)
-		attempt3Step = new(fakes.FakeStep)
+		attempt3Factory = new(execfakes.FakeStepFactory)
+		attempt3Step = new(execfakes.FakeStep)
 		attempt3Factory.UsingReturns(attempt3Step)
 
 		stepFactory = Retry{attempt1Factory, attempt2Factory, attempt3Factory}

@@ -5,10 +5,11 @@ import (
 	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/auth/github"
 	"github.com/concourse/atc/auth/provider"
+	. "github.com/concourse/atc/auth/provider"
 	"github.com/concourse/atc/auth/uaa"
 	"github.com/concourse/atc/db"
 
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

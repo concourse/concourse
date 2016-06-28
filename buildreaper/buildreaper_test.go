@@ -6,9 +6,9 @@ import (
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/buildreaper"
-	"github.com/concourse/atc/buildreaper/fakes"
+	"github.com/concourse/atc/buildreaper/buildreaperfakes"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -18,13 +18,13 @@ import (
 var _ = Describe("BuildReaper", func() {
 	var (
 		buildReaper           BuildReaper
-		fakeBuildReaperDB     *fakes.FakeBuildReaperDB
+		fakeBuildReaperDB     *buildreaperfakes.FakeBuildReaperDB
 		fakePipelineDBFactory *dbfakes.FakePipelineDBFactory
 		batchSize             int
 	)
 
 	BeforeEach(func() {
-		fakeBuildReaperDB = new(fakes.FakeBuildReaperDB)
+		fakeBuildReaperDB = new(buildreaperfakes.FakeBuildReaperDB)
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 		batchSize = 5
 	})

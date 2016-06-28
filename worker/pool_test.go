@@ -6,7 +6,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/worker"
-	"github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -16,14 +16,14 @@ import (
 var _ = Describe("Pool", func() {
 	var (
 		logger       *lagertest.TestLogger
-		fakeProvider *fakes.FakeWorkerProvider
+		fakeProvider *workerfakes.FakeWorkerProvider
 
 		pool Client
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
-		fakeProvider = new(fakes.FakeWorkerProvider)
+		fakeProvider = new(workerfakes.FakeWorkerProvider)
 
 		pool = NewPool(fakeProvider)
 	})
@@ -55,10 +55,10 @@ var _ = Describe("Pool", func() {
 		})
 
 		Context("when the lookup of the worker succeeds", func() {
-			var fakeWorker *fakes.FakeWorker
+			var fakeWorker *workerfakes.FakeWorker
 
 			BeforeEach(func() {
-				fakeWorker = new(fakes.FakeWorker)
+				fakeWorker = new(workerfakes.FakeWorker)
 				fakeProvider.GetWorkerReturns(fakeWorker, true, nil)
 			})
 
@@ -102,15 +102,15 @@ var _ = Describe("Pool", func() {
 
 		Context("with multiple workers", func() {
 			var (
-				workerA *fakes.FakeWorker
-				workerB *fakes.FakeWorker
-				workerC *fakes.FakeWorker
+				workerA *workerfakes.FakeWorker
+				workerB *workerfakes.FakeWorker
+				workerC *workerfakes.FakeWorker
 			)
 
 			BeforeEach(func() {
-				workerA = new(fakes.FakeWorker)
-				workerB = new(fakes.FakeWorker)
-				workerC = new(fakes.FakeWorker)
+				workerA = new(workerfakes.FakeWorker)
+				workerB = new(workerfakes.FakeWorker)
+				workerC = new(workerfakes.FakeWorker)
 
 				workerA.SatisfyingReturns(workerA, nil)
 				workerB.SatisfyingReturns(workerB, nil)
@@ -219,15 +219,15 @@ var _ = Describe("Pool", func() {
 
 		Context("with multiple workers", func() {
 			var (
-				workerA *fakes.FakeWorker
-				workerB *fakes.FakeWorker
-				workerC *fakes.FakeWorker
+				workerA *workerfakes.FakeWorker
+				workerB *workerfakes.FakeWorker
+				workerC *workerfakes.FakeWorker
 			)
 
 			BeforeEach(func() {
-				workerA = new(fakes.FakeWorker)
-				workerB = new(fakes.FakeWorker)
-				workerC = new(fakes.FakeWorker)
+				workerA = new(workerfakes.FakeWorker)
+				workerB = new(workerfakes.FakeWorker)
+				workerC = new(workerfakes.FakeWorker)
 
 				workerA.SatisfyingReturns(workerA, nil)
 				workerB.SatisfyingReturns(workerB, nil)
@@ -309,7 +309,7 @@ var _ = Describe("Pool", func() {
 
 	Describe("CreateContainer", func() {
 		var (
-			fakeImageFetchingDelegate *fakes.FakeImageFetchingDelegate
+			fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 
 			id   Identifier
 			spec ContainerSpec
@@ -320,7 +320,7 @@ var _ = Describe("Pool", func() {
 		)
 
 		BeforeEach(func() {
-			fakeImageFetchingDelegate = new(fakes.FakeImageFetchingDelegate)
+			fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 			id = Identifier{
 				ResourceID: 1234,
 			}
@@ -360,17 +360,17 @@ var _ = Describe("Pool", func() {
 
 		Context("with multiple workers", func() {
 			var (
-				workerA *fakes.FakeWorker
-				workerB *fakes.FakeWorker
-				workerC *fakes.FakeWorker
+				workerA *workerfakes.FakeWorker
+				workerB *workerfakes.FakeWorker
+				workerC *workerfakes.FakeWorker
 
-				fakeContainer *fakes.FakeContainer
+				fakeContainer *workerfakes.FakeContainer
 			)
 
 			BeforeEach(func() {
-				workerA = new(fakes.FakeWorker)
-				workerB = new(fakes.FakeWorker)
-				workerC = new(fakes.FakeWorker)
+				workerA = new(workerfakes.FakeWorker)
+				workerB = new(workerfakes.FakeWorker)
+				workerC = new(workerfakes.FakeWorker)
 
 				workerA.ActiveContainersReturns(3)
 				workerB.ActiveContainersReturns(2)
@@ -379,7 +379,7 @@ var _ = Describe("Pool", func() {
 				workerB.SatisfyingReturns(workerB, nil)
 				workerC.SatisfyingReturns(nil, errors.New("nope"))
 
-				fakeContainer = new(fakes.FakeContainer)
+				fakeContainer = new(workerfakes.FakeContainer)
 				workerA.CreateContainerReturns(fakeContainer, nil)
 				workerB.CreateContainerReturns(fakeContainer, nil)
 				workerC.CreateContainerReturns(fakeContainer, nil)
@@ -554,10 +554,10 @@ var _ = Describe("Pool", func() {
 			})
 
 			Context("when looking up the worker is successful", func() {
-				var fakeWorker *fakes.FakeWorker
+				var fakeWorker *workerfakes.FakeWorker
 
 				BeforeEach(func() {
-					fakeWorker = new(fakes.FakeWorker)
+					fakeWorker = new(workerfakes.FakeWorker)
 					fakeProvider.GetWorkerReturns(fakeWorker, true, nil)
 				})
 
@@ -613,8 +613,8 @@ var _ = Describe("Pool", func() {
 
 				Context("when the finding the container on the worker is successful", func() {
 					It("returns the container", func() {
-						var fakeContainer *fakes.FakeContainer
-						fakeContainer = new(fakes.FakeContainer)
+						var fakeContainer *workerfakes.FakeContainer
+						fakeContainer = new(workerfakes.FakeContainer)
 
 						fakeWorker.LookupContainerReturns(fakeContainer, true, nil)
 
@@ -712,10 +712,10 @@ var _ = Describe("Pool", func() {
 			})
 
 			Context("when looking up the worker is successful", func() {
-				var fakeWorker *fakes.FakeWorker
+				var fakeWorker *workerfakes.FakeWorker
 
 				BeforeEach(func() {
-					fakeWorker = new(fakes.FakeWorker)
+					fakeWorker = new(workerfakes.FakeWorker)
 					fakeProvider.GetWorkerReturns(fakeWorker, true, nil)
 				})
 
@@ -771,8 +771,8 @@ var _ = Describe("Pool", func() {
 
 				Context("when the finding the container on the worker is successful", func() {
 					It("returns the container", func() {
-						var fakeContainer *fakes.FakeContainer
-						fakeContainer = new(fakes.FakeContainer)
+						var fakeContainer *workerfakes.FakeContainer
+						fakeContainer = new(workerfakes.FakeContainer)
 
 						fakeWorker.LookupContainerReturns(fakeContainer, true, nil)
 

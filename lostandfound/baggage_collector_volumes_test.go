@@ -7,12 +7,12 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/lostandfound"
-	"github.com/concourse/atc/lostandfound/fakes"
+	"github.com/concourse/atc/lostandfound/lostandfoundfakes"
 	"github.com/concourse/atc/resource"
 	"github.com/pivotal-golang/lager/lagertest"
 
-	dbfakes "github.com/concourse/atc/db/fakes"
-	wfakes "github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/atc/db/dbfakes"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,7 +24,7 @@ var _ = Describe("Volumes are reaped", func() {
 		fakeWorker       *wfakes.FakeWorker
 
 		fakePipelineDBFactory          *dbfakes.FakePipelineDBFactory
-		fakeBaggageCollectorDB         *fakes.FakeBaggageCollectorDB
+		fakeBaggageCollectorDB         *lostandfoundfakes.FakeBaggageCollectorDB
 		expectedOldResourceGracePeriod = 4 * time.Minute
 		expectedOneOffTTL              = 5 * time.Hour
 
@@ -38,7 +38,7 @@ var _ = Describe("Volumes are reaped", func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeWorker = new(wfakes.FakeWorker)
 		baggageCollectorLogger := lagertest.NewTestLogger("test")
-		fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
+		fakeBaggageCollectorDB = new(lostandfoundfakes.FakeBaggageCollectorDB)
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 
 		baggageCollector = lostandfound.NewBaggageCollector(

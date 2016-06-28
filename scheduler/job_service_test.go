@@ -7,9 +7,9 @@ import (
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/algorithm"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/scheduler"
-	"github.com/concourse/atc/scheduler/fakes"
+	"github.com/concourse/atc/scheduler/schedulerfakes"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
@@ -17,13 +17,13 @@ import (
 )
 
 var _ = Describe("JobService", func() {
-	var fakeDB *fakes.FakeJobServiceDB
-	var fakeScanner *fakes.FakeScanner
+	var fakeDB *schedulerfakes.FakeJobServiceDB
+	var fakeScanner *schedulerfakes.FakeScanner
 
 	Describe("NewJobService", func() {
 		BeforeEach(func() {
-			fakeDB = new(fakes.FakeJobServiceDB)
-			fakeScanner = new(fakes.FakeScanner)
+			fakeDB = new(schedulerfakes.FakeJobServiceDB)
+			fakeScanner = new(schedulerfakes.FakeScanner)
 		})
 
 		It("sets the JobConfig and the DBJob", func() {
@@ -68,8 +68,8 @@ var _ = Describe("JobService", func() {
 		)
 
 		BeforeEach(func() {
-			fakeDB = new(fakes.FakeJobServiceDB)
-			fakeScanner = new(fakes.FakeScanner)
+			fakeDB = new(schedulerfakes.FakeJobServiceDB)
+			fakeScanner = new(schedulerfakes.FakeScanner)
 
 			jobConfig = atc.JobConfig{
 				Name: "some-job",

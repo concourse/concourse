@@ -11,11 +11,11 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/exec"
-	"github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/resource"
-	rfakes "github.com/concourse/atc/resource/fakes"
+	rfakes "github.com/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/fakes"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -28,7 +28,7 @@ var _ = Describe("GardenFactory", func() {
 	var (
 		fakeWorkerClient   *wfakes.FakeClient
 		fakeTracker        *rfakes.FakeTracker
-		fakeTrackerFactory *fakes.FakeTrackerFactory
+		fakeTrackerFactory *execfakes.FakeTrackerFactory
 
 		factory Factory
 
@@ -50,7 +50,7 @@ var _ = Describe("GardenFactory", func() {
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeTracker = new(rfakes.FakeTracker)
-		fakeTrackerFactory = new(fakes.FakeTrackerFactory)
+		fakeTrackerFactory = new(execfakes.FakeTrackerFactory)
 
 		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
 
@@ -60,13 +60,13 @@ var _ = Describe("GardenFactory", func() {
 
 	Describe("Put", func() {
 		var (
-			putDelegate    *fakes.FakePutDelegate
+			putDelegate    *execfakes.FakePutDelegate
 			resourceConfig atc.ResourceConfig
 			params         atc.Params
 			tags           []string
 			resourceTypes  atc.ResourceTypes
 
-			inStep *fakes.FakeStep
+			inStep *execfakes.FakeStep
 			repo   *SourceRepository
 
 			step    Step
@@ -77,7 +77,7 @@ var _ = Describe("GardenFactory", func() {
 		)
 
 		BeforeEach(func() {
-			putDelegate = new(fakes.FakePutDelegate)
+			putDelegate = new(execfakes.FakePutDelegate)
 			putDelegate.StdoutReturns(stdoutBuf)
 			putDelegate.StderrReturns(stderrBuf)
 
@@ -90,7 +90,7 @@ var _ = Describe("GardenFactory", func() {
 			params = atc.Params{"some-param": "some-value"}
 			tags = []string{"some", "tags"}
 
-			inStep = new(fakes.FakeStep)
+			inStep = new(execfakes.FakeStep)
 			repo = NewSourceRepository()
 
 			resourceTypes = atc.ResourceTypes{
@@ -125,15 +125,15 @@ var _ = Describe("GardenFactory", func() {
 
 		Context("when repo contains sources", func() {
 			var (
-				fakeSource        *fakes.FakeArtifactSource
-				fakeOtherSource   *fakes.FakeArtifactSource
-				fakeMountedSource *fakes.FakeArtifactSource
+				fakeSource        *execfakes.FakeArtifactSource
+				fakeOtherSource   *execfakes.FakeArtifactSource
+				fakeMountedSource *execfakes.FakeArtifactSource
 			)
 
 			BeforeEach(func() {
-				fakeSource = new(fakes.FakeArtifactSource)
-				fakeOtherSource = new(fakes.FakeArtifactSource)
-				fakeMountedSource = new(fakes.FakeArtifactSource)
+				fakeSource = new(execfakes.FakeArtifactSource)
+				fakeOtherSource = new(execfakes.FakeArtifactSource)
+				fakeMountedSource = new(execfakes.FakeArtifactSource)
 
 				repo.RegisterSource("some-source", fakeSource)
 				repo.RegisterSource("some-other-source", fakeOtherSource)
@@ -198,7 +198,7 @@ var _ = Describe("GardenFactory", func() {
 					Expect(putSource).To(Equal(resourceConfig.Source))
 					Expect(putParams).To(Equal(params))
 
-					dest := new(fakes.FakeArtifactDestination)
+					dest := new(execfakes.FakeArtifactDestination)
 
 					err := putArtifactSource.StreamTo(dest)
 					Expect(err).NotTo(HaveOccurred())

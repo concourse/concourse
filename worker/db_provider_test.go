@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	. "github.com/concourse/atc/worker"
-	"github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/baggageclaim"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -30,7 +30,7 @@ func (immediateRetryPolicy) DelayFor(uint) (time.Duration, bool) {
 
 var _ = Describe("DBProvider", func() {
 	var (
-		fakeDB *fakes.FakeWorkerDB
+		fakeDB *workerfakes.FakeWorkerDB
 
 		logger *lagertest.TestLogger
 
@@ -40,8 +40,8 @@ var _ = Describe("DBProvider", func() {
 		gardenServer       *server.GardenServer
 		provider           WorkerProvider
 
-		fakeImageFetcher          *fakes.FakeImageFetcher
-		fakeImageFetchingDelegate *fakes.FakeImageFetchingDelegate
+		fakeImageFetcher          *workerfakes.FakeImageFetcher
+		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 
 		workers    []Worker
 		workersErr error
@@ -67,7 +67,7 @@ var _ = Describe("DBProvider", func() {
 			baggageclaim.VolumeStatsResponse{SizeInBytes: 1024},
 		))
 
-		fakeDB = new(fakes.FakeWorkerDB)
+		fakeDB = new(workerfakes.FakeWorkerDB)
 		fakeDB.GetVolumeTTLReturns(1*time.Millisecond, true, nil)
 		fakeDB.GetContainerReturns(db.SavedContainer{}, true, nil)
 		fakeDB.FindWorkerCheckResourceTypeVersionReturns("", false, nil)
@@ -79,8 +79,8 @@ var _ = Describe("DBProvider", func() {
 		err := gardenServer.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		fakeImageFetcher = new(fakes.FakeImageFetcher)
-		fakeImageFetchingDelegate = new(fakes.FakeImageFetchingDelegate)
+		fakeImageFetcher = new(workerfakes.FakeImageFetcher)
+		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
 		provider = NewDBWorkerProvider(logger, fakeDB, nil, immediateRetryPolicy{}, fakeImageFetcher)
 	})

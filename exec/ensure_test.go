@@ -10,18 +10,18 @@ import (
 	"github.com/tedsuo/ifrit"
 
 	"github.com/concourse/atc/exec"
-	"github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 )
 
 var _ = Describe("Ensure Step", func() {
 	var (
-		stepFactory *fakes.FakeStepFactory
-		hookFactory *fakes.FakeStepFactory
+		stepFactory *execfakes.FakeStepFactory
+		hookFactory *execfakes.FakeStepFactory
 
-		step *fakes.FakeStep
-		hook *fakes.FakeStep
+		step *execfakes.FakeStep
+		hook *execfakes.FakeStep
 
-		previousStep *fakes.FakeStep
+		previousStep *execfakes.FakeStep
 
 		repo *exec.SourceRepository
 
@@ -30,13 +30,13 @@ var _ = Describe("Ensure Step", func() {
 	)
 
 	BeforeEach(func() {
-		stepFactory = &fakes.FakeStepFactory{}
-		hookFactory = &fakes.FakeStepFactory{}
+		stepFactory = &execfakes.FakeStepFactory{}
+		hookFactory = &execfakes.FakeStepFactory{}
 
-		step = &fakes.FakeStep{}
-		hook = &fakes.FakeStep{}
+		step = &execfakes.FakeStep{}
+		hook = &execfakes.FakeStep{}
 
-		previousStep = &fakes.FakeStep{}
+		previousStep = &execfakes.FakeStep{}
 
 		stepFactory.UsingReturns(step)
 		hookFactory.UsingReturns(hook)

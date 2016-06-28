@@ -11,11 +11,11 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/lostandfound"
-	"github.com/concourse/atc/lostandfound/fakes"
+	"github.com/concourse/atc/lostandfound/lostandfoundfakes"
 	"github.com/concourse/atc/worker"
-	wfakes "github.com/concourse/atc/worker/fakes"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
 )
 
 var _ = Describe("Baggage-collecting image resource volumes", func() {
@@ -30,7 +30,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			workerC            *wfakes.FakeWorker
 			crossedWiresVolume *wfakes.FakeVolume
 
-			fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
+			fakeBaggageCollectorDB *lostandfoundfakes.FakeBaggageCollectorDB
 			fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
 			fakeBuild2             *dbfakes.FakeBuild
 			fakeBuild3             *dbfakes.FakeBuild
@@ -69,7 +69,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			}
 			baggageCollectorLogger := lagertest.NewTestLogger("test")
 
-			fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
+			fakeBaggageCollectorDB = new(lostandfoundfakes.FakeBaggageCollectorDB)
 			fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 
 			baggageCollector = lostandfound.NewBaggageCollector(
@@ -223,7 +223,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 			workerB  *wfakes.FakeWorker
 			volumeB1 *wfakes.FakeVolume
 
-			fakeBaggageCollectorDB *fakes.FakeBaggageCollectorDB
+			fakeBaggageCollectorDB *lostandfoundfakes.FakeBaggageCollectorDB
 			fakePipelineDBFactory  *dbfakes.FakePipelineDBFactory
 			fakeBuild              *dbfakes.FakeBuild
 
@@ -271,7 +271,7 @@ var _ = Describe("Baggage-collecting image resource volumes", func() {
 
 			baggageCollectorLogger := lagertest.NewTestLogger("test")
 
-			fakeBaggageCollectorDB = new(fakes.FakeBaggageCollectorDB)
+			fakeBaggageCollectorDB = new(lostandfoundfakes.FakeBaggageCollectorDB)
 			fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 
 			baggageCollector = lostandfound.NewBaggageCollector(

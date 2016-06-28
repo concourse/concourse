@@ -3,11 +3,11 @@ package engine_test
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/concourse/atc/engine"
-	"github.com/concourse/atc/engine/fakes"
+	"github.com/concourse/atc/engine/enginefakes"
 	"github.com/concourse/atc/exec"
-	execfakes "github.com/concourse/atc/exec/fakes"
+	"github.com/concourse/atc/exec/execfakes"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -18,7 +18,7 @@ import (
 var _ = Describe("Exec Engine With Hooks", func() {
 	var (
 		fakeFactory         *execfakes.FakeFactory
-		fakeDelegateFactory *fakes.FakeBuildDelegateFactory
+		fakeDelegateFactory *enginefakes.FakeBuildDelegateFactory
 
 		execEngine engine.Engine
 
@@ -26,14 +26,14 @@ var _ = Describe("Exec Engine With Hooks", func() {
 		expectedMetadata engine.StepMetadata
 		logger           *lagertest.TestLogger
 
-		fakeDelegate *fakes.FakeBuildDelegate
+		fakeDelegate *enginefakes.FakeBuildDelegate
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 
 		fakeFactory = new(execfakes.FakeFactory)
-		fakeDelegateFactory = new(fakes.FakeBuildDelegateFactory)
+		fakeDelegateFactory = new(enginefakes.FakeBuildDelegateFactory)
 
 		fakeTeamDBFactory := new(dbfakes.FakeTeamDBFactory)
 		execEngine = engine.NewExecEngine(
@@ -43,7 +43,7 @@ var _ = Describe("Exec Engine With Hooks", func() {
 			"http://example.com",
 		)
 
-		fakeDelegate = new(fakes.FakeBuildDelegate)
+		fakeDelegate = new(enginefakes.FakeBuildDelegate)
 		fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
 		build = new(dbfakes.FakeBuild)
@@ -108,13 +108,13 @@ var _ = Describe("Exec Engine With Hooks", func() {
 
 		Context("constructing steps", func() {
 			var (
-				fakeDelegate          *fakes.FakeBuildDelegate
+				fakeDelegate          *enginefakes.FakeBuildDelegate
 				fakeInputDelegate     *execfakes.FakeGetDelegate
 				fakeExecutionDelegate *execfakes.FakeTaskDelegate
 			)
 
 			BeforeEach(func() {
-				fakeDelegate = new(fakes.FakeBuildDelegate)
+				fakeDelegate = new(enginefakes.FakeBuildDelegate)
 				fakeDelegateFactory.DelegateReturns(fakeDelegate)
 
 				fakeInputDelegate = new(execfakes.FakeGetDelegate)

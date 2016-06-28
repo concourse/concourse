@@ -14,19 +14,20 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
-	containerserverfakes "github.com/concourse/atc/api/containerserver/fakes"
-	jobserverfakes "github.com/concourse/atc/api/jobserver/fakes"
-	pipeserverfakes "github.com/concourse/atc/api/pipes/fakes"
-	resourceserverfakes "github.com/concourse/atc/api/resourceserver/fakes"
-	teamserverfakes "github.com/concourse/atc/api/teamserver/fakes"
-	volumeserverfakes "github.com/concourse/atc/api/volumeserver/fakes"
-	workerserverfakes "github.com/concourse/atc/api/workerserver/fakes"
-	authfakes "github.com/concourse/atc/auth/fakes"
+
+	"github.com/concourse/atc/api/containerserver/containerserverfakes"
+	"github.com/concourse/atc/api/jobserver/jobserverfakes"
+	"github.com/concourse/atc/api/pipes/pipesfakes"
+	"github.com/concourse/atc/api/resourceserver/resourceserverfakes"
+	"github.com/concourse/atc/api/teamserver/teamserverfakes"
+	"github.com/concourse/atc/api/volumeserver/volumeserverfakes"
+	"github.com/concourse/atc/api/workerserver/workerserverfakes"
+	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/config"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
-	enginefakes "github.com/concourse/atc/engine/fakes"
-	workerfakes "github.com/concourse/atc/worker/fakes"
+	"github.com/concourse/atc/db/dbfakes"
+	"github.com/concourse/atc/engine/enginefakes"
+	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/concourse/atc/wrappa"
 )
 
@@ -46,7 +47,7 @@ var (
 	volumesDB                     *volumeserverfakes.FakeVolumesDB
 	workerDB                      *workerserverfakes.FakeWorkerDB
 	containerDB                   *containerserverfakes.FakeContainerDB
-	pipeDB                        *pipeserverfakes.FakePipeDB
+	pipeDB                        *pipesfakes.FakePipeDB
 	pipelineDBFactory             *dbfakes.FakePipelineDBFactory
 	teamDBFactory                 *dbfakes.FakeTeamDBFactory
 	teamDB                        *dbfakes.FakeTeamDB
@@ -89,13 +90,13 @@ func (f *fakeEventHandlerFactory) Construct(
 var _ = BeforeEach(func() {
 	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 	teamDBFactory = new(dbfakes.FakeTeamDBFactory)
-	teamDB = new(dbfakes.FakeTeamDB)
 	teamsDB = new(teamserverfakes.FakeTeamsDB)
+	teamDB = new(dbfakes.FakeTeamDB)
 	teamDBFactory.GetTeamDBReturns(teamDB)
 	workerDB = new(workerserverfakes.FakeWorkerDB)
 	containerDB = new(containerserverfakes.FakeContainerDB)
 	volumesDB = new(volumeserverfakes.FakeVolumesDB)
-	pipeDB = new(pipeserverfakes.FakePipeDB)
+	pipeDB = new(pipesfakes.FakePipeDB)
 
 	authValidator = new(authfakes.FakeValidator)
 	userContextReader = new(authfakes.FakeUserContextReader)

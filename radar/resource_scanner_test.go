@@ -11,11 +11,11 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/radar"
-	"github.com/concourse/atc/radar/fakes"
+	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/concourse/atc/resource"
-	rfakes "github.com/concourse/atc/resource/fakes"
+	rfakes "github.com/concourse/atc/resource/resourcefakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -25,7 +25,7 @@ var _ = Describe("ResourceScanner", func() {
 		epoch time.Time
 
 		fakeTracker *rfakes.FakeTracker
-		fakeRadarDB *fakes.FakeRadarDB
+		fakeRadarDB *radarfakes.FakeRadarDB
 		fakeClock   *fakeclock.FakeClock
 		interval    time.Duration
 
@@ -40,7 +40,7 @@ var _ = Describe("ResourceScanner", func() {
 	BeforeEach(func() {
 		epoch = time.Unix(123, 456).UTC()
 		fakeTracker = new(rfakes.FakeTracker)
-		fakeRadarDB = new(fakes.FakeRadarDB)
+		fakeRadarDB = new(radarfakes.FakeRadarDB)
 		fakeClock = fakeclock.NewFakeClock(epoch)
 		interval = 1 * time.Minute
 

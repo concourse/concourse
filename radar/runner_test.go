@@ -6,9 +6,9 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	. "github.com/concourse/atc/radar"
-	"github.com/concourse/atc/radar/fakes"
+	"github.com/concourse/atc/radar/radarfakes"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
@@ -21,7 +21,7 @@ import (
 var _ = Describe("Runner", func() {
 	var (
 		pipelineDB        *dbfakes.FakePipelineDB
-		scanRunnerFactory *fakes.FakeScanRunnerFactory
+		scanRunnerFactory *radarfakes.FakeScanRunnerFactory
 		noop              bool
 		syncInterval      time.Duration
 
@@ -31,7 +31,7 @@ var _ = Describe("Runner", func() {
 	)
 
 	BeforeEach(func() {
-		scanRunnerFactory = new(fakes.FakeScanRunnerFactory)
+		scanRunnerFactory = new(radarfakes.FakeScanRunnerFactory)
 		pipelineDB = new(dbfakes.FakePipelineDB)
 		noop = false
 		syncInterval = 100 * time.Millisecond

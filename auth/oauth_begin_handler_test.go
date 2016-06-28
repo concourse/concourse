@@ -17,18 +17,18 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/concourse/atc/auth"
-	"github.com/concourse/atc/auth/fakes"
+	"github.com/concourse/atc/auth/authfakes"
 	"github.com/concourse/atc/auth/provider"
-	providerFakes "github.com/concourse/atc/auth/provider/fakes"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/auth/provider/providerfakes"
+	"github.com/concourse/atc/db/dbfakes"
 )
 
 var _ = Describe("OAuthBeginHandler", func() {
 	var (
-		fakeProviderA *providerFakes.FakeProvider
-		fakeProviderB *providerFakes.FakeProvider
+		fakeProviderA *providerfakes.FakeProvider
+		fakeProviderB *providerfakes.FakeProvider
 
-		fakeProviderFactory *fakes.FakeProviderFactory
+		fakeProviderFactory *authfakes.FakeProviderFactory
 
 		fakeTeamDB *dbfakes.FakeTeamDB
 
@@ -41,10 +41,10 @@ var _ = Describe("OAuthBeginHandler", func() {
 	)
 
 	BeforeEach(func() {
-		fakeProviderA = new(providerFakes.FakeProvider)
-		fakeProviderB = new(providerFakes.FakeProvider)
+		fakeProviderA = new(providerfakes.FakeProvider)
+		fakeProviderB = new(providerfakes.FakeProvider)
 
-		fakeProviderFactory = new(fakes.FakeProviderFactory)
+		fakeProviderFactory = new(authfakes.FakeProviderFactory)
 
 		fakeTeamDB = new(dbfakes.FakeTeamDB)
 

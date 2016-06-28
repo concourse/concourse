@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/db"
-	dbfakes "github.com/concourse/atc/db/fakes"
+	"github.com/concourse/atc/db/dbfakes"
 	"github.com/gorilla/websocket"
 	"github.com/pivotal-golang/lager"
 	"github.com/vito/go-sse/sse"
