@@ -17,19 +17,18 @@ import (
 // GetStep will fetch a version of a resource on a worker that supports the
 // resource type.
 type GetStep struct {
-	logger              lager.Logger
-	sourceName          SourceName
-	resourceConfig      atc.ResourceConfig
-	version             atc.Version
-	params              atc.Params
-	cacheIdentifier     resource.CacheIdentifier
-	stepMetadata        StepMetadata
-	session             resource.Session
-	tags                atc.Tags
-	delegate            GetDelegate
-	tracker             resource.Tracker
-	resourceTypes       atc.ResourceTypes
-	containerFailureTTL time.Duration
+	logger          lager.Logger
+	sourceName      SourceName
+	resourceConfig  atc.ResourceConfig
+	version         atc.Version
+	params          atc.Params
+	cacheIdentifier resource.CacheIdentifier
+	stepMetadata    StepMetadata
+	session         resource.Session
+	tags            atc.Tags
+	delegate        GetDelegate
+	tracker         resource.Tracker
+	resourceTypes   atc.ResourceTypes
 
 	repository *SourceRepository
 
@@ -38,6 +37,9 @@ type GetStep struct {
 	versionedSource resource.VersionedSource
 
 	succeeded bool
+
+	containerSuccessTTL time.Duration
+	containerFailureTTL time.Duration
 }
 
 func newGetStep(
@@ -53,6 +55,7 @@ func newGetStep(
 	delegate GetDelegate,
 	tracker resource.Tracker,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
 	containerFailureTTL time.Duration,
 ) GetStep {
 	return GetStep{
@@ -68,6 +71,7 @@ func newGetStep(
 		delegate:            delegate,
 		tracker:             tracker,
 		resourceTypes:       resourceTypes,
+		containerSuccessTTL: containerSuccessTTL,
 		containerFailureTTL: containerFailureTTL,
 	}
 }
@@ -186,18 +190,13 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return nil
 }
 
-// Release releases the resource's container (and thus volumes). If the step
-// failed, they are released with the configured containerFailureTTL.
-// Otherwise, they are released without setting a final TTL, so that the
-// cache's own TTL is respected. This differs from other steps which typically
-// release with the configured containerSuccessTTL.
 func (step *GetStep) Release() {
 	if step.resource == nil {
 		return
 	}
 
 	if step.succeeded {
-		step.resource.Release(nil)
+		step.resource.Release(worker.FinalTTL(step.containerSuccessTTL))
 	} else {
 		step.resource.Release(worker.FinalTTL(step.containerFailureTTL))
 	}

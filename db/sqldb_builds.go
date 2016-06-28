@@ -1,9 +1,29 @@
 package db
 
 import (
+	"database/sql"
 	"strconv"
 	"strings"
 )
+
+func (db *SQLDB) FindJobIDForBuild(buildID int) (int, bool, error) {
+	row := db.conn.QueryRow(`
+		SELECT j.id
+		FROM jobs j
+		LEFT OUTER JOIN builds b ON j.id = b.job_id
+		LEFT OUTER JOIN pipelines p ON j.pipeline_id = p.id
+		WHERE b.id = $1
+		`, buildID)
+	var id int
+	err := row.Scan(&id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, false, nil
+		}
+		return 0, false, err
+	}
+	return id, true, nil
+}
 
 func (db *SQLDB) GetAllStartedBuilds() ([]Build, error) {
 	rows, err := db.conn.Query(`

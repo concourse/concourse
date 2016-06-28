@@ -16,6 +16,14 @@ type FakePipelineDBFactory struct {
 	buildReturns struct {
 		result1 db.PipelineDB
 	}
+	BuildWithPipelineStub        func(savedPipeline db.SavedPipeline) db.PipelineDB
+	buildWithPipelineMutex       sync.RWMutex
+	buildWithPipelineArgsForCall []struct {
+		savedPipeline db.SavedPipeline
+	}
+	buildWithPipelineReturns struct {
+		result1 db.PipelineDB
+	}
 }
 
 func (fake *FakePipelineDBFactory) Build(pipeline db.SavedPipeline) db.PipelineDB {
@@ -46,6 +54,38 @@ func (fake *FakePipelineDBFactory) BuildArgsForCall(i int) db.SavedPipeline {
 func (fake *FakePipelineDBFactory) BuildReturns(result1 db.PipelineDB) {
 	fake.BuildStub = nil
 	fake.buildReturns = struct {
+		result1 db.PipelineDB
+	}{result1}
+}
+
+func (fake *FakePipelineDBFactory) BuildWithPipeline(savedPipeline db.SavedPipeline) db.PipelineDB {
+	fake.buildWithPipelineMutex.Lock()
+	fake.buildWithPipelineArgsForCall = append(fake.buildWithPipelineArgsForCall, struct {
+		savedPipeline db.SavedPipeline
+	}{savedPipeline})
+	fake.buildWithPipelineMutex.Unlock()
+	if fake.BuildWithPipelineStub != nil {
+		return fake.BuildWithPipelineStub(savedPipeline)
+	} else {
+		return fake.buildWithPipelineReturns.result1
+	}
+}
+
+func (fake *FakePipelineDBFactory) BuildWithPipelineCallCount() int {
+	fake.buildWithPipelineMutex.RLock()
+	defer fake.buildWithPipelineMutex.RUnlock()
+	return len(fake.buildWithPipelineArgsForCall)
+}
+
+func (fake *FakePipelineDBFactory) BuildWithPipelineArgsForCall(i int) db.SavedPipeline {
+	fake.buildWithPipelineMutex.RLock()
+	defer fake.buildWithPipelineMutex.RUnlock()
+	return fake.buildWithPipelineArgsForCall[i].savedPipeline
+}
+
+func (fake *FakePipelineDBFactory) BuildWithPipelineReturns(result1 db.PipelineDB) {
+	fake.BuildWithPipelineStub = nil
+	fake.buildWithPipelineReturns = struct {
 		result1 db.PipelineDB
 	}{result1}
 }

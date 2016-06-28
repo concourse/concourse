@@ -30,3 +30,13 @@ func (db *SQLDB) GetAllPipelines() ([]SavedPipeline, error) {
 
 	return pipelines, nil
 }
+
+func (db *SQLDB) GetPipelineByID(pipelineID int) (SavedPipeline, error) {
+	row := db.conn.QueryRow(`
+		SELECT `+pipelineColumns+`
+		FROM pipelines
+		WHERE id = $1
+	`, pipelineID)
+
+	return scanPipeline(row)
+}

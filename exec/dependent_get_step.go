@@ -22,6 +22,7 @@ type DependentGetStep struct {
 	delegate            ResourceDelegate
 	tracker             resource.Tracker
 	resourceTypes       atc.ResourceTypes
+	containerSuccessTTL time.Duration
 	containerFailureTTL time.Duration
 }
 
@@ -36,6 +37,7 @@ func newDependentGetStep(
 	delegate ResourceDelegate,
 	tracker resource.Tracker,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
 	containerFailureTTL time.Duration,
 ) DependentGetStep {
 	return DependentGetStep{
@@ -49,6 +51,7 @@ func newDependentGetStep(
 		delegate:            delegate,
 		tracker:             tracker,
 		resourceTypes:       resourceTypes,
+		containerSuccessTTL: containerSuccessTTL,
 		containerFailureTTL: containerFailureTTL,
 	}
 }
@@ -77,6 +80,7 @@ func (step DependentGetStep) Using(prev Step, repo *SourceRepository) Step {
 		step.delegate,
 		step.tracker,
 		step.resourceTypes,
+		step.containerSuccessTTL,
 		step.containerFailureTTL,
 	).Using(prev, repo)
 }

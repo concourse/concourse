@@ -163,7 +163,7 @@ func (resource *resource) runScript(
 			for {
 				select {
 				case <-timer.C():
-					process.Signal(garden.SignalKill)
+					resource.container.Stop(true)
 				case <-processExited:
 					break OUT
 				}

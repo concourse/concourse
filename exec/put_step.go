@@ -16,17 +16,15 @@ import (
 // PutStep produces a resource version using preconfigured params and any data
 // available in the SourceRepository.
 type PutStep struct {
-	logger              lager.Logger
-	resourceConfig      atc.ResourceConfig
-	params              atc.Params
-	stepMetadata        StepMetadata
-	session             resource.Session
-	tags                atc.Tags
-	delegate            PutDelegate
-	tracker             resource.Tracker
-	resourceTypes       atc.ResourceTypes
-	containerSuccessTTL time.Duration
-	containerFailureTTL time.Duration
+	logger         lager.Logger
+	resourceConfig atc.ResourceConfig
+	params         atc.Params
+	stepMetadata   StepMetadata
+	session        resource.Session
+	tags           atc.Tags
+	delegate       PutDelegate
+	tracker        resource.Tracker
+	resourceTypes  atc.ResourceTypes
 
 	repository *SourceRepository
 
@@ -35,6 +33,9 @@ type PutStep struct {
 	versionedSource resource.VersionedSource
 
 	succeeded bool
+
+	containerSuccessTTL time.Duration
+	containerFailureTTL time.Duration
 }
 
 func newPutStep(
@@ -165,8 +166,6 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	return nil
 }
 
-// Release releases the created container for either the configured
-// containerSuccessTTL or containerFailureTTL.
 func (step *PutStep) Release() {
 	if step.resource == nil {
 		return

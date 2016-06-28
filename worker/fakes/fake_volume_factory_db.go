@@ -36,13 +36,13 @@ type FakeVolumeFactoryDB struct {
 	setVolumeTTLReturns struct {
 		result1 error
 	}
-	SetVolumeSizeStub        func(string, uint) error
-	setVolumeSizeMutex       sync.RWMutex
-	setVolumeSizeArgsForCall []struct {
+	SetVolumeSizeInBytesStub        func(string, int64) error
+	setVolumeSizeInBytesMutex       sync.RWMutex
+	setVolumeSizeInBytesArgsForCall []struct {
 		arg1 string
-		arg2 uint
+		arg2 int64
 	}
-	setVolumeSizeReturns struct {
+	setVolumeSizeInBytesReturns struct {
 		result1 error
 	}
 }
@@ -146,35 +146,35 @@ func (fake *FakeVolumeFactoryDB) SetVolumeTTLReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *FakeVolumeFactoryDB) SetVolumeSize(arg1 string, arg2 uint) error {
-	fake.setVolumeSizeMutex.Lock()
-	fake.setVolumeSizeArgsForCall = append(fake.setVolumeSizeArgsForCall, struct {
+func (fake *FakeVolumeFactoryDB) SetVolumeSizeInBytes(arg1 string, arg2 int64) error {
+	fake.setVolumeSizeInBytesMutex.Lock()
+	fake.setVolumeSizeInBytesArgsForCall = append(fake.setVolumeSizeInBytesArgsForCall, struct {
 		arg1 string
-		arg2 uint
+		arg2 int64
 	}{arg1, arg2})
-	fake.setVolumeSizeMutex.Unlock()
-	if fake.SetVolumeSizeStub != nil {
-		return fake.SetVolumeSizeStub(arg1, arg2)
+	fake.setVolumeSizeInBytesMutex.Unlock()
+	if fake.SetVolumeSizeInBytesStub != nil {
+		return fake.SetVolumeSizeInBytesStub(arg1, arg2)
 	} else {
-		return fake.setVolumeSizeReturns.result1
+		return fake.setVolumeSizeInBytesReturns.result1
 	}
 }
 
-func (fake *FakeVolumeFactoryDB) SetVolumeSizeCallCount() int {
-	fake.setVolumeSizeMutex.RLock()
-	defer fake.setVolumeSizeMutex.RUnlock()
-	return len(fake.setVolumeSizeArgsForCall)
+func (fake *FakeVolumeFactoryDB) SetVolumeSizeInBytesCallCount() int {
+	fake.setVolumeSizeInBytesMutex.RLock()
+	defer fake.setVolumeSizeInBytesMutex.RUnlock()
+	return len(fake.setVolumeSizeInBytesArgsForCall)
 }
 
-func (fake *FakeVolumeFactoryDB) SetVolumeSizeArgsForCall(i int) (string, uint) {
-	fake.setVolumeSizeMutex.RLock()
-	defer fake.setVolumeSizeMutex.RUnlock()
-	return fake.setVolumeSizeArgsForCall[i].arg1, fake.setVolumeSizeArgsForCall[i].arg2
+func (fake *FakeVolumeFactoryDB) SetVolumeSizeInBytesArgsForCall(i int) (string, int64) {
+	fake.setVolumeSizeInBytesMutex.RLock()
+	defer fake.setVolumeSizeInBytesMutex.RUnlock()
+	return fake.setVolumeSizeInBytesArgsForCall[i].arg1, fake.setVolumeSizeInBytesArgsForCall[i].arg2
 }
 
-func (fake *FakeVolumeFactoryDB) SetVolumeSizeReturns(result1 error) {
-	fake.SetVolumeSizeStub = nil
-	fake.setVolumeSizeReturns = struct {
+func (fake *FakeVolumeFactoryDB) SetVolumeSizeInBytesReturns(result1 error) {
+	fake.SetVolumeSizeInBytesStub = nil
+	fake.setVolumeSizeInBytesReturns = struct {
 		result1 error
 	}{result1}
 }

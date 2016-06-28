@@ -601,7 +601,9 @@ func (b *build) SaveInput(input BuildInput) (SavedVersionedResource, error) {
 	if err != nil {
 		return SavedVersionedResource{}, err
 	}
+
 	pipelineDBFactory := NewPipelineDBFactory(b.conn, b.bus)
+
 	pipelineDB := pipelineDBFactory.Build(savedPipeline)
 
 	return pipelineDB.SaveInput(b.id, input)

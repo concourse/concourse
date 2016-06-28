@@ -12,17 +12,37 @@ import (
 	"github.com/concourse/atc/event"
 )
 
-var _ = Describe("Keeping track of builds", func() {
-	var dbConn db.Conn
-	var listener *pq.Listener
-	var sqlDB db.DB
+func createAndFinishBuild(database db.DB, pipelineDB db.PipelineDB, jobName string, status db.Status) db.Build {
+	build, err := pipelineDB.CreateJobBuild(jobName)
+	Expect(err).NotTo(HaveOccurred())
 
-	var database db.DB
-	var pipelineDB db.PipelineDB
-	var pipeline db.SavedPipeline
-	var teamDBFactory db.TeamDBFactory
-	var team db.SavedTeam
-	var teamDB db.TeamDB
+	err = build.Finish(status)
+	Expect(err).NotTo(HaveOccurred())
+
+	return build
+}
+
+func createAndStartBuild(database db.DB, pipelineDB db.PipelineDB, jobName string, engineName string) db.Build {
+	build, err := pipelineDB.CreateJobBuild(jobName)
+	Expect(err).NotTo(HaveOccurred())
+
+	started, err := build.Start(engineName, "so-meta")
+	Expect(started).To(BeTrue())
+	Expect(err).NotTo(HaveOccurred())
+
+	return build
+}
+
+var _ = Describe("Keeping track of builds", func() {
+	var (
+		dbConn     db.Conn
+		listener   *pq.Listener
+		database   db.DB
+		pipelineDB db.PipelineDB
+		pipeline   db.SavedPipeline
+		teamDB     db.TeamDB
+		config     atc.Config
+	)
 
 	BeforeEach(func() {
 		postgresRunner.Truncate()
@@ -33,16 +53,14 @@ var _ = Describe("Keeping track of builds", func() {
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 		bus := db.NewNotificationsBus(listener, dbConn)
 
-		sqlDB = db.NewSQL(dbConn, bus)
-
-		var err error
-		team, err = sqlDB.CreateTeam(db.Team{Name: "some-team"})
+		database = db.NewSQL(dbConn, bus)
+		_, err := database.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
-		teamDBFactory = db.NewTeamDBFactory(dbConn, bus)
+		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 
-		config := atc.Config{
+		config = atc.Config{
 			Jobs: atc.JobConfigs{
 				{
 					Name: "some-job",
@@ -72,8 +90,6 @@ var _ = Describe("Keeping track of builds", func() {
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
 		pipelineDB = pipelineDBFactory.Build(pipeline)
-
-		database = sqlDB
 	})
 
 	AfterEach(func() {
@@ -171,6 +187,25 @@ var _ = Describe("Keeping track of builds", func() {
 
 				Expect(buildPrep).To(Equal(originalBuildPrep))
 			})
+		})
+	})
+
+	Describe("FindJobIDForBuild", func() {
+		var build db.Build
+		BeforeEach(func() {
+			build = createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
+			createAndFinishBuild(database, pipelineDB, "some-job", db.StatusSucceeded)
+		})
+
+		It("finds the job id for the given build", func() {
+			jobID, found, err := database.FindJobIDForBuild(build.ID())
+			Expect(found).To(BeTrue())
+			Expect(err).NotTo(HaveOccurred())
+
+			job, err := pipelineDB.GetJob("some-job")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(jobID).To(Equal(job.ID))
 		})
 	})
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
@@ -162,15 +163,6 @@ var _ = Describe("Resource Out", func() {
 				}
 			})
 
-			It("sends garden terminate signal to process", func() {
-				outProcess.Signal(os.Interrupt)
-
-				Eventually(outScriptProcess.SignalCallCount).Should(Equal(1))
-				Expect(outScriptProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
-
-				close(waited)
-			})
-
 			Context("when the process terminates before the timeout", func() {
 				BeforeEach(func() {
 					outScriptProcess.SignalStub = func(garden.Signal) error {
@@ -180,10 +172,17 @@ var _ = Describe("Resource Out", func() {
 					}
 				})
 
-				It("does not send garden.SignalKill", func() {
+				It("sends garden terminate signal to process", func() {
 					outProcess.Signal(os.Interrupt)
-					Eventually(outScriptProcess.SignalCallCount).Should(Equal(1))
-					Consistently(outScriptProcess.SignalCallCount).Should(Equal(1))
+					Eventually(outProcess.Wait()).Should(Receive(Equal(ErrAborted)))
+					Expect(outScriptProcess.SignalCallCount()).Should(Equal(1))
+					Expect(outScriptProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
+				})
+
+				It("does not stop the container", func() {
+					outProcess.Signal(os.Interrupt)
+					Eventually(outProcess.Wait(), 12*time.Second).Should(Receive(Equal(ErrAborted)))
+					Expect(fakeContainer.StopCallCount()).To(BeZero())
 				})
 			})
 
@@ -195,15 +194,36 @@ var _ = Describe("Resource Out", func() {
 						}
 						return nil
 					}
+
+					fakeContainer.StopStub = func(bool) error {
+						close(waited)
+						return nil
+					}
 				})
 
-				It("sends garden.SignalKill", func() {
+				It("stops the container after 10 seconds", func() {
 					outProcess.Signal(os.Interrupt)
+					Eventually(fakeContainer.StopCallCount, 12*time.Second).Should(Equal(1))
+					Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
+					Eventually(outProcess.Wait()).Should(Receive(Equal(ErrAborted)))
+				})
 
-					Eventually(outScriptProcess.SignalCallCount, "6s").Should(Equal(2))
-					Expect(outScriptProcess.SignalArgsForCall(1)).To(Equal(garden.SignalKill))
+				Context("when container.stop returns an error", func() {
+					var disaster error
 
-					close(waited)
+					BeforeEach(func() {
+						disaster = errors.New("gotta get away")
+
+						fakeContainer.StopStub = func(bool) error {
+							close(waited)
+							return disaster
+						}
+					})
+
+					It("doesn't return the error", func() {
+						outProcess.Signal(os.Interrupt)
+						Eventually(outProcess.Wait()).Should(Receive(Equal(ErrAborted)))
+					})
 				})
 			})
 		})

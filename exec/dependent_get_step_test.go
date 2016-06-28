@@ -46,10 +46,10 @@ var _ = Describe("GardenFactory", func() {
 
 		stepMetadata testMetadata = []string{"a=1", "b=2"}
 
-		containerSuccessTTL = 1 * time.Minute
-		containerFailureTTL = 2 * time.Minute
-
 		sourceName SourceName = "some-source-name"
+
+		successTTL time.Duration
+		failureTTL time.Duration
 	)
 
 	BeforeEach(func() {
@@ -58,10 +58,13 @@ var _ = Describe("GardenFactory", func() {
 
 		fakeWorkerClient = new(wfakes.FakeClient)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, containerSuccessTTL, containerFailureTTL)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
+
+		successTTL = 3 * time.Second
+		failureTTL = 10 * time.Second
 	})
 
 	Describe("DependentGet", func() {
@@ -139,6 +142,8 @@ var _ = Describe("GardenFactory", func() {
 				tags,
 				params,
 				resourceTypes,
+				successTTL,
+				failureTTL,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -232,6 +237,16 @@ var _ = Describe("GardenFactory", func() {
 				Expect(bool(success)).To(BeTrue())
 			})
 
+			It("releases the resource with the success ttl", func() {
+				<-process.Wait()
+
+				Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+				step.Release()
+				Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+				Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(successTTL)))
+			})
+
 			It("completes via the delegate", func() {
 				Eventually(getDelegate.CompletedCallCount).Should(Equal(1))
 
@@ -276,14 +291,14 @@ var _ = Describe("GardenFactory", func() {
 					Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 				})
 
-				It("releases the resource with the containerFailureTTL", func() {
+				It("releases the resource with the failure ttl", func() {
 					<-process.Wait()
 
 					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
 
 					step.Release()
 					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
+					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
 				})
 
 				It("invokes the delegate's Failed callback without completing", func() {
@@ -327,16 +342,6 @@ var _ = Describe("GardenFactory", func() {
 						Expect(step.Result(&success)).To(BeTrue())
 						Expect(bool(success)).To(BeFalse())
 					})
-				})
-			})
-
-			Describe("releasing", func() {
-				It("releases the resource with the original container TTL", func() {
-					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-					step.Release()
-					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-					Expect(fakeResource.ReleaseArgsForCall(0)).To(BeNil())
 				})
 			})
 

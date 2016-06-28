@@ -20,9 +20,11 @@ import (
 type WorkerDB interface {
 	Workers() ([]db.SavedWorker, error)
 	GetWorker(string) (db.SavedWorker, bool, error)
-	CreateContainer(db.Container, time.Duration, time.Duration) (db.SavedContainer, error)
+	CreateContainer(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
 	GetContainer(string) (db.SavedContainer, bool, error)
 	FindContainerByIdentifier(db.ContainerIdentifier) (db.SavedContainer, bool, error)
+
+	FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error)
 
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
@@ -32,7 +34,7 @@ type WorkerDB interface {
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
 	ReapVolume(handle string) error
 	SetVolumeTTL(string, time.Duration) error
-	SetVolumeSize(string, uint) error
+	SetVolumeSizeInBytes(string, int64) error
 }
 
 var ErrMultipleWorkersWithName = errors.New("More than one worker has given worker name")

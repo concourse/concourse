@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"os"
 
@@ -58,6 +59,9 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan 
 		},
 
 		signals: make(chan os.Signal, 1),
+
+		containerSuccessTTL: findSuccessTTL(build),
+		containerFailureTTL: findFailureTTL(build),
 	}, nil
 }
 
@@ -83,7 +87,24 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Buil
 		metadata: metadata,
 
 		signals: make(chan os.Signal, 1),
+
+		containerSuccessTTL: findSuccessTTL(build),
+		containerFailureTTL: findFailureTTL(build),
 	}, nil
+}
+
+func findSuccessTTL(build db.Build) time.Duration {
+	if build.IsOneOff() {
+		return 5 * time.Minute
+	}
+	return time.Duration(0)
+}
+
+func findFailureTTL(build db.Build) time.Duration {
+	if build.IsOneOff() {
+		return 1 * time.Hour
+	}
+	return time.Duration(0)
 }
 
 func (engine *execEngine) convertPipelineNameToID(teamName string) func(plan *atc.Plan) error {
@@ -151,6 +172,9 @@ type execBuild struct {
 	signals chan os.Signal
 
 	metadata execMetadata
+
+	containerSuccessTTL time.Duration
+	containerFailureTTL time.Duration
 }
 
 func (build *execBuild) Metadata() string {

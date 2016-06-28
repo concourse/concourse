@@ -81,6 +81,8 @@ type DB interface {
 
 	GetAllStartedBuilds() ([]Build, error)
 
+	FindJobIDForBuild(buildID int) (int, bool, error)
+
 	CreatePipe(pipeGUID string, url string) error
 	GetPipe(pipeGUID string) (Pipe, error)
 
@@ -97,8 +99,11 @@ type DB interface {
 
 	FindContainersByDescriptors(Container) ([]SavedContainer, error)
 	GetContainer(string) (SavedContainer, bool, error)
-	CreateContainer(Container, time.Duration, time.Duration) (SavedContainer, error)
+	CreateContainer(container Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (SavedContainer, error)
 	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)
+	FindOrphanContainersWithInfiniteTTL() ([]SavedContainer, error)
+	FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error)
+	FindContainersFromUnsuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
 
@@ -110,8 +115,10 @@ type DB interface {
 	ReapVolume(string) error
 	SetVolumeTTL(string, time.Duration) error
 	GetVolumeTTL(volumeHandle string) (time.Duration, bool, error)
-	SetVolumeSize(string, uint) error
+	SetVolumeSizeInBytes(string, int64) error
 	GetVolumesForOneOffBuildImageResources() ([]SavedVolume, error)
+
+	FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error)
 }
 
 //go:generate counterfeiter . Notifier

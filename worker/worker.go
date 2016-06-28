@@ -34,6 +34,7 @@ func (err MalformedMetadataError) Error() string {
 
 const containerKeepalive = 30 * time.Second
 const ContainerTTL = 5 * time.Minute
+
 const VolumeTTL = 5 * time.Minute
 
 const ephemeralPropertyName = "concourse:ephemeral"
@@ -57,8 +58,11 @@ type Worker interface {
 //go:generate counterfeiter . GardenWorkerDB
 
 type GardenWorkerDB interface {
-	CreateContainer(db.Container, time.Duration, time.Duration) (db.SavedContainer, error)
+	CreateContainer(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
+	GetContainer(handle string) (db.SavedContainer, bool, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
+	ReapContainer(string) error
+	FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error)
 
 	InsertVolume(db.Volume) error
 	SetVolumeTTL(string, time.Duration) error
@@ -221,12 +225,12 @@ func (worker *gardenWorker) getImage(
 
 	// built-in resource type specified in step
 	if imageSpec.ResourceType != "" {
-		rootFSURL, volume, err := worker.getBuiltInResourceTypeImage(logger, imageSpec.ResourceType)
+		rootFSURL, volume, resourceTypeVersion, err := worker.getBuiltInResourceTypeImage(logger, imageSpec.ResourceType)
 		if err != nil {
 			return nil, ImageMetadata{}, nil, "", err
 		}
 
-		return volume, ImageMetadata{}, nil, rootFSURL, nil
+		return volume, ImageMetadata{}, resourceTypeVersion, rootFSURL, nil
 	}
 
 	// 'image:' in task
@@ -236,7 +240,7 @@ func (worker *gardenWorker) getImage(
 func (worker *gardenWorker) getBuiltInResourceTypeImage(
 	logger lager.Logger,
 	resourceTypeName string,
-) (string, Volume, error) {
+) (string, Volume, atc.Version, error) {
 	for _, t := range worker.resourceTypes {
 		if t.Type == resourceTypeName {
 			importVolumeSpec := VolumeSpec{
@@ -254,7 +258,7 @@ func (worker *gardenWorker) getBuiltInResourceTypeImage(
 			if !found || err != nil {
 				importVolume, err = worker.CreateVolume(logger, importVolumeSpec)
 				if err != nil {
-					return "", nil, err
+					return "", nil, atc.Version{}, err
 				}
 			}
 			defer importVolume.Release(nil)
@@ -268,7 +272,7 @@ func (worker *gardenWorker) getBuiltInResourceTypeImage(
 				TTL:        VolumeTTL,
 			})
 			if err != nil {
-				return "", nil, err
+				return "", nil, atc.Version{}, err
 			}
 
 			rootFSURL := url.URL{
@@ -276,11 +280,11 @@ func (worker *gardenWorker) getBuiltInResourceTypeImage(
 				Path:   cowVolume.Path(),
 			}
 
-			return rootFSURL.String(), cowVolume, nil
+			return rootFSURL.String(), cowVolume, atc.Version{resourceTypeName: t.Version}, nil
 		}
 	}
 
-	return "", nil, ErrUnsupportedResourceType
+	return "", nil, atc.Version{}, ErrUnsupportedResourceType
 }
 
 func loadMetadata(tarReader io.ReadCloser) (ImageMetadata, error) {
@@ -305,7 +309,7 @@ func (worker *gardenWorker) CreateContainer(
 	spec ContainerSpec,
 	resourceTypes atc.ResourceTypes,
 ) (Container, error) {
-	imageVolume, imageMetadata, imageVersion, imageURL, err := worker.getImage(
+	imageVolume, imageMetadata, resourceTypeVersion, imageURL, err := worker.getImage(
 		logger,
 		spec.ImageSpec,
 		cancel,
@@ -417,7 +421,7 @@ func (worker *gardenWorker) CreateContainer(
 	metadata.Handle = gardenContainer.Handle()
 	metadata.User = gardenSpec.Properties["user"]
 
-	id.ResourceTypeVersion = imageVersion
+	id.ResourceTypeVersion = resourceTypeVersion
 
 	_, err = worker.db.CreateContainer(
 		db.Container{
@@ -426,6 +430,7 @@ func (worker *gardenWorker) CreateContainer(
 		},
 		ContainerTTL,
 		worker.maxContainerLifetime(metadata),
+		volumeHandles,
 	)
 	if err != nil {
 		return nil, err
@@ -511,9 +516,35 @@ func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) 
 		worker.clock,
 		worker.volumeFactory,
 	)
+
 	if err != nil {
 		logger.Error("failed-to-construct-container", err)
 		return nil, false, err
+	}
+
+	savedContainer, found, err := worker.db.GetContainer(handle)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		logger.Error("failed-to-find-db-container", nil, lager.Data{"handle": handle})
+		return nil, false, errors.New("failed-to-find-db-container")
+	}
+
+	workerResourceTypeVersion, found, err := worker.db.FindWorkerCheckResourceTypeVersion(savedContainer.WorkerName, savedContainer.CheckType)
+	if err != nil {
+		return nil, false, err
+	}
+
+	versionsMatch := workerResourceTypeVersion == savedContainer.ResourceTypeVersion[savedContainer.CheckType]
+
+	if found && !versionsMatch {
+		logger.Info("container-resource-type-version-does-not-match-worker", lager.Data{
+			"container-check-type": savedContainer.CheckType,
+		})
+
+		return nil, false, nil
 	}
 
 	return container, true, nil

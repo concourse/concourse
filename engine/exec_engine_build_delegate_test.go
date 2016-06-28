@@ -560,7 +560,6 @@ var _ = Describe("BuildDelegate", func() {
 						ID: originID,
 					},
 				}))
-
 			})
 		})
 

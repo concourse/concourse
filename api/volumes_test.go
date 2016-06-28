@@ -55,7 +55,7 @@ var _ = Describe("Pipelines API", func() {
 										ResourceHash:    "some-hash",
 									},
 								},
-								Size: 1024,
+								SizeInBytes: 1024,
 							},
 						},
 						{
@@ -72,7 +72,7 @@ var _ = Describe("Pipelines API", func() {
 										Version:    &someVersion,
 									},
 								},
-								Size: 2048,
+								SizeInBytes: 2048,
 							},
 						},
 						{
@@ -87,7 +87,7 @@ var _ = Describe("Pipelines API", func() {
 										Name: "some-output",
 									},
 								},
-								Size: 4096,
+								SizeInBytes: 4096,
 							},
 						},
 						{
@@ -102,7 +102,7 @@ var _ = Describe("Pipelines API", func() {
 										ParentVolumeHandle: "some-parent-volume-handle",
 									},
 								},
-								Size: 8192,
+								SizeInBytes: 8192,
 							},
 						},
 					}, nil)
@@ -124,7 +124,7 @@ var _ = Describe("Pipelines API", func() {
 							"worker_name": "some-worker",
 							"type": "cache",
 							"identifier": "a:b,c:d",
-							"size": 1024
+							"size_in_bytes": 1024
 						},
 						{
 							"id": "some-import-handle",
@@ -133,7 +133,7 @@ var _ = Describe("Pipelines API", func() {
 							"worker_name": "some-worker",
 							"type": "import",
 							"identifier": "some-path@some-version",
-							"size": 2048
+							"size_in_bytes": 2048
 						},
 						{
 							"id": "some-output-handle",
@@ -142,7 +142,7 @@ var _ = Describe("Pipelines API", func() {
 							"worker_name": "some-other-worker",
 							"type": "output",
 							"identifier": "some-output",
-							"size": 4096
+							"size_in_bytes": 4096
 						},
 						{
 							"id": "some-cow-handle",
@@ -151,7 +151,7 @@ var _ = Describe("Pipelines API", func() {
 							"worker_name": "some-worker",
 							"type": "copy",
 							"identifier": "some-parent-volume-handle",
-							"size": 8192
+							"size_in_bytes": 8192
 						}
 					]`))
 				})

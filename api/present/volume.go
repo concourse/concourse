@@ -13,6 +13,6 @@ func Volume(volume db.SavedVolume) atc.Volume {
 		Type:              volume.Volume.Identifier.Type(),
 		Identifier:        volume.Volume.Identifier.String(),
 		WorkerName:        volume.WorkerName,
-		Size:              volume.Size,
+		SizeInBytes:       volume.SizeInBytes,
 	}
 }

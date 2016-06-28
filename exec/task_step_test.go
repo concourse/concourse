@@ -43,25 +43,15 @@ var _ = Describe("GardenFactory", func() {
 
 		sourceName        SourceName = "some-source-name"
 		imageArtifactName string
-		identifier        = worker.Identifier{
-			BuildID: 1234,
-			PlanID:  atc.PlanID("some-plan-id"),
-		}
-		workerMetadata = worker.Metadata{
-			PipelineName: "some-pipeline",
-			Type:         db.ContainerTypeTask,
-			StepName:     "some-step",
-		}
-
-		containerSuccessTTL = 1 * time.Minute
-		containerFailureTTL = 2 * time.Minute
+		identifier        worker.Identifier
+		workerMetadata    worker.Metadata
 	)
 
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeTracker = new(rfakes.FakeTracker)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, containerSuccessTTL, containerFailureTTL)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -82,6 +72,9 @@ var _ = Describe("GardenFactory", func() {
 
 			step    Step
 			process ifrit.Process
+
+			successTTL time.Duration
+			failureTTL time.Duration
 		)
 
 		BeforeEach(func() {
@@ -108,6 +101,20 @@ var _ = Describe("GardenFactory", func() {
 			outputMapping = nil
 			imageArtifactName = ""
 			fakeClock = fakeclock.NewFakeClock(time.Unix(0, 123))
+
+			successTTL = 3 * time.Microsecond
+			failureTTL = 5 * time.Second
+
+			identifier = worker.Identifier{
+				BuildID: 1234,
+				PlanID:  atc.PlanID("some-plan-id"),
+			}
+			workerMetadata = worker.Metadata{
+				PipelineName: "some-pipeline",
+				Type:         db.ContainerTypeTask,
+				StepName:     "some-step",
+				JobName:      "some-job",
+			}
 		})
 
 		JustBeforeEach(func() {
@@ -125,6 +132,8 @@ var _ = Describe("GardenFactory", func() {
 				outputMapping,
 				imageArtifactName,
 				fakeClock,
+				successTTL,
+				failureTTL,
 			).Using(inStep, repo)
 
 			process = ifrit.Invoke(step)
@@ -249,6 +258,7 @@ var _ = Describe("GardenFactory", func() {
 								StepName:             "some-step",
 								WorkingDirectory:     "/tmp/build/a1f5c0c1",
 								EnvironmentVariables: []string{"SOME=params"},
+								JobName:              "some-job",
 							}))
 
 							Expect(delegate).To(Equal(taskDelegate))
@@ -335,6 +345,7 @@ var _ = Describe("GardenFactory", func() {
 									StepName:             "some-step",
 									WorkingDirectory:     "/tmp/build/a1f5c0c1",
 									EnvironmentVariables: []string{"SOME=params"},
+									JobName:              "some-job",
 								}))
 
 								Expect(spec.Platform).To(Equal("some-platform"))
@@ -1092,11 +1103,10 @@ var _ = Describe("GardenFactory", func() {
 									Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
 								})
 
-								It("will not signal the process in the container with garden.SignalKill", func() {
+								It("will not stop the container", func() {
 									process.Signal(os.Interrupt)
 									Eventually(process.Wait(), 12*time.Second).Should(Receive(Equal(ErrInterrupted)))
-									Eventually(fakeProcess.SignalCallCount()).Should(Equal(1))
-									Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
+									Expect(fakeContainer.StopCallCount()).To(BeZero())
 								})
 
 								Context("when the process doesn't exit after being signaled", func() {
@@ -1105,18 +1115,39 @@ var _ = Describe("GardenFactory", func() {
 											switch {
 											case signal == garden.SignalTerminate:
 												fakeClock.IncrementBySeconds(12)
-											case signal == garden.SignalKill:
-												close(stopped)
 											}
+											return nil
+										}
+
+										fakeContainer.StopStub = func(bool) error {
+											close(stopped)
 											return nil
 										}
 									})
 
-									It("signals the process in the container with garden.SignalKill after 10 seconds", func() {
+									It("stops the container after 10 seconds", func() {
 										process.Signal(os.Interrupt)
-										Eventually(process.Wait(), 12*time.Second).Should(Receive(Equal(ErrInterrupted)))
-										Eventually(fakeProcess.SignalCallCount()).Should(Equal(2))
-										Expect(fakeProcess.SignalArgsForCall(1)).To(Equal(garden.SignalKill))
+										Eventually(fakeContainer.StopCallCount, 12*time.Second).Should(Equal(1))
+										Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
+										Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
+									})
+
+									Context("when container.stop returns an error", func() {
+										var disaster error
+
+										BeforeEach(func() {
+											disaster = errors.New("gotta get away")
+
+											fakeContainer.StopStub = func(bool) error {
+												close(stopped)
+												return disaster
+											}
+										})
+
+										It("doesn't return the error", func() {
+											process.Signal(os.Interrupt)
+											Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
+										})
 									})
 								})
 
@@ -1636,14 +1667,14 @@ var _ = Describe("GardenFactory", func() {
 								Expect(status).To(Equal(ExitStatus(0)))
 							})
 
-							Describe("release", func() {
-								It("releases with the configured container success TTL", func() {
-									<-process.Wait()
+							It("releases with success ttl", func() {
+								<-process.Wait()
 
-									step.Release()
-									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerSuccessTTL)))
-								})
+								Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
+
+								step.Release()
+								Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
+								Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(successTTL)))
 							})
 
 							It("doesn't register a source", func() {
@@ -1733,14 +1764,14 @@ var _ = Describe("GardenFactory", func() {
 								Expect(status).To(Equal(ExitStatus(1)))
 							})
 
-							Describe("release", func() {
-								It("releases with the configured container failure TTL", func() {
-									Eventually(process.Wait()).Should(Receive(BeNil()))
+							It("releases with failure ttl", func() {
+								<-process.Wait()
 
-									step.Release()
-									Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
-									Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(containerFailureTTL)))
-								})
+								Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
+
+								step.Release()
+								Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
+								Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
 							})
 
 							Context("when saving the exit status succeeds", func() {
@@ -1858,11 +1889,10 @@ var _ = Describe("GardenFactory", func() {
 								Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
 							})
 
-							It("will not signal the process in the container with garden.SignalKill", func() {
+							It("will not stop the container", func() {
 								process.Signal(os.Interrupt)
 								Eventually(process.Wait(), 12*time.Second).Should(Receive(Equal(ErrInterrupted)))
-								Eventually(fakeProcess.SignalCallCount()).Should(Equal(1))
-								Expect(fakeProcess.SignalArgsForCall(0)).To(Equal(garden.SignalTerminate))
+								Expect(fakeContainer.StopCallCount()).To(BeZero())
 							})
 
 							Context("when the process doesn't exit after being signaled", func() {
@@ -1871,18 +1901,39 @@ var _ = Describe("GardenFactory", func() {
 										switch {
 										case signal == garden.SignalTerminate:
 											fakeClock.IncrementBySeconds(12)
-										case signal == garden.SignalKill:
-											close(stopped)
 										}
+										return nil
+									}
+
+									fakeContainer.StopStub = func(bool) error {
+										close(stopped)
 										return nil
 									}
 								})
 
-								It("signals the process in the container with garden.SignalKill after 10 seconds", func() {
+								It("stops the container after 10 seconds", func() {
 									process.Signal(os.Interrupt)
-									Eventually(process.Wait(), 12*time.Second).Should(Receive(Equal(ErrInterrupted)))
-									Eventually(fakeProcess.SignalCallCount()).Should(Equal(2))
-									Expect(fakeProcess.SignalArgsForCall(1)).To(Equal(garden.SignalKill))
+									Eventually(fakeContainer.StopCallCount, 12*time.Second).Should(Equal(1))
+									Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
+									Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
+								})
+
+								Context("when container.stop returns an error", func() {
+									var disaster error
+
+									BeforeEach(func() {
+										disaster = errors.New("gotta get away")
+
+										fakeContainer.StopStub = func(bool) error {
+											close(stopped)
+											return disaster
+										}
+									})
+
+									It("doesn't return the error", func() {
+										process.Signal(os.Interrupt)
+										Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
+									})
 								})
 							})
 
@@ -1892,17 +1943,6 @@ var _ = Describe("GardenFactory", func() {
 
 								sourceMap := repo.AsMap()
 								Expect(sourceMap).To(BeEmpty())
-							})
-						})
-
-						Describe("releasing", func() {
-							It("releases the container", func() {
-								<-process.Wait()
-
-								Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
-
-								step.Release()
-								Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
 							})
 						})
 
@@ -2132,6 +2172,16 @@ var _ = Describe("GardenFactory", func() {
 						Expect(bool(success)).To(BeFalse())
 					})
 
+					It("releases the container with failure TTL", func() {
+						<-process.Wait()
+
+						Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
+
+						step.Release()
+						Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
+						Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
+					})
+
 					It("reports its exit status", func() {
 						Eventually(process.Wait()).Should(Receive(BeNil()))
 
@@ -2205,6 +2255,16 @@ var _ = Describe("GardenFactory", func() {
 						It("does not invoke the delegate's Started callback", func() {
 							Expect(taskDelegate.StartedCallCount()).To(BeZero())
 						})
+
+						It("releases the container with success TTL", func() {
+							<-process.Wait()
+
+							Expect(fakeContainer.ReleaseCallCount()).To(BeZero())
+
+							step.Release()
+							Expect(fakeContainer.ReleaseCallCount()).To(Equal(1))
+							Expect(fakeContainer.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(successTTL)))
+						})
 					})
 
 					Context("when attaching to the process fails", func() {
@@ -2233,7 +2293,7 @@ var _ = Describe("GardenFactory", func() {
 						fakeContainer.PropertyReturns("", disaster)
 					})
 
-					It("exits with the failure", func() {
+					It("exits with the error", func() {
 						Eventually(process.Wait()).Should(Receive(Equal(disaster)))
 					})
 

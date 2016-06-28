@@ -15,11 +15,9 @@ import (
 )
 
 type gardenFactory struct {
-	workerClient        worker.Client
-	tracker             resource.Tracker
-	trackerFactory      TrackerFactory
-	containerSuccessTTL time.Duration
-	containerFailureTTL time.Duration
+	workerClient   worker.Client
+	tracker        resource.Tracker
+	trackerFactory TrackerFactory
 }
 
 //go:generate counterfeiter . TrackerFactory
@@ -31,14 +29,10 @@ type TrackerFactory interface {
 func NewGardenFactory(
 	workerClient worker.Client,
 	tracker resource.Tracker,
-	containerSuccessTTL time.Duration,
-	containerFailureTTL time.Duration,
 ) Factory {
 	return &gardenFactory{
-		workerClient:        workerClient,
-		tracker:             tracker,
-		containerSuccessTTL: containerSuccessTTL,
-		containerFailureTTL: containerFailureTTL,
+		workerClient: workerClient,
+		tracker:      tracker,
 	}
 }
 
@@ -53,6 +47,8 @@ func (factory *gardenFactory) DependentGet(
 	tags atc.Tags,
 	params atc.Params,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) StepFactory {
 	return newDependentGetStep(
 		logger,
@@ -69,7 +65,8 @@ func (factory *gardenFactory) DependentGet(
 		delegate,
 		factory.tracker,
 		resourceTypes,
-		factory.containerFailureTTL,
+		containerSuccessTTL,
+		containerFailureTTL,
 	)
 }
 
@@ -85,6 +82,8 @@ func (factory *gardenFactory) Get(
 	params atc.Params,
 	version atc.Version,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("get")
 	return newGetStep(
@@ -109,7 +108,9 @@ func (factory *gardenFactory) Get(
 		delegate,
 		factory.tracker,
 		resourceTypes,
-		factory.containerFailureTTL,
+
+		containerSuccessTTL,
+		containerFailureTTL,
 	)
 }
 
@@ -123,6 +124,8 @@ func (factory *gardenFactory) Put(
 	tags atc.Tags,
 	params atc.Params,
 	resourceTypes atc.ResourceTypes,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) StepFactory {
 	workerMetadata.WorkingDirectory = resource.ResourcesDir("put")
 	return newPutStep(
@@ -139,8 +142,8 @@ func (factory *gardenFactory) Put(
 		delegate,
 		factory.tracker,
 		resourceTypes,
-		factory.containerSuccessTTL,
-		factory.containerFailureTTL,
+		containerSuccessTTL,
+		containerFailureTTL,
 	)
 }
 
@@ -158,6 +161,8 @@ func (factory *gardenFactory) Task(
 	outputMapping map[string]string,
 	imageArtifactName string,
 	clock clock.Clock,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) StepFactory {
 	workingDirectory := factory.taskWorkingDirectory(sourceName)
 	workerMetadata.WorkingDirectory = workingDirectory
@@ -173,12 +178,12 @@ func (factory *gardenFactory) Task(
 		workingDirectory,
 		factory.trackerFactory,
 		resourceTypes,
-		factory.containerSuccessTTL,
-		factory.containerFailureTTL,
 		inputMapping,
 		outputMapping,
 		imageArtifactName,
 		clock,
+		containerSuccessTTL,
+		containerFailureTTL,
 	)
 }
 

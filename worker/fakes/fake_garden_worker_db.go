@@ -10,16 +10,27 @@ import (
 )
 
 type FakeGardenWorkerDB struct {
-	CreateContainerStub        func(db.Container, time.Duration, time.Duration) (db.SavedContainer, error)
+	CreateContainerStub        func(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error)
 	createContainerMutex       sync.RWMutex
 	createContainerArgsForCall []struct {
-		arg1 db.Container
-		arg2 time.Duration
-		arg3 time.Duration
+		container     db.Container
+		ttl           time.Duration
+		maxLifetime   time.Duration
+		volumeHandles []string
 	}
 	createContainerReturns struct {
 		result1 db.SavedContainer
 		result2 error
+	}
+	GetContainerStub        func(handle string) (db.SavedContainer, bool, error)
+	getContainerMutex       sync.RWMutex
+	getContainerArgsForCall []struct {
+		handle string
+	}
+	getContainerReturns struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
 	}
 	UpdateExpiresAtOnContainerStub        func(handle string, ttl time.Duration) error
 	updateExpiresAtOnContainerMutex       sync.RWMutex
@@ -29,6 +40,25 @@ type FakeGardenWorkerDB struct {
 	}
 	updateExpiresAtOnContainerReturns struct {
 		result1 error
+	}
+	ReapContainerStub        func(string) error
+	reapContainerMutex       sync.RWMutex
+	reapContainerArgsForCall []struct {
+		arg1 string
+	}
+	reapContainerReturns struct {
+		result1 error
+	}
+	FindWorkerCheckResourceTypeVersionStub        func(workerName string, checkType string) (string, bool, error)
+	findWorkerCheckResourceTypeVersionMutex       sync.RWMutex
+	findWorkerCheckResourceTypeVersionArgsForCall []struct {
+		workerName string
+		checkType  string
+	}
+	findWorkerCheckResourceTypeVersionReturns struct {
+		result1 string
+		result2 bool
+		result3 error
 	}
 	InsertVolumeStub        func(db.Volume) error
 	insertVolumeMutex       sync.RWMutex
@@ -76,16 +106,17 @@ type FakeGardenWorkerDB struct {
 	}
 }
 
-func (fake *FakeGardenWorkerDB) CreateContainer(arg1 db.Container, arg2 time.Duration, arg3 time.Duration) (db.SavedContainer, error) {
+func (fake *FakeGardenWorkerDB) CreateContainer(container db.Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (db.SavedContainer, error) {
 	fake.createContainerMutex.Lock()
 	fake.createContainerArgsForCall = append(fake.createContainerArgsForCall, struct {
-		arg1 db.Container
-		arg2 time.Duration
-		arg3 time.Duration
-	}{arg1, arg2, arg3})
+		container     db.Container
+		ttl           time.Duration
+		maxLifetime   time.Duration
+		volumeHandles []string
+	}{container, ttl, maxLifetime, volumeHandles})
 	fake.createContainerMutex.Unlock()
 	if fake.CreateContainerStub != nil {
-		return fake.CreateContainerStub(arg1, arg2, arg3)
+		return fake.CreateContainerStub(container, ttl, maxLifetime, volumeHandles)
 	} else {
 		return fake.createContainerReturns.result1, fake.createContainerReturns.result2
 	}
@@ -97,10 +128,10 @@ func (fake *FakeGardenWorkerDB) CreateContainerCallCount() int {
 	return len(fake.createContainerArgsForCall)
 }
 
-func (fake *FakeGardenWorkerDB) CreateContainerArgsForCall(i int) (db.Container, time.Duration, time.Duration) {
+func (fake *FakeGardenWorkerDB) CreateContainerArgsForCall(i int) (db.Container, time.Duration, time.Duration, []string) {
 	fake.createContainerMutex.RLock()
 	defer fake.createContainerMutex.RUnlock()
-	return fake.createContainerArgsForCall[i].arg1, fake.createContainerArgsForCall[i].arg2, fake.createContainerArgsForCall[i].arg3
+	return fake.createContainerArgsForCall[i].container, fake.createContainerArgsForCall[i].ttl, fake.createContainerArgsForCall[i].maxLifetime, fake.createContainerArgsForCall[i].volumeHandles
 }
 
 func (fake *FakeGardenWorkerDB) CreateContainerReturns(result1 db.SavedContainer, result2 error) {
@@ -109,6 +140,40 @@ func (fake *FakeGardenWorkerDB) CreateContainerReturns(result1 db.SavedContainer
 		result1 db.SavedContainer
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeGardenWorkerDB) GetContainer(handle string) (db.SavedContainer, bool, error) {
+	fake.getContainerMutex.Lock()
+	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
+		handle string
+	}{handle})
+	fake.getContainerMutex.Unlock()
+	if fake.GetContainerStub != nil {
+		return fake.GetContainerStub(handle)
+	} else {
+		return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
+	}
+}
+
+func (fake *FakeGardenWorkerDB) GetContainerCallCount() int {
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
+	return len(fake.getContainerArgsForCall)
+}
+
+func (fake *FakeGardenWorkerDB) GetContainerArgsForCall(i int) string {
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
+	return fake.getContainerArgsForCall[i].handle
+}
+
+func (fake *FakeGardenWorkerDB) GetContainerReturns(result1 db.SavedContainer, result2 bool, result3 error) {
+	fake.GetContainerStub = nil
+	fake.getContainerReturns = struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error {
@@ -142,6 +207,73 @@ func (fake *FakeGardenWorkerDB) UpdateExpiresAtOnContainerReturns(result1 error)
 	fake.updateExpiresAtOnContainerReturns = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeGardenWorkerDB) ReapContainer(arg1 string) error {
+	fake.reapContainerMutex.Lock()
+	fake.reapContainerArgsForCall = append(fake.reapContainerArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.reapContainerMutex.Unlock()
+	if fake.ReapContainerStub != nil {
+		return fake.ReapContainerStub(arg1)
+	} else {
+		return fake.reapContainerReturns.result1
+	}
+}
+
+func (fake *FakeGardenWorkerDB) ReapContainerCallCount() int {
+	fake.reapContainerMutex.RLock()
+	defer fake.reapContainerMutex.RUnlock()
+	return len(fake.reapContainerArgsForCall)
+}
+
+func (fake *FakeGardenWorkerDB) ReapContainerArgsForCall(i int) string {
+	fake.reapContainerMutex.RLock()
+	defer fake.reapContainerMutex.RUnlock()
+	return fake.reapContainerArgsForCall[i].arg1
+}
+
+func (fake *FakeGardenWorkerDB) ReapContainerReturns(result1 error) {
+	fake.ReapContainerStub = nil
+	fake.reapContainerReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeGardenWorkerDB) FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error) {
+	fake.findWorkerCheckResourceTypeVersionMutex.Lock()
+	fake.findWorkerCheckResourceTypeVersionArgsForCall = append(fake.findWorkerCheckResourceTypeVersionArgsForCall, struct {
+		workerName string
+		checkType  string
+	}{workerName, checkType})
+	fake.findWorkerCheckResourceTypeVersionMutex.Unlock()
+	if fake.FindWorkerCheckResourceTypeVersionStub != nil {
+		return fake.FindWorkerCheckResourceTypeVersionStub(workerName, checkType)
+	} else {
+		return fake.findWorkerCheckResourceTypeVersionReturns.result1, fake.findWorkerCheckResourceTypeVersionReturns.result2, fake.findWorkerCheckResourceTypeVersionReturns.result3
+	}
+}
+
+func (fake *FakeGardenWorkerDB) FindWorkerCheckResourceTypeVersionCallCount() int {
+	fake.findWorkerCheckResourceTypeVersionMutex.RLock()
+	defer fake.findWorkerCheckResourceTypeVersionMutex.RUnlock()
+	return len(fake.findWorkerCheckResourceTypeVersionArgsForCall)
+}
+
+func (fake *FakeGardenWorkerDB) FindWorkerCheckResourceTypeVersionArgsForCall(i int) (string, string) {
+	fake.findWorkerCheckResourceTypeVersionMutex.RLock()
+	defer fake.findWorkerCheckResourceTypeVersionMutex.RUnlock()
+	return fake.findWorkerCheckResourceTypeVersionArgsForCall[i].workerName, fake.findWorkerCheckResourceTypeVersionArgsForCall[i].checkType
+}
+
+func (fake *FakeGardenWorkerDB) FindWorkerCheckResourceTypeVersionReturns(result1 string, result2 bool, result3 error) {
+	fake.FindWorkerCheckResourceTypeVersionStub = nil
+	fake.findWorkerCheckResourceTypeVersionReturns = struct {
+		result1 string
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeGardenWorkerDB) InsertVolume(arg1 db.Volume) error {

@@ -64,11 +64,13 @@ var _ = Describe("DBProvider", func() {
 		))
 		baggageclaimServer.RouteToHandler("GET", "/volumes/vol-handle/stats", ghttp.RespondWithJSONEncoded(
 			http.StatusOK,
-			baggageclaim.VolumeStatsResponse{Size: 1024},
+			baggageclaim.VolumeStatsResponse{SizeInBytes: 1024},
 		))
 
 		fakeDB = new(fakes.FakeWorkerDB)
 		fakeDB.GetVolumeTTLReturns(1*time.Millisecond, true, nil)
+		fakeDB.GetContainerReturns(db.SavedContainer{}, true, nil)
+		fakeDB.FindWorkerCheckResourceTypeVersionReturns("", false, nil)
 
 		gardenAddr = fmt.Sprintf("0.0.0.0:%d", 8888+GinkgoParallelNode())
 		fakeGardenBackend = new(gfakes.FakeBackend)
@@ -213,7 +215,7 @@ var _ = Describe("DBProvider", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(fakeDB.CreateContainerCallCount()).To(Equal(1))
-					createdInfo, _, _ := fakeDB.CreateContainerArgsForCall(0)
+					createdInfo, _, _, _ := fakeDB.CreateContainerArgsForCall(0)
 					Expect(createdInfo.WorkerName).To(Equal("some-worker"))
 
 					Expect(container.Handle()).To(Equal("created-handle"))

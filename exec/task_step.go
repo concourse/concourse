@@ -39,27 +39,28 @@ func (err MissingInputsError) Error() string {
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
 // SourceRepository and outputs will be added to the SourceRepository.
 type TaskStep struct {
-	logger              lager.Logger
-	containerID         worker.Identifier
-	metadata            worker.Metadata
-	tags                atc.Tags
-	delegate            TaskDelegate
-	privileged          Privileged
-	configSource        TaskConfigSource
-	workerPool          worker.Client
-	artifactsRoot       string
-	trackerFactory      TrackerFactory
-	resourceTypes       atc.ResourceTypes
+	logger            lager.Logger
+	containerID       worker.Identifier
+	metadata          worker.Metadata
+	tags              atc.Tags
+	delegate          TaskDelegate
+	privileged        Privileged
+	configSource      TaskConfigSource
+	workerPool        worker.Client
+	artifactsRoot     string
+	trackerFactory    TrackerFactory
+	resourceTypes     atc.ResourceTypes
+	inputMapping      map[string]string
+	outputMapping     map[string]string
+	imageArtifactName string
+	clock             clock.Clock
+	repo              *SourceRepository
+
+	container           worker.Container
 	containerSuccessTTL time.Duration
 	containerFailureTTL time.Duration
-	inputMapping        map[string]string
-	outputMapping       map[string]string
-	imageArtifactName   string
-	clock               clock.Clock
-	repo                *SourceRepository
 
-	container worker.Container
-	process   garden.Process
+	process garden.Process
 
 	exitStatus int
 }
@@ -76,12 +77,12 @@ func newTaskStep(
 	artifactsRoot string,
 	trackerFactory TrackerFactory,
 	resourceTypes atc.ResourceTypes,
-	containerSuccessTTL time.Duration,
-	containerFailureTTL time.Duration,
 	inputMapping map[string]string,
 	outputMapping map[string]string,
 	imageArtifactName string,
 	clock clock.Clock,
+	containerSuccessTTL time.Duration,
+	containerFailureTTL time.Duration,
 ) TaskStep {
 	return TaskStep{
 		logger:              logger,
@@ -95,12 +96,12 @@ func newTaskStep(
 		artifactsRoot:       artifactsRoot,
 		trackerFactory:      trackerFactory,
 		resourceTypes:       resourceTypes,
-		containerSuccessTTL: containerSuccessTTL,
-		containerFailureTTL: containerFailureTTL,
 		inputMapping:        inputMapping,
 		outputMapping:       outputMapping,
 		imageArtifactName:   imageArtifactName,
 		clock:               clock,
+		containerSuccessTTL: containerSuccessTTL,
+		containerFailureTTL: containerFailureTTL,
 	}
 }
 
@@ -275,7 +276,10 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		for {
 			select {
 			case <-timer.C():
-				step.process.Signal(garden.SignalKill)
+				err := step.container.Stop(true)
+				if err != nil {
+					step.logger.Error("stopping-container", err)
+				}
 			case <-exited:
 				break OUT
 			}
@@ -494,8 +498,6 @@ func (step *TaskStep) Result(x interface{}) bool {
 	}
 }
 
-// Release releases the created container for either the configured
-// containerSuccessTTL or containerFailureTTL.
 func (step *TaskStep) Release() {
 	if step.container == nil {
 		return
