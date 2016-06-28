@@ -14,13 +14,13 @@ import (
 	"github.com/concourse/atc/event"
 	"github.com/concourse/fly/eventstream"
 	"github.com/concourse/fly/ui"
-	"github.com/concourse/go-concourse/concourse/eventstream/fakes"
+	"github.com/concourse/go-concourse/concourse/eventstream/eventstreamfakes"
 )
 
 var _ = Describe("V1.0 Renderer", func() {
 	var (
 		out    *gbytes.Buffer
-		stream *fakes.FakeEventStream
+		stream *eventstreamfakes.FakeEventStream
 
 		receivedEvents chan<- atc.Event
 
@@ -30,7 +30,7 @@ var _ = Describe("V1.0 Renderer", func() {
 	BeforeEach(func() {
 		color.NoColor = false
 		out = gbytes.NewBuffer()
-		stream = new(fakes.FakeEventStream)
+		stream = new(eventstreamfakes.FakeEventStream)
 
 		events := make(chan atc.Event, 100)
 		receivedEvents = events

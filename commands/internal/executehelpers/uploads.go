@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
 
+	"github.com/concourse/go-archive/tgzfs"
 	"github.com/concourse/go-concourse/concourse"
 )
 
@@ -28,15 +30,13 @@ func Upload(client concourse.Client, input Input, excludeIgnored bool) {
 		files = []string{"."}
 	}
 
-	archive, err := tarStreamFrom(path, files)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "could not create tar stream:", err)
-		return
-	}
+	archiveStream, archiveWriter := io.Pipe()
 
-	defer archive.Close()
+	go func() {
+		archiveWriter.CloseWithError(tgzfs.Compress(archiveWriter, path, files...))
+	}()
 
-	upload, err := http.NewRequest("PUT", pipe.WriteURL, archive)
+	upload, err := http.NewRequest("PUT", pipe.WriteURL, archiveStream)
 	if err != nil {
 		panic(err)
 	}

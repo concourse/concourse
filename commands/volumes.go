@@ -45,6 +45,13 @@ func (command *VolumesCommand) Execute([]string) error {
 	sort.Sort(volumesByWorkerAndHandle(volumes))
 
 	for _, c := range volumes {
+		var size string
+		if c.SizeInBytes == 0 {
+			size = "unknown"
+		} else {
+			size = fmt.Sprintf("%.1f MiB", float64(c.SizeInBytes)/float64(1024*1024))
+		}
+
 		row := ui.TableRow{
 			{Contents: c.ID},
 			{Contents: formatTTL(c.TTLInSeconds)},
@@ -52,7 +59,7 @@ func (command *VolumesCommand) Execute([]string) error {
 			{Contents: c.WorkerName},
 			{Contents: c.Type},
 			{Contents: c.Identifier},
-			{Contents: fmt.Sprintf("%.1fM", float64(c.Size)/float64(1024*1024))},
+			{Contents: size},
 		}
 
 		table.Data = append(table.Data, row)
