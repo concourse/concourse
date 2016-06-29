@@ -30,8 +30,8 @@ func (command *SyncCommand) Execute(args []string) error {
 
 	filesSize, _ := strconv.ParseInt(headers.Get("Content-Length"), 10, 64)
 	progressBar := pb.New64(filesSize).SetUnits(pb.U_BYTES)
-	progressBar.SetWidth(100)
 	progressBar.Start()
+	defer progressBar.FinishPrint("update successful!")
 	r := body
 	reader := progressBar.NewProxyReader(r)
 
@@ -40,6 +40,5 @@ func (command *SyncCommand) Execute(args []string) error {
 		displayhelpers.Failf("update failed: %s", err)
 	}
 
-	progressBar.FinishPrint("update successful!")
 	return nil
 }
