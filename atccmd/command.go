@@ -321,15 +321,15 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			cmd.ResourceCacheCleanupInterval,
 		)},
 
-		{"containerreaper", leaserunner.NewRunner(
-			logger.Session("container-reaper"),
+		{"containerkeepaliver", leaserunner.NewRunner(
+			logger.Session("container-keepaliver"),
 			containerkeepaliver.NewContainerKeepAliver(
-				logger.Session("container-reaper"),
+				logger.Session("container-keepaliver"),
 				workerClient,
 				sqlDB,
 				pipelineDBFactory,
 			),
-			"container-reaper",
+			"container-keepaliver",
 			sqlDB,
 			clock.NewClock(),
 			30*time.Second,

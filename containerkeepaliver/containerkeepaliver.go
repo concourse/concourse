@@ -130,10 +130,12 @@ func (cr *containerKeepAliver) buildFailedMap(containers []db.SavedContainer) ma
 
 func (cr *containerKeepAliver) keepAlive(handle string) {
 	cr.logger.Debug("keeping alive container", lager.Data{"handle": handle})
-	workerContainer, _, err := cr.workerClient.LookupContainer(cr.logger, handle)
+	workerContainer, found, err := cr.workerClient.LookupContainer(cr.logger, handle)
 	if err != nil {
 		cr.logger.Error("failed-to-keep-alive-container", err, lager.Data{"handle": handle})
 	}
 
-	defer workerContainer.Release(nil)
+	if found {
+		workerContainer.Release(nil)
+	}
 }
