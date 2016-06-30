@@ -27,6 +27,7 @@ type Client interface {
 	) (Container, error)
 
 	FindContainerForIdentifier(lager.Logger, Identifier) (Container, bool, error)
+	CheckContainerResourceTypeVersion(lager.Logger, db.SavedContainer) (bool, error)
 	LookupContainer(lager.Logger, string) (Container, bool, error)
 
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)

@@ -132,6 +132,19 @@ func (pool *pool) CreateContainer(logger lager.Logger, signals <-chan os.Signal,
 	return container, nil
 }
 
+func (pool *pool) CheckContainerResourceTypeVersion(logger lager.Logger, container db.SavedContainer) (bool, error) {
+	worker, found, err := pool.provider.GetWorker(container.WorkerName)
+	if err != nil {
+		return false, err
+	}
+
+	if !found {
+		return false, ErrMissingWorker
+	}
+
+	return worker.CheckContainerResourceTypeVersion(logger, container)
+}
+
 func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier) (Container, bool, error) {
 	containerInfo, found, err := pool.provider.FindContainerForIdentifier(id)
 	if err != nil {
@@ -173,6 +186,25 @@ func (pool *pool) FindContainerForIdentifier(logger lager.Logger, id Identifier)
 		}
 
 		return nil, false, err
+	}
+
+	versionMatches, err := worker.CheckContainerResourceTypeVersion(logger, containerInfo)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !versionMatches {
+		logger.Info("reaping-container-with-wrong-resource-type-version", lager.Data{
+			"container-handle": containerInfo.Handle,
+			"check-type":       containerInfo.CheckType,
+		})
+
+		err := pool.provider.ReapContainer(containerInfo.Handle)
+		if err != nil {
+			return nil, false, err
+		}
+
+		return nil, false, nil
 	}
 
 	return container, true, nil

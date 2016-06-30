@@ -691,9 +691,9 @@ var _ = Describe("Pool", func() {
 				It("returns the error", func() {
 					fakeProvider.GetWorkerReturns(nil, false, errors.New("disaster"))
 
-					container, found, err := pool.FindContainerForIdentifier(logger, identifier)
+					workerContainer, found, err := pool.FindContainerForIdentifier(logger, identifier)
 					Expect(err).To(HaveOccurred())
-					Expect(container).To(BeNil())
+					Expect(workerContainer).To(BeNil())
 					Expect(found).To(BeFalse())
 				})
 			})
@@ -769,17 +769,55 @@ var _ = Describe("Pool", func() {
 					})
 				})
 
-				Context("when the finding the container on the worker is successful", func() {
-					It("returns the container", func() {
-						var fakeContainer *workerfakes.FakeContainer
+				Context("when finding the container on the worker is successful", func() {
+					var (
+						fakeContainer  *workerfakes.FakeContainer
+						foundContainer Container
+						found          bool
+						err            error
+					)
+
+					BeforeEach(func() {
 						fakeContainer = new(workerfakes.FakeContainer)
-
 						fakeWorker.LookupContainerReturns(fakeContainer, true, nil)
+					})
 
-						foundContainer, found, err := pool.FindContainerForIdentifier(logger, identifier)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-						Expect(foundContainer).To(Equal(fakeContainer))
+					JustBeforeEach(func() {
+						foundContainer, found, err = pool.FindContainerForIdentifier(logger, identifier)
+					})
+
+					It("checks container resource type version", func() {
+						Expect(fakeWorker.CheckContainerResourceTypeVersionCallCount()).To(Equal(1))
+						_, savedContainer := fakeWorker.CheckContainerResourceTypeVersionArgsForCall(0)
+						Expect(savedContainer).To(Equal(container))
+					})
+
+					Context("when the resource type version matches worker's", func() {
+						BeforeEach(func() {
+							fakeWorker.CheckContainerResourceTypeVersionReturns(true, nil)
+						})
+
+						It("returns the container", func() {
+							Expect(err).NotTo(HaveOccurred())
+							Expect(found).To(BeTrue())
+							Expect(foundContainer).To(Equal(fakeContainer))
+						})
+					})
+
+					Context("when the resource type version does not match worker's", func() {
+						BeforeEach(func() {
+							fakeWorker.CheckContainerResourceTypeVersionReturns(false, nil)
+						})
+
+						It("pretends container is not found", func() {
+							Expect(err).NotTo(HaveOccurred())
+							Expect(found).To(BeFalse())
+						})
+
+						It("reaps the container", func() {
+							Expect(fakeProvider.ReapContainerCallCount()).To(Equal(1))
+							Expect(fakeProvider.ReapContainerArgsForCall(0)).To(Equal(container.Handle))
+						})
 					})
 				})
 			})

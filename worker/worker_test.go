@@ -1182,6 +1182,64 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
+	Describe("CheckContainerResourceTypeVersion", func() {
+		var (
+			container db.SavedContainer
+			matches   bool
+			err       error
+		)
+
+		BeforeEach(func() {
+			container = db.SavedContainer{
+				Container: db.Container{
+					ContainerIdentifier: db.ContainerIdentifier{
+						ResourceTypeVersion: atc.Version{
+							"custom-type": "some-version",
+						},
+						CheckType: "custom-type",
+					},
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			matches, err = gardenWorker.CheckContainerResourceTypeVersion(logger, container)
+		})
+
+		Context("when the container resource type version does not match worker's", func() {
+			BeforeEach(func() {
+				fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("other-version", true, nil)
+			})
+
+			It("returns false", func() {
+				Expect(matches).To(BeFalse())
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when the container resource type version matches worker's", func() {
+			BeforeEach(func() {
+				fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("some-version", true, nil)
+			})
+
+			It("returns true", func() {
+				Expect(matches).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when the worker does not advertise such resource type", func() {
+			BeforeEach(func() {
+				fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("", false, nil)
+			})
+
+			It("returns false", func() {
+				Expect(matches).To(BeFalse())
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+	})
+
 	Describe("LookupContainer", func() {
 		var handle string
 
@@ -1191,9 +1249,7 @@ var _ = Describe("Worker", func() {
 
 		Context("when the gardenClient returns a container and no error", func() {
 			var (
-				fakeContainer      *gfakes.FakeContainer
-				fakeSavedContainer db.SavedContainer
-
+				fakeContainer  *gfakes.FakeContainer
 				foundContainer Container
 				findErr        error
 				found          bool
@@ -1203,20 +1259,6 @@ var _ = Describe("Worker", func() {
 				fakeContainer = new(gfakes.FakeContainer)
 				fakeContainer.HandleReturns("some-handle")
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
-				fakeSavedContainer = db.SavedContainer{
-					Container: db.Container{
-						ContainerIdentifier: db.ContainerIdentifier{
-							ResourceTypeVersion: atc.Version{
-								"custom-type": "some-version",
-							},
-							CheckType: "custom-type",
-						},
-						ContainerMetadata: db.ContainerMetadata{
-							WorkerName: "some-worker",
-						},
-					},
-				}
-				fakeGardenWorkerDB.GetContainerReturns(fakeSavedContainer, true, nil)
 				fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("some-version", true, nil)
 			})
 
@@ -1224,316 +1266,298 @@ var _ = Describe("Worker", func() {
 				foundContainer, found, findErr = gardenWorker.LookupContainer(logger, handle)
 			})
 
-			Context("when the container resource type version does not match worker's", func() {
-				BeforeEach(func() {
-					fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("other-version", true, nil)
-				})
+			It("returns the container and no error", func() {
+				foundContainer, found, err := gardenWorker.LookupContainer(logger, handle)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
 
-				It("does not create a garden worker container", func() {
-					Expect(fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionCallCount()).To(Equal(1))
-					workerName, checkType := fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionArgsForCall(0)
-					Expect(workerName).To(Equal("some-worker"))
-					Expect(checkType).To(Equal("custom-type"))
-					Expect(foundContainer).To(BeNil())
-					Expect(found).To(BeFalse())
-					Expect(findErr).NotTo(HaveOccurred())
-				})
+				Expect(foundContainer.Handle()).To(Equal(fakeContainer.Handle()))
 			})
 
-			Context("when the container resource type version matches worker's", func() {
-				It("returns the container and no error", func() {
-					foundContainer, found, err := gardenWorker.LookupContainer(logger, handle)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
+			Context("when the concourse:volumes property is present", func() {
+				var (
+					handle1Volume         *wfakes.FakeVolume
+					handle2Volume         *wfakes.FakeVolume
+					expectedHandle1Volume *wfakes.FakeVolume
+					expectedHandle2Volume *wfakes.FakeVolume
+				)
 
-					Expect(foundContainer.Handle()).To(Equal(fakeContainer.Handle()))
+				BeforeEach(func() {
+					handle1Volume = new(wfakes.FakeVolume)
+					handle2Volume = new(wfakes.FakeVolume)
+					expectedHandle1Volume = new(wfakes.FakeVolume)
+					expectedHandle2Volume = new(wfakes.FakeVolume)
+
+					fakeContainer.PropertiesReturns(garden.Properties{
+						"concourse:volumes":       `["handle-1","handle-2"]`,
+						"concourse:volume-mounts": `{"handle-1":"/handle-1/path","handle-2":"/handle-2/path"}`,
+					}, nil)
+
+					fakeBaggageclaimClient.LookupVolumeStub = func(logger lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
+						if handle == "handle-1" {
+							return handle1Volume, true, nil
+						} else if handle == "handle-2" {
+							return handle2Volume, true, nil
+						} else {
+							panic("unknown handle: " + handle)
+						}
+					}
+
+					fakeVolumeFactory.BuildStub = func(logger lager.Logger, vol baggageclaim.Volume) (Volume, bool, error) {
+						if vol == handle1Volume {
+							return expectedHandle1Volume, true, nil
+						} else if vol == handle2Volume {
+							return expectedHandle2Volume, true, nil
+						} else {
+							panic("unknown volume: " + vol.Handle())
+						}
+					}
 				})
 
-				Context("when the concourse:volumes property is present", func() {
-					var (
-						handle1Volume         *wfakes.FakeVolume
-						handle2Volume         *wfakes.FakeVolume
-						expectedHandle1Volume *wfakes.FakeVolume
-						expectedHandle2Volume *wfakes.FakeVolume
-					)
-
-					BeforeEach(func() {
-						handle1Volume = new(wfakes.FakeVolume)
-						handle2Volume = new(wfakes.FakeVolume)
-						expectedHandle1Volume = new(wfakes.FakeVolume)
-						expectedHandle2Volume = new(wfakes.FakeVolume)
-
-						fakeContainer.PropertiesReturns(garden.Properties{
-							"concourse:volumes":       `["handle-1","handle-2"]`,
-							"concourse:volume-mounts": `{"handle-1":"/handle-1/path","handle-2":"/handle-2/path"}`,
-						}, nil)
-
-						fakeBaggageclaimClient.LookupVolumeStub = func(logger lager.Logger, handle string) (baggageclaim.Volume, bool, error) {
-							if handle == "handle-1" {
-								return handle1Volume, true, nil
-							} else if handle == "handle-2" {
-								return handle2Volume, true, nil
-							} else {
-								panic("unknown handle: " + handle)
-							}
-						}
-
-						fakeVolumeFactory.BuildStub = func(logger lager.Logger, vol baggageclaim.Volume) (Volume, bool, error) {
-							if vol == handle1Volume {
-								return expectedHandle1Volume, true, nil
-							} else if vol == handle2Volume {
-								return expectedHandle2Volume, true, nil
-							} else {
-								panic("unknown volume: " + vol.Handle())
-							}
-						}
+				Describe("Volumes", func() {
+					It("returns all bound volumes based on properties on the container", func() {
+						Expect(foundContainer.Volumes()).To(Equal([]Volume{
+							expectedHandle1Volume,
+							expectedHandle2Volume,
+						}))
 					})
 
-					Describe("Volumes", func() {
-						It("returns all bound volumes based on properties on the container", func() {
-							Expect(foundContainer.Volumes()).To(Equal([]Volume{
-								expectedHandle1Volume,
-								expectedHandle2Volume,
-							}))
+					Context("when LookupVolume returns an error", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeBaggageclaimClient.LookupVolumeReturns(nil, false, disaster)
 						})
 
-						Context("when LookupVolume returns an error", func() {
-							disaster := errors.New("nope")
-
-							BeforeEach(func() {
-								fakeBaggageclaimClient.LookupVolumeReturns(nil, false, disaster)
-							})
-
-							It("returns the error on lookup", func() {
-								Expect(findErr).To(Equal(disaster))
-							})
-						})
-
-						Context("when LookupVolume cannot find the volume", func() {
-							BeforeEach(func() {
-								fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
-							})
-
-							It("returns ErrMissingVolume", func() {
-								Expect(findErr).To(Equal(ErrMissingVolume))
-							})
-						})
-
-						Context("when Build cannot find the volume", func() {
-							BeforeEach(func() {
-								fakeVolumeFactory.BuildReturns(nil, false, nil)
-							})
-
-							It("returns ErrMissingVolume", func() {
-								Expect(findErr).To(Equal(ErrMissingVolume))
-							})
-						})
-
-						Context("when Build returns an error", func() {
-							disaster := errors.New("nope")
-
-							BeforeEach(func() {
-								fakeVolumeFactory.BuildReturns(nil, false, disaster)
-							})
-
-							It("returns the error on lookup", func() {
-								Expect(findErr).To(Equal(disaster))
-							})
-						})
-
-						Context("when there is no baggageclaim", func() {
-							BeforeEach(func() {
-								gardenWorker = NewGardenWorker(
-									fakeGardenClient,
-									nil,
-									fakeVolumeClient,
-									nil,
-									fakeImageFetcher,
-									fakeGardenWorkerDB,
-									fakeWorkerProvider,
-									fakeClock,
-									activeContainers,
-									resourceTypes,
-									platform,
-									tags,
-									workerName,
-									workerStartTime,
-									httpProxyURL,
-									httpsProxyURL,
-									noProxy,
-								)
-							})
-
-							It("returns an empty slice", func() {
-								Expect(foundContainer.Volumes()).To(BeEmpty())
-							})
+						It("returns the error on lookup", func() {
+							Expect(findErr).To(Equal(disaster))
 						})
 					})
 
-					Describe("VolumeMounts", func() {
-						It("returns all bound volumes based on properties on the container", func() {
-							Expect(foundContainer.VolumeMounts()).To(ConsistOf([]VolumeMount{
-								{Volume: expectedHandle1Volume, MountPath: "/handle-1/path"},
-								{Volume: expectedHandle2Volume, MountPath: "/handle-2/path"},
-							}))
+					Context("when LookupVolume cannot find the volume", func() {
+						BeforeEach(func() {
+							fakeBaggageclaimClient.LookupVolumeReturns(nil, false, nil)
 						})
 
-						Context("when LookupVolume returns an error", func() {
-							disaster := errors.New("nope")
-
-							BeforeEach(func() {
-								fakeBaggageclaimClient.LookupVolumeReturns(nil, false, disaster)
-							})
-
-							It("returns the error on lookup", func() {
-								Expect(findErr).To(Equal(disaster))
-							})
-						})
-
-						Context("when Build returns an error", func() {
-							disaster := errors.New("nope")
-
-							BeforeEach(func() {
-								fakeVolumeFactory.BuildReturns(nil, false, disaster)
-							})
-
-							It("returns the error on lookup", func() {
-								Expect(findErr).To(Equal(disaster))
-							})
-						})
-
-						Context("when there is no baggageclaim", func() {
-							BeforeEach(func() {
-								gardenWorker = NewGardenWorker(
-									fakeGardenClient,
-									nil,
-									fakeVolumeClient,
-									nil,
-									fakeImageFetcher,
-									fakeGardenWorkerDB,
-									fakeWorkerProvider,
-									fakeClock,
-									activeContainers,
-									resourceTypes,
-									platform,
-									tags,
-									workerName,
-									workerStartTime,
-									httpProxyURL,
-									httpsProxyURL,
-									noProxy,
-								)
-							})
-
-							It("returns an empty slice", func() {
-								Expect(foundContainer.Volumes()).To(BeEmpty())
-							})
+						It("returns ErrMissingVolume", func() {
+							Expect(findErr).To(Equal(ErrMissingVolume))
 						})
 					})
 
-					Describe("Release", func() {
-						It("releases the container's volumes once and only once", func() {
-							foundContainer.Release(FinalTTL(time.Minute))
-							Expect(expectedHandle1Volume.ReleaseCallCount()).To(Equal(1))
-							Expect(expectedHandle1Volume.ReleaseArgsForCall(0)).To(Equal(FinalTTL(time.Minute)))
-							Expect(expectedHandle2Volume.ReleaseCallCount()).To(Equal(1))
-							Expect(expectedHandle2Volume.ReleaseArgsForCall(0)).To(Equal(FinalTTL(time.Minute)))
+					Context("when Build cannot find the volume", func() {
+						BeforeEach(func() {
+							fakeVolumeFactory.BuildReturns(nil, false, nil)
+						})
 
-							foundContainer.Release(FinalTTL(time.Hour))
-							Expect(expectedHandle1Volume.ReleaseCallCount()).To(Equal(1))
-							Expect(expectedHandle2Volume.ReleaseCallCount()).To(Equal(1))
+						It("returns ErrMissingVolume", func() {
+							Expect(findErr).To(Equal(ErrMissingVolume))
 						})
 					})
-				})
 
-				Context("when the concourse:volumes property is not present", func() {
-					BeforeEach(func() {
-						fakeContainer.PropertiesReturns(garden.Properties{}, nil)
+					Context("when Build returns an error", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeVolumeFactory.BuildReturns(nil, false, disaster)
+						})
+
+						It("returns the error on lookup", func() {
+							Expect(findErr).To(Equal(disaster))
+						})
 					})
 
-					Describe("Volumes", func() {
+					Context("when there is no baggageclaim", func() {
+						BeforeEach(func() {
+							gardenWorker = NewGardenWorker(
+								fakeGardenClient,
+								nil,
+								fakeVolumeClient,
+								nil,
+								fakeImageFetcher,
+								fakeGardenWorkerDB,
+								fakeWorkerProvider,
+								fakeClock,
+								activeContainers,
+								resourceTypes,
+								platform,
+								tags,
+								workerName,
+								workerStartTime,
+								httpProxyURL,
+								httpsProxyURL,
+								noProxy,
+							)
+						})
+
 						It("returns an empty slice", func() {
 							Expect(foundContainer.Volumes()).To(BeEmpty())
 						})
 					})
 				})
 
-				Context("when the user property is present", func() {
-					var (
-						actualSpec garden.ProcessSpec
-						actualIO   garden.ProcessIO
-					)
-
-					BeforeEach(func() {
-						actualSpec = garden.ProcessSpec{
-							Path: "some-path",
-							Args: []string{"some", "args"},
-							Env:  []string{"some=env"},
-							Dir:  "some-dir",
-						}
-
-						actualIO = garden.ProcessIO{}
-
-						fakeContainer.PropertiesReturns(garden.Properties{"user": "maverick"}, nil)
+				Describe("VolumeMounts", func() {
+					It("returns all bound volumes based on properties on the container", func() {
+						Expect(foundContainer.VolumeMounts()).To(ConsistOf([]VolumeMount{
+							{Volume: expectedHandle1Volume, MountPath: "/handle-1/path"},
+							{Volume: expectedHandle2Volume, MountPath: "/handle-2/path"},
+						}))
 					})
 
-					JustBeforeEach(func() {
-						foundContainer.Run(actualSpec, actualIO)
+					Context("when LookupVolume returns an error", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeBaggageclaimClient.LookupVolumeReturns(nil, false, disaster)
+						})
+
+						It("returns the error on lookup", func() {
+							Expect(findErr).To(Equal(disaster))
+						})
 					})
 
-					Describe("Run", func() {
-						It("calls Run() on the garden container and injects the user", func() {
-							Expect(fakeContainer.RunCallCount()).To(Equal(1))
-							spec, io := fakeContainer.RunArgsForCall(0)
-							Expect(spec).To(Equal(garden.ProcessSpec{
-								Path: "some-path",
-								Args: []string{"some", "args"},
-								Env:  []string{"some=env"},
-								Dir:  "some-dir",
-								User: "maverick",
-							}))
-							Expect(io).To(Equal(garden.ProcessIO{}))
+					Context("when Build returns an error", func() {
+						disaster := errors.New("nope")
+
+						BeforeEach(func() {
+							fakeVolumeFactory.BuildReturns(nil, false, disaster)
+						})
+
+						It("returns the error on lookup", func() {
+							Expect(findErr).To(Equal(disaster))
+						})
+					})
+
+					Context("when there is no baggageclaim", func() {
+						BeforeEach(func() {
+							gardenWorker = NewGardenWorker(
+								fakeGardenClient,
+								nil,
+								fakeVolumeClient,
+								nil,
+								fakeImageFetcher,
+								fakeGardenWorkerDB,
+								fakeWorkerProvider,
+								fakeClock,
+								activeContainers,
+								resourceTypes,
+								platform,
+								tags,
+								workerName,
+								workerStartTime,
+								httpProxyURL,
+								httpsProxyURL,
+								noProxy,
+							)
+						})
+
+						It("returns an empty slice", func() {
+							Expect(foundContainer.Volumes()).To(BeEmpty())
 						})
 					})
 				})
 
-				Context("when the user property is not present", func() {
-					var (
-						actualSpec garden.ProcessSpec
-						actualIO   garden.ProcessIO
-					)
+				Describe("Release", func() {
+					It("releases the container's volumes once and only once", func() {
+						foundContainer.Release(FinalTTL(time.Minute))
+						Expect(expectedHandle1Volume.ReleaseCallCount()).To(Equal(1))
+						Expect(expectedHandle1Volume.ReleaseArgsForCall(0)).To(Equal(FinalTTL(time.Minute)))
+						Expect(expectedHandle2Volume.ReleaseCallCount()).To(Equal(1))
+						Expect(expectedHandle2Volume.ReleaseArgsForCall(0)).To(Equal(FinalTTL(time.Minute)))
 
-					BeforeEach(func() {
-						actualSpec = garden.ProcessSpec{
+						foundContainer.Release(FinalTTL(time.Hour))
+						Expect(expectedHandle1Volume.ReleaseCallCount()).To(Equal(1))
+						Expect(expectedHandle2Volume.ReleaseCallCount()).To(Equal(1))
+					})
+				})
+			})
+
+			Context("when the concourse:volumes property is not present", func() {
+				BeforeEach(func() {
+					fakeContainer.PropertiesReturns(garden.Properties{}, nil)
+				})
+
+				Describe("Volumes", func() {
+					It("returns an empty slice", func() {
+						Expect(foundContainer.Volumes()).To(BeEmpty())
+					})
+				})
+			})
+
+			Context("when the user property is present", func() {
+				var (
+					actualSpec garden.ProcessSpec
+					actualIO   garden.ProcessIO
+				)
+
+				BeforeEach(func() {
+					actualSpec = garden.ProcessSpec{
+						Path: "some-path",
+						Args: []string{"some", "args"},
+						Env:  []string{"some=env"},
+						Dir:  "some-dir",
+					}
+
+					actualIO = garden.ProcessIO{}
+
+					fakeContainer.PropertiesReturns(garden.Properties{"user": "maverick"}, nil)
+				})
+
+				JustBeforeEach(func() {
+					foundContainer.Run(actualSpec, actualIO)
+				})
+
+				Describe("Run", func() {
+					It("calls Run() on the garden container and injects the user", func() {
+						Expect(fakeContainer.RunCallCount()).To(Equal(1))
+						spec, io := fakeContainer.RunArgsForCall(0)
+						Expect(spec).To(Equal(garden.ProcessSpec{
 							Path: "some-path",
 							Args: []string{"some", "args"},
 							Env:  []string{"some=env"},
 							Dir:  "some-dir",
-						}
-
-						actualIO = garden.ProcessIO{}
-
-						fakeContainer.PropertiesReturns(garden.Properties{"user": ""}, nil)
+							User: "maverick",
+						}))
+						Expect(io).To(Equal(garden.ProcessIO{}))
 					})
+				})
+			})
 
-					JustBeforeEach(func() {
-						foundContainer.Run(actualSpec, actualIO)
-					})
+			Context("when the user property is not present", func() {
+				var (
+					actualSpec garden.ProcessSpec
+					actualIO   garden.ProcessIO
+				)
 
-					Describe("Run", func() {
-						It("calls Run() on the garden container and injects the default user", func() {
-							Expect(fakeContainer.RunCallCount()).To(Equal(1))
-							spec, io := fakeContainer.RunArgsForCall(0)
-							Expect(spec).To(Equal(garden.ProcessSpec{
-								Path: "some-path",
-								Args: []string{"some", "args"},
-								Env:  []string{"some=env"},
-								Dir:  "some-dir",
-								User: "root",
-							}))
-							Expect(io).To(Equal(garden.ProcessIO{}))
-							Expect(fakeContainer.RunCallCount()).To(Equal(1))
-						})
+				BeforeEach(func() {
+					actualSpec = garden.ProcessSpec{
+						Path: "some-path",
+						Args: []string{"some", "args"},
+						Env:  []string{"some=env"},
+						Dir:  "some-dir",
+					}
+
+					actualIO = garden.ProcessIO{}
+
+					fakeContainer.PropertiesReturns(garden.Properties{"user": ""}, nil)
+				})
+
+				JustBeforeEach(func() {
+					foundContainer.Run(actualSpec, actualIO)
+				})
+
+				Describe("Run", func() {
+					It("calls Run() on the garden container and injects the default user", func() {
+						Expect(fakeContainer.RunCallCount()).To(Equal(1))
+						spec, io := fakeContainer.RunArgsForCall(0)
+						Expect(spec).To(Equal(garden.ProcessSpec{
+							Path: "some-path",
+							Args: []string{"some", "args"},
+							Env:  []string{"some=env"},
+							Dir:  "some-dir",
+							User: "root",
+						}))
+						Expect(io).To(Equal(garden.ProcessIO{}))
+						Expect(fakeContainer.RunCallCount()).To(Equal(1))
 					})
 				})
 			})
@@ -1601,7 +1625,8 @@ var _ = Describe("Worker", func() {
 				fakeSavedContainer = db.SavedContainer{
 					Container: db.Container{
 						ContainerIdentifier: db.ContainerIdentifier{
-							CheckType: "some-check-type",
+							CheckType:           "some-check-type",
+							ResourceTypeVersion: atc.Version{"some-check-type": "some-version"},
 						},
 						ContainerMetadata: db.ContainerMetadata{
 							Handle:     "provider-handle",
@@ -1613,7 +1638,14 @@ var _ = Describe("Worker", func() {
 
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
 				fakeGardenWorkerDB.GetContainerReturns(fakeSavedContainer, true, nil)
-				fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("", false, nil)
+				fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("some-version", true, nil)
+			})
+
+			It("checks the resource type version", func() {
+				Expect(fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionCallCount()).To(Equal(1))
+				workerName, checkType := fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionArgsForCall(0)
+				Expect(workerName).To(Equal("some-worker"))
+				Expect(checkType).To(Equal("some-check-type"))
 			})
 
 			It("succeeds", func() {
@@ -1629,16 +1661,20 @@ var _ = Describe("Worker", func() {
 				Expect(lookupHandle).To(Equal("provider-handle"))
 			})
 
-			It("checks container's resource type version", func() {
-				Expect(fakeGardenWorkerDB.GetContainerCallCount()).To(Equal(1))
-				getContainerHandle := fakeGardenWorkerDB.GetContainerArgsForCall(0)
-				Expect(getContainerHandle).To(Equal("provider-handle"))
+			Context("when container resource type version does not match worker's", func() {
+				BeforeEach(func() {
+					fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("other-version", true, nil)
+				})
 
-				Expect(fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionCallCount()).To(Equal(1))
+				It("pretend container is not found", func() {
+					Expect(lookupErr).NotTo(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
 
-				workerName, checkType := fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionArgsForCall(0)
-				Expect(workerName).To(Equal("some-worker"))
-				Expect(checkType).To(Equal("some-check-type"))
+				It("reaps the container", func() {
+					Expect(fakeWorkerProvider.ReapContainerCallCount()).To(Equal(1))
+					Expect(fakeWorkerProvider.ReapContainerArgsForCall(0)).To(Equal(fakeSavedContainer.Handle))
+				})
 			})
 
 			Describe("the found container", func() {
