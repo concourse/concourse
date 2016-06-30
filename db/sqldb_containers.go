@@ -142,46 +142,12 @@ func scanRows(rows *sql.Rows) ([]SavedContainer, error) {
 	return containers, nil
 }
 
-func (db *SQLDB) FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error) {
-	rows, err := db.conn.Query(
-		`SELECT ` + containerColumns + `
-		FROM containers c ` + containerJoins + `
-		WHERE b.status = 'succeeded'
-		AND c.ttl = '0'`)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return []SavedContainer{}, nil
-		}
-		return nil, err
-	}
-
-	return scanRows(rows)
-}
-
-func (db *SQLDB) FindContainersFromUnsuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error) {
+func (db *SQLDB) FindJobContainersFromUnsuccessfulBuilds() ([]SavedContainer, error) {
 	rows, err := db.conn.Query(
 		`SELECT ` + containerColumns + `
 		FROM containers c ` + containerJoins + `
 		WHERE (b.status = 'failed' OR b.status = 'aborted' OR b.status = 'errored')
-		AND c.ttl = '0'`)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return []SavedContainer{}, nil
-		}
-		return nil, err
-	}
-
-	return scanRows(rows)
-}
-
-func (db *SQLDB) FindOrphanContainersWithInfiniteTTL() ([]SavedContainer, error) {
-	rows, err := db.conn.Query(
-		`SELECT ` + containerColumns + `
-		FROM containers c ` + containerJoins + `
-		WHERE b.status is null
-		AND c.ttl = '0'`)
+		AND b.job_id is not null`)
 
 	if err != nil {
 		if err == sql.ErrNoRows {

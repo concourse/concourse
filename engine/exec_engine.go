@@ -21,6 +21,8 @@ type execMetadata struct {
 }
 
 const execEngineName = "exec.v2"
+const successTTL = 5 * time.Minute
+const failureTTL = 5 * time.Minute
 
 type execEngine struct {
 	factory         exec.Factory
@@ -56,8 +58,8 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, model db.Build, plan 
 
 		signals: make(chan os.Signal, 1),
 
-		containerSuccessTTL: findSuccessTTL(model),
-		containerFailureTTL: findFailureTTL(model),
+		containerSuccessTTL: successTTL,
+		containerFailureTTL: failureTTL,
 	}, nil
 }
 
@@ -85,23 +87,9 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, model db.Build) (Buil
 
 		signals: make(chan os.Signal, 1),
 
-		containerSuccessTTL: findSuccessTTL(model),
-		containerFailureTTL: findFailureTTL(model),
+		containerSuccessTTL: successTTL,
+		containerFailureTTL: failureTTL,
 	}, nil
-}
-
-func findSuccessTTL(model db.Build) time.Duration {
-	if model.JobID == 0 {
-		return 5 * time.Minute
-	}
-	return time.Duration(0)
-}
-
-func findFailureTTL(model db.Build) time.Duration {
-	if model.JobID == 0 {
-		return 1 * time.Hour
-	}
-	return time.Duration(0)
 }
 
 func (engine *execEngine) convertPipelineNameToID(plan *atc.Plan) error {

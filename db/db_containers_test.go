@@ -97,80 +97,26 @@ var _ = Describe("Keeping track of containers", func() {
 		return savedBuild.ID
 	}
 
-	It("can find orphan containers with infinit ttl", func() {
-		savedBuild, err := pipelineDB.CreateJobBuild("some-job")
-		Expect(err).NotTo(HaveOccurred())
-
-		containerInfo0 := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild.ID + 1,
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-0",
-				PipelineID: savedPipeline.ID,
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		containerInfo1 := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild.ID + 1,
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-1",
-				PipelineID: savedPipeline.ID,
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		containerInfo2 := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild.ID,
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-2",
-				PipelineID: savedPipeline.ID,
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		_, err = database.CreateContainer(containerInfo0, 0, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = database.CreateContainer(containerInfo1, 5*time.Minute, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = database.CreateContainer(containerInfo2, 0, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		savedContainers, err := database.FindOrphanContainersWithInfiniteTTL()
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(savedContainers).To(HaveLen(1))
-		Expect(savedContainers[0].Handle).To(Equal("handle-0"))
-	})
-
-	It("can find containers from unsuccessful builds with infinit ttl", func() {
+	It("can find non-one-off containers from unsuccessful builds", func() {
 		savedBuild0, err := pipelineDB.CreateJobBuild("some-job")
 		Expect(err).NotTo(HaveOccurred())
 
 		savedBuild1, err := pipelineDB.CreateJobBuild("some-other-job")
 		Expect(err).NotTo(HaveOccurred())
 
-		savedBuild2, err := pipelineDB.CreateJobBuild("some-other-job")
+		savedBuild2, err := database.CreateOneOffBuild()
+		Expect(err).NotTo(HaveOccurred())
+
+		savedBuild3, err := pipelineDB.CreateJobBuild("some-random-job")
 		Expect(err).NotTo(HaveOccurred())
 
 		err = database.FinishBuild(savedBuild0.ID, savedPipeline.ID, db.StatusErrored)
 		Expect(err).NotTo(HaveOccurred())
 		err = database.FinishBuild(savedBuild1.ID, savedPipeline.ID, db.StatusFailed)
 		Expect(err).NotTo(HaveOccurred())
-		err = database.FinishBuild(savedBuild2.ID, savedPipeline.ID, db.StatusSucceeded)
+		err = database.FinishBuild(savedBuild2.ID, savedPipeline.ID, db.StatusFailed)
+		Expect(err).NotTo(HaveOccurred())
+		err = database.FinishBuild(savedBuild3.ID, savedPipeline.ID, db.StatusSucceeded)
 		Expect(err).NotTo(HaveOccurred())
 
 		containerInfo0 := db.Container{
@@ -208,9 +154,21 @@ var _ = Describe("Keeping track of containers", func() {
 				Stage:   db.ContainerStageRun,
 			},
 			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-2",
+				Handle: "handle-2",
+				Type:   db.ContainerTypeTask,
+			},
+		}
+
+		containerInfo3 := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				BuildID: savedBuild3.ID,
+				PlanID:  "some-plan-id",
+				Stage:   db.ContainerStageRun,
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "handle-3",
 				PipelineID: savedPipeline.ID,
-				JobName:    savedBuild2.JobName,
+				JobName:    savedBuild3.JobName,
 				Type:       db.ContainerTypeTask,
 			},
 		}
@@ -224,86 +182,16 @@ var _ = Describe("Keeping track of containers", func() {
 		_, err = database.CreateContainer(containerInfo2, 0, 0, []string{})
 		Expect(err).NotTo(HaveOccurred())
 
-		savedContainers, err := database.FindContainersFromUnsuccessfulBuildsWithInfiniteTTL()
+		_, err = database.CreateContainer(containerInfo3, 0, 0, []string{})
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(savedContainers).To(HaveLen(1))
-		Expect(savedContainers[0].Handle).To(Equal("handle-1"))
-	})
-
-	It("can find containers from successful builds with infinit ttl", func() {
-		savedBuild0, err := pipelineDB.CreateJobBuild("some-job")
+		savedContainers, err := database.FindJobContainersFromUnsuccessfulBuilds()
 		Expect(err).NotTo(HaveOccurred())
 
-		savedBuild1, err := pipelineDB.CreateJobBuild("some-other-job")
-		Expect(err).NotTo(HaveOccurred())
-
-		savedBuild2, err := pipelineDB.CreateJobBuild("some-other-job")
-		Expect(err).NotTo(HaveOccurred())
-
-		containerInfo0 := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild0.ID,
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-0",
-				PipelineID: savedPipeline.ID,
-				JobName:    savedBuild0.JobName,
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		containerInfo1 := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild1.ID,
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-1",
-				PipelineID: savedPipeline.ID,
-				JobName:    savedBuild1.JobName,
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		containerInfo2 := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild2.ID,
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-2",
-				PipelineID: savedPipeline.ID,
-				JobName:    savedBuild2.JobName,
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		_, err = database.CreateContainer(containerInfo0, 3*time.Minute, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = database.CreateContainer(containerInfo1, 0, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = database.CreateContainer(containerInfo2, 0, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = database.FinishBuild(savedBuild0.ID, savedPipeline.ID, db.StatusSucceeded)
-		Expect(err).NotTo(HaveOccurred())
-		err = database.FinishBuild(savedBuild1.ID, savedPipeline.ID, db.StatusFailed)
-		Expect(err).NotTo(HaveOccurred())
-		err = database.FinishBuild(savedBuild2.ID, savedPipeline.ID, db.StatusSucceeded)
-		Expect(err).NotTo(HaveOccurred())
-
-		savedContainers, err := database.FindContainersFromSuccessfulBuildsWithInfiniteTTL()
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(savedContainers).To(HaveLen(1))
-		Expect(savedContainers[0].Handle).To(Equal("handle-2"))
+		Expect(savedContainers).To(HaveLen(2))
+		handle0 := savedContainers[0].Handle
+		handle1 := savedContainers[1].Handle
+		Expect([]string{handle0, handle1}).To(ConsistOf("handle-0", "handle-1"))
 	})
 
 	It("can create and get a resource container object", func() {

@@ -180,68 +180,30 @@ var _ = Describe("ExecEngine", func() {
 				})
 			})
 
-			Context("when JobID is zero (one-off build)", func() {
-				BeforeEach(func() {
-					buildModel.JobID = 0
-				})
+			It("constructs the put with container TTLs", func() {
+				var err error
+				build, err = execEngine.CreateBuild(logger, buildModel, outputPlan)
+				Expect(err).NotTo(HaveOccurred())
 
-				It("constructs the put with finite container TTLs", func() {
-					var err error
-					build, err = execEngine.CreateBuild(logger, buildModel, outputPlan)
-					Expect(err).NotTo(HaveOccurred())
+				build.Resume(logger)
+				Expect(fakeFactory.PutCallCount()).To(Equal(2))
 
-					build.Resume(logger)
-					Expect(fakeFactory.PutCallCount()).To(Equal(2))
-
-					_, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.PutArgsForCall(0)
-					Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
-					Expect(containerFailureTTL).To(Equal(1 * time.Hour))
-				})
-
-				It("constructs the dependent get with finite container TTLs", func() {
-					var err error
-					build, err = execEngine.CreateBuild(logger, buildModel, outputPlan)
-					Expect(err).NotTo(HaveOccurred())
-
-					build.Resume(logger)
-					Expect(fakeFactory.DependentGetCallCount()).To(Equal(2))
-
-					_, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.DependentGetArgsForCall(0)
-					Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
-					Expect(containerFailureTTL).To(Equal(1 * time.Hour))
-				})
+				_, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.PutArgsForCall(0)
+				Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
+				Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 			})
 
-			Context("when JobID is nonzero (job build)", func() {
-				BeforeEach(func() {
-					buildModel.JobID = 66
-				})
+			It("constructs the dependent get with container TTLs", func() {
+				var err error
+				build, err = execEngine.CreateBuild(logger, buildModel, outputPlan)
+				Expect(err).NotTo(HaveOccurred())
 
-				It("constructs the put with infinite container TTLs", func() {
-					var err error
-					build, err = execEngine.CreateBuild(logger, buildModel, outputPlan)
-					Expect(err).NotTo(HaveOccurred())
+				build.Resume(logger)
+				Expect(fakeFactory.DependentGetCallCount()).To(Equal(2))
 
-					build.Resume(logger)
-					Expect(fakeFactory.PutCallCount()).To(Equal(2))
-
-					_, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.PutArgsForCall(0)
-					Expect(containerSuccessTTL).To(BeZero())
-					Expect(containerFailureTTL).To(BeZero())
-				})
-
-				It("constructs the dependent get with infinite container TTLs", func() {
-					var err error
-					build, err = execEngine.CreateBuild(logger, buildModel, outputPlan)
-					Expect(err).NotTo(HaveOccurred())
-
-					build.Resume(logger)
-					Expect(fakeFactory.DependentGetCallCount()).To(Equal(2))
-
-					_, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.DependentGetArgsForCall(0)
-					Expect(containerSuccessTTL).To(BeZero())
-					Expect(containerFailureTTL).To(BeZero())
-				})
+				_, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.DependentGetArgsForCall(0)
+				Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
+				Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 			})
 
 			Context("constructing outputs", func() {
@@ -596,42 +558,17 @@ var _ = Describe("ExecEngine", func() {
 					plan = planFactory.NewPlan(getPlan)
 				})
 
-				Context("when JobID is zero (one-off build)", func() {
-					BeforeEach(func() {
-						buildModel.JobID = 0
-					})
+				It("constructs the get with container TTLs", func() {
+					var err error
+					build, err = execEngine.CreateBuild(logger, buildModel, plan)
+					Expect(err).NotTo(HaveOccurred())
 
-					It("constructs the get with finite container TTLs", func() {
-						var err error
-						build, err = execEngine.CreateBuild(logger, buildModel, plan)
-						Expect(err).NotTo(HaveOccurred())
+					build.Resume(logger)
+					Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
-						build.Resume(logger)
-						Expect(fakeFactory.GetCallCount()).To(Equal(1))
-
-						_, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.GetArgsForCall(0)
-						Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
-						Expect(containerFailureTTL).To(Equal(1 * time.Hour))
-					})
-				})
-
-				Context("when JobID is nonzero (job build)", func() {
-					BeforeEach(func() {
-						buildModel.JobID = 66
-					})
-
-					It("constructs the get with infinite container TTLs", func() {
-						var err error
-						build, err = execEngine.CreateBuild(logger, buildModel, plan)
-						Expect(err).NotTo(HaveOccurred())
-
-						build.Resume(logger)
-						Expect(fakeFactory.GetCallCount()).To(Equal(1))
-
-						_, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.GetArgsForCall(0)
-						Expect(containerSuccessTTL).To(BeZero())
-						Expect(containerFailureTTL).To(BeZero())
-					})
+					_, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.GetArgsForCall(0)
+					Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
+					Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 				})
 
 				It("constructs inputs correctly", func() {
@@ -709,42 +646,17 @@ var _ = Describe("ExecEngine", func() {
 					plan = planFactory.NewPlan(taskPlan)
 				})
 
-				Context("when JobID is zero (one-off build)", func() {
-					BeforeEach(func() {
-						buildModel.JobID = 0
-					})
+				It("constructs the task with container TTLs", func() {
+					var err error
+					build, err = execEngine.CreateBuild(logger, buildModel, plan)
+					Expect(err).NotTo(HaveOccurred())
 
-					It("constructs the task with finite container TTLs", func() {
-						var err error
-						build, err = execEngine.CreateBuild(logger, buildModel, plan)
-						Expect(err).NotTo(HaveOccurred())
+					build.Resume(logger)
+					Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-						build.Resume(logger)
-						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
-
-						_, _, _, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.TaskArgsForCall(0)
-						Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
-						Expect(containerFailureTTL).To(Equal(1 * time.Hour))
-					})
-				})
-
-				Context("when JobID is nonzero (job build)", func() {
-					BeforeEach(func() {
-						buildModel.JobID = 66
-					})
-
-					It("constructs the task with infinite container TTLs", func() {
-						var err error
-						build, err = execEngine.CreateBuild(logger, buildModel, plan)
-						Expect(err).NotTo(HaveOccurred())
-
-						build.Resume(logger)
-						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
-
-						_, _, _, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.TaskArgsForCall(0)
-						Expect(containerSuccessTTL).To(BeZero())
-						Expect(containerFailureTTL).To(BeZero())
-					})
+					_, _, _, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.TaskArgsForCall(0)
+					Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
+					Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 				})
 
 				It("constructs tasks correctly", func() {
@@ -1059,40 +971,16 @@ var _ = Describe("ExecEngine", func() {
 				fakeFactory.GetReturns(inputStepFactory)
 			})
 
-			Context("when JobID is zero (one-off build)", func() {
-				BeforeEach(func() {
-					build.JobID = 0
-				})
+			It("constructs the get with container TTLs", func() {
+				foundBuild, err := execEngine.LookupBuild(logger, build)
+				Expect(err).NotTo(HaveOccurred())
 
-				It("constructs the get with finite container TTLs", func() {
-					foundBuild, err := execEngine.LookupBuild(logger, build)
-					Expect(err).NotTo(HaveOccurred())
+				foundBuild.Resume(logger)
+				Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
-					foundBuild.Resume(logger)
-					Expect(fakeFactory.GetCallCount()).To(Equal(1))
-
-					_, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.GetArgsForCall(0)
-					Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
-					Expect(containerFailureTTL).To(Equal(1 * time.Hour))
-				})
-			})
-
-			Context("when JobID is nonzero (job build)", func() {
-				BeforeEach(func() {
-					build.JobID = 66
-				})
-
-				It("constructs the get with infinite container TTLs", func() {
-					foundBuild, err := execEngine.LookupBuild(logger, build)
-					Expect(err).NotTo(HaveOccurred())
-
-					foundBuild.Resume(logger)
-					Expect(fakeFactory.GetCallCount()).To(Equal(1))
-
-					_, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.GetArgsForCall(0)
-					Expect(containerSuccessTTL).To(BeZero())
-					Expect(containerFailureTTL).To(BeZero())
-				})
+				_, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.GetArgsForCall(0)
+				Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
+				Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 			})
 		})
 

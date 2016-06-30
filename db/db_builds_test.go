@@ -70,6 +70,9 @@ var _ = Describe("Keeping track of builds", func() {
 				{
 					Name: "some-other-job",
 				},
+				{
+					Name: "some-random-job",
+				},
 			},
 			Resources: atc.ResourceConfigs{
 				{
@@ -186,6 +189,39 @@ var _ = Describe("Keeping track of builds", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(actualBuildOutput)).To(Equal(1))
 		Expect(actualBuildOutput[0]).To(Equal(expectedBuildOutput))
+	})
+
+	It("can find latest successful builds per job", func() {
+		savedBuild0, err := pipelineDB.CreateJobBuild("some-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		savedBuild1, err := pipelineDB.CreateJobBuild("some-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		savedBuild2, err := pipelineDB.CreateJobBuild("some-other-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		savedBuild3, err := pipelineDB.CreateJobBuild("some-random-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = database.FinishBuild(savedBuild0.ID, pipeline.ID, db.StatusSucceeded)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = database.FinishBuild(savedBuild1.ID, pipeline.ID, db.StatusSucceeded)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = database.FinishBuild(savedBuild2.ID, pipeline.ID, db.StatusFailed)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = database.FinishBuild(savedBuild3.ID, pipeline.ID, db.StatusSucceeded)
+		Expect(err).NotTo(HaveOccurred())
+
+		jobBuildMap, err := database.FindLatestSuccessfulBuildsPerJob()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(jobBuildMap).To(Equal(map[int]int{
+			savedBuild1.JobID: savedBuild1.ID,
+			savedBuild3.JobID: savedBuild3.ID,
+		}))
 	})
 
 	Context("build creation", func() {
