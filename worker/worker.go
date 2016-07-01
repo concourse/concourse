@@ -492,57 +492,7 @@ func (worker *gardenWorker) FindContainerForIdentifier(logger lager.Logger, id I
 		return nil, false, err
 	}
 
-	versionMatches, err := worker.CheckContainerResourceTypeVersion(logger, containerInfo)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if !versionMatches {
-		logger.Info("reaping-container-with-wrong-resource-type-version", lager.Data{
-			"container-handle": containerInfo.Handle,
-			"check-type":       containerInfo.CheckType,
-		})
-
-		err := worker.provider.ReapContainer(containerInfo.Handle)
-		if err != nil {
-			return nil, false, err
-		}
-
-		return nil, false, nil
-	}
-
 	return container, found, nil
-}
-
-func (worker *gardenWorker) CheckContainerResourceTypeVersion(logger lager.Logger, container db.SavedContainer) (bool, error) {
-	if container.ResourceTypeVersion == nil {
-		return true, nil
-	}
-
-	workerResourceTypeVersion, found, err := worker.db.FindWorkerCheckResourceTypeVersion(container.WorkerName, container.CheckType)
-	if err != nil {
-		return false, err
-	}
-
-	versionsMatch := workerResourceTypeVersion == container.ResourceTypeVersion[container.CheckType]
-
-	if !found {
-		logger.Info("worker-does-not-have-container-resource-type-version", lager.Data{
-			"container-check-type": container.CheckType,
-		})
-
-		return false, nil
-	}
-
-	if !versionsMatch {
-		logger.Info("container-resource-type-version-does-not-match-worker", lager.Data{
-			"container-check-type": container.CheckType,
-		})
-
-		return false, nil
-	}
-
-	return true, nil
 }
 
 func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) (Container, bool, error) {

@@ -1182,64 +1182,6 @@ var _ = Describe("Worker", func() {
 		})
 	})
 
-	Describe("CheckContainerResourceTypeVersion", func() {
-		var (
-			container db.SavedContainer
-			matches   bool
-			err       error
-		)
-
-		BeforeEach(func() {
-			container = db.SavedContainer{
-				Container: db.Container{
-					ContainerIdentifier: db.ContainerIdentifier{
-						ResourceTypeVersion: atc.Version{
-							"custom-type": "some-version",
-						},
-						CheckType: "custom-type",
-					},
-				},
-			}
-		})
-
-		JustBeforeEach(func() {
-			matches, err = gardenWorker.CheckContainerResourceTypeVersion(logger, container)
-		})
-
-		Context("when the container resource type version does not match worker's", func() {
-			BeforeEach(func() {
-				fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("other-version", true, nil)
-			})
-
-			It("returns false", func() {
-				Expect(matches).To(BeFalse())
-				Expect(err).NotTo(HaveOccurred())
-			})
-		})
-
-		Context("when the container resource type version matches worker's", func() {
-			BeforeEach(func() {
-				fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("some-version", true, nil)
-			})
-
-			It("returns true", func() {
-				Expect(matches).To(BeTrue())
-				Expect(err).NotTo(HaveOccurred())
-			})
-		})
-
-		Context("when the worker does not advertise such resource type", func() {
-			BeforeEach(func() {
-				fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("", false, nil)
-			})
-
-			It("returns false", func() {
-				Expect(matches).To(BeFalse())
-				Expect(err).NotTo(HaveOccurred())
-			})
-		})
-	})
-
 	Describe("LookupContainer", func() {
 		var handle string
 
@@ -1259,7 +1201,6 @@ var _ = Describe("Worker", func() {
 				fakeContainer = new(gfakes.FakeContainer)
 				fakeContainer.HandleReturns("some-handle")
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
-				fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("some-version", true, nil)
 			})
 
 			JustBeforeEach(func() {
@@ -1638,14 +1579,6 @@ var _ = Describe("Worker", func() {
 
 				fakeGardenClient.LookupReturns(fakeContainer, nil)
 				fakeGardenWorkerDB.GetContainerReturns(fakeSavedContainer, true, nil)
-				fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("some-version", true, nil)
-			})
-
-			It("checks the resource type version", func() {
-				Expect(fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionCallCount()).To(Equal(1))
-				workerName, checkType := fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionArgsForCall(0)
-				Expect(workerName).To(Equal("some-worker"))
-				Expect(checkType).To(Equal("some-check-type"))
 			})
 
 			It("succeeds", func() {
@@ -1659,22 +1592,6 @@ var _ = Describe("Worker", func() {
 				Expect(fakeGardenClient.LookupCallCount()).To(Equal(1))
 				lookupHandle := fakeGardenClient.LookupArgsForCall(0)
 				Expect(lookupHandle).To(Equal("provider-handle"))
-			})
-
-			Context("when container resource type version does not match worker's", func() {
-				BeforeEach(func() {
-					fakeGardenWorkerDB.FindWorkerCheckResourceTypeVersionReturns("other-version", true, nil)
-				})
-
-				It("pretend container is not found", func() {
-					Expect(lookupErr).NotTo(HaveOccurred())
-					Expect(found).To(BeFalse())
-				})
-
-				It("reaps the container", func() {
-					Expect(fakeWorkerProvider.ReapContainerCallCount()).To(Equal(1))
-					Expect(fakeWorkerProvider.ReapContainerArgsForCall(0)).To(Equal(fakeSavedContainer.Handle))
-				})
 			})
 
 			Describe("the found container", func() {

@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/lager"
 )
@@ -37,16 +36,6 @@ type FakeClient struct {
 		result1 worker.Container
 		result2 bool
 		result3 error
-	}
-	CheckContainerResourceTypeVersionStub        func(lager.Logger, db.SavedContainer) (bool, error)
-	checkContainerResourceTypeVersionMutex       sync.RWMutex
-	checkContainerResourceTypeVersionArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 db.SavedContainer
-	}
-	checkContainerResourceTypeVersionReturns struct {
-		result1 bool
-		result2 error
 	}
 	LookupContainerStub        func(lager.Logger, string) (worker.Container, bool, error)
 	lookupContainerMutex       sync.RWMutex
@@ -217,41 +206,6 @@ func (fake *FakeClient) FindContainerForIdentifierReturns(result1 worker.Contain
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeClient) CheckContainerResourceTypeVersion(arg1 lager.Logger, arg2 db.SavedContainer) (bool, error) {
-	fake.checkContainerResourceTypeVersionMutex.Lock()
-	fake.checkContainerResourceTypeVersionArgsForCall = append(fake.checkContainerResourceTypeVersionArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 db.SavedContainer
-	}{arg1, arg2})
-	fake.recordInvocation("CheckContainerResourceTypeVersion", []interface{}{arg1, arg2})
-	fake.checkContainerResourceTypeVersionMutex.Unlock()
-	if fake.CheckContainerResourceTypeVersionStub != nil {
-		return fake.CheckContainerResourceTypeVersionStub(arg1, arg2)
-	} else {
-		return fake.checkContainerResourceTypeVersionReturns.result1, fake.checkContainerResourceTypeVersionReturns.result2
-	}
-}
-
-func (fake *FakeClient) CheckContainerResourceTypeVersionCallCount() int {
-	fake.checkContainerResourceTypeVersionMutex.RLock()
-	defer fake.checkContainerResourceTypeVersionMutex.RUnlock()
-	return len(fake.checkContainerResourceTypeVersionArgsForCall)
-}
-
-func (fake *FakeClient) CheckContainerResourceTypeVersionArgsForCall(i int) (lager.Logger, db.SavedContainer) {
-	fake.checkContainerResourceTypeVersionMutex.RLock()
-	defer fake.checkContainerResourceTypeVersionMutex.RUnlock()
-	return fake.checkContainerResourceTypeVersionArgsForCall[i].arg1, fake.checkContainerResourceTypeVersionArgsForCall[i].arg2
-}
-
-func (fake *FakeClient) CheckContainerResourceTypeVersionReturns(result1 bool, result2 error) {
-	fake.CheckContainerResourceTypeVersionStub = nil
-	fake.checkContainerResourceTypeVersionReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeClient) LookupContainer(arg1 lager.Logger, arg2 string) (worker.Container, bool, error) {
@@ -577,8 +531,6 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.createContainerMutex.RUnlock()
 	fake.findContainerForIdentifierMutex.RLock()
 	defer fake.findContainerForIdentifierMutex.RUnlock()
-	fake.checkContainerResourceTypeVersionMutex.RLock()
-	defer fake.checkContainerResourceTypeVersionMutex.RUnlock()
 	fake.lookupContainerMutex.RLock()
 	defer fake.lookupContainerMutex.RUnlock()
 	fake.findResourceTypeByPathMutex.RLock()

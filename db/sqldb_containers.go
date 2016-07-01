@@ -229,12 +229,33 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		containers = append(containers, container)
 	}
 
-	switch len(containers) {
+	versionFilteredContainers := []SavedContainer{}
+	for _, container := range containers {
+		if container.Type != ContainerTypeCheck || container.ResourceTypeVersion == nil {
+			versionFilteredContainers = append(versionFilteredContainers, container)
+			continue
+		}
+
+		workerResourceTypeVersion, found, err := db.FindWorkerCheckResourceTypeVersion(container.WorkerName, container.CheckType)
+		if err != nil {
+			return SavedContainer{}, false, err
+		}
+
+		if !found {
+			continue
+		}
+
+		if workerResourceTypeVersion == container.ResourceTypeVersion[container.CheckType] {
+			versionFilteredContainers = append(versionFilteredContainers, container)
+		}
+	}
+
+	switch len(versionFilteredContainers) {
 	case 0:
 		return SavedContainer{}, false, nil
 
 	case 1:
-		return containers[0], true, nil
+		return versionFilteredContainers[0], true, nil
 
 	default:
 		return SavedContainer{}, false, ErrMultipleContainersFound

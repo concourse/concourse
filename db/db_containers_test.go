@@ -1756,6 +1756,64 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeFalse())
 
+		By("not finding a check container when its resource type version does not match worker's")
+		workerInfo := db.WorkerInfo{
+			Name: "updated-resource-type-worker",
+			ResourceTypes: []atc.WorkerResourceType{
+				atc.WorkerResourceType{
+					Type:    "some-type",
+					Version: "some-version",
+				},
+			},
+		}
+
+		containerWithWrongVersion := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				Stage:               db.ContainerStageRun,
+				CheckType:           "some-type",
+				CheckSource:         atc.Source{"some-type": "some-source"},
+				ResourceTypeVersion: atc.Version{"some-type": "other-version"},
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "outdated-resource-type-container",
+				WorkerName: "updated-resource-type-worker",
+				Type:       db.ContainerTypeCheck,
+			},
+		}
+
+		_, err = database.SaveWorker(workerInfo, 10*time.Minute)
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = database.CreateContainer(containerWithWrongVersion, 10*time.Minute, 0, []string{})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, found, err = database.FindContainerByIdentifier(containerWithWrongVersion.ContainerIdentifier)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeFalse())
+
+		By("finding a check container when its resource type version does not match worker's")
+		containerWithCorrectVersion := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				Stage:               db.ContainerStageRun,
+				CheckType:           "some-type",
+				CheckSource:         atc.Source{"some-type": "some-source"},
+				ResourceTypeVersion: atc.Version{"some-type": "some-version"},
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "updated-resource-type-container",
+				WorkerName: "updated-resource-type-worker",
+				Type:       db.ContainerTypeCheck,
+			},
+		}
+
+		_, err = database.CreateContainer(containerWithCorrectVersion, 10*time.Minute, 0, []string{})
+		Expect(err).NotTo(HaveOccurred())
+
+		foundContainer, found, err = database.FindContainerByIdentifier(containerWithCorrectVersion.ContainerIdentifier)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(foundContainer.Handle).To(Equal(containerWithCorrectVersion.Handle))
+
 		By("not finding a check container whose ttl has not expired, but whose best_used_by_time has elapsed")
 		sourContainer := db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{

@@ -70,7 +70,6 @@ var _ = Describe("DBProvider", func() {
 		fakeDB = new(workerfakes.FakeWorkerDB)
 		fakeDB.GetVolumeTTLReturns(1*time.Millisecond, true, nil)
 		fakeDB.GetContainerReturns(db.SavedContainer{}, true, nil)
-		fakeDB.FindWorkerCheckResourceTypeVersionReturns("", false, nil)
 
 		gardenAddr = fmt.Sprintf("0.0.0.0:%d", 8888+GinkgoParallelNode())
 		fakeGardenBackend = new(gfakes.FakeBackend)
