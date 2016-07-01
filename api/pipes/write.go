@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/pivotal-golang/lager"
 )
 
 func (s *Server) WritePipe(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +36,7 @@ func (s *Server) WritePipe(w http.ResponseWriter, r *http.Request) {
 		delete(s.pipes, pipeID)
 		s.pipesL.Unlock()
 	} else {
-
+		logger.Debug("forwarding-pipe-write-request", lager.Data{"pipe-url": dbPipe.URL})
 		response, err := s.forwardRequest(w, r, dbPipe.URL, atc.WritePipe, dbPipe.ID)
 		if err != nil {
 			logger.Error("failed-to-forward-request", err)
