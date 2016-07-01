@@ -272,6 +272,8 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			step.logger.Error("stopping-container", err)
 		}
 
+		<-exited
+
 		return ErrInterrupted
 
 	case <-exited:

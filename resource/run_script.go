@@ -155,6 +155,7 @@ func (resource *resource) runScript(
 
 		case <-signals:
 			resource.container.Stop(true)
+			<-processExited
 			return ErrAborted
 		}
 	})

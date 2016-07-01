@@ -137,14 +137,6 @@ var _ = Describe("Resource In", func() {
 				Eventually(inProcess.Wait()).Should(Receive(Equal(ErrAborted)))
 			})
 
-			It("only stops the container once", func() {
-				fakeContainer.StopReturns(nil)
-				inProcess.Signal(os.Interrupt)
-				fakeClock.IncrementBySeconds(100)
-				Eventually(inProcess.Wait()).Should(Receive(Equal(ErrAborted)))
-				Expect(fakeContainer.StopCallCount()).To(Equal(1))
-			})
-
 			It("doesn't send garden terminate signal to process", func() {
 				inProcess.Signal(os.Interrupt)
 				Eventually(inProcess.Wait()).Should(Receive(Equal(ErrAborted)))
