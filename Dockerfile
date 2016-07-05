@@ -47,7 +47,7 @@ RUN apt-get update && \
 
 # pre-build libseccomp
 RUN cd /tmp && \
-      curl -L https://github.com/seccomp/libseccomp/releases/download/v2.3.1/libseccomp-2.3.1.tar.gz | tar zxf - &&
+      curl -L https://github.com/seccomp/libseccomp/releases/download/v2.3.1/libseccomp-2.3.1.tar.gz | tar zxf - && \
       cd libseccomp-2.3.1 && \
         ./configure --prefix=/opt/static-assets/libseccomp && \
         make && \
