@@ -3,6 +3,7 @@ jobs:
 - name: some-job
   plan:
   - task: output-producer
+    tags: ["tagged"]
     config:
       platform: linux
       image_resource:
@@ -21,6 +22,7 @@ jobs:
           touch output-1-src/file-1
           touch output-2-src/file-2
   - task: find-files
+    tags: ["tagged"]
     config:
       platform: linux
       image_resource:
