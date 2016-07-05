@@ -126,6 +126,10 @@ before using it!
   }{
     \hyperlink{https://github.com/ljfranklin/terraform-resource}{Terraform}
   }
+  {
+    \hyperlink{https://github.com/mrsixw/concourse-rsync-resource}{Rsync}
+  }
+
 
   \section{Adding to this list}{
     Fork the
