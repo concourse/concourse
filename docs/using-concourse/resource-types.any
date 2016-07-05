@@ -125,8 +125,7 @@ before using it!
     \hyperlink{https://github.com/karunamon/concourse-resource-bitbucket}{Bitbucket Notifications}
   }{
     \hyperlink{https://github.com/ljfranklin/terraform-resource}{Terraform}
-  }
-  {
+  }{
     \hyperlink{https://github.com/mrsixw/concourse-rsync-resource}{Rsync}
   }
 
