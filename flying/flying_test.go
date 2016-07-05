@@ -164,6 +164,7 @@ echo world > output-2/file-2
 			err := ioutil.WriteFile(
 				filepath.Join(fixture, "run"),
 				[]byte(`#!/bin/sh
+trap "echo task got sigterm; exit 1" SIGTERM
 sleep 1000 &
 echo waiting
 wait
@@ -180,6 +181,8 @@ wait
 			Eventually(flyS).Should(gbytes.Say("waiting"))
 
 			flyS.Signal(syscall.SIGTERM)
+
+			Eventually(flyS).Should(gbytes.Say("task got sigterm"))
 
 			// build should have been aborted
 			Eventually(flyS).Should(gexec.Exit(3))
