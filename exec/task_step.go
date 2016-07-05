@@ -267,7 +267,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	case <-signals:
 		step.registerSource(config)
 
-		err = step.container.Stop(true)
+		err = step.container.Stop(false)
 		if err != nil {
 			step.logger.Error("stopping-container", err)
 		}

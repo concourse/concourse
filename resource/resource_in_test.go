@@ -133,7 +133,7 @@ var _ = Describe("Resource In", func() {
 			It("stops the container", func() {
 				inProcess.Signal(os.Interrupt)
 				Eventually(fakeContainer.StopCallCount, 8*time.Second).Should(Equal(1))
-				Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
+				Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
 				Eventually(inProcess.Wait()).Should(Receive(Equal(ErrAborted)))
 			})
 

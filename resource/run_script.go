@@ -154,7 +154,7 @@ func (resource *resource) runScript(
 			return json.Unmarshal(stdout.Bytes(), output)
 
 		case <-signals:
-			resource.container.Stop(true)
+			resource.container.Stop(false)
 			<-processExited
 			return ErrAborted
 		}

@@ -1095,7 +1095,7 @@ var _ = Describe("GardenFactory", func() {
 								It("stops the container", func() {
 									process.Signal(os.Interrupt)
 									Eventually(fakeContainer.StopCallCount, 8*time.Second).Should(Equal(1))
-									Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
+									Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
 									Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
 								})
 
@@ -1847,7 +1847,7 @@ var _ = Describe("GardenFactory", func() {
 							It("stops the container", func() {
 								process.Signal(os.Interrupt)
 								Eventually(fakeContainer.StopCallCount, 8*time.Second).Should(Equal(1))
-								Expect(fakeContainer.StopArgsForCall(0)).To(BeTrue())
+								Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
 								Eventually(process.Wait()).Should(Receive(Equal(ErrInterrupted)))
 							})
 
