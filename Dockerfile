@@ -16,6 +16,10 @@ RUN cd /tmp && curl https://ftp.gnu.org/gnu/tar/tar-1.28.tar.gz | tar zxf - && \
       cd .. && \
       rm -rf tar-1.28
 
+# install pkg-config for building btrfs-progs and runc with seccomp
+RUN apt-get update && \
+      apt-get -y install pkg-config
+
 # pre-build `iptables`
 RUN apt-get update && \
       apt-get -y install bzip2 && \
@@ -30,7 +34,7 @@ RUN apt-get update && \
 
 # pre-build btrfs-progs
 RUN apt-get update && \
-      apt-get -y install liblzo2-dev libblkid-dev e2fslibs-dev pkg-config libz-dev && \
+      apt-get -y install liblzo2-dev libblkid-dev e2fslibs-dev libz-dev && \
       cd /tmp && \
       curl https://www.kernel.org/pub/linux/kernel/people/kdave/btrfs-progs/btrfs-progs-v4.4.tar.gz | tar zxf - && \
       cd btrfs-progs-v4.4 && \
@@ -39,14 +43,14 @@ RUN apt-get update && \
       cp btrfs mkfs.btrfs /opt/static-assets && \
       cd /tmp && \
       rm -rf btrfs-progs-v4.4 && \
-      apt-get -y remove liblzo2-dev libblkid-dev e2fslibs-dev pkg-config libz-dev
+      apt-get -y remove liblzo2-dev libblkid-dev e2fslibs-dev libz-dev
 
 # pre-build libseccomp
 RUN cd /tmp && \
       curl https://github.com/seccomp/libseccomp/releases/download/v2.3.1/libseccomp-2.3.1.tar.gz | tar zxf - &&
       cd libseccomp-2.3.1 && \
-      ./configure --prefix=/opt/static-assets/libseccomp && \
-      make && \
-      make install && \
+        ./configure --prefix=/opt/static-assets/libseccomp && \
+        make && \
+        make install && \
       cd /tmp && \
       rm -rf libseccomp-2.3.1
