@@ -40,3 +40,13 @@ RUN apt-get update && \
       cd /tmp && \
       rm -rf btrfs-progs-v4.4 && \
       apt-get -y remove liblzo2-dev libblkid-dev e2fslibs-dev pkg-config libz-dev
+
+# pre-build libseccomp
+RUN cd /tmp && \
+      curl https://github.com/seccomp/libseccomp/releases/download/v2.3.1/libseccomp-2.3.1.tar.gz | tar zxf - &&
+      cd libseccomp-2.3.1 && \
+      ./configure --prefix=/opt/static-assets/libseccomp && \
+      make && \
+      make install && \
+      cd /tmp && \
+      rm -rf libseccomp-2.3.1

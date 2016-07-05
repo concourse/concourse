@@ -34,15 +34,21 @@ pushd garden-runc-release/
     go install github.com/cloudfoundry-incubator/guardian/cmd/kawasaki
     go install github.com/cloudfoundry-incubator/guardian/rundmc/iodaemon/cmd/iodaemon
 
-    GOPATH=$PWD/src/github.com/opencontainers/runc/Godeps/_workspace:$GOPATH \
-      go install github.com/opencontainers/runc
+    pushd src/github.com/opencontainers/runc
+      PKG_CONFIG_PATH=/opt/static-assets/libseccomp/lib/pkgconfig \
+        GOPATH=$PWD/Godeps/_workspace:$GOPATH \
+        BUILDTAGS=seccomp \
+        make static
+
+      mv runc $LINUX_ASSETS/bin
+    popd
 
     pushd src/github.com/cloudfoundry-incubator/guardian/rundmc/nstar
       make
       mv nstar $LINUX_ASSETS/bin
     popd
 
-    cp bin/{iodaemon,kawasaki,init,runc,dadoo} $LINUX_ASSETS/bin
+    cp bin/{iodaemon,kawasaki,init,dadoo} $LINUX_ASSETS/bin
   )
 popd
 
