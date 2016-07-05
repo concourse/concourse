@@ -127,6 +127,8 @@ before using it!
     \hyperlink{https://github.com/ljfranklin/terraform-resource}{Terraform}
   }{
     \hyperlink{https://github.com/pivotal-cloudops/azure-blobstore-concourse-resource}{Azure Blobstore}
+  }{
+    \hyperlink{https://github.com/mrsixw/concourse-rsync-resource}{Rsync}
   }
 
   \section{Adding to this list}{
