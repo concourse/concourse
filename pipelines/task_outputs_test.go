@@ -16,7 +16,7 @@ var _ = Describe("A job with a task that produces outputs", func() {
 	Context("with outputs and single worker", func() {
 		BeforeEach(func() {
 			configurePipeline(
-				"-c", "fixtures/task-outputs-tagged.yml",
+				"-c", "fixtures/task-outputs.yml",
 			)
 		})
 
