@@ -110,10 +110,7 @@ the \reference{installing}{installation guide} before coming back here.
 
   image_resource:
     type: docker-image
-    source:
-      repository: ruby
-      tag: 2.3.0
-  }
+    source: { repository: busybox }
 
   inputs:
   - name: flight-school
@@ -140,7 +137,7 @@ the \reference{installing}{installation guide} before coming back here.
   100 40960    0 40960    0     0   662k      0 --:--:-- --:--:-- --:--:--  800k
   initializing
   running flight-school/ci/test.sh
-  proc_starter: ExecAsUser: system: program 'flight-school/ci/test.sh' was not found in $PATH: exec: "flight-school/ci/test.sh": stat flight-school/ci/test.sh: no such file or directory
+  exec failed: exec: "./flight-school/ci/test.sh": stat ./flight-school/ci/test.sh: no such file or directory
   failed
   }
 
@@ -180,7 +177,7 @@ the \reference{installing}{installation guide} before coming back here.
   100 40960    0 40960    0     0   662k      0 --:--:-- --:--:-- --:--:--  800k
   initializing
   running flight-school/ci/test.sh
-  proc_starter: ExecAsUser: system: program 'flight-school/ci/test.sh' was not found in $PATH: exec: "flight-school/ci/test.sh": permission denied
+  exec failed: exec: "./flight-school/ci/test.sh": permission denied
   failed
   }
 
@@ -201,7 +198,7 @@ the \reference{installing}{installation guide} before coming back here.
   100 40960    0 40960    0     0   662k      0 --:--:-- --:--:-- --:--:--  800k
   initializing
   running flight-school/ci/test.sh
-  proc_starter: ExecAsUser: system: exec of flight-school/ci/test.sh: no such file or directory
+  exec failed: no such file or directory
   failed
   }
 
