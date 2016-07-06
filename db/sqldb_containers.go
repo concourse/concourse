@@ -146,7 +146,7 @@ func (db *SQLDB) FindJobContainersFromUnsuccessfulBuilds() ([]SavedContainer, er
 	rows, err := db.conn.Query(
 		`SELECT ` + containerColumns + `
 		FROM containers c ` + containerJoins + `
-		WHERE (b.status = 'failed' OR b.status = 'aborted' OR b.status = 'errored')
+		WHERE (b.status = 'failed' OR b.status = 'errored')
 		AND b.job_id is not null`)
 
 	if err != nil {

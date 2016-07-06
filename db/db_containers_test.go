@@ -110,6 +110,9 @@ var _ = Describe("Keeping track of containers", func() {
 		savedBuild3, err := pipelineDB.CreateJobBuild("some-random-job")
 		Expect(err).NotTo(HaveOccurred())
 
+		savedBuild4, err := pipelineDB.CreateJobBuild("some-job")
+		Expect(err).NotTo(HaveOccurred())
+
 		err = database.FinishBuild(savedBuild0.ID, savedPipeline.ID, db.StatusErrored)
 		Expect(err).NotTo(HaveOccurred())
 		err = database.FinishBuild(savedBuild1.ID, savedPipeline.ID, db.StatusFailed)
@@ -117,6 +120,8 @@ var _ = Describe("Keeping track of containers", func() {
 		err = database.FinishBuild(savedBuild2.ID, savedPipeline.ID, db.StatusFailed)
 		Expect(err).NotTo(HaveOccurred())
 		err = database.FinishBuild(savedBuild3.ID, savedPipeline.ID, db.StatusSucceeded)
+		Expect(err).NotTo(HaveOccurred())
+		err = database.FinishBuild(savedBuild4.ID, savedPipeline.ID, db.StatusAborted)
 		Expect(err).NotTo(HaveOccurred())
 
 		containerInfo0 := db.Container{
@@ -173,6 +178,20 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 		}
 
+		containerInfo4 := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				BuildID: savedBuild4.ID,
+				PlanID:  "some-plan-id",
+				Stage:   db.ContainerStageRun,
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "handle-4",
+				PipelineID: savedPipeline.ID,
+				JobName:    savedBuild4.JobName,
+				Type:       db.ContainerTypeTask,
+			},
+		}
+
 		_, err = database.CreateContainer(containerInfo0, 5*time.Minute, 0, []string{})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -183,6 +202,9 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		_, err = database.CreateContainer(containerInfo3, 0, 0, []string{})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = database.CreateContainer(containerInfo4, 0, 0, []string{})
 		Expect(err).NotTo(HaveOccurred())
 
 		savedContainers, err := database.FindJobContainersFromUnsuccessfulBuilds()
