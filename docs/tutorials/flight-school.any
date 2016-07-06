@@ -108,6 +108,13 @@ the \reference{installing}{installation guide} before coming back here.
   \codeblock{yaml}{
   platform: linux
 
+  image_resource:
+    type: docker-image
+    source:
+      repository: ruby
+      tag: 2.3.0
+  }
+
   inputs:
   - name: flight-school
 
