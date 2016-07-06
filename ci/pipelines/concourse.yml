@@ -6,7 +6,6 @@ groups:
   - fly
   - go-concourse
   - baggageclaim
-  - jettison
   - tsa
   - rc
   - bin-rc
@@ -93,14 +92,6 @@ jobs:
   - task: build
     file: concourse/ci/blackbox.yml
 
-- name: jettison
-  public: true
-  plan:
-  - get: concourse
-    trigger: true
-  - task: build
-    file: concourse/ci/jettison.yml
-
 - name: tsa
   public: true
   plan:
@@ -144,7 +135,7 @@ jobs:
   plan:
   - get: concourse
     trigger: true
-    passed: [atc, fly, go-concourse, blackbox, tsa, jettison, baggageclaim]
+    passed: [atc, fly, go-concourse, blackbox, tsa, baggageclaim]
   - get: garden-runc
   - get: version
     params: {pre: rc}

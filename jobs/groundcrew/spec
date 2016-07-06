@@ -8,7 +8,6 @@ description: >
 
 templates:
   beacon_ctl.erb: bin/beacon_ctl
-  jettison_ctl.erb: bin/jettison_ctl
 
   static_known_hosts.erb: config/static_known_hosts
   private_key.erb: config/private_key
@@ -16,7 +15,6 @@ templates:
 
 packages:
   - pid_utils
-  - jettison
   - generated_tsa_host_key
   - generated_worker_key
   - resource_discovery

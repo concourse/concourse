@@ -13,8 +13,6 @@ echo "Testing Blackbox"
 ./src/github.com/concourse/blackbox/scripts/test
 echo "Testing Fly"
 ./src/github.com/concourse/fly/scripts/test
-echo "Testing Jettison"
-./src/github.com/concourse/jettison/scripts/test
 echo "Testing TSA"
 ./src/github.com/concourse/tsa/scripts/test
 

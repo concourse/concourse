@@ -16,7 +16,7 @@ for pkg in fly; do
   popd
 done
 
-for pkg in atc blackbox jettison baggageclaim tsa; do
+for pkg in atc blackbox baggageclaim tsa; do
   pushd packages/$pkg
     {
       cat spec | grep -v '# gosub'

@@ -161,10 +161,6 @@
 	path = src/github.com/jessevdk/go-flags
 	url = https://github.com/jessevdk/go-flags
 	branch = master
-[submodule "src/github.com/concourse/jettison"]
-	path = src/github.com/concourse/jettison
-	url = https://github.com/concourse/jettison
-	branch = master
 [submodule "src/github.com/pkg/term"]
 	path = src/github.com/pkg/term
 	url = https://github.com/pkg/term
