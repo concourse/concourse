@@ -56,4 +56,11 @@
     process tree is sufficiently complex. This also resulted in the
     \resource{pool} not giving up in its attempt loop when aborted.
   }
+
+  \note{fix}{
+    Previously if a worker left the pool at an inopportune moment, Concourse
+    would forget about its volumes, which led to things getting into a wedged
+    state. This is now fixed. You should never have to pause your pipeline to
+    "let it breathe" again.
+  }
 }
