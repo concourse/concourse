@@ -532,20 +532,6 @@ func (db *SQLDB) DeleteContainer(handle string) error {
 	defer tx.Rollback()
 
 	_, err = tx.Exec(`
-		UPDATE volumes
-		SET container_id = null
-		WHERE container_id IN (
-			SELECT id
-			FROM containers
-			WHERE handle = $1
-		)
-	`, handle)
-
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
 		DELETE FROM containers WHERE handle = $1
 	`, handle)
 	if err != nil {

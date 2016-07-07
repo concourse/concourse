@@ -110,4 +110,5 @@ var Migrations = []migration.Migrator{
 	MakeVolumeSizeBigint,
 	MakeContainersExpiresAtNullable,
 	AddContainerIDToVolumes,
+	AddOnDeleteSetNullToFKeyContainerId,
 }
