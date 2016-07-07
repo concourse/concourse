@@ -131,12 +131,12 @@ var _ = BeforeEach(func() {
 	sink = lager.NewReconfigurableSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG), lager.DEBUG)
 	logger.RegisterSink(sink)
 
-	handler, err := api.NewHandler(
+	handlers, err := api.NewHandler(
 		logger,
 
 		externalURL,
 
-		wrappa.NewAPIAuthWrappa(true, authValidator, userContextReader),
+		[]wrappa.Wrappa{wrappa.NewAPIAuthWrappa(true, authValidator, userContextReader)},
 
 		fakeTokenGenerator,
 		providerFactory,
@@ -173,6 +173,8 @@ var _ = BeforeEach(func() {
 		"1.2.3",
 	)
 	Expect(err).NotTo(HaveOccurred())
+	Expect(handlers).To(HaveLen(1))
+	handler := handlers[0]
 
 	server = httptest.NewServer(handler)
 
