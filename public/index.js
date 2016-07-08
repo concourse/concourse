@@ -9,13 +9,21 @@ function draw(groups, renderFn, completeFn) {
       dataType: "json"
     })
   ).done(function(a1, a2) {
+    $(".error-message").addClass("hidden");
+
     var jobs = a1[0];
     var resources = a2[0];
     var request = a2[2];
-    $('.error-message').addClass('hidden');
+
     renderFn(jobs, resources, request.getResponseHeader("X-Concourse-Version"));
-  }).fail(function() {
-    $('.error-message').removeClass('hidden');
+  }).fail(function(data) {
+    if (data.status !== 0) {
+      $(".error-message .explanation").text("response status " + data.status);
+    } else {
+      $(".error-message .explanation").text("could not reach server");
+    }
+
+    $(".error-message").removeClass("hidden");
   }).always(completeFn);
 }
 
