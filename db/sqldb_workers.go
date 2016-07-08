@@ -45,10 +45,6 @@ func (db *SQLDB) Workers() ([]SavedWorker, error) {
 }
 
 func (db *SQLDB) FindWorkerCheckResourceTypeVersion(workerName string, checkType string) (string, bool, error) {
-	if checkType == "" {
-		return "", false, nil
-	}
-
 	savedWorker, found, err := db.GetWorker(workerName)
 
 	if err != nil {
@@ -64,6 +60,7 @@ func (db *SQLDB) FindWorkerCheckResourceTypeVersion(workerName string, checkType
 			return workerResourceType.Version, true, nil
 		}
 	}
+
 	return "", false, nil
 }
 

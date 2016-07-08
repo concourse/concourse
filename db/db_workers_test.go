@@ -301,33 +301,7 @@ var _ = Describe("Keeping track of workers", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("returns true", func() {
-				workerVersion, found, err := database.FindWorkerCheckResourceTypeVersion("some-worker", "custom-type")
-				Expect(found).To(BeFalse())
-				Expect(err).NotTo(HaveOccurred())
-				Expect(workerVersion).To(Equal(""))
-			})
-		})
-
-		Context("if container is not a check container", func() {
-			BeforeEach(func() {
-				container = db.SavedContainer{
-					Container: db.Container{
-						ContainerMetadata: db.ContainerMetadata{
-							WorkerName: "some-worker",
-						},
-					},
-				}
-
-				workerInfo := db.WorkerInfo{
-					Name: "some-worker",
-				}
-
-				_, err := database.SaveWorker(workerInfo, 5*time.Minute)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("returns true", func() {
+			It("returns false", func() {
 				workerVersion, found, err := database.FindWorkerCheckResourceTypeVersion("some-worker", "custom-type")
 				Expect(found).To(BeFalse())
 				Expect(err).NotTo(HaveOccurred())

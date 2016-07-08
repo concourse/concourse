@@ -231,9 +231,28 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 
 	versionFilteredContainers := []SavedContainer{}
 	for _, container := range containers {
-		if container.Type != ContainerTypeCheck || container.ResourceTypeVersion == nil {
+		if container.Type != ContainerTypeCheck || container.CheckType == "" || container.ResourceTypeVersion == nil {
 			versionFilteredContainers = append(versionFilteredContainers, container)
 			continue
+		}
+
+		if container.PipelineID > 0 {
+			pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus, db)
+			pipelineDB, err := pipelineDBFactory.BuildWithID(container.PipelineID)
+			if err != nil {
+				return SavedContainer{}, false, err
+			}
+
+			_, found, err := pipelineDB.GetResourceType(container.CheckType)
+			if err != nil {
+				return SavedContainer{}, false, err
+			}
+
+			// this is custom resource type, do not validate version on worker
+			if found {
+				versionFilteredContainers = append(versionFilteredContainers, container)
+				continue
+			}
 		}
 
 		workerResourceTypeVersion, found, err := db.FindWorkerCheckResourceTypeVersion(container.WorkerName, container.CheckType)
@@ -241,11 +260,7 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 			return SavedContainer{}, false, err
 		}
 
-		if !found {
-			continue
-		}
-
-		if workerResourceTypeVersion == container.ResourceTypeVersion[container.CheckType] {
+		if found && workerResourceTypeVersion == container.ResourceTypeVersion[container.CheckType] {
 			versionFilteredContainers = append(versionFilteredContainers, container)
 		}
 	}

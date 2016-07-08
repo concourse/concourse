@@ -59,6 +59,12 @@ var _ = Describe("Keeping track of containers", func() {
 					Type: "some-other-type",
 				},
 			},
+			ResourceTypes: atc.ResourceTypes{
+				{
+					Name: "some-custom-type",
+					Type: "git",
+				},
+			},
 		}
 
 		savedPipeline, _, err = database.SaveConfig(atc.DefaultTeamName, "some-pipeline", config, 0, db.PipelineUnpaused)
@@ -69,6 +75,18 @@ var _ = Describe("Keeping track of containers", func() {
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, nil, database)
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
+
+		workerInfo := db.WorkerInfo{
+			Name: "updated-resource-type-worker",
+			ResourceTypes: []atc.WorkerResourceType{
+				atc.WorkerResourceType{
+					Type:    "some-type",
+					Version: "some-version",
+				},
+			},
+		}
+		_, err = database.SaveWorker(workerInfo, 10*time.Minute)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -1779,16 +1797,6 @@ var _ = Describe("Keeping track of containers", func() {
 		Expect(found).To(BeFalse())
 
 		By("not finding a check container when its resource type version does not match worker's")
-		workerInfo := db.WorkerInfo{
-			Name: "updated-resource-type-worker",
-			ResourceTypes: []atc.WorkerResourceType{
-				atc.WorkerResourceType{
-					Type:    "some-type",
-					Version: "some-version",
-				},
-			},
-		}
-
 		containerWithWrongVersion := db.Container{
 			ContainerIdentifier: db.ContainerIdentifier{
 				Stage:               db.ContainerStageRun,
@@ -1803,15 +1811,36 @@ var _ = Describe("Keeping track of containers", func() {
 			},
 		}
 
-		_, err = database.SaveWorker(workerInfo, 10*time.Minute)
-		Expect(err).NotTo(HaveOccurred())
-
 		_, err = database.CreateContainer(containerWithWrongVersion, 10*time.Minute, 0, []string{})
 		Expect(err).NotTo(HaveOccurred())
 
 		_, found, err = database.FindContainerByIdentifier(containerWithWrongVersion.ContainerIdentifier)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeFalse())
+
+		By("finding a check container has a custom resource type")
+		customContainer := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				Stage:               db.ContainerStageRun,
+				CheckType:           "some-custom-type",
+				CheckSource:         atc.Source{},
+				ResourceTypeVersion: atc.Version{},
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "custom-handle",
+				WorkerName: "updated-resource-type-worker",
+				Type:       db.ContainerTypeCheck,
+				PipelineID: savedPipeline.ID,
+			},
+		}
+
+		_, err = database.CreateContainer(customContainer, 10*time.Minute, 0, []string{})
+		Expect(err).NotTo(HaveOccurred())
+
+		foundContainer, found, err = database.FindContainerByIdentifier(customContainer.ContainerIdentifier)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(foundContainer.Handle).To(Equal(customContainer.Handle))
 
 		By("finding a check container when its resource type version does not match worker's")
 		containerWithCorrectVersion := db.Container{
