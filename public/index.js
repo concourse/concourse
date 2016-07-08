@@ -12,7 +12,10 @@ function draw(groups, renderFn, completeFn) {
     var jobs = a1[0];
     var resources = a2[0];
     var request = a2[2];
+    $('.error-message').addClass('hidden');
     renderFn(jobs, resources, request.getResponseHeader("X-Concourse-Version"));
+  }).fail(function() {
+    $('.error-message').removeClass('hidden');
   }).always(completeFn);
 }
 
