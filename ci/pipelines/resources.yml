@@ -939,7 +939,7 @@ resources:
 - name: autopilot
   type: git
   source:
-    uri: https://github.com/concourse/autopilot.git
+    uri: https://github.com/contraband/autopilot.git
     branch: master
 
 - name: cf-cli
