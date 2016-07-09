@@ -24,7 +24,7 @@ func newSQLDBBuildEventSource(
 
 		notifier: notifier,
 
-		events: make(chan atc.Event, 20),
+		events: make(chan atc.Event, 2000),
 		stop:   make(chan struct{}),
 		wg:     wg,
 	}
