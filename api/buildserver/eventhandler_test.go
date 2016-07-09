@@ -1,30 +1,33 @@
 package buildserver_test
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"time"
 
-	"github.com/concourse/atc"
 	. "github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/api/buildserver/buildserverfakes"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
-	"github.com/pivotal-golang/lager"
+	"github.com/concourse/atc/event"
+	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/vito/go-sse/sse"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-type fakeEvent struct {
-	Value string `json:"value"`
+func fakeEvent(payload string) event.Envelope {
+	msg := json.RawMessage(payload)
+	return event.Envelope{
+		Data:    &msg,
+		Event:   "fake",
+		Version: "42.0",
+	}
 }
-
-func (e fakeEvent) EventType() atc.EventType { return "fake" }
-func (fakeEvent) Version() atc.EventVersion  { return "42.0" }
 
 var _ = Describe("Handler", func() {
 	var (
@@ -36,7 +39,7 @@ var _ = Describe("Handler", func() {
 	BeforeEach(func() {
 		buildsDB = new(buildserverfakes.FakeBuildsDB)
 
-		server = httptest.NewServer(NewEventHandler(lager.NewLogger("test"), buildsDB, 128))
+		server = httptest.NewServer(NewEventHandler(lagertest.NewTestLogger("test"), buildsDB, 128))
 	})
 
 	Describe("GET", func() {
@@ -54,25 +57,25 @@ var _ = Describe("Handler", func() {
 
 		Context("when subscribing to the build succeeds", func() {
 			var fakeEventSource *dbfakes.FakeEventSource
-			var returnedEvents []atc.Event
+			var returnedEvents []event.Envelope
 
 			BeforeEach(func() {
-				returnedEvents = []atc.Event{
-					fakeEvent{"e1"},
-					fakeEvent{"e2"},
-					fakeEvent{"e3"},
+				returnedEvents = []event.Envelope{
+					fakeEvent(`{"event":1}`),
+					fakeEvent(`{"event":2}`),
+					fakeEvent(`{"event":3}`),
 				}
 
 				fakeEventSource = new(dbfakes.FakeEventSource)
 
 				buildsDB.GetBuildEventsStub = func(buildID int, from uint) (db.EventSource, error) {
-					fakeEventSource.NextStub = func() (atc.Event, error) {
+					fakeEventSource.NextStub = func() (event.Envelope, error) {
 						defer GinkgoRecover()
 
 						Expect(fakeEventSource.CloseCallCount()).To(Equal(0))
 
 						if from >= uint(len(returnedEvents)) {
-							return nil, db.ErrEndOfBuildEventStream
+							return event.Envelope{}, db.ErrEndOfBuildEventStream
 						}
 
 						from++
@@ -125,19 +128,19 @@ var _ = Describe("Handler", func() {
 				Expect(reader.Next()).To(Equal(sse.Event{
 					ID:   "0",
 					Name: "event",
-					Data: []byte(`{"data":{"value":"e1"},"event":"fake","version":"42.0"}`),
+					Data: []byte(`{"data":{"event":1},"event":"fake","version":"42.0"}`),
 				}))
 
 				Expect(reader.Next()).To(Equal(sse.Event{
 					ID:   "1",
 					Name: "event",
-					Data: []byte(`{"data":{"value":"e2"},"event":"fake","version":"42.0"}`),
+					Data: []byte(`{"data":{"event":2},"event":"fake","version":"42.0"}`),
 				}))
 
 				Expect(reader.Next()).To(Equal(sse.Event{
 					ID:   "2",
 					Name: "event",
-					Data: []byte(`{"data":{"value":"e3"},"event":"fake","version":"42.0"}`),
+					Data: []byte(`{"data":{"event":3},"event":"fake","version":"42.0"}`),
 				}))
 
 				Expect(reader.Next()).To(Equal(sse.Event{
@@ -174,7 +177,7 @@ var _ = Describe("Handler", func() {
 				fakeEventSource = new(dbfakes.FakeEventSource)
 
 				from := 0
-				fakeEventSource.NextStub = func() (atc.Event, error) {
+				fakeEventSource.NextStub = func() (event.Envelope, error) {
 					defer GinkgoRecover()
 
 					Expect(fakeEventSource.CloseCallCount()).To(Equal(0))
@@ -182,9 +185,9 @@ var _ = Describe("Handler", func() {
 					from++
 
 					if from == 1 {
-						return fakeEvent{"e1"}, nil
+						return fakeEvent(`{"event":1}`), nil
 					} else {
-						return nil, disaster
+						return event.Envelope{}, disaster
 					}
 				}
 
@@ -211,7 +214,7 @@ var _ = Describe("Handler", func() {
 				Expect(reader.Next()).To(Equal(sse.Event{
 					ID:   "0",
 					Name: "event",
-					Data: []byte(`{"data":{"value":"e1"},"event":"fake","version":"42.0"}`),
+					Data: []byte(`{"data":{"event":1},"event":"fake","version":"42.0"}`),
 				}))
 
 				_, err := reader.Next()
@@ -224,7 +227,7 @@ var _ = Describe("Handler", func() {
 			var fakeEventSource *dbfakes.FakeEventSource
 			BeforeEach(func() {
 				fakeEventSource = new(dbfakes.FakeEventSource)
-				fakeEventSource.NextReturns(fakeEvent{"e1"}, nil)
+				fakeEventSource.NextReturns(fakeEvent(`{"event":1}`), nil)
 				buildsDB.GetBuildEventsReturns(fakeEventSource, nil)
 			})
 

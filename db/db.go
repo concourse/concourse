@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 )
@@ -192,7 +193,7 @@ var ErrBuildEventStreamClosed = errors.New("build event stream closed")
 //go:generate counterfeiter . EventSource
 
 type EventSource interface {
-	Next() (atc.Event, error)
+	Next() (event.Envelope, error)
 	Close() error
 }
 

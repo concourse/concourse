@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/concourse/atc"
@@ -24,7 +25,7 @@ func newSQLDBBuildEventSource(
 
 		notifier: notifier,
 
-		events: make(chan atc.Event, 2000),
+		events: make(chan event.Envelope, 2000),
 		stop:   make(chan struct{}),
 		wg:     wg,
 	}
@@ -42,17 +43,17 @@ type sqldbBuildEventSource struct {
 	conn     Conn
 	notifier Notifier
 
-	events chan atc.Event
+	events chan event.Envelope
 	stop   chan struct{}
 	err    error
 	wg     *sync.WaitGroup
 }
 
-func (source *sqldbBuildEventSource) Next() (atc.Event, error) {
+func (source *sqldbBuildEventSource) Next() (event.Envelope, error) {
 	select {
 	case e, ok := <-source.events:
 		if !ok {
-			return nil, source.err
+			return event.Envelope{}, source.err
 		}
 
 		return e, nil
@@ -130,13 +131,12 @@ func (source *sqldbBuildEventSource) collectEvents(cursor uint) {
 				return
 			}
 
-			ev, err := event.ParseEvent(atc.EventVersion(v), atc.EventType(t), []byte(p))
-			if err != nil {
-				rows.Close()
+			data := json.RawMessage(p)
 
-				source.err = err
-				close(source.events)
-				return
+			ev := event.Envelope{
+				Data:    &data,
+				Event:   atc.EventType(t),
+				Version: atc.EventVersion(v),
 			}
 
 			select {

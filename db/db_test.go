@@ -95,7 +95,7 @@ var _ = Describe("SQL DB", func() {
 		}))
 
 		By("notifying those waiting on events as soon as they're saved")
-		nextEvent := make(chan atc.Event)
+		nextEvent := make(chan event.Envelope)
 		nextErr := make(chan error)
 
 		go func() {

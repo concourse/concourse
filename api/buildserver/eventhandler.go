@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/concourse/atc/db"
-	"github.com/concourse/atc/event"
 	"github.com/pivotal-golang/lager"
 	"github.com/vito/go-sse/sse"
 )
@@ -81,7 +80,7 @@ func NewEventHandler(logger lager.Logger, buildsDB BuildsDB, buildID int) http.H
 				return
 			}
 
-			err = writer.WriteEvent(start, event.Message{ev})
+			err = writer.WriteEvent(start, ev)
 			if err != nil {
 				logger.Info("failed-to-write-event", lager.Data{"error": err.Error()})
 				return
