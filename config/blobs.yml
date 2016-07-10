@@ -56,9 +56,9 @@ resources/tracker-resource.tar.gz:
   sha: faeea15a234808ac11938b784f9c59d449aba137
   size: 14580895
 resources/vagrant-cloud-resource.tar.gz:
-  object_id: 4284090f-2d02-438c-bd94-a13afd0333a0
-  sha: da88838f245a2c8501e0facc49955746d1ca1041
-  size: 6841214
+  object_id: 0aa58928-422f-4382-a51f-eb997519bd09
+  sha: 150fcb505b821187358710f0fe4bc62e881cf49d
+  size: 6841192
 golang_1.6/go1.6.1.linux-amd64.tar.gz:
   object_id: 980f2086-2872-4159-a73f-77ea2905d21b
   sha: c73492474dcc7a233772d27e948b74468d9f1849
