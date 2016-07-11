@@ -496,28 +496,7 @@ func (db *SQLDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) er
 }
 
 func (db *SQLDB) ReapContainer(handle string) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	_, err = tx.Exec(`
-		UPDATE volumes
-		SET container_id = null
-		WHERE container_id IN (
-			SELECT id
-			FROM containers
-			WHERE handle = $1
-		)
-	`, handle)
-
-	if err != nil {
-		return err
-	}
-
-	rows, err := tx.Exec(`
+	rows, err := db.conn.Exec(`
 		DELETE FROM containers WHERE handle = $1
 	`, handle)
 	if err != nil {
@@ -535,7 +514,7 @@ func (db *SQLDB) ReapContainer(handle string) error {
 		return nil
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func (db *SQLDB) DeleteContainer(handle string) error {
@@ -721,37 +700,14 @@ func scanContainer(row scannable) (SavedContainer, error) {
 }
 
 func deleteExpired(db *SQLDB) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	_, err = tx.Exec(`
-		UPDATE volumes
-		SET container_id = null
-		WHERE container_id IN (
-			SELECT id
-			FROM containers
-			WHERE expires_at IS NOT NULL
-			AND expires_at < NOW()
-		)
-	`)
-
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
+	_, err := db.conn.Exec(`
 		DELETE FROM containers
 		WHERE expires_at IS NOT NULL
 		AND expires_at < NOW()
 	`)
-
 	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }
