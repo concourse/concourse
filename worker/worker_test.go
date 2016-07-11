@@ -31,7 +31,8 @@ var _ = Describe("Worker", func() {
 		fakeBaggageclaimClient *bfakes.FakeClient
 		fakeVolumeClient       *wfakes.FakeVolumeClient
 		fakeVolumeFactory      *wfakes.FakeVolumeFactory
-		fakeImageFetcher       *wfakes.FakeImageFetcher
+		fakeImageFactory       *wfakes.FakeImageFactory
+		fakeImage              *wfakes.FakeImage
 		fakeGardenWorkerDB     *wfakes.FakeGardenWorkerDB
 		fakeWorkerProvider     *wfakes.FakeWorkerProvider
 		fakeClock              *fakeclock.FakeClock
@@ -54,7 +55,9 @@ var _ = Describe("Worker", func() {
 		fakeBaggageclaimClient = new(bfakes.FakeClient)
 		fakeVolumeClient = new(wfakes.FakeVolumeClient)
 		fakeVolumeFactory = new(wfakes.FakeVolumeFactory)
-		fakeImageFetcher = new(wfakes.FakeImageFetcher)
+		fakeImageFactory = new(wfakes.FakeImageFactory)
+		fakeImage = new(wfakes.FakeImage)
+		fakeImageFactory.NewImageReturns(fakeImage)
 		fakeGardenWorkerDB = new(wfakes.FakeGardenWorkerDB)
 		fakeWorkerProvider = new(wfakes.FakeWorkerProvider)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
@@ -76,7 +79,7 @@ var _ = Describe("Worker", func() {
 			fakeBaggageclaimClient,
 			fakeVolumeClient,
 			fakeVolumeFactory,
-			fakeImageFetcher,
+			fakeImageFactory,
 			fakeGardenWorkerDB,
 			fakeWorkerProvider,
 			fakeClock,
@@ -528,7 +531,7 @@ var _ = Describe("Worker", func() {
 
 				imageVersion = atc.Version{"image": "version"}
 
-				fakeImageFetcher.FetchImageReturns(imageVolume, metadataReader, imageVersion, nil)
+				fakeImage.FetchReturns(imageVolume, metadataReader, imageVersion, nil)
 			})
 
 			It("tries to create the container in the db", func() {
@@ -559,8 +562,9 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("tries to fetch the image for the resource type", func() {
-				Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
-				_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes, fetchPrivileged := fakeImageFetcher.FetchImageArgsForCall(0)
+				Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
+				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
+				Expect(fakeImage.FetchCallCount()).To(Equal(1))
 				Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 					Type:   "some-resource",
 					Source: atc.Source{"some": "source"},
@@ -605,7 +609,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when fetching the image fails", func() {
 				BeforeEach(func() {
-					fakeImageFetcher.FetchImageReturns(nil, nil, nil, errors.New("fetch-err"))
+					fakeImage.FetchReturns(nil, nil, nil, errors.New("fetch-err"))
 				})
 
 				It("returns an error", func() {
@@ -621,7 +625,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when the metadata.json is bogus", func() {
 				BeforeEach(func() {
-					fakeImageFetcher.FetchImageReturns(imageVolume, ioutil.NopCloser(strings.NewReader(`{"env": 42}`)), imageVersion, nil)
+					fakeImage.FetchReturns(imageVolume, ioutil.NopCloser(strings.NewReader(`{"env": 42}`)), imageVersion, nil)
 				})
 
 				It("returns ErrMalformedMetadata", func() {
@@ -657,7 +661,7 @@ var _ = Describe("Worker", func() {
 
 				imageVersion := atc.Version{"image": "version"}
 
-				fakeImageFetcher.FetchImageReturns(imageVolume, metadataReader, imageVersion, nil)
+				fakeImage.FetchReturns(imageVolume, metadataReader, imageVersion, nil)
 			})
 
 			It("tries to create the container in the db", func() {
@@ -688,8 +692,9 @@ var _ = Describe("Worker", func() {
 			})
 
 			It("tries to fetch the image for the resource type", func() {
-				Expect(fakeImageFetcher.FetchImageCallCount()).To(Equal(1))
-				_, fetchImageConfig, fetchSignals, fetchID, fetchMetadata, fetchDelegate, fetchWorker, fetchTags, fetchCustomTypes, fetchPrivileged := fakeImageFetcher.FetchImageArgsForCall(0)
+				Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
+				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
+				Expect(fakeImage.FetchCallCount()).To(Equal(1))
 				Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 					Type:   "some-resource",
 					Source: atc.Source{"some": "source"},
@@ -734,7 +739,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when fetching the image fails", func() {
 				BeforeEach(func() {
-					fakeImageFetcher.FetchImageReturns(nil, nil, nil, errors.New("fetch-err"))
+					fakeImage.FetchReturns(nil, nil, nil, errors.New("fetch-err"))
 				})
 
 				It("returns an error", func() {
@@ -769,7 +774,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when the metadata.json is bogus", func() {
 				BeforeEach(func() {
-					fakeImageFetcher.FetchImageReturns(imageVolume, ioutil.NopCloser(strings.NewReader(`{"env": 42}`)), imageVersion, nil)
+					fakeImage.FetchReturns(imageVolume, ioutil.NopCloser(strings.NewReader(`{"env": 42}`)), imageVersion, nil)
 				})
 
 				It("returns ErrMalformedMetadata", func() {
@@ -1098,7 +1103,7 @@ var _ = Describe("Worker", func() {
 					fakeBaggageclaimClient,
 					fakeVolumeClient,
 					fakeVolumeFactory,
-					fakeImageFetcher,
+					fakeImageFactory,
 					fakeGardenWorkerDB,
 					fakeWorkerProvider,
 					fakeClock,
@@ -1128,7 +1133,7 @@ var _ = Describe("Worker", func() {
 					fakeBaggageclaimClient,
 					fakeVolumeClient,
 					fakeVolumeFactory,
-					fakeImageFetcher,
+					fakeImageFactory,
 					fakeGardenWorkerDB,
 					fakeWorkerProvider,
 					fakeClock,
@@ -1158,7 +1163,7 @@ var _ = Describe("Worker", func() {
 					fakeBaggageclaimClient,
 					fakeVolumeClient,
 					fakeVolumeFactory,
-					fakeImageFetcher,
+					fakeImageFactory,
 					fakeGardenWorkerDB,
 					fakeWorkerProvider,
 					fakeClock,
@@ -1314,7 +1319,7 @@ var _ = Describe("Worker", func() {
 								nil,
 								fakeVolumeClient,
 								nil,
-								fakeImageFetcher,
+								fakeImageFactory,
 								fakeGardenWorkerDB,
 								fakeWorkerProvider,
 								fakeClock,
@@ -1375,7 +1380,7 @@ var _ = Describe("Worker", func() {
 								nil,
 								fakeVolumeClient,
 								nil,
-								fakeImageFetcher,
+								fakeImageFactory,
 								fakeGardenWorkerDB,
 								fakeWorkerProvider,
 								fakeClock,
@@ -1790,7 +1795,7 @@ var _ = Describe("Worker", func() {
 				fakeBaggageclaimClient,
 				fakeVolumeClient,
 				fakeVolumeFactory,
-				fakeImageFetcher,
+				fakeImageFactory,
 				fakeGardenWorkerDB,
 				fakeWorkerProvider,
 				fakeClock,

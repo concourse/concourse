@@ -44,7 +44,7 @@ type dbProvider struct {
 	db           WorkerDB
 	dialer       gconn.DialerFunc
 	retryPolicy  transport.RetryPolicy
-	imageFetcher ImageFetcher
+	imageFactory ImageFactory
 }
 
 func NewDBWorkerProvider(
@@ -52,14 +52,14 @@ func NewDBWorkerProvider(
 	db WorkerDB,
 	dialer gconn.DialerFunc,
 	retryPolicy transport.RetryPolicy,
-	imageFetcher ImageFetcher,
+	imageFactory ImageFactory,
 ) WorkerProvider {
 	return &dbProvider{
 		logger:       logger,
 		db:           db,
 		dialer:       dialer,
 		retryPolicy:  retryPolicy,
-		imageFetcher: imageFetcher,
+		imageFactory: imageFactory,
 	}
 }
 
@@ -141,7 +141,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		bClient,
 		volumeClient,
 		volumeFactory,
-		provider.imageFetcher,
+		provider.imageFactory,
 		provider.db,
 		provider,
 		tikTok,

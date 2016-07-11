@@ -11,6 +11,29 @@ import (
 )
 
 type FakeTracker struct {
+	FindContainerForSessionStub        func(lager.Logger, resource.Session) (resource.Resource, resource.Cache, bool, error)
+	findContainerForSessionMutex       sync.RWMutex
+	findContainerForSessionArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 resource.Session
+	}
+	findContainerForSessionReturns struct {
+		result1 resource.Resource
+		result2 resource.Cache
+		result3 bool
+		result4 error
+	}
+	ChooseWorkerStub        func(resource.ResourceType, atc.Tags, atc.ResourceTypes) (worker.Worker, error)
+	chooseWorkerMutex       sync.RWMutex
+	chooseWorkerArgsForCall []struct {
+		arg1 resource.ResourceType
+		arg2 atc.Tags
+		arg3 atc.ResourceTypes
+	}
+	chooseWorkerReturns struct {
+		result1 worker.Worker
+		result2 error
+	}
 	InitStub        func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, atc.ResourceTypes, worker.ImageFetchingDelegate) (resource.Resource, error)
 	initMutex       sync.RWMutex
 	initArgsForCall []struct {
@@ -26,7 +49,7 @@ type FakeTracker struct {
 		result1 resource.Resource
 		result2 error
 	}
-	InitWithCacheStub        func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate) (resource.Resource, resource.Cache, error)
+	InitWithCacheStub        func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate, worker.Worker) (resource.Resource, resource.Cache, error)
 	initWithCacheMutex       sync.RWMutex
 	initWithCacheArgsForCall []struct {
 		arg1 lager.Logger
@@ -37,6 +60,7 @@ type FakeTracker struct {
 		arg6 resource.CacheIdentifier
 		arg7 atc.ResourceTypes
 		arg8 worker.ImageFetchingDelegate
+		arg9 worker.Worker
 	}
 	initWithCacheReturns struct {
 		result1 resource.Resource
@@ -62,6 +86,79 @@ type FakeTracker struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeTracker) FindContainerForSession(arg1 lager.Logger, arg2 resource.Session) (resource.Resource, resource.Cache, bool, error) {
+	fake.findContainerForSessionMutex.Lock()
+	fake.findContainerForSessionArgsForCall = append(fake.findContainerForSessionArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 resource.Session
+	}{arg1, arg2})
+	fake.recordInvocation("FindContainerForSession", []interface{}{arg1, arg2})
+	fake.findContainerForSessionMutex.Unlock()
+	if fake.FindContainerForSessionStub != nil {
+		return fake.FindContainerForSessionStub(arg1, arg2)
+	} else {
+		return fake.findContainerForSessionReturns.result1, fake.findContainerForSessionReturns.result2, fake.findContainerForSessionReturns.result3, fake.findContainerForSessionReturns.result4
+	}
+}
+
+func (fake *FakeTracker) FindContainerForSessionCallCount() int {
+	fake.findContainerForSessionMutex.RLock()
+	defer fake.findContainerForSessionMutex.RUnlock()
+	return len(fake.findContainerForSessionArgsForCall)
+}
+
+func (fake *FakeTracker) FindContainerForSessionArgsForCall(i int) (lager.Logger, resource.Session) {
+	fake.findContainerForSessionMutex.RLock()
+	defer fake.findContainerForSessionMutex.RUnlock()
+	return fake.findContainerForSessionArgsForCall[i].arg1, fake.findContainerForSessionArgsForCall[i].arg2
+}
+
+func (fake *FakeTracker) FindContainerForSessionReturns(result1 resource.Resource, result2 resource.Cache, result3 bool, result4 error) {
+	fake.FindContainerForSessionStub = nil
+	fake.findContainerForSessionReturns = struct {
+		result1 resource.Resource
+		result2 resource.Cache
+		result3 bool
+		result4 error
+	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeTracker) ChooseWorker(arg1 resource.ResourceType, arg2 atc.Tags, arg3 atc.ResourceTypes) (worker.Worker, error) {
+	fake.chooseWorkerMutex.Lock()
+	fake.chooseWorkerArgsForCall = append(fake.chooseWorkerArgsForCall, struct {
+		arg1 resource.ResourceType
+		arg2 atc.Tags
+		arg3 atc.ResourceTypes
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("ChooseWorker", []interface{}{arg1, arg2, arg3})
+	fake.chooseWorkerMutex.Unlock()
+	if fake.ChooseWorkerStub != nil {
+		return fake.ChooseWorkerStub(arg1, arg2, arg3)
+	} else {
+		return fake.chooseWorkerReturns.result1, fake.chooseWorkerReturns.result2
+	}
+}
+
+func (fake *FakeTracker) ChooseWorkerCallCount() int {
+	fake.chooseWorkerMutex.RLock()
+	defer fake.chooseWorkerMutex.RUnlock()
+	return len(fake.chooseWorkerArgsForCall)
+}
+
+func (fake *FakeTracker) ChooseWorkerArgsForCall(i int) (resource.ResourceType, atc.Tags, atc.ResourceTypes) {
+	fake.chooseWorkerMutex.RLock()
+	defer fake.chooseWorkerMutex.RUnlock()
+	return fake.chooseWorkerArgsForCall[i].arg1, fake.chooseWorkerArgsForCall[i].arg2, fake.chooseWorkerArgsForCall[i].arg3
+}
+
+func (fake *FakeTracker) ChooseWorkerReturns(result1 worker.Worker, result2 error) {
+	fake.ChooseWorkerStub = nil
+	fake.chooseWorkerReturns = struct {
+		result1 worker.Worker
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeTracker) Init(arg1 lager.Logger, arg2 resource.Metadata, arg3 resource.Session, arg4 resource.ResourceType, arg5 atc.Tags, arg6 atc.ResourceTypes, arg7 worker.ImageFetchingDelegate) (resource.Resource, error) {
@@ -104,7 +201,7 @@ func (fake *FakeTracker) InitReturns(result1 resource.Resource, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeTracker) InitWithCache(arg1 lager.Logger, arg2 resource.Metadata, arg3 resource.Session, arg4 resource.ResourceType, arg5 atc.Tags, arg6 resource.CacheIdentifier, arg7 atc.ResourceTypes, arg8 worker.ImageFetchingDelegate) (resource.Resource, resource.Cache, error) {
+func (fake *FakeTracker) InitWithCache(arg1 lager.Logger, arg2 resource.Metadata, arg3 resource.Session, arg4 resource.ResourceType, arg5 atc.Tags, arg6 resource.CacheIdentifier, arg7 atc.ResourceTypes, arg8 worker.ImageFetchingDelegate, arg9 worker.Worker) (resource.Resource, resource.Cache, error) {
 	fake.initWithCacheMutex.Lock()
 	fake.initWithCacheArgsForCall = append(fake.initWithCacheArgsForCall, struct {
 		arg1 lager.Logger
@@ -115,11 +212,12 @@ func (fake *FakeTracker) InitWithCache(arg1 lager.Logger, arg2 resource.Metadata
 		arg6 resource.CacheIdentifier
 		arg7 atc.ResourceTypes
 		arg8 worker.ImageFetchingDelegate
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
-	fake.recordInvocation("InitWithCache", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+		arg9 worker.Worker
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9})
+	fake.recordInvocation("InitWithCache", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9})
 	fake.initWithCacheMutex.Unlock()
 	if fake.InitWithCacheStub != nil {
-		return fake.InitWithCacheStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+		return fake.InitWithCacheStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
 	} else {
 		return fake.initWithCacheReturns.result1, fake.initWithCacheReturns.result2, fake.initWithCacheReturns.result3
 	}
@@ -131,10 +229,10 @@ func (fake *FakeTracker) InitWithCacheCallCount() int {
 	return len(fake.initWithCacheArgsForCall)
 }
 
-func (fake *FakeTracker) InitWithCacheArgsForCall(i int) (lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate) {
+func (fake *FakeTracker) InitWithCacheArgsForCall(i int) (lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate, worker.Worker) {
 	fake.initWithCacheMutex.RLock()
 	defer fake.initWithCacheMutex.RUnlock()
-	return fake.initWithCacheArgsForCall[i].arg1, fake.initWithCacheArgsForCall[i].arg2, fake.initWithCacheArgsForCall[i].arg3, fake.initWithCacheArgsForCall[i].arg4, fake.initWithCacheArgsForCall[i].arg5, fake.initWithCacheArgsForCall[i].arg6, fake.initWithCacheArgsForCall[i].arg7, fake.initWithCacheArgsForCall[i].arg8
+	return fake.initWithCacheArgsForCall[i].arg1, fake.initWithCacheArgsForCall[i].arg2, fake.initWithCacheArgsForCall[i].arg3, fake.initWithCacheArgsForCall[i].arg4, fake.initWithCacheArgsForCall[i].arg5, fake.initWithCacheArgsForCall[i].arg6, fake.initWithCacheArgsForCall[i].arg7, fake.initWithCacheArgsForCall[i].arg8, fake.initWithCacheArgsForCall[i].arg9
 }
 
 func (fake *FakeTracker) InitWithCacheReturns(result1 resource.Resource, result2 resource.Cache, result3 error) {
@@ -191,6 +289,10 @@ func (fake *FakeTracker) InitWithSourcesReturns(result1 resource.Resource, resul
 func (fake *FakeTracker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.findContainerForSessionMutex.RLock()
+	defer fake.findContainerForSessionMutex.RUnlock()
+	fake.chooseWorkerMutex.RLock()
+	defer fake.chooseWorkerMutex.RUnlock()
 	fake.initMutex.RLock()
 	defer fake.initMutex.RUnlock()
 	fake.initWithCacheMutex.RLock()

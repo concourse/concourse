@@ -9,21 +9,27 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-//go:generate counterfeiter . ImageFetcher
+//go:generate counterfeiter . ImageFactory
 
-type ImageFetcher interface {
-	FetchImage(
+type ImageFactory interface {
+	NewImage(
 		logger lager.Logger,
-		imageResource atc.ImageResource,
 		cancel <-chan os.Signal,
-		containerID Identifier,
-		containerMetadata Metadata,
-		delegate ImageFetchingDelegate,
-		workerClient Client,
+		imageResource atc.ImageResource,
+		id Identifier,
+		metadata Metadata,
 		tags atc.Tags,
 		resourceTypes atc.ResourceTypes,
+		workerClient Client,
+		delegate ImageFetchingDelegate,
 		privileged bool,
-	) (Volume, io.ReadCloser, atc.Version, error)
+	) Image
+}
+
+//go:generate counterfeiter . Image
+
+type Image interface {
+	Fetch() (Volume, io.ReadCloser, atc.Version, error)
 }
 
 //go:generate counterfeiter . ImageFetchingDelegate

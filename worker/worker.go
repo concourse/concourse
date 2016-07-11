@@ -76,7 +76,7 @@ type gardenWorker struct {
 	volumeClient       VolumeClient
 	volumeFactory      VolumeFactory
 
-	imageFetcher ImageFetcher
+	imageFactory ImageFactory
 
 	db       GardenWorkerDB
 	provider WorkerProvider
@@ -99,7 +99,7 @@ func NewGardenWorker(
 	baggageclaimClient baggageclaim.Client,
 	volumeClient VolumeClient,
 	volumeFactory VolumeFactory,
-	imageFetcher ImageFetcher,
+	imageFactory ImageFactory,
 	db GardenWorkerDB,
 	provider WorkerProvider,
 	clock clock.Clock,
@@ -118,7 +118,7 @@ func NewGardenWorker(
 		baggageclaimClient: baggageclaimClient,
 		volumeClient:       volumeClient,
 		volumeFactory:      volumeFactory,
-		imageFetcher:       imageFetcher,
+		imageFactory:       imageFactory,
 		db:                 db,
 		provider:           provider,
 		clock:              clock,
@@ -190,18 +190,20 @@ func (worker *gardenWorker) getImage(
 	// 'image_resource:' in task
 	if imageResource != nil {
 		var err error
-		imageVolume, imageMetadataReader, version, err = worker.imageFetcher.FetchImage(
-			logger,
-			*imageResource,
+		image := worker.imageFactory.NewImage(
+			logger.Session("image"),
 			cancel,
+			*imageResource,
 			id,
 			metadata,
-			delegate,
-			worker,
 			worker.tags,
 			updatedResourceTypes,
+			worker,
+			delegate,
 			imageSpec.Privileged,
 		)
+
+		imageVolume, imageMetadataReader, version, err = image.Fetch()
 		if err != nil {
 			return nil, ImageMetadata{}, nil, "", err
 		}

@@ -591,7 +591,7 @@ func (cmd *ATCCommand) constructWorkerPool(logger lager.Logger, sqlDB *db.SQLDB,
 			transport.ExponentialRetryPolicy{
 				Timeout: 5 * time.Minute,
 			},
-			image.NewFetcher(trackerFactory),
+			image.NewFactory(trackerFactory, sqlDB, clock.NewClock()),
 		),
 	)
 }

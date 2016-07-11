@@ -140,6 +140,7 @@ var _ = Describe("GardenFactory", func() {
 				fakeResource        *rfakes.FakeResource
 				fakeCache           *rfakes.FakeCache
 				fakeVersionedSource *rfakes.FakeVersionedSource
+				fakeWorker          *wfakes.FakeWorker
 			)
 
 			BeforeEach(func() {
@@ -154,39 +155,94 @@ var _ = Describe("GardenFactory", func() {
 				fakeResource.GetReturns(fakeVersionedSource)
 			})
 
-			It("created a cached resource", func() {
-				Expect(fakeTracker.InitWithCacheCallCount()).To(Equal(1))
-				_, sm, sid, typ, tags, cacheID, actualResourceTypes, delegate := fakeTracker.InitWithCacheArgsForCall(0)
-				Expect(sm).To(Equal(stepMetadata))
-				Expect(sid).To(Equal(resource.Session{
-					ID: worker.Identifier{
-						ResourceID: 1234,
-						Stage:      db.ContainerStageRun,
-					},
-					Metadata: worker.Metadata{
-						PipelineName:     "some-pipeline",
-						Type:             db.ContainerTypeGet,
-						StepName:         "some-step",
-						WorkingDirectory: "/tmp/build/get",
-					},
-					Ephemeral: false,
-				}))
-				Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))
-				Expect(tags).To(ConsistOf("some", "tags"))
-				Expect(cacheID).To(Equal(resource.ResourceCacheIdentifier{
-					Type:    "some-resource-type",
-					Source:  resourceConfig.Source,
-					Params:  params,
-					Version: version,
-				}))
-				Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{
-					{
-						Name:   "custom-resource",
-						Type:   "custom-type",
-						Source: atc.Source{"some-custom": "source"},
-					},
-				}))
-				Expect(delegate).To(Equal(getDelegate))
+			Context("when finding container succeeds", func() {
+				BeforeEach(func() {
+					fakeTracker.FindContainerForSessionReturns(fakeResource, fakeCache, true, nil)
+				})
+
+				It("does not initialize with cache to download image", func() {
+					Expect(fakeTracker.InitWithCacheCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when finding container fails with error", func() {
+				var disaster error
+
+				BeforeEach(func() {
+					disaster = errors.New("disaster")
+					fakeTracker.FindContainerForSessionReturns(nil, nil, false, disaster)
+				})
+
+				It("does not initialize with cache to download image", func() {
+					Expect(fakeTracker.InitWithCacheCallCount()).To(Equal(0))
+				})
+
+				It("returns the error", func() {
+					Expect(<-process.Wait()).To(Equal(disaster))
+				})
+			})
+
+			Context("when no container is found", func() {
+				BeforeEach(func() {
+					fakeTracker.FindContainerForSessionReturns(nil, nil, false, nil)
+
+					fakeWorker = new(wfakes.FakeWorker)
+					fakeTracker.ChooseWorkerReturns(fakeWorker, nil)
+				})
+
+				It("looks for the worker", func() {
+					Expect(fakeTracker.ChooseWorkerCallCount()).To(Equal(1))
+				})
+
+				Context("when finding the worker is failing", func() {
+					var disaster error
+
+					BeforeEach(func() {
+						disaster = errors.New("disaster")
+						fakeTracker.ChooseWorkerReturns(nil, disaster)
+					})
+
+					It("returns an error", func() {
+						Expect(<-process.Wait()).To(Equal(disaster))
+					})
+				})
+
+				It("creates a cached resource", func() {
+					Expect(fakeTracker.InitWithCacheCallCount()).To(Equal(1))
+					_, sm, sid, typ, tags, cacheID, actualResourceTypes, delegate, choosenWorker := fakeTracker.InitWithCacheArgsForCall(0)
+					Expect(sm).To(Equal(stepMetadata))
+					Expect(sid).To(Equal(resource.Session{
+						ID: worker.Identifier{
+							ResourceID: 1234,
+							Stage:      db.ContainerStageRun,
+						},
+						Metadata: worker.Metadata{
+							PipelineName:     "some-pipeline",
+							Type:             db.ContainerTypeGet,
+							StepName:         "some-step",
+							WorkingDirectory: "/tmp/build/get",
+						},
+						Ephemeral: false,
+					}))
+					Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))
+					Expect(tags).To(ConsistOf("some", "tags"))
+					Expect(cacheID).To(Equal(resource.ResourceCacheIdentifier{
+						Type:    "some-resource-type",
+						Source:  resourceConfig.Source,
+						Params:  params,
+						Version: version,
+					}))
+					Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{
+						{
+							Name:   "custom-resource",
+							Type:   "custom-type",
+							Source: atc.Source{"some-custom": "source"},
+						},
+					}))
+					Expect(delegate).To(Equal(getDelegate))
+					Expect(choosenWorker).To(Equal(fakeWorker))
+				})
+
 			})
 
 			Context("before initializing the resource", func() {
@@ -195,7 +251,7 @@ var _ = Describe("GardenFactory", func() {
 				BeforeEach(func() {
 					callCountDuringInit = make(chan int, 1)
 
-					fakeTracker.InitWithCacheStub = func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate) (resource.Resource, resource.Cache, error) {
+					fakeTracker.InitWithCacheStub = func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate, worker.Worker) (resource.Resource, resource.Cache, error) {
 						callCountDuringInit <- getDelegate.InitializingCallCount()
 						return fakeResource, fakeCache, nil
 					}
