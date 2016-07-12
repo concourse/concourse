@@ -87,6 +87,85 @@ func (step GetStep) Using(prev Step, repo *SourceRepository) Step {
 	}
 }
 
+func (step *GetStep) createResourceContainerAndRun(
+	chosenWorker worker.Worker,
+	runSession resource.Session,
+	signals <-chan os.Signal,
+	ready chan<- struct{},
+) error {
+	containerSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: string(resource.ResourceType(step.resourceConfig.Type)),
+			Privileged:   true,
+		},
+		Ephemeral: runSession.Ephemeral,
+		Tags:      step.tags,
+		Env:       step.stepMetadata.Env(),
+	}
+
+	container, err := chosenWorker.CreateContainer(
+		step.logger,
+		nil,
+		step.delegate,
+		runSession.ID,
+		runSession.Metadata,
+		containerSpec,
+		step.resourceTypes,
+	)
+
+	if err != nil {
+		step.logger.Error("failed-to-create-container", err)
+		return err
+	}
+
+	step.logger.Info("created-container-in-get", lager.Data{"container": container.Handle()})
+
+	step.logger.Debug("going-to-run-get")
+	step.versionedSource = step.resource.Get(
+		container,
+		resource.IOConfig{
+			Stdout: step.delegate.Stdout(),
+			Stderr: step.delegate.Stderr(),
+		},
+		step.resourceConfig.Source,
+		step.params,
+		step.version,
+		step.logger,
+	)
+
+	step.logger.Info("get-step-running")
+	err = step.versionedSource.Run(signals, ready)
+	step.logger.Info("get-step-run")
+
+	if err, ok := err.(resource.ErrResourceScriptFailed); ok {
+		step.logger.Error("get-run-resource-script-failed", err, lager.Data{"container": container.Handle()})
+		step.delegate.Completed(ExitStatus(err.ExitStatus), nil)
+		return err
+	}
+
+	if err == resource.ErrAborted {
+		step.logger.Error("get-run-resource-aborted", err, lager.Data{"container": container.Handle()})
+		return ErrInterrupted
+	}
+
+	if err != nil {
+		step.logger.Error("failed-to-run-get", err)
+		return err
+	}
+
+	return nil
+}
+
+func (step *GetStep) registerAndReportResource() {
+	step.repository.RegisterSource(step.sourceName, step)
+
+	step.succeeded = true
+	step.delegate.Completed(ExitStatus(0), &VersionInfo{
+		Version:  step.versionedSource.Version(),
+		Metadata: step.versionedSource.Metadata(),
+	})
+}
+
 // Run ultimately registers the configured resource version's ArtifactSource
 // under the configured SourceName. How it actually does this is determined by
 // a few factors.
@@ -140,20 +219,20 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		return err
 	}
 
+	step.versionedSource = step.resource.Get(
+		nil,
+		resource.IOConfig{
+			Stdout: step.delegate.Stdout(),
+			Stderr: step.delegate.Stderr(),
+		},
+		step.resourceConfig.Source,
+		step.params,
+		step.version,
+		step.logger,
+	)
+
 	if isInitialized {
 		step.logger.Debug("cache-already-initialized")
-
-		step.versionedSource = step.resource.Get(
-			nil,
-			resource.IOConfig{
-				Stdout: step.delegate.Stdout(),
-				Stderr: step.delegate.Stderr(),
-			},
-			step.resourceConfig.Source,
-			step.params,
-			step.version,
-			step.logger,
-		)
 
 		fmt.Fprintf(step.delegate.Stdout(), "using version of resource found in cache\n")
 		close(ready)
@@ -162,64 +241,14 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		//cache miss: create a container
 		if !foundContainer {
 			step.logger.Debug("cached-volume", lager.Data{"handle": cache.Volume().Handle()})
+			err := step.createResourceContainerAndRun(chosenWorker, runSession, signals, ready)
 
-			containerSpec := worker.ContainerSpec{
-				ImageSpec: worker.ImageSpec{
-					ResourceType: string(resource.ResourceType(step.resourceConfig.Type)),
-					Privileged:   true,
-				},
-				Ephemeral: runSession.Ephemeral,
-				Tags:      step.tags,
-				Env:       step.stepMetadata.Env(),
-			}
-
-			container, err := chosenWorker.CreateContainer(
-				step.logger,
-				nil,
-				step.delegate,
-				runSession.ID,
-				runSession.Metadata,
-				containerSpec,
-				step.resourceTypes,
-			)
-
-			if err != nil {
-				step.logger.Error("failed-to-create-container", err)
-				return err
-			}
-
-			step.logger.Info("created-container-in-get", lager.Data{"container": container.Handle()})
-
-			step.logger.Debug("going-to-run-get")
-			step.versionedSource = step.resource.Get(
-				container,
-				resource.IOConfig{
-					Stdout: step.delegate.Stdout(),
-					Stderr: step.delegate.Stderr(),
-				},
-				step.resourceConfig.Source,
-				step.params,
-				step.version,
-				step.logger,
-			)
-
-			step.logger.Info("get-step-running")
-			err = step.versionedSource.Run(signals, ready)
-			step.logger.Info("get-step-run")
-
-			if err, ok := err.(resource.ErrResourceScriptFailed); ok {
-				step.logger.Error("get-run-resource-script-failed", err, lager.Data{"container": container.Handle()})
-				step.delegate.Completed(ExitStatus(err.ExitStatus), nil)
+			if _, ok := err.(resource.ErrResourceScriptFailed); ok {
 				return nil
 			}
 
-			if err == resource.ErrAborted {
-				step.logger.Error("get-run-resource-aborted", err, lager.Data{"container": container.Handle()})
-				return ErrInterrupted
-			}
-
 			if err != nil {
-				step.logger.Error("failed-to-run-get", err)
+				step.logger.Error("failed-to-create-and-run-get-container", err)
 				return err
 			}
 		}
@@ -230,14 +259,7 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		}
 	}
 
-	step.repository.RegisterSource(step.sourceName, step)
-
-	step.succeeded = true
-	step.delegate.Completed(ExitStatus(0), &VersionInfo{
-		Version:  step.versionedSource.Version(),
-		Metadata: step.versionedSource.Metadata(),
-	})
-
+	step.registerAndReportResource()
 	return nil
 }
 

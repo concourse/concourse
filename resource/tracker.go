@@ -82,37 +82,12 @@ func (tracker *tracker) InitResourceWithCache(
 	resourceTypes atc.ResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, Cache, worker.Worker, bool, error) {
-	// logger = logger.Session("init-with-cache")
-	//
-	// logger.Debug("start")
-	// defer logger.Debug("done")
-	//
-	// container, found, err := tracker.workerClient.FindContainerForIdentifier(logger, session.ID)
-	// if err != nil {
-	// 	logger.Error("failed-to-look-for-existing-container", err)
-	// 	return nil, nil, nil, false, err
-	// }
-
 	resource, cache, found, err := tracker.FindContainerForSession(logger, session)
 	if err != nil {
 		return nil, nil, nil, false, err
 	}
 
 	if found {
-		// logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
-		//
-		// resource := NewResource(container, tracker.clock)
-		//
-		// var cache Cache
-		// cacheVolume, found := resource.CacheVolume()
-		// if found {
-		// 	logger.Debug("found-cache")
-		// 	cache = volumeCache{cacheVolume}
-		// } else {
-		// 	logger.Debug("no-cache")
-		// 	cache = noopCache{}
-		// }
-
 		return resource, cache, nil, true, nil
 	}
 
