@@ -214,6 +214,18 @@ var _ = Describe("Image", func() {
 						})
 					})
 
+					Context("when interrupted", func() {
+						BeforeEach(func() {
+							go func() {
+								signals <- os.Interrupt
+							}()
+						})
+
+						It("returns ErrInterrupted", func() {
+							Expect(fetchErr).To(Equal(image.ErrInterrupted))
+						})
+					})
+
 					Context("when successfully obtains a lease", func() {
 						var fakeLease *dbfakes.FakeLease
 

@@ -27,6 +27,9 @@ var ErrImageUnavailable = errors.New("no versions of image available")
 
 var ErrImageGetDidNotProduceVolume = errors.New("fetching the image did not produce a volume")
 
+var ErrFailedToGetLease = errors.New("failed-to-get-lease")
+var ErrInterrupted = errors.New("interrupted")
+
 type image struct {
 	logger                lager.Logger
 	db                    LeaseDB
@@ -177,7 +180,7 @@ func (i *image) fetchWithLease(
 	defer ticker.Stop()
 
 	getResource, versionedSource, err := i.fetchImage(getSess, cacheID, version)
-	if err != errFailedToGetLease {
+	if err != ErrFailedToGetLease {
 		return getResource, versionedSource, err
 	}
 
@@ -186,7 +189,7 @@ func (i *image) fetchWithLease(
 		case <-ticker.C():
 			getResource, versionedSource, err := i.fetchImage(getSess, cacheID, version)
 			if err != nil {
-				if err == errFailedToGetLease {
+				if err == ErrFailedToGetLease {
 					break
 				}
 				return nil, nil, err
@@ -195,12 +198,10 @@ func (i *image) fetchWithLease(
 			return getResource, versionedSource, nil
 
 		case <-i.signals:
-			return nil, nil, nil
+			return nil, nil, ErrInterrupted
 		}
 	}
 }
-
-var errFailedToGetLease = errors.New("failed-to-get-lease")
 
 func (i *image) fetchImage(
 	getSess resource.Session,
@@ -247,12 +248,12 @@ func (i *image) fetchImage(
 
 	if err != nil {
 		leaseLogger.Error("failed-to-get-lease", err)
-		return nil, nil, errFailedToGetLease
+		return nil, nil, ErrFailedToGetLease
 	}
 
 	if !leased {
 		leaseLogger.Debug("did-not-get-lease")
-		return nil, nil, errFailedToGetLease
+		return nil, nil, ErrFailedToGetLease
 	}
 
 	defer lease.Break()
