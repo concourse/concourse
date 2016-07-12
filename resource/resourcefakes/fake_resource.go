@@ -8,16 +8,19 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
+	"github.com/pivotal-golang/lager"
 )
 
 type FakeResource struct {
-	GetStub        func(resource.IOConfig, atc.Source, atc.Params, atc.Version) resource.VersionedSource
+	GetStub        func(worker.Container, resource.IOConfig, atc.Source, atc.Params, atc.Version, lager.Logger) resource.VersionedSource
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
-		arg1 resource.IOConfig
-		arg2 atc.Source
-		arg3 atc.Params
-		arg4 atc.Version
+		arg1 worker.Container
+		arg2 resource.IOConfig
+		arg3 atc.Source
+		arg4 atc.Params
+		arg5 atc.Version
+		arg6 lager.Logger
 	}
 	getReturns struct {
 		result1 resource.VersionedSource
@@ -59,18 +62,20 @@ type FakeResource struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResource) Get(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.Params, arg4 atc.Version) resource.VersionedSource {
+func (fake *FakeResource) Get(arg1 worker.Container, arg2 resource.IOConfig, arg3 atc.Source, arg4 atc.Params, arg5 atc.Version, arg6 lager.Logger) resource.VersionedSource {
 	fake.getMutex.Lock()
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
-		arg1 resource.IOConfig
-		arg2 atc.Source
-		arg3 atc.Params
-		arg4 atc.Version
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4})
+		arg1 worker.Container
+		arg2 resource.IOConfig
+		arg3 atc.Source
+		arg4 atc.Params
+		arg5 atc.Version
+		arg6 lager.Logger
+	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
-		return fake.GetStub(arg1, arg2, arg3, arg4)
+		return fake.GetStub(arg1, arg2, arg3, arg4, arg5, arg6)
 	} else {
 		return fake.getReturns.result1
 	}
@@ -82,10 +87,10 @@ func (fake *FakeResource) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeResource) GetArgsForCall(i int) (resource.IOConfig, atc.Source, atc.Params, atc.Version) {
+func (fake *FakeResource) GetArgsForCall(i int) (worker.Container, resource.IOConfig, atc.Source, atc.Params, atc.Version, lager.Logger) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
-	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4
+	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5, fake.getArgsForCall[i].arg6
 }
 
 func (fake *FakeResource) GetReturns(result1 resource.VersionedSource) {

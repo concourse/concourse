@@ -116,50 +116,23 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	runSession := step.session
 	runSession.ID.Stage = db.ContainerStageRun
 
-	trackedResource, cache, found, err := step.tracker.FindContainerForSession(
-		step.logger.Session("find-container-for-get-step"),
+	getResource, cache, chosenWorker, foundContainer, err := step.tracker.InitResourceWithCache(
+		step.logger,
+		step.stepMetadata,
 		runSession,
+		resource.ResourceType(step.resourceConfig.Type),
+		step.tags,
+		step.cacheIdentifier,
+		step.resourceTypes,
+		step.delegate,
 	)
+
 	if err != nil {
 		step.logger.Error("failed-to-find-container-for-get-step", err)
 		return err
 	}
 
-	if !found {
-		step.logger.Debug("not-found-container-for-get-step")
-		choosenWorker, err := step.tracker.ChooseWorker(resource.ResourceType(step.resourceConfig.Type), step.tags, step.resourceTypes)
-		if err != nil {
-			return err
-		}
-
-		trackedResource, cache, err = step.tracker.InitWithCache(
-			step.logger,
-			step.stepMetadata,
-			runSession,
-			resource.ResourceType(step.resourceConfig.Type),
-			step.tags,
-			step.cacheIdentifier,
-			step.resourceTypes,
-			step.delegate,
-			choosenWorker,
-		)
-		if err != nil {
-			step.logger.Error("failed-to-initialize-resource", err)
-			return err
-		}
-	}
-
-	step.resource = trackedResource
-
-	step.versionedSource = step.resource.Get(
-		resource.IOConfig{
-			Stdout: step.delegate.Stdout(),
-			Stderr: step.delegate.Stderr(),
-		},
-		step.resourceConfig.Source,
-		step.params,
-		step.version,
-	)
+	step.resource = getResource
 
 	isInitialized, err := cache.IsInitialized()
 	if err != nil {
@@ -170,25 +143,85 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	if isInitialized {
 		step.logger.Debug("cache-already-initialized")
 
+		step.versionedSource = step.resource.Get(
+			nil,
+			resource.IOConfig{
+				Stdout: step.delegate.Stdout(),
+				Stderr: step.delegate.Stderr(),
+			},
+			step.resourceConfig.Source,
+			step.params,
+			step.version,
+			step.logger,
+		)
+
 		fmt.Fprintf(step.delegate.Stdout(), "using version of resource found in cache\n")
 		close(ready)
 	} else {
 		step.logger.Debug("cache-not-initialized")
+		//cache miss: create a container
+		if !foundContainer {
+			step.logger.Debug("cached-volume", lager.Data{"handle": cache.Volume().Handle()})
 
-		err = step.versionedSource.Run(signals, ready)
+			containerSpec := worker.ContainerSpec{
+				ImageSpec: worker.ImageSpec{
+					ResourceType: string(resource.ResourceType(step.resourceConfig.Type)),
+					Privileged:   true,
+				},
+				Ephemeral: runSession.Ephemeral,
+				Tags:      step.tags,
+				Env:       step.stepMetadata.Env(),
+			}
 
-		if err, ok := err.(resource.ErrResourceScriptFailed); ok {
-			step.delegate.Completed(ExitStatus(err.ExitStatus), nil)
-			return nil
-		}
+			container, err := chosenWorker.CreateContainer(
+				step.logger,
+				nil,
+				step.delegate,
+				runSession.ID,
+				runSession.Metadata,
+				containerSpec,
+				step.resourceTypes,
+			)
 
-		if err == resource.ErrAborted {
-			return ErrInterrupted
-		}
+			if err != nil {
+				step.logger.Error("failed-to-create-container", err)
+				return err
+			}
 
-		if err != nil {
-			step.logger.Error("failed-to-run-get", err)
-			return err
+			step.logger.Info("created-container-in-get", lager.Data{"container": container.Handle()})
+
+			step.logger.Debug("going-to-run-get")
+			step.versionedSource = step.resource.Get(
+				container,
+				resource.IOConfig{
+					Stdout: step.delegate.Stdout(),
+					Stderr: step.delegate.Stderr(),
+				},
+				step.resourceConfig.Source,
+				step.params,
+				step.version,
+				step.logger,
+			)
+
+			step.logger.Info("get-step-running")
+			err = step.versionedSource.Run(signals, ready)
+			step.logger.Info("get-step-run")
+
+			if err, ok := err.(resource.ErrResourceScriptFailed); ok {
+				step.logger.Error("get-run-resource-script-failed", err, lager.Data{"container": container.Handle()})
+				step.delegate.Completed(ExitStatus(err.ExitStatus), nil)
+				return nil
+			}
+
+			if err == resource.ErrAborted {
+				step.logger.Error("get-run-resource-aborted", err, lager.Data{"container": container.Handle()})
+				return ErrInterrupted
+			}
+
+			if err != nil {
+				step.logger.Error("failed-to-run-get", err)
+				return err
+			}
 		}
 
 		err = cache.Initialize()

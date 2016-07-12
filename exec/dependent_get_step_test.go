@@ -209,7 +209,7 @@ var _ = Describe("GardenFactory", func() {
 			It("gets the resource with the correct source, params, and version", func() {
 				Expect(fakeResource.GetCallCount()).To(Equal(1))
 
-				_, gotSource, gotParams, gotVersion := fakeResource.GetArgsForCall(0)
+				_, _, gotSource, gotParams, gotVersion, _ := fakeResource.GetArgsForCall(0)
 				Expect(gotSource).To(Equal(resourceConfig.Source))
 				Expect(gotParams).To(Equal(params))
 				Expect(gotVersion).To(Equal(version))
@@ -218,7 +218,7 @@ var _ = Describe("GardenFactory", func() {
 			It("gets the resource with the io config forwarded", func() {
 				Expect(fakeResource.GetCallCount()).To(Equal(1))
 
-				ioConfig, _, _, _ := fakeResource.GetArgsForCall(0)
+				_, ioConfig, _, _, _, _ := fakeResource.GetArgsForCall(0)
 				Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
 				Expect(ioConfig.Stderr).To(Equal(stderrBuf))
 			})

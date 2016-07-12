@@ -49,6 +49,15 @@ type FakeVolume struct {
 	streamInReturns struct {
 		result1 error
 	}
+	StreamOutStub        func(path string) (io.ReadCloser, error)
+	streamOutMutex       sync.RWMutex
+	streamOutArgsForCall []struct {
+		path string
+	}
+	streamOutReturns struct {
+		result1 io.ReadCloser
+		result2 error
+	}
 	ExpirationStub        func() (time.Duration, time.Time, error)
 	expirationMutex       sync.RWMutex
 	expirationArgsForCall []struct{}
@@ -234,6 +243,40 @@ func (fake *FakeVolume) StreamInReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeVolume) StreamOut(path string) (io.ReadCloser, error) {
+	fake.streamOutMutex.Lock()
+	fake.streamOutArgsForCall = append(fake.streamOutArgsForCall, struct {
+		path string
+	}{path})
+	fake.recordInvocation("StreamOut", []interface{}{path})
+	fake.streamOutMutex.Unlock()
+	if fake.StreamOutStub != nil {
+		return fake.StreamOutStub(path)
+	} else {
+		return fake.streamOutReturns.result1, fake.streamOutReturns.result2
+	}
+}
+
+func (fake *FakeVolume) StreamOutCallCount() int {
+	fake.streamOutMutex.RLock()
+	defer fake.streamOutMutex.RUnlock()
+	return len(fake.streamOutArgsForCall)
+}
+
+func (fake *FakeVolume) StreamOutArgsForCall(i int) string {
+	fake.streamOutMutex.RLock()
+	defer fake.streamOutMutex.RUnlock()
+	return fake.streamOutArgsForCall[i].path
+}
+
+func (fake *FakeVolume) StreamOutReturns(result1 io.ReadCloser, result2 error) {
+	fake.StreamOutStub = nil
+	fake.streamOutReturns = struct {
+		result1 io.ReadCloser
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeVolume) Expiration() (time.Duration, time.Time, error) {
 	fake.expirationMutex.Lock()
 	fake.expirationArgsForCall = append(fake.expirationArgsForCall, struct{}{})
@@ -366,6 +409,8 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.setPropertyMutex.RUnlock()
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
+	fake.streamOutMutex.RLock()
+	defer fake.streamOutMutex.RUnlock()
 	fake.expirationMutex.RLock()
 	defer fake.expirationMutex.RUnlock()
 	fake.propertiesMutex.RLock()

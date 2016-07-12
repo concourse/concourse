@@ -9,13 +9,14 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/clock"
+	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 )
 
 //go:generate counterfeiter . Resource
 
 type Resource interface {
-	Get(IOConfig, atc.Source, atc.Params, atc.Version) VersionedSource
+	Get(worker.Container, IOConfig, atc.Source, atc.Params, atc.Version, lager.Logger) VersionedSource
 	Put(IOConfig, atc.Source, atc.Params, ArtifactSource) VersionedSource
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
 
@@ -81,10 +82,16 @@ func NewResource(container worker.Container, clock clock.Clock) Resource {
 }
 
 func (resource *resource) Release(finalTTL *time.Duration) {
-	resource.container.Release(finalTTL)
+	if resource.container != nil {
+		resource.container.Release(finalTTL)
+	}
 }
 
 func (resource *resource) CacheVolume() (worker.Volume, bool) {
+	if resource.container == nil {
+		return nil, false
+	}
+
 	mounts := resource.container.VolumeMounts()
 
 	for _, mount := range mounts {

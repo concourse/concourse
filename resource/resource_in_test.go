@@ -165,7 +165,7 @@ var _ = Describe("Resource In", func() {
 
 	Context("before running /in", func() {
 		BeforeEach(func() {
-			versionedSource = resource.Get(ioConfig, source, params, version)
+			versionedSource = resource.Get(nil, ioConfig, source, params, version, nil)
 		})
 
 		Describe("Version", func() {
@@ -205,7 +205,7 @@ var _ = Describe("Resource In", func() {
 				return inScriptProcess, nil
 			}
 
-			versionedSource = resource.Get(ioConfig, source, params, version)
+			versionedSource = resource.Get(nil, ioConfig, source, params, version, nil)
 			inProcess = ifrit.Invoke(versionedSource)
 		})
 

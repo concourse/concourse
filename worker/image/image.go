@@ -316,12 +316,14 @@ func (i *image) leaseName(id leaseID) (string, error) {
 
 func (i *image) versionedResource(getResource resource.Resource, version atc.Version) resource.VersionedSource {
 	return getResource.Get(
+		nil,
 		resource.IOConfig{
 			Stderr: i.imageFetchingDelegate.Stderr(),
 		},
 		i.imageResource.Source,
 		nil,
 		version,
+		nil,
 	)
 }
 
