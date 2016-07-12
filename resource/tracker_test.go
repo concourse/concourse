@@ -1040,4 +1040,139 @@ var _ = Describe("Tracker", func() {
 			})
 		})
 	})
+
+	Describe("InitResourceWithCache", func() {
+		var (
+			logger   *lagertest.TestLogger
+			metadata Metadata = testMetadata{"a=1", "b=2"}
+			delegate worker.ImageFetchingDelegate
+
+			initType        ResourceType
+			cacheIdentifier *resourcefakes.FakeCacheIdentifier
+
+			initResource   Resource
+			initCache      Cache
+			chosenWorker   worker.Worker
+			foundContainer bool
+			initErr        error
+
+			fakeContainer *wfakes.FakeContainer
+			fakeVolume    *wfakes.FakeVolume
+		)
+
+		BeforeEach(func() {
+			fakeContainer = new(wfakes.FakeContainer)
+			fakeVolume = new(wfakes.FakeVolume)
+
+			logger = lagertest.NewTestLogger("test")
+			initType = "type1"
+			cacheIdentifier = new(resourcefakes.FakeCacheIdentifier)
+			delegate = new(wfakes.FakeImageFetchingDelegate)
+			workerClient.FindContainerForIdentifierReturns(fakeContainer, true, nil)
+			fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
+				{
+					Volume:    fakeVolume,
+					MountPath: ResourcesDir("get"),
+				},
+			})
+		})
+
+		JustBeforeEach(func() {
+			initResource, initCache, chosenWorker, foundContainer, initErr = tracker.InitResourceWithCache(
+				logger,
+				metadata,
+				session,
+				initType,
+				[]string{"resource", "tags"},
+				cacheIdentifier,
+				customTypes,
+				delegate,
+			)
+		})
+
+		Context("when the a cache container already present", func() {
+			var foundVolume *wfakes.FakeVolume
+
+			BeforeEach(func() {
+				foundVolume = new(wfakes.FakeVolume)
+				foundVolume.HandleReturns("found-volume-handle")
+			})
+
+			It("does not error and returns a resource", func() {
+				Expect(initErr).NotTo(HaveOccurred())
+				Expect(initResource).NotTo(BeNil())
+				Expect(initCache.Volume()).To(Equal(fakeVolume))
+				Expect(foundContainer).To(Equal(true))
+				Expect(chosenWorker).To(BeNil())
+			})
+		})
+
+		Context("when cached container is not found", func() {
+			var (
+				fakeWorker *wfakes.FakeWorker
+			)
+
+			BeforeEach(func() {
+				fakeWorker = new(wfakes.FakeWorker)
+
+				workerClient.FindContainerForIdentifierReturns(nil, false, nil)
+				workerClient.SatisfyingReturns(fakeWorker, nil)
+
+				cacheIdentifier.FindOnReturns(fakeVolume, true, nil)
+			})
+
+			It("chooses a worker", func() {
+				Expect(workerClient.SatisfyingCallCount()).To(Equal(1))
+			})
+
+			Context("when no satisfying worker is found", func() {
+				var disaster error
+				BeforeEach(func() {
+					disaster = errors.New("nope")
+					workerClient.SatisfyingReturns(nil, disaster)
+				})
+
+				It("errors out and does not proceed", func() {
+					Expect(initErr).To(Equal(disaster))
+					Expect(cacheIdentifier.FindOnCallCount()).To(Equal(0))
+				})
+			})
+
+			It("returns a resource without a container, cached volume and chosen worker", func() {
+				Expect(initCache.Volume()).To(Equal(fakeVolume))
+				Expect(chosenWorker).To(Not(BeNil()))
+				Expect(foundContainer).To(BeFalse())
+				Expect(initErr).To(Not(HaveOccurred()))
+			})
+
+			Context("when a cached volume is found", func() {
+				It("does not create a new cache volume", func() {
+					Expect(cacheIdentifier.CreateOnCallCount()).To(Equal(0))
+				})
+
+				It("does not heartbeat the cached volume", func() {
+					Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
+					Expect(fakeVolume.ReleaseArgsForCall(0)).To(BeNil())
+				})
+			})
+
+			Context("when no cached volume is found", func() {
+				BeforeEach(func() {
+					cacheIdentifier.FindOnReturns(nil, false, nil)
+					cacheIdentifier.CreateOnReturns(fakeVolume, nil)
+				})
+
+				It("creates a volume on chosen worker", func() {
+					Expect(cacheIdentifier.CreateOnCallCount()).To(Equal(1))
+					_, creatingWorker := cacheIdentifier.CreateOnArgsForCall(0)
+					Expect(creatingWorker).To(Equal(chosenWorker))
+				})
+
+				It("does not heartbeat the create volume", func() {
+					Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
+					Expect(fakeVolume.ReleaseArgsForCall(0)).To(BeNil())
+				})
+			})
+		})
+	})
 })

@@ -237,7 +237,8 @@ var _ = Describe("DependentGet", func() {
 		It("gets the resource with the correct source, params, and version", func() {
 			Expect(fakeResource.GetCallCount()).To(Equal(1))
 
-			_, _, gotSource, gotParams, gotVersion, _ := fakeResource.GetArgsForCall(0)
+			newContainer, _, gotSource, gotParams, gotVersion, _ := fakeResource.GetArgsForCall(0)
+			Expect(newContainer).To(BeNil())
 			Expect(gotSource).To(Equal(resourceConfig.Source))
 			Expect(gotParams).To(Equal(params))
 			Expect(gotVersion).To(Equal(version))

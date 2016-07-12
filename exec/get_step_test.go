@@ -207,10 +207,11 @@ var _ = Describe("Get", func() {
 			})
 		})
 
-		It("gets the resource with the correct source, params, and version", func() {
+		It("gets the resource with the cached container, and correct source, params, version", func() {
 			Expect(fakeResource.GetCallCount()).To(Equal(1))
 
-			_, _, gotSource, gotParams, gotVersion, _ := fakeResource.GetArgsForCall(0)
+			newContainer, _, gotSource, gotParams, gotVersion, _ := fakeResource.GetArgsForCall(0)
+			Expect(newContainer).To(BeNil())
 			Expect(gotSource).To(Equal(resourceConfig.Source))
 			Expect(gotParams).To(Equal(params))
 			Expect(gotVersion).To(Equal(version))
@@ -257,6 +258,24 @@ var _ = Describe("Get", func() {
 						Privileged:   true,
 					}))
 					Expect(stepResourceTypes).To(Equal(resourceTypes))
+				})
+
+				It("replaces resource container with the newly created one", func() {
+					Expect(fakeResource.GetCallCount()).To(Equal(2))
+
+					newContainer, _, gotSource, gotParams, gotVersion, _ := fakeResource.GetArgsForCall(1)
+					Expect(newContainer).To(Equal(fakeContainer))
+					Expect(gotSource).To(Equal(resourceConfig.Source))
+					Expect(gotParams).To(Equal(params))
+					Expect(gotVersion).To(Equal(version))
+				})
+
+				It("gets the resource with the io config forwarded", func() {
+					Expect(fakeResource.GetCallCount()).To(Equal(2))
+
+					_, ioConfig, _, _, _, _ := fakeResource.GetArgsForCall(1)
+					Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
+					Expect(ioConfig.Stderr).To(Equal(stderrBuf))
 				})
 
 				It("runs the get resource action", func() {
