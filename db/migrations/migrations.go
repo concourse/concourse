@@ -110,8 +110,8 @@ var Migrations = []migration.Migrator{
 	MakeVolumeSizeBigint,
 	MakeContainersExpiresAtNullable,
 	AddContainerIDToVolumes,
+	AddOnDeleteSetNullToFKeyContainerId,
 	AddUAAAuthToTeams,
 	AddTeamIDToBuilds,
 	AddPublicToPipelines,
-	AddOnDeleteSetNullToFKeyContainerId,
 }
