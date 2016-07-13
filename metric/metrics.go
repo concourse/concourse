@@ -16,7 +16,7 @@ type Event interface {
 
 var TrackedContainers = &Gauge{}
 var TrackedVolumes = &Gauge{}
-var DatabaseQueries = &Gauge{}
+var DatabaseQueries = Meter(0)
 var DatabaseConnections = &Gauge{}
 
 type SchedulingFullDuration struct {
