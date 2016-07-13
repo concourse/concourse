@@ -22,7 +22,7 @@ import (
 	"github.com/concourse/atc/buildreaper"
 	"github.com/concourse/atc/builds"
 	"github.com/concourse/atc/config"
-	"github.com/concourse/atc/containerreaper"
+	"github.com/concourse/atc/containerkeepaliver"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/migrations"
 	"github.com/concourse/atc/engine"
@@ -207,9 +207,80 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
+	providerFactory := provider.NewOAuthFactory(
+		teamDBFactory,
+		cmd.oauthBaseURL(),
+		auth.OAuthRoutes,
+		auth.OAuthCallback,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	drain := make(chan struct{})
 
 	pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
+	apiHandler, apiRedirectHandler, err := cmd.constructAPIHandler(
+		logger,
+		reconfigurableSink,
+		sqlDB,
+		teamDBFactory,
+		providerFactory,
+		signingKey,
+		pipelineDBFactory,
+		engine,
+		workerClient,
+		drain,
+		radarSchedulerFactory,
+		radarScannerFactory,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	oauthHandler, err := auth.NewOAuthHandler(
+		logger,
+		providerFactory,
+		teamDBFactory,
+		signingKey,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	webHandler, err := webhandler.NewHandler(
+		logger,
+		wrappa.NewWebMetricsWrappa(logger),
+		web.NewClientFactory(cmd.internalURL(), cmd.Developer.DevelopmentMode),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var httpHandler http.Handler
+	if cmd.TLSBindPort != 0 {
+		oauthRedirectHandler := redirectingAPIHandler{
+			externalHost: cmd.ExternalURL.URL().Host,
+			baseHandler:  oauthHandler,
+		}
+
+		webRedirectHandler := redirectingAPIHandler{
+			externalHost: cmd.ExternalURL.URL().Host,
+			baseHandler:  webHandler,
+		}
+
+		httpHandler = cmd.constructHTTPHandler(
+			webRedirectHandler,
+			apiRedirectHandler,
+			oauthRedirectHandler,
+		)
+	} else {
+		httpHandler = cmd.constructHTTPHandler(
+			webHandler,
+			apiHandler,
+			oauthHandler,
+		)
+	}
 
 	members := []grouper.Member{
 		{"drainer", drainer(drain)},
@@ -256,15 +327,15 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 			cmd.ResourceCacheCleanupInterval,
 		)},
 
-		{"containerreaper", leaserunner.NewRunner(
-			logger.Session("container-reaper"),
-			containerreaper.NewContainerReaper(
-				logger.Session("container-reaper"),
+		{"containerkeepaliver", leaserunner.NewRunner(
+			logger.Session("container-keepaliver"),
+			containerkeepaliver.NewContainerKeepAliver(
+				logger.Session("container-keepaliver"),
 				workerClient,
 				sqlDB,
 				pipelineDBFactory,
 			),
-			"container-reaper",
+			"container-keepaliver",
 			sqlDB,
 			clock.NewClock(),
 			30*time.Second,
@@ -288,59 +359,6 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 	if cmd.Worker.GardenURL.URL() != nil {
 		members = cmd.appendStaticWorker(logger, sqlDB, members)
 	}
-
-	providerFactory := provider.NewOAuthFactory(
-		teamDBFactory,
-		cmd.oauthBaseURL(),
-		auth.OAuthRoutes,
-		auth.OAuthCallback,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	apiHandler, err := cmd.constructAPIHandler(
-		logger,
-		reconfigurableSink,
-		sqlDB,
-		teamDBFactory,
-		providerFactory,
-		signingKey,
-		pipelineDBFactory,
-		engine,
-		workerClient,
-		drain,
-		radarSchedulerFactory,
-		radarScannerFactory,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	oauthHandler, err := auth.NewOAuthHandler(
-		logger,
-		providerFactory,
-		teamDBFactory,
-		signingKey,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	webHandler, err := webhandler.NewHandler(
-		logger,
-		wrappa.NewWebMetricsWrappa(logger),
-		web.NewClientFactory(cmd.internalURL(), cmd.Developer.DevelopmentMode),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	httpHandler := cmd.constructHTTPHandler(
-		webHandler,
-		apiHandler,
-		oauthHandler,
-	)
 
 	if cmd.TLSBindPort != 0 {
 		httpHandler = cmd.httpsRedirectingHandler(httpHandler)
@@ -589,10 +607,9 @@ func (cmd *ATCCommand) constructDBConn(logger lager.Logger) (db.Conn, error) {
 		return nil, fmt.Errorf("failed to migrate database: %s", err)
 	}
 
-	explainDBConn := db.Explain(logger, dbConn, clock.NewClock(), 500*time.Millisecond)
-	countingDBConn := metric.CountQueries(explainDBConn)
+	dbConn.SetMaxOpenConns(64)
 
-	return countingDBConn, nil
+	return metric.CountQueries(dbConn), nil
 }
 
 func (cmd *ATCCommand) constructWorkerPool(logger lager.Logger, sqlDB *db.SQLDB, trackerFactory resource.TrackerFactory) worker.Client {
@@ -604,7 +621,7 @@ func (cmd *ATCCommand) constructWorkerPool(logger lager.Logger, sqlDB *db.SQLDB,
 			transport.ExponentialRetryPolicy{
 				Timeout: 5 * time.Minute,
 			},
-			image.NewFetcher(trackerFactory),
+			image.NewFactory(trackerFactory, sqlDB, clock.NewClock()),
 		),
 	)
 }
@@ -789,7 +806,7 @@ func (cmd *ATCCommand) constructAPIHandler(
 	drain <-chan struct{},
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	radarScannerFactory radar.ScannerFactory,
-) (http.Handler, error) {
+) (http.Handler, http.Handler, error) {
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIAuthWrappa(
 			cmd.constructValidator(signingKey, teamDBFactory),
@@ -799,10 +816,15 @@ func (cmd *ATCCommand) constructAPIHandler(
 		wrappa.NewConcourseVersionWrappa(Version),
 	}
 
-	return api.NewHandler(
+	redirectingWrappa := wrappa.MultiWrappa{
+		apiWrapper,
+		wrappa.NewAPITLSRedirectWrappa(cmd.ExternalURL.URL().Host),
+	}
+
+	handlers, err := api.NewHandler(
 		logger,
 		cmd.ExternalURL.String(),
-		apiWrapper,
+		[]wrappa.Wrappa{apiWrapper, redirectingWrappa},
 
 		auth.NewTokenGenerator(signingKey),
 		providerFactory,
@@ -832,6 +854,32 @@ func (cmd *ATCCommand) constructAPIHandler(
 		cmd.CLIArtifactsDir.Path(),
 		Version,
 	)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return handlers[0], handlers[1], nil
+}
+
+type redirectingAPIHandler struct {
+	externalHost string
+	baseHandler  http.Handler
+}
+
+func (h redirectingAPIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" || r.Method == "HEAD" {
+		u := url.URL{
+			Scheme:   "https",
+			Host:     h.externalHost,
+			Path:     r.URL.Path,
+			RawQuery: r.URL.RawQuery,
+		}
+
+		http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
+	} else {
+		h.baseHandler.ServeHTTP(w, r)
+	}
 }
 
 func (cmd *ATCCommand) constructPipelineSyncer(

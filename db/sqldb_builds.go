@@ -127,3 +127,35 @@ func (db *SQLDB) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 	err = tx.Commit()
 	return err
 }
+
+func (db *SQLDB) FindLatestSuccessfulBuildsPerJob() (map[int]int, error) {
+	rows, err := db.conn.Query(
+		`SELECT max(id), job_id
+		FROM builds
+		WHERE job_id is not null
+		AND status = 'succeeded'
+		GROUP BY job_id`)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return map[int]int{}, nil
+		}
+		return nil, err
+	}
+
+	latestSuccessfulBuildsPerJob := map[int]int{}
+	for rows.Next() {
+		var id, job_id int
+		err := rows.Scan(&id, &job_id)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return map[int]int{}, nil
+			}
+			return nil, err
+		}
+
+		latestSuccessfulBuildsPerJob[job_id] = id
+	}
+
+	return latestSuccessfulBuildsPerJob, nil
+}

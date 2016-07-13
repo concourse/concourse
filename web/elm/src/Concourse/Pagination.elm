@@ -88,7 +88,7 @@ promoteHttpError rawError =
 
 parseLinks : Http.Response -> Pagination
 parseLinks response =
-  case Dict.get "Link" response.headers of
+  case Dict.get "link" <| keysToLower response.headers of
     Nothing ->
       Pagination Nothing Nothing
 
@@ -100,6 +100,12 @@ parseLinks response =
         Pagination
           (Dict.get previousRel parsed `Maybe.andThen` parseParams)
           (Dict.get nextRel parsed `Maybe.andThen` parseParams)
+
+keysToLower : Dict String a -> Dict String a
+keysToLower = Dict.fromList << List.map fstToLower << Dict.toList
+
+fstToLower : (String, a) -> (String, a)
+fstToLower (x, y) = (String.toLower x, y)
 
 parseLinkTuple : String -> Maybe (String, String)
 parseLinkTuple header =

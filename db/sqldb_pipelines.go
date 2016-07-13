@@ -34,8 +34,9 @@ func (db *SQLDB) GetAllPipelines() ([]SavedPipeline, error) {
 func (db *SQLDB) GetPipelineByID(pipelineID int) (SavedPipeline, error) {
 	row := db.conn.QueryRow(`
 		SELECT `+pipelineColumns+`
-		FROM pipelines
-		WHERE id = $1
+		FROM pipelines p
+		INNER JOIN teams t ON t.id = p.team_id
+		WHERE p.id = $1
 	`, pipelineID)
 
 	return scanPipeline(row)

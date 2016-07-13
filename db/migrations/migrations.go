@@ -113,4 +113,5 @@ var Migrations = []migration.Migrator{
 	AddUAAAuthToTeams,
 	AddTeamIDToBuilds,
 	AddPublicToPipelines,
+	AddOnDeleteSetNullToFKeyContainerId,
 }

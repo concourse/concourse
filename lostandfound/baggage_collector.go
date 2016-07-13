@@ -181,7 +181,6 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 				"error":     err.Error(),
 				"worker-id": volumeToExpire.WorkerName,
 			})
-			bc.db.ReapVolume(volumeToExpire.Handle)
 			continue
 		}
 
@@ -236,7 +235,10 @@ func (bc *baggageCollector) expireVolumes(latestVersions hashedVersionSet) error
 
 		if !found {
 			vLogger.Info("volume-not-found")
-			bc.db.ReapVolume(volumeToExpire.Handle)
+			err = bc.db.ReapVolume(volumeToExpire.Handle)
+			if err != nil {
+				vLogger.Error("failed-to-delete-volume-from-database", err)
+			}
 			continue
 		}
 

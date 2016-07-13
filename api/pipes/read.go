@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc"
+	"github.com/pivotal-golang/lager"
 )
 
 func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {
@@ -55,12 +56,15 @@ func (s *Server) ReadPipe(w http.ResponseWriter, r *http.Request) {
 		delete(s.pipes, pipeID)
 		s.pipesL.Unlock()
 	} else {
+		logger.Debug("forwarding-pipe-read-request", lager.Data{"pipe-url": dbPipe.URL})
 		response, err := s.forwardRequest(w, r, dbPipe.URL, atc.ReadPipe, dbPipe.ID)
 		if err != nil {
 			logger.Error("failed-to-forward-request", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
+		w.WriteHeader(response.StatusCode)
 
 		w.(http.Flusher).Flush()
 

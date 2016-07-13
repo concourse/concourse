@@ -96,14 +96,6 @@ type FakeGardenWorkerDB struct {
 		result1 []db.SavedVolume
 		result2 error
 	}
-	ReapVolumeStub        func(string) error
-	reapVolumeMutex       sync.RWMutex
-	reapVolumeArgsForCall []struct {
-		arg1 string
-	}
-	reapVolumeReturns struct {
-		result1 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -424,39 +416,6 @@ func (fake *FakeGardenWorkerDB) GetVolumesByIdentifierReturns(result1 []db.Saved
 	}{result1, result2}
 }
 
-func (fake *FakeGardenWorkerDB) ReapVolume(arg1 string) error {
-	fake.reapVolumeMutex.Lock()
-	fake.reapVolumeArgsForCall = append(fake.reapVolumeArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("ReapVolume", []interface{}{arg1})
-	fake.reapVolumeMutex.Unlock()
-	if fake.ReapVolumeStub != nil {
-		return fake.ReapVolumeStub(arg1)
-	} else {
-		return fake.reapVolumeReturns.result1
-	}
-}
-
-func (fake *FakeGardenWorkerDB) ReapVolumeCallCount() int {
-	fake.reapVolumeMutex.RLock()
-	defer fake.reapVolumeMutex.RUnlock()
-	return len(fake.reapVolumeArgsForCall)
-}
-
-func (fake *FakeGardenWorkerDB) ReapVolumeArgsForCall(i int) string {
-	fake.reapVolumeMutex.RLock()
-	defer fake.reapVolumeMutex.RUnlock()
-	return fake.reapVolumeArgsForCall[i].arg1
-}
-
-func (fake *FakeGardenWorkerDB) ReapVolumeReturns(result1 error) {
-	fake.ReapVolumeStub = nil
-	fake.reapVolumeReturns = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeGardenWorkerDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -478,8 +437,6 @@ func (fake *FakeGardenWorkerDB) Invocations() map[string][][]interface{} {
 	defer fake.getVolumeTTLMutex.RUnlock()
 	fake.getVolumesByIdentifierMutex.RLock()
 	defer fake.getVolumesByIdentifierMutex.RUnlock()
-	fake.reapVolumeMutex.RLock()
-	defer fake.reapVolumeMutex.RUnlock()
 	return fake.invocations
 }
 

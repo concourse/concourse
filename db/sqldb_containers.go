@@ -142,46 +142,12 @@ func scanRows(rows *sql.Rows) ([]SavedContainer, error) {
 	return containers, nil
 }
 
-func (db *SQLDB) FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error) {
+func (db *SQLDB) FindJobContainersFromUnsuccessfulBuilds() ([]SavedContainer, error) {
 	rows, err := db.conn.Query(
 		`SELECT ` + containerColumns + `
 		FROM containers c ` + containerJoins + `
-		WHERE b.status = 'succeeded'
-		AND c.ttl = '0'`)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return []SavedContainer{}, nil
-		}
-		return nil, err
-	}
-
-	return scanRows(rows)
-}
-
-func (db *SQLDB) FindContainersFromUnsuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error) {
-	rows, err := db.conn.Query(
-		`SELECT ` + containerColumns + `
-		FROM containers c ` + containerJoins + `
-		WHERE (b.status = 'failed' OR b.status = 'aborted' OR b.status = 'errored')
-		AND c.ttl = '0'`)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return []SavedContainer{}, nil
-		}
-		return nil, err
-	}
-
-	return scanRows(rows)
-}
-
-func (db *SQLDB) FindOrphanContainersWithInfiniteTTL() ([]SavedContainer, error) {
-	rows, err := db.conn.Query(
-		`SELECT ` + containerColumns + `
-		FROM containers c ` + containerJoins + `
-		WHERE b.status is null
-		AND c.ttl = '0'`)
+		WHERE (b.status = 'failed' OR b.status = 'errored')
+		AND b.job_id is not null`)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -263,12 +229,50 @@ func (db *SQLDB) FindContainerByIdentifier(id ContainerIdentifier) (SavedContain
 		containers = append(containers, container)
 	}
 
-	switch len(containers) {
+	versionFilteredContainers := []SavedContainer{}
+	for _, container := range containers {
+		if container.Type != ContainerTypeCheck || container.CheckType == "" || container.ResourceTypeVersion == nil {
+			versionFilteredContainers = append(versionFilteredContainers, container)
+			continue
+		}
+
+		if container.PipelineID > 0 {
+			savedPipeline, err := db.GetPipelineByID(container.PipelineID)
+			if err != nil {
+				return SavedContainer{}, false, err
+			}
+
+			pipelineDBFactory := NewPipelineDBFactory(db.conn, db.bus)
+			pipelineDB := pipelineDBFactory.Build(savedPipeline)
+
+			_, found, err := pipelineDB.GetResourceType(container.CheckType)
+			if err != nil {
+				return SavedContainer{}, false, err
+			}
+
+			// this is custom resource type, do not validate version on worker
+			if found {
+				versionFilteredContainers = append(versionFilteredContainers, container)
+				continue
+			}
+		}
+
+		workerResourceTypeVersion, found, err := db.FindWorkerCheckResourceTypeVersion(container.WorkerName, container.CheckType)
+		if err != nil {
+			return SavedContainer{}, false, err
+		}
+
+		if found && workerResourceTypeVersion == container.ResourceTypeVersion[container.CheckType] {
+			versionFilteredContainers = append(versionFilteredContainers, container)
+		}
+	}
+
+	switch len(versionFilteredContainers) {
 	case 0:
 		return SavedContainer{}, false, nil
 
 	case 1:
-		return containers[0], true, nil
+		return versionFilteredContainers[0], true, nil
 
 	default:
 		return SavedContainer{}, false, ErrMultipleContainersFound
@@ -494,28 +498,7 @@ func (db *SQLDB) UpdateExpiresAtOnContainer(handle string, ttl time.Duration) er
 }
 
 func (db *SQLDB) ReapContainer(handle string) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	_, err = tx.Exec(`
-		UPDATE volumes
-		SET container_id = null
-		WHERE container_id IN (
-			SELECT id
-			FROM containers
-			WHERE handle = $1
-		)
-	`, handle)
-
-	if err != nil {
-		return err
-	}
-
-	rows, err := tx.Exec(`
+	rows, err := db.conn.Exec(`
 		DELETE FROM containers WHERE handle = $1
 	`, handle)
 	if err != nil {
@@ -533,7 +516,7 @@ func (db *SQLDB) ReapContainer(handle string) error {
 		return nil
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func (db *SQLDB) DeleteContainer(handle string) error {
@@ -543,20 +526,6 @@ func (db *SQLDB) DeleteContainer(handle string) error {
 	}
 
 	defer tx.Rollback()
-
-	_, err = tx.Exec(`
-		UPDATE volumes
-		SET container_id = null
-		WHERE container_id IN (
-			SELECT id
-			FROM containers
-			WHERE handle = $1
-		)
-	`, handle)
-
-	if err != nil {
-		return err
-	}
 
 	_, err = tx.Exec(`
 		DELETE FROM containers WHERE handle = $1
@@ -733,37 +702,14 @@ func scanContainer(row scannable) (SavedContainer, error) {
 }
 
 func deleteExpired(db *SQLDB) error {
-	tx, err := db.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	_, err = tx.Exec(`
-		UPDATE volumes
-		SET container_id = null
-		WHERE container_id IN (
-			SELECT id
-			FROM containers
-			WHERE expires_at IS NOT NULL
-			AND expires_at < NOW()
-		)
-	`)
-
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.Exec(`
+	_, err := db.conn.Exec(`
 		DELETE FROM containers
 		WHERE expires_at IS NOT NULL
 		AND expires_at < NOW()
 	`)
-
 	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }

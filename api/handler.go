@@ -36,7 +36,7 @@ func NewHandler(
 
 	externalURL string,
 
-	wrapper wrappa.Wrappa,
+	wrappers []wrappa.Wrappa,
 
 	tokenGenerator auth.TokenGenerator,
 	providerFactory auth.ProviderFactory,
@@ -66,7 +66,7 @@ func NewHandler(
 
 	cliDownloadsDir string,
 	version string,
-) (http.Handler, error) {
+) ([]http.Handler, error) {
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
 	if err != nil {
 		return nil, err
@@ -189,5 +189,14 @@ func NewHandler(
 		atc.SetTeam: http.HandlerFunc(teamServer.SetTeam),
 	}
 
-	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))
+	results := []http.Handler{}
+	for _, wrapper := range wrappers {
+		result, err := rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, result)
+	}
+
+	return results, nil
 }

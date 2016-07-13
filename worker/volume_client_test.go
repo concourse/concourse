@@ -210,22 +210,6 @@ var _ = Describe("VolumeClient", func() {
 					Expect(wVol3.ReleaseCallCount()).To(Equal(1))
 					Expect(wVol3.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(5 * time.Minute)))
 				})
-
-				It("reaps the missing volume from the database", func() {
-					Expect(fakeGardenWorkerDB.ReapVolumeCallCount()).To(Equal(1))
-					Expect(fakeGardenWorkerDB.ReapVolumeArgsForCall(0)).To(Equal("vol-2-handle"))
-				})
-
-				Context("when db.ReapVolume returns an error", func() {
-					BeforeEach(func() {
-						fakeGardenWorkerDB.ReapVolumeReturns(errors.New("a-reap-error"))
-					})
-
-					It("should continue to the next volume", func() {
-						Expect(wVol3.ReleaseCallCount()).To(Equal(1))
-						Expect(wVol3.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(5 * time.Minute)))
-					})
-				})
 			})
 		})
 
@@ -311,11 +295,6 @@ var _ = Describe("VolumeClient", func() {
 				It("does not return an error", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeFalse())
-				})
-
-				It("reaps the volume from the db", func() {
-					Expect(fakeGardenWorkerDB.ReapVolumeCallCount()).To(Equal(1))
-					Expect(fakeGardenWorkerDB.ReapVolumeArgsForCall(0)).To(Equal("db-vol-handle"))
 				})
 			})
 

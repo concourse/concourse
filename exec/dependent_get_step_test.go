@@ -154,6 +154,7 @@ var _ = Describe("GardenFactory", func() {
 				fakeResource        *rfakes.FakeResource
 				fakeCache           *rfakes.FakeCache
 				fakeVersionedSource *rfakes.FakeVersionedSource
+				fakeWorker          *wfakes.FakeWorker
 			)
 
 			BeforeEach(func() {
@@ -166,12 +167,15 @@ var _ = Describe("GardenFactory", func() {
 				fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
 
 				fakeResource.GetReturns(fakeVersionedSource)
+
+				fakeWorker = new(wfakes.FakeWorker)
+				fakeTracker.ChooseWorkerReturns(fakeWorker, nil)
 			})
 
 			It("initializes the resource with the correct type and session id, making sure that it is not ephemeral", func() {
 				Expect(fakeTracker.InitWithCacheCallCount()).To(Equal(1))
 
-				_, sm, sid, typ, tags, cacheID, actualResourceTypes, delegate := fakeTracker.InitWithCacheArgsForCall(0)
+				_, sm, sid, typ, tags, cacheID, actualResourceTypes, delegate, choosenWorker := fakeTracker.InitWithCacheArgsForCall(0)
 				Expect(sm).To(Equal(stepMetadata))
 				Expect(sid).To(Equal(resource.Session{
 					ID: worker.Identifier{
@@ -199,6 +203,7 @@ var _ = Describe("GardenFactory", func() {
 						},
 					}))
 				Expect(delegate).To(Equal(getDelegate))
+				Expect(choosenWorker).To(Equal(fakeWorker))
 			})
 
 			It("gets the resource with the correct source, params, and version", func() {

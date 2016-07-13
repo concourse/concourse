@@ -49,28 +49,12 @@ type FakeContainer struct {
 		result1 io.ReadCloser
 		result2 error
 	}
-	LimitBandwidthStub        func(limits garden.BandwidthLimits) error
-	limitBandwidthMutex       sync.RWMutex
-	limitBandwidthArgsForCall []struct {
-		limits garden.BandwidthLimits
-	}
-	limitBandwidthReturns struct {
-		result1 error
-	}
 	CurrentBandwidthLimitsStub        func() (garden.BandwidthLimits, error)
 	currentBandwidthLimitsMutex       sync.RWMutex
 	currentBandwidthLimitsArgsForCall []struct{}
 	currentBandwidthLimitsReturns     struct {
 		result1 garden.BandwidthLimits
 		result2 error
-	}
-	LimitCPUStub        func(limits garden.CPULimits) error
-	limitCPUMutex       sync.RWMutex
-	limitCPUArgsForCall []struct {
-		limits garden.CPULimits
-	}
-	limitCPUReturns struct {
-		result1 error
 	}
 	CurrentCPULimitsStub        func() (garden.CPULimits, error)
 	currentCPULimitsMutex       sync.RWMutex
@@ -85,14 +69,6 @@ type FakeContainer struct {
 	currentDiskLimitsReturns     struct {
 		result1 garden.DiskLimits
 		result2 error
-	}
-	LimitMemoryStub        func(limits garden.MemoryLimits) error
-	limitMemoryMutex       sync.RWMutex
-	limitMemoryArgsForCall []struct {
-		limits garden.MemoryLimits
-	}
-	limitMemoryReturns struct {
-		result1 error
 	}
 	CurrentMemoryLimitsStub        func() (garden.MemoryLimits, error)
 	currentMemoryLimitsMutex       sync.RWMutex
@@ -366,39 +342,6 @@ func (fake *FakeContainer) StreamOutReturns(result1 io.ReadCloser, result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) LimitBandwidth(limits garden.BandwidthLimits) error {
-	fake.limitBandwidthMutex.Lock()
-	fake.limitBandwidthArgsForCall = append(fake.limitBandwidthArgsForCall, struct {
-		limits garden.BandwidthLimits
-	}{limits})
-	fake.recordInvocation("LimitBandwidth", []interface{}{limits})
-	fake.limitBandwidthMutex.Unlock()
-	if fake.LimitBandwidthStub != nil {
-		return fake.LimitBandwidthStub(limits)
-	} else {
-		return fake.limitBandwidthReturns.result1
-	}
-}
-
-func (fake *FakeContainer) LimitBandwidthCallCount() int {
-	fake.limitBandwidthMutex.RLock()
-	defer fake.limitBandwidthMutex.RUnlock()
-	return len(fake.limitBandwidthArgsForCall)
-}
-
-func (fake *FakeContainer) LimitBandwidthArgsForCall(i int) garden.BandwidthLimits {
-	fake.limitBandwidthMutex.RLock()
-	defer fake.limitBandwidthMutex.RUnlock()
-	return fake.limitBandwidthArgsForCall[i].limits
-}
-
-func (fake *FakeContainer) LimitBandwidthReturns(result1 error) {
-	fake.LimitBandwidthStub = nil
-	fake.limitBandwidthReturns = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeContainer) CurrentBandwidthLimits() (garden.BandwidthLimits, error) {
 	fake.currentBandwidthLimitsMutex.Lock()
 	fake.currentBandwidthLimitsArgsForCall = append(fake.currentBandwidthLimitsArgsForCall, struct{}{})
@@ -423,39 +366,6 @@ func (fake *FakeContainer) CurrentBandwidthLimitsReturns(result1 garden.Bandwidt
 		result1 garden.BandwidthLimits
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeContainer) LimitCPU(limits garden.CPULimits) error {
-	fake.limitCPUMutex.Lock()
-	fake.limitCPUArgsForCall = append(fake.limitCPUArgsForCall, struct {
-		limits garden.CPULimits
-	}{limits})
-	fake.recordInvocation("LimitCPU", []interface{}{limits})
-	fake.limitCPUMutex.Unlock()
-	if fake.LimitCPUStub != nil {
-		return fake.LimitCPUStub(limits)
-	} else {
-		return fake.limitCPUReturns.result1
-	}
-}
-
-func (fake *FakeContainer) LimitCPUCallCount() int {
-	fake.limitCPUMutex.RLock()
-	defer fake.limitCPUMutex.RUnlock()
-	return len(fake.limitCPUArgsForCall)
-}
-
-func (fake *FakeContainer) LimitCPUArgsForCall(i int) garden.CPULimits {
-	fake.limitCPUMutex.RLock()
-	defer fake.limitCPUMutex.RUnlock()
-	return fake.limitCPUArgsForCall[i].limits
-}
-
-func (fake *FakeContainer) LimitCPUReturns(result1 error) {
-	fake.LimitCPUStub = nil
-	fake.limitCPUReturns = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeContainer) CurrentCPULimits() (garden.CPULimits, error) {
@@ -508,39 +418,6 @@ func (fake *FakeContainer) CurrentDiskLimitsReturns(result1 garden.DiskLimits, r
 		result1 garden.DiskLimits
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeContainer) LimitMemory(limits garden.MemoryLimits) error {
-	fake.limitMemoryMutex.Lock()
-	fake.limitMemoryArgsForCall = append(fake.limitMemoryArgsForCall, struct {
-		limits garden.MemoryLimits
-	}{limits})
-	fake.recordInvocation("LimitMemory", []interface{}{limits})
-	fake.limitMemoryMutex.Unlock()
-	if fake.LimitMemoryStub != nil {
-		return fake.LimitMemoryStub(limits)
-	} else {
-		return fake.limitMemoryReturns.result1
-	}
-}
-
-func (fake *FakeContainer) LimitMemoryCallCount() int {
-	fake.limitMemoryMutex.RLock()
-	defer fake.limitMemoryMutex.RUnlock()
-	return len(fake.limitMemoryArgsForCall)
-}
-
-func (fake *FakeContainer) LimitMemoryArgsForCall(i int) garden.MemoryLimits {
-	fake.limitMemoryMutex.RLock()
-	defer fake.limitMemoryMutex.RUnlock()
-	return fake.limitMemoryArgsForCall[i].limits
-}
-
-func (fake *FakeContainer) LimitMemoryReturns(result1 error) {
-	fake.LimitMemoryStub = nil
-	fake.limitMemoryReturns = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeContainer) CurrentMemoryLimits() (garden.MemoryLimits, error) {
@@ -1006,18 +883,12 @@ func (fake *FakeContainer) Invocations() map[string][][]interface{} {
 	defer fake.streamInMutex.RUnlock()
 	fake.streamOutMutex.RLock()
 	defer fake.streamOutMutex.RUnlock()
-	fake.limitBandwidthMutex.RLock()
-	defer fake.limitBandwidthMutex.RUnlock()
 	fake.currentBandwidthLimitsMutex.RLock()
 	defer fake.currentBandwidthLimitsMutex.RUnlock()
-	fake.limitCPUMutex.RLock()
-	defer fake.limitCPUMutex.RUnlock()
 	fake.currentCPULimitsMutex.RLock()
 	defer fake.currentCPULimitsMutex.RUnlock()
 	fake.currentDiskLimitsMutex.RLock()
 	defer fake.currentDiskLimitsMutex.RUnlock()
-	fake.limitMemoryMutex.RLock()
-	defer fake.limitMemoryMutex.RUnlock()
 	fake.currentMemoryLimitsMutex.RLock()
 	defer fake.currentMemoryLimitsMutex.RUnlock()
 	fake.netInMutex.RLock()

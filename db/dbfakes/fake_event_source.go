@@ -4,16 +4,16 @@ package dbfakes
 import (
 	"sync"
 
-	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
+	"github.com/concourse/atc/event"
 )
 
 type FakeEventSource struct {
-	NextStub        func() (atc.Event, error)
+	NextStub        func() (event.Envelope, error)
 	nextMutex       sync.RWMutex
 	nextArgsForCall []struct{}
 	nextReturns     struct {
-		result1 atc.Event
+		result1 event.Envelope
 		result2 error
 	}
 	CloseStub        func() error
@@ -26,7 +26,7 @@ type FakeEventSource struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeEventSource) Next() (atc.Event, error) {
+func (fake *FakeEventSource) Next() (event.Envelope, error) {
 	fake.nextMutex.Lock()
 	fake.nextArgsForCall = append(fake.nextArgsForCall, struct{}{})
 	fake.recordInvocation("Next", []interface{}{})
@@ -44,10 +44,10 @@ func (fake *FakeEventSource) NextCallCount() int {
 	return len(fake.nextArgsForCall)
 }
 
-func (fake *FakeEventSource) NextReturns(result1 atc.Event, result2 error) {
+func (fake *FakeEventSource) NextReturns(result1 event.Envelope, result2 error) {
 	fake.NextStub = nil
 	fake.nextReturns = struct {
-		result1 atc.Event
+		result1 event.Envelope
 		result2 error
 	}{result1, result2}
 }

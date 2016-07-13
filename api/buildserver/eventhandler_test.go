@@ -1,30 +1,32 @@
 package buildserver_test
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"time"
 
-	"github.com/concourse/atc"
 	. "github.com/concourse/atc/api/buildserver"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/db/dbfakes"
-	"github.com/gorilla/websocket"
-	"github.com/pivotal-golang/lager"
+	"github.com/concourse/atc/event"
+	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/vito/go-sse/sse"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-type fakeEvent struct {
-	Value string `json:"value"`
+func fakeEvent(payload string) event.Envelope {
+	msg := json.RawMessage(payload)
+	return event.Envelope{
+		Data:    &msg,
+		Event:   "fake",
+		Version: "42.0",
+	}
 }
-
-func (e fakeEvent) EventType() atc.EventType { return "fake" }
-func (fakeEvent) Version() atc.EventVersion  { return "42.0" }
 
 var _ = Describe("Handler", func() {
 	var (
@@ -36,7 +38,7 @@ var _ = Describe("Handler", func() {
 	BeforeEach(func() {
 		build = new(dbfakes.FakeBuild)
 
-		server = httptest.NewServer(NewEventHandler(lager.NewLogger("test"), build))
+		server = httptest.NewServer(NewEventHandler(lagertest.NewTestLogger("test"), build))
 	})
 
 	Describe("GET", func() {
@@ -54,25 +56,25 @@ var _ = Describe("Handler", func() {
 
 		Context("when subscribing to the build succeeds", func() {
 			var fakeEventSource *dbfakes.FakeEventSource
-			var returnedEvents []atc.Event
+			var returnedEvents []event.Envelope
 
 			BeforeEach(func() {
-				returnedEvents = []atc.Event{
-					fakeEvent{"e1"},
-					fakeEvent{"e2"},
-					fakeEvent{"e3"},
+				returnedEvents = []event.Envelope{
+					fakeEvent(`{"event":1}`),
+					fakeEvent(`{"event":2}`),
+					fakeEvent(`{"event":3}`),
 				}
 
 				fakeEventSource = new(dbfakes.FakeEventSource)
 
 				build.EventsStub = func(from uint) (db.EventSource, error) {
-					fakeEventSource.NextStub = func() (atc.Event, error) {
+					fakeEventSource.NextStub = func() (event.Envelope, error) {
 						defer GinkgoRecover()
 
 						Expect(fakeEventSource.CloseCallCount()).To(Equal(0))
 
 						if from >= uint(len(returnedEvents)) {
-							return nil, db.ErrEndOfBuildEventStream
+							return event.Envelope{}, db.ErrEndOfBuildEventStream
 						}
 
 						from++
@@ -88,183 +90,76 @@ var _ = Describe("Handler", func() {
 				Eventually(fakeEventSource.CloseCallCount, 30*time.Second).Should(Equal(1))
 			})
 
-			Context("when the request asks for websockets upgrade", func() {
-				var conn *websocket.Conn
-				var header http.Header
+			JustBeforeEach(func() {
+				var err error
 
-				BeforeEach(func() {
-					request.URL.Scheme = "ws"
-					header = nil
-				})
-
-				JustBeforeEach(func() {
-					var err error
-					dialer := websocket.Dialer{}
-					conn, response, err = dialer.Dial(request.URL.String(), header)
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				AfterEach(func() {
-					if conn != nil {
-						conn.Close()
-					}
-				})
-
-				It("gets the events starting at 0", func() {
-					Eventually(build.EventsCallCount).Should(Equal(1))
-					actualFrom := build.EventsArgsForCall(0)
-					Expect(actualFrom).To(BeZero())
-				})
-
-				It("returns the protocol version as X-ATC-Stream-Version", func() {
-					Expect(response.Header.Get("X-ATC-Stream-Version")).To(Equal("2.0"))
-				})
-
-				It("emits all the events", func() {
-					messageType, message, err := conn.ReadMessage()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(messageType).To(Equal(websocket.TextMessage))
-					Expect(message).To(MatchJSON(`
-						{
-							"type": "event",
-							"payload": {
-								"id": 0,
-								"message": {
-									"data": {"value": "e1"},
-									"event":"fake",
-									"version":"42.0"
-								}
-							}
-						}`))
-
-					messageType, message, err = conn.ReadMessage()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(messageType).To(Equal(websocket.TextMessage))
-					Expect(message).To(MatchJSON(`
-						{
-							"type": "event",
-							"payload": {
-								"id": 1,
-								"message": {
-									"data": {"value": "e2"},
-									"event":"fake",
-									"version":"42.0"
-								}
-							}
-						}`))
-
-					messageType, message, err = conn.ReadMessage()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(messageType).To(Equal(websocket.TextMessage))
-					Expect(message).To(MatchJSON(`
-						{
-							"type": "event",
-							"payload": {
-								"id": 2,
-								"message": {
-									"data": {"value": "e3"},
-									"event":"fake",
-									"version":"42.0"
-								}
-							}
-						}`))
-
-					messageType, message, err = conn.ReadMessage()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(messageType).To(Equal(websocket.TextMessage))
-					Expect(message).To(MatchJSON(`{"type": "end"}`))
-
-					_, _, err = conn.ReadMessage()
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(&websocket.CloseError{Code: websocket.CloseNormalClosure, Text: "end"}))
-				})
-
-				Context("when the Last-Event-ID header is given", func() {
-					BeforeEach(func() {
-						header = http.Header{}
-						header.Set("Last-Event-ID", "1")
-					})
-
-					It("starts subscribing from after the id", func() {
-						Eventually(build.EventsCallCount).Should(Equal(1))
-						actualFrom := build.EventsArgsForCall(0)
-						Expect(actualFrom).To(Equal(uint(2)))
-					})
-				})
+				client := &http.Client{
+					Transport: &http.Transport{},
+				}
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when the request doesn't use websockets", func() {
-				JustBeforeEach(func() {
-					var err error
+			It("gets the events from the right build, starting at 0", func() {
+				Eventually(build.EventsCallCount).Should(Equal(1))
+				actualFrom := build.EventsArgsForCall(0)
+				Expect(actualFrom).To(BeZero())
+			})
 
-					client := &http.Client{
-						Transport: &http.Transport{},
-					}
-					response, err = client.Do(request)
-					Expect(err).NotTo(HaveOccurred())
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns Content-Type as text/event-stream", func() {
+				Expect(response.Header.Get("Content-Type")).To(Equal("text/event-stream; charset=utf-8"))
+				Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
+				Expect(response.Header.Get("Connection")).NotTo(Equal("keep-alive"))
+			})
+
+			It("returns the protocol version as X-ATC-Stream-Version", func() {
+				Expect(response.Header.Get("X-ATC-Stream-Version")).To(Equal("2.0"))
+			})
+
+			It("emits them, followed by an end event", func() {
+				reader := sse.NewReadCloser(response.Body)
+
+				Expect(reader.Next()).To(Equal(sse.Event{
+					ID:   "0",
+					Name: "event",
+					Data: []byte(`{"data":{"event":1},"event":"fake","version":"42.0"}`),
+				}))
+
+				Expect(reader.Next()).To(Equal(sse.Event{
+					ID:   "1",
+					Name: "event",
+					Data: []byte(`{"data":{"event":2},"event":"fake","version":"42.0"}`),
+				}))
+
+				Expect(reader.Next()).To(Equal(sse.Event{
+					ID:   "2",
+					Name: "event",
+					Data: []byte(`{"data":{"event":3},"event":"fake","version":"42.0"}`),
+				}))
+
+				Expect(reader.Next()).To(Equal(sse.Event{
+					Name: "end",
+					Data: []byte{},
+				}))
+
+				_, err := reader.Next()
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(io.EOF))
+			})
+
+			Context("when the Last-Event-ID header is given", func() {
+				BeforeEach(func() {
+					request.Header.Set("Last-Event-ID", "1")
 				})
 
-				It("gets the events from starting at 0", func() {
+				It("starts subscribing from after the id", func() {
 					Eventually(build.EventsCallCount).Should(Equal(1))
 					actualFrom := build.EventsArgsForCall(0)
-					Expect(actualFrom).To(BeZero())
-				})
-
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("returns Content-Type as text/event-stream", func() {
-					Expect(response.Header.Get("Content-Type")).To(Equal("text/event-stream; charset=utf-8"))
-					Expect(response.Header.Get("Cache-Control")).To(Equal("no-cache, no-store, must-revalidate"))
-					Expect(response.Header.Get("Connection")).NotTo(Equal("keep-alive"))
-				})
-
-				It("returns the protocol version as X-ATC-Stream-Version", func() {
-					Expect(response.Header.Get("X-ATC-Stream-Version")).To(Equal("2.0"))
-				})
-
-				It("emits them, followed by an end event", func() {
-					reader := sse.NewReadCloser(response.Body)
-
-					Expect(reader.Next()).To(Equal(sse.Event{
-						ID:   "0",
-						Name: "event",
-						Data: []byte(`{"data":{"value":"e1"},"event":"fake","version":"42.0"}`),
-					}))
-
-					Expect(reader.Next()).To(Equal(sse.Event{
-						ID:   "1",
-						Name: "event",
-						Data: []byte(`{"data":{"value":"e2"},"event":"fake","version":"42.0"}`),
-					}))
-
-					Expect(reader.Next()).To(Equal(sse.Event{
-						ID:   "2",
-						Name: "event",
-						Data: []byte(`{"data":{"value":"e3"},"event":"fake","version":"42.0"}`),
-					}))
-
-					Expect(reader.Next()).To(Equal(sse.Event{
-						Name: "end",
-						Data: []byte{},
-					}))
-
-					_, err := reader.Next()
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(io.EOF))
-				})
-
-				Context("when the Last-Event-ID header is given", func() {
-					BeforeEach(func() {
-						request.Header.Set("Last-Event-ID", "1")
-					})
-
-					It("starts subscribing from after the id", func() {
-						Eventually(build.EventsCallCount).Should(Equal(1))
-						actualFrom := build.EventsArgsForCall(0)
-						Expect(actualFrom).To(Equal(uint(2)))
-					})
+					Expect(actualFrom).To(Equal(uint(2)))
 				})
 			})
 		})
@@ -279,7 +174,7 @@ var _ = Describe("Handler", func() {
 				fakeEventSource = new(dbfakes.FakeEventSource)
 
 				from := 0
-				fakeEventSource.NextStub = func() (atc.Event, error) {
+				fakeEventSource.NextStub = func() (event.Envelope, error) {
 					defer GinkgoRecover()
 
 					Expect(fakeEventSource.CloseCallCount()).To(Equal(0))
@@ -287,9 +182,9 @@ var _ = Describe("Handler", func() {
 					from++
 
 					if from == 1 {
-						return fakeEvent{"e1"}, nil
+						return fakeEvent(`{"event":1}`), nil
 					} else {
-						return nil, disaster
+						return event.Envelope{}, disaster
 					}
 				}
 
@@ -300,75 +195,28 @@ var _ = Describe("Handler", func() {
 				Eventually(fakeEventSource.CloseCallCount, 30*time.Second).Should(Equal(1))
 			})
 
-			Context("when the request asks for websockets upgrade", func() {
-				var conn *websocket.Conn
-				var header http.Header
+			JustBeforeEach(func() {
+				var err error
 
-				BeforeEach(func() {
-					request.URL.Scheme = "ws"
-					header = nil
-				})
-
-				JustBeforeEach(func() {
-					var err error
-					dialer := websocket.Dialer{}
-					conn, response, err = dialer.Dial(request.URL.String(), header)
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				AfterEach(func() {
-					if conn != nil {
-						conn.Close()
-					}
-				})
-
-				It("indicates internal server error", func() {
-					messageType, message, err := conn.ReadMessage()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(messageType).To(Equal(websocket.TextMessage))
-					Expect(message).To(MatchJSON(`
-					{
-						"type": "event",
-						"payload": {
-							"id": 0,
-							"message": {
-								"data": {"value": "e1"},
-								"event":"fake",
-								"version":"42.0"
-							}
-						}
-					}`))
-
-					_, _, err = conn.ReadMessage()
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(&websocket.CloseError{Code: websocket.CloseInternalServerErr, Text: "failed-to-get-next-build-event"}))
-				})
+				client := &http.Client{
+					Transport: &http.Transport{},
+				}
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when the request doesn't use websockets", func() {
-				JustBeforeEach(func() {
-					var err error
+			It("just stops sending events", func() {
+				reader := sse.NewReadCloser(response.Body)
 
-					client := &http.Client{
-						Transport: &http.Transport{},
-					}
-					response, err = client.Do(request)
-					Expect(err).NotTo(HaveOccurred())
-				})
+				Expect(reader.Next()).To(Equal(sse.Event{
+					ID:   "0",
+					Name: "event",
+					Data: []byte(`{"data":{"event":1},"event":"fake","version":"42.0"}`),
+				}))
 
-				It("just stops sending events", func() {
-					reader := sse.NewReadCloser(response.Body)
-
-					Expect(reader.Next()).To(Equal(sse.Event{
-						ID:   "0",
-						Name: "event",
-						Data: []byte(`{"data":{"value":"e1"},"event":"fake","version":"42.0"}`),
-					}))
-
-					_, err := reader.Next()
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(io.EOF))
-				})
+				_, err := reader.Next()
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(io.EOF))
 			})
 		})
 
@@ -376,31 +224,29 @@ var _ = Describe("Handler", func() {
 			var fakeEventSource *dbfakes.FakeEventSource
 			BeforeEach(func() {
 				fakeEventSource = new(dbfakes.FakeEventSource)
-				fakeEventSource.NextReturns(fakeEvent{"e1"}, nil)
+				fakeEventSource.NextReturns(fakeEvent(`{"event":1}`), nil)
 				build.EventsReturns(fakeEventSource, nil)
 			})
 
-			Context("when the request doesn't use websockets", func() {
-				JustBeforeEach(func() {
-					var err error
+			JustBeforeEach(func() {
+				var err error
 
-					client := &http.Client{
-						Transport: &http.Transport{},
-					}
-					response, err = client.Do(request)
-					Expect(err).NotTo(HaveOccurred())
+				client := &http.Client{
+					Transport: &http.Transport{},
+				}
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when request accepts gzip", func() {
+				BeforeEach(func() {
+					request.Header.Set("Accept-Encoding", "gzip")
 				})
 
-				Context("when request accepts gzip", func() {
-					BeforeEach(func() {
-						request.Header.Set("Accept-Encoding", "gzip")
-					})
-
-					It("closes the event stream when connection is closed", func() {
-						err := response.Body.Close()
-						Expect(err).NotTo(HaveOccurred())
-						Eventually(fakeEventSource.CloseCallCount, 30*time.Second).Should(Equal(1))
-					})
+				It("closes the event stream when connection is closed", func() {
+					err := response.Body.Close()
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(fakeEventSource.CloseCallCount, 30*time.Second).Should(Equal(1))
 				})
 			})
 		})
@@ -410,50 +256,18 @@ var _ = Describe("Handler", func() {
 				build.EventsReturns(nil, errors.New("nope"))
 			})
 
-			Context("when the request doesn't use websockets", func() {
-				JustBeforeEach(func() {
-					var err error
+			JustBeforeEach(func() {
+				var err error
 
-					client := &http.Client{
-						Transport: &http.Transport{},
-					}
-					response, err = client.Do(request)
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				It("returns 500", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
+				client := &http.Client{
+					Transport: &http.Transport{},
+				}
+				response, err = client.Do(request)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
-			Context("when the request asks for websockets upgrade", func() {
-				var conn *websocket.Conn
-
-				BeforeEach(func() {
-					request.URL.Scheme = "ws"
-				})
-
-				JustBeforeEach(func() {
-					var err error
-					dialer := websocket.Dialer{}
-					conn, response, err = dialer.Dial(request.URL.String(), nil)
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				AfterEach(func() {
-					if conn != nil {
-						conn.Close()
-					}
-				})
-
-				It("indicates internal server error", func() {
-					_, _, err := conn.ReadMessage()
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(&websocket.CloseError{
-						Code: websocket.CloseInternalServerErr,
-						Text: "failed-to-get-build-events",
-					}))
-				})
+			It("returns 500", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
 	})

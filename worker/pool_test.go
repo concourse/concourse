@@ -691,9 +691,9 @@ var _ = Describe("Pool", func() {
 				It("returns the error", func() {
 					fakeProvider.GetWorkerReturns(nil, false, errors.New("disaster"))
 
-					container, found, err := pool.FindContainerForIdentifier(logger, identifier)
+					workerContainer, found, err := pool.FindContainerForIdentifier(logger, identifier)
 					Expect(err).To(HaveOccurred())
-					Expect(container).To(BeNil())
+					Expect(workerContainer).To(BeNil())
 					Expect(found).To(BeFalse())
 				})
 			})
@@ -769,14 +769,24 @@ var _ = Describe("Pool", func() {
 					})
 				})
 
-				Context("when the finding the container on the worker is successful", func() {
-					It("returns the container", func() {
-						var fakeContainer *workerfakes.FakeContainer
+				Context("when finding the container on the worker is successful", func() {
+					var (
+						fakeContainer  *workerfakes.FakeContainer
+						foundContainer Container
+						found          bool
+						err            error
+					)
+
+					BeforeEach(func() {
 						fakeContainer = new(workerfakes.FakeContainer)
-
 						fakeWorker.LookupContainerReturns(fakeContainer, true, nil)
+					})
 
-						foundContainer, found, err := pool.FindContainerForIdentifier(logger, identifier)
+					JustBeforeEach(func() {
+						foundContainer, found, err = pool.FindContainerForIdentifier(logger, identifier)
+					})
+
+					It("returns the container", func() {
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
 						Expect(foundContainer).To(Equal(fakeContainer))

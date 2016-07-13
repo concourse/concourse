@@ -19,8 +19,10 @@ type Session struct {
 //go:generate counterfeiter . Tracker
 
 type Tracker interface {
+	FindContainerForSession(lager.Logger, Session) (Resource, Cache, bool, error)
+	ChooseWorker(ResourceType, atc.Tags, atc.ResourceTypes) (worker.Worker, error)
 	Init(lager.Logger, Metadata, Session, ResourceType, atc.Tags, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, error)
-	InitWithCache(lager.Logger, Metadata, Session, ResourceType, atc.Tags, CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, Cache, error)
+	InitWithCache(lager.Logger, Metadata, Session, ResourceType, atc.Tags, CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate, worker.Worker) (Resource, Cache, error)
 	InitWithSources(lager.Logger, Metadata, Session, ResourceType, atc.Tags, map[string]ArtifactSource, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, []string, error)
 }
 
@@ -224,6 +226,55 @@ func (tracker *tracker) Init(
 	return NewResource(container, tracker.clock), nil
 }
 
+func (tracker *tracker) FindContainerForSession(
+	logger lager.Logger,
+	session Session,
+) (Resource, Cache, bool, error) {
+	logger = logger.Session("init-with-cache")
+
+	logger.Debug("start")
+	defer logger.Debug("done")
+
+	container, found, err := tracker.workerClient.FindContainerForIdentifier(logger, session.ID)
+	if err != nil {
+		logger.Error("failed-to-look-for-existing-container", err)
+		return nil, nil, false, err
+	}
+
+	if !found {
+		return nil, nil, false, nil
+	}
+
+	logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
+
+	resource := NewResource(container, tracker.clock)
+
+	var cache Cache
+	cacheVolume, found := resource.CacheVolume()
+	if found {
+		logger.Debug("found-cache")
+		cache = volumeCache{cacheVolume}
+	} else {
+		logger.Debug("no-cache")
+		cache = noopCache{}
+	}
+
+	return resource, cache, true, nil
+}
+
+func (tracker *tracker) ChooseWorker(
+	typ ResourceType,
+	tags atc.Tags,
+	resourceTypes atc.ResourceTypes,
+) (worker.Worker, error) {
+	resourceSpec := worker.WorkerSpec{
+		ResourceType: string(typ),
+		Tags:         tags,
+	}
+
+	return tracker.workerClient.Satisfying(resourceSpec, resourceTypes)
+}
+
 func (tracker *tracker) InitWithCache(
 	logger lager.Logger,
 	metadata Metadata,
@@ -233,60 +284,12 @@ func (tracker *tracker) InitWithCache(
 	cacheIdentifier CacheIdentifier,
 	resourceTypes atc.ResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
+	chosenWorker worker.Worker,
 ) (Resource, Cache, error) {
 	logger = logger.Session("init-with-cache")
 
 	logger.Debug("start")
 	defer logger.Debug("done")
-
-	container, found, err := tracker.workerClient.FindContainerForIdentifier(logger, session.ID)
-	if err != nil {
-		logger.Error("failed-to-look-for-existing-container", err)
-		return nil, nil, err
-	}
-
-	if found {
-		logger.Debug("found-existing-container", lager.Data{"container": container.Handle()})
-
-		resource := NewResource(container, tracker.clock)
-
-		var cache Cache
-		cacheVolume, found := resource.CacheVolume()
-		if found {
-			logger.Debug("found-cache")
-			cache = volumeCache{cacheVolume}
-		} else {
-			logger.Debug("no-cache")
-			cache = noopCache{}
-		}
-
-		return resource, cache, nil
-	}
-
-	logger.Debug("no-existing-container")
-
-	resourceSpec := worker.WorkerSpec{
-		ResourceType: string(typ),
-		Tags:         tags,
-	}
-
-	chosenWorker, err := tracker.workerClient.Satisfying(resourceSpec, resourceTypes)
-	if err != nil {
-		logger.Info("no-workers-satisfying-spec", lager.Data{
-			"error": err.Error(),
-		})
-		return nil, nil, err
-	}
-
-	containerSpec := worker.ContainerSpec{
-		ImageSpec: worker.ImageSpec{
-			ResourceType: string(typ),
-			Privileged:   true,
-		},
-		Ephemeral: session.Ephemeral,
-		Tags:      tags,
-		Env:       metadata.Env(),
-	}
 
 	cachedVolume, cacheFound, err := cacheIdentifier.FindOn(logger, chosenWorker)
 	if err != nil {
@@ -300,32 +303,36 @@ func (tracker *tracker) InitWithCache(
 		logger.Debug("no-cache-found")
 
 		cachedVolume, err = cacheIdentifier.CreateOn(logger, chosenWorker)
-		if err == worker.ErrNoVolumeManager {
-			logger.Info("worker-has-no-volume-manager")
-		} else if err != nil {
+		if err != nil {
 			logger.Error("failed-to-create-cache", err)
 			return nil, nil, err
 		}
 	}
 
-	if cachedVolume == nil {
-		logger.Debug("creating-container-without-cache")
-	} else {
-		logger.Debug("creating-container-with-cache", lager.Data{
-			"cache-handle": cachedVolume.Handle(),
-		})
-
-		defer cachedVolume.Release(nil)
-
-		containerSpec.Outputs = []worker.VolumeMount{
-			{
-				Volume:    cachedVolume,
-				MountPath: ResourcesDir("get"),
-			},
-		}
+	containerSpec := worker.ContainerSpec{
+		ImageSpec: worker.ImageSpec{
+			ResourceType: string(typ),
+			Privileged:   true,
+		},
+		Ephemeral: session.Ephemeral,
+		Tags:      tags,
+		Env:       metadata.Env(),
 	}
 
-	container, err = chosenWorker.CreateContainer(
+	logger.Debug("creating-container-with-cache", lager.Data{
+		"cache-handle": cachedVolume.Handle(),
+	})
+
+	defer cachedVolume.Release(nil)
+
+	containerSpec.Outputs = []worker.VolumeMount{
+		{
+			Volume:    cachedVolume,
+			MountPath: ResourcesDir("get"),
+		},
+	}
+
+	container, err := chosenWorker.CreateContainer(
 		logger,
 		nil,
 		imageFetchingDelegate,

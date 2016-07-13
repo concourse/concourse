@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/concourse/atc"
+	"github.com/concourse/atc/event"
 	"github.com/lib/pq"
 	"github.com/pivotal-golang/lager"
 )
@@ -101,9 +102,8 @@ type DB interface {
 	GetContainer(string) (SavedContainer, bool, error)
 	CreateContainer(container Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (SavedContainer, error)
 	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)
-	FindOrphanContainersWithInfiniteTTL() ([]SavedContainer, error)
-	FindContainersFromSuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error)
-	FindContainersFromUnsuccessfulBuildsWithInfiniteTTL() ([]SavedContainer, error)
+	FindLatestSuccessfulBuildsPerJob() (map[int]int, error)
+	FindJobContainersFromUnsuccessfulBuilds() ([]SavedContainer, error)
 	UpdateExpiresAtOnContainer(handle string, ttl time.Duration) error
 	ReapContainer(handle string) error
 
@@ -145,7 +145,7 @@ var ErrBuildEventStreamClosed = errors.New("build event stream closed")
 //go:generate counterfeiter . EventSource
 
 type EventSource interface {
-	Next() (atc.Event, error)
+	Next() (event.Envelope, error)
 	Close() error
 }
 

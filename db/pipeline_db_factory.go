@@ -4,13 +4,11 @@ package db
 
 type PipelineDBFactory interface {
 	Build(pipeline SavedPipeline) PipelineDB
-	BuildWithPipeline(savedPipeline SavedPipeline) PipelineDB
 }
 
 type pipelineDBFactory struct {
-	conn       Conn
-	bus        *notificationsBus
-	pipelineDB PipelineDB
+	conn Conn
+	bus  *notificationsBus
 }
 
 func NewPipelineDBFactory(
@@ -32,8 +30,4 @@ func (pdbf *pipelineDBFactory) Build(pipeline SavedPipeline) PipelineDB {
 
 		SavedPipeline: pipeline,
 	}
-}
-
-func (pdbf *pipelineDBFactory) BuildWithPipeline(savedPipeline SavedPipeline) PipelineDB {
-	return pdbf.Build(savedPipeline)
 }

@@ -40,7 +40,7 @@ var _ = Describe("DBProvider", func() {
 		gardenServer       *server.GardenServer
 		provider           WorkerProvider
 
-		fakeImageFetcher          *workerfakes.FakeImageFetcher
+		fakeImageFactory          *workerfakes.FakeImageFactory
 		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
 
 		workers    []Worker
@@ -70,7 +70,6 @@ var _ = Describe("DBProvider", func() {
 		fakeDB = new(workerfakes.FakeWorkerDB)
 		fakeDB.GetVolumeTTLReturns(1*time.Millisecond, true, nil)
 		fakeDB.GetContainerReturns(db.SavedContainer{}, true, nil)
-		fakeDB.FindWorkerCheckResourceTypeVersionReturns("", false, nil)
 
 		gardenAddr = fmt.Sprintf("0.0.0.0:%d", 8888+GinkgoParallelNode())
 		fakeGardenBackend = new(gfakes.FakeBackend)
@@ -79,10 +78,10 @@ var _ = Describe("DBProvider", func() {
 		err := gardenServer.Start()
 		Expect(err).NotTo(HaveOccurred())
 
-		fakeImageFetcher = new(workerfakes.FakeImageFetcher)
+		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
-		provider = NewDBWorkerProvider(logger, fakeDB, nil, immediateRetryPolicy{}, fakeImageFetcher)
+		provider = NewDBWorkerProvider(logger, fakeDB, nil, immediateRetryPolicy{}, fakeImageFactory)
 	})
 
 	AfterEach(func() {

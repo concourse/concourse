@@ -202,7 +202,7 @@ var _ = Describe("ExecEngine", func() {
 
 					_, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.PutArgsForCall(0)
 					Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
-					Expect(containerFailureTTL).To(Equal(1 * time.Hour))
+					Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 				})
 
 				It("constructs the dependent get with finite container TTLs", func() {
@@ -211,11 +211,11 @@ var _ = Describe("ExecEngine", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					build.Resume(logger)
-					Expect(fakeFactory.DependentGetCallCount()).To(Equal(2))
+					Expect(fakeFactory.PutCallCount()).To(Equal(2))
 
-					_, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.DependentGetArgsForCall(0)
+					_, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.PutArgsForCall(0)
 					Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
-					Expect(containerFailureTTL).To(Equal(1 * time.Hour))
+					Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 				})
 			})
 
@@ -233,8 +233,8 @@ var _ = Describe("ExecEngine", func() {
 					Expect(fakeFactory.PutCallCount()).To(Equal(2))
 
 					_, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.PutArgsForCall(0)
-					Expect(containerSuccessTTL).To(BeZero())
-					Expect(containerFailureTTL).To(BeZero())
+					Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
+					Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 				})
 
 				It("constructs the dependent get with infinite container TTLs", func() {
@@ -246,8 +246,8 @@ var _ = Describe("ExecEngine", func() {
 					Expect(fakeFactory.DependentGetCallCount()).To(Equal(2))
 
 					_, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.DependentGetArgsForCall(0)
-					Expect(containerSuccessTTL).To(BeZero())
-					Expect(containerFailureTTL).To(BeZero())
+					Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
+					Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 				})
 			})
 
@@ -608,7 +608,7 @@ var _ = Describe("ExecEngine", func() {
 						dbBuild.IsOneOffReturns(true)
 					})
 
-					It("constructs the get with finite container TTLs", func() {
+					It("constructs the get with container TTLs", func() {
 						var err error
 						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 						Expect(err).NotTo(HaveOccurred())
@@ -618,7 +618,7 @@ var _ = Describe("ExecEngine", func() {
 
 						_, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.GetArgsForCall(0)
 						Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
-						Expect(containerFailureTTL).To(Equal(1 * time.Hour))
+						Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 					})
 				})
 
@@ -627,7 +627,7 @@ var _ = Describe("ExecEngine", func() {
 						dbBuild.IsOneOffReturns(false)
 					})
 
-					It("constructs the get with infinite container TTLs", func() {
+					It("constructs the get with container TTLs", func() {
 						var err error
 						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 						Expect(err).NotTo(HaveOccurred())
@@ -636,8 +636,8 @@ var _ = Describe("ExecEngine", func() {
 						Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
 						_, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.GetArgsForCall(0)
-						Expect(containerSuccessTTL).To(BeZero())
-						Expect(containerFailureTTL).To(BeZero())
+						Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
+						Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 					})
 				})
 
@@ -721,7 +721,7 @@ var _ = Describe("ExecEngine", func() {
 						dbBuild.IsOneOffReturns(true)
 					})
 
-					It("constructs the task with finite container TTLs", func() {
+					It("constructs the task with container TTLs", func() {
 						var err error
 						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 						Expect(err).NotTo(HaveOccurred())
@@ -731,7 +731,7 @@ var _ = Describe("ExecEngine", func() {
 
 						_, _, _, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.TaskArgsForCall(0)
 						Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
-						Expect(containerFailureTTL).To(Equal(1 * time.Hour))
+						Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 					})
 				})
 
@@ -749,52 +749,11 @@ var _ = Describe("ExecEngine", func() {
 						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
 						_, _, _, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.TaskArgsForCall(0)
-						Expect(containerSuccessTTL).To(BeZero())
-						Expect(containerFailureTTL).To(BeZero())
-					})
-				})
-
-				It("constructs tasks correctly", func() {
-					var err error
-					build, err = execEngine.CreateBuild(logger, dbBuild, plan)
-					Expect(err).NotTo(HaveOccurred())
-
-					build.Resume(logger)
-					Expect(fakeFactory.TaskCallCount()).To(Equal(1))
-
-					logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, actualInputMapping, actualOutputMapping, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
-					Expect(logger).NotTo(BeNil())
-					Expect(sourceName).To(Equal(exec.SourceName("some-task")))
-					Expect(workerMetadata).To(Equal(worker.Metadata{
-						ResourceName: "",
-						Type:         db.ContainerTypeTask,
-						StepName:     "some-task",
-						PipelineID:   57,
-					}))
-					Expect(workerID).To(Equal(worker.Identifier{
-						BuildID: 42,
-						PlanID:  plan.ID,
-					}))
-
-					Expect(privileged).To(Equal(exec.Privileged(false)))
-					Expect(tags).To(BeEmpty())
-					Expect(configSource).NotTo(BeNil())
-
-					Expect(delegate).To(Equal(fakeExecutionDelegate))
-
-					_, _, planID := fakeDelegate.ExecutionDelegateArgsForCall(0)
-					Expect(planID).To(Equal(event.OriginID(plan.ID)))
-
-					Expect(actualInputMapping).To(Equal(inputMapping))
-					Expect(actualOutputMapping).To(Equal(outputMapping))
-				})
-
-				Context("when the plan's image references the output of a previous step", func() {
-					BeforeEach(func() {
-						taskPlan.ImageArtifactName = "some-image-artifact-name"
+						Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
+						Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 					})
 
-					It("constructs the task with the referenced image", func() {
+					It("constructs tasks correctly", func() {
 						var err error
 						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 						Expect(err).NotTo(HaveOccurred())
@@ -802,71 +761,112 @@ var _ = Describe("ExecEngine", func() {
 						build.Resume(logger)
 						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-						_, _, _, _, _, _, _, _, _, _, _, actualImageArtifactName, _, _, _ := fakeFactory.TaskArgsForCall(0)
-						Expect(actualImageArtifactName).To(Equal("some-image-artifact-name"))
+						logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, configSource, _, actualInputMapping, actualOutputMapping, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+						Expect(logger).NotTo(BeNil())
+						Expect(sourceName).To(Equal(exec.SourceName("some-task")))
+						Expect(workerMetadata).To(Equal(worker.Metadata{
+							ResourceName: "",
+							Type:         db.ContainerTypeTask,
+							StepName:     "some-task",
+							PipelineID:   57,
+						}))
+						Expect(workerID).To(Equal(worker.Identifier{
+							BuildID: 42,
+							PlanID:  plan.ID,
+						}))
+
+						Expect(privileged).To(Equal(exec.Privileged(false)))
+						Expect(tags).To(BeEmpty())
+						Expect(configSource).NotTo(BeNil())
+
+						Expect(delegate).To(Equal(fakeExecutionDelegate))
+
+						_, _, planID := fakeDelegate.ExecutionDelegateArgsForCall(0)
+						Expect(planID).To(Equal(event.OriginID(plan.ID)))
+
+						Expect(actualInputMapping).To(Equal(inputMapping))
+						Expect(actualOutputMapping).To(Equal(outputMapping))
 					})
-				})
 
-				Context("when the plan contains params and config path", func() {
-					BeforeEach(func() {
-						taskPlan.Params = map[string]interface{}{
-							"task-param": "task-param-value",
-						}
+					Context("when the plan's image references the output of a previous step", func() {
+						BeforeEach(func() {
+							taskPlan.ImageArtifactName = "some-image-artifact-name"
+						})
+
+						It("constructs the task with the referenced image", func() {
+							var err error
+							build, err = execEngine.CreateBuild(logger, dbBuild, plan)
+							Expect(err).NotTo(HaveOccurred())
+
+							build.Resume(logger)
+							Expect(fakeFactory.TaskCallCount()).To(Equal(1))
+
+							_, _, _, _, _, _, _, _, _, _, _, actualImageArtifactName, _, _, _ := fakeFactory.TaskArgsForCall(0)
+							Expect(actualImageArtifactName).To(Equal("some-image-artifact-name"))
+						})
 					})
 
-					It("creates the task with a MergedConfigSource wrapped in a ValidatingConfigSource", func() {
-						var err error
-						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
-						Expect(err).NotTo(HaveOccurred())
-
-						build.Resume(logger)
-						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
-
-						_, _, _, _, _, _, _, configSource, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
-						vcs, ok := configSource.(exec.ValidatingConfigSource)
-						Expect(ok).To(BeTrue())
-						_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
-						Expect(ok).To(BeTrue())
-					})
-				})
-
-				Context("when the plan contains config and config path", func() {
-					BeforeEach(func() {
-						taskPlan.Config = &atc.TaskConfig{
-							Params: map[string]string{
+					Context("when the plan contains params and config path", func() {
+						BeforeEach(func() {
+							taskPlan.Params = map[string]interface{}{
 								"task-param": "task-param-value",
-							},
-						}
+							}
+						})
+
+						It("creates the task with a MergedConfigSource wrapped in a ValidatingConfigSource", func() {
+							var err error
+							build, err = execEngine.CreateBuild(logger, dbBuild, plan)
+							Expect(err).NotTo(HaveOccurred())
+
+							build.Resume(logger)
+							Expect(fakeFactory.TaskCallCount()).To(Equal(1))
+
+							_, _, _, _, _, _, _, configSource, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+							vcs, ok := configSource.(exec.ValidatingConfigSource)
+							Expect(ok).To(BeTrue())
+							_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
+							Expect(ok).To(BeTrue())
+						})
 					})
 
-					It("creates the task with a MergedConfigSource wrapped in a ValidatingConfigSource", func() {
+					Context("when the plan contains config and config path", func() {
+						BeforeEach(func() {
+							taskPlan.Config = &atc.TaskConfig{
+								Params: map[string]string{
+									"task-param": "task-param-value",
+								},
+							}
+						})
+
+						It("creates the task with a MergedConfigSource wrapped in a ValidatingConfigSource", func() {
+							var err error
+							build, err = execEngine.CreateBuild(logger, dbBuild, plan)
+							Expect(err).NotTo(HaveOccurred())
+
+							build.Resume(logger)
+							Expect(fakeFactory.TaskCallCount()).To(Equal(1))
+
+							_, _, _, _, _, _, _, configSource, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+							vcs, ok := configSource.(exec.ValidatingConfigSource)
+							Expect(ok).To(BeTrue())
+							_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
+							Expect(ok).To(BeTrue())
+						})
+					})
+
+					It("releases the tasks correctly", func() {
+						taskStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+							defer GinkgoRecover()
+							Consistently(taskStep.ReleaseCallCount).Should(BeZero())
+							return nil
+						}
 						var err error
 						build, err = execEngine.CreateBuild(logger, dbBuild, plan)
 						Expect(err).NotTo(HaveOccurred())
-
 						build.Resume(logger)
-						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-						_, _, _, _, _, _, _, configSource, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
-						vcs, ok := configSource.(exec.ValidatingConfigSource)
-						Expect(ok).To(BeTrue())
-						_, ok = vcs.ConfigSource.(exec.MergedConfigSource)
-						Expect(ok).To(BeTrue())
+						Expect(taskStep.ReleaseCallCount()).To(Equal(1))
 					})
-				})
-
-				It("releases the tasks correctly", func() {
-					taskStep.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
-						defer GinkgoRecover()
-						Consistently(taskStep.ReleaseCallCount).Should(BeZero())
-						return nil
-					}
-					var err error
-					build, err = execEngine.CreateBuild(logger, dbBuild, plan)
-					Expect(err).NotTo(HaveOccurred())
-					build.Resume(logger)
-
-					Expect(taskStep.ReleaseCallCount()).To(Equal(1))
 				})
 			})
 
@@ -1081,7 +1081,7 @@ var _ = Describe("ExecEngine", func() {
 
 					_, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.GetArgsForCall(0)
 					Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
-					Expect(containerFailureTTL).To(Equal(1 * time.Hour))
+					Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 				})
 			})
 
@@ -1098,8 +1098,8 @@ var _ = Describe("ExecEngine", func() {
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
 					_, _, _, _, _, _, _, _, _, _, _, containerSuccessTTL, containerFailureTTL := fakeFactory.GetArgsForCall(0)
-					Expect(containerSuccessTTL).To(BeZero())
-					Expect(containerFailureTTL).To(BeZero())
+					Expect(containerSuccessTTL).To(Equal(5 * time.Minute))
+					Expect(containerFailureTTL).To(Equal(5 * time.Minute))
 				})
 			})
 		})

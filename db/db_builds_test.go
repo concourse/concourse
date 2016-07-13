@@ -68,6 +68,9 @@ var _ = Describe("Keeping track of builds", func() {
 				{
 					Name: "some-other-job",
 				},
+				{
+					Name: "some-random-job",
+				},
 			},
 			Resources: atc.ResourceConfigs{
 				{
@@ -98,6 +101,45 @@ var _ = Describe("Keeping track of builds", func() {
 
 		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("can find latest successful builds per job", func() {
+		savedBuild0, err := pipelineDB.CreateJobBuild("some-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		savedBuild1, err := pipelineDB.CreateJobBuild("some-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		savedBuild2, err := pipelineDB.CreateJobBuild("some-other-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		savedBuild3, err := pipelineDB.CreateJobBuild("some-random-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = savedBuild0.Finish(db.StatusSucceeded)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = savedBuild1.Finish(db.StatusSucceeded)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = savedBuild2.Finish(db.StatusFailed)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = savedBuild3.Finish(db.StatusSucceeded)
+		Expect(err).NotTo(HaveOccurred())
+
+		someJob, err := pipelineDB.GetJob("some-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		someRandomJob, err := pipelineDB.GetJob("some-random-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		jobBuildMap, err := database.FindLatestSuccessfulBuildsPerJob()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(jobBuildMap).To(Equal(map[int]int{
+			someJob.ID:       savedBuild1.ID(),
+			someRandomJob.ID: savedBuild3.ID(),
+		}))
 	})
 
 	Describe("UpdateBuildPreparation", func() {
@@ -302,9 +344,9 @@ var _ = Describe("Keeping track of builds", func() {
 
 			build2Event1, err := events2.Next()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(build2Event1).To(Equal(event.Log{
+			Expect(build2Event1).To(Equal(envelope(event.Log{
 				Payload: "log 2",
-			}))
+			})))
 
 			_, err = events2.Next() // finish event
 			Expect(err).NotTo(HaveOccurred())

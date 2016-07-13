@@ -80,14 +80,14 @@ type Message struct {
 	Event atc.Event
 }
 
-type eventEnvelope struct {
+type Envelope struct {
 	Data    *json.RawMessage `json:"data"`
 	Event   atc.EventType    `json:"event"`
 	Version atc.EventVersion `json:"version"`
 }
 
 func (m Message) MarshalJSON() ([]byte, error) {
-	var envelope eventEnvelope
+	var envelope Envelope
 
 	payload, err := json.Marshal(m.Event)
 	if err != nil {
@@ -102,7 +102,7 @@ func (m Message) MarshalJSON() ([]byte, error) {
 }
 
 func (m *Message) UnmarshalJSON(bytes []byte) error {
-	var envelope eventEnvelope
+	var envelope Envelope
 
 	err := json.Unmarshal(bytes, &envelope)
 	if err != nil {

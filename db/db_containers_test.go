@@ -17,11 +17,11 @@ var _ = Describe("Keeping track of containers", func() {
 		dbConn   db.Conn
 		listener *pq.Listener
 
-		database           db.DB
+		database           *db.SQLDB
+		teamDB             db.TeamDB
 		savedPipeline      db.SavedPipeline
 		savedOtherPipeline db.SavedPipeline
 		pipelineDB         db.PipelineDB
-		teamDB             db.TeamDB
 	)
 
 	BeforeEach(func() {
@@ -60,6 +60,12 @@ var _ = Describe("Keeping track of containers", func() {
 					Type: "some-other-type",
 				},
 			},
+			ResourceTypes: atc.ResourceTypes{
+				{
+					Name: "some-custom-type",
+					Type: "git",
+				},
+			},
 		}
 
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
@@ -73,6 +79,18 @@ var _ = Describe("Keeping track of containers", func() {
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
 		pipelineDB = pipelineDBFactory.Build(savedPipeline)
+
+		workerInfo := db.WorkerInfo{
+			Name: "updated-resource-type-worker",
+			ResourceTypes: []atc.WorkerResourceType{
+				atc.WorkerResourceType{
+					Type:    "some-type",
+					Version: "some-version",
+				},
+			},
+		}
+		_, err = database.SaveWorker(workerInfo, 10*time.Minute)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -101,80 +119,31 @@ var _ = Describe("Keeping track of containers", func() {
 		return savedBuild.ID()
 	}
 
-	It("can find orphan containers with infinit ttl", func() {
-		savedBuild, err := pipelineDB.CreateJobBuild("some-job")
-		Expect(err).NotTo(HaveOccurred())
-
-		containerInfo0 := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild.ID() + 1,
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-0",
-				PipelineID: savedPipeline.ID,
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		containerInfo1 := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild.ID() + 1,
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-1",
-				PipelineID: savedPipeline.ID,
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		containerInfo2 := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild.ID(),
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-2",
-				PipelineID: savedPipeline.ID,
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		_, err = database.CreateContainer(containerInfo0, 0, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = database.CreateContainer(containerInfo1, 5*time.Minute, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = database.CreateContainer(containerInfo2, 0, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		savedContainers, err := database.FindOrphanContainersWithInfiniteTTL()
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(savedContainers).To(HaveLen(1))
-		Expect(savedContainers[0].Handle).To(Equal("handle-0"))
-	})
-
-	It("can find containers from unsuccessful builds with infinit ttl", func() {
+	It("can find non-one-off containers from unsuccessful builds", func() {
 		savedBuild0, err := pipelineDB.CreateJobBuild("some-job")
 		Expect(err).NotTo(HaveOccurred())
 
 		savedBuild1, err := pipelineDB.CreateJobBuild("some-other-job")
 		Expect(err).NotTo(HaveOccurred())
 
-		savedBuild2, err := pipelineDB.CreateJobBuild("some-other-job")
+		savedBuild2, err := teamDB.CreateOneOffBuild()
+		Expect(err).NotTo(HaveOccurred())
+
+		savedBuild3, err := pipelineDB.CreateJobBuild("some-random-job")
+		Expect(err).NotTo(HaveOccurred())
+
+		savedBuild4, err := pipelineDB.CreateJobBuild("some-job")
 		Expect(err).NotTo(HaveOccurred())
 
 		err = savedBuild0.Finish(db.StatusErrored)
 		Expect(err).NotTo(HaveOccurred())
 		err = savedBuild1.Finish(db.StatusFailed)
 		Expect(err).NotTo(HaveOccurred())
-		err = savedBuild2.Finish(db.StatusSucceeded)
+		err = savedBuild2.Finish(db.StatusFailed)
+		Expect(err).NotTo(HaveOccurred())
+		err = savedBuild3.Finish(db.StatusSucceeded)
+		Expect(err).NotTo(HaveOccurred())
+		err = savedBuild4.Finish(db.StatusAborted)
 		Expect(err).NotTo(HaveOccurred())
 
 		containerInfo0 := db.Container{
@@ -212,9 +181,35 @@ var _ = Describe("Keeping track of containers", func() {
 				Stage:   db.ContainerStageRun,
 			},
 			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-2",
+				Handle: "handle-2",
+				Type:   db.ContainerTypeTask,
+			},
+		}
+
+		containerInfo3 := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				BuildID: savedBuild3.ID(),
+				PlanID:  "some-plan-id",
+				Stage:   db.ContainerStageRun,
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "handle-3",
 				PipelineID: savedPipeline.ID,
-				JobName:    savedBuild2.JobName(),
+				JobName:    savedBuild3.JobName(),
+				Type:       db.ContainerTypeTask,
+			},
+		}
+
+		containerInfo4 := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				BuildID: savedBuild4.ID(),
+				PlanID:  "some-plan-id",
+				Stage:   db.ContainerStageRun,
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "handle-4",
+				PipelineID: savedPipeline.ID,
+				JobName:    savedBuild4.JobName(),
 				Type:       db.ContainerTypeTask,
 			},
 		}
@@ -228,86 +223,19 @@ var _ = Describe("Keeping track of containers", func() {
 		_, err = database.CreateContainer(containerInfo2, 0, 0, []string{})
 		Expect(err).NotTo(HaveOccurred())
 
-		savedContainers, err := database.FindContainersFromUnsuccessfulBuildsWithInfiniteTTL()
+		_, err = database.CreateContainer(containerInfo3, 0, 0, []string{})
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(savedContainers).To(HaveLen(1))
-		Expect(savedContainers[0].Handle).To(Equal("handle-1"))
-	})
-
-	It("can find containers from successful builds with infinit ttl", func() {
-		savedBuild0, err := pipelineDB.CreateJobBuild("some-job")
+		_, err = database.CreateContainer(containerInfo4, 0, 0, []string{})
 		Expect(err).NotTo(HaveOccurred())
 
-		savedBuild1, err := pipelineDB.CreateJobBuild("some-other-job")
+		savedContainers, err := database.FindJobContainersFromUnsuccessfulBuilds()
 		Expect(err).NotTo(HaveOccurred())
 
-		savedBuild2, err := pipelineDB.CreateJobBuild("some-other-job")
-		Expect(err).NotTo(HaveOccurred())
-
-		containerInfo0 := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild0.ID(),
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-0",
-				PipelineID: savedPipeline.ID,
-				JobName:    savedBuild0.JobName(),
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		containerInfo1 := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild1.ID(),
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-1",
-				PipelineID: savedPipeline.ID,
-				JobName:    savedBuild1.JobName(),
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		containerInfo2 := db.Container{
-			ContainerIdentifier: db.ContainerIdentifier{
-				BuildID: savedBuild2.ID(),
-				PlanID:  "some-plan-id",
-				Stage:   db.ContainerStageRun,
-			},
-			ContainerMetadata: db.ContainerMetadata{
-				Handle:     "handle-2",
-				PipelineID: savedPipeline.ID,
-				JobName:    savedBuild2.JobName(),
-				Type:       db.ContainerTypeTask,
-			},
-		}
-
-		_, err = database.CreateContainer(containerInfo0, 3*time.Minute, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = database.CreateContainer(containerInfo1, 0, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		_, err = database.CreateContainer(containerInfo2, 0, 0, []string{})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = savedBuild0.Finish(db.StatusSucceeded)
-		Expect(err).NotTo(HaveOccurred())
-		err = savedBuild1.Finish(db.StatusFailed)
-		Expect(err).NotTo(HaveOccurred())
-		err = savedBuild2.Finish(db.StatusSucceeded)
-		Expect(err).NotTo(HaveOccurred())
-
-		savedContainers, err := database.FindContainersFromSuccessfulBuildsWithInfiniteTTL()
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(savedContainers).To(HaveLen(1))
-		Expect(savedContainers[0].Handle).To(Equal("handle-2"))
+		Expect(savedContainers).To(HaveLen(2))
+		handle0 := savedContainers[0].Handle
+		handle1 := savedContainers[1].Handle
+		Expect([]string{handle0, handle1}).To(ConsistOf("handle-0", "handle-1"))
 	})
 
 	It("can create and get a resource container object", func() {
@@ -1401,18 +1329,18 @@ var _ = Describe("Keeping track of containers", func() {
 		}),
 
 		Entry("returns containers where the build name matches", func() findContainersByDescriptorsExample {
-			savedBuild1DB, err := pipelineDB.CreateJobBuild("some-job")
+			savedBuild1, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			savedBuild2DB, err := pipelineDB.CreateJobBuild("some-job")
+			savedBuild2, err := pipelineDB.CreateJobBuild("some-job")
 			Expect(err).NotTo(HaveOccurred())
-			savedBuild3DB, err := pipelineDB.CreateJobBuild("some-other-job")
+			savedBuild3, err := pipelineDB.CreateJobBuild("some-other-job")
 			Expect(err).NotTo(HaveOccurred())
 			return findContainersByDescriptorsExample{
 				containersToCreate: []db.Container{
 					{
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
-							BuildID: savedBuild1DB.ID(),
+							BuildID: savedBuild1.ID(),
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
@@ -1426,7 +1354,7 @@ var _ = Describe("Keeping track of containers", func() {
 					{
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
-							BuildID: savedBuild2DB.ID(),
+							BuildID: savedBuild2.ID(),
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
@@ -1434,14 +1362,14 @@ var _ = Describe("Keeping track of containers", func() {
 							WorkerName: "some-worker",
 							PipelineID: savedPipeline.ID,
 							JobName:    "some-job",
-							BuildName:  savedBuild2DB.Name(),
+							BuildName:  savedBuild2.Name(),
 							Handle:     "b",
 						},
 					},
 					{
 						ContainerIdentifier: db.ContainerIdentifier{
 							Stage:   db.ContainerStageRun,
-							BuildID: savedBuild3DB.ID(),
+							BuildID: savedBuild3.ID(),
 							PlanID:  "plan-id",
 						},
 						ContainerMetadata: db.ContainerMetadata{
@@ -1451,14 +1379,14 @@ var _ = Describe("Keeping track of containers", func() {
 							JobName:    "some-other-job",
 							// purposefully re-use the original build name to test that it
 							// can return multiple containers
-							BuildName: savedBuild1DB.Name(),
+							BuildName: savedBuild1.Name(),
 							Handle:    "c",
 						},
 					},
 				},
 				descriptorsToFilterFor: db.Container{
 					ContainerMetadata: db.ContainerMetadata{
-						BuildName: savedBuild1DB.Name(),
+						BuildName: savedBuild1.Name(),
 					},
 				},
 				expectedHandles: []string{"a", "c"},
@@ -1871,6 +1799,75 @@ var _ = Describe("Keeping track of containers", func() {
 		)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeFalse())
+
+		By("not finding a check container when its resource type version does not match worker's")
+		containerWithWrongVersion := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				Stage:               db.ContainerStageRun,
+				CheckType:           "some-type",
+				CheckSource:         atc.Source{"some-type": "some-source"},
+				ResourceTypeVersion: atc.Version{"some-type": "other-version"},
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "outdated-resource-type-container",
+				WorkerName: "updated-resource-type-worker",
+				Type:       db.ContainerTypeCheck,
+			},
+		}
+
+		_, err = database.CreateContainer(containerWithWrongVersion, 10*time.Minute, 0, []string{})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, found, err = database.FindContainerByIdentifier(containerWithWrongVersion.ContainerIdentifier)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeFalse())
+
+		By("finding a check container has a custom resource type")
+		customContainer := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				Stage:               db.ContainerStageRun,
+				CheckType:           "some-custom-type",
+				CheckSource:         atc.Source{},
+				ResourceTypeVersion: atc.Version{},
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "custom-handle",
+				WorkerName: "updated-resource-type-worker",
+				Type:       db.ContainerTypeCheck,
+				PipelineID: savedPipeline.ID,
+			},
+		}
+
+		_, err = database.CreateContainer(customContainer, 10*time.Minute, 0, []string{})
+		Expect(err).NotTo(HaveOccurred())
+
+		foundContainer, found, err = database.FindContainerByIdentifier(customContainer.ContainerIdentifier)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(foundContainer.Handle).To(Equal(customContainer.Handle))
+
+		By("finding a check container when its resource type version does not match worker's")
+		containerWithCorrectVersion := db.Container{
+			ContainerIdentifier: db.ContainerIdentifier{
+				Stage:               db.ContainerStageRun,
+				CheckType:           "some-type",
+				CheckSource:         atc.Source{"some-type": "some-source"},
+				ResourceTypeVersion: atc.Version{"some-type": "some-version"},
+			},
+			ContainerMetadata: db.ContainerMetadata{
+				Handle:     "updated-resource-type-container",
+				WorkerName: "updated-resource-type-worker",
+				Type:       db.ContainerTypeCheck,
+			},
+		}
+
+		_, err = database.CreateContainer(containerWithCorrectVersion, 10*time.Minute, 0, []string{})
+		Expect(err).NotTo(HaveOccurred())
+
+		foundContainer, found, err = database.FindContainerByIdentifier(containerWithCorrectVersion.ContainerIdentifier)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(foundContainer.Handle).To(Equal(containerWithCorrectVersion.Handle))
 
 		By("not finding a check container whose ttl has not expired, but whose best_used_by_time has elapsed")
 		sourContainer := db.Container{

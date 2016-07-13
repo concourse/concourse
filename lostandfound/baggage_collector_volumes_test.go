@@ -22,6 +22,7 @@ var _ = Describe("Volumes are reaped", func() {
 	var (
 		fakeWorkerClient *wfakes.FakeClient
 		fakeWorker       *wfakes.FakeWorker
+		fakeVolume       *wfakes.FakeVolume
 
 		fakePipelineDBFactory          *dbfakes.FakePipelineDBFactory
 		fakeBaggageCollectorDB         *lostandfoundfakes.FakeBaggageCollectorDB
@@ -37,6 +38,7 @@ var _ = Describe("Volumes are reaped", func() {
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeWorker = new(wfakes.FakeWorker)
+		fakeVolume = new(wfakes.FakeVolume)
 		baggageCollectorLogger := lagertest.NewTestLogger("test")
 		fakeBaggageCollectorDB = new(lostandfoundfakes.FakeBaggageCollectorDB)
 		fakePipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
@@ -137,48 +139,43 @@ var _ = Describe("Volumes are reaped", func() {
 			fakeBaggageCollectorDB.GetAllPipelinesReturns([]db.SavedPipeline{fakeSavedPipeline}, nil)
 			fakePipelineDBFactory.BuildReturns(&fakePipelineDB)
 			fakePipelineDB.GetLatestEnabledVersionedResourceReturns(fakeSavedVersionedResource, true, nil)
-
-			fakeWorkerClient.GetWorkerReturns(nil, errors.New("no-worker-found"))
+			fakeWorkerClient.GetWorkerReturns(fakeWorker, nil)
+			fakeWorker.LookupVolumeReturns(fakeVolume, true, nil)
 		})
 
-		It("should remove the volume from the database", func() {
+		It("releases volume with final ttl", func() {
 			err := baggageCollector.Run()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(fakeBaggageCollectorDB.ReapVolumeCallCount()).To(Equal(2))
-			Expect(fakeBaggageCollectorDB.ReapVolumeArgsForCall(0)).To(Equal(returnedSavedVolume.Handle))
-			Expect(fakeBaggageCollectorDB.ReapVolumeArgsForCall(1)).To(Equal(newestReturnedSavedVolume.Handle))
+			Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
 		})
 	})
 
-	Context("when volume no longer exists", func() {
-		Context("when the worker is no longer around", func() {
-			BeforeEach(func() {
-				fakeWorkerClient.GetWorkerReturns(nil, errors.New("no-worker-found"))
-			})
-
-			It("removes the volume from the database", func() {
-				err := baggageCollector.Run()
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(fakeBaggageCollectorDB.ReapVolumeCallCount()).To(Equal(1))
-				Expect(fakeBaggageCollectorDB.ReapVolumeArgsForCall(0)).To(Equal(returnedSavedVolume.Handle))
-			})
+	Context("when the worker can not be found", func() {
+		BeforeEach(func() {
+			fakeWorkerClient.GetWorkerReturns(nil, errors.New("no-worker-found"))
 		})
 
-		Context("the volume is no longer found on the worker", func() {
-			BeforeEach(func() {
-				fakeWorkerClient.GetWorkerReturns(fakeWorker, nil)
-				fakeWorker.LookupVolumeReturns(nil, false, nil)
-			})
+		It("does not expire volume", func() {
+			err := baggageCollector.Run()
+			Expect(err).NotTo(HaveOccurred())
 
-			It("removes the volume from the database", func() {
-				err := baggageCollector.Run()
-				Expect(err).NotTo(HaveOccurred())
+			Expect(fakeBaggageCollectorDB.ReapVolumeCallCount()).To(Equal(0))
+		})
+	})
 
-				Expect(fakeBaggageCollectorDB.ReapVolumeCallCount()).To(Equal(1))
-				Expect(fakeBaggageCollectorDB.ReapVolumeArgsForCall(0)).To(Equal(returnedSavedVolume.Handle))
-			})
+	Context("the volume is no longer found on the worker", func() {
+		BeforeEach(func() {
+			fakeWorkerClient.GetWorkerReturns(fakeWorker, nil)
+			fakeWorker.LookupVolumeReturns(nil, false, nil)
+		})
+
+		It("removes the volume from the database", func() {
+			err := baggageCollector.Run()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakeBaggageCollectorDB.ReapVolumeCallCount()).To(Equal(1))
+			Expect(fakeBaggageCollectorDB.ReapVolumeArgsForCall(0)).To(Equal(returnedSavedVolume.Handle))
 		})
 	})
 })

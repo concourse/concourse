@@ -116,19 +116,37 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	runSession := step.session
 	runSession.ID.Stage = db.ContainerStageRun
 
-	trackedResource, cache, err := step.tracker.InitWithCache(
-		step.logger,
-		step.stepMetadata,
+	trackedResource, cache, found, err := step.tracker.FindContainerForSession(
+		step.logger.Session("find-container-for-get-step"),
 		runSession,
-		resource.ResourceType(step.resourceConfig.Type),
-		step.tags,
-		step.cacheIdentifier,
-		step.resourceTypes,
-		step.delegate,
 	)
 	if err != nil {
-		step.logger.Error("failed-to-initialize-resource", err)
+		step.logger.Error("failed-to-find-container-for-get-step", err)
 		return err
+	}
+
+	if !found {
+		step.logger.Debug("not-found-container-for-get-step")
+		choosenWorker, err := step.tracker.ChooseWorker(resource.ResourceType(step.resourceConfig.Type), step.tags, step.resourceTypes)
+		if err != nil {
+			return err
+		}
+
+		trackedResource, cache, err = step.tracker.InitWithCache(
+			step.logger,
+			step.stepMetadata,
+			runSession,
+			resource.ResourceType(step.resourceConfig.Type),
+			step.tags,
+			step.cacheIdentifier,
+			step.resourceTypes,
+			step.delegate,
+			choosenWorker,
+		)
+		if err != nil {
+			step.logger.Error("failed-to-initialize-resource", err)
+			return err
+		}
 	}
 
 	step.resource = trackedResource

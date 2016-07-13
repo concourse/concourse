@@ -23,7 +23,6 @@ import (
 
 const taskProcessPropertyName = "concourse:task-process"
 const taskExitStatusPropertyName = "concourse:exit-status"
-const sigTermWaitTime = 10 * time.Second
 
 // MissingInputsError is returned when any of the task's required inputs are
 // missing.
@@ -268,22 +267,12 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 	case <-signals:
 		step.registerSource(config)
 
-		go step.process.Signal(garden.SignalTerminate)
-
-		timer := step.clock.NewTimer(sigTermWaitTime)
-
-	OUT:
-		for {
-			select {
-			case <-timer.C():
-				err := step.container.Stop(true)
-				if err != nil {
-					step.logger.Error("stopping-container", err)
-				}
-			case <-exited:
-				break OUT
-			}
+		err = step.container.Stop(false)
+		if err != nil {
+			step.logger.Error("stopping-container", err)
 		}
+
+		<-exited
 
 		return ErrInterrupted
 
