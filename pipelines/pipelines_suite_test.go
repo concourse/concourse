@@ -110,6 +110,24 @@ func renamePipeline(newName string) {
 	pipelineName = newName
 }
 
+func hasTaggedWorkers() bool {
+	workers, err := client.ListWorkers()
+	Expect(err).NotTo(HaveOccurred())
+
+	var hasTaggedWorker bool
+dance:
+	for _, worker := range workers {
+		for _, tag := range worker.Tags {
+			if tag == "tagged" {
+				hasTaggedWorker = true
+				break dance
+			}
+		}
+	}
+
+	return hasTaggedWorker
+}
+
 func configurePipeline(argv ...string) {
 	destroyPipeline(pipelineName)
 

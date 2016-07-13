@@ -1,0 +1,36 @@
+---
+jobs:
+- name: some-job
+  plan:
+  - task: output-producer
+    tags: ["tagged"]
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+      outputs:
+      - name: output-1
+        path: output-1-src/
+      - name: output-2
+        path: output-2-src/
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          touch output-1-src/file-1
+          touch output-2-src/file-2
+  - task: find-files
+    tags: ["tagged"]
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+      inputs:
+      - name: output-1
+      - name: output-2
+      run:
+        path: find
+        args: [.]

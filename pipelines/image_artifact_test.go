@@ -11,22 +11,8 @@ var _ = Describe("A job with a task using an image within the plan", func() {
 		configurePipeline(
 			"-c", "fixtures/image-artifact.yml",
 		)
-		
-		workers, err := client.ListWorkers()
-		Expect(err).NotTo(HaveOccurred())
 
-		var hasTaggedWorker bool
-	dance:
-		for _, worker := range workers {
-			for _, tag := range worker.Tags {
-				if tag == "tagged" {
-					hasTaggedWorker = true
-					break dance
-				}
-			}
-		}
-
-		if !hasTaggedWorker {
+		if !hasTaggedWorkers() {
 			Skip("this only runs when a worker with the 'tagged' tag is available")
 		}
 	})

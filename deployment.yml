@@ -67,7 +67,7 @@ instance_groups:
             allow_host_access: true
 
   - name: tagged_worker
-    instances: 1
+    instances: 2
     networks: [name: concourse]
     vm_type: concourse
     stemcell: trusty
