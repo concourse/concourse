@@ -3,9 +3,3 @@ check process beacon
   start program "/var/vcap/jobs/groundcrew/bin/beacon_ctl start"
   stop program "/var/vcap/jobs/groundcrew/bin/beacon_ctl stop"
   group vcap
-
-check process jettison
-  with pidfile /var/vcap/sys/run/groundcrew/jettison.pid
-  start program "/var/vcap/jobs/groundcrew/bin/jettison_ctl start"
-  stop program "/var/vcap/jobs/groundcrew/bin/jettison_ctl stop"
-  group vcap

@@ -125,6 +125,14 @@ before using it!
     \hyperlink{https://github.com/karunamon/concourse-resource-bitbucket}{Bitbucket Notifications}
   }{
     \hyperlink{https://github.com/ljfranklin/terraform-resource}{Terraform}
+  }{
+    \hyperlink{https://github.com/pivotal-cloudops/azure-blobstore-concourse-resource}{Azure Blobstore}
+  }{
+    \hyperlink{https://github.com/mrsixw/concourse-rsync-resource}{Rsync}
+  }{
+    \hyperlink{https://github.com/mdomke/concourse-devpi-resource}{Devpi Server: PyPI mirror and package server}
+  }{
+    \hyperlink{https://github.com/danrspencer/jira-resource}{Jira Integration}
   }
 
   \section{Adding to this list}{

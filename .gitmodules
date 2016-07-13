@@ -161,10 +161,6 @@
 	path = src/github.com/jessevdk/go-flags
 	url = https://github.com/jessevdk/go-flags
 	branch = master
-[submodule "src/github.com/concourse/jettison"]
-	path = src/github.com/concourse/jettison
-	url = https://github.com/concourse/jettison
-	branch = master
 [submodule "src/github.com/pkg/term"]
 	path = src/github.com/pkg/term
 	url = https://github.com/pkg/term
@@ -240,4 +236,8 @@
 [submodule "src/github.com/concourse/go-archive"]
 	path = src/github.com/concourse/go-archive
 	url = https://github.com/concourse/go-archive
+	branch = master
+[submodule "src/gopkg.in/cheggaaa/pb.v1"]
+	path = src/gopkg.in/cheggaaa/pb.v1
+	url = https://gopkg.in/cheggaaa/pb.v1
 	branch = master

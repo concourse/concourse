@@ -5,7 +5,6 @@ gosub list \
   -a github.com/concourse/fly \
   -a github.com/concourse/atc/cmd/... \
   -a github.com/concourse/blackbox/cmd/... \
-  -a github.com/concourse/jettison/cmd/... \
   -a github.com/concourse/baggageclaim/cmd/... \
   -a github.com/concourse/tsa/cmd/... \
   -t github.com/concourse/testflight/... \

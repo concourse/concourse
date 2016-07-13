@@ -108,6 +108,10 @@ the \reference{installing}{installation guide} before coming back here.
   \codeblock{yaml}{
   platform: linux
 
+  image_resource:
+    type: docker-image
+    source: \{repository: busybox\}
+
   inputs:
   - name: flight-school
 
@@ -115,13 +119,24 @@ the \reference{installing}{installation guide} before coming back here.
     path: ./flight-school/ci/test.sh
   }
 
-  Let's go through this line by line. The \code{platform:} simply states that we
-  would like this task to run on a Linux worker. The \code{inputs:} section
-  defines a set of things that we need in order for our task to run. In this
-  case, we need the \code{flight-school} source code in order to run the tests
-  on it. The final \code{run:} section describes how Concourse should run the
-  task. By default Concourse will run your script with a current working
-  directory containing all of your inputs as subdirectories.
+  Let's go through this line by line:
+
+  \list{
+    The \reference{platform} simply states that we would like this task to run on a
+    Linux worker.
+  }{
+    The \reference{image_resource} section declares the image to use for the
+    task's container. It is defined as a \reference{resources}{resource}
+    configuration.
+  }{
+    The \reference{inputs} section defines a set of things that we need in
+    order for our task to run. In this case, we need the \code{flight-school}
+    source code in order to run the tests on it.
+  }{
+    The final \reference{run} section describes how Concourse should run the
+    task.  By default Concourse will run your script with a current working
+    directory containing all of your inputs as subdirectories.
+  }
 
   Ok, let's save that in \code{build.yml} and run our command again.
 
@@ -133,7 +148,7 @@ the \reference{installing}{installation guide} before coming back here.
   100 40960    0 40960    0     0   662k      0 --:--:-- --:--:-- --:--:--  800k
   initializing
   running flight-school/ci/test.sh
-  proc_starter: ExecAsUser: system: program 'flight-school/ci/test.sh' was not found in $PATH: exec: "flight-school/ci/test.sh": stat flight-school/ci/test.sh: no such file or directory
+  exec failed: exec: "./flight-school/ci/test.sh": stat ./flight-school/ci/test.sh: no such file or directory
   failed
   }
 
@@ -173,7 +188,7 @@ the \reference{installing}{installation guide} before coming back here.
   100 40960    0 40960    0     0   662k      0 --:--:-- --:--:-- --:--:--  800k
   initializing
   running flight-school/ci/test.sh
-  proc_starter: ExecAsUser: system: program 'flight-school/ci/test.sh' was not found in $PATH: exec: "flight-school/ci/test.sh": permission denied
+  exec failed: exec: "./flight-school/ci/test.sh": permission denied
   failed
   }
 
@@ -194,20 +209,20 @@ the \reference{installing}{installation guide} before coming back here.
   100 40960    0 40960    0     0   662k      0 --:--:-- --:--:-- --:--:--  800k
   initializing
   running flight-school/ci/test.sh
-  proc_starter: ExecAsUser: system: exec of flight-school/ci/test.sh: no such file or directory
+  exec failed: no such file or directory
   failed
   }
 
   This message is a little obscure. It's complaining that the shebang
-  (\code{/bin/bash}) can't find the interpreter. By default, Concourse will run
-  your build in a tiny, un-opinionated operating system image that doesn't
-  contain \code{bash}. This isn't very useful for running builds so let's pick
-  one that is.
+  (\code{/bin/bash}) can't find the interpreter. In our task config, we
+  specified the \code{busybox} Docker image, which is a tiny, un-opinionated
+  operating system image that doesn't contain \code{bash}. This isn't very
+  useful for running builds so let's pick one that is.
 
   Docker maintains a collection of Docker images for common languages. Let's use
   the \code{ruby} image at version \code{2.3.0}. We can specify that the task
-  should run with this image by putting the following block in our
-  \code{build.yml}.
+  should run with this image by updating the \reference{image_resource} block
+  in our \code{build.yml} like so:
 
   \codeblock{yaml}{
   image_resource:

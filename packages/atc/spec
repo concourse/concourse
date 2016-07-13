@@ -46,7 +46,7 @@ files:
   - github.com/concourse/atc/builds/*.go # gosub
   - github.com/concourse/atc/cmd/atc/*.go # gosub
   - github.com/concourse/atc/config/*.go # gosub
-  - github.com/concourse/atc/containerreaper/*.go # gosub
+  - github.com/concourse/atc/containerkeepaliver/*.go # gosub
   - github.com/concourse/atc/db/*.go # gosub
   - github.com/concourse/atc/db/algorithm/*.go # gosub
   - github.com/concourse/atc/db/migrations/*.go # gosub

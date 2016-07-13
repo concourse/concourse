@@ -13,7 +13,7 @@ Concourse (they won't build otherwise).
 - Each corresponding change should have an associated test to go along
 with it.  If you are having trouble testing, open an issue to discuss
 it.
-- Please don't forget to update the Concourse 
+- Please don't forget to update the Concourse
 [documentation](https://github.com/concourse/concourse/tree/develop/docs)
 if you make a change to any the behavior (especially in fly).
 - Double check that all of the tests you have written pass on the
@@ -28,6 +28,10 @@ Work directly out of the Concourse release `/src` directory!
 All of the major Concourse components are there and you can
 add your fork of each as a separate downstream remote.  This
 will make your time working on Concourse drastically easier.
+
+# ATC-only development
+
+In some cases, you can achieve a more lightweight development cycle by running the ATC outside of a full concourse deployment. For more details, see the [concourse/atc CONTRIBUTING.md](https://github.com/concourse/atc/blob/master/CONTRIBUTING.md). Come back to these instructions to test your changes in a full deployment before submitting a pull request.
 
 # Setup
 
@@ -78,15 +82,15 @@ the alias `lite`, should you need to target it again.
 
 ### Grabbing the Concourse Release
 All set with BOSH Lite?  Great!  Let's grab the concourse release
-(just clone the project you are reading this documentation in) and walk 
+(just clone the project you are reading this documentation in) and walk
 through a deployment:
 
-- You may notice that Concourse ships with a .envrc file.  We use a tool 
+- You may notice that Concourse ships with a .envrc file.  We use a tool
 called direnv (mentioned above) to mange your `$GOPATH`.
 - We make extensive use of submodules in this release, you will want to
 run `git submodule update --init` within your Concourse clone.
 
-You should now be all set to bosh deploy Concourse.  A bosh-lite 
+You should now be all set to bosh deploy Concourse.  A bosh-lite
 manifest has been provided for you in the manifests directory.
 
 ### Making Changes
