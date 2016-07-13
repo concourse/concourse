@@ -573,11 +573,12 @@ func (cmd *ATCCommand) constructDB(logger lager.Logger) (*db.SQLDB, db.PipelineD
 	listener := pq.NewListener(cmd.PostgresDataSource, time.Second, time.Minute, nil)
 	bus := db.NewNotificationsBus(listener, dbConn)
 
-	explainDBConn := db.Explain(logger, dbConn, clock.NewClock(), 500*time.Millisecond)
-	countingDBConn := metric.CountQueries(explainDBConn)
+	dbConn.SetMaxOpenConns(64)
+
+	countingDBConn := metric.CountQueries(dbConn)
 	sqlDB := db.NewSQL(countingDBConn, bus)
 
-	pipelineDBFactory := db.NewPipelineDBFactory(explainDBConn, bus, sqlDB)
+	pipelineDBFactory := db.NewPipelineDBFactory(countingDBConn, bus, sqlDB)
 
 	return sqlDB, pipelineDBFactory, err
 }
