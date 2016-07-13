@@ -69,5 +69,4 @@ files:
   - golang.org/x/net/context/*.go # gosub
   - golang.org/x/oauth2/*.go # gosub
   - golang.org/x/oauth2/internal/*.go # gosub
-  - gopkg.in/cheggaaa/pb.v1/*.go # gosub
   - gopkg.in/yaml.v2/*.go # gosub
