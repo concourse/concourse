@@ -89,6 +89,7 @@ func (step GetStep) Using(prev Step, repo *SourceRepository) Step {
 
 func (step *GetStep) createResourceContainerAndRun(
 	chosenWorker worker.Worker,
+	cachedVolume worker.Volume,
 	runSession resource.Session,
 	signals <-chan os.Signal,
 	ready chan<- struct{},
@@ -101,11 +102,18 @@ func (step *GetStep) createResourceContainerAndRun(
 		Ephemeral: runSession.Ephemeral,
 		Tags:      step.tags,
 		Env:       step.stepMetadata.Env(),
+		Outputs: []worker.VolumeMount{
+			{
+				Volume:    cachedVolume,
+				MountPath: resource.ResourcesDir("get"),
+			},
+		},
 	}
 
+	step.logger.Debug("createResourceContainerAndRun", lager.Data{"container-id": runSession.ID})
 	container, err := chosenWorker.CreateContainer(
 		step.logger,
-		nil,
+		signals,
 		step.delegate,
 		runSession.ID,
 		runSession.Metadata,
@@ -121,8 +129,9 @@ func (step *GetStep) createResourceContainerAndRun(
 	step.logger.Info("created-container-in-get", lager.Data{"container": container.Handle()})
 
 	step.logger.Debug("going-to-run-get")
+	step.resource.SetContainer(container)
 	step.versionedSource = step.resource.Get(
-		container,
+		cachedVolume,
 		resource.IOConfig{
 			Stdout: step.delegate.Stdout(),
 			Stderr: step.delegate.Stderr(),
@@ -130,7 +139,6 @@ func (step *GetStep) createResourceContainerAndRun(
 		step.resourceConfig.Source,
 		step.params,
 		step.version,
-		step.logger,
 	)
 
 	step.logger.Info("get-step-running")
@@ -220,7 +228,7 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	}
 
 	step.versionedSource = step.resource.Get(
-		nil,
+		cache.Volume(),
 		resource.IOConfig{
 			Stdout: step.delegate.Stdout(),
 			Stderr: step.delegate.Stderr(),
@@ -228,7 +236,6 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		step.resourceConfig.Source,
 		step.params,
 		step.version,
-		step.logger,
 	)
 
 	if isInitialized {
@@ -238,10 +245,9 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		close(ready)
 	} else {
 		step.logger.Debug("cache-not-initialized")
-		//cache miss: create a container
 		if !foundContainer {
 			step.logger.Debug("cached-volume", lager.Data{"handle": cache.Volume().Handle()})
-			err := step.createResourceContainerAndRun(chosenWorker, runSession, signals, ready)
+			err := step.createResourceContainerAndRun(chosenWorker, cache.Volume(), runSession, signals, ready)
 
 			if _, ok := err.(resource.ErrResourceScriptFailed); ok {
 				return nil

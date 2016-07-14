@@ -15,7 +15,7 @@ type outRequest struct {
 func (resource *resource) Put(ioConfig IOConfig, source atc.Source, params atc.Params, artifactSource ArtifactSource) VersionedSource {
 	resourceDir := ResourcesDir("put")
 
-	vs := &versionedSource{
+	vs := &putVersionedSource{
 		container:   resource.container,
 		resourceDir: resourceDir,
 	}

@@ -98,7 +98,7 @@ func (tracker *tracker) InitResourceWithCache(
 		})
 		return nil, nil, nil, false, err
 	}
-	//cache initialized <- true
+
 	cachedVolume, cacheFound, err := cacheIdentifier.FindOn(logger, chosenWorker)
 	if err != nil {
 		logger.Error("failed-to-look-for-cache", err)
@@ -106,7 +106,6 @@ func (tracker *tracker) InitResourceWithCache(
 	}
 
 	if cacheFound {
-		// cache hit
 		logger.Debug("init-resource-with-cache-found-cache", lager.Data{"volume": cachedVolume.Handle()})
 	} else {
 		logger.Debug("init-resource-with-cache-no-cache-found")
@@ -140,7 +139,7 @@ func (tracker *tracker) InitWithSources(
 
 	container, found, err := tracker.workerClient.FindContainerForIdentifier(logger, session.ID)
 	if err != nil {
-		logger.Error("failed-to-look-for-existing-container", err)
+		logger.Error("failed-to-look-for-existing-container", err, lager.Data{"id": session.ID})
 		return nil, nil, err
 	}
 
@@ -213,6 +212,8 @@ func (tracker *tracker) InitWithSources(
 
 	resourceSpec.Inputs = mounts
 
+	logger.Debug("tracker-init-with-resources-creating-container", lager.Data{"container-id": session.ID})
+
 	container, err = chosenWorker.CreateContainer(
 		logger,
 		nil,
@@ -261,7 +262,7 @@ func (tracker *tracker) Init(
 		return NewResource(container, tracker.clock), nil
 	}
 
-	logger.Debug("creating-container")
+	logger.Debug("tracker-init-creating-container", lager.Data{"container-id": session.ID})
 
 	container, err = tracker.workerClient.CreateContainer(
 		logger,
@@ -394,6 +395,8 @@ func (tracker *tracker) InitWithCache(
 			MountPath: ResourcesDir("get"),
 		},
 	}
+
+	logger.Debug("tracker-init-with-cache-creating-container", lager.Data{"container-id": session.ID})
 
 	container, err := chosenWorker.CreateContainer(
 		logger,

@@ -210,8 +210,8 @@ var _ = Describe("Get", func() {
 		It("gets the resource with the cached container, and correct source, params, version", func() {
 			Expect(fakeResource.GetCallCount()).To(Equal(1))
 
-			newContainer, _, gotSource, gotParams, gotVersion, _ := fakeResource.GetArgsForCall(0)
-			Expect(newContainer).To(BeNil())
+			volume, _, gotSource, gotParams, gotVersion := fakeResource.GetArgsForCall(0)
+			Expect(volume).To(Equal(fakeVolume))
 			Expect(gotSource).To(Equal(resourceConfig.Source))
 			Expect(gotParams).To(Equal(params))
 			Expect(gotVersion).To(Equal(version))
@@ -220,7 +220,7 @@ var _ = Describe("Get", func() {
 		It("gets the resource with the io config forwarded", func() {
 			Expect(fakeResource.GetCallCount()).To(Equal(1))
 
-			_, ioConfig, _, _, _, _ := fakeResource.GetArgsForCall(0)
+			_, ioConfig, _, _, _ := fakeResource.GetArgsForCall(0)
 			Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
 			Expect(ioConfig.Stderr).To(Equal(stderrBuf))
 		})
@@ -263,8 +263,8 @@ var _ = Describe("Get", func() {
 				It("replaces resource container with the newly created one", func() {
 					Expect(fakeResource.GetCallCount()).To(Equal(2))
 
-					newContainer, _, gotSource, gotParams, gotVersion, _ := fakeResource.GetArgsForCall(1)
-					Expect(newContainer).To(Equal(fakeContainer))
+					cachedVolume, _, gotSource, gotParams, gotVersion := fakeResource.GetArgsForCall(1)
+					Expect(cachedVolume).To(Equal(fakeVolume))
 					Expect(gotSource).To(Equal(resourceConfig.Source))
 					Expect(gotParams).To(Equal(params))
 					Expect(gotVersion).To(Equal(version))
@@ -273,7 +273,7 @@ var _ = Describe("Get", func() {
 				It("gets the resource with the io config forwarded", func() {
 					Expect(fakeResource.GetCallCount()).To(Equal(2))
 
-					_, ioConfig, _, _, _, _ := fakeResource.GetArgsForCall(1)
+					_, ioConfig, _, _, _ := fakeResource.GetArgsForCall(1)
 					Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
 					Expect(ioConfig.Stderr).To(Equal(stderrBuf))
 				})

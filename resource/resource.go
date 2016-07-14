@@ -9,14 +9,14 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/clock"
-	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
 )
 
 //go:generate counterfeiter . Resource
 
 type Resource interface {
-	Get(worker.Container, IOConfig, atc.Source, atc.Params, atc.Version, lager.Logger) VersionedSource
+	SetContainer(worker.Container)
+	Get(worker.Volume, IOConfig, atc.Source, atc.Params, atc.Version) VersionedSource
 	Put(IOConfig, atc.Source, atc.Params, ArtifactSource) VersionedSource
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
 

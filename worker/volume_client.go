@@ -52,7 +52,7 @@ func (c *volumeClient) FindVolume(
 
 	if len(savedVolumes) == 0 {
 		err = ErrMissingVolume
-		logger.Error("failed-to-find-volume-in-db", err)
+		logger.Error("failed-to-find-volume-in-db", err, lager.Data{"volume-id": volumeIdentifier})
 		return nil, false, err
 	}
 

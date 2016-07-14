@@ -8,19 +8,22 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/lager"
 )
 
 type FakeResource struct {
-	GetStub        func(worker.Container, resource.IOConfig, atc.Source, atc.Params, atc.Version, lager.Logger) resource.VersionedSource
+	SetContainerStub        func(worker.Container)
+	setContainerMutex       sync.RWMutex
+	setContainerArgsForCall []struct {
+		arg1 worker.Container
+	}
+	GetStub        func(worker.Volume, resource.IOConfig, atc.Source, atc.Params, atc.Version) resource.VersionedSource
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
-		arg1 worker.Container
+		arg1 worker.Volume
 		arg2 resource.IOConfig
 		arg3 atc.Source
 		arg4 atc.Params
 		arg5 atc.Version
-		arg6 lager.Logger
 	}
 	getReturns struct {
 		result1 resource.VersionedSource
@@ -62,20 +65,43 @@ type FakeResource struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResource) Get(arg1 worker.Container, arg2 resource.IOConfig, arg3 atc.Source, arg4 atc.Params, arg5 atc.Version, arg6 lager.Logger) resource.VersionedSource {
+func (fake *FakeResource) SetContainer(arg1 worker.Container) {
+	fake.setContainerMutex.Lock()
+	fake.setContainerArgsForCall = append(fake.setContainerArgsForCall, struct {
+		arg1 worker.Container
+	}{arg1})
+	fake.recordInvocation("SetContainer", []interface{}{arg1})
+	fake.setContainerMutex.Unlock()
+	if fake.SetContainerStub != nil {
+		fake.SetContainerStub(arg1)
+	}
+}
+
+func (fake *FakeResource) SetContainerCallCount() int {
+	fake.setContainerMutex.RLock()
+	defer fake.setContainerMutex.RUnlock()
+	return len(fake.setContainerArgsForCall)
+}
+
+func (fake *FakeResource) SetContainerArgsForCall(i int) worker.Container {
+	fake.setContainerMutex.RLock()
+	defer fake.setContainerMutex.RUnlock()
+	return fake.setContainerArgsForCall[i].arg1
+}
+
+func (fake *FakeResource) Get(arg1 worker.Volume, arg2 resource.IOConfig, arg3 atc.Source, arg4 atc.Params, arg5 atc.Version) resource.VersionedSource {
 	fake.getMutex.Lock()
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
-		arg1 worker.Container
+		arg1 worker.Volume
 		arg2 resource.IOConfig
 		arg3 atc.Source
 		arg4 atc.Params
 		arg5 atc.Version
-		arg6 lager.Logger
-	}{arg1, arg2, arg3, arg4, arg5, arg6})
-	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
-		return fake.GetStub(arg1, arg2, arg3, arg4, arg5, arg6)
+		return fake.GetStub(arg1, arg2, arg3, arg4, arg5)
 	} else {
 		return fake.getReturns.result1
 	}
@@ -87,10 +113,10 @@ func (fake *FakeResource) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeResource) GetArgsForCall(i int) (worker.Container, resource.IOConfig, atc.Source, atc.Params, atc.Version, lager.Logger) {
+func (fake *FakeResource) GetArgsForCall(i int) (worker.Volume, resource.IOConfig, atc.Source, atc.Params, atc.Version) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
-	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5, fake.getArgsForCall[i].arg6
+	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5
 }
 
 func (fake *FakeResource) GetReturns(result1 resource.VersionedSource) {
@@ -224,6 +250,8 @@ func (fake *FakeResource) CacheVolumeReturns(result1 worker.Volume, result2 bool
 func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.setContainerMutex.RLock()
+	defer fake.setContainerMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	fake.putMutex.RLock()

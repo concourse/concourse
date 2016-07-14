@@ -458,7 +458,7 @@ var _ = Describe("Image", func() {
 
 										It("constructs the 'get' runner", func() {
 											Expect(fakeGetResource.GetCallCount()).To(Equal(1))
-											container, ioConfig, getSource, params, getVersion, _ := fakeGetResource.GetArgsForCall(0)
+											container, ioConfig, getSource, params, getVersion := fakeGetResource.GetArgsForCall(0)
 											Expect(container).To(BeNil())
 											Expect(getVersion).To(Equal(atc.Version{"v": "1"}))
 											Expect(params).To(BeNil())

@@ -221,7 +221,7 @@ func (i *image) fetchImage(
 
 	if found {
 		i.logger.Debug("found-container-for-image")
-		return getResource, i.versionedResource(getResource, version), nil
+		return getResource, i.versionedResource(getResource, cache.Volume(), version), nil
 	}
 
 	choosenWorker, err := i.tracker.ChooseWorker(resourceType, i.workerTags, i.customTypes)
@@ -275,7 +275,7 @@ func (i *image) fetchImage(
 		return nil, nil, err
 	}
 
-	versionedSource := i.versionedResource(getResource, version)
+	versionedSource := i.versionedResource(getResource, cache.Volume(), version)
 
 	isInitialized, err := cache.IsInitialized()
 	if err != nil {
@@ -314,16 +314,15 @@ func (i *image) leaseName(id leaseID) (string, error) {
 	return string(taskNameJSON), nil
 }
 
-func (i *image) versionedResource(getResource resource.Resource, version atc.Version) resource.VersionedSource {
+func (i *image) versionedResource(getResource resource.Resource, cachedVolume worker.Volume, version atc.Version) resource.VersionedSource {
 	return getResource.Get(
-		nil,
+		cachedVolume,
 		resource.IOConfig{
 			Stderr: i.imageFetchingDelegate.Stderr(),
 		},
 		i.imageResource.Source,
 		nil,
 		version,
-		nil,
 	)
 }
 
