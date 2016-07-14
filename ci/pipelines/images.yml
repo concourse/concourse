@@ -55,17 +55,17 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
-- name: concourse-concourse-ci
+- name: concourse-bosh-cli
   type: git
   source:
     uri: https://github.com/concourse/concourse.git
     branch: develop
-    paths: [ci/dockerfiles/concourse-ci]
+    paths: [ci/dockerfiles/bosh-cli]
 
-- name: concourse-concourse-ci-image
+- name: concourse-bosh-cli-image
   type: docker-image
   source:
-    repository: concourse/concourse-ci
+    repository: concourse/bosh-cli
     username: {{docker-username}}
     email: {{docker-email}}
     password: {{docker-password}}
@@ -279,21 +279,21 @@ jobs:
       load_base: rubinius
       build: concourse-docs-ci/ci/dockerfiles/docs-ci
 
-- name: build-concourse-ci
+- name: build-bosh-cli
   public: true
   serial: true
   plan:
   - aggregate:
-    - get: concourse-concourse-ci
+    - get: concourse-bosh-cli
       trigger: true
       params: {submodules: none}
     - get: ubuntu-15.10
       trigger: true
       params: {save: true}
-  - put: concourse-concourse-ci-image
+  - put: concourse-bosh-cli-image
     params:
       load_base: ubuntu-15.10
-      build: concourse-concourse-ci/ci/dockerfiles/concourse-ci
+      build: concourse-bosh-cli/ci/dockerfiles/bosh-cli
 
 - name: build-atc-ci
   public: true
@@ -410,12 +410,12 @@ jobs:
   - aggregate:
     - get: vagrant-ci
       trigger: true
-    - get: concourse-concourse-ci-image
+    - get: concourse-bosh-cli-image
       trigger: true
       params: {save: true}
   - put: vagrant-ci-image
     params:
-      load_base: concourse-concourse-ci-image
+      load_base: concourse-bosh-cli-image
       build: vagrant-ci/lite/ci
 
 - name: build-static-golang

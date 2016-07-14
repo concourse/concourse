@@ -1,9 +1,9 @@
 TAG?=latest
 
-all: concourse-ci
+all: bosh-cli
 
 push:
-		docker push concourse/concourse-ci
+		docker push concourse/bosh-cli
 
-concourse-ci: concourse-ci/Dockerfile
-		docker build -t concourse/concourse-ci:${TAG} --rm concourse-ci
+bosh-cli: bosh-cli/Dockerfile
+		docker build -t concourse/bosh-cli:${TAG} --rm bosh-cli
