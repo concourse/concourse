@@ -70,6 +70,21 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
+- name: concourse-btrfs-tools-ci
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: develop
+    paths: [ci/dockerfiles/btrfs-tools-ci]
+
+- name: concourse-btrfs-tools-ci-image
+  type: docker-image
+  source:
+    repository: concourse/btrfs-tools-ci
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
 - name: vagrant-ci-image
   type: docker-image
   source:
@@ -294,6 +309,22 @@ jobs:
     params:
       load_base: ubuntu-15.10
       build: concourse-bosh-cli/ci/dockerfiles/bosh-cli
+
+- name: build-btrfs-tools-ci
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse-btrfs-tools-ci
+      trigger: true
+      params: {submodules: none}
+    - get: ubuntu-15.10
+      trigger: true
+      params: {save: true}
+  - put: concourse-btrfs-tools-ci-image
+    params:
+      load_base: ubuntu-15.10
+      build: concourse-btrfs-tools-ci/ci/dockerfiles/btrfs-tools-ci
 
 - name: build-atc-ci
   public: true
