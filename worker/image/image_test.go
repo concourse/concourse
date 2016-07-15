@@ -177,7 +177,8 @@ var _ = Describe("Image", func() {
 							}
 
 							fakeVolume := new(wfakes.FakeVolume)
-							fakeGetResource.CacheVolumeReturns(fakeVolume, true)
+
+							fakeVersionedSource.VolumeReturns(fakeVolume)
 							fakeVersionedSource.StreamOutReturns(tarStreamWith("some-tar-contents"), nil)
 						})
 
@@ -278,7 +279,7 @@ var _ = Describe("Image", func() {
 											Expect(fetchedMetadataReader).To(BeNil())
 											Expect(fetchedVersion).To(BeNil())
 											Expect(fetchErr).To(Equal(cacheFail))
-											Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(0))
+											Expect(fakeVersionedSource.VolumeCallCount()).To(Equal(0))
 										})
 									})
 
@@ -293,7 +294,7 @@ var _ = Describe("Image", func() {
 											volumePath = "C:/Documents and Settings/Evan/My Documents"
 
 											fakeVolume.PathReturns(volumePath)
-											fakeGetResource.CacheVolumeReturns(fakeVolume, true)
+											fakeVersionedSource.VolumeReturns(fakeVolume)
 
 											privileged = true
 										})
@@ -480,11 +481,7 @@ var _ = Describe("Image", func() {
 										})
 
 										It("gets the volume", func() {
-											Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(1))
-										})
-
-										It("creates the container with the volume's path as the rootFS", func() {
-											Expect(fakeGetResource.CacheVolumeCallCount()).To(Equal(1))
+											Expect(fakeVersionedSource.VolumeCallCount()).To(Equal(1))
 										})
 
 										Context("when streaming the metadata out fails", func() {
@@ -502,7 +499,7 @@ var _ = Describe("Image", func() {
 
 									Context("when the resource still does not have a volume for some reason", func() {
 										BeforeEach(func() {
-											fakeGetResource.CacheVolumeReturns(nil, false)
+											fakeVersionedSource.VolumeReturns(nil)
 										})
 
 										It("returns an appropriate error", func() {
@@ -543,7 +540,7 @@ var _ = Describe("Image", func() {
 										volumePath = "C:/Documents and Settings/Evan/My Documents"
 
 										fakeVolume.PathReturns(volumePath)
-										fakeGetResource.CacheVolumeReturns(fakeVolume, true)
+										fakeVersionedSource.VolumeReturns(fakeVolume)
 									})
 
 									It("does not run the 'get' runner", func() {

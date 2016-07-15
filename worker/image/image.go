@@ -84,8 +84,8 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 		return nil, nil, nil, err
 	}
 
-	volume, found := getResource.CacheVolume()
-	if !found {
+	volume := versionedSource.Volume()
+	if volume == nil {
 		return nil, nil, nil, ErrImageGetDidNotProduceVolume
 	}
 

@@ -10,6 +10,20 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
+//go:generate counterfeiter . VersionedSource
+
+type VersionedSource interface {
+	ifrit.Runner
+
+	Version() atc.Version
+	Metadata() []atc.MetadataField
+
+	StreamOut(string) (io.ReadCloser, error)
+	StreamIn(string, io.Reader) error
+
+	Volume() worker.Volume
+}
+
 type versionResult struct {
 	Version atc.Version `json:"version"`
 
@@ -50,6 +64,10 @@ func (vs *putVersionedSource) StreamOut(src string) (io.ReadCloser, error) {
 	})
 }
 
+func (vs *putVersionedSource) Volume() worker.Volume {
+	return nil
+}
+
 func (vs *putVersionedSource) StreamIn(dst string, src io.Reader) error {
 	return vs.container.StreamIn(garden.StreamInSpec{
 		Path:      path.Join(vs.resourceDir, dst),
@@ -74,4 +92,8 @@ func (vs *getVersionedSource) StreamIn(dst string, src io.Reader) error {
 		path.Join(vs.resourceDir, dst),
 		src,
 	)
+}
+
+func (vs *getVersionedSource) Volume() worker.Volume {
+	return vs.volume
 }

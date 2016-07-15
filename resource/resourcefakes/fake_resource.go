@@ -11,10 +11,11 @@ import (
 )
 
 type FakeResource struct {
-	SetContainerStub        func(worker.Container)
-	setContainerMutex       sync.RWMutex
-	setContainerArgsForCall []struct {
-		arg1 worker.Container
+	GetContainerHandleStub        func() string
+	getContainerHandleMutex       sync.RWMutex
+	getContainerHandleArgsForCall []struct{}
+	getContainerHandleReturns     struct {
+		result1 string
 	}
 	GetStub        func(worker.Volume, resource.IOConfig, atc.Source, atc.Params, atc.Version) resource.VersionedSource
 	getMutex       sync.RWMutex
@@ -54,39 +55,33 @@ type FakeResource struct {
 	releaseArgsForCall []struct {
 		arg1 *time.Duration
 	}
-	CacheVolumeStub        func() (worker.Volume, bool)
-	cacheVolumeMutex       sync.RWMutex
-	cacheVolumeArgsForCall []struct{}
-	cacheVolumeReturns     struct {
-		result1 worker.Volume
-		result2 bool
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResource) SetContainer(arg1 worker.Container) {
-	fake.setContainerMutex.Lock()
-	fake.setContainerArgsForCall = append(fake.setContainerArgsForCall, struct {
-		arg1 worker.Container
-	}{arg1})
-	fake.recordInvocation("SetContainer", []interface{}{arg1})
-	fake.setContainerMutex.Unlock()
-	if fake.SetContainerStub != nil {
-		fake.SetContainerStub(arg1)
+func (fake *FakeResource) GetContainerHandle() string {
+	fake.getContainerHandleMutex.Lock()
+	fake.getContainerHandleArgsForCall = append(fake.getContainerHandleArgsForCall, struct{}{})
+	fake.recordInvocation("GetContainerHandle", []interface{}{})
+	fake.getContainerHandleMutex.Unlock()
+	if fake.GetContainerHandleStub != nil {
+		return fake.GetContainerHandleStub()
+	} else {
+		return fake.getContainerHandleReturns.result1
 	}
 }
 
-func (fake *FakeResource) SetContainerCallCount() int {
-	fake.setContainerMutex.RLock()
-	defer fake.setContainerMutex.RUnlock()
-	return len(fake.setContainerArgsForCall)
+func (fake *FakeResource) GetContainerHandleCallCount() int {
+	fake.getContainerHandleMutex.RLock()
+	defer fake.getContainerHandleMutex.RUnlock()
+	return len(fake.getContainerHandleArgsForCall)
 }
 
-func (fake *FakeResource) SetContainerArgsForCall(i int) worker.Container {
-	fake.setContainerMutex.RLock()
-	defer fake.setContainerMutex.RUnlock()
-	return fake.setContainerArgsForCall[i].arg1
+func (fake *FakeResource) GetContainerHandleReturns(result1 string) {
+	fake.GetContainerHandleStub = nil
+	fake.getContainerHandleReturns = struct {
+		result1 string
+	}{result1}
 }
 
 func (fake *FakeResource) Get(arg1 worker.Volume, arg2 resource.IOConfig, arg3 atc.Source, arg4 atc.Params, arg5 atc.Version) resource.VersionedSource {
@@ -221,37 +216,11 @@ func (fake *FakeResource) ReleaseArgsForCall(i int) *time.Duration {
 	return fake.releaseArgsForCall[i].arg1
 }
 
-func (fake *FakeResource) CacheVolume() (worker.Volume, bool) {
-	fake.cacheVolumeMutex.Lock()
-	fake.cacheVolumeArgsForCall = append(fake.cacheVolumeArgsForCall, struct{}{})
-	fake.recordInvocation("CacheVolume", []interface{}{})
-	fake.cacheVolumeMutex.Unlock()
-	if fake.CacheVolumeStub != nil {
-		return fake.CacheVolumeStub()
-	} else {
-		return fake.cacheVolumeReturns.result1, fake.cacheVolumeReturns.result2
-	}
-}
-
-func (fake *FakeResource) CacheVolumeCallCount() int {
-	fake.cacheVolumeMutex.RLock()
-	defer fake.cacheVolumeMutex.RUnlock()
-	return len(fake.cacheVolumeArgsForCall)
-}
-
-func (fake *FakeResource) CacheVolumeReturns(result1 worker.Volume, result2 bool) {
-	fake.CacheVolumeStub = nil
-	fake.cacheVolumeReturns = struct {
-		result1 worker.Volume
-		result2 bool
-	}{result1, result2}
-}
-
 func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.setContainerMutex.RLock()
-	defer fake.setContainerMutex.RUnlock()
+	fake.getContainerHandleMutex.RLock()
+	defer fake.getContainerHandleMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	fake.putMutex.RLock()
@@ -260,8 +229,6 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.checkMutex.RUnlock()
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
-	fake.cacheVolumeMutex.RLock()
-	defer fake.cacheVolumeMutex.RUnlock()
 	return fake.invocations
 }
 

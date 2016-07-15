@@ -84,25 +84,6 @@ type FakeTracker struct {
 		result2 []string
 		result3 error
 	}
-	InitResourceWithCacheStub        func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate) (resource.Resource, resource.Cache, worker.Worker, bool, error)
-	initResourceWithCacheMutex       sync.RWMutex
-	initResourceWithCacheArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 resource.Metadata
-		arg3 resource.Session
-		arg4 resource.ResourceType
-		arg5 atc.Tags
-		arg6 resource.CacheIdentifier
-		arg7 atc.ResourceTypes
-		arg8 worker.ImageFetchingDelegate
-	}
-	initResourceWithCacheReturns struct {
-		result1 resource.Resource
-		result2 resource.Cache
-		result3 worker.Worker
-		result4 bool
-		result5 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -305,50 +286,6 @@ func (fake *FakeTracker) InitWithSourcesReturns(result1 resource.Resource, resul
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTracker) InitResourceWithCache(arg1 lager.Logger, arg2 resource.Metadata, arg3 resource.Session, arg4 resource.ResourceType, arg5 atc.Tags, arg6 resource.CacheIdentifier, arg7 atc.ResourceTypes, arg8 worker.ImageFetchingDelegate) (resource.Resource, resource.Cache, worker.Worker, bool, error) {
-	fake.initResourceWithCacheMutex.Lock()
-	fake.initResourceWithCacheArgsForCall = append(fake.initResourceWithCacheArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 resource.Metadata
-		arg3 resource.Session
-		arg4 resource.ResourceType
-		arg5 atc.Tags
-		arg6 resource.CacheIdentifier
-		arg7 atc.ResourceTypes
-		arg8 worker.ImageFetchingDelegate
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
-	fake.recordInvocation("InitResourceWithCache", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
-	fake.initResourceWithCacheMutex.Unlock()
-	if fake.InitResourceWithCacheStub != nil {
-		return fake.InitResourceWithCacheStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
-	} else {
-		return fake.initResourceWithCacheReturns.result1, fake.initResourceWithCacheReturns.result2, fake.initResourceWithCacheReturns.result3, fake.initResourceWithCacheReturns.result4, fake.initResourceWithCacheReturns.result5
-	}
-}
-
-func (fake *FakeTracker) InitResourceWithCacheCallCount() int {
-	fake.initResourceWithCacheMutex.RLock()
-	defer fake.initResourceWithCacheMutex.RUnlock()
-	return len(fake.initResourceWithCacheArgsForCall)
-}
-
-func (fake *FakeTracker) InitResourceWithCacheArgsForCall(i int) (lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, resource.CacheIdentifier, atc.ResourceTypes, worker.ImageFetchingDelegate) {
-	fake.initResourceWithCacheMutex.RLock()
-	defer fake.initResourceWithCacheMutex.RUnlock()
-	return fake.initResourceWithCacheArgsForCall[i].arg1, fake.initResourceWithCacheArgsForCall[i].arg2, fake.initResourceWithCacheArgsForCall[i].arg3, fake.initResourceWithCacheArgsForCall[i].arg4, fake.initResourceWithCacheArgsForCall[i].arg5, fake.initResourceWithCacheArgsForCall[i].arg6, fake.initResourceWithCacheArgsForCall[i].arg7, fake.initResourceWithCacheArgsForCall[i].arg8
-}
-
-func (fake *FakeTracker) InitResourceWithCacheReturns(result1 resource.Resource, result2 resource.Cache, result3 worker.Worker, result4 bool, result5 error) {
-	fake.InitResourceWithCacheStub = nil
-	fake.initResourceWithCacheReturns = struct {
-		result1 resource.Resource
-		result2 resource.Cache
-		result3 worker.Worker
-		result4 bool
-		result5 error
-	}{result1, result2, result3, result4, result5}
-}
-
 func (fake *FakeTracker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -362,8 +299,6 @@ func (fake *FakeTracker) Invocations() map[string][][]interface{} {
 	defer fake.initWithCacheMutex.RUnlock()
 	fake.initWithSourcesMutex.RLock()
 	defer fake.initWithSourcesMutex.RUnlock()
-	fake.initResourceWithCacheMutex.RLock()
-	defer fake.initResourceWithCacheMutex.RUnlock()
 	return fake.invocations
 }
 

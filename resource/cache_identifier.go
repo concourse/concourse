@@ -33,13 +33,13 @@ type ResourceCacheIdentifier struct {
 func (identifier ResourceCacheIdentifier) FindOn(logger lager.Logger, workerClient worker.Client) (worker.Volume, bool, error) {
 	volumes, err := workerClient.ListVolumes(logger, identifier.initializedVolumeProperties())
 	if err != nil {
-		logger.Error("find-on", err)
+		logger.Error("failed-to-list-volumes", err)
 		return nil, false, err
 	}
 
 	switch len(volumes) {
 	case 0:
-		logger.Debug("find-on-no-volumes")
+		logger.Debug("no-volumes-found")
 		return nil, false, nil
 	case 1:
 		return volumes[0], true, nil

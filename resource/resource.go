@@ -9,20 +9,18 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 	"github.com/pivotal-golang/clock"
-	"github.com/tedsuo/ifrit"
 )
 
 //go:generate counterfeiter . Resource
 
 type Resource interface {
-	SetContainer(worker.Container)
+	GetContainerHandle() string
+
 	Get(worker.Volume, IOConfig, atc.Source, atc.Params, atc.Version) VersionedSource
 	Put(IOConfig, atc.Source, atc.Params, ArtifactSource) VersionedSource
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
 
 	Release(*time.Duration)
-
-	CacheVolume() (worker.Volume, bool)
 }
 
 type IOConfig struct {
@@ -45,18 +43,6 @@ type ArtifactSource interface {
 //go:generate counterfeiter . ArtifactDestination
 
 type ArtifactDestination interface {
-	StreamIn(string, io.Reader) error
-}
-
-//go:generate counterfeiter . VersionedSource
-
-type VersionedSource interface {
-	ifrit.Runner
-
-	Version() atc.Version
-	Metadata() []atc.MetadataField
-
-	StreamOut(string) (io.ReadCloser, error)
 	StreamIn(string, io.Reader) error
 }
 
@@ -85,20 +71,4 @@ func (resource *resource) Release(finalTTL *time.Duration) {
 	if resource.container != nil {
 		resource.container.Release(finalTTL)
 	}
-}
-
-func (resource *resource) CacheVolume() (worker.Volume, bool) {
-	if resource.container == nil {
-		return nil, false
-	}
-
-	mounts := resource.container.VolumeMounts()
-
-	for _, mount := range mounts {
-		if mount.MountPath == ResourcesDir("get") {
-			return mount.Volume, true
-		}
-	}
-
-	return nil, false
 }

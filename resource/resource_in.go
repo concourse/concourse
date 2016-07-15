@@ -11,8 +11,12 @@ type inRequest struct {
 	Version atc.Version `json:"version,omitempty"`
 }
 
-func (resource *resource) SetContainer(container worker.Container) {
-	resource.container = container
+func (resource *resource) GetContainerHandle() string {
+	if resource.container != nil {
+		return resource.container.Handle()
+	}
+
+	return ""
 }
 
 func (resource *resource) Get(volume worker.Volume, ioConfig IOConfig, source atc.Source, params atc.Params, version atc.Version) VersionedSource {

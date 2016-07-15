@@ -283,6 +283,10 @@ var _ = Describe("Tracker", func() {
 					})
 				})
 
+				It("returns the volume", func() {
+					Expect(foundCache.Volume()).To(Equal(cacheVolume))
+				})
+
 				Describe("the cache", func() {
 					Describe("IsInitialized", func() {
 						Context("when the volume has the initialized property set", func() {
@@ -363,6 +367,10 @@ var _ = Describe("Tracker", func() {
 					})
 				})
 
+				It("returns no volume", func() {
+					Expect(foundCache.Volume()).To(BeNil())
+				})
+
 				Describe("the cache", func() {
 					It("is not initialized", func() {
 						initialized, err := foundCache.IsInitialized()
@@ -379,6 +387,10 @@ var _ = Describe("Tracker", func() {
 			Context("when the container has no volumes", func() {
 				BeforeEach(func() {
 					fakeContainer.VolumeMountsReturns([]worker.VolumeMount{})
+				})
+
+				It("returns no volume", func() {
+					Expect(foundCache.Volume()).To(BeNil())
 				})
 
 				Describe("the cache", func() {
@@ -455,9 +467,9 @@ var _ = Describe("Tracker", func() {
 				choosenWorker.NameReturns("some-worker")
 			})
 
-			It("does not error and returns a resource", func() {
-				Expect(initErr).NotTo(HaveOccurred())
-				Expect(initResource).NotTo(BeNil())
+			It("releases cached volume, since the container keeps it alive", func() {
+				Expect(foundVolume.ReleaseCallCount()).To(Equal(1))
+				Expect(foundVolume.ReleaseArgsForCall(0)).To(BeNil())
 			})
 
 			It("located it on the correct worker", func() {
@@ -466,95 +478,57 @@ var _ = Describe("Tracker", func() {
 				Expect(workerClient).To(Equal(choosenWorker))
 			})
 
-			It("creates the container with the cache volume", func() {
-				_, _, _, id, containerMetadata, spec, actualCustomTypes := choosenWorker.CreateContainerArgsForCall(0)
-
-				Expect(id).To(Equal(session.ID))
-				Expect(containerMetadata).To(Equal(session.Metadata))
-
-				Expect(spec.Platform).To(BeEmpty())
-				Expect(spec.Tags).To(ConsistOf("resource", "tags"))
-				Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
-					ResourceType: string(initType),
-					Privileged:   true,
-				}))
-				Expect(spec.Ephemeral).To(BeTrue())
-				Expect(spec.Env).To(Equal([]string{"a=1", "b=2"}))
-				Expect(spec.Inputs).To(BeEmpty())
-				Expect(spec.Outputs).To(ConsistOf(worker.VolumeMount{
-					Volume:    foundVolume,
-					MountPath: "/tmp/build/get",
-				}))
-
-				Expect(actualCustomTypes).To(Equal(customTypes))
+			It("returns the cache", func() {
+				Expect(initCache.Volume().Handle()).To(Equal(foundVolume.Handle()))
 			})
 
-			It("releases the volume, since the container keeps it alive", func() {
-				Expect(foundVolume.ReleaseCallCount()).To(Equal(1))
-			})
-
-			Describe("the cache", func() {
-				Describe("IsInitialized", func() {
-					Context("when the volume has the initialized property set", func() {
-						BeforeEach(func() {
-							foundVolume.PropertiesReturns(baggageclaim.VolumeProperties{
-								"initialized": "any-value",
-							}, nil)
-						})
-
-						It("returns true", func() {
-							Expect(initCache.IsInitialized()).To(BeTrue())
-						})
-					})
-
-					Context("when the volume has no initialized property", func() {
-						BeforeEach(func() {
-							foundVolume.PropertiesReturns(baggageclaim.VolumeProperties{}, nil)
-						})
-
-						It("returns false", func() {
-							initialized, err := initCache.IsInitialized()
-							Expect(initialized).To(BeFalse())
-							Expect(err).ToNot(HaveOccurred())
-						})
-					})
-
-					Context("when getting the properties fails", func() {
-						disaster := errors.New("nope")
-
-						BeforeEach(func() {
-							foundVolume.PropertiesReturns(nil, disaster)
-						})
-
-						It("returns the error", func() {
-							_, err := initCache.IsInitialized()
-							Expect(err).To(Equal(disaster))
-						})
-					})
+			Context("when cache is initialized", func() {
+				BeforeEach(func() {
+					foundVolume.PropertiesReturns(baggageclaim.VolumeProperties{"initialized": "true"}, nil)
 				})
 
-				Describe("Initialize", func() {
-					It("sets the initialized property on the volume", func() {
-						Expect(initCache.Initialize()).To(Succeed())
+				It("returns resource", func() {
+					Expect(initResource).NotTo(BeNil())
+				})
 
-						Expect(foundVolume.SetPropertyCallCount()).To(Equal(1))
-						name, value := foundVolume.SetPropertyArgsForCall(0)
-						Expect(name).To(Equal("initialized"))
-						Expect(value).To(Equal("yep"))
-					})
+				It("does not create a new container", func() {
+					Expect(choosenWorker.CreateContainerCallCount()).To(BeZero())
+				})
+			})
 
-					Context("when setting the property fails", func() {
-						disaster := errors.New("nope")
+			Context("when cache is not initailized", func() {
+				var fakeNewContainer *wfakes.FakeContainer
+				BeforeEach(func() {
+					fakeNewContainer = new(wfakes.FakeContainer)
+					fakeNewContainer.HandleReturns("new-handle")
+					foundVolume.PropertiesReturns(baggageclaim.VolumeProperties{}, nil)
+					choosenWorker.CreateContainerReturns(fakeNewContainer, nil)
+				})
 
-						BeforeEach(func() {
-							foundVolume.SetPropertyReturns(disaster)
-						})
+				It("creates a new container with the cached volume", func() {
+					Expect(choosenWorker.CreateContainerCallCount()).To(Equal(1))
+					_, _, _, containerID, containerMetadata, containerSpec, resourceTypes := choosenWorker.CreateContainerArgsForCall(0)
+					Expect(containerID).To(Equal(session.ID))
+					Expect(containerMetadata).To(Equal(session.Metadata))
 
-						It("returns the error", func() {
-							err := initCache.Initialize()
-							Expect(err).To(Equal(disaster))
-						})
-					})
+					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+						ResourceType: string(initType),
+						Privileged:   true,
+					}))
+
+					Expect(containerSpec.Ephemeral).To(BeTrue())
+					Expect(containerSpec.Env).To(Equal([]string{"a=1", "b=2"}))
+					Expect(containerSpec.Inputs).To(BeEmpty())
+					Expect(containerSpec.Outputs).To(ConsistOf(worker.VolumeMount{
+						Volume:    foundVolume,
+						MountPath: "/tmp/build/get",
+					}))
+
+					Expect(resourceTypes).To(Equal(customTypes))
+				})
+
+				It("returns resource with the container", func() {
+					Expect(initResource.GetContainerHandle()).To(Equal("new-handle"))
 				})
 			})
 		})
@@ -585,96 +559,9 @@ var _ = Describe("Tracker", func() {
 					Expect(workerClient).To(Equal(choosenWorker))
 				})
 
-				It("creates the container with the created cache volume", func() {
-					_, _, _, id, containerMetadata, spec, actualCustomTypes := choosenWorker.CreateContainerArgsForCall(0)
-
-					Expect(id).To(Equal(session.ID))
-					Expect(containerMetadata).To(Equal(session.Metadata))
-
-					Expect(spec.Platform).To(BeEmpty())
-					Expect(spec.Tags).To(ConsistOf("resource", "tags"))
-					Expect(spec.ImageSpec).To(Equal(worker.ImageSpec{
-						ResourceType: string(initType),
-						Privileged:   true,
-					}))
-					Expect(spec.Ephemeral).To(BeTrue())
-					Expect(spec.Env).To(Equal([]string{"a=1", "b=2"}))
-					Expect(spec.Inputs).To(BeEmpty())
-					Expect(spec.Outputs).To(ConsistOf(worker.VolumeMount{
-						Volume:    createdVolume,
-						MountPath: "/tmp/build/get",
-					}))
-
-					Expect(actualCustomTypes).To(Equal(customTypes))
-				})
-
 				It("releases the volume, since the container keeps it alive", func() {
 					Expect(createdVolume.ReleaseCallCount()).To(Equal(1))
-				})
-
-				Describe("the cache", func() {
-					Describe("IsInitialized", func() {
-						Context("when the volume has the initialized property set", func() {
-							BeforeEach(func() {
-								createdVolume.PropertiesReturns(baggageclaim.VolumeProperties{
-									"initialized": "any-value",
-								}, nil)
-							})
-
-							It("returns true", func() {
-								Expect(initCache.IsInitialized()).To(BeTrue())
-							})
-						})
-
-						Context("when the volume has no initialized property", func() {
-							BeforeEach(func() {
-								createdVolume.PropertiesReturns(baggageclaim.VolumeProperties{}, nil)
-							})
-
-							It("returns false", func() {
-								initialized, err := initCache.IsInitialized()
-								Expect(initialized).To(BeFalse())
-								Expect(err).ToNot(HaveOccurred())
-							})
-						})
-
-						Context("when getting the properties fails", func() {
-							disaster := errors.New("nope")
-
-							BeforeEach(func() {
-								createdVolume.PropertiesReturns(nil, disaster)
-							})
-
-							It("returns the error", func() {
-								_, err := initCache.IsInitialized()
-								Expect(err).To(Equal(disaster))
-							})
-						})
-					})
-
-					Describe("Initialize", func() {
-						It("sets the initialized property on the volume", func() {
-							Expect(initCache.Initialize()).To(Succeed())
-
-							Expect(createdVolume.SetPropertyCallCount()).To(Equal(1))
-							name, value := createdVolume.SetPropertyArgsForCall(0)
-							Expect(name).To(Equal("initialized"))
-							Expect(value).To(Equal("yep"))
-						})
-
-						Context("when setting the property fails", func() {
-							disaster := errors.New("nope")
-
-							BeforeEach(func() {
-								createdVolume.SetPropertyReturns(disaster)
-							})
-
-							It("returns the error", func() {
-								err := initCache.Initialize()
-								Expect(err).To(Equal(disaster))
-							})
-						})
-					})
+					Expect(createdVolume.ReleaseArgsForCall(0)).To(BeNil())
 				})
 			})
 		})
@@ -1037,141 +924,6 @@ var _ = Describe("Tracker", func() {
 
 			It("returns them all as missing sources", func() {
 				Expect(missingSources).To(ConsistOf("source-1-name", "source-2-name", "source-3-name"))
-			})
-		})
-	})
-
-	Describe("InitResourceWithCache", func() {
-		var (
-			logger   *lagertest.TestLogger
-			metadata Metadata = testMetadata{"a=1", "b=2"}
-			delegate worker.ImageFetchingDelegate
-
-			initType        ResourceType
-			cacheIdentifier *resourcefakes.FakeCacheIdentifier
-
-			initResource   Resource
-			initCache      Cache
-			chosenWorker   worker.Worker
-			foundContainer bool
-			initErr        error
-
-			fakeContainer *wfakes.FakeContainer
-			fakeVolume    *wfakes.FakeVolume
-		)
-
-		BeforeEach(func() {
-			fakeContainer = new(wfakes.FakeContainer)
-			fakeVolume = new(wfakes.FakeVolume)
-
-			logger = lagertest.NewTestLogger("test")
-			initType = "type1"
-			cacheIdentifier = new(resourcefakes.FakeCacheIdentifier)
-			delegate = new(wfakes.FakeImageFetchingDelegate)
-			workerClient.FindContainerForIdentifierReturns(fakeContainer, true, nil)
-			fakeContainer.VolumeMountsReturns([]worker.VolumeMount{
-				{
-					Volume:    fakeVolume,
-					MountPath: ResourcesDir("get"),
-				},
-			})
-		})
-
-		JustBeforeEach(func() {
-			initResource, initCache, chosenWorker, foundContainer, initErr = tracker.InitResourceWithCache(
-				logger,
-				metadata,
-				session,
-				initType,
-				[]string{"resource", "tags"},
-				cacheIdentifier,
-				customTypes,
-				delegate,
-			)
-		})
-
-		Context("when the a cache container already present", func() {
-			var foundVolume *wfakes.FakeVolume
-
-			BeforeEach(func() {
-				foundVolume = new(wfakes.FakeVolume)
-				foundVolume.HandleReturns("found-volume-handle")
-			})
-
-			It("does not error and returns a resource", func() {
-				Expect(initErr).NotTo(HaveOccurred())
-				Expect(initResource).NotTo(BeNil())
-				Expect(initCache.Volume()).To(Equal(fakeVolume))
-				Expect(foundContainer).To(Equal(true))
-				Expect(chosenWorker).To(BeNil())
-			})
-		})
-
-		Context("when cached container is not found", func() {
-			var (
-				fakeWorker *wfakes.FakeWorker
-			)
-
-			BeforeEach(func() {
-				fakeWorker = new(wfakes.FakeWorker)
-
-				workerClient.FindContainerForIdentifierReturns(nil, false, nil)
-				workerClient.SatisfyingReturns(fakeWorker, nil)
-
-				cacheIdentifier.FindOnReturns(fakeVolume, true, nil)
-			})
-
-			It("chooses a worker", func() {
-				Expect(workerClient.SatisfyingCallCount()).To(Equal(1))
-			})
-
-			Context("when no satisfying worker is found", func() {
-				var disaster error
-				BeforeEach(func() {
-					disaster = errors.New("nope")
-					workerClient.SatisfyingReturns(nil, disaster)
-				})
-
-				It("errors out and does not proceed", func() {
-					Expect(initErr).To(Equal(disaster))
-					Expect(cacheIdentifier.FindOnCallCount()).To(Equal(0))
-				})
-			})
-
-			It("returns a resource without a container, cached volume and chosen worker", func() {
-				Expect(initCache.Volume()).To(Equal(fakeVolume))
-				Expect(chosenWorker).To(Not(BeNil()))
-				Expect(foundContainer).To(BeFalse())
-				Expect(initErr).To(Not(HaveOccurred()))
-			})
-
-			Context("when a cached volume is found", func() {
-				It("does not create a new cache volume", func() {
-					Expect(cacheIdentifier.CreateOnCallCount()).To(Equal(0))
-				})
-
-				It("does not heartbeat the cached volume", func() {
-					Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
-					Expect(fakeVolume.ReleaseArgsForCall(0)).To(BeNil())
-				})
-			})
-
-			Context("when no cached volume is found", func() {
-				BeforeEach(func() {
-					cacheIdentifier.FindOnReturns(nil, false, nil)
-					cacheIdentifier.CreateOnReturns(fakeVolume, nil)
-				})
-
-				It("creates a volume on chosen worker", func() {
-					Expect(cacheIdentifier.CreateOnCallCount()).To(Equal(1))
-					_, creatingWorker := cacheIdentifier.CreateOnArgsForCall(0)
-					Expect(creatingWorker).To(Equal(chosenWorker))
-				})
-
-				It("does not heartbeat the create volume", func() {
-					Expect(fakeVolume.ReleaseCallCount()).To(Equal(1))
-					Expect(fakeVolume.ReleaseArgsForCall(0)).To(BeNil())
-				})
 			})
 		})
 	})

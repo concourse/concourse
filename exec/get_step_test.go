@@ -120,6 +120,12 @@ var _ = Describe("Get", func() {
 		failureTTL = 7 * time.Second
 
 		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
+
+		fakeTracker.FindContainerForSessionReturns(nil, nil, false, nil)
+		fakeTracker.InitWithCacheReturns(fakeResource, fakeCache, nil)
+
+		fakeVersionedSource = new(rfakes.FakeVersionedSource)
+		fakeResource.GetReturns(fakeVersionedSource)
 	})
 
 	JustBeforeEach(func() {
@@ -142,18 +148,24 @@ var _ = Describe("Get", func() {
 		process = ifrit.Invoke(step)
 	})
 
+	It("tries to find the container", func() {
+		Expect(fakeTracker.FindContainerForSessionCallCount()).To(Equal(1))
+		_, session := fakeTracker.FindContainerForSessionArgsForCall(0)
+		Expect(session.ID.ResourceID).To(Equal(identifier.ResourceID))
+		Expect(string(session.ID.Stage)).To(Equal(db.ContainerStageRun))
+	})
+
 	Context("before initializing the resource", func() {
 		var callCountDuringInit chan int
 
 		BeforeEach(func() {
 			callCountDuringInit = make(chan int, 1)
-			fakeVersionedSource = new(rfakes.FakeVersionedSource)
 			fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
 			fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
 
 			fakeResource.GetReturns(fakeVersionedSource)
 
-			fakeTracker.InitResourceWithCacheStub = func(
+			fakeTracker.InitWithCacheStub = func(
 				lager.Logger,
 				resource.Metadata,
 				resource.Session,
@@ -162,14 +174,25 @@ var _ = Describe("Get", func() {
 				resource.CacheIdentifier,
 				atc.ResourceTypes,
 				worker.ImageFetchingDelegate,
-			) (resource.Resource, resource.Cache, worker.Worker, bool, error) {
+				worker.Worker,
+			) (resource.Resource, resource.Cache, error) {
 				callCountDuringInit <- getDelegate.InitializingCallCount()
-				return fakeResource, fakeCache, nil, true, nil
+				return fakeResource, fakeCache, nil
 			}
 		})
 
 		It("calls the Initializing method on the delegate", func() {
 			Expect(<-callCountDuringInit).To(Equal(1))
+		})
+	})
+
+	Context("when container is found", func() {
+		BeforeEach(func() {
+			fakeTracker.FindContainerForSessionReturns(fakeResource, fakeCache, true, nil)
+		})
+
+		It("does not init with cache", func() {
+			Expect(fakeTracker.InitWithCacheCallCount()).To(BeZero())
 		})
 	})
 
@@ -181,7 +204,7 @@ var _ = Describe("Get", func() {
 		BeforeEach(func() {
 			fakeContainer = new(wfakes.FakeContainer)
 
-			fakeTracker.InitResourceWithCacheReturns(fakeResource, fakeCache, fakeWorker, true, nil)
+			fakeTracker.InitWithCacheReturns(fakeResource, fakeCache, nil)
 
 			fakeVersionedSource = new(rfakes.FakeVersionedSource)
 			fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
@@ -195,11 +218,15 @@ var _ = Describe("Get", func() {
 
 			BeforeEach(func() {
 				disaster = errors.New("disaster")
-				fakeTracker.InitResourceWithCacheReturns(nil, nil, nil, false, disaster)
+				fakeTracker.InitWithCacheReturns(nil, nil, disaster)
 			})
 
-			It("does not initialize with cache to download image", func() {
-				Expect(fakeTracker.InitWithCacheCallCount()).To(Equal(0))
+			It("does not initialize with cache", func() {
+				Expect(fakeCache.InitializeCallCount()).To(Equal(0))
+			})
+
+			It("does not run the get resource action", func() {
+				Expect(fakeVersionedSource.RunCallCount()).To(Equal(0))
 			})
 
 			It("returns the error", func() {
@@ -230,248 +257,199 @@ var _ = Describe("Get", func() {
 				fakeCache.IsInitializedReturns(false, nil)
 			})
 
-			It("initializes the cache", func() {
-				Expect(fakeCache.InitializeCallCount()).To(Equal(1))
+			It("runs the get resource action", func() {
+				Expect(fakeVersionedSource.RunCallCount()).To(Equal(1))
 			})
 
-			Context("when a resource container is found", func() {
+			Context("after the 'get' action completes", func() {
 				BeforeEach(func() {
-					fakeTracker.InitResourceWithCacheReturns(fakeResource, fakeCache, nil, true, nil)
+					fakeVersionedSource.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+						Expect(fakeCache.InitializeCallCount()).To(Equal(0))
+						return nil
+					}
 				})
 
-				It("does not create a new container", func() {
-					Expect(fakeWorker.CreateContainerCallCount()).To(Equal(0))
-				})
-			})
-
-			Context("when a resource container is not found", func() {
-				BeforeEach(func() {
-					fakeTracker.InitResourceWithCacheReturns(fakeResource, fakeCache, fakeWorker, false, nil)
-					fakeWorker.CreateContainerReturns(fakeContainer, nil)
+				It("exits with no error", func() {
+					Expect(<-process.Wait()).To(BeNil())
 				})
 
-				It("creates a new container", func() {
-					Expect(fakeWorker.CreateContainerCallCount()).To(Equal(1))
-					_, _, _, _, _, containerSpec, stepResourceTypes := fakeWorker.CreateContainerArgsForCall(0)
-					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
-						ResourceType: string(resource.ResourceType(resourceConfig.Type)),
-						Privileged:   true,
+				It("marks the cache as initialized", func() {
+					<-process.Wait()
+					Expect(fakeCache.InitializeCallCount()).To(Equal(1))
+				})
+
+				It("reports the fetched version info", func() {
+					<-process.Wait()
+
+					var info VersionInfo
+					Expect(step.Result(&info)).To(BeTrue())
+					Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
+					Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+				})
+
+				It("completes via the delegate", func() {
+					<-process.Wait()
+
+					Expect(getDelegate.CompletedCallCount()).Should(Equal(1))
+
+					exitStatus, versionInfo := getDelegate.CompletedArgsForCall(0)
+
+					Expect(exitStatus).To(Equal(ExitStatus(0)))
+					Expect(versionInfo).To(Equal(&VersionInfo{
+						Version:  atc.Version{"some": "version"},
+						Metadata: []atc.MetadataField{{"some", "metadata"}},
 					}))
-					Expect(stepResourceTypes).To(Equal(resourceTypes))
 				})
 
-				It("replaces resource container with the newly created one", func() {
-					Expect(fakeResource.GetCallCount()).To(Equal(2))
+				It("is successful", func() {
+					<-process.Wait()
 
-					cachedVolume, _, gotSource, gotParams, gotVersion := fakeResource.GetArgsForCall(1)
-					Expect(cachedVolume).To(Equal(fakeVolume))
-					Expect(gotSource).To(Equal(resourceConfig.Source))
-					Expect(gotParams).To(Equal(params))
-					Expect(gotVersion).To(Equal(version))
+					var success Success
+					Expect(step.Result(&success)).To(BeTrue())
+					Expect(bool(success)).To(BeTrue())
 				})
 
-				It("gets the resource with the io config forwarded", func() {
-					Expect(fakeResource.GetCallCount()).To(Equal(2))
+				It("releases the resource with success TTL", func() {
+					<-process.Wait()
 
-					_, ioConfig, _, _, _ := fakeResource.GetArgsForCall(1)
-					Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
-					Expect(ioConfig.Stderr).To(Equal(stderrBuf))
+					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+					step.Release()
+					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(successTTL)))
 				})
+			})
 
-				It("runs the get resource action", func() {
-					Expect(fakeVersionedSource.RunCallCount()).To(Equal(1))
-				})
-
-				Context("after the 'get' action completes", func() {
-					BeforeEach(func() {
-						fakeVersionedSource.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
-							Expect(fakeCache.InitializeCallCount()).To(Equal(0))
-							return nil
-						}
-					})
-
-					It("exits with no error", func() {
-						Expect(<-process.Wait()).To(BeNil())
-					})
-
-					It("marks the cache as initialized", func() {
-						<-process.Wait()
-						Expect(fakeCache.InitializeCallCount()).To(Equal(1))
-					})
-
-					It("reports the fetched version info", func() {
-						<-process.Wait()
-
-						var info VersionInfo
-						Expect(step.Result(&info)).To(BeTrue())
-						Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-						Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
-					})
-
-					It("completes via the delegate", func() {
-						<-process.Wait()
-
-						Expect(getDelegate.CompletedCallCount()).Should(Equal(1))
-
-						exitStatus, versionInfo := getDelegate.CompletedArgsForCall(0)
-
-						Expect(exitStatus).To(Equal(ExitStatus(0)))
-						Expect(versionInfo).To(Equal(&VersionInfo{
-							Version:  atc.Version{"some": "version"},
-							Metadata: []atc.MetadataField{{"some", "metadata"}},
-						}))
-					})
-
-					It("is successful", func() {
-						<-process.Wait()
-
-						var success Success
-						Expect(step.Result(&success)).To(BeTrue())
-						Expect(bool(success)).To(BeTrue())
-					})
-
-					It("releases the resource with success TTL", func() {
-						<-process.Wait()
-
-						Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-						step.Release()
-						Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-						Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(successTTL)))
+			Context("when the 'get' action fails", func() {
+				BeforeEach(func() {
+					fakeVersionedSource.RunReturns(resource.ErrResourceScriptFailed{
+						ExitStatus: 1,
 					})
 				})
 
-				Context("when the 'get' action fails", func() {
-					BeforeEach(func() {
-						fakeVersionedSource.RunReturns(resource.ErrResourceScriptFailed{
-							ExitStatus: 1,
-						})
-					})
-
-					It("exits with no error", func() {
-						Expect(<-process.Wait()).To(BeNil())
-					})
-
-					It("does not mark the cache as initialized", func() {
-						<-process.Wait()
-						Expect(fakeCache.InitializeCallCount()).To(Equal(0))
-					})
-
-					It("completes via the delegate", func() {
-						<-process.Wait()
-
-						Expect(getDelegate.CompletedCallCount()).Should(Equal(1))
-
-						exitStatus, versionInfo := getDelegate.CompletedArgsForCall(0)
-
-						Expect(exitStatus).To(Equal(ExitStatus(1)))
-						Expect(versionInfo).To(BeNil())
-					})
-
-					It("is not successful", func() {
-						<-process.Wait()
-
-						var success Success
-						Expect(step.Result(&success)).To(BeTrue())
-						Expect(bool(success)).To(BeFalse())
-					})
-
-					It("releases the resource with failure TTL", func() {
-						<-process.Wait()
-
-						Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-						step.Release()
-						Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-						Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
-					})
+				It("exits with no error", func() {
+					Expect(<-process.Wait()).To(BeNil())
 				})
 
-				Context("if the 'get' action is interrupted", func() {
-					BeforeEach(func() {
-						fakeVersionedSource.RunReturns(resource.ErrAborted)
-					})
-
-					It("exits with ErrInterrupted", func() {
-						Expect(<-process.Wait()).To(Equal(ErrInterrupted))
-					})
-
-					It("does not mark the cache as initialized", func() {
-						<-process.Wait()
-
-						Expect(fakeCache.InitializeCallCount()).To(Equal(0))
-					})
-
-					It("does not complete via the delegate", func() {
-						<-process.Wait()
-
-						Expect(getDelegate.CompletedCallCount()).To(Equal(0))
-					})
-
-					It("releases the resource with failure ttl", func() {
-						<-process.Wait()
-
-						Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-						step.Release()
-						Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-						Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
-					})
+				It("does not mark the cache as initialized", func() {
+					<-process.Wait()
+					Expect(fakeCache.InitializeCallCount()).To(Equal(0))
 				})
 
-				Context("when the 'get' action errors", func() {
-					disaster := errors.New("nope")
+				It("completes via the delegate", func() {
+					<-process.Wait()
 
-					BeforeEach(func() {
-						fakeVersionedSource.RunReturns(disaster)
-					})
+					Expect(getDelegate.CompletedCallCount()).Should(Equal(1))
 
-					It("exits with the error", func() {
-						Expect(<-process.Wait()).To(Equal(disaster))
-					})
+					exitStatus, versionInfo := getDelegate.CompletedArgsForCall(0)
 
-					It("does not mark the cache as initialized", func() {
-						<-process.Wait()
-
-						Expect(fakeCache.InitializeCallCount()).To(Equal(0))
-					})
-
-					It("does not complete via the delegate", func() {
-						<-process.Wait()
-
-						Expect(getDelegate.CompletedCallCount()).To(Equal(0))
-					})
-
-					It("releases the resource with failure ttl", func() {
-						<-process.Wait()
-
-						Expect(fakeResource.ReleaseCallCount()).To(BeZero())
-
-						step.Release()
-						Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
-						Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
-					})
+					Expect(exitStatus).To(Equal(ExitStatus(1)))
+					Expect(versionInfo).To(BeNil())
 				})
 
-				Describe("signalling", func() {
-					var receivedSignals <-chan os.Signal
+				It("is not successful", func() {
+					<-process.Wait()
 
-					BeforeEach(func() {
-						sigs := make(chan os.Signal)
-						receivedSignals = sigs
+					var success Success
+					Expect(step.Result(&success)).To(BeTrue())
+					Expect(bool(success)).To(BeFalse())
+				})
 
-						fakeVersionedSource.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
-							close(ready)
-							sigs <- <-signals
-							return nil
-						}
-					})
+				It("releases the resource with failure TTL", func() {
+					<-process.Wait()
 
-					It("forwards to the resource", func() {
-						process.Signal(os.Interrupt)
-						Eventually(receivedSignals).Should(Receive(Equal(os.Interrupt)))
-						Eventually(process.Wait()).Should(Receive())
-					})
+					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+					step.Release()
+					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
+				})
+			})
+
+			Context("if the 'get' action is interrupted", func() {
+				BeforeEach(func() {
+					fakeVersionedSource.RunReturns(resource.ErrAborted)
+				})
+
+				It("exits with ErrInterrupted", func() {
+					Expect(<-process.Wait()).To(Equal(ErrInterrupted))
+				})
+
+				It("does not mark the cache as initialized", func() {
+					<-process.Wait()
+
+					Expect(fakeCache.InitializeCallCount()).To(Equal(0))
+				})
+
+				It("does not complete via the delegate", func() {
+					<-process.Wait()
+
+					Expect(getDelegate.CompletedCallCount()).To(Equal(0))
+				})
+
+				It("releases the resource with failure ttl", func() {
+					<-process.Wait()
+
+					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+					step.Release()
+					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
+				})
+			})
+
+			Context("when the 'get' action errors", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeVersionedSource.RunReturns(disaster)
+				})
+
+				It("exits with the error", func() {
+					Expect(<-process.Wait()).To(Equal(disaster))
+				})
+
+				It("does not mark the cache as initialized", func() {
+					<-process.Wait()
+
+					Expect(fakeCache.InitializeCallCount()).To(Equal(0))
+				})
+
+				It("does not complete via the delegate", func() {
+					<-process.Wait()
+
+					Expect(getDelegate.CompletedCallCount()).To(Equal(0))
+				})
+
+				It("releases the resource with failure ttl", func() {
+					<-process.Wait()
+
+					Expect(fakeResource.ReleaseCallCount()).To(BeZero())
+
+					step.Release()
+					Expect(fakeResource.ReleaseCallCount()).To(Equal(1))
+					Expect(fakeResource.ReleaseArgsForCall(0)).To(Equal(worker.FinalTTL(failureTTL)))
+				})
+			})
+
+			Describe("signalling", func() {
+				var receivedSignals <-chan os.Signal
+
+				BeforeEach(func() {
+					sigs := make(chan os.Signal)
+					receivedSignals = sigs
+
+					fakeVersionedSource.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+						close(ready)
+						sigs <- <-signals
+						return nil
+					}
+				})
+
+				It("forwards to the resource", func() {
+					process.Signal(os.Interrupt)
+					Eventually(receivedSignals).Should(Receive(Equal(os.Interrupt)))
+					Eventually(process.Wait()).Should(Receive())
 				})
 			})
 		})
@@ -719,7 +697,7 @@ var _ = Describe("Get", func() {
 		disaster := errors.New("nope")
 
 		BeforeEach(func() {
-			fakeTracker.InitResourceWithCacheReturns(nil, nil, nil, false, disaster)
+			fakeTracker.InitWithCacheReturns(nil, nil, disaster)
 		})
 
 		It("exits with the failure", func() {
