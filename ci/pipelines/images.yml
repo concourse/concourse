@@ -218,11 +218,11 @@ resources:
     repository: node
     tag: latest
 
-- name: ubuntu-15.10
+- name: ubuntu-16.04
   type: docker-image
   source:
     repository: ubuntu
-    tag: "15.10"
+    tag: "16.04"
 
 - name: selenium-firefox
   type: docker-image
@@ -250,13 +250,13 @@ jobs:
   - aggregate:
     - get: concourse-buildbox-ci
       trigger: true
-    - get: ubuntu-15.10
+    - get: ubuntu-16.04
       trigger: true
       params: {save: true}
   - put: concourse-buildbox-ci-image
     params:
       dockerfile: concourse-buildbox-ci/ci/dockerfiles/buildbox-ci/Dockerfile
-      load_base: ubuntu-15.10
+      load_base: ubuntu-16.04
       build: concourse-buildbox-ci/
 
 - name: build-buildbox-testflight-ci
@@ -302,12 +302,12 @@ jobs:
     - get: concourse-bosh-cli
       trigger: true
       params: {submodules: none}
-    - get: ubuntu-15.10
+    - get: ubuntu-16.04
       trigger: true
       params: {save: true}
   - put: concourse-bosh-cli-image
     params:
-      load_base: ubuntu-15.10
+      load_base: ubuntu-16.04
       build: concourse-bosh-cli/ci/dockerfiles/bosh-cli
 
 - name: build-btrfs-tools-ci
@@ -318,12 +318,12 @@ jobs:
     - get: concourse-btrfs-tools-ci
       trigger: true
       params: {submodules: none}
-    - get: ubuntu-15.10
+    - get: ubuntu-16.04
       trigger: true
       params: {save: true}
   - put: concourse-btrfs-tools-ci-image
     params:
-      load_base: ubuntu-15.10
+      load_base: ubuntu-16.04
       build: concourse-btrfs-tools-ci/ci/dockerfiles/btrfs-tools-ci
 
 - name: build-atc-ci
@@ -363,12 +363,12 @@ jobs:
   - aggregate:
     - get: concourse-tsa-ci
       trigger: true
-    - get: ubuntu-15.10
+    - get: ubuntu-16.04
       trigger: true
       params: {save: true}
   - put: concourse-tsa-ci-image
     params:
-      load_base: ubuntu-15.10
+      load_base: ubuntu-16.04
       build: concourse-tsa-ci
 
 - name: build-baggageclaim-ci
