@@ -444,6 +444,7 @@ jobs:
     - get: concourse-bosh-cli-image
       trigger: true
       params: {save: true}
+      passed: [build-bosh-cli]
   - put: vagrant-ci-image
     params:
       load_base: concourse-bosh-cli-image
