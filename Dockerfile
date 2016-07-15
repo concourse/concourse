@@ -1,4 +1,4 @@
-FROM ubuntu:15.10
+FROM ubuntu:16.04
 
 # The Basics
 RUN apt-get -y update && apt-get -y install build-essential curl
