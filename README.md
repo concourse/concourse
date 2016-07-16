@@ -6,8 +6,8 @@ Concourse cluster via the following subcommands:
 * `web` - runs the [ATC](https://github.com/concourse/atc), web UI and build
   scheduler, alongside a [TSA](https://github.com/concourse/tsa), used to
   securely register workers
-* `worker` - runs a [Garden](https://github.com/cloudfoundry-incubator/garden)
-  worker and registers it via a TSA
+* `worker` - runs a [Garden](https://github.com/cloudfoundry/garden) worker and
+  registers it via a TSA
 
 
 ## Usage
