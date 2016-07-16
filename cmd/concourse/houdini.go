@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudfoundry-incubator/garden/server"
 	"github.com/concourse/atc"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/ifrit"
@@ -26,7 +25,7 @@ func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger, platform string) (a
 
 	backend := houdini.NewBackend(depotDir)
 
-	server := server.New(
+	server := houdini.NewServer(
 		"tcp",
 		cmd.bindAddr(),
 		0,
