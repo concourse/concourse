@@ -1,4 +1,4 @@
-set GOPATH=%CD%\gopath;%CD%\concourse
+set GOPATH=%CD%\gopath;%CD%\concourse;%CD%\gopath\src\github.com\vito\houdini\deps
 set PATH=%CD%\gopath\bin;%PATH%
 
 set /p FinalVersion=<final-version\version
