@@ -51,12 +51,29 @@ var _ = Describe("SpaceVerifier", func() {
 	})
 
 	Context("when user is a space developer", func() {
+		var nextPageCalled bool
 		BeforeEach(func() {
+			firstPageResponse := `{
+			"next_url": "/next-url",
+			"resources": [
+				{
+					"metadata": {
+						"guid": "other-user-id-1"
+					}
+				},
+				{
+					"metadata": {
+						"guid": "another-user-id"
+					}
+				}
+			]
+			}`
 			spaceDevelopersResponse := `{
+			"next_url": null,
 				"resources": [
 					{
 						"metadata": {
-							"guid": "other-user-id"
+							"guid": "other-user-id-2"
 						}
 					},
 					{
@@ -68,12 +85,19 @@ var _ = Describe("SpaceVerifier", func() {
 			}`
 			cfAPIServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v2/spaces/myspace-guid-1/developers"),
+					ghttp.VerifyRequest("GET", "/v2/spaces/myspace-guid-1/developers?results-per-page=100"),
 					ghttp.RespondWith(http.StatusOK, `{}`),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v2/spaces/myspace-guid-2/developers"),
-					ghttp.RespondWith(http.StatusOK, spaceDevelopersResponse),
+					ghttp.VerifyRequest("GET", "/v2/spaces/myspace-guid-2/developers?results-per-page=100"),
+					ghttp.RespondWith(http.StatusOK, firstPageResponse),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/next-url"),
+					func(w http.ResponseWriter, req *http.Request) {
+						nextPageCalled = true
+						w.Write([]byte(spaceDevelopersResponse))
+					},
 				),
 			)
 		})
@@ -81,6 +105,10 @@ var _ = Describe("SpaceVerifier", func() {
 		It("returns true", func() {
 			Expect(verifyErr).NotTo(HaveOccurred())
 			Expect(verified).To(BeTrue())
+		})
+
+		It("follows next page", func() {
+			Expect(nextPageCalled).To(BeTrue())
 		})
 	})
 
@@ -97,11 +125,11 @@ var _ = Describe("SpaceVerifier", func() {
 			}`
 			cfAPIServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v2/spaces/myspace-guid-1/developers"),
+					ghttp.VerifyRequest("GET", "/v2/spaces/myspace-guid-1/developers?results-per-page=100"),
 					ghttp.RespondWith(http.StatusOK, spaceDevelopersResponse),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v2/spaces/myspace-guid-2/developers"),
+					ghttp.VerifyRequest("GET", "/v2/spaces/myspace-guid-2/developers?results-per-page=100"),
 					ghttp.RespondWith(http.StatusOK, spaceDevelopersResponse),
 				),
 			)
@@ -117,7 +145,7 @@ var _ = Describe("SpaceVerifier", func() {
 		BeforeEach(func() {
 			cfAPIServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v2/spaces/myspace-guid-1/developers"),
+					ghttp.VerifyRequest("GET", "/v2/spaces/myspace-guid-1/developers?results-per-page=100"),
 					ghttp.RespondWith(http.StatusUnauthorized, ""),
 				),
 			)
