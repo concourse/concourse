@@ -35,6 +35,7 @@ type UAAToken struct {
 }
 
 type CFSpaceDevelopersResponse struct {
+	NextUrl   string       `json:"next_url"`
 	UserInfos []CFUserInfo `json:"resources"`
 }
 
@@ -77,25 +78,25 @@ func (verifier SpaceVerifier) Verify(logger lager.Logger, httpClient *http.Clien
 	}
 
 	for _, verifierSpaceGUID := range verifier.spaceGUIDs {
-		cfAPIURL.Path = path.Join("v2", "spaces", verifierSpaceGUID, "developers")
-		response, err := httpClient.Get(cfAPIURL.String())
-		if err != nil {
-			return false, err
-		}
-		defer response.Body.Close()
+		cfAPIURL.Path = path.Join("v2", "spaces", verifierSpaceGUID, "developers?results-per-page=100")
 
-		if response.StatusCode != http.StatusOK {
-			return false, fmt.Errorf("unexpected response code from CF API URL: %d", response.StatusCode)
-		}
-
-		var cfSpaceDevelopersResponse CFSpaceDevelopersResponse
-		err = json.NewDecoder(response.Body).Decode(&cfSpaceDevelopersResponse)
+		hasAccess, nextUrl, err := verifier.isSpaceDeveloper(httpClient, cfAPIURL.String(), uaaToken.UserID)
 		if err != nil {
 			return false, err
 		}
 
-		for _, userInfo := range cfSpaceDevelopersResponse.UserInfos {
-			if userInfo.Metadata.GUID == uaaToken.UserID {
+		if hasAccess {
+			return true, nil
+		}
+
+		for nextUrl != "" {
+			cfAPIURL.Path = nextUrl
+			hasAccess, nextUrl, err = verifier.isSpaceDeveloper(httpClient, cfAPIURL.String(), uaaToken.UserID)
+			if err != nil {
+				return false, err
+			}
+
+			if hasAccess {
 				return true, nil
 			}
 		}
@@ -106,4 +107,27 @@ func (verifier SpaceVerifier) Verify(logger lager.Logger, httpClient *http.Clien
 	})
 
 	return false, nil
+}
+
+func (verifier SpaceVerifier) isSpaceDeveloper(httpClient *http.Client, cfApiURL string, userGUID string) (bool, string, error) {
+	response, err := httpClient.Get(cfApiURL)
+	if err != nil {
+		return false, "", err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return false, "", fmt.Errorf("unexpected response code from CF API URL: %d", response.StatusCode)
+	}
+
+	var cfSpaceDevelopersResponse CFSpaceDevelopersResponse
+	err = json.NewDecoder(response.Body).Decode(&cfSpaceDevelopersResponse)
+
+	for _, userInfo := range cfSpaceDevelopersResponse.UserInfos {
+		if userInfo.Metadata.GUID == userGUID {
+			return true, cfSpaceDevelopersResponse.NextUrl, nil
+		}
+	}
+
+	return false, cfSpaceDevelopersResponse.NextUrl, nil
 }
