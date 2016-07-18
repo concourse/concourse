@@ -172,8 +172,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 				return err
 			}
 
-			step.registerOutputSources(config)
-
+			step.registerSource(config)
 			return nil
 		}
 
@@ -213,6 +212,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 		var inputsToStream []inputPair
 		step.container, inputsToStream, err = step.createContainer(compatibleWorkers, config, signals)
+
 		if err != nil {
 			return err
 		}
@@ -223,6 +223,11 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		}
 
 		err = step.streamInputs(inputsToStream)
+		if err != nil {
+			return err
+		}
+
+		err = step.setupOutputs(config.Outputs)
 		if err != nil {
 			return err
 		}
@@ -260,7 +265,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 
 	select {
 	case <-signals:
-		step.registerOutputSources(config)
+		step.registerSource(config)
 
 		err = step.container.Stop(false)
 		if err != nil {
@@ -276,7 +281,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 			return processErr
 		}
 
-		step.registerOutputSources(config)
+		step.registerSource(config)
 
 		step.exitStatus = processStatus
 
@@ -439,7 +444,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 	return container, inputsToStream, err
 }
 
-func (step *TaskStep) registerOutputSources(config atc.TaskConfig) {
+func (step *TaskStep) registerSource(config atc.TaskConfig) {
 	volumeMounts := step.container.VolumeMounts()
 
 	for _, output := range config.Outputs {
@@ -448,15 +453,18 @@ func (step *TaskStep) registerOutputSources(config atc.TaskConfig) {
 			outputName = destinationName
 		}
 
-		outputPath := artifactsPath(output, step.artifactsRoot)
+		if len(volumeMounts) > 0 {
+			outputPath := artifactsPath(output, step.artifactsRoot)
 
-		for _, mount := range volumeMounts {
-			if mount.MountPath == outputPath {
-				step.repo.RegisterSource(
-					SourceName(outputName),
-					newVolumeSource(step.logger, mount.Volume),
-				)
+			for _, mount := range volumeMounts {
+				if mount.MountPath == outputPath {
+					source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, mount.Volume.Handle())
+					step.repo.RegisterSource(SourceName(outputName), source)
+				}
 			}
+		} else {
+			source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
+			step.repo.RegisterSource(SourceName(outputName), source)
 		}
 	}
 }
@@ -601,6 +609,19 @@ func (step *TaskStep) streamInputs(inputPairs []inputPair) error {
 	return nil
 }
 
+func (step *TaskStep) setupOutputs(outputs []atc.TaskOutputConfig) error {
+	for _, output := range outputs {
+		source := newContainerSource(step.artifactsRoot, step.container, output, step.logger, "")
+
+		err := source.initialize()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (TaskStep) mergeTags(tagsOne []string, tagsTwo []string) []string {
 	var ret []string
 
@@ -657,20 +678,34 @@ func (dest *containerDestination) StreamIn(dst string, src io.Reader) error {
 	})
 }
 
-type volumeSource struct {
-	logger lager.Logger
-	volume worker.Volume
+type containerSource struct {
+	container     garden.Container
+	outputConfig  atc.TaskOutputConfig
+	artifactsRoot string
+	volumeHandle  string
+	logger        lager.Logger
 }
 
-func newVolumeSource(logger lager.Logger, volume worker.Volume) *volumeSource {
-	return &volumeSource{
-		logger: logger,
-		volume: volume,
+func newContainerSource(
+	artifactsRoot string,
+	container garden.Container,
+	outputConfig atc.TaskOutputConfig,
+	logger lager.Logger,
+	volumeHandle string,
+) *containerSource {
+	return &containerSource{
+		container:     container,
+		outputConfig:  outputConfig,
+		artifactsRoot: artifactsRoot,
+		volumeHandle:  volumeHandle,
+		logger:        logger,
 	}
 }
 
-func (src *volumeSource) StreamTo(destination ArtifactDestination) error {
-	out, err := src.volume.StreamOut(".")
+func (src *containerSource) StreamTo(destination ArtifactDestination) error {
+	out, err := src.container.StreamOut(garden.StreamOutSpec{
+		Path: artifactsPath(src.outputConfig, src.artifactsRoot),
+	})
 	if err != nil {
 		return err
 	}
@@ -680,8 +715,10 @@ func (src *volumeSource) StreamTo(destination ArtifactDestination) error {
 	return destination.StreamIn(".", out)
 }
 
-func (src *volumeSource) StreamFile(filename string) (io.ReadCloser, error) {
-	out, err := src.volume.StreamOut(filename)
+func (src *containerSource) StreamFile(filename string) (io.ReadCloser, error) {
+	out, err := src.container.StreamOut(garden.StreamOutSpec{
+		Path: path.Join(artifactsPath(src.outputConfig, src.artifactsRoot), filename),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -699,8 +736,8 @@ func (src *volumeSource) StreamFile(filename string) (io.ReadCloser, error) {
 	}, nil
 }
 
-func (src *volumeSource) VolumeOn(w worker.Worker) (worker.Volume, bool, error) {
-	return w.LookupVolume(src.logger.Session("volume-on"), src.volume.Handle())
+func (src *containerSource) VolumeOn(w worker.Worker) (worker.Volume, bool, error) {
+	return w.LookupVolume(src.logger, src.volumeHandle)
 }
 
 func artifactsPath(outputConfig atc.TaskOutputConfig, artifactsRoot string) string {
@@ -710,6 +747,10 @@ func artifactsPath(outputConfig atc.TaskOutputConfig, artifactsRoot string) stri
 	}
 
 	return path.Join(artifactsRoot, outputSrc) + "/"
+}
+
+func (src *containerSource) initialize() error {
+	return createContainerDir(src.container, artifactsPath(src.outputConfig, src.artifactsRoot))
 }
 
 func createContainerDir(container garden.Container, dir string) error {
