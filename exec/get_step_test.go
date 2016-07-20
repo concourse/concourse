@@ -2,7 +2,9 @@ package exec_test
 
 import (
 	"archive/tar"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -216,9 +218,13 @@ var _ = Describe("Get", func() {
 			}))
 		Expect(delegate).To(Equal(getDelegate))
 		Expect(resourceOptions.ResourceType()).To(Equal(resource.ResourceType("some-resource-type")))
-		Expect(resourceOptions.LeaseName("fake-worker")).To(Equal(
-			`{"type":"some-resource-type","version":{"some-version":"some-value"},"source":{"some":"source"},"params":{"some-param":"some-value"},"worker_name":"fake-worker"}`,
-		))
+		expectedLeaseName := fmt.Sprintf("%x",
+			sha256.Sum256([]byte(
+				`{"type":"some-resource-type","version":{"some-version":"some-value"},"source":{"some":"source"},"params":{"some-param":"some-value"},"worker_name":"fake-worker"}`,
+			)),
+		)
+
+		Expect(resourceOptions.LeaseName("fake-worker")).To(Equal(expectedLeaseName))
 	})
 
 	Context("when fetching resource succeeds", func() {

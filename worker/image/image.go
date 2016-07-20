@@ -2,6 +2,7 @@ package image
 
 import (
 	"archive/tar"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -226,7 +227,8 @@ func (ir *imageResource) LeaseName(workerName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(taskNameJSON), nil
+
+	return fmt.Sprintf("%x", sha256.Sum256(taskNameJSON)), nil
 }
 
 type releasingReadCloser struct {

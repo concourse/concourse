@@ -2,7 +2,9 @@ package image_test
 
 import (
 	"archive/tar"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -324,9 +326,12 @@ var _ = Describe("Image", func() {
 							Expect(actualCustomTypes).To(Equal(customTypes))
 							Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 							Expect(resourceOptions.ResourceType()).To(Equal(resource.ResourceType("docker")))
-							Expect(resourceOptions.LeaseName("fake-worker-name")).To(Equal(
-								`{"type":"docker","version":{"v":"1"},"source":{"some":"source"},"worker_name":"fake-worker-name"}`,
-							))
+							expectedLeaseName := fmt.Sprintf("%x",
+								sha256.Sum256([]byte(
+									`{"type":"docker","version":{"v":"1"},"source":{"some":"source"},"worker_name":"fake-worker-name"}`,
+								)),
+							)
+							Expect(resourceOptions.LeaseName("fake-worker-name")).To(Equal(expectedLeaseName))
 						})
 
 						It("gets the volume", func() {
