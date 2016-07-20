@@ -331,6 +331,9 @@ type TaskRunConfig struct {
 	Path string   `json:"path" yaml:"path"`
 	Args []string `json:"args,omitempty" yaml:"args"`
 	Dir  string   `json:"dir",omitempty" yaml:"dir"`
+
+	// The user that the task will run as (defaults to whatever the docker image specifies)
+	User string `json:"user,omitempty" yaml:"user,omitempty" mapstructure:"user"`
 }
 
 type TaskInputConfig struct {

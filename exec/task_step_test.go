@@ -304,6 +304,7 @@ var _ = Describe("GardenFactory", func() {
 							Expect(spec.Args).To(Equal([]string{"some", "args"}))
 							Expect(spec.Env).To(Equal([]string{"SOME=params"}))
 							Expect(spec.Dir).To(Equal("/tmp/build/a1f5c0c1"))
+							Expect(spec.User).To(BeEmpty())
 							Expect(spec.TTY).To(Equal(&garden.TTYSpec{}))
 						})
 
@@ -1600,6 +1601,23 @@ var _ = Describe("GardenFactory", func() {
 							It("runs a process in the specified (custom) directory", func() {
 								spec, _ := fakeContainer.RunArgsForCall(0)
 								Expect(spec.Dir).To(Equal("/tmp/build/a1f5c0c1/some/dir"))
+							})
+						})
+
+						Context("when a run user is specified", func() {
+							BeforeEach(func() {
+								fetchedConfig.Run.User = "some-user"
+								configSource.FetchConfigReturns(fetchedConfig, nil)
+							})
+
+							It("adds the user to the container spec", func() {
+								_, _, _, _, _, spec, _ := fakeWorker.CreateContainerArgsForCall(0)
+								Expect(spec.User).To(Equal("some-user"))
+							})
+
+							It("doesn't bother adding the user to the run spec", func() {
+								spec, _ := fakeContainer.RunArgsForCall(0)
+								Expect(spec.User).To(BeEmpty())
 							})
 						})
 

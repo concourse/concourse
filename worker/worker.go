@@ -370,6 +370,9 @@ func (worker *gardenWorker) CreateContainer(
 	}
 
 	gardenProperties := garden.Properties{userPropertyName: imageMetadata.User}
+	if spec.User != "" {
+		gardenProperties = garden.Properties{userPropertyName: spec.User}
+	}
 
 	if len(volumeHandles) > 0 {
 		volumesJSON, err := json.Marshal(volumeHandles)

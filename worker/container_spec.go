@@ -26,6 +26,9 @@ type ContainerSpec struct {
 
 	// Copy-on-Write. Used for mounting multiple resources into a Put container.
 	Outputs []VolumeMount
+
+	// Optional user to run processes as. Overwrites the one specified in the docker image.
+	User string
 }
 
 type ImageSpec struct {

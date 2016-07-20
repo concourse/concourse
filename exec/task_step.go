@@ -410,6 +410,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 		Inputs:    inputMounts,
 		Outputs:   outputMounts,
 		ImageSpec: imageSpec,
+		User:      config.Run.User,
 	}
 
 	runContainerID := step.containerID

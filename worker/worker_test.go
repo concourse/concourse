@@ -323,6 +323,26 @@ var _ = Describe("Worker", func() {
 			})
 		})
 
+		Context("when the spec specifies a user", func() {
+			BeforeEach(func() {
+				containerSpec.User = "some-user"
+			})
+
+			It("tries to create a container in garden with that user", func() {
+				Expect(createErr).NotTo(HaveOccurred())
+				Expect(fakeGardenClient.CreateCallCount()).To(Equal(1))
+				actualGardenSpec := fakeGardenClient.CreateArgsForCall(0)
+				Expect(actualGardenSpec.Properties["user"]).To(Equal("some-user"))
+			})
+
+			It("tries to create the container in the db with that user", func() {
+				Expect(createErr).NotTo(HaveOccurred())
+				Expect(fakeGardenWorkerDB.CreateContainerCallCount()).To(Equal(1))
+				c, _, _, _ := fakeGardenWorkerDB.CreateContainerArgsForCall(0)
+				Expect(c.User).To(Equal("some-user"))
+			})
+		})
+
 		Context("when the spec specifies Inputs", func() {
 			var (
 				volume1    *wfakes.FakeVolume
