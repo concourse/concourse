@@ -197,26 +197,33 @@ Once you've figured out your tasks's configuration, you can reuse it for a
     }
   }
 
-  \define-attribute{run: object}{
+  \define-attribute{run: object}{task-run}{
     \italic{Required.} The command to execute in the container.
 
     \inset{
-      \define-attribute{path: string}{
+      \define-attribute{path: string}{task-run-path}{
         \italic{Required.} The command to execute, relative to the task's
         working directory. For a script living in a resource's repo, you must
         specify the full path to the resource, i.e.
         \code{my-resource/scripts/test}.
       }
 
-      \define-attribute{args: [string]}{
+      \define-attribute{args: [string]}{task-run-args}{
         \italic{Optional.} Arguments to pass to the command. Note that when
         executed with Fly, any arguments passed to Fly are appended to this
         array.
       }
 
-      \define-attribute{dir: string}{
+      \define-attribute{dir: string}{task-run-dir}{
         \italic{Optional.} A directory, relative to the initial working
         directory, to set as the working directory when running the script.
+      }
+
+      \define-attribute{user: string}{task-run-user}{
+        \italic{Optional.} Explicitly set the user to run as. If not specified,
+        this defaults to the user configured by the task's image. If not
+        specified there, it's up to the Garden backend, and may be e.g.
+        \code{root} on Linux.
       }
     }
 
@@ -239,9 +246,9 @@ Once you've figured out your tasks's configuration, you can reuse it for a
   A task runs in a new container every time, using the image provided by
   \reference{image_resource} as its base filesystem (i.e. \code{/}).
 
-  The command specified by \reference{run} will be executed in a working
-  directory containing each of the \reference{inputs}. If any inputs are missing the task will
-  not run (and the container will not even be created).
+  The command specified by \reference{task-run} will be executed in a working
+  directory containing each of the \reference{inputs}. If any inputs are
+  missing the task will not run (and the container will not even be created).
 
   The working directory will also contain empty directories for each of the
   \reference{outputs}. The task must place artifacts in the output directories
