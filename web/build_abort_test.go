@@ -77,8 +77,8 @@ var _ = Describe("Aborting a build", func() {
 						Source: atc.Source{"repository": "busybox"},
 					},
 					Run: atc.TaskRunConfig{
-						Path: "sleep",
-						Args: []string{"1000"},
+						Path: "sh",
+						Args: []string{"-c", "echo running; sleep 1000"},
 					},
 				},
 			}))
@@ -91,6 +91,9 @@ var _ = Describe("Aborting a build", func() {
 			Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("build #%d", build.ID)))
 
 			Eventually(page.Find(".build-action-abort")).Should(BeFound())
+			// if we abort before the script has started running, it never actually
+			// gets aborted
+			Eventually(page.Find(".step-body")).Should(HaveText("running"))
 			Expect(page.Find(".build-action-abort").Click()).To(Succeed())
 
 			Eventually(page.Find("#page-header.aborted")).Should(BeFound())

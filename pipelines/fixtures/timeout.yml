@@ -1,27 +1,31 @@
 ---
 jobs:
-  - name: duration-successful-job
-    plan:
-      - task: passing-task
-        timeout: 10s
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: busybox}
-          run:
-            path: echo
-            args: ["passing-task succeeded"]
+- name: duration-successful-job
+  plan:
+  - get: busybox
+  - task: passing-task
+    timeout: 10s
+    image: busybox
+    config:
+      platform: linux
+      run:
+        path: echo
+        args: ["passing-task succeeded"]
 
-  - name: duration-fail-job
-    plan:
-      - task: timeout-task
-        timeout: 5s
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source: {repository: busybox}
-          run:
-            path: sleep
-            args: ["10"]
+- name: duration-fail-job
+  plan:
+  - get: busybox
+  - task: timeout-task
+    image: busybox
+    timeout: 5s
+    config:
+      platform: linux
+      run:
+        path: sleep
+        args: ["10"]
+
+resources:
+- name: busybox
+  type: docker-image
+  source:
+    repository: busybox

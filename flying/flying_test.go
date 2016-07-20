@@ -120,8 +120,13 @@ cat < /tmp/fifo
 
 			hijackS := helpers.StartFly(hijack)
 
-			Eventually(hijackS).Should(gbytes.Say("3: .+ type: task"))
-			fmt.Fprintln(hijackIn, "3")
+			Eventually(hijackS).Should(gbytes.Say("type: task"))
+
+			re, err := regexp.Compile("([0-9]): .+ type: task")
+			Expect(err).NotTo(HaveOccurred())
+
+			taskNumber := re.FindStringSubmatch(string(hijackS.Out.Contents()))[1]
+			fmt.Fprintln(hijackIn, taskNumber)
 
 			Eventually(flyS).Should(gbytes.Say("marco"))
 
