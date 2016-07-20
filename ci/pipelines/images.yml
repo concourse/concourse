@@ -55,17 +55,32 @@ resources:
     email: {{docker-email}}
     password: {{docker-password}}
 
-- name: concourse-concourse-ci
+- name: concourse-bosh-cli
   type: git
   source:
     uri: https://github.com/concourse/concourse.git
     branch: develop
-    paths: [ci/dockerfiles/concourse-ci]
+    paths: [ci/dockerfiles/bosh-cli]
 
-- name: concourse-concourse-ci-image
+- name: concourse-bosh-cli-image
   type: docker-image
   source:
-    repository: concourse/concourse-ci
+    repository: concourse/bosh-cli
+    username: {{docker-username}}
+    email: {{docker-email}}
+    password: {{docker-password}}
+
+- name: concourse-btrfs-tools-ci
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse.git
+    branch: develop
+    paths: [ci/dockerfiles/btrfs-tools-ci]
+
+- name: concourse-btrfs-tools-ci-image
+  type: docker-image
+  source:
+    repository: concourse/btrfs-tools-ci
     username: {{docker-username}}
     email: {{docker-email}}
     password: {{docker-password}}
@@ -203,11 +218,11 @@ resources:
     repository: node
     tag: latest
 
-- name: ubuntu-15.10
+- name: ubuntu-16.04
   type: docker-image
   source:
     repository: ubuntu
-    tag: "15.10"
+    tag: "16.04"
 
 - name: selenium-firefox
   type: docker-image
@@ -235,13 +250,13 @@ jobs:
   - aggregate:
     - get: concourse-buildbox-ci
       trigger: true
-    - get: ubuntu-15.10
+    - get: ubuntu-16.04
       trigger: true
       params: {save: true}
   - put: concourse-buildbox-ci-image
     params:
       dockerfile: concourse-buildbox-ci/ci/dockerfiles/buildbox-ci/Dockerfile
-      load_base: ubuntu-15.10
+      load_base: ubuntu-16.04
       build: concourse-buildbox-ci/
 
 - name: build-buildbox-testflight-ci
@@ -279,21 +294,37 @@ jobs:
       load_base: rubinius
       build: concourse-docs-ci/ci/dockerfiles/docs-ci
 
-- name: build-concourse-ci
+- name: build-bosh-cli
   public: true
   serial: true
   plan:
   - aggregate:
-    - get: concourse-concourse-ci
+    - get: concourse-bosh-cli
       trigger: true
       params: {submodules: none}
-    - get: ubuntu-15.10
+    - get: ubuntu-16.04
       trigger: true
       params: {save: true}
-  - put: concourse-concourse-ci-image
+  - put: concourse-bosh-cli-image
     params:
-      load_base: ubuntu-15.10
-      build: concourse-concourse-ci/ci/dockerfiles/concourse-ci
+      load_base: ubuntu-16.04
+      build: concourse-bosh-cli/ci/dockerfiles/bosh-cli
+
+- name: build-btrfs-tools-ci
+  public: true
+  serial: true
+  plan:
+  - aggregate:
+    - get: concourse-btrfs-tools-ci
+      trigger: true
+      params: {submodules: none}
+    - get: ubuntu-16.04
+      trigger: true
+      params: {save: true}
+  - put: concourse-btrfs-tools-ci-image
+    params:
+      load_base: ubuntu-16.04
+      build: concourse-btrfs-tools-ci/ci/dockerfiles/btrfs-tools-ci
 
 - name: build-atc-ci
   public: true
@@ -332,12 +363,12 @@ jobs:
   - aggregate:
     - get: concourse-tsa-ci
       trigger: true
-    - get: ubuntu-15.10
+    - get: ubuntu-16.04
       trigger: true
       params: {save: true}
   - put: concourse-tsa-ci-image
     params:
-      load_base: ubuntu-15.10
+      load_base: ubuntu-16.04
       build: concourse-tsa-ci
 
 - name: build-baggageclaim-ci
@@ -410,12 +441,13 @@ jobs:
   - aggregate:
     - get: vagrant-ci
       trigger: true
-    - get: concourse-concourse-ci-image
+    - get: concourse-bosh-cli-image
       trigger: true
       params: {save: true}
+      passed: [build-bosh-cli]
   - put: vagrant-ci-image
     params:
-      load_base: concourse-concourse-ci-image
+      load_base: concourse-bosh-cli-image
       build: vagrant-ci/lite/ci
 
 - name: build-static-golang

@@ -1,4 +1,4 @@
-FROM ubuntu:15.10
+FROM ubuntu:16.04
 
 RUN apt-get update && \
     apt-get -y install git unzip ruby ruby-dev \
