@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,7 +13,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/garden"
 	gfakes "github.com/cloudfoundry-incubator/garden/fakes"
-	"github.com/tedsuo/ifrit"
+	wfakes "github.com/concourse/atc/worker/workerfakes"
 
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/resource"
@@ -34,11 +33,17 @@ var _ = Describe("Resource In", func() {
 		inScriptProcess *gfakes.FakeProcess
 
 		versionedSource VersionedSource
-		inProcess       ifrit.Process
 
 		ioConfig  IOConfig
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
+
+		fakeVolume *wfakes.FakeVolume
+
+		signalsCh chan os.Signal
+		readyCh   chan<- struct{}
+
+		getErr error
 	)
 
 	BeforeEach(func() {
@@ -50,6 +55,7 @@ var _ = Describe("Resource In", func() {
 		inScriptStderr = ""
 		inScriptExitStatus = 0
 		runInError = nil
+		getErr = nil
 
 		inScriptProcess = new(gfakes.FakeProcess)
 		inScriptProcess.IDReturns("process-id")
@@ -64,16 +70,20 @@ var _ = Describe("Resource In", func() {
 			Stdout: stdoutBuf,
 			Stderr: stderrBuf,
 		}
+
+		fakeVolume = new(wfakes.FakeVolume)
+		signalsCh = make(chan os.Signal)
+		readyCh = make(chan<- struct{})
 	})
 
 	itCanStreamOut := func() {
 		Describe("streaming bits out", func() {
 			Context("when streaming out succeeds", func() {
 				BeforeEach(func() {
-					fakeContainer.StreamOutStub = func(spec garden.StreamOutSpec) (io.ReadCloser, error) {
+					fakeVolume.StreamOutStub = func(path string) (io.ReadCloser, error) {
 						streamOut := new(bytes.Buffer)
 
-						if spec.Path == "/tmp/build/get/some/subdir" {
+						if path == "some/subdir" {
 							streamOut.WriteString("sup")
 						}
 
@@ -82,8 +92,6 @@ var _ = Describe("Resource In", func() {
 				})
 
 				It("returns the output stream of the resource directory", func() {
-					Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 					inStream, err := versionedSource.StreamOut("some/subdir")
 					Expect(err).NotTo(HaveOccurred())
 
@@ -97,83 +105,16 @@ var _ = Describe("Resource In", func() {
 				disaster := errors.New("oh no!")
 
 				BeforeEach(func() {
-					fakeContainer.StreamOutReturns(nil, disaster)
+					fakeVolume.StreamOutReturns(nil, disaster)
 				})
 
 				It("returns the error", func() {
-					Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 					_, err := versionedSource.StreamOut("some/subdir")
 					Expect(err).To(Equal(disaster))
 				})
 			})
 		})
 	}
-
-	itStopsOnSignal := func() {
-		Context("when a signal is received", func() {
-			var waited chan<- struct{}
-
-			BeforeEach(func() {
-				waiting := make(chan struct{})
-				waited = waiting
-
-				inScriptProcess.WaitStub = func() (int, error) {
-					// cause waiting to block so that it can be aborted
-					<-waiting
-					return 0, nil
-				}
-
-				fakeContainer.StopStub = func(bool) error {
-					close(waited)
-					return nil
-				}
-			})
-
-			It("stops the container", func() {
-				inProcess.Signal(os.Interrupt)
-				Eventually(fakeContainer.StopCallCount, 8*time.Second).Should(Equal(1))
-				Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
-				Eventually(inProcess.Wait()).Should(Receive(Equal(ErrAborted)))
-			})
-
-			It("doesn't send garden terminate signal to process", func() {
-				inProcess.Signal(os.Interrupt)
-				Eventually(inProcess.Wait()).Should(Receive(Equal(ErrAborted)))
-				Expect(inScriptProcess.SignalCallCount()).To(BeZero())
-			})
-
-			Context("when container.stop returns an error", func() {
-				var disaster error
-
-				BeforeEach(func() {
-					disaster = errors.New("gotta get away")
-
-					fakeContainer.StopStub = func(bool) error {
-						close(waited)
-						return disaster
-					}
-				})
-
-				It("doesn't return the error", func() {
-					inProcess.Signal(os.Interrupt)
-					Eventually(inProcess.Wait()).Should(Receive(Equal(ErrAborted)))
-				})
-			})
-		})
-	}
-
-	Context("before running /in", func() {
-		BeforeEach(func() {
-			versionedSource = resource.Get(ioConfig, source, params, version)
-		})
-
-		Describe("Version", func() {
-			It("returns the version", func() {
-				Expect(versionedSource.Version()).To(Equal(atc.Version{"some": "version"}))
-			})
-		})
-	})
 
 	Describe("running", func() {
 		JustBeforeEach(func() {
@@ -205,12 +146,7 @@ var _ = Describe("Resource In", func() {
 				return inScriptProcess, nil
 			}
 
-			versionedSource = resource.Get(ioConfig, source, params, version)
-			inProcess = ifrit.Invoke(versionedSource)
-		})
-
-		AfterEach(func() {
-			Eventually(inProcess.Wait()).Should(Receive())
+			versionedSource, getErr = resource.Get(fakeVolume, ioConfig, source, params, version, signalsCh, readyCh)
 		})
 
 		Context("when a result is already present on the container", func() {
@@ -232,19 +168,15 @@ var _ = Describe("Resource In", func() {
 			})
 
 			It("exits successfully", func() {
-				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
+				Expect(getErr).NotTo(HaveOccurred())
 			})
 
 			It("does not run or attach to anything", func() {
-				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 				Expect(fakeContainer.RunCallCount()).To(BeZero())
 				Expect(fakeContainer.AttachCallCount()).To(BeZero())
 			})
 
 			It("can be accessed on the versioned source", func() {
-				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 				Expect(versionedSource.Version()).To(Equal(atc.Version{"some": "new-version"}))
 				Expect(versionedSource.Metadata()).To(Equal([]atc.MetadataField{
 					{Name: "a", Value: "a-value"},
@@ -266,8 +198,6 @@ var _ = Describe("Resource In", func() {
 			})
 
 			It("reattaches to it", func() {
-				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 				pid, io := fakeContainer.AttachArgsForCall(0)
 				Expect(pid).To(Equal("process-id"))
 
@@ -283,8 +213,6 @@ var _ = Describe("Resource In", func() {
 			})
 
 			It("does not run an additional process", func() {
-				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 				Expect(fakeContainer.RunCallCount()).To(BeZero())
 			})
 
@@ -300,8 +228,6 @@ var _ = Describe("Resource In", func() {
 				})
 
 				It("can be accessed on the versioned source", func() {
-					Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 					Expect(versionedSource.Version()).To(Equal(atc.Version{"some": "new-version"}))
 					Expect(versionedSource.Metadata()).To(Equal([]atc.MetadataField{
 						{Name: "a", Value: "a-value"},
@@ -311,8 +237,6 @@ var _ = Describe("Resource In", func() {
 				})
 
 				It("saves it as a property on the container", func() {
-					Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 					Expect(fakeContainer.SetPropertyCallCount()).To(Equal(1))
 
 					name, value := fakeContainer.SetPropertyArgsForCall(0)
@@ -327,8 +251,6 @@ var _ = Describe("Resource In", func() {
 				})
 
 				It("emits it to the log sink", func() {
-					Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 					Expect(stderrBuf).To(gbytes.Say("some stderr data"))
 				})
 			})
@@ -341,7 +263,8 @@ var _ = Describe("Resource In", func() {
 				})
 
 				It("returns an err", func() {
-					Eventually(inProcess.Wait()).Should(Receive(Equal(disaster)))
+					Expect(getErr).To(HaveOccurred())
+					Expect(getErr).To(Equal(disaster))
 				})
 			})
 
@@ -351,16 +274,12 @@ var _ = Describe("Resource In", func() {
 				})
 
 				It("returns an err containing stdout/stderr of the process", func() {
-					var inErr error
-					Eventually(inProcess.Wait()).Should(Receive(&inErr))
-
-					Expect(inErr).To(HaveOccurred())
-					Expect(inErr.Error()).To(ContainSubstring("exit status 9"))
+					Expect(getErr).To(HaveOccurred())
+					Expect(getErr.Error()).To(ContainSubstring("exit status 9"))
 				})
 			})
 
 			itCanStreamOut()
-			itStopsOnSignal()
 		})
 
 		Context("when /in has not yet been spawned", func() {
@@ -379,27 +298,22 @@ var _ = Describe("Resource In", func() {
 				err := versionedSource.StreamIn("a/path", &bytes.Buffer{})
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeContainer.StreamInCallCount()).To(Equal(1))
-				streamSpec := fakeContainer.StreamInArgsForCall(0)
-				Expect(streamSpec.User).To(Equal("")) // use default
+				Expect(fakeVolume.StreamInCallCount()).To(Equal(1))
+				destPath, _ := fakeVolume.StreamInArgsForCall(0)
 
 				_, err = versionedSource.StreamOut("a/path")
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeContainer.StreamOutCallCount()).To(Equal(1))
-				streamOutSpec := fakeContainer.StreamOutArgsForCall(0)
-				Expect(streamOutSpec.User).To(Equal("")) // use default
+				Expect(fakeVolume.StreamOutCallCount()).To(Equal(1))
+				path := fakeVolume.StreamOutArgsForCall(0)
+				Expect(path).To(Equal("a/path"))
 
 				Expect(fakeContainer.RunCallCount()).To(Equal(1))
-				spec, _ := fakeContainer.RunArgsForCall(0)
 
-				Expect(streamSpec.Path).To(HavePrefix(spec.Args[0]))
-				Expect(streamSpec.Path).To(Equal(streamOutSpec.Path))
+				Expect(destPath).To(Equal("/tmp/build/get/a/path"))
 			})
 
 			It("runs /opt/resource/in <destination> with the request on stdin", func() {
-				Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 				spec, io := fakeContainer.RunArgsForCall(0)
 				Expect(spec.Path).To(Equal("/opt/resource/in"))
 
@@ -435,8 +349,6 @@ var _ = Describe("Resource In", func() {
 				})
 
 				It("can be accessed on the versioned source", func() {
-					Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 					Expect(versionedSource.Version()).To(Equal(atc.Version{"some": "new-version"}))
 					Expect(versionedSource.Metadata()).To(Equal([]atc.MetadataField{
 						{Name: "a", Value: "a-value"},
@@ -446,8 +358,6 @@ var _ = Describe("Resource In", func() {
 				})
 
 				It("saves it as a property on the container", func() {
-					Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 					Expect(fakeContainer.SetPropertyCallCount()).To(Equal(2))
 
 					name, value := fakeContainer.SetPropertyArgsForCall(1)
@@ -462,8 +372,6 @@ var _ = Describe("Resource In", func() {
 				})
 
 				It("emits it to the log sink", func() {
-					Eventually(inProcess.Wait()).Should(Receive(BeNil()))
-
 					Expect(stderrBuf).To(gbytes.Say("some stderr data"))
 				})
 			})
@@ -476,7 +384,8 @@ var _ = Describe("Resource In", func() {
 				})
 
 				It("returns an err", func() {
-					Eventually(inProcess.Wait()).Should(Receive(Equal(disaster)))
+					Expect(getErr).To(HaveOccurred())
+					Expect(getErr).To(Equal(disaster))
 				})
 			})
 
@@ -486,16 +395,75 @@ var _ = Describe("Resource In", func() {
 				})
 
 				It("returns an err containing stdout/stderr of the process", func() {
-					var inErr error
-					Eventually(inProcess.Wait()).Should(Receive(&inErr))
-
-					Expect(inErr).To(HaveOccurred())
-					Expect(inErr.Error()).To(ContainSubstring("exit status 9"))
+					Expect(getErr).To(HaveOccurred())
+					Expect(getErr.Error()).To(ContainSubstring("exit status 9"))
 				})
 			})
 
 			itCanStreamOut()
-			itStopsOnSignal()
+		})
+	})
+
+	Context("when a signal is received", func() {
+		var waited chan<- struct{}
+		var done chan struct{}
+
+		BeforeEach(func() {
+			fakeContainer.RunReturns(inScriptProcess, nil)
+			fakeContainer.PropertyReturns("", errors.New("nope"))
+
+			waiting := make(chan struct{})
+			done = make(chan struct{})
+			waited = waiting
+
+			inScriptProcess.WaitStub = func() (int, error) {
+				// cause waiting to block so that it can be aborted
+				<-waiting
+				return 0, nil
+			}
+
+			fakeContainer.StopStub = func(bool) error {
+				close(waited)
+				return nil
+			}
+
+			go func() {
+				versionedSource, getErr = resource.Get(fakeVolume, ioConfig, source, params, version, signalsCh, readyCh)
+				close(done)
+			}()
+		})
+
+		It("stops the container", func() {
+			signalsCh <- os.Interrupt
+			<-done
+			Expect(fakeContainer.StopCallCount()).To(Equal(1))
+			Expect(fakeContainer.StopArgsForCall(0)).To(BeFalse())
+		})
+
+		It("doesn't send garden terminate signal to process", func() {
+			signalsCh <- os.Interrupt
+			<-done
+			Expect(getErr).To(Equal(ErrAborted))
+			Expect(inScriptProcess.SignalCallCount()).To(BeZero())
+		})
+
+		Context("when container.stop returns an error", func() {
+			var disaster error
+
+			BeforeEach(func() {
+				disaster = errors.New("gotta get away")
+
+				fakeContainer.StopStub = func(bool) error {
+					close(waited)
+					return disaster
+				}
+			})
+
+			It("returns the error", func() {
+				signalsCh <- os.Interrupt
+				<-done
+				Expect(getErr).To(Equal(ErrAborted))
+			})
 		})
 	})
 })

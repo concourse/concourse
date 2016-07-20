@@ -47,7 +47,6 @@ type TaskStep struct {
 	configSource      TaskConfigSource
 	workerPool        worker.Client
 	artifactsRoot     string
-	trackerFactory    TrackerFactory
 	resourceTypes     atc.ResourceTypes
 	inputMapping      map[string]string
 	outputMapping     map[string]string
@@ -74,7 +73,6 @@ func newTaskStep(
 	configSource TaskConfigSource,
 	workerPool worker.Client,
 	artifactsRoot string,
-	trackerFactory TrackerFactory,
 	resourceTypes atc.ResourceTypes,
 	inputMapping map[string]string,
 	outputMapping map[string]string,
@@ -93,7 +91,6 @@ func newTaskStep(
 		configSource:        configSource,
 		workerPool:          workerPool,
 		artifactsRoot:       artifactsRoot,
-		trackerFactory:      trackerFactory,
 		resourceTypes:       resourceTypes,
 		inputMapping:        inputMapping,
 		outputMapping:       outputMapping,
@@ -417,6 +414,8 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 
 	runContainerID := step.containerID
 	runContainerID.Stage = db.ContainerStageRun
+
+	step.logger.Debug("task-step-creating-container", lager.Data{"container-id": runContainerID})
 	container, err := chosenWorker.CreateContainer(
 		step.logger.Session("create-container"),
 		signals,
@@ -497,47 +496,6 @@ func (step *TaskStep) Release() {
 	} else {
 		step.container.Release(worker.FinalTTL(step.containerFailureTTL))
 	}
-}
-
-// StreamFile streams the given file out of the task's container.
-func (step *TaskStep) StreamFile(source string) (io.ReadCloser, error) {
-	out, err := step.container.StreamOut(garden.StreamOutSpec{
-		Path: path.Join(step.artifactsRoot, source),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	tarReader := tar.NewReader(out)
-
-	_, err = tarReader.Next()
-	if err != nil {
-		return nil, FileNotFoundError{Path: source}
-	}
-
-	return fileReadCloser{
-		Reader: tarReader,
-		Closer: out,
-	}, nil
-}
-
-// StreamTo streams the task's entire working directory to the destination.
-func (step *TaskStep) StreamTo(destination ArtifactDestination) error {
-	out, err := step.container.StreamOut(garden.StreamOutSpec{
-		Path: step.artifactsRoot + "/",
-	})
-	if err != nil {
-		return err
-	}
-
-	defer out.Close()
-
-	return destination.StreamIn(".", out)
-}
-
-// VolumeOn returns nothing.
-func (step *TaskStep) VolumeOn(worker worker.Worker) (worker.Volume, bool, error) {
-	return nil, false, nil
 }
 
 func (step *TaskStep) chooseWorkerWithMostVolumes(compatibleWorkers []worker.Worker, inputs []atc.TaskInputConfig) (worker.Worker, []worker.VolumeMount, []inputPair, error) {

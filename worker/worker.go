@@ -445,6 +445,7 @@ func (worker *gardenWorker) CreateContainer(
 		worker.db,
 		worker.clock,
 		worker.volumeFactory,
+		worker.name,
 	)
 }
 
@@ -516,6 +517,7 @@ func (worker *gardenWorker) LookupContainer(logger lager.Logger, handle string) 
 		worker.db,
 		worker.clock,
 		worker.volumeFactory,
+		worker.name,
 	)
 
 	if err != nil {

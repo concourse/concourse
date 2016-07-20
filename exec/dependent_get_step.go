@@ -20,7 +20,7 @@ type DependentGetStep struct {
 	session             resource.Session
 	tags                atc.Tags
 	delegate            ResourceDelegate
-	tracker             resource.Tracker
+	resourceFetcher     resource.Fetcher
 	resourceTypes       atc.ResourceTypes
 	containerSuccessTTL time.Duration
 	containerFailureTTL time.Duration
@@ -35,7 +35,7 @@ func newDependentGetStep(
 	session resource.Session,
 	tags atc.Tags,
 	delegate ResourceDelegate,
-	tracker resource.Tracker,
+	resourceFetcher resource.Fetcher,
 	resourceTypes atc.ResourceTypes,
 	containerSuccessTTL time.Duration,
 	containerFailureTTL time.Duration,
@@ -49,7 +49,7 @@ func newDependentGetStep(
 		session:             session,
 		tags:                tags,
 		delegate:            delegate,
-		tracker:             tracker,
+		resourceFetcher:     resourceFetcher,
 		resourceTypes:       resourceTypes,
 		containerSuccessTTL: containerSuccessTTL,
 		containerFailureTTL: containerFailureTTL,
@@ -78,7 +78,7 @@ func (step DependentGetStep) Using(prev Step, repo *SourceRepository) Step {
 		step.session,
 		step.tags,
 		step.delegate,
-		step.tracker,
+		step.resourceFetcher,
 		step.resourceTypes,
 		step.containerSuccessTTL,
 		step.containerFailureTTL,

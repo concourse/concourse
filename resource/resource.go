@@ -2,26 +2,23 @@ package resource
 
 import (
 	"io"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/clock"
-	"github.com/tedsuo/ifrit"
 )
 
 //go:generate counterfeiter . Resource
 
 type Resource interface {
-	Get(IOConfig, atc.Source, atc.Params, atc.Version) VersionedSource
-	Put(IOConfig, atc.Source, atc.Params, ArtifactSource) VersionedSource
+	Get(worker.Volume, IOConfig, atc.Source, atc.Params, atc.Version, <-chan os.Signal, chan<- struct{}) (VersionedSource, error)
+	Put(IOConfig, atc.Source, atc.Params, ArtifactSource, <-chan os.Signal, chan<- struct{}) (VersionedSource, error)
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
 
 	Release(*time.Duration)
-
-	CacheVolume() (worker.Volume, bool)
 }
 
 type IOConfig struct {
@@ -47,18 +44,6 @@ type ArtifactDestination interface {
 	StreamIn(string, io.Reader) error
 }
 
-//go:generate counterfeiter . VersionedSource
-
-type VersionedSource interface {
-	ifrit.Runner
-
-	Version() atc.Version
-	Metadata() []atc.MetadataField
-
-	StreamOut(string) (io.ReadCloser, error)
-	StreamIn(string, io.Reader) error
-}
-
 func ResourcesDir(suffix string) string {
 	return filepath.Join("/tmp", "build", suffix)
 }
@@ -66,32 +51,18 @@ func ResourcesDir(suffix string) string {
 type resource struct {
 	container worker.Container
 	typ       ResourceType
-	clock     clock.Clock
 
 	releaseOnce sync.Once
 
 	ScriptFailure bool
 }
 
-func NewResource(container worker.Container, clock clock.Clock) Resource {
+func NewResource(container worker.Container) Resource {
 	return &resource{
 		container: container,
-		clock:     clock,
 	}
 }
 
 func (resource *resource) Release(finalTTL *time.Duration) {
 	resource.container.Release(finalTTL)
-}
-
-func (resource *resource) CacheVolume() (worker.Volume, bool) {
-	mounts := resource.container.VolumeMounts()
-
-	for _, mount := range mounts {
-		if mount.MountPath == ResourcesDir("get") {
-			return mount.Volume, true
-		}
-	}
-
-	return nil, false
 }

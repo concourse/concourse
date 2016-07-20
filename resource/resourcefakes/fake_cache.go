@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/atc/resource"
+	"github.com/concourse/atc/worker"
 )
 
 type FakeCache struct {
@@ -20,6 +21,12 @@ type FakeCache struct {
 	initializeArgsForCall []struct{}
 	initializeReturns     struct {
 		result1 error
+	}
+	VolumeStub        func() worker.Volume
+	volumeMutex       sync.RWMutex
+	volumeArgsForCall []struct{}
+	volumeReturns     struct {
+		result1 worker.Volume
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -76,6 +83,31 @@ func (fake *FakeCache) InitializeReturns(result1 error) {
 	}{result1}
 }
 
+func (fake *FakeCache) Volume() worker.Volume {
+	fake.volumeMutex.Lock()
+	fake.volumeArgsForCall = append(fake.volumeArgsForCall, struct{}{})
+	fake.recordInvocation("Volume", []interface{}{})
+	fake.volumeMutex.Unlock()
+	if fake.VolumeStub != nil {
+		return fake.VolumeStub()
+	} else {
+		return fake.volumeReturns.result1
+	}
+}
+
+func (fake *FakeCache) VolumeCallCount() int {
+	fake.volumeMutex.RLock()
+	defer fake.volumeMutex.RUnlock()
+	return len(fake.volumeArgsForCall)
+}
+
+func (fake *FakeCache) VolumeReturns(result1 worker.Volume) {
+	fake.VolumeStub = nil
+	fake.volumeReturns = struct {
+		result1 worker.Volume
+	}{result1}
+}
+
 func (fake *FakeCache) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -83,6 +115,8 @@ func (fake *FakeCache) Invocations() map[string][][]interface{} {
 	defer fake.isInitializedMutex.RUnlock()
 	fake.initializeMutex.RLock()
 	defer fake.initializeMutex.RUnlock()
+	fake.volumeMutex.RLock()
+	defer fake.volumeMutex.RUnlock()
 	return fake.invocations
 }
 

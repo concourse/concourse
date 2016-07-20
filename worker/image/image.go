@@ -7,17 +7,13 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
-
-const FetchImageLeaseInterval = 5 * time.Second
 
 const ImageMetadataFile = "metadata.json"
 
@@ -27,12 +23,8 @@ var ErrImageUnavailable = errors.New("no versions of image available")
 
 var ErrImageGetDidNotProduceVolume = errors.New("fetching the image did not produce a volume")
 
-var ErrFailedToGetLease = errors.New("failed-to-get-lease")
-var ErrInterrupted = errors.New("interrupted")
-
 type image struct {
 	logger                lager.Logger
-	db                    LeaseDB
 	signals               <-chan os.Signal
 	imageResource         atc.ImageResource
 	workerID              worker.Identifier
@@ -42,8 +34,9 @@ type image struct {
 	tracker               resource.Tracker
 	imageFetchingDelegate worker.ImageFetchingDelegate
 	workerClient          worker.Client
-	clock                 clock.Clock
 	privileged            bool
+
+	resourceFetcher resource.Fetcher
 }
 
 func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
@@ -78,16 +71,39 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 	getSess.Metadata.WorkingDirectory = ""
 	getSess.Metadata.EnvironmentVariables = nil
 
-	getResource, versionedSource, err := i.fetchWithLease(getSess, cacheID, version)
+	resourceType := resource.ResourceType(i.imageResource.Type)
+
+	resourceOptions := &imageResource{
+		imageFetchingDelegate: i.imageFetchingDelegate,
+		source:                i.imageResource.Source,
+		version:               version,
+		resourceType:          resourceType,
+	}
+
+	fetchSource, err := i.resourceFetcher.Fetch(
+		i.logger.Session("init-image"),
+		getSess,
+		i.workerTags,
+		i.customTypes,
+		cacheID,
+		resource.EmptyMetadata{},
+		i.imageFetchingDelegate,
+		resourceOptions,
+		i.signals,
+		make(chan struct{}),
+	)
 	if err != nil {
 		i.logger.Debug("failed-to-fetch-image")
 		return nil, nil, nil, err
 	}
 
-	volume, found := getResource.CacheVolume()
-	if !found {
+	vesionedSource := fetchSource.VersionedSource()
+	volume := vesionedSource.Volume()
+	if volume == nil {
 		return nil, nil, nil, ErrImageGetDidNotProduceVolume
 	}
+
+	i.logger.Debug("created-volume-for-image", lager.Data{"handle": volume.Handle()})
 
 	volumeSpec := worker.VolumeSpec{
 		Strategy: worker.ContainerRootFSStrategy{
@@ -101,9 +117,7 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 		return nil, nil, nil, err
 	}
 
-	volume.Release(nil)
-
-	reader, err := versionedSource.StreamOut(ImageMetadataFile)
+	reader, err := vesionedSource.StreamOut(ImageMetadataFile)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -118,7 +132,7 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 	releasingReader := &releasingReadCloser{
 		Reader:      tarReader,
 		Closer:      reader,
-		releaseFunc: func() { getResource.Release(nil) },
+		releaseFunc: func() { fetchSource.Release(nil) },
 	}
 
 	return cowVolume, releasingReader, version, nil
@@ -171,158 +185,48 @@ type leaseID struct {
 	WorkerName string                `json:"worker_name"`
 }
 
-func (i *image) fetchWithLease(
-	getSess resource.Session,
-	cacheID resource.ResourceCacheIdentifier,
-	version atc.Version,
-) (resource.Resource, resource.VersionedSource, error) {
-	ticker := i.clock.NewTicker(FetchImageLeaseInterval)
-	defer ticker.Stop()
+type imageResource struct {
+	imageFetchingDelegate worker.ImageFetchingDelegate
+	source                atc.Source
+	version               atc.Version
+	resourceType          resource.ResourceType
+}
 
-	getResource, versionedSource, err := i.fetchImage(getSess, cacheID, version)
-	if err != ErrFailedToGetLease {
-		return getResource, versionedSource, err
-	}
-
-	for {
-		select {
-		case <-ticker.C():
-			getResource, versionedSource, err := i.fetchImage(getSess, cacheID, version)
-			if err != nil {
-				if err == ErrFailedToGetLease {
-					break
-				}
-				return nil, nil, err
-			}
-
-			return getResource, versionedSource, nil
-
-		case <-i.signals:
-			return nil, nil, ErrInterrupted
-		}
+func (d *imageResource) IOConfig() resource.IOConfig {
+	return resource.IOConfig{
+		Stderr: d.imageFetchingDelegate.Stderr(),
 	}
 }
 
-func (i *image) fetchImage(
-	getSess resource.Session,
-	cacheID resource.ResourceCacheIdentifier,
-	version atc.Version,
-) (resource.Resource, resource.VersionedSource, error) {
-	resourceType := resource.ResourceType(i.imageResource.Type)
-
-	getResource, cache, found, err := i.tracker.FindContainerForSession(
-		i.logger.Session("find-container-for-image"),
-		getSess,
-	)
-	if err != nil {
-		i.logger.Error("failed-to-find-container-for-image", err)
-		return nil, nil, err
-	}
-
-	if found {
-		i.logger.Debug("found-container-for-image")
-		return getResource, i.versionedResource(getResource, version), nil
-	}
-
-	choosenWorker, err := i.tracker.ChooseWorker(resourceType, i.workerTags, i.customTypes)
-	if err != nil {
-		i.logger.Error("no-workers-satisfying-spec", err)
-		return nil, nil, err
-	}
-
-	leaseName, err := i.leaseName(leaseID{
-		Type:       resourceType,
-		Version:    version,
-		Source:     i.imageResource.Source,
-		WorkerName: choosenWorker.Name(),
-	})
-	if err != nil {
-		i.logger.Error("failed-to-marshal-lease-id", err)
-		return nil, nil, err
-	}
-
-	leaseLogger := i.logger.Session("lease-task", lager.Data{"lease-name": leaseName})
-	leaseLogger.Info("tick")
-
-	lease, leased, err := i.db.GetLease(leaseLogger, leaseName, FetchImageLeaseInterval)
-
-	if err != nil {
-		leaseLogger.Error("failed-to-get-lease", err)
-		return nil, nil, ErrFailedToGetLease
-	}
-
-	if !leased {
-		leaseLogger.Debug("did-not-get-lease")
-		return nil, nil, ErrFailedToGetLease
-	}
-
-	defer lease.Break()
-
-	i.logger.Debug("container-not-found")
-	getResource, cache, err = i.tracker.InitWithCache(
-		i.logger.Session("init-image"),
-		resource.EmptyMetadata{},
-		getSess,
-		resourceType,
-		i.workerTags,
-		cacheID,
-		i.customTypes,
-		i.imageFetchingDelegate,
-		choosenWorker,
-	)
-	if err != nil {
-		leaseLogger.Error("failed-to-init-with-cache", err)
-		return nil, nil, err
-	}
-
-	versionedSource := i.versionedResource(getResource, version)
-
-	isInitialized, err := cache.IsInitialized()
-	if err != nil {
-		leaseLogger.Error("failed-to-check-if-initialized", err)
-		return nil, nil, err
-	}
-
-	if isInitialized {
-		leaseLogger.Debug("cache-is-initiialized")
-		return getResource, versionedSource, nil
-	}
-
-	leaseLogger.Debug("fetching-image")
-
-	err = versionedSource.Run(i.signals, make(chan struct{}))
-	if err != nil {
-		leaseLogger.Error("failed-to-fetch-image", err, lager.Data{"lease-name": leaseName})
-		return nil, nil, err
-	}
-
-	leaseLogger.Debug("initializing cache")
-	err = cache.Initialize()
-	if err != nil {
-		leaseLogger.Error("failed-to-initialize-cache", err, lager.Data{"lease-name": leaseName})
-		return nil, nil, err
-	}
-
-	return getResource, versionedSource, nil
+func (ir *imageResource) Source() atc.Source {
+	return ir.source
 }
 
-func (i *image) leaseName(id leaseID) (string, error) {
+func (ir *imageResource) Params() atc.Params {
+	return nil
+}
+
+func (ir *imageResource) Version() atc.Version {
+	return ir.version
+}
+
+func (ir *imageResource) ResourceType() resource.ResourceType {
+	return ir.resourceType
+}
+
+func (ir *imageResource) LeaseName(workerName string) (string, error) {
+	id := &leaseID{
+		Type:       ir.resourceType,
+		Version:    ir.version,
+		Source:     ir.source,
+		WorkerName: workerName,
+	}
+
 	taskNameJSON, err := json.Marshal(id)
 	if err != nil {
 		return "", err
 	}
 	return string(taskNameJSON), nil
-}
-
-func (i *image) versionedResource(getResource resource.Resource, version atc.Version) resource.VersionedSource {
-	return getResource.Get(
-		resource.IOConfig{
-			Stderr: i.imageFetchingDelegate.Stderr(),
-		},
-		i.imageResource.Source,
-		nil,
-		version,
-	)
 }
 
 type releasingReadCloser struct {

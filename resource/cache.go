@@ -8,6 +8,7 @@ type noopCache struct{}
 
 func (noopCache) IsInitialized() (bool, error) { return false, nil }
 func (noopCache) Initialize() error            { return nil }
+func (noopCache) Volume() worker.Volume        { return nil }
 
 type volumeCache struct {
 	volume worker.Volume
@@ -25,4 +26,8 @@ func (cache volumeCache) IsInitialized() (bool, error) {
 
 func (cache volumeCache) Initialize() error {
 	return cache.volume.SetProperty("initialized", "yep")
+}
+
+func (cache volumeCache) Volume() worker.Volume {
+	return cache.volume
 }

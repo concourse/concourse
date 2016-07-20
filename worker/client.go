@@ -162,6 +162,8 @@ type Container interface {
 
 	Volumes() []Volume
 	VolumeMounts() []VolumeMount
+
+	WorkerName() string
 }
 
 type VolumeProperties map[string]string

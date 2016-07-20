@@ -187,6 +187,12 @@ type FakeContainer struct {
 	volumeMountsReturns     struct {
 		result1 []worker.VolumeMount
 	}
+	WorkerNameStub        func() string
+	workerNameMutex       sync.RWMutex
+	workerNameArgsForCall []struct{}
+	workerNameReturns     struct {
+		result1 string
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -870,6 +876,31 @@ func (fake *FakeContainer) VolumeMountsReturns(result1 []worker.VolumeMount) {
 	}{result1}
 }
 
+func (fake *FakeContainer) WorkerName() string {
+	fake.workerNameMutex.Lock()
+	fake.workerNameArgsForCall = append(fake.workerNameArgsForCall, struct{}{})
+	fake.recordInvocation("WorkerName", []interface{}{})
+	fake.workerNameMutex.Unlock()
+	if fake.WorkerNameStub != nil {
+		return fake.WorkerNameStub()
+	} else {
+		return fake.workerNameReturns.result1
+	}
+}
+
+func (fake *FakeContainer) WorkerNameCallCount() int {
+	fake.workerNameMutex.RLock()
+	defer fake.workerNameMutex.RUnlock()
+	return len(fake.workerNameArgsForCall)
+}
+
+func (fake *FakeContainer) WorkerNameReturns(result1 string) {
+	fake.WorkerNameStub = nil
+	fake.workerNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeContainer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -919,6 +950,8 @@ func (fake *FakeContainer) Invocations() map[string][][]interface{} {
 	defer fake.volumesMutex.RUnlock()
 	fake.volumeMountsMutex.RLock()
 	defer fake.volumeMountsMutex.RUnlock()
+	fake.workerNameMutex.RLock()
+	defer fake.workerNameMutex.RUnlock()
 	return fake.invocations
 }
 

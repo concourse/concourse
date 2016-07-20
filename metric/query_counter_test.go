@@ -45,16 +45,14 @@ var _ = Describe("Counting Database Queries", func() {
 			_, err := countingConn.Query("SELECT $1::int", 1)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(metric.DatabaseQueries.Max()).To(Equal(1))
+			Expect(metric.DatabaseQueries.Delta()).To(Equal(1))
 
 			_, err = countingConn.Exec("SELECT $1::int", 1)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(metric.DatabaseQueries.Max()).To(Equal(2))
-
 			countingConn.QueryRow("SELECT $1::int", 1)
 
-			Expect(metric.DatabaseQueries.Max()).To(Equal(3))
+			Expect(metric.DatabaseQueries.Delta()).To(Equal(2))
 
 			By("working in transactions")
 			underlyingTx := &dbfakes.FakeTx{}
@@ -66,7 +64,7 @@ var _ = Describe("Counting Database Queries", func() {
 			_, err = tx.Query("SELECT $1::int", 1)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(metric.DatabaseQueries.Max()).To(Equal(4))
+			Expect(metric.DatabaseQueries.Delta()).To(Equal(1))
 		})
 	})
 })
