@@ -15,9 +15,9 @@ import (
 )
 
 type gardenFactory struct {
-	workerClient   worker.Client
-	tracker        resource.Tracker
-	trackerFactory TrackerFactory
+	workerClient    worker.Client
+	tracker         resource.Tracker
+	resourceFetcher resource.Fetcher
 }
 
 //go:generate counterfeiter . TrackerFactory
@@ -29,10 +29,12 @@ type TrackerFactory interface {
 func NewGardenFactory(
 	workerClient worker.Client,
 	tracker resource.Tracker,
+	resourceFetcher resource.Fetcher,
 ) Factory {
 	return &gardenFactory{
-		workerClient: workerClient,
-		tracker:      tracker,
+		workerClient:    workerClient,
+		tracker:         tracker,
+		resourceFetcher: resourceFetcher,
 	}
 }
 
@@ -63,7 +65,7 @@ func (factory *gardenFactory) DependentGet(
 		},
 		tags,
 		delegate,
-		factory.tracker,
+		factory.resourceFetcher,
 		resourceTypes,
 		containerSuccessTTL,
 		containerFailureTTL,
@@ -106,7 +108,7 @@ func (factory *gardenFactory) Get(
 		},
 		tags,
 		delegate,
-		factory.tracker,
+		factory.resourceFetcher,
 		resourceTypes,
 
 		containerSuccessTTL,
@@ -176,7 +178,6 @@ func (factory *gardenFactory) Task(
 		configSource,
 		factory.workerClient,
 		workingDirectory,
-		factory.trackerFactory,
 		resourceTypes,
 		inputMapping,
 		outputMapping,

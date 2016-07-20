@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"os"
+
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
 )
@@ -11,36 +13,32 @@ type inRequest struct {
 	Version atc.Version `json:"version,omitempty"`
 }
 
-func (resource *resource) GetContainerHandle() string {
-	if resource.container != nil {
-		return resource.container.Handle()
-	}
+func (resource *resource) Get(
+	volume worker.Volume,
+	ioConfig IOConfig,
+	source atc.Source,
+	params atc.Params,
+	version atc.Version,
+	signals <-chan os.Signal,
+	ready chan<- struct{},
+) (VersionedSource, error) {
+	var vr versionResult
 
-	return ""
-}
-
-func (resource *resource) Get(volume worker.Volume, ioConfig IOConfig, source atc.Source, params atc.Params, version atc.Version) VersionedSource {
-	resourceDir := ResourcesDir("get")
-
-	vs := &getVersionedSource{
-		volume:      volume,
-		resourceDir: resourceDir,
-
-		versionResult: versionResult{
-			Version: version,
-		},
-	}
-
-	vs.Runner = resource.runScript(
+	runner := resource.runScript(
 		"/opt/resource/in",
-		[]string{resourceDir},
+		[]string{ResourcesDir("get")},
 		inRequest{source, params, version},
-		&vs.versionResult,
+		&vr,
 		ioConfig.Stderr,
 		nil,
 		nil,
 		true,
 	)
 
-	return vs
+	err := runner.Run(signals, ready)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewGetVersionedSource(volume, vr.Version, vr.Metadata), nil
 }

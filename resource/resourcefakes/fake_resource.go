@@ -2,6 +2,7 @@
 package resourcefakes
 
 import (
+	"os"
 	"sync"
 	"time"
 
@@ -11,13 +12,7 @@ import (
 )
 
 type FakeResource struct {
-	GetContainerHandleStub        func() string
-	getContainerHandleMutex       sync.RWMutex
-	getContainerHandleArgsForCall []struct{}
-	getContainerHandleReturns     struct {
-		result1 string
-	}
-	GetStub        func(worker.Volume, resource.IOConfig, atc.Source, atc.Params, atc.Version) resource.VersionedSource
+	GetStub        func(worker.Volume, resource.IOConfig, atc.Source, atc.Params, atc.Version, <-chan os.Signal, chan<- struct{}) (resource.VersionedSource, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 worker.Volume
@@ -25,20 +20,26 @@ type FakeResource struct {
 		arg3 atc.Source
 		arg4 atc.Params
 		arg5 atc.Version
+		arg6 <-chan os.Signal
+		arg7 chan<- struct{}
 	}
 	getReturns struct {
 		result1 resource.VersionedSource
+		result2 error
 	}
-	PutStub        func(resource.IOConfig, atc.Source, atc.Params, resource.ArtifactSource) resource.VersionedSource
+	PutStub        func(resource.IOConfig, atc.Source, atc.Params, resource.ArtifactSource, <-chan os.Signal, chan<- struct{}) (resource.VersionedSource, error)
 	putMutex       sync.RWMutex
 	putArgsForCall []struct {
 		arg1 resource.IOConfig
 		arg2 atc.Source
 		arg3 atc.Params
 		arg4 resource.ArtifactSource
+		arg5 <-chan os.Signal
+		arg6 chan<- struct{}
 	}
 	putReturns struct {
 		result1 resource.VersionedSource
+		result2 error
 	}
 	CheckStub        func(atc.Source, atc.Version) ([]atc.Version, error)
 	checkMutex       sync.RWMutex
@@ -59,32 +60,7 @@ type FakeResource struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResource) GetContainerHandle() string {
-	fake.getContainerHandleMutex.Lock()
-	fake.getContainerHandleArgsForCall = append(fake.getContainerHandleArgsForCall, struct{}{})
-	fake.recordInvocation("GetContainerHandle", []interface{}{})
-	fake.getContainerHandleMutex.Unlock()
-	if fake.GetContainerHandleStub != nil {
-		return fake.GetContainerHandleStub()
-	} else {
-		return fake.getContainerHandleReturns.result1
-	}
-}
-
-func (fake *FakeResource) GetContainerHandleCallCount() int {
-	fake.getContainerHandleMutex.RLock()
-	defer fake.getContainerHandleMutex.RUnlock()
-	return len(fake.getContainerHandleArgsForCall)
-}
-
-func (fake *FakeResource) GetContainerHandleReturns(result1 string) {
-	fake.GetContainerHandleStub = nil
-	fake.getContainerHandleReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeResource) Get(arg1 worker.Volume, arg2 resource.IOConfig, arg3 atc.Source, arg4 atc.Params, arg5 atc.Version) resource.VersionedSource {
+func (fake *FakeResource) Get(arg1 worker.Volume, arg2 resource.IOConfig, arg3 atc.Source, arg4 atc.Params, arg5 atc.Version, arg6 <-chan os.Signal, arg7 chan<- struct{}) (resource.VersionedSource, error) {
 	fake.getMutex.Lock()
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1 worker.Volume
@@ -92,13 +68,15 @@ func (fake *FakeResource) Get(arg1 worker.Volume, arg2 resource.IOConfig, arg3 a
 		arg3 atc.Source
 		arg4 atc.Params
 		arg5 atc.Version
-	}{arg1, arg2, arg3, arg4, arg5})
-	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4, arg5})
+		arg6 <-chan os.Signal
+		arg7 chan<- struct{}
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
-		return fake.GetStub(arg1, arg2, arg3, arg4, arg5)
+		return fake.GetStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	} else {
-		return fake.getReturns.result1
+		return fake.getReturns.result1, fake.getReturns.result2
 	}
 }
 
@@ -108,33 +86,36 @@ func (fake *FakeResource) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeResource) GetArgsForCall(i int) (worker.Volume, resource.IOConfig, atc.Source, atc.Params, atc.Version) {
+func (fake *FakeResource) GetArgsForCall(i int) (worker.Volume, resource.IOConfig, atc.Source, atc.Params, atc.Version, <-chan os.Signal, chan<- struct{}) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
-	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5
+	return fake.getArgsForCall[i].arg1, fake.getArgsForCall[i].arg2, fake.getArgsForCall[i].arg3, fake.getArgsForCall[i].arg4, fake.getArgsForCall[i].arg5, fake.getArgsForCall[i].arg6, fake.getArgsForCall[i].arg7
 }
 
-func (fake *FakeResource) GetReturns(result1 resource.VersionedSource) {
+func (fake *FakeResource) GetReturns(result1 resource.VersionedSource, result2 error) {
 	fake.GetStub = nil
 	fake.getReturns = struct {
 		result1 resource.VersionedSource
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeResource) Put(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.Params, arg4 resource.ArtifactSource) resource.VersionedSource {
+func (fake *FakeResource) Put(arg1 resource.IOConfig, arg2 atc.Source, arg3 atc.Params, arg4 resource.ArtifactSource, arg5 <-chan os.Signal, arg6 chan<- struct{}) (resource.VersionedSource, error) {
 	fake.putMutex.Lock()
 	fake.putArgsForCall = append(fake.putArgsForCall, struct {
 		arg1 resource.IOConfig
 		arg2 atc.Source
 		arg3 atc.Params
 		arg4 resource.ArtifactSource
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("Put", []interface{}{arg1, arg2, arg3, arg4})
+		arg5 <-chan os.Signal
+		arg6 chan<- struct{}
+	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.recordInvocation("Put", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.putMutex.Unlock()
 	if fake.PutStub != nil {
-		return fake.PutStub(arg1, arg2, arg3, arg4)
+		return fake.PutStub(arg1, arg2, arg3, arg4, arg5, arg6)
 	} else {
-		return fake.putReturns.result1
+		return fake.putReturns.result1, fake.putReturns.result2
 	}
 }
 
@@ -144,17 +125,18 @@ func (fake *FakeResource) PutCallCount() int {
 	return len(fake.putArgsForCall)
 }
 
-func (fake *FakeResource) PutArgsForCall(i int) (resource.IOConfig, atc.Source, atc.Params, resource.ArtifactSource) {
+func (fake *FakeResource) PutArgsForCall(i int) (resource.IOConfig, atc.Source, atc.Params, resource.ArtifactSource, <-chan os.Signal, chan<- struct{}) {
 	fake.putMutex.RLock()
 	defer fake.putMutex.RUnlock()
-	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4
+	return fake.putArgsForCall[i].arg1, fake.putArgsForCall[i].arg2, fake.putArgsForCall[i].arg3, fake.putArgsForCall[i].arg4, fake.putArgsForCall[i].arg5, fake.putArgsForCall[i].arg6
 }
 
-func (fake *FakeResource) PutReturns(result1 resource.VersionedSource) {
+func (fake *FakeResource) PutReturns(result1 resource.VersionedSource, result2 error) {
 	fake.PutStub = nil
 	fake.putReturns = struct {
 		result1 resource.VersionedSource
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeResource) Check(arg1 atc.Source, arg2 atc.Version) ([]atc.Version, error) {
@@ -219,8 +201,6 @@ func (fake *FakeResource) ReleaseArgsForCall(i int) *time.Duration {
 func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getContainerHandleMutex.RLock()
-	defer fake.getContainerHandleMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	fake.putMutex.RLock()

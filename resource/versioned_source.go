@@ -7,14 +7,11 @@ import (
 	"github.com/cloudfoundry-incubator/garden"
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
-	"github.com/tedsuo/ifrit"
 )
 
 //go:generate counterfeiter . VersionedSource
 
 type VersionedSource interface {
-	ifrit.Runner
-
 	Version() atc.Version
 	Metadata() []atc.MetadataField
 
@@ -30,18 +27,7 @@ type versionResult struct {
 	Metadata []atc.MetadataField `json:"metadata,omitempty"`
 }
 
-type getVersionedSource struct {
-	ifrit.Runner
-
-	versionResult versionResult
-
-	volume      worker.Volume
-	resourceDir string
-}
-
 type putVersionedSource struct {
-	ifrit.Runner
-
 	versionResult versionResult
 
 	container garden.Container
@@ -73,6 +59,25 @@ func (vs *putVersionedSource) StreamIn(dst string, src io.Reader) error {
 		Path:      path.Join(vs.resourceDir, dst),
 		TarStream: src,
 	})
+}
+
+func NewGetVersionedSource(volume worker.Volume, version atc.Version, metadata []atc.MetadataField) VersionedSource {
+	return &getVersionedSource{
+		volume:      volume,
+		resourceDir: ResourcesDir("get"),
+
+		versionResult: versionResult{
+			Version:  version,
+			Metadata: metadata,
+		},
+	}
+}
+
+type getVersionedSource struct {
+	versionResult versionResult
+
+	volume      worker.Volume
+	resourceDir string
 }
 
 func (vs *getVersionedSource) Version() atc.Version {

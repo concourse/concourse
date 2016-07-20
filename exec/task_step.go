@@ -47,7 +47,6 @@ type TaskStep struct {
 	configSource      TaskConfigSource
 	workerPool        worker.Client
 	artifactsRoot     string
-	trackerFactory    TrackerFactory
 	resourceTypes     atc.ResourceTypes
 	inputMapping      map[string]string
 	outputMapping     map[string]string
@@ -74,7 +73,6 @@ func newTaskStep(
 	configSource TaskConfigSource,
 	workerPool worker.Client,
 	artifactsRoot string,
-	trackerFactory TrackerFactory,
 	resourceTypes atc.ResourceTypes,
 	inputMapping map[string]string,
 	outputMapping map[string]string,
@@ -93,7 +91,6 @@ func newTaskStep(
 		configSource:        configSource,
 		workerPool:          workerPool,
 		artifactsRoot:       artifactsRoot,
-		trackerFactory:      trackerFactory,
 		resourceTypes:       resourceTypes,
 		inputMapping:        inputMapping,
 		outputMapping:       outputMapping,

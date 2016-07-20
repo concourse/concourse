@@ -50,8 +50,9 @@ var _ = Describe("GardenFactory", func() {
 	BeforeEach(func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeTracker = new(rfakes.FakeTracker)
+		fakeResourceFetcher := new(rfakes.FakeFetcher)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, fakeResourceFetcher)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()

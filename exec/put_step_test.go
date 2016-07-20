@@ -51,8 +51,9 @@ var _ = Describe("GardenFactory", func() {
 		fakeWorkerClient = new(wfakes.FakeClient)
 		fakeTracker = new(rfakes.FakeTracker)
 		fakeTrackerFactory = new(execfakes.FakeTrackerFactory)
+		fakeResourceFetcher := new(rfakes.FakeFetcher)
 
-		factory = NewGardenFactory(fakeWorkerClient, fakeTracker)
+		factory = NewGardenFactory(fakeWorkerClient, fakeTracker, fakeResourceFetcher)
 
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
@@ -154,7 +155,7 @@ var _ = Describe("GardenFactory", func() {
 					fakeVersionedSource.VersionReturns(atc.Version{"some": "version"})
 					fakeVersionedSource.MetadataReturns([]atc.MetadataField{{"some", "metadata"}})
 
-					fakeResource.PutReturns(fakeVersionedSource)
+					fakeResource.PutReturns(fakeVersionedSource, nil)
 				})
 
 				It("initializes the resource with the correct type, session, and sources", func() {
@@ -194,7 +195,7 @@ var _ = Describe("GardenFactory", func() {
 				It("puts the resource with the correct source and params, and the full repository as the artifact source", func() {
 					Expect(fakeResource.PutCallCount()).To(Equal(1))
 
-					_, putSource, putParams, putArtifactSource := fakeResource.PutArgsForCall(0)
+					_, putSource, putParams, putArtifactSource, _, _ := fakeResource.PutArgsForCall(0)
 					Expect(putSource).To(Equal(resourceConfig.Source))
 					Expect(putParams).To(Equal(params))
 
@@ -235,13 +236,13 @@ var _ = Describe("GardenFactory", func() {
 				It("puts the resource with the io config forwarded", func() {
 					Expect(fakeResource.PutCallCount()).To(Equal(1))
 
-					ioConfig, _, _, _ := fakeResource.PutArgsForCall(0)
+					ioConfig, _, _, _, _, _ := fakeResource.PutArgsForCall(0)
 					Expect(ioConfig.Stdout).To(Equal(stdoutBuf))
 					Expect(ioConfig.Stderr).To(Equal(stderrBuf))
 				})
 
 				It("runs the get resource action", func() {
-					Expect(fakeVersionedSource.RunCallCount()).To(Equal(1))
+					Expect(fakeResource.PutCallCount()).To(Equal(1))
 				})
 
 				It("reports the created version info", func() {
@@ -304,10 +305,17 @@ var _ = Describe("GardenFactory", func() {
 						sigs := make(chan os.Signal)
 						receivedSignals = sigs
 
-						fakeVersionedSource.RunStub = func(signals <-chan os.Signal, ready chan<- struct{}) error {
+						fakeResource.PutStub = func(
+							ioConfig resource.IOConfig,
+							source atc.Source,
+							params atc.Params,
+							artifactSource resource.ArtifactSource,
+							signals <-chan os.Signal,
+							ready chan<- struct{},
+						) (resource.VersionedSource, error) {
 							close(ready)
 							sigs <- <-signals
-							return nil
+							return fakeVersionedSource, nil
 						}
 					})
 
@@ -323,7 +331,7 @@ var _ = Describe("GardenFactory", func() {
 						disaster := errors.New("nope")
 
 						BeforeEach(func() {
-							fakeVersionedSource.RunReturns(disaster)
+							fakeResource.PutReturns(nil, disaster)
 						})
 
 						It("exits with the failure", func() {
@@ -352,7 +360,7 @@ var _ = Describe("GardenFactory", func() {
 
 					Context("by being interrupted", func() {
 						BeforeEach(func() {
-							fakeVersionedSource.RunReturns(resource.ErrAborted)
+							fakeResource.PutReturns(nil, resource.ErrAborted)
 						})
 
 						It("exits with ErrInterrupted", func() {
@@ -387,7 +395,7 @@ var _ = Describe("GardenFactory", func() {
 								ExitStatus: 1,
 							}
 
-							fakeVersionedSource.RunReturns(resourceScriptError)
+							fakeResource.PutReturns(nil, resourceScriptError)
 						})
 
 						It("invokes the delegate's Finished callback instead of failed", func() {
@@ -457,11 +465,11 @@ var _ = Describe("GardenFactory", func() {
 				fakeTracker.InitWithSourcesReturns(fakeResource, []string{}, nil)
 
 				fakeVersionedSource = new(rfakes.FakeVersionedSource)
-				fakeResource.PutReturns(fakeVersionedSource)
+				fakeResource.PutReturns(fakeVersionedSource, nil)
 			})
 
 			It("streams in empty source", func() {
-				_, _, _, resourceSource := fakeResource.PutArgsForCall(0)
+				_, _, _, resourceSource, _, _ := fakeResource.PutArgsForCall(0)
 				fakeDestination := new(rfakes.FakeArtifactDestination)
 				resourceSource.StreamTo(fakeDestination)
 

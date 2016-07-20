@@ -2,22 +2,20 @@ package resource
 
 import (
 	"io"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/clock"
 )
 
 //go:generate counterfeiter . Resource
 
 type Resource interface {
-	GetContainerHandle() string
-
-	Get(worker.Volume, IOConfig, atc.Source, atc.Params, atc.Version) VersionedSource
-	Put(IOConfig, atc.Source, atc.Params, ArtifactSource) VersionedSource
+	Get(worker.Volume, IOConfig, atc.Source, atc.Params, atc.Version, <-chan os.Signal, chan<- struct{}) (VersionedSource, error)
+	Put(IOConfig, atc.Source, atc.Params, ArtifactSource, <-chan os.Signal, chan<- struct{}) (VersionedSource, error)
 	Check(atc.Source, atc.Version) ([]atc.Version, error)
 
 	Release(*time.Duration)
@@ -53,22 +51,18 @@ func ResourcesDir(suffix string) string {
 type resource struct {
 	container worker.Container
 	typ       ResourceType
-	clock     clock.Clock
 
 	releaseOnce sync.Once
 
 	ScriptFailure bool
 }
 
-func NewResource(container worker.Container, clock clock.Clock) Resource {
+func NewResource(container worker.Container) Resource {
 	return &resource{
 		container: container,
-		clock:     clock,
 	}
 }
 
 func (resource *resource) Release(finalTTL *time.Duration) {
-	if resource.container != nil {
-		resource.container.Release(finalTTL)
-	}
+	resource.container.Release(finalTTL)
 }

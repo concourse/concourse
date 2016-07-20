@@ -132,7 +132,7 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		artifactSource = resourceSource{scopedRepo}
 	}
 
-	step.versionedSource = step.resource.Put(
+	step.versionedSource, err = step.resource.Put(
 		resource.IOConfig{
 			Stdout: step.delegate.Stdout(),
 			Stderr: step.delegate.Stderr(),
@@ -140,9 +140,9 @@ func (step *PutStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		step.resourceConfig.Source,
 		step.params,
 		artifactSource,
+		signals,
+		ready,
 	)
-
-	err = step.versionedSource.Run(signals, ready)
 
 	if err, ok := err.(resource.ErrResourceScriptFailed); ok {
 		step.delegate.Completed(ExitStatus(err.ExitStatus), nil)

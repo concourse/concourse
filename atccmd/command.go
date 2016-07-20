@@ -40,9 +40,9 @@ import (
 	"github.com/concourse/atc/worker/image"
 	"github.com/concourse/atc/worker/transport"
 	"github.com/concourse/atc/wrappa"
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/context"
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/lib/pq"
 	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
@@ -145,11 +145,13 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	trackerFactory := resource.TrackerFactory{}
-	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory)
+	trackerFactory := resource.NewTrackerFactory()
+	resourceFetcherFactory := resource.NewFetcherFactory(sqlDB, clock.NewClock())
+	workerClient := cmd.constructWorkerPool(logger, sqlDB, trackerFactory, resourceFetcherFactory)
 
-	tracker := resource.NewTracker(workerClient)
-	engine := cmd.constructEngine(sqlDB, workerClient, tracker)
+	tracker := trackerFactory.TrackerFor(workerClient)
+	resourceFetcher := resourceFetcherFactory.FetcherFor(workerClient)
+	engine := cmd.constructEngine(sqlDB, workerClient, tracker, resourceFetcher)
 
 	radarSchedulerFactory := pipelines.NewRadarSchedulerFactory(
 		tracker,
@@ -583,7 +585,12 @@ func (cmd *ATCCommand) constructDB(logger lager.Logger) (*db.SQLDB, db.PipelineD
 	return sqlDB, pipelineDBFactory, err
 }
 
-func (cmd *ATCCommand) constructWorkerPool(logger lager.Logger, sqlDB *db.SQLDB, trackerFactory resource.TrackerFactory) worker.Client {
+func (cmd *ATCCommand) constructWorkerPool(
+	logger lager.Logger,
+	sqlDB *db.SQLDB,
+	trackerFactory resource.TrackerFactory,
+	resourceFetcherFactory resource.FetcherFactory,
+) worker.Client {
 	return worker.NewPool(
 		worker.NewDBWorkerProvider(
 			logger,
@@ -592,7 +599,7 @@ func (cmd *ATCCommand) constructWorkerPool(logger lager.Logger, sqlDB *db.SQLDB,
 			transport.ExponentialRetryPolicy{
 				Timeout: 5 * time.Minute,
 			},
-			image.NewFactory(trackerFactory, sqlDB, clock.NewClock()),
+			image.NewFactory(trackerFactory, resourceFetcherFactory),
 		),
 	)
 }
@@ -708,10 +715,12 @@ func (cmd *ATCCommand) constructEngine(
 	sqlDB *db.SQLDB,
 	workerClient worker.Client,
 	tracker resource.Tracker,
+	resourceFetcher resource.Fetcher,
 ) engine.Engine {
 	gardenFactory := exec.NewGardenFactory(
 		workerClient,
 		tracker,
+		resourceFetcher,
 	)
 
 	execV2Engine := engine.NewExecEngine(

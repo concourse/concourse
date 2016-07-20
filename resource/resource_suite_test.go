@@ -2,7 +2,6 @@ package resource_test
 
 import (
 	"testing"
-	"time"
 
 	wfakes "github.com/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
@@ -24,9 +23,8 @@ var _ = BeforeEach(func() {
 	workerClient = new(wfakes.FakeClient)
 
 	fakeContainer = new(wfakes.FakeContainer)
-	fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 
-	resource = NewResource(fakeContainer, fakeClock)
+	resource = NewResource(fakeContainer)
 })
 
 func TestResource(t *testing.T) {

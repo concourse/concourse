@@ -2,43 +2,25 @@ package image
 
 import (
 	"os"
-	"time"
 
 	"github.com/concourse/atc"
-	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/resource"
 	"github.com/concourse/atc/worker"
-	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 )
 
-//go:generate counterfeiter . LeaseDB
-
-type LeaseDB interface {
-	GetLease(logger lager.Logger, leaseName string, interval time.Duration) (db.Lease, bool, error)
-}
-
-//go:generate counterfeiter . TrackerFactory
-
-type TrackerFactory interface {
-	TrackerFor(client worker.Client) resource.Tracker
-}
-
 type factory struct {
-	trackerFactory TrackerFactory
-	db             LeaseDB
-	clock          clock.Clock
+	trackerFactory         resource.TrackerFactory
+	resourceFetcherFactory resource.FetcherFactory
 }
 
 func NewFactory(
-	trackerFactory TrackerFactory,
-	db LeaseDB,
-	clock clock.Clock,
+	trackerFactory resource.TrackerFactory,
+	resourceFetcherFactory resource.FetcherFactory,
 ) worker.ImageFactory {
 	return &factory{
-		trackerFactory: trackerFactory,
-		db:             db,
-		clock:          clock,
+		trackerFactory:         trackerFactory,
+		resourceFetcherFactory: resourceFetcherFactory,
 	}
 }
 
@@ -56,7 +38,6 @@ func (f *factory) NewImage(
 ) worker.Image {
 	return &image{
 		logger:                logger,
-		db:                    f.db,
 		signals:               signals,
 		imageResource:         imageResource,
 		workerID:              workerID,
@@ -66,7 +47,7 @@ func (f *factory) NewImage(
 		workerClient:          workerClient,
 		imageFetchingDelegate: imageFetchingDelegate,
 		tracker:               f.trackerFactory.TrackerFor(workerClient),
-		clock:                 f.clock,
+		resourceFetcher:       f.resourceFetcherFactory.FetcherFor(workerClient),
 		privileged:            privileged,
 	}
 }
