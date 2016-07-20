@@ -19,8 +19,8 @@
   }
 
   \note{feature}{
-    A task's \reference{run} can now specify the working directory by setting
-    \reference{dir}.
+    A task's \reference{task-run} can now specify the working directory by
+    setting \reference{task-run-dir}.
   }
 
   \note{feature}{

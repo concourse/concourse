@@ -133,8 +133,8 @@ the \reference{installing}{installation guide} before coming back here.
     order for our task to run. In this case, we need the \code{flight-school}
     source code in order to run the tests on it.
   }{
-    The final \reference{run} section describes how Concourse should run the
-    task.  By default Concourse will run your script with a current working
+    The final \reference{task-run} section describes how Concourse should run
+    the task.  By default Concourse will run your script with a current working
     directory containing all of your inputs as subdirectories.
   }
 
