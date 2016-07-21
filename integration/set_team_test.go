@@ -3,7 +3,9 @@ package integration_test
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
 
 	"github.com/concourse/atc"
@@ -256,7 +258,13 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("Setting uaa auth", func() {
+			var cfCertFile *os.File
+
 			BeforeEach(func() {
+				var err error
+				cfCertFile, err = ioutil.TempFile("", "test-cf-cert")
+				Expect(err).NotTo(HaveOccurred())
+
 				cmdParams = []string{
 					"--uaa-auth-client-id", "Brock Samson",
 					"--uaa-auth-client-secret", "brock123",
@@ -264,7 +272,13 @@ var _ = Describe("Fly CLI", func() {
 					"--uaa-auth-auth-url", "http://auth.example.url",
 					"--uaa-auth-token-url", "http://token.example.url",
 					"--uaa-auth-cf-url", "http://api.example.url",
+					"--uaa-auth-cf-ca-cert", cfCertFile.Name(),
 				}
+			})
+
+			AfterEach(func() {
+				err := os.RemoveAll(cfCertFile.Name())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("says 'disabled' to setting basic auth and github auth and 'enabled' to uaa auth", func() {
@@ -338,92 +352,212 @@ var _ = Describe("Fly CLI", func() {
 				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
-
 	})
 
 	Describe("sending", func() {
-		BeforeEach(func() {
-			cmdParams = []string{
-				"--basic-auth-username", "brock obama",
-				"--basic-auth-password", "brock123",
-				"--github-auth-client-id", "barack samson",
-				"--github-auth-client-secret", "barack123",
-				"--github-auth-organization", "Obama, Inc",
-				"--github-auth-organization", "Samson, Inc",
-				"--github-auth-team", "Venture, Inc/venture-devs",
-				"--github-auth-user", "lisa",
-				"--github-auth-user", "frank",
-				"--uaa-auth-client-id", "barack samson",
-				"--uaa-auth-client-secret", "barack123",
-				"--uaa-auth-cf-space", "Obama, Inc",
-				"--uaa-auth-cf-space", "Samson, Inc",
-				"--uaa-auth-auth-url", "http://uaa.auth.url",
-				"--uaa-auth-token-url", "http://uaa.token.url",
-				"--uaa-auth-cf-url", "http://cf.url",
-			}
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("PUT", "/api/v1/teams/venture"),
-					ghttp.VerifyJSON(`{
-						"basic_auth": {
-							"basic_auth_username": "brock obama",
-							"basic_auth_password": "brock123"
-						},
-						"github_auth": {
-							"client_id": "barack samson",
-							"client_secret": "barack123",
-							"organizations": ["Obama, Inc", "Samson, Inc"],
-							"teams": [{"organization_name": "Venture, Inc", "team_name": "venture-devs"}],
-							"users": ["lisa", "frank"]
-						},
-						"uaa_auth": {
-							"client_id": "barack samson",
-							"client_secret": "barack123",
-							"auth_url": "http://uaa.auth.url",
-							"token_url": "http://uaa.token.url",
-							"cf_spaces": ["Obama, Inc", "Samson, Inc"],
-							"cf_url": "http://cf.url"
-						}
-					}`),
-					ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Team{
-						Name: "venture",
-						ID:   8,
-					}),
-				),
-			)
+		Context("with CA Cert", func() {
+			var cfCertFilePath string
+
+			BeforeEach(func() {
+				cfCertFile, err := ioutil.TempFile("", "test-cf-cert")
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = cfCertFile.WriteString("cf-cert-contents")
+				Expect(err).NotTo(HaveOccurred())
+
+				cfCertFilePath = cfCertFile.Name()
+
+				cmdParams = []string{
+					"--basic-auth-username", "brock obama",
+					"--basic-auth-password", "brock123",
+					"--github-auth-client-id", "barack samson",
+					"--github-auth-client-secret", "barack123",
+					"--github-auth-organization", "Obama, Inc",
+					"--github-auth-organization", "Samson, Inc",
+					"--github-auth-team", "Venture, Inc/venture-devs",
+					"--github-auth-user", "lisa",
+					"--github-auth-user", "frank",
+					"--uaa-auth-client-id", "barack samson",
+					"--uaa-auth-client-secret", "barack123",
+					"--uaa-auth-cf-space", "Obama, Inc",
+					"--uaa-auth-cf-space", "Samson, Inc",
+					"--uaa-auth-auth-url", "http://uaa.auth.url",
+					"--uaa-auth-token-url", "http://uaa.token.url",
+					"--uaa-auth-cf-url", "http://cf.url",
+					"--uaa-auth-cf-ca-cert", cfCertFilePath,
+				}
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", "/api/v1/teams/venture"),
+						ghttp.VerifyJSON(`{
+							"basic_auth": {
+								"basic_auth_username": "brock obama",
+								"basic_auth_password": "brock123"
+							},
+							"github_auth": {
+								"client_id": "barack samson",
+								"client_secret": "barack123",
+								"organizations": ["Obama, Inc", "Samson, Inc"],
+								"teams": [{"organization_name": "Venture, Inc", "team_name": "venture-devs"}],
+								"users": ["lisa", "frank"]
+							},
+							"uaa_auth": {
+								"client_id": "barack samson",
+								"client_secret": "barack123",
+								"auth_url": "http://uaa.auth.url",
+								"token_url": "http://uaa.token.url",
+								"cf_spaces": ["Obama, Inc", "Samson, Inc"],
+								"cf_url": "http://cf.url",
+								"cf_ca_cert": "cf-cert-contents"
+							}
+						}`),
+						ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Team{
+							Name: "venture",
+							ID:   8,
+						}),
+					),
+				)
+			})
+
+			AfterEach(func() {
+				err := os.RemoveAll(cfCertFilePath)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("sends the expected request", func() {
+				stdin, err := flyCmd.StdinPipe()
+				Expect(err).NotTo(HaveOccurred())
+
+				sess, err := gexec.Start(flyCmd, nil, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
+				Eventually(sess.Out).Should(gbytes.Say("Basic Auth: enabled"))
+				Eventually(sess.Out).Should(gbytes.Say("GitHub Auth: enabled"))
+				Eventually(sess.Out).Should(gbytes.Say("UAA Auth: enabled"))
+
+				Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+				yes(stdin)
+
+				Eventually(sess).Should(gexec.Exit(0))
+			})
+
+			It("Outputs created for new team", func() {
+				stdin, err := flyCmd.StdinPipe()
+				Expect(err).NotTo(HaveOccurred())
+
+				sess, err := gexec.Start(flyCmd, nil, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+				yes(stdin)
+
+				Eventually(sess.Out).Should(gbytes.Say("team created"))
+
+				Eventually(sess).Should(gexec.Exit(0))
+			})
 		})
 
-		It("sends the expected request", func() {
-			stdin, err := flyCmd.StdinPipe()
-			Expect(err).NotTo(HaveOccurred())
+		Context("without CA Cert", func() {
+			var cfCertFilePath string
 
-			sess, err := gexec.Start(flyCmd, nil, nil)
-			Expect(err).ToNot(HaveOccurred())
+			BeforeEach(func() {
+				cfCertFile, err := ioutil.TempFile("", "test-cf-cert")
+				Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
-			Eventually(sess.Out).Should(gbytes.Say("Basic Auth: enabled"))
-			Eventually(sess.Out).Should(gbytes.Say("GitHub Auth: enabled"))
-			Eventually(sess.Out).Should(gbytes.Say("UAA Auth: enabled"))
+				_, err = cfCertFile.WriteString("cf-cert-contents")
+				Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
-			yes(stdin)
+				cfCertFilePath = cfCertFile.Name()
 
-			Eventually(sess).Should(gexec.Exit(0))
-		})
+				cmdParams = []string{
+					"--basic-auth-username", "brock obama",
+					"--basic-auth-password", "brock123",
+					"--github-auth-client-id", "barack samson",
+					"--github-auth-client-secret", "barack123",
+					"--github-auth-organization", "Obama, Inc",
+					"--github-auth-organization", "Samson, Inc",
+					"--github-auth-team", "Venture, Inc/venture-devs",
+					"--github-auth-user", "lisa",
+					"--github-auth-user", "frank",
+					"--uaa-auth-client-id", "barack samson",
+					"--uaa-auth-client-secret", "barack123",
+					"--uaa-auth-cf-space", "Obama, Inc",
+					"--uaa-auth-cf-space", "Samson, Inc",
+					"--uaa-auth-auth-url", "http://uaa.auth.url",
+					"--uaa-auth-token-url", "http://uaa.token.url",
+					"--uaa-auth-cf-url", "http://cf.url",
+				}
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", "/api/v1/teams/venture"),
+						ghttp.VerifyJSON(`{
+							"basic_auth": {
+								"basic_auth_username": "brock obama",
+								"basic_auth_password": "brock123"
+							},
+							"github_auth": {
+								"client_id": "barack samson",
+								"client_secret": "barack123",
+								"organizations": ["Obama, Inc", "Samson, Inc"],
+								"teams": [{"organization_name": "Venture, Inc", "team_name": "venture-devs"}],
+								"users": ["lisa", "frank"]
+							},
+							"uaa_auth": {
+								"client_id": "barack samson",
+								"client_secret": "barack123",
+								"auth_url": "http://uaa.auth.url",
+								"token_url": "http://uaa.token.url",
+								"cf_spaces": ["Obama, Inc", "Samson, Inc"],
+								"cf_url": "http://cf.url",
+								"cf_ca_cert": ""
+							}
+						}`),
+						ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Team{
+							Name: "venture",
+							ID:   8,
+						}),
+					),
+				)
+			})
 
-		It("Outputs created for new team", func() {
-			stdin, err := flyCmd.StdinPipe()
-			Expect(err).NotTo(HaveOccurred())
+			AfterEach(func() {
+				err := os.RemoveAll(cfCertFilePath)
+				Expect(err).NotTo(HaveOccurred())
+			})
 
-			sess, err := gexec.Start(flyCmd, nil, nil)
-			Expect(err).ToNot(HaveOccurred())
+			It("sends the expected request", func() {
+				stdin, err := flyCmd.StdinPipe()
+				Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
-			yes(stdin)
+				sess, err := gexec.Start(flyCmd, nil, nil)
+				Expect(err).ToNot(HaveOccurred())
 
-			Eventually(sess.Out).Should(gbytes.Say("team created"))
+				Eventually(sess.Out).Should(gbytes.Say("Team Name: venture"))
+				Eventually(sess.Out).Should(gbytes.Say("Basic Auth: enabled"))
+				Eventually(sess.Out).Should(gbytes.Say("GitHub Auth: enabled"))
+				Eventually(sess.Out).Should(gbytes.Say("UAA Auth: enabled"))
 
-			Eventually(sess).Should(gexec.Exit(0))
+				Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+				yes(stdin)
+
+				Eventually(sess).Should(gexec.Exit(0))
+			})
+
+			It("Outputs created for new team", func() {
+				stdin, err := flyCmd.StdinPipe()
+				Expect(err).NotTo(HaveOccurred())
+
+				sess, err := gexec.Start(flyCmd, nil, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+				yes(stdin)
+
+				Eventually(sess.Out).Should(gbytes.Say("team created"))
+
+				Eventually(sess).Should(gexec.Exit(0))
+			})
 		})
 	})
 

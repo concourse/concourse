@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/fly/commands/internal/displayhelpers"
@@ -31,12 +32,13 @@ type SetTeamCommand struct {
 }
 
 type UAAAuth struct {
-	ClientID     string   `long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
-	ClientSecret string   `long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
-	AuthURL      string   `long:"auth-url"      description:"UAA AuthURL endpoint."`
-	TokenURL     string   `long:"token-url"     description:"UAA TokenURL endpoint."`
-	CFSpaces     []string `long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
-	CFURL        string   `long:"cf-url"        description:"CF API endpoint."`
+	ClientID     string               `long:"client-id"     description:"Application client ID for enabling UAA OAuth."`
+	ClientSecret string               `long:"client-secret" description:"Application client secret for enabling UAA OAuth."`
+	AuthURL      string               `long:"auth-url"      description:"UAA AuthURL endpoint."`
+	TokenURL     string               `long:"token-url"     description:"UAA TokenURL endpoint."`
+	CFSpaces     []string             `long:"cf-space"      description:"Space GUID for a CF space whose developers will have access."`
+	CFURL        string               `long:"cf-url"        description:"CF API endpoint."`
+	CFCACert     flaghelpers.PathFlag `long:"cf-ca-cert"    description:"Path to CF PEM-encoded CA certificate file."`
 }
 
 func (auth *UAAAuth) IsConfigured() bool {
@@ -118,6 +120,15 @@ func (command *SetTeamCommand) Execute([]string) error {
 	}
 
 	if command.UAAAuth.IsConfigured() {
+		cfCACert := ""
+		if command.UAAAuth.CFCACert != "" {
+			cfCACertFileContents, err := ioutil.ReadFile(string(command.UAAAuth.CFCACert))
+			if err != nil {
+				return err
+			}
+			cfCACert = string(cfCACertFileContents)
+		}
+
 		team.UAAAuth = &atc.UAAAuth{
 			ClientID:     command.UAAAuth.ClientID,
 			ClientSecret: command.UAAAuth.ClientSecret,
@@ -125,6 +136,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 			TokenURL:     command.UAAAuth.TokenURL,
 			CFSpaces:     command.UAAAuth.CFSpaces,
 			CFURL:        command.UAAAuth.CFURL,
+			CFCACert:     cfCACert,
 		}
 	}
 
