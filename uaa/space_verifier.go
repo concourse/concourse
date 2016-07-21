@@ -5,12 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
-	"path"
 	"strings"
 
 	"golang.org/x/oauth2"
 
+	"github.com/cloudfoundry/gunk/urljoiner"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pivotal-golang/lager"
 )
@@ -31,7 +30,7 @@ func NewSpaceVerifier(
 }
 
 type UAAToken struct {
-	UserID string `json:"user-id"`
+	UserID string `json:"user_id"`
 }
 
 type CFSpaceDevelopersResponse struct {
@@ -72,15 +71,14 @@ func (verifier SpaceVerifier) Verify(logger lager.Logger, httpClient *http.Clien
 		return false, err
 	}
 
-	cfAPIURL, err := url.Parse(verifier.cfAPIURL)
-	if err != nil {
-		return false, err
+	if uaaToken.UserID == "" {
+		return false, fmt.Errorf("not able to retrieve 'user_id' property from UAA access token")
 	}
 
 	for _, verifierSpaceGUID := range verifier.spaceGUIDs {
-		cfAPIURL.Path = path.Join("v2", "spaces", verifierSpaceGUID, "developers?results-per-page=100")
+		spaceURL := urljoiner.Join(verifier.cfAPIURL, "v2", "spaces", verifierSpaceGUID, "developers?results-per-page=100")
 
-		hasAccess, nextUrl, err := verifier.isSpaceDeveloper(httpClient, cfAPIURL.String(), uaaToken.UserID)
+		hasAccess, nextUrl, err := verifier.isSpaceDeveloper(logger, httpClient, spaceURL, uaaToken.UserID)
 		if err != nil {
 			return false, err
 		}
@@ -90,8 +88,8 @@ func (verifier SpaceVerifier) Verify(logger lager.Logger, httpClient *http.Clien
 		}
 
 		for nextUrl != "" {
-			cfAPIURL.Path = nextUrl
-			hasAccess, nextUrl, err = verifier.isSpaceDeveloper(httpClient, cfAPIURL.String(), uaaToken.UserID)
+			spaceURL = urljoiner.Join(verifier.cfAPIURL, nextUrl)
+			hasAccess, nextUrl, err = verifier.isSpaceDeveloper(logger, httpClient, spaceURL, uaaToken.UserID)
 			if err != nil {
 				return false, err
 			}
@@ -109,7 +107,13 @@ func (verifier SpaceVerifier) Verify(logger lager.Logger, httpClient *http.Clien
 	return false, nil
 }
 
-func (verifier SpaceVerifier) isSpaceDeveloper(httpClient *http.Client, cfApiURL string, userGUID string) (bool, string, error) {
+func (verifier SpaceVerifier) isSpaceDeveloper(
+	logger lager.Logger,
+	httpClient *http.Client,
+	cfApiURL string,
+	userGUID string,
+) (bool, string, error) {
+	logger.Info("cf-request", lager.Data{"url": cfApiURL})
 	response, err := httpClient.Get(cfApiURL)
 	if err != nil {
 		return false, "", err
@@ -117,7 +121,11 @@ func (verifier SpaceVerifier) isSpaceDeveloper(httpClient *http.Client, cfApiURL
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return false, "", fmt.Errorf("unexpected response code from CF API URL: %d", response.StatusCode)
+		logger.Info("unexpected response from CF API URL", lager.Data{
+			"statusCode": response.StatusCode,
+			"status":     response.Status,
+		})
+		return false, "", nil
 	}
 
 	var cfSpaceDevelopersResponse CFSpaceDevelopersResponse

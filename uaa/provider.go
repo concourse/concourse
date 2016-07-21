@@ -30,7 +30,10 @@ func NewProvider(
 	}
 
 	return Provider{
-		Verifier: NoopVerifier{},
+		Verifier: SpaceVerifier{
+			spaceGUIDs: uaaAuth.CFSpaces,
+			cfAPIURL:   uaaAuth.CFURL,
+		},
 		Config: &oauth2.Config{
 			ClientID:     uaaAuth.ClientID,
 			ClientSecret: uaaAuth.ClientSecret,
