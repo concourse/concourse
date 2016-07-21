@@ -237,3 +237,9 @@
 	path = src/github.com/concourse/go-archive
 	url = https://github.com/concourse/go-archive
 	branch = master
+[submodule "src/gopkg.in/cheggaaa/pb.v1"]
+	path = src/gopkg.in/cheggaaa/pb.v1
+	url = https://gopkg.in/cheggaaa/pb.v1
+[submodule "src/github.com/kr/tarutil"]
+	path = src/github.com/kr/tarutil
+	url = https://github.com/kr/tarutil
