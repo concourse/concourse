@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/jessevdk/go-flags"
+	"github.com/vito/twentythousandtonnesofcrudeoil"
 )
 
 // overridden via linker flags
@@ -22,6 +23,8 @@ func main() {
 	parser.NamespaceDelimiter = "-"
 
 	cmd.lessenRequirements(parser)
+
+	twentythousandtonnesofcrudeoil.TheEnvironmentIsPerfectlySafe(parser, "CONCOURSE_")
 
 	_, err := parser.Parse()
 	if err != nil {
