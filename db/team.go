@@ -65,4 +65,5 @@ type UAAAuth struct {
 	TokenURL     string   `json:"token_url"`
 	CFSpaces     []string `json:"cf_spaces"`
 	CFURL        string   `json:"cf_url"`
+	CFCACert     string   `json:"cf_ca_cert"`
 }

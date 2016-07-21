@@ -2,6 +2,8 @@ package auth
 
 import (
 	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -115,15 +117,34 @@ func (handler *OAuthCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	token, err := provider.Exchange(oauth2.NoContext, r.FormValue("code"))
+	transport := &http.Transport{
+		DisableKeepAlives: true,
+	}
+
+	if team.UAAAuth != nil && team.UAAAuth.CFCACert != "" {
+		caCertPool := x509.NewCertPool()
+		ok := caCertPool.AppendCertsFromPEM([]byte(team.UAAAuth.CFCACert))
+		if !ok {
+			http.Error(w, "failed to use cf certificate", http.StatusInternalServerError)
+			return
+		}
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs: caCertPool,
+		}
+	}
+
+	disabledKeepAliveClient := &http.Client{
+		Transport: transport,
+	}
+	ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, disabledKeepAliveClient)
+
+	token, err := provider.Exchange(ctx, r.FormValue("code"))
 	if err != nil {
 		hLog.Error("failed-to-exchange-token", err)
 		http.Error(w, "failed to exchange token", http.StatusInternalServerError)
 		return
 	}
 
-	disabledKeepAliveClient := http.Client{Transport: &http.Transport{DisableKeepAlives: true}}
-	ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, disabledKeepAliveClient)
 	httpClient := provider.Client(ctx, token)
 
 	verified, err := provider.Verify(hLog.Session("verify"), httpClient)

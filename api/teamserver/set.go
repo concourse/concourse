@@ -12,10 +12,12 @@ import (
 
 func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	hLog := s.logger.Session("create-team")
+	hLog.Debug("setting team")
 
 	requesterTeamName, _, isAdmin, found := auth.GetTeam(r)
 
 	if !found {
+		hLog.Error("failed-to-get-team-from-auth", errors.New("failed-to-get-team-from-auth"))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -54,6 +56,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if found {
+		hLog.Debug("updating credentials")
 		err = s.updateCredentials(team, teamDB)
 		if err != nil {
 			hLog.Error("failed-to-update-team", err)
@@ -63,6 +66,8 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(http.StatusOK)
 	} else if isAdmin {
+		hLog.Debug("creating team")
+
 		savedTeam, err = s.teamsDB.CreateTeam(team)
 		if err != nil {
 			hLog.Error("failed-to-save-team", err)
