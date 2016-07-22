@@ -6,11 +6,14 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/auth"
 )
 
 func (s *Server) ListWorkers(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-workers")
-	savedWorkers, err := s.db.Workers()
+
+	teamDB := s.teamDBFactory.GetTeamDB(auth.GetAuthOrDefaultTeamName(r))
+	savedWorkers, err := teamDB.Workers()
 	if err != nil {
 		logger.Error("failed-to-get-workers", err)
 		w.WriteHeader(http.StatusInternalServerError)

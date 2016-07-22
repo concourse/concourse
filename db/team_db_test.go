@@ -53,6 +53,9 @@ var _ = Describe("TeamDB", func() {
 
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
 
+		team = db.Team{Name: "other-team-name"}
+		_, err = database.CreateTeam(team)
+		Expect(err).NotTo(HaveOccurred())
 		otherTeamDB = teamDBFactory.GetTeamDB("other-team-name")
 	})
 
@@ -71,10 +74,6 @@ var _ = Describe("TeamDB", func() {
 			savedPipeline, _, err = teamDB.SaveConfig("pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			team := db.Team{Name: "other-team-name"}
-			_, err = database.CreateTeam(team)
-			Expect(err).NotTo(HaveOccurred())
-			otherTeamDB := teamDBFactory.GetTeamDB("other-team-name")
 			_, _, err = otherTeamDB.SaveConfig("pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -97,11 +96,6 @@ var _ = Describe("TeamDB", func() {
 
 			savedPipeline2, _, err = teamDB.SaveConfig("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
-
-			team := db.Team{Name: "other-team-name"}
-			_, err = database.CreateTeam(team)
-			Expect(err).NotTo(HaveOccurred())
-			otherTeamDB := teamDBFactory.GetTeamDB("other-team-name")
 
 			_, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
@@ -168,7 +162,6 @@ var _ = Describe("TeamDB", func() {
 	})
 
 	Describe("OrderPipelines", func() {
-		var otherTeamDB db.TeamDB
 		var savedPipeline1 db.SavedPipeline
 		var savedPipeline2 db.SavedPipeline
 		var otherTeamSavedPipeline1 db.SavedPipeline
@@ -180,11 +173,6 @@ var _ = Describe("TeamDB", func() {
 			Expect(err).NotTo(HaveOccurred())
 			savedPipeline2, _, err = teamDB.SaveConfig("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
-
-			team := db.Team{Name: "other-team-name"}
-			_, err = database.CreateTeam(team)
-			Expect(err).NotTo(HaveOccurred())
-			otherTeamDB = teamDBFactory.GetTeamDB("other-team-name")
 
 			otherTeamSavedPipeline1, _, err = otherTeamDB.SaveConfig("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
@@ -428,6 +416,77 @@ var _ = Describe("TeamDB", func() {
 			Expect(found).To(BeTrue())
 
 			Expect(buildPrep.BuildID).To(Equal(oneOffBuild.ID()))
+		})
+	})
+
+	Describe("Workers", func() {
+		var myTeamWorker, otherTeamWorker, sharedWorker db.SavedWorker
+
+		BeforeEach(func() {
+			var err error
+			myTeamWorker, err = database.SaveWorker(db.WorkerInfo{
+				GardenAddr: "1.2.3.4",
+				Name:       "my-team-worker",
+				Team:       "team-name",
+			}, 5*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+
+			otherTeamWorker, err = database.SaveWorker(db.WorkerInfo{
+				GardenAddr: "1.2.3.5",
+				Name:       "other-team-worker",
+				Team:       "other-team-name",
+			}, 5*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+
+			sharedWorker, err = database.SaveWorker(db.WorkerInfo{
+				GardenAddr: "1.2.3.6",
+				Name:       "shared-worker",
+			}, 5*time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns workers that belong to current team or that do not belong to any team", func() {
+			workers, err := teamDB.Workers()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(workers).To(HaveLen(2))
+			Expect([]string{
+				workers[0].Name,
+				workers[1].Name,
+			}).To(ConsistOf([]string{"my-team-worker", "shared-worker"}))
+
+			otherTeamWorkers, err := otherTeamDB.Workers()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(otherTeamWorkers).To(HaveLen(2))
+			Expect([]string{
+				otherTeamWorkers[0].Name,
+				otherTeamWorkers[1].Name,
+			}).To(ConsistOf([]string{"other-team-worker", "shared-worker"}))
+		})
+
+		It("returns shared workers if current team has no workers", func() {
+			noWorkersTeamDB := teamDBFactory.GetTeamDB("no-workers-team-name")
+			workers, err := noWorkersTeamDB.Workers()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(workers).To(HaveLen(1))
+			Expect(workers[0].Name).To(Equal("shared-worker"))
+		})
+
+		It("reaps expired workers", func() {
+			_, err := database.SaveWorker(db.WorkerInfo{
+				GardenAddr: "1.2.3.7",
+				Name:       "expired-worker",
+				Team:       "team-name",
+			}, 1*time.Nanosecond)
+			Expect(err).NotTo(HaveOccurred())
+			time.Sleep(2 * time.Nanosecond)
+
+			workers, err := teamDB.Workers()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(workers).To(HaveLen(2))
+			Expect([]string{
+				workers[0].Name,
+				workers[1].Name,
+			}).To(ConsistOf([]string{"my-team-worker", "shared-worker"}))
 		})
 	})
 

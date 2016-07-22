@@ -12,12 +12,7 @@ var workerColumns = "EXTRACT(epoch FROM expires - NOW()), addr, baggageclaim_url
 var actualWorkerColumns = "EXTRACT(epoch FROM expires - NOW()), addr, baggageclaim_url, http_proxy_url, https_proxy_url, no_proxy, active_containers, resource_types, platform, tags, name, start_time"
 
 func (db *SQLDB) Workers() ([]SavedWorker, error) {
-	// reap expired workers
-	_, err := db.conn.Exec(`
-		DELETE FROM workers
-		WHERE expires IS NOT NULL
-		AND expires < NOW()
-	`)
+	err := reapExpiredWorkers(db.conn)
 	if err != nil {
 		return nil, err
 	}
@@ -67,12 +62,7 @@ func (db *SQLDB) FindWorkerCheckResourceTypeVersion(workerName string, checkType
 }
 
 func (db *SQLDB) GetWorker(name string) (SavedWorker, bool, error) {
-	// reap expired workers
-	_, err := db.conn.Exec(`
-		DELETE FROM workers
-		WHERE expires IS NOT NULL
-		AND expires < NOW()
-	`)
+	err := reapExpiredWorkers(db.conn)
 	if err != nil {
 		return SavedWorker{}, false, err
 	}
@@ -145,6 +135,15 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) (SavedWorker, er
 
 	savedWorker.Team = info.Team
 	return savedWorker, nil
+}
+
+func reapExpiredWorkers(dbConn Conn) error {
+	_, err := dbConn.Exec(`
+		DELETE FROM workers
+		WHERE expires IS NOT NULL
+		AND expires < NOW()
+	`)
+	return err
 }
 
 func scanWorker(row scannable, scanTeam bool) (SavedWorker, error) {

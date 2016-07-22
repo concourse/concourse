@@ -120,6 +120,13 @@ type FakeTeamDB struct {
 		result2 bool
 		result3 error
 	}
+	WorkersStub        func() ([]db.SavedWorker, error)
+	workersMutex       sync.RWMutex
+	workersArgsForCall []struct{}
+	workersReturns     struct {
+		result1 []db.SavedWorker
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -522,6 +529,32 @@ func (fake *FakeTeamDB) GetBuildReturns(result1 db.Build, result2 bool, result3 
 	}{result1, result2, result3}
 }
 
+func (fake *FakeTeamDB) Workers() ([]db.SavedWorker, error) {
+	fake.workersMutex.Lock()
+	fake.workersArgsForCall = append(fake.workersArgsForCall, struct{}{})
+	fake.recordInvocation("Workers", []interface{}{})
+	fake.workersMutex.Unlock()
+	if fake.WorkersStub != nil {
+		return fake.WorkersStub()
+	} else {
+		return fake.workersReturns.result1, fake.workersReturns.result2
+	}
+}
+
+func (fake *FakeTeamDB) WorkersCallCount() int {
+	fake.workersMutex.RLock()
+	defer fake.workersMutex.RUnlock()
+	return len(fake.workersArgsForCall)
+}
+
+func (fake *FakeTeamDB) WorkersReturns(result1 []db.SavedWorker, result2 error) {
+	fake.WorkersStub = nil
+	fake.workersReturns = struct {
+		result1 []db.SavedWorker
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -549,6 +582,8 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.getBuildsMutex.RUnlock()
 	fake.getBuildMutex.RLock()
 	defer fake.getBuildMutex.RUnlock()
+	fake.workersMutex.RLock()
+	defer fake.workersMutex.RUnlock()
 	return fake.invocations
 }
 

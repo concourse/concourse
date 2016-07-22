@@ -27,6 +27,8 @@ type TeamDB interface {
 	CreateOneOffBuild() (Build, error)
 	GetBuilds(page Page, publicOnly bool) ([]Build, Pagination, error)
 	GetBuild(buildID int) (Build, bool, error)
+
+	Workers() ([]SavedWorker, error)
 }
 
 type teamDB struct {
@@ -541,6 +543,37 @@ func (db *teamDB) CreateOneOffBuild() (Build, error) {
 	}
 
 	return build, nil
+}
+
+func (db *teamDB) Workers() ([]SavedWorker, error) {
+	err := reapExpiredWorkers(db.conn)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := db.conn.Query(`
+		SELECT `+workerColumns+`
+		FROM workers as w
+		LEFT OUTER JOIN teams as t ON t.id = w.team_id
+		WHERE t.name = $1 OR w.team_id IS NULL
+	`, db.teamName)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	savedWorkers := []SavedWorker{}
+	for rows.Next() {
+		savedWorker, err := scanWorker(rows, true)
+		if err != nil {
+			return nil, err
+		}
+
+		savedWorkers = append(savedWorkers, savedWorker)
+	}
+
+	return savedWorkers, nil
 }
 
 func (db *teamDB) GetBuilds(page Page, publicOnly bool) ([]Build, Pagination, error) {

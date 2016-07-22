@@ -29,12 +29,19 @@ var _ = Describe("Workers API", func() {
 
 		Context("when authenticated", func() {
 			BeforeEach(func() {
+				userContextReader.GetTeamReturns("some-team", 5, false, true)
 				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			It("fetches workers by team name from user context", func() {
+				Expect(teamDBFactory.GetTeamDBCallCount()).To(Equal(1))
+				teamName := teamDBFactory.GetTeamDBArgsForCall(0)
+				Expect(teamName).To(Equal("some-team"))
 			})
 
 			Context("when the workers can be listed", func() {
 				BeforeEach(func() {
-					workerDB.WorkersReturns([]db.SavedWorker{
+					teamDB.WorkersReturns([]db.SavedWorker{
 						{
 							WorkerInfo: db.WorkerInfo{
 								GardenAddr:       "1.2.3.4:7777",
@@ -103,7 +110,7 @@ var _ = Describe("Workers API", func() {
 
 			Context("when getting the workers fails", func() {
 				BeforeEach(func() {
-					workerDB.WorkersReturns(nil, errors.New("oh no!"))
+					teamDB.WorkersReturns(nil, errors.New("oh no!"))
 				})
 
 				It("returns 500", func() {
