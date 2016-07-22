@@ -27,6 +27,7 @@ groups:
   - virtualbox-box
   - virtualbox-testflight
   - release-virtualbox-box
+  - promote-docker
   - master-merge
 
 - name: bosh-lite
@@ -455,11 +456,11 @@ jobs:
       trigger: true
   - task: build-root
     file: concourse-docker/ci/build-root.yml
-  - put: concourse-image
+  - put: concourse-image-rc
     params:
       build: concourse-image-build-root
       load_base: ubuntu-image
-      tag: version/number
+      tag: version/version
 
 - name: unfudge
   plan:
@@ -483,7 +484,9 @@ jobs:
     - get: bosh-rc
       passed: [bosh-deploy]
     - get: bin-rc
-      passed: [bin-smoke]
+      passed: [bin-smoke, bin-docker]
+    - get: concourse-image-rc
+      passed: [bin-docker]
     - get: deployments
   - task: finalize-release
     file: concourse/ci/finalize-release.yml
@@ -574,7 +577,7 @@ jobs:
   - aggregate:
     - get: version
       trigger: true
-      passed: [shipit]
+      passed: [github-release]
     - get: concourse
       params: {submodules: none}
       resource: concourse-develop
@@ -585,22 +588,6 @@ jobs:
   - put: concourse-docs
     params:
       current_app_name: docs
-      manifest: built-docs/manifest.yml
-
-- name: push-one-oh-docs
-  serial: true
-  plan:
-  - get: concourse
-    trigger: true
-    params: {submodules: none}
-    resource: concourse-marketing
-  - task: build-docs
-    file: concourse/ci/build-docs.yml
-    params:
-      ANALYTICS_ID: {{analytics-id}}
-  - put: concourse-one-oh-docs
-    params:
-      current_app_name: one-oh-docs
       manifest: built-docs/manifest.yml
 
 - name: github-release
@@ -661,6 +648,24 @@ jobs:
       - final-release/*.tgz
       - renamed-release/garden-runc-*.tgz
       - bin-rc/concourse_*
+
+- name: promote-docker
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: concourse-image-rc
+      passed: [shipit]
+      params: {save: true}
+      trigger: true
+    - get: version
+      passed: [shipit]
+      trigger: true
+  - put: concourse-image-final
+    params:
+      load: concourse-image-rc
+      tag: version/version
+      tag_as_latest: true
 
 - name: master-merge
   plan:
@@ -804,15 +809,6 @@ resources:
     organization: {{cf-organization}}
     space: {{cf-space}}
 
-- name: concourse-one-oh-docs
-  type: cf
-  source:
-    api: {{cf-target}}
-    username: {{cf-username}}
-    password: {{cf-password}}
-    organization: {{cf-organization}}
-    space: {{cf-space}}
-
 - name: github-release
   type: github-release
   source:
@@ -915,9 +911,13 @@ resources:
     repository: ubuntu
     tag: '16.04'
 
-- name: concourse-image
+- name: concourse-image-rc
   type: docker-image
-  source:
+  source: &concourse-image
     repository: concourse/concourse
     username: {{docker-username}}
     password: {{docker-password}}
+
+- name: concourse-image-final
+  type: docker-image
+  source: *concourse-image
