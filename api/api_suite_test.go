@@ -43,7 +43,7 @@ var (
 	providerFactory               *authfakes.FakeProviderFactory
 	fakeEngine                    *enginefakes.FakeEngine
 	fakeWorkerClient              *workerfakes.FakeClient
-	teamServerDB                  *teamserverfakes.FakeTeamDB
+	teamServerDB                  *teamserverfakes.FakeTeamsDB
 	volumesDB                     *volumeserverfakes.FakeVolumesDB
 	workerDB                      *workerserverfakes.FakeWorkerDB
 	containerDB                   *containerserverfakes.FakeContainerDB
@@ -90,7 +90,7 @@ func (f *fakeEventHandlerFactory) Construct(
 var _ = BeforeEach(func() {
 	pipelineDBFactory = new(dbfakes.FakePipelineDBFactory)
 	teamDBFactory = new(dbfakes.FakeTeamDBFactory)
-	teamServerDB = new(teamserverfakes.FakeTeamDB)
+	teamServerDB = new(teamserverfakes.FakeTeamsDB)
 	teamDB = new(dbfakes.FakeTeamDB)
 	teamDBFactory.GetTeamDBReturns(teamDB)
 	workerDB = new(workerserverfakes.FakeWorkerDB)

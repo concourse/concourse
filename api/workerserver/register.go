@@ -2,6 +2,7 @@ package workerserver
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
+	"github.com/pivotal-golang/lager"
 )
 
 type IntMetric int
@@ -25,6 +27,21 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
+	}
+
+	if registration.Team != "" {
+		_, found, err := s.teamDBFactory.GetTeamDB(registration.Team).GetTeam()
+		if err != nil {
+			logger.Error("failed-to-get-team", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !found {
+			logger.Error("team-not-found", errors.New("team-not-found"), lager.Data{"team-name": registration.Team})
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
 	if len(registration.GardenAddr) == 0 {
@@ -64,6 +81,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		ResourceTypes:    registration.ResourceTypes,
 		Platform:         registration.Platform,
 		Tags:             registration.Tags,
+		Team:             registration.Team,
 		Name:             registration.Name,
 		StartTime:        registration.StartTime,
 	}, ttl)

@@ -68,7 +68,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	} else if isAdmin {
 		hLog.Debug("creating team")
 
-		savedTeam, err = s.teamDB.CreateTeam(team)
+		savedTeam, err = s.teamsDB.CreateTeam(team)
 		if err != nil {
 			hLog.Error("failed-to-save-team", err)
 			w.WriteHeader(http.StatusInternalServerError)
