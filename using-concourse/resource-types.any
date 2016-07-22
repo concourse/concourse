@@ -135,8 +135,9 @@ before using it!
     \hyperlink{https://github.com/danrspencer/jira-resource}{Jira Integration}
   }{
     \hyperlink{https://github.com/jpatel-pivotal/google-drive-concourse-resource}{Google Drive}
+  }{
+    \hyperlink{https://github.com/FidelityInternational/concourse-pagerduty-notification-resource}{pagerduty Notifications}
   }
-  
 
   \section{Adding to this list}{
     Fork the
