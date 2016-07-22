@@ -106,6 +106,7 @@ var _ = Describe("Image", func() {
 			identifier,
 			metadata,
 			atc.Tags{"worker", "tags"},
+			"some-team",
 			customTypes,
 			fakeWorker,
 			fakeImageFetchingDelegate,
@@ -249,7 +250,7 @@ var _ = Describe("Image", func() {
 
 						It("created the 'check' resource with the correct session, with the currently fetching type removed from the set", func() {
 							Expect(fakeImageTracker.InitCallCount()).To(Equal(1))
-							_, metadata, session, resourceType, tags, actualCustomTypes, delegate := fakeImageTracker.InitArgsForCall(0)
+							_, metadata, session, resourceType, tags, teamName, actualCustomTypes, delegate := fakeImageTracker.InitArgsForCall(0)
 							Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 							Expect(session).To(Equal(resource.Session{
 								ID: worker.Identifier{
@@ -269,6 +270,7 @@ var _ = Describe("Image", func() {
 							}))
 							Expect(resourceType).To(Equal(resource.ResourceType("docker")))
 							Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
+							Expect(teamName).To(Equal("some-team"))
 							Expect(actualCustomTypes).To(Equal(customTypes))
 							Expect(delegate).To(Equal(fakeImageFetchingDelegate))
 						})
@@ -297,7 +299,7 @@ var _ = Describe("Image", func() {
 
 						It("fetches resource with correct session", func() {
 							Expect(fakeResourceFetcher.FetchCallCount()).To(Equal(1))
-							_, session, tags, actualCustomTypes, cacheID, metadata, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
+							_, session, tags, teamName, actualCustomTypes, cacheID, metadata, delegate, resourceOptions, _, _ := fakeResourceFetcher.FetchArgsForCall(0)
 							Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 							Expect(session).To(Equal(resource.Session{
 								ID: worker.Identifier{
@@ -316,6 +318,7 @@ var _ = Describe("Image", func() {
 								},
 							}))
 							Expect(tags).To(Equal(atc.Tags{"worker", "tags"}))
+							Expect(teamName).To(Equal("some-team"))
 							Expect(cacheID).To(Equal(resource.ResourceCacheIdentifier{
 								Type:    "docker",
 								Version: atc.Version{"v": "1"},

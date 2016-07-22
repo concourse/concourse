@@ -63,6 +63,7 @@ var _ = Describe("GardenFactory", func() {
 			taskDelegate  *execfakes.FakeTaskDelegate
 			privileged    Privileged
 			tags          []string
+			teamName      string
 			configSource  *execfakes.FakeTaskConfigSource
 			resourceTypes atc.ResourceTypes
 			inputMapping  map[string]string
@@ -85,6 +86,7 @@ var _ = Describe("GardenFactory", func() {
 
 			privileged = false
 			tags = []string{"step", "tags"}
+			teamName = "some-team"
 			configSource = new(execfakes.FakeTaskConfigSource)
 
 			inStep = new(execfakes.FakeStep)
@@ -127,6 +129,7 @@ var _ = Describe("GardenFactory", func() {
 				taskDelegate,
 				privileged,
 				tags,
+				teamName,
 				configSource,
 				resourceTypes,
 				inputMapping,
@@ -222,6 +225,7 @@ var _ = Describe("GardenFactory", func() {
 							Expect(fakeWorkerClient.AllSatisfyingCallCount()).To(Equal(1))
 							spec, actualResourceTypes := fakeWorkerClient.AllSatisfyingArgsForCall(0)
 							Expect(spec.Platform).To(Equal("some-platform"))
+							Expect(spec.Team).To(Equal("some-team"))
 							Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{
 								{
 									Name:   "custom-resource",

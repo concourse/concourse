@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/atc"
 	. "github.com/concourse/atc/resource"
 	"github.com/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/atc/worker"
 	"github.com/concourse/atc/worker/workerfakes"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -21,8 +22,10 @@ var _ = Describe("FetchSourceProvider", func() {
 		fetchSourceProvider  FetchSourceProvider
 
 		logger          lager.Logger
-		resourceOptions ResourceOptions
+		resourceOptions *resourcefakes.FakeResourceOptions
 		cacheID         *resourcefakes.FakeCacheIdentifier
+		tags            atc.Tags
+		resourceTypes   atc.ResourceTypes
 	)
 
 	BeforeEach(func() {
@@ -31,15 +34,21 @@ var _ = Describe("FetchSourceProvider", func() {
 		logger = lagertest.NewTestLogger("test")
 		session := Session{}
 		cacheID = new(resourcefakes.FakeCacheIdentifier)
-		tags := atc.Tags{}
-		resourceTypes := atc.ResourceTypes{}
+		tags = atc.Tags{"some", "tags"}
+		resourceTypes = atc.ResourceTypes{
+			{
+				Name: "some-resource-type",
+			},
+		}
 		resourceOptions = new(resourcefakes.FakeResourceOptions)
+		resourceOptions.ResourceTypeReturns("some-resource-type")
 		fakeContainerCreator = new(resourcefakes.FakeFetchContainerCreator)
 
 		fetchSourceProvider = fetchSourceProviderFactory.NewFetchSourceProvider(
 			logger,
 			session,
 			tags,
+			"some-team",
 			resourceTypes,
 			cacheID,
 			resourceOptions,
@@ -68,6 +77,19 @@ var _ = Describe("FetchSourceProvider", func() {
 		Context("when container for session does not exist", func() {
 			BeforeEach(func() {
 				fakeWorkerClient.FindContainerForIdentifierReturns(nil, false, nil)
+			})
+
+			It("tries to find satisfying worker", func() {
+				_, err := fetchSourceProvider.Get()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(fakeWorkerClient.SatisfyingCallCount()).To(Equal(1))
+				resourceSpec, actualResourceTypes := fakeWorkerClient.SatisfyingArgsForCall(0)
+				Expect(resourceSpec).To(Equal(worker.WorkerSpec{
+					ResourceType: "some-resource-type",
+					Tags:         tags,
+					Team:         "some-team",
+				}))
+				Expect(actualResourceTypes).To(Equal(resourceTypes))
 			})
 
 			Context("when worker is found for resource types", func() {

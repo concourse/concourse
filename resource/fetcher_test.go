@@ -58,15 +58,19 @@ var _ = Describe("Fetcher", func() {
 	})
 
 	JustBeforeEach(func() {
-		logger := lagertest.NewTestLogger("test")
-		session := Session{}
-		cacheID := new(resourcefakes.FakeCacheIdentifier)
-		metadata := EmptyMetadata{}
-		fakeImageFetchingDelegate := new(workerfakes.FakeImageFetchingDelegate)
-		tags := atc.Tags{}
-		resourceTypes := atc.ResourceTypes{}
-
-		fetchSource, fetchErr = fetcher.Fetch(logger, session, tags, resourceTypes, cacheID, metadata, fakeImageFetchingDelegate, resourceOptions, signals, ready)
+		fetchSource, fetchErr = fetcher.Fetch(
+			lagertest.NewTestLogger("test"),
+			Session{},
+			atc.Tags{},
+			"some-team",
+			atc.ResourceTypes{},
+			new(resourcefakes.FakeCacheIdentifier),
+			EmptyMetadata{},
+			new(workerfakes.FakeImageFetchingDelegate),
+			resourceOptions,
+			signals,
+			ready,
+		)
 	})
 
 	Context("when getting source succeeds", func() {

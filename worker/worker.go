@@ -169,6 +169,7 @@ func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Vo
 func (worker *gardenWorker) getImage(
 	logger lager.Logger,
 	imageSpec ImageSpec,
+	teamName string,
 	cancel <-chan os.Signal,
 	delegate ImageFetchingDelegate,
 	id Identifier,
@@ -202,6 +203,7 @@ func (worker *gardenWorker) getImage(
 			id,
 			metadata,
 			worker.tags,
+			teamName,
 			updatedResourceTypes,
 			worker,
 			delegate,
@@ -318,6 +320,7 @@ func (worker *gardenWorker) CreateContainer(
 	imageVolume, imageMetadata, resourceTypeVersion, imageURL, err := worker.getImage(
 		logger,
 		spec.ImageSpec,
+		spec.Team,
 		cancel,
 		delegate,
 		id,

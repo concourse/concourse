@@ -42,6 +42,7 @@ type TaskStep struct {
 	containerID       worker.Identifier
 	metadata          worker.Metadata
 	tags              atc.Tags
+	teamName          string
 	delegate          TaskDelegate
 	privileged        Privileged
 	configSource      TaskConfigSource
@@ -68,6 +69,7 @@ func newTaskStep(
 	containerID worker.Identifier,
 	metadata worker.Metadata,
 	tags atc.Tags,
+	teamName string,
 	delegate TaskDelegate,
 	privileged Privileged,
 	configSource TaskConfigSource,
@@ -86,6 +88,7 @@ func newTaskStep(
 		containerID:         containerID,
 		metadata:            metadata,
 		tags:                tags,
+		teamName:            teamName,
 		delegate:            delegate,
 		privileged:          privileged,
 		configSource:        configSource,
@@ -196,6 +199,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		workerSpec := worker.WorkerSpec{
 			Platform: config.Platform,
 			Tags:     step.tags,
+			Team:     step.teamName,
 		}
 
 		if config.ImageResource != nil {
@@ -407,6 +411,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 	containerSpec := worker.ContainerSpec{
 		Platform:  config.Platform,
 		Tags:      step.tags,
+		Team:      step.teamName,
 		Inputs:    inputMounts,
 		Outputs:   outputMounts,
 		ImageSpec: imageSpec,

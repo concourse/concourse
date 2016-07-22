@@ -16,6 +16,7 @@ type FetchSourceProviderFactory interface {
 		logger lager.Logger,
 		session Session,
 		tags atc.Tags,
+		teamName string,
 		resourceTypes atc.ResourceTypes,
 		cacheIdentifier CacheIdentifier,
 		resourceOptions ResourceOptions,
@@ -53,6 +54,7 @@ func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 	logger lager.Logger,
 	session Session,
 	tags atc.Tags,
+	teamName string,
 	resourceTypes atc.ResourceTypes,
 	cacheIdentifier CacheIdentifier,
 	resourceOptions ResourceOptions,
@@ -62,6 +64,7 @@ func (f *fetchSourceProviderFactory) NewFetchSourceProvider(
 		logger:           logger,
 		session:          session,
 		tags:             tags,
+		teamName:         teamName,
 		resourceTypes:    resourceTypes,
 		cacheIdentifier:  cacheIdentifier,
 		resourceOptions:  resourceOptions,
@@ -74,6 +77,7 @@ type fetchSourceProvider struct {
 	logger           lager.Logger
 	session          Session
 	tags             atc.Tags
+	teamName         string
 	resourceTypes    atc.ResourceTypes
 	cacheIdentifier  CacheIdentifier
 	resourceOptions  ResourceOptions
@@ -95,6 +99,7 @@ func (f *fetchSourceProvider) Get() (FetchSource, error) {
 	resourceSpec := worker.WorkerSpec{
 		ResourceType: string(f.resourceOptions.ResourceType()),
 		Tags:         f.tags,
+		Team:         f.teamName,
 	}
 
 	chosenWorker, err := f.workerClient.Satisfying(resourceSpec, f.resourceTypes)

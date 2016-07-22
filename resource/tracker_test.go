@@ -73,7 +73,7 @@ var _ = Describe("Tracker", func() {
 		})
 
 		JustBeforeEach(func() {
-			initResource, initErr = tracker.Init(logger, metadata, session, initType, []string{"resource", "tags"}, customTypes, delegate)
+			initResource, initErr = tracker.Init(logger, metadata, session, initType, []string{"resource", "tags"}, "some-team", customTypes, delegate)
 		})
 
 		Context("when a container does not exist for the session", func() {
@@ -197,6 +197,7 @@ var _ = Describe("Tracker", func() {
 				session,
 				initType,
 				[]string{"resource", "tags"},
+				"some-team",
 				inputSources,
 				customTypes,
 				delegate,
@@ -245,6 +246,7 @@ var _ = Describe("Tracker", func() {
 							worker.WorkerSpec{
 								ResourceType: "type1",
 								Tags:         []string{"resource", "tags"},
+								Team:         "some-team",
 							},
 						))
 						Expect(actualCustomTypes).To(Equal(customTypes))

@@ -115,6 +115,7 @@ var _ = Describe("GardenFactory", func() {
 				putDelegate,
 				resourceConfig,
 				tags,
+				"some-team",
 				params,
 				resourceTypes,
 				successTTL,
@@ -161,7 +162,7 @@ var _ = Describe("GardenFactory", func() {
 				It("initializes the resource with the correct type, session, and sources", func() {
 					Expect(fakeTracker.InitWithSourcesCallCount()).To(Equal(1))
 
-					_, sm, sid, typ, tags, sources, actualResourceTypes, delegate := fakeTracker.InitWithSourcesArgsForCall(0)
+					_, sm, sid, typ, tags, teamName, sources, actualResourceTypes, delegate := fakeTracker.InitWithSourcesArgsForCall(0)
 					Expect(sm).To(Equal(stepMetadata))
 					Expect(sid).To(Equal(resource.Session{
 						ID: worker.Identifier{
@@ -177,6 +178,7 @@ var _ = Describe("GardenFactory", func() {
 					}))
 					Expect(typ).To(Equal(resource.ResourceType("some-resource-type")))
 					Expect(tags).To(ConsistOf("some", "tags"))
+					Expect(teamName).To(Equal("some-team"))
 					Expect(actualResourceTypes).To(Equal(atc.ResourceTypes{
 						{
 							Name:   "custom-resource",
@@ -287,7 +289,7 @@ var _ = Describe("GardenFactory", func() {
 					BeforeEach(func() {
 						callCountDuringInit = make(chan int, 1)
 
-						fakeTracker.InitWithSourcesStub = func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, map[string]resource.ArtifactSource, atc.ResourceTypes, worker.ImageFetchingDelegate) (resource.Resource, []string, error) {
+						fakeTracker.InitWithSourcesStub = func(lager.Logger, resource.Metadata, resource.Session, resource.ResourceType, atc.Tags, string, map[string]resource.ArtifactSource, atc.ResourceTypes, worker.ImageFetchingDelegate) (resource.Resource, []string, error) {
 							callCountDuringInit <- putDelegate.InitializingCallCount()
 							return fakeResource, []string{"some-source", "some-other-source"}, nil
 						}

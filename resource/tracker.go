@@ -18,8 +18,8 @@ type Session struct {
 //go:generate counterfeiter . Tracker
 
 type Tracker interface {
-	Init(lager.Logger, Metadata, Session, ResourceType, atc.Tags, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, error)
-	InitWithSources(lager.Logger, Metadata, Session, ResourceType, atc.Tags, map[string]ArtifactSource, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, []string, error)
+	Init(lager.Logger, Metadata, Session, ResourceType, atc.Tags, string, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, error)
+	InitWithSources(lager.Logger, Metadata, Session, ResourceType, atc.Tags, string, map[string]ArtifactSource, atc.ResourceTypes, worker.ImageFetchingDelegate) (Resource, []string, error)
 }
 
 //go:generate counterfeiter . Cache
@@ -67,6 +67,7 @@ func (tracker *tracker) InitWithSources(
 	session Session,
 	typ ResourceType,
 	tags atc.Tags,
+	teamName string,
 	sources map[string]ArtifactSource,
 	resourceTypes atc.ResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -101,6 +102,7 @@ func (tracker *tracker) InitWithSources(
 		},
 		Ephemeral: session.Ephemeral,
 		Tags:      tags,
+		Team:      teamName,
 		Env:       metadata.Env(),
 	}
 
@@ -182,6 +184,7 @@ func (tracker *tracker) Init(
 	session Session,
 	typ ResourceType,
 	tags atc.Tags,
+	teamName string,
 	resourceTypes atc.ResourceTypes,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
 ) (Resource, error) {
@@ -216,6 +219,7 @@ func (tracker *tracker) Init(
 			},
 			Ephemeral: session.Ephemeral,
 			Tags:      tags,
+			Team:      teamName,
 			Env:       metadata.Env(),
 		},
 		resourceTypes,

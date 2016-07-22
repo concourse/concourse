@@ -30,6 +30,7 @@ type image struct {
 	workerID              worker.Identifier
 	workerMetadata        worker.Metadata
 	workerTags            atc.Tags
+	teamName              string
 	customTypes           atc.ResourceTypes
 	tracker               resource.Tracker
 	imageFetchingDelegate worker.ImageFetchingDelegate
@@ -84,6 +85,7 @@ func (i *image) Fetch() (worker.Volume, io.ReadCloser, atc.Version, error) {
 		i.logger.Session("init-image"),
 		getSess,
 		i.workerTags,
+		i.teamName,
 		i.customTypes,
 		cacheID,
 		resource.EmptyMetadata{},
@@ -157,6 +159,7 @@ func (i *image) getLatestVersion() (atc.Version, error) {
 		checkSess,
 		resource.ResourceType(i.imageResource.Type),
 		i.workerTags,
+		i.teamName,
 		i.customTypes,
 		i.imageFetchingDelegate,
 	)

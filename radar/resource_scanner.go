@@ -232,6 +232,7 @@ func (scanner *resourceScanner) scan(
 		session,
 		resource.ResourceType(resourceConfig.Type),
 		[]string{},
+		scanner.db.TeamName(),
 		resourceTypes,
 		worker.NoopImageFetchingDelegate{},
 	)

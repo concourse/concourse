@@ -62,6 +62,7 @@ var _ = Describe("ResourceScanner", func() {
 		fakeRadarDB.ScopedNameStub = func(thing string) string {
 			return "pipeline:" + thing
 		}
+		fakeRadarDB.TeamNameReturns("some-team")
 
 		fakeRadarDB.GetConfigReturns(atc.Config{
 			Resources: atc.ResourceConfigs{
@@ -131,7 +132,7 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, metadata, session, typ, tags, customTypes, delegate := fakeTracker.InitArgsForCall(0)
+				_, metadata, session, typ, tags, teamName, customTypes, delegate := fakeTracker.InitArgsForCall(0)
 				Expect(metadata).To(Equal(resource.TrackerMetadata{
 					ResourceName: "some-resource",
 					PipelineName: "some-pipeline",
@@ -162,6 +163,7 @@ var _ = Describe("ResourceScanner", func() {
 
 				Expect(typ).To(Equal(resource.ResourceType("git")))
 				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
+				Expect(teamName).To(Equal("some-team"))
 			})
 
 			Context("when the resource config has a specified check interval", func() {
@@ -447,7 +449,7 @@ var _ = Describe("ResourceScanner", func() {
 			})
 
 			It("constructs the resource of the correct type", func() {
-				_, metadata, session, typ, tags, _, _ := fakeTracker.InitArgsForCall(0)
+				_, metadata, session, typ, tags, teamName, _, _ := fakeTracker.InitArgsForCall(0)
 				Expect(metadata).To(Equal(resource.TrackerMetadata{
 					ResourceName: "some-resource",
 					PipelineName: "some-pipeline",
@@ -470,6 +472,7 @@ var _ = Describe("ResourceScanner", func() {
 
 				Expect(typ).To(Equal(resource.ResourceType("git")))
 				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
+				Expect(teamName).To(Equal("some-team"))
 			})
 
 			It("grabs an immediate resource checking lease before checking, breaks lease after done", func() {

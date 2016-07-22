@@ -173,6 +173,7 @@ var _ = Describe("Worker", func() {
 					ImageURL:   "some-image",
 					Privileged: true,
 				},
+				Team: "some-team",
 			}
 
 			fakeContainer := new(gfakes.FakeContainer)
@@ -574,7 +575,7 @@ var _ = Describe("Worker", func() {
 
 			It("tries to fetch the image for the resource type", func() {
 				Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
-				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
+				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchTeamName, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
 				Expect(fakeImage.FetchCallCount()).To(Equal(1))
 				Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 					Type:   "some-resource",
@@ -586,6 +587,7 @@ var _ = Describe("Worker", func() {
 				Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 				Expect(fetchWorker).To(Equal(gardenWorker))
 				Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
+				Expect(fetchTeamName).To(Equal("some-team"))
 				Expect(fetchCustomTypes).To(Equal(customTypes))
 				Expect(fetchPrivileged).To(Equal(true))
 			})
@@ -659,7 +661,8 @@ var _ = Describe("Worker", func() {
 						ResourceType: "custom-type-a",
 						Privileged:   true,
 					},
-					Env: []string{"env-1", "env-2"},
+					Env:  []string{"env-1", "env-2"},
+					Team: "some-team",
 				}
 
 				imageVolume = new(wfakes.FakeVolume)
@@ -704,7 +707,7 @@ var _ = Describe("Worker", func() {
 
 			It("tries to fetch the image for the resource type", func() {
 				Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
-				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
+				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchTeamName, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
 				Expect(fakeImage.FetchCallCount()).To(Equal(1))
 				Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 					Type:   "some-resource",
@@ -716,6 +719,7 @@ var _ = Describe("Worker", func() {
 				Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 				Expect(fetchWorker).To(Equal(gardenWorker))
 				Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
+				Expect(fetchTeamName).To(Equal("some-team"))
 				Expect(fetchCustomTypes).To(Equal(customTypes.Without("custom-type-a")))
 				Expect(fetchPrivileged).To(Equal(true))
 			})
