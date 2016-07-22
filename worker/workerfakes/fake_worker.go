@@ -153,6 +153,12 @@ type FakeWorker struct {
 	uptimeReturns     struct {
 		result1 time.Duration
 	}
+	IsOwnedByTeamStub        func() bool
+	isOwnedByTeamMutex       sync.RWMutex
+	isOwnedByTeamArgsForCall []struct{}
+	isOwnedByTeamReturns     struct {
+		result1 bool
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -649,6 +655,31 @@ func (fake *FakeWorker) UptimeReturns(result1 time.Duration) {
 	}{result1}
 }
 
+func (fake *FakeWorker) IsOwnedByTeam() bool {
+	fake.isOwnedByTeamMutex.Lock()
+	fake.isOwnedByTeamArgsForCall = append(fake.isOwnedByTeamArgsForCall, struct{}{})
+	fake.recordInvocation("IsOwnedByTeam", []interface{}{})
+	fake.isOwnedByTeamMutex.Unlock()
+	if fake.IsOwnedByTeamStub != nil {
+		return fake.IsOwnedByTeamStub()
+	} else {
+		return fake.isOwnedByTeamReturns.result1
+	}
+}
+
+func (fake *FakeWorker) IsOwnedByTeamCallCount() int {
+	fake.isOwnedByTeamMutex.RLock()
+	defer fake.isOwnedByTeamMutex.RUnlock()
+	return len(fake.isOwnedByTeamArgsForCall)
+}
+
+func (fake *FakeWorker) IsOwnedByTeamReturns(result1 bool) {
+	fake.IsOwnedByTeamStub = nil
+	fake.isOwnedByTeamReturns = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -682,6 +713,8 @@ func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	defer fake.nameMutex.RUnlock()
 	fake.uptimeMutex.RLock()
 	defer fake.uptimeMutex.RUnlock()
+	fake.isOwnedByTeamMutex.RLock()
+	defer fake.isOwnedByTeamMutex.RUnlock()
 	return fake.invocations
 }
 

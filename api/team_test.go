@@ -317,7 +317,7 @@ var _ = Describe("Auth API", func() {
 					"name": "team venture"
 				}`))
 
-					Expect(teamsDB.CreateTeamCallCount()).To(Equal(0))
+					Expect(teamServerDB.CreateTeamCallCount()).To(Equal(0))
 				})
 
 				Context("updating authentication", func() {
@@ -426,7 +426,7 @@ var _ = Describe("Auth API", func() {
 				BeforeEach(func() {
 					teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
 
-					teamsDB.CreateTeamStub = func(submittedTeam db.Team) (db.SavedTeam, error) {
+					teamServerDB.CreateTeamStub = func(submittedTeam db.Team) (db.SavedTeam, error) {
 						team.Name = teamName
 						atcDBTeamEquality(team, submittedTeam)
 						return savedTeam, nil
@@ -446,12 +446,12 @@ var _ = Describe("Auth API", func() {
 					"name": "team venture"
 				}`))
 
-					Expect(teamsDB.CreateTeamCallCount()).To(Equal(1))
+					Expect(teamServerDB.CreateTeamCallCount()).To(Equal(1))
 				})
 
 				Context("when there's a problem saving teams", func() {
 					BeforeEach(func() {
-						teamsDB.CreateTeamReturns(db.SavedTeam{}, errors.New("Do not be too hasty in entering that room. I had Taco Bell for lunch!"))
+						teamServerDB.CreateTeamReturns(db.SavedTeam{}, errors.New("Do not be too hasty in entering that room. I had Taco Bell for lunch!"))
 					})
 
 					It("returns 500 Internal Server Error", func() {
@@ -483,7 +483,7 @@ var _ = Describe("Auth API", func() {
 
 						It("updates the basic auth for that team", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
-							Expect(teamsDB.CreateTeamCallCount()).To(Equal(1))
+							Expect(teamServerDB.CreateTeamCallCount()).To(Equal(1))
 						})
 					})
 
@@ -494,7 +494,7 @@ var _ = Describe("Auth API", func() {
 
 						It("updates the GitHub auth for that team", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
-							Expect(teamsDB.CreateTeamCallCount()).To(Equal(1))
+							Expect(teamServerDB.CreateTeamCallCount()).To(Equal(1))
 						})
 					})
 				})
@@ -543,7 +543,7 @@ var _ = Describe("Auth API", func() {
 						"name": "non-admin-team"
 					}`))
 
-					Expect(teamsDB.CreateTeamCallCount()).To(Equal(0))
+					Expect(teamServerDB.CreateTeamCallCount()).To(Equal(0))
 				})
 
 				It("returns the updated team", func() {
@@ -555,7 +555,7 @@ var _ = Describe("Auth API", func() {
 						"name": "non-admin-team"
 					}`))
 
-					Expect(teamsDB.CreateTeamCallCount()).To(Equal(0))
+					Expect(teamServerDB.CreateTeamCallCount()).To(Equal(0))
 				})
 			})
 
@@ -600,6 +600,194 @@ var _ = Describe("Auth API", func() {
 
 			It("returns 500 internal server error", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+	})
+
+	Describe("POST /api/v1/teams/:team_name/workers", func() {
+		var (
+			worker atc.Worker
+			ttl    string
+
+			response *http.Response
+		)
+
+		BeforeEach(func() {
+			worker = atc.Worker{
+				Name:             "worker-name",
+				GardenAddr:       "1.2.3.4:7777",
+				BaggageclaimURL:  "5.6.7.8:7788",
+				HTTPProxyURL:     "http://example.com",
+				HTTPSProxyURL:    "https://example.com",
+				NoProxy:          "example.com,127.0.0.1,localhost",
+				ActiveContainers: 2,
+				ResourceTypes: []atc.WorkerResourceType{
+					{Type: "some-resource", Image: "some-resource-image"},
+				},
+				Platform: "haiku",
+				Tags:     []string{"not", "a", "limerick"},
+			}
+
+			ttl = "30s"
+		})
+
+		JustBeforeEach(func() {
+			payload, err := json.Marshal(worker)
+			Expect(err).NotTo(HaveOccurred())
+
+			req, err := http.NewRequest("POST", server.URL+"/api/v1/teams/some-team/workers?ttl="+ttl, ioutil.NopCloser(bytes.NewBuffer(payload)))
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(true)
+			})
+
+			Context("when team exists", func() {
+				BeforeEach(func() {
+					savedTeam := db.SavedTeam{
+						ID: 2,
+						Team: db.Team{
+							Name: "some-team",
+						},
+					}
+					teamDB.GetTeamReturns(savedTeam, true, nil)
+				})
+
+				It("tries to save the worker", func() {
+					Expect(teamServerDB.SaveWorkerCallCount()).To(Equal(1))
+					savedInfo, savedTTL := teamServerDB.SaveWorkerArgsForCall(0)
+					Expect(savedInfo).To(Equal(db.WorkerInfo{
+						GardenAddr:       "1.2.3.4:7777",
+						Name:             "worker-name",
+						Team:             "some-team",
+						BaggageclaimURL:  "5.6.7.8:7788",
+						HTTPProxyURL:     "http://example.com",
+						HTTPSProxyURL:    "https://example.com",
+						NoProxy:          "example.com,127.0.0.1,localhost",
+						ActiveContainers: 2,
+						ResourceTypes: []atc.WorkerResourceType{
+							{Type: "some-resource", Image: "some-resource-image"},
+						},
+						Platform: "haiku",
+						Tags:     []string{"not", "a", "limerick"},
+					}))
+
+					Expect(savedTTL.String()).To(Equal(ttl))
+				})
+
+				Context("when the worker has no name", func() {
+					BeforeEach(func() {
+						worker.Name = ""
+					})
+
+					It("tries to save the worker with the garden address as the name", func() {
+						Expect(teamServerDB.SaveWorkerCallCount()).To(Equal(1))
+
+						savedInfo, savedTTL := teamServerDB.SaveWorkerArgsForCall(0)
+						Expect(savedInfo).To(Equal(db.WorkerInfo{
+							GardenAddr:       "1.2.3.4:7777",
+							Name:             "1.2.3.4:7777",
+							Team:             "some-team",
+							BaggageclaimURL:  "5.6.7.8:7788",
+							HTTPProxyURL:     "http://example.com",
+							HTTPSProxyURL:    "https://example.com",
+							NoProxy:          "example.com,127.0.0.1,localhost",
+							ActiveContainers: 2,
+							ResourceTypes: []atc.WorkerResourceType{
+								{Type: "some-resource", Image: "some-resource-image"},
+							},
+							Platform: "haiku",
+							Tags:     []string{"not", "a", "limerick"},
+						}))
+
+						Expect(savedTTL.String()).To(Equal(ttl))
+					})
+				})
+
+				Context("when saving the worker succeeds", func() {
+					BeforeEach(func() {
+						teamServerDB.SaveWorkerReturns(db.SavedWorker{}, nil)
+					})
+
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
+
+				Context("when saving the worker fails", func() {
+					BeforeEach(func() {
+						teamServerDB.SaveWorkerReturns(db.SavedWorker{}, errors.New("oh no!"))
+					})
+
+					It("returns 500", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the TTL is invalid", func() {
+					BeforeEach(func() {
+						ttl = "invalid-duration"
+					})
+
+					It("returns 400", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+
+					It("returns the validation error in the response body", func() {
+						Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("malformed ttl")))
+					})
+
+					It("does not save it", func() {
+						Expect(teamServerDB.SaveWorkerCallCount()).To(BeZero())
+					})
+				})
+
+				Context("when the worker has no address", func() {
+					BeforeEach(func() {
+						worker.GardenAddr = ""
+					})
+
+					It("returns 400", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+
+					It("returns the validation error in the response body", func() {
+						Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("missing address")))
+					})
+
+					It("does not save it", func() {
+						Expect(teamServerDB.SaveWorkerCallCount()).To(BeZero())
+					})
+				})
+			})
+
+			Context("when team does not exist", func() {
+				BeforeEach(func() {
+					teamDB.GetTeamReturns(db.SavedTeam{}, false, nil)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				authValidator.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+
+			It("does not save the config", func() {
+				Expect(teamServerDB.SaveWorkerCallCount()).To(BeZero())
 			})
 		})
 	})

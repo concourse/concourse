@@ -82,6 +82,7 @@ func (wrappa *APITLSRedirectWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.WritePipe,
 			atc.SetLogLevel,
 			atc.SetTeam,
+			atc.RegisterTeamWorker,
 			atc.ConcealPipeline,
 			atc.RevealPipeline:
 

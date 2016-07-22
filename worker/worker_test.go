@@ -40,11 +40,14 @@ var _ = Describe("Worker", func() {
 		resourceTypes          []atc.WorkerResourceType
 		platform               string
 		tags                   atc.Tags
+		teamName               string
 		workerName             string
 		workerStartTime        int64
 		httpProxyURL           string
 		httpsProxyURL          string
 		noProxy                string
+		origUptime             time.Duration
+		workerUptime           uint64
 
 		gardenWorker Worker
 	)
@@ -71,9 +74,13 @@ var _ = Describe("Worker", func() {
 		}
 		platform = "some-platform"
 		tags = atc.Tags{"some", "tags"}
+		teamName = ""
 		workerName = "some-worker"
 		workerStartTime = fakeClock.Now().Unix()
+		workerUptime = 0
+	})
 
+	JustBeforeEach(func() {
 		gardenWorker = NewGardenWorker(
 			fakeGardenClient,
 			fakeBaggageclaimClient,
@@ -87,12 +94,16 @@ var _ = Describe("Worker", func() {
 			resourceTypes,
 			platform,
 			tags,
+			teamName,
 			workerName,
 			workerStartTime,
 			httpProxyURL,
 			httpsProxyURL,
 			noProxy,
 		)
+
+		origUptime = gardenWorker.Uptime()
+		fakeClock.IncrementBySeconds(workerUptime)
 	})
 
 	Describe("CreateContainer", func() {
@@ -1070,10 +1081,8 @@ var _ = Describe("Worker", func() {
 			})
 
 			Context("when the worker has been up for greater than 5 minutes, and less than an hour", func() {
-				var origUptime time.Duration
 				BeforeEach(func() {
-					origUptime = gardenWorker.Uptime()
-					fakeClock.IncrementBySeconds(301)
+					workerUptime = 301
 				})
 
 				It("creates the container with a max lifetime equivalent to the worker uptime", func() {
@@ -1085,7 +1094,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when the worker has been up for greater than an hour", func() {
 				BeforeEach(func() {
-					fakeClock.IncrementBySeconds(3601)
+					workerUptime = 3601
 				})
 
 				It("creates the container with a max lifetime of 1 hour", func() {
@@ -1098,25 +1107,7 @@ var _ = Describe("Worker", func() {
 
 		Context("when the worker has a HTTPProxyURL", func() {
 			BeforeEach(func() {
-				gardenWorker = NewGardenWorker(
-					fakeGardenClient,
-					fakeBaggageclaimClient,
-					fakeVolumeClient,
-					fakeVolumeFactory,
-					fakeImageFactory,
-					fakeGardenWorkerDB,
-					fakeWorkerProvider,
-					fakeClock,
-					activeContainers,
-					resourceTypes,
-					platform,
-					tags,
-					workerName,
-					workerStartTime,
-					"http://example.com",
-					httpsProxyURL,
-					noProxy,
-				)
+				httpProxyURL = "http://example.com"
 			})
 
 			It("adds the proxy url to the garden spec env", func() {
@@ -1128,25 +1119,7 @@ var _ = Describe("Worker", func() {
 
 		Context("when the worker has NoProxy", func() {
 			BeforeEach(func() {
-				gardenWorker = NewGardenWorker(
-					fakeGardenClient,
-					fakeBaggageclaimClient,
-					fakeVolumeClient,
-					fakeVolumeFactory,
-					fakeImageFactory,
-					fakeGardenWorkerDB,
-					fakeWorkerProvider,
-					fakeClock,
-					activeContainers,
-					resourceTypes,
-					platform,
-					tags,
-					workerName,
-					workerStartTime,
-					httpProxyURL,
-					httpsProxyURL,
-					"localhost",
-				)
+				noProxy = "localhost"
 			})
 
 			It("adds the proxy url to the garden spec env", func() {
@@ -1158,25 +1131,7 @@ var _ = Describe("Worker", func() {
 
 		Context("when the worker has a HTTPSProxyURL", func() {
 			BeforeEach(func() {
-				gardenWorker = NewGardenWorker(
-					fakeGardenClient,
-					fakeBaggageclaimClient,
-					fakeVolumeClient,
-					fakeVolumeFactory,
-					fakeImageFactory,
-					fakeGardenWorkerDB,
-					fakeWorkerProvider,
-					fakeClock,
-					activeContainers,
-					resourceTypes,
-					platform,
-					tags,
-					workerName,
-					workerStartTime,
-					httpProxyURL,
-					"https://example.com",
-					noProxy,
-				)
+				httpsProxyURL = "https://example.com"
 			})
 
 			It("adds the proxy url to the garden spec env", func() {
@@ -1313,7 +1268,7 @@ var _ = Describe("Worker", func() {
 					})
 
 					Context("when there is no baggageclaim", func() {
-						BeforeEach(func() {
+						JustBeforeEach(func() {
 							gardenWorker = NewGardenWorker(
 								fakeGardenClient,
 								nil,
@@ -1327,12 +1282,14 @@ var _ = Describe("Worker", func() {
 								resourceTypes,
 								platform,
 								tags,
+								teamName,
 								workerName,
 								workerStartTime,
 								httpProxyURL,
 								httpsProxyURL,
 								noProxy,
 							)
+							foundContainer, found, findErr = gardenWorker.LookupContainer(logger, handle)
 						})
 
 						It("returns an empty slice", func() {
@@ -1374,7 +1331,7 @@ var _ = Describe("Worker", func() {
 					})
 
 					Context("when there is no baggageclaim", func() {
-						BeforeEach(func() {
+						JustBeforeEach(func() {
 							gardenWorker = NewGardenWorker(
 								fakeGardenClient,
 								nil,
@@ -1388,12 +1345,14 @@ var _ = Describe("Worker", func() {
 								resourceTypes,
 								platform,
 								tags,
+								teamName,
 								workerName,
 								workerStartTime,
 								httpProxyURL,
 								httpsProxyURL,
 								noProxy,
 							)
+							foundContainer, found, findErr = gardenWorker.LookupContainer(logger, handle)
 						})
 
 						It("returns an empty slice", func() {
@@ -1759,7 +1718,9 @@ var _ = Describe("Worker", func() {
 		)
 
 		BeforeEach(func() {
-			spec = WorkerSpec{}
+			spec = WorkerSpec{
+				Tags: []string{"some", "tags"},
+			}
 			customTypes = atc.ResourceTypes{
 				{
 					Name:   "custom-type-b",
@@ -1790,26 +1751,6 @@ var _ = Describe("Worker", func() {
 		})
 
 		JustBeforeEach(func() {
-			gardenWorker = NewGardenWorker(
-				fakeGardenClient,
-				fakeBaggageclaimClient,
-				fakeVolumeClient,
-				fakeVolumeFactory,
-				fakeImageFactory,
-				fakeGardenWorkerDB,
-				fakeWorkerProvider,
-				fakeClock,
-				activeContainers,
-				resourceTypes,
-				platform,
-				tags,
-				workerName,
-				workerStartTime,
-				httpProxyURL,
-				httpsProxyURL,
-				noProxy,
-			)
-
 			satisfyingWorker, satisfyingErr = gardenWorker.Satisfying(spec, customTypes)
 		})
 
@@ -1831,6 +1772,7 @@ var _ = Describe("Worker", func() {
 			Context("when the worker has no tags", func() {
 				BeforeEach(func() {
 					tags = []string{}
+					spec.Tags = []string{}
 				})
 
 				It("returns the worker", func() {
@@ -1938,7 +1880,6 @@ var _ = Describe("Worker", func() {
 		Context("when the resource type is a custom type supported by the worker", func() {
 			BeforeEach(func() {
 				spec.ResourceType = "custom-type-c"
-				spec.Tags = []string{"some", "tags"}
 			})
 
 			It("returns the worker", func() {
@@ -1959,7 +1900,6 @@ var _ = Describe("Worker", func() {
 				})
 
 				spec.ResourceType = "some-resource"
-				spec.Tags = []string{"some", "tags"}
 			})
 
 			It("returns the worker", func() {
@@ -1988,7 +1928,6 @@ var _ = Describe("Worker", func() {
 				})
 
 				spec.ResourceType = "circle-a"
-				spec.Tags = []string{"some", "tags"}
 			})
 
 			It("returns ErrUnsupportedResourceType", func() {
@@ -1999,7 +1938,6 @@ var _ = Describe("Worker", func() {
 		Context("when the resource type is a custom type not supported by the worker", func() {
 			BeforeEach(func() {
 				spec.ResourceType = "unknown-custom-type"
-				spec.Tags = []string{"some", "tags"}
 			})
 
 			It("returns ErrUnsupportedResourceType", func() {
@@ -2012,33 +1950,69 @@ var _ = Describe("Worker", func() {
 				spec.ResourceType = "some-other-resource"
 			})
 
-			Context("when all of the requested tags are present", func() {
+			It("returns ErrUnsupportedResourceType", func() {
+				Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
+			})
+		})
+
+		Context("when spec specifies team", func() {
+			BeforeEach(func() {
+				spec.Team = "some-team"
+			})
+
+			Context("when worker belongs to same team", func() {
 				BeforeEach(func() {
-					spec.Tags = []string{"some", "tags"}
+					teamName = "some-team"
 				})
 
-				It("returns ErrUnsupportedResourceType", func() {
-					Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
+				It("returns the worker", func() {
+					Expect(satisfyingWorker).To(Equal(gardenWorker))
+				})
+
+				It("returns no error", func() {
+					Expect(satisfyingErr).NotTo(HaveOccurred())
 				})
 			})
 
-			Context("when some of the requested tags are present", func() {
+			Context("when worker belongs to different team", func() {
 				BeforeEach(func() {
-					spec.Tags = []string{"some"}
+					teamName = "another-team"
 				})
 
-				It("returns ErrUnsupportedResourceType", func() {
-					Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
+				It("returns ErrTeamMismatch", func() {
+					Expect(satisfyingErr).To(Equal(ErrTeamMismatch))
 				})
 			})
 
-			Context("when any of the requested tags are not present", func() {
-				BeforeEach(func() {
-					spec.Tags = []string{"bogus", "tags"}
+			Context("when worker does not belong to any team", func() {
+				It("returns the worker", func() {
+					Expect(satisfyingWorker).To(Equal(gardenWorker))
 				})
 
-				It("returns ErrUnsupportedResourceType", func() {
-					Expect(satisfyingErr).To(Equal(ErrUnsupportedResourceType))
+				It("returns no error", func() {
+					Expect(satisfyingErr).NotTo(HaveOccurred())
+				})
+			})
+		})
+
+		Context("when spec does not specify a team", func() {
+			Context("when worker belongs to no team", func() {
+				It("returns the worker", func() {
+					Expect(satisfyingWorker).To(Equal(gardenWorker))
+				})
+
+				It("returns no error", func() {
+					Expect(satisfyingErr).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when worker belongs to any team", func() {
+				BeforeEach(func() {
+					teamName = "any-team"
+				})
+
+				It("returns ErrTeamMismatch", func() {
+					Expect(satisfyingErr).To(Equal(ErrTeamMismatch))
 				})
 			})
 		})

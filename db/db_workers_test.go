@@ -135,6 +135,26 @@ var _ = Describe("Keeping track of workers", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(getWorkerInfos(database.Workers())).To(ConsistOf(infoA))
+
+		By("saving worker with the team that exists")
+		_, err = database.CreateTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
+
+		infoA.Team = "some-team"
+		_, err = database.SaveWorker(infoA, ttl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(getWorkerInfos(database.Workers())).To(ConsistOf(infoA))
+
+		By("failing to save worker with the team that does not exist")
+		infoA.Team = "non-existent-team"
+		_, err = database.SaveWorker(infoA, ttl)
+		Expect(err).To(HaveOccurred())
+
+		By("saving worker with no team")
+		infoA.Team = ""
+		_, err = database.SaveWorker(infoA, ttl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(getWorkerInfos(database.Workers())).To(ConsistOf(infoA))
 	})
 
 	It("it can keep track of a worker", func() {
@@ -168,6 +188,7 @@ var _ = Describe("Keeping track of workers", func() {
 			Platform: "plan9",
 			Tags:     []string{"russ", "cox", "was", "here"},
 			Name:     "workerName2",
+			Team:     "some-team",
 		}
 
 		infoC := db.WorkerInfo{
@@ -181,6 +202,9 @@ var _ = Describe("Keeping track of workers", func() {
 			Tags:     []string{"russ", "cox", "was", "here"},
 		}
 
+		_, err = database.CreateTeam(db.Team{Name: "some-team"})
+		Expect(err).NotTo(HaveOccurred())
+
 		_, err = database.SaveWorker(infoA, 0)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -190,7 +214,7 @@ var _ = Describe("Keeping track of workers", func() {
 		_, err = database.SaveWorker(infoC, 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("returning one workerinfo by worker id")
+		By("returning one workerinfo by worker name")
 		savedWorker, found, err = database.GetWorker(savedWorkerB.Name)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
@@ -202,6 +226,7 @@ var _ = Describe("Keeping track of workers", func() {
 		Expect(savedWorker.ResourceTypes).To(Equal(infoB.ResourceTypes))
 		Expect(savedWorker.Platform).To(Equal(infoB.Platform))
 		Expect(savedWorker.Tags).To(Equal(infoB.Tags))
+		Expect(savedWorker.Team).To(Equal("some-team"))
 		Expect(savedWorker.Name).To(Equal(infoB.Name))
 
 		By("expiring TTLs")

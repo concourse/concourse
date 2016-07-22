@@ -23,6 +23,7 @@ var ErrUnsupportedResourceType = errors.New("unsupported resource type")
 var ErrIncompatiblePlatform = errors.New("incompatible platform")
 var ErrMismatchedTags = errors.New("mismatched tags")
 var ErrNoVolumeManager = errors.New("worker does not support volume management")
+var ErrTeamMismatch = errors.New("mismatched team")
 
 type MalformedMetadataError struct {
 	UnmarshalError error
@@ -53,6 +54,7 @@ type Worker interface {
 	Description() string
 	Name() string
 	Uptime() time.Duration
+	IsOwnedByTeam() bool
 }
 
 //go:generate counterfeiter . GardenWorkerDB
@@ -87,6 +89,7 @@ type gardenWorker struct {
 	resourceTypes    []atc.WorkerResourceType
 	platform         string
 	tags             atc.Tags
+	teamName         string
 	name             string
 	startTime        int64
 	httpProxyURL     string
@@ -107,6 +110,7 @@ func NewGardenWorker(
 	resourceTypes []atc.WorkerResourceType,
 	platform string,
 	tags atc.Tags,
+	teamName string,
 	name string,
 	startTime int64,
 	httpProxyURL string,
@@ -127,6 +131,7 @@ func NewGardenWorker(
 		resourceTypes:    resourceTypes,
 		platform:         platform,
 		tags:             tags,
+		teamName:         teamName,
 		name:             name,
 		startTime:        startTime,
 		httpProxyURL:     httpProxyURL,
@@ -533,6 +538,10 @@ func (worker *gardenWorker) ActiveContainers() int {
 }
 
 func (worker *gardenWorker) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (Worker, error) {
+	if spec.Team != worker.teamName && worker.teamName != "" {
+		return nil, ErrTeamMismatch
+	}
+
 	if spec.ResourceType != "" {
 		underlyingType := determineUnderlyingTypeName(spec.ResourceType, resourceTypes)
 
@@ -599,6 +608,10 @@ func (worker *gardenWorker) Description() string {
 
 func (worker *gardenWorker) Name() string {
 	return worker.name
+}
+
+func (worker *gardenWorker) IsOwnedByTeam() bool {
+	return worker.teamName != ""
 }
 
 func (worker *gardenWorker) Uptime() time.Duration {

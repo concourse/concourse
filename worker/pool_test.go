@@ -284,6 +284,59 @@ var _ = Describe("Pool", func() {
 			})
 		})
 
+		Context("when team workers and general workers satisfy the spec", func() {
+			var (
+				teamWorker1   *workerfakes.FakeWorker
+				teamWorker2   *workerfakes.FakeWorker
+				teamWorker3   *workerfakes.FakeWorker
+				generalWorker *workerfakes.FakeWorker
+			)
+
+			BeforeEach(func() {
+				teamWorker1 = new(workerfakes.FakeWorker)
+				teamWorker1.SatisfyingReturns(teamWorker1, nil)
+				teamWorker1.IsOwnedByTeamReturns(true)
+				teamWorker2 = new(workerfakes.FakeWorker)
+				teamWorker2.SatisfyingReturns(teamWorker2, nil)
+				teamWorker2.IsOwnedByTeamReturns(true)
+				teamWorker3 = new(workerfakes.FakeWorker)
+				teamWorker3.SatisfyingReturns(nil, errors.New("nope"))
+				generalWorker = new(workerfakes.FakeWorker)
+				generalWorker.SatisfyingReturns(generalWorker, nil)
+				generalWorker.IsOwnedByTeamReturns(false)
+				fakeProvider.WorkersReturns([]Worker{generalWorker, teamWorker1, teamWorker2, teamWorker3}, nil)
+			})
+
+			It("returns only the team workers that satisfy the spec", func() {
+				Expect(satisfyingErr).NotTo(HaveOccurred())
+				Expect(satisfyingWorkers).To(ConsistOf(teamWorker1, teamWorker2))
+			})
+		})
+
+		Context("when only general workers satisfy the spec", func() {
+			var (
+				teamWorker     *workerfakes.FakeWorker
+				generalWorker1 *workerfakes.FakeWorker
+				generalWorker2 *workerfakes.FakeWorker
+			)
+
+			BeforeEach(func() {
+				teamWorker = new(workerfakes.FakeWorker)
+				teamWorker.SatisfyingReturns(nil, errors.New("nope"))
+				generalWorker1 = new(workerfakes.FakeWorker)
+				generalWorker1.SatisfyingReturns(generalWorker1, nil)
+				generalWorker1.IsOwnedByTeamReturns(false)
+				generalWorker2 = new(workerfakes.FakeWorker)
+				generalWorker2.SatisfyingReturns(nil, errors.New("nope"))
+				fakeProvider.WorkersReturns([]Worker{generalWorker1, generalWorker2, teamWorker}, nil)
+			})
+
+			It("returns the general workers that satisfy the spec", func() {
+				Expect(satisfyingErr).NotTo(HaveOccurred())
+				Expect(satisfyingWorkers).To(ConsistOf(generalWorker1))
+			})
+		})
+
 		Context("with no workers", func() {
 			BeforeEach(func() {
 				fakeProvider.WorkersReturns([]Worker{}, nil)

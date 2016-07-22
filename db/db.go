@@ -178,6 +178,7 @@ type WorkerInfo struct {
 	ResourceTypes    []atc.WorkerResourceType
 	Platform         string
 	Tags             []string
+	Team             string
 	Name             string
 	StartTime        int64
 }

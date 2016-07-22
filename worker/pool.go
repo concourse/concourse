@@ -89,24 +89,33 @@ func (pool *pool) AllSatisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes
 		return nil, ErrNoWorkers
 	}
 
-	compatibleWorkers := []Worker{}
+	compatibleTeamWorkers := []Worker{}
+	compatibleGeneralWorkers := []Worker{}
 	for _, worker := range workers {
 		satisfyingWorker, err := worker.Satisfying(spec, resourceTypes)
 		if err == nil {
-			compatibleWorkers = append(compatibleWorkers, satisfyingWorker)
+			if worker.IsOwnedByTeam() {
+				compatibleTeamWorkers = append(compatibleTeamWorkers, satisfyingWorker)
+			} else {
+				compatibleGeneralWorkers = append(compatibleGeneralWorkers, satisfyingWorker)
+			}
 		}
 	}
 
-	if len(compatibleWorkers) == 0 {
-		return nil, NoCompatibleWorkersError{
-			Spec:    spec,
-			Workers: workers,
-		}
+	if len(compatibleTeamWorkers) != 0 {
+		shuffleWorkers(compatibleTeamWorkers)
+		return compatibleTeamWorkers, nil
 	}
 
-	shuffleWorkers(compatibleWorkers)
+	if len(compatibleGeneralWorkers) != 0 {
+		shuffleWorkers(compatibleGeneralWorkers)
+		return compatibleGeneralWorkers, nil
+	}
 
-	return compatibleWorkers, nil
+	return nil, NoCompatibleWorkersError{
+		Spec:    spec,
+		Workers: workers,
+	}
 }
 
 func (pool *pool) Satisfying(spec WorkerSpec, resourceTypes atc.ResourceTypes) (Worker, error) {

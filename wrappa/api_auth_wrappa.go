@@ -69,7 +69,8 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.SetTeam,
 			atc.WritePipe,
 			atc.ListVolumes,
-			atc.GetLogLevel:
+			atc.GetLogLevel,
+			atc.RegisterTeamWorker:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
 
 		// authorized

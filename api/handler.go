@@ -45,7 +45,7 @@ func NewHandler(
 	pipelineDBFactory db.PipelineDBFactory,
 	teamDBFactory db.TeamDBFactory,
 
-	teamsDB teamserver.TeamsDB,
+	teamDB teamserver.TeamDB,
 	workerDB workerserver.WorkerDB,
 	containerDB containerserver.ContainerDB,
 	volumesDB volumeserver.VolumesDB,
@@ -113,7 +113,7 @@ func NewHandler(
 
 	volumesServer := volumeserver.NewServer(logger, volumesDB)
 
-	teamServer := teamserver.NewServer(logger, teamDBFactory, teamsDB)
+	teamServer := teamserver.NewServer(logger, teamDBFactory, teamDB)
 
 	infoServer := infoserver.NewServer(logger, version)
 
@@ -186,7 +186,8 @@ func NewHandler(
 
 		atc.ListVolumes: http.HandlerFunc(volumesServer.ListVolumes),
 
-		atc.SetTeam: http.HandlerFunc(teamServer.SetTeam),
+		atc.SetTeam:            http.HandlerFunc(teamServer.SetTeam),
+		atc.RegisterTeamWorker: http.HandlerFunc(teamServer.RegisterWorker),
 	}
 
 	results := []http.Handler{}

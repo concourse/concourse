@@ -12,6 +12,7 @@ type WorkerSpec struct {
 	Platform     string
 	ResourceType string
 	Tags         []string
+	Team         string
 }
 
 type ContainerSpec struct {
