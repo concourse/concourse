@@ -13,6 +13,7 @@ groups:
   - bin-testflight
   - bosh-testflight
   - bin-smoke
+  - bin-docker
   - bosh-deploy
 
 - name: publish
@@ -432,6 +433,33 @@ jobs:
     - task: test-bin
       file: bin/ci/smoke-tests/smoke-test.yml
       params: {USER_NAME: root}
+
+- name: bin-docker
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: concourse-docker
+      trigger: true
+    - get: dumb-init
+      trigger: true
+    - get: bin-rc
+      passed: [bin-testflight]
+      params: {globs: [concourse_linux_amd64]}
+      trigger: true
+    - get: version
+      passed: [bin-testflight]
+      trigger: true
+    - get: ubuntu-image
+      params: {save: true}
+      trigger: true
+  - task: build-root
+    file: concourse-docker/ci/build-root.yml
+  - put: concourse-image
+    params:
+      build: concourse-image-build-root
+      load_base: ubuntu-image
+      tag: version/number
 
 - name: unfudge
   plan:
@@ -868,3 +896,28 @@ resources:
     user: concourse
     repository: bin
     access_token: {{bin-release-token}}
+
+- name: concourse-docker
+  type: git
+  source:
+    uri: https://github.com/concourse/concourse-docker
+
+- name: dumb-init
+  type: github-release
+  source:
+    user: Yelp
+    repository: dumb-init
+    access_token: {{bin-release-token}} # just so we don't get rate limited
+
+- name: ubuntu-image
+  type: docker-image
+  source:
+    repository: ubuntu
+    tag: '16.04'
+
+- name: concourse-image
+  type: docker-image
+  source:
+    repository: concourse/concourse
+    username: {{docker-username}}
+    password: {{docker-password}}
