@@ -623,8 +623,6 @@ jobs:
       trigger: true
     - get: bosh-io-stemcell-resource
       trigger: true
-  - task: unit
-    file: bosh-io-stemcell-resource/build.yml
   - put: bosh-io-stemcell-resource-image
     params:
       load_base: buildroot-curl-image
