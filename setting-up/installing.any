@@ -6,23 +6,23 @@
 
 \title{Installing}{installing}
 
-So you want to get yourself a Concourse. There are three supported ways to get
-going: a local VirtualBox VM via \hyperlink{https://vagrantup.com}{Vagrant},
-standalone binaries that you can run (almost) anywhere, and
-\hyperlink{https://bosh.io}{BOSH} for all your clustering needs.
+So you want to get yourself a Concourse.
 
-All distributions of Concourse are equivalent in feature set, the only
-difference being operational concerns like scaling up your workers, and how
-quickly you can get it going.
+There are a few supported ways to get going. All distributions of Concourse are
+equivalent in feature set, the only difference being operational concerns like
+scaling up your workers, and how quickly you can bootstrap.
 
 For the quickest introduction, you may want to spin up a
 \reference{vagrant}{local VM with Vagrant}. This should take only a few
 minutes, depending on how quickly you can download the image.
 
-Once you're ready to install Concourse onto a VM, have a look at the
-\reference{binaries}{standalone binaries}. Or, if you want to invest a bit in
-spinning up a fully automated cluster using a tool that meshes well with
-Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
+Once you're ready to install Concourse somewhere more proper, have a look at
+the \reference{binaries}{standalone binary} or the
+\reference{docker-repository}{Docker repository}.
+
+Or, if you want to invest a bit in spinning up a fully automated cluster using
+a tool that meshes well with Concourse's ideals, buckle up and head over to
+\reference{clusters-with-bosh}.
 
 \split-sections
 
@@ -61,15 +61,15 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
   }
 }
 
-\section{Standalone Binaries}{binaries}{
+\section{Standalone Binary}{binaries}{
   \omit-children-from-table-of-contents
 
   At some point you may want to start putting Concourse on to real hardware. A
   binary distribution is available in the \reference{downloads}{downloads}
   section.
 
-  These binaries are fairly self-contained, making them ideal for tossing onto
-  a VM by hand or orchestrating them with Docker, Chef, or other ops tooling.
+  The binary is fairly self-contained, making it ideal for tossing onto a VM by
+  hand or orchestrating it with Docker, Chef, or other ops tooling.
 
   \section{Prerequisites}{
     \list{
@@ -261,6 +261,96 @@ Concourse's ideals, buckle up and head over to \reference{clusters-with-bosh}.
     authenticating to the TSA. Refer to \reference{generating-keys} if you're
     not sure what this means.
   }
+}
+
+\section{Docker Repository}{docker-repository}{
+  The \reference{binaries}{standalone binary} is available in an official
+  Docker repository: \code{concourse/concourse}. There are tags for each
+  version, including release candidates if you want to live on the bleeding
+  edge.
+
+  For a quick start with \hyperlink{https://docs.docker.com/compose/}{Docker
+  Compose}, create \code{docker-compose.yml}:
+
+  \titled-codeblock{docker-compose.yml}{yaml}{
+  concourse-db:
+    image: postgres:9.5
+    environment:
+      POSTGRES_DB: concourse
+      POSTGRES_USER: concourse
+      POSTGRES_PASSWORD: changeme
+      PGDATA: /database
+
+  concourse-web:
+    image: concourse/concourse
+    links: [concourse-db]
+    command: web
+    ports: ["8080:8080"]
+    volumes: ["./keys/web:/concourse-keys"]
+    environment:
+      CONCOURSE_BASIC_AUTH_USERNAME: concourse
+      CONCOURSE_BASIC_AUTH_PASSWORD: changeme
+      CONCOURSE_EXTERNAL_URL: "$\{CONCOURSE_EXTERNAL_URL\}"
+      CONCOURSE_POSTGRES_DATA_SOURCE: |
+        postgres://concourse:changeme@concourse-db:5432/concourse?sslmode=disable
+
+  concourse-worker:
+    image: concourse/concourse
+    privileged: true
+    links: [concourse-web]
+    command: worker
+    volumes: ["./keys/worker:/concourse-keys"]
+    environment:
+      CONCOURSE_TSA_HOST: concourse-web
+  }
+
+  Then, run the following to generate the necessary keys:
+
+  \codeblock{bash}{
+    mkdir -p keys/web keys/worker
+
+    ssh-keygen -t rsa -f ./keys/web/tsa_host_key -N ''
+    ssh-keygen -t rsa -f ./keys/web/session_signing_key -N ''
+
+    ssh-keygen -t rsa -f ./keys/worker/worker_key -N ''
+
+    cp ./keys/worker/worker_key.pub ./keys/web/authorized_worker_keys
+    cp ./keys/web/tsa_host_key.pub ./keys/worker
+  }
+
+  Then set up some minimal configuration:
+
+  \codeblock{bash}{
+    export CONCOURSE_EXTERNAL_URL=http://127.0.0.1:8080
+  }
+
+  Or, if you're using \code{docker-machine}, set \code{CONCOURSE_EXTERNAL_URL}
+  to whatever the machine's IP is, for example:
+
+  \codeblock{bash}{
+    export CONCOURSE_EXTERNAL_URL=http://192.168.99.100:8080
+  }
+
+  Then, spin everything up:
+
+  \codeblock{bash}{
+    docker-compose up
+  }
+
+  Next, browse to your configured external URL (probably
+  \hyperlink{http://127.0.0.1:8080}{127.0.0.1:8080} or
+  \hyperlink{http://192.168.99.100:8080}{192.168.99.100:8080}) and log in with
+  the username \code{concourse} and password \code{changeme}.
+
+  Given that the Docker repository simply wraps the binary, you'll want to
+  reference \reference{binaries}{the binary documentation} or just run
+  \code{docker run concourse/concourse <command> --help} if you want to learn
+  how to do any further configuration.
+
+  Every flag can also be configured via environment variables in the form of
+  \code{CONCOURSE_(flag)}, where \code{(flag)} is the uppercased flag name with
+  all hyphens conveted to underscores. For example,
+  \code{--basic-auth-username} would be \code{CONCOURSE_BASIC_AUTH_USERNAME}.
 }
 
 \section{Clusters with BOSH}{clusters-with-bosh}{
