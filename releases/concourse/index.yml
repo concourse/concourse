@@ -190,4 +190,6 @@ builds:
     version: 1.5.0
   eac61467-d8cd-4eea-a86f-a72802f0cd42:
     version: 1.5.1
+  fdb1676a-6d1f-405c-acb5-8f62a38fe120:
+    version: 1.6.0
 format-version: '2'
