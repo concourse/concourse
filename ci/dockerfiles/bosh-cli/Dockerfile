@@ -6,4 +6,4 @@ RUN apt-get update && \
         build-essential zlib1g-dev libssl-dev libreadline6-dev libyaml-dev
 
 RUN gem install bundler --no-rdoc --no-ri
-RUN gem install bosh_cli -v 1.3177.0 --no-rdoc --no-ri
+RUN gem install bosh_cli -v 1.3262.4.0 --no-rdoc --no-ri
