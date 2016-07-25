@@ -5,6 +5,10 @@ import (
 	"runtime"
 	"strconv"
 
+	pb "gopkg.in/cheggaaa/pb.v1"
+
+	update "github.com/inconshreveable/go-update"
+
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
 )
