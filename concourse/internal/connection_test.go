@@ -260,8 +260,9 @@ var _ = Describe("ATC Connection", func() {
 				responseHeaders := http.Header{}
 
 				err := connection.Send(Request{
-					RequestName: atc.GetBuild,
-					Params:      rata.Params{"build_id": "foo"},
+					RequestName:        atc.GetBuild,
+					Params:             rata.Params{"build_id": "foo"},
+					ReturnResponseBody: true,
 				}, &Response{
 					Result:  &atc.Build{},
 					Headers: &responseHeaders,

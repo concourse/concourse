@@ -26,7 +26,7 @@ type Client interface {
 	ListVolumes() ([]atc.Volume, error)
 	ListWorkers() ([]atc.Worker, error)
 	GetInfo() (atc.Info, error)
-	GetCLIReader(arch, platform string) (io.ReadCloser, error)
+	GetCLIReader(arch, platform string) (io.ReadCloser, http.Header, error)
 	ListPipelines() ([]atc.Pipeline, error)
 
 	Team(teamName string) Team

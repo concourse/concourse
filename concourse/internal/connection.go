@@ -180,6 +180,12 @@ func (connection *connection) populateResponse(response *http.Response, returnRe
 		passedResponse.Created = true
 	}
 
+	if passedResponse.Headers != nil {
+		for k, v := range response.Header {
+			(*passedResponse.Headers)[k] = v
+		}
+	}
+
 	if returnResponseBody {
 		passedResponse.Result = response.Body
 		return nil
@@ -192,12 +198,6 @@ func (connection *connection) populateResponse(response *http.Response, returnRe
 	err := json.NewDecoder(response.Body).Decode(passedResponse.Result)
 	if err != nil {
 		return err
-	}
-
-	if passedResponse.Headers != nil {
-		for k, v := range response.Header {
-			(*passedResponse.Headers)[k] = v
-		}
 	}
 
 	return nil
