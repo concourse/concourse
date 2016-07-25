@@ -19,46 +19,87 @@ var _ = Describe("Fly CLI", func() {
 			flyCmd *exec.Cmd
 		)
 
-		BeforeEach(func() {
-			flyCmd = exec.Command(flyPath, "-t", targetName, "pipelines")
-		})
-
 		Context("when pipelines are returned from the API", func() {
-			BeforeEach(func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
-						ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
-							{Name: "pipeline-1-longer", URL: "/pipelines/pipeline-1", Paused: false, Public: false},
-							{Name: "pipeline-2", URL: "/pipelines/pipeline-2", Paused: true, Public: false},
-							{Name: "pipeline-3", URL: "/pipelines/pipeline-3", Paused: false, Public: true},
-						}),
-					),
-				)
+			Context("when no --all flag is given", func() {
+
+				BeforeEach(func() {
+					flyCmd = exec.Command(flyPath, "-t", targetName, "pipelines")
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
+							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+								{Name: "pipeline-1-longer", URL: "/pipelines/pipeline-1", Paused: false, Public: false},
+								{Name: "pipeline-2", URL: "/pipelines/pipeline-2", Paused: true, Public: false},
+								{Name: "pipeline-3", URL: "/pipelines/pipeline-3", Paused: false, Public: true},
+							}),
+						),
+					)
+				})
+
+				It("only shows the team's pipelines", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess).Should(gexec.Exit(0))
+
+					Expect(sess.Out).To(PrintTable(ui.Table{
+						Headers: ui.TableRow{
+							{Contents: "name", Color: color.New(color.Bold)},
+							{Contents: "paused", Color: color.New(color.Bold)},
+							{Contents: "public", Color: color.New(color.Bold)},
+						},
+						Data: []ui.TableRow{
+							{{Contents: "pipeline-1-longer"}, {Contents: "no"}, {Contents: "no"}},
+							{{Contents: "pipeline-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "no"}},
+							{{Contents: "pipeline-3"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
+						},
+					}))
+				})
 			})
 
-			It("lists them to the user", func() {
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-				Eventually(sess).Should(gexec.Exit(0))
+			Context("when --all is specified", func() {
+				BeforeEach(func() {
+					flyCmd = exec.Command(flyPath, "-t", targetName, "pipelines", "--all")
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/pipelines"),
+							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+								{Name: "pipeline-1-longer", URL: "/pipelines/pipeline-1", Paused: false, Public: false, TeamName: "main"},
+								{Name: "pipeline-2", URL: "/pipelines/pipeline-2", Paused: true, Public: false, TeamName: "main"},
+								{Name: "pipeline-3", URL: "/pipelines/pipeline-3", Paused: false, Public: true, TeamName: "main"},
+								{Name: "foreign-pipeline-1", URL: "/pipelines/foreign-pipeline-1", Paused: false, Public: true, TeamName: "other"},
+								{Name: "foreign-pipeline-2", URL: "/pipelines/foreign-pipeline-2", Paused: false, Public: true, TeamName: "other"},
+							}),
+						),
+					)
+				})
 
-				Expect(sess.Out).To(PrintTable(ui.Table{
-					Headers: ui.TableRow{
-						{Contents: "name", Color: color.New(color.Bold)},
-						{Contents: "paused", Color: color.New(color.Bold)},
-						{Contents: "public", Color: color.New(color.Bold)},
-					},
-					Data: []ui.TableRow{
-						{{Contents: "pipeline-1-longer"}, {Contents: "no"}, {Contents: "no"}},
-						{{Contents: "pipeline-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "no"}},
-						{{Contents: "pipeline-3"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
-					},
-				}))
+				It("includes team and shared pipelines, with a team name column", func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess).Should(gexec.Exit(0))
+
+					Expect(sess.Out).To(PrintTable(ui.Table{
+						Headers: ui.TableRow{
+							{Contents: "name", Color: color.New(color.Bold)},
+							{Contents: "team", Color: color.New(color.Bold)},
+							{Contents: "paused", Color: color.New(color.Bold)},
+							{Contents: "public", Color: color.New(color.Bold)},
+						},
+						Data: []ui.TableRow{
+							{{Contents: "pipeline-1-longer"}, {Contents: "main"}, {Contents: "no"}, {Contents: "no"}},
+							{{Contents: "pipeline-2"}, {Contents: "main"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "no"}},
+							{{Contents: "pipeline-3"}, {Contents: "main"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
+							{{Contents: "foreign-pipeline-1"}, {Contents: "other"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
+							{{Contents: "foreign-pipeline-2"}, {Contents: "other"}, {Contents: "no"}, {Contents: "yes", Color: color.New(color.FgCyan)}},
+						},
+					}))
+				})
 			})
 		})
 
 		Context("and the api returns an internal server error", func() {
 			BeforeEach(func() {
+				flyCmd = exec.Command(flyPath, "-t", targetName, "pipelines")
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
