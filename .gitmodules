@@ -153,7 +153,7 @@
 [submodule "src/github.com/concourse/tsa"]
 	path = src/github.com/concourse/tsa
 	url = https://github.com/concourse/tsa
-	branch = master
+	branch = teams
 [submodule "src/github.com/vito/gosub"]
 	path = src/github.com/vito/gosub
 	url = https://github.com/vito/gosub
@@ -240,6 +240,3 @@
 [submodule "src/gopkg.in/cheggaaa/pb.v1"]
 	path = src/gopkg.in/cheggaaa/pb.v1
 	url = https://gopkg.in/cheggaaa/pb.v1
-[submodule "src/github.com/kr/tarutil"]
-	path = src/github.com/kr/tarutil
-	url = https://github.com/kr/tarutil
