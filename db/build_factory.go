@@ -21,7 +21,7 @@ type buildFactory struct {
 func (f *buildFactory) ScanBuild(row scannable) (Build, bool, error) {
 	var id int
 	var name string
-	var jobID, pipelineID sql.NullInt64
+	var jobID, pipelineID, teamID sql.NullInt64
 	var status string
 	var scheduled bool
 	var engine, engineMetadata, jobName, pipelineName sql.NullString
@@ -30,7 +30,7 @@ func (f *buildFactory) ScanBuild(row scannable) (Build, bool, error) {
 	var reapTime pq.NullTime
 	var teamName string
 
-	err := row.Scan(&id, &name, &jobID, &status, &scheduled, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &teamName)
+	err := row.Scan(&id, &name, &jobID, &teamID, &status, &scheduled, &engine, &engineMetadata, &startTime, &endTime, &reapTime, &jobName, &pipelineID, &pipelineName, &teamName)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -62,6 +62,10 @@ func (f *buildFactory) ScanBuild(row scannable) (Build, bool, error) {
 		build.jobName = jobName.String
 		build.pipelineName = pipelineName.String
 		build.pipelineID = int(pipelineID.Int64)
+	}
+
+	if teamID.Valid {
+		build.teamID = int(teamID.Int64)
 	}
 
 	return build, true, nil

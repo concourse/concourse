@@ -29,6 +29,7 @@ type TeamDB interface {
 	GetBuild(buildID int) (Build, bool, error)
 
 	Workers() ([]SavedWorker, error)
+	FindContainersByDescriptors(id Container) ([]SavedContainer, error)
 }
 
 type teamDB struct {

@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/atc"
 )
 
-const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user, ttl, EXTRACT(epoch FROM expires_at - NOW()), c.id, resource_type_version"
+const containerColumns = "worker_name, resource_id, check_type, check_source, build_id, plan_id, stage, handle, b.name as build_name, r.name as resource_name, p.id as pipeline_id, p.name as pipeline_name, j.name as job_name, step_name, type, working_directory, env_variables, attempts, process_user, ttl, EXTRACT(epoch FROM expires_at - NOW()), c.id, resource_type_version, c.team_id"
 
 const containerJoins = `
 		LEFT JOIN pipelines p
@@ -363,11 +363,6 @@ func (db *SQLDB) CreateContainer(
 		buildID.Valid = true
 	}
 
-	workerName := container.WorkerName
-	if workerName == "" {
-		workerName = container.WorkerName
-	}
-
 	var attempts sql.NullString
 	if len(container.Attempts) > 0 {
 		attemptsBlob, err := json.Marshal(container.Attempts)
@@ -404,8 +399,8 @@ func (db *SQLDB) CreateContainer(
 		INSERT INTO containers (handle, resource_id, step_name, pipeline_id, build_id, type, worker_name,
 			expires_at, ttl, best_if_used_by, check_type, check_source, plan_id, working_directory,
 			env_variables, attempts, stage, image_resource_type, image_resource_source,
-			process_user, resource_type_version)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9,`+maxLifetimeValue+`, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+			process_user, resource_type_version, team_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() + $8::INTERVAL, $9,`+maxLifetimeValue+`, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
 		RETURNING id`,
 		container.Handle,
 		resourceID,
@@ -413,7 +408,7 @@ func (db *SQLDB) CreateContainer(
 		pipelineID,
 		buildID,
 		container.Type.String(),
-		workerName,
+		container.WorkerName,
 		interval,
 		ttl,
 		container.CheckType,
@@ -427,6 +422,7 @@ func (db *SQLDB) CreateContainer(
 		imageResourceSource,
 		user,
 		resourceTypeVersion,
+		container.TeamID,
 	).Scan(&id)
 	if err != nil {
 		return SavedContainer{}, err
@@ -577,6 +573,7 @@ func isValidStepID(id ContainerIdentifier) bool {
 
 func scanContainer(row scannable) (SavedContainer, error) {
 	var (
+		teamID              sql.NullInt64
 		resourceID          sql.NullInt64
 		checkSourceBlob     []byte
 		buildID             sql.NullInt64
@@ -619,6 +616,7 @@ func scanContainer(row scannable) (SavedContainer, error) {
 		&ttlInSeconds,
 		&container.ID,
 		&resourceTypeVersion,
+		&teamID,
 	)
 
 	if err != nil {
@@ -631,6 +629,10 @@ func scanContainer(row scannable) (SavedContainer, error) {
 
 	if buildID.Valid {
 		container.ContainerIdentifier.BuildID = int(buildID.Int64)
+	}
+
+	if teamID.Valid {
+		container.TeamID = int(teamID.Int64)
 	}
 
 	container.PlanID = atc.PlanID(planID.String)

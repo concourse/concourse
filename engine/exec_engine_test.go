@@ -87,6 +87,7 @@ var _ = Describe("ExecEngine", func() {
 			dbBuild.JobNameReturns("some-job")
 			dbBuild.PipelineNameReturns("some-pipeline")
 			dbBuild.TeamNameReturns("some-team")
+			dbBuild.TeamIDReturns(17)
 
 			expectedMetadata = engine.StepMetadata{
 				BuildID:      42,
@@ -269,6 +270,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypePut,
 						StepName:     "some-put",
 						PipelineID:   57,
+						TeamID:       17,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -291,6 +293,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypePut,
 						StepName:     "some-put-2",
 						PipelineID:   57,
+						TeamID:       17,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -322,6 +325,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeGet,
 						StepName:     "some-get",
 						PipelineID:   57,
+						TeamID:       17,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -349,6 +353,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeGet,
 						StepName:     "some-get-2",
 						PipelineID:   57,
+						TeamID:       17,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -445,6 +450,7 @@ var _ = Describe("ExecEngine", func() {
 					StepName:     "some-get",
 					PipelineID:   57,
 					Attempts:     []int{1},
+					TeamID:       17,
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 42,
@@ -472,6 +478,7 @@ var _ = Describe("ExecEngine", func() {
 					StepName:     "some-get",
 					PipelineID:   57,
 					Attempts:     []int{3},
+					TeamID:       17,
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 42,
@@ -503,6 +510,7 @@ var _ = Describe("ExecEngine", func() {
 					StepName:     "some-task",
 					PipelineID:   57,
 					Attempts:     []int{2, 1},
+					TeamID:       17,
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 42,
@@ -524,6 +532,7 @@ var _ = Describe("ExecEngine", func() {
 					StepName:     "some-task",
 					PipelineID:   57,
 					Attempts:     []int{2, 2},
+					TeamID:       17,
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 42,
@@ -664,6 +673,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeGet,
 						StepName:     "some-input",
 						PipelineID:   57,
+						TeamID:       17,
 					}))
 					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
 					Expect(workerID).To(Equal(worker.Identifier{
@@ -777,6 +787,7 @@ var _ = Describe("ExecEngine", func() {
 							Type:         db.ContainerTypeTask,
 							StepName:     "some-task",
 							PipelineID:   57,
+							TeamID:       17,
 						}))
 						Expect(workerID).To(Equal(worker.Identifier{
 							BuildID: 42,
@@ -928,6 +939,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypePut,
 						StepName:     "some-put",
 						PipelineID:   57,
+						TeamID:       17,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -963,6 +975,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeGet,
 						StepName:     "some-get",
 						PipelineID:   57,
+						TeamID:       17,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,

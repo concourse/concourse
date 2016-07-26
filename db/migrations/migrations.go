@@ -115,4 +115,5 @@ var Migrations = []migration.Migrator{
 	AddTeamIDToBuilds,
 	AddPublicToPipelines,
 	AddTeamIDToWorkers,
+	AddTeamIDToContainers,
 }

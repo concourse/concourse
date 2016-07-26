@@ -53,6 +53,7 @@ func (engine *execEngine) CreateBuild(logger lager.Logger, build db.Build, plan 
 	return &execBuild{
 		buildID:      build.ID(),
 		teamName:     build.TeamName(),
+		teamID:       build.TeamID(),
 		stepMetadata: buildMetadata(build, engine.externalURL),
 
 		factory:  engine.factory,
@@ -84,6 +85,7 @@ func (engine *execEngine) LookupBuild(logger lager.Logger, build db.Build) (Buil
 	return &execBuild{
 		buildID:      build.ID(),
 		teamName:     build.TeamName(),
+		teamID:       build.TeamID(),
 		stepMetadata: buildMetadata(build, engine.externalURL),
 
 		factory:  engine.factory,
@@ -156,6 +158,7 @@ type execBuild struct {
 	buildID      int
 	stepMetadata StepMetadata
 	teamName     string
+	teamID       int
 
 	factory  exec.Factory
 	delegate BuildDelegate
@@ -298,6 +301,7 @@ func (build *execBuild) stepIdentifier(
 			StepName:   stepName,
 			Type:       stepType,
 			PipelineID: pipelineID,
+			TeamID:     build.teamID,
 			Attempts:   attempts,
 		}
 }

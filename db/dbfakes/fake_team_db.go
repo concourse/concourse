@@ -127,6 +127,15 @@ type FakeTeamDB struct {
 		result1 []db.SavedWorker
 		result2 error
 	}
+	FindContainersByDescriptorsStub        func(id db.Container) ([]db.SavedContainer, error)
+	findContainersByDescriptorsMutex       sync.RWMutex
+	findContainersByDescriptorsArgsForCall []struct {
+		id db.Container
+	}
+	findContainersByDescriptorsReturns struct {
+		result1 []db.SavedContainer
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -555,6 +564,40 @@ func (fake *FakeTeamDB) WorkersReturns(result1 []db.SavedWorker, result2 error) 
 	}{result1, result2}
 }
 
+func (fake *FakeTeamDB) FindContainersByDescriptors(id db.Container) ([]db.SavedContainer, error) {
+	fake.findContainersByDescriptorsMutex.Lock()
+	fake.findContainersByDescriptorsArgsForCall = append(fake.findContainersByDescriptorsArgsForCall, struct {
+		id db.Container
+	}{id})
+	fake.recordInvocation("FindContainersByDescriptors", []interface{}{id})
+	fake.findContainersByDescriptorsMutex.Unlock()
+	if fake.FindContainersByDescriptorsStub != nil {
+		return fake.FindContainersByDescriptorsStub(id)
+	} else {
+		return fake.findContainersByDescriptorsReturns.result1, fake.findContainersByDescriptorsReturns.result2
+	}
+}
+
+func (fake *FakeTeamDB) FindContainersByDescriptorsCallCount() int {
+	fake.findContainersByDescriptorsMutex.RLock()
+	defer fake.findContainersByDescriptorsMutex.RUnlock()
+	return len(fake.findContainersByDescriptorsArgsForCall)
+}
+
+func (fake *FakeTeamDB) FindContainersByDescriptorsArgsForCall(i int) db.Container {
+	fake.findContainersByDescriptorsMutex.RLock()
+	defer fake.findContainersByDescriptorsMutex.RUnlock()
+	return fake.findContainersByDescriptorsArgsForCall[i].id
+}
+
+func (fake *FakeTeamDB) FindContainersByDescriptorsReturns(result1 []db.SavedContainer, result2 error) {
+	fake.FindContainersByDescriptorsStub = nil
+	fake.findContainersByDescriptorsReturns = struct {
+		result1 []db.SavedContainer
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -584,6 +627,8 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.getBuildMutex.RUnlock()
 	fake.workersMutex.RLock()
 	defer fake.workersMutex.RUnlock()
+	fake.findContainersByDescriptorsMutex.RLock()
+	defer fake.findContainersByDescriptorsMutex.RUnlock()
 	return fake.invocations
 }
 

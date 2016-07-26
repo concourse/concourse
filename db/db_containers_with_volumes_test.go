@@ -18,6 +18,7 @@ var _ = Describe("Keeping track of containers", func() {
 
 		database db.DB
 		teamDB   db.TeamDB
+		teamID   int
 	)
 
 	BeforeEach(func() {
@@ -33,8 +34,9 @@ var _ = Describe("Keeping track of containers", func() {
 		database = db.NewSQL(dbConn, bus)
 		teamDBFactory := db.NewTeamDBFactory(dbConn, bus)
 
-		_, err := database.CreateTeam(db.Team{Name: "some-team"})
+		savedTeam, err := database.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
+		teamID = savedTeam.ID
 
 		teamDB = teamDBFactory.GetTeamDB("some-team")
 	})
@@ -78,6 +80,7 @@ var _ = Describe("Keeping track of containers", func() {
 					ContainerMetadata: db.ContainerMetadata{
 						Handle: "some-handle-1",
 						Type:   db.ContainerTypeTask,
+						TeamID: teamID,
 					},
 				}
 				savedContainer1, err := database.CreateContainer(container1, 5*time.Minute, 0, []string{
@@ -105,6 +108,7 @@ var _ = Describe("Keeping track of containers", func() {
 					ContainerMetadata: db.ContainerMetadata{
 						Handle: "some-handle-2",
 						Type:   db.ContainerTypeTask,
+						TeamID: teamID,
 					},
 				}
 				savedContainer2, err := database.CreateContainer(container2, 19*time.Minute, 0, []string{
@@ -169,6 +173,7 @@ var _ = Describe("Keeping track of containers", func() {
 					ContainerMetadata: db.ContainerMetadata{
 						Handle: "some-handle-1",
 						Type:   db.ContainerTypeTask,
+						TeamID: teamID,
 					},
 				}
 
@@ -181,6 +186,7 @@ var _ = Describe("Keeping track of containers", func() {
 					ContainerMetadata: db.ContainerMetadata{
 						Handle: "some-handle-2",
 						Type:   db.ContainerTypeTask,
+						TeamID: teamID,
 					},
 				}
 

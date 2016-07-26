@@ -22,8 +22,8 @@ const (
 	StatusErrored   Status = "errored"
 )
 
-const buildColumns = "id, name, job_id, status, scheduled, engine, engine_metadata, start_time, end_time, reap_time"
-const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.status, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name"
+const buildColumns = "id, name, job_id, team_id, status, scheduled, engine, engine_metadata, start_time, end_time, reap_time"
+const qualifiedBuildColumns = "b.id, b.name, b.job_id, b.team_id, b.status, b.scheduled, b.engine, b.engine_metadata, b.start_time, b.end_time, b.reap_time, j.name as job_name, p.id as pipeline_id, p.name as pipeline_name, t.name as team_name"
 
 //go:generate counterfeiter . Build
 
@@ -33,6 +33,7 @@ type Build interface {
 	JobName() string
 	PipelineName() string
 	TeamName() string
+	TeamID() int
 	Engine() string
 	EngineMetadata() string
 	Status() Status
@@ -85,6 +86,7 @@ type build struct {
 	pipelineName string
 	pipelineID   int
 	teamName     string
+	teamID       int
 
 	engine         string
 	engineMetadata string
@@ -117,6 +119,10 @@ func (b *build) PipelineName() string {
 
 func (b *build) TeamName() string {
 	return b.teamName
+}
+
+func (b *build) TeamID() int {
+	return b.teamID
 }
 
 func (b *build) Engine() string {
@@ -188,6 +194,7 @@ func (b *build) Reload() (bool, error) {
 	b.endTime = newBuild.EndTime()
 	b.reapTime = newBuild.ReapTime()
 	b.teamName = newBuild.TeamName()
+	b.teamID = newBuild.TeamID()
 	b.jobName = newBuild.JobName()
 	b.pipelineName = newBuild.PipelineName()
 
