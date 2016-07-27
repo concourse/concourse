@@ -218,6 +218,7 @@ func (scanner *resourceScanner) scan(
 		Metadata: worker.Metadata{
 			Type:       db.ContainerTypeCheck,
 			PipelineID: pipelineID,
+			TeamID:     scanner.db.TeamID(),
 		},
 		Ephemeral: true,
 	}

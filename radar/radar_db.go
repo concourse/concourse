@@ -15,6 +15,7 @@ type RadarDB interface {
 	GetPipelineID() int
 	ScopedName(string) string
 	TeamName() string
+	TeamID() int
 
 	IsPaused() (bool, error)
 

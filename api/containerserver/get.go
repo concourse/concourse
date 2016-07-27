@@ -5,17 +5,20 @@ import (
 	"net/http"
 
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/auth"
 	"github.com/pivotal-golang/lager"
 )
 
 func (s *Server) GetContainer(w http.ResponseWriter, r *http.Request) {
+	teamName := auth.GetAuthOrDefaultTeamName(r)
 	handle := r.FormValue(":id")
 
 	hLog := s.logger.Session("container", lager.Data{
 		"handle": handle,
 	})
 
-	container, found, err := s.db.GetContainer(handle)
+	teamDB := s.teamDBFactory.GetTeamDB(teamName)
+	container, found, err := teamDB.GetContainer(handle)
 	if err != nil {
 		hLog.Error("failed-to-lookup-container", err)
 		w.WriteHeader(http.StatusInternalServerError)

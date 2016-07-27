@@ -39,6 +39,12 @@ type FakePipelineDB struct {
 	teamNameReturns     struct {
 		result1 string
 	}
+	TeamIDStub        func() int
+	teamIDMutex       sync.RWMutex
+	teamIDArgsForCall []struct{}
+	teamIDReturns     struct {
+		result1 int
+	}
 	PauseStub        func() error
 	pauseMutex       sync.RWMutex
 	pauseArgsForCall []struct{}
@@ -594,6 +600,31 @@ func (fake *FakePipelineDB) TeamNameReturns(result1 string) {
 	fake.TeamNameStub = nil
 	fake.teamNameReturns = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakePipelineDB) TeamID() int {
+	fake.teamIDMutex.Lock()
+	fake.teamIDArgsForCall = append(fake.teamIDArgsForCall, struct{}{})
+	fake.recordInvocation("TeamID", []interface{}{})
+	fake.teamIDMutex.Unlock()
+	if fake.TeamIDStub != nil {
+		return fake.TeamIDStub()
+	} else {
+		return fake.teamIDReturns.result1
+	}
+}
+
+func (fake *FakePipelineDB) TeamIDCallCount() int {
+	fake.teamIDMutex.RLock()
+	defer fake.teamIDMutex.RUnlock()
+	return len(fake.teamIDArgsForCall)
+}
+
+func (fake *FakePipelineDB) TeamIDReturns(result1 int) {
+	fake.TeamIDStub = nil
+	fake.teamIDReturns = struct {
+		result1 int
 	}{result1}
 }
 
@@ -2243,6 +2274,8 @@ func (fake *FakePipelineDB) Invocations() map[string][][]interface{} {
 	defer fake.scopedNameMutex.RUnlock()
 	fake.teamNameMutex.RLock()
 	defer fake.teamNameMutex.RUnlock()
+	fake.teamIDMutex.RLock()
+	defer fake.teamIDMutex.RUnlock()
 	fake.pauseMutex.RLock()
 	defer fake.pauseMutex.RUnlock()
 	fake.unpauseMutex.RLock()

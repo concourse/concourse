@@ -109,7 +109,7 @@ func NewHandler(
 
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
 
-	containerServer := containerserver.NewServer(logger, workerClient, containerDB)
+	containerServer := containerserver.NewServer(logger, workerClient, containerDB, teamDBFactory)
 
 	volumesServer := volumeserver.NewServer(logger, volumesDB)
 

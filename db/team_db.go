@@ -30,6 +30,7 @@ type TeamDB interface {
 	GetBuild(buildID int) (Build, bool, error)
 
 	Workers() ([]SavedWorker, error)
+	GetContainer(handle string) (SavedContainer, bool, error)
 	FindContainersByDescriptors(id Container) ([]SavedContainer, error)
 }
 

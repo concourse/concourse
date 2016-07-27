@@ -134,6 +134,16 @@ type FakeTeamDB struct {
 		result1 []db.SavedWorker
 		result2 error
 	}
+	GetContainerStub        func(handle string) (db.SavedContainer, bool, error)
+	getContainerMutex       sync.RWMutex
+	getContainerArgsForCall []struct {
+		handle string
+	}
+	getContainerReturns struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}
 	FindContainersByDescriptorsStub        func(id db.Container) ([]db.SavedContainer, error)
 	findContainersByDescriptorsMutex       sync.RWMutex
 	findContainersByDescriptorsArgsForCall []struct {
@@ -597,6 +607,41 @@ func (fake *FakeTeamDB) WorkersReturns(result1 []db.SavedWorker, result2 error) 
 	}{result1, result2}
 }
 
+func (fake *FakeTeamDB) GetContainer(handle string) (db.SavedContainer, bool, error) {
+	fake.getContainerMutex.Lock()
+	fake.getContainerArgsForCall = append(fake.getContainerArgsForCall, struct {
+		handle string
+	}{handle})
+	fake.recordInvocation("GetContainer", []interface{}{handle})
+	fake.getContainerMutex.Unlock()
+	if fake.GetContainerStub != nil {
+		return fake.GetContainerStub(handle)
+	} else {
+		return fake.getContainerReturns.result1, fake.getContainerReturns.result2, fake.getContainerReturns.result3
+	}
+}
+
+func (fake *FakeTeamDB) GetContainerCallCount() int {
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
+	return len(fake.getContainerArgsForCall)
+}
+
+func (fake *FakeTeamDB) GetContainerArgsForCall(i int) string {
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
+	return fake.getContainerArgsForCall[i].handle
+}
+
+func (fake *FakeTeamDB) GetContainerReturns(result1 db.SavedContainer, result2 bool, result3 error) {
+	fake.GetContainerStub = nil
+	fake.getContainerReturns = struct {
+		result1 db.SavedContainer
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeTeamDB) FindContainersByDescriptors(id db.Container) ([]db.SavedContainer, error) {
 	fake.findContainersByDescriptorsMutex.Lock()
 	fake.findContainersByDescriptorsArgsForCall = append(fake.findContainersByDescriptorsArgsForCall, struct {
@@ -662,6 +707,8 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.getBuildMutex.RUnlock()
 	fake.workersMutex.RLock()
 	defer fake.workersMutex.RUnlock()
+	fake.getContainerMutex.RLock()
+	defer fake.getContainerMutex.RUnlock()
 	fake.findContainersByDescriptorsMutex.RLock()
 	defer fake.findContainersByDescriptorsMutex.RUnlock()
 	return fake.invocations

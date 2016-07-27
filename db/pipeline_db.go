@@ -21,6 +21,7 @@ type PipelineDB interface {
 	GetPipelineID() int
 	ScopedName(string) string
 	TeamName() string
+	TeamID() int
 
 	Pause() error
 	Unpause() error
@@ -135,6 +136,10 @@ func (pdb *pipelineDB) ScopedName(name string) string {
 
 func (pdb *pipelineDB) TeamName() string {
 	return pdb.SavedPipeline.TeamName
+}
+
+func (pdb *pipelineDB) TeamID() int {
+	return pdb.SavedPipeline.TeamID
 }
 
 func (pdb *pipelineDB) IsPublic() bool {

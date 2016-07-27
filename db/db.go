@@ -98,7 +98,6 @@ type DB interface {
 	GetWorker(workerName string) (SavedWorker, bool, error)
 	SaveWorker(WorkerInfo, time.Duration) (SavedWorker, error)
 
-	FindContainersByDescriptors(Container) ([]SavedContainer, error)
 	GetContainer(string) (SavedContainer, bool, error)
 	CreateContainer(container Container, ttl time.Duration, maxLifetime time.Duration, volumeHandles []string) (SavedContainer, error)
 	FindContainerByIdentifier(ContainerIdentifier) (SavedContainer, bool, error)

@@ -23,9 +23,10 @@ var _ = Describe("TeamDbContainers", func() {
 		savedPipeline      db.SavedPipeline
 		savedOtherPipeline db.SavedPipeline
 
-		teamID     int
-		teamDB     db.TeamDB
-		pipelineDB db.PipelineDB
+		teamID      int
+		otherTeamID int
+		teamDB      db.TeamDB
+		pipelineDB  db.PipelineDB
 	)
 
 	BeforeEach(func() {
@@ -44,6 +45,11 @@ var _ = Describe("TeamDbContainers", func() {
 		savedTeam, err := database.CreateTeam(team)
 		Expect(err).NotTo(HaveOccurred())
 		teamID = savedTeam.ID
+
+		otherTeam := db.Team{Name: "other-team-name"}
+		savedOtherTeam, err := database.CreateTeam(otherTeam)
+		Expect(err).NotTo(HaveOccurred())
+		otherTeamID = savedOtherTeam.ID
 
 		teamDB = teamDBFactory.GetTeamDB("team-name")
 
@@ -144,7 +150,7 @@ var _ = Describe("TeamDbContainers", func() {
 			}
 		},
 
-		Entry("returns everything when no filters are passed", func() findContainersByDescriptorsExample {
+		Entry("returns all containers belonging to the team when no filters are passed", func() findContainersByDescriptorsExample {
 			return findContainersByDescriptorsExample{
 				containersToCreate: []db.Container{
 					{
@@ -173,6 +179,20 @@ var _ = Describe("TeamDbContainers", func() {
 							WorkerName: "some-other-worker",
 							PipelineID: savedPipeline.ID,
 							TeamID:     teamID,
+						},
+					},
+					{
+						ContainerIdentifier: db.ContainerIdentifier{
+							Stage:   db.ContainerStageRun,
+							PlanID:  "plan-id",
+							BuildID: 1234,
+						},
+						ContainerMetadata: db.ContainerMetadata{
+							Handle:     "c",
+							Type:       db.ContainerTypeTask,
+							WorkerName: "some-other-worker",
+							PipelineID: savedPipeline.ID,
+							TeamID:     otherTeamID,
 						},
 					},
 				},
@@ -891,4 +911,94 @@ var _ = Describe("TeamDbContainers", func() {
 			}
 		}),
 	)
+
+	Describe("GetContainer", func() {
+		var savedContainer db.SavedContainer
+		var otherSavedContainer db.SavedContainer
+		var resourceTypeVersion atc.Version
+		var container db.Container
+
+		BeforeEach(func() {
+			resourceTypeVersion = atc.Version{
+				"some-resource-type": "some-version",
+			}
+
+			container = db.Container{
+				ContainerIdentifier: db.ContainerIdentifier{
+					ResourceID:          getResourceID("some-resource"),
+					CheckType:           "some-resource-type",
+					CheckSource:         atc.Source{"some": "source"},
+					ResourceTypeVersion: resourceTypeVersion,
+					Stage:               db.ContainerStageRun,
+				},
+				ContainerMetadata: db.ContainerMetadata{
+					Handle:               "some-handle",
+					WorkerName:           "some-worker",
+					PipelineID:           savedPipeline.ID,
+					Type:                 db.ContainerTypeCheck,
+					WorkingDirectory:     "tmp/build/some-guid",
+					EnvironmentVariables: []string{"VAR1=val1", "VAR2=val2"},
+					TeamID:               teamID,
+				},
+			}
+
+			otherTeamContainer := db.Container{
+				ContainerIdentifier: db.ContainerIdentifier{
+					Stage:   db.ContainerStageRun,
+					PlanID:  "plan-id",
+					BuildID: 1234,
+				},
+				ContainerMetadata: db.ContainerMetadata{
+					Handle:     "b",
+					Type:       db.ContainerTypeTask,
+					WorkerName: "some-worker",
+					PipelineID: 0,
+					TeamID:     otherTeamID,
+				},
+			}
+			var err error
+			savedContainer, err = database.CreateContainer(container, time.Minute, 0, []string{})
+			Expect(err).NotTo(HaveOccurred())
+
+			otherSavedContainer, err = database.CreateContainer(otherTeamContainer, time.Minute, 0, []string{})
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when the container belongs to the team", func() {
+			It("returns the container", func() {
+				actualContainer, found, err := teamDB.GetContainer(savedContainer.Handle)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(actualContainer.Handle).To(Equal(savedContainer.Handle))
+				Expect(actualContainer.WorkerName).To(Equal(container.WorkerName))
+				Expect(actualContainer.ResourceID).To(Equal(container.ResourceID))
+
+				Expect(actualContainer.Handle).To(Equal(container.Handle))
+				Expect(actualContainer.StepName).To(Equal(""))
+				Expect(actualContainer.ResourceName).To(Equal("some-resource"))
+				Expect(actualContainer.PipelineID).To(Equal(savedPipeline.ID))
+				Expect(actualContainer.PipelineName).To(Equal(savedPipeline.Name))
+				Expect(actualContainer.BuildID).To(Equal(0))
+				Expect(actualContainer.BuildName).To(Equal(""))
+				Expect(actualContainer.Type).To(Equal(db.ContainerTypeCheck))
+				Expect(actualContainer.ContainerMetadata.WorkerName).To(Equal(container.WorkerName))
+				Expect(actualContainer.WorkingDirectory).To(Equal(container.WorkingDirectory))
+				Expect(actualContainer.CheckType).To(Equal(container.CheckType))
+				Expect(actualContainer.CheckSource).To(Equal(container.CheckSource))
+				Expect(actualContainer.EnvironmentVariables).To(Equal(container.EnvironmentVariables))
+				Expect(actualContainer.TTL).To(Equal(time.Minute))
+				Expect(actualContainer.ResourceTypeVersion).To(Equal(resourceTypeVersion))
+				Expect(actualContainer.TeamID).To(Equal(teamID))
+			})
+		})
+
+		Context("when the container belongs to another team", func() {
+			It("does not return the container and returns and error", func() {
+				_, found, err := teamDB.GetContainer(otherSavedContainer.Handle)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
 })

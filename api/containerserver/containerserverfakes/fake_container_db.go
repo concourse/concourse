@@ -19,15 +19,6 @@ type FakeContainerDB struct {
 		result2 bool
 		result3 error
 	}
-	FindContainersByDescriptorsStub        func(db.Container) ([]db.SavedContainer, error)
-	findContainersByDescriptorsMutex       sync.RWMutex
-	findContainersByDescriptorsArgsForCall []struct {
-		arg1 db.Container
-	}
-	findContainersByDescriptorsReturns struct {
-		result1 []db.SavedContainer
-		result2 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -67,47 +58,11 @@ func (fake *FakeContainerDB) GetContainerReturns(result1 db.SavedContainer, resu
 	}{result1, result2, result3}
 }
 
-func (fake *FakeContainerDB) FindContainersByDescriptors(arg1 db.Container) ([]db.SavedContainer, error) {
-	fake.findContainersByDescriptorsMutex.Lock()
-	fake.findContainersByDescriptorsArgsForCall = append(fake.findContainersByDescriptorsArgsForCall, struct {
-		arg1 db.Container
-	}{arg1})
-	fake.recordInvocation("FindContainersByDescriptors", []interface{}{arg1})
-	fake.findContainersByDescriptorsMutex.Unlock()
-	if fake.FindContainersByDescriptorsStub != nil {
-		return fake.FindContainersByDescriptorsStub(arg1)
-	} else {
-		return fake.findContainersByDescriptorsReturns.result1, fake.findContainersByDescriptorsReturns.result2
-	}
-}
-
-func (fake *FakeContainerDB) FindContainersByDescriptorsCallCount() int {
-	fake.findContainersByDescriptorsMutex.RLock()
-	defer fake.findContainersByDescriptorsMutex.RUnlock()
-	return len(fake.findContainersByDescriptorsArgsForCall)
-}
-
-func (fake *FakeContainerDB) FindContainersByDescriptorsArgsForCall(i int) db.Container {
-	fake.findContainersByDescriptorsMutex.RLock()
-	defer fake.findContainersByDescriptorsMutex.RUnlock()
-	return fake.findContainersByDescriptorsArgsForCall[i].arg1
-}
-
-func (fake *FakeContainerDB) FindContainersByDescriptorsReturns(result1 []db.SavedContainer, result2 error) {
-	fake.FindContainersByDescriptorsStub = nil
-	fake.findContainersByDescriptorsReturns = struct {
-		result1 []db.SavedContainer
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeContainerDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getContainerMutex.RLock()
 	defer fake.getContainerMutex.RUnlock()
-	fake.findContainersByDescriptorsMutex.RLock()
-	defer fake.findContainersByDescriptorsMutex.RUnlock()
 	return fake.invocations
 }
 

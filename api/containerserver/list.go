@@ -8,11 +8,13 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/auth"
 	"github.com/concourse/atc/db"
 	"github.com/pivotal-golang/lager"
 )
 
 func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
+	teamName := auth.GetAuthOrDefaultTeamName(r)
 	params := r.URL.RawQuery
 
 	hLog := s.logger.Session("list-containers", lager.Data{
@@ -30,7 +32,8 @@ func (s *Server) ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	hLog.Debug("listing-containers")
 
-	containers, err := s.db.FindContainersByDescriptors(containerDescriptor)
+	teamDB := s.teamDBFactory.GetTeamDB(teamName)
+	containers, err := teamDB.FindContainersByDescriptors(containerDescriptor)
 	if err != nil {
 		hLog.Error("failed-to-find-containers", err)
 		w.WriteHeader(http.StatusInternalServerError)

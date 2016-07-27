@@ -3,9 +3,12 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 )
+
+const teamContainerJoins = containerJoins + "\nLEFT JOIN teams t ON c.team_id = t.id"
 
 func (db *teamDB) FindContainersByDescriptors(id Container) ([]SavedContainer, error) {
 	var err error
@@ -82,12 +85,24 @@ func (db *teamDB) FindContainersByDescriptors(id Container) ([]SavedContainer, e
 	}
 
 	var rows *sql.Rows
-	selectQuery := `
-		SELECT ` + containerColumns + `
-		FROM containers c ` + containerJoins
+
+	team, found, err := db.GetTeam()
+	if err != nil {
+		return nil, err
+	}
+
+	if !found {
+		return nil, errors.New("team-not-found")
+	}
+
+	selectQuery := fmt.Sprintf(`
+		SELECT `+containerColumns+`
+		FROM containers c `+teamContainerJoins+`
+		WHERE c.team_id = %d
+		`, team.ID)
 
 	if len(whereCriteria) > 0 {
-		selectQuery += fmt.Sprintf(" WHERE %s", strings.Join(whereCriteria, " AND "))
+		selectQuery += fmt.Sprintf(" AND %s", strings.Join(whereCriteria, " AND "))
 	}
 
 	rows, err = db.conn.Query(selectQuery, params...)
@@ -110,4 +125,49 @@ func (db *teamDB) FindContainersByDescriptors(id Container) ([]SavedContainer, e
 	}
 
 	return infos, nil
+}
+
+func (db *teamDB) GetContainer(handle string) (SavedContainer, bool, error) {
+	err := deleteExpiredContainers(db)
+	if err != nil {
+		return SavedContainer{}, false, err
+	}
+
+	team, found, err := db.GetTeam()
+	if err != nil {
+		return SavedContainer{}, false, err
+	}
+
+	if !found {
+		return SavedContainer{}, false, errors.New("team-not-found")
+	}
+
+	container, err := scanContainer(db.conn.QueryRow(fmt.Sprintf(`
+		SELECT `+containerColumns+`
+	  FROM containers c `+teamContainerJoins+`
+		WHERE c.handle = $1
+		AND c.team_id = %d
+	`, team.ID), handle))
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return SavedContainer{}, false, nil
+		}
+		return SavedContainer{}, false, err
+	}
+
+	return container, true, nil
+}
+
+func deleteExpiredContainers(db *teamDB) error {
+	_, err := db.conn.Exec(`
+		DELETE FROM containers
+		WHERE expires_at IS NOT NULL
+		AND expires_at < NOW()
+	`)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
