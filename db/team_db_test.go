@@ -97,67 +97,62 @@ var _ = Describe("TeamDB", func() {
 			savedPipeline2, _, err = teamDB.SaveConfig("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+			otherSavedPublicPipeline, _, err := otherTeamDB.SaveConfig("other-team-pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
 			Expect(err).NotTo(HaveOccurred())
+
+			pipelineDB := pipelineDBFactory.Build(otherSavedPublicPipeline)
+			err = pipelineDB.Reveal()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("returns pipelines that belong to team", func() {
+		It("returns only the pipelines that belong to team", func() {
 			savedPipelines, err := teamDB.GetPipelines()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(savedPipelines).To(HaveLen(2))
 			Expect(savedPipelines).To(ConsistOf(savedPipeline1, savedPipeline2))
 		})
+	})
 
-		Context("when other team has public pipelines", func() {
-			var otherPipeline db.SavedPipeline
-			var pipelineDB db.PipelineDB
+	Describe("GetAllPipelines", func() {
+		var savedPipeline1 db.SavedPipeline
+		var savedPipeline2 db.SavedPipeline
+		var otherSavedPublicPipeline db.SavedPipeline
+		BeforeEach(func() {
+			var err error
+			savedPipeline1, _, err = teamDB.SaveConfig("pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
 
-			BeforeEach(func() {
-				var err error
-				otherPipeline, _, err = otherTeamDB.SaveConfig("other-pipeline-name", atc.Config{}, 0, db.PipelineUnpaused)
-				Expect(err).NotTo(HaveOccurred())
-				pipelineDB = pipelineDBFactory.Build(otherPipeline)
-				err = pipelineDB.Reveal()
-				Expect(err).NotTo(HaveOccurred())
-			})
+			savedPipeline2, _, err = teamDB.SaveConfig("pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
 
-			It("returns them", func() {
-				returnedPipelines, err := teamDB.GetPipelines()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(returnedPipelines).To(HaveLen(3))
+			otherSavedPublicPipeline, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-a", atc.Config{}, 0, db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
 
-				otherPipeline, err = otherTeamDB.GetPipelineByName("other-pipeline-name")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(returnedPipelines).To(ConsistOf(savedPipeline1, savedPipeline2, otherPipeline))
+			_, _, err = otherTeamDB.SaveConfig("other-team-pipeline-name-b", atc.Config{}, 0, db.PipelineUnpaused)
+			Expect(err).NotTo(HaveOccurred())
 
-				var otherPipeline db.SavedPipeline
-				var teamPipelines []db.SavedPipeline
-				for _, returnedPipeline := range returnedPipelines {
-					if returnedPipeline.Name == "other-pipeline-name" {
-						otherPipeline = returnedPipeline
-					} else {
-						teamPipelines = append(teamPipelines, returnedPipeline)
-					}
-				}
+			otherPipelineDB := pipelineDBFactory.Build(otherSavedPublicPipeline)
+			err = otherPipelineDB.Reveal()
+			Expect(err).NotTo(HaveOccurred())
 
-				Expect(otherPipeline.TeamName).To(Equal("other-team-name"))
-				Expect(teamPipelines[0].TeamName).To(Equal("team-name"))
-				Expect(teamPipelines[1].TeamName).To(Equal("team-name"))
-			})
+			otherSavedPublicPipeline, err = otherTeamDB.GetPipelineByName("other-team-pipeline-name-a")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(otherSavedPublicPipeline.Public).To(BeTrue())
+		})
 
-			Context("when pipeline that belongs to other team is no longer public", func() {
-				It("does not return it", func() {
-					err := pipelineDB.Conceal()
-					Expect(err).NotTo(HaveOccurred())
-					savedPipelines, err := teamDB.GetPipelines()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(savedPipelines).To(HaveLen(2))
-					Expect(savedPipelines).To(ConsistOf(savedPipeline1, savedPipeline2))
-				})
-			})
+		It("returns the pipelines of the team and public pipelines from other teams", func() {
+			savedPipelines, err := teamDB.GetAllPipelines()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(savedPipelines).To(HaveLen(3))
+			Expect(savedPipelines[0]).To(Equal(otherSavedPublicPipeline))
+			teamPipelines := []db.SavedPipeline{
+				savedPipelines[1],
+				savedPipelines[2],
+			}
+			Expect(teamPipelines).To(ConsistOf(savedPipeline1, savedPipeline2))
 		})
 	})
 

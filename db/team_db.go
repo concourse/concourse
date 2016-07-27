@@ -13,6 +13,7 @@ import (
 type TeamDB interface {
 	GetPipelines() ([]SavedPipeline, error)
 	GetPipelineByName(pipelineName string) (SavedPipeline, error)
+	GetAllPipelines() ([]SavedPipeline, error)
 
 	OrderPipelines([]string) error
 
@@ -61,8 +62,39 @@ func (db *teamDB) GetPipelines() ([]SavedPipeline, error) {
 		INNER JOIN teams t ON t.id = p.team_id
 		WHERE team_id = (
 			SELECT id FROM teams WHERE name = $1
-		) OR public = true
+		)
 		ORDER BY ordering
+	`, db.teamName)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	pipelines := []SavedPipeline{}
+
+	for rows.Next() {
+		pipeline, err := scanPipeline(rows)
+
+		if err != nil {
+			return nil, err
+		}
+
+		pipelines = append(pipelines, pipeline)
+	}
+
+	return pipelines, nil
+}
+
+func (db *teamDB) GetAllPipelines() ([]SavedPipeline, error) {
+	rows, err := db.conn.Query(`
+		SELECT `+pipelineColumns+`
+		FROM pipelines p
+		INNER JOIN teams t ON t.id = p.team_id
+		WHERE team_id = (
+			SELECT id FROM teams WHERE name = $1
+		) OR public = true
+		ORDER BY team_name
 	`, db.teamName)
 	if err != nil {
 		return nil, err

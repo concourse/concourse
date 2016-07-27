@@ -3,11 +3,20 @@ package pipelineserver
 import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/db"
 )
 
-func (s *Server) getPipelinesForTeam(teamName string) ([]atc.Pipeline, error) {
+func (s *Server) getPipelines(teamName string, all bool) ([]atc.Pipeline, error) {
 	teamDB := s.teamDBFactory.GetTeamDB(teamName)
-	pipelines, err := teamDB.GetPipelines()
+	var pipelines []db.SavedPipeline
+	var err error
+
+	if all {
+		pipelines, err = teamDB.GetAllPipelines()
+	} else {
+		pipelines, err = teamDB.GetPipelines()
+	}
+
 	if err != nil {
 		return []atc.Pipeline{}, err
 	}

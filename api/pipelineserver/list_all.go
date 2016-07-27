@@ -12,7 +12,7 @@ func (s *Server) ListAllPipelines(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-all-pipelines")
 	teamName := auth.GetAuthOrDefaultTeamName(r)
 
-	pipelines, err := s.getPipelinesForTeam(teamName)
+	pipelines, err := s.getPipelines(teamName, true)
 	if err != nil {
 		logger.Error("failed-to-get-all-active-pipelines", err)
 		w.WriteHeader(http.StatusInternalServerError)

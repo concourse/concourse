@@ -33,7 +33,7 @@ var _ = Describe("Pipelines API", func() {
 		var response *http.Response
 
 		BeforeEach(func() {
-			teamDB.GetPipelinesReturns([]db.SavedPipeline{
+			teamDB.GetAllPipelinesReturns([]db.SavedPipeline{
 				{
 					ID:       1,
 					Paused:   false,
@@ -182,7 +182,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when the call to get active pipelines fails", func() {
 			BeforeEach(func() {
-				teamDB.GetPipelinesReturns(nil, errors.New("disaster"))
+				teamDB.GetAllPipelinesReturns(nil, errors.New("disaster"))
 			})
 
 			It("returns 500 internal server error", func() {

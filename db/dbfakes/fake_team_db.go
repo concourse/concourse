@@ -25,6 +25,13 @@ type FakeTeamDB struct {
 		result1 db.SavedPipeline
 		result2 error
 	}
+	GetAllPipelinesStub        func() ([]db.SavedPipeline, error)
+	getAllPipelinesMutex       sync.RWMutex
+	getAllPipelinesArgsForCall []struct{}
+	getAllPipelinesReturns     struct {
+		result1 []db.SavedPipeline
+		result2 error
+	}
 	OrderPipelinesStub        func([]string) error
 	orderPipelinesMutex       sync.RWMutex
 	orderPipelinesArgsForCall []struct {
@@ -196,6 +203,32 @@ func (fake *FakeTeamDB) GetPipelineByNameReturns(result1 db.SavedPipeline, resul
 	fake.GetPipelineByNameStub = nil
 	fake.getPipelineByNameReturns = struct {
 		result1 db.SavedPipeline
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTeamDB) GetAllPipelines() ([]db.SavedPipeline, error) {
+	fake.getAllPipelinesMutex.Lock()
+	fake.getAllPipelinesArgsForCall = append(fake.getAllPipelinesArgsForCall, struct{}{})
+	fake.recordInvocation("GetAllPipelines", []interface{}{})
+	fake.getAllPipelinesMutex.Unlock()
+	if fake.GetAllPipelinesStub != nil {
+		return fake.GetAllPipelinesStub()
+	} else {
+		return fake.getAllPipelinesReturns.result1, fake.getAllPipelinesReturns.result2
+	}
+}
+
+func (fake *FakeTeamDB) GetAllPipelinesCallCount() int {
+	fake.getAllPipelinesMutex.RLock()
+	defer fake.getAllPipelinesMutex.RUnlock()
+	return len(fake.getAllPipelinesArgsForCall)
+}
+
+func (fake *FakeTeamDB) GetAllPipelinesReturns(result1 []db.SavedPipeline, result2 error) {
+	fake.GetAllPipelinesStub = nil
+	fake.getAllPipelinesReturns = struct {
+		result1 []db.SavedPipeline
 		result2 error
 	}{result1, result2}
 }
@@ -605,6 +638,8 @@ func (fake *FakeTeamDB) Invocations() map[string][][]interface{} {
 	defer fake.getPipelinesMutex.RUnlock()
 	fake.getPipelineByNameMutex.RLock()
 	defer fake.getPipelineByNameMutex.RUnlock()
+	fake.getAllPipelinesMutex.RLock()
+	defer fake.getAllPipelinesMutex.RUnlock()
 	fake.orderPipelinesMutex.RLock()
 	defer fake.orderPipelinesMutex.RUnlock()
 	fake.getTeamMutex.RLock()
