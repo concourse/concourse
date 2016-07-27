@@ -612,7 +612,7 @@ var _ = Describe("Containers API", func() {
 
 				BeforeEach(func() {
 					fakeDBContainer = db.SavedContainer{}
-					containerDB.GetContainerReturns(fakeDBContainer, true, nil)
+					teamDB.GetContainerReturns(fakeDBContainer, true, nil)
 
 					fakeContainer = new(workerfakes.FakeContainer)
 					fakeWorkerClient.LookupContainerReturns(fakeContainer, true, nil)
@@ -856,7 +856,7 @@ var _ = Describe("Containers API", func() {
 				BeforeEach(func() {
 					expectBadHandshake = true
 
-					containerDB.GetContainerReturns(db.SavedContainer{}, false, nil)
+					teamDB.GetContainerReturns(db.SavedContainer{}, false, nil)
 				})
 
 				It("returns 404 Not Found", func() {
@@ -870,7 +870,7 @@ var _ = Describe("Containers API", func() {
 					expectBadHandshake = true
 
 					fakeErr := errors.New("error")
-					containerDB.GetContainerReturns(db.SavedContainer{}, false, fakeErr)
+					teamDB.GetContainerReturns(db.SavedContainer{}, false, fakeErr)
 				})
 
 				It("returns 500 internal error", func() {
