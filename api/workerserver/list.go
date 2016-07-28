@@ -22,7 +22,7 @@ func (s *Server) ListWorkers(w http.ResponseWriter, r *http.Request) {
 
 	workers := make([]atc.Worker, len(savedWorkers))
 	for i, savedWorker := range savedWorkers {
-		workers[i] = present.Worker(savedWorker.WorkerInfo)
+		workers[i] = present.Worker(savedWorker)
 	}
 
 	json.NewEncoder(w).Encode(workers)

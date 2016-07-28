@@ -26,8 +26,8 @@ var _ = Describe("TeamDB", func() {
 		caseInsensitiveTeamDB db.TeamDB
 		nonExistentTeamDB     db.TeamDB
 		savedTeam             db.SavedTeam
-
-		pipelineDBFactory db.PipelineDBFactory
+		otherSavedTeam        db.SavedTeam
+		pipelineDBFactory     db.PipelineDBFactory
 	)
 
 	BeforeEach(func() {
@@ -54,7 +54,7 @@ var _ = Describe("TeamDB", func() {
 		pipelineDBFactory = db.NewPipelineDBFactory(dbConn, bus)
 
 		team = db.Team{Name: "other-team-name"}
-		_, err = database.CreateTeam(team)
+		otherSavedTeam, err = database.CreateTeam(team)
 		Expect(err).NotTo(HaveOccurred())
 		otherTeamDB = teamDBFactory.GetTeamDB("other-team-name")
 	})
@@ -422,14 +422,14 @@ var _ = Describe("TeamDB", func() {
 			myTeamWorker, err = database.SaveWorker(db.WorkerInfo{
 				GardenAddr: "1.2.3.4",
 				Name:       "my-team-worker",
-				Team:       "team-name",
+				TeamID:     savedTeam.ID,
 			}, 5*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 
 			otherTeamWorker, err = database.SaveWorker(db.WorkerInfo{
 				GardenAddr: "1.2.3.5",
 				Name:       "other-team-worker",
-				Team:       "other-team-name",
+				TeamID:     otherSavedTeam.ID,
 			}, 5*time.Minute)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -444,10 +444,37 @@ var _ = Describe("TeamDB", func() {
 			workers, err := teamDB.Workers()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(workers).To(HaveLen(2))
-			Expect([]string{
-				workers[0].Name,
-				workers[1].Name,
-			}).To(ConsistOf([]string{"my-team-worker", "shared-worker"}))
+			Expect([]db.SavedWorker{
+				{
+					WorkerInfo: db.WorkerInfo{
+						Name:   workers[0].Name,
+						TeamID: workers[0].TeamID,
+					},
+					TeamName: workers[0].TeamName,
+				},
+				{
+					WorkerInfo: db.WorkerInfo{
+						Name:   workers[1].Name,
+						TeamID: workers[1].TeamID,
+					},
+					TeamName: workers[1].TeamName,
+				},
+			}).To(ConsistOf([]db.SavedWorker{
+				{
+					WorkerInfo: db.WorkerInfo{
+						Name:   "my-team-worker",
+						TeamID: savedTeam.ID,
+					},
+					TeamName: savedTeam.Name,
+				},
+				{
+					WorkerInfo: db.WorkerInfo{
+						Name:   "shared-worker",
+						TeamID: 0,
+					},
+					TeamName: "",
+				},
+			}))
 
 			otherTeamWorkers, err := otherTeamDB.Workers()
 			Expect(err).NotTo(HaveOccurred())
@@ -470,7 +497,7 @@ var _ = Describe("TeamDB", func() {
 			_, err := database.SaveWorker(db.WorkerInfo{
 				GardenAddr: "1.2.3.7",
 				Name:       "expired-worker",
-				Team:       "team-name",
+				TeamID:     savedTeam.ID,
 			}, 1*time.Nanosecond)
 			Expect(err).NotTo(HaveOccurred())
 			time.Sleep(2 * time.Nanosecond)

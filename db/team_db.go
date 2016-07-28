@@ -587,12 +587,24 @@ func (db *teamDB) Workers() ([]SavedWorker, error) {
 		return nil, err
 	}
 
+	team, found, err := db.GetTeam()
+	if err != nil {
+		return nil, err
+	}
+
+	var teamID int
+	if found {
+		teamID = team.ID
+	}
+
 	rows, err := db.conn.Query(`
 		SELECT `+workerColumns+`
 		FROM workers as w
-		LEFT OUTER JOIN teams as t ON t.id = w.team_id
-		WHERE t.name = $1 OR w.team_id IS NULL
-	`, db.teamName)
+		LEFT OUTER JOIN teams as t
+			ON t.id = w.team_id
+		WHERE t.id = $1 OR w.team_id IS NULL
+	`, teamID)
+
 	if err != nil {
 		return nil, err
 	}

@@ -213,7 +213,7 @@ var _ = Describe("Workers API", func() {
 						Expect(workerDB.SaveWorkerCallCount()).To(Equal(1))
 
 						savedInfo, _ := workerDB.SaveWorkerArgsForCall(0)
-						Expect(savedInfo.Team).To(Equal("some-team"))
+						Expect(savedInfo.TeamID).To(Equal(2))
 					})
 
 					Context("when saving the worker succeeds", func() {

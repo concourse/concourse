@@ -29,8 +29,9 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var teamID int
 	if registration.Team != "" {
-		_, found, err := s.teamDBFactory.GetTeamDB(registration.Team).GetTeam()
+		team, found, err := s.teamDBFactory.GetTeamDB(registration.Team).GetTeam()
 		if err != nil {
 			logger.Error("failed-to-get-team", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -42,6 +43,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		teamID = team.ID
 	}
 
 	if len(registration.GardenAddr) == 0 {
@@ -81,7 +83,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		ResourceTypes:    registration.ResourceTypes,
 		Platform:         registration.Platform,
 		Tags:             registration.Tags,
-		Team:             registration.Team,
+		TeamID:           teamID,
 		Name:             registration.Name,
 		StartTime:        registration.StartTime,
 	}, ttl)

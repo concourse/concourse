@@ -85,18 +85,6 @@ func (db *SQLDB) GetWorker(name string) (SavedWorker, bool, error) {
 }
 
 func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) (SavedWorker, error) {
-	var teamID *int
-	if info.Team != "" {
-		err := db.conn.QueryRow(`
-			SELECT id
-			FROM teams
-			WHERE name = $1
-		`, info.Team).Scan(&teamID)
-		if err != nil {
-			return SavedWorker{}, err
-		}
-	}
-
 	var savedWorker SavedWorker
 	resourceTypes, err := json.Marshal(info.ResourceTypes)
 	if err != nil {
@@ -112,10 +100,14 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) (SavedWorker, er
 	if ttl != 0 {
 		expires = fmt.Sprintf(`NOW() + '%d second'::INTERVAL`, int(ttl.Seconds()))
 	}
+	var teamID *int
+	if info.TeamID != 0 {
+		teamID = &info.TeamID
+	}
 
 	row := db.conn.QueryRow(`
-			UPDATE workers
-			SET addr = $1, expires = `+expires+`, active_containers = $2, resource_types = $3, platform = $4, tags = $5, baggageclaim_url = $6, http_proxy_url = $7, https_proxy_url = $8, no_proxy = $9, name = $10, start_time = $11, team_id = $12
+  		UPDATE workers
+      SET addr = $1, expires = `+expires+`, active_containers = $2, resource_types = $3, platform = $4, tags = $5, baggageclaim_url = $6, http_proxy_url = $7, https_proxy_url = $8, no_proxy = $9, name = $10, start_time = $11, team_id = $12
 			WHERE name = $10 OR addr = $1
 			RETURNING  `+actualWorkerColumns,
 		info.GardenAddr, info.ActiveContainers, resourceTypes, info.Platform, tags, info.BaggageclaimURL, info.HTTPProxyURL, info.HTTPSProxyURL, info.NoProxy, info.Name, info.StartTime, teamID)
@@ -133,7 +125,7 @@ func (db *SQLDB) SaveWorker(info WorkerInfo, ttl time.Duration) (SavedWorker, er
 		return SavedWorker{}, err
 	}
 
-	savedWorker.Team = info.Team
+	savedWorker.TeamID = info.TeamID
 	return savedWorker, nil
 }
 
@@ -186,7 +178,7 @@ func scanWorker(row scannable, scanTeam bool) (SavedWorker, error) {
 	}
 
 	if teamName.Valid {
-		info.Team = teamName.String
+		info.TeamName = teamName.String
 	}
 
 	if teamID.Valid {

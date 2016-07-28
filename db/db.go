@@ -163,6 +163,7 @@ type BuildOutput struct {
 type SavedWorker struct {
 	WorkerInfo
 
+	TeamName  string
 	ExpiresIn time.Duration
 }
 
@@ -177,7 +178,6 @@ type WorkerInfo struct {
 	ResourceTypes    []atc.WorkerResourceType
 	Platform         string
 	Tags             []string
-	Team             string
 	TeamID           int
 	Name             string
 	StartTime        int64
