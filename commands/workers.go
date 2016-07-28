@@ -37,6 +37,7 @@ func (command *WorkersCommand) Execute([]string) error {
 		{Contents: "containers", Color: color.New(color.Bold)},
 		{Contents: "platform", Color: color.New(color.Bold)},
 		{Contents: "tags", Color: color.New(color.Bold)},
+		{Contents: "team", Color: color.New(color.Bold)},
 	}
 
 	if command.Details {
@@ -57,6 +58,7 @@ func (command *WorkersCommand) Execute([]string) error {
 			{Contents: strconv.Itoa(w.ActiveContainers)},
 			{Contents: w.Platform},
 			stringOrDefault(strings.Join(w.Tags, ", ")),
+			stringOrDefault(w.Team),
 		}
 
 		if command.Details {
