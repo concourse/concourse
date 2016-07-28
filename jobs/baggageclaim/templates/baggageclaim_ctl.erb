@@ -30,7 +30,11 @@ case $1 in
     chown -R vcap:vcap $LOG_DIR
 
     IMAGE_PATH=/var/vcap/data/baggageclaim/volumes.img
+  <% if p('volumes_image_size_mb') > 0 %>
+    IMAGE_SIZE=<%= p('volumes_image_size_mb') %>
+  <% else %>
     IMAGE_SIZE=$(($(df -m /var/vcap/data | tail -n1 | awk '{print $2}') - 10 * 1024))
+  <% end %>
     mkdir -p $(dirname ${IMAGE_PATH})
 
     VOLUMES_DIR=/var/vcap/data/baggageclaim/volumes
