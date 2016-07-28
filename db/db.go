@@ -178,6 +178,7 @@ type WorkerInfo struct {
 	Platform         string
 	Tags             []string
 	Team             string
+	TeamID           int
 	Name             string
 	StartTime        int64
 }

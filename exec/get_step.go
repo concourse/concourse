@@ -26,7 +26,7 @@ type GetStep struct {
 	stepMetadata    StepMetadata
 	session         resource.Session
 	tags            atc.Tags
-	teamName        string
+	teamID          int
 	delegate        GetDelegate
 	resourceFetcher resource.Fetcher
 	resourceTypes   atc.ResourceTypes
@@ -51,7 +51,7 @@ func newGetStep(
 	stepMetadata StepMetadata,
 	session resource.Session,
 	tags atc.Tags,
-	teamName string,
+	teamID int,
 	delegate GetDelegate,
 	resourceFetcher resource.Fetcher,
 	resourceTypes atc.ResourceTypes,
@@ -68,7 +68,7 @@ func newGetStep(
 		stepMetadata:        stepMetadata,
 		session:             session,
 		tags:                tags,
-		teamName:            teamName,
+		teamID:              teamID,
 		delegate:            delegate,
 		resourceFetcher:     resourceFetcher,
 		resourceTypes:       resourceTypes,
@@ -130,7 +130,7 @@ func (step *GetStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		step.logger,
 		runSession,
 		step.tags,
-		step.teamName,
+		step.teamID,
 		step.resourceTypes,
 		step.cacheIdentifier,
 		step.stepMetadata,

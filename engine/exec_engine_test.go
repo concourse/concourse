@@ -31,6 +31,7 @@ var _ = Describe("ExecEngine", func() {
 		logger              *lagertest.TestLogger
 
 		execEngine engine.Engine
+		teamID     = 17
 	)
 
 	BeforeEach(func() {
@@ -87,7 +88,7 @@ var _ = Describe("ExecEngine", func() {
 			dbBuild.JobNameReturns("some-job")
 			dbBuild.PipelineNameReturns("some-pipeline")
 			dbBuild.TeamNameReturns("some-team")
-			dbBuild.TeamIDReturns(17)
+			dbBuild.TeamIDReturns(teamID)
 
 			expectedMetadata = engine.StepMetadata{
 				BuildID:      42,
@@ -262,7 +263,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(2))
 
-					logger, metadata, workerID, workerMetadata, delegate, resourceConfig, tags, teamName, params, _, _, _ := fakeFactory.PutArgsForCall(0)
+					logger, metadata, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _, _, _ := fakeFactory.PutArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -270,7 +271,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypePut,
 						StepName:     "some-put",
 						PipelineID:   57,
-						TeamID:       17,
+						TeamID:       teamID,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -278,14 +279,14 @@ var _ = Describe("ExecEngine", func() {
 					}))
 
 					Expect(tags).To(BeEmpty())
-					Expect(teamName).To(Equal("some-team"))
+					Expect(actualTeamID).To(Equal(teamID))
 					Expect(delegate).To(Equal(fakeOutputDelegate))
 					Expect(resourceConfig.Name).To(Equal("some-output-resource"))
 					Expect(resourceConfig.Type).To(Equal("put"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(params).To(Equal(atc.Params{"some": "params"}))
 
-					logger, metadata, workerID, workerMetadata, delegate, resourceConfig, tags, teamName, params, _, _, _ = fakeFactory.PutArgsForCall(1)
+					logger, metadata, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _, _, _ = fakeFactory.PutArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -293,7 +294,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypePut,
 						StepName:     "some-put-2",
 						PipelineID:   57,
-						TeamID:       17,
+						TeamID:       teamID,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -301,7 +302,7 @@ var _ = Describe("ExecEngine", func() {
 					}))
 
 					Expect(tags).To(BeEmpty())
-					Expect(teamName).To(Equal("some-team"))
+					Expect(actualTeamID).To(Equal(teamID))
 					Expect(delegate).To(Equal(fakeOutputDelegate))
 					Expect(resourceConfig.Name).To(Equal("some-output-resource-2"))
 					Expect(resourceConfig.Type).To(Equal("put"))
@@ -317,7 +318,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.DependentGetCallCount()).To(Equal(2))
 
-					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, teamName, params, _, _, _ := fakeFactory.DependentGetArgsForCall(0)
+					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _, _, _ := fakeFactory.DependentGetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -325,7 +326,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeGet,
 						StepName:     "some-get",
 						PipelineID:   57,
-						TeamID:       17,
+						TeamID:       teamID,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -333,7 +334,7 @@ var _ = Describe("ExecEngine", func() {
 					}))
 
 					Expect(tags).To(BeEmpty())
-					Expect(teamName).To(Equal("some-team"))
+					Expect(actualTeamID).To(Equal(teamID))
 					Expect(delegate).To(Equal(fakeInputDelegate))
 					_, plan, planID := fakeDelegate.InputDelegateArgsForCall(0)
 					Expect(plan).To(Equal((*outputPlan.Aggregate)[0].OnSuccess.Next.DependentGet.GetPlan()))
@@ -345,7 +346,7 @@ var _ = Describe("ExecEngine", func() {
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(params).To(Equal(atc.Params{"another": "params"}))
 
-					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, teamName, params, _, _, _ = fakeFactory.DependentGetArgsForCall(1)
+					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _, _, _ = fakeFactory.DependentGetArgsForCall(1)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -353,12 +354,13 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeGet,
 						StepName:     "some-get-2",
 						PipelineID:   57,
-						TeamID:       17,
+						TeamID:       teamID,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
 						PlanID:  otherDependentGetPlan.ID,
 					}))
+					Expect(actualTeamID).To(Equal(teamID))
 
 					Expect(tags).To(BeEmpty())
 					Expect(delegate).To(Equal(fakeInputDelegate))
@@ -441,7 +443,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs the first get correctly", func() {
-				logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, teamName, params, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _, _, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -450,7 +452,7 @@ var _ = Describe("ExecEngine", func() {
 					StepName:     "some-get",
 					PipelineID:   57,
 					Attempts:     []int{1},
-					TeamID:       17,
+					TeamID:       teamID,
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 42,
@@ -458,7 +460,7 @@ var _ = Describe("ExecEngine", func() {
 				}))
 
 				Expect(tags).To(BeEmpty())
-				Expect(teamName).To(Equal("some-team"))
+				Expect(actualTeamID).To(Equal(teamID))
 				Expect(delegate).To(Equal(fakeInputDelegate))
 
 				Expect(sourceName).To(Equal(exec.SourceName("some-get")))
@@ -469,7 +471,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs the second get correctly", func() {
-				logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, teamName, params, _, _, _, _ := fakeFactory.GetArgsForCall(1)
+				logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _, _, _, _ := fakeFactory.GetArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
 				Expect(metadata).To(Equal(expectedMetadata))
 				Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -478,7 +480,7 @@ var _ = Describe("ExecEngine", func() {
 					StepName:     "some-get",
 					PipelineID:   57,
 					Attempts:     []int{3},
-					TeamID:       17,
+					TeamID:       teamID,
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 42,
@@ -486,7 +488,7 @@ var _ = Describe("ExecEngine", func() {
 				}))
 
 				Expect(tags).To(BeEmpty())
-				Expect(teamName).To(Equal("some-team"))
+				Expect(actualTeamID).To(Equal(teamID))
 				Expect(delegate).To(Equal(fakeInputDelegate))
 
 				Expect(sourceName).To(Equal(exec.SourceName("some-get")))
@@ -501,7 +503,7 @@ var _ = Describe("ExecEngine", func() {
 			})
 
 			It("constructs nested steps correctly", func() {
-				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, teamName, configSource, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, actualTeamID, configSource, _, _, _, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(sourceName).To(Equal(exec.SourceName("some-task")))
 				Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -510,7 +512,7 @@ var _ = Describe("ExecEngine", func() {
 					StepName:     "some-task",
 					PipelineID:   57,
 					Attempts:     []int{2, 1},
-					TeamID:       17,
+					TeamID:       teamID,
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 42,
@@ -520,10 +522,10 @@ var _ = Describe("ExecEngine", func() {
 				Expect(delegate).To(Equal(fakeExecutionDelegate))
 				Expect(privileged).To(Equal(exec.Privileged(false)))
 				Expect(tags).To(Equal(atc.Tags{"some", "task", "tags"}))
-				Expect(teamName).To(Equal("some-team"))
+				Expect(actualTeamID).To(Equal(teamID))
 				Expect(configSource).To(Equal(exec.ValidatingConfigSource{exec.FileConfigSource{"some-config-path"}}))
 
-				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, teamName, configSource, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
+				logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, actualTeamID, configSource, _, _, _, _, _, _, _ = fakeFactory.TaskArgsForCall(1)
 				Expect(logger).NotTo(BeNil())
 				Expect(sourceName).To(Equal(exec.SourceName("some-task")))
 				Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -532,13 +534,14 @@ var _ = Describe("ExecEngine", func() {
 					StepName:     "some-task",
 					PipelineID:   57,
 					Attempts:     []int{2, 2},
-					TeamID:       17,
+					TeamID:       teamID,
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 42,
 					PlanID:  taskPlan.ID,
 				}))
 
+				Expect(actualTeamID).To(Equal(teamID))
 				Expect(delegate).To(Equal(fakeExecutionDelegate))
 				Expect(privileged).To(Equal(exec.Privileged(false)))
 				Expect(tags).To(Equal(atc.Tags{"some", "task", "tags"}))
@@ -665,7 +668,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.GetCallCount()).To(Equal(1))
 
-					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, teamName, params, version, _, _, _ := fakeFactory.GetArgsForCall(0)
+					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, version, _, _, _ := fakeFactory.GetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -673,7 +676,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeGet,
 						StepName:     "some-input",
 						PipelineID:   57,
-						TeamID:       17,
+						TeamID:       teamID,
 					}))
 					Expect(sourceName).To(Equal(exec.SourceName("some-input")))
 					Expect(workerID).To(Equal(worker.Identifier{
@@ -682,7 +685,7 @@ var _ = Describe("ExecEngine", func() {
 					}))
 
 					Expect(tags).To(ConsistOf("some", "get", "tags"))
-					Expect(teamName).To(Equal("some-team"))
+					Expect(actualTeamID).To(Equal(teamID))
 					Expect(resourceConfig.Name).To(Equal("some-input-resource"))
 					Expect(resourceConfig.Type).To(Equal("get"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
@@ -779,7 +782,7 @@ var _ = Describe("ExecEngine", func() {
 						build.Resume(logger)
 						Expect(fakeFactory.TaskCallCount()).To(Equal(1))
 
-						logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, teamName, configSource, _, actualInputMapping, actualOutputMapping, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
+						logger, sourceName, workerID, workerMetadata, delegate, privileged, tags, actualTeamID, configSource, _, actualInputMapping, actualOutputMapping, _, _, _, _ := fakeFactory.TaskArgsForCall(0)
 						Expect(logger).NotTo(BeNil())
 						Expect(sourceName).To(Equal(exec.SourceName("some-task")))
 						Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -787,7 +790,7 @@ var _ = Describe("ExecEngine", func() {
 							Type:         db.ContainerTypeTask,
 							StepName:     "some-task",
 							PipelineID:   57,
-							TeamID:       17,
+							TeamID:       teamID,
 						}))
 						Expect(workerID).To(Equal(worker.Identifier{
 							BuildID: 42,
@@ -796,7 +799,7 @@ var _ = Describe("ExecEngine", func() {
 
 						Expect(privileged).To(Equal(exec.Privileged(false)))
 						Expect(tags).To(BeEmpty())
-						Expect(teamName).To(Equal("some-team"))
+						Expect(actualTeamID).To(Equal(teamID))
 						Expect(configSource).NotTo(BeNil())
 
 						Expect(delegate).To(Equal(fakeExecutionDelegate))
@@ -931,7 +934,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.PutCallCount()).To(Equal(1))
 
-					logger, metadata, workerID, workerMetadata, delegate, resourceConfig, tags, teamName, params, _, _, _ := fakeFactory.PutArgsForCall(0)
+					logger, metadata, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _, _, _ := fakeFactory.PutArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -939,7 +942,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypePut,
 						StepName:     "some-put",
 						PipelineID:   57,
-						TeamID:       17,
+						TeamID:       teamID,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -950,7 +953,7 @@ var _ = Describe("ExecEngine", func() {
 					Expect(resourceConfig.Type).To(Equal("put"))
 					Expect(resourceConfig.Source).To(Equal(atc.Source{"some": "source"}))
 					Expect(tags).To(ConsistOf("some", "putget", "tags"))
-					Expect(teamName).To(Equal("some-team"))
+					Expect(actualTeamID).To(Equal(teamID))
 					Expect(params).To(Equal(atc.Params{"some": "params"}))
 
 					Expect(delegate).To(Equal(fakeOutputDelegate))
@@ -967,7 +970,7 @@ var _ = Describe("ExecEngine", func() {
 					build.Resume(logger)
 					Expect(fakeFactory.DependentGetCallCount()).To(Equal(1))
 
-					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, teamName, params, _, _, _ := fakeFactory.DependentGetArgsForCall(0)
+					logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _, _, _ := fakeFactory.DependentGetArgsForCall(0)
 					Expect(logger).NotTo(BeNil())
 					Expect(metadata).To(Equal(expectedMetadata))
 					Expect(workerMetadata).To(Equal(worker.Metadata{
@@ -975,7 +978,7 @@ var _ = Describe("ExecEngine", func() {
 						Type:         db.ContainerTypeGet,
 						StepName:     "some-get",
 						PipelineID:   57,
-						TeamID:       17,
+						TeamID:       teamID,
 					}))
 					Expect(workerID).To(Equal(worker.Identifier{
 						BuildID: 42,
@@ -983,7 +986,7 @@ var _ = Describe("ExecEngine", func() {
 					}))
 
 					Expect(tags).To(ConsistOf("some", "putget", "tags"))
-					Expect(teamName).To(Equal("some-team"))
+					Expect(actualTeamID).To(Equal(teamID))
 					Expect(sourceName).To(Equal(exec.SourceName("some-get")))
 					Expect(resourceConfig.Name).To(Equal("some-input-resource"))
 					Expect(resourceConfig.Type).To(Equal("get"))
@@ -1075,6 +1078,7 @@ var _ = Describe("ExecEngine", func() {
 			dbBuild.JobNameReturns("some-job")
 			dbBuild.PipelineNameReturns("some-pipeline")
 			dbBuild.TeamNameReturns("some-team")
+			dbBuild.TeamIDReturns(teamID)
 		})
 
 		Context("when the build has a get step", func() {
@@ -1115,7 +1119,7 @@ var _ = Describe("ExecEngine", func() {
 
 				foundBuild.Resume(logger)
 				Expect(fakeFactory.GetCallCount()).To(Equal(1))
-				logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, teamName, params, _, _, _, _ := fakeFactory.GetArgsForCall(0)
+				logger, metadata, sourceName, workerID, workerMetadata, delegate, resourceConfig, tags, actualTeamID, params, _, _, _, _ := fakeFactory.GetArgsForCall(0)
 				Expect(logger).NotTo(BeNil())
 				Expect(metadata).To(Equal(engine.StepMetadata{
 					BuildID:      42,
@@ -1130,6 +1134,7 @@ var _ = Describe("ExecEngine", func() {
 					StepName:     "some-get",
 					PipelineID:   57,
 					Attempts:     []int{1},
+					TeamID:       teamID,
 				}))
 				Expect(workerID).To(Equal(worker.Identifier{
 					BuildID: 42,
@@ -1137,7 +1142,7 @@ var _ = Describe("ExecEngine", func() {
 				}))
 
 				Expect(tags).To(BeEmpty())
-				Expect(teamName).To(Equal("some-team"))
+				Expect(actualTeamID).To(Equal(teamID))
 				Expect(delegate).To(Equal(fakeInputDelegate))
 
 				Expect(sourceName).To(Equal(exec.SourceName("some-get")))

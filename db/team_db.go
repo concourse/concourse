@@ -32,6 +32,8 @@ type TeamDB interface {
 	Workers() ([]SavedWorker, error)
 	GetContainer(handle string) (SavedContainer, bool, error)
 	FindContainersByDescriptors(id Container) ([]SavedContainer, error)
+
+	GetVolumes() ([]SavedVolume, error)
 }
 
 type teamDB struct {

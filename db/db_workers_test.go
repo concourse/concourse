@@ -137,10 +137,11 @@ var _ = Describe("Keeping track of workers", func() {
 		Expect(getWorkerInfos(database.Workers())).To(ConsistOf(infoA))
 
 		By("saving worker with the team that exists")
-		_, err = database.CreateTeam(db.Team{Name: "some-team"})
+		team, err := database.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
 
 		infoA.Team = "some-team"
+		infoA.TeamID = team.ID
 		_, err = database.SaveWorker(infoA, ttl)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(getWorkerInfos(database.Workers())).To(ConsistOf(infoA))
@@ -152,6 +153,7 @@ var _ = Describe("Keeping track of workers", func() {
 
 		By("saving worker with no team")
 		infoA.Team = ""
+		infoA.TeamID = 0
 		_, err = database.SaveWorker(infoA, ttl)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(getWorkerInfos(database.Workers())).To(ConsistOf(infoA))

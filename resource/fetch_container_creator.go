@@ -13,7 +13,7 @@ type FetchContainerCreatorFactory interface {
 		logger lager.Logger,
 		resourceTypes atc.ResourceTypes,
 		tags atc.Tags,
-		teamName string,
+		teamID int,
 		session Session,
 		metadata Metadata,
 		imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -31,7 +31,7 @@ type fetchContainerCreator struct {
 	worker                worker.Worker
 	resourceTypes         atc.ResourceTypes
 	tags                  atc.Tags
-	teamName              string
+	teamID                int
 	session               Session
 	metadata              Metadata
 	imageFetchingDelegate worker.ImageFetchingDelegate
@@ -47,7 +47,7 @@ func (f fetchContainerCreatorFactory) NewFetchContainerCreator(
 	logger lager.Logger,
 	resourceTypes atc.ResourceTypes,
 	tags atc.Tags,
-	teamName string,
+	teamID int,
 	session Session,
 	metadata Metadata,
 	imageFetchingDelegate worker.ImageFetchingDelegate,
@@ -56,7 +56,7 @@ func (f fetchContainerCreatorFactory) NewFetchContainerCreator(
 		logger:                logger,
 		resourceTypes:         resourceTypes,
 		tags:                  tags,
-		teamName:              teamName,
+		teamID:                teamID,
 		session:               session,
 		metadata:              metadata,
 		imageFetchingDelegate: imageFetchingDelegate,
@@ -71,7 +71,7 @@ func (c *fetchContainerCreator) CreateWithVolume(resourceType string, volume wor
 		},
 		Ephemeral: c.session.Ephemeral,
 		Tags:      c.tags,
-		Team:      c.teamName,
+		TeamID:    c.teamID,
 		Env:       c.metadata.Env(),
 		Outputs: []worker.VolumeMount{
 			{

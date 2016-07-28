@@ -11,7 +11,7 @@ import (
 )
 
 type FakeImageFactory struct {
-	NewImageStub        func(logger lager.Logger, cancel <-chan os.Signal, imageResource atc.ImageResource, id worker.Identifier, metadata worker.Metadata, tags atc.Tags, teamName string, resourceTypes atc.ResourceTypes, workerClient worker.Client, delegate worker.ImageFetchingDelegate, privileged bool) worker.Image
+	NewImageStub        func(logger lager.Logger, cancel <-chan os.Signal, imageResource atc.ImageResource, id worker.Identifier, metadata worker.Metadata, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, workerClient worker.Client, delegate worker.ImageFetchingDelegate, privileged bool) worker.Image
 	newImageMutex       sync.RWMutex
 	newImageArgsForCall []struct {
 		logger        lager.Logger
@@ -20,7 +20,7 @@ type FakeImageFactory struct {
 		id            worker.Identifier
 		metadata      worker.Metadata
 		tags          atc.Tags
-		teamName      string
+		teamID        int
 		resourceTypes atc.ResourceTypes
 		workerClient  worker.Client
 		delegate      worker.ImageFetchingDelegate
@@ -33,7 +33,7 @@ type FakeImageFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImageFactory) NewImage(logger lager.Logger, cancel <-chan os.Signal, imageResource atc.ImageResource, id worker.Identifier, metadata worker.Metadata, tags atc.Tags, teamName string, resourceTypes atc.ResourceTypes, workerClient worker.Client, delegate worker.ImageFetchingDelegate, privileged bool) worker.Image {
+func (fake *FakeImageFactory) NewImage(logger lager.Logger, cancel <-chan os.Signal, imageResource atc.ImageResource, id worker.Identifier, metadata worker.Metadata, tags atc.Tags, teamID int, resourceTypes atc.ResourceTypes, workerClient worker.Client, delegate worker.ImageFetchingDelegate, privileged bool) worker.Image {
 	fake.newImageMutex.Lock()
 	fake.newImageArgsForCall = append(fake.newImageArgsForCall, struct {
 		logger        lager.Logger
@@ -42,16 +42,16 @@ func (fake *FakeImageFactory) NewImage(logger lager.Logger, cancel <-chan os.Sig
 		id            worker.Identifier
 		metadata      worker.Metadata
 		tags          atc.Tags
-		teamName      string
+		teamID        int
 		resourceTypes atc.ResourceTypes
 		workerClient  worker.Client
 		delegate      worker.ImageFetchingDelegate
 		privileged    bool
-	}{logger, cancel, imageResource, id, metadata, tags, teamName, resourceTypes, workerClient, delegate, privileged})
-	fake.recordInvocation("NewImage", []interface{}{logger, cancel, imageResource, id, metadata, tags, teamName, resourceTypes, workerClient, delegate, privileged})
+	}{logger, cancel, imageResource, id, metadata, tags, teamID, resourceTypes, workerClient, delegate, privileged})
+	fake.recordInvocation("NewImage", []interface{}{logger, cancel, imageResource, id, metadata, tags, teamID, resourceTypes, workerClient, delegate, privileged})
 	fake.newImageMutex.Unlock()
 	if fake.NewImageStub != nil {
-		return fake.NewImageStub(logger, cancel, imageResource, id, metadata, tags, teamName, resourceTypes, workerClient, delegate, privileged)
+		return fake.NewImageStub(logger, cancel, imageResource, id, metadata, tags, teamID, resourceTypes, workerClient, delegate, privileged)
 	} else {
 		return fake.newImageReturns.result1
 	}
@@ -63,10 +63,10 @@ func (fake *FakeImageFactory) NewImageCallCount() int {
 	return len(fake.newImageArgsForCall)
 }
 
-func (fake *FakeImageFactory) NewImageArgsForCall(i int) (lager.Logger, <-chan os.Signal, atc.ImageResource, worker.Identifier, worker.Metadata, atc.Tags, string, atc.ResourceTypes, worker.Client, worker.ImageFetchingDelegate, bool) {
+func (fake *FakeImageFactory) NewImageArgsForCall(i int) (lager.Logger, <-chan os.Signal, atc.ImageResource, worker.Identifier, worker.Metadata, atc.Tags, int, atc.ResourceTypes, worker.Client, worker.ImageFetchingDelegate, bool) {
 	fake.newImageMutex.RLock()
 	defer fake.newImageMutex.RUnlock()
-	return fake.newImageArgsForCall[i].logger, fake.newImageArgsForCall[i].cancel, fake.newImageArgsForCall[i].imageResource, fake.newImageArgsForCall[i].id, fake.newImageArgsForCall[i].metadata, fake.newImageArgsForCall[i].tags, fake.newImageArgsForCall[i].teamName, fake.newImageArgsForCall[i].resourceTypes, fake.newImageArgsForCall[i].workerClient, fake.newImageArgsForCall[i].delegate, fake.newImageArgsForCall[i].privileged
+	return fake.newImageArgsForCall[i].logger, fake.newImageArgsForCall[i].cancel, fake.newImageArgsForCall[i].imageResource, fake.newImageArgsForCall[i].id, fake.newImageArgsForCall[i].metadata, fake.newImageArgsForCall[i].tags, fake.newImageArgsForCall[i].teamID, fake.newImageArgsForCall[i].resourceTypes, fake.newImageArgsForCall[i].workerClient, fake.newImageArgsForCall[i].delegate, fake.newImageArgsForCall[i].privileged
 }
 
 func (fake *FakeImageFactory) NewImageReturns(result1 worker.Image) {

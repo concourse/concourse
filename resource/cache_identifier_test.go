@@ -145,8 +145,9 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 			})
 
 			It("sets the TTL to 5 minutes", func() {
-				_, spec := fakeWorkerClient.CreateVolumeArgsForCall(0)
+				_, spec, actualTeamID := fakeWorkerClient.CreateVolumeArgsForCall(0)
 				Expect(spec.TTL).To(Equal(5 * time.Minute))
+				Expect(actualTeamID).To(BeZero())
 			})
 		})
 
@@ -167,7 +168,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 			})
 
 			It("created with the right properties", func() {
-				_, spec := fakeWorkerClient.CreateVolumeArgsForCall(0)
+				_, spec, actualTeamID := fakeWorkerClient.CreateVolumeArgsForCall(0)
 				Expect(spec).To(Equal(worker.VolumeSpec{
 					Strategy: worker.ResourceCacheStrategy{
 						ResourceVersion: atc.Version{"some": "version"},
@@ -182,6 +183,7 @@ var _ = Describe("ResourceCacheIdentifier", func() {
 					Privileged: true,
 					TTL:        0,
 				}))
+				Expect(actualTeamID).To(BeZero())
 			})
 		})
 

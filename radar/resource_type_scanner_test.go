@@ -31,6 +31,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 		savedResourceType db.SavedResourceType
 
 		fakeLease *dbfakes.FakeLease
+		teamID    = 123
 	)
 
 	BeforeEach(func() {
@@ -66,7 +67,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 			Name: "some-resource-type",
 			Type: "docker-image",
 		}
-		fakeRadarDB.TeamNameReturns("some-team")
+		fakeRadarDB.TeamIDReturns(teamID)
 
 		fakeLease = &dbfakes.FakeLease{}
 
@@ -115,7 +116,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 
 			It("constructs the resource of the correct type", func() {
 				Expect(fakeTracker.InitCallCount()).To(Equal(1))
-				_, metadata, session, typ, tags, teamName, customTypes, delegate := fakeTracker.InitArgsForCall(0)
+				_, metadata, session, typ, tags, actualTeamID, customTypes, delegate := fakeTracker.InitArgsForCall(0)
 				Expect(metadata).To(Equal(resource.EmptyMetadata{}))
 
 				Expect(session).To(Equal(resource.Session{
@@ -136,7 +137,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 				}))
 				Expect(typ).To(Equal(resource.ResourceType("docker-image")))
 				Expect(tags).To(BeEmpty()) // This allows the check to run on any worker
-				Expect(teamName).To(Equal("some-team"))
+				Expect(actualTeamID).To(Equal(teamID))
 				Expect(customTypes).To(Equal(atc.ResourceTypes{}))
 				Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 			})

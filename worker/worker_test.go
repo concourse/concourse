@@ -40,7 +40,7 @@ var _ = Describe("Worker", func() {
 		resourceTypes          []atc.WorkerResourceType
 		platform               string
 		tags                   atc.Tags
-		teamName               string
+		teamID                 int
 		workerName             string
 		workerStartTime        int64
 		httpProxyURL           string
@@ -74,7 +74,7 @@ var _ = Describe("Worker", func() {
 		}
 		platform = "some-platform"
 		tags = atc.Tags{"some", "tags"}
-		teamName = ""
+		teamID = 17
 		workerName = "some-worker"
 		workerStartTime = fakeClock.Now().Unix()
 		workerUptime = 0
@@ -94,7 +94,7 @@ var _ = Describe("Worker", func() {
 			resourceTypes,
 			platform,
 			tags,
-			teamName,
+			teamID,
 			workerName,
 			workerStartTime,
 			httpProxyURL,
@@ -132,6 +132,7 @@ var _ = Describe("Worker", func() {
 
 			containerMetadata = Metadata{
 				BuildName: "lol",
+				TeamID:    teamID,
 			}
 
 			customTypes = atc.ResourceTypes{
@@ -173,7 +174,7 @@ var _ = Describe("Worker", func() {
 					ImageURL:   "some-image",
 					Privileged: true,
 				},
-				Team: "some-team",
+				TeamID: teamID,
 			}
 
 			fakeContainer := new(gfakes.FakeContainer)
@@ -205,6 +206,7 @@ var _ = Describe("Worker", func() {
 					BuildName:  "lol",
 					Handle:     "some-container-handle",
 					WorkerName: "some-worker",
+					TeamID:     teamID,
 				}),
 			}))
 
@@ -365,7 +367,7 @@ var _ = Describe("Worker", func() {
 				cowVolume2 = new(wfakes.FakeVolume)
 				cowVolume2.HandleReturns("cow-vol-2-handle")
 
-				fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
+				fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec, teamID int) (Volume, error) {
 					s, ok := volumeSpec.Strategy.(ContainerRootFSStrategy)
 					Expect(ok).To(BeTrue())
 
@@ -382,7 +384,7 @@ var _ = Describe("Worker", func() {
 
 			It("creates a COW volume for each mount", func() {
 				Expect(fakeVolumeClient.CreateVolumeCallCount()).To(Equal(2))
-				_, volumeSpec := fakeVolumeClient.CreateVolumeArgsForCall(0)
+				_, volumeSpec, actualTeamID := fakeVolumeClient.CreateVolumeArgsForCall(0)
 				Expect(volumeSpec).To(Equal(VolumeSpec{
 					Strategy: ContainerRootFSStrategy{
 						Parent: volume1,
@@ -390,8 +392,9 @@ var _ = Describe("Worker", func() {
 					Privileged: true,
 					TTL:        VolumeTTL,
 				}))
+				Expect(actualTeamID).To(Equal(teamID))
 
-				_, volumeSpec = fakeVolumeClient.CreateVolumeArgsForCall(1)
+				_, volumeSpec, actualTeamID = fakeVolumeClient.CreateVolumeArgsForCall(1)
 				Expect(volumeSpec).To(Equal(VolumeSpec{
 					Strategy: ContainerRootFSStrategy{
 						Parent: volume2,
@@ -399,13 +402,14 @@ var _ = Describe("Worker", func() {
 					Privileged: true,
 					TTL:        VolumeTTL,
 				}))
+				Expect(actualTeamID).To(Equal(teamID))
 			})
 
 			Context("when creating any volume fails", func() {
 				var disaster error
 				BeforeEach(func() {
 					disaster = errors.New("an-error")
-					fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
+					fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec, teamID int) (Volume, error) {
 						s := volumeSpec.Strategy.(ContainerRootFSStrategy)
 						switch s.Parent.Handle() {
 						case "vol-1-handle":
@@ -557,6 +561,7 @@ var _ = Describe("Worker", func() {
 
 				expectedContainerMetadata := Metadata{
 					BuildName:  "lol",
+					TeamID:     teamID,
 					Handle:     "some-container-handle",
 					User:       "image-volume-user",
 					WorkerName: "some-worker",
@@ -575,7 +580,7 @@ var _ = Describe("Worker", func() {
 
 			It("tries to fetch the image for the resource type", func() {
 				Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
-				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchTeamName, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
+				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchTeamID, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
 				Expect(fakeImage.FetchCallCount()).To(Equal(1))
 				Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 					Type:   "some-resource",
@@ -587,7 +592,7 @@ var _ = Describe("Worker", func() {
 				Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 				Expect(fetchWorker).To(Equal(gardenWorker))
 				Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
-				Expect(fetchTeamName).To(Equal("some-team"))
+				Expect(fetchTeamID).To(Equal(teamID))
 				Expect(fetchCustomTypes).To(Equal(customTypes))
 				Expect(fetchPrivileged).To(Equal(true))
 			})
@@ -661,8 +666,8 @@ var _ = Describe("Worker", func() {
 						ResourceType: "custom-type-a",
 						Privileged:   true,
 					},
-					Env:  []string{"env-1", "env-2"},
-					Team: "some-team",
+					Env:    []string{"env-1", "env-2"},
+					TeamID: teamID,
 				}
 
 				imageVolume = new(wfakes.FakeVolume)
@@ -689,6 +694,7 @@ var _ = Describe("Worker", func() {
 
 				expectedContainerMetadata := Metadata{
 					BuildName:  "lol",
+					TeamID:     teamID,
 					Handle:     "some-container-handle",
 					User:       "image-volume-user",
 					WorkerName: "some-worker",
@@ -707,7 +713,7 @@ var _ = Describe("Worker", func() {
 
 			It("tries to fetch the image for the resource type", func() {
 				Expect(fakeImageFactory.NewImageCallCount()).To(Equal(1))
-				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchTeamName, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
+				_, fetchSignals, fetchImageConfig, fetchID, fetchMetadata, fetchTags, fetchTeamID, fetchCustomTypes, fetchWorker, fetchDelegate, fetchPrivileged := fakeImageFactory.NewImageArgsForCall(0)
 				Expect(fakeImage.FetchCallCount()).To(Equal(1))
 				Expect(fetchImageConfig).To(Equal(atc.ImageResource{
 					Type:   "some-resource",
@@ -719,7 +725,7 @@ var _ = Describe("Worker", func() {
 				Expect(fetchDelegate).To(Equal(fakeImageFetchingDelegate))
 				Expect(fetchWorker).To(Equal(gardenWorker))
 				Expect(fetchTags).To(Equal(atc.Tags{"some", "tags"}))
-				Expect(fetchTeamName).To(Equal("some-team"))
+				Expect(fetchTeamID).To(Equal(teamID))
 				Expect(fetchCustomTypes).To(Equal(customTypes.Without("custom-type-a")))
 				Expect(fetchPrivileged).To(Equal(true))
 			})
@@ -812,7 +818,7 @@ var _ = Describe("Worker", func() {
 					cowVolume.HandleReturns("cow-vol")
 					cowVolume.PathReturns("cow-vol-path")
 
-					fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
+					fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec, teamID int) (Volume, error) {
 						switch volumeSpec.Strategy.(type) {
 						case HostRootFSStrategy:
 							return importVolume, nil
@@ -844,7 +850,7 @@ var _ = Describe("Worker", func() {
 
 				It("tries to create a COW volume with the import volume as its parent", func() {
 					Expect(fakeVolumeClient.CreateVolumeCallCount()).To(Equal(1))
-					_, actualVolumeSpec := fakeVolumeClient.CreateVolumeArgsForCall(0)
+					_, actualVolumeSpec, actualTeamID := fakeVolumeClient.CreateVolumeArgsForCall(0)
 					Expect(actualVolumeSpec).To(Equal(VolumeSpec{
 						Strategy: ContainerRootFSStrategy{
 							Parent: importVolume,
@@ -853,6 +859,7 @@ var _ = Describe("Worker", func() {
 						Properties: VolumeProperties{},
 						TTL:        5 * time.Minute,
 					}))
+					Expect(actualTeamID).To(Equal(teamID))
 				})
 
 				Context("when the import volume cannot be retrieved", func() {
@@ -862,7 +869,7 @@ var _ = Describe("Worker", func() {
 
 					It("creates import and COW volumes for the resource image", func() {
 						Expect(fakeVolumeClient.CreateVolumeCallCount()).To(Equal(2))
-						_, actualVolumeSpec := fakeVolumeClient.CreateVolumeArgsForCall(0)
+						_, actualVolumeSpec, actualTeamID := fakeVolumeClient.CreateVolumeArgsForCall(0)
 						version := "some-version"
 						Expect(actualVolumeSpec).To(Equal(VolumeSpec{
 							Strategy: HostRootFSStrategy{
@@ -874,8 +881,9 @@ var _ = Describe("Worker", func() {
 							Properties: VolumeProperties{},
 							TTL:        0,
 						}))
+						Expect(actualTeamID).To(Equal(0))
 
-						_, actualVolumeSpec = fakeVolumeClient.CreateVolumeArgsForCall(1)
+						_, actualVolumeSpec, actualTeamID = fakeVolumeClient.CreateVolumeArgsForCall(1)
 						Expect(actualVolumeSpec).To(Equal(VolumeSpec{
 							Strategy: ContainerRootFSStrategy{
 								Parent: importVolume,
@@ -884,6 +892,7 @@ var _ = Describe("Worker", func() {
 							Properties: VolumeProperties{},
 							TTL:        5 * time.Minute,
 						}))
+						Expect(actualTeamID).To(Equal(teamID))
 					})
 
 					Context("when creating the import volume fails", func() {
@@ -891,7 +900,7 @@ var _ = Describe("Worker", func() {
 						BeforeEach(func() {
 							disaster = errors.New("failed-to-create-volume")
 
-							fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
+							fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec, teamID int) (Volume, error) {
 								switch volumeSpec.Strategy.(type) {
 								case HostRootFSStrategy:
 									return nil, disaster
@@ -913,7 +922,7 @@ var _ = Describe("Worker", func() {
 						BeforeEach(func() {
 							disaster = errors.New("failed-to-create-volume")
 
-							fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec) (Volume, error) {
+							fakeVolumeClient.CreateVolumeStub = func(logger lager.Logger, volumeSpec VolumeSpec, teamID int) (Volume, error) {
 								switch volumeSpec.Strategy.(type) {
 								case HostRootFSStrategy:
 									return importVolume, nil
@@ -1006,6 +1015,7 @@ var _ = Describe("Worker", func() {
 
 				expectedContainerMetadata := Metadata{
 					BuildName:  "lol",
+					TeamID:     teamID,
 					Handle:     "some-container-handle",
 					User:       "image-volume-user",
 					WorkerName: "some-worker",
@@ -1286,7 +1296,7 @@ var _ = Describe("Worker", func() {
 								resourceTypes,
 								platform,
 								tags,
-								teamName,
+								teamID,
 								workerName,
 								workerStartTime,
 								httpProxyURL,
@@ -1349,7 +1359,7 @@ var _ = Describe("Worker", func() {
 								resourceTypes,
 								platform,
 								tags,
-								teamName,
+								teamID,
 								workerName,
 								workerStartTime,
 								httpProxyURL,
@@ -1723,8 +1733,10 @@ var _ = Describe("Worker", func() {
 
 		BeforeEach(func() {
 			spec = WorkerSpec{
-				Tags: []string{"some", "tags"},
+				Tags:   []string{"some", "tags"},
+				TeamID: teamID,
 			}
+
 			customTypes = atc.ResourceTypes{
 				{
 					Name:   "custom-type-b",
@@ -1961,14 +1973,11 @@ var _ = Describe("Worker", func() {
 
 		Context("when spec specifies team", func() {
 			BeforeEach(func() {
-				spec.Team = "some-team"
+				teamID = 123
+				spec.TeamID = teamID
 			})
 
 			Context("when worker belongs to same team", func() {
-				BeforeEach(func() {
-					teamName = "some-team"
-				})
-
 				It("returns the worker", func() {
 					Expect(satisfyingWorker).To(Equal(gardenWorker))
 				})
@@ -1980,7 +1989,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when worker belongs to different team", func() {
 				BeforeEach(func() {
-					teamName = "another-team"
+					teamID = 777
 				})
 
 				It("returns ErrTeamMismatch", func() {
@@ -2001,6 +2010,10 @@ var _ = Describe("Worker", func() {
 
 		Context("when spec does not specify a team", func() {
 			Context("when worker belongs to no team", func() {
+				BeforeEach(func() {
+					teamID = 0
+				})
+
 				It("returns the worker", func() {
 					Expect(satisfyingWorker).To(Equal(gardenWorker))
 				})
@@ -2012,7 +2025,7 @@ var _ = Describe("Worker", func() {
 
 			Context("when worker belongs to any team", func() {
 				BeforeEach(func() {
-					teamName = "any-team"
+					teamID = 555
 				})
 
 				It("returns ErrTeamMismatch", func() {

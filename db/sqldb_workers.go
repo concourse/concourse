@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var workerColumns = "EXTRACT(epoch FROM expires - NOW()), addr, baggageclaim_url, http_proxy_url, https_proxy_url, no_proxy, active_containers, resource_types, platform, tags, w.name as name, start_time, t.name as team_name"
+var workerColumns = "EXTRACT(epoch FROM expires - NOW()), addr, baggageclaim_url, http_proxy_url, https_proxy_url, no_proxy, active_containers, resource_types, platform, tags, w.name as name, start_time, t.name as team_name, team_id"
 var actualWorkerColumns = "EXTRACT(epoch FROM expires - NOW()), addr, baggageclaim_url, http_proxy_url, https_proxy_url, no_proxy, active_containers, resource_types, platform, tags, name, start_time"
 
 func (db *SQLDB) Workers() ([]SavedWorker, error) {
@@ -157,10 +157,11 @@ func scanWorker(row scannable, scanTeam bool) (SavedWorker, error) {
 	var httpsProxyURL sql.NullString
 	var noProxy sql.NullString
 	var teamName sql.NullString
-
+	var teamID sql.NullInt64
 	var err error
+
 	if scanTeam {
-		err = row.Scan(&ttlSeconds, &info.GardenAddr, &info.BaggageclaimURL, &httpProxyURL, &httpsProxyURL, &noProxy, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.Name, &info.StartTime, &teamName)
+		err = row.Scan(&ttlSeconds, &info.GardenAddr, &info.BaggageclaimURL, &httpProxyURL, &httpsProxyURL, &noProxy, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.Name, &info.StartTime, &teamName, &teamID)
 	} else {
 		err = row.Scan(&ttlSeconds, &info.GardenAddr, &info.BaggageclaimURL, &httpProxyURL, &httpsProxyURL, &noProxy, &info.ActiveContainers, &resourceTypes, &info.Platform, &tags, &info.Name, &info.StartTime)
 	}
@@ -186,6 +187,10 @@ func scanWorker(row scannable, scanTeam bool) (SavedWorker, error) {
 
 	if teamName.Valid {
 		info.Team = teamName.String
+	}
+
+	if teamID.Valid {
+		info.TeamID = int(teamID.Int64)
 	}
 
 	err = json.Unmarshal(resourceTypes, &info.ResourceTypes)

@@ -31,6 +31,7 @@ var _ = Describe("Fetcher", func() {
 
 		fetchSource FetchSource
 		fetchErr    error
+		teamID      = 123
 	)
 
 	BeforeEach(func() {
@@ -62,7 +63,7 @@ var _ = Describe("Fetcher", func() {
 			lagertest.NewTestLogger("test"),
 			Session{},
 			atc.Tags{},
-			"some-team",
+			teamID,
 			atc.ResourceTypes{},
 			new(resourcefakes.FakeCacheIdentifier),
 			EmptyMetadata{},

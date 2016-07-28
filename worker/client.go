@@ -31,7 +31,7 @@ type Client interface {
 
 	FindResourceTypeByPath(path string) (atc.WorkerResourceType, bool)
 	FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error)
-	CreateVolume(lager.Logger, VolumeSpec) (Volume, error)
+	CreateVolume(logger lager.Logger, vs VolumeSpec, teamID int) (Volume, error)
 	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 

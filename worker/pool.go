@@ -242,7 +242,7 @@ func (*pool) FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error) {
 	return nil, false, errors.New("FindVolume not implemented for pool")
 }
 
-func (*pool) CreateVolume(lager.Logger, VolumeSpec) (Volume, error) {
+func (*pool) CreateVolume(lager.Logger, VolumeSpec, int) (Volume, error) {
 	return nil, errors.New("CreateVolume not implemented for pool")
 }
 

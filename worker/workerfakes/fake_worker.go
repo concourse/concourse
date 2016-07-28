@@ -69,11 +69,12 @@ type FakeWorker struct {
 		result2 bool
 		result3 error
 	}
-	CreateVolumeStub        func(lager.Logger, worker.VolumeSpec) (worker.Volume, error)
+	CreateVolumeStub        func(logger lager.Logger, vs worker.VolumeSpec, teamID int) (worker.Volume, error)
 	createVolumeMutex       sync.RWMutex
 	createVolumeArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 worker.VolumeSpec
+		logger lager.Logger
+		vs     worker.VolumeSpec
+		teamID int
 	}
 	createVolumeReturns struct {
 		result1 worker.Volume
@@ -345,16 +346,17 @@ func (fake *FakeWorker) FindVolumeReturns(result1 worker.Volume, result2 bool, r
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorker) CreateVolume(arg1 lager.Logger, arg2 worker.VolumeSpec) (worker.Volume, error) {
+func (fake *FakeWorker) CreateVolume(logger lager.Logger, vs worker.VolumeSpec, teamID int) (worker.Volume, error) {
 	fake.createVolumeMutex.Lock()
 	fake.createVolumeArgsForCall = append(fake.createVolumeArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 worker.VolumeSpec
-	}{arg1, arg2})
-	fake.recordInvocation("CreateVolume", []interface{}{arg1, arg2})
+		logger lager.Logger
+		vs     worker.VolumeSpec
+		teamID int
+	}{logger, vs, teamID})
+	fake.recordInvocation("CreateVolume", []interface{}{logger, vs, teamID})
 	fake.createVolumeMutex.Unlock()
 	if fake.CreateVolumeStub != nil {
-		return fake.CreateVolumeStub(arg1, arg2)
+		return fake.CreateVolumeStub(logger, vs, teamID)
 	} else {
 		return fake.createVolumeReturns.result1, fake.createVolumeReturns.result2
 	}
@@ -366,10 +368,10 @@ func (fake *FakeWorker) CreateVolumeCallCount() int {
 	return len(fake.createVolumeArgsForCall)
 }
 
-func (fake *FakeWorker) CreateVolumeArgsForCall(i int) (lager.Logger, worker.VolumeSpec) {
+func (fake *FakeWorker) CreateVolumeArgsForCall(i int) (lager.Logger, worker.VolumeSpec, int) {
 	fake.createVolumeMutex.RLock()
 	defer fake.createVolumeMutex.RUnlock()
-	return fake.createVolumeArgsForCall[i].arg1, fake.createVolumeArgsForCall[i].arg2
+	return fake.createVolumeArgsForCall[i].logger, fake.createVolumeArgsForCall[i].vs, fake.createVolumeArgsForCall[i].teamID
 }
 
 func (fake *FakeWorker) CreateVolumeReturns(result1 worker.Volume, result2 error) {

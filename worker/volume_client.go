@@ -10,7 +10,7 @@ import (
 
 type VolumeClient interface {
 	FindVolume(lager.Logger, VolumeSpec) (Volume, bool, error)
-	CreateVolume(lager.Logger, VolumeSpec) (Volume, error)
+	CreateVolume(logger lager.Logger, vs VolumeSpec, teamID int) (Volume, error)
 	ListVolumes(lager.Logger, VolumeProperties) ([]Volume, error)
 	LookupVolume(lager.Logger, string) (Volume, bool, error)
 }
@@ -71,6 +71,7 @@ func (c *volumeClient) FindVolume(
 func (c *volumeClient) CreateVolume(
 	logger lager.Logger,
 	volumeSpec VolumeSpec,
+	teamID int,
 ) (Volume, error) {
 	if c.baggageclaimClient == nil {
 		return nil, ErrNoVolumeManager
@@ -87,10 +88,12 @@ func (c *volumeClient) CreateVolume(
 
 	err = c.db.InsertVolume(db.Volume{
 		Handle:     bcVolume.Handle(),
+		TeamID:     teamID,
 		WorkerName: c.workerName,
 		TTL:        volumeSpec.TTL,
 		Identifier: volumeSpec.Strategy.dbIdentifier(),
 	})
+
 	if err != nil {
 		logger.Error("failed-to-save-volume-to-db", err)
 		return nil, err

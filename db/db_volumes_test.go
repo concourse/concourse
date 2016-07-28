@@ -18,7 +18,7 @@ var _ = Describe("Keeping track of volumes", func() {
 	var database db.DB
 	var pipelineDB db.PipelineDB
 	var teamDB db.TeamDB
-
+	var teamID int
 	BeforeEach(func() {
 		postgresRunner.Truncate()
 
@@ -32,8 +32,10 @@ var _ = Describe("Keeping track of volumes", func() {
 		database = sqlDB
 
 		pipelineDBFactory := db.NewPipelineDBFactory(dbConn, bus)
-		_, err := database.CreateTeam(db.Team{Name: "some-team"})
+		team, err := database.CreateTeam(db.Team{Name: "some-team"})
 		Expect(err).NotTo(HaveOccurred())
+		teamID = team.ID
+
 		config := atc.Config{
 			Jobs: atc.JobConfigs{
 				{
@@ -110,6 +112,7 @@ var _ = Describe("Keeping track of volumes", func() {
 
 				err := database.InsertVolume(db.Volume{
 					Handle:      "volume-1-handle",
+					TeamID:      teamID,
 					WorkerName:  "some-worker-name",
 					TTL:         5 * time.Minute,
 					Identifier:  identifier,
@@ -153,10 +156,13 @@ var _ = Describe("Keeping track of volumes", func() {
 					switch i {
 					case 0:
 						Expect(volume.Handle).To(Equal("volume-2-handle"))
+						Expect(volume.TeamID).To(BeZero())
 					case 1:
 						Expect(volume.Handle).To(Equal("volume-1-handle"))
+						Expect(volume.TeamID).To(Equal(teamID))
 					case 2:
 						Expect(volume.Handle).To(Equal("volume-3-handle"))
+						Expect(volume.TeamID).To(BeZero())
 					}
 				}
 			})

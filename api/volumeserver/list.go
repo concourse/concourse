@@ -6,15 +6,19 @@ import (
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api/present"
+	"github.com/concourse/atc/auth"
 	"github.com/pivotal-golang/lager"
 )
 
 func (s *Server) ListVolumes(w http.ResponseWriter, r *http.Request) {
+	teamName := auth.GetAuthOrDefaultTeamName(r)
+
 	hLog := s.logger.Session("list-volumes")
 
 	hLog.Debug("listing")
 
-	volumes, err := s.db.GetVolumes()
+	teamDB := s.teamDBFactory.GetTeamDB(teamName)
+	volumes, err := teamDB.GetVolumes()
 	if err != nil {
 		hLog.Error("failed-to-find-volumes", err)
 		w.WriteHeader(http.StatusInternalServerError)

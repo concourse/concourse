@@ -149,7 +149,7 @@ func (provider *dbProvider) newGardenWorker(tikTok clock.Clock, savedWorker db.S
 		savedWorker.ResourceTypes,
 		savedWorker.Platform,
 		savedWorker.Tags,
-		savedWorker.Team,
+		savedWorker.TeamID,
 		savedWorker.Name,
 		savedWorker.StartTime,
 		savedWorker.HTTPProxyURL,

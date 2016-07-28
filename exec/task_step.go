@@ -42,7 +42,7 @@ type TaskStep struct {
 	containerID       worker.Identifier
 	metadata          worker.Metadata
 	tags              atc.Tags
-	teamName          string
+	teamID            int
 	delegate          TaskDelegate
 	privileged        Privileged
 	configSource      TaskConfigSource
@@ -69,7 +69,7 @@ func newTaskStep(
 	containerID worker.Identifier,
 	metadata worker.Metadata,
 	tags atc.Tags,
-	teamName string,
+	teamID int,
 	delegate TaskDelegate,
 	privileged Privileged,
 	configSource TaskConfigSource,
@@ -88,7 +88,7 @@ func newTaskStep(
 		containerID:         containerID,
 		metadata:            metadata,
 		tags:                tags,
-		teamName:            teamName,
+		teamID:              teamID,
 		delegate:            delegate,
 		privileged:          privileged,
 		configSource:        configSource,
@@ -199,7 +199,7 @@ func (step *TaskStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error
 		workerSpec := worker.WorkerSpec{
 			Platform: config.Platform,
 			Tags:     step.tags,
-			Team:     step.teamName,
+			TeamID:   step.teamID,
 		}
 
 		if config.ImageResource != nil {
@@ -306,7 +306,6 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 	outputMounts := []worker.VolumeMount{}
 	for _, output := range config.Outputs {
 		path := artifactsPath(output, step.artifactsRoot)
-
 		outVolume, err := chosenWorker.CreateVolume(
 			step.logger,
 			worker.VolumeSpec{
@@ -314,6 +313,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 				Privileged: bool(step.privileged),
 				TTL:        worker.VolumeTTL,
 			},
+			step.teamID,
 		)
 		if err == worker.ErrNoVolumeManager {
 			break
@@ -357,6 +357,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 					Privileged: true,
 					TTL:        worker.VolumeTTL,
 				},
+				step.teamID,
 			)
 			if err != nil {
 				return nil, nil, err
@@ -374,13 +375,17 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 			}
 		}
 
-		cowVolume, err := chosenWorker.CreateVolume(step.logger, worker.VolumeSpec{
-			Strategy: worker.ContainerRootFSStrategy{
-				Parent: volume,
+		cowVolume, err := chosenWorker.CreateVolume(
+			step.logger,
+			worker.VolumeSpec{
+				Strategy: worker.ContainerRootFSStrategy{
+					Parent: volume,
+				},
+				Privileged: bool(step.privileged),
+				TTL:        worker.VolumeTTL,
 			},
-			Privileged: bool(step.privileged),
-			TTL:        worker.VolumeTTL,
-		})
+			step.teamID,
+		)
 
 		if err != nil {
 			return nil, nil, err
@@ -411,7 +416,7 @@ func (step *TaskStep) createContainer(compatibleWorkers []worker.Worker, config 
 	containerSpec := worker.ContainerSpec{
 		Platform:  config.Platform,
 		Tags:      step.tags,
-		Team:      step.teamName,
+		TeamID:    step.teamID,
 		Inputs:    inputMounts,
 		Outputs:   outputMounts,
 		ImageSpec: imageSpec,

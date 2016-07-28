@@ -66,6 +66,7 @@ func (identifier ResourceCacheIdentifier) CreateOn(logger lager.Logger, workerCl
 			Privileged: true,
 			TTL:        ttl,
 		},
+		0,
 	)
 }
 

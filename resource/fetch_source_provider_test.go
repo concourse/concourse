@@ -26,6 +26,7 @@ var _ = Describe("FetchSourceProvider", func() {
 		cacheID         *resourcefakes.FakeCacheIdentifier
 		tags            atc.Tags
 		resourceTypes   atc.ResourceTypes
+		teamID          = 3
 	)
 
 	BeforeEach(func() {
@@ -48,7 +49,7 @@ var _ = Describe("FetchSourceProvider", func() {
 			logger,
 			session,
 			tags,
-			"some-team",
+			teamID,
 			resourceTypes,
 			cacheID,
 			resourceOptions,
@@ -87,7 +88,7 @@ var _ = Describe("FetchSourceProvider", func() {
 				Expect(resourceSpec).To(Equal(worker.WorkerSpec{
 					ResourceType: "some-resource-type",
 					Tags:         tags,
-					Team:         "some-team",
+					TeamID:       teamID,
 				}))
 				Expect(actualResourceTypes).To(Equal(resourceTypes))
 			})

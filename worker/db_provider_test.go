@@ -310,8 +310,8 @@ var _ = Describe("DBProvider", func() {
 			It("returns the found worker", func() {
 				fakeDB.GetWorkerReturns(db.SavedWorker{
 					WorkerInfo: db.WorkerInfo{
-						Name: "some-worker",
-						Team: "some-team",
+						Name:   "some-worker",
+						TeamID: 123,
 					},
 				}, true, nil)
 

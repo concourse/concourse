@@ -111,7 +111,7 @@ func NewHandler(
 
 	containerServer := containerserver.NewServer(logger, workerClient, containerDB, teamDBFactory)
 
-	volumesServer := volumeserver.NewServer(logger, volumesDB)
+	volumesServer := volumeserver.NewServer(logger, volumesDB, teamDBFactory)
 
 	teamServer := teamserver.NewServer(logger, teamDBFactory, teamsDB)
 
