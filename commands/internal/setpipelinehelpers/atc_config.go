@@ -161,7 +161,7 @@ func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool) {
 			web.Pipeline,
 			rata.Params{
 				"pipeline":  atcConfig.PipelineName,
-				"team_name": atc.DefaultTeamName,
+				"team_name": atcConfig.Team.Name(),
 			},
 			nil,
 		)
