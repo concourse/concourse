@@ -11,6 +11,9 @@
     updated to support environment variables for configuration, in addition to
     flags. Because \hyperlink{https://www.youtube.com/watch?v=3m5qxZm_JqM}{the
     environment is perfectly safe}.
+
+    Thanks to \ghuser{gregarcara} and \ghuser{MeteoGroup} for maintaining
+    Concourse images until we started on this ourselves!
   }
 
   \note{feature}{
