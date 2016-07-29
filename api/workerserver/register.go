@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/db"
 	"github.com/concourse/atc/metric"
+	"github.com/gorilla/context"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -23,6 +24,14 @@ func (i IntMetric) String() string {
 func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("register-worker")
 	var registration atc.Worker
+
+	system, present := context.GetOk(r, "system")
+
+	if !present || !system.(bool) {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
 	err := json.NewDecoder(r.Body).Decode(&registration)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

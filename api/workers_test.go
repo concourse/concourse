@@ -155,6 +155,8 @@ var _ = Describe("Workers API", func() {
 			}
 
 			ttl = "30s"
+			userContextReader.GetTeamReturns("some-team", 1, true, true)
+			userContextReader.GetSystemReturns(true, true)
 		})
 
 		JustBeforeEach(func() {
@@ -192,6 +194,28 @@ var _ = Describe("Workers API", func() {
 				}))
 
 				Expect(savedTTL.String()).To(Equal(ttl))
+			})
+
+			Context("when request is not from tsa", func() {
+				Context("when system claim is not present", func() {
+					BeforeEach(func() {
+						userContextReader.GetSystemReturns(false, false)
+					})
+
+					It("return 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
+				})
+
+				Context("when system claim is false", func() {
+					BeforeEach(func() {
+						userContextReader.GetSystemReturns(false, true)
+					})
+
+					It("return 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
+				})
 			})
 
 			Context("when payload contains team name", func() {

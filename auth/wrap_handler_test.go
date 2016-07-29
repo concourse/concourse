@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/gorilla/context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -20,11 +21,13 @@ var _ = Describe("WrapHandler", func() {
 		server *httptest.Server
 		client *http.Client
 
-		authenticated <-chan bool
-		teamNameChan  <-chan string
-		teamIDChan    <-chan int
-		isAdminChan   <-chan bool
-		foundChan     <-chan bool
+		authenticated   <-chan bool
+		teamNameChan    <-chan string
+		teamIDChan      <-chan int
+		isAdminChan     <-chan bool
+		isSystemChan    <-chan bool
+		foundChan       <-chan bool
+		systemFoundChan <-chan bool
 	)
 
 	BeforeEach(func() {
@@ -35,19 +38,30 @@ var _ = Describe("WrapHandler", func() {
 		tn := make(chan string, 1)
 		ti := make(chan int, 1)
 		ia := make(chan bool, 1)
+		is := make(chan bool, 1)
 		f := make(chan bool, 1)
+		sf := make(chan bool, 1)
+
 		authenticated = a
 		teamNameChan = tn
 		teamIDChan = ti
 		isAdminChan = ia
+		isSystemChan = is
 		foundChan = f
+		systemFoundChan = sf
 		simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			a <- auth.IsAuthenticated(r)
 			teamName, teamID, isAdmin, found := auth.GetTeam(r)
+			system, systemFound := context.GetOk(r, "system")
+
 			f <- found
+			sf <- systemFound
 			tn <- teamName
 			ti <- teamID
 			ia <- isAdmin
+			if systemFound {
+				is <- system.(bool)
+			}
 		})
 
 		server = httptest.NewServer(auth.WrapHandler(
@@ -119,6 +133,27 @@ var _ = Describe("WrapHandler", func() {
 
 			It("does not pass team information along in the request object", func() {
 				Expect(<-foundChan).To(BeFalse())
+			})
+		})
+
+		Context("when the userContextReader finds system information", func() {
+			BeforeEach(func() {
+				fakeUserContextReader.GetSystemReturns(true, true)
+			})
+
+			It("passes the system information along in the request object", func() {
+				Expect(<-systemFoundChan).To(BeTrue())
+				Expect(<-isSystemChan).To(BeTrue())
+			})
+		})
+
+		Context("when the userContextReader does not find system information", func() {
+			BeforeEach(func() {
+				fakeUserContextReader.GetSystemReturns(false, false)
+			})
+
+			It("does not pass the system information along in the request object", func() {
+				Expect(<-systemFoundChan).To(BeFalse())
 			})
 		})
 	})

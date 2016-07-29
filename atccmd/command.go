@@ -235,7 +235,9 @@ func (cmd *ATCCommand) Runner(args []string) (ifrit.Runner, error) {
 		drain,
 		radarSchedulerFactory,
 		radarScannerFactory,
+		cmd.Developer.DevelopmentMode,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -815,11 +817,12 @@ func (cmd *ATCCommand) constructAPIHandler(
 	drain <-chan struct{},
 	radarSchedulerFactory pipelines.RadarSchedulerFactory,
 	radarScannerFactory radar.ScannerFactory,
+	devMode bool,
 ) (http.Handler, http.Handler, error) {
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewAPIAuthWrappa(
 			cmd.constructValidator(signingKey, teamDBFactory),
-			auth.JWTReader{PublicKey: &signingKey.PublicKey},
+			auth.JWTReader{PublicKey: &signingKey.PublicKey, DevelopmentMode: devMode},
 		),
 		wrappa.NewAPIMetricsWrappa(logger),
 		wrappa.NewConcourseVersionWrappa(Version),
