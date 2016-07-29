@@ -27,7 +27,7 @@ var _ = Describe("InputDetails", func() {
 
 	Context("when pinned version is unavailable", func() {
 		BeforeEach(func() {
-			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -51,15 +51,15 @@ var _ = Describe("InputDetails", func() {
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			_, err = client.UnpausePipeline(pipelineName)
+			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			build, err = client.CreateJobBuild(pipelineName, "some-job")
+			build, err = team.CreateJobBuild(pipelineName, "some-job")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("displays input details", func() {
-			url := atcRoute(fmt.Sprintf("/pipelines/%s/jobs/some-job/builds/%s", pipelineName, build.Name))
+			url := atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/some-job/builds/%s", teamName, pipelineName, build.Name))
 
 			Expect(page.Navigate(url)).To(Succeed())
 			Eventually(page.All(".details li"), 60*time.Second).Should(HaveCount(1))
@@ -69,7 +69,7 @@ var _ = Describe("InputDetails", func() {
 
 	Context("when no versions are available", func() {
 		BeforeEach(func() {
-			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -92,15 +92,15 @@ var _ = Describe("InputDetails", func() {
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			_, err = client.UnpausePipeline(pipelineName)
+			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			build, err = client.CreateJobBuild(pipelineName, "some-job")
+			build, err = team.CreateJobBuild(pipelineName, "some-job")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("displays input details", func() {
-			url := atcRoute(fmt.Sprintf("/pipelines/%s/jobs/some-job/builds/%s", pipelineName, build.Name))
+			url := atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/some-job/builds/%s", teamName, pipelineName, build.Name))
 
 			Expect(page.Navigate(url)).To(Succeed())
 			Eventually(page.All(".details li"), 60*time.Second).Should(HaveCount(1))
@@ -110,7 +110,7 @@ var _ = Describe("InputDetails", func() {
 
 	Context("when no versions have passed constraints", func() {
 		BeforeEach(func() {
-			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -142,15 +142,15 @@ var _ = Describe("InputDetails", func() {
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
-			_, err = client.UnpausePipeline(pipelineName)
+			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			build, err = client.CreateJobBuild(pipelineName, "second-job")
+			build, err = team.CreateJobBuild(pipelineName, "second-job")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("displays input details", func() {
-			url := atcRoute(fmt.Sprintf("/pipelines/%s/jobs/second-job/builds/%s", pipelineName, build.Name))
+			url := atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/jobs/second-job/builds/%s", teamName, pipelineName, build.Name))
 
 			Expect(page.Navigate(url)).To(Succeed())
 			Eventually(page.All(".details li"), 60*time.Second).Should(HaveCount(1))

@@ -28,7 +28,7 @@ var _ = Describe("serial groups", func() {
 		})
 
 		It("runs even when another job in the serial group has a pending build", func() {
-			pendingBuild, err := client.CreateJobBuild(pipelineName, "some-pending-job")
+			pendingBuild, err := team.CreateJobBuild(pipelineName, "some-pending-job")
 			Expect(err).NotTo(HaveOccurred())
 
 			guid1 := originGitServer.Commit()
@@ -58,7 +58,7 @@ var _ = Describe("serial groups", func() {
 		})
 
 		It("is able to run second job with latest inputs", func() {
-			pendingBuild, err := client.CreateJobBuild(pipelineName, "some-pending-job")
+			pendingBuild, err := team.CreateJobBuild(pipelineName, "some-pending-job")
 			Expect(err).NotTo(HaveOccurred())
 
 			By("making a commit master, kicking off some-passing-job, and pending some-pending-job")

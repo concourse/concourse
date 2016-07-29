@@ -15,6 +15,7 @@ import (
 
 var atcURL = helpers.AtcURL()
 var pipelineName string
+var teamName string
 var publicBuild, privateBuild atc.Build
 var brokenResource atc.Resource
 
@@ -22,6 +23,7 @@ var agoutiDriver *agouti.WebDriver
 var page *agouti.Page
 
 var client concourse.Client
+var team concourse.Team
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	Eventually(helpers.ErrorPolling(atcURL)).ShouldNot(HaveOccurred())
@@ -35,7 +37,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	client, err = helpers.AllNodeClientSetup(data)
 	Expect(err).NotTo(HaveOccurred())
 
+	team = client.Team("main")
+
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
+	teamName = "main"
 
 	agoutiDriver = helpers.AgoutiDriver()
 	Expect(agoutiDriver.Start()).To(Succeed())
@@ -46,7 +51,7 @@ var _ = AfterSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	_, err := client.DeletePipeline(pipelineName)
+	_, err := team.DeletePipeline(pipelineName)
 	Expect(err).ToNot(HaveOccurred())
 
 	pushMainPipeline()
@@ -61,7 +66,7 @@ var _ = AfterEach(func() {
 	err := helpers.DeleteAllContainers(client, pipelineName)
 	Expect(err).ToNot(HaveOccurred())
 
-	_, err = client.DeletePipeline(pipelineName)
+	_, err = team.DeletePipeline(pipelineName)
 	Expect(err).ToNot(HaveOccurred())
 })
 
@@ -71,7 +76,7 @@ func TestWeb(t *testing.T) {
 }
 
 func pushMainPipeline() {
-	_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+	_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 		Jobs: []atc.JobConfig{
 			{
 				Name:   "public-job",
@@ -128,17 +133,17 @@ func pushMainPipeline() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	_, err = client.UnpausePipeline(pipelineName)
+	_, err = team.UnpausePipeline(pipelineName)
 	Expect(err).NotTo(HaveOccurred())
 
-	publicBuild, err = client.CreateJobBuild(pipelineName, "public-job")
+	publicBuild, err = team.CreateJobBuild(pipelineName, "public-job")
 	Expect(err).NotTo(HaveOccurred())
 
-	privateBuild, err = client.CreateJobBuild(pipelineName, "private-job")
+	privateBuild, err = team.CreateJobBuild(pipelineName, "private-job")
 	Expect(err).NotTo(HaveOccurred())
 
 	var found bool
-	brokenResource, found, err = client.Resource(pipelineName, "broken-resource")
+	brokenResource, found, err = team.Resource(pipelineName, "broken-resource")
 	Expect(found).To(BeTrue())
 	Expect(err).NotTo(HaveOccurred())
 }

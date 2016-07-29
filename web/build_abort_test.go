@@ -15,7 +15,7 @@ var _ = Describe("Aborting a build", func() {
 		var build atc.Build
 
 		BeforeEach(func() {
-			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Jobs: []atc.JobConfig{
 					{
 						Name: "some-job",
@@ -40,16 +40,16 @@ var _ = Describe("Aborting a build", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = client.UnpausePipeline(pipelineName)
+			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
-			build, err = client.CreateJobBuild(pipelineName, "some-job")
+			build, err = team.CreateJobBuild(pipelineName, "some-job")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("can abort the build", func() {
 			Expect(page.Navigate(atcRoute(build.URL))).To(Succeed())
-			Eventually(page).Should(HaveURL(atcRoute(fmt.Sprintf("pipelines/%s/jobs/some-job/builds/%s", pipelineName, build.Name))))
+			Eventually(page).Should(HaveURL(atcRoute(fmt.Sprintf("teams/%s/pipelines/%s/jobs/some-job/builds/%s", teamName, pipelineName, build.Name))))
 			Eventually(page.Find("h1")).Should(HaveText(fmt.Sprintf("some-job #%s", build.Name)))
 
 			Eventually(page.Find(".build-action-abort")).Should(BeFound())

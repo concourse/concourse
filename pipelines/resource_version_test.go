@@ -42,7 +42,7 @@ var _ = Describe("Resource version", func() {
 			watch = flyWatch("some-passing-job", "2")
 			Eventually(watch).Should(gbytes.Say(guid4))
 			Consistently(func() bool {
-				_, found, err := client.JobBuild(pipelineName, "some-passing-job", "3")
+				_, found, err := team.JobBuild(pipelineName, "some-passing-job", "3")
 				Expect(err).NotTo(HaveOccurred())
 				return found
 			}).Should(BeFalse())
@@ -107,7 +107,7 @@ var _ = Describe("Resource version", func() {
 			watch = flyWatch("some-passing-job", "2")
 			Eventually(watch).Should(gbytes.Say(guid3))
 			Consistently(func() bool {
-				_, found, err := client.JobBuild(pipelineName, "some-passing-job", "3")
+				_, found, err := team.JobBuild(pipelineName, "some-passing-job", "3")
 				Expect(err).NotTo(HaveOccurred())
 				return found
 			}).Should(BeFalse())

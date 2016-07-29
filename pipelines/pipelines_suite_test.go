@@ -21,6 +21,7 @@ import (
 
 var (
 	client concourse.Client
+	team   concourse.Team
 
 	flyBin string
 
@@ -47,6 +48,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	client, err = helpers.AllNodeClientSetup(data)
 	Expect(err).NotTo(HaveOccurred())
 
+	team = client.Team("main")
 	pipelineName = fmt.Sprintf("test-pipeline-%d", GinkgoParallelNode())
 })
 

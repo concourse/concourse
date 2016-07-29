@@ -16,7 +16,7 @@ var _ = Describe("Viewing resources", func() {
 		var brokenResource atc.Resource
 
 		BeforeEach(func() {
-			_, _, _, err := client.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
+			_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineName, "0", atc.Config{
 				Resources: []atc.ResourceConfig{
 					{
 						Name: "broken-resource",
@@ -31,17 +31,17 @@ var _ = Describe("Viewing resources", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = client.UnpausePipeline(pipelineName)
+			_, err = team.UnpausePipeline(pipelineName)
 			Expect(err).NotTo(HaveOccurred())
 
 			var found bool
-			brokenResource, found, err = client.Resource(pipelineName, "broken-resource")
+			brokenResource, found, err = team.Resource(pipelineName, "broken-resource")
 			Expect(found).To(BeTrue())
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("correctly displays logs", func() {
-			url := atcRoute(fmt.Sprintf("/pipelines/%s/resources/%s", pipelineName, brokenResource.Name))
+			url := atcRoute(fmt.Sprintf("/teams/%s/pipelines/%s/resources/%s", teamName, pipelineName, brokenResource.Name))
 
 			counter := 0
 			for {

@@ -31,14 +31,14 @@ var _ = Describe("the quality of having no authentication", func() {
 		Entry("index", func() string { return "/" }),
 
 		Entry("job page (publicly viewable)", func() string {
-			return fmt.Sprintf("/pipelines/%s/jobs/%s", pipelineName, publicBuild.JobName)
+			return fmt.Sprintf("/teams/%s/pipelines/%s/jobs/%s", teamName, pipelineName, publicBuild.JobName)
 		}),
 		Entry("build page (publicly viewable)", func() string {
-			return fmt.Sprintf("/pipelines/%s/jobs/%s/builds/%s", pipelineName, publicBuild.JobName, publicBuild.Name)
+			return fmt.Sprintf("/teams/%s/pipelines/%s/jobs/%s/builds/%s", teamName, pipelineName, publicBuild.JobName, publicBuild.Name)
 		}),
 
 		Entry("job page (private)", func() string {
-			return fmt.Sprintf("/pipelines/%s/jobs/%s", pipelineName, privateBuild.JobName)
+			return fmt.Sprintf("/teams/%s/pipelines/%s/jobs/%s", teamName, pipelineName, privateBuild.JobName)
 		}),
 	)
 
@@ -51,7 +51,7 @@ var _ = Describe("the quality of having no authentication", func() {
 		},
 
 		Entry("build page (private)", func() string {
-			return fmt.Sprintf("/pipelines/%s/jobs/%s/builds/%s", pipelineName, privateBuild.JobName, privateBuild.Name)
+			return fmt.Sprintf("/teams/%s/pipelines/%s/jobs/%s/builds/%s", teamName, pipelineName, privateBuild.JobName, privateBuild.Name)
 		}),
 	)
 })
