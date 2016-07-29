@@ -5,9 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"os"
 	"os/exec"
-	"runtime"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,28 +17,7 @@ import (
 )
 
 var _ = Describe("login -k Command", func() {
-	var (
-		atcServer *ghttp.Server
-
-		homeDir string
-	)
-
-	BeforeEach(func() {
-		var err error
-
-		homeDir, err = ioutil.TempDir("", "fly-test")
-		Expect(err).NotTo(HaveOccurred())
-
-		if runtime.GOOS == "windows" {
-			os.Setenv("USERPROFILE", homeDir)
-		} else {
-			os.Setenv("HOME", homeDir)
-		}
-	})
-
-	AfterEach(func() {
-		os.RemoveAll(homeDir)
-	})
+	var atcServer *ghttp.Server
 
 	Describe("login", func() {
 		var (
@@ -63,7 +40,7 @@ var _ = Describe("login -k Command", func() {
 				atcServer.AppendHandlers(
 					infoHandler(),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 						ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
 							{
 								Type:        atc.AuthTypeBasic,
@@ -73,7 +50,7 @@ var _ = Describe("login -k Command", func() {
 						}),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 						ghttp.VerifyBasicAuth("some username", "some password"),
 						ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
 							Type:  "Bearer",
@@ -120,7 +97,7 @@ var _ = Describe("login -k Command", func() {
 					atcServer.AppendHandlers(
 						infoHandler(),
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 							ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
 								{
 									Type:        atc.AuthTypeBasic,
@@ -130,7 +107,7 @@ var _ = Describe("login -k Command", func() {
 							}),
 						),
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 							ghttp.VerifyBasicAuth("some username", "some password"),
 							ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
 								Type:  "Bearer",
@@ -238,6 +215,7 @@ var _ = Describe("login -k Command", func() {
 					flyrcContents := `targets:
   some-target:
     api: ` + atcServer.URL() + `
+    team: main
     token:
       type: Bearer
       value: some-token`
@@ -249,7 +227,7 @@ var _ = Describe("login -k Command", func() {
 						atcServer.AppendHandlers(
 							infoHandler(),
 							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/api/v1/auth/methods"),
+								ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/methods"),
 								ghttp.RespondWithJSONEncoded(200, []atc.AuthMethod{
 									{
 										Type:        atc.AuthTypeBasic,
@@ -259,7 +237,7 @@ var _ = Describe("login -k Command", func() {
 								}),
 							),
 							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/api/v1/auth/token"),
+								ghttp.VerifyRequest("GET", "/api/v1/teams/main/auth/token"),
 								ghttp.VerifyBasicAuth("some username", "some password"),
 								ghttp.RespondWithJSONEncoded(200, atc.AuthToken{
 									Type:  "Bearer",

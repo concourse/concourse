@@ -15,16 +15,18 @@ type WatchCommand struct {
 }
 
 func (command *WatchCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	build, err := GetBuild(client, command.Job.JobName, command.Build, command.Job.PipelineName)
+	err = target.Validate()
+	if err != nil {
+		return err
+	}
+
+	client := target.Client()
+	build, err := GetBuild(client, target.Team(), command.Job.JobName, command.Build, command.Job.PipelineName)
 	if err != nil {
 		return err
 	}

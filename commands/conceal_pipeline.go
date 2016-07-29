@@ -7,11 +7,11 @@ import (
 	"github.com/concourse/fly/rc"
 )
 
-type UnpausePipelineCommand struct {
-	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Pipeline to unpause"`
+type ConcealPipelineCommand struct {
+	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Pipeline to conceal"`
 }
 
-func (command *UnpausePipelineCommand) Execute(args []string) error {
+func (command *ConcealPipelineCommand) Execute(args []string) error {
 	pipelineName := command.Pipeline
 
 	target, err := rc.LoadTarget(Fly.Target)
@@ -24,13 +24,13 @@ func (command *UnpausePipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	found, err := target.Team().UnpausePipeline(pipelineName)
+	found, err := target.Team().ConcealPipeline(pipelineName)
 	if err != nil {
 		return err
 	}
 
 	if found {
-		fmt.Printf("unpaused '%s'\n", pipelineName)
+		fmt.Printf("concealed '%s'\n", pipelineName)
 	} else {
 		displayhelpers.Failf("pipeline '%s' not found\n", pipelineName)
 	}

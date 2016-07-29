@@ -5,9 +5,9 @@ import (
 	"runtime"
 	"strconv"
 
-	"gopkg.in/cheggaaa/pb.v1"
+	pb "gopkg.in/cheggaaa/pb.v1"
 
-	"github.com/inconshreveable/go-update"
+	update "github.com/inconshreveable/go-update"
 
 	"github.com/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/fly/rc"
@@ -16,11 +16,12 @@ import (
 type SyncCommand struct{}
 
 func (command *SyncCommand) Execute(args []string) error {
-	client, err := rc.TargetClient(Fly.Target)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
+	client := target.Client()
 	body, headers, err := client.GetCLIReader(runtime.GOARCH, runtime.GOOS)
 	if err != nil {
 		return err

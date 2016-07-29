@@ -23,16 +23,17 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 	asJSON := command.JSON
 	pipelineName := command.Pipeline
 
-	client, err := rc.TargetClient(Fly.Target)
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, false)
+	target, err := rc.LoadTarget(Fly.Target)
 	if err != nil {
 		return err
 	}
 
-	config, rawConfig, _, _, err := client.PipelineConfig(pipelineName)
+	err = target.Validate()
+	if err != nil {
+		return err
+	}
+
+	config, rawConfig, _, _, err := target.Team().PipelineConfig(pipelineName)
 	if err != nil {
 		if _, ok := err.(concourse.PipelineConfigError); ok {
 			dumpRawConfig(rawConfig, asJSON)

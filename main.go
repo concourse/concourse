@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"regexp"
 
 	"github.com/concourse/fly/commands"
 	"github.com/concourse/fly/rc"
@@ -51,9 +50,4 @@ func main() {
 
 		os.Exit(1)
 	}
-}
-
-func isURL(passedURL string) bool {
-	matched, _ := regexp.MatchString("^http[s]?://", passedURL)
-	return matched
 }

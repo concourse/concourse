@@ -250,7 +250,7 @@ var _ = Describe("Fly CLI", func() {
 				cmdArgs = append(cmdArgs, "-j")
 				cmdArgs = append(cmdArgs, "some-pipeline/some-job")
 
-				expectedURL = "/api/v1/pipelines/some-pipeline/jobs/some-job/builds"
+				expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/builds"
 				queryParams = "limit=50"
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
@@ -313,7 +313,7 @@ var _ = Describe("Fly CLI", func() {
 					cmdArgs = append(cmdArgs, "-c")
 					cmdArgs = append(cmdArgs, "98")
 
-					expectedURL = "/api/v1/pipelines/some-pipeline/jobs/some-job/builds"
+					expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/builds"
 					queryParams = "limit=98"
 					returnedStatusCode = http.StatusOK
 					returnedBuilds = []atc.Build{

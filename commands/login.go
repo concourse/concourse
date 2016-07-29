@@ -3,8 +3,6 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/concourse/atc"
@@ -18,6 +16,7 @@ type LoginCommand struct {
 	Insecure bool   `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
 	Username string `short:"u" long:"username" description:"Username for basic auth"`
 	Password string `short:"p" long:"password" description:"Password for basic auth"`
+	TeamName string `short:"n" long:"team-name" description:"Team to authenticate with" default:"main"`
 }
 
 func (command *LoginCommand) Execute(args []string) error {
@@ -25,23 +24,27 @@ func (command *LoginCommand) Execute(args []string) error {
 		return errors.New("name for the target must be specified (--target/-t)")
 	}
 
-	var client concourse.Client
+	var target rc.Target
 	var err error
 
 	if command.ATCURL != "" {
-		client = rc.NewUnauthenticatedClient(command.ATCURL, command.Insecure)
+		target = rc.NewUnauthenticatedTarget(Fly.Target, command.ATCURL, command.TeamName, command.Insecure)
 	} else {
-		client, err = rc.CommandTargetClient(Fly.Target, &command.Insecure)
+		target, err = rc.LoadTargetWithInsecure(Fly.Target, command.TeamName, &command.Insecure)
+		if err != nil {
+			return err
+		}
 	}
-	if err != nil {
-		return err
-	}
-	err = rc.ValidateClient(client, Fly.Target, true)
 	if err != nil {
 		return err
 	}
 
-	authMethods, err := client.ListAuthMethods()
+	err = target.ValidateWithWarningOnly()
+	if err != nil {
+		return err
+	}
+
+	authMethods, err := target.Team().ListAuthMethods()
 	if err != nil {
 		return err
 	}
@@ -62,7 +65,7 @@ func (command *LoginCommand) Execute(args []string) error {
 		switch len(authMethods) {
 		case 0:
 			return command.saveTarget(
-				client.URL(),
+				target.Client().URL(),
 				&rc.TargetToken{},
 			)
 		case 1:
@@ -83,7 +86,7 @@ func (command *LoginCommand) Execute(args []string) error {
 		}
 	}
 
-	return command.loginWith(chosenMethod, client)
+	return command.loginWith(chosenMethod, target.Client())
 }
 
 func (command *LoginCommand) loginWith(method atc.AuthMethod, client concourse.Client) error {
@@ -139,21 +142,10 @@ func (command *LoginCommand) loginWith(method atc.AuthMethod, client concourse.C
 			password = string(interactivePassword)
 		}
 
-		newUnauthedClient := rc.NewUnauthenticatedClient(client.URL(), command.Insecure)
-
-		basicAuthClient := concourse.NewClient(
-			newUnauthedClient.URL(),
-			&http.Client{
-				Transport: basicAuthTransport{
-					username: username,
-					password: password,
-					base:     newUnauthedClient.HTTPClient().Transport,
-				},
-			},
-		)
+		target := rc.NewBasicAuthTarget(Fly.Target, client.URL(), command.TeamName, command.Insecure, username, password)
 
 		var err error
-		token, err = basicAuthClient.AuthToken()
+		token, err = target.Team().AuthToken()
 		if err != nil {
 			return err
 		}
@@ -173,6 +165,7 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken) error
 		Fly.Target,
 		url,
 		command.Insecure,
+		command.TeamName,
 		&rc.TargetToken{
 			Type:  token.Type,
 			Value: token.Value,
@@ -185,21 +178,4 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken) error
 	fmt.Println("target saved")
 
 	return nil
-}
-
-type basicAuthTransport struct {
-	username string
-	password string
-
-	base http.RoundTripper
-}
-
-func (t basicAuthTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	r.SetBasicAuth(t.username, t.password)
-	return t.base.RoundTrip(r)
-}
-
-func isURL(passedURL string) bool {
-	matched, _ := regexp.MatchString("^http[s]?://", passedURL)
-	return matched
 }

@@ -20,7 +20,7 @@ import (
 
 type ATCConfig struct {
 	PipelineName        string
-	Client              concourse.Client
+	Team                concourse.Team
 	WebRequestGenerator *rata.RequestGenerator
 	SkipInteraction     bool
 }
@@ -41,7 +41,7 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 
 func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariables template.Variables, templateVariablesFiles []flaghelpers.PathFlag) error {
 	newConfig := atcConfig.newConfig(configPath, templateVariablesFiles, templateVariables)
-	existingConfig, _, existingConfigVersion, _, err := atcConfig.Client.PipelineConfig(atcConfig.PipelineName)
+	existingConfig, _, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(atcConfig.PipelineName)
 	errorMessages := []string{}
 	if err != nil {
 		if configError, ok := err.(concourse.PipelineConfigError); ok {
@@ -61,7 +61,7 @@ func (atcConfig ATCConfig) Set(configPath flaghelpers.PathFlag, templateVariable
 		displayhelpers.Failf("bailing out")
 	}
 
-	created, updated, warnings, err := atcConfig.Client.CreateOrUpdatePipelineConfig(
+	created, updated, warnings, err := atcConfig.Team.CreateOrUpdatePipelineConfig(
 		atcConfig.PipelineName,
 		existingConfigVersion,
 		newConfig,
@@ -159,7 +159,10 @@ func (atcConfig ATCConfig) showHelpfulMessage(created bool, updated bool) {
 	} else if created {
 		pipelineWebReq, _ := atcConfig.WebRequestGenerator.CreateRequest(
 			web.Pipeline,
-			rata.Params{"pipeline": atcConfig.PipelineName},
+			rata.Params{
+				"pipeline":  atcConfig.PipelineName,
+				"team_name": atcConfig.Team.Name(),
+			},
 			nil,
 		)
 

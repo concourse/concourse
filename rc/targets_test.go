@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/concourse/atc"
 	"github.com/concourse/fly/rc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,61 +34,94 @@ var _ = Describe("Targets", func() {
 		os.RemoveAll(tmpDir)
 	})
 
-	Describe("Insecure Flag", func() {
-		Describe("when 'insecure' is set to false in the flyrc", func() {
-			var targetName rc.TargetName
-
+	Describe("LoadTargets", func() {
+		Context("when config file does not have team", func() {
 			BeforeEach(func() {
-				targetName = "foo"
-				err := rc.SaveTarget(
-					targetName,
-					"some api url",
-					false,
-					nil,
-				)
-				Expect(err).ToNot(HaveOccurred())
+				flyrcContents := `targets:
+  some-target:
+    api: http://concourse.com
+    token:
+      type: Bearer
+      value: some-token`
+				ioutil.WriteFile(tmpDir+"/.flyrc", []byte(flyrcContents), 0777)
 			})
 
-			It("returns the rc insecure flag as false", func() {
-				returnedTarget, err := rc.SelectTarget(targetName)
+			It("loads target with default team", func() {
+				targets, err := rc.LoadTargets()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(returnedTarget.Insecure).To(BeFalse())
-			})
-		})
-
-		Describe("when 'insecure' is set to true in the flyrc", func() {
-			var targetName rc.TargetName
-
-			BeforeEach(func() {
-				targetName = "foo"
-				err := rc.SaveTarget(
-					targetName,
-					"some api url",
-					true,
-					nil,
-				)
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("returns the rc insecure flag as true", func() {
-				returnedTarget, err := rc.SelectTarget(targetName)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(returnedTarget.Insecure).To(BeTrue())
+				Expect(targets.Targets).To(Equal(map[rc.TargetName]rc.TargetProps{
+					"some-target": rc.TargetProps{
+						API:      "http://concourse.com",
+						TeamName: atc.DefaultTeamName,
+						Token: &rc.TargetToken{
+							Type:  "Bearer",
+							Value: "some-token",
+						},
+					},
+				}))
 			})
 		})
 	})
 
-	Context("when selecting a target that does not exist", func() {
-		It("returns UnknownTargetError", func() {
-			_, err := rc.SelectTarget("bogus")
-			Expect(err).To(Equal(rc.UnknownTargetError{"bogus"}))
-		})
-	})
+	Describe("SaveTarget", func() {
+		Describe("Insecure Flag", func() {
+			Describe("when 'insecure' is set to false in the flyrc", func() {
+				var targetName rc.TargetName
 
-	Context("when a target is not specified", func() {
-		It("returns ErrNoTargetSpecified", func() {
-			_, err := rc.SelectTarget("")
-			Expect(err).To(Equal(rc.ErrNoTargetSpecified))
+				BeforeEach(func() {
+					targetName = "foo"
+					err := rc.SaveTarget(
+						targetName,
+						"some api url",
+						false,
+						"main",
+						nil,
+					)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns the rc insecure flag as false", func() {
+					returnedTarget, err := rc.SelectTarget(targetName)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(returnedTarget.Insecure).To(BeFalse())
+				})
+			})
+
+			Describe("when 'insecure' is set to true in the flyrc", func() {
+				var targetName rc.TargetName
+
+				BeforeEach(func() {
+					targetName = "foo"
+					err := rc.SaveTarget(
+						targetName,
+						"some api url",
+						true,
+						"main",
+						nil,
+					)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns the rc insecure flag as true", func() {
+					returnedTarget, err := rc.SelectTarget(targetName)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(returnedTarget.Insecure).To(BeTrue())
+				})
+			})
+		})
+
+		Context("when selecting a target that does not exist", func() {
+			It("returns UnknownTargetError", func() {
+				_, err := rc.SelectTarget("bogus")
+				Expect(err).To(Equal(rc.UnknownTargetError{"bogus"}))
+			})
+		})
+
+		Context("when a target is not specified", func() {
+			It("returns ErrNoTargetSpecified", func() {
+				_, err := rc.SelectTarget("")
+				Expect(err).To(Equal(rc.ErrNoTargetSpecified))
+			})
 		})
 	})
 })
