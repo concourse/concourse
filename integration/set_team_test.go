@@ -265,6 +265,9 @@ var _ = Describe("Fly CLI", func() {
 				cfCertFile, err = ioutil.TempFile("", "test-cf-cert")
 				Expect(err).NotTo(HaveOccurred())
 
+				err = cfCertFile.Close()
+				Expect(err).NotTo(HaveOccurred())
+
 				cmdParams = []string{
 					"--uaa-auth-client-id", "Brock Samson",
 					"--uaa-auth-client-secret", "brock123",
@@ -363,6 +366,9 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = cfCertFile.WriteString("cf-cert-contents")
+				Expect(err).NotTo(HaveOccurred())
+
+				err = cfCertFile.Close()
 				Expect(err).NotTo(HaveOccurred())
 
 				cfCertFilePath = cfCertFile.Name()
@@ -466,6 +472,9 @@ var _ = Describe("Fly CLI", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = cfCertFile.WriteString("cf-cert-contents")
+				Expect(err).NotTo(HaveOccurred())
+
+				err = cfCertFile.Close()
 				Expect(err).NotTo(HaveOccurred())
 
 				cfCertFilePath = cfCertFile.Name()
