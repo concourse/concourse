@@ -35,11 +35,6 @@ function wait_for_proc_port() {
 # don't leak client id/secret
 set +x
 
-publicly_viewable=""
-if [ "$PIPELINES_PUBLICLY_VIEWABLE" = "true" ]; then
-  publicly_viewable="--publicly-viewable"
-fi
-
 github_auth_config=""
 if [ -n "$GITHUB_AUTH_CONFIG_ORGANIZATION" ]; then
   github_auth_config="$github_auth_config --github-auth-organization $GITHUB_AUTH_CONFIG_ORGANIZATION"
@@ -57,7 +52,6 @@ $CONCOURSE web \
   --basic-auth-password "$BASIC_AUTH_PASSWORD" \
   --github-auth-client-id "$GITHUB_AUTH_CONFIG_CLIENT_ID" \
   --github-auth-client-secret "$GITHUB_AUTH_CONFIG_CLIENT_SECRET" \
-  $publicly_viewable \
   $github_auth_config \
   &
 
